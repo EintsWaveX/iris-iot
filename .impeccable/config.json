@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "instrument serif",
+        "createdAt": "2026-09-19T17:06:45.158Z",
+        "reason": "Deliberate, pre-existing brand choice: tokens.css is a byte-for-byte copy of hunt/src/style/tokens.css, where Instrument Serif was chosen for continuity with the printed Typst journals (--accent is likewise lifted from template/template.typ). Carried forward intentionally across games/, hunt/, and web/, not a fresh default."
+      }
+    ]
+  }
+}
