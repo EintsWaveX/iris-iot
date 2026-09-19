@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Fail CI only on a genuinely NEW potential secret, not on every rerun of
+the same already-audited finding.
+
+`.secrets.baseline` at the repo root is the output of `detect-secrets
+scan`, hand-audited once: every finding it contained at that point was
+individually inspected (see the Phase 1 commit message) and is a false
+positive -- a classroom Wi-Fi password on an isolated, internet-less
+network, a placeholder a student is meant to fill in, a charset constant,
+a CI-only dummy value, or a test fixture.
+
+The naive CI recipe from detect-secrets' own docs --
+
+    detect-secrets scan --baseline .secrets.baseline
+    git diff --exit-code .secrets.baseline
+
+-- compares the WHOLE baseline file, including its `generated_at`
+timestamp and `plugins_used`/`filters_used` metadata. Both drift on their
+own whenever the installed detect-secrets version differs even slightly
+between the machine that last touched the baseline and the CI runner,
+which would fail this check for reasons that have nothing to do with
+secrets. This script instead compares only the finding identities
+(filename, line number, and secret hash) between the checked-in baseline
+and a fresh scan, so it reacts to what actually matters: a NEW string
+appearing that was not there when this baseline was last audited.
+
+Usage: python scripts/check_secrets.py
+Exit 0: every finding in a fresh scan already exists in the baseline.
+Exit 1: prints each new finding and fails -- audit it, then mark the new
+entries `is_secret: false` in .secrets.baseline after confirming them by
+hand, the same way the existing ones were done.
+
+Note for local testing: `detect-secrets scan` with no path argument only
+scans files git already knows about (tracked or staged) when run inside a
+repository -- an untracked scratch file on disk is invisible to it until
+`git add`ed. This matches CI's real situation exactly (a checked-out push
+or PR is, by definition, all tracked), but it means dropping a throwaway
+test file next to your changes and running this script will NOT see it
+unless you stage it first.
+"""
+from __future__ import annotations
+
+import json
+import pathlib
+import subprocess
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+BASELINE_PATH = ROOT / ".secrets.baseline"
+
+
+def load_findings(data: dict) -> set[tuple[str, int, str]]:
+    """(filename, line_number, hashed_secret) triples -- ignores
+    `is_secret`, `type`, and all top-level metadata."""
+    out = set()
+    for filename, items in data.get("results", {}).items():
+        for item in items:
+            out.add((filename, item["line_number"], item["hashed_secret"]))
+    return out
+
+
+def main() -> int:
+    if not BASELINE_PATH.exists():
+        print(f"error: {BASELINE_PATH} does not exist", file=sys.stderr)
+        return 1
+
+    baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+    known = load_findings(baseline)
+
+    # Invoked as `python -m detect_secrets` rather than the `detect-secrets`
+    # console script: the script is not guaranteed to be on PATH (it isn't,
+    # by default, in this project's own local dev environment on Windows),
+    # while the module always is once the package is installed.
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "detect_secrets",
+            "scan",
+            "--exclude-files",
+            "node_modules/",
+            "--exclude-files",
+            r"\.git/",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=ROOT,
+    )
+    if proc.returncode != 0:
+        print(proc.stderr, file=sys.stderr)
+        return proc.returncode
+
+    fresh = json.loads(proc.stdout)
+    current = load_findings(fresh)
+
+    # A lookup back into the fresh scan, so a genuinely new finding can be
+    # reported with its human-readable type, not just its hash.
+    by_key = {}
+    for filename, items in fresh.get("results", {}).items():
+        for item in items:
+            by_key[(filename, item["line_number"], item["hashed_secret"])] = item
+
+    new = current - known
+    if new:
+        print(f"{len(new)} finding(s) not in the audited baseline:", file=sys.stderr)
+        for filename, line, _ in sorted(new):
+            kind = by_key[(filename, line, _)]["type"]
+            print(f"  {filename}:{line}  {kind}", file=sys.stderr)
+        print(
+            "\nIf this is a real secret: remove it, rotate it if it was ever live, "
+            "and do not add it to the baseline.\n"
+            "If this is a false positive: confirm it by reading the actual line, "
+            "then add it to .secrets.baseline with is_secret: false.",
+            file=sys.stderr,
+        )
+        return 1
+
+    print(f"clean: {len(current)} finding(s), all already audited")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -150,25 +150,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install detect-secrets
-      - name: Scan the tree (excluding vendored dependencies)
-        run: |
-          detect-secrets scan \
-            --exclude-files 'node_modules/' \
-            --exclude-files '\.git/' \
-            > /tmp/secrets.json
-          python - <<'PY'
-          import json, sys
-          d = json.load(open("/tmp/secrets.json"))
-          results = d.get("results", {})
-          if results:
-              print("Potential secrets found:")
-              for f, items in results.items():
-                  for it in items:
-                      print(f"  {f}:{it['line_number']}  {it['type']}")
-              sys.exit(1)
-          print("clean")
-          PY
+      # Pinned: scripts/check_secrets.py compares finding identities, not
+      # the whole baseline file, specifically so version drift in
+      # detect-secrets' own metadata format doesn't produce a false
+      # failure -- but pinning is still the right default so a scan is
+      # reproducible rather than merely tolerant of the alternative.
+      - run: pip install detect-secrets==1.5.0
+      - name: Compare against the audited baseline
+        run: python scripts/check_secrets.py
 
   deploy:
     name: deploy (Vercel)
