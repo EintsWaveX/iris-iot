@@ -27,6 +27,9 @@ web/src/data/asisten.json
 *firebase-adminsdk*.json
 *-adminsdk-*.json
 
+# Debug output from scripts/check_secrets.py
+fresh-scan.json
+
 # Runtime state that belongs to a running lab session, not to history
 hunt/jadwal.json
 hunt/jadwal.json.tmp

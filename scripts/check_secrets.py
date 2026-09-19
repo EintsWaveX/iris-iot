@@ -118,6 +118,13 @@ def main() -> int:
     fresh = json.loads(proc.stdout)
     current = load_findings(fresh)
 
+    # Always written, not just on failure: this is what makes a mismatch
+    # debuggable at all when the machine regenerating the baseline and the
+    # machine enforcing it disagree about what detect-secrets finds for
+    # identical, byte-identical source (this happened once already --
+    # see the commit that added this line for the full story).
+    (ROOT / "fresh-scan.json").write_text(json.dumps(fresh, indent=2), encoding="utf-8")
+
     # A lookup back into the fresh scan, so a genuinely new finding can be
     # reported with its human-readable type, not just its hash.
     by_key = {}

@@ -158,6 +158,13 @@ jobs:
       - run: pip install detect-secrets==1.5.0
       - name: Compare against the audited baseline
         run: python scripts/check_secrets.py
+      - name: Upload the fresh scan for debugging
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fresh-scan
+          path: fresh-scan.json
+          retention-days: 7
 
   deploy:
     name: deploy (Vercel)
