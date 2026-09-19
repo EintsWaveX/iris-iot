@@ -81,6 +81,19 @@ def main() -> int:
             "node_modules/",
             "--exclude-files",
             r"\.git/",
+            # The baseline itself is not source -- it is 67 SHA1 hashes
+            # under keys literally named "hashed_secret", which is exactly
+            # the shape the Keyword plugin looks for. Scanning it against
+            # itself would forever "discover" ~67 new findings that are
+            # nothing but the audit trail of the 67 findings already
+            # recorded. This is what --exclude-files exists for here;
+            # detect-secrets' own documented `--baseline` flag does the
+            # same exclusion automatically, but also folds
+            # version-dependent metadata into its output, which is the
+            # exact fragility this script exists to avoid (see the module
+            # docstring).
+            "--exclude-files",
+            r"\.secrets\.baseline$",
         ],
         capture_output=True,
         text=True,
