@@ -79,15 +79,31 @@ export function noStore(res: ApiResponse): void {
   res.setHeader("Cache-Control", "no-store");
 }
 
-/** Narrows an unknown catch value to "has a Postgres error code", without
- *  reaching for `any` at every call site that needs to branch on one
- *  (e.g. '23505' unique_violation from a race on a unique constraint). */
-export function pgErrorCode(err: unknown): string | undefined {
+function directErrorCode(err: unknown): string | undefined {
   if (err && typeof err === "object" && "code" in err) {
     const code = (err as { code: unknown }).code;
     return typeof code === "string" ? code : undefined;
   }
   return undefined;
+}
+
+/** Narrows an unknown catch value to "has a Postgres error code", without
+ *  reaching for `any` at every call site that needs to branch on one
+ *  (e.g. '23505' unique_violation from a race on a unique constraint).
+ *
+ *  drizzle-orm's neon-serverless driver wraps the underlying pg error in
+ *  its own DrizzleQueryError and puts the original on `.cause` (verified
+ *  against a live 23505 from the `sesi_slot_unik` constraint -- the top-
+ *  level error has no `code` of its own, only `.cause.code`). Checked
+ *  second, after the direct shape, so a plain pg error (e.g. from a
+ *  driver that doesn't wrap) still matches without going through `.cause`. */
+export function pgErrorCode(err: unknown): string | undefined {
+  return (
+    directErrorCode(err) ??
+    (err && typeof err === "object" && "cause" in err
+      ? directErrorCode((err as { cause: unknown }).cause)
+      : undefined)
+  );
 }
 
 /**

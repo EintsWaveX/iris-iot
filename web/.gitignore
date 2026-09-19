@@ -22,3 +22,12 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+.vercel
+.env*
+
+# Agent-skill files the Neon/Vercel integration drops in on `vercel link` /
+# `vercel env pull` -- local AI-tooling config, not project source.
+.agents/
+.claude/
+skills-lock.json

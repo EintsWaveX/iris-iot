@@ -4,3 +4,4 @@ node_modules/
 drizzle/
 src/data/asisten.json
 .impeccable/
+.remember/
