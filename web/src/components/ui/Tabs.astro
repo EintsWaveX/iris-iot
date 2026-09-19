@@ -1,0 +1,115 @@
+---
+/**
+ * A tab strip that shows/hides sibling panels by ID. Used for things like
+ * the four session panels in the assistant dashboard. Keyboard behaviour
+ * follows the WAI-ARIA tabs pattern (arrow keys move focus and selection
+ * together, Home/End jump to the ends).
+ *
+ * Usage:
+ *   <Tabs
+ *     id="sesi-tabs"
+ *     tabs={[{id: "s1", label: "Sesi 1"}, {id: "s2", label: "Sesi 2"}]}
+ *   />
+ *   <div id="s1" role="tabpanel">...</div>
+ *   <div id="s2" role="tabpanel" hidden>...</div>
+ */
+interface Tab {
+  id: string;
+  label: string;
+}
+
+interface Props {
+  id: string;
+  tabs: Tab[];
+  active?: string;
+}
+
+const { id, tabs, active = tabs[0]?.id } = Astro.props;
+---
+
+<div class="tabs" id={id} role="tablist" data-tabs>
+  {tabs.map((t) => (
+    <button
+      class="tabs__tab"
+      role="tab"
+      id={`${t.id}-tab`}
+      aria-controls={t.id}
+      aria-selected={t.id === active ? "true" : "false"}
+      tabindex={t.id === active ? 0 : -1}
+      data-tab-target={t.id}
+    >
+      {t.label}
+    </button>
+  ))}
+</div>
+
+<style>
+  .tabs {
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+  }
+
+  .tabs__tab {
+    border-bottom: 2px solid transparent;
+    color: var(--text-faint);
+    font-size: var(--fs-body);
+    font-weight: 500;
+    min-height: max(var(--tap), 44px);
+    padding: 0 var(--space-4);
+    white-space: nowrap;
+  }
+
+  .tabs__tab[aria-selected="true"] {
+    border-bottom-color: var(--accent);
+    color: var(--text);
+  }
+
+  .tabs__tab:hover {
+    color: var(--text);
+  }
+</style>
+
+<script>
+  (function () {
+    function panelsFor(tabs: HTMLElement) {
+      return Array.from(tabs.querySelectorAll<HTMLElement>("[data-tab-target]"));
+    }
+
+    function select(tabs: HTMLElement, targetId: string) {
+      const buttons = panelsFor(tabs);
+      for (const btn of buttons) {
+        const id = btn.getAttribute("data-tab-target")!;
+        const on = id === targetId;
+        btn.setAttribute("aria-selected", on ? "true" : "false");
+        btn.tabIndex = on ? 0 : -1;
+        const panel = document.getElementById(id);
+        if (panel) panel.hidden = !on;
+      }
+    }
+
+    document.querySelectorAll<HTMLElement>("[data-tabs]").forEach((tabs) => {
+      const buttons = panelsFor(tabs);
+
+      tabs.addEventListener("click", (ev) => {
+        const btn = (ev.target as HTMLElement).closest<HTMLElement>("[data-tab-target]");
+        if (btn) select(tabs, btn.getAttribute("data-tab-target")!);
+      });
+
+      tabs.addEventListener("keydown", (ev) => {
+        const i = buttons.findIndex((b) => b === document.activeElement);
+        if (i === -1) return;
+        let next = -1;
+        if (ev.key === "ArrowRight") next = (i + 1) % buttons.length;
+        else if (ev.key === "ArrowLeft") next = (i - 1 + buttons.length) % buttons.length;
+        else if (ev.key === "Home") next = 0;
+        else if (ev.key === "End") next = buttons.length - 1;
+        if (next === -1) return;
+        ev.preventDefault();
+        buttons[next].focus();
+        select(tabs, buttons[next].getAttribute("data-tab-target")!);
+      });
+    });
+  })();
+</script>

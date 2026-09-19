@@ -1,0 +1,154 @@
+---
+/**
+ * A data table with one built-in rule: below 640px it stops being a table
+ * and becomes a stack of label/value rows per record. This is the fix for
+ * the mobile misalignment problem the hunt/ rebuild found the hard way — a
+ * table that is genuinely too narrow for its columns is not a table anymore
+ * on a phone, and forcing it to stay one is what causes horizontal scroll
+ * and squeezed, unreadable cells. Column headers double as the row labels
+ * in the stacked mode via `data-label`, so no data is duplicated in markup.
+ */
+interface Column {
+  key: string;
+  label: string;
+  align?: "left" | "right";
+}
+
+interface Props {
+  columns: Column[];
+  rows: Record<string, unknown>[];
+  caption?: string;
+}
+
+const { columns, rows, caption } = Astro.props;
+---
+
+<div class="table-wrap">
+  <table class="table">
+    {caption && <caption class="visually-hidden">{caption}</caption>}
+    <thead>
+      <tr>
+        {columns.map((c) => (
+          <th scope="col" data-align={c.align ?? "left"}>
+            {c.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr>
+          {columns.map((c) => (
+            <td data-label={c.label} data-align={c.align ?? "left"}>
+              {row[c.key] as any}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .table-wrap {
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th,
+  td {
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+  }
+
+  th[data-align="right"],
+  td[data-align="right"] {
+    text-align: right;
+  }
+
+  thead th {
+    background: var(--bg-elevated);
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--fs-micro);
+    font-weight: 500;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  tbody tr {
+    border-top: 1px solid var(--hairline-faint);
+  }
+
+  tbody td {
+    color: var(--text);
+    font-size: var(--fs-body);
+  }
+
+  /* Below 640px: each row becomes its own card, each cell its own
+     label/value line. The header row is visually hidden but stays in the
+     DOM for the caption's sake and for anyone still using a table-aware
+     screen reader on a wide zoom. */
+  @media (max-width: 640px) {
+    .table-wrap {
+      border: none;
+      border-radius: 0;
+    }
+
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+
+    .table,
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+
+    tbody tr {
+      background: var(--bg-elevated);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-3);
+      padding: var(--space-2) var(--space-4);
+    }
+
+    td {
+      align-items: baseline;
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding: var(--space-2) 0;
+    }
+
+    td[data-align="right"] {
+      text-align: right;
+    }
+
+    td::before {
+      color: var(--text-faint);
+      content: attr(data-label);
+      flex: none;
+      font-family: var(--font-mono);
+      font-size: var(--fs-micro);
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+    }
+
+    tbody tr + tr {
+      border-top: 1px solid var(--hairline);
+    }
+  }
+</style>

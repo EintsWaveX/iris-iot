@@ -1,0 +1,174 @@
+---
+/**
+ * A centred dialog on a backdrop. One instance lives in the page (usually
+ * in Base.astro or a page layout) and is opened/closed by ID from anywhere
+ * via the tiny global API this file installs on window.
+ *
+ * Centring is grid placement (`place-items: center` on the backdrop), never
+ * `transform: translate(-50%, -50%)`. hunt/'s rebuild hit a real bug from
+ * that second approach: a GSAP entrance tween animating `y` on the same
+ * element overwrote the transform and left it stuck at `translate(-50%, 0%)`
+ * under `fill: forwards`, which silently decentred any panel tall enough to
+ * matter. Grid centring can't be clobbered by an unrelated transform tween,
+ * so this file uses it from the start rather than discovering the bug again.
+ *
+ * Usage:
+ *   <Modal id="confirm-clear" title="Clear the day plan?">
+ *     <p slot="body">...</p>
+ *     <Fragment slot="actions">
+ *       <Button kind="ghost" data-modal-close>Cancel</Button>
+ *       <Button kind="danger" id="confirm-clear-go">Clear it</Button>
+ *     </Fragment>
+ *   </Modal>
+ *   <button data-modal-open="confirm-clear">Clear day plan</button>
+ */
+interface Props {
+  id: string;
+  title: string;
+  lede?: string;
+}
+
+const { id, title, lede } = Astro.props;
+---
+
+<div class="modal" id={id} hidden data-modal>
+  <div class="modal__backdrop" data-modal-close></div>
+  <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}>
+    <header class="modal__head">
+      <h2 class="modal__title" id={`${id}-title`}>
+        {title}
+      </h2>
+      {lede && <p class="modal__lede">{lede}</p>}
+    </header>
+    <div class="modal__body">
+      <slot name="body" />
+    </div>
+    <footer class="modal__actions">
+      <slot name="actions" />
+    </footer>
+  </div>
+</div>
+
+<style>
+  .modal {
+    display: grid;
+    inset: 0;
+    padding: max(var(--space-5), env(safe-area-inset-top, 0px)) var(--space-5)
+      max(var(--space-5), env(safe-area-inset-bottom, 0px));
+    place-items: center;
+    position: fixed;
+    z-index: 100;
+  }
+
+  .modal[hidden] {
+    display: none;
+  }
+
+  .modal__backdrop {
+    background: var(--scrim);
+    inset: 0;
+    position: absolute;
+  }
+
+  .modal__panel {
+    background: var(--bg-elevated);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lift);
+    max-height: 100%;
+    max-width: min(32rem, 100%);
+    overflow-y: auto;
+    padding: var(--space-6);
+    position: relative;
+    width: 100%;
+  }
+
+  .modal__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+
+  .modal__title {
+    font-size: var(--fs-display-sm);
+  }
+
+  .modal__lede {
+    color: var(--text-muted);
+  }
+
+  .modal__actions {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: flex-end;
+    margin-top: var(--space-6);
+  }
+
+  @media (max-width: 480px) {
+    .modal__actions {
+      flex-direction: column-reverse;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * window.Modal = { open(id), close(id) }
+   *
+   * Deliberately not a framework component: modals are opened from plain
+   * <button data-modal-open="id"> triggers scattered across static Astro
+   * markup, so a global, dependency-free controller is the simplest thing
+   * that can wire an arbitrary trigger to an arbitrary modal without every
+   * page needing its own script.
+   */
+  (function () {
+    if (window.Modal) return; // one controller for the whole page
+
+    let openId: string | null = null;
+
+    function panelOf(id: string) {
+      return document.getElementById(id);
+    }
+
+    function open(id: string) {
+      const el = panelOf(id);
+      if (!el) return;
+      el.hidden = false;
+      openId = id;
+      document.body.style.overflow = "hidden";
+      const focusable = el.querySelector<HTMLElement>(
+        "button, [href], input, select, textarea, [tabindex]",
+      );
+      focusable?.focus();
+    }
+
+    function close(id?: string) {
+      const target = id ?? openId;
+      if (!target) return;
+      const el = panelOf(target);
+      if (el) el.hidden = true;
+      if (target === openId) openId = null;
+      document.body.style.overflow = "";
+    }
+
+    document.addEventListener("click", (ev) => {
+      const trigger = (ev.target as HTMLElement).closest<HTMLElement>("[data-modal-open]");
+      if (trigger) {
+        open(trigger.getAttribute("data-modal-open")!);
+        return;
+      }
+      const closer = (ev.target as HTMLElement).closest<HTMLElement>("[data-modal-close]");
+      if (closer) {
+        const panel = closer.closest<HTMLElement>("[data-modal]");
+        if (panel) close(panel.id);
+      }
+    });
+
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && openId) close();
+    });
+
+    window.Modal = { open, close };
+  })();
+</script>

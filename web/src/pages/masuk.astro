@@ -1,0 +1,164 @@
+---
+/**
+ * The login screen. Two roles, one page, switched by tabs rather than two
+ * separate routes — a practitioner and an assistant are both here to do
+ * the same thing (prove who they are), and a shared page keeps the two
+ * forms visually and behaviourally consistent by construction.
+ *
+ * Bilingual (ID/EN) parity is a Phase 3 concern once real module content
+ * exists to translate; this page is Indonesian only for now, matching
+ * hunt/'s own default language and the primary language of instruction.
+ */
+import Base from "../layouts/Base.astro";
+import Nav from "../components/ui/Nav.astro";
+import Card from "../components/ui/Card.astro";
+import Field from "../components/ui/Field.astro";
+import Button from "../components/ui/Button.astro";
+import Tabs from "../components/ui/Tabs.astro";
+import Toast from "../components/ui/Toast.astro";
+
+const links = [
+  { href: "/", label: "Beranda" },
+  { href: "/masuk", label: "Masuk" },
+];
+---
+
+<Base title="Masuk — IRIS IoT" description="Masuk sebagai praktikan atau asisten.">
+  <Nav links={links} current="/masuk" />
+  <Toast />
+
+  <main class="measure narrow">
+    <section class="section">
+      <h1 class="section__title">Masuk</h1>
+      <p class="eyebrow">Praktikan memakai NIM saja &middot; asisten memakai NIM dan kata sandi</p>
+    </section>
+
+    <Card>
+      <Tabs
+        id="peran-tabs"
+        tabs={[
+          { id: "panel-praktikan", label: "Praktikan" },
+          { id: "panel-asisten", label: "Asisten" },
+        ]}
+      />
+
+      <div id="panel-praktikan" role="tabpanel" class="panel">
+        <form id="form-praktikan" novalidate>
+          <Field
+            id="praktikan-nim"
+            label="NIM"
+            name="nim"
+            placeholder="2311102001"
+            required
+            autocomplete="username"
+            hint="4–20 karakter, huruf dan angka."
+          />
+          <Button kind="primary" type="submit" id="praktikan-submit">
+            Masuk
+          </Button>
+        </form>
+      </div>
+
+      <div id="panel-asisten" role="tabpanel" class="panel" hidden>
+        <form id="form-asisten" novalidate>
+          <Field
+            id="asisten-nim"
+            label="NIM"
+            name="nim"
+            placeholder="101022300013"
+            required
+            autocomplete="username"
+          />
+          <Field
+            id="asisten-password"
+            label="Kata sandi"
+            name="password"
+            type="password"
+            required
+            autocomplete="current-password"
+          />
+          <Button kind="primary" type="submit" id="asisten-submit">
+            Masuk
+          </Button>
+        </form>
+      </div>
+    </Card>
+  </main>
+
+  <script>
+    type LoginFailure = { ok: false; kode: string };
+
+    const KODE_PESAN: Record<string, string> = {
+      format_salah: "Formatnya belum benar. Periksa kembali isiannya.",
+      terkunci: "Terlalu banyak percobaan gagal. Coba lagi dalam beberapa menit.",
+      tidak_cocok: "NIM atau kata sandi tidak cocok.",
+      tidak_ada_sesi: "Belum ada sesi yang berjalan. Tunggu asisten membukanya.",
+      tidak_terdaftar: "NIM ini tidak terdaftar di sesi yang sedang berjalan.",
+      galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
+    };
+
+    function pesanUntuk(kode: string): string {
+      return KODE_PESAN[kode] ?? "Masuk gagal. Coba lagi.";
+    }
+
+    async function submitLogin(url: string, body: Record<string, string>, submitBtnId: string) {
+      const btn = document.getElementById(submitBtnId) as HTMLButtonElement | null;
+      btn?.setAttribute("data-loading", "yes");
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          window.location.href = "/dashboard";
+          return;
+        }
+        window.Toast?.show(pesanUntuk((data as LoginFailure).kode), "danger");
+      } catch {
+        window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+      } finally {
+        btn?.setAttribute("data-loading", "no");
+      }
+    }
+
+    document.getElementById("form-praktikan")?.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const nim = (document.getElementById("praktikan-nim") as HTMLInputElement).value;
+      submitLogin("/api/auth/praktikan", { nim }, "praktikan-submit");
+    });
+
+    document.getElementById("form-asisten")?.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const nim = (document.getElementById("asisten-nim") as HTMLInputElement).value;
+      const password = (document.getElementById("asisten-password") as HTMLInputElement).value;
+      submitLogin("/api/auth/asisten", { nim, password }, "asisten-submit");
+    });
+
+    // Already signed in? Skip the form.
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) window.location.href = "/dashboard";
+      })
+      .catch(() => {});
+  </script>
+</Base>
+
+<style>
+  .narrow {
+    max-width: 32rem;
+    padding-block: var(--space-9) var(--space-9);
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .panel {
+    padding-top: var(--space-6);
+  }
+</style>

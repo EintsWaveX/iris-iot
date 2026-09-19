@@ -10,6 +10,11 @@ games/index.html
 games/public/index.html
 hunt/public/index.html
 
+# Generated from Module - IRIS IoT/data_asisten.typ by scripts/seed_asisten.py.
+# Regenerated in CI on every run so the site can never silently drift from
+# the (finalized, never-hand-edited) handbook.
+web/src/data/asisten.json
+
 # Environment / secrets
 .env
 .env.*

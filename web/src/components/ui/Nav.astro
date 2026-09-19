@@ -1,0 +1,140 @@
+---
+/**
+ * The top navigation bar, shared by every page. Two lessons carried over
+ * verbatim from the hunt/ mobile rebuild, because both bugs are easy to
+ * reintroduce by accident in a new codebase:
+ *
+ * 1. `position: fixed` plus `backdrop-filter` on the SAME element makes
+ *    that element a containing block for its own fixed-position
+ *    descendants — a `position: fixed` child meant to escape it instead
+ *    gets pinned inside it. This bar is one flat element with no fixed
+ *    descendants, so the trap doesn't apply, but if a dropdown or a chip
+ *    is ever added inside it, it must NOT be `position: fixed`.
+ * 2. `position: fixed` creates a stacking context, so a z-index set on a
+ *    descendant is scoped INSIDE that context and can still paint below an
+ *    unrelated fixed sibling with a lower z-index than the descendant's
+ *    number suggests. hunt/'s bug: a bar at z-index 44 sat above a nav at
+ *    z-index 40, even though the nav's own children were set to z-index 45
+ *    — those 45s were scoped inside the nav's context and never competed
+ *    at the top level at all. Fixed here by giving the bar itself the
+ *    highest top-level z-index and never trying to out-rank it from inside
+ *    a different stacking context.
+ */
+interface Link {
+  href: string;
+  label: string;
+}
+
+interface Props {
+  links: Link[];
+  current?: string;
+}
+
+const { links, current = Astro.url.pathname } = Astro.props;
+---
+
+<header class="nav">
+  <a class="nav__brand" href="/">
+    <span class="nav__mark" aria-hidden="true">
+      ◎
+    </span>
+    <span class="nav__wordmark">IRIS</span>
+  </a>
+  <nav class="nav__links" aria-label="Utama">
+    {links.map((l) => (
+      <a
+        class="nav__link"
+        href={l.href}
+        aria-current={current === l.href ? "page" : undefined}
+        data-active={current === l.href ? "yes" : "no"}
+      >
+        {l.label}
+      </a>
+    ))}
+  </nav>
+  <div class="nav__side">
+    <slot name="side" />
+  </div>
+</header>
+
+<style>
+  .nav {
+    align-items: center;
+    background: var(--panel-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    gap: var(--space-5);
+    justify-content: space-between;
+    min-height: var(--nav-size);
+    padding: 0 var(--gutter);
+    padding-top: env(safe-area-inset-top, 0px);
+    position: sticky;
+    top: 0;
+    /* Highest top-level z-index on the page: a modal (100) and the toast host (200) sit above it deliberately. */
+    z-index: 50;
+  }
+
+  .nav__brand {
+    align-items: center;
+    color: var(--text);
+    display: flex;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--fs-body);
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    min-height: max(var(--tap), 44px);
+    min-width: 44px;
+  }
+
+  .nav__mark {
+    color: var(--accent);
+    font-size: 1.1em;
+  }
+
+  .nav__links {
+    align-items: center;
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+  }
+
+  .nav__link {
+    align-items: center;
+    color: var(--text-muted);
+    display: flex;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    min-height: max(var(--tap), 44px);
+    padding: 0 var(--space-3);
+    white-space: nowrap;
+  }
+
+  .nav__link[data-active="yes"] {
+    box-shadow: inset 0 -2px 0 var(--accent);
+    color: var(--text);
+  }
+
+  .nav__link:hover {
+    color: var(--text);
+  }
+
+  .nav__side {
+    align-items: center;
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  @media (max-width: 640px) {
+    .nav {
+      gap: var(--space-3);
+      padding-inline: var(--space-4);
+    }
+
+    .nav__wordmark {
+      display: none;
+    }
+  }
+</style>

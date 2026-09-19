@@ -1,0 +1,48 @@
+---
+/**
+ * The "nothing here yet" state — no session running, no servers registered,
+ * no roster pasted. Every list on the site that can legitimately be empty
+ * uses this instead of silently rendering nothing, which is how a working
+ * page gets mistaken for a broken one.
+ */
+interface Props {
+  title: string;
+  hint?: string;
+}
+
+const { title, hint } = Astro.props;
+---
+
+<div class="empty">
+  <p class="empty__title">{title}</p>
+  {hint && <p class="empty__hint">{hint}</p>}
+  <div class="empty__actions">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .empty {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-8) var(--space-5);
+    text-align: center;
+  }
+
+  .empty__title {
+    color: var(--text-muted);
+    font-size: var(--fs-body-lg);
+  }
+
+  .empty__hint {
+    color: var(--text-faint);
+    font-size: var(--fs-small);
+    max-width: 40ch;
+  }
+
+  .empty__actions:empty {
+    display: none;
+  }
+</style>

@@ -1,0 +1,93 @@
+---
+/**
+ * Homepage. Deliberately minimal for Phase 1: the four modules' real
+ * content, the live layer X-ray, and the server/device registry are each
+ * their own phase (see the Phase 1 plan's roadmap) and don't exist yet.
+ * What has to be true today is that the site has a front door, it says
+ * what it is, and it gets a practitioner or an assistant to /masuk.
+ */
+import Base from "../layouts/Base.astro";
+import Nav from "../components/ui/Nav.astro";
+import Button from "../components/ui/Button.astro";
+import Card from "../components/ui/Card.astro";
+
+const links = [
+  { href: "/", label: "Beranda" },
+  { href: "/masuk", label: "Masuk" },
+];
+---
+
+<Base title="IRIS IoT" description="Praktikum IoT IRIS — empat modul, satu papan.">
+  <Nav links={links} current="/" />
+
+  <main class="measure">
+    <section class="hero">
+      <p class="eyebrow eyebrow--accent">Praktikum IoT &middot; Laboratorium IRIS</p>
+      <h1 class="hero__title">
+        Empat modul.
+        <br />
+        Satu papan.
+      </h1>
+      <p class="hero__lede">
+        BLE, WebSocket, MQTT, dan LoRa — satu tempat untuk jurnal, jadwal sesi, dan papan skor
+        praktikum IoT IRIS.
+      </p>
+      <div class="hero__actions">
+        <Button kind="primary" href="/masuk">
+          Masuk
+        </Button>
+        <Button kind="ghost" href="/ui">
+          Panduan gaya
+        </Button>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="modules">
+        <Card eyebrow="Modul 1" title="Bluetooth Low Energy">
+          <p>Central/Peripheral GATT, dua ESP32 tanpa jaringan IP.</p>
+        </Card>
+        <Card eyebrow="Modul 2" title="WebSocket">
+          <p>ESP32 ke server Python di Orange Pi, lewat Wi-Fi lokal.</p>
+        </Card>
+        <Card eyebrow="Modul 3" title="MQTT">
+          <p>Publish/subscribe lewat broker Eclipse Mosquitto.</p>
+        </Card>
+        <Card eyebrow="Modul 4" title="LoRa">
+          <p>Perburuan LoRa P2P, lalu LoRaWAN lewat gateway.</p>
+        </Card>
+      </div>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding-block: var(--space-10) var(--space-8);
+  }
+
+  .hero__title {
+    font-size: var(--fs-display-xl);
+  }
+
+  .hero__lede {
+    color: var(--text-muted);
+    font-size: var(--fs-body-lg);
+    max-width: 48ch;
+  }
+
+  .hero__actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+
+  .modules {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
+</style>

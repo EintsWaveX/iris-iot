@@ -1,0 +1,45 @@
+{
+  "name": "web",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx scripts/seed-db.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "astro": "^7.3.3",
+    "drizzle-orm": "^0.45.2",
+    "ws": "^8.21.3"
+  },
+  "allowScripts": {
+    "esbuild": true
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.6.2",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^8.70.0",
+    "@typescript-eslint/parser": "^8.70.0",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^10.11.0",
+    "eslint-plugin-astro": "^3.2.1",
+    "prettier": "^3.9.8",
+    "prettier-plugin-astro": "^1.0.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.1"
+  }
+}

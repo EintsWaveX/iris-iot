@@ -1,0 +1,358 @@
+---
+/**
+ * The one dashboard, rendered differently per role after the client
+ * learns who is signed in from /api/auth/me — the same "static shell,
+ * client fills in the role-specific view" shape as /masuk, and for the
+ * same reason: output: 'static' pages have no request-time cookie access.
+ *
+ * A practitioner sees which group they landed in. An assistant sees the
+ * running session (or a form to start one) and the roster paste box —
+ * the two things the Phase 1 verification checklist actually exercises:
+ * "paste a roster, save it, log in as one of its students by NIM alone,
+ * land in the right group."
+ *
+ * This is deliberately not the real assistant console hunt/'s
+ * ui-assistant.js already built (four session panels, per-row editing,
+ * round-trip paste rendering) — that UI gets absorbed wholesale in
+ * Phase 4. This page only has to prove the Phase 1 data path works.
+ */
+import Base from "../layouts/Base.astro";
+import Nav from "../components/ui/Nav.astro";
+import Card from "../components/ui/Card.astro";
+import Field from "../components/ui/Field.astro";
+import Select from "../components/ui/Select.astro";
+import Button from "../components/ui/Button.astro";
+import Badge from "../components/ui/Badge.astro";
+import EmptyState from "../components/ui/EmptyState.astro";
+import Toast from "../components/ui/Toast.astro";
+
+const links = [
+  { href: "/", label: "Beranda" },
+  { href: "/dashboard", label: "Dasbor" },
+];
+---
+
+<Base title="Dasbor — IRIS IoT">
+  <Nav links={links} current="/dashboard">
+    <Fragment slot="side">
+      <Button kind="ghost" id="btn-keluar" class="hidden-until-known">
+        Keluar
+      </Button>
+    </Fragment>
+  </Nav>
+  <Toast />
+
+  <main class="measure">
+    <div id="loading">
+      <EmptyState title="Memuat…" />
+    </div>
+
+    <div id="view-praktikan" hidden>
+      <section class="section">
+        <h1 class="section__title">Selamat datang</h1>
+      </section>
+      <Card id="praktikan-card">
+        <p id="praktikan-nama" class="who"></p>
+        <p class="who__group">
+          <Badge id="praktikan-badge">Kelompok</Badge>
+          <span id="praktikan-regu-nama"></span>
+        </p>
+      </Card>
+    </div>
+
+    <div id="view-asisten" hidden>
+      <section class="section">
+        <h1 class="section__title">Sesi hari ini</h1>
+      </section>
+
+      <Card id="tanpa-sesi" title="Belum ada sesi yang berjalan">
+        <form id="form-sesi-baru">
+          <div class="grid3">
+            <Field
+              id="sesi-tanggal"
+              label="Tanggal"
+              type="text"
+              placeholder="2026-09-19"
+              required
+            />
+            <Field id="sesi-mulai" label="Jam mulai" type="time" value="06:30" required />
+            <Select
+              id="sesi-modul"
+              label="Modul"
+              options={[
+                { value: "1", label: "Modul 1 — BLE" },
+                { value: "2", label: "Modul 2 — WebSocket" },
+                { value: "3", label: "Modul 3 — MQTT" },
+                { value: "4", label: "Modul 4 — LoRa" },
+              ]}
+            />
+          </div>
+          <Button kind="primary" type="submit" id="sesi-baru-submit">
+            Mulai sesi
+          </Button>
+        </form>
+      </Card>
+
+      <Card id="dengan-sesi" title="" hidden>
+        <p class="sesi-info" id="sesi-info"></p>
+
+        <label class="paste-label" for="roster-paste">
+          Tempel daftar kelompok
+        </label>
+        <textarea
+          id="roster-paste"
+          class="roster-paste mono"
+          rows="10"
+          placeholder={
+            "#1 Kelompok Cakra\n2311102001, Alya Rahmawati\n2311102014  Bagus Prasetyo\n\n#2 Kelompok Bayu\n2311102033 Dimas Aditya"
+          }
+        ></textarea>
+        <p class="tally" id="roster-tally" data-bad="no"></p>
+        <ul class="errors" id="roster-errors"></ul>
+
+        <Button kind="primary" id="roster-save" disabled>
+          Simpan
+        </Button>
+      </Card>
+    </div>
+  </main>
+
+  <script>
+    import { parseRosterPaste } from "../lib/roster-parser";
+
+    const KODE_PESAN: Record<string, string> = {
+      format_salah: "Formatnya belum benar.",
+      sudah_ada: "Sesi dengan tanggal, jam, dan modul yang sama sudah ada.",
+      galat_tempel: "Masih ada baris yang bermasalah pada tempelan.",
+      sesi_tidak_ada: "Sesi ini tidak ditemukan.",
+      nim_dipakai_sesi_lain: "Satu atau lebih NIM sudah dipakai di sesi lain hari ini.",
+      galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
+    };
+
+    function pesanUntuk(kode: string): string {
+      return KODE_PESAN[kode] ?? "Terjadi kesalahan.";
+    }
+
+    function show(id: string) {
+      document.getElementById(id)!.hidden = false;
+    }
+    function hide(id: string) {
+      document.getElementById(id)!.hidden = true;
+    }
+
+    async function init() {
+      const me = await fetch("/api/auth/me").then((r) => r.json());
+      if (!me.ok) {
+        window.location.href = "/masuk";
+        return;
+      }
+
+      hide("loading");
+      document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
+
+      if (me.role === "praktikan") {
+        show("view-praktikan");
+        document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
+        document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.regu}`;
+      } else {
+        show("view-asisten");
+        await loadSesi();
+      }
+    }
+
+    async function loadSesi() {
+      const data = await fetch("/api/sesi/current").then((r) => r.json());
+      if (!data.ok || !data.sesi) {
+        show("tanpa-sesi");
+        hide("dengan-sesi");
+        return;
+      }
+
+      hide("tanpa-sesi");
+      show("dengan-sesi");
+      const s = data.sesi;
+      document.getElementById("sesi-info")!.textContent =
+        `Sesi #${s.id} · Modul ${s.modul} · ${s.tanggal} ${s.mulai}`;
+
+      const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
+      const roster = data.roster ?? [];
+      const lines: string[] = [];
+      for (const g of roster) {
+        lines.push(`#${g.nomor}${g.nama ? " " + g.nama : ""}`);
+        for (const m of g.anggota) lines.push(`${m.nim}${m.nama ? ", " + m.nama : ""}`);
+        lines.push("");
+      }
+      textarea.value = lines.join("\n").trim();
+      textarea.dataset.sesiId = String(s.id);
+      repaintTally();
+    }
+
+    function repaintTally() {
+      const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
+      const tally = document.getElementById("roster-tally")!;
+      const errorsEl = document.getElementById("roster-errors")!;
+      const saveBtn = document.getElementById("roster-save") as HTMLButtonElement;
+
+      const parsed = parseRosterPaste(textarea.value);
+      tally.textContent = `${parsed.groups.length} kelompok · ${parsed.total} anggota · ${parsed.errors.length} galat`;
+      tally.dataset.bad = parsed.errors.length ? "yes" : "no";
+
+      errorsEl.innerHTML = "";
+      for (const e of parsed.errors) {
+        const li = document.createElement("li");
+        li.textContent =
+          e.kode === "tanpa_kelompok"
+            ? `Baris ${e.baris}: belum ada kelompok yang dibuka dengan #`
+            : e.kode === "nim_ganda"
+              ? `NIM ${e.nim} muncul dua kali`
+              : `Baris ${e.baris}: bukan NIM dan nama`;
+        errorsEl.appendChild(li);
+      }
+
+      saveBtn.disabled = parsed.errors.length > 0 || textarea.value.trim().length === 0;
+    }
+
+    document.getElementById("roster-paste")?.addEventListener("input", repaintTally);
+
+    document.getElementById("roster-save")?.addEventListener("click", async () => {
+      const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
+      const sesiId = Number(textarea.dataset.sesiId);
+      const btn = document.getElementById("roster-save") as HTMLButtonElement;
+      btn.setAttribute("data-loading", "yes");
+      try {
+        const res = await fetch("/api/sesi/roster", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sesiId, paste: textarea.value }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          window.Toast?.show(`Tersimpan: ${data.groups} kelompok, ${data.total} anggota.`, "ok");
+        } else {
+          window.Toast?.show(pesanUntuk(data.kode), "danger");
+        }
+      } catch {
+        window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+      } finally {
+        btn.setAttribute("data-loading", "no");
+      }
+    });
+
+    document.getElementById("form-sesi-baru")?.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const tanggal = (document.getElementById("sesi-tanggal") as HTMLInputElement).value;
+      const mulai = (document.getElementById("sesi-mulai") as HTMLInputElement).value;
+      const modul = (document.getElementById("sesi-modul") as HTMLSelectElement).value;
+      const btn = document.getElementById("sesi-baru-submit") as HTMLButtonElement;
+      btn.setAttribute("data-loading", "yes");
+      try {
+        const res = await fetch("/api/sesi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tanggal, mulai, modul: Number(modul) }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          await loadSesi();
+        } else {
+          window.Toast?.show(pesanUntuk(data.kode), "danger");
+        }
+      } catch {
+        window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+      } finally {
+        btn.setAttribute("data-loading", "no");
+      }
+    });
+
+    document.getElementById("btn-keluar")?.addEventListener("click", async () => {
+      await fetch("/api/auth/keluar", { method: "POST" });
+      window.location.href = "/masuk";
+    });
+
+    init();
+  </script>
+</Base>
+
+<style>
+  .who {
+    font-size: var(--fs-display-sm);
+    font-family: var(--font-display);
+    color: var(--text);
+  }
+
+  .who__group {
+    align-items: center;
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+
+  .grid3 {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    margin-bottom: var(--space-5);
+  }
+
+  #form-sesi-baru {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sesi-info {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    margin-bottom: var(--space-5);
+  }
+
+  .paste-label {
+    color: var(--text-muted);
+    display: block;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    margin-bottom: var(--space-2);
+  }
+
+  .roster-paste {
+    background: var(--bg-sunken);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-size: var(--fs-small);
+    line-height: 1.6;
+    padding: var(--space-4);
+    resize: vertical;
+    width: 100%;
+  }
+
+  .roster-paste:focus-visible {
+    border-color: var(--accent);
+  }
+
+  .tally {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    margin-top: var(--space-3);
+  }
+
+  .tally[data-bad="yes"] {
+    color: var(--danger);
+  }
+
+  .errors {
+    color: var(--danger);
+    font-size: var(--fs-small);
+    list-style: disc;
+    margin: var(--space-2) 0 0 var(--space-5);
+  }
+
+  #roster-save {
+    margin-top: var(--space-5);
+  }
+
+  .hidden-until-known {
+    visibility: hidden;
+  }
+</style>

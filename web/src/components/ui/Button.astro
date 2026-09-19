@@ -1,0 +1,145 @@
+---
+/**
+ * The one button. Every clickable action on the site is either this, or a
+ * plain <a> styled to match it — never a one-off <button> with inline
+ * styles. That is what "consistent styles for every button" means in
+ * practice: one file that owns the visual contract, everything else calls it.
+ *
+ * kind: "primary" is the accent-filled call to action (one per view, at
+ * most); "ghost" is the quiet default; "danger" is for destructive actions
+ * (matches the audit-log rule in the Phase 1 plan: destructive assistant
+ * actions get a visually distinct control, not just a second click).
+ */
+interface Props {
+  kind?: "primary" | "ghost" | "danger";
+  type?: "button" | "submit" | "reset";
+  disabled?: boolean;
+  loading?: boolean;
+  href?: string;
+  class?: string;
+  id?: string;
+  [attr: string]: unknown;
+}
+
+const {
+  kind = "ghost",
+  type = "button",
+  disabled = false,
+  loading = false,
+  href,
+  class: className,
+  id,
+  ...rest
+} = Astro.props;
+
+const Tag = href ? "a" : "button";
+---
+
+<Tag
+  id={id}
+  class:list={["btn", `btn--${kind}`, className]}
+  href={href}
+  type={href ? undefined : type}
+  disabled={href ? undefined : disabled || loading}
+  aria-disabled={loading ? "true" : undefined}
+  data-loading={loading ? "yes" : "no"}
+  {...rest}
+>
+  <span class="btn__label">
+    <slot />
+  </span>
+  <span class="btn__spinner" aria-hidden="true"></span>
+</Tag>
+
+<style>
+  .btn {
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    display: inline-flex;
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    font-weight: 500;
+    gap: var(--space-2);
+    justify-content: center;
+    min-height: max(var(--tap), 44px);
+    padding: 0 var(--space-5);
+    position: relative;
+    transition:
+      background var(--dur-fast) var(--ease-reveal),
+      border-color var(--dur-fast) var(--ease-reveal),
+      color var(--dur-fast) var(--ease-reveal),
+      opacity var(--dur-fast) var(--ease-reveal);
+  }
+
+  .btn:hover:not(:disabled) {
+    border-color: var(--hairline-strong);
+    background: var(--hairline-faint);
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .btn--primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .btn--primary:hover:not(:disabled) {
+    background: var(--accent-bright);
+    border-color: var(--accent-bright);
+  }
+
+  .btn--danger {
+    border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+    color: var(--danger);
+  }
+
+  .btn--danger:hover:not(:disabled) {
+    background: var(--danger-soft);
+    border-color: var(--danger);
+  }
+
+  .btn__spinner {
+    display: none;
+  }
+
+  /* A loading button keeps its width (no layout shift when the label swaps
+     for a spinner) and stops presenting as clickable, without actually
+     disabling the element — a real in-flight request should still be
+     inspectable/cancellable by the platform, just not re-triggerable by a
+     second click. aria-disabled achieves that; the disabled attribute would
+     also drop it from the tab order. */
+  .btn[data-loading="yes"] .btn__label {
+    visibility: hidden;
+  }
+
+  .btn[data-loading="yes"] .btn__spinner {
+    animation: btn-spin 0.7s linear infinite;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-top-color: transparent;
+    display: block;
+    height: 1em;
+    position: absolute;
+    width: 1em;
+  }
+
+  @keyframes btn-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn[data-loading="yes"] .btn__spinner {
+      animation-duration: 1.4s;
+    }
+  }
+</style>

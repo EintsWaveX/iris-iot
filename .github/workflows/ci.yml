@@ -1,0 +1,198 @@
+name: CI
+
+# Runs on every push and pull request, per the Phase 1 plan's CI/CD section.
+# Five jobs, each independently useful as a regression gate:
+#
+#   web     the new Astro app: typecheck, lint, format, unit tests, build
+#   games   the existing tournament site's own test suites (unchanged this
+#           phase) plus a rebuild, so a change elsewhere in the repo can
+#           never silently break it without CI noticing
+#   hunt    the existing LoRa hunt board: start the real server, run its
+#           74-assertion protocol suite against it, plus a rebuild
+#   secrets a repo-wide scan for anything that looks like a credential
+#   deploy  Vercel preview on a PR, production on main -- gated on the
+#           required secrets actually being present (see the note on that
+#           job below)
+#
+# On "rebuild and diff" vs "rebuild and require success": games/index.html,
+# games/public/index.html and hunt/public/index.html are gitignored, not
+# committed -- both sites' own docs already describe them as local build
+# output regenerated immediately before a manual deploy, never as
+# version-controlled artifacts. With nothing committed, there is nothing
+# for a rebuild to go stale AGAINST, which is a stronger fix for the
+# "stale build shipped silently" failure the plan's CI section names
+# (games/REBUILD.md gotcha 2) than diffing would have been: every deploy is
+# built from current source by construction, not merely checked against one
+# that might itself be stale.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  web:
+    name: web (typecheck, lint, format, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Regenerates src/data/asisten.json from the handbook before anything
+      # else runs, so the build always reflects the current roster rather
+      # than whatever happened to be committed (it is gitignored -- see
+      # .gitignore's note on why).
+      - name: Extract assistant roster from the handbook
+        working-directory: .
+        run: python scripts/seed_asisten.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # A build-time placeholder. Nothing in the static build path
+          # touches the database -- getDb() is called only from api/*
+          # request handlers, which Vercel's own build never invokes -- but
+          # setting this avoids any future accidental import-time access
+          # throwing during `astro build` instead of failing loudly with a
+          # clear message the way src/lib/db.ts intends.
+          DATABASE_URL: "postgres://ci:ci@localhost:5432/ci_placeholder"
+          SESSION_SECRET: "ci-only-placeholder-secret-not-for-production-use"
+
+  games:
+    name: games (existing test suites + rebuild)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: games
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - name: Pure engine tests (~5088 assertions)
+        run: node test_engine.mjs
+      - name: API handler tests (against a stubbed firebase-admin)
+        run: node test_api.mjs
+      - name: Rebuild
+        run: python build.py --standalone
+
+  hunt:
+    name: hunt (protocol suite against a live server + rebuild)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hunt
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "websockets>=13"
+
+      - name: Start the server with a fixed token
+        run: |
+          python server.py --token UJICI --arena 300 &
+          echo $! > server.pid
+          # Give the WebSocket listener a moment to bind before the
+          # protocol suite starts connecting to it.
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8080/roster.json > /dev/null 2>&1 && break
+            sleep 0.5
+          done
+
+      - name: Protocol suite (74 assertions)
+        run: python tools/uji_protokol.py --token UJICI
+
+      - name: Stop the server
+        if: always()
+        run: kill "$(cat server.pid)" 2>/dev/null || true
+
+      - name: Rebuild
+        run: python build.py
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install detect-secrets
+      - name: Scan the tree (excluding vendored dependencies)
+        run: |
+          detect-secrets scan \
+            --exclude-files 'node_modules/' \
+            --exclude-files '\.git/' \
+            > /tmp/secrets.json
+          python - <<'PY'
+          import json, sys
+          d = json.load(open("/tmp/secrets.json"))
+          results = d.get("results", {})
+          if results:
+              print("Potential secrets found:")
+              for f, items in results.items():
+                  for it in items:
+                      print(f"  {f}:{it['line_number']}  {it['type']}")
+              sys.exit(1)
+          print("clean")
+          PY
+
+  deploy:
+    name: deploy (Vercel)
+    needs: [web, games, hunt, secrets]
+    runs-on: ubuntu-latest
+    # Gated on the secrets actually existing, rather than failing the whole
+    # pipeline while Phase 1's pending user actions (Neon provisioning,
+    # Vercel project linking) are still outstanding -- see the plan's
+    # section 2 and the session's final report for exactly which secrets
+    # these are and where to set them.
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install -g vercel
+      - name: Pull Vercel environment
+        working-directory: web
+        run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build
+        working-directory: web
+        run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy
+        working-directory: web
+        run: vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}

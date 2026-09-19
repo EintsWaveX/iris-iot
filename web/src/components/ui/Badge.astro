@@ -1,0 +1,71 @@
+---
+/**
+ * A small status/identity pill. `tone` picks a semantic colour;
+ * `group` (1-7) picks a group hue instead and overrides tone — carried
+ * over from hunt/'s rule that group identity and semantic state are never
+ * the same visual channel (see tokens.css's HEAT section for why).
+ */
+interface Props {
+  tone?: "neutral" | "accent" | "ok" | "warn" | "danger" | "gold";
+  group?: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  id?: string;
+  [attr: string]: unknown;
+}
+
+const { tone = "neutral", group, id, ...rest } = Astro.props;
+const style = group ? `--badge-hue: var(--group-${group})` : undefined;
+---
+
+<span id={id} class="badge" data-tone={group ? "group" : tone} style={style} {...rest}>
+  <slot />
+</span>
+
+<style>
+  .badge {
+    align-items: center;
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    font-family: var(--font-mono);
+    font-size: var(--fs-micro);
+    font-weight: 500;
+    gap: var(--space-1);
+    letter-spacing: var(--tracking-wide);
+    padding: var(--space-1) var(--space-3);
+    text-transform: uppercase;
+  }
+
+  .badge[data-tone="neutral"] {
+    background: var(--hairline);
+    color: var(--text-muted);
+  }
+
+  .badge[data-tone="accent"] {
+    background: var(--accent-soft);
+    color: var(--accent-bright);
+  }
+
+  .badge[data-tone="ok"] {
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+
+  .badge[data-tone="warn"] {
+    background: var(--warn-soft);
+    color: var(--warn);
+  }
+
+  .badge[data-tone="danger"] {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  .badge[data-tone="gold"] {
+    background: var(--gold-soft);
+    color: var(--gold);
+  }
+
+  .badge[data-tone="group"] {
+    background: color-mix(in srgb, var(--badge-hue) 16%, transparent);
+    color: var(--badge-hue);
+  }
+</style>
