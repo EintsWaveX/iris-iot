@@ -51,11 +51,22 @@ BASELINE_PATH = ROOT / ".secrets.baseline"
 
 def load_findings(data: dict) -> set[tuple[str, int, str]]:
     """(filename, line_number, hashed_secret) triples -- ignores
-    `is_secret`, `type`, and all top-level metadata."""
+    `is_secret`, `type`, and all top-level metadata.
+
+    Filenames are normalised to forward slashes: detect-secrets reports
+    paths in whatever separator the host OS uses, so a baseline generated
+    or re-audited on Windows records `kode_praktikum\\en\\...` while a
+    Linux CI runner's fresh scan reports `kode_praktikum/en/...` for the
+    identical file. Without normalising, every finding looks "new" on
+    whichever OS did not generate the baseline -- this was caught by CI
+    itself failing on findings a local, same-baseline run had just called
+    clean, which is what surfaced the mismatch.
+    """
     out = set()
     for filename, items in data.get("results", {}).items():
+        normalised = filename.replace("\\", "/")
         for item in items:
-            out.add((filename, item["line_number"], item["hashed_secret"]))
+            out.add((normalised, item["line_number"], item["hashed_secret"]))
     return out
 
 
@@ -111,8 +122,9 @@ def main() -> int:
     # reported with its human-readable type, not just its hash.
     by_key = {}
     for filename, items in fresh.get("results", {}).items():
+        normalised = filename.replace("\\", "/")
         for item in items:
-            by_key[(filename, item["line_number"], item["hashed_secret"])] = item
+            by_key[(normalised, item["line_number"], item["hashed_secret"])] = item
 
     new = current - known
     if new:
