@@ -1,9 +1,10 @@
 /**
  * IRIS IoT practicum site — database schema (Drizzle, Postgres/Neon).
  *
- * Five tables for Phase 1. Everything else the eventual feature set needs
- * (server registry, MCU inventory, layer-trace history) is out of scope
- * here and gets its own migration when that phase is planned.
+ * Phase 1 (five tables: asisten, sesi, regu, praktikan, percobaanMasuk, audit)
+ * plus Phase 2's server/device registry (server, denyut, perangkat, perintah).
+ * The live IoT-layer X-ray and module content each get their own migration
+ * when that phase is planned.
  */
 import {
   pgTable,
@@ -14,6 +15,7 @@ import {
   serial,
   unique,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -156,4 +158,106 @@ export const audit = pgTable(
     detail: text("detail"), // free-form JSON string; no fixed shape needed yet
   },
   (t) => [index("audit_pada_idx").on(t.pada)],
+);
+
+/**
+ * Phase 2 — one row per registered Orange Pi. `alamatLan` is the fixed LAN
+ * address boards and phones use to reach it (192.168.4.1 under the router
+ * topology the Phase 2 plan settled on) — distinct from whatever public IP
+ * the router happens to have, which is irrelevant to anyone on the practicum
+ * network. `agenKunciHash` is null until the agent completes enrollment;
+ * `daftarTokenHash`/`daftarTokenExp` exist only during that window and are
+ * cleared once consumed, so a stale token can never be replayed.
+ */
+export const server = pgTable("server", {
+  id: serial("id").primaryKey(),
+  nama: text("nama").notNull(),
+  kode: text("kode").notNull().unique(),
+  alamatLan: text("alamat_lan"),
+  agenKunciHash: text("agen_kunci_hash"),
+  daftarTokenHash: text("daftar_token_hash"),
+  daftarTokenExp: timestamp("daftar_token_exp", { withTimezone: true }),
+  terdaftarPada: timestamp("terdaftar_pada", { withTimezone: true }),
+  dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * One row per heartbeat. Grows without bound unless pruned — see
+ * pruneOldHeartbeats() in server-lib.ts, called probabilistically on write
+ * rather than via a cron job, so the table stays bounded with no second
+ * moving part to keep running.
+ */
+export const denyut = pgTable(
+  "denyut",
+  {
+    id: serial("id").primaryKey(),
+    serverId: integer("server_id")
+      .notNull()
+      .references(() => server.id, { onDelete: "cascade" }),
+    pada: timestamp("pada", { withTimezone: true }).notNull().defaultNow(),
+    cpu: integer("cpu"), // percent, 0-100
+    memori: integer("memori"), // percent, 0-100
+    disk: integer("disk"), // percent, 0-100
+    suhu: integer("suhu"), // celsius
+    uptimeSec: integer("uptime_sec"),
+    jamSelaras: boolean("jam_selaras").notNull().default(false),
+    modeJaringan: text("mode_jaringan"), // "ethernet-router" | "ap-mandiri" | "offline"
+    layanan: jsonb("layanan").$type<Record<string, string>>(),
+  },
+  (t) => [index("denyut_server_pada_idx").on(t.serverId, t.pada)],
+);
+
+/**
+ * A discovered MCU. `mac` is the identity that survives a reboot or a DHCP
+ * lease change; `diadopsi` flips true the moment an assistant names it, and
+ * from then on it shows up as "Kelompok 3 Hunter" rather than a bare MAC
+ * everywhere the dashboard lists devices. UNIQUE(serverId, mac) is what lets
+ * rediscovering the same board update its row instead of growing a
+ * duplicate — the same role Phase 1's UNIQUE(tanggal, nim) plays.
+ */
+export const perangkat = pgTable(
+  "perangkat",
+  {
+    id: serial("id").primaryKey(),
+    serverId: integer("server_id")
+      .notNull()
+      .references(() => server.id, { onDelete: "cascade" }),
+    mac: text("mac").notNull(),
+    ip: text("ip"),
+    vendor: text("vendor"),
+    jenis: text("jenis"), // "esp32" | "pico-w" | "cosmic-lora" | "tidak-diketahui"
+    nama: text("nama"),
+    diadopsi: boolean("diadopsi").notNull().default(false),
+    sumber: text("sumber").notNull(), // "arp" | "hunt" | "mosquitto" | "chirpstack"
+    pertamaTerlihat: timestamp("pertama_terlihat", { withTimezone: true }).notNull().defaultNow(),
+    terakhirTerlihat: timestamp("terakhir_terlihat", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("perangkat_server_mac").on(t.serverId, t.mac)],
+);
+
+/**
+ * A queued action for the agent to run. `aksi` is validated against the
+ * fixed whitelist server-side (see agent-command.ts's AKSI enum) AND again
+ * by the agent itself before it maps to an argv list — never trust one side
+ * of a network boundary to have been the only thing enforcing a rule the
+ * other side depends on.
+ */
+export const perintah = pgTable(
+  "perintah",
+  {
+    id: serial("id").primaryKey(),
+    serverId: integer("server_id")
+      .notNull()
+      .references(() => server.id, { onDelete: "cascade" }),
+    aksi: text("aksi").notNull(),
+    argumen: jsonb("argumen").$type<Record<string, string>>(),
+    status: text("status", { enum: ["menunggu", "terkirim", "selesai", "gagal"] })
+      .notNull()
+      .default("menunggu"),
+    dimintaOleh: text("diminta_oleh").notNull(), // NIM, matching audit.aktorNim's shape
+    dimintaPada: timestamp("diminta_pada", { withTimezone: true }).notNull().defaultNow(),
+    selesaiPada: timestamp("selesai_pada", { withTimezone: true }),
+    keluaran: text("keluaran"),
+  },
+  (t) => [index("perintah_server_status_idx").on(t.serverId, t.status)],
 );

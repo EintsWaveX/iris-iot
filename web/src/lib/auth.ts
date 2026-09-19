@@ -57,7 +57,7 @@ function getSessionSecret(): string {
  *  first so the comparison itself never leaks length via early return —
  *  timingSafeEqual throws on mismatched buffer lengths rather than
  *  returning false, which would otherwise become a length oracle. */
-function safeEqual(a: string, b: string): boolean {
+export function safeEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);
   if (bufA.length !== bufB.length) {

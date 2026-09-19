@@ -1,0 +1,1011 @@
+---
+/**
+ * The server/device registry (Phase 2). Assistant-only, same "static shell,
+ * client fills in from /api/*" shape as /dashboard, and for the same reason
+ * — output: 'static' pages have no request-time cookie access.
+ *
+ * Two views in one page rather than a dynamic Astro route: `output:
+ * 'static'` needs getStaticPaths() for a [id].astro route, which cannot
+ * work for content that only exists in the database. A `?id=` query param
+ * switches between the list and the detail view instead, exactly the same
+ * trick /masuk and /dashboard already use for role-switching.
+ */
+import Base from "../../layouts/Base.astro";
+import Nav from "../../components/ui/Nav.astro";
+import Card from "../../components/ui/Card.astro";
+import Field from "../../components/ui/Field.astro";
+import Button from "../../components/ui/Button.astro";
+import Modal from "../../components/ui/Modal.astro";
+import EmptyState from "../../components/ui/EmptyState.astro";
+import Toast from "../../components/ui/Toast.astro";
+
+const links = [
+  { href: "/", label: "Beranda" },
+  { href: "/dashboard", label: "Dasbor" },
+  { href: "/dashboard/server", label: "Server" },
+];
+---
+
+<Base title="Server &amp; perangkat — IRIS IoT">
+  <Nav links={links} current="/dashboard/server">
+    <Fragment slot="side">
+      <Button kind="ghost" id="btn-keluar" class="hidden-until-known">
+        Keluar
+      </Button>
+    </Fragment>
+  </Nav>
+  <Toast />
+
+  <main class="measure">
+    <div id="loading">
+      <EmptyState title="Memuat…" />
+    </div>
+
+    <div id="view-terlarang" hidden>
+      <EmptyState
+        title="Halaman ini khusus asisten"
+        hint="Masuk sebagai asisten untuk melihat registri server dan perangkat."
+      />
+    </div>
+
+    <div id="view-daftar" hidden>
+      <section class="section section--head">
+        <div>
+          <h1 class="section__title">Server</h1>
+          <p class="section__lede">Orange Pi yang terdaftar dan MCU yang terpasang padanya.</p>
+        </div>
+        <Button kind="primary" data-modal-open="modal-daftar-server">
+          Daftarkan Pi
+        </Button>
+      </section>
+
+      <div id="daftar-server-kosong" hidden>
+        <EmptyState
+          title="Belum ada server terdaftar"
+          hint="Daftarkan satu Orange Pi untuk mulai memantau kesehatannya dan MCU yang terpasang."
+        />
+      </div>
+
+      <div class="table-wrap" id="tabel-server-wrap" hidden>
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Nama</th>
+              <th scope="col">Status</th>
+              <th scope="col">CPU</th>
+              <th scope="col">Memori</th>
+              <th scope="col">Suhu</th>
+              <th scope="col">Jam</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody id="tabel-server-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-detail" hidden>
+      <a class="back-link" href="/dashboard/server">
+        &larr; Kembali ke daftar server
+      </a>
+
+      <section class="section section--head">
+        <div>
+          <h1 class="section__title" id="detail-nama"></h1>
+          <p class="section__lede" id="detail-status"></p>
+        </div>
+        <Button kind="danger" data-modal-open="modal-hapus-server">
+          Hapus server
+        </Button>
+      </section>
+
+      <Card title="Kesehatan" id="detail-kesehatan">
+        <dl class="metrics" id="detail-metrik"></dl>
+        <div class="layanan-list" id="detail-layanan"></div>
+      </Card>
+
+      <Card title="Perintah" id="detail-perintah-panel">
+        <div class="perintah-grid">
+          <div class="perintah-group">
+            <p class="perintah-group__label">Layanan</p>
+            <div class="perintah-row" id="perintah-layanan"></div>
+          </div>
+          <div class="perintah-group">
+            <p class="perintah-group__label">Akses point</p>
+            <div class="perintah-row">
+              <Button kind="ghost" data-aksi="ap.nyala">
+                Nyalakan AP
+              </Button>
+              <Button kind="ghost" data-aksi="ap.mati">
+                Matikan AP
+              </Button>
+            </div>
+          </div>
+          <div class="perintah-group">
+            <p class="perintah-group__label">Jam</p>
+            <div class="perintah-row">
+              <Button kind="ghost" data-aksi="jam.selaraskan">
+                Selaraskan jam
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Perangkat" id="detail-perangkat-card">
+        <p class="subhead">Sudah diadopsi</p>
+        <div id="perangkat-diadopsi-kosong" hidden>
+          <EmptyState title="Belum ada perangkat yang diadopsi" />
+        </div>
+        <div class="table-wrap" id="tabel-diadopsi-wrap" hidden>
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Nama</th>
+                <th scope="col">Jenis</th>
+                <th scope="col">MAC</th>
+                <th scope="col">IP</th>
+                <th scope="col">Terakhir terlihat</th>
+              </tr>
+            </thead>
+            <tbody id="tabel-diadopsi-body"></tbody>
+          </table>
+        </div>
+
+        <p class="subhead">Belum diadopsi</p>
+        <div id="perangkat-baru-kosong" hidden>
+          <EmptyState title="Tidak ada perangkat baru yang ditemukan" />
+        </div>
+        <div id="daftar-baru"></div>
+      </Card>
+
+      <Card title="Riwayat perintah" id="detail-riwayat-card">
+        <div id="riwayat-kosong" hidden>
+          <EmptyState title="Belum ada perintah yang dikirim" />
+        </div>
+        <div class="table-wrap" id="tabel-riwayat-wrap" hidden>
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Aksi</th>
+                <th scope="col">Status</th>
+                <th scope="col">Diminta</th>
+                <th scope="col">Keluaran</th>
+              </tr>
+            </thead>
+            <tbody id="tabel-riwayat-body"></tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  </main>
+
+  <Modal
+    id="modal-daftar-server"
+    title="Daftarkan Orange Pi"
+    lede="Beri nama dan kode singkat untuk Pi ini."
+  >
+    <Fragment slot="body">
+      <form id="form-daftar-server" class="form-stack">
+        <Field id="server-nama" label="Nama" placeholder="Orange Pi Lab A" required />
+        <Field
+          id="server-kode"
+          label="Kode"
+          placeholder="opi-lab-a"
+          hint="Huruf kecil, angka, dan tanda hubung saja."
+          pattern="[a-z0-9][a-z0-9-]{1,39}"
+          required
+        />
+      </form>
+    </Fragment>
+    <Fragment slot="actions">
+      <Button kind="ghost" data-modal-close type="button">
+        Batal
+      </Button>
+      <Button kind="primary" id="btn-daftar-server-submit" type="submit" form="form-daftar-server">
+        Daftarkan
+      </Button>
+    </Fragment>
+  </Modal>
+
+  <Modal
+    id="modal-token"
+    title="Server terdaftar"
+    lede="Salin perintah ini dan jalankan sekali di Orange Pi. Token ini hanya tampil sekarang."
+  >
+    <Fragment slot="body">
+      <pre class="token-box mono" id="token-perintah"></pre>
+    </Fragment>
+    <Fragment slot="actions">
+      <Button kind="primary" data-modal-close type="button">
+        Sudah disalin
+      </Button>
+    </Fragment>
+  </Modal>
+
+  <Modal
+    id="modal-hapus-server"
+    title="Hapus server ini?"
+    lede="Riwayat denyut, perangkat, dan perintahnya ikut terhapus. Agen yang masih berjalan akan mulai ditolak pada denyut berikutnya."
+  >
+    <Fragment slot="actions">
+      <Button kind="ghost" data-modal-close type="button">
+        Batal
+      </Button>
+      <Button kind="danger" id="btn-hapus-server-konfirmasi" type="button">
+        Hapus
+      </Button>
+    </Fragment>
+  </Modal>
+
+  <script>
+    interface Denyut {
+      pada: string;
+      cpu: number | null;
+      memori: number | null;
+      disk: number | null;
+      suhu: number | null;
+      uptimeSec: number | null;
+      jamSelaras: boolean;
+      modeJaringan: string | null;
+      layanan: Record<string, string> | null;
+    }
+    interface ServerRow {
+      id: number;
+      nama: string;
+      kode: string;
+      alamatLan: string | null;
+      terdaftar: boolean;
+      denyutTerakhir: Denyut | null;
+    }
+    interface Perangkat {
+      id: number;
+      mac: string;
+      ip: string | null;
+      vendor: string | null;
+      jenis: string | null;
+      nama: string | null;
+      diadopsi: boolean;
+      sumber: string;
+      terakhirTerlihat: string;
+    }
+    interface Perintah {
+      id: number;
+      aksi: string;
+      status: string;
+      dimintaPada: string;
+      keluaran: string | null;
+    }
+
+    const OFFLINE_AFTER_MS = 60_000;
+    const LAYANAN_LABEL: Record<string, string> = {
+      "modul2-ws": "WebSocket Modul 2",
+      mosquitto: "Mosquitto (Modul 3)",
+      hunt: "Papan skor Modul 4A",
+      chirpstack: "ChirpStack (Modul 4B)",
+    };
+    const JENIS_LABEL: Record<string, string> = {
+      esp32: "ESP32",
+      "pico-w": "Pico W",
+      "cosmic-lora": "Cosmic LoRa",
+      "tidak-diketahui": "Tidak diketahui",
+    };
+
+    function show(id: string) {
+      document.getElementById(id)!.hidden = false;
+    }
+    function hide(id: string) {
+      document.getElementById(id)!.hidden = true;
+    }
+    function fmtWaktu(iso: string): string {
+      return new Date(iso).toLocaleString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+      });
+    }
+    function isOnline(d: Denyut | null): boolean {
+      if (!d) return false;
+      return Date.now() - new Date(d.pada).getTime() < OFFLINE_AFTER_MS;
+    }
+
+    async function init() {
+      const me = await fetch("/api/auth/me").then((r) => r.json());
+      hide("loading");
+      if (!me.ok) {
+        window.location.href = "/masuk";
+        return;
+      }
+      if (me.role !== "asisten") {
+        show("view-terlarang");
+        return;
+      }
+      document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
+
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("id");
+      if (id) {
+        show("view-detail");
+        await loadDetail(Number(id));
+      } else {
+        show("view-daftar");
+        await loadDaftar();
+      }
+    }
+
+    async function loadDaftar() {
+      const data = await fetch("/api/server").then((r) => r.json());
+      const daftar: ServerRow[] = data.ok ? data.server : [];
+
+      if (daftar.length === 0) {
+        show("daftar-server-kosong");
+        hide("tabel-server-wrap");
+        return;
+      }
+      hide("daftar-server-kosong");
+      show("tabel-server-wrap");
+
+      const body = document.getElementById("tabel-server-body")!;
+      body.innerHTML = "";
+      for (const s of daftar) {
+        const tr = document.createElement("tr");
+
+        const tdNama = document.createElement("td");
+        tdNama.dataset.label = "Nama";
+        const link = document.createElement("a");
+        link.href = `/dashboard/server?id=${s.id}`;
+        link.textContent = s.nama;
+        tdNama.appendChild(link);
+        tr.appendChild(tdNama);
+
+        const tdStatus = document.createElement("td");
+        tdStatus.dataset.label = "Status";
+        tdStatus.appendChild(
+          statusPill(
+            !s.terdaftar ? "Menunggu agen" : isOnline(s.denyutTerakhir) ? "Daring" : "Luring",
+            !s.terdaftar ? "neutral" : isOnline(s.denyutTerakhir) ? "ok" : "danger",
+          ),
+        );
+        tr.appendChild(tdStatus);
+
+        tr.appendChild(
+          sel("CPU", s.denyutTerakhir?.cpu != null ? `${s.denyutTerakhir.cpu}%` : "—"),
+        );
+        tr.appendChild(
+          sel("Memori", s.denyutTerakhir?.memori != null ? `${s.denyutTerakhir.memori}%` : "—"),
+        );
+        tr.appendChild(
+          sel("Suhu", s.denyutTerakhir?.suhu != null ? `${s.denyutTerakhir.suhu}°C` : "—"),
+        );
+        tr.appendChild(
+          sel(
+            "Jam",
+            s.denyutTerakhir ? (s.denyutTerakhir.jamSelaras ? "Selaras" : "Tidak selaras") : "—",
+          ),
+        );
+
+        const tdAksi = document.createElement("td");
+        tdAksi.dataset.label = "";
+        const aksiLink = document.createElement("a");
+        aksiLink.href = `/dashboard/server?id=${s.id}`;
+        aksiLink.textContent = "Detail →";
+        tdAksi.appendChild(aksiLink);
+        tr.appendChild(tdAksi);
+
+        body.appendChild(tr);
+      }
+    }
+
+    function sel(label: string, text: string): HTMLTableCellElement {
+      const td = document.createElement("td");
+      td.dataset.label = label;
+      td.textContent = text;
+      return td;
+    }
+    function statusPill(text: string, tone: "neutral" | "ok" | "danger"): HTMLSpanElement {
+      const span = document.createElement("span");
+      span.className = "status-pill";
+      span.dataset.tone = tone;
+      span.textContent = text;
+      return span;
+    }
+
+    let currentServerId = 0;
+
+    async function loadDetail(id: number) {
+      currentServerId = id;
+      const data = await fetch(`/api/server/${id}`).then((r) => r.json());
+      if (!data.ok) {
+        window.Toast?.show("Server tidak ditemukan.", "danger");
+        window.location.href = "/dashboard/server";
+        return;
+      }
+
+      const s = data.server;
+      document.getElementById("detail-nama")!.textContent = s.nama;
+      document.getElementById("detail-status")!.textContent = !s.terdaftar
+        ? "Menunggu agen mendaftar. Jalankan perintah pendaftaran di Pi."
+        : isOnline(data.denyutTerakhir)
+          ? `Daring · kode ${s.kode}`
+          : `Luring · kode ${s.kode}`;
+
+      renderKesehatan(data.denyutTerakhir);
+      renderPerangkat(data.perangkat);
+      renderRiwayat(data.perintah);
+      mountPerintahLayanan();
+    }
+
+    function renderKesehatan(d: Denyut | null) {
+      const dl = document.getElementById("detail-metrik")!;
+      dl.innerHTML = "";
+      if (!d) {
+        dl.appendChild(metrikItem("Status", "Belum ada denyut yang diterima"));
+        document.getElementById("detail-layanan")!.innerHTML = "";
+        return;
+      }
+      dl.appendChild(metrikItem("CPU", d.cpu != null ? `${d.cpu}%` : "—"));
+      dl.appendChild(metrikItem("Memori", d.memori != null ? `${d.memori}%` : "—"));
+      dl.appendChild(metrikItem("Disk", d.disk != null ? `${d.disk}%` : "—"));
+      dl.appendChild(metrikItem("Suhu", d.suhu != null ? `${d.suhu}°C` : "—"));
+      dl.appendChild(metrikItem("Jam", d.jamSelaras ? "Selaras" : "Tidak selaras"));
+      dl.appendChild(metrikItem("Jaringan", d.modeJaringan ?? "—"));
+      dl.appendChild(metrikItem("Terakhir lapor", fmtWaktu(d.pada)));
+
+      const layananEl = document.getElementById("detail-layanan")!;
+      layananEl.innerHTML = "";
+      for (const [key, status] of Object.entries(d.layanan ?? {})) {
+        const chip = document.createElement("span");
+        chip.className = "layanan-chip";
+        chip.dataset.status = status;
+        chip.textContent = `${LAYANAN_LABEL[key] ?? key}: ${status}`;
+        layananEl.appendChild(chip);
+      }
+    }
+
+    function metrikItem(label: string, value: string): DocumentFragment {
+      const frag = document.createDocumentFragment();
+      const dt = document.createElement("dt");
+      dt.textContent = label;
+      const dd = document.createElement("dd");
+      dd.textContent = value;
+      frag.appendChild(dt);
+      frag.appendChild(dd);
+      return frag;
+    }
+
+    function mountPerintahLayanan() {
+      const row = document.getElementById("perintah-layanan")!;
+      if (row.childElementCount > 0) return; // mount once
+      const layananKeys = Object.keys(LAYANAN_LABEL);
+      const select = document.createElement("select");
+      select.className = "js-select mono";
+      select.id = "perintah-layanan-pilih";
+      for (const key of layananKeys) {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = LAYANAN_LABEL[key];
+        select.appendChild(opt);
+      }
+      row.appendChild(select);
+
+      for (const [aksi, label] of [
+        ["layanan.mulai", "Mulai"],
+        ["layanan.henti", "Hentikan"],
+        ["layanan.mulai_ulang", "Mulai ulang"],
+      ] as const) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "js-btn js-btn--ghost";
+        btn.textContent = label;
+        btn.addEventListener("click", () => kirimPerintah(aksi, { layanan: select.value }));
+        row.appendChild(btn);
+      }
+    }
+
+    async function kirimPerintah(aksi: string, argumen: Record<string, string> = {}) {
+      try {
+        const res = await fetch("/api/tindakan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tipe: "kirim", serverId: currentServerId, aksi, argumen }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          window.Toast?.show("Perintah dikirim. Menunggu denyut berikutnya dari agen.", "ok");
+          await loadDetail(currentServerId);
+        } else {
+          window.Toast?.show(pesanUntuk(data.kode), "danger");
+        }
+      } catch {
+        window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+      }
+    }
+
+    document.querySelectorAll<HTMLElement>("[data-aksi]").forEach((el) => {
+      el.addEventListener("click", () => kirimPerintah(el.dataset.aksi!));
+    });
+
+    function renderPerangkat(daftar: Perangkat[]) {
+      const diadopsi = daftar.filter((p) => p.diadopsi);
+      const baru = daftar.filter((p) => !p.diadopsi);
+
+      if (diadopsi.length === 0) {
+        show("perangkat-diadopsi-kosong");
+        hide("tabel-diadopsi-wrap");
+      } else {
+        hide("perangkat-diadopsi-kosong");
+        show("tabel-diadopsi-wrap");
+        const body = document.getElementById("tabel-diadopsi-body")!;
+        body.innerHTML = "";
+        for (const p of diadopsi) {
+          const tr = document.createElement("tr");
+          tr.appendChild(sel("Nama", p.nama ?? ""));
+          tr.appendChild(sel("Jenis", JENIS_LABEL[p.jenis ?? ""] ?? p.jenis ?? "—"));
+          tr.appendChild(sel("MAC", p.mac));
+          tr.appendChild(sel("IP", p.ip ?? "—"));
+          tr.appendChild(sel("Terakhir terlihat", fmtWaktu(p.terakhirTerlihat)));
+          body.appendChild(tr);
+        }
+      }
+
+      const daftarBaru = document.getElementById("daftar-baru")!;
+      daftarBaru.innerHTML = "";
+      if (baru.length === 0) {
+        show("perangkat-baru-kosong");
+      } else {
+        hide("perangkat-baru-kosong");
+        for (const p of baru) {
+          daftarBaru.appendChild(buatBarisAdopsi(p));
+        }
+      }
+    }
+
+    function buatBarisAdopsi(p: Perangkat): HTMLElement {
+      const row = document.createElement("div");
+      row.className = "adopsi-row";
+
+      const info = document.createElement("span");
+      info.className = "adopsi-row__info mono";
+      info.textContent = `${p.mac} · ${p.vendor ?? "vendor tidak diketahui"} · ${p.ip ?? "?"}`;
+      row.appendChild(info);
+
+      const nameInput = document.createElement("input");
+      nameInput.className = "js-input adopsi-row__nama mono";
+      nameInput.placeholder = "Nama, mis. Kelompok 3 Hunter";
+      row.appendChild(nameInput);
+
+      const typeSelect = document.createElement("select");
+      typeSelect.className = "js-select adopsi-row__jenis mono";
+      for (const [value, label] of Object.entries(JENIS_LABEL)) {
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = label;
+        if (value === p.jenis) opt.selected = true;
+        typeSelect.appendChild(opt);
+      }
+      row.appendChild(typeSelect);
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "js-btn js-btn--primary";
+      btn.textContent = "Adopsi";
+      btn.addEventListener("click", async () => {
+        const nama = nameInput.value.trim();
+        if (!nama) {
+          window.Toast?.show("Beri nama dulu sebelum mengadopsi.", "danger");
+          return;
+        }
+        const res = await fetch("/api/tindakan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tipe: "adopsi", id: p.id, nama, jenis: typeSelect.value }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          window.Toast?.show(`${nama} diadopsi.`, "ok");
+          await loadDetail(currentServerId);
+        } else {
+          window.Toast?.show(pesanUntuk(data.kode), "danger");
+        }
+      });
+      row.appendChild(btn);
+
+      return row;
+    }
+
+    function renderRiwayat(daftar: Perintah[]) {
+      if (daftar.length === 0) {
+        show("riwayat-kosong");
+        hide("tabel-riwayat-wrap");
+        return;
+      }
+      hide("riwayat-kosong");
+      show("tabel-riwayat-wrap");
+      const body = document.getElementById("tabel-riwayat-body")!;
+      body.innerHTML = "";
+      for (const p of daftar) {
+        const tr = document.createElement("tr");
+        tr.appendChild(sel("Aksi", p.aksi));
+        tr.appendChild(sel("Status", p.status));
+        tr.appendChild(sel("Diminta", fmtWaktu(p.dimintaPada)));
+        tr.appendChild(sel("Keluaran", p.keluaran ?? "—"));
+        body.appendChild(tr);
+      }
+    }
+
+    const KODE_PESAN: Record<string, string> = {
+      format_salah: "Formatnya belum benar.",
+      kode_dipakai: "Kode ini sudah dipakai server lain.",
+      tidak_ditemukan: "Tidak ditemukan.",
+      server_tidak_ada: "Server ini tidak ditemukan.",
+      layanan_tidak_dikenal: "Layanan ini tidak dikenal.",
+      galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
+    };
+    function pesanUntuk(kode: string): string {
+      return KODE_PESAN[kode] ?? "Terjadi kesalahan.";
+    }
+
+    document.getElementById("form-daftar-server")?.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const nama = (document.getElementById("server-nama") as HTMLInputElement).value.trim();
+      const kode = (document.getElementById("server-kode") as HTMLInputElement).value.trim();
+      const res = await fetch("/api/server", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nama, kode }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        window.Toast?.show(pesanUntuk(data.kode), "danger");
+        return;
+      }
+      window.Modal?.close("modal-daftar-server");
+      document.getElementById("token-perintah")!.textContent =
+        `iris-agent enroll --kode ${data.kode} --token ${data.token} --server https://${window.location.host}`;
+      window.Modal?.open("modal-token");
+      await loadDaftar();
+    });
+
+    document.getElementById("btn-keluar")?.addEventListener("click", async () => {
+      await fetch("/api/auth/keluar", { method: "POST" });
+      window.location.href = "/masuk";
+    });
+
+    document.getElementById("btn-hapus-server-konfirmasi")?.addEventListener("click", async () => {
+      const res = await fetch(`/api/server/${currentServerId}`, { method: "DELETE" });
+      const data = await res.json();
+      window.Modal?.close("modal-hapus-server");
+      if (data.ok) {
+        window.location.href = "/dashboard/server";
+      } else {
+        window.Toast?.show(pesanUntuk(data.kode), "danger");
+      }
+    });
+
+    init();
+  </script>
+</Base>
+
+<style is:global>
+  /*
+   * is:global, deliberately: this page builds its tables, chips, adopt-row
+   * inputs and command buttons via document.createElement() after fetching
+   * from the API, since output: 'static' + dynamic per-server data has no
+   * other shape here (same reasoning as dashboard.astro's roster rendering).
+   * Astro's scoped-style attribute is only ever attached to elements that
+   * exist in this component's own compiled template, so any style targeting
+   * a class applied to a JS-created element (.layanan-chip, .adopsi-row,
+   * .js-btn, .js-select, .js-input, and the <dt>/<dd> pairs appended into
+   * #detail-metrik) would silently fail to apply under normal Astro
+   * scoping. Global avoids that trap; the class names below are specific
+   * enough that a collision with another page is not a real risk.
+   */
+  .section--head {
+    align-items: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    justify-content: space-between;
+  }
+
+  .section__lede {
+    color: var(--text-muted);
+    margin-top: var(--space-2);
+  }
+
+  .back-link {
+    color: var(--text-muted);
+    display: inline-block;
+    font-size: var(--fs-small);
+    margin-bottom: var(--space-5);
+  }
+
+  .table-wrap {
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--space-6);
+  }
+
+  .table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .table th,
+  .table td {
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+  }
+
+  .table thead th {
+    background: var(--bg-elevated);
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--fs-micro);
+    font-weight: 500;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .table tbody tr {
+    border-top: 1px solid var(--hairline-faint);
+  }
+
+  @media (max-width: 640px) {
+    .table-wrap {
+      border: none;
+    }
+    .table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+    .table,
+    .table tbody,
+    .table tr,
+    .table td {
+      display: block;
+      width: 100%;
+    }
+    .table tbody tr {
+      background: var(--bg-elevated);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-3);
+      padding: var(--space-2) var(--space-4);
+    }
+    .table td {
+      align-items: baseline;
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding: var(--space-2) 0;
+    }
+    .table td::before {
+      color: var(--text-faint);
+      content: attr(data-label);
+      flex: none;
+      font-family: var(--font-mono);
+      font-size: var(--fs-micro);
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+    }
+  }
+
+  .metrics {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    margin: 0 0 var(--space-5);
+  }
+
+  .metrics dt {
+    color: var(--text-faint);
+    font-size: var(--fs-micro);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .metrics dd {
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--fs-body-lg);
+    margin: var(--space-1) 0 0;
+  }
+
+  .layanan-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .layanan-chip {
+    background: var(--hairline);
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--fs-micro);
+    padding: var(--space-1) var(--space-3);
+  }
+
+  .layanan-chip[data-status="aktif"] {
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+  .layanan-chip[data-status="berhenti"] {
+    background: var(--warn-soft);
+    color: var(--warn);
+  }
+  .layanan-chip[data-status="galat"] {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  .perintah-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .perintah-group__label {
+    color: var(--text-faint);
+    font-size: var(--fs-small);
+    font-weight: 500;
+    margin-bottom: var(--space-2);
+  }
+
+  .perintah-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .js-select,
+  .js-input {
+    background: var(--bg-sunken);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    min-height: max(var(--tap), 44px);
+    padding: 0 var(--space-3);
+  }
+
+  .js-select:focus-visible,
+  .js-input:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+  }
+
+  .js-btn {
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    cursor: pointer;
+    display: inline-flex;
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    font-weight: 500;
+    justify-content: center;
+    min-height: max(var(--tap), 44px);
+    padding: 0 var(--space-5);
+    transition:
+      background var(--dur-fast) var(--ease-reveal),
+      border-color var(--dur-fast) var(--ease-reveal);
+  }
+
+  .js-btn:hover {
+    background: var(--hairline-faint);
+  }
+
+  .js-btn--primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .js-btn--primary:hover {
+    background: var(--accent-bright);
+    border-color: var(--accent-bright);
+  }
+
+  .status-pill {
+    align-items: center;
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    font-family: var(--font-mono);
+    font-size: var(--fs-micro);
+    font-weight: 500;
+    letter-spacing: var(--tracking-wide);
+    padding: var(--space-1) var(--space-3);
+    text-transform: uppercase;
+  }
+
+  .status-pill[data-tone="neutral"] {
+    background: var(--hairline);
+    color: var(--text-muted);
+  }
+
+  .status-pill[data-tone="ok"] {
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+
+  .status-pill[data-tone="danger"] {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  .subhead {
+    color: var(--text-faint);
+    font-size: var(--fs-small);
+    font-weight: 500;
+    margin: var(--space-5) 0 var(--space-3);
+  }
+
+  .subhead:first-child {
+    margin-top: 0;
+  }
+
+  .adopsi-row {
+    align-items: center;
+    background: var(--bg-sunken);
+    border: 1px solid var(--hairline-faint);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-3);
+  }
+
+  .adopsi-row__info {
+    color: var(--text-faint);
+    flex: 1 1 100%;
+    font-size: var(--fs-small);
+  }
+
+  .adopsi-row__nama,
+  .adopsi-row__jenis {
+    background: var(--bg-elevated);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    min-height: max(var(--tap), 44px);
+    padding: 0 var(--space-3);
+  }
+
+  .adopsi-row__nama {
+    flex: 1 1 12rem;
+  }
+
+  .form-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .token-box {
+    background: var(--bg-sunken);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-size: var(--fs-small);
+    overflow-x: auto;
+    padding: var(--space-4);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .hidden-until-known {
+    visibility: hidden;
+  }
+</style>

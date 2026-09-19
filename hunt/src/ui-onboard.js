@@ -214,6 +214,24 @@
     else hide();
   }
 
+  /**
+   * A phone that arrived from the main site's dashboard already typed its
+   * NIM once, to sign into web/. Reading it back out of the URL here saves
+   * a second identical prompt without changing the trust model one bit -
+   * this still goes through the exact same server round trip and the same
+   * "is this you" confirmation screen as typing it by hand; the URL only
+   * fills the box.
+   */
+  function readAutoNim() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var raw = (params.get("nim") || "").replace(/\s+/g, "").toUpperCase();
+      return /^[A-Z0-9]{4,20}$/.test(raw) ? raw : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
   function mount() {
     rootEl = document.getElementById("onboard");
     formEl = document.getElementById("login-form");
@@ -229,6 +247,29 @@
     }
     if (inputEl) {
       inputEl.addEventListener("input", function () { setError(""); });
+    }
+
+    var autoNim = readAutoNim();
+    if (autoNim) {
+      // Scrub it from the address bar immediately: a NIM sitting in the URL
+      // survives in browser history and can end up in a screenshot of the
+      // address bar, neither of which typing it into a form does.
+      try {
+        var url = new URL(window.location.href);
+        url.searchParams.delete("nim");
+        window.history.replaceState(null, "", url.toString());
+      } catch (err) { /* URL/history unavailable; harmless to skip */ }
+
+      if (inputEl) inputEl.value = autoNim;
+
+      var tried = false;
+      var tryAuto = function () {
+        if (tried || Store.status() !== "live" || !needed()) return;
+        tried = true;
+        submit();
+      };
+      Store.onStatus(tryAuto);
+      tryAuto();
     }
 
     var skip = document.getElementById("onboard-skip");

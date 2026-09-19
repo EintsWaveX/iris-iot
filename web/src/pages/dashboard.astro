@@ -29,6 +29,7 @@ import Toast from "../components/ui/Toast.astro";
 const links = [
   { href: "/", label: "Beranda" },
   { href: "/dashboard", label: "Dasbor" },
+  { href: "/dashboard/server", label: "Server" },
 ];
 ---
 
@@ -57,6 +58,17 @@ const links = [
           <Badge id="praktikan-badge">Kelompok</Badge>
           <span id="praktikan-regu-nama"></span>
         </p>
+      </Card>
+
+      <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card">
+        <p>
+          Papan skor perburuan berjalan langsung di Orange Pi lab, di jaringan
+          <strong>IRIS-HUNT</strong> — bukan lewat internet. Sambungkan HP ke hotspot itu dahulu,
+          baru buka tautan ini.
+        </p>
+        <Button kind="primary" id="btn-buka-hunt">
+          Buka papan skor
+        </Button>
       </Card>
     </div>
 
@@ -114,6 +126,17 @@ const links = [
           Simpan
         </Button>
       </Card>
+
+      <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card">
+        <p>
+          Papan skor dan konsol asisten Modul 4A masih berjalan lewat token, langsung di Orange Pi —
+          bukan lewat akun ini. Buka papan skornya dari jaringan
+          <strong>IRIS-HUNT</strong>, lalu ketuk logo tiga kali untuk memasukkan token.
+        </p>
+        <Button kind="ghost" id="btn-buka-hunt-asisten">
+          Buka papan skor
+        </Button>
+      </Card>
     </div>
   </main>
 
@@ -131,6 +154,22 @@ const links = [
 
     function pesanUntuk(kode: string): string {
       return KODE_PESAN[kode] ?? "Terjadi kesalahan.";
+    }
+
+    // Module 4A's board runs on the Orange Pi itself, on the local
+    // IRIS-HUNT network, never through this site's own domain -- see the
+    // Phase 2 plan's topology section for why that address is fixed rather
+    // than looked up. A phone reaching this dashboard page is not
+    // necessarily on that network yet (this site works over the internet;
+    // the hunt board does not), so the link only works once the phone has
+    // joined IRIS-HUNT, which the card's copy says plainly.
+    const HUNT_BOARD_URL = "http://192.168.4.1:8080/";
+
+    function huntBoardUrl(nim?: string): string {
+      if (!nim) return HUNT_BOARD_URL;
+      const url = new URL(HUNT_BOARD_URL);
+      url.searchParams.set("nim", nim);
+      return url.toString();
     }
 
     function show(id: string) {
@@ -154,9 +193,16 @@ const links = [
         show("view-praktikan");
         document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
         document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.regu}`;
+        (document.getElementById("btn-buka-hunt") as HTMLButtonElement)?.addEventListener(
+          "click",
+          () => window.open(huntBoardUrl(me.nim), "_blank", "noopener"),
+        );
       } else {
         show("view-asisten");
         await loadSesi();
+        document
+          .getElementById("btn-buka-hunt-asisten")
+          ?.addEventListener("click", () => window.open(huntBoardUrl(), "_blank", "noopener"));
       }
     }
 
@@ -285,6 +331,14 @@ const links = [
     display: flex;
     gap: var(--space-3);
     margin-top: var(--space-3);
+  }
+
+  .modul4-card {
+    margin-top: var(--space-6);
+  }
+
+  .modul4-card p {
+    margin-bottom: var(--space-5);
   }
 
   .grid3 {

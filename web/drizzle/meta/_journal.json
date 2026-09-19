@@ -8,6 +8,13 @@
       "when": 1789834020193,
       "tag": "0000_overrated_morlocks",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789844842766,
+      "tag": "0001_daily_zuras",
+      "breakpoints": true
     }
   ]
 }
