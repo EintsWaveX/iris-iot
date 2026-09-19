@@ -12,13 +12,13 @@
  * "Simpan tidak bekerja selama masih ada galat" rule -- a partially valid
  * roster is not saved partially, it is not saved at all.
  */
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http";
-import { requireRole } from "../_lib/session";
-import { getDb } from "../../src/lib/db";
-import { sesi, regu, praktikan } from "../../src/lib/schema";
-import { parseRosterPaste } from "../../src/lib/roster-parser";
-import { writeAudit } from "../../src/lib/auth";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
+import { requireRole } from "../_lib/session.js";
+import { getDb } from "../../src/lib/db.js";
+import { sesi, regu, praktikan } from "../../src/lib/schema.js";
+import { parseRosterPaste } from "../../src/lib/roster-parser.js";
+import { writeAudit } from "../../src/lib/auth.js";
 import { eq } from "drizzle-orm";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {

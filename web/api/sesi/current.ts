@@ -5,12 +5,12 @@
  * publicRoster()'s names-only projection, which is reserved for anything
  * a practitioner's browser might reach).
  */
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { requireMethod, noStore } from "../_lib/http";
-import { requireRole } from "../_lib/session";
-import { getDb } from "../../src/lib/db";
-import { regu, praktikan } from "../../src/lib/schema";
-import { currentSesi } from "../../src/lib/sesi";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { requireMethod, noStore } from "../_lib/http.js";
+import { requireRole } from "../_lib/session.js";
+import { getDb } from "../../src/lib/db.js";
+import { regu, praktikan } from "../../src/lib/schema.js";
+import { currentSesi } from "../../src/lib/sesi.js";
 import { eq } from "drizzle-orm";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {

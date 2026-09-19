@@ -26,9 +26,9 @@
  */
 import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
 import { eq, and, gte, count } from "drizzle-orm";
-import { getDb } from "./db";
-import { asisten, percobaanMasuk, audit } from "./schema";
-import { resolvePraktikan, currentSesi } from "./sesi";
+import { getDb } from "./db.js";
+import { asisten, percobaanMasuk, audit } from "./schema.js";
+import { resolvePraktikan, currentSesi } from "./sesi.js";
 
 const SESSION_TTL_SEC = 2 * 60 * 60; // 2 hours
 const ASSISTANT_PASSWORD_SUFFIX = "1715";

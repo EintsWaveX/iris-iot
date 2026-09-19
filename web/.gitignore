@@ -31,3 +31,5 @@ pnpm-debug.log*
 .agents/
 .claude/
 skills-lock.json
+
+.env*

@@ -12,13 +12,13 @@
  * here rather than left to the caller to remember to end the old one
  * first.
  */
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http";
-import { requireRole } from "../_lib/session";
-import { getDb } from "../../src/lib/db";
-import { sesi } from "../../src/lib/schema";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
+import { requireRole } from "../_lib/session.js";
+import { getDb } from "../../src/lib/db.js";
+import { sesi } from "../../src/lib/schema.js";
 import { eq } from "drizzle-orm";
-import { writeAudit } from "../../src/lib/auth";
+import { writeAudit } from "../../src/lib/auth.js";
 
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
 const JAM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;

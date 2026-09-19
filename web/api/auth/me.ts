@@ -7,9 +7,9 @@
  * its stored NIM with the server on every reconnect rather than trusting
  * what it remembers locally.
  */
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { requireMethod, noStore } from "../_lib/http";
-import { currentSession } from "../_lib/session";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { requireMethod, noStore } from "../_lib/http.js";
+import { currentSession } from "../_lib/session.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);

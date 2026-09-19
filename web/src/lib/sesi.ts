@@ -15,8 +15,8 @@
  * logic that the next phase would then have to un-invent.
  */
 import { eq, and, desc } from "drizzle-orm";
-import { getDb } from "./db";
-import { sesi, regu, praktikan } from "./schema";
+import { getDb } from "./db.js";
+import { sesi, regu, praktikan } from "./schema.js";
 
 export interface ResolvedPraktikan {
   nim: string;

@@ -4,9 +4,9 @@
  * as its first line, so "who is allowed to call this" is answered the same
  * way everywhere rather than re-implemented per route.
  */
-import type { ApiRequest, ApiResponse } from "./http";
-import { parseCookies } from "./http";
-import { readSessionCookie, type SessionPayload } from "../../src/lib/auth";
+import type { ApiRequest, ApiResponse } from "./http.js";
+import { parseCookies } from "./http.js";
+import { readSessionCookie, type SessionPayload } from "../../src/lib/auth.js";
 
 export function currentSession(req: ApiRequest): SessionPayload | null {
   const cookies = parseCookies(req);

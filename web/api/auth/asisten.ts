@@ -11,14 +11,14 @@
  * envelope hunt/server.py's WebSocket replies already use, so the two
  * auth surfaces read the same way to a client.
  */
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { requireMethod, jsonBody, clientIp, noStore } from "../_lib/http";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { requireMethod, jsonBody, clientIp, noStore } from "../_lib/http.js";
 import {
   verifyAsistenLogin,
   createSessionCookie,
   sessionCookieHeader,
   writeAudit,
-} from "../../src/lib/auth";
+} from "../../src/lib/auth.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);

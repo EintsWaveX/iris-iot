@@ -6,14 +6,14 @@
  * running and returns the group the server found — the group is never
  * something the client can assert, matching hunt/server.py's cari_nim().
  */
-import type { ApiRequest, ApiResponse } from "../_lib/http";
-import { requireMethod, jsonBody, clientIp, noStore } from "../_lib/http";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { requireMethod, jsonBody, clientIp, noStore } from "../_lib/http.js";
 import {
   verifyPraktikanLogin,
   createSessionCookie,
   sessionCookieHeader,
   NIM_PATTERN,
-} from "../../src/lib/auth";
+} from "../../src/lib/auth.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
