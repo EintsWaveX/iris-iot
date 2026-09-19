@@ -1,0 +1,427 @@
+/* =========================================================================
+   COMPONENTS — nav, buttons, chips, status, glass panels, empty states.
+
+   House rule: a component earns a box only if it has to float above the
+   cosmos. Everything else is hairlines, space and type, so the starfield
+   stays visible through the page.
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   NAV — bottom bar on phones, sticky top bar from 880px.
+
+   The brand is now visible at BOTH sizes. It used to be display:none below
+   880px, which meant the 25 phones that are the actual audience never saw
+   the logo or the wordmark at all.
+   ------------------------------------------------------------------------- */
+.nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--gutter);
+  min-height: var(--nav-size);
+  background: rgba(8, 10, 17, 0.74);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-top: 1px solid var(--hairline);
+  padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+}
+
+.nav__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+}
+
+.nav__logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  /* The logo is a flat mark on a light ground; a touch of glow seats it in
+     the night sky instead of leaving it looking pasted on. */
+  filter: drop-shadow(0 0 10px var(--accent-glow));
+}
+
+.nav__brand-label {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.nav__items {
+  display: flex;
+  align-items: center;
+  gap: clamp(var(--space-2), 3vw, var(--space-7));
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.nav-link {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+  transition: color var(--dur-fast) var(--ease-reveal);
+}
+
+.nav-link .icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  transition: transform var(--dur-mid) var(--ease-out-expo);
+}
+
+/* The active marker: a hairline that grows out from the centre. */
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  right: 50%;
+  bottom: 0;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transition:
+    left var(--dur-mid) var(--ease-out-expo),
+    right var(--dur-mid) var(--ease-out-expo);
+}
+
+.nav-link.is-active {
+  color: var(--accent);
+}
+
+.nav-link.is-active::after {
+  left: var(--space-2);
+  right: var(--space-2);
+}
+
+.nav-link.is-active .icon {
+  transform: translateY(-1px) scale(1.06);
+}
+
+.nav-link:hover {
+  color: var(--text);
+}
+
+.nav-link.is-active:hover {
+  color: var(--accent-bright);
+}
+
+@media (min-width: 880px) {
+  .nav {
+    position: sticky;
+    top: 0;
+    bottom: auto;
+    border-top: 0;
+    border-bottom: 1px solid var(--hairline);
+    padding-block: var(--space-3);
+    padding-bottom: var(--space-3);
+  }
+
+  .nav__logo {
+    width: 30px;
+    height: 30px;
+  }
+
+  .nav__brand-label {
+    font-size: 1.35rem;
+  }
+
+  .nav-link {
+    flex-direction: row;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-1) var(--space-4);
+  }
+}
+
+/* -------------------------------------------------------------------------
+   STATUS PILL (the old viewer-count slot)
+   ------------------------------------------------------------------------- */
+.viewer-count {
+  position: fixed;
+  /* Above the bottom nav, not at the top: on a phone the top is where the
+     roster's sticky control bar lives, and a fixed chip there sat straight
+     on top of the search field. */
+  bottom: calc(var(--nav-size) + var(--space-3));
+  right: var(--gutter);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  background: rgba(8, 10, 17, 0.7);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.viewer-count__dot {
+  /* The dot carries the state so the pill itself can stay quiet -- this sits
+     over live content and must not read as an alert. */
+  --status-color: var(--text-faint);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-color);
+  color: var(--status-color);
+  box-shadow: 0 0 0 0 currentColor;
+  animation: status-ping 2.4s var(--ease-in-out-soft) infinite;
+}
+
+/* Only a healthy connection pulses. A stalled or dead one holds steady,
+   because a blinking dot reads as activity and there is none. */
+[data-status="live"] .viewer-count__dot {
+  --status-color: var(--ok);
+}
+
+[data-status="reconnecting"] .viewer-count__dot {
+  --status-color: var(--warn);
+  animation: none;
+}
+
+[data-status="offline"] .viewer-count__dot {
+  --status-color: var(--danger);
+  animation: none;
+}
+
+.viewer-count__value {
+  font-variant-numeric: tabular-nums;
+}
+
+.viewer-count__mode::before {
+  /* The literal character, not a CSS escape: an escaped form here was once
+     mangled into a NUL byte on its way into this file, which shipped as
+     mojibake. There is no reason to spell a middle dot in hex. */
+  content: "·";
+  margin-right: var(--space-2);
+  color: var(--text-faint);
+}
+
+@media (min-width: 880px) {
+  .viewer-count {
+    /* The nav moves to the top on desktop, so the bottom edge is clear. */
+    bottom: var(--space-5);
+    right: var(--gutter);
+  }
+}
+
+/* -------------------------------------------------------------------------
+   BUTTONS — rectangular and typographic. The old pill shape read as chrome;
+   these read as an editorial call to action.
+   ------------------------------------------------------------------------- */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  overflow: hidden;
+  transition:
+    color var(--dur-fast) var(--ease-reveal),
+    border-color var(--dur-fast) var(--ease-reveal),
+    transform var(--dur-fast) var(--ease-reveal);
+}
+
+/* Hover fills from the bottom rather than switching background colour. */
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transform: translateY(100%);
+  transition:
+    transform var(--dur-mid) var(--ease-out-expo),
+    opacity var(--dur-mid) var(--ease-out-expo);
+}
+
+.btn > * {
+  position: relative;
+}
+
+.btn:hover:not(:disabled)::before {
+  opacity: 0.12;
+  transform: translateY(0);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn--primary:hover:not(:disabled) {
+  color: var(--accent-bright);
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 24px -6px var(--accent-glow);
+}
+
+.btn--ghost {
+  border-color: var(--hairline);
+  color: var(--text-muted);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--hairline-strong);
+}
+
+.btn--danger {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  color: var(--danger);
+}
+
+/* -------------------------------------------------------------------------
+   CHIPS / STATUS
+   ------------------------------------------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+}
+
+.status--pending {
+  color: var(--text-faint);
+}
+
+.status--ready {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--accent-soft);
+}
+
+/* A live game gets a pulsing dot so it is findable across a room. */
+.status--ready::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: status-ping 1.8s var(--ease-in-out-soft) infinite;
+}
+
+/* Gold on a translucent gold wash. The old pairing put --gold-ink (#2b1c02)
+   on a solid --gold-soft (#3a2c0f) at roughly 1.2:1, which made the whole
+   chip disappear on the only theme this site has. */
+.status--done {
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+  background: var(--gold-soft);
+}
+
+/* -------------------------------------------------------------------------
+   PANEL — now reserved for surfaces that genuinely float above the cosmos.
+   Most former panels are plain hairline sections instead.
+   ------------------------------------------------------------------------- */
+.panel {
+  position: relative;
+  background: var(--panel-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
+}
+
+/* A slow specular sweep, so glass reads as glass under a moving sky. */
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 44%,
+    rgba(255, 255, 255, 0.07) 50%,
+    transparent 56%
+  );
+  background-size: 300% 300%;
+  animation: panel-sweep 14s linear infinite;
+}
+
+/* -------------------------------------------------------------------------
+   EMPTY STATES — a quiet italic line rather than a boxed placeholder.
+   ------------------------------------------------------------------------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-5);
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.empty-state__icon {
+  width: 2rem;
+  height: 2rem;
+  opacity: 0.4;
+}
+
+.empty-state__text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--fs-display-sm);
+  color: var(--text-muted);
+  max-width: 34ch;
+  text-wrap: balance;
+}
+
+/* A validation failure must not look like placeholder copy — which is what
+   the old faint-grey empty-state styling made it look like. */
+.empty-state__text--danger,
+.form-error {
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: var(--fs-small);
+  color: var(--danger);
+  padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--danger);
+  background: var(--danger-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  text-align: left;
+}

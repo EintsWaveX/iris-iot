@@ -1,0 +1,1616 @@
+/* =========================================================================
+   SCREENS — Kehadiran, Daftar Game, Game detail, Klasemen.
+
+   Under the editorial language these are hairline sections on the open
+   background rather than stacked glass cards, so the builders no longer add
+   the `panel` class to them. Only the bracket matches still float, and they
+   keep it. (Neutralising `panel` in CSS instead was a trap: `.x.panel` beats
+   `.x` on specificity, so it silently ate the podium medal rules.)
+   ========================================================================= */
+
+/* =========================================================================
+   KEHADIRAN
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   ROSTER CONTROL BAR
+
+   Sticky, because marking 25 people is a long scroll on a phone: without it
+   the counter and the bulk actions end up wherever the operator last
+   scrolled past, which is never where they are needed. On desktop the nav is
+   itself sticky at the top, so this sits below it; on a phone the nav is at
+   the bottom and this can take top: 0.
+   ------------------------------------------------------------------------- */
+.roster-controls {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6);
+  padding: var(--space-3) 0;
+  /* Opaque, so a lane heading scrolling underneath disappears cleanly. A
+     gradient here let headings show through half-cut, which reads as a
+     rendering fault rather than as a soft edge -- the fade belongs below the
+     bar, not behind its contents. */
+  background: var(--bg);
+}
+
+.roster-controls::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: var(--space-5);
+  background: linear-gradient(to bottom, var(--bg), transparent);
+  pointer-events: none;
+}
+
+@media (min-width: 880px) {
+  .roster-controls {
+    top: var(--nav-size);
+  }
+}
+
+/* ---- the counter and its arc ------------------------------------------ */
+.roster-meter {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+}
+
+.roster-meter__arc {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  /* Start the arc at twelve o'clock rather than three. */
+  transform: rotate(-90deg);
+}
+
+.roster-meter__track {
+  fill: none;
+  stroke: var(--hairline);
+  stroke-width: 3;
+}
+
+.roster-meter__value {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--dur-slow) var(--ease-out-expo);
+}
+
+.roster-meter__text {
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* ---- search ------------------------------------------------------------ */
+.roster-search {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.roster-search__input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--text);
+}
+
+.roster-search__input::placeholder {
+  color: var(--text-faint);
+}
+
+.roster-search__input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+/* Chrome's own clear affordance is invisible on this ground. */
+.roster-search__input::-webkit-search-cancel-button {
+  filter: invert(1);
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+.roster-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex: none;
+}
+
+/* ---- filtering --------------------------------------------------------- */
+.assistant-card.is-filtered-out,
+.division-lane.is-empty {
+  display: none;
+}
+
+/* ---- compact density ----
+   One row per plate instead of two: the kode sits inline before the name
+   rather than above it, which roughly halves the height of a 25-person list
+   without dropping any information. */
+[data-density="compact"] .assistant-card {
+  grid-template-columns: 9px auto minmax(0, 1fr);
+  padding-block: var(--space-2);
+}
+
+[data-density="compact"] .assistant-card::before {
+  grid-row: 1;
+}
+
+[data-density="compact"] .assistant-card__kode {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+[data-density="compact"] .assistant-card__name {
+  grid-column: 3;
+  grid-row: 1;
+  /* Names run long; on one row they must not wrap the plate to two lines
+     anyway, which would defeat the point. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  /* The two bulk actions would otherwise push the search field down to a
+     line of its own on the narrowest phones. */
+  .roster-actions .btn {
+    padding-inline: var(--space-3);
+    font-size: var(--fs-micro);
+  }
+}
+.roster__summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-6) var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column-reverse; /* label reads above the number */
+  gap: var(--space-2);
+  padding: 0;
+}
+
+.stat-tile__value {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.stat-tile__label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+}
+
+.division-balance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) 0;
+  padding: 0;
+}
+
+.division-balance__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding-inline: var(--space-4);
+  border-right: 1px solid var(--hairline);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+}
+
+.division-balance__item:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.division-balance__count {
+  font-size: var(--fs-small);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- division sections ---- */
+.division-lane {
+  padding: var(--space-7) 0 var(--space-3);
+  border-top: 1px solid var(--hairline);
+}
+
+.division-lane:first-of-type {
+  border-top: 0;
+}
+
+.division-lane__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.division-lane__name {
+  font-size: var(--fs-display-sm);
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.division-lane__count {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.division-lane__members {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0 var(--space-6);
+}
+
+/* ---- the assistant name plate ----
+   Present/absent used to be carried by border colour and opacity alone,
+   which is close to invisible in a dark room. A filled vs hollow dot plus a
+   colour shift is legible at a glance and does not rely on colour alone. */
+.assistant-card {
+  display: grid;
+  grid-template-columns: 9px 1fr;
+  align-items: center;
+  gap: 0 var(--space-4);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--hairline-faint);
+  text-align: left;
+  color: var(--text-muted);
+  transition:
+    color var(--dur-fast) var(--ease-reveal),
+    padding-left var(--dur-mid) var(--ease-out-expo),
+    background-color var(--dur-fast) var(--ease-reveal);
+}
+
+.assistant-card::before {
+  content: "";
+  grid-row: 1 / span 2;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  background: transparent;
+  transition:
+    background-color var(--dur-mid) var(--ease-out-expo),
+    box-shadow var(--dur-mid) var(--ease-out-expo),
+    border-color var(--dur-mid) var(--ease-out-expo);
+}
+
+.assistant-card__kode {
+  grid-column: 2;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+}
+
+.assistant-card__name {
+  grid-column: 2;
+  font-size: var(--fs-small);
+  line-height: 1.35;
+}
+
+.assistant-card:hover {
+  background: rgba(255, 255, 255, 0.03);
+  padding-left: var(--space-4);
+  color: var(--text);
+}
+
+.assistant-card.is-present {
+  color: var(--text);
+}
+
+.assistant-card.is-present::before {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.assistant-card.is-present .assistant-card__kode {
+  color: var(--accent);
+}
+
+.assistant-card.is-absent {
+  color: var(--text-faint);
+  opacity: 0.62;
+}
+
+/* =========================================================================
+   DAFTAR GAME — an editorial index, not a card grid.
+   ========================================================================= */
+.games-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-card {
+  display: grid;
+  grid-template-columns: minmax(52px, auto) 1fr auto;
+  align-items: start;
+  gap: var(--space-3) var(--space-6);
+  padding: var(--space-6) var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  transition:
+    padding-left var(--dur-mid) var(--ease-out-expo),
+    background-color var(--dur-fast) var(--ease-reveal);
+}
+
+.game-card:first-child {
+  border-top: 1px solid var(--hairline);
+}
+
+.game-card__head {
+  display: contents;
+}
+
+.game-card__no {
+  grid-row: 1 / span 2;
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  line-height: 0.8;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--dur-mid) var(--ease-out-expo);
+}
+
+.game-card__title {
+  grid-column: 2;
+  font-size: var(--fs-display-sm);
+  color: var(--text);
+  transition: color var(--dur-fast) var(--ease-reveal);
+}
+
+.game-card__desc {
+  grid-column: 2;
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  max-width: 56ch;
+}
+
+.game-card__foot {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+}
+
+.game-card .chip {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.game-card:hover {
+  background: rgba(255, 255, 255, 0.025);
+  padding-left: var(--space-5);
+}
+
+.game-card:hover .game-card__title {
+  color: var(--accent);
+}
+
+.game-card:hover .game-card__no {
+  color: var(--accent);
+}
+
+.game-card__link {
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.game-card__link:hover {
+  color: var(--accent-bright);
+}
+
+/* =========================================================================
+   GAME DETAIL — constellation groups + bracket
+   ========================================================================= */
+.group-columns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+}
+
+.group-column {
+  --gc: var(--accent);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--gc);
+  min-width: 0;
+}
+
+.group-column--1 { --gc: var(--group-1); }
+.group-column--2 { --gc: var(--group-2); }
+.group-column--3 { --gc: var(--group-3); }
+.group-column--4 { --gc: var(--group-4); }
+
+.group-column__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.group-column__numeral {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  line-height: 0.85;
+  color: var(--gc);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--gc) 45%, transparent);
+}
+
+.group-column__title {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+}
+
+.group-column__members {
+  display: flex;
+  flex-direction: column;
+}
+
+.group-member {
+  /* The star that a name condenses out of is positioned against this. */
+  position: relative;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--hairline-faint);
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  /* Names vary wildly in length and the columns are narrow; wrapping beats
+     truncating when the point is to find your own name in the list. */
+  overflow-wrap: anywhere;
+}
+
+.group-member:last-child {
+  border-bottom: 0;
+}
+
+.game-controls {
+  /* The reset confirmation is anchored to this row. */
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: var(--space-8);
+}
+
+.game-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+}
+
+/* ---- bracket ---- */
+.bracket {
+  position: relative; /* the wire overlay anchors to this */
+  display: flex;
+  align-items: center;
+  gap: clamp(var(--space-6), 6vw, var(--space-10));
+  padding-bottom: var(--space-6);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+/* Connector wires, drawn to measured geometry by ui-game.js layoutWires(). */
+.bracket__wires {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.bracket__wire {
+  --wc: var(--accent);
+  fill: none;
+  stroke: var(--hairline-strong);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    stroke var(--dur-slow) var(--ease-out-expo),
+    filter var(--dur-slow) var(--ease-out-expo);
+}
+
+.bracket__wire.is-live {
+  stroke: var(--wc);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--wc) 60%, transparent));
+}
+
+/* The travelling segment. Rests invisible and is driven entirely by GSAP;
+   it inherits the same --wc group hues as the wire beneath it. */
+.bracket__wire-pulse {
+  --wc: var(--accent);
+  fill: none;
+  stroke: var(--wc);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  filter: drop-shadow(0 0 6px var(--wc));
+}
+
+.bracket__wire--1 { --wc: var(--group-1); }
+.bracket__wire--2 { --wc: var(--group-2); }
+.bracket__wire--3 { --wc: var(--group-3); }
+.bracket__wire--4 { --wc: var(--group-4); }
+
+.bracket__round {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-8);
+  min-width: 240px;
+  flex: 1;
+  scroll-snap-align: start;
+}
+
+.match {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: rgba(10, 12, 20, 0.72);
+  overflow: hidden;
+}
+
+.match__label {
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.03);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+}
+
+/* The VS badge is a flex item pulled into the seam with negative margins
+   rather than absolutely centred on the match box. Centring on the box broke
+   as soon as the match gained a label row of its own. */
+.match-vs {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  margin-block: -11px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+}
+
+.match-side {
+  --gc: var(--text-faint);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4);
+  border-left: 3px solid var(--gc);
+  background: rgba(10, 12, 20, 0.6);
+  text-align: left;
+  color: var(--text);
+  transition:
+    background-color var(--dur-fast) var(--ease-reveal),
+    filter var(--dur-mid) var(--ease-out-expo),
+    transform var(--dur-mid) var(--ease-out-expo),
+    opacity var(--dur-mid) var(--ease-out-expo);
+}
+
+.match-side--1 { --gc: var(--group-1); }
+.match-side--2 { --gc: var(--group-2); }
+.match-side--3 { --gc: var(--group-3); }
+.match-side--4 { --gc: var(--group-4); }
+
+.match-side__group {
+  font-family: var(--font-display);
+  font-size: var(--fs-body-lg);
+  color: var(--gc);
+}
+
+.match-side:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.match-side.is-tbd {
+  --gc: var(--hairline-strong);
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.match-side.is-winner {
+  background: color-mix(in srgb, var(--gc) 14%, transparent);
+  animation: winner-pop 420ms var(--ease-out-expo);
+}
+
+.match-side.is-winner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid color-mix(in srgb, var(--gc) 50%, transparent);
+  pointer-events: none;
+}
+
+.match-side.is-loser {
+  filter: grayscale(0.85) brightness(0.75);
+  opacity: 0.55;
+  transform: scale(0.985);
+}
+
+/* ---- champion strip ---- */
+.champion-banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-7);
+  border-left: 2px solid var(--gold);
+  background: var(--gold-soft);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.champion-banner__title {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  /* --gold on --gold-soft. The old --gold-ink on a solid --gold-soft sat at
+     about 1.2:1 and made the word "Juara" vanish. */
+  color: var(--gold);
+}
+
+.champion-banner__group {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  color: var(--gold-bright);
+}
+
+.champion-banner.is-champion {
+  animation: gold-bloom 1600ms var(--ease-out-expo);
+}
+
+/* =========================================================================
+   KLASEMEN — a podium with actual tiers
+   ========================================================================= */
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-9);
+}
+
+.podium__place {
+  --medal: var(--text-faint);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-5);
+  border-top: 2px solid var(--medal);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--medal) 10%, transparent) 0%,
+    transparent 85%
+  );
+  text-align: center;
+}
+
+.podium__rank {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  color: var(--medal);
+  font-variant-numeric: tabular-nums;
+}
+
+.podium__name {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-sm);
+  line-height: 1.1;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.podium__points {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Real tiers: first place is both taller and centred. Places 2 and 3 used to
+   be pixel-identical, which made the podium read as three equal cards. */
+.podium__place--1 {
+  --medal: var(--gold);
+  order: 2;
+  min-height: 250px;
+  box-shadow: 0 -20px 60px -30px var(--gold-glow);
+}
+
+.podium__place--1 .podium__name {
+  font-size: var(--fs-display-md);
+}
+
+.podium__place--1 .podium__points {
+  color: var(--gold);
+}
+
+.podium__place--2 {
+  --medal: var(--silver);
+  order: 1;
+  min-height: 200px;
+}
+
+.podium__place--3 {
+  --medal: var(--bronze);
+  order: 3;
+  min-height: 168px;
+}
+
+/* ---- leaderboard ---- */
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-2);
+  border-bottom: 1px solid var(--hairline-faint);
+  transition: background-color var(--dur-fast) var(--ease-reveal);
+}
+
+.leaderboard-row:last-child {
+  border-bottom: 0;
+}
+
+.leaderboard-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.leaderboard-row__rank {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-row__name {
+  font-size: var(--fs-small);
+  color: var(--text);
+  min-width: 0;
+}
+
+.leaderboard-row__division {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+}
+
+.leaderboard-row__points {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-sm);
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-row__titles {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+  text-align: right;
+  min-width: 9ch;
+}
+
+/* =========================================================================
+   ATURAN — the rules screen
+
+   The one screen that is genuinely long-form reading, so it leans hardest
+   on the editorial primitives: a serif lead, hairline-separated sections,
+   and a definition list whose terms sit out in the margin on a wide
+   viewport and stack above their descriptions on a phone.
+   ========================================================================= */
+.rules-lead {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-sm);
+  line-height: 1.35;
+  color: var(--text);
+  max-width: 34ch;
+  margin: 0 0 var(--space-7);
+  text-wrap: balance;
+}
+
+.rules-prose {
+  font-size: var(--fs-body-lg);
+  line-height: 1.65;
+  color: var(--text-muted);
+  max-width: 62ch;
+  margin: 0 0 var(--space-5);
+}
+
+/* Term in column one, description in column two. Each pair gets its own
+   hairline so the list reads as a set of rows without becoming a table. */
+.rules-points {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  column-gap: var(--space-7);
+  margin: var(--space-6) 0 0;
+}
+
+.rules-points__term {
+  grid-column: 1;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text);
+  padding-block: var(--space-4);
+  border-top: 1px solid var(--hairline-faint);
+}
+
+.rules-points__desc {
+  grid-column: 2;
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: var(--text-muted);
+  padding-block: var(--space-4);
+  border-top: 1px solid var(--hairline-faint);
+}
+
+/* -------------------------------------------------------------------------
+   The scoring table. The numeral is the loudest thing on the screen, in the
+   serif, because "3 / 1 / 0" is the single fact most people came here for.
+   ------------------------------------------------------------------------- */
+.rules-score {
+  margin: var(--space-4) 0 var(--space-6);
+  border-top: 1px solid var(--hairline);
+}
+
+.rules-score__row {
+  /* Only the champion tier is gold; the rest stay neutral, because gold
+     means champion and nothing else in this palette. */
+  --tier: var(--text-faint);
+  display: grid;
+  /* The unit sits directly under its numeral rather than in a third column
+     at the far edge, where it ends up orphaned a screen-width away from the
+     number it belongs to. */
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: var(--space-5);
+  padding-block: var(--space-5);
+  border-bottom: 1px solid var(--hairline-faint);
+}
+
+.rules-score__row--gold {
+  --tier: var(--gold);
+}
+
+.rules-score__value {
+  grid-row: 1;
+  grid-column: 1;
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  line-height: 1;
+  color: var(--tier);
+  min-width: 1.6ch;
+  text-align: right;
+}
+
+.rules-score__body {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.rules-score__label {
+  font-size: var(--fs-body-lg);
+  color: var(--text);
+}
+
+.rules-score__text {
+  margin-top: var(--space-1);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.rules-score__unit {
+  grid-row: 2;
+  grid-column: 1;
+  margin-top: var(--space-2);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+  text-align: right;
+}
+
+/* -------------------------------------------------------------------------
+   The bracket illustration. 640 units wide; its mono labels stop being
+   legible below roughly 520px of render width, so it scrolls in its own
+   track on a phone instead of shrinking into illegibility.
+   ------------------------------------------------------------------------- */
+.rules-diagram {
+  margin: var(--space-6) 0 var(--space-7);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: var(--space-2);
+}
+
+.rules-diagram__svg {
+  display: block;
+  width: 100%;
+  min-width: 520px;
+  height: auto;
+}
+
+.rules-diagram__label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.rules-diagram__label--muted {
+  fill: var(--text-muted);
+}
+
+.rules-diagram__caption {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+}
+
+@media (max-width: 720px) {
+  /* One column: the term becomes a heading for its description. */
+  .rules-points {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rules-points__term {
+    padding-bottom: 0;
+  }
+
+  .rules-points__desc {
+    grid-column: 1;
+    padding-top: var(--space-2);
+    border-top: 0;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   GAME DETAIL — back affordance
+
+   The detail screen has no nav entry of its own, so this is the only exit
+   that reads as one.
+   ------------------------------------------------------------------------- */
+.game-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding: var(--space-2) 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-reveal);
+}
+
+.game-back:hover {
+  color: var(--text);
+}
+
+.game-back:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.game-back__arrow {
+  transition: transform var(--dur-fast) var(--ease-reveal);
+}
+
+.game-back:hover .game-back__arrow {
+  transform: translateX(-3px);
+}
+
+/* -------------------------------------------------------------------------
+   GROUP COLUMN CREST
+
+   The crest is what lets "Grup 2" tell itself apart from "Grup 4" at a
+   glance. It sits at low opacity so it reads as a mark rather than
+   competing with the names underneath it.
+   ------------------------------------------------------------------------- */
+.group-column__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.group-column__constellation {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--gc, var(--text-faint));
+  opacity: 0.75;
+}
+
+.group-column__crest {
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  flex: none;
+  opacity: 0.55;
+}
+
+.group-column__crest-line {
+  stroke: var(--gc, var(--text-faint));
+  stroke-width: 1.5;
+  opacity: 0.5;
+}
+
+.group-column__crest-star {
+  fill: var(--gc, var(--text-faint));
+}
+
+/* -------------------------------------------------------------------------
+   CONFIRM POPOVER
+
+   Replaces a label swap that reverted silently after three seconds. Resetting
+   destroys a live bracket, so it gets a real question with two distinct
+   answers rather than a second tap on the same button.
+   ------------------------------------------------------------------------- */
+.confirm {
+  position: absolute;
+  bottom: calc(100% + var(--space-3));
+  left: 0;
+  z-index: 70;
+  width: min(24rem, calc(100vw - var(--gutter) * 2));
+  padding: var(--space-5);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  background: var(--panel-bg-solid);
+  box-shadow: var(--shadow-lift);
+}
+
+.confirm__text {
+  margin: 0 0 var(--space-4);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.confirm__actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* The point of light a drawn name materialises out of. Purely decorative and
+   removed once it has burned out; it inherits the column's group hue. */
+.group-member__star {
+  position: absolute;
+  left: -3px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: 50%;
+  background: var(--gc, var(--accent));
+  box-shadow: 0 0 12px 2px var(--gc, var(--accent));
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* =========================================================================
+   STAGE — the projector view
+
+   Sized for the back row, not for a hand. Everything here is deliberately
+   larger than it "should" be: at four metres a comfortable reading size on a
+   laptop is unreadable, so the type scale starts where the app's ends. The
+   sky is dialled up to match in cosmos.css.
+
+   Sits above the nav but below the champion takeover, which is still the
+   moment that outranks everything.
+   ========================================================================= */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 800;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: clamp(var(--space-6), 4vh, var(--space-9)) clamp(var(--space-6), 5vw, var(--space-10));
+  /* Transparent: the cosmos layer is the whole point of the projector view,
+     so the stage sits in front of the sky rather than covering it. */
+  background: transparent;
+  pointer-events: none;
+}
+
+/* The app's own chrome has no place on a projector -- no nav to tap, no
+   status pill, no scrolling column of phone-sized content. */
+[data-stage="on"] .nav,
+[data-stage="on"] .screens,
+[data-stage="on"] .viewer-count {
+  display: none !important;
+}
+
+.stage__head {
+  flex: none;
+}
+
+.stage__eyebrow {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-mono);
+  font-size: clamp(0.9rem, 1.1vw, 1.3rem);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--accent);
+}
+
+.stage__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 6vw, 6rem);
+  font-weight: 400;
+  line-height: 1.02;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.stage__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+
+.stage__foot {
+  flex: none;
+}
+
+.stage__hint {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(0.7rem, 0.8vw, 0.95rem);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+}
+
+/* ---- waiting ---------------------------------------------------------- */
+.stage-wait__text {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.5vw, 4.5rem);
+  font-style: italic;
+  line-height: 1.1;
+  color: var(--text-muted);
+}
+
+.stage-wait__sub {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 1.4vw, 1.6rem);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-faint);
+}
+
+/* ---- the draw --------------------------------------------------------- */
+.stage-groups {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(var(--space-4), 2vw, var(--space-8));
+  align-items: start;
+}
+
+.stage-group {
+  --gc: var(--text-muted);
+  border-top: 2px solid var(--gc);
+  padding-top: var(--space-4);
+}
+
+.stage-group--1 { --gc: var(--group-1); }
+.stage-group--2 { --gc: var(--group-2); }
+.stage-group--3 { --gc: var(--group-3); }
+.stage-group--4 { --gc: var(--group-4); }
+
+.stage-group__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.stage-group__numeral {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 2.4vw, 2.6rem);
+  line-height: 1;
+  color: var(--gc);
+}
+
+.stage-group__name {
+  font-family: var(--font-mono);
+  font-size: clamp(0.8rem, 1vw, 1.15rem);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--gc);
+}
+
+.stage-group__members {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage-group__member {
+  font-size: clamp(0.95rem, 1.35vw, 1.5rem);
+  line-height: 1.45;
+  color: var(--text);
+}
+
+/* ---- the bracket ------------------------------------------------------ */
+.stage-bracket {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--space-5), 3vh, var(--space-8));
+}
+
+.stage-match {
+  border-top: 1px solid var(--hairline);
+  padding-top: var(--space-4);
+}
+
+.stage-match__label {
+  font-family: var(--font-mono);
+  font-size: clamp(0.75rem, 0.95vw, 1.1rem);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+  margin-bottom: var(--space-3);
+}
+
+.stage-match__sides {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(var(--space-4), 2vw, var(--space-8));
+}
+
+.stage-match__side {
+  --gc: var(--text-faint);
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 4rem);
+  line-height: 1.05;
+  color: var(--gc);
+  transition: opacity var(--dur-mid) var(--ease-reveal);
+}
+
+.stage-match__side--1 { --gc: var(--group-1); }
+.stage-match__side--2 { --gc: var(--group-2); }
+.stage-match__side--3 { --gc: var(--group-3); }
+.stage-match__side--4 { --gc: var(--group-4); }
+
+/* A decided match reads at a glance from the back of the room: the loser
+   recedes rather than being struck through, which is illegible at distance. */
+.stage-match__side--loser {
+  opacity: 0.28;
+}
+
+.stage-match__side--winner {
+  text-shadow: 0 0 28px color-mix(in srgb, var(--gc) 45%, transparent);
+}
+
+.stage-match__vs {
+  font-family: var(--font-mono);
+  font-size: clamp(0.8rem, 1vw, 1.15rem);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+}
+
+/* ---- standings -------------------------------------------------------- */
+.stage-standings__head {
+  margin: 0 0 var(--space-5);
+  font-family: var(--font-mono);
+  font-size: clamp(0.8rem, 1vw, 1.15rem);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+}
+
+.stage-standings__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--space-2), 1.4vh, var(--space-4));
+}
+
+.stage-standings__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: clamp(var(--space-4), 2vw, var(--space-7));
+  border-bottom: 1px solid var(--hairline-faint);
+  padding-bottom: clamp(var(--space-2), 1.2vh, var(--space-4));
+}
+
+.stage-standings__row:first-child {
+  --row: var(--gold);
+}
+
+.stage-standings__rank {
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 1.4vw, 1.6rem);
+  color: var(--row, var(--text-faint));
+}
+
+.stage-standings__name {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 3.2rem);
+  line-height: 1.1;
+  color: var(--row, var(--text));
+}
+
+.stage-standings__points {
+  font-family: var(--font-mono);
+  font-size: clamp(1.2rem, 2vw, 2.2rem);
+  color: var(--row, var(--text-muted));
+}
+
+/* ---- the nav toggle --------------------------------------------------- */
+.nav-stage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-reveal),
+              border-color var(--dur-fast) var(--ease-reveal);
+}
+
+.nav-stage:hover {
+  color: var(--text);
+  border-color: var(--hairline-strong);
+}
+
+.nav-stage:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.nav-stage[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* On a phone the projector view is not the job, and the nav is already tight
+   with four entries. */
+@media (max-width: 720px) {
+  .nav-stage {
+    display: none;
+  }
+
+  .stage-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =========================================================================
+   CHAMPION TAKEOVER
+
+   A full-viewport moment, not a banner. Sits above everything except the
+   confetti canvas. The group's own hue drives the whole overlay through
+   --cc, with gold reserved for the "Juara" eyebrow and the name itself,
+   because gold means champion and nothing else in this palette.
+   ========================================================================= */
+.champion {
+  --cc: var(--accent);
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gutter);
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 45%, color-mix(in srgb, var(--cc) 12%, transparent) 0%, transparent 70%),
+    var(--scrim);
+  backdrop-filter: blur(22px) saturate(1.3);
+  -webkit-backdrop-filter: blur(22px) saturate(1.3);
+  cursor: pointer;
+}
+
+.champion[data-group="1"] { --cc: var(--group-1); }
+.champion[data-group="2"] { --cc: var(--group-2); }
+.champion[data-group="3"] { --cc: var(--group-3); }
+.champion[data-group="4"] { --cc: var(--group-4); }
+
+.champion__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  text-align: center;
+  max-width: 44rem;
+}
+
+.champion__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--gold);
+}
+
+.champion__crest-slot {
+  width: clamp(96px, 16vw, 148px);
+  aspect-ratio: 1;
+}
+
+.champion__crest {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.champion__crest-line {
+  stroke: var(--cc);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+
+.champion__crest-star {
+  fill: var(--cc);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cc) 75%, transparent));
+}
+
+.champion__group {
+  font-size: var(--fs-display-xl);
+  line-height: 0.92;
+  color: var(--gold-bright);
+  text-shadow: 0 0 70px var(--gold-glow);
+}
+
+.champion__constellation {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--cc);
+}
+
+.champion__members {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-5);
+  margin-top: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--hairline);
+  max-width: 40rem;
+}
+
+.champion__member {
+  font-size: var(--fs-body);
+  color: var(--text);
+}
+
+.champion__hint {
+  margin-top: var(--space-6);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-faint);
+  opacity: 0;
+}
+
+@media (max-width: 620px) {
+  .champion__members {
+    gap: var(--space-1) var(--space-4);
+  }
+
+  .champion__member {
+    font-size: var(--fs-small);
+  }
+}

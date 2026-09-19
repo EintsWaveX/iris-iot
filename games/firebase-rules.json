@@ -1,0 +1,43 @@
+{
+  "rules": {
+    "state": {
+      ".read": true,
+      ".write": false,
+
+      "meta": {
+        "$key": { ".validate": true }
+      },
+
+      "attendance": {
+        "hadir": {
+          "$kode": { ".validate": "newData.isBoolean()" }
+        }
+      },
+
+      "games": {
+        "$gameId": {
+          ".validate": "$gameId.matches(/^g[1-6]$/)",
+          "draw": {
+            "$teamIdx": {
+              "$memberIdx": { ".validate": "newData.isString()" }
+            }
+          },
+          "sf1": {
+            ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 3)"
+          },
+          "sf2": {
+            ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 3)"
+          },
+          "champion": {
+            ".validate": "newData.val() == null || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 3)"
+          },
+          "drawnAt": { ".validate": "newData.isNumber()" }
+        }
+      },
+
+      "rev": { ".validate": "newData.isNumber()" }
+    },
+
+    "$other": { ".validate": false }
+  }
+}

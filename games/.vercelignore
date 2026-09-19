@@ -1,0 +1,28 @@
+# Secrets must reach the deployment as environment variables, never as files
+# in the bundle. The service-account key lives here during local testing only.
+*firebase-adminsdk*.json
+*-adminsdk-*.json
+*service-account*.json
+*serviceAccount*.json
+.env
+.env.*
+
+# Installed fresh by Vercel; uploading ours would be slow and wrong
+node_modules/
+
+# Build inputs. Only public/index.html (already built) and api/ are needed at
+# runtime -- shipping the sources would put the whole roster twice in the
+# bundle for no benefit.
+src/
+build.py
+logo.b64.txt
+
+# Tests and docs
+test_engine.mjs
+test_api.mjs
+.test_api_cases.mjs
+SETUP.md
+firebase-rules.json
+
+# The Artifact-target build; Vercel serves public/ only.
+/index.html

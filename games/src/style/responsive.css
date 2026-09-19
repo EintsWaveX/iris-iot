@@ -1,0 +1,352 @@
+/* =========================================================================
+   RESPONSIVE ADJUSTMENTS, MOTION SAFETY, AND INERT-CONTROL TREATMENT
+
+   Loaded last, so everything here wins on equal specificity.
+
+   The two sizes that actually matter: ~360px, because 25 phones are the real
+   audience, and ~1920px, because the projector is the other one.
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   Below 900px the four group columns stop fitting side by side and become a
+   snap-scrolling row. Four 25%-wide columns at 360px is roughly 80px each,
+   which cannot hold a name.
+   ------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .group-columns {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(210px, 74%);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    /* Bleed to the viewport edges so the row reads as scrollable. */
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    scroll-padding-inline: var(--gutter);
+  }
+
+  .group-column {
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 620px) {
+  .roster__summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-5);
+  }
+
+  .division-balance__item:first-child {
+    padding-left: 0;
+  }
+
+  .division-lane__members {
+    grid-template-columns: 1fr;
+  }
+
+  .game-card {
+    grid-template-columns: minmax(40px, auto) 1fr;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  /* The status chip drops under the title rather than fighting it for width. */
+  .game-card .chip {
+    grid-column: 2;
+    grid-row: auto;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 480px) {
+  .screen__title {
+    font-size: var(--fs-display-md);
+  }
+
+  .podium {
+    gap: var(--space-2);
+  }
+
+  .podium__place {
+    padding: var(--space-4) var(--space-2);
+  }
+
+  .podium__place--1 { min-height: 190px; }
+  .podium__place--2 { min-height: 156px; }
+  .podium__place--3 { min-height: 132px; }
+
+  .podium__name {
+    font-size: var(--fs-body);
+  }
+
+  .podium__place--1 .podium__name {
+    font-size: var(--fs-display-sm);
+  }
+
+  .leaderboard-row {
+    grid-template-columns: 2rem 1fr auto;
+  }
+
+  .leaderboard-row__division,
+  .leaderboard-row__titles {
+    display: none;
+  }
+
+  .nav__brand-label {
+    display: none;
+  }
+}
+
+/* =========================================================================
+   THE OPERATOR'S PHONE
+
+   The design's original premise was that the operator drives from a laptop and
+   the 25 phones in the room are spectators. That is no longer true: operators
+   run the night from their phones, standing up, one-handed.
+
+   That changes what the editorial language is worth on THIS screen. The
+   projector runs off its own device, so nobody but the operator ever sees the
+   operator's phone -- the display serif, the eyebrows and the generous air buy
+   nothing there and charge scroll and reach for it. Measured at 360x780 before
+   any of this: 58% of the first screen went to chrome before the first
+   tappable roster row.
+
+   So: spectators and the stage view keep the design exactly as drawn. An
+   operator on a phone gets the same app with the ceremony turned down. The
+   gate is `[data-mode]`, which app.js already stamps on #app (applyMode), plus
+   a width -- never a `pointer` query, because a spectator on the same phone
+   must still get the designed version.
+   ========================================================================= */
+
+/* ---- touch floor: everyone, not just operators -------------------------- */
+@media (max-width: 620px) {
+  /* Measured 43px. Apple's floor is 44, Android's is 48; take the higher one.
+     min-height rather than padding, so only the short controls move. */
+  .btn {
+    min-height: 48px;
+  }
+
+}
+
+/* ---- operator on a phone ------------------------------------------------ */
+@media (max-width: 620px) {
+  /* The head costs ~300px before any content: eyebrow, display serif, and a
+     subtitle that repeats what the nav already says. The operator knows which
+     screen they are on -- the nav item is lit. Keep the title as an anchor,
+     drop the rest. */
+  #app[data-mode="operator"] .screen__subtitle,
+  #app[data-mode="offline"] .screen__subtitle {
+    display: none;
+  }
+
+  #app[data-mode="operator"] .screen__title,
+  #app[data-mode="offline"] .screen__title {
+    font-size: var(--fs-display-sm);
+  }
+
+  #app[data-mode="operator"] .screen__head,
+  #app[data-mode="offline"] .screen__head {
+    margin-bottom: var(--space-5);
+    /* Clear of the connection chip parked top-right. */
+    padding-right: 7.5rem;
+  }
+
+  /* The chip is `position: fixed` above the nav -- which is exactly where the
+     operator's control bar now lives, so the two would stack. Moved to the top
+     band, which on this screen is titles: text, never a tap target. Only for
+     operators; a spectator has no fixed bar to collide with, and REBUILD.md
+     records the bottom-right placement as a deliberate call.
+
+     The label stays rather than collapsing to a dot: an operator whose writes
+     are silently failing needs the word. */
+  #app[data-mode="operator"] .viewer-count,
+  #app[data-mode="offline"] .viewer-count {
+    top: var(--space-3);
+    right: var(--space-3);
+    bottom: auto;
+  }
+
+  /* Per-division totals duplicate the count already sitting in every lane
+     heading (`4/4`), for ~110px of a 780px screen. The lane headings win. */
+  #app[data-mode="operator"] .roster__summary,
+  #app[data-mode="offline"] .roster__summary {
+    display: none;
+  }
+
+  /* Reach. The controls were already sticky, so they were always findable --
+     but pinned to the TOP of a 6.5" phone, which is the one place a thumb
+     cannot go without regripping. Same bar, moved into the thumb arc directly
+     above the nav. */
+  #app[data-mode="operator"] .roster-controls,
+  #app[data-mode="offline"] .roster-controls {
+    position: fixed;
+    top: auto;
+    bottom: var(--nav-size);
+    left: 0;
+    right: 0;
+    z-index: 55;
+    margin: 0;
+    /* Two rows -- meter + search, then the three bulk actions -- is 135px of a
+       780px screen, and the nav takes another 76. Tightened to the minimum
+       that keeps the 48px touch floor on the buttons. */
+    gap: var(--space-2);
+    padding: var(--space-2) var(--gutter);
+    border-top: 1px solid var(--hairline);
+    background: var(--bg);
+  }
+
+  /* The soft edge belonged below the bar when the bar was at the top. It now
+     belongs above it, or it paints a hard line across the last roster row. */
+  #app[data-mode="operator"] .roster-controls::after,
+  #app[data-mode="offline"] .roster-controls::after {
+    top: auto;
+    bottom: 100%;
+    background: linear-gradient(to top, var(--bg), transparent);
+  }
+
+  /* The bar is out of flow now, so the list has to reserve its height or the
+     last few assistants sit permanently underneath it. */
+  #app[data-mode="operator"] #screen-roster,
+  #app[data-mode="offline"] #screen-roster {
+    padding-bottom: 7.5rem;
+  }
+
+  /* Same move for the game screen: Undi Ulang and Reset are the two controls
+     an operator reaches for mid-round, and they sat at the top of a screen
+     that scrolls. */
+  /* The group columns were a horizontal snap-scroll row below 900px -- four
+     columns at `minmax(210px, 74%)`, so 940px of content in a 360px viewport.
+     Measured on the drawn bracket, that truncates names mid-word ("WIL —
+     Wildan Khali...", "YEN — Bryan Gabrie..."), and the operator reading out
+     groups is the one person who cannot afford a half-name. Stack them
+     instead: taller, but every name is whole and there is no sideways gesture
+     fighting the vertical one.
+
+     Deliberately not scoped to operators. A spectator reading a truncated name
+     is no better off, and this costs them nothing but length. */
+  .group-columns {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    grid-template-columns: 1fr;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    gap: var(--space-6);
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  /* Density. 59px rows are comfortably over both platform floors, so there is
+     room to tighten and still stay above 48px -- worth ~11px x 25 rows. */
+  #app[data-mode="operator"] .assistant-card,
+  #app[data-mode="offline"] .assistant-card {
+    min-height: 48px;
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+}
+
+/* The projector. More measure, more air, larger display type — it is being
+   read from the back of a room, not at arm's length. */
+@media (min-width: 1600px) {
+  :root {
+    --measure: 1320px;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   MOTION SAFETY
+
+   The cosmos layers are deliberately NOT hidden here. Their animations
+   collapse to their end state, which leaves a still nebula, a still grid and
+   a single painted frame of starfield (cosmos.js checks the same preference
+   and never subscribes to the ticker). A motionless night sky is still the
+   design; blanking it would leave a flat void where the whole visual
+   language lives.
+   ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .is-revealing,
+  .stagger-item,
+  .match-side,
+  .champion-banner,
+  .logo-pulse,
+  .screen,
+  .panel::after,
+  .cosmos__grain,
+  .viewer-count__dot,
+  .status--ready::before {
+    animation: none !important;
+  }
+
+  .stagger-item {
+    opacity: 1;
+  }
+
+  /* Without its flicker this class would only dim the text, so give it back
+     the resting colour and let the value swap carry the reveal. */
+  .is-revealing {
+    color: inherit;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   SPECTATOR / INERT CONTROLS
+
+   In spectator mode the roster plates and bracket sides stay in the DOM and
+   stay readable -- a spectator should see everything the operator sees -- but
+   they are disabled. Without a visual treatment they look identical to live
+   controls, so a spectator taps them and nothing happens. These rules make
+   "you can look, but this isn't yours to press" legible from the control
+   itself, not only from the mode note. Deliberately restrained: reduced
+   contrast and a not-allowed cursor, never a hard grey-out that would hurt
+   readability across a room.
+   ------------------------------------------------------------------------- */
+.assistant-card:disabled,
+.match-side:disabled,
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+/* Kill every affordance that implies interactivity, including the hover
+   indent the editorial rows use. */
+.assistant-card:disabled:hover,
+.match-side:disabled:hover,
+.btn:disabled:hover {
+  transform: none;
+  background: none;
+  padding-left: var(--space-2);
+  border-color: var(--hairline);
+  box-shadow: none;
+}
+
+.assistant-card:disabled:hover {
+  color: inherit;
+}
+
+.btn:disabled:hover::before {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+/* A winner already chosen stays fully legible even when inert -- the result
+   is the point, and dimming it would undercut the broadcast. */
+.match-side.is-winner:disabled {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-card:disabled,
+  .match-side:disabled,
+  .btn:disabled {
+    transition: none;
+  }
+}

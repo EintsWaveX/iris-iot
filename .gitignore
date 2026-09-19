@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output — generated, never committed. CI rebuilds and diffs instead
+# of trusting a committed artifact (see games/REBUILD.md gotcha 2, where a
+# stale committed build shipped silently).
+dist/
+web/.astro/
+games/index.html
+games/public/index.html
+hunt/public/index.html
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+.vercel/
+
+# Firebase service-account keys, however someone happens to name the download
+*service-account*.json
+*serviceAccount*.json
+*firebase-adminsdk*.json
+*-adminsdk-*.json
+
+# Runtime state that belongs to a running lab session, not to history
+hunt/jadwal.json
+hunt/jadwal.json.tmp
+hunt/uploads/
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db

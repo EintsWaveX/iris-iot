@@ -1,0 +1,13 @@
+{
+  "name": "arena-asisten-iris",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Vercel deployment layer for Arena Asisten IRIS (live tournament state, operator-gated writes).",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.3.0"
+  }
+}
