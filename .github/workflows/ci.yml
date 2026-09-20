@@ -92,6 +92,16 @@ jobs:
           DATABASE_URL: "postgres://ci:ci@localhost:5432/ci_placeholder"
           SESSION_SECRET: "ci-only-placeholder-secret-not-for-production-use"
 
+      # Catches a real, severe class of bug that every check above this line
+      # is blind to: vercel.json's CSP can name script-src hashes that don't
+      # match what actually shipped, silently blocking inline scripts (this
+      # is exactly how the site's login form and tab switcher went dark
+      # since the very first Phase 1 commit -- astro check/lint/tests/build
+      # all passed the whole time, because none of them load a real browser
+      # or enforce CSP).
+      - name: CSP inline-script hashes match the build
+        run: node scripts/check_csp_hashes.mjs
+
   games:
     name: games (existing test suites + rebuild)
     runs-on: ubuntu-latest
