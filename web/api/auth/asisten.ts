@@ -18,6 +18,7 @@ import {
   createSessionCookie,
   sessionCookieHeader,
   writeAudit,
+  type AsistenLoginResult,
 } from "../../src/lib/auth.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
@@ -37,7 +38,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const result = await verifyAsistenLogin(nim, password, clientIp(req));
 
     if (!result.ok) {
-      res.status(200).json({ ok: false, kode: result.kode });
+      // Asserted, not narrowed: `!result.ok` already proves this at runtime,
+      // but `vercel build`'s own type-check -- unlike `astro check`'s more
+      // lenient bundler resolution -- fails to narrow this discriminated
+      // union here, the same class of gap `tindakan.ts`'s `jenis` field hit.
+      // Confirmed by a real `vercel build` failure, not by reasoning about it.
+      const gagal = result as Extract<AsistenLoginResult, { ok: false }>;
+      res.status(200).json({ ok: false, kode: gagal.kode });
       return;
     }
 
