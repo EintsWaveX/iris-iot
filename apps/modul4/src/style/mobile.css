@@ -1,0 +1,1395 @@
+/* ==========================================================================
+   Perburuan LoRa IRIS - the phone.
+
+   Loaded last, so it can override anything the desktop layout decided.
+
+   The board began as one projector view and grew a thin mobile retrofit:
+   two breakpoints, no touch-target sizing, hover states that stick after a
+   tap, and a --nav-size token that stops being true the moment the nav
+   moves to the bottom. Now that practitioners hunt with phones in their
+   hands and the projector is the secondary screen, that ordering is wrong.
+   This file inverts it.
+   ========================================================================== */
+
+/* ------------------------------------------------------------- new parts --
+   Components introduced with the phone-first flow. Desktop gets them too;
+   they simply were not in hunt.css because nothing used them before.
+   -------------------------------------------------------------------- */
+
+/* -- identity chip in the nav ------------------------------------------- */
+
+.whoami {
+  align-items: center;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: var(--fs-micro);
+  gap: var(--space-2);
+  letter-spacing: var(--tracking-wide);
+  min-height: 34px;
+  padding: var(--space-1) var(--space-3);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.whoami__dot {
+  background: var(--hue, var(--accent));
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.whoami[data-role="asisten"] .whoami__dot { background: var(--gold); }
+.whoami[data-role="asisten"] { color: var(--gold); }
+
+/* -- onboarding ---------------------------------------------------------- */
+
+.onboard {
+  background: var(--scrim);
+  backdrop-filter: blur(14px);
+  inset: 0;
+  overflow-y: auto;
+  position: fixed;
+  z-index: 60;
+}
+
+.onboard__inner {
+  margin-inline: auto;
+  max-width: 44rem;
+  padding: var(--space-9) var(--gutter) var(--space-10);
+}
+
+.onboard__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  font-weight: 400;
+  line-height: 1.05;
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+.onboard__lede {
+  color: var(--text-muted);
+  margin: 0 0 var(--space-7);
+  max-width: 34rem;
+}
+
+/* The login form. One field, deliberately: a student ID is the only thing
+   a practitioner should have to know to get onto the board. */
+.login {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 22rem;
+}
+
+.login__label {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.login__input {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-mono);
+  /* 16px is the floor below which iOS Safari zooms the page on focus, which
+     on a phone leaves the viewport scrolled sideways after the keyboard
+     closes -- the exact "shifted to one side" failure this pass is fixing. */
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+  min-height: 52px;
+  padding: var(--space-3) var(--space-4);
+  width: 100%;
+}
+
+.login__input:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.login__error {
+  color: var(--warn);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.login__go { justify-content: center; width: 100%; }
+
+.onboard[data-busy="1"] .login__go { opacity: 0.6; pointer-events: none; }
+
+.login__note {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  margin: var(--space-6) 0 0;
+}
+
+.login__note[data-idle="yes"] { color: var(--text-faint); }
+
+.confirmgroup__you {
+  color: var(--hue);
+  font-family: var(--font-display);
+  font-size: var(--fs-body-lg);
+  margin: var(--space-3) 0 0;
+}
+
+.confirmgroup__with {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  margin: var(--space-5) 0 var(--space-2);
+  text-transform: uppercase;
+}
+
+.onboard__skip {
+  background: none;
+  border: 0;
+  color: var(--text-faint);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-small);
+  margin-top: var(--space-6);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* -- modal --------------------------------------------------------------- */
+
+.modals { position: relative; z-index: 70; }
+
+/* Centred by the grid, not by a transform.
+
+   It used to be `left/top: 50%` plus `translate(-50%, -50%)`, and the
+   entrance animation tweens `y` on the same element -- so GSAP rewrote the
+   transform to `translate(-50%, 0%)` and left it there under fill:forwards.
+   The panel was therefore never vertically centred after it finished
+   opening; it only looked right while it was short enough not to notice.
+   With four member names at 360x780 it hung 53px below the fold with its
+   buttons off screen. Grid centring cannot be clobbered by a tween. */
+.modal {
+  display: grid;
+  inset: 0;
+  padding: max(var(--space-5), env(safe-area-inset-top, 0px))
+           var(--space-5)
+           max(var(--space-5), env(safe-area-inset-bottom, 0px));
+  place-items: center;
+  position: fixed;
+}
+
+.modal__scrim {
+  background: var(--scrim);
+  backdrop-filter: blur(10px);
+  inset: 0;
+  position: absolute;
+}
+
+.modal__panel {
+  background: var(--panel-bg-solid);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  /* The grid already sizes the cell to the padded viewport, so 100% here
+     is "as tall as it is allowed to be" and the scroll happens inside. */
+  max-height: 100%;
+  max-width: min(32rem, 100%);
+  overflow-y: auto;
+  padding: var(--space-6);
+  position: relative;
+  width: 100%;
+}
+
+.modal__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-sm);
+  font-weight: 400;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.modal__lede {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  margin: var(--space-2) 0 0;
+}
+
+.modal__body { margin-top: var(--space-5); }
+
+.modal__note {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin-top: var(--space-6);
+}
+
+/* -- group confirmation -------------------------------------------------- */
+
+.confirmgroup { text-align: center; }
+
+.confirmgroup__badge {
+  align-items: center;
+  border: 2px solid var(--hue);
+  border-radius: 50%;
+  color: var(--hue);
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  height: 76px;
+  justify-content: center;
+  width: 76px;
+}
+
+.confirmgroup__names {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+}
+
+.confirmgroup__name { font-size: var(--fs-body-lg); }
+
+.confirmgroup__empty {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  margin: var(--space-5) 0 0;
+}
+
+/* -- claim --------------------------------------------------------------- */
+
+.claimform { display: grid; gap: var(--space-4); }
+
+.claimform__file {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.claimform__pick {
+  display: block;
+  min-height: 52px;
+  line-height: 52px;
+  padding-block: 0;
+  text-align: center;
+}
+
+.claimform__preview:empty { display: none; }
+
+.claimform__thumb {
+  border-radius: var(--radius-md);
+  display: block;
+  max-height: 34vh;
+  object-fit: cover;
+  width: 100%;
+}
+
+.claimform__status {
+  color: var(--accent);
+  font-size: var(--fs-small);
+  margin: 0;
+  min-height: 1.2em;
+}
+
+.claimform__hint {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  margin: 0;
+}
+
+/* -- own-group hero ------------------------------------------------------ */
+
+.mine {
+  background: var(--panel-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-7);
+  padding: var(--space-6);
+  position: relative;
+}
+
+.mine::before {
+  background: var(--hue);
+  border-radius: var(--radius-pill);
+  content: "";
+  inset: var(--space-6) auto var(--space-6) 0;
+  position: absolute;
+  width: 3px;
+}
+
+.mine[data-state="found"],
+.mine[data-state="menunggu"] { border-color: var(--gold); }
+
+.mine__head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.mine__rank {
+  color: var(--hue);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.mine__name {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-sm);
+  font-weight: 400;
+  margin: 0;
+}
+
+.mine__heat {
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  margin-left: auto;
+  padding: 2px var(--space-2);
+}
+
+.mine__readout {
+  align-items: baseline;
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.mine__value {
+  font-family: var(--font-display);
+  font-size: clamp(3.4rem, 17vw, 5.2rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 0.95;
+}
+
+.mine__unit { color: var(--text-muted); font-size: var(--fs-body-lg); }
+
+.mine__trend {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  margin-left: auto;
+}
+
+.mine__trend[data-trend="up"] { color: var(--ok); }
+.mine__trend[data-trend="down"] { color: var(--warn); }
+
+.mine__band {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  margin: var(--space-1) 0 var(--space-4);
+}
+
+.mine .bar { margin-bottom: var(--space-5); }
+
+.mine__claim { margin-bottom: var(--space-5); }
+
+.mine__go {
+  display: block;
+  min-height: 56px;
+  width: 100%;
+}
+
+/* Disabled is the normal state for most of a hunt, so it must not read as
+   broken - it reads as "not yet", with the reason underneath. */
+.mine__go[data-armed="no"] {
+  background: none;
+  border-color: var(--hairline);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.mine__go[data-armed="yes"] { animation: claim-pulse 2.4s ease-in-out infinite; }
+
+@keyframes claim-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--gold-glow); }
+  50% { box-shadow: 0 0 0 10px transparent; }
+}
+
+.mine__why {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  margin: var(--space-2) 0 0;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Umpan balik tanpa melihat layar.
+
+   Tombolnya sengaja tenang: ia dipakai sekali di awal sesi lalu ditinggalkan,
+   jadi ia tidak boleh bersaing dengan tombol klaim tepat di atasnya. Titik di
+   kirinya yang membawa kabar nyala/mati, bukan warnanya seluruh tombol.
+--------------------------------------------------------------------------- */
+.mine__sense {
+  margin-bottom: var(--space-5);
+}
+
+.sense__toggle {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  min-height: max(var(--tap), 44px);
+  width: 100%;
+}
+
+.sense__dot {
+  background: var(--text-faint);
+  border-radius: 50%;
+  flex: none;
+  height: 0.5rem;
+  transition: background var(--dur-fast) var(--ease-reveal),
+              box-shadow var(--dur-fast) var(--ease-reveal);
+  width: 0.5rem;
+}
+
+.sense__toggle[data-on="yes"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sense__toggle[data-on="yes"] .sense__dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.sense__note {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  margin: var(--space-2) 0 0;
+  text-align: center;
+}
+
+.mine__verdict {
+  border-radius: var(--radius-md);
+  font-size: var(--fs-small);
+  margin: var(--space-5) 0 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.mine__verdict[data-kind="tolak"] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.mine__verdict[data-kind="tunggu"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.mine__verdict[data-kind="menang"] {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+/* -- the other groups ---------------------------------------------------- */
+
+.others__head {
+  color: var(--text-faint);
+  font-family: var(--font-body);
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  letter-spacing: var(--tracking-eyebrow);
+  margin: 0 0 var(--space-3);
+  text-transform: uppercase;
+}
+
+.others__list { display: grid; gap: 1px; }
+
+.orow {
+  align-items: center;
+  border-top: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 2ch minmax(0, 1fr) 4rem max-content;
+  min-height: 48px;
+  padding: var(--space-2) 0;
+}
+
+.orow__rank {
+  color: var(--hue);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.orow__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orow__bar {
+  background: var(--hairline);
+  border-radius: var(--radius-pill);
+  grid-column: 1 / -1;
+  grid-row: 2;
+  height: 3px;
+  overflow: hidden;
+}
+
+.orow__fill {
+  background: linear-gradient(90deg, var(--heat-cold), var(--heat-cool) 35%,
+              var(--heat-warm) 62%, var(--heat-hot) 82%, var(--heat-burning));
+  clip-path: inset(0 100% 0 0);
+  display: block;
+  height: 100%;
+  transition: clip-path var(--dur-mid) var(--ease-out-expo);
+  width: 100%;
+}
+
+.orow__value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.orow__heat {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+}
+
+.orow[data-state="hilang"] { opacity: 0.45; }
+.orow[data-state="menunggu"] .orow__heat { color: var(--gold); }
+
+/* -- awards -------------------------------------------------------------- */
+
+.awards__state {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-eyebrow);
+  margin: var(--space-3) 0 0;
+  text-transform: uppercase;
+}
+
+.awards__state[data-beku="yes"] { color: var(--gold); }
+
+.champ {
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-7);
+  padding: var(--space-7) var(--space-6);
+  text-align: center;
+}
+
+.champ__eyebrow {
+  color: var(--gold);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-eyebrow);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.champ__name {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  font-weight: 400;
+  margin: var(--space-2) 0 0;
+}
+
+.champ__members { color: var(--text-muted); font-size: var(--fs-small); margin: var(--space-2) 0 0; }
+.champ__time { color: var(--text-faint); font-family: var(--font-mono); font-size: var(--fs-small); margin: var(--space-1) 0 0; }
+
+.champ__shot {
+  border-radius: var(--radius-md);
+  display: block;
+  margin: var(--space-6) auto 0;
+  max-height: 46vh;
+  max-width: 100%;
+}
+
+.podiums {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-bottom: var(--space-7);
+}
+
+.podium {
+  align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.podium[data-medal="gold"] { border-color: var(--gold); }
+.podium[data-medal="silver"] { border-color: var(--silver); }
+.podium[data-medal="bronze"] { border-color: var(--bronze); }
+
+.podium__pos { font-family: var(--font-display); font-size: 2rem; line-height: 1; }
+.podium[data-medal="gold"] .podium__pos { color: var(--gold); }
+.podium[data-medal="silver"] .podium__pos { color: var(--silver); }
+.podium[data-medal="bronze"] .podium__pos { color: var(--bronze); }
+
+.podium__name { color: var(--hue); font-size: var(--fs-small); }
+.podium__value { font-family: var(--font-mono); font-size: var(--fs-small); }
+
+.bests {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.bestcard {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+}
+
+.bestcard__label {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-eyebrow);
+  margin: 0 0 var(--space-3);
+  text-transform: uppercase;
+}
+
+.bestcard__who {
+  color: var(--hue, var(--text));
+  font-family: var(--font-display);
+  font-size: var(--fs-body-lg);
+  margin: 0;
+}
+
+.bestcard__value { font-family: var(--font-mono); font-size: var(--fs-display-sm); margin: var(--space-1) 0 0; }
+.bestcard__none { color: var(--text-faint); font-size: var(--fs-small); margin: 0; }
+.bestcard__note { color: var(--text-faint); font-size: var(--fs-micro); line-height: 1.45; margin: var(--space-3) 0 0; }
+
+/* -- assistant ----------------------------------------------------------- */
+
+.locked {
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+}
+
+.locked__note {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  margin: 0 auto var(--space-5);
+  max-width: 28rem;
+}
+
+.tools__block { margin-bottom: var(--space-8); }
+
+.tools__head {
+  color: var(--text-faint);
+  font-family: var(--font-body);
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  letter-spacing: var(--tracking-eyebrow);
+  margin: 0 0 var(--space-4);
+  text-transform: uppercase;
+}
+
+.tools__note { color: var(--text-muted); font-size: var(--fs-small); margin: 0 0 var(--space-4); }
+.tools__note[data-soon="yes"] { color: var(--warn); }
+
+.tools__row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+.queue { display: grid; gap: var(--space-4); }
+
+.review {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  position: relative;
+}
+
+.review::before {
+  background: var(--hue);
+  border-radius: var(--radius-pill);
+  content: "";
+  inset: var(--space-5) auto var(--space-5) 0;
+  position: absolute;
+  width: 3px;
+}
+
+.review__head { align-items: baseline; display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.review__ord { color: var(--text-faint); font-family: var(--font-mono); font-size: var(--fs-small); }
+.review__name { font-family: var(--font-display); font-size: var(--fs-body-lg); font-weight: 400; margin: 0; }
+.review__age { color: var(--text-faint); font-size: var(--fs-micro); margin-left: auto; }
+.review__meta { color: var(--text-muted); font-family: var(--font-mono); font-size: var(--fs-micro); margin: var(--space-2) 0 0; }
+.review__names { color: var(--text-faint); font-size: var(--fs-micro); margin: var(--space-1) 0 0; }
+.review__nophoto { color: var(--text-faint); font-size: var(--fs-small); margin: var(--space-4) 0 0; }
+
+.review__shot {
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: block;
+  margin: var(--space-4) 0 0;
+  overflow: hidden;
+  padding: 0;
+  width: 100%;
+}
+
+.review__shot img { display: block; max-height: 40vh; object-fit: cover; width: 100%; }
+
+.review__actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
+.review__actions .btn { flex: 1; min-height: 48px; }
+
+.shot__img { border-radius: var(--radius-md); display: block; max-height: 70vh; width: 100%; object-fit: contain; }
+
+/* -- the day editor ------------------------------------------------------
+   Four sessions, each a paste box. The previous editor gave every group a
+   single-line input holding all its members comma-joined, which at phone
+   width showed the first three names and hid the rest behind a caret the
+   thumb could not reach. A textarea shows what was typed. */
+
+.day { display: grid; gap: var(--space-5); }
+
+.sesi {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.sesi[data-running="yes"] { border-color: var(--gold); }
+
+.sesi__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.sesi__num {
+  font-family: var(--font-display);
+  font-size: var(--fs-body-lg);
+}
+
+.sesi__jam {
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  min-height: max(var(--tap), 36px);
+  padding: var(--space-1) var(--space-2);
+}
+
+.sesi__state {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  margin-left: auto;
+  text-transform: uppercase;
+}
+
+.sesi__state[data-on="yes"] { color: var(--gold); }
+
+.sesi__paste {
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  min-height: 9rem;
+  padding: var(--space-3);
+  resize: vertical;
+  width: 100%;
+}
+
+.sesi__paste:focus-visible { border-color: var(--accent); outline: none; }
+
+.sesi__tally {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  margin: 0;
+}
+
+.sesi__tally[data-bad="yes"] { color: var(--warn); }
+
+.sesi__errors { display: grid; gap: var(--space-1); list-style: none; margin: 0; padding: 0; }
+.sesi__error { color: var(--warn); font-size: var(--fs-micro); }
+.sesi__errors:empty { display: none; }
+
+.sesi__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.sesi__actions .btn { flex: 1 1 10rem; justify-content: center; }
+
+.sesi__jam,
+.sesi__paste,
+.tokenform__input,
+.rejectform__input {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-small);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+}
+
+.tokenform__input {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.tokenform__hint { color: var(--text-faint); font-size: var(--fs-micro); margin: var(--space-3) 0 0; }
+
+.rejectform__quick { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+
+.chip {
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-micro);
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3);
+}
+
+/* -- projector claim banner ---------------------------------------------- */
+
+.banner {
+  align-items: baseline;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) var(--space-6);
+}
+
+.banner__who { color: var(--hue); font-family: var(--font-display); font-size: clamp(1.6rem, 3vw, 2.4rem); }
+.banner__what { font-size: clamp(1rem, 1.6vw, 1.4rem); letter-spacing: var(--tracking-wide); text-transform: uppercase; }
+.banner__note { color: var(--text-faint); font-size: clamp(0.8rem, 1.2vw, 1rem); margin-left: auto; }
+
+.srow[data-state="menunggu"] .srow__heat { color: var(--gold); }
+
+/* ====================================================================== */
+/*  The phone pass                                                         */
+/* ====================================================================== */
+
+/* Hover is a lie on a touchscreen: the state latches after a tap and stays
+   until something else is tapped. Every hover rule in this project is
+   re-stated here under a capability query and neutralised outside it. */
+@media (hover: none) {
+  .btn--ghost:hover,
+  .nav-link:hover,
+  .picker__btn:hover,
+  .chip:hover,
+  .whoami:hover { border-color: var(--hairline); color: inherit; }
+
+  .btn--confirm:hover { background: var(--gold); }
+}
+
+/* Touch targets. The inherited sizes are 26-38px, which is below every
+   platform guideline and genuinely hard to hit while walking.
+
+   Driven by a token rather than written inside one media query, because
+   neither trigger alone is sufficient: `pointer: coarse` misses a desktop
+   browser sized to a phone (which is how this gets tested, and how a
+   projector laptop in a narrow window behaves), and the width breakpoint
+   alone misses a tablet held in two hands at desktop width. Either
+   condition raises the floor; a `min-height` of 0 is a no-op elsewhere. */
+:root { --tap: 0px; }
+
+@media (max-width: 880px) { :root { --tap: 44px; } }
+@media (pointer: coarse) { :root { --tap: 44px; } }
+
+.btn,
+.nav-link,
+.picker__btn,
+.lang-toggle,
+.chip,
+.whoami {
+  min-height: max(var(--tap), 0px);
+}
+
+.btn--calibrate { min-height: max(var(--tap), 0px); }
+
+@media (max-width: 880px) {
+  .btn { padding-inline: var(--space-5); }
+  .btn--calibrate { font-size: var(--fs-small); padding: var(--space-2) var(--space-4); }
+  .found__close { height: 48px; width: 48px; }
+  .lang-toggle { padding-inline: var(--space-3); }
+}
+
+@media (pointer: coarse) {
+  .btn { padding-inline: var(--space-5); }
+  .btn--calibrate { font-size: var(--fs-small); padding: var(--space-2) var(--space-4); }
+  .found__close { height: 48px; width: 48px; }
+}
+
+@media (max-width: 880px) {
+  /* --nav-size is 68px, which stops being true the moment the nav becomes
+     height:auto. Anything that clears the nav has to use the real value. */
+  :root { --nav-size: 58px; }
+
+  .nav__items {
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    width: 100%;
+  }
+
+  .nav-link {
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+    padding-inline: var(--space-1);
+  }
+
+  .nav-link__label {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  /* The bottom bar carries the tabs and nothing else. The brand and the
+     identity chip pin themselves to the top of the viewport instead of
+     forming a second row, because a two-row bottom bar came out 146px
+     tall - eighteen per cent of a phone screen, for two controls that are
+     touched once a session. They are existing children repositioned, so
+     there is no phone-only duplicate of them in the DOM. */
+  /* The blur moves to a pseudo-element. backdrop-filter on .nav itself
+     makes it a containing block for position:fixed descendants, so the
+     brand and the identity chip would anchor to the bottom bar instead of
+     the viewport and end up sitting on top of the tabs. */
+  .nav {
+    backdrop-filter: none;
+    height: var(--nav-size);
+    padding-block: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .nav::before {
+    background: var(--panel-bg);
+    backdrop-filter: blur(14px);
+    content: "";
+    inset: 0;
+    position: absolute;
+    z-index: -1;
+  }
+
+  .nav__items {
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    height: var(--nav-size);
+    width: 100%;
+  }
+
+  .nav-link {
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+    padding-inline: var(--space-1);
+  }
+
+  .nav-link__label {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  .nav__brand,
+  .nav__tail {
+    position: fixed;
+    top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
+    z-index: 45;
+  }
+
+  .nav__brand {
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-pill);
+    height: 40px;
+    justify-content: center;
+    left: var(--gutter);
+    margin: 0;
+    padding: 0;
+    width: 40px;
+  }
+
+  .nav__tail {
+    align-items: center;
+    display: flex;
+    gap: var(--space-2);
+    right: var(--gutter);
+  }
+
+  .nav__tail .lang-toggle,
+  .nav__tail .whoami {
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+  }
+
+  /* Clear the floating top row and the bottom bar. */
+  .screens {
+    padding-top: calc(52px + env(safe-area-inset-top, 0px));
+  }
+}
+
+@media (max-width: 720px) {
+  .mine { padding: var(--space-5); }
+  .mine::before { inset: var(--space-5) auto var(--space-5) 0; }
+  .mine__heat { margin-left: 0; }
+
+  .modal__panel { padding: var(--space-5); }
+  .modal__actions .btn { flex: 1; min-height: 48px; }
+
+  .champ { padding: var(--space-6) var(--space-5); }
+
+  /* 96/144px of padding on a 375px screen leaves almost nothing for the
+     content it is meant to frame. */
+  .found__inner { padding: var(--space-7) var(--space-5); }
+
+  .review__actions { flex-direction: column; }
+  .sesi__actions { flex-direction: column; }
+  .sesi__actions .btn { flex: 1 1 auto; }
+
+  .onboard__inner { padding: var(--space-7) var(--gutter) var(--space-9); }
+}
+
+/* Names and stat pairs are nowrap and simply overflow; body has
+   overflow-x:hidden, which hides the symptom rather than the cause. */
+@media (max-width: 460px) {
+  .card__name,
+  .mine__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .orow { grid-template-columns: 2.5ch minmax(0, 1fr) auto; }
+  .orow__heat { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mine__go[data-armed="yes"] { animation: none; }
+  .orow__fill { transition-duration: 1ms; }
+}
+
+.found__members {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  margin: var(--space-2) 0 0;
+}
+
+/* A claim banner adds about 120px to a projector view that already filled
+   the screen exactly, which pushed the last group off the bottom. The
+   banner is the headline while it is up, so the title gives way to it
+   rather than the groups losing a row. Measured on 1600x900: head 203px,
+   banner 94px + 24 margin, six rows 502px, padding 96px = 919 of 900. */
+.stage:has(.banner:not([hidden])) {
+  padding-block: var(--space-6);
+}
+
+.stage:has(.banner:not([hidden])) .stage__title {
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+}
+
+.stage:has(.banner:not([hidden])) .stage__head {
+  margin-bottom: var(--space-4);
+}
+
+.stage:has(.banner:not([hidden])) .banner {
+  margin-bottom: var(--space-4);
+}
+
+/* ---------------------------------------------------- phone: hero first --
+   A group member opens this app to answer one question: how far away are
+   we. On a 360px screen the title, the lede and the four HUD cells push
+   that answer below the fold, so once a group is chosen the hero leads and
+   the framing moves underneath. The lede goes entirely: it explains the
+   game to a newcomer, and a group that has already picked itself is not
+   one. Anyone without a group still gets the full introduction.
+   -------------------------------------------------------------------- */
+
+@media (max-width: 880px) {
+  body[data-mine="1"] #screen-hunt {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body[data-mine="1"] #screen-hunt > .screen__head { order: 2; }
+  body[data-mine="1"] #screen-hunt > .hud { order: 3; }
+  body[data-mine="1"] #mine { order: 1; margin-top: var(--space-2); }
+  body[data-mine="1"] #others { order: 4; }
+  body[data-mine="1"] #cards { order: 5; }
+  body[data-mine="1"] #hunt-empty { order: 6; }
+
+  /* .mine already carries a bottom margin; a top margin here would stack
+     with it into a gap twice the size of any other on the screen. */
+  body[data-mine="1"] #screen-hunt > .screen__head { margin-top: 0; }
+
+  body[data-mine="1"] #screen-hunt .screen__lede { display: none; }
+}
+
+
+/* ====================================================================== */
+/*  Alignment                                                             */
+/*                                                                        */
+/*  Two containers in this project were written as grids and shipped as   */
+/*  flex rows. .stats and .hud both carry grid-template-columns in a      */
+/*  phone media query, and both inherit display:flex from hunt.css -- so  */
+/*  the template was inert and the children wrapped wherever they         */
+/*  happened to fit. Measured at 390px, the six stat pairs started at     */
+/*  x = 41, 205, 41, 187, 41, 41: four rows, no column. The four HUD      */
+/*  cells came out 114, 80, 136 and 252px wide over three ragged rows.    */
+/*                                                                        */
+/*  Making them actual grids is the whole fix. Everything below is that.  */
+/* ====================================================================== */
+
+.stats {
+  display: grid;
+  gap: var(--space-2) var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+/* Each pair is its own two-track grid so the value sits on a common right
+   edge within its column instead of trailing whatever the label measured. */
+.stats__pair {
+  align-items: baseline;
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.hud {
+  display: grid;
+  gap: var(--space-5) var(--space-6);
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.hud__cell { min-width: 0; }
+
+/* Digits that change ten times a second must not change width while they
+   do it, or the whole row shivers. The mono face handles the readouts that
+   already use it; these are the ones set in the display and sans faces. */
+.mine__value,
+.hud__value,
+.orow__value,
+.stats__pair dd,
+.sesi__state {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 880px) {
+  /* Two even columns beat auto-fit here: at 360px auto-fit collapses to a
+     single column and the block grows taller than the phone. */
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hud { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .hud__label,
+  .stats__pair dt {
+    hyphens: none;
+    /* 0.1em of tracking on a 0.66rem label costs about a character and a
+       half per column at this width, which is the difference between
+       "DELAY SATU ARAH" fitting and not. Wrapping stays available as the
+       fallback; truncating never is, because "DELAY SATU AR..." names no
+       measurement at all. */
+    font-size: 0.62rem;
+    letter-spacing: 0.03em;
+    white-space: normal;
+    word-break: normal;
+  }
+}
+
+/* ---------------------------------------------------------- top bar -----
+   The brand, the identity chip and the language toggle are three fixed
+   pills with nothing behind them, so the hero card scrolled under the chip
+   and both became unreadable. They get one shared bar.
+
+   It is drawn as a pseudo-element on #app rather than as a new element,
+   for a specific reason: backdrop-filter on an element makes it a
+   containing block for its position:fixed descendants. Putting the blur on
+   a wrapper that contains these three would anchor them to the wrapper,
+   which is exactly the bug that once pinned them on top of the bottom tab
+   bar. A pseudo-element paints without becoming anyone's ancestor.
+   -------------------------------------------------------------------- */
+
+@media (max-width: 880px) {
+  :root { --topbar: 56px; }
+
+  #app::before {
+    /* Opaque, so there is nothing for a blur to sample and no reason to
+       pay for one -- and a fixed layer carrying backdrop-filter is exactly
+       what composited the bottom bar into the top strip during capture. */
+    background: var(--bg);
+    border-bottom: 1px solid var(--hairline);
+    content: "";
+    height: calc(var(--topbar) + env(safe-area-inset-top, 0px));
+    inset: 0 0 auto 0;
+    pointer-events: none;
+    position: fixed;
+    /* Below .nav (40)? No -- above the page, below the nav's own stacking
+       context. .nav is fixed with z-index 40, so it IS a stacking context
+       and the brand/tail inside it paint at 40 no matter what z-index they
+       carry. A bar at 44 hid both. 39 puts it behind the nav group and
+       still above .screens, which is static. */
+    z-index: 39;
+  }
+
+  /* With a bar behind them the pills no longer need their own, and losing
+     three stacked backdrop-filters is worth real frames on an Orange Pi
+     driving a phone over a hotspot. */
+  .nav__brand,
+  .nav__tail .lang-toggle,
+  .nav__tail .whoami {
+    /* One blur for the bar, not three stacked on top of it. */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: none;
+  }
+
+  .nav__tail .whoami { border-color: var(--hairline-strong, var(--hairline)); }
+  .nav__tail .whoami .whoami__label { color: var(--text); }
+  .nav__tail .lang-toggle { color: var(--text-muted); }
+  .nav__tail .lang-toggle .is-on { color: var(--text); }
+
+  .nav__brand {
+    border-color: transparent;
+    height: 44px;
+    width: 44px;
+  }
+
+  .nav__brand,
+  .nav__tail {
+    top: calc(((var(--topbar) - 44px) / 2) + env(safe-area-inset-top, 0px));
+  }
+
+  /* 52px cleared a row whose bottom edge measured 56px, so the first card
+     slid four pixels under it. Clear the bar itself, plus breathing room. */
+  .screens {
+    padding-top: calc(var(--topbar) + var(--space-4) +
+                      env(safe-area-inset-top, 0px));
+  }
+
+  .onboard__inner {
+    padding-top: calc(var(--topbar) + var(--space-6) +
+                      env(safe-area-inset-top, 0px));
+  }
+
+  /* The active-tab underline is an inset bottom shadow, which on a bottom
+     bar lands on the last pixel row of the viewport -- clipped here, and
+     under the home indicator on a real handset. Move it to the top edge,
+     where it also reads as pointing at the screen it selects. */
+  .nav-link.is-active {
+    box-shadow: inset 0 2px 0 var(--accent);
+  }
+
+  /* The brand is a control like any other and was the one element the tap
+     floor missed: measured 40x40 against a 44px minimum. */
+  .nav__brand { min-height: max(var(--tap), 44px); min-width: 44px; }
+}
+
+/* ------------------------------------------------- phone: hero first ----
+   A logged-in member opens this app to answer one question. The screen
+   title, the lede and the HUD used to push that answer below the fold, and
+   the earlier reorder left the title stranded between the hero and the HUD
+   with about 150px of empty space around it.
+
+   For a member the title goes entirely -- the top bar already says what
+   this is -- and the HUD follows the ranking as a footnote rather than
+   interrupting. Anyone not logged in still gets the full introduction.
+   -------------------------------------------------------------------- */
+
+@media (max-width: 880px) {
+  body[data-mine="1"] #screen-hunt > .screen__head { display: none; }
+  body[data-mine="1"] #screen-hunt > .hud { order: 4; }
+  body[data-mine="1"] #others { order: 3; }
+
+  body[data-mine="1"] #mine {
+    margin-top: 0;
+    order: 1;
+  }
+
+  body[data-mine="1"] #screen-hunt > .hud {
+    border-bottom: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+
+/* -- the other-groups list ----------------------------------------------
+   The bar sat full-bleed under each row, reading as a divider between rows
+   rather than as part of one. Indenting it to the name column ties it to
+   its row, and a common right edge for the distances lets the column be
+   compared by eye instead of read one line at a time. */
+
+.orow__value { text-align: right; }
+
+@media (max-width: 880px) {
+  .orow {
+    column-gap: var(--space-3);
+    row-gap: var(--space-1);
+  }
+
+  .orow__bar {
+    grid-column: 2 / -1;
+  }
+}
+
+
+/* -- density on a phone --------------------------------------------------
+   Measured on the assistant screen at 414px: the screen header took 157px
+   and the "no claims yet" line took 119px, so a third of the first screen
+   was spent saying nothing. A screen whose job is data entry cannot open
+   with 276px of chrome.
+   ----------------------------------------------------------------------- */
+
+@media (max-width: 880px) {
+  .screen__head {
+    padding-bottom: var(--space-4);
+    padding-top: var(--space-5);
+  }
+
+  .screen__title { font-size: var(--fs-display-sm); }
+
+  .empty { padding-block: var(--space-5); }
+
+  /* The eyebrow duplicates what the active tab already says. */
+  #screen-assist > .screen__head .eyebrow,
+  #screen-awards > .screen__head .eyebrow { display: none; }
+
+  .tools__block { margin-bottom: var(--space-6); }
+}
