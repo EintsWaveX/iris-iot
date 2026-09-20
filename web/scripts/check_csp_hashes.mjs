@@ -91,4 +91,6 @@ if (stale.length > 0) {
 }
 
 if (missing.length > 0 || stale.length > 0) process.exit(1);
-console.log(`CSP hash allowlist matches the build: ${builtHashes.size} inline script(s), all accounted for.`);
+console.log(
+  `CSP hash allowlist matches the build: ${builtHashes.size} inline script(s), all accounted for.`,
+);
