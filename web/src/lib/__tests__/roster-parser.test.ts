@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { parseRosterPaste, rosterToPaste } from "../roster-parser";
 
-// Fixtures mirror hunt/SETUP.md section 4's own paste examples and
-// hunt/tools/uji_protokol.py's NIM fixtures, so this test is checking the
+// Fixtures mirror modul4/SETUP.md section 4's own paste examples and
+// modul4/tools/uji_protokol.py's NIM fixtures, so this test is checking the
 // TypeScript port against the same cases the original JavaScript was
 // proven against.
 

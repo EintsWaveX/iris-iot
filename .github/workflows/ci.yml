@@ -7,7 +7,7 @@ name: CI
 #   games   the existing tournament site's own test suites (unchanged this
 #           phase) plus a rebuild, so a change elsewhere in the repo can
 #           never silently break it without CI noticing
-#   hunt    the existing LoRa hunt board: start the real server, run its
+#   modul4  the Module 4 LoRa scoreboard: start the real server, run its
 #           74-assertion protocol suite against it, plus a rebuild
 #   agent   the Phase 2 Orange Pi agent: unit tests for its collectors
 #           (real /proc and `ip neigh` shapes) and its command whitelist
@@ -23,7 +23,7 @@ name: CI
 #           job below)
 #
 # On "rebuild and diff" vs "rebuild and require success": games/index.html,
-# games/public/index.html and hunt/public/index.html are gitignored, not
+# games/public/index.html and modul4/public/index.html are gitignored, not
 # committed -- both sites' own docs already describe them as local build
 # output regenerated immediately before a manual deploy, never as
 # version-controlled artifacts. With nothing committed, there is nothing
@@ -114,12 +114,12 @@ jobs:
       - name: Rebuild
         run: python build.py --standalone
 
-  hunt:
-    name: hunt (protocol suite against a live server + rebuild)
+  modul4:
+    name: modul4 (protocol suite against a live server + rebuild)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: hunt
+        working-directory: modul4
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -190,7 +190,7 @@ jobs:
 
   deploy:
     name: deploy (Vercel)
-    needs: [web, games, hunt, agent, secrets]
+    needs: [web, games, modul4, agent, secrets]
     runs-on: ubuntu-latest
     # Gated on the secrets actually existing, rather than failing the whole
     # pipeline while Phase 1's pending user actions (Neon provisioning,

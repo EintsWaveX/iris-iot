@@ -3,7 +3,7 @@
  * in. With output: 'static' (see the Phase 1 plan's stack decision),
  * .astro pages have no server-side request context to read a cookie from
  * at all; every page that needs to know "am I signed in, and as what"
- * asks this endpoint on mount, the same way hunt/'s identity.js confirms
+ * asks this endpoint on mount, the same way modul4/'s identity.js confirms
  * its stored NIM with the server on every reconnect rather than trusting
  * what it remembers locally.
  */

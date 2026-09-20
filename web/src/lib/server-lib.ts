@@ -105,7 +105,7 @@ export function aksiValid(value: unknown): value is AksiPerintah {
   return typeof value === "string" && (AKSI_PERINTAH as readonly string[]).includes(value);
 }
 
-export const LAYANAN_DIKENAL = ["modul2-ws", "mosquitto", "hunt", "chirpstack"] as const;
+export const LAYANAN_DIKENAL = ["modul2-ws", "mosquitto", "modul4", "chirpstack"] as const;
 export type LayananDikenal = (typeof LAYANAN_DIKENAL)[number];
 
 export function layananValid(value: unknown): value is LayananDikenal {

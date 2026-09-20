@@ -3,7 +3,7 @@
 
 #journal-cover(
   module: 4,
-  topic: "LONG RANGE COMMUNICATION (LoRa P2P & LoRaWAN)",
+  topic: "LONG RANGE COMMUNICATION (LoRa PEER-TO-PEER)",
   lang: "en"
 )
 
@@ -15,16 +15,13 @@
 = Circuit and System
 
 #pad(left: 0.5cm)[
-  This module comes in *two parts*. *Part A* uses peer-to-peer LoRa in the
-  form of a game: one Beacon board is hidden, and every group hunts it by
-  listening to how strong its signal is. *Part B* uses LoRaWAN: the same board
-  talks to a WM1302 gateway through a protocol that manages the channels
-  itself. Comparing the two is the whole point of this module --- in Part A you
-  build every network rule yourselves, while in Part B the protocol has already
-  supplied them.
+  This module uses peer-to-peer LoRa in the form of a game: one Beacon board
+  is hidden, and every group hunts it by listening to how strong its signal
+  is. Because peer-to-peer LoRa has no protocol managing the channel for you,
+  every network rule --- when each board may transmit, and how it avoids
+  colliding with the others --- is one you build yourselves. The hunt doubles
+  as a vehicle for learning how radio signal strength relates to distance.
 ]
-
-== Part A --- The LoRa Hunt
 
 #pad(left: 0.5cm)[
   *How the game works.* An assistant hides *one* Beacon board somewhere within
@@ -49,15 +46,15 @@
   )
 ]
 
-2. Unlike the previous modules, Part A uses *no external sensor or actuator at all*: what is being measured is the radio wave itself. There is therefore nothing to wire --- fit the antenna and power the board up. The table below records the radio pins already wired inside the board and used by the program.
+2. Unlike the previous modules, this module uses *no external sensor or actuator at all*: what is being measured is the radio wave itself. There is therefore nothing to wire --- fit the antenna and power the board up. The table below records the radio pins already wired inside the board and used by the program.
 
 // Flip the value below to false while the schematic file is still missing.
 // While it stays false, Typst never touches the image file, so the journal can
 // still be compiled.
-#let schematic-ready-a = false
+#let schematic-ready = false
 
-#if schematic-ready-a {
-  figure(image("/schematics/Module 4A.png", height: 6cm))
+#if schematic-ready {
+  figure(image("/schematics/Module 4.png", height: 6cm))
 } else {
   figure(
     box(
@@ -66,7 +63,7 @@
       stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
     )[
       #align(center + horizon)[
-        #text(fill: luma(120))[Module 4 Part A LoRa Hunt topology diagram (to follow)]
+        #text(fill: luma(120))[Module 4 LoRa Hunt topology diagram (to follow)]
       ]
     ]
   )
@@ -125,7 +122,7 @@
     [☐], [Installing the `LoRa` library by Sandeep Mistry through the Arduino IDE Library Manager],
     [☐], [Installing the `WebSockets` library by Markus Sattler through the Arduino IDE Library Manager],
     [☐], [Selecting the ESP32 Dev Module board in the Arduino IDE],
-    [☐], [Checking that the Orange Pi has its `IRIS-HUNT` hotspot and its scoreboard running],
+    [☐], [Checking that the Orange Pi has its `IRIS-IOT` hotspot and its scoreboard running],
     [☐], [Copying your group's folder, then uploading `hunter.ino` without editing anything],
     [☐], [Checking that the Serial Monitor prints an IP address and a synchronised clock],
     [☐], [Opening the scoreboard at `http://192.168.4.1:8080`, entering your own student ID, and confirming it is your group that appears],
@@ -196,116 +193,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
-
-
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-
-== Part B --- LoRaWAN through the WM1302 Gateway
-
-6. Prepare the following components:
-#pad(left: 0.5cm)[
-  #table(
-    columns: (auto, auto, 1fr),
-    stroke: none,
-
-    [•], [Cosmic LoRa Aurora V2 (the Part A board)], [(1x per group)],
-    [•], [920 MHz LoRa Antenna]  , [(1x per group)],
-    [•], [HC-SR04 Ultrasonic Sensor], [(1x per group)],
-    [•], [1 kΩ and 2 kΩ Resistor] , [(1x per group, ECHO divider)],
-    [•], [Breadboard]             , [(1x per group)],
-    [•], [Wio-WM1302 gateway + hat]           , [(1x per class)],
-    [•], [Orange Pi 4 PRO (ChirpStack)]       , [(1x per class)],
-    [•], [Wires/Jumpers]         , [(as needed)],
-  )
-]
-
-7. Unlike Part A, which used no sensor at all, Part B goes back to sending HC-SR04 readings. Wire the sensor as in the table below, and note that the LMIC library also uses one extra radio pin.
-
-#table(
-  columns: 4 * (1fr,),
-  align: (center + horizon),
-
-  table.header(
-    table.cell(colspan: 2, [*HC-SR04 sensor (wired by you)*]),
-    table.cell(colspan: 2, [*RFM95W radio (already on the board)*]),
-  ),
-  [*Component*]     , [*Pin*]  , [*Signal*]        , [*Pin*],
-  [US (VCC)]        , [5V]     , [RFM (NSS)]       , [GPIO15],
-  [US (TRIG)]       , [GPIO16] , [RFM (RST)]       , [GPIO0],
-  [US (ECHO) → R1K] , [GPIO17] , [RFM (DIO0)]      , [GPIO27],
-  [R1K → R2K]       , [GND]    , [RFM (DIO1)]      , [GPIO2],
-  [US (GND)]        , [GND]    , [RFM (EN/VMODEM)] , [GPIO32],
-)
-
-#pad(left: 0.5cm)[
-  _Note: the HC-SR04's ECHO pin outputs 5 V, so it must pass through a
-  1 kΩ/2 kΩ voltage divider before reaching GPIO17; without that divider the
-  ESP32 pin can be destroyed. On the radio side there is only one difference
-  from Part A: peer-to-peer LoRa needs DIO0 alone, while LoRaWAN also needs
-  DIO1 to mark the receive windows that follow a transmission. DIO1 is already
-  wired to GPIO2 on the Cosmic board, so no cable has to be moved._
-]
-
-8. Before running the program, prepare your working environment in the following order. Tick every step you have completed!
-
-#pad(left: 0.5cm)[
-  #table(
-    columns: (auto, 1fr),
-    stroke: none,
-    row-gutter: 0.35em,
-
-    [☐], [Installing the `MCCI LoRaWAN LMIC library` through the Arduino IDE Library Manager],
-    [☐], [Making sure `lmic_project_config.h` uses the `CFG_as923` band and `CFG_sx1276_radio`],
-    [☐], [Registering your group's board in ChirpStack with the DEVEUI from the table above],
-    [☐], [Copying the APPKEY from the ChirpStack device page into the node program],
-    [☐], [Making sure the WM1302 gateway shows as _online_ in ChirpStack],
-    [☐], [Syncing the node board's clock from the PC: `.\scripts\send_time.ps1 -Port COM_A`],
-    [☐], [Running the gateway monitor program on the Orange Pi 4 PRO],
-  )
-]
-
-#pad(left: 0.5cm)[
-  _Note: in Part A you have to hand out transmit slots yourselves so that eight
-  boards do not collide. In Part B no such handout is needed, because the WM1302
-  gateway listens on eight channels at once and the LoRaWAN protocol decides when
-  each node may transmit. This is exactly why gateways exist._
-]
-
-9. Complete the program below by filling in the blank sections, just as in Part A!
-
-#code-box(
-  title: "Node Source Code — LoRaWAN OTAA (Cosmic LoRa Aurora V2)",
-  code-file("/kode_praktikum/en/modul4_lorawan_node.ino", excerpt: true)
-)
-
-#code-box(
-  title: "Gateway Monitor Source Code — ChirpStack MQTT (Orange Pi 4 PRO)",
-  code-file("/kode_praktikum/en/modul4_lorawan_listener.py", excerpt: true)
-)
-
-10. Record your Part B observations in the following table! The send time comes from the node's Serial Monitor, while the receive time, RSSI, and SNR come from the monitor program's output on the Orange Pi.
-
-#table(
-  columns: (0.72fr, 0.66fr, 0.66fr, 0.66fr, 1.16fr, 1.16fr, 0.92fr),
-  align: (center + horizon),
-
-  table.header(
-    [Trial\ no. ...],
-    [Distance\ *\[cm\]*],
-    [RSSI\ *\[dBm\]*],
-    [SNR\ *\[dB\]*],
-    [Send time\ _(Node)_\ *\[HH:MM:SS:MS\]*],
-    [Receive time\ _(Gateway)_\ *\[HH:MM:SS:MS\]*],
-    [One-way delay\ *\[ms\]*],
-  ),
-  [1.], [],[],[],[],[],[],
-  [2.], [],[],[],[],[],[],
-  [3.], [],[],[],[],[],[],
-  [4.], [],[],[],[],[],[],
-  [5.], [],[],[],[],[],[],
-  table.cell(colspan: 6, [*Average delay (ms)*]), [],
-)
 
 = Analysis
 

@@ -52,7 +52,7 @@ Total untuk 6 kelompok:
 - 1× Orange Pi 4 PRO — menjalankan server WebSocket (Modul 2), broker Mosquitto (Modul 3), dan ChirpStack (Modul 4 Part B).
 - 1× gateway Wio-WM1302 — untuk Modul 4 Part B.
 - 1× Cosmic sebagai Beacon tersembunyi — untuk Modul 4 Part A.
-- Orange Pi yang sama dijalankan sebagai **access point** `IRIS-HUNT` selama Part A (lihat `scripts/opi_ap_on.sh`), sehingga Part A dan Part B tidak dapat berjalan pada sesi yang sama.
+- Orange Pi yang sama dijalankan sebagai **access point** `IRIS-IOT` selama Part A (lihat `scripts/opi_ap_on.sh`), sehingga Part A dan Part B tidak dapat berjalan pada sesi yang sama.
 - 1× PC yang menjalankan `scripts/send_time.ps1` untuk sinkronisasi jam Modul 1 (harus PC yang sama untuk kedua papan dalam satu sesi). Modul 4 Part A tidak memerlukannya: seluruh papannya menyelaraskan jam melalui NTP ke Orange Pi.
 
 ## Total papan per jenis (6 kelompok)

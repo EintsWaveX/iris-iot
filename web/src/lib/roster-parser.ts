@@ -1,8 +1,8 @@
 /**
  * The roster paste grammar — ported unchanged from parsePaste() in
- * hunt/src/ui-assistant.js. Same regexes, same rules, on purpose: this
+ * modul4/src/ui-assistant.js. Same regexes, same rules, on purpose: this
  * grammar is already proven (it shipped, it is documented in
- * hunt/SETUP.md section 4, and assistants have been taught it), so this
+ * modul4/SETUP.md section 4, and assistants have been taught it), so this
  * port is a translation to TypeScript, not a redesign.
  *
  *   #N Label            opens group N; label is optional and may be
@@ -13,7 +13,7 @@
  *
  * One difference from the original: this version returns error CODES
  * rather than pre-translated strings, matching the pattern this project
- * settled on for hunt/'s login refusals (server emits a kode, the client
+ * settled on for modul4/'s login refusals (server emits a kode, the client
  * looks up I18N.t("paste.err." + kode)) — a server-side parser has no
  * business deciding which language to answer in.
  *
@@ -121,7 +121,7 @@ export function parseRosterPaste(text: string): ParseResult {
 
 /** Renders a saved roster back into the paste format, so an assistant who
  *  re-opens a session sees exactly the text they'd type again — the
- *  round-trip property toPaste() in hunt/src/ui-assistant.js already
+ *  round-trip property toPaste() in modul4/src/ui-assistant.js already
  *  established. */
 export function rosterToPaste(groups: ParsedGroup[]): string {
   const out: string[] = [];

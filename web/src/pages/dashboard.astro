@@ -11,7 +11,7 @@
  * "paste a roster, save it, log in as one of its students by NIM alone,
  * land in the right group."
  *
- * This is deliberately not the real assistant console hunt/'s
+ * This is deliberately not the real assistant console modul4/'s
  * ui-assistant.js already built (four session panels, per-row editing,
  * round-trip paste rendering) — that UI gets absorbed wholesale in
  * Phase 4. This page only has to prove the Phase 1 data path works.
@@ -63,10 +63,10 @@ const links = [
       <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card">
         <p>
           Papan skor perburuan berjalan langsung di Orange Pi lab, di jaringan
-          <strong>IRIS-HUNT</strong> — bukan lewat internet. Sambungkan HP ke hotspot itu dahulu,
+          <strong>IRIS-IOT</strong> — bukan lewat internet. Sambungkan HP ke hotspot itu dahulu,
           baru buka tautan ini.
         </p>
-        <Button kind="primary" id="btn-buka-hunt">
+        <Button kind="primary" id="btn-buka-iot">
           Buka papan skor
         </Button>
       </Card>
@@ -131,9 +131,9 @@ const links = [
         <p>
           Papan skor dan konsol asisten Modul 4A masih berjalan lewat token, langsung di Orange Pi —
           bukan lewat akun ini. Buka papan skornya dari jaringan
-          <strong>IRIS-HUNT</strong>, lalu ketuk logo tiga kali untuk memasukkan token.
+          <strong>IRIS-IOT</strong>, lalu ketuk logo tiga kali untuk memasukkan token.
         </p>
-        <Button kind="ghost" id="btn-buka-hunt-asisten">
+        <Button kind="ghost" id="btn-buka-iot-asisten">
           Buka papan skor
         </Button>
       </Card>
@@ -157,17 +157,17 @@ const links = [
     }
 
     // Module 4A's board runs on the Orange Pi itself, on the local
-    // IRIS-HUNT network, never through this site's own domain -- see the
+    // IRIS-IOT network, never through this site's own domain -- see the
     // Phase 2 plan's topology section for why that address is fixed rather
     // than looked up. A phone reaching this dashboard page is not
     // necessarily on that network yet (this site works over the internet;
-    // the hunt board does not), so the link only works once the phone has
-    // joined IRIS-HUNT, which the card's copy says plainly.
-    const HUNT_BOARD_URL = "http://192.168.4.1:8080/";
+    // the IoT board does not), so the link only works once the phone has
+    // joined IRIS-IOT, which the card's copy says plainly.
+    const IOT_BOARD_URL = "http://192.168.4.1:8080/";
 
-    function huntBoardUrl(nim?: string): string {
-      if (!nim) return HUNT_BOARD_URL;
-      const url = new URL(HUNT_BOARD_URL);
+    function iotBoardUrl(nim?: string): string {
+      if (!nim) return IOT_BOARD_URL;
+      const url = new URL(IOT_BOARD_URL);
       url.searchParams.set("nim", nim);
       return url.toString();
     }
@@ -193,16 +193,16 @@ const links = [
         show("view-praktikan");
         document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
         document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.regu}`;
-        (document.getElementById("btn-buka-hunt") as HTMLButtonElement)?.addEventListener(
+        (document.getElementById("btn-buka-iot") as HTMLButtonElement)?.addEventListener(
           "click",
-          () => window.open(huntBoardUrl(me.nim), "_blank", "noopener"),
+          () => window.open(iotBoardUrl(me.nim), "_blank", "noopener"),
         );
       } else {
         show("view-asisten");
         await loadSesi();
         document
-          .getElementById("btn-buka-hunt-asisten")
-          ?.addEventListener("click", () => window.open(huntBoardUrl(), "_blank", "noopener"));
+          .getElementById("btn-buka-iot-asisten")
+          ?.addEventListener("click", () => window.open(iotBoardUrl(), "_blank", "noopener"));
       }
     }
 

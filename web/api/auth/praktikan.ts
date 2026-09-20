@@ -4,7 +4,7 @@
  * No password: the practitioner side of the Phase 1 plan's auth model
  * (section 6). Resolves the NIM against whichever session is currently
  * running and returns the group the server found — the group is never
- * something the client can assert, matching hunt/server.py's cari_nim().
+ * something the client can assert, matching modul4/server.py's cari_nim().
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, clientIp, noStore } from "../_lib/http.js";

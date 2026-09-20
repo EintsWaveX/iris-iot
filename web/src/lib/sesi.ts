@@ -5,7 +5,7 @@
  * showing the live session, the eventual layer X-ray) whereas auth.ts is
  * specifically about verifying a login attempt.
  *
- * Phase 1 has no scheduler yet (that is hunt/server.py's job for Module 4A
+ * Phase 1 has no scheduler yet (that is modul4/server.py's job for Module 4A
  * today, and becomes this site's job for all four modules only once
  * Phase 3/4 are planned). "Currently running" for now just means the most
  * recent session marked status = 'berjalan' — an assistant sets that
@@ -42,7 +42,7 @@ export async function currentSesi() {
  * Resolve a NIM against whichever session is currently running. Returns
  * null for: no session running, NIM not in any group of that session, or
  * the NIM's group has been marked inactive (the "this board is the beacon,
- * not a hunter" case carried over from hunt/'s regu.aktif flag). All three
+ * not a hunter" case carried over from modul4/'s regu.aktif flag). All three
  * cases are deliberately indistinguishable from the return value alone —
  * the caller decides what to tell the student, and the login route is the
  * only caller that needs to.
@@ -74,7 +74,7 @@ export async function resolvePraktikan(nim: string): Promise<ResolvedPraktikan |
 }
 
 /** Names only — never NIMs. This is the projection rule from
- *  jadwal_publik() in hunt/server.py:1023, carried forward: a route a
+ *  jadwal_publik() in modul4/server.py:1023, carried forward: a route a
  *  student's browser can reach must never be able to return another
  *  student's NIM, even as a side effect of showing group membership. */
 export async function publicRoster(sesiId: number) {

@@ -20,7 +20,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-const char* WIFI_SSID      = "IRIS-HUNT";
+const char* WIFI_SSID      = "IRIS-IOT";
 const char* WIFI_PASSWORD  = "iris2026";
 const char* SERVER_HOST    = "192.168.4.1";
 const uint16_t SERVER_PORT = 8080;

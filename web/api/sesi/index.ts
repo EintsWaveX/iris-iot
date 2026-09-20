@@ -4,7 +4,7 @@
  * Creates a session and marks it the running one. Phase 1 has no
  * scheduler (see src/lib/sesi.ts's header comment) — an assistant starts
  * a session explicitly, the same "manual override" affordance
- * hunt/server.py always kept alongside its own automatic scheduler for
+ * modul4/server.py always kept alongside its own automatic scheduler for
  * when a practicum slips off the clock.
  *
  * Starting a new session demotes whichever one was previously "berjalan"

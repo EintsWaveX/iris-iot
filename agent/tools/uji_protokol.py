@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """IRIS IoT practicum site — Phase 2 protocol suite against a REAL deployed
-API. Mirrors hunt/tools/uji_protokol.py's pattern (start a real server,
+API. Mirrors modul4/tools/uji_protokol.py's pattern (start a real server,
 run the actual protocol against it, assert), with one structural
 difference worth stating plainly: hunt's target is a throwaway LOCAL
 process this tool starts itself, safe to run any number of times. This

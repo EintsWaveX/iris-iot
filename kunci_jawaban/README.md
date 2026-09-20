@@ -34,24 +34,19 @@ artinya potensiometer dibutuhkan dua kali lipat; lihat `procurement_addendum.md`
 | 1 | BLE (2× ESP32 DevKit V1) | Potensiometer 10 kΩ | Servo SG90 | Sudut bergeser ≥ `DEADBAND_DEG` |
 | 2 | WebSocket (ESP32 ↔ Orange Pi 4 PRO) | DHT22 | — (tidak ada) | Berkala tiap 2 detik |
 | 3 | MQTT (2× Pico W, broker pada Orange Pi 4 PRO) | Potensiometer 10 kΩ | — (tidak ada) | Posisi bergeser ≥ `deadband_pct` |
-| 4 | Part A: Perburuan LoRa (1 Beacon tersembunyi → 6 Hunter)<br>Part B: LoRaWAN (Cosmic → gateway WM1302 → Orange Pi) | Part A: tidak ada (yang diukur radionya sendiri)<br>Part B: HC-SR04 | — (tidak ada pada Part A) | Part A: beacon memancar tiap 200 ms<br>Part B: berkala tiap 30 detik |
+| 4 | Perburuan LoRa P2P (1 Beacon tersembunyi → 6 Hunter) | — (yang diukur radionya sendiri) | — (tidak ada) | Beacon memancar tiap 200 ms |
 
-Modul 4 terdiri atas dua bagian. *Part A* adalah **permainan Perburuan LoRa**:
-asisten menyembunyikan **satu** papan Beacon yang memancar terus-menerus, dan
-tiap kelompok memburunya dengan satu papan Hunter yang *hanya mendengarkan*.
-*Part B* adalah LoRaWAN melalui gateway Wio-WM1302 dan ChirpStack yang berjalan
-pada Orange Pi 4 PRO.
+Modul 4 adalah **permainan Perburuan LoRa**: asisten menyembunyikan **satu**
+papan Beacon yang memancar terus-menerus, dan tiap kelompok memburunya dengan
+satu papan Hunter yang *hanya mendengarkan*.
 
-Perbandingan keduanya adalah inti pedagogis modul ini, dan sejak revisi ini
-perbandingan itu jauh lebih tajam. Pada Part A **hanya satu radio di ruangan
-yang pernah memancar**, sehingga tabrakan paket mustahil terjadi dan pembagian
-jatah waktu tidak diperlukan sama sekali — bukan karena masalahnya dipecahkan,
-melainkan karena topologinya membuat masalah itu tidak pernah ada. Pada Part B,
-masalah yang sama diselesaikan untuk kalian oleh protokolnya, lewat delapan
-kanal gateway dan penjadwalan yang diatur network server.
+Inti pedagogisnya: **hanya satu radio di ruangan yang pernah memancar**,
+sehingga tabrakan paket mustahil terjadi dan pembagian jatah waktu tidak
+diperlukan sama sekali — bukan karena masalahnya dipecahkan, melainkan karena
+topologinya membuat masalah itu tidak pernah ada.
 
-Part A juga memperlihatkan **seluruh tumpukan lapisan** lewat papan skor web
-yang berjalan pada Orange Pi (`hunt/`): fisik (RSSI, SNR, SF, lebar pita),
+Modul ini juga memperlihatkan **seluruh tumpukan lapisan** lewat papan skor web
+yang berjalan pada Orange Pi (`modul4/`): fisik (RSSI, SNR, SF, lebar pita),
 data-link (nomor paket dan paket hilang), jaringan (alamat DHCP dan gerbangnya),
 transport (WebSocket di atas TCP), dan aplikasi (peringkat dan pemenangnya).
 
@@ -66,12 +61,11 @@ sendiri untuk memperoleh delay satu arah.
 | 1 | Jam PC lewat Serial, format `YYYY-MM-DD HH:MM:SS.mmm` | beberapa ms | ada (echo notify) |
 | 2 | NTP pada keduanya (`configTime()` / systemd-timesyncd) | 10--50 ms | ada (ack server) |
 | 3 | NTP pada kedua Pico W (`ntptime.settime()`) | 10--50 ms | tidak ada (satu arah) |
-| 4 (Part A) | NTP ke Orange Pi (`configTime()`), hotspot tanpa Internet | 10--50 ms | tidak ada (Hunter tidak pernah memancar) |
-| 4 (Part B) | Jam PC pada node, jam sistem pada Orange Pi | beberapa ms | tidak ada (satu arah) |
+| 4 | NTP ke Orange Pi (`configTime()`), hotspot tanpa Internet | 10--50 ms | tidak ada (Hunter tidak pernah memancar) |
 
-**Modul 1 wajib disinkronkan dari PC yang sama** (Modul 4 Part A kini memakai
-NTP ke Orange Pi, sehingga tidak lagi memerlukan langkah ini; Part B masih
-memakainya pada sisi node). Jalankan sekali saja dengan dua COM port:
+**Modul 1 wajib disinkronkan dari PC yang sama** (Modul 4 kini memakai NTP ke
+Orange Pi, sehingga tidak lagi memerlukan langkah ini). Jalankan sekali saja
+dengan dua COM port:
 
 ```powershell
 .\scripts\send_time.ps1 -Port COM5,COM7
@@ -125,15 +119,13 @@ Rincian tiap modul:
   menjadi salah satu bagian rumpang, sehingga praktikan harus sadar bahwa
   topiknya wajib sama dengan Publisher. Asisten dapat memantau seluruh kelompok
   sekaligus dari Orange Pi dengan `mosquitto_sub -h localhost -t 'iris/+/pot' -v`.
-- **Modul 4 Part A** tidak lagi memerlukan penyuntingan apa pun oleh praktikan:
+- **Modul 4** tidak lagi memerlukan penyuntingan apa pun oleh praktikan:
   tiap kelompok menyalin foldernya sendiri di bawah `kode_praktikum/{id,en}/modul4/`,
   yang sudah memuat `#define GROUP_ID` miliknya. Ketujuh folder itu dibangkitkan
   oleh `scripts/gen_modul4.py` dari satu pasang template, sehingga tidak mungkin
   saling menyimpang; `beacon.ino` identik di semua folder karena hanya satu
   beacon yang dinyalakan. Menyunting berkas hasil bangkitan adalah pekerjaan
   sia-sia — jalankan ulang generatornya.
-- **Modul 4 Part B** memakai `GROUP_ID` sebagai byte pertama DEVEUI dan byte
-  pertama payload, sehingga tiap papan terdaftar sendiri pada ChirpStack.
 
 ## Format bagian rumpang
 
@@ -211,7 +203,7 @@ ikut terbaca sebagai bagian rumpang.
 | | (5) | `subscribe` | Berlangganan topik setelah koneksi terbentuk. |
 | | (6) | `check_msg` | Non-blocking, sehingga loop tetap sempat mengirim ping berkala; `wait_msg()` blocking selamanya. |
 
-### Modul 4 — Komunikasi Long Range (LoRa P2P & LoRaWAN)
+### Modul 4 — Komunikasi Long Range (LoRa P2P)
 
 | Berkas | No. | Jawaban | Alasan |
 |---|---|---|---|
@@ -227,18 +219,6 @@ ikut terbaca sebagai bagian rumpang.
 | | (4) | `BEACON_TX_POWER` | 10 dBm bawaan, **bukan** 20. Dayanya disetel menurut ukuran arena: 2 untuk satu ruangan, 10 untuk satu lantai gedung, 14 untuk gedung besar. |
 | | (5) | `payload` | String `"<no. paket> <waktu kirim>"` yang disusun tepat di atasnya. |
 | | (6) | `endPacket` | `beginPacket()` menyiapkan buffer, `endPacket()` yang benar-benar memancarkannya. |
-| `modul4_lorawan_node.ino` | (1) | `lmic.h` | Header utama pustaka MCCI LoRaWAN LMIC. |
-| | (2) | 16 byte APPKEY | Disalin dari halaman device ChirpStack dalam urutan MSB. |
-| | (3) | `LORA_DIO1` | Pin yang tidak dipakai P2P tetapi diwajibkan LMIC untuk jendela penerimaan. |
-| | (4) | `pulseIn` | Sama dengan Part A; mengukur lebar pulsa ECHO. |
-| | (5) | `LMIC_setTxData2` | Menjadwalkan pengiriman payload pada port aplikasi. |
-| | (6) | `os_runloop_once` | Seluruh penjadwalan LoRaWAN dikerjakan fungsi ini di dalam `loop()`. |
-| `modul4_lorawan_listener.py` | (1) | `"application/+/device/+/event/up"` | Topik uplink ChirpStack; tanda `+` mencakup semua kelompok sekaligus. |
-| | (2) | `subscribe` | Berlangganan topik setelah koneksi ke broker terbentuk. |
-| | (3) | `json.loads` | Uplink ChirpStack datang sebagai teks JSON. |
-| | (4) | `snr` | Nama field rasio sinyal terhadap derau di dalam `rxInfo`. |
-| | (5) | `on_message` | Fungsi callback didaftarkan **tanpa** tanda kurung. |
-| | (6) | `loop_forever` | Menjalankan loop MQTT tanpa batas waktu. |
 
 
 ---
@@ -254,8 +234,7 @@ jalan tapi tidak ada data yang masuk".
 | 1 | `SERVICE_UUID` dan `CHARACTERISTIC_UUID` pada Central = pada Peripheral | `centralName` dan `peripheralName` |
 | 2 | `WS_PORT` = `PORT`, `WS_PATH` ∈ `ALLOWED_PATHS` | `WS_PATH` tiap kelompok |
 | 3 | `mqtt_publish_topic` = `mqtt_receive_topic`, alamat & port broker | `mqtt_client_id` tiap perangkat |
-| 4 (Part A) | `LORA_FREQUENCY`, `LORA_SPREADING_FACTOR`, `LORA_BANDWIDTH`, `LORA_SYNC_WORD` pada Beacon = pada seluruh Hunter | `GROUP_ID` tiap kelompok (sudah terisi di foldernya) |
-| 4 (Part B) | Pita AS923 pada node = pada gateway, APPKEY pada node = pada ChirpStack | `DEVEUI` tiap papan |
+| 4 | `LORA_FREQUENCY`, `LORA_SPREADING_FACTOR`, `LORA_BANDWIDTH`, `LORA_SYNC_WORD` pada Beacon = pada seluruh Hunter | `GROUP_ID` tiap kelompok (sudah terisi di foldernya) |
 
 ## Kesalahan perangkat keras yang paling sering muncul
 
@@ -265,7 +244,7 @@ berasal dari pengawatan, bukan dari kode.
 - **Servo SG90 pada kabel 3V3.** Servo menarik arus kejut yang tidak sanggup
   dipasok regulator 3V3; papan akan restart berulang. Kabel merahnya harus dari
   VIN, dengan GND disatukan. Hanya Modul 1 yang masih memakai servo.
-- **Papan Modul 4 Part A dinyalakan tanpa antena.** Memancar tanpa antena
+- **Papan Modul 4 dinyalakan tanpa antena.** Memancar tanpa antena
   merusak radio secara permanen, dan itu berlaku pada beacon maupun hunter.
 - **Daya beacon tidak disesuaikan dengan arenanya.** Pada 20 dBm seluruh
   gedung terbaca sama kuat dan permainannya mustahil; pada 2 dBm di gedung
@@ -273,7 +252,7 @@ berasal dari pengawatan, bukan dari kode.
   `BEACON_TX_POWER` menurut ruangannya (2 / 10 / 14), dan jalankan servernya
   dengan `--arena <meter>` yang sepadan.
 - **Papan skor kosong padahal hunter menyala.** Hampir selalu berarti papan itu
-  belum bergabung ke hotspot `IRIS-HUNT`, atau Orange Pi masih dalam mode
+  belum bergabung ke hotspot `IRIS-IOT`, atau Orange Pi masih dalam mode
   client dan belum dijadikan access point (`scripts/opi_ap_on.sh`).
 - **HC-SR04 tanpa pembagi tegangan.** Pin ECHO mengeluarkan 5 V dan dapat merusak
   GPIO ESP32. Pembagi 1 kΩ/2 kΩ wajib terpasang sebelum papan dinyalakan.
@@ -313,17 +292,13 @@ perangkat, arah panah data, dan perantara bila ada:
 - Modul 3: Publisher → **Broker** → Subscriber. Diagram tanpa broker di tengah
   berarti konsep pub/sub belum tertangkap. Panahnya hanya satu arah: tidak ada
   yang kembali dari Subscriber.
-- Modul 4 Part A: satu Beacon → *banyak* Hunter sekaligus, satu arah, tanpa
-  gateway maupun broker dan **tanpa satu pun panah balik lewat LoRa**. Diagram
-  yang kuat memisahkan dua jalur yang berbeda: panah radio LoRa dari Beacon ke
+- Modul 4: satu Beacon → *banyak* Hunter sekaligus, satu arah, tanpa gateway
+  maupun broker dan **tanpa satu pun panah balik lewat LoRa**. Diagram yang
+  kuat memisahkan dua jalur yang berbeda: panah radio LoRa dari Beacon ke
   tiap Hunter, dan panah Wi-Fi dari tiap Hunter ke Orange Pi. Diagram yang
   menggambar panah LoRa dari Hunter kembali ke Beacon berarti sifat
   *receive-only* Hunter belum tertangkap — padahal justru itulah yang membuat
-  keenam kelompok tidak saling bertabrakan. Diagram yang menyisipkan gateway
-  pada Part A berarti praktikan masih membayangkan Part B.
-- Modul 4 Part B: Node → gateway WM1302 → ChirpStack → program pemantau.
-  Perbedaan yang harus terlihat: pada Part B tidak ada satu pun panah antar
-  papan kelompok, dan penjadwalan kanalnya diatur protokol, bukan manusia.
+  keenam kelompok tidak saling bertabrakan.
 
 **B.3 — Analisis dan korelasi dengan metodologi komunikasi.** Jawaban yang baik
 mengaitkan angka yang mereka ukur dengan sifat protokolnya:
@@ -353,7 +328,7 @@ mengaitkan angka yang mereka ukur dengan sifat protokolnya:
   membuang kehalusan datanya; itulah pertukaran yang harus disebutkan.
   Perbandingan dengan Modul 2 menjadi bersih justru karena keduanya kini
   sama-sama hanya membaca dan mencatat: yang berbeda tinggal protokolnya.
-- Modul 4 Part A: delay satu arah tetap lebih besar daripada Modul 2 dan 3
+- Modul 4: delay satu arah tetap lebih besar daripada Modul 2 dan 3
   karena LoRa menukar laju data dengan jangkauan; pada SF7 dengan lebar pita
   250 kHz satu paket memakan sekitar 20 milidetik di udara saja. Tiga hal yang
   dicari dari jawaban yang kuat:
@@ -364,8 +339,7 @@ mengaitkan angka yang mereka ukur dengan sifat protokolnya:
      demodulasi berhasil. Versi terdahulu memecahkannya dengan membagi jatah
      detik. Versi ini menghapus masalahnya sama sekali dengan membuat hanya
      satu radio yang memancar. Menghapus masalah lebih murah daripada
-     memecahkannya — itulah inti pelajarannya, dan kaitkan ke Part B, tempat
-     protokolnya yang melakukan hal setara untuk kalian.
+     memecahkannya — itulah inti pelajarannya.
   2. **RSSI bukan jarak.** Di dalam ruangan, pantulan dinding membuat RSSI
      melonjak sampai 10 dB antar paket berurutan, dan sebuah kelompok bisa
      terbaca "panas" dari seberang ruangan lewat pintu terbuka. Tabel jarak

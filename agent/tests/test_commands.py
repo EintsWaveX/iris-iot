@@ -20,8 +20,8 @@ class TestBuildArgv(unittest.TestCase):
         self.assertEqual(argv, ["sudo", "/usr/bin/systemctl", "start", "mosquitto.service"])
 
     def test_layanan_henti_known_service(self):
-        argv = commands.build_argv("layanan.henti", {"layanan": "hunt"}, "/repo")
-        self.assertEqual(argv, ["sudo", "/usr/bin/systemctl", "stop", "iris-hunt.service"])
+        argv = commands.build_argv("layanan.henti", {"layanan": "modul4"}, "/repo")
+        self.assertEqual(argv, ["sudo", "/usr/bin/systemctl", "stop", "modul4.service"])
 
     def test_layanan_mulai_ulang_known_service(self):
         argv = commands.build_argv("layanan.mulai_ulang", {"layanan": "chirpstack"}, "/repo")

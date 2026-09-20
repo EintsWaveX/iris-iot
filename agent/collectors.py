@@ -5,7 +5,7 @@ No subprocess calls, no file I/O, live inside this module itself — the
 caller (agent.py) reads /proc or runs `ip neigh` and hands the raw output
 in. That is what makes these testable with a captured fixture and no Pi.
 
-Standard library only, deliberately, matching hunt/server.py's own rule
+Standard library only, deliberately, matching modul4/server.py's own rule
 (SETUP.md: "lingkungan virtual venv-iris cukup dipakai ulang, tidak ada
 dependensi lain") -- an agent that needs `pip install psutil` before it can
 even report whether the Pi is healthy is a worse agent than one that reads

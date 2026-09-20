@@ -8,7 +8,7 @@ dist/
 web/.astro/
 games/index.html
 games/public/index.html
-hunt/public/index.html
+modul4/public/index.html
 
 # Generated from Module - IRIS IoT/data_asisten.typ by scripts/seed_asisten.py.
 # Regenerated in CI on every run so the site can never silently drift from
@@ -31,9 +31,9 @@ web/src/data/asisten.json
 fresh-scan.json
 
 # Runtime state that belongs to a running lab session, not to history
-hunt/jadwal.json
-hunt/jadwal.json.tmp
-hunt/uploads/
+modul4/jadwal.json
+modul4/jadwal.json.tmp
+modul4/uploads/
 
 # Python
 __pycache__/

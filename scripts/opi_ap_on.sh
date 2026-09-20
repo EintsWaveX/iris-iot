@@ -1,5 +1,5 @@
 #!/bin/sh
-# Menjadikan Orange Pi 4 PRO sebagai access point "IRIS-HUNT" untuk
+# Menjadikan Orange Pi 4 PRO sebagai access point "IRIS-IOT" untuk
 # Modul 4 Part A (Perburuan LoRa).
 #
 # Satu antarmuka wlan0 tidak dapat menjadi access point dan client sekaligus,
@@ -16,7 +16,7 @@
 set -eu
 
 IFACE="${IFACE:-wlan0}"
-SSID="${SSID:-IRIS-HUNT}"
+SSID="${SSID:-IRIS-IOT}"
 PSK="${PSK:-iris2026}"
 ADDR="${ADDR:-192.168.4.1}"
 CIDR="${CIDR:-24}"
@@ -40,7 +40,7 @@ echo "Menghentikan layanan client Wi-Fi pada $IFACE..."
 systemctl stop wpa_supplicant 2>/dev/null || true
 systemctl stop NetworkManager 2>/dev/null || true
 
-cat > /etc/hostapd/iris-hunt.conf <<CONF
+cat > /etc/hostapd/iris-iot.conf <<CONF
 interface=$IFACE
 driver=nl80211
 ssid=$SSID
@@ -54,7 +54,7 @@ wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
 CONF
 
-cat > /etc/dnsmasq.d/iris-hunt.conf <<CONF
+cat > /etc/dnsmasq.d/iris-iot.conf <<CONF
 interface=$IFACE
 bind-interfaces
 dhcp-range=$DHCP_FROM,$DHCP_TO,12h
@@ -71,7 +71,7 @@ ip link set "$IFACE" up
 
 echo "Menyalakan dnsmasq dan hostapd..."
 systemctl restart dnsmasq
-hostapd -B /etc/hostapd/iris-hunt.conf
+hostapd -B /etc/hostapd/iris-iot.conf
 
 # Boleh gagal kalau chrony/ntpsec tidak terpasang; NTP lewat dnsmasq hanya
 # mengumumkan alamatnya, server waktunya sendiri yang harus berjalan.
@@ -81,5 +81,5 @@ systemctl restart chrony 2>/dev/null || systemctl restart ntpsec 2>/dev/null || 
 
 echo
 echo "Access point '$SSID' aktif pada $ADDR."
-echo "Jalankan papan skornya:  python hunt/server.py"
+echo "Jalankan papan skornya:  python modul4/server.py"
 echo "Lalu buka:               http://$ADDR:8080"

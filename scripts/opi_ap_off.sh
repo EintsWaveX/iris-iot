@@ -18,7 +18,7 @@ echo "Menghentikan access point..."
 pkill hostapd 2>/dev/null || true
 systemctl stop dnsmasq 2>/dev/null || true
 
-rm -f /etc/hostapd/iris-hunt.conf /etc/dnsmasq.d/iris-hunt.conf
+rm -f /etc/hostapd/iris-iot.conf /etc/dnsmasq.d/iris-iot.conf
 
 echo "Melepas alamat statis dari $IFACE..."
 ip addr flush dev "$IFACE"

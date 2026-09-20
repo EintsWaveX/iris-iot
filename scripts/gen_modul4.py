@@ -77,7 +77,7 @@ HUNTER_ID = r'''/*
 #define GROUP_ID @@GROUP_ID@@
 
 // Orange Pi menjadi access point, papan skor, sekaligus server NTP.
-const char* WIFI_SSID      = "IRIS-HUNT";
+const char* WIFI_SSID      = "IRIS-IOT";
 const char* WIFI_PASSWORD  = "iris2026";
 const char* SERVER_HOST    = "192.168.4.1";
 const uint16_t SERVER_PORT = 8080;
@@ -289,7 +289,7 @@ HUNTER_EN = r'''/*
 #define GROUP_ID @@GROUP_ID@@
 
 // The Orange Pi is the access point, the scoreboard, and the NTP server.
-const char* WIFI_SSID      = "IRIS-HUNT";
+const char* WIFI_SSID      = "IRIS-IOT";
 const char* WIFI_PASSWORD  = "iris2026";
 const char* SERVER_HOST    = "192.168.4.1";
 const uint16_t SERVER_PORT = 8080;
@@ -499,7 +499,7 @@ BEACON_ID = r'''/*
 #include <time.h>
 #include <sys/time.h>
 
-const char* WIFI_SSID      = "IRIS-HUNT";
+const char* WIFI_SSID      = "IRIS-IOT";
 const char* WIFI_PASSWORD  = "iris2026";
 const char* SERVER_HOST    = "192.168.4.1";
 const uint16_t SERVER_PORT = 8080;
@@ -665,7 +665,7 @@ BEACON_EN = r'''/*
 #include <time.h>
 #include <sys/time.h>
 
-const char* WIFI_SSID      = "IRIS-HUNT";
+const char* WIFI_SSID      = "IRIS-IOT";
 const char* WIFI_PASSWORD  = "iris2026";
 const char* SERVER_HOST    = "192.168.4.1";
 const uint16_t SERVER_PORT = 8080;

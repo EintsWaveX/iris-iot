@@ -1,14 +1,14 @@
 /**
  * POST /api/sesi/roster   { sesiId, paste }   — assistant-only.
  *
- * Parses the pasted text with the exact grammar hunt/'s assistant console
+ * Parses the pasted text with the exact grammar modul4/'s assistant console
  * already uses (src/lib/roster-parser.ts), then REPLACES that session's
  * groups and members wholesale inside one transaction — the same
  * "re-pasting deletes anyone missing from the new text" contract
- * hunt/src/ui-assistant.js documents, so an assistant fixing one typo by
+ * modul4/src/ui-assistant.js documents, so an assistant fixing one typo by
  * re-pasting the whole box behaves exactly as they'd expect.
  *
- * Save is refused while the paste has any parse errors, matching hunt/'s
+ * Save is refused while the paste has any parse errors, matching modul4/'s
  * "Simpan tidak bekerja selama masih ada galat" rule -- a partially valid
  * roster is not saved partially, it is not saved at all.
  */

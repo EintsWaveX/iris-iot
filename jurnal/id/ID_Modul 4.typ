@@ -3,7 +3,7 @@
 
 #journal-cover(
   module: 4,
-  topic: "KOMUNIKASI LONG RANGE (LoRa P2P & LoRaWAN)",
+  topic: "KOMUNIKASI LONG RANGE (LoRa PEER-TO-PEER)",
   lang: "id"
 )
 
@@ -15,16 +15,14 @@
 = Rangkaian dan Sistem
 
 #pad(left: 0.5cm)[
-  Modul ini terdiri atas *dua bagian*. *Part A* memakai LoRa peer-to-peer
-  dalam bentuk sebuah permainan: satu papan Beacon disembunyikan, dan tiap
-  kelompok memburunya dengan mendengarkan kekuatan sinyalnya. *Part B* memakai
-  LoRaWAN: papan yang sama berbicara ke gateway WM1302 melalui protokol yang
-  mengatur kanalnya sendiri. Perbandingan keduanya inilah yang menjadi inti
-  modul ini --- pada Part A seluruh aturan jaringan kalian susun sendiri,
-  sedangkan pada Part B aturan itu sudah disediakan oleh protokolnya.
+  Modul ini memakai LoRa peer-to-peer dalam bentuk sebuah permainan: satu
+  papan Beacon disembunyikan, dan tiap kelompok memburunya dengan mendengarkan
+  kekuatan sinyalnya. Karena LoRa peer-to-peer tidak memiliki protokol yang
+  mengatur kanalnya untuk kalian, seluruh aturan jaringan --- kapan tiap papan
+  boleh memancar, dan bagaimana ia tidak saling menabrak --- kalian susun
+  sendiri. Perburuan ini sekaligus menjadi wahana untuk mempelajari bagaimana
+  kekuatan sinyal radio berhubungan dengan jarak.
 ]
-
-== Part A --- Perburuan LoRa
 
 #pad(left: 0.5cm)[
   *Aturan permainan.* Asisten menyembunyikan *satu* papan Beacon di suatu
@@ -49,15 +47,15 @@
   )
 ]
 
-2. Berbeda dengan modul-modul sebelumnya, Part A ini *tidak memakai satu pun sensor maupun aktuator luar*: yang diukur adalah gelombang radionya sendiri. Karena itu tidak ada kabel yang perlu dirangkai --- cukup pasang antena, lalu nyalakan papannya. Tabel di bawah mencatat pin radio yang sudah tersambung di dalam papan dan dipakai oleh program.
+2. Berbeda dengan modul-modul sebelumnya, modul ini *tidak memakai satu pun sensor maupun aktuator luar*: yang diukur adalah gelombang radionya sendiri. Karena itu tidak ada kabel yang perlu dirangkai --- cukup pasang antena, lalu nyalakan papannya. Tabel di bawah mencatat pin radio yang sudah tersambung di dalam papan dan dipakai oleh program.
 
 // Ubah nilai di bawah menjadi false selama berkas skematiknya belum tersedia.
 // Selama masih false, Typst tidak pernah menyentuh berkas gambarnya, sehingga
 // jurnal tetap dapat dikompilasi.
-#let schematic-ready-a = false
+#let schematic-ready = false
 
-#if schematic-ready-a {
-  figure(image("/schematics/Module 4A.png", height: 6cm))
+#if schematic-ready {
+  figure(image("/schematics/Module 4.png", height: 6cm))
 } else {
   figure(
     box(
@@ -66,7 +64,7 @@
       stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
     )[
       #align(center + horizon)[
-        #text(fill: luma(120))[Skema topologi Perburuan LoRa Modul 4 Part A (menyusul)]
+        #text(fill: luma(120))[Skema topologi Perburuan LoRa Modul 4 (menyusul)]
       ]
     ]
   )
@@ -126,7 +124,7 @@
     [☐], [Memasang pustaka `LoRa` karya Sandeep Mistry melalui Library Manager Arduino IDE],
     [☐], [Memasang pustaka `WebSockets` karya Markus Sattler melalui Library Manager Arduino IDE],
     [☐], [Memilih board ESP32 Dev Module pada Arduino IDE],
-    [☐], [Memastikan Orange Pi sudah menyalakan hotspot `IRIS-HUNT` dan papan skornya],
+    [☐], [Memastikan Orange Pi sudah menyalakan hotspot `IRIS-IOT` dan papan skornya],
     [☐], [Menyalin folder milik kelompok kalian, lalu mengunggah `hunter.ino` tanpa menyunting apa pun],
     [☐], [Memastikan Serial Monitor mencetak alamat IP dan jam hasil sinkronisasi],
     [☐], [Membuka papan skor pada `http://192.168.4.1:8080`, memasukkan NIM masing-masing, dan memastikan nama kelompok kalian yang muncul],
@@ -197,118 +195,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
-
-
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
-
-== Part B --- LoRaWAN melalui Gateway WM1302
-
-6. Siapkan komponen berikut:
-#pad(left: 0.5cm)[
-  #table(
-    columns: (auto, auto, 1fr),
-    stroke: none,
-
-    [•], [Cosmic LoRa Aurora V2 (papan Part A)], [(1x per kelompok)],
-    [•], [Antena LoRa 920 MHz]   , [(1x per kelompok)],
-    [•], [Sensor ultrasonik HC-SR04], [(1x per kelompok)],
-    [•], [Resistor 1 kΩ dan 2 kΩ] , [(1x per kelompok, pembagi ECHO)],
-    [•], [Breadboard]             , [(1x per kelompok)],
-    [•], [Gateway Wio-WM1302 + hat]           , [(1x sekelas)],
-    [•], [Orange Pi 4 PRO (ChirpStack)]       , [(1x sekelas)],
-    [•], [Kabel/Jumper]          , [(disesuaikan)],
-  )
-]
-
-7. Berbeda dengan Part A yang tidak memakai sensor sama sekali, Part B kembali mengirimkan pembacaan HC-SR04. Rangkailah sensornya seperti tabel di bawah, lalu perhatikan bahwa pustaka LMIC juga memakai satu pin radio tambahan.
-
-#table(
-  columns: 4 * (1fr,),
-  align: (center + horizon),
-
-  table.header(
-    table.cell(colspan: 2, [*Sensor HC-SR04 (dirangkai sendiri)*]),
-    table.cell(colspan: 2, [*Radio RFM95W (sudah di dalam papan)*]),
-  ),
-  [*Komponen*]      , [*Pin*]  , [*Sinyal*]        , [*Pin*],
-  [US (VCC)]        , [5V]     , [RFM (NSS)]       , [GPIO15],
-  [US (TRIG)]       , [GPIO16] , [RFM (RST)]       , [GPIO0],
-  [US (ECHO) → R1K] , [GPIO17] , [RFM (DIO0)]      , [GPIO27],
-  [R1K → R2K]       , [GND]    , [RFM (DIO1)]      , [GPIO2],
-  [US (GND)]        , [GND]    , [RFM (EN/VMODEM)] , [GPIO32],
-)
-
-#pad(left: 0.5cm)[
-  _Catatan: pin ECHO pada HC-SR04 mengeluarkan 5 V, sehingga wajib melewati
-  pembagi tegangan 1 kΩ/2 kΩ sebelum masuk ke GPIO17; tanpa pembagi ini pin
-  ESP32 dapat rusak. Pada sisi radio, perbedaannya dengan Part A hanya satu:
-  LoRa peer-to-peer cukup memakai DIO0, sedangkan LoRaWAN juga membutuhkan DIO1
-  untuk menandai jendela penerimaan setelah paket dipancarkan. Pin DIO1 sudah
-  tersambung ke GPIO2 pada papan Cosmic, sehingga tidak ada kabel yang perlu
-  dipindahkan._
-]
-
-8. Sebelum menjalankan program, siapkan lingkungan kerja kalian dengan urutan berikut. Centanglah setiap langkah yang telah kalian selesaikan!
-
-#pad(left: 0.5cm)[
-  #table(
-    columns: (auto, 1fr),
-    stroke: none,
-    row-gutter: 0.35em,
-
-    [☐], [Memasang pustaka `MCCI LoRaWAN LMIC library` melalui Library Manager Arduino IDE],
-    [☐], [Memastikan berkas `lmic_project_config.h` memakai pita `CFG_as923` dan `CFG_sx1276_radio`],
-    [☐], [Mendaftarkan papan kelompok kalian pada ChirpStack dengan DEVEUI dari tabel di atas],
-    [☐], [Menyalin APPKEY dari halaman device ChirpStack ke dalam program node],
-    [☐], [Memastikan gateway WM1302 sudah berstatus _online_ pada ChirpStack],
-    [☐], [Menyinkronkan jam papan node dari PC: `.\scripts\send_time.ps1 -Port COM_A`],
-    [☐], [Menjalankan program pemantau gateway pada Orange Pi 4 PRO],
-  )
-]
-
-#pad(left: 0.5cm)[
-  _Catatan: pada Part A kalian harus membagi jatah detik sendiri agar delapan
-  papan tidak saling menabrak. Pada Part B pembagian itu tidak diperlukan, karena
-  gateway WM1302 mendengarkan delapan kanal sekaligus dan protokol LoRaWAN yang
-  mengatur kapan tiap node boleh memancar. Inilah alasan keberadaan sebuah
-  gateway._
-]
-
-9. Lengkapi kode program di bawah ini dengan mengisikan bagian-bagian yang rumpang, sama seperti pada Part A!
-
-#code-box(
-  title: "Node Source Code — LoRaWAN OTAA (Cosmic LoRa Aurora V2)",
-  code-file("/kode_praktikum/id/modul4_lorawan_node.ino", excerpt: true)
-)
-
-#code-box(
-  title: "Gateway Monitor Source Code — ChirpStack MQTT (Orange Pi 4 PRO)",
-  code-file("/kode_praktikum/id/modul4_lorawan_listener.py", excerpt: true)
-)
-
-10. Catatlah hasil pengamatan Part B pada tabel berikut! Waktu kirim diambil dari Serial Monitor node, sedangkan waktu terima, RSSI, dan SNR diambil dari keluaran program pemantau pada Orange Pi.
-
-#table(
-  columns: (0.72fr, 0.66fr, 0.66fr, 0.66fr, 1.16fr, 1.16fr, 0.92fr),
-  align: (center + horizon),
-
-  table.header(
-    [Percobaan\ ke-...],
-    [Jarak\ *\[cm\]*],
-    [RSSI\ *\[dBm\]*],
-    [SNR\ *\[dB\]*],
-    [Waktu kirim\ _(Node)_\ *\[HH:MM:SS:MS\]*],
-    [Waktu terima\ _(Gateway)_\ *\[HH:MM:SS:MS\]*],
-    [Delay satu arah\ *\[ms\]*],
-  ),
-  [1.], [],[],[],[],[],[],
-  [2.], [],[],[],[],[],[],
-  [3.], [],[],[],[],[],[],
-  [4.], [],[],[],[],[],[],
-  [5.], [],[],[],[],[],[],
-  table.cell(colspan: 6, [*Rata-rata delay (ms)*]), [],
-)
 
 = Analisis
 

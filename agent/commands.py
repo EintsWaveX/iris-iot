@@ -21,7 +21,7 @@ import subprocess
 LAYANAN_UNIT = {
     "modul2-ws": "iris-modul2-ws.service",
     "mosquitto": "mosquitto.service",
-    "hunt": "iris-hunt.service",
+    "modul4": "modul4.service",
     "chirpstack": "chirpstack.service",
 }
 

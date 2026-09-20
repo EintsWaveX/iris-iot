@@ -8,7 +8,7 @@
  * Response shape is always { ok, ... } with a 200 status even on a
  * refused login — the HTTP status line carries transport-level meaning
  * only; the login outcome is in the body, matching the "tipe"/"ok"
- * envelope hunt/server.py's WebSocket replies already use, so the two
+ * envelope modul4/server.py's WebSocket replies already use, so the two
  * auth surfaces read the same way to a client.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
