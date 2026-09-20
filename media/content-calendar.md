@@ -8,7 +8,7 @@ No publish dates are pre-filled — slot these into your own schedule. Suggested
 | 1 | Module 1 — Bluetooth Connectivity | Carousel (logo → flow diagram → P2P → output) | Post 1 | Post 1 |
 | 2 | Module 2 — WebSocket + Local Server | Carousel (WebSocket visual → HTTP visual → output) | Post 2 | Post 2 |
 | 3 | Module 3 — MQTT | Carousel (pub/sub visual → broker → Mosquitto logo) | Post 3 | Post 3 |
-| 4 | Module 4 — LoRa & LoRaWAN via ANTARES | Carousel (board hero shot → bandwidth chart → architecture → dashboard) | Post 4 | Post 4 |
+| 4 | Module 4 — LoRa Hunt (peer-to-peer) | Carousel (board hero shot → bandwidth chart → scoreboard) | Post 4 | Post 4 |
 | 5 | Wrap-up / Behind the Scenes | Single image or collage | Post 5 | Post 5 |
 
 ## Notes for the media team

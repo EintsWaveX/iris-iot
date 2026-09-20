@@ -5,13 +5,12 @@
 
 // ---------------------------------------------------------------------
 // Bagian: Implementasi Kode — walkthrough kode Beacon dan Hunter pada
-// permainan Perburuan LoRa (Modul 4 Part A), dibaca langsung dari
+// permainan Perburuan LoRa (Modul 4), dibaca langsung dari
 // kunci_jawaban/id/modul4/grup1/*.ino.
 //
 // Nomor baris pada code-src() dibaca langsung dari berkas kunci jawaban,
 // jadi setiap kali scripts/gen_modul4.py diubah dan dijalankan ulang,
-// rentang di bawah harus diperiksa ulang. Deck ini tidak membahas
-// LoRaWAN/ANTARES.
+// rentang di bawah harus diperiksa ulang.
 // ---------------------------------------------------------------------
 
 #let hunter = "/kunci_jawaban/id/modul4/grup1/hunter.ino"
@@ -33,8 +32,8 @@
 
   #v(0.4em)
   #note-box[
-    Pada *Part A* aturan jaringan kalian susun sendiri; pada *Part B* aturan
-    itu sudah disediakan LoRaWAN.
+    Karena LoRa peer-to-peer tidak memiliki protokol yang mengatur kanalnya
+    untuk kalian, seluruh aturan jaringan kalian susun sendiri.
   ]
 ]
 

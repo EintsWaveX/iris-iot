@@ -8,8 +8,8 @@ Struktur folder mengikuti `kode_praktikum/`:
 
 ```
 kunci_jawaban/
-├── id/     10 berkas, komentar berbahasa Indonesia
-└── en/     10 berkas, komentar berbahasa Inggris
+├── id/     6 berkas top-level + folder modul4/, komentar berbahasa Indonesia
+└── en/     6 berkas top-level + folder modul4/, komentar berbahasa Inggris
 ```
 
 > **Catatan untuk asisten:** jangan bagikan folder ini kepada praktikan. Berkas

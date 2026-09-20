@@ -4,7 +4,8 @@
 #import "/presentasi/template/slides.typ": *
 
 // ---------------------------------------------------------------------
-// Bagian: Teori LoRa (5 slide, dipadatkan dari 10 slide versi lama)
+// Bagian: Teori LoRa (3 slide -- slide LoRaWAN dihapus, modul ini
+// peer-to-peer saja)
 // ---------------------------------------------------------------------
 
 #section-slide[Teori LoRa]
@@ -21,12 +22,6 @@
     Contoh aplikasi: pertanian pintar #sym.dot.c kota pintar #sym.dot.c
     pemantauan industri #sym.dot.c penginderaan lingkungan
   ])
-
-  #v(0.6em)
-  #note-box[
-    LoRa *bukan* protokol jaringan. Protokol jaringan yang umum dibangun
-    di atas LoRa adalah *LoRaWAN*.
-  ]
 ]
 
 #slide(title: [Posisi LoRa, CSS, dan Parameternya])[
@@ -67,7 +62,7 @@
   - *Konsumsi baterai* perangkat
 
   #align(center, text(size: .8em, style: "italic")[
-    Airtime akan diukur langsung pada eksperimen LoRaWAN.
+    Airtime akan diukur langsung pada eksperimen perburuan praktikum ini.
   ])
 
   #v(0.3em)
@@ -79,61 +74,3 @@
   ]
 ]
 
-#slide(title: [LoRa vs LoRaWAN & Arsitekturnya])[
-  #set text(size: .92em)
-  #cols(columns: (1fr, 1.1fr), gutter: 1em)[
-    LoRa = lapisan fisik/modulasi. *LoRaWAN* = protokol jaringan di atasnya
-    (join, keamanan, autentikasi, penerusan ke aplikasi).
-
-    #v(0.3em)
-    #text(size: .8em)[
-      - *P2P*: transmitter-receiver harus sepakat pada frekuensi, bandwidth,
-        SF, coding rate, dan sync word.
-      - *LoRaWAN*: satu paket bisa didengar beberapa gateway, lalu
-        diteruskan lewat IP.
-    ]
-  ][
-    #align(center, block(fill: white, radius: 8pt, inset: 6pt)[
-      #image("/Module - IRIS IoT/gambar/modul 4/LoRaWAN - Architecture.webp", height: 3.3cm)
-    ])
-  ]
-
-  #v(0.1em)
-  #align(center, text(size: .75em)[
-    Empat komponen: *end device* #sym.dot.c *gateway* #sym.dot.c
-    *network server* #sym.dot.c *application server*
-  ])
-]
-
-#slide(title: [Kelas Perangkat & Aktivasi ABP])[
-  #set text(size: .9em)
-  #cols(columns: (1fr, 1fr), gutter: 1.2em)[
-    Kelas menentukan kapan jendela RX terbuka #sym.arrow.r memengaruhi
-    latensi dan daya.
-
-    #v(0.25em)
-    #text(size: .74em)[
-      - *A*: uplink-initiated, dua jendela RX, paling hemat daya, wajib
-        didukung semua perangkat. *(dipakai praktikum ini)*
-      - *B*: beacon + ping slot terjadwal.
-      - *C*: RX hampir selalu terbuka, latensi terendah, daya terbesar.
-    ]
-  ][
-    #text(size: .74em)[
-      *ABP* vs *OTAA*:
-      - *ABP*: kunci sesi ditanam langsung, tanpa proses join.
-        *(dipakai praktikum ini)*
-      - *OTAA*: join-request/join-accept, kunci per sesi, lebih aman.
-    ]
-    #v(0.2em)
-    #text(size: .74em)[
-      Kunci ABP: `DevAddr`, `NwkSKey`, `AppSKey`.
-    ]
-  ]
-
-  #v(0.3em)
-  #note-box[
-    Kunci bersifat *rahasia* — jangan tulis nilai asli di jurnal, laporan,
-    atau repositori publik.
-  ]
-]

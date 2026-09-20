@@ -195,7 +195,7 @@
 // ---------------------------------------------------------------------
 // 2. title-slide(..) — full-bleed cover.
 //
-//    #title-slide(title: [Module 4], topic: [LoRa & LoRaWAN],
+//    #title-slide(title: [Module 4], topic: [LoRa Peer-to-Peer],
 //      subtitle: [...], author: [...], lang: "id")
 //
 //    The cover is now a single finished image, picked by `lang`

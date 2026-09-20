@@ -7,9 +7,9 @@ All captions below are ready for Instagram. Trim for other platforms if needed. 
 
 From a signal that reaches 10 meters, to one that reaches for kilometers. 📡
 
-IRIS Laboratory is back with the **IoT Device Programming Practicum Module** for Odd Semester 2026/2027! This semester, Telkom University Electrical Engineering students explore the Internet of Things through 4 modules — Bluetooth, WebSocket, MQTT, and LoRa/LoRaWAN — from ultra-short-range to ultra-long-range communication.
+IRIS Laboratory is back with the **IoT Device Programming Practicum Module** for Odd Semester 2026/2027! This semester, Telkom University Electrical Engineering students explore the Internet of Things through 4 modules — Bluetooth, WebSocket, MQTT, and LoRa — from ultra-short-range to ultra-long-range communication.
 
-This year also brings big updates: a self-hosted local server, a self-hosted MQTT broker, and a brand-new LoRaWAN module built on the ANTARES platform.
+This year also brings big updates: a self-hosted local server, a self-hosted MQTT broker, and a brand-new live LoRa hunt game where students track down a hidden beacon by signal strength alone.
 
 Follow along as we break down each module! 👇
 
@@ -59,12 +59,12 @@ This publish-subscribe protocol is an IoT favorite because it's so lightweight. 
 
 From the workbench to kilometers away — without draining the battery. 🛰️
 
-Module 4 is brand new this year: students learn **LoRa** (long-range, low-power radio modulation) and **LoRaWAN** (the network protocol built on top of it) using the custom **Cosmic LoRa Aurora V2** board, connected to Telkom Indonesia's **ANTARES** platform.
+Module 4 is brand new this year: students learn **LoRa** (long-range, low-power radio modulation) using the custom **Cosmic LoRa Aurora V2** board — then put it to the test in a live hunt game, tracking down a hidden beacon by signal strength alone.
 
-In Indonesia, LoRaWAN runs on the 920–923 MHz band (AS923-2) — ideal for long-range monitoring on minimal power.
+In Indonesia, this practicum's LoRa link runs on the 920–923 MHz band (AS923-2) — ideal for long-range communication on minimal power.
 
 `</> Babai </>`
-#IRIS #LoRa #LoRaWAN #ANTARES #TelkomIndonesia #IoT
+#IRIS #LoRa #LoRaHunt #TelkomIndonesia #IoT
 
 ---
 
@@ -72,7 +72,7 @@ In Indonesia, LoRaWAN runs on the 920–923 MHz band (AS923-2) — ideal for lon
 
 One semester, four modules, one goal: students who understand IoT from signal to system. ✨
 
-Huge thanks to the entire IRIS Laboratory assistant team who wrote, revised, and tested this module before it ever reached students. From Bluetooth to LoRaWAN — this semester's IoT journey was a great one!
+Huge thanks to the entire IRIS Laboratory assistant team who wrote, revised, and tested this module before it ever reached students. From Bluetooth to LoRa — this semester's IoT journey was a great one!
 
 Stay tuned for more from IRIS Laboratory. 👋
 

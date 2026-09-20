@@ -7,9 +7,9 @@ Semua caption di bawah siap pakai untuk Instagram. Sesuaikan panjang untuk platf
 
 Dari sinyal sejauh 10 meter, sampai sinyal yang tembus berkilometer. 📡
 
-IRIS Laboratory kembali menghadirkan **Modul Praktikum Pemrograman Perangkat IoT** untuk Semester Ganjil 2026/2027! Semester ini, mahasiswa Teknik Elektro Telkom University akan menjelajahi dunia Internet of Things lewat 4 modul: Bluetooth, WebSocket, MQTT, sampai LoRa/LoRaWAN — dari komunikasi jarak sangat dekat sampai jarak sangat jauh.
+IRIS Laboratory kembali menghadirkan **Modul Praktikum Pemrograman Perangkat IoT** untuk Semester Ganjil 2026/2027! Semester ini, mahasiswa Teknik Elektro Telkom University akan menjelajahi dunia Internet of Things lewat 4 modul: Bluetooth, WebSocket, MQTT, sampai LoRa — dari komunikasi jarak sangat dekat sampai jarak sangat jauh.
 
-Tahun ini juga ada banyak pembaruan: server lokal sendiri, broker MQTT sendiri, dan modul LoRaWAN yang benar-benar baru lewat platform ANTARES.
+Tahun ini juga ada banyak pembaruan: server lokal sendiri, broker MQTT sendiri, dan permainan Perburuan LoRa langsung yang benar-benar baru, tempat mahasiswa melacak beacon tersembunyi hanya dari kekuatan sinyalnya.
 
 Ikuti terus feed kami, kita bahas satu per satu! 👇
 
@@ -59,12 +59,12 @@ Protokol publish-subscribe ini jadi favorit dunia IoT karena super ringan. Di Mo
 
 Dari meja praktikum sampai berkilometer jauhnya — tanpa boros baterai. 🛰️
 
-Modul 4 tahun ini benar-benar baru: mahasiswa belajar **LoRa** (modulasi radio jarak jauh, hemat daya) dan **LoRaWAN** (protokol jaringan di atasnya) menggunakan board kustom **Cosmic LoRa Aurora V2**, terhubung ke platform **ANTARES** milik Telkom Indonesia.
+Modul 4 tahun ini benar-benar baru: mahasiswa belajar **LoRa** (modulasi radio jarak jauh, hemat daya) menggunakan board kustom **Cosmic LoRa Aurora V2** — lalu langsung mengujinya lewat permainan perburuan langsung, melacak beacon tersembunyi hanya dari kekuatan sinyalnya.
 
-Di Indonesia, LoRaWAN beroperasi di pita 920–923 MHz (AS923-2) — cocok untuk pemantauan jarak jauh dengan konsumsi daya minim.
+Di Indonesia, jalur LoRa praktikum ini beroperasi di pita 920–923 MHz (AS923-2) — cocok untuk komunikasi jarak jauh dengan konsumsi daya minim.
 
 `</> Babai </>`
-#IRIS #LoRa #LoRaWAN #ANTARES #TelkomIndonesia #IoT
+#IRIS #LoRa #PerburuanLoRa #TelkomIndonesia #IoT
 
 ---
 
@@ -72,7 +72,7 @@ Di Indonesia, LoRaWAN beroperasi di pita 920–923 MHz (AS923-2) — cocok untuk
 
 Satu semester, empat modul, satu tujuan: mahasiswa yang paham IoT dari sinyal sampai sistem. ✨
 
-Terima kasih untuk seluruh tim asisten IRIS Laboratory yang menyusun, merevisi, dan menguji modul ini sebelum sampai ke tangan praktikan. Dari Bluetooth sampai LoRaWAN — perjalanan belajar IoT semester ini seru banget!
+Terima kasih untuk seluruh tim asisten IRIS Laboratory yang menyusun, merevisi, dan menguji modul ini sebelum sampai ke tangan praktikan. Dari Bluetooth sampai LoRa — perjalanan belajar IoT semester ini seru banget!
 
 Nantikan cerita seru lainnya dari IRIS Laboratory. 👋
 

@@ -21,12 +21,12 @@ Praktikum ini membawa mahasiswa dari komunikasi jarak sangat dekat sampai jarak 
 | 1 | Konektivitas Bluetooth | Penambahan materi **Bluetooth Low Energy (BLE)** |
 | 2 | Komunikasi WebSocket dengan Server Lokal | Pindah dari Firebase/Kodular ke **server lokal HTTP + WebSocket** |
 | 3 | Konektivitas MQTT | Broker pindah dari Adafruit IO ke **Eclipse Mosquitto lokal** |
-| 4 | Komunikasi Long Range (LoRa) | Modul baru: **LoRaWAN** via platform **ANTARES** (Telkom Indonesia) |
+| 4 | Komunikasi Long Range (LoRa) | Modul baru: permainan **Perburuan LoRa** langsung — melacak beacon tersembunyi hanya dari kekuatan sinyalnya |
 
 ## Fakta menarik untuk caption
-- Praktikum ini mencakup rentang komunikasi nirkabel dari **~10 meter (Bluetooth)** sampai **berkilometer-kilometer (LoRaWAN)** — semuanya dipelajari dalam satu semester.
+- Praktikum ini mencakup rentang komunikasi nirkabel dari **~10 meter (Bluetooth)** sampai **berkilometer-kilometer (LoRa)** — semuanya dipelajari dalam satu semester.
 - Tiga dari empat modul direvisi tahun ini agar mahasiswa langsung bekerja dengan infrastruktur lokal (server sendiri, broker sendiri) alih-alih bergantung penuh pada layanan pihak ketiga.
 
 ## Sumber eksternal terverifikasi
-- Standar LoRaWAN: [LoRa Alliance](https://lora-alliance.org/)
+- Latar belakang modulasi LoRa: [LoRa Alliance](https://lora-alliance.org/)
 - Spesifikasi resmi ESP32 (mikrokontroler utama praktikum): [Espressif — ESP32](https://www.espressif.com/en/products/socs/esp32)

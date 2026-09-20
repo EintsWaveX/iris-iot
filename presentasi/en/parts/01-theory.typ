@@ -4,7 +4,8 @@
 #import "/presentasi/template/slides.typ": *
 
 // ---------------------------------------------------------------------
-// Section: LoRa Theory (5 slides, condensed from the old 10-slide version)
+// Section: LoRa Theory (3 slides — LoRaWAN slides removed, this module is
+// peer-to-peer only)
 // ---------------------------------------------------------------------
 
 #section-slide[LoRa Theory]
@@ -22,12 +23,6 @@
     Example applications: smart agriculture #sym.dot.c smart cities
     #sym.dot.c industrial monitoring #sym.dot.c environmental sensing
   ])
-
-  #v(0.35em)
-  #note-box[
-    LoRa is *not* a network protocol. The network protocol commonly built
-    on top of LoRa is *LoRaWAN*.
-  ]
 ]
 
 #slide(title: [Where LoRa, CSS, and Its Parameters Fit])[
@@ -68,7 +63,7 @@
   - The device's *battery consumption*
 
   #align(center, text(size: .8em, style: "italic")[
-    Airtime will be measured directly in the LoRaWAN experiment.
+    Airtime will be measured directly in this practicum's hunt experiment.
   ])
 
   #v(0.3em)
@@ -80,61 +75,3 @@
   ]
 ]
 
-#slide(title: [LoRa vs LoRaWAN & Its Architecture])[
-  #set text(size: .92em)
-  #cols(columns: (1fr, 1.1fr), gutter: 1em)[
-    LoRa = the physical/modulation layer. *LoRaWAN* = the network protocol
-    built on top of it (join, security, authentication, forwarding to the
-    application).
-
-    #v(0.3em)
-    #text(size: .8em)[
-      - *P2P*: transmitter and receiver must agree on frequency,
-        bandwidth, SF, coding rate, and sync word.
-      - *LoRaWAN*: one packet can be heard by several gateways, then
-        forwarded over IP.
-    ]
-  ][
-    #align(center, block(fill: white, radius: 8pt, inset: 6pt)[
-      #image("/Module - IRIS IoT/gambar/modul 4/LoRaWAN - Architecture.webp", height: 3.3cm)
-    ])
-  ]
-
-  #v(0.1em)
-  #align(center, text(size: .75em)[
-    Four components: *end device* #sym.dot.c *gateway* #sym.dot.c
-    *network server* #sym.dot.c *application server*
-  ])
-]
-
-#slide(title: [Device Classes & ABP Activation])[
-  #cols(columns: (1fr, 1fr), gutter: 1.2em)[
-    Class determines when the RX window opens #sym.arrow.r affects latency
-    and power.
-
-    #v(0.3em)
-    #text(size: .78em)[
-      - *A*: uplink-initiated, two RX windows, most power-efficient,
-        mandatory for all devices. *(used in this practicum)*
-      - *B*: beacon + scheduled ping slots.
-      - *C*: RX almost always open, lowest latency, highest power draw.
-    ]
-  ][
-    #text(size: .78em)[
-      *ABP* vs *OTAA*:
-      - *ABP*: session keys are hard-coded, no join process.
-        *(used in this practicum)*
-      - *OTAA*: join-request/join-accept, per-session keys, more secure.
-    ]
-    #v(0.3em)
-    #text(size: .78em)[
-      ABP keys: `DevAddr`, `NwkSKey`, `AppSKey`.
-    ]
-  ]
-
-  #v(0.5em)
-  #note-box[
-    Keys are *confidential* — never write the real values into a journal,
-    report, or public repository.
-  ]
-]

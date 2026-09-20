@@ -21,12 +21,12 @@ The practicum takes students from very-short-range to very-long-range wireless c
 | 1 | Bluetooth Connectivity | Added **Bluetooth Low Energy (BLE)** |
 | 2 | WebSocket Communication with a Local Server | Moved from Firebase/Kodular to a **local HTTP + WebSocket server** |
 | 3 | MQTT Connectivity | Broker switched from Adafruit IO to a **local Eclipse Mosquitto** broker |
-| 4 | Long Range Communication (LoRa) | New module: **LoRaWAN** via Telkom Indonesia's **ANTARES** platform |
+| 4 | Long Range Communication (LoRa) | New module: a live **LoRa hunt game** — track a hidden beacon by signal strength alone |
 
 ## Shareable facts
-- The practicum spans wireless range from **~10 meters (Bluetooth)** to **kilometers (LoRaWAN)** — all covered in a single semester.
+- The practicum spans wireless range from **~10 meters (Bluetooth)** to **kilometers (LoRa)** — all covered in a single semester.
 - Three of the four modules were revised this year so students work directly against self-hosted infrastructure (their own server, their own broker) instead of relying entirely on third-party services.
 
 ## Verified external sources
-- LoRaWAN standard: [LoRa Alliance](https://lora-alliance.org/)
+- LoRa modulation background: [LoRa Alliance](https://lora-alliance.org/)
 - Official ESP32 specs (the practicum's primary microcontroller): [Espressif — ESP32](https://www.espressif.com/en/products/socs/esp32)

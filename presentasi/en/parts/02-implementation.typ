@@ -5,13 +5,12 @@
 
 // ---------------------------------------------------------------------
 // Section: Code implementation — a walkthrough of the Beacon and Hunter
-// sketches for the LoRa Hunt game (Module 4 Part A), read straight from
+// sketches for the LoRa Hunt game (Module 4), read straight from
 // kunci_jawaban/en/modul4/grup1/*.ino.
 //
 // The line numbers in code-src() are read directly from the answer key
 // files, so every time scripts/gen_modul4.py changes and is re-run, the
-// ranges below must be re-checked. This deck does not cover
-// LoRaWAN/ANTARES.
+// ranges below must be re-checked.
 //
 // Watch the theme's capacity limits: 10 code lines per card once a
 // note-box is present. Exceeding them silently spills the note-box onto
@@ -38,9 +37,8 @@
 
   #v(0.5em)
   #note-box[
-    This is the module's central comparison: in *Part A* you build every
-    network rule yourselves, while in *Part B* LoRaWAN has already supplied
-    them.
+    Because peer-to-peer LoRa has no protocol managing the channel for you,
+    every network rule is one you build yourselves.
   ]
 ]
 

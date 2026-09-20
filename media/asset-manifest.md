@@ -31,14 +31,10 @@ Format note: most of these are portrait/landscape diagrams — for Instagram squ
 - `Module - IRIS IoT/gambar/modul 3/MQTT - Implementation.png` — Pico W wiring
 - Alt/carousel option: `schematics/Module 3.png`
 
-## Post 4 — Module 4: LoRa/LoRaWAN
+## Post 4 — Module 4: LoRa Hunt (peer-to-peer)
 - `schematics/assets/Cosmic LoRa Aurora V2 (board only).png` — clean board photo, no pin labels (best hero shot)
 - `Module - IRIS IoT/gambar/modul 4/LoRa - Bandwidth.png` — range/bandwidth comparison chart (Wi-Fi/BLE/Cellular/LoRa)
-- `Module - IRIS IoT/gambar/modul 4/LoRaWAN - Architecture.webp` — end-device/gateway/network-server/app-server diagram
-- `Module - IRIS IoT/gambar/modul 4/LoRa - Class A.png`, `Module - IRIS IoT/gambar/modul 4/LoRa - Class B.png`, `Module - IRIS IoT/gambar/modul 4/LoRa - Class C.png` — good carousel set explaining the 3 device classes
-- `Module - IRIS IoT/gambar/modul 4/ANTARES - Application Dashboard.png` and `Module - IRIS IoT/gambar/modul 4/ANTARES - Device Dashboard.png` — real dashboard screenshots
-- `Module - IRIS IoT/gambar/modul 4/ANTARES.svg` — ANTARES logo
-- Alt/carousel option: `schematics/Module 4 (LoRa P2P).png`, `schematics/Module 4 (LoRaWAN).png`
+- Alt/carousel option: `schematics/Module 4.png`
 
 ## Post 5 — Wrap-up / Behind the Scenes
 - `Module - IRIS IoT/covers/cover-id.png` / `Module - IRIS IoT/covers/cover-en.png` — reuse as bookend to Post 0
