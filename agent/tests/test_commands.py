@@ -24,8 +24,8 @@ class TestBuildArgv(unittest.TestCase):
         self.assertEqual(argv, ["sudo", "/usr/bin/systemctl", "stop", "modul4.service"])
 
     def test_layanan_mulai_ulang_known_service(self):
-        argv = commands.build_argv("layanan.mulai_ulang", {"layanan": "chirpstack"}, "/repo")
-        self.assertEqual(argv, ["sudo", "/usr/bin/systemctl", "restart", "chirpstack.service"])
+        argv = commands.build_argv("layanan.mulai_ulang", {"layanan": "modul2-ws"}, "/repo")
+        self.assertEqual(argv, ["sudo", "/usr/bin/systemctl", "restart", "iris-modul2-ws.service"])
 
     def test_unknown_layanan_returns_none(self):
         # This is the load-bearing case: a caller that got past the cloud's

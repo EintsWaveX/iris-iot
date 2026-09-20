@@ -22,7 +22,6 @@ LAYANAN_UNIT = {
     "modul2-ws": "iris-modul2-ws.service",
     "mosquitto": "mosquitto.service",
     "modul4": "modul4.service",
-    "chirpstack": "chirpstack.service",
 }
 
 REPO_ROOT = "/home/iris/IRIS-ASO"  # overridden by AGENT_REPO_ROOT in agent.py's config

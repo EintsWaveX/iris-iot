@@ -228,7 +228,7 @@ export const perangkat = pgTable(
     jenis: text("jenis"), // "esp32" | "pico-w" | "cosmic-lora" | "tidak-diketahui"
     nama: text("nama"),
     diadopsi: boolean("diadopsi").notNull().default(false),
-    sumber: text("sumber").notNull(), // "arp" | "modul4" | "mosquitto" | "chirpstack"
+    sumber: text("sumber").notNull(), // "arp" | "modul4" | "mosquitto"
     pertamaTerlihat: timestamp("pertama_terlihat", { withTimezone: true }).notNull().defaultNow(),
     terakhirTerlihat: timestamp("terakhir_terlihat", { withTimezone: true }).notNull().defaultNow(),
   },
