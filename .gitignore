@@ -2,18 +2,16 @@
 node_modules/
 
 # Build output — generated, never committed. CI rebuilds and diffs instead
-# of trusting a committed artifact (see games/REBUILD.md gotcha 2, where a
-# stale committed build shipped silently).
+# of trusting a committed artifact (see apps/games/REBUILD.md gotcha 2,
+# where a stale committed build shipped silently).
 dist/
-web/.astro/
-games/index.html
-games/public/index.html
-modul4/public/index.html
+apps/web/.astro/
+apps/games/index.html
+apps/games/public/index.html
 
-# Generated from Module - IRIS IoT/data_asisten.typ by scripts/seed_asisten.py.
-# Regenerated in CI on every run so the site can never silently drift from
-# the (finalized, never-hand-edited) handbook.
-web/src/data/asisten.json
+# Generated from the vendored handbook copy by apps/web/scripts/seed_asisten.py.
+# Regenerated in CI on every run so the site can never silently drift.
+apps/web/src/data/asisten.json
 
 # Environment / secrets
 .env
@@ -30,28 +28,10 @@ web/src/data/asisten.json
 # Debug output from scripts/check_secrets.py
 fresh-scan.json
 
-# Runtime state that belongs to a running lab session, not to history
-modul4/jadwal.json
-modul4/jadwal.json.tmp
-modul4/uploads/
-
 # Python
 __pycache__/
 *.pyc
 
-# Persistent arduino-cli build cache used by scripts/check_sketches.py so the
-# ESP32 core compiles once instead of once per sketch
-scripts/.arduino-build-cache/
-
 # Editor / OS noise
 .DS_Store
 Thumbs.db
-
-# Machine-local tool cache: absolute Windows paths and session ids, useless to
-# anyone else and guaranteed to conflict
-.impeccable/hook.cache.json
-
-# Hand-built Pi bundle, derived from agent/ + modul4/ + kunci_jawaban/ +
-# scripts/. Regenerate it when those change rather than committing a copy that
-# silently goes stale (ORANGE_PI_SERVER_SETUP.md section 5 consumes it)
-iris-pi-server-setup.zip

@@ -1,14 +1,12 @@
-# Scripts that run on the Orange Pi (Linux) must never pick up CRLF from a
-# Windows checkout — a CRLF line ending in a shebang script fails outright
-# on Linux with "$'\r': command not found".
-*.sh text eol=lf
-scripts/opi_ap_on.sh text eol=lf
-scripts/opi_ap_off.sh text eol=lf
-
-# Python and web sources: normalize to LF regardless of checkout platform.
+# Normalize text sources to LF regardless of checkout platform, so a
+# Windows checkout never introduces CRLF into files Vercel's Linux build
+# environment (or a contributor on Linux/macOS) will read.
 *.py text eol=lf
 *.js text eol=lf
 *.mjs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.astro text eol=lf
 *.json text eol=lf
 *.css text eol=lf
 *.html text eol=lf
@@ -19,17 +17,12 @@ scripts/opi_ap_off.sh text eol=lf
 # Windows-only tooling keeps CRLF.
 *.ps1 text eol=crlf
 
-# Typst sources: no enforced ending (test PDFs against whatever line
-# endings the file already has; forcing a switch here would touch every
-# journal for no functional reason before Phase 1 even starts).
-*.typ -text
-
 # Binary assets: never touched by line-ending normalization.
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.webp binary
 *.svg binary
+*.ico binary
 *.pdf binary
-*.xlsm binary
 *.woff2 binary
