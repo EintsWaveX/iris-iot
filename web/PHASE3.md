@@ -5,7 +5,7 @@ Tracks what is actually **built and verified** vs. **left to do** for Phase 3
 up without reloading the full plan into context. The approved plan — full
 rationale, schema, failure-mode analysis — lives at
 `~/.claude/plans/rebuild-iris-aso-practicum-reflective-simon.md`. This file is
-the shorter status tracker; that file is the source of truth for *why*.
+the shorter status tracker; that file is the source of truth for _why_.
 
 Planning (Opus) is done and approved. Execution (Sonnet) is underway: Strand
 A (journal slim-down, code slim-down, and the A4 defect pass), the full CI
@@ -50,19 +50,20 @@ React bundles to external `_astro/*.js`.
 The plan's own step-by-step is the phase list. Strand A can ship independently
 of B/C, which is why it's first.
 
-| # | Step | Strand | Status |
-|---|---|---|---|
-| 1 | Journal + code slim-down (A1–A4) | A | ✅ Done — A1/A2/A3 fully done; A4's Module 1 stragglers resolved or judged not actionable (see below) |
-| 2 | CI gate: compile all 8 journals + every sketch, assert page counts and blank counts | — | ✅ Done — `journals` CI job runs both `check_journal_pages.py` and `check_sketches.py`; both confirmed green locally |
-| 3 | Schema + backfill + read-path switch (migrations 0002–0003) | B | ✅ Done — verified against a real (throwaway local) Postgres, not just typecheck (see note below) |
-| 4 | Roster UI + start/end session (still on existing Astro page) | B | ☐ Not started |
-| 5 | Pi roster sync via agent heartbeat (B3) | B | ☐ Not started |
-| 6 | React islands migration of the dashboard | — | ☐ Not started (before step 7, so the live view isn't written twice) |
-| 7 | Firebase rules + auth bridge + live session (answers last) | C | ☐ Not started |
-| 8 | History view (Neon query once step 7 exists) | C | ☐ Not started |
-| 9 | Contract migration (0004): archive old tables, drop fallback | B | ☐ Not started |
+| #   | Step                                                                                | Strand | Status                                                                                                               |
+| --- | ----------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
+| 1   | Journal + code slim-down (A1–A4)                                                    | A      | ✅ Done — A1/A2/A3 fully done; A4's Module 1 stragglers resolved or judged not actionable (see below)                |
+| 2   | CI gate: compile all 8 journals + every sketch, assert page counts and blank counts | —      | ✅ Done — `journals` CI job runs both `check_journal_pages.py` and `check_sketches.py`; both confirmed green locally |
+| 3   | Schema + backfill + read-path switch (migrations 0002–0003)                         | B      | ✅ Done — verified against a real (throwaway local) Postgres, not just typecheck (see note below)                    |
+| 4   | Roster UI + start/end session (still on existing Astro page)                        | B      | ☐ Not started                                                                                                        |
+| 5   | Pi roster sync via agent heartbeat (B3)                                             | B      | ☐ Not started                                                                                                        |
+| 6   | React islands migration of the dashboard                                            | —      | ☐ Not started (before step 7, so the live view isn't written twice)                                                  |
+| 7   | Firebase rules + auth bridge + live session (answers last)                          | C      | ☐ Not started                                                                                                        |
+| 8   | History view (Neon query once step 7 exists)                                        | C      | ☐ Not started                                                                                                        |
+| 9   | Contract migration (0004): archive old tables, drop fallback                        | B      | ☐ Not started                                                                                                        |
 
 **Done so far, concretely:**
+
 - `template/template.typ`: `#jawab(kode:, jenis:, lang:)` helper (prints a
   one-line pointer for "gambar"/"teks", nothing reserved on paper anymore);
   `schematic-figure()` hoists the duplicated ready/not-ready guard, defaulting
@@ -78,14 +79,14 @@ of B/C, which is why it's first.
   (baseline was 7–8), via `python scripts/check_journal_pages.py`.
 - `.github/workflows/ci.yml`: new `journals` job, added to `deploy`'s `needs`.
 - **A3, group identity:** Module 1's central/peripheral (id/en, `kode_praktikum`
-  + `kunci_jawaban`, 8 files) collapsed the 28-line commented `#define` block
-  of 8 UUID pairs into one `const int GROUP_ID` plus two `String` UUIDs
-  derived from it (`BLEUUID`'s constructor accepts `String` directly, verified
-  both by reading the installed ESP32 core's header and by a clean
-  arduino-cli compile). The now-redundant 8-row UUID lookup table was deleted
-  from `ID_Modul 1.typ`/`EN_Module 1.typ` (M1 dropped to **4 pages**), and the
-  checklist/instruction text updated to say "change `GROUP_ID`" instead of
-  "uncomment your pair."
+  - `kunci_jawaban`, 8 files) collapsed the 28-line commented `#define` block
+    of 8 UUID pairs into one `const int GROUP_ID` plus two `String` UUIDs
+    derived from it (`BLEUUID`'s constructor accepts `String` directly, verified
+    both by reading the installed ESP32 core's header and by a clean
+    arduino-cli compile). The now-redundant 8-row UUID lookup table was deleted
+    from `ID_Modul 1.typ`/`EN_Module 1.typ` (M1 dropped to **4 pages**), and the
+    checklist/instruction text updated to say "change `GROUP_ID`" instead of
+    "uncomment your pair."
 - **A3, docblock trims:** every `kode_praktikum`/`kunci_jawaban` file for
   modules 1–3 (24 files) had its header cut from ~9–13 lines to 3–5, dropping
   the `Board:`/`Library:` lines (redundant with the `#include`s right below)
@@ -115,15 +116,15 @@ of B/C, which is why it's first.
   all `ok`.
 
 - **A4, the four Module 1 stragglers:**
-  - *`BOARD_ESP32S3` leaking into the pin table:* fixed. `ID_Modul 1.typ`'s
+  - _`BOARD_ESP32S3` leaking into the pin table:_ fixed. `ID_Modul 1.typ`'s
     pin table showed `GPIO34 \/ GPIO4` in one cell; `EN_Module 1.typ` already
     showed the clean `GPIO34` alone, relying on the Catatan/Note below for
     the S3 alternative (an ID/EN drift, not a template defect). ID brought in
     line with the existing EN convention.
-  - *A per-group table straddling a page break:* already resolved as a side
+  - _A per-group table straddling a page break:_ already resolved as a side
     effect of A3 — the only per-group table Module 1 had was the 8-row UUID
     lookup, deleted when `GROUP_ID` collapsed it to one derived value.
-  - *The two longest listings:* already resolved as a side effect of A1
+  - _The two longest listings:_ already resolved as a side effect of A1
     (`around: 4→2`) and A3 (GROUP_ID collapse, docblock trim, clock-header
     extraction cut `modul1_ble_central.ino` and `modul1_ble_peripheral.ino`
     by roughly 90 and 70 lines respectively). `modul1_ble_central.ino` (228
@@ -133,7 +134,7 @@ of B/C, which is why it's first.
     BLE central-role plumbing (scan/connect/notify callbacks with their error
     branches), not padding, so cutting it further would remove content
     students need to read, not boilerplate.
-  - *Serial-clock-vs-NTP inconsistency:* judged not actionable. Modules 2–4's
+  - _Serial-clock-vs-NTP inconsistency:_ judged not actionable. Modules 2–4's
     boards join Wi-Fi anyway, so NTP is free; Module 1's central/peripheral
     are BLE-only and have no Wi-Fi credentials or connection code at all.
     Adding Wi-Fi there just to reach NTP would add real setup burden (SSID/
@@ -199,7 +200,7 @@ of B/C, which is why it's first.
       re-running is a no-op via `onConflictDoUpdate`; adding a third session
       that reassigned one NIM to a different group number made both dry-run
       and `--apply` correctly refuse, print `grup 1 on 2026-09-14, grup 5 on
-      2026-09-22`, exit non-zero, and write nothing.
+2026-09-22`, exit non-zero, and write nothing.
     - `resolvePraktikan()`, called directly against the same database: with
       `anggota` empty it correctly used the legacy `praktikan`/`regu` join
       (both a known and an unknown NIM resolved correctly); after the
@@ -212,7 +213,7 @@ of B/C, which is why it's first.
       driver) and a temporary `pg`/`@types/pg` devDependency; both were
       fully reverted afterward (`git diff src/lib/db.ts` is empty,
       `package.json`/`package-lock.json` untouched throughout since `npm
-      install --no-save` was used) — nothing test-only remains in the tree.
+install --no-save` was used) — nothing test-only remains in the tree.
     - `npx tsc --noEmit`, `npm test` (20/20), and `npm run lint` all still
       clean after the revert.
     - **Also verified through an actual browser**, not just direct DB/script
@@ -220,11 +221,11 @@ of B/C, which is why it's first.
       (port 4322, deleted after use) that dispatches `/api/*` straight to the
       real Vercel-function handlers, since `astro dev` alone doesn't know the
       root `api/` directory exists. Via chrome-devtools MCP against that
-      stack: typed Siti's NIM into the real `/masuk` form, clicked *Masuk*,
+      stack: typed Siti's NIM into the real `/masuk` form, clicked _Masuk_,
       and landed on `/dashboard` showing "Anda masuk sebagai Siti" /
       "KELOMPOK 2" — the actual `verifyPraktikanLogin` -> `resolvePraktikan`
       chain, the real session-cookie signing, and the real client-side
-      redirect, all exercised together for the first time. *Keluar* (logout)
+      redirect, all exercised together for the first time. _Keluar_ (logout)
       correctly returned to `/masuk`. Logging in as Budi (whose group is
       deactivated) correctly got `{"ok":false,"kode":"tidak_terdaftar"}` from
       the network tab. The dashboard's "MODUL 4 — Perburuan LoRa" card is
@@ -234,7 +235,7 @@ of B/C, which is why it's first.
     - **Still open**: this was a fresh, empty schema, not a copy of the
       practicum's actual production data — the backfill's conflict scan is
       only as good as what real `regu`/`praktikan` history actually
-      contains. Run it once for real against a scratch branch of the *actual*
+      contains. Run it once for real against a scratch branch of the _actual_
       Neon database (`vercel env pull` a branch, not production) before
       relying on it for a live session.
 
@@ -263,6 +264,7 @@ still one phase, now with 9 steps instead of the smaller slim-down-only scope
 originally asked for. It does **not** touch the two items already flagged
 pending from earlier in this project and tracked separately, outside this
 plan:
+
 - The `web/`+`agent/`+`games/`+`modul4/` merge into a single `iris-iot/` at
   `Documents/WebApps` (deferred, unstarted, orthogonal to Phase 3).
 - Carrying `games/`'s cosmic styling/animations into the merged project

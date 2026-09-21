@@ -155,9 +155,7 @@ async function main() {
     }
   });
 
-  console.log(
-    `\nBackfilled ${groupsBySesi.length} groups and ${newestRows.length} students.`,
-  );
+  console.log(`\nBackfilled ${groupsBySesi.length} groups and ${newestRows.length} students.`);
   process.exit(0);
 }
 
