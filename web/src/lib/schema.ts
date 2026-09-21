@@ -6,6 +6,7 @@
  * The live IoT-layer X-ray and module content each get their own migration
  * when that phase is planned.
  */
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -14,6 +15,7 @@ import {
   integer,
   serial,
   unique,
+  uniqueIndex,
   index,
   jsonb,
 } from "drizzle-orm/pg-core";
@@ -42,6 +44,16 @@ export const asisten = pgTable("asisten", {
  * start time. Mirrors the shape modul4/server.py already proved out for
  * Module 4 (JADWAL_MULAI, SESI_DURASI_SEC), generalised to any module so
  * the same table serves Modules 1-3 as well once their content phase lands.
+ *
+ * `mulaiPada`/`selesaiPada`/`durasiDetik` are the real lifecycle timestamps,
+ * separate from `tanggal`/`mulai` (the *scheduled* date and clock time used
+ * for the slot uniqueness check below) — a session that starts late or runs
+ * over should never retroactively change which slot it occupied.
+ *
+ * The slot-uniqueness index is partial (`WHERE status <> 'batal'`) rather
+ * than a plain UNIQUE, so cancelling a mis-created session frees its slot
+ * for a replacement instead of leaving it permanently unusable — the
+ * failure mode a plain unique constraint on this trio produced before.
  */
 export const sesi = pgTable(
   "sesi",
@@ -50,17 +62,110 @@ export const sesi = pgTable(
     tanggal: text("tanggal").notNull(), // ISO date, e.g. "2026-09-19"
     mulai: text("mulai").notNull(), // "HH:MM", local lab time
     modul: integer("modul").notNull(), // 1-4
-    status: text("status", { enum: ["terjadwal", "berjalan", "selesai"] })
+    status: text("status", { enum: ["terjadwal", "berjalan", "selesai", "batal"] })
       .notNull()
       .default("terjadwal"),
+    mulaiPada: timestamp("mulai_pada", { withTimezone: true }),
+    selesaiPada: timestamp("selesai_pada", { withTimezone: true }),
+    durasiDetik: integer("durasi_detik"),
     dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    // The same slot (module, day, start time) is never scheduled twice —
-    // this is what a re-submitted or double-clicked "create session" form
-    // must fail against, rather than silently producing a duplicate.
-    unique("sesi_slot_unik").on(t.tanggal, t.modul, t.mulai),
+    // The same slot (module, day, start time) is never scheduled twice by
+    // any session that isn't cancelled — this is what a re-submitted or
+    // double-clicked "create session" form must fail against, rather than
+    // silently producing a duplicate.
+    uniqueIndex("sesi_slot_unik")
+      .on(t.tanggal, t.modul, t.mulai)
+      .where(sql`${t.status} <> 'batal'`),
     index("sesi_tanggal_idx").on(t.tanggal),
+  ],
+);
+
+/**
+ * The master roster's group list, scoped to the whole practicum rather than
+ * to one session — this is what makes "one roster, four modules" possible.
+ * `nomor` is the human-facing group number shown on the roster paste box and
+ * the scoreboard.
+ */
+export const kelompok = pgTable("kelompok", {
+  id: serial("id").primaryKey(),
+  nomor: integer("nomor").notNull().unique(),
+  nama: text("nama").notNull(),
+  aktif: boolean("aktif").notNull().default(true),
+  dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * A student, belonging to exactly one group for the whole practicum.
+ * `unique(nim)` is the schema's core invariant change from Phase 1's
+ * `unique(tanggal, nim)` on `praktikan`: a NIM can no longer occupy a
+ * different group on different days, which is what let the same roster
+ * paste fail on every session after the first.
+ */
+export const anggota = pgTable("anggota", {
+  id: serial("id").primaryKey(),
+  kelompokId: integer("kelompok_id")
+    .notNull()
+    .references(() => kelompok.id, { onDelete: "cascade" }),
+  nim: text("nim").notNull().unique(),
+  nama: text("nama").notNull(),
+});
+
+/**
+ * Per-session exclusions and role overrides on top of the master roster.
+ * Sparse by design: a group with no row here is active with no special role
+ * for that session, so excluding Module 4's beacon group is one row, not a
+ * row for every other group saying "still active." This is also the first
+ * thing in the codebase that actually writes `aktif` for a session — Phase
+ * 1's `regu.aktif` was read at login but nothing ever set it to false.
+ */
+export const sesiKelompok = pgTable(
+  "sesi_kelompok",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokId: integer("kelompok_id")
+      .notNull()
+      .references(() => kelompok.id, { onDelete: "cascade" }),
+    aktif: boolean("aktif").notNull().default(true),
+    peran: text("peran", { enum: ["beacon", "hunter"] }),
+    catatan: text("catatan"),
+  },
+  (t) => [unique("sesi_kelompok_unik").on(t.sesiId, t.kelompokId)],
+);
+
+/**
+ * One answer, keyed by session and group rather than by student or module —
+ * by session so a makeup session repeating a module gets its own answer set
+ * for free, and by group (not `anggota.id`) so removing a member never
+ * cascades into answers. `soalKode` is the `kode` a journal's `#jawab()`
+ * helper carries, the single source both the PDF and this table's rows
+ * agree on. `versi` is used for stale-write detection only (last-write-wins
+ * per row, not merged) — see the Phase 3 plan's concurrency section for why
+ * a CRDT would solve a collision five students in one room don't have.
+ */
+export const jawaban = pgTable(
+  "jawaban",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokId: integer("kelompok_id")
+      .notNull()
+      .references(() => kelompok.id, { onDelete: "cascade" }),
+    soalKode: text("soal_kode").notNull(),
+    isi: text("isi").notNull().default(""),
+    versi: integer("versi").notNull().default(0),
+    diubahOleh: text("diubah_oleh"), // NIM, matching audit.aktorNim's shape
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("jawaban_sesi_kelompok_soal").on(t.sesiId, t.kelompokId, t.soalKode),
+    index("jawaban_sesi_idx").on(t.sesiId),
   ],
 );
 

@@ -15,6 +15,13 @@
       "when": 1789844842766,
       "tag": "0001_daily_zuras",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789977955150,
+      "tag": "0002_roster_kelompok_anggota",
+      "breakpoints": true
     }
   ]
 }
