@@ -53,6 +53,18 @@ const { links, current = Astro.url.pathname } = Astro.props;
     ))}
   </nav>
   <div class="nav__side">
+    <button
+      type="button"
+      id="kurangi-efek-toggle"
+      class="nav__reduce"
+      aria-pressed="false"
+      title="Kurangi efek gerak pada latar"
+    >
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+      </svg>
+      <span class="visually-hidden">Kurangi efek</span>
+    </button>
     <slot name="side" />
   </div>
 </header>
@@ -125,6 +137,30 @@ const { links, current = Astro.url.pathname } = Astro.props;
     align-items: center;
     display: flex;
     gap: var(--space-3);
+  }
+
+  .nav__reduce {
+    align-items: center;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    display: flex;
+    height: max(var(--tap), 44px);
+    justify-content: center;
+    width: max(var(--tap), 44px);
+  }
+
+  .nav__reduce:hover {
+    color: var(--text);
+  }
+
+  .nav__reduce[aria-pressed="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .nav__reduce .icon {
+    height: 1.1em;
+    width: 1.1em;
   }
 
   @media (max-width: 640px) {

@@ -44,10 +44,26 @@
   position: absolute;
   inset: -25%;
   background:
-    radial-gradient(38vw 30vw at 18% 22%, rgba(58, 42, 107, 0.85) 0%, rgba(58, 42, 107, 0) 62%),
-    radial-gradient(46vw 34vw at 82% 14%, rgba(15, 63, 74, 0.72) 0%, rgba(15, 63, 74, 0) 64%),
-    radial-gradient(42vw 40vw at 68% 82%, rgba(27, 31, 74, 0.9) 0%, rgba(27, 31, 74, 0) 66%),
-    radial-gradient(30vw 26vw at 6% 76%, rgba(42, 19, 56, 0.75) 0%, rgba(42, 19, 56, 0) 60%);
+    radial-gradient(
+      38vw 30vw at 18% 22%,
+      rgba(58, 42, 107, 0.85) 0%,
+      rgba(58, 42, 107, 0) 62%
+    ),
+    radial-gradient(
+      46vw 34vw at 82% 14%,
+      rgba(15, 63, 74, 0.72) 0%,
+      rgba(15, 63, 74, 0) 64%
+    ),
+    radial-gradient(
+      42vw 40vw at 68% 82%,
+      rgba(27, 31, 74, 0.9) 0%,
+      rgba(27, 31, 74, 0) 66%
+    ),
+    radial-gradient(
+      30vw 26vw at 6% 76%,
+      rgba(42, 19, 56, 0.75) 0%,
+      rgba(42, 19, 56, 0) 60%
+    );
   filter: blur(58px) saturate(1.2);
   opacity: 0.78;
   will-change: transform;
@@ -59,7 +75,11 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(70vw 22vh at 50% 0%, rgba(64, 176, 255, 0.13) 0%, rgba(64, 176, 255, 0) 70%);
+  background: radial-gradient(
+    70vw 22vh at 50% 0%,
+    rgba(64, 176, 255, 0.13) 0%,
+    rgba(64, 176, 255, 0) 70%
+  );
 }
 
 /* -------------------------------------------------------------------------
@@ -70,14 +90,25 @@
 .cosmos__grid {
   position: absolute;
   inset: 0;
-  opacity: 0.055;
+  /* Falls back to the flat value every games/ scene has always rendered at;
+     only apps/web's teknis scene (the server dashboard) raises it, via the
+     per-scene block below. */
+  opacity: var(--grid-opacity, 0.055);
   background-image:
     linear-gradient(to right, var(--accent) 1px, transparent 1px),
     linear-gradient(to bottom, var(--accent) 1px, transparent 1px);
   background-size: 68px 68px;
   /* The mask clips descendants too, so the pulse below inherits this shape. */
-  -webkit-mask-image: radial-gradient(ellipse 92% 74% at 50% 38%, #000 18%, transparent 78%);
-  mask-image: radial-gradient(ellipse 92% 74% at 50% 38%, #000 18%, transparent 78%);
+  -webkit-mask-image: radial-gradient(
+    ellipse 92% 74% at 50% 38%,
+    #000 18%,
+    transparent 78%
+  );
+  mask-image: radial-gradient(
+    ellipse 92% 74% at 50% 38%,
+    #000 18%,
+    transparent 78%
+  );
 }
 
 /* A wide diagonal band of light travelling across the grid.
@@ -166,26 +197,48 @@
 }
 
 @keyframes grid-pulse {
-  0% { transform: translate3d(-58%, 58%, 0); }
-  100% { transform: translate3d(58%, -58%, 0); }
+  0% {
+    transform: translate3d(-58%, 58%, 0);
+  }
+  100% {
+    transform: translate3d(58%, -58%, 0);
+  }
 }
 
 @keyframes grain-shift {
-  0%   { transform: translate(0, 0); }
-  16%  { transform: translate(-6px, 4px); }
-  33%  { transform: translate(5px, -7px); }
-  50%  { transform: translate(-8px, -3px); }
-  66%  { transform: translate(7px, 6px); }
-  83%  { transform: translate(-4px, 8px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+  16% {
+    transform: translate(-6px, 4px);
+  }
+  33% {
+    transform: translate(5px, -7px);
+  }
+  50% {
+    transform: translate(-8px, -3px);
+  }
+  66% {
+    transform: translate(7px, 6px);
+  }
+  83% {
+    transform: translate(-4px, 8px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 /* -------------------------------------------------------------------------
    STAGE MODE — the projector view dials the whole sky up, since it is being
    read across a room rather than at arm's length.
    ------------------------------------------------------------------------- */
-[data-stage="on"] .cosmos__nebula { opacity: 0.82; }
-[data-stage="on"] .cosmos__grid { opacity: 0.08; }
+[data-stage="on"] .cosmos__nebula {
+  opacity: 0.82;
+}
+[data-stage="on"] .cosmos__grid {
+  opacity: 0.08;
+}
 [data-stage="on"] .cosmos__vignette {
   background: radial-gradient(
     ellipse 110% 90% at 50% 45%,
@@ -198,7 +251,9 @@
 /* Grain is a per-pixel blend over the whole viewport — the one layer worth
    dropping on small screens, where it is invisible anyway. */
 @media (max-width: 600px) {
-  .cosmos__grain { display: none; }
+  .cosmos__grain {
+    display: none;
+  }
 }
 
 /* =========================================================================
@@ -211,11 +266,11 @@
    character without changing the layout at all.
    ========================================================================= */
 :root {
-  --au-1: rgba(244, 114, 182, 0.66);  /* pink   */
+  --au-1: rgba(244, 114, 182, 0.66); /* pink   */
   --au-2: rgba(167, 139, 250, 0.71); /* violet */
-  --au-3: rgba(64, 176, 255, 0.66);   /* blue   */
-  --au-4: rgba(94, 234, 212, 0.58);  /* teal   */
-  --au-5: rgba(232, 182, 77, 0.46);   /* gold   */
+  --au-3: rgba(64, 176, 255, 0.66); /* blue   */
+  --au-4: rgba(94, 234, 212, 0.58); /* teal   */
+  --au-5: rgba(232, 182, 77, 0.46); /* gold   */
   --au-opacity: 0.72;
 }
 
@@ -261,13 +316,21 @@
 }
 
 @keyframes aurora-drift-a {
-  0%   { transform: translate3d(-6%, 4%, 0) scale(1.05); }
-  100% { transform: translate3d(7%, -3%, 0) scale(1.18); }
+  0% {
+    transform: translate3d(-6%, 4%, 0) scale(1.05);
+  }
+  100% {
+    transform: translate3d(7%, -3%, 0) scale(1.18);
+  }
 }
 
 @keyframes aurora-drift-b {
-  0%   { transform: translate3d(8%, -2%, 0) scale(1.2) rotate(1.5deg); }
-  100% { transform: translate3d(-7%, 5%, 0) scale(1.04) rotate(-1.5deg); }
+  0% {
+    transform: translate3d(8%, -2%, 0) scale(1.2) rotate(1.5deg);
+  }
+  100% {
+    transform: translate3d(-7%, 5%, 0) scale(1.04) rotate(-1.5deg);
+  }
 }
 
 /* -------------------------------------------------------------------------
@@ -326,6 +389,62 @@
   --au-4: rgba(167, 139, 250, 0.42);
   --au-5: rgba(200, 220, 255, 0.32);
   --au-opacity: 0.52;
+}
+
+/* apps/web's scenes. */
+
+/* Beranda — the front door, confident and IRIS-accent-forward. */
+:root[data-scene="beranda"] {
+  --au-1: rgba(64, 176, 255, 0.62);
+  --au-2: rgba(142, 208, 255, 0.5);
+  --au-3: rgba(167, 139, 250, 0.56);
+  --au-4: rgba(94, 234, 212, 0.5);
+  --au-5: rgba(232, 182, 77, 0.36);
+  --au-opacity: 0.82;
+}
+
+/* Masuk — calm and cool, so nothing competes with typing a NIM. */
+:root[data-scene="masuk"] {
+  --au-1: rgba(64, 176, 255, 0.4);
+  --au-2: rgba(94, 234, 212, 0.36);
+  --au-3: rgba(167, 139, 250, 0.34);
+  --au-4: rgba(142, 208, 255, 0.3);
+  --au-5: rgba(200, 220, 255, 0.24);
+  --au-opacity: 0.5;
+}
+
+/* Kerja — the working dashboard; quieter still, content wins. */
+:root[data-scene="kerja"] {
+  --au-1: rgba(64, 176, 255, 0.32);
+  --au-2: rgba(94, 234, 212, 0.28);
+  --au-3: rgba(120, 130, 190, 0.3);
+  --au-4: rgba(167, 139, 250, 0.26);
+  --au-5: rgba(200, 220, 255, 0.2);
+  --au-opacity: 0.4;
+}
+
+/* Teknis — the server/device dashboard. Aurora recedes further and turns
+   circuit-blue-green; the grid layer rises instead, via --grid-opacity, so
+   this screen reads as the technical one rather than the scenic one. */
+:root[data-scene="teknis"] {
+  --au-1: rgba(64, 176, 255, 0.34);
+  --au-2: rgba(94, 234, 212, 0.4);
+  --au-3: rgba(94, 234, 212, 0.3);
+  --au-4: rgba(64, 176, 255, 0.24);
+  --au-5: rgba(120, 160, 255, 0.2);
+  --au-opacity: 0.42;
+  --grid-opacity: 0.14;
+}
+
+/* Sesi — the live session view. Quietest of all; a practicum runs on top
+   of it for 165 minutes and the sky must never be what anyone notices. */
+:root[data-scene="sesi"] {
+  --au-1: rgba(64, 176, 255, 0.24);
+  --au-2: rgba(120, 130, 190, 0.24);
+  --au-3: rgba(94, 234, 212, 0.2);
+  --au-4: rgba(167, 139, 250, 0.2);
+  --au-5: rgba(200, 220, 255, 0.16);
+  --au-opacity: 0.3;
 }
 
 /* -------------------------------------------------------------------------

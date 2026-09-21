@@ -36,11 +36,19 @@
       ? window.matchMedia("(prefers-reduced-motion: reduce)")
       : null;
 
-  var reduced = !!(reducedQuery && reducedQuery.matches);
+  var osReduced = !!(reducedQuery && reducedQuery.matches);
+  // null defers to the OS query; true/false is an explicit override, so a
+  // persisted "Kurangi efek" toggle (apps/web only -- games never calls
+  // setReduced, so this stays null there and behaves exactly as before).
+  var manualReduced = null;
+  var reduced = osReduced;
   var reducedListeners = [];
 
   function applyReduced() {
-    document.documentElement.style.setProperty("--motion-off", reduced ? "1" : "0");
+    document.documentElement.style.setProperty(
+      "--motion-off",
+      reduced ? "1" : "0",
+    );
     for (var i = 0; i < reducedListeners.length; i++) {
       try {
         reducedListeners[i](reduced);
@@ -52,7 +60,8 @@
 
   if (reducedQuery) {
     var onReducedChange = function (evt) {
-      reduced = !!evt.matches;
+      osReduced = !!evt.matches;
+      reduced = manualReduced === null ? osReduced : manualReduced;
       applyReduced();
     };
     // Safari below 14 only has the deprecated addListener.
@@ -86,7 +95,10 @@
     // the recovery graceful instead of visibly snapping.
     gsap.ticker.lagSmoothing(500, 33);
 
-    gsap.defaults({ ease: window.CustomEase ? "reveal" : "power3.out", duration: 0.52 });
+    gsap.defaults({
+      ease: window.CustomEase ? "reveal" : "power3.out",
+      duration: 0.52,
+    });
   }
 
   // ---------------------------------------------------------------------
@@ -207,7 +219,7 @@
       },
       onComplete: function () {
         el.textContent = format(target);
-      }
+      },
     });
   }
 
@@ -231,8 +243,8 @@
         stagger: opts.stagger === undefined ? 0.045 : opts.stagger,
         delay: opts.delay || 0,
         clearProps: "opacity,transform",
-        overwrite: "auto"
-      }
+        overwrite: "auto",
+      },
     );
   }
 
@@ -310,7 +322,7 @@
         } catch (err) {
           /* already reverted */
         }
-      }
+      },
     });
 
     for (var i = 0; i < words.length; i++) {
@@ -323,16 +335,16 @@
           // Collapsed onto the origin point rather than merely offset from
           // where it belongs, so every piece appears to come from the star.
           x: originX - word.offsetLeft,
-          y: 0
+          y: 0,
         },
         {
           opacity: 1,
           scale: 1,
           x: 0,
           duration: opts.duration || 0.6,
-          ease: "outExpo"
+          ease: "outExpo",
         },
-        i * (opts.stagger === undefined ? 0.035 : opts.stagger)
+        i * (opts.stagger === undefined ? 0.035 : opts.stagger),
       );
     }
 
@@ -376,8 +388,8 @@
           } catch (err) {
             /* already reverted */
           }
-        }
-      }
+        },
+      },
     );
     return split;
   }
@@ -399,6 +411,13 @@
     onReducedChange: function (fn) {
       if (typeof fn === "function") reducedListeners.push(fn);
     },
-    DUR: { fast: 0.16, mid: 0.28, slow: 0.52 }
+    // Explicit override for a persisted "Kurangi efek" toggle, independent
+    // of the OS preference. Pass null to defer back to the OS query.
+    setReduced: function (value) {
+      manualReduced = value === null || value === undefined ? null : !!value;
+      reduced = manualReduced === null ? osReduced : manualReduced;
+      applyReduced();
+    },
+    DUR: { fast: 0.16, mid: 0.28, slow: 0.52 },
   };
 })();

@@ -264,25 +264,20 @@
 }
 
 /* -------------------------------------------------------------------------
-   MOTION SAFETY
+   MOTION SAFETY (games-specific classes)
 
-   The cosmos layers are deliberately NOT hidden here. Their animations
-   collapse to their end state, which leaves a still nebula, a still grid and
-   a single painted frame of starfield (cosmos.js checks the same preference
-   and never subscribes to the ticker). A motionless night sky is still the
-   design; blanking it would leave a flat void where the whole visual
-   language lives.
+   The universal `*, *::before, *::after` kill switch and the cosmos layers'
+   own reduced-motion behaviour moved to packages/kosmik/style/motion.css in
+   Stage 3, since apps/web needs them too and this file stays games-only.
+   This block is what's left: the screens/cards/banners that only exist
+   here. The cosmos layers are deliberately NOT hidden by either block --
+   their animations collapse to their end state, which leaves a still
+   nebula, a still grid and a single painted frame of starfield (cosmos.js
+   checks the same preference and never subscribes to the ticker). A
+   motionless night sky is still the design; blanking it would leave a flat
+   void where the whole visual language lives.
    ------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-
   .is-revealing,
   .stagger-item,
   .match-side,
@@ -290,7 +285,6 @@
   .logo-pulse,
   .screen,
   .panel::after,
-  .cosmos__grain,
   .viewer-count__dot,
   .status--ready::before {
     animation: none !important;

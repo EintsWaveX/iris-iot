@@ -10,24 +10,38 @@
  * a real package (with its own package.json, in the root workspaces list)
  * would mean one consolidated lockfile for the whole repo, which changes
  * how CI's `npm ci` has to run for every workspace member, not just this
- * import -- more than a CSS import needs today. Revisit if/when Stage 3's
- * JS side (packages/kosmik/js/*.core.js) needs real module resolution
- * rather than a `<script>` tag.
+ * import -- more than a CSS import needs. The JS side (cosmos.core.js /
+ * motion.core.js) turned out not to need a workspace either: Vite bundles
+ * a relative-path JS import exactly like a CSS one, so
+ * packages/kosmik/js/cosmos-web.js (imported from components/Cosmos.astro)
+ * is a normal ES module import, not a `<script src>` tag.
  */
 import "../../../../packages/kosmik/style/tokens.css";
 import "../../../../packages/kosmik/style/base.css";
+import "../../../../packages/kosmik/style/cosmos.css";
+import "../../../../packages/kosmik/style/motion.css";
+import { ClientRouter } from "astro:transitions";
+import Cosmos from "../components/Cosmos.astro";
 
 interface Props {
   title: string;
   description?: string;
   lang?: "id" | "en";
+  /**
+   * Which of packages/kosmik/js/cosmos.core.js's scenes this page's sky
+   * runs -- see that file's SCENES object and Stage 3's per-page table.
+   * Read by cosmos-router.js off data-cosmos-scene below, not passed to
+   * Cosmos itself: the persisted canvas doesn't change per page, only
+   * which scene it's showing does.
+   */
+  cosmosScene?: "beranda" | "masuk" | "kerja" | "teknis" | "sesi";
 }
 
-const { title, description = "", lang = "id" } = Astro.props;
+const { title, description = "", lang = "id", cosmosScene = "beranda" } = Astro.props;
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={lang} data-cosmos-scene={cosmosScene}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -35,8 +49,10 @@ const { title, description = "", lang = "id" } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     {description && <meta name="description" content={description} />}
     <title>{title}</title>
+    <ClientRouter />
   </head>
   <body>
+    <Cosmos />
     <slot />
   </body>
 </html>

@@ -2,7 +2,9 @@
    ANIMATION CONTRACT
 
    Every keyframe and helper class below is disabled or collapsed under
-   prefers-reduced-motion by the safety block in responsive.css, so each loop
+   prefers-reduced-motion by the universal safety block further down this
+   file (apps/games/src/style/responsive.css carries its OWN component
+   classes on top of it, since this file is the shared one), so each loop
    is composed to look correct standing still as well as moving.
 
    Easing names here mirror the --ease-* tokens, and motion.js registers
@@ -12,26 +14,57 @@
 
 /* A soft radar ping for anything live: the connection dot, a running game. */
 @keyframes status-ping {
-  0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
-  70% { box-shadow: 0 0 0 7px transparent; opacity: 0.75; }
-  100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 1;
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+    opacity: 0.75;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    opacity: 1;
+  }
 }
 
 /* The specular pass over glass panels. */
 @keyframes panel-sweep {
-  0% { background-position: 180% 0; }
-  55%, 100% { background-position: -80% 0; }
+  0% {
+    background-position: 180% 0;
+  }
+  55%,
+  100% {
+    background-position: -80% 0;
+  }
 }
 
 /* ---- draw reveal ----
    The slot-machine flicker while names are still being shuffled, then a
    staggered lock-in per column. */
 @keyframes slot-flicker {
-  0%, 100% { opacity: 1; transform: translateY(0); filter: none; }
-  20% { opacity: 0.3; transform: translateY(-2px); }
-  40% { opacity: 0.85; filter: blur(0.5px); }
-  60% { opacity: 0.25; transform: translateY(2px); }
-  80% { opacity: 0.9; filter: none; }
+  0%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: none;
+  }
+  20% {
+    opacity: 0.3;
+    transform: translateY(-2px);
+  }
+  40% {
+    opacity: 0.85;
+    filter: blur(0.5px);
+  }
+  60% {
+    opacity: 0.25;
+    transform: translateY(2px);
+  }
+  80% {
+    opacity: 0.9;
+    filter: none;
+  }
 }
 
 .is-revealing {
@@ -60,23 +93,77 @@
 
 /* ---- results ---- */
 @keyframes winner-pop {
-  0% { transform: scale(1); }
-  45% { transform: scale(1.035); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.035);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes gold-bloom {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gold) 0%, transparent); }
-  30% { box-shadow: 0 0 70px 16px color-mix(in srgb, var(--gold) 42%, transparent); }
-  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gold) 0%, transparent); }
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--gold) 0%, transparent);
+  }
+  30% {
+    box-shadow: 0 0 70px 16px color-mix(in srgb, var(--gold) 42%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--gold) 0%, transparent);
+  }
 }
 
 @keyframes logo-pulse-once {
-  0% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
-  40% { transform: scale(1.2); filter: drop-shadow(0 0 14px var(--gold)); }
-  100% { transform: scale(1); filter: drop-shadow(0 0 10px var(--accent-glow)); }
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  40% {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 14px var(--gold));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 10px var(--accent-glow));
+  }
 }
 
 .logo-pulse {
   animation: logo-pulse-once 700ms var(--ease-reveal);
+}
+
+/* -------------------------------------------------------------------------
+   MOTION SAFETY (universal)
+
+   The one CSS-level kill switch for prefers-reduced-motion, shared by both
+   apps. cosmos.js/motion.js already freeze the CANVAS (stars, comets,
+   planets) via Motion.isReduced(), but the background's own CSS animations
+   -- the aurora drift, the nebula drift, the grid pulse -- are plain
+   @keyframes with no JS gate, so without this block they would keep
+   running under prefers-reduced-motion regardless of what the canvas does.
+   The aurora/nebula/grid layers are deliberately NOT in the animation:none
+   list below: the universal rule still collapses their durations to
+   0.001ms, which is a still nebula, a still grid and a still aurora at
+   whatever keyframe they land on rather than a totally blanked layer -- a
+   motionless night sky is still the design; blanking it would leave a flat
+   void where the whole visual language lives. Grain is set to animation:
+   none outright rather than left to the universal collapse, kept explicit
+   from the original games rule rather than assumed redundant.
+   ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .cosmos__grain {
+    animation: none !important;
+  }
 }

@@ -1,0 +1,29 @@
+---
+/**
+ * The persistent background layer: starfield, nebula, aurora and grid,
+ * shared with apps/games via packages/kosmik/. Rendered once from
+ * Base.astro and marked transition:persist, so <ClientRouter /> keeps the
+ * same canvas and JS state alive across every page instead of tearing it
+ * down and restarting it on each navigation -- that persistence is what
+ * turns "moving between pages" into "the sky warps."
+ *
+ * Which scene is showing is NOT a prop here: Base.astro stamps the page's
+ * chosen scene as data-cosmos-scene on <html>, and src/scripts/cosmos-router.js
+ * reads that to call Cosmos.setScene/warpTo. Cosmos itself doesn't need to
+ * know which page it's on.
+ */
+---
+
+<div class="cosmos" aria-hidden="true" transition:persist transition:name="cosmos">
+  <div class="cosmos__nebula"></div>
+  <div class="cosmos__grid"></div>
+  <canvas class="cosmos__stars" id="cosmos-stars"></canvas>
+  <div class="cosmos__grain"></div>
+  <div class="cosmos__vignette"></div>
+  <div class="cosmos__aurora"></div>
+</div>
+
+<script>
+  import "../scripts/cosmos-web.js";
+  import "../scripts/cosmos-router.js";
+</script>

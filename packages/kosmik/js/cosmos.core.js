@@ -64,7 +64,7 @@
     violet: "#a78bfa",
     teal: "#5eead4",
     rose: "#fb7185",
-    void: "#05060b"
+    void: "#05060b",
   };
 
   var sprites = {};
@@ -80,22 +80,85 @@
     games: { stars: 0.9, links: 0.2, comets: 1.0, planets: 0.25, hueShift: 1 },
     game: { stars: 0.8, links: 0.45, comets: 0.3, planets: 1.0, hueShift: 2 },
     board: { stars: 1.1, links: 0.15, comets: 0.7, planets: 0.45, hueShift: 3 },
-    rules: { stars: 0.55, links: 0.35, comets: 0.1, planets: 0.15, hueShift: 4 }
+    rules: {
+      stars: 0.55,
+      links: 0.35,
+      comets: 0.1,
+      planets: 0.15,
+      hueShift: 4,
+    },
+
+    // apps/web's pages. Character per Stage 3's plan: beranda is the front
+    // door and gets to be dramatic; every page after that quiets down, in
+    // proportion to how much reading/typing/watching happens there.
+    beranda: {
+      stars: 1.0,
+      links: 0.35,
+      comets: 0.85,
+      planets: 0.65,
+      hueShift: 0,
+    },
+    masuk: { stars: 0.55, links: 0.1, comets: 0.0, planets: 0.15, hueShift: 1 },
+    kerja: {
+      stars: 0.45,
+      links: 0.12,
+      comets: 0.08,
+      planets: 0.18,
+      hueShift: 2,
+    },
+    teknis: {
+      stars: 0.3,
+      links: 0.05,
+      comets: 0.05,
+      planets: 0.1,
+      hueShift: 3,
+    },
+    sesi: { stars: 0.28, links: 0.05, comets: 0.0, planets: 0.05, hueShift: 4 },
   };
 
   var weights = {
     stars: SCENES.roster.stars,
     links: SCENES.roster.links,
     comets: SCENES.roster.comets,
-    planets: SCENES.roster.planets
+    planets: SCENES.roster.planets,
   };
 
   var currentScene = "roster";
 
   var LAYER_SPECS = [
-    { divisor: 9000, max: 260, rMin: 0.4, rMax: 1.0, drift: 3, parallax: 0.004, alpha: 0.5, glow: false, streak: false },
-    { divisor: 22000, max: 110, rMin: 0.8, rMax: 1.7, drift: 7, parallax: 0.012, alpha: 0.72, glow: false, streak: true },
-    { divisor: 38000, max: 55, rMin: 1.2, rMax: 2.4, drift: 13, parallax: 0.026, alpha: 0.95, glow: true, streak: true }
+    {
+      divisor: 9000,
+      max: 260,
+      rMin: 0.4,
+      rMax: 1.0,
+      drift: 3,
+      parallax: 0.004,
+      alpha: 0.5,
+      glow: false,
+      streak: false,
+    },
+    {
+      divisor: 22000,
+      max: 110,
+      rMin: 0.8,
+      rMax: 1.7,
+      drift: 7,
+      parallax: 0.012,
+      alpha: 0.72,
+      glow: false,
+      streak: true,
+    },
+    {
+      divisor: 38000,
+      max: 55,
+      rMin: 1.2,
+      rMax: 2.4,
+      drift: 13,
+      parallax: 0.026,
+      alpha: 0.95,
+      glow: true,
+      streak: true,
+    },
   ];
 
   var LINK_DISTANCE = 165;
@@ -104,8 +167,50 @@
   var PLANET_SPECS = [
     { x: 0.14, y: 0.74, r: 0.26, tint: "violet", parallax: 0.014, ring: false },
     { x: 0.86, y: 0.2, r: 0.12, tint: "accent", parallax: 0.038, ring: true },
-    { x: 0.66, y: 1.02, r: 0.34, tint: "teal", parallax: 0.008, ring: false }
+    { x: 0.66, y: 1.02, r: 0.34, tint: "teal", parallax: 0.008, ring: false },
   ];
+
+  // ---------------------------------------------------------------------
+  // legibility ceiling
+  //
+  // apps/web puts running text directly over this canvas (portfolio-style
+  // "warp between pages" layout, not a game HUD). Stage 2's own contrast
+  // audit found that a sustained bright patch (a planet's disc) can push
+  // even --text's luminance high enough to drop its contrast against
+  // itself to 3.15:1 -- every token/size pair passing against the flat
+  // --bg says nothing about what a drifting planet does to it. Ported
+  // from portfolio/src/sky.js's u_minLum approach: that solver holds a
+  // LIGHT-theme sky above a luminance FLOOR so dark text stays legible.
+  // Ours is the mirror image for a dark theme -- a luminance CEILING, so
+  // --text (the lightest colour ever set on this canvas) stays >= 4.5:1
+  // no matter how bright the sky under it gets.
+  //
+  // The ceiling is derived from the real WCAG formula, not eyeballed:
+  // contrast = (Ltext + 0.05) / (Lbg + 0.05) >= 4.5
+  //   => Lbg <= (Ltext + 0.05) / 4.5 - 0.05
+  // --text is #eef1f6, whose relative luminance (real piecewise sRGB
+  // decode, see relLum01 below) is ~0.878, giving Lbg_max ~0.156.
+  //
+  // Rather than inverting canvas 2D's gamma-space alpha compositing
+  // analytically (sky.js can do this exactly because it owns a WebGL
+  // shader; this file is deliberately plain Canvas2D sprite-blitting per
+  // its own header), a small feedback controller nudges a darkening
+  // scrim toward keeping the sampled worst-case luminance at or below
+  // the ceiling, checked a few times a second rather than every frame --
+  // reading pixels back from the GPU is the one canvas operation genuinely
+  // worth throttling on a phone.
+  var LUM_CEILING = 0.156;
+  var LUM_SAMPLE_W = 16;
+  var LUM_SAMPLE_H = 9;
+  var LUM_CHECK_MS = 220;
+  var SCRIM_MAX = 0.6;
+  var SCRIM_STEP_UP = 0.12;
+  var SCRIM_STEP_DOWN = 0.05;
+
+  var scrimAlpha = 0;
+  var lumCanvas = null;
+  var lumCtx = null;
+  var lastLumCheck = -Infinity;
 
   // ---------------------------------------------------------------------
   // colour helpers
@@ -122,6 +227,56 @@
   function rgba(hex, alpha) {
     var c = hexToRgb(hex);
     return "rgba(" + c.r + "," + c.g + "," + c.b + "," + alpha + ")";
+  }
+
+  // Real piecewise sRGB decode (not a pow(2.2) shortcut, which over- or
+  // under-estimates by several thousandths and is exactly the kind of
+  // eyeballing this project has repeatedly caught). Input channels 0-255.
+  function relLum01(r, g, b) {
+    function lin(c) {
+      c = c / 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    }
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  }
+
+  function updateLegibilityScrim(now) {
+    if (!canvas || now - lastLumCheck < LUM_CHECK_MS) return;
+    lastLumCheck = now;
+
+    if (!lumCanvas) {
+      lumCanvas = document.createElement("canvas");
+      lumCanvas.width = LUM_SAMPLE_W;
+      lumCanvas.height = LUM_SAMPLE_H;
+      lumCtx = lumCanvas.getContext("2d", { willReadFrequently: true });
+    }
+    if (!lumCtx) return;
+
+    lumCtx.clearRect(0, 0, LUM_SAMPLE_W, LUM_SAMPLE_H);
+    lumCtx.drawImage(canvas, 0, 0, LUM_SAMPLE_W, LUM_SAMPLE_H);
+
+    var data;
+    try {
+      data = lumCtx.getImageData(0, 0, LUM_SAMPLE_W, LUM_SAMPLE_H).data;
+    } catch (e) {
+      // A tainted canvas (e.g. a cross-origin favicon draw upstream, or a
+      // browser that refuses readback under some privacy mode) means the
+      // ceiling can't be measured. Fail toward the safe side: hold whatever
+      // scrim is already set rather than fighting the exception every tick.
+      return;
+    }
+
+    var maxLum = 0;
+    for (var i = 0; i < data.length; i += 4) {
+      var l = relLum01(data[i], data[i + 1], data[i + 2]);
+      if (l > maxLum) maxLum = l;
+    }
+
+    if (maxLum > LUM_CEILING) {
+      scrimAlpha = Math.min(scrimAlpha + SCRIM_STEP_UP, SCRIM_MAX);
+    } else {
+      scrimAlpha = Math.max(scrimAlpha - SCRIM_STEP_DOWN, 0);
+    }
   }
 
   function readPalette() {
@@ -150,7 +305,14 @@
     c.width = size;
     c.height = size;
     var g = c.getContext("2d");
-    var grd = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    var grd = g.createRadialGradient(
+      size / 2,
+      size / 2,
+      0,
+      size / 2,
+      size / 2,
+      size / 2,
+    );
     grd.addColorStop(0, rgba(hex, 0.95));
     grd.addColorStop(0.18, rgba(hex, 0.42));
     grd.addColorStop(0.45, rgba(hex, 0.1));
@@ -167,7 +329,7 @@
       gold: makeGlowSprite(palette.gold),
       violet: makeGlowSprite(palette.violet),
       teal: makeGlowSprite(palette.teal),
-      rose: makeGlowSprite(palette.rose)
+      rose: makeGlowSprite(palette.rose),
     };
   }
 
@@ -200,7 +362,7 @@
       phase: Math.random() * Math.PI * 2,
       twinkle: rand(0.4, 1.5),
       tintKey: tintKey,
-      tint: palette[tintKey] || palette.star
+      tint: palette[tintKey] || palette.star,
     };
   }
 
@@ -244,7 +406,14 @@
 
     // Body: lit from the upper left, falling away to the void on the far
     // limb, which is what makes it read as a sphere and not a disc.
-    var body = g.createRadialGradient(cx - r * 0.4, cy - r * 0.4, r * 0.05, cx, cy, r);
+    var body = g.createRadialGradient(
+      cx - r * 0.4,
+      cy - r * 0.4,
+      r * 0.05,
+      cx,
+      cy,
+      r,
+    );
     body.addColorStop(0, rgba(tint, 0.34));
     body.addColorStop(0.55, rgba(tint, 0.12));
     body.addColorStop(1, rgba(palette.void, 0.62));
@@ -290,7 +459,7 @@
         // A very slow independent drift so the bodies are not pinned to the
         // viewport like wallpaper.
         vx: rand(-1.6, -0.4),
-        vy: rand(-0.3, 0.3)
+        vy: rand(-0.3, 0.3),
       };
     });
   }
@@ -314,7 +483,7 @@
       size: rand(1.6, 3.1),
       len: rand(90, 240),
       tintKey: tintKey,
-      tint: palette[tintKey] || palette.star
+      tint: palette[tintKey] || palette.star,
     });
   }
 
@@ -484,7 +653,7 @@
     var flicker = 0.62 + 0.38 * Math.sin(t * star.twinkle + star.phase);
     var alpha = Math.min(
       1,
-      spec.alpha * flicker * weights.stars * (1 + converge * 0.6 + hyper * 0.5)
+      spec.alpha * flicker * weights.stars * (1 + converge * 0.6 + hyper * 0.5),
     );
     if (alpha <= 0.01) return;
 
@@ -579,7 +748,10 @@
               if (distSq > LINK_DISTANCE * LINK_DISTANCE) continue;
               var dist = Math.sqrt(distSq);
               var alpha =
-                (1 - dist / LINK_DISTANCE) * LINK_ALPHA * linkAlpha * (1 + converge * 3);
+                (1 - dist / LINK_DISTANCE) *
+                LINK_ALPHA *
+                linkAlpha *
+                (1 + converge * 3);
               ctx.globalAlpha = Math.min(alpha, 0.85);
               ctx.beginPath();
               ctx.moveTo(positions[a].x, positions[a].y);
@@ -597,7 +769,14 @@
       }
 
       for (var i = 0; i < stars.length; i++) {
-        paintStar(stars[i], drawnPosition(stars[i], spec, cx, cy), spec, t, cx, cy);
+        paintStar(
+          stars[i],
+          drawnPosition(stars[i], spec, cx, cy),
+          spec,
+          t,
+          cx,
+          cy,
+        );
       }
     }
 
@@ -605,6 +784,14 @@
 
     ctx.globalCompositeOperation = "source-over";
     ctx.globalAlpha = 1;
+
+    updateLegibilityScrim(window.performance ? performance.now() : Date.now());
+    if (scrimAlpha > 0.001) {
+      ctx.fillStyle = "rgb(5, 6, 11)";
+      ctx.globalAlpha = scrimAlpha;
+      ctx.fillRect(0, 0, width, height);
+      ctx.globalAlpha = 1;
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -631,7 +818,7 @@
       planets: target.planets,
       duration: duration === undefined ? 1.1 : duration,
       ease: "inOutSoft",
-      overwrite: true
+      overwrite: true,
     });
   }
 
@@ -673,7 +860,7 @@
       .timeline({
         onComplete: function () {
           document.documentElement.removeAttribute("data-warp");
-        }
+        },
       })
       .to(state, {
         v: 1,
@@ -681,7 +868,7 @@
         ease: "power2.in",
         onUpdate: function () {
           hyper = state.v;
-        }
+        },
       })
       .add(function () {
         // Swapped under cover of the streaks.
@@ -694,7 +881,7 @@
         ease: "outExpo",
         onUpdate: function () {
           hyper = state.v;
-        }
+        },
       });
   }
 
@@ -719,7 +906,7 @@
         ease: "outExpo",
         onUpdate: function () {
           converge = state.v;
-        }
+        },
       })
       .to(
         state,
@@ -729,9 +916,9 @@
           ease: "inOutSoft",
           onUpdate: function () {
             converge = state.v;
-          }
+          },
         },
-        opts.hold === undefined ? "+=0.5" : "+=" + opts.hold
+        opts.hold === undefined ? "+=0.5" : "+=" + opts.hold,
       );
   }
 
@@ -768,18 +955,34 @@
           pointerX = evt.clientX;
           pointerY = evt.clientY;
         },
-        { passive: true }
+        { passive: true },
       );
+    }
+
+    if (window.Motion) {
+      // Reacts to a reduced-motion change in either direction: relaxing the
+      // preference mid-session brings the field to life, and tightening it
+      // (the OS setting, or apps/web's persisted "Kurangi efek" toggle,
+      // which drives this same signal through Motion.setReduced) freezes it
+      // on the next frame rather than only ever freezing at first paint.
+      window.Motion.onReducedChange(function (isReduced) {
+        if (isReduced) {
+          if (started) {
+            started = false;
+            window.Motion.offTick(step);
+            draw(0);
+          }
+          return;
+        }
+        if (!started) {
+          started = true;
+          window.Motion.onTick(step);
+        }
+      });
     }
 
     if (window.Motion && window.Motion.isReduced()) {
       draw(0);
-      // If the viewer relaxes the preference mid-session, come to life.
-      window.Motion.onReducedChange(function (isReduced) {
-        if (isReduced || started) return;
-        started = true;
-        window.Motion.onTick(step);
-      });
       return;
     }
 
@@ -793,7 +996,7 @@
     converge: convergeIn,
     redraw: function () {
       draw(0);
-    }
+    },
   };
 
   if (document.readyState === "loading") {

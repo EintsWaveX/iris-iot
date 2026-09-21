@@ -24,7 +24,12 @@ html {
 body {
   /* The true floor. A cosmos/starfield layer, if one is added later, paints
      over this and only shows through where it is transparent. */
-  background: linear-gradient(180deg, #070911 0%, var(--void) 55%, #04050a 100%);
+  background: linear-gradient(
+    180deg,
+    #070911 0%,
+    var(--void) 55%,
+    #04050a 100%
+  );
   color: var(--text);
   font-family: var(--font-body);
   font-size: var(--fs-body);

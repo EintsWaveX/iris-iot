@@ -88,7 +88,8 @@
   --radius-pill: 999px;
 
   --shadow-color: 0 0 0;
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 48px rgba(0, 0, 0, 0.55);
+  --shadow-panel:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 48px rgba(0, 0, 0, 0.55);
   --shadow-lift: 0 24px 70px rgba(0, 0, 0, 0.6);
 
   /* The uniform lift: every interactive surface moves by exactly one of
@@ -209,7 +210,8 @@
      ----------------------------------------------------------------------- */
   --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   /* Was 0.68rem (~10.9px): too small for uppercase mono at wide tracking,
      and the exact size the legibility complaint landed on. Now equal to
