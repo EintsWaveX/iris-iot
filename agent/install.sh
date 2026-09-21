@@ -17,7 +17,7 @@
 
 set -eu
 
-REPO_ROOT="/home/iris/IRIS-ASO"
+REPO_ROOT="/home/orangepi/IRIS-ASO"
 while [ $# -gt 0 ]; do
   case "$1" in
     --repo-root) REPO_ROOT="$2"; shift 2 ;;

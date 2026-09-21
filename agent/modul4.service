@@ -1,0 +1,13 @@
+[Unit]
+Description=IRIS IoT practicum - Module 4 LoRa hunt scoreboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/orangepi/IRIS-ASO
+ExecStart=/home/orangepi/venv-iris/bin/python /home/orangepi/IRIS-ASO/modul4/server.py --arena 300
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

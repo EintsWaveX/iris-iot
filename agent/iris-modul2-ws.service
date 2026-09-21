@@ -1,0 +1,13 @@
+[Unit]
+Description=IRIS IoT practicum - Module 2 WebSocket server (DHT22 ingest)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/orangepi/IRIS-ASO
+ExecStart=/home/orangepi/venv-iris/bin/python /home/orangepi/IRIS-ASO/kunci_jawaban/id/modul2_websocket_server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

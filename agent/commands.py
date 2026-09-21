@@ -24,7 +24,7 @@ LAYANAN_UNIT = {
     "modul4": "modul4.service",
 }
 
-REPO_ROOT = "/home/iris/IRIS-ASO"  # overridden by AGENT_REPO_ROOT in agent.py's config
+REPO_ROOT = "/home/orangepi/IRIS-ASO"  # overridden by AGENT_REPO_ROOT in agent.py's config
 
 
 def _systemctl(verb: str, unit: str) -> list[str]:
