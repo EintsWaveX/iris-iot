@@ -1,0 +1,21 @@
+/* =========================================================================
+   FONT OVERRIDE — deliberate, and temporary.
+
+   packages/kosmik/style/tokens.css moved --font-body/--font-mono to Inter
+   and JetBrains Mono as part of a legibility fix (see that file's own
+   header). The fix's sizing, contrast and tracking changes apply to this
+   app too, same as apps/web -- only the two font-family pointers are
+   re-declared here, back to Instrument Serif's original companions.
+
+   This is the user's own call, not a technical constraint: they want to
+   see the new stack live on apps/web before deciding whether it replaces
+   IBM Plex here as well. Loaded AFTER tokens.css in build.py's STYLE_FILES,
+   so this @import and these two declarations are the only things that win.
+   ========================================================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+:root {
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}

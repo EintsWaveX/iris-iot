@@ -1,0 +1,128 @@
+/* =========================================================================
+   APP SHELL — the single-page cross-fade machinery.
+
+   Extracted from base.css when the shared editorial primitives (reset, type
+   utilities, .eyebrow, .measure/.rule/.section) moved into
+   packages/kosmik/style/base.css. This half stayed here on purpose: it is
+   the #app / .screens / .screen scaffolding for a JS-driven single-page app
+   that swaps screens without navigation, which is specific to this site's
+   architecture. apps/web is a set of real Astro pages navigated by real
+   URLs and has no equivalent need for it (see apps/web/src/styles/base.css's
+   own note on why it never had this section either).
+   ========================================================================= */
+
+#app {
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* Establishes the stacking context the cosmos layer sits at the bottom of,
+     so no other component needs a z-index to clear it. */
+  position: relative;
+  isolation: isolate;
+}
+
+#confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.screens {
+  flex: 1;
+  display: grid;
+  grid-template: 1fr / 1fr;
+  align-items: start;
+  padding: var(--space-8) var(--gutter) calc(var(--nav-size) + var(--space-9));
+  max-width: calc(var(--measure) + var(--gutter) * 2);
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* All screens share one grid cell and cross-fade. The visibility transition
+   is delayed out and instant in so a hidden screen can never intercept a tap
+   while it is still fading; any rewrite of these two rules has to keep that
+   `visibility 0s linear <duration>` pairing intact. */
+.screen {
+  grid-area: 1 / 1;
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  /* Only the cross-fade lives here. The movement belongs to the incoming
+     screen's own blocks, which Motion.enter staggers in -- sliding and
+     blurring the whole panel as well just doubles the gesture and makes the
+     stagger read as a stutter on top of it. Under reduced motion the
+     stagger no-ops and this plain fade is all that is left, which is the
+     right outcome. */
+  transition:
+    opacity var(--dur-mid) var(--ease-out-expo),
+    visibility 0s linear var(--dur-mid);
+}
+
+/* Hiding a screen with visibility alone still leaves it in flow sizing the
+   grid, so the document was always as tall as the TALLEST screen -- Aturan, at
+   ~3300px -- whatever you were actually looking at. On Klasemen that meant
+   415px of content followed by ~2900px of empty sky to scroll through, which
+   reads on a phone as the app having broken.
+
+   Taking the inactive screens out of flow with `position: absolute` does fix
+   the grid sizing, but they still contribute to the document's scrollable
+   overflow, so the page kept scrolling. The screens are instead removed from
+   layout entirely by app.js, one fade-duration after they go inactive -- late
+   enough that the cross-fade below still plays in full. Anything that changes
+   FADE_OUT_MS there has to stay >= --dur-mid. */
+
+.screen.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transition:
+    opacity var(--dur-slow) var(--ease-out-expo),
+    visibility 0s linear 0s;
+}
+
+/* -------------------------------------------------------------------------
+   SCREEN HEADS — eyebrow, then a large serif title. The subtitle carries the
+   eyebrow role in the existing markup, so it is styled as one and ordered
+   above the title with flex `order` rather than by moving it in the DOM.
+   ------------------------------------------------------------------------- */
+.screen__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.screen__head > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.screen__title {
+  /* Explicit opt-in to the serif: this is an <h2>, and base.css's default
+     for h1-h4 is now the small-size sans (see its own comment). --fs-display-lg
+     clears the --fs-display-md floor, so the serif is correct here -- but
+     it must be resized back to sans wherever a breakpoint drops this below
+     that floor (see responsive.css's operator-mode and 480px rules). */
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-display-lg);
+  order: 2;
+}
+
+.screen__subtitle {
+  order: 1;
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}

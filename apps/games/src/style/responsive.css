@@ -79,7 +79,13 @@
     font-size: var(--fs-body);
   }
 
+  /* Even the champion's name drops below --fs-display-md at this width, so
+     the serif screens.css's desktop rule opted it into has to be handed
+     back to the sans here too -- font-family does not reset itself just
+     because font-size did. */
   .podium__place--1 .podium__name {
+    font-family: var(--font-body);
+    font-weight: 400;
     font-size: var(--fs-display-sm);
   }
 
@@ -139,8 +145,12 @@
     display: none;
   }
 
+  /* Drops below --fs-display-md here, so the serif app-shell.css's base
+     rule opts .screen__title into has to be handed back for this mode too. */
   #app[data-mode="operator"] .screen__title,
   #app[data-mode="offline"] .screen__title {
+    font-family: var(--font-body);
+    font-weight: 600;
     font-size: var(--fs-display-sm);
   }
 

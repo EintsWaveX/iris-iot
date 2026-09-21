@@ -49,7 +49,9 @@
 }
 
 .nav__brand-label {
-  font-family: var(--font-display);
+  /* Was the serif at 1.15rem -- below even --fs-display-sm's floor. */
+  font-family: var(--font-body);
+  font-weight: 600;
   font-size: 1.15rem;
   letter-spacing: 0.01em;
   color: var(--text);
@@ -403,7 +405,10 @@
 }
 
 .empty-state__text {
-  font-family: var(--font-display);
+  /* Was the italic serif at --fs-display-sm, below the floor where it
+     holds up -- keeping the italic voice, since that is independent of
+     which face carries it. */
+  font-family: var(--font-body);
   font-style: italic;
   font-size: var(--fs-display-sm);
   color: var(--text-muted);

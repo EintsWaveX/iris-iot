@@ -674,7 +674,8 @@
 .match-side--4 { --gc: var(--group-4); }
 
 .match-side__group {
-  font-family: var(--font-display);
+  /* Was the serif at --fs-body-lg -- well below --fs-display-sm even. */
+  font-family: var(--font-body);
   font-size: var(--fs-body-lg);
   color: var(--gc);
 }
@@ -777,7 +778,11 @@
 }
 
 .podium__name {
-  font-family: var(--font-display);
+  /* Was the serif at --fs-display-sm, below the floor where its strokes
+     hold up. .podium__place--1 .podium__name below opts back in, since
+     the champion's name is bumped to --fs-display-md; the responsive.css
+     breakpoint that shrinks it back below md resets to this rule's sans. */
+  font-family: var(--font-body);
   font-size: var(--fs-display-sm);
   line-height: 1.1;
   color: var(--text);
@@ -801,6 +806,11 @@
 }
 
 .podium__place--1 .podium__name {
+  /* The champion's name alone clears the --fs-display-md floor, so it
+     opts back into the serif that .podium__name's own rule just gave up.
+     Reset to sans again below 620px, where it drops back under md. */
+  font-family: var(--font-display);
+  font-weight: 400;
   font-size: var(--fs-display-md);
 }
 
@@ -866,7 +876,8 @@
 }
 
 .leaderboard-row__points {
-  font-family: var(--font-display);
+  /* Was the serif at --fs-display-sm, below the floor. */
+  font-family: var(--font-body);
   font-size: var(--fs-display-sm);
   line-height: 1;
   color: var(--text);
@@ -887,12 +898,15 @@
    ATURAN — the rules screen
 
    The one screen that is genuinely long-form reading, so it leans hardest
-   on the editorial primitives: a serif lead, hairline-separated sections,
-   and a definition list whose terms sit out in the margin on a wide
-   viewport and stack above their descriptions on a phone.
+   on the editorial primitives: a lead paragraph, hairline-separated
+   sections, and a definition list whose terms sit out in the margin on a
+   wide viewport and stack above their descriptions on a phone. The lead
+   was set in the display serif; being the screen's own longest run of
+   continuous reading is exactly the case the serif-at-small-sizes fix
+   targets, so it moved to the sans along with everything else at this size.
    ========================================================================= */
 .rules-lead {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: var(--fs-display-sm);
   line-height: 1.35;
   color: var(--text);
@@ -1565,6 +1579,10 @@
 }
 
 .champion__group {
+  /* Explicit opt-in to the serif (see base.css h1-h4's own comment): this
+     is an <h2>, well clear of the --fs-display-md floor at xl. */
+  font-family: var(--font-display);
+  font-weight: 400;
   font-size: var(--fs-display-xl);
   line-height: 0.92;
   color: var(--gold-bright);

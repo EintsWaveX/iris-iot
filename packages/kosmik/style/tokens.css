@@ -1,0 +1,301 @@
+/* =========================================================================
+   IRIS IOT — shared design tokens (packages/kosmik)
+   "Cosmic editorial": an editorial/quiet-luxury layout language set against
+   a night sky. DARK ONLY — there is no light counterpart, by decision, so
+   this is the single source of truth for every value. No @media
+   (prefers-color-scheme) block and no [data-theme] variants; anything that
+   needs to vary does so on a semantic token defined right here.
+
+   Brand continuity: --accent #40b0ff is lifted from template/template.typ so
+   the printed Typst practicum journals and both apps here share one
+   identity.
+
+   Shared between apps/web and apps/games. A friend read the original type
+   stack as good-looking but hard to read, and measurement backed that up:
+   --text-faint was 4.69:1 against --bg (scrapes AA, fails AAA), eyebrow
+   labels were ~10.9px uppercase mono at 0.18em tracking, and Instrument
+   Serif -- which ships weight 400 plus italic only, so it can never be
+   thickened to survive a dark ground -- was used at every size including
+   the smallest. apps/games keeps Instrument Serif's companions (IBM Plex
+   Sans/Mono) via style/tokens-override.css, re-declaring only the two
+   --font-* pointers below; every other change here, including the display
+   face's size floor, reaches both apps.
+   ========================================================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+:root {
+  color-scheme: dark;
+
+  /* -----------------------------------------------------------------------
+     GROUND — deep space, layered so the background canvas has somewhere to
+     sit. --void is the true floor (behind the starfield); --bg is the page
+     ground the content reads against.
+     ----------------------------------------------------------------------- */
+  --void: #05060b;
+  --bg: #0a0c14;
+  /* Was #11141f: 1.06:1 against --bg, which is not a perceptible step at
+     all -- a card filled with it reads as a tinted region of the page
+     rather than an object sitting on it. Lifted to land near 1.15:1,
+     matching the actual magnitude the portfolio's own bg/panel step uses
+     (1.24:1) at these near-black luminances, where contrast ratio
+     compresses hard and a "real" step is inherently a small number. */
+  --bg-elevated: #181c2c;
+  --bg-sunken: #04050a;
+
+  /* Glass is now rare — reserved for surfaces that must float above the
+     cosmos (nav, champion takeover, stage lower-third) rather than being the
+     default treatment for every block. */
+  --panel-bg: rgba(24, 28, 44, 0.55);
+  --panel-bg-solid: #181c2c;
+  --scrim: rgba(3, 4, 8, 0.82);
+
+  /* A subtle backdrop for a text block that sits directly over the cosmos
+     rather than on a plain --bg-elevated card, so its contrast is computed
+     against a known floor instead of whatever the starfield happens to be
+     doing underneath it at that moment. Solving the general case -- text
+     staying legible over a moving background regardless of this scrim --
+     is packages/kosmik/js/cosmos.core.js's job (a luminance ceiling on the
+     sky itself, the way portfolio/src/sky.js already does it); this token
+     is the local backstop for the one page (apps/games) where that is not
+     wired in yet. */
+  --scrim-text: rgba(5, 6, 11, 0.55);
+
+  /* -----------------------------------------------------------------------
+     STRUCTURE — hairlines carry the layout, not boxes. Kept translucent so
+     the starfield shows through every rule.
+     ----------------------------------------------------------------------- */
+  --hairline-faint: rgba(255, 255, 255, 0.05);
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.18);
+
+  /* Aliases kept so components.css / screens.css keep rendering while they
+     are rewritten screen by screen. Retire these once nothing references
+     them. */
+  --border: var(--hairline);
+  --border-strong: var(--hairline-strong);
+
+  /* Editorial means less rounding than the old scoreboard look. Radius now
+     also encodes elevation rather than just decorating: sm/md for the
+     controls and small cards it always covered, lg unchanged for a
+     standard card, and a new xl step reserved for hero-class surfaces
+     (modals, the flagship-style cards Stage 4 adds) that sit furthest off
+     the page. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --shadow-color: 0 0 0;
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 48px rgba(0, 0, 0, 0.55);
+  --shadow-lift: 0 24px 70px rgba(0, 0, 0, 0.6);
+
+  /* The uniform lift: every interactive surface moves by exactly one of
+     these two amounts on hover, so a button, a card and anything else that
+     lifts all agree on how far. */
+  --lift-control: translateY(-2px);
+  --lift-card: translateY(-4px);
+
+  /* -----------------------------------------------------------------------
+     TEXT
+     ----------------------------------------------------------------------- */
+  --text: #eef1f6;
+  --text-muted: #9aa3b2;
+  /* Was #737d8c: 4.69:1 against --bg, which scrapes AA and fails AAA -- and
+     this is the color eyebrow labels used at ~11px with 0.18em tracking,
+     the specific pairing a legibility complaint pointed at. Lifted to
+     #959da7 (7.12:1) together with the size and tracking fixes below. */
+  --text-faint: #959da7;
+
+  /* -----------------------------------------------------------------------
+     BRAND + SIGNAL
+     ----------------------------------------------------------------------- */
+  --accent: #40b0ff;
+  --accent-bright: #8ed0ff;
+  --accent-soft: rgba(64, 176, 255, 0.14);
+  --accent-ink: #04121d; /* text ON solid --accent */
+  --accent-glow: rgba(64, 176, 255, 0.42);
+  --focus-ring: #8ed0ff;
+
+  /* One gradient, swept by the same @keyframes aurora-sweep in motion.css,
+     for both gradient text (background-clip) and the 1px mask-composite
+     border ring Stage 4 adds to buttons/cards/badges. IRIS's own hues
+     rather than a full rainbow, so the sweep still reads as this site and
+     not as a borrowed effect. */
+  --sweep: linear-gradient(
+    100deg,
+    var(--accent),
+    var(--neb-violet),
+    var(--neb-teal),
+    var(--accent-bright),
+    var(--accent)
+  );
+
+  /* Champion gold — used ONLY for a crowned champion, nowhere else.
+     --gold-soft is a translucent wash, not a solid fill: the old solid
+     #3a2c0f with #2b1c02 text on top sat at about 1.2:1 and was invisible.
+     Text on --gold-soft uses --gold; --gold-ink is only for text on the
+     solid --gold fill. */
+  --gold: #e8b64d;
+  --gold-bright: #f7d488;
+  --gold-soft: rgba(232, 182, 77, 0.13);
+  --gold-ink: #1a1200;
+  --gold-glow: rgba(232, 182, 77, 0.45);
+
+  --silver: #c3ccd8;
+  --bronze: #cf9468;
+
+  /* Semantic states. The palette had none of these, so a failed validation
+     rendered in the same faint grey as placeholder copy. */
+  --danger: #ff7a7a;
+  --danger-soft: rgba(255, 122, 122, 0.12);
+  --warn: #f5b544;
+  --warn-soft: rgba(245, 181, 68, 0.12);
+  --ok: #5eead4;
+  --ok-soft: rgba(94, 234, 212, 0.12);
+
+  /* -----------------------------------------------------------------------
+     GROUP IDENTITY — one hue per hunting group. Seven hues spread around the
+     wheel, all deliberately clear of the --accent blue and the --gold yellow
+     so a group never reads as "the highlighted thing" or "the champion".
+     The first four are carried over from games/ unchanged so the two sites
+     stay one family; 5 through 7 extend the same spacing.
+     ----------------------------------------------------------------------- */
+  --group-1: #5eead4; /* mint    — Vela    */
+  --group-2: #a78bfa; /* violet  — Lyra    */
+  --group-3: #fb7185; /* rose    — Cygnus  */
+  --group-4: #f59e6a; /* amber   — Orion   */
+  --group-5: #7dd3fc; /* ice     — Carina  */
+  --group-6: #c4b5fd; /* lilac   — Pavo    */
+  --group-7: #86efac; /* jade    — Draco   */
+
+  /* -----------------------------------------------------------------------
+     HEAT — the hunt's own scale, from cold (far) to burning (on top of it).
+     These are a sequential ramp and must never be read as group identity, so
+     a card shows its group hue on the rail and its heat on the bar.
+     ----------------------------------------------------------------------- */
+  --heat-cold: #3b82f6;
+  --heat-cool: #22d3ee;
+  --heat-warm: #facc15;
+  --heat-hot: #fb923c;
+  --heat-burning: #ef4444;
+  --heat-lost: rgba(255, 255, 255, 0.22);
+
+  /* -----------------------------------------------------------------------
+     NEBULA — background layers only. Never put text on these.
+     ----------------------------------------------------------------------- */
+  --neb-indigo: #1b1f4a;
+  --neb-violet: #3a2a6b;
+  --neb-teal: #0f3f4a;
+  --neb-plum: #2a1338;
+
+  /* -----------------------------------------------------------------------
+     TYPE — three voices.
+     display : Instrument Serif, for titles at --fs-display-md and above
+               ONLY. SHIPS ONE WEIGHT (400) PLUS ITALIC — never set
+               font-weight above 400 on it or the browser synthesises a
+               bold and it looks broken. Hierarchy above that floor comes
+               from size, italic and tracking, never weight. Below the
+               floor its hairline strokes break down and irradiate on a
+               dark ground, so smaller titles use --font-body instead --
+               base.css's default h1-h4 rule IS that smaller size, and
+               every selector that needs the serif opts in explicitly.
+     body    : prose, UI, and now also the eyebrow label role (was mono;
+               moved here as part of the same legibility pass).
+     mono    : kode, points, ranks, counts, VS.
+     apps/games repoints body/mono to IBM Plex via
+     style/tokens-override.css; apps/web uses Inter/JetBrains Mono below.
+     ----------------------------------------------------------------------- */
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* Was 0.68rem (~10.9px): too small for uppercase mono at wide tracking,
+     and the exact size the legibility complaint landed on. Now equal to
+     --fs-small by coincidence of the fix, not because the two tiers are
+     meant to always match -- kept as separate tokens since they name
+     different roles (the smallest label size vs. a secondary text size)
+     that may diverge again later. */
+  --fs-micro: 0.8rem;
+  --fs-small: 0.8rem;
+  /* Was 0.95rem (~15.2px): under the comfortable 16px phone-reading floor. */
+  --fs-body: 1rem;
+  --fs-body-lg: 1.05rem;
+  /* The serif needs more size than the old condensed face to carry the same
+     presence, so every display step is larger than its predecessor. */
+  --fs-display-sm: clamp(1.35rem, 1.2vw + 1rem, 1.75rem);
+  --fs-display-md: clamp(1.9rem, 2.6vw + 1rem, 3rem);
+  --fs-display-lg: clamp(2.8rem, 5vw + 1rem, 5rem);
+  --fs-display-xl: clamp(4rem, 9vw + 1rem, 9rem);
+
+  /* Was 0.18em, set when the eyebrow was mono at --fs-micro's old 10.9px;
+     paired with a bigger --fs-micro and the move to --font-body, 0.18em
+     started reading as spaced-out rather than crisp. */
+  --tracking-eyebrow: 0.12em;
+  --tracking-wide: 0.08em;
+
+  /* -----------------------------------------------------------------------
+     SPACE — 4px base. Editorial layouts want the top of the scale to be
+     genuinely generous, so the large steps grew.
+     ----------------------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+  --space-9: 64px;
+  --space-10: 96px;
+  --space-11: 144px;
+
+  /* The editorial measure. Replaces the old near-full-bleed 1400/1600px. */
+  --measure: 1100px;
+  --gutter: clamp(var(--space-5), 5vw, var(--space-9));
+
+  --nav-size: 68px;
+
+  /* -----------------------------------------------------------------------
+     MOTION — shared easing vocabulary. motion.js registers matching
+     CustomEase curves under the same names for GSAP timelines, so CSS and JS
+     choreography stay in step.
+     ----------------------------------------------------------------------- */
+  --ease-reveal: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --dur-fast: 160ms;
+  --dur-mid: 280ms;
+  --dur-slow: 520ms;
+
+  /* Set to 1 by motion.js when the viewer has asked for reduced motion, so a
+     rule can scale a duration to zero instead of being duplicated inside a
+     media query. */
+  --motion-off: 0;
+
+  /* -----------------------------------------------------------------------
+     TAP TARGET FLOOR — 0 by default (a mouse pointer needs no floor), raised
+     to 44px under either signal that a finger might be doing the tapping.
+     Both conditions are checked because either alone is wrong on its own:
+     `pointer: coarse` alone misses a touch laptop at desktop width, and
+     `max-width` alone misses a tablet held in two hands at desktop width.
+     Every interactive element sizes against this rather than a fixed 44px,
+     so the floor lives in exactly one place. Ported from
+     modul4/src/style/mobile.css, where narrowing this to one source fixed a
+     class of sub-44px controls the previous build had shipped with.
+     ----------------------------------------------------------------------- */
+  --tap: 0px;
+}
+
+@media (max-width: 880px) {
+  :root {
+    --tap: 44px;
+  }
+}
+@media (pointer: coarse) {
+  :root {
+    --tap: 44px;
+  }
+}

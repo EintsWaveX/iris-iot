@@ -15,6 +15,7 @@ All paths are resolved relative to this script's own location, not the
 current working directory, so it works from either place.
 """
 
+import re
 import sys
 from pathlib import Path
 
@@ -63,18 +64,37 @@ STYLE_DIR = SRC_DIR / "style"
 VENDOR_DIR = SRC_DIR / "vendor"
 LOGO_PATH = SCRIPT_DIR / "logo.b64.txt"
 
+# The shared design system, split out to Documents/WebApps/iris-iot's
+# packages/kosmik/ so apps/web can use the same tokens, base primitives,
+# cosmos background and motion layer without copy-pasting them. Vite
+# resolves this for apps/web via a workspace dependency; this plain build
+# script resolves it as a relative filesystem path instead, since it has no
+# package resolution of its own.
+KOSMIK_DIR = SCRIPT_DIR.parent.parent / "packages" / "kosmik"
+KOSMIK_STYLE_DIR = KOSMIK_DIR / "style"
+KOSMIK_JS_DIR = KOSMIK_DIR / "js"
+
 # Concatenated in this order into a single <style>. Order IS the cascade, so
-# tokens must come first and the responsive/override layer last. cosmos.css
-# sits between base and components because the background layers have to lose
-# to every component that paints on top of them.
+# tokens must come first and the responsive/override layer last. Each entry
+# is (base_dir, filename) rather than a bare filename, since sources now
+# come from two places -- packages/kosmik/style/ for the shared design
+# language, src/style/ for what stays local to this app -- while the
+# original cascade order is preserved exactly:
+#   tokens (kosmik) -> tokens-override (local: re-pins body/mono to IBM
+#     Plex, see that file's own header) -> base (kosmik) -> app-shell
+#     (local: the #app/.screens SPA-shell rules extracted from base.css
+#     when the rest of it moved to kosmik) -> cosmos (kosmik) -> components,
+#     screens (local) -> motion (kosmik) -> responsive (local)
 STYLE_FILES = [
-    "tokens.css",
-    "base.css",
-    "cosmos.css",
-    "components.css",
-    "screens.css",
-    "motion.css",
-    "responsive.css",
+    (KOSMIK_STYLE_DIR, "tokens.css"),
+    (STYLE_DIR, "tokens-override.css"),
+    (KOSMIK_STYLE_DIR, "base.css"),
+    (STYLE_DIR, "app-shell.css"),
+    (KOSMIK_STYLE_DIR, "cosmos.css"),
+    (STYLE_DIR, "components.css"),
+    (STYLE_DIR, "screens.css"),
+    (KOSMIK_STYLE_DIR, "motion.css"),
+    (STYLE_DIR, "responsive.css"),
 ]
 
 # Third-party libraries, vendored as pre-built browser bundles so the page
@@ -92,20 +112,26 @@ VENDOR_FILES = [
 
 # Order matters: data/engine have no dependencies, motion wraps gsap, cosmos
 # needs motion's shared ticker, the ui-* modules need store, and app.js wires
-# everything together last.
+# everything together last. motion.core.js/cosmos.core.js now live in
+# packages/kosmik/js/ (see KOSMIK_JS_DIR above); both stay plain scripts
+# assigning window.Motion/window.Cosmos rather than becoming real ES
+# modules, specifically so they still concatenate safely into one inlined
+# <script> here -- a bare `export` in the middle of that bundle would be a
+# syntax error. apps/web imports the same two files through one-line ESM
+# wrappers that Vite bundles instead.
 SCRIPT_FILES = [
-    "data.js",
-    "engine.js",
-    "motion.js",
-    "cosmos.js",
-    "store.js",
-    "ui-roster.js",
-    "ui-game.js",
-    "ui-board.js",
-    "ui-rules.js",
-    "ui-champion.js",
-    "ui-stage.js",
-    "app.js",
+    (SRC_DIR, "data.js"),
+    (SRC_DIR, "engine.js"),
+    (KOSMIK_JS_DIR, "motion.core.js"),
+    (KOSMIK_JS_DIR, "cosmos.core.js"),
+    (SRC_DIR, "store.js"),
+    (SRC_DIR, "ui-roster.js"),
+    (SRC_DIR, "ui-game.js"),
+    (SRC_DIR, "ui-board.js"),
+    (SRC_DIR, "ui-rules.js"),
+    (SRC_DIR, "ui-champion.js"),
+    (SRC_DIR, "ui-stage.js"),
+    (SRC_DIR, "app.js"),
 ]
 
 PLACEHOLDER_STYLE = "<!--STYLE-->"
@@ -194,8 +220,6 @@ def wrap_standalone(inner):
     <title> found there, so both are lifted into a proper <head> rather
     than dumped into the body wholesale.
     """
-    import re
-
     rest = inner
     title_match = re.match(r"\s*(<title>.*?</title>)\s*", rest, re.DOTALL | re.IGNORECASE)
     if not title_match:
@@ -229,13 +253,31 @@ def main():
     sizes = [("src/shell.html", len(shell.encode("utf-8")))]
 
     # ---- style --------------------------------------------------------
+    # @import must be the first thing in a stylesheet or the browser drops
+    # it silently -- no error, no warning a build script would ever see,
+    # just a font that quietly never loads. That is exactly what happened
+    # here: tokens-override.css's own @import (for IBM Plex, once
+    # tokens.css's @import moved to Inter) landed after tokens.css's rules
+    # in the concatenated output, and apps/games rendered in a system
+    # sans-serif fallback instead of IBM Plex for a full build cycle before
+    # a real browser check caught it. Every @import line is hoisted to the
+    # very top of the combined stylesheet, in source order, regardless of
+    # which file it came from, so a style file can carry its own @import
+    # without knowing or caring where the concatenation puts it.
+    import_re = re.compile(r'^\s*@import\b.*;\s*$', re.MULTILINE)
+
     style_parts = []
-    for filename in STYLE_FILES:
-        path = STYLE_DIR / filename
-        content = read_required(path, "src/style/" + filename)
-        sizes.append(("src/style/" + filename, len(content.encode("utf-8"))))
+    hoisted_imports = []
+    for base_dir, filename in STYLE_FILES:
+        path = base_dir / filename
+        label = str(path.relative_to(SCRIPT_DIR.parent.parent))
+        content = read_required(path, label)
+        sizes.append((label, len(content.encode("utf-8"))))
+        imports = import_re.findall(content)
+        hoisted_imports.extend(imports)
+        content = import_re.sub("", content, count=len(imports))
         style_parts.append(f"/* ==== {filename} ==== */\n{content}")
-    style_css = "\n".join(style_parts)
+    style_css = "\n".join(hoisted_imports) + "\n" + "\n".join(style_parts)
 
     if PLACEHOLDER_STYLE not in shell:
         raise BuildError(f"shell.html is missing the {PLACEHOLDER_STYLE} placeholder")
@@ -265,22 +307,23 @@ def main():
         script_parts.append(f"/* ---- vendor/{filename} ---- */\n{content}")
 
     missing_files = []
-    for filename in SCRIPT_FILES:
-        path = SRC_DIR / filename
+    for base_dir, filename in SCRIPT_FILES:
+        path = base_dir / filename
+        label = str(path.relative_to(SCRIPT_DIR.parent.parent))
         if not path.is_file():
-            missing_files.append(filename)
+            missing_files.append(label)
             if allow_missing:
                 script_parts.append(f"/* ---- {filename} ---- */\n/* MISSING: omitted via --allow-missing */")
-                sizes.append((f"src/{filename}", 0))
+                sizes.append((label, 0))
                 continue
             else:
                 raise BuildError(
-                    f"Missing required source: src/{filename} not found at {path}\n"
+                    f"Missing required source: {label} not found at {path}\n"
                     f"  (pass --allow-missing to build anyway while other sources "
                     f"are still being written)"
                 )
         content = path.read_text(encoding="utf-8")
-        sizes.append((f"src/{filename}", len(content.encode("utf-8"))))
+        sizes.append((label, len(content.encode("utf-8"))))
         script_parts.append(f"/* ---- {filename} ---- */\n{content}")
 
     if missing_files and allow_missing:
