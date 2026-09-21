@@ -39,6 +39,19 @@ modul4/uploads/
 __pycache__/
 *.pyc
 
+# Persistent arduino-cli build cache used by scripts/check_sketches.py so the
+# ESP32 core compiles once instead of once per sketch
+scripts/.arduino-build-cache/
+
 # Editor / OS noise
 .DS_Store
 Thumbs.db
+
+# Machine-local tool cache: absolute Windows paths and session ids, useless to
+# anyone else and guaranteed to conflict
+.impeccable/hook.cache.json
+
+# Hand-built Pi bundle, derived from agent/ + modul4/ + kunci_jawaban/ +
+# scripts/. Regenerate it when those change rather than committing a copy that
+# silently goes stale (ORANGE_PI_SERVER_SETUP.md section 5 consumes it)
+iris-pi-server-setup.zip
