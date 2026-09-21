@@ -24,7 +24,7 @@ import Select from "../components/ui/Select.astro";
 import Button from "../components/ui/Button.astro";
 import Badge from "../components/ui/Badge.astro";
 import EmptyState from "../components/ui/EmptyState.astro";
-import Toast from "../components/ui/Toast.astro";
+import Toast from "../components/ui/Toast";
 
 const links = [
   { href: "/", label: "Beranda" },
@@ -41,7 +41,7 @@ const links = [
       </Button>
     </Fragment>
   </Nav>
-  <Toast />
+  <Toast client:load />
 
   <main class="measure">
     <div id="loading">
@@ -141,6 +141,7 @@ const links = [
   </main>
 
   <script>
+    import { navigate } from "astro:transitions/client";
     import { parseRosterPaste } from "../lib/roster-parser";
 
     const KODE_PESAN: Record<string, string> = {
@@ -182,7 +183,7 @@ const links = [
     async function init() {
       const me = await fetch("/api/auth/me").then((r) => r.json());
       if (!me.ok) {
-        window.location.href = "/masuk";
+        navigate("/masuk");
         return;
       }
 
@@ -312,7 +313,7 @@ const links = [
 
     document.getElementById("btn-keluar")?.addEventListener("click", async () => {
       await fetch("/api/auth/keluar", { method: "POST" });
-      window.location.href = "/masuk";
+      navigate("/masuk");
     });
 
     init();

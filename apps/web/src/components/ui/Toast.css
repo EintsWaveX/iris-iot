@@ -1,0 +1,47 @@
+/* Toast.tsx's styling, as a plain CSS import rather than an Astro <style>
+   block -- a .tsx file has no template to attach one to. Global by nature
+   (Vite treats a bare .css import as global, matching this file's own
+   previous is:global scope in the vanilla Toast.astro it replaced). */
+
+.toast-host {
+  bottom: max(var(--space-5), env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  left: 50%;
+  pointer-events: none;
+  position: fixed;
+  transform: translateX(-50%);
+  width: min(28rem, calc(100vw - var(--space-8)));
+  z-index: 200;
+}
+
+.toast {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  color: var(--text);
+  font-size: var(--fs-small);
+  padding: var(--space-3) var(--space-4);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--dur-mid) var(--ease-out-expo),
+    transform var(--dur-mid) var(--ease-out-expo);
+}
+
+.toast[data-shown="yes"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast[data-tone="warn"] {
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+}
+.toast[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+}
+.toast[data-tone="ok"] {
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}

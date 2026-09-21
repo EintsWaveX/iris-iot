@@ -15,10 +15,10 @@ import Select from "../components/ui/Select.astro";
 import Card from "../components/ui/Card.astro";
 import Badge from "../components/ui/Badge.astro";
 import Table from "../components/ui/Table.astro";
-import Tabs from "../components/ui/Tabs.astro";
+import Tabs from "../components/ui/Tabs";
 import EmptyState from "../components/ui/EmptyState.astro";
 import Modal from "../components/ui/Modal.astro";
-import Toast from "../components/ui/Toast.astro";
+import Toast from "../components/ui/Toast";
 
 const links = [
   { href: "/", label: "Beranda" },
@@ -28,7 +28,7 @@ const links = [
 
 <Base title="Panduan gaya · IRIS IoT" description="Living style guide" cosmosScene="kerja">
   <Nav links={links} current="/ui" />
-  <Toast />
+  <Toast client:load />
 
   <main class="measure">
     <section class="section">
@@ -145,6 +145,7 @@ const links = [
     <section class="section">
       <h2 class="section__title">Tabs</h2>
       <Tabs
+        client:load
         id="demo-tabs"
         tabs={[
           { id: "panel-a", label: "Sesi 1" },

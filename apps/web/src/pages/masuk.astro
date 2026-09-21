@@ -14,8 +14,8 @@ import Nav from "../components/ui/Nav.astro";
 import Card from "../components/ui/Card.astro";
 import Field from "../components/ui/Field.astro";
 import Button from "../components/ui/Button.astro";
-import Tabs from "../components/ui/Tabs.astro";
-import Toast from "../components/ui/Toast.astro";
+import Tabs from "../components/ui/Tabs";
+import Toast from "../components/ui/Toast";
 
 const links = [
   { href: "/", label: "Beranda" },
@@ -29,7 +29,7 @@ const links = [
   cosmosScene="masuk"
 >
   <Nav links={links} current="/masuk" />
-  <Toast />
+  <Toast client:load />
 
   <main class="measure narrow">
     <section class="section">
@@ -39,6 +39,7 @@ const links = [
 
     <Card>
       <Tabs
+        client:load
         id="peran-tabs"
         tabs={[
           { id: "panel-praktikan", label: "Praktikan" },
@@ -90,6 +91,7 @@ const links = [
   </main>
 
   <script>
+    import { navigate } from "astro:transitions/client";
     type LoginFailure = { ok: false; kode: string };
 
     const KODE_PESAN: Record<string, string> = {
@@ -116,7 +118,7 @@ const links = [
         });
         const data = await res.json();
         if (data.ok) {
-          window.location.href = "/dashboard";
+          navigate("/dashboard");
           return;
         }
         window.Toast?.show(pesanUntuk((data as LoginFailure).kode), "danger");
@@ -144,7 +146,7 @@ const links = [
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((data) => {
-        if (data.ok) window.location.href = "/dashboard";
+        if (data.ok) navigate("/dashboard");
       })
       .catch(() => {});
   </script>
