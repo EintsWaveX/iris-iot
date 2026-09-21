@@ -1,15 +1,7 @@
 /*
- * MODUL 2 - KOMUNIKASI WEBSOCKET DENGAN SERVER LOKAL  |  Peran: Client WebSocket
- * Board   : ESP32 DevKit V1 (DOIT) atau ESP32-S3
- * Library : WebSockets oleh Markus Sattler (arduinoWebSockets), DHT sensor
- *           library oleh Adafruit, dan Adafruit Unified Sensor
- *
- * Client membaca suhu dan kelembapan DHT22 setiap 2 detik dan mengirimkannya
- * sebagai JSON ke server Python. Server hanya mencatat, lalu membalas dengan
- * waktu terimanya sendiri.
- *
- * Isi setiap bagian rumpang; nomor (1) sampai (6) pada komentar di sebelahnya
- * adalah petunjuknya.
+ * MODUL 2 - WEBSOCKET  |  Peran: Client (ESP32 DevKit V1/S3)
+ * Membaca suhu/kelembapan DHT22 tiap 2 detik dan mengirimkannya sebagai JSON
+ * ke server Python, yang membalas dengan waktu terimanya. Isi rumpang (1)-(6).
  */
 
 #include <WiFi.h>

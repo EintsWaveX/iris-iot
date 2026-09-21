@@ -1,22 +1,8 @@
 """
-MODULE 2 - WEBSOCKET COMMUNICATION WITH A LOCAL SERVER  |  Role: WebSocket Server
-Device: Orange Pi 4 PRO (Python 3 + the `websockets` package)
-
-The server receives DHT22 readings from several ESP32 groups at once, telling
-them apart by their own path (e.g. "/grup1"), records the temperature and
-humidity, then replies with its own receive time.
-
-PACKAGE REQUIREMENT: `websockets.asyncio.server` only exists in websockets
-version 13 and above, while the package shipped with the system is usually older:
-
-    python3 -m venv ~/venv-iris
-    source ~/venv-iris/bin/activate
-    pip install "websockets>=13"
-
-Run with:  python main.py
-
-Fill in every blank section; the numbers (1) through (6) in the comment beside
-each one are the hints.
+MODULE 2 - WEBSOCKET  |  Role: Server (Orange Pi 4 PRO)
+Records DHT22 readings from each ESP32 group by its own path (e.g. "/grup1"),
+then replies with its receive time. Package requirement: see the journal.
+Run with: python main.py. Fill in (1)-(6).
 """
 
 import asyncio

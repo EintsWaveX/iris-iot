@@ -1,12 +1,8 @@
 /*
  * MODULE 4 PART A - LoRa HUNT  |  Role: HUNTER (Group 5)
- * Board   : Cosmic LoRa Aurora V2 (ESP32 + RFM95W)
- * Library : SPI.h, LoRa.h by Sandeep Mistry, WebSockets by Markus Sattler
- *
- * The hunter only LISTENS; its radio never transmits. That is why the six
- * group boards cannot collide with each other in the air. Every beacon packet
- * it catches is measured for signal strength, smoothed, then sent to the
- * scoreboard over Wi-Fi.
+ * Only LISTENS, never transmits, so no group's board can collide with
+ * another in the air. Every beacon packet it catches is smoothed, then sent
+ * to the scoreboard over Wi-Fi.
  *
  * Fill in every blank section; the numbers (1) through (6) in the comment
  * beside each one are the hints.

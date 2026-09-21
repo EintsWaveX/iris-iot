@@ -1,13 +1,8 @@
 /*
  * MODULE 4 PART A - LoRa HUNT  |  Role: BEACON (hidden by the assistant)
- * Board   : Cosmic LoRa Aurora V2 (ESP32 + RFM95W)
- * Library : SPI.h, LoRa.h by Sandeep Mistry, WebSockets by Markus Sattler
- *
- * Only ONE beacon is switched on in the room. This beacon is the only radio
- * that transmits at all, so there are no packet collisions and no time-slot
- * scheme is needed whatsoever. Every packet carries a sequence number and its
- * send time, and that number is also reported to the scoreboard over Wi-Fi so
- * lost packets can be counted.
+ * The only radio transmitting in the room, so there are no packet collisions.
+ * Every packet carries a sequence number and send time, also reported to the
+ * scoreboard over Wi-Fi so lost packets can be counted.
  *
  * Fill in every blank section; the numbers (1) through (6) in the comment
  * beside each one are the hints.

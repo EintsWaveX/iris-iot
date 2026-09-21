@@ -1,13 +1,7 @@
 /*
- * MODULE 1 - BLUETOOTH LOW ENERGY (BLE) CONNECTIVITY  |  Role: PERIPHERAL/SERVER
- * Board   : ESP32 DevKit V1 (DOIT) or ESP32-S3
- * Library : BLEDevice (bundled with ESP32) and ESP32Servo
- *
- * The Peripheral receives an angle from the Central, drives an SG90 servo to
- * that angle, then echoes the value back through a notification.
- *
- * Fill in every blank; the numbers (1) through (6) in the comment beside each
- * one are the hints.
+ * MODULE 1 - BLE  |  Role: PERIPHERAL/SERVER (ESP32 DevKit V1/S3)
+ * Receives an angle from the Central, drives an SG90 servo to that angle,
+ * then echoes the value back through a notification. Fill in (1)-(6).
  */
 
 #include <BLEDevice.h>
@@ -15,36 +9,16 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 #include <ESP32Servo.h>
-#include <time.h>
+#include "iris_waktu.h"
 
-// ---- GROUP UUIDS -----------------------------------------------------------
-// Remove the // from ONE pair of lines only: the pair belonging to your group.
-// The same pair must be active in the Central program. Each group uses its
-// own UUIDs so a Central never connects to another group's board.
-// Group 1
-#define SERVICE_UUID        "d1f8ef04-1fa7-4806-ba3a-8115c0bcce01"
-#define CHARACTERISTIC_UUID "11d29a29-98ee-453e-8c87-2f95f8676501"
-// Group 2
-// #define SERVICE_UUID        "d1f8ef04-1fa7-4806-ba3a-8115c0bcce02"
-// #define CHARACTERISTIC_UUID "11d29a29-98ee-453e-8c87-2f95f8676502"
-// Group 3
-// #define SERVICE_UUID        "d1f8ef04-1fa7-4806-ba3a-8115c0bcce03"
-// #define CHARACTERISTIC_UUID "11d29a29-98ee-453e-8c87-2f95f8676503"
-// Group 4
-// #define SERVICE_UUID        "d1f8ef04-1fa7-4806-ba3a-8115c0bcce04"
-// #define CHARACTERISTIC_UUID "11d29a29-98ee-453e-8c87-2f95f8676504"
-// Group 5
-// #define SERVICE_UUID        "d1f8ef04-1fa7-4806-ba3a-8115c0bcce05"
-// #define CHARACTERISTIC_UUID "11d29a29-98ee-453e-8c87-2f95f8676505"
-// Group 6
-// #define SERVICE_UUID        "d1f8ef04-1fa7-4806-ba3a-8115c0bcce06"
-// #define CHARACTERISTIC_UUID "11d29a29-98ee-453e-8c87-2f95f8676506"
-// Group 7
-// #define SERVICE_UUID        "d1f8ef04-1fa7-4806-ba3a-8115c0bcce07"
-// #define CHARACTERISTIC_UUID "11d29a29-98ee-453e-8c87-2f95f8676507"
-// Group 8
-// #define SERVICE_UUID        "d1f8ef04-1fa7-4806-ba3a-8115c0bcce08"
-// #define CHARACTERISTIC_UUID "11d29a29-98ee-453e-8c87-2f95f8676508"
+// ---- GROUP IDENTITY ---------------------------------------------------------
+// Change the number below to your group number (1 to 8) in *both* programs.
+// Both UUIDs derive from it automatically, so a Central never connects to
+// another group's board.
+const int GROUP_ID = 1;
+
+String SERVICE_UUID        = "d1f8ef04-1fa7-4806-ba3a-8115c0bcce0" + String(GROUP_ID);
+String CHARACTERISTIC_UUID = "11d29a29-98ee-453e-8c87-2f95f867650" + String(GROUP_ID);
 
 String peripheralName = "ESP32-Peripheral";
 
@@ -62,75 +36,6 @@ BLECharacteristic *pCharacteristic = nullptr;
 
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
-
-// Wall clock from the PC over Serial: send "YYYY-MM-DD HH:MM:SS.mmm" followed
-// by Enter in the Serial Monitor, or run scripts/send_time.ps1 on the PC. Both
-// boards MUST be synced from the same PC for their times to be comparable.
-uint64_t syncEpochMs = 0;      // Unix milliseconds at the moment of the sync.
-unsigned long syncMillis = 0;  // The millis() value at that same moment.
-
-void syncTimeFromSerial() {
-  Serial.println("Waiting for PC time (YYYY-MM-DD HH:MM:SS.mmm), up to 10 seconds...");
-
-  unsigned long waitStart = millis();
-  while (millis() - waitStart < 10000UL) {
-    if (!Serial.available()) {
-      continue;
-    }
-
-    String line = Serial.readStringUntil('\n');
-
-    // Taken as early as possible; this is the millis() point that stands for
-    // the PC time just received.
-    unsigned long arrival = millis();
-    line.trim();
-
-    struct tm timeInfo = {};
-    int year, month, day, hour, minute, second, milli = 0;
-
-    if (sscanf(line.c_str(), "%d-%d-%d %d:%d:%d.%d",
-               &year, &month, &day, &hour, &minute, &second, &milli) >= 6) {
-      timeInfo.tm_year = year - 1900;
-      timeInfo.tm_mon  = month - 1;
-      timeInfo.tm_mday = day;
-      timeInfo.tm_hour = hour;
-      timeInfo.tm_min  = minute;
-      timeInfo.tm_sec  = second;
-
-      syncEpochMs = (uint64_t)mktime(&timeInfo) * 1000ULL + (uint64_t)milli;
-      syncMillis  = arrival;
-
-      Serial.println("Clock synchronised from the PC down to the millisecond.");
-      return;
-    }
-
-    Serial.println("Format not recognised, send again: YYYY-MM-DD HH:MM:SS.mmm");
-  }
-
-  Serial.println("No PC time received, timestamps will count from boot.");
-}
-
-// HH:MM:SS:MS format. Once synced this is the real wall clock down to the
-// millisecond, so times from the two Serial Monitors may be subtracted.
-String formatTimestamp(unsigned long ms) {
-  char buffer[16];
-
-  if (syncEpochMs != 0) {
-    uint64_t nowMs = syncEpochMs + (uint64_t)(ms - syncMillis);
-    time_t seconds = (time_t)(nowMs / 1000ULL);
-    struct tm *t = localtime(&seconds);
-
-    snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d:%03u",
-             t->tm_hour, t->tm_min, t->tm_sec, (unsigned)(nowMs % 1000ULL));
-    return String(buffer);
-  }
-
-  unsigned long totalSeconds = ms / 1000UL;
-  snprintf(buffer, sizeof(buffer), "%02lu:%02lu:%02lu:%03lu",
-           (totalSeconds / 3600UL) % 24UL, (totalSeconds / 60UL) % 60UL,
-           totalSeconds % 60UL, ms % 1000UL);
-  return String(buffer);
-}
 
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *pServer) override {

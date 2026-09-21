@@ -1,11 +1,7 @@
 """
-MODULE 3 - MQTT CONNECTIVITY (MicroPython + Eclipse Mosquitto)  |  Role: Subscriber
-Device : Raspberry Pi Pico W (MicroPython, Thonny IDE)
-Library: micropython-umqtt.simple
-
-This program subscribes to a topic and records every incoming potentiometer
-position together with its receive time. The connection uses keepalive plus a
-periodic ping and reconnects automatically if it drops.
+MODULE 3 - MQTT (MicroPython)  |  Role: Subscriber (Pico W)
+Subscribes to a topic and records every incoming potentiometer position with
+its receive time, reconnecting automatically.
 
 ANSWER KEY. Every blank is already filled in; the numbers (1) through (6) in
 the comment beside each one mark the graded answers.
@@ -16,6 +12,7 @@ import time
 import ntptime
 import utime
 from umqtt.simple import MQTTClient  # (1) Name of the MQTT client class used below
+from iris_waktu import timestamp
 
 wifi_ssid     = "<YOUR SSID WIFI>"
 wifi_password = "<YOUR WIFI PASSWORD>"
@@ -35,9 +32,6 @@ group_id = 1
 mqtt_receive_topic = "iris/grup{}/pot".format(group_id)  # (2) Group number variable
 mqtt_client_id     = "grup{}-sub".format(group_id)  # Must be unique per client
 
-# Time zone offset from UTC in seconds. WIB (UTC+7) = 7 * 3600.
-timezone_offset = 7 * 3600
-
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
 wlan.connect(wifi_ssid, wifi_password)
@@ -55,32 +49,6 @@ except Exception as e:
     print(f'Failed to synchronise the clock: {e}')
 
 
-def sync_time_reference():
-    """Waits for the RTC second to roll over, then locks the clock reference.
-
-    After this point every timestamp is computed from one Unix millisecond
-    base, so the second and millisecond parts never overtake each other and the
-    two Pico Ws' times really can be subtracted.
-    """
-    start_second = utime.localtime()[5]
-    while utime.localtime()[5] == start_second:
-        pass
-    return utime.time() * 1000, utime.ticks_ms()
-
-
-epoch_ms_reference, ticks_reference = sync_time_reference()
-
-
-def timestamp():
-    """Returns the current wall clock in HH:MM:SS:MS format."""
-    now_ms = epoch_ms_reference + utime.ticks_diff(utime.ticks_ms(), ticks_reference)
-    current_time = utime.localtime(now_ms // 1000 + timezone_offset)
-
-    return "{:02}:{:02}:{:02}:{:03}".format(
-        current_time[3], current_time[4], current_time[5], now_ms % 1000
-    )
-
-
 # Port 1883 is the `listener` value used in mosquitto.conf. keepalive tells the
 # broker to expect a ping from this client every 30 seconds.
 mqtt_client = MQTTClient(
@@ -95,7 +63,7 @@ mqtt_client = MQTTClient(
 
 def mqtt_subscription_callback(topic, message):
     # The receive time is recorded first so nothing else can delay it.
-    received_at = timestamp()  # (3) The wall-clock function defined above
+    received_at = timestamp()  # (3) The wall-clock function imported above
 
     sample, percent = message.decode().split()
 

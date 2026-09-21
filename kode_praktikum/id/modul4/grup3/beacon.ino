@@ -1,13 +1,8 @@
 /*
  * MODUL 4 PART A - PERBURUAN LoRa  |  Peran: BEACON (disembunyikan asisten)
- * Board   : Cosmic LoRa Aurora V2 (ESP32 + RFM95W)
- * Library : SPI.h, LoRa.h oleh Sandeep Mistry, WebSockets oleh Markus Sattler
- *
- * Hanya SATU beacon yang dinyalakan di ruangan. Beacon inilah satu-satunya
- * radio yang memancar, sehingga tidak ada tabrakan paket dan tidak diperlukan
- * pembagian jatah waktu sama sekali. Tiap paket membawa nomor urut dan waktu
- * kirimnya, dan nomor itu juga dilaporkan ke papan skor lewat Wi-Fi supaya
- * paket yang hilang dapat dihitung.
+ * Satu-satunya radio yang memancar di ruangan, sehingga tidak ada tabrakan
+ * paket. Tiap paket membawa nomor urut dan waktu kirimnya, dilaporkan juga
+ * ke papan skor lewat Wi-Fi supaya paket yang hilang dapat dihitung.
  *
  * Isi setiap bagian rumpang; nomor (1) sampai (6) pada komentar di sebelahnya
  * adalah petunjuknya.

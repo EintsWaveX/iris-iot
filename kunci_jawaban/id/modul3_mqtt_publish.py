@@ -1,10 +1,7 @@
 """
-MODUL 3 - KONEKTIVITAS MQTT (MicroPython + Eclipse Mosquitto)  |  Peran: Publisher
-Perangkat: Raspberry Pi Pico W (MicroPython, Thonny IDE)
-Library  : micropython-umqtt.simple
-
-Program ini membaca posisi potensiometer dan mem-publish nilainya hanya ketika
-posisinya benar-benar berubah, yaitu ketika pergeserannya melewati deadband.
+MODUL 3 - MQTT (MicroPython)  |  Peran: Publisher (Pico W)
+Mem-publish posisi potensiometer ke broker MQTT hanya ketika pergeserannya
+melewati deadband.
 
 KUNCI JAWABAN. Seluruh bagian rumpang sudah terisi; nomor (1) sampai (6) pada
 komentar di sebelahnya menandai jawaban yang dinilai.
@@ -16,6 +13,7 @@ import ntptime
 import utime
 from umqtt.simple import MQTTClient
 from machine import ADC
+from iris_waktu import timestamp
 
 wifi_ssid     = "<YOUR SSID WIFI>"
 wifi_password = "<YOUR WIFI PASSWORD>"
@@ -34,9 +32,6 @@ group_id = 1
 
 mqtt_publish_topic = "iris/grup{}/pot".format(group_id)
 mqtt_client_id     = "grup{}-pub".format(group_id)  # Harus unik tiap client
-
-# Selisih zona waktu terhadap UTC dalam detik. WIB (UTC+7) = 7 * 3600.
-timezone_offset = 7 * 3600
 
 # Potensiometer pada GP26 (ADC0). Kaki atasnya harus dicatu dari 3V3(OUT),
 # bukan VBUS, karena masukan ADC Pico W hanya tahan sampai 3,3 V.
@@ -67,32 +62,6 @@ try:
     print("Jam tersinkronisasi melalui NTP")
 except Exception as e:
     print(f'Gagal menyelaraskan jam: {e}')
-
-
-def sync_time_reference():
-    """Menunggu pergantian detik pada RTC, lalu mengunci titik acuan jamnya.
-
-    Sesudah titik ini seluruh timestamp dihitung dari satu basis milidetik
-    Unix, sehingga bagian detik dan milidetiknya tidak pernah saling
-    mendahului dan waktu kedua Pico W benar-benar dapat dikurangkan.
-    """
-    start_second = utime.localtime()[5]
-    while utime.localtime()[5] == start_second:
-        pass
-    return utime.time() * 1000, utime.ticks_ms()
-
-
-epoch_ms_reference, ticks_reference = sync_time_reference()
-
-
-def timestamp():
-    """Mengembalikan jam dinding saat ini dalam format HH:MM:SS:MS."""
-    now_ms = epoch_ms_reference + utime.ticks_diff(utime.ticks_ms(), ticks_reference)
-    current_time = utime.localtime(now_ms // 1000 + timezone_offset)
-
-    return "{:02}:{:02}:{:02}:{:03}".format(
-        current_time[3], current_time[4], current_time[5], now_ms % 1000
-    )
 
 
 # Port 1883 adalah nilai `listener` yang dipakai pada mosquitto.conf. keepalive

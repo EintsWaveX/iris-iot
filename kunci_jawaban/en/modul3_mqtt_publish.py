@@ -1,10 +1,7 @@
 """
-MODULE 3 - MQTT CONNECTIVITY (MicroPython + Eclipse Mosquitto)  |  Role: Publisher
-Device : Raspberry Pi Pico W (MicroPython, Thonny IDE)
-Library: micropython-umqtt.simple
-
-This program reads the potentiometer position and publishes its value only when
-the position actually changes, that is when the shift crosses the deadband.
+MODULE 3 - MQTT (MicroPython)  |  Role: Publisher (Pico W)
+Publishes the potentiometer position to the MQTT broker only when the shift
+crosses the deadband.
 
 ANSWER KEY. Every blank is already filled in; the numbers (1) through (6) in
 the comment beside each one mark the graded answers.
@@ -16,6 +13,7 @@ import ntptime
 import utime
 from umqtt.simple import MQTTClient
 from machine import ADC
+from iris_waktu import timestamp
 
 wifi_ssid     = "<YOUR SSID WIFI>"
 wifi_password = "<YOUR WIFI PASSWORD>"
@@ -34,9 +32,6 @@ group_id = 1
 
 mqtt_publish_topic = "iris/grup{}/pot".format(group_id)
 mqtt_client_id     = "grup{}-pub".format(group_id)  # Must be unique per client
-
-# Time zone offset from UTC in seconds. WIB (UTC+7) = 7 * 3600.
-timezone_offset = 7 * 3600
 
 # Potentiometer on GP26 (ADC0). Its top leg must be fed from 3V3(OUT), not
 # VBUS, because the Pico W's ADC input only tolerates up to 3.3 V.
@@ -67,32 +62,6 @@ try:
     print("Clock synchronised over NTP")
 except Exception as e:
     print(f'Failed to synchronise the clock: {e}')
-
-
-def sync_time_reference():
-    """Waits for the RTC second to roll over, then locks the clock reference.
-
-    After this point every timestamp is computed from one Unix millisecond
-    base, so the second and millisecond parts never overtake each other and the
-    two Pico Ws' times really can be subtracted.
-    """
-    start_second = utime.localtime()[5]
-    while utime.localtime()[5] == start_second:
-        pass
-    return utime.time() * 1000, utime.ticks_ms()
-
-
-epoch_ms_reference, ticks_reference = sync_time_reference()
-
-
-def timestamp():
-    """Returns the current wall clock in HH:MM:SS:MS format."""
-    now_ms = epoch_ms_reference + utime.ticks_diff(utime.ticks_ms(), ticks_reference)
-    current_time = utime.localtime(now_ms // 1000 + timezone_offset)
-
-    return "{:02}:{:02}:{:02}:{:03}".format(
-        current_time[3], current_time[4], current_time[5], now_ms % 1000
-    )
 
 
 # Port 1883 is the `listener` value used in mosquitto.conf. keepalive tells the

@@ -1,22 +1,8 @@
 """
-MODUL 2 - KOMUNIKASI WEBSOCKET DENGAN SERVER LOKAL  |  Peran: Server WebSocket
-Perangkat: Orange Pi 4 PRO (Python 3 + paket `websockets`)
-
-Server menerima pembacaan DHT22 dari beberapa kelompok ESP32 sekaligus, masing-
-masing dibedakan lewat path-nya sendiri (mis. "/grup1"), mencatat suhu dan
-kelembapannya, lalu membalas dengan waktu terimanya sendiri.
-
-KEBUTUHAN PAKET: `websockets.asyncio.server` baru tersedia pada websockets versi 13
-ke atas, sedangkan paket bawaan sistem umumnya masih lebih lama:
-
-    python3 -m venv ~/venv-iris
-    source ~/venv-iris/bin/activate
-    pip install "websockets>=13"
-
-Jalankan dengan:  python main.py
-
-Isi setiap bagian rumpang; nomor (1) sampai (6) pada komentar di sebelahnya
-adalah petunjuknya.
+MODUL 2 - WEBSOCKET  |  Peran: Server (Orange Pi 4 PRO)
+Mencatat pembacaan DHT22 tiap kelompok ESP32 lewat path-nya sendiri (mis.
+"/grup1"), lalu membalas dengan waktu terimanya. Kebutuhan paket: lihat
+jurnal. Jalankan: python main.py. Isi bagian rumpang (1)-(6).
 """
 
 import asyncio

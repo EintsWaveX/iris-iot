@@ -1,12 +1,8 @@
 /*
  * MODUL 4 PART A - PERBURUAN LoRa  |  Peran: HUNTER (Kelompok 4)
- * Board   : Cosmic LoRa Aurora V2 (ESP32 + RFM95W)
- * Library : SPI.h, LoRa.h oleh Sandeep Mistry, WebSockets oleh Markus Sattler
- *
- * Hunter hanya MENDENGARKAN; radionya tidak pernah memancar. Karena itu papan
- * keenam kelompok tidak mungkin saling bertabrakan di udara. Tiap paket beacon
- * yang tertangkap diukur kekuatan sinyalnya, dihaluskan, lalu dikirim ke papan
- * skor melalui Wi-Fi.
+ * Hanya MENDENGARKAN, tidak pernah memancar, sehingga papan tiap kelompok
+ * tidak mungkin bertabrakan di udara. Paket beacon yang tertangkap dihaluskan
+ * lalu dikirim ke papan skor lewat Wi-Fi.
  *
  * Isi setiap bagian rumpang; nomor (1) sampai (6) pada komentar di sebelahnya
  * adalah petunjuknya.

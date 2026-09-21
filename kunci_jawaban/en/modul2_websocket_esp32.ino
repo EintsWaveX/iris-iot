@@ -1,12 +1,7 @@
 /*
- * MODULE 2 - WEBSOCKET COMMUNICATION WITH A LOCAL SERVER  |  Role: WebSocket Client
- * Board   : ESP32 DevKit V1 (DOIT) or ESP32-S3
- * Library : WebSockets by Markus Sattler (arduinoWebSockets), DHT sensor
- *           library by Adafruit, and Adafruit Unified Sensor
- *
- * The client reads DHT22 temperature and humidity every 2 seconds and sends
- * them as JSON to the Python server. The server only records them, then
- * replies with its own receive time.
+ * MODULE 2 - WEBSOCKET  |  Role: Client (ESP32 DevKit V1/S3)
+ * Reads DHT22 temperature/humidity every 2 seconds and sends it as JSON to
+ * the Python server, which replies with its receive time.
  *
  * ANSWER KEY. Every blank is already filled in; the numbers (1) through (6) in
  * the comment beside each one mark the graded answers.

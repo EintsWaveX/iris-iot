@@ -55,13 +55,9 @@ ANSWERS = {
 
 HUNTER_ID = r'''/*
  * MODUL 4 PART A - PERBURUAN LoRa  |  Peran: HUNTER (Kelompok @@GROUP_ID@@)
- * Board   : Cosmic LoRa Aurora V2 (ESP32 + RFM95W)
- * Library : SPI.h, LoRa.h oleh Sandeep Mistry, WebSockets oleh Markus Sattler
- *
- * Hunter hanya MENDENGARKAN; radionya tidak pernah memancar. Karena itu papan
- * keenam kelompok tidak mungkin saling bertabrakan di udara. Tiap paket beacon
- * yang tertangkap diukur kekuatan sinyalnya, dihaluskan, lalu dikirim ke papan
- * skor melalui Wi-Fi.
+ * Hanya MENDENGARKAN, tidak pernah memancar, sehingga papan tiap kelompok
+ * tidak mungkin bertabrakan di udara. Paket beacon yang tertangkap dihaluskan
+ * lalu dikirim ke papan skor lewat Wi-Fi.
  *
  * Isi setiap bagian rumpang; nomor (1) sampai (6) pada komentar di sebelahnya
  * adalah petunjuknya.
@@ -267,13 +263,9 @@ void loop() {
 
 HUNTER_EN = r'''/*
  * MODULE 4 PART A - LoRa HUNT  |  Role: HUNTER (Group @@GROUP_ID@@)
- * Board   : Cosmic LoRa Aurora V2 (ESP32 + RFM95W)
- * Library : SPI.h, LoRa.h by Sandeep Mistry, WebSockets by Markus Sattler
- *
- * The hunter only LISTENS; its radio never transmits. That is why the six
- * group boards cannot collide with each other in the air. Every beacon packet
- * it catches is measured for signal strength, smoothed, then sent to the
- * scoreboard over Wi-Fi.
+ * Only LISTENS, never transmits, so no group's board can collide with
+ * another in the air. Every beacon packet it catches is smoothed, then sent
+ * to the scoreboard over Wi-Fi.
  *
  * Fill in every blank section; the numbers (1) through (6) in the comment
  * beside each one are the hints.
@@ -479,14 +471,9 @@ void loop() {
 
 BEACON_ID = r'''/*
  * MODUL 4 PART A - PERBURUAN LoRa  |  Peran: BEACON (disembunyikan asisten)
- * Board   : Cosmic LoRa Aurora V2 (ESP32 + RFM95W)
- * Library : SPI.h, LoRa.h oleh Sandeep Mistry, WebSockets oleh Markus Sattler
- *
- * Hanya SATU beacon yang dinyalakan di ruangan. Beacon inilah satu-satunya
- * radio yang memancar, sehingga tidak ada tabrakan paket dan tidak diperlukan
- * pembagian jatah waktu sama sekali. Tiap paket membawa nomor urut dan waktu
- * kirimnya, dan nomor itu juga dilaporkan ke papan skor lewat Wi-Fi supaya
- * paket yang hilang dapat dihitung.
+ * Satu-satunya radio yang memancar di ruangan, sehingga tidak ada tabrakan
+ * paket. Tiap paket membawa nomor urut dan waktu kirimnya, dilaporkan juga
+ * ke papan skor lewat Wi-Fi supaya paket yang hilang dapat dihitung.
  *
  * Isi setiap bagian rumpang; nomor (1) sampai (6) pada komentar di sebelahnya
  * adalah petunjuknya.
@@ -645,14 +632,9 @@ void loop() {
 
 BEACON_EN = r'''/*
  * MODULE 4 PART A - LoRa HUNT  |  Role: BEACON (hidden by the assistant)
- * Board   : Cosmic LoRa Aurora V2 (ESP32 + RFM95W)
- * Library : SPI.h, LoRa.h by Sandeep Mistry, WebSockets by Markus Sattler
- *
- * Only ONE beacon is switched on in the room. This beacon is the only radio
- * that transmits at all, so there are no packet collisions and no time-slot
- * scheme is needed whatsoever. Every packet carries a sequence number and its
- * send time, and that number is also reported to the scoreboard over Wi-Fi so
- * lost packets can be counted.
+ * The only radio transmitting in the room, so there are no packet collisions.
+ * Every packet carries a sequence number and send time, also reported to the
+ * scoreboard over Wi-Fi so lost packets can be counted.
  *
  * Fill in every blank section; the numbers (1) through (6) in the comment
  * beside each one are the hints.
