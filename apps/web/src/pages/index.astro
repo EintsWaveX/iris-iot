@@ -70,10 +70,9 @@ const links = [
   }
 
   .hero__title {
-    /* Explicit opt-in to the serif (see base.css h1-h4's own comment): this
-       is an <h1>, and --fs-display-xl is always well above the
-       --fs-display-md floor -- it never crosses back under it at any
-       viewport width, since it's a clamp() with a 4rem minimum. */
+    /* Explicit opt-in to the serif (see base.css h1-h4's own comment). */
+    /* This is an h1, and --fs-display-xl (a clamp() with a 4rem minimum) */
+    /* never drops below the --fs-display-md floor at any viewport width. */
     font-family: var(--font-display);
     font-weight: 400;
     font-size: var(--fs-display-xl);
