@@ -1,4 +1,4 @@
-#import "/template/template.typ": journal-cover, code-box, code-file, template, answer-lines
+#import "/template/template.typ": journal-cover, code-box, code-file, schematic-figure, jawab, template
 #show: template
 
 #journal-cover(
@@ -6,8 +6,6 @@
   topic: "MQTT CONNECTIVITY WITH MICROPYTHON, RASPBERRY PI PICO W, AND ECLIPSE MOSQUITTO",
   lang: "en"
 )
-
-#pagebreak()
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -30,26 +28,7 @@
 
 2. Build the following circuit using the tools and components you have prepared! (POT: Potentiometer)
 
-// Flip the value below to false while the schematic file is still missing.
-// While it stays false, Typst never touches the image file, so the journal can
-// still be compiled.
-#let schematic-ready = false
-
-#if schematic-ready {
-  figure(image("/schematics/Module 3.png", height: 6cm))
-} else {
-  figure(
-    box(
-      width: 100%,
-      height: 6cm,
-      stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
-    )[
-      #align(center + horizon)[
-        #text(fill: luma(120))[Module 3 circuit schematic (to follow)]
-      ]
-    ]
-  )
-}
+#schematic-figure("/schematics/Module 3.png", lang: "en")
 
 #table(
   columns: 4 * (1fr,),
@@ -181,25 +160,18 @@
 
 1.	Draw the communication flow implemented in the system you have worked on!
 
-#box(
-  width: 100%,
-  height: 8cm,
-  stroke: 1pt + black,
-)[]
+#jawab(kode: "m3.diagram_alur", jenis: "gambar", lang: "en")
 
 2.	Next, a response-time experiment will be carried out for messages sent from the *Publisher* to the *Subscriber* through the MQTT broker. First open *TWO (2)* Thonny Shells/REPLs to observe the output of the *Publisher* and the *Subscriber*. Turn the potentiometer knob slowly: every time its position shifts past `deadband_pct`, the Publisher Shell prints the *publish time* along with the sample number and the position, while the Subscriber Shell prints the *receive time* along with the same sample number and position. That sample number is what pairs a line in one Shell with a line in the other. Record:
    - *FIVE (5)* pairs of readings: the publish time, sample number and position from the Publisher Shell, together with the receive time from the Subscriber Shell
    Both times are recorded in *HH:MM:SS:MS* format. Compute the *one-way delay* by subtracting the publish time from the receive time.
 
 #pad(left: 0.5cm)[
-  _Note: both Pico W boards synchronise their clocks over NTP (`ntptime.settime()`)
-  as soon as they connect to Wi-Fi, then lock a single millisecond reference on an
-  RTC second rollover. That means times from the two Shells really can be
-  subtracted and the result is a one-way delay through the broker. Without that
-  synchronisation step, a Pico W's RTC starts at 1 January 2021 and the two boards
-  would never agree on the time. NTP accuracy over Wi-Fi is around 10--50 ms. This
-  module has no round-trip column because MQTT is one-way here: the Subscriber
-  only records and echoes nothing back._
+  _Note: both Pico W boards synchronise over NTP (`ntptime.settime()`) as soon
+  as they connect to Wi-Fi, so times from the two Shells are valid to
+  subtract. Without this step, a Pico W's RTC starts at 1 January 2021. This
+  module has no round-trip column because the Subscriber only records and
+  echoes nothing back._
 ]
 
 #table(
@@ -228,16 +200,7 @@
 3. Write your *analysis* of the system you experimented with earlier in the fill-in section below!
 (Also give the *relationship/correlation* by applying the *communication methodology* you are studying in this module; it does not have to be complete!)
 
-#answer-lines(count: 6)
-
-#pagebreak()
-
-= Suggestions and Feedback
-
-1. Assistant
-#answer-lines(count: 3)
-2. Laboratory
-#answer-lines(count: 3)
+#jawab(kode: "m3.analisis", jenis: "teks", lang: "en")
 
 #v(1fr)
 

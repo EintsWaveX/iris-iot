@@ -1,4 +1,4 @@
-#import "/template/template.typ": journal-cover, code-box, code-file, template, answer-lines
+#import "/template/template.typ": journal-cover, code-box, code-file, schematic-figure, jawab, template
 #show: template
 
 #journal-cover(
@@ -6,8 +6,6 @@
   topic: "KOMUNIKASI WEBSOCKET DENGAN SERVER LOKAL",
   lang: "id"
 )
-
-#pagebreak()
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -30,26 +28,7 @@
 
 2. Buatlah rangkaian berikut menggunakan daftar alat dan komponen yang telah kalian siapkan! (DHT: Sensor DHT22)
 
-// Ubah nilai di bawah menjadi false selama berkas skematiknya belum tersedia.
-// Selama masih false, Typst tidak pernah menyentuh berkas gambarnya, sehingga
-// jurnal tetap dapat dikompilasi.
-#let schematic-ready = false
-
-#if schematic-ready {
-  figure(image("/schematics/Module 2.png", height: 6cm))
-} else {
-  figure(
-    box(
-      width: 100%,
-      height: 6cm,
-      stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
-    )[
-      #align(center + horizon)[
-        #text(fill: luma(120))[Skema rangkaian Modul 2 (menyusul)]
-      ]
-    ]
-  )
-}
+#schematic-figure("/schematics/Module 2.png", lang: "id")
 
 #table(
   columns: 4 * (1fr,),
@@ -169,23 +148,17 @@
 
 1.	Gambarkanlah alur komunikasi yang diterapkan pada sistem yang telah kalian kerjakan!
 
-#box(
-  width: 100%,
-  height: 8cm,
-  stroke: 1pt + black,
-)[]
+#jawab(kode: "m2.diagram_alur", jenis: "gambar", lang: "id")
 
 2.	Selanjutnya akan dilakukan percobaan respons waktu pembacaan data yang dikirim melalui *Client (ESP32)* ke *Server (Orange Pi)*. Bukalah terlebih dahulu Serial Monitor pada ESP32 dan terminal server Python pada Orange Pi. Setiap 2 detik ESP32 mencetak *waktu kirim* beserta nomor urut dan pembacaan DHT22, sementara terminal Orange Pi mencetak *waktu terima* beserta nomor urut, suhu, dan kelembapan yang sama. Nomor urut itulah yang dipakai untuk memasangkan baris pada kedua tampilan. Balasan server tidak membawa perintah apa pun, hanya nomor urut dan waktu terima pada kolom `at`, sehingga kedua waktu tetap dapat dibaca ulang dari Serial Monitor ESP32 saja. Catatlah:
    - *LIMA (5)* pasang data: waktu kirim, suhu, dan kelembapan dari Serial Monitor ESP32, beserta waktu terima dari terminal Orange Pi
    Kedua waktu tersebut dicatat dalam format *HH:MM:SS:MS*. Hitunglah *delay satu arah* dengan mengurangkan waktu terima terhadap waktu kirim, lalu bandingkan dengan delay round-trip yang dicetak sendiri oleh ESP32.
 
 #pad(left: 0.5cm)[
-  _Catatan: ESP32 dan Orange Pi berada pada satu jaringan Wi-Fi, sehingga jam
-  keduanya diselaraskan melalui NTP (`configTime()` pada ESP32, systemd-timesyncd
-  pada Orange Pi). Karena itu waktu dari kedua tampilan benar-benar dapat
-  dikurangkan dan hasilnya merupakan delay satu arah yang sesungguhnya.
-  Ketelitian NTP di atas Wi-Fi berkisar 10--50 ms, jadi delay satu arah yang
-  kalian hitung wajar bila tidak persis setengah dari delay round-trip._
+  _Catatan: ESP32 dan Orange Pi diselaraskan lewat NTP (`configTime()` di
+  ESP32, systemd-timesyncd di Orange Pi), sehingga waktu keduanya sahih untuk
+  dikurangkan. Ketelitian NTP di Wi-Fi berkisar 10--50 ms, jadi delay satu
+  arah wajar bila tidak persis setengah dari delay round-trip._
 ]
 
 #table(
@@ -215,16 +188,7 @@
 3. Tuliskanlah *analisis* kalian pada sistem yang telah kalian eksperimentasikan sebelumnya pada bagian pengisian berikut ini!
 (Berikan juga *hubungan/korelasinya* dengan menerapkan *metodologi komunikasi* yang sedang kalian pelajari pada modul ini; tidak harus penuh!)
 
-#answer-lines(count: 6)
-
-#pagebreak()
-
-= Saran dan Masukan
-
-1. Asisten
-#answer-lines(count: 3)
-2. Laboratorium
-#answer-lines(count: 3)
+#jawab(kode: "m2.analisis", jenis: "teks", lang: "id")
 
 #v(1fr)
 

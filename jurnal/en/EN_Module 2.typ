@@ -1,4 +1,4 @@
-#import "/template/template.typ": journal-cover, code-box, code-file, template, answer-lines
+#import "/template/template.typ": journal-cover, code-box, code-file, schematic-figure, jawab, template
 #show: template
 
 #journal-cover(
@@ -6,8 +6,6 @@
   topic: "WEBSOCKET COMMUNICATION WITH A LOCAL SERVER",
   lang: "en"
 )
-
-#pagebreak()
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -30,26 +28,7 @@
 
 2. Build the following circuit using the tools and components you have prepared! (DHT: DHT22 Sensor)
 
-// Flip the value below to false while the schematic file is still missing.
-// While it stays false, Typst never touches the image file, so the journal can
-// still be compiled.
-#let schematic-ready = false
-
-#if schematic-ready {
-  figure(image("/schematics/Module 2.png", height: 6cm))
-} else {
-  figure(
-    box(
-      width: 100%,
-      height: 6cm,
-      stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
-    )[
-      #align(center + horizon)[
-        #text(fill: luma(120))[Module 2 circuit schematic (to follow)]
-      ]
-    ]
-  )
-}
+#schematic-figure("/schematics/Module 2.png", lang: "en")
 
 #table(
   columns: 4 * (1fr,),
@@ -168,23 +147,17 @@
 
 1.	Draw the communication flow implemented in the system you have worked on!
 
-#box(
-  width: 100%,
-  height: 8cm,
-  stroke: 1pt + black,
-)[]
+#jawab(kode: "m2.diagram_alur", jenis: "gambar", lang: "en")
 
 2.	Next, a response-time experiment will be carried out for data sent from the *Client (ESP32)* to the *Server (Orange Pi)*. First open the Serial Monitor on the ESP32 and the Python server terminal on the Orange Pi. Every 2 seconds the ESP32 prints its *send time* with a sequence number and the DHT22 reading, while the Orange Pi terminal prints the *receive time* with the same sequence number, temperature and humidity; that number is what pairs a line on one display with a line on the other. The server's reply carries no command, only the sequence number and its receive time in the `at` field, so both times can still be read from the ESP32 Serial Monitor alone. Record:
    - *FIVE (5)* pairs of readings: the send time, temperature and humidity from the ESP32 Serial Monitor, together with the receive time from the Orange Pi terminal
    Both times are recorded in *HH:MM:SS:MS* format. Compute the *one-way delay* by subtracting the send time from the receive time, then compare it against the round-trip delay the ESP32 prints for itself.
 
 #pad(left: 0.5cm)[
-  _Note: the ESP32 and the Orange Pi are on the same Wi-Fi network, so both
-  clocks are synchronised over NTP (`configTime()` on the ESP32, systemd-timesyncd
-  on the Orange Pi). That means times from the two displays really can be
-  subtracted and the result is a genuine one-way delay. NTP accuracy over Wi-Fi
-  is around 10--50 ms, so it is normal for your one-way delay not to come out at
-  exactly half the round-trip delay._
+  _Note: the ESP32 and the Orange Pi synchronise over NTP (`configTime()` on
+  the ESP32, systemd-timesyncd on the Orange Pi), so their times are valid to
+  subtract. NTP accuracy over Wi-Fi is around 10--50 ms, so a one-way delay
+  that isn't exactly half the round-trip delay is normal._
 ]
 
 #table(
@@ -214,16 +187,7 @@
 3. Write your *analysis* of the system you experimented with earlier in the fill-in section below!
 (Also give the *relationship/correlation* by applying the *communication methodology* you are studying in this module; it does not have to be complete!)
 
-#answer-lines(count: 6)
-
-#pagebreak()
-
-= Suggestions and Feedback
-
-1. Assistant
-#answer-lines(count: 3)
-2. Laboratory
-#answer-lines(count: 3)
+#jawab(kode: "m2.analisis", jenis: "teks", lang: "en")
 
 #v(1fr)
 

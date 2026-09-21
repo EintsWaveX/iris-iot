@@ -1,4 +1,4 @@
-#import "/template/template.typ": journal-cover, code-box, code-file, template, answer-lines
+#import "/template/template.typ": journal-cover, code-box, code-file, schematic-figure, jawab, template
 #show: template
 
 #journal-cover(
@@ -6,8 +6,6 @@
   topic: "KONEKTIVITAS MQTT DENGAN MICROPYTHON, RASPBERRY PI PICO W, DAN ECLIPSE MOSQUITTO",
   lang: "id"
 )
-
-#pagebreak()
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -30,26 +28,7 @@
 
 2. Buatlah rangkaian berikut menggunakan daftar alat dan komponen yang telah kalian siapkan! (POT: Potensiometer)
 
-// Ubah nilai di bawah menjadi false selama berkas skematiknya belum tersedia.
-// Selama masih false, Typst tidak pernah menyentuh berkas gambarnya, sehingga
-// jurnal tetap dapat dikompilasi.
-#let schematic-ready = false
-
-#if schematic-ready {
-  figure(image("/schematics/Module 3.png", height: 6cm))
-} else {
-  figure(
-    box(
-      width: 100%,
-      height: 6cm,
-      stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
-    )[
-      #align(center + horizon)[
-        #text(fill: luma(120))[Skema rangkaian Modul 3 (menyusul)]
-      ]
-    ]
-  )
-}
+#schematic-figure("/schematics/Module 3.png", lang: "id")
 
 #table(
   columns: 4 * (1fr,),
@@ -182,26 +161,18 @@
 
 1.	Gambarkanlah alur komunikasi yang diterapkan pada sistem yang telah kalian kerjakan!
 
-#box(
-  width: 100%,
-  height: 8cm,
-  stroke: 1pt + black,
-)[]
+#jawab(kode: "m3.diagram_alur", jenis: "gambar", lang: "id")
 
 2.	Selanjutnya akan dilakukan percobaan respons waktu pengiriman pesan dari *Publisher* ke *Subscriber* melalui broker MQTT. Bukalah terlebih dahulu *DUA (2)* Shell/REPL Thonny untuk memantau keluaran *Publisher* dan *Subscriber*. Putarlah tuas potensiometer perlahan-lahan: setiap kali posisinya bergeser melewati `deadband_pct`, Shell Publisher mencetak *waktu publish* beserta nomor sampel dan posisinya, sementara Shell Subscriber mencetak *waktu terima* beserta nomor sampel dan posisi yang sama. Nomor sampel itulah yang dipakai untuk memasangkan baris pada kedua Shell. Catatlah:
    - *LIMA (5)* pasang data: waktu publish, nomor sampel, dan posisi dari Shell Publisher, beserta waktu terima dari Shell Subscriber
    Kedua waktu tersebut dicatat dalam format *HH:MM:SS:MS*. Hitunglah *delay satu arah* dengan mengurangkan waktu terima terhadap waktu publish.
 
 #pad(left: 0.5cm)[
-  _Catatan: kedua Pico W menyelaraskan jamnya melalui NTP (`ntptime.settime()`)
-  segera setelah terhubung ke Wi-Fi, lalu mengunci satu titik acuan milidetik
-  pada pergantian detik RTC. Karena itu waktu dari kedua Shell benar-benar dapat
-  dikurangkan dan hasilnya merupakan delay satu arah melalui broker. Tanpa
-  langkah penyelarasan ini, RTC Pico W menyala pada 1 Januari 2021 dan kedua
-  papan tidak akan pernah sepakat soal waktu. Ketelitian NTP di atas Wi-Fi
-  berkisar 10--50 ms. Modul ini tidak memiliki kolom round-trip karena MQTT di
-  sini bersifat satu arah: Subscriber hanya mencatat dan tidak memantulkan apa
-  pun kembali._
+  _Catatan: kedua Pico W menyelaraskan jamnya melalui NTP
+  (`ntptime.settime()`) begitu terhubung ke Wi-Fi, sehingga waktu dari kedua
+  Shell sahih untuk dikurangkan. Tanpa langkah ini, RTC Pico W menyala pada 1
+  Januari 2021. Modul ini tidak memiliki kolom round-trip karena Subscriber
+  hanya mencatat, tidak memantulkan apa pun kembali._
 ]
 
 #table(
@@ -230,16 +201,7 @@
 3. Tuliskanlah *analisis* kalian pada sistem yang telah kalian eksperimentasikan sebelumnya pada bagian pengisian berikut ini!
 (Berikan juga *hubungan/korelasinya* dengan menerapkan *metodologi komunikasi* yang sedang kalian pelajari pada modul ini; tidak harus penuh!)
 
-#answer-lines(count: 6)
-
-#pagebreak()
-
-= Saran dan Masukan
-
-1. Asisten
-#answer-lines(count: 3)
-2. Laboratorium
-#answer-lines(count: 3)
+#jawab(kode: "m3.analisis", jenis: "teks", lang: "id")
 
 #v(1fr)
 

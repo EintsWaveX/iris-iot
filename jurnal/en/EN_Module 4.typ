@@ -1,4 +1,4 @@
-#import "/template/template.typ": journal-cover, code-box, code-file, template, answer-lines
+#import "/template/template.typ": journal-cover, code-box, code-file, schematic-figure, jawab, template
 #show: template
 
 #journal-cover(
@@ -6,8 +6,6 @@
   topic: "LONG RANGE COMMUNICATION (LoRa PEER-TO-PEER)",
   lang: "en"
 )
-
-#pagebreak()
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -17,19 +15,17 @@
 #pad(left: 0.5cm)[
   This module uses peer-to-peer LoRa in the form of a game: one Beacon board
   is hidden, and every group hunts it by listening to how strong its signal
-  is. Because peer-to-peer LoRa has no protocol managing the channel for you,
-  every network rule --- when each board may transmit, and how it avoids
-  colliding with the others --- is one you build yourselves. The hunt doubles
-  as a vehicle for learning how radio signal strength relates to distance.
+  is --- doubling as a vehicle for learning how radio signal strength relates
+  to distance. Because peer-to-peer LoRa has no built-in channel protocol,
+  every network rule is one you build yourselves.
 ]
 
 #pad(left: 0.5cm)[
-  *How the game works.* An assistant hides *one* Beacon board somewhere within
-  range of the hotspot. That beacon transmits continuously, five times a
-  second. Each group holds one Hunter board that *only listens*, then reports
-  the signal strength it catches to the scoreboard over Wi-Fi. The closer you
-  are, the stronger the reading. The first group actually holding the Beacon
-  board wins.
+  *How the game works.* An assistant hides *one* Beacon board that transmits
+  continuously, five times a second. Each group holds one Hunter board that
+  *only listens*, then reports the signal strength it catches to the
+  scoreboard over Wi-Fi. The closer you are, the stronger the reading. The
+  first group actually holding the Beacon board wins.
 ]
 
 1. Prepare the following components:
@@ -48,26 +44,7 @@
 
 2. Unlike the previous modules, this module uses *no external sensor or actuator at all*: what is being measured is the radio wave itself. There is therefore nothing to wire --- fit the antenna and power the board up. The table below records the radio pins already wired inside the board and used by the program.
 
-// Flip the value below to false while the schematic file is still missing.
-// While it stays false, Typst never touches the image file, so the journal can
-// still be compiled.
-#let schematic-ready = false
-
-#if schematic-ready {
-  figure(image("/schematics/Module 4.png", height: 6cm))
-} else {
-  figure(
-    box(
-      width: 100%,
-      height: 6cm,
-      stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
-    )[
-      #align(center + horizon)[
-        #text(fill: luma(120))[Module 4 LoRa Hunt topology diagram (to follow)]
-      ]
-    ]
-  )
-}
+#schematic-figure("/schematics/Module 4.png", lang: "en")
 
 #table(
   columns: 4 * (1fr,),
@@ -133,24 +110,18 @@
 
 #pad(left: 0.5cm)[
   _Regulatory note: the band permitted in Indonesia is 920--923 MHz (AS923-2),
-  so the frequency used in this practicum is `920E6`. The values `433E6`,
-  `866E6` and `915E6` belong to other regions and *must not* be used here. The
-  beacon transmits at SF7 with 250 kHz bandwidth, so one packet is only about
-  20 milliseconds in the air; with a 200 millisecond gap the channel is busy
-  roughly a tenth of the time. A rate that dense is only appropriate for a
-  short, low-power practicum session; a permanently installed AS923 device is
-  kept far below it._
+  so the frequency used is `920E6`; `433E6`, `866E6` and `915E6` *must not* be
+  used here. The beacon transmits at SF7 with a 200 ms gap, so the channel is
+  busy roughly a tenth of the time --- appropriate only for a short,
+  low-power practicum session._
 ]
 
 #pad(left: 0.5cm)[
   _Transmit power note: the beacon's power is matched to the *size of the
-  arena*, not turned up as far as it goes. At 20 dBm the whole building reads
-  as equally strong and the beacon becomes impossible to find; but at too low a
-  power the farthest group never hears it at all and the game dies just as
-  surely. The default `BEACON_TX_POWER` is *10 dBm*, which by link budget at
-  SF7 is still audible at roughly a kilometre outdoors and a few hundred metres
-  inside a walled building. Use 2 for a single room, 10 for one floor of a
-  building, and 14 for a large building._
+  arena*, not turned up as far as it goes --- too high and the whole building
+  reads as equally strong, too low and the farthest group hears nothing. The
+  default `BEACON_TX_POWER` is *10 dBm*. Use 2 for a single room, 10 for one
+  floor of a building, and 14 for a large building._
 ]
 
 4. Complete the program below by filling in the blank sections. Afterwards (or while completing it), retype the blank sections you have filled in using the VS Code/Arduino IDE application prepared by your respective lab assistants!
@@ -198,11 +169,7 @@
 
 1.	Draw the communication flow implemented in the system you have worked on!
 
-#box(
-  width: 100%,
-  height: 8cm,
-  stroke: 1pt + black,
-)[]
+#jawab(kode: "m4.diagram_alur", jenis: "gambar", lang: "en")
 
 2.	Next, a response-time experiment will be carried out for packets sent from the *Beacon* to your group's *Hunter*. Open the Hunter board's Serial Monitor; every packet it catches is printed with its packet number, raw RSSI, smoothed RSSI and SNR. The *send time* is carried by the packet itself from the Beacon, while the *receive time* is stamped by the Hunter as the packet arrives, so both can be read from the same Serial Monitor. The same numbers also appear on the scoreboard at `http://192.168.4.1:8080`. Record:
    - *FIVE (5)* rows of readings: packet number, RSSI, SNR, send time and receive time
@@ -262,15 +229,12 @@
   _Note: that estimate in metres comes from_
   $ d = 10^((P_(1"m") - "RSSI") / (10 n)) $
   _where $P_(1"m")$ is the RSSI at one metre (the value you just calibrated) and
-  $n$ is the path-loss exponent, here 2.0 because the hunt is played on open
-  ground; inside a partitioned building it is 2.5--3.5. The formula
-  assumes the signal fades smoothly with distance --- an assumption that
-  collapses the moment a wall is in the way. That is why the scoreboard always
-  shows a range rather than a single number. Notice too that the range *widens
-  in proportion to the distance itself*: a $plus.minus 6$ dB uncertainty means
-  "10 m" is really 6--17 m, while "800 m" is really 460--1390 m. RSSI is
-  therefore useful for guiding your steps once you are close, and very nearly
-  useless as a statement of distance while you are still far away._
+  $n$ is the path-loss exponent, 2.0 in the open and 2.5--3.5 inside a
+  partitioned building. The formula assumes the signal fades smoothly with
+  distance --- an assumption that collapses at a wall, so the range *widens in
+  proportion to distance itself* (a $plus.minus 6$ dB uncertainty means "10 m"
+  is really 6--17 m, "800 m" really 460--1390 m). RSSI guides your steps once
+  close, and is nearly useless as a distance statement while still far away._
 ]
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -279,16 +243,7 @@
 4. Write your *analysis* of the system you experimented with earlier in the fill-in section below!
 (Also give the *relationship/correlation* by applying the *communication methodology* you are studying in this module; it does not have to be complete!)
 
-#answer-lines(count: 6)
-
-#pagebreak()
-
-= Suggestions and Feedback
-
-1. Assistant
-#answer-lines(count: 3)
-2. Laboratory
-#answer-lines(count: 3)
+#jawab(kode: "m4.analisis", jenis: "teks", lang: "en")
 
 #v(1fr)
 

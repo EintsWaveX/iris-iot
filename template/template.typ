@@ -33,6 +33,24 @@
   )
 )
 
+// Fallback caption when a schematic isn't ready yet, and the pointer #jawab()
+// prints in place of a "gambar"/"teks" answer -- both text belong here, next
+// to `labels`, since both are keyed the same way and change together.
+#let schematic-pending-text = (
+  id: "Skema rangkaian belum tersedia.",
+  en: "Circuit schematic not yet available.",
+)
+#let jawab-pointer-text = (
+  id: (
+    gambar: "Gambar dijawab pada lembar jawaban / situs praktikum.",
+    teks: "Dijawab pada lembar jawaban / situs praktikum.",
+  ),
+  en: (
+    gambar: "Diagram answered on the answer sheet / practicum site.",
+    teks: "Answered on the answer sheet / practicum site.",
+  ),
+)
+
 #let color-accent     = rgb("#40b0ff")
 #let color-foreground = rgb("#1c1c1c")
 #let color-background = rgb("#191919")
@@ -90,49 +108,83 @@
   #v(-1cm)
 ]
 
+// A page-1 header block rather than a dedicated cover page -- the identity
+// fields and the institutional line are still all here, just compact enough
+// that "= Rangkaian dan Sistem" starts on the same page beneath them.
 #let journal-cover(
   module: "<FILL THE MODULE HERE>",
   topic: "<FILL THE TOPIC HERE>",
   lang: "id"
 ) = {
-  align(center + horizon)[
-    #text(size: 24pt, weight: "bold")[#labels.at(lang).title]
+  align(center)[
+    #text(size: 17pt, weight: "bold")[#labels.at(lang).title]
+    #v(0.8mm)
+    #text(size: 13pt, weight: "bold")[#labels.at(lang).module #module #sym.dot.c #topic]
   ]
 
-  v(1mm)
+  v(3mm)
 
   align(center)[
-   #text(size: 18pt, weight: "bold")[#labels.at(lang).module #module]
-    #v(1mm)
-    #text(size: 18pt, weight: "regular")[#topic]
-  ]
-
-  v(10mm)
-
-  align(center)[
-    #block(width: 150mm)[
+    #block(width: 130mm)[
       #_field-row(labels.at(lang).identifier.group)
-      #v(2.2mm)
+      #v(1.2mm)
       #_field-row(labels.at(lang).identifier.date)
-      #v(2.2mm)
+      #v(1.2mm)
       #_field-row(labels.at(lang).identifier.code)
-      #v(2.2mm)
+      #v(1.2mm)
       #_field-row(labels.at(lang).identifier.name)
-      #v(2.2mm)
+      #v(1.2mm)
       #_field-row(labels.at(lang).identifier.nim)
     ]
   ]
 
-  v(10mm)
+  v(3mm)
 
   align(center)[
-    #text(size: 14pt, weight: "bold")[#labels.at(lang).course] 
-    #v(1mm)
-    #text(size: 14pt, weight: "bold")[#labels.at(lang).faculty] 
-    #v(1mm)
-    #text(size: 14pt, weight: "bold")[#labels.at(lang).uni] 
-    #v(1mm)
-    #text(size: 14pt, weight: "bold")[#year]
+    #text(size: 9pt, fill: luma(90))[
+      #labels.at(lang).course #sym.dot.c #labels.at(lang).faculty #sym.dot.c #labels.at(lang).uni #sym.dot.c #year
+    ]
+  ]
+
+  v(4mm)
+  line(length: 100%, stroke: 0.5pt + luma(180))
+  v(4mm)
+}
+
+// Hoists the schematic placeholder guard that was duplicated identically
+// across all 8 journals. `ready: false` still renders the dashed placeholder
+// box (used while a schematic is genuinely missing); every journal that has
+// its PNG on disk should pass `ready: true`.
+#let schematic-figure(path, ready: true, lang: "id") = {
+  if ready {
+    figure(image(path, height: 6cm))
+  } else {
+    figure(
+      box(
+        width: 100%,
+        height: 6cm,
+        stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
+      )[
+        #align(center + horizon)[
+          #text(fill: luma(120))[#schematic-pending-text.at(lang)]
+        ]
+      ]
+    )
+  }
+}
+
+// One declarative slot for a question the web form and the answer key will
+// eventually key off `kode` (`jawaban.soalKode`). In print, "gambar" and
+// "teks" answers no longer reserve blank space -- that space moved to a
+// single generic answer sheet printed separately -- so this prints only a
+// one-line pointer. "tabel" isn't handled here: the caller still writes its
+// own #table() beside the #jawab() call, because the measurement scaffolding
+// itself must always print.
+#let jawab(kode: none, jenis: "teks", lang: "id") = {
+  pad(left: 0.5cm)[
+    #text(fill: luma(120), style: "italic", size: 0.85em)[
+      #jawab-pointer-text.at(lang).at(jenis)
+    ]
   ]
 }
 
@@ -221,7 +273,7 @@
 // its own as the sketches change. The one rule that follows from that: a source
 // file's prose must never spell the marker out literally, or the header comment
 // gets dragged into the excerpt as if it were a blank.
-#let code-file(path, lang: "cpp", excerpt: false, around: 4) = {
+#let code-file(path, lang: "cpp", excerpt: false, around: 2) = {
   let lines = read(path).replace("\r\n", "\n").trim("\n").split("\n")
 
   if not excerpt {

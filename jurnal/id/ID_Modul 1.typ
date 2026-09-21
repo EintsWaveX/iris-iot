@@ -1,4 +1,4 @@
-#import "/template/template.typ": journal-cover, code-box, code-file, template, answer-lines
+#import "/template/template.typ": journal-cover, code-box, code-file, schematic-figure, jawab, template
 #show: template
 
 #journal-cover(
@@ -6,8 +6,6 @@
   topic: "KONEKTIVITAS BLUETOOTH LOW ENERGY (BLE)",
   lang: "id"
 )
-
-#pagebreak()
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -31,26 +29,7 @@
 
 2. Buatlah rangkaian berikut menggunakan daftar alat dan komponen yang telah kalian siapkan! (POT: Potensiometer, SRV: Servo)
 
-// Ubah nilai di bawah menjadi false selama berkas skematiknya belum tersedia.
-// Selama masih false, Typst tidak pernah menyentuh berkas gambarnya, sehingga
-// jurnal tetap dapat dikompilasi.
-#let schematic-ready = false
-
-#if schematic-ready {
-  figure(image("/schematics/Module 1.png", height: 6cm))
-} else {
-  figure(
-    box(
-      width: 100%,
-      height: 6cm,
-      stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
-    )[
-      #align(center + horizon)[
-        #text(fill: luma(120))[Skema rangkaian Modul 1 (menyusul)]
-      ]
-    ]
-  )
-}
+#schematic-figure("/schematics/Module 1.png", lang: "id")
 
 #table(
   columns: 4 * (1fr,),
@@ -62,7 +41,7 @@
   ),
   [*Komponen*]     , [*Pin*] , [*Komponen*]      , [*Pin*],
   [POT (kaki kiri)], [GND]   , [SRV (coklat)]    , [GND],
-  [POT (wiper)]    , [GPIO34 \/ GPIO4], [SRV (merah)]     , [VIN (5V)],
+  [POT (wiper)]    , [GPIO34], [SRV (merah)]     , [VIN (5V)],
   [POT (kaki kanan)], [3V3]  , [SRV (oranye)]    , [GPIO16]
 )
 
@@ -76,31 +55,11 @@
 ]
 
 #pad(left: 0.5cm)[
-  *Pembagian UUID per kelompok.* Setiap kelompok memakai satu pasang UUID
-  sendiri. Pada *kedua* program, hapuslah tanda `//` di depan pasangan milik
-  kelompok kalian saja dan biarkan pasangan lain tetap dikomentari. Bila dua
-  kelompok memakai pasangan yang sama, Central salah satu kelompok dapat
+  *Identitas kelompok.* Ubah `GROUP_ID` pada *kedua* program menjadi nomor
+  kelompok kalian (1 sampai 8); kedua UUID ikut berubah sendiri. Bila dua
+  kelompok memakai `GROUP_ID` yang sama, Central salah satu kelompok dapat
   tersambung ke Peripheral kelompok lain.
 ]
-
-#table(
-  columns: (auto, 1fr, 1fr),
-  align: (center + horizon),
-
-  table.header(
-    [*Kelompok*],
-    [*`SERVICE_UUID`*\ _(4 karakter terakhir)_],
-    [*`CHARACTERISTIC_UUID`*\ _(4 karakter terakhir)_],
-  ),
-  [1], [`ce01`], [`6501`],
-  [2], [`ce02`], [`6502`],
-  [3], [`ce03`], [`6503`],
-  [4], [`ce04`], [`6504`],
-  [5], [`ce05`], [`6505`],
-  [6], [`ce06`], [`6506`],
-  [7], [`ce07`], [`6507`],
-  [8], [`ce08`], [`6508`],
-)
 
 3. Sebelum menjalankan program, siapkan lingkungan kerja kalian dengan urutan berikut. Centanglah setiap langkah yang telah kalian selesaikan!
 
@@ -112,7 +71,7 @@
 
     [☐], [Memasang pustaka `ESP32Servo` melalui Library Manager Arduino IDE],
     [☐], [Memilih board ESP32 Dev Module pada Arduino IDE untuk kedua papan],
-    [☐], [Mengaktifkan pasangan UUID kelompok kalian pada *kedua* program (lihat tabel di atas)],
+    [☐], [Mengubah `GROUP_ID` pada *kedua* program menjadi nomor kelompok kalian],
     [☐], [Menghapus tanda `//` pada `#define BOARD_ESP32S3` bila memakai papan ESP32-S3],
     [☐], [Menyambungkan kabel merah servo ke VIN, bukan ke 3V3],
     [☐], [Menyinkronkan jam *kedua* papan dari PC yang sama: `.\scripts\send_time.ps1 -Port COM_A,COM_B`],
@@ -163,11 +122,7 @@
 
 1.	Gambarkanlah alur komunikasi yang diterapkan pada sistem yang telah kalian kerjakan!
 
-#box(
-  width: 100%,
-  height: 8cm,
-  stroke: 1pt + black,
-)[]
+#jawab(kode: "m1.diagram_alur", jenis: "gambar", lang: "id")
 
 2.	Selanjutnya akan dilakukan percobaan respons waktu pengiriman data dari *Central/Client* ke *Peripheral/Server*. Bukalah terlebih dahulu *DUA (2)* Serial Monitor untuk memantau kondisi keluaran dari *Central/Client* dan *Peripheral/Server*. Setiap kali potensiometer diputar cukup jauh, Serial Monitor Central mencetak *waktu kirim* beserta sudut yang dikirim, lalu mencetak delay *round-trip* begitu pantulan (echo) dari Peripheral diterima; sementara Serial Monitor Peripheral mencetak *waktu terima* beserta sudut servo yang diterapkan. Catatlah:
    - *LIMA (5)* pasang data: waktu kirim dan sudut dari Serial Monitor Central, beserta waktu terima dan sudut servo dari Serial Monitor Peripheral
@@ -175,14 +130,10 @@
 
 #pad(left: 0.5cm)[
   _Catatan: kedua papan tidak memiliki akses Internet, sehingga jamnya
-  diselaraskan dari jam PC melalui Serial. Selama *kedua papan disinkronkan dari
-  PC yang sama* (jalankan `send_time.ps1` dengan dua COM port sekaligus), jam
-  keduanya sama sampai ke orde milidetik dan waktu dari dua Serial Monitor yang
-  berbeda *boleh* dikurangkan. Ketelitian sinkronisasi lewat Serial berkisar
-  beberapa milidetik. Bila kedua papan disinkronkan dari PC yang berbeda, atau
-  salah satunya gagal menerima waktu PC (tampil pesan "waktu sejak boot"),
-  kolom delay satu arah menjadi tidak sahih dan hanya kolom round-trip yang
-  dapat dipakai._
+  diselaraskan dari jam PC melalui Serial. Jalankan `send_time.ps1` dengan
+  *kedua COM port papan sekaligus* agar keduanya sama sampai orde milidetik
+  dan delay satu arah sah dihitung. Bila hanya salah satu papan tersinkron
+  (tampil "waktu sejak boot"), pakai kolom round-trip saja._
 ]
 
 #table(
@@ -211,16 +162,7 @@
 3. Tuliskanlah *analisis* kalian pada sistem yang telah kalian eksperimentasikan sebelumnya pada bagian pengisian berikut ini!
 (Berikan juga *hubungan/korelasinya* dengan menerapkan *metodologi komunikasi* yang sedang kalian pelajari pada modul ini; tidak harus penuh!)
 
-#answer-lines(count: 6)
-
-#pagebreak()
-
-= Saran dan Masukan
-
-1. Asisten
-#answer-lines(count: 3)
-2. Laboratorium
-#answer-lines(count: 3)
+#jawab(kode: "m1.analisis", jenis: "teks", lang: "id")
 
 #v(1fr)
 

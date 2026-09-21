@@ -1,4 +1,4 @@
-#import "/template/template.typ": journal-cover, code-box, code-file, template, answer-lines
+#import "/template/template.typ": journal-cover, code-box, code-file, schematic-figure, jawab, template
 #show: template
 
 #journal-cover(
@@ -6,8 +6,6 @@
   topic: "BLUETOOTH LOW ENERGY (BLE) CONNECTIVITY",
   lang: "en"
 )
-
-#pagebreak()
 
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
@@ -31,26 +29,7 @@
 
 2. Build the following circuit using the tools and components you have prepared! (POT: Potentiometer, SRV: Servo)
 
-// Flip the value below to false while the schematic file is still missing.
-// While it stays false, Typst never touches the image file, so the journal can
-// still be compiled.
-#let schematic-ready = false
-
-#if schematic-ready {
-  figure(image("/schematics/Module 1.png", height: 6cm))
-} else {
-  figure(
-    box(
-      width: 100%,
-      height: 6cm,
-      stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
-    )[
-      #align(center + horizon)[
-        #text(fill: luma(120))[Module 1 circuit schematic (to follow)]
-      ]
-    ]
-  )
-}
+#schematic-figure("/schematics/Module 1.png", lang: "en")
 
 #table(
   columns: 4 * (1fr,),
@@ -76,30 +55,11 @@
 ]
 
 #pad(left: 0.5cm)[
-  *UUID assignment per group.* Every group uses its own pair of UUIDs. In
-  *both* programs, remove the `//` in front of your own group's pair only and
-  leave the other pairs commented out. If two groups use the same pair, one
-  group's Central can connect to another group's Peripheral.
+  *Group identity.* Change `GROUP_ID` in *both* programs to your group number
+  (1 to 8); both UUIDs derive from it automatically. If two groups use the
+  same `GROUP_ID`, one group's Central can connect to another group's
+  Peripheral.
 ]
-
-#table(
-  columns: (auto, 1fr, 1fr),
-  align: (center + horizon),
-
-  table.header(
-    [*Group*],
-    [*`SERVICE_UUID`*\ _(last 4 characters)_],
-    [*`CHARACTERISTIC_UUID`*\ _(last 4 characters)_],
-  ),
-  [1], [`ce01`], [`6501`],
-  [2], [`ce02`], [`6502`],
-  [3], [`ce03`], [`6503`],
-  [4], [`ce04`], [`6504`],
-  [5], [`ce05`], [`6505`],
-  [6], [`ce06`], [`6506`],
-  [7], [`ce07`], [`6507`],
-  [8], [`ce08`], [`6508`],
-)
 
 3. Before running the program, prepare your working environment in the following order. Tick every step you have completed!
 
@@ -111,7 +71,7 @@
 
     [☐], [Installing the `ESP32Servo` library through the Arduino IDE Library Manager],
     [☐], [Selecting the ESP32 Dev Module board in the Arduino IDE for both boards],
-    [☐], [Activating your group's UUID pair in *both* programs (see the table above)],
+    [☐], [Changing `GROUP_ID` in *both* programs to your group number],
     [☐], [Removing the `//` in front of `#define BOARD_ESP32S3` when using an ESP32-S3 board],
     [☐], [Connecting the servo's red wire to VIN, not to 3V3],
     [☐], [Syncing *both* boards' clocks from the same PC: `.\scripts\send_time.ps1 -Port COM_A,COM_B`],
@@ -162,11 +122,7 @@
 
 1.	Draw the communication flow implemented in the system you have worked on!
 
-#box(
-  width: 100%,
-  height: 8cm,
-  stroke: 1pt + black,
-)[]
+#jawab(kode: "m1.diagram_alur", jenis: "gambar", lang: "en")
 
 2.	Next, a response-time experiment will be carried out for data sent from the *Central/Client* to the *Peripheral/Server*. First open *TWO (2)* Serial Monitors to observe the output of the *Central/Client* and the *Peripheral/Server*. Every time the potentiometer is turned far enough, the Central Serial Monitor prints the *send time* along with the angle sent, then prints the *round-trip* delay as soon as the echo from the Peripheral arrives; meanwhile the Peripheral Serial Monitor prints the *receive time* along with the servo angle applied. Record:
    - *FIVE (5)* pairs of readings: the send time and angle from the Central Serial Monitor, together with the receive time and servo angle from the Peripheral Serial Monitor
@@ -174,13 +130,10 @@
 
 #pad(left: 0.5cm)[
   _Note: neither board has Internet access, so their clocks are set from the PC
-  clock over Serial. As long as *both boards are synced from the same PC* (run
-  `send_time.ps1` with both COM ports at once), the two clocks agree to within
-  milliseconds and times from two different Serial Monitors *may* be subtracted.
-  Serial synchronisation is accurate to a few milliseconds. If the boards were
-  synced from different PCs, or one of them failed to receive the PC time (it
-  prints a "time since boot" message), the one-way delay column is not valid and
-  only the round-trip column can be used._
+  clock over Serial. Run `send_time.ps1` with *both boards' COM ports at once*
+  so the two clocks agree to within milliseconds and the one-way delay is
+  valid to compute. If only one board synced (it prints "time since boot"),
+  use the round-trip column instead._
 ]
 
 #table(
@@ -209,16 +162,7 @@
 3. Write your *analysis* of the system you experimented with earlier in the fill-in section below!
 (Also give the *relationship/correlation* by applying the *communication methodology* you are studying in this module; it does not have to be complete!)
 
-#answer-lines(count: 6)
-
-#pagebreak()
-
-= Suggestions and Feedback
-
-1. Assistant
-#answer-lines(count: 3)
-2. Laboratory
-#answer-lines(count: 3)
+#jawab(kode: "m1.analisis", jenis: "teks", lang: "en")
 
 #v(1fr)
 

@@ -1,4 +1,4 @@
-#import "/template/template.typ": journal-cover, code-box, code-file, template, answer-lines
+#import "/template/template.typ": journal-cover, code-box, code-file, schematic-figure, jawab, template
 #show: template
 
 #journal-cover(
@@ -7,30 +7,25 @@
   lang: "id"
 )
 
-#pagebreak()
-
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 
 = Rangkaian dan Sistem
 
 #pad(left: 0.5cm)[
-  Modul ini memakai LoRa peer-to-peer dalam bentuk sebuah permainan: satu
-  papan Beacon disembunyikan, dan tiap kelompok memburunya dengan mendengarkan
-  kekuatan sinyalnya. Karena LoRa peer-to-peer tidak memiliki protokol yang
-  mengatur kanalnya untuk kalian, seluruh aturan jaringan --- kapan tiap papan
-  boleh memancar, dan bagaimana ia tidak saling menabrak --- kalian susun
-  sendiri. Perburuan ini sekaligus menjadi wahana untuk mempelajari bagaimana
-  kekuatan sinyal radio berhubungan dengan jarak.
+  Modul ini memakai LoRa peer-to-peer dalam bentuk permainan: satu papan
+  Beacon disembunyikan, dan tiap kelompok memburunya dengan mendengarkan
+  kekuatan sinyalnya --- sekaligus wahana mempelajari hubungan kekuatan sinyal
+  radio dengan jarak. Karena LoRa peer-to-peer tidak memiliki protokol kanal
+  bawaan, seluruh aturan jaringannya kalian susun sendiri.
 ]
 
 #pad(left: 0.5cm)[
-  *Aturan permainan.* Asisten menyembunyikan *satu* papan Beacon di suatu
-  tempat di dalam jangkauan hotspot. Beacon itu memancar terus-menerus lima
-  kali tiap detik. Tiap kelompok memegang satu papan Hunter yang *hanya
-  mendengarkan*, lalu melaporkan kekuatan sinyal yang ditangkapnya ke papan
-  skor melalui Wi-Fi. Semakin dekat kalian, semakin kuat sinyal yang terbaca.
-  Kelompok pertama yang benar-benar memegang papan Beacon-lah pemenangnya.
+  *Aturan permainan.* Asisten menyembunyikan *satu* papan Beacon yang memancar
+  terus-menerus lima kali tiap detik. Tiap kelompok memegang satu papan Hunter
+  yang *hanya mendengarkan*, lalu melaporkan kekuatan sinyalnya ke papan skor
+  melalui Wi-Fi. Semakin dekat kalian, semakin kuat sinyal yang terbaca.
+  Kelompok pertama yang memegang papan Beacon-lah pemenangnya.
 ]
 
 1. Siapkan komponen berikut:
@@ -49,26 +44,7 @@
 
 2. Berbeda dengan modul-modul sebelumnya, modul ini *tidak memakai satu pun sensor maupun aktuator luar*: yang diukur adalah gelombang radionya sendiri. Karena itu tidak ada kabel yang perlu dirangkai --- cukup pasang antena, lalu nyalakan papannya. Tabel di bawah mencatat pin radio yang sudah tersambung di dalam papan dan dipakai oleh program.
 
-// Ubah nilai di bawah menjadi false selama berkas skematiknya belum tersedia.
-// Selama masih false, Typst tidak pernah menyentuh berkas gambarnya, sehingga
-// jurnal tetap dapat dikompilasi.
-#let schematic-ready = false
-
-#if schematic-ready {
-  figure(image("/schematics/Module 4.png", height: 6cm))
-} else {
-  figure(
-    box(
-      width: 100%,
-      height: 6cm,
-      stroke: (paint: luma(160), thickness: 0.7pt, dash: "dashed"),
-    )[
-      #align(center + horizon)[
-        #text(fill: luma(120))[Skema topologi Perburuan LoRa Modul 4 (menyusul)]
-      ]
-    ]
-  )
-}
+#schematic-figure("/schematics/Module 4.png", lang: "id")
 
 #table(
   columns: 4 * (1fr,),
@@ -135,24 +111,18 @@
 
 #pad(left: 0.5cm)[
   _Catatan regulasi: pita yang diizinkan di Indonesia adalah 920--923 MHz
-  (AS923-2), sehingga nilai frekuensi yang dipakai pada praktikum ini adalah
-  `920E6`. Nilai `433E6`, `866E6`, dan `915E6` adalah pita untuk wilayah lain
-  dan *tidak boleh* dipakai di sini. Beacon memancar pada SF7 dengan lebar pita
-  250 kHz, sehingga satu paket hanya sekitar 20 milidetik di udara; dengan jeda
-  200 milidetik, kanal terpakai kira-kira sepersepuluh waktu saja. Laju
-  sepadat ini hanya pantas untuk sesi praktikum yang singkat dan berdaya kecil;
-  perangkat AS923 yang dipasang permanen justru dijaga jauh di bawah angka itu._
+  (AS923-2), sehingga frekuensi yang dipakai adalah `920E6`; nilai `433E6`,
+  `866E6`, dan `915E6` *tidak boleh* dipakai di sini. Beacon memancar pada SF7
+  dengan jeda 200 ms, sehingga kanal terpakai kira-kira sepersepuluh waktu ---
+  laju ini hanya pantas untuk sesi praktikum singkat berdaya kecil._
 ]
 
 #pad(left: 0.5cm)[
   _Catatan daya pancar: daya beacon disetel menurut *ukuran arena*, bukan
-  dibesarkan sebisanya. Pada 20 dBm seluruh gedung terbaca sama kuatnya dan
-  beacon justru mustahil ditemukan; tetapi pada daya yang terlalu kecil,
-  kelompok terjauh tidak mendengar apa pun sejak awal dan permainannya juga
-  mati. Nilai bawaan `BEACON_TX_POWER` adalah *10 dBm*, yang menurut anggaran
-  tautan pada SF7 masih terdengar sampai sekitar satu kilometer di ruang
-  terbuka dan beberapa ratus meter di dalam gedung bertembok. Pakailah 2 untuk
-  satu ruangan, 10 untuk satu lantai gedung, dan 14 untuk gedung besar._
+  dibesarkan sebisanya --- terlalu besar membuat seluruh gedung terbaca sama
+  kuat, terlalu kecil membuat kelompok terjauh tidak mendengar apa pun. Nilai
+  bawaan `BEACON_TX_POWER` adalah *10 dBm*. Pakailah 2 untuk satu ruangan, 10
+  untuk satu lantai gedung, dan 14 untuk gedung besar._
 ]
 
 4. Lengkapi kode program di bawah ini dengan mengisikan bagian-bagian yang rumpang. Selanjutnya (atau sambil melengkapi), ketiklah kembali bagian-bagian rumpang yang telah diisi pada aplikasi VS Code/Arduino IDE yang telah disiapkan oleh asisten jaga kalian masing-masing!
@@ -200,11 +170,7 @@
 
 1.	Gambarkanlah alur komunikasi yang diterapkan pada sistem yang telah kalian kerjakan!
 
-#box(
-  width: 100%,
-  height: 8cm,
-  stroke: 1pt + black,
-)[]
+#jawab(kode: "m4.diagram_alur", jenis: "gambar", lang: "id")
 
 2.	Selanjutnya akan dilakukan percobaan respons waktu pengiriman paket dari *Beacon* menuju *Hunter* kelompok kalian. Bukalah Serial Monitor papan Hunter; tiap paket yang tertangkap dicetak lengkap dengan nomor paket, RSSI mentah, RSSI hasil penghalusan, dan SNR-nya. *Waktu kirim* dibawa oleh paketnya sendiri dari Beacon, sedangkan *waktu terima* dicatat Hunter saat paket itu tiba, sehingga keduanya dapat dibaca dari satu Serial Monitor yang sama. Nomor paket dan nilai yang sama juga muncul pada papan skor di `http://192.168.4.1:8080`. Catatlah:
    - *LIMA (5)* baris data: nomor paket, RSSI, SNR, waktu kirim, dan waktu terima
@@ -263,16 +229,13 @@
 #pad(left: 0.5cm)[
   _Catatan: perkiraan meter itu berasal dari rumus_
   $ d = 10^((P_(1"m") - "RSSI") / (10 n)) $
-  _dengan $P_(1"m")$ adalah RSSI pada jarak satu meter (itulah yang kalian
-  kalibrasi tadi) dan $n$ adalah eksponen path loss, di sini 2,0 karena
-  perburuan dimainkan di lapangan terbuka; di dalam gedung bersekat nilainya
-  2,5--3,5. Rumus ini mengandaikan sinyal melemah mulus terhadap jarak ---
-  andaian yang langsung runtuh begitu ada tembok. Karena itu papan skor selalu
-  menampilkan rentangnya, bukan satu angka tunggal. Perhatikan pula bahwa
-  rentang itu *melebar sebanding dengan jaraknya sendiri*: ketidakpastian
-  $plus.minus 6$ dB berarti "10 m" sebenarnya 6--17 m, sedangkan "800 m"
-  sebenarnya 460--1390 m. Jadi RSSI berguna untuk memandu langkah ketika sudah
-  dekat, dan hampir tidak berguna untuk menyatakan jarak ketika masih jauh._
+  _dengan $P_(1"m")$ RSSI pada jarak satu meter (hasil kalibrasi kalian) dan
+  $n$ eksponen path loss, 2,0 di lapangan terbuka dan 2,5--3,5 di dalam gedung
+  bersekat. Rumus ini mengandaikan sinyal melemah mulus terhadap jarak ---
+  andaian yang runtuh begitu ada tembok, sehingga rentangnya melebar sebanding
+  dengan jaraknya sendiri ($plus.minus 6$ dB berarti "10 m" sebenarnya 6--17 m,
+  "800 m" sebenarnya 460--1390 m). RSSI berguna memandu langkah saat sudah
+  dekat, dan hampir tak berguna untuk menyatakan jarak saat masih jauh._
 ]
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -281,16 +244,7 @@
 4. Tuliskanlah *analisis* kalian pada sistem yang telah kalian eksperimentasikan sebelumnya pada bagian pengisian berikut ini!
 (Berikan juga *hubungan/korelasinya* dengan menerapkan *metodologi komunikasi* yang sedang kalian pelajari pada modul ini; tidak harus penuh!)
 
-#answer-lines(count: 6)
-
-#pagebreak()
-
-= Saran dan Masukan
-
-1. Asisten
-#answer-lines(count: 3)
-2. Laboratorium
-#answer-lines(count: 3)
+#jawab(kode: "m4.analisis", jenis: "teks", lang: "id")
 
 #v(1fr)
 
