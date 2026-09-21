@@ -1,26 +1,31 @@
 name: CI
 
 # Runs on every push and pull request, per the Phase 1 plan's CI/CD section.
-# Six jobs, each independently useful as a regression gate:
+# Seven jobs, each independently useful as a regression gate:
 #
-#   web     the Astro app: typecheck, lint, format, unit tests, build
-#   games   the existing tournament site's own test suites (unchanged this
-#           phase) plus a rebuild, so a change elsewhere in the repo can
-#           never silently break it without CI noticing
-#   modul4  the Module 4 LoRa scoreboard: start the real server, run its
-#           74-assertion protocol suite against it, plus a rebuild
-#   agent   the Phase 2 Orange Pi agent: unit tests for its collectors
-#           (real /proc and `ip neigh` shapes) and its command whitelist
-#           (no server-supplied string may ever reach a shell). Does NOT
-#           run agent/tools/uji_protokol.py -- that suite registers a real
-#           server against the real production database and needs a real
-#           assistant session, neither of which a public CI run can safely
-#           hold; it is a manual verification tool, run by hand the same
-#           way Phase 1's live end-to-end checks were.
-#   secrets a repo-wide scan for anything that looks like a credential
-#   deploy  Vercel preview on a PR, production on main -- gated on the
-#           required secrets actually being present (see the note on that
-#           job below)
+#   web      the Astro app: typecheck, lint, format, unit tests, build
+#   games    the existing tournament site's own test suites (unchanged this
+#            phase) plus a rebuild, so a change elsewhere in the repo can
+#            never silently break it without CI noticing
+#   modul4   the Module 4 LoRa scoreboard: start the real server, run its
+#            74-assertion protocol suite against it, plus a rebuild
+#   journals added for the Phase 3 slim-down: compiles all 8 .typ journals
+#            and asserts their page count stays in the 4-5 target, then
+#            compiles every kunci_jawaban/ sketch and syntax-checks every
+#            practicum .py. Before this job existed, nothing in CI caught a
+#            broken journal or sketch at all.
+#   agent    the Phase 2 Orange Pi agent: unit tests for its collectors
+#            (real /proc and `ip neigh` shapes) and its command whitelist
+#            (no server-supplied string may ever reach a shell). Does NOT
+#            run agent/tools/uji_protokol.py -- that suite registers a real
+#            server against the real production database and needs a real
+#            assistant session, neither of which a public CI run can safely
+#            hold; it is a manual verification tool, run by hand the same
+#            way Phase 1's live end-to-end checks were.
+#   secrets  a repo-wide scan for anything that looks like a credential
+#   deploy   Vercel preview on a PR, production on main -- gated on the
+#            required secrets actually being present (see the note on that
+#            job below)
 #
 # On "rebuild and diff" vs "rebuild and require success": games/index.html,
 # games/public/index.html and modul4/public/index.html are gitignored, not
@@ -158,6 +163,38 @@ jobs:
       - name: Rebuild
         run: python build.py
 
+  journals:
+    name: journals (typst page-count gate + sketch/Python compile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pypdf
+
+      - uses: typst-community/setup-typst@v3
+        with:
+          typst-version: "0.15.1"
+
+      # Catches a `.typ` that fails to build outright, and -- via --max-pages
+      # -- an edit that silently re-inflates a journal past the Phase 3
+      # slim-down's 4-5 page target. Nothing in this repo checked this before.
+      - name: Compile all 8 journals, assert page count in target
+        run: python scripts/check_journal_pages.py --max-pages 5 --min-pages 3
+
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install the ESP32 core and practicum libraries
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+          arduino-cli lib install "ESP32Servo" "WebSockets" "LoRa" "DHT sensor library" "Adafruit Unified Sensor"
+
+      # kunci_jawaban/ is compiled, not kode_praktikum/ -- see the script's
+      # own docstring for why the blanked student sketches can never build.
+      - name: Compile every answer-key sketch, syntax-check every .py
+        run: python scripts/check_sketches.py
+
   agent:
     name: agent (collectors + command whitelist unit tests)
     runs-on: ubuntu-latest
@@ -200,7 +237,7 @@ jobs:
 
   deploy:
     name: deploy (Vercel)
-    needs: [web, games, modul4, agent, secrets]
+    needs: [web, games, modul4, journals, agent, secrets]
     runs-on: ubuntu-latest
     # Gated on the secrets actually existing, rather than failing the whole
     # pipeline while Phase 1's pending user actions (Neon provisioning,
