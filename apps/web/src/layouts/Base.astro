@@ -3,12 +3,19 @@
  * IRIS IoT practicum site — the one page shell.
  *
  * Every page imports this and nothing else for its <head>. tokens.css and
- * base.css are the single source of the design system (tokens.css is a
- * byte-for-byte copy of modul4/src/style/tokens.css — see that file's header
- * for why it is the canonical one, not games/'s near-duplicate).
+ * base.css are the shared design system, moved to packages/kosmik/ when web
+ * and games split out of iris-iot-aso into their own repository, so both
+ * apps consume one real source instead of two copies drifting apart by
+ * hand. Imported by relative path rather than as an npm workspace package:
+ * a real package (with its own package.json, in the root workspaces list)
+ * would mean one consolidated lockfile for the whole repo, which changes
+ * how CI's `npm ci` has to run for every workspace member, not just this
+ * import -- more than a CSS import needs today. Revisit if/when Stage 3's
+ * JS side (packages/kosmik/js/*.core.js) needs real module resolution
+ * rather than a `<script>` tag.
  */
-import "../styles/tokens.css";
-import "../styles/base.css";
+import "../../../../packages/kosmik/style/tokens.css";
+import "../../../../packages/kosmik/style/base.css";
 
 interface Props {
   title: string;
