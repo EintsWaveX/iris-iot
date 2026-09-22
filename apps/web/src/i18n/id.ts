@@ -37,7 +37,15 @@ export const id = {
   },
   live: {
     heading: "Tampilan live",
-    body: "Ladder dan lapisan protokol yang berjalan langsung belum tersedia di tahap ini. Kartu ini akan berpindah menjadi tautan ke tampilan live begitu tahap itu selesai dibangun.",
+    body: "Ladder dan lapisan protokol modul ini, disimulasikan langsung di peramban. Data sungguhan dari sesi dan papan yang berjalan menyusul di tahap berikutnya.",
+    cta: "Buka tampilan live",
+    backToModule: "Kembali ke modul",
+    tabLadder: "Ladder",
+    tabLayers: "Lapisan",
+    tabSandbox: "Coba sendiri",
+    disclosure:
+      "Semua data pada halaman ini disimulasikan di peramban Anda, bukan diambil dari papan atau sesi yang sebenarnya.",
+    fireHint: "Tekan tombol untuk mengirim satu pesan uji dan melihatnya melintasi tiap lapisan.",
   },
   nav: {
     prev: "Sebelumnya",

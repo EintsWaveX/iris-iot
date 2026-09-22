@@ -103,6 +103,9 @@ const links = [
           <Badge id="praktikan-badge">Kelompok</Badge>
           <span id="praktikan-regu-nama"></span>
         </p>
+        <Button kind="ghost" id="link-kelompok-live" class="who__link">
+          Lihat ladder kelompok Anda
+        </Button>
       </Card>
 
       <Card title="Presentasi" class="presentation-section">
@@ -244,6 +247,9 @@ const links = [
       window.Motion?.enter("#view-praktikan > *");
       document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
       document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.regu}`;
+      document
+        .getElementById("link-kelompok-live")
+        ?.addEventListener("click", () => navigate(`/groups/${me.regu}`));
       (document.getElementById("btn-buka-iot") as HTMLButtonElement)?.addEventListener(
         "click",
         () => window.open(iotBoardUrl(me.nim), "_blank", "noopener"),
@@ -316,6 +322,10 @@ const links = [
     display: flex;
     gap: var(--space-3);
     margin-top: var(--space-3);
+  }
+
+  .who__link {
+    margin-top: var(--space-4);
   }
 
   .modul4-card,

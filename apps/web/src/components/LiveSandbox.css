@@ -1,0 +1,107 @@
+.live-sandbox__picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.live-sandbox__picker-btn {
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--tile-hue);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  padding: var(--space-2) var(--space-3);
+}
+
+.live-sandbox__picker-btn[aria-selected="true"] {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.live-sandbox__fire {
+  background: var(--accent);
+  border-radius: var(--radius-md);
+  color: var(--accent-ink);
+  font-weight: 500;
+  min-height: max(var(--tap), 44px);
+  padding-inline: var(--space-5);
+}
+
+.live-sandbox__result {
+  margin-top: var(--space-6);
+}
+
+.live-sandbox__rails {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  height: 8rem;
+  position: relative;
+}
+
+/* See Ladder.css's identical rule for why this is inset 1.2em from both
+   edges rather than flush against them (the last rail's label was being
+   clipped to an unreadable sliver by the field's own overflow: hidden). */
+.live-sandbox__rail {
+  border-top: 1px dashed var(--hairline-strong);
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: calc(1.2em + var(--rail-index) / max(var(--rail-count), 1) * (100% - 2.4em));
+}
+
+.live-sandbox__rail-label {
+  background: var(--bg-elevated);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  padding-inline-end: var(--space-2);
+  position: relative;
+  top: -0.7em;
+}
+
+/* One arrow, drawn in from the top rail to the bottom -- the single-shot
+   equivalent of Ladder's strip, scaleY-animated so it visibly travels
+   rather than simply appearing. */
+.live-sandbox__arrow {
+  background: var(--tile-hue);
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  transform-origin: top;
+  width: 3px;
+}
+
+:root:not([data-motion-tier="0"]) .live-sandbox__arrow {
+  animation: live-sandbox-draw 0.5s var(--ease-out-expo) both;
+}
+
+@keyframes live-sandbox-draw {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.live-sandbox__arrow[data-hilang="yes"] {
+  background: var(--danger);
+  bottom: 35%;
+  opacity: 0.7;
+}
+
+.live-sandbox__readout {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  margin-top: var(--space-3);
+}
+
+.live-sandbox__layers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}

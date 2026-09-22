@@ -1,0 +1,155 @@
+---
+/**
+ * /modules/[n]/live and /en/modules/[n]/live share this view, mirroring how
+ * ModuleDetailView.astro is shared by /modules/[n] and /en/modules/[n]. The
+ * three tabs (Ladder, Layers, Try it yourself) are Tabs.tsx managing sibling
+ * panels, the same pattern the carousel itself uses -- this component owns
+ * none of the tab-switching logic.
+ *
+ * Everything under these tabs is simulated (src/lib/telemetry-sim.ts): there
+ * is no live telemetry relay from any module yet (Stage 15's job), and the
+ * disclosure line at the top says so plainly rather than letting the
+ * animation imply otherwise.
+ */
+import { getEntry } from "astro:content";
+import Base from "../layouts/Base.astro";
+import Nav from "../components/ui/Nav.astro";
+import Tabs from "../components/ui/Tabs";
+import Ladder from "../components/Ladder";
+import LayerXray from "../components/LayerXray";
+import LiveSandbox from "../components/LiveSandbox";
+import { id as strId } from "../i18n/id";
+import { en as strEn } from "../i18n/en";
+
+interface Props {
+  lang: "id" | "en";
+  modul: number;
+}
+
+const { lang, modul } = Astro.props;
+const t = lang === "en" ? strEn : strId;
+const entry = await getEntry("modules", `${lang}/${modul}`);
+if (!entry) {
+  throw new Error(`no module content for ${lang}/${modul}`);
+}
+const m = entry.data;
+
+const basePath = lang === "en" ? "/en/modules" : "/modules";
+const links =
+  lang === "en"
+    ? [
+        { href: "/", label: "Beranda" },
+        { href: "/en/modules", label: "Modules" },
+      ]
+    : [
+        { href: "/", label: "Beranda" },
+        { href: "/modules", label: "Modul" },
+      ];
+
+// Five fixed groups per session, the whole term -- same constant every
+// other group-hued surface in this app (Session Panels, the roster) uses.
+const GROUPS = [1, 2, 3, 4, 5];
+
+const tabs = [
+  { id: "tab-ladder", label: t.live.tabLadder },
+  { id: "tab-layers", label: t.live.tabLayers },
+  { id: "tab-sandbox", label: t.live.tabSandbox },
+];
+---
+
+<Base
+  title={`${t.live.heading} · Modul ${m.modul} · IRIS IoT`}
+  description={t.live.disclosure}
+  cosmosScene="kerja"
+  lang={lang}
+>
+  <Nav links={links} current={basePath} />
+
+  <main class="measure--wide">
+    <header class="live-header">
+      <a class="live-header__back" href={`${basePath}/${m.modul}`}>
+        &laquo; {t.live.backToModule}
+      </a>
+      <p class="eyebrow eyebrow--accent">Modul {m.modul}</p>
+      <h1 class="live-header__title">
+        {m.judul} &middot; {t.live.heading}
+      </h1>
+      <p class="live-header__disclosure measure-prose">{t.live.disclosure}</p>
+    </header>
+
+    <Tabs client:load id="live-tabs" tabs={tabs} />
+
+    <div class="live-panels">
+      <section id="tab-ladder" role="tabpanel" aria-labelledby="tab-ladder-tab" class="live-panel">
+        <Ladder client:load modul={m.modul} groups={GROUPS} />
+      </section>
+
+      <section
+        id="tab-layers"
+        role="tabpanel"
+        aria-labelledby="tab-layers-tab"
+        class="live-panel"
+        hidden
+      >
+        <LayerXray client:load modul={m.modul} groups={GROUPS} layers={m.lapisan} />
+      </section>
+
+      <section
+        id="tab-sandbox"
+        role="tabpanel"
+        aria-labelledby="tab-sandbox-tab"
+        class="live-panel"
+        hidden
+      >
+        <p class="live-panel__hint measure-prose">{t.live.fireHint}</p>
+        <LiveSandbox client:load modul={m.modul} groups={GROUPS} layers={m.lapisan} />
+      </section>
+    </div>
+  </main>
+</Base>
+
+<script>
+  function playEntrance() {
+    window.Motion?.enter(".live-header > *");
+  }
+  playEntrance();
+  document.addEventListener("astro:page-load", playEntrance);
+</script>
+
+<style>
+  .live-header {
+    padding-block: var(--space-8) var(--space-6);
+  }
+
+  .live-header__back {
+    color: var(--text-faint);
+    display: inline-block;
+    font-size: var(--fs-small);
+    margin-bottom: var(--space-4);
+  }
+
+  .live-header__back:hover {
+    color: var(--text);
+  }
+
+  .live-header__title {
+    font-family: var(--font-display);
+    font-size: var(--fs-display-lg);
+    font-weight: 400;
+    margin-top: var(--space-2);
+  }
+
+  .live-header__disclosure {
+    color: var(--text-muted);
+    margin-top: var(--space-3);
+  }
+
+  .live-panels {
+    padding-block: var(--space-6) var(--space-10);
+  }
+
+  .live-panel__hint {
+    color: var(--text-muted);
+    margin-bottom: var(--space-5);
+  }
+</style>

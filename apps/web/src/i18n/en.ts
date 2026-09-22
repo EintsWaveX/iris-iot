@@ -33,7 +33,15 @@ export const en: ModuleStrings = {
   },
   live: {
     heading: "Live view",
-    body: "The ladder and protocol layer view for a running session is not available at this stage yet. This card becomes a link to the live view once that stage is built.",
+    body: "This module's ladder and protocol layer view, simulated live in your browser. Real data from a running session and board follows in a later stage.",
+    cta: "Open the live view",
+    backToModule: "Back to module",
+    tabLadder: "Ladder",
+    tabLayers: "Layers",
+    tabSandbox: "Try it yourself",
+    disclosure:
+      "Everything on this page is simulated in your browser, not read from a real board or session.",
+    fireHint: "Press the button to send one test message and watch it cross every layer.",
   },
   nav: {
     prev: "Previous",

@@ -70,7 +70,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-QzWFZi+FLIx23tnm9SBU4aEgx4x8DsuASP07mfqol/c=' 'sha256-Ya0pUYrC7nM5Cn/056TyVuEiz6dFGrzmkWzgON0pF0U=' 'sha256-ZjaA8J2lKFGPkjJnHbrairBo8ds7C5NVQ2EXr4Fto4A=' 'sha256-acavoPe7QKD45Tz0yYzNYhrWOKayI+GKxLOnyc2NEZA=' 'sha256-WVpdudcU+tNaFu7EAEwE0Z9z+QEo09vTa+kYVpKFoj0=' 'sha256-VGJU3vMOEQegeT1XNO0laChE+88A29XevxxhXV51GdI=' 'sha256-w+3QLEn087QBQ+azSIRfJnal/dfVaiqiU3RzhJy/UCc='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://vercel.com; frame-src 'self' https://*.public.blob.vercel-storage.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-QzWFZi+FLIx23tnm9SBU4aEgx4x8DsuASP07mfqol/c=' 'sha256-Ya0pUYrC7nM5Cn/056TyVuEiz6dFGrzmkWzgON0pF0U=' 'sha256-ZjaA8J2lKFGPkjJnHbrairBo8ds7C5NVQ2EXr4Fto4A=' 'sha256-acavoPe7QKD45Tz0yYzNYhrWOKayI+GKxLOnyc2NEZA=' 'sha256-WVpdudcU+tNaFu7EAEwE0Z9z+QEo09vTa+kYVpKFoj0=' 'sha256-VGJU3vMOEQegeT1XNO0laChE+88A29XevxxhXV51GdI=' 'sha256-w+3QLEn087QBQ+azSIRfJnal/dfVaiqiU3RzhJy/UCc=' 'sha256-z3Tz48YXqyVj56W7+3ydfCY+9cFfX8VYj/G34eV89RY=' 'sha256-UH+yQphnbqfVWugfWmhmWVCKTN0mfTyN25rY0NrHTqw='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://vercel.com; frame-src 'self' https://*.public.blob.vercel-storage.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
     }

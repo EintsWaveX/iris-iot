@@ -1,0 +1,11 @@
+---
+import ModuleLiveView from "../../../../components/ModuleLiveView.astro";
+
+export function getStaticPaths() {
+  return [1, 2, 3, 4].map((n) => ({ params: { n: String(n) } }));
+}
+
+const { n } = Astro.params;
+---
+
+<ModuleLiveView lang="en" modul={Number(n)} />

@@ -21,6 +21,7 @@ import Nav from "../components/ui/Nav.astro";
 import Card from "../components/ui/Card.astro";
 import Table from "../components/ui/Table.astro";
 import Badge from "../components/ui/Badge.astro";
+import Button from "../components/ui/Button.astro";
 import ModuleCarousel from "../components/ModuleCarousel";
 import BlankEditor from "../components/BlankEditor";
 import { id as strId } from "../i18n/id";
@@ -189,10 +190,7 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
       <section id="live" role="tabpanel" aria-labelledby="live-tab" class="module-panel" hidden>
         <h2 class="module-panel__heading">{t.live.heading}</h2>
         <p class="measure-prose">{t.live.body}</p>
-        <Card
-          title={t.setup.pinHeading === m.pin.judul ? m.pin.judul : "Ladder / Lapisan"}
-          class="module-panel__card"
-        >
+        <Card class="module-panel__card">
           <p class="module-live__ladder">Ladder: {m.ladder.jalur} jalur</p>
           <Table
             columns={[
@@ -201,6 +199,9 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
             ]}
             rows={m.lapisan}
           />
+          <Button kind="primary" href={`${basePath}/${m.modul}/live`} class="module-live__cta">
+            {t.live.cta}
+          </Button>
         </Card>
       </section>
     </div>
@@ -351,6 +352,10 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
     font-family: var(--font-mono);
     font-size: var(--fs-small);
     margin-bottom: var(--space-4);
+  }
+
+  .module-live__cta {
+    margin-top: var(--space-5);
   }
 
   .lang-switch {
