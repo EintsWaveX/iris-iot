@@ -75,9 +75,13 @@ function resolve(value: string, seen: Set<string> = new Set()): string {
 
 function hexToRgb(hex: string): [number, number, number] {
   const clean = hex.trim().replace("#", "");
-  const full = clean.length === 3
-    ? clean.split("").map((c) => c + c).join("")
-    : clean.slice(0, 6);
+  const full =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : clean.slice(0, 6);
   const int = parseInt(full, 16);
   return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
 }
@@ -171,8 +175,7 @@ function worstContrastAlongGradient(
         lerp(a[1], b[1], frac),
         lerp(a[2], b[2], frac),
       ];
-      const mixedHex =
-        "#" + mixed.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+      const mixedHex = "#" + mixed.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
       const c = contrast(mixedHex, against);
       if (c < worst) {
         worst = c;
