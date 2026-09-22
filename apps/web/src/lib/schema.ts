@@ -226,7 +226,11 @@ export const presentasi = pgTable(
     diunggahPada: timestamp("diunggah_pada", { withTimezone: true }).notNull().defaultNow(),
     aktif: boolean("aktif").notNull().default(false),
   },
-  (t) => [uniqueIndex("presentasi_aktif_unik").on(t.aktif).where(sql`${t.aktif} = true`)],
+  (t) => [
+    uniqueIndex("presentasi_aktif_unik")
+      .on(t.aktif)
+      .where(sql`${t.aktif} = true`),
+  ],
 );
 
 /**

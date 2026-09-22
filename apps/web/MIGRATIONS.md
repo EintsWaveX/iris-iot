@@ -25,8 +25,8 @@ before a fourth undocumented manual apply happened.
 
 2. **Read the generated SQL.** Drizzle's diff is usually right but is not
    guaranteed to be the migration you meant (a renamed column becomes a drop
-   + add unless you answer its interactive prompt correctly, which silently
-   loses data). Read the file before it goes anywhere near production.
+   - add unless you answer its interactive prompt correctly, which silently
+     loses data). Read the file before it goes anywhere near production.
 
 3. **Test against a throwaway local Postgres first, always.** This project
    has a real local PostgreSQL 18 install (`Program Files\PostgreSQL\18`) as
@@ -67,7 +67,7 @@ before a fourth undocumented manual apply happened.
 4. **Apply to the real database.** Get the direct (non-pooled) Neon
    connection string — `vercel env pull apps/web/.env.local` writes
    `DATABASE_URL`, or copy it from the Neon dashboard directly. Use the
-   *direct* connection for a migration, not a pgbouncer-pooled one; DDL
+   _direct_ connection for a migration, not a pgbouncer-pooled one; DDL
    under a connection pooler can behave unpredictably with prepared
    statements. Then:
 
@@ -88,18 +88,18 @@ before a fourth undocumented manual apply happened.
 
 ## Migrations applied so far
 
-| File | What it adds | Applied to production |
-| --- | --- | --- |
-| `0000_overrated_morlocks.sql` | Phase 1 foundation (asisten, sesi, regu, praktikan, percobaan_masuk, audit) | Yes |
-| `0001_daily_zuras.sql` | Phase 2 server/device registry (server, denyut, perangkat, perintah) | Yes |
-| `0002_roster_kelompok_anggota.sql` | Phase 3 master roster (kelompok, anggota, sesi_kelompok) | **Yes — as of 2026-09-22, applied directly during Stage 4** (see note below) |
-| `0003_violet_sentinels.sql` | Phase 5 Stage 4: presentasi table, jawaban's benar/percobaan + nullable sesiId, sesi's slot/butuh_ap, asisten's password_hash | Yes — 2026-09-22 |
+| File                               | What it adds                                                                                                                  | Applied to production                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `0000_overrated_morlocks.sql`      | Phase 1 foundation (asisten, sesi, regu, praktikan, percobaan_masuk, audit)                                                   | Yes                                                                          |
+| `0001_daily_zuras.sql`             | Phase 2 server/device registry (server, denyut, perangkat, perintah)                                                          | Yes                                                                          |
+| `0002_roster_kelompok_anggota.sql` | Phase 3 master roster (kelompok, anggota, sesi_kelompok)                                                                      | **Yes — as of 2026-09-22, applied directly during Stage 4** (see note below) |
+| `0003_violet_sentinels.sql`        | Phase 5 Stage 4: presentasi table, jawaban's benar/percobaan + nullable sesiId, sesi's slot/butuh_ap, asisten's password_hash | Yes — 2026-09-22                                                             |
 
 ### 2026-09-22: migration 0002 had never actually reached production
 
 PHASE3.md recorded Phase 3's schema step as done and "verified against a
 real (throwaway local) Postgres" — true, but that verification never
-implied 0002 had been applied to the *actual* Neon database, and it hadn't
+implied 0002 had been applied to the _actual_ Neon database, and it hadn't
 been. Production had only ever received 0000 and 0001; `kelompok`,
 `anggota`, `sesi_kelompok` and `jawaban` did not exist. Since
 `resolvePraktikan()` calls `masterRosterIsPopulated()` unconditionally
