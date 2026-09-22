@@ -44,6 +44,57 @@ const links = [
   </Nav>
   <Toast client:load />
 
+  <!--
+    The session identity banner: what is actually running right now,
+    stated plainly rather than left for the "Sesi hari ini" card further
+    down to imply. Full width (a .measure--wide row inside, not a
+    .measure one) rather than sharing <main>'s narrower column, since
+    this is the one thing on the page that genuinely benefits from the
+    room a wide viewport offers -- everything below it is a linear
+    procedure (start a session, paste a roster) that reads top to bottom
+    regardless of viewport width, so it stays at the standard measure.
+
+    Asisten-only for now: /api/session/current, the only endpoint that
+    knows the running module and its timing, is deliberately
+    assistant-only (its response also carries the full roster, including
+    every group's members). Extending this banner to praktikan needs a
+    narrower endpoint -- module and timing only, no roster -- which is a
+    real, flagged follow-up, not an oversight.
+  -->
+  <div id="session-banner-host" class="session-banner-host" hidden>
+    <div class="measure--wide">
+      <div class="session-banner" id="session-banner" hidden>
+        <p class="eyebrow eyebrow--accent">Sesi berjalan</p>
+        <h1 class="session-banner__module">
+          Modul <span id="banner-modul-nomor"></span>{" "}
+          <span class="session-banner__module-nama" id="banner-modul-nama"></span>
+        </h1>
+        <dl class="session-banner__meta">
+          <div>
+            <dt>Tanggal</dt>
+            <dd id="banner-tanggal"></dd>
+          </div>
+          <div>
+            <dt>Waktu</dt>
+            <dd id="banner-waktu"></dd>
+          </div>
+          <div>
+            <dt>Berjalan</dt>
+            <dd id="banner-durasi"></dd>
+          </div>
+          <div>
+            <dt>Kelompok</dt>
+            <dd id="banner-kelompok"></dd>
+          </div>
+        </dl>
+      </div>
+      <div class="session-banner session-banner--kosong" id="session-banner-kosong" hidden>
+        <p class="eyebrow">Tidak ada sesi</p>
+        <p class="session-banner__kosong-teks">Belum ada sesi yang berjalan hari ini.</p>
+      </div>
+    </div>
+  </div>
+
   <main class="measure">
     <div id="loading">
       <EmptyState title="Memuat…" />
@@ -168,6 +219,34 @@ const links = [
       return KODE_PESAN[kode] ?? "Terjadi kesalahan.";
     }
 
+    // A stopgap, not a real content model: the schema's sesi.modul is a
+    // bare integer with no metadata table behind it (there is nowhere in
+    // the database to hang a module's display name yet), and building
+    // that table is Phase 5's own Stage 4, not this one. Four modules
+    // that never change order justify a literal map for now.
+    const MODULE_NAMES: Record<number, string> = {
+      1: "Bluetooth Low Energy",
+      2: "WebSocket",
+      3: "MQTT",
+      4: "LoRa",
+    };
+
+    // The 165-minute practicum session cap (see the schedule the site's
+    // own memory of it documents: four sessions a day, cleared after 165
+    // minutes each) -- the banner's "remaining" figure is read against
+    // this, not against anything the session row itself states, since
+    // sesi carries no duration cap of its own.
+    const SESI_CAP_MENIT = 165;
+
+    function formatDurasiBerjalan(mulaiPadaIso: string | null): string {
+      if (!mulaiPadaIso) return "belum diketahui";
+      const mulaiMs = new Date(mulaiPadaIso).getTime();
+      if (Number.isNaN(mulaiMs)) return "belum diketahui";
+      const berjalanMenit = Math.max(0, Math.round((Date.now() - mulaiMs) / 60000));
+      const sisaMenit = Math.max(0, SESI_CAP_MENIT - berjalanMenit);
+      return `${berjalanMenit} menit · sisa ${sisaMenit} menit`;
+    }
+
     // Module 4A's board runs on the Orange Pi itself, on the local
     // IRIS-IOT network, never through this site's own domain -- see the
     // Phase 2 plan's topology section for why that address is fixed rather
@@ -231,9 +310,13 @@ const links = [
       textarea.value = rosterToPaste(roster);
       repaintTally();
 
+      show("session-banner-host");
+
       if (!data.sesi) {
         show("tanpa-sesi");
         hide("dengan-sesi");
+        hide("session-banner");
+        show("session-banner-kosong");
         return;
       }
 
@@ -242,6 +325,15 @@ const links = [
       const s = data.sesi;
       document.getElementById("sesi-info")!.textContent =
         `Sesi #${s.id} · Modul ${s.modul} · ${s.tanggal} ${s.mulai}`;
+
+      hide("session-banner-kosong");
+      show("session-banner");
+      document.getElementById("banner-modul-nomor")!.textContent = String(s.modul);
+      document.getElementById("banner-modul-nama")!.textContent = MODULE_NAMES[s.modul] ?? "";
+      document.getElementById("banner-tanggal")!.textContent = s.tanggal;
+      document.getElementById("banner-waktu")!.textContent = s.mulai;
+      document.getElementById("banner-durasi")!.textContent = formatDurasiBerjalan(s.mulaiPada);
+      document.getElementById("banner-kelompok")!.textContent = `${roster.length} kelompok`;
 
       renderKelompokToggles(s.id, roster);
     }
@@ -519,5 +611,73 @@ const links = [
 
   .hidden-until-known {
     visibility: hidden;
+  }
+
+  /* -------------------------------------------------------------------
+     SESSION BANNER — the one full-bleed element on this page. Everything
+     else is a linear procedure read top to bottom (start a session,
+     paste a roster) that gains nothing from extra width, so it stays at
+     the standard .measure; this is the exception, because a session's
+     identity is exactly the kind of thing worth stating across the room
+     rather than tucked into a narrow column.
+     ------------------------------------------------------------------- */
+  .session-banner-host {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--hairline);
+    padding-block: var(--space-7);
+  }
+
+  .session-banner-host > div {
+    padding-inline: var(--gutter);
+  }
+
+  .session-banner__module {
+    font-family: var(--font-display);
+    font-size: var(--fs-display-md);
+    font-weight: 400;
+    margin-top: var(--space-2);
+  }
+
+  .session-banner__module-nama {
+    color: var(--text-muted);
+  }
+
+  /* Below lg, the meta row stacks -- four labelled figures side by side
+     under 1024px reads as a cramped table, not a banner. */
+  .session-banner__meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+  }
+
+  .session-banner__meta dt {
+    color: var(--text-faint);
+    font-size: var(--fs-small);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+  }
+
+  .session-banner__meta dd {
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--fs-body-lg);
+    margin: 0;
+  }
+
+  /* This is the one genuine "lg and above gets a different shape" moment
+     on this page: the four meta figures move into a single row, which
+     only reads well once there is enough width for each figure to keep
+     its own breathing room. */
+  @media (min-width: 1025px) {
+    .session-banner__meta {
+      flex-direction: row;
+      gap: var(--space-9);
+    }
+  }
+
+  .session-banner--kosong .session-banner__kosong-teks {
+    color: var(--text-muted);
+    margin-top: var(--space-2);
   }
 </style>

@@ -36,28 +36,37 @@ const links = [{ href: "/", label: "Beranda" }];
   <LoginModal />
 
   <main class="measure">
-    <section class="hero">
-      <p class="eyebrow eyebrow--accent">Praktikum IoT &middot; Laboratorium IRIS</p>
-      <h1 class="hero__title">
-        Empat modul.
-        <br />
-        Satu papan.
-      </h1>
-      <p class="hero__lede">
-        BLE, WebSocket, MQTT, dan LoRa: satu tempat untuk jurnal, jadwal sesi, dan papan skor
-        praktikum IoT IRIS.
-      </p>
-      <div class="hero__actions">
-        <Button kind="primary" data-modal-open="login-modal">
-          Masuk
-        </Button>
-        <Button kind="ghost" href="/ui">
-          Panduan gaya
-        </Button>
-      </div>
-    </section>
+    <!--
+      Below lg (1024px and under): the hero stacks above the four module
+      cards in a grid, unchanged from before this pass. At lg and above,
+      hero-layout becomes a real two-column design -- the display line
+      and actions hold the left column, and the four modules become a
+      vertical signal chain on the right rather than a 2x2 grid, read as
+      stations on a path (BLE, WebSocket, MQTT, LoRa) rather than four
+      equal, unordered cards.
+    -->
+    <div class="hero-layout">
+      <section class="hero">
+        <p class="eyebrow eyebrow--accent">Praktikum IoT &middot; Laboratorium IRIS</p>
+        <h1 class="hero__title">
+          Empat modul.
+          <br />
+          Satu papan.
+        </h1>
+        <p class="hero__lede">
+          BLE, WebSocket, MQTT, dan LoRa: satu tempat untuk jurnal, jadwal sesi, dan papan skor
+          praktikum IoT IRIS.
+        </p>
+        <div class="hero__actions">
+          <Button kind="primary" data-modal-open="login-modal">
+            Masuk
+          </Button>
+          <Button kind="ghost" href="/ui">
+            Panduan gaya
+          </Button>
+        </div>
+      </section>
 
-    <section class="section">
       <div class="modules">
         <Card eyebrow="Modul 1" title="Bluetooth Low Energy">
           <p>Central/Peripheral GATT, dua ESP32 tanpa jaringan IP.</p>
@@ -72,7 +81,7 @@ const links = [{ href: "/", label: "Beranda" }];
           <p>Perburuan LoRa P2P antar papan ESP32.</p>
         </Card>
       </div>
-    </section>
+    </div>
   </main>
 </Base>
 
@@ -107,6 +116,11 @@ const links = [{ href: "/", label: "Beranda" }];
 </script>
 
 <style>
+  .hero-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
   .hero {
     display: flex;
     flex-direction: column;
@@ -139,5 +153,34 @@ const links = [{ href: "/", label: "Beranda" }];
     display: grid;
     gap: var(--space-5);
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    padding-block: var(--space-8);
+  }
+
+  /* lg and above: two real columns rather than a wider version of the
+     stacked layout. The display line stays at a comfortable size (not
+     --fs-display-xl's full room-filling clamp) since it now shares the
+     viewport with the module chain instead of owning it outright, and
+     the four modules become a vertical run -- stations on a signal path,
+     not an unordered 2x2 grid -- in their own column beside it. */
+  @media (min-width: 1025px) {
+    .hero-layout {
+      align-items: center;
+      display: grid;
+      gap: var(--space-9);
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+
+    .hero {
+      padding-block: 0;
+    }
+
+    .hero__title {
+      font-size: var(--fs-display-lg);
+    }
+
+    .modules {
+      grid-template-columns: 1fr;
+      padding-block: 0;
+    }
   }
 </style>

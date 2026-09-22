@@ -44,6 +44,28 @@ const links = [
     </section>
 
     <section class="section">
+      <h2 class="section__title">Breakpoints</h2>
+      <p class="eyebrow">
+        sm sampai 640 &middot; md 641 sampai 1024 &middot; lg 1025 sampai 1440 &middot; xl dari 1441
+      </p>
+      <div class="bp-ruler">
+        <span class="bp-ruler__tier" data-tier="sm">
+          sm
+        </span>
+        <span class="bp-ruler__tier" data-tier="md">
+          md
+        </span>
+        <span class="bp-ruler__tier" data-tier="lg">
+          lg
+        </span>
+        <span class="bp-ruler__tier" data-tier="xl">
+          xl
+        </span>
+        <span class="bp-ruler__width" id="bp-width"></span>
+      </div>
+    </section>
+
+    <section class="section">
       <h2 class="section__title">Button</h2>
       <div class="row">
         <Button kind="ghost">Ghost</Button>
@@ -214,6 +236,25 @@ const links = [
     document.getElementById("toast-demo-danger")?.addEventListener("click", () => {
       window.Toast?.show("NIM ini tidak terdaftar.", "danger");
     });
+
+    // Live breakpoint indicator: which of the four tiers the current
+    // viewport falls into, and its exact width, read on load and on
+    // every resize -- the same four figures docs/design-system.md's
+    // layout section and every page's own @media rules are written
+    // against, made checkable without opening devtools.
+    function updateBreakpointIndicator() {
+      const width = window.innerWidth;
+      const tier = width <= 640 ? "sm" : width <= 1024 ? "md" : width <= 1440 ? "lg" : "xl";
+      document.querySelectorAll<HTMLElement>(".bp-ruler__tier").forEach((el) => {
+        el.dataset.active = el.dataset.tier === tier ? "yes" : "no";
+      });
+      const widthEl = document.getElementById("bp-width");
+      if (widthEl) widthEl.textContent = `${width}px`;
+    }
+
+    updateBreakpointIndicator();
+    window.addEventListener("resize", updateBreakpointIndicator, { passive: true });
+    document.addEventListener("astro:page-load", updateBreakpointIndicator);
   </script>
 </Base>
 
@@ -234,5 +275,35 @@ const links = [
   .tabpanel {
     color: var(--text-muted);
     padding: var(--space-5) 0;
+  }
+
+  .bp-ruler {
+    align-items: center;
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+  }
+
+  .bp-ruler__tier {
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    padding: var(--space-1) var(--space-4);
+    text-transform: uppercase;
+  }
+
+  .bp-ruler__tier[data-active="yes"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .bp-ruler__width {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    margin-left: var(--space-3);
   }
 </style>

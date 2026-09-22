@@ -297,9 +297,28 @@
   --space-10: 96px;
   --space-11: 144px;
 
-  /* The editorial measure. Replaces the old near-full-bleed 1400/1600px. */
+  /* Three measures, not one, per docs/design-system.md's layout section:
+     extra viewport width goes to data and secondary panels, running
+     prose keeps a bounded line length. Widening a paragraph past a
+     comfortable measure is not using the space, it is stretching it.
+     --measure-prose : body copy, walkthrough steps, a lede -- anything
+                        meant to be read start to finish.
+     --measure        : the standard content column (unchanged from
+                         before this token split).
+     --measure-wide   : dashboards, ladders, tables -- surfaces that want
+                         the room a wide viewport actually offers. */
+  --measure-prose: 68ch;
   --measure: 1100px;
+  --measure-wide: 1600px;
   --gutter: clamp(var(--space-5), 5vw, var(--space-9));
+
+  /* The four breakpoints every page is designed against (see
+     docs/design-system.md's layout section for what each one's shape
+     actually is). CSS custom properties cannot be read inside a media
+     query's condition, so these are documentation, not live values --
+     every @media rule in this codebase spells out the literal pixel
+     figure, and it must match one of these four. */
+  /* sm: <= 640px   md: 641-1024px   lg: 1025-1440px   xl: >= 1441px */
 
   --nav-size: 68px;
 

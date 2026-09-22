@@ -186,6 +186,26 @@ textarea:focus-visible {
   padding-inline: var(--gutter);
 }
 
+/* For a dashboard, a ladder, a table -- a data surface that wants the
+   room a wide viewport actually offers, rather than the standard content
+   column. Never use this for running prose; --measure-prose is the
+   bounded-line-length counterpart for that. */
+.measure--wide {
+  width: 100%;
+  max-width: var(--measure-wide);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* A block of running text -- body copy, a walkthrough step, a lede --
+   capped at a comfortable line length regardless of how wide its
+   container is. Applied to the text itself, not the section around it,
+   so a --measure--wide layout can still hold prose that doesn't stretch
+   edge to edge. */
+.measure-prose {
+  max-width: var(--measure-prose);
+}
+
 /* A hairline divider that fades at both ends, so it reads as a rule drawn on
    the page rather than a box edge. */
 .rule {
