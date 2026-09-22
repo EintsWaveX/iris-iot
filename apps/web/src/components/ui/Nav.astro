@@ -90,10 +90,11 @@ const { links, current = Astro.url.pathname } = Astro.props;
   /* The swept hairline: invisible while the page sits at the top (the bar
      has nothing to separate itself from yet), faded in by
      scripts/nav-scroll.ts once the page has actually scrolled. Painted with
-     --sweep rather than a flat colour so scrolling reads as one more
-     cosmic-editorial gesture instead of a plain rule appearing. */
+     --sweep-ring (decorative, not text-bearing — a 1px line) rather than a
+     flat colour so scrolling reads as one more cosmic-editorial gesture
+     instead of a plain rule appearing. */
   .nav::after {
-    background-image: var(--sweep);
+    background-image: var(--sweep-ring);
     background-size: 200% auto;
     bottom: 0;
     content: "";

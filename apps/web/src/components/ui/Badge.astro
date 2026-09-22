@@ -1,9 +1,10 @@
 ---
 /**
  * A small status/identity pill. `tone` picks a semantic colour;
- * `group` (1-7) picks a group hue instead and overrides tone — carried
- * over from modul4/'s rule that group identity and semantic state are never
- * the same visual channel (see tokens.css's HEAT section for why).
+ * `group` (1-5, matching the practicum's fixed five-group count for the
+ * whole term) picks a group hue instead and overrides tone — carried over
+ * from modul4/'s rule that group identity and semantic state are never the
+ * same visual channel (see tokens.css's HEAT section for why).
  *
  * Both channels land on the same `--badge-hue` custom property, so there is
  * exactly one rule for colour and background (ported from the portfolio's
@@ -15,7 +16,7 @@
  */
 interface Props {
   tone?: "neutral" | "accent" | "ok" | "warn" | "danger" | "gold";
-  group?: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  group?: 1 | 2 | 3 | 4 | 5;
   id?: string;
   [attr: string]: unknown;
 }
@@ -45,7 +46,7 @@ const hue = group ? `var(--group-${group})` : TONE_HUES[tone];
     color: var(--badge-hue);
     display: inline-flex;
     font-family: var(--font-mono);
-    font-size: var(--fs-micro);
+    font-size: var(--fs-small);
     font-weight: 500;
     gap: var(--space-1);
     letter-spacing: var(--tracking-wide);

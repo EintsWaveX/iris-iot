@@ -20,9 +20,14 @@
    Sans/Mono) via style/tokens-override.css, re-declaring only the two
    --font-* pointers below; every other change here, including the display
    face's size floor, reaches both apps.
-   ========================================================================= */
 
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap");
+   Font loading is NOT declared here. It used to be a single @import line
+   at the top of this file, but the two apps now load the same three faces
+   two different ways: apps/web self-hosts them via @fontsource (see
+   apps/web/src/styles/fonts.css), apps/games still uses the Google Fonts
+   path (see fonts-google.css, a sibling of this file). Each app pulls in
+   whichever one applies; putting either here would force it on both.
+   ========================================================================= */
 
 :root {
   color-scheme: dark;
@@ -124,16 +129,44 @@
      is for the single, non-animated focus state a form control needs). */
   --glow-ring: 0 0 0 3px var(--accent-glow);
 
-  /* One gradient, swept by the same @keyframes aurora-sweep in motion.css,
-     for both gradient text (background-clip) and the 1px mask-composite
-     border ring Stage 4 adds to buttons/cards/badges. IRIS's own hues
-     rather than a full rainbow, so the sweep still reads as this site and
-     not as a borrowed effect. */
-  --sweep: linear-gradient(
+  /* Two gradients, not one, swept by the same @keyframes aurora-sweep in
+     motion.css -- split because one token was being asked to do two jobs
+     with opposite constraints, and doing both with the same stops was a
+     real bug: a primary button's hover fill used to animate --neb-violet
+     and --neb-teal (1.55:1 and 1.65:1 against the near-black label ink
+     painted on top of it) underneath a label that only avoided going
+     invisible by luck of animation phase. The NEBULA section below says
+     plainly "never put text on these" -- --sweep-ring is where that rule
+     was being broken.
+
+     --sweep-ring is DECORATIVE ONLY: a 1px mask-composite border ring
+     (buttons, cards, badges) or a hairline (nav). Nothing this thin can
+     ever have text sitting on it, so any hue is fine, including the
+     nebula tones that make it read as this site's own effect rather than
+     a borrowed one. */
+  --sweep-ring: linear-gradient(
     100deg,
     var(--accent),
     var(--neb-violet),
     var(--neb-teal),
+    var(--accent-bright),
+    var(--accent)
+  );
+
+  /* --sweep-surface is TEXT-BEARING: any fill a label can sit on top of,
+     such as the primary button's hover overlay. Every stop is a light
+     hue, so a fixed dark ink (--accent-ink) clears 4.5:1 against the
+     gradient's worst point, not just its declared stops -- sampled along
+     its whole length, the worst point is --group-2 at 6.96:1 against
+     --accent-ink (was 1.55:1 against --sweep-ring's --neb-violet stop).
+     packages/kosmik/contrast.test.ts enforces this by sampling the
+     gradient itself, not just trusting the comment. */
+  --sweep-surface: linear-gradient(
+    100deg,
+    var(--accent),
+    var(--group-5),
+    var(--group-1),
+    var(--group-2),
     var(--accent-bright),
     var(--accent)
   );
@@ -162,19 +195,22 @@
   --ok-soft: rgba(94, 234, 212, 0.12);
 
   /* -----------------------------------------------------------------------
-     GROUP IDENTITY — one hue per hunting group. Seven hues spread around the
-     wheel, all deliberately clear of the --accent blue and the --gold yellow
-     so a group never reads as "the highlighted thing" or "the champion".
-     The first four are carried over from games/ unchanged so the two sites
-     stay one family; 5 through 7 extend the same spacing.
+     GROUP IDENTITY — one hue per practicum group. Fixed at five, matching
+     the practicum's own settled group count for the whole term across every
+     module (not per session, not per module). Previously seven: --group-6
+     (lilac) and --group-7 (jade) are deleted rather than renumbered, since
+     1 through 5 already carry the practicum's real groups and nothing reads
+     them by anything other than their number.
+
+     All five clear 4.5:1 on both --bg and --bg-elevated, the surfaces a
+     badge is ever drawn on (worst case: --group-2 violet at 6.22:1 on
+     --bg-elevated) -- see contrast.test.ts.
      ----------------------------------------------------------------------- */
   --group-1: #5eead4; /* mint    — Vela    */
   --group-2: #a78bfa; /* violet  — Lyra    */
   --group-3: #fb7185; /* rose    — Cygnus  */
   --group-4: #f59e6a; /* amber   — Orion   */
   --group-5: #7dd3fc; /* ice     — Carina  */
-  --group-6: #c4b5fd; /* lilac   — Pavo    */
-  --group-7: #86efac; /* jade    — Draco   */
 
   /* -----------------------------------------------------------------------
      HEAT — the hunt's own scale, from cold (far) to burning (on top of it).
@@ -218,14 +254,17 @@
   --font-mono:
     "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
-  /* Was 0.68rem (~10.9px): too small for uppercase mono at wide tracking,
-     and the exact size the legibility complaint landed on. Now equal to
-     --fs-small by coincidence of the fix, not because the two tiers are
-     meant to always match -- kept as separate tokens since they name
-     different roles (the smallest label size vs. a secondary text size)
-     that may diverge again later. */
-  --fs-micro: 0.8rem;
   --fs-small: 0.8rem;
+  /* Was its own literal 0.68rem (~10.9px, too small for uppercase mono at
+     wide tracking -- the exact size the legibility complaint landed on),
+     then bumped to 0.8rem, landing on the same value as --fs-small by
+     coincidence of the fix rather than by any planned relationship. Two
+     tokens with one value only invite them drifting apart again by
+     accident, so this is now a plain alias: apps/web should reach for
+     --fs-small directly, and this stays only because apps/games' style/
+     files (components.css, screens.css, app-shell.css) still reference it
+     at ~30 call sites that are out of scope for this pass. */
+  --fs-micro: var(--fs-small);
   /* Was 0.95rem (~15.2px): under the comfortable 16px phone-reading floor. */
   --fs-body: 1rem;
   --fs-body-lg: 1.05rem;

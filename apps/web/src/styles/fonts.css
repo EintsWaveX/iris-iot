@@ -1,0 +1,43 @@
+/* =========================================================================
+   SELF-HOSTED FONTS — apps/web only.
+
+   packages/kosmik/style/tokens.css used to @import all three faces from
+   Google Fonts. That import blocks on a third-party round trip before any
+   text can paint, which is exactly the wrong trade on the lab wifi this
+   site actually runs on. Self-hosting via @fontsource removes that round
+   trip: the font files ship from the same origin as everything else and
+   are fetched in parallel with the page, not serialised behind it.
+
+   This file lives in apps/web, not packages/kosmik, for the same reason
+   src/scripts/gsap-globals.js does (see its own header): a bare npm
+   specifier resolves by walking up from the IMPORTING FILE's own
+   directory, and packages/kosmik is a sibling of apps/web, not a
+   descendant of its node_modules -- an @import written inside kosmik's
+   tokens.css could never reach apps/web/node_modules/@fontsource/*.
+
+   apps/games keeps the Google Fonts @import (packages/kosmik/style/
+   fonts-google.css, pulled in by its own build.py) because it has no
+   bundler to resolve an npm package into shipped files -- see that file's
+   header. Self-hosting there is out of scope for this pass, per the
+   standing decision to defer apps/games' typography changes.
+
+   Latin subset only, and only the weights the type scale actually uses,
+   matching tokens.css's own font-family declarations exactly:
+     --font-display : Instrument Serif, 400 + 400 italic (the only weights
+                       it ships -- never set a heavier weight on it, see
+                       tokens.css's own warning about synthesised bold).
+     --font-body     : Inter, 400 / 500 / 600 + 400 italic.
+     --font-mono     : JetBrains Mono, 400 / 500 / 600.
+   ========================================================================= */
+
+@import "@fontsource/instrument-serif/latin-400.css";
+@import "@fontsource/instrument-serif/latin-400-italic.css";
+
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/inter/latin-400-italic.css";
+
+@import "@fontsource/jetbrains-mono/latin-400.css";
+@import "@fontsource/jetbrains-mono/latin-500.css";
+@import "@fontsource/jetbrains-mono/latin-600.css";

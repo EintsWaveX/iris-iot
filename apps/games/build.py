@@ -80,12 +80,16 @@ KOSMIK_JS_DIR = KOSMIK_DIR / "js"
 # come from two places -- packages/kosmik/style/ for the shared design
 # language, src/style/ for what stays local to this app -- while the
 # original cascade order is preserved exactly:
-#   tokens (kosmik) -> tokens-override (local: re-pins body/mono to IBM
-#     Plex, see that file's own header) -> base (kosmik) -> app-shell
-#     (local: the #app/.screens SPA-shell rules extracted from base.css
-#     when the rest of it moved to kosmik) -> cosmos (kosmik) -> components,
-#     screens (local) -> motion (kosmik) -> responsive (local)
+#   fonts-google (kosmik: the Google Fonts @import tokens.css used to carry
+#     inline, split out once apps/web moved to self-hosted @fontsource --
+#     see that file's own header) -> tokens (kosmik) -> tokens-override
+#     (local: re-pins body/mono to IBM Plex, see that file's own header) ->
+#     base (kosmik) -> app-shell (local: the #app/.screens SPA-shell rules
+#     extracted from base.css when the rest of it moved to kosmik) ->
+#     cosmos (kosmik) -> components, screens (local) -> motion (kosmik) ->
+#     responsive (local)
 STYLE_FILES = [
+    (KOSMIK_STYLE_DIR, "fonts-google.css"),
     (KOSMIK_STYLE_DIR, "tokens.css"),
     (STYLE_DIR, "tokens-override.css"),
     (KOSMIK_STYLE_DIR, "base.css"),

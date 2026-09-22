@@ -89,13 +89,15 @@ const Tag = href ? "a" : "button";
     opacity: 0.5;
   }
 
-  /* The swept gradient-border ring: a 1px frame painted with --sweep and
-     punched out with mask-composite so only the ring itself is visible.
-     Ghost and danger keep a real border underneath, so this rides on top
-     of it rather than replacing it. */
+  /* The swept gradient-border ring: a 1px frame painted with --sweep-ring
+     and punched out with mask-composite so only the ring itself is
+     visible. Ghost and danger keep a real border underneath, so this rides
+     on top of it rather than replacing it. --sweep-ring, not
+     --sweep-surface: a 1px ring is decoration, never a surface text sits
+     on, so it is free to use the nebula-toned gradient. */
   .btn--ghost::after,
   .btn--danger::after {
-    background-image: var(--sweep);
+    background-image: var(--sweep-ring);
     background-size: 200% auto;
     border-radius: inherit;
     content: "";
@@ -134,9 +136,15 @@ const Tag = href ? "a" : "button";
   /* Primary already has a solid fill, so the sweep arrives as a second
      layer faded in over the first via opacity rather than a background
      swap -- gradients don't interpolate, so swapping background-image
-     outright would snap instead of transition. */
+     outright would snap instead of transition.
+
+     --sweep-surface, not --sweep-ring: the label paints on top of this
+     layer (see the z-index rule below), so every stop here has to clear
+     4.5:1 against --accent-ink. Using --sweep-ring here was the original
+     bug -- its --neb-violet/--neb-teal stops measured 1.55:1/1.65:1
+     against the label and made it flicker unreadable twice per loop. */
   .btn--primary::before {
-    background-image: var(--sweep);
+    background-image: var(--sweep-surface);
     background-size: 200% auto;
     border-radius: inherit;
     content: "";
