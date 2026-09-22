@@ -255,6 +255,16 @@ const links = [
     updateBreakpointIndicator();
     window.addEventListener("resize", updateBreakpointIndicator, { passive: true });
     document.addEventListener("astro:page-load", updateBreakpointIndicator);
+
+    // The one entrance per page. No stagger here: unlike the other three
+    // pages, this one has no repeating list -- it is a sequence of
+    // unrelated demo sections, and staggering those would be a contrived
+    // effect rather than an honest one.
+    function playEntrance() {
+      window.Motion?.enter(".section:first-of-type > *");
+    }
+    playEntrance();
+    document.addEventListener("astro:page-load", playEntrance);
   </script>
 </Base>
 

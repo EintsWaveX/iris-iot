@@ -49,7 +49,13 @@
 
 type Tier = 0 | 1 | 2;
 
-const TIER_CACHE_KEY = "iris-motion-tier-v1";
+// v2 (Stage 6): bumped alongside the Otomatis/Penuh/Kurangi setting --
+// `probedAt` was written but never read, so a device that once measured
+// badly stayed pinned at that tier forever even after conditions changed.
+// The explicit tri-state setting is the real fix for "stuck reduced", but
+// bumping the key here also gives every existing session one fresh,
+// unpinned measurement rather than trusting a possibly-stale old one.
+const TIER_CACHE_KEY = "iris-motion-tier-v2";
 const PROBE_MS = 400;
 const SPRITE_COUNT = 180; // roughly cosmos.core.js's near-layer star density
 

@@ -99,20 +99,30 @@
       hueShift: 0,
     },
     masuk: { stars: 0.55, links: 0.1, comets: 0.0, planets: 0.15, hueShift: 1 },
+    // Stage 6: raised from stars 0.45/comets 0.08 -- the comet spawn gate is
+    // `weights.comets > 0.05`, so the old value barely cleared it and then
+    // drew at 0.08 alpha, which reads as nothing. This is most of what "the
+    // site feels still" traced back to: three of four apps/web pages were a
+    // dim star field and nothing else. Still well under beranda's (the
+    // front door, allowed to be dramatic), since this is a working page.
     kerja: {
-      stars: 0.45,
-      links: 0.12,
-      comets: 0.08,
-      planets: 0.18,
+      stars: 0.65,
+      links: 0.18,
+      comets: 0.16,
+      planets: 0.24,
       hueShift: 2,
     },
     teknis: {
-      stars: 0.3,
-      links: 0.05,
-      comets: 0.05,
-      planets: 0.1,
+      stars: 0.55,
+      links: 0.1,
+      comets: 0.12,
+      planets: 0.18,
       hueShift: 3,
     },
+    // Deliberately NOT raised along with kerja/teknis above: a practicum
+    // runs on top of this scene for up to 165 minutes straight and the sky
+    // must never be what anyone notices, which is the one place "make it
+    // feel alive" has to lose to "stay out of the way".
     sesi: { stars: 0.28, links: 0.05, comets: 0.0, planets: 0.05, hueShift: 4 },
   };
 
@@ -833,6 +843,21 @@
     applySceneWeights(scene);
   }
 
+  // Per-module tint for the "sesi" scene, distinct from each scene's own
+  // static hueShift field above (which nothing consumes and this does not
+  // touch): four modules sharing one quiet scene still read as
+  // interchangeable without something distinguishing which one is
+  // actually running, so a session's module number nudges the aurora's
+  // hue a little rather than repainting it outright -- cosmos.css scopes
+  // the actual filter to [data-scene="sesi"] only, so this variable does
+  // nothing on any other screen.
+  var MODULE_HUE_DEG = { 1: 0, 2: 18, 3: 36, 4: 54 };
+
+  function setModuleTint(modul) {
+    var deg = MODULE_HUE_DEG[modul] || 0;
+    document.documentElement.style.setProperty("--modul-hue", deg + "deg");
+  }
+
   /**
    * The screen-change transition: punch into hyperspace, swap the sky at the
    * peak (while the streaks hide the change), then decelerate out.
@@ -1039,6 +1064,7 @@
   window.Cosmos = {
     warpTo: warpTo,
     setScene: setScene,
+    setModuleTint: setModuleTint,
     converge: convergeIn,
     redraw: function () {
       draw(0);

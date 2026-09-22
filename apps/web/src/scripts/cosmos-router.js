@@ -29,29 +29,47 @@
  * cosmos.core.js unchanged for that caller.
  *
  * Performance: a phone reporting the Save-Data header or <=2GB of
- * deviceMemory gets the reduced-motion sky by default -- the same static
- * single frame prefers-reduced-motion produces, since that is the one
- * lever cosmos.core.js/motion.core.js already expose and it is a real,
- * total cost win (one paint instead of 60/s) rather than a half-measure.
- * A stored "Kurangi efek" choice (apps/web's nav toggle) always wins over
- * the device guess, and only an explicit choice is ever persisted, so the
- * device-based default keeps re-evaluating (e.g. if Save-Data gets turned
- * off) until someone actually picks something.
+ * deviceMemory gets the reduced-motion sky by default under "Otomatis" --
+ * the same static single frame prefers-reduced-motion produces, since
+ * that is the one lever cosmos.core.js/motion.core.js already expose and
+ * it is a real, total cost win (one paint instead of 60/s) rather than a
+ * half-measure.
+ *
+ * Stage 6: the toggle became a real three-way setting rather than a
+ * binary switch that could only ever reduce motion, never force it back
+ * on for a device the auto-heuristic above guessed wrong about --
+ * "Otomatis" defers to that heuristic (re-evaluating live, e.g. if
+ * Save-Data gets turned off, since nothing is persisted for this state),
+ * "Penuh" and "Kurangi" are explicit overrides that always win regardless
+ * of the heuristic. Older sessions' plain "1"/"0" values (the pre-Stage-6
+ * binary toggle) are migrated on read rather than wiped, since they are a
+ * real choice someone already made, not noise.
  */
 (function () {
   "use strict";
 
   var STORAGE_KEY = "iris-kurangi-efek";
+  var PREFS = ["auto", "penuh", "kurangi"];
+  var LABELS = { auto: "Otomatis", penuh: "Penuh", kurangi: "Kurangi" };
 
-  function readStoredPreference() {
+  function readStoredPref() {
     try {
       var v = window.localStorage.getItem(STORAGE_KEY);
-      if (v === "1") return true;
-      if (v === "0") return false;
+      if (v === "auto" || v === "penuh" || v === "kurangi") return v;
+      if (v === "1") return "kurangi";
+      if (v === "0") return "penuh";
     } catch (e) {
       /* storage disabled (private mode, locked-down browser): fall through */
     }
-    return null;
+    return "auto";
+  }
+
+  function writeStoredPref(pref) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, pref);
+    } catch (e) {
+      /* the setting still works for this page load, it just won't persist */
+    }
   }
 
   function shouldAutoReduce() {
@@ -63,28 +81,28 @@
 
   function applyPreference() {
     if (!window.Motion) return;
-    var stored = readStoredPreference();
-    window.Motion.setReduced(stored !== null ? stored : shouldAutoReduce() ? true : null);
+    var pref = readStoredPref();
+    if (pref === "kurangi") window.Motion.setReduced(true);
+    else if (pref === "penuh") window.Motion.setReduced(false);
+    else window.Motion.setReduced(shouldAutoReduce() ? true : null);
   }
 
-  function setKurangiEfek(value) {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, value ? "1" : "0");
-    } catch (e) {
-      /* the toggle still works for this page load, it just won't persist */
-    }
-    if (window.Motion) window.Motion.setReduced(value);
+  function setMotionPref(pref) {
+    if (PREFS.indexOf(pref) === -1) return;
+    writeStoredPref(pref);
+    applyPreference();
   }
 
-  function isKurangiEfek() {
-    var stored = readStoredPreference();
-    if (stored !== null) return stored;
-    return !!(window.Motion && window.Motion.isReduced());
+  function cycleMotionPref() {
+    var next = PREFS[(PREFS.indexOf(readStoredPref()) + 1) % PREFS.length];
+    setMotionPref(next);
+    return next;
   }
 
   window.CosmosRouter = {
-    setKurangiEfek: setKurangiEfek,
-    isKurangiEfek: isKurangiEfek,
+    setMotionPref: setMotionPref,
+    getMotionPref: readStoredPref,
+    cycleMotionPref: cycleMotionPref,
   };
 
   function sceneOf(doc) {
@@ -99,7 +117,7 @@
     if (!btn || btn.dataset.cosmosBound) return;
     btn.dataset.cosmosBound = "1";
     btn.addEventListener("click", function () {
-      setKurangiEfek(!isKurangiEfek());
+      cycleMotionPref();
       syncReduceToggle(btn);
     });
     syncReduceToggle(btn);
@@ -107,7 +125,14 @@
 
   function syncReduceToggle(btn) {
     btn = btn || document.getElementById("kurangi-efek-toggle");
-    if (btn) btn.setAttribute("aria-pressed", isKurangiEfek() ? "true" : "false");
+    if (!btn) return;
+    var pref = readStoredPref();
+    var label = LABELS[pref];
+    btn.dataset.motionPref = pref;
+    btn.title = "Efek gerak pada latar: " + label;
+    btn.setAttribute("aria-label", "Efek gerak pada latar: " + label + ". Ketuk untuk mengubah.");
+    var labelEl = document.getElementById("kurangi-efek-label");
+    if (labelEl) labelEl.textContent = label;
   }
 
   document.addEventListener("astro:page-load", function () {

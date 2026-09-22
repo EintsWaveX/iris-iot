@@ -321,6 +321,7 @@ const links = [
       }
       if (me.role !== "asisten") {
         show("view-terlarang");
+        window.Motion?.enter("#view-terlarang > *");
         return;
       }
       document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
@@ -334,6 +335,10 @@ const links = [
         show("view-daftar");
         await loadDaftar();
       }
+      // The one entrance per page: whichever view just became visible
+      // rises in together, once its content (the table, the detail
+      // fields) is actually in the DOM rather than mid-fetch.
+      window.Motion?.enter("#view-daftar > *, #view-detail > *");
     }
 
     async function loadDaftar() {
@@ -350,8 +355,10 @@ const links = [
 
       const body = document.getElementById("tabel-server-body")!;
       body.innerHTML = "";
-      for (const s of daftar) {
+      daftar.forEach((s, i) => {
         const tr = document.createElement("tr");
+        tr.className = "stagger-item";
+        tr.style.setProperty("--i", String(i));
 
         const tdNama = document.createElement("td");
         tdNama.dataset.label = "Nama";
@@ -396,7 +403,7 @@ const links = [
         tr.appendChild(tdAksi);
 
         body.appendChild(tr);
-      }
+      });
     }
 
     function sel(label: string, text: string): HTMLTableCellElement {

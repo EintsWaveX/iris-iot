@@ -292,6 +292,12 @@ const links = [
     let currentSesiId: number | null = null;
     let stopBannerPolling: (() => void) | null = null;
 
+    // The reactive sky (Stage 6): a session starting wakes the orphaned
+    // "sesi" scene, tinted per the running module via setModuleTint().
+    // Tracked so repeated renderBanner() calls from a 30s poll only touch
+    // Cosmos on an actual transition, not on every tick.
+    let cosmosInSesiScene = false;
+
     /** Renders the shared banner markup from the narrow shape both
      *  /api/session/now (praktikan) and /api/session/current (asisten)
      *  agree on -- modul/tanggal/mulai/mulaiPada -- plus a role-specific
@@ -306,6 +312,11 @@ const links = [
       if (!s) {
         hide("session-banner");
         show("session-banner-kosong");
+        if (cosmosInSesiScene) {
+          cosmosInSesiScene = false;
+          window.Cosmos?.setScene("kerja");
+          window.Cosmos?.setModuleTint(0);
+        }
         return;
       }
 
@@ -317,6 +328,11 @@ const links = [
       document.getElementById("banner-waktu")!.textContent = s.mulai;
       document.getElementById("banner-durasi")!.textContent = formatDurasiBerjalan(s.mulaiPada);
       document.getElementById("banner-kelompok")!.textContent = kelompokText;
+      window.Cosmos?.setModuleTint(s.modul);
+      if (!cosmosInSesiScene) {
+        cosmosInSesiScene = true;
+        window.Cosmos?.setScene("sesi");
+      }
     }
 
     async function init() {
@@ -333,6 +349,9 @@ const links = [
 
       if (me.role === "praktikan") {
         show("view-praktikan");
+        // The one entrance per page (design-system.md's own rule): the
+        // welcome card and the Module 4 card rise in together on arrival.
+        window.Motion?.enter("#view-praktikan > *");
         document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
         document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.regu}`;
         (document.getElementById("btn-buka-iot") as HTMLButtonElement)?.addEventListener(
@@ -349,6 +368,7 @@ const links = [
         }, 30_000);
       } else {
         show("view-asisten");
+        window.Motion?.enter("#view-asisten > .section, #view-asisten > .card");
         document
           .getElementById("btn-buka-iot-asisten")
           ?.addEventListener("click", () => window.open(iotBoardUrl(), "_blank", "noopener"));
@@ -413,9 +433,10 @@ const links = [
     ) {
       const host = document.getElementById("kelompok-toggles")!;
       host.innerHTML = "";
-      for (const g of roster) {
+      roster.forEach((g, i) => {
         const label = document.createElement("label");
-        label.className = "kelompok-toggle";
+        label.className = "kelompok-toggle stagger-item";
+        label.style.setProperty("--i", String(i));
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.checked = g.sesiAktif;
@@ -442,7 +463,7 @@ const links = [
         label.appendChild(checkbox);
         label.append(` Kelompok ${g.nomor}${g.nama ? " · " + g.nama : ""} aktif di sesi ini`);
         host.appendChild(label);
-      }
+      });
     }
 
     function repaintTally() {

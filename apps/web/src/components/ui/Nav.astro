@@ -57,13 +57,16 @@ const { links, current = Astro.url.pathname } = Astro.props;
       type="button"
       id="kurangi-efek-toggle"
       class="nav__reduce"
-      aria-pressed="false"
-      title="Kurangi efek gerak pada latar"
+      data-motion-pref="auto"
+      title="Efek gerak pada latar: Otomatis"
+      aria-label="Efek gerak pada latar: Otomatis. Ketuk untuk mengubah."
     >
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
       </svg>
-      <span class="visually-hidden">Kurangi efek</span>
+      <span class="nav__reduce-label" id="kurangi-efek-label" aria-hidden="true">
+        Otomatis
+      </span>
     </button>
     <slot name="side" />
   </div>
@@ -162,21 +165,30 @@ const { links, current = Astro.url.pathname } = Astro.props;
     gap: var(--space-3);
   }
 
+  /* A three-way cycling button (Otomatis / Penuh / Kurangi), not a binary
+     toggle -- aria-pressed doesn't map cleanly to three states, so the
+     visible label plus the dynamic `title` (both updated by
+     cosmos-router.js) carry the state instead. */
   .nav__reduce {
     align-items: center;
     border-radius: var(--radius-md);
     color: var(--text-muted);
     display: flex;
+    gap: var(--space-2);
     height: max(var(--tap), 44px);
     justify-content: center;
-    width: max(var(--tap), 44px);
+    padding-inline: var(--space-3);
   }
 
   .nav__reduce:hover {
     color: var(--text);
   }
 
-  .nav__reduce[aria-pressed="true"] {
+  /* Kurangi: this device/session is running at less than full motion,
+     the one state worth calling out with colour -- Otomatis and Penuh
+     both mean "whatever this device can afford, running", so neither
+     needs to look like an active override the way Kurangi does. */
+  .nav__reduce[data-motion-pref="kurangi"] {
     background: var(--accent-soft);
     color: var(--accent);
   }
@@ -184,6 +196,13 @@ const { links, current = Astro.url.pathname } = Astro.props;
   .nav__reduce .icon {
     height: 1.1em;
     width: 1.1em;
+    flex-shrink: 0;
+  }
+
+  .nav__reduce-label {
+    font-size: var(--fs-small);
+    font-weight: 500;
+    white-space: nowrap;
   }
 
   @media (max-width: 640px) {
@@ -193,6 +212,15 @@ const { links, current = Astro.url.pathname } = Astro.props;
     }
 
     .nav__wordmark {
+      display: none;
+    }
+
+    .nav__reduce {
+      padding-inline: 0;
+      width: max(var(--tap), 44px);
+    }
+
+    .nav__reduce-label {
       display: none;
     }
   }

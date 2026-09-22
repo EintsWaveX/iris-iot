@@ -20,6 +20,10 @@ interface Window {
   Cosmos?: {
     warpTo(scene: string): void;
     setScene(scene: string): void;
+    // Stage 6: the reactive per-module tint for the "sesi" scene only --
+    // see cosmos.core.js's own comment for why this is a separate concept
+    // from each scene's static (and otherwise still unused) hueShift field.
+    setModuleTint(modul: number): void;
     converge(options?: { inDuration?: number; outDuration?: number; hold?: number }): void;
     redraw(): void;
   };
@@ -32,12 +36,44 @@ interface Window {
     getTier(): 0 | 1 | 2;
     setTier(value: 0 | 1 | 2): void;
     onTierChange(fn: (tier: 0 | 1 | 2) => void): void;
+    // The house entrance/reveal helpers (Stage 6 wires these into every
+    // apps/web page for the first time -- previously called by nothing).
+    // Return types are loose (GSAP tween/timeline/SplitText instances)
+    // since no caller in this app needs to chain off them today.
+    enter(
+      targets: string | Element | Element[] | NodeListOf<Element>,
+      options?: {
+        distance?: number;
+        duration?: number;
+        ease?: string;
+        stagger?: number;
+        delay?: number;
+      },
+    ): unknown;
+    countUp(
+      el: Element | null,
+      to: number,
+      options?: { format?: (n: number) => string; duration?: number; ease?: string },
+    ): void;
+    revealText(
+      el: Element | null,
+      options?: {
+        type?: "chars" | "words";
+        distance?: string | number;
+        duration?: number;
+        ease?: string;
+        stagger?: number;
+        delay?: number;
+        keepSplit?: boolean;
+      },
+    ): unknown;
   };
   gsap?: unknown;
   CustomEase?: unknown;
   // src/scripts/cosmos-router.js
   CosmosRouter?: {
-    setKurangiEfek(value: boolean): void;
-    isKurangiEfek(): boolean;
+    setMotionPref(pref: "auto" | "penuh" | "kurangi"): void;
+    getMotionPref(): "auto" | "penuh" | "kurangi";
+    cycleMotionPref(): "auto" | "penuh" | "kurangi";
   };
 }

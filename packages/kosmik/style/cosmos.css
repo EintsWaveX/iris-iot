@@ -304,6 +304,12 @@
   --au-4: rgba(94, 234, 212, 0.58); /* teal   */
   --au-5: rgba(232, 182, 77, 0.46); /* gold   */
   --au-opacity: 0.72;
+  /* Stage 6's reactive layer: nudged by Cosmos.setModuleTint() while a
+     practicum session is running, scoped below to [data-scene="sesi"]
+     only so it does nothing on any other screen. Distinct from each
+     scene's own static `hueShift` field in cosmos.core.js, which nothing
+     consumes and this does not touch. */
+  --modul-hue: 0deg;
 }
 
 .cosmos__aurora {
@@ -313,18 +319,104 @@
   bottom: -24%;
   height: 66vh;
   opacity: var(--au-opacity);
-  /* Additive, so overlapping ribbons brighten into new hues instead of
-     muddying each other the way alpha compositing would. The blur lives on
-     the children rather than here: they are the elements being transformed,
-     and blurring the moving layer lets the browser rasterise it once and
-     then simply translate it, instead of re-blurring this whole box every
-     frame. */
+  /* Additive, so overlapping rays brighten into new hues instead of
+     muddying each other the way alpha compositing would. */
   mix-blend-mode: screen;
-  transition: opacity 1.2s var(--ease-in-out-soft);
+  transition:
+    opacity 1.2s var(--ease-in-out-soft),
+    filter 1.2s var(--ease-in-out-soft);
 }
 
-.cosmos__aurora::before,
-.cosmos__aurora::after {
+/* Reactive per-module tint (Stage 6): only the "sesi" scene's aurora ever
+   shifts, and only while a session is actually running -- setModuleTint()
+   resets --modul-hue to 0deg the moment one ends. */
+:root[data-scene="sesi"] .cosmos__aurora {
+  filter: hue-rotate(var(--modul-hue));
+}
+
+/* -------------------------------------------------------------------------
+   CURTAIN RAYS (Stage 6) — apps/web only. Five vertical rays, one per
+   --au-* colour, each swaying on its own independent duration and phase
+   (negative animation-delay so none of them start in lockstep) rather
+   than two soft radial blobs drifting as a single shape. Real DOM
+   children (Cosmos.astro renders them; apps/games' shell.html does not),
+   scoped with :has() so apps/games keeps the original two-pseudo-element
+   ribbon completely unchanged below -- this rule only ever matches a
+   .cosmos__aurora that actually has rays inside it.
+   ------------------------------------------------------------------------- */
+.cosmos__aurora__ray {
+  position: absolute;
+  bottom: 0;
+  width: 26%;
+  height: 100%;
+  filter: blur(44px) saturate(1.4);
+  transform-origin: bottom center;
+  will-change: transform;
+}
+
+.cosmos__aurora__ray:nth-child(1) {
+  left: -4%;
+  background: linear-gradient(to top, var(--au-1) 0%, transparent 72%);
+}
+.cosmos__aurora__ray:nth-child(2) {
+  left: 16%;
+  background: linear-gradient(to top, var(--au-2) 0%, transparent 68%);
+}
+.cosmos__aurora__ray:nth-child(3) {
+  left: 38%;
+  background: linear-gradient(to top, var(--au-3) 0%, transparent 75%);
+}
+.cosmos__aurora__ray:nth-child(4) {
+  left: 60%;
+  background: linear-gradient(to top, var(--au-4) 0%, transparent 70%);
+}
+.cosmos__aurora__ray:nth-child(5) {
+  left: 80%;
+  background: linear-gradient(to top, var(--au-5) 0%, transparent 66%);
+}
+
+:root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(1) {
+  animation: aurora-sway-a 38s var(--ease-in-out-soft) infinite alternate;
+}
+:root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(2) {
+  animation: aurora-sway-b 51s var(--ease-in-out-soft) infinite alternate;
+  animation-delay: -14s;
+}
+:root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(3) {
+  animation: aurora-sway-a 44s var(--ease-in-out-soft) infinite alternate;
+  animation-delay: -27s;
+}
+:root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(4) {
+  animation: aurora-sway-b 59s var(--ease-in-out-soft) infinite alternate;
+  animation-delay: -6s;
+}
+:root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(5) {
+  animation: aurora-sway-a 49s var(--ease-in-out-soft) infinite alternate;
+  animation-delay: -33s;
+}
+
+@keyframes aurora-sway-a {
+  0% {
+    transform: translateX(-8%) scaleY(0.92) skewX(-3deg);
+  }
+  100% {
+    transform: translateX(10%) scaleY(1.14) skewX(3deg);
+  }
+}
+
+@keyframes aurora-sway-b {
+  0% {
+    transform: translateX(9%) scaleY(1.1) skewX(2.5deg);
+  }
+  100% {
+    transform: translateX(-7%) scaleY(0.94) skewX(-2.5deg);
+  }
+}
+
+/* apps/games' fallback: unchanged two-blob ribbon, only when no ray
+   children are present. */
+.cosmos__aurora:not(:has(.cosmos__aurora__ray))::before,
+.cosmos__aurora:not(:has(.cosmos__aurora__ray))::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -338,18 +430,17 @@
   will-change: transform;
 }
 
-/* The second ribbon runs slower, offset and hue-rotated, so the two never
-   line up and the wash never repeats visibly within an evening. */
-.cosmos__aurora::after {
+.cosmos__aurora:not(:has(.cosmos__aurora__ray))::after {
   opacity: 0.66;
   filter: blur(44px) saturate(1.4) hue-rotate(48deg);
 }
 
-/* See .cosmos__nebula's rule above for why these are gated separately. */
-:root:not([data-motion-tier="0"]) .cosmos__aurora::before {
+:root:not([data-motion-tier="0"])
+  .cosmos__aurora:not(:has(.cosmos__aurora__ray))::before {
   animation: aurora-drift-a 46s var(--ease-in-out-soft) infinite alternate;
 }
-:root:not([data-motion-tier="0"]) .cosmos__aurora::after {
+:root:not([data-motion-tier="0"])
+  .cosmos__aurora:not(:has(.cosmos__aurora__ray))::after {
   animation: aurora-drift-b 67s var(--ease-in-out-soft) infinite alternate;
 }
 
@@ -511,17 +602,28 @@
 }
 
 /* The aurora is the single most expensive layer on the page: a very large
-   blurred, screen-blended surface. Phones get a smaller, cheaper one. */
+   blurred, screen-blended surface. Phones get a smaller, cheaper one --
+   but Stage 6 restores full ray/ribbon COUNT here rather than dropping
+   half of it outright (the previous rule set the fallback ribbon's
+   ::after to display: none on phones, which is exactly the devices being
+   judged and the ones that lost the counter-drift giving the aurora its
+   life). The saving instead comes from a lighter blur radius, applied to
+   every ray/ribbon equally. */
 @media (max-width: 600px) {
   .cosmos__aurora {
     height: 46vh;
   }
 
-  .cosmos__aurora::before {
-    filter: blur(30px) saturate(1.35);
+  .cosmos__aurora__ray {
+    filter: blur(28px) saturate(1.35);
   }
 
-  .cosmos__aurora::after {
-    display: none;
+  .cosmos__aurora:not(:has(.cosmos__aurora__ray))::before,
+  .cosmos__aurora:not(:has(.cosmos__aurora__ray))::after {
+    filter: blur(28px) saturate(1.35);
+  }
+
+  .cosmos__aurora:not(:has(.cosmos__aurora__ray))::after {
+    filter: blur(28px) saturate(1.35) hue-rotate(48deg);
   }
 }
