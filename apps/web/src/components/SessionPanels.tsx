@@ -96,20 +96,27 @@ export default function SessionPanels() {
         fetch("/api/server").then((r) => r.json()),
       ]);
       if (laporan.ok) {
+        // Defensive fallbacks, not just optimism: this component has no
+        // error boundary, so a response that's `ok: true` but missing an
+        // expected array (a transient backend hiccup, an older deploy
+        // still warming up) would otherwise crash the whole render tree
+        // on the next .length/.map call and blank the console until a
+        // full reload, instead of just skipping that poll's update.
+        const kelompokList: KelompokPanel[] = laporan.kelompok ?? [];
         setSesiId(laporan.sesi?.id ?? null);
         setModul(laporan.sesi?.modul ?? null);
-        setKelompok(laporan.kelompok);
-        setStuck(laporan.stuck);
+        setKelompok(kelompokList);
+        setStuck(laporan.stuck ?? []);
         setDrafts((prev) => {
           const next = { ...prev };
-          for (const k of laporan.kelompok as KelompokPanel[]) {
+          for (const k of kelompokList) {
             if (focusedRef.current === k.id) continue;
             next[k.id] = { catatan: k.catatan ?? "", peran: k.peran ?? "" };
           }
           return next;
         });
       }
-      if (daftarServer.ok) setServers(daftarServer.server);
+      if (daftarServer.ok) setServers(daftarServer.server ?? []);
     } catch {
       // Left at whatever the last successful poll produced.
     } finally {

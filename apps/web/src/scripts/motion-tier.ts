@@ -254,7 +254,17 @@ function applyTier(tier: Tier): void {
 }
 
 function effectiveTier(measured: Tier): Tier {
-  return window.Motion?.isReduced?.() ? 0 : measured;
+  if (window.Motion?.isReduced?.()) return 0;
+  // "Penuh" (see cosmos-router.js) is the explicit rescue for a device
+  // whose FPS probe once measured low and got pinned there by the cache
+  // below: without this, the tri-state toggle only ever reached the
+  // reduced-motion axis, never this measured-capability one, so clicking
+  // it did nothing for a session stuck at tier 0 or 1. isReduced() above
+  // still wins over it in the (never co-selected) case both are somehow
+  // true, since Kurangi/OS reduced-motion is a stated preference and
+  // preferences outrank a capability override.
+  if (window.CosmosRouter?.getMotionPref?.() === "penuh") return 2;
+  return measured;
 }
 
 // The tier this device actually measures at, independent of reduced

@@ -52,6 +52,18 @@ const Tag = href ? "a" : "button";
 </Tag>
 
 <style>
+  /* The native `hidden` attribute is otherwise silently defeated: the UA
+     stylesheet's `[hidden] { display: none }` and this component's own
+     `.btn { display: inline-flex }` below are the same specificity (one
+     class, one attribute selector), and author CSS wins that tie -- so a
+     hidden button rendered exactly as a shown one until this rule existed.
+     Every other page in this app sidesteps the bug entirely by toggling a
+     `visibility`-based class instead of `hidden`; this closes it at the
+     source so `hidden` means what it says wherever it's used on a Button. */
+  .btn[hidden] {
+    display: none;
+  }
+
   .btn {
     align-items: center;
     background: transparent;

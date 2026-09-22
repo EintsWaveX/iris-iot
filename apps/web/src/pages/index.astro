@@ -18,9 +18,19 @@ import Button from "../components/ui/Button.astro";
 import Card from "../components/ui/Card.astro";
 import LoginModal from "../components/LoginModal.astro";
 
+// Same complete set every other page's nav carries (see dashboard.astro),
+// shown regardless of login state -- clicking Dasbor or Server while
+// logged out simply lands on the existing /?login=1 gate, the same way
+// a direct visit to /dashboard already does. Before this, "/" was the
+// only page in the app whose nav went missing Dasbor/Server entirely,
+// so a returning, already-signed-in visitor who landed back here (the
+// brand mark in Nav.astro always links to "/") had no way back into
+// their own dashboard short of typing the URL by hand.
 const links = [
   { href: "/", label: "Beranda" },
+  { href: "/dashboard", label: "Dasbor" },
   { href: "/modules", label: "Modul" },
+  { href: "/servers", label: "Server" },
 ];
 ---
 
@@ -31,8 +41,11 @@ const links = [
 >
   <Nav links={links} current="/">
     <Fragment slot="side">
-      <Button kind="ghost" data-modal-open="login-modal">
+      <Button kind="ghost" data-modal-open="login-modal" id="btn-masuk">
         Masuk
+      </Button>
+      <Button kind="ghost" id="btn-keluar" hidden>
+        Keluar
       </Button>
     </Fragment>
   </Nav>
@@ -122,6 +135,44 @@ const links = [
       });
   }
 
+  // A plain visit to "/" (no ?login=1) never used to check session state
+  // at all, so a returning, already-signed-in visitor saw the logged-out
+  // "Masuk" button and nothing pointing back at their own dashboard --
+  // the bug behind "Dasbor and the rest of the tabs are not present"
+  // once logged in, since the brand mark always links here. This swaps
+  // Masuk for Keluar once a session is confirmed; the nav links
+  // themselves are unconditional now (see the links array above) and
+  // simply gate at their destination the same way /dashboard already
+  // does for a logged-out visitor.
+  function bindKeluar() {
+    const btn = document.getElementById("btn-keluar");
+    if (!btn || btn.dataset.bound) return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      navigate("/");
+    });
+  }
+
+  function checkAuthState() {
+    if (location.pathname !== "/") return;
+    const masuk = document.getElementById("btn-masuk");
+    const keluar = document.getElementById("btn-keluar");
+    if (!masuk || !keluar) return;
+    bindKeluar();
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (location.pathname !== "/") return;
+        masuk.hidden = !!data.ok;
+        keluar.hidden = !data.ok;
+      })
+      .catch(() => {
+        // A failed check is not evidence of a session either way --
+        // leave the default logged-out state (Masuk shown) in place.
+      });
+  }
+
   // The one entrance per page (design-system.md's own rule, unapplied
   // anywhere on apps/web until Stage 6): the hero rises and fades in on
   // arrival. Motion.enter() already no-ops under reduced motion or a
@@ -131,8 +182,10 @@ const links = [
   }
 
   openLoginIfRequested();
+  checkAuthState();
   playEntrance();
   document.addEventListener("astro:page-load", openLoginIfRequested);
+  document.addEventListener("astro:page-load", checkAuthState);
   document.addEventListener("astro:page-load", playEntrance);
 </script>
 

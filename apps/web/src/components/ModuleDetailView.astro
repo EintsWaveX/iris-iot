@@ -94,17 +94,17 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
       <p class="module-header__topik measure-prose">{m.topik}</p>
     </header>
 
-    <div id="step-index-rail" class="module-carousel__index">
-      <ModuleCarousel
-        client:load
-        id="module-steps"
-        steps={steps}
-        prevLabel={t.nav.prev}
-        nextLabel={t.nav.next}
-      />
-    </div>
-
     <div class="module-carousel__layout">
+      <div id="step-index-rail" class="module-carousel__index">
+        <ModuleCarousel
+          client:load
+          id="module-steps"
+          steps={steps}
+          prevLabel={t.nav.prev}
+          nextLabel={t.nav.next}
+        />
+      </div>
+
       <section id="brief" role="tabpanel" aria-labelledby="brief-tab" class="module-panel">
         <h2 class="module-panel__heading">{t.brief.heading}</h2>
         {m.ringkasan.map((p) => (
