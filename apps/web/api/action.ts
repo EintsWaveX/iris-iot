@@ -1,5 +1,5 @@
 /**
- * POST /api/tindakan   { tipe: "kirim", serverId, aksi, argumen }
+ * POST /api/action   { tipe: "kirim", serverId, aksi, argumen }
  *                    | { tipe: "adopsi", id, nama, jenis }
  *   — assistant-only for both.
  *
@@ -17,12 +17,12 @@
  * the exact same AKSI_PERINTAH list the agent itself checks before mapping
  * an action to an argv list (server-lib.ts) -- an action neither side
  * recognises is refused at both ends, on purpose. Delivery happens on the
- * agent's next heartbeat (api/agen/index.ts), not immediately -- there is
+ * agent's next heartbeat (api/agent/index.ts), not immediately -- there is
  * no inbound path to the Pi to deliver it any faster.
  *
  * "adopsi": names a discovered device and, optionally, corrects its
  * guessed type. Once diadopsi is true, a rediscovery on the next heartbeat
- * can no longer overwrite vendor/jenis (see api/agen/index.ts's
+ * can no longer overwrite vendor/jenis (see api/agent/index.ts's
  * onConflictDoUpdate) -- this is the write that flips that flag.
  */
 import type { ApiRequest, ApiResponse } from "./_lib/http.js";
@@ -82,7 +82,7 @@ async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPa
     });
     res.status(200).json({ ok: true, id: row.id });
   } catch (err) {
-    console.error("[api/tindakan kirim] unexpected error:", err);
+    console.error("[api/action kirim] unexpected error:", err);
     res.status(200).json({
       ok: false,
       kode: pgErrorCode(err) === "23503" ? "server_tidak_ada" : "galat_server",

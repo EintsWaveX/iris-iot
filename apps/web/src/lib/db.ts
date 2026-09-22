@@ -6,7 +6,7 @@
  * Uses the WebSocket Pool driver (drizzle-orm/neon-serverless), not the
  * lighter HTTP driver (drizzle-orm/neon-http), for one specific reason:
  * the HTTP driver's own type definitions say plainly that it "does not
- * support transactions". The roster-replace operation in api/sesi/roster
+ * support transactions". The roster-replace operation in api/session/roster
  * deletes a session's groups and members and re-inserts them from a fresh
  * paste; a failure partway through that without a transaction would leave
  * a session with half a roster, silently. That risk is worth the slightly

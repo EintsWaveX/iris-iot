@@ -1,5 +1,5 @@
 /**
- * POST /api/auth/keluar — signs out by clearing the session cookie.
+ * POST /api/auth/logout — signs out by clearing the session cookie.
  * No body, no lookup: whoever is asking to sign out is signed out.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";

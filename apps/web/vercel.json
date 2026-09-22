@@ -1,4 +1,54 @@
 {
+  "redirects": [
+    {
+      "source": "/masuk",
+      "destination": "/?login=1",
+      "permanent": false
+    },
+    {
+      "source": "/login",
+      "destination": "/?login=1",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/sesi/kelompok",
+      "destination": "/api/session/group"
+    },
+    {
+      "source": "/api/sesi/akhiri",
+      "destination": "/api/session/end"
+    },
+    {
+      "source": "/api/sesi/:path*",
+      "destination": "/api/session/:path*"
+    },
+    {
+      "source": "/api/sesi",
+      "destination": "/api/session"
+    },
+    {
+      "source": "/api/auth/praktikan",
+      "destination": "/api/auth/student"
+    },
+    {
+      "source": "/api/auth/asisten",
+      "destination": "/api/auth/assistant"
+    },
+    {
+      "source": "/api/auth/keluar",
+      "destination": "/api/auth/logout"
+    },
+    {
+      "source": "/api/tindakan",
+      "destination": "/api/action"
+    },
+    {
+      "source": "/api/agen",
+      "destination": "/api/agent"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -1,5 +1,5 @@
 /**
- * POST /api/sesi/kelompok   { sesiId, kelompokId, aktif }   — assistant-only.
+ * POST /api/session/group   { sesiId, kelompokId, aktif }   — assistant-only.
  *
  * Sets one group's per-session exclusion (sesi_kelompok.aktif) -- e.g.
  * Module 4's beacon group, which must be excluded from hunter login for
@@ -49,7 +49,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     await writeAudit(session.nim, "sesi_kelompok_set", { sesiId, kelompokId, aktif });
     res.status(200).json({ ok: true });
   } catch (err) {
-    console.error("[api/sesi/kelompok] unexpected error:", err);
+    console.error("[api/session/group] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
   }
 }

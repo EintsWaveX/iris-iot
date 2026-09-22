@@ -1,5 +1,5 @@
 /**
- * POST /api/auth/praktikan   { nim }
+ * POST /api/auth/student   { nim }
  *
  * No password: the practitioner side of the Phase 1 plan's auth model
  * (section 6). Resolves the NIM against whichever session is currently
@@ -60,7 +60,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       reguNama: result.reguNama,
     });
   } catch (err) {
-    console.error("[api/auth/praktikan] unexpected error:", err);
+    console.error("[api/auth/student] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
   }
 }

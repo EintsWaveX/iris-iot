@@ -1,5 +1,5 @@
 /**
- * POST /api/sesi/roster   { paste }   — assistant-only.
+ * POST /api/session/roster   { paste }   — assistant-only.
  *
  * Edits the MASTER roster (kelompok/anggota) directly. Phase 3's whole
  * point is that this paste is no longer scoped to a session -- see
@@ -93,7 +93,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     res.status(200).json({ ok: true, groups: parsed.groups.length, total: parsed.total });
   } catch (err) {
-    console.error("[api/sesi/roster] unexpected error:", err);
+    console.error("[api/session/roster] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
   }
 }

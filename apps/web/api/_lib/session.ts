@@ -1,6 +1,6 @@
 /**
  * Reads and (optionally) enforces the session cookie for a route. Every
- * assistant-only route in api/sesi/* calls requireRole(req, res, "asisten")
+ * assistant-only route in api/session/* calls requireRole(req, res, "asisten")
  * as its first line, so "who is allowed to call this" is answered the same
  * way everywhere rather than re-implemented per route.
  */

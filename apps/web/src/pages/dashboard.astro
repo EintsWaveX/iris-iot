@@ -2,8 +2,9 @@
 /**
  * The one dashboard, rendered differently per role after the client
  * learns who is signed in from /api/auth/me — the same "static shell,
- * client fills in the role-specific view" shape as /masuk, and for the
- * same reason: output: 'static' pages have no request-time cookie access.
+ * client fills in the role-specific view" shape the login modal's own
+ * form uses, and for the same reason: output: 'static' pages have no
+ * request-time cookie access.
  *
  * A practitioner sees which group they landed in. An assistant sees the
  * running session (or a form to start one) and the roster paste box —
@@ -193,7 +194,7 @@ const links = [
     async function init() {
       const me = await fetch("/api/auth/me").then((r) => r.json());
       if (!me.ok) {
-        navigate("/masuk");
+        navigate("/?login=1");
         return;
       }
 
@@ -218,7 +219,7 @@ const links = [
     }
 
     async function loadSesi() {
-      const data = await fetch("/api/sesi/current").then((r) => r.json());
+      const data = await fetch("/api/session/current").then((r) => r.json());
       if (!data.ok) return;
 
       const roster = data.roster ?? [];
@@ -263,7 +264,7 @@ const links = [
         checkbox.addEventListener("change", async () => {
           checkbox.disabled = true;
           try {
-            const res = await fetch("/api/sesi/kelompok", {
+            const res = await fetch("/api/session/group", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ sesiId, kelompokId: g.id, aktif: checkbox.checked }),
@@ -311,83 +312,105 @@ const links = [
       saveBtn.disabled = parsed.errors.length > 0 || textarea.value.trim().length === 0;
     }
 
-    document.getElementById("roster-paste")?.addEventListener("input", repaintTally);
+    // Everything below binds a listener to an element on THIS page's DOM,
+    // or calls init() to populate it -- both have to happen again every
+    // time this page is navigated to, not just the first. <ClientRouter/>
+    // only executes a given page's module script once (the browser's own
+    // ESM module cache dedupes the import across every later navigation
+    // to the same script, the same reason spotlight.ts/nav-scroll.ts are
+    // written as page-load-triggered singletons rather than one-shot
+    // top-level code) -- but unlike those two, this page swaps out its
+    // whole non-persisted DOM on every navigation, so a plain top-level
+    // addEventListener here only ever binds to the FIRST visit's nodes.
+    // Confirmed directly: log in as a praktikan, log out, log back in as
+    // an asisten without a hard refresh, and the second /dashboard visit
+    // hung on "Memuat..." forever -- init() never re-ran, because the
+    // module already counted as loaded. bindPage() re-running on every
+    // astro:page-load is the fix, mirroring the pattern every persisted
+    // script in this codebase already uses for the same underlying
+    // reason.
+    function bindPage() {
+      document.getElementById("roster-paste")?.addEventListener("input", repaintTally);
 
-    document.getElementById("roster-save")?.addEventListener("click", async () => {
-      const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-      const btn = document.getElementById("roster-save") as HTMLButtonElement;
-      btn.setAttribute("data-loading", "yes");
-      try {
-        const res = await fetch("/api/sesi/roster", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paste: textarea.value }),
-        });
-        const data = await res.json();
-        if (data.ok) {
-          window.Toast?.show(`Tersimpan: ${data.groups} kelompok, ${data.total} anggota.`, "ok");
-          await loadSesi();
-        } else {
-          window.Toast?.show(pesanUntuk(data.kode), "danger");
+      document.getElementById("roster-save")?.addEventListener("click", async () => {
+        const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
+        const btn = document.getElementById("roster-save") as HTMLButtonElement;
+        btn.setAttribute("data-loading", "yes");
+        try {
+          const res = await fetch("/api/session/roster", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ paste: textarea.value }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            window.Toast?.show(`Tersimpan: ${data.groups} kelompok, ${data.total} anggota.`, "ok");
+            await loadSesi();
+          } else {
+            window.Toast?.show(pesanUntuk(data.kode), "danger");
+          }
+        } catch {
+          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+        } finally {
+          btn.setAttribute("data-loading", "no");
         }
-      } catch {
-        window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-      } finally {
-        btn.setAttribute("data-loading", "no");
-      }
-    });
+      });
 
-    document.getElementById("sesi-akhiri")?.addEventListener("click", async () => {
-      const btn = document.getElementById("sesi-akhiri") as HTMLButtonElement;
-      btn.setAttribute("data-loading", "yes");
-      try {
-        const res = await fetch("/api/sesi/akhiri", { method: "POST" });
-        const data = await res.json();
-        if (data.ok) {
-          window.Toast?.show("Sesi diakhiri.", "ok");
-          await loadSesi();
-        } else {
-          window.Toast?.show(pesanUntuk(data.kode), "danger");
+      document.getElementById("sesi-akhiri")?.addEventListener("click", async () => {
+        const btn = document.getElementById("sesi-akhiri") as HTMLButtonElement;
+        btn.setAttribute("data-loading", "yes");
+        try {
+          const res = await fetch("/api/session/end", { method: "POST" });
+          const data = await res.json();
+          if (data.ok) {
+            window.Toast?.show("Sesi diakhiri.", "ok");
+            await loadSesi();
+          } else {
+            window.Toast?.show(pesanUntuk(data.kode), "danger");
+          }
+        } catch {
+          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+        } finally {
+          btn.setAttribute("data-loading", "no");
         }
-      } catch {
-        window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-      } finally {
-        btn.setAttribute("data-loading", "no");
-      }
-    });
+      });
 
-    document.getElementById("form-sesi-baru")?.addEventListener("submit", async (ev) => {
-      ev.preventDefault();
-      const tanggal = (document.getElementById("sesi-tanggal") as HTMLInputElement).value;
-      const mulai = (document.getElementById("sesi-mulai") as HTMLInputElement).value;
-      const modul = (document.getElementById("sesi-modul") as HTMLSelectElement).value;
-      const btn = document.getElementById("sesi-baru-submit") as HTMLButtonElement;
-      btn.setAttribute("data-loading", "yes");
-      try {
-        const res = await fetch("/api/sesi", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tanggal, mulai, modul: Number(modul) }),
-        });
-        const data = await res.json();
-        if (data.ok) {
-          await loadSesi();
-        } else {
-          window.Toast?.show(pesanUntuk(data.kode), "danger");
+      document.getElementById("form-sesi-baru")?.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const tanggal = (document.getElementById("sesi-tanggal") as HTMLInputElement).value;
+        const mulai = (document.getElementById("sesi-mulai") as HTMLInputElement).value;
+        const modul = (document.getElementById("sesi-modul") as HTMLSelectElement).value;
+        const btn = document.getElementById("sesi-baru-submit") as HTMLButtonElement;
+        btn.setAttribute("data-loading", "yes");
+        try {
+          const res = await fetch("/api/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tanggal, mulai, modul: Number(modul) }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            await loadSesi();
+          } else {
+            window.Toast?.show(pesanUntuk(data.kode), "danger");
+          }
+        } catch {
+          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+        } finally {
+          btn.setAttribute("data-loading", "no");
         }
-      } catch {
-        window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-      } finally {
-        btn.setAttribute("data-loading", "no");
-      }
-    });
+      });
 
-    document.getElementById("btn-keluar")?.addEventListener("click", async () => {
-      await fetch("/api/auth/keluar", { method: "POST" });
-      navigate("/masuk");
-    });
+      document.getElementById("btn-keluar")?.addEventListener("click", async () => {
+        await fetch("/api/auth/logout", { method: "POST" });
+        navigate("/?login=1");
+      });
 
-    init();
+      init();
+    }
+
+    bindPage();
+    document.addEventListener("astro:page-load", bindPage);
   </script>
 </Base>
 

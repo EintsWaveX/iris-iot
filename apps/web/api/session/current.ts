@@ -1,5 +1,5 @@
 /**
- * GET /api/sesi/current — assistant-only. Which session is running (or
+ * GET /api/session/current — assistant-only. Which session is running (or
  * null), plus the MASTER roster (names AND NIMs -- this route is
  * assistant-only, unlike publicRoster()'s names-only projection).
  *

@@ -1,10 +1,10 @@
 /**
- * POST /api/sesi/akhiri   (no body)   — assistant-only.
+ * POST /api/session/end   (no body)   — assistant-only.
  *
  * Explicitly ends whichever session is "berjalan": sets selesaiPada and
  * durasiDetik and moves status to "selesai". Previously a session only
  * ever left "berjalan" as a side effect of starting the NEXT one
- * (api/sesi/index.ts) -- this is the real end-session path, callable the
+ * (api/session/index.ts) -- this is the real end-session path, callable the
  * moment a practicum session actually wraps up rather than only once
  * someone starts the next slot.
  */

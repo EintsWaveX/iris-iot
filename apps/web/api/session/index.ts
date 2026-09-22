@@ -1,5 +1,5 @@
 /**
- * POST /api/sesi   { tanggal, mulai, modul }   — assistant-only.
+ * POST /api/session   { tanggal, mulai, modul }   — assistant-only.
  *
  * Creates a session and marks it the running one. Phase 1 has no
  * scheduler (see src/lib/sesi.ts's header comment) — an assistant starts
@@ -11,7 +11,7 @@
  * to "selesai" — the invariant is "at most one running session", enforced
  * here rather than left to the caller to remember to end the old one
  * first. That demotion now also stamps real selesaiPada/durasiDetik
- * (matching api/sesi/akhiri.ts's explicit end-session path), so a session
+ * (matching api/session/end.ts's explicit end-session path), so a session
  * that ends by a new one starting has the same lifecycle data as one an
  * assistant explicitly ended.
  */
@@ -71,7 +71,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       res.status(200).json({ ok: false, kode: "sudah_ada" });
       return;
     }
-    console.error("[api/sesi] unexpected error:", err);
+    console.error("[api/session] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
   }
 }

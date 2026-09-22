@@ -7,8 +7,10 @@
  * Two views in one page rather than a dynamic Astro route: `output:
  * 'static'` needs getStaticPaths() for a [id].astro route, which cannot
  * work for content that only exists in the database. A `?id=` query param
- * switches between the list and the detail view instead, exactly the same
- * trick /masuk and /dashboard already use for role-switching.
+ * switches between the list and the detail view instead -- the same
+ * "static shell, client decides what to show" shape /dashboard uses for
+ * its role-branched views (there, from /api/auth/me's response rather
+ * than a query param).
  */
 import Base from "../../layouts/Base.astro";
 import Nav from "../../components/ui/Nav.astro";
@@ -314,7 +316,7 @@ const links = [
       const me = await fetch("/api/auth/me").then((r) => r.json());
       hide("loading");
       if (!me.ok) {
-        navigate("/masuk");
+        navigate("/?login=1");
         return;
       }
       if (me.role !== "asisten") {
@@ -505,7 +507,7 @@ const links = [
 
     async function kirimPerintah(aksi: string, argumen: Record<string, string> = {}) {
       try {
-        const res = await fetch("/api/tindakan", {
+        const res = await fetch("/api/action", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tipe: "kirim", serverId: currentServerId, aksi, argumen }),
@@ -521,10 +523,6 @@ const links = [
         window.Toast?.show("Tidak dapat menghubungi server.", "danger");
       }
     }
-
-    document.querySelectorAll<HTMLElement>("[data-aksi]").forEach((el) => {
-      el.addEventListener("click", () => kirimPerintah(el.dataset.aksi!));
-    });
 
     function renderPerangkat(daftar: Perangkat[]) {
       const diadopsi = daftar.filter((p) => p.diadopsi);
@@ -596,7 +594,7 @@ const links = [
           window.Toast?.show("Beri nama dulu sebelum mengadopsi.", "danger");
           return;
         }
-        const res = await fetch("/api/tindakan", {
+        const res = await fetch("/api/action", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tipe: "adopsi", id: p.id, nama, jenis: typeSelect.value }),
@@ -646,44 +644,74 @@ const links = [
       return KODE_PESAN[kode] ?? "Terjadi kesalahan.";
     }
 
-    document.getElementById("form-daftar-server")?.addEventListener("submit", async (ev) => {
-      ev.preventDefault();
-      const nama = (document.getElementById("server-nama") as HTMLInputElement).value.trim();
-      const kode = (document.getElementById("server-kode") as HTMLInputElement).value.trim();
-      const res = await fetch("/api/server", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nama, kode }),
+    // Everything below binds a listener to this page's DOM, or calls
+    // init() to populate it -- both have to happen again on every
+    // navigation TO this page, not just the first. <ClientRouter/> only
+    // executes a page's module script once (the browser's ESM module
+    // cache dedupes the import across later navigations to the same
+    // script), but this page's non-persisted DOM is freshly recreated
+    // each time, so a plain top-level addEventListener only ever binds to
+    // the first visit's nodes -- see dashboard.astro's identical
+    // bindPage() comment, which is where this was first found: log in,
+    // navigate to /dashboard/server, then in again as a different role
+    // without a hard refresh and this page hangs on "Memuat..." forever,
+    // because init() never re-runs. It also matters more here than on
+    // /dashboard: init() reads window.location.search to choose the list
+    // or detail view, and /dashboard/server's own list links to
+    // /dashboard/server?id=N -- a same-script, different-query
+    // navigation that the module-dedup issue affects identically, so
+    // without this fix, clicking from the list into a server's detail
+    // view would silently fail to render past the first server ever
+    // opened in a tab.
+    function bindPage() {
+      document.querySelectorAll<HTMLElement>("[data-aksi]").forEach((el) => {
+        el.addEventListener("click", () => kirimPerintah(el.dataset.aksi!));
       });
-      const data = await res.json();
-      if (!data.ok) {
-        window.Toast?.show(pesanUntuk(data.kode), "danger");
-        return;
-      }
-      window.Modal?.close("modal-daftar-server");
-      document.getElementById("token-perintah")!.textContent =
-        `iris-agent enroll --kode ${data.kode} --token ${data.token} --server https://${window.location.host}`;
-      window.Modal?.open("modal-token");
-      await loadDaftar();
-    });
 
-    document.getElementById("btn-keluar")?.addEventListener("click", async () => {
-      await fetch("/api/auth/keluar", { method: "POST" });
-      navigate("/masuk");
-    });
+      document.getElementById("form-daftar-server")?.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const nama = (document.getElementById("server-nama") as HTMLInputElement).value.trim();
+        const kode = (document.getElementById("server-kode") as HTMLInputElement).value.trim();
+        const res = await fetch("/api/server", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nama, kode }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          window.Toast?.show(pesanUntuk(data.kode), "danger");
+          return;
+        }
+        window.Modal?.close("modal-daftar-server");
+        document.getElementById("token-perintah")!.textContent =
+          `iris-agent enroll --kode ${data.kode} --token ${data.token} --server https://${window.location.host}`;
+        window.Modal?.open("modal-token");
+        await loadDaftar();
+      });
 
-    document.getElementById("btn-hapus-server-konfirmasi")?.addEventListener("click", async () => {
-      const res = await fetch(`/api/server/${currentServerId}`, { method: "DELETE" });
-      const data = await res.json();
-      window.Modal?.close("modal-hapus-server");
-      if (data.ok) {
-        navigate("/dashboard/server");
-      } else {
-        window.Toast?.show(pesanUntuk(data.kode), "danger");
-      }
-    });
+      document.getElementById("btn-keluar")?.addEventListener("click", async () => {
+        await fetch("/api/auth/logout", { method: "POST" });
+        navigate("/?login=1");
+      });
 
-    init();
+      document
+        .getElementById("btn-hapus-server-konfirmasi")
+        ?.addEventListener("click", async () => {
+          const res = await fetch(`/api/server/${currentServerId}`, { method: "DELETE" });
+          const data = await res.json();
+          window.Modal?.close("modal-hapus-server");
+          if (data.ok) {
+            navigate("/dashboard/server");
+          } else {
+            window.Toast?.show(pesanUntuk(data.kode), "danger");
+          }
+        });
+
+      init();
+    }
+
+    bindPage();
+    document.addEventListener("astro:page-load", bindPage);
   </script>
 </Base>
 

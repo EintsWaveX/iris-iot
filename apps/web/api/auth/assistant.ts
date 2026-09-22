@@ -1,5 +1,5 @@
 /**
- * POST /api/auth/asisten   { nim, password }
+ * POST /api/auth/assistant   { nim, password }
  *
  * password must equal nim + "1715". See src/lib/auth.ts's header comment
  * for why this is an accountability model, not a secrecy one, and why
@@ -53,7 +53,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     await writeAudit(result.nim, "masuk_asisten");
     res.status(200).json({ ok: true, nim: result.nim, nama: result.nama });
   } catch (err) {
-    console.error("[api/auth/asisten] unexpected error:", err);
+    console.error("[api/auth/assistant] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
   }
 }

@@ -1,5 +1,5 @@
 /**
- * POST /api/agen   { kode, token }                                (enroll)
+ * POST /api/agent   { kode, token }                                (enroll)
  *                | { serverId, agenKunci, cpu, memori, disk, suhu,
  *                    uptimeSec, jamSelaras, modeJaringan, layanan,
  *                    perangkat, hasilPerintah }                   (heartbeat)
@@ -7,9 +7,9 @@
  * Two very different operations sharing one file, dispatched on whether
  * `token` is present -- an enrollment body always has one, a heartbeat
  * body never does, so there is no ambiguity. Merged here rather than kept
- * as api/agen/daftar.ts + api/agen/denyut.ts purely because the Vercel
+ * as api/agent/daftar.ts + api/agent/denyut.ts purely because the Vercel
  * Hobby plan caps a deployment at 12 serverless functions (see
- * api/tindakan.ts's header for the other half of this consolidation, and
+ * api/action.ts's header for the other half of this consolidation, and
  * the same note on splitting them back apart later).
  *
  * Enroll: exchanges a one-time token for the long-lived agent key the
@@ -99,7 +99,7 @@ async function handleDaftar(req: ApiRequest, res: ApiResponse) {
 
     res.status(200).json({ ok: true, serverId: row.id, agenKunci });
   } catch (err) {
-    console.error("[api/agen daftar] unexpected error:", err);
+    console.error("[api/agent daftar] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
   }
 }
@@ -197,7 +197,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
 
     res.status(200).json({ ok: true, perintah: pending, intervalDetik });
   } catch (err) {
-    console.error("[api/agen denyut] unexpected error:", err);
+    console.error("[api/agent denyut] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
   }
 }

@@ -4,17 +4,21 @@
  * content, the live layer X-ray, and the server/device registry are each
  * their own phase (see the Phase 1 plan's roadmap) and don't exist yet.
  * What has to be true today is that the site has a front door, it says
- * what it is, and it gets a practitioner or an assistant to /masuk.
+ * what it is, and it gets a practitioner or an assistant into the login
+ * modal.
+ *
+ * Login lives here, not on its own route: Phase 5 replaced the standalone
+ * /masuk page with LoginModal.astro, opened either directly (the "Masuk"
+ * actions below) or by arriving at /?login=1 -- which /masuk and /login
+ * both redirect to, see vercel.json -- checked for on load just below.
  */
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
 import Button from "../components/ui/Button.astro";
 import Card from "../components/ui/Card.astro";
+import LoginModal from "../components/LoginModal.astro";
 
-const links = [
-  { href: "/", label: "Beranda" },
-  { href: "/masuk", label: "Masuk" },
-];
+const links = [{ href: "/", label: "Beranda" }];
 ---
 
 <Base
@@ -22,7 +26,14 @@ const links = [
   description="Praktikum IoT IRIS. Empat modul, satu papan."
   cosmosScene="beranda"
 >
-  <Nav links={links} current="/" />
+  <Nav links={links} current="/">
+    <Fragment slot="side">
+      <Button kind="ghost" data-modal-open="login-modal">
+        Masuk
+      </Button>
+    </Fragment>
+  </Nav>
+  <LoginModal />
 
   <main class="measure">
     <section class="hero">
@@ -37,7 +48,7 @@ const links = [
         praktikum IoT IRIS.
       </p>
       <div class="hero__actions">
-        <Button kind="primary" href="/masuk">
+        <Button kind="primary" data-modal-open="login-modal">
           Masuk
         </Button>
         <Button kind="ghost" href="/ui">
@@ -64,6 +75,36 @@ const links = [
     </section>
   </main>
 </Base>
+
+<script>
+  import { navigate } from "astro:transitions/client";
+
+  // /masuk and /login both redirect here with this query param (see
+  // vercel.json), so a bookmark or a link written before the modal
+  // existed still lands somewhere useful. Checked against a live session
+  // first -- unlike a plain visit to "/", which never makes this call --
+  // because arriving via this specific path is someone who came here
+  // TO log in, and if they already have, the form would just be in the
+  // way.
+  function openLoginIfRequested() {
+    if (new URLSearchParams(location.search).get("login") !== "1") return;
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) {
+          navigate("/dashboard");
+        } else {
+          window.Modal?.open("login-modal");
+        }
+      })
+      .catch(() => {
+        window.Modal?.open("login-modal");
+      });
+  }
+
+  openLoginIfRequested();
+  document.addEventListener("astro:page-load", openLoginIfRequested);
+</script>
 
 <style>
   .hero {
