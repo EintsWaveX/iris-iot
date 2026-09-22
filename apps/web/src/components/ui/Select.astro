@@ -70,11 +70,15 @@ const { id, label, name = id, options, value, required = false, hint } = Astro.p
     font-size: var(--fs-body-lg);
     min-height: max(var(--tap), 44px);
     padding: 0 var(--space-8) 0 var(--space-4);
+    transition:
+      border-color var(--dur-fast) var(--ease-reveal),
+      box-shadow var(--dur-fast) var(--ease-reveal);
     width: 100%;
   }
 
   .select__input:focus-visible {
     border-color: var(--accent);
+    box-shadow: var(--glow-ring);
   }
 
   .select__hint {

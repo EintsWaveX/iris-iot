@@ -86,12 +86,15 @@ const {
     font-size: var(--fs-body-lg);
     min-height: max(var(--tap), 44px);
     padding: 0 var(--space-4);
-    transition: border-color var(--dur-fast) var(--ease-reveal);
+    transition:
+      border-color var(--dur-fast) var(--ease-reveal),
+      box-shadow var(--dur-fast) var(--ease-reveal);
     width: 100%;
   }
 
   .field__input:focus-visible {
     border-color: var(--accent);
+    box-shadow: var(--glow-ring);
   }
 
   .field[data-invalid="yes"] .field__input {

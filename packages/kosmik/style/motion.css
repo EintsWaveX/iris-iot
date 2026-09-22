@@ -28,6 +28,21 @@
   }
 }
 
+/* The sweep: one keyframe behind every gradient-ring hover moment (buttons,
+   cards, badges) and the swept nav hairline. First and last stops of
+   --sweep are the same colour and the image tiles at 200%, so shifting by
+   exactly one image width returns to an identical frame -- no seam. Ported
+   from portfolio/src/style.css, with IRIS's own hues already substituted
+   into the --sweep token itself. */
+@keyframes aurora-sweep {
+  from {
+    background-position: 0% center;
+  }
+  to {
+    background-position: 200% center;
+  }
+}
+
 /* The specular pass over glass panels. */
 @keyframes panel-sweep {
   0% {

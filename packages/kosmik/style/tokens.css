@@ -118,6 +118,11 @@
   --accent-ink: #04121d; /* text ON solid --accent */
   --accent-glow: rgba(64, 176, 255, 0.42);
   --focus-ring: #8ed0ff;
+  /* The focus/hover glow ring shared by Field, Select and anything else
+     that needs "this control has the accent's attention" without the
+     swept border ring (that one is for hover on ghost surfaces; this one
+     is for the single, non-animated focus state a form control needs). */
+  --glow-ring: 0 0 0 3px var(--accent-glow);
 
   /* One gradient, swept by the same @keyframes aurora-sweep in motion.css,
      for both gradient text (background-clip) and the 1px mask-composite

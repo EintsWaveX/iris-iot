@@ -34,6 +34,48 @@ const { title, eyebrow, class: className, id, hidden, ...rest } = Astro.props;
     border: 1px solid var(--hairline);
     border-radius: var(--radius-lg);
     padding: var(--space-6);
+    position: relative;
+    transition:
+      border-color var(--dur-mid) var(--ease-reveal),
+      box-shadow var(--dur-mid) var(--ease-reveal),
+      transform var(--dur-mid) var(--ease-out-expo);
+  }
+
+  /* The cursor-follow spotlight: a 1px ring painted with a radial gradient
+     centred on --mouse-x/--mouse-y (written by scripts/spotlight.ts),
+     punched out the same way the button ring is. Falls back to the
+     off-screen default coordinates in the JS module, so a card that never
+     gets a mousemove (reduced motion, touch, keyboard-only) simply never
+     shows a ring rather than showing one in the wrong place. */
+  .card::after {
+    background: radial-gradient(
+      450px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+      color-mix(in srgb, var(--accent) 55%, transparent),
+      transparent 70%
+    );
+    border-radius: inherit;
+    content: "";
+    inset: 0;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    opacity: 0;
+    padding: 1px;
+    pointer-events: none;
+    position: absolute;
+    transition: opacity var(--dur-mid) var(--ease-reveal);
+  }
+
+  .card:hover {
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline));
+    box-shadow: var(--shadow-lift);
+    transform: var(--lift-card);
+  }
+
+  .card:hover::after {
+    opacity: 1;
   }
 
   .card__head {

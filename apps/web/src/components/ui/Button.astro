@@ -70,19 +70,54 @@ const Tag = href ? "a" : "button";
     transition:
       background var(--dur-fast) var(--ease-reveal),
       border-color var(--dur-fast) var(--ease-reveal),
+      box-shadow var(--dur-fast) var(--ease-reveal),
       color var(--dur-fast) var(--ease-reveal),
-      opacity var(--dur-fast) var(--ease-reveal);
+      opacity var(--dur-fast) var(--ease-reveal),
+      transform var(--dur-fast) var(--ease-out-expo);
   }
 
-  .btn:hover:not(:disabled) {
+  .btn:hover:not(:disabled):not([aria-disabled="true"]) {
     border-color: var(--hairline-strong);
     background: var(--hairline-faint);
+    box-shadow: var(--shadow-lift);
+    transform: var(--lift-control);
   }
 
   .btn:disabled,
   .btn[aria-disabled="true"] {
     cursor: not-allowed;
     opacity: 0.5;
+  }
+
+  /* The swept gradient-border ring: a 1px frame painted with --sweep and
+     punched out with mask-composite so only the ring itself is visible.
+     Ghost and danger keep a real border underneath, so this rides on top
+     of it rather than replacing it. */
+  .btn--ghost::after,
+  .btn--danger::after {
+    background-image: var(--sweep);
+    background-size: 200% auto;
+    border-radius: inherit;
+    content: "";
+    inset: 0;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    opacity: 0;
+    padding: 1px;
+    pointer-events: none;
+    position: absolute;
+    transition: opacity var(--dur-fast) var(--ease-reveal);
+  }
+
+  .btn--ghost:hover:not(:disabled):not([aria-disabled="true"])::after,
+  .btn--ghost:focus-visible:not([aria-disabled="true"])::after,
+  .btn--danger:hover:not(:disabled):not([aria-disabled="true"])::after,
+  .btn--danger:focus-visible:not([aria-disabled="true"])::after {
+    animation: aurora-sweep 2.2s linear infinite;
+    opacity: 1;
   }
 
   .btn--primary {
@@ -94,6 +129,34 @@ const Tag = href ? "a" : "button";
   .btn--primary:hover:not(:disabled) {
     background: var(--accent-bright);
     border-color: var(--accent-bright);
+  }
+
+  /* Primary already has a solid fill, so the sweep arrives as a second
+     layer faded in over the first via opacity rather than a background
+     swap -- gradients don't interpolate, so swapping background-image
+     outright would snap instead of transition. */
+  .btn--primary::before {
+    background-image: var(--sweep);
+    background-size: 200% auto;
+    border-radius: inherit;
+    content: "";
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    transition: opacity var(--dur-mid) var(--ease-reveal);
+  }
+
+  .btn--primary:hover:not(:disabled):not([aria-disabled="true"])::before,
+  .btn--primary:focus-visible:not([aria-disabled="true"])::before {
+    animation: aurora-sweep 2.6s linear infinite;
+    opacity: 1;
+  }
+
+  .btn--primary .btn__label,
+  .btn--primary .btn__spinner {
+    position: relative;
+    z-index: 1;
   }
 
   .btn--danger {

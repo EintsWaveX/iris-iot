@@ -75,7 +75,6 @@ const { links, current = Astro.url.pathname } = Astro.props;
     background: var(--panel-bg);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid var(--hairline);
     display: flex;
     gap: var(--space-5);
     justify-content: space-between;
@@ -86,6 +85,29 @@ const { links, current = Astro.url.pathname } = Astro.props;
     top: 0;
     /* Highest top-level z-index on the page: a modal (100) and the toast host (200) sit above it deliberately. */
     z-index: 50;
+  }
+
+  /* The swept hairline: invisible while the page sits at the top (the bar
+     has nothing to separate itself from yet), faded in by
+     scripts/nav-scroll.ts once the page has actually scrolled. Painted with
+     --sweep rather than a flat colour so scrolling reads as one more
+     cosmic-editorial gesture instead of a plain rule appearing. */
+  .nav::after {
+    background-image: var(--sweep);
+    background-size: 200% auto;
+    bottom: 0;
+    content: "";
+    height: 1px;
+    left: 0;
+    opacity: 0;
+    position: absolute;
+    right: 0;
+    transition: opacity var(--dur-mid) var(--ease-reveal);
+  }
+
+  .nav[data-scrolled="yes"]::after {
+    animation: aurora-sweep 6s linear infinite;
+    opacity: 1;
   }
 
   .nav__brand {
