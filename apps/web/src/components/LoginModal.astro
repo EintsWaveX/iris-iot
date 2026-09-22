@@ -88,6 +88,43 @@ import Tabs from "./ui/Tabs";
   </Fragment>
 </Modal>
 
+<Modal
+  id="set-password-modal"
+  title="Setel kata sandi asli"
+  lede='Selama ini kata sandi asisten adalah NIM ditambah "1715", jadi siapa pun yang tahu NIM kalian bisa menghitungnya. Setel kata sandi asli sekali di sini, dan kata sandi lama berhenti berfungsi untuk akun ini.'
+>
+  <Fragment slot="body">
+    <form id="set-password-form" novalidate>
+      <Field
+        id="set-password-baru"
+        label="Kata sandi baru"
+        name="password"
+        type="password"
+        required
+        autocomplete="new-password"
+        hint="Minimal 8 karakter."
+      />
+      <Field
+        id="set-password-ulang"
+        label="Ulangi kata sandi baru"
+        name="passwordUlang"
+        type="password"
+        required
+        autocomplete="new-password"
+      />
+      <p class="field-error" id="set-password-error" hidden></p>
+    </form>
+  </Fragment>
+  <Fragment slot="actions">
+    <Button kind="ghost" id="set-password-lewati" type="button">
+      Lewati untuk sekarang
+    </Button>
+    <Button kind="primary" id="set-password-submit" type="submit" form="set-password-form">
+      Setel kata sandi
+    </Button>
+  </Fragment>
+</Modal>
+
 <style>
   .lede {
     color: var(--text-muted);
@@ -115,6 +152,7 @@ import Tabs from "./ui/Tabs";
   import { navigate } from "astro:transitions/client";
 
   type LoginFailure = { ok: false; kode: string };
+  type LoginSuccess = Record<string, unknown> & { ok: true };
 
   const KODE_PESAN: Record<string, string> = {
     format_salah: "Formatnya belum benar. Periksa kembali isiannya.",
@@ -122,6 +160,7 @@ import Tabs from "./ui/Tabs";
     tidak_cocok: "NIM atau kata sandi tidak cocok.",
     tidak_ada_sesi: "Belum ada sesi yang berjalan. Tunggu asisten membukanya.",
     tidak_terdaftar: "NIM ini tidak terdaftar di sesi yang sedang berjalan.",
+    terlalu_pendek: "Kata sandi minimal 8 karakter.",
     galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
   };
 
@@ -143,12 +182,16 @@ import Tabs from "./ui/Tabs";
     el.textContent = "";
   }
 
+  /** Posts a login (or login-adjacent) request and reports the outcome
+   *  back to the caller instead of navigating itself, since the assistant
+   *  path needs to branch on the response (perluAturSandi) before deciding
+   *  where to go. */
   async function submitLogin(
     url: string,
     body: Record<string, string>,
     submitBtnId: string,
     errorId: string,
-  ) {
+  ): Promise<LoginSuccess | null> {
     clearError(errorId);
     const btn = document.getElementById(submitBtnId) as HTMLButtonElement | null;
     btn?.setAttribute("data-loading", "yes");
@@ -159,13 +202,43 @@ import Tabs from "./ui/Tabs";
         body: JSON.stringify(body),
       });
       const data = await res.json();
+      if (data.ok) return data as LoginSuccess;
+      showError(errorId, pesanUntuk((data as LoginFailure).kode));
+      return null;
+    } catch {
+      showError(errorId, "Tidak dapat menghubungi server.");
+      return null;
+    } finally {
+      btn?.setAttribute("data-loading", "no");
+    }
+  }
+
+  async function submitSetPassword() {
+    clearError("set-password-error");
+    const password = (document.getElementById("set-password-baru") as HTMLInputElement).value;
+    const ulang = (document.getElementById("set-password-ulang") as HTMLInputElement).value;
+
+    if (password !== ulang) {
+      showError("set-password-error", "Kedua kata sandi belum sama.");
+      return;
+    }
+
+    const btn = document.getElementById("set-password-submit") as HTMLButtonElement | null;
+    btn?.setAttribute("data-loading", "yes");
+    try {
+      const res = await fetch("/api/auth/set-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
       if (data.ok) {
         navigate("/dashboard");
         return;
       }
-      showError(errorId, pesanUntuk((data as LoginFailure).kode));
+      showError("set-password-error", pesanUntuk((data as LoginFailure).kode));
     } catch {
-      showError(errorId, "Tidak dapat menghubungi server.");
+      showError("set-password-error", "Tidak dapat menghubungi server.");
     } finally {
       btn?.setAttribute("data-loading", "no");
     }
@@ -175,33 +248,56 @@ import Tabs from "./ui/Tabs";
     const praktikanForm = document.getElementById("login-form-praktikan");
     if (praktikanForm && !praktikanForm.dataset.bound) {
       praktikanForm.dataset.bound = "1";
-      praktikanForm.addEventListener("submit", (ev) => {
+      praktikanForm.addEventListener("submit", async (ev) => {
         ev.preventDefault();
         const nim = (document.getElementById("login-praktikan-nim") as HTMLInputElement).value;
-        submitLogin(
+        const result = await submitLogin(
           "/api/auth/student",
           { nim },
           "login-praktikan-submit",
           "login-praktikan-error",
         );
+        if (result) navigate("/dashboard");
       });
     }
 
     const asistenForm = document.getElementById("login-form-asisten");
     if (asistenForm && !asistenForm.dataset.bound) {
       asistenForm.dataset.bound = "1";
-      asistenForm.addEventListener("submit", (ev) => {
+      asistenForm.addEventListener("submit", async (ev) => {
         ev.preventDefault();
         const nim = (document.getElementById("login-asisten-nim") as HTMLInputElement).value;
         const password = (document.getElementById("login-asisten-password") as HTMLInputElement)
           .value;
-        submitLogin(
+        const result = await submitLogin(
           "/api/auth/assistant",
           { nim, password },
           "login-asisten-submit",
           "login-asisten-error",
         );
+        if (!result) return;
+        if (result.perluAturSandi) {
+          window.Modal?.close("login-modal");
+          window.Modal?.open("set-password-modal");
+        } else {
+          navigate("/dashboard");
+        }
       });
+    }
+
+    const setPasswordForm = document.getElementById("set-password-form");
+    if (setPasswordForm && !setPasswordForm.dataset.bound) {
+      setPasswordForm.dataset.bound = "1";
+      setPasswordForm.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        submitSetPassword();
+      });
+    }
+
+    const skipBtn = document.getElementById("set-password-lewati");
+    if (skipBtn && !skipBtn.dataset.bound) {
+      skipBtn.dataset.bound = "1";
+      skipBtn.addEventListener("click", () => navigate("/dashboard"));
     }
   }
 

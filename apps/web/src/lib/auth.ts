@@ -24,7 +24,7 @@
  * cost of not being revocable before it expires. TTL is kept short (2
  * hours) specifically because of that trade-off.
  */
-import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
+import { createHmac, timingSafeEqual, randomBytes, scryptSync } from "node:crypto";
 import { eq, and, gte, count } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { asisten, percobaanMasuk, audit } from "./schema.js";
@@ -51,6 +51,28 @@ function getSessionSecret(): string {
     );
   }
   return secret;
+}
+
+// scrypt's own key-derivation cost is the actual defence here (a plain
+// salted hash with a fast digest would make offline guessing cheap); the
+// built-in node:crypto implementation is used rather than a dependency
+// like bcrypt for the same reason http.ts avoids @vercel/node -- one
+// primitive doesn't justify a package and its own advisories.
+const SCRYPT_KEYLEN = 64;
+export const MIN_PASSWORD_LEN = 8;
+
+/** Salted scrypt hash, stored as `salt:hash` (both hex). */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, SCRYPT_KEYLEN).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function verifyPasswordHash(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const candidate = scryptSync(password, salt, SCRYPT_KEYLEN).toString("hex");
+  return safeEqual(candidate, hash);
 }
 
 /** Timing-safe string comparison. Both inputs are padded to equal length
@@ -236,7 +258,8 @@ export async function verifyPraktikanLogin(
 }
 
 export type AsistenLoginResult =
-  { ok: true; nim: string; nama: string } | { ok: false; kode: "terkunci" | "tidak_cocok" };
+  | { ok: true; nim: string; nama: string; perluAturSandi: boolean }
+  | { ok: false; kode: "terkunci" | "tidak_cocok" };
 
 /**
  * Verify an assistant's NIM + password. Unknown NIM and wrong password
@@ -244,6 +267,13 @@ export type AsistenLoginResult =
  * cannot use response timing or content to enumerate which NIMs exist in
  * `asisten` — the table is not secret (it is printed in the handbook) but
  * there is no reason to make probing it any easier than it already is.
+ *
+ * Once an assistant has a `passwordHash` set (see setAsistenPassword()),
+ * that hash is the ONLY thing checked for them — the derived nim+"1715"
+ * scheme stops working entirely, which is the point of moving off it. An
+ * unknown NIM or an assistant who hasn't set one yet still compares against
+ * the derived scheme, exactly as before Stage 4, and the timing-safe
+ * compare against it always runs regardless of which row (if any) exists.
  */
 export async function verifyAsistenLogin(
   nim: string,
@@ -261,12 +291,28 @@ export async function verifyAsistenLogin(
   // absence of a row doesn't shortcut the function before the timing-safe
   // compare would otherwise have run.
   const expected = (row?.nim ?? nim) + ASSISTANT_PASSWORD_SUFFIX;
-  const matched = row !== undefined && safeEqual(password, expected);
+  const derivedMatch = safeEqual(password, expected);
+  const hashMatch = row?.passwordHash ? verifyPasswordHash(password, row.passwordHash) : false;
+
+  const matched = row !== undefined && (row.passwordHash ? hashMatch : derivedMatch);
 
   await recordAttempt(nim, ip, "asisten", matched);
 
   if (!matched) return { ok: false, kode: "tidak_cocok" };
-  return { ok: true, nim: row!.nim, nama: row!.nama };
+  return { ok: true, nim: row!.nim, nama: row!.nama, perluAturSandi: !row!.passwordHash };
+}
+
+/** Sets (or replaces) an assistant's real password, ending their eligibility
+ *  for the derived nim+"1715" scheme from this call onward. Caller is
+ *  responsible for having already authenticated the assistant (this is the
+ *  first-login flow's next step, not a login itself) and for length-checking
+ *  against MIN_PASSWORD_LEN. */
+export async function setAsistenPassword(nim: string, password: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(asisten)
+    .set({ passwordHash: hashPassword(password), passwordDiaturPada: new Date() })
+    .where(eq(asisten.nim, nim));
 }
 
 export async function writeAudit(aktorNim: string, aksi: string, detail?: unknown): Promise<void> {

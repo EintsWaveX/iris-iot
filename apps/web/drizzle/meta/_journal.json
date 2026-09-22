@@ -22,6 +22,13 @@
       "when": 1789977955150,
       "tag": "0002_roster_kelompok_anggota",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790066306577,
+      "tag": "0003_violet_sentinels",
+      "breakpoints": true
     }
   ]
 }

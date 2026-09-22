@@ -37,6 +37,13 @@ export const asisten = pgTable("asisten", {
   kode: text("kode").notNull(),
   divisiId: text("divisi_id").notNull(),
   divisiEn: text("divisi_en").notNull(),
+  // Null until the assistant completes the first-login set-password flow,
+  // during which they still authenticate on the derived nim+"1715" scheme
+  // (see auth.ts's header comment). Once set, this hash is the ONLY thing
+  // checked for that assistant -- the derived scheme stops working for them
+  // entirely, which is the point of moving off it.
+  passwordHash: text("password_hash"),
+  passwordDiaturPada: timestamp("password_diatur_pada", { withTimezone: true }),
 });
 
 /**
@@ -68,6 +75,17 @@ export const sesi = pgTable(
     mulaiPada: timestamp("mulai_pada", { withTimezone: true }),
     selesaiPada: timestamp("selesai_pada", { withTimezone: true }),
     durasiDetik: integer("durasi_detik"),
+    // Which of the practicum's four fixed daily starts (06:30, 09:30, 12:30,
+    // 15:30) this session occupies -- 1-4. Nullable because Phase 1's manual
+    // start form (still the only way to create a session before Stage 5's
+    // scheduler) never asked for one; the scheduler will always set it.
+    slot: integer("slot"),
+    // True only for Module 4 Part A: the one part of the practicum that
+    // needs the Orange Pi running as its own access point rather than as a
+    // campus network client. A single wlan0 cannot be both at once (see the
+    // Track B provisioning notes), so the scheduler must know which slots
+    // need AP mode ahead of time rather than leaving it to memory.
+    butuhAp: boolean("butuh_ap").notNull().default(false),
     dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -142,31 +160,73 @@ export const sesiKelompok = pgTable(
  * by session so a makeup session repeating a module gets its own answer set
  * for free, and by group (not `anggota.id`) so removing a member never
  * cascades into answers. `soalKode` is the `kode` a journal's `#jawab()`
- * helper carries, the single source both the PDF and this table's rows
- * agree on. `versi` is used for stale-write detection only (last-write-wins
- * per row, not merged) — see the Phase 3 plan's concurrency section for why
- * a CRDT would solve a collision five students in one room don't have.
+ * helper carries for an analysis answer (prose/diagram), or a code blank's
+ * own module/file/number address once Stage 8's editor writes here too —
+ * the single source both the PDF and this table's rows agree on. `versi` is
+ * used for stale-write detection only (last-write-wins per row, not merged)
+ * — see the Phase 3 plan's concurrency section for why a CRDT would solve a
+ * collision five students in one room don't have.
+ *
+ * `benar`/`percobaan` exist for code blanks only (an analysis answer is
+ * never "correct" in this sense; both stay at their defaults for those
+ * rows) — `benar` is whether `isi` currently matches the stored answer,
+ * `percobaan` counts every check attempt regardless of outcome, which is
+ * what feeds Stage 10's "Perlu bantuan" stuck list.
+ *
+ * `sesiId` is nullable so Stage 8's editor works any time, no running
+ * session required (practice at home, before or after a lab slot). A plain
+ * multi-column unique constraint already treats every NULL as distinct from
+ * every other NULL, so it does nothing to stop duplicate rows piling up for
+ * the same group's home practice -- the second, partial index below is what
+ * actually enforces "one row per group per code blank" in that case.
  */
 export const jawaban = pgTable(
   "jawaban",
   {
     id: serial("id").primaryKey(),
-    sesiId: integer("sesi_id")
-      .notNull()
-      .references(() => sesi.id, { onDelete: "cascade" }),
+    sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
     kelompokId: integer("kelompok_id")
       .notNull()
       .references(() => kelompok.id, { onDelete: "cascade" }),
     soalKode: text("soal_kode").notNull(),
     isi: text("isi").notNull().default(""),
+    benar: boolean("benar").notNull().default(false),
+    percobaan: integer("percobaan").notNull().default(0),
     versi: integer("versi").notNull().default(0),
     diubahOleh: text("diubah_oleh"), // NIM, matching audit.aktorNim's shape
     diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     unique("jawaban_sesi_kelompok_soal").on(t.sesiId, t.kelompokId, t.soalKode),
+    uniqueIndex("jawaban_kelompok_soal_tanpa_sesi")
+      .on(t.kelompokId, t.soalKode)
+      .where(sql`${t.sesiId} is null`),
     index("jawaban_sesi_idx").on(t.sesiId),
   ],
+);
+
+/**
+ * The assistant-uploaded presentation library (Stage 9). A small library
+ * rather than a single replace-on-upload slot -- several PDFs can exist at
+ * once, with at most one `aktif` at a time via the partial unique index
+ * below (a partial unique index on a boolean filtered to `true` is exactly
+ * "at most one row may have this true", the same idiom `sesi_slot_unik`
+ * uses for its own exclusion rule). Not tied to any session or module: the
+ * praktikan dashboard's presentation card always shows whichever one is
+ * active, persisted for everyone rather than scoped to who happens to be
+ * looking.
+ */
+export const presentasi = pgTable(
+  "presentasi",
+  {
+    id: serial("id").primaryKey(),
+    namaBerkas: text("nama_berkas").notNull(),
+    url: text("url").notNull(), // Vercel Blob URL
+    diunggahOleh: text("diunggah_oleh").notNull(), // NIM, matching audit.aktorNim's shape
+    diunggahPada: timestamp("diunggah_pada", { withTimezone: true }).notNull().defaultNow(),
+    aktif: boolean("aktif").notNull().default(false),
+  },
+  (t) => [uniqueIndex("presentasi_aktif_unik").on(t.aktif).where(sql`${t.aktif} = true`)],
 );
 
 /**
