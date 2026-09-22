@@ -1,7 +1,7 @@
 /**
  * Arena Asisten IRIS - motion layer.
  *
- * Owns three things:
+ * Owns four things:
  *
  *   1. GSAP setup. Registers the vendored plugins and defines CustomEase
  *      curves whose names and control points match the --ease-* CSS tokens,
@@ -19,6 +19,14 @@
  *   3. Reduced-motion policy. A live matchMedia subscription rather than a
  *      one-shot read, mirrored onto the --motion-off custom property so CSS
  *      can react without duplicating rules inside a media query.
+ *
+ *   4. Motion tier. A measured-capability axis, separate from reduced
+ *      motion (see that section's own comment for why), mirrored onto a
+ *      data-motion-tier attribute on the document root element so CSS
+ *      can gate the drift layers the same way it gates reduced motion --
+ *      without this, apps/web's
+ *      "Kurangi efek" toggle only ever reached the canvas and GSAP paths,
+ *      never the plain-CSS nebula/grid/aurora drift.
  *
  * Loaded after the vendor bundle and before every module that animates.
  */
@@ -69,6 +77,42 @@
       reducedQuery.addEventListener("change", onReducedChange);
     } else if (typeof reducedQuery.addListener === "function") {
       reducedQuery.addListener(onReducedChange);
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // motion tier
+  //
+  // A second, independent axis from reduced motion above: reduced motion
+  // is a stated PREFERENCE (the OS setting, or apps/web's "Kurangi efek"
+  // toggle) that always wins outright, while the tier is a measured
+  // CAPABILITY (apps/web's motion-tier.ts probe) describing what a device
+  // can actually afford. Nothing in this file combines the two -- that
+  // is deliberately left to the caller, since "reduced wins over
+  // measured capability" is a policy decision, not a fact this file
+  // should bake in.
+  //
+  // Defaults to 2 (full) and nothing here ever lowers it on its own:
+  // apps/games never calls setTier, so it always reads 2 and behaves
+  // exactly as it did before this axis existed. Only apps/web's probe
+  // calls setTier, and only for apps/web's own document.
+  // ---------------------------------------------------------------------
+
+  var tier = 2;
+  var tierListeners = [];
+
+  function applyTier() {
+    try {
+      document.documentElement.setAttribute("data-motion-tier", String(tier));
+    } catch (err) {
+      /* documentElement not available yet -- caller should retry once it is */
+    }
+    for (var i = 0; i < tierListeners.length; i++) {
+      try {
+        tierListeners[i](tier);
+      } catch (err) {
+        /* a misbehaving listener must not take the rest down */
+      }
     }
   }
 
@@ -395,6 +439,7 @@
   }
 
   applyReduced();
+  applyTier();
 
   window.Motion = {
     gsap: gsap,
@@ -417,6 +462,22 @@
       manualReduced = value === null || value === undefined ? null : !!value;
       reduced = manualReduced === null ? osReduced : manualReduced;
       applyReduced();
+    },
+    getTier: function () {
+      return tier;
+    },
+    // 0 = static painted CSS only, no JS animation anywhere.
+    // 1 = the CSS drift layers (nebula/grid/aurora) animate; no canvas.
+    // 2 = the canvas starfield/comets/planets also mount. The default,
+    // and the only value apps/games ever sees.
+    setTier: function (value) {
+      var next = Math.max(0, Math.min(2, value | 0));
+      if (next === tier) return;
+      tier = next;
+      applyTier();
+    },
+    onTierChange: function (fn) {
+      if (typeof fn === "function") tierListeners.push(fn);
     },
     DUR: { fast: 0.16, mid: 0.28, slow: 0.52 },
   };

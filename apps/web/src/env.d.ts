@@ -27,6 +27,11 @@ interface Window {
     isReduced(): boolean;
     setReduced(value: boolean | null): void;
     onReducedChange(fn: (isReduced: boolean) => void): void;
+    // src/scripts/motion-tier.ts is the only caller of setTier/getTier;
+    // cosmos.core.js and Nav's toggle only ever read via getTier/onTierChange.
+    getTier(): 0 | 1 | 2;
+    setTier(value: 0 | 1 | 2): void;
+    onTierChange(fn: (tier: 0 | 1 | 2) => void): void;
   };
   gsap?: unknown;
   CustomEase?: unknown;

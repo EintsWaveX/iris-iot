@@ -61,3 +61,57 @@ const { title, description = "", lang = "id", cosmosScene = "beranda" } = Astro.
     </script>
   </body>
 </html>
+
+<style is:global>
+  /*
+   * The page-to-page transition: a content-only crossfade, replacing the
+   * hyperspace warp cosmos-router.js used to fire on every navigation.
+   * The sky (packages/kosmik/js/cosmos.core.js's canvas plus cosmos.css's
+   * CSS layers) is transition:persist'd in Cosmos.astro under its own
+   * transition:name="cosmos" group, so it never appears here at all --
+   * this only ever touches Astro's implicit "root" group, which is
+   * everything else on the page (Nav, main, every page's own content).
+   * That split is the whole point: the sky no longer reacts to
+   * navigation, only to setScene()'s own ~1.2s aurora-opacity retune
+   * (cosmos-router.js), while the content still marks the moment a page
+   * changed with something quick and cheap.
+   *
+   * ::view-transition-old/new(root) are NOT normal DOM elements -- Astro's
+   * <ClientRouter/> and the underlying browser View Transitions API
+   * create them only during a transition -- so Astro's scoped-style
+   * attribute selectors can never reach them; this has to be global CSS,
+   * hence is:global rather than a second Base.astro <style> block.
+   */
+  ::view-transition-old(root) {
+    animation: iris-crossfade-out 180ms var(--ease-reveal) both;
+  }
+
+  ::view-transition-new(root) {
+    animation: iris-crossfade-in 180ms var(--ease-reveal) both;
+  }
+
+  @keyframes iris-crossfade-out {
+    to {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  @keyframes iris-crossfade-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  /* motion.css's own global reduced-motion rule targets *, *::before and
+     *::after, which does not reach these two pseudo-element TYPES -- they
+     need their own opt-out so a real "no motion" preference actually
+     means no motion here too, not just everywhere else. */
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation: none;
+    }
+  }
+</style>

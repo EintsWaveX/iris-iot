@@ -20,6 +20,16 @@
 
    The whole stack lives in #app's negative z-index layer, so nothing else in
    the app needs a z-index to sit on top of it.
+
+   MOTION TIERS (apps/web only; see motion.core.js and motion-tier.ts):
+   every layer's animation -- nebula-drift, grid-pulse, grain-shift,
+   aurora-drift-a/b -- is gated behind :root:not([data-motion-tier="0"]),
+   right after that layer's own base rule. The base rule always paints;
+   only the animation is conditional, which is what "tier 0 is a fully
+   painted, merely still sky" actually means in CSS. Absence of the
+   attribute matches the :not() selector, so apps/games (which never sets
+   it) and the instant before apps/web's probe resolves both keep
+   animating exactly as before this axis existed.
    ========================================================================= */
 
 .cosmos {
@@ -67,6 +77,19 @@
   filter: blur(58px) saturate(1.2);
   opacity: 0.78;
   will-change: transform;
+}
+
+/* Tier 0 (data-motion-tier="0") is the static painted sky: every layer
+   below still PAINTS at tier 0 -- only the animation stops. Absence of
+   the attribute (apps/games, which never sets it, and the instant before
+   apps/web's probe applies it) matches this selector's :not(), so both
+   keep animating exactly as before this axis existed. See
+   motion.core.js's own comment on why this is a separate axis from
+   prefers-reduced-motion, which already collapses these durations via
+   motion.css's global rule -- this is what makes the manual "Kurangi
+   efek" toggle, which the OS media query knows nothing about, actually
+   reach these layers too. */
+:root:not([data-motion-tier="0"]) .cosmos__nebula {
   animation: nebula-drift 96s var(--ease-in-out-soft) infinite alternate;
 }
 
@@ -133,6 +156,11 @@
   );
   opacity: 0.55;
   will-change: transform;
+}
+
+/* See .cosmos__nebula's rule just above for why this is gated separately
+   rather than inline. */
+:root:not([data-motion-tier="0"]) .cosmos__grid::after {
   animation: grid-pulse 18s linear infinite;
 }
 
@@ -163,6 +191,10 @@
      compositing is visually indistinguishable. */
   will-change: transform;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* See .cosmos__nebula's rule above for why this is gated separately. */
+:root:not([data-motion-tier="0"]) .cosmos__grain {
   animation: grain-shift 6s steps(6, end) infinite;
 }
 
@@ -304,7 +336,6 @@
     radial-gradient(30% 50% at 97% 92%, var(--au-5) 0%, transparent 62%);
   filter: blur(44px) saturate(1.4);
   will-change: transform;
-  animation: aurora-drift-a 46s var(--ease-in-out-soft) infinite alternate;
 }
 
 /* The second ribbon runs slower, offset and hue-rotated, so the two never
@@ -312,6 +343,13 @@
 .cosmos__aurora::after {
   opacity: 0.66;
   filter: blur(44px) saturate(1.4) hue-rotate(48deg);
+}
+
+/* See .cosmos__nebula's rule above for why these are gated separately. */
+:root:not([data-motion-tier="0"]) .cosmos__aurora::before {
+  animation: aurora-drift-a 46s var(--ease-in-out-soft) infinite alternate;
+}
+:root:not([data-motion-tier="0"]) .cosmos__aurora::after {
   animation: aurora-drift-b 67s var(--ease-in-out-soft) infinite alternate;
 }
 

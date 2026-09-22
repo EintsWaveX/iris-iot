@@ -14,11 +14,19 @@
  *
  * Navigation: <ClientRouter /> keeps this whole module alive across
  * pages (it's a persisted, deduplicated <script type="module"> included
- * from Base.astro, so it only ever executes once), which is what makes
- * a plain page-to-page link double as the hyperspace warp. warpTo fires
- * on astro:before-swap so the sky is already streaking before the new
- * page's content lands, and setScene on astro:page-load is the (idempotent)
- * fallback that also establishes the very first page's scene.
+ * from Base.astro, so it only ever executes once). Navigation is a
+ * content-only crossfade now (see Base.astro's ::view-transition-* rules)
+ * -- the sky itself never reacts to a page change, only to which scene
+ * the new page declares. setScene on astro:page-load retunes the sky to
+ * that scene over its own existing ~1.2s opacity transition, which is
+ * also the (idempotent) call that establishes the very first page's
+ * scene. This deliberately does NOT call Cosmos.warpTo(): the warp
+ * re-shapes every star into a radial streak on every navigation, which
+ * measured as the single most expensive thing on the page and cost the
+ * most on exactly the phones least able to pay for it. apps/games still
+ * fires it (a single-page app, so "navigation" there means switching
+ * screens within one document, a different situation) -- warpTo stays in
+ * cosmos.core.js unchanged for that caller.
  *
  * Performance: a phone reporting the Save-Data header or <=2GB of
  * deviceMemory gets the reduced-motion sky by default -- the same static
@@ -101,12 +109,6 @@
     btn = btn || document.getElementById("kurangi-efek-toggle");
     if (btn) btn.setAttribute("aria-pressed", isKurangiEfek() ? "true" : "false");
   }
-
-  document.addEventListener("astro:before-swap", function (event) {
-    if (window.Cosmos && event.newDocument) {
-      window.Cosmos.warpTo(sceneOf(event.newDocument));
-    }
-  });
 
   document.addEventListener("astro:page-load", function () {
     applyPreference();

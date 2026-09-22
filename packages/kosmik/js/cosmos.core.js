@@ -489,9 +489,13 @@
 
   function resize() {
     if (!canvas) return;
-    // Capping DPR at 2 halves the fill cost on 3x phones for no visible loss
-    // on a field of sub-pixel dots.
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Capping DPR tighter than the device's own ratio trades a little
+    // crispness for fill-rate on the phones this actually has to run on.
+    // Was 2; measured against the portfolio's own DPR_CAP and the actual
+    // audience (assorted Android phones, several with 3x+ panels), 1.5 is
+    // the better trade for a field of sub-pixel dots nobody is examining
+    // that closely.
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     width = canvas.clientWidth || window.innerWidth;
     height = canvas.clientHeight || window.innerHeight;
     canvas.width = Math.round(width * dpr);
@@ -922,11 +926,18 @@
       );
   }
 
-  function init() {
-    canvas = document.getElementById("cosmos-stars");
-    if (!canvas) return;
-    ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  // Whether the one-time canvas setup (sprite baking, first resize, the
+  // resize/pointermove listeners) has run yet. Kept separate from
+  // `started` (which tracks the ticker subscription) because apps/web's
+  // probe can grant tier 2 well after init() first runs -- see
+  // motion-tier.ts's pessimistic-interim design, chosen specifically so
+  // the probe's own measurement never runs concurrently with a live
+  // starfield ticker it would then be measuring the COMBINED cost of.
+  var canvasReady = false;
+
+  function setUpCanvas() {
+    if (canvasReady) return;
+    canvasReady = true;
 
     readPalette();
     buildSprites();
@@ -958,36 +969,71 @@
         { passive: true },
       );
     }
+  }
 
-    if (window.Motion) {
-      // Reacts to a reduced-motion change in either direction: relaxing the
-      // preference mid-session brings the field to life, and tightening it
-      // (the OS setting, or apps/web's persisted "Kurangi efek" toggle,
-      // which drives this same signal through Motion.setReduced) freezes it
-      // on the next frame rather than only ever freezing at first paint.
-      window.Motion.onReducedChange(function (isReduced) {
-        if (isReduced) {
-          if (started) {
-            started = false;
-            window.Motion.offTick(step);
-            draw(0);
-          }
-          return;
-        }
-        if (!started) {
-          started = true;
-          window.Motion.onTick(step);
-        }
-      });
+  function tierAllows() {
+    return !window.Motion || window.Motion.getTier() >= 2;
+  }
+
+  // Brings the canvas up to whatever started/frozen state its current
+  // tier and reduced-motion status call for. Safe to call repeatedly and
+  // from either direction (a downgrade or an upgrade), which is exactly
+  // what it has to do: apps/web's tier can only ever be set once
+  // synchronously (a cache hit, or a declared-weak device) or resolve
+  // asynchronously a few hundred milliseconds later (a still-probing
+  // device), and either one can also flip with reduced motion at any
+  // point after that.
+  function syncToCapability() {
+    if (!tierAllows()) {
+      if (started) {
+        started = false;
+        window.Motion.offTick(step);
+      }
+      // Below tier 2, no canvas content is the whole point -- cosmos.css's
+      // CSS-only layers carry the sky at tiers 0 and 1. Only clear if
+      // setup ever ran; skipping it otherwise avoids touching ctx before
+      // it exists.
+      if (canvasReady) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
     }
 
+    setUpCanvas();
+
     if (window.Motion && window.Motion.isReduced()) {
+      if (started) {
+        started = false;
+        window.Motion.offTick(step);
+      }
       draw(0);
       return;
     }
 
-    started = true;
-    if (window.Motion) window.Motion.onTick(step);
+    if (!started) {
+      started = true;
+      window.Motion.onTick(step);
+    }
+  }
+
+  function init() {
+    canvas = document.getElementById("cosmos-stars");
+    if (!canvas) return;
+    ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    if (window.Motion) {
+      // Reacts to EITHER axis changing, in either direction: reduced
+      // motion relaxing or tightening, and the capability tier being
+      // granted (a still-probing device's measurement finishing) or
+      // withdrawn. apps/games never calls Motion.setTier, so
+      // window.Motion.getTier() there is always 2 and tierAllows() is
+      // always true -- unchanged behaviour for that app; only
+      // onReducedChange ever fires for it, exactly as before this axis
+      // existed.
+      window.Motion.onReducedChange(syncToCapability);
+      window.Motion.onTierChange(syncToCapability);
+    }
+
+    syncToCapability();
   }
 
   window.Cosmos = {
