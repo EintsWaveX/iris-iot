@@ -26,6 +26,8 @@ import Button from "../components/ui/Button.astro";
 import Badge from "../components/ui/Badge.astro";
 import EmptyState from "../components/ui/EmptyState.astro";
 import Toast from "../components/ui/Toast";
+import PresentationCard from "../components/PresentationCard";
+import PresentationManager from "../components/PresentationManager";
 
 const links = [
   { href: "/", label: "Beranda" },
@@ -111,6 +113,10 @@ const links = [
           <Badge id="praktikan-badge">Kelompok</Badge>
           <span id="praktikan-regu-nama"></span>
         </p>
+      </Card>
+
+      <Card title="Presentasi" class="presentation-section">
+        <PresentationCard client:load />
       </Card>
 
       <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card">
@@ -207,6 +213,15 @@ const links = [
         <Button kind="primary" id="roster-save" disabled>
           Simpan
         </Button>
+      </Card>
+
+      <section class="section">
+        <h1 class="section__title">Presentasi</h1>
+        <p class="eyebrow">Ditampilkan di dasbor setiap praktikan, terlepas dari sesi atau modul</p>
+      </section>
+
+      <Card title="Pustaka presentasi">
+        <PresentationManager client:load />
       </Card>
 
       <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card">
@@ -669,7 +684,8 @@ const links = [
     margin-top: var(--space-3);
   }
 
-  .modul4-card {
+  .modul4-card,
+  .presentation-section {
     margin-top: var(--space-6);
   }
 

@@ -1,0 +1,133 @@
+/* PresentationManager.tsx's styling, as a plain CSS import -- same pattern
+   as BlankEditor.css. Deliberately its own small set of button-like
+   classes rather than Button.astro's .btn -- Astro scopes that component's
+   <style> block to elements it renders itself, so reusing the bare class
+   name here would compile to a selector this markup never matches. */
+
+.presentation-manager__input {
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+.presentation-manager__upload-btn {
+  align-items: center;
+  background: var(--accent);
+  border-radius: var(--radius-md);
+  color: var(--accent-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: var(--fs-body);
+  font-weight: 500;
+  min-height: max(var(--tap), 44px);
+  padding: 0 var(--space-5);
+}
+
+.presentation-manager__upload-btn:hover {
+  background: var(--accent-bright);
+}
+
+.presentation-manager__input:disabled + .presentation-manager__upload-btn,
+.presentation-manager__upload-btn[data-loading="yes"] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.presentation-manager__input:focus-visible + .presentation-manager__upload-btn {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.presentation-manager__error {
+  color: var(--danger);
+  font-size: var(--fs-small);
+  margin-top: var(--space-3);
+}
+
+.presentation-manager__kosong {
+  color: var(--text-faint);
+  font-size: var(--fs-body);
+  margin-top: var(--space-5);
+}
+
+.presentation-manager__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.presentation-manager__item {
+  align-items: center;
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  padding: var(--space-4);
+}
+
+.presentation-manager__item[data-aktif="yes"] {
+  border-color: var(--accent);
+}
+
+.presentation-manager__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.presentation-manager__info a {
+  color: var(--text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presentation-manager__info a:hover {
+  color: var(--accent);
+}
+
+.presentation-manager__meta {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+}
+
+.presentation-manager__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+}
+
+.presentation-manager__action {
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--fs-small);
+  min-height: var(--tap);
+  padding: 0 var(--space-3);
+}
+
+.presentation-manager__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.presentation-manager__action--danger {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  color: var(--danger);
+}
+
+/* Below md, one action row per item reads better stacked than squeezed
+   next to a long filename. */
+@media (max-width: 599px) {
+  .presentation-manager__item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
