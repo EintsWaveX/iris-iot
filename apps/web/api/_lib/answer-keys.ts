@@ -282,6 +282,14 @@ export function blankCountFor(modul: number, berkasSlug: string): number {
   return Object.keys(ANSWER_KEYS).filter((k) => k.startsWith(prefix)).length;
 }
 
+/** Every blank across both of a module's berkas -- what the assistant
+ *  console's per-group progress tile (Stage 10) counts against, since a
+ *  tile shows one module-wide fraction rather than one per berkas. */
+export function blankCountForModul(modul: number): number {
+  const prefix = `m${modul}.`;
+  return Object.keys(ANSWER_KEYS).filter((k) => k.startsWith(prefix)).length;
+}
+
 /** The as-authored correct text for one blank, used ONLY by the gated
  *  download's file reconstruction -- see AnswerEntry.kanonik's own comment
  *  for why a verified-correct blank still isn't spliced in as the student's

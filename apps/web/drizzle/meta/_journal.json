@@ -29,6 +29,13 @@
       "when": 1790066306577,
       "tag": "0003_violet_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790101399008,
+      "tag": "0004_graceful_vampiro",
+      "breakpoints": true
     }
   ]
 }

@@ -1,39 +1,29 @@
 ---
 /**
- * The one dashboard, rendered differently per role after the client
- * learns who is signed in from /api/auth/me — the same "static shell,
- * client fills in the role-specific view" shape the login modal's own
- * form uses, and for the same reason: output: 'static' pages have no
- * request-time cookie access.
- *
- * A practitioner sees which group they landed in. An assistant sees the
- * running session (or a form to start one) and the roster paste box —
- * the two things the Phase 1 verification checklist actually exercises:
- * "paste a roster, save it, log in as one of its students by NIM alone,
- * land in the right group."
- *
- * This is deliberately not the real assistant console modul4/'s
- * ui-assistant.js already built (four session panels, per-row editing,
- * round-trip paste rendering) — that UI gets absorbed wholesale in
- * Phase 4. This page only has to prove the Phase 1 data path works.
+ * The praktikan dashboard. Rendered from /api/auth/me the same "static
+ * shell, client fills in from the API" way every role-branched page here
+ * is (output: 'static' has no request-time cookie access) -- but as of
+ * Stage 10, this page is praktikan-only: an assistant landing here bounces
+ * straight to /session, the real console, rather than sharing this page
+ * with a second view branch. LoginModal.astro and index.astro still
+ * navigate every successful login to /dashboard regardless of role, which
+ * is why that redirect happens here rather than by pointing those two
+ * files at two different destinations.
  */
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
 import Card from "../components/ui/Card.astro";
-import Field from "../components/ui/Field.astro";
-import Select from "../components/ui/Select.astro";
 import Button from "../components/ui/Button.astro";
 import Badge from "../components/ui/Badge.astro";
 import EmptyState from "../components/ui/EmptyState.astro";
 import Toast from "../components/ui/Toast";
 import PresentationCard from "../components/PresentationCard";
-import PresentationManager from "../components/PresentationManager";
 
 const links = [
   { href: "/", label: "Beranda" },
   { href: "/dashboard", label: "Dasbor" },
   { href: "/modules", label: "Modul" },
-  { href: "/dashboard/server", label: "Server" },
+  { href: "/servers", label: "Server" },
 ];
 ---
 
@@ -130,131 +120,12 @@ const links = [
         </Button>
       </Card>
     </div>
-
-    <div id="view-asisten" hidden>
-      <section class="section">
-        <h1 class="section__title">Sesi hari ini</h1>
-      </section>
-
-      <Card id="tanpa-sesi" title="Belum ada sesi yang berjalan">
-        <form id="form-sesi-baru">
-          <div class="grid3">
-            <Field
-              id="sesi-tanggal"
-              label="Tanggal"
-              type="text"
-              placeholder="2026-09-19"
-              required
-            />
-            <Select
-              id="sesi-slot"
-              label="Slot"
-              options={[
-                { value: "1", label: "Slot 1 — 06:30" },
-                { value: "2", label: "Slot 2 — 09:30" },
-                { value: "3", label: "Slot 3 — 12:30" },
-                { value: "4", label: "Slot 4 — 15:30" },
-              ]}
-            />
-            <Select
-              id="sesi-modul"
-              label="Modul"
-              options={[
-                { value: "1", label: "Modul 1 — BLE" },
-                { value: "2", label: "Modul 2 — WebSocket" },
-                { value: "3", label: "Modul 3 — MQTT" },
-                { value: "4", label: "Modul 4 — LoRa" },
-              ]}
-            />
-          </div>
-          <label class="ap-toggle" id="sesi-butuh-ap-label" hidden>
-            <input type="checkbox" id="sesi-butuh-ap" />
-            Bagian A (mode AP) — Orange Pi jadi hotspot IRIS-IOT, bukan klien jaringan kampus
-          </label>
-          <Button kind="primary" type="submit" id="sesi-baru-submit">
-            Mulai sesi
-          </Button>
-        </form>
-      </Card>
-
-      <Card id="dengan-sesi" title="" hidden>
-        <p class="sesi-info" id="sesi-info"></p>
-        <div class="kelompok-toggles" id="kelompok-toggles"></div>
-        <div class="sesi-actions">
-          <Button kind="ghost" id="sesi-akhiri">
-            Akhiri sesi
-          </Button>
-          <Button kind="danger" id="sesi-batalkan">
-            Batalkan sesi
-          </Button>
-        </div>
-      </Card>
-
-      <section class="section">
-        <h1 class="section__title">Roster utama</h1>
-        <p class="eyebrow">Satu daftar untuk seluruh praktikum, dipakai oleh keempat modul</p>
-      </section>
-
-      <Card title="Daftar kelompok">
-        <label class="paste-label" for="roster-paste">
-          Tempel daftar kelompok
-        </label>
-        <textarea
-          id="roster-paste"
-          class="roster-paste mono"
-          rows="10"
-          placeholder={
-            "#1 Kelompok Cakra\n2311102001, Alya Rahmawati\n2311102014  Bagus Prasetyo\n\n#2 Kelompok Bayu\n2311102033 Dimas Aditya"
-          }
-        ></textarea>
-        <p class="tally" id="roster-tally" data-bad="no"></p>
-        <ul class="errors" id="roster-errors"></ul>
-
-        <Button kind="primary" id="roster-save" disabled>
-          Simpan
-        </Button>
-      </Card>
-
-      <section class="section">
-        <h1 class="section__title">Presentasi</h1>
-        <p class="eyebrow">Ditampilkan di dasbor setiap praktikan, terlepas dari sesi atau modul</p>
-      </section>
-
-      <Card title="Pustaka presentasi">
-        <PresentationManager client:load />
-      </Card>
-
-      <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card">
-        <p>
-          Papan skor dan konsol asisten Modul 4A masih berjalan lewat token, langsung di Orange Pi —
-          bukan lewat akun ini. Buka papan skornya dari jaringan
-          <strong>IRIS-IOT</strong>, lalu ketuk logo tiga kali untuk memasukkan token.
-        </p>
-        <Button kind="ghost" id="btn-buka-iot-asisten">
-          Buka papan skor
-        </Button>
-      </Card>
-    </div>
   </main>
 
   <script>
     import { navigate } from "astro:transitions/client";
-    import { parseRosterPaste, rosterToPaste } from "../lib/roster-parser";
     import { startPolling } from "../scripts/polling";
     import { SESI_CAP_MENIT } from "../lib/jadwal";
-
-    const KODE_PESAN: Record<string, string> = {
-      format_salah: "Formatnya belum benar.",
-      sudah_ada: "Sesi dengan tanggal, jam, dan modul yang sama sudah ada.",
-      galat_tempel: "Masih ada baris yang bermasalah pada tempelan.",
-      sesi_tidak_ada: "Sesi ini tidak ditemukan.",
-      sudah_selesai: "Sesi ini sudah selesai atau dibatalkan.",
-      galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
-    };
-
-    function pesanUntuk(kode: string): string {
-      return KODE_PESAN[kode] ?? "Terjadi kesalahan.";
-    }
 
     // A stopgap, not a real content model: the schema's sesi.modul is a
     // bare integer with no metadata table behind it (there is nowhere in
@@ -300,12 +171,6 @@ const links = [
       document.getElementById(id)!.hidden = true;
     }
 
-    // Tracks the running session's id for the "Batalkan sesi" button, and
-    // the teardown for whichever polling loop is currently active -- reset
-    // on every bindPage() rerun so a role switch (login out, back in as
-    // the other role, no hard refresh) never leaves a stale loop hitting
-    // the wrong endpoint alongside a new one.
-    let currentSesiId: number | null = null;
     let stopBannerPolling: (() => void) | null = null;
 
     // The reactive sky (Stage 6): a session starting wakes the orphaned
@@ -314,11 +179,6 @@ const links = [
     // Cosmos on an actual transition, not on every tick.
     let cosmosInSesiScene = false;
 
-    /** Renders the shared banner markup from the narrow shape both
-     *  /api/session/now (praktikan) and /api/session/current (asisten)
-     *  agree on -- modul/tanggal/mulai/mulaiPada -- plus a role-specific
-     *  "kelompok" line the caller supplies, since an assistant sees a
-     *  headcount and a student sees their own group. */
     function renderBanner(
       s: { modul: number; tanggal: string; mulai: string; mulaiPada: string | null } | null,
       kelompokText: string,
@@ -351,310 +211,84 @@ const links = [
       }
     }
 
+    // Stage 10's broadcast: shown as a toast the first time this tab sees
+    // a given pengumumanPada, so the same poll response doesn't re-toast
+    // an announcement the student already dismissed, and a page reload
+    // doesn't re-show yesterday's. Session-scoped (not persisted) is
+    // deliberate -- an announcement is meant for whoever is looking right
+    // now, not something to resurface after the fact.
+    let lastPengumumanPada: string | null = null;
+    function maybeToastPengumuman(pengumuman: string | null, pengumumanPada: string | null) {
+      if (!pengumuman || !pengumumanPada || pengumumanPada === lastPengumumanPada) return;
+      lastPengumumanPada = pengumumanPada;
+      window.Toast?.show(pengumuman, "info");
+    }
+
     async function init() {
       const me = await fetch("/api/auth/me").then((r) => r.json());
       if (!me.ok) {
         navigate("/?login=1");
         return;
       }
+      if (me.role !== "praktikan") {
+        navigate("/session");
+        return;
+      }
 
       hide("loading");
       document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
 
-      stopBannerPolling?.();
+      show("view-praktikan");
+      // The one entrance per page (design-system.md's own rule): the
+      // welcome card and the Module 4 card rise in together on arrival.
+      window.Motion?.enter("#view-praktikan > *");
+      document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
+      document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.regu}`;
+      (document.getElementById("btn-buka-iot") as HTMLButtonElement)?.addEventListener(
+        "click",
+        () => window.open(iotBoardUrl(me.nim), "_blank", "noopener"),
+      );
 
-      if (me.role === "praktikan") {
-        show("view-praktikan");
-        // The one entrance per page (design-system.md's own rule): the
-        // welcome card and the Module 4 card rise in together on arrival.
-        window.Motion?.enter("#view-praktikan > *");
-        document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
-        document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.regu}`;
-        (document.getElementById("btn-buka-iot") as HTMLButtonElement)?.addEventListener(
-          "click",
-          () => window.open(iotBoardUrl(me.nim), "_blank", "noopener"),
-        );
-        // A narrow, praktikan-safe poll: module/timing only, never the
-        // roster. Visibility-aware, so a backgrounded tab costs nothing --
-        // see polling.ts's own header for why that matters for Neon too.
-        stopBannerPolling = startPolling(async () => {
+      stopBannerPolling?.();
+      // A narrow, praktikan-safe poll: module/timing/broadcast only, never
+      // the roster. Visibility-aware, so a backgrounded tab costs nothing
+      // -- see polling.ts's own header for why that matters for Neon too.
+      // Wrapped, found live while checking this stage's own broadcast
+      // work: startPolling() fires this on a bare timer with no await at
+      // the call site, so an unhandled rejection here (any non-2xx
+      // response whose body isn't JSON) surfaced as a recurring uncaught
+      // promise rejection every 30 seconds instead of just leaving the
+      // banner at its last good state.
+      stopBannerPolling = startPolling(async () => {
+        try {
           const data = await fetch("/api/session/now").then((r) => r.json());
           if (!data.ok) return;
           renderBanner(data.sesi, `Kelompok ${me.regu}`);
-        }, 30_000);
-      } else {
-        show("view-asisten");
-        window.Motion?.enter("#view-asisten > .section, #view-asisten > .card");
-        document
-          .getElementById("btn-buka-iot-asisten")
-          ?.addEventListener("click", () => window.open(iotBoardUrl(), "_blank", "noopener"));
-        // The full console view polls too now, so an auto-ended session,
-        // a cancel from elsewhere, or the ticking duration all show up
-        // without a manual refresh -- this page used to fetch once on
-        // mount and never again.
-        stopBannerPolling = startPolling(loadSesi, 30_000);
-      }
+          maybeToastPengumuman(data.sesi?.pengumuman ?? null, data.sesi?.pengumumanPada ?? null);
+        } catch {
+          // Left at whatever the last successful poll produced.
+        }
+      }, 30_000);
     }
 
-    async function loadSesi() {
-      const data = await fetch("/api/session/current").then((r) => r.json());
-      if (!data.ok) return;
-
-      const roster = data.roster ?? [];
-
-      // The master roster is practicum-wide (Phase 3), so it loads
-      // regardless of whether a session happens to be running right now --
-      // only the "sesi hari ini" card below is gated on that.
-      //
-      // Skipped while the box has focus: loadSesi() now runs on every
-      // poll tick (Stage 5), not just once on page load, and this
-      // assignment used to run unconditionally. Found live: paste or type
-      // into the roster box, wait past one 30s poll tick, and the whole
-      // thing silently reverted to whatever the server already had --
-      // wiping an assistant's in-progress, unsaved edit out from under
-      // them. An assistant actively focused in the box is editing it; the
-      // next successful load (after they click away, or right after
-      // Simpan) picks the refresh back up.
-      const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-      if (document.activeElement !== textarea) {
-        textarea.value = rosterToPaste(roster);
-        repaintTally();
-      }
-
-      if (!data.sesi) {
-        currentSesiId = null;
-        show("tanpa-sesi");
-        hide("dengan-sesi");
-        renderBanner(null, "");
-        return;
-      }
-
-      hide("tanpa-sesi");
-      show("dengan-sesi");
-      const s = data.sesi;
-      currentSesiId = s.id;
-      document.getElementById("sesi-info")!.textContent =
-        `Sesi #${s.id} · Modul ${s.modul} · ${s.tanggal} ${s.mulai}`;
-
-      renderBanner(s, `${roster.length} kelompok`);
-      renderKelompokToggles(s.id, roster);
-    }
-
-    // Per-session group exclusions (sesi_kelompok.aktif) -- e.g. Module 4's
-    // beacon group, excluded from hunter login for this session only,
-    // without touching its master-roster membership.
-    function renderKelompokToggles(
-      sesiId: number,
-      roster: { id: number; nomor: number; nama: string; sesiAktif: boolean }[],
-    ) {
-      const host = document.getElementById("kelompok-toggles")!;
-      host.innerHTML = "";
-      roster.forEach((g, i) => {
-        const label = document.createElement("label");
-        label.className = "kelompok-toggle stagger-item";
-        label.style.setProperty("--i", String(i));
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = g.sesiAktif;
-        checkbox.addEventListener("change", async () => {
-          checkbox.disabled = true;
-          try {
-            const res = await fetch("/api/session/group", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sesiId, kelompokId: g.id, aktif: checkbox.checked }),
-            });
-            const data = await res.json();
-            if (!data.ok) {
-              checkbox.checked = !checkbox.checked;
-              window.Toast?.show(pesanUntuk(data.kode), "danger");
-            }
-          } catch {
-            checkbox.checked = !checkbox.checked;
-            window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-          } finally {
-            checkbox.disabled = false;
-          }
-        });
-        label.appendChild(checkbox);
-        label.append(` Kelompok ${g.nomor}${g.nama ? " · " + g.nama : ""} aktif di sesi ini`);
-        host.appendChild(label);
-      });
-    }
-
-    function repaintTally() {
-      const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-      const tally = document.getElementById("roster-tally")!;
-      const errorsEl = document.getElementById("roster-errors")!;
-      const saveBtn = document.getElementById("roster-save") as HTMLButtonElement;
-
-      const parsed = parseRosterPaste(textarea.value);
-      tally.textContent = `${parsed.groups.length} kelompok · ${parsed.total} anggota · ${parsed.errors.length} galat`;
-      tally.dataset.bad = parsed.errors.length ? "yes" : "no";
-
-      errorsEl.innerHTML = "";
-      for (const e of parsed.errors) {
-        const li = document.createElement("li");
-        li.textContent =
-          e.kode === "tanpa_kelompok"
-            ? `Baris ${e.baris}: belum ada kelompok yang dibuka dengan #`
-            : e.kode === "nim_ganda"
-              ? `NIM ${e.nim} muncul dua kali`
-              : `Baris ${e.baris}: bukan NIM dan nama`;
-        errorsEl.appendChild(li);
-      }
-
-      saveBtn.disabled = parsed.errors.length > 0 || textarea.value.trim().length === 0;
-    }
-
-    // Everything below binds a listener to an element on THIS page's DOM,
-    // or calls init() to populate it -- both have to happen again every
-    // time this page is navigated to, not just the first. <ClientRouter/>
-    // only executes a given page's module script once (the browser's own
-    // ESM module cache dedupes the import across every later navigation
-    // to the same script, the same reason spotlight.ts/nav-scroll.ts are
-    // written as page-load-triggered singletons rather than one-shot
-    // top-level code) -- but unlike those two, this page swaps out its
-    // whole non-persisted DOM on every navigation, so a plain top-level
-    // addEventListener here only ever binds to the FIRST visit's nodes.
-    // Confirmed directly: log in as a praktikan, log out, log back in as
-    // an asisten without a hard refresh, and the second /dashboard visit
-    // hung on "Memuat..." forever -- init() never re-ran, because the
-    // module already counted as loaded. bindPage() re-running on every
-    // astro:page-load is the fix, mirroring the pattern every persisted
-    // script in this codebase already uses for the same underlying
-    // reason.
+    // Re-run on every astro:page-load, not just the first visit -- see the
+    // Stage 5 comment this replaced for the full "why" (ClientRouter only
+    // executes a page's module script once; this page swaps its whole
+    // non-persisted DOM on every navigation, so a plain top-level
+    // addEventListener only ever binds to the first visit's nodes).
     //
-    // The pathname guard below is the other half of that same fix, found
-    // live rather than reasoned out: this listener is attached to
-    // `document`, which ClientRouter never tears down, so it keeps firing
-    // on every LATER astro:page-load too -- including one triggered by
-    // navigating AWAY from /dashboard. Visiting /dashboard while logged
-    // out used to hang in an infinite loop: init() sees `!me.ok`, calls
-    // navigate("/?login=1"), which fires astro:page-load again, which
-    // fires this stale listener again, which calls fetch("/api/auth/me")
-    // and navigate("/?login=1") again -- forever, since the unauthenticated
-    // branch returns before touching any page-specific DOM node (nothing
-    // here would otherwise throw and break the cycle). nav-scroll.ts's own
-    // header comment describes the general rule (never cache a page
-    // element reference; re-query and bail if it's gone) -- this guard is
-    // that rule applied to the whole function rather than one element.
+    // The pathname check, not just the #loading presence check the Stage 5
+    // version relied on, is what stops this LEFTOVER listener from firing
+    // on a LATER page too -- found live while adding this stage's own
+    // asisten-to-/session redirect: dashboard.astro and session.astro both
+    // render an element with id="loading", so after visiting both once,
+    // navigating to either fires astro:page-load, which every page's own
+    // accumulated (and never torn down) listener receives. Without this
+    // check, dashboard.astro's stale bindPage() would run its own init()
+    // against session.astro's DOM, see role !== "praktikan", and call
+    // navigate("/session") again while already there.
     function bindPage() {
-      if (!document.getElementById("loading")) return;
-
-      document.getElementById("roster-paste")?.addEventListener("input", repaintTally);
-
-      document.getElementById("roster-save")?.addEventListener("click", async () => {
-        const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-        const btn = document.getElementById("roster-save") as HTMLButtonElement;
-        btn.setAttribute("data-loading", "yes");
-        try {
-          const res = await fetch("/api/session/roster", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paste: textarea.value }),
-          });
-          const data = await res.json();
-          if (data.ok) {
-            window.Toast?.show(`Tersimpan: ${data.groups} kelompok, ${data.total} anggota.`, "ok");
-            await loadSesi();
-          } else {
-            window.Toast?.show(pesanUntuk(data.kode), "danger");
-          }
-        } catch {
-          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-        } finally {
-          btn.setAttribute("data-loading", "no");
-        }
-      });
-
-      document.getElementById("sesi-akhiri")?.addEventListener("click", async () => {
-        const btn = document.getElementById("sesi-akhiri") as HTMLButtonElement;
-        btn.setAttribute("data-loading", "yes");
-        try {
-          const res = await fetch("/api/session/end", { method: "POST" });
-          const data = await res.json();
-          if (data.ok) {
-            window.Toast?.show("Sesi diakhiri.", "ok");
-            await loadSesi();
-          } else {
-            window.Toast?.show(pesanUntuk(data.kode), "danger");
-          }
-        } catch {
-          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-        } finally {
-          btn.setAttribute("data-loading", "no");
-        }
-      });
-
-      // Distinct from "Akhiri sesi": ending records a real completed
-      // session (real duration, feeds reports); cancelling is for a
-      // mis-created slot (wrong date, wrong module) and frees it for a
-      // replacement instead of leaving it stuck occupying that slot --
-      // see schema.ts's sesi_slot_unik partial index, which exists
-      // specifically so "batal" doesn't count against the uniqueness check.
-      document.getElementById("sesi-batalkan")?.addEventListener("click", async () => {
-        if (currentSesiId === null) return;
-        const btn = document.getElementById("sesi-batalkan") as HTMLButtonElement;
-        btn.setAttribute("data-loading", "yes");
-        try {
-          const res = await fetch("/api/session/cancel", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sesiId: currentSesiId }),
-          });
-          const data = await res.json();
-          if (data.ok) {
-            window.Toast?.show("Sesi dibatalkan.", "ok");
-            await loadSesi();
-          } else {
-            window.Toast?.show(pesanUntuk(data.kode), "danger");
-          }
-        } catch {
-          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-        } finally {
-          btn.setAttribute("data-loading", "no");
-        }
-      });
-
-      // The AP-mode toggle only ever applies to Module 4 Part A (see
-      // api/session/index.ts's own validation, which refuses butuhAp for
-      // any other module) -- hidden for the other three so the form
-      // doesn't offer a choice that would just be rejected.
-      document.getElementById("sesi-modul")?.addEventListener("change", (ev) => {
-        const modul = (ev.target as HTMLSelectElement).value;
-        const label = document.getElementById("sesi-butuh-ap-label")!;
-        label.hidden = modul !== "4";
-        if (label.hidden)
-          (document.getElementById("sesi-butuh-ap") as HTMLInputElement).checked = false;
-      });
-
-      document.getElementById("form-sesi-baru")?.addEventListener("submit", async (ev) => {
-        ev.preventDefault();
-        const tanggal = (document.getElementById("sesi-tanggal") as HTMLInputElement).value;
-        const slot = (document.getElementById("sesi-slot") as HTMLSelectElement).value;
-        const modul = (document.getElementById("sesi-modul") as HTMLSelectElement).value;
-        const butuhAp = (document.getElementById("sesi-butuh-ap") as HTMLInputElement).checked;
-        const btn = document.getElementById("sesi-baru-submit") as HTMLButtonElement;
-        btn.setAttribute("data-loading", "yes");
-        try {
-          const res = await fetch("/api/session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tanggal, slot: Number(slot), modul: Number(modul), butuhAp }),
-          });
-          const data = await res.json();
-          if (data.ok) {
-            await loadSesi();
-          } else {
-            window.Toast?.show(pesanUntuk(data.kode), "danger");
-          }
-        } catch {
-          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-        } finally {
-          btn.setAttribute("data-loading", "no");
-        }
-      });
+      if (location.pathname !== "/dashboard" || !document.getElementById("loading")) return;
 
       document.getElementById("btn-keluar")?.addEventListener("click", async () => {
         await fetch("/api/auth/logout", { method: "POST" });
@@ -691,106 +325,6 @@ const links = [
 
   .modul4-card p {
     margin-bottom: var(--space-5);
-  }
-
-  .grid3 {
-    display: grid;
-    gap: var(--space-4);
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-    margin-bottom: var(--space-5);
-  }
-
-  #form-sesi-baru {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .sesi-info {
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    margin-bottom: var(--space-5);
-  }
-
-  .kelompok-toggles {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    margin-bottom: var(--space-5);
-  }
-
-  .kelompok-toggle {
-    align-items: center;
-    color: var(--text);
-    display: flex;
-    font-size: var(--fs-small);
-    gap: var(--space-2);
-  }
-
-  .sesi-actions {
-    display: flex;
-    gap: var(--space-3);
-  }
-
-  /* :not([hidden]), not a bare .ap-toggle rule: an author `display` value
-     beats the UA stylesheet's `[hidden] { display: none }` at equal
-     specificity, so a bare `display: flex` here would make the `hidden`
-     attribute this element is actually toggled by do nothing at all --
-     found live, the checkbox stayed visible under Modul 1 despite
-     `hidden` being set and the change listener never having fired yet. */
-  .ap-toggle:not([hidden]) {
-    align-items: center;
-    color: var(--text-muted);
-    display: flex;
-    font-size: var(--fs-small);
-    gap: var(--space-2);
-    margin-bottom: var(--space-5);
-  }
-
-  .paste-label {
-    color: var(--text-muted);
-    display: block;
-    font-size: var(--fs-small);
-    font-weight: 500;
-    margin-bottom: var(--space-2);
-  }
-
-  .roster-paste {
-    background: var(--bg-sunken);
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--radius-md);
-    color: var(--text);
-    font-size: var(--fs-small);
-    line-height: 1.6;
-    padding: var(--space-4);
-    resize: vertical;
-    width: 100%;
-  }
-
-  .roster-paste:focus-visible {
-    border-color: var(--accent);
-  }
-
-  .tally {
-    color: var(--text-faint);
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    margin-top: var(--space-3);
-  }
-
-  .tally[data-bad="yes"] {
-    color: var(--danger);
-  }
-
-  .errors {
-    color: var(--danger);
-    font-size: var(--fs-small);
-    list-style: disc;
-    margin: var(--space-2) 0 0 var(--space-5);
-  }
-
-  #roster-save {
-    margin-top: var(--space-5);
   }
 
   .hidden-until-known {

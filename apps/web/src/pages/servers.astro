@@ -1,36 +1,40 @@
 ---
 /**
- * The server/device registry (Phase 2). Assistant-only, same "static shell,
- * client fills in from /api/*" shape as /dashboard, and for the same reason
- * — output: 'static' pages have no request-time cookie access.
+ * The server/device registry (Phase 2), renamed from /dashboard/server to
+ * /servers in Stage 10 now that /dashboard is praktikan-only and the real
+ * assistant home is /session -- nesting this under /dashboard/ no longer
+ * described anything real. Assistant-only, same "static shell, client fills
+ * in from /api/*" shape as every role-branched page here, and for the same
+ * reason -- output: 'static' pages have no request-time cookie access.
  *
  * Two views in one page rather than a dynamic Astro route: `output:
  * 'static'` needs getStaticPaths() for a [id].astro route, which cannot
  * work for content that only exists in the database. A `?id=` query param
  * switches between the list and the detail view instead -- the same
  * "static shell, client decides what to show" shape /dashboard uses for
- * its role-branched views (there, from /api/auth/me's response rather
- * than a query param).
+ * its role check (there, from /api/auth/me's response rather than a query
+ * param).
  */
-import Base from "../../layouts/Base.astro";
-import Nav from "../../components/ui/Nav.astro";
-import Card from "../../components/ui/Card.astro";
-import Field from "../../components/ui/Field.astro";
-import Button from "../../components/ui/Button.astro";
-import Modal from "../../components/ui/Modal.astro";
-import EmptyState from "../../components/ui/EmptyState.astro";
-import Toast from "../../components/ui/Toast";
+import Base from "../layouts/Base.astro";
+import Nav from "../components/ui/Nav.astro";
+import Card from "../components/ui/Card.astro";
+import Field from "../components/ui/Field.astro";
+import Button from "../components/ui/Button.astro";
+import Modal from "../components/ui/Modal.astro";
+import EmptyState from "../components/ui/EmptyState.astro";
+import Toast from "../components/ui/Toast";
 
 const links = [
   { href: "/", label: "Beranda" },
   { href: "/dashboard", label: "Dasbor" },
+  { href: "/session", label: "Sesi" },
   { href: "/modules", label: "Modul" },
-  { href: "/dashboard/server", label: "Server" },
+  { href: "/servers", label: "Server" },
 ];
 ---
 
 <Base title="Server & perangkat · IRIS IoT" cosmosScene="teknis">
-  <Nav links={links} current="/dashboard/server">
+  <Nav links={links} current="/servers">
     <Fragment slot="side">
       <Button kind="ghost" id="btn-keluar" class="hidden-until-known">
         Keluar
@@ -88,7 +92,7 @@ const links = [
     </div>
 
     <div id="view-detail" hidden>
-      <a class="back-link" href="/dashboard/server">
+      <a class="back-link" href="/servers">
         &larr; Kembali ke daftar server
       </a>
 
@@ -364,7 +368,7 @@ const links = [
         const tdNama = document.createElement("td");
         tdNama.dataset.label = "Nama";
         const link = document.createElement("a");
-        link.href = `/dashboard/server?id=${s.id}`;
+        link.href = `/servers?id=${s.id}`;
         link.textContent = s.nama;
         tdNama.appendChild(link);
         tr.appendChild(tdNama);
@@ -398,7 +402,7 @@ const links = [
         const tdAksi = document.createElement("td");
         tdAksi.dataset.label = "";
         const aksiLink = document.createElement("a");
-        aksiLink.href = `/dashboard/server?id=${s.id}`;
+        aksiLink.href = `/servers?id=${s.id}`;
         aksiLink.textContent = "Detail →";
         tdAksi.appendChild(aksiLink);
         tr.appendChild(tdAksi);
@@ -428,7 +432,7 @@ const links = [
       const data = await fetch(`/api/server/${id}`).then((r) => r.json());
       if (!data.ok) {
         window.Toast?.show("Server tidak ditemukan.", "danger");
-        navigate("/dashboard/server");
+        navigate("/servers");
         return;
       }
 
@@ -660,31 +664,19 @@ const links = [
     // script), but this page's non-persisted DOM is freshly recreated
     // each time, so a plain top-level addEventListener only ever binds to
     // the first visit's nodes -- see dashboard.astro's identical
-    // bindPage() comment, which is where this was first found: log in,
-    // navigate to /dashboard/server, then in again as a different role
-    // without a hard refresh and this page hangs on "Memuat..." forever,
-    // because init() never re-runs. It also matters more here than on
-    // /dashboard: init() reads window.location.search to choose the list
-    // or detail view, and /dashboard/server's own list links to
-    // /dashboard/server?id=N -- a same-script, different-query
-    // navigation that the module-dedup issue affects identically, so
-    // without this fix, clicking from the list into a server's detail
-    // view would silently fail to render past the first server ever
-    // opened in a tab.
+    // bindPage() comment for the full "why".
     //
-    // The guard below is the other half: this listener is attached to
-    // `document`, which ClientRouter never tears down, so it keeps firing
-    // on every LATER astro:page-load too -- including one triggered by
-    // navigating away from this page. Found live on dashboard.astro's
-    // identical listener (see that file's own comment for the reproduction
-    // and why it looped there); here init()'s `hide("loading")` runs
-    // before checking `me.ok`, so a stale call instead throws (the
-    // `/loading` element from this page no longer exists once we've
-    // navigated elsewhere) rather than looping, but it is exactly as real
-    // a bug -- a silent, uncaught error on every subsequent page-load
-    // after anyone has ever visited this page.
+    // The pathname check is the other half, and is a real fix landing
+    // with the Stage 10 rename, not just a copied comment: this page
+    // shares id="loading"/"btn-keluar" with dashboard.astro and
+    // session.astro, both of which now navigate a wrong-role visitor
+    // elsewhere. Without checking location.pathname first, this page's
+    // own leftover listener would run init() again against THEIR DOM the
+    // next time either page loads, once anyone has ever visited /servers
+    // in the tab -- silently throwing on view-daftar/view-detail, ids
+    // that don't exist there.
     function bindPage() {
-      if (!document.getElementById("loading")) return;
+      if (location.pathname !== "/servers" || !document.getElementById("loading")) return;
 
       document.querySelectorAll<HTMLElement>("[data-aksi]").forEach((el) => {
         el.addEventListener("click", () => kirimPerintah(el.dataset.aksi!));
@@ -723,7 +715,7 @@ const links = [
           const data = await res.json();
           window.Modal?.close("modal-hapus-server");
           if (data.ok) {
-            navigate("/dashboard/server");
+            navigate("/servers");
           } else {
             window.Toast?.show(pesanUntuk(data.kode), "danger");
           }
@@ -742,7 +734,8 @@ const links = [
    * is:global, deliberately: this page builds its tables, chips, adopt-row
    * inputs and command buttons via document.createElement() after fetching
    * from the API, since output: 'static' + dynamic per-server data has no
-   * other shape here (same reasoning as dashboard.astro's roster rendering).
+   * other shape here (same reasoning as dashboard.astro's roster rendering
+   * used to be, before Stage 10 moved that to session.astro).
    * Astro's scoped-style attribute is only ever attached to elements that
    * exist in this component's own compiled template, so any style targeting
    * a class applied to a JS-created element (.layanan-chip, .adopsi-row,

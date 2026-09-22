@@ -94,6 +94,7 @@ before a fourth undocumented manual apply happened.
 | `0001_daily_zuras.sql`             | Phase 2 server/device registry (server, denyut, perangkat, perintah)                                                          | Yes                                                                          |
 | `0002_roster_kelompok_anggota.sql` | Phase 3 master roster (kelompok, anggota, sesi_kelompok)                                                                      | **Yes — as of 2026-09-22, applied directly during Stage 4** (see note below) |
 | `0003_violet_sentinels.sql`        | Phase 5 Stage 4: presentasi table, jawaban's benar/percobaan + nullable sesiId, sesi's slot/butuh_ap, asisten's password_hash | Yes — 2026-09-22                                                             |
+| `0004_graceful_vampiro.sql`        | Phase 5 Stage 10: sesi's pengumuman/pengumuman_pada (the broadcast)                                                          | **No — verified against a throwaway Postgres only, not yet run against production. Apply with step 4 above before Stage 10 ships live.** |
 
 ### 2026-09-22: migration 0002 had never actually reached production
 

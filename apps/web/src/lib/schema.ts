@@ -86,6 +86,17 @@ export const sesi = pgTable(
     // Track B provisioning notes), so the scheduler must know which slots
     // need AP mode ahead of time rather than leaving it to memory.
     butuhAp: boolean("butuh_ap").notNull().default(false),
+    // Stage 10's broadcast: a short message pushed to every signed-in
+    // praktikan via their existing 30-second /api/session/now poll. Lives
+    // on the session itself (not its own table) since a broadcast only
+    // ever means something in the context of the session it was sent
+    // during, and clearing it is exactly "the session ended" -- no
+    // separate cleanup path needed. pengumumanPada, not just pengumuman
+    // being non-null, is what the student's poll compares against to
+    // decide "have I already shown this one", so the same text sent twice
+    // still surfaces as two toasts.
+    pengumuman: text("pengumuman"),
+    pengumumanPada: timestamp("pengumuman_pada", { withTimezone: true }),
     dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

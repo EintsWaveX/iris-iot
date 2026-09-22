@@ -9,6 +9,11 @@
       "source": "/login",
       "destination": "/?login=1",
       "permanent": false
+    },
+    {
+      "source": "/dashboard/server",
+      "destination": "/servers",
+      "permanent": true
     }
   ],
   "rewrites": [

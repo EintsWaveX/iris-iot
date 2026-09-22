@@ -1,0 +1,258 @@
+/* SessionPanels.tsx's styling, as a plain CSS import -- same pattern as
+   BlankEditor.css and PresentationManager.css. */
+
+.session-panels__section {
+  margin-top: var(--space-8);
+}
+
+.session-panels__heading {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-sm);
+  font-weight: 400;
+  margin-bottom: var(--space-4);
+}
+
+.session-panels__kosong {
+  color: var(--text-faint);
+  font-size: var(--fs-body);
+}
+
+/* -------------------------------------------------------------------
+   Group tiles -- --tile-hue is set inline per tile from --group-{n},
+   the same custom-property-per-instance idiom Badge.astro uses for
+   --badge-hue, since Astro's own Badge component can't be reused from a
+   React island (its <style> block is scoped to elements it renders itself).
+   ------------------------------------------------------------------- */
+.session-panels__tiles {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.session-panels__tile {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--tile-hue, var(--hairline-strong));
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.session-panels__tile[data-aktif="no"] {
+  opacity: 0.55;
+}
+
+.session-panels__tile-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.session-panels__tile-nomor {
+  color: var(--tile-hue);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.session-panels__tile-toggle {
+  align-items: center;
+  color: var(--text-faint);
+  display: flex;
+  font-size: var(--fs-small);
+  gap: var(--space-1);
+}
+
+.session-panels__tile-nama {
+  color: var(--text);
+  font-size: var(--fs-body-lg);
+  margin-top: var(--space-1);
+}
+
+.session-panels__tile-stats {
+  display: flex;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+.session-panels__tile-stats dt {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+}
+
+.session-panels__tile-stats dd {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  margin: 0;
+}
+
+.session-panels__peran,
+.session-panels__catatan {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  margin-top: var(--space-3);
+  padding: var(--space-2);
+  width: 100%;
+}
+
+.session-panels__catatan {
+  resize: vertical;
+}
+
+.session-panels__peran:focus-visible,
+.session-panels__catatan:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+/* -------------------------------------------------------------------
+   Stuck list
+   ------------------------------------------------------------------- */
+.session-panels__stuck {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.session-panels__stuck-item {
+  align-items: center;
+  background: var(--bg-sunken);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius-sm);
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.session-panels__stuck-kelompok {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.session-panels__stuck-soal {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.session-panels__stuck-percobaan {
+  color: var(--warn);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  margin-left: auto;
+}
+
+/* -------------------------------------------------------------------
+   Broadcast
+   ------------------------------------------------------------------- */
+.session-panels__siaran {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.session-panels__siaran-input {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  flex: 1;
+  font-size: var(--fs-body);
+  min-height: max(var(--tap), 44px);
+  padding: 0 var(--space-4);
+}
+
+.session-panels__siaran-input:focus-visible {
+  box-shadow: var(--glow-ring);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.session-panels__siaran-kirim {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--accent-ink);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  min-height: max(var(--tap), 44px);
+  padding: 0 var(--space-5);
+}
+
+.session-panels__siaran-kirim:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 599px) {
+  .session-panels__siaran {
+    flex-direction: column;
+  }
+}
+
+/* -------------------------------------------------------------------
+   Server readiness
+   ------------------------------------------------------------------- */
+.session-panels__servers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.session-panels__server {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.session-panels__server-head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.session-panels__server-head a {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.session-panels__dot {
+  background: var(--danger);
+  border-radius: 50%;
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+}
+
+.session-panels__dot[data-online="yes"] {
+  background: var(--ok);
+}
+
+.session-panels__server-facts {
+  color: var(--text-faint);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-small);
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.session-panels__server-facts li[data-ok="yes"] {
+  color: var(--ok);
+}
+
+.session-panels__server-facts li[data-ok="no"] {
+  color: var(--danger);
+}
+
+.session-panels__catatan-fase {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  margin-top: var(--space-6);
+  max-width: var(--measure-prose);
+}
