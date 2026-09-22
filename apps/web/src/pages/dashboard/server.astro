@@ -663,7 +663,21 @@ const links = [
     // without this fix, clicking from the list into a server's detail
     // view would silently fail to render past the first server ever
     // opened in a tab.
+    //
+    // The guard below is the other half: this listener is attached to
+    // `document`, which ClientRouter never tears down, so it keeps firing
+    // on every LATER astro:page-load too -- including one triggered by
+    // navigating away from this page. Found live on dashboard.astro's
+    // identical listener (see that file's own comment for the reproduction
+    // and why it looped there); here init()'s `hide("loading")` runs
+    // before checking `me.ok`, so a stale call instead throws (the
+    // `/loading` element from this page no longer exists once we've
+    // navigated elsewhere) rather than looping, but it is exactly as real
+    // a bug -- a silent, uncaught error on every subsequent page-load
+    // after anyone has ever visited this page.
     function bindPage() {
+      if (!document.getElementById("loading")) return;
+
       document.querySelectorAll<HTMLElement>("[data-aksi]").forEach((el) => {
         el.addEventListener("click", () => kirimPerintah(el.dataset.aksi!));
       });

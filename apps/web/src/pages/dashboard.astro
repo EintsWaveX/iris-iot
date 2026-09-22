@@ -475,7 +475,24 @@ const links = [
     // astro:page-load is the fix, mirroring the pattern every persisted
     // script in this codebase already uses for the same underlying
     // reason.
+    //
+    // The pathname guard below is the other half of that same fix, found
+    // live rather than reasoned out: this listener is attached to
+    // `document`, which ClientRouter never tears down, so it keeps firing
+    // on every LATER astro:page-load too -- including one triggered by
+    // navigating AWAY from /dashboard. Visiting /dashboard while logged
+    // out used to hang in an infinite loop: init() sees `!me.ok`, calls
+    // navigate("/?login=1"), which fires astro:page-load again, which
+    // fires this stale listener again, which calls fetch("/api/auth/me")
+    // and navigate("/?login=1") again -- forever, since the unauthenticated
+    // branch returns before touching any page-specific DOM node (nothing
+    // here would otherwise throw and break the cycle). nav-scroll.ts's own
+    // header comment describes the general rule (never cache a page
+    // element reference; re-query and bail if it's gone) -- this guard is
+    // that rule applied to the whole function rather than one element.
     function bindPage() {
+      if (!document.getElementById("loading")) return;
+
       document.getElementById("roster-paste")?.addEventListener("input", repaintTally);
 
       document.getElementById("roster-save")?.addEventListener("click", async () => {
