@@ -1,0 +1,415 @@
+---
+/**
+ * /modules/[n] and /en/modules/[n] share this view. The four steps (Brief,
+ * Setup, Code, Go live) are managed by ModuleCarousel.tsx exactly like
+ * Tabs.tsx manages its panels: sibling markup toggled by `hidden`, this
+ * component owns none of the switching logic itself.
+ *
+ * At lg and above, the Code panel stops being a fourth step and becomes a
+ * pinned right-hand column visible next to whichever of Brief/Setup/Go live
+ * is open -- see the lg+ media query below, which intentionally overrides
+ * the `hidden` attribute on #code the same way an author `display` rule
+ * accidentally did once already this project (the AP-checkbox bug from
+ * Stage 5). That earlier case was a bug; this one is the point: the code
+ * panel and everything else disagree with `hidden` at this breakpoint on
+ * purpose, and the corresponding step dot is hidden alongside it so there
+ * is nothing left to click that would do nothing.
+ */
+import { getEntry } from "astro:content";
+import Base from "../layouts/Base.astro";
+import Nav from "../components/ui/Nav.astro";
+import Card from "../components/ui/Card.astro";
+import Table from "../components/ui/Table.astro";
+import Badge from "../components/ui/Badge.astro";
+import ModuleCarousel from "../components/ModuleCarousel";
+import { id as strId } from "../i18n/id";
+import { en as strEn } from "../i18n/en";
+import { getSketchSource } from "../lib/sketches";
+import { highlightBlanks } from "../lib/highlight-blanks";
+
+interface Props {
+  lang: "id" | "en";
+  modul: number;
+}
+
+const { lang, modul } = Astro.props;
+const t = lang === "en" ? strEn : strId;
+const entry = await getEntry("modules", `${lang}/${modul}`);
+if (!entry) {
+  throw new Error(`no module content for ${lang}/${modul}`);
+}
+const m = entry.data;
+
+const basePath = lang === "en" ? "/en/modules" : "/modules";
+const links =
+  lang === "en"
+    ? [
+        { href: "/", label: "Beranda" },
+        { href: "/en/modules", label: "Modules" },
+      ]
+    : [
+        { href: "/", label: "Beranda" },
+        { href: "/modules", label: "Modul" },
+      ];
+
+const steps = [
+  { id: "brief", label: t.stepLabels.brief },
+  { id: "setup", label: t.stepLabels.setup },
+  { id: "code", label: t.stepLabels.code },
+  { id: "live", label: t.stepLabels.live },
+];
+
+const berkasSource = m.berkas.map((b) => ({
+  ...b,
+  html: highlightBlanks(getSketchSource(m.bahasa, b.path)),
+}));
+
+const pinColumns = m.pin.kolom.map((label, i) => ({ key: `c${i}`, label }));
+const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`c${i}`, v])));
+---
+
+<Base
+  title={`Modul ${m.modul} · ${m.judul} · IRIS IoT`}
+  description={m.ringkasan[0]}
+  cosmosScene="kerja"
+  lang={lang}
+>
+  <Nav links={links} current={basePath}>
+    <Fragment slot="side">
+      <a class="lang-switch" href={t.langSwitchHref(m.modul)}>
+        {t.langSwitchLabel}
+      </a>
+    </Fragment>
+  </Nav>
+
+  <main class="measure--wide">
+    <header class="module-header">
+      <a class="module-header__back" href={basePath}>
+        &laquo; {t.backToIndex}
+      </a>
+      <p class="eyebrow eyebrow--accent">Modul {m.modul}</p>
+      <h1 class="module-header__title">{m.judul}</h1>
+      <p class="module-header__topik measure-prose">{m.topik}</p>
+    </header>
+
+    <div id="step-index-rail" class="module-carousel__index">
+      <ModuleCarousel
+        client:load
+        id="module-steps"
+        steps={steps}
+        prevLabel={t.nav.prev}
+        nextLabel={t.nav.next}
+      />
+    </div>
+
+    <div class="module-carousel__layout">
+      <section id="brief" role="tabpanel" aria-labelledby="brief-tab" class="module-panel">
+        <h2 class="module-panel__heading">{t.brief.heading}</h2>
+        {m.ringkasan.map((p) => (
+          <p class="measure-prose">{p}</p>
+        ))}
+
+        {m.permainan && (
+          <Card title={t.brief.gameHeading} class="module-panel__card">
+            {m.permainan.map((p) => (
+              <p>{p}</p>
+            ))}
+          </Card>
+        )}
+      </section>
+
+      <section id="setup" role="tabpanel" aria-labelledby="setup-tab" class="module-panel" hidden>
+        <h2 class="module-panel__heading">{t.setup.toolchainHeading}</h2>
+        <ul class="module-toolchain">
+          {m.toolchain.map((tc) => (
+            <li>
+              <Badge tone="accent">{tc.alat}</Badge>
+              <span>{tc.label}</span>
+            </li>
+          ))}
+        </ul>
+
+        <h2 class="module-panel__heading">{t.setup.hardwareHeading}</h2>
+        <ul class="module-hardware">
+          {m.perangkat.map((p) => (
+            <li>
+              <span class="module-hardware__nama">{p.nama}</span>
+              <span class="module-hardware__jumlah">{p.jumlah}</span>
+            </li>
+          ))}
+        </ul>
+
+        <h2 class="module-panel__heading">{t.setup.pinHeading}</h2>
+        <p class="measure-prose module-panel__pin-caption">{m.pin.judul}</p>
+        <Table columns={pinColumns} rows={pinRows} caption={m.pin.judul} />
+        {m.pin.catatan.map((c) => (
+          <p class="module-panel__note measure-prose">{c}</p>
+        ))}
+
+        <img class="module-schematic" src={m.skema} alt={m.pin.judul} loading="lazy" />
+
+        <h2 class="module-panel__heading">{t.setup.checklistHeading}</h2>
+        <ul class="module-checklist">
+          {m.persiapan.map((step) => (
+            <li>
+              <span class="module-checklist__mark" aria-hidden="true"></span>
+              {step}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section
+        id="code"
+        role="tabpanel"
+        aria-labelledby="code-tab"
+        class="module-panel module-panel--code"
+        hidden
+      >
+        <h2 class="module-panel__heading">{t.code.heading}</h2>
+        <p class="measure-prose module-panel__note">{t.code.note}</p>
+        {berkasSource.map((b) => (
+          <Card title={b.judul} class="module-code-card">
+            <pre class="module-code" data-lang={b.bahasaKode} set:html={b.html}></pre>
+          </Card>
+        ))}
+      </section>
+
+      <section id="live" role="tabpanel" aria-labelledby="live-tab" class="module-panel" hidden>
+        <h2 class="module-panel__heading">{t.live.heading}</h2>
+        <p class="measure-prose">{t.live.body}</p>
+        <Card
+          title={t.setup.pinHeading === m.pin.judul ? m.pin.judul : "Ladder / Lapisan"}
+          class="module-panel__card"
+        >
+          <p class="module-live__ladder">Ladder: {m.ladder.jalur} jalur</p>
+          <Table
+            columns={[
+              { key: "nama", label: "Lapisan" },
+              { key: "nilai", label: "Nilai" },
+            ]}
+            rows={m.lapisan}
+          />
+        </Card>
+      </section>
+    </div>
+  </main>
+</Base>
+
+<script>
+  function playEntrance() {
+    window.Motion?.enter(".module-header > *");
+  }
+  playEntrance();
+  document.addEventListener("astro:page-load", playEntrance);
+</script>
+
+<style>
+  .module-header {
+    padding-block: var(--space-8) var(--space-6);
+  }
+
+  .module-header__back {
+    color: var(--text-faint);
+    display: inline-block;
+    font-size: var(--fs-small);
+    margin-bottom: var(--space-4);
+  }
+
+  .module-header__back:hover {
+    color: var(--text);
+  }
+
+  .module-header__title {
+    font-family: var(--font-display);
+    font-size: var(--fs-display-lg);
+    font-weight: 400;
+    margin-top: var(--space-2);
+  }
+
+  .module-header__topik {
+    color: var(--text-muted);
+    margin-top: var(--space-3);
+  }
+
+  .module-carousel__index {
+    padding-block: var(--space-4);
+  }
+
+  .module-carousel__layout {
+    display: grid;
+    gap: var(--space-8);
+    padding-block: var(--space-8) var(--space-10);
+  }
+
+  .module-panel__heading {
+    font-size: var(--fs-display-sm);
+    margin-top: var(--space-7);
+  }
+
+  .module-panel__heading:first-child {
+    margin-top: 0;
+  }
+
+  .module-panel p {
+    color: var(--text-muted);
+    margin-top: var(--space-3);
+  }
+
+  .module-panel__note {
+    color: var(--text-faint);
+    font-size: var(--fs-small);
+  }
+
+  .module-panel__pin-caption {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .module-panel__card {
+    margin-top: var(--space-5);
+  }
+
+  .module-toolchain,
+  .module-hardware,
+  .module-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  .module-toolchain li {
+    align-items: center;
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  .module-hardware li {
+    border-bottom: 1px solid var(--hairline-faint);
+    display: flex;
+    justify-content: space-between;
+    padding-block: var(--space-2);
+  }
+
+  .module-hardware__nama {
+    color: var(--text);
+  }
+
+  .module-hardware__jumlah {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+  }
+
+  .module-checklist li {
+    align-items: flex-start;
+    color: var(--text);
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  .module-checklist__mark {
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    height: 1.1em;
+    margin-top: 0.15em;
+    width: 1.1em;
+  }
+
+  .module-schematic {
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    display: block;
+    height: 6cm;
+    margin-top: var(--space-5);
+    object-fit: contain;
+    width: auto;
+  }
+
+  .module-code-card {
+    margin-top: var(--space-5);
+  }
+
+  .module-code {
+    background: var(--bg-sunken);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    line-height: 1.6;
+    overflow-x: auto;
+    padding: var(--space-4);
+    white-space: pre;
+  }
+
+  .module-code :global(.code-blank) {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+    border-radius: 2px;
+    color: var(--accent-bright);
+  }
+
+  .module-live__ladder {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    margin-bottom: var(--space-4);
+  }
+
+  .lang-switch {
+    align-items: center;
+    color: var(--text-muted);
+    display: flex;
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    letter-spacing: var(--tracking-wide);
+    min-height: max(var(--tap), 44px);
+    padding-inline: var(--space-3);
+    text-transform: uppercase;
+  }
+
+  .lang-switch:hover {
+    color: var(--text);
+  }
+
+  /* lg and above: Code stops being a fourth step and becomes a pinned
+     right column, visible alongside whichever of Brief/Setup/Go live is
+     open. See this file's top comment for why overriding `hidden` here is
+     deliberate rather than a repeat of the Stage 5 display/hidden bug. */
+  @media (min-width: 1025px) {
+    .module-carousel__layout {
+      align-items: start;
+      grid-template-areas: "index content code";
+      grid-template-columns: 10rem minmax(0, var(--measure-prose)) 1fr;
+    }
+
+    .module-carousel__index {
+      align-self: start;
+      grid-area: index;
+      position: sticky;
+      top: calc(var(--nav-size) + var(--space-6));
+    }
+
+    #brief,
+    #setup,
+    #live {
+      grid-area: content;
+    }
+
+    #code {
+      grid-area: code;
+    }
+
+    #code[hidden] {
+      display: block;
+    }
+
+    :global([data-step-id="code"]) {
+      display: none;
+    }
+  }
+</style>

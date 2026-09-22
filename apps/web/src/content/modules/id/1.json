@@ -1,0 +1,61 @@
+{
+  "modul": 1,
+  "bahasa": "id",
+  "judul": "Bluetooth Low Energy",
+  "topik": "Konektivitas Bluetooth Low Energy (BLE)",
+  "ringkasan": [
+    "Dua papan ESP32 saling terhubung lewat protokol GATT: satu berperan sebagai Central yang membaca potensiometer, satu lagi sebagai Peripheral yang menggerakkan servo begitu menerima notifikasi.",
+    "Delay yang diukur adalah waktu tempuh satu arah dari Central ke Peripheral, dibandingkan dengan delay round trip yang dicetak sendiri oleh Central saat pantulannya diterima."
+  ],
+  "toolchain": [{ "label": "Kedua papan ESP32 (Central dan Peripheral)", "alat": "Arduino IDE" }],
+  "perangkat": [
+    { "nama": "ESP32 DevKit V1 (DOIT) atau ESP32-S3", "jumlah": "2x" },
+    { "nama": "Potensiometer 10 kOhm", "jumlah": "1x" },
+    { "nama": "Servo SG90", "jumlah": "1x" },
+    { "nama": "Breadboard", "jumlah": "2x" },
+    { "nama": "Kabel/Jumper", "jumlah": "disesuaikan" }
+  ],
+  "skema": "/schematics/Module 1.png",
+  "pin": {
+    "judul": "Central/Client dan Peripheral/Server",
+    "kolom": ["Komponen (Central)", "Pin", "Komponen (Peripheral)", "Pin"],
+    "baris": [
+      ["POT (kaki kiri)", "GND", "SRV (coklat)", "GND"],
+      ["POT (wiper)", "GPIO34", "SRV (merah)", "VIN (5V)"],
+      ["POT (kaki kanan)", "3V3", "SRV (oranye)", "GPIO16"]
+    ],
+    "catatan": [
+      "GPIO34 adalah pin masukan saja dan termasuk ADC1, satu-satunya ADC yang masih dapat dibaca selama radio BLE menyala.",
+      "Servo SG90 menarik arus kejut yang tidak sanggup dipasok regulator 3V3, sehingga kabel merahnya wajib diambil dari pin VIN (5 V) dengan GND yang disatukan.",
+      "Papan ESP32-S3 tidak memiliki ADC pada GPIO34, sehingga pada papan itu potensiometernya pindah ke GPIO4 dengan mengaktifkan #define BOARD_ESP32S3 pada program Central."
+    ]
+  },
+  "persiapan": [
+    "Memasang pustaka ESP32Servo melalui Library Manager Arduino IDE",
+    "Memilih board ESP32 Dev Module pada Arduino IDE untuk kedua papan",
+    "Mengubah GROUP_ID pada kedua program menjadi nomor kelompok kalian",
+    "Menghapus tanda // pada #define BOARD_ESP32S3 bila memakai papan ESP32-S3",
+    "Menyambungkan kabel merah servo ke VIN, bukan ke 3V3",
+    "Menyinkronkan jam kedua papan dari PC yang sama"
+  ],
+  "berkas": [
+    {
+      "path": "modul1_ble_central.ino",
+      "judul": "Central/Client: Bluetooth Low Energy (ESP32)",
+      "bahasaKode": "cpp"
+    },
+    {
+      "path": "modul1_ble_peripheral.ino",
+      "judul": "Peripheral/Server: Bluetooth Low Energy (ESP32)",
+      "bahasaKode": "cpp"
+    }
+  ],
+  "ladder": { "jalur": 2 },
+  "lapisan": [
+    { "nama": "Aplikasi", "nilai": "Characteristic GATT" },
+    { "nama": "Transport", "nilai": "Notify" },
+    { "nama": "Jaringan", "nilai": "(tidak ada)" },
+    { "nama": "Tautan data", "nilai": "Tautan LE, interval koneksi" },
+    { "nama": "Fisik", "nilai": "2,4 GHz, RSSI" }
+  ]
+}

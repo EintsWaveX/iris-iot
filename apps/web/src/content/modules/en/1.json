@@ -1,0 +1,61 @@
+{
+  "modul": 1,
+  "bahasa": "en",
+  "judul": "Bluetooth Low Energy",
+  "topik": "Bluetooth Low Energy (BLE) Connectivity",
+  "ringkasan": [
+    "Two ESP32 boards connect over the GATT protocol: one acts as the Central, reading a potentiometer, and the other as the Peripheral, driving a servo as soon as it receives a notification.",
+    "The delay measured is the one way travel time from Central to Peripheral, compared against the round trip delay the Central prints for itself once the echo comes back."
+  ],
+  "toolchain": [{ "label": "Both ESP32 boards (Central and Peripheral)", "alat": "Arduino IDE" }],
+  "perangkat": [
+    { "nama": "ESP32 DevKit V1 (DOIT) or ESP32-S3", "jumlah": "2x" },
+    { "nama": "10 kOhm Potentiometer", "jumlah": "1x" },
+    { "nama": "SG90 Servo", "jumlah": "1x" },
+    { "nama": "Breadboard", "jumlah": "2x" },
+    { "nama": "Wires/Jumpers", "jumlah": "as needed" }
+  ],
+  "skema": "/schematics/Module 1.png",
+  "pin": {
+    "judul": "Central/Client and Peripheral/Server",
+    "kolom": ["Component (Central)", "Pin", "Component (Peripheral)", "Pin"],
+    "baris": [
+      ["POT (left leg)", "GND", "SRV (brown)", "GND"],
+      ["POT (wiper)", "GPIO34", "SRV (red)", "VIN (5V)"],
+      ["POT (right leg)", "3V3", "SRV (orange)", "GPIO16"]
+    ],
+    "catatan": [
+      "GPIO34 is an input only pin and belongs to ADC1, the only ADC that can still be read while the BLE radio is on.",
+      "An SG90 servo draws an inrush current the 3V3 regulator cannot supply, so its red wire must be taken from the VIN (5 V) pin with a common ground.",
+      "The ESP32-S3 has no ADC on GPIO34, so on that board the potentiometer moves to GPIO4 by enabling #define BOARD_ESP32S3 in the Central program."
+    ]
+  },
+  "persiapan": [
+    "Installing the ESP32Servo library through the Arduino IDE Library Manager",
+    "Selecting the ESP32 Dev Module board in the Arduino IDE for both boards",
+    "Changing GROUP_ID in both programs to your group number",
+    "Removing the // in front of #define BOARD_ESP32S3 when using an ESP32-S3 board",
+    "Connecting the servo's red wire to VIN, not to 3V3",
+    "Syncing both boards' clocks from the same PC"
+  ],
+  "berkas": [
+    {
+      "path": "modul1_ble_central.ino",
+      "judul": "Central/Client: Bluetooth Low Energy (ESP32)",
+      "bahasaKode": "cpp"
+    },
+    {
+      "path": "modul1_ble_peripheral.ino",
+      "judul": "Peripheral/Server: Bluetooth Low Energy (ESP32)",
+      "bahasaKode": "cpp"
+    }
+  ],
+  "ladder": { "jalur": 2 },
+  "lapisan": [
+    { "nama": "Application", "nilai": "GATT characteristic" },
+    { "nama": "Transport", "nilai": "Notify" },
+    { "nama": "Network", "nilai": "(none)" },
+    { "nama": "Data link", "nilai": "LE link, connection interval" },
+    { "nama": "Physical", "nilai": "2.4 GHz, RSSI" }
+  ]
+}

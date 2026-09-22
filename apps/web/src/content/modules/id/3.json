@@ -1,0 +1,67 @@
+{
+  "modul": 3,
+  "bahasa": "id",
+  "judul": "MQTT",
+  "topik": "Konektivitas MQTT dengan MicroPython, Raspberry Pi Pico W, dan Eclipse Mosquitto",
+  "ringkasan": [
+    "Dua papan Raspberry Pi Pico W bertukar data lewat broker Eclipse Mosquitto yang berjalan di Orange Pi: satu papan mempublikasikan posisi potensiometer, satu lagi berlangganan topic yang sama dan mencatat setiap nilai yang masuk.",
+    "Setiap kelompok memakai topic dan mqtt_client_id sendiri, sehingga banyak kelompok dapat berbagi satu broker tanpa saling mengganggu."
+  ],
+  "toolchain": [
+    {
+      "label": "Kedua papan Raspberry Pi Pico W (Publisher dan Subscriber)",
+      "alat": "MicroPython lewat Thonny"
+    }
+  ],
+  "perangkat": [
+    { "nama": "Raspberry Pi Pico W", "jumlah": "2x" },
+    { "nama": "Orange Pi 4 PRO", "jumlah": "1x, sebagai broker Mosquitto" },
+    { "nama": "Potensiometer 10 kOhm", "jumlah": "1x" },
+    { "nama": "Breadboard", "jumlah": "1x" },
+    { "nama": "Kabel/Jumper", "jumlah": "disesuaikan" }
+  ],
+  "skema": "/schematics/Module 3.png",
+  "pin": {
+    "judul": "Potensiometer pada Publisher",
+    "kolom": ["Komponen", "Pin"],
+    "baris": [
+      ["POT (VCC)", "3V3(OUT)"],
+      ["POT (OUT)", "GP26 (ADC0)"],
+      ["POT (GND)", "GND"]
+    ],
+    "catatan": [
+      "Masukan ADC Pico W hanya tahan sampai 3,3 V, sehingga kaki atas potensiometer harus dicatu dari 3V3(OUT) (pin fisik 36), bukan dari VBUS yang bertegangan 5 V.",
+      "Kaki tengah (wiper) wajib mendarat pada salah satu pin ADC, yaitu GP26, GP27, atau GP28.",
+      "Broker Eclipse Mosquitto berjalan pada Orange Pi 4 PRO dan tidak memerlukan rangkaian tambahan. Subscriber hanya mencatat nilai yang masuk, sehingga Pico W kedua cukup terhubung ke jaringan Wi-Fi yang sama dengan Publisher."
+    ]
+  },
+  "persiapan": [
+    "Memasang paket mosquitto dan mosquitto-clients pada Orange Pi (sudo apt install)",
+    "Mengaktifkan autostart broker: sudo systemctl enable mosquitto.service",
+    "Mencatat alamat IP Orange Pi dengan hostname -I",
+    "Menyunting /etc/mosquitto/mosquitto.conf, menambahkan listener 1883 dan allow_anonymous true",
+    "Memulai ulang service: sudo systemctl restart mosquitto.service",
+    "Memasang pustaka micropython-umqtt.simple pada kedua Pico W melalui Thonny",
+    "Mencatu potensiometer dari 3V3(OUT), bukan VBUS, dan menyambungkan wiper ke GP26"
+  ],
+  "berkas": [
+    {
+      "path": "modul3_mqtt_publish.py",
+      "judul": "Publisher: MQTT (MicroPython, Pico W)",
+      "bahasaKode": "python"
+    },
+    {
+      "path": "modul3_mqtt_subscribe.py",
+      "judul": "Subscriber: MQTT (MicroPython, Pico W)",
+      "bahasaKode": "python"
+    }
+  ],
+  "ladder": { "jalur": 3 },
+  "lapisan": [
+    { "nama": "Aplikasi", "nilai": "Topic, QoS, retained" },
+    { "nama": "Transport", "nilai": "TCP ke broker" },
+    { "nama": "Jaringan", "nilai": "IP lewat broker" },
+    { "nama": "Tautan data", "nilai": "WiFi 802.11" },
+    { "nama": "Fisik", "nilai": "2,4 GHz, RSSI" }
+  ]
+}

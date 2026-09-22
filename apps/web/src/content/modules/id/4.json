@@ -1,0 +1,75 @@
+{
+  "modul": 4,
+  "bahasa": "id",
+  "judul": "LoRa",
+  "topik": "Komunikasi Long Range (LoRa Peer to Peer)",
+  "ringkasan": [
+    "Modul ini tidak memakai satu pun sensor maupun aktuator luar. Yang diukur adalah gelombang radionya sendiri: hubungan antara kekuatan sinyal dan jarak.",
+    "Karena LoRa peer to peer tidak memiliki protokol kanal bawaan, seluruh aturan jaringannya, termasuk sync word dan jeda pancar, disusun sendiri oleh peserta."
+  ],
+  "permainan": [
+    "Satu papan Beacon disembunyikan dan memancar terus menerus lima kali tiap detik. Tiap kelompok memegang satu papan Hunter yang hanya mendengarkan, lalu melaporkan kekuatan sinyalnya ke papan skor lewat Wi-Fi.",
+    "Semakin dekat sebuah kelompok, semakin kuat sinyal yang terbaca. Kelompok pertama yang berhasil memegang papan Beacon adalah pemenangnya."
+  ],
+  "toolchain": [
+    { "label": "Papan Hunter tiap kelompok", "alat": "Arduino IDE" },
+    { "label": "Papan Beacon (diunggah oleh asisten)", "alat": "Arduino IDE" }
+  ],
+  "perangkat": [
+    { "nama": "Cosmic LoRa Aurora V2", "jumlah": "1x per kelompok, sebagai Hunter" },
+    { "nama": "Cosmic LoRa Aurora V2", "jumlah": "1x sekelas, sebagai Beacon" },
+    { "nama": "Antena LoRa 920 MHz", "jumlah": "1x per papan" },
+    { "nama": "Orange Pi 4 PRO", "jumlah": "1x sekelas, hotspot dan papan skor" },
+    { "nama": "Power bank atau kabel USB panjang", "jumlah": "1x per kelompok" }
+  ],
+  "skema": "/schematics/Module 4.png",
+  "pin": {
+    "judul": "Pin radio RFM95W pada Cosmic LoRa Aurora V2",
+    "kolom": ["Sinyal", "Pin"],
+    "baris": [
+      ["RFM (NSS)", "GPIO15"],
+      ["RFM (DIO0)", "GPIO27"],
+      ["RFM (RST)", "GPIO0"],
+      ["RFM (SCK)", "GPIO18"],
+      ["RFM (MISO)", "GPIO19"],
+      ["RFM (MOSI)", "GPIO23"],
+      ["RFM (EN)", "GPIO32"]
+    ],
+    "catatan": [
+      "Pasang antena 920 MHz sebelum kabel USB dicolokkan. Memancar tanpa antena dapat merusak radio secara permanen, berlaku pada Beacon maupun Hunter.",
+      "Pin GPIO 15, 0, 27, 32, 18, 19, dan 23 sudah dipakai oleh modul radio dan tidak boleh dipakai untuk keperluan lain.",
+      "Hunter tidak memerlukan pembagi tegangan karena tidak ada sensor yang tersambung padanya."
+    ]
+  },
+  "persiapan": [
+    "Memasang antena 920 MHz pada papan sebelum kabel USB dicolokkan",
+    "Memasang pustaka LoRa karya Sandeep Mistry melalui Library Manager Arduino IDE",
+    "Memasang pustaka WebSockets karya Markus Sattler melalui Library Manager Arduino IDE",
+    "Memilih board ESP32 Dev Module pada Arduino IDE",
+    "Memastikan Orange Pi sudah menyalakan hotspot IRIS-IOT dan papan skornya",
+    "Menyalin folder milik kelompok sendiri, lalu mengunggah hunter.ino tanpa menyunting apa pun",
+    "Memastikan Serial Monitor mencetak alamat IP dan jam hasil sinkronisasi",
+    "Membuka papan skor, memasukkan NIM, dan memastikan nama kelompok yang muncul benar",
+    "Mengkalibrasi acuan jarak pada jarak 1 meter dari Beacon"
+  ],
+  "berkas": [
+    {
+      "path": "modul4_hunter.ino",
+      "judul": "Hunter: Perburuan LoRa (Cosmic LoRa Aurora V2)",
+      "bahasaKode": "cpp"
+    },
+    {
+      "path": "modul4_beacon.ino",
+      "judul": "Beacon: Perburuan LoRa (Cosmic LoRa Aurora V2)",
+      "bahasaKode": "cpp"
+    }
+  ],
+  "ladder": { "jalur": 2 },
+  "lapisan": [
+    { "nama": "Aplikasi", "nilai": "Rank, heat" },
+    { "nama": "Transport", "nilai": "(tidak ada)" },
+    { "nama": "Jaringan", "nilai": "(tidak ada)" },
+    { "nama": "Tautan data", "nilai": "Sync word, sequence, loss" },
+    { "nama": "Fisik", "nilai": "920 MHz, SF, BW, RSSI, SNR" }
+  ]
+}

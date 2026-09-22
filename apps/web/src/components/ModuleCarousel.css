@@ -1,0 +1,100 @@
+/* ModuleCarousel.tsx's styling, as a plain CSS import (a .tsx file has no
+   template to attach an Astro <style> block to), same pattern as Tabs.css. */
+
+.carousel-steps {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+.carousel-steps__arrow {
+  align-items: center;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  display: flex;
+  flex-shrink: 0;
+  height: max(var(--tap), 44px);
+  justify-content: center;
+  width: max(var(--tap), 44px);
+}
+
+.carousel-steps__arrow svg {
+  fill: none;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 18px;
+}
+
+.carousel-steps__arrow:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.carousel-steps__arrow:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.carousel-steps__dots {
+  align-items: center;
+  display: flex;
+  gap: var(--space-5);
+  overflow-x: auto;
+}
+
+.carousel-steps__dot {
+  align-items: center;
+  color: var(--text-faint);
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  gap: var(--space-2);
+  min-height: max(var(--tap), 44px);
+  white-space: nowrap;
+}
+
+.carousel-steps__dot-mark {
+  background: var(--hairline-strong);
+  border-radius: 50%;
+  height: 8px;
+  transition: background var(--dur-fast) var(--ease-reveal);
+  width: 8px;
+}
+
+.carousel-steps__dot[aria-selected="true"] {
+  color: var(--text);
+}
+
+.carousel-steps__dot[aria-selected="true"] .carousel-steps__dot-mark {
+  background: var(--accent);
+}
+
+.carousel-steps__dot:hover {
+  color: var(--text);
+}
+
+/* Inside ModuleDetailView.astro's sticky left rail (lg and above), the
+   strip becomes a vertical run rather than a horizontal one, since it now
+   lives in a narrow fixed-width column instead of spanning the page. */
+@media (min-width: 1025px) {
+  .carousel-steps {
+    flex-direction: column;
+  }
+
+  .carousel-steps__dots {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .carousel-steps__dot {
+    align-items: center;
+    flex-direction: row;
+  }
+}

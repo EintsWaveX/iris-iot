@@ -1,0 +1,66 @@
+{
+  "modul": 2,
+  "bahasa": "en",
+  "judul": "WebSocket",
+  "topik": "WebSocket Communication with a Local Server",
+  "ringkasan": [
+    "An ESP32 reads a DHT22 sensor and sends its reading to a WebSocket server running on an Orange Pi, over the same local Wi-Fi network.",
+    "The server tells each group's board apart by its connection path, so several groups can share one server without disturbing each other."
+  ],
+  "toolchain": [
+    { "label": "ESP32 board (client)", "alat": "Arduino IDE" },
+    {
+      "label": "Server on the Orange Pi",
+      "alat": "Python (CPython), via a text editor and a virtual environment"
+    }
+  ],
+  "perangkat": [
+    { "nama": "ESP32 DevKit V1 (DOIT)", "jumlah": "1x" },
+    { "nama": "Orange Pi 4 PRO", "jumlah": "1x, as the local server" },
+    { "nama": "DHT22 Sensor", "jumlah": "1x" },
+    { "nama": "Breadboard", "jumlah": "1x" },
+    { "nama": "Wires/Jumpers", "jumlah": "as needed" }
+  ],
+  "skema": "/schematics/Module 2.png",
+  "pin": {
+    "judul": "DHT22 on the ESP32",
+    "kolom": ["Component", "Pin"],
+    "baris": [
+      ["DHT (VCC)", "3V3"],
+      ["DHT (DATA)", "GPIO16"],
+      ["DHT (GND)", "GND"]
+    ],
+    "catatan": [
+      "The Orange Pi needs no additional circuit at all. The WebSocket server runs entirely in software, so the Orange Pi only needs to be on the same Wi-Fi network as the ESP32.",
+      "A DHT22 must not be read more often than once every 2 seconds. A tighter interval returns NAN."
+    ]
+  },
+  "persiapan": [
+    "Installing the DHT sensor library and Adafruit Unified Sensor libraries through the Arduino IDE Library Manager",
+    "Installing the WebSockets library by Markus Sattler through the Arduino IDE Library Manager",
+    "Preparing a websockets virtual environment on the Orange Pi (python3 -m venv, then pip install \"websockets>=13\")",
+    "Noting the Orange Pi's IP address with hostname -I",
+    "Using your own group's path for WS_PATH",
+    "Matching the port and path values across both program files"
+  ],
+  "berkas": [
+    {
+      "path": "modul2_websocket_server.py",
+      "judul": "Server: WebSocket (Python, Orange Pi)",
+      "bahasaKode": "python"
+    },
+    {
+      "path": "modul2_websocket_esp32.ino",
+      "judul": "Client: WebSocket (ESP32)",
+      "bahasaKode": "cpp"
+    }
+  ],
+  "ladder": { "jalur": 2 },
+  "lapisan": [
+    { "nama": "Application", "nilai": "JSON payload" },
+    { "nama": "Transport", "nilai": "TCP, port WS_PORT" },
+    { "nama": "Network", "nilai": "IP, one hop" },
+    { "nama": "Data link", "nilai": "WiFi 802.11" },
+    { "nama": "Physical", "nilai": "2.4 GHz, RSSI" }
+  ]
+}

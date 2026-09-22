@@ -1,0 +1,133 @@
+---
+/**
+ * /modules and /en/modules share this view; only `lang` and the collection
+ * language differ between the two thin page files that render it.
+ */
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import Nav from "../components/ui/Nav.astro";
+import Card from "../components/ui/Card.astro";
+import { id as strId } from "../i18n/id";
+import { en as strEn } from "../i18n/en";
+
+interface Props {
+  lang: "id" | "en";
+}
+
+const { lang } = Astro.props;
+const t = lang === "en" ? strEn : strId;
+
+const entries = (await getCollection("modules", ({ id }) => id.startsWith(`${lang}/`))).sort(
+  (a, b) => a.data.modul - b.data.modul,
+);
+
+const basePath = lang === "en" ? "/en/modules" : "/modules";
+const links =
+  lang === "en"
+    ? [
+        { href: "/", label: "Beranda" },
+        { href: "/en/modules", label: "Modules" },
+      ]
+    : [
+        { href: "/", label: "Beranda" },
+        { href: "/modules", label: "Modul" },
+      ];
+---
+
+<Base
+  title={`${t.indexTitle} · IRIS IoT`}
+  description={t.indexLede}
+  cosmosScene="kerja"
+  lang={lang}
+>
+  <Nav links={links} current={basePath}>
+    <Fragment slot="side">
+      <a class="lang-switch" href={t.langSwitchHref()}>
+        {t.langSwitchLabel}
+      </a>
+    </Fragment>
+  </Nav>
+
+  <main class="measure">
+    <section class="section section--intro">
+      <p class="eyebrow eyebrow--accent">IRIS IoT</p>
+      <h1 class="modules-index__title">{t.indexTitle}</h1>
+      <p class="modules-index__lede measure-prose">{t.indexLede}</p>
+    </section>
+
+    <section class="section modules-index__grid">
+      {entries.map((entry, i) => (
+        <a class="modules-index__card-link" href={`${basePath}/${entry.data.modul}`}>
+          <Card
+            class="stagger-item"
+            style={`--i: ${i}`}
+            eyebrow={`Modul ${entry.data.modul}`}
+            title={entry.data.judul}
+          >
+            <p>{entry.data.ringkasan[0]}</p>
+          </Card>
+        </a>
+      ))}
+    </section>
+  </main>
+</Base>
+
+<script>
+  function playEntrance() {
+    window.Motion?.enter(".modules-index__title, .modules-index__lede");
+  }
+  playEntrance();
+  document.addEventListener("astro:page-load", playEntrance);
+</script>
+
+<style>
+  .section--intro {
+    padding-block: var(--space-8) var(--space-6);
+  }
+
+  .modules-index__title {
+    font-family: var(--font-display);
+    font-size: var(--fs-display-lg);
+    font-weight: 400;
+    margin-top: var(--space-3);
+  }
+
+  .modules-index__lede {
+    color: var(--text-muted);
+    font-size: var(--fs-body-lg);
+    margin-top: var(--space-4);
+  }
+
+  .modules-index__grid {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  }
+
+  .modules-index__card-link {
+    color: inherit;
+    display: block;
+  }
+
+  .lang-switch {
+    align-items: center;
+    color: var(--text-muted);
+    display: flex;
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    letter-spacing: var(--tracking-wide);
+    min-height: max(var(--tap), 44px);
+    padding-inline: var(--space-3);
+    text-transform: uppercase;
+  }
+
+  .lang-switch:hover {
+    color: var(--text);
+  }
+
+  @media (min-width: 1025px) {
+    .modules-index__grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+</style>

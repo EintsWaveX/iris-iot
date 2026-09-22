@@ -1,0 +1,67 @@
+{
+  "modul": 3,
+  "bahasa": "en",
+  "judul": "MQTT",
+  "topik": "MQTT Connectivity with MicroPython, Raspberry Pi Pico W, and Eclipse Mosquitto",
+  "ringkasan": [
+    "Two Raspberry Pi Pico W boards exchange data through an Eclipse Mosquitto broker running on an Orange Pi: one board publishes a potentiometer's position, and the other subscribes to the same topic and records every value that arrives.",
+    "Every group uses its own topic and mqtt_client_id, so many groups can share one broker without disturbing each other."
+  ],
+  "toolchain": [
+    {
+      "label": "Both Raspberry Pi Pico W boards (Publisher and Subscriber)",
+      "alat": "MicroPython via Thonny"
+    }
+  ],
+  "perangkat": [
+    { "nama": "Raspberry Pi Pico W", "jumlah": "2x" },
+    { "nama": "Orange Pi 4 PRO", "jumlah": "1x, as the Mosquitto broker" },
+    { "nama": "10 kOhm Potentiometer", "jumlah": "1x" },
+    { "nama": "Breadboard", "jumlah": "1x" },
+    { "nama": "Wires/Jumpers", "jumlah": "as needed" }
+  ],
+  "skema": "/schematics/Module 3.png",
+  "pin": {
+    "judul": "Potentiometer on the Publisher",
+    "kolom": ["Component", "Pin"],
+    "baris": [
+      ["POT (VCC)", "3V3(OUT)"],
+      ["POT (OUT)", "GP26 (ADC0)"],
+      ["POT (GND)", "GND"]
+    ],
+    "catatan": [
+      "The Pico W's ADC input only tolerates up to 3.3 V, so the potentiometer's top leg must be fed from 3V3(OUT) (physical pin 36), not from the 5 V VBUS.",
+      "Its middle leg (the wiper) must land on one of the ADC pins, that is GP26, GP27 or GP28.",
+      "The Eclipse Mosquitto broker runs on the Orange Pi 4 PRO and needs no additional circuit. The Subscriber only records the values that arrive, so the second Pico W just needs to be on the same Wi-Fi network as the Publisher."
+    ]
+  },
+  "persiapan": [
+    "Installing the mosquitto and mosquitto-clients packages on the Orange Pi (sudo apt install)",
+    "Enabling broker autostart: sudo systemctl enable mosquitto.service",
+    "Noting the Orange Pi's IP address with hostname -I",
+    "Editing /etc/mosquitto/mosquitto.conf, adding listener 1883 and allow_anonymous true",
+    "Restarting the service: sudo systemctl restart mosquitto.service",
+    "Installing the micropython-umqtt.simple library on both Pico W boards through Thonny",
+    "Powering the potentiometer from 3V3(OUT), not VBUS, and wiring its wiper to GP26"
+  ],
+  "berkas": [
+    {
+      "path": "modul3_mqtt_publish.py",
+      "judul": "Publisher: MQTT (MicroPython, Pico W)",
+      "bahasaKode": "python"
+    },
+    {
+      "path": "modul3_mqtt_subscribe.py",
+      "judul": "Subscriber: MQTT (MicroPython, Pico W)",
+      "bahasaKode": "python"
+    }
+  ],
+  "ladder": { "jalur": 3 },
+  "lapisan": [
+    { "nama": "Application", "nilai": "Topic, QoS, retained" },
+    { "nama": "Transport", "nilai": "TCP to broker" },
+    { "nama": "Network", "nilai": "IP via broker" },
+    { "nama": "Data link", "nilai": "WiFi 802.11" },
+    { "nama": "Physical", "nilai": "2.4 GHz, RSSI" }
+  ]
+}
