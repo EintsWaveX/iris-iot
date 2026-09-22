@@ -135,20 +135,48 @@ export async function resolvePraktikan(nim: string): Promise<ResolvedPraktikan |
 /** Names only — never NIMs. This is the projection rule from
  *  jadwal_publik() in modul4/server.py:1023, carried forward: a route a
  *  student's browser can reach must never be able to return another
- *  student's NIM, even as a side effect of showing group membership. */
+ *  student's NIM, even as a side effect of showing group membership.
+ *
+ *  Reads the master roster first, same as resolvePraktikan() above, and for
+ *  the same reason: `regu`/`praktikan` are the retired Phase 1 tables, and
+ *  after the roster migration this function returned nothing for anyone
+ *  because it never followed resolvePraktikan() onto `kelompok`/`anggota`.
+ *  Falls back to the Phase 1 join under the same row-count check so a
+ *  not-yet-backfilled environment still gets a real answer instead of an
+ *  empty roster. */
 export async function publicRoster(sesiId: number) {
   const db = getDb();
-  const groups = await db.select().from(regu).where(eq(regu.sesiId, sesiId));
 
+  if (!(await masterRosterIsPopulated())) {
+    const groups = await db.select().from(regu).where(eq(regu.sesiId, sesiId));
+    const members = await db
+      .select({ reguId: praktikan.reguId, nama: praktikan.nama })
+      .from(praktikan)
+      .where(eq(praktikan.sesiId, sesiId));
+
+    return groups
+      .sort((a, b) => a.nomor - b.nomor)
+      .map((g) => ({
+        nomor: g.nomor,
+        nama: g.nama,
+        aktif: g.aktif,
+        anggota: members.filter((m) => m.reguId === g.id).map((m) => m.nama),
+      }));
+  }
+
+  const groups = await db.select().from(kelompok);
   const members = await db
-    .select({ reguId: praktikan.reguId, nama: praktikan.nama })
-    .from(praktikan)
-    .where(eq(praktikan.sesiId, sesiId));
+    .select({ kelompokId: anggota.kelompokId, nama: anggota.nama })
+    .from(anggota);
+  const overrides = await db.select().from(sesiKelompok).where(eq(sesiKelompok.sesiId, sesiId));
+  const overrideByKelompokId = new Map(overrides.map((o) => [o.kelompokId, o]));
 
-  return groups.map((g) => ({
-    nomor: g.nomor,
-    nama: g.nama,
-    aktif: g.aktif,
-    anggota: members.filter((m) => m.reguId === g.id).map((m) => m.nama),
-  }));
+  return groups
+    .sort((a, b) => a.nomor - b.nomor)
+    .map((g) => ({
+      nomor: g.nomor,
+      nama: g.nama,
+      aktif: g.aktif && (overrideByKelompokId.get(g.id)?.aktif ?? true),
+      anggota: members.filter((m) => m.kelompokId === g.id).map((m) => m.nama),
+    }));
 }
