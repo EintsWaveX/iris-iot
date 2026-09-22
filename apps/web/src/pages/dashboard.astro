@@ -369,9 +369,21 @@ const links = [
       // The master roster is practicum-wide (Phase 3), so it loads
       // regardless of whether a session happens to be running right now --
       // only the "sesi hari ini" card below is gated on that.
+      //
+      // Skipped while the box has focus: loadSesi() now runs on every
+      // poll tick (Stage 5), not just once on page load, and this
+      // assignment used to run unconditionally. Found live: paste or type
+      // into the roster box, wait past one 30s poll tick, and the whole
+      // thing silently reverted to whatever the server already had --
+      // wiping an assistant's in-progress, unsaved edit out from under
+      // them. An assistant actively focused in the box is editing it; the
+      // next successful load (after they click away, or right after
+      // Simpan) picks the refresh back up.
       const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-      textarea.value = rosterToPaste(roster);
-      repaintTally();
+      if (document.activeElement !== textarea) {
+        textarea.value = rosterToPaste(roster);
+        repaintTally();
+      }
 
       if (!data.sesi) {
         currentSesiId = null;
@@ -682,7 +694,13 @@ const links = [
     gap: var(--space-3);
   }
 
-  .ap-toggle {
+  /* :not([hidden]), not a bare .ap-toggle rule: an author `display` value
+     beats the UA stylesheet's `[hidden] { display: none }` at equal
+     specificity, so a bare `display: flex` here would make the `hidden`
+     attribute this element is actually toggled by do nothing at all --
+     found live, the checkbox stayed visible under Modul 1 despite
+     `hidden` being set and the change listener never having fired yet. */
+  .ap-toggle:not([hidden]) {
     align-items: center;
     color: var(--text-muted);
     display: flex;
