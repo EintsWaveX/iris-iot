@@ -30,7 +30,10 @@ export const id = {
   },
   code: {
     heading: "Kode program",
-    note: "Bagian rumpang ditandai garis bawah dan nomor. Pengisian dan penilaian jawaban langsung di sini menyusul pada tahap berikutnya; untuk sekarang, kode ditampilkan seperti pada jurnal cetak.",
+    note: "Isikan setiap kotak rumpang lalu klik di luar kotak untuk memeriksa jawabannya. Jawaban yang benar menampilkan alasannya; jawaban tersimpan otomatis sehingga bisa dilanjutkan kapan saja.",
+    download: "Unduh berkas",
+    downloadHint: "Selesaikan semua bagian rumpang pada berkas ini untuk membuka unduhan.",
+    masuk: "Masuk sebagai praktikan untuk mengisi dan menyimpan jawaban di sini.",
   },
   live: {
     heading: "Tampilan live",

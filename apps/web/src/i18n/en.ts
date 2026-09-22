@@ -26,7 +26,10 @@ export const en: ModuleStrings = {
   },
   code: {
     heading: "Program source",
-    note: "Blank sections are marked with an underscore and a number. Filling in and checking answers here directly arrives in a later stage; for now, the code is shown as it appears in the printed journal.",
+    note: "Fill in each blank box and click outside it to check the answer. A correct answer shows why; every answer saves automatically, so you can pick this back up any time.",
+    download: "Download file",
+    downloadHint: "Finish every blank in this file to unlock its download.",
+    masuk: "Log in as a praktikan to fill in and save answers here.",
   },
   live: {
     heading: "Live view",

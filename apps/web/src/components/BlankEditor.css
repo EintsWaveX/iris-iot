@@ -1,0 +1,128 @@
+/* BlankEditor.tsx's styling, as a plain CSS import -- same pattern as
+   Tabs.css and ModuleCarousel.css. */
+
+.blank-editor__locked {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  margin-bottom: var(--space-3);
+}
+
+.blank-editor__code {
+  background: var(--bg-sunken);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  overflow-x: auto;
+  padding: var(--space-4);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.blank-editor__field {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: baseline;
+}
+
+.blank-editor__field input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  color: var(--accent-bright);
+  font-family: var(--font-mono);
+  font-size: inherit;
+  min-height: 1.6em;
+  padding: 0 var(--space-1);
+}
+
+.blank-editor__field input:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.blank-editor__field[data-state="benar"] input {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.blank-editor__field[data-state="salah"] input {
+  border-color: var(--danger);
+}
+
+.blank-editor__field[data-state="checking"] input {
+  opacity: 0.6;
+}
+
+/* Tier 1's "short CSS pulse" reward -- gated the same way every ambient
+   animation in cosmos.css is (:root:not([data-motion-tier="0"])), so a
+   device pinned to tier 0 gets the colour change above with no animation
+   at all, and reduced-motion is already covered by the tier probe pinning
+   those devices to tier 0 in the first place (see motion.core.js). */
+:root:not([data-motion-tier="0"]) .blank-editor__field[data-state="benar"] input {
+  animation: blank-editor-pulse 500ms var(--ease-out-expo);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blank-editor__field[data-state="benar"] input {
+    animation: none;
+  }
+}
+
+@keyframes blank-editor-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.blank-editor__kenapa {
+  color: var(--text-faint);
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  margin-top: var(--space-1);
+  max-width: 32ch;
+  white-space: normal;
+}
+
+.blank-editor__footer {
+  align-items: center;
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  margin-top: var(--space-4);
+}
+
+.blank-editor__progress {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.blank-editor__download {
+  align-items: center;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  display: inline-flex;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  min-height: max(var(--tap), 44px);
+  padding: 0 var(--space-4);
+}
+
+.blank-editor__download[aria-disabled="true"] {
+  color: var(--text-faint);
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.blank-editor__download:not([aria-disabled="true"]):hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

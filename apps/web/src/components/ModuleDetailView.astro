@@ -22,10 +22,11 @@ import Card from "../components/ui/Card.astro";
 import Table from "../components/ui/Table.astro";
 import Badge from "../components/ui/Badge.astro";
 import ModuleCarousel from "../components/ModuleCarousel";
+import BlankEditor from "../components/BlankEditor";
 import { id as strId } from "../i18n/id";
 import { en as strEn } from "../i18n/en";
 import { getSketchSource } from "../lib/sketches";
-import { highlightBlanks } from "../lib/highlight-blanks";
+import { parseBlanks } from "../lib/blanks";
 
 interface Props {
   lang: "id" | "en";
@@ -61,7 +62,8 @@ const steps = [
 
 const berkasSource = m.berkas.map((b) => ({
   ...b,
-  html: highlightBlanks(getSketchSource(m.bahasa, b.path)),
+  slug: b.path.replace(/\.(ino|py)$/, ""),
+  segments: parseBlanks(getSketchSource(m.bahasa, b.path)),
 }));
 
 const pinColumns = m.pin.kolom.map((label, i) => ({ key: `c${i}`, label }));
@@ -170,7 +172,16 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
         <p class="measure-prose module-panel__note">{t.code.note}</p>
         {berkasSource.map((b) => (
           <Card title={b.judul} class="module-code-card">
-            <pre class="module-code" data-lang={b.bahasaKode} set:html={b.html}></pre>
+            <BlankEditor
+              client:load
+              modul={m.modul}
+              berkas={b.slug}
+              bahasa={m.bahasa}
+              segments={b.segments}
+              downloadLabel={t.code.download}
+              downloadHint={t.code.downloadHint}
+              masukHint={t.code.masuk}
+            />
           </Card>
         ))}
       </section>
@@ -333,24 +344,6 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
 
   .module-code-card {
     margin-top: var(--space-5);
-  }
-
-  .module-code {
-    background: var(--bg-sunken);
-    border-radius: var(--radius-md);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    line-height: 1.6;
-    overflow-x: auto;
-    padding: var(--space-4);
-    white-space: pre;
-  }
-
-  .module-code :global(.code-blank) {
-    background: color-mix(in srgb, var(--accent) 22%, transparent);
-    border-radius: 2px;
-    color: var(--accent-bright);
   }
 
   .module-live__ladder {
