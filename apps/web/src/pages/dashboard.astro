@@ -139,7 +139,16 @@ const links = [
               placeholder="2026-09-19"
               required
             />
-            <Field id="sesi-mulai" label="Jam mulai" type="time" value="06:30" required />
+            <Select
+              id="sesi-slot"
+              label="Slot"
+              options={[
+                { value: "1", label: "Slot 1 — 06:30" },
+                { value: "2", label: "Slot 2 — 09:30" },
+                { value: "3", label: "Slot 3 — 12:30" },
+                { value: "4", label: "Slot 4 — 15:30" },
+              ]}
+            />
             <Select
               id="sesi-modul"
               label="Modul"
@@ -151,6 +160,10 @@ const links = [
               ]}
             />
           </div>
+          <label class="ap-toggle" id="sesi-butuh-ap-label" hidden>
+            <input type="checkbox" id="sesi-butuh-ap" />
+            Bagian A (mode AP) — Orange Pi jadi hotspot IRIS-IOT, bukan klien jaringan kampus
+          </label>
           <Button kind="primary" type="submit" id="sesi-baru-submit">
             Mulai sesi
           </Button>
@@ -160,9 +173,14 @@ const links = [
       <Card id="dengan-sesi" title="" hidden>
         <p class="sesi-info" id="sesi-info"></p>
         <div class="kelompok-toggles" id="kelompok-toggles"></div>
-        <Button kind="ghost" id="sesi-akhiri">
-          Akhiri sesi
-        </Button>
+        <div class="sesi-actions">
+          <Button kind="ghost" id="sesi-akhiri">
+            Akhiri sesi
+          </Button>
+          <Button kind="danger" id="sesi-batalkan">
+            Batalkan sesi
+          </Button>
+        </div>
       </Card>
 
       <section class="section">
@@ -206,12 +224,15 @@ const links = [
   <script>
     import { navigate } from "astro:transitions/client";
     import { parseRosterPaste, rosterToPaste } from "../lib/roster-parser";
+    import { startPolling } from "../scripts/polling";
+    import { SESI_CAP_MENIT } from "../lib/jadwal";
 
     const KODE_PESAN: Record<string, string> = {
       format_salah: "Formatnya belum benar.",
       sudah_ada: "Sesi dengan tanggal, jam, dan modul yang sama sudah ada.",
       galat_tempel: "Masih ada baris yang bermasalah pada tempelan.",
       sesi_tidak_ada: "Sesi ini tidak ditemukan.",
+      sudah_selesai: "Sesi ini sudah selesai atau dibatalkan.",
       galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
     };
 
@@ -230,13 +251,6 @@ const links = [
       3: "MQTT",
       4: "LoRa",
     };
-
-    // The 165-minute practicum session cap (see the schedule the site's
-    // own memory of it documents: four sessions a day, cleared after 165
-    // minutes each) -- the banner's "remaining" figure is read against
-    // this, not against anything the session row itself states, since
-    // sesi carries no duration cap of its own.
-    const SESI_CAP_MENIT = 165;
 
     function formatDurasiBerjalan(mulaiPadaIso: string | null): string {
       if (!mulaiPadaIso) return "belum diketahui";
@@ -270,6 +284,41 @@ const links = [
       document.getElementById(id)!.hidden = true;
     }
 
+    // Tracks the running session's id for the "Batalkan sesi" button, and
+    // the teardown for whichever polling loop is currently active -- reset
+    // on every bindPage() rerun so a role switch (login out, back in as
+    // the other role, no hard refresh) never leaves a stale loop hitting
+    // the wrong endpoint alongside a new one.
+    let currentSesiId: number | null = null;
+    let stopBannerPolling: (() => void) | null = null;
+
+    /** Renders the shared banner markup from the narrow shape both
+     *  /api/session/now (praktikan) and /api/session/current (asisten)
+     *  agree on -- modul/tanggal/mulai/mulaiPada -- plus a role-specific
+     *  "kelompok" line the caller supplies, since an assistant sees a
+     *  headcount and a student sees their own group. */
+    function renderBanner(
+      s: { modul: number; tanggal: string; mulai: string; mulaiPada: string | null } | null,
+      kelompokText: string,
+    ) {
+      show("session-banner-host");
+
+      if (!s) {
+        hide("session-banner");
+        show("session-banner-kosong");
+        return;
+      }
+
+      hide("session-banner-kosong");
+      show("session-banner");
+      document.getElementById("banner-modul-nomor")!.textContent = String(s.modul);
+      document.getElementById("banner-modul-nama")!.textContent = MODULE_NAMES[s.modul] ?? "";
+      document.getElementById("banner-tanggal")!.textContent = s.tanggal;
+      document.getElementById("banner-waktu")!.textContent = s.mulai;
+      document.getElementById("banner-durasi")!.textContent = formatDurasiBerjalan(s.mulaiPada);
+      document.getElementById("banner-kelompok")!.textContent = kelompokText;
+    }
+
     async function init() {
       const me = await fetch("/api/auth/me").then((r) => r.json());
       if (!me.ok) {
@@ -280,6 +329,8 @@ const links = [
       hide("loading");
       document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
 
+      stopBannerPolling?.();
+
       if (me.role === "praktikan") {
         show("view-praktikan");
         document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
@@ -288,12 +339,24 @@ const links = [
           "click",
           () => window.open(iotBoardUrl(me.nim), "_blank", "noopener"),
         );
+        // A narrow, praktikan-safe poll: module/timing only, never the
+        // roster. Visibility-aware, so a backgrounded tab costs nothing --
+        // see polling.ts's own header for why that matters for Neon too.
+        stopBannerPolling = startPolling(async () => {
+          const data = await fetch("/api/session/now").then((r) => r.json());
+          if (!data.ok) return;
+          renderBanner(data.sesi, `Kelompok ${me.regu}`);
+        }, 30_000);
       } else {
         show("view-asisten");
-        await loadSesi();
         document
           .getElementById("btn-buka-iot-asisten")
           ?.addEventListener("click", () => window.open(iotBoardUrl(), "_blank", "noopener"));
+        // The full console view polls too now, so an auto-ended session,
+        // a cancel from elsewhere, or the ticking duration all show up
+        // without a manual refresh -- this page used to fetch once on
+        // mount and never again.
+        stopBannerPolling = startPolling(loadSesi, 30_000);
       }
     }
 
@@ -310,31 +373,22 @@ const links = [
       textarea.value = rosterToPaste(roster);
       repaintTally();
 
-      show("session-banner-host");
-
       if (!data.sesi) {
+        currentSesiId = null;
         show("tanpa-sesi");
         hide("dengan-sesi");
-        hide("session-banner");
-        show("session-banner-kosong");
+        renderBanner(null, "");
         return;
       }
 
       hide("tanpa-sesi");
       show("dengan-sesi");
       const s = data.sesi;
+      currentSesiId = s.id;
       document.getElementById("sesi-info")!.textContent =
         `Sesi #${s.id} · Modul ${s.modul} · ${s.tanggal} ${s.mulai}`;
 
-      hide("session-banner-kosong");
-      show("session-banner");
-      document.getElementById("banner-modul-nomor")!.textContent = String(s.modul);
-      document.getElementById("banner-modul-nama")!.textContent = MODULE_NAMES[s.modul] ?? "";
-      document.getElementById("banner-tanggal")!.textContent = s.tanggal;
-      document.getElementById("banner-waktu")!.textContent = s.mulai;
-      document.getElementById("banner-durasi")!.textContent = formatDurasiBerjalan(s.mulaiPada);
-      document.getElementById("banner-kelompok")!.textContent = `${roster.length} kelompok`;
-
+      renderBanner(s, `${roster.length} kelompok`);
       renderKelompokToggles(s.id, roster);
     }
 
@@ -467,18 +521,61 @@ const links = [
         }
       });
 
+      // Distinct from "Akhiri sesi": ending records a real completed
+      // session (real duration, feeds reports); cancelling is for a
+      // mis-created slot (wrong date, wrong module) and frees it for a
+      // replacement instead of leaving it stuck occupying that slot --
+      // see schema.ts's sesi_slot_unik partial index, which exists
+      // specifically so "batal" doesn't count against the uniqueness check.
+      document.getElementById("sesi-batalkan")?.addEventListener("click", async () => {
+        if (currentSesiId === null) return;
+        const btn = document.getElementById("sesi-batalkan") as HTMLButtonElement;
+        btn.setAttribute("data-loading", "yes");
+        try {
+          const res = await fetch("/api/session/cancel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sesiId: currentSesiId }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            window.Toast?.show("Sesi dibatalkan.", "ok");
+            await loadSesi();
+          } else {
+            window.Toast?.show(pesanUntuk(data.kode), "danger");
+          }
+        } catch {
+          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+        } finally {
+          btn.setAttribute("data-loading", "no");
+        }
+      });
+
+      // The AP-mode toggle only ever applies to Module 4 Part A (see
+      // api/session/index.ts's own validation, which refuses butuhAp for
+      // any other module) -- hidden for the other three so the form
+      // doesn't offer a choice that would just be rejected.
+      document.getElementById("sesi-modul")?.addEventListener("change", (ev) => {
+        const modul = (ev.target as HTMLSelectElement).value;
+        const label = document.getElementById("sesi-butuh-ap-label")!;
+        label.hidden = modul !== "4";
+        if (label.hidden)
+          (document.getElementById("sesi-butuh-ap") as HTMLInputElement).checked = false;
+      });
+
       document.getElementById("form-sesi-baru")?.addEventListener("submit", async (ev) => {
         ev.preventDefault();
         const tanggal = (document.getElementById("sesi-tanggal") as HTMLInputElement).value;
-        const mulai = (document.getElementById("sesi-mulai") as HTMLInputElement).value;
+        const slot = (document.getElementById("sesi-slot") as HTMLSelectElement).value;
         const modul = (document.getElementById("sesi-modul") as HTMLSelectElement).value;
+        const butuhAp = (document.getElementById("sesi-butuh-ap") as HTMLInputElement).checked;
         const btn = document.getElementById("sesi-baru-submit") as HTMLButtonElement;
         btn.setAttribute("data-loading", "yes");
         try {
           const res = await fetch("/api/session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tanggal, mulai, modul: Number(modul) }),
+            body: JSON.stringify({ tanggal, slot: Number(slot), modul: Number(modul), butuhAp }),
           });
           const data = await res.json();
           if (data.ok) {
@@ -561,6 +658,20 @@ const links = [
     display: flex;
     font-size: var(--fs-small);
     gap: var(--space-2);
+  }
+
+  .sesi-actions {
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  .ap-toggle {
+    align-items: center;
+    color: var(--text-muted);
+    display: flex;
+    font-size: var(--fs-small);
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
   }
 
   .paste-label {

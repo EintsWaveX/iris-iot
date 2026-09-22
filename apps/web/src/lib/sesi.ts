@@ -17,6 +17,7 @@
 import { eq, and, desc, count } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { sesi, regu, praktikan, anggota, kelompok, sesiKelompok } from "./schema.js";
+import { SESI_CAP_DETIK } from "./jadwal.js";
 
 export interface ResolvedPraktikan {
   nim: string;
@@ -27,6 +28,17 @@ export interface ResolvedPraktikan {
   reguNama: string;
 }
 
+/**
+ * Whichever session is marked "berjalan", auto-ending it first if it has
+ * already run past the practicum's fixed cap. This is the ONLY place that
+ * check happens: there is no cron in this stack (Vercel Hobby's own cron
+ * limits would not fit a "check every session's clock" job anyway), so a
+ * session that has run past its cap is corrected lazily, on whatever call
+ * happens to ask "what's running right now" next — the banner poll, a
+ * login attempt, an assistant's console. That costs nothing extra: one of
+ * those is already querying this every time it matters, so there is no
+ * idle-wakeup cost the way a standalone poller would add.
+ */
 export async function currentSesi() {
   const db = getDb();
   const [row] = await db
@@ -35,7 +47,25 @@ export async function currentSesi() {
     .where(eq(sesi.status, "berjalan"))
     .orderBy(desc(sesi.dibuatPada))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+
+  const startedAt = row.mulaiPada ?? row.dibuatPada;
+  const elapsedSec = (Date.now() - startedAt.getTime()) / 1000;
+  if (elapsedSec < SESI_CAP_DETIK) return row;
+
+  // Past the cap: the session's canonical end is the cap itself, not
+  // whenever this lazy check happened to run, so selesaiPada/durasiDetik
+  // record that rather than "now".
+  await db
+    .update(sesi)
+    .set({
+      status: "selesai",
+      selesaiPada: new Date(startedAt.getTime() + SESI_CAP_DETIK * 1000),
+      durasiDetik: SESI_CAP_DETIK,
+    })
+    .where(eq(sesi.id, row.id));
+
+  return null;
 }
 
 /**

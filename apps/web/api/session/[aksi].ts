@@ -9,14 +9,16 @@
  * changing a single URL (the existing rewrites in vercel.json already map
  * /api/sesi/* onto these exact English paths) brings the count back under.
  *
+ * GET  /api/session/now                             — asisten OR praktikan. Module/timing only, no roster.
  * GET  /api/session/current                        — running session + master roster.
  * POST /api/session/end     (no body)               — end the running session.
  * POST /api/session/group   { sesiId, kelompokId, aktif } — per-session group override.
  * POST /api/session/roster  { paste }                — replace the master roster.
+ * POST /api/session/cancel  { sesiId }               — mark a session "batal", freeing its slot.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
-import { requireRole } from "../_lib/session.js";
+import { requireRole, requireAnyRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import { kelompok, anggota, sesiKelompok, sesi } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
@@ -24,6 +26,58 @@ import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { eq, sql, notInArray } from "drizzle-orm";
+
+/** GET /api/session/now — the narrow session banner endpoint. Module,
+ *  timing and AP-mode flag only; never the roster, since a praktikan's
+ *  browser can reach this and a route it can reach must never return
+ *  another student's NIM even as a side effect (see publicRoster()'s own
+ *  header comment for the same rule). */
+async function handleNow(_req: ApiRequest, res: ApiResponse) {
+  const running = await currentSesi();
+  if (!running) {
+    res.status(200).json({ ok: true, sesi: null });
+    return;
+  }
+  res.status(200).json({
+    ok: true,
+    sesi: {
+      modul: running.modul,
+      tanggal: running.tanggal,
+      mulai: running.mulai,
+      mulaiPada: running.mulaiPada,
+      slot: running.slot,
+      butuhAp: running.butuhAp,
+    },
+  });
+}
+
+async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const sesiId = Number(body.sesiId);
+  if (!Number.isInteger(sesiId) || sesiId <= 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const db = getDb();
+  const [row] = await db
+    .select({ status: sesi.status })
+    .from(sesi)
+    .where(eq(sesi.id, sesiId))
+    .limit(1);
+  if (!row) {
+    res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
+    return;
+  }
+  if (row.status === "selesai" || row.status === "batal") {
+    res.status(200).json({ ok: false, kode: "sudah_selesai" });
+    return;
+  }
+
+  await db.update(sesi).set({ status: "batal" }).where(eq(sesi.id, sesiId));
+  await writeAudit(session.nim, "sesi_batal", { sesiId });
+  res.status(200).json({ ok: true });
+}
 
 async function handleCurrent(_req: ApiRequest, res: ApiResponse) {
   const running = await currentSesi();
@@ -175,10 +229,18 @@ async function handleRoster(req: ApiRequest, res: ApiResponse, session: SessionP
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
+  const aksi = req.query.aksi;
+
+  // "now" is the one action either role can call -- checked before the
+  // blanket asisten-only guard below, not as an exception carved into it.
+  if (aksi === "now") {
+    if (!requireMethod(req, res, "GET")) return;
+    if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
+    return handleNow(req, res);
+  }
+
   const session = requireRole(req, res, "asisten");
   if (!session) return;
-
-  const aksi = req.query.aksi;
 
   if (aksi === "current") {
     if (!requireMethod(req, res, "GET")) return;
@@ -195,6 +257,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "roster") {
     if (!requireMethod(req, res, "POST")) return;
     return handleRoster(req, res, session);
+  }
+  if (aksi === "cancel") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleCancel(req, res, session);
   }
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
