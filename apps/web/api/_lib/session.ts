@@ -32,3 +32,24 @@ export function requireRole(
   }
   return session;
 }
+
+/** Same contract as requireRole, but accepts any role in the given list --
+ *  for routes both asisten and praktikan can call (e.g. the narrow session
+ *  banner endpoint), where requireRole's exact match would wrongly reject
+ *  one of the two legitimate callers. */
+export function requireAnyRole(
+  req: ApiRequest,
+  res: ApiResponse,
+  roles: ReadonlyArray<"asisten" | "praktikan">,
+): SessionPayload | null {
+  const session = currentSession(req);
+  if (!session) {
+    res.status(401).json({ ok: false, kode: "belum_masuk" });
+    return null;
+  }
+  if (!roles.includes(session.role)) {
+    res.status(403).json({ ok: false, kode: "peran_salah" });
+    return null;
+  }
+  return session;
+}
