@@ -3,17 +3,25 @@
 Tracks what is actually **built and verified** vs. **left to do** for Phase 3
 (live sessions, master roster, journal slim-down), so a session can pick this
 up without reloading the full plan into context. The approved plan — full
-rationale, schema, failure-mode analysis — lives at
-`~/.claude/plans/rebuild-iris-aso-practicum-reflective-simon.md`. This file is
-the shorter status tracker; that file is the source of truth for _why_.
+rationale, schema, failure-mode analysis — was meant to live at
+`~/.claude/plans/rebuild-iris-aso-practicum-reflective-simon.md`, but that
+same filename got reused and overwritten by the later Phase 4 (monorepo
+move + cosmic redesign) planning pass, so the granular Strand C rationale
+(Firebase rules, the RTDB schema, the auth-bridge token flow, the Pi
+heartbeat protocol change) no longer exists anywhere — confirmed by
+grepping every saved plan file on 2026-09-22. Steps 5-9 need that replanned
+on Opus before Sonnet executes them; this file's condensed strand
+description above is all that survived, and is not enough to build from.
 
 Planning (Opus) is done and approved. Execution (Sonnet) is underway: Strand
 A (journal slim-down, code slim-down, and the A4 defect pass), the full CI
-gate (step 2), and Strand B's schema + backfill + read-path switch (step 3)
-are done and verified as of 2026-09-21, the latter against a real (throwaway
-local) Postgres instance, not just typecheck/tests — see the verification
-note under step 3 below for exactly what was and wasn't exercised. Steps 4
-onward and all of Strand C are still ahead.
+gate (step 2), Strand B's schema + backfill + read-path switch (step 3), and
+step 4's roster-paste/session-lifecycle rewire are done and verified as of
+2026-09-22, steps 3 and 4 both against a real (throwaway local) Postgres
+instance, not just typecheck/tests — see the verification notes under each
+step below for exactly what was and wasn't exercised. Steps 5 onward (all of
+Strand C, plus B's remaining Pi-sync and contract-migration steps) are still
+ahead and blocked on the replan above.
 
 ---
 
@@ -55,11 +63,11 @@ of B/C, which is why it's first.
 | 1   | Journal + code slim-down (A1–A4)                                                    | A      | ✅ Done — A1/A2/A3 fully done; A4's Module 1 stragglers resolved or judged not actionable (see below)                |
 | 2   | CI gate: compile all 8 journals + every sketch, assert page counts and blank counts | —      | ✅ Done — `journals` CI job runs both `check_journal_pages.py` and `check_sketches.py`; both confirmed green locally |
 | 3   | Schema + backfill + read-path switch (migrations 0002–0003)                         | B      | ✅ Done — verified against a real (throwaway local) Postgres, not just typecheck (see note below)                    |
-| 4   | Roster UI + start/end session (still on existing Astro page)                        | B      | ☐ Not started                                                                                                        |
-| 5   | Pi roster sync via agent heartbeat (B3)                                             | B      | ☐ Not started                                                                                                        |
-| 6   | React islands migration of the dashboard                                            | —      | ☐ Not started (before step 7, so the live view isn't written twice)                                                  |
-| 7   | Firebase rules + auth bridge + live session (answers last)                          | C      | ☐ Not started                                                                                                        |
-| 8   | History view (Neon query once step 7 exists)                                        | C      | ☐ Not started                                                                                                        |
+| 4   | Roster UI + start/end session (still on existing Astro page)                        | B      | ✅ Done — see "step 4" below                                                                                          |
+| 5   | Pi roster sync via agent heartbeat (B3)                                             | B      | ☐ Blocked — needs replanning (see header note)                                                                       |
+| 6   | React islands migration of the dashboard                                            | —      | ✅ Discharged by Phase 4 Stage 4 (Toast/Tabs/Modal converted; the rest of the CSP-hash motivation for this step no longer applies -- see step 4's note below) |
+| 7   | Firebase rules + auth bridge + live session (answers last)                          | C      | ☐ Blocked — needs replanning (see header note)                                                                       |
+| 8   | History view (Neon query once step 7 exists)                                        | C      | ☐ Blocked — needs replanning (see header note)                                                                       |
 | 9   | Contract migration (0004): archive old tables, drop fallback                        | B      | ☐ Not started                                                                                                        |
 
 **Done so far, concretely:**
@@ -238,6 +246,64 @@ install --no-save` was used) — nothing test-only remains in the tree.
       contains. Run it once for real against a scratch branch of the _actual_
       Neon database (`vercel env pull` a branch, not production) before
       relying on it for a live session.
+
+- **B, step 4 — roster paste + session lifecycle rewired onto the master
+  roster:**
+  - `api/sesi/roster.ts`: rewritten from scratch. Previously still wrote to
+    Phase 1's per-session `regu`/`praktikan` (step 3 built the read path
+    onto `kelompok`/`anggota` but nothing had rewired the write path), so
+    pasting a roster had zero effect on who could log in once the backfill
+    ran. Now edits the master roster directly, no longer scoped to a
+    session at all (`sesiId` dropped from the request). Replace semantics
+    are asymmetric on purpose: **members** fully replace (a NIM missing
+    from the new paste is deleted — safe, nothing else references
+    `anggota.id`); **groups never auto-delete** (`kelompok.id` is
+    referenced by `sesi_kelompok` and `jawaban` across every module's
+    session, not just today's, so a group number vanishing from one paste
+    must not cascade-delete that history). A group in the paste is
+    upserted by `nomor`; a group absent from the paste is left untouched.
+    Deleting a group for good is deliberately not wired to this endpoint.
+  - `api/sesi/current.ts`: now reads `kelompok`/`anggota` (master roster)
+    LEFT JOINed with `sesi_kelompok` for the running session's per-group
+    override, and returns the roster unconditionally (not just while a
+    session is running) since the roster no longer depends on one.
+  - New `api/sesi/kelompok.ts`: upserts a `sesi_kelompok` row, i.e. sets
+    one group's exclusion for the current session (Module 4's beacon
+    group is the concrete case this exists for) without touching its
+    master-roster membership.
+  - New `api/sesi/akhiri.ts`: explicit end-session action, stamping real
+    `selesaiPada`/`durasiDetik` and flipping status to `"selesai"`.
+    Previously a session only ever left `"berjalan"` as a side effect of
+    the next one starting; `api/sesi/index.ts`'s supersede path was
+    updated to stamp the same real timestamps there too, for consistency,
+    and to set `mulaiPada` on creation (previously never set at all).
+  - `dashboard.astro`'s assistant view split in two: "Sesi hari ini" is
+    now pure session lifecycle (start form, or running info + per-group
+    toggle checkboxes + "Akhiri sesi"), and a new always-visible "Roster
+    utama" section owns the paste box independently of session state.
+  - **Verified for real**, the same way step 3 was: a throwaway local
+    Postgres 18 instance (migrations 0000-0002 applied), exercising the
+    actual handler modules (not hand-rolled SQL) via a temporary
+    `LOCAL_TEST_PG` branch in `db.ts` — fully reverted after, `git diff`
+    on it came back empty. 29 assertions: roster upsert/replace semantics,
+    a group row surviving a re-paste that omits it, `resolvePraktikan`
+    gating correctly through both the master roster and a `sesi_kelompok`
+    exclusion, and session lifecycle timestamps on both the explicit-end
+    and superseded-by-next-session paths. Also driven through a real
+    browser (astro dev + a temporary dev-bridge dispatching `/api/*` to
+    the real handlers, both deleted after use): logged in as a seeded
+    assistant, pasted a roster, confirmed it survived a full page reload,
+    toggled a group's per-session exclusion and confirmed that survived a
+    reload too, and ended a session to see the real elapsed duration come
+    back. No console errors.
+  - **Not done in step 4, deliberately**: a UI to permanently deactivate
+    a group (`kelompok.aktif`) — the per-session toggle
+    (`sesi_kelompok.aktif`) covers the one case that's actually
+    load-bearing today (Module 4's beacon exclusion); permanently
+    retiring a group is rare enough to defer rather than build UI for
+    speculatively. Also not done: a "batal" (cancel) action for a
+    mis-created session — "end" and "cancel" are different verbs, and
+    only "end" was in step 4's scope.
 
 `scripts/check_sketches.py` compiles `kunci_jawaban/**/*.ino` (not
 `kode_praktikum/**/*.ino` — those intentionally contain `________` blanks a
