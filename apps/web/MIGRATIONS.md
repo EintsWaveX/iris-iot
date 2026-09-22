@@ -92,5 +92,28 @@ before a fourth undocumented manual apply happened.
 | --- | --- | --- |
 | `0000_overrated_morlocks.sql` | Phase 1 foundation (asisten, sesi, regu, praktikan, percobaan_masuk, audit) | Yes |
 | `0001_daily_zuras.sql` | Phase 2 server/device registry (server, denyut, perangkat, perintah) | Yes |
-| `0002_roster_kelompok_anggota.sql` | Phase 3 master roster (kelompok, anggota, sesi_kelompok) | Yes |
-| `0003_violet_sentinels.sql` | Phase 5 Stage 4: presentasi table, jawaban's benar/percobaan + nullable sesiId, sesi's slot/butuh_ap, asisten's password_hash | **Not yet — apply per the procedure above before Stage 4's other endpoints go live** |
+| `0002_roster_kelompok_anggota.sql` | Phase 3 master roster (kelompok, anggota, sesi_kelompok) | **Yes — as of 2026-09-22, applied directly during Stage 4** (see note below) |
+| `0003_violet_sentinels.sql` | Phase 5 Stage 4: presentasi table, jawaban's benar/percobaan + nullable sesiId, sesi's slot/butuh_ap, asisten's password_hash | Yes — 2026-09-22 |
+
+### 2026-09-22: migration 0002 had never actually reached production
+
+PHASE3.md recorded Phase 3's schema step as done and "verified against a
+real (throwaway local) Postgres" — true, but that verification never
+implied 0002 had been applied to the *actual* Neon database, and it hadn't
+been. Production had only ever received 0000 and 0001; `kelompok`,
+`anggota`, `sesi_kelompok` and `jawaban` did not exist. Since
+`resolvePraktikan()` calls `masterRosterIsPopulated()` unconditionally
+(`SELECT count(*) FROM anggota`), every student login attempt against real
+production was throwing on the missing table and surfacing as
+`galat_server` — a live-breaking bug, independent of anything in Stage 4,
+caught only because Stage 4's own migration made it necessary to open a
+real connection to production and check what was actually there first.
+
+0002 was applied immediately before 0003, in order, and both were verified
+against a throwaway local Postgres beforehand per the procedure above.
+Both `anggota` and the legacy `praktikan` table were confirmed empty in
+production before and after — no practicum has gone live on this database
+yet, so there was nothing to lose and no backfill was needed. The lesson:
+step 5 of this procedure ("confirm what's already there instead of trusting
+a number") is not optional busywork; run it before every migration, even
+one that looks purely additive.
