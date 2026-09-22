@@ -107,7 +107,18 @@ const links = [
 
       <Card id="dengan-sesi" title="" hidden>
         <p class="sesi-info" id="sesi-info"></p>
+        <div class="kelompok-toggles" id="kelompok-toggles"></div>
+        <Button kind="ghost" id="sesi-akhiri">
+          Akhiri sesi
+        </Button>
+      </Card>
 
+      <section class="section">
+        <h1 class="section__title">Roster utama</h1>
+        <p class="eyebrow">Satu daftar untuk seluruh praktikum, dipakai oleh keempat modul</p>
+      </section>
+
+      <Card title="Daftar kelompok">
         <label class="paste-label" for="roster-paste">
           Tempel daftar kelompok
         </label>
@@ -142,14 +153,13 @@ const links = [
 
   <script>
     import { navigate } from "astro:transitions/client";
-    import { parseRosterPaste } from "../lib/roster-parser";
+    import { parseRosterPaste, rosterToPaste } from "../lib/roster-parser";
 
     const KODE_PESAN: Record<string, string> = {
       format_salah: "Formatnya belum benar.",
       sudah_ada: "Sesi dengan tanggal, jam, dan modul yang sama sudah ada.",
       galat_tempel: "Masih ada baris yang bermasalah pada tempelan.",
       sesi_tidak_ada: "Sesi ini tidak ditemukan.",
-      nim_dipakai_sesi_lain: "Satu atau lebih NIM sudah dipakai di sesi lain hari ini.",
       galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
     };
 
@@ -209,7 +219,18 @@ const links = [
 
     async function loadSesi() {
       const data = await fetch("/api/sesi/current").then((r) => r.json());
-      if (!data.ok || !data.sesi) {
+      if (!data.ok) return;
+
+      const roster = data.roster ?? [];
+
+      // The master roster is practicum-wide (Phase 3), so it loads
+      // regardless of whether a session happens to be running right now --
+      // only the "sesi hari ini" card below is gated on that.
+      const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
+      textarea.value = rosterToPaste(roster);
+      repaintTally();
+
+      if (!data.sesi) {
         show("tanpa-sesi");
         hide("dengan-sesi");
         return;
@@ -221,17 +242,48 @@ const links = [
       document.getElementById("sesi-info")!.textContent =
         `Sesi #${s.id} · Modul ${s.modul} · ${s.tanggal} ${s.mulai}`;
 
-      const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-      const roster = data.roster ?? [];
-      const lines: string[] = [];
+      renderKelompokToggles(s.id, roster);
+    }
+
+    // Per-session group exclusions (sesi_kelompok.aktif) -- e.g. Module 4's
+    // beacon group, excluded from hunter login for this session only,
+    // without touching its master-roster membership.
+    function renderKelompokToggles(
+      sesiId: number,
+      roster: { id: number; nomor: number; nama: string; sesiAktif: boolean }[],
+    ) {
+      const host = document.getElementById("kelompok-toggles")!;
+      host.innerHTML = "";
       for (const g of roster) {
-        lines.push(`#${g.nomor}${g.nama ? " " + g.nama : ""}`);
-        for (const m of g.anggota) lines.push(`${m.nim}${m.nama ? ", " + m.nama : ""}`);
-        lines.push("");
+        const label = document.createElement("label");
+        label.className = "kelompok-toggle";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = g.sesiAktif;
+        checkbox.addEventListener("change", async () => {
+          checkbox.disabled = true;
+          try {
+            const res = await fetch("/api/sesi/kelompok", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sesiId, kelompokId: g.id, aktif: checkbox.checked }),
+            });
+            const data = await res.json();
+            if (!data.ok) {
+              checkbox.checked = !checkbox.checked;
+              window.Toast?.show(pesanUntuk(data.kode), "danger");
+            }
+          } catch {
+            checkbox.checked = !checkbox.checked;
+            window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+          } finally {
+            checkbox.disabled = false;
+          }
+        });
+        label.appendChild(checkbox);
+        label.append(` Kelompok ${g.nomor}${g.nama ? " · " + g.nama : ""} aktif di sesi ini`);
+        host.appendChild(label);
       }
-      textarea.value = lines.join("\n").trim();
-      textarea.dataset.sesiId = String(s.id);
-      repaintTally();
     }
 
     function repaintTally() {
@@ -263,18 +315,37 @@ const links = [
 
     document.getElementById("roster-save")?.addEventListener("click", async () => {
       const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-      const sesiId = Number(textarea.dataset.sesiId);
       const btn = document.getElementById("roster-save") as HTMLButtonElement;
       btn.setAttribute("data-loading", "yes");
       try {
         const res = await fetch("/api/sesi/roster", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sesiId, paste: textarea.value }),
+          body: JSON.stringify({ paste: textarea.value }),
         });
         const data = await res.json();
         if (data.ok) {
           window.Toast?.show(`Tersimpan: ${data.groups} kelompok, ${data.total} anggota.`, "ok");
+          await loadSesi();
+        } else {
+          window.Toast?.show(pesanUntuk(data.kode), "danger");
+        }
+      } catch {
+        window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+      } finally {
+        btn.setAttribute("data-loading", "no");
+      }
+    });
+
+    document.getElementById("sesi-akhiri")?.addEventListener("click", async () => {
+      const btn = document.getElementById("sesi-akhiri") as HTMLButtonElement;
+      btn.setAttribute("data-loading", "yes");
+      try {
+        const res = await fetch("/api/sesi/akhiri", { method: "POST" });
+        const data = await res.json();
+        if (data.ok) {
+          window.Toast?.show("Sesi diakhiri.", "ok");
+          await loadSesi();
         } else {
           window.Toast?.show(pesanUntuk(data.kode), "danger");
         }
@@ -360,6 +431,21 @@ const links = [
     font-family: var(--font-mono);
     font-size: var(--fs-small);
     margin-bottom: var(--space-5);
+  }
+
+  .kelompok-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+
+  .kelompok-toggle {
+    align-items: center;
+    color: var(--text);
+    display: flex;
+    font-size: var(--fs-small);
+    gap: var(--space-2);
   }
 
   .paste-label {

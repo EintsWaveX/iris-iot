@@ -10,14 +10,17 @@
  * Starting a new session demotes whichever one was previously "berjalan"
  * to "selesai" — the invariant is "at most one running session", enforced
  * here rather than left to the caller to remember to end the old one
- * first.
+ * first. That demotion now also stamps real selesaiPada/durasiDetik
+ * (matching api/sesi/akhiri.ts's explicit end-session path), so a session
+ * that ends by a new one starting has the same lifecycle data as one an
+ * assistant explicitly ended.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import { sesi } from "../../src/lib/schema.js";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { writeAudit } from "../../src/lib/auth.js";
 
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -44,10 +47,17 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const db = getDb();
 
     const created = await db.transaction(async (tx) => {
-      await tx.update(sesi).set({ status: "selesai" }).where(eq(sesi.status, "berjalan"));
+      await tx
+        .update(sesi)
+        .set({
+          status: "selesai",
+          selesaiPada: sql`now()`,
+          durasiDetik: sql`extract(epoch from now() - coalesce(${sesi.mulaiPada}, ${sesi.dibuatPada}))::int`,
+        })
+        .where(eq(sesi.status, "berjalan"));
       const [row] = await tx
         .insert(sesi)
-        .values({ tanggal, mulai, modul, status: "berjalan" })
+        .values({ tanggal, mulai, modul, status: "berjalan", mulaiPada: new Date() })
         .returning();
       return row;
     });
