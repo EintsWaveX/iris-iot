@@ -94,9 +94,12 @@ async def main() -> int:
     args = ap.parse_args()
     T = args.token
 
-    # Beacon harus hidup, kalau tidak started_at tidak pernah diisi.
+    # Beacon harus hidup, kalau tidak started_at tidak pernah diisi. Kelompok
+    # 1 dipakai sebagai satu-satunya pasangan yang diuji di sini -- lihat
+    # bagian "penemuan per kelompok" di bawah untuk kenapa kelompok 2 tidak
+    # perlu beacon-nya sendiri untuk membuktikan konfirmasinya ditolak.
     beacon = await connect(args.url + "/beacon")
-    await beacon.send(json.dumps({"seq": 1, "tx": "10:00:00:000"}))
+    await beacon.send(json.dumps({"grup": 1, "seq": 1, "tx": "10:00:00:000"}))
 
     # Kelompok 1 sangat dekat (membara), kelompok 2 jauh.
     # RSSI_AT_1M -40, n=2.0 -> -50 dBm ~ 3.2 m, dalam membara (<= 6 m).
@@ -157,7 +160,7 @@ async def main() -> int:
             "jadwal_baca membawa NIM")
 
     # sesi_mulai menghapus ronde, jadi hunter harus melapor ulang.
-    await beacon.send(json.dumps({"seq": 2, "tx": "10:00:01:000"}))
+    await beacon.send(json.dumps({"grup": 1, "seq": 2, "tx": "10:00:01:000"}))
     await kirim_hunter(args.url, 1, -50.0, 5)
     await kirim_hunter(args.url, 2, -95.0, 5)
 
@@ -433,19 +436,29 @@ async def main() -> int:
         cek("konfirmasi diterima", r is not None and r.get("ok") is True,
             (r or {}).get("alasan", ""))
 
+        # Kelompok 2 tidak pernah mengajukan klaim (klaimnya sendiri ditolak
+        # lebih awal karena masih jauh), jadi konfirmasinya ditolak untuk
+        # alasan itu -- BUKAN lagi karena "kelompok lain sudah menang":
+        # kelima pasangan berburu targetnya sendiri-sendiri, jadi kelompok 1
+        # menang tidak menutup jalan kelompok 2 sama sekali.
         await asisten.send(json.dumps({"aksi": "konfirmasi", "grup": 2}))
         r = await balas(asisten, "konfirmasi")
-        cek("pemenang kedua ditolak",
+        cek("konfirmasi tanpa klaim ditolak",
             r is not None and r.get("ok") is False, (r or {}).get("alasan", ""))
 
         f = await bingkai(asisten)
-        cek("ditemukan terisi", (f or {}).get("ditemukan") == 1,
-            str((f or {}).get("ditemukan")))
+        baris1 = [g for g in (f or {}).get("grup", []) if g["grup"] == 1]
+        cek("kelompok 1 berstatus menang",
+            bool(baris1) and baris1[0]["status"] == "menang",
+            str(baris1[0].get("status") if baris1 else None))
         hadiah = (f or {}).get("penghargaan", {})
-        cek("penghargaan dibekukan", hadiah.get("beku") is True,
-            json.dumps(hadiah.get("podium", []))[:70])
         cek("juara adalah kelompok 1",
             bool(hadiah.get("podium")) and hadiah["podium"][0]["grup"] == 1,
+            json.dumps(hadiah.get("podium", []))[:70])
+        # Belum semua kelompok yang bergabung (1 dan 2) sudah menang, jadi
+        # ronde belum dibekukan -- lihat confirm()'s all(...) check.
+        cek("penghargaan belum dibekukan (kelompok 2 belum menang)",
+            hadiah.get("beku") is False,
             json.dumps(hadiah.get("podium", []))[:70])
 
     # ---- pergantian sesi -------------------------------------------------
@@ -461,9 +474,8 @@ async def main() -> int:
         f = await bingkai(asisten)
         cek("bingkai menyebut sesi baru", (f or {}).get("sesi") == 2,
             str((f or {}).get("sesi")))
-        cek("pergantian sesi menghapus pemenang",
-            (f or {}).get("ditemukan") is None,
-            str((f or {}).get("ditemukan")))
+        cek("pergantian sesi menghapus seluruh kelompok (dan pemenangnya)",
+            (f or {}).get("grup") == [], str((f or {}).get("grup")))
 
     # NIM sesi 1 tidak lagi berlaku: inilah yang mengeluarkan ponsel sesi
     # sebelumnya tanpa perlu pesan dorong apa pun.

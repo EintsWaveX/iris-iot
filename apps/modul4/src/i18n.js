@@ -29,7 +29,7 @@
 
       "hunt.eyebrow": "Modul 4 · Part A",
       "hunt.title": "Perburuan LoRa",
-      "hunt.lede": "Satu beacon disembunyikan di suatu tempat. Papan ini memeringkat tiap kelompok dari kekuatan sinyal yang mereka tangkap.",
+      "hunt.lede": "Tiap kelompok memburu targetnya sendiri, disembunyikan sendiri-sendiri. Papan ini menunjukkan seberapa dekat kalian dengan target kalian sendiri, bukan peringkat melawan kelompok lain.",
       "hunt.empty": "Menunggu hunter tersambung…",
 
       "hud.elapsed": "Waktu berjalan",
@@ -39,6 +39,7 @@
       "hud.reset": "Ronde baru",
       "hud.beaconOn": "Memancar",
       "hud.beaconOff": "Hening",
+      "hud.found": "%s/%s ditemukan",
 
       "card.group": "Kelompok",
       "card.smoothed": "RSSI halus",
@@ -154,7 +155,6 @@
       "claim.tooFar": "Belum cukup dekat \u2014 perkiraan %s",
       "claim.pending": "Klaim kalian sedang ditinjau.",
       "claim.won": "Kalian sudah menang.",
-      "claim.over": "Perburuan sudah selesai.",
       "claim.lost": "Sinyal hilang. Dekati beacon lagi.",
       "claim.noData": "Papan kalian belum mengirim data.",
 
@@ -231,14 +231,15 @@
       "award.title": "Penghargaan",
       "award.lede": "Menemukan beacon hanyalah salah satu ukuran. Tiga yang lain menilai cara berburunya, bukan hasil akhirnya.",
       "award.empty": "Belum ada yang bisa dinilai.",
-      "award.champion": "Pemenang",
+      "award.champion": "Tercepat",
+      "award.leader": "Tercepat sejauh ini",
       "award.provisional": "Sementara",
       "award.final": "Hasil akhir",
       "award.none": "Belum cukup data",
       "award.closer": "Pendekat tercepat",
       "award.closerNote": "Laju mendekat terbaik sepanjang sesi, diukur dari kenaikan RSSI pada jendela delapan detik.",
-      "award.signal": "Sinyal terkuat",
-      "award.signalNote": "RSSI tertinggi yang pernah tercatat, entah beacon-nya ditemukan atau tidak.",
+      "award.latency": "Tautan tercepat",
+      "award.latencyNote": "Delay median terpendek dari papan ke papan skor -- ukuran mutu jaringan, berbeda dari seberapa dekat target masing-masing disembunyikan.",
       "award.link": "Tautan terandal",
       "award.linkNote": "Paket hilang paling sedikit. Kualitas tautan adalah ukuran yang berbeda dari kedekatan.",
 
@@ -272,7 +273,7 @@
 
       "hunt.eyebrow": "Module 4 · Part A",
       "hunt.title": "LoRa Hunt",
-      "hunt.lede": "One beacon is hidden somewhere. This board ranks every group by the signal strength it is picking up.",
+      "hunt.lede": "Every group hunts its own target, hidden separately. This board shows how close you are to your own target, not a ranking against other groups.",
       "hunt.empty": "Waiting for hunters to connect…",
 
       "hud.elapsed": "Elapsed",
@@ -282,6 +283,7 @@
       "hud.reset": "New round",
       "hud.beaconOn": "Transmitting",
       "hud.beaconOff": "Silent",
+      "hud.found": "%s/%s found",
 
       "card.group": "Group",
       "card.smoothed": "Smoothed RSSI",
@@ -397,7 +399,6 @@
       "claim.tooFar": "Not close enough yet \u2014 estimated %s",
       "claim.pending": "Your claim is under review.",
       "claim.won": "You have already won.",
-      "claim.over": "The hunt is over.",
       "claim.lost": "Signal lost. Move back toward the beacon.",
       "claim.noData": "Your board has not reported yet.",
 
@@ -474,14 +475,15 @@
       "award.title": "Awards",
       "award.lede": "Finding the beacon is only one measure. The other three judge how a group hunted, not how it finished.",
       "award.empty": "Nothing to judge yet.",
-      "award.champion": "Winner",
+      "award.champion": "Fastest",
+      "award.leader": "Fastest so far",
       "award.provisional": "Provisional",
       "award.final": "Final",
       "award.none": "Not enough data",
       "award.closer": "Fastest closer",
       "award.closerNote": "Best closing rate of the session, measured as RSSI gain over an eight-second window.",
-      "award.signal": "Strongest signal",
-      "award.signalNote": "Highest RSSI ever recorded, whether or not the beacon was found.",
+      "award.latency": "Fastest link",
+      "award.latencyNote": "Shortest median delay from board to scoreboard -- a measure of network quality, different from how close each target was hidden.",
       "award.link": "Most reliable link",
       "award.linkNote": "Fewest lost packets. Link quality is a different measure from proximity.",
 

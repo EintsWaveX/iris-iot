@@ -58,8 +58,12 @@
     if (!active || !state) return;
 
     headEl.textContent = mmss(state.berjalan || 0);
-    headEl.setAttribute("data-beacon",
-                        state.beacon && state.beacon.online ? "on" : "off");
+    // Five independent beacons now: "on" means at least one pair is
+    // currently transmitting, not that a single shared beacon is alive.
+    var anyBeaconOn = (state.grup || []).some(function (r) {
+      return r.beacon && r.beacon.online;
+    });
+    headEl.setAttribute("data-beacon", anyBeaconOn ? "on" : "off");
 
     renderBanner(state);
 
@@ -82,7 +86,7 @@
       ref.fill.style.clipPath =
         "inset(0 " + (100 - Math.round(row.progress * 100)) + "% 0 0)";
       ref.root.setAttribute("data-state",
-        state.ditemukan === row.grup ? "found"
+        row.status === "menang" ? "found"
           : (row.status === "menunggu" ? "menunggu"
             : (row.online ? row.heat : "hilang")));
 
@@ -110,7 +114,7 @@
    */
   function renderBanner(state) {
     var pending = (state.antrian || [])[0];
-    if (!pending || state.ditemukan !== null) {
+    if (!pending) {
       if (!bannerEl.hidden) {
         bannerEl.hidden = true;
         bannerEl.textContent = "";

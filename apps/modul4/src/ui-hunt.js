@@ -157,13 +157,13 @@
     node.textContent = value;
   }
 
-  function renderCard(row, found) {
+  function renderCard(row) {
     var card = cards[row.grup];
     if (!card) {
       card = cards[row.grup] = buildCard(row.grup);
     }
 
-    var isFound = (found === row.grup);
+    var isFound = row.status === "menang";
 
     write(card.rank, "rank", String(row.rank), card);
     // Roster.label(), not the bare number: the compact list, the projector
@@ -217,7 +217,7 @@
     // The confirm control only appears on the group the server has nominated,
     // so an assistant cannot hand the win to a group that is nowhere near.
     var boleh = window.Identity ? Identity.isAssistant() : false;
-    var showConfirm = boleh && !found && row.nominated;
+    var showConfirm = boleh && !isFound && row.nominated;
     if (card.prev.showConfirm !== showConfirm || card.prev.boleh !== boleh) {
       card.prev.showConfirm = showConfirm;
       card.prev.boleh = boleh;
@@ -324,7 +324,7 @@
     mine.root.hidden = false;
     mine.root.style.setProperty("--hue", "var(--group-" + row.grup + ")");
     mine.root.setAttribute("data-state",
-      state.ditemukan === row.grup ? "found"
+      row.status === "menang" ? "found"
         : (row.status === "menunggu" ? "menunggu"
           : (row.online ? row.heat : "hilang")));
 
@@ -352,12 +352,15 @@
 
     // The claim button arms itself by proximity. Below the burning
     // threshold it is disabled and says why, which is what stops a group
-    // claiming the beacon from the far side of the field.
-    var armed = UIClaim.armed(row) && state.ditemukan === null;
+    // claiming the beacon from the far side of the field. UIClaim.armed()
+    // already checks this group's own row.status, so there is no separate
+    // "the whole hunt is over" gate any more -- five pairs finish
+    // independently.
+    var armed = UIClaim.armed(row);
     mine.claim.disabled = !armed;
     mine.claim.setAttribute("data-armed", armed ? "yes" : "no");
     mine.why.textContent = armed ? I18N.t("claim.armed")
-                                 : UIClaim.armReason(row, state);
+                                 : UIClaim.armReason(row);
 
     if (row.status === "ditolak" && row.tolak_alasan) {
       mine.verdict.hidden = false;
@@ -415,7 +418,7 @@
       ref.fill.style.clipPath =
         "inset(0 " + (100 - Math.round(row.progress * 100)) + "% 0 0)";
       ref.root.setAttribute("data-state",
-        state.ditemukan === row.grup ? "found"
+        row.status === "menang" ? "found"
           : (row.status === "menunggu" ? "menunggu"
             : (row.online ? row.heat : "hilang")));
       order.push(key);
@@ -480,17 +483,27 @@
 
     hudElapsed.textContent = mmss(state.berjalan || 0);
 
-    var beaconOn = state.beacon && state.beacon.online;
-    hudBeacon.textContent = I18N.t(beaconOn ? "hud.beaconOn" : "hud.beaconOff");
-    hudBeacon.setAttribute("data-state", beaconOn ? "on" : "off");
-    hudSeq.textContent = String((state.beacon && state.beacon.seq) || 0);
+    var rows = state.grup || [];
+
+    // Five independent beacons now, not one -- the HUD summarises how many
+    // are on the air and how many pairs have already finished, rather than
+    // one shared on/off light and one shared sequence number.
+    var ringkas = state.beacon_ringkas || { online: 0, total: 0 };
+    hudBeacon.textContent = ringkas.online + "/" + ringkas.total + " " +
+      I18N.t(ringkas.online > 0 ? "hud.beaconOn" : "hud.beaconOff");
+    hudBeacon.setAttribute("data-state", ringkas.online > 0 ? "on" : "off");
+
+    var ditemukanCount = 0;
+    for (var d = 0; d < rows.length; d++) {
+      if (rows[d].status === "menang") ditemukanCount++;
+    }
+    hudSeq.textContent = I18N.t("hud.found", ditemukanCount, rows.length);
 
     if (state.radio) {
       hudRadio.textContent = state.radio.freq + " · SF" + state.radio.sf +
                              " · " + state.radio.bw;
     }
 
-    var rows = state.grup || [];
     emptyEl.hidden = rows.length > 0;
 
     var mineGrup = Identity.group();
@@ -519,8 +532,8 @@
 
     var order = [];
     for (var i = 0; i < rows.length; i++) {
-      rows[i].nominated = (state.calon === rows[i].grup);
-      renderCard(rows[i], state.ditemukan);
+      rows[i].nominated = rows[i].calon;
+      renderCard(rows[i]);
       order.push(String(rows[i].grup));
     }
 

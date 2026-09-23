@@ -178,12 +178,14 @@
   }
 
   /** Is there anything to say about this row? */
-  function speaks(row, state) {
+  function speaks(row) {
     if (!row || !row.online) return false;
     if (row.jarak_m === null || typeof row.jarak_m === "undefined") return false;
-    // Once the beacon is found the hunt is over, and a phone still ticking
-    // in somebody's pocket on the walk back is just noise.
-    if (state && state.ditemukan !== null) return false;
+    // Once THIS group has found its own target the hunt is over for them,
+    // and a phone still ticking in somebody's pocket on the walk back is
+    // just noise. Other groups still racing their own targets are
+    // unaffected -- there is no shared "the hunt is over" any more.
+    if (row.status === "menang") return false;
     if (document.hidden) return false;
     return true;
   }
@@ -289,9 +291,9 @@
   }
 
   function update(row, state) {
-    var wants = speaks(row, state);
+    var wants = speaks(row);
 
-    keepAwake(!!row && !(state && state.ditemukan !== null));
+    keepAwake(!!row && row.status !== "menang");
 
     if (!wants) {
       live = null;

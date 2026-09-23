@@ -3,8 +3,12 @@
  *
  * Two things live here because they are the same idea at two volumes. A toast
  * is the quiet one: a group joined, a group lost signal, a group is heating
- * up. The takeover is the loud one, and it only ever fires once per session,
- * when an assistant confirms that a group physically has the beacon.
+ * up. The takeover is the loud one, and fires once PER GROUP per round, when
+ * an assistant confirms that group found its own target -- five independent
+ * pairs means up to five takeovers a round, not one. If a second group
+ * finishes while the first one's takeover is still showing, its toast still
+ * fires (see textFor's "ditemukan" case) but the takeover itself is skipped
+ * rather than interrupting the one in progress.
  *
  * Both are announced to screen readers through the live regions in
  * shell.html, and both collapse to a plain fade when the viewer has asked for
@@ -20,8 +24,9 @@
   var confettiCanvas = null;
   var fire = null;
 
-  var shown = false;       // The takeover fires once per session
+  var shownGroups = {};    // Group -> already showed its own takeover
   var heatSeen = {};       // Group -> already announced as heating up
+  var lastRonde = null;    // Detects a fresh round, to reset both of the above
 
   var TOAST_MS = 4200;
 
@@ -109,8 +114,8 @@
   }
 
   function showFound(grup, seconds) {
-    if (shown) return;
-    shown = true;
+    if (shownGroups[grup]) return;
+    shownGroups[grup] = true;
 
     foundEl.textContent = "";
     foundEl.style.setProperty("--hue", "var(--group-" + grup + ")");
@@ -187,15 +192,13 @@
   function render(state) {
     if (!state) return;
 
-    // A session reset clears the takeover so the next hunt can fire it again.
-    if (state.ditemukan === null && shown) {
-      shown = false;
+    // A fresh round (state.ronde changes) clears every group's takeover and
+    // heating-up tracking so the next hunt can fire them again.
+    if (state.ronde !== lastRonde) {
+      lastRonde = state.ronde;
+      shownGroups = {};
       heatSeen = {};
       foundEl.hidden = true;
-    }
-
-    if (state.ditemukan !== null && !shown) {
-      showFound(state.ditemukan, state.berjalan);
     }
 
     // "Heating up" is a client-side observation rather than a server event,
@@ -203,6 +206,16 @@
     var rows = state.grup || [];
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
+
+      // Only one takeover on screen at a time. A second group finishing
+      // while the first is still showing still gets its toast immediately
+      // (via the "ditemukan" event, handled separately in onEvents); its
+      // own takeover simply waits its turn, retried every frame, rather
+      // than interrupting the one already in progress.
+      if (row.status === "menang" && !shownGroups[row.grup] && foundEl.hidden) {
+        showFound(row.grup, row.durasi || 0);
+      }
+
       if (!row.online) continue;
       if (row.heat === "membara" && !heatSeen[row.grup]) {
         heatSeen[row.grup] = true;

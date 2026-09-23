@@ -277,10 +277,13 @@ class Hunt:
 
     def reset(self) -> None:
         self.groups: dict[int, dict] = {}
-        self.beacon: dict = {"online": False, "seq": 0, "tx": None, "ip": None}
         self.started_at: float | None = None
-        self.found_by: int | None = None
-        self.found_at: float | None = None
+        # Once every group that has ever joined has found its own target
+        # (see confirm()), the round is over and round_ended_at freezes
+        # elapsed(). There is no single self.found_by any more -- five
+        # independent pairs finish independently, at their own times.
+        self.round_ended_at: float | None = None
+        self.finish_seq = 0
         self.events: list[dict] = []
         self.rev = 0
 
@@ -347,17 +350,41 @@ class Hunt:
 
                 # Laju mendekat terbaik sepanjang ronde, dB/detik.
                 "laju_terbaik": 0.0,
+                # Delay terbaik (terpendek) sepanjang ronde, milidetik --
+                # dipakai penghargaan "tautan_tercepat", lihat penghargaan().
+                "delay_terbaik": None,
+
+                # Sisi BEACON pasangan ini. Setiap kelompok memburu targetnya
+                # SENDIRI, jadi beacon dan hunter sebuah pasangan berbagi satu
+                # slot di sini alih-alih dua struktur paralel.
+                "beacon_online": False,
+                "beacon_seq": 0,
+                "beacon_tx": None,
+                "beacon_ip": None,
+                "beacon_last": None,
+
+                # Diisi saat confirm() mengesahkan kelompok ini menemukan
+                # targetnya sendiri. finish_seq menaik terus sepanjang ronde,
+                # jadi ia adalah urutan waktu temu yang dipakai penghargaan()
+                # dan HUD -- tidak seperti RSSI, ini sah dibandingkan antar
+                # kelompok karena tidak bergantung pada di mana target
+                # masing-masing disembunyikan.
+                "found_at": None,
+                "finish_seq": None,
+                "durasi": None,
             }
             self.groups[gid] = slot
             self.note("bergabung", gid)
         return slot
 
     def on_beacon(self, msg: dict, ip: str | None) -> None:
-        self.beacon["online"] = True
-        self.beacon["seq"] = int(msg.get("seq", 0))
-        self.beacon["tx"] = msg.get("tx")
-        self.beacon["ip"] = ip
-        self.beacon["last"] = time.monotonic()
+        gid = int(msg["grup"])
+        slot = self.group_slot(gid)
+        slot["beacon_online"] = True
+        slot["beacon_seq"] = int(msg.get("seq", 0))
+        slot["beacon_tx"] = msg.get("tx")
+        slot["beacon_ip"] = ip
+        slot["beacon_last"] = time.monotonic()
 
         if self.started_at is None:
             self.started_at = time.monotonic()
@@ -384,6 +411,9 @@ class Hunt:
         slot["connected"] = True
 
         slot["delay_ms"] = self._delay_ms(msg.get("tx"), msg.get("rx"))
+        if slot["delay_ms"] is not None:
+            if slot["delay_terbaik"] is None or slot["delay_ms"] < slot["delay_terbaik"]:
+                slot["delay_terbaik"] = slot["delay_ms"]
 
         if slot["best"] is None or slot["halus"] > slot["best"]:
             slot["best"] = slot["halus"]
@@ -545,17 +575,19 @@ class Hunt:
 
     # -- keputusan asisten -------------------------------------------------
 
-    def nominee(self) -> int | None:
-        if self.found_by is not None:
-            return None
-        live = [
-            g for g in self.groups.values()
-            if g["halus"] is not None and not self._silent(g)
-        ]
-        if not live:
-            return None
-        leader = max(live, key=lambda g: g["halus"])
-        return leader["grup"] if self.heat(leader) == "membara" else None
+    def nominee(self, slot: dict) -> bool:
+        """Sudah cukup dekat untuk mengklaim TARGETNYA SENDIRI sekarang?
+
+        Setiap kelompok memburu targetnya sendiri, jadi ini pertanyaan
+        per-kelompok -- bukan "siapa yang paling dekat sejagat", yang tidak
+        berarti apa-apa ketika kelima target disembunyikan di lima tempat
+        yang berbeda.
+        """
+        if slot["status"] == "menang":
+            return False
+        if slot["halus"] is None or self._silent(slot):
+            return False
+        return self.heat(slot) == "membara"
 
     # -- daur hidup klaim --------------------------------------------------
     #
@@ -570,10 +602,12 @@ class Hunt:
         """Boleh mengklaim sekarang? -> (boleh, alasan bila tidak).
 
         Alasannya ditulis untuk dibaca langsung oleh praktikan, karena
-        tombol klaim menampilkannya apa adanya.
+        tombol klaim menampilkannya apa adanya. Tidak ada lagi gerbang
+        "perburuan sudah selesai" secara global -- setiap kelompok memburu
+        targetnya sendiri, jadi kelompok lain menang atau kalah tidak
+        mengubah apa pun di sini; slot["status"] == "menang" di bawah sudah
+        menutup jalan bagi kelompok yang sudah menang sendiri.
         """
-        if self.found_by is not None:
-            return False, "perburuan sudah selesai"
         slot = self.groups.get(gid)
         if slot is None:
             return False, "kelompok belum mengirim data"
@@ -629,55 +663,44 @@ class Hunt:
         return True, ""
 
     def confirm(self, gid: int, paksa: bool = False) -> tuple[bool, str]:
-        """Asisten mengesahkan pemenang.
+        """Asisten mengesahkan bahwa SEBUAH kelompok menemukan TARGETNYA
+        SENDIRI.
+
+        Ini tidak lagi mengakhiri perburuan untuk siapa pun selain kelompok
+        itu sendiri: lima pasangan berburu lima target yang berbeda, jadi
+        kelompok 3 menang tidak menutup klaim kelompok 1 yang masih
+        menunggu. Ronde secara keseluruhan baru berakhir (lihat bekukan di
+        bawah) begitu SETIAP kelompok yang pernah bergabung sudah menang.
 
         `paksa` melewati syarat "harus sudah mengajukan klaim". Itu ada
         supaya baterai habis atau izin kamera ditolak tidak sampai membuat
         permainan tidak bisa diselesaikan; antarmuka menaruhnya di balik
         tekan-lama.
         """
-        if self.found_by is not None:
-            return False, "pemenang sudah ditetapkan"
         slot = self.groups.get(gid)
         if slot is None:
             return False, "kelompok tidak dikenal"
+        if slot["status"] == "menang":
+            return False, "sudah menang"
         if slot["status"] != "menunggu" and not paksa:
             return False, "kelompok belum mengajukan klaim"
 
-        self.found_by = gid
-        self.found_at = time.monotonic()
+        self.finish_seq += 1
         slot["status"] = "menang"
         slot["klaim_urut"] = None
+        slot["found_at"] = time.monotonic()
+        slot["finish_seq"] = self.finish_seq
+        slot["durasi"] = (
+            int(slot["found_at"] - self.started_at) if self.started_at else 0
+        )
 
-        # Klaim lain yang masih menggantung ditutup sekaligus, supaya antrean
-        # asisten tidak menyisakan baris yang tidak mungkin lagi menang.
-        for other in self.groups.values():
-            if other["grup"] != gid and other["status"] == "menunggu":
-                other["status"] = "ditolak"
-                other["tolak_alasan"] = f"perburuan dimenangkan kelompok {gid}"
-                other["klaim_urut"] = None
-                other["klaim_at"] = None
-                other["klaim_foto"] = None
+        self.note("ditemukan", gid, durasi=slot["durasi"])
 
-        self.bekukan = True
-        self.note("ditemukan", gid, durasi=self.elapsed())
+        if self.groups and all(g["status"] == "menang" for g in self.groups.values()):
+            self.bekukan = True
+            self.round_ended_at = time.monotonic()
+
         return True, ""
-
-    def foto_menang(self) -> str | None:
-        """URL foto pada klaim yang MENANG, bila klaim itu memang berfoto.
-
-        Sengaja tidak jatuh kembali ke foto lama di foto_riwayat. Kelompok
-        yang klaim pertamanya ditolak karena "itu bukan beacon-nya" lalu
-        menang pada klaim kedua tanpa foto akan menampilkan foto yang sudah
-        dinyatakan salah sebagai bukti kemenangan. Lebih baik tidak ada
-        foto sama sekali daripada foto yang keliru.
-        """
-        if self.found_by is None:
-            return None
-        slot = self.groups.get(self.found_by)
-        if slot is None or not slot["klaim_foto"]:
-            return None
-        return f"/foto/{slot['klaim_foto']}"
 
     def antrian(self) -> list[dict]:
         """Klaim yang menunggu tinjauan, menurut urutan pengajuan."""
@@ -702,7 +725,7 @@ class Hunt:
     def elapsed(self) -> int:
         if self.started_at is None:
             return 0
-        end = self.found_at if self.found_at is not None else time.monotonic()
+        end = self.round_ended_at if self.round_ended_at is not None else time.monotonic()
         return int(end - self.started_at)
 
     # -- bingkai untuk peramban -------------------------------------------
@@ -711,16 +734,25 @@ class Hunt:
         now = time.monotonic()
 
         rows = []
+        beacons_online = 0
         for slot in self.groups.values():
             silent = self._silent(slot)
             if slot["first_seq"] is None:
                 expected = 0
             else:
-                newest = max(self.beacon["seq"], slot["seq"])
+                newest = max(slot["beacon_seq"], slot["seq"])
                 expected = max(0, newest - slot["first_seq"] + 1)
             lost = max(0, expected - slot["diterima"])
 
             near, far = self.distance_band(slot["halus"])
+
+            beacon_online = (
+                slot["beacon_online"]
+                and slot["beacon_last"] is not None
+                and (now - slot["beacon_last"]) < SILENCE_SEC
+            )
+            if beacon_online:
+                beacons_online += 1
 
             rows.append({
                 "grup": slot["grup"],
@@ -748,24 +780,37 @@ class Hunt:
                 "status": slot["status"],
                 "klaim_ke": slot["klaim_ke"],
                 "tolak_alasan": slot["tolak_alasan"],
+                # Target dan pasangan sendiri, bukan keadaan sejagat: lihat
+                # nominee() dan on_beacon().
+                "calon": self.nominee(slot),
+                "durasi": slot["durasi"],
+                "beacon": {
+                    "online": beacon_online,
+                    "seq": slot["beacon_seq"],
+                    "tx": slot["beacon_tx"],
+                    "ip": slot["beacon_ip"],
+                },
             })
 
-        # Kelompok yang kehilangan sinyal selalu turun ke bawah: RSSI
-        # terakhirnya boleh saja tinggi, tetapi itu kabar lama dan tidak boleh
-        # menahan peringkat di atas kelompok yang benar-benar sedang berburu.
-        rows.sort(key=lambda r: (not r["online"], r["halus"] is None,
-                                 -(r["halus"] if r["halus"] is not None else -999)))
+        # Yang sudah menemukan targetnya naik ke atas, terurut menurut waktu
+        # temu (tercepat dulu) -- inilah satu-satunya perbandingan yang sah
+        # antar kelompok, karena tidak bergantung pada di mana target
+        # masing-masing disembunyikan. Sisanya, yang masih berburu, terurut
+        # menurut nomor kelompok saja: RSSI/jarak SATU kelompok terhadap
+        # targetnya sendiri tidak bisa dibandingkan dengan RSSI kelompok lain
+        # terhadap target yang berbeda, jadi mengurutkannya berdasarkan itu
+        # hanya akan berpura-pura ada makna yang tidak ada.
+        def sort_key(row):
+            slot = self.groups[row["grup"]]
+            found = slot["status"] == "menang"
+            return (0 if found else 1, slot["finish_seq"] or 0, row["grup"])
+
+        rows.sort(key=sort_key)
         for rank, row in enumerate(rows, start=1):
             row["rank"] = rank
 
-        beacon_online = (
-            self.beacon["online"]
-            and (now - self.beacon.get("last", 0.0)) < SILENCE_SEC
-        )
-
         # Penghargaan memakai baris yang baru saja diurutkan, bukan menghitung
-        # ulang: urutan itu justru sudah "kedekatan akhir" yang dibutuhkan
-        # podium, dan heat/jarak/rugi_persen semuanya sudah dibayar di atas.
+        # ulang: heat/jarak/rugi_persen semuanya sudah dibayar di atas.
         if self.penghargaan_beku is not None:
             hadiah = self.penghargaan_beku
         else:
@@ -780,11 +825,12 @@ class Hunt:
             "rev": self.rev,
             "jam": timestamp(),
             "berjalan": self.elapsed(),
-            "beacon": {
-                "online": beacon_online,
-                "seq": self.beacon["seq"],
-                "tx": self.beacon["tx"],
-                "ip": self.beacon["ip"],
+            # Ringkasan seluruh kelima beacon untuk HUD -- keadaan tiap
+            # pasangan sendiri-sendiri ada di baris grup masing-masing di
+            # atas (row.beacon), bukan di sini.
+            "beacon_ringkas": {
+                "online": beacons_online,
+                "total": len(self.groups),
             },
             "model": {
                 "rssi_1m": self.rssi_at_1m,
@@ -796,22 +842,20 @@ class Hunt:
                 "freq": "920.0 MHz",
                 "sf": 7,
                 "bw": "250 kHz",
-                "sync": "0xF3",
+                # Tidak ada "sync" tunggal lagi di sini -- tiap pasangan
+                # memakai kata sandi radionya sendiri (lihat
+                # scripts/gen_modul4.py's SYNC_WORDS), sesuatu yang hanya
+                # hidup di firmware, bukan sesuatu yang dilaporkan server
+                # tahu.
                 "daya": f"{BEACON_TX_DBM} dBm",
-                "periode": "200 ms",
+                "periode": "500 ms / 5 slot",
             },
             "grup": rows,
-            "calon": self.nominee(),
-            "ditemukan": self.found_by,
             "peristiwa": self.events[-12:],
             "ronde": self.ronde,
             "antrian": self.antrian(),
             "penghargaan": hadiah,
-            # Foto pemenang menjadi terbuka untuk semua orang begitu klaimnya
-            # disahkan; selama masih ditinjau ia hanya ada di antrean asisten.
-            # Kosong bila pemenang disahkan dengan paksa, tanpa foto.
-            "foto_menang": self.foto_menang(),
-            # Daftar namanya sendiri TIDAK ikut di sini. Tujuh kelompok
+            # Daftar namanya sendiri TIDAK ikut di sini. Lima kelompok
             # berikut namanya sekitar setengah kilobait; pada 10 Hz itu
             # 5 KB/detik data yang berubah beberapa kali sejam. Klien
             # mengambil ulang /roster.json saat nomor revisinya berubah.
@@ -829,18 +873,26 @@ class Hunt:
         """Empat penghargaan, dihitung dari baris yang sudah terurut."""
         layak = [r for r in rows if r["diterima"] >= MIN_PAKET_PENGHARGAAN]
 
-        # Podium. Peringkat satu adalah pemenang yang sudah disahkan; selama
-        # perburuan masih berjalan, yang terdekat saat ini. Dua dan tiga
-        # mengikuti urutan baris, yang memang sudah kedekatan akhir.
-        urutan = list(rows)
-        if self.found_by is not None:
-            juara = [r for r in rows if r["grup"] == self.found_by]
-            urutan = juara + [r for r in rows if r["grup"] != self.found_by]
+        # Podium: peringkat menurut waktu temu, tercepat dulu. Ini
+        # menggantikan podium versi lama yang mengurutkan menurut kedekatan
+        # RSSI -- sah ketika kelima kelompok berburu SATU beacon yang sama,
+        # tidak lagi sah ketika masing-masing berburu targetnya sendiri di
+        # tempat yang berbeda-beda; kelompok yang targetnya kebetulan
+        # disembunyikan lebih dekat akan selalu menang perbandingan itu,
+        # apa pun keterampilan berburunya. Waktu temu tidak punya cacat itu.
+        selesai = [r for r in rows if self.groups[r["grup"]]["status"] == "menang"]
+        selesai.sort(key=lambda r: self.groups[r["grup"]]["finish_seq"])
 
         podium = [
-            {"grup": r["grup"], "posisi": i, "jarak_m": r["jarak_m"],
-             "halus": r["halus"]}
-            for i, r in enumerate(urutan[:3], start=1)
+            {
+                "grup": r["grup"], "posisi": i,
+                "durasi": self.groups[r["grup"]]["durasi"],
+                "foto_url": (
+                    f"/foto/{self.groups[r['grup']]['klaim_foto']}"
+                    if self.groups[r["grup"]]["klaim_foto"] else None
+                ),
+            }
+            for i, r in enumerate(selesai[:3], start=1)
         ]
 
         def terbaik(pool, key, reverse=False):
@@ -853,8 +905,12 @@ class Hunt:
              if self.groups[r["grup"]]["laju_terbaik"] >= LAJU_MIN_DB_S],
             lambda r: self.groups[r["grup"]]["laju_terbaik"], reverse=True)
 
-        kuat = terbaik([r for r in layak if r["best"] is not None],
-                       lambda r: r["best"], reverse=True)
+        # Delay median seluruh hop (papan -> hotspot -> server), bukan
+        # kedekatan fisik: dua kelompok yang sama-sama jauh dari targetnya
+        # bisa saja punya tautan yang jauh berbeda mutunya, dan sebaliknya.
+        cepat = terbaik(
+            [r for r in layak if self.groups[r["grup"]]["delay_terbaik"] is not None],
+            lambda r: self.groups[r["grup"]]["delay_terbaik"])
 
         # Seri dipecahkan oleh jumlah paket: pada persentase yang sama,
         # kelompok yang menerima lebih banyak telah membuktikan lebih.
@@ -868,8 +924,10 @@ class Hunt:
                 "nilai": round(self.groups[pendekat["grup"]]["laju_terbaik"], 2),
                 "satuan": "dB/detik",
             },
-            "sinyal_terkuat": None if kuat is None else {
-                "grup": kuat["grup"], "nilai": kuat["best"], "satuan": "dBm",
+            "tautan_tercepat": None if cepat is None else {
+                "grup": cepat["grup"],
+                "nilai": self.groups[cepat["grup"]]["delay_terbaik"],
+                "satuan": "ms",
             },
             "tautan_terandal": None if andal is None else {
                 "grup": andal["grup"], "nilai": andal["rugi_persen"],
@@ -1450,6 +1508,9 @@ async def handle(connection: ServerConnection) -> None:
                 continue
 
             if path == "/beacon":
+                if "grup" not in msg:
+                    continue
+                owned = int(msg["grup"])
                 HUNT.on_beacon(msg, ip)
             elif "grup" in msg:
                 owned = int(msg["grup"])
@@ -1459,12 +1520,13 @@ async def handle(connection: ServerConnection) -> None:
         pass
     finally:
         print(f"[{timestamp()}] {label} terputus ({ip})")
-        if path == "/beacon":
-            HUNT.beacon["online"] = False
-            HUNT.note("beacon-hening")
-        elif owned is not None and owned in HUNT.groups:
-            HUNT.groups[owned]["connected"] = False
-            HUNT.note("hilang", owned)
+        if owned is not None and owned in HUNT.groups:
+            if path == "/beacon":
+                HUNT.groups[owned]["beacon_online"] = False
+                HUNT.note("beacon-hening", owned)
+            else:
+                HUNT.groups[owned]["connected"] = False
+                HUNT.note("hilang", owned)
         HUNT.rev += 1
 
 

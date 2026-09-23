@@ -1,9 +1,12 @@
-"""Drive modul4/server.py with a fake beacon and six fake hunters.
+"""Drive modul4/server.py with five independent fake Beacon/Hunter pairs.
 
-Lets the scoreboard be developed and checked without seven ESP32 boards on a
-bench. Each fake hunter walks a simulated distance from the beacon, and its
-RSSI is derived from that distance with realistic multipath noise, so the
-median + EWMA filter in the real sketch has something to actually smooth.
+Lets the scoreboard be developed and checked without ten ESP32 boards on a
+bench. Each pair is fully independent -- its own Beacon connection, its own
+fake hunter walking a simulated distance from ITS OWN target -- matching the
+real game, where five groups each hunt a different hidden board rather than
+racing for one shared beacon. Each fake hunter's RSSI is derived from its own
+distance with realistic multipath noise, so the median + EWMA filter in the
+real sketch has something to actually smooth.
 
     python modul4/server.py             (in one terminal)
     python modul4/tools/fake_hunt.py    (in another)
@@ -28,7 +31,7 @@ from datetime import datetime
 from websockets.asyncio.client import connect
 
 BEACON_PERIOD = 0.2
-GROUPS = (1, 2, 3, 4, 5, 6)
+GROUPS = (1, 2, 3, 4, 5)
 
 
 def timestamp() -> str:
@@ -54,16 +57,19 @@ NOISE_FLOOR_DBM = -123.0
 
 
 class Beacon:
-    def __init__(self) -> None:
+    def __init__(self, gid: int) -> None:
+        self.gid = gid
         self.seq = 0
 
     async def run(self, url: str, stop: asyncio.Event) -> None:
         async with connect(url + "/beacon") as ws:
-            print("beacon connected")
+            print(f"beacon {self.gid} connected")
             while not stop.is_set():
                 self.seq += 1
                 sent_at = timestamp()
-                await ws.send(json.dumps({"seq": self.seq, "tx": sent_at}))
+                await ws.send(json.dumps({
+                    "grup": self.gid, "seq": self.seq, "tx": sent_at,
+                }))
                 self.last = (self.seq, sent_at)
                 await asyncio.sleep(BEACON_PERIOD)
 
@@ -141,14 +147,14 @@ async def main() -> None:
     args = parser.parse_args()
 
     stop = asyncio.Event()
-    beacon = Beacon()
+    beacons = {gid: Beacon(gid) for gid in GROUPS}
 
-    tasks = [asyncio.create_task(beacon.run(args.url, stop))]
-    await asyncio.sleep(0.3)  # let the beacon publish a first seq
+    tasks = [asyncio.create_task(b.run(args.url, stop)) for b in beacons.values()]
+    await asyncio.sleep(0.3)  # let each beacon publish a first seq
 
     for gid in GROUPS:
         tasks.append(asyncio.create_task(hunter(
-            args.url, gid, beacon, stop,
+            args.url, gid, beacons[gid], stop,
             drop_at=10.0 if gid == args.drop else None,
             closing_fast=(gid == args.winner),
             arena=args.arena,

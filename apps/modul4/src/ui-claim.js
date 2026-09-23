@@ -37,9 +37,8 @@
            row.status !== "menunggu" && row.status !== "menang";
   }
 
-  function armReason(row, state) {
+  function armReason(row) {
     if (!row) return I18N.t("claim.noData");
-    if (state && state.ditemukan !== null) return I18N.t("claim.over");
     if (row.status === "menunggu") return I18N.t("claim.pending");
     if (row.status === "menang") return I18N.t("claim.won");
     if (!row.online) return I18N.t("claim.lost");

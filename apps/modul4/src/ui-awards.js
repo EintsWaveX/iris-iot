@@ -1,15 +1,19 @@
 /**
  * Perburuan LoRa IRIS - the awards tab.
  *
- * Four results, and only one of them is "who won". The other three exist
- * because the hunt measures things that finding the beacon does not:
- * closing efficiently, getting physically closest, and holding the
- * steadiest link. A group that never found it can still have the best
- * radio story of the afternoon, which is the part worth teaching.
+ * Four results, and only one of them is "who's fastest". The other three
+ * exist because the hunt measures things that finding a target does not:
+ * closing efficiently, holding the snappiest link, and holding the
+ * steadiest one. A group that has not found its own target yet can still
+ * have the best radio story of the afternoon, which is the part worth
+ * teaching.
  *
- * Everything is provisional while the hunt runs and freezes the moment a
- * win is confirmed - the server does the freezing, so every device shows
- * the same frozen result.
+ * Five independent pairs finish independently, so "the champion" is really
+ * "whoever is fastest so far" until every pair has found its own target --
+ * the leader banner says which of those two it is showing. The server
+ * freezes the whole result (hadiah.beku) only once every group that joined
+ * has won, so every device shows the same frozen final result at that
+ * point.
  *
  * window.UIAwards = { mount, render }
  */
@@ -24,7 +28,7 @@
 
   var BESTS = [
     { key: "pendekat_tercepat", label: "award.closer", note: "award.closerNote" },
-    { key: "sinyal_terkuat", label: "award.signal", note: "award.signalNote" },
+    { key: "tautan_tercepat", label: "award.latency", note: "award.latencyNote" },
     { key: "tautan_terandal", label: "award.link", note: "award.linkNote" }
   ];
 
@@ -37,17 +41,25 @@
     return node;
   }
 
-  function buildChampion(state) {
+  /**
+   * The leader banner: whichever group's podium position is 1, which is
+   * "fastest so far" while the round runs and "fastest overall" once
+   * hadiah.beku freezes it. No single state.ditemukan any more -- this is
+   * just the podium's own top entry, read back out for the hero treatment.
+   */
+  function buildChampion(hadiah) {
     champEl.textContent = "";
-    if (state.ditemukan === null) {
+    var leader = (hadiah.podium || [])[0];
+    if (!leader) {
       champEl.hidden = true;
       return;
     }
     champEl.hidden = false;
-    var grup = state.ditemukan;
+    var grup = leader.grup;
     champEl.style.setProperty("--hue", "var(--group-" + grup + ")");
 
-    champEl.appendChild(el("p", "champ__eyebrow", I18N.t("award.champion")));
+    champEl.appendChild(el("p", "champ__eyebrow",
+      I18N.t(hadiah.beku ? "award.champion" : "award.leader")));
     champEl.appendChild(el("h2", "champ__name", Roster.label(grup)));
 
     var names = Roster.names(grup);
@@ -55,14 +67,13 @@
       champEl.appendChild(el("p", "champ__members", names.join(" · ")));
     }
     champEl.appendChild(el("p", "champ__time",
-      I18N.t("found.in") + " " + mmss(state.berjalan)));
+      I18N.t("found.in") + " " + mmss(leader.durasi || 0)));
 
-    var url = state.foto_menang;
-    if (url) {
+    if (leader.foto_url) {
       var img = new Image();
       img.className = "champ__shot";
       img.alt = "";
-      img.src = url;
+      img.src = leader.foto_url;
       champEl.appendChild(img);
     }
   }
@@ -84,7 +95,11 @@
 
       card.appendChild(el("span", "podium__pos", String(row.posisi)));
       card.appendChild(el("span", "podium__name", Roster.label(row.grup)));
-      card.appendChild(el("span", "podium__value", I18N.jarak(row.jarak_m)));
+      // Find time, not distance: the podium ranks groups by how fast each
+      // one found ITS OWN target, since RSSI proximity to five different
+      // targets hidden in five different places is not a fair comparison.
+      card.appendChild(el("span", "podium__value",
+        I18N.t("found.in") + " " + mmss(row.durasi || 0)));
       podiumEl.appendChild(card);
     }
   }
@@ -129,7 +144,7 @@
                                       : I18N.t("award.provisional");
     stateEl.setAttribute("data-beku", hadiah.beku ? "yes" : "no");
 
-    buildChampion(state);
+    buildChampion(hadiah);
     buildPodium(hadiah);
     buildBests(hadiah);
   }
