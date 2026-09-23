@@ -15,9 +15,9 @@
  * derived from what arrived.
  */
 import { randomBytes, createHash } from "node:crypto";
-import { eq, lt } from "drizzle-orm";
+import { eq, lt, isNotNull } from "drizzle-orm";
 import { getDb } from "./db.js";
-import { server, denyut } from "./schema.js";
+import { server, denyut, perintah } from "./schema.js";
 import { safeEqual } from "./auth.js";
 
 const ENROLL_TOKEN_TTL_MIN = 30;
@@ -103,6 +103,37 @@ export type AksiPerintah = (typeof AKSI_PERINTAH)[number];
 
 export function aksiValid(value: unknown): value is AksiPerintah {
   return typeof value === "string" && (AKSI_PERINTAH as readonly string[]).includes(value);
+}
+
+/**
+ * Auto-queues a whitelisted command for "the" Orange Pi, so starting or
+ * ending a Module 4 Part A session can turn its hotspot on/off without an
+ * assistant ever visiting /servers or touching SSH -- the same delivery path
+ * (perintah row, picked up on the agent's next heartbeat) the manual button
+ * already uses.
+ *
+ * Deliberately declines rather than guesses when zero or more than one
+ * enrolled server exists: this project's own registry supports several
+ * servers (the Phase 2 design allows more than one Pi/MCU), and queuing
+ * "turn on the hotspot" at the wrong Pi -- or at every Pi -- would be worse
+ * than not automating it at all. In either case the assistant still has the
+ * manual /servers button as a fallback, so returning false here never blocks
+ * the session itself from starting or ending.
+ */
+export async function queueSoloServerCommand(
+  aksi: AksiPerintah,
+  dimintaOleh: string,
+): Promise<boolean> {
+  const db = getDb();
+  const enrolled = await db
+    .select({ id: server.id })
+    .from(server)
+    .where(isNotNull(server.agenKunciHash));
+
+  if (enrolled.length !== 1) return false;
+
+  await db.insert(perintah).values({ serverId: enrolled[0].id, aksi, dimintaOleh });
+  return true;
 }
 
 export const LAYANAN_DIKENAL = ["modul2-ws", "mosquitto", "modul4"] as const;

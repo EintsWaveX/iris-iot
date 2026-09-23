@@ -33,6 +33,7 @@ import {
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
+import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
@@ -144,6 +145,14 @@ async function handleEnd(_req: ApiRequest, res: ApiResponse, session: SessionPay
     .returning();
 
   await writeAudit(session.nim, "sesi_akhiri", { sesiId: running.id });
+
+  // Mirror of the auto-queue in api/session/index.ts: a session that turned
+  // the hotspot on when it started should turn it back off when it ends,
+  // without needing an assistant to remember the manual /servers button.
+  if (running.butuhAp) {
+    await queueSoloServerCommand("ap.mati", session.nim);
+  }
+
   res.status(200).json({ ok: true, sesi: updated });
 }
 

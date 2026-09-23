@@ -31,6 +31,7 @@ import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import { sesi } from "../../src/lib/schema.js";
 import { slotToMulai } from "../../src/lib/jadwal.js";
+import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { eq, sql } from "drizzle-orm";
 import { writeAudit } from "../../src/lib/auth.js";
 
@@ -66,23 +67,41 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const db = getDb();
 
-    const created = await db.transaction(async (tx) => {
-      await tx
+    const { created, demoted } = await db.transaction(async (tx) => {
+      const demotedRows = await tx
         .update(sesi)
         .set({
           status: "selesai",
           selesaiPada: sql`now()`,
           durasiDetik: sql`extract(epoch from now() - coalesce(${sesi.mulaiPada}, ${sesi.dibuatPada}))::int`,
         })
-        .where(eq(sesi.status, "berjalan"));
+        .where(eq(sesi.status, "berjalan"))
+        .returning({ butuhAp: sesi.butuhAp });
       const [row] = await tx
         .insert(sesi)
         .values({ tanggal, mulai, modul, slot, butuhAp, status: "berjalan", mulaiPada: new Date() })
         .returning();
-      return row;
+      return { created: row, demoted: demotedRows[0] };
     });
 
     await writeAudit(session.nim, "sesi_mulai", { tanggal, mulai, modul, slot, butuhAp });
+
+    // Best-effort: a session that needs the hotspot should not also need an
+    // assistant to separately visit /servers and click "AP nyala" by hand.
+    // Never blocks session creation -- see queueSoloServerCommand's own doc
+    // for why this silently no-ops rather than guessing when it can't be
+    // sure which Pi to command.
+    if (butuhAp) {
+      await queueSoloServerCommand("ap.nyala", session.nim);
+    } else if (demoted?.butuhAp) {
+      // The session this one just replaced had the hotspot on -- turn it
+      // back off rather than leaving the Pi stuck off campus Wi-Fi for the
+      // rest of the day. Skipped when the new session ALSO needs AP (the
+      // branch above already handles that case, and toggling off-then-on
+      // would just disconnect anything already on the hotspot for nothing.
+      await queueSoloServerCommand("ap.mati", session.nim);
+    }
+
     res.status(200).json({ ok: true, sesi: created });
   } catch (err) {
     // Postgres unique_violation on (tanggal, modul, mulai) -- the same

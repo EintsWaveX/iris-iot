@@ -16,12 +16,15 @@
  * agent presents on every heartbeat afterward. No session cookie -- this
  * runs once, from the Pi itself, before the agent has any other credential.
  *
- * Heartbeat: one round trip does four things -- records this cycle's
+ * Heartbeat: one round trip does five things -- records this cycle's
  * health, upserts whatever devices the agent discovered, reports the
- * outcome of any commands it ran since the last beat, and hands back
- * whatever is queued for it now. No inbound port on the Pi is ever needed
- * -- the agent always calls out, and commands ride the response of the
- * call it was always going to make anyway.
+ * outcome of any commands it ran since the last beat, hands back whatever
+ * is queued for it now, and -- only on a day with a Module 4 session --
+ * today's schedule (`jadwal`, see sesi.ts's jadwalModul4Hari()) so the
+ * scoreboard's roster reaches the Pi before the hotspot ever has to go up.
+ * No inbound port on the Pi is ever needed -- the agent always calls out,
+ * and commands ride the response of the call it was always going to make
+ * anyway.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -34,7 +37,8 @@ import {
   verifyAgentKey,
   pruneOldHeartbeatsOccasionally,
 } from "../../src/lib/server-lib.js";
-import { currentSesi } from "../../src/lib/sesi.js";
+import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
+import { hariIniWib } from "../../src/lib/jadwal.js";
 import { eq, and, sql } from "drizzle-orm";
 
 // The server, not the agent, knows whether a practicum session is running
@@ -195,7 +199,14 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     const sesiAktif = await currentSesi();
     const intervalDetik = sesiAktif ? INTERVAL_AKTIF_SEC : INTERVAL_IDLE_SEC;
 
-    res.status(200).json({ ok: true, perintah: pending, intervalDetik });
+    // Only computed when today actually has a Module 4 slot (jadwalModul4Hari
+    // returns null otherwise) -- an idle day never pays for this extra query,
+    // and the field is simply omitted rather than sent as an empty schedule.
+    const jadwal = await jadwalModul4Hari(hariIniWib());
+
+    res
+      .status(200)
+      .json({ ok: true, perintah: pending, intervalDetik, ...(jadwal ? { jadwal } : {}) });
   } catch (err) {
     console.error("[api/agent denyut] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });

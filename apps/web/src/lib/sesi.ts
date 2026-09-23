@@ -14,10 +14,10 @@
  * land in the right group") pass truthfully, without inventing scheduling
  * logic that the next phase would then have to un-invent.
  */
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, ne, desc, count } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { sesi, regu, praktikan, anggota, kelompok, sesiKelompok } from "./schema.js";
-import { SESI_CAP_DETIK } from "./jadwal.js";
+import { SESI_CAP_DETIK, slotToMulai } from "./jadwal.js";
 
 export interface ResolvedPraktikan {
   nim: string;
@@ -209,4 +209,107 @@ export async function publicRoster(sesiId: number) {
       aktif: g.aktif && (overrideByKelompokId.get(g.id)?.aktif ?? true),
       anggota: members.filter((m) => m.kelompokId === g.id).map((m) => m.nama),
     }));
+}
+
+export interface JadwalModul4 {
+  hari: string;
+  sesi: Array<{
+    id: number;
+    mulai: string;
+    regu: Record<
+      string,
+      { nama: string; aktif: boolean; anggota: Array<{ nim: string; nama: string }> }
+    >;
+  }>;
+}
+
+/**
+ * Today's Module 4 slots, in the exact shape apps/modul4/server.py's own
+ * jadwal_set()/jadwal_muat() already expect (`{hari, sesi: [{id, mulai,
+ * regu}]}`) -- so the Pi-side import (Stage 18) can hand each slot straight
+ * to that same validated write path rather than re-deriving it. Includes
+ * NIMs: unlike publicRoster() this never reaches a student's browser, only
+ * an authenticated agent's heartbeat response, and the Pi's own scoreboard
+ * already carries NIMs for its assistant-only "papan lengkap" view.
+ *
+ * Returns null when today has no Module 4 session at all, so the heartbeat
+ * handler can skip the field entirely rather than send an empty schedule
+ * every single cycle for every server, all day, every day a session isn't
+ * even running.
+ */
+export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | null> {
+  const db = getDb();
+
+  const slots = await db
+    .select({ id: sesi.id, slot: sesi.slot, mulai: sesi.mulai })
+    .from(sesi)
+    .where(and(eq(sesi.tanggal, tanggal), eq(sesi.modul, 4), ne(sesi.status, "batal")));
+
+  const withSlot = slots.filter(
+    (s): s is { id: number; slot: number; mulai: string } => s.slot !== null,
+  );
+  if (withSlot.length === 0) return null;
+
+  const master = await masterRosterIsPopulated();
+
+  const sesiOut: JadwalModul4["sesi"] = [];
+  for (const s of withSlot) {
+    const kelompokSesi: JadwalModul4["sesi"][number]["regu"] = {};
+
+    if (master) {
+      const rows = await db
+        .select({
+          nomor: kelompok.nomor,
+          nama: kelompok.nama,
+          kelompokAktif: kelompok.aktif,
+          sesiAktif: sesiKelompok.aktif,
+          nim: anggota.nim,
+          anggotaNama: anggota.nama,
+        })
+        .from(kelompok)
+        .leftJoin(anggota, eq(anggota.kelompokId, kelompok.id))
+        .leftJoin(
+          sesiKelompok,
+          and(eq(sesiKelompok.kelompokId, kelompok.id), eq(sesiKelompok.sesiId, s.id)),
+        );
+
+      for (const row of rows) {
+        const key = String(row.nomor);
+        if (!kelompokSesi[key]) {
+          kelompokSesi[key] = {
+            nama: row.nama,
+            aktif: row.kelompokAktif && (row.sesiAktif ?? true),
+            anggota: [],
+          };
+        }
+        if (row.nim) kelompokSesi[key].anggota.push({ nim: row.nim, nama: row.anggotaNama ?? "" });
+      }
+    } else {
+      const rows = await db
+        .select({
+          nomor: regu.nomor,
+          nama: regu.nama,
+          aktif: regu.aktif,
+          nim: praktikan.nim,
+          praktikanNama: praktikan.nama,
+        })
+        .from(regu)
+        .leftJoin(praktikan, and(eq(praktikan.reguId, regu.id), eq(praktikan.sesiId, s.id)))
+        .where(eq(regu.sesiId, s.id));
+
+      for (const row of rows) {
+        const key = String(row.nomor);
+        if (!kelompokSesi[key]) {
+          kelompokSesi[key] = { nama: row.nama, aktif: row.aktif, anggota: [] };
+        }
+        if (row.nim)
+          kelompokSesi[key].anggota.push({ nim: row.nim, nama: row.praktikanNama ?? "" });
+      }
+    }
+
+    sesiOut.push({ id: s.slot, mulai: slotToMulai(s.slot) ?? s.mulai, regu: kelompokSesi });
+  }
+
+  sesiOut.sort((a, b) => a.id - b.id);
+  return { hari: tanggal, sesi: sesiOut };
 }
