@@ -112,7 +112,7 @@ const links = [
         <PresentationCard client:load />
       </Card>
 
-      <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card">
+      <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card" id="modul4-card" hidden>
         <p>
           Papan skor perburuan berjalan langsung di Orange Pi lab, di jaringan
           <strong>IRIS-IOT</strong> — bukan lewat internet. Sambungkan HP ke hotspot itu dahulu,
@@ -191,6 +191,10 @@ const links = [
       if (!s) {
         hide("session-banner");
         show("session-banner-kosong");
+        // No running session means no running module, so the Module 4
+        // scoreboard card (which only makes sense while Module 4A/B is
+        // actually the session in progress) has nothing to point at.
+        hide("modul4-card");
         if (cosmosInSesiScene) {
           cosmosInSesiScene = false;
           window.Cosmos?.setScene("kerja");
@@ -207,6 +211,14 @@ const links = [
       document.getElementById("banner-waktu")!.textContent = s.mulai;
       document.getElementById("banner-durasi")!.textContent = formatDurasiBerjalan(s.mulaiPada);
       document.getElementById("banner-kelompok")!.textContent = kelompokText;
+      // The Orange Pi scoreboard card is Module 4's alone -- surfacing it
+      // during Modules 1-3 sent students hunting for a hotspot that has
+      // nothing to do with the module actually running.
+      if (s.modul === 4) {
+        show("modul4-card");
+      } else {
+        hide("modul4-card");
+      }
       window.Cosmos?.setModuleTint(s.modul);
       if (!cosmosInSesiScene) {
         cosmosInSesiScene = true;
