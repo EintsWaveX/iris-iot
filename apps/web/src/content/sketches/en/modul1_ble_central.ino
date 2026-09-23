@@ -1,7 +1,7 @@
 /*
- * MODULE 1 - BLE  |  Role: CENTRAL/CLIENT (ESP32 DevKit V1/S3)
- * Reads a potentiometer, turns it into an angle of 0-180 degrees, and sends
- * it to the Peripheral whenever the value moves far enough. Fill in (1)-(6).
+ * MODULE 1 - BLE  |  Role: CENTRAL/CLIENT (ESP32-S3/DevKit V1)
+ * Reads a push button's state, and sends it to the Peripheral whenever it
+ * changes. Fill in (1)-(6).
  */
 
 #include <BLEDevice.h>
@@ -11,7 +11,7 @@
 #include "iris_waktu.h"
 
 // ---- GROUP IDENTITY ---------------------------------------------------------
-// Change the number below to your group number (1 to 8) in *both* programs.
+// Change the number below to your group number (1 to 5) in *both* programs.
 // Both UUIDs derive from it automatically, so a Central never connects to
 // another group's board.
 const int GROUP_ID = 1;
@@ -21,24 +21,11 @@ String CHARACTERISTIC_UUID = "11d29a29-98ee-453e-8c87-2f95f867650" + String(GROU
 
 String centralName = "ESP32-Central";
 
-// The ESP32-S3 has no ADC on GPIO34. Remove the // from the line below if you
-// are using an ESP32-S3 board, and leave it in place for the DevKit V1.
-// #define BOARD_ESP32S3
+// Button on GPIO17, with an external 10 kOhm pull-down resistor (see schematic).
+const int PB_PIN = 17;
 
-// Potentiometer on an ADC1 pin; ADC2 cannot be read while the BLE radio is on.
-#ifdef BOARD_ESP32S3
-const int POT_PIN = 4;   // ESP32-S3: ADC1_CH3
-#else
-const int POT_PIN = 34;  // ESP32 DevKit V1: ADC1_CH6
-#endif
-const int ADC_MAX = 4095;
-
-const int SERVO_MIN_ANGLE = 0;
-const int SERVO_MAX_ANGLE = 180;
-
-// Only resend once the angle has shifted this far, and at most once every so
-// many milliseconds, so the BLE channel is not flooded.
-const int DEADBAND_DEG = 3;
+// Send again at most this often, to smooth out contact bounce as the button
+// is pressed or released.
 const unsigned long MIN_SEND_INTERVAL_MS = 100;
 
 BLEClient *pClient = nullptr;
@@ -48,21 +35,21 @@ BLEAddress *pPeripheralAddress = nullptr;
 bool doConnect = false;
 bool connected = false;
 
-int lastSentAngle = -100;
+int lastSentState = -1;
 unsigned long lastSendTime = 0;
 
 unsigned long sendTime = 0;
 bool waitingForEcho = false;
 
-// Turns the voltage on the potentiometer into a servo angle.
-int readAngle() {
-  int raw = ________(POT_PIN);  // (2) Function that reads a pin's analog value
-
-  return map(raw, 0, ADC_MAX, SERVO_MIN_ANGLE, ________);  // (3) Highest angle limit
+// Reads the button's state. The pull-down resistor makes the pin read LOW
+// when the button is not pressed and HIGH when it is.
+int readButtonState() {
+  return ________(PB_PIN);  // (2) Function that reads a pin's digital value
 }
 
 // Called by the BLE library every time the Peripheral sends a notification.
-// The echo arrives here, so the round-trip delay is measured here too.
+// This is where the echo is received, so this is where the round trip delay
+// is calculated.
 static void notifyCallback(
   BLERemoteCharacteristic *pBLERemoteCharacteristic,
   uint8_t *pData,
@@ -79,7 +66,7 @@ static void notifyCallback(
   if (waitingForEcho) {
     waitingForEcho = false;
 
-    Serial.printf("[%s] Echo from Peripheral: %s degrees | Delay (round-trip): %lu ms\n",
+    Serial.printf("[%s] Echo from Peripheral: %s | Delay (round trip): %lu ms\n",
                   formatTimestamp(receiveTime).c_str(), echo.c_str(),
                   receiveTime - sendTime);
   }
@@ -88,12 +75,12 @@ static void notifyCallback(
 class MyClientCallbacks : public BLEClientCallbacks {
   void onConnect(BLEClient *pClient) override {
     connected = true;
-    Serial.println("Connected to the Peripheral!");
+    Serial.println("Connected to Peripheral!");
   }
 
   void onDisconnect(BLEClient *pClient) override {
     connected = false;
-    Serial.println("Connection to the Peripheral lost!");
+    Serial.println("Connection to Peripheral lost!");
   }
 };
 
@@ -114,7 +101,7 @@ bool connectToPeripheral(BLEAddress address) {
     return false;
   }
 
-  // A service is the container, a characteristic is the data inside it.
+  // A service is a container, a characteristic is the data inside it.
   BLERemoteService *pService = pClient->getService(________);  // (4) Service UUID
 
   if (pService == nullptr) {
@@ -137,12 +124,12 @@ bool connectToPeripheral(BLEAddress address) {
     return false;
   }
 
-  // Without registering here, the echo from the Peripheral never arrives and
-  // the Delay column in the journal cannot be filled in.
+  // Without registering here, the Peripheral's echo will never arrive and
+  // the journal's Delay column cannot be filled in.
   pRemoteCharacteristic->registerForNotify(________);  // (5) Notification function name
 
   connected = true;
-  Serial.println("Ready! Turn the potentiometer to move the servo.");
+  Serial.println("Ready! Press the button to light the LED.");
   return true;
 }
 
@@ -152,7 +139,7 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
       advertisedDevice.haveServiceUUID() &&
       advertisedDevice.isAdvertisingService(BLEUUID(SERVICE_UUID))
     ) {
-      Serial.println("Target Peripheral found!");
+      Serial.println("Found the Peripheral we're looking for!");
       BLEDevice::getScan()->stop();
 
       if (pPeripheralAddress != nullptr) {
@@ -169,7 +156,7 @@ void setup() {
   Serial.begin(115200);
   syncTimeFromSerial();
 
-  analogReadResolution(12);
+  pinMode(PB_PIN, ________);  // (3) Input pin mode
 
   BLEDevice::init(centralName.c_str());
 
@@ -179,7 +166,7 @@ void setup() {
   pBLEScan->setWindow(80);
   pBLEScan->setActiveScan(true);
 
-  Serial.println("Central mode active, scanning for the Peripheral...");
+  Serial.println("Central mode active, scanning for Peripheral...");
   pBLEScan->start(5, false);
 }
 
@@ -199,25 +186,25 @@ void loop() {
     return;
   }
 
-  int angle = readAngle();
+  int state = readButtonState();
 
-  // A send only happens once the angle has genuinely shifted; without this
-  // threshold even a motionless potentiometer would transmit continuously.
-  bool moved = abs(angle - lastSentAngle) >= DEADBAND_DEG;
+  // Sending only happens when the button's state actually changes; without
+  // this check an idle button would still send continuously.
+  bool changed = state != lastSentState;
   bool ready = millis() - lastSendTime >= MIN_SEND_INTERVAL_MS;
 
-  if (moved && ready) {
+  if (changed && ready) {
     sendTime = millis();
     lastSendTime = sendTime;
-    lastSentAngle = angle;
+    lastSentState = state;
     waitingForEcho = true;
 
-    String payload = String(________);  // (6) Angle variable to be sent
+    String payload = String(________);  // (6) The state variable to send
 
-    Serial.printf("[%s] Potentiometer moved, sending angle: %s degrees\n",
+    Serial.printf("[%s] Button changed, sending state: %s\n",
                   formatTimestamp(sendTime).c_str(), payload.c_str());
 
-    // BLE sends a sequence of bytes, so the data length goes along with it.
+    // BLE sends a byte string, so the data's length is included too.
     pRemoteCharacteristic->writeValue((uint8_t *)payload.c_str(), payload.length());
   }
 

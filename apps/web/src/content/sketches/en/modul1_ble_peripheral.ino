@@ -1,18 +1,17 @@
 /*
- * MODULE 1 - BLE  |  Role: PERIPHERAL/SERVER (ESP32 DevKit V1/S3)
- * Receives an angle from the Central, drives an SG90 servo to that angle,
- * then echoes the value back through a notification. Fill in (1)-(6).
+ * MODULE 1 - BLE  |  Role: PERIPHERAL/SERVER (ESP32-S3/DevKit V1)
+ * Receives a button state from the Central, turns an LED on or off to match
+ * it, then echoes the value back through a notification. Fill in (1)-(6).
  */
 
 #include <BLEDevice.h>
 #include <________>  // (1) Header file that creates a BLE server/peripheral
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include <ESP32Servo.h>
 #include "iris_waktu.h"
 
 // ---- GROUP IDENTITY ---------------------------------------------------------
-// Change the number below to your group number (1 to 8) in *both* programs.
+// Change the number below to your group number (1 to 5) in *both* programs.
 // Both UUIDs derive from it automatically, so a Central never connects to
 // another group's board.
 const int GROUP_ID = 1;
@@ -22,14 +21,8 @@ String CHARACTERISTIC_UUID = "11d29a29-98ee-453e-8c87-2f95f867650" + String(GROU
 
 String peripheralName = "ESP32-Peripheral";
 
-// SG90 servo on GPIO16. Its power comes from the VIN pin (5 V), never 3V3.
-const int SERVO_PIN = 16;
-
-// SG90 pulse widths in microseconds for 0 and 180 degrees.
-const int SERVO_MIN_US = 500;
-const int SERVO_MAX_US = 2400;
-
-Servo servo;
+// LED on GPIO16, with a 220 Ohm current-limiting resistor on its cathode leg.
+const int LED_PIN = 16;
 
 BLEServer *pServer = nullptr;
 BLECharacteristic *pCharacteristic = nullptr;
@@ -49,23 +42,26 @@ class MyServerCallbacks : public BLEServerCallbacks {
   }
 };
 
-// Called by the BLE library every time the Central writes to the characteristic.
+// Called by the BLE library every time the Central writes a value to the
+// characteristic.
 class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     unsigned long receiveTime = millis();
 
     String data = pCharacteristic->getValue().c_str();
-    int angle = constrain(data.toInt(), 0, 180);
+    int state = constrain(data.toInt(), 0, 1);
 
-    // Echo the data as early as possible, before driving the servo and printing
-    // to Serial, so the round-trip measurement on the Central is not weighed down.
+    // Echo the data back as fast as possible, before turning the LED on or
+    // off and printing to Serial, so the round trip measurement on the
+    // Central's side isn't weighed down.
     pCharacteristic->setValue(data.c_str());
-    pCharacteristic->________();  // (2) Method that sends a value to the Central
+    pCharacteristic->________();  // (2) Method that sends a value back to the Central
 
-    servo.write(________);  // (3) Angle variable parsed from the data
+    digitalWrite(LED_PIN, ________);  // (3) The state variable read from the data
 
-    Serial.printf("[%s] Angle from Central: %d degrees | Servo moved\n",
-                  formatTimestamp(receiveTime).c_str(), angle);
+    Serial.printf("[%s] State from Central: %d | LED %s\n",
+                  formatTimestamp(receiveTime).c_str(), state,
+                  state ? "on" : "off");
   }
 };
 
@@ -79,18 +75,18 @@ void BLE_init() {
 
   // PROPERTY_READ     -> the Central can read data
   // PROPERTY_WRITE    -> the Central can send data to the ESP32
-  // PROPERTY_NOTIFY   -> the ESP32 sends data automatically (without ACK)
+  // PROPERTY_NOTIFY   -> the ESP32 sends data automatically (no ACK)
   // PROPERTY_INDICATE -> the ESP32 sends data automatically (with ACK)
-  // PROPERTY_WRITE_NR -> the Central sends data without confirmation
+  // PROPERTY_WRITE_NR -> the Central sends data with no confirmation
   pCharacteristic = pService->createCharacteristic(
     BLEUUID(CHARACTERISTIC_UUID),
     BLECharacteristic::PROPERTY_WRITE |
-    BLECharacteristic::________  // (4) Property that sends data automatically without ACK
+    BLECharacteristic::________  // (4) Property for sending data automatically with no ACK
   );
 
-  // Descriptor 0x2902 is what lets the Central switch notifications on.
+  // This 0x2902 descriptor is what lets the Central turn notifications on.
   pCharacteristic->addDescriptor(new BLE2902());
-  pCharacteristic->setCallbacks(new ________());  // (5) Write callback class name
+  pCharacteristic->setCallbacks(new ________());  // (5) Name of the write callback class
   pCharacteristic->setValue("0");
 
   pService->start();
@@ -101,26 +97,26 @@ void BLE_init() {
 
   BLEDevice::startAdvertising();
 
-  Serial.println("Peripheral ready, waiting for the Central...");
+  Serial.println("Peripheral ready, waiting for Central...");
 }
 
 void setup() {
   Serial.begin(115200);
   syncTimeFromSerial();
 
-  servo.attach(________, SERVO_MIN_US, SERVO_MAX_US);  // (6) Servo pin constant
-  servo.write(90);
+  pinMode(________, OUTPUT);  // (6) The LED pin constant
+  digitalWrite(LED_PIN, LOW);
 
   BLE_init();
 }
 
 void loop() {
-  // Once the Central disconnects, advertising has to be switched back on so the
-  // device can be discovered again on the next scan.
+  // Once the Central disconnects, advertising has to be turned back on so
+  // the device can be found again on the next scan.
   if (!deviceConnected && oldDeviceConnected) {
     delay(500);
     pServer->startAdvertising();
-    Serial.println("Advertising switched back on...");
+    Serial.println("Advertising restarted...");
     oldDeviceConnected = deviceConnected;
   }
 

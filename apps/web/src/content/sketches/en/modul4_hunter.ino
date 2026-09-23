@@ -10,7 +10,9 @@
 
 #include <WiFi.h>
 #include <SPI.h>
+// Install via Library Manager: "LoRa" by Sandeep Mistry | PlatformIO: lib_deps = sandeepmistry/LoRa
 #include <________>  // (1) LoRa peer-to-peer library header by Sandeep Mistry
+// Install via Library Manager: "WebSockets" by Markus Sattler | PlatformIO: lib_deps = links2004/WebSockets
 #include <WebSocketsClient.h>
 #include <time.h>
 #include <sys/time.h>

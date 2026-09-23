@@ -1,7 +1,7 @@
 /*
- * MODUL 1 - BLE  |  Peran: CENTRAL/CLIENT (ESP32 DevKit V1/S3)
- * Membaca potensiometer, mengubahnya jadi sudut 0-180 derajat, dan mengirimnya
- * ke Peripheral saat nilainya berubah cukup jauh. Isi bagian rumpang (1)-(6).
+ * MODUL 1 - BLE  |  Peran: CENTRAL/CLIENT (ESP32-S3/DevKit V1)
+ * Membaca status tombol (push button), dan mengirimnya ke Peripheral saat
+ * statusnya berubah. Isi bagian rumpang (1)-(6).
  */
 
 #include <BLEDevice.h>
@@ -11,7 +11,7 @@
 #include "iris_waktu.h"
 
 // ---- IDENTITAS KELOMPOK -----------------------------------------------------
-// Ubah angka di bawah menjadi nomor kelompok kalian (1 sampai 8) pada *kedua*
+// Ubah angka di bawah menjadi nomor kelompok kalian (1 sampai 5) pada *kedua*
 // program. Kedua UUID ikut berubah sendiri, sehingga Central tidak akan
 // tersambung ke papan kelompok lain.
 const int GROUP_ID = 1;
@@ -21,24 +21,11 @@ String CHARACTERISTIC_UUID = "11d29a29-98ee-453e-8c87-2f95f867650" + String(GROU
 
 String centralName = "ESP32-Central";
 
-// Papan ESP32-S3 tidak memiliki ADC pada GPIO34. Hapus tanda // pada baris di
-// bawah bila kalian memakai papan ESP32-S3, dan biarkan bila memakai DevKit V1.
-// #define BOARD_ESP32S3
+// Tombol pada GPIO17, dengan resistor pull-down 10 kΩ eksternal (lihat skema).
+const int PB_PIN = 17;
 
-// Potensiometer pada pin ADC1; ADC2 tidak dapat dibaca selama radio BLE menyala.
-#ifdef BOARD_ESP32S3
-const int POT_PIN = 4;   // ESP32-S3: ADC1_CH3
-#else
-const int POT_PIN = 34;  // ESP32 DevKit V1: ADC1_CH6
-#endif
-const int ADC_MAX = 4095;
-
-const int SERVO_MIN_ANGLE = 0;
-const int SERVO_MAX_ANGLE = 180;
-
-// Kirim ulang hanya bila sudut bergeser sejauh ini, dan paling cepat sekian
-// milidetik sekali, supaya kanal BLE tidak dibanjiri.
-const int DEADBAND_DEG = 3;
+// Kirim ulang paling cepat sekian milidetik sekali, untuk meredam derik
+// kontak (bounce) saat tombol ditekan atau dilepas.
 const unsigned long MIN_SEND_INTERVAL_MS = 100;
 
 BLEClient *pClient = nullptr;
@@ -48,17 +35,16 @@ BLEAddress *pPeripheralAddress = nullptr;
 bool doConnect = false;
 bool connected = false;
 
-int lastSentAngle = -100;
+int lastSentState = -1;
 unsigned long lastSendTime = 0;
 
 unsigned long sendTime = 0;
 bool waitingForEcho = false;
 
-// Mengubah tegangan pada potensiometer menjadi sudut servo.
-int readAngle() {
-  int raw = ________(POT_PIN);  // (2) Fungsi pembaca nilai analog sebuah pin
-
-  return map(raw, 0, ADC_MAX, SERVO_MIN_ANGLE, ________);  // (3) Batas sudut tertinggi
+// Membaca status tombol. Resistor pull-down membuat pin bernilai LOW saat
+// tombol tidak ditekan dan HIGH saat ditekan.
+int readButtonState() {
+  return ________(PB_PIN);  // (2) Fungsi pembaca nilai digital sebuah pin
 }
 
 // Dipanggil pustaka BLE setiap kali Peripheral mengirim notifikasi. Di sinilah
@@ -79,7 +65,7 @@ static void notifyCallback(
   if (waitingForEcho) {
     waitingForEcho = false;
 
-    Serial.printf("[%s] Echo dari Peripheral: %s derajat | Delay (round-trip): %lu ms\n",
+    Serial.printf("[%s] Echo dari Peripheral: %s | Delay (round-trip): %lu ms\n",
                   formatTimestamp(receiveTime).c_str(), echo.c_str(),
                   receiveTime - sendTime);
   }
@@ -142,7 +128,7 @@ bool connectToPeripheral(BLEAddress address) {
   pRemoteCharacteristic->registerForNotify(________);  // (5) Nama fungsi notifikasi
 
   connected = true;
-  Serial.println("Siap! Putar potensiometer untuk menggerakkan servo.");
+  Serial.println("Siap! Tekan tombol untuk menyalakan LED.");
   return true;
 }
 
@@ -169,7 +155,7 @@ void setup() {
   Serial.begin(115200);
   syncTimeFromSerial();
 
-  analogReadResolution(12);
+  pinMode(PB_PIN, ________);  // (3) Mode pin masukan
 
   BLEDevice::init(centralName.c_str());
 
@@ -199,22 +185,22 @@ void loop() {
     return;
   }
 
-  int angle = readAngle();
+  int state = readButtonState();
 
-  // Pengiriman hanya terjadi bila sudutnya benar-benar bergeser; tanpa ambang
-  // ini potensiometer yang diam pun tetap mengirim terus-menerus.
-  bool moved = abs(angle - lastSentAngle) >= DEADBAND_DEG;
+  // Pengiriman hanya terjadi bila status tombol benar-benar berubah; tanpa
+  // pengecekan ini tombol yang diam pun tetap mengirim terus-menerus.
+  bool changed = state != lastSentState;
   bool ready = millis() - lastSendTime >= MIN_SEND_INTERVAL_MS;
 
-  if (moved && ready) {
+  if (changed && ready) {
     sendTime = millis();
     lastSendTime = sendTime;
-    lastSentAngle = angle;
+    lastSentState = state;
     waitingForEcho = true;
 
-    String payload = String(________);  // (6) Variabel sudut yang ingin dikirim
+    String payload = String(________);  // (6) Variabel status yang ingin dikirim
 
-    Serial.printf("[%s] Potensiometer berubah, mengirim sudut: %s derajat\n",
+    Serial.printf("[%s] Tombol berubah, mengirim status: %s\n",
                   formatTimestamp(sendTime).c_str(), payload.c_str());
 
     // BLE mengirim deretan byte, sehingga panjang datanya ikut disertakan.

@@ -15,7 +15,7 @@
     }
   ],
   "perangkat": [
-    { "nama": "ESP32 DevKit V1 (DOIT)", "jumlah": "1x" },
+    { "nama": "ESP32-S3 (atau DevKit V1)", "jumlah": "1x" },
     { "nama": "Orange Pi 4 PRO", "jumlah": "1x, sebagai server lokal" },
     { "nama": "Sensor DHT22", "jumlah": "1x" },
     { "nama": "Breadboard", "jumlah": "1x" },

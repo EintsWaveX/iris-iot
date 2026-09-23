@@ -1,11 +1,13 @@
 /*
- * MODUL 2 - WEBSOCKET  |  Peran: Client (ESP32 DevKit V1/S3)
+ * MODUL 2 - WEBSOCKET  |  Peran: Client (ESP32-S3/DevKit V1)
  * Membaca suhu/kelembapan DHT22 tiap 2 detik dan mengirimkannya sebagai JSON
  * ke server Python, yang membalas dengan waktu terimanya. Isi rumpang (1)-(6).
  */
 
 #include <WiFi.h>
+// Pasang lewat Library Manager: "WebSockets" oleh Markus Sattler | PlatformIO: lib_deps = links2004/WebSockets
 #include <________>  // (1) Header pustaka client WebSocket (arduinoWebSockets)
+// Pasang lewat Library Manager: "DHT sensor library" oleh Adafruit (BUKAN "DHT" oleh Rob Tillaart), plus dependensinya "Adafruit Unified Sensor" | PlatformIO: lib_deps = adafruit/DHT sensor library
 #include <DHT.h>
 #include <time.h>
 #include <sys/time.h>  // Untuk gettimeofday() beresolusi mikrodetik

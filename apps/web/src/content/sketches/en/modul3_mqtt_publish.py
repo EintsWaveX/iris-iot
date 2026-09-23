@@ -22,7 +22,7 @@ mqtt_username = "<USERNAME FROM MOSQUITTO MQTT>"
 mqtt_password = "<PASSWORD FROM MOSQUITTO MQTT>"
 
 # ---- GROUP IDENTITY --------------------------------------------------------
-# Change the number below to your group number (1 through 8). The topic and the
+# Change the number below to your group number (1 through 5). The topic and the
 # client id follow it automatically, so your group's potentiometer is only read
 # by your group's Subscriber.
 group_id = 1

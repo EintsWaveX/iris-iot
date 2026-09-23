@@ -1,18 +1,18 @@
 /*
- * MODUL 1 - BLE  |  Peran: PERIPHERAL/SERVER (ESP32 DevKit V1/S3)
- * Menerima sudut dari Central, menggerakkan servo SG90 ke sudut itu, lalu
- * memantulkan (echo) nilainya kembali lewat notifikasi. Isi rumpang (1)-(6).
+ * MODUL 1 - BLE  |  Peran: PERIPHERAL/SERVER (ESP32-S3/DevKit V1)
+ * Menerima status tombol dari Central, menyalakan/mematikan LED sesuai
+ * statusnya, lalu memantulkan (echo) nilainya kembali lewat notifikasi. Isi
+ * rumpang (1)-(6).
  */
 
 #include <BLEDevice.h>
 #include <________>  // (1) Berkas header pembuat server/peripheral BLE
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include <ESP32Servo.h>
 #include "iris_waktu.h"
 
 // ---- IDENTITAS KELOMPOK -----------------------------------------------------
-// Ubah angka di bawah menjadi nomor kelompok kalian (1 sampai 8) pada *kedua*
+// Ubah angka di bawah menjadi nomor kelompok kalian (1 sampai 5) pada *kedua*
 // program. Kedua UUID ikut berubah sendiri, sehingga Central tidak akan
 // tersambung ke papan kelompok lain.
 const int GROUP_ID = 1;
@@ -22,14 +22,8 @@ String CHARACTERISTIC_UUID = "11d29a29-98ee-453e-8c87-2f95f867650" + String(GROU
 
 String peripheralName = "ESP32-Peripheral";
 
-// Servo SG90 pada GPIO16. Catu dayanya diambil dari pin VIN (5 V), bukan 3V3.
-const int SERVO_PIN = 16;
-
-// Lebar pulsa SG90 dalam mikrodetik untuk sudut 0 dan 180 derajat.
-const int SERVO_MIN_US = 500;
-const int SERVO_MAX_US = 2400;
-
-Servo servo;
+// LED pada GPIO16, dengan resistor pembatas arus 220 Ω pada kaki katodanya.
+const int LED_PIN = 16;
 
 BLEServer *pServer = nullptr;
 BLECharacteristic *pCharacteristic = nullptr;
@@ -55,17 +49,19 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
     unsigned long receiveTime = millis();
 
     String data = pCharacteristic->getValue().c_str();
-    int angle = constrain(data.toInt(), 0, 180);
+    int state = constrain(data.toInt(), 0, 1);
 
-    // Memantulkan data secepat mungkin, sebelum menggerakkan servo dan mencetak
-    // ke Serial, agar pengukuran pulang-pergi di sisi Central tidak terbebani.
+    // Memantulkan data secepat mungkin, sebelum menyalakan/mematikan LED dan
+    // mencetak ke Serial, agar pengukuran pulang-pergi di sisi Central tidak
+    // terbebani.
     pCharacteristic->setValue(data.c_str());
     pCharacteristic->________();  // (2) Metode pengirim nilai ke Central
 
-    servo.write(________);  // (3) Variabel sudut hasil pembacaan data
+    digitalWrite(LED_PIN, ________);  // (3) Variabel status hasil pembacaan data
 
-    Serial.printf("[%s] Sudut dari Central: %d derajat | Servo digerakkan\n",
-                  formatTimestamp(receiveTime).c_str(), angle);
+    Serial.printf("[%s] Status dari Central: %d | LED %s\n",
+                  formatTimestamp(receiveTime).c_str(), state,
+                  state ? "menyala" : "padam");
   }
 };
 
@@ -108,8 +104,8 @@ void setup() {
   Serial.begin(115200);
   syncTimeFromSerial();
 
-  servo.attach(________, SERVO_MIN_US, SERVO_MAX_US);  // (6) Konstanta pin servo
-  servo.write(90);
+  pinMode(________, OUTPUT);  // (6) Konstanta pin LED
+  digitalWrite(LED_PIN, LOW);
 
   BLE_init();
 }

@@ -10,7 +10,9 @@
 
 #include <WiFi.h>
 #include <SPI.h>
+// Pasang lewat Library Manager: "LoRa" oleh Sandeep Mistry | PlatformIO: lib_deps = sandeepmistry/LoRa
 #include <________>  // (1) Header pustaka LoRa peer-to-peer oleh Sandeep Mistry
+// Pasang lewat Library Manager: "WebSockets" oleh Markus Sattler | PlatformIO: lib_deps = links2004/WebSockets
 #include <WebSocketsClient.h>
 #include <time.h>
 #include <sys/time.h>

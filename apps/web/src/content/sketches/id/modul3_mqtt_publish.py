@@ -22,7 +22,7 @@ mqtt_username = "<USERNAME FROM MOSQUITTO MQTT>"
 mqtt_password = "<PASSWORD FROM MOSQUITTO MQTT>"
 
 # ---- IDENTITAS KELOMPOK ----------------------------------------------------
-# Ubah angka di bawah menjadi nomor kelompok kalian (1 sampai 8). Topik dan
+# Ubah angka di bawah menjadi nomor kelompok kalian (1 sampai 5). Topik dan
 # client id ikut berubah sendiri, sehingga potensiometer kelompok kalian hanya
 # terbaca pada Subscriber kelompok kalian.
 group_id = 1

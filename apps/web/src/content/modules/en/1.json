@@ -4,14 +4,16 @@
   "judul": "Bluetooth Low Energy",
   "topik": "Bluetooth Low Energy (BLE) Connectivity",
   "ringkasan": [
-    "Two ESP32 boards connect over the GATT protocol: one acts as the Central, reading a potentiometer, and the other as the Peripheral, driving a servo as soon as it receives a notification.",
+    "Two ESP32 boards connect over the GATT protocol: one acts as the Central, reading a push button, and the other as the Peripheral, turning an LED on or off as soon as it receives a notification.",
     "The delay measured is the one way travel time from Central to Peripheral, compared against the round trip delay the Central prints for itself once the echo comes back."
   ],
   "toolchain": [{ "label": "Both ESP32 boards (Central and Peripheral)", "alat": "Arduino IDE" }],
   "perangkat": [
-    { "nama": "ESP32 DevKit V1 (DOIT) or ESP32-S3", "jumlah": "2x" },
-    { "nama": "10 kOhm Potentiometer", "jumlah": "1x" },
-    { "nama": "SG90 Servo", "jumlah": "1x" },
+    { "nama": "ESP32-S3 (or ESP32 DevKit V1)", "jumlah": "2x" },
+    { "nama": "4-pin Push Button", "jumlah": "1x" },
+    { "nama": "5mm LED (any color)", "jumlah": "1x" },
+    { "nama": "10 kOhm Resistor", "jumlah": "1x" },
+    { "nama": "220 Ohm Resistor", "jumlah": "1x" },
     { "nama": "Breadboard", "jumlah": "2x" },
     { "nama": "Wires/Jumpers", "jumlah": "as needed" }
   ],
@@ -20,22 +22,18 @@
     "judul": "Central/Client and Peripheral/Server",
     "kolom": ["Component (Central)", "Pin", "Component (Peripheral)", "Pin"],
     "baris": [
-      ["POT (left leg)", "GND", "SRV (brown)", "GND"],
-      ["POT (wiper)", "GPIO34", "SRV (red)", "VIN (5V)"],
-      ["POT (right leg)", "3V3", "SRV (orange)", "GPIO16"]
+      ["Button (leg 1)", "3V3", "LED (anode)", "GPIO16"],
+      ["Button (leg 2)", "GPIO17", "LED (cathode, via 220 Ohm resistor)", "GND"]
     ],
     "catatan": [
-      "GPIO34 is an input only pin and belongs to ADC1, the only ADC that can still be read while the BLE radio is on.",
-      "An SG90 servo draws an inrush current the 3V3 regulator cannot supply, so its red wire must be taken from the VIN (5 V) pin with a common ground.",
-      "The ESP32-S3 has no ADC on GPIO34, so on that board the potentiometer moves to GPIO4 by enabling #define BOARD_ESP32S3 in the Central program."
+      "Button leg 2 is also tied to GND through a 10 kOhm resistor (pull-down), so GPIO17 reads LOW when the button is not pressed and HIGH when it is.",
+      "The LED needs a 220 Ohm current-limiting resistor on its cathode leg so its current stays within the GPIO's safe limit."
     ]
   },
   "persiapan": [
-    "Installing the ESP32Servo library through the Arduino IDE Library Manager",
-    "Selecting the ESP32 Dev Module board in the Arduino IDE for both boards",
+    "Selecting the ESP32S3 Dev Module board in the Arduino IDE for both boards (or ESP32 Dev Module if using a DevKit V1)",
     "Changing GROUP_ID in both programs to your group number",
-    "Removing the // in front of #define BOARD_ESP32S3 when using an ESP32-S3 board",
-    "Connecting the servo's red wire to VIN, not to 3V3",
+    "Wiring the button's 10 kOhm pull-down resistor and the LED's 220 Ohm current-limiting resistor per the schematic",
     "Syncing both boards' clocks from the same PC"
   ],
   "berkas": [

@@ -68,12 +68,12 @@ export const ANSWER_KEYS: Record<string, AnswerEntry> = {
     "BLEScan.h mendeklarasikan kelas pemindai (BLEScan) yang dipakai di bawah untuk mencari Peripheral.",
   ),
   "m1.modul1_ble_central.2": exact(
-    "analogRead",
-    "analogRead() adalah fungsi Arduino bawaan untuk membaca tegangan pada sebuah pin ADC.",
+    "digitalRead",
+    "digitalRead() adalah fungsi Arduino bawaan untuk membaca status HIGH/LOW pada sebuah pin digital.",
   ),
   "m1.modul1_ble_central.3": exact(
-    "SERVO_MAX_ANGLE",
-    "map() butuh batas atas keluarannya; SERVO_MAX_ANGLE (180) adalah sudut servo tertinggi yang valid.",
+    "INPUT",
+    "Resistor pull-down eksternal pada skema sudah menyediakan nilai pasti saat tombol tidak ditekan, sehingga mode pin cukup INPUT biasa, bukan INPUT_PULLUP.",
   ),
   "m1.modul1_ble_central.4": exact(
     "BLEUUID(SERVICE_UUID)",
@@ -84,8 +84,8 @@ export const ANSWER_KEYS: Record<string, AnswerEntry> = {
     "notifyCallback adalah fungsi di atas yang menangani setiap notifikasi masuk dari Peripheral.",
   ),
   "m1.modul1_ble_central.6": exact(
-    "angle",
-    "angle adalah variabel yang baru saja dihitung readAngle() dan yang ingin dikirim ke Peripheral.",
+    "state",
+    "state adalah variabel yang baru saja dihitung readButtonState() dan yang ingin dikirim ke Peripheral.",
   ),
   "m1.modul1_ble_peripheral.1": exact(
     "BLEServer.h",
@@ -96,8 +96,8 @@ export const ANSWER_KEYS: Record<string, AnswerEntry> = {
     "notify() mengirim nilai characteristic saat ini ke Central tanpa menunggu diminta.",
   ),
   "m1.modul1_ble_peripheral.3": exact(
-    "angle",
-    "angle adalah sudut hasil pembacaan data yang baru saja dikonversi dari nilai Central.",
+    "state",
+    "state adalah status tombol hasil pembacaan data yang baru saja dikonversi dari nilai Central.",
   ),
   "m1.modul1_ble_peripheral.4": exact(
     "PROPERTY_NOTIFY",
@@ -108,8 +108,8 @@ export const ANSWER_KEYS: Record<string, AnswerEntry> = {
     "MyCharacteristicCallbacks adalah kelas di atas yang berisi onWrite(), dipanggil setiap kali Central menulis data.",
   ),
   "m1.modul1_ble_peripheral.6": exact(
-    "SERVO_PIN",
-    "SERVO_PIN adalah konstanta pin GPIO tempat kabel sinyal servo terpasang.",
+    "LED_PIN",
+    "LED_PIN adalah konstanta pin GPIO tempat anoda LED terpasang.",
   ),
 
   // Module 2 -- WebSocket
