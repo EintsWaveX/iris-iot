@@ -247,6 +247,7 @@ const links = [
 
   <script>
     import { navigate } from "astro:transitions/client";
+    import { startPolling } from "../scripts/polling";
     interface Denyut {
       pada: string;
       cpu: number | null;
@@ -330,6 +331,30 @@ const links = [
         return;
       }
       document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
+
+      stopIdentityPolling?.();
+      // The session cookie is shared by every tab in the browser -- signing
+      // into a different account in another tab silently swaps who THIS
+      // tab is authenticated as too, on its very next request, with no
+      // visible warning. This poll notices the swap (the NIM this tab
+      // loaded with no longer matches what the cookie now resolves to) and
+      // forces a clean re-auth rather than letting an assistant keep
+      // sending server/service commands (restart, AP toggle, delete) as
+      // the wrong person.
+      stopIdentityPolling = startPolling(async () => {
+        try {
+          const check = await fetch("/api/auth/me").then((r) => r.json());
+          if (!check.ok || check.nim !== me.nim) {
+            window.Toast?.show(
+              "Sesi ini digantikan oleh masuk lain di peramban yang sama. Silakan masuk kembali.",
+              "info",
+            );
+            navigate("/?login=1");
+          }
+        } catch {
+          // A failed check is not evidence of a swap -- try again next tick.
+        }
+      }, 20_000);
 
       const params = new URLSearchParams(window.location.search);
       const id = params.get("id");
@@ -426,6 +451,7 @@ const links = [
     }
 
     let currentServerId = 0;
+    let stopIdentityPolling: (() => void) | null = null;
 
     async function loadDetail(id: number) {
       currentServerId = id;

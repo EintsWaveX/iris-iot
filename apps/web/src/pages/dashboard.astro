@@ -175,6 +175,7 @@ const links = [
     }
 
     let stopBannerPolling: (() => void) | null = null;
+    let stopIdentityPolling: (() => void) | null = null;
 
     // The reactive sky (Stage 6): a session starting wakes the orphaned
     // "sesi" scene, tinted per the running module via setModuleTint().
@@ -266,6 +267,29 @@ const links = [
         "click",
         () => window.open(iotBoardUrl(me.nim), "_blank", "noopener"),
       );
+
+      stopIdentityPolling?.();
+      // The session cookie is shared by every tab in the browser -- signing
+      // into a different account in another tab silently swaps who THIS
+      // tab is authenticated as too, on its very next request, with no
+      // visible warning. This poll notices the swap (the NIM this tab
+      // loaded with no longer matches what the cookie now resolves to) and
+      // forces a clean re-auth rather than letting the tab keep acting, and
+      // showing data, as the wrong person.
+      stopIdentityPolling = startPolling(async () => {
+        try {
+          const check = await fetch("/api/auth/me").then((r) => r.json());
+          if (!check.ok || check.nim !== me.nim) {
+            window.Toast?.show(
+              "Sesi ini digantikan oleh masuk lain di peramban yang sama. Silakan masuk kembali.",
+              "info",
+            );
+            navigate("/?login=1");
+          }
+        } catch {
+          // A failed check is not evidence of a swap -- try again next tick.
+        }
+      }, 20_000);
 
       stopBannerPolling?.();
       // A narrow, praktikan-safe poll: module/timing/broadcast only, never
