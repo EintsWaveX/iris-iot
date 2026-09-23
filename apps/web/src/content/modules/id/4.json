@@ -8,8 +8,8 @@
     "Karena LoRa peer to peer tidak memiliki protokol kanal bawaan, seluruh aturan jaringannya, termasuk sync word dan jeda pancar, disusun sendiri oleh peserta."
   ],
   "permainan": [
-    "Satu papan Beacon disembunyikan dan memancar terus menerus lima kali tiap detik. Tiap kelompok memegang satu papan Hunter yang hanya mendengarkan, lalu melaporkan kekuatan sinyalnya ke papan skor lewat Wi-Fi.",
-    "Semakin dekat sebuah kelompok, semakin kuat sinyal yang terbaca. Kelompok pertama yang berhasil memegang papan Beacon adalah pemenangnya."
+    "Lima pasangan Beacon/Hunter independen, satu per kelompok, bukan satu Beacon bersama. Asisten menyembunyikan satu Beacon per kelompok, target sendiri-sendiri. Tiap kelompok memegang satu Hunter yang hanya mendengarkan, lalu melaporkan kekuatan sinyalnya ke papan skor lewat Wi-Fi.",
+    "Semakin dekat sebuah kelompok ke targetnya SENDIRI, semakin kuat sinyal yang terbaca. Kelompok yang paling cepat menemukan targetnya sendiri menang. Jarak antar kelompok tidak dapat dibandingkan, karena target masing-masing disembunyikan di tempat berbeda."
   ],
   "toolchain": [
     { "label": "Papan Hunter tiap kelompok", "alat": "Arduino IDE" },
@@ -17,7 +17,10 @@
   ],
   "perangkat": [
     { "nama": "Cosmic LoRa Aurora V2", "jumlah": "1x per kelompok, sebagai Hunter" },
-    { "nama": "Cosmic LoRa Aurora V2", "jumlah": "1x sekelas, sebagai Beacon" },
+    {
+      "nama": "Cosmic LoRa Aurora V2",
+      "jumlah": "1x per kelompok, sebagai Beacon target kelompok itu sendiri"
+    },
     { "nama": "Antena LoRa 920 MHz", "jumlah": "1x per papan" },
     { "nama": "Orange Pi 4 PRO", "jumlah": "1x sekelas, hotspot dan papan skor" },
     { "nama": "Power bank atau kabel USB panjang", "jumlah": "1x per kelompok" }

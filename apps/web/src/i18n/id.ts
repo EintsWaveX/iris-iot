@@ -34,6 +34,8 @@ export const id = {
     download: "Unduh berkas",
     downloadHint: "Selesaikan semua bagian rumpang pada berkas ini untuk membuka unduhan.",
     masuk: "Masuk sebagai praktikan untuk mengisi dan menyimpan jawaban di sini.",
+    helperNote:
+      "Berkas ini memakai jam bersama dari {file}. Unduh berkas itu juga dan letakkan di folder yang sama sebelum mengunggah.",
   },
   live: {
     heading: "Tampilan live",

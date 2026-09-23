@@ -1,0 +1,26 @@
+{
+  "files": {
+    "public/sketches/en/iris_waktu.h": "f0d1c1f2c940f2c6874035e43dcf756bd912aceec3d983842cd82ec304c096b1",
+    "public/sketches/en/iris_waktu.py": "1e488b165beca85c0763f3aeb1b17e80011ba35cb4c4c7badd47bd9c5625faa2",
+    "public/sketches/id/iris_waktu.h": "86a45fc11883ac313a0fddc6bdc21ec740e2372c3ab6cee10677588a46e50de3",
+    "public/sketches/id/iris_waktu.py": "b3a9a3a2740bd22f0b9e4e896f0788ba3d4ca77f72cf5e99eca798ecddcd9a7c",
+    "src/content/sketches/en/modul1_ble_central.ino": "173214ea37bc78b1f07aa82cc2627c575ce98998c7c66e8bbc67fdfa2309487d",
+    "src/content/sketches/en/modul1_ble_peripheral.ino": "3fb04170a351b080263460e2dfafbab494d0761b9dbcf7bf4d51222adf8e91a3",
+    "src/content/sketches/en/modul2_websocket_esp32.ino": "4be35b1b132fec4ecaeb1f729d89b5fa532f526bfb0646c515b46d523f16e370",
+    "src/content/sketches/en/modul2_websocket_server.py": "d333b01f9b3e806ec96f15d123bd9edc11461679821cbca1c750beb85a92768e",
+    "src/content/sketches/en/modul3_mqtt_publish.py": "cc730afa548c7821a2ce4aaebba8852ed38db6605b1ab9bed3661a1659f71f36",
+    "src/content/sketches/en/modul3_mqtt_subscribe.py": "fa2e77f3a7235d631029977e9d8abcac17161bd26603495deb75233688ffc941",
+    "src/content/sketches/en/modul4_beacon.ino": "861f35895fdee732f819c5a2eb03cc8bcfd944be40fe27f4226ff7e0d09cf165",
+    "src/content/sketches/en/modul4_hunter.ino": "3b0aa4c224e2a9bd91a10695a25fe668edd475dafb50203a8227f804a8c4f5b7",
+    "src/content/sketches/id/modul1_ble_central.ino": "9a25f3fa3ff9e5418f141b1fb21a0d131c2b69ff8ac19931e30e716e89a60e7d",
+    "src/content/sketches/id/modul1_ble_peripheral.ino": "dfb2df24763e08d6938e23996071a0461fb5713b1a650c6adf4fac460717f7bc",
+    "src/content/sketches/id/modul2_websocket_esp32.ino": "bc00703546631c0507bc16ea8198b631e75aabe6ea26373d7f6659ccd2033ec7",
+    "src/content/sketches/id/modul2_websocket_server.py": "0f6db434213c694a8628e836da02073bf5e4a894cfe5e2e15acff0e05556c5d5",
+    "src/content/sketches/id/modul3_mqtt_publish.py": "908891e19daf5c6cf04bedbed99038aef6d5f41bd0223cef6a518c78c4e37a29",
+    "src/content/sketches/id/modul3_mqtt_subscribe.py": "04e7a21e3837b482992a5592da5843b9814cad61b781aed13f53343ed0cfa4a9",
+    "src/content/sketches/id/modul4_beacon.ino": "24a44faf39994c38a0a93084dfddc4a56d76a0ae704895d633f5d6b4bb8b2252",
+    "src/content/sketches/id/modul4_hunter.ino": "c6e10dcb3ca69a1a5312968dc365562462f3aa2d2e1a341c7fc24d2c2fef8050"
+  },
+  "irisAsoCommit": "d03900bc39495896a37a1c8e2caf038dc3db0abd",
+  "irisAsoDirty": false
+}

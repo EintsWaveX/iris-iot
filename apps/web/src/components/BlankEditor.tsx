@@ -11,6 +11,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Segment } from "../lib/blanks";
+import { needsPersonalization, personalizeSegments } from "../lib/group-identity";
 import "./BlankEditor.css";
 
 interface Props {
@@ -54,6 +55,11 @@ export default function BlankEditor({
   );
   const [loaded, setLoaded] = useState(false);
   const [locked, setLocked] = useState(false);
+  // Starts as the generic template's own segments (group 1's identity, if
+  // this berkas carries one) and is replaced once a logged-in group's own
+  // number comes back from the draft fetch below -- see group-identity.ts's
+  // header for why "generic" is never what actually gets flashed.
+  const [displaySegments, setDisplaySegments] = useState<Segment[]>(segments);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -83,6 +89,20 @@ export default function BlankEditor({
           }
           return next;
         });
+
+        const nomorKelompok = data.nomorKelompok;
+        if (typeof nomorKelompok === "number" && needsPersonalization(berkas)) {
+          try {
+            setDisplaySegments(personalizeSegments(berkas, segments, nomorKelompok));
+          } catch (err) {
+            // A malformed sync stays a loud CI failure (sync_sketches.py's
+            // own check, and the vitest cross-check against answer-keys.ts)
+            // -- but a viewer already looking at this page should still see
+            // SOMETHING rather than a crashed component, so this falls back
+            // to the generic segments already showing instead of throwing.
+            console.error(err);
+          }
+        }
       })
       .catch(() => {
         if (mounted.current) setLocked(true);
@@ -134,7 +154,7 @@ export default function BlankEditor({
     <div className="blank-editor">
       {locked && <p className="blank-editor__locked">{masukHint}</p>}
       <pre className="blank-editor__code">
-        {segments.map((seg, i) => {
+        {displaySegments.map((seg, i) => {
           if (seg.kind === "text") return seg.text;
           const entry = state[seg.nomor];
           const width = Math.max(4, (entry?.isi.length ?? 0) + 2);

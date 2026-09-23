@@ -1,8 +1,11 @@
 /*
- * MODUL 4 PART A - PERBURUAN LoRa  |  Peran: BEACON (disembunyikan asisten)
- * Satu-satunya radio yang memancar di ruangan, sehingga tidak ada tabrakan
- * paket. Tiap paket membawa nomor urut dan waktu kirimnya, dilaporkan juga
- * ke papan skor lewat Wi-Fi supaya paket yang hilang dapat dihitung.
+ * MODUL 4 PART A - PERBURUAN LoRa  |  Peran: BEACON (Kelompok 1,
+ * disembunyikan asisten)
+ * Memancar hanya di jendela waktu (slot) miliknya sendiri, bergiliran dengan
+ * keempat pasangan lain dalam satu periode bersama, sehingga kelima beacon
+ * berbagi kanal yang sama tanpa pernah bertabrakan. Tiap paket membawa nomor
+ * urut dan waktu kirimnya, dilaporkan juga ke papan skor lewat Wi-Fi supaya
+ * paket yang hilang dapat dihitung.
  *
  * Isi setiap bagian rumpang; nomor (1) sampai (6) pada komentar di sebelahnya
  * adalah petunjuknya.
@@ -14,6 +17,8 @@
 #include <WebSocketsClient.h>
 #include <time.h>
 #include <sys/time.h>
+
+#define GROUP_ID 1
 
 const char* WIFI_SSID      = "IRIS-IOT";
 const char* WIFI_PASSWORD  = "iris2026";
@@ -33,11 +38,13 @@ const int   DST_OFFSET_SEC  = 0;
 #define SPI_MOSI  23
 #define SPI_SCK   18
 
-// Keempat nilai ini harus sama persis dengan seluruh hunter.
+// Keempat nilai ini harus sama persis dengan hunter pasangannya sendiri --
+// pasangan lain sengaja memakai LORA_SYNC_WORD yang berbeda, supaya kelima
+// radio tidak saling mendengar.
 #define LORA_FREQUENCY        920E6
 #define LORA_SPREADING_FACTOR 7
 #define LORA_BANDWIDTH        250E3
-#define LORA_SYNC_WORD        0xF3
+#define LORA_SYNC_WORD        0xF1
 
 // Daya pancar disetel menurut UKURAN ARENA, bukan dibesarkan sebisanya. Pada
 // 20 dBm seluruh gedung terbaca "dekat" dan beacon mustahil ditemukan; pada
@@ -45,14 +52,18 @@ const int   DST_OFFSET_SEC  = 0;
 // Satu ruangan: 2. Satu lantai gedung: 10. Gedung besar: 14.
 #define BEACON_TX_POWER 10
 
-// Satu paket kira-kira 20 ms di udara. Jeda 200 ms berarti kanal terpakai
-// sekitar sepersepuluh waktu saja.
-const unsigned long BEACON_PERIOD_MS = 200;
+// Jadwal TDMA: satu periode 500 ms dibagi lima slot 100 ms, satu slot per
+// kelompok dipilih oleh GROUP_ID, sehingga kelima beacon berbagi kanal yang
+// sama tanpa pernah bertabrakan -- tak satu pun memancar di luar slotnya
+// sendiri. Ini menggantikan jeda tetap versi sebelumnya, yang hanya aman
+// selama cuma ada satu beacon menyala di udara.
+const unsigned long TDMA_PERIOD_MS = 500;
+const unsigned long TDMA_SLOT_MS   = 100;
+unsigned long nextFireAt = 0;
 
 WebSocketsClient webSocket;
 
 uint32_t seq = 0;
-unsigned long lastChirp = 0;
 
 String wallClockTimestamp() {
   struct timeval tv;
@@ -123,6 +134,10 @@ void setup() {
   syncClock();
   startRadio();
 
+  // Kelompok 1 memancar di awal setiap periode, kelompok 2 seratus
+  // milidetik sesudahnya, dan seterusnya -- lihat komentar TDMA_* di atas.
+  nextFireAt = millis() + (unsigned long)(GROUP_ID - 1) * TDMA_SLOT_MS;
+
   webSocket.begin(SERVER_HOST, SERVER_PORT, "/beacon");
   webSocket.setReconnectInterval(2000);
   WiFi.setAutoReconnect(true);
@@ -133,15 +148,15 @@ void setup() {
 void loop() {
   webSocket.loop();
 
-  if (millis() - lastChirp < BEACON_PERIOD_MS) {
+  if ((long)(millis() - nextFireAt) < 0) {
     return;
   }
+  nextFireAt += TDMA_PERIOD_MS;
 
-  lastChirp = millis();
   seq++;
 
   String sentAt = wallClockTimestamp();
-  String payload = String(seq) + " " + sentAt;
+  String payload = String(GROUP_ID) + " " + String(seq) + " " + sentAt;
 
   LoRa.beginPacket();
   LoRa.print(________);  // (5) Variabel isi paket yang disusun di atas
@@ -149,11 +164,11 @@ void loop() {
 
   // Papan skor perlu tahu nomor paket yang benar-benar dipancarkan, supaya
   // paket yang tidak sampai ke sebuah hunter dapat dihitung sebagai hilang.
-  char report[64];
-  snprintf(report, sizeof(report), "{\"seq\":%lu,\"tx\":\"%s\"}",
-           (unsigned long)seq, sentAt.c_str());
+  char report[80];
+  snprintf(report, sizeof(report), "{\"grup\":%d,\"seq\":%lu,\"tx\":\"%s\"}",
+           GROUP_ID, (unsigned long)seq, sentAt.c_str());
   webSocket.sendTXT(report);
 
-  Serial.printf("[%s] Memancar paket #%lu\n", sentAt.c_str(),
-                (unsigned long)seq);
+  Serial.printf("[%s] Memancar paket #%lu (kelompok %d)\n", sentAt.c_str(),
+                (unsigned long)seq, GROUP_ID);
 }

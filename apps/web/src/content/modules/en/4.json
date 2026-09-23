@@ -8,8 +8,8 @@
     "Because peer to peer LoRa has no built in channel protocol, every network rule, including the sync word and the transmit interval, is one the participants build themselves."
   ],
   "permainan": [
-    "One Beacon board is hidden and transmits continuously, five times a second. Each group holds one Hunter board that only listens, then reports the signal strength it catches to the scoreboard over Wi-Fi.",
-    "The closer a group gets, the stronger the reading. The first group to actually hold the Beacon board wins."
+    "Five fully independent Beacon/Hunter pairs, one pair per group, not one shared Beacon everyone races for. An assistant hides one Beacon board per group, its own target. Each group holds one Hunter board that only listens, then reports the signal strength it catches to the scoreboard over Wi-Fi.",
+    "The closer a group gets to its OWN target, the stronger the reading. Whichever group finds its own target fastest wins. Distance cannot be compared between groups, since each target is hidden somewhere different."
   ],
   "toolchain": [
     { "label": "Each group's Hunter board", "alat": "Arduino IDE" },
@@ -17,7 +17,10 @@
   ],
   "perangkat": [
     { "nama": "Cosmic LoRa Aurora V2", "jumlah": "1x per group, as the Hunter" },
-    { "nama": "Cosmic LoRa Aurora V2", "jumlah": "1x per class, as the Beacon" },
+    {
+      "nama": "Cosmic LoRa Aurora V2",
+      "jumlah": "1x per group, as the Beacon its own group hunts"
+    },
     { "nama": "920 MHz LoRa Antenna", "jumlah": "1x per board" },
     { "nama": "Orange Pi 4 PRO", "jumlah": "1x per class, hotspot and scoreboard" },
     { "nama": "Power bank or a long USB cable", "jumlah": "1x per group" }

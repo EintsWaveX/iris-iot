@@ -23,6 +23,7 @@ import { currentSesi } from "../../src/lib/sesi.js";
 import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
 import { checkJawaban, blankCountFor, canonicalAnswer } from "../_lib/answer-keys.js";
 import { getSketchSourceForApi } from "../_lib/sketch-sources.js";
+import { personalize } from "../../src/lib/group-identity.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { and, eq, like } from "drizzle-orm";
 
@@ -79,7 +80,11 @@ async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPa
     const nomor = row.soalKode.slice(prefix.length);
     out[nomor] = { isi: row.isi, benar: row.benar };
   }
-  res.status(200).json({ ok: true, jawaban: out });
+  // Not a secret -- a group already knows its own number, and this is the
+  // signal the editor's Code step uses to show the sketch's identity line
+  // (GROUP_ID, LORA_SYNC_WORD) as THIS group's own value rather than the
+  // generic template's, matching what the gated download already produces.
+  res.status(200).json({ ok: true, jawaban: out, nomorKelompok: session.reguNomor ?? null });
 }
 
 async function handleCek(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -221,9 +226,17 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
   }
 
   const segments = parseBlanks(template);
-  const reconstructed = segments
+  const reconstructedGeneric = segments
     .map((s) => (s.kind === "text" ? s.text : (answers.get(s.nomor) ?? "")))
     .join("");
+
+  // The single most safety-critical line in this handler: every group's
+  // download otherwise carries group 1's identity verbatim (GROUP_ID, and
+  // for Module 4, LORA_SYNC_WORD too), which is not a cosmetic label -- it
+  // is what keeps five groups' boards from colliding with each other over
+  // the air or on the same BLE UUID / MQTT topic. See group-identity.ts's
+  // own header for the concrete failure this fixes.
+  const reconstructed = personalize(parsed.berkas, reconstructedGeneric, nomorKelompok);
 
   res.status(200);
   res.setHeader("Content-Type", "text/plain; charset=utf-8");

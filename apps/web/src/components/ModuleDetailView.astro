@@ -61,6 +61,15 @@ const steps = [
   { id: "live", label: t.stepLabels.live },
 ];
 
+// Modules 1 and 3's sketches `#include`/`import` a small, blank-free shared
+// clock helper (iris_waktu.h / iris_waktu.py) rather than duplicating that
+// code in every file -- it carries no graded blank, so it's served as a
+// plain static download from public/sketches/ rather than through the
+// editor, and the Code step just needs to tell a student it exists and
+// where it goes.
+const HELPER_FILE_BY_MODUL: Record<number, string> = { 1: "iris_waktu.h", 3: "iris_waktu.py" };
+const helperFile = HELPER_FILE_BY_MODUL[m.modul];
+
 const berkasSource = m.berkas.map((b) => ({
   ...b,
   slug: b.path.replace(/\.(ino|py)$/, ""),
@@ -171,6 +180,15 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
       >
         <h2 class="module-panel__heading">{t.code.heading}</h2>
         <p class="measure-prose module-panel__note">{t.code.note}</p>
+        {helperFile && (
+          <p class="measure-prose module-panel__note">
+            {t.code.helperNote.split("{file}")[0]}
+            <a href={`/sketches/${m.bahasa}/${helperFile}`} download>
+              {helperFile}
+            </a>
+            {t.code.helperNote.split("{file}")[1]}
+          </p>
+        )}
         {berkasSource.map((b) => (
           <Card title={b.judul} class="module-code-card">
             <BlankEditor

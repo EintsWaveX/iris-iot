@@ -41,7 +41,7 @@ const int   DST_OFFSET_SEC  = 0;
 #define LORA_FREQUENCY        920E6
 #define LORA_SPREADING_FACTOR 7
 #define LORA_BANDWIDTH        250E3
-#define LORA_SYNC_WORD        0xF3
+#define LORA_SYNC_WORD        0xF1
 
 // RSSI di dalam ruangan melonjak sampai 10 dB karena pantulan dinding. Median
 // membuang lonjakannya, EWMA menghaluskan sisanya. Tanpa kedua tapis ini
@@ -182,14 +182,23 @@ void loop() {
   int rssi = LoRa.________();  // (5) Metode pembaca kekuatan sinyal paket
   float snr = LoRa.packetSnr();
 
-  // Paket beacon berisi "<no. paket> <waktu kirim>", dipisahkan satu spasi.
-  int space = beaconLine.indexOf(' ');
-  if (space < 0) {
+  // Paket beacon berisi "<kelompok> <no. paket> <waktu kirim>", dipisahkan
+  // spasi. Kelompok ikut dikirim sebagai jaring pengaman kedua: penanda
+  // pasangan (sync word) radio sudah menyaring hampir semua paket pasangan
+  // lain, tetapi kalau ada yang lolos, baris ini membuangnya diam-diam
+  // alih-alih melaporkannya seolah milik kelompok yang salah.
+  int sp1 = beaconLine.indexOf(' ');
+  int sp2 = sp1 < 0 ? -1 : beaconLine.indexOf(' ', sp1 + 1);
+  if (sp1 < 0 || sp2 < 0) {
     return;  // Paket rusak di udara; abaikan saja.
   }
 
-  String seq    = beaconLine.substring(0, space);
-  String sentAt = beaconLine.substring(space + 1);
+  if (beaconLine.substring(0, sp1).toInt() != GROUP_ID) {
+    return;  // Bukan beacon pasangan kita; abaikan diam-diam.
+  }
+
+  String seq    = beaconLine.substring(sp1 + 1, sp2);
+  String sentAt = beaconLine.substring(sp2 + 1);
 
   char payload[192];
   snprintf(payload, sizeof(payload),

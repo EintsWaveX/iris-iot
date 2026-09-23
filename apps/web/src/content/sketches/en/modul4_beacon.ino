@@ -1,8 +1,11 @@
 /*
- * MODULE 4 PART A - LoRa HUNT  |  Role: BEACON (hidden by the assistant)
- * The only radio transmitting in the room, so there are no packet collisions.
- * Every packet carries a sequence number and send time, also reported to the
- * scoreboard over Wi-Fi so lost packets can be counted.
+ * MODULE 4 PART A - LoRa HUNT  |  Role: BEACON (Group 1, hidden
+ * by the assistant)
+ * Transmits only in its own time slot, taking turns with the other four
+ * pairs within one shared period, so all five beacons share the same
+ * channel without ever colliding. Every packet carries a sequence number
+ * and send time, also reported to the scoreboard over Wi-Fi so lost packets
+ * can be counted.
  *
  * Fill in every blank section; the numbers (1) through (6) in the comment
  * beside each one are the hints.
@@ -14,6 +17,8 @@
 #include <WebSocketsClient.h>
 #include <time.h>
 #include <sys/time.h>
+
+#define GROUP_ID 1
 
 const char* WIFI_SSID      = "IRIS-IOT";
 const char* WIFI_PASSWORD  = "iris2026";
@@ -33,11 +38,13 @@ const int   DST_OFFSET_SEC  = 0;
 #define SPI_MOSI  23
 #define SPI_SCK   18
 
-// These four values must match every hunter exactly.
+// These four values must match this pair's own hunter exactly -- other
+// pairs deliberately use a different LORA_SYNC_WORD, so the five radios
+// cannot hear each other.
 #define LORA_FREQUENCY        920E6
 #define LORA_SPREADING_FACTOR 7
 #define LORA_BANDWIDTH        250E3
-#define LORA_SYNC_WORD        0xF3
+#define LORA_SYNC_WORD        0xF1
 
 // The transmit power is matched to the SIZE OF THE ARENA, not turned up as
 // far as it goes. At 20 dBm the whole building reads as "close" and the
@@ -45,14 +52,18 @@ const int   DST_OFFSET_SEC  = 0;
 // One room: 2. One floor of a building: 10. A large building: 14.
 #define BEACON_TX_POWER 10
 
-// One packet is roughly 20 ms in the air. A 200 ms gap means the channel is
-// busy only about a tenth of the time.
-const unsigned long BEACON_PERIOD_MS = 200;
+// TDMA schedule: one 500 ms period split into five 100 ms slots, one per
+// group, chosen by GROUP_ID, so all five beacons share one channel without
+// ever colliding -- none transmits outside its own slot. This replaces the
+// previous version's fixed gap, which was only safe with a single beacon
+// on the air.
+const unsigned long TDMA_PERIOD_MS = 500;
+const unsigned long TDMA_SLOT_MS   = 100;
+unsigned long nextFireAt = 0;
 
 WebSocketsClient webSocket;
 
 uint32_t seq = 0;
-unsigned long lastChirp = 0;
 
 String wallClockTimestamp() {
   struct timeval tv;
@@ -123,6 +134,10 @@ void setup() {
   syncClock();
   startRadio();
 
+  // Group 1 transmits at the start of every period, group 2 a hundred
+  // milliseconds after that, and so on -- see the TDMA_* comment above.
+  nextFireAt = millis() + (unsigned long)(GROUP_ID - 1) * TDMA_SLOT_MS;
+
   webSocket.begin(SERVER_HOST, SERVER_PORT, "/beacon");
   webSocket.setReconnectInterval(2000);
   WiFi.setAutoReconnect(true);
@@ -133,15 +148,15 @@ void setup() {
 void loop() {
   webSocket.loop();
 
-  if (millis() - lastChirp < BEACON_PERIOD_MS) {
+  if ((long)(millis() - nextFireAt) < 0) {
     return;
   }
+  nextFireAt += TDMA_PERIOD_MS;
 
-  lastChirp = millis();
   seq++;
 
   String sentAt = wallClockTimestamp();
-  String payload = String(seq) + " " + sentAt;
+  String payload = String(GROUP_ID) + " " + String(seq) + " " + sentAt;
 
   LoRa.beginPacket();
   LoRa.print(________);  // (5) Variable holding the packet built above
@@ -149,11 +164,11 @@ void loop() {
 
   // The scoreboard needs to know which packet numbers were actually sent, so
   // that a packet which never reached a hunter can be counted as lost.
-  char report[64];
-  snprintf(report, sizeof(report), "{\"seq\":%lu,\"tx\":\"%s\"}",
-           (unsigned long)seq, sentAt.c_str());
+  char report[80];
+  snprintf(report, sizeof(report), "{\"grup\":%d,\"seq\":%lu,\"tx\":\"%s\"}",
+           GROUP_ID, (unsigned long)seq, sentAt.c_str());
   webSocket.sendTXT(report);
 
-  Serial.printf("[%s] Transmitted packet #%lu\n", sentAt.c_str(),
-                (unsigned long)seq);
+  Serial.printf("[%s] Transmitted packet #%lu (group %d)\n", sentAt.c_str(),
+                (unsigned long)seq, GROUP_ID);
 }

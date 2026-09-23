@@ -41,7 +41,7 @@ const int   DST_OFFSET_SEC  = 0;
 #define LORA_FREQUENCY        920E6
 #define LORA_SPREADING_FACTOR 7
 #define LORA_BANDWIDTH        250E3
-#define LORA_SYNC_WORD        0xF3
+#define LORA_SYNC_WORD        0xF1
 
 // Indoors, RSSI jumps by as much as 10 dB from wall reflections. The median
 // throws the spikes away and the EWMA smooths what is left. Without both
@@ -182,14 +182,23 @@ void loop() {
   int rssi = LoRa.________();  // (5) Method that reads the packet signal strength
   float snr = LoRa.packetSnr();
 
-  // A beacon packet holds "<packet no.> <send time>", separated by one space.
-  int space = beaconLine.indexOf(' ');
-  if (space < 0) {
+  // A beacon packet holds "<group> <packet no.> <send time>", separated by
+  // spaces. The group rides along as a second safety net: the radio's own
+  // sync word already filters out nearly every other pair's packets, but if
+  // one slips through anyway, this line drops it silently instead of
+  // reporting it as belonging to the wrong group.
+  int sp1 = beaconLine.indexOf(' ');
+  int sp2 = sp1 < 0 ? -1 : beaconLine.indexOf(' ', sp1 + 1);
+  if (sp1 < 0 || sp2 < 0) {
     return;  // The packet was corrupted in the air; just ignore it.
   }
 
-  String seq    = beaconLine.substring(0, space);
-  String sentAt = beaconLine.substring(space + 1);
+  if (beaconLine.substring(0, sp1).toInt() != GROUP_ID) {
+    return;  // Not our own pair's beacon; ignore it silently.
+  }
+
+  String seq    = beaconLine.substring(sp1 + 1, sp2);
+  String sentAt = beaconLine.substring(sp2 + 1);
 
   char payload[192];
   snprintf(payload, sizeof(payload),
