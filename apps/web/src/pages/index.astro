@@ -166,6 +166,22 @@ const links = [
         if (location.pathname !== "/") return;
         masuk.hidden = !!data.ok;
         keluar.hidden = !data.ok;
+
+        // An asisten's "Dasbor" is /dashboard in the markup, but that page
+        // immediately bounces every asisten to /session (it is praktikan-
+        // only) -- so left as "Dasbor", the tab silently teleports an
+        // asisten to a different, already-visible tab the moment they
+        // click it. Repoint it at /session and relabel it to match, the
+        // same way servers.astro/session.astro's own nav already does,
+        // rather than leaving a tab that never does what it says for half
+        // of this app's visitors.
+        if (data.ok && data.role === "asisten") {
+          const dasbor = document.querySelector<HTMLAnchorElement>('.nav__link[href="/dashboard"]');
+          if (dasbor) {
+            dasbor.href = "/session";
+            dasbor.textContent = "Sesi";
+          }
+        }
       })
       .catch(() => {
         // A failed check is not evidence of a session either way --

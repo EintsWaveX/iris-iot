@@ -19,8 +19,8 @@
  * because a silent failure here reproduces exactly the bug this file
  * exists to fix.
  */
-import identitas from "../content/sketches/identitas.json";
-import type { Segment } from "./blanks";
+import identitas from "../content/sketches/identitas.json" with { type: "json" };
+import type { Segment } from "./blanks.js";
 
 interface RewriteOption {
   /** Must match zero or one times in an id/en-correct file -- see Rewrite's

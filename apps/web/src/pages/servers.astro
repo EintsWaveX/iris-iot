@@ -676,7 +676,18 @@ const links = [
     // in the tab -- silently throwing on view-daftar/view-detail, ids
     // that don't exist there.
     function bindPage() {
-      if (location.pathname !== "/servers" || !document.getElementById("loading")) return;
+      if (location.pathname !== "/servers") return;
+      const loading = document.getElementById("loading");
+      // astro:page-load fires once on the very first load AND again after
+      // every later navigation, but bindPage() is also called directly
+      // below for that same first load -- without this guard, the first
+      // visit's listeners (every data-aksi button, the register-server
+      // form, delete confirmation) were bound twice, so one click under
+      // Kesehatan/Perintah actually sent the command twice. A later real
+      // navigation creates a fresh #loading node with no dataset.bound,
+      // so re-binding then still works as intended.
+      if (!loading || loading.dataset.bound) return;
+      loading.dataset.bound = "1";
 
       document.querySelectorAll<HTMLElement>("[data-aksi]").forEach((el) => {
         el.addEventListener("click", () => kirimPerintah(el.dataset.aksi!));

@@ -313,7 +313,18 @@ const links = [
     // check (not just #loading's presence) matters now that dashboard.astro
     // navigates here for a non-praktikan.
     function bindPage() {
-      if (location.pathname !== "/session" || !document.getElementById("loading")) return;
+      if (location.pathname !== "/session") return;
+      const loading = document.getElementById("loading");
+      // astro:page-load fires once on the very first load AND again after
+      // every later navigation, but bindPage() is also called directly
+      // below for that same first load -- without this guard, the first
+      // visit's listeners were bound twice, so a single click on "Mulai
+      // sesi" fired two POSTs; the second always lost the race and came
+      // back "sudah pernah ada" even though the user only clicked once.
+      // A later real navigation creates a fresh #loading node with no
+      // dataset.bound, so re-binding then still works as intended.
+      if (!loading || loading.dataset.bound) return;
+      loading.dataset.bound = "1";
 
       document.getElementById("roster-paste")?.addEventListener("input", repaintTally);
 

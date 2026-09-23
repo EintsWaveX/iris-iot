@@ -306,7 +306,17 @@ const links = [
     // against session.astro's DOM, see role !== "praktikan", and call
     // navigate("/session") again while already there.
     function bindPage() {
-      if (location.pathname !== "/dashboard" || !document.getElementById("loading")) return;
+      if (location.pathname !== "/dashboard") return;
+      const loading = document.getElementById("loading");
+      // astro:page-load fires once on the very first load AND again after
+      // every later navigation, but bindPage() is also called directly
+      // below for that same first load -- without this guard, the first
+      // visit's listeners (including init()'s own) were bound twice,
+      // making every click and the first poll fire double. A later real
+      // navigation creates a fresh #loading node with no dataset.bound,
+      // so re-binding then still works as intended.
+      if (!loading || loading.dataset.bound) return;
+      loading.dataset.bound = "1";
 
       document.getElementById("btn-keluar")?.addEventListener("click", async () => {
         await fetch("/api/auth/logout", { method: "POST" });
