@@ -216,6 +216,13 @@ WS_MAX_SIZE = 1 << 20
 
 JADWAL_PATH = HERE / "jadwal.json"
 ROSTER_PATH = HERE / "roster.json"   # berkas v1; dibuang bila ditemukan
+# Ditulis oleh agent Orange Pi (Stage 18) dari respons denyut jantungnya
+# sendiri -- lihat orangepi/agent/agent.py dan apps/web/api/agent/index.ts's
+# jadwalModul4Hari(). Bukan di bawah /home karena systemd unit agent
+# memasang ProtectHome=true.
+JADWAL_IMPOR_PATH_BAWAAN = pathlib.Path("/var/lib/iris-agent/bagi/jadwal-modul4.json")
+JADWAL_IMPOR_PATH = JADWAL_IMPOR_PATH_BAWAAN  # dapat diganti lewat --jadwal-impor
+JADWAL_IMPOR_MTIME: float | None = None
 JADWAL_MULAI = ("06:30", "09:30", "12:30", "15:30")
 SESI_DURASI_SEC = 165 * 60         # batas satu sesi praktikum
 SESI_JEDA_SEC = 15 * 60            # bersih selambatnya sekian sebelum sesi berikut
@@ -998,7 +1005,10 @@ def _menit(jam: str) -> int:
 
 
 def sesi_kosong(idx: int, jam: str) -> dict:
-    return {"id": idx, "mulai": jam, "regu": {}}
+    # sumber: None sampai terisi sekali, lalu "web" (impor Stage 18) atau
+    # "pi" (tempelan manual asisten) -- lihat jadwal_impor()'s docstring
+    # untuk aturan siapa boleh menimpa siapa.
+    return {"id": idx, "mulai": jam, "regu": {}, "sumber": None}
 
 
 def jadwal_awal() -> None:
@@ -1179,10 +1189,12 @@ def jadwal_muat() -> None:
             if not isinstance(entry, dict):
                 continue
             jam = str(entry.get("mulai", ""))
+            sumber = entry.get("sumber")
             JADWAL["sesi"].append({
                 "id": i + 1,
                 "mulai": jam if JAM_RE.match(jam) else JADWAL_MULAI[i],
                 "regu": entry.get("regu") if isinstance(entry.get("regu"), dict) else {},
+                "sumber": sumber if sumber in ("web", "pi") else None,
             })
         while len(JADWAL["sesi"]) < len(JADWAL_MULAI):
             n = len(JADWAL["sesi"])
@@ -1224,34 +1236,28 @@ def _anggota_bersih(raw) -> tuple[list[dict], str]:
     return keluar, ""
 
 
-def jadwal_set(sid, patch: dict) -> tuple[bool, str]:
-    """Tulis ulang kelompok satu sesi.
-
-    Berbeda dengan penyuntingan sebaris yang lama, satu sesi disimpan
-    sekaligus: asisten menempelkan seluruh daftarnya, jadi tambal sebagian
-    per kelompok tidak lagi ada gunanya dan hanya akan menyisakan kelompok
-    hantu dari tempelan sebelumnya.
-    """
-    entry = sesi_oleh_id(sid if isinstance(sid, int) else -1)
-    if entry is None:
-        return False, f"sesi tidak dikenal: {sid}"
+def _bangun_regu(entry: dict, patch: dict) -> tuple[dict | None, str]:
+    """Validasi satu tempelan dan bangun dict regu-nya, termasuk pengecekan
+    NIM ganda lintas sesi. Diekstrak dari jadwal_set() agar jadwal_impor()
+    (Stage 18) tunduk pada aturan validasi yang persis sama, alih-alih
+    menduplikasi logikanya dengan risiko keduanya diam-diam berbeda."""
     if not isinstance(patch, dict):
-        return False, "isian sesi tidak sah"
+        return None, "isian sesi tidak sah"
 
     regu: dict = {}
     for key, value in patch.items():
         try:
             gid = int(key)
         except (TypeError, ValueError):
-            return False, f"nomor kelompok tidak sah: {key}"
+            return None, f"nomor kelompok tidak sah: {key}"
         if not 1 <= gid <= MAX_GRUP_ID:
-            return False, f"nomor kelompok di luar jangkauan: {gid}"
+            return None, f"nomor kelompok di luar jangkauan: {gid}"
         if not isinstance(value, dict):
-            return False, f"isian kelompok {gid} tidak sah"
+            return None, f"isian kelompok {gid} tidak sah"
 
         anggota, galat = _anggota_bersih(value.get("anggota") or [])
         if galat:
-            return False, f"kelompok {gid}: {galat}"
+            return None, f"kelompok {gid}: {galat}"
 
         regu[str(gid)] = {
             "nama": _bersih(value.get("nama", "")),
@@ -1267,22 +1273,111 @@ def jadwal_set(sid, patch: dict) -> tuple[bool, str]:
     # yang salah tanpa ada yang tahu.
     terpakai: dict[str, str] = {}
     for lain in JADWAL["sesi"]:
-        sumber = regu if lain["id"] == entry["id"] else lain["regu"]
-        for gid, isi in sumber.items():
+        sumber_regu = regu if lain["id"] == entry["id"] else lain["regu"]
+        for gid, isi in sumber_regu.items():
             for anggota in isi.get("anggota", []):
                 kunci = anggota["nim"]
                 tempat = f"sesi {lain['id']} kelompok {gid}"
                 if kunci in terpakai:
-                    return False, (f"NIM {kunci} muncul dua kali: "
+                    return None, (f"NIM {kunci} muncul dua kali: "
                                    f"{terpakai[kunci]} dan {tempat}")
                 terpakai[kunci] = tempat
 
+    return regu, ""
+
+
+def jadwal_set(sid, patch: dict) -> tuple[bool, str]:
+    """Tulis ulang kelompok satu sesi.
+
+    Berbeda dengan penyuntingan sebaris yang lama, satu sesi disimpan
+    sekaligus: asisten menempelkan seluruh daftarnya, jadi tambal sebagian
+    per kelompok tidak lagi ada gunanya dan hanya akan menyisakan kelompok
+    hantu dari tempelan sebelumnya.
+    """
+    entry = sesi_oleh_id(sid if isinstance(sid, int) else -1)
+    if entry is None:
+        return False, f"sesi tidak dikenal: {sid}"
+
+    regu, galat = _bangun_regu(entry, patch)
+    if galat:
+        return False, galat
+
     entry["regu"] = regu
+    # Tempelan manual selalu menang atas impor web berikutnya -- lihat
+    # jadwal_impor()'s docstring.
+    entry["sumber"] = "pi"
     JADWAL["rev"] += 1
     JADWAL["hari"] = hari_ini()
     jadwal_simpan()
     HUNT.note("jadwal", None, sesi=entry["id"], regu=len(regu))
     return True, ""
+
+
+def jadwal_impor(path: pathlib.Path) -> None:
+    """Tarik jadwal Modul 4 hari ini dari berkas yang ditulis agent Orange Pi
+    (Stage 18), diisi dari respons denyut jantungnya sendiri
+    (jadwalModul4Hari() pada apps/web).
+
+    Sebuah sesi yang sumber-nya sudah "pi" -- pernah ditempel manual di
+    Orange Pi sejak impor terakhir -- DILEWATI, bukan ditimpa: kotak tempel
+    tetap menjadi cadangan luring yang berlaku penuh begitu asisten
+    menyentuhnya, persis seperti sebelum Stage 18 ada. Sesi yang gagal
+    validasi (mis. NIM ganda) dilewati dan dicatat ke konsol tanpa
+    menggagalkan sesi lain dalam berkas yang sama -- satu baris rusak tidak
+    boleh membuat keempat sesi gagal diimpor.
+    """
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as err:
+        print(f"[{timestamp()}] jadwal impor gagal dibaca: {err}")
+        return
+    if not isinstance(data, dict) or not isinstance(data.get("sesi"), list):
+        print(f"[{timestamp()}] jadwal impor: bentuk tidak dikenal, diabaikan")
+        return
+
+    diterapkan = 0
+    for slot in data["sesi"]:
+        if not isinstance(slot, dict):
+            continue
+        sid = slot.get("id")
+        entry = sesi_oleh_id(sid if isinstance(sid, int) else -1)
+        if entry is None:
+            continue
+        if entry.get("sumber") == "pi":
+            continue
+
+        patch = slot.get("regu") if isinstance(slot.get("regu"), dict) else {}
+        regu, galat = _bangun_regu(entry, patch)
+        if galat:
+            print(f"[{timestamp()}] jadwal impor sesi {sid} ditolak: {galat}")
+            continue
+
+        entry["regu"] = regu
+        entry["sumber"] = "web"
+        diterapkan += 1
+
+    if diterapkan:
+        JADWAL["rev"] += 1
+        JADWAL["hari"] = hari_ini()
+        jadwal_simpan()
+        HUNT.note("jadwal-impor", None, sesi=diterapkan)
+        print(f"[{timestamp()}] jadwal diimpor: {diterapkan} sesi dari {path}")
+
+
+def jadwal_impor_jika_berubah(path: pathlib.Path) -> None:
+    """Impor hanya ketika mtime berkas berubah sejak pemeriksaan terakhir --
+    dipanggil tiap denyut penjaga_sesi(), sehingga tarikan baru dari web
+    sampai dalam SESI_SAPU_SEC detik tanpa membaca ulang berkas yang sama
+    berkali-kali per detik untuk apa-apa."""
+    global JADWAL_IMPOR_MTIME
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        return
+    if mtime == JADWAL_IMPOR_MTIME:
+        return
+    JADWAL_IMPOR_MTIME = mtime
+    jadwal_impor(path)
 
 
 def jadwal_jam(jam_baru) -> tuple[bool, str]:
@@ -1946,6 +2041,8 @@ async def penjaga_sesi() -> None:
     while True:
         await asyncio.sleep(SESI_SAPU_SEC)
 
+        jadwal_impor_jika_berubah(JADWAL_IMPOR_PATH)
+
         # Urutannya penting: sesi yang jatuh tempo ditutup lebih dulu,
         # supaya sesi berikutnya yang kebetulan sudah waktunya mulai tidak
         # langsung dibersihkan lagi oleh penutupan yang tertunda.
@@ -1984,6 +2081,7 @@ async def main(host: str, port: int) -> None:
     # berkas sekaligus folder yatim sesudah server mati mendadak.
     await sapu_unggahan(semua=True)
     jadwal_muat()
+    jadwal_impor_jika_berubah(JADWAL_IMPOR_PATH)
 
     # Kalau server dinyalakan di tengah jam sebuah sesi, sesi itulah yang
     # berlaku. Tanpa ini asisten harus menekan "mulai" setiap kali Orange Pi
@@ -2040,7 +2138,14 @@ if __name__ == "__main__":
         "--sesi-jam", default=None, metavar="JJ:MM,...", dest="sesi_jam",
         help="empat jam mulai sesi dipisah koma "
              f"(bawaan {','.join(JADWAL_MULAI)})")
+    parser.add_argument(
+        "--jadwal-impor", default=None, metavar="PATH", dest="jadwal_impor",
+        help="berkas jadwal Modul 4 yang ditulis agent Orange Pi "
+             f"(bawaan {JADWAL_IMPOR_PATH_BAWAAN})")
     args = parser.parse_args()
+
+    if args.jadwal_impor:
+        JADWAL_IMPOR_PATH = pathlib.Path(args.jadwal_impor)
 
     SESI_DURASI_SEC = max(60.0, args.sesi_durasi * 60.0)
     if args.sesi_jam:
