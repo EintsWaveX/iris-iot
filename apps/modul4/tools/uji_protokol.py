@@ -398,6 +398,23 @@ async def main() -> int:
         cek("/roster.json menyebut sesi berjalan",
             roster.get("sesi") == 1, str(roster.get("sesi")))
 
+        # /telemetri.json (Stage 20): loopback saja -- diakses di sini lewat
+        # localhost/127.0.0.1, seperti agent Orange Pi sendiri akan
+        # melakukannya, sehingga jalur diterima yang teruji. Jalur ditolak
+        # (permintaan dari IP selain loopback) tidak dapat diuji jujur dari
+        # skrip yang berjalan di mesin yang sama dengan servernya -- koneksi
+        # ke localhost secara nyata datang dari 127.0.0.1, bukan sesuatu yang
+        # dapat dipalsukan lewat urllib.request begitu saja.
+        with urllib.request.urlopen(f"{args.http}/telemetri.json") as resp:
+            telemetri = json.loads(resp.read())
+        cek("GET /telemetri.json mengembalikan daftar", isinstance(telemetri, list),
+            str(type(telemetri)))
+        if telemetri:
+            baris = telemetri[0]
+            cek("/telemetri.json baris punya bidang yang diharapkan",
+                set(baris.keys()) == {"grup", "seq", "tx", "rx", "delay_ms", "rssi", "snr"},
+                json.dumps(list(baris.keys())))
+
         # Tolak, lalu klaim ulang harus boleh.
         await asisten.send(json.dumps({"aksi": "tolak", "grup": 1,
                                        "alasan": "itu kotak sekring"}))

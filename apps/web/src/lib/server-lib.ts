@@ -15,9 +15,9 @@
  * derived from what arrived.
  */
 import { randomBytes, createHash } from "node:crypto";
-import { eq, lt, isNotNull } from "drizzle-orm";
+import { eq, lt, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
-import { server, denyut, perintah } from "./schema.js";
+import { server, denyut, perintah, telemetriTerkini, telemetriLog } from "./schema.js";
 import { safeEqual } from "./auth.js";
 
 const ENROLL_TOKEN_TTL_MIN = 30;
@@ -190,4 +190,90 @@ export async function pruneOldHeartbeatsOccasionally(): Promise<void> {
   const db = getDb();
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60_000);
   await db.delete(denyut).where(lt(denyut.pada, cutoff));
+}
+
+/**
+ * Phase 5 Stage 20: one row of real telemetry the agent observed for a
+ * single group in a single module -- Module 2's journalctl parse, Module
+ * 3's mosquitto_sub read, or Module 4's own /telemetri.json. `tx`/`rx` are
+ * "HH:MM:SS:MS" strings copied verbatim from whatever the source already
+ * prints, never computed here.
+ */
+export interface TelemetriMasuk {
+  modul: number;
+  kelompokNomor: number;
+  seq: number;
+  tx?: string | null;
+  rx?: string | null;
+  delayMs?: number | null;
+  rssi?: number | null;
+  snr?: number | null;
+}
+
+const TELEMETRI_MODUL_VALID = new Set([2, 3, 4]); // never Module 1 -- no real relay exists for it
+const TELEMETRI_MAX_PER_DENYUT = 5; // "small rows, at most five per cycle" -- see the plan
+const MAX_GRUP_ID = 5; // the practicum's fixed group count
+
+function telemetriValid(value: unknown): value is TelemetriMasuk {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.modul === "number" &&
+    TELEMETRI_MODUL_VALID.has(v.modul) &&
+    typeof v.kelompokNomor === "number" &&
+    Number.isInteger(v.kelompokNomor) &&
+    v.kelompokNomor >= 1 &&
+    v.kelompokNomor <= MAX_GRUP_ID &&
+    typeof v.seq === "number" &&
+    Number.isInteger(v.seq)
+  );
+}
+
+/**
+ * Upserts each row into telemetriTerkini (one row per server+modul+group,
+ * what the live views poll) and appends it to telemetriLog (history, for
+ * /history). `masuk` is untrusted heartbeat input -- anything not shaped
+ * like TelemetriMasuk, or beyond the first five entries, is silently
+ * dropped rather than rejecting the whole heartbeat over it.
+ */
+export async function rekamTelemetri(
+  serverId: number,
+  sesiId: number | null,
+  masuk: unknown,
+): Promise<void> {
+  if (!Array.isArray(masuk)) return;
+  const db = getDb();
+
+  for (const item of masuk.slice(0, TELEMETRI_MAX_PER_DENYUT)) {
+    if (!telemetriValid(item)) continue;
+
+    const row = {
+      modul: item.modul,
+      kelompokNomor: item.kelompokNomor,
+      seq: item.seq,
+      tx: item.tx ?? null,
+      rx: item.rx ?? null,
+      delayMs: item.delayMs ?? null,
+      rssi: item.rssi ?? null,
+      snr: item.snr ?? null,
+    };
+
+    await db
+      .insert(telemetriTerkini)
+      .values({ serverId, ...row })
+      .onConflictDoUpdate({
+        target: [telemetriTerkini.serverId, telemetriTerkini.modul, telemetriTerkini.kelompokNomor],
+        set: { ...row, diperbaruiPada: sql`now()` },
+      });
+
+    await db.insert(telemetriLog).values({ sesiId, ...row });
+  }
+}
+
+/** Same probabilistic-prune pattern as pruneOldHeartbeatsOccasionally(). */
+export async function pruneOldTelemetryOccasionally(): Promise<void> {
+  if (Math.random() >= 0.01) return;
+  const db = getDb();
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60_000);
+  await db.delete(telemetriLog).where(lt(telemetriLog.dicatatPada, cutoff));
 }

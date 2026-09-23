@@ -18,6 +18,7 @@
  * GET  /api/session/laporan (Stage 10)               — per-group progress, attendance and the stuck list.
  * POST /api/session/siarkan { pesan } (Stage 10)     — set or clear the running session's broadcast.
  * POST /api/session/catatan { sesiId, kelompokId, catatan, peran } (Stage 10) — per-group note/role.
+ * GET  /api/session/telemetry?modul=N&kelompok=M (Stage 20)          — asisten OR praktikan. The Ladder/LayerXray/GroupLive views' live-data source.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -30,6 +31,7 @@ import {
   sesi,
   jawaban,
   percobaanMasuk,
+  telemetriTerkini,
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
@@ -67,6 +69,49 @@ async function handleNow(_req: ApiRequest, res: ApiResponse) {
       pengumumanPada: running.pengumumanPada,
     },
   });
+}
+
+/** GET /api/session/telemetry?modul=N&kelompok=M -- asisten OR praktikan,
+ *  Stage 20's live-data source for Ladder/LayerXray/GroupLive. Group
+ *  numbers and protocol figures only (seq, tx, rx, delay, rssi, snr) --
+ *  same privacy rule publicRoster() already follows: a route a student's
+ *  browser can reach must never return another student's NIM, and
+ *  telemetry never carried one to begin with. `reading: null` means no
+ *  real telemetry has arrived yet for that module/group (no session, no
+ *  agent, or just not started) -- the caller falls back to the simulator
+ *  rather than treating that as an error.
+ *
+ *  Cache-Control invites Vercel's CDN to serve one shared response to every
+ *  visitor polling the same module+group for a few seconds rather than
+ *  hitting Neon per poll -- verifying that actually happens in production
+ *  (x-vercel-cache: HIT) is part of this stage's own gate and waits on a
+ *  real deploy, since no local environment can exercise Vercel's edge cache. */
+async function handleTelemetry(req: ApiRequest, res: ApiResponse) {
+  const modul = Number(req.query.modul);
+  const kelompok = Number(req.query.kelompok);
+
+  if (![2, 3, 4].includes(modul) || !Number.isInteger(kelompok) || kelompok < 1) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const db = getDb();
+  const [row] = await db
+    .select({
+      seq: telemetriTerkini.seq,
+      tx: telemetriTerkini.tx,
+      rx: telemetriTerkini.rx,
+      delayMs: telemetriTerkini.delayMs,
+      rssi: telemetriTerkini.rssi,
+      snr: telemetriTerkini.snr,
+      diperbaruiPada: telemetriTerkini.diperbaruiPada,
+    })
+    .from(telemetriTerkini)
+    .where(and(eq(telemetriTerkini.modul, modul), eq(telemetriTerkini.kelompokNomor, kelompok)))
+    .limit(1);
+
+  res.setHeader("Cache-Control", "public, s-maxage=5, stale-while-revalidate=10");
+  res.status(200).json({ ok: true, reading: row ?? null });
 }
 
 async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -420,6 +465,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireMethod(req, res, "GET")) return;
     if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
     return handleNow(req, res);
+  }
+  if (aksi === "telemetry") {
+    if (!requireMethod(req, res, "GET")) return;
+    if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
+    return handleTelemetry(req, res);
   }
 
   const session = requireRole(req, res, "asisten");

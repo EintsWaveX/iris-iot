@@ -2,7 +2,7 @@
  * POST /api/agent   { kode, token }                                (enroll)
  *                | { serverId, agenKunci, cpu, memori, disk, suhu,
  *                    uptimeSec, jamSelaras, modeJaringan, layanan,
- *                    perangkat, hasilPerintah }                   (heartbeat)
+ *                    perangkat, telemetri, hasilPerintah }        (heartbeat)
  *
  * Two very different operations sharing one file, dispatched on whether
  * `token` is present -- an enrollment body always has one, a heartbeat
@@ -16,15 +16,17 @@
  * agent presents on every heartbeat afterward. No session cookie -- this
  * runs once, from the Pi itself, before the agent has any other credential.
  *
- * Heartbeat: one round trip does five things -- records this cycle's
- * health, upserts whatever devices the agent discovered, reports the
- * outcome of any commands it ran since the last beat, hands back whatever
- * is queued for it now, and -- only on a day with a Module 4 session --
- * today's schedule (`jadwal`, see sesi.ts's jadwalModul4Hari()) so the
- * scoreboard's roster reaches the Pi before the hotspot ever has to go up.
- * No inbound port on the Pi is ever needed -- the agent always calls out,
- * and commands ride the response of the call it was always going to make
- * anyway.
+ * Heartbeat: one round trip does six things -- records this cycle's
+ * health, upserts whatever devices the agent discovered, records whatever
+ * real telemetry it collected (Stage 20 -- Module 2's journalctl parse,
+ * Module 3's mosquitto_sub read, or Module 4's own /telemetri.json),
+ * reports the outcome of any commands it ran since the last beat, hands
+ * back whatever is queued for it now, and -- only on a day with a Module 4
+ * session -- today's schedule (`jadwal`, see sesi.ts's jadwalModul4Hari())
+ * so the scoreboard's roster reaches the Pi before the hotspot ever has to
+ * go up. No inbound port on the Pi is ever needed -- the agent always
+ * calls out, and commands ride the response of the call it was always
+ * going to make anyway.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -36,6 +38,8 @@ import {
   sha256,
   verifyAgentKey,
   pruneOldHeartbeatsOccasionally,
+  rekamTelemetri,
+  pruneOldTelemetryOccasionally,
 } from "../../src/lib/server-lib.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
@@ -198,6 +202,9 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
 
     const sesiAktif = await currentSesi();
     const intervalDetik = sesiAktif ? INTERVAL_AKTIF_SEC : INTERVAL_IDLE_SEC;
+
+    await rekamTelemetri(serverId, sesiAktif?.id ?? null, body.telemetri);
+    await pruneOldTelemetryOccasionally();
 
     // Only computed when today actually has a Module 4 slot (jadwalModul4Hari
     // returns null otherwise) -- an idle day never pays for this extra query,

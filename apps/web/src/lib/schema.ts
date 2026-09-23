@@ -441,3 +441,70 @@ export const perintah = pgTable(
   },
   (t) => [index("perintah_server_status_idx").on(t.serverId, t.status)],
 );
+
+/**
+ * Phase 5 Stage 20: the single most-recent telemetry row per (module,
+ * group) -- what the live Ladder/LayerXray/GroupLive views actually poll,
+ * since they only ever need "what just happened", not history. Upserted on
+ * every heartbeat that carries a row for this key (ON CONFLICT DO UPDATE on
+ * the unique pair below), so this table stays exactly one row per key
+ * rather than growing; telemetriLog below is the append-only side that
+ * feeds /history.
+ *
+ * `tx`/`rx` are "HH:MM:SS:MS" strings, matching every module's own
+ * on-device print format, not a computed duration -- deliberately, since
+ * Modules 2 and 3 only ever see the *arrival* side (the Pi has no visibility
+ * into when an ESP32 or Pico W actually sent), so `tx` is null and `delayMs`
+ * stays null for both; the web UI labels their delay column "from your
+ * serial output" rather than showing a number the Pi cannot actually know.
+ * Module 4's hunter/beacon exchange both sides directly over LoRa, so it's
+ * the only module where `tx`, `rx`, and `delayMs` are all populated.
+ */
+export const telemetriTerkini = pgTable(
+  "telemetri_terkini",
+  {
+    id: serial("id").primaryKey(),
+    serverId: integer("server_id")
+      .notNull()
+      .references(() => server.id, { onDelete: "cascade" }),
+    modul: integer("modul").notNull(), // 2, 3, or 4 -- Module 1 never has real telemetry
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    seq: integer("seq").notNull(),
+    tx: text("tx"),
+    rx: text("rx"),
+    delayMs: integer("delay_ms"),
+    rssi: integer("rssi"), // Module 4 only
+    snr: integer("snr"), // Module 4 only, tenths of a dB (45 = 4.5 dB)
+    diperbaruiPada: timestamp("diperbarui_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("telemetri_terkini_server_modul_kelompok").on(t.serverId, t.modul, t.kelompokNomor),
+  ],
+);
+
+/**
+ * Append-only history of every telemetry row that has ever arrived, for
+ * /history -- pruned the same way `denyut` is (see
+ * pruneOldTelemetryOccasionally() in server-lib.ts), since a full
+ * practicum day's worth of per-message rows across five groups and three
+ * live modules would otherwise grow without bound. `sesiId` is nullable
+ * for the same reason `jawaban.sesiId` is: telemetry collected outside a
+ * tracked session (a dry run, a fixture script) still has somewhere to go.
+ */
+export const telemetriLog = pgTable(
+  "telemetri_log",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
+    modul: integer("modul").notNull(),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    seq: integer("seq").notNull(),
+    tx: text("tx"),
+    rx: text("rx"),
+    delayMs: integer("delay_ms"),
+    rssi: integer("rssi"),
+    snr: integer("snr"),
+    dicatatPada: timestamp("dicatat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("telemetri_log_sesi_modul_kelompok_idx").on(t.sesiId, t.modul, t.kelompokNomor)],
+);

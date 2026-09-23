@@ -6,6 +6,7 @@ Satu proses melayani tiga hal sekaligus pada port yang sama:
 
     GET  /              halaman papan skor (berkas tunggal hasil build.py)
     GET  /roster.json   nama anggota kelompok sesi berjalan (TANPA NIM)
+    GET  /telemetri.json  baris mentah per kelompok untuk agent Orange Pi (Stage 20, loopback saja)
     GET  /foto/<berkas> foto klaim yang diunggah sebuah kelompok
     WS   /beacon        beacon melaporkan tiap nomor paket yang dipancarkan
     WS   /hunter        tiap hunter melaporkan RSSI paket yang tertangkap
@@ -1519,6 +1520,39 @@ def process_request(connection: ServerConnection, request) -> Response | None:
         # demi bidang dan hanya mengambil namanya, jadi kebocoran di sini
         # membutuhkan perubahan sengaja, bukan kelalaian.
         body = json.dumps(jadwal_publik(), ensure_ascii=False).encode("utf-8")
+        headers = Headers({
+            "Content-Type": "application/json; charset=utf-8",
+            "Content-Length": str(len(body)),
+            "Cache-Control": "no-store",
+        })
+        return Response(HTTPStatus.OK, "OK", headers, body)
+
+    if path == "/telemetri.json":
+        # Stage 20: baris mentah per kelompok (tx/rx/delay_ms/rssi/snr), untuk
+        # agent Orange Pi sendiri meneruskannya ke situs web lewat denyut
+        # jantungnya -- bukan untuk proyektor maupun ponsel di hotspot. Loopback
+        # saja: menolak siapa pun selain 127.0.0.1 memastikan itu tetap begitu
+        # meski port ini kebetulan tersambung dari luar Pi (mis. lewat dongle
+        # uplink Stage 19, yang membuat Pi ini terjangkau dari Wi-Fi kampus).
+        ip = peer_ip(connection)
+        if ip not in ("127.0.0.1", "::1"):
+            return connection.respond(
+                HTTPStatus.FORBIDDEN, "Hanya diizinkan dari loopback (127.0.0.1).\n",
+            )
+
+        ringkas = [
+            {
+                "grup": baris["grup"],
+                "seq": baris["seq"],
+                "tx": baris["tx"],
+                "rx": baris["rx"],
+                "delay_ms": baris["delay_ms"],
+                "rssi": baris["rssi"],
+                "snr": baris["snr"],
+            }
+            for baris in HUNT.snapshot()["grup"]
+        ]
+        body = json.dumps(ringkas, ensure_ascii=False).encode("utf-8")
         headers = Headers({
             "Content-Type": "application/json; charset=utf-8",
             "Content-Length": str(len(body)),
