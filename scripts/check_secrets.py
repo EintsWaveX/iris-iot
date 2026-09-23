@@ -105,6 +105,24 @@ def main() -> int:
             # docstring).
             "--exclude-files",
             r"\.secrets\.baseline$",
+            # Same reasoning as .secrets.baseline immediately above, for a
+            # second file that is a manifest of hashes by design rather
+            # than a one-time audited exception: sync_sketches.py's
+            # SOURCE.json exists specifically to record a sha256 per synced
+            # file, and legitimately gets new hash VALUES every time a
+            # sketch's content changes. Baselining those values would only
+            # work until the next real sync, at which point every hash
+            # changes and check_secrets.py fails again for no security
+            # reason -- excluding the file entirely is the only fix that
+            # doesn't need re-doing on every future sync. Matched by bare
+            # filename, not a "/"-joined full path: detect-secrets reports
+            # paths using the OS's own separator (\ on Windows, / on
+            # Linux), and a hardcoded forward-slash path silently failed
+            # to match at all when this was first tried on a Windows dev
+            # machine. The name is specific enough that nothing else in
+            # this repo is expected to share it.
+            "--exclude-files",
+            r"SOURCE\.json$",
         ],
         capture_output=True,
         text=True,
