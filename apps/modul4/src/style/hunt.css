@@ -1,0 +1,823 @@
+/* =========================================================================
+   PERBURUAN LoRa IRIS — screens
+
+   Sits after tokens/base/cosmos in the cascade and owns everything specific
+   to the hunt: the nav, the HUD, the group cards, the layer view, the toast
+   column, the find takeover and the projector mode.
+
+   Two rules carried over from games/ and worth restating here:
+
+     - A component earns a box only if it has to float above the cosmos.
+       Structure is hairlines. Glass is for the nav, the takeover and the
+       toasts, and nothing else.
+     - --font-display (Instrument Serif) ships ONE weight. Never set
+       font-weight above 400 on it; hierarchy comes from size and italics,
+       and a synthesised bold looks broken at projector scale.
+
+   Every card carries its group hue as --hue. Heat is a separate scale on
+   --heat-*: the rail says who you are, the bar says how close you are, and
+   conflating the two would make a cold group look like a different group.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------- nav ---- */
+
+.nav {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--panel-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--hairline);
+  inset: 0 0 auto 0;
+  height: var(--nav-size);
+  padding: 0 var(--gutter);
+}
+
+.nav__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.nav__mark {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  flex: none;
+}
+
+.nav__brand-label {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.nav__items {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: var(--space-5);
+}
+
+.nav__tail { margin-left: auto; }
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  transition: color var(--dur-fast) var(--ease-reveal);
+}
+
+.nav-link:hover { color: var(--text); }
+
+.nav-link.is-active {
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.nav-link .icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-faint);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+.lang-toggle__opt { transition: color var(--dur-fast) var(--ease-reveal); }
+.lang-toggle__opt.is-on { color: var(--accent); }
+.lang-toggle__sep { color: var(--hairline-strong); }
+
+/* ------------------------------------------------------------- screens --- */
+
+.screens { padding-top: var(--nav-size); }
+
+/* base.css lays .screen__head out as a space-between row with the title at
+   order:2, which is right for its two-column screens and wrong for ours:
+   here the eyebrow, title and lede are one stacked editorial block. */
+.screen__head {
+  display: block;
+  padding: var(--space-8) 0 var(--space-6);
+  margin-bottom: 0;
+}
+
+.screen__head .screen__title { order: 0; }
+
+.screen__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  font-weight: 400;
+  line-height: 1.05;
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.screen__lede {
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 54ch;
+}
+
+.empty {
+  color: var(--text-faint);
+  font-size: 0.92rem;
+  padding: var(--space-8) 0;
+  text-align: center;
+}
+
+/* ----------------------------------------------------------------- hud --- */
+
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6) var(--space-8);
+  align-items: flex-end;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  padding: var(--space-5) 0;
+  margin-bottom: var(--space-7);
+}
+
+.hud__cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.hud__cell--action { margin-left: auto; }
+
+.hud__label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hud__value { font-size: 1.05rem; }
+.hud__value--mono { font-family: var(--font-mono); }
+
+#hud-beacon[data-state="on"] { color: var(--ok, #5eead4); }
+#hud-beacon[data-state="off"] { color: var(--text-faint); }
+
+/* --------------------------------------------------------------- cards --- */
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-bottom: var(--space-10);
+}
+
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "head    readout"
+    "head    band"
+    "bar     bar"
+    "stats   action";
+  gap: var(--space-3) var(--space-6);
+  align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--hue) 7%, transparent),
+    transparent 46%
+  );
+  padding: var(--space-5) var(--space-6) var(--space-5) var(--space-7);
+  transition: border-color var(--dur-mid) var(--ease-reveal),
+              opacity var(--dur-mid) var(--ease-reveal);
+}
+
+/* The rail is the group's identity: constant, regardless of heat. */
+.card__rail {
+  position: absolute;
+  inset: var(--space-4) auto var(--space-4) 0;
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--hue);
+}
+
+.card[data-state="hilang"] { opacity: 0.45; }
+.card[data-state="membara"] { border-color: color-mix(in srgb, var(--heat-burning) 55%, transparent); }
+.card[data-state="found"] {
+  border-color: var(--gold);
+  background: linear-gradient(100deg, var(--gold-soft), transparent 50%);
+}
+
+.card__head {
+  grid-area: head;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.card__rank {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  min-width: 1.4em;
+}
+
+.card__name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.card__heat {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid currentColor;
+}
+
+.card[data-state="membara"] .card__heat { color: var(--heat-burning); }
+.card[data-state="panas"] .card__heat { color: var(--heat-hot); }
+.card[data-state="hangat"] .card__heat { color: var(--heat-warm); }
+.card[data-state="sejuk"] .card__heat { color: var(--heat-cool); }
+.card[data-state="dingin"] .card__heat { color: var(--heat-cold); }
+.card[data-state="hilang"] .card__heat { color: var(--text-faint); }
+.card[data-state="found"] .card__heat { color: var(--gold); }
+
+.bar {
+  grid-area: bar;
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.bar__fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  clip-path: inset(0 100% 0 0);
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--heat-cold),
+    var(--heat-cool) 35%,
+    var(--heat-warm) 62%,
+    var(--heat-hot) 82%,
+    var(--heat-burning)
+  );
+  transition: clip-path var(--dur-mid) var(--ease-out-expo);
+}
+
+.card[data-state="hilang"] .bar__fill { background: var(--heat-lost); }
+.card[data-state="found"] .bar__fill { background: var(--gold); }
+
+.readout {
+  grid-area: readout;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.readout__value {
+  font-family: var(--font-mono);
+  font-size: 1.9rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.readout__unit {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.readout__trend {
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  min-width: 6.5ch;
+  text-align: right;
+}
+
+.readout__trend[data-trend="up"] { color: var(--heat-hot); }
+.readout__trend[data-trend="down"] { color: var(--heat-cool); }
+.readout__trend[data-trend="flat"] { color: var(--text-faint); }
+
+/* The uncertainty band. Deliberately quiet but never hidden: the estimate
+   above it is a model output, not a measurement, and a bare number would
+   claim a precision the radio cannot deliver indoors. */
+.readout__band {
+  grid-area: band;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  margin: 0;
+  text-align: right;
+  justify-self: end;
+}
+
+.stats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+}
+
+/* Each key/value is one unbreakable unit. A flat <dl> with flex-wrap will
+   happily leave "DELAY SATU ARAH" at the end of one row and "209 ms" at the
+   start of the next, which reads as a different measurement entirely. */
+.stats__pair {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.stats__key {
+  color: var(--text-faint);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.stats__val {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.card__action {
+  grid-area: action;
+  justify-self: end;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Calibration is always available, so it stays visible even on cards whose
+   confirm button is hidden. */
+.btn--calibrate { font-size: 0.72rem; padding: var(--space-1) var(--space-3); }
+.card[data-confirmable="no"] .card__action { display: flex; }
+.card[data-confirmable="no"] .btn--confirm { display: none; }
+
+/* -------------------------------------------------------------- button --- */
+
+.btn {
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: var(--space-2) var(--space-5);
+  transition: background var(--dur-fast) var(--ease-reveal),
+              border-color var(--dur-fast) var(--ease-reveal);
+}
+
+.btn--ghost {
+  background: none;
+  border: 1px solid var(--hairline);
+  color: var(--text-muted);
+}
+
+.btn--ghost:hover {
+  border-color: var(--hairline-strong);
+  color: var(--text);
+}
+
+.btn--confirm {
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  color: var(--gold-ink);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn--confirm:hover { background: var(--gold-bright); }
+
+/* -------------------------------------------------------------- layers --- */
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-bottom: var(--space-6);
+}
+
+.picker__btn {
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  color: var(--text-faint);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: var(--space-2) var(--space-4);
+  transition: color var(--dur-fast) var(--ease-reveal),
+              border-color var(--dur-fast) var(--ease-reveal);
+}
+
+.picker__btn.is-on {
+  border-color: var(--hue);
+  color: var(--hue);
+}
+
+.layers { padding-bottom: var(--space-10); }
+
+.layer {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) 1fr;
+  gap: var(--space-2) var(--space-6);
+  border-top: 1px solid var(--hairline);
+  padding: var(--space-5) 0;
+}
+
+.layer:last-child { border-bottom: 1px solid var(--hairline); }
+
+.layer__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.layer__index {
+  color: var(--hue);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.layer__name {
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.layer__value {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.layer__estimate {
+  grid-column: 2;
+  color: var(--hue);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  margin: var(--space-2) 0 0;
+}
+
+.layer__note {
+  grid-column: 2;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: var(--space-1) 0 0;
+  max-width: 58ch;
+}
+
+/* -------------------------------------------------------------- toasts --- */
+
+.toasts {
+  position: fixed;
+  z-index: 60;
+  right: var(--gutter);
+  bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+  max-width: min(22rem, calc(100vw - var(--space-8)));
+}
+
+.toast {
+  background: var(--panel-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-panel);
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-size: 0.86rem;
+  padding: var(--space-3) var(--space-4);
+}
+
+.toast::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tone, var(--accent));
+  transform: translateY(-1px);
+}
+
+.toast[data-tone="info"] { --tone: var(--accent); }
+.toast[data-tone="warn"] { --tone: var(--heat-warm); }
+.toast[data-tone="hot"] { --tone: var(--heat-burning); }
+.toast[data-tone="win"] { --tone: var(--gold); }
+
+/* --------------------------------------------------------- link status --- */
+
+.link-state {
+  position: fixed;
+  z-index: 50;
+  left: var(--gutter);
+  bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.link-state__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.link-state[data-status="live"] { color: var(--ok, #5eead4); }
+.link-state[data-status="reconnecting"] { color: var(--heat-warm); }
+.link-state[data-status="offline"] { color: var(--text-faint); }
+
+/* ------------------------------------------------------------ takeover --- */
+
+.found {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: var(--gutter);
+}
+
+.found__inner {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--hue) 45%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg-solid);
+  box-shadow: var(--shadow-lift);
+  padding: var(--space-9) var(--space-10);
+  text-align: center;
+  max-width: min(40rem, 100%);
+}
+
+.found__eyebrow {
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  margin: 0 0 var(--space-4);
+}
+
+.found__name {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 9vw, 4.6rem);
+  font-weight: 400;
+  line-height: 1;
+  margin: 0 0 var(--space-4);
+  color: var(--hue);
+}
+
+.found__time {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.found__close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  line-height: 1;
+  font-size: 1.1rem;
+}
+
+/* --------------------------------------------------------------- stage --- */
+
+body[data-stage="1"] .nav,
+body[data-stage="1"] .screens,
+body[data-stage="1"] .link-state { display: none; }
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  padding: var(--space-8) var(--space-10);
+}
+
+.stage__head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: var(--space-5);
+}
+
+.stage__eyebrow {
+  grid-column: 1;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.stage__title {
+  grid-column: 1;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4.4rem);
+  font-weight: 400;
+  line-height: 1;
+  margin: var(--space-2) 0 0;
+}
+
+.stage__clock {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-family: var(--font-mono);
+  font-size: clamp(2.5rem, 5vw, 4.4rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.stage__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+  justify-content: center;
+}
+
+.srow {
+  display: grid;
+  /* The name column is sized by content, not in ch: ch is measured from the
+     font's "0" glyph, and Instrument Serif at projector size makes
+     "Kelompok 7" far wider than any ch-based guess, so a fixed column wraps
+     the name onto two lines. */
+  grid-template-columns: 3ch max-content 1fr max-content 10ch;
+  align-items: center;
+  gap: var(--space-6);
+  padding-left: var(--space-2);
+  transition: opacity var(--dur-mid) var(--ease-reveal);
+}
+
+.srow[data-state="hilang"] { opacity: 0.4; }
+
+.srow__rank,
+.srow__value {
+  font-family: var(--font-mono);
+  font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.srow__rank { color: var(--hue); }
+
+.srow__name {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  white-space: nowrap;
+}
+
+.srow__bar {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.srow__fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  clip-path: inset(0 100% 0 0);
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--heat-cold), var(--heat-warm) 60%, var(--heat-burning));
+  transition: clip-path var(--dur-mid) var(--ease-out-expo);
+}
+
+.srow[data-state="found"] .srow__fill { background: var(--gold); }
+
+.srow__heat {
+  font-family: var(--font-mono);
+  font-size: clamp(0.9rem, 1.4vw, 1.2rem);
+  letter-spacing: 0.14em;
+  text-align: right;
+}
+
+.srow[data-state="membara"] .srow__heat { color: var(--heat-burning); }
+.srow[data-state="panas"] .srow__heat { color: var(--heat-hot); }
+.srow[data-state="hangat"] .srow__heat { color: var(--heat-warm); }
+.srow[data-state="sejuk"] .srow__heat { color: var(--heat-cool); }
+.srow[data-state="dingin"] .srow__heat { color: var(--heat-cold); }
+.srow[data-state="hilang"] .srow__heat { color: var(--text-faint); }
+.srow[data-state="found"] .srow__heat { color: var(--gold); }
+
+/* ---------------------------------------------------------- responsive --- */
+
+@media (max-width: 880px) {
+  .nav {
+    inset: auto 0 0 0;
+    height: auto;
+    border-bottom: 0;
+    border-top: 1px solid var(--hairline);
+    padding: var(--space-3) var(--gutter);
+  }
+
+  .nav__brand-label { display: none; }
+  .nav__items { margin-left: 0; }
+  .screens { padding-top: 0; padding-bottom: var(--space-10); }
+
+  .toasts { bottom: calc(var(--nav-size) + var(--space-6)); }
+  .link-state { display: none; }
+}
+
+@media (max-width: 720px) {
+  .card {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "head"
+      "readout"
+      "band"
+      "bar"
+      "stats"
+      "action";
+    padding: var(--space-5) var(--space-5) var(--space-5) var(--space-6);
+  }
+
+  .readout { justify-content: flex-start; }
+  .readout__band { text-align: left; justify-self: start; }
+  .card__action { justify-self: stretch; }
+  .btn--confirm { width: 100%; }
+
+  .layer { grid-template-columns: 1fr; }
+  .layer__note { grid-column: 1; }
+
+  .hud { gap: var(--space-4) var(--space-6); }
+  .hud__cell--action { margin-left: 0; width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar__fill,
+  .srow__fill,
+  .card { transition-duration: 1ms; }
+}
