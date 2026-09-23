@@ -54,7 +54,7 @@ bagi seluruh papan. **Setel jam Pi sebelum mode AP dinyalakan**, selagi masih
 ada Internet:
 
 ```bash
-sudo systemctl restart systemd-timesyncd && timedatectl status
+sudo systemctl restart chrony && chronyc tracking
 ```
 
 Jam mutlak Pi boleh saja meleset beberapa detik. Yang penting Beacon dan Hunter
