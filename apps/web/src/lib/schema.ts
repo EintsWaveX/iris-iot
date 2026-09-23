@@ -381,7 +381,7 @@ export const denyut = pgTable(
     suhu: integer("suhu"), // celsius
     uptimeSec: integer("uptime_sec"),
     jamSelaras: boolean("jam_selaras").notNull().default(false),
-    modeJaringan: text("mode_jaringan"), // "ethernet-router" | "ap-mandiri" | "offline"
+    modeJaringan: text("mode_jaringan"), // "ethernet-router" | "ap-mandiri" | "ap+uplink" | "offline"
     layanan: jsonb("layanan").$type<Record<string, string>>(),
   },
   (t) => [index("denyut_server_pada_idx").on(t.serverId, t.pada)],

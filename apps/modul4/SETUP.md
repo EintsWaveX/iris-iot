@@ -34,10 +34,16 @@ mengetikkan token satu kali, proyektor memakai `?stage=1`.
 
 Modul 2, Modul 3, dan Modul 4 Part B menjalankan Orange Pi sebagai *client*
 Wi-Fi kampus. Part A memerlukannya sebagai *access point*. Satu antarmuka
-`wlan0` tidak dapat menjadi keduanya sekaligus, sehingga:
+`wlan0` tidak dapat menjadi keduanya sekaligus, kecuali sebuah **dongle Wi-Fi
+USB kedua** terpasang sebagai uplink terpisah -- lihat `orangepi/README.md`
+bagian 7.0. Dengan dongle, `wlan0` menjadi access point sementara dongle
+tetap tersambung ke Wi-Fi kampus, dan perburuan tetap terjangkau situs web
+secara langsung. Tanpa dongle, perilaku lama berlaku:
 
-> **Part A dan Part B tidak dapat dijalankan pada sesi yang sama.**
-> Jadwalkan keduanya terpisah, dan kembalikan mode Pi sesudahnya.
+> **Tanpa dongle uplink, Part A dan Part B tidak dapat dijalankan pada sesi
+> yang sama.** Jadwalkan keduanya terpisah, dan kembalikan mode Pi
+> sesudahnya. `opi_ap_on.sh` mendeteksi dongle secara otomatis setiap kali
+> dijalankan -- tidak ada yang perlu diubah pada perintah di bawah ini.
 
 ```bash
 sudo ./scripts/opi_ap_on.sh     # menjadi access point IRIS-IOT
