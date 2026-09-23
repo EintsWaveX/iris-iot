@@ -1,6 +1,6 @@
 /**
  * Stage 11's layer X-ray: one simulated reading crossing five layers, the
- * live value shown at each -- generalizes modul4/src/ui-layers.js (which
+ * live value shown at each -- generalizes apps/modul4/src/ui-layers.js (which
  * calls this "the teaching centrepiece") from LoRa alone to all four
  * modules, per the plan's own table of what each layer means for each
  * protocol. `layers` supplies the per-module name and structural caption

@@ -6,7 +6,7 @@
  * Include exactly once per page, with client:load. Anything on the page --
  * including plain inline scripts that know nothing about React -- can
  * still call window.Toast.show(message, tone) to raise a notice, the
- * pattern modul4/src/ui-notify.js established. That imperative bridge is
+ * pattern apps/modul4/src/ui-notify.js established. That imperative bridge is
  * installed in an effect on mount and torn down on unmount, since this
  * component isn't transition:persist and unmounts/remounts on every
  * client-side navigation.

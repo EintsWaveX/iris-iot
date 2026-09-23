@@ -1,8 +1,8 @@
 /* =========================================================================
    RESET, BASE TYPE, AND THE EDITORIAL PRIMITIVES
 
-   Ported from modul4/src/style/base.css, minus the #app / .screens / .screen
-   cross-fade machinery. That machinery exists because modul4/ is a single-page
+   Ported from apps/modul4/src/style/base.css, minus the #app / .screens / .screen
+   cross-fade machinery. That machinery exists because apps/modul4/ is a single-page
    app that swaps screens with JavaScript; this site is a set of real Astro
    pages navigated by real URLs, which is the better fit for a site that is
    mostly teaching content (see the Phase 1 design doc). A future island that

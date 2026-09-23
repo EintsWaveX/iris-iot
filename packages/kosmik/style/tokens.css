@@ -348,7 +348,7 @@
      `max-width` alone misses a tablet held in two hands at desktop width.
      Every interactive element sizes against this rather than a fixed 44px,
      so the floor lives in exactly one place. Ported from
-     modul4/src/style/mobile.css, where narrowing this to one source fixed a
+     apps/modul4/src/style/mobile.css, where narrowing this to one source fixed a
      class of sub-44px controls the previous build had shipped with.
      ----------------------------------------------------------------------- */
   --tap: 0px;

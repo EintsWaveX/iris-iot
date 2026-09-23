@@ -1,7 +1,7 @@
 ---
 /**
  * The top navigation bar, shared by every page. Two lessons carried over
- * verbatim from the modul4/ mobile rebuild, because both bugs are easy to
+ * verbatim from the apps/modul4/ mobile rebuild, because both bugs are easy to
  * reintroduce by accident in a new codebase:
  *
  * 1. `position: fixed` plus `backdrop-filter` on the SAME element makes
@@ -13,7 +13,7 @@
  * 2. `position: fixed` creates a stacking context, so a z-index set on a
  *    descendant is scoped INSIDE that context and can still paint below an
  *    unrelated fixed sibling with a lower z-index than the descendant's
- *    number suggests. modul4/'s bug: a bar at z-index 44 sat above a nav at
+ *    number suggests. apps/modul4/'s bug: a bar at z-index 44 sat above a nav at
  *    z-index 40, even though the nav's own children were set to z-index 45
  *    — those 45s were scoped inside the nav's context and never competed
  *    at the top level at all. Fixed here by giving the bar itself the

@@ -1,22 +1,29 @@
 name: CI
 
-# Four jobs, each independently useful as a regression gate:
+# Five jobs, each independently useful as a regression gate:
 #
 #   web      the Astro app (apps/web): typecheck, lint, format, unit tests,
 #            build, CSP hash check
 #   games    the tournament site (apps/games): its own test suites plus a
 #            rebuild, so a change elsewhere in this repo can never silently
 #            break it without CI noticing
+#   modul4   the Module 4 LoRa scoreboard (apps/modul4): start the real
+#            server, run its 74-assertion protocol suite against it, then
+#            rebuild -- the same job IRIS ASO ran before Stage 15 moved
+#            this directory here (git history preserved; see that stage's
+#            commit for how)
 #   secrets  a repo-wide scan for anything that looks like a credential
 #   deploy   Vercel preview on a PR, production on main, for each app --
 #            gated on the required secrets actually being present
 #
 # This repo is the web-development half of a larger project split out of
-# Documents/Downloads/IRIS ASO into Documents/WebApps/iris-iot. The other
-# half (Typst journals, Arduino/Python practicum sources, the Orange Pi
-# agent and the Module 4 LoRa server) stays in the original repo, on
-# hardware paths this repo has no reason to know about. See each app's own
-# README/PHASE3.md for that history.
+# Documents/Downloads/IRIS ASO into Documents/WebApps/iris-iot. Stage 15
+# moved apps/modul4 here from that repo's modul4/ (it runs on the Orange
+# Pi, but building and testing it needs no hardware). What's left in the
+# other repo is Typst journals, Arduino/Python practicum sources, and the
+# orangepi/ folder that provisions and bundles the Pi itself -- both bound
+# to physical hardware paths this repo has no reason to know about. See
+# each app's own README/PHASE3.md for more history.
 #
 # On "rebuild and diff" vs "rebuild and require success" for games: its
 # index.html and public/index.html are gitignored, not committed -- the
@@ -115,6 +122,40 @@ jobs:
       - name: Rebuild
         run: python build.py --standalone
 
+  modul4:
+    name: modul4 (protocol suite against a live server + rebuild)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/modul4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "websockets>=13"
+
+      - name: Start the server with a fixed token
+        run: |
+          python server.py --token UJICI --arena 300 &
+          echo $! > server.pid
+          # Give the WebSocket listener a moment to bind before the
+          # protocol suite starts connecting to it.
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8080/roster.json > /dev/null 2>&1 && break
+            sleep 0.5
+          done
+
+      - name: Protocol suite (74 assertions)
+        run: python tools/uji_protokol.py --token UJICI
+
+      - name: Stop the server
+        if: always()
+        run: kill "$(cat server.pid)" 2>/dev/null || true
+
+      - name: Rebuild
+        run: python build.py
+
   secrets:
     name: secret scan
     runs-on: ubuntu-latest
@@ -147,7 +188,7 @@ jobs:
     # REBUILD.md), unchanged by this move -- games is still a required gate
     # here so a regression there blocks web's automatic deploy too, the
     # same coupling the original repo's single deploy job had.
-    needs: [web, games, secrets]
+    needs: [web, games, modul4, secrets]
     runs-on: ubuntu-latest
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     environment: production

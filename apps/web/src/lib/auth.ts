@@ -6,7 +6,7 @@
  *   praktikan   a student. Types their NIM alone. The server resolves it
  *               against the currently running session and returns the
  *               group it found — the group is never something the client
- *               asserts, mirroring cari_nim() in modul4/server.py.
+ *               asserts, mirroring cari_nim() in apps/modul4/server.py.
  *
  *   asisten     a lab assistant. Types their NIM plus a password that is
  *               their own NIM with "1715" appended. This is NOT a secret:
@@ -34,7 +34,7 @@ const SESSION_TTL_SEC = 2 * 60 * 60; // 2 hours
 const ASSISTANT_PASSWORD_SUFFIX = "1715";
 
 // Rate limiting thresholds. Named after, and set to the same values as,
-// the WebSocket-connection limits in modul4/server.py — MAX_GAGAL_TOKEN (5)
+// the WebSocket-connection limits in apps/modul4/server.py — MAX_GAGAL_TOKEN (5)
 // and MAX_GAGAL_MASUK (12) — so the two auth surfaces fail at the same
 // point rather than one being quietly more permissive than the other.
 const MAX_GAGAL_ASISTEN = 5;
@@ -99,7 +99,7 @@ export interface SessionPayload {
   reguId?: number;
   reguNomor?: number;
   /** Only set for a praktikan; which session this resolution belongs to,
-   *  so a rollover can invalidate a stale cookie the same way modul4/'s
+   *  so a rollover can invalidate a stale cookie the same way apps/modul4/'s
    *  identity.js compares its stored `sesi` against the live frame. */
   sesiId?: number;
   exp: number; // unix seconds
@@ -154,7 +154,7 @@ export function clearSessionCookieHeader(): string {
  * Has this NIM or this IP failed too many times recently? Checked BEFORE
  * the password comparison runs, so a locked-out caller never even reaches
  * the timing-safe compare — matching the "close the connection" behaviour
- * in modul4/server.py rather than continuing to answer a client that has
+ * in apps/modul4/server.py rather than continuing to answer a client that has
  * already used up its attempts.
  */
 async function isLockedOut(
@@ -203,7 +203,7 @@ async function recordAttempt(
   await db.insert(percobaanMasuk).values({ nim, ip, jenis, berhasil });
 }
 
-// Same shape modul4/server.py's NIM_RE uses: alphanumeric, 4-20 characters.
+// Same shape apps/modul4/server.py's NIM_RE uses: alphanumeric, 4-20 characters.
 // Kept as one constant so the login route's format check and any future
 // roster-paste validator agree on exactly what counts as a NIM.
 export const NIM_PATTERN = /^[A-Za-z0-9]{4,20}$/;
@@ -222,7 +222,7 @@ export type PraktikanLoginResult =
 
 /**
  * Resolve a student's NIM against the running session. Trimmed and
- * upper-cased first, matching modul4/'s cleanNim() — a NIM copy-pasted from
+ * upper-cased first, matching apps/modul4/'s cleanNim() — a NIM copy-pasted from
  * a spreadsheet cell routinely carries stray whitespace or inconsistent
  * case, and rejecting it on that basis would be a self-inflicted support
  * ticket, not a security measure.
@@ -238,7 +238,7 @@ export async function verifyPraktikanLogin(
   }
 
   // Checked separately from resolvePraktikan() so the two refusal reasons
-  // modul4/SETUP.md already distinguishes for students -- "belum ada sesi
+  // apps/modul4/SETUP.md already distinguishes for students -- "belum ada sesi
   // yang berjalan" versus "NIM ini tidak terdaftar" -- stay distinguishable
   // here too, rather than collapsing back into one generic failure.
   const running = await currentSesi();

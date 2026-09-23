@@ -48,7 +48,7 @@ export const asisten = pgTable("asisten", {
 
 /**
  * One practicum session: a single module, on a single day, at a single
- * start time. Mirrors the shape modul4/server.py already proved out for
+ * start time. Mirrors the shape apps/modul4/server.py already proved out for
  * Module 4 (JADWAL_MULAI, SESI_DURASI_SEC), generalised to any module so
  * the same table serves Modules 1-3 as well once their content phase lands.
  *
@@ -247,7 +247,7 @@ export const presentasi = pgTable(
 /**
  * A group within one session. `nomor` is the human-facing group number
  * (1, 2, 3, ...) shown on the roster paste box and the scoreboard;
- * `aktif` mirrors modul4/'s "this group's board is the beacon, not a
+ * `aktif` mirrors apps/modul4/'s "this group's board is the beacon, not a
  * hunter" flag — an inactive group is excluded from login resolution
  * without needing its members deleted.
  */
@@ -267,7 +267,7 @@ export const regu = pgTable(
 
 /**
  * A practitioner within one session's group. The unique constraint on
- * (tanggal, nim) is the load-bearing rule: modul4/'s paste-box parser
+ * (tanggal, nim) is the load-bearing rule: apps/modul4/'s paste-box parser
  * enforces "one NIM per day" in JavaScript today, which is a UI-layer
  * promise a direct API call could bypass. Making it a database constraint
  * means the invariant holds no matter which code path writes the row.
@@ -299,7 +299,7 @@ export const praktikan = pgTable(
 
 /**
  * Every login attempt, successful or not. This is what a stateless HTTP
- * auth route uses for rate limiting where modul4/server.py could just keep a
+ * auth route uses for rate limiting where apps/modul4/server.py could just keep a
  * counter in memory per open WebSocket connection (MAX_GAGAL_TOKEN,
  * MAX_GAGAL_MASUK) — a serverless function has no connection to hang a
  * counter off, so the count has to live somewhere durable between

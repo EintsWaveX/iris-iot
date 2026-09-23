@@ -1940,7 +1940,7 @@ async def penjaga_sesi() -> None:
     MENGHAPUS foto dari cakram, sedangkan pembaca alaminya adalah snapshot()
     -- dan siaran melewatkan denyutnya sama sekali ketika tidak ada penonton.
     Kalau tab terakhir ditutup pada menit ke-164, tidak ada lagi yang
-    membaca, dan foto tujuh kelompok praktikan bernama akan tinggal di
+    membaca, dan foto lima kelompok praktikan bernama akan tinggal di
     cakram sampai server dijalankan ulang.
     """
     while True:

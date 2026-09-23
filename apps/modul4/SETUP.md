@@ -1,15 +1,27 @@
+> **Where this lives.** This directory is `apps/modul4` in the `iris-iot`
+> repository, moved here from `IRIS ASO/modul4/` with its git history
+> preserved (see that stage's commit for how). Every path below is written
+> relative to the Orange Pi's install root (`/home/orangepi/IRIS-ASO`), not
+> relative to this repo checkout — `modul4/server.py` here means
+> `/home/orangepi/IRIS-ASO/modul4/server.py` on the Pi. The Pi never clones
+> either repo directly; it receives a generated bundle built by
+> `IRIS ASO/orangepi/build_bundle.py`, which pulls this directory's built
+> output straight from a local `iris-iot` checkout. See that script and
+> `IRIS ASO/orangepi/README.md` for the actual deploy path.
+
 # Perburuan LoRa IRIS — papan skor (Modul 4 Part A)
 
 Papan skor web untuk permainan berburu beacon LoRa. Berjalan seluruhnya pada
 Orange Pi 4 PRO; tidak memerlukan Internet, akun, maupun proses deploy.
 
 ```
-Beacon  ─┐                       ┌── papan skor (proyektor)
-         ├─ LoRa 920 MHz ─┐      ├── ponsel tiap kelompok
-Hunter 1 ┘                │      ├── ponsel/laptop asisten
-Hunter 2 ─────────────────┼─ Wi-Fi ─→ Orange Pi 4 PRO
-   ...                    │            (AP + DHCP + NTP + server)
-Hunter 6 ─────────────────┘            http://192.168.4.1:8080
+Beacon 1 ─┐                             ┌── papan skor (proyektor)
+Hunter 1 ─┤                             ├── ponsel tiap kelompok
+Beacon 2 ─┤                             ├── ponsel/laptop asisten
+Hunter 2 ─┤   LoRa 920 MHz, 5 pasang    │
+   ...    ├── (sync word + slot ────────┼─ Wi-Fi ─→ Orange Pi 4 PRO
+Beacon 5 ─┤    sendiri per pasangan)    │            (AP + DHCP + NTP + server)
+Hunter 5 ─┘                             └            http://192.168.4.1:8080
 ```
 
 Satu alamat untuk semua orang. Peran dibedakan di dalam halamannya, bukan
@@ -348,15 +360,16 @@ selamat hanya akan menjadi yatim.
 
 ## 5. Menguji tanpa perangkat keras
 
-Papan skor dapat dikembangkan dan diperiksa tanpa tujuh papan ESP32:
+Papan skor dapat dikembangkan dan diperiksa tanpa sepuluh papan ESP32:
 
 ```bash
 python modul4/server.py                       # satu terminal
 python modul4/tools/fake_hunt.py              # terminal lain
 ```
 
-Skrip itu memalsukan satu Beacon dan enam Hunter, lengkap dengan derau
-multipath dan paket yang hilang. Beberapa pilihan yang berguna:
+Skrip itu memalsukan kelima pasangan Beacon/Hunter independen sekaligus,
+lengkap dengan derau multipath dan paket yang hilang. Beberapa pilihan yang
+berguna:
 
 ```bash
 python modul4/tools/fake_hunt.py --drop 5     # kelompok 5 hilang setelah 10 detik

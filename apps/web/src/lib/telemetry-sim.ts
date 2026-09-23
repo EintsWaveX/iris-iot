@@ -1,7 +1,7 @@
 /**
  * Stage 11's simulator: plausible per-group message traffic for all four
  * modules, generated entirely client-side. Modelled on the RSSI-with-noise,
- * occasional-loss approach `modul4/tools/fake_hunt.py` already uses to drive
+ * occasional-loss approach `apps/modul4/tools/fake_hunt.py` already uses to drive
  * the Orange Pi scoreboard without real boards, generalized here across
  * BLE/WebSocket/MQTT/LoRa rather than LoRa alone. Nothing in this file talks
  * to a server -- Stage 11's own gate is "renders and animates from the
@@ -107,7 +107,7 @@ export function nextReading(modul: number, group: number): Reading {
 
 /** The live value passing through each of the five layers right now, in the
  * same order as a module's content `lapisan` array (application, transport,
- * network, data link, physical). Generalizes modul4/src/ui-layers.js's
+ * network, data link, physical). Generalizes apps/modul4/src/ui-layers.js's
  * per-layer composition across all four modules, per the plan's own table
  * of what each layer means for each protocol. */
 export function describeLayers(reading: Reading): string[] {
