@@ -1,0 +1,23 @@
+// A second typecheck, for api/ only, under the module rules Vercel's own
+// Node function build enforces (NodeNext: explicit .js extensions, JSON
+// import attributes). The main tsconfig uses Astro's bundler resolution,
+// which accepts both omissions, so `astro check` passed while `vercel
+// build` failed on the same code -- how a bad import in group-identity.ts
+// once reached production and broke every api/ function. Run by
+// `npm run check`.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["node"]
+  },
+  "include": ["api/**/*.ts"],
+  "exclude": ["api/**/__tests__/**"]
+}

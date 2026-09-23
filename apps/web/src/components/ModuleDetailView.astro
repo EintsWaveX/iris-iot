@@ -18,6 +18,7 @@
 import { getEntry } from "astro:content";
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
+import { navUtama } from "../lib/nav-links";
 import Card from "../components/ui/Card.astro";
 import Table from "../components/ui/Table.astro";
 import Badge from "../components/ui/Badge.astro";
@@ -43,16 +44,7 @@ if (!entry) {
 const m = entry.data;
 
 const basePath = lang === "en" ? "/en/modules" : "/modules";
-const links =
-  lang === "en"
-    ? [
-        { href: "/", label: "Beranda" },
-        { href: "/en/modules", label: "Modules" },
-      ]
-    : [
-        { href: "/", label: "Beranda" },
-        { href: "/modules", label: "Modul" },
-      ];
+const links = navUtama(lang === "en" ? "en" : "id");
 
 const steps = [
   { id: "brief", label: t.stepLabels.brief },
@@ -227,11 +219,11 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
 </Base>
 
 <script>
+  import { sekaliPerHalaman } from "../scripts/per-halaman";
   function playEntrance() {
     window.Motion?.enter(".module-header > *");
   }
-  playEntrance();
-  document.addEventListener("astro:page-load", playEntrance);
+  sekaliPerHalaman("ModulDetailAnimasi", playEntrance);
 </script>
 
 <style>

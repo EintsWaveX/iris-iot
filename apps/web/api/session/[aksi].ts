@@ -19,6 +19,7 @@
  * POST /api/session/siarkan { pesan } (Stage 10)     — set or clear the running session's broadcast.
  * POST /api/session/catatan { sesiId, kelompokId, catatan, peran } (Stage 10) — per-group note/role.
  * GET  /api/session/telemetry?modul=N&kelompok=M (Stage 20)          — asisten OR praktikan. The Ladder/LayerXray/GroupLive views' live-data source.
+ * POST /api/session/lanjutkan { sesiId }             — reopen an ended session still inside its 165-minute cap.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -39,6 +40,7 @@ import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
+import { SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
 import { eq, and, gte, like, sql, notInArray } from "drizzle-orm";
 
 const PESAN_MAX_LEN = 200;
@@ -107,7 +109,16 @@ async function handleTelemetry(req: ApiRequest, res: ApiResponse) {
       diperbaruiPada: telemetriTerkini.diperbaruiPada,
     })
     .from(telemetriTerkini)
-    .where(and(eq(telemetriTerkini.modul, modul), eq(telemetriTerkini.kelompokNomor, kelompok)))
+    .where(
+      and(
+        eq(telemetriTerkini.modul, modul),
+        eq(telemetriTerkini.kelompokNomor, kelompok),
+        // telemetri_terkini keeps each group's last row forever, so without
+        // this a reading from a session days ago was served as "live".
+        // Anything older than a few heartbeats is no longer live.
+        gte(telemetriTerkini.diperbaruiPada, sql`now() - interval '2 minutes'`),
+      ),
+    )
     .limit(1);
 
   res.setHeader("Cache-Control", "public, s-maxage=5, stale-while-revalidate=10");
@@ -124,7 +135,7 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
 
   const db = getDb();
   const [row] = await db
-    .select({ status: sesi.status })
+    .select({ status: sesi.status, butuhAp: sesi.butuhAp })
     .from(sesi)
     .where(eq(sesi.id, sesiId))
     .limit(1);
@@ -139,6 +150,12 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
 
   await db.update(sesi).set({ status: "batal" }).where(eq(sesi.id, sesiId));
   await writeAudit(session.nim, "sesi_batal", { sesiId });
+
+  // Same as handleEnd: a cancelled hotspot session must not leave the Pi
+  // stuck as a hotspot, off campus Wi-Fi, for the rest of the day.
+  if (row.status === "berjalan" && row.butuhAp) {
+    await queueSoloServerCommand("ap.mati", session.nim);
+  }
   res.status(200).json({ ok: true });
 }
 
@@ -454,6 +471,63 @@ async function handleCatatan(req: ApiRequest, res: ApiResponse, session: Session
   res.status(200).json({ ok: true });
 }
 
+/** POST /api/session/lanjutkan { sesiId } -- reopens a session that was
+ *  ended, as long as it is still inside its own 165-minute cap. An ended
+ *  session keeps holding its slot (sesi_slot_unik), so before this one
+ *  stray "Akhiri sesi" left no way back: re-creating the same slot failed
+ *  with "sudah_ada" and cancelling refused an ended session. Reopening
+ *  keeps the same id, so every answer and attendance row already recorded
+ *  under it still counts. */
+async function handleLanjutkan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const sesiId = Number(jsonBody(req).sesiId);
+  if (!Number.isInteger(sesiId) || sesiId <= 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const db = getDb();
+  const [row] = await db.select().from(sesi).where(eq(sesi.id, sesiId)).limit(1);
+  if (!row) {
+    res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
+    return;
+  }
+  if (row.status !== "selesai") {
+    res.status(200).json({ ok: false, kode: "tidak_bisa_dilanjutkan" });
+    return;
+  }
+  const startedAt = row.mulaiPada ?? row.dibuatPada;
+  if (Date.now() - startedAt.getTime() >= SESI_CAP_DETIK * 1000) {
+    res.status(200).json({ ok: false, kode: "sudah_lewat" });
+    return;
+  }
+
+  const demoted = await db.transaction(async (tx) => {
+    const demotedRows = await tx
+      .update(sesi)
+      .set({
+        status: "selesai",
+        selesaiPada: sql`now()`,
+        durasiDetik: sql`extract(epoch from now() - coalesce(${sesi.mulaiPada}, ${sesi.dibuatPada}))::int`,
+      })
+      .where(eq(sesi.status, "berjalan"))
+      .returning({ butuhAp: sesi.butuhAp });
+    await tx
+      .update(sesi)
+      .set({ status: "berjalan", selesaiPada: null, durasiDetik: null })
+      .where(eq(sesi.id, sesiId));
+    return demotedRows[0];
+  });
+
+  await writeAudit(session.nim, "sesi_lanjutkan", { sesiId });
+
+  if (row.butuhAp) {
+    await queueSoloServerCommand("ap.nyala", session.nim);
+  } else if (demoted?.butuhAp) {
+    await queueSoloServerCommand("ap.mati", session.nim);
+  }
+  res.status(200).json({ ok: true });
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
@@ -506,6 +580,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "catatan") {
     if (!requireMethod(req, res, "POST")) return;
     return handleCatatan(req, res, session);
+  }
+  if (aksi === "lanjutkan") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleLanjutkan(req, res, session);
   }
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });

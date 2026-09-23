@@ -30,9 +30,9 @@ import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import { sesi } from "../../src/lib/schema.js";
-import { slotToMulai } from "../../src/lib/jadwal.js";
+import { slotToMulai, SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
 import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { writeAudit } from "../../src/lib/auth.js";
 
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -107,7 +107,39 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     // Postgres unique_violation on (tanggal, modul, mulai) -- the same
     // slot was already scheduled today.
     if (pgErrorCode(err) === "23505") {
-      res.status(200).json({ ok: false, kode: "sudah_ada" });
+      // Say which session holds the slot, so the console can offer the
+      // right way out: show it if it is already running, or offer to
+      // reopen it if it was ended early and is still inside its cap.
+      const [lama] = await getDb()
+        .select({
+          id: sesi.id,
+          status: sesi.status,
+          mulaiPada: sesi.mulaiPada,
+          dibuatPada: sesi.dibuatPada,
+        })
+        .from(sesi)
+        .where(
+          and(
+            eq(sesi.tanggal, tanggal),
+            eq(sesi.modul, modul),
+            eq(sesi.mulai, mulai),
+            ne(sesi.status, "batal"),
+          ),
+        )
+        .limit(1);
+      const mulaiLama = lama ? (lama.mulaiPada ?? lama.dibuatPada).getTime() : 0;
+      res.status(200).json({
+        ok: false,
+        kode: "sudah_ada",
+        sesiLama: lama
+          ? {
+              id: lama.id,
+              status: lama.status,
+              bisaDilanjutkan:
+                lama.status === "selesai" && Date.now() - mulaiLama < SESI_CAP_DETIK * 1000,
+            }
+          : null,
+      });
       return;
     }
     console.error("[api/session] unexpected error:", err);

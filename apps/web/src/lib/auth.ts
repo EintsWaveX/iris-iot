@@ -21,8 +21,11 @@
  * site with serverless API routes has no server-side session store to key
  * a plain session ID against without adding one (Redis, another table);
  * a signed cookie carries its own claims and needs nothing else, at the
- * cost of not being revocable before it expires. TTL is kept short (2
- * hours) specifically because of that trade-off.
+ * cost of not being revocable before it expires. TTL is kept short (3
+ * hours) specifically because of that trade-off -- but never shorter than
+ * one practicum session (SESI_CAP_MENIT, 165 minutes). It used to be 2
+ * hours, which signed every student and assistant out 45 minutes before
+ * their own session ended.
  */
 import { createHmac, timingSafeEqual, randomBytes, scryptSync } from "node:crypto";
 import { eq, and, gte, count } from "drizzle-orm";
@@ -30,7 +33,7 @@ import { getDb } from "./db.js";
 import { asisten, percobaanMasuk, audit } from "./schema.js";
 import { resolvePraktikan, currentSesi } from "./sesi.js";
 
-const SESSION_TTL_SEC = 2 * 60 * 60; // 2 hours
+const SESSION_TTL_SEC = 3 * 60 * 60; // 3 hours, > SESI_CAP_MENIT (165 min)
 const ASSISTANT_PASSWORD_SUFFIX = "1715";
 
 // Rate limiting thresholds. Named after, and set to the same values as,

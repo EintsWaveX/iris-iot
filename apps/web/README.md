@@ -38,6 +38,28 @@ All commands are run from the root of the project, from a terminal:
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `npm run astro -- --help` | Get help using the Astro CLI                     |
 
+## Deploying
+
+Pushing to `main` deploys production. Vercel's GitHub integration builds
+this folder (the project's Root Directory is `apps/web`); any other branch
+gets a preview URL. Nothing else is needed.
+
+A manual CLI deploy (for example a preview to test before pushing) must run
+from the **repository root**, not from here. With Root Directory set to
+`apps/web`, running the CLI inside `apps/web` makes it look for
+`apps/web/apps/web` and deploy an empty site:
+
+```
+cd <repo root>
+vercel link --project iris-praktikum-jurnal   # once; delete the .env.local it writes
+vercel build            # add --prod for production
+vercel deploy --prebuilt   # add --prod for production
+```
+
+`npm run check` also typechecks `api/` under the module rules Vercel's
+function build enforces (`tsconfig.api.json`), so an import that only
+`vercel build` would reject fails locally and in CI first.
+
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).

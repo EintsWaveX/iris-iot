@@ -15,12 +15,36 @@
  * derived from what arrived.
  */
 import { randomBytes, createHash } from "node:crypto";
-import { eq, lt, isNotNull, sql } from "drizzle-orm";
+import { and, eq, lt, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { server, denyut, perintah, telemetriTerkini, telemetriLog } from "./schema.js";
 import { safeEqual } from "./auth.js";
 
 const ENROLL_TOKEN_TTL_MIN = 30;
+
+// The server, not the agent, knows whether a practicum session is running
+// (a `sesi` row with status "berjalan") -- so the server is what decides the
+// pace, rather than the agent guessing from its own local signals. 15s
+// during a session keeps health/inventory fresh while an assistant might
+// actually be looking at the dashboard; 10min idle matters because Neon's
+// free tier suspends compute after inactivity, and a fixed 15s beat would
+// hold it awake 730 hours a month for nothing.
+export const INTERVAL_AKTIF_SEC = 15;
+export const INTERVAL_IDLE_SEC = 600;
+const TENGGANG_LURING_SEC = 60;
+
+/**
+ * How long a server may stay silent before /servers calls it offline. It
+ * has to follow the interval the agent was actually told at its last beat:
+ * a flat 60 seconds marked every healthy Pi "Luring" for 9 of every 10
+ * idle minutes, since outside a session it only reports every 600s. A
+ * beat that arrived after the running session started was answered with
+ * the fast interval; anything earlier, or with no session, the idle one.
+ */
+export function batasLuringDetik(denyutPada: Date | null, sesiMulaiPada: Date | null): number {
+  const cepat = denyutPada !== null && sesiMulaiPada !== null && denyutPada >= sesiMulaiPada;
+  return (cepat ? INTERVAL_AKTIF_SEC : INTERVAL_IDLE_SEC) + TENGGANG_LURING_SEC;
+}
 
 export function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -81,7 +105,7 @@ export async function consumeEnrollToken(
   const result = await db
     .update(server)
     .set({ daftarTokenHash: null, daftarTokenExp: null, terdaftarPada: new Date() })
-    .where(eq(server.id, serverId));
+    .where(and(eq(server.id, serverId), eq(server.daftarTokenHash, hash)));
   return (result.rowCount ?? 0) > 0;
 }
 

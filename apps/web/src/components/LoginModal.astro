@@ -52,7 +52,7 @@ import Tabs from "./ui/Tabs";
           placeholder="2311102001"
           required
           autocomplete="username"
-          hint="4–20 karakter, huruf dan angka."
+          hint="4 sampai 20 karakter, huruf dan angka."
         />
         <p class="field-error" id="login-praktikan-error" hidden></p>
         <Button kind="primary" type="submit" id="login-praktikan-submit">
@@ -67,7 +67,7 @@ import Tabs from "./ui/Tabs";
           id="login-asisten-nim"
           label="NIM"
           name="nim"
-          placeholder="101022300013"
+          placeholder="NIM asisten"
           required
           autocomplete="username"
         />
@@ -91,7 +91,7 @@ import Tabs from "./ui/Tabs";
 <Modal
   id="set-password-modal"
   title="Setel kata sandi asli"
-  lede='Selama ini kata sandi asisten adalah NIM ditambah "1715", jadi siapa pun yang tahu NIM kalian bisa menghitungnya. Setel kata sandi asli sekali di sini, dan kata sandi lama berhenti berfungsi untuk akun ini.'
+  lede="Kata sandi awal akun ini mudah ditebak. Setel kata sandi asli sekali di sini, dan kata sandi awal berhenti berfungsi untuk akun ini."
 >
   <Fragment slot="body">
     <form id="set-password-form" novalidate>
@@ -192,9 +192,13 @@ import Tabs from "./ui/Tabs";
     submitBtnId: string,
     errorId: string,
   ): Promise<LoginSuccess | null> {
-    clearError(errorId);
     const btn = document.getElementById(submitBtnId) as HTMLButtonElement | null;
+    // data-loading alone never disabled the button, so Enter pressed twice
+    // posted two logins (and two strikes toward the lockout on a typo).
+    if (btn?.dataset.loading === "yes") return null;
+    clearError(errorId);
     btn?.setAttribute("data-loading", "yes");
+    if (btn) btn.disabled = true;
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -210,6 +214,7 @@ import Tabs from "./ui/Tabs";
       return null;
     } finally {
       btn?.setAttribute("data-loading", "no");
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -224,7 +229,9 @@ import Tabs from "./ui/Tabs";
     }
 
     const btn = document.getElementById("set-password-submit") as HTMLButtonElement | null;
+    if (btn?.dataset.loading === "yes") return;
     btn?.setAttribute("data-loading", "yes");
+    if (btn) btn.disabled = true;
     try {
       const res = await fetch("/api/auth/set-password", {
         method: "POST",
@@ -233,7 +240,7 @@ import Tabs from "./ui/Tabs";
       });
       const data = await res.json();
       if (data.ok) {
-        navigate("/dashboard");
+        navigate("/session");
         return;
       }
       showError("set-password-error", pesanUntuk((data as LoginFailure).kode));
@@ -241,6 +248,7 @@ import Tabs from "./ui/Tabs";
       showError("set-password-error", "Tidak dapat menghubungi server.");
     } finally {
       btn?.setAttribute("data-loading", "no");
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -280,7 +288,7 @@ import Tabs from "./ui/Tabs";
           window.Modal?.close("login-modal");
           window.Modal?.open("set-password-modal");
         } else {
-          navigate("/dashboard");
+          navigate("/session");
         }
       });
     }
@@ -297,7 +305,7 @@ import Tabs from "./ui/Tabs";
     const skipBtn = document.getElementById("set-password-lewati");
     if (skipBtn && !skipBtn.dataset.bound) {
       skipBtn.dataset.bound = "1";
-      skipBtn.addEventListener("click", () => navigate("/dashboard"));
+      skipBtn.addEventListener("click", () => navigate("/session"));
     }
   }
 

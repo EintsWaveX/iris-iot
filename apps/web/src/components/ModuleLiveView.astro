@@ -16,6 +16,7 @@
 import { getEntry } from "astro:content";
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
+import { navUtama } from "../lib/nav-links";
 import Tabs from "../components/ui/Tabs";
 import Ladder from "../components/Ladder";
 import LayerXray from "../components/LayerXray";
@@ -37,16 +38,7 @@ if (!entry) {
 const m = entry.data;
 
 const basePath = lang === "en" ? "/en/modules" : "/modules";
-const links =
-  lang === "en"
-    ? [
-        { href: "/", label: "Beranda" },
-        { href: "/en/modules", label: "Modules" },
-      ]
-    : [
-        { href: "/", label: "Beranda" },
-        { href: "/modules", label: "Modul" },
-      ];
+const links = navUtama(lang === "en" ? "en" : "id");
 
 // Five fixed groups per session, the whole term -- same constant every
 // other group-hued surface in this app (Session Panels, the roster) uses.
@@ -111,11 +103,11 @@ const tabs = [
 </Base>
 
 <script>
+  import { sekaliPerHalaman } from "../scripts/per-halaman";
   function playEntrance() {
     window.Motion?.enter(".live-header > *");
   }
-  playEntrance();
-  document.addEventListener("astro:page-load", playEntrance);
+  sekaliPerHalaman("ModulLiveAnimasi", playEntrance);
 </script>
 
 <style>

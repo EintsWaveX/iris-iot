@@ -6,6 +6,7 @@
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
+import { navUtama } from "../lib/nav-links";
 import Card from "../components/ui/Card.astro";
 import { id as strId } from "../i18n/id";
 import { en as strEn } from "../i18n/en";
@@ -22,16 +23,7 @@ const entries = (await getCollection("modules", ({ id }) => id.startsWith(`${lan
 );
 
 const basePath = lang === "en" ? "/en/modules" : "/modules";
-const links =
-  lang === "en"
-    ? [
-        { href: "/", label: "Beranda" },
-        { href: "/en/modules", label: "Modules" },
-      ]
-    : [
-        { href: "/", label: "Beranda" },
-        { href: "/modules", label: "Modul" },
-      ];
+const links = navUtama(lang === "en" ? "en" : "id");
 ---
 
 <Base
@@ -73,11 +65,11 @@ const links =
 </Base>
 
 <script>
+  import { sekaliPerHalaman } from "../scripts/per-halaman";
   function playEntrance() {
     window.Motion?.enter(".modules-index__title, .modules-index__lede");
   }
-  playEntrance();
-  document.addEventListener("astro:page-load", playEntrance);
+  sekaliPerHalaman("ModulIndeksAnimasi", playEntrance);
 </script>
 
 <style>

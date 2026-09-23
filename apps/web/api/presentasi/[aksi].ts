@@ -85,9 +85,10 @@ async function handleToken(req: ApiRequest, res: ApiResponse, session: SessionPa
         addRandomSuffix: true,
         tokenPayload: JSON.stringify({ nim: session.nim }),
       }),
-      onUploadCompleted: async () => {
-        // Deliberately empty -- see this file's header comment.
-      },
+      // No onUploadCompleted, deliberately (see this file's header). Even
+      // an empty one made @vercel/blob register this route as a webhook on
+      // every deployed upload, and Blob's callback POST, carrying no
+      // session cookie, always failed this route's asisten check with 401.
     });
     res.status(200).json(jsonResponse);
   } catch (err) {
@@ -173,7 +174,14 @@ async function handleHapus(req: ApiRequest, res: ApiResponse, session: SessionPa
     return;
   }
 
-  await del(row.url);
+  // A blob that is already gone (removed in the Vercel dashboard, or a
+  // store that was recreated) must not strand its row: del() throwing
+  // here used to 500 the request and leave an undeletable dead entry.
+  try {
+    await del(row.url);
+  } catch (err) {
+    console.error("[api/presentasi/hapus] blob delete failed, removing row anyway:", err);
+  }
   await db.delete(presentasi).where(eq(presentasi.id, id));
   await writeAudit(session.nim, "presentasi_hapus", { id });
   res.status(200).json({ ok: true });

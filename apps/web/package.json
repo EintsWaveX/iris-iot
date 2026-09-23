@@ -10,7 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "check": "astro check",
+    "check": "astro check && tsc -p tsconfig.api.json",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "test": "vitest run",

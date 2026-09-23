@@ -40,20 +40,12 @@ import {
   pruneOldHeartbeatsOccasionally,
   rekamTelemetri,
   pruneOldTelemetryOccasionally,
+  INTERVAL_AKTIF_SEC,
+  INTERVAL_IDLE_SEC,
 } from "../../src/lib/server-lib.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
 import { eq, and, sql } from "drizzle-orm";
-
-// The server, not the agent, knows whether a practicum session is running
-// (a `sesi` row with status "berjalan") -- so the server is what decides the
-// pace, rather than the agent guessing from its own local signals. 15s
-// during a session keeps health/inventory fresh while an assistant might
-// actually be looking at the dashboard; 10min idle matters because Neon's
-// free tier suspends compute after inactivity, and a fixed 15s beat would
-// hold it awake 730 hours a month for nothing.
-const INTERVAL_AKTIF_SEC = 15;
-const INTERVAL_IDLE_SEC = 600;
 
 interface PerangkatMasuk {
   mac: string;

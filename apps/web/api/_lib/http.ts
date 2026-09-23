@@ -121,7 +121,15 @@ export function parseCookies(req: ApiRequest): Record<string, string> {
     if (eq === -1) continue;
     const key = part.slice(0, eq).trim();
     const value = part.slice(eq + 1).trim();
-    if (key) out[key] = decodeURIComponent(value);
+    if (!key) continue;
+    // Any cookie on this host is parsed, not just ours, and one malformed
+    // %-escape in someone else's (analytics, an extension) made
+    // decodeURIComponent throw and 500 every API route for that browser.
+    try {
+      out[key] = decodeURIComponent(value);
+    } catch {
+      out[key] = value;
+    }
   }
   return out;
 }

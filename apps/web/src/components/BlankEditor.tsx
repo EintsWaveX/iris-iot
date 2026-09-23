@@ -12,7 +12,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Segment } from "../lib/blanks";
 import { needsPersonalization, personalizeSegments } from "../lib/group-identity";
+import { startPolling } from "../scripts/polling";
 import "./BlankEditor.css";
+
+type DraftJawaban = Record<string, { isi: string; benar: boolean }>;
+
+const DRAFT_POLL_MS = 15_000;
 
 interface Props {
   modul: number;
@@ -61,6 +66,34 @@ export default function BlankEditor({
   // header for why "generic" is never what actually gets flashed.
   const [displaySegments, setDisplaySegments] = useState<Segment[]>(segments);
   const mounted = useRef(true);
+  const fokusNomor = useRef<number | null>(null);
+
+  // Merges the group's saved answers into the editor. The whole group
+  // shares one set of answers, so a groupmate's checked blank has to show
+  // up here too -- but never on top of what this student is typing: a
+  // blank that has focus, or holds an edit not yet checked, keeps its
+  // local text.
+  function terapkanDraft(jawaban: DraftJawaban) {
+    setState((prev) => {
+      const next = { ...prev };
+      for (const [nomorStr, entry] of Object.entries(jawaban)) {
+        const nomor = Number(nomorStr);
+        const lokal = next[nomor];
+        if (!lokal) continue;
+        const adaEditLokal = lokal.isi !== (lokal.checkedIsi ?? "") && lokal.isi !== "";
+        if (fokusNomor.current === nomor || adaEditLokal || lokal.checking) continue;
+        if (lokal.isi === entry.isi && lokal.benar === entry.benar) continue;
+        next[nomor] = {
+          ...lokal,
+          isi: entry.isi,
+          benar: entry.benar,
+          checkedIsi: entry.isi,
+          kenapa: lokal.isi === entry.isi ? lokal.kenapa : undefined,
+        };
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     mounted.current = true;
@@ -72,23 +105,7 @@ export default function BlankEditor({
           setLocked(true);
           return;
         }
-        setState((prev) => {
-          const next = { ...prev };
-          for (const [nomorStr, entry] of Object.entries(
-            data.jawaban as Record<string, { isi: string; benar: boolean }>,
-          )) {
-            const nomor = Number(nomorStr);
-            if (next[nomor]) {
-              next[nomor] = {
-                ...next[nomor],
-                isi: entry.isi,
-                benar: entry.benar,
-                checkedIsi: entry.isi,
-              };
-            }
-          }
-          return next;
-        });
+        terapkanDraft(data.jawaban as DraftJawaban);
 
         const nomorKelompok = data.nomorKelompok;
         if (typeof nomorKelompok === "number" && needsPersonalization(berkas)) {
@@ -115,6 +132,31 @@ export default function BlankEditor({
     };
   }, [modul, berkas]);
 
+  // Groupmates' answers arrive on this poll (Stage 20's replacement for
+  // the retired Firebase strand). Only once signed in and loaded; a
+  // hidden tab stops polling by itself (see polling.ts).
+  useEffect(() => {
+    if (!loaded || locked) return;
+    let first = true;
+    const stop = startPolling(async () => {
+      if (first) {
+        first = false; // the mount fetch above already covered this tick
+        return;
+      }
+      try {
+        const data = await fetch(`/api/modul/draft?modul=${modul}&berkas=${berkas}`).then((r) =>
+          r.json(),
+        );
+        if (!mounted.current) return;
+        if (data.ok) terapkanDraft(data.jawaban as DraftJawaban);
+        else if (data.kode === "belum_masuk" || data.kode === "peran_salah") setLocked(true);
+      } catch {
+        // Try again next tick.
+      }
+    }, DRAFT_POLL_MS);
+    return stop;
+  }, [loaded, locked, modul, berkas]);
+
   function onChange(nomor: number, isi: string) {
     setState((prev) => ({ ...prev, [nomor]: { ...prev[nomor], isi } }));
   }
@@ -122,7 +164,8 @@ export default function BlankEditor({
   async function checkBlank(nomor: number) {
     if (locked) return;
     const entry = state[nomor];
-    if (!entry || entry.isi.trim().length === 0 || entry.isi === entry.checkedIsi) return;
+    if (!entry || entry.checking || entry.isi.trim().length === 0) return;
+    if (entry.isi === entry.checkedIsi) return;
 
     setState((prev) => ({ ...prev, [nomor]: { ...prev[nomor], checking: true } }));
     try {
@@ -132,6 +175,15 @@ export default function BlankEditor({
         body: JSON.stringify({ modul, berkas, nomor, jawaban: entry.isi }),
       });
       const data = await res.json();
+      if (!data.ok) {
+        // Not a verdict: an expired sign-in or a rejected request used to
+        // be shown as "wrong" (benar false, marked checked), telling a
+        // student a correct answer was incorrect. Leave it unchecked, and
+        // lock the editor behind the sign-in hint when that is the cause.
+        if (data.kode === "belum_masuk" || data.kode === "peran_salah") setLocked(true);
+        setState((prev) => ({ ...prev, [nomor]: { ...prev[nomor], checking: false } }));
+        return;
+      }
       setState((prev) => ({
         ...prev,
         [nomor]: {
@@ -139,7 +191,7 @@ export default function BlankEditor({
           checking: false,
           benar: Boolean(data.benar),
           kenapa: data.kenapa,
-          checkedIsi: prev[nomor].isi,
+          checkedIsi: entry.isi,
         },
       }));
     } catch {
@@ -187,7 +239,19 @@ export default function BlankEditor({
                 style={{ width: `${width}ch` }}
                 value={entry?.isi ?? ""}
                 onChange={(e) => onChange(seg.nomor, e.target.value)}
-                onBlur={() => checkBlank(seg.nomor)}
+                onFocus={() => {
+                  fokusNomor.current = seg.nomor;
+                }}
+                onBlur={() => {
+                  if (fokusNomor.current === seg.nomor) fokusNomor.current = null;
+                  void checkBlank(seg.nomor);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void checkBlank(seg.nomor);
+                  }
+                }}
               />
               {entry?.checkedIsi === entry?.isi && entry?.isi && entry.benar && entry.kenapa && (
                 <span className="blank-editor__kenapa" role="status">

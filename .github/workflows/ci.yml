@@ -1,6 +1,6 @@
 name: CI
 
-# Five jobs, each independently useful as a regression gate:
+# Four jobs, each independently useful as a regression gate:
 #
 #   web      the Astro app (apps/web): typecheck, lint, format, unit tests,
 #            build, CSP hash check
@@ -13,8 +13,13 @@ name: CI
 #            this directory here (git history preserved; see that stage's
 #            commit for how)
 #   secrets  a repo-wide scan for anything that looks like a credential
-#   deploy   Vercel preview on a PR, production on main, for each app --
-#            gated on the required secrets actually being present
+#
+# Deploying is not a job here. Vercel's own GitHub integration builds
+# apps/web (the project's Root Directory) on every push: production from
+# main, a preview for any other branch. The old deploy job was never
+# enabled, and ran the CLI from apps/web, which under that Root Directory
+# setting builds an empty site. A manual CLI deploy must run from the repo
+# root (see apps/web/README.md).
 #
 # This repo is the web-development half of a larger project split out of
 # Documents/Downloads/IRIS ASO into Documents/WebApps/iris-iot. Stage 15
@@ -181,29 +186,3 @@ jobs:
           name: fresh-scan
           path: fresh-scan.json
           retention-days: 7
-
-  deploy:
-    name: deploy (Vercel)
-    # games/ deploys manually ("only when explicitly asked", per its own
-    # REBUILD.md), unchanged by this move -- games is still a required gate
-    # here so a regression there blocks web's automatic deploy too, the
-    # same coupling the original repo's single deploy job had.
-    needs: [web, games, modul4, secrets]
-    runs-on: ubuntu-latest
-    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - run: npm install -g vercel
-      - name: Pull Vercel environment
-        working-directory: apps/web
-        run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
-      - name: Build
-        working-directory: apps/web
-        run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
-      - name: Deploy
-        working-directory: apps/web
-        run: vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}

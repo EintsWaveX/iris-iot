@@ -8,6 +8,7 @@
  */
 import Base from "../../layouts/Base.astro";
 import Nav from "../../components/ui/Nav.astro";
+import { navUtama } from "../../lib/nav-links";
 import GroupLive from "../../components/GroupLive";
 
 export function getStaticPaths() {
@@ -17,12 +18,7 @@ export function getStaticPaths() {
 const { n } = Astro.params;
 const group = Number(n);
 
-const links = [
-  { href: "/", label: "Beranda" },
-  { href: "/dashboard", label: "Dasbor" },
-  { href: "/modules", label: "Modul" },
-  { href: "/servers", label: "Server" },
-];
+const links = navUtama();
 ---
 
 <Base title={`Kelompok ${group} · IRIS IoT`} cosmosScene="kerja">
@@ -45,11 +41,11 @@ const links = [
 </Base>
 
 <script>
+  import { sekaliPerHalaman } from "../../scripts/per-halaman";
   function playEntrance() {
     window.Motion?.enter(".group-header > *");
   }
-  playEntrance();
-  document.addEventListener("astro:page-load", playEntrance);
+  sekaliPerHalaman("GrupAnimasi", playEntrance);
 </script>
 
 <style>

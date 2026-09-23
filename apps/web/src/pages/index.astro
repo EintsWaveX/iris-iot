@@ -14,24 +14,15 @@
  */
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
+import { navUtama } from "../lib/nav-links";
 import Button from "../components/ui/Button.astro";
 import Card from "../components/ui/Card.astro";
 import LoginModal from "../components/LoginModal.astro";
 
-// Same complete set every other page's nav carries (see dashboard.astro),
-// shown regardless of login state -- clicking Dasbor or Server while
-// logged out simply lands on the existing /?login=1 gate, the same way
-// a direct visit to /dashboard already does. Before this, "/" was the
-// only page in the app whose nav went missing Dasbor/Server entirely,
-// so a returning, already-signed-in visitor who landed back here (the
-// brand mark in Nav.astro always links to "/") had no way back into
-// their own dashboard short of typing the URL by hand.
-const links = [
-  { href: "/", label: "Beranda" },
-  { href: "/dashboard", label: "Dasbor" },
-  { href: "/modules", label: "Modul" },
-  { href: "/servers", label: "Server" },
-];
+// The shared list (see nav-links.ts), which also hides role-scoped links
+// once /api/auth/me answers -- this page used to hand-relabel Dasbor into
+// Sesi for an assistant itself.
+const links = navUtama();
 ---
 
 <Base
@@ -110,6 +101,7 @@ const links = [
 </Base>
 
 <script>
+  import { sekaliPerHalaman } from "../scripts/per-halaman";
   import { navigate } from "astro:transitions/client";
 
   // /masuk and /login both redirect here with this query param (see
@@ -125,7 +117,7 @@ const links = [
       .then((r) => r.json())
       .then((data) => {
         if (data.ok) {
-          navigate("/dashboard");
+          navigate(data.role === "asisten" ? "/session" : "/dashboard");
         } else {
           window.Modal?.open("login-modal");
         }
@@ -166,22 +158,6 @@ const links = [
         if (location.pathname !== "/") return;
         masuk.hidden = !!data.ok;
         keluar.hidden = !data.ok;
-
-        // An asisten's "Dasbor" is /dashboard in the markup, but that page
-        // immediately bounces every asisten to /session (it is praktikan-
-        // only) -- so left as "Dasbor", the tab silently teleports an
-        // asisten to a different, already-visible tab the moment they
-        // click it. Repoint it at /session and relabel it to match, the
-        // same way servers.astro/session.astro's own nav already does,
-        // rather than leaving a tab that never does what it says for half
-        // of this app's visitors.
-        if (data.ok && data.role === "asisten") {
-          const dasbor = document.querySelector<HTMLAnchorElement>('.nav__link[href="/dashboard"]');
-          if (dasbor) {
-            dasbor.href = "/session";
-            dasbor.textContent = "Sesi";
-          }
-        }
       })
       .catch(() => {
         // A failed check is not evidence of a session either way --
@@ -196,13 +172,9 @@ const links = [
   function playEntrance() {
     window.Motion?.enter(".hero > *");
   }
-
-  openLoginIfRequested();
-  checkAuthState();
-  playEntrance();
-  document.addEventListener("astro:page-load", openLoginIfRequested);
-  document.addEventListener("astro:page-load", checkAuthState);
-  document.addEventListener("astro:page-load", playEntrance);
+  sekaliPerHalaman("BerandaBukaMasuk", openLoginIfRequested);
+  sekaliPerHalaman("BerandaCekMasuk", checkAuthState);
+  sekaliPerHalaman("BerandaMasukAnimasi", playEntrance);
 </script>
 
 <style>

@@ -15,7 +15,7 @@
  * independently of the answer itself -- see answer-keys.ts's own header.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
-import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
+import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import { jawaban } from "../../src/lib/schema.js";
@@ -25,7 +25,7 @@ import { checkJawaban, blankCountFor, canonicalAnswer } from "../_lib/answer-key
 import { getSketchSourceForApi } from "../_lib/sketch-sources.js";
 import { personalize } from "../../src/lib/group-identity.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { and, eq, like } from "drizzle-orm";
+import { and, asc, eq, isNull, like, sql } from "drizzle-orm";
 
 const MAX_JAWABAN_LEN = 200;
 
@@ -56,6 +56,20 @@ function parseModulBerkas(
   return { modul, berkas };
 }
 
+/** Which jawaban rows count as "this group's answers" right now. The
+ *  same (group, blank) has one row per session plus one home-practice row
+ *  (sesiId null), so an unscoped read used to mix them: the editor showed
+ *  whichever row Postgres happened to return last, and the download could
+ *  pass on a blank the running session's own report still counted wrong.
+ *  While a session runs, only its rows count, matching handleLaporan's
+ *  scope exactly. With none running, every row counts and the newest per
+ *  blank wins (callers order by diubahPada), so a student who keeps going
+ *  after the session auto-ends still sees their own latest work. */
+function jawabanScope(running: { id: number } | null, kelompokId: number, prefix: string) {
+  const base = and(eq(jawaban.kelompokId, kelompokId), like(jawaban.soalKode, `${prefix}%`));
+  return running ? and(base, eq(jawaban.sesiId, running.id)) : base;
+}
+
 async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const parsed = parseModulBerkas(req.query);
   if (!parsed) {
@@ -69,11 +83,13 @@ async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPa
   }
 
   const prefix = soalKodePrefix(parsed.modul, parsed.berkas);
+  const running = await currentSesi();
   const db = getDb();
   const rows = await db
     .select({ soalKode: jawaban.soalKode, isi: jawaban.isi, benar: jawaban.benar })
     .from(jawaban)
-    .where(and(eq(jawaban.kelompokId, kelompokId), like(jawaban.soalKode, `${prefix}%`)));
+    .where(jawabanScope(running, kelompokId, prefix))
+    .orderBy(asc(jawaban.diubahPada));
 
   const out: Record<string, { isi: string; benar: boolean }> = {};
   for (const row of rows) {
@@ -129,42 +145,51 @@ async function handleCek(req: ApiRequest, res: ApiResponse, session: SessionPayl
   // schema comment); practising at home writes a row with sesiId null, and
   // the table's partial unique index is what still keeps that to one row
   // per group per blank instead of growing one per attempt.
-  const target = running
-    ? and(
-        eq(jawaban.sesiId, running.id),
-        eq(jawaban.kelompokId, kelompokId),
-        eq(jawaban.soalKode, kode),
-      )
-    : and(eq(jawaban.kelompokId, kelompokId), eq(jawaban.soalKode, kode));
+  //
+  // The no-session branch must match sesiId IS NULL explicitly: without it,
+  // one home-practice check rewrote this blank's row in every past session
+  // too, overwriting the isi/benar/percobaan those sessions' reports read.
+  const target = and(
+    running ? eq(jawaban.sesiId, running.id) : isNull(jawaban.sesiId),
+    eq(jawaban.kelompokId, kelompokId),
+    eq(jawaban.soalKode, kode),
+  );
 
-  const [existing] = await db
-    .select({ percobaan: jawaban.percobaan })
-    .from(jawaban)
-    .where(target)
-    .limit(1);
-
-  if (existing) {
-    await db
+  // Incremented in SQL rather than read-then-written, so two groupmates
+  // checking the same blank at once both count.
+  const perbarui = () =>
+    db
       .update(jawaban)
       .set({
         isi: jawabanTeks,
         benar: result.benar,
-        percobaan: existing.percobaan + 1,
+        percobaan: sql`${jawaban.percobaan} + 1`,
         versi: 1,
         diubahOleh: session.nim,
         diubahPada: new Date(),
       })
-      .where(target);
-  } else {
-    await db.insert(jawaban).values({
-      sesiId: running?.id ?? null,
-      kelompokId,
-      soalKode: kode,
-      isi: jawabanTeks,
-      benar: result.benar,
-      percobaan: 1,
-      diubahOleh: session.nim,
-    });
+      .where(target)
+      .returning({ id: jawaban.id });
+
+  const [updated] = await perbarui();
+  if (!updated) {
+    try {
+      await db.insert(jawaban).values({
+        sesiId: running?.id ?? null,
+        kelompokId,
+        soalKode: kode,
+        isi: jawabanTeks,
+        benar: result.benar,
+        percobaan: 1,
+        diubahOleh: session.nim,
+      });
+    } catch (err) {
+      // A groupmate inserted this same row between our update and insert
+      // (the editor is shared by the whole group). Their row exists now, so
+      // record this attempt on it instead of failing the request.
+      if (pgErrorCode(err) !== "23505") throw err;
+      await perbarui();
+    }
   }
 
   res.status(200).json({ ok: true, benar: result.benar, kenapa: result.kenapa });
@@ -186,21 +211,28 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
   const total = blankCountFor(parsed.modul, parsed.berkas);
   const prefix = soalKodePrefix(parsed.modul, parsed.berkas);
 
+  const running = await currentSesi();
   const db = getDb();
   const rows = await db
     .select({ soalKode: jawaban.soalKode, benar: jawaban.benar })
     .from(jawaban)
-    .where(and(eq(jawaban.kelompokId, kelompokId), like(jawaban.soalKode, `${prefix}%`)));
+    .where(jawabanScope(running, kelompokId, prefix))
+    .orderBy(asc(jawaban.diubahPada));
 
   // The downloaded file gets each blank's as-authored canonical text, not
   // the student's raw isi -- see canonicalAnswer()'s own comment for why
   // (a normalized-equal but noisy answer would otherwise not compile).
+  // Newest row per blank wins, the same rule handleDraft shows the editor,
+  // so a blank the editor currently marks wrong never passes the gate.
   const answers = new Map<number, string>();
   for (const row of rows) {
-    if (!row.benar) continue;
+    const nomor = Number(row.soalKode.slice(prefix.length));
+    if (!row.benar) {
+      answers.delete(nomor);
+      continue;
+    }
     const canonical = canonicalAnswer(row.soalKode, { nomorKelompok });
     if (canonical === undefined) continue;
-    const nomor = Number(row.soalKode.slice(prefix.length));
     answers.set(nomor, canonical);
   }
 

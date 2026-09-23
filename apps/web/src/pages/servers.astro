@@ -17,6 +17,7 @@
  */
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
+import { navUtama } from "../lib/nav-links";
 import Card from "../components/ui/Card.astro";
 import Field from "../components/ui/Field.astro";
 import Button from "../components/ui/Button.astro";
@@ -24,13 +25,7 @@ import Modal from "../components/ui/Modal.astro";
 import EmptyState from "../components/ui/EmptyState.astro";
 import Toast from "../components/ui/Toast";
 
-const links = [
-  { href: "/", label: "Beranda" },
-  { href: "/dashboard", label: "Dasbor" },
-  { href: "/session", label: "Sesi" },
-  { href: "/modules", label: "Modul" },
-  { href: "/servers", label: "Server" },
-];
+const links = navUtama();
 ---
 
 <Base title="Server & perangkat · IRIS IoT" cosmosScene="teknis">
@@ -101,9 +96,14 @@ const links = [
           <h1 class="section__title" id="detail-nama"></h1>
           <p class="section__lede" id="detail-status"></p>
         </div>
-        <Button kind="danger" data-modal-open="modal-hapus-server">
-          Hapus server
-        </Button>
+        <div class="head-actions">
+          <Button kind="ghost" id="btn-token-baru" type="button">
+            Token pendaftaran baru
+          </Button>
+          <Button kind="danger" data-modal-open="modal-hapus-server">
+            Hapus server
+          </Button>
+        </div>
       </section>
 
       <Card title="Kesehatan" id="detail-kesehatan">
@@ -217,8 +217,8 @@ const links = [
 
   <Modal
     id="modal-token"
-    title="Server terdaftar"
-    lede="Salin perintah ini dan jalankan sekali di Orange Pi. Token ini hanya tampil sekarang."
+    title="Perintah pendaftaran"
+    lede="Salin perintah ini dan jalankan sekali di Orange Pi. Token ini hanya tampil sekarang dan berlaku 30 menit."
   >
     <Fragment slot="body">
       <pre class="token-box mono" id="token-perintah"></pre>
@@ -248,6 +248,7 @@ const links = [
   <script>
     import { navigate } from "astro:transitions/client";
     import { startPolling } from "../scripts/polling";
+    import { watchIdentity } from "../scripts/identity-watch";
     interface Denyut {
       pada: string;
       cpu: number | null;
@@ -266,6 +267,7 @@ const links = [
       alamatLan: string | null;
       terdaftar: boolean;
       denyutTerakhir: Denyut | null;
+      batasLuringDetik: number;
     }
     interface Perangkat {
       id: number;
@@ -286,7 +288,18 @@ const links = [
       keluaran: string | null;
     }
 
-    const OFFLINE_AFTER_MS = 60_000;
+    // Mirrors install.sh's own printed command. There is no `iris-agent`
+    // binary on the Pi: the agent is a Python script run as its own user,
+    // so the shorter form this modal used to show failed with "command not
+    // found" the moment anyone pasted it.
+    function perintahDaftar(kode: string, token: string): string {
+      return [
+        "sudo -u iris-agent IRIS_AGENT_CONFIG=/etc/iris-agent/config.json \\",
+        `  python3 /opt/iris-agent/agent.py enroll --kode ${kode} --token ${token} \\`,
+        `  --server https://${window.location.host} --repo-root /home/orangepi/IRIS-ASO`,
+        "sudo systemctl restart iris-agent.service",
+      ].join("\n");
+    }
     const LAYANAN_LABEL: Record<string, string> = {
       "modul2-ws": "WebSocket Modul 2",
       mosquitto: "Mosquitto (Modul 3)",
@@ -313,9 +326,12 @@ const links = [
         month: "2-digit",
       });
     }
-    function isOnline(d: Denyut | null): boolean {
+    // The threshold comes from the server (batasLuringDetik), which knows
+    // the heartbeat interval the agent was actually told: 15s during a
+    // session, 600s outside one.
+    function isOnline(d: Denyut | null, batasDetik: number): boolean {
       if (!d) return false;
-      return Date.now() - new Date(d.pada).getTime() < OFFLINE_AFTER_MS;
+      return Date.now() - new Date(d.pada).getTime() < batasDetik * 1000;
     }
 
     async function init() {
@@ -333,37 +349,23 @@ const links = [
       document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
 
       stopIdentityPolling?.();
-      // The session cookie is shared by every tab in the browser -- signing
-      // into a different account in another tab silently swaps who THIS
-      // tab is authenticated as too, on its very next request, with no
-      // visible warning. This poll notices the swap (the NIM this tab
-      // loaded with no longer matches what the cookie now resolves to) and
-      // forces a clean re-auth rather than letting an assistant keep
-      // sending server/service commands (restart, AP toggle, delete) as
-      // the wrong person.
-      stopIdentityPolling = startPolling(async () => {
-        try {
-          const check = await fetch("/api/auth/me").then((r) => r.json());
-          if (!check.ok || check.nim !== me.nim) {
-            window.Toast?.show(
-              "Sesi ini digantikan oleh masuk lain di peramban yang sama. Silakan masuk kembali.",
-              "info",
-            );
-            navigate("/?login=1");
-          }
-        } catch {
-          // A failed check is not evidence of a swap -- try again next tick.
-        }
-      }, 20_000);
+      // See identity-watch.ts: the session cookie is shared by every tab.
+      stopIdentityPolling = watchIdentity(me.nim);
 
       const params = new URLSearchParams(window.location.search);
       const id = params.get("id");
+      stopRefreshPolling?.();
       if (id) {
         show("view-detail");
         await loadDetail(Number(id));
+        // Health, the command log's status column and newly discovered
+        // devices only ever changed on a manual reload before, so a sent
+        // command sat on "menunggu" forever as far as this page showed.
+        stopRefreshPolling = startPolling(() => loadDetail(Number(id), true), 15_000);
       } else {
         show("view-daftar");
         await loadDaftar();
+        stopRefreshPolling = startPolling(loadDaftar, 15_000);
       }
       // The one entrance per page: whichever view just became visible
       // rises in together, once its content (the table, the detail
@@ -372,7 +374,11 @@ const links = [
     }
 
     async function loadDaftar() {
-      const data = await fetch("/api/server").then((r) => r.json());
+      if (location.pathname !== "/servers") return;
+      const data = await fetch("/api/server")
+        .then((r) => r.json())
+        .catch(() => null);
+      if (!data) return;
       const daftar: ServerRow[] = data.ok ? data.server : [];
 
       if (daftar.length === 0) {
@@ -402,25 +408,33 @@ const links = [
         tdStatus.dataset.label = "Status";
         tdStatus.appendChild(
           statusPill(
-            !s.terdaftar ? "Menunggu agen" : isOnline(s.denyutTerakhir) ? "Daring" : "Luring",
-            !s.terdaftar ? "neutral" : isOnline(s.denyutTerakhir) ? "ok" : "danger",
+            !s.terdaftar
+              ? "Menunggu agen"
+              : isOnline(s.denyutTerakhir, s.batasLuringDetik)
+                ? "Daring"
+                : "Luring",
+            !s.terdaftar
+              ? "neutral"
+              : isOnline(s.denyutTerakhir, s.batasLuringDetik)
+                ? "ok"
+                : "danger",
           ),
         );
         tr.appendChild(tdStatus);
 
         tr.appendChild(
-          sel("CPU", s.denyutTerakhir?.cpu != null ? `${s.denyutTerakhir.cpu}%` : "—"),
+          sel("CPU", s.denyutTerakhir?.cpu != null ? `${s.denyutTerakhir.cpu}%` : "-"),
         );
         tr.appendChild(
-          sel("Memori", s.denyutTerakhir?.memori != null ? `${s.denyutTerakhir.memori}%` : "—"),
+          sel("Memori", s.denyutTerakhir?.memori != null ? `${s.denyutTerakhir.memori}%` : "-"),
         );
         tr.appendChild(
-          sel("Suhu", s.denyutTerakhir?.suhu != null ? `${s.denyutTerakhir.suhu}°C` : "—"),
+          sel("Suhu", s.denyutTerakhir?.suhu != null ? `${s.denyutTerakhir.suhu}°C` : "-"),
         );
         tr.appendChild(
           sel(
             "Jam",
-            s.denyutTerakhir ? (s.denyutTerakhir.jamSelaras ? "Selaras" : "Tidak selaras") : "—",
+            s.denyutTerakhir ? (s.denyutTerakhir.jamSelaras ? "Selaras" : "Tidak selaras") : "-",
           ),
         );
 
@@ -452,10 +466,18 @@ const links = [
 
     let currentServerId = 0;
     let stopIdentityPolling: (() => void) | null = null;
+    let stopRefreshPolling: (() => void) | null = null;
 
-    async function loadDetail(id: number) {
+    async function loadDetail(id: number, dariPolling = false) {
+      if (location.pathname !== "/servers") return;
       currentServerId = id;
-      const data = await fetch(`/api/server/${id}`).then((r) => r.json());
+      const data = await fetch(`/api/server/${id}`)
+        .then((r) => r.json())
+        .catch(() => null);
+      if (!data) {
+        if (!dariPolling) window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+        return;
+      }
       if (!data.ok) {
         window.Toast?.show("Server tidak ditemukan.", "danger");
         navigate("/servers");
@@ -466,12 +488,18 @@ const links = [
       document.getElementById("detail-nama")!.textContent = s.nama;
       document.getElementById("detail-status")!.textContent = !s.terdaftar
         ? "Menunggu agen mendaftar. Jalankan perintah pendaftaran di Pi."
-        : isOnline(data.denyutTerakhir)
+        : isOnline(data.denyutTerakhir, data.batasLuringDetik)
           ? `Daring · kode ${s.kode}`
           : `Luring · kode ${s.kode}`;
 
       renderKesehatan(data.denyutTerakhir);
-      renderPerangkat(data.perangkat);
+      // Rebuilding the adoption rows mid-typing would wipe a half-entered
+      // name, so a background refresh leaves them alone while any of them
+      // has focus or unsaved text.
+      const sedangMengetik = Array.from(
+        document.querySelectorAll<HTMLInputElement>("#daftar-baru input"),
+      ).some((el) => el === document.activeElement || el.value.trim() !== "");
+      if (!dariPolling || !sedangMengetik) renderPerangkat(data.perangkat);
       renderRiwayat(data.perintah);
       mountPerintahLayanan();
     }
@@ -484,12 +512,12 @@ const links = [
         document.getElementById("detail-layanan")!.innerHTML = "";
         return;
       }
-      dl.appendChild(metrikItem("CPU", d.cpu != null ? `${d.cpu}%` : "—"));
-      dl.appendChild(metrikItem("Memori", d.memori != null ? `${d.memori}%` : "—"));
-      dl.appendChild(metrikItem("Disk", d.disk != null ? `${d.disk}%` : "—"));
-      dl.appendChild(metrikItem("Suhu", d.suhu != null ? `${d.suhu}°C` : "—"));
+      dl.appendChild(metrikItem("CPU", d.cpu != null ? `${d.cpu}%` : "-"));
+      dl.appendChild(metrikItem("Memori", d.memori != null ? `${d.memori}%` : "-"));
+      dl.appendChild(metrikItem("Disk", d.disk != null ? `${d.disk}%` : "-"));
+      dl.appendChild(metrikItem("Suhu", d.suhu != null ? `${d.suhu}°C` : "-"));
       dl.appendChild(metrikItem("Jam", d.jamSelaras ? "Selaras" : "Tidak selaras"));
-      dl.appendChild(metrikItem("Jaringan", d.modeJaringan ?? "—"));
+      dl.appendChild(metrikItem("Jaringan", d.modeJaringan ?? "-"));
       dl.appendChild(metrikItem("Terakhir lapor", fmtWaktu(d.pada)));
 
       const layananEl = document.getElementById("detail-layanan")!;
@@ -543,7 +571,11 @@ const links = [
       }
     }
 
+    let kirimBerjalan = false;
     async function kirimPerintah(aksi: string, argumen: Record<string, string> = {}) {
+      // A quick double click used to queue the same command twice.
+      if (kirimBerjalan) return;
+      kirimBerjalan = true;
       try {
         const res = await fetch("/api/action", {
           method: "POST",
@@ -559,6 +591,8 @@ const links = [
         }
       } catch {
         window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+      } finally {
+        kirimBerjalan = false;
       }
     }
 
@@ -577,9 +611,9 @@ const links = [
         for (const p of diadopsi) {
           const tr = document.createElement("tr");
           tr.appendChild(sel("Nama", p.nama ?? ""));
-          tr.appendChild(sel("Jenis", JENIS_LABEL[p.jenis ?? ""] ?? p.jenis ?? "—"));
+          tr.appendChild(sel("Jenis", JENIS_LABEL[p.jenis ?? ""] ?? p.jenis ?? "-"));
           tr.appendChild(sel("MAC", p.mac));
-          tr.appendChild(sel("IP", p.ip ?? "—"));
+          tr.appendChild(sel("IP", p.ip ?? "-"));
           tr.appendChild(sel("Terakhir terlihat", fmtWaktu(p.terakhirTerlihat)));
           body.appendChild(tr);
         }
@@ -665,7 +699,7 @@ const links = [
         tr.appendChild(sel("Aksi", p.aksi));
         tr.appendChild(sel("Status", p.status));
         tr.appendChild(sel("Diminta", fmtWaktu(p.dimintaPada)));
-        tr.appendChild(sel("Keluaran", p.keluaran ?? "—"));
+        tr.appendChild(sel("Keluaran", p.keluaran ?? "-"));
         body.appendChild(tr);
       }
     }
@@ -719,25 +753,61 @@ const links = [
         el.addEventListener("click", () => kirimPerintah(el.dataset.aksi!));
       });
 
-      document.getElementById("form-daftar-server")?.addEventListener("submit", async (ev) => {
+      const form = document.getElementById("form-daftar-server") as HTMLFormElement | null;
+      form?.addEventListener("submit", async (ev) => {
         ev.preventDefault();
+        const submit = document.getElementById("btn-daftar-server-submit") as HTMLButtonElement;
+        if (submit.disabled) return;
         const nama = (document.getElementById("server-nama") as HTMLInputElement).value.trim();
         const kode = (document.getElementById("server-kode") as HTMLInputElement).value.trim();
-        const res = await fetch("/api/server", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nama, kode }),
-        });
-        const data = await res.json();
-        if (!data.ok) {
-          window.Toast?.show(pesanUntuk(data.kode), "danger");
-          return;
+        submit.disabled = true;
+        try {
+          const res = await fetch("/api/server", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nama, kode }),
+          });
+          const data = await res.json();
+          if (!data.ok) {
+            window.Toast?.show(pesanUntuk(data.kode), "danger");
+            return;
+          }
+          window.Modal?.close("modal-daftar-server");
+          form.reset();
+          document.getElementById("token-perintah")!.textContent = perintahDaftar(
+            data.kode,
+            data.token,
+          );
+          window.Modal?.open("modal-token");
+          await loadDaftar();
+        } catch {
+          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+        } finally {
+          submit.disabled = false;
         }
-        window.Modal?.close("modal-daftar-server");
-        document.getElementById("token-perintah")!.textContent =
-          `iris-agent enroll --kode ${data.kode} --token ${data.token} --server https://${window.location.host}`;
-        window.Modal?.open("modal-token");
-        await loadDaftar();
+      });
+
+      document.getElementById("btn-token-baru")?.addEventListener("click", async (ev) => {
+        const btn = ev.currentTarget as HTMLButtonElement;
+        if (btn.disabled) return;
+        btn.disabled = true;
+        try {
+          const res = await fetch(`/api/server/${currentServerId}`, { method: "POST" });
+          const data = await res.json();
+          if (!data.ok) {
+            window.Toast?.show(pesanUntuk(data.kode), "danger");
+            return;
+          }
+          document.getElementById("token-perintah")!.textContent = perintahDaftar(
+            data.kode,
+            data.token,
+          );
+          window.Modal?.open("modal-token");
+        } catch {
+          window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+        } finally {
+          btn.disabled = false;
+        }
       });
 
       document.getElementById("btn-keluar")?.addEventListener("click", async () => {
@@ -792,6 +862,12 @@ const links = [
   .section__lede {
     color: var(--text-muted);
     margin-top: var(--space-2);
+  }
+
+  .head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
   }
 
   .back-link {

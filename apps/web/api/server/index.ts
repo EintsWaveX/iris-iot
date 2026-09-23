@@ -2,7 +2,7 @@
  * POST /api/server   { nama, kode }   — assistant-only. Registers a new Pi
  *   and returns a one-time enrollment token (30-minute TTL) to hand to
  *   whoever is installing the agent. The token is shown exactly once here;
- *   it is never retrievable again, only re-issued via POST /api/server/token.
+ *   it is never retrievable again, only re-issued via POST /api/server/:id.
  *
  * GET  /api/server   — assistant-only. Every registered Pi with its most
  *   recent heartbeat, for the server list view.
@@ -12,7 +12,13 @@ import { jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import { server, denyut } from "../../src/lib/schema.js";
-import { generateEnrollToken, enrollTokenExpiry, sha256 } from "../../src/lib/server-lib.js";
+import {
+  generateEnrollToken,
+  enrollTokenExpiry,
+  sha256,
+  batasLuringDetik,
+} from "../../src/lib/server-lib.js";
+import { currentSesi } from "../../src/lib/sesi.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { desc, eq } from "drizzle-orm";
 
@@ -74,6 +80,9 @@ async function handleGet(req: ApiRequest, res: ApiResponse) {
     .from(server)
     .orderBy(server.dibuatPada);
 
+  const running = await currentSesi();
+  const sesiMulaiPada = running ? (running.mulaiPada ?? running.dibuatPada) : null;
+
   // Latest heartbeat per server, one query per row is fine at this scale
   // (one Pi today, a handful even at full Phase 2 scope) -- a lateral join
   // would be the right call at a size this project will not reach.
@@ -85,7 +94,12 @@ async function handleGet(req: ApiRequest, res: ApiResponse) {
         .where(eq(denyut.serverId, s.id))
         .orderBy(desc(denyut.pada))
         .limit(1);
-      return { ...s, terdaftar: s.terdaftarPada !== null, denyutTerakhir: latest ?? null };
+      return {
+        ...s,
+        terdaftar: s.terdaftarPada !== null,
+        denyutTerakhir: latest ?? null,
+        batasLuringDetik: batasLuringDetik(latest?.pada ?? null, sesiMulaiPada),
+      };
     }),
   );
 

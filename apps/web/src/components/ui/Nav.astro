@@ -20,13 +20,10 @@
  *    highest top-level z-index and never trying to out-rank it from inside
  *    a different stacking context.
  */
-interface Link {
-  href: string;
-  label: string;
-}
+import type { NavLink } from "../../lib/nav-links";
 
 interface Props {
-  links: Link[];
+  links: NavLink[];
   current?: string;
 }
 
@@ -47,6 +44,8 @@ const { links, current = Astro.url.pathname } = Astro.props;
         href={l.href}
         aria-current={current === l.href ? "page" : undefined}
         data-active={current === l.href ? "yes" : "no"}
+        data-nav-peran={l.peran}
+        hidden={l.peran === "asisten" ? true : undefined}
       >
         {l.label}
       </a>
@@ -71,6 +70,35 @@ const { links, current = Astro.url.pathname } = Astro.props;
     <slot name="side" />
   </div>
 </header>
+
+<script>
+  // Shows each role-scoped link (see nav-links.ts) only to the role that
+  // can use it. The guard on the nav element keeps the direct call and the
+  // astro:page-load that also fires on a first load from fetching twice;
+  // a later navigation brings a fresh .nav with no flag.
+  function terapkanPeranNav() {
+    const nav = document.querySelector<HTMLElement>(".nav");
+    if (!nav || nav.dataset.peranDiterapkan) return;
+    nav.dataset.peranDiterapkan = "1";
+    const links = nav.querySelectorAll<HTMLAnchorElement>(".nav__link[data-nav-peran]");
+    if (links.length === 0) return;
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((me: { ok?: boolean; role?: string }) => {
+        const peran = me.ok ? me.role : null;
+        links.forEach((a) => {
+          const untuk = a.dataset.navPeran;
+          a.hidden = peran ? untuk !== peran : untuk === "asisten";
+        });
+      })
+      .catch(() => {
+        // Left as rendered: signed-out defaults.
+      });
+  }
+
+  terapkanPeranNav();
+  document.addEventListener("astro:page-load", terapkanPeranNav);
+</script>
 
 <style>
   .nav {
@@ -148,6 +176,13 @@ const { links, current = Astro.url.pathname } = Astro.props;
     min-height: max(var(--tap), 44px);
     padding: 0 var(--space-3);
     white-space: nowrap;
+  }
+
+  /* Same trap as Button.astro's .btn[hidden]: .nav__link's own display:
+     flex outranks the UA's [hidden] rule, so a role-hidden link would
+     otherwise still render. */
+  .nav__link[hidden] {
+    display: none;
   }
 
   .nav__link[data-active="yes"] {

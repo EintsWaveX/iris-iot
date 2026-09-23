@@ -49,9 +49,14 @@ interface ServerRow {
   nama: string;
   kode: string;
   denyutTerakhir: Heartbeat | null;
+  batasLuringDetik: number;
 }
 
-const OFFLINE_AFTER_MS = 60_000;
+/** Fired by session.astro whenever the running session starts, ends or
+ *  changes, so these panels reload at once instead of up to 30 seconds
+ *  later -- until then sesiId here was still null, and the group toggles
+ *  and notes silently did nothing right after "Mulai sesi". */
+export const SESI_BERUBAH = "iris:sesi-berubah";
 const LAYANAN_LABEL: Record<string, string> = {
   "modul2-ws": "WebSocket Modul 2",
   mosquitto: "Mosquitto (Modul 3)",
@@ -67,9 +72,11 @@ function pesanUntuk(kode: string | undefined): string {
   return KODE_PESAN[kode ?? ""] ?? "Terjadi kesalahan.";
 }
 
-function isOnline(hb: Heartbeat | null): boolean {
+// The threshold comes from /api/server (batasLuringDetik): a flat 60s
+// called every Pi offline outside a session, when it reports every 600s.
+function isOnline(hb: Heartbeat | null, batasDetik: number): boolean {
   if (!hb) return false;
-  return Date.now() - new Date(hb.pada).getTime() < OFFLINE_AFTER_MS;
+  return Date.now() - new Date(hb.pada).getTime() < batasDetik * 1000;
 }
 
 export default function SessionPanels() {
@@ -126,7 +133,12 @@ export default function SessionPanels() {
 
   useEffect(() => {
     const stop = startPolling(muat, 30_000);
-    return stop;
+    const onBerubah = () => void muat();
+    window.addEventListener(SESI_BERUBAH, onBerubah);
+    return () => {
+      stop();
+      window.removeEventListener(SESI_BERUBAH, onBerubah);
+    };
   }, []);
 
   async function toggleAktif(k: KelompokPanel) {
@@ -228,20 +240,22 @@ export default function SessionPanels() {
                   </dd>
                 </div>
               </dl>
-              <select
-                className="session-panels__peran"
-                value={drafts[k.id]?.peran ?? ""}
-                onChange={(e) => {
-                  const peran = e.target.value;
-                  const catatan = drafts[k.id]?.catatan ?? "";
-                  setDrafts((prev) => ({ ...prev, [k.id]: { catatan, peran } }));
-                  void saveCatatan(k.id, catatan, peran);
-                }}
-              >
-                <option value="">Peran biasa</option>
-                <option value="beacon">Beacon (Modul 4)</option>
-                <option value="hunter">Hunter (Modul 4)</option>
-              </select>
+              {modul === 4 && (
+                <select
+                  className="session-panels__peran"
+                  value={drafts[k.id]?.peran ?? ""}
+                  onChange={(e) => {
+                    const peran = e.target.value;
+                    const catatan = drafts[k.id]?.catatan ?? "";
+                    setDrafts((prev) => ({ ...prev, [k.id]: { catatan, peran } }));
+                    void saveCatatan(k.id, catatan, peran);
+                  }}
+                >
+                  <option value="">Peran biasa</option>
+                  <option value="beacon">Beacon (Modul 4)</option>
+                  <option value="hunter">Hunter (Modul 4)</option>
+                </select>
+              )}
               <textarea
                 id={`catatan-${k.id}`}
                 className="session-panels__catatan"
@@ -313,7 +327,7 @@ export default function SessionPanels() {
           <ul className="session-panels__servers">
             {servers.map((s) => {
               const hb = s.denyutTerakhir;
-              const online = isOnline(hb);
+              const online = isOnline(hb, s.batasLuringDetik);
               return (
                 <li key={s.id} className="session-panels__server">
                   <div className="session-panels__server-head">
@@ -342,10 +356,6 @@ export default function SessionPanels() {
         )}
       </section>
 
-      <p className="session-panels__catatan-fase">
-        Kendali perburuan Modul 4 dan tampilan tangga/lapisan langsung menyusul di tahap berikutnya
-        -- keduanya menunggu jalur data langsung yang belum ada dari situs ini.
-      </p>
       {modul === 4 && (
         <p className="session-panels__catatan-fase">
           Sesi ini Modul 4: papan skor perburuan tetap dijalankan dari Orange Pi sendiri.

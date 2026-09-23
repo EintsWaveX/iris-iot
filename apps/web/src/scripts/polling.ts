@@ -14,6 +14,15 @@
  * visibilitychange listener — call it before a page discards the DOM nodes
  * `fn` updates, the same lifecycle discipline the bindPage() functions
  * across this codebase already follow for their own event listeners.
+ *
+ * It also stops by itself on the next astro:before-swap. <ClientRouter/>
+ * keeps a page's module script alive after navigating away, and no page
+ * ever called stop() on the way out, so /session's roster poll, the
+ * dashboard's broadcast poll and every page's identity check went on
+ * running on every later page, against DOM that no longer existed (and,
+ * for the identity check, forcing a false "signed in elsewhere" re-login
+ * after a normal Keluar). Pages re-start their polls on their own
+ * astro:page-load, so stopping here loses nothing.
  */
 export function startPolling(fn: () => void | Promise<void>, intervalMs: number): () => void {
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -39,11 +48,15 @@ export function startPolling(fn: () => void | Promise<void>, intervalMs: number)
     else start();
   }
 
-  document.addEventListener("visibilitychange", onVisibilityChange);
-  if (!document.hidden) start();
-
-  return () => {
+  function teardown() {
     stop();
     document.removeEventListener("visibilitychange", onVisibilityChange);
-  };
+    document.removeEventListener("astro:before-swap", teardown);
+  }
+
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  document.addEventListener("astro:before-swap", teardown);
+  if (!document.hidden) start();
+
+  return teardown;
 }

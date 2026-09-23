@@ -38,7 +38,7 @@ const links = [
       </div>
       <p>
         Setiap tombol, field, kartu, dan modal di seluruh situs berasal dari berkas-berkas yang
-        dirender di halaman ini. Tidak ada gaya sekali-pakai di tempat lain — kalau sesuatu di sini
+        dirender di halaman ini. Tidak ada gaya sekali-pakai di tempat lain. Kalau sesuatu di sini
         terlihat salah, perbaikannya berlaku di mana-mana sekaligus.
       </p>
     </section>
@@ -90,7 +90,7 @@ const links = [
           id="nim-default"
           label="NIM"
           placeholder="2311102001"
-          hint="4–20 karakter, huruf dan angka."
+          hint="4 sampai 20 karakter, huruf dan angka."
         />
         <Field
           id="nim-error"
@@ -110,10 +110,10 @@ const links = [
           id="modul"
           label="Modul"
           options={[
-            { value: "1", label: "Modul 1 — BLE" },
-            { value: "2", label: "Modul 2 — WebSocket" },
-            { value: "3", label: "Modul 3 — MQTT" },
-            { value: "4", label: "Modul 4 — LoRa" },
+            { value: "1", label: "Modul 1 · BLE" },
+            { value: "2", label: "Modul 2 · WebSocket" },
+            { value: "3", label: "Modul 3 · MQTT" },
+            { value: "4", label: "Modul 4 · LoRa" },
           ]}
           value="2"
         />
@@ -227,6 +227,7 @@ const links = [
   </main>
 
   <script>
+    import { sekaliPerHalaman } from "../scripts/per-halaman";
     document.getElementById("toast-demo-info")?.addEventListener("click", () => {
       window.Toast?.show("Sesi berhasil disimpan.", "ok");
     });
@@ -263,8 +264,7 @@ const links = [
     function playEntrance() {
       window.Motion?.enter(".section:first-of-type > *");
     }
-    playEntrance();
-    document.addEventListener("astro:page-load", playEntrance);
+    sekaliPerHalaman("UiAnimasi", playEntrance);
   </script>
 </Base>
 
