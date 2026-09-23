@@ -39,7 +39,15 @@ export const id = {
   },
   live: {
     heading: "Tampilan live",
+    // Modul 1 tidak pernah punya sumber data sungguhan (tidak ada relay BLE
+    // sungguhan, dan tidak direncanakan), jadi body/disclosure di bawah ini
+    // tetap berlaku untuknya apa adanya. Modul 2 sampai 4 memakai versi
+    // "Real" lewat bodyFor/disclosureFor, karena Tahap 20 memberi mereka
+    // data sungguhan begitu sesi dan papan yang berjalan mengirimkannya.
     body: "Ladder dan lapisan protokol modul ini, disimulasikan langsung di peramban. Data sungguhan dari sesi dan papan yang berjalan menyusul di tahap berikutnya.",
+    bodyReal:
+      "Ladder dan lapisan protokol modul ini menampilkan data sungguhan dari sesi dan papan yang sedang berjalan begitu tersedia, dan disimulasikan di peramban sebelum itu.",
+    bodyFor: (modul: number) => (modul === 1 ? id.live.body : id.live.bodyReal),
     cta: "Buka tampilan live",
     backToModule: "Kembali ke modul",
     tabLadder: "Ladder",
@@ -47,6 +55,9 @@ export const id = {
     tabSandbox: "Coba sendiri",
     disclosure:
       "Semua data pada halaman ini disimulasikan di peramban Anda, bukan diambil dari papan atau sesi yang sebenarnya.",
+    disclosureReal:
+      "Data pada halaman ini sungguhan dari sesi dan papan yang sedang berjalan begitu tersedia, dan disimulasikan di peramban Anda sebelum itu.",
+    disclosureFor: (modul: number) => (modul === 1 ? id.live.disclosure : id.live.disclosureReal),
     fireHint: "Tekan tombol untuk mengirim satu pesan uji dan melihatnya melintasi tiap lapisan.",
   },
   nav: {

@@ -9,13 +9,17 @@
  * container simply reveals more of the same history rather than rescaling
  * anything.
  *
- * All data here is simulated (src/lib/telemetry-sim.ts) -- there is no live
- * telemetry relay from any module yet (that is Stage 15's job), and this
- * page says so plainly rather than implying otherwise.
+ * Stage 20: Modules 2-4 poll for a real reading first (telemetry-live.ts)
+ * and fall back to the simulator (telemetry-sim.ts) only until the first
+ * real one arrives -- once real data starts flowing for this module/group,
+ * this view never falls back to simulated readings again for it, so the
+ * strip chart never mixes the two (their seq numbers and timing are not
+ * comparable). Module 1 always simulates; no real BLE relay exists.
  */
 import { useEffect, useState } from "react";
 import { startPolling } from "../scripts/polling";
 import { RAILS, nextReading, type Reading } from "../lib/telemetry-sim";
+import { fetchLiveReading, resetLiveReadingMemory } from "../lib/telemetry-live";
 import "./Ladder.css";
 
 interface Props {
@@ -35,6 +39,11 @@ const READINGS_ROWS = 10;
 
 function formatDelta(r: Reading): string {
   if (r.rx === null) return `#${r.seq} hilang di tengah jalan`;
+  if (r.tx === null || r.delayMs === null) {
+    // Real Module 2/3 telemetry: the Pi only observes arrival, never the
+    // sending side's own clock, so there is no delta to compute here at all.
+    return `#${r.seq} · terima ${r.rx} · delta: lihat output serial`;
+  }
   return `#${r.seq} · kirim ${r.tx} · terima ${r.rx} · delta ${r.delayMs} ms`;
 }
 
@@ -45,7 +54,7 @@ function toRows(history: Reading[]): Reading[] {
 function toTsv(rows: Reading[]): string {
   const header = "seq\tkirim\tterima\tdelta_ms\trssi_dbm";
   const lines = rows.map(
-    (r) => `${r.seq}\t${r.tx}\t${r.rx ?? "hilang"}\t${r.delayMs ?? ""}\t${r.rssi}`,
+    (r) => `${r.seq}\t${r.tx ?? ""}\t${r.rx ?? "hilang"}\t${r.delayMs ?? ""}\t${r.rssi ?? ""}`,
   );
   return [header, ...lines].join("\n");
 }
@@ -57,7 +66,19 @@ export default function Ladder({ modul, groups, showReadings = false }: Props) {
 
   useEffect(() => {
     setHistory([]);
-    const stop = startPolling(() => {
+    resetLiveReadingMemory(modul, group);
+    let live = false; // once true, never falls back to simulated for this module/group
+
+    const stop = startPolling(async () => {
+      if (modul !== 1) {
+        const reading = await fetchLiveReading(modul, group);
+        if (reading) {
+          live = true;
+          setHistory((prev) => [...prev, reading].slice(-HISTORY_MAX));
+          return;
+        }
+        if (live) return; // real data has started; a quiet poll just means nothing new yet
+      }
       setHistory((prev) => [...prev, nextReading(modul, group)].slice(-HISTORY_MAX));
     }, FLUSH_MS);
     return stop;

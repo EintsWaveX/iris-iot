@@ -13,12 +13,18 @@ export interface Reading {
   modul: number;
   group: number;
   seq: number;
-  /** HH:MM:SS:MS, the sending side's clock. */
-  tx: string;
+  /** HH:MM:SS:MS, the sending side's clock -- null for real Module 2/3
+   *  telemetry, since the Pi only ever observes the arrival side (see
+   *  telemetry-live.ts). Always set for simulated readings and for real
+   *  Module 4 data, which exchanges both timestamps over LoRa directly. */
+  tx: string | null;
   /** HH:MM:SS:MS, or null if this message never arrived. */
   rx: string | null;
   delayMs: number | null;
-  rssi: number;
+  /** null for real Module 2/3 telemetry (WiFi signal strength was never
+   *  measured for those, real or simulated -- only Module 4's LoRa link
+   *  carries a real RSSI figure). Always set when simulated. */
+  rssi: number | null;
   snr: number | null;
 }
 
@@ -113,30 +119,37 @@ export function nextReading(modul: number, group: number): Reading {
 export function describeLayers(reading: Reading): string[] {
   const { modul, seq, rssi, snr, delayMs } = reading;
   const lost = reading.rx === null;
+  // Real Module 2/3 telemetry has arrived (not lost) but carries no delay
+  // figure at all -- the Pi only ever observes the arrival side, never the
+  // ESP32/Pico W's own send time. Simulated readings and Module 4's real
+  // data always have one when not lost.
+  const delayText = (satuan: string) =>
+    delayMs !== null ? `${delayMs} ${satuan}` : "lihat output serial";
+  const sinyal = rssi !== null ? `${rssi} dBm` : "sinyal WiFi";
   switch (modul) {
     case 1:
       return [
         `Notify #${seq}${lost ? " (tidak diterima)" : ""}`,
-        lost ? "belum diterima" : `diterima ${delayMs} ms setelah dikirim`,
+        lost ? "belum diterima" : `diterima ${delayText("ms")} setelah dikirim`,
         "tidak ada lapisan jaringan pada BLE",
         `interval koneksi aktif, paket #${seq}`,
-        `2,4 GHz, ${rssi} dBm`,
+        `2,4 GHz, ${sinyal}`,
       ];
     case 2:
       return [
         `payload JSON, paket #${seq}${lost ? " (tidak sampai)" : ""}`,
-        lost ? "koneksi TCP terputus" : `terkirim lewat TCP, ${delayMs} ms`,
+        lost ? "koneksi TCP terputus" : `terkirim lewat TCP, ${delayText("ms")}`,
         "IP satu hop menuju Orange Pi",
         "tersambung lewat WiFi 802.11",
-        `2,4 GHz, ${rssi} dBm`,
+        `2,4 GHz, ${sinyal}`,
       ];
     case 3:
       return [
         `topic modul3, QoS 0, paket #${seq}${lost ? " (hilang)" : ""}`,
-        lost ? "tidak diteruskan broker" : `diteruskan broker, ${delayMs} ms`,
+        lost ? "tidak diteruskan broker" : `diteruskan broker, ${delayText("ms")}`,
         "IP lewat broker Mosquitto",
         "tersambung lewat WiFi 802.11",
-        `2,4 GHz, ${rssi} dBm`,
+        `2,4 GHz, ${sinyal}`,
       ];
     case 4:
     default:
@@ -145,7 +158,7 @@ export function describeLayers(reading: Reading): string[] {
         "tidak ada lapisan transport pada LoRa P2P",
         "tidak ada lapisan jaringan pada LoRa P2P",
         `sync word cocok, urutan ${seq}${lost ? ", hilang" : ""}`,
-        `920 MHz, ${rssi} dBm${snr !== null ? `, SNR ${snr} dB` : ""}`,
+        `920 MHz, ${sinyal}${snr !== null ? `, SNR ${snr} dB` : ""}`,
       ];
   }
 }

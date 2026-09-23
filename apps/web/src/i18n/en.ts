@@ -35,7 +35,15 @@ export const en: ModuleStrings = {
   },
   live: {
     heading: "Live view",
+    // Module 1 never has a real data source (no real BLE relay exists, and
+    // none is planned), so the body/disclosure below still apply to it as
+    // written. Modules 2 through 4 use the "Real" versions via
+    // bodyFor/disclosureFor, since Stage 20 gives them real data once a
+    // running session and board send it.
     body: "This module's ladder and protocol layer view, simulated live in your browser. Real data from a running session and board follows in a later stage.",
+    bodyReal:
+      "This module's ladder and protocol layer view shows real data from a running session and board once it arrives, and simulates it in your browser until then.",
+    bodyFor: (modul: number) => (modul === 1 ? en.live.body : en.live.bodyReal),
     cta: "Open the live view",
     backToModule: "Back to module",
     tabLadder: "Ladder",
@@ -43,6 +51,9 @@ export const en: ModuleStrings = {
     tabSandbox: "Try it yourself",
     disclosure:
       "Everything on this page is simulated in your browser, not read from a real board or session.",
+    disclosureReal:
+      "Data on this page is real, from a running session and board, once it arrives, and simulated in your browser until then.",
+    disclosureFor: (modul: number) => (modul === 1 ? en.live.disclosure : en.live.disclosureReal),
     fireHint: "Press the button to send one test message and watch it cross every layer.",
   },
   nav: {

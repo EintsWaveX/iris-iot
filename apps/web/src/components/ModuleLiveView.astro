@@ -6,10 +6,12 @@
  * panels, the same pattern the carousel itself uses -- this component owns
  * none of the tab-switching logic.
  *
- * Everything under these tabs is simulated (src/lib/telemetry-sim.ts): there
- * is no live telemetry relay from any module yet (Stage 15's job), and the
- * disclosure line at the top says so plainly rather than letting the
- * animation imply otherwise.
+ * Stage 20: Modules 2 to 4 have a real telemetry relay now
+ * (src/lib/telemetry-live.ts), so the disclosure line at the top is
+ * module-aware (t.live.disclosureFor / t.live.bodyFor in src/i18n) --
+ * simulated (src/lib/telemetry-sim.ts) is the honest word only for Module 1,
+ * which has no real BLE relay and none planned, and for the fallback state
+ * before a module's first real reading arrives.
  */
 import { getEntry } from "astro:content";
 import Base from "../layouts/Base.astro";
@@ -59,7 +61,7 @@ const tabs = [
 
 <Base
   title={`${t.live.heading} · Modul ${m.modul} · IRIS IoT`}
-  description={t.live.disclosure}
+  description={t.live.disclosureFor(m.modul)}
   cosmosScene="kerja"
   lang={lang}
 >
@@ -74,7 +76,7 @@ const tabs = [
       <h1 class="live-header__title">
         {m.judul} &middot; {t.live.heading}
       </h1>
-      <p class="live-header__disclosure measure-prose">{t.live.disclosure}</p>
+      <p class="live-header__disclosure measure-prose">{t.live.disclosureFor(m.modul)}</p>
     </header>
 
     <Tabs client:load id="live-tabs" tabs={tabs} />
