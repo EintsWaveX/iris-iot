@@ -262,7 +262,10 @@ more.
 **Tier 1**: the CSS layers start drifting (nebula, grid pulse, one aurora
 ribbon), gated behind `data-motion="full"` on `<html>`.
 
-**Tier 2**: the canvas starfield, comets and planets mount.
+**Tier 2**: the canvas starfield, comets and planets mount. On apps/web
+only (P6.4), the aurora also becomes a small WebGL layer of moving fbm
+curtains (`aurora-gl.js`) instead of the CSS rays swaying in place; a
+WebGL failure of any kind just leaves the CSS layer as it already was.
 
 A tier is earned once per device by a capability probe (declared signals
 plus a measured frame time over roughly 500ms of a trivial layer), cached in

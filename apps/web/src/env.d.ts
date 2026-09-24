@@ -76,4 +76,12 @@ interface Window {
     getMotionPref(): "auto" | "penuh" | "kurangi";
     cycleMotionPref(): "auto" | "penuh" | "kurangi";
   };
+  // src/scripts/motion-tier.ts (P6.4/B10): forces one fresh capability
+  // measurement, clearing the cached tier first. cosmos-router.js calls
+  // this when the "Otomatis" setting is (re-)selected, so a device stuck
+  // at a stale or wrong verdict is not limited to waiting out the 7-day
+  // cache expiry.
+  IrisMotionTier?: {
+    reprobe(): void;
+  };
 }
