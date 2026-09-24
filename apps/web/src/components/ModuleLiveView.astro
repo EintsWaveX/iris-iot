@@ -104,10 +104,25 @@ const tabs = [
 
 <script>
   import { sekaliPerHalaman } from "../scripts/per-halaman";
+  import { applyLockScreen } from "../scripts/modul-akses";
+  import { id as strId } from "../i18n/id";
+  import { en as strEn } from "../i18n/en";
   function playEntrance() {
     window.Motion?.enter(".live-header > *");
   }
   sekaliPerHalaman("ModulLiveAnimasi", playEntrance);
+
+  // P6.5: see ModuleDetailView.astro's own version of this check for why
+  // the module number and language both come from the page itself rather
+  // than a prop.
+  function checkAkses() {
+    const match = /\/modules\/(\d)\/live(?:\/|$)/.exec(location.pathname);
+    if (!match) return;
+    const t = document.documentElement.lang === "en" ? strEn : strId;
+    const heading = document.querySelector(".live-header h1");
+    void applyLockScreen(Number(match[1]), t.code.terkunci, "terkunci untuk praktikan", heading);
+  }
+  sekaliPerHalaman("ModulLiveAkses", checkAkses);
 </script>
 
 <style>

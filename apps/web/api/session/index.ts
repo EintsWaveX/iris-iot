@@ -34,6 +34,7 @@ import { slotToMulai, SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
 import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { writeAudit } from "../../src/lib/auth.js";
+import { bukaHingga } from "../../src/lib/akses.js";
 
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
 const JAM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -85,6 +86,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     });
 
     await writeAudit(session.nim, "sesi_mulai", { tanggal, mulai, modul, slot, butuhAp });
+
+    // P6.5: starting a session for this module opens it (and every module
+    // below it) for students automatically, so an assistant never has to
+    // separately remember to flip the setting before the room can begin.
+    await bukaHingga(modul);
 
     // Best-effort: a session that needs the hotspot should not also need an
     // assistant to separately visit /servers and click "AP nyala" by hand.

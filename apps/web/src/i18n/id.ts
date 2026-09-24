@@ -36,6 +36,7 @@ export const id = {
     downloadHint: "Selesaikan semua bagian rumpang pada berkas ini untuk membuka unduhan.",
     masuk: "Masuk sebagai praktikan untuk mengisi dan menyimpan jawaban di sini.",
     sesiBerubah: "Sesi baru dimulai, silakan masuk lagi.",
+    terkunci: "Modul ini belum dibuka. Asisten akan membukanya saat pekannya tiba.",
     helperNote:
       "Berkas ini memakai jam bersama dari {file}. Unduh berkas itu juga dan letakkan di folder yang sama sebelum mengunggah.",
   },

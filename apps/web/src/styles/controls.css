@@ -330,3 +330,46 @@
   background: var(--bg-elevated);
   color: var(--text);
 }
+
+/* -----------------------------------------------------------------------
+   Module access (P6.5) -- global, not scoped to any one page's <style>
+   block, because modul-akses.ts inserts these elements at runtime with
+   plain DOM calls. Astro's per-component CSS scoping works by stamping a
+   data-astro-cid-* attribute onto markup the template itself renders; an
+   element created with document.createElement() never gets that
+   attribute, so a scoped rule in index.astro/ModulesIndexView.astro would
+   silently never match it. Shared here instead, the one place a rule
+   written against a plain class name is guaranteed to reach a
+   JS-inserted node regardless of which page inserted it.
+   ----------------------------------------------------------------------- */
+a[data-locked="yes"] {
+  opacity: 0.55;
+}
+
+a[data-locked="yes"] .card {
+  cursor: not-allowed;
+}
+
+.modul-lock-badge {
+  background: var(--hairline-faint);
+  border-radius: var(--radius-pill);
+  color: var(--text-faint);
+  display: inline-block;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+}
+
+.modul-lock-screen {
+  display: flex;
+  justify-content: center;
+  padding-block: var(--space-10);
+}
+
+.modul-lock-screen p {
+  color: var(--text-muted);
+  font-size: var(--fs-body-lg);
+  max-width: 48ch;
+  text-align: center;
+}

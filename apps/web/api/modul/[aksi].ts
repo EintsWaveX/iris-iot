@@ -24,6 +24,7 @@ import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
 import { checkJawaban, blankCountFor, canonicalAnswer } from "../_lib/answer-keys.js";
 import { getSketchSourceForApi } from "../_lib/sketch-sources.js";
 import { personalize } from "../../src/lib/group-identity.js";
+import { getModulTerbuka } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { and, asc, eq, isNull, like, sql } from "drizzle-orm";
 
@@ -76,6 +77,10 @@ async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPa
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
+  if (!(await getModulTerbuka()).includes(parsed.modul)) {
+    res.status(200).json({ ok: false, kode: "modul_terkunci" });
+    return;
+  }
   const kelompokId = session.reguId;
   if (!kelompokId) {
     res.status(200).json({ ok: false, kode: "kelompok_tidak_diketahui" });
@@ -121,6 +126,11 @@ async function handleCek(req: ApiRequest, res: ApiResponse, session: SessionPayl
     jawabanTeks.length > MAX_JAWABAN_LEN
   ) {
     res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  if (!(await getModulTerbuka()).includes(modul)) {
+    res.status(200).json({ ok: false, kode: "modul_terkunci" });
     return;
   }
 
@@ -199,6 +209,10 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
   const parsed = parseModulBerkas(req.query);
   if (!parsed) {
     res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  if (!(await getModulTerbuka()).includes(parsed.modul)) {
+    res.status(200).json({ ok: false, kode: "modul_terkunci" });
     return;
   }
   const kelompokId = session.reguId;

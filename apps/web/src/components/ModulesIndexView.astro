@@ -68,10 +68,19 @@ const links = navUtama(lang === "en" ? "en" : "id");
 
 <script>
   import { sekaliPerHalaman } from "../scripts/per-halaman";
+  import { lockCards } from "../scripts/modul-akses";
   function playEntrance() {
     window.Motion?.enter(".modules-index__title, .modules-index__lede");
   }
   sekaliPerHalaman("ModulIndeksAnimasi", playEntrance);
+  sekaliPerHalaman(
+    "ModulIndeksAkses",
+    () =>
+      void lockCards(
+        document,
+        document.documentElement.lang === "en" ? "Not open yet" : "Belum dibuka",
+      ),
+  );
 </script>
 
 <style>

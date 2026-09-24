@@ -110,6 +110,7 @@ const links = navUtama();
 <script>
   import { sekaliPerHalaman } from "../scripts/per-halaman";
   import { navigate } from "astro:transitions/client";
+  import { lockCards } from "../scripts/modul-akses";
 
   // /masuk and /login both redirect here with this query param (see
   // vercel.json), so a bookmark or a link written before the modal
@@ -182,6 +183,8 @@ const links = navUtama();
   sekaliPerHalaman("BerandaBukaMasuk", openLoginIfRequested);
   sekaliPerHalaman("BerandaCekMasuk", checkAuthState);
   sekaliPerHalaman("BerandaMasukAnimasi", playEntrance);
+  // P6.5: badges the four module cards' locked state.
+  sekaliPerHalaman("BerandaModulAkses", () => void lockCards(document, "Belum dibuka"));
 </script>
 
 <style>

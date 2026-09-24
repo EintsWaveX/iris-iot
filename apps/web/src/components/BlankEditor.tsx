@@ -28,6 +28,7 @@ interface Props {
   downloadHint: string;
   masukHint: string;
   sesiBerubahHint: string;
+  terkunciHint: string;
 }
 
 interface BlankState {
@@ -47,6 +48,7 @@ export default function BlankEditor({
   downloadHint,
   masukHint,
   sesiBerubahHint,
+  terkunciHint,
 }: Props) {
   const blankNomors = useMemo(
     () =>
@@ -63,9 +65,13 @@ export default function BlankEditor({
   const [loaded, setLoaded] = useState(false);
   // "sesi_berganti" (P6.2/B9) also reopens the login modal, since it means
   // a new session has started since this cookie was issued and the editor
-  // needs a fresh sign-in to attribute this group's next save correctly --
-  // every other lock reason just shows masukHint and waits.
-  const [lockedReason, setLockedReason] = useState<"masuk" | "sesiBerubah" | null>(null);
+  // needs a fresh sign-in to attribute this group's next save correctly.
+  // "terkunci" (P6.5) means the module itself is not open yet -- distinct
+  // from "masuk" (not signed in at all), since the copy needs to say
+  // something different for each.
+  const [lockedReason, setLockedReason] = useState<"masuk" | "sesiBerubah" | "terkunci" | null>(
+    null,
+  );
   const locked = lockedReason !== null;
   // Starts as the generic template's own segments (group 1's identity, if
   // this berkas carries one) and is replaced once a logged-in group's own
@@ -109,8 +115,14 @@ export default function BlankEditor({
       .then((data) => {
         if (!mounted.current) return;
         if (!data.ok) {
-          setLockedReason(data.kode === "sesi_berganti" ? "sesiBerubah" : "masuk");
-          if (data.kode === "sesi_berganti") window.Modal?.open("login-modal");
+          if (data.kode === "sesi_berganti") {
+            setLockedReason("sesiBerubah");
+            window.Modal?.open("login-modal");
+          } else if (data.kode === "modul_terkunci") {
+            setLockedReason("terkunci");
+          } else {
+            setLockedReason("masuk");
+          }
           return;
         }
         terapkanDraft(data.jawaban as DraftJawaban);
@@ -160,6 +172,8 @@ export default function BlankEditor({
         else if (data.kode === "sesi_berganti") {
           setLockedReason("sesiBerubah");
           window.Modal?.open("login-modal");
+        } else if (data.kode === "modul_terkunci") {
+          setLockedReason("terkunci");
         } else if (data.kode === "belum_masuk" || data.kode === "peran_salah") {
           setLockedReason("masuk");
         }
@@ -196,6 +210,8 @@ export default function BlankEditor({
         if (data.kode === "sesi_berganti") {
           setLockedReason("sesiBerubah");
           window.Modal?.open("login-modal");
+        } else if (data.kode === "modul_terkunci") {
+          setLockedReason("terkunci");
         } else if (data.kode === "belum_masuk" || data.kode === "peran_salah") {
           setLockedReason("masuk");
         }
@@ -224,7 +240,11 @@ export default function BlankEditor({
     <div className="blank-editor">
       {locked && (
         <p className="blank-editor__locked">
-          {lockedReason === "sesiBerubah" ? sesiBerubahHint : masukHint}
+          {lockedReason === "sesiBerubah"
+            ? sesiBerubahHint
+            : lockedReason === "terkunci"
+              ? terkunciHint
+              : masukHint}
         </p>
       )}
       <pre className="blank-editor__code">

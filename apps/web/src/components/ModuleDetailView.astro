@@ -193,6 +193,7 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
               downloadHint={t.code.downloadHint}
               masukHint={t.code.masuk}
               sesiBerubahHint={t.code.sesiBerubah}
+              terkunciHint={t.code.terkunci}
             />
           </Card>
         ))}
@@ -221,10 +222,27 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
 
 <script>
   import { sekaliPerHalaman } from "../scripts/per-halaman";
+  import { applyLockScreen } from "../scripts/modul-akses";
+  import { id as strId } from "../i18n/id";
+  import { en as strEn } from "../i18n/en";
   function playEntrance() {
     window.Motion?.enter(".module-header > *");
   }
   sekaliPerHalaman("ModulDetailAnimasi", playEntrance);
+
+  // P6.5: the module number comes from the URL itself (/modules/N or
+  // /en/modules/N) rather than a value threaded down from the frontmatter,
+  // since a client script has no other way to read server-side props; the
+  // language comes from <html lang> the same way, so this stays correct on
+  // both /modules/N and /en/modules/N without needing its own prop either.
+  function checkAkses() {
+    const match = /\/modules\/(\d)(?:\/|$)/.exec(location.pathname);
+    if (!match) return;
+    const t = document.documentElement.lang === "en" ? strEn : strId;
+    const heading = document.querySelector(".module-header h1");
+    void applyLockScreen(Number(match[1]), t.code.terkunci, "terkunci untuk praktikan", heading);
+  }
+  sekaliPerHalaman("ModulDetailAkses", checkAkses);
 </script>
 
 <style>

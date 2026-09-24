@@ -20,6 +20,8 @@
  * POST /api/session/catatan { sesiId, kelompokId, catatan, peran } (Stage 10) — per-group note/role.
  * GET  /api/session/telemetry?modul=N&kelompok=M (Stage 20)          — asisten OR praktikan. The Ladder/LayerXray/GroupLive views' live-data source.
  * POST /api/session/lanjutkan { sesiId }             — reopen an ended session still inside its 165-minute cap.
+ * GET  /api/session/akses (P6.5)                     — public, cacheable. Which modules students may open.
+ * POST /api/session/akses { terbuka: number[] } (P6.5) — asisten-only, sets the open-module list directly.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -35,6 +37,7 @@ import {
   telemetriTerkini,
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
+import { getModulTerbuka, setModulTerbuka } from "../../src/lib/akses.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { writeAudit } from "../../src/lib/auth.js";
@@ -537,10 +540,52 @@ async function handleLanjutkan(req: ApiRequest, res: ApiResponse, session: Sessi
   res.status(200).json({ ok: true });
 }
 
+/** GET /api/session/akses (P6.5) — public: a logged-out visitor sees the
+ *  same lock state a student does, since the module cards on / and
+ *  /modules render before anyone has signed in. Cached at the edge for
+ *  15s, same idea as the CDN caching Stage 20 already uses for the
+ *  telemetry route -- this changes only when an assistant opens a module
+ *  or starts a session, never per request. */
+async function handleAksesGet(_req: ApiRequest, res: ApiResponse) {
+  res.setHeader("Cache-Control", "public, s-maxage=15, stale-while-revalidate=30");
+  const terbuka = await getModulTerbuka();
+  res.status(200).json({ ok: true, terbuka });
+}
+
+/** POST /api/session/akses (P6.5) — an assistant's direct, explicit choice
+ *  of which modules are open, including closing one the cumulative
+ *  auto-open (bukaHingga, called from api/session/index.ts on a session
+ *  start) opened earlier. The actual toggle UI is P6.6's session console;
+ *  this endpoint exists now so that UI has something to call. */
+async function handleAksesPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  if (!Array.isArray(body.terbuka)) {
+    res.status(400).json({ ok: false, kode: "terbuka_tidak_valid" });
+    return;
+  }
+  const terbuka = await setModulTerbuka(body.terbuka as unknown[] as number[], session.nim);
+  await writeAudit(session.nim, "modul_akses_ubah", { terbuka });
+  res.status(200).json({ ok: true, terbuka });
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
   const aksi = req.query.aksi;
+
+  // "akses" GET is public (no noStore override -- it sets its own
+  // Cache-Control above); POST is asisten-only, checked inline since it
+  // shares the segment with a public GET rather than the blanket guard
+  // every action below this point goes through.
+  if (aksi === "akses") {
+    if (req.method === "POST") {
+      const session = requireRole(req, res, "asisten");
+      if (!session) return;
+      return handleAksesPost(req, res, session);
+    }
+    if (!requireMethod(req, res, "GET")) return;
+    return handleAksesGet(req, res);
+  }
 
   // "now" is the one action either role can call -- checked before the
   // blanket asisten-only guard below, not as an exception carved into it.
