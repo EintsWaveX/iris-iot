@@ -30,6 +30,7 @@ export const en: ModuleStrings = {
     download: "Download file",
     downloadHint: "Finish every blank in this file to unlock its download.",
     masuk: "Log in as a praktikan to fill in and save answers here.",
+    sesiBerubah: "A new session has started. Please log in again.",
     helperNote:
       "This file shares a clock helper from {file}. Download that file too and place it in the same folder before uploading.",
   },

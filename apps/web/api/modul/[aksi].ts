@@ -16,7 +16,7 @@
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
-import { requireRole } from "../_lib/session.js";
+import { requireCurrentPraktikanSesi } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import { jawaban } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
@@ -279,7 +279,7 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
-  const session = requireRole(req, res, "praktikan");
+  const session = await requireCurrentPraktikanSesi(req, res);
   if (!session) return;
 
   const aksi = req.query.aksi;

@@ -201,9 +201,10 @@ async function recordAttempt(
   ip: string,
   jenis: "asisten" | "praktikan",
   berhasil: boolean,
+  sesiId: number | null = null,
 ): Promise<void> {
   const db = getDb();
-  await db.insert(percobaanMasuk).values({ nim, ip, jenis, berhasil });
+  await db.insert(percobaanMasuk).values({ nim, ip, jenis, berhasil, sesiId });
 }
 
 // Same shape apps/modul4/server.py's NIM_RE uses: alphanumeric, 4-20 characters.
@@ -251,7 +252,12 @@ export async function verifyPraktikanLogin(
   }
 
   const resolved = await resolvePraktikan(nim);
-  await recordAttempt(nim, ip, "praktikan", resolved !== null);
+  // P6.2/B9: the running session's id, not resolved.sesiId -- both are the
+  // same value on a real login (resolvePraktikan() only ever resolves
+  // against the currently running session), but recording it here, from
+  // `running` directly, keeps this attempt row correct even for a FAILED
+  // resolution (resolved === null), which has no resolved.sesiId to read.
+  await recordAttempt(nim, ip, "praktikan", resolved !== null, running.id);
 
   if (!resolved) {
     return { ok: false, kode: "tidak_terdaftar" };

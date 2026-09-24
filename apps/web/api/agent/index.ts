@@ -2,7 +2,8 @@
  * POST /api/agent   { kode, token }                                (enroll)
  *                | { serverId, agenKunci, cpu, memori, disk, suhu,
  *                    uptimeSec, jamSelaras, modeJaringan, layanan,
- *                    perangkat, telemetri, hasilPerintah }        (heartbeat)
+ *                    perangkat, telemetri, hasilPerintah,
+ *                    agenVersi?, infoSistem? }                    (heartbeat)
  *
  * Two very different operations sharing one file, dispatched on whether
  * `token` is present -- an enrollment body always has one, a heartbeat
@@ -21,12 +22,18 @@
  * real telemetry it collected (Stage 20 -- Module 2's journalctl parse,
  * Module 3's mosquitto_sub read, or Module 4's own /telemetri.json),
  * reports the outcome of any commands it ran since the last beat, hands
- * back whatever is queued for it now, and -- only on a day with a Module 4
+ * back whatever is queued for it now (claimed atomically -- see
+ * claimPerintahMenunggu()'s own comment for the race this closes, P6.2/B7 --
+ * and swept for anything that expired since the last beat, from ANY
+ * server, not just this one), and -- only on a day with a Module 4
  * session -- today's schedule (`jadwal`, see sesi.ts's jadwalModul4Hari())
  * so the scoreboard's roster reaches the Pi before the hotspot ever has to
- * go up. No inbound port on the Pi is ever needed -- the agent always
- * calls out, and commands ride the response of the call it was always
- * going to make anyway.
+ * go up. `agenVersi`/`infoSistem` (P6.2, sent by an agent built from P6.1
+ * onward) are stored on the server row when present and simply omitted
+ * otherwise, so an older agent's heartbeat needs no special casing here.
+ * No inbound port on the Pi is ever needed -- the agent always calls out,
+ * and commands ride the response of the call it was always going to make
+ * anyway.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -40,6 +47,8 @@ import {
   pruneOldHeartbeatsOccasionally,
   rekamTelemetri,
   pruneOldTelemetryOccasionally,
+  claimPerintahMenunggu,
+  sweepPerintahKedaluwarsa,
   INTERVAL_AKTIF_SEC,
   INTERVAL_IDLE_SEC,
 } from "../../src/lib/server-lib.js";
@@ -178,16 +187,22 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         .where(and(eq(perintah.id, item.id), eq(perintah.serverId, serverId)));
     }
 
-    const pending = await db
-      .select({ id: perintah.id, aksi: perintah.aksi, argumen: perintah.argumen })
-      .from(perintah)
-      .where(and(eq(perintah.serverId, serverId), eq(perintah.status, "menunggu")));
+    // A single atomic claim (P6.2/B7) -- see claimPerintahMenunggu's own
+    // comment for the race this replaces.
+    const pending = await claimPerintahMenunggu(serverId);
 
-    if (pending.length > 0) {
+    await sweepPerintahKedaluwarsa();
+
+    if (typeof body.agenVersi === "string" || isPlainObject(body.infoSistem)) {
       await db
-        .update(perintah)
-        .set({ status: "terkirim" })
-        .where(and(eq(perintah.serverId, serverId), eq(perintah.status, "menunggu")));
+        .update(server)
+        .set({
+          ...(typeof body.agenVersi === "string" ? { agenVersi: body.agenVersi } : {}),
+          ...(isPlainObject(body.infoSistem)
+            ? { infoSistem: body.infoSistem, infoSistemPada: new Date() }
+            : {}),
+        })
+        .where(eq(server.id, serverId));
     }
 
     await pruneOldHeartbeatsOccasionally();

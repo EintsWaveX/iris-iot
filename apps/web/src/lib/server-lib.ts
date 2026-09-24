@@ -232,6 +232,12 @@ export interface TelemetriMasuk {
   delayMs?: number | null;
   rssi?: number | null;
   snr?: number | null;
+  // P6.1's agent stamps this centrally in kumpulkan_telemetri() (an ISO
+  // timestamp of when the reading was actually collected) -- optional here
+  // because an agent built before P6.1 simply never sends it, and a missing
+  // value just means telemetriLog.diukurPada stays null for that row rather
+  // than the whole heartbeat being rejected.
+  diukurPada?: string;
 }
 
 const TELEMETRI_MODUL_VALID = new Set([2, 3, 4]); // never Module 1 -- no real relay exists for it
@@ -249,7 +255,9 @@ function telemetriValid(value: unknown): value is TelemetriMasuk {
     v.kelompokNomor >= 1 &&
     v.kelompokNomor <= MAX_GRUP_ID &&
     typeof v.seq === "number" &&
-    Number.isInteger(v.seq)
+    Number.isInteger(v.seq) &&
+    (v.diukurPada === undefined ||
+      (typeof v.diukurPada === "string" && !Number.isNaN(Date.parse(v.diukurPada))))
   );
 }
 
@@ -290,7 +298,12 @@ export async function rekamTelemetri(
         set: { ...row, diperbaruiPada: sql`now()` },
       });
 
-    await db.insert(telemetriLog).values({ sesiId, ...row });
+    await db.insert(telemetriLog).values({
+      sesiId,
+      serverId,
+      diukurPada: item.diukurPada ? new Date(item.diukurPada) : null,
+      ...row,
+    });
   }
 }
 
@@ -300,4 +313,62 @@ export async function pruneOldTelemetryOccasionally(): Promise<void> {
   const db = getDb();
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60_000);
   await db.delete(telemetriLog).where(lt(telemetriLog.dicatatPada, cutoff));
+}
+
+const PERINTAH_TERKIRIM_KEDALUWARSA_MENIT = 5;
+const PERINTAH_MENUNGGU_KEDALUWARSA_MENIT = 30;
+
+/**
+ * P6.2/B7: atomically claims every `menunggu` command queued for this
+ * server as `terkirim`, in one statement. The pre-0006 code did a plain
+ * SELECT of `menunggu` rows followed by a separate UPDATE of the same
+ * WHERE clause -- a command inserted (by an assistant clicking a control)
+ * in the gap between those two statements matched neither one: not the
+ * SELECT, because it didn't exist yet; not the UPDATE, because by the time
+ * it ran the command already existed but the UPDATE's own WHERE was built
+ * from the SELECT's now-stale result, not re-evaluated. It just sat at
+ * `menunggu` until the NEXT heartbeat. A single UPDATE ... RETURNING has no
+ * such gap: the claim and the read of what got claimed are the same
+ * statement.
+ */
+export async function claimPerintahMenunggu(
+  serverId: number,
+): Promise<Array<{ id: number; aksi: string; argumen: Record<string, string> | null }>> {
+  const db = getDb();
+  return db
+    .update(perintah)
+    .set({ status: "terkirim", terkirimPada: sql`now()` })
+    .where(and(eq(perintah.serverId, serverId), eq(perintah.status, "menunggu")))
+    .returning({ id: perintah.id, aksi: perintah.aksi, argumen: perintah.argumen });
+}
+
+/**
+ * P6.2/B7: expires commands that were claimed but never reported back on
+ * (`terkirim` for more than 5 minutes -- an agent that crashed, lost its
+ * network, or was killed mid-command) and commands that were never claimed
+ * at all (`menunggu` for more than 30 minutes -- queued for a Pi that
+ * never checked in again). Runs across every server on every heartbeat,
+ * not scoped to the one reporting in -- an assistant watching server B's
+ * command log should see server A's stuck command expire without needing
+ * to wait for server A itself to come back and report on it.
+ */
+export async function sweepPerintahKedaluwarsa(): Promise<void> {
+  const db = getDb();
+  const terkirimCutoff = new Date(Date.now() - PERINTAH_TERKIRIM_KEDALUWARSA_MENIT * 60_000);
+  const menungguCutoff = new Date(Date.now() - PERINTAH_MENUNGGU_KEDALUWARSA_MENIT * 60_000);
+
+  await db
+    .update(perintah)
+    .set({ status: "kedaluwarsa", keluaran: "agen tidak melapor" })
+    .where(
+      and(
+        eq(perintah.status, "terkirim"),
+        isNotNull(perintah.terkirimPada),
+        lt(perintah.terkirimPada, terkirimCutoff),
+      ),
+    );
+  await db
+    .update(perintah)
+    .set({ status: "kedaluwarsa", keluaran: "tidak pernah diambil agen" })
+    .where(and(eq(perintah.status, "menunggu"), lt(perintah.dimintaPada, menungguCutoff)));
 }

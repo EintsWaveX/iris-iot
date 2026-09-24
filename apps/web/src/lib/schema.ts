@@ -316,6 +316,18 @@ export const percobaanMasuk = pgTable(
     ip: text("ip").notNull(),
     jenis: text("jenis", { enum: ["asisten", "praktikan"] }).notNull(),
     berhasil: boolean("berhasil").notNull(),
+    // P6.2 (0006, fixes B9): the session running at the moment of this
+    // attempt, null when none was. This is what makes attendance for a
+    // GIVEN session ("who actually logged in during session #42") answerable
+    // directly, instead of the pre-0006 heuristic of "any successful
+    // praktikan login since this session's start time" -- which double-
+    // counted nobody but also couldn't tell a student who logged in once and
+    // is still active from one whose 3-hour cookie just carried over from
+    // the PREVIOUS session without a fresh login at all. onDelete: set null
+    // (not cascade) because this row is a historical login record, not
+    // owned by the session the way jawaban/regu rows are -- deleting a
+    // session should never erase the fact that a login attempt happened.
+    sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "set null" }),
   },
   (t) => [index("percobaan_nim_idx").on(t.nim, t.pada), index("percobaan_ip_idx").on(t.ip, t.pada)],
 );
@@ -359,6 +371,22 @@ export const server = pgTable("server", {
   daftarTokenExp: timestamp("daftar_token_exp", { withTimezone: true }),
   terdaftarPada: timestamp("terdaftar_pada", { withTimezone: true }),
   dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  // P6.2 (0006): a free-text note and a physical location an assistant can
+  // set from the server centre -- neither is inferred from anything the
+  // agent reports.
+  catatan: text("catatan"),
+  lokasi: text("lokasi"),
+  // The bundle SHA pair the agent reads from its own BUNDLE.txt (see
+  // orangepi/build_bundle.py and agent.py's _agen_versi()) and reports on
+  // every heartbeat, so "is this Pi actually running what I just shipped"
+  // is answered by the dashboard instead of trusted on faith.
+  agenVersi: text("agen_versi"),
+  // The hourly system-info block P6.7 adds to the agent's heartbeat
+  // (kernel, OS, interfaces, service versions) -- the column exists now so
+  // P6.2's heartbeat handler has somewhere to put it the moment the agent
+  // starts sending one, without a second migration just for that.
+  infoSistem: jsonb("info_sistem").$type<Record<string, unknown>>(),
+  infoSistemPada: timestamp("info_sistem_pada", { withTimezone: true }),
 });
 
 /**
@@ -411,6 +439,14 @@ export const perangkat = pgTable(
     sumber: text("sumber").notNull(), // "arp" | "modul4" | "mosquitto"
     pertamaTerlihat: timestamp("pertama_terlihat", { withTimezone: true }).notNull().defaultNow(),
     terakhirTerlihat: timestamp("terakhir_terlihat", { withTimezone: true }).notNull().defaultNow(),
+    // P6.2 (0006): which group's board this is, set by hand from the P6.7
+    // server centre's device list -- null until an assistant assigns one.
+    kelompokNomor: integer("kelompok_nomor"),
+    // An assistant can hide a device that isn't actually a practicum board
+    // (a router, a phone that walked through the AP's DHCP range) without
+    // deleting its row, so rediscovering the same MAC doesn't just bring it
+    // straight back.
+    disembunyikan: boolean("disembunyikan").notNull().default(false),
   },
   (t) => [unique("perangkat_server_mac").on(t.serverId, t.mac)],
 );
@@ -431,11 +467,24 @@ export const perintah = pgTable(
       .references(() => server.id, { onDelete: "cascade" }),
     aksi: text("aksi").notNull(),
     argumen: jsonb("argumen").$type<Record<string, string>>(),
-    status: text("status", { enum: ["menunggu", "terkirim", "selesai", "gagal"] })
+    // "kedaluwarsa" (P6.2/B7) is the fourth terminal status, alongside
+    // selesai/gagal: a command the agent claimed but never reported back on
+    // (terkirim past 5 minutes) or one that sat unclaimed too long (menunggu
+    // past 30 minutes) -- both swept by sweepPerintahKedaluwarsa() on every
+    // heartbeat, from any server, not just the one the command was queued
+    // for. This column has no DB check constraint (free text, like the rest
+    // of this enum was already), so adding this value is an application
+    // change only.
+    status: text("status", { enum: ["menunggu", "terkirim", "selesai", "gagal", "kedaluwarsa"] })
       .notNull()
       .default("menunggu"),
     dimintaOleh: text("diminta_oleh").notNull(), // NIM, matching audit.aktorNim's shape
     dimintaPada: timestamp("diminta_pada", { withTimezone: true }).notNull().defaultNow(),
+    // P6.2 (0006, fixes B7): set the moment a command is atomically claimed
+    // (menunggu -> terkirim), never on insert -- this is what the expiry
+    // sweep measures a "too long in terkirim" duration against, and what
+    // the old SELECT-then-UPDATE race had no way to record at all.
+    terkirimPada: timestamp("terkirim_pada", { withTimezone: true }),
     selesaiPada: timestamp("selesai_pada", { withTimezone: true }),
     keluaran: text("keluaran"),
   },
@@ -496,6 +545,14 @@ export const telemetriLog = pgTable(
   {
     id: serial("id").primaryKey(),
     sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
+    // P6.2 (0006): which Pi this row came from -- the plain history table
+    // never recorded this before (only telemetriTerkini did, since it's
+    // keyed by serverId), so a lab with more than one Pi had no way to
+    // attribute a row in /history to the box that actually sent it. Nullable
+    // and set null (not cascade) on delete for the same reason percobaanMasuk
+    // .sesiId is: a history row outlives the server registration if that
+    // server is ever deregistered.
+    serverId: integer("server_id").references(() => server.id, { onDelete: "set null" }),
     modul: integer("modul").notNull(),
     kelompokNomor: integer("kelompok_nomor").notNull(),
     seq: integer("seq").notNull(),
@@ -504,7 +561,30 @@ export const telemetriLog = pgTable(
     delayMs: integer("delay_ms"),
     rssi: integer("rssi"),
     snr: integer("snr"),
+    // P6.2 (0006, fixes half of B8): when the agent actually measured this
+    // reading (its own diukurPada), distinct from dicatatPada below, which
+    // is only ever this row's INSERT time. A Pi that spooled readings while
+    // offline and sent them all in one later heartbeat used to have every
+    // one of them recorded as having happened at that single flush moment.
+    diukurPada: timestamp("diukur_pada", { withTimezone: true }),
     dicatatPada: timestamp("dicatat_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("telemetri_log_sesi_modul_kelompok_idx").on(t.sesiId, t.modul, t.kelompokNomor)],
 );
+
+/**
+ * P6.2 (0006) -- small, assistant-editable key/value settings that don't
+ * deserve their own table each. The first (and for now only) key is
+ * `modul_terbuka` (P6.5): a sorted JSON array of which module numbers
+ * students can currently access, cumulative (opening module 3 also means 1
+ * and 2 stay open). `nilai` is jsonb rather than a typed column per key
+ * because different settings this table will eventually hold have no
+ * shared shape -- a boolean flag and an int array are both just "the current
+ * value of this key" to anything that isn't the one feature reading it.
+ */
+export const pengaturan = pgTable("pengaturan", {
+  kunci: text("kunci").primaryKey(),
+  nilai: jsonb("nilai").notNull(),
+  diubahOleh: text("diubah_oleh"), // NIM, matching audit.aktorNim's shape; null for a seeded default
+  diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+});

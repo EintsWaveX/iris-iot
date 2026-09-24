@@ -41,7 +41,7 @@ import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
 import { SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
-import { eq, and, gte, like, sql, notInArray } from "drizzle-orm";
+import { eq, and, or, gte, like, sql, notInArray, isNull } from "drizzle-orm";
 
 const PESAN_MAX_LEN = 200;
 const CATATAN_MAX_LEN = 300;
@@ -349,6 +349,12 @@ async function handleLaporan(_req: ApiRequest, res: ApiResponse) {
     .where(and(eq(jawaban.sesiId, running.id), like(jawaban.soalKode, `${prefix}%`)));
 
   const startedAt = running.mulaiPada ?? running.dibuatPada;
+  // P6.2/B9: a row written from this exact session (sesiId set by
+  // verifyPraktikanLogin's own recordAttempt call, since 0006) is
+  // authoritative. The time-window OR branch is only a fallback for rows
+  // written before that migration -- sesiId IS NULL on every one of them --
+  // so login attempts recorded before P6.2 still count toward attendance
+  // instead of silently vanishing from a report the day this shipped.
   const masukRows = await db
     .select({ nim: percobaanMasuk.nim })
     .from(percobaanMasuk)
@@ -356,7 +362,10 @@ async function handleLaporan(_req: ApiRequest, res: ApiResponse) {
       and(
         eq(percobaanMasuk.jenis, "praktikan"),
         eq(percobaanMasuk.berhasil, true),
-        gte(percobaanMasuk.pada, startedAt),
+        or(
+          eq(percobaanMasuk.sesiId, running.id),
+          and(isNull(percobaanMasuk.sesiId), gte(percobaanMasuk.pada, startedAt)),
+        ),
       ),
     );
   const hadirNims = new Set(masukRows.map((r) => r.nim));

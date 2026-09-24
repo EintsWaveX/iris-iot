@@ -27,6 +27,7 @@ interface Props {
   downloadLabel: string;
   downloadHint: string;
   masukHint: string;
+  sesiBerubahHint: string;
 }
 
 interface BlankState {
@@ -45,6 +46,7 @@ export default function BlankEditor({
   downloadLabel,
   downloadHint,
   masukHint,
+  sesiBerubahHint,
 }: Props) {
   const blankNomors = useMemo(
     () =>
@@ -59,7 +61,12 @@ export default function BlankEditor({
     Object.fromEntries(blankNomors.map((n) => [n, { isi: "", benar: false, checking: false }])),
   );
   const [loaded, setLoaded] = useState(false);
-  const [locked, setLocked] = useState(false);
+  // "sesi_berganti" (P6.2/B9) also reopens the login modal, since it means
+  // a new session has started since this cookie was issued and the editor
+  // needs a fresh sign-in to attribute this group's next save correctly --
+  // every other lock reason just shows masukHint and waits.
+  const [lockedReason, setLockedReason] = useState<"masuk" | "sesiBerubah" | null>(null);
+  const locked = lockedReason !== null;
   // Starts as the generic template's own segments (group 1's identity, if
   // this berkas carries one) and is replaced once a logged-in group's own
   // number comes back from the draft fetch below -- see group-identity.ts's
@@ -102,7 +109,8 @@ export default function BlankEditor({
       .then((data) => {
         if (!mounted.current) return;
         if (!data.ok) {
-          setLocked(true);
+          setLockedReason(data.kode === "sesi_berganti" ? "sesiBerubah" : "masuk");
+          if (data.kode === "sesi_berganti") window.Modal?.open("login-modal");
           return;
         }
         terapkanDraft(data.jawaban as DraftJawaban);
@@ -122,7 +130,7 @@ export default function BlankEditor({
         }
       })
       .catch(() => {
-        if (mounted.current) setLocked(true);
+        if (mounted.current) setLockedReason("masuk");
       })
       .finally(() => {
         if (mounted.current) setLoaded(true);
@@ -149,7 +157,12 @@ export default function BlankEditor({
         );
         if (!mounted.current) return;
         if (data.ok) terapkanDraft(data.jawaban as DraftJawaban);
-        else if (data.kode === "belum_masuk" || data.kode === "peran_salah") setLocked(true);
+        else if (data.kode === "sesi_berganti") {
+          setLockedReason("sesiBerubah");
+          window.Modal?.open("login-modal");
+        } else if (data.kode === "belum_masuk" || data.kode === "peran_salah") {
+          setLockedReason("masuk");
+        }
       } catch {
         // Try again next tick.
       }
@@ -180,7 +193,12 @@ export default function BlankEditor({
         // be shown as "wrong" (benar false, marked checked), telling a
         // student a correct answer was incorrect. Leave it unchecked, and
         // lock the editor behind the sign-in hint when that is the cause.
-        if (data.kode === "belum_masuk" || data.kode === "peran_salah") setLocked(true);
+        if (data.kode === "sesi_berganti") {
+          setLockedReason("sesiBerubah");
+          window.Modal?.open("login-modal");
+        } else if (data.kode === "belum_masuk" || data.kode === "peran_salah") {
+          setLockedReason("masuk");
+        }
         setState((prev) => ({ ...prev, [nomor]: { ...prev[nomor], checking: false } }));
         return;
       }
@@ -204,7 +222,11 @@ export default function BlankEditor({
 
   return (
     <div className="blank-editor">
-      {locked && <p className="blank-editor__locked">{masukHint}</p>}
+      {locked && (
+        <p className="blank-editor__locked">
+          {lockedReason === "sesiBerubah" ? sesiBerubahHint : masukHint}
+        </p>
+      )}
       <pre className="blank-editor__code">
         {displaySegments.map((seg, i) => {
           if (seg.kind === "text") return seg.text;

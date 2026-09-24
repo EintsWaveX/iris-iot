@@ -7,6 +7,7 @@
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { parseCookies } from "./http.js";
 import { readSessionCookie, type SessionPayload } from "../../src/lib/auth.js";
+import { currentSesi } from "../../src/lib/sesi.js";
 
 export function currentSession(req: ApiRequest): SessionPayload | null {
   const cookies = parseCookies(req);
@@ -28,6 +29,37 @@ export function requireRole(
   }
   if (session.role !== role) {
     res.status(403).json({ ok: false, kode: "peran_salah" });
+    return null;
+  }
+  return session;
+}
+
+/**
+ * requireRole(req, res, "praktikan"), plus one more check (P6.2/B9): when a
+ * session IS currently running and this cookie was issued for a DIFFERENT
+ * one, the cookie is stale -- carried over (its 3-hour TTL outlives a
+ * single 165-minute practicum slot) from a session that has since ended,
+ * without a fresh login for the new one. Refuses with `sesi_berganti`
+ * rather than silently letting the action through: a stale cookie's
+ * attendance record still points at the OLD session (see
+ * verifyPraktikanLogin's own recordAttempt call), so a student who never
+ * re-logs in would show as absent from the new session's report despite
+ * actively working in it. Scoped to api/modul's three actions only --
+ * NOT api/session/now or /telemetry, which are read-only, carry no
+ * per-student data, and are exactly the poll a client uses to notice a
+ * new session started in the first place; gating those the same way would
+ * make the rollover undetectable instead of just prompting a re-login.
+ */
+export async function requireCurrentPraktikanSesi(
+  req: ApiRequest,
+  res: ApiResponse,
+): Promise<SessionPayload | null> {
+  const session = requireRole(req, res, "praktikan");
+  if (!session) return null;
+
+  const running = await currentSesi();
+  if (running && session.sesiId !== running.id) {
+    res.status(401).json({ ok: false, kode: "sesi_berganti" });
     return null;
   }
   return session;

@@ -96,6 +96,7 @@ before a fourth undocumented manual apply happened.
 | `0003_violet_sentinels.sql`        | Phase 5 Stage 4: presentasi table, jawaban's benar/percobaan + nullable sesiId, sesi's slot/butuh_ap, asisten's password_hash | Yes — 2026-09-22                                                             |
 | `0004_graceful_vampiro.sql`        | Phase 5 Stage 10: sesi's pengumuman/pengumuman_pada (the broadcast)                                                           | Yes — 2026-09-23                                                             |
 | `0005_charming_starfox.sql`        | Phase 5 Stage 20: telemetri_terkini (one row per server+modul+group) and telemetri_log (append-only, for /history)            | Yes — 2026-09-23                                                             |
+| `0006_gorgeous_mulholland_black.sql` | Phase 6, Stage P6.2: `pengaturan` (seeded `modul_terbuka=[1]`); `server`'s catatan/lokasi/agen_versi/info_sistem(_pada); `perangkat`'s kelompok_nomor/disembunyikan; `percobaan_masuk.sesi_id`; `telemetri_log`'s server_id/diukur_pada; `perintah.terkirim_pada` | **Not yet applied** — tested on a throwaway local Postgres only (branch `phase6-db`). Runbook R11. |
 
 ### 2026-09-22: migration 0002 had never actually reached production
 
