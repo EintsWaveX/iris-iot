@@ -21,6 +21,11 @@ import "../../../../packages/kosmik/style/tokens.css";
 import "../../../../packages/kosmik/style/base.css";
 import "../../../../packages/kosmik/style/cosmos.css";
 import "../../../../packages/kosmik/style/motion.css";
+// Global, not a scoped Button.astro <style> block (P6.3) -- a React island
+// or a vanilla script creating a control at runtime needs the same `.btn`
+// classes Button.astro emits, and Astro's per-component scoping could never
+// have reached either one.
+import "../styles/controls.css";
 import { ClientRouter } from "astro:transitions";
 import Cosmos from "../components/Cosmos.astro";
 

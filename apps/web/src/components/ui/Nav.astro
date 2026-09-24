@@ -165,6 +165,12 @@ const { links, current = Astro.url.pathname } = Astro.props;
     display: flex;
     gap: var(--space-2);
     overflow-x: auto;
+    /* P6.3: a scrollbar here reads as a broken layout, not an affordance. */
+    scrollbar-width: none;
+  }
+
+  .nav__links::-webkit-scrollbar {
+    display: none;
   }
 
   .nav__link {

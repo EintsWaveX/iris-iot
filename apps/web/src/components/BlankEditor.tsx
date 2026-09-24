@@ -268,7 +268,7 @@ export default function BlankEditor({
           {benarCount}/{total}
         </span>
         <a
-          className="blank-editor__download"
+          className="btn btn--ghost btn--sm blank-editor__download"
           data-disabled={lengkap ? "no" : "yes"}
           href={
             lengkap

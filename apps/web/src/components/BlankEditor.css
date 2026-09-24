@@ -103,26 +103,12 @@
   font-size: var(--fs-small);
 }
 
-.blank-editor__download {
-  align-items: center;
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-md);
-  color: var(--text);
-  display: inline-flex;
-  font-size: var(--fs-small);
-  font-weight: 500;
-  min-height: max(var(--tap), 44px);
-  padding: 0 var(--space-4);
-}
-
+/* Base look and hover now come from .btn/.btn--ghost/.btn--sm (P6.3,
+   controls.css) -- this is layout on top of that, plus pointer-events:none,
+   which a real <button disabled> gets for free from the platform but an
+   <a> with no href (this download link before all its blanks are correct)
+   does not. */
 .blank-editor__download[aria-disabled="true"] {
   color: var(--text-faint);
-  cursor: not-allowed;
-  opacity: 0.5;
   pointer-events: none;
-}
-
-.blank-editor__download:not([aria-disabled="true"]):hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }

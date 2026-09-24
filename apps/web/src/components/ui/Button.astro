@@ -1,17 +1,26 @@
 ---
 /**
  * The one button. Every clickable action on the site is either this, or a
- * plain <a> styled to match it — never a one-off <button> with inline
- * styles. That is what "consistent styles for every button" means in
- * practice: one file that owns the visual contract, everything else calls it.
+ * plain <a>/<button> carrying the same `.btn` classes by hand (a React
+ * island, or a vanilla script creating a control at runtime, neither of
+ * which can render an Astro component) — never a one-off control with its
+ * own inline styles. That is what "consistent styles for every button"
+ * means in practice: one file (this component) plus one stylesheet
+ * (src/styles/controls.css, imported globally by Base.astro since P6.3 --
+ * a scoped Astro <style> block here could never have reached those other
+ * call sites) own the visual contract, everything else just applies it.
  *
  * kind: "primary" is the accent-filled call to action (one per view, at
  * most); "ghost" is the quiet default; "danger" is for destructive actions
  * (matches the audit-log rule in the Phase 1 plan: destructive assistant
- * actions get a visually distinct control, not just a second click).
+ * actions get a visually distinct control, not just a second click);
+ * "quiet" is a bordered icon-only control (no label, square footprint).
+ * size: "md" (the default, 44px-plus tap target) or "sm" for a denser
+ * control inside a table row or a card's own action row.
  */
 interface Props {
-  kind?: "primary" | "ghost" | "danger";
+  kind?: "primary" | "ghost" | "danger" | "quiet";
+  size?: "md" | "sm";
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
   loading?: boolean;
@@ -23,6 +32,7 @@ interface Props {
 
 const {
   kind = "ghost",
+  size = "md",
   type = "button",
   disabled = false,
   loading = false,
@@ -37,7 +47,7 @@ const Tag = href ? "a" : "button";
 
 <Tag
   id={id}
-  class:list={["btn", `btn--${kind}`, className]}
+  class:list={["btn", `btn--${kind}`, size === "sm" && "btn--sm", className]}
   href={href}
   type={href ? undefined : type}
   disabled={href ? undefined : disabled || loading}
@@ -50,179 +60,3 @@ const Tag = href ? "a" : "button";
   </span>
   <span class="btn__spinner" aria-hidden="true"></span>
 </Tag>
-
-<style>
-  /* The native `hidden` attribute is otherwise silently defeated: the UA
-     stylesheet's `[hidden] { display: none }` and this component's own
-     `.btn { display: inline-flex }` below are the same specificity (one
-     class, one attribute selector), and author CSS wins that tie -- so a
-     hidden button rendered exactly as a shown one until this rule existed.
-     Every other page in this app sidesteps the bug entirely by toggling a
-     `visibility`-based class instead of `hidden`; this closes it at the
-     source so `hidden` means what it says wherever it's used on a Button. */
-  .btn[hidden] {
-    display: none;
-  }
-
-  .btn {
-    align-items: center;
-    background: transparent;
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--radius-md);
-    color: var(--text);
-    display: inline-flex;
-    font-family: var(--font-body);
-    font-size: var(--fs-body);
-    font-weight: 500;
-    gap: var(--space-2);
-    justify-content: center;
-    min-height: max(var(--tap), 44px);
-    padding: 0 var(--space-5);
-    position: relative;
-    transition:
-      background var(--dur-fast) var(--ease-reveal),
-      border-color var(--dur-fast) var(--ease-reveal),
-      box-shadow var(--dur-fast) var(--ease-reveal),
-      color var(--dur-fast) var(--ease-reveal),
-      opacity var(--dur-fast) var(--ease-reveal),
-      transform var(--dur-fast) var(--ease-out-expo);
-  }
-
-  .btn:hover:not(:disabled):not([aria-disabled="true"]) {
-    border-color: var(--hairline-strong);
-    background: var(--hairline-faint);
-    box-shadow: var(--shadow-lift);
-    transform: var(--lift-control);
-  }
-
-  .btn:disabled,
-  .btn[aria-disabled="true"] {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-
-  /* The swept gradient-border ring: a 1px frame painted with --sweep-ring
-     and punched out with mask-composite so only the ring itself is
-     visible. Ghost and danger keep a real border underneath, so this rides
-     on top of it rather than replacing it. --sweep-ring, not
-     --sweep-surface: a 1px ring is decoration, never a surface text sits
-     on, so it is free to use the nebula-toned gradient. */
-  .btn--ghost::after,
-  .btn--danger::after {
-    background-image: var(--sweep-ring);
-    background-size: 200% auto;
-    border-radius: inherit;
-    content: "";
-    inset: 0;
-    mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    mask-composite: exclude;
-    -webkit-mask-composite: xor;
-    opacity: 0;
-    padding: 1px;
-    pointer-events: none;
-    position: absolute;
-    transition: opacity var(--dur-fast) var(--ease-reveal);
-  }
-
-  .btn--ghost:hover:not(:disabled):not([aria-disabled="true"])::after,
-  .btn--ghost:focus-visible:not([aria-disabled="true"])::after,
-  .btn--danger:hover:not(:disabled):not([aria-disabled="true"])::after,
-  .btn--danger:focus-visible:not([aria-disabled="true"])::after {
-    animation: aurora-sweep 2.2s linear infinite;
-    opacity: 1;
-  }
-
-  .btn--primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--accent-ink);
-  }
-
-  .btn--primary:hover:not(:disabled) {
-    background: var(--accent-bright);
-    border-color: var(--accent-bright);
-  }
-
-  /* Primary already has a solid fill, so the sweep arrives as a second
-     layer faded in over the first via opacity rather than a background
-     swap -- gradients don't interpolate, so swapping background-image
-     outright would snap instead of transition.
-
-     --sweep-surface, not --sweep-ring: the label paints on top of this
-     layer (see the z-index rule below), so every stop here has to clear
-     4.5:1 against --accent-ink. Using --sweep-ring here was the original
-     bug -- its --neb-violet/--neb-teal stops measured 1.55:1/1.65:1
-     against the label and made it flicker unreadable twice per loop. */
-  .btn--primary::before {
-    background-image: var(--sweep-surface);
-    background-size: 200% auto;
-    border-radius: inherit;
-    content: "";
-    inset: 0;
-    opacity: 0;
-    pointer-events: none;
-    position: absolute;
-    transition: opacity var(--dur-mid) var(--ease-reveal);
-  }
-
-  .btn--primary:hover:not(:disabled):not([aria-disabled="true"])::before,
-  .btn--primary:focus-visible:not([aria-disabled="true"])::before {
-    animation: aurora-sweep 2.6s linear infinite;
-    opacity: 1;
-  }
-
-  .btn--primary .btn__label,
-  .btn--primary .btn__spinner {
-    position: relative;
-    z-index: 1;
-  }
-
-  .btn--danger {
-    border-color: color-mix(in srgb, var(--danger) 55%, transparent);
-    color: var(--danger);
-  }
-
-  .btn--danger:hover:not(:disabled) {
-    background: var(--danger-soft);
-    border-color: var(--danger);
-  }
-
-  .btn__spinner {
-    display: none;
-  }
-
-  /* A loading button keeps its width (no layout shift when the label swaps
-     for a spinner) and stops presenting as clickable, without actually
-     disabling the element — a real in-flight request should still be
-     inspectable/cancellable by the platform, just not re-triggerable by a
-     second click. aria-disabled achieves that; the disabled attribute would
-     also drop it from the tab order. */
-  .btn[data-loading="yes"] .btn__label {
-    visibility: hidden;
-  }
-
-  .btn[data-loading="yes"] .btn__spinner {
-    animation: btn-spin 0.7s linear infinite;
-    border: 2px solid currentColor;
-    border-radius: 50%;
-    border-top-color: transparent;
-    display: block;
-    height: 1em;
-    position: absolute;
-    width: 1em;
-  }
-
-  @keyframes btn-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .btn[data-loading="yes"] .btn__spinner {
-      animation-duration: 1.4s;
-    }
-  }
-</style>

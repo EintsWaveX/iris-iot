@@ -16,6 +16,9 @@
   font-weight: 500;
   min-height: max(var(--tap), 44px);
   padding: 0 var(--space-4);
+  transition:
+    color var(--dur-fast) var(--ease-reveal),
+    border-color var(--dur-fast) var(--ease-reveal);
   white-space: nowrap;
 }
 
@@ -26,4 +29,13 @@
 
 .tabs__tab:hover {
   color: var(--text);
+}
+
+/* P6.3/B11: an underline tab strip keeps its own flush-bottom-border shape
+   (a lift/shadow treatment would break that alignment across siblings), but
+   it had no keyboard focus indicator at all before this -- --glow-ring is
+   the same focus treatment every button on the site uses. */
+.tabs__tab:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
 }

@@ -3,20 +3,34 @@
  * A titled block on a hairline, not a floating glass box — the editorial
  * language carried over from apps/modul4/'s .section pattern, scoped to a single
  * card rather than a whole page section.
+ *
+ * `interactive` (P6.3/B11): before this prop existed, EVERY card lifted,
+ * spotlit and rang on hover regardless of whether it did anything when
+ * clicked -- a card of plain read-only stats got the exact same "this is
+ * clickable" affordance as a card that navigates somewhere. Pass
+ * `interactive` only on a card that is itself a link/button or wraps one
+ * (e.g. the module index's `<a class="modules-index__card-link"><Card
+ * .../></a>` pattern) so the motion means what it looks like it means.
  */
 interface Props {
   title?: string;
   eyebrow?: string;
+  interactive?: boolean;
   class?: string;
   id?: string;
   hidden?: boolean;
   [attr: string]: unknown;
 }
 
-const { title, eyebrow, class: className, id, hidden, ...rest } = Astro.props;
+const { title, eyebrow, interactive = false, class: className, id, hidden, ...rest } = Astro.props;
 ---
 
-<article id={id} hidden={hidden} class:list={["card", className]} {...rest}>
+<article
+  id={id}
+  hidden={hidden}
+  class:list={["card", interactive && "card--interactive", className]}
+  {...rest}
+>
   {(title || eyebrow) && (
     <header class="card__head">
       {eyebrow && <p class="eyebrow">{eyebrow}</p>}
@@ -33,6 +47,9 @@ const { title, eyebrow, class: className, id, hidden, ...rest } = Astro.props;
     background: var(--bg-elevated);
     border: 1px solid var(--hairline);
     border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     padding: var(--space-6);
     position: relative;
     transition:
@@ -41,13 +58,25 @@ const { title, eyebrow, class: className, id, hidden, ...rest } = Astro.props;
       transform var(--dur-mid) var(--ease-out-expo);
   }
 
+  /* A card that IS a link (or is wrapped in one -- see the docblock above)
+     should never show the underline the base `a` rule paints (base.css:
+     color/text-decoration-color on every anchor): the whole card is
+     already the obvious click target, and an underline crawling under its
+     title/body text reads as broken rather than as a link. */
+  a > .card,
+  .card a {
+    text-decoration: none;
+  }
+
   /* The cursor-follow spotlight: a 1px ring painted with a radial gradient
      centred on --mouse-x/--mouse-y (written by scripts/spotlight.ts),
      punched out the same way the button ring is. Falls back to the
      off-screen default coordinates in the JS module, so a card that never
      gets a mousemove (reduced motion, touch, keyboard-only) simply never
-     shows a ring rather than showing one in the wrong place. */
-  .card::after {
+     shows a ring rather than showing one in the wrong place. Scoped to
+     `.card--interactive` (P6.3/B11): a non-interactive card has nothing for
+     this ring to be pointing at. */
+  .card--interactive::after {
     background: radial-gradient(
       450px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
       color-mix(in srgb, var(--accent) 55%, transparent),
@@ -68,13 +97,13 @@ const { title, eyebrow, class: className, id, hidden, ...rest } = Astro.props;
     transition: opacity var(--dur-mid) var(--ease-reveal);
   }
 
-  .card:hover {
+  .card--interactive:hover {
     border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline));
     box-shadow: var(--shadow-lift);
     transform: var(--lift-card);
   }
 
-  .card:hover::after {
+  .card--interactive:hover::after {
     opacity: 1;
   }
 
@@ -89,7 +118,14 @@ const { title, eyebrow, class: className, id, hidden, ...rest } = Astro.props;
     font-size: var(--fs-display-sm);
   }
 
+  /* A flex column, not just flex: 1 -- so a caller's own last child (a
+     "Buka modul ->" footer row, say) can pin itself to the bottom of an
+     equal-height card with `margin-top: auto` regardless of how much text
+     the rest of the card holds (P6.3, the module index's own use). */
   .card__body {
     color: var(--text-muted);
+    display: flex;
+    flex: 1;
+    flex-direction: column;
   }
 </style>

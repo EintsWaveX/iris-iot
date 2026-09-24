@@ -1,8 +1,11 @@
 /* PresentationManager.tsx's styling, as a plain CSS import -- same pattern
-   as BlankEditor.css. Deliberately its own small set of button-like
-   classes rather than Button.astro's .btn -- Astro scopes that component's
-   <style> block to elements it renders itself, so reusing the bare class
-   name here would compile to a selector this markup never matches. */
+   as BlankEditor.css. Before P6.3 this carried its own small set of
+   button-like classes rather than Button.astro's .btn, because Astro scoped
+   that component's <style> block to elements it renders itself, so reusing
+   the bare class name here compiled to a selector this markup never
+   matched. controls.css (P6.3) is a global stylesheet instead, so the
+   upload label and the two row actions now use its .btn classes directly;
+   what's left here is layout only, not a second button skin. */
 
 .presentation-manager__input {
   height: 1px;
@@ -11,23 +14,10 @@
   width: 1px;
 }
 
-.presentation-manager__upload-btn {
-  align-items: center;
-  background: var(--accent);
-  border-radius: var(--radius-md);
-  color: var(--accent-ink);
-  cursor: pointer;
-  display: inline-flex;
-  font-size: var(--fs-body);
-  font-weight: 500;
-  min-height: max(var(--tap), 44px);
-  padding: 0 var(--space-5);
-}
-
-.presentation-manager__upload-btn:hover {
-  background: var(--accent-bright);
-}
-
+/* The upload control is a <label> wearing .btn/.btn--primary (see
+   PresentationManager.tsx), not a real <button> -- a label has no
+   `disabled` state of its own, so the dimming while uploading is driven
+   off the hidden file input's own disabled attribute instead. */
 .presentation-manager__input:disabled + .presentation-manager__upload-btn,
 .presentation-manager__upload-btn[data-loading="yes"] {
   cursor: not-allowed;
@@ -103,29 +93,9 @@
   gap: var(--space-2);
 }
 
-.presentation-manager__action {
-  background: transparent;
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: var(--fs-small);
-  min-height: var(--tap);
-  padding: 0 var(--space-3);
-}
-
-.presentation-manager__action:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.presentation-manager__action--danger {
-  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
-  color: var(--danger);
-}
-
-/* Below md, one action row per item reads better stacked than squeezed
-   next to a long filename. */
-@media (max-width: 599px) {
+/* Below the project's documented sm breakpoint, one action row per item
+   reads better stacked than squeezed next to a long filename. */
+@media (max-width: 640px) {
   .presentation-manager__item {
     align-items: flex-start;
     flex-direction: column;

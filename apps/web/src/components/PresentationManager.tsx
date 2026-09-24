@@ -147,7 +147,7 @@ export default function PresentationManager() {
       />
       <label
         htmlFor={inputId}
-        className="presentation-manager__upload-btn"
+        className="btn btn--primary presentation-manager__upload-btn"
         data-loading={uploading ? "yes" : "no"}
       >
         {uploading ? "Mengunggah…" : "Unggah PDF"}
@@ -177,7 +177,7 @@ export default function PresentationManager() {
             <div className="presentation-manager__actions">
               <button
                 type="button"
-                className="presentation-manager__action"
+                className="btn btn--ghost btn--sm"
                 onClick={() => aktifkan(p.id)}
                 disabled={p.aktif || busyId === p.id}
               >
@@ -185,7 +185,7 @@ export default function PresentationManager() {
               </button>
               <button
                 type="button"
-                className="presentation-manager__action presentation-manager__action--danger"
+                className="btn btn--danger btn--sm"
                 onClick={() => hapus(p.id)}
                 disabled={busyId === p.id}
               >

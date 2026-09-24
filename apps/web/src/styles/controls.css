@@ -1,0 +1,332 @@
+/* =========================================================================
+   CONTROLS -- the one interaction language for every clickable control.
+
+   Global (imported once by Base.astro), not a scoped Astro <style> block,
+   because a scoped block only ever matches markup the SAME component
+   renders -- PresentationManager.tsx, SessionPanels.tsx and every other
+   React island are compiled outside Astro's scoping entirely and could
+   never reach a `.btn` declared inside Button.astro's own <style> tag. That
+   gap is exactly why this project grew eight independently-styled button
+   families (P6.3/B11): each one that needed a button outside Button.astro's
+   own render tree had no shared class to reach for and wrote its own.
+
+   `.btn` is the full component: a real clickable surface with its own
+   padding, fill and border. `.control-hover` is the interaction alone --
+   the lift, the shadow, the swept ring -- meant to sit ALONGSIDE a
+   control's own class (a tab, a group picker) that needs to keep its own
+   distinct shape or selected-state colour but should still feel like every
+   other clickable thing on the site under a pointer or keyboard focus. Both
+   share the same custom properties and the same `aurora-sweep` keyframe
+   (packages/kosmik/style/motion.css) so the two are indistinguishable in
+   feel even though one paints a whole button and the other paints nothing
+   of its own.
+   ========================================================================= */
+
+/* -----------------------------------------------------------------------
+   SHARED HOVER/FOCUS TREATMENT
+   translateY(-2px) + --shadow-lift + a swept gradient-border ring, exactly
+   as Button.astro already established -- lifted out here so anything else
+   that wants the identical feel opts in with one class instead of
+   redeclaring it.
+   ----------------------------------------------------------------------- */
+.control-hover {
+  position: relative;
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    border-color var(--dur-fast) var(--ease-reveal),
+    box-shadow var(--dur-fast) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal),
+    transform var(--dur-fast) var(--ease-out-expo);
+}
+
+.control-hover:hover:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: var(--shadow-lift);
+  transform: var(--lift-control);
+}
+
+.control-hover:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: translateY(0) scale(0.98);
+}
+
+.control-hover::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+}
+
+/* The sweep animation itself is gated on motion tier (P6.3): a device
+   pinned at tier 0 -- reduced motion, or one that measured too weak to run
+   the cosmos canvas at all -- still gets the ring's opacity (a real, static
+   affordance that something is focused/hovered) with no infinite loop
+   underneath it. Same idiom BlankEditor.css already uses for its own
+   tier-gated pulse. */
+:root:not([data-motion-tier="0"])
+  .control-hover:hover:not(:disabled):not([aria-disabled="true"])::after,
+:root:not([data-motion-tier="0"]) .control-hover:focus-visible:not([aria-disabled="true"])::after {
+  animation: aurora-sweep 2.2s linear infinite;
+}
+
+.control-hover:hover:not(:disabled):not([aria-disabled="true"])::after,
+.control-hover:focus-visible:not([aria-disabled="true"])::after {
+  opacity: 1;
+}
+
+/* -----------------------------------------------------------------------
+   .btn -- the full button component. Every direct <button>/<a>/<label>
+   styled as a clickable action reaches for this rather than its own
+   bespoke class. Button.astro emits exactly these classes; anything that
+   cannot render through Button.astro (a React island, a vanilla-script
+   <button> created at runtime) applies them by hand.
+   ----------------------------------------------------------------------- */
+.btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  gap: var(--space-2);
+  justify-content: center;
+  min-height: max(var(--tap), 44px);
+  padding: 0 var(--space-5);
+  position: relative;
+  text-decoration: none;
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    border-color var(--dur-fast) var(--ease-reveal),
+    box-shadow var(--dur-fast) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal),
+    opacity var(--dur-fast) var(--ease-reveal),
+    transform var(--dur-fast) var(--ease-out-expo);
+}
+
+/* The native `hidden` attribute is otherwise silently defeated: the UA
+   stylesheet's `[hidden] { display: none }` and `.btn { display:
+   inline-flex }` are the same specificity, and author CSS wins the tie. */
+.btn[hidden] {
+  display: none;
+}
+
+.btn:hover:not(:disabled):not([aria-disabled="true"]) {
+  border-color: var(--hairline-strong);
+  background: var(--hairline-faint);
+  box-shadow: var(--shadow-lift);
+  transform: var(--lift-control);
+}
+
+.btn:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn:focus-visible {
+  box-shadow: var(--glow-ring);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* The swept gradient-border ring: a 1px frame painted with --sweep-ring and
+   punched out with mask-composite so only the ring itself is visible.
+   Ghost, danger and quiet keep a real border underneath, so this rides on
+   top of it rather than replacing it. --sweep-ring, not --sweep-surface: a
+   1px ring is decoration, never a surface text sits on, so it is free to
+   use the nebula-toned gradient. */
+.btn--ghost::after,
+.btn--danger::after,
+.btn--quiet::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+}
+
+.btn--ghost:hover:not(:disabled):not([aria-disabled="true"])::after,
+.btn--ghost:focus-visible:not([aria-disabled="true"])::after,
+.btn--danger:hover:not(:disabled):not([aria-disabled="true"])::after,
+.btn--danger:focus-visible:not([aria-disabled="true"])::after,
+.btn--quiet:hover:not(:disabled):not([aria-disabled="true"])::after,
+.btn--quiet:focus-visible:not([aria-disabled="true"])::after {
+  opacity: 1;
+}
+
+/* Tier-gated for the same reason .control-hover's ring is (see above). */
+:root:not([data-motion-tier="0"])
+  .btn--ghost:hover:not(:disabled):not([aria-disabled="true"])::after,
+:root:not([data-motion-tier="0"]) .btn--ghost:focus-visible:not([aria-disabled="true"])::after,
+:root:not([data-motion-tier="0"])
+  .btn--danger:hover:not(:disabled):not([aria-disabled="true"])::after,
+:root:not([data-motion-tier="0"]) .btn--danger:focus-visible:not([aria-disabled="true"])::after,
+:root:not([data-motion-tier="0"])
+  .btn--quiet:hover:not(:disabled):not([aria-disabled="true"])::after,
+:root:not([data-motion-tier="0"]) .btn--quiet:focus-visible:not([aria-disabled="true"])::after {
+  animation: aurora-sweep 2.2s linear infinite;
+}
+
+/* -- primary: the accent-filled call to action, at most one per view -- */
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--accent-bright);
+  border-color: var(--accent-bright);
+}
+
+/* Primary already has a solid fill, so the sweep arrives as a second layer
+   faded in via opacity rather than a background swap -- gradients don't
+   interpolate, so swapping background-image outright would snap instead of
+   transition. --sweep-surface, not --sweep-ring: the label paints on top of
+   this layer, so every stop has to clear 4.5:1 against --accent-ink (see
+   tokens.css's own note on why --sweep-ring is decorative-only and would
+   have made the label unreadable twice per loop). */
+.btn--primary::before {
+  background-image: var(--sweep-surface);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-mid) var(--ease-reveal);
+}
+
+.btn--primary:hover:not(:disabled):not([aria-disabled="true"])::before,
+.btn--primary:focus-visible:not([aria-disabled="true"])::before {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"])
+  .btn--primary:hover:not(:disabled):not([aria-disabled="true"])::before,
+:root:not([data-motion-tier="0"]) .btn--primary:focus-visible:not([aria-disabled="true"])::before {
+  animation: aurora-sweep 2.6s linear infinite;
+}
+
+.btn--primary .btn__label,
+.btn--primary .btn__spinner {
+  position: relative;
+  z-index: 1;
+}
+
+/* -- danger: destructive assistant actions get a visually distinct control -- */
+.btn--danger {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  color: var(--danger);
+}
+
+.btn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+/* -- quiet: a bordered icon-only control (carousel arrows, a table's own
+   inline action) -- square rather than padded, no label. -- */
+.btn--quiet {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  padding: 0;
+  width: max(var(--tap), 44px);
+}
+
+.btn--quiet:hover:not(:disabled):not([aria-disabled="true"]) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* -- sizes -- */
+.btn--sm {
+  font-size: var(--fs-small);
+  min-height: var(--tap);
+  padding-inline: var(--space-3);
+}
+
+.btn--sm.btn--quiet {
+  width: var(--tap);
+}
+
+/* -- loading state -- */
+.btn__spinner {
+  display: none;
+}
+
+.btn[data-loading="yes"] .btn__label {
+  visibility: hidden;
+}
+
+.btn[data-loading="yes"] .btn__spinner {
+  animation: btn-spin 0.7s linear infinite;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-top-color: transparent;
+  display: block;
+  height: 1em;
+  position: absolute;
+  width: 1em;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn[data-loading="yes"] .btn__spinner {
+    animation-duration: 1.4s;
+  }
+}
+
+/* -----------------------------------------------------------------------
+   .picker-btn -- a group/module selector rendered as a tablist of chips
+   (Ladder, LayerXray, LiveSandbox, GroupLive all had their own byte-for-
+   byte copy of this before P6.3). Keeps its own selected-state colour and
+   the --tile-hue accent bar each caller sets inline, but shares the same
+   .control-hover interaction as every button on the site.
+   ----------------------------------------------------------------------- */
+.picker-btn {
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--tile-hue, var(--hairline));
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  padding: var(--space-2) var(--space-3);
+}
+
+.picker-btn[aria-selected="true"] {
+  background: var(--bg-elevated);
+  color: var(--text);
+}

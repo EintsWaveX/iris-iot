@@ -1,0 +1,217 @@
+/* Dropdown.tsx's styling, as a plain CSS import (a .tsx file has no
+   template for a scoped Astro <style> block to attach to -- see
+   controls.css's own docblock for why this matters project-wide). */
+
+.dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  position: relative;
+}
+
+.dropdown__label {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+
+.dropdown__trigger {
+  align-items: center;
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-body);
+  font-size: var(--fs-body-lg);
+  gap: var(--space-3);
+  justify-content: space-between;
+  min-height: max(var(--tap), 44px);
+  padding: 0 var(--space-4);
+  position: relative;
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    box-shadow var(--dur-fast) var(--ease-reveal);
+  width: 100%;
+}
+
+.dropdown__trigger:hover:not(:disabled) {
+  border-color: var(--hairline-strong);
+  box-shadow: var(--shadow-lift);
+}
+
+.dropdown__trigger:focus-visible,
+.dropdown__trigger[data-open="yes"] {
+  border-color: var(--accent);
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.dropdown__trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.dropdown__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown__chevron {
+  color: var(--text-faint);
+  flex-shrink: 0;
+  fill: none;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  transition: transform var(--dur-fast) var(--ease-reveal);
+  width: 18px;
+}
+
+.dropdown__trigger[data-open="yes"] .dropdown__chevron {
+  transform: rotate(180deg);
+}
+
+.dropdown__hint {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+}
+
+/* -- popup: portalled to document.body (see Dropdown.tsx's own docblock
+   for why -- never a position: fixed descendant of the nav's
+   backdrop-filter element). position: fixed here is exactly what escapes
+   that trap once the element lives outside the nav's subtree entirely. -- */
+.dropdown__popup {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  max-height: min(60vh, 360px);
+  overflow-y: auto;
+  position: fixed;
+  z-index: 90;
+}
+
+.dropdown__list {
+  padding: var(--space-2);
+}
+
+.dropdown__option {
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--fs-body);
+  min-height: max(var(--tap), 40px);
+  padding: var(--space-2) var(--space-3);
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal);
+}
+
+.dropdown__option[data-active="yes"] {
+  background: var(--hairline-faint);
+  color: var(--text);
+}
+
+.dropdown__option[aria-selected="true"] {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.dropdown__option[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.dropdown__option--checkbox {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.dropdown__checkbox {
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  height: 16px;
+  width: 16px;
+}
+
+.dropdown__option--checkbox[aria-selected="true"] .dropdown__checkbox {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* -- the mobile bottom sheet: under 640px, the popup abandons the
+   trigger-anchored position entirely and pins to the viewport's bottom
+   edge instead, full width, with a scrim behind it (a native <select>'s
+   own mobile picker is exactly this shape, which is the whole reason a
+   trigger-anchored popover reads as broken on a phone). -- */
+.dropdown__scrim {
+  background: var(--scrim);
+  inset: 0;
+  position: fixed;
+  z-index: 89;
+}
+
+.dropdown__popup[data-sheet="yes"] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  bottom: 0;
+  left: 0;
+  max-height: 70vh;
+  right: 0;
+  top: auto;
+  z-index: 90;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dropdown__popup[data-sheet="yes"] {
+    animation: dropdown-sheet-in var(--dur-mid) var(--ease-out-expo);
+  }
+}
+
+@keyframes dropdown-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* -- filter mode: chips below the trigger, each removable on its own -- */
+.dropdown-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dropdown-filter__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dropdown-filter__chip {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: var(--radius-pill);
+  color: var(--accent);
+  display: inline-flex;
+  font-size: var(--fs-small);
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+}
+
+.dropdown-filter__chip-remove {
+  color: inherit;
+  font-size: 1.1em;
+  line-height: 1;
+}
