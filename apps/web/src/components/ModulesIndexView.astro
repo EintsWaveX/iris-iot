@@ -51,12 +51,14 @@ const links = navUtama(lang === "en" ? "en" : "id");
       {entries.map((entry, i) => (
         <a class="modules-index__card-link" href={`${basePath}/${entry.data.modul}`}>
           <Card
+            interactive
             class="stagger-item"
             style={`--i: ${i}`}
             eyebrow={`Modul ${entry.data.modul}`}
             title={entry.data.judul}
           >
             <p>{entry.data.ringkasan[0]}</p>
+            <p class="modules-index__card-footer">{t.indexCardOpen} &rarr;</p>
           </Card>
         </a>
       ))}
@@ -98,7 +100,17 @@ const links = navUtama(lang === "en" ? "en" : "id");
 
   .modules-index__card-link {
     color: inherit;
-    display: block;
+    display: flex;
+    height: 100%;
+    text-decoration: none;
+  }
+
+  .modules-index__card-footer {
+    color: var(--accent);
+    font-size: var(--fs-small);
+    font-weight: 500;
+    margin-top: auto;
+    padding-top: var(--space-4);
   }
 
   .lang-switch {

@@ -68,31 +68,38 @@ const links = navUtama();
           <Button kind="primary" data-modal-open="login-modal">
             Masuk
           </Button>
-          <Button kind="ghost" href="/ui">
-            Panduan gaya
-          </Button>
         </div>
       </section>
 
       <div class="modules">
         <a class="modules__link" href="/modules/1">
-          <Card class="stagger-item" style="--i: 0" eyebrow="Modul 1" title="Bluetooth Low Energy">
+          <Card
+            interactive
+            class="stagger-item"
+            style="--i: 0"
+            eyebrow="Modul 1"
+            title="Bluetooth Low Energy"
+          >
             <p>Central/Peripheral GATT, dua ESP32 tanpa jaringan IP.</p>
+            <p class="modules__footer">Buka modul &rarr;</p>
           </Card>
         </a>
         <a class="modules__link" href="/modules/2">
-          <Card class="stagger-item" style="--i: 1" eyebrow="Modul 2" title="WebSocket">
+          <Card interactive class="stagger-item" style="--i: 1" eyebrow="Modul 2" title="WebSocket">
             <p>ESP32 ke server Python di Orange Pi, lewat Wi-Fi lokal.</p>
+            <p class="modules__footer">Buka modul &rarr;</p>
           </Card>
         </a>
         <a class="modules__link" href="/modules/3">
-          <Card class="stagger-item" style="--i: 2" eyebrow="Modul 3" title="MQTT">
+          <Card interactive class="stagger-item" style="--i: 2" eyebrow="Modul 3" title="MQTT">
             <p>Publish/subscribe lewat broker Eclipse Mosquitto.</p>
+            <p class="modules__footer">Buka modul &rarr;</p>
           </Card>
         </a>
         <a class="modules__link" href="/modules/4">
-          <Card class="stagger-item" style="--i: 3" eyebrow="Modul 4" title="LoRa">
+          <Card interactive class="stagger-item" style="--i: 3" eyebrow="Modul 4" title="LoRa">
             <p>Perburuan LoRa P2P antar papan ESP32.</p>
+            <p class="modules__footer">Buka modul &rarr;</p>
           </Card>
         </a>
       </div>
@@ -220,7 +227,21 @@ const links = navUtama();
 
   .modules__link {
     color: inherit;
-    display: block;
+    display: flex;
+    height: 100%;
+    text-decoration: none;
+  }
+
+  /* Pinned to the bottom of the card regardless of how much lede text sits
+     above it (Card.astro's own __body is a flex column for exactly this),
+     so all four module cards' footer rows line up even though their copy
+     is not the same length. */
+  .modules__footer {
+    color: var(--accent);
+    font-size: var(--fs-small);
+    font-weight: 500;
+    margin-top: auto;
+    padding-top: var(--space-4);
   }
 
   /* lg and above: two real columns rather than a wider version of the

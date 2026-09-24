@@ -15,6 +15,7 @@
  */
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { startPolling } from "../scripts/polling";
+import Dropdown from "./ui/Dropdown";
 import "./SessionPanels.css";
 
 interface KelompokPanel {
@@ -241,20 +242,22 @@ export default function SessionPanels() {
                 </div>
               </dl>
               {modul === 4 && (
-                <select
-                  className="session-panels__peran"
+                <Dropdown
+                  id={`peran-${k.id}`}
+                  label="Peran"
+                  hideLabel
                   value={drafts[k.id]?.peran ?? ""}
-                  onChange={(e) => {
-                    const peran = e.target.value;
+                  options={[
+                    { value: "", label: "Peran biasa" },
+                    { value: "beacon", label: "Beacon (Modul 4)" },
+                    { value: "hunter", label: "Hunter (Modul 4)" },
+                  ]}
+                  onChange={(peran) => {
                     const catatan = drafts[k.id]?.catatan ?? "";
                     setDrafts((prev) => ({ ...prev, [k.id]: { catatan, peran } }));
                     void saveCatatan(k.id, catatan, peran);
                   }}
-                >
-                  <option value="">Peran biasa</option>
-                  <option value="beacon">Beacon (Modul 4)</option>
-                  <option value="hunter">Hunter (Modul 4)</option>
-                </select>
+                />
               )}
               <textarea
                 id={`catatan-${k.id}`}

@@ -73,11 +73,22 @@ function readDeclaredWeakSignal(): boolean {
   return false;
 }
 
+// P6.4/B10: a device that once measured tier 0 (a busy first load, a
+// throttled background tab that slipped through) stayed pinned there
+// forever -- `probedAt` was written but never read back. Seven days is
+// long enough that this never re-probes on every visit, short enough that
+// a since-upgraded phone or a since-closed background tab is not stuck
+// with a stale verdict indefinitely.
+const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
 function readCachedTier(): Tier | null {
   try {
     const raw = window.localStorage.getItem(TIER_CACHE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { tier?: number };
+    const parsed = JSON.parse(raw) as { tier?: number; probedAt?: number };
+    if (typeof parsed.probedAt === "number" && Date.now() - parsed.probedAt > CACHE_MAX_AGE_MS) {
+      return null;
+    }
     if (parsed.tier === 0 || parsed.tier === 1 || parsed.tier === 2) return parsed.tier;
   } catch {
     // Private mode, disabled storage, or a corrupted value -- re-probe
@@ -272,11 +283,7 @@ function effectiveTier(measured: Tier): Tier {
 // result whenever reduced motion changes, without re-probing.
 let measuredTier: Tier = 1;
 
-const cached = readCachedTier();
-if (cached !== null) {
-  measuredTier = cached;
-  applyTier(effectiveTier(measuredTier));
-} else {
+function runProbe(): void {
   // Pessimistic interim (see the module header for why 1, not 2): CSS
   // drift shows immediately, the canvas stays uninitialised, and the
   // probe below measures with nothing else competing for the frame.
@@ -288,9 +295,33 @@ if (cached !== null) {
   });
 }
 
+const cached = readCachedTier();
+if (cached !== null) {
+  measuredTier = cached;
+  applyTier(effectiveTier(measuredTier));
+} else {
+  runProbe();
+}
+
 window.Motion?.onReducedChange?.(() => {
   applyTier(effectiveTier(measuredTier));
 });
+
+// P6.4/B10: cosmos-router.js's "Otomatis" setting calls this so a device
+// stuck at a stale or wrong cached tier gets one fresh measurement on
+// request, rather than only ever after the 7-day cache expiry above (see
+// env.d.ts for the ambient type).
+window.IrisMotionTier = {
+  reprobe: () => {
+    try {
+      window.localStorage.removeItem(TIER_CACHE_KEY);
+    } catch {
+      // Storage disabled: nothing to clear, but the re-probe below still
+      // runs and still applies for the rest of this page's life.
+    }
+    runProbe();
+  },
+};
 
 // data-motion-tier on <html> does not reliably survive a ClientRouter
 // swap -- the same reason cosmos-router.js re-applies data-scene on

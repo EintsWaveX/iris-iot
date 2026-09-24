@@ -84,7 +84,7 @@ export default function ModuleCarousel({ id, steps, prevLabel, nextLabel }: Prop
     <div className="carousel-steps" id={id}>
       <button
         type="button"
-        className="carousel-steps__arrow"
+        className="carousel-steps__arrow control-hover"
         disabled={index <= 0}
         aria-label={prevLabel}
         onClick={() => index > 0 && select(steps[index - 1].id, true)}
@@ -108,7 +108,7 @@ export default function ModuleCarousel({ id, steps, prevLabel, nextLabel }: Prop
             aria-selected={s.id === selected}
             tabIndex={s.id === selected ? 0 : -1}
             data-step-id={s.id}
-            className="carousel-steps__dot"
+            className="carousel-steps__dot control-hover"
             onClick={() => select(s.id, true)}
             onKeyDown={(event) => onKeyDown(event, i)}
           >
@@ -120,7 +120,7 @@ export default function ModuleCarousel({ id, steps, prevLabel, nextLabel }: Prop
 
       <button
         type="button"
-        className="carousel-steps__arrow"
+        className="carousel-steps__arrow control-hover"
         disabled={index >= steps.length - 1}
         aria-label={nextLabel}
         onClick={() => index < steps.length - 1 && select(steps[index + 1].id, true)}

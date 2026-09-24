@@ -9,7 +9,7 @@
   width: 100%;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 641px) {
   .presentation-card__frame {
     aspect-ratio: 16 / 10;
   }

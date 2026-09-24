@@ -8,7 +8,10 @@
      4. .cosmos__stars         starfield, constellations, comets, planets  <canvas>
      5. .cosmos__grain         film grain
         .cosmos__vignette      edge falloff
-     6. .cosmos__aurora        drifting rainbow glow         CSS only
+     6. .cosmos__aurora        drifting rainbow glow    CSS rays + <canvas>
+                                on apps/web at motion tier 2 (P6.4,
+                                aurora-gl.js); CSS only on apps/games and
+                                at tiers 0-1 everywhere
 
    The aurora is deliberately LAST, on top of the vignette. The vignette
    bottoms out near opaque at the page edges, which is exactly where the
@@ -334,6 +337,31 @@
   filter: hue-rotate(var(--modul-hue));
 }
 
+/* P6.4: the WebGL curtain layer (apps/web only -- see aurora-gl.js, which
+   never runs on apps/games since it has no .cosmos__aurora-gl canvas for
+   it to find). Sits over the CSS rays below and fades itself in only once
+   it has actually drawn a frame (the canvas's own "lit" class); the rays
+   stay painted underneath the whole time as the tier-0/1 fallback, and
+   only fade out once aurora-gl-on lands on the root element, so a WebGL
+   failure at any point leaves the CSS layer exactly as it already was. */
+.cosmos__aurora-gl {
+  inset: 0;
+  height: 100%;
+  opacity: 0;
+  position: absolute;
+  transition: opacity 1s var(--ease-in-out-soft);
+  width: 100%;
+}
+
+.cosmos__aurora-gl.lit {
+  opacity: 1;
+}
+
+:root.aurora-gl-on .cosmos__aurora__ray {
+  opacity: 0;
+  transition: opacity 1s var(--ease-in-out-soft);
+}
+
 /* -------------------------------------------------------------------------
    CURTAIN RAYS (Stage 6) — apps/web only. Five vertical rays, one per
    --au-* colour, each swaying on its own independent duration and phase
@@ -375,41 +403,81 @@
   background: linear-gradient(to top, var(--au-5) 0%, transparent 66%);
 }
 
+/* P6.4/B10: the old two-keyframe alternate (±8-10% translate, no opacity
+   change) read as "basically static" over a 38s+ cycle -- easy to miss
+   entirely on a page nobody stares at for that long. Replaced with three
+   multi-stop loops (not alternate: each runs one direction and wraps,
+   which is what keeps five rays on co-prime-ish durations from ever
+   settling into a visible shared rhythm the way a ping-pong alternate
+   eventually can), carrying the same amplitude and opacity pulse as the
+   portfolio's own aurora-drift-1/2/3 (portfolio/src/style.css): roughly
+   ±16-19% translate, 0.9-1.24 scale, and an opacity swing so the rays
+   visibly breathe, not just sway sideways. */
 :root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(1) {
-  animation: aurora-sway-a 38s var(--ease-in-out-soft) infinite alternate;
+  animation: aurora-sway-1 38s var(--ease-in-out-soft) infinite;
 }
 :root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(2) {
-  animation: aurora-sway-b 51s var(--ease-in-out-soft) infinite alternate;
+  animation: aurora-sway-2 51s var(--ease-in-out-soft) infinite;
   animation-delay: -14s;
 }
 :root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(3) {
-  animation: aurora-sway-a 44s var(--ease-in-out-soft) infinite alternate;
+  animation: aurora-sway-3 44s var(--ease-in-out-soft) infinite;
   animation-delay: -27s;
 }
 :root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(4) {
-  animation: aurora-sway-b 59s var(--ease-in-out-soft) infinite alternate;
+  animation: aurora-sway-1 59s var(--ease-in-out-soft) infinite;
   animation-delay: -6s;
 }
 :root:not([data-motion-tier="0"]) .cosmos__aurora__ray:nth-child(5) {
-  animation: aurora-sway-a 49s var(--ease-in-out-soft) infinite alternate;
+  animation: aurora-sway-2 49s var(--ease-in-out-soft) infinite;
   animation-delay: -33s;
 }
 
-@keyframes aurora-sway-a {
-  0% {
-    transform: translateX(-8%) scaleY(0.92) skewX(-3deg);
-  }
+@keyframes aurora-sway-1 {
+  0%,
   100% {
-    transform: translateX(10%) scaleY(1.14) skewX(3deg);
+    opacity: 0.78;
+    transform: translateX(0%) scaleY(1) skewX(0deg);
+  }
+  34% {
+    opacity: 1;
+    transform: translateX(16%) scaleY(1.2) skewX(4deg);
+  }
+  67% {
+    opacity: 0.66;
+    transform: translateX(-11%) scaleY(0.92) skewX(-3deg);
   }
 }
 
-@keyframes aurora-sway-b {
-  0% {
-    transform: translateX(9%) scaleY(1.1) skewX(2.5deg);
-  }
+@keyframes aurora-sway-2 {
+  0%,
   100% {
-    transform: translateX(-7%) scaleY(0.94) skewX(-2.5deg);
+    opacity: 0.82;
+    transform: translateX(0%) scaleY(1.04) skewX(0deg);
+  }
+  38% {
+    opacity: 0.64;
+    transform: translateX(-19%) scaleY(0.9) skewX(-4deg);
+  }
+  71% {
+    opacity: 1;
+    transform: translateX(9%) scaleY(1.24) skewX(3deg);
+  }
+}
+
+@keyframes aurora-sway-3 {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: translateX(0%) scaleY(0.96) skewX(0deg);
+  }
+  42% {
+    opacity: 0.94;
+    transform: translateX(13%) scaleY(1.16) skewX(3.5deg);
+  }
+  78% {
+    opacity: 0.6;
+    transform: translateX(-15%) scaleY(1.02) skewX(-2.5deg);
   }
 }
 

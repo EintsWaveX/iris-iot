@@ -88,7 +88,6 @@
   margin: 0;
 }
 
-.session-panels__peran,
 .session-panels__catatan {
   background: var(--bg-sunken);
   border: 1px solid var(--hairline-strong);
@@ -98,14 +97,10 @@
   font-size: var(--fs-small);
   margin-top: var(--space-3);
   padding: var(--space-2);
+  resize: vertical;
   width: 100%;
 }
 
-.session-panels__catatan {
-  resize: vertical;
-}
-
-.session-panels__peran:focus-visible,
 .session-panels__catatan:focus-visible {
   box-shadow: var(--glow-ring);
   outline: none;
@@ -188,7 +183,7 @@
   opacity: 0.6;
 }
 
-@media (max-width: 599px) {
+@media (max-width: 640px) {
   .session-panels__siaran {
     flex-direction: column;
   }

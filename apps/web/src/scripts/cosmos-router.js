@@ -91,6 +91,11 @@
     if (PREFS.indexOf(pref) === -1) return;
     writeStoredPref(pref);
     applyPreference();
+    // P6.4/B10: choosing "Otomatis" forces one fresh capability probe
+    // rather than trusting whatever tier is already cached -- the one
+    // moment a person is deliberately asking "figure this out again",
+    // separate from the 7-day passive expiry in motion-tier.ts.
+    if (pref === "auto") window.IrisMotionTier?.reprobe();
   }
 
   function cycleMotionPref() {

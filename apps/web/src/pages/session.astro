@@ -30,7 +30,7 @@ import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
 import Card from "../components/ui/Card.astro";
 import Field from "../components/ui/Field.astro";
-import Select from "../components/ui/Select.astro";
+import Dropdown from "../components/ui/Dropdown.tsx";
 import Button from "../components/ui/Button.astro";
 import Modal from "../components/ui/Modal.astro";
 import EmptyState from "../components/ui/EmptyState.astro";
@@ -72,7 +72,8 @@ const links = navUtama();
         <form id="form-sesi-baru">
           <div class="grid3">
             <Field id="sesi-tanggal" label="Tanggal" type="date" required />
-            <Select
+            <Dropdown
+              client:load
               id="sesi-slot"
               label="Slot"
               options={[
@@ -82,7 +83,8 @@ const links = navUtama();
                 { value: "4", label: "Slot 4 · 15:30" },
               ]}
             />
-            <Select
+            <Dropdown
+              client:load
               id="sesi-modul"
               label="Modul"
               options={[
