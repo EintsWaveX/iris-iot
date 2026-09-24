@@ -97,6 +97,36 @@ before a fourth undocumented manual apply happened.
 | `0004_graceful_vampiro.sql`          | Phase 5 Stage 10: sesi's pengumuman/pengumuman_pada (the broadcast)                                                                                                                                                                                               | Yes — 2026-09-23                                                                                   |
 | `0005_charming_starfox.sql`          | Phase 5 Stage 20: telemetri_terkini (one row per server+modul+group) and telemetri_log (append-only, for /history)                                                                                                                                                | Yes — 2026-09-23                                                                                   |
 | `0006_gorgeous_mulholland_black.sql` | Phase 6, Stage P6.2: `pengaturan` (seeded `modul_terbuka=[1]`); `server`'s catatan/lokasi/agen_versi/info_sistem(_pada); `perangkat`'s kelompok_nomor/disembunyikan; `percobaan_masuk.sesi_id`; `telemetri_log`'s server_id/diukur_pada; `perintah.terkirim_pada` | **Not yet applied** — tested on a throwaway local Postgres only (branch `phase6-db`). Runbook R11. |
+| `0007_amusing_the_watchers.sql`      | Stage 21 (1/2): creates `arsip_regu`/`arsip_praktikan`, the archived shape of the retired Phase 1 tables                                                                                                                                                          | **Not yet applied** — tested on a throwaway local Postgres only (branch `phase6-db`).              |
+| `0008_yielding_paibok.sql`           | Stage 21 (2/2): drops `regu`/`praktikan` (both confirmed empty; see the note below)                                                                                                                                                                               | **Not yet applied** — tested on a throwaway local Postgres only (branch `phase6-db`).              |
+
+### Stage 21: `regu`/`praktikan` retired, `scripts/backfill-roster.ts` deleted
+
+Both tables were already confirmed empty in production by the 2026-09-22
+note below, and every code path that ever read them (`resolvePraktikan()`,
+`publicRoster()`, `jadwalModul4Hari()` in `src/lib/sesi.ts`) only did so as
+a fallback for an environment where migration 0002's master roster
+(`kelompok`/`anggota`) hadn't been backfilled yet — a state production has
+never actually been in. Migrations 0007 and 0008 together archive both
+tables as `arsip_regu`/`arsip_praktikan` (0007 creates the archive pair,
+0008 drops the originals) instead of a single `ALTER TABLE ... RENAME TO`:
+drizzle-kit's rename detection needs an interactive prompt to disambiguate
+a rename from a drop-and-recreate, and this project's `db:generate` runs in
+a non-TTY environment that can't answer one. Two migrations reach the same
+end state, and since both tables are confirmed empty there is no data a
+true rename would have preserved that this loses. Every fallback branch
+that used to read `regu`/`praktikan` is also gone.
+`scripts/backfill-roster.ts`, whose only job was populating
+`kelompok`/`anggota` from those two tables, has no schema left to read from
+and is deleted outright rather than left as dead code that would fail
+confusingly if ever run.
+
+Before applying 0007/0008 to production, re-run this file's own step 5
+check — `select (select count(*) from regu) regu, (select count(*) from praktikan) praktikan`
+— even though the 2026-09-22 note below already answered it once; nothing
+in this app has written to either table since, but a fresh answer costs one
+query and this procedure's whole point is not trusting a number that could
+be stale.
 
 ### 2026-09-22: migration 0002 had never actually reached production
 

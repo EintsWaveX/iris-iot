@@ -256,10 +256,10 @@ const links = navUtama();
       // welcome card and the Module 4 card rise in together on arrival.
       window.Motion?.enter("#view-praktikan > *");
       document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
-      document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.regu}`;
+      document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.kelompok}`;
       document
         .getElementById("link-kelompok-live")
-        ?.addEventListener("click", () => navigate(`/groups/${me.regu}`));
+        ?.addEventListener("click", () => navigate(`/groups/${me.kelompok}`));
       (document.getElementById("btn-buka-iot") as HTMLButtonElement)?.addEventListener(
         "click",
         () => window.open(iotBoardUrl(me.nim), "_blank", "noopener"),
@@ -283,7 +283,7 @@ const links = navUtama();
         try {
           const data = await fetch("/api/session/now").then((r) => r.json());
           if (!data.ok) return;
-          renderBanner(data.sesi, `Kelompok ${me.regu}`);
+          renderBanner(data.sesi, `Kelompok ${me.kelompok}`);
           maybeToastPengumuman(data.sesi?.pengumuman ?? null, data.sesi?.pengumumanPada ?? null);
         } catch {
           // Left at whatever the last successful poll produced.

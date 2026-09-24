@@ -50,6 +50,20 @@
       "when": 1790216850509,
       "tag": "0006_gorgeous_mulholland_black",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790260795649,
+      "tag": "0007_amusing_the_watchers",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790260818569,
+      "tag": "0008_yielding_paibok",
+      "breakpoints": true
     }
   ]
 }

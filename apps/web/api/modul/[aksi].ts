@@ -81,7 +81,7 @@ async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPa
     res.status(200).json({ ok: false, kode: "modul_terkunci" });
     return;
   }
-  const kelompokId = session.reguId;
+  const kelompokId = session.kelompokId;
   if (!kelompokId) {
     res.status(200).json({ ok: false, kode: "kelompok_tidak_diketahui" });
     return;
@@ -105,7 +105,7 @@ async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPa
   // signal the editor's Code step uses to show the sketch's identity line
   // (GROUP_ID, LORA_SYNC_WORD) as THIS group's own value rather than the
   // generic template's, matching what the gated download already produces.
-  res.status(200).json({ ok: true, jawaban: out, nomorKelompok: session.reguNomor ?? null });
+  res.status(200).json({ ok: true, jawaban: out, nomorKelompok: session.kelompokNomor ?? null });
 }
 
 async function handleCek(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -134,8 +134,8 @@ async function handleCek(req: ApiRequest, res: ApiResponse, session: SessionPayl
     return;
   }
 
-  const kelompokId = session.reguId;
-  const nomorKelompok = session.reguNomor;
+  const kelompokId = session.kelompokId;
+  const nomorKelompok = session.kelompokNomor;
   if (!kelompokId || !nomorKelompok) {
     res.status(200).json({ ok: false, kode: "kelompok_tidak_diketahui" });
     return;
@@ -215,8 +215,8 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
     res.status(200).json({ ok: false, kode: "modul_terkunci" });
     return;
   }
-  const kelompokId = session.reguId;
-  const nomorKelompok = session.reguNomor;
+  const kelompokId = session.kelompokId;
+  const nomorKelompok = session.kelompokNomor;
   if (!kelompokId || !nomorKelompok) {
     res.status(200).json({ ok: false, kode: "kelompok_tidak_diketahui" });
     return;

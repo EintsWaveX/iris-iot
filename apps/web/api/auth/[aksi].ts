@@ -43,7 +43,7 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
     role: session.role,
     nim: session.nim,
     nama: session.nama,
-    regu: session.reguNomor,
+    kelompok: session.kelompokNomor,
   });
 }
 
@@ -75,8 +75,8 @@ async function handleStudent(req: ApiRequest, res: ApiResponse) {
       role: "praktikan",
       nim: result.nim,
       nama: result.nama,
-      reguId: result.reguId,
-      reguNomor: result.reguNomor,
+      kelompokId: result.kelompokId,
+      kelompokNomor: result.kelompokNomor,
       sesiId: result.sesiId,
     });
     res.setHeader("Set-Cookie", sessionCookieHeader(cookie));
@@ -84,8 +84,8 @@ async function handleStudent(req: ApiRequest, res: ApiResponse) {
       ok: true,
       nim: result.nim,
       nama: result.nama,
-      regu: result.reguNomor,
-      reguNama: result.reguNama,
+      kelompok: result.kelompokNomor,
+      kelompokNama: result.kelompokNama,
     });
   } catch (err) {
     console.error("[api/auth/student] unexpected error:", err);

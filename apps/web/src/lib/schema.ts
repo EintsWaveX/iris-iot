@@ -5,6 +5,10 @@
  * plus Phase 2's server/device registry (server, denyut, perangkat, perintah).
  * The live IoT-layer X-ray and module content each get their own migration
  * when that phase is planned.
+ *
+ * Stage 21 retired `regu`/`praktikan` (renamed to `arsipRegu`/`arsipPraktikan`
+ * below, near `kelompok`/`anggota` which superseded them) once the whole-
+ * practicum roster made them dead weight -- see that pair's own docblock.
  */
 import { sql } from "drizzle-orm";
 import {
@@ -245,14 +249,23 @@ export const presentasi = pgTable(
 );
 
 /**
- * A group within one session. `nomor` is the human-facing group number
- * (1, 2, 3, ...) shown on the roster paste box and the scoreboard;
- * `aktif` mirrors apps/modul4/'s "this group's board is the beacon, not a
- * hunter" flag — an inactive group is excluded from login resolution
- * without needing its members deleted.
+ * Frozen Phase 1 tables, retired by Stage 21: a per-session group/roster
+ * pair superseded by the whole-practicum `kelompok`/`anggota` above once
+ * migration 0002 landed. Migrations 0007/0008 create this archived pair
+ * and drop the originals, rather than a true SQL rename -- drizzle-kit's
+ * rename detection needs an interactive prompt this project's non-TTY
+ * generate environment can't answer, so the two steps are separate
+ * migrations instead. Equivalent to a rename here regardless, since
+ * MIGRATIONS.md's 2026-09-22 note already confirms both tables were empty
+ * in production and no code path has written to either since -- there is
+ * no data a real rename would have preserved that this loses. Kept as real
+ * Drizzle tables (rather than removed from this file entirely) purely so a
+ * future `db:generate` diffs against their current shape instead of
+ * proposing to drop them; nothing in the application queries either one
+ * anymore.
  */
-export const regu = pgTable(
-  "regu",
+export const arsipRegu = pgTable(
+  "arsip_regu",
   {
     id: serial("id").primaryKey(),
     sesiId: integer("sesi_id")
@@ -262,23 +275,11 @@ export const regu = pgTable(
     nama: text("nama").notNull(),
     aktif: boolean("aktif").notNull().default(true),
   },
-  (t) => [unique("regu_nomor_per_sesi").on(t.sesiId, t.nomor)],
+  (t) => [unique("arsip_regu_nomor_per_sesi").on(t.sesiId, t.nomor)],
 );
 
-/**
- * A practitioner within one session's group. The unique constraint on
- * (tanggal, nim) is the load-bearing rule: apps/modul4/'s paste-box parser
- * enforces "one NIM per day" in JavaScript today, which is a UI-layer
- * promise a direct API call could bypass. Making it a database constraint
- * means the invariant holds no matter which code path writes the row.
- *
- * `tanggal` is denormalised onto this table (rather than joined through
- * `sesi`) specifically so Postgres can enforce that constraint directly;
- * a cross-table uniqueness rule would need a trigger instead of a plain
- * unique index.
- */
-export const praktikan = pgTable(
-  "praktikan",
+export const arsipPraktikan = pgTable(
+  "arsip_praktikan",
   {
     id: serial("id").primaryKey(),
     sesiId: integer("sesi_id")
@@ -286,14 +287,14 @@ export const praktikan = pgTable(
       .references(() => sesi.id, { onDelete: "cascade" }),
     reguId: integer("regu_id")
       .notNull()
-      .references(() => regu.id, { onDelete: "cascade" }),
+      .references(() => arsipRegu.id, { onDelete: "cascade" }),
     tanggal: text("tanggal").notNull(),
     nim: text("nim").notNull(),
     nama: text("nama").notNull(),
   },
   (t) => [
-    unique("praktikan_nim_per_hari").on(t.tanggal, t.nim),
-    index("praktikan_sesi_idx").on(t.sesiId),
+    unique("arsip_praktikan_nim_per_hari").on(t.tanggal, t.nim),
+    index("arsip_praktikan_sesi_idx").on(t.sesiId),
   ],
 );
 

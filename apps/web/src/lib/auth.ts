@@ -99,8 +99,8 @@ export interface SessionPayload {
   nim: string;
   nama: string;
   /** Only set for a praktikan; the group the server resolved them into. */
-  reguId?: number;
-  reguNomor?: number;
+  kelompokId?: number;
+  kelompokNomor?: number;
   /** Only set for a praktikan; which session this resolution belongs to,
    *  so a rollover can invalidate a stale cookie the same way apps/modul4/'s
    *  identity.js compares its stored `sesi` against the live frame. */
@@ -129,8 +129,24 @@ export function readSessionCookie(value: string | undefined | null): SessionPayl
   if (!safeEqual(sign(body), sig)) return null;
 
   try {
-    const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as SessionPayload;
+    const payload = JSON.parse(
+      Buffer.from(body, "base64url").toString("utf8"),
+    ) as SessionPayload & {
+      reguId?: number;
+      reguNomor?: number;
+    };
     if (typeof payload.exp !== "number" || payload.exp < Date.now() / 1000) return null;
+    // Stage 21 compat: a cookie already issued when this deployed still
+    // carries the pre-rename key names in its signed JSON body -- renaming
+    // the TS field does nothing to bytes signed before the rename. Safe to
+    // delete once SESSION_TTL_SEC (3h) has passed since that deploy, since
+    // every cookie still valid by then was issued after it.
+    if (payload.kelompokId === undefined && payload.reguId !== undefined) {
+      payload.kelompokId = payload.reguId;
+    }
+    if (payload.kelompokNomor === undefined && payload.reguNomor !== undefined) {
+      payload.kelompokNomor = payload.reguNomor;
+    }
     return payload;
   } catch {
     return null;
@@ -218,9 +234,9 @@ export type PraktikanLoginResult =
       nim: string;
       nama: string;
       sesiId: number;
-      reguId: number;
-      reguNomor: number;
-      reguNama: string;
+      kelompokId: number;
+      kelompokNomor: number;
+      kelompokNama: string;
     }
   | { ok: false; kode: "terkunci" | "tidak_ada_sesi" | "tidak_terdaftar" };
 

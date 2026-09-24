@@ -14,18 +14,18 @@
  * land in the right group") pass truthfully, without inventing scheduling
  * logic that the next phase would then have to un-invent.
  */
-import { eq, and, ne, desc, count } from "drizzle-orm";
+import { eq, and, ne, desc } from "drizzle-orm";
 import { getDb } from "./db.js";
-import { sesi, regu, praktikan, anggota, kelompok, sesiKelompok } from "./schema.js";
+import { sesi, anggota, kelompok, sesiKelompok } from "./schema.js";
 import { SESI_CAP_DETIK, slotToMulai } from "./jadwal.js";
 
 export interface ResolvedPraktikan {
   nim: string;
   nama: string;
   sesiId: number;
-  reguId: number;
-  reguNomor: number;
-  reguNama: string;
+  kelompokId: number;
+  kelompokNomor: number;
+  kelompokNama: string;
 }
 
 /**
@@ -69,19 +69,6 @@ export async function currentSesi() {
 }
 
 /**
- * True once `scripts/backfill-roster.ts --apply` has actually run. Checked
- * on every call rather than cached, so the fallback below self-heals the
- * moment the backfill completes without needing a redeploy — an env-var
- * gate would need exactly that redeploy, which is the extra step a forgotten
- * backfill would silently be missing.
- */
-async function masterRosterIsPopulated(): Promise<boolean> {
-  const db = getDb();
-  const [row] = await db.select({ n: count() }).from(anggota);
-  return (row?.n ?? 0) > 0;
-}
-
-/**
  * Resolve a NIM against whichever session is currently running. Returns
  * null for: no session running, NIM not in any group, or the NIM's group
  * has been deactivated -- either at the roster level (`kelompok.aktif`) or
@@ -90,15 +77,15 @@ async function masterRosterIsPopulated(): Promise<boolean> {
  * return value alone -- the caller decides what to tell the student.
  *
  * Reads the master roster (`anggota` -> `kelompok`, LEFT JOIN
- * `sesi_kelompok` for the per-session override) rather than Phase 1's
- * per-session `praktikan`/`regu`, dropping `sesiId` from the lookup itself
- * -- which is what makes a roster pasted once visible to every module's
- * session, not just the one it was entered under.
+ * `sesi_kelompok` for the per-session override), dropping `sesiId` from the
+ * lookup itself -- which is what makes a roster pasted once visible to
+ * every module's session, not just the one it was entered under.
  *
- * Falls back to the Phase 1 join whenever `anggota` is empty, i.e. migration
- * 0002 has landed but `scripts/backfill-roster.ts --apply` has not run yet.
- * A row-count check rather than an env var: a forgotten backfill then
- * degrades to the old behaviour instead of locking every student out.
+ * Stage 21 removed the fallback this used to have onto Phase 1's per-session
+ * `praktikan`/`regu` (retired as `arsipPraktikan`/`arsipRegu`): that path
+ * only ever mattered before migration 0002's roster landed, and both tables
+ * were confirmed empty in production before that migration (MIGRATIONS.md,
+ * 2026-09-22) with nothing having written to either since.
  */
 export async function resolvePraktikan(nim: string): Promise<ResolvedPraktikan | null> {
   const running = await currentSesi();
@@ -106,35 +93,13 @@ export async function resolvePraktikan(nim: string): Promise<ResolvedPraktikan |
 
   const db = getDb();
 
-  if (!(await masterRosterIsPopulated())) {
-    const [row] = await db
-      .select({
-        nim: praktikan.nim,
-        nama: praktikan.nama,
-        sesiId: praktikan.sesiId,
-        reguId: regu.id,
-        reguNomor: regu.nomor,
-        reguNama: regu.nama,
-        reguAktif: regu.aktif,
-      })
-      .from(praktikan)
-      .innerJoin(regu, eq(praktikan.reguId, regu.id))
-      .where(and(eq(praktikan.sesiId, running.id), eq(praktikan.nim, nim)))
-      .limit(1);
-
-    if (!row || !row.reguAktif) return null;
-
-    const { reguAktif: _reguAktif, ...rest } = row;
-    return rest;
-  }
-
   const [row] = await db
     .select({
       nim: anggota.nim,
       nama: anggota.nama,
-      reguId: kelompok.id,
-      reguNomor: kelompok.nomor,
-      reguNama: kelompok.nama,
+      kelompokId: kelompok.id,
+      kelompokNomor: kelompok.nomor,
+      kelompokNama: kelompok.nama,
       kelompokAktif: kelompok.aktif,
       sesiAktif: sesiKelompok.aktif,
     })
@@ -156,9 +121,9 @@ export async function resolvePraktikan(nim: string): Promise<ResolvedPraktikan |
     nim: row.nim,
     nama: row.nama,
     sesiId: running.id,
-    reguId: row.reguId,
-    reguNomor: row.reguNomor,
-    reguNama: row.reguNama,
+    kelompokId: row.kelompokId,
+    kelompokNomor: row.kelompokNomor,
+    kelompokNama: row.kelompokNama,
   };
 }
 
@@ -167,32 +132,12 @@ export async function resolvePraktikan(nim: string): Promise<ResolvedPraktikan |
  *  student's browser can reach must never be able to return another
  *  student's NIM, even as a side effect of showing group membership.
  *
- *  Reads the master roster first, same as resolvePraktikan() above, and for
- *  the same reason: `regu`/`praktikan` are the retired Phase 1 tables, and
- *  after the roster migration this function returned nothing for anyone
- *  because it never followed resolvePraktikan() onto `kelompok`/`anggota`.
- *  Falls back to the Phase 1 join under the same row-count check so a
- *  not-yet-backfilled environment still gets a real answer instead of an
- *  empty roster. */
+ *  Reads the master roster, same as resolvePraktikan() above -- Stage 21
+ *  dropped this function's own fallback onto the retired
+ *  `arsipPraktikan`/`arsipRegu` pair for the same reason resolvePraktikan()
+ *  dropped its own. */
 export async function publicRoster(sesiId: number) {
   const db = getDb();
-
-  if (!(await masterRosterIsPopulated())) {
-    const groups = await db.select().from(regu).where(eq(regu.sesiId, sesiId));
-    const members = await db
-      .select({ reguId: praktikan.reguId, nama: praktikan.nama })
-      .from(praktikan)
-      .where(eq(praktikan.sesiId, sesiId));
-
-    return groups
-      .sort((a, b) => a.nomor - b.nomor)
-      .map((g) => ({
-        nomor: g.nomor,
-        nama: g.nama,
-        aktif: g.aktif,
-        anggota: members.filter((m) => m.reguId === g.id).map((m) => m.nama),
-      }));
-  }
 
   const groups = await db.select().from(kelompok);
   const members = await db
@@ -250,61 +195,42 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
   );
   if (withSlot.length === 0) return null;
 
-  const master = await masterRosterIsPopulated();
-
   const sesiOut: JadwalModul4["sesi"] = [];
   for (const s of withSlot) {
+    // Stage 21 removed this loop's own fallback onto the retired
+    // `arsipRegu`/`arsipPraktikan` pair, for the same reason resolvePraktikan()
+    // dropped its own -- see that function's docblock. The `regu` KEY on the
+    // object below is deliberately left alone even so: it is apps/modul4/'s
+    // own wire format (jadwal_set()/jadwal_muat()), not a database name, and
+    // renaming it would break the Pi-side import this function feeds.
     const kelompokSesi: JadwalModul4["sesi"][number]["regu"] = {};
 
-    if (master) {
-      const rows = await db
-        .select({
-          nomor: kelompok.nomor,
-          nama: kelompok.nama,
-          kelompokAktif: kelompok.aktif,
-          sesiAktif: sesiKelompok.aktif,
-          nim: anggota.nim,
-          anggotaNama: anggota.nama,
-        })
-        .from(kelompok)
-        .leftJoin(anggota, eq(anggota.kelompokId, kelompok.id))
-        .leftJoin(
-          sesiKelompok,
-          and(eq(sesiKelompok.kelompokId, kelompok.id), eq(sesiKelompok.sesiId, s.id)),
-        );
+    const rows = await db
+      .select({
+        nomor: kelompok.nomor,
+        nama: kelompok.nama,
+        kelompokAktif: kelompok.aktif,
+        sesiAktif: sesiKelompok.aktif,
+        nim: anggota.nim,
+        anggotaNama: anggota.nama,
+      })
+      .from(kelompok)
+      .leftJoin(anggota, eq(anggota.kelompokId, kelompok.id))
+      .leftJoin(
+        sesiKelompok,
+        and(eq(sesiKelompok.kelompokId, kelompok.id), eq(sesiKelompok.sesiId, s.id)),
+      );
 
-      for (const row of rows) {
-        const key = String(row.nomor);
-        if (!kelompokSesi[key]) {
-          kelompokSesi[key] = {
-            nama: row.nama,
-            aktif: row.kelompokAktif && (row.sesiAktif ?? true),
-            anggota: [],
-          };
-        }
-        if (row.nim) kelompokSesi[key].anggota.push({ nim: row.nim, nama: row.anggotaNama ?? "" });
+    for (const row of rows) {
+      const key = String(row.nomor);
+      if (!kelompokSesi[key]) {
+        kelompokSesi[key] = {
+          nama: row.nama,
+          aktif: row.kelompokAktif && (row.sesiAktif ?? true),
+          anggota: [],
+        };
       }
-    } else {
-      const rows = await db
-        .select({
-          nomor: regu.nomor,
-          nama: regu.nama,
-          aktif: regu.aktif,
-          nim: praktikan.nim,
-          praktikanNama: praktikan.nama,
-        })
-        .from(regu)
-        .leftJoin(praktikan, and(eq(praktikan.reguId, regu.id), eq(praktikan.sesiId, s.id)))
-        .where(eq(regu.sesiId, s.id));
-
-      for (const row of rows) {
-        const key = String(row.nomor);
-        if (!kelompokSesi[key]) {
-          kelompokSesi[key] = { nama: row.nama, aktif: row.aktif, anggota: [] };
-        }
-        if (row.nim)
-          kelompokSesi[key].anggota.push({ nim: row.nim, nama: row.praktikanNama ?? "" });
-      }
+      if (row.nim) kelompokSesi[key].anggota.push({ nim: row.nim, nama: row.anggotaNama ?? "" });
     }
 
     sesiOut.push({ id: s.slot, mulai: slotToMulai(s.slot) ?? s.mulai, regu: kelompokSesi });
