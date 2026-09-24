@@ -342,8 +342,8 @@
    it to find). Sits over the CSS rays below and fades itself in only once
    it has actually drawn a frame (the canvas's own "lit" class); the rays
    stay painted underneath the whole time as the tier-0/1 fallback, and
-   only fade out once aurora-gl-on lands on <html>, so a WebGL failure at
-   any point leaves the CSS layer exactly as it already was. */
+   only fade out once aurora-gl-on lands on the root element, so a WebGL
+   failure at any point leaves the CSS layer exactly as it already was. */
 .cosmos__aurora-gl {
   inset: 0;
   height: 100%;
