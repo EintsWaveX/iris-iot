@@ -156,7 +156,7 @@ export function unitDiagValid(value: unknown): value is string {
 
 /**
  * Auto-queues a whitelisted command for "the" Orange Pi, so starting or
- * ending a Module 4 Part A session can turn its hotspot on/off without an
+ * ending a Module 4 session can turn its hotspot on/off without an
  * assistant ever visiting /servers or touching SSH -- the same delivery path
  * (perintah row, picked up on the agent's next heartbeat) the manual button
  * already uses.

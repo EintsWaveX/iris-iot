@@ -1,5 +1,5 @@
 /*
- * MODUL 4 PART A - PERBURUAN LoRa  |  Peran: BEACON (Kelompok 1,
+ * MODUL 4 - PERBURUAN LoRa  |  Peran: BEACON (Kelompok 1,
  * disembunyikan asisten)
  * Memancar hanya di jendela waktu (slot) miliknya sendiri, bergiliran dengan
  * keempat pasangan lain dalam satu periode bersama, sehingga kelima beacon

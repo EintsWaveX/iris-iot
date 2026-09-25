@@ -1,5 +1,5 @@
 """
-PERBURUAN LoRa IRIS — papan skor (Modul 4 Part A)
+PERBURUAN LoRa IRIS — papan skor (Modul 4)
 Perangkat: Orange Pi 4 PRO, dijalankan sebagai access point "IRIS-IOT"
 
 Satu proses melayani tiga hal sekaligus pada port yang sama:

@@ -10,17 +10,17 @@
     "src/content/sketches/en/modul2_websocket_server.py": "d333b01f9b3e806ec96f15d123bd9edc11461679821cbca1c750beb85a92768e",
     "src/content/sketches/en/modul3_mqtt_publish.py": "66efd4d50e372600ba74c332890b3911ba4caea902f39499cc9f293ca3d0cf83",
     "src/content/sketches/en/modul3_mqtt_subscribe.py": "fa2e77f3a7235d631029977e9d8abcac17161bd26603495deb75233688ffc941",
-    "src/content/sketches/en/modul4_beacon.ino": "6117d63b081d1708b26eedcd42ea2dbfc06978c65d77b95b4b737024bab37b4b",
-    "src/content/sketches/en/modul4_hunter.ino": "45c8dd59a4831b377fce52d81e6544fd38f9b6455b92946618026e30bb5accd2",
+    "src/content/sketches/en/modul4_beacon.ino": "8558b0ba9f804edc5dd6c1f4903f83cdaeaba8011a376c104ee1fb78591bbf5e",
+    "src/content/sketches/en/modul4_hunter.ino": "ff812b781a07a103faea15a8e2a29507c5f11cb7bc135a3866df99a5971f36e9",
     "src/content/sketches/id/modul1_ble_central.ino": "6af4151bbd2555b8fe57038b91fba3836b1aea85b06d3f14c4015936769fc822",
     "src/content/sketches/id/modul1_ble_peripheral.ino": "052b8df3dbcd335536dd05980761640b419c2d3ad33cd5162f1896024a26bae0",
     "src/content/sketches/id/modul2_websocket_esp32.ino": "5403af8fbc3a261f9ca1413f1a1b3265c6c68f93a500e23c17a257c328e677cd",
     "src/content/sketches/id/modul2_websocket_server.py": "0f6db434213c694a8628e836da02073bf5e4a894cfe5e2e15acff0e05556c5d5",
     "src/content/sketches/id/modul3_mqtt_publish.py": "dc7429b7768a2e8b72b4c7ee3f4bda1fe539aab434315c4c6a5d9ff6f6e35dd3",
     "src/content/sketches/id/modul3_mqtt_subscribe.py": "04e7a21e3837b482992a5592da5843b9814cad61b781aed13f53343ed0cfa4a9",
-    "src/content/sketches/id/modul4_beacon.ino": "2dbc6849bb9e933f900c9e574e6f34ed6d5b51d361da6824d7d8eb11303fbb8d",
-    "src/content/sketches/id/modul4_hunter.ino": "5eb6fcfe0110469382c52cab0c6eb943e257d8b3fa3a3047bdc9e31966897259"
+    "src/content/sketches/id/modul4_beacon.ino": "436cb1a9162c5aec37bc22296da798fd2ad80badfa1f453eb292ac82405feca0",
+    "src/content/sketches/id/modul4_hunter.ino": "6a317f80938747417c89786f306ed9a44939a9f142ba075c1d210610276151bc"
   },
-  "irisAsoCommit": "5e0b22c7201529f19d5b8a1b62bfed86f8bdd965",
+  "irisAsoCommit": "98541d893bdb62bc3b0d891be59662423a318b05",
   "irisAsoDirty": true
 }

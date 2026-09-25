@@ -27,7 +27,7 @@
       "status.reconnecting": "Menyambung ulang",
       "status.offline": "Terputus",
 
-      "hunt.eyebrow": "Modul 4 · Part A",
+      "hunt.eyebrow": "Modul 4",
       "hunt.title": "Perburuan LoRa",
       "hunt.lede": "Tiap kelompok memburu targetnya sendiri, disembunyikan sendiri-sendiri. Papan ini menunjukkan seberapa dekat kalian dengan target kalian sendiri, bukan peringkat melawan kelompok lain.",
       "hunt.empty": "Menunggu hunter tersambung…",
@@ -271,7 +271,7 @@
       "status.reconnecting": "Reconnecting",
       "status.offline": "Disconnected",
 
-      "hunt.eyebrow": "Module 4 · Part A",
+      "hunt.eyebrow": "Module 4",
       "hunt.title": "LoRa Hunt",
       "hunt.lede": "Every group hunts its own target, hidden separately. This board shows how close you are to your own target, not a ranking against other groups.",
       "hunt.empty": "Waiting for hunters to connect…",

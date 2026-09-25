@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for Perburuan LoRa IRIS (Modul 4 Part A).
+Build script for Perburuan LoRa IRIS (Modul 4).
 
 Assembles modul4/public/index.html from the pieces in modul4/src/ into ONE
 self-contained file, which is what modul4/server.py serves from the Orange Pi.
@@ -97,7 +97,7 @@ STANDALONE_HEAD = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Papan skor Perburuan LoRa IRIS - Modul 4 Part A.">
+<meta name="description" content="Papan skor Perburuan LoRa IRIS - Modul 4.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305060b'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%2340b0ff'/%3E%3Ccircle cx='32' cy='32' r='13' stroke='%2340b0ff' stroke-width='1.6' fill='none' opacity='.6'/%3E%3Ccircle cx='32' cy='32' r='21' stroke='%2340b0ff' stroke-width='1.2' fill='none' opacity='.3'/%3E%3C/svg%3E">

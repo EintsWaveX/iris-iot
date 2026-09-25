@@ -13,9 +13,9 @@
  * what "slot 2" means. `mulai` (free-text "HH:MM") still works standalone
  * for a session outside the fixed schedule; `slot` wins if both are sent.
  * `butuhAp` marks a session that needs the Orange Pi as its own access
- * point rather than a campus client (Module 4 Part A only, see the Track B
- * provisioning notes) — refused for any other module, since nothing else
- * in the practicum ever needs AP mode.
+ * point rather than a campus client (Module 4 only, see
+ * orangepi/README.md section 7.0's provisioning notes) — refused for any
+ * other module, since nothing else in the practicum ever needs AP mode.
  *
  * Starting a new session demotes whichever one was previously "berjalan"
  * to "selesai" — the invariant is "at most one running session", enforced

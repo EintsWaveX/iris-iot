@@ -1,5 +1,5 @@
 /*
- * MODULE 4 PART A - LoRa HUNT  |  Role: BEACON (Group 1, hidden
+ * MODULE 4 - LoRa HUNT  |  Role: BEACON (Group 1, hidden
  * by the assistant)
  * Transmits only in its own time slot, taking turns with the other four
  * pairs within one shared period, so all five beacons share the same

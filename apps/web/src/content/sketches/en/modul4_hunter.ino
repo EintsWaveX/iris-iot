@@ -1,5 +1,5 @@
 /*
- * MODULE 4 PART A - LoRa HUNT  |  Role: HUNTER (Group 1)
+ * MODULE 4 - LoRa HUNT  |  Role: HUNTER (Group 1)
  * Only LISTENS, never transmits, so no group's board can collide with
  * another in the air. Every beacon packet it catches is smoothed, then sent
  * to the scoreboard over Wi-Fi.

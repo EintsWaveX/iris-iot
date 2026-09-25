@@ -1,5 +1,5 @@
 /*
- * MODUL 4 PART A - PERBURUAN LoRa  |  Peran: HUNTER (Kelompok 1)
+ * MODUL 4 - PERBURUAN LoRa  |  Peran: HUNTER (Kelompok 1)
  * Hanya MENDENGARKAN, tidak pernah memancar, sehingga papan tiap kelompok
  * tidak mungkin bertabrakan di udara. Paket beacon yang tertangkap dihaluskan
  * lalu dikirim ke papan skor lewat Wi-Fi.

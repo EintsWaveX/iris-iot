@@ -84,11 +84,12 @@ export const sesi = pgTable(
     // start form (still the only way to create a session before Stage 5's
     // scheduler) never asked for one; the scheduler will always set it.
     slot: integer("slot"),
-    // True only for Module 4 Part A: the one part of the practicum that
+    // True only for Module 4: the one part of the practicum that
     // needs the Orange Pi running as its own access point rather than as a
-    // campus network client. A single wlan0 cannot be both at once (see the
-    // Track B provisioning notes), so the scheduler must know which slots
-    // need AP mode ahead of time rather than leaving it to memory.
+    // campus network client. A single wlan0 cannot be both at once (see
+    // orangepi/README.md section 7.0's provisioning notes), so the
+    // scheduler must know which slots need AP mode ahead of time rather
+    // than leaving it to memory.
     butuhAp: boolean("butuh_ap").notNull().default(false),
     // Stage 10's broadcast: a short message pushed to every signed-in
     // praktikan via their existing 30-second /api/session/now poll. Lives

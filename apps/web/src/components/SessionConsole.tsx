@@ -681,8 +681,8 @@ function MulaiSesiPanel({ onStarted }: { onStarted: () => Promise<void> }) {
               checked={butuhAp}
               onChange={(e) => setButuhAp(e.target.checked)}
             />
-            Bagian A (mode AP): Orange Pi jadi hotspot IRIS-IOT. Live di web hanya bila dongle
-            uplink Pi tersambung ke Wi-Fi kampus, kalau tidak riwayat-saja
+            Mode AP: Orange Pi jadi hotspot IRIS-IOT. Live di web hanya bila dongle uplink Pi
+            tersambung ke Wi-Fi kampus, kalau tidak riwayat-saja
           </label>
         )}
         <button ref={btnRef} type="submit" className="btn btn--primary">

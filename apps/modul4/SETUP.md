@@ -9,7 +9,7 @@
 > output straight from a local `iris-iot` checkout. See that script and
 > `IRIS ASO/orangepi/README.md` for the actual deploy path.
 
-# Perburuan LoRa IRIS — papan skor (Modul 4 Part A)
+# Perburuan LoRa IRIS — papan skor (Modul 4)
 
 Papan skor web untuk permainan berburu beacon LoRa. Berjalan seluruhnya pada
 Orange Pi 4 PRO; tidak memerlukan Internet, akun, maupun proses deploy.
@@ -32,16 +32,16 @@ mengetikkan token satu kali, proyektor memakai `?stage=1`.
 
 ## 1. Menyalakan hotspot pada Orange Pi
 
-Modul 2, Modul 3, dan Modul 4 Part B menjalankan Orange Pi sebagai *client*
-Wi-Fi kampus. Part A memerlukannya sebagai *access point*. Satu antarmuka
-`wlan0` tidak dapat menjadi keduanya sekaligus, kecuali sebuah **dongle Wi-Fi
-USB kedua** terpasang sebagai uplink terpisah -- lihat `orangepi/README.md`
-bagian 7.0. Dengan dongle, `wlan0` menjadi access point sementara dongle
-tetap tersambung ke Wi-Fi kampus, dan perburuan tetap terjangkau situs web
-secara langsung. Tanpa dongle, perilaku lama berlaku:
+Modul 2 dan Modul 3 menjalankan Orange Pi sebagai *client* Wi-Fi kampus.
+Modul 4 memerlukannya sebagai *access point*. Satu antarmuka `wlan0` tidak
+dapat menjadi keduanya sekaligus, kecuali sebuah **dongle Wi-Fi USB kedua**
+terpasang sebagai uplink terpisah -- lihat `orangepi/README.md` bagian 7.0.
+Dengan dongle, `wlan0` menjadi access point sementara dongle tetap
+tersambung ke Wi-Fi kampus, dan perburuan tetap terjangkau situs web secara
+langsung. Tanpa dongle, perilaku lama berlaku:
 
-> **Tanpa dongle uplink, Part A dan Part B tidak dapat dijalankan pada sesi
-> yang sama.** Jadwalkan keduanya terpisah, dan kembalikan mode Pi
+> **Tanpa dongle uplink, Modul 4 dan Modul 2/3 tidak dapat dijalankan pada
+> sesi yang sama.** Jadwalkan keduanya terpisah, dan kembalikan mode Pi
 > sesudahnya. `opi_ap_on.sh` mendeteksi dongle secara otomatis setiap kali
 > dijalankan -- tidak ada yang perlu diubah pada perintah di bawah ini.
 
