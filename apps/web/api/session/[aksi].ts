@@ -26,6 +26,8 @@
  * GET  /api/session/riwayat?modul=&dari=&sampai=&status= (P6.8) — the /reports session list.
  * GET  /api/session/ringkasan (P6.8)                  — module overview across every session ever run.
  * GET  /api/session/audit?aksiLog=&aktor=&dari= (P6.8) — the audit log viewer's data source.
+ * GET  /api/session/nilai?sesiId= (Stage 12)          — the grading tab's roster + current scores.
+ * POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12) — one field, autosaved.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -41,7 +43,10 @@ import {
   telemetriTerkini,
   telemetriLog,
   audit,
+  nilai,
+  NILAI_KOMPONEN,
 } from "../../src/lib/schema.js";
+import type { NilaiKomponen } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { getModulTerbuka, getModulTerbukaMeta, setModulTerbuka } from "../../src/lib/akses.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
@@ -530,6 +535,130 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
   });
 }
 
+const NILAI_KOMPONEN_SET: ReadonlySet<string> = new Set(NILAI_KOMPONEN);
+const SKOR_MIN = 0;
+const SKOR_MAX = 100;
+
+/**
+ * GET /api/session/nilai?sesiId= (Stage 12) — the grading tab's data source.
+ * Keyed by sesiId (an explicit, given session), not "the currently running
+ * session" the way most of this file's other actions are: a session's
+ * grades are entered any time after it ends, often well after a new session
+ * has started, so there is no "rollover" for this endpoint to guard
+ * against the way praktikan cookies need one -- the id in the query string
+ * IS the whole address, nothing implicit to go stale.
+ */
+async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
+  const sesiId = Number(req.query.sesiId);
+  if (!Number.isInteger(sesiId) || sesiId <= 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const db = getDb();
+  const [running] = await db.select().from(sesi).where(eq(sesi.id, sesiId)).limit(1);
+  if (!running) {
+    res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
+    return;
+  }
+
+  const groups = await db.select().from(kelompok).where(eq(kelompok.aktif, true));
+  const members = await db
+    .select({ kelompokId: anggota.kelompokId, nim: anggota.nim, nama: anggota.nama })
+    .from(anggota);
+  const nilaiRows = await db.select().from(nilai).where(eq(nilai.sesiId, sesiId));
+  const nilaiByNim = new Map<string, Partial<Record<NilaiKomponen, number>>>();
+  for (const r of nilaiRows) {
+    const entry = nilaiByNim.get(r.nim) ?? {};
+    entry[r.komponen] = r.skor;
+    nilaiByNim.set(r.nim, entry);
+  }
+
+  const daftarKelompok = groups
+    .sort((a, b) => a.nomor - b.nomor)
+    .map((g) => {
+      const anggotaKelompok = members.filter((m) => m.kelompokId === g.id);
+      return {
+        id: g.id,
+        nomor: g.nomor,
+        nama: g.nama,
+        anggota: anggotaKelompok.map((m) => {
+          const skor = nilaiByNim.get(m.nim) ?? {};
+          const diisi = NILAI_KOMPONEN.filter((k) => skor[k] != null).length;
+          return {
+            nim: m.nim,
+            nama: m.nama,
+            skor,
+            total: NILAI_KOMPONEN.reduce((acc, k) => acc + (skor[k] ?? 0), 0),
+            lengkap: diisi === NILAI_KOMPONEN.length,
+          };
+        }),
+      };
+    });
+
+  res.status(200).json({
+    ok: true,
+    sesi: { id: running.id, modul: running.modul, tanggal: running.tanggal },
+    komponen: NILAI_KOMPONEN,
+    kelompok: daftarKelompok,
+  });
+}
+
+/** POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12) — one
+ *  field, one save: the grading tab autosaves on blur rather than batching a
+ *  whole row, the same granularity BlankEditor's draft save already uses for
+ *  code blanks, for the same reason (a lost connection mid-entry should
+ *  cost at most one field, not a whole student's row). */
+async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const sesiId = Number(body.sesiId);
+  const nim = typeof body.nim === "string" ? body.nim.trim() : "";
+  const komponen = typeof body.komponen === "string" ? body.komponen : "";
+  const skor = Number(body.skor);
+
+  if (
+    !Number.isInteger(sesiId) ||
+    sesiId <= 0 ||
+    !nim ||
+    !NILAI_KOMPONEN_SET.has(komponen) ||
+    !Number.isInteger(skor) ||
+    skor < SKOR_MIN ||
+    skor > SKOR_MAX
+  ) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const db = getDb();
+  const [target] = await db.select().from(sesi).where(eq(sesi.id, sesiId)).limit(1);
+  if (!target) {
+    res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
+    return;
+  }
+  const [member] = await db.select().from(anggota).where(eq(anggota.nim, nim)).limit(1);
+  if (!member) {
+    res.status(200).json({ ok: false, kode: "nim_tidak_ada" });
+    return;
+  }
+
+  await db
+    .insert(nilai)
+    .values({
+      sesiId,
+      nim,
+      komponen: komponen as NilaiKomponen,
+      skor,
+      diubahOleh: session.nim,
+    })
+    .onConflictDoUpdate({
+      target: [nilai.sesiId, nilai.nim, nilai.komponen],
+      set: { skor, diubahOleh: session.nim, diubahPada: new Date() },
+    });
+
+  await writeAudit(session.nim, "nilai_set", { sesiId, nim, komponen, skor });
+  res.status(200).json({ ok: true });
+}
+
 /** POST /api/session/siarkan { pesan } (Stage 10) — an empty/whitespace-only
  *  pesan clears the broadcast rather than being rejected, since "take down
  *  what I just said" is a normal thing an assistant does with this. */
@@ -924,6 +1053,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "lanjutkan") {
     if (!requireMethod(req, res, "POST")) return;
     return handleLanjutkan(req, res, session);
+  }
+  if (aksi === "nilai") {
+    if (req.method === "POST") return handleNilaiPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleNilaiGet(req, res);
   }
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });

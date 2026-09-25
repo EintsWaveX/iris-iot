@@ -555,3 +555,73 @@
   display: flex;
   gap: var(--space-3);
 }
+
+/* -------------------------------------------------------------------
+   Nilai (Stage 12)
+   ------------------------------------------------------------------- */
+.session-console__nilai-aksi {
+  display: flex;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 var(--space-5);
+}
+
+.session-console__nilai-helper {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+}
+
+.session-console__nilai-snippet {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  width: 100%;
+}
+
+.session-console__nilai-kelompok {
+  margin-bottom: var(--space-6);
+}
+
+.session-console__nilai-kelompok h3 {
+  color: var(--text);
+  font-size: var(--fs-body);
+  margin-bottom: var(--space-3);
+}
+
+.session-console__nilai-belum {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+}
+
+.session-console__nilai-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.session-console__nilai-table th,
+.session-console__nilai-table td {
+  border-bottom: 1px solid var(--hairline);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+}
+
+.session-console__nilai-table input[type="number"] {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: var(--space-1) var(--space-2);
+  width: 4.5em;
+}
+
+.session-console__nilai-table input[type="number"]:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}

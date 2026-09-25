@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { navigate } from "astro:transitions/client";
 import { DropdownFilter } from "./ui/Dropdown";
+import { unduhCsv } from "../lib/csv";
 import "./ReportsView.css";
 
 async function api<T = { ok: boolean; kode?: string; [k: string]: unknown }>(
@@ -53,26 +54,6 @@ const STATUS_LABEL: Record<string, string> = {
   selesai: "Selesai",
   batal: "Batal",
 };
-
-function unduhCsv(nama: string, header: string[], baris: (string | number)[][]) {
-  const escape = (v: string | number) => {
-    const s = String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const teks = [header, ...baris].map((row) => row.map(escape).join(",")).join("\n");
-  // A UTF-8 BOM so Excel (which otherwise guesses the system codepage)
-  // reads Indonesian names with diacritics correctly rather than mangling
-  // them -- plain UTF-8 without it is fine in most spreadsheet apps but not
-  // universally, and the plan's own gate for this stage requires the CSV
-  // to "open correctly with UTF-8 names".
-  const blob = new Blob(["﻿" + teks], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nama;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export default function ReportsView() {
   const [loaded, setLoaded] = useState(false);

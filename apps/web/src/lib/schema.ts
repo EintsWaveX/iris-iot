@@ -23,6 +23,9 @@ import {
   index,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { NILAI_KOMPONEN } from "./nilai-komponen.js";
+export { NILAI_KOMPONEN } from "./nilai-komponen.js";
+export type { NilaiKomponen } from "./nilai-komponen.js";
 
 /**
  * The 25 lab assistants, seeded from Module - IRIS IoT/data_asisten.typ by
@@ -592,3 +595,36 @@ export const pengaturan = pgTable("pengaturan", {
   diubahOleh: text("diubah_oleh"), // NIM, matching audit.aktorNim's shape; null for a seeded default
   diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// NILAI_KOMPONEN is imported (and re-exported for server-side callers, e.g.
+// api/session/[aksi].ts) at the top of this file, not here -- see
+// ./nilai-komponen.ts's own header comment for why client code should
+// import the component list from there directly instead of from this file.
+
+/**
+ * One row per (session, student, grading component) rather than one wide
+ * row per student, so entering a single component for a single student is a
+ * single upsert (this is what "autosave per field" needs) instead of a
+ * read-modify-write of a whole-row JSON blob. Keyed by `nim` directly, not
+ * `anggota.id` -- grading is a per-practicum-run event tied to who actually
+ * sat the session, and a student's group membership can in principle change
+ * between sessions without invalidating a grade already entered for one.
+ */
+export const nilai = pgTable(
+  "nilai",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    nim: text("nim").notNull(),
+    komponen: text("komponen", { enum: NILAI_KOMPONEN }).notNull(),
+    skor: integer("skor").notNull(),
+    diubahOleh: text("diubah_oleh").notNull(), // asisten NIM, matching audit.aktorNim's shape
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("nilai_sesi_nim_komponen").on(t.sesiId, t.nim, t.komponen),
+    index("nilai_sesi_idx").on(t.sesiId),
+  ],
+);

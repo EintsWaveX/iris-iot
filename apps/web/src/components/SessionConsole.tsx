@@ -21,6 +21,8 @@ import { denganSibuk } from "../scripts/busy";
 import { hariIniWib, SLOT_MULAI, SESI_CAP_MENIT } from "../lib/jadwal";
 import Dropdown, { DropdownMulti, DropdownFilter } from "./ui/Dropdown";
 import PresentationManager from "./PresentationManager";
+import { unduhCsv } from "../lib/csv";
+import { buildSeelabsBookmarklet, buildSeelabsSnippet } from "../lib/seelabs-helper";
 import "./SessionConsole.css";
 
 export const SESI_BERUBAH = "iris:sesi-berubah";
@@ -126,6 +128,7 @@ const TABS: Tab[] = [
   { id: "roster", label: "Roster" },
   { id: "presentasi", label: "Presentasi" },
   { id: "modul", label: "Modul" },
+  { id: "nilai", label: "Nilai" },
   { id: "laporan", label: "Laporan" },
 ];
 const TAB_IDS = new Set(TABS.map((t) => t.id));
@@ -743,6 +746,8 @@ function TabBody({
       return <PresentationManager />;
     case "modul":
       return <ModulTab />;
+    case "nilai":
+      return <NilaiTab sesiId={sesi.id} kelompok={kelompok} />;
     case "laporan":
       return <LaporanTab sesiId={sesi.id} />;
     default:
@@ -1267,6 +1272,214 @@ function ModulTab() {
       >
         Simpan perubahan
       </button>
+    </section>
+  );
+}
+
+interface NilaiAnggota {
+  nim: string;
+  nama: string;
+  skor: Partial<Record<string, number>>;
+  total: number;
+  lengkap: boolean;
+}
+interface NilaiKelompok {
+  id: number;
+  nomor: number;
+  nama: string;
+  anggota: NilaiAnggota[];
+}
+
+/** Stage 12 — grading, entered per component, autosaved on blur. `kelompok`
+ *  is the SAME laporan data the parent already polls for the Kelompok tab
+ *  (attendance, blanks correct/total) -- passed in rather than re-fetched,
+ *  so the CSV export below can join the two without a second round trip. */
+function NilaiTab({ sesiId, kelompok }: { sesiId: number; kelompok: KelompokRow[] }) {
+  const [data, setData] = useState<{
+    komponen: readonly string[];
+    kelompok: NilaiKelompok[];
+  } | null>(null);
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [helper, setHelper] = useState<{ bookmarklet: string; snippet: string } | null>(null);
+
+  async function muat() {
+    try {
+      const res = await fetch(`/api/session/nilai?sesiId=${sesiId}`).then((r) => r.json());
+      if (res.ok) setData(res);
+    } catch {
+      // Left at whatever the last successful load produced.
+    }
+  }
+  useEffect(() => {
+    void muat();
+  }, [sesiId]);
+
+  async function simpanSatu(nim: string, komponen: string, teks: string) {
+    if (teks === "") return;
+    const skor = Number(teks);
+    if (!Number.isInteger(skor) || skor < 0 || skor > 100) {
+      window.Toast?.show("Nilai harus bilangan bulat 0 sampai 100.", "danger");
+      await muat(); // snap the field back to its last saved value
+      return;
+    }
+    const key = `${nim}.${komponen}`;
+    setSaving((s) => ({ ...s, [key]: true }));
+    try {
+      const res = await fetch("/api/session/nilai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sesiId, nim, komponen, skor }),
+      }).then((r) => r.json());
+      if (res.ok) {
+        await muat();
+      } else {
+        window.Toast?.show(pesanUntuk(res.kode), "danger");
+      }
+    } catch {
+      window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+    } finally {
+      setSaving((s) => ({ ...s, [key]: false }));
+    }
+  }
+
+  function unduhNilaiCsv() {
+    if (!data) return;
+    const baris: (string | number)[][] = [];
+    for (const k of data.kelompok) {
+      const laporanK = kelompok.find((lk) => lk.id === k.id);
+      for (const a of k.anggota) {
+        const hadirLaporan = laporanK?.anggota.find((la) => la.nim === a.nim)?.hadir ?? false;
+        baris.push([
+          a.nim,
+          a.nama,
+          k.nomor,
+          hadirLaporan ? "ya" : "tidak",
+          laporanK?.benar ?? 0,
+          laporanK?.total ?? 0,
+          ...data.komponen.map((kk) => a.skor[kk] ?? ""),
+        ]);
+      }
+    }
+    unduhCsv(
+      `nilai-sesi-${sesiId}.csv`,
+      ["NIM", "Nama", "Kelompok", "Hadir", "Blank benar", "Blank total", ...data.komponen],
+      baris,
+    );
+  }
+
+  function buatHelper() {
+    if (!data) return;
+    const skorList = data.kelompok.flatMap((k) =>
+      k.anggota.map((a) => ({ nim: a.nim, nama: a.nama, skor: a.skor })),
+    );
+    setHelper({
+      bookmarklet: buildSeelabsBookmarklet(`Sesi ${sesiId}`, skorList),
+      snippet: buildSeelabsSnippet(`Sesi ${sesiId}`, skorList),
+    });
+  }
+
+  if (!data) {
+    return (
+      <section className="session-console__section">
+        <h2 className="session-console__heading">Nilai</h2>
+        <p className="eyebrow">Memuat...</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="session-console__section">
+      <h2 className="session-console__heading">Nilai praktikum</h2>
+      <p className="eyebrow">
+        Diisi per komponen, tersimpan otomatis saat pindah kolom. Kolomnya sama seperti form
+        Seelabs: TP, TA, D1 sampai D4, L1, L2.
+      </p>
+      <div className="session-console__nilai-aksi">
+        <button type="button" className="btn btn--quiet btn--sm" onClick={unduhNilaiCsv}>
+          Unduh CSV
+        </button>
+        <button type="button" className="btn btn--quiet btn--sm" onClick={buatHelper}>
+          Buat helper Seelabs
+        </button>
+      </div>
+      {helper && (
+        <div className="session-console__nilai-helper">
+          <p className="eyebrow">
+            Seret tautan ini ke bilah markah, lalu klik dari halaman Input Nilai Seelabs. Helper ini
+            mengisi setiap baris lalu menekan Simpan Penilaian sendiri, hanya jika semua NIM di
+            tabel cocok dengan data sesi ini. Jika ada satu saja yang tidak cocok, Simpan tidak
+            ditekan dan konsol menampilkan baris mana yang perlu diperiksa.
+          </p>
+          <a
+            href={helper.bookmarklet}
+            className="btn btn--primary btn--sm"
+            onClick={(e) => e.preventDefault()}
+            draggable
+          >
+            Isi nilai Seelabs
+          </a>
+          <p className="eyebrow">
+            Atau, bila markah diblokir, tempel kode ini di konsol pada halaman Seelabs:
+          </p>
+          <textarea
+            readOnly
+            rows={6}
+            className="session-console__nilai-snippet"
+            value={helper.snippet}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+        </div>
+      )}
+      {data.kelompok.map((k) => (
+        <div key={k.id} className="session-console__nilai-kelompok">
+          <h3>
+            Kelompok {k.nomor}: {k.nama}
+          </h3>
+          <table className="session-console__nilai-table">
+            <thead>
+              <tr>
+                <th>NIM</th>
+                <th>Nama</th>
+                {data.komponen.map((kk) => (
+                  <th key={kk}>{kk}</th>
+                ))}
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {k.anggota.map((a) => (
+                <tr key={a.nim}>
+                  <td>{a.nim}</td>
+                  <td>
+                    {a.nama}
+                    {!a.lengkap && (
+                      <span className="session-console__nilai-belum"> Belum lengkap</span>
+                    )}
+                  </td>
+                  {data.komponen.map((kk) => {
+                    const key = `${a.nim}.${kk}.${a.skor[kk] ?? "kosong"}`;
+                    return (
+                      <td key={kk}>
+                        <input
+                          key={key}
+                          type="number"
+                          min={0}
+                          max={100}
+                          defaultValue={a.skor[kk] ?? ""}
+                          placeholder="-"
+                          disabled={saving[`${a.nim}.${kk}`] === true}
+                          onBlur={(e) => void simpanSatu(a.nim, kk, e.currentTarget.value)}
+                        />
+                      </td>
+                    );
+                  })}
+                  <td>{a.total}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
     </section>
   );
 }

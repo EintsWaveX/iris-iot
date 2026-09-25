@@ -99,6 +99,18 @@ before a fourth undocumented manual apply happened.
 | `0006_gorgeous_mulholland_black.sql` | Phase 6, Stage P6.2: `pengaturan` (seeded `modul_terbuka=[1]`); `server`'s catatan/lokasi/agen_versi/info_sistem(_pada); `perangkat`'s kelompok_nomor/disembunyikan; `percobaan_masuk.sesi_id`; `telemetri_log`'s server_id/diukur_pada; `perintah.terkirim_pada` | Yes — 2026-09-24                                                             |
 | `0007_amusing_the_watchers.sql`      | Stage 21 (1/2): creates `arsip_regu`/`arsip_praktikan`, the archived shape of the retired Phase 1 tables                                                                                                                                                          | Yes — 2026-09-24                                                             |
 | `0008_yielding_paibok.sql`           | Stage 21 (2/2): drops `regu`/`praktikan` (both confirmed empty; see the note below)                                                                                                                                                                               | Yes — 2026-09-24                                                             |
+| `0009_reflective_doctor_octopus.sql` | Stage 12: `nilai` (one row per session/NIM/grading component: TP, TA, D1-D4, L1, L2)                                                                                                                                                                              | Not yet applied                                                              |
+
+### Stage 12: grading, keyed against the real Seelabs form
+
+The plan that first scoped this table guessed `I1`/`I2` as placeholder
+component names before anyone had actually opened Seelabs' own "Input Nilai
+Praktikum" form. This stage opened the real form live and corrected the set
+to what it actually shows: `TP`, `TA`, `D1`-`D4`, `L1`, `L2`. `nilai` is one
+row per `(sesi_id, nim, komponen)` rather than one wide row per student, so
+the grading tab's autosave is a single upsert per field
+(`unique(sesi_id, nim, komponen)`, via `onConflictDoUpdate`) instead of a
+read-modify-write of a whole row.
 
 ### Stage 21: `regu`/`praktikan` retired, `scripts/backfill-roster.ts` deleted
 
