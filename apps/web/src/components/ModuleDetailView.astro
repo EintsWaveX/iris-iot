@@ -94,6 +94,22 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
       <p class="eyebrow eyebrow--accent">Modul {m.modul}</p>
       <h1 class="module-header__title">{m.judul}</h1>
       <p class="module-header__topik measure-prose">{m.topik}</p>
+      <nav
+        class="module-header__adjacent"
+        id="module-adjacent"
+        aria-label={t.nav.prev + "/" + t.nav.next}
+      >
+        {m.modul > 1 && (
+          <a href={`${basePath}/${m.modul - 1}`} data-modul={m.modul - 1}>
+            &laquo; {t.nav.prev}
+          </a>
+        )}
+        {m.modul < 4 && (
+          <a href={`${basePath}/${m.modul + 1}`} data-modul={m.modul + 1}>
+            {t.nav.next} &raquo;
+          </a>
+        )}
+      </nav>
     </header>
 
     <div class="module-carousel__layout">
@@ -222,7 +238,7 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
 
 <script>
   import { sekaliPerHalaman } from "../scripts/per-halaman";
-  import { applyLockScreen } from "../scripts/modul-akses";
+  import { applyLockScreen, lockCards } from "../scripts/modul-akses";
   import { id as strId } from "../i18n/id";
   import { en as strEn } from "../i18n/en";
   function playEntrance() {
@@ -241,6 +257,13 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
     const t = document.documentElement.lang === "en" ? strEn : strId;
     const heading = document.querySelector(".module-header h1");
     void applyLockScreen(Number(match[1]), t.code.terkunci, "terkunci untuk praktikan", heading);
+
+    // B12: prev/next links between modules -- badged rather than hidden or
+    // blocked (same non-removal rule lockCards() already follows for the
+    // index cards), since the API is the real gate either way.
+    const adjacent = document.getElementById("module-adjacent");
+    const label = document.documentElement.lang === "en" ? "Not open yet" : "Belum dibuka";
+    if (adjacent) void lockCards(adjacent, label);
   }
   sekaliPerHalaman("ModulDetailAkses", checkAkses);
 </script>
@@ -271,6 +294,21 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
   .module-header__topik {
     color: var(--text-muted);
     margin-top: var(--space-3);
+  }
+
+  .module-header__adjacent {
+    display: flex;
+    gap: var(--space-5);
+    margin-top: var(--space-5);
+  }
+
+  .module-header__adjacent a {
+    color: var(--text-muted);
+    font-size: var(--fs-small);
+  }
+
+  .module-header__adjacent a:hover {
+    color: var(--text);
   }
 
   .module-carousel__index {

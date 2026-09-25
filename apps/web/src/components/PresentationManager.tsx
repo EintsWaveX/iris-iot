@@ -115,6 +115,24 @@ export default function PresentationManager() {
     }
   }
 
+  async function nonaktifkan() {
+    setBusyId(-1);
+    try {
+      const res = await fetch("/api/presentasi/nonaktifkan", { method: "POST" });
+      const data = await res.json();
+      if (!data.ok) {
+        window.Toast?.show("Tidak ada presentasi yang aktif.", "danger");
+      } else {
+        window.Toast?.show("Presentasi dinonaktifkan.", "ok");
+      }
+      await muat();
+    } catch {
+      window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+    } finally {
+      if (mounted.current) setBusyId(null);
+    }
+  }
+
   async function hapus(id: number) {
     setBusyId(id);
     try {
@@ -175,14 +193,25 @@ export default function PresentationManager() {
               </span>
             </div>
             <div className="presentation-manager__actions">
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                onClick={() => aktifkan(p.id)}
-                disabled={p.aktif || busyId === p.id}
-              >
-                Aktifkan
-              </button>
+              {p.aktif ? (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => nonaktifkan()}
+                  disabled={busyId !== null}
+                >
+                  Nonaktifkan
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => aktifkan(p.id)}
+                  disabled={busyId === p.id}
+                >
+                  Aktifkan
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn--danger btn--sm"

@@ -37,7 +37,7 @@ import {
   telemetriTerkini,
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
-import { getModulTerbuka, setModulTerbuka } from "../../src/lib/akses.js";
+import { getModulTerbuka, getModulTerbukaMeta, setModulTerbuka } from "../../src/lib/akses.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { writeAudit } from "../../src/lib/auth.js";
@@ -335,7 +335,7 @@ async function handleLaporan(_req: ApiRequest, res: ApiResponse) {
   const db = getDb();
   const groups = await db.select().from(kelompok).where(eq(kelompok.aktif, true));
   const members = await db
-    .select({ kelompokId: anggota.kelompokId, nim: anggota.nim })
+    .select({ kelompokId: anggota.kelompokId, nim: anggota.nim, nama: anggota.nama })
     .from(anggota);
   const overrides = await db.select().from(sesiKelompok).where(eq(sesiKelompok.sesiId, running.id));
   const overrideByKelompokId = new Map(overrides.map((o) => [o.kelompokId, o]));
@@ -392,6 +392,14 @@ async function handleLaporan(_req: ApiRequest, res: ApiResponse) {
         hadir,
         benar,
         total,
+        // P6.6: member names for the Kelompok tab's tiles -- this route is
+        // asisten-only already (handleCurrent's own roster carries the same
+        // NIMs), so adding names here breaks no new ground privacy-wise.
+        anggota: anggotaKelompok.map((m) => ({
+          nim: m.nim,
+          nama: m.nama,
+          hadir: hadirNims.has(m.nim),
+        })),
       };
     });
 
@@ -552,6 +560,18 @@ async function handleAksesGet(_req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true, terbuka });
 }
 
+/** GET /api/session/akses?meta=1 (P6.6) -- asisten-only, uncached: the same
+ *  array plus who changed it and when, for the session console's Modul tab.
+ *  A separate branch rather than growing handleAksesGet's own response,
+ *  since that one is deliberately public and CDN-cached -- varying its
+ *  shape by role would risk an assistant-shaped response (carrying an
+ *  assistant's own identifier) being served back to an anonymous visitor
+ *  from the same cache entry. */
+async function handleAksesMeta(_req: ApiRequest, res: ApiResponse) {
+  const meta = await getModulTerbukaMeta();
+  res.status(200).json({ ok: true, ...meta });
+}
+
 /** POST /api/session/akses (P6.5) — an assistant's direct, explicit choice
  *  of which modules are open, including closing one the cumulative
  *  auto-open (bukaHingga, called from api/session/index.ts on a session
@@ -584,6 +604,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return handleAksesPost(req, res, session);
     }
     if (!requireMethod(req, res, "GET")) return;
+    if (req.query.meta === "1") {
+      const session = requireRole(req, res, "asisten");
+      if (!session) return;
+      return handleAksesMeta(req, res);
+    }
     return handleAksesGet(req, res);
   }
 

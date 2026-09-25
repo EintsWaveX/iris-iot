@@ -76,6 +76,9 @@ const links = navUtama();
             <dd id="banner-kelompok"></dd>
           </div>
         </dl>
+        <a href="/modules/1" id="banner-buka-modul" class="btn btn--primary session-banner__cta">
+          Buka Modul <span id="banner-buka-modul-nomor"></span>
+        </a>
       </div>
       <div class="session-banner session-banner--kosong" id="session-banner-kosong" hidden>
         <p class="eyebrow">Tidak ada sesi</p>
@@ -104,6 +107,27 @@ const links = navUtama();
         </Button>
       </Card>
 
+      <Card title="Modul praktikum" class="modules-section">
+        <div class="modules-grid" id="modules-grid">
+          <a class="modules-grid__item" href="/modules/1">
+            <span class="modules-grid__nomor">Modul 1</span>
+            <span class="modules-grid__nama">Bluetooth Low Energy</span>
+          </a>
+          <a class="modules-grid__item" href="/modules/2">
+            <span class="modules-grid__nomor">Modul 2</span>
+            <span class="modules-grid__nama">WebSocket</span>
+          </a>
+          <a class="modules-grid__item" href="/modules/3">
+            <span class="modules-grid__nomor">Modul 3</span>
+            <span class="modules-grid__nama">MQTT</span>
+          </a>
+          <a class="modules-grid__item" href="/modules/4">
+            <span class="modules-grid__nomor">Modul 4</span>
+            <span class="modules-grid__nama">LoRa</span>
+          </a>
+        </div>
+      </Card>
+
       <Card title="Presentasi" class="presentation-section">
         <PresentationCard client:load />
       </Card>
@@ -125,6 +149,7 @@ const links = navUtama();
     import { navigate } from "astro:transitions/client";
     import { startPolling } from "../scripts/polling";
     import { watchIdentity } from "../scripts/identity-watch";
+    import { lockCards } from "../scripts/modul-akses";
     import { SESI_CAP_MENIT } from "../lib/jadwal";
 
     // A stopgap, not a real content model: the schema's sesi.modul is a
@@ -209,6 +234,9 @@ const links = navUtama();
       document.getElementById("banner-waktu")!.textContent = s.mulai;
       document.getElementById("banner-durasi")!.textContent = formatDurasiBerjalan(s.mulaiPada);
       document.getElementById("banner-kelompok")!.textContent = kelompokText;
+      document.getElementById("banner-buka-modul-nomor")!.textContent = String(s.modul);
+      (document.getElementById("banner-buka-modul") as HTMLAnchorElement).href =
+        `/modules/${s.modul}`;
       // The Orange Pi scoreboard card is Module 4's alone -- surfacing it
       // during Modules 1-3 sent students hunting for a hotspot that has
       // nothing to do with the module actually running.
@@ -255,6 +283,7 @@ const links = navUtama();
       // The one entrance per page (design-system.md's own rule): the
       // welcome card and the Module 4 card rise in together on arrival.
       window.Motion?.enter("#view-praktikan > *");
+      void lockCards(document.getElementById("modules-grid")!, "Belum dibuka");
       document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
       document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.kelompok}`;
       document
@@ -353,12 +382,54 @@ const links = navUtama();
   }
 
   .modul4-card,
-  .presentation-section {
+  .presentation-section,
+  .modules-section {
     margin-top: var(--space-6);
   }
 
   .modul4-card p {
     margin-bottom: var(--space-5);
+  }
+
+  .modules-grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  }
+
+  .modules-grid__item {
+    background: var(--bg-sunken);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    text-decoration: none;
+    transition:
+      border-color var(--dur-fast) var(--ease-reveal),
+      transform var(--dur-fast) var(--ease-reveal);
+  }
+
+  .modules-grid__item:hover {
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline));
+    transform: translateY(-2px);
+  }
+
+  .modules-grid__nomor {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .modules-grid__nama {
+    color: var(--text);
+  }
+
+  .session-banner__cta {
+    margin-top: var(--space-6);
   }
 
   .hidden-until-known {

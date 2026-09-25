@@ -32,6 +32,16 @@
  *                                  need to wait on the webhook for that.
  * POST /api/presentasi/aktifkan { id } — asisten only. Exactly one row is
  *                                  aktif at a time (presentasi_aktif_unik).
+ * POST /api/presentasi/nonaktifkan (no body) (P6.6/B12) — asisten only.
+ *                                  Turns the active entry off without
+ *                                  deleting it, working around
+ *                                  presentasi_aktif_unik's partial unique
+ *                                  index the same way handleAktifkan does
+ *                                  (a plain UPDATE ... SET aktif=false), the
+ *                                  gap being that switching TO another entry
+ *                                  was the only existing way to turn one
+ *                                  OFF, which meant "show nothing" required
+ *                                  deleting the deck.
  * POST /api/presentasi/hapus    { id } — asisten only. Deletes the blob and
  *                                  its row.
  */
@@ -155,6 +165,22 @@ async function handleAktifkan(req: ApiRequest, res: ApiResponse, session: Sessio
   res.status(200).json({ ok: true });
 }
 
+async function handleNonaktifkan(_req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const db = getDb();
+  const [row] = await db
+    .select({ id: presentasi.id })
+    .from(presentasi)
+    .where(eq(presentasi.aktif, true))
+    .limit(1);
+  if (!row) {
+    res.status(200).json({ ok: false, kode: "tidak_ada" });
+    return;
+  }
+  await db.update(presentasi).set({ aktif: false }).where(eq(presentasi.id, row.id));
+  await writeAudit(session.nim, "presentasi_nonaktifkan", { id: row.id });
+  res.status(200).json({ ok: true });
+}
+
 async function handleHapus(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
   const id = Number(body.id);
@@ -219,6 +245,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "aktifkan") {
     if (!requireMethod(req, res, "POST")) return;
     return handleAktifkan(req, res, session);
+  }
+  if (aksi === "nonaktifkan") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleNonaktifkan(req, res, session);
   }
   if (aksi === "hapus") {
     if (!requireMethod(req, res, "POST")) return;

@@ -35,6 +35,33 @@ export async function getModulTerbuka(): Promise<number[]> {
   return normalize(row.nilai);
 }
 
+/** Same as getModulTerbuka(), plus who last changed it and when -- for
+ *  P6.6's Modul tab, which shows that alongside the four toggles. Kept
+ *  separate from getModulTerbuka() itself: every other caller (the public
+ *  akses endpoint, the lock-screen checks) only ever needed the array, and
+ *  diubahOleh/diubahPada are assistant-only detail with no reason to ride
+ *  along on the cacheable public response. There is only ever one row for
+ *  this key, so this is "when was the array as a whole last changed", not
+ *  a per-module timestamp -- the schema has nowhere to hang the latter. */
+export async function getModulTerbukaMeta(): Promise<{
+  terbuka: number[];
+  diubahOleh: string | null;
+  diubahPada: Date | null;
+}> {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      nilai: pengaturan.nilai,
+      diubahOleh: pengaturan.diubahOleh,
+      diubahPada: pengaturan.diubahPada,
+    })
+    .from(pengaturan)
+    .where(eq(pengaturan.kunci, KUNCI))
+    .limit(1);
+  if (!row) return { terbuka: DEFAULT_TERBUKA, diubahOleh: null, diubahPada: null };
+  return { terbuka: normalize(row.nilai), diubahOleh: row.diubahOleh, diubahPada: row.diubahPada };
+}
+
 async function writeModulTerbuka(list: number[], aktorNim: string | null): Promise<number[]> {
   const nilai = normalize(list);
   const db = getDb();

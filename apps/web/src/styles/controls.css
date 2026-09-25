@@ -3,7 +3,7 @@
 
    Global (imported once by Base.astro), not a scoped Astro <style> block,
    because a scoped block only ever matches markup the SAME component
-   renders -- PresentationManager.tsx, SessionPanels.tsx and every other
+   renders -- PresentationManager.tsx, SessionConsole.tsx and every other
    React island are compiled outside Astro's scoping entirely and could
    never reach a `.btn` declared inside Button.astro's own <style> tag. That
    gap is exactly why this project grew eight independently-styled button

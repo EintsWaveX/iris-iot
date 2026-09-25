@@ -1,42 +1,26 @@
 ---
 /**
- * The assistant console (Stage 10): everything an assistant needs to run
- * a session from one page, replacing dashboard.astro's old view-asisten
- * branch entirely rather than duplicating it -- an assistant visiting
- * /dashboard now bounces here (see dashboard.astro's own init()).
- *
- * Session lifecycle (start/end/cancel) and the roster paste box are ported
- * near-verbatim from that old branch: proven, unchanged code being moved,
- * not new interactive UI, so it stays a vanilla script rather than being
- * rewritten as a React island just because it moved. The genuinely new
- * Stage 10 pieces -- per-group tiles, the stuck list, attendance, the
- * broadcast form, notes/roles, and the server readiness panel -- are new
- * interactive UI and are the SessionPanels React island below instead.
+ * The assistant console. As of P6.6 this page is a thin shell: a role
+ * check, the Nav/Toast/Modal chrome, and mounting SessionConsole.tsx, which
+ * owns everything that used to live in this file's own vanilla script
+ * (session start/end/cancel/lanjutkan, the roster paste box) and in
+ * SessionPanels.tsx (per-group tiles, stuck list, broadcast, server
+ * readiness, presentation manager) -- see SessionConsole.tsx's own header
+ * comment for why those merged into one island instead of staying split.
  *
  * Same "static shell, client fills in from /api/auth/me" pattern as every
  * other role-branched page (output: 'static' has no request-time cookie
  * access), and the same "show a forbidden state rather than redirect" rule
  * dashboard/server.astro already established for a praktikan landing here.
- *
- * Deliberately NOT yet on this page: Module 4's hunt control (adjudicating
- * claims needs a live channel to the Orange Pi's own hunt server, which
- * doesn't exist from this site until Stage 15's telemetry relay) and the
- * running module's ladder/layer view (Stage 11 builds those components).
- * Both are real plan items, not forgotten -- see this stage's commit
- * message.
  */
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
-import Card from "../components/ui/Card.astro";
-import Field from "../components/ui/Field.astro";
-import Dropdown from "../components/ui/Dropdown.tsx";
 import Button from "../components/ui/Button.astro";
 import Modal from "../components/ui/Modal.astro";
 import EmptyState from "../components/ui/EmptyState.astro";
 import Toast from "../components/ui/Toast";
-import PresentationManager from "../components/PresentationManager";
-import SessionPanels from "../components/SessionPanels";
+import SessionConsole from "../components/SessionConsole";
 
 const links = navUtama();
 ---
@@ -51,7 +35,7 @@ const links = navUtama();
   </Nav>
   <Toast client:load />
 
-  <main class="measure">
+  <main class="measure--wide">
     <div id="loading">
       <EmptyState title="Memuat…" />
     </div>
@@ -64,108 +48,7 @@ const links = navUtama();
     </div>
 
     <div id="view-asisten" hidden>
-      <section class="section">
-        <h1 class="section__title">Sesi hari ini</h1>
-      </section>
-
-      <Card id="tanpa-sesi" title="Belum ada sesi yang berjalan">
-        <form id="form-sesi-baru">
-          <div class="grid3">
-            <Field id="sesi-tanggal" label="Tanggal" type="date" required />
-            <Dropdown
-              client:load
-              id="sesi-slot"
-              label="Slot"
-              options={[
-                { value: "1", label: "Slot 1 · 06:30" },
-                { value: "2", label: "Slot 2 · 09:30" },
-                { value: "3", label: "Slot 3 · 12:30" },
-                { value: "4", label: "Slot 4 · 15:30" },
-              ]}
-            />
-            <Dropdown
-              client:load
-              id="sesi-modul"
-              label="Modul"
-              options={[
-                { value: "1", label: "Modul 1 · BLE" },
-                { value: "2", label: "Modul 2 · WebSocket" },
-                { value: "3", label: "Modul 3 · MQTT" },
-                { value: "4", label: "Modul 4 · LoRa" },
-              ]}
-            />
-          </div>
-          <label class="ap-toggle" id="sesi-butuh-ap-label" hidden>
-            <input type="checkbox" id="sesi-butuh-ap" />
-            Bagian A (mode AP): Orange Pi jadi hotspot IRIS-IOT. Live di web hanya bila dongle
-            uplink Pi tersambung ke Wi-Fi kampus, kalau tidak riwayat-saja
-          </label>
-          <Button kind="primary" type="submit" id="sesi-baru-submit">
-            Mulai sesi
-          </Button>
-        </form>
-      </Card>
-
-      <Card id="dengan-sesi" title="" hidden>
-        <p class="sesi-info" id="sesi-info"></p>
-        <div class="sesi-actions">
-          <Button kind="ghost" id="sesi-akhiri">
-            Akhiri sesi
-          </Button>
-          <Button kind="danger" id="sesi-batalkan">
-            Batalkan sesi
-          </Button>
-        </div>
-      </Card>
-
-      <div id="panels-host" hidden>
-        <SessionPanels client:load />
-      </div>
-
-      <details class="disclosure">
-        <summary class="disclosure__summary">
-          Roster utama <span class="disclosure__hint">satu daftar untuk seluruh praktikum</span>
-        </summary>
-        <Card title="Daftar kelompok" class="disclosure__body">
-          <label class="paste-label" for="roster-paste">
-            Tempel daftar kelompok
-          </label>
-          <textarea
-            id="roster-paste"
-            class="roster-paste mono"
-            rows="10"
-            placeholder={
-              "#1 Kelompok Cakra\n2311102001, Alya Rahmawati\n2311102014  Bagus Prasetyo\n\n#2 Kelompok Bayu\n2311102033 Dimas Aditya"
-            }
-          ></textarea>
-          <p class="tally" id="roster-tally" data-bad="no"></p>
-          <ul class="errors" id="roster-errors"></ul>
-
-          <Button kind="primary" id="roster-save" disabled>
-            Simpan
-          </Button>
-        </Card>
-      </details>
-
-      <section class="section">
-        <h1 class="section__title">Presentasi</h1>
-        <p class="eyebrow">Ditampilkan di dasbor setiap praktikan, terlepas dari sesi atau modul</p>
-      </section>
-
-      <Card title="Pustaka presentasi">
-        <PresentationManager client:load />
-      </Card>
-
-      <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card" id="modul4-card" hidden>
-        <p>
-          Papan skor dan konsol asisten Modul 4A masih berjalan lewat token, langsung di Orange Pi,
-          bukan lewat akun ini. Buka papan skornya dari jaringan
-          <strong>IRIS-IOT</strong>, lalu ketuk logo tiga kali untuk memasukkan token.
-        </p>
-        <Button kind="ghost" id="btn-buka-iot-asisten">
-          Buka papan skor
-        </Button>
-      </Card>
+      <SessionConsole client:load />
     </div>
   </main>
 
@@ -185,27 +68,6 @@ const links = navUtama();
 
   <script>
     import { navigate } from "astro:transitions/client";
-    import { parseRosterPaste, rosterToPaste } from "../lib/roster-parser";
-    import { startPolling } from "../scripts/polling";
-    import { watchIdentity } from "../scripts/identity-watch";
-    import { denganSibuk } from "../scripts/busy";
-    import { hariIniWib } from "../lib/jadwal";
-
-    const KODE_PESAN: Record<string, string> = {
-      format_salah: "Formatnya belum benar.",
-      sudah_ada:
-        "Slot ini sudah dipakai sesi modul yang sama pada tanggal itu, termasuk yang sudah selesai. Pilih slot lain.",
-      sudah_lewat: "Sesi ini sudah melewati batas 165 menitnya dan tidak bisa dilanjutkan.",
-      tidak_bisa_dilanjutkan: "Hanya sesi yang sudah diakhiri yang bisa dilanjutkan.",
-      galat_tempel: "Masih ada baris yang bermasalah pada tempelan.",
-      sesi_tidak_ada: "Sesi ini tidak ditemukan.",
-      sudah_selesai: "Sesi ini sudah selesai atau dibatalkan.",
-      galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
-    };
-
-    function pesanUntuk(kode: string): string {
-      return KODE_PESAN[kode] ?? "Terjadi kesalahan.";
-    }
 
     function show(id: string) {
       document.getElementById(id)!.hidden = false;
@@ -213,43 +75,6 @@ const links = navUtama();
     function hide(id: string) {
       document.getElementById(id)!.hidden = true;
     }
-
-    const IOT_BOARD_URL = "http://192.168.4.1:8080/";
-
-    let currentSesiId: number | null = null;
-    let aksiKonfirmasi: (() => Promise<void>) | null = null;
-
-    // Ending or cancelling a session is one click with no way back (a
-    // cancelled one is gone, an ended one holds its slot for the rest of
-    // the day), so both ask first rather than acting on a stray tap.
-    function konfirmasi(judul: string, teks: string, labelYa: string, aksi: () => Promise<void>) {
-      document.getElementById("modal-konfirmasi-title")!.textContent = judul;
-      document.getElementById("konfirmasi-teks")!.textContent = teks;
-      document.querySelector("#konfirmasi-ya .btn__label")!.textContent = labelYa;
-      aksiKonfirmasi = aksi;
-      window.Modal?.open("modal-konfirmasi");
-    }
-
-    async function kirimAksiSesi(url: string, body: unknown, pesanOk: string) {
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        if (data.ok) {
-          window.Toast?.show(pesanOk, "ok");
-          await loadSesi();
-        } else {
-          window.Toast?.show(pesanUntuk(data.kode), "danger");
-        }
-      } catch {
-        window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-      }
-    }
-    let stopPolling: (() => void) | null = null;
-    let stopIdentityPolling: (() => void) | null = null;
 
     async function init() {
       const me = await fetch("/api/auth/me").then((r) => r.json());
@@ -265,232 +90,17 @@ const links = navUtama();
       }
 
       document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
-      const tanggalEl = document.getElementById("sesi-tanggal") as HTMLInputElement;
-      if (!tanggalEl.value) tanggalEl.value = hariIniWib();
       show("view-asisten");
-      window.Motion?.enter("#view-asisten > .section, #view-asisten > .card");
-      document
-        .getElementById("btn-buka-iot-asisten")
-        ?.addEventListener("click", () => window.open(IOT_BOARD_URL, "_blank", "noopener"));
-
-      stopPolling?.();
-      stopPolling = startPolling(loadSesi, 30_000);
-
-      stopIdentityPolling?.();
-      // See identity-watch.ts: the session cookie is shared by every tab.
-      stopIdentityPolling = watchIdentity(me.nim);
+      window.Motion?.enter("#view-asisten > .session-console > *");
     }
 
-    async function loadSesi() {
-      // Wrapped, unlike this function's original dashboard.astro home --
-      // found live while checking this stage's own work: startPolling()
-      // fires this on a bare timer with no await at the call site, so an
-      // unhandled rejection here (any non-2xx response whose body isn't
-      // JSON, which is exactly what a 404 page returns) surfaced as a
-      // recurring uncaught promise rejection every 30 seconds rather than
-      // just leaving the view at its last good state.
-      try {
-        const data = await fetch("/api/session/current").then((r) => r.json());
-        if (!data.ok) return;
-
-        const roster = data.roster ?? [];
-        const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-        if (document.activeElement !== textarea) {
-          textarea.value = rosterToPaste(roster);
-          repaintTally();
-        }
-
-        const sesiIdBaru: number | null = data.sesi?.id ?? null;
-        if (sesiIdBaru !== currentSesiId) {
-          // SessionPanels polls on its own 30s clock; tell it now.
-          window.dispatchEvent(new Event("iris:sesi-berubah"));
-        }
-
-        if (!data.sesi) {
-          currentSesiId = null;
-          show("tanpa-sesi");
-          hide("dengan-sesi");
-          hide("panels-host");
-          // No running session means no running module -- the Module 4
-          // scoreboard card only makes sense while Module 4A/B is the
-          // session actually in progress.
-          hide("modul4-card");
-          return;
-        }
-
-        hide("tanpa-sesi");
-        show("dengan-sesi");
-        show("panels-host");
-        const s = data.sesi;
-        currentSesiId = s.id;
-        document.getElementById("sesi-info")!.textContent =
-          `Sesi #${s.id} · Modul ${s.modul} · ${s.tanggal} ${s.mulai}`;
-        // The Orange Pi scoreboard/token console card is Module 4's alone
-        // -- surfacing it during Modules 1-3 sent assistants hunting for a
-        // hotspot that has nothing to do with the module actually running.
-        if (s.modul === 4) {
-          show("modul4-card");
-        } else {
-          hide("modul4-card");
-        }
-      } catch {
-        // Left at whatever the last successful poll produced.
-      }
-    }
-
-    function repaintTally() {
-      const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-      const tally = document.getElementById("roster-tally")!;
-      const errorsEl = document.getElementById("roster-errors")!;
-      const saveBtn = document.getElementById("roster-save") as HTMLButtonElement;
-
-      const parsed = parseRosterPaste(textarea.value);
-      tally.textContent = `${parsed.groups.length} kelompok · ${parsed.total} anggota · ${parsed.errors.length} galat`;
-      tally.dataset.bad = parsed.errors.length ? "yes" : "no";
-
-      errorsEl.innerHTML = "";
-      for (const e of parsed.errors) {
-        const li = document.createElement("li");
-        li.textContent =
-          e.kode === "tanpa_kelompok"
-            ? `Baris ${e.baris}: belum ada kelompok yang dibuka dengan #`
-            : e.kode === "nim_ganda"
-              ? `NIM ${e.nim} muncul dua kali`
-              : `Baris ${e.baris}: bukan NIM dan nama`;
-        errorsEl.appendChild(li);
-      }
-
-      saveBtn.disabled = parsed.errors.length > 0 || textarea.value.trim().length === 0;
-    }
-
-    // Re-run on every astro:page-load, not just the first visit, AND only
-    // for this page's own navigation -- same reasoning dashboard.astro's
-    // own bindPage() comment gives in full, including why the pathname
-    // check (not just #loading's presence) matters now that dashboard.astro
-    // navigates here for a non-praktikan.
+    // Re-run on every astro:page-load, not just the first visit -- see
+    // dashboard.astro's own bindPage() comment for the full "why".
     function bindPage() {
       if (location.pathname !== "/session") return;
       const loading = document.getElementById("loading");
-      // astro:page-load fires once on the very first load AND again after
-      // every later navigation, but bindPage() is also called directly
-      // below for that same first load -- without this guard, the first
-      // visit's listeners were bound twice, so a single click on "Mulai
-      // sesi" fired two POSTs; the second always lost the race and came
-      // back "sudah pernah ada" even though the user only clicked once.
-      // A later real navigation creates a fresh #loading node with no
-      // dataset.bound, so re-binding then still works as intended.
       if (!loading || loading.dataset.bound) return;
       loading.dataset.bound = "1";
-
-      document.getElementById("roster-paste")?.addEventListener("input", repaintTally);
-
-      document.getElementById("roster-save")?.addEventListener("click", () => {
-        const textarea = document.getElementById("roster-paste") as HTMLTextAreaElement;
-        const btn = document.getElementById("roster-save") as HTMLButtonElement;
-        void denganSibuk(btn, async () => {
-          try {
-            const res = await fetch("/api/session/roster", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ paste: textarea.value }),
-            });
-            const data = await res.json();
-            if (data.ok) {
-              window.Toast?.show(
-                `Tersimpan: ${data.groups} kelompok, ${data.total} anggota.`,
-                "ok",
-              );
-              textarea.blur();
-              await loadSesi();
-            } else {
-              window.Toast?.show(pesanUntuk(data.kode), "danger");
-            }
-          } catch {
-            window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-          }
-        });
-      });
-
-      document.getElementById("sesi-akhiri")?.addEventListener("click", () => {
-        konfirmasi(
-          "Akhiri sesi ini?",
-          "Praktikan tidak bisa masuk lagi ke sesi ini, dan slotnya tetap terpakai untuk tanggal itu. Sesi yang diakhiri masih bisa dilanjutkan selama belum lewat 165 menit sejak dimulai.",
-          "Akhiri sesi",
-          () => kirimAksiSesi("/api/session/end", {}, "Sesi diakhiri."),
-        );
-      });
-
-      document.getElementById("sesi-batalkan")?.addEventListener("click", () => {
-        if (currentSesiId === null) return;
-        const sesiId = currentSesiId;
-        konfirmasi(
-          "Batalkan sesi ini?",
-          "Sesi yang dibatalkan dianggap tidak pernah ada dan slotnya bebas dipakai lagi. Jawaban yang sudah masuk tetap tersimpan.",
-          "Batalkan sesi",
-          () => kirimAksiSesi("/api/session/cancel", { sesiId }, "Sesi dibatalkan."),
-        );
-      });
-
-      document.getElementById("konfirmasi-ya")?.addEventListener("click", (ev) => {
-        const btn = ev.currentTarget as HTMLButtonElement;
-        void denganSibuk(btn, async () => {
-          const aksi = aksiKonfirmasi;
-          aksiKonfirmasi = null;
-          if (aksi) await aksi();
-          window.Modal?.close("modal-konfirmasi");
-        });
-      });
-
-      document.getElementById("sesi-modul")?.addEventListener("change", (ev) => {
-        const modul = (ev.target as HTMLSelectElement).value;
-        const label = document.getElementById("sesi-butuh-ap-label")!;
-        label.hidden = modul !== "4";
-        if (label.hidden)
-          (document.getElementById("sesi-butuh-ap") as HTMLInputElement).checked = false;
-      });
-
-      document.getElementById("form-sesi-baru")?.addEventListener("submit", (ev) => {
-        ev.preventDefault();
-        const tanggal = (document.getElementById("sesi-tanggal") as HTMLInputElement).value;
-        const slot = (document.getElementById("sesi-slot") as HTMLSelectElement).value;
-        const modul = (document.getElementById("sesi-modul") as HTMLSelectElement).value;
-        const butuhAp = (document.getElementById("sesi-butuh-ap") as HTMLInputElement).checked;
-        const btn = document.getElementById("sesi-baru-submit") as HTMLButtonElement;
-        void denganSibuk(btn, async () => {
-          try {
-            const res = await fetch("/api/session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ tanggal, slot: Number(slot), modul: Number(modul), butuhAp }),
-            });
-            const data = await res.json();
-            if (data.ok) {
-              await loadSesi();
-              return;
-            }
-            const lama = data.sesiLama as
-              { id: number; status: string; bisaDilanjutkan: boolean } | null | undefined;
-            if (data.kode === "sudah_ada" && lama?.status === "berjalan") {
-              // Already the running session (another assistant, or another
-              // tab, started it first): show it rather than an error.
-              window.Toast?.show("Sesi ini sudah berjalan.", "info");
-              await loadSesi();
-            } else if (data.kode === "sudah_ada" && lama?.bisaDilanjutkan) {
-              konfirmasi(
-                "Sesi ini sudah pernah dimulai",
-                `Sesi #${lama.id} untuk slot dan modul ini sudah dimulai lalu diakhiri. Lanjutkan sesi itu? Jawaban yang sudah masuk tetap terhitung.`,
-                "Lanjutkan sesi",
-                () =>
-                  kirimAksiSesi("/api/session/lanjutkan", { sesiId: lama.id }, "Sesi dilanjutkan."),
-              );
-            } else {
-              window.Toast?.show(pesanUntuk(data.kode), "danger");
-            }
-          } catch {
-            window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-          }
-        });
-      });
 
       document.getElementById("btn-keluar")?.addEventListener("click", async () => {
         await fetch("/api/auth/logout", { method: "POST" });
@@ -506,130 +116,8 @@ const links = navUtama();
 </Base>
 
 <style>
-  .modul4-card {
-    margin-top: var(--space-6);
-  }
-
-  .modul4-card p {
-    margin-bottom: var(--space-5);
-  }
-
-  .grid3 {
-    display: grid;
-    gap: var(--space-4);
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-    margin-bottom: var(--space-5);
-  }
-
-  #form-sesi-baru {
-    display: flex;
-    flex-direction: column;
-  }
-
   .konfirmasi-teks {
     color: var(--text-muted);
-  }
-
-  .sesi-info {
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    margin-bottom: var(--space-5);
-  }
-
-  .sesi-actions {
-    display: flex;
-    gap: var(--space-3);
-  }
-
-  .ap-toggle:not([hidden]) {
-    align-items: center;
-    color: var(--text-muted);
-    display: flex;
-    font-size: var(--fs-small);
-    gap: var(--space-2);
-    margin-bottom: var(--space-5);
-  }
-
-  #panels-host {
-    margin-top: var(--space-6);
-  }
-
-  /* The roster disclosure: touched once per practicum rather than once per
-     session, so it starts collapsed and takes only as much visual weight
-     as a section heading -- the plan's own words for why this moved off
-     the dashboard's most valuable space. */
-  .disclosure {
-    margin-top: var(--space-8);
-  }
-
-  .disclosure__summary {
-    color: var(--text);
-    cursor: pointer;
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-3);
-    font-family: var(--font-display);
-    font-size: var(--fs-display-sm);
-    font-weight: 400;
-    padding-block: var(--space-3);
-  }
-
-  .disclosure__hint {
-    color: var(--text-faint);
-    font-family: var(--font-body);
-    font-size: var(--fs-small);
-    font-weight: 400;
-  }
-
-  .disclosure__body {
-    margin-top: var(--space-4);
-  }
-
-  .paste-label {
-    color: var(--text-muted);
-    display: block;
-    font-size: var(--fs-small);
-    font-weight: 500;
-    margin-bottom: var(--space-2);
-  }
-
-  .roster-paste {
-    background: var(--bg-sunken);
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--radius-md);
-    color: var(--text);
-    font-size: var(--fs-small);
-    line-height: 1.6;
-    padding: var(--space-4);
-    resize: vertical;
-    width: 100%;
-  }
-
-  .roster-paste:focus-visible {
-    border-color: var(--accent);
-  }
-
-  .tally {
-    color: var(--text-faint);
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    margin-top: var(--space-3);
-  }
-
-  .tally[data-bad="yes"] {
-    color: var(--danger);
-  }
-
-  .errors {
-    color: var(--danger);
-    font-size: var(--fs-small);
-    list-style: disc;
-    margin: var(--space-2) 0 0 var(--space-5);
-  }
-
-  #roster-save {
-    margin-top: var(--space-5);
   }
 
   .hidden-until-known {
