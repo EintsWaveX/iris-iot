@@ -38,7 +38,14 @@ const links = navUtama();
     // identical init()/bindPage() pair for the full "why" (revealing
     // "Keluar" once /api/auth/me confirms a signed-in visitor).
     async function init() {
-      const me = await fetch("/api/auth/me").then((r) => r.json());
+      // P6.9: same guard as servers.astro's identical init() -- see its
+      // comment for why.
+      let me: { ok: boolean };
+      try {
+        me = await fetch("/api/auth/me").then((r) => r.json());
+      } catch {
+        return;
+      }
       if (!me.ok) {
         navigate("/?login=1");
         return;

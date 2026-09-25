@@ -77,7 +77,17 @@ const links = navUtama();
     }
 
     async function init() {
-      const me = await fetch("/api/auth/me").then((r) => r.json());
+      // P6.9: see dashboard.astro's identical fix for why this needs a
+      // try/catch -- a response whose body isn't JSON left this page stuck
+      // on "Memuat..." forever with an unhandled rejection in the console.
+      let me: { ok: boolean; role?: string };
+      try {
+        me = await fetch("/api/auth/me").then((r) => r.json());
+      } catch {
+        const title = document.querySelector<HTMLElement>("#loading .empty__title");
+        if (title) title.textContent = "Gagal memuat. Muat ulang halaman.";
+        return;
+      }
       hide("loading");
       if (!me.ok) {
         navigate("/?login=1");

@@ -58,7 +58,17 @@ const links = navUtama();
     // threading the result out of a React island back into Astro-rendered
     // chrome for a single button's visibility.
     async function init() {
-      const me = await fetch("/api/auth/me").then((r) => r.json());
+      // P6.9: unlike session.astro/dashboard.astro this fetch gates only
+      // "Keluar"'s visibility, not the whole page (ServerCenter.tsx does
+      // its own role check independently) -- but a response whose body
+      // isn't JSON still threw out of init() unhandled, so this is guarded
+      // the same way: silently leave "Keluar" hidden rather than crash.
+      let me: { ok: boolean };
+      try {
+        me = await fetch("/api/auth/me").then((r) => r.json());
+      } catch {
+        return;
+      }
       if (!me.ok) {
         navigate("/?login=1");
         return;

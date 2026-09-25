@@ -266,7 +266,22 @@ const links = navUtama();
     }
 
     async function init() {
-      const me = await fetch("/api/auth/me").then((r) => r.json());
+      // P6.9: this fetch had no try/catch, unlike every other one in this
+      // file (see the startPolling callback below, fixed for the same
+      // reason) -- a response whose body isn't JSON (a platform error page
+      // during an outage, not just this project's own {ok:false, kode}
+      // shape) threw out of init() unhandled, leaving the page stuck on
+      // "Memuat..." forever with no way to recover short of the user
+      // guessing to reload.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches this file's other untyped fetch responses (e.g. the startPolling callback below)
+      let me: any;
+      try {
+        me = await fetch("/api/auth/me").then((r) => r.json());
+      } catch {
+        const title = document.querySelector<HTMLElement>("#loading .empty__title");
+        if (title) title.textContent = "Gagal memuat. Muat ulang halaman.";
+        return;
+      }
       if (!me.ok) {
         navigate("/?login=1");
         return;
