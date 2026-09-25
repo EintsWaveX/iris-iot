@@ -232,6 +232,24 @@ export default function SessionConsole() {
     };
   }, []);
 
+  // B12: this page's sky stayed on the static "kerja" scene throughout a
+  // running session (only the dashboard tinted it). Mirrors dashboard.astro's
+  // own cosmosInSesiScene tracking so a real transition only fires once.
+  const cosmosInSesiSceneRef = useRef(false);
+  useEffect(() => {
+    if (sesi) {
+      window.Cosmos?.setModuleTint(sesi.modul);
+      if (!cosmosInSesiSceneRef.current) {
+        cosmosInSesiSceneRef.current = true;
+        window.Cosmos?.setScene("sesi");
+      }
+    } else if (cosmosInSesiSceneRef.current) {
+      cosmosInSesiSceneRef.current = false;
+      window.Cosmos?.setScene("kerja");
+      window.Cosmos?.setModuleTint(0);
+    }
+  }, [sesi]);
+
   const onlineCount = servers.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
   const stuckCount = stuck.length;
 
