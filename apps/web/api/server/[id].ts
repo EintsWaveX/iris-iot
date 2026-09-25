@@ -17,9 +17,17 @@
  *   by deleting the server and losing its whole history. Enrolling with
  *   the new token replaces the agent key, so an old install stops being
  *   accepted the moment the new one enrolls.
+ *
+ * GET    /api/server/:id?aksi=riwayat&rentang=1h|24h|7d  (P6.7) — the
+ *   server centre's Ringkasan tab: a downsampled denyut series plus reboot
+ *   detection, offline gaps, availability % and a per-service status
+ *   timeline, all computed in server-lib.ts's pure history functions.
+ *
+ * PATCH  /api/server/:id   (P6.7) — assistant-only. Edits any subset of
+ *   nama/lokasi/catatan/alamatLan (the server centre's Pengaturan tab).
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
-import { noStore } from "../_lib/http.js";
+import { jsonBody, noStore } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import { server, denyut, perangkat, perintah } from "../../src/lib/schema.js";
@@ -29,9 +37,19 @@ import {
   enrollTokenExpiry,
   sha256,
   batasLuringDetik,
+  rentangValid,
+  RENTANG_DETIK,
+  RIWAYAT_MAX_POINTS,
+  downsample,
+  detectReboots,
+  detectGaps,
+  hitungKetersediaan,
+  bangunTimelineLayanan,
 } from "../../src/lib/server-lib.js";
 import { currentSesi } from "../../src/lib/sesi.js";
-import { desc, eq } from "drizzle-orm";
+import { desc, asc, and, eq, gte } from "drizzle-orm";
+
+const MAX_TEXT_LEN = 500;
 
 async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
   const db = getDb();
@@ -80,6 +98,122 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
   });
 }
 
+/**
+ * P6.7: GET /api/server/:id?aksi=riwayat&rentang=1h|24h|7d -- the server
+ * centre's Ringkasan tab. Everything is computed here from `denyut` rows
+ * rather than a second query per chart: one range fetch, downsampled once
+ * for the chart series, and the SAME (undownsampled) rows fed to
+ * detectReboots/detectGaps/hitungKetersediaan/bangunTimelineLayanan --
+ * downsampling before those would blur exactly the short reboot/gap
+ * signals they exist to catch.
+ */
+async function handleRiwayat(_req: ApiRequest, res: ApiResponse, id: number, rentang: string) {
+  if (!rentangValid(rentang)) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  const mulai = new Date(Date.now() - RENTANG_DETIK[rentang] * 1000);
+  const akhir = new Date();
+
+  const rows = await db
+    .select({
+      pada: denyut.pada,
+      cpu: denyut.cpu,
+      memori: denyut.memori,
+      disk: denyut.disk,
+      suhu: denyut.suhu,
+      uptimeSec: denyut.uptimeSec,
+      layanan: denyut.layanan,
+    })
+    .from(denyut)
+    .where(and(eq(denyut.serverId, id), gte(denyut.pada, mulai)))
+    .orderBy(asc(denyut.pada));
+
+  const withIso = rows.map((r) => ({ ...r, pada: r.pada.toISOString() }));
+
+  res.status(200).json({
+    ok: true,
+    rentang,
+    mulai: mulai.toISOString(),
+    akhir: akhir.toISOString(),
+    seri: downsample(withIso, RIWAYAT_MAX_POINTS),
+    reboot: detectReboots(withIso),
+    gap: detectGaps(withIso),
+    ketersediaan: hitungKetersediaan(withIso, mulai, akhir),
+    timelineLayanan: bangunTimelineLayanan(withIso),
+  });
+}
+
+/** P6.7: PATCH /api/server/:id -- the server centre's Pengaturan tab. Any
+ *  subset of the four editable fields may be present; an absent field is
+ *  left alone (not cleared), a present one with an empty string clears it
+ *  (catatan/lokasi/alamatLan are all nullable). */
+interface ServerPatch {
+  nama?: string;
+  lokasi?: string | null;
+  catatan?: string | null;
+  alamatLan?: string | null;
+}
+
+/** Reads and validates one optional string field from the PATCH body.
+ *  Returns `undefined` when absent (leave the column alone), `null` when
+ *  present but blank (clear a nullable column), the trimmed string
+ *  otherwise, or throws a sentinel by returning the FORMAT_SALAH symbol
+ *  when the raw value isn't a string or exceeds the length cap. */
+const FORMAT_SALAH = Symbol("format_salah");
+function readField(
+  body: Record<string, unknown>,
+  field: string,
+): string | null | undefined | typeof FORMAT_SALAH {
+  if (!(field in body)) return undefined;
+  const raw = body[field];
+  if (typeof raw !== "string" || raw.length > MAX_TEXT_LEN) return FORMAT_SALAH;
+  const trimmed = raw.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
+async function handlePatch(req: ApiRequest, res: ApiResponse, id: number, aktorNim: string) {
+  const body = jsonBody(req);
+  const patch: ServerPatch = {};
+
+  const nama = readField(body, "nama");
+  // nama is not nullable -- an explicit blank, like an invalid value, is a
+  // format error rather than a clear.
+  if (nama === FORMAT_SALAH || nama === null) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  if (nama !== undefined) patch.nama = nama;
+
+  for (const field of ["lokasi", "catatan", "alamatLan"] as const) {
+    const value = readField(body, field);
+    if (value === FORMAT_SALAH) {
+      res.status(200).json({ ok: false, kode: "format_salah" });
+      return;
+    }
+    if (value !== undefined) patch[field] = value;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const db = getDb();
+  const result = await db
+    .update(server)
+    .set(patch)
+    .where(eq(server.id, id))
+    .returning({ id: server.id });
+  if (result.length === 0) {
+    res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
+    return;
+  }
+  await writeAudit(aktorNim, "server_ubah", { id, ...patch });
+  res.status(200).json({ ok: true });
+}
+
 async function handleDelete(_req: ApiRequest, res: ApiResponse, id: number, aktorNim: string) {
   const db = getDb();
   const result = await db.delete(server).where(eq(server.id, id)).returning({ kode: server.kode });
@@ -119,10 +253,15 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return;
   }
 
-  if (req.method === "GET") return handleGet(req, res, id);
+  if (req.method === "GET") {
+    const aksi = req.query.aksi;
+    if (aksi === "riwayat") return handleRiwayat(req, res, id, String(req.query.rentang ?? ""));
+    return handleGet(req, res, id);
+  }
+  if (req.method === "PATCH") return handlePatch(req, res, id, session.nim);
   if (req.method === "DELETE") return handleDelete(req, res, id, session.nim);
   if (req.method === "POST") return handleTokenBaru(req, res, id, session.nim);
 
-  res.setHeader("Allow", "GET, DELETE, POST");
+  res.setHeader("Allow", "GET, PATCH, DELETE, POST");
   res.status(405).json({ ok: false, kode: "metode_tidak_diizinkan" });
 }

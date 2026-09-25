@@ -1,7 +1,10 @@
 /**
  * POST /api/action   { tipe: "kirim", serverId, aksi, argumen }
  *                    | { tipe: "adopsi", id, nama, jenis }
- *   — assistant-only for both.
+ *                    | { tipe: "perangkat", id, aksi, ... }        (P6.7)
+ *                    | { tipe: "perintah_ulang", id }              (P6.7)
+ *                    | { tipe: "perintah_batal", id }              (P6.7)
+ *   — assistant-only for all five.
  *
  * Two actions that would otherwise be their own route files, merged into
  * one: the Vercel Hobby plan caps a deployment at 12 serverless functions,
@@ -34,13 +37,19 @@ import {
   aksiValid,
   layananValid,
   jenisPerangkatValid,
+  unitDiagValid,
   type JenisPerangkat,
 } from "../src/lib/server-lib.js";
 import { writeAudit } from "../src/lib/auth.js";
 import type { SessionPayload } from "../src/lib/auth.js";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 const MAX_NAMA_LEN = 40;
+const PERANGKAT_AKSI = ["ubah", "sembunyikan", "tampilkan", "lupakan"] as const;
+type PerangkatAksi = (typeof PERANGKAT_AKSI)[number];
+function perangkatAksiValid(value: unknown): value is PerangkatAksi {
+  return typeof value === "string" && (PERANGKAT_AKSI as readonly string[]).includes(value);
+}
 
 async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
@@ -54,6 +63,10 @@ async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPa
   }
   if (aksi.startsWith("layanan.") && !layananValid(argumen.layanan)) {
     res.status(200).json({ ok: false, kode: "layanan_tidak_dikenal" });
+    return;
+  }
+  if (aksi === "diag.log" && !unitDiagValid(argumen.layanan)) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
 
@@ -129,6 +142,178 @@ async function handleAdopsi(req: ApiRequest, res: ApiResponse, session: SessionP
   res.status(200).json({ ok: true });
 }
 
+/**
+ * "perangkat" (P6.7): the server centre's device management, folded into
+ * the same adopsi-shaped route rather than a new file (same 12-function
+ * ceiling as the header comment explains). `aksi` picks which of the four
+ * operations the device list's row actions need:
+ *   ubah         rename, retype, or assign/clear a group number
+ *   sembunyikan  hide a device that isn't actually a practicum board
+ *   tampilkan    the reverse
+ *   lupakan      delete the row outright (a stale/garbage discovery)
+ */
+async function handlePerangkat(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const id = Number(body.id);
+  const aksi = body.aksi;
+
+  if (!Number.isInteger(id) || id <= 0 || !perangkatAksiValid(aksi)) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const db = getDb();
+
+  if (aksi === "lupakan") {
+    const result = await db
+      .delete(perangkat)
+      .where(eq(perangkat.id, id))
+      .returning({ mac: perangkat.mac });
+    if (result.length === 0) {
+      res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
+      return;
+    }
+    await writeAudit(session.nim, "perangkat_lupakan", { id, mac: result[0].mac });
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  if (aksi === "sembunyikan" || aksi === "tampilkan") {
+    const result = await db
+      .update(perangkat)
+      .set({ disembunyikan: aksi === "sembunyikan" })
+      .where(eq(perangkat.id, id))
+      .returning({ id: perangkat.id });
+    if (result.length === 0) {
+      res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
+      return;
+    }
+    await writeAudit(session.nim, "perangkat_" + aksi, { id });
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  // aksi === "ubah"
+  const patch: { nama?: string; jenis?: JenisPerangkat; kelompokNomor?: number | null } = {};
+  if ("nama" in body) {
+    const nama = typeof body.nama === "string" ? body.nama.trim() : "";
+    if (!nama || nama.length > MAX_NAMA_LEN) {
+      res.status(200).json({ ok: false, kode: "format_salah" });
+      return;
+    }
+    patch.nama = nama;
+  }
+  if ("jenis" in body) {
+    if (!jenisPerangkatValid(body.jenis)) {
+      res.status(200).json({ ok: false, kode: "format_salah" });
+      return;
+    }
+    // Asserted, not narrowed -- see handleAdopsi's own comment above on why
+    // this project's tsconfig (bundler resolution) does not carry a type
+    // predicate's narrowing across to a later assignment reliably.
+    patch.jenis = body.jenis as JenisPerangkat;
+  }
+  if ("kelompokNomor" in body) {
+    if (body.kelompokNomor === null) {
+      patch.kelompokNomor = null;
+    } else {
+      const n = Number(body.kelompokNomor);
+      if (!Number.isInteger(n) || n < 1 || n > 5) {
+        res.status(200).json({ ok: false, kode: "format_salah" });
+        return;
+      }
+      patch.kelompokNomor = n;
+    }
+  }
+  if (Object.keys(patch).length === 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const result = await db
+    .update(perangkat)
+    .set({ ...patch, diadopsi: true })
+    .where(eq(perangkat.id, id))
+    .returning({ id: perangkat.id });
+  if (result.length === 0) {
+    res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
+    return;
+  }
+  await writeAudit(session.nim, "perangkat_ubah", { id, ...patch });
+  res.status(200).json({ ok: true });
+}
+
+/**
+ * "perintah_ulang" (P6.7): re-queues a finished command's exact aksi and
+ * argumen as a brand new `menunggu` row rather than resetting the old
+ * one's status -- the original stays in the log exactly as it happened,
+ * and the retry gets its own id, timestamps and eventual outcome. Only
+ * offered for a command that is actually done trying (gagal/kedaluwarsa);
+ * retrying one still selesai or in flight makes no sense.
+ */
+async function handlePerintahUlang(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const db = getDb();
+  const [asal] = await db.select().from(perintah).where(eq(perintah.id, id)).limit(1);
+  if (!asal) {
+    res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
+    return;
+  }
+  if (asal.status !== "gagal" && asal.status !== "kedaluwarsa") {
+    res.status(200).json({ ok: false, kode: "tidak_bisa_diulang" });
+    return;
+  }
+
+  const [row] = await db
+    .insert(perintah)
+    .values({
+      serverId: asal.serverId,
+      aksi: asal.aksi,
+      argumen: asal.argumen,
+      dimintaOleh: session.nim,
+    })
+    .returning({ id: perintah.id });
+
+  await writeAudit(session.nim, "perintah_ulang", { asalId: id, perintahId: row.id });
+  res.status(200).json({ ok: true, id: row.id });
+}
+
+/**
+ * "perintah_batal" (P6.7): only ever cancels a command still `menunggu` --
+ * one already claimed (`terkirim`) may be mid-execution on the Pi right
+ * now, and there is no way to interrupt a subprocess that is already
+ * running there, so pretending to cancel it here would just lie about
+ * what actually happens.
+ */
+async function handlePerintahBatal(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const db = getDb();
+  const result = await db
+    .update(perintah)
+    .set({ status: "gagal", selesaiPada: new Date(), keluaran: "dibatalkan oleh asisten" })
+    .where(and(eq(perintah.id, id), eq(perintah.status, "menunggu")))
+    .returning({ id: perintah.id });
+
+  if (result.length === 0) {
+    res.status(200).json({ ok: false, kode: "tidak_bisa_dibatalkan" });
+    return;
+  }
+  await writeAudit(session.nim, "perintah_batal", { id });
+  res.status(200).json({ ok: true });
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
   if (!requireMethod(req, res, "POST")) return;
@@ -139,6 +324,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const body = jsonBody(req);
   if (body.tipe === "kirim") return handleKirim(req, res, session);
   if (body.tipe === "adopsi") return handleAdopsi(req, res, session);
+  if (body.tipe === "perangkat") return handlePerangkat(req, res, session);
+  if (body.tipe === "perintah_ulang") return handlePerintahUlang(req, res, session);
+  if (body.tipe === "perintah_batal") return handlePerintahBatal(req, res, session);
 
   res.status(200).json({ ok: false, kode: "format_salah" });
 }

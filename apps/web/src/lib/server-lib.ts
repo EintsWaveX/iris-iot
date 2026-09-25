@@ -122,11 +122,36 @@ export const AKSI_PERINTAH = [
   "ap.nyala",
   "ap.mati",
   "jam.selaraskan",
+  // P6.7: the expert diagnostics layer. Read-only on the Pi (no service is
+  // started/stopped/restarted by any of these), routed through the agent's
+  // existing whitelisted-argv command channel rather than a new one, and
+  // whitelisted again on the agent side (commands.py/diagnostics.py) --
+  // same "neither side trusts the other" rule as every other action here.
+  "diag.ringkas",
+  "diag.log",
+  "diag.jaringan",
+  "diag.dmesg",
 ] as const;
 export type AksiPerintah = (typeof AKSI_PERINTAH)[number];
 
 export function aksiValid(value: unknown): value is AksiPerintah {
   return typeof value === "string" && (AKSI_PERINTAH as readonly string[]).includes(value);
+}
+
+/**
+ * P6.7: the systemd unit name `diag.log` reads, e.g. "iris-agent" or
+ * "mosquitto" -- deliberately NOT restricted to LAYANAN_DIKENAL's three
+ * practicum services, since the whole point of a log viewer in the expert
+ * layer is to look at units the ordinary layanan.* controls never touch
+ * (hostapd, chronyd, the agent itself). Still bounded: subprocess.run on
+ * the agent side runs this as one argv element under shell=False, so there
+ * is no shell-injection surface either way, but a short allowlist pattern
+ * still keeps the argument to something that could plausibly be a real
+ * systemd unit name rather than an arbitrary string landing in a log.
+ */
+const UNIT_DIAG_RE = /^[A-Za-z0-9@_.-]{1,64}$/;
+export function unitDiagValid(value: unknown): value is string {
+  return typeof value === "string" && UNIT_DIAG_RE.test(value);
 }
 
 /**
@@ -371,4 +396,144 @@ export async function sweepPerintahKedaluwarsa(): Promise<void> {
     .update(perintah)
     .set({ status: "kedaluwarsa", keluaran: "tidak pernah diambil agen" })
     .where(and(eq(perintah.status, "menunggu"), lt(perintah.dimintaPada, menungguCutoff)));
+}
+
+// -----------------------------------------------------------------------
+// P6.7: server centre "Ringkasan" history -- downsampling, reboot/gap
+// detection and availability, all pure functions over already-fetched rows
+// so they are unit-testable without a database (the API route itself only
+// wires them to a `denyut` query, see api/server/[id].ts's handleRiwayat).
+// -----------------------------------------------------------------------
+
+export const RENTANG_DETIK = { "1h": 3600, "24h": 86400, "7d": 7 * 86400 } as const;
+export type RentangRiwayat = keyof typeof RENTANG_DETIK;
+export const RIWAYAT_MAX_POINTS = 300;
+
+export function rentangValid(value: unknown): value is RentangRiwayat {
+  return value === "1h" || value === "24h" || value === "7d";
+}
+
+/** Evenly-spaced pick, not an average -- a spike in CPU or temperature stays
+ *  visible on the chart instead of being smoothed away by a mean over the
+ *  bucket, which matters more here than a perfectly uniform sample rate. */
+export function downsample<T>(rows: readonly T[], maxPoints: number): T[] {
+  if (rows.length <= maxPoints || maxPoints <= 0) return rows.slice();
+  const step = rows.length / maxPoints;
+  const out: T[] = [];
+  for (let i = 0; i < maxPoints; i++) out.push(rows[Math.floor(i * step)]);
+  return out;
+}
+
+export interface RebootEvent {
+  pada: string;
+}
+
+/** A reboot shows up as this heartbeat's uptimeSec being LOWER than the
+ *  previous one's -- uptime only ever counts up between two heartbeats of
+ *  the same boot. Rows must already be ordered oldest-first. */
+export function detectReboots(
+  rows: ReadonlyArray<{ pada: string; uptimeSec: number | null }>,
+): RebootEvent[] {
+  const out: RebootEvent[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const prev = rows[i - 1].uptimeSec;
+    const cur = rows[i].uptimeSec;
+    if (prev !== null && cur !== null && cur < prev) out.push({ pada: rows[i].pada });
+  }
+  return out;
+}
+
+export interface GapEvent {
+  dari: string;
+  sampai: string;
+  detik: number;
+}
+
+/**
+ * A gap between two consecutive heartbeats longer than `ambangDetik`. This
+ * deliberately uses one fixed threshold for a whole history query rather
+ * than batasLuringDetik()'s own per-heartbeat "was a session running"
+ * logic (which needs to know each point's *next* heartbeat's own session
+ * context to be exact) -- INTERVAL_IDLE_SEC plus its tolerance covers the
+ * common case (a Pi silent for a full idle-cadence miss really is offline)
+ * and errs toward under- rather than over-reporting gaps during a session,
+ * where the faster cadence would otherwise flag normal idle-to-idle beats.
+ */
+export const GAP_AMBANG_DETIK = INTERVAL_IDLE_SEC + TENGGANG_LURING_SEC;
+
+export function detectGaps(
+  rows: ReadonlyArray<{ pada: string }>,
+  ambangDetik: number = GAP_AMBANG_DETIK,
+): GapEvent[] {
+  const out: GapEvent[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const dari = rows[i - 1].pada;
+    const sampai = rows[i].pada;
+    const detik = (new Date(sampai).getTime() - new Date(dari).getTime()) / 1000;
+    if (detik > ambangDetik) out.push({ dari, sampai, detik: Math.round(detik) });
+  }
+  return out;
+}
+
+/** Availability % over [rentangMulai, rentangAkhir]: the whole window minus
+ *  every gap found within it, minus a leading gap (server registered but
+ *  silent since the window started) and a trailing one (silent since the
+ *  last heartbeat), rounded to one decimal. An empty row set is 0%, not
+ *  100% -- "no data" must never read as "everything was fine". */
+export function hitungKetersediaan(
+  rows: ReadonlyArray<{ pada: string }>,
+  rentangMulai: Date,
+  rentangAkhir: Date,
+  ambangDetik: number = GAP_AMBANG_DETIK,
+): number {
+  const totalDetik = (rentangAkhir.getTime() - rentangMulai.getTime()) / 1000;
+  if (totalDetik <= 0) return 100;
+  if (rows.length === 0) return 0;
+
+  const gapDetik = detectGaps(rows, ambangDetik).reduce((sum, g) => sum + g.detik, 0);
+  const depanDetik = (new Date(rows[0].pada).getTime() - rentangMulai.getTime()) / 1000;
+  const belakangDetik =
+    (rentangAkhir.getTime() - new Date(rows[rows.length - 1].pada).getTime()) / 1000;
+  const tepiHilang =
+    (depanDetik > ambangDetik ? depanDetik : 0) + (belakangDetik > ambangDetik ? belakangDetik : 0);
+
+  const tersedia = Math.max(0, totalDetik - gapDetik - tepiHilang);
+  return Math.round((tersedia / totalDetik) * 1000) / 10;
+}
+
+export interface LayananTimelineEntry {
+  layanan: string;
+  status: string;
+  dari: string;
+  sampai: string;
+}
+
+/** One entry per (service, unbroken run of the same status), built from
+ *  each heartbeat's `layanan` snapshot rather than stored separately --
+ *  there is no dedicated status-change log, so this reconstructs one from
+ *  denyut's own history. */
+export function bangunTimelineLayanan(
+  rows: ReadonlyArray<{ pada: string; layanan: Record<string, string> | null }>,
+): LayananTimelineEntry[] {
+  const out: LayananTimelineEntry[] = [];
+  const current = new Map<string, { status: string; dari: string }>();
+
+  for (const row of rows) {
+    for (const [nama, status] of Object.entries(row.layanan ?? {})) {
+      const c = current.get(nama);
+      if (!c) {
+        current.set(nama, { status, dari: row.pada });
+      } else if (c.status !== status) {
+        out.push({ layanan: nama, status: c.status, dari: c.dari, sampai: row.pada });
+        current.set(nama, { status, dari: row.pada });
+      }
+    }
+  }
+  const akhir = rows[rows.length - 1]?.pada;
+  if (akhir) {
+    for (const [nama, c] of current) {
+      out.push({ layanan: nama, status: c.status, dari: c.dari, sampai: akhir });
+    }
+  }
+  return out;
 }
