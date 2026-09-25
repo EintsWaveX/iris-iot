@@ -39,7 +39,7 @@ name: CI
 
 on:
   push:
-    branches: [main, phase6-db]
+    branches: [main, stage12-nilai]
   pull_request:
 
 jobs:
