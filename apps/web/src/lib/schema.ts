@@ -499,7 +499,8 @@ export const perintah = pgTable(
  * every heartbeat that carries a row for this key (ON CONFLICT DO UPDATE on
  * the unique pair below), so this table stays exactly one row per key
  * rather than growing; telemetriLog below is the append-only side that
- * feeds /history.
+ * feeds /reports' per-session telemetry summary (P6.8; originally planned
+ * as its own /history page in Stage 20, folded into /reports instead).
  *
  * `tx`/`rx` are "HH:MM:SS:MS" strings, matching every module's own
  * on-device print format, not a computed duration -- deliberately, since
@@ -534,7 +535,8 @@ export const telemetriTerkini = pgTable(
 
 /**
  * Append-only history of every telemetry row that has ever arrived, for
- * /history -- pruned the same way `denyut` is (see
+ * /reports' per-session telemetry summary (P6.8) -- pruned the same way
+ * `denyut` is (see
  * pruneOldTelemetryOccasionally() in server-lib.ts), since a full
  * practicum day's worth of per-message rows across five groups and three
  * live modules would otherwise grow without bound. `sesiId` is nullable
@@ -549,7 +551,7 @@ export const telemetriLog = pgTable(
     // P6.2 (0006): which Pi this row came from -- the plain history table
     // never recorded this before (only telemetriTerkini did, since it's
     // keyed by serverId), so a lab with more than one Pi had no way to
-    // attribute a row in /history to the box that actually sent it. Nullable
+    // attribute a row in /reports to the box that actually sent it. Nullable
     // and set null (not cascade) on delete for the same reason percobaanMasuk
     // .sesiId is: a history row outlives the server registration if that
     // server is ever deregistered.

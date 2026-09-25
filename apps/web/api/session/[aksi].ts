@@ -22,6 +22,10 @@
  * POST /api/session/lanjutkan { sesiId }             — reopen an ended session still inside its 165-minute cap.
  * GET  /api/session/akses (P6.5)                     — public, cacheable. Which modules students may open.
  * POST /api/session/akses { terbuka: number[] } (P6.5) — asisten-only, sets the open-module list directly.
+ * GET  /api/session/laporan?sesiId= (P6.8)            — same shape as plain /laporan, for any session by id, not only the running one.
+ * GET  /api/session/riwayat?modul=&dari=&sampai=&status= (P6.8) — the /reports session list.
+ * GET  /api/session/ringkasan (P6.8)                  — module overview across every session ever run.
+ * GET  /api/session/audit?aksiLog=&aktor=&dari= (P6.8) — the audit log viewer's data source.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -35,6 +39,8 @@ import {
   jawaban,
   percobaanMasuk,
   telemetriTerkini,
+  telemetriLog,
+  audit,
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { getModulTerbuka, getModulTerbukaMeta, setModulTerbuka } from "../../src/lib/akses.js";
@@ -44,7 +50,24 @@ import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
 import { SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
-import { eq, and, or, gte, like, sql, notInArray, isNull } from "drizzle-orm";
+import {
+  eq,
+  and,
+  or,
+  gte,
+  lte,
+  like,
+  sql,
+  notInArray,
+  isNull,
+  isNotNull,
+  desc,
+  inArray,
+} from "drizzle-orm";
+
+const RIWAYAT_MODUL_VALID = new Set([1, 2, 3, 4]);
+const RIWAYAT_STATUS_VALID = new Set(["terjadwal", "berjalan", "selesai", "batal"]);
+const AUDIT_BATAS = 500;
 
 const PESAN_MAX_LEN = 200;
 const CATATAN_MAX_LEN = 300;
@@ -317,22 +340,48 @@ async function handleRoster(req: ApiRequest, res: ApiResponse, session: SessionP
   }
 }
 
+function median(nums: number[]): number | null {
+  if (nums.length === 0) return null;
+  const sorted = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid];
+}
+
 /**
- * GET /api/session/laporan (Stage 10) — everything the console's live
- * tiles and stuck list need in one call, the same "one call, everything"
- * shape handleCurrent already uses for the roster paste box. Scoped to
- * jawaban/percobaanMasuk rows from the running session itself, not any
+ * GET /api/session/laporan (Stage 10; extended P6.8 with ?sesiId=) —
+ * everything the console's live tiles and stuck list need in one call for
+ * the running session, and (with ?sesiId=) the same shape for /reports to
+ * build a full per-session report from any session, running or long over.
+ * Scoped to jawaban/percobaanMasuk rows from that session itself, not any
  * earlier home-practice activity under the same groups -- see jawaban's
  * own schema comment for why a row's sesiId can be null.
  */
-async function handleLaporan(_req: ApiRequest, res: ApiResponse) {
-  const running = await currentSesi();
-  if (!running) {
-    res.status(200).json({ ok: true, sesi: null, kelompok: [], stuck: [] });
-    return;
+async function handleLaporan(req: ApiRequest, res: ApiResponse) {
+  const sesiIdParam = req.query.sesiId;
+  const db = getDb();
+
+  let running: NonNullable<Awaited<ReturnType<typeof currentSesi>>>;
+  if (sesiIdParam != null) {
+    const sesiId = Number(sesiIdParam);
+    if (!Number.isInteger(sesiId) || sesiId <= 0) {
+      res.status(200).json({ ok: false, kode: "format_salah" });
+      return;
+    }
+    const [row] = await db.select().from(sesi).where(eq(sesi.id, sesiId)).limit(1);
+    if (!row) {
+      res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
+      return;
+    }
+    running = row;
+  } else {
+    const found = await currentSesi();
+    if (!found) {
+      res.status(200).json({ ok: true, sesi: null, kelompok: [], stuck: [] });
+      return;
+    }
+    running = found;
   }
 
-  const db = getDb();
   const groups = await db.select().from(kelompok).where(eq(kelompok.aktif, true));
   const members = await db
     .select({ kelompokId: anggota.kelompokId, nim: anggota.nim, nama: anggota.nama })
@@ -347,6 +396,7 @@ async function handleLaporan(_req: ApiRequest, res: ApiResponse) {
       soalKode: jawaban.soalKode,
       benar: jawaban.benar,
       percobaan: jawaban.percobaan,
+      diubahPada: jawaban.diubahPada,
     })
     .from(jawaban)
     .where(and(eq(jawaban.sesiId, running.id), like(jawaban.soalKode, `${prefix}%`)));
@@ -373,14 +423,37 @@ async function handleLaporan(_req: ApiRequest, res: ApiResponse) {
     );
   const hadirNims = new Set(masukRows.map((r) => r.nim));
 
+  // P6.8: module 1 has no real telemetry (it's simulated client-side), so
+  // this query is only meaningful for 2-4, but running it unconditionally
+  // for module 1 just returns an empty set rather than needing a branch.
+  const telemetriRows = await db
+    .select({ kelompokNomor: telemetriLog.kelompokNomor, delayMs: telemetriLog.delayMs })
+    .from(telemetriLog)
+    .where(eq(telemetriLog.sesiId, running.id));
+  const telemetriByKelompokNomor = new Map<number, number[]>();
+  const telemetriCountByKelompokNomor = new Map<number, number>();
+  for (const r of telemetriRows) {
+    telemetriCountByKelompokNomor.set(
+      r.kelompokNomor,
+      (telemetriCountByKelompokNomor.get(r.kelompokNomor) ?? 0) + 1,
+    );
+    if (r.delayMs != null) {
+      const arr = telemetriByKelompokNomor.get(r.kelompokNomor) ?? [];
+      arr.push(r.delayMs);
+      telemetriByKelompokNomor.set(r.kelompokNomor, arr);
+    }
+  }
+
   const total = blankCountForModul(running.modul);
   const daftarKelompok = groups
     .sort((a, b) => a.nomor - b.nomor)
     .map((g) => {
       const override = overrideByKelompokId.get(g.id);
       const anggotaKelompok = members.filter((m) => m.kelompokId === g.id);
-      const benar = jawabanRows.filter((r) => r.kelompokId === g.id && r.benar).length;
+      const jawabanKelompok = jawabanRows.filter((r) => r.kelompokId === g.id);
+      const benar = jawabanKelompok.filter((r) => r.benar).length;
       const hadir = anggotaKelompok.filter((m) => hadirNims.has(m.nim)).length;
+      const delays = telemetriByKelompokNomor.get(g.nomor) ?? [];
       return {
         id: g.id,
         nomor: g.nomor,
@@ -400,6 +473,26 @@ async function handleLaporan(_req: ApiRequest, res: ApiResponse) {
           nama: m.nama,
           hadir: hadirNims.has(m.nim),
         })),
+        // P6.8: per-blank attempts for the session report -- the live
+        // console only ever needed the aggregate `benar` count above, but a
+        // report needs to show which specific blanks a group struggled with.
+        blankRinci: jawabanKelompok.map((r) => ({
+          soalKode: r.soalKode,
+          benar: r.benar,
+          percobaan: r.percobaan,
+          diubahPada: r.diubahPada,
+        })),
+        // P6.8: telemetri_log summary for this session's report. delayMs is
+        // only ever populated for Module 4 (see telemetriLog's own schema
+        // comment) -- min/median/max come back null for Modules 2-3, which
+        // the report renders as "from your serial output", same wording the
+        // live Ladder/GroupLive views already use for the same gap.
+        telemetri: {
+          count: telemetriCountByKelompokNomor.get(g.nomor) ?? 0,
+          delayMinMs: delays.length ? Math.min(...delays) : null,
+          delayMedianMs: median(delays),
+          delayMaxMs: delays.length ? Math.max(...delays) : null,
+        },
       };
     });
 
@@ -414,9 +507,24 @@ async function handleLaporan(_req: ApiRequest, res: ApiResponse) {
     }))
     .sort((a, b) => b.percobaan - a.percobaan);
 
+  // A "berjalan" session has no durasiDetik yet (only set on end/cancel), so
+  // the report computes it live; any other status without one (batal, most
+  // often) genuinely has no meaningful duration rather than "how long ago it
+  // was cancelled", so it reports 0 instead of a nonsensical elapsed time.
+  const durasiDetik =
+    running.durasiDetik ??
+    (running.status === "berjalan" ? Math.round((Date.now() - startedAt.getTime()) / 1000) : 0);
+
   res.status(200).json({
     ok: true,
-    sesi: { id: running.id, modul: running.modul, tanggal: running.tanggal, mulai: running.mulai },
+    sesi: {
+      id: running.id,
+      modul: running.modul,
+      tanggal: running.tanggal,
+      mulai: running.mulai,
+      status: running.status,
+      durasiDetik,
+    },
     kelompok: daftarKelompok,
     stuck,
   });
@@ -588,6 +696,147 @@ async function handleAksesPost(req: ApiRequest, res: ApiResponse, session: Sessi
   res.status(200).json({ ok: true, terbuka });
 }
 
+/** GET /api/session/riwayat?modul=&dari=&sampai=&status= (P6.8) -- the
+ *  session list for /reports, filtered server-side rather than fetching
+ *  everything and filtering in the browser (a full practicum's session
+ *  table is small today, but there is no reason to grow that habit). `dari`
+ *  and `sampai` are ISO dates ("2026-09-19") compared against `sesi.tanggal`
+ *  as plain text, the same column type every other date comparison in this
+ *  file already relies on. */
+async function handleRiwayatSesi(req: ApiRequest, res: ApiResponse) {
+  // modul/status accept a comma-separated list (?modul=1,3&status=selesai,batal)
+  // so the report page's filter menus can be true multi-select chips, the
+  // same DropdownFilter idiom the server centre's list view already uses,
+  // rather than forcing a single choice at the API boundary.
+  const modulList =
+    typeof req.query.modul === "string" ? req.query.modul.split(",").map(Number) : [];
+  const statusList =
+    typeof req.query.status === "string" ? req.query.status.split(",").filter(Boolean) : [];
+  const dari = typeof req.query.dari === "string" ? req.query.dari : null;
+  const sampai = typeof req.query.sampai === "string" ? req.query.sampai : null;
+
+  if (
+    modulList.some((m) => !RIWAYAT_MODUL_VALID.has(m)) ||
+    statusList.some((s) => !RIWAYAT_STATUS_VALID.has(s))
+  ) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+
+  const kondisi = [];
+  if (modulList.length) kondisi.push(inArray(sesi.modul, modulList));
+  if (dari) kondisi.push(gte(sesi.tanggal, dari));
+  if (sampai) kondisi.push(lte(sesi.tanggal, sampai));
+  if (statusList.length) {
+    kondisi.push(
+      inArray(sesi.status, statusList as ("terjadwal" | "berjalan" | "selesai" | "batal")[]),
+    );
+  }
+
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(sesi)
+    .where(kondisi.length ? and(...kondisi) : undefined)
+    .orderBy(desc(sesi.tanggal), desc(sesi.mulai));
+
+  res.status(200).json({ ok: true, sesi: rows });
+}
+
+/** GET /api/session/ringkasan (P6.8) -- the "module overview across the 4
+ *  weeks" the plan asks for: one row per module with how many sessions have
+ *  run, how many finished, how many distinct students have logged in during
+ *  one of that module's sessions, and how many code blanks (across every
+ *  session of that module, ever) are correct out of how many were
+ *  attempted. Three small full-table scans -- this project's whole-practicum
+ *  tables are all a few thousand rows at most, so this is simpler and cheap
+ *  enough for a page an assistant loads a handful of times a week, unlike
+ *  the per-poll telemetry/laporan routes this file also serves. */
+async function handleRingkasanModul(_req: ApiRequest, res: ApiResponse) {
+  const db = getDb();
+
+  const sesiRows = await db.select({ modul: sesi.modul, status: sesi.status }).from(sesi);
+  const jumlahByModul = new Map<number, { sesi: number; selesai: number }>();
+  for (const r of sesiRows) {
+    const e = jumlahByModul.get(r.modul) ?? { sesi: 0, selesai: 0 };
+    e.sesi += 1;
+    if (r.status === "selesai") e.selesai += 1;
+    jumlahByModul.set(r.modul, e);
+  }
+
+  const hadirRows = await db
+    .select({ modul: sesi.modul, nim: percobaanMasuk.nim })
+    .from(percobaanMasuk)
+    .innerJoin(sesi, eq(percobaanMasuk.sesiId, sesi.id))
+    .where(and(eq(percobaanMasuk.jenis, "praktikan"), eq(percobaanMasuk.berhasil, true)));
+  const hadirByModul = new Map<number, Set<string>>();
+  for (const r of hadirRows) {
+    if (!hadirByModul.has(r.modul)) hadirByModul.set(r.modul, new Set());
+    hadirByModul.get(r.modul)!.add(r.nim);
+  }
+
+  const jawabanRows = await db
+    .select({ soalKode: jawaban.soalKode, benar: jawaban.benar })
+    .from(jawaban)
+    .where(isNotNull(jawaban.sesiId));
+  const blankByModul = new Map<number, { benar: number; total: number }>();
+  for (const r of jawabanRows) {
+    const cocok = /^m([1-4])\./.exec(r.soalKode);
+    if (!cocok) continue;
+    const modul = Number(cocok[1]);
+    const e = blankByModul.get(modul) ?? { benar: 0, total: 0 };
+    e.total += 1;
+    if (r.benar) e.benar += 1;
+    blankByModul.set(modul, e);
+  }
+
+  const modul = [1, 2, 3, 4].map((n) => ({
+    modul: n,
+    sesi: jumlahByModul.get(n)?.sesi ?? 0,
+    selesai: jumlahByModul.get(n)?.selesai ?? 0,
+    hadirUnik: hadirByModul.get(n)?.size ?? 0,
+    blankBenar: blankByModul.get(n)?.benar ?? 0,
+    blankTotal: blankByModul.get(n)?.total ?? 0,
+  }));
+
+  res.status(200).json({ ok: true, modul });
+}
+
+/** GET /api/session/audit?aksiLog=&aktor=&dari= (P6.8) -- the audit
+ *  viewer's data source. The filter is named `aksiLog`, not `aksi` --
+ *  `aksi` is already this whole dynamic function's own route-selector
+ *  (the `[aksi].ts` path segment lands in this exact same `req.query`
+ *  object as `aksi === "audit"`), so a query string `?aksi=sesi_akhiri`
+ *  alongside it would collide with routing itself rather than filtering
+ *  the log. Capped at 500 rows (newest first): this route has no
+ *  pagination yet, and an assistant reading through the log a few hundred
+ *  actions back is already an edge case the cap does not need to solve for
+ *  on day one. `dari` is compared as a timestamp, not a date, since
+ *  `audit.pada` carries a time -- an invalid value is simply ignored rather
+ *  than rejected, so a malformed query still returns the unfiltered log
+ *  instead of a hard error for what is a read-only convenience filter. */
+async function handleAudit(req: ApiRequest, res: ApiResponse) {
+  const aksiLog = typeof req.query.aksiLog === "string" ? req.query.aksiLog : null;
+  const aktor = typeof req.query.aktor === "string" ? req.query.aktor : null;
+  const dariRaw = typeof req.query.dari === "string" ? new Date(req.query.dari) : null;
+  const dari = dariRaw && !Number.isNaN(dariRaw.getTime()) ? dariRaw : null;
+
+  const kondisi = [];
+  if (aksiLog) kondisi.push(eq(audit.aksi, aksiLog));
+  if (aktor) kondisi.push(eq(audit.aktorNim, aktor));
+  if (dari) kondisi.push(gte(audit.pada, dari));
+
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(audit)
+    .where(kondisi.length ? and(...kondisi) : undefined)
+    .orderBy(desc(audit.pada))
+    .limit(AUDIT_BATAS);
+
+  res.status(200).json({ ok: true, audit: rows });
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
@@ -651,6 +900,18 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "laporan") {
     if (!requireMethod(req, res, "GET")) return;
     return handleLaporan(req, res);
+  }
+  if (aksi === "riwayat") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleRiwayatSesi(req, res);
+  }
+  if (aksi === "ringkasan") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleRingkasanModul(req, res);
+  }
+  if (aksi === "audit") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleAudit(req, res);
   }
   if (aksi === "siarkan") {
     if (!requireMethod(req, res, "POST")) return;

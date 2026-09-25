@@ -1258,7 +1258,7 @@ function LaporanTab({ sesiId }: { sesiId: number }) {
     <section className="session-console__section">
       <h2 className="session-console__heading">Laporan</h2>
       <p className="eyebrow">Riwayat lengkap dan ekspor sesi ini ada di pusat laporan.</p>
-      <a className="btn btn--primary" href={`/reports/${sesiId}`}>
+      <a className="btn btn--primary" href={`/reports?sesi=${sesiId}`}>
         Buka laporan sesi ini
       </a>
     </section>

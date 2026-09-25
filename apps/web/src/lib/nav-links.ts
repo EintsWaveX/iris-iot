@@ -26,5 +26,6 @@ export function navUtama(lang: "id" | "en" = "id"): NavLink[] {
       ? { href: "/en/modules", label: "Modules" }
       : { href: "/modules", label: "Modul" },
     { href: "/servers", label: "Server", peran: "asisten" },
+    { href: "/reports", label: "Laporan", peran: "asisten" },
   ];
 }

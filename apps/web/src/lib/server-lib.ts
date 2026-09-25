@@ -289,7 +289,7 @@ function telemetriValid(value: unknown): value is TelemetriMasuk {
 /**
  * Upserts each row into telemetriTerkini (one row per server+modul+group,
  * what the live views poll) and appends it to telemetriLog (history, for
- * /history). `masuk` is untrusted heartbeat input -- anything not shaped
+ * /reports). `masuk` is untrusted heartbeat input -- anything not shaped
  * like TelemetriMasuk, or beyond the first five entries, is silently
  * dropped rather than rejecting the whole heartbeat over it.
  */
