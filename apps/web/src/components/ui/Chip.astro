@@ -1,0 +1,31 @@
+---
+/**
+ * A small mono pill label (P7.4) -- "MODUL 1", a count, a short tag next to
+ * a card's own icon. Distinct from .eyebrow (an uppercase label with a
+ * trailing rule, used above a title) and from a status badge (ok/danger/
+ * neutral colour, not built yet since nothing needs one before P7.4's
+ * later pages) -- this is neutral-toned and never implies state.
+ */
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<span class:list={["chip", className]}>
+  <slot />
+</span>
+
+<style>
+  .chip {
+    background: var(--hairline-faint);
+    border-radius: var(--radius-pill);
+    color: var(--text-faint);
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: var(--fs-small);
+    padding: var(--space-1) var(--space-3);
+  }
+</style>

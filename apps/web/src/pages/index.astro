@@ -18,11 +18,36 @@ import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
 import Button from "../components/ui/Button.astro";
 import Card from "../components/ui/Card.astro";
+import Chip from "../components/ui/Chip.astro";
+import ModuleIcon from "../components/icons/ModuleIcon.astro";
 
 // The shared list (see nav-links.ts), which also hides role-scoped links
 // once /api/auth/me answers -- this page used to hand-relabel Dasbor into
 // Sesi for an assistant itself.
 const links = navUtama();
+
+const MODULES = [
+  {
+    modul: 1 as const,
+    title: "Bluetooth Low Energy",
+    body: "Central/Peripheral GATT, dua ESP32 tanpa jaringan IP.",
+  },
+  {
+    modul: 2 as const,
+    title: "WebSocket",
+    body: "ESP32 ke server Python di Orange Pi, lewat Wi-Fi lokal.",
+  },
+  {
+    modul: 3 as const,
+    title: "MQTT",
+    body: "Publish/subscribe lewat broker Eclipse Mosquitto.",
+  },
+  {
+    modul: 4 as const,
+    title: "LoRa",
+    body: "Perburuan LoRa P2P antar papan ESP32.",
+  },
+];
 ---
 
 <Base
@@ -32,17 +57,16 @@ const links = navUtama();
 >
   <Nav links={links} current="/" />
 
-  <main class="measure">
+  <main class="page-regular">
     <!--
-      Below lg (1024px and under): the hero stacks above the four module
-      cards in a grid, unchanged from before this pass. At lg and above,
-      hero-layout becomes a real two-column design -- the display line
-      and actions hold the left column, and the four modules become a
-      vertical signal chain on the right rather than a 2x2 grid, read as
-      stations on a path (BLE, WebSocket, MQTT, LoRa) rather than four
-      equal, unordered cards.
+      P7.4 rebuild, following the signed-off P7.2 mockup: hero and the
+      module grid sit inside one centered block (max-width 1080px) rather
+      than each spanning its own full grid column all the way to the page
+      edge -- the fix for the "far separated" landing-centering feedback
+      from P7.2 round 1. Below 1024 the block stacks: hero first, then the
+      module grid at 2 columns (820) and 1 column (360).
     -->
-    <div class="hero-layout">
+    <div class="landing">
       <section class="hero">
         <p class="eyebrow eyebrow--accent">Praktikum IoT &middot; Laboratorium IRIS</p>
         <h1 class="hero__title">
@@ -55,43 +79,26 @@ const links = navUtama();
           praktikum IoT IRIS.
         </p>
         <div class="hero__actions">
-          <Button kind="primary" id="hero-btn-masuk">
+          <Button kind="primary" size="lg" id="hero-btn-masuk">
             Masuk
           </Button>
         </div>
       </section>
 
       <div class="modules">
-        <a class="modules__link" href="/modules/1">
-          <Card
-            interactive
-            class="stagger-item"
-            style="--i: 0"
-            eyebrow="Modul 1"
-            title="Bluetooth Low Energy"
-          >
-            <p>Central/Peripheral GATT, dua ESP32 tanpa jaringan IP.</p>
-            <p class="modules__footer">Buka modul &rarr;</p>
-          </Card>
-        </a>
-        <a class="modules__link" href="/modules/2">
-          <Card interactive class="stagger-item" style="--i: 1" eyebrow="Modul 2" title="WebSocket">
-            <p>ESP32 ke server Python di Orange Pi, lewat Wi-Fi lokal.</p>
-            <p class="modules__footer">Buka modul &rarr;</p>
-          </Card>
-        </a>
-        <a class="modules__link" href="/modules/3">
-          <Card interactive class="stagger-item" style="--i: 2" eyebrow="Modul 3" title="MQTT">
-            <p>Publish/subscribe lewat broker Eclipse Mosquitto.</p>
-            <p class="modules__footer">Buka modul &rarr;</p>
-          </Card>
-        </a>
-        <a class="modules__link" href="/modules/4">
-          <Card interactive class="stagger-item" style="--i: 3" eyebrow="Modul 4" title="LoRa">
-            <p>Perburuan LoRa P2P antar papan ESP32.</p>
-            <p class="modules__footer">Buka modul &rarr;</p>
-          </Card>
-        </a>
+        {MODULES.map(({ modul, title, body }, i) => (
+          <a class="modules__link" href={`/modules/${modul}`}>
+            <Card interactive class="stagger-item modules__card" style={`--i: ${i}`}>
+              <div class="modules__card-head">
+                <ModuleIcon modul={modul} />
+                <Chip>MODUL {modul}</Chip>
+              </div>
+              <h3 class="modules__card-title">{title}</h3>
+              <p class="modules__card-body">{body}</p>
+              <p class="modules__footer">Buka modul &rarr;</p>
+            </Card>
+          </a>
+        ))}
       </div>
     </div>
   </main>
@@ -146,16 +153,17 @@ const links = navUtama();
 </script>
 
 <style>
-  .hero-layout {
+  .landing {
     display: flex;
     flex-direction: column;
+    padding-block: var(--space-page-top) var(--space-section);
   }
 
   .hero {
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-    padding-block: var(--space-10) var(--space-8);
+    padding-block: 0 var(--space-8);
   }
 
   .hero__title {
@@ -181,9 +189,8 @@ const links = navUtama();
 
   .modules {
     display: grid;
-    gap: var(--space-5);
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-    padding-block: var(--space-8);
+    gap: var(--space-4);
+    grid-template-columns: 1fr;
   }
 
   .modules__link {
@@ -191,6 +198,21 @@ const links = navUtama();
     display: flex;
     height: 100%;
     text-decoration: none;
+  }
+
+  .modules__card-head {
+    align-items: flex-start;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .modules__card-title {
+    font-size: var(--fs-display-sm);
+    margin-top: var(--space-5);
+  }
+
+  .modules__card-body {
+    margin-top: var(--space-2);
   }
 
   /* Pinned to the bottom of the card regardless of how much lede text sits
@@ -205,18 +227,28 @@ const links = navUtama();
     padding-top: var(--space-4);
   }
 
-  /* lg and above: two real columns rather than a wider version of the
-     stacked layout. The display line stays at a comfortable size (not
-     --fs-display-xl's full room-filling clamp) since it now shares the
-     viewport with the module chain instead of owning it outright, and
-     the four modules become a vertical run -- stations on a signal path,
-     not an unordered 2x2 grid -- in their own column beside it. */
-  @media (min-width: 1025px) {
-    .hero-layout {
+  /* 360 (base, above): one column, hero above the module grid.
+     640 and up: the module grid becomes 2 columns (the plan's own
+     "2-column at 820" note), still stacked under the hero below 1024.
+     1024 and up: hero and the module grid share one row, wrapped in a
+     single centered 1080px-max block -- the P7.2 mockup's fix for the
+     "far separated" edge-pinned layout, rather than each half spanning
+     its own full-width grid column out to the page edge. */
+  @media (min-width: 640px) {
+    .modules {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .landing {
       align-items: center;
       display: grid;
       gap: var(--space-9);
-      grid-template-columns: 1.1fr 0.9fr;
+      grid-template-columns: minmax(0, 440px) minmax(0, 520px);
+      justify-content: center;
+      margin-inline: auto;
+      max-width: 1080px;
     }
 
     .hero {
@@ -225,11 +257,6 @@ const links = navUtama();
 
     .hero__title {
       font-size: var(--fs-display-lg);
-    }
-
-    .modules {
-      grid-template-columns: 1fr;
-      padding-block: 0;
     }
   }
 </style>

@@ -394,6 +394,14 @@
    ----------------------------------------------------------------------- */
 a[data-locked="yes"] {
   opacity: 0.55;
+  /* Positioning context for .modul-lock-badge below. Every card-link on
+     the site wraps its Card in a flex row (index.astro's .modules__link,
+     ModulesIndexView's .modules-index__card-link), so a badge appended as
+     a plain flex sibling of the card (modul-akses.ts's DOM-level
+     appendChild -- see the comment above) rendered as a second column
+     next to the card instead of on it. Absolute + a fixed corner avoids
+     that regardless of which page's flex direction it lands in. */
+  position: relative;
 }
 
 a[data-locked="yes"] .card {
@@ -403,12 +411,14 @@ a[data-locked="yes"] .card {
 .modul-lock-badge {
   background: var(--hairline-faint);
   border-radius: var(--radius-pill);
+  bottom: var(--space-4);
   color: var(--text-faint);
   display: inline-block;
   font-size: var(--fs-small);
   font-weight: 500;
-  margin-top: var(--space-2);
   padding: var(--space-1) var(--space-3);
+  position: absolute;
+  right: var(--space-4);
 }
 
 .modul-lock-screen {

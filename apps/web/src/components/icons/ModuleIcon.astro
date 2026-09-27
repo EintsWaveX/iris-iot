@@ -1,0 +1,67 @@
+---
+/**
+ * The four module identity icons decided in P7.1 ("line icon + soft aurora
+ * hue per module") and drawn in the P7.2 mockup -- reused everywhere a
+ * module needs to announce which one it is (Landing, Modul list) instead of
+ * each page redrawing its own copy. Hue comes from kosmik's --mod-1..4 /
+ * --mod-N-soft tokens via the mod-N-bg class, not a prop, since the mapping
+ * from module number to hue is fixed across the whole site.
+ */
+interface Props {
+  modul: 1 | 2 | 3 | 4;
+  class?: string;
+}
+
+const { modul, class: className } = Astro.props;
+
+const PATHS: Record<number, string> = {
+  1: '<path d="M7 7l10 10-5 5V2l5 5L7 17"/>',
+  2: '<path d="M4 12h4l2-6 4 12 2-6h4"/>',
+  3: '<circle cx="12" cy="12" r="2.4"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>',
+  4: '<path d="M4 18c4-8 12-8 16 0M7.5 18c2.4-4.8 6.6-4.8 9 0"/><circle cx="12" cy="18" r="1.4" fill="currentColor" stroke="none"/>',
+};
+---
+
+<span class:list={["mod-icon", `mod-${modul}-bg`, className]}>
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    set:html={PATHS[modul]}
+  />
+</span>
+
+<style>
+  .mod-icon {
+    align-items: center;
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-shrink: 0;
+    height: 44px;
+    justify-content: center;
+    width: 44px;
+  }
+
+  .mod-icon svg {
+    height: 22px;
+    width: 22px;
+  }
+
+  .mod-1-bg {
+    background: var(--mod-1-soft);
+    color: var(--mod-1);
+  }
+  .mod-2-bg {
+    background: var(--mod-2-soft);
+    color: var(--mod-2);
+  }
+  .mod-3-bg {
+    background: var(--mod-3-soft);
+    color: var(--mod-3);
+  }
+  .mod-4-bg {
+    background: var(--mod-4-soft);
+    color: var(--mod-4);
+  }
+</style>
