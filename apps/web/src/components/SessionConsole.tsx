@@ -14,22 +14,32 @@
  * whole scoped stylesheet, which a plain React-rendered node could never
  * reach anyway (see modul-akses.ts's own note on Astro's scoped CSS attrs).
  */
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Pin, PinOff } from "lucide-react";
 import { startPolling } from "../scripts/polling";
 import { parseRosterPaste, rosterToPaste } from "../lib/roster-parser";
 import { denganSibuk } from "../scripts/busy";
 import { hariIniWib, SLOT_MULAI, SESI_CAP_MENIT } from "../lib/jadwal";
-import Dropdown, { DropdownMulti, DropdownFilter } from "./ui/Dropdown";
+import Dropdown, { DropdownFilter } from "./ui/Dropdown";
+import Dialog from "./ui/Dialog";
+import ScrollArea from "./ui/ScrollArea";
 import PresentationManager from "./PresentationManager";
 import { unduhCsv } from "../lib/csv";
 import { buildSeelabsBookmarklet, buildSeelabsSnippet } from "../lib/seelabs-helper";
+import "./ui/Tabs.css";
 import "./SessionConsole.css";
 
 export const SESI_BERUBAH = "iris:sesi-berubah";
 
-const WIDE_BREAKPOINT = 1440;
-const VIEW_PREF_KEY = "iris-session-console-view";
-const MAX_PANELS = 3;
+// P7.4: a left sidebar of the 9 sections replaces the tab strip at 1024+;
+// below that the strip stays (now on Tabs.css's own classes, fixing F10's
+// wrap-into-three-rows bug at its root rather than in a second copy of the
+// same rule). At 1440+ a single "pin" replaces the old Tampilkan
+// multi-select and its 3-panel layout -- one section pinned as a second
+// column beside whatever is active, not up to three at once.
+const SIDEBAR_BREAKPOINT = 1024;
+const PIN_BREAKPOINT = 1440;
+const PIN_KEY = "iris-session-console-pin";
 
 interface AnggotaRow {
   nim: string;
@@ -138,16 +148,14 @@ function readHashTab(): string {
   return TAB_IDS.has(h) ? h : "kelompok";
 }
 
-function useWideViewport(): boolean {
-  const [wide, setWide] = useState(
-    () => typeof window !== "undefined" && window.innerWidth >= WIDE_BREAKPOINT,
-  );
+function useViewport(min: number): boolean {
+  const [ok, setOk] = useState(() => typeof window !== "undefined" && window.innerWidth >= min);
   useEffect(() => {
-    const onResize = () => setWide(window.innerWidth >= WIDE_BREAKPOINT);
+    const onResize = () => setOk(window.innerWidth >= min);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return wide;
+  }, [min]);
+  return ok;
 }
 
 export default function SessionConsole() {
@@ -162,16 +170,16 @@ export default function SessionConsole() {
   const [activeTab, setActiveTab] = useState<string>(() =>
     typeof window !== "undefined" ? readHashTab() : "kelompok",
   );
-  const wide = useWideViewport();
-  const [viewTabs, setViewTabs] = useState<string[]>([]);
+  const sidebar = useViewport(SIDEBAR_BREAKPOINT);
+  const pinAllowed = useViewport(PIN_BREAKPOINT);
+  const [pinned, setPinned] = useState<string | null>(null);
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(VIEW_PREF_KEY) ?? "[]");
-      if (Array.isArray(saved))
-        setViewTabs(saved.filter((t) => TAB_IDS.has(t)).slice(0, MAX_PANELS));
+      const saved = localStorage.getItem(PIN_KEY);
+      if (saved && TAB_IDS.has(saved)) setPinned(saved);
     } catch {
-      // localStorage unavailable or garbage -- start empty, harmless.
+      // localStorage unavailable -- start unpinned, harmless.
     }
   }, []);
 
@@ -188,14 +196,17 @@ export default function SessionConsole() {
     history.replaceState(null, "", `#${id}`);
   }
 
-  function updateViewTabs(next: string[]) {
-    const trimmed = next.slice(-MAX_PANELS);
-    setViewTabs(trimmed);
-    try {
-      localStorage.setItem(VIEW_PREF_KEY, JSON.stringify(trimmed));
-    } catch {
-      // per-viewer convenience only -- fine if it doesn't persist.
-    }
+  function togglePin(id: string) {
+    setPinned((prev) => {
+      const next = prev === id ? null : id;
+      try {
+        if (next) localStorage.setItem(PIN_KEY, next);
+        else localStorage.removeItem(PIN_KEY);
+      } catch {
+        // per-viewer convenience only -- fine if it doesn't persist.
+      }
+      return next;
+    });
   }
 
   async function muat() {
@@ -258,12 +269,19 @@ export default function SessionConsole() {
 
   if (!loaded) return null;
 
-  const panels = wide && viewTabs.length > 0 ? viewTabs : [activeTab];
+  const secondTab = pinAllowed && pinned && pinned !== activeTab ? pinned : null;
+  const panels = secondTab ? [activeTab, secondTab] : [activeTab];
 
   return (
     <div className="session-console">
       {sesi ? (
-        <StatusBar sesi={sesi} servers={servers} onlineCount={onlineCount} onChanged={muat} />
+        <StatusBar
+          sesi={sesi}
+          servers={servers}
+          onlineCount={onlineCount}
+          onChanged={muat}
+          onOpenServer={() => goToTab("server")}
+        />
       ) : (
         <MulaiSesiPanel onStarted={muat} />
       )}
@@ -284,62 +302,166 @@ export default function SessionConsole() {
       )}
 
       {sesi && (
-        <div className="session-console__toolbar">
-          {wide ? (
-            <DropdownMulti
-              id="session-console-tampilkan"
-              label="Tampilkan"
-              options={TABS.map((t) => ({ value: t.id, label: t.label }))}
-              values={viewTabs}
-              onChange={updateViewTabs}
-              summary={(sel) =>
-                sel.length === 0 ? "Tampilkan panel" : sel.map((o) => o.label).join(", ")
+        <div className="session-console__body" data-sidebar={sidebar ? "yes" : "no"}>
+          <ConsoleNav
+            sidebar={sidebar}
+            activeTab={activeTab}
+            onSelect={goToTab}
+            pinAllowed={pinAllowed}
+            pinned={pinned}
+            onTogglePin={togglePin}
+            stuckCount={stuckCount}
+          />
+          <div className="session-console__panels" data-count={panels.length}>
+            {panels.map((tabId) => (
+              <div key={tabId} className="session-console__panel">
+                {secondTab && (
+                  <h2 className="session-console__panel-heading">
+                    {TABS.find((t) => t.id === tabId)?.label}
+                  </h2>
+                )}
+                <TabBody
+                  tab={tabId}
+                  sesi={sesi}
+                  kelompok={kelompok}
+                  stuck={stuck}
+                  servers={servers}
+                  roster={roster}
+                  onChanged={muat}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Navigation: a left sidebar at 1024+ (with a pin toggle at 1440+), a
+// single-row scrollable tab strip below that -- see this file's own
+// SIDEBAR_BREAKPOINT/PIN_BREAKPOINT comment for why this replaced the old
+// DropdownMulti "Tampilkan" 3-panel picker.
+// ---------------------------------------------------------------------
+function ConsoleNav({
+  sidebar,
+  activeTab,
+  onSelect,
+  pinAllowed,
+  pinned,
+  onTogglePin,
+  stuckCount,
+}: {
+  sidebar: boolean;
+  activeTab: string;
+  onSelect: (id: string) => void;
+  pinAllowed: boolean;
+  pinned: string | null;
+  onTogglePin: (id: string) => void;
+  stuckCount: number;
+}) {
+  if (!sidebar)
+    return <ConsoleTabStrip activeTab={activeTab} onSelect={onSelect} stuckCount={stuckCount} />;
+
+  return (
+    <nav className="session-console__sidebar" aria-label="Bagian sesi">
+      {TABS.map((t) => (
+        <div key={t.id} className="session-console__sidebar-row">
+          <button
+            type="button"
+            className="session-console__sidebar-item"
+            aria-current={activeTab === t.id ? "page" : undefined}
+            onClick={() => onSelect(t.id)}
+          >
+            <span>{t.label}</span>
+            {t.id === "bantuan" && stuckCount > 0 && (
+              <span className="session-console__tab-badge">{stuckCount}</span>
+            )}
+          </button>
+          {pinAllowed && (
+            <button
+              type="button"
+              className="session-console__pin"
+              data-pinned={pinned === t.id ? "yes" : "no"}
+              aria-pressed={pinned === t.id}
+              aria-label={
+                pinned === t.id
+                  ? `Lepas sematan ${t.label}`
+                  : `Sematkan ${t.label} sebagai kolom kedua`
               }
-            />
-          ) : (
-            <nav className="session-console__tabs" role="tablist" aria-label="Bagian sesi">
-              {TABS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === t.id}
-                  className="session-console__tab"
-                  onClick={() => goToTab(t.id)}
-                >
-                  {t.label}
-                  {t.id === "bantuan" && stuckCount > 0 && (
-                    <span className="session-console__tab-badge">{stuckCount}</span>
-                  )}
-                </button>
-              ))}
-            </nav>
+              onClick={() => onTogglePin(t.id)}
+            >
+              {pinned === t.id ? <PinOff size={16} /> : <Pin size={16} />}
+            </button>
           )}
         </div>
-      )}
+      ))}
+    </nav>
+  );
+}
 
-      {sesi && (
-        <div className="session-console__panels" data-count={panels.length}>
-          {panels.map((tabId) => (
-            <div key={tabId} className="session-console__panel">
-              {wide && viewTabs.length > 0 && (
-                <h2 className="session-console__panel-heading">
-                  {TABS.find((t) => t.id === tabId)?.label}
-                </h2>
-              )}
-              <TabBody
-                tab={tabId}
-                sesi={sesi}
-                kelompok={kelompok}
-                stuck={stuck}
-                servers={servers}
-                roster={roster}
-                onChanged={muat}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+function ConsoleTabStrip({
+  activeTab,
+  onSelect,
+  stuckCount,
+}: {
+  activeTab: string;
+  onSelect: (id: string) => void;
+  stuckCount: number;
+}) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const [edge, setEdge] = useState<"start" | "end" | "both" | "none">("none");
+
+  const updateEdge = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const atStart = el.scrollLeft <= 1;
+    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+    if (atStart && atEnd) setEdge("none");
+    else if (atStart) setEdge("end");
+    else if (atEnd) setEdge("start");
+    else setEdge("both");
+  }, []);
+
+  useEffect(() => {
+    updateEdge();
+    const el = listRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateEdge, { passive: true });
+    const ro = new ResizeObserver(updateEdge);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateEdge);
+      ro.disconnect();
+    };
+  }, [updateEdge]);
+
+  useEffect(() => {
+    listRef.current
+      ?.querySelector<HTMLElement>('[aria-selected="true"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeTab]);
+
+  return (
+    <div className="tabs-scroll" data-edge={edge}>
+      <div className="tabs" ref={listRef} role="tablist" aria-label="Bagian sesi">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === t.id}
+            className="tabs__tab"
+            onClick={() => onSelect(t.id)}
+          >
+            {t.label}
+            {t.id === "bantuan" && stuckCount > 0 && (
+              <span className="session-console__tab-badge">{stuckCount}</span>
+            )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -366,11 +488,13 @@ function StatusBar({
   servers,
   onlineCount,
   onChanged,
+  onOpenServer,
 }: {
   sesi: SesiRunning;
   servers: ServerRow[];
   onlineCount: number;
   onChanged: () => Promise<void>;
+  onOpenServer: () => void;
 }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -380,34 +504,17 @@ function StatusBar({
   void now;
   const { berjalan, sisa, persen } = formatSisa(sesi.mulaiPada);
 
-  const [confirmBusy, setConfirmBusy] = useState(false);
-  const btnAkhiriRef = useRef<HTMLButtonElement | null>(null);
-  const btnBatalkanRef = useRef<HTMLButtonElement | null>(null);
+  const [confirmAkhiri, setConfirmAkhiri] = useState(false);
+  const [confirmBatal, setConfirmBatal] = useState(false);
+  const btnAkhiriYaRef = useRef<HTMLButtonElement | null>(null);
+  const btnBatalYaRef = useRef<HTMLButtonElement | null>(null);
 
-  function konfirmasi(judul: string, teks: string, labelYa: string, aksi: () => Promise<void>) {
-    const titleEl = document.getElementById("modal-konfirmasi-title");
-    const teksEl = document.getElementById("konfirmasi-teks");
-    const yaLabelEl = document.querySelector("#konfirmasi-ya .btn__label");
-    if (titleEl) titleEl.textContent = judul;
-    if (teksEl) teksEl.textContent = teks;
-    if (yaLabelEl) yaLabelEl.textContent = labelYa;
-    const yaBtn = document.getElementById("konfirmasi-ya");
-    const handler = async () => {
-      yaBtn?.removeEventListener("click", handler);
-      setConfirmBusy(true);
-      try {
-        await aksi();
-      } finally {
-        setConfirmBusy(false);
-        window.Modal?.close("modal-konfirmasi");
-      }
-    };
-    void confirmBusy;
-    yaBtn?.addEventListener("click", handler);
-    window.Modal?.open("modal-konfirmasi");
-  }
-
-  async function kirimAksiSesi(url: string, body: unknown, pesanOk: string) {
+  async function kirimAksiSesi(
+    url: string,
+    body: unknown,
+    pesanOk: string,
+    tutup: (open: boolean) => void,
+  ) {
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -417,34 +524,8 @@ function StatusBar({
       const data = await res.json();
       if (data.ok) {
         window.Toast?.show(pesanOk, "ok");
+        tutup(false);
         await onChanged();
-      } else {
-        window.Toast?.show(pesanUntuk(data.kode), "danger");
-      }
-    } catch {
-      window.Toast?.show("Tidak dapat menghubungi server.", "danger");
-    }
-  }
-
-  const server = servers.length === 1 ? servers[0] : null;
-  const modeJaringan = server?.denyutTerakhir?.modeJaringan ?? null;
-
-  async function toggleAp(nyala: boolean) {
-    if (!server) return;
-    try {
-      const res = await fetch("/api/action", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tipe: "kirim",
-          serverId: server.id,
-          aksi: nyala ? "ap.nyala" : "ap.mati",
-          argumen: {},
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        window.Toast?.show("Perintah dikirim. Menunggu denyut berikutnya dari agen.", "ok");
       } else {
         window.Toast?.show(pesanUntuk(data.kode), "danger");
       }
@@ -455,14 +536,38 @@ function StatusBar({
 
   return (
     <div className="session-console__status">
-      <div className="session-console__status-head">
-        <h1 className="session-console__title">
-          Modul {sesi.modul}{" "}
-          <span className="session-console__title-nama">{MODULE_NAMES[sesi.modul]}</span>
-        </h1>
-        <p className="session-console__meta">
-          Slot {sesi.slot} · {SLOT_MULAI[sesi.slot] ?? sesi.mulai} · {sesi.tanggal}
-        </p>
+      <div className="session-console__status-row">
+        <div className="session-console__status-head">
+          <h1 className="session-console__title">
+            Modul {sesi.modul}{" "}
+            <span className="session-console__title-nama">{MODULE_NAMES[sesi.modul]}</span>
+          </h1>
+          <p className="session-console__meta">
+            Slot {sesi.slot} · {SLOT_MULAI[sesi.slot] ?? sesi.mulai} · {sesi.tanggal}
+          </p>
+        </div>
+
+        <button type="button" className="session-console__server-chip" onClick={onOpenServer}>
+          <span className="session-console__dot" data-online={onlineCount > 0 ? "yes" : "no"} />
+          {onlineCount}/{servers.length} server online
+        </button>
+
+        <div className="session-console__actions">
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => setConfirmAkhiri(true)}
+          >
+            Akhiri sesi
+          </button>
+          <button
+            type="button"
+            className="btn btn--danger btn--sm"
+            onClick={() => setConfirmBatal(true)}
+          >
+            Batalkan sesi
+          </button>
+        </div>
       </div>
 
       <div className="session-console__progress-wrap">
@@ -480,72 +585,70 @@ function StatusBar({
         </p>
       </div>
 
-      <div className="session-console__chips">
-        <span className="session-console__chip">
-          <span className="session-console__dot" data-online={onlineCount > 0 ? "yes" : "no"} />
-          {onlineCount} server online
-        </span>
-        {sesi.butuhAp && (
-          <span className="session-console__chip" data-ap="yes">
-            AP: {modeJaringan ?? (server ? "menunggu denyut" : "kelola dari /servers")}
-            {server && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => toggleAp(true)}
-                >
-                  Nyalakan
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => toggleAp(false)}
-                >
-                  Matikan
-                </button>
-              </>
-            )}
-          </span>
-        )}
-      </div>
+      <Dialog
+        open={confirmAkhiri}
+        onOpenChange={setConfirmAkhiri}
+        title="Akhiri sesi ini?"
+        description="Praktikan tidak bisa masuk lagi ke sesi ini, dan slotnya tetap terpakai untuk tanggal itu. Sesi yang diakhiri masih bisa dilanjutkan selama belum lewat 165 menit sejak dimulai."
+        actions={
+          <>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => setConfirmAkhiri(false)}
+            >
+              Batal
+            </button>
+            <button
+              ref={btnAkhiriYaRef}
+              type="button"
+              className="btn btn--danger"
+              onClick={() =>
+                void denganSibuk(btnAkhiriYaRef.current, () =>
+                  kirimAksiSesi("/api/session/end", {}, "Sesi diakhiri.", setConfirmAkhiri),
+                )
+              }
+            >
+              Akhiri sesi
+            </button>
+          </>
+        }
+      >
+        <></>
+      </Dialog>
 
-      <div className="session-console__actions">
-        <button
-          ref={btnAkhiriRef}
-          type="button"
-          className="btn btn--ghost"
-          onClick={() =>
-            void denganSibuk(btnAkhiriRef.current, async () => {
-              konfirmasi(
-                "Akhiri sesi ini?",
-                "Praktikan tidak bisa masuk lagi ke sesi ini, dan slotnya tetap terpakai untuk tanggal itu. Sesi yang diakhiri masih bisa dilanjutkan selama belum lewat 165 menit sejak dimulai.",
-                "Akhiri sesi",
-                () => kirimAksiSesi("/api/session/end", {}, "Sesi diakhiri."),
-              );
-            })
-          }
-        >
-          Akhiri sesi
-        </button>
-        <button
-          ref={btnBatalkanRef}
-          type="button"
-          className="btn btn--danger"
-          onClick={() =>
-            void denganSibuk(btnBatalkanRef.current, async () => {
-              konfirmasi(
-                "Batalkan sesi ini?",
-                "Sesi yang dibatalkan dianggap tidak pernah ada dan slotnya bebas dipakai lagi. Jawaban yang sudah masuk tetap tersimpan.",
-                "Batalkan sesi",
-                () => kirimAksiSesi("/api/session/cancel", { sesiId: sesi.id }, "Sesi dibatalkan."),
-              );
-            })
-          }
-        >
-          Batalkan sesi
-        </button>
-      </div>
+      <Dialog
+        open={confirmBatal}
+        onOpenChange={setConfirmBatal}
+        title="Batalkan sesi ini?"
+        description="Sesi yang dibatalkan dianggap tidak pernah ada dan slotnya bebas dipakai lagi. Jawaban yang sudah masuk tetap tersimpan."
+        actions={
+          <>
+            <button type="button" className="btn btn--ghost" onClick={() => setConfirmBatal(false)}>
+              Batal
+            </button>
+            <button
+              ref={btnBatalYaRef}
+              type="button"
+              className="btn btn--danger"
+              onClick={() =>
+                void denganSibuk(btnBatalYaRef.current, () =>
+                  kirimAksiSesi(
+                    "/api/session/cancel",
+                    { sesiId: sesi.id },
+                    "Sesi dibatalkan.",
+                    setConfirmBatal,
+                  ),
+                )
+              }
+            >
+              Batalkan sesi
+            </button>
+          </>
+        }
+      >
+        <></>
+      </Dialog>
     </div>
   );
 }
@@ -689,7 +792,7 @@ function MulaiSesiPanel({ onStarted }: { onStarted: () => Promise<void> }) {
           </label>
         )}
         <button ref={btnRef} type="submit" className="btn btn--primary">
-          Mulai sesi
+          <span className="btn__label">Mulai sesi</span>
         </button>
       </form>
     </div>
@@ -739,7 +842,7 @@ function TabBody({
     case "pengumuman":
       return <PengumumanTab />;
     case "server":
-      return <ServerTab servers={servers} />;
+      return <ServerTab servers={servers} sesi={sesi} />;
     case "roster":
       return <RosterTab roster={roster} onChanged={onChanged} />;
     case "presentasi":
@@ -880,6 +983,7 @@ function KelompokTab({
               <ul className="session-console__tile-anggota">
                 {k.anggota.map((a) => (
                   <li key={a.nim} data-hadir={a.hadir ? "yes" : "no"}>
+                    <span className="session-console__presence-dot" aria-hidden="true" />
                     {a.nama}
                   </li>
                 ))}
@@ -903,26 +1007,29 @@ function KelompokTab({
                 }}
               />
             )}
-            <textarea
-              className="session-console__catatan"
-              placeholder="Catatan untuk kelompok ini…"
-              rows={2}
-              value={drafts[k.id]?.catatan ?? ""}
-              onFocus={() => {
-                focusedRef.current = k.id;
-              }}
-              onChange={(e) =>
-                setDrafts((prev) => ({
-                  ...prev,
-                  [k.id]: { peran: prev[k.id]?.peran ?? "", catatan: e.target.value },
-                }))
-              }
-              onBlur={() => {
-                focusedRef.current = null;
-                const draft = drafts[k.id];
-                if (draft) void saveCatatan(k.id, draft.catatan, draft.peran);
-              }}
-            />
+            <details className="session-console__catatan-details" open={Boolean(k.catatan)}>
+              <summary>Catatan</summary>
+              <textarea
+                className="session-console__catatan"
+                placeholder="Catatan untuk kelompok ini…"
+                rows={2}
+                value={drafts[k.id]?.catatan ?? ""}
+                onFocus={() => {
+                  focusedRef.current = k.id;
+                }}
+                onChange={(e) =>
+                  setDrafts((prev) => ({
+                    ...prev,
+                    [k.id]: { peran: prev[k.id]?.peran ?? "", catatan: e.target.value },
+                  }))
+                }
+                onBlur={() => {
+                  focusedRef.current = null;
+                  const draft = drafts[k.id];
+                  if (draft) void saveCatatan(k.id, draft.catatan, draft.peran);
+                }}
+              />
+            </details>
           </div>
         ))}
         {filtered.length === 0 && (
@@ -1017,38 +1124,90 @@ function PengumumanTab() {
   return (
     <section className="session-console__section">
       <h2 className="session-console__heading">Pengumuman</h2>
-      {pesan.trim() && (
-        <div className="session-console__preview">
-          <p className="eyebrow">Pratinjau</p>
-          <p>{pesan}</p>
+      <div className="session-console__pengumuman">
+        <div className="session-console__pengumuman-composer">
+          <form className="session-console__siaran" onSubmit={kirim}>
+            <input
+              type="text"
+              className="session-console__siaran-input"
+              placeholder="Contoh: sisa 10 menit, siap-siap unduh berkas"
+              value={pesan}
+              onChange={(e) => setPesan(e.target.value)}
+              maxLength={200}
+            />
+            <button type="submit" className="btn btn--primary" disabled={sending}>
+              <span className="btn__label">{pesan.trim() ? "Kirim" : "Hapus pengumuman"}</span>
+            </button>
+          </form>
+          {terakhir && (
+            <p className="session-console__kosong">
+              Terakhir dikirim {new Date(terakhir).toLocaleTimeString("id-ID")}
+            </p>
+          )}
         </div>
-      )}
-      <form className="session-console__siaran" onSubmit={kirim}>
-        <input
-          type="text"
-          className="session-console__siaran-input"
-          placeholder="Contoh: sisa 10 menit, siap-siap unduh berkas"
-          value={pesan}
-          onChange={(e) => setPesan(e.target.value)}
-          maxLength={200}
-        />
-        <button type="submit" className="btn btn--primary" disabled={sending}>
-          {pesan.trim() ? "Kirim" : "Hapus pengumuman"}
-        </button>
-      </form>
-      {terakhir && (
-        <p className="session-console__kosong">
-          Terakhir dikirim {new Date(terakhir).toLocaleTimeString("id-ID")}
-        </p>
-      )}
+        <div className="session-console__preview" data-kosong={pesan.trim() ? "no" : "yes"}>
+          <p className="eyebrow">Pratinjau</p>
+          <p>{pesan.trim() || "Belum ada pengumuman."}</p>
+        </div>
+      </div>
     </section>
   );
 }
 
-function ServerTab({ servers }: { servers: ServerRow[] }) {
+function ServerTab({ servers, sesi }: { servers: ServerRow[]; sesi: SesiRunning }) {
+  const server = servers.length === 1 ? servers[0] : null;
+  const modeJaringan = server?.denyutTerakhir?.modeJaringan ?? null;
+
+  async function toggleAp(nyala: boolean) {
+    if (!server) return;
+    try {
+      const res = await fetch("/api/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipe: "kirim",
+          serverId: server.id,
+          aksi: nyala ? "ap.nyala" : "ap.mati",
+          argumen: {},
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        window.Toast?.show("Perintah dikirim. Menunggu denyut berikutnya dari agen.", "ok");
+      } else {
+        window.Toast?.show(pesanUntuk(data.kode), "danger");
+      }
+    } catch {
+      window.Toast?.show("Tidak dapat menghubungi server.", "danger");
+    }
+  }
+
   return (
     <section className="session-console__section">
       <h2 className="session-console__heading">Kesiapan server</h2>
+      {sesi.butuhAp && (
+        <div className="session-console__ap-panel">
+          <span>AP: {modeJaringan ?? (server ? "menunggu denyut" : "kelola dari /servers")}</span>
+          {server && (
+            <div className="session-console__ap-actions">
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => toggleAp(true)}
+              >
+                Nyalakan
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => toggleAp(false)}
+              >
+                Matikan
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {servers.length === 0 ? (
         <p className="session-console__kosong">Belum ada Orange Pi yang terdaftar.</p>
       ) : (
@@ -1178,7 +1337,7 @@ function RosterTab({
         disabled={parsed.errors.length > 0 || paste.trim().length === 0 || saving}
         onClick={simpan}
       >
-        Simpan
+        <span className="btn__label">Simpan</span>
       </button>
     </section>
   );
@@ -1270,7 +1429,7 @@ function ModulTab() {
         disabled={!dirty || saving}
         onClick={simpan}
       >
-        Simpan perubahan
+        <span className="btn__label">Simpan perubahan</span>
       </button>
     </section>
   );
@@ -1395,10 +1554,10 @@ function NilaiTab({ sesiId, kelompok }: { sesiId: number; kelompok: KelompokRow[
         Seelabs: TP, TA, D1 sampai D4, L1, L2.
       </p>
       <div className="session-console__nilai-aksi">
-        <button type="button" className="btn btn--quiet btn--sm" onClick={unduhNilaiCsv}>
+        <button type="button" className="btn btn--secondary btn--sm" onClick={unduhNilaiCsv}>
           Unduh CSV
         </button>
-        <button type="button" className="btn btn--quiet btn--sm" onClick={buatHelper}>
+        <button type="button" className="btn btn--secondary btn--sm" onClick={buatHelper}>
           Buat helper Seelabs
         </button>
       </div>
@@ -1416,7 +1575,7 @@ function NilaiTab({ sesiId, kelompok }: { sesiId: number; kelompok: KelompokRow[
             onClick={(e) => e.preventDefault()}
             draggable
           >
-            Isi nilai Seelabs
+            <span className="btn__label">Isi nilai Seelabs</span>
           </a>
           <p className="eyebrow">
             Atau, bila markah diblokir, tempel kode ini di konsol pada halaman Seelabs:
@@ -1430,56 +1589,67 @@ function NilaiTab({ sesiId, kelompok }: { sesiId: number; kelompok: KelompokRow[
           />
         </div>
       )}
-      {data.kelompok.map((k) => (
-        <div key={k.id} className="session-console__nilai-kelompok">
-          <h3>
-            Kelompok {k.nomor}: {k.nama}
-          </h3>
-          <table className="session-console__nilai-table">
-            <thead>
-              <tr>
-                <th>NIM</th>
-                <th>Nama</th>
-                {data.komponen.map((kk) => (
-                  <th key={kk}>{kk}</th>
-                ))}
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {k.anggota.map((a) => (
-                <tr key={a.nim}>
-                  <td>{a.nim}</td>
-                  <td>
-                    {a.nama}
-                    {!a.lengkap && (
-                      <span className="session-console__nilai-belum"> Belum lengkap</span>
-                    )}
-                  </td>
-                  {data.komponen.map((kk) => {
-                    const key = `${a.nim}.${kk}.${a.skor[kk] ?? "kosong"}`;
-                    return (
-                      <td key={kk}>
-                        <input
-                          key={key}
-                          type="number"
-                          min={0}
-                          max={100}
-                          defaultValue={a.skor[kk] ?? ""}
-                          placeholder="-"
-                          disabled={saving[`${a.nim}.${kk}`] === true}
-                          onBlur={(e) => void simpanSatu(a.nim, kk, e.currentTarget.value)}
-                        />
-                      </td>
-                    );
-                  })}
-                  <td>{a.total}</td>
-                </tr>
+      <ScrollArea
+        label="Nilai praktikum"
+        direction="both"
+        className="session-console__nilai-scroll"
+      >
+        <table className="nilai-grid mono">
+          <thead>
+            <tr>
+              <th className="nilai-grid__col-nim">NIM</th>
+              <th className="nilai-grid__col-nama">Nama</th>
+              {data.komponen.map((kk) => (
+                <th key={kk}>{kk}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
-      ))}
+              <th className="nilai-grid__col-total">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.kelompok.map((k) => (
+              <Fragment key={k.id}>
+                <tr
+                  className="nilai-grid__group-row"
+                  style={{ "--tile-hue": `var(--group-${k.nomor})` } as React.CSSProperties}
+                >
+                  <th colSpan={data.komponen.length + 3}>
+                    Kelompok {k.nomor} · {k.nama}
+                  </th>
+                </tr>
+                {k.anggota.map((a) => (
+                  <tr key={a.nim}>
+                    <td className="nilai-grid__col-nim">{a.nim}</td>
+                    <td className="nilai-grid__col-nama">
+                      {a.nama}
+                      {!a.lengkap && (
+                        <span className="session-console__nilai-belum"> Belum lengkap</span>
+                      )}
+                    </td>
+                    {data.komponen.map((kk) => {
+                      const key = `${a.nim}.${kk}.${a.skor[kk] ?? "kosong"}`;
+                      return (
+                        <td key={kk}>
+                          <input
+                            key={key}
+                            type="number"
+                            min={0}
+                            max={100}
+                            defaultValue={a.skor[kk] ?? ""}
+                            placeholder="-"
+                            disabled={saving[`${a.nim}.${kk}`] === true}
+                            onBlur={(e) => void simpanSatu(a.nim, kk, e.currentTarget.value)}
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="nilai-grid__col-total">{a.total}</td>
+                  </tr>
+                ))}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </ScrollArea>
     </section>
   );
 }
@@ -1490,7 +1660,7 @@ function LaporanTab({ sesiId }: { sesiId: number }) {
       <h2 className="session-console__heading">Laporan</h2>
       <p className="eyebrow">Riwayat lengkap dan ekspor sesi ini ada di pusat laporan.</p>
       <a className="btn btn--primary" href={`/reports?sesi=${sesiId}`}>
-        Buka laporan sesi ini
+        <span className="btn__label">Buka laporan sesi ini</span>
       </a>
     </section>
   );
