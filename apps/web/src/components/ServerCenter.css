@@ -47,6 +47,35 @@
   gap: var(--space-3);
 }
 
+/* -------------------------------------------------------------------
+   Fleet summary strip
+   ------------------------------------------------------------------- */
+.server-center__summary {
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-small);
+  gap: var(--space-5);
+}
+
+.server-center__summary-stat {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.server-center__dot {
+  background: var(--danger);
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: 8px;
+  width: 8px;
+}
+
+.server-center__dot[data-online="yes"] {
+  background: var(--ok);
+}
+
 .back-link {
   color: var(--text-muted);
   display: inline-block;
@@ -87,6 +116,22 @@
   border-color: var(--danger-soft);
 }
 
+/* The fleet grid's final tile: a dashed "add" affordance rather than a
+   status card, matching the register-card pattern from the P7.2 mockup. */
+.server-card--daftar {
+  align-items: center;
+  border-style: dashed;
+  color: var(--text-faint);
+  justify-content: center;
+  min-height: 10rem;
+  text-align: center;
+}
+
+.server-card--daftar:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .server-card__head {
   align-items: center;
   display: flex;
@@ -121,6 +166,12 @@
   color: var(--text-faint);
 }
 
+.server-card__sparkline-scale {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
 .server-card__foot {
   color: var(--text-faint);
   display: flex;
@@ -130,9 +181,36 @@
 }
 
 .server-card__layanan {
+  color: var(--text-faint);
   display: flex;
   flex-wrap: wrap;
+  font-size: var(--fs-small);
+  gap: var(--space-1) var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.server-card__layanan li {
+  align-items: center;
+  display: flex;
   gap: var(--space-2);
+}
+
+.server-card__layanan-dot {
+  background: var(--text-faint);
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: 6px;
+  width: 6px;
+}
+
+.server-card__layanan li[data-status="aktif"] .server-card__layanan-dot {
+  background: var(--ok);
+}
+
+.server-card__layanan li[data-status="galat"] .server-card__layanan-dot {
+  background: var(--danger);
 }
 
 /* -------------------------------------------------------------------
@@ -196,6 +274,30 @@
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+/* F16: a plain swatch row above the chart, replacing uPlot's own <div
+   class="u-legend"> (disabled via legend:{show:false}) -- see this file's
+   own uplot import comment for the missing-CSS root cause. */
+.chart-legend {
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-small);
+  gap: var(--space-4);
+}
+
+.chart-legend__item {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.chart-legend__swatch {
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  height: 3px;
+  width: 14px;
 }
 
 .chart-box {

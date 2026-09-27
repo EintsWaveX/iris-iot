@@ -15,6 +15,15 @@ import { useEffect, useRef, useState } from "react";
 import { navigate } from "astro:transitions/client";
 import { startPolling } from "../scripts/polling";
 import Dropdown, { DropdownFilter } from "./ui/Dropdown";
+// uPlot's own layout CSS (axes, cursor, its internal absolute positioning)
+// was never imported anywhere in this project, which is the actual root
+// cause of F16's "legend overlaps the plot" bug: without it uPlot's several
+// stacked divs have no positioning rules at all. uPlot's own <div
+// class="u-legend"> is disabled below in favour of a plain swatch row
+// rendered above the chart (legend: { show: false }) -- simpler and more
+// controllable than fighting that table's own layout, and guaranteed never
+// to overlap the plot at any width.
+import "uplot/dist/uPlot.min.css";
 import "./ServerCenter.css";
 
 const LAYANAN_LABEL: Record<string, string> = {
@@ -280,6 +289,13 @@ function ServerListView({ onOpen }: { onOpen: (id: number) => void }) {
     );
   });
 
+  const onlineCount = daftar.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
+  const laporTerakhir = daftar
+    .map((s) => s.denyutTerakhir?.pada)
+    .filter((p): p is string => Boolean(p))
+    .sort()
+    .at(-1);
+
   return (
     <div className="server-center">
       <section className="server-center__head">
@@ -293,6 +309,22 @@ function ServerListView({ onOpen }: { onOpen: (id: number) => void }) {
           <span className="btn__label">Daftarkan Pi</span>
         </button>
       </section>
+
+      {daftar.length > 0 && (
+        <div className="server-center__summary">
+          <div className="server-center__summary-stat">
+            <span className="server-center__dot" data-online="yes" />
+            {onlineCount} daring
+          </div>
+          <div className="server-center__summary-stat">
+            <span className="server-center__dot" data-online="no" />
+            {daftar.length - onlineCount} luring
+          </div>
+          <div className="server-center__summary-stat">
+            Lapor terakhir {laporTerakhir ? fmtWaktu(laporTerakhir) : "belum pernah"}
+          </div>
+        </div>
+      )}
 
       {daftar.length > 1 && (
         <div className="server-center__toolbar">
@@ -317,6 +349,13 @@ function ServerListView({ onOpen }: { onOpen: (id: number) => void }) {
           {filtered.map((s) => (
             <ServerCard key={s.id} s={s} riwayat={riwayat[s.id]} onOpen={() => onOpen(s.id)} />
           ))}
+          <button
+            type="button"
+            className="server-card server-card--daftar"
+            onClick={() => setFormOpen(true)}
+          >
+            + Daftarkan Pi
+          </button>
         </div>
       )}
 
@@ -325,11 +364,12 @@ function ServerListView({ onOpen }: { onOpen: (id: number) => void }) {
   );
 }
 
-function Sparkline({ seri, field }: { seri: Denyut[]; field: "cpu" | "suhu" }) {
+function Sparkline({ seri, field, unit }: { seri: Denyut[]; field: "cpu" | "suhu"; unit: string }) {
   const vals = seri.map((d) => d[field]).filter((v): v is number => v != null);
   if (vals.length < 2) return <span className="server-card__sparkline-empty">-</span>;
   const min = Math.min(...vals);
   const max = Math.max(...vals);
+  const current = vals.at(-1)!;
   const range = max - min || 1;
   const w = 100;
   const h = 28;
@@ -337,9 +377,17 @@ function Sparkline({ seri, field }: { seri: Denyut[]; field: "cpu" | "suhu" }) {
     .map((v, i) => `${(i / (vals.length - 1)) * w},${h - ((v - min) / range) * h}`)
     .join(" ");
   return (
-    <svg className="server-card__sparkline" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
+    <>
+      <svg className="server-card__sparkline" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+        <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+      <span className="server-card__sparkline-scale">
+        skrg {current}
+        {unit} · min {min}
+        {unit} · maks {max}
+        {unit}
+      </span>
+    </>
   );
 }
 
@@ -372,11 +420,11 @@ function ServerCard({
       <div className="server-card__metrics">
         <div className="server-card__metric">
           <span className="server-card__metric-label">CPU 24h</span>
-          {riwayat ? <Sparkline seri={riwayat.seri} field="cpu" /> : <span>-</span>}
+          {riwayat ? <Sparkline seri={riwayat.seri} field="cpu" unit="%" /> : <span>-</span>}
         </div>
         <div className="server-card__metric">
           <span className="server-card__metric-label">Suhu 24h</span>
-          {riwayat ? <Sparkline seri={riwayat.seri} field="suhu" /> : <span>-</span>}
+          {riwayat ? <Sparkline seri={riwayat.seri} field="suhu" unit="°C" /> : <span>-</span>}
         </div>
       </div>
       <div className="server-card__foot">
@@ -388,13 +436,14 @@ function ServerCard({
         </span>
       </div>
       {s.denyutTerakhir?.layanan && (
-        <div className="server-card__layanan">
+        <ul className="server-card__layanan">
           {Object.entries(s.denyutTerakhir.layanan).map(([key, status]) => (
-            <span key={key} className="layanan-chip" data-status={status}>
+            <li key={key} data-status={status}>
+              <span className="server-card__layanan-dot" aria-hidden="true" />
               {LAYANAN_LABEL[key] ?? key}
-            </span>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </button>
   );
@@ -638,14 +687,26 @@ const RENTANG_OPTIONS = [
   { value: "7d", label: "7 hari" },
 ];
 
+// P7.4/F16: named once, shared between uPlot's series config and the
+// swatch-row legend rendered above the chart -- see this file's uplot
+// import comment for why that legend is hand-rolled rather than uPlot's own.
+const RINGKASAN_SERIES = [
+  { label: "CPU %", stroke: "#7dd3fc" },
+  { label: "Memori %", stroke: "#c4b5fd" },
+  { label: "Suhu °C", stroke: "#fca5a5" },
+];
+const REBOOT_VISIBLE = 5;
+
 function RingkasanTab({ id, data }: { id: number; data: DetailData }) {
   const [rentang, setRentang] = useState("24h");
   const [riwayat, setRiwayat] = useState<RiwayatData | null>(null);
+  const [semuaReboot, setSemuaReboot] = useState(false);
   const chartRef = useRef<HTMLDivElement | null>(null);
   const uplotRef = useRef<import("uplot") | null>(null);
 
   useEffect(() => {
     setRiwayat(null);
+    setSemuaReboot(false);
     api<{ ok: boolean } & RiwayatData>(`/api/server/${id}?aksi=riwayat&rentang=${rentang}`).then(
       (d) => {
         if (d.ok) setRiwayat(d);
@@ -668,13 +729,9 @@ function RingkasanTab({ id, data }: { id: number; data: DetailData }) {
           width: chartRef.current.clientWidth || 600,
           height: 220,
           scales: { x: { time: true } },
-          series: [
-            {},
-            { label: "CPU %", stroke: "#7dd3fc", width: 1.5 },
-            { label: "Memori %", stroke: "#c4b5fd", width: 1.5 },
-            { label: "Suhu °C", stroke: "#fca5a5", width: 1.5 },
-          ],
+          series: [{}, ...RINGKASAN_SERIES.map((s) => ({ ...s, width: 1.5 }))],
           axes: [{}, {}],
+          legend: { show: false },
         },
         [xs, cpu, mem, suhu],
         chartRef.current,
@@ -729,6 +786,14 @@ function RingkasanTab({ id, data }: { id: number; data: DetailData }) {
         </div>
       </dl>
 
+      <div className="chart-legend">
+        {RINGKASAN_SERIES.map((s) => (
+          <span key={s.label} className="chart-legend__item">
+            <span className="chart-legend__swatch" style={{ background: s.stroke }} />
+            {s.label}
+          </span>
+        ))}
+      </div>
       <div className="chart-box" ref={chartRef} />
 
       <div className="tab-columns">
@@ -737,11 +802,24 @@ function RingkasanTab({ id, data }: { id: number; data: DetailData }) {
           {!riwayat || riwayat.reboot.length === 0 ? (
             <p className="muted">Tidak ada reboot pada rentang ini.</p>
           ) : (
-            <ul className="event-list">
-              {riwayat.reboot.map((r, i) => (
-                <li key={i}>{fmtWaktu(r.pada)}</li>
-              ))}
-            </ul>
+            <>
+              <ul className="event-list">
+                {(semuaReboot ? riwayat.reboot : riwayat.reboot.slice(0, REBOOT_VISIBLE)).map(
+                  (r, i) => (
+                    <li key={i}>{fmtWaktu(r.pada)}</li>
+                  ),
+                )}
+              </ul>
+              {!semuaReboot && riwayat.reboot.length > REBOOT_VISIBLE && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => setSemuaReboot(true)}
+                >
+                  <span className="btn__label">Lihat semua ({riwayat.reboot.length})</span>
+                </button>
+              )}
+            </>
           )}
         </div>
         <div>
