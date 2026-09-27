@@ -10,6 +10,7 @@ export const id = {
   indexLede:
     "Empat modul, satu papan. Pilih modul untuk membuka brief, persiapan, kode, dan tampilan live-nya.",
   indexCardOpen: "Buka modul",
+  indexLocked: "Terkunci",
   langSwitchLabel: "English",
   langSwitchHref: (modul?: number) => (modul ? `/en/modules/${modul}` : "/en/modules"),
   backToIndex: "Semua modul",

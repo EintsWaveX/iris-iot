@@ -16,6 +16,12 @@ const modules = defineCollection({
     bahasa: z.enum(["id", "en"]),
     judul: z.string(),
     topik: z.string(),
+    // P7.4: the one-line pitch and 2-3 short fact chips (board, protocol,
+    // hardware) the Modul list's 2x2 cards show -- curated by hand rather
+    // than derived from `perangkat`/`toolchain`, which carry full part
+    // names and counts meant for the persiapan step, not a card-sized chip.
+    tagline: z.string(),
+    fakta: z.array(z.string()),
     ringkasan: z.array(z.string()),
     permainan: z.array(z.string()).optional(),
     toolchain: z.array(

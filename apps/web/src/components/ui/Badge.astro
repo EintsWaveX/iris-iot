@@ -18,6 +18,7 @@ interface Props {
   tone?: "neutral" | "accent" | "ok" | "warn" | "danger" | "gold";
   group?: 1 | 2 | 3 | 4 | 5;
   id?: string;
+  class?: string;
   [attr: string]: unknown;
 }
 
@@ -30,11 +31,11 @@ const TONE_HUES = {
   gold: "var(--gold)",
 } as const;
 
-const { tone = "neutral", group, id, ...rest } = Astro.props;
+const { tone = "neutral", group, id, class: className, ...rest } = Astro.props;
 const hue = group ? `var(--group-${group})` : TONE_HUES[tone];
 ---
 
-<span id={id} class="badge" style={`--badge-hue: ${hue}`} {...rest}>
+<span id={id} class:list={["badge", className]} style={`--badge-hue: ${hue}`} {...rest}>
   <slot />
 </span>
 

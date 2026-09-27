@@ -3,6 +3,8 @@
   "bahasa": "id",
   "judul": "MQTT",
   "topik": "Konektivitas MQTT dengan MicroPython, Raspberry Pi Pico W, dan Eclipse Mosquitto",
+  "tagline": "Dua papan bertukar data lewat broker Eclipse Mosquitto.",
+  "fakta": ["Pi Pico W", "Mosquitto"],
   "ringkasan": [
     "Dua papan Raspberry Pi Pico W bertukar data lewat broker Eclipse Mosquitto yang berjalan di Orange Pi: satu papan mempublikasikan posisi potensiometer, satu lagi berlangganan topic yang sama dan mencatat setiap nilai yang masuk.",
     "Setiap kelompok memakai topic dan mqtt_client_id sendiri, sehingga banyak kelompok dapat berbagi satu broker tanpa saling mengganggu."
@@ -14,11 +16,26 @@
     }
   ],
   "perangkat": [
-    { "nama": "Raspberry Pi Pico W", "jumlah": "2x" },
-    { "nama": "Orange Pi 4 PRO", "jumlah": "1x, sebagai broker Mosquitto" },
-    { "nama": "Potensiometer 10 kOhm", "jumlah": "1x" },
-    { "nama": "Breadboard", "jumlah": "1x" },
-    { "nama": "Kabel/Jumper", "jumlah": "disesuaikan" }
+    {
+      "nama": "Raspberry Pi Pico W",
+      "jumlah": "2x"
+    },
+    {
+      "nama": "Orange Pi 4 PRO",
+      "jumlah": "1x, sebagai broker Mosquitto"
+    },
+    {
+      "nama": "Potensiometer 10 kOhm",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Breadboard",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Kabel/Jumper",
+      "jumlah": "disesuaikan"
+    }
   ],
   "skema": "/schematics/Module 3.png",
   "pin": {
@@ -56,12 +73,29 @@
       "bahasaKode": "python"
     }
   ],
-  "ladder": { "jalur": 3 },
+  "ladder": {
+    "jalur": 3
+  },
   "lapisan": [
-    { "nama": "Aplikasi", "nilai": "Topic, QoS, retained" },
-    { "nama": "Transport", "nilai": "TCP ke broker" },
-    { "nama": "Jaringan", "nilai": "IP lewat broker" },
-    { "nama": "Tautan data", "nilai": "WiFi 802.11" },
-    { "nama": "Fisik", "nilai": "2,4 GHz, RSSI" }
+    {
+      "nama": "Aplikasi",
+      "nilai": "Topic, QoS, retained"
+    },
+    {
+      "nama": "Transport",
+      "nilai": "TCP ke broker"
+    },
+    {
+      "nama": "Jaringan",
+      "nilai": "IP lewat broker"
+    },
+    {
+      "nama": "Tautan data",
+      "nilai": "WiFi 802.11"
+    },
+    {
+      "nama": "Fisik",
+      "nilai": "2,4 GHz, RSSI"
+    }
   ]
 }

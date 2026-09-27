@@ -3,6 +3,8 @@
   "bahasa": "id",
   "judul": "LoRa",
   "topik": "Komunikasi Long Range (LoRa Peer to Peer)",
+  "tagline": "Perburuan sinyal LoRa P2P antar papan ESP32.",
+  "fakta": ["ESP32", "LoRa P2P", "Hotspot Pi"],
   "ringkasan": [
     "Modul ini tidak memakai satu pun sensor maupun aktuator luar. Yang diukur adalah gelombang radionya sendiri: hubungan antara kekuatan sinyal dan jarak.",
     "Karena LoRa peer to peer tidak memiliki protokol kanal bawaan, seluruh aturan jaringannya, termasuk sync word dan jeda pancar, disusun sendiri oleh peserta."
@@ -12,18 +14,36 @@
     "Semakin dekat sebuah kelompok ke targetnya SENDIRI, semakin kuat sinyal yang terbaca. Kelompok yang paling cepat menemukan targetnya sendiri menang. Jarak antar kelompok tidak dapat dibandingkan, karena target masing-masing disembunyikan di tempat berbeda."
   ],
   "toolchain": [
-    { "label": "Papan Hunter tiap kelompok", "alat": "Arduino IDE" },
-    { "label": "Papan Beacon (diunggah oleh asisten)", "alat": "Arduino IDE" }
+    {
+      "label": "Papan Hunter tiap kelompok",
+      "alat": "Arduino IDE"
+    },
+    {
+      "label": "Papan Beacon (diunggah oleh asisten)",
+      "alat": "Arduino IDE"
+    }
   ],
   "perangkat": [
-    { "nama": "Cosmic LoRa Aurora V2", "jumlah": "1x per kelompok, sebagai Hunter" },
+    {
+      "nama": "Cosmic LoRa Aurora V2",
+      "jumlah": "1x per kelompok, sebagai Hunter"
+    },
     {
       "nama": "Cosmic LoRa Aurora V2",
       "jumlah": "1x per kelompok, sebagai Beacon target kelompok itu sendiri"
     },
-    { "nama": "Antena LoRa 920 MHz", "jumlah": "1x per papan" },
-    { "nama": "Orange Pi 4 PRO", "jumlah": "1x sekelas, hotspot dan papan skor" },
-    { "nama": "Power bank atau kabel USB panjang", "jumlah": "1x per kelompok" }
+    {
+      "nama": "Antena LoRa 920 MHz",
+      "jumlah": "1x per papan"
+    },
+    {
+      "nama": "Orange Pi 4 PRO",
+      "jumlah": "1x sekelas, hotspot dan papan skor"
+    },
+    {
+      "nama": "Power bank atau kabel USB panjang",
+      "jumlah": "1x per kelompok"
+    }
   ],
   "skema": "/schematics/Module 4.png",
   "pin": {
@@ -67,12 +87,29 @@
       "bahasaKode": "cpp"
     }
   ],
-  "ladder": { "jalur": 2 },
+  "ladder": {
+    "jalur": 2
+  },
   "lapisan": [
-    { "nama": "Aplikasi", "nilai": "Rank, heat" },
-    { "nama": "Transport", "nilai": "(tidak ada)" },
-    { "nama": "Jaringan", "nilai": "(tidak ada)" },
-    { "nama": "Tautan data", "nilai": "Sync word, sequence, loss" },
-    { "nama": "Fisik", "nilai": "920 MHz, SF, BW, RSSI, SNR" }
+    {
+      "nama": "Aplikasi",
+      "nilai": "Rank, heat"
+    },
+    {
+      "nama": "Transport",
+      "nilai": "(tidak ada)"
+    },
+    {
+      "nama": "Jaringan",
+      "nilai": "(tidak ada)"
+    },
+    {
+      "nama": "Tautan data",
+      "nilai": "Sync word, sequence, loss"
+    },
+    {
+      "nama": "Fisik",
+      "nilai": "920 MHz, SF, BW, RSSI, SNR"
+    }
   ]
 }

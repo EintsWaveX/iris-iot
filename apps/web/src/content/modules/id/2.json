@@ -3,23 +3,43 @@
   "bahasa": "id",
   "judul": "WebSocket",
   "topik": "Komunikasi WebSocket dengan Server Lokal",
+  "tagline": "ESP32 mengirim data sensor ke server Python lewat Wi-Fi lokal.",
+  "fakta": ["ESP32", "DHT22", "Orange Pi"],
   "ringkasan": [
     "ESP32 membaca sensor DHT22 dan mengirim hasilnya ke server WebSocket yang berjalan di Orange Pi lewat jaringan Wi-Fi lokal yang sama.",
     "Server membedakan tiap kelompok dari path koneksinya, sehingga beberapa kelompok dapat memakai satu server yang sama tanpa saling mengganggu."
   ],
   "toolchain": [
-    { "label": "Papan ESP32 (client)", "alat": "Arduino IDE" },
+    {
+      "label": "Papan ESP32 (client)",
+      "alat": "Arduino IDE"
+    },
     {
       "label": "Server pada Orange Pi",
       "alat": "Python (CPython), lewat editor teks dan virtual environment"
     }
   ],
   "perangkat": [
-    { "nama": "ESP32-S3 (atau DevKit V1)", "jumlah": "1x" },
-    { "nama": "Orange Pi 4 PRO", "jumlah": "1x, sebagai server lokal" },
-    { "nama": "Sensor DHT22", "jumlah": "1x" },
-    { "nama": "Breadboard", "jumlah": "1x" },
-    { "nama": "Kabel/Jumper", "jumlah": "disesuaikan" }
+    {
+      "nama": "ESP32-S3 (atau DevKit V1)",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Orange Pi 4 PRO",
+      "jumlah": "1x, sebagai server lokal"
+    },
+    {
+      "nama": "Sensor DHT22",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Breadboard",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Kabel/Jumper",
+      "jumlah": "disesuaikan"
+    }
   ],
   "skema": "/schematics/Module 2.png",
   "pin": {
@@ -55,12 +75,29 @@
       "bahasaKode": "cpp"
     }
   ],
-  "ladder": { "jalur": 2 },
+  "ladder": {
+    "jalur": 2
+  },
   "lapisan": [
-    { "nama": "Aplikasi", "nilai": "Payload JSON" },
-    { "nama": "Transport", "nilai": "TCP, port WS_PORT" },
-    { "nama": "Jaringan", "nilai": "IP, satu hop" },
-    { "nama": "Tautan data", "nilai": "WiFi 802.11" },
-    { "nama": "Fisik", "nilai": "2,4 GHz, RSSI" }
+    {
+      "nama": "Aplikasi",
+      "nilai": "Payload JSON"
+    },
+    {
+      "nama": "Transport",
+      "nilai": "TCP, port WS_PORT"
+    },
+    {
+      "nama": "Jaringan",
+      "nilai": "IP, satu hop"
+    },
+    {
+      "nama": "Tautan data",
+      "nilai": "WiFi 802.11"
+    },
+    {
+      "nama": "Fisik",
+      "nilai": "2,4 GHz, RSSI"
+    }
   ]
 }

@@ -3,6 +3,8 @@
   "bahasa": "en",
   "judul": "MQTT",
   "topik": "MQTT Connectivity with MicroPython, Raspberry Pi Pico W, and Eclipse Mosquitto",
+  "tagline": "Two boards exchange data through an Eclipse Mosquitto broker.",
+  "fakta": ["Pi Pico W", "Mosquitto"],
   "ringkasan": [
     "Two Raspberry Pi Pico W boards exchange data through an Eclipse Mosquitto broker running on an Orange Pi: one board publishes a potentiometer's position, and the other subscribes to the same topic and records every value that arrives.",
     "Every group uses its own topic and mqtt_client_id, so many groups can share one broker without disturbing each other."
@@ -14,11 +16,26 @@
     }
   ],
   "perangkat": [
-    { "nama": "Raspberry Pi Pico W", "jumlah": "2x" },
-    { "nama": "Orange Pi 4 PRO", "jumlah": "1x, as the Mosquitto broker" },
-    { "nama": "10 kOhm Potentiometer", "jumlah": "1x" },
-    { "nama": "Breadboard", "jumlah": "1x" },
-    { "nama": "Wires/Jumpers", "jumlah": "as needed" }
+    {
+      "nama": "Raspberry Pi Pico W",
+      "jumlah": "2x"
+    },
+    {
+      "nama": "Orange Pi 4 PRO",
+      "jumlah": "1x, as the Mosquitto broker"
+    },
+    {
+      "nama": "10 kOhm Potentiometer",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Breadboard",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Wires/Jumpers",
+      "jumlah": "as needed"
+    }
   ],
   "skema": "/schematics/Module 3.png",
   "pin": {
@@ -56,12 +73,29 @@
       "bahasaKode": "python"
     }
   ],
-  "ladder": { "jalur": 3 },
+  "ladder": {
+    "jalur": 3
+  },
   "lapisan": [
-    { "nama": "Application", "nilai": "Topic, QoS, retained" },
-    { "nama": "Transport", "nilai": "TCP to broker" },
-    { "nama": "Network", "nilai": "IP via broker" },
-    { "nama": "Data link", "nilai": "WiFi 802.11" },
-    { "nama": "Physical", "nilai": "2.4 GHz, RSSI" }
+    {
+      "nama": "Application",
+      "nilai": "Topic, QoS, retained"
+    },
+    {
+      "nama": "Transport",
+      "nilai": "TCP to broker"
+    },
+    {
+      "nama": "Network",
+      "nilai": "IP via broker"
+    },
+    {
+      "nama": "Data link",
+      "nilai": "WiFi 802.11"
+    },
+    {
+      "nama": "Physical",
+      "nilai": "2.4 GHz, RSSI"
+    }
   ]
 }

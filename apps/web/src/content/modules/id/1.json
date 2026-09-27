@@ -3,19 +3,47 @@
   "bahasa": "id",
   "judul": "Bluetooth Low Energy",
   "topik": "Konektivitas Bluetooth Low Energy (BLE)",
+  "tagline": "Central dan Peripheral bertukar sinyal lewat GATT, tanpa jaringan IP.",
+  "fakta": ["ESP32", "GATT", "Tanpa jaringan IP"],
   "ringkasan": [
     "Dua papan ESP32 saling terhubung lewat protokol GATT: satu berperan sebagai Central yang membaca sebuah push button, satu lagi sebagai Peripheral yang menyalakan/mematikan LED begitu menerima notifikasi.",
     "Delay yang diukur adalah waktu tempuh satu arah dari Central ke Peripheral, dibandingkan dengan delay round trip yang dicetak sendiri oleh Central saat pantulannya diterima."
   ],
-  "toolchain": [{ "label": "Kedua papan ESP32 (Central dan Peripheral)", "alat": "Arduino IDE" }],
+  "toolchain": [
+    {
+      "label": "Kedua papan ESP32 (Central dan Peripheral)",
+      "alat": "Arduino IDE"
+    }
+  ],
   "perangkat": [
-    { "nama": "ESP32-S3 (atau ESP32 DevKit V1)", "jumlah": "2x" },
-    { "nama": "Push Button 4 kaki", "jumlah": "1x" },
-    { "nama": "LED 5 mm (warna bebas)", "jumlah": "1x" },
-    { "nama": "Resistor 10 kOhm", "jumlah": "1x" },
-    { "nama": "Resistor 220 Ohm", "jumlah": "1x" },
-    { "nama": "Breadboard", "jumlah": "2x" },
-    { "nama": "Kabel/Jumper", "jumlah": "disesuaikan" }
+    {
+      "nama": "ESP32-S3 (atau ESP32 DevKit V1)",
+      "jumlah": "2x"
+    },
+    {
+      "nama": "Push Button 4 kaki",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "LED 5 mm (warna bebas)",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Resistor 10 kOhm",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Resistor 220 Ohm",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Breadboard",
+      "jumlah": "2x"
+    },
+    {
+      "nama": "Kabel/Jumper",
+      "jumlah": "disesuaikan"
+    }
   ],
   "skema": "/schematics/Module 1.png",
   "pin": {
@@ -48,12 +76,29 @@
       "bahasaKode": "cpp"
     }
   ],
-  "ladder": { "jalur": 2 },
+  "ladder": {
+    "jalur": 2
+  },
   "lapisan": [
-    { "nama": "Aplikasi", "nilai": "Characteristic GATT" },
-    { "nama": "Transport", "nilai": "Notify" },
-    { "nama": "Jaringan", "nilai": "(tidak ada)" },
-    { "nama": "Tautan data", "nilai": "Tautan LE, interval koneksi" },
-    { "nama": "Fisik", "nilai": "2,4 GHz, RSSI" }
+    {
+      "nama": "Aplikasi",
+      "nilai": "Characteristic GATT"
+    },
+    {
+      "nama": "Transport",
+      "nilai": "Notify"
+    },
+    {
+      "nama": "Jaringan",
+      "nilai": "(tidak ada)"
+    },
+    {
+      "nama": "Tautan data",
+      "nilai": "Tautan LE, interval koneksi"
+    },
+    {
+      "nama": "Fisik",
+      "nilai": "2,4 GHz, RSSI"
+    }
   ]
 }

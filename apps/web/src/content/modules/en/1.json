@@ -3,19 +3,47 @@
   "bahasa": "en",
   "judul": "Bluetooth Low Energy",
   "topik": "Bluetooth Low Energy (BLE) Connectivity",
+  "tagline": "Central and Peripheral exchange signals over GATT, with no IP network.",
+  "fakta": ["ESP32", "GATT", "No IP network"],
   "ringkasan": [
     "Two ESP32 boards connect over the GATT protocol: one acts as the Central, reading a push button, and the other as the Peripheral, turning an LED on or off as soon as it receives a notification.",
     "The delay measured is the one way travel time from Central to Peripheral, compared against the round trip delay the Central prints for itself once the echo comes back."
   ],
-  "toolchain": [{ "label": "Both ESP32 boards (Central and Peripheral)", "alat": "Arduino IDE" }],
+  "toolchain": [
+    {
+      "label": "Both ESP32 boards (Central and Peripheral)",
+      "alat": "Arduino IDE"
+    }
+  ],
   "perangkat": [
-    { "nama": "ESP32-S3 (or ESP32 DevKit V1)", "jumlah": "2x" },
-    { "nama": "4-pin Push Button", "jumlah": "1x" },
-    { "nama": "5mm LED (any color)", "jumlah": "1x" },
-    { "nama": "10 kOhm Resistor", "jumlah": "1x" },
-    { "nama": "220 Ohm Resistor", "jumlah": "1x" },
-    { "nama": "Breadboard", "jumlah": "2x" },
-    { "nama": "Wires/Jumpers", "jumlah": "as needed" }
+    {
+      "nama": "ESP32-S3 (or ESP32 DevKit V1)",
+      "jumlah": "2x"
+    },
+    {
+      "nama": "4-pin Push Button",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "5mm LED (any color)",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "10 kOhm Resistor",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "220 Ohm Resistor",
+      "jumlah": "1x"
+    },
+    {
+      "nama": "Breadboard",
+      "jumlah": "2x"
+    },
+    {
+      "nama": "Wires/Jumpers",
+      "jumlah": "as needed"
+    }
   ],
   "skema": "/schematics/Module 1.png",
   "pin": {
@@ -48,12 +76,29 @@
       "bahasaKode": "cpp"
     }
   ],
-  "ladder": { "jalur": 2 },
+  "ladder": {
+    "jalur": 2
+  },
   "lapisan": [
-    { "nama": "Application", "nilai": "GATT characteristic" },
-    { "nama": "Transport", "nilai": "Notify" },
-    { "nama": "Network", "nilai": "(none)" },
-    { "nama": "Data link", "nilai": "LE link, connection interval" },
-    { "nama": "Physical", "nilai": "2.4 GHz, RSSI" }
+    {
+      "nama": "Application",
+      "nilai": "GATT characteristic"
+    },
+    {
+      "nama": "Transport",
+      "nilai": "Notify"
+    },
+    {
+      "nama": "Network",
+      "nilai": "(none)"
+    },
+    {
+      "nama": "Data link",
+      "nilai": "LE link, connection interval"
+    },
+    {
+      "nama": "Physical",
+      "nilai": "2.4 GHz, RSSI"
+    }
   ]
 }

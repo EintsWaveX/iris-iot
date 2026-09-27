@@ -6,6 +6,7 @@ export const en: ModuleStrings = {
   indexLede:
     "Four modules, one board. Pick a module to open its brief, setup, code, and live view.",
   indexCardOpen: "Open module",
+  indexLocked: "Locked",
   langSwitchLabel: "Indonesia",
   langSwitchHref: (modul?: number) => (modul ? `/modules/${modul}` : "/modules"),
   backToIndex: "All modules",
