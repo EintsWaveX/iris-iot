@@ -1,0 +1,43 @@
+/* GroupPicker.tsx's styling (P7.1). One chip per group, each carrying its
+   own hue as a left accent bar via the shared --tile-hue custom property
+   (the same one Ladder/LayerXray/LiveSandbox/GroupLive's own copies of
+   this pattern already used) -- consolidated here so the four call sites
+   read from one definition once they adopt this component in P7.3/P7.4. */
+
+.group-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.group-picker__item {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--tile-hue, var(--hairline));
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  min-height: max(var(--tap), 36px);
+  padding-inline: var(--space-3);
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal),
+    border-color var(--dur-fast) var(--ease-reveal);
+}
+
+.group-picker__item:hover {
+  color: var(--text);
+}
+
+.group-picker__item[data-state="on"] {
+  background: var(--bg-elevated);
+  border-color: var(--tile-hue, var(--hairline-strong));
+  color: var(--text);
+}
+
+.group-picker__item:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}

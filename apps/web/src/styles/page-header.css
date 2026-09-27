@@ -1,0 +1,110 @@
+/* =========================================================================
+   PAGE HEADER (P7.1) -- one shared header shape for every page: a context
+   row (a back link, on its own line), an eyebrow, a title, an optional
+   subtitle, and right-aligned actions.
+
+   Global, not a scoped PageHeader.astro <style> block -- same reasoning as
+   controls.css (see that file's own docblock): ReportsView.tsx,
+   ServerCenter.tsx and SessionConsole.tsx are React islands outside
+   Astro's scoping and need to apply these exact classes by hand once each
+   is rebuilt onto this header in P7.4. PageHeader.astro is the Astro-side
+   convenience wrapper that emits this markup for pages that render
+   directly in Astro (the module editor/live view, the group page).
+
+   Fixes two audit findings:
+   F14 -- page titles sat flush against the nav on some pages (servers,
+   reports) and had normal spacing on others, because no shared spacing
+   token existed. `--space-page-top` (packages/kosmik/style/tokens.css)
+   is applied here in exactly one place now.
+   F6 -- "« Semua modulMODUL 1" / "« Kembali ke modulMODUL 1" text
+   collisions: the back link previously sat inline with the eyebrow with
+   no guaranteed gap, and HTML compression could strip the one whitespace
+   character standing between them. Putting the back link in its own
+   `.page-header__context` row removes the adjacency entirely.
+   ========================================================================= */
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-page-top);
+  margin-bottom: var(--space-section);
+}
+
+.page-header__context {
+  display: block;
+}
+
+.page-header__context .page-header__back {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  text-decoration: none;
+}
+
+.page-header__context .page-header__back:hover {
+  color: var(--text);
+}
+
+.page-header__row {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: space-between;
+}
+
+.page-header__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.page-header__eyebrow {
+  align-items: center;
+  color: var(--accent);
+  display: flex;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  gap: var(--space-3);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+.page-header__eyebrow::after {
+  background: var(--hairline);
+  content: "";
+  height: 1px;
+  flex: 1;
+  max-width: 4rem;
+}
+
+.page-header__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  font-weight: 400;
+}
+
+.page-header__subtitle {
+  color: var(--text-muted);
+  max-width: var(--measure-prose);
+}
+
+.page-header__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* Below 640, actions wrap under the title rather than squeezing beside it
+   on one line. */
+@media (max-width: 639px) {
+  .page-header__row {
+    flex-direction: column;
+  }
+
+  .page-header__actions {
+    width: 100%;
+  }
+}

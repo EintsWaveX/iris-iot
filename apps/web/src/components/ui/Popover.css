@@ -1,0 +1,30 @@
+/* Popover.tsx's styling (P7.1). Same surface language as Dialog/Modal, at
+   a smaller radius since a popover panel is never as prominent as a
+   dialog. */
+
+.popover__panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  padding: var(--space-4);
+  z-index: 90;
+  animation: popover-in var(--dur-fast) var(--ease-out-expo);
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover__panel {
+    animation-duration: 1ms;
+  }
+}

@@ -151,6 +151,7 @@
    1px ring is decoration, never a surface text sits on, so it is free to
    use the nebula-toned gradient. */
 .btn--ghost::after,
+.btn--secondary::after,
 .btn--danger::after,
 .btn--quiet::after {
   background-image: var(--sweep-ring);
@@ -172,6 +173,8 @@
 
 .btn--ghost:hover:not(:disabled):not([aria-disabled="true"])::after,
 .btn--ghost:focus-visible:not([aria-disabled="true"])::after,
+.btn--secondary:hover:not(:disabled):not([aria-disabled="true"])::after,
+.btn--secondary:focus-visible:not([aria-disabled="true"])::after,
 .btn--danger:hover:not(:disabled):not([aria-disabled="true"])::after,
 .btn--danger:focus-visible:not([aria-disabled="true"])::after,
 .btn--quiet:hover:not(:disabled):not([aria-disabled="true"])::after,
@@ -183,6 +186,9 @@
 :root:not([data-motion-tier="0"])
   .btn--ghost:hover:not(:disabled):not([aria-disabled="true"])::after,
 :root:not([data-motion-tier="0"]) .btn--ghost:focus-visible:not([aria-disabled="true"])::after,
+:root:not([data-motion-tier="0"])
+  .btn--secondary:hover:not(:disabled):not([aria-disabled="true"])::after,
+:root:not([data-motion-tier="0"]) .btn--secondary:focus-visible:not([aria-disabled="true"])::after,
 :root:not([data-motion-tier="0"])
   .btn--danger:hover:not(:disabled):not([aria-disabled="true"])::after,
 :root:not([data-motion-tier="0"]) .btn--danger:focus-visible:not([aria-disabled="true"])::after,
@@ -240,6 +246,21 @@
   z-index: 1;
 }
 
+/* -- secondary: a real filled surface for a page's other real actions
+   (P7.1) -- more present than ghost, but not the one-per-view accent of
+   primary. Sits on --surface-2 rather than transparent, so it still reads
+   as a solid control next to a primary button. -- */
+.btn--secondary {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  color: var(--text);
+}
+
+.btn--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--surface-3);
+  border-color: var(--accent);
+}
+
 /* -- danger: destructive assistant actions get a visually distinct control -- */
 .btn--danger {
   border-color: color-mix(in srgb, var(--danger) 55%, transparent);
@@ -252,12 +273,11 @@
 }
 
 /* -- quiet: a bordered icon-only control (carousel arrows, a table's own
-   inline action) -- square rather than padded, no label. -- */
+   inline action) -- square rather than padded, no label. Its shape rules
+   (flex-shrink/padding/width) now live below, shared with the newer
+   `.btn--icon` modifier so the two can't drift apart. -- */
 .btn--quiet {
   color: var(--text-muted);
-  flex-shrink: 0;
-  padding: 0;
-  width: max(var(--tap), 44px);
 }
 
 .btn--quiet:hover:not(:disabled):not([aria-disabled="true"]) {
@@ -274,6 +294,36 @@
 
 .btn--sm.btn--quiet {
   width: var(--tap);
+}
+
+/* -- lg: a page's one standout action (P7.1) -- */
+.btn--lg {
+  font-size: var(--fs-body-lg);
+  min-height: max(var(--tap), 52px);
+  padding-inline: var(--space-7);
+}
+
+/* -- icon: a square, icon-only footprint that combines with any `kind`
+   (P7.1) -- pass an icon via the slot and a real `aria-label`, since the
+   visible `.btn__label` text is what a screen reader announces and an
+   icon-only button has none to speak of otherwise. Shares its sizing with
+   the older `.btn--quiet` shape rather than duplicating it, so the two
+   stay in sync; `.btn--quiet` itself is unchanged for existing call sites
+   (see the Button.astro doc comment on why the two now exist side by
+   side). -- */
+.btn--icon,
+.btn--quiet {
+  flex-shrink: 0;
+  padding: 0;
+  width: max(var(--tap), 44px);
+}
+
+.btn--icon.btn--sm {
+  width: var(--tap);
+}
+
+.btn--icon.btn--lg {
+  width: max(var(--tap), 52px);
 }
 
 /* -- loading state -- */

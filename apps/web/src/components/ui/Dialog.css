@@ -1,0 +1,124 @@
+/* Dialog.tsx's styling (P7.1). Mirrors Modal.astro's visual language
+   (same surface, radius, shadow, entrance motion) so the two dialog systems
+   read as one design even though they're built on different mechanisms. */
+
+.dialog__overlay {
+  background: var(--scrim);
+  inset: 0;
+  position: fixed;
+  z-index: 100;
+  animation: dialog-overlay-in var(--dur-mid) var(--ease-out-expo);
+}
+
+@keyframes dialog-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog__panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lift);
+  left: 50%;
+  max-height: calc(100% - var(--space-8));
+  max-width: min(32rem, calc(100vw - var(--space-8)));
+  overflow-y: auto;
+  padding: var(--space-6);
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.96);
+  width: 100%;
+  z-index: 101;
+  animation: dialog-panel-in var(--dur-mid) var(--ease-out-expo);
+}
+
+@keyframes dialog-panel-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Bottom sheet: full width, pinned to the viewport's bottom edge, rounded
+   top corners only, slides up rather than scaling in. Used for the mobile
+   Akun menu and the mobile login dialog. */
+.dialog__panel--sheet {
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-bottom: 0;
+  bottom: 0;
+  left: 0;
+  max-height: min(85vh, calc(100% - var(--space-8)));
+  max-width: 100%;
+  padding-bottom: max(var(--space-6), env(safe-area-inset-bottom, 0px));
+  top: auto;
+  transform: translateY(0);
+  animation: dialog-sheet-in var(--dur-mid) var(--ease-out-expo);
+}
+
+@keyframes dialog-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.dialog__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  padding-right: var(--space-8);
+  position: relative;
+}
+
+.dialog__title {
+  font-size: var(--fs-display-sm);
+}
+
+.dialog__lede {
+  color: var(--text-muted);
+}
+
+.dialog__close {
+  position: absolute;
+  right: calc(var(--space-8) * -1 + var(--space-2));
+  top: calc(var(--space-1) * -1);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.dialog__body {
+  color: var(--text-muted);
+}
+
+.dialog__actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 480px) {
+  .dialog__actions {
+    flex-direction: column-reverse;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog__overlay,
+  .dialog__panel,
+  .dialog__panel--sheet {
+    animation-duration: 1ms;
+  }
+}

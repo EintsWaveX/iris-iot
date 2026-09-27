@@ -1,0 +1,51 @@
+/* ScrollArea.tsx's styling (P7.1). */
+
+.scroll-area {
+  border-radius: inherit;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.scroll-area__viewport {
+  border-radius: inherit;
+  height: 100%;
+  width: 100%;
+}
+
+.scroll-area__viewport:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.scroll-area__bar {
+  display: flex;
+  padding: 2px;
+  touch-action: none;
+  user-select: none;
+}
+
+.scroll-area__bar[data-orientation="horizontal"] {
+  flex-direction: column;
+  height: 10px;
+}
+
+.scroll-area__bar[data-orientation="vertical"] {
+  width: 10px;
+}
+
+.scroll-area__thumb {
+  background: var(--hairline-strong);
+  border-radius: var(--radius-pill);
+  flex: 1;
+  position: relative;
+  transition: background var(--dur-fast) var(--ease-reveal);
+}
+
+.scroll-area__thumb:hover {
+  background: var(--text-faint);
+}
+
+.scroll-area__corner {
+  background: transparent;
+}

@@ -1,0 +1,54 @@
+---
+/**
+ * The one page header (P7.1) -- see src/styles/page-header.css for the
+ * full rationale and the two audit findings this fixes (F14: inconsistent
+ * title-to-nav spacing; F6: back-link/eyebrow text collisions). This is
+ * the Astro-side convenience wrapper; a React island that needs the same
+ * header applies `.page-header` etc. by hand (that stylesheet is global,
+ * not scoped here, exactly like Button.astro/controls.css).
+ *
+ * `back` is optional -- pages with nothing to go back to (the landing
+ * page, the top-level module list) omit it and the context row simply
+ * isn't rendered, rather than reserving empty space for it.
+ *
+ * Usage:
+ *   <PageHeader
+ *     back={{ href: "/modules", label: "Semua modul" }}
+ *     eyebrow="Modul 1"
+ *     title="Bluetooth Low Energy"
+ *     subtitle="Konektivitas Bluetooth Low Energy (BLE)"
+ *   >
+ *     <Fragment slot="actions">
+ *       <Button kind="secondary">Unduh .ino</Button>
+ *     </Fragment>
+ *   </PageHeader>
+ */
+interface Props {
+  back?: { href: string; label: string };
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+}
+
+const { back, eyebrow, title, subtitle } = Astro.props;
+---
+
+<header class="page-header">
+  {back && (
+    <p class="page-header__context">
+      <a class="page-header__back" href={back.href}>
+        « {back.label}
+      </a>
+    </p>
+  )}
+  <div class="page-header__row">
+    <div class="page-header__heading">
+      {eyebrow && <p class="page-header__eyebrow">{eyebrow}</p>}
+      <h1 class="page-header__title">{title}</h1>
+      {subtitle && <p class="page-header__subtitle">{subtitle}</p>}
+    </div>
+    <div class="page-header__actions">
+      <slot name="actions" />
+    </div>
+  </div>
+</header>

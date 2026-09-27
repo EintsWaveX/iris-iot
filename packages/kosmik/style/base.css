@@ -238,3 +238,50 @@ textarea:focus-visible {
 .section__title {
   font-size: var(--fs-display-sm);
 }
+
+/* -------------------------------------------------------------------------
+   [hidden] — the browser's own `[hidden] { display: none }` UA rule is easy
+   for a later, more specific `display` declaration to shadow by accident
+   (Card.astro's `.card { display: flex }` did exactly this: a hidden card
+   still rendered, because `.card`'s specificity beat the UA sheet). This is
+   a global, `!important` backstop so no component has to remember to add
+   its own `[hidden]` override the way controls.css's `.btn[hidden]` already
+   does. apps/web only (apps/games doesn't import this file).
+   ------------------------------------------------------------------------- */
+[hidden] {
+  display: none !important;
+}
+
+/* -------------------------------------------------------------------------
+   PAGE GRID — three named containers sharing one left edge, replacing
+   .measure/.measure--wide's role for apps/web pages (those two classes are
+   untouched above: apps/games reads their backing tokens directly and
+   isn't part of this redesign). Every page picks exactly one width type:
+
+     .page-narrow   reading, forms, the editor's step content
+     .page-regular  most pages (dashboard, module list, landing)
+     .page-wide     the session console, the Nilai grid, big tables
+
+   All three share the same --page-margin gutter, so a --page-narrow block
+   nested inside a --page-wide page still lines up its left edge with
+   everything else on that page.
+   ------------------------------------------------------------------------- */
+.page-narrow,
+.page-regular,
+.page-wide {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: var(--page-margin);
+}
+
+.page-narrow {
+  max-width: var(--container-narrow);
+}
+
+.page-regular {
+  max-width: var(--container-regular);
+}
+
+.page-wide {
+  max-width: var(--container-wide);
+}

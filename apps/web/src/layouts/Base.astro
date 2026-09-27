@@ -26,6 +26,10 @@ import "../../../../packages/kosmik/style/motion.css";
 // classes Button.astro emits, and Astro's per-component scoping could never
 // have reached either one.
 import "../styles/controls.css";
+// Global for the same reason controls.css is (P7.1) -- ReportsView.tsx,
+// ServerCenter.tsx and SessionConsole.tsx apply these classes by hand once
+// each is rebuilt onto PageHeader in P7.4.
+import "../styles/page-header.css";
 import { ClientRouter } from "astro:transitions";
 import Cosmos from "../components/Cosmos.astro";
 

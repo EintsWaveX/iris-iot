@@ -1,0 +1,45 @@
+/* SegmentedControl.tsx's styling (P7.1). One bordered track, the selected
+   item raised on its own filled pill -- same visual idiom as the rest of
+   the control language (--surface-2 for a raised segment, the accent
+   glow-ring for keyboard focus). */
+
+.segmented {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+}
+
+.segmented__item {
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  min-height: max(var(--tap), 36px);
+  padding-inline: var(--space-4);
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal);
+}
+
+.segmented__item:hover {
+  color: var(--text);
+}
+
+.segmented__item[data-state="on"] {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.segmented__item:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+  position: relative;
+  z-index: 1;
+}

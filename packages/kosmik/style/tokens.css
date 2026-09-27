@@ -364,3 +364,80 @@
     --tap: 44px;
   }
 }
+
+/* ===========================================================================
+   PHASE 7 REDESIGN TOKENS — apps/web only.
+
+   Additive: nothing above this line changes value. apps/games reads
+   --measure, --measure-wide, --gutter, the --space-N scale and the palette
+   directly in its own CSS (it does not import packages/kosmik/style/base.css), so this
+   package cannot change any EXISTING token's value without regressing the
+   Arena site, which is out of scope for this redesign. Everything below is
+   new, apps/web-only, and safe to add.
+
+   --container-* replace .measure/.measure--wide's role in apps/web's own
+   page grid (see base.css's LAYOUT GRID section) with three named tiers
+   instead of two, so every page shares one left edge. apps/games keeps
+   using --measure/--measure-wide untouched.
+   ========================================================================= */
+:root {
+  --container-narrow: 720px; /* reading, forms, the editor's step content */
+  --container-regular: 1200px; /* most pages */
+  --container-wide: 1440px; /* the session console, the Nilai grid */
+
+  /* The gap from the nav down to a page's own title -- was inconsistent
+     per page (F14) because no such token existed. */
+  --space-page-top: 24px;
+  /* The gap between major sections on a page (a step up from
+     --space-8/9's component-level use). */
+  --space-section: 48px;
+  /* The page's own side gutter under the new grid. Distinct from --gutter,
+     which apps/games still reads directly for its own --measure layout. */
+  --page-margin: 16px;
+
+  /* Tonal surfaces: navy tints stepping up from --bg, replacing shadow-led
+     elevation (shadows barely read this dark). Each panel that carries body
+     text should sit on --surface-1 or higher, never raw --bg, so it reads
+     as an object rather than a tinted region of the page. */
+  --surface-0: var(--bg);
+  --surface-1: #10131f;
+  --surface-2: #161a2b;
+  --surface-3: #1c2136;
+  --surface-4: #232941;
+
+  /* One soft aurora hue per practicum module (BLE / WebSocket / MQTT /
+     LoRa), distinct from the five --group-* hues so the two identity
+     systems never collide on a page that shows both (e.g. the dashboard).
+     First pass for the P7.2 mockup review -- expect these to be tuned
+     once seen against real content. */
+  --mod-1: #5ab4e8; /* BLE — cool blue */
+  --mod-2: #8d85e0; /* WebSocket — blue-violet */
+  --mod-3: #4bcf9e; /* MQTT — sea green */
+  --mod-4: #e0955a; /* LoRa — warm amber */
+  --mod-1-soft: rgba(90, 180, 232, 0.14);
+  --mod-2-soft: rgba(141, 133, 224, 0.14);
+  --mod-3-soft: rgba(75, 207, 158, 0.14);
+  --mod-4-soft: rgba(224, 149, 90, 0.14);
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --page-margin: 24px;
+    --space-page-top: 32px;
+    --space-section: 64px;
+  }
+}
+@media (max-width: 639px) {
+  :root {
+    --page-margin: 16px;
+    --space-page-top: 24px;
+    --space-section: 48px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --page-margin: 32px;
+    --space-page-top: 48px;
+    --space-section: 80px;
+  }
+}

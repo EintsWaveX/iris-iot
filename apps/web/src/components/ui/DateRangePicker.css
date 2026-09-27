@@ -1,0 +1,66 @@
+/* DateRangePicker.tsx's styling (P7.1). Re-themes react-day-picker's own
+   `--rdp-*` custom properties (declared on `.rdp-root`, see
+   node_modules/react-day-picker/src/style.css) to the cosmic aurora
+   palette rather than fighting its default light-mode CSS with overrides
+   -- the package is explicitly designed to be re-skinned this way. */
+
+.daterange__trigger {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  min-width: 11rem;
+}
+
+.daterange__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.daterange__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.daterange__panel .rdp-root {
+  --rdp-accent-color: var(--accent);
+  --rdp-accent-background-color: var(--accent-soft);
+  --rdp-day-height: 2.25rem;
+  --rdp-day-width: 2.25rem;
+  --rdp-day_button-height: 2.1rem;
+  --rdp-day_button-width: 2.1rem;
+  --rdp-day_button-border-radius: var(--radius-sm);
+  --rdp-today-color: var(--accent-bright);
+  --rdp-range_middle-background-color: var(--accent-soft);
+  --rdp-range_middle-color: var(--text);
+  --rdp-range_start-date-background-color: var(--accent);
+  --rdp-range_end-date-background-color: var(--accent);
+  --rdp-range_start-color: var(--accent-ink);
+  --rdp-range_end-color: var(--accent-ink);
+  --rdp-outside-opacity: 0.45;
+  --rdp-disabled-opacity: 0.35;
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+.daterange__panel .rdp-weekday {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+}
+
+.daterange__panel .rdp-day_button:hover:not([disabled]) {
+  background: var(--hairline-faint);
+}
+
+.daterange__panel .rdp-nav button {
+  color: var(--text-muted);
+}
+
+.daterange__panel .rdp-nav button:hover {
+  color: var(--text);
+}
+
+.daterange__panel .rdp-month_caption {
+  color: var(--text);
+  font-weight: 600;
+}

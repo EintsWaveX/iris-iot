@@ -11,16 +11,30 @@
  * call sites) own the visual contract, everything else just applies it.
  *
  * kind: "primary" is the accent-filled call to action (one per view, at
- * most); "ghost" is the quiet default; "danger" is for destructive actions
+ * most); "secondary" is a real button surface (filled, less prominent than
+ * primary) for a page's other real actions -- "Unduh CSV", "Akhiri sesi";
+ * "ghost" is the quiet default; "danger" is for destructive actions
  * (matches the audit-log rule in the Phase 1 plan: destructive assistant
  * actions get a visually distinct control, not just a second click);
- * "quiet" is a bordered icon-only control (no label, square footprint).
- * size: "md" (the default, 44px-plus tap target) or "sm" for a denser
- * control inside a table row or a card's own action row.
+ * "quiet" is the older icon-only treatment, kept for existing call sites --
+ * new icon-only buttons should use the `icon` prop below instead (P7.1),
+ * which pairs the icon-only footprint with a real `kind` rather than
+ * bundling shape and color into one kind the way "quiet" does. That
+ * conflation is exactly what caused a real bug: a *labelled* button styled
+ * with kind="quiet" rendered at 0 width on desktop, because quiet's shape
+ * rules assume there is no label to make room for (see the Phase 7 redesign
+ * notes, finding F4).
+ * size: "md" (the default, 44px-plus tap target), "sm" for a denser control
+ * inside a table row or a card's own action row, or "lg" for a page's one
+ * standout action.
+ * icon: true renders the button as a square icon-only control (no visible
+ * label text -- pass an icon via the slot and a real accessible name via
+ * aria-label) using whatever `kind` was given for its color treatment.
  */
 interface Props {
-  kind?: "primary" | "ghost" | "danger" | "quiet";
-  size?: "md" | "sm";
+  kind?: "primary" | "secondary" | "ghost" | "danger" | "quiet";
+  size?: "md" | "sm" | "lg";
+  icon?: boolean;
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
   loading?: boolean;
@@ -33,6 +47,7 @@ interface Props {
 const {
   kind = "ghost",
   size = "md",
+  icon = false,
   type = "button",
   disabled = false,
   loading = false,
@@ -47,7 +62,13 @@ const Tag = href ? "a" : "button";
 
 <Tag
   id={id}
-  class:list={["btn", `btn--${kind}`, size === "sm" && "btn--sm", className]}
+  class:list={[
+    "btn",
+    `btn--${kind}`,
+    size !== "md" && `btn--${size}`,
+    icon && "btn--icon",
+    className,
+  ]}
   href={href}
   type={href ? undefined : type}
   disabled={href ? undefined : disabled || loading}
