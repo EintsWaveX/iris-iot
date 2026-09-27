@@ -1,0 +1,48 @@
+/* AkunSheet.tsx's styling (P7.3). The trigger only ever shows below 640px
+   (Nav.astro's own inline controls cover 640px and up); the sheet's list
+   items borrow Dialog.css's surface language rather than introducing a
+   new one. */
+
+.akun-sheet__trigger {
+  align-items: center;
+  color: var(--text-muted);
+  display: none;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  height: max(var(--tap), 44px);
+  padding-inline: var(--space-3);
+}
+
+@media (max-width: 639px) {
+  .akun-sheet__trigger {
+    display: flex;
+  }
+}
+
+.akun-sheet__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.akun-sheet__item {
+  align-items: center;
+  background: var(--surface-1, var(--bg-elevated));
+  border-radius: var(--radius-md);
+  color: var(--text);
+  display: flex;
+  justify-content: space-between;
+  min-height: max(var(--tap), 44px);
+  padding-inline: var(--space-4);
+  width: 100%;
+}
+
+.akun-sheet__item-value {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.akun-sheet__action {
+  margin-top: var(--space-2);
+  width: 100%;
+}

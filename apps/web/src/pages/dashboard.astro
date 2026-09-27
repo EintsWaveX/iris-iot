@@ -24,13 +24,7 @@ const links = navUtama();
 ---
 
 <Base title="Dasbor · IRIS IoT" cosmosScene="kerja">
-  <Nav links={links} current="/dashboard">
-    <Fragment slot="side">
-      <Button kind="ghost" id="btn-keluar" class="hidden-until-known">
-        Keluar
-      </Button>
-    </Fragment>
-  </Nav>
+  <Nav links={links} current="/dashboard" />
   <Toast client:load />
 
   <!--
@@ -292,8 +286,6 @@ const links = navUtama();
       }
 
       hide("loading");
-      document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
-
       show("view-praktikan");
       // The one entrance per page (design-system.md's own rule): the
       // welcome card and the Module 4 card rise in together on arrival.
@@ -445,10 +437,6 @@ const links = navUtama();
 
   .session-banner__cta {
     margin-top: var(--space-6);
-  }
-
-  .hidden-until-known {
-    visibility: hidden;
   }
 
   /* -------------------------------------------------------------------

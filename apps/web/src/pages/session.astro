@@ -26,13 +26,7 @@ const links = navUtama();
 ---
 
 <Base title="Sesi · IRIS IoT" cosmosScene="kerja">
-  <Nav links={links} current="/session">
-    <Fragment slot="side">
-      <Button kind="ghost" id="btn-keluar" class="hidden-until-known">
-        Keluar
-      </Button>
-    </Fragment>
-  </Nav>
+  <Nav links={links} current="/session" />
   <Toast client:load />
 
   <main class="measure--wide">
@@ -99,7 +93,6 @@ const links = navUtama();
         return;
       }
 
-      document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
       show("view-asisten");
       window.Motion?.enter("#view-asisten > .session-console > *");
     }
@@ -112,11 +105,6 @@ const links = navUtama();
       if (!loading || loading.dataset.bound) return;
       loading.dataset.bound = "1";
 
-      document.getElementById("btn-keluar")?.addEventListener("click", async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
-        navigate("/?login=1");
-      });
-
       init();
     }
 
@@ -128,9 +116,5 @@ const links = navUtama();
 <style>
   .konfirmasi-teks {
     color: var(--text-muted);
-  }
-
-  .hidden-until-known {
-    visibility: hidden;
   }
 </style>

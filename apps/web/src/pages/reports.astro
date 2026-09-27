@@ -10,7 +10,6 @@
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
-import Button from "../components/ui/Button.astro";
 import Toast from "../components/ui/Toast";
 import ReportsView from "../components/ReportsView";
 
@@ -18,60 +17,10 @@ const links = navUtama();
 ---
 
 <Base title="Laporan · IRIS IoT" cosmosScene="teknis">
-  <Nav links={links} current="/reports">
-    <Fragment slot="side">
-      <Button kind="ghost" id="btn-keluar" class="hidden-until-known">
-        Keluar
-      </Button>
-    </Fragment>
-  </Nav>
+  <Nav links={links} current="/reports" />
   <Toast client:load />
 
   <main class="measure">
     <ReportsView client:load />
   </main>
-
-  <script>
-    import { navigate } from "astro:transitions/client";
-
-    // The one thing this page's own script still owns -- see servers.astro's
-    // identical init()/bindPage() pair for the full "why" (revealing
-    // "Keluar" once /api/auth/me confirms a signed-in visitor).
-    async function init() {
-      // P6.9: same guard as servers.astro's identical init() -- see its
-      // comment for why.
-      let me: { ok: boolean };
-      try {
-        me = await fetch("/api/auth/me").then((r) => r.json());
-      } catch {
-        return;
-      }
-      if (!me.ok) {
-        navigate("/?login=1");
-        return;
-      }
-      document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
-    }
-
-    function bindPage() {
-      if (location.pathname !== "/reports") return;
-      const btn = document.getElementById("btn-keluar");
-      if (!btn || btn.dataset.bound) return;
-      btn.dataset.bound = "1";
-      btn.addEventListener("click", async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
-        navigate("/?login=1");
-      });
-      init();
-    }
-
-    bindPage();
-    document.addEventListener("astro:page-load", bindPage);
-  </script>
 </Base>
-
-<style>
-  .hidden-until-known {
-    visibility: hidden;
-  }
-</style>

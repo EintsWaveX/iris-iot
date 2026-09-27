@@ -32,13 +32,7 @@ const links = navUtama(lang === "en" ? "en" : "id");
   cosmosScene="kerja"
   lang={lang}
 >
-  <Nav links={links} current={basePath}>
-    <Fragment slot="side">
-      <a class="lang-switch" href={t.langSwitchHref()}>
-        {t.langSwitchLabel}
-      </a>
-    </Fragment>
-  </Nav>
+  <Nav links={links} current={basePath} lang={lang} />
 
   <main class="measure">
     <section class="section section--intro">
@@ -120,22 +114,6 @@ const links = navUtama(lang === "en" ? "en" : "id");
     font-weight: 500;
     margin-top: auto;
     padding-top: var(--space-4);
-  }
-
-  .lang-switch {
-    align-items: center;
-    color: var(--text-muted);
-    display: flex;
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    letter-spacing: var(--tracking-wide);
-    min-height: max(var(--tap), 44px);
-    padding-inline: var(--space-3);
-    text-transform: uppercase;
-  }
-
-  .lang-switch:hover {
-    color: var(--text);
   }
 
   @media (min-width: 1025px) {

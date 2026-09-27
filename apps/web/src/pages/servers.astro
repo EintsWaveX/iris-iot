@@ -20,13 +20,7 @@ const links = navUtama();
 ---
 
 <Base title="Pusat server · IRIS IoT" cosmosScene="teknis">
-  <Nav links={links} current="/servers">
-    <Fragment slot="side">
-      <Button kind="ghost" id="btn-keluar" class="hidden-until-known">
-        Keluar
-      </Button>
-    </Fragment>
-  </Nav>
+  <Nav links={links} current="/servers" />
   <Toast client:load />
 
   <main class="measure">
@@ -46,61 +40,10 @@ const links = navUtama();
       </Button>
     </Fragment>
   </Modal>
-
-  <script>
-    import { navigate } from "astro:transitions/client";
-
-    // The one thing this page's own script still owns: revealing "Keluar"
-    // once the visitor is confirmed logged in, and wiring it up. Every
-    // other role check, data load and action lives in ServerCenter.tsx
-    // now (the same split session.astro made for SessionConsole.tsx in
-    // P6.6) -- this duplicates one cheap /api/auth/me call rather than
-    // threading the result out of a React island back into Astro-rendered
-    // chrome for a single button's visibility.
-    async function init() {
-      // P6.9: unlike session.astro/dashboard.astro this fetch gates only
-      // "Keluar"'s visibility, not the whole page (ServerCenter.tsx does
-      // its own role check independently) -- but a response whose body
-      // isn't JSON still threw out of init() unhandled, so this is guarded
-      // the same way: silently leave "Keluar" hidden rather than crash.
-      let me: { ok: boolean };
-      try {
-        me = await fetch("/api/auth/me").then((r) => r.json());
-      } catch {
-        return;
-      }
-      if (!me.ok) {
-        navigate("/?login=1");
-        return;
-      }
-      document.querySelector(".hidden-until-known")?.classList.remove("hidden-until-known");
-    }
-
-    // Re-run on every astro:page-load, not just the first visit -- see
-    // dashboard.astro's own bindPage() comment for the full "why".
-    function bindPage() {
-      if (location.pathname !== "/servers") return;
-      const btn = document.getElementById("btn-keluar");
-      if (!btn || btn.dataset.bound) return;
-      btn.dataset.bound = "1";
-      btn.addEventListener("click", async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
-        navigate("/?login=1");
-      });
-      init();
-    }
-
-    bindPage();
-    document.addEventListener("astro:page-load", bindPage);
-  </script>
 </Base>
 
 <style>
   .konfirmasi-teks {
     color: var(--text-muted);
-  }
-
-  .hidden-until-known {
-    visibility: hidden;
   }
 </style>
