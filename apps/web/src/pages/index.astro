@@ -8,16 +8,16 @@
  * modal.
  *
  * Login lives here, not on its own route: Phase 5 replaced the standalone
- * /masuk page with LoginModal.astro, opened either directly (the "Masuk"
- * actions below) or by arriving at /?login=1 -- which /masuk and /login
- * both redirect to, see vercel.json -- checked for on load just below.
+ * /masuk page with a login dialog (now LoginDialog.tsx, mounted globally by
+ * Base.astro since P7.3), opened either directly (the "Masuk" action below)
+ * or by arriving at /?login=1 -- which /masuk and /login both redirect to,
+ * see vercel.json -- checked for on load just below.
  */
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
 import Button from "../components/ui/Button.astro";
 import Card from "../components/ui/Card.astro";
-import LoginModal from "../components/LoginModal.astro";
 
 // The shared list (see nav-links.ts), which also hides role-scoped links
 // once /api/auth/me answers -- this page used to hand-relabel Dasbor into
@@ -31,7 +31,6 @@ const links = navUtama();
   cosmosScene="beranda"
 >
   <Nav links={links} current="/" />
-  <LoginModal />
 
   <main class="measure">
     <!--
@@ -56,7 +55,7 @@ const links = navUtama();
           praktikum IoT IRIS.
         </p>
         <div class="hero__actions">
-          <Button kind="primary" data-modal-open="login-modal">
+          <Button kind="primary" id="hero-btn-masuk">
             Masuk
           </Button>
         </div>
@@ -118,12 +117,18 @@ const links = navUtama();
         if (data.ok) {
           navigate(data.role === "asisten" ? "/session" : "/dashboard");
         } else {
-          window.Modal?.open("login-modal");
+          window.LoginDialog?.open();
         }
       })
       .catch(() => {
-        window.Modal?.open("login-modal");
+        window.LoginDialog?.open();
       });
+  }
+
+  function bindHeroMasuk() {
+    document.getElementById("hero-btn-masuk")?.addEventListener("click", () => {
+      window.LoginDialog?.open();
+    });
   }
 
   // The one entrance per page (design-system.md's own rule, unapplied
@@ -134,6 +139,7 @@ const links = navUtama();
     window.Motion?.enter(".hero > *");
   }
   sekaliPerHalaman("BerandaBukaMasuk", openLoginIfRequested);
+  sekaliPerHalaman("BerandaIkatMasuk", bindHeroMasuk);
   sekaliPerHalaman("BerandaMasukAnimasi", playEntrance);
   // P6.5: badges the four module cards' locked state.
   sekaliPerHalaman("BerandaModulAkses", () => void lockCards(document, "Belum dibuka"));

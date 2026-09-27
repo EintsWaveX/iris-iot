@@ -30,8 +30,12 @@ import "../styles/controls.css";
 // ServerCenter.tsx and SessionConsole.tsx apply these classes by hand once
 // each is rebuilt onto PageHeader in P7.4.
 import "../styles/page-header.css";
+// Global, promoted from Field.astro's own scoped style (P7.3) -- the login
+// dialog is a React island and needs the same `.field*` classes.
+import "../styles/field.css";
 import { ClientRouter } from "astro:transitions";
 import Cosmos from "../components/Cosmos.astro";
+import LoginDialog from "../components/LoginDialog";
 
 interface Props {
   title: string;
@@ -63,6 +67,7 @@ const { title, description = "", lang = "id", cosmosScene = "beranda" } = Astro.
   </head>
   <body>
     <Cosmos />
+    <LoginDialog client:load />
     <slot />
     <script>
       import "../scripts/spotlight.ts";

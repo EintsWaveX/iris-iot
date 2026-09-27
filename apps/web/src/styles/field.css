@@ -1,0 +1,51 @@
+/* A labelled text input with its own error slot (P7.3, promoted from
+   Field.astro's scoped style -- Astro's per-component CSS scoping never
+   reaches a React-rendered element with the same class name, and the
+   login dialog needs these exact classes from a React island, so this
+   follows the same path Button.astro's .btn classes took in P6.3:
+   global, shared by every renderer, not duplicated per call site. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field__label {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+
+.field__input {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: var(--fs-body-lg);
+  min-height: max(var(--tap), 44px);
+  padding: 0 var(--space-4);
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    box-shadow var(--dur-fast) var(--ease-reveal);
+  width: 100%;
+}
+
+.field__input:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--glow-ring);
+}
+
+.field[data-invalid="yes"] .field__input {
+  border-color: var(--danger);
+}
+
+.field__hint {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+}
+
+.field__error {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}

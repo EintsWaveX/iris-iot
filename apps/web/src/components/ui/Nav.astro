@@ -116,7 +116,7 @@ const langLabel = lang ? t.langSwitchLabel : undefined;
     )}
 
     <span class="nav__auth" data-auth-pending="yes">
-      <Button kind="ghost" data-modal-open="login-modal" id="nav-btn-masuk">
+      <Button kind="ghost" id="nav-btn-masuk">
         Masuk
       </Button>
       <Button kind="ghost" id="nav-btn-keluar" hidden>
@@ -188,6 +188,11 @@ const langLabel = lang ? t.langSwitchLabel : undefined;
         // fair trade for keeping this single script page-agnostic.
         location.assign(tujuan);
       });
+    }
+
+    if (masuk && !masuk.dataset.bound) {
+      masuk.dataset.bound = "1";
+      masuk.addEventListener("click", () => window.LoginDialog?.open());
     }
   }
 

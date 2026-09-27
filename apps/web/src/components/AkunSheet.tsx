@@ -16,10 +16,9 @@
  * exposes get/cycle as a plain function API for exactly this reason (see
  * that file's own comment), so this component calls it directly instead.
  *
- * Masuk/Keluar close the sheet before acting rather than relying on
- * modal.ts's global click delegation or a bare logout+redirect while the
- * sheet is still open, so the two overlays (this Dialog and Modal.astro,
- * both z-index 100/101) never end up stacked on screen at once.
+ * Masuk/Keluar close the sheet before acting rather than acting while it's
+ * still open, so this Dialog and LoginDialog.tsx's own (both z-index
+ * 100/101) never end up stacked on screen at once.
  */
 import { useEffect, useState } from "react";
 import Dialog from "./ui/Dialog";
@@ -101,7 +100,7 @@ export default function AkunSheet({ langHref, langLabel }: Props) {
               className="btn btn--primary akun-sheet__action"
               onClick={() => {
                 setOpen(false);
-                window.Modal?.open("login-modal");
+                window.LoginDialog?.open();
               }}
             >
               Masuk

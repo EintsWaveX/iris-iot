@@ -5,10 +5,10 @@
  * is (output: 'static' has no request-time cookie access) -- but as of
  * Stage 10, this page is praktikan-only: an assistant landing here bounces
  * straight to /session, the real console, rather than sharing this page
- * with a second view branch. LoginModal.astro and index.astro still
- * navigate every successful login to /dashboard regardless of role, which
- * is why that redirect happens here rather than by pointing those two
- * files at two different destinations.
+ * with a second view branch. LoginDialog.tsx navigates every successful
+ * praktikan login to /dashboard regardless of anything page-specific,
+ * which is why that redirect happens here rather than by pointing the
+ * dialog at two different destinations.
  */
 import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";

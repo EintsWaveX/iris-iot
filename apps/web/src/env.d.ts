@@ -14,6 +14,14 @@ interface Window {
   Toast?: {
     show(message: string, tone?: "info" | "ok" | "warn" | "danger"): void;
   };
+  // src/components/LoginDialog.tsx (P7.3): a React-state-driven dialog, not
+  // an id-addressed Modal.astro panel, so it exposes this instead of
+  // relying on data-modal-open -- the same reasoning window.Modal itself
+  // documents just above.
+  LoginDialog?: {
+    open(): void;
+    close(): void;
+  };
   // packages/kosmik/js/*.core.js -- shared with apps/games, so these stay
   // untyped `.js` sources rather than gaining a local `.d.ts` there; the
   // ambient shape lives here instead, apps/web's own side of the contract.
