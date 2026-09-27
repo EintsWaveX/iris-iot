@@ -9,6 +9,7 @@
 import Base from "../../layouts/Base.astro";
 import Nav from "../../components/ui/Nav.astro";
 import { navUtama } from "../../lib/nav-links";
+import PageHeader from "../../components/ui/PageHeader.astro";
 import GroupLive from "../../components/GroupLive";
 
 export function getStaticPaths() {
@@ -24,15 +25,14 @@ const links = navUtama();
 <Base title={`Kelompok ${group} · IRIS IoT`} cosmosScene="kerja">
   <Nav links={links} current="/dashboard" />
 
-  <main class="measure--wide">
-    <header class="group-header" style={`--tile-hue: var(--group-${group})`}>
-      <p class="eyebrow eyebrow--accent">Kelompok {group}</p>
-      <h1 class="group-header__title">Ladder dan bacaan kelompok {group}</h1>
-      <p class="group-header__disclosure measure-prose">
-        Semua data pada halaman ini disimulasikan di peramban Anda, bukan diambil dari papan atau
-        sesi yang sebenarnya. Pilih modul untuk melihat ladder dan bacaannya.
-      </p>
-    </header>
+  <main class="page-wide">
+    <div class="group-header" style={`--tile-hue: var(--group-${group})`}>
+      <PageHeader
+        eyebrow={`Kelompok ${group}`}
+        title={`Alur dan bacaan kelompok ${group}`}
+        subtitle="Semua data pada halaman ini disimulasikan di peramban Anda, bukan diambil dari papan atau sesi yang sebenarnya. Pilih modul untuk melihat alur dan bacaannya."
+      />
+    </div>
 
     <div class="group-panel">
       <GroupLive client:load group={group} />
@@ -43,7 +43,7 @@ const links = navUtama();
 <script>
   import { sekaliPerHalaman } from "../../scripts/per-halaman";
   function playEntrance() {
-    window.Motion?.enter(".group-header > *");
+    window.Motion?.enter(".page-header > *");
   }
   sekaliPerHalaman("GrupAnimasi", playEntrance);
 </script>
@@ -51,23 +51,19 @@ const links = navUtama();
 <style>
   .group-header {
     border-left: 3px solid var(--tile-hue);
-    padding-block: var(--space-8) var(--space-6);
     padding-inline-start: var(--space-5);
   }
 
-  .group-header__title {
-    font-family: var(--font-display);
-    font-size: var(--fs-display-lg);
-    font-weight: 400;
-    margin-top: var(--space-2);
+  .group-header :global(.page-header__eyebrow) {
+    color: var(--tile-hue);
   }
 
-  .group-header__disclosure {
-    color: var(--text-muted);
-    margin-top: var(--space-3);
+  .group-header :global(.page-header__eyebrow)::after {
+    background: var(--tile-hue);
+    opacity: 0.35;
   }
 
   .group-panel {
-    padding-block: var(--space-6) var(--space-10);
+    padding-block: 0 var(--space-10);
   }
 </style>

@@ -9,7 +9,7 @@
  *
  * Stage 20: Modules 2-4 poll for a real reading first (telemetry-live.ts)
  * and fall back to the simulator (telemetry-sim.ts) only until the first
- * real one arrives -- see Ladder.tsx's own header comment for why this
+ * real one arrives -- see live/FlowDiagram.tsx's own header comment for why this
  * never falls back once real data starts flowing. Module 1 always
  * simulates; no real BLE relay exists.
  */
@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { startPolling } from "../scripts/polling";
 import { nextReading, describeLayers, type Reading } from "../lib/telemetry-sim";
 import { fetchLiveReading, resetLiveReadingMemory } from "../lib/telemetry-live";
+import GroupPicker from "./ui/GroupPicker";
 import "./LayerXray.css";
 
 interface LayerCaption {
@@ -60,23 +61,7 @@ export default function LayerXray({ modul, groups, layers }: Props) {
 
   return (
     <div className="layer-xray">
-      {groups.length > 1 && (
-        <div className="layer-xray__picker" role="tablist" aria-label="Pilih kelompok">
-          {groups.map((g) => (
-            <button
-              key={g}
-              type="button"
-              role="tab"
-              aria-selected={g === group}
-              className="layer-xray__picker-btn"
-              style={{ "--tile-hue": `var(--group-${g})` } as React.CSSProperties}
-              onClick={() => setGroup(g)}
-            >
-              Kelompok {g}
-            </button>
-          ))}
-        </div>
-      )}
+      {groups.length > 1 && <GroupPicker value={group} onValueChange={setGroup} groups={groups} />}
 
       <ol
         className="layer-xray__layers"

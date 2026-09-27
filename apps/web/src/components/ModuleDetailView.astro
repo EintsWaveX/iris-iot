@@ -212,7 +212,7 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
         <h2 class="module-panel__heading">{t.live.heading}</h2>
         <p class="measure-prose">{t.live.bodyFor(modul)}</p>
         <Card class="module-panel__card">
-          <p class="module-live__ladder">Ladder: {m.ladder.jalur} jalur</p>
+          <p class="module-live__ladder">{t.live.jalurLabel(m.ladder.jalur)}</p>
           <Table
             columns={[
               { key: "nama", label: "Lapisan" },

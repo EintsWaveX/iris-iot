@@ -51,7 +51,7 @@ export const en: ModuleStrings = {
     bodyFor: (modul: number) => (modul === 1 ? en.live.body : en.live.bodyReal),
     cta: "Open the live view",
     backToModule: "Back to module",
-    tabLadder: "Ladder",
+    tabLadder: "Flow",
     tabLayers: "Layers",
     tabSandbox: "Try it yourself",
     disclosure:
@@ -60,6 +60,7 @@ export const en: ModuleStrings = {
       "Data on this page is real, from a running session and board, once it arrives, and simulated in your browser until then.",
     disclosureFor: (modul: number) => (modul === 1 ? en.live.disclosure : en.live.disclosureReal),
     fireHint: "Press the button to send one test message and watch it cross every layer.",
+    jalurLabel: (jalur: number) => `Flow: ${jalur} lanes`,
   },
   nav: {
     prev: "Previous",

@@ -7,6 +7,7 @@
  */
 import { useRef, useState } from "react";
 import { RAILS, nextReading, describeLayers, type Reading } from "../lib/telemetry-sim";
+import GroupPicker from "./ui/GroupPicker";
 import "./LayerXray.css";
 import "./LiveSandbox.css";
 
@@ -44,23 +45,7 @@ export default function LiveSandbox({ modul, groups, layers }: Props) {
 
   return (
     <div className="live-sandbox">
-      {groups.length > 1 && (
-        <div className="live-sandbox__picker" role="tablist" aria-label="Pilih kelompok">
-          {groups.map((g) => (
-            <button
-              key={g}
-              type="button"
-              role="tab"
-              aria-selected={g === group}
-              className="live-sandbox__picker-btn"
-              style={{ "--tile-hue": `var(--group-${g})` } as React.CSSProperties}
-              onClick={() => setGroup(g)}
-            >
-              Kelompok {g}
-            </button>
-          ))}
-        </div>
-      )}
+      {groups.length > 1 && <GroupPicker value={group} onValueChange={setGroup} groups={groups} />}
 
       <button type="button" className="live-sandbox__fire" onClick={kirim}>
         Kirim pesan uji

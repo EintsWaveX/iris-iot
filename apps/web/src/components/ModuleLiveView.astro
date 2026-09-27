@@ -2,7 +2,7 @@
 /**
  * /modules/[n]/live and /en/modules/[n]/live share this view, mirroring how
  * ModuleDetailView.astro is shared by /modules/[n] and /en/modules/[n]. The
- * three tabs (Ladder, Layers, Try it yourself) are Tabs.tsx managing sibling
+ * three tabs (Flow, Layers, Try it yourself) are Tabs.tsx managing sibling
  * panels, the same pattern the carousel itself uses -- this component owns
  * none of the tab-switching logic.
  *
@@ -18,7 +18,8 @@ import Base from "../layouts/Base.astro";
 import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
 import Tabs from "../components/ui/Tabs";
-import Ladder from "../components/Ladder";
+import PageHeader from "../components/ui/PageHeader.astro";
+import FlowDiagram from "../components/live/FlowDiagram";
 import LayerXray from "../components/LayerXray";
 import LiveSandbox from "../components/LiveSandbox";
 import { id as strId } from "../i18n/id";
@@ -59,23 +60,19 @@ const tabs = [
 >
   <Nav links={links} current={basePath} lang={lang} modul={m.modul} />
 
-  <main class="measure--wide">
-    <header class="live-header">
-      <a class="live-header__back" href={`${basePath}/${m.modul}`}>
-        &laquo; {t.live.backToModule}
-      </a>
-      <p class="eyebrow eyebrow--accent">Modul {m.modul}</p>
-      <h1 class="live-header__title">
-        {m.judul} &middot; {t.live.heading}
-      </h1>
-      <p class="live-header__disclosure measure-prose">{t.live.disclosureFor(m.modul)}</p>
-    </header>
+  <main class="page-wide">
+    <PageHeader
+      back={{ href: `${basePath}/${m.modul}`, label: t.live.backToModule }}
+      eyebrow={`Modul ${m.modul}`}
+      title={`${m.judul} · ${t.live.heading}`}
+      subtitle={t.live.disclosureFor(m.modul)}
+    />
 
     <Tabs client:load id="live-tabs" tabs={tabs} />
 
     <div class="live-panels">
       <section id="tab-ladder" role="tabpanel" aria-labelledby="tab-ladder-tab" class="live-panel">
-        <Ladder client:load modul={m.modul} groups={GROUPS} />
+        <FlowDiagram client:load modul={m.modul} groups={GROUPS} />
       </section>
 
       <section
@@ -108,7 +105,7 @@ const tabs = [
   import { id as strId } from "../i18n/id";
   import { en as strEn } from "../i18n/en";
   function playEntrance() {
-    window.Motion?.enter(".live-header > *");
+    window.Motion?.enter(".page-header > *");
   }
   sekaliPerHalaman("ModulLiveAnimasi", playEntrance);
 
@@ -119,40 +116,13 @@ const tabs = [
     const match = /\/modules\/(\d)\/live(?:\/|$)/.exec(location.pathname);
     if (!match) return;
     const t = document.documentElement.lang === "en" ? strEn : strId;
-    const heading = document.querySelector(".live-header h1");
+    const heading = document.querySelector(".page-header__title");
     void applyLockScreen(Number(match[1]), t.code.terkunci, "terkunci untuk praktikan", heading);
   }
   sekaliPerHalaman("ModulLiveAkses", checkAkses);
 </script>
 
 <style>
-  .live-header {
-    padding-block: var(--space-8) var(--space-6);
-  }
-
-  .live-header__back {
-    color: var(--text-faint);
-    display: inline-block;
-    font-size: var(--fs-small);
-    margin-bottom: var(--space-4);
-  }
-
-  .live-header__back:hover {
-    color: var(--text);
-  }
-
-  .live-header__title {
-    font-family: var(--font-display);
-    font-size: var(--fs-display-lg);
-    font-weight: 400;
-    margin-top: var(--space-2);
-  }
-
-  .live-header__disclosure {
-    color: var(--text-muted);
-    margin-top: var(--space-3);
-  }
-
   .live-panels {
     padding-block: var(--space-6) var(--space-10);
   }

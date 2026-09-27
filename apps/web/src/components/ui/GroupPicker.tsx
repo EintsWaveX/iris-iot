@@ -3,11 +3,9 @@
  * each carrying that group's own hue (`--group-1..5`) as a left accent
  * bar, exactly one selected at a time. Replaces four independent,
  * byte-for-byte copies of the same `*__picker-btn` pattern that had
- * accumulated across Ladder.tsx, LayerXray.tsx, LiveSandbox.tsx and
- * GroupLive.tsx (finding F11) -- each of those adopting this component is
- * P7.3/P7.4 work, done as each of those views is otherwise touched; this
- * stage only builds the shared primitive so that work has one file to
- * reach for instead of a fifth copy.
+ * accumulated across Ladder.tsx (now live/FlowDiagram.tsx), LayerXray.tsx,
+ * LiveSandbox.tsx and GroupLive.tsx (finding F11) -- P7.4 adopted this
+ * component in all four call sites.
  *
  * Built on @radix-ui/react-toggle-group (single-select), the same
  * mechanism as SegmentedControl, but keeps its own chip shape and

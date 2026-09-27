@@ -1,25 +1,5 @@
-.layer-xray__picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-bottom: var(--space-5);
-}
-
-.layer-xray__picker-btn {
-  border: 1px solid var(--hairline);
-  border-left: 3px solid var(--tile-hue);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  font-size: var(--fs-small);
-  padding: var(--space-2) var(--space-3);
-}
-
-.layer-xray__picker-btn[aria-selected="true"] {
-  background: var(--bg-elevated);
-  color: var(--text);
-}
-
 .layer-xray__layers {
+  margin-top: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

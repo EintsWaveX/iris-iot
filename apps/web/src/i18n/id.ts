@@ -49,13 +49,13 @@ export const id = {
     // tetap berlaku untuknya apa adanya. Modul 2 sampai 4 memakai versi
     // "Real" lewat bodyFor/disclosureFor, karena Tahap 20 memberi mereka
     // data sungguhan begitu sesi dan papan yang berjalan mengirimkannya.
-    body: "Ladder dan lapisan protokol modul ini, disimulasikan langsung di peramban. Data sungguhan dari sesi dan papan yang berjalan menyusul di tahap berikutnya.",
+    body: "Alur dan lapisan protokol modul ini, disimulasikan langsung di peramban. Data sungguhan dari sesi dan papan yang berjalan menyusul di tahap berikutnya.",
     bodyReal:
-      "Ladder dan lapisan protokol modul ini menampilkan data sungguhan dari sesi dan papan yang sedang berjalan begitu tersedia, dan disimulasikan di peramban sebelum itu.",
+      "Alur dan lapisan protokol modul ini menampilkan data sungguhan dari sesi dan papan yang sedang berjalan begitu tersedia, dan disimulasikan di peramban sebelum itu.",
     bodyFor: (modul: number) => (modul === 1 ? id.live.body : id.live.bodyReal),
     cta: "Buka tampilan live",
     backToModule: "Kembali ke modul",
-    tabLadder: "Ladder",
+    tabLadder: "Alur",
     tabLayers: "Lapisan",
     tabSandbox: "Coba sendiri",
     disclosure:
@@ -64,6 +64,7 @@ export const id = {
       "Data pada halaman ini sungguhan dari sesi dan papan yang sedang berjalan begitu tersedia, dan disimulasikan di peramban Anda sebelum itu.",
     disclosureFor: (modul: number) => (modul === 1 ? id.live.disclosure : id.live.disclosureReal),
     fireHint: "Tekan tombol untuk mengirim satu pesan uji dan melihatnya melintasi tiap lapisan.",
+    jalurLabel: (jalur: number) => `Alur: ${jalur} jalur`,
   },
   nav: {
     prev: "Sebelumnya",

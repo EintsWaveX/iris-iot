@@ -1,0 +1,195 @@
+/* FlowDiagram.tsx's styling, as a plain CSS import -- same pattern as
+   Ladder.css before it. .flow-diagram__card duplicates Card.astro's own
+   surface (background/border/radius/padding) rather than reusing its
+   scoped class, the same constraint every React island's "card" on this
+   site is already under (Card.astro's <style> only reaches markup Astro
+   itself renders) -- a known, flagged duplication (finding F11), not
+   something this stage fixes. */
+
+.flow-diagram__split {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1280px) {
+  .flow-diagram__split {
+    align-items: start;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.flow-diagram__card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.flow-lanes {
+  border-bottom: 1px dashed var(--hairline);
+  color: var(--text-faint);
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  justify-content: space-between;
+  padding-bottom: var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.flow-rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-2);
+  mask-image: linear-gradient(to bottom, #000 88%, transparent);
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.flow-row {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 3rem 1fr 3.5rem;
+  padding-block: var(--space-3);
+}
+
+:root:not([data-motion-tier="0"]) .flow-row {
+  animation: flow-row-in var(--dur-mid) var(--ease-out-expo);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-row {
+    animation: none;
+  }
+}
+
+@keyframes flow-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.flow-seq {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  text-align: right;
+}
+
+.flow-arrow {
+  background: var(--hairline-strong);
+  height: 1px;
+  position: relative;
+}
+
+.flow-arrow::after {
+  color: var(--accent);
+  content: "\25b6";
+  font-size: 0.6rem;
+  position: absolute;
+  right: -4px;
+  top: -6px;
+}
+
+.flow-label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  left: 50%;
+  position: absolute;
+  top: -1.3em;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.flow-row[data-hilang="yes"] .flow-arrow {
+  background: var(--danger);
+  opacity: 0.7;
+}
+
+.flow-row[data-hilang="yes"] .flow-arrow::after {
+  color: var(--danger);
+}
+
+.flow-row[data-hilang="yes"] .flow-label {
+  color: var(--danger);
+}
+
+.flow-time {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.flow-diagram__kosong {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  padding-block: var(--space-5);
+}
+
+.flow-diagram__readings-head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.flow-diagram__readings-title {
+  font-size: var(--fs-body-lg);
+}
+
+.flow-diagram__readings-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.flow-diagram__readings-actions button {
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  min-height: var(--tap);
+  padding-inline: var(--space-3);
+}
+
+.flow-diagram__readings-actions button:disabled {
+  opacity: 0.5;
+}
+
+.flow-diagram__readings-scroll {
+  max-height: 22rem;
+}
+
+.flow-diagram__readings-table {
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+  width: 100%;
+}
+
+.flow-diagram__readings-table th {
+  border-bottom: 1px solid var(--hairline-strong);
+  color: var(--text-faint);
+  letter-spacing: var(--tracking-wide);
+  padding-block: var(--space-2);
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.flow-diagram__readings-table td {
+  border-bottom: 1px solid var(--hairline-faint);
+  color: var(--text);
+  padding-block: var(--space-2);
+}
+
+.flow-diagram__readings-table tr[data-hilang="yes"] td {
+  color: var(--danger);
+}
