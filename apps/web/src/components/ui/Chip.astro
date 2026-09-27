@@ -8,12 +8,15 @@
  */
 interface Props {
   class?: string;
+  id?: string;
+  hidden?: boolean;
+  [attr: string]: unknown;
 }
 
-const { class: className } = Astro.props;
+const { class: className, id, hidden, ...rest } = Astro.props;
 ---
 
-<span class:list={["chip", className]}>
+<span id={id} hidden={hidden} class:list={["chip", className]} {...rest}>
   <slot />
 </span>
 

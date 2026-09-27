@@ -16,11 +16,19 @@ import { navUtama } from "../lib/nav-links";
 import Card from "../components/ui/Card.astro";
 import Button from "../components/ui/Button.astro";
 import Badge from "../components/ui/Badge.astro";
+import Chip from "../components/ui/Chip.astro";
 import EmptyState from "../components/ui/EmptyState.astro";
 import Toast from "../components/ui/Toast";
 import PresentationCard from "../components/PresentationCard";
 
 const links = navUtama();
+
+const MODULES = [
+  { modul: 1, nama: "Bluetooth Low Energy" },
+  { modul: 2, nama: "WebSocket" },
+  { modul: 3, nama: "MQTT" },
+  { modul: 4, nama: "LoRa" },
+] as const;
 ---
 
 <Base title="Dasbor · IRIS IoT" cosmosScene="kerja">
@@ -28,14 +36,14 @@ const links = navUtama();
   <Toast client:load />
 
   <!--
-    The session identity banner: what is actually running right now,
-    stated plainly rather than left for the "Sesi hari ini" card further
-    down to imply. Full width (a .measure--wide row inside, not a
-    .measure one) rather than sharing <main>'s narrower column, since
-    this is the one thing on the page that genuinely benefits from the
-    room a wide viewport offers -- everything below it is a linear
-    procedure (start a session, paste a roster) that reads top to bottom
-    regardless of viewport width, so it stays at the standard measure.
+    P7.4 rebuild, following the signed-off P7.2 mockup: a compact single
+    -row banner (status badge, module, a slim progress bar, the primary
+    CTA) replacing the old full-height identity block, plus a 12-ish-
+    column bento below it (presentation as the main tile, group/module-
+    list/LoRa as the sidebar) replacing the old single stacked column of
+    cards. The redundant "Selamat datang" heading from the old layout is
+    dropped -- the banner and the page's own title already say what's
+    going on without it.
 
     Asisten-only for now: /api/session/current, the only endpoint that
     knows the running module and its timing, is deliberately
@@ -44,98 +52,81 @@ const links = navUtama();
     narrower endpoint -- module and timing only, no roster -- which is a
     real, flagged follow-up, not an oversight.
   -->
-  <div id="session-banner-host" class="session-banner-host" hidden>
-    <div class="measure--wide">
-      <div class="session-banner" id="session-banner" hidden>
-        <p class="eyebrow eyebrow--accent">Sesi berjalan</p>
-        <h1 class="session-banner__module">
-          Modul <span id="banner-modul-nomor"></span>{" "}
-          <span class="session-banner__module-nama" id="banner-modul-nama"></span>
-        </h1>
-        <dl class="session-banner__meta">
-          <div>
-            <dt>Tanggal</dt>
-            <dd id="banner-tanggal"></dd>
+  <div id="session-banner-host" class="banner" hidden>
+    <div class="banner__inner page-wide">
+      <div class="banner__running" id="session-banner" hidden>
+        <div class="banner__identity">
+          <Badge id="banner-status-badge" tone="accent">
+            Sesi berjalan
+          </Badge>
+          <p class="banner__module">
+            <span class="mono banner__module-eyebrow">
+              Modul <span id="banner-modul-nomor"></span>
+            </span>
+            <span class="banner__module-nama" id="banner-modul-nama"></span>
+          </p>
+        </div>
+        <div class="banner__progress">
+          <span class="mono banner__progress-text" id="banner-durasi"></span>
+          <div class="banner__bar">
+            <span id="banner-bar-fill"></span>
           </div>
-          <div>
-            <dt>Waktu</dt>
-            <dd id="banner-waktu"></dd>
-          </div>
-          <div>
-            <dt>Berjalan</dt>
-            <dd id="banner-durasi"></dd>
-          </div>
-          <div>
-            <dt>Kelompok</dt>
-            <dd id="banner-kelompok"></dd>
-          </div>
-        </dl>
-        <a href="/modules/1" id="banner-buka-modul" class="btn btn--primary session-banner__cta">
-          Buka Modul <span id="banner-buka-modul-nomor"></span>
-        </a>
+          <a href="/modules/1" id="banner-buka-modul" class="btn btn--primary btn--sm">
+            Buka Modul <span id="banner-buka-modul-nomor"></span>
+          </a>
+        </div>
       </div>
-      <div class="session-banner session-banner--kosong" id="session-banner-kosong" hidden>
-        <p class="eyebrow">Tidak ada sesi</p>
-        <p class="session-banner__kosong-teks">Belum ada sesi yang berjalan hari ini.</p>
+      <div class="banner__kosong" id="session-banner-kosong" hidden>
+        <Badge tone="neutral">Tidak ada sesi</Badge>
+        <p class="banner__kosong-teks">Belum ada sesi yang berjalan hari ini.</p>
       </div>
     </div>
   </div>
 
-  <main class="measure">
+  <main class="page-regular">
     <div id="loading">
       <EmptyState title="Memuat…" />
     </div>
 
-    <div id="view-praktikan" hidden>
-      <section class="section">
-        <h1 class="section__title">Selamat datang</h1>
-      </section>
-      <Card id="praktikan-card">
-        <p id="praktikan-nama" class="who"></p>
-        <p class="who__group">
-          <Badge id="praktikan-badge">Kelompok</Badge>
-          <span id="praktikan-regu-nama"></span>
-        </p>
-        <Button kind="ghost" id="link-kelompok-live" class="who__link">
-          Lihat ladder kelompok Anda
-        </Button>
-      </Card>
-
-      <Card title="Modul praktikum" class="modules-section">
-        <div class="modules-grid" id="modules-grid">
-          <a class="modules-grid__item" href="/modules/1">
-            <span class="modules-grid__nomor">Modul 1</span>
-            <span class="modules-grid__nama">Bluetooth Low Energy</span>
-          </a>
-          <a class="modules-grid__item" href="/modules/2">
-            <span class="modules-grid__nomor">Modul 2</span>
-            <span class="modules-grid__nama">WebSocket</span>
-          </a>
-          <a class="modules-grid__item" href="/modules/3">
-            <span class="modules-grid__nomor">Modul 3</span>
-            <span class="modules-grid__nama">MQTT</span>
-          </a>
-          <a class="modules-grid__item" href="/modules/4">
-            <span class="modules-grid__nomor">Modul 4</span>
-            <span class="modules-grid__nama">LoRa</span>
-          </a>
-        </div>
-      </Card>
-
-      <Card title="Presentasi" class="presentation-section">
+    <div id="view-praktikan" class="bento" hidden>
+      <Card title="Presentasi" class="bento__main">
         <PresentationCard client:load />
       </Card>
 
-      <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card" id="modul4-card" hidden>
-        <p>
-          Papan skor perburuan berjalan langsung di Orange Pi lab, di jaringan
-          <strong>IRIS-IOT</strong>, bukan lewat internet. Sambungkan HP ke hotspot itu dahulu, baru
-          buka tautan ini.
-        </p>
-        <Button kind="primary" id="btn-buka-iot">
-          Buka papan skor
-        </Button>
-      </Card>
+      <div class="bento__side">
+        <Card id="group-card" class="group-card">
+          <Badge id="praktikan-badge">Kelompok</Badge>
+          <p id="praktikan-nama" class="group-card__nama"></p>
+          <Button kind="ghost" size="sm" id="link-kelompok-live" class="group-card__link">
+            Lihat ladder kelompok
+          </Button>
+        </Card>
+
+        <Card title="Modul praktikum" class="module-list-card">
+          <div class="module-list" id="modules-grid">
+            {MODULES.map(({ modul, nama }) => (
+              <a class="mini-mod" href={`/modules/${modul}`} data-mini-mod={modul}>
+                <span class="mini-mod__dot" />
+                <span class="mini-mod__nama">
+                  {modul} &middot; {nama}
+                </span>
+                <Chip class="mini-mod__chip" hidden />
+              </a>
+            ))}
+          </div>
+        </Card>
+
+        <Card eyebrow="Modul 4" title="Perburuan LoRa" class="modul4-card" id="modul4-card" hidden>
+          <p>
+            Papan skor perburuan berjalan langsung di Orange Pi lab, di jaringan{" "}
+            <strong>IRIS-IOT</strong>, bukan lewat internet. Sambungkan HP ke hotspot itu dahulu,
+            baru buka tautan ini.
+          </p>
+          <Button kind="primary" size="sm" id="btn-buka-iot">
+            Buka papan skor
+          </Button>
+        </Card>
+      </div>
     </div>
   </main>
 
@@ -143,7 +134,7 @@ const links = navUtama();
     import { navigate } from "astro:transitions/client";
     import { startPolling } from "../scripts/polling";
     import { watchIdentity } from "../scripts/identity-watch";
-    import { lockCards } from "../scripts/modul-akses";
+    import { getAksesState, terkunciUntuk } from "../scripts/modul-akses";
     import { SESI_CAP_MENIT } from "../lib/jadwal";
 
     // A stopgap, not a real content model: the schema's sesi.modul is a
@@ -158,13 +149,52 @@ const links = navUtama();
       4: "LoRa",
     };
 
-    function formatDurasiBerjalan(mulaiPadaIso: string | null): string {
-      if (!mulaiPadaIso) return "belum diketahui";
-      const mulaiMs = new Date(mulaiPadaIso).getTime();
-      if (Number.isNaN(mulaiMs)) return "belum diketahui";
+    function formatProgress(
+      mulai: string,
+      mulaiPadaIso: string | null,
+    ): { label: string; persen: number } {
+      const mulaiMs = mulaiPadaIso ? new Date(mulaiPadaIso).getTime() : NaN;
+      if (Number.isNaN(mulaiMs)) return { label: `Mulai ${mulai}`, persen: 0 };
       const berjalanMenit = Math.max(0, Math.round((Date.now() - mulaiMs) / 60000));
       const sisaMenit = Math.max(0, SESI_CAP_MENIT - berjalanMenit);
-      return `${berjalanMenit} menit · sisa ${sisaMenit} menit`;
+      return {
+        label: `Mulai ${mulai} · ${berjalanMenit} menit · sisa ${sisaMenit} menit`,
+        persen: Math.min(100, Math.round((berjalanMenit / SESI_CAP_MENIT) * 100)),
+      };
+    }
+
+    // Module list sidebar card: locked state is fetched once (it barely
+    // ever changes mid-session) and set here; which module is the active
+    // one changes every poll tick, so it's a separate function called from
+    // renderBanner() below rather than folded into this one.
+    async function renderModuleLocks() {
+      const state = await getAksesState();
+      for (const modul of [1, 2, 3, 4]) {
+        const row = document.querySelector<HTMLAnchorElement>(`[data-mini-mod="${modul}"]`);
+        if (!row) continue;
+        const locked = terkunciUntuk(state, modul);
+        row.classList.toggle("is-locked", locked);
+        const chip = row.querySelector<HTMLElement>(".mini-mod__chip");
+        if (chip && locked) {
+          chip.textContent = "Terkunci";
+          chip.hidden = false;
+        }
+      }
+    }
+
+    function updateModuleActive(modulAktif: number | null) {
+      for (const modul of [1, 2, 3, 4]) {
+        const row = document.querySelector<HTMLAnchorElement>(`[data-mini-mod="${modul}"]`);
+        if (!row) continue;
+        const active = modul === modulAktif;
+        row.classList.toggle("is-active", active);
+        const chip = row.querySelector<HTMLElement>(".mini-mod__chip");
+        // A locked module keeps its "Terkunci" chip regardless of which
+        // module the running session happens to be on.
+        if (!chip || row.classList.contains("is-locked")) continue;
+        chip.textContent = active ? "Aktif" : "";
+        chip.hidden = !active;
+      }
     }
 
     // Module 4A's board runs on the Orange Pi itself, on the local
@@ -201,9 +231,9 @@ const links = navUtama();
 
     function renderBanner(
       s: { modul: number; tanggal: string; mulai: string; mulaiPada: string | null } | null,
-      kelompokText: string,
     ) {
       show("session-banner-host");
+      updateModuleActive(s?.modul ?? null);
 
       if (!s) {
         hide("session-banner");
@@ -224,10 +254,9 @@ const links = navUtama();
       show("session-banner");
       document.getElementById("banner-modul-nomor")!.textContent = String(s.modul);
       document.getElementById("banner-modul-nama")!.textContent = MODULE_NAMES[s.modul] ?? "";
-      document.getElementById("banner-tanggal")!.textContent = s.tanggal;
-      document.getElementById("banner-waktu")!.textContent = s.mulai;
-      document.getElementById("banner-durasi")!.textContent = formatDurasiBerjalan(s.mulaiPada);
-      document.getElementById("banner-kelompok")!.textContent = kelompokText;
+      const { label, persen } = formatProgress(s.mulai, s.mulaiPada);
+      document.getElementById("banner-durasi")!.textContent = label;
+      (document.getElementById("banner-bar-fill") as HTMLElement).style.width = `${persen}%`;
       document.getElementById("banner-buka-modul-nomor")!.textContent = String(s.modul);
       (document.getElementById("banner-buka-modul") as HTMLAnchorElement).href =
         `/modules/${s.modul}`;
@@ -288,11 +317,16 @@ const links = navUtama();
       hide("loading");
       show("view-praktikan");
       // The one entrance per page (design-system.md's own rule): the
-      // welcome card and the Module 4 card rise in together on arrival.
+      // bento tiles rise in together on arrival.
       window.Motion?.enter("#view-praktikan > *");
-      void lockCards(document.getElementById("modules-grid")!, "Belum dibuka");
-      document.getElementById("praktikan-nama")!.textContent = `Anda masuk sebagai ${me.nama}.`;
-      document.getElementById("praktikan-badge")!.textContent = `Kelompok ${me.kelompok}`;
+      void renderModuleLocks();
+      document.getElementById("praktikan-nama")!.textContent = me.nama;
+      const badge = document.getElementById("praktikan-badge")!;
+      badge.textContent = `Kelompok ${me.kelompok}`;
+      badge.style.setProperty("--badge-hue", `var(--group-${me.kelompok})`);
+      document
+        .getElementById("group-card")
+        ?.style.setProperty("--g", `var(--group-${me.kelompok})`);
       document
         .getElementById("link-kelompok-live")
         ?.addEventListener("click", () => navigate(`/groups/${me.kelompok}`));
@@ -319,7 +353,7 @@ const links = navUtama();
         try {
           const data = await fetch("/api/session/now").then((r) => r.json());
           if (!data.ok) return;
-          renderBanner(data.sesi, `Kelompok ${me.kelompok}`);
+          renderBanner(data.sesi);
           maybeToastPengumuman(data.sesi?.pengumuman ?? null, data.sesi?.pengumumanPada ?? null);
         } catch {
           // Left at whatever the last successful poll produced.
@@ -370,140 +404,206 @@ const links = navUtama();
 </Base>
 
 <style>
-  .who {
-    /* Was the serif at --fs-display-sm, below the floor where it holds up. */
-    font-size: var(--fs-display-sm);
-    font-family: var(--font-body);
-    color: var(--text);
+  /* -------------------------------------------------------------------
+     SESSION BANNER (P7.4) — a compact single-row strip rather than the
+     old full-height identity block, following the signed-off mockup.
+     Full-bleed (a .page-wide row inside, not .page-regular) since a
+     session's identity is worth stating across the room; everything
+     below it is a bento of cards that stays at the standard measure.
+     ------------------------------------------------------------------- */
+  .banner {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--hairline);
   }
 
-  .who__group {
+  .banner__inner {
+    padding-block: var(--space-4);
+  }
+
+  .banner__running {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    justify-content: space-between;
+  }
+
+  .banner__identity {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .banner__module {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+  }
+
+  .banner__module-eyebrow {
+    color: var(--text-faint);
+    font-size: var(--fs-small);
+  }
+
+  .banner__module-nama {
+    font-family: var(--font-display);
+    font-size: var(--fs-display-sm);
+  }
+
+  .banner__progress {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    width: 100%;
+  }
+
+  .banner__progress-text {
+    color: var(--text-faint);
+    font-size: var(--fs-small);
+    white-space: nowrap;
+  }
+
+  .banner__bar {
+    background: var(--hairline);
+    border-radius: var(--radius-pill);
+    flex: 1;
+    height: 6px;
+    min-width: 8rem;
+    overflow: hidden;
+  }
+
+  .banner__bar > span {
+    background: var(--accent);
+    display: block;
+    height: 100%;
+    transition: width var(--dur-mid) var(--ease-reveal);
+  }
+
+  .banner__kosong {
     align-items: center;
     display: flex;
     gap: var(--space-3);
+  }
+
+  .banner__kosong-teks {
+    color: var(--text-muted);
+  }
+
+  @media (min-width: 640px) {
+    .banner__running {
+      align-items: center;
+      flex-direction: row;
+    }
+
+    .banner__progress {
+      width: auto;
+    }
+  }
+
+  /* -------------------------------------------------------------------
+     BENTO — main tile (presentation) + a sidebar stack (group, module
+     list, and the Module 4 scoreboard card when it's the running
+     module). One column, sidebar first, below 1024 -- matching the
+     mockup's mobile order, where the group and module status are worth
+     seeing before the presentation embed. A real two-column bento only
+     once there's room for the 320px sidebar to not crowd the main tile.
+     ------------------------------------------------------------------- */
+  .bento {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding-block: var(--space-page-top) var(--space-section);
+  }
+
+  .bento__main {
+    order: 2;
+  }
+
+  .bento__side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    order: 1;
+  }
+
+  @media (min-width: 1024px) {
+    .bento {
+      align-items: start;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+    }
+
+    .bento__main,
+    .bento__side {
+      order: initial;
+    }
+  }
+
+  .group-card {
+    border-left: 3px solid var(--g, var(--hairline));
+  }
+
+  .group-card__nama {
+    color: var(--text-muted);
+    font-size: var(--fs-body-lg);
     margin-top: var(--space-3);
   }
 
-  .who__link {
+  .group-card__link {
     margin-top: var(--space-4);
+    width: 100%;
   }
 
-  .modul4-card,
-  .presentation-section,
-  .modules-section {
-    margin-top: var(--space-6);
+  .module-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .mini-mod {
+    align-items: center;
+    border-radius: var(--radius-md);
+    color: inherit;
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    text-decoration: none;
+    transition: background-color var(--dur-fast) var(--ease-reveal);
+  }
+
+  .mini-mod:hover {
+    background: var(--bg-sunken);
+  }
+
+  .mini-mod__dot {
+    background: var(--hairline-strong);
+    border-radius: 50%;
+    flex-shrink: 0;
+    height: 8px;
+    width: 8px;
+  }
+
+  .mini-mod.is-active .mini-mod__dot {
+    background: var(--accent);
+  }
+
+  .mini-mod__nama {
+    flex: 1;
+    font-size: var(--fs-body);
+  }
+
+  .mini-mod.is-locked {
+    opacity: 0.6;
+  }
+
+  .mini-mod.is-locked .mini-mod__nama {
+    color: var(--text-muted);
   }
 
   .modul4-card p {
     margin-bottom: var(--space-5);
-  }
-
-  .modules-grid {
-    display: grid;
-    gap: var(--space-4);
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  }
-
-  .modules-grid__item {
-    background: var(--bg-sunken);
-    border: 1px solid var(--hairline);
-    border-radius: var(--radius-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    padding: var(--space-4);
-    text-decoration: none;
-    transition:
-      border-color var(--dur-fast) var(--ease-reveal),
-      transform var(--dur-fast) var(--ease-reveal);
-  }
-
-  .modules-grid__item:hover {
-    border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline));
-    transform: translateY(-2px);
-  }
-
-  .modules-grid__nomor {
-    color: var(--text-faint);
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-  }
-
-  .modules-grid__nama {
-    color: var(--text);
-  }
-
-  .session-banner__cta {
-    margin-top: var(--space-6);
-  }
-
-  /* -------------------------------------------------------------------
-     SESSION BANNER — the one full-bleed element on this page. Everything
-     else is a linear procedure read top to bottom (start a session,
-     paste a roster) that gains nothing from extra width, so it stays at
-     the standard .measure; this is the exception, because a session's
-     identity is exactly the kind of thing worth stating across the room
-     rather than tucked into a narrow column.
-     ------------------------------------------------------------------- */
-  .session-banner-host {
-    background: var(--bg-elevated);
-    border-bottom: 1px solid var(--hairline);
-    padding-block: var(--space-7);
-  }
-
-  .session-banner-host > div {
-    padding-inline: var(--gutter);
-  }
-
-  .session-banner__module {
-    font-family: var(--font-display);
-    font-size: var(--fs-display-md);
-    font-weight: 400;
-    margin-top: var(--space-2);
-  }
-
-  .session-banner__module-nama {
-    color: var(--text-muted);
-  }
-
-  /* Below lg, the meta row stacks -- four labelled figures side by side
-     under 1024px reads as a cramped table, not a banner. */
-  .session-banner__meta {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    margin-top: var(--space-6);
-  }
-
-  .session-banner__meta dt {
-    color: var(--text-faint);
-    font-size: var(--fs-small);
-    text-transform: uppercase;
-    letter-spacing: var(--tracking-wide);
-  }
-
-  .session-banner__meta dd {
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: var(--fs-body-lg);
-    margin: 0;
-  }
-
-  /* This is the one genuine "lg and above gets a different shape" moment
-     on this page: the four meta figures move into a single row, which
-     only reads well once there is enough width for each figure to keep
-     its own breathing room. */
-  @media (min-width: 1025px) {
-    .session-banner__meta {
-      flex-direction: row;
-      gap: var(--space-9);
-    }
-  }
-
-  .session-banner--kosong .session-banner__kosong-teks {
-    color: var(--text-muted);
-    margin-top: var(--space-2);
   }
 </style>
