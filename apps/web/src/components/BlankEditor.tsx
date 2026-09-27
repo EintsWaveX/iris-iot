@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Segment } from "../lib/blanks";
 import { needsPersonalization, personalizeSegments } from "../lib/group-identity";
 import { startPolling } from "../scripts/polling";
+import ScrollArea from "./ui/ScrollArea";
 import "./BlankEditor.css";
 
 type DraftJawaban = Record<string, { isi: string; benar: boolean }>;
@@ -247,63 +248,65 @@ export default function BlankEditor({
               : masukHint}
         </p>
       )}
-      <pre className="blank-editor__code">
-        {displaySegments.map((seg, i) => {
-          if (seg.kind === "text") return seg.text;
-          const entry = state[seg.nomor];
-          const width = Math.max(4, (entry?.isi.length ?? 0) + 2);
-          return (
-            <span
-              key={i}
-              className="blank-editor__field"
-              data-state={
-                entry?.checking
-                  ? "checking"
-                  : entry?.checkedIsi === entry?.isi && entry?.isi
-                    ? entry?.benar
-                      ? "benar"
-                      : "salah"
-                    : "netral"
-              }
-            >
-              <input
-                type="text"
-                id={`blank-${berkas}-${seg.nomor}`}
-                name={`blank-${berkas}-${seg.nomor}`}
-                inputMode="text"
-                autoComplete="off"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                disabled={locked}
-                aria-label={seg.hint}
-                title={seg.hint}
-                style={{ width: `${width}ch` }}
-                value={entry?.isi ?? ""}
-                onChange={(e) => onChange(seg.nomor, e.target.value)}
-                onFocus={() => {
-                  fokusNomor.current = seg.nomor;
-                }}
-                onBlur={() => {
-                  if (fokusNomor.current === seg.nomor) fokusNomor.current = null;
-                  void checkBlank(seg.nomor);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
+      <ScrollArea label={bahasa === "en" ? "Code" : "Kode"} className="blank-editor__scroll">
+        <pre className="blank-editor__code">
+          {displaySegments.map((seg, i) => {
+            if (seg.kind === "text") return seg.text;
+            const entry = state[seg.nomor];
+            const width = Math.max(4, (entry?.isi.length ?? 0) + 2);
+            return (
+              <span
+                key={i}
+                className="blank-editor__field"
+                data-state={
+                  entry?.checking
+                    ? "checking"
+                    : entry?.checkedIsi === entry?.isi && entry?.isi
+                      ? entry?.benar
+                        ? "benar"
+                        : "salah"
+                      : "netral"
+                }
+              >
+                <input
+                  type="text"
+                  id={`blank-${berkas}-${seg.nomor}`}
+                  name={`blank-${berkas}-${seg.nomor}`}
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  disabled={locked}
+                  aria-label={seg.hint}
+                  title={seg.hint}
+                  style={{ width: `${width}ch` }}
+                  value={entry?.isi ?? ""}
+                  onChange={(e) => onChange(seg.nomor, e.target.value)}
+                  onFocus={() => {
+                    fokusNomor.current = seg.nomor;
+                  }}
+                  onBlur={() => {
+                    if (fokusNomor.current === seg.nomor) fokusNomor.current = null;
                     void checkBlank(seg.nomor);
-                  }
-                }}
-              />
-              {entry?.checkedIsi === entry?.isi && entry?.isi && entry.benar && entry.kenapa && (
-                <span className="blank-editor__kenapa" role="status">
-                  {entry.kenapa}
-                </span>
-              )}
-            </span>
-          );
-        })}
-      </pre>
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void checkBlank(seg.nomor);
+                    }
+                  }}
+                />
+                {entry?.checkedIsi === entry?.isi && entry?.isi && entry.benar && entry.kenapa && (
+                  <span className="blank-editor__kenapa" role="status">
+                    {entry.kenapa}
+                  </span>
+                )}
+              </span>
+            );
+          })}
+        </pre>
+      </ScrollArea>
 
       <div className="blank-editor__footer">
         <span className="blank-editor__progress">

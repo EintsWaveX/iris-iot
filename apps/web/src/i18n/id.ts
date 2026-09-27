@@ -32,6 +32,7 @@ export const id = {
   },
   code: {
     heading: "Kode program",
+    board: "Papan",
     note: "Isikan setiap kotak rumpang lalu klik di luar kotak untuk memeriksa jawabannya. Jawaban yang benar menampilkan alasannya; jawaban tersimpan otomatis sehingga bisa dilanjutkan kapan saja.",
     download: "Unduh berkas",
     downloadHint: "Selesaikan semua bagian rumpang pada berkas ini untuk membuka unduhan.",

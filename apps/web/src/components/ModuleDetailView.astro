@@ -5,15 +5,15 @@
  * Tabs.tsx manages its panels: sibling markup toggled by `hidden`, this
  * component owns none of the switching logic itself.
  *
- * At lg and above, the Code panel stops being a fourth step and becomes a
- * pinned right-hand column visible next to whichever of Brief/Setup/Go live
- * is open -- see the lg+ media query below, which intentionally overrides
- * the `hidden` attribute on #code the same way an author `display` rule
- * accidentally did once already this project (the AP-checkbox bug from
- * Stage 5). That earlier case was a bug; this one is the point: the code
- * panel and everything else disagree with `hidden` at this breakpoint on
- * purpose, and the corresponding step dot is hidden alongside it so there
- * is nothing left to click that would do nothing.
+ * P7.4: one step visible at a time on every size, following the signed-off
+ * mockup. Before this pass, lg and above turned the Code panel into a
+ * pinned right-hand column with a fixed ~280px content width (a three-
+ * column `10rem minmax(0, var(--measure-prose)) 1fr` grid) -- finding F3,
+ * which made the page 13,700px tall on desktop and squeezed code into an
+ * unreadable rail. That whole grid, and the matching rule that turned the
+ * step strip into a sticky vertical rail (ModuleCarousel.css), are gone;
+ * the carousel's own one-panel-visible behaviour, previously overridden
+ * only at this one breakpoint, now simply applies everywhere.
  */
 import { getEntry } from "astro:content";
 import Base from "../layouts/Base.astro";
@@ -23,8 +23,9 @@ import Card from "../components/ui/Card.astro";
 import Table from "../components/ui/Table.astro";
 import Badge from "../components/ui/Badge.astro";
 import Button from "../components/ui/Button.astro";
+import PageHeader from "../components/ui/PageHeader.astro";
 import ModuleCarousel from "../components/ModuleCarousel";
-import BlankEditor from "../components/BlankEditor";
+import ModuleCodeStep from "../components/ModuleCodeStep";
 import { id as strId } from "../i18n/id";
 import { en as strEn } from "../i18n/en";
 import { getSketchSource } from "../lib/sketches";
@@ -80,15 +81,15 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
 >
   <Nav links={links} current={basePath} lang={lang} modul={m.modul} />
 
-  <main class="measure--wide">
-    <header class="module-header">
-      <a class="module-header__back" href={basePath}>
-        &laquo; {t.backToIndex}
-      </a>
-      <p class="eyebrow eyebrow--accent">Modul {m.modul}</p>
-      <h1 class="module-header__title">{m.judul}</h1>
-      <p class="module-header__topik measure-prose">{m.topik}</p>
+  <main class="page-wide">
+    <PageHeader
+      back={{ href: basePath, label: t.backToIndex }}
+      eyebrow={`Modul ${m.modul}`}
+      title={m.judul}
+      subtitle={m.topik}
+    >
       <nav
+        slot="actions"
         class="module-header__adjacent"
         id="module-adjacent"
         aria-label={t.nav.prev + "/" + t.nav.next}
@@ -104,7 +105,7 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
           </a>
         )}
       </nav>
-    </header>
+    </PageHeader>
 
     <div class="module-carousel__layout">
       <div id="step-index-rail" class="module-carousel__index">
@@ -191,22 +192,20 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
             {t.code.helperNote.split("{file}")[1]}
           </p>
         )}
-        {berkasSource.map((b) => (
-          <Card title={b.judul} class="module-code-card">
-            <BlankEditor
-              client:load
-              modul={m.modul}
-              berkas={b.slug}
-              bahasa={m.bahasa}
-              segments={b.segments}
-              downloadLabel={t.code.download}
-              downloadHint={t.code.downloadHint}
-              masukHint={t.code.masuk}
-              sesiBerubahHint={t.code.sesiBerubah}
-              terkunciHint={t.code.terkunci}
-            />
-          </Card>
-        ))}
+        <Card class="module-code-card">
+          <ModuleCodeStep
+            client:load
+            modul={m.modul}
+            bahasa={m.bahasa}
+            berkas={berkasSource}
+            boardLabel={t.code.board}
+            downloadLabel={t.code.download}
+            downloadHint={t.code.downloadHint}
+            masukHint={t.code.masuk}
+            sesiBerubahHint={t.code.sesiBerubah}
+            terkunciHint={t.code.terkunci}
+          />
+        </Card>
       </section>
 
       <section id="live" role="tabpanel" aria-labelledby="live-tab" class="module-panel" hidden>
@@ -236,7 +235,7 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
   import { id as strId } from "../i18n/id";
   import { en as strEn } from "../i18n/en";
   function playEntrance() {
-    window.Motion?.enter(".module-header > *");
+    window.Motion?.enter(".page-header > *");
   }
   sekaliPerHalaman("ModulDetailAnimasi", playEntrance);
 
@@ -249,7 +248,7 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
     const match = /\/modules\/(\d)(?:\/|$)/.exec(location.pathname);
     if (!match) return;
     const t = document.documentElement.lang === "en" ? strEn : strId;
-    const heading = document.querySelector(".module-header h1");
+    const heading = document.querySelector(".page-header__title");
     void applyLockScreen(Number(match[1]), t.code.terkunci, "terkunci untuk praktikan", heading);
 
     // B12: prev/next links between modules -- badged rather than hidden or
@@ -263,37 +262,9 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
 </script>
 
 <style>
-  .module-header {
-    padding-block: var(--space-8) var(--space-6);
-  }
-
-  .module-header__back {
-    color: var(--text-faint);
-    display: inline-block;
-    font-size: var(--fs-small);
-    margin-bottom: var(--space-4);
-  }
-
-  .module-header__back:hover {
-    color: var(--text);
-  }
-
-  .module-header__title {
-    font-family: var(--font-display);
-    font-size: var(--fs-display-lg);
-    font-weight: 400;
-    margin-top: var(--space-2);
-  }
-
-  .module-header__topik {
-    color: var(--text-muted);
-    margin-top: var(--space-3);
-  }
-
   .module-header__adjacent {
     display: flex;
     gap: var(--space-5);
-    margin-top: var(--space-5);
   }
 
   .module-header__adjacent a {
@@ -417,42 +388,5 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
 
   .module-live__cta {
     margin-top: var(--space-5);
-  }
-
-  /* lg and above: Code stops being a fourth step and becomes a pinned
-     right column, visible alongside whichever of Brief/Setup/Go live is
-     open. See this file's top comment for why overriding `hidden` here is
-     deliberate rather than a repeat of the Stage 5 display/hidden bug. */
-  @media (min-width: 1025px) {
-    .module-carousel__layout {
-      align-items: start;
-      grid-template-areas: "index content code";
-      grid-template-columns: 10rem minmax(0, var(--measure-prose)) 1fr;
-    }
-
-    .module-carousel__index {
-      align-self: start;
-      grid-area: index;
-      position: sticky;
-      top: calc(var(--nav-size) + var(--space-6));
-    }
-
-    #brief,
-    #setup,
-    #live {
-      grid-area: content;
-    }
-
-    #code {
-      grid-area: code;
-    }
-
-    #code[hidden] {
-      display: block;
-    }
-
-    :global([data-step-id="code"]) {
-      display: none;
-    }
   }
 </style>

@@ -78,23 +78,3 @@
 .carousel-steps__dot:hover {
   color: var(--text);
 }
-
-/* Inside ModuleDetailView.astro's sticky left rail (lg and above), the
-   strip becomes a vertical run rather than a horizontal one, since it now
-   lives in a narrow fixed-width column instead of spanning the page. */
-@media (min-width: 1025px) {
-  .carousel-steps {
-    flex-direction: column;
-  }
-
-  .carousel-steps__dots {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
-
-  .carousel-steps__dot {
-    align-items: center;
-    flex-direction: row;
-  }
-}

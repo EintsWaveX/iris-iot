@@ -7,17 +7,23 @@
   margin-bottom: var(--space-3);
 }
 
-.blank-editor__code {
+/* P7.4: pre (no wrap) inside the ScrollArea wrapper below, not pre-wrap +
+   break-word -- code that wraps mid-token is what made the old three-
+   column layout squeeze the Kode step into an unreadable ~280px rail
+   (finding F3); a real horizontal scrollbar reads correctly at any width
+   instead. */
+.blank-editor__scroll {
   background: var(--bg-sunken);
   border-radius: var(--radius-md);
+}
+
+.blank-editor__code {
   color: var(--text);
   font-family: var(--font-mono);
   font-size: var(--fs-small);
   line-height: 1.6;
-  overflow-x: auto;
   padding: var(--space-4);
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre;
 }
 
 .blank-editor__field {

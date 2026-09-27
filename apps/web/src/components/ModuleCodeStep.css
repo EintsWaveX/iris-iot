@@ -1,0 +1,6 @@
+/* ModuleCodeStep.tsx's styling, as a plain CSS import -- same pattern as
+   BlankEditor.css and ModuleCarousel.css. */
+
+.module-code-step__panel {
+  margin-top: var(--space-5);
+}

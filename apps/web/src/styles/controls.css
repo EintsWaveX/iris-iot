@@ -394,13 +394,19 @@
    ----------------------------------------------------------------------- */
 a[data-locked="yes"] {
   opacity: 0.55;
-  /* Positioning context for .modul-lock-badge below. Every card-link on
-     the site wraps its Card in a flex row (index.astro's .modules__link,
-     ModulesIndexView's .modules-index__card-link), so a badge appended as
-     a plain flex sibling of the card (modul-akses.ts's DOM-level
-     appendChild -- see the comment above) rendered as a second column
-     next to the card instead of on it. Absolute + a fixed corner avoids
-     that regardless of which page's flex direction it lands in. */
+}
+
+/* Positioning context for .modul-lock-badge below, scoped to the two
+   card-grid links specifically (index.astro's .modules__link,
+   ModulesIndexView's .modules-index__card-link) rather than every
+   a[data-locked="yes"]: both wrap a Card in a flex row, so a badge
+   appended as a plain flex sibling of the card (modul-akses.ts's DOM-level
+   appendChild) rendered as a second column overflowing past the card
+   instead of on it. A small link elsewhere (e.g. ModuleDetailView's
+   prev/next nav) has no such problem and keeps the badge's normal inline
+   flow below. */
+.modules__link[data-locked="yes"],
+.modules-index__card-link[data-locked="yes"] {
   position: relative;
 }
 
@@ -411,12 +417,20 @@ a[data-locked="yes"] .card {
 .modul-lock-badge {
   background: var(--hairline-faint);
   border-radius: var(--radius-pill);
-  bottom: var(--space-4);
   color: var(--text-faint);
   display: inline-block;
   font-size: var(--fs-small);
   font-weight: 500;
+  margin-left: var(--space-2);
   padding: var(--space-1) var(--space-3);
+}
+
+/* Only the two card-grid links above need the absolute corner treatment;
+   every other .modul-lock-badge (a heading, a small prev/next link) keeps
+   the default inline flow from the base rule. */
+.modules__link[data-locked="yes"] > .modul-lock-badge,
+.modules-index__card-link[data-locked="yes"] > .modul-lock-badge {
+  bottom: var(--space-4);
   position: absolute;
   right: var(--space-4);
 }
