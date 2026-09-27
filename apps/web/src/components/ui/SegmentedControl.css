@@ -23,6 +23,7 @@
   font-weight: 500;
   min-height: max(var(--tap), 36px);
   padding-inline: var(--space-4);
+  position: relative;
   transition:
     background var(--dur-fast) var(--ease-reveal),
     color var(--dur-fast) var(--ease-reveal);
@@ -40,6 +41,34 @@
 .segmented__item:focus-visible {
   box-shadow: var(--glow-ring);
   outline: none;
-  position: relative;
   z-index: 1;
+}
+
+/* The same swept gradient-border ring every other control uses (P7.4). */
+.segmented__item::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+}
+
+.segmented__item:hover::after,
+.segmented__item:focus-visible::after {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"]) .segmented__item:hover::after,
+:root:not([data-motion-tier="0"]) .segmented__item:focus-visible::after {
+  animation: aurora-sweep 2.2s linear infinite;
 }

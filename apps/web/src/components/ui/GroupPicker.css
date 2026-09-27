@@ -21,6 +21,7 @@
   font-size: var(--fs-small);
   min-height: max(var(--tap), 36px);
   padding-inline: var(--space-3);
+  position: relative;
   transition:
     background var(--dur-fast) var(--ease-reveal),
     color var(--dur-fast) var(--ease-reveal),
@@ -40,4 +41,35 @@
 .group-picker__item:focus-visible {
   box-shadow: var(--glow-ring);
   outline: none;
+}
+
+/* The same swept gradient-border ring every other control uses (P7.4) --
+   a hover/focus affordance layered on top of this chip's own identity
+   colour (--tile-hue), not a replacement for it. */
+.group-picker__item::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+}
+
+.group-picker__item:hover::after,
+.group-picker__item:focus-visible::after {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"]) .group-picker__item:hover::after,
+:root:not([data-motion-tier="0"]) .group-picker__item:focus-visible::after {
+  animation: aurora-sweep 2.2s linear infinite;
 }

@@ -54,6 +54,35 @@
   opacity: 0.5;
 }
 
+/* The same swept gradient-border ring every other control uses (P7.4). */
+.dropdown__trigger::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+}
+
+.dropdown__trigger:hover:not(:disabled)::after,
+.dropdown__trigger:focus-visible::after {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"]) .dropdown__trigger:hover:not(:disabled)::after,
+:root:not([data-motion-tier="0"]) .dropdown__trigger:focus-visible::after {
+  animation: aurora-sweep 2.2s linear infinite;
+}
+
 .dropdown__value {
   overflow: hidden;
   text-overflow: ellipsis;

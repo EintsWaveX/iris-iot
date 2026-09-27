@@ -68,20 +68,19 @@ const { title, eyebrow, interactive = false, class: className, id, hidden, ...re
     text-decoration: none;
   }
 
-  /* The cursor-follow spotlight: a 1px ring painted with a radial gradient
-     centred on --mouse-x/--mouse-y (written by scripts/spotlight.ts),
-     punched out the same way the button ring is. Falls back to the
-     off-screen default coordinates in the JS module, so a card that never
-     gets a mousemove (reduced motion, touch, keyboard-only) simply never
-     shows a ring rather than showing one in the wrong place. Scoped to
-     `.card--interactive` (P6.3/B11): a non-interactive card has nothing for
-     this ring to be pointing at. */
+  /* The swept gradient-border ring (P7.4): the same --sweep-ring/aurora-sweep
+     treatment controls.css's .btn--ghost/.btn--secondary already use, so an
+     interactive card reads as the same "clickable thing" as every other
+     control on the site rather than carrying its own distinct hover
+     language. Replaces the Stage 4 cursor-follow spotlight (retired along
+     with scripts/spotlight.ts, its only consumer) -- a traveling sweep
+     needs no mouse-position tracking, so this card and its focus state now
+     look identical, which the spotlight version never could. Scoped to
+     `.card--interactive` (P6.3/B11): a non-interactive card has nothing to
+     invite a hover affordance for. */
   .card--interactive::after {
-    background: radial-gradient(
-      450px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
-      color-mix(in srgb, var(--accent) 55%, transparent),
-      transparent 70%
-    );
+    background-image: var(--sweep-ring);
+    background-size: 200% auto;
     border-radius: inherit;
     content: "";
     inset: 0;
@@ -94,17 +93,24 @@ const { title, eyebrow, interactive = false, class: className, id, hidden, ...re
     padding: 1px;
     pointer-events: none;
     position: absolute;
-    transition: opacity var(--dur-mid) var(--ease-reveal);
+    transition: opacity var(--dur-fast) var(--ease-reveal);
   }
 
-  .card--interactive:hover {
+  .card--interactive:hover,
+  .card--interactive:focus-within {
     border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline));
     box-shadow: var(--shadow-lift);
     transform: var(--lift-card);
   }
 
-  .card--interactive:hover::after {
+  .card--interactive:hover::after,
+  .card--interactive:focus-within::after {
     opacity: 1;
+  }
+
+  :root:not([data-motion-tier="0"]) .card--interactive:hover::after,
+  :root:not([data-motion-tier="0"]) .card--interactive:focus-within::after {
+    animation: aurora-sweep 2.2s linear infinite;
   }
 
   .card__head {
