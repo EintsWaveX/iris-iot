@@ -151,6 +151,7 @@ export default function LoginDialog() {
       onOpenChange={setOpen}
       title={stage === "login" ? "Masuk" : "Setel kata sandi asli"}
       sheet={sheet}
+      size="lg"
     >
       {stage === "login" ? (
         <>
@@ -215,7 +216,7 @@ export default function LoginDialog() {
               data-loading={loginLoading ? "yes" : "no"}
               disabled={loginLoading}
             >
-              Masuk
+              <span className="btn__label">Masuk</span>
             </button>
           </form>
         </>
@@ -269,7 +270,7 @@ export default function LoginDialog() {
                   navigate("/session");
                 }}
               >
-                Lewati untuk sekarang
+                <span className="btn__label">Lewati untuk sekarang</span>
               </button>
               <button
                 type="submit"
@@ -277,7 +278,7 @@ export default function LoginDialog() {
                 data-loading={setPasswordLoading ? "yes" : "no"}
                 disabled={setPasswordLoading}
               >
-                Setel kata sandi
+                <span className="btn__label">Setel kata sandi</span>
               </button>
             </div>
           </form>

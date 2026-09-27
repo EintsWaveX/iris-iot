@@ -33,6 +33,10 @@ interface Props {
   title: string;
   description?: string;
   sheet?: boolean;
+  /** "md" (default, 32rem) fits a confirm dialog; "lg" (38rem) gives a
+   *  form with its own role switch and field hints (the login dialog) room
+   *  to breathe instead of wrapping every line. */
+  size?: "md" | "lg";
   children: ReactNode;
   /** Rendered right-aligned in the footer, e.g. action buttons. */
   actions?: ReactNode;
@@ -44,6 +48,7 @@ export default function Dialog({
   title,
   description,
   sheet = false,
+  size = "md",
   children,
   actions,
 }: Props) {
@@ -52,7 +57,13 @@ export default function Dialog({
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="dialog__overlay" />
         <RadixDialog.Content
-          className={sheet ? "dialog__panel dialog__panel--sheet" : "dialog__panel"}
+          className={[
+            "dialog__panel",
+            sheet && "dialog__panel--sheet",
+            size === "lg" && "dialog__panel--lg",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           <header className="dialog__head">
             <RadixDialog.Title className="dialog__title">{title}</RadixDialog.Title>

@@ -103,7 +103,7 @@ export default function AkunSheet({ langHref, langLabel }: Props) {
                 window.LoginDialog?.open();
               }}
             >
-              Masuk
+              <span className="btn__label">Masuk</span>
             </button>
           )}
 

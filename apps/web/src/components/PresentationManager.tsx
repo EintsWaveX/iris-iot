@@ -168,7 +168,7 @@ export default function PresentationManager() {
         className="btn btn--primary presentation-manager__upload-btn"
         data-loading={uploading ? "yes" : "no"}
       >
-        {uploading ? "Mengunggah…" : "Unggah PDF"}
+        <span className="btn__label">{uploading ? "Mengunggah…" : "Unggah PDF"}</span>
       </label>
 
       {error && (

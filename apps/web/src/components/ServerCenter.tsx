@@ -290,7 +290,7 @@ function ServerListView({ onOpen }: { onOpen: (id: number) => void }) {
           </p>
         </div>
         <button type="button" className="btn btn--primary" onClick={() => setFormOpen(true)}>
-          Daftarkan Pi
+          <span className="btn__label">Daftarkan Pi</span>
         </button>
       </section>
 
@@ -448,7 +448,7 @@ function DaftarServerModal({ onClose, onDone }: { onClose: () => void; onDone: (
             <pre className="token-box mono">{perintahDaftar(token.kode, token.token)}</pre>
             <div className="modal-box__actions">
               <button type="button" className="btn btn--primary" onClick={onClose}>
-                Sudah disalin
+                <span className="btn__label">Sudah disalin</span>
               </button>
             </div>
           </>
@@ -480,10 +480,10 @@ function DaftarServerModal({ onClose, onDone }: { onClose: () => void; onDone: (
             </label>
             <div className="modal-box__actions">
               <button type="button" className="btn btn--ghost" onClick={onClose}>
-                Batal
+                <span className="btn__label">Batal</span>
               </button>
               <button type="submit" className="btn btn--primary" disabled={busy}>
-                Daftarkan
+                <span className="btn__label">Daftarkan</span>
               </button>
             </div>
           </form>
@@ -1427,7 +1427,7 @@ function PengaturanTab({
           />
         </label>
         <button type="submit" className="btn btn--primary" disabled={busy}>
-          Simpan
+          <span className="btn__label">Simpan</span>
         </button>
       </form>
 
