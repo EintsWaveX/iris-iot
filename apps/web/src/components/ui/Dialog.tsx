@@ -22,8 +22,18 @@
  *   <Dialog open={open} onOpenChange={setOpen} title="Masuk">
  *     <p>...</p>
  *   </Dialog>
+ *
+ * None of this file's 4 call sites use `RadixDialog.Trigger` (every one is
+ * opened from a plain button via this controlled `open` prop instead, since
+ * the trigger sometimes lives outside this component's own tree entirely --
+ * LoginDialog's is a vanilla nav script calling `window.LoginDialog.open()`).
+ * Without a Trigger, Radix has no element to return focus to on close, so it
+ * drops to <body> -- this component tracks and restores it itself instead,
+ * captured during the render that flips `open` true (before Radix's own
+ * child effects move focus into the panel), so every caller gets this for
+ * free with no change on their end.
  */
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
 import "./Dialog.css";
 
@@ -52,6 +62,13 @@ export default function Dialog({
   children,
   actions,
 }: Props) {
+  const openedFromRef = useRef<HTMLElement | null>(null);
+  const wasOpenRef = useRef(open);
+  if (open && !wasOpenRef.current) {
+    openedFromRef.current = document.activeElement as HTMLElement | null;
+  }
+  wasOpenRef.current = open;
+
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
@@ -64,6 +81,12 @@ export default function Dialog({
           ]
             .filter(Boolean)
             .join(" ")}
+          onCloseAutoFocus={(e) => {
+            if (openedFromRef.current) {
+              e.preventDefault();
+              openedFromRef.current.focus();
+            }
+          }}
         >
           <header className="dialog__head">
             <RadixDialog.Title className="dialog__title">{title}</RadixDialog.Title>
