@@ -21,6 +21,11 @@
   flex-wrap: wrap;
   gap: var(--space-4);
   justify-content: space-between;
+  /* F14: this island's own header never picked up the shared
+     --space-page-top/--space-section rhythm page-header.css gives every
+     Astro-rendered page -- it sat flush under the nav same as before P7.1. */
+  margin-top: var(--space-page-top);
+  margin-bottom: var(--space-section);
 }
 
 .server-center__title {
@@ -522,8 +527,11 @@
   max-height: 20rem;
   overflow: auto;
   padding: var(--space-4);
-  white-space: pre-wrap;
-  word-break: break-all;
+  /* pre + horizontal scroll, not pre-wrap + break-all: this holds shell
+     commands, JSON dumps and raw command output, all of which read as
+     mangled garbage once a long line gets chopped mid-word. Same
+     reasoning as BlankEditor's code display (F3). */
+  white-space: pre;
 }
 
 .form-stack {
@@ -602,6 +610,13 @@
   max-width: 30rem;
   padding: var(--space-6);
   width: 100%;
+}
+
+/* The enrollment-command step (a whole shell command in a .token-box)
+   needs more width than the plain name/kode form does -- 30rem was
+   cramping the command's own scroll box down to almost nothing. */
+.modal-box--wide {
+  max-width: min(34rem, calc(100vw - var(--space-8)));
 }
 
 .modal-box h2 {

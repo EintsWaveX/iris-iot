@@ -489,7 +489,7 @@ function DaftarServerModal({ onClose, onDone }: { onClose: () => void; onDone: (
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-box">
+      <div className={`modal-box${token ? " modal-box--wide" : ""}`}>
         {token ? (
           <>
             <h2>Perintah pendaftaran</h2>
