@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { navigate } from "astro:transitions/client";
 import { startPolling } from "../scripts/polling";
 import Dropdown, { DropdownFilter } from "./ui/Dropdown";
+import Dialog from "./ui/Dialog";
 // uPlot's own layout CSS (axes, cursor, its internal absolute positioning)
 // was never imported anywhere in this project, which is the actual root
 // cause of F16's "legend overlaps the plot" bug: without it uPlot's several
@@ -488,57 +489,68 @@ function DaftarServerModal({ onClose, onDone }: { onClose: () => void; onDone: (
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className={`modal-box${token ? " modal-box--wide" : ""}`}>
-        {token ? (
-          <>
-            <h2>Perintah pendaftaran</h2>
-            <p>Salin perintah ini dan jalankan sekali di Orange Pi. Berlaku 30 menit.</p>
-            <pre className="token-box mono">{perintahDaftar(token.kode, token.token)}</pre>
-            <div className="modal-box__actions">
-              <button type="button" className="btn btn--primary" onClick={onClose}>
-                <span className="btn__label">Sudah disalin</span>
-              </button>
-            </div>
-          </>
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      title={token ? "Perintah pendaftaran" : "Daftarkan Orange Pi"}
+      size={token ? "lg" : "md"}
+      actions={
+        token ? (
+          <button type="button" className="btn btn--primary" onClick={onClose}>
+            <span className="btn__label">Sudah disalin</span>
+          </button>
         ) : (
-          <form onSubmit={submit}>
-            <h2>Daftarkan Orange Pi</h2>
-            <p>Beri nama dan kode singkat untuk Pi ini.</p>
-            <label className="field">
-              <span>Nama</span>
-              <input
-                className="field__input"
-                value={nama}
-                onChange={(e) => setNama(e.target.value)}
-                placeholder="Orange Pi Lab A"
-                required
-              />
-            </label>
-            <label className="field">
-              <span>Kode</span>
-              <input
-                className="field__input mono"
-                value={kode}
-                onChange={(e) => setKode(e.target.value)}
-                placeholder="opi-lab-a"
-                pattern="[a-z0-9][a-z0-9-]{1,39}"
-                required
-              />
-              <span className="field__hint">Huruf kecil, angka, dan tanda hubung saja.</span>
-            </label>
-            <div className="modal-box__actions">
-              <button type="button" className="btn btn--ghost" onClick={onClose}>
-                <span className="btn__label">Batal</span>
-              </button>
-              <button type="submit" className="btn btn--primary" disabled={busy}>
-                <span className="btn__label">Daftarkan</span>
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+          <>
+            <button type="button" className="btn btn--ghost" onClick={onClose}>
+              <span className="btn__label">Batal</span>
+            </button>
+            <button
+              type="submit"
+              form="daftar-server-form"
+              className="btn btn--primary"
+              disabled={busy}
+            >
+              <span className="btn__label">Daftarkan</span>
+            </button>
+          </>
+        )
+      }
+    >
+      {token ? (
+        <>
+          <p>Salin perintah ini dan jalankan sekali di Orange Pi. Berlaku 30 menit.</p>
+          <pre className="token-box mono">{perintahDaftar(token.kode, token.token)}</pre>
+        </>
+      ) : (
+        <form id="daftar-server-form" onSubmit={submit}>
+          <p>Beri nama dan kode singkat untuk Pi ini.</p>
+          <label className="field">
+            <span>Nama</span>
+            <input
+              className="field__input"
+              value={nama}
+              onChange={(e) => setNama(e.target.value)}
+              placeholder="Orange Pi Lab A"
+              required
+            />
+          </label>
+          <label className="field">
+            <span>Kode</span>
+            <input
+              className="field__input mono"
+              value={kode}
+              onChange={(e) => setKode(e.target.value)}
+              placeholder="opi-lab-a"
+              pattern="[a-z0-9][a-z0-9-]{1,39}"
+              required
+            />
+            <span className="field__hint">Huruf kecil, angka, dan tanda hubung saja.</span>
+          </label>
+        </form>
+      )}
+    </Dialog>
   );
 }
 
