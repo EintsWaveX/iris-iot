@@ -13,9 +13,22 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { navigate } from "astro:transitions/client";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { DropdownFilter } from "./ui/Dropdown";
+import DateRangePicker from "./ui/DateRangePicker";
+import ScrollArea from "./ui/ScrollArea";
 import { unduhCsv } from "../lib/csv";
+import "./ui/Tabs.css";
+// uPlot's own layout CSS (axes, legend, cursor) was never imported anywhere
+// in this project -- the actual cause of a legend/axis rendering gap here
+// too, same root cause ServerCenter.tsx's F16 fix found and fixed first.
+import "uplot/dist/uPlot.min.css";
 import "./ReportsView.css";
+
+function rangeToParam(d: Date | undefined): string {
+  return d ? format(d, "yyyy-MM-dd") : "";
+}
 
 async function api<T = { ok: boolean; kode?: string; [k: string]: unknown }>(
   url: string,
@@ -47,6 +60,16 @@ function fmtDurasi(sec: number): string {
   if (m < 60) return `${m} menit`;
   return `${Math.floor(m / 60)}j ${m % 60}m`;
 }
+
+// uPlot's own <div class="u-legend"> is disabled below (legend: { show:
+// false }) in favour of a plain swatch row rendered above each chart --
+// same reasoning as ServerCenter.tsx's own uplot import comment (F16).
+const KELOMPOK_WARNA = ["#7dd3fc", "#c4b5fd", "#fca5a5", "#86efac", "#fcd34d"];
+const DELAY_SERIES = [
+  { label: "Delay median (ms)", stroke: "#7dd3fc", width: 2 },
+  { label: "Delay minimum (ms)", stroke: "#86efac", width: 1 },
+  { label: "Delay maksimum (ms)", stroke: "#fca5a5", width: 1 },
+];
 
 const STATUS_LABEL: Record<string, string> = {
   terjadwal: "Terjadwal",
@@ -151,27 +174,33 @@ function ReportsHome({ onOpen }: { onOpen: (id: number) => void }) {
 
   return (
     <div className="reports-view">
-      <header className="reports-view__head">
-        <h1 className="reports-view__title">Laporan</h1>
-        <p className="reports-view__lede">
-          Riwayat sesi, ringkasan tiap modul selama empat pekan, dan log audit.
-        </p>
+      <header className="page-header">
+        <div className="page-header__row">
+          <div className="page-header__heading">
+            <h1 className="page-header__title">Laporan</h1>
+            <p className="page-header__subtitle">
+              Riwayat sesi, ringkasan tiap modul selama empat pekan, dan log audit.
+            </p>
+          </div>
+        </div>
       </header>
 
-      <nav className="reports-view__tabs" role="tablist" aria-label="Bagian laporan">
-        {HOME_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === t.id}
-            className="reports-view__tab"
-            onClick={() => goToTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
+      <div className="tabs-scroll">
+        <nav className="tabs" role="tablist" aria-label="Bagian laporan">
+          {HOME_TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === t.id}
+              className="tabs__tab"
+              onClick={() => goToTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       <div className="reports-view__panel">
         {activeTab === "sesi" && <SesiListTab onOpen={onOpen} />}
@@ -200,16 +229,15 @@ function SesiListTab({ onOpen }: { onOpen: (id: number) => void }) {
   const [rows, setRows] = useState<SesiRow[]>([]);
   const [modul, setModul] = useState<string[]>([]);
   const [status, setStatus] = useState<string[]>([]);
-  const [dari, setDari] = useState("");
-  const [sampai, setSampai] = useState("");
+  const [tanggal, setTanggal] = useState<DateRange | undefined>();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const qs = new URLSearchParams();
     if (modul.length) qs.set("modul", modul.join(","));
     if (status.length) qs.set("status", status.join(","));
-    if (dari) qs.set("dari", dari);
-    if (sampai) qs.set("sampai", sampai);
+    if (tanggal?.from) qs.set("dari", rangeToParam(tanggal.from));
+    if (tanggal?.to) qs.set("sampai", rangeToParam(tanggal.to));
     setLoading(true);
     api<{ ok: boolean; sesi?: SesiRow[]; kode?: string }>(`/api/session/riwayat?${qs}`).then(
       (d) => {
@@ -218,7 +246,7 @@ function SesiListTab({ onOpen }: { onOpen: (id: number) => void }) {
         else window.Toast?.show(pesanUntuk(d.kode), "danger");
       },
     );
-  }, [modul, status, dari, sampai]);
+  }, [modul, status, tanggal]);
 
   return (
     <div className="tab-stack">
@@ -237,14 +265,7 @@ function SesiListTab({ onOpen }: { onOpen: (id: number) => void }) {
           values={status}
           onChange={setStatus}
         />
-        <label className="reports-view__date-field">
-          Dari
-          <input type="date" value={dari} onChange={(e) => setDari(e.target.value)} />
-        </label>
-        <label className="reports-view__date-field">
-          Sampai
-          <input type="date" value={sampai} onChange={(e) => setSampai(e.target.value)} />
-        </label>
+        <DateRangePicker value={tanggal} onChange={setTanggal} />
       </div>
 
       {loading ? (
@@ -252,7 +273,7 @@ function SesiListTab({ onOpen }: { onOpen: (id: number) => void }) {
       ) : rows.length === 0 ? (
         <p className="reports-view__kosong">Tidak ada sesi yang cocok dengan filter ini.</p>
       ) : (
-        <div className="reports-view__table-wrap">
+        <ScrollArea label="Riwayat sesi" className="reports-view__table-wrap">
           <table className="reports-view__table">
             <thead>
               <tr>
@@ -277,7 +298,7 @@ function SesiListTab({ onOpen }: { onOpen: (id: number) => void }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
       )}
     </div>
   );
@@ -350,14 +371,14 @@ function AuditTab() {
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [aksi, setAksi] = useState("");
   const [aktor, setAktor] = useState("");
-  const [dari, setDari] = useState("");
+  const [tanggal, setTanggal] = useState<DateRange | undefined>();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const qs = new URLSearchParams();
     if (aksi.trim()) qs.set("aksiLog", aksi.trim());
     if (aktor.trim()) qs.set("aktor", aktor.trim());
-    if (dari) qs.set("dari", dari);
+    if (tanggal?.from) qs.set("dari", rangeToParam(tanggal.from));
     setLoading(true);
     const timer = setTimeout(() => {
       api<{ ok: boolean; audit?: AuditRow[] }>(`/api/session/audit?${qs}`).then((d) => {
@@ -366,7 +387,7 @@ function AuditTab() {
       });
     }, 300);
     return () => clearTimeout(timer);
-  }, [aksi, aktor, dari]);
+  }, [aksi, aktor, tanggal]);
 
   return (
     <div className="tab-stack">
@@ -384,10 +405,7 @@ function AuditTab() {
           NIM aktor
           <input type="text" value={aktor} onChange={(e) => setAktor(e.target.value)} />
         </label>
-        <label className="reports-view__date-field">
-          Dari
-          <input type="date" value={dari} onChange={(e) => setDari(e.target.value)} />
-        </label>
+        <DateRangePicker value={tanggal} onChange={setTanggal} />
       </div>
 
       {loading ? (
@@ -395,7 +413,7 @@ function AuditTab() {
       ) : rows.length === 0 ? (
         <p className="reports-view__kosong">Tidak ada log yang cocok.</p>
       ) : (
-        <div className="reports-view__table-wrap">
+        <ScrollArea label="Log audit" className="reports-view__table-wrap">
           <table className="reports-view__table">
             <thead>
               <tr>
@@ -418,7 +436,7 @@ function AuditTab() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
       )}
     </div>
   );
@@ -538,11 +556,12 @@ function SessionReportView({ sesiId, onBack }: { sesiId: number; onBack: () => v
             {},
             ...perKelompok.map((k, i) => ({
               label: `Kelompok ${k.nomor}`,
-              stroke: ["#7dd3fc", "#c4b5fd", "#fca5a5", "#86efac", "#fcd34d"][i % 5],
+              stroke: KELOMPOK_WARNA[i % KELOMPOK_WARNA.length],
               width: 1.5,
             })),
           ],
           axes: [{}, {}],
+          legend: { show: false },
         },
         [semuaWaktu, ...seriesData],
         blankChartRef.current,
@@ -574,13 +593,9 @@ function SessionReportView({ sesiId, onBack }: { sesiId: number; onBack: () => v
         {
           width: delayChartRef.current.clientWidth || 600,
           height: 200,
-          series: [
-            { label: "Kelompok" },
-            { label: "Delay median (ms)", stroke: "#7dd3fc", width: 2 },
-            { label: "Delay minimum (ms)", stroke: "#86efac", width: 1 },
-            { label: "Delay maksimum (ms)", stroke: "#fca5a5", width: 1 },
-          ],
+          series: [{ label: "Kelompok" }, ...DELAY_SERIES],
           axes: [{}, {}],
+          legend: { show: false },
         },
         [xs, median, min, max],
         delayChartRef.current,
@@ -630,41 +645,58 @@ function SessionReportView({ sesiId, onBack }: { sesiId: number; onBack: () => v
 
   return (
     <div className="reports-view">
-      <a
-        className="back-link"
-        href="/reports"
-        onClick={(e) => {
-          e.preventDefault();
-          onBack();
-        }}
-      >
-        &larr; Kembali ke daftar sesi
-      </a>
-
       {kode ? (
-        <p className="reports-view__kosong">{pesanUntuk(kode)}</p>
+        <>
+          <a
+            className="back-link"
+            href="/reports"
+            onClick={(e) => {
+              e.preventDefault();
+              onBack();
+            }}
+          >
+            &larr; Kembali ke daftar sesi
+          </a>
+          <p className="reports-view__kosong">{pesanUntuk(kode)}</p>
+        </>
       ) : !data || !data.sesi ? (
         <p className="reports-view__muted">Memuat...</p>
       ) : (
         <>
-          <header className="reports-view__head">
-            <h1 className="reports-view__title">
-              Modul {data.sesi.modul} &middot; {data.sesi.tanggal} {data.sesi.mulai}
-            </h1>
-            <p className="reports-view__lede">
-              {STATUS_LABEL[data.sesi.status] ?? data.sesi.status} &middot; berlangsung{" "}
-              {fmtDurasi(data.sesi.durasiDetik)}
+          <header className="page-header">
+            <p className="page-header__context">
+              <a
+                className="page-header__back"
+                href="/reports"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onBack();
+                }}
+              >
+                &laquo; Daftar sesi
+              </a>
             </p>
+            <div className="page-header__row">
+              <div className="page-header__heading">
+                <p className="page-header__eyebrow">Modul {data.sesi.modul}</p>
+                <h1 className="page-header__title">
+                  {data.sesi.tanggal} &middot; {data.sesi.mulai}
+                </h1>
+                <p className="page-header__subtitle">
+                  {STATUS_LABEL[data.sesi.status] ?? data.sesi.status} &middot; berlangsung{" "}
+                  {fmtDurasi(data.sesi.durasiDetik)}
+                </p>
+              </div>
+              <div className="page-header__actions">
+                <button type="button" className="btn btn--ghost" onClick={unduhAnggota}>
+                  <span className="btn__label">Unduh CSV anggota</span>
+                </button>
+                <button type="button" className="btn btn--ghost" onClick={unduhBlank}>
+                  <span className="btn__label">Unduh CSV blank</span>
+                </button>
+              </div>
+            </div>
           </header>
-
-          <div className="tab-toolbar">
-            <button type="button" className="btn btn--ghost" onClick={unduhAnggota}>
-              Unduh CSV anggota
-            </button>
-            <button type="button" className="btn btn--ghost" onClick={unduhBlank}>
-              Unduh CSV blank
-            </button>
-          </div>
 
           <div className="reports-view__grid">
             {data.kelompok.map((k) => (
@@ -705,9 +737,28 @@ function SessionReportView({ sesiId, onBack }: { sesiId: number; onBack: () => v
           </div>
 
           <h2 className="reports-view__heading">Blank benar dari waktu ke waktu</h2>
+          <div className="chart-legend">
+            {data.kelompok.map((k, i) => (
+              <span key={k.id} className="chart-legend__item">
+                <span
+                  className="chart-legend__swatch"
+                  style={{ background: KELOMPOK_WARNA[i % KELOMPOK_WARNA.length] }}
+                />
+                Kelompok {k.nomor}
+              </span>
+            ))}
+          </div>
           <div className="chart-box" ref={blankChartRef} />
 
           <h2 className="reports-view__heading">Delay per kelompok</h2>
+          <div className="chart-legend">
+            {DELAY_SERIES.map((s) => (
+              <span key={s.label} className="chart-legend__item">
+                <span className="chart-legend__swatch" style={{ background: s.stroke }} />
+                {s.label}
+              </span>
+            ))}
+          </div>
           <div className="chart-box" ref={delayChartRef} />
         </>
       )}

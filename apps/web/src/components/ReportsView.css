@@ -20,22 +20,6 @@
   text-align: center;
 }
 
-.reports-view__head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.reports-view__title {
-  font-family: var(--font-display);
-  font-size: var(--fs-display-md);
-  font-weight: 400;
-}
-
-.reports-view__lede {
-  color: var(--text-muted);
-}
-
 .reports-view__heading {
   font-size: var(--fs-body-lg);
   margin-top: var(--space-2);
@@ -64,30 +48,12 @@
   font-size: var(--fs-small);
 }
 
-/* -------------------------------------------------------------------
-   Tabs
-   ------------------------------------------------------------------- */
-.reports-view__tabs {
-  border-bottom: 1px solid var(--hairline);
-  display: flex;
-  gap: var(--space-4);
-}
-
-.reports-view__tab {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font: inherit;
-  padding: var(--space-3) 0;
-}
-
-.reports-view__tab[aria-selected="true"] {
-  border-bottom-color: var(--accent);
-  color: var(--text);
-}
-
+/* Tabs: reuses ui/Tabs.css's `.tabs`/`.tabs__tab` classes (imported by
+   ReportsView.tsx) rather than a bespoke copy -- the panels here are
+   React-state-driven (only the active one is ever rendered), same reason
+   SessionConsole.tsx's ConsoleTabStrip reuses those classes by hand instead
+   of the Tabs.tsx component, whose sibling-panel `hidden`-toggling contract
+   doesn't fit a "render only the active tab" component. */
 .reports-view__panel {
   display: flex;
   flex-direction: column;
@@ -244,7 +210,11 @@
 .reports-view__grid {
   display: grid;
   gap: var(--space-4);
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  /* auto-fit, not auto-fill (F17): an empty leftover track from auto-fill
+     stays reserved even with nothing to put in it, which is what let a 4th
+     card end up alone on its own row at some widths. auto-fit collapses
+     tracks with nothing to fill instead. */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .reports-view__card {
@@ -280,8 +250,31 @@
 }
 
 /* -------------------------------------------------------------------
-   Charts
+   Charts (`.chart-legend*` matches ServerCenter.css's own copy -- see
+   this file's header docblock on why these small generic primitives are
+   duplicated per island rather than shared)
    ------------------------------------------------------------------- */
+.chart-legend {
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-small);
+  gap: var(--space-4);
+}
+
+.chart-legend__item {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.chart-legend__swatch {
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  height: 3px;
+  width: 14px;
+}
+
 .chart-box {
   background: var(--bg-elevated);
   border: 1px solid var(--hairline);
