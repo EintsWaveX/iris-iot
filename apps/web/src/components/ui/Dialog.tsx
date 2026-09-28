@@ -23,15 +23,19 @@
  *     <p>...</p>
  *   </Dialog>
  *
- * None of this file's 4 call sites use `RadixDialog.Trigger` (every one is
+ * None of this file's call sites use `RadixDialog.Trigger` (every one is
  * opened from a plain button via this controlled `open` prop instead, since
  * the trigger sometimes lives outside this component's own tree entirely --
  * LoginDialog's is a vanilla nav script calling `window.LoginDialog.open()`).
  * Without a Trigger, Radix has no element to return focus to on close, so it
- * drops to <body> -- this component tracks and restores it itself instead,
- * captured during the render that flips `open` true (before Radix's own
- * child effects move focus into the panel), so every caller gets this for
- * free with no change on their end.
+ * drops to <body> -- this component tracks and restores it itself instead.
+ * Two call-site shapes both need this to work: a component that persists
+ * and toggles its own `open` state (LoginDialog, AkunSheet, SessionConsole's
+ * confirms), and one the parent only mounts while it should be open
+ * (ServerCenter's DaftarServerModal, `open` always literally `true`) -- the
+ * capture ref below starts at `false` regardless of `open`'s own initial
+ * value specifically so the latter's first-and-only render still counts as
+ * "just opened".
  */
 import { useRef, type ReactNode } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
@@ -63,7 +67,7 @@ export default function Dialog({
   actions,
 }: Props) {
   const openedFromRef = useRef<HTMLElement | null>(null);
-  const wasOpenRef = useRef(open);
+  const wasOpenRef = useRef(false);
   if (open && !wasOpenRef.current) {
     openedFromRef.current = document.activeElement as HTMLElement | null;
   }
