@@ -21,6 +21,7 @@
  *   />
  */
 import * as RadixToggleGroup from "@radix-ui/react-toggle-group";
+import { toGroupValue } from "../../lib/group-picker";
 import "./GroupPicker.css";
 
 interface Props {
@@ -37,7 +38,8 @@ export default function GroupPicker({ value, onValueChange, groups, ...rest }: P
       type="single"
       value={String(value)}
       onValueChange={(next) => {
-        if (next) onValueChange(Number(next));
+        const group = toGroupValue(next);
+        if (group !== null) onValueChange(group);
       }}
       aria-label={rest["aria-label"] ?? "Pilih kelompok"}
     >
