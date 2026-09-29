@@ -356,6 +356,32 @@ export const presentasi = pgTable(
 );
 
 /**
+ * Assistant-uploaded wiring schematics (Phase 8), one small library per
+ * module with the same shape and the same "at most one aktif" rule as
+ * `presentasi` above, except that the rule is per module: the partial unique
+ * index is on `modul` filtered to `aktif = true`. A module with no active
+ * upload falls back to the schematic bundled with the site
+ * (`public/schematics/Module N.png`), so an empty table is a valid state.
+ */
+export const skema = pgTable(
+  "skema",
+  {
+    id: serial("id").primaryKey(),
+    modul: integer("modul").notNull(),
+    namaBerkas: text("nama_berkas").notNull(),
+    url: text("url").notNull(), // Vercel Blob URL
+    diunggahOleh: text("diunggah_oleh").notNull(),
+    diunggahPada: timestamp("diunggah_pada", { withTimezone: true }).notNull().defaultNow(),
+    aktif: boolean("aktif").notNull().default(false),
+  },
+  (t) => [
+    uniqueIndex("skema_aktif_per_modul")
+      .on(t.modul)
+      .where(sql`${t.aktif} = true`),
+  ],
+);
+
+/**
  * Frozen Phase 1 tables, retired by Stage 21: a per-session group/roster
  * pair superseded by the whole-practicum `kelompok`/`anggota` above once
  * migration 0002 landed. Migrations 0007/0008 create this archived pair

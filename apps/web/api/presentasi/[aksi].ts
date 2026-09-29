@@ -44,6 +44,27 @@
  *                                  deleting the deck.
  * POST /api/presentasi/hapus    { id } — asisten only. Deletes the blob and
  *                                  its row.
+ *
+ * Phase 8 adds the wiring-schematic library (table `skema`) to this same
+ * function rather than a new file, since the Hobby plan's function count is
+ * fixed. It is the presentation library again, one per module, with images
+ * instead of PDFs:
+ *
+ * GET  /api/presentasi/schematics         — public (module pages are). The
+ *                                            active upload per module, as
+ *                                            { "1": {url, namaBerkas}, ... };
+ *                                            a missing module means "use the
+ *                                            bundled schematic".
+ * GET  /api/presentasi/schematic-list     — asisten. Every upload.
+ * POST /api/presentasi/schematic-token    — asisten. Upload handshake,
+ *                                            PNG/JPEG/WebP only.
+ * POST /api/presentasi/schematic-save     { url, namaBerkas, modul } —
+ *                                            asisten. Records the upload and
+ *                                            makes it the module's active one.
+ * POST /api/presentasi/schematic-activate { id } — asisten.
+ * POST /api/presentasi/schematic-default  { modul } — asisten. Back to the
+ *                                            bundled schematic.
+ * POST /api/presentasi/schematic-delete   { id } — asisten.
  */
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { del } from "@vercel/blob";
@@ -51,15 +72,30 @@ import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { requireRole, requireAnyRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
-import { presentasi } from "../../src/lib/schema.js";
+import { presentasi, skema } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 
 // Comfortably above a slide deck; well under what Blob itself allows.
 const MAX_BYTES = 20 * 1024 * 1024;
 const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 const MAX_NAMA_LEN = 200;
+const SKEMA_MAX_BYTES = 8 * 1024 * 1024;
+const SKEMA_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+function blobUrlValid(url: string): boolean {
+  try {
+    return new URL(url).hostname.endsWith(BLOB_HOST_SUFFIX);
+  } catch {
+    return false;
+  }
+}
+
+function modulValid(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 1 && n <= 4 ? n : null;
+}
 
 async function handleAktif(_req: ApiRequest, res: ApiResponse) {
   const db = getDb();
@@ -213,6 +249,153 @@ async function handleHapus(req: ApiRequest, res: ApiResponse, session: SessionPa
   res.status(200).json({ ok: true });
 }
 
+/* ------------------------------------------------------ wiring schematics */
+
+async function handleSchematics(_req: ApiRequest, res: ApiResponse) {
+  const db = getDb();
+  const rows = await db
+    .select({ modul: skema.modul, url: skema.url, namaBerkas: skema.namaBerkas })
+    .from(skema)
+    .where(eq(skema.aktif, true));
+  const aktif: Record<string, { url: string; namaBerkas: string }> = {};
+  for (const r of rows) aktif[String(r.modul)] = { url: r.url, namaBerkas: r.namaBerkas };
+  res.status(200).json({ ok: true, aktif });
+}
+
+async function handleSchematicList(_req: ApiRequest, res: ApiResponse) {
+  const db = getDb();
+  const rows = await db.select().from(skema).orderBy(desc(skema.diunggahPada));
+  res.status(200).json({ ok: true, daftar: rows });
+}
+
+async function handleSchematicToken(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req) as unknown as HandleUploadBody;
+  try {
+    const jsonResponse = await handleUpload({
+      body,
+      request: req as unknown as Request,
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: SKEMA_TYPES,
+        maximumSizeInBytes: SKEMA_MAX_BYTES,
+        addRandomSuffix: true,
+        tokenPayload: JSON.stringify({ nim: session.nim }),
+      }),
+    });
+    res.status(200).json(jsonResponse);
+  } catch (err) {
+    console.error("[api/presentasi/schematic-token] unexpected error:", err);
+    res.status(400).json({ error: err instanceof Error ? err.message : "unggah gagal" });
+  }
+}
+
+async function handleSchematicSave(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const url = typeof body.url === "string" ? body.url : "";
+  const namaBerkas = typeof body.namaBerkas === "string" ? body.namaBerkas : "";
+  const modul = modulValid(body.modul);
+  if (!blobUrlValid(url) || !modul || !namaBerkas || namaBerkas.length > MAX_NAMA_LEN) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  const row = await db.transaction(async (tx) => {
+    await tx
+      .update(skema)
+      .set({ aktif: false })
+      .where(and(eq(skema.modul, modul), eq(skema.aktif, true)));
+    const [r] = await tx
+      .insert(skema)
+      .values({ modul, namaBerkas, url, diunggahOleh: session.nim, aktif: true })
+      .returning();
+    return r;
+  });
+  await writeAudit(session.nim, "skema_unggah", { id: row.id, modul, namaBerkas });
+  res.status(200).json({ ok: true, skema: row });
+}
+
+async function handleSchematicActivate(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const id = Number(jsonBody(req).id);
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  const modul = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ modul: skema.modul })
+      .from(skema)
+      .where(eq(skema.id, id))
+      .limit(1);
+    if (!row) return null;
+    await tx
+      .update(skema)
+      .set({ aktif: false })
+      .where(and(eq(skema.modul, row.modul), eq(skema.aktif, true)));
+    await tx.update(skema).set({ aktif: true }).where(eq(skema.id, id));
+    return row.modul;
+  });
+  if (modul === null) {
+    res.status(200).json({ ok: false, kode: "tidak_ada" });
+    return;
+  }
+  await writeAudit(session.nim, "skema_aktifkan", { id, modul });
+  res.status(200).json({ ok: true });
+}
+
+async function handleSchematicDefault(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const modul = modulValid(jsonBody(req).modul);
+  if (!modul) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  await db
+    .update(skema)
+    .set({ aktif: false })
+    .where(and(eq(skema.modul, modul), eq(skema.aktif, true)));
+  await writeAudit(session.nim, "skema_bawaan", { modul });
+  res.status(200).json({ ok: true });
+}
+
+async function handleSchematicDelete(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const id = Number(jsonBody(req).id);
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  const [row] = await db
+    .select({ url: skema.url, modul: skema.modul })
+    .from(skema)
+    .where(eq(skema.id, id))
+    .limit(1);
+  if (!row) {
+    res.status(200).json({ ok: false, kode: "tidak_ada" });
+    return;
+  }
+  try {
+    await del(row.url);
+  } catch (err) {
+    console.error(
+      "[api/presentasi/schematic-delete] blob delete failed, removing row anyway:",
+      err,
+    );
+  }
+  await db.delete(skema).where(eq(skema.id, id));
+  await writeAudit(session.nim, "skema_hapus", { id, modul: row.modul });
+  res.status(200).json({ ok: true });
+}
+
+type SkemaPost = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => Promise<void>;
+
+const SKEMA_POST: Record<string, SkemaPost> = {
+  "schematic-token": handleSchematicToken,
+  "schematic-save": handleSchematicSave,
+  "schematic-activate": handleSchematicActivate,
+  "schematic-default": handleSchematicDefault,
+  "schematic-delete": handleSchematicDelete,
+};
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
@@ -227,8 +410,24 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return handleAktif(req, res);
   }
 
+  // Module pages are public, so the active schematic per module is too.
+  if (aksi === "schematics") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleSchematics(req, res);
+  }
+
   const session = requireRole(req, res, "asisten");
   if (!session) return;
+
+  if (aksi === "schematic-list") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleSchematicList(req, res);
+  }
+  const skemaHandler = typeof aksi === "string" ? SKEMA_POST[aksi] : undefined;
+  if (skemaHandler) {
+    if (!requireMethod(req, res, "POST")) return;
+    return skemaHandler(req, res, session);
+  }
 
   if (aksi === "daftar") {
     if (!requireMethod(req, res, "GET")) return;
