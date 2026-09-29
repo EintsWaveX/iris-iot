@@ -1,22 +1,19 @@
 /**
- * The four-step module carousel's step switcher: Brief, Setup, Code, Go
- * live. Modelled on Tabs.tsx's own shape (toggles sibling panels by ID
- * rather than owning their content) but purpose built rather than reused,
- * because a carousel differs from a generic tab strip in three ways this
- * component leans on:
+ * The module's step switcher (Brief, Persiapan, Kode, Live). Toggles sibling
+ * panels by id like Tabs.tsx, but reads as a progress track (Phase 8): four
+ * segments that fill as you move forward, a check on the steps behind you,
+ * and big previous / next buttons.
  *
- *   - previous/next controls and a step-dot row, not a pill strip
- *   - arrow keys clamp at the ends instead of wrapping (Home/End still jump)
- *   - the current step is mirrored into the URL as ?step=<id> via
- *     history.replaceState (no navigation, no Astro view-transition retrigger)
- *     so a step is bookmarkable and an assistant can send the whole room to
- *     the same URL, per the Stage 7 plan's "deep-linkable" requirement
+ * - arrow keys clamp at the ends (Home/End jump), Tab reaches the current one
+ * - the current step is mirrored into ?step= with replaceState, so a step is
+ *   bookmarkable and an assistant can send the whole room to the same one
+ * - each change dispatches `iris:step` (detail: the step id), so other
+ *   islands on the page (the code workspace's docked pin panel) can react
  *
- * Whichever panel isn't the first step must already carry `hidden` in its
- * own markup, same convention as Tabs.tsx -- this only reacts to selection
- * changes, it does not synchronise the very first paint.
+ * Panels other than the first must carry `hidden` in their own markup.
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import "./ModuleCarousel.css";
 
 interface Step {
@@ -31,6 +28,8 @@ interface Props {
   nextLabel: string;
 }
 
+export const STEP_EVENT = "iris:step";
+
 function readStepFromUrl(steps: Step[]): string | null {
   const requested = new URLSearchParams(window.location.search).get("step");
   return requested && steps.some((s) => s.id === requested) ? requested : null;
@@ -39,6 +38,8 @@ function readStepFromUrl(steps: Step[]): string | null {
 export default function ModuleCarousel({ id, steps, prevLabel, nextLabel }: Props) {
   const [selected, setSelected] = useState(steps[0]?.id ?? "");
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
 
   const select = useCallback(
     (targetId: string, syncUrl: boolean) => {
@@ -52,18 +53,22 @@ export default function ModuleCarousel({ id, steps, prevLabel, nextLabel }: Prop
         url.searchParams.set("step", targetId);
         window.history.replaceState(window.history.state, "", url);
       }
+      window.dispatchEvent(new CustomEvent(STEP_EVENT, { detail: targetId }));
     },
     [steps],
   );
 
-  // Deep-link support: a URL loaded with ?step=code opens on that step
-  // rather than always resetting to the first one.
-  // Runs once on mount only: re-running on every `select`/`steps` identity
-  // change would fight a user's own step clicks by re-reading a URL that
-  // hasn't changed since the initial navigation.
   useEffect(() => {
     const fromUrl = readStepFromUrl(steps);
     if (fromUrl && fromUrl !== steps[0]?.id) select(fromUrl, false);
+    const onGo = (e: Event) => {
+      const target = (e as CustomEvent<string>).detail;
+      if (steps.some((s) => s.id === target) && target !== selectedRef.current)
+        select(target, true);
+    };
+    window.addEventListener("iris:go-step", onGo);
+    return () => window.removeEventListener("iris:go-step", onGo);
+    // Mount only: re-reading the URL later would fight the user's own clicks.
   }, []);
 
   const index = steps.findIndex((s) => s.id === selected);
@@ -81,53 +86,63 @@ export default function ModuleCarousel({ id, steps, prevLabel, nextLabel }: Prop
   }
 
   return (
-    <div className="carousel-steps" id={id}>
+    <div className="stepper" id={id}>
       <button
         type="button"
-        className="carousel-steps__arrow control-hover"
+        className="stepper__arrow"
         disabled={index <= 0}
         aria-label={prevLabel}
         onClick={() => index > 0 && select(steps[index - 1].id, true)}
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M15 5l-7 7 7 7" />
-        </svg>
+        <ChevronLeft size={20} aria-hidden="true" />
       </button>
 
-      <div className="carousel-steps__dots" role="tablist">
-        {steps.map((s, i) => (
-          <button
-            key={s.id}
-            ref={(el) => {
-              buttonRefs.current[i] = el;
-            }}
-            type="button"
-            role="tab"
-            id={`${s.id}-tab`}
-            aria-controls={s.id}
-            aria-selected={s.id === selected}
-            tabIndex={s.id === selected ? 0 : -1}
-            data-step-id={s.id}
-            className="carousel-steps__dot control-hover"
-            onClick={() => select(s.id, true)}
-            onKeyDown={(event) => onKeyDown(event, i)}
-          >
-            <span className="carousel-steps__dot-mark" aria-hidden="true" />
-            {s.label}
-          </button>
-        ))}
+      <div className="stepper__track" role="tablist">
+        {steps.map((s, i) => {
+          const state = i < index ? "done" : i === index ? "now" : "todo";
+          return (
+            <button
+              key={s.id}
+              ref={(el) => {
+                buttonRefs.current[i] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`${s.id}-tab`}
+              aria-controls={s.id}
+              aria-selected={s.id === selected}
+              tabIndex={s.id === selected ? 0 : -1}
+              data-step-id={s.id}
+              data-state={state}
+              className="stepper__step"
+              onClick={() => select(s.id, true)}
+              onKeyDown={(event) => onKeyDown(event, i)}
+            >
+              <span className="stepper__bar" aria-hidden="true">
+                <span />
+              </span>
+              <span className="stepper__label">
+                <span className="stepper__num" aria-hidden="true">
+                  {state === "done" ? <Check size={13} strokeWidth={3} /> : i + 1}
+                </span>
+                <span className="stepper__text">{s.label}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <button
         type="button"
-        className="carousel-steps__arrow control-hover"
+        className="stepper__arrow stepper__arrow--next"
         disabled={index >= steps.length - 1}
         aria-label={nextLabel}
         onClick={() => index < steps.length - 1 && select(steps[index + 1].id, true)}
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M9 5l7 7-7 7" />
-        </svg>
+        <span className="stepper__next-label">
+          {index < steps.length - 1 ? steps[index + 1]?.label : ""}
+        </span>
+        <ChevronRight size={20} aria-hidden="true" />
       </button>
     </div>
   );

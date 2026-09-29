@@ -29,6 +29,7 @@
 .blank-editor__field {
   display: inline-flex;
   flex-direction: column;
+  position: relative;
   vertical-align: baseline;
 }
 
@@ -55,6 +56,59 @@
 
 .blank-editor__field[data-state="salah"] input {
   border-color: var(--danger);
+  color: var(--danger);
+}
+
+.blank-editor__field[data-state="benar"] input {
+  background: var(--ok-soft, color-mix(in srgb, var(--ok) 14%, transparent));
+  padding-right: 1.5em;
+}
+
+/* Phase 8: the tick that pops in on a correct blank. */
+.blank-editor__tick {
+  align-items: center;
+  color: var(--ok);
+  display: inline-flex;
+  height: 1.6em;
+  pointer-events: none;
+  position: absolute;
+  right: 0.25em;
+  top: 0;
+}
+
+:root:not([data-motion-tier="0"]) .blank-editor__tick {
+  animation: blank-editor-tick 420ms var(--ease-out-expo) both;
+}
+
+:root:not([data-motion-tier="0"]) .blank-editor__field[data-state="salah"] input {
+  animation: blank-editor-shake 360ms ease-in-out;
+}
+
+/* A groupmate's answer arriving: a soft accent wash and a small label. */
+.blank-editor__field[data-teman="yes"] input {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.blank-editor__teman {
+  background: var(--accent);
+  border-radius: 999px;
+  color: var(--bg);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  left: 0;
+  line-height: 1;
+  padding: 3px 8px;
+  pointer-events: none;
+  position: absolute;
+  top: calc(-1.2em - 4px);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+:root:not([data-motion-tier="0"]) .blank-editor__teman {
+  animation: blank-editor-teman 2.4s var(--ease-out-expo) both;
 }
 
 .blank-editor__field[data-state="checking"] input {
@@ -71,8 +125,86 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .blank-editor__field[data-state="benar"] input {
-    animation: none;
+  .blank-editor__field[data-state="benar"] input,
+  .blank-editor__field[data-state="salah"] input,
+  .blank-editor__tick,
+  .blank-editor__teman,
+  .blank-editor__download[data-bloom="yes"],
+  .blank-editor__download[data-bloom="yes"]::after {
+    animation: none !important;
+  }
+}
+
+@keyframes blank-editor-tick {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-30deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.35) rotate(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes blank-editor-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes blank-editor-teman {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  12%,
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes blank-editor-bloom {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 70%, transparent);
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: 0 0 0 22px transparent;
+    transform: scale(1);
+  }
+}
+
+@keyframes blank-editor-burst {
+  0% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
   }
 }
 
@@ -97,16 +229,80 @@
 
 .blank-editor__footer {
   align-items: center;
+  background: color-mix(in srgb, var(--surface-1) 85%, transparent);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
   display: flex;
-  gap: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
   justify-content: space-between;
   margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  transition: border-color var(--dur-mid) var(--ease-reveal);
+}
+
+.blank-editor__footer[data-lengkap="yes"] {
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+
+.blank-editor__meter {
+  align-items: center;
+  display: flex;
+  flex: 1 1 16rem;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
 }
 
 .blank-editor__progress {
-  color: var(--text-faint);
+  color: var(--text);
   font-family: var(--font-mono);
-  font-size: var(--fs-small);
+  font-size: var(--fs-body);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.blank-editor__bar {
+  background: var(--surface-3, var(--hairline));
+  border-radius: 999px;
+  flex: 1 1 8rem;
+  height: 6px;
+  max-width: 14rem;
+  overflow: hidden;
+}
+
+.blank-editor__bar > span {
+  background: linear-gradient(90deg, var(--accent), var(--ok));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width var(--dur-slow) var(--ease-out-expo);
+}
+
+.blank-editor__status {
+  flex-basis: 100%;
+}
+
+.blank-editor__download {
+  position: relative;
+}
+
+:root:not([data-motion-tier="0"]) .blank-editor__download[data-bloom="yes"] {
+  animation: blank-editor-bloom 900ms var(--ease-out-expo);
+}
+
+.blank-editor__download[data-bloom="yes"]::after {
+  border: 2px solid var(--ok);
+  border-radius: inherit;
+  content: "";
+  inset: -4px;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+:root:not([data-motion-tier="0"]) .blank-editor__download[data-bloom="yes"]::after {
+  animation: blank-editor-burst 900ms ease-out 2;
 }
 
 /* Base look and hover now come from .btn/.btn--ghost/.btn--sm (P6.3,

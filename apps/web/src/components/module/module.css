@@ -1,0 +1,265 @@
+/* The module page (Phase 8): ModuleDetailView.astro and its islands. Global
+   because the islands render outside Astro's scoped styles. */
+
+.modpage .page-header {
+  margin-bottom: var(--space-5);
+}
+
+.modpage__adjacent {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.modpage__adj {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--mod-hue) 50%, transparent);
+  border-radius: 999px;
+  color: var(--mod-hue);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  text-decoration: none;
+  transition: background var(--dur-fast) var(--ease-reveal);
+}
+
+.modpage__adj:hover {
+  background: color-mix(in srgb, var(--mod-hue) 12%, transparent);
+}
+
+.modpage__adj[data-locked="yes"] {
+  opacity: 0.55;
+}
+
+.modpage__stepper {
+  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-6);
+  padding: var(--space-2) var(--space-3);
+  position: sticky;
+  top: calc(var(--nav-size) + var(--minibar-h, 0px) + 8px);
+  z-index: 30;
+}
+
+.modpage__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+:root:not([data-motion-tier="0"]) .modpage__panel:not([hidden]) {
+  animation: app-rise var(--dur-slow) var(--ease-out-expo);
+}
+
+.modpage__h {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-sm);
+  font-weight: 400;
+  margin: var(--space-4) 0 0;
+}
+
+.modpage__lede {
+  color: var(--text-muted);
+  font-size: var(--fs-body-lg);
+  line-height: 1.65;
+  margin: 0;
+  max-width: var(--measure-prose);
+}
+
+.modpage__go {
+  align-self: flex-start;
+}
+
+.modpage__brief,
+.modpage__live {
+  align-items: start;
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .modpage__brief,
+  .modpage__live {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+}
+
+.modpage__facts {
+  border-top: 3px solid var(--mod-hue);
+}
+
+.modpage__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.modpage__kv {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.modpage__kv li {
+  align-items: baseline;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+}
+
+.modpage__kv li:last-child {
+  border-bottom: 0;
+}
+
+.modpage__codehead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.modpage__note {
+  max-width: 80ch;
+}
+
+.layerstack {
+  counter-reset: layer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+
+.layerstack li {
+  align-items: center;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--mod-hue) calc(22% - var(--i) * 4%), transparent),
+    transparent 80%
+  );
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 var(--space-4);
+}
+
+:root:not([data-motion-tier="0"]) .layerstack li {
+  animation: app-rise var(--dur-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--i) * 70ms);
+}
+
+/* ----------------------------------------------------------- checklist */
+
+.setupcheck {
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.setupcheck__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.setupcheck__done {
+  align-items: center;
+  background: var(--ok-soft);
+  border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.setupcheck__done svg {
+  color: var(--ok);
+}
+
+:root:not([data-motion-tier="0"]) .setupcheck__done {
+  animation: app-rise var(--dur-mid) var(--ease-out-expo);
+}
+
+.setupcheck__list {
+  display: grid;
+  gap: 2px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .setupcheck__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------------------------------------------------------- lock screen */
+
+.lockscreen {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: var(--space-9) auto;
+  max-width: 34rem;
+  text-align: center;
+}
+
+.lockscreen__icon {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 50%;
+  color: var(--accent);
+  display: inline-flex;
+  height: 88px;
+  justify-content: center;
+  position: relative;
+  width: 88px;
+}
+
+.lockscreen__icon::after {
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  content: "";
+  inset: -6px;
+  opacity: 0;
+  position: absolute;
+}
+
+:root:not([data-motion-tier="0"]) .lockscreen__icon::after {
+  animation: login-burst 2.6s ease-out infinite;
+}
+
+.lockscreen__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-sm);
+  font-weight: 400;
+  margin: 0;
+}
+
+.lockscreen p {
+  color: var(--text-muted);
+  margin: 0;
+}

@@ -32,7 +32,7 @@ export function getAksesState(reset = false): Promise<AksesState> {
         .catch(() => null),
     ]).then(([akses, me]) => ({
       terbuka: Array.isArray(akses?.terbuka) ? akses.terbuka : [1],
-      asisten: Boolean(me?.ok && me?.peran === "asisten"),
+      asisten: Boolean(me?.ok && me?.role === "asisten"),
     }));
   }
   return cached;
@@ -99,13 +99,40 @@ export async function applyLockScreen(
 
   const main = document.querySelector("main");
   if (!main) return false;
-  main.innerHTML = "";
+  // Phase 8: the app's own lock screen (icon, title, message, a way back)
+  // instead of a bare paragraph. Built with DOM calls, never innerHTML.
+  const en = document.documentElement.lang === "en";
+  main.replaceChildren();
   const wrap = document.createElement("div");
-  wrap.className = "modul-lock-screen";
+  wrap.className = "lockscreen";
   wrap.setAttribute("role", "status");
+  const icon = document.createElement("span");
+  icon.className = "lockscreen__icon";
+  icon.setAttribute("aria-hidden", "true");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "34");
+  svg.setAttribute("height", "34");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.8");
+  svg.setAttribute("stroke-linecap", "round");
+  for (const d of ["M5 11h14v10H5z", "M8 11V7a4 4 0 0 1 8 0v4"]) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    svg.appendChild(path);
+  }
+  icon.appendChild(svg);
+  const h = document.createElement("h1");
+  h.className = "lockscreen__title";
+  h.textContent = en ? `Module ${modul} is not open yet` : `Modul ${modul} belum dibuka`;
   const p = document.createElement("p");
   p.textContent = message;
-  wrap.appendChild(p);
+  const back = document.createElement("a");
+  back.className = "btn btn--secondary";
+  back.href = en ? "/en/modules" : "/modules";
+  back.textContent = en ? "All modules" : "Semua modul";
+  wrap.append(icon, h, p, back);
   main.appendChild(wrap);
   return true;
 }

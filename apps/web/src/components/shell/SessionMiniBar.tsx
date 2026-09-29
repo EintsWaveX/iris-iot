@@ -108,6 +108,25 @@ export default function SessionMiniBar({
 
   useEffect(() => setHand(s?.mintaBantuanPada ?? null), [s?.mintaBantuanPada]);
 
+  // Sticky things below (the module stepper) sit under this bar.
+  const barRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    const root = document.documentElement;
+    if (!el || typeof ResizeObserver === "undefined") {
+      root.style.setProperty("--minibar-h", "0px");
+      return;
+    }
+    const ro = new ResizeObserver(() =>
+      root.style.setProperty("--minibar-h", `${el.offsetHeight}px`),
+    );
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.setProperty("--minibar-h", "0px");
+    };
+  }, [s !== null]);
+
   // Announcement history + new-announcement toast.
   useEffect(() => {
     if (!s) return;
@@ -178,6 +197,7 @@ export default function SessionMiniBar({
 
   return (
     <div
+      ref={barRef}
       className="minibar"
       role="region"
       aria-label={t.region}

@@ -81,32 +81,48 @@ export default function BlankEditor({
   const [displaySegments, setDisplaySegments] = useState<Segment[]>(segments);
   const mounted = useRef(true);
   const fokusNomor = useRef<number | null>(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  // Blanks a groupmate just filled (Phase 8): flashed for a moment so the
+  // change is noticed rather than silently appearing.
+  const [dariTeman, setDariTeman] = useState<number[]>([]);
+  const flashTimer = useRef<number | undefined>(undefined);
 
   // Merges the group's saved answers into the editor. The whole group
   // shares one set of answers, so a groupmate's checked blank has to show
   // up here too -- but never on top of what this student is typing: a
   // blank that has focus, or holds an edit not yet checked, keeps its
   // local text.
-  function terapkanDraft(jawaban: DraftJawaban) {
-    setState((prev) => {
-      const next = { ...prev };
-      for (const [nomorStr, entry] of Object.entries(jawaban)) {
-        const nomor = Number(nomorStr);
-        const lokal = next[nomor];
-        if (!lokal) continue;
-        const adaEditLokal = lokal.isi !== (lokal.checkedIsi ?? "") && lokal.isi !== "";
-        if (fokusNomor.current === nomor || adaEditLokal || lokal.checking) continue;
-        if (lokal.isi === entry.isi && lokal.benar === entry.benar) continue;
-        next[nomor] = {
-          ...lokal,
-          isi: entry.isi,
-          benar: entry.benar,
-          checkedIsi: entry.isi,
-          kenapa: lokal.isi === entry.isi ? lokal.kenapa : undefined,
-        };
-      }
-      return next;
-    });
+  function terapkanDraft(jawaban: DraftJawaban, tandai = false) {
+    const prev = stateRef.current;
+    const next = { ...prev };
+    const berubah: number[] = [];
+    for (const [nomorStr, entry] of Object.entries(jawaban ?? {})) {
+      const nomor = Number(nomorStr);
+      const lokal = next[nomor];
+      if (!lokal) continue;
+      const adaEditLokal = lokal.isi !== (lokal.checkedIsi ?? "") && lokal.isi !== "";
+      if (fokusNomor.current === nomor || adaEditLokal || lokal.checking) continue;
+      if (lokal.isi === entry.isi && lokal.benar === entry.benar) continue;
+      next[nomor] = {
+        ...lokal,
+        isi: entry.isi,
+        benar: entry.benar,
+        checkedIsi: entry.isi,
+        kenapa: lokal.isi === entry.isi ? lokal.kenapa : undefined,
+      };
+      berubah.push(nomor);
+    }
+    if (berubah.length === 0) return;
+    stateRef.current = next;
+    setState(next);
+    if (tandai) {
+      setDariTeman(berubah);
+      window.clearTimeout(flashTimer.current);
+      flashTimer.current = window.setTimeout(() => {
+        if (mounted.current) setDariTeman([]);
+      }, 2400);
+    }
   }
 
   useEffect(() => {
@@ -118,7 +134,7 @@ export default function BlankEditor({
         if (!data.ok) {
           if (data.kode === "sesi_berganti") {
             setLockedReason("sesiBerubah");
-            window.Modal?.open("login-modal");
+            window.LoginDialog?.open();
           } else if (data.kode === "modul_terkunci") {
             setLockedReason("terkunci");
           } else {
@@ -169,10 +185,10 @@ export default function BlankEditor({
           r.json(),
         );
         if (!mounted.current) return;
-        if (data.ok) terapkanDraft(data.jawaban as DraftJawaban);
+        if (data.ok) terapkanDraft(data.jawaban as DraftJawaban, true);
         else if (data.kode === "sesi_berganti") {
           setLockedReason("sesiBerubah");
-          window.Modal?.open("login-modal");
+          window.LoginDialog?.open();
         } else if (data.kode === "modul_terkunci") {
           setLockedReason("terkunci");
         } else if (data.kode === "belum_masuk" || data.kode === "peran_salah") {
@@ -210,7 +226,7 @@ export default function BlankEditor({
         // lock the editor behind the sign-in hint when that is the cause.
         if (data.kode === "sesi_berganti") {
           setLockedReason("sesiBerubah");
-          window.Modal?.open("login-modal");
+          window.LoginDialog?.open();
         } else if (data.kode === "modul_terkunci") {
           setLockedReason("terkunci");
         } else if (data.kode === "belum_masuk" || data.kode === "peran_salah") {
@@ -237,6 +253,27 @@ export default function BlankEditor({
   const benarCount = blankNomors.filter((n) => state[n]?.benar).length;
   const lengkap = loaded && total > 0 && benarCount === total;
 
+  // The download unlocks with a small bloom, but only when it happens in
+  // front of the student: a page that loads already complete stays calm.
+  const [bloom, setBloom] = useState(false);
+  const lengkapSebelumnya = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!loaded) return;
+    if (lengkapSebelumnya.current === false && lengkap) {
+      setBloom(true);
+      const id = window.setTimeout(() => setBloom(false), 1800);
+      lengkapSebelumnya.current = lengkap;
+      return () => window.clearTimeout(id);
+    }
+    lengkapSebelumnya.current = lengkap;
+  }, [loaded, lengkap]);
+  useEffect(() => () => window.clearTimeout(flashTimer.current), []);
+
+  const L =
+    bahasa === "en"
+      ? { teman: "filled by a groupmate", buka: "All blanks correct. The file is ready." }
+      : { teman: "diisi oleh anggota lain", buka: "Semua benar. Berkas siap diunduh." };
+
   return (
     <div className="blank-editor">
       {locked && (
@@ -253,11 +290,17 @@ export default function BlankEditor({
           {displaySegments.map((seg, i) => {
             if (seg.kind === "text") return seg.text;
             const entry = state[seg.nomor];
-            const width = Math.max(4, (entry?.isi.length ?? 0) + 2);
+            const teman = dariTeman.includes(seg.nomor);
+            const tampakBenar = Boolean(
+              entry?.isi && entry.checkedIsi === entry.isi && entry.benar,
+            );
+            // Room for the tick that sits inside a correct field.
+            const width = Math.max(4, (entry?.isi.length ?? 0) + 2) + (tampakBenar ? 2 : 0);
             return (
               <span
                 key={i}
                 className="blank-editor__field"
+                data-teman={teman ? "yes" : undefined}
                 data-state={
                   entry?.checking
                     ? "checking"
@@ -279,7 +322,6 @@ export default function BlankEditor({
                   spellCheck={false}
                   disabled={locked}
                   aria-label={seg.hint}
-                  title={seg.hint}
                   style={{ width: `${width}ch` }}
                   value={entry?.isi ?? ""}
                   onChange={(e) => onChange(seg.nomor, e.target.value)}
@@ -297,7 +339,26 @@ export default function BlankEditor({
                     }
                   }}
                 />
-                {entry?.checkedIsi === entry?.isi && entry?.isi && entry.benar && entry.kenapa && (
+                {tampakBenar && (
+                  <span className="blank-editor__tick" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" width="12" height="12">
+                      <path
+                        d="M3 8.5l3.2 3L13 4.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                )}
+                {teman && (
+                  <span className="blank-editor__teman" role="status">
+                    {L.teman}
+                  </span>
+                )}
+                {tampakBenar && entry?.kenapa && (
                   <span className="blank-editor__kenapa" role="status">
                     {entry.kenapa}
                   </span>
@@ -308,12 +369,21 @@ export default function BlankEditor({
         </pre>
       </ScrollArea>
 
-      <div className="blank-editor__footer">
-        <span className="blank-editor__progress">
-          {benarCount}/{total}
-        </span>
+      <div className="blank-editor__footer" data-lengkap={lengkap ? "yes" : "no"}>
+        <div className="blank-editor__meter">
+          <span className="blank-editor__progress">
+            {benarCount}/{total}
+          </span>
+          <span className="blank-editor__bar" aria-hidden="true">
+            <span style={{ width: `${total ? (benarCount / total) * 100 : 0}%` }} />
+          </span>
+          <span className="blank-editor__status hint" role="status">
+            {lengkap ? L.buka : downloadHint}
+          </span>
+        </div>
         <a
-          className="btn btn--ghost btn--sm blank-editor__download"
+          className={`btn ${lengkap ? "btn--primary" : "btn--ghost"} btn--sm blank-editor__download`}
+          data-bloom={bloom ? "yes" : undefined}
           data-disabled={lengkap ? "no" : "yes"}
           href={
             lengkap
@@ -321,7 +391,6 @@ export default function BlankEditor({
               : undefined
           }
           aria-disabled={!lengkap}
-          title={lengkap ? downloadLabel : downloadHint}
         >
           {downloadLabel}
         </a>

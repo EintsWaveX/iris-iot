@@ -1,80 +1,195 @@
-/* ModuleCarousel.tsx's styling, as a plain CSS import (a .tsx file has no
-   template to attach an Astro <style> block to), same pattern as Tabs.css. */
+/* ModuleCarousel.tsx: the module progress track (Phase 8). */
 
-.carousel-steps {
+.stepper {
   align-items: center;
   display: flex;
   gap: var(--space-3);
-  justify-content: center;
 }
 
-.carousel-steps__arrow {
+.stepper__arrow {
   align-items: center;
+  background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-md);
   color: var(--text-muted);
-  display: flex;
+  cursor: pointer;
+  display: inline-flex;
   flex-shrink: 0;
-  height: max(var(--tap), 44px);
+  font: inherit;
+  font-size: var(--fs-small);
+  gap: var(--space-2);
+  height: 48px;
   justify-content: center;
-  width: max(var(--tap), 44px);
+  min-width: 48px;
+  padding: 0 var(--space-2);
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal);
 }
 
-.carousel-steps__arrow svg {
-  fill: none;
-  height: 18px;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-  width: 18px;
+.stepper__arrow--next {
+  padding: 0 var(--space-2) 0 var(--space-4);
 }
 
-.carousel-steps__arrow:hover:not(:disabled) {
+.stepper__arrow:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--text);
 }
 
-.carousel-steps__arrow:disabled {
+.stepper__arrow:disabled {
   cursor: not-allowed;
   opacity: 0.35;
 }
 
-.carousel-steps__dots {
-  align-items: center;
-  display: flex;
-  gap: var(--space-5);
-  overflow-x: auto;
+.stepper__arrow--next:disabled .stepper__next-label {
+  display: none;
 }
 
-.carousel-steps__dot {
-  align-items: center;
+.stepper__track {
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.stepper__step {
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
   color: var(--text-faint);
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  font-size: var(--fs-small);
-  font-weight: 500;
+  font: inherit;
   gap: var(--space-2);
-  min-height: max(var(--tap), 44px);
+  min-height: 48px;
+  min-width: 0;
+  padding: var(--space-1) 2px;
+  text-align: left;
+}
+
+.stepper__bar {
+  background: var(--surface-3);
+  border-radius: 999px;
+  height: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.stepper__bar span {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  inset: 0 100% 0 0;
+  position: absolute;
+  transition: inset var(--dur-slow) var(--ease-out-expo);
+}
+
+.stepper__step[data-state="done"] .stepper__bar span,
+.stepper__step[data-state="now"] .stepper__bar span {
+  inset: 0;
+}
+
+:root:not([data-motion-tier="0"]) .stepper__step[data-state="now"] .stepper__bar span {
+  animation: aurora-sweep 4s linear infinite;
+}
+
+.stepper__label {
+  align-items: center;
+  display: flex;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.carousel-steps__dot-mark {
-  background: var(--hairline-strong);
+.stepper__num {
+  align-items: center;
+  border: 1.5px solid currentColor;
   border-radius: 50%;
-  height: 8px;
-  transition: background var(--dur-fast) var(--ease-reveal);
-  width: 8px;
+  display: inline-flex;
+  flex: none;
+  font-size: 0.7rem;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
 }
 
-.carousel-steps__dot[aria-selected="true"] {
+.stepper__step[data-state="now"] {
   color: var(--text);
 }
 
-.carousel-steps__dot[aria-selected="true"] .carousel-steps__dot-mark {
+.stepper__step[data-state="now"] .stepper__num {
   background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
-.carousel-steps__dot:hover {
+.stepper__step[data-state="done"] {
+  color: var(--text-muted);
+}
+
+.stepper__step[data-state="done"] .stepper__num {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--accent-ink);
+}
+
+:root:not([data-motion-tier="0"]) .stepper__step[data-state="done"] .stepper__num svg {
+  animation: stepper-pop var(--dur-mid) var(--ease-out-expo);
+}
+
+@keyframes stepper-pop {
+  from {
+    transform: scale(0.2);
+  }
+}
+
+.stepper__step:hover {
   color: var(--text);
+}
+
+.stepper__step:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+@media (max-width: 639px) {
+  .stepper__next-label {
+    display: none;
+  }
+  .stepper__arrow--next {
+    padding: 0 var(--space-2);
+  }
+  .stepper__label {
+    font-size: 0.72rem;
+    gap: 4px;
+  }
+  .stepper__num {
+    height: 18px;
+    width: 18px;
+  }
+  /* Only the current step keeps its name on a phone; the others shrink to
+     their number or tick (still named for screen readers). */
+  .stepper__track {
+    display: flex;
+  }
+  .stepper__step {
+    flex: 1 1 0;
+  }
+  .stepper__step[data-state="now"] {
+    flex: 2.6 1 0;
+  }
+  .stepper__step:not([data-state="now"]) .stepper__text {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
 }

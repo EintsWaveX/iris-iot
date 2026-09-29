@@ -1,0 +1,311 @@
+/* PinSchematic.tsx */
+
+.pins {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.pins--full {
+  grid-template-areas:
+    "wiring"
+    "table"
+    "schem"
+    "notes";
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .pins--full {
+    grid-template-areas:
+      "wiring schem"
+      "table schem"
+      "notes notes";
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  }
+}
+
+.pins--dock {
+  gap: var(--space-4);
+  grid-template-areas:
+    "wiring"
+    "schem"
+    "table"
+    "notes";
+}
+
+.pins__wiring {
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  grid-area: wiring;
+  min-width: 0;
+  padding: var(--space-4);
+}
+
+.pins__table {
+  grid-area: table;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.pins__schem {
+  grid-area: schem;
+  min-width: 0;
+}
+
+.pins__notes {
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-small);
+  gap: var(--space-2);
+  grid-area: notes;
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.pins .label-caps {
+  align-items: center;
+  display: inline-flex;
+  gap: 5px;
+}
+
+/* ------------------------------------------------------------ diagram */
+
+.wiring {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.wiring__mcu {
+  fill: color-mix(in srgb, var(--mod-hue) 10%, var(--surface-2));
+  stroke: color-mix(in srgb, var(--mod-hue) 55%, transparent);
+  stroke-width: 1.5;
+}
+
+.wiring__mcu-label,
+.wiring__part-label {
+  fill: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.wiring__part {
+  fill: var(--surface-2);
+  stroke: var(--hairline-strong);
+  stroke-width: 1.2;
+}
+
+.wiring__pad {
+  fill: var(--surface-4);
+  stroke: var(--hairline-strong);
+}
+
+.wiring__pin,
+.wiring__sig {
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.wiring__wire {
+  cursor: pointer;
+}
+
+.wiring__hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+}
+
+.wiring__line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 3;
+  transition:
+    opacity var(--dur-fast) var(--ease-reveal),
+    stroke-width var(--dur-fast) var(--ease-reveal);
+}
+
+.wiring__wire[data-kind="pwr"] .wiring__line {
+  stroke: #ff7a7a;
+}
+
+.wiring__wire[data-kind="gnd"] .wiring__line {
+  stroke: #8b93a7;
+}
+
+.wiring__wire[data-kind="sig"] .wiring__line {
+  stroke: var(--mod-hue, var(--accent));
+}
+
+.wiring__wire[data-on] .wiring__line {
+  stroke-width: 5;
+}
+
+.wiring__wire[data-dim] .wiring__line,
+.wiring__wire[data-dim] .wiring__pulse {
+  opacity: 0.2;
+}
+
+.wiring__pulse {
+  fill: none;
+  opacity: 0;
+  stroke: #fff;
+  stroke-dasharray: 6 60;
+  stroke-linecap: round;
+  stroke-width: 3;
+}
+
+:root:not([data-motion-tier="0"]) .wiring__pulse {
+  animation: wiring-flow 1.6s linear infinite;
+  opacity: 0.7;
+}
+
+:root:not([data-motion-tier="0"]) .wiring__wire[data-on] .wiring__pulse {
+  animation-duration: 0.8s;
+  opacity: 1;
+}
+
+@keyframes wiring-flow {
+  to {
+    stroke-dashoffset: -66;
+  }
+}
+
+.wiring-legend {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.wiring-legend span {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.75rem;
+  gap: 5px;
+}
+
+.wiring-legend i {
+  border-radius: 2px;
+  display: inline-block;
+  height: 3px;
+  width: 16px;
+}
+
+.wiring-legend [data-kind="pwr"] i {
+  background: #ff7a7a;
+}
+
+.wiring-legend [data-kind="gnd"] i {
+  background: #8b93a7;
+}
+
+.wiring-legend [data-kind="sig"] i {
+  background: var(--accent);
+}
+
+/* -------------------------------------------------------------- table */
+
+.pintable {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.pintable th {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.pintable td {
+  border-top: 1px solid var(--hairline-faint);
+  padding: var(--space-3);
+  transition: background var(--dur-fast) var(--ease-reveal);
+}
+
+.pintable tr {
+  cursor: default;
+  outline: none;
+}
+
+.pintable tbody tr:hover td,
+.pintable tbody tr[data-on] td {
+  background: var(--accent-soft);
+}
+
+.pintable tbody tr:focus-visible td {
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
+}
+
+.pintable__pin {
+  border-radius: 6px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+
+.pintable__pin[data-kind="pwr"] {
+  background: rgba(255, 122, 122, 0.12);
+  color: #ff9d9d;
+}
+
+.pintable__pin[data-kind="gnd"] {
+  background: rgba(139, 147, 167, 0.15);
+  color: #b5bccb;
+}
+
+.pintable__pin[data-kind="sig"] {
+  background: var(--accent-soft);
+  color: var(--accent-bright);
+}
+
+/* ---------------------------------------------------------- schematic */
+
+.schem-thumb {
+  background: #fff;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  cursor: zoom-in;
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+
+.schem-thumb img {
+  display: block;
+  max-height: 360px;
+  object-fit: contain;
+  padding: var(--space-3);
+  width: 100%;
+}
+
+.pins--dock .schem-thumb img {
+  max-height: 220px;
+}
+
+.schem-thumb__bar {
+  align-items: center;
+  background: rgba(5, 6, 11, 0.85);
+  bottom: 0;
+  color: #fff;
+  display: flex;
+  font-size: var(--fs-small);
+  gap: var(--space-2);
+  justify-content: space-between;
+  left: 0;
+  padding: var(--space-2) var(--space-3);
+  position: absolute;
+  right: 0;
+}

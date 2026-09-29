@@ -1,34 +1,30 @@
 ---
 /**
- * /modules/[n] and /en/modules/[n] share this view. The four steps (Brief,
- * Setup, Code, Go live) are managed by ModuleCarousel.tsx exactly like
- * Tabs.tsx manages its panels: sibling markup toggled by `hidden`, this
- * component owns none of the switching logic itself.
+ * /modules/[n] and /en/modules/[n]: one module, four steps (Brief, Persiapan,
+ * Kode, Live) behind a progress-track stepper (ModuleCarousel.tsx), one step
+ * visible at a time.
  *
- * P7.4: one step visible at a time on every size, following the signed-off
- * mockup. Before this pass, lg and above turned the Code panel into a
- * pinned right-hand column with a fixed ~280px content width (a three-
- * column `10rem minmax(0, var(--measure-prose)) 1fr` grid) -- finding F3,
- * which made the page 13,700px tall on desktop and squeezed code into an
- * unreadable rail. That whole grid, and the matching rule that turned the
- * step strip into a sticky vertical rail (ModuleCarousel.css), are gone;
- * the carousel's own one-panel-visible behaviour, previously overridden
- * only at this one breakpoint, now simply applies everywhere.
+ * Phase 8:
+ * - Persiapan puts the interactive wiring diagram, the pin table and the real
+ *   schematic (an assistant's upload when there is one) side by side, with a
+ *   tickable checklist.
+ * - Kode docks the same pin panel beside the code (CodeWorkspace.tsx).
+ * - Live previews the layers and leads into the one live workspace.
+ * - A locked module shows the app's own lock screen, and an assistant is no
+ *   longer mistaken for a student there (modul-akses.ts read `peran`).
  */
 import { getEntry } from "astro:content";
 import Base from "../layouts/Base.astro";
-import { navUtama } from "../lib/nav-links";
-import Card from "../components/ui/Card.astro";
-import Table from "../components/ui/Table.astro";
-import Badge from "../components/ui/Badge.astro";
-import Button from "../components/ui/Button.astro";
 import PageHeader from "../components/ui/PageHeader.astro";
 import ModuleCarousel from "../components/ModuleCarousel";
-import ModuleCodeStep from "../components/ModuleCodeStep";
+import CodeWorkspace from "../components/module/CodeWorkspace";
+import PinSchematic from "../components/module/PinSchematic";
+import SetupChecklist from "../components/module/SetupChecklist";
 import { id as strId } from "../i18n/id";
 import { en as strEn } from "../i18n/en";
 import { getSketchSource } from "../lib/sketches";
 import { parseBlanks } from "../lib/blanks";
+import "../components/module/module.css";
 
 interface Props {
   lang: "id" | "en";
@@ -37,14 +33,13 @@ interface Props {
 
 const { lang, modul } = Astro.props;
 const t = lang === "en" ? strEn : strId;
+const en = lang === "en";
 const entry = await getEntry("modules", `${lang}/${modul}`);
 if (!entry) {
   throw new Error(`no module content for ${lang}/${modul}`);
 }
 const m = entry.data;
-
-const basePath = lang === "en" ? "/en/modules" : "/modules";
-const links = navUtama(lang === "en" ? "en" : "id");
+const basePath = en ? "/en/modules" : "/modules";
 
 const steps = [
   { id: "brief", label: t.stepLabels.brief },
@@ -53,12 +48,9 @@ const steps = [
   { id: "live", label: t.stepLabels.live },
 ];
 
-// Modules 1 and 3's sketches `#include`/`import` a small, blank-free shared
-// clock helper (iris_waktu.h / iris_waktu.py) rather than duplicating that
-// code in every file -- it carries no graded blank, so it's served as a
-// plain static download from public/sketches/ rather than through the
-// editor, and the Code step just needs to tell a student it exists and
-// where it goes.
+// Modules 1 and 3's sketches include a small, blank-free clock helper
+// (iris_waktu.h / iris_waktu.py), served from public/sketches/; the Code
+// step says where it goes.
 const HELPER_FILE_BY_MODUL: Record<number, string> = { 1: "iris_waktu.h", 3: "iris_waktu.py" };
 const helperFile = HELPER_FILE_BY_MODUL[m.modul];
 
@@ -67,18 +59,33 @@ const berkasSource = m.berkas.map((b) => ({
   slug: b.path.replace(/\.(ino|py)$/, ""),
   segments: parseBlanks(getSketchSource(m.bahasa, b.path)),
 }));
-
-const pinColumns = m.pin.kolom.map((label, i) => ({ key: `c${i}`, label }));
-const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`c${i}`, v])));
+const blankTotal = berkasSource.reduce(
+  (a, b) => a + b.segments.filter((s) => s.kind === "blank").length,
+  0,
+);
+const mcu = m.fakta[0] ?? "ESP32";
+const L = {
+  facts: en ? "At a glance" : "Sekilas",
+  start: en ? "Start the setup" : "Mulai persiapan",
+  blanks: en
+    ? `${blankTotal} blanks across ${berkasSource.length} files`
+    : `${blankTotal} bagian rumpang di ${berkasSource.length} berkas`,
+  pins: en ? "Pins and schematic" : "Pin dan skema",
+  toCode: en ? "Go to Code" : "Lanjut ke Kode",
+  layers: en ? "What travels through each layer" : "Yang lewat di tiap lapisan",
+  openLive: t.live.cta,
+  prevMod: en ? "Previous module" : "Modul sebelumnya",
+  nextMod: en ? "Next module" : "Modul berikutnya",
+};
 ---
 
 <Base
-  title={`Modul ${m.modul} · ${m.judul} · IRIS IoT`}
+  title={`${t.moduleWord} ${m.modul} · ${m.judul} · IRIS IoT`}
   description={m.ringkasan[0]}
   cosmosScene="kerja"
   lang={lang}
 >
-  <main class="page-wide">
+  <main id="main" class="page-wide page-main modpage" style={`--mod-hue: var(--mod-${m.modul})`}>
     <PageHeader
       back={{ href: basePath, label: t.backToIndex }}
       eyebrow={`${t.moduleWord} ${m.modul}`}
@@ -87,101 +94,129 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
     >
       <nav
         slot="actions"
-        class="module-header__adjacent"
+        class="modpage__adjacent"
         id="module-adjacent"
-        aria-label={t.nav.prev + "/" + t.nav.next}
+        aria-label={`${L.prevMod} / ${L.nextMod}`}
       >
         {m.modul > 1 && (
-          <a href={`${basePath}/${m.modul - 1}`} data-modul={m.modul - 1}>
-            &laquo; {t.nav.prev}
+          <a
+            class="modpage__adj"
+            href={`${basePath}/${m.modul - 1}`}
+            data-modul={m.modul - 1}
+            style={`--mod-hue: var(--mod-${m.modul - 1})`}
+          >
+            <span aria-hidden="true">‹</span> M{m.modul - 1}
           </a>
         )}
         {m.modul < 4 && (
-          <a href={`${basePath}/${m.modul + 1}`} data-modul={m.modul + 1}>
-            {t.nav.next} &raquo;
+          <a
+            class="modpage__adj"
+            href={`${basePath}/${m.modul + 1}`}
+            data-modul={m.modul + 1}
+            style={`--mod-hue: var(--mod-${m.modul + 1})`}
+          >
+            M{m.modul + 1} <span aria-hidden="true">›</span>
           </a>
         )}
       </nav>
     </PageHeader>
 
-    <div class="module-carousel__layout">
-      <div id="step-index-rail" class="module-carousel__index">
-        <ModuleCarousel
-          client:load
-          id="module-steps"
-          steps={steps}
-          prevLabel={t.nav.prev}
-          nextLabel={t.nav.next}
-        />
+    <div class="modpage__stepper">
+      <ModuleCarousel
+        client:load
+        id="module-steps"
+        steps={steps}
+        prevLabel={t.nav.prev}
+        nextLabel={t.nav.next}
+      />
+    </div>
+
+    <section id="brief" role="tabpanel" aria-labelledby="brief-tab" class="modpage__panel">
+      <div class="modpage__brief">
+        <div class="stack stack--lg">
+          <h2 class="modpage__h">{t.brief.heading}</h2>
+          {m.ringkasan.map((p) => (
+            <p class="modpage__lede">{p}</p>
+          ))}
+          {m.permainan && (
+            <div class="panel sweep-edge">
+              <h3 class="panel__title">{t.brief.gameHeading}</h3>
+              {m.permainan.map((p) => (
+                <p class="hint">{p}</p>
+              ))}
+            </div>
+          )}
+          <button type="button" class="btn btn--primary btn--lg modpage__go" data-go-step="setup">
+            {L.start} <span aria-hidden="true">→</span>
+          </button>
+        </div>
+        <aside class="panel modpage__facts">
+          <span class="label-caps">{L.facts}</span>
+          <div class="modpage__chips">
+            {m.fakta.map((f) => (
+              <span class="pill pill--mono">{f}</span>
+            ))}
+          </div>
+          <ul class="modpage__kv">
+            {m.toolchain.map((tc) => (
+              <li>
+                <span class="hint">{tc.label}</span>
+                <b>{tc.alat}</b>
+              </li>
+            ))}
+          </ul>
+          <span class="hint">{L.blanks}</span>
+        </aside>
+      </div>
+    </section>
+
+    <section id="setup" role="tabpanel" aria-labelledby="setup-tab" class="modpage__panel" hidden>
+      <div class="grid-2">
+        <div class="panel">
+          <h2 class="panel__title">{t.setup.toolchainHeading}</h2>
+          <ul class="modpage__kv">
+            {m.toolchain.map((tc) => (
+              <li>
+                <span class="hint">{tc.label}</span>
+                <b>{tc.alat}</b>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div class="panel">
+          <h2 class="panel__title">{t.setup.hardwareHeading}</h2>
+          <ul class="modpage__kv">
+            {m.perangkat.map((p) => (
+              <li>
+                <b>{p.nama}</b>
+                <span class="mono hint">{p.jumlah}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
-      <section id="brief" role="tabpanel" aria-labelledby="brief-tab" class="module-panel">
-        <h2 class="module-panel__heading">{t.brief.heading}</h2>
-        {m.ringkasan.map((p) => (
-          <p class="measure-prose">{p}</p>
-        ))}
+      <h2 class="modpage__h">{L.pins}</h2>
+      <PinSchematic
+        client:visible
+        lang={lang}
+        modul={m.modul}
+        pin={m.pin}
+        mcu={mcu}
+        skema={m.skema}
+        variant="full"
+      />
 
-        {m.permainan && (
-          <Card title={t.brief.gameHeading} class="module-panel__card">
-            {m.permainan.map((p) => (
-              <p>{p}</p>
-            ))}
-          </Card>
-        )}
-      </section>
+      <h2 class="modpage__h">{t.setup.checklistHeading}</h2>
+      <SetupChecklist client:visible lang={lang} modul={m.modul} items={m.persiapan} />
+    </section>
 
-      <section id="setup" role="tabpanel" aria-labelledby="setup-tab" class="module-panel" hidden>
-        <h2 class="module-panel__heading">{t.setup.toolchainHeading}</h2>
-        <ul class="module-toolchain">
-          {m.toolchain.map((tc) => (
-            <li>
-              <Badge tone="accent">{tc.alat}</Badge>
-              <span>{tc.label}</span>
-            </li>
-          ))}
-        </ul>
-
-        <h2 class="module-panel__heading">{t.setup.hardwareHeading}</h2>
-        <ul class="module-hardware">
-          {m.perangkat.map((p) => (
-            <li>
-              <span class="module-hardware__nama">{p.nama}</span>
-              <span class="module-hardware__jumlah">{p.jumlah}</span>
-            </li>
-          ))}
-        </ul>
-
-        <h2 class="module-panel__heading">{t.setup.pinHeading}</h2>
-        <p class="measure-prose module-panel__pin-caption">{m.pin.judul}</p>
-        <Table columns={pinColumns} rows={pinRows} caption={m.pin.judul} />
-        {m.pin.catatan.map((c) => (
-          <p class="module-panel__note measure-prose">{c}</p>
-        ))}
-
-        <img class="module-schematic" src={m.skema} alt={m.pin.judul} loading="lazy" />
-
-        <h2 class="module-panel__heading">{t.setup.checklistHeading}</h2>
-        <ul class="module-checklist">
-          {m.persiapan.map((step) => (
-            <li>
-              <span class="module-checklist__mark" aria-hidden="true"></span>
-              {step}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section
-        id="code"
-        role="tabpanel"
-        aria-labelledby="code-tab"
-        class="module-panel module-panel--code"
-        hidden
-      >
-        <h2 class="module-panel__heading">{t.code.heading}</h2>
-        <p class="measure-prose module-panel__note">{t.code.note}</p>
+    <section id="code" role="tabpanel" aria-labelledby="code-tab" class="modpage__panel" hidden>
+      <div class="modpage__codehead">
+        <h2 class="modpage__h">{t.code.heading}</h2>
+        <p class="hint modpage__note">{t.code.note}</p>
         {helperFile && (
-          <p class="measure-prose module-panel__note">
+          <p class="hint">
             {t.code.helperNote.split("{file}")[0]}
             <a href={`/sketches/${m.bahasa}/${helperFile}`} download>
               {helperFile}
@@ -189,40 +224,50 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
             {t.code.helperNote.split("{file}")[1]}
           </p>
         )}
-        <Card class="module-code-card">
-          <ModuleCodeStep
-            client:load
-            modul={m.modul}
-            bahasa={m.bahasa}
-            berkas={berkasSource}
-            boardLabel={t.code.board}
-            downloadLabel={t.code.download}
-            downloadHint={t.code.downloadHint}
-            masukHint={t.code.masuk}
-            sesiBerubahHint={t.code.sesiBerubah}
-            terkunciHint={t.code.terkunci}
-          />
-        </Card>
-      </section>
+      </div>
+      <CodeWorkspace
+        client:load
+        lang={lang}
+        pin={m.pin}
+        mcu={mcu}
+        skema={m.skema}
+        code={{
+          modul: m.modul,
+          bahasa: m.bahasa,
+          berkas: berkasSource,
+          boardLabel: t.code.board,
+          downloadLabel: t.code.download,
+          downloadHint: t.code.downloadHint,
+          masukHint: t.code.masuk,
+          sesiBerubahHint: t.code.sesiBerubah,
+          terkunciHint: t.code.terkunci,
+        }}
+      />
+    </section>
 
-      <section id="live" role="tabpanel" aria-labelledby="live-tab" class="module-panel" hidden>
-        <h2 class="module-panel__heading">{t.live.heading}</h2>
-        <p class="measure-prose">{t.live.bodyFor(modul)}</p>
-        <Card class="module-panel__card">
-          <p class="module-live__ladder">{t.live.jalurLabel(m.ladder.jalur)}</p>
-          <Table
-            columns={[
-              { key: "nama", label: "Lapisan" },
-              { key: "nilai", label: "Nilai" },
-            ]}
-            rows={m.lapisan}
-          />
-          <Button kind="primary" href={`${basePath}/${m.modul}/live`} class="module-live__cta">
-            {t.live.cta}
-          </Button>
-        </Card>
-      </section>
-    </div>
+    <section id="live" role="tabpanel" aria-labelledby="live-tab" class="modpage__panel" hidden>
+      <div class="modpage__live">
+        <div class="stack stack--lg">
+          <h2 class="modpage__h">{t.live.heading}</h2>
+          <p class="modpage__lede">{t.live.bodyFor(modul)}</p>
+          <span class="pill pill--mono">{t.live.jalurLabel(m.ladder.jalur)}</span>
+          <a class="btn btn--primary btn--lg modpage__go" href={`${basePath}/${m.modul}/live`}>
+            {L.openLive} <span aria-hidden="true">→</span>
+          </a>
+        </div>
+        <div class="panel">
+          <span class="label-caps">{L.layers}</span>
+          <ol class="layerstack">
+            {m.lapisan.map((l, i) => (
+              <li style={`--i: ${i}`}>
+                <b>{l.nama}</b>
+                <span class="mono hint">{l.nilai}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </section>
   </main>
 </Base>
 
@@ -231,159 +276,34 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
   import { applyLockScreen, lockCards } from "../scripts/modul-akses";
   import { id as strId } from "../i18n/id";
   import { en as strEn } from "../i18n/en";
-  function playEntrance() {
-    window.Motion?.enter(".page-header > *");
-  }
-  sekaliPerHalaman("ModulDetailAnimasi", playEntrance);
 
-  // P6.5: the module number comes from the URL itself (/modules/N or
-  // /en/modules/N) rather than a value threaded down from the frontmatter,
-  // since a client script has no other way to read server-side props; the
-  // language comes from <html lang> the same way, so this stays correct on
-  // both /modules/N and /en/modules/N without needing its own prop either.
+  function bindGo() {
+    document.querySelectorAll<HTMLElement>("[data-go-step]").forEach((b) => {
+      if (b.dataset.bound) return;
+      b.dataset.bound = "1";
+      b.addEventListener("click", () => {
+        window.dispatchEvent(new CustomEvent("iris:go-step", { detail: b.dataset.goStep }));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+  }
+
   function checkAkses() {
     const match = /\/modules\/(\d)(?:\/|$)/.exec(location.pathname);
     if (!match) return;
-    const t = document.documentElement.lang === "en" ? strEn : strId;
+    const en = document.documentElement.lang === "en";
+    const t = en ? strEn : strId;
     const heading = document.querySelector(".page-header__title");
-    void applyLockScreen(Number(match[1]), t.code.terkunci, "terkunci untuk praktikan", heading);
-
-    // B12: prev/next links between modules -- badged rather than hidden or
-    // blocked (same non-removal rule lockCards() already follows for the
-    // index cards), since the API is the real gate either way.
+    void applyLockScreen(
+      Number(match[1]),
+      t.code.terkunci,
+      en ? "locked for students" : "terkunci untuk praktikan",
+      heading,
+    );
     const adjacent = document.getElementById("module-adjacent");
-    const label = document.documentElement.lang === "en" ? "Not open yet" : "Belum dibuka";
-    if (adjacent) void lockCards(adjacent, label);
+    if (adjacent) void lockCards(adjacent, en ? "Not open yet" : "Belum dibuka");
   }
+
+  sekaliPerHalaman("ModulDetailGo", bindGo);
   sekaliPerHalaman("ModulDetailAkses", checkAkses);
 </script>
-
-<style>
-  .module-header__adjacent {
-    display: flex;
-    gap: var(--space-5);
-  }
-
-  .module-header__adjacent a {
-    color: var(--text-muted);
-    font-size: var(--fs-small);
-  }
-
-  .module-header__adjacent a:hover {
-    color: var(--text);
-  }
-
-  .module-carousel__index {
-    padding-block: var(--space-4);
-  }
-
-  .module-carousel__layout {
-    display: grid;
-    gap: var(--space-8);
-    padding-block: var(--space-8) var(--space-10);
-  }
-
-  .module-panel__heading {
-    font-size: var(--fs-display-sm);
-    margin-top: var(--space-7);
-  }
-
-  .module-panel__heading:first-child {
-    margin-top: 0;
-  }
-
-  .module-panel p {
-    color: var(--text-muted);
-    margin-top: var(--space-3);
-  }
-
-  .module-panel__note {
-    color: var(--text-faint);
-    font-size: var(--fs-small);
-  }
-
-  .module-panel__pin-caption {
-    color: var(--text-faint);
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-  }
-
-  .module-panel__card {
-    margin-top: var(--space-5);
-  }
-
-  .module-toolchain,
-  .module-hardware,
-  .module-checklist {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    margin-top: var(--space-4);
-  }
-
-  .module-toolchain li {
-    align-items: center;
-    display: flex;
-    gap: var(--space-3);
-  }
-
-  .module-hardware li {
-    border-bottom: 1px solid var(--hairline-faint);
-    display: flex;
-    justify-content: space-between;
-    padding-block: var(--space-2);
-  }
-
-  .module-hardware__nama {
-    color: var(--text);
-  }
-
-  .module-hardware__jumlah {
-    color: var(--text-faint);
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-  }
-
-  .module-checklist li {
-    align-items: flex-start;
-    color: var(--text);
-    display: flex;
-    gap: var(--space-3);
-  }
-
-  .module-checklist__mark {
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--radius-sm);
-    flex-shrink: 0;
-    height: 1.1em;
-    margin-top: 0.15em;
-    width: 1.1em;
-  }
-
-  .module-schematic {
-    border: 1px solid var(--hairline);
-    border-radius: var(--radius-lg);
-    display: block;
-    height: 6cm;
-    margin-top: var(--space-5);
-    object-fit: contain;
-    width: auto;
-  }
-
-  .module-code-card {
-    margin-top: var(--space-5);
-  }
-
-  .module-live__ladder {
-    color: var(--text-faint);
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    margin-bottom: var(--space-4);
-  }
-
-  .module-live__cta {
-    margin-top: var(--space-5);
-  }
-</style>
