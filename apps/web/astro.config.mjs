@@ -7,6 +7,12 @@ import react from "@astrojs/react";
 export default defineConfig({
   integrations: [react()],
   vite: {
+    // Dependencies only some islands import. Without this, the dev server
+    // discovers them on first visit and answers "504 Outdated Optimize Dep",
+    // leaving that page's island unhydrated until a restart.
+    optimizeDeps: {
+      include: ["qrcode-generator", "react-resizable-panels", "cmdk", "react-day-picker"],
+    },
     server: {
       fs: {
         // Base.astro imports packages/kosmik/style/*.css by relative path

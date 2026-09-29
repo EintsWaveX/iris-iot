@@ -217,6 +217,13 @@
    this layer, so every stop has to clear 4.5:1 against --accent-ink (see
    tokens.css's own note on why --sweep-ring is decorative-only and would
    have made the label unreadable twice per loop). */
+/* The sweep sits behind the button's content (isolation + z-index -1), so
+   bare text and icons in React islands stay visible on hover and focus,
+   not only children wrapped in .btn__label. */
+.btn--primary {
+  isolation: isolate;
+}
+
 .btn--primary::before {
   background-image: var(--sweep-surface);
   background-size: 200% auto;
@@ -227,6 +234,7 @@
   pointer-events: none;
   position: absolute;
   transition: opacity var(--dur-mid) var(--ease-reveal);
+  z-index: -1;
 }
 
 .btn--primary:hover:not(:disabled):not([aria-disabled="true"])::before,

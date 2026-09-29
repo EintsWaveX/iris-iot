@@ -1,0 +1,46 @@
+---
+/**
+ * /dashboard and /en/dashboard (Phase 8): the praktikan home, one island.
+ * The blank totals per module are counted here at build time from the same
+ * public sketch sources the Code step renders, so the dashboard's progress
+ * rings never need the answer key.
+ */
+import { getEntry } from "astro:content";
+import Base from "../layouts/Base.astro";
+import Dashboard, { type ModulInfo } from "../components/dashboard/Dashboard";
+import { getSketchSource } from "../lib/sketches";
+import { parseBlanks } from "../lib/blanks";
+
+interface Props {
+  lang: "id" | "en";
+}
+const { lang } = Astro.props;
+
+const modules: ModulInfo[] = [];
+for (const n of [1, 2, 3, 4]) {
+  const entry = await getEntry("modules", `${lang}/${n}`);
+  if (!entry) throw new Error(`no module content for ${lang}/${n}`);
+  const m = entry.data;
+  modules.push({
+    modul: m.modul,
+    judul: m.judul,
+    topik: m.topik,
+    persiapan: m.persiapan.length,
+    berkas: m.berkas.map((b) => ({
+      slug: b.path.replace(/\.(ino|py)$/, ""),
+      blanks: parseBlanks(getSketchSource(m.bahasa, b.path)).filter((s) => s.kind === "blank")
+        .length,
+    })),
+  });
+}
+---
+
+<Base
+  title={lang === "en" ? "Dashboard · IRIS IoT" : "Dasbor · IRIS IoT"}
+  lang={lang}
+  cosmosScene="kerja"
+>
+  <main id="main" class="page-wide page-main">
+    <Dashboard client:load lang={lang} modules={modules} />
+  </main>
+</Base>

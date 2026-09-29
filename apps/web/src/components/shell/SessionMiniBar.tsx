@@ -210,7 +210,7 @@ export default function SessionMiniBar({
         <b className="minibar__name">{MODUL_SINGKAT[s.modul]}</b>
       </a>
 
-      <div className="minibar__time" title={s.mulaiPada ? jamMenit(s.mulaiPada, lang) : undefined}>
+      <div className="minibar__time">
         <Clock3 size={15} aria-hidden="true" />
         <span className="minibar__track" aria-hidden="true">
           <span className="minibar__fill" style={{ width: `${pct}%` }} />

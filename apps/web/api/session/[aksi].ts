@@ -130,6 +130,9 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       pengumumanPada: running.pengumumanPada,
       kelas: running.kelas,
       mintaBantuanPada,
+      // A praktikan whose cookie belongs to an earlier session has to sign
+      // in again to be counted in this one (the mini-bar asks them to).
+      milikSaya: who?.role === "praktikan" ? who.sesiId === running.id : null,
     },
   });
 }

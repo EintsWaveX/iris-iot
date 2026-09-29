@@ -43,6 +43,7 @@ import { dict, href, meChanged, postJson, useMe, useSessionNow, type Me } from "
 import { langForKelas, pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";
 import SessionMiniBar from "./SessionMiniBar";
+import IdentityWatch from "./IdentityWatch";
 import AsistenCommands from "./AsistenCommands";
 import "./AppNav.css";
 
@@ -339,6 +340,7 @@ export default function AppNav({ lang, path }: { lang: Lang; path: string }) {
       </header>
 
       {me?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} />}
+      <IdentityWatch lang={lang} me={me} now={now.data} />
 
       <nav className="appbar" aria-label={t.main}>
         {links.map((l) => {

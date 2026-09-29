@@ -94,6 +94,8 @@ export interface SesiNow {
   pengumumanPada: string | null;
   kelas: Kelas;
   mintaBantuanPada: string | null;
+  /** Praktikan only: false when their sign-in belongs to an earlier session. */
+  milikSaya?: boolean | null;
 }
 
 export function useSessionNow(ms = 20_000, enabled = true) {

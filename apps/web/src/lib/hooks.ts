@@ -146,12 +146,13 @@ export function useLang(routeLang: Lang, kelas?: Kelas | null): Lang {
 
 /* ---------------------------------------------------------- useMinWidth */
 
-/** True while the viewport is at least `px` wide. */
+/** True while the viewport is at least `px` wide. Starts true on both the
+ *  server and the first client render (reading the window here made a
+ *  narrow screen's first render differ from the server HTML, a hydration
+ *  mismatch); the effect below applies the real width right after. */
 export function useMinWidth(px: number): boolean {
   const q = `(min-width: ${px}px)`;
-  const [ok, setOk] = useState(() =>
-    typeof window === "undefined" ? true : window.matchMedia(q).matches,
-  );
+  const [ok, setOk] = useState(true);
   useEffect(() => {
     const mq = window.matchMedia(q);
     const on = () => setOk(mq.matches);
