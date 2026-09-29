@@ -8,11 +8,9 @@
  * - CountUp: a number that tweens to its new value (motion tier 1+ only)
  * - ProgressRing: a small conic ring with a centred label ("6/12")
  * - RatingPicker: five big tappable faces, a real radio group
- * - QrCode: an SVG QR code (qrcode-generator), for the projector
  * - OfflineBanner / UpdatedAgo: poll health, from usePoll's state
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import qrcode from "qrcode-generator";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useAgeSeconds, useMotionTier } from "../../lib/hooks";
 import "./Display.css";
 
@@ -171,44 +169,6 @@ export function RatingPicker({
           <span>{l}</span>
         </button>
       ))}
-    </div>
-  );
-}
-
-/* --------------------------------------------------------------- QrCode */
-
-export function QrCode({
-  text,
-  size = 200,
-  label,
-}: {
-  text: string;
-  size?: number;
-  label: string;
-}) {
-  // Drawn from the module matrix as one SVG path, so no generated markup is
-  // ever injected as HTML.
-  const { n, d } = useMemo(() => {
-    const q = qrcode(0, "M");
-    q.addData(text);
-    q.make();
-    const count = q.getModuleCount();
-    let path = "";
-    for (let r = 0; r < count; r++) {
-      for (let c = 0; c < count; c++) if (q.isDark(r, c)) path += `M${c} ${r}h1v1h-1z`;
-    }
-    return { n: count, d: path };
-  }, [text]);
-  return (
-    <div className="qr" style={{ width: size, height: size }}>
-      <svg
-        viewBox={`-2 -2 ${n + 4} ${n + 4}`}
-        role="img"
-        aria-label={label}
-        shapeRendering="crispEdges"
-      >
-        <path d={d} fill="#000" />
-      </svg>
     </div>
   );
 }

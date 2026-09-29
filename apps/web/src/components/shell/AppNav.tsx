@@ -17,7 +17,7 @@
  * follows the running session's class (International is English). The
  * redirect happens here because this is the one island on every page.
  */
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
   BarChart3,
@@ -25,15 +25,11 @@ import {
   CalendarRange,
   Command,
   Gauge,
-  Globe,
   Home,
-  Keyboard,
   LayoutDashboard,
   LogIn,
-  LogOut,
   Radio,
   Server,
-  Sparkles,
   UserRound,
   type LucideProps,
 } from "lucide-react";
@@ -170,7 +166,21 @@ function useMotionPref(): [MotionPref, (p: MotionPref) => void] {
   ];
 }
 
-export default function AppNav({ lang, path }: { lang: Lang; path: string }) {
+export default function AppNav({
+  lang: built,
+  path,
+  langFromUrl = false,
+}: {
+  lang: Lang;
+  path: string;
+  langFromUrl?: boolean;
+}) {
+  // On the 404 page (one built file for every missing path) the language
+  // comes from the address after hydration.
+  const [lang, setLang] = useState<Lang>(built);
+  useEffect(() => {
+    if (langFromUrl && /^\/en(\/|$)/.test(location.pathname)) setLang("en");
+  }, [langFromUrl]);
   const t = T[lang];
   const me = useMe();
   const now = useSessionNow(30_000, me !== undefined && me !== null);
@@ -190,9 +200,18 @@ export default function AppNav({ lang, path }: { lang: Lang; path: string }) {
     return () => window.removeEventListener("scroll", on);
   }, []);
 
+  // A ClientRouter navigation in flight (the login dialog's hand-off) already
+  // targets the right language; redirecting this page would override it.
+  const leaving = useRef(false);
+  useEffect(() => {
+    const on = () => (leaving.current = true);
+    document.addEventListener("astro:before-preparation", on);
+    return () => document.removeEventListener("astro:before-preparation", on);
+  }, []);
+
   // Language default and saved choice.
   useEffect(() => {
-    if (me === undefined) return;
+    if (me === undefined || leaving.current) return;
     const pref = readLangPref();
     const want: Lang | null = pref ?? (me && now.data ? langForKelas(now.data.kelas) : null);
     if (want && want !== lang) {
@@ -273,7 +292,6 @@ export default function AppNav({ lang, path }: { lang: Lang; path: string }) {
             onClick={switchLang}
             lang={lang === "id" ? "en" : "id"}
           >
-            <Globe size={16} aria-hidden="true" />
             <span>{lang === "id" ? "EN" : "ID"}</span>
           </button>
 
@@ -283,7 +301,6 @@ export default function AppNav({ lang, path }: { lang: Lang; path: string }) {
               className="btn btn--primary appnav__signin"
               onClick={() => window.LoginDialog?.open()}
             >
-              <LogIn size={17} aria-hidden="true" />
               <span className="btn__label">{t.signIn}</span>
             </button>
           )}
@@ -443,15 +460,12 @@ function AccountMenu({
 
       {me.role === "asisten" && (
         <a className="acct__row" href={href(lang, "/account")}>
-          <UserRound size={18} aria-hidden="true" />
           <span>{t.myAccount}</span>
         </a>
       )}
 
       <div className="acct__group">
-        <span className="acct__label">
-          <Globe size={16} aria-hidden="true" /> {t.language}
-        </span>
+        <span className="acct__label">{t.language}</span>
         <div className="acct__seg" role="group" aria-label={t.language}>
           <button
             type="button"
@@ -471,9 +485,7 @@ function AccountMenu({
       </div>
 
       <div className="acct__group">
-        <span className="acct__label">
-          <Sparkles size={16} aria-hidden="true" /> {t.motion}
-        </span>
+        <span className="acct__label">{t.motion}</span>
         <div className="acct__seg" role="group" aria-label={t.motion}>
           {opts.map((o) => (
             <button
@@ -490,14 +502,12 @@ function AccountMenu({
 
       {me.role === "asisten" && (
         <button type="button" className="acct__row" onClick={onShortcuts}>
-          <Keyboard size={18} aria-hidden="true" />
           <span>{t.shortcuts}</span>
           <Kbd>?</Kbd>
         </button>
       )}
 
       <button type="button" className="acct__row acct__row--danger" onClick={onSignOut}>
-        <LogOut size={18} aria-hidden="true" />
         <span>{t.signOut}</span>
       </button>
     </div>

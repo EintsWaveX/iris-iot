@@ -14,7 +14,7 @@
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import { upload } from "@vercel/blob/client";
-import { Eye, FileText, Image as ImageIcon, Presentation, RotateCcw, Trash2 } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { FileDrop } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
 import SchematicViewer from "../ui/SchematicViewer";
@@ -98,9 +98,7 @@ export function SlidesLibrary({
     <section className="panel">
       <div className="panel__head">
         <div className="stack stack--sm">
-          <h2 className="panel__title">
-            <Presentation size={18} aria-hidden="true" /> {t.slidesLib}
-          </h2>
+          <h2 className="panel__title">{t.slidesLib}</h2>
           <p className="panel__sub">{t.slidesLibSub}</p>
         </div>
       </div>
@@ -121,7 +119,6 @@ export function SlidesLibrary({
         <ul className="lib">
           {list.map((d) => (
             <li key={d.id} className="lib__row" data-aktif={d.aktif ? "yes" : undefined}>
-              <FileText size={20} className="lib__icon" aria-hidden="true" />
               <span className="grow stack" style={{ gap: 2 }}>
                 <a
                   href={d.url}
@@ -232,9 +229,7 @@ export function SchematicLibrary({
     <section className="panel prep__full">
       <div className="panel__head">
         <div className="stack stack--sm">
-          <h2 className="panel__title">
-            <ImageIcon size={18} aria-hidden="true" /> {t.schemTitle}
-          </h2>
+          <h2 className="panel__title">{t.schemTitle}</h2>
           <p className="panel__sub">{t.schemSub}</p>
         </div>
       </div>
@@ -297,7 +292,7 @@ export function SchematicLibrary({
                     void act("/api/presentasi/schematic-default", { modul }, t.schemBack(modul))
                   }
                 >
-                  <RotateCcw size={16} aria-hidden="true" /> {t.schemUseDefault}
+                  {t.schemUseDefault}
                 </button>
               )}
               {others.length > 0 && (

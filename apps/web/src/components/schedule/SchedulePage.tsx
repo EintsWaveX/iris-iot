@@ -14,18 +14,7 @@
  * - Phones get a day-by-day list instead of the grid.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  CalendarRange,
-  ClipboardPaste,
-  Lock,
-  Plus,
-  Save,
-  Sparkles,
-  TriangleAlert,
-  X,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarRange, Lock, TriangleAlert, X } from "lucide-react";
 import Dialog from "../ui/Dialog";
 import Drawer from "../ui/Drawer";
 import Confirm from "../ui/Confirm";
@@ -167,13 +156,13 @@ const T = {
     impPeng: "ASISTEN PENGGANTI block (optional)",
     preview: "Preview",
     previewing: "Checking…",
-    result: (n: number) => `${n} slots read`,
+    result: (n: number) => `${n} ${n === 1 ? "slot" : "slots"} read`,
     unknown: "Unknown codes",
     strange: "Cells ignored",
     replace: "Replace this semester's schedule",
     replaceH: "Replace the whole semester's schedule?",
     replaceBody: "The existing schedule for this semester is deleted and replaced by the preview.",
-    replaced: (n: number) => `${n} slots saved.`,
+    replaced: (n: number) => `${n} ${n === 1 ? "slot" : "slots"} saved.`,
     emptySheet: "No slots could be read from this paste.",
     cancel: "Cancel",
     close: "Close",
@@ -533,7 +522,6 @@ function SlotEditor({
               setAdding("");
             }}
           >
-            <Plus size={16} aria-hidden="true" />
             {t.addSub}
           </button>
         </div>
@@ -542,7 +530,6 @@ function SlotEditor({
       <div className="jedit__foot">
         {dirty && <span className="hint">{t.unsaved}</span>}
         <button type="button" className="btn btn--primary" disabled={!dirty || busy} onClick={save}>
-          <Save size={16} aria-hidden="true" />
           {t.save}
         </button>
       </div>
@@ -649,7 +636,6 @@ function ImportDialog({
               disabled={!def.trim() || busy}
               onClick={preview}
             >
-              <Sparkles size={16} aria-hidden="true" />
               {busy ? t.previewing : t.preview}
             </button>
             {pre && <span className="pill pill--accent">{t.result(pre.slot.length)}</span>}
@@ -691,7 +677,6 @@ function ImportDialog({
                   disabled={busy || pre.slot.length === 0}
                   onClick={() => setConfirm(true)}
                 >
-                  <Save size={16} aria-hidden="true" />
                   {t.replace}
                 </button>
               </div>
@@ -818,7 +803,6 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
           </div>
           <Switch on={highlight} onChange={setHighlight} label={t.mine} showLabel />
           <button type="button" className="btn btn--secondary" onClick={() => setImp(true)}>
-            <ClipboardPaste size={17} aria-hidden="true" />
             {t.import}
           </button>
         </div>
@@ -913,7 +897,6 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
               />
             ) : (
               <div className="jedit jedit--empty">
-                <CalendarRange size={28} aria-hidden="true" />
                 <p className="hint">{t.pick}</p>
               </div>
             )}

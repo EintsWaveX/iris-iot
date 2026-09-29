@@ -19,32 +19,13 @@
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import {
-  Activity,
-  ArrowLeft,
   CheckCircle2,
   ChevronDown,
-  Clock,
   Copy,
-  Cpu,
-  Eye,
-  EyeOff,
-  HardDrive,
-  History,
-  KeyRound,
   Loader2,
-  MemoryStick,
-  Network,
-  Plus,
-  Power,
-  RefreshCw,
-  Save,
   Server,
   ShieldAlert,
-  Stethoscope,
-  Thermometer,
-  Timer,
   Trash2,
-  Wrench,
 } from "lucide-react";
 import "uplot/dist/uPlot.min.css";
 import Dialog from "../ui/Dialog";
@@ -559,7 +540,7 @@ function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: nu
           <p className="hint srv__sub">{t.sub}</p>
         </div>
         <button type="button" className="btn btn--primary btn--lg" onClick={() => setWizard(true)}>
-          <Plus size={20} aria-hidden="true" /> {t.enroll}
+          {t.enroll}
         </button>
       </header>
 
@@ -594,10 +575,9 @@ function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: nu
 
       {poll.data && list.length === 0 ? (
         <div className="empty-note">
-          <Server size={28} aria-hidden="true" />
           <p>{t.empty}</p>
           <button type="button" className="btn btn--primary" onClick={() => setWizard(true)}>
-            <Plus size={18} aria-hidden="true" /> {t.enroll}
+            {t.enroll}
           </button>
         </div>
       ) : (
@@ -634,9 +614,6 @@ function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: nu
                   onClick={() => onOpen(s.id)}
                 >
                   <span className="srvcard__head">
-                    <span className="srvcard__icon" aria-hidden="true">
-                      <Server size={20} />
-                    </span>
                     <span className="grow stack" style={{ gap: 0 }}>
                       <b className="truncate">{s.nama}</b>
                       <span className="mono hint">{s.kode}</span>
@@ -696,7 +673,6 @@ function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: nu
             className="srvcard srvcard--add sweep-hover"
             onClick={() => setWizard(true)}
           >
-            <Plus size={28} aria-hidden="true" />
             <b>{t.enroll}</b>
           </button>
         </div>
@@ -1000,15 +976,12 @@ function DetailView({
           onBack();
         }}
       >
-        <ArrowLeft size={16} aria-hidden="true" /> {t.back}
+        {t.back}
       </a>
       <header
         className="srv__dhead sweep-edge"
         data-state={!data.server.terdaftar ? "wait" : on ? "ok" : "bad"}
       >
-        <span className="srvcard__icon srvcard__icon--lg" aria-hidden="true">
-          <Server size={26} />
-        </span>
         <div className="grow stack" style={{ gap: 2 }}>
           <h1 className="srv__title srv__title--sm">{data.server.nama}</h1>
           <span className="hint">
@@ -1034,13 +1007,6 @@ function DetailView({
             aria-pressed={tab === k}
             onClick={() => go(k)}
           >
-            {k === "ringkasan" ? (
-              <Activity size={17} />
-            ) : k === "perangkat" ? (
-              <Cpu size={17} />
-            ) : (
-              <Wrench size={17} />
-            )}
             {t.tabs[k]}
             {k === "perangkat" && (
               <span className="board__count num">
@@ -1172,28 +1138,24 @@ function Overview({
     };
   }, []);
 
-  const tiles: { icon: typeof Cpu; label: string; value: string; warn?: boolean }[] = [
+  const tiles: { label: string; value: string; warn?: boolean }[] = [
     {
-      icon: Cpu,
       label: t.cpu,
       value: hb?.cpu != null ? `${Math.round(hb.cpu)}%` : "·",
       warn: (hb?.cpu ?? 0) >= WARN_CPU,
     },
     {
-      icon: MemoryStick,
       label: t.mem,
       value: hb?.memori != null ? `${Math.round(hb.memori)}%` : "·",
     },
-    { icon: HardDrive, label: t.disk, value: hb?.disk != null ? `${Math.round(hb.disk)}%` : "·" },
+    { label: t.disk, value: hb?.disk != null ? `${Math.round(hb.disk)}%` : "·" },
     {
-      icon: Thermometer,
       label: t.temp,
       value: hb?.suhu != null ? `${Math.round(hb.suhu)}°C` : "·",
       warn: (hb?.suhu ?? 0) >= WARN_TEMP,
     },
-    { icon: Timer, label: t.uptime, value: fmtUptime(hb?.uptimeSec, lang) },
+    { label: t.uptime, value: fmtUptime(hb?.uptimeSec, lang) },
     {
-      icon: Activity,
       label: `${t.avail} (${t.ranges[rentang]})`,
       value: hist ? `${hist.ketersediaan}%` : "·",
     },
@@ -1215,18 +1177,14 @@ function Overview({
       <div className="ovw__tiles">
         {tiles.map((x) => (
           <div key={x.label} className="stat ovw__tile" data-warn={x.warn ? "yes" : undefined}>
-            <span className="stat__label">
-              <x.icon size={15} aria-hidden="true" /> {x.label}
-            </span>
+            <span className="stat__label">{x.label}</span>
             <span className="stat__value stat__value--sm num">{x.value}</span>
           </div>
         ))}
       </div>
 
       <section className="panel ovw__actions">
-        <h2 className="panel__title">
-          <Power size={18} aria-hidden="true" /> {t.actions}
-        </h2>
+        <h2 className="panel__title">{t.actions}</h2>
         <div className="ovw__action-row">
           <HotspotCard lang={lang} serverId={id} hb={hb} onSent={refresh} />
           <button
@@ -1234,7 +1192,6 @@ function Overview({
             className="ovw__action sweep-hover"
             onClick={() => void sendCommand(id, "jam.selaraskan", {}, lang).then(refresh)}
           >
-            <Clock size={22} aria-hidden="true" />
             <span className="stack" style={{ gap: 0 }}>
               <b>{t.syncClock}</b>
               <span className={`hint ${hb?.jamSelaras ? "" : "ovw__bad"}`}>
@@ -1247,7 +1204,6 @@ function Overview({
             className="ovw__action sweep-hover"
             onClick={() => void sendCommand(id, "diag.jaringan", {}, lang).then(refresh)}
           >
-            <Network size={22} aria-hidden="true" />
             <span className="stack" style={{ gap: 0 }}>
               <b>{t.netDiag}</b>
               <span className="hint">iw, AP, route</span>
@@ -1261,7 +1217,7 @@ function Overview({
           <section className="panel">
             <div className="panel__head">
               <h2 className="panel__title">
-                <Activity size={18} aria-hidden="true" /> {t.cpu} · {t.mem} · {t.temp}
+                {t.cpu} · {t.mem} · {t.temp}
               </h2>
               <div className="seg" role="group" aria-label={t.range}>
                 {["1h", "24h", "7d"].map((r) => (
@@ -1300,7 +1256,7 @@ function Overview({
               aria-expanded={histOpen}
               onClick={() => setHistOpen((x) => !x)}
             >
-              <History size={18} aria-hidden="true" /> {t.history}
+              {t.history}
               <ChevronDown size={18} className="ovw__chev" aria-hidden="true" />
             </button>
             {histOpen && (
@@ -1313,9 +1269,7 @@ function Overview({
                     ) : (
                       <ul className="ovw__list">
                         {hist.reboot.slice(0, 12).map((r, i) => (
-                          <li key={i}>
-                            <RefreshCw size={14} aria-hidden="true" /> {fmtWhen(r.pada, lang)}
-                          </li>
+                          <li key={i}>{fmtWhen(r.pada, lang)}</li>
                         ))}
                       </ul>
                     )}
@@ -1364,9 +1318,7 @@ function Overview({
 
         <div className="stack stack--lg">
           <section className="panel">
-            <h2 className="panel__title">
-              <Server size={18} aria-hidden="true" /> {t.services}
-            </h2>
+            <h2 className="panel__title">{t.services}</h2>
             <ServiceList
               lang={lang}
               serverId={id}
@@ -1420,7 +1372,7 @@ function Overview({
                           className="btn btn--secondary btn--sm"
                           onClick={() => void retry(p, "perintah_ulang")}
                         >
-                          <RefreshCw size={14} /> {t.retryCmd}
+                          {t.retryCmd}
                         </button>
                       )}
                     </li>
@@ -1625,14 +1577,13 @@ function DeviceRow({
             )
           }
         >
-          <Save size={16} aria-hidden="true" /> {t.save}
+          {t.save}
         </button>
         <button
           type="button"
           className="btn btn--ghost btn--sm"
           onClick={() => void call(p.disembunyikan ? "tampilkan" : "sembunyikan")}
         >
-          {p.disembunyikan ? <Eye size={16} /> : <EyeOff size={16} />}{" "}
           {p.disembunyikan ? t.show : t.hide}
         </button>
         <button
@@ -1717,9 +1668,7 @@ function Settings({
   return (
     <div className="grid-2 settings">
       <form className="panel" onSubmit={save} noValidate>
-        <h2 className="panel__title">
-          <Server size={18} aria-hidden="true" /> {t.settings}
-        </h2>
+        <h2 className="panel__title">{t.settings}</h2>
         <div className="field">
           <label className="field__label" htmlFor="srv-nama">
             {t.name}
@@ -1769,16 +1718,14 @@ function Settings({
         </div>
         <div className="panel__foot">
           <button type="submit" className="btn btn--primary" disabled={busy || !form.nama.trim()}>
-            <Save size={17} aria-hidden="true" /> {t.save}
+            {t.save}
           </button>
         </div>
       </form>
 
       <div className="stack stack--lg">
         <section className="panel">
-          <h2 className="panel__title">
-            <Cpu size={18} aria-hidden="true" /> {t.agent}
-          </h2>
+          <h2 className="panel__title">{t.agent}</h2>
           <dl className="kv">
             <dt>{t.agentVer}</dt>
             <dd className="mono">{s.agenVersi ?? "·"}</dd>
@@ -1796,9 +1743,7 @@ function Settings({
 
         <section className="panel">
           <div className="stack stack--sm">
-            <h2 className="panel__title">
-              <Stethoscope size={18} aria-hidden="true" /> {t.diag}
-            </h2>
+            <h2 className="panel__title">{t.diag}</h2>
             <p className="panel__sub">{t.diagSub}</p>
           </div>
           <div className="stack stack--sm">
@@ -1842,9 +1787,7 @@ function Settings({
         </section>
 
         <section className="panel danger-zone">
-          <h2 className="panel__title">
-            <ShieldAlert size={18} aria-hidden="true" /> {t.danger}
-          </h2>
+          <h2 className="panel__title">{t.danger}</h2>
           <div className="danger-zone__row">
             <span className="stack" style={{ gap: 2 }}>
               <b>{t.newToken}</b>
@@ -1855,7 +1798,7 @@ function Settings({
               className="btn btn--secondary"
               onClick={() => setConfirmTok(true)}
             >
-              <KeyRound size={17} aria-hidden="true" /> {t.newToken}
+              {t.newToken}
             </button>
           </div>
           {token && (
@@ -1869,7 +1812,7 @@ function Settings({
               <span className="hint">{t.delBody}</span>
             </span>
             <button type="button" className="btn btn--danger" onClick={() => setConfirmDel(true)}>
-              <Trash2 size={17} aria-hidden="true" /> {t.del}
+              {t.del}
             </button>
           </div>
         </section>

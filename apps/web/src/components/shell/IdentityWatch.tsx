@@ -11,7 +11,7 @@
  * `milikSaya: false`) is asked to sign in again so this session counts them.
  */
 import { useEffect, useRef, useState } from "react";
-import { LogIn, RefreshCcw, UserRoundX } from "lucide-react";
+import { LogIn, RefreshCcw } from "lucide-react";
 import Dialog from "../ui/Dialog";
 import { dict, getJson, meChanged, type Me, type SesiNow } from "../../lib/app";
 import { startPolling } from "../../scripts/polling";
@@ -125,7 +125,6 @@ export default function IdentityWatch({
       }
     >
       <div className="row row--nowrap" style={{ alignItems: "flex-start", gap: "var(--space-3)" }}>
-        <UserRoundX size={28} aria-hidden="true" style={{ color: "var(--warn)", flex: "none" }} />
         <p style={{ margin: 0 }}>{body}</p>
       </div>
     </Dialog>

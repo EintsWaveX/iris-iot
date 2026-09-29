@@ -12,8 +12,8 @@
  * deliberate correction, not a forward step.
  */
 import { getDb } from "./db.js";
-import { pengaturan } from "./schema.js";
-import { eq, sql } from "drizzle-orm";
+import { pengaturan, percobaanMasuk, sesi } from "./schema.js";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 const KUNCI = "modul_terbuka";
 const DEFAULT_TERBUKA: number[] = [1];
@@ -95,4 +95,38 @@ export async function bukaHingga(modul: number): Promise<void> {
   const next = Array.from(target).sort((a, b) => a - b);
   if (next.length === current.length && next.every((v, i) => v === current[i])) return;
   await writeModulTerbuka(next, null);
+}
+
+/* ------------------------------------------------ the journal (Phase 8) */
+
+/** Modules a student has done a practicum of: any running or finished
+ *  session of that module they signed in to. The successful sign-in row
+ *  (with its sesi_id, see percobaanMasuk) is the attendance record. */
+export async function modulDiikuti(nim: string): Promise<number[]> {
+  const rows = await getDb()
+    .selectDistinct({ modul: sesi.modul })
+    .from(percobaanMasuk)
+    .innerJoin(sesi, eq(sesi.id, percobaanMasuk.sesiId))
+    .where(
+      and(
+        eq(percobaanMasuk.nim, nim),
+        eq(percobaanMasuk.jenis, "praktikan"),
+        eq(percobaanMasuk.berhasil, true),
+        inArray(sesi.status, ["berjalan", "selesai"]),
+      ),
+    );
+  return rows.map((r) => r.modul).sort((a, b) => a - b);
+}
+
+/** Which modules' full journal (setup, code, live) this person may open.
+ *  Assistants: all four. A student: a module that is open AND whose
+ *  practicum they have done; being open alone is not enough. Everyone
+ *  else reads only the public handbook. */
+export async function jurnalBolehDibuka(who: {
+  role: "asisten" | "praktikan";
+  nim: string;
+}): Promise<number[]> {
+  if (who.role === "asisten") return [1, 2, 3, 4];
+  const [terbuka, diikuti] = await Promise.all([getModulTerbuka(), modulDiikuti(who.nim)]);
+  return terbuka.filter((m) => diikuti.includes(m));
 }

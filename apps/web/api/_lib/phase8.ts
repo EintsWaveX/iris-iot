@@ -25,6 +25,7 @@ import {
   jadwal,
   kelompok,
   nilai,
+  percobaanMasuk,
   sesi,
   sesiAsisten,
   sesiKelompok,
@@ -41,7 +42,7 @@ import {
 } from "../../src/lib/jadwal-parser.js";
 import { validasiUmpanBalik, ringkas } from "../../src/lib/umpan-balik.js";
 import { isKelas, type Kelas } from "../../src/lib/kelas.js";
-import { and, eq, asc, inArray } from "drizzle-orm";
+import { and, eq, asc, desc, inArray } from "drizzle-orm";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -374,10 +375,84 @@ export async function handleHelpAsisten(
 
 /* ------------------------------------------------------------ feedback */
 
-async function sesiPraktikan(session: SessionPayload) {
-  if (!session.sesiId) return null;
-  const [s] = await getDb().select().from(sesi).where(eq(sesi.id, session.sesiId)).limit(1);
+/** Sessions this student attended (signed in to while it ran), newest
+ *  first. The same attendance rule as akses.ts's modulDiikuti. */
+async function sesiDiikuti(nim: string) {
+  return getDb()
+    .selectDistinct({
+      id: sesi.id,
+      modul: sesi.modul,
+      tanggal: sesi.tanggal,
+      slot: sesi.slot,
+      status: sesi.status,
+      kelas: sesi.kelas,
+    })
+    .from(percobaanMasuk)
+    .innerJoin(sesi, eq(sesi.id, percobaanMasuk.sesiId))
+    .where(
+      and(
+        eq(percobaanMasuk.nim, nim),
+        eq(percobaanMasuk.jenis, "praktikan"),
+        eq(percobaanMasuk.berhasil, true),
+        inArray(sesi.status, ["berjalan", "selesai"]),
+      ),
+    )
+    .orderBy(desc(sesi.tanggal), desc(sesi.id));
+}
+
+/** The session a student's request is about: an explicit sesiId they
+ *  attended, else the one their cookie belongs to, else their latest. */
+async function sesiPraktikan(session: SessionPayload, diminta?: unknown) {
+  const id = diminta === undefined || diminta === null || diminta === "" ? null : posInt(diminta);
+  if (id === null && session.sesiId) {
+    const [s] = await getDb().select().from(sesi).where(eq(sesi.id, session.sesiId)).limit(1);
+    if (s) return s;
+  }
+  const ikut = await sesiDiikuti(session.nim);
+  const pilih = id === null ? ikut[0] : ikut.find((x) => x.id === id);
+  if (!pilih) return null;
+  const [s] = await getDb().select().from(sesi).where(eq(sesi.id, pilih.id)).limit(1);
   return s ?? null;
+}
+
+/** GET /api/session/mine — praktikan: every practicum they attended, with
+ *  their scores once it ended and whether they gave feedback. Feedback
+ *  stays open for any ended practicum, at any later time. */
+export async function handleMine(_req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const ikut = await sesiDiikuti(session.nim);
+  const ids = ikut.map((x) => x.id);
+  const db = getDb();
+  const [fb, skor] = ids.length
+    ? await Promise.all([
+        db
+          .select({ sesiId: umpanBalik.sesiId })
+          .from(umpanBalik)
+          .where(and(eq(umpanBalik.nim, session.nim), inArray(umpanBalik.sesiId, ids))),
+        db
+          .select({ sesiId: nilai.sesiId, komponen: nilai.komponen, skor: nilai.skor })
+          .from(nilai)
+          .where(and(eq(nilai.nim, session.nim), inArray(nilai.sesiId, ids))),
+      ])
+    : [[], []];
+  const sudah = new Set(fb.map((r) => r.sesiId));
+  const praktikum = ikut.map((x) => {
+    const mine = skor.filter((r) => r.sesiId === x.id);
+    const isi = mine.map((r) => r.skor);
+    return {
+      sesiId: x.id,
+      modul: x.modul,
+      tanggal: x.tanggal,
+      slot: x.slot,
+      status: x.status,
+      kelas: x.kelas,
+      sudahUmpanBalik: sudah.has(x.id),
+      rataRata:
+        x.status === "selesai" && isi.length
+          ? Math.round(isi.reduce((a, b) => a + b, 0) / isi.length)
+          : null,
+    };
+  });
+  res.status(200).json({ ok: true, praktikum });
 }
 
 export async function handleFeedbackPost(
@@ -385,14 +460,30 @@ export async function handleFeedbackPost(
   res: ApiResponse,
   session: SessionPayload,
 ) {
-  const s = await sesiPraktikan(session);
+  const body = jsonBody(req);
+  const s = await sesiPraktikan(session, body.sesiId);
   if (!s || s.status === "batal" || s.status === "terjadwal") {
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
     return;
   }
-  const v = validasiUmpanBalik(jsonBody(req));
-  if (!v.ok) return badRequest(res);
+  // Feedback is about a practicum the student has finished.
+  if (s.status !== "selesai") {
+    res.status(200).json({ ok: false, kode: "belum_selesai" });
+    return;
+  }
   const db = getDb();
+  // The form sends the assistant's code, never their NIM (a NIM is the
+  // assistant's login name, so students are never shown one).
+  if (typeof body.asistenKode === "string" && body.asistenNim === undefined) {
+    const [k] = await db
+      .select({ nim: asisten.nim })
+      .from(asisten)
+      .where(eq(asisten.kode, body.asistenKode.trim().toUpperCase()))
+      .limit(1);
+    body.asistenNim = k?.nim ?? "";
+  }
+  const v = validasiUmpanBalik(body);
+  if (!v.ok) return badRequest(res);
   const [ada] = await db
     .select({ nim: asisten.nim })
     .from(asisten)
@@ -463,8 +554,8 @@ export async function handleFeedbackGet(
 
 /* ------------------------------------------------------------- results */
 
-export async function handleResults(_req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const s = await sesiPraktikan(session);
+export async function handleResults(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const s = await sesiPraktikan(session, req.query.sesiId);
   if (!s) {
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
     return;
@@ -475,20 +566,40 @@ export async function handleResults(_req: ApiRequest, res: ApiResponse, session:
     .from(umpanBalik)
     .where(and(eq(umpanBalik.sesiId, s.id), eq(umpanBalik.nim, session.nim)))
     .limit(1);
-  let pemilik: { nim: string; kode: string } | null = null;
+  let pemilik: { kode: string } | null = null;
   if (session.kelompokId) {
     const [p] = await db
-      .select({ nim: asisten.nim, kode: asisten.kode })
+      .select({ kode: asisten.kode })
       .from(sesiAsisten)
       .innerJoin(asisten, eq(asisten.nim, sesiAsisten.asistenNim))
       .where(and(eq(sesiAsisten.sesiId, s.id), eq(sesiAsisten.kelompokId, session.kelompokId)))
       .limit(1);
-    pemilik = p ?? null;
+    pemilik = p?.kode ? { kode: p.kode } : null;
   }
+  // Who the student can credit: the session's assigned assistants and anyone
+  // who graded in it; when neither exists yet, every assistant with a code.
+  const [ditugaskan, penilai] = await Promise.all([
+    db
+      .select({ nim: sesiAsisten.asistenNim })
+      .from(sesiAsisten)
+      .where(eq(sesiAsisten.sesiId, s.id)),
+    db.selectDistinct({ nim: nilai.diubahOleh }).from(nilai).where(eq(nilai.sesiId, s.id)),
+  ]);
+  const terlibat = [
+    ...new Set([...ditugaskan, ...penilai].map((r) => r.nim).filter((n): n is string => !!n)),
+  ];
+  const kodeRows = await db
+    .select({ kode: asisten.kode })
+    .from(asisten)
+    .where(terlibat.length ? inArray(asisten.nim, terlibat) : undefined);
+  const pilihanAsisten = [
+    ...new Set(kodeRows.map((r) => r.kode?.toUpperCase()).filter((k): k is string => !!k)),
+  ].sort();
   const base = {
     ok: true,
     sesi: { id: s.id, modul: s.modul, status: s.status, kelas: s.kelas },
     asisten: pemilik,
+    pilihanAsisten,
     sudahUmpanBalik: Boolean(fb),
   };
   // Scores are only shown once the session has ended.

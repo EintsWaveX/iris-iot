@@ -20,6 +20,7 @@ import ModuleCarousel from "../components/ModuleCarousel";
 import CodeWorkspace from "../components/module/CodeWorkspace";
 import PinSchematic from "../components/module/PinSchematic";
 import SetupChecklist from "../components/module/SetupChecklist";
+import PdfViewer from "../components/ui/PdfViewer";
 import { id as strId } from "../i18n/id";
 import { en as strEn } from "../i18n/en";
 import { getSketchSource } from "../lib/sketches";
@@ -41,18 +42,18 @@ if (!entry) {
 const m = entry.data;
 const basePath = en ? "/en/modules" : "/modules";
 
+// Phase 8: the first (default) step is the module itself, the finalized
+// handbook's own chapter for this module in this language. It is public.
+// Setup, Code and Live are the journal: open to an assistant, and to a
+// student only once the module is open AND they have done its practicum
+// (the API enforces the same rule; see lib/akses.ts).
 const steps = [
+  { id: "modul", label: t.stepLabels.modul },
   { id: "brief", label: t.stepLabels.brief },
   { id: "setup", label: t.stepLabels.setup },
   { id: "code", label: t.stepLabels.code },
   { id: "live", label: t.stepLabels.live },
 ];
-
-// Modules 1 and 3's sketches include a small, blank-free clock helper
-// (iris_waktu.h / iris_waktu.py), served from public/sketches/; the Code
-// step says where it goes.
-const HELPER_FILE_BY_MODUL: Record<number, string> = { 1: "iris_waktu.h", 3: "iris_waktu.py" };
-const helperFile = HELPER_FILE_BY_MODUL[m.modul];
 
 const berkasSource = m.berkas.map((b) => ({
   ...b,
@@ -131,7 +132,17 @@ const L = {
       />
     </div>
 
-    <section id="brief" role="tabpanel" aria-labelledby="brief-tab" class="modpage__panel">
+    <section id="modul" role="tabpanel" aria-labelledby="modul-tab" class="modpage__panel">
+      <PdfViewer
+        client:visible
+        url={`/handbook/${lang}/modul-${m.modul}.pdf`}
+        name={t.modulDoc(m.modul)}
+        lang={lang}
+        shape="page"
+      />
+    </section>
+
+    <section id="brief" role="tabpanel" aria-labelledby="brief-tab" class="modpage__panel" hidden>
       <div class="modpage__brief">
         <div class="stack stack--lg">
           <h2 class="modpage__h">{t.brief.heading}</h2>
@@ -170,7 +181,13 @@ const L = {
       </div>
     </section>
 
-    <section id="setup" role="tabpanel" aria-labelledby="setup-tab" class="modpage__panel" hidden>
+    <section
+      id="setup"
+      role="tabpanel"
+      aria-labelledby="setup-tab"
+      class="modpage__panel modpage__jurnal"
+      hidden
+    >
       <div class="grid-2">
         <div class="panel">
           <h2 class="panel__title">{t.setup.toolchainHeading}</h2>
@@ -211,22 +228,19 @@ const L = {
       <SetupChecklist client:visible lang={lang} modul={m.modul} items={m.persiapan} />
     </section>
 
-    <section id="code" role="tabpanel" aria-labelledby="code-tab" class="modpage__panel" hidden>
+    <section
+      id="code"
+      role="tabpanel"
+      aria-labelledby="code-tab"
+      class="modpage__panel modpage__jurnal"
+      hidden
+    >
       <div class="modpage__codehead">
         <h2 class="modpage__h">{t.code.heading}</h2>
         <p class="hint modpage__note">{t.code.note}</p>
-        {helperFile && (
-          <p class="hint">
-            {t.code.helperNote.split("{file}")[0]}
-            <a href={`/sketches/${m.bahasa}/${helperFile}`} download>
-              {helperFile}
-            </a>
-            {t.code.helperNote.split("{file}")[1]}
-          </p>
-        )}
       </div>
       <CodeWorkspace
-        client:load
+        client:only="react"
         lang={lang}
         pin={m.pin}
         mcu={mcu}
@@ -245,7 +259,13 @@ const L = {
       />
     </section>
 
-    <section id="live" role="tabpanel" aria-labelledby="live-tab" class="modpage__panel" hidden>
+    <section
+      id="live"
+      role="tabpanel"
+      aria-labelledby="live-tab"
+      class="modpage__panel modpage__jurnal"
+      hidden
+    >
       <div class="modpage__live">
         <div class="stack stack--lg">
           <h2 class="modpage__h">{t.live.heading}</h2>
@@ -273,7 +293,7 @@ const L = {
 
 <script>
   import { sekaliPerHalaman } from "../scripts/per-halaman";
-  import { applyLockScreen, lockCards } from "../scripts/modul-akses";
+  import { getAksesState, jurnalTertutup } from "../scripts/modul-akses";
   import { id as strId } from "../i18n/id";
   import { en as strEn } from "../i18n/en";
 
@@ -288,20 +308,55 @@ const L = {
     });
   }
 
-  function checkAkses() {
+  // The journal gate: Setup, Code and Live keep their content hidden behind
+  // one notice for anyone who may not open this module's journal yet.
+  // Built with DOM calls, never innerHTML.
+  async function checkAkses() {
     const match = /\/modules\/(\d)(?:\/|$)/.exec(location.pathname);
     if (!match) return;
+    const modul = Number(match[1]);
+    const state = await getAksesState(true);
+    if (!jurnalTertutup(state, modul)) return;
     const en = document.documentElement.lang === "en";
     const t = en ? strEn : strId;
-    const heading = document.querySelector(".page-header__title");
-    void applyLockScreen(
-      Number(match[1]),
-      t.code.terkunci,
-      en ? "locked for students" : "terkunci untuk praktikan",
-      heading,
-    );
-    const adjacent = document.getElementById("module-adjacent");
-    if (adjacent) void lockCards(adjacent, en ? "Not open yet" : "Belum dibuka");
+    const masuk = await fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => Boolean(d?.ok))
+      .catch(() => false);
+    for (const sec of document.querySelectorAll<HTMLElement>(".modpage__jurnal")) {
+      if (sec.dataset.gated) continue;
+      sec.dataset.gated = "yes";
+      const box = document.createElement("div");
+      box.className = "jurnal-gate panel";
+      box.setAttribute("role", "status");
+      const h = document.createElement("h2");
+      h.className = "panel__title";
+      h.textContent = t.jurnal.title(modul);
+      const p = document.createElement("p");
+      p.className = "hint";
+      p.textContent = t.jurnal.body;
+      const row = document.createElement("div");
+      row.className = "row";
+      const baca = document.createElement("button");
+      baca.type = "button";
+      baca.className = "btn btn--primary";
+      baca.textContent = t.jurnal.baca;
+      baca.addEventListener("click", () => {
+        window.dispatchEvent(new CustomEvent("iris:go-step", { detail: "modul" }));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      row.append(baca);
+      if (!masuk) {
+        const login = document.createElement("button");
+        login.type = "button";
+        login.className = "btn btn--secondary";
+        login.textContent = t.jurnal.masuk;
+        login.addEventListener("click", () => window.LoginDialog?.open());
+        row.append(login);
+      }
+      box.append(h, p, row);
+      sec.prepend(box);
+    }
   }
 
   sekaliPerHalaman("ModulDetailGo", bindGo);

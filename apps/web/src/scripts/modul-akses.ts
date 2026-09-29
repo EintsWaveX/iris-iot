@@ -13,6 +13,9 @@
 export interface AksesState {
   terbuka: number[];
   asisten: boolean;
+  /** Phase 8: modules whose full journal this viewer may open (open AND a
+   *  practicum they did; all four for an assistant, none signed out). */
+  jurnal: number[];
 }
 
 let cached: Promise<AksesState> | null = null;
@@ -30,9 +33,13 @@ export function getAksesState(reset = false): Promise<AksesState> {
       fetch("/api/auth/me")
         .then((r) => r.json())
         .catch(() => null),
-    ]).then(([akses, me]) => ({
+      fetch("/api/session/jurnal")
+        .then((r) => r.json())
+        .catch(() => null),
+    ]).then(([akses, me, jurnal]) => ({
       terbuka: Array.isArray(akses?.terbuka) ? akses.terbuka : [1],
       asisten: Boolean(me?.ok && me?.role === "asisten"),
+      jurnal: Array.isArray(jurnal?.jurnal) ? jurnal.jurnal : [],
     }));
   }
   return cached;
@@ -40,6 +47,11 @@ export function getAksesState(reset = false): Promise<AksesState> {
 
 export function terkunciUntuk(state: AksesState, modul: number): boolean {
   return !state.asisten && !state.terbuka.includes(modul);
+}
+
+/** The journal (setup, code, live) is closed to this viewer. */
+export function jurnalTertutup(state: AksesState, modul: number): boolean {
+  return !state.asisten && !state.jurnal.includes(modul);
 }
 
 /**
@@ -71,7 +83,7 @@ export async function lockCards(root: ParentNode, label: string): Promise<void> 
 }
 
 /**
- * Detail/live-page locking: replaces `main`'s content with a full-screen
+ * Live-page locking (Phase 8: the journal rule, jurnalTertutup): replaces `main`'s content with a full-screen
  * lock message when `modul` is not open for this visitor, or does nothing
  * at all for an assistant (who instead gets `badgeLabel` appended to
  * `badgeTarget`, if given, as a plain informational note rather than a
@@ -95,7 +107,8 @@ export async function applyLockScreen(
     }
     return false;
   }
-  if (!terkunciUntuk(state, modul)) return false;
+  if (!jurnalTertutup(state, modul)) return false;
+  const belumDibuka = terkunciUntuk(state, modul);
 
   const main = document.querySelector("main");
   if (!main) return false;
@@ -125,13 +138,19 @@ export async function applyLockScreen(
   icon.appendChild(svg);
   const h = document.createElement("h1");
   h.className = "lockscreen__title";
-  h.textContent = en ? `Module ${modul} is not open yet` : `Modul ${modul} belum dibuka`;
+  h.textContent = belumDibuka
+    ? en
+      ? `Module ${modul} is not open yet`
+      : `Modul ${modul} belum dibuka`
+    : en
+      ? `The Module ${modul} journal is not open for you yet`
+      : `Jurnal Modul ${modul} belum terbuka untukmu`;
   const p = document.createElement("p");
   p.textContent = message;
   const back = document.createElement("a");
   back.className = "btn btn--secondary";
-  back.href = en ? "/en/modules" : "/modules";
-  back.textContent = en ? "All modules" : "Semua modul";
+  back.href = en ? `/en/modules/${modul}` : `/modules/${modul}`;
+  back.textContent = en ? `Read Module ${modul}` : `Baca Modul ${modul}`;
   wrap.append(icon, h, p, back);
   main.appendChild(wrap);
   return true;

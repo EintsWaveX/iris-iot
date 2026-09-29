@@ -1,15 +1,14 @@
 /**
- * "Sesi selesai" (P8.6b): right after ending, the console turns into a
- * projector screen: a big QR code of the feedback link, the number of
- * students who have responded (filling live), and the next steps: open the
- * report, keep entering scores, resume (inside the cap), or start anew.
+ * "Sesi selesai" (P8.6b): right after ending, the console shows how many
+ * students have given feedback (filling live; they can do it any time from
+ * their dashboard) and the next steps: open the report, keep entering
+ * scores, resume (inside the cap), or start anew.
  */
 import { useEffect, useState, type CSSProperties } from "react";
-import { BarChart3, MessageSquareHeart, Play, PlusCircle, Table2 } from "lucide-react";
-import { CountUp, ProgressRing, QrCode } from "../ui/Display";
+import { CountUp, ProgressRing } from "../ui/Display";
 import { getJson, href, menitBerjalan, postJson } from "../../lib/app";
 import { SESI_CAP_MENIT } from "../../lib/jadwal";
-import { langForKelas, type Lang } from "../../lib/kelas";
+import type { Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import type { SesiRunning } from "./types";
 
@@ -47,11 +46,6 @@ export default function DoneView({
     };
   }, [sesi.id]);
 
-  const studentLang = langForKelas(sesi.kelas ?? "reguler");
-  const link =
-    typeof location !== "undefined"
-      ? `${location.origin}${href(studentLang, "/dashboard")}?feedback=1`
-      : "";
   const canResume = menitBerjalan(sesi.mulaiPada) < SESI_CAP_MENIT;
   const total = Math.max(hadir, n);
 
@@ -106,29 +100,21 @@ export default function DoneView({
 
         <div className="done__actions">
           <a className="btn btn--primary btn--lg" href={href(lang, `/reports?sesi=${sesi.id}`)}>
-            <BarChart3 size={19} aria-hidden="true" /> {t.doneReport}
+            {t.doneReport}
           </a>
           <button type="button" className="btn btn--secondary btn--lg" onClick={onScores}>
-            <Table2 size={19} aria-hidden="true" /> {t.doneScores}
+            {t.doneScores}
           </button>
           {canResume && (
             <button type="button" className="btn btn--ghost btn--lg" onClick={() => void resume()}>
-              <Play size={19} aria-hidden="true" /> {t.doneResume}
+              {t.doneResume}
             </button>
           )}
           <button type="button" className="btn btn--ghost btn--lg" onClick={onNew}>
-            <PlusCircle size={19} aria-hidden="true" /> {t.doneNew}
+            {t.doneNew}
           </button>
         </div>
       </div>
-
-      <figure className="done__qr">
-        <QrCode text={link} size={260} label={t.doneQr} />
-        <figcaption>
-          <MessageSquareHeart size={18} aria-hidden="true" /> {t.doneQr}
-          <span className="mono faint done__link">{link.replace(/^https?:\/\//, "")}</span>
-        </figcaption>
-      </figure>
     </section>
   );
 }

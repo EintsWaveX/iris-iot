@@ -60,9 +60,19 @@ interface Props {
   /** Phase 8: the app nav (AppNav.tsx) is mounted here for every page;
    *  a page can opt out (none does today). */
   nav?: boolean;
+  /** The 404 page: Vercel serves one built file for every missing path, so
+   *  the nav reads the language from the address after hydration. */
+  langFromUrl?: boolean;
 }
 
-const { title, description = "", lang = "id", cosmosScene = "beranda", nav = true } = Astro.props;
+const {
+  title,
+  description = "",
+  lang = "id",
+  cosmosScene = "beranda",
+  nav = true,
+  langFromUrl = false,
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -81,7 +91,7 @@ const { title, description = "", lang = "id", cosmosScene = "beranda", nav = tru
     <a class="skip-link" href="#main">
       {lang === "en" ? "Skip to content" : "Lewati ke isi"}
     </a>
-    {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} />}
+    {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />}
     <LoginDialog client:load lang={lang} />
     <Toast client:load />
     <slot />

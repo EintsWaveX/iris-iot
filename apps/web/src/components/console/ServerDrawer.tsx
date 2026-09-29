@@ -5,7 +5,7 @@
  * gone), services with restart and log peek, the live command timeline,
  * and ESP32s by group. It polls every 4 s while open.
  */
-import { ArrowUpRight, Clock, Cpu, Thermometer, Timer } from "lucide-react";
+import { Clock, Cpu, Thermometer, Timer } from "lucide-react";
 import Drawer from "../ui/Drawer";
 import { CommandTimeline, DevicesByGroup, HotspotCard, ServiceList } from "../server/ops";
 import { href, sejak } from "../../lib/app";
@@ -64,7 +64,6 @@ export default function ServerDrawer({
                 className={`dot ${isOnline(s.denyutTerakhir, s.batasLuringDetik) ? "dot--ok" : "dot--danger"}`}
               />
               <span className="grow">{s.nama}</span>
-              <ArrowUpRight size={16} aria-hidden="true" />
             </a>
           ))}
         </div>
@@ -132,7 +131,6 @@ export default function ServerDrawer({
 
           <a className="btn btn--ghost" href={href(lang, `/servers?id=${d.server.id}`)}>
             {t.drawerOpenFull}
-            <ArrowUpRight size={16} aria-hidden="true" />
           </a>
         </div>
       )}

@@ -11,16 +11,7 @@
  * - Sign out.
  */
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import {
-  CalendarRange,
-  Check,
-  Globe,
-  KeyRound,
-  LogOut,
-  MessageSquareHeart,
-  ShieldCheck,
-  UserRound,
-} from "lucide-react";
+import { Check, UserRound } from "lucide-react";
 import PasswordField, { kekuatanSandi } from "../ui/PasswordField";
 import SegmentedControl from "../ui/SegmentedControl";
 import { StateView } from "../ui/Display";
@@ -111,7 +102,7 @@ const T = {
     fbH: "My feedback",
     fbSub: "Only you see this. No student names or IDs.",
     fbEmpty: "No feedback yet.",
-    fbCount: (n: number) => `${n} responses`,
+    fbCount: (n: number) => `${n} ${n === 1 ? "response" : "responses"}`,
     keluar: "Sign out",
     signedOut: "You are signed out.",
     needLogin: "Sign in to see your account.",
@@ -160,12 +151,7 @@ function PasswordForm({ t, lang, first }: { t: Tx; lang: Lang; first: boolean })
 
   return (
     <form className="acctpage__pw" noValidate onSubmit={submit}>
-      {first && (
-        <p className="acctpage__first">
-          <KeyRound size={16} aria-hidden="true" />
-          {t.pwFirst}
-        </p>
-      )}
+      {first && <p className="acctpage__first">{t.pwFirst}</p>}
       <PasswordField
         label={t.lama}
         value={lama}
@@ -203,7 +189,6 @@ function PasswordForm({ t, lang, first }: { t: Tx; lang: Lang; first: boolean })
           className="btn btn--primary"
           disabled={busy || !lama || kekuatanSandi(baru) === 0 || !ulang}
         >
-          <ShieldCheck size={17} aria-hidden="true" />
           {busy ? t.menyimpan : t.simpan}
         </button>
       </div>
@@ -310,7 +295,6 @@ export default function AccountPage({ lang }: { lang: Lang }) {
           </span>
         </div>
         <button type="button" className="btn btn--ghost acctpage__out" onClick={keluar}>
-          <LogOut size={17} aria-hidden="true" />
           {t.keluar}
         </button>
       </header>
@@ -318,10 +302,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
       <div className="acctpage__grid">
         <div className="acctpage__col">
           <section className="panel">
-            <h2 className="panel__title">
-              <Globe size={18} aria-hidden="true" />
-              {t.langH}
-            </h2>
+            <h2 className="panel__title">{t.langH}</h2>
             <p className="hint">{t.langSub}</p>
             <SegmentedControl
               value={pref}
@@ -337,10 +318,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
 
           {asisten && (
             <section className="panel">
-              <h2 className="panel__title">
-                <KeyRound size={18} aria-hidden="true" />
-                {t.pwH}
-              </h2>
+              <h2 className="panel__title">{t.pwH}</h2>
               <p className="hint">{t.pwSub}</p>
               <PasswordForm t={t} lang={lang} first={Boolean(me.perluAturSandi)} />
             </section>
@@ -351,10 +329,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
           <div className="acctpage__col">
             <section className="panel">
               <div className="panel__head">
-                <h2 className="panel__title">
-                  <CalendarRange size={18} aria-hidden="true" />
-                  {t.jadwalH}
-                </h2>
+                <h2 className="panel__title">{t.jadwalH}</h2>
                 <a className="btn btn--ghost btn--sm" href={href(lang, "/schedule")}>
                   {t.lihatJadwal}
                 </a>
@@ -385,10 +360,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
             </section>
 
             <section className="panel">
-              <h2 className="panel__title">
-                <MessageSquareHeart size={18} aria-hidden="true" />
-                {t.fbH}
-              </h2>
+              <h2 className="panel__title">{t.fbH}</h2>
               <p className="hint">{t.fbSub}</p>
               <FeedbackSummary data={fb} lang={lang} empty={t.fbEmpty} countLabel={t.fbCount} />
             </section>

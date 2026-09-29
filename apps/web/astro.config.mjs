@@ -23,7 +23,6 @@ export default defineConfig({
         "cmdk",
         "date-fns",
         "lucide-react",
-        "qrcode-generator",
         "react-day-picker",
         "react-resizable-panels",
         "uplot",

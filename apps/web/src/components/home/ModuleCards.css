@@ -85,10 +85,6 @@
   }
 }
 
-.mcard[data-state="locked"] .mcard__link {
-  opacity: 0.72;
-}
-
 .mcard__link {
   color: inherit;
   display: flex;

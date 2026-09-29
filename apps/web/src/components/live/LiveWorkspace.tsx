@@ -12,16 +12,7 @@
  * - "Coba sendiri" (try it yourself) is a secondary mode, not a third tab.
  */
 import { useEffect, useMemo, useState } from "react";
-import {
-  Activity,
-  ClipboardCopy,
-  Download,
-  Layers,
-  Pause,
-  Play,
-  Radio,
-  Sparkles,
-} from "lucide-react";
+import { Pause, Play } from "lucide-react";
 import GroupPicker from "../ui/GroupPicker";
 import ResizablePanes from "../ui/ResizablePanes";
 import ScrollArea from "../ui/ScrollArea";
@@ -146,10 +137,7 @@ function Flow({
   const rows = history.slice(-24).reverse();
   return (
     <div className="livews__card" style={{ "--tile-hue": hue } as React.CSSProperties}>
-      <h2 className="livews__h">
-        <Activity size={17} aria-hidden="true" />
-        {t.flow}
-      </h2>
+      <h2 className="livews__h">{t.flow}</h2>
       <div className="flow-lanes">
         {lanes.map((l) => (
           <span key={l}>{l}</span>
@@ -208,10 +196,7 @@ function Readings({
   return (
     <div className="livews__card">
       <div className="livews__cardhead">
-        <h2 className="livews__h">
-          <Radio size={17} aria-hidden="true" />
-          {t.readings}
-        </h2>
+        <h2 className="livews__h">{t.readings}</h2>
         <div className="row">
           <button
             type="button"
@@ -219,7 +204,6 @@ function Readings({
             onClick={salin}
             disabled={!rows.length}
           >
-            <ClipboardCopy size={15} aria-hidden="true" />
             {t.copy}
           </button>
           <button
@@ -228,7 +212,6 @@ function Readings({
             onClick={unduh}
             disabled={!rows.length}
           >
-            <Download size={15} aria-hidden="true" />
             {t.csv}
           </button>
         </div>
@@ -279,10 +262,7 @@ function LayerPanel({
   const values = last ? describeLayers(last, lang) : layers.map(() => "…");
   return (
     <div className="livews__card">
-      <h2 className="livews__h">
-        <Layers size={17} aria-hidden="true" />
-        {t.layers}
-      </h2>
+      <h2 className="livews__h">{t.layers}</h2>
       <ol
         className="layer-xray__layers livews__layers"
         style={{ "--tile-hue": hue } as React.CSSProperties}
@@ -457,7 +437,6 @@ export default function LiveWorkspace({
                 aria-expanded={showLayers}
                 onClick={() => setShowLayers((v) => !v)}
               >
-                <Layers size={17} aria-hidden="true" />
                 {showLayers ? t.hideLayers : t.showLayers}
               </button>
               {showLayers && layerPanel}
@@ -466,9 +445,7 @@ export default function LiveWorkspace({
         </>
       ) : (
         <div className="livews__card livews__try">
-          <p className="hint">
-            <Sparkles size={15} aria-hidden="true" /> {t.tryHint}
-          </p>
+          <p className="hint">{t.tryHint}</p>
           <LiveSandbox modul={modul} groups={[group]} layers={layers} lang={lang} />
         </div>
       )}

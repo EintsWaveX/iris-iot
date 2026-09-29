@@ -11,7 +11,15 @@ export const en: ModuleStrings = {
   langSwitchLabel: "Indonesia",
   langSwitchHref: (modul?: number) => (modul ? `/modules/${modul}` : "/modules"),
   backToIndex: "All modules",
+  jurnal: {
+    title: (m: number) => `The Module ${m} journal is not open for you yet`,
+    body: "Setup, code and live open once you have joined this module's practicum. Meanwhile, read the module in the first step.",
+    masuk: "Sign in",
+    baca: "Read the module",
+  },
+  modulDoc: (m: number) => `Module ${m} · IRIS IoT`,
   stepLabels: {
+    modul: "Module",
     brief: "Brief",
     setup: "Setup",
     code: "Code",
@@ -36,8 +44,6 @@ export const en: ModuleStrings = {
     masuk: "Log in as a praktikan to fill in and save answers here.",
     sesiBerubah: "A new session has started. Please log in again.",
     terkunci: "This module is not open yet. Your assistant opens it when its week arrives.",
-    helperNote:
-      "This file shares a clock helper from {file}. Download that file too and place it in the same folder before uploading.",
   },
   live: {
     heading: "Live view",

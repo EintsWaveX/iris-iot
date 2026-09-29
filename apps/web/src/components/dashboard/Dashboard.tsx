@@ -7,22 +7,8 @@
  * the assistant's slides, the Module 4 hunt, results after the session and
  * the two-section feedback form.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowRight,
-  Award,
-  ClipboardCheck,
-  Code2,
-  Expand,
-  ExternalLink,
-  Lock,
-  MessageSquareHeart,
-  Presentation,
-  Radio,
-  Satellite,
-  Sparkles,
-  Timer,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Timer } from "lucide-react";
 import Dialog from "../ui/Dialog";
 import { CountUp, ProgressRing, StateView } from "../ui/Display";
 import {
@@ -45,6 +31,7 @@ import { fetchLiveReading, resetLiveReadingMemory } from "../../lib/telemetry-li
 import { nextReading, type Reading } from "../../lib/telemetry-sim";
 import type { Lang } from "../../lib/kelas";
 import FeedbackForm from "./FeedbackForm";
+import PdfViewer from "../ui/PdfViewer";
 import { useProgres } from "../shared/useProgres";
 import CoachMarks from "./CoachMarks";
 import "./Dashboard.css";
@@ -60,7 +47,8 @@ export interface ModulInfo {
 interface Hasil {
   ok: boolean;
   sesi?: { id: number; modul: number; status: string; kelas: string };
-  asisten?: { nim: string; kode: string } | null;
+  asisten?: { kode: string } | null;
+  pilihanAsisten?: string[];
   sudahUmpanBalik?: boolean;
   skor?: Partial<Record<string, number>> | null;
   rataRata?: number | null;
@@ -113,13 +101,11 @@ const T = {
     progresH: "Progres modul",
     terkunci: "Terkunci",
     aktif: "Berjalan",
-    terbuka: "Terbuka",
+    terbuka: "Jurnal terbuka",
     rumpang: (b: number, t: number) => `${b}/${t} rumpang benar`,
     persiapanN: (d: number, t: number) => `persiapan ${d}/${t}`,
     slidesH: "Presentasi",
     slidesKosong: "Belum ada presentasi aktif.",
-    layarPenuh: "Layar penuh",
-    tabBaru: "Buka di tab baru",
     huntH: "Perburuan LoRa",
     huntBody:
       "Papan skor berjalan di Orange Pi lab, di jaringan IRIS-IOT. Sambungkan HP ke hotspot itu dulu, lalu buka papan skornya.",
@@ -133,6 +119,13 @@ const T = {
     umpanSudah: "Terima kasih, umpan balikmu sudah tercatat.",
     umpanBuka: "Isi umpan balik",
     umpanNanti: "Formulir terbuka setelah sesi berakhir.",
+    praktikumH: "Praktikum saya",
+    praktikumKosong:
+      "Praktikum yang kamu ikuti akan muncul di sini, lengkap dengan nilai dan umpan baliknya.",
+    umpanTerkirim: "Umpan balik terkirim",
+    sedangBerjalan: "Sedang berjalan",
+    rataN: (n: number) => `rata rata ${n}`,
+    belumPraktikum: "Belum praktikum",
     gagal: "Gagal memuat dasbor.",
     coba: "Coba lagi",
   },
@@ -157,7 +150,7 @@ const T = {
         `Set up Module ${m}`,
         "Check the kit, wire it to the schematic, then tick the list.",
       ],
-      kode: (s: number) => [`Finish the code`, `${s} blanks to go.`],
+      kode: (s: number) => [`Finish the code`, `${s} ${s === 1 ? "blank" : "blanks"} to go.`],
       live: (m: number) => [
         `Code complete. Test it live`,
         `Flash the board and watch Module ${m}'s messages flow.`,
@@ -184,13 +177,11 @@ const T = {
     progresH: "Module progress",
     terkunci: "Locked",
     aktif: "Running",
-    terbuka: "Open",
+    terbuka: "Journal open",
     rumpang: (b: number, t: number) => `${b}/${t} blanks correct`,
     persiapanN: (d: number, t: number) => `setup ${d}/${t}`,
     slidesH: "Slides",
     slidesKosong: "No active slides yet.",
-    layarPenuh: "Fullscreen",
-    tabBaru: "Open in a new tab",
     huntH: "LoRa hunt",
     huntBody:
       "The scoreboard runs on the lab's Orange Pi, on the IRIS-IOT network. Join that hotspot on your phone first, then open the scoreboard.",
@@ -204,6 +195,12 @@ const T = {
     umpanSudah: "Thank you, your feedback is recorded.",
     umpanBuka: "Give feedback",
     umpanNanti: "The form opens once the session ends.",
+    praktikumH: "My practicums",
+    praktikumKosong: "Practicums you join show up here, with their scores and your feedback.",
+    umpanTerkirim: "Feedback sent",
+    sedangBerjalan: "In progress",
+    rataN: (n: number) => `average ${n}`,
+    belumPraktikum: "Not done yet",
     gagal: "Could not load the dashboard.",
     coba: "Try again",
   },
@@ -267,10 +264,7 @@ function MiniFlow({
           <b className="num">{loss}%</b>
           <small>{t.hilang}</small>
         </span>
-        <span className={`pill ${live ? "pill--ok" : "pill--mono"}`}>
-          <Radio size={13} aria-hidden="true" />
-          {live ? t.live : t.sim}
-        </span>
+        <span className={`pill ${live ? "pill--ok" : "pill--mono"}`}>{live ? t.live : t.sim}</span>
       </div>
       <div className="miniflow__bars" aria-hidden="true">
         {rows.map((r) => (
@@ -291,7 +285,7 @@ function MiniFlow({
           className="btn btn--ghost btn--sm"
           href={href(lang, `/modules/${modul}/live?kelompok=${kelompok}`)}
         >
-          {t.bukaLive} <ArrowRight size={15} aria-hidden="true" />
+          {t.bukaLive}
         </a>
       </div>
     </div>
@@ -300,7 +294,7 @@ function MiniFlow({
 
 /* -------------------------------------------------------------- slides */
 
-function Slides({ t }: { t: Tx }) {
+function Slides({ t, lang }: { t: Tx; lang: Lang }) {
   const poll = usePoll(
     () =>
       getJson<{ ok: boolean; presentasi: { url: string; namaBerkas: string } | null }>(
@@ -308,43 +302,85 @@ function Slides({ t }: { t: Tx }) {
       ).then((d) => (d.ok ? d.presentasi : null)),
     30_000,
   );
-  const box = useRef<HTMLDivElement>(null);
   const p = poll.data;
   if (poll.updatedAt === null) return <span className="skeleton dash__slides-skel" />;
   if (!p) {
     return (
       <div className="dash__slides-empty">
-        <Presentation size={28} aria-hidden="true" />
         <span>{t.slidesKosong}</span>
       </div>
     );
   }
+  return <PdfViewer url={p.url} name={p.namaBerkas} lang={lang} />;
+}
+
+/* ------------------------------------------------------ my practicums */
+
+interface Praktikum {
+  sesiId: number;
+  modul: number;
+  tanggal: string;
+  slot: number | null;
+  status: string;
+  kelas: string;
+  sudahUmpanBalik: boolean;
+  rataRata: number | null;
+}
+
+function MyPracticums({
+  list,
+  t,
+  lang,
+  terkirim,
+  onFeedback,
+}: {
+  list: Praktikum[] | null;
+  t: Tx;
+  lang: Lang;
+  terkirim: number | null;
+  onFeedback: (sesiId: number) => void;
+}) {
+  if (!list) return <span className="skeleton" style={{ height: 96 }} />;
+  if (list.length === 0) return <p className="dash__muted">{t.praktikumKosong}</p>;
+  const fmt = new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "id-ID", {
+    day: "numeric",
+    month: "short",
+  });
   return (
-    <div className="dash__slides">
-      <div className="dash__slides-frame" ref={box}>
-        <iframe key={p.url} src={p.url} title={p.namaBerkas} />
-      </div>
-      <div className="dash__slides-bar">
-        <span className="hint dash__slides-name">{p.namaBerkas}</span>
-        <button
-          type="button"
-          className="btn btn--ghost btn--sm"
-          onClick={() => void box.current?.requestFullscreen?.()}
-        >
-          <Expand size={15} aria-hidden="true" />
-          {t.layarPenuh}
-        </button>
-        <a
-          className="btn btn--ghost btn--sm"
-          href={p.url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <ExternalLink size={15} aria-hidden="true" />
-          {t.tabBaru}
-        </a>
-      </div>
-    </div>
+    <ul className="dash__prak">
+      {list.map((p) => {
+        const sudah = p.sudahUmpanBalik || terkirim === p.sesiId;
+        return (
+          <li
+            key={p.sesiId}
+            className="dash__prak-row"
+            style={{ "--mod-hue": `var(--mod-${p.modul})` } as React.CSSProperties}
+          >
+            <span className="mono dash__mod-n">M{p.modul}</span>
+            <span className="grow stack" style={{ gap: 2 }}>
+              <b>{MODUL_NAMA[p.modul]}</b>
+              <span className="hint num">
+                {fmt.format(new Date(`${p.tanggal}T00:00:00`))}
+                {p.rataRata != null ? ` · ${t.rataN(p.rataRata)}` : ""}
+              </span>
+            </span>
+            {p.status !== "selesai" ? (
+              <span className="pill pill--ok">{t.sedangBerjalan}</span>
+            ) : sudah ? (
+              <span className="pill">{t.umpanTerkirim}</span>
+            ) : (
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                onClick={() => onFeedback(p.sesiId)}
+              >
+                {t.umpanBuka}
+              </button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -354,12 +390,7 @@ function Results({ hasil, t }: { hasil: Hasil | null; t: Tx }) {
   if (!hasil) return <span className="skeleton" style={{ height: 96 }} />;
   if (!hasil.ok || !hasil.sesi) return <p className="hint">{t.hasilBelum}</p>;
   if (!hasil.skor) {
-    return (
-      <p className="dash__muted">
-        <Lock size={16} aria-hidden="true" />
-        {t.hasilTunggu}
-      </p>
-    );
+    return <p className="dash__muted">{t.hasilTunggu}</p>;
   }
   return (
     <div className="dash__hasil">
@@ -400,27 +431,22 @@ function NextStep({
   let judul: string;
   let isi: string;
   let cta: { label: string; href?: string; onClick?: () => void } | null = null;
-  let Icon = Timer;
   switch (langkah.jenis) {
     case "persiapan":
       [judul, isi] = t.langkah.persiapan(langkah.modul);
       cta = { label: t.cta.persiapan, href: href(lang, `/modules/${langkah.modul}?step=setup`) };
-      Icon = ClipboardCheck;
       break;
     case "kode":
       [judul, isi] = t.langkah.kode(langkah.sisa);
       cta = { label: t.cta.kode, href: href(lang, `/modules/${langkah.modul}?step=code`) };
-      Icon = Code2;
       break;
     case "live":
       [judul, isi] = t.langkah.live(langkah.modul);
       cta = { label: t.cta.live, href: href(lang, `/modules/${langkah.modul}/live`) };
-      Icon = Satellite;
       break;
     case "umpan_balik":
       [judul, isi] = t.langkah.umpan;
       cta = { label: t.cta.umpan, onClick: onFeedback };
-      Icon = MessageSquareHeart;
       break;
     case "selesai":
       [judul, isi] = t.langkah.selesai;
@@ -431,7 +457,6 @@ function NextStep({
             .getElementById("dash-hasil")
             ?.scrollIntoView({ behavior: "smooth", block: "center" }),
       };
-      Icon = Award;
       break;
     default:
       [judul, isi] = terkunci ? t.langkah.terkunci(terkunci) : t.langkah.tunggu;
@@ -448,9 +473,6 @@ function NextStep({
         {t.langkahH}
       </span>
       <div className="dash__next-body">
-        <span className="dash__next-icon" aria-hidden="true">
-          <Icon size={26} />
-        </span>
         <div className="stack stack--sm">
           <b className="dash__next-title">{judul}</b>
           <span className="hint">{isi}</span>
@@ -462,7 +484,7 @@ function NextStep({
             className={`btn ${aktif ? "btn--primary" : "btn--ghost"} btn--lg dash__cta`}
             href={cta.href}
           >
-            {cta.label} <ArrowRight size={18} aria-hidden="true" />
+            {cta.label}
           </a>
         ) : (
           <button
@@ -470,7 +492,7 @@ function NextStep({
             className="btn btn--primary btn--lg dash__cta"
             onClick={cta.onClick}
           >
-            {cta.label} <ArrowRight size={18} aria-hidden="true" />
+            {cta.label}
           </button>
         ))}
     </section>
@@ -485,9 +507,26 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
   const praktikan = me?.role === "praktikan";
   const now = useSessionNow(20_000, praktikan);
   const hasilPoll = usePoll(() => getJson<Hasil>("/api/session/results"), 30_000, praktikan);
+  const minePoll = usePoll(
+    () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
+    60_000,
+    praktikan,
+  );
   const [terbuka, setTerbuka] = useState<number[] | null>(null);
-  const [fbOpen, setFbOpen] = useState(false);
+  const [jurnal, setJurnal] = useState<number[] | null>(null);
+  // The practicum the feedback form is about, and its assistant choices.
+  const [fbSesi, setFbSesi] = useState<number | null>(null);
+  const [fbHasil, setFbHasil] = useState<Hasil | null>(null);
+  const fbOpen = fbSesi !== null;
   const [fbSent, setFbSent] = useState(false);
+  function bukaUmpan(sesiId: number | null | undefined) {
+    if (!sesiId) return;
+    setFbHasil(null);
+    setFbSesi(sesiId);
+    void getJson<Hasil>(`/api/session/results?sesiId=${sesiId}`)
+      .then(setFbHasil)
+      .catch(() => setFbHasil(null));
+  }
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -498,6 +537,9 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
   useEffect(() => {
     if (!praktikan) return;
     void getAksesState(true).then((s) => setTerbuka(s.terbuka));
+    void getJson<{ ok: boolean; jurnal: number[] }>("/api/session/jurnal")
+      .then((d) => setJurnal(d.ok ? d.jurnal : []))
+      .catch(() => setJurnal([]));
   }, [praktikan, now.data?.modul]);
 
   // Re-read the local checklist when the student comes back to this tab.
@@ -524,18 +566,18 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
         : selesai
           ? { modul: selesai.modul, selesai: true }
           : null,
-      terbuka: terbuka ?? [],
+      terbuka: jurnal ?? terbuka ?? [],
       progres: progresOk,
       persiapanSelesai: info ? readSetup(info.modul).length >= info.persiapan : false,
       sudahUmpanBalik: sudahFb,
     });
-  }, [sesi, selesai, terbuka, progres, sudahFb, modules]);
+  }, [sesi, selesai, terbuka, jurnal, progres, sudahFb, modules]);
 
   // ?feedback=1 (the QR on the projector) opens the form straight away.
   useEffect(() => {
     if (!hasil?.ok || sudahFb) return;
     const q = new URLSearchParams(location.search);
-    if (q.get("feedback") === "1" && hasil.sesi?.status === "selesai") setFbOpen(true);
+    if (q.get("feedback") === "1" && hasil.sesi?.status === "selesai") bukaUmpan(hasil.sesi.id);
   }, [hasil, sudahFb]);
 
   if (me === undefined || (praktikan && hasilPoll.updatedAt === null && hasilPoll.errors === 0)) {
@@ -605,32 +647,29 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
           lang={lang}
           t={t}
           terkunci={terkunciSesi}
-          onFeedback={() => setFbOpen(true)}
+          onFeedback={() => bukaUmpan(hasil?.sesi?.id)}
         />
       </header>
 
       <div className="dash__grid">
         <div className="dash__main">
-          <section className="panel dash__o-slides">
-            <div className="panel__head">
-              <h2 className="panel__title">
-                <Presentation size={18} aria-hidden="true" />
-                {t.slidesH}
-              </h2>
-            </div>
-            <Slides t={t} />
-          </section>
+          {sesi && (
+            <section className="panel dash__o-slides">
+              <div className="panel__head">
+                <h2 className="panel__title">{t.slidesH}</h2>
+              </div>
+              <Slides t={t} lang={lang} />
+            </section>
+          )}
 
           <section className="panel dash__o-mods">
             <div className="panel__head">
-              <h2 className="panel__title">
-                <Sparkles size={18} aria-hidden="true" />
-                {t.progresH}
-              </h2>
+              <h2 className="panel__title">{t.progresH}</h2>
             </div>
             <ul className="dash__mods">
               {modules.map((m, i) => {
-                const lock = terbuka ? !terbuka.includes(m.modul) : false;
+                const buka = terbuka ? terbuka.includes(m.modul) : true;
+                const lock = jurnal ? !jurnal.includes(m.modul) : !buka;
                 const run = modulSesi === m.modul;
                 const p = progres[m.modul];
                 const total = m.berkas.reduce((a, b) => a + b.blanks, 0);
@@ -669,8 +708,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
                         )}
                       </span>
                       <span className={`pill ${run ? "pill--ok" : lock ? "" : "pill--accent"}`}>
-                        {lock && <Lock size={12} aria-hidden="true" />}
-                        {run ? t.aktif : lock ? t.terkunci : t.terbuka}
+                        {run ? t.aktif : !lock ? t.terbuka : buka ? t.belumPraktikum : t.terkunci}
                       </span>
                     </a>
                   </li>
@@ -683,10 +721,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
         <aside className="dash__side">
           <section className="panel dash__group dash__o-flow">
             <div className="panel__head">
-              <h2 className="panel__title">
-                <Radio size={18} aria-hidden="true" />
-                {t.alurH}
-              </h2>
+              <h2 className="panel__title">{t.alurH}</h2>
               <span
                 className="pill pill--group"
                 style={{ "--pill-hue": `var(--group-${k || 1})` } as React.CSSProperties}
@@ -703,10 +738,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
 
           {sesi?.modul === 4 && (
             <section className="panel dash__hunt sweep-edge dash__o-flow">
-              <h2 className="panel__title">
-                <Satellite size={18} aria-hidden="true" />
-                {t.huntH}
-              </h2>
+              <h2 className="panel__title">{t.huntH}</h2>
               <p className="hint">{t.huntBody}</p>
               <a
                 className="btn btn--primary"
@@ -714,50 +746,53 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {t.huntCta} <ExternalLink size={16} aria-hidden="true" />
+                {t.huntCta}
               </a>
             </section>
           )}
 
           <section className="panel dash__o-hasil" id="dash-hasil">
-            <h2 className="panel__title">
-              <Award size={18} aria-hidden="true" />
-              {t.hasilH}
-            </h2>
+            <h2 className="panel__title">{t.hasilH}</h2>
             <Results hasil={hasil} t={t} />
           </section>
 
           <section className="panel dash__o-hasil">
-            <h2 className="panel__title">
-              <MessageSquareHeart size={18} aria-hidden="true" />
-              {t.umpanH}
-            </h2>
-            {sudahFb ? (
-              <p className="dash__muted dash__muted--ok">{t.umpanSudah}</p>
-            ) : hasil?.sesi?.status === "selesai" ? (
-              <button type="button" className="btn btn--primary" onClick={() => setFbOpen(true)}>
-                {t.umpanBuka}
-              </button>
-            ) : (
-              <p className="dash__muted">
-                <Lock size={16} aria-hidden="true" />
-                {t.umpanNanti}
-              </p>
-            )}
+            <h2 className="panel__title">{t.praktikumH}</h2>
+            <MyPracticums
+              list={minePoll.data?.ok ? minePoll.data.praktikum : null}
+              t={t}
+              lang={lang}
+              terkirim={fbSent ? fbSesi : null}
+              onFeedback={bukaUmpan}
+            />
           </section>
         </aside>
       </div>
 
-      <Dialog open={fbOpen} onOpenChange={setFbOpen} title={t.umpanH} size="lg" lang={lang}>
-        <FeedbackForm
-          lang={lang}
-          asisten={hasil?.asisten ?? null}
-          onDone={() => {
-            setFbSent(true);
-            setFbOpen(false);
-            hasilPoll.refresh();
-          }}
-        />
+      <Dialog
+        open={fbOpen}
+        onOpenChange={(o) => !o && setFbSesi(null)}
+        title={t.umpanH}
+        size="lg"
+        lang={lang}
+      >
+        {fbHasil?.ok && fbSesi ? (
+          <FeedbackForm
+            key={fbSesi}
+            lang={lang}
+            sesiId={fbSesi}
+            asisten={fbHasil.asisten ?? null}
+            pilihan={fbHasil.pilihanAsisten ?? []}
+            onDone={() => {
+              setFbSent(true);
+              setFbSesi(null);
+              hasilPoll.refresh();
+              minePoll.refresh();
+            }}
+          />
+        ) : (
+          <span className="skeleton" style={{ height: 240 }} />
+        )}
       </Dialog>
 
       {sesi && <CoachMarks lang={lang} />}

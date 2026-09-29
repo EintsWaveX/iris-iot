@@ -5,7 +5,6 @@
  * it offers the jump to the Kode step.
  */
 import { useEffect, useState } from "react";
-import { ArrowRight, PartyPopper } from "lucide-react";
 import { Checkbox } from "../ui/Controls";
 import { ProgressRing } from "../ui/Display";
 import type { Lang } from "../../lib/kelas";
@@ -61,7 +60,6 @@ export default function SetupChecklist({
         />
         {all && (
           <div className="setupcheck__done" role="status">
-            <PartyPopper size={20} aria-hidden="true" />
             <span className="grow">{t.done}</span>
             <button
               type="button"
@@ -70,7 +68,7 @@ export default function SetupChecklist({
                 window.dispatchEvent(new CustomEvent("iris:go-step", { detail: "code" }))
               }
             >
-              {t.go} <ArrowRight size={17} aria-hidden="true" />
+              {t.go}
             </button>
           </div>
         )}

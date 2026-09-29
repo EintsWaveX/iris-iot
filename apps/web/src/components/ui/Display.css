@@ -158,20 +158,6 @@
   }
 }
 
-/* QrCode */
-.qr {
-  background: #fff;
-  border-radius: var(--radius-md);
-  flex: none;
-  padding: 6px;
-}
-
-.qr svg {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
 /* Poll health */
 .updated-ago {
   color: var(--text-faint);

@@ -17,17 +17,7 @@
  * outside the plot, and CSV exports.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import {
-  ArrowLeft,
-  CalendarDays,
-  ClipboardList,
-  Download,
-  FlaskConical,
-  Lock,
-  MessageSquareHeart,
-  ScrollText,
-  Star,
-} from "lucide-react";
+import { Lock, Star } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { DropdownFilter } from "../ui/Dropdown";
@@ -165,13 +155,13 @@ const T = {
     inter: "INTER",
     internasional: "International",
     heat: "Sessions per day",
-    heatN: (n: number) => `${n} sessions`,
+    heatN: (n: number) => `${n} ${n === 1 ? "session" : "sessions"}`,
     cols: ["Date", "Start", "Module", "Class", "Assistants", "Status", "Duration", "Lab"],
     none: "No sessions match these filters.",
     loading: "Loading…",
     menit: (m: number) => `${m} min`,
     jam: (h: number, m: number) => `${h} h ${m} min`,
-    labN: (n: number) => `${n} responses`,
+    labN: (n: number) => `${n} ${n === 1 ? "response" : "responses"}`,
     runs: "Sessions run",
     done: "Finished",
     unique: "Students present (unique)",
@@ -358,13 +348,6 @@ function Home({ t, lang, onOpen }: { t: Tx; lang: Lang; onOpen: (id: number) => 
     setTab(id as TabId);
     history.replaceState(null, "", `#${id}`);
   };
-  const icons = {
-    sesi: CalendarDays,
-    ringkasan: FlaskConical,
-    lab: MessageSquareHeart,
-    audit: ScrollText,
-  };
-
   return (
     <div className="rep">
       <header className="rep__head">
@@ -380,7 +363,6 @@ function Home({ t, lang, onOpen }: { t: Tx; lang: Lang; onOpen: (id: number) => 
           onKeyDown={(e) => onTablistKeyDown(e, [...TAB_IDS], tab, go)}
         >
           {TAB_IDS.map((id) => {
-            const Icon = icons[id];
             return (
               <button
                 key={id}
@@ -391,7 +373,7 @@ function Home({ t, lang, onOpen }: { t: Tx; lang: Lang; onOpen: (id: number) => 
                 className="tabs__tab"
                 onClick={() => go(id)}
               >
-                <Icon size={16} aria-hidden="true" /> {t.tabs[id]}
+                {t.tabs[id]}
               </button>
             );
           })}
@@ -1030,7 +1012,6 @@ function SessionReport({
 
   const back = (
     <button type="button" className="btn btn--ghost btn--sm rep__back" onClick={onBack}>
-      <ArrowLeft size={16} aria-hidden="true" />
       {t.back}
     </button>
   );
@@ -1074,11 +1055,9 @@ function SessionReport({
         </div>
         <div className="row">
           <button type="button" className="btn btn--secondary" onClick={csvAnggota}>
-            <Download size={16} aria-hidden="true" />
             {t.csvA}
           </button>
           <button type="button" className="btn btn--secondary" onClick={csvBlank}>
-            <ClipboardList size={16} aria-hidden="true" />
             {t.csvB}
           </button>
         </div>
@@ -1178,18 +1157,12 @@ function SessionReport({
 
       <div className="rep__charts">
         <section className="panel">
-          <h2 className="panel__title">
-            <MessageSquareHeart size={18} aria-hidden="true" />
-            {t.labThis}
-          </h2>
+          <h2 className="panel__title">{t.labThis}</h2>
           <FeedbackSummary data={lab} lang={lang} empty={t.labEmpty} countLabel={t.labN} />
         </section>
         {held && (
           <section className="panel">
-            <h2 className="panel__title">
-              <Star size={18} aria-hidden="true" />
-              {t.mineThis}
-            </h2>
+            <h2 className="panel__title">{t.mineThis}</h2>
             <p className="hint">{t.mineSub}</p>
             <FeedbackSummary data={mine} lang={lang} empty={t.labEmpty} countLabel={t.labN} />
           </section>

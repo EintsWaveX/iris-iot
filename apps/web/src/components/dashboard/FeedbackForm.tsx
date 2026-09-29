@@ -6,7 +6,7 @@
  * form says plainly so students answer honestly.
  */
 import { useState } from "react";
-import { Check, Lock, Send } from "lucide-react";
+import { Check } from "lucide-react";
 import { RatingPicker } from "../ui/Display";
 import { postJson } from "../../lib/app";
 import { CHIPS_ASISTEN, CHIPS_LAB, KOMENTAR_MAX, LABEL_CHIP } from "../../lib/umpan-balik";
@@ -16,6 +16,8 @@ const T = {
   id: {
     anon: "Anonim. Asisten tidak pernah melihat nama atau NIM kamu.",
     asisten: (k: string) => `Asisten kelompokmu: ${k}`,
+    siapa: "Siapa asisten yang membantu kelompokmu?",
+    butuhAsisten: "Pilih asisten yang membantu kelompokmu.",
     asistenH: "Asisten",
     labH: "Lab",
     faces: ["Buruk", "Kurang", "Cukup", "Baik", "Luar biasa"] as [
@@ -34,11 +36,12 @@ const T = {
     terima: "Terima kasih. Umpan balikmu sudah terkirim.",
     sudah: "Kamu sudah mengirim umpan balik untuk sesi ini.",
     gagal: "Gagal mengirim. Coba lagi.",
-    tanpaAsisten: "Kelompokmu belum punya asisten tercatat. Tanyakan ke asisten di ruangan.",
   },
   en: {
     anon: "Anonymous. Assistants never see your name or student ID.",
     asisten: (k: string) => `Your group's assistant: ${k}`,
+    siapa: "Which assistant helped your group?",
+    butuhAsisten: "Pick the assistant who helped your group.",
     asistenH: "Assistant",
     labH: "Lab",
     faces: ["Poor", "Fair", "Okay", "Good", "Excellent"] as [
@@ -57,7 +60,6 @@ const T = {
     terima: "Thank you. Your feedback has been sent.",
     sudah: "You have already sent feedback for this session.",
     gagal: "Could not send. Try again.",
-    tanpaAsisten: "Your group has no assistant on record yet. Ask the assistant in the room.",
   },
 };
 
@@ -95,14 +97,23 @@ function Chips({
 
 export default function FeedbackForm({
   lang,
+  sesiId,
   asisten,
+  pilihan,
   onDone,
 }: {
   lang: Lang;
-  asisten: { nim: string; kode: string } | null;
+  /** The practicum this feedback is about (any ended one they attended). */
+  sesiId: number;
+  /** The group's assigned assistant, preselected when there is one. */
+  asisten: { kode: string } | null;
+  /** Codes the student may credit instead (the session's assistants). */
+  pilihan: string[];
   onDone: () => void;
 }) {
   const t = T[lang];
+  const [kode, setKode] = useState<string | null>(asisten?.kode ?? null);
+  const opsi = [...new Set([...(asisten ? [asisten.kode] : []), ...pilihan])];
   const [ra, setRa] = useState(0);
   const [rl, setRl] = useState(0);
   const [ca, setCa] = useState<string[]>([]);
@@ -113,7 +124,10 @@ export default function FeedbackForm({
   const [err, setErr] = useState<string | null>(null);
 
   async function kirim() {
-    if (!asisten) return;
+    if (!kode) {
+      setErr(t.butuhAsisten);
+      return;
+    }
     if (!ra || !rl) {
       setErr(t.butuh);
       return;
@@ -122,7 +136,8 @@ export default function FeedbackForm({
     setErr(null);
     try {
       const d = await postJson<{ ok: boolean; kode?: string }>("/api/session/feedback", {
-        asistenNim: asisten.nim,
+        sesiId,
+        asistenKode: kode,
         ratingAsisten: ra,
         ratingLab: rl,
         chipsAsisten: ca,
@@ -141,8 +156,6 @@ export default function FeedbackForm({
     }
   }
 
-  if (!asisten) return <p className="hint">{t.tanpaAsisten}</p>;
-
   return (
     <form
       className="fbform"
@@ -152,16 +165,33 @@ export default function FeedbackForm({
         void kirim();
       }}
     >
-      <p className="fbform__anon">
-        <Lock size={15} aria-hidden="true" />
-        {t.anon}
-      </p>
+      <p className="fbform__anon">{t.anon}</p>
 
       <section className="fbform__sec">
         <div className="fbform__head">
           <h3>{t.asistenH}</h3>
-          <span className="pill pill--mono">{t.asisten(asisten.kode)}</span>
+          {asisten && <span className="pill pill--mono">{t.asisten(asisten.kode)}</span>}
         </div>
+        {(!asisten || opsi.length > 1) && (
+          <div className="fbform__who" role="radiogroup" aria-label={t.siapa}>
+            <span className="hint">{t.siapa}</span>
+            <div className="fbform__chips">
+              {opsi.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="radio"
+                  aria-checked={kode === k}
+                  className="fbform__chip fbform__chip--code"
+                  onClick={() => setKode(k)}
+                >
+                  {kode === k && <Check size={14} aria-hidden="true" />}
+                  {k}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <RatingPicker value={ra} onChange={setRa} labels={t.faces} groupLabel={t.rateA} />
         <Chips keys={CHIPS_ASISTEN} value={ca} onChange={setCa} lang={lang} />
         <label className="fbform__area">
@@ -198,7 +228,6 @@ export default function FeedbackForm({
         </p>
       )}
       <button type="submit" className="btn btn--primary btn--lg fbform__send" disabled={busy}>
-        <Send size={18} aria-hidden="true" />
         {busy ? t.mengirim : t.kirim}
       </button>
     </form>

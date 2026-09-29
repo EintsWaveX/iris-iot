@@ -11,7 +11,7 @@
  *   because eight columns do not fit a phone.
  */
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { Download, Lock, Wand2 } from "lucide-react";
+import { Lock } from "lucide-react";
 import { ScoreInput } from "../ui/Controls";
 import { UpdatedAgo } from "../ui/Display";
 import { unduhCsv } from "../../lib/csv";
@@ -147,10 +147,10 @@ export default function NilaiTable({
         <div className="row">
           <UpdatedAgo since={nilai.updatedAt} template={t.updated} />
           <button type="button" className="btn btn--secondary" onClick={csv}>
-            <Download size={17} aria-hidden="true" /> {t.csv}
+            {t.csv}
           </button>
           <button type="button" className="btn btn--secondary" onClick={makeHelper}>
-            <Wand2 size={17} aria-hidden="true" /> {t.seelabs}
+            {t.seelabs}
           </button>
         </div>
       </div>

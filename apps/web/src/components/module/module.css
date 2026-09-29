@@ -213,3 +213,15 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* The journal gate (Phase 8): a gated step shows only its notice. */
+.modpage__jurnal[data-gated] > :not(.jurnal-gate) {
+  display: none !important;
+}
+
+.jurnal-gate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 44rem;
+}

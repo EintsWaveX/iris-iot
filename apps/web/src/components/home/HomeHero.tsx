@@ -6,7 +6,6 @@
  *   class, which groups) from the schedule, leading into the console.
  */
 import { useEffect, useState } from "react";
-import { ArrowRight, CalendarClock, LayoutDashboard, LogIn, MonitorPlay } from "lucide-react";
 import {
   getJson,
   href,
@@ -63,7 +62,7 @@ const T = {
     next: "Next session",
     today: "today",
     tomorrow: "tomorrow",
-    inDays: (n: number) => `in ${n} days`,
+    inDays: (n: number) => `in ${n} ${n === 1 ? "day" : "days"}`,
     nowRunning: "happening now",
     groups: (g: number[]) => (g.length ? `Group ${g.join(", ")}` : "Substitute"),
     inter: "International",
@@ -137,10 +136,9 @@ export default function HomeHero({ lang }: { lang: Lang }) {
                 className="btn btn--primary btn--lg"
                 href={href(lang, `/modules/${s.modul}?step=code`)}
               >
-                {t.lanjut(s.modul)} <ArrowRight size={18} aria-hidden="true" />
+                {t.lanjut(s.modul)}
               </a>
               <a className="btn btn--ghost btn--lg" href={href(lang, "/dashboard")}>
-                <LayoutDashboard size={18} aria-hidden="true" />
                 {t.dasbor}
               </a>
             </div>
@@ -150,7 +148,6 @@ export default function HomeHero({ lang }: { lang: Lang }) {
             <span className="hint">{t.noSession}</span>
             <div className="hhero__actions">
               <a className="btn btn--primary btn--lg" href={href(lang, "/dashboard")}>
-                <LayoutDashboard size={18} aria-hidden="true" />
                 {t.dasbor}
               </a>
             </div>
@@ -172,10 +169,7 @@ export default function HomeHero({ lang }: { lang: Lang }) {
           </>
         ) : (
           <>
-            <span className="hhero__who">
-              <CalendarClock size={16} aria-hidden="true" />
-              {t.next}
-            </span>
+            <span className="hhero__who">{t.next}</span>
             {next === undefined ? (
               <span className="skeleton" style={{ height: 48 }} />
             ) : next ? (
@@ -206,7 +200,6 @@ export default function HomeHero({ lang }: { lang: Lang }) {
         )}
         <div className="hhero__actions">
           <a className="btn btn--primary btn--lg" href={href(lang, "/session")}>
-            <MonitorPlay size={18} aria-hidden="true" />
             {t.konsol}
           </a>
         </div>
@@ -232,7 +225,6 @@ export default function HomeHero({ lang }: { lang: Lang }) {
             className="btn btn--primary btn--lg"
             onClick={() => window.LoginDialog?.open()}
           >
-            <LogIn size={18} aria-hidden="true" />
             {t.masuk}
           </button>
           <a className="btn btn--ghost btn--lg" href={href(lang, "/modules")}>

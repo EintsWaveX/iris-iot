@@ -592,31 +592,25 @@
   cursor: default;
 }
 
-.feed__icon {
-  align-items: center;
-  background: color-mix(in srgb, var(--g, var(--accent)) 16%, transparent);
+.feed__dot {
+  background: var(--g, var(--accent));
   border-radius: 50%;
-  color: var(--g, var(--accent));
-  display: inline-flex;
-  height: 28px;
-  justify-content: center;
-  width: 28px;
+  flex: none;
+  height: 8px;
+  width: 8px;
 }
 
-.feed__item[data-kind="wrong"] .feed__icon {
-  background: var(--danger-soft);
-  color: var(--danger);
+.feed__item[data-kind="wrong"] .feed__dot {
+  background: var(--danger);
 }
 
-.feed__item[data-kind="hand"] .feed__icon {
-  background: var(--warn-soft);
-  color: var(--warn);
+.feed__item[data-kind="hand"] .feed__dot {
+  background: var(--warn);
 }
 
-.feed__item[data-kind="done"] .feed__icon,
-.feed__item[data-kind="right"] .feed__icon {
-  background: var(--ok-soft);
-  color: var(--ok);
+.feed__item[data-kind="done"] .feed__dot,
+.feed__item[data-kind="right"] .feed__dot {
+  background: var(--ok);
 }
 
 .feed__at {
@@ -1444,7 +1438,7 @@ thead .ntable__name {
   align-items: center;
   display: grid;
   gap: var(--space-7);
-  grid-template-columns: minmax(0, 1.3fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   padding: var(--space-7);
 }
 
@@ -1523,37 +1517,6 @@ thead .ntable__name {
   display: grid;
   gap: var(--space-3);
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-}
-
-.done__qr {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin: 0;
-}
-
-.done__qr .qr {
-  background: #fff;
-  border-radius: var(--radius-lg);
-  box-shadow:
-    0 0 0 6px color-mix(in srgb, var(--mod-hue, var(--accent)) 35%, transparent),
-    var(--shadow-lift);
-  padding: var(--space-3);
-}
-
-.done__qr figcaption {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: center;
-}
-
-.done__link {
-  font-size: 0.75rem;
-  max-width: 280px;
-  word-break: break-all;
 }
 
 /* ------------------------------------------------------------- home */

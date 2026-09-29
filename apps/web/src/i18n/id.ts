@@ -15,7 +15,15 @@ export const id = {
   langSwitchLabel: "English",
   langSwitchHref: (modul?: number) => (modul ? `/en/modules/${modul}` : "/en/modules"),
   backToIndex: "Semua modul",
+  jurnal: {
+    title: (m: number) => `Jurnal Modul ${m} belum terbuka untukmu`,
+    body: "Persiapan, kode dan live terbuka setelah kamu mengikuti praktikum modul ini. Sambil menunggu, baca modulnya di langkah pertama.",
+    masuk: "Masuk",
+    baca: "Baca modul",
+  },
+  modulDoc: (m: number) => `Modul ${m} · IRIS IoT`,
   stepLabels: {
+    modul: "Modul",
     brief: "Brief",
     setup: "Persiapan",
     code: "Kode",
@@ -40,8 +48,6 @@ export const id = {
     masuk: "Masuk sebagai praktikan untuk mengisi dan menyimpan jawaban di sini.",
     sesiBerubah: "Sesi baru dimulai, silakan masuk lagi.",
     terkunci: "Modul ini belum dibuka. Asisten akan membukanya saat pekannya tiba.",
-    helperNote:
-      "Berkas ini memakai jam bersama dari {file}. Unduh berkas itu juga dan letakkan di folder yang sama sebelum mengunggah.",
   },
   live: {
     heading: "Tampilan live",

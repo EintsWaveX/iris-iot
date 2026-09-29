@@ -4,7 +4,6 @@
  * English) and the way back is role-aware once /me answers.
  */
 import { useEffect, useState } from "react";
-import { BookOpen, House, LayoutDashboard, MonitorPlay } from "lucide-react";
 import { href, useMe } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import "./NotFound.css";
@@ -53,23 +52,19 @@ export default function NotFound() {
       <p className="nf__body">{t.body}</p>
       <div className="nf__actions">
         <a className="btn btn--primary btn--lg" href={href(lang, "/")}>
-          <House size={18} aria-hidden="true" />
           {t.home}
         </a>
         {me?.role === "praktikan" && (
           <a className="btn btn--ghost btn--lg" href={href(lang, "/dashboard")}>
-            <LayoutDashboard size={18} aria-hidden="true" />
             {t.dash}
           </a>
         )}
         {me?.role === "asisten" && (
           <a className="btn btn--ghost btn--lg" href={href(lang, "/session")}>
-            <MonitorPlay size={18} aria-hidden="true" />
             {t.console}
           </a>
         )}
         <a className="btn btn--ghost btn--lg" href={href(lang, "/modules")}>
-          <BookOpen size={18} aria-hidden="true" />
           {t.modules}
         </a>
       </div>

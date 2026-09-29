@@ -6,16 +6,7 @@
  * sesi" lives here too, behind its own confirm.
  */
 import { useState, type CSSProperties, type ReactNode } from "react";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Cpu,
-  Hand,
-  NotebookPen,
-  Table2,
-  Wifi,
-  XCircle,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
 import { postJson } from "../../lib/app";
@@ -26,13 +17,11 @@ import { deviceOnline } from "./GroupBoard";
 
 function Item({
   ok,
-  icon,
   title,
   children,
   onClick,
 }: {
   ok: boolean;
-  icon: ReactNode;
   title: string;
   children?: ReactNode;
   onClick?: () => void;
@@ -41,9 +30,6 @@ function Item({
     <li className="endchk__item" data-ok={ok ? "yes" : undefined}>
       <span className="endchk__state" aria-hidden="true">
         {ok ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
-      </span>
-      <span className="endchk__icon" aria-hidden="true">
-        {icon}
       </span>
       <span className="grow stack" style={{ gap: 4 }}>
         <b>{title}</b>
@@ -180,7 +166,6 @@ export default function EndFlow({
         <ul className="endchk">
           <Item
             ok={missingTotal === 0}
-            icon={<Table2 size={18} />}
             title={missingTotal === 0 ? t.chkScoresOk : t.chkScores}
             onClick={() => {
               onOpenChange(false);
@@ -194,35 +179,24 @@ export default function EndFlow({
               </>
             )}
           </Item>
-          <Item
-            ok={noNotes.length === 0}
-            icon={<NotebookPen size={18} />}
-            title={noNotes.length ? t.chkNotes : t.chkNotesOk}
-          >
+          <Item ok={noNotes.length === 0} title={noNotes.length ? t.chkNotes : t.chkNotesOk}>
             {noNotes.length > 0 && chips(noNotes.map((g) => g.id))}
           </Item>
           <Item
             ok={stuckGroups.length === 0}
-            icon={<AlertTriangle size={18} />}
             title={stuckGroups.length ? t.chkStuck : t.chkStuckOk}
           >
             {stuckGroups.length > 0 && chips(stuckGroups)}
           </Item>
-          <Item
-            ok={hands.length === 0}
-            icon={<Hand size={18} />}
-            title={hands.length ? t.chkHands : t.chkHandsOk}
-          >
+          <Item ok={hands.length === 0} title={hands.length ? t.chkHands : t.chkHandsOk}>
             {hands.length > 0 && chips(hands)}
           </Item>
           {onlineDev.length > 0 && (
-            <Item ok={false} icon={<Cpu size={18} />} title={t.chkDevices}>
+            <Item ok={false} title={t.chkDevices}>
               <span className="hint">{t.chkDevicesN(onlineDev.length)}</span>
             </Item>
           )}
-          {sesi.modul === 4 && sesi.butuhAp && (
-            <Item ok icon={<Wifi size={18} />} title={t.chkAp} />
-          )}
+          {sesi.modul === 4 && sesi.butuhAp && <Item ok title={t.chkAp} />}
         </ul>
       </Dialog>
 

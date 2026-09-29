@@ -109,8 +109,9 @@
   animation: aurora-sweep 5s linear infinite;
 }
 
+/* Desktop links are words only; the icons belong to the phone tab bar. */
 .appnav__link svg {
-  opacity: 0.8;
+  display: none;
 }
 
 .appnav__live-dot {
@@ -444,7 +445,7 @@
 
 /* ------------------------------------------------------------ widths */
 
-@media (max-width: 1279px) {
+@media (max-width: 1439px) {
   .appnav__palette-text {
     display: none;
   }

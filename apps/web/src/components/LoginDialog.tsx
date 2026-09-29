@@ -19,8 +19,8 @@
  * hero, a module page's "sign in to save" note).
  */
 import { useEffect, useState, type FormEvent } from "react";
+import { Orbit } from "lucide-react";
 import { navigate } from "astro:transitions/client";
-import { LogIn, Orbit } from "lucide-react";
 import Dialog from "./ui/Dialog";
 import SegmentedControl from "./ui/SegmentedControl";
 import PasswordField from "./ui/PasswordField";
@@ -58,6 +58,9 @@ const T = dict({
     setBtn: "Setel kata sandi",
     welcome: (nama: string) => `Halo, ${nama.split(" ")[0]}`,
     joined: "Kamu tercatat hadir di sesi ini.",
+    signedIn: "Kamu sudah masuk.",
+    noSession:
+      "Belum ada sesi berjalan. Nilai, umpan balik dan jurnal praktikum yang sudah kamu ikuti ada di dasbor.",
     session: (m: number, slot: number | null, kelas: string) =>
       `Modul ${m} · ${MODUL_NAMA[m]}${slot ? ` · Slot ${slot}` : ""} · ${kelas === "internasional" ? "Internasional" : "Reguler"}`,
     group: (n: number, nama?: string) => `Kelompok ${n}${nama ? ` · ${nama}` : ""}`,
@@ -101,6 +104,9 @@ const T = dict({
     setBtn: "Set password",
     welcome: (nama: string) => `Hi, ${nama.split(" ")[0]}`,
     joined: "You are checked in to this session.",
+    signedIn: "You are signed in.",
+    noSession:
+      "No session is running. Scores, feedback and the journals of practicums you joined are on your dashboard.",
     session: (m: number, slot: number | null, kelas: string) =>
       `Module ${m} · ${MODUL_NAMA[m]}${slot ? ` · Slot ${slot}` : ""} · ${kelas === "internasional" ? "International" : "Regular"}`,
     group: (n: number, nama?: string) => `Group ${n}${nama ? ` · ${nama}` : ""}`,
@@ -176,8 +182,22 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
       },
       close: () => setOpen(false),
     };
-    if (new URLSearchParams(location.search).get("login") === "1") {
-      setOpen(true);
+    const params = new URLSearchParams(location.search);
+    if (params.get("login") === "1") {
+      // Drop the flag at once, so a reload or the language redirect after
+      // signing in can't reopen the dialog. "next" stays for destination().
+      params.delete("login");
+      const q = params.toString();
+      history.replaceState(
+        history.state,
+        "",
+        location.pathname + (q ? `?${q}` : "") + location.hash,
+      );
+      getJson<{ ok: boolean }>("/api/auth/me")
+        .then((me) => {
+          if (!me.ok) setOpen(true);
+        })
+        .catch(() => setOpen(true));
     }
   }, []);
 
@@ -263,7 +283,14 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
     }
   }
 
-  const title = stage === "set-password" ? t.setTitle : stage === "welcome" ? t.joined : t.title;
+  const title =
+    stage === "set-password"
+      ? t.setTitle
+      : stage === "welcome"
+        ? welcome?.sesi
+          ? t.joined
+          : t.signedIn
+        : t.title;
 
   return (
     <Dialog open={open} onOpenChange={setOpen} title={title} sheet={sheet} size="lg" lang={lang}>
@@ -331,7 +358,6 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
             data-loading={loading ? "yes" : "no"}
             disabled={loading}
           >
-            <LogIn size={19} aria-hidden="true" />
             <span className="btn__label">{t.submit}</span>
             <span className="btn__spinner" aria-hidden="true" />
           </button>
@@ -395,10 +421,12 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
             <i />
           </div>
           <p className="login-welcome__hi">{t.welcome(welcome.nama)}</p>
-          {welcome.sesi && (
+          {welcome.sesi ? (
             <p className="login-welcome__sesi">
               {t.session(welcome.sesi.modul, welcome.sesi.slot, welcome.sesi.kelas)}
             </p>
+          ) : (
+            <p className="login-welcome__sesi">{t.noSession}</p>
           )}
           {welcome.kelompok && (
             <p

@@ -52,7 +52,12 @@ import {
 } from "../../src/lib/schema.js";
 import type { NilaiKomponen } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
-import { getModulTerbuka, getModulTerbukaMeta, setModulTerbuka } from "../../src/lib/akses.js";
+import {
+  getModulTerbuka,
+  getModulTerbukaMeta,
+  jurnalBolehDibuka,
+  setModulTerbuka,
+} from "../../src/lib/akses.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { writeAudit } from "../../src/lib/auth.js";
@@ -68,6 +73,7 @@ import {
   handleFeedbackPost,
   handleFeedbackGet,
   handleResults,
+  handleMine,
   handleScheduleGet,
   handleSchedulePost,
   pemilikKelompok,
@@ -1164,6 +1170,21 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const who = requireRole(req, res, "asisten");
     if (!who) return;
     return handleFeedbackGet(req, res, who);
+  }
+  if (aksi === "mine") {
+    if (!requireMethod(req, res, "GET")) return;
+    const who = requireRole(req, res, "praktikan");
+    if (!who) return;
+    return handleMine(req, res, who);
+  }
+  // Which journals the viewer may open (Phase 8). Anyone may ask; a
+  // visitor who is not signed in simply gets none.
+  if (aksi === "jurnal") {
+    if (!requireMethod(req, res, "GET")) return;
+    const who = currentSession(req);
+    const jurnal = who ? await jurnalBolehDibuka(who) : [];
+    res.status(200).json({ ok: true, jurnal });
+    return;
   }
   if (aksi === "results") {
     if (!requireMethod(req, res, "GET")) return;

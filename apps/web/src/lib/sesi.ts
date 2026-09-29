@@ -127,6 +127,34 @@ export async function resolvePraktikan(nim: string): Promise<ResolvedPraktikan |
   };
 }
 
+/** The roster lookup without a session (Phase 8's off-session sign-in):
+ *  the student's own group, if that group is active on the roster. */
+export async function resolvePraktikanTanpaSesi(
+  nim: string,
+): Promise<Omit<ResolvedPraktikan, "sesiId"> | null> {
+  const [row] = await getDb()
+    .select({
+      nim: anggota.nim,
+      nama: anggota.nama,
+      kelompokId: kelompok.id,
+      kelompokNomor: kelompok.nomor,
+      kelompokNama: kelompok.nama,
+      aktif: kelompok.aktif,
+    })
+    .from(anggota)
+    .innerJoin(kelompok, eq(anggota.kelompokId, kelompok.id))
+    .where(eq(anggota.nim, nim))
+    .limit(1);
+  if (!row || !row.aktif) return null;
+  return {
+    nim: row.nim,
+    nama: row.nama,
+    kelompokId: row.kelompokId,
+    kelompokNomor: row.kelompokNomor,
+    kelompokNama: row.kelompokNama,
+  };
+}
+
 /** Names only — never NIMs. This is the projection rule from
  *  jadwal_publik() in apps/modul4/server.py:1023, carried forward: a route a
  *  student's browser can reach must never be able to return another

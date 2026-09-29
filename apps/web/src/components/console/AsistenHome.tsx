@@ -11,16 +11,7 @@
  * - a reminder while the starting password is still in use
  * - "Siapkan sebelum mulai" opens Persiapan without a session
  */
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import {
-  CalendarClock,
-  CalendarRange,
-  KeyRound,
-  ListChecks,
-  MessageSquareHeart,
-  Play,
-  Sparkles,
-} from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Checkbox, DatePicker } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
 import FeedbackSummary from "../shared/FeedbackSummary";
@@ -64,14 +55,27 @@ function menitSekarangWib(): number {
   return g("hour") * 60 + g("minute");
 }
 
-function slotStatus(slot: number, isToday: boolean): "done" | "now" | "next" | "later" {
-  if (!isToday) return "later";
-  const [h, m] = SLOT_MULAI[slot].split(":").map(Number);
-  const start = h * 60 + m;
+type SlotState = "done" | "now" | "next" | "later";
+
+/** Today's four slots by the WIB clock. Only one upcoming slot is "next":
+ *  the first one with a practicum, or the first upcoming one if none has. */
+function slotStates(scheduled: (s: number) => boolean): Record<number, SlotState> {
   const now = menitSekarangWib();
-  if (now >= start + 150) return "done";
-  if (now >= start - 30) return "now";
-  return "next";
+  const out: Record<number, SlotState> = {};
+  const upcoming: number[] = [];
+  for (const s of [1, 2, 3, 4]) {
+    const [h, m] = SLOT_MULAI[s].split(":").map(Number);
+    const start = h * 60 + m;
+    if (now >= start + 150) out[s] = "done";
+    else if (now >= start - 30) out[s] = "now";
+    else {
+      out[s] = "later";
+      upcoming.push(s);
+    }
+  }
+  const next = upcoming.find(scheduled) ?? upcoming[0];
+  if (next) out[next] = "next";
+  return out;
 }
 
 export default function AsistenHome({
@@ -116,6 +120,21 @@ export default function AsistenHome({
   const hari = hariDariTanggal(tanggal);
   const hariIni = hariDariTanggal(today);
   const row = (h: number, s: number) => jadwal?.find((j) => j.hari === h && j.slot === s) ?? null;
+  const scheduledToday = (s: number) => {
+    const r = row(hariIni, s);
+    return !!r && r.status === "aktif" && r.asisten.length > 0;
+  };
+  const states = slotStates(scheduledToday);
+  const slotTouched = useRef(false);
+  // Once the schedule arrives, preselect the slot running now, or else the
+  // next one with a practicum, unless the assistant already picked one.
+  useEffect(() => {
+    if (!jadwal || slotTouched.current) return;
+    const s =
+      [1, 2, 3, 4].find((n) => states[n] === "now" && scheduledToday(n)) ??
+      [1, 2, 3, 4].find((n) => states[n] === "next" && scheduledToday(n));
+    if (s) setSlot(s);
+  }, [jadwal]);
   const picked = row(hari, slot);
   const kelasJadwal: Kelas = picked?.kelas ?? "reguler";
   const kelas: Kelas = kelasPilih === "auto" ? kelasJadwal : kelasPilih;
@@ -172,7 +191,6 @@ export default function AsistenHome({
 
       {me.perluAturSandi && (
         <a className="home__pw rise" href={href(lang, "/account")}>
-          <KeyRound size={20} aria-hidden="true" />
           <span className="grow stack" style={{ gap: 2 }}>
             <b>{t.pwReminder}</b>
             <span className="hint">{t.pwReminderBody}</span>
@@ -184,16 +202,16 @@ export default function AsistenHome({
       <section className="home__today rise" aria-label={t.today}>
         <div className="panel__head">
           <h2 className="panel__title">
-            <CalendarClock size={18} aria-hidden="true" /> {t.today} · {t.hari[hariIni]}
+            {t.today} · {t.hari[hariIni]}
           </h2>
           <a className="btn btn--ghost btn--sm" href={href(lang, "/schedule")}>
-            <CalendarRange size={16} aria-hidden="true" /> {t.mySchedule}
+            {t.mySchedule}
           </a>
         </div>
         <div className="slots">
           {[1, 2, 3, 4].map((s) => {
             const r = row(hariIni, s);
-            const st = slotStatus(s, true);
+            const st = states[s];
             const has = r && r.status === "aktif" && r.asisten.length > 0;
             const soon = r?.status === "segera";
             return (
@@ -205,6 +223,7 @@ export default function AsistenHome({
                 data-empty={has ? undefined : "yes"}
                 aria-current={tanggal === today && slot === s}
                 onClick={() => {
+                  slotTouched.current = true;
                   setTanggal(today);
                   setSlot(s);
                   setKelasPilih("auto");
@@ -243,9 +262,7 @@ export default function AsistenHome({
         <section className="panel panel--raised home__start rise">
           <div className="panel__head">
             <div className="stack stack--sm">
-              <h2 className="panel__title">
-                <Play size={18} aria-hidden="true" /> {t.startTitle}
-              </h2>
+              <h2 className="panel__title">{t.startTitle}</h2>
               <p className="panel__sub">{t.startSub}</p>
             </div>
           </div>
@@ -283,7 +300,10 @@ export default function AsistenHome({
                     role="radio"
                     aria-checked={slot === s}
                     className="start__slot"
-                    onClick={() => setSlot(s)}
+                    onClick={() => {
+                      slotTouched.current = true;
+                      setSlot(s);
+                    }}
                   >
                     <b>{t.slot(s)}</b>
                     <span className="num hint">{SLOT_MULAI[s]}</span>
@@ -335,7 +355,6 @@ export default function AsistenHome({
             data-loading={busy ? "yes" : undefined}
             onClick={() => void start()}
           >
-            <Play size={20} aria-hidden="true" />
             <span className="btn__label">{t.startBtn}</span>
             <span className="btn__spinner" aria-hidden="true" />
           </button>
@@ -345,9 +364,7 @@ export default function AsistenHome({
           <section className="panel rise">
             <div className="panel__head">
               <div className="stack stack--sm">
-                <h2 className="panel__title">
-                  <ListChecks size={18} aria-hidden="true" /> {t.prepEarly}
-                </h2>
+                <h2 className="panel__title">{t.prepEarly}</h2>
                 <p className="panel__sub">{t.prepEarlySub}</p>
               </div>
               <button type="button" className="btn btn--secondary" onClick={onPrep}>
@@ -358,9 +375,7 @@ export default function AsistenHome({
 
           <section className="panel rise">
             <div className="panel__head">
-              <h2 className="panel__title">
-                <CalendarRange size={18} aria-hidden="true" /> {t.mySchedule}
-              </h2>
+              <h2 className="panel__title">{t.mySchedule}</h2>
               {mySlots.length > 0 && <span className="hint">{t.mySlots(mySlots.length)}</span>}
             </div>
             {jadwal === null ? (
@@ -392,9 +407,7 @@ export default function AsistenHome({
           <section className="panel rise">
             <div className="panel__head">
               <div className="stack stack--sm">
-                <h2 className="panel__title">
-                  <MessageSquareHeart size={18} aria-hidden="true" /> {t.myFeedback}
-                </h2>
+                <h2 className="panel__title">{t.myFeedback}</h2>
                 <p className="panel__sub">{t.myFeedbackSub}</p>
               </div>
             </div>
@@ -409,9 +422,7 @@ export default function AsistenHome({
           <section className="panel rise">
             <div className="panel__head">
               <div className="stack stack--sm">
-                <h2 className="panel__title">
-                  <Sparkles size={18} aria-hidden="true" /> {t.labFeedback}
-                </h2>
+                <h2 className="panel__title">{t.labFeedback}</h2>
                 <p className="panel__sub">{t.labFeedbackSub}</p>
               </div>
             </div>

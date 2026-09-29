@@ -243,46 +243,6 @@
 
 /* -------------------------------------------------------------- slides */
 
-.dash__slides {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.dash__slides-frame {
-  aspect-ratio: 16 / 9;
-  background: var(--bg-sunken);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.dash__slides-frame iframe {
-  border: 0;
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
-.dash__slides-frame:fullscreen {
-  border-radius: 0;
-}
-
-.dash__slides-bar {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.dash__slides-name {
-  flex: 1 1 12rem;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .dash__slides-skel {
   aspect-ratio: 16 / 9;
   display: block;
@@ -617,7 +577,8 @@
   color: var(--text);
 }
 
-.fbform__chip[aria-pressed="true"] {
+.fbform__chip[aria-pressed="true"],
+.fbform__chip[aria-checked="true"] {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent-bright);
@@ -745,4 +706,37 @@
 .coach__dots span[data-on="yes"] {
   background: var(--accent);
   width: 18px;
+}
+
+.fbform__who {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.fbform__chip--code {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  min-height: 48px;
+  min-width: 4.5rem;
+  justify-content: center;
+}
+
+/* My practicums: one row per attended practicum. */
+.dash__prak {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dash__prak-row {
+  align-items: center;
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--mod-hue, var(--accent));
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
 }

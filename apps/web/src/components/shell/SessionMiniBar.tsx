@@ -11,8 +11,8 @@
  * - Time warnings at 30 and 10 minutes left, once each per session.
  */
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Bell, Hand } from "lucide-react";
 import * as RadixPopover from "@radix-ui/react-popover";
-import { Bell, Hand, Clock3 } from "lucide-react";
 import type { PollState } from "../../lib/hooks";
 import {
   MODUL_SINGKAT,
@@ -211,7 +211,6 @@ export default function SessionMiniBar({
       </a>
 
       <div className="minibar__time">
-        <Clock3 size={15} aria-hidden="true" />
         <span className="minibar__track" aria-hidden="true">
           <span className="minibar__fill" style={{ width: `${pct}%` }} />
         </span>
@@ -223,6 +222,7 @@ export default function SessionMiniBar({
           type="button"
           className="minibar__help"
           aria-pressed={Boolean(hand)}
+          aria-label={hand ? t.helpOn : t.help}
           disabled={busy}
           onClick={() => void toggleHand()}
         >

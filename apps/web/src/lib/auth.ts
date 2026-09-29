@@ -31,7 +31,7 @@ import { createHmac, timingSafeEqual, randomBytes, scryptSync } from "node:crypt
 import { eq, and, gte, count } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { asisten, percobaanMasuk, audit } from "./schema.js";
-import { resolvePraktikan, currentSesi } from "./sesi.js";
+import { resolvePraktikan, resolvePraktikanTanpaSesi, currentSesi } from "./sesi.js";
 
 const SESSION_TTL_SEC = 3 * 60 * 60; // 3 hours, > SESI_CAP_MENIT (150 min)
 const ASSISTANT_PASSWORD_SUFFIX = "1715";
@@ -233,7 +233,9 @@ export type PraktikanLoginResult =
       ok: true;
       nim: string;
       nama: string;
-      sesiId: number;
+      /** null: signed in while no session runs (Phase 8), for results,
+       *  feedback and journals already done. Not attendance. */
+      sesiId: number | null;
       kelompokId: number;
       kelompokNomor: number;
       kelompokNama: string;
@@ -263,8 +265,14 @@ export async function verifyPraktikanLogin(
   // here too, rather than collapsing back into one generic failure.
   const running = await currentSesi();
   if (!running) {
-    await recordAttempt(nim, ip, "praktikan", false);
-    return { ok: false, kode: "tidak_ada_sesi" };
+    // Phase 8: with no session running a rostered student may still sign
+    // in, to see results, give feedback and reopen journals they have
+    // done. The attempt row has no sesi_id, so it never counts as having
+    // attended anything.
+    const luar = await resolvePraktikanTanpaSesi(nim);
+    await recordAttempt(nim, ip, "praktikan", luar !== null);
+    if (!luar) return { ok: false, kode: "tidak_terdaftar" };
+    return { ok: true, ...luar, sesiId: null };
   }
 
   const resolved = await resolvePraktikan(nim);

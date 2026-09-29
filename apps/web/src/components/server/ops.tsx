@@ -14,19 +14,7 @@
  * every action says so instead of pretending it already happened.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import {
-  CheckCircle2,
-  Circle,
-  CircleDot,
-  Clock3,
-  Cpu,
-  FileText,
-  Loader2,
-  Power,
-  RotateCw,
-  Wifi,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, Circle, CircleDot, Clock3, Loader2, Power, XCircle } from "lucide-react";
 import { Switch } from "../ui/Controls";
 import { KELOMPOK_NAMA, dict, jamMenit, postJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -193,9 +181,6 @@ export function HotspotCard({
   const shown = want ?? on;
   return (
     <div className="ops-hotspot" data-on={shown ? "yes" : undefined}>
-      <span className="ops-hotspot__icon" aria-hidden="true">
-        <Wifi size={22} />
-      </span>
       <span className="grow stack stack--sm">
         <b>{t.hotspot}</b>
         <span className="hint">
@@ -278,11 +263,7 @@ export function ServiceList({
                   ).then(onSent)
                 }
               >
-                {restarting ? (
-                  <Loader2 size={17} className="ctl-spin" aria-hidden="true" />
-                ) : (
-                  <RotateCw size={17} aria-hidden="true" />
-                )}
+                {restarting && <Loader2 size={17} className="ctl-spin" aria-hidden="true" />}
                 {running ? t.restart : t.start}
               </button>
               <button
@@ -298,7 +279,6 @@ export function ServiceList({
                     );
                 }}
               >
-                <FileText size={17} aria-hidden="true" />
                 {t.log}
               </button>
               {onStop && running && (
@@ -444,7 +424,6 @@ export function DevicesByGroup({ lang, devices }: { lang: Lang; devices: Perangk
                   ) : (
                     <Circle size={14} className="ops-esp__off" aria-hidden="true" />
                   )}
-                  <Cpu size={15} aria-hidden="true" />
                   <span className="grow truncate">{d.nama ?? d.mac}</span>
                   <span className="mono hint">{d.ip}</span>
                   <span className="hint">{t.seen(sejak(d.terakhirTerlihat, lang, now))}</span>

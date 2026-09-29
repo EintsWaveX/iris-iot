@@ -24,7 +24,7 @@ import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
 import { checkJawaban, blankCountFor, canonicalAnswer } from "../_lib/answer-keys.js";
 import { getSketchSourceForApi } from "../_lib/sketch-sources.js";
 import { personalize } from "../../src/lib/group-identity.js";
-import { getModulTerbuka } from "../../src/lib/akses.js";
+import { getModulTerbuka, jurnalBolehDibuka } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { and, asc, eq, isNull, like, sql } from "drizzle-orm";
 
@@ -71,16 +71,32 @@ function jawabanScope(running: { id: number } | null, kelompokId: number, prefix
   return running ? and(base, eq(jawaban.sesiId, running.id)) : base;
 }
 
+/** The journal gate (Phase 8): the module must be open AND this student
+ *  must have done its practicum. Answers "modul_terkunci" when it is not
+ *  open at all, "belum_praktikum" when it is open but not theirs yet. */
+async function bolehJurnal(
+  res: ApiResponse,
+  session: SessionPayload,
+  modul: number,
+): Promise<boolean> {
+  if (!(await getModulTerbuka()).includes(modul)) {
+    res.status(200).json({ ok: false, kode: "modul_terkunci" });
+    return false;
+  }
+  if (!(await jurnalBolehDibuka(session)).includes(modul)) {
+    res.status(200).json({ ok: false, kode: "belum_praktikum" });
+    return false;
+  }
+  return true;
+}
+
 async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const parsed = parseModulBerkas(req.query);
   if (!parsed) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  if (!(await getModulTerbuka()).includes(parsed.modul)) {
-    res.status(200).json({ ok: false, kode: "modul_terkunci" });
-    return;
-  }
+  if (!(await bolehJurnal(res, session, parsed.modul))) return;
   const kelompokId = session.kelompokId;
   if (!kelompokId) {
     res.status(200).json({ ok: false, kode: "kelompok_tidak_diketahui" });
@@ -129,10 +145,7 @@ async function handleCek(req: ApiRequest, res: ApiResponse, session: SessionPayl
     return;
   }
 
-  if (!(await getModulTerbuka()).includes(modul)) {
-    res.status(200).json({ ok: false, kode: "modul_terkunci" });
-    return;
-  }
+  if (!(await bolehJurnal(res, session, modul))) return;
 
   const kelompokId = session.kelompokId;
   const nomorKelompok = session.kelompokNomor;
@@ -211,10 +224,7 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  if (!(await getModulTerbuka()).includes(parsed.modul)) {
-    res.status(200).json({ ok: false, kode: "modul_terkunci" });
-    return;
-  }
+  if (!(await bolehJurnal(res, session, parsed.modul))) return;
   const kelompokId = session.kelompokId;
   const nomorKelompok = session.kelompokNomor;
   if (!kelompokId || !nomorKelompok) {

@@ -25,8 +25,8 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { LayoutGrid, ListChecks, LogIn, ShieldAlert, Table2 } from "lucide-react";
 import Dialog from "../ui/Dialog";
+import { LayoutGrid, LogIn, ShieldAlert } from "lucide-react";
 import ResizablePanes from "../ui/ResizablePanes";
 import { OfflineBanner, StateView, UpdatedAgo } from "../ui/Display";
 import { Kbd } from "../ui/Controls";
@@ -478,13 +478,7 @@ export default function Console({ lang }: { lang: Lang }) {
 
       <div className="console__modes">
         <div className="seg seg--views" role="tablist" aria-label={t.viewLabel}>
-          {(
-            [
-              ["prep", ListChecks],
-              ["board", LayoutGrid],
-              ["table", Table2],
-            ] as const
-          ).map(([v, Icon]) => (
+          {(["prep", "board", "table"] as const).map((v) => (
             <button
               key={v}
               type="button"
@@ -493,7 +487,7 @@ export default function Console({ lang }: { lang: Lang }) {
               aria-pressed={view === v}
               onClick={() => go(v)}
             >
-              <Icon size={17} aria-hidden="true" /> {t.views[v]}
+              {t.views[v]}
             </button>
           ))}
         </div>

@@ -9,20 +9,8 @@
  * second row with their labels kept, instead of shrinking to bare icons.
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Lock, Unlock } from "lucide-react";
 import * as RadixPopover from "@radix-ui/react-popover";
-import {
-  BarChart3,
-  Flag,
-  Lock,
-  Megaphone,
-  MonitorPlay,
-  Presentation,
-  Send,
-  Server,
-  Trash2,
-  Unlock,
-  ExternalLink,
-} from "lucide-react";
 import { Switch } from "../ui/Controls";
 import { getJson, href, jamMenit, menitBerjalan, postJson, useTick } from "../../lib/app";
 import { SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
@@ -34,7 +22,6 @@ import type { ServerState } from "./data";
 import { isOnline, type SesiRunning, type View } from "./types";
 
 function Tool({
-  icon,
   label,
   badge,
   children,
@@ -42,7 +29,6 @@ function Tool({
   onOpenChange,
   width = 360,
 }: {
-  icon: ReactNode;
   label: string;
   badge?: ReactNode;
   children: ReactNode;
@@ -54,7 +40,6 @@ function Tool({
     <RadixPopover.Root open={open} onOpenChange={onOpenChange}>
       <RadixPopover.Trigger asChild>
         <button type="button" className="sbar__tool">
-          {icon}
           <span className="sbar__tool-label">{label}</span>
           {badge}
         </button>
@@ -161,17 +146,10 @@ export default function SessionBar({
       </div>
 
       <div className="sbar__tools">
-        <Tool
-          icon={<Megaphone size={18} aria-hidden="true" />}
-          label={t.announce}
-          open={announceOpen}
-          onOpenChange={setAnnounceOpen}
-          width={400}
-        >
+        <Tool label={t.announce} open={announceOpen} onOpenChange={setAnnounceOpen} width={400}>
           <AnnounceForm t={t} lang={lang} sesi={sesi} onDone={() => setAnnounceOpen(false)} />
         </Tool>
         <Tool
-          icon={<Unlock size={18} aria-hidden="true" />}
           label={t.access}
           open={pop === "acc"}
           onOpenChange={(o) => setPop(o ? "acc" : null)}
@@ -180,7 +158,6 @@ export default function SessionBar({
           <AccessForm t={t} lang={lang} />
         </Tool>
         <Tool
-          icon={<Presentation size={18} aria-hidden="true" />}
           label={t.slides}
           open={pop === "deck"}
           onOpenChange={(o) => setPop(o ? "deck" : null)}
@@ -198,7 +175,6 @@ export default function SessionBar({
             className={`dot ${online > 0 ? "dot--ok" : list.length ? "dot--danger" : "dot--off"}`}
             aria-hidden="true"
           />
-          <Server size={18} aria-hidden="true" />
           <span className="sbar__tool-label">
             {t.server}{" "}
             {list.length > 0 && <span className="faint">{t.serverChip(online, list.length)}</span>}
@@ -212,17 +188,13 @@ export default function SessionBar({
             target="_blank"
             rel="noopener noreferrer"
           >
-            <MonitorPlay size={18} aria-hidden="true" />
             <span className="sbar__tool-label">{t.scoreboard}</span>
-            <ExternalLink size={14} aria-hidden="true" />
           </a>
         )}
         <a className="sbar__tool" href={href(lang, `/reports?sesi=${sesi.id}`)}>
-          <BarChart3 size={18} aria-hidden="true" />
           <span className="sbar__tool-label">{t.report}</span>
         </a>
         <button type="button" className="btn btn--danger sbar__end" onClick={onEnd}>
-          <Flag size={18} aria-hidden="true" />
           <span className="btn__label">{t.end}</span>
         </button>
       </div>
@@ -320,12 +292,10 @@ function AnnounceForm({
             disabled={busy}
             onClick={() => void kirim("")}
           >
-            <Trash2 size={16} aria-hidden="true" />
             {t.annClear}
           </button>
         )}
         <button type="submit" className="btn btn--primary" disabled={busy || !pesan.trim()}>
-          <Send size={16} aria-hidden="true" />
           <span className="btn__label">{t.annSend}</span>
         </button>
       </div>
@@ -461,7 +431,6 @@ function DeckForm({ t, onManage }: { t: Strings; onManage: () => void }) {
               aria-pressed={d.aktif}
               onClick={() => void pick(d)}
             >
-              <Presentation size={18} aria-hidden="true" />
               <span className="truncate grow">{d.namaBerkas}</span>
               {d.aktif && <span className="pill pill--ok">{t.activeBadge}</span>}
             </button>

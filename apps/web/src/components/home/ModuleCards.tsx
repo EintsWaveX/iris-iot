@@ -8,7 +8,6 @@
  * pulses slowly.
  */
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
-import { ArrowRight, Lock } from "lucide-react";
 import { Switch } from "../ui/Controls";
 import { ProgressRing } from "../ui/Display";
 import { href, useMe, useSessionNow } from "../../lib/app";
@@ -32,6 +31,7 @@ const T = {
     run: "Berjalan",
     open: "Terbuka",
     locked: "Belum dibuka",
+    jurnal: "Jurnal terbuka",
     go: "Buka modul",
     access: (n: number) => `Buka Modul ${n} untuk praktikan`,
     blanks: (b: number, t: number) => `${b}/${t} rumpang`,
@@ -41,6 +41,7 @@ const T = {
     run: "Running",
     open: "Open",
     locked: "Not open yet",
+    jurnal: "Journal open",
     go: "Open module",
     access: (n: number) => `Open Module ${n} to students`,
     blanks: (b: number, t: number) => `${b}/${t} blanks`,
@@ -81,7 +82,7 @@ function Card({
   m: ModulKartu;
   i: number;
   lang: Lang;
-  state: "run" | "open" | "locked" | null;
+  state: "run" | "open" | "locked" | "jurnal" | null;
   progres: { benar: number; total: number } | null | undefined;
   asisten: boolean;
   onToggle: (open: boolean) => void;
@@ -119,11 +120,16 @@ function Card({
           <ModIcon modul={m.modul} />
           {state && (
             <span
-              className={`pill ${state === "run" ? "pill--ok" : state === "open" ? "pill--accent" : ""}`}
+              className={`pill ${state === "run" ? "pill--ok" : state === "locked" ? "" : "pill--accent"}`}
             >
               {state === "run" && <span className="dot dot--ok dot--pulse" aria-hidden="true" />}
-              {state === "locked" && <Lock size={12} aria-hidden="true" />}
-              {state === "run" ? t.run : state === "open" ? t.open : t.locked}
+              {state === "run"
+                ? t.run
+                : state === "open"
+                  ? t.open
+                  : state === "jurnal"
+                    ? t.jurnal
+                    : t.locked}
             </span>
           )}
         </span>
@@ -152,9 +158,7 @@ function Card({
           ) : (
             <span />
           )}
-          <span className="mcard__go">
-            {t.go} <ArrowRight size={15} aria-hidden="true" />
-          </span>
+          <span className="mcard__go">{t.go}</span>
         </span>
       </a>
       {asisten && state && (
@@ -172,6 +176,7 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
   const now = useSessionNow(30_000, signedIn);
   const [terbuka, setTerbuka] = useState<number[] | null>(null);
   const [asisten, setAsisten] = useState(false);
+  const [jurnal, setJurnal] = useState<number[]>([]);
 
   useEffect(() => {
     if (me === undefined) return;
@@ -179,6 +184,7 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
       void getAksesState(true).then((s) => {
         setTerbuka(s.terbuka);
         setAsisten(s.asisten);
+        setJurnal(s.jurnal);
       });
     load();
     window.addEventListener("iris:akses-berubah", load);
@@ -191,14 +197,21 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
   return (
     <div className="mcards">
       {modules.map((m, i) => {
+        // Every card opens the module's public handbook. Assistants see the
+        // students' access state (and switch it); a student sees whether the
+        // journal is theirs to open; a visitor sees no state at all.
         const state =
           terbuka === null
             ? null
-            : running === m.modul
+            : running === m.modul && signedIn
               ? "run"
-              : terbuka.includes(m.modul)
-                ? "open"
-                : "locked";
+              : asisten
+                ? terbuka.includes(m.modul)
+                  ? "open"
+                  : "locked"
+                : jurnal.includes(m.modul)
+                  ? "jurnal"
+                  : null;
         return (
           <Card
             key={m.modul}

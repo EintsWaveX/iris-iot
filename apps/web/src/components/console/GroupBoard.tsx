@@ -6,16 +6,7 @@
  * inspector.
  */
 import { useMemo, useState, type CSSProperties } from "react";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Cpu,
-  Hand,
-  LogIn,
-  PenLine,
-  Radio,
-  XCircle,
-} from "lucide-react";
+import { AlertTriangle, Hand } from "lucide-react";
 import HoverCard from "../ui/HoverCard";
 import { KELOMPOK_NAMA, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -81,7 +72,6 @@ export default function GroupBoard(p: BoardProps) {
               onClick={() => setF(x)}
               disabled={x !== "all" && n === 0 && f !== x}
             >
-              {x === "hand" && <Hand size={15} aria-hidden="true" />}
               {t.filters[x]}
               <span className="board__count num">{n}</span>
             </button>
@@ -207,17 +197,6 @@ export default function GroupBoard(p: BoardProps) {
 
 /* ------------------------------------------------------------------ feed */
 
-const FEED_ICON = {
-  hand: Hand,
-  wrong: XCircle,
-  right: CheckCircle2,
-  done: CheckCircle2,
-  login: LogIn,
-  score: PenLine,
-  device: Cpu,
-  note: Radio,
-};
-
 export function ActivityFeed({
   t,
   lang,
@@ -233,9 +212,7 @@ export function ActivityFeed({
   return (
     <section className="panel panel--tight feed" aria-label={t.feed}>
       <div className="panel__head">
-        <h2 className="panel__title">
-          <Radio size={17} aria-hidden="true" /> {t.feed}
-        </h2>
+        <h2 className="panel__title">{t.feed}</h2>
         <span className="dot dot--ok dot--pulse" aria-hidden="true" />
       </div>
       {items.length === 0 ? (
@@ -243,7 +220,6 @@ export function ActivityFeed({
       ) : (
         <ol className="feed__list" aria-live="polite">
           {items.map((it) => {
-            const Icon = FEED_ICON[it.kind];
             return (
               <li key={it.id} className="feed__item" data-kind={it.kind}>
                 <button
@@ -253,9 +229,7 @@ export function ActivityFeed({
                   onClick={() => it.g !== null && onPick(it.g)}
                   style={it.g ? ({ "--g": `var(--group-${it.g})` } as CSSProperties) : undefined}
                 >
-                  <span className="feed__icon" aria-hidden="true">
-                    <Icon size={15} />
-                  </span>
+                  <span className="feed__dot" aria-hidden="true" />
                   <span className="feed__text">{it.text}</span>
                   <span className="feed__at num">
                     {sejak(new Date(it.at).toISOString(), lang, now)}

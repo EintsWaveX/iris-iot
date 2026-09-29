@@ -110,7 +110,7 @@ async function handleStudent(req: ApiRequest, res: ApiResponse) {
       nama: result.nama,
       kelompokId: result.kelompokId,
       kelompokNomor: result.kelompokNomor,
-      sesiId: result.sesiId,
+      sesiId: result.sesiId ?? undefined,
     });
     res.setHeader("Set-Cookie", sessionCookieHeader(cookie));
     res.status(200).json({

@@ -18,7 +18,7 @@
  * narrow panel docked beside the code.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Maximize2, Zap } from "lucide-react";
+import { Maximize2 } from "lucide-react";
 import SchematicViewer from "../ui/SchematicViewer";
 import { getJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -383,7 +383,7 @@ export default function PinSchematic({
       <div className="pins__wiring">
         <div className="row row--between">
           <span className="label-caps">
-            <Zap size={13} aria-hidden="true" /> {t.wiring} · {pin.judul}
+            {t.wiring} · {pin.judul}
           </span>
           {legend}
         </div>

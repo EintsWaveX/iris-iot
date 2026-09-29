@@ -9,16 +9,7 @@
  */
 import { useMemo, useState, type CSSProperties } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
-import {
-  Check,
-  ChevronDown,
-  ClipboardPaste,
-  Search,
-  Unlock,
-  UserCog,
-  Users,
-  X,
-} from "lucide-react";
+import { Check, ChevronDown, Search } from "lucide-react";
 import { parseRosterPaste, rosterToPaste } from "../../lib/roster-parser";
 import { KELOMPOK_NAMA, postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -60,9 +51,7 @@ export default function PrepView({
         )}
         <section className="panel">
           <div className="panel__head">
-            <h2 className="panel__title">
-              <Unlock size={18} aria-hidden="true" /> {t.accTitle}
-            </h2>
+            <h2 className="panel__title">{t.accTitle}</h2>
           </div>
           <AccessForm t={t} lang={lang} bare />
         </section>
@@ -122,9 +111,7 @@ function AssignmentPanel({
     <section className="panel">
       <div className="panel__head">
         <div className="stack stack--sm">
-          <h2 className="panel__title">
-            <UserCog size={18} aria-hidden="true" /> {t.assignTitle}
-          </h2>
+          <h2 className="panel__title">{t.assignTitle}</h2>
           <p className="panel__sub">{t.assignSub}</p>
         </div>
       </div>
@@ -262,9 +249,7 @@ function AssistantPicker({
                 {subs.filter((x) => match(x.a)).map((x) => row(x.a, x.tag))}
               </>
             )}
-            <span className="label-caps">
-              <Users size={13} aria-hidden="true" /> {t.filters.all}
-            </span>
+            <span className="label-caps">{t.filters.all}</span>
             {all.filter(match).map((a) => row(a))}
           </div>
           {value && (
@@ -276,7 +261,7 @@ function AssistantPicker({
                 setOpen(false);
               }}
             >
-              <X size={16} aria-hidden="true" /> {t.assignNone}
+              {t.assignNone}
             </button>
           )}
         </RadixPopover.Content>
@@ -325,9 +310,7 @@ function RosterPanel({
     <section className="panel">
       <div className="panel__head">
         <div className="stack stack--sm">
-          <h2 className="panel__title">
-            <ClipboardPaste size={18} aria-hidden="true" /> {t.rosterTitle}
-          </h2>
+          <h2 className="panel__title">{t.rosterTitle}</h2>
           <p className="panel__sub">{t.rosterSub}</p>
         </div>
       </div>

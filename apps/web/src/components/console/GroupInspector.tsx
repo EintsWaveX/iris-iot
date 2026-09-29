@@ -21,19 +21,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
 } from "react";
-import {
-  Activity,
-  AlertTriangle,
-  Check,
-  Cpu,
-  Hand,
-  Lock,
-  NotebookPen,
-  Table2,
-  UserPlus,
-  Users,
-  Wifi,
-} from "lucide-react";
+import { AlertTriangle, Lock } from "lucide-react";
 import { ScoreInput, Switch } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
 import { ProgressRing } from "../ui/Display";
@@ -161,7 +149,6 @@ export default function GroupInspector(p: InspectorProps) {
               disabled={busy}
               onClick={() => (owner ? setConfirmTake(true) : void assign("klaim"))}
             >
-              <UserPlus size={17} aria-hidden="true" />
               {owner ? t.takeOver : t.claim}
             </button>
           )}
@@ -174,16 +161,11 @@ export default function GroupInspector(p: InspectorProps) {
       <div className="insp__grid">
         {/* ------------------------------------------------ help */}
         <section className="insp__sec" data-tone={hand || stuck.length ? "warn" : undefined}>
-          <h3 className="insp__sec-title">
-            <Hand size={17} aria-hidden="true" /> {t.help}
-          </h3>
+          <h3 className="insp__sec-title">{t.help}</h3>
           {hand && (
             <div className="insp__hand">
-              <span className="insp__hand-text">
-                <Hand size={20} aria-hidden="true" /> {t.handUp(sejak(hand, lang, now))}
-              </span>
+              <span className="insp__hand-text">{t.handUp(sejak(hand, lang, now))}</span>
               <button type="button" className="btn btn--primary" onClick={() => void resolveHand()}>
-                <Check size={18} aria-hidden="true" />
                 {t.resolve}
               </button>
             </div>
@@ -207,7 +189,7 @@ export default function GroupInspector(p: InspectorProps) {
         {/* --------------------------------------------- members */}
         <section className="insp__sec">
           <h3 className="insp__sec-title">
-            <Users size={17} aria-hidden="true" /> {t.members}
+            {t.members}
             <span className="hint num insp__sec-aside">{t.here(g.hadir, g.anggotaTotal)}</span>
           </h3>
           <ul className="insp__members">
@@ -224,13 +206,13 @@ export default function GroupInspector(p: InspectorProps) {
         {/* ---------------------------------------------- scores */}
         <section className="insp__sec insp__sec--wide">
           <h3 className="insp__sec-title">
-            <NotebookPen size={17} aria-hidden="true" /> {t.scores}
+            {t.scores}
             <button
               type="button"
               className="btn btn--ghost btn--sm insp__sec-aside"
               onClick={p.onOpenTable}
             >
-              <Table2 size={16} aria-hidden="true" /> {t.openTable}
+              {t.openTable}
             </button>
           </h3>
           <ScoreEditor
@@ -245,9 +227,7 @@ export default function GroupInspector(p: InspectorProps) {
 
         {/* --------------------------------------------- devices */}
         <section className="insp__sec">
-          <h3 className="insp__sec-title">
-            <Cpu size={17} aria-hidden="true" /> {t.devices}
-          </h3>
+          <h3 className="insp__sec-title">{t.devices}</h3>
           {dev.length === 0 ? (
             <p className="hint">{t.noDevice}</p>
           ) : (
@@ -273,9 +253,7 @@ export default function GroupInspector(p: InspectorProps) {
 
         {/* ------------------------------------------------ flow */}
         <section className="insp__sec">
-          <h3 className="insp__sec-title">
-            <Activity size={17} aria-hidden="true" /> {t.flow}
-          </h3>
+          <h3 className="insp__sec-title">{t.flow}</h3>
           {g.telemetri && g.telemetri.count > 0 ? (
             <div className="insp__flow">
               <div className="stat">
@@ -288,7 +266,6 @@ export default function GroupInspector(p: InspectorProps) {
               </div>
               {g.telemetri.delayMinMs != null && g.telemetri.delayMaxMs != null && (
                 <div className="insp__range">
-                  <Wifi size={14} aria-hidden="true" />
                   <span className="num hint">
                     {t.range(g.telemetri.delayMinMs, g.telemetri.delayMaxMs)}
                   </span>
@@ -302,9 +279,7 @@ export default function GroupInspector(p: InspectorProps) {
 
         {/* ------------------------------------------------ notes */}
         <section className="insp__sec insp__sec--wide">
-          <h3 className="insp__sec-title">
-            <NotebookPen size={17} aria-hidden="true" /> {t.notes}
-          </h3>
+          <h3 className="insp__sec-title">{t.notes}</h3>
           <NotesEditor t={t} sesiId={sesiId} g={g} modul={modul} onSaved={p.onChanged} />
         </section>
       </div>

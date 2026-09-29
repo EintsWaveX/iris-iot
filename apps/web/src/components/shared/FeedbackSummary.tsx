@@ -6,7 +6,7 @@
  * receives a NIM: the API strips it.
  */
 import type { CSSProperties } from "react";
-import { MessageSquareQuote, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { LABEL_CHIP, type Ringkasan } from "../../lib/umpan-balik";
 import { sejak } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -71,7 +71,6 @@ export default function FeedbackSummary({
         <ul className="fbsum__quotes">
           {data.komentar.slice(0, maxComments).map((k, i) => (
             <li key={i}>
-              <MessageSquareQuote size={16} aria-hidden="true" />
               <span className="grow">{k.teks}</span>
               <span className="hint faint">{sejak(k.pada, lang)}</span>
             </li>
