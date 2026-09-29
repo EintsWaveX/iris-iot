@@ -1,0 +1,73 @@
+.pill {
+  align-items: center;
+  background: var(--surface-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: var(--fs-small);
+  gap: var(--space-1);
+  line-height: 1.2;
+  min-height: 28px;
+  padding: 2px var(--space-3);
+  white-space: nowrap;
+}
+
+.pill--mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+.pill--ok {
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+  color: var(--ok);
+}
+
+.pill--warn {
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+  color: var(--warn);
+}
+
+.pill--danger {
+  background: var(--danger-soft);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  color: var(--danger);
+}
+
+.pill--accent {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent-bright);
+}
+
+.pill--gold {
+  background: var(--gold-soft);
+  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+  color: var(--gold);
+}
+
+.pill--group {
+  background: color-mix(in srgb, var(--pill-hue) 16%, transparent);
+  border-color: color-mix(in srgb, var(--pill-hue) 40%, transparent);
+  color: var(--pill-hue);
+}
+
+.pill--button {
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-small);
+  min-height: 40px;
+}
+
+.pill--button:hover {
+  border-color: var(--hairline-strong);
+  color: var(--text);
+}
+
+.pill--button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}

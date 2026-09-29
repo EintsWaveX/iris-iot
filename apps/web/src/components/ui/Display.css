@@ -1,0 +1,221 @@
+/* StateView */
+.state-view {
+  align-content: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+}
+
+.state-view__icon {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 50%;
+  color: var(--accent-bright);
+  display: flex;
+  height: 64px;
+  justify-content: center;
+  width: 64px;
+}
+
+.state-view--danger .state-view__icon {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.state-view--warn .state-view__icon {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.state-view__title {
+  font-size: 1.15rem;
+  font-weight: 650;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.state-view__body {
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 44ch;
+}
+
+.state-view__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+/* Skeleton */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
+  background-size: 300% 100%;
+  border-radius: var(--radius-md);
+  display: block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion-tier="0"]) .skeleton {
+    animation: skeleton-shimmer 1.4s linear infinite;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    background-position: -150% 0;
+  }
+}
+
+/* ProgressRing */
+.ring {
+  --ring-size: 44px;
+  align-items: center;
+  background: conic-gradient(var(--ring-c) calc(var(--ring-p) * 1%), var(--hairline) 0);
+  border-radius: 50%;
+  display: inline-flex;
+  flex: none;
+  height: var(--ring-size);
+  justify-content: center;
+  width: var(--ring-size);
+}
+
+.ring--lg {
+  --ring-size: 64px;
+}
+
+.ring__label {
+  align-items: center;
+  background: var(--surface-1);
+  border-radius: 50%;
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  height: calc(var(--ring-size) - 10px);
+  justify-content: center;
+  width: calc(var(--ring-size) - 10px);
+}
+
+.ring--lg .ring__label {
+  font-size: 13px;
+  height: calc(var(--ring-size) - 12px);
+  width: calc(var(--ring-size) - 12px);
+}
+
+/* RatingPicker */
+.rating {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.rating__face {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1.5px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  font-size: var(--fs-small);
+  gap: var(--space-1);
+  justify-items: center;
+  min-height: 76px;
+  padding: var(--space-3) var(--space-1);
+}
+
+.rating__face svg {
+  fill: none;
+  height: 32px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+  width: 32px;
+}
+
+.rating__face[aria-checked="true"] {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion-tier="0"]) .rating__face {
+    transition: transform var(--dur-fast, 160ms) ease-out;
+  }
+  :root:not([data-motion-tier="0"]) .rating__face:hover {
+    transform: translateY(-3px);
+  }
+  :root:not([data-motion-tier="0"]) .rating__face[aria-checked="true"] {
+    transform: scale(1.04);
+  }
+}
+
+/* QrCode */
+.qr {
+  background: #fff;
+  border-radius: var(--radius-md);
+  flex: none;
+  padding: 6px;
+}
+
+.qr svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* Poll health */
+.updated-ago {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.offline-banner {
+  align-items: center;
+  background: var(--warn-soft);
+  border-bottom: 1px solid var(--hairline);
+  color: var(--warn);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+}
+
+.offline-banner .btn {
+  margin-left: auto;
+}
+
+/* ShortcutSheet */
+.shortcut-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.shortcut-table td {
+  border-bottom: 1px solid var(--hairline-faint);
+  padding: var(--space-3) var(--space-2);
+  vertical-align: middle;
+}
+
+.shortcut-table td:first-child {
+  white-space: nowrap;
+  width: 40%;
+}
+
+.shortcut-table kbd {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 2px 8px;
+}

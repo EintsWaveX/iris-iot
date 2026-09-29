@@ -1,0 +1,250 @@
+/**
+ * Small P8.7 display primitives that several islands share:
+ *
+ * - StateView: one empty / forbidden / error / offline block with an icon,
+ *   title, body and optional actions (replaces the ad-hoc "Memuat…" and
+ *   forbidden headings scattered across the islands)
+ * - Skeleton: shimmer placeholder while data loads
+ * - CountUp: a number that tweens to its new value (motion tier 1+ only)
+ * - ProgressRing: a small conic ring with a centred label ("6/12")
+ * - RatingPicker: five big tappable faces, a real radio group
+ * - QrCode: an SVG QR code (qrcode-generator), for the projector
+ * - OfflineBanner / UpdatedAgo: poll health, from usePoll's state
+ */
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import qrcode from "qrcode-generator";
+import { useAgeSeconds, useMotionTier } from "../../lib/hooks";
+import "./Display.css";
+
+/* ------------------------------------------------------------ StateView */
+
+type Tone = "accent" | "danger" | "warn";
+
+export function StateView({
+  icon,
+  title,
+  body,
+  actions,
+  tone = "accent",
+}: {
+  icon: ReactNode;
+  title: string;
+  body?: ReactNode;
+  actions?: ReactNode;
+  tone?: Tone;
+}) {
+  return (
+    <div
+      className={`state-view state-view--${tone}`}
+      role={tone === "danger" ? "alert" : undefined}
+    >
+      <div className="state-view__icon" aria-hidden="true">
+        {icon}
+      </div>
+      <h2 className="state-view__title">{title}</h2>
+      {body && <p className="state-view__body">{body}</p>}
+      {actions && <div className="state-view__actions">{actions}</div>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- Skeleton */
+
+export function Skeleton({
+  width,
+  height = 16,
+  radius,
+}: {
+  width?: string | number;
+  height?: string | number;
+  radius?: string;
+}) {
+  return (
+    <span className="skeleton" aria-hidden="true" style={{ width, height, borderRadius: radius }} />
+  );
+}
+
+/* -------------------------------------------------------------- CountUp */
+
+export function CountUp({ value, duration = 700 }: { value: number; duration?: number }) {
+  const tier = useMotionTier();
+  const [shown, setShown] = useState(value);
+  const from = useRef(value);
+  useEffect(() => {
+    if (tier === 0) {
+      setShown(value);
+      from.current = value;
+      return;
+    }
+    const start = performance.now();
+    const a = from.current;
+    let raf = 0;
+    const step = (t: number) => {
+      const k = Math.min(1, (t - start) / duration);
+      const e = 1 - Math.pow(1 - k, 3);
+      setShown(Math.round(a + (value - a) * e));
+      if (k < 1) raf = requestAnimationFrame(step);
+      else from.current = value;
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration, tier]);
+  return <span className="num">{shown}</span>;
+}
+
+/* --------------------------------------------------------- ProgressRing */
+
+export function ProgressRing({
+  value,
+  max,
+  label,
+  color = "var(--accent)",
+  size = "md",
+}: {
+  value: number;
+  max: number;
+  label?: string;
+  color?: string;
+  size?: "md" | "lg";
+}) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  const text = label ?? `${value}/${max}`;
+  return (
+    <span
+      className={`ring ring--${size}`}
+      role="img"
+      aria-label={text}
+      style={{ "--ring-p": pct, "--ring-c": color } as CSSProperties}
+    >
+      <span className="ring__label">{text}</span>
+    </span>
+  );
+}
+
+/* --------------------------------------------------------- RatingPicker */
+
+const FACES = [
+  "M8 17s1.5-3 4-3 4 3 4 3",
+  "M8.5 16s1.3-1.5 3.5-1.5 3.5 1.5 3.5 1.5",
+  "M8 15h8",
+  "M8.5 14.5s1.3 1.5 3.5 1.5 3.5-1.5 3.5-1.5",
+  "M8 14s1.5 3 4 3 4-3 4-3",
+];
+
+export function RatingPicker({
+  value,
+  onChange,
+  labels,
+  groupLabel,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  /** Five labels, worst to best. */
+  labels: [string, string, string, string, string];
+  groupLabel: string;
+}) {
+  return (
+    <div className="rating" role="radiogroup" aria-label={groupLabel}>
+      {labels.map((l, i) => (
+        <button
+          key={l}
+          type="button"
+          role="radio"
+          aria-checked={value === i + 1}
+          className="rating__face"
+          onClick={() => onChange(i + 1)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight" || e.key === "ArrowUp")
+              onChange(Math.min(5, (value || 0) + 1));
+            else if (e.key === "ArrowLeft" || e.key === "ArrowDown")
+              onChange(Math.max(1, (value || 2) - 1));
+            else return;
+            e.preventDefault();
+          }}
+          tabIndex={value === i + 1 || (!value && i === 0) ? 0 : -1}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9 9h.01M15 9h.01" />
+            <path d={FACES[i]} />
+          </svg>
+          <span>{l}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------- QrCode */
+
+export function QrCode({
+  text,
+  size = 200,
+  label,
+}: {
+  text: string;
+  size?: number;
+  label: string;
+}) {
+  // Drawn from the module matrix as one SVG path, so no generated markup is
+  // ever injected as HTML.
+  const { n, d } = useMemo(() => {
+    const q = qrcode(0, "M");
+    q.addData(text);
+    q.make();
+    const count = q.getModuleCount();
+    let path = "";
+    for (let r = 0; r < count; r++) {
+      for (let c = 0; c < count; c++) if (q.isDark(r, c)) path += `M${c} ${r}h1v1h-1z`;
+    }
+    return { n: count, d: path };
+  }, [text]);
+  return (
+    <div className="qr" style={{ width: size, height: size }}>
+      <svg
+        viewBox={`-2 -2 ${n + 4} ${n + 4}`}
+        role="img"
+        aria-label={label}
+        shapeRendering="crispEdges"
+      >
+        <path d={d} fill="#000" />
+      </svg>
+    </div>
+  );
+}
+
+/* ------------------------------------------------ poll health indicators */
+
+export function UpdatedAgo({
+  since,
+  template,
+}: {
+  since: number | null;
+  template: (s: number) => string;
+}) {
+  const age = useAgeSeconds(since);
+  if (age === null) return null;
+  return <span className="updated-ago">{template(age)}</span>;
+}
+
+export function OfflineBanner({
+  errors,
+  text,
+  retry,
+  retryLabel,
+}: {
+  errors: number;
+  text: string;
+  retry: () => void;
+  retryLabel: string;
+}) {
+  if (errors < 2) return null;
+  return (
+    <div className="offline-banner" role="status">
+      <span>{text}</span>
+      <button type="button" className="btn btn--ghost" onClick={retry}>
+        {retryLabel}
+      </button>
+    </div>
+  );
+}

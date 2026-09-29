@@ -352,6 +352,13 @@
      class of sub-44px controls the previous build had shipped with.
      ----------------------------------------------------------------------- */
   --tap: 0px;
+
+  /* Phase 8 (apps/web): the user asked for big buttons and big score
+     fields, on every device rather than only under a coarse pointer, since
+     assistants grade on laptops too. --tap stays the touch floor above;
+     these are the working sizes. */
+  --tap-lg: 48px;
+  --input-score: 56px;
 }
 
 @media (max-width: 880px) {

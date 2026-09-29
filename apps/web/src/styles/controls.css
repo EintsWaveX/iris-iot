@@ -103,7 +103,7 @@
   font-weight: 500;
   gap: var(--space-2);
   justify-content: center;
-  min-height: max(var(--tap), 44px);
+  min-height: max(var(--tap), var(--tap-lg, 48px));
   padding: 0 var(--space-5);
   position: relative;
   text-decoration: none;
@@ -288,7 +288,9 @@
 /* -- sizes -- */
 .btn--sm {
   font-size: var(--fs-small);
-  min-height: var(--tap);
+  /* P8: "small" is now only the type and padding; the height keeps the
+     48px working size so no button in the app is hard to hit. */
+  min-height: max(var(--tap), var(--tap-lg, 48px));
   padding-inline: var(--space-3);
 }
 
@@ -299,7 +301,7 @@
 /* -- lg: a page's one standout action (P7.1) -- */
 .btn--lg {
   font-size: var(--fs-body-lg);
-  min-height: max(var(--tap), 52px);
+  min-height: max(var(--tap), 56px);
   padding-inline: var(--space-7);
 }
 

@@ -1,0 +1,70 @@
+.panes {
+  min-height: 0;
+  min-width: 0;
+}
+
+.panes--stacked {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.panes__pane {
+  min-width: 0;
+}
+
+.panes__inner {
+  height: 100%;
+  min-width: 0;
+  overflow: auto;
+  padding: 0 var(--space-2);
+}
+
+.panes__pane:first-child .panes__inner {
+  padding-left: 0;
+}
+
+.panes__pane:last-child .panes__inner {
+  padding-right: 0;
+}
+
+.panes__handle {
+  flex: none;
+  position: relative;
+  width: 12px;
+}
+
+.panes__handle::before {
+  background: var(--hairline);
+  border-radius: 2px;
+  bottom: 12px;
+  content: "";
+  left: 5px;
+  position: absolute;
+  top: 12px;
+  transition: background var(--dur-fast, 160ms);
+  width: 2px;
+}
+
+.panes__handle::after {
+  background: var(--surface-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 4px;
+  content: "";
+  height: 28px;
+  left: 3px;
+  margin-top: -14px;
+  position: absolute;
+  top: 50%;
+  width: 6px;
+}
+
+.panes__handle:hover::before,
+.panes__handle:focus-visible::before,
+.panes__handle[data-separator="active"]::before {
+  background: var(--accent);
+}
+
+.panes__handle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
