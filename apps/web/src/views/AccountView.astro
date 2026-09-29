@@ -1,0 +1,23 @@
+---
+/**
+ * /account and /en/account (Phase 8): profile, language, and for
+ * assistants the password change, their week and their own feedback.
+ */
+import Base from "../layouts/Base.astro";
+import AccountPage from "../components/account/AccountPage";
+
+interface Props {
+  lang: "id" | "en";
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  title={lang === "en" ? "Account · IRIS IoT" : "Akun · IRIS IoT"}
+  lang={lang}
+  cosmosScene="kerja"
+>
+  <main id="main" class="page-regular page-main">
+    <AccountPage client:load lang={lang} />
+  </main>
+</Base>

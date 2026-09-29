@@ -134,6 +134,16 @@ export function saveLangPref(lang: Lang): void {
   document.cookie = `${LANG_PREF_KEY}=${lang}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
 
+/** Forget the saved choice, so the class type decides again. */
+export function clearLangPref(): void {
+  try {
+    localStorage.removeItem(LANG_PREF_KEY);
+  } catch {
+    /* ignore */
+  }
+  document.cookie = `${LANG_PREF_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
 /** Page language: the route's own (`/en/...`) wins for rendering; this hook
  *  gives islands the effective choice for anything the route does not fix. */
 export function useLang(routeLang: Lang, kelas?: Kelas | null): Lang {

@@ -1,0 +1,97 @@
+.nf {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0 auto;
+  max-width: 40rem;
+  min-height: calc(100vh - var(--nav-size) - 80px);
+  justify-content: center;
+  padding-block: var(--space-page-top) var(--space-9);
+  text-align: center;
+}
+
+.nf__orbit {
+  align-items: center;
+  display: flex;
+  height: 15rem;
+  justify-content: center;
+  margin-bottom: var(--space-2);
+  position: relative;
+  width: 15rem;
+}
+
+.nf__digits {
+  background: var(--sweep-surface, linear-gradient(90deg, var(--accent), var(--group-2)));
+  background-clip: text;
+  background-size: 200% auto;
+  color: transparent;
+  font-family: var(--font-display);
+  font-size: 6.5rem;
+  line-height: 1;
+  -webkit-background-clip: text;
+}
+
+:root:not([data-motion-tier="0"]) .nf__digits {
+  animation: aurora-sweep 6s linear infinite;
+}
+
+.nf__ring {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 50%;
+  inset: 0;
+  position: absolute;
+  transform: rotateX(68deg) rotateZ(-18deg);
+}
+
+.nf__ring--2 {
+  border-color: color-mix(in srgb, var(--group-2) 35%, transparent);
+  inset: 1.6rem;
+  transform: rotateX(68deg) rotateZ(24deg);
+}
+
+.nf__moon {
+  background: var(--accent-bright);
+  border-radius: 50%;
+  box-shadow: 0 0 16px var(--accent);
+  height: 12px;
+  left: calc(50% - 6px);
+  position: absolute;
+  top: calc(50% - 6px);
+  width: 12px;
+}
+
+:root:not([data-motion-tier="0"]) .nf__moon {
+  animation: nf-orbit 7s linear infinite;
+}
+
+@keyframes nf-orbit {
+  from {
+    transform: rotate(0deg) translateX(7.2rem) rotate(0deg) scaleY(0.6);
+  }
+  to {
+    transform: rotate(360deg) translateX(7.2rem) rotate(-360deg) scaleY(0.6);
+  }
+}
+
+.nf__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  font-weight: 400;
+  margin: 0;
+}
+
+.nf__body {
+  color: var(--text-muted);
+  font-size: var(--fs-body-lg);
+  margin: 0;
+  max-width: 34rem;
+}
+
+.nf__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-top: var(--space-2);
+}

@@ -41,6 +41,7 @@ export interface Me {
   kelompok?: number | null;
   kode?: string;
   perluAturSandi?: boolean;
+  divisi?: { id: string; en: string };
 }
 
 let mePromise: Promise<Me | null> | null = null;

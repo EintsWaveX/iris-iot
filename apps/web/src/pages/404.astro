@@ -1,0 +1,14 @@
+---
+/**
+ * The 404 page (Phase 8). Vercel serves this one file for every missing
+ * path; NotFound.tsx switches to English under /en/.
+ */
+import Base from "../layouts/Base.astro";
+import NotFound from "../components/notfound/NotFound";
+---
+
+<Base title="404 · IRIS IoT" cosmosScene="beranda">
+  <main id="main" class="page-regular page-main">
+    <NotFound client:load />
+  </main>
+</Base>

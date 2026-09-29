@@ -47,15 +47,22 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
   // answering even if this lookup fails.
   let kode: string | undefined;
   let perluAturSandi: boolean | undefined;
+  let divisi: { id: string; en: string } | undefined;
   if (session.role === "asisten") {
     try {
       const [row] = await getDb()
-        .select({ kode: asisten.kode, hash: asisten.passwordHash })
+        .select({
+          kode: asisten.kode,
+          hash: asisten.passwordHash,
+          divisiId: asisten.divisiId,
+          divisiEn: asisten.divisiEn,
+        })
         .from(asisten)
         .where(eq(asisten.nim, session.nim))
         .limit(1);
       kode = row?.kode;
       perluAturSandi = row ? !row.hash : undefined;
+      divisi = row ? { id: row.divisiId, en: row.divisiEn } : undefined;
     } catch (err) {
       console.error("[api/auth/me] asisten lookup failed:", err);
     }
@@ -69,6 +76,7 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
     kelompok: session.kelompokNomor,
     kode,
     perluAturSandi,
+    divisi,
   });
 }
 
