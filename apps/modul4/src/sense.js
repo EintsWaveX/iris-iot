@@ -22,7 +22,7 @@
  *
  *   Buzzing     navigator.vibrate on the same beat, but only once the
  *               server calls the group warm or better. A phone that buzzes
- *               continuously for 165 minutes is a phone with a flat
+ *               continuously for 150 minutes is a phone with a flat
  *               battery and an owner who has stopped noticing it. Starting
  *               to buzz is itself the signal.
  *

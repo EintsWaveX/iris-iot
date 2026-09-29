@@ -253,7 +253,7 @@ sederhana:
 > **Sebelum sesi dimulai, minta tiap kelompok menyetel batas tidur layar
 > ponselnya ke 5 menit atau "tidak pernah".**
 
-Satu kalimat di awal sesi, dan masalahnya hilang untuk 165 menit berikutnya.
+Satu kalimat di awal sesi, dan masalahnya hilang untuk 150 menit berikutnya.
 
 ### Kalau kamera atau baterai bermasalah
 
@@ -302,8 +302,8 @@ tempelan benar-benar menghapus orangnya.
 ### Jam dan pergantian
 
 Jam mulai bawaan **06:30, 09:30, 12:30, 15:30**, dan satu sesi dibatasi
-**165 menit**. Pada jarak tiga jam kedua aturan itu jatuh bersamaan: sesi
-dibersihkan tepat **15 menit sebelum** sesi berikutnya dijadwalkan mulai.
+**150 menit**. Pada jarak tiga jam kedua aturan itu jatuh bersamaan: sesi
+dibersihkan tepat **30 menit sebelum** sesi berikutnya dijadwalkan mulai.
 Kalau jamnya kelak dirapatkan, yang berlaku tetap yang lebih cepat dari
 keduanya.
 
@@ -474,7 +474,7 @@ pesannya diubah.
   (sangat jarang), atau ponselnya menolak izin kamera. Klaim tanpa foto tetap
   boleh dikirim dan tetap masuk antrean asisten.
 - **Semua ponsel tiba-tiba kembali ke layar NIM.** Sesi berganti — entah
-  karena batas 165 menitnya habis, entah karena jam sesi berikutnya tiba.
+  karena batas 150 menitnya habis, entah karena jam sesi berikutnya tiba.
   Perburuan, klaim, dan foto ikut terhapus; jadwal sehari tidak. Kalau itu
   terjadi terlalu cepat, jalankan server dengan `--sesi-durasi` yang lebih
   panjang atau rapatkan jamnya lewat `--sesi-jam`.

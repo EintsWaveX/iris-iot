@@ -343,7 +343,7 @@ plan:
 - `code-file` in `template/template.typ` silently prints the **entire file**
   if it finds zero blank markers — a botched edit to a sketch's blanks fails
   loudly only if the CI page-count/blank-count gate (step 2) exists first.
-- Firebase ID tokens expire after **1 hour**; a session runs **165 minutes**.
+- Firebase ID tokens expire after **1 hour**; a session runs **150 minutes**.
   Refresh must be tested across that boundary, not just assumed to work.
 - `sesi_slot_unik` today makes a mis-created session's slot permanently
   unusable — migration 0002 must land the `batal` status + partial unique

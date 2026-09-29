@@ -38,7 +38,7 @@ export function requireRole(
  * requireRole(req, res, "praktikan"), plus one more check (P6.2/B9): when a
  * session IS currently running and this cookie was issued for a DIFFERENT
  * one, the cookie is stale -- carried over (its 3-hour TTL outlives a
- * single 165-minute practicum slot) from a session that has since ended,
+ * single 150-minute practicum slot) from a session that has since ended,
  * without a fresh login for the new one. Refuses with `sesi_berganti`
  * rather than silently letting the action through: a stale cookie's
  * attendance record still points at the OLD session (see

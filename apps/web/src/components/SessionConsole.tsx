@@ -98,7 +98,7 @@ const KODE_PESAN: Record<string, string> = {
   format_salah: "Formatnya belum benar.",
   sudah_ada:
     "Slot ini sudah dipakai sesi modul yang sama pada tanggal itu, termasuk yang sudah selesai. Pilih slot lain.",
-  sudah_lewat: "Sesi ini sudah melewati batas 165 menitnya dan tidak bisa dilanjutkan.",
+  sudah_lewat: `Sesi ini sudah melewati batas ${SESI_CAP_MENIT} menitnya dan tidak bisa dilanjutkan.`,
   tidak_bisa_dilanjutkan: "Hanya sesi yang sudah diakhiri yang bisa dilanjutkan.",
   galat_tempel: "Masih ada baris yang bermasalah pada tempelan.",
   sesi_tidak_ada: "Sesi ini tidak ditemukan.",
@@ -604,7 +604,7 @@ function StatusBar({
         open={confirmAkhiri}
         onOpenChange={setConfirmAkhiri}
         title="Akhiri sesi ini?"
-        description="Praktikan tidak bisa masuk lagi ke sesi ini, dan slotnya tetap terpakai untuk tanggal itu. Sesi yang diakhiri masih bisa dilanjutkan selama belum lewat 165 menit sejak dimulai."
+        description={`Praktikan tidak bisa masuk lagi ke sesi ini, dan slotnya tetap terpakai untuk tanggal itu. Sesi yang diakhiri masih bisa dilanjutkan selama belum lewat ${SESI_CAP_MENIT} menit sejak dimulai.`}
         actions={
           <>
             <button

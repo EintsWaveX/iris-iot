@@ -19,7 +19,7 @@
  * POST /api/session/siarkan { pesan } (Stage 10)     — set or clear the running session's broadcast.
  * POST /api/session/catatan { sesiId, kelompokId, catatan, peran } (Stage 10) — per-group note/role.
  * GET  /api/session/telemetry?modul=N&kelompok=M (Stage 20)          — asisten OR praktikan. The Ladder/LayerXray/GroupLive views' live-data source.
- * POST /api/session/lanjutkan { sesiId }             — reopen an ended session still inside its 165-minute cap.
+ * POST /api/session/lanjutkan { sesiId }             — reopen an ended session still inside its 150-minute cap.
  * GET  /api/session/akses (P6.5)                     — public, cacheable. Which modules students may open.
  * POST /api/session/akses { terbuka: number[] } (P6.5) — asisten-only, sets the open-module list directly.
  * GET  /api/session/laporan?sesiId= (P6.8)            — same shape as plain /laporan, for any session by id, not only the running one.
@@ -729,7 +729,7 @@ async function handleCatatan(req: ApiRequest, res: ApiResponse, session: Session
 }
 
 /** POST /api/session/lanjutkan { sesiId } -- reopens a session that was
- *  ended, as long as it is still inside its own 165-minute cap. An ended
+ *  ended, as long as it is still inside its own 150-minute cap. An ended
  *  session keeps holding its slot (sesi_slot_unik), so before this one
  *  stray "Akhiri sesi" left no way back: re-creating the same slot failed
  *  with "sudah_ada" and cancelling refused an ended session. Reopening

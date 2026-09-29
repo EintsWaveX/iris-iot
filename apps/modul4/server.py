@@ -208,8 +208,8 @@ WS_MAX_SIZE = 1 << 20
 # sesi mana yang sedang berjalan, dan membersihkan ronde sebelumnya saat
 # giliran berpindah.
 #
-# Jam mulai bawaan berjarak tiga jam, sedangkan satu sesi dibatasi 165 menit.
-# Dua aturan yang diminta -- "bersih 165 menit setelah mulai" dan "bersih 15
+# Jam mulai bawaan berjarak tiga jam, sedangkan satu sesi dibatasi 150 menit.
+# Dua aturan yang diminta -- "bersih 150 menit setelah mulai" dan "bersih 30
 # menit sebelum sesi berikutnya" -- karenanya jatuh pada detik yang sama.
 # akhir() di bawah memakai min() dari keduanya, sehingga keduanya tetap
 # benar seandainya jam mulainya kelak dirapatkan.
@@ -225,8 +225,8 @@ JADWAL_IMPOR_PATH_BAWAAN = pathlib.Path("/var/lib/iris-agent/bagi/jadwal-modul4.
 JADWAL_IMPOR_PATH = JADWAL_IMPOR_PATH_BAWAAN  # dapat diganti lewat --jadwal-impor
 JADWAL_IMPOR_MTIME: float | None = None
 JADWAL_MULAI = ("06:30", "09:30", "12:30", "15:30")
-SESI_DURASI_SEC = 165 * 60         # batas satu sesi praktikum
-SESI_JEDA_SEC = 15 * 60            # bersih selambatnya sekian sebelum sesi berikut
+SESI_DURASI_SEC = 150 * 60         # batas satu sesi praktikum
+SESI_JEDA_SEC = 30 * 60            # bersih selambatnya sekian sebelum sesi berikut
 SESI_SAPU_SEC = 10.0               # denyut pemeriksa pergantian sesi
 JAM_RE = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
 
