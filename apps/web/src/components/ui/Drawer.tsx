@@ -116,7 +116,6 @@ export default function Drawer({
             type="button"
             className="drawer__grip"
             aria-label={resizeLabel}
-            title={resizeLabel}
             onPointerDown={onPointerDown}
             onKeyDown={onKeyDown}
             onDoubleClick={() => save(defaultWidth)}

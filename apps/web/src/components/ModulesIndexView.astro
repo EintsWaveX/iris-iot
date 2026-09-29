@@ -1,16 +1,13 @@
 ---
 /**
- * /modules and /en/modules share this view; only `lang` and the collection
- * language differ between the two thin page files that render it.
+ * /modules and /en/modules: the four module cards (home/ModuleCards.tsx)
+ * with their live state, the student's progress, and for an assistant each
+ * module's lock switch on the card.
  */
-import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
-import { navUtama } from "../lib/nav-links";
-import Card from "../components/ui/Card.astro";
-import Badge from "../components/ui/Badge.astro";
-import Chip from "../components/ui/Chip.astro";
 import PageHeader from "../components/ui/PageHeader.astro";
-import ModuleIcon from "../components/icons/ModuleIcon.astro";
+import ModuleCards from "../components/home/ModuleCards";
+import { moduleCards } from "../lib/module-cards";
 import { id as strId } from "../i18n/id";
 import { en as strEn } from "../i18n/en";
 
@@ -20,13 +17,7 @@ interface Props {
 
 const { lang } = Astro.props;
 const t = lang === "en" ? strEn : strId;
-
-const entries = (await getCollection("modules", ({ id }) => id.startsWith(`${lang}/`))).sort(
-  (a, b) => a.data.modul - b.data.modul,
-);
-
-const basePath = lang === "en" ? "/en/modules" : "/modules";
-const links = navUtama(lang === "en" ? "en" : "id");
+const modules = await moduleCards(lang);
 ---
 
 <Base
@@ -35,117 +26,8 @@ const links = navUtama(lang === "en" ? "en" : "id");
   cosmosScene="kerja"
   lang={lang}
 >
-  <main class="page-regular">
+  <main id="main" class="page-regular page-main">
     <PageHeader eyebrow="IRIS IoT" title={t.indexTitle} subtitle={t.indexLede} />
-
-    <section class="modules-index__grid">
-      {entries.map((entry, i) => (
-        <a
-          class="modules-index__card-link"
-          href={`${basePath}/${entry.data.modul}`}
-          data-modul-card={entry.data.modul}
-        >
-          <Card interactive class="stagger-item modules-index__card" style={`--i: ${i}`}>
-            <div class="modules-index__card-head">
-              <ModuleIcon modul={entry.data.modul as 1 | 2 | 3 | 4} />
-              <Badge tone="neutral" class="modules-index__status" hidden>
-                {t.indexLocked}
-              </Badge>
-            </div>
-            <div class="modules-index__card-body">
-              <Chip>{`${t.moduleWord.toUpperCase()} ${entry.data.modul}`}</Chip>
-              <h3 class="modules-index__card-title">{entry.data.judul}</h3>
-              <p class="modules-index__card-tagline">{entry.data.tagline}</p>
-            </div>
-            <div class="modules-index__facts">
-              {entry.data.fakta.map((f) => (
-                <Chip>{f}</Chip>
-              ))}
-            </div>
-          </Card>
-        </a>
-      ))}
-    </section>
+    <ModuleCards client:load lang={lang} modules={modules} />
   </main>
 </Base>
-
-<script>
-  import { sekaliPerHalaman } from "../scripts/per-halaman";
-  import { getAksesState, terkunciUntuk } from "../scripts/modul-akses";
-
-  function playEntrance() {
-    window.Motion?.enter(".page-header > *");
-  }
-
-  async function renderLocks() {
-    const state = await getAksesState();
-    for (const card of document.querySelectorAll<HTMLAnchorElement>("[data-modul-card]")) {
-      const modul = Number(card.dataset.modulCard);
-      const locked = terkunciUntuk(state, modul);
-      card.classList.toggle("is-locked", locked);
-      const badge = card.querySelector<HTMLElement>(".modules-index__status");
-      if (badge) badge.hidden = !locked;
-    }
-  }
-
-  sekaliPerHalaman("ModulIndeksAnimasi", playEntrance);
-  sekaliPerHalaman("ModulIndeksAkses", () => void renderLocks());
-</script>
-
-<style>
-  .section--intro {
-    padding-block: var(--space-8) var(--space-6);
-  }
-
-  /* P7.4: 2x2 icon+chip cards (following the signed-off mockup), one
-     column below 640, two from 640 up -- the true 2x2 only needs 640px
-     of room since each card is icon-led rather than a wide text block. */
-  .modules-index__grid {
-    display: grid;
-    gap: var(--space-5);
-    grid-template-columns: 1fr;
-    padding-block: 0 var(--space-section);
-  }
-
-  @media (min-width: 640px) {
-    .modules-index__grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  .modules-index__card-link {
-    color: inherit;
-    display: flex;
-    height: 100%;
-    text-decoration: none;
-  }
-
-  .modules-index__card-head {
-    align-items: flex-start;
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .modules-index__card-body {
-    margin-top: var(--space-5);
-  }
-
-  .modules-index__card-title {
-    font-size: var(--fs-display-sm);
-    margin-top: var(--space-2);
-  }
-
-  .modules-index__card-tagline {
-    color: var(--text-muted);
-    font-size: var(--fs-small);
-    margin-top: var(--space-2);
-  }
-
-  .modules-index__facts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    margin-top: auto;
-    padding-top: var(--space-4);
-  }
-</style>

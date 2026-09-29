@@ -116,12 +116,7 @@ export default function ResizablePanes({
             </section>
           </Panel>
           {i < panes.length - 1 && (
-            <Separator
-              className="panes__handle"
-              aria-label={handleLabel}
-              title={handleLabel}
-              onKeyDown={onKey(i)}
-            />
+            <Separator className="panes__handle" aria-label={handleLabel} onKeyDown={onKey(i)} />
           )}
         </Fragment>
       ))}

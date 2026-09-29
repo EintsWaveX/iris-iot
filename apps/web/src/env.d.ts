@@ -3,14 +3,10 @@
 /**
  * Ambient globals installed by the client-side scripts in
  * src/components/ui/*.astro. Declared once here rather than cast with
- * `as any` at every call site, so a typo in a call to window.Modal.open()
- * or window.Toast.show() is still caught by the checker.
+ * `as any` at every call site, so a typo in a call to window.Toast.show()
+ * or window.LoginDialog.open() is still caught by the checker.
  */
 interface Window {
-  Modal?: {
-    open(id: string): void;
-    close(id?: string): void;
-  };
   Toast?: {
     show(
       message: string,
@@ -18,10 +14,8 @@ interface Window {
       opts?: { action?: { label: string; onClick: () => void }; duration?: number },
     ): void;
   };
-  // src/components/LoginDialog.tsx (P7.3): a React-state-driven dialog, not
-  // an id-addressed Modal.astro panel, so it exposes this instead of
-  // relying on data-modal-open -- the same reasoning window.Modal itself
-  // documents just above.
+  // src/components/LoginDialog.tsx (P7.3): opened from anywhere, including
+  // islands that do not share its React tree.
   LoginDialog?: {
     open(): void;
     close(): void;

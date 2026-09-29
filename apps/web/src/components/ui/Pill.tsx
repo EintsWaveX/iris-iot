@@ -52,7 +52,7 @@ export default function Pill({
         type="button"
         className={cls}
         style={style}
-        title={title}
+        aria-label={title}
         aria-pressed={pressed}
         onClick={onClick}
       >
@@ -61,7 +61,7 @@ export default function Pill({
     );
   }
   return (
-    <span className={cls} style={style} title={title}>
+    <span className={cls} style={style} aria-label={title}>
       {children}
     </span>
   );

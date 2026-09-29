@@ -161,7 +161,6 @@ export default function GroupBoard(p: BoardProps) {
                             <span
                               key={a.nim}
                               className={`dot ${a.hadir ? "dot--ok" : "dot--off"}`}
-                              title={a.nama}
                             />
                           ))}
                           <span className="num hint">{t.here(g.hadir, g.anggotaTotal)}</span>
@@ -190,7 +189,7 @@ export default function GroupBoard(p: BoardProps) {
                       <span
                         className={`code-badge${owner ? "" : " code-badge--empty"}`}
                         data-me={pemilik[g.id] === meNim ? "yes" : undefined}
-                        title={owner ? owner.nama : t.unassigned}
+                        aria-label={owner ? owner.nama : t.unassigned}
                       >
                         {owner?.kode ?? "?"}
                       </span>

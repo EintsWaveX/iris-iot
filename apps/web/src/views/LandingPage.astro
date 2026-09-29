@@ -1,0 +1,58 @@
+---
+/**
+ * / and /en/ (Phase 8): the role-aware landing page. The hero (HomeHero)
+ * changes with who is signed in; the module cards (ModuleCards) show each
+ * module's live state. Arriving at /?login=1 (where /masuk and /login
+ * redirect) opens the login dialog; LoginDialog.tsx handles that itself.
+ */
+import Base from "../layouts/Base.astro";
+import HomeHero from "../components/home/HomeHero";
+import ModuleCards from "../components/home/ModuleCards";
+import { moduleCards } from "../lib/module-cards";
+
+interface Props {
+  lang: "id" | "en";
+}
+const { lang } = Astro.props;
+const modules = await moduleCards(lang);
+---
+
+<Base
+  title="IRIS IoT"
+  description={
+    lang === "en"
+      ? "The IRIS IoT practicum. Four modules, one board."
+      : "Praktikum IoT IRIS. Empat modul, satu papan."
+  }
+  cosmosScene="beranda"
+  lang={lang}
+>
+  <main id="main" class="page-wide page-main">
+    <div class="landing">
+      <HomeHero client:load lang={lang} />
+      <ModuleCards client:load lang={lang} modules={modules} />
+    </div>
+  </main>
+</Base>
+
+<style>
+  .landing {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding-top: var(--space-page-top);
+  }
+
+  @media (min-width: 1024px) {
+    .landing {
+      align-items: center;
+      display: grid;
+      gap: var(--space-9);
+      grid-template-columns: minmax(0, 440px) minmax(0, 640px);
+      justify-content: center;
+      margin-inline: auto;
+      max-width: 1200px;
+      min-height: calc(100vh - var(--nav-size) - var(--minibar-h, 0px) - 120px);
+    }
+  }
+</style>

@@ -45,6 +45,7 @@ import { fetchLiveReading, resetLiveReadingMemory } from "../../lib/telemetry-li
 import { nextReading, type Reading } from "../../lib/telemetry-sim";
 import type { Lang } from "../../lib/kelas";
 import FeedbackForm from "./FeedbackForm";
+import { useProgres } from "../shared/useProgres";
 import CoachMarks from "./CoachMarks";
 import "./Dashboard.css";
 
@@ -211,50 +212,6 @@ const T = {
 type Tx = (typeof T)["id"];
 
 const IOT_BOARD_URL = "http://192.168.4.1:8080/";
-
-/* ------------------------------------------------------------ progress */
-
-type Progres = Record<number, { benar: number; total: number } | null>;
-
-function useProgres(modules: ModulInfo[], terbuka: number[] | null): Progres {
-  const [p, setP] = useState<Progres>({});
-  useEffect(() => {
-    if (!terbuka) return;
-    let alive = true;
-    void (async () => {
-      const out: Progres = {};
-      for (const m of modules) {
-        if (!terbuka.includes(m.modul)) continue;
-        const total = m.berkas.reduce((a, b) => a + b.blanks, 0);
-        try {
-          const rows = await Promise.all(
-            m.berkas.map((b) =>
-              getJson<{ ok: boolean; jawaban?: Record<string, { benar: boolean }> }>(
-                `/api/modul/draft?modul=${m.modul}&berkas=${b.slug}`,
-              ),
-            ),
-          );
-          if (rows.some((r) => !r.ok)) {
-            out[m.modul] = null;
-            continue;
-          }
-          const benar = rows.reduce(
-            (a, r) => a + Object.values(r.jawaban ?? {}).filter((x) => x.benar).length,
-            0,
-          );
-          out[m.modul] = { benar: Math.min(benar, total), total };
-        } catch {
-          out[m.modul] = null;
-        }
-      }
-      if (alive) setP(out);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [modules, terbuka]);
-  return p;
-}
 
 /* ----------------------------------------------------------- mini flow */
 
