@@ -65,11 +65,23 @@ before a fourth undocumented manual apply happened.
    ```
 
 4. **Apply to the real database.** Get the direct (non-pooled) Neon
-   connection string — `vercel env pull apps/web/.env.local` writes
-   `DATABASE_URL`, or copy it from the Neon dashboard directly. Use the
-   _direct_ connection for a migration, not a pgbouncer-pooled one; DDL
-   under a connection pooler can behave unpredictably with prepared
-   statements. Then:
+   connection string — `vercel env pull apps/web/.env.local` writes it as
+   `DATABASE_URL_UNPOOLED` (`DATABASE_URL` is the pooled one), or copy it
+   from the Neon dashboard directly. Use the _direct_ connection for a
+   migration, not a pgbouncer-pooled one; DDL under a connection pooler can
+   behave unpredictably with prepared statements.
+
+   `vercel env pull` only writes the file; it does not set anything in your
+   shell. Load the value without printing it (PowerShell, from `apps/web`):
+
+   ```
+   $env:DIRECT_DATABASE_URL = ((Select-String -Path .env.local -Pattern '^DATABASE_URL_UNPOOLED=').Line -replace '^DATABASE_URL_UNPOOLED=', '').Trim('"')
+   psql "$env:DIRECT_DATABASE_URL" -c "select 1"
+   ```
+
+   or in bash: `export DIRECT_DATABASE_URL="$(grep '^DATABASE_URL_UNPOOLED=' .env.local | cut -d= -f2- | tr -d '"')"`.
+   If `psql` answers with a `localhost` / port 5432 error, the variable is
+   empty and it fell back to a local server. Then:
 
    ```
    psql "$DIRECT_DATABASE_URL" -v ON_ERROR_STOP=1 -f drizzle/000N_name.sql
