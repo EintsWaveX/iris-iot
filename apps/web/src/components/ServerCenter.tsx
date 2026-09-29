@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { navigate } from "astro:transitions/client";
 import { startPolling } from "../scripts/polling";
+import { onTablistKeyDown } from "../lib/tablist-keys";
 import Dropdown, { DropdownFilter } from "./ui/Dropdown";
 import Dialog from "./ui/Dialog";
 // uPlot's own layout CSS (axes, cursor, its internal absolute positioning)
@@ -649,13 +650,26 @@ function ServerDetailView({ id, onDeleted }: { id: number; onDeleted: () => void
         </div>
       </section>
 
-      <nav className="server-center__tabs" role="tablist" aria-label="Bagian server">
+      <nav
+        className="server-center__tabs"
+        role="tablist"
+        aria-label="Bagian server"
+        onKeyDown={(e) =>
+          onTablistKeyDown(
+            e,
+            TABS.map((t) => t.id),
+            activeTab,
+            goToTab,
+          )
+        }
+      >
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             role="tab"
             aria-selected={activeTab === t.id}
+            tabIndex={activeTab === t.id ? 0 : -1}
             className="server-center__tab"
             onClick={() => goToTab(t.id)}
           >

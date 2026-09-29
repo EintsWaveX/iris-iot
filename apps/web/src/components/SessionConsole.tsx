@@ -25,6 +25,7 @@ import Dialog from "./ui/Dialog";
 import ScrollArea from "./ui/ScrollArea";
 import PresentationManager from "./PresentationManager";
 import { unduhCsv } from "../lib/csv";
+import { onTablistKeyDown } from "../lib/tablist-keys";
 import { buildSeelabsBookmarklet, buildSeelabsSnippet } from "../lib/seelabs-helper";
 import "./ui/Tabs.css";
 import "./SessionConsole.css";
@@ -445,13 +446,27 @@ function ConsoleTabStrip({
 
   return (
     <div className="tabs-scroll" data-edge={edge}>
-      <div className="tabs" ref={listRef} role="tablist" aria-label="Bagian sesi">
+      <div
+        className="tabs"
+        ref={listRef}
+        role="tablist"
+        aria-label="Bagian sesi"
+        onKeyDown={(e) =>
+          onTablistKeyDown(
+            e,
+            TABS.map((t) => t.id),
+            activeTab,
+            onSelect,
+          )
+        }
+      >
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             role="tab"
             aria-selected={activeTab === t.id}
+            tabIndex={activeTab === t.id ? 0 : -1}
             className="tabs__tab"
             onClick={() => onSelect(t.id)}
           >
@@ -1501,6 +1516,25 @@ function NilaiTab({ sesiId, kelompok }: { sesiId: number; kelompok: KelompokRow[
     }
   }
 
+  /** Enter / Shift+Enter move to the same column one row down / up, the way a
+   *  spreadsheet does -- ArrowUp/ArrowDown are taken by the number input
+   *  itself, and Tab alone means 8 stops per row across 60 rows. Blurring the
+   *  cell is what saves it, so moving focus is all this has to do. */
+  function pindahBaris(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const cell = e.currentTarget.closest("td");
+    const row = cell?.parentElement;
+    if (!cell || !row) return;
+    const col = Array.prototype.indexOf.call(row.children, cell);
+    let target = e.shiftKey ? row.previousElementSibling : row.nextElementSibling;
+    // Skip the coloured group-header rows, which carry no inputs.
+    while (target && !target.children[col]?.querySelector("input")) {
+      target = e.shiftKey ? target.previousElementSibling : target.nextElementSibling;
+    }
+    target?.children[col]?.querySelector("input")?.focus();
+  }
+
   function unduhNilaiCsv() {
     if (!data) return;
     const baris: (string | number)[][] = [];
@@ -1597,12 +1631,20 @@ function NilaiTab({ sesiId, kelompok }: { sesiId: number; kelompok: KelompokRow[
         <table className="nilai-grid mono">
           <thead>
             <tr>
-              <th className="nilai-grid__col-nim">NIM</th>
-              <th className="nilai-grid__col-nama">Nama</th>
+              <th scope="col" className="nilai-grid__col-nim">
+                NIM
+              </th>
+              <th scope="col" className="nilai-grid__col-nama">
+                Nama
+              </th>
               {data.komponen.map((kk) => (
-                <th key={kk}>{kk}</th>
+                <th scope="col" key={kk}>
+                  {kk}
+                </th>
               ))}
-              <th className="nilai-grid__col-total">Total</th>
+              <th scope="col" className="nilai-grid__col-total">
+                Total
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1636,7 +1678,9 @@ function NilaiTab({ sesiId, kelompok }: { sesiId: number; kelompok: KelompokRow[
                             max={100}
                             defaultValue={a.skor[kk] ?? ""}
                             placeholder="-"
+                            aria-label={`${kk} untuk ${a.nama}`}
                             disabled={saving[`${a.nim}.${kk}`] === true}
+                            onKeyDown={pindahBaris}
                             onBlur={(e) => void simpanSatu(a.nim, kk, e.currentTarget.value)}
                           />
                         </td>

@@ -19,6 +19,7 @@ import { DropdownFilter } from "./ui/Dropdown";
 import DateRangePicker from "./ui/DateRangePicker";
 import ScrollArea from "./ui/ScrollArea";
 import { unduhCsv } from "../lib/csv";
+import { onTablistKeyDown } from "../lib/tablist-keys";
 import "./ui/Tabs.css";
 // uPlot's own layout CSS (axes, legend, cursor) was never imported anywhere
 // in this project -- the actual cause of a legend/axis rendering gap here
@@ -186,13 +187,26 @@ function ReportsHome({ onOpen }: { onOpen: (id: number) => void }) {
       </header>
 
       <div className="tabs-scroll">
-        <nav className="tabs" role="tablist" aria-label="Bagian laporan">
+        <nav
+          className="tabs"
+          role="tablist"
+          aria-label="Bagian laporan"
+          onKeyDown={(e) =>
+            onTablistKeyDown(
+              e,
+              HOME_TABS.map((t) => t.id),
+              activeTab,
+              goToTab,
+            )
+          }
+        >
           {HOME_TABS.map((t) => (
             <button
               key={t.id}
               type="button"
               role="tab"
               aria-selected={activeTab === t.id}
+              tabIndex={activeTab === t.id ? 0 : -1}
               className="tabs__tab"
               onClick={() => goToTab(t.id)}
             >
