@@ -313,6 +313,7 @@ export const S = dict({
     commands: "Perintah terakhir",
     noCommands: "Belum ada perintah.",
     cmdStatus: {
+      menunggu: "menunggu",
       antre: "antre",
       terkirim: "terkirim",
       selesai: "selesai",
@@ -640,6 +641,7 @@ export const S = dict({
     commands: "Recent commands",
     noCommands: "No commands yet.",
     cmdStatus: {
+      menunggu: "queued",
       antre: "queued",
       terkirim: "sent",
       selesai: "done",

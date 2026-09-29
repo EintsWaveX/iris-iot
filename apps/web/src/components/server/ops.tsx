@@ -22,6 +22,7 @@ import {
   Cpu,
   FileText,
   Loader2,
+  Power,
   RotateCw,
   Wifi,
   XCircle,
@@ -56,6 +57,7 @@ export const OPS_T = dict({
     seen: (s: string) => `terlihat ${s}`,
     by: (k: string) => `oleh ${k}`,
     status: {
+      menunggu: "menunggu",
       antre: "antre",
       terkirim: "terkirim",
       selesai: "selesai",
@@ -111,6 +113,7 @@ export const OPS_T = dict({
     seen: (s: string) => `seen ${s}`,
     by: (k: string) => `by ${k}`,
     status: {
+      menunggu: "queued",
       antre: "queued",
       terkirim: "sent",
       selesai: "done",
@@ -223,12 +226,15 @@ export function ServiceList({
   hb,
   perintah,
   onSent,
+  onStop,
 }: {
   lang: Lang;
   serverId: number;
   hb: Heartbeat | null;
   perintah: Perintah[];
   onSent: () => void;
+  /** When given, running services also get a Stop button (the caller confirms). */
+  onStop?: (svc: string) => void;
 }) {
   const t = OPS_T[lang];
   const [peek, setPeek] = useState<string | null>(null);
@@ -244,7 +250,7 @@ export function ServiceList({
           (p) =>
             p.aksi === "layanan.mulai_ulang" &&
             p.argumen?.layanan === svc &&
-            (p.status === "antre" || p.status === "terkirim"),
+            (p.status === "menunggu" || p.status === "antre" || p.status === "terkirim"),
         );
         return (
           <li key={svc} className="ops-svc__row" data-state={running ? "ok" : "bad"}>
@@ -295,12 +301,25 @@ export function ServiceList({
                 <FileText size={17} aria-hidden="true" />
                 {t.log}
               </button>
+              {onStop && running && (
+                <button
+                  type="button"
+                  className="btn btn--danger btn--icon"
+                  aria-label={`${t.stop} ${t.svc[svc] ?? svc}`}
+                  onClick={() => onStop(svc)}
+                >
+                  <Power size={17} aria-hidden="true" />
+                </button>
+              )}
             </div>
             {peek === svc && (
               <pre className="ops-log" aria-live="polite">
                 {log?.status === "selesai" && log.keluaran
                   ? log.keluaran
-                  : log && (log.status === "antre" || log.status === "terkirim")
+                  : log &&
+                      (log.status === "menunggu" ||
+                        log.status === "antre" ||
+                        log.status === "terkirim")
                     ? t.logWait
                     : t.logEmpty}
               </pre>
@@ -315,6 +334,7 @@ export function ServiceList({
 /* -------------------------------------------------------------- timeline */
 
 const STEP_OF: Record<string, number> = {
+  menunggu: 0,
   antre: 0,
   terkirim: 1,
   selesai: 2,

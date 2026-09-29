@@ -1,0 +1,20 @@
+---
+/** /servers and /en/servers (Phase 8): the server centre island. */
+import Base from "../layouts/Base.astro";
+import ServerCenter from "../components/server/ServerCenter";
+
+interface Props {
+  lang: "id" | "en";
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  title={lang === "en" ? "Servers · IRIS IoT" : "Server · IRIS IoT"}
+  lang={lang}
+  cosmosScene="teknis"
+>
+  <main id="main" class="page-wide page-main">
+    <ServerCenter client:load lang={lang} />
+  </main>
+</Base>
