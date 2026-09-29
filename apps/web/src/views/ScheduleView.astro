@@ -1,0 +1,23 @@
+---
+/**
+ * /schedule and /en/schedule (Phase 8): the teaching schedule, one island
+ * (schedule/SchedulePage.tsx), assistants only.
+ */
+import Base from "../layouts/Base.astro";
+import SchedulePage from "../components/schedule/SchedulePage";
+
+interface Props {
+  lang: "id" | "en";
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  title={lang === "en" ? "Schedule · IRIS IoT" : "Jadwal · IRIS IoT"}
+  lang={lang}
+  cosmosScene="teknis"
+>
+  <main id="main" class="page-full page-main">
+    <SchedulePage client:load lang={lang} />
+  </main>
+</Base>

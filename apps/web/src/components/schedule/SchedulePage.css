@@ -1,0 +1,582 @@
+/* The Jadwal page (Phase 8). */
+
+.jpage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-top: var(--space-page-top);
+}
+
+.jpage__head {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-6);
+  justify-content: space-between;
+}
+
+.jpage__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-md);
+  font-weight: 400;
+  margin: 0;
+}
+
+.jpage__sub {
+  margin: 0;
+  max-width: 60ch;
+}
+
+.jpage__tools {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+}
+
+.jpage__sem {
+  min-width: 13rem;
+}
+
+.jpage__legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.jpage__lg {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  gap: 6px;
+}
+
+.jpage__lg i {
+  background: var(--g);
+  border-radius: 3px;
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+
+.jpage__body {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.jpage__body[data-wide="yes"] {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+}
+
+.jpage__main {
+  min-width: 0;
+}
+
+.jpage__body[data-wide="yes"] .jpage__side {
+  max-height: calc(100vh - var(--nav-size) - 32px);
+  overflow: auto;
+  position: sticky;
+  top: calc(var(--nav-size) + 16px);
+}
+
+/* ----------------------------------------------------------------- grid */
+
+.jgrid-scroll {
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.jgrid {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: 6rem repeat(6, minmax(8.5rem, 1fr));
+  min-width: 58rem;
+}
+
+.jgrid__row {
+  display: contents;
+}
+
+.jgrid__corner {
+  background: var(--bg);
+  left: 0;
+  position: sticky;
+  z-index: 2;
+}
+
+.jgrid__day {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: var(--space-2) var(--space-3);
+  text-transform: uppercase;
+}
+
+.jgrid__day[data-today="yes"] {
+  color: var(--accent-bright);
+}
+
+.jgrid__day[data-today="yes"]::after {
+  background: var(--accent);
+  border-radius: 50%;
+  content: "";
+  display: inline-block;
+  height: 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+  width: 6px;
+}
+
+.jgrid__slot {
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  left: 0;
+  padding: var(--space-2) var(--space-3);
+  position: sticky;
+  z-index: 1;
+}
+
+.jgrid__slot small {
+  color: var(--text-faint);
+}
+
+/* ----------------------------------------------------------------- cell */
+
+.jcell {
+  align-items: stretch;
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font: inherit;
+  gap: var(--space-2);
+  min-height: 7.5rem;
+  padding: var(--space-3);
+  text-align: left;
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    background var(--dur-fast) var(--ease-reveal),
+    opacity var(--dur-mid) var(--ease-reveal),
+    transform var(--dur-fast) var(--ease-reveal);
+}
+
+.jcell:hover {
+  border-color: var(--accent);
+}
+
+:root:not([data-motion-tier="0"]) .jcell:hover {
+  transform: translateY(-2px);
+}
+
+.jcell:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.jcell[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
+  border-color: var(--accent);
+}
+
+.jcell[data-state="none"] {
+  align-items: center;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 8px,
+    color-mix(in srgb, var(--hairline) 60%, transparent) 8px 9px
+  );
+  justify-content: center;
+}
+
+.jcell[data-state="soon"] {
+  border-style: dashed;
+}
+
+.jcell[data-inter="yes"] {
+  border-color: color-mix(in srgb, var(--gold) 50%, transparent);
+}
+
+.jcell[data-mine="yes"] {
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 10px 26px -14px var(--accent);
+}
+
+.jcell[data-dim="yes"] {
+  opacity: 0.55;
+}
+
+.jgrid[data-readonly="yes"] .jcell {
+  cursor: default;
+  pointer-events: none;
+}
+
+.jcell__none {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+}
+
+.jcell__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 0;
+}
+
+.jcell__tags:empty {
+  display: none;
+}
+
+.jcell__inter,
+.jcell__soon,
+.jcell__you {
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+}
+
+.jcell__inter {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.jcell__soon {
+  border: 1px dashed var(--hairline-strong);
+  color: var(--text-muted);
+}
+
+.jcell__you {
+  background: var(--accent-soft);
+  color: var(--accent-bright);
+}
+
+.jcell__codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.jcell__code {
+  align-items: center;
+  background: color-mix(in srgb, var(--g) 14%, transparent);
+  border-left: 3px solid var(--g);
+  border-radius: 4px;
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  gap: 4px;
+  padding: 2px 6px;
+}
+
+.jcell__code small {
+  color: var(--g);
+  font-size: 0.65rem;
+}
+
+.jcell__code[data-me="yes"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.jcell__code[data-me="yes"] small {
+  color: inherit;
+}
+
+.jcell__subs {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  margin-top: auto;
+}
+
+/* ----------------------------------------------------------- phone days */
+
+.jdays {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.jdays__day {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.jdays__head {
+  align-items: center;
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 var(--space-4);
+  width: 100%;
+}
+
+.jdays__day[data-open="yes"] .jdays__head {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.jdays__slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.jdays__slot {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+}
+
+.jdays__slot .jgrid__slot {
+  background: transparent;
+  position: static;
+}
+
+.jdays__slot .jcell {
+  min-height: 4.5rem;
+}
+
+/* --------------------------------------------------------------- editor */
+
+.jedit {
+  background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+:root:not([data-motion-tier="0"]) .jedit {
+  animation: app-rise var(--dur-mid) var(--ease-out-expo);
+}
+
+.jedit--bare {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.jedit--empty {
+  align-items: center;
+  color: var(--text-faint);
+  justify-content: center;
+  min-height: 14rem;
+  text-align: center;
+}
+
+.jedit__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jedit__title {
+  font-size: var(--fs-body-lg);
+}
+
+.jedit__sec {
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+}
+
+.jedit__sec h3 {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--space-1);
+  text-transform: uppercase;
+}
+
+.jedit__group {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.jedit__gk {
+  background: color-mix(in srgb, var(--g) 18%, transparent);
+  border-radius: 6px;
+  color: var(--g);
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.jedit__subs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.jedit__subs li {
+  align-items: center;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.jedit__rank {
+  color: var(--text-faint);
+  width: 1.4rem;
+}
+
+.jedit__subname {
+  display: flex;
+  flex: 1 1 6rem;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.jedit__subname small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jedit__tags {
+  display: flex;
+  gap: 4px;
+}
+
+.jedit__tag {
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.jedit__tag[data-tag="fit"][aria-pressed="true"] {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.jedit__tag[data-tag="a24"][aria-pressed="true"] {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.jedit__moves {
+  display: flex;
+  gap: 2px;
+}
+
+.jedit__add {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.jedit__foot {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* --------------------------------------------------------------- import */
+
+.jimp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.jimp__areas {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .jimp__areas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.jimp__area {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  gap: var(--space-1);
+}
+
+.jimp__area textarea {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 400;
+  padding: var(--space-3);
+  resize: vertical;
+  white-space: pre;
+}
+
+.jimp__area textarea:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.jimp__warn {
+  align-items: flex-start;
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--warn);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.jedit--bare .jedit__head .label-caps {
+  display: none;
+}
+
+.jedit__moves {
+  margin-left: auto;
+}
