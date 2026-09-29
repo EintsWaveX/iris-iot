@@ -46,6 +46,9 @@ import {
   audit,
   nilai,
   NILAI_KOMPONEN,
+  asisten,
+  sesiAsisten,
+  umpanBalik,
 } from "../../src/lib/schema.js";
 import type { NilaiKomponen } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
@@ -945,7 +948,54 @@ async function handleRiwayatSesi(req: ApiRequest, res: ApiResponse) {
     .where(kondisi.length ? and(...kondisi) : undefined)
     .orderBy(desc(sesi.tanggal), desc(sesi.mulai));
 
-  res.status(200).json({ ok: true, sesi: rows });
+  // P8: who taught each session (codes in group order) and the Lab half of
+  // its feedback, averaged. The Asisten half never appears here: it is
+  // only ever shown to the assessed assistant.
+  const ids = rows.map((r) => r.id);
+  const kodeBySesi = new Map<number, { kelompokId: number; kode: string }[]>();
+  const labBySesi = new Map<number, { rata: number; n: number }>();
+  if (ids.length) {
+    const tugas = await db
+      .select({
+        sesiId: sesiAsisten.sesiId,
+        kelompokId: sesiAsisten.kelompokId,
+        kode: asisten.kode,
+      })
+      .from(sesiAsisten)
+      .innerJoin(asisten, eq(asisten.nim, sesiAsisten.asistenNim))
+      .where(inArray(sesiAsisten.sesiId, ids));
+    for (const t of tugas) {
+      const list = kodeBySesi.get(t.sesiId) ?? [];
+      list.push({ kelompokId: t.kelompokId, kode: t.kode });
+      kodeBySesi.set(t.sesiId, list);
+    }
+    const lab = await db
+      .select({
+        sesiId: umpanBalik.sesiId,
+        rata: sql<string>`avg(${umpanBalik.ratingLab})`,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(umpanBalik)
+      .where(inArray(umpanBalik.sesiId, ids))
+      .groupBy(umpanBalik.sesiId);
+    for (const l of lab)
+      labBySesi.set(l.sesiId, { rata: Math.round(Number(l.rata) * 10) / 10, n: l.n });
+  }
+
+  res.status(200).json({
+    ok: true,
+    sesi: rows.map((r) => ({
+      ...r,
+      asisten: [
+        ...new Set(
+          (kodeBySesi.get(r.id) ?? [])
+            .sort((a, b) => a.kelompokId - b.kelompokId)
+            .map((x) => x.kode),
+        ),
+      ],
+      lab: labBySesi.get(r.id) ?? null,
+    })),
+  });
 }
 
 /** GET /api/session/ringkasan (P6.8) -- the "module overview across the 4
@@ -995,8 +1045,24 @@ async function handleRingkasanModul(_req: ApiRequest, res: ApiResponse) {
     blankByModul.set(modul, e);
   }
 
+  const labRows = await db
+    .select({ modul: sesi.modul, rating: umpanBalik.ratingLab })
+    .from(umpanBalik)
+    .innerJoin(sesi, eq(umpanBalik.sesiId, sesi.id));
+  const labByModul = new Map<number, { sum: number; n: number }>();
+  for (const r of labRows) {
+    const e = labByModul.get(r.modul) ?? { sum: 0, n: 0 };
+    e.sum += r.rating;
+    e.n += 1;
+    labByModul.set(r.modul, e);
+  }
+
   const modul = [1, 2, 3, 4].map((n) => ({
     modul: n,
+    labRata: labByModul.get(n)
+      ? Math.round((labByModul.get(n)!.sum / labByModul.get(n)!.n) * 10) / 10
+      : null,
+    labN: labByModul.get(n)?.n ?? 0,
     sesi: jumlahByModul.get(n)?.sesi ?? 0,
     selesai: jumlahByModul.get(n)?.selesai ?? 0,
     hadirUnik: hadirByModul.get(n)?.size ?? 0,

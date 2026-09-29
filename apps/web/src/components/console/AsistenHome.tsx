@@ -132,6 +132,7 @@ export default function AsistenHome({
         ok: boolean;
         kode?: string;
         ditugaskan?: number;
+        apDiantre?: boolean | null;
         sesiLama?: { id: number; status: string; bisaDilanjutkan: boolean } | null;
       }>("/api/session", {
         tanggal,
@@ -142,6 +143,7 @@ export default function AsistenHome({
       });
       if (d.ok) {
         window.Toast?.show(d.ditugaskan ? t.startedAssign(d.ditugaskan) : t.started, "ok");
+        if (d.apDiantre === false) window.Toast?.show(t.apNotQueued, "warn", { duration: 12_000 });
         onStarted();
         return;
       }

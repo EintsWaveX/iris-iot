@@ -127,8 +127,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     // Never blocks session creation -- see queueSoloServerCommand's own doc
     // for why this silently no-ops rather than guessing when it can't be
     // sure which Pi to command.
+    // Reported back so the console can say so when it could not be queued
+    // (no enrolled Pi, or more than one and it cannot know which).
+    let apDiantre: boolean | null = null;
     if (butuhAp) {
-      await queueSoloServerCommand("ap.nyala", session.nim);
+      apDiantre = await queueSoloServerCommand("ap.nyala", session.nim);
     } else if (demoted?.butuhAp) {
       // The session this one just replaced had the hotspot on -- turn it
       // back off rather than leaving the Pi stuck off campus Wi-Fi for the
@@ -142,6 +145,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       ok: true,
       sesi: { ...created, kelas: persiapan.kelas },
       ditugaskan: persiapan.ditugaskan,
+      apDiantre,
     });
   } catch (err) {
     // Postgres unique_violation on (tanggal, modul, mulai) -- the same

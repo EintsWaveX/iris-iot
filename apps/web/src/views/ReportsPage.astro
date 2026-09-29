@@ -1,0 +1,24 @@
+---
+/**
+ * /reports and /en/reports (Phase 8): session history, module summary, lab
+ * feedback and audit, plus each session's own report (?sesi=N). One island,
+ * reports/Reports.tsx, assistants only.
+ */
+import Base from "../layouts/Base.astro";
+import Reports from "../components/reports/Reports";
+
+interface Props {
+  lang: "id" | "en";
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  title={lang === "en" ? "Reports · IRIS IoT" : "Laporan · IRIS IoT"}
+  lang={lang}
+  cosmosScene="teknis"
+>
+  <main id="main" class="page-wide page-main">
+    <Reports client:load lang={lang} />
+  </main>
+</Base>

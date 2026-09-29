@@ -333,6 +333,13 @@ export function ServiceList({
 
 /* -------------------------------------------------------------- timeline */
 
+/** The API records a cancelled command as "gagal" with this note (the
+ *  status enum has no separate value); show it as cancelled, not failed. */
+export const CATATAN_BATAL = "dibatalkan oleh asisten";
+export function statusTampil(p: Pick<Perintah, "status" | "keluaran">): string {
+  return p.status === "gagal" && p.keluaran === CATATAN_BATAL ? "batal" : p.status;
+}
+
 const STEP_OF: Record<string, number> = {
   menunggu: 0,
   antre: 0,
@@ -361,11 +368,12 @@ export function CommandTimeline({
   return (
     <ol className="ops-cmds">
       {rows.map((p) => {
-        const step = STEP_OF[p.status] ?? 0;
-        const bad = p.status === "gagal" || p.status === "kedaluwarsa" || p.status === "batal";
+        const st = statusTampil(p);
+        const step = STEP_OF[st] ?? 0;
+        const bad = st === "gagal" || st === "kedaluwarsa" || st === "batal";
         const Icon = bad ? XCircle : step === 2 ? CheckCircle2 : step === 1 ? CircleDot : Clock3;
         return (
-          <li key={p.id} className="ops-cmd" data-status={p.status}>
+          <li key={p.id} className="ops-cmd" data-status={st}>
             <span className="ops-cmd__icon" aria-hidden="true">
               {step < 2 && !bad ? <Loader2 size={18} className="ctl-spin" /> : <Icon size={18} />}
             </span>
@@ -377,7 +385,7 @@ export function CommandTimeline({
                 </b>
                 <span className="hint num">{jamMenit(p.dimintaPada, lang)}</span>
               </span>
-              <span className="ops-steps" aria-label={t.status[p.status] ?? p.status}>
+              <span className="ops-steps" aria-label={t.status[st] ?? st}>
                 {t.steps.map((s, i) => (
                   <span
                     key={s}
@@ -386,7 +394,7 @@ export function CommandTimeline({
                     data-now={i === step && step < 2 ? "yes" : undefined}
                     data-bad={bad && i === 2 ? "yes" : undefined}
                   >
-                    {i === 2 && bad ? t.status[p.status] : s}
+                    {i === 2 && bad ? t.status[st] : s}
                   </span>
                 ))}
               </span>

@@ -1,19 +1,5 @@
 ---
-/**
- * P6.8: the reports centre (session history, module overview, audit log,
- * and a per-session report with CSV export). Implements the plan's
- * original Stage 20 `/history` deliverable, folded into this stage --
- * see schema.ts's telemetriLog docblock. Same shape as /session and
- * /servers: this page is a role check, the Nav/Toast shell, and mounting
- * ReportsView.tsx.
- */
-import Base from "../layouts/Base.astro";
-
-import ReportsView from "../components/ReportsView";
+import ReportsPage from "../views/ReportsPage.astro";
 ---
 
-<Base title="Laporan · IRIS IoT" cosmosScene="teknis">
-  <main class="page-regular">
-    <ReportsView client:load />
-  </main>
-</Base>
+<ReportsPage lang="id" />

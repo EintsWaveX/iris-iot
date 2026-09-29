@@ -251,6 +251,8 @@ export const S = dict({
     startBtn: "Mulai sesi",
     started: "Sesi dimulai.",
     startedAssign: (n: number) => `Sesi dimulai. ${n} kelompok langsung ditugaskan dari jadwal.`,
+    apNotQueued:
+      "Hotspot tidak dinyalakan otomatis: server Orange Pi tidak ditemukan atau ada lebih dari satu. Nyalakan dari laci Server.",
     resumeTitle: "Sesi ini sudah pernah dimulai",
     resumeBody: (id: number) =>
       `Sesi #${id} untuk slot dan modul ini sudah dimulai lalu diakhiri. Lanjutkan sesi itu? Jawaban yang sudah masuk tetap terhitung.`,
@@ -582,6 +584,8 @@ export const S = dict({
     startBtn: "Start session",
     started: "Session started.",
     startedAssign: (n: number) => `Session started. ${n} groups were assigned from the schedule.`,
+    apNotQueued:
+      "The hotspot was not switched on automatically: no Orange Pi server was found, or there is more than one. Switch it on from the Server drawer.",
     resumeTitle: "This session was started before",
     resumeBody: (id: number) =>
       `Session #${id} for this slot and module was started and then ended. Resume it? Answers already in still count.`,
