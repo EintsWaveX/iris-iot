@@ -1,5 +1,10 @@
 /**
- * POST /api/session   { tanggal, modul, slot? , mulai?, butuhAp? }   — assistant-only.
+ * POST /api/session   { tanggal, modul, slot? , mulai?, butuhAp?, kelas? }   — assistant-only.
+ *
+ * Phase 8: `kelas` ("reguler" | "internasional") is optional; when absent
+ * it comes from the imported schedule slot (jadwal), else "reguler". The
+ * slot's default assistants are also prefilled one per group (see
+ * api/_lib/phase8.ts's siapkanSesiDariJadwal).
  *
  * Creates a session and marks it the running one. Phase 1 has no
  * scheduler (see src/lib/sesi.ts's header comment) — an assistant starts
@@ -35,6 +40,8 @@ import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { writeAudit } from "../../src/lib/auth.js";
 import { bukaHingga } from "../../src/lib/akses.js";
+import { isKelas } from "../../src/lib/kelas.js";
+import { siapkanSesiDariJadwal } from "../_lib/phase8.js";
 
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
 const JAM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -51,6 +58,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const modul = Number(body.modul);
   const slot = body.slot === undefined || body.slot === null ? null : Number(body.slot);
   const butuhAp = Boolean(body.butuhAp);
+  const kelasDiminta = body.kelas === undefined || body.kelas === null ? null : body.kelas;
   const mulai =
     slot !== null ? (slotToMulai(slot) ?? "") : typeof body.mulai === "string" ? body.mulai : "";
 
@@ -59,7 +67,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     !JAM_RE.test(mulai) ||
     ![1, 2, 3, 4].includes(modul) ||
     (slot !== null && ![1, 2, 3, 4].includes(slot)) ||
-    (butuhAp && modul !== 4)
+    (butuhAp && modul !== 4) ||
+    (kelasDiminta !== null && !isKelas(kelasDiminta))
   ) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
@@ -85,7 +94,28 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return { created: row, demoted: demotedRows[0] };
     });
 
-    await writeAudit(session.nim, "sesi_mulai", { tanggal, mulai, modul, slot, butuhAp });
+    // Phase 8: class type and one-assistant-per-group prefill from the
+    // schedule. Best effort -- a failure here must never undo a session
+    // that already started, so it is caught and logged on its own.
+    let persiapan: { kelas: string; ditugaskan: number } = { kelas: "reguler", ditugaskan: 0 };
+    try {
+      persiapan = await siapkanSesiDariJadwal(
+        db,
+        created,
+        isKelas(kelasDiminta) ? kelasDiminta : null,
+      );
+    } catch (err) {
+      console.error("[api/session] schedule prefill failed:", err);
+    }
+
+    await writeAudit(session.nim, "sesi_mulai", {
+      tanggal,
+      mulai,
+      modul,
+      slot,
+      butuhAp,
+      ...persiapan,
+    });
 
     // P6.5: starting a session for this module opens it (and every module
     // below it) for students automatically, so an assistant never has to
@@ -108,7 +138,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       await queueSoloServerCommand("ap.mati", session.nim);
     }
 
-    res.status(200).json({ ok: true, sesi: created });
+    res.status(200).json({
+      ok: true,
+      sesi: { ...created, kelas: persiapan.kelas },
+      ditugaskan: persiapan.ditugaskan,
+    });
   } catch (err) {
     // Postgres unique_violation on (tanggal, modul, mulai) -- the same
     // slot was already scheduled today.

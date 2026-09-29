@@ -26,12 +26,13 @@
  * GET  /api/session/riwayat?modul=&dari=&sampai=&status= (P6.8) — the /reports session list.
  * GET  /api/session/ringkasan (P6.8)                  — module overview across every session ever run.
  * GET  /api/session/audit?aksiLog=&aktor=&dari= (P6.8) — the audit log viewer's data source.
- * GET  /api/session/nilai?sesiId= (Stage 12)          — the grading tab's roster + current scores.
- * POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12) — one field, autosaved.
+ * GET  /api/session/nilai?sesiId=&sejak= (Stage 12, P8) — roster + scores + each group's owner; `sejak` (ISO) returns only rows changed since, for the 5 s live poll.
+ * POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12, P8) — one field; refused with bukan_pemilik unless the caller holds that group.
+ * Phase 8 actions (assignment, help, feedback, results, schedule) are documented in api/_lib/phase8.ts.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
-import { requireRole, requireAnyRole } from "../_lib/session.js";
+import { requireRole, requireAnyRole, currentSession } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   kelompok,
@@ -55,6 +56,21 @@ import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
 import { SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
+import { bolehIsiNilai } from "../../src/lib/penugasan.js";
+import {
+  handleAssignmentGet,
+  handleAssignmentPost,
+  handleHelpPraktikan,
+  handleHelpAsisten,
+  handleFeedbackPost,
+  handleFeedbackGet,
+  handleResults,
+  handleScheduleGet,
+  handleSchedulePost,
+  pemilikKelompok,
+  tanganTerangkat,
+  kelompokDariNim,
+} from "../_lib/phase8.js";
 import {
   eq,
   and,
@@ -83,11 +99,23 @@ const PERAN_VALID = new Set(["beacon", "hunter"]);
  *  browser can reach this and a route it can reach must never return
  *  another student's NIM even as a side effect (see publicRoster()'s own
  *  header comment for the same rule). */
-async function handleNow(_req: ApiRequest, res: ApiResponse) {
+async function handleNow(req: ApiRequest, res: ApiResponse) {
   const running = await currentSesi();
   if (!running) {
     res.status(200).json({ ok: true, sesi: null });
     return;
+  }
+  // P8: a praktikan also learns whether their own group's hand is up, so the
+  // mini-bar's "Minta bantuan" button survives a reload. Only their group.
+  const who = currentSession(req);
+  let mintaBantuanPada: string | null = null;
+  if (who?.role === "praktikan" && who.kelompokId && who.sesiId === running.id) {
+    const [row] = await getDb()
+      .select({ pada: sesiKelompok.mintaBantuanPada })
+      .from(sesiKelompok)
+      .where(and(eq(sesiKelompok.sesiId, running.id), eq(sesiKelompok.kelompokId, who.kelompokId)))
+      .limit(1);
+    mintaBantuanPada = row?.pada?.toISOString() ?? null;
   }
   res.status(200).json({
     ok: true,
@@ -100,6 +128,8 @@ async function handleNow(_req: ApiRequest, res: ApiResponse) {
       butuhAp: running.butuhAp,
       pengumuman: running.pengumuman,
       pengumumanPada: running.pengumumanPada,
+      kelas: running.kelas,
+      mintaBantuanPada,
     },
   });
 }
@@ -520,6 +550,10 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
     running.durasiDetik ??
     (running.status === "berjalan" ? Math.round((Date.now() - startedAt.getTime()) / 1000) : 0);
 
+  // P8: raised hands and group owners, so the board needs one poll only.
+  const tangan = await tanganTerangkat(db, running.id);
+  const pemilik = Object.fromEntries(await pemilikKelompok(db, running.id));
+
   res.status(200).json({
     ok: true,
     sesi: {
@@ -528,10 +562,13 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
       tanggal: running.tanggal,
       mulai: running.mulai,
       status: running.status,
+      kelas: running.kelas,
       durasiDetik,
     },
     kelompok: daftarKelompok,
     stuck,
+    tangan,
+    pemilik,
   });
 }
 
@@ -559,6 +596,32 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
   const [running] = await db.select().from(sesi).where(eq(sesi.id, sesiId)).limit(1);
   if (!running) {
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
+    return;
+  }
+
+  const pemilik = Object.fromEntries(await pemilikKelompok(db, sesiId));
+
+  // P8 live poll: with ?sejak=<ISO> only the fields changed since then come
+  // back (plus who changed them), so several assistants polling every 5 s
+  // stay cheap and the grid can flash exactly the cells another one typed.
+  const sejakParam = typeof req.query.sejak === "string" ? req.query.sejak : "";
+  if (sejakParam) {
+    const sejak = new Date(sejakParam);
+    if (Number.isNaN(sejak.getTime())) {
+      res.status(200).json({ ok: false, kode: "format_salah" });
+      return;
+    }
+    const berubah = await db
+      .select({
+        nim: nilai.nim,
+        komponen: nilai.komponen,
+        skor: nilai.skor,
+        diubahOleh: nilai.diubahOleh,
+        diubahPada: nilai.diubahPada,
+      })
+      .from(nilai)
+      .where(and(eq(nilai.sesiId, sesiId), gte(nilai.diubahPada, sejak)));
+    res.status(200).json({ ok: true, berubah, pemilik, server: new Date().toISOString() });
     return;
   }
 
@@ -601,6 +664,8 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
     sesi: { id: running.id, modul: running.modul, tanggal: running.tanggal },
     komponen: NILAI_KOMPONEN,
     kelompok: daftarKelompok,
+    pemilik,
+    server: new Date().toISOString(),
   });
 }
 
@@ -638,6 +703,14 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
   const [member] = await db.select().from(anggota).where(eq(anggota.nim, nim)).limit(1);
   if (!member) {
     res.status(200).json({ ok: false, kode: "nim_tidak_ada" });
+    return;
+  }
+  // P8: one assistant per group. Only the group's holder may write its
+  // scores; an unassigned group stays open to anyone.
+  const pemilik = await pemilikKelompok(db, sesiId);
+  const kelompokId = (await kelompokDariNim(db, nim)) ?? member.kelompokId;
+  if (!bolehIsiNilai(pemilik, kelompokId, session.nim)) {
+    res.status(200).json({ ok: false, kode: "bukan_pemilik", pemilik: pemilik.get(kelompokId) });
     return;
   }
 
@@ -1003,9 +1076,46 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return handleTelemetry(req, res);
   }
 
+  // P8 actions a praktikan can call (each checks the role it needs).
+  if (aksi === "help") {
+    if (!requireMethod(req, res, "POST")) return;
+    const who = requireAnyRole(req, res, ["asisten", "praktikan"]);
+    if (!who) return;
+    return who.role === "praktikan"
+      ? handleHelpPraktikan(req, res, who)
+      : handleHelpAsisten(req, res, who);
+  }
+  if (aksi === "feedback") {
+    if (req.method === "POST") {
+      const who = requireRole(req, res, "praktikan");
+      if (!who) return;
+      return handleFeedbackPost(req, res, who);
+    }
+    if (!requireMethod(req, res, "GET")) return;
+    const who = requireRole(req, res, "asisten");
+    if (!who) return;
+    return handleFeedbackGet(req, res, who);
+  }
+  if (aksi === "results") {
+    if (!requireMethod(req, res, "GET")) return;
+    const who = requireRole(req, res, "praktikan");
+    if (!who) return;
+    return handleResults(req, res, who);
+  }
+
   const session = requireRole(req, res, "asisten");
   if (!session) return;
 
+  if (aksi === "assignment") {
+    if (req.method === "POST") return handleAssignmentPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleAssignmentGet(req, res);
+  }
+  if (aksi === "schedule") {
+    if (req.method === "POST") return handleSchedulePost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleScheduleGet(req, res);
+  }
   if (aksi === "current") {
     if (!requireMethod(req, res, "GET")) return;
     return handleCurrent(req, res);

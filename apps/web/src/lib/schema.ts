@@ -24,8 +24,11 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
+import { KELAS } from "./kelas.js";
 export { NILAI_KOMPONEN } from "./nilai-komponen.js";
 export type { NilaiKomponen } from "./nilai-komponen.js";
+
+export { KELAS } from "./kelas.js";
 
 /**
  * The 25 lab assistants, seeded from Module - IRIS IoT/data_asisten.typ by
@@ -105,6 +108,12 @@ export const sesi = pgTable(
     // still surfaces as two toasts.
     pengumuman: text("pengumuman"),
     pengumumanPada: timestamp("pengumuman_pada", { withTimezone: true }),
+    // Phase 8: which of the two class types this session teaches. It sets
+    // the default UI language for everyone in it (reguler = Indonesian,
+    // internasional = English); each person can still override their own.
+    // Filled from the jadwal slot at start time, defaulting to reguler for
+    // sessions created before the schedule existed.
+    kelas: text("kelas", { enum: KELAS }).notNull().default("reguler"),
     dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -170,8 +179,102 @@ export const sesiKelompok = pgTable(
     aktif: boolean("aktif").notNull().default(true),
     peran: text("peran", { enum: ["beacon", "hunter"] }),
     catatan: text("catatan"),
+    // Phase 8's "Minta bantuan" (raise hand): set by a praktikan of this
+    // group, cleared by the praktikan (cancel) or any assistant (resolved).
+    // A timestamp rather than a boolean so the board can show how long the
+    // group has been waiting.
+    mintaBantuanPada: timestamp("minta_bantuan_pada", { withTimezone: true }),
   },
   (t) => [unique("sesi_kelompok_unik").on(t.sesiId, t.kelompokId)],
+);
+
+/**
+ * Phase 8: which assistant is responsible for which group in one session.
+ * One row per (session, group); the same assistant may hold several groups
+ * (the schedule has slots with fewer than five assistants, e.g. the
+ * International class on Thursday slot 2 has three). The assigned assistant
+ * is the only one who may write that group's scores; everyone else reads
+ * them live. Prefilled from `jadwal` when the session starts, then changed
+ * by claim / reassign / take over, each of which is audited.
+ */
+export const sesiAsisten = pgTable(
+  "sesi_asisten",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokId: integer("kelompok_id")
+      .notNull()
+      .references(() => kelompok.id, { onDelete: "cascade" }),
+    asistenNim: text("asisten_nim")
+      .notNull()
+      .references(() => asisten.nim, { onDelete: "cascade" }),
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("sesi_asisten_unik").on(t.sesiId, t.kelompokId)],
+);
+
+/**
+ * Phase 8: one praktikan's feedback for one session, in the journal's two
+ * sections (Asisten and Lab). `nim` is stored only to enforce one row per
+ * student per session; it is never returned to an assistant. The Asisten
+ * half is readable only by `asistenNim` (the assessed assistant); the Lab
+ * half is readable by every assistant, in aggregate.
+ */
+export const umpanBalik = pgTable(
+  "umpan_balik",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    nim: text("nim").notNull(),
+    asistenNim: text("asisten_nim")
+      .notNull()
+      .references(() => asisten.nim, { onDelete: "cascade" }),
+    ratingAsisten: integer("rating_asisten").notNull(),
+    komentarAsisten: text("komentar_asisten"),
+    chipsAsisten: jsonb("chips_asisten").$type<string[]>().notNull().default([]),
+    ratingLab: integer("rating_lab").notNull(),
+    komentarLab: text("komentar_lab"),
+    chipsLab: jsonb("chips_lab").$type<string[]>().notNull().default([]),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("umpan_balik_sesi_nim").on(t.sesiId, t.nim),
+    index("umpan_balik_asisten_idx").on(t.asistenNim),
+  ],
+);
+
+/**
+ * Phase 8: the teaching schedule, imported by pasting the "JADWAL NGAJAR"
+ * sheet. One row per scheduled slot in a semester; slots the sheet shades as
+ * unavailable simply have no row. `asisten` is the default assistant codes
+ * (asisten.kode) in group order, so the first code holds K1; `pengganti` is
+ * the ranked substitute list, each with an optional informational tag
+ * ("fit" = Ngajar FIT, "a24" = Angkatan 24; labels only, never a block).
+ * `status` "segera" is a slot the sheet marks "Soon": shown, never prefilled.
+ */
+export const jadwal = pgTable(
+  "jadwal",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(), // e.g. "2026-ganjil"
+    hari: integer("hari").notNull(), // 1 = Senin ... 6 = Sabtu
+    slot: integer("slot").notNull(), // 1-4, see SLOT_MULAI
+    kelas: text("kelas", { enum: KELAS }).notNull().default("reguler"),
+    status: text("status", { enum: ["aktif", "segera"] })
+      .notNull()
+      .default("aktif"),
+    asisten: jsonb("asisten").$type<string[]>().notNull().default([]),
+    pengganti: jsonb("pengganti")
+      .$type<{ kode: string; tag: "fit" | "a24" | null }[]>()
+      .notNull()
+      .default([]),
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("jadwal_slot_unik").on(t.semester, t.hari, t.slot)],
 );
 
 /**

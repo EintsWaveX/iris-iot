@@ -6,11 +6,12 @@
  * rewrites in vercel.json already map /api/auth/praktikan, /api/auth/asisten
  * and /api/auth/keluar onto these exact English paths.
  *
- * GET  /api/auth/me            — who is signed in, if anyone.
+ * GET  /api/auth/me            — who is signed in, if anyone. P8: an assistant also gets `kode` and `perluAturSandi`.
  * POST /api/auth/student       { nim }              — no password.
  * POST /api/auth/assistant     { nim, password }
  * POST /api/auth/logout        (no body)
  * POST /api/auth/set-password  { password }         — assistant-only, first-login flow.
+ * POST /api/auth/change-password { lama, baru }      — assistant-only, any time (P8 /account). Rate-limited like a login.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, clientIp, noStore } from "../_lib/http.js";
@@ -28,6 +29,9 @@ import {
   type PraktikanLoginResult,
   type AsistenLoginResult,
 } from "../../src/lib/auth.js";
+import { getDb } from "../../src/lib/db.js";
+import { asisten } from "../../src/lib/schema.js";
+import { eq } from "drizzle-orm";
 
 async function handleMe(req: ApiRequest, res: ApiResponse) {
   if (!requireMethod(req, res, "GET")) return;
@@ -38,12 +42,33 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
     return;
   }
 
+  // P8: the role badge shows an assistant's code, and the home page reminds
+  // anyone still on the starting password. Best effort: /me must keep
+  // answering even if this lookup fails.
+  let kode: string | undefined;
+  let perluAturSandi: boolean | undefined;
+  if (session.role === "asisten") {
+    try {
+      const [row] = await getDb()
+        .select({ kode: asisten.kode, hash: asisten.passwordHash })
+        .from(asisten)
+        .where(eq(asisten.nim, session.nim))
+        .limit(1);
+      kode = row?.kode;
+      perluAturSandi = row ? !row.hash : undefined;
+    } catch (err) {
+      console.error("[api/auth/me] asisten lookup failed:", err);
+    }
+  }
+
   res.status(200).json({
     ok: true,
     role: session.role,
     nim: session.nim,
     nama: session.nama,
     kelompok: session.kelompokNomor,
+    kode,
+    perluAturSandi,
   });
 }
 
@@ -160,6 +185,42 @@ async function handleSetPassword(req: ApiRequest, res: ApiResponse) {
   }
 }
 
+/** POST /api/auth/change-password { lama, baru } (Phase 8) -- the /account
+ *  page's password change. Unlike set-password (the first-login stage, where
+ *  the assistant has just typed the starting password), this re-checks the
+ *  current one through verifyAsistenLogin, so it shares login's lockout. */
+async function handleChangePassword(req: ApiRequest, res: ApiResponse) {
+  if (!requireMethod(req, res, "POST")) return;
+  const session = requireRole(req, res, "asisten");
+  if (!session) return;
+
+  const body = jsonBody(req);
+  const lama = typeof body.lama === "string" ? body.lama : "";
+  const baru = typeof body.baru === "string" ? body.baru : "";
+  if (!lama || baru.length < MIN_PASSWORD_LEN) {
+    res.status(200).json({
+      ok: false,
+      kode: baru.length < MIN_PASSWORD_LEN ? "terlalu_pendek" : "format_salah",
+    });
+    return;
+  }
+  try {
+    const check = await verifyAsistenLogin(session.nim, lama, clientIp(req));
+    if (!check.ok) {
+      res
+        .status(200)
+        .json({ ok: false, kode: (check as Extract<AsistenLoginResult, { ok: false }>).kode });
+      return;
+    }
+    await setAsistenPassword(session.nim, baru);
+    await writeAudit(session.nim, "sandi_diganti");
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("[api/auth/change-password] unexpected error:", err);
+    res.status(200).json({ ok: false, kode: "galat_server" });
+  }
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
@@ -170,6 +231,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "assistant") return handleAssistant(req, res);
   if (aksi === "logout") return handleLogout(req, res);
   if (aksi === "set-password") return handleSetPassword(req, res);
+  if (aksi === "change-password") return handleChangePassword(req, res);
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
 }
