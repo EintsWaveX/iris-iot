@@ -11,6 +11,13 @@
  * chosen scene as data-cosmos-scene on <html>, and src/scripts/cosmos-router.js
  * reads that to call Cosmos.setScene/warpTo. Cosmos itself doesn't need to
  * know which page it's on.
+ *
+ * Phase 8 (apps/web only, so apps/games is untouched):
+ * - the WebGL aurora canvas moved out of .cosmos__aurora to cover the whole
+ *   sky, because real curtains hang from a wavy lower hem with rays rising
+ *   above it, which a bottom-band box cannot hold;
+ * - a meteor canvas (sky-meteors.js) for shooting stars, the occasional
+ *   fireball and small showers, plus glints on a few bright stars.
  */
 ---
 
@@ -26,15 +33,17 @@
     <i class="cosmos__aurora__ray"></i>
     <i class="cosmos__aurora__ray"></i>
     <i class="cosmos__aurora__ray"></i>
-    <canvas class="cosmos__aurora-gl"></canvas>
   </div>
+  <canvas class="cosmos__aurora-gl cosmos__aurora-gl--sky"></canvas>
+  <canvas class="cosmos__meteors"></canvas>
 </div>
 
 <script>
   import "../scripts/cosmos-web.js";
   import "../scripts/cosmos-router.js";
-  // apps/web only (see its own header): a moving WebGL aurora at motion
+  // apps/web only (see its own header): the moving WebGL aurora at motion
   // tier 2, layered over the CSS rays above and fading them out once it
-  // draws its first frame (P6.4).
+  // draws its first frame (P6.4, curtains rebuilt in Phase 8).
   import "../scripts/aurora-gl.js";
+  import "../scripts/sky-meteors.js";
 </script>

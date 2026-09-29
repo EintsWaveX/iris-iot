@@ -1,0 +1,215 @@
+/* =========================================================================
+   SKY + SWEEP (Phase 8, apps/web only)
+
+   Additions on top of the kosmik baseline (packages/kosmik/style), never a
+   replacement for it: the palette, the scenes and the aurora-sweep keyframe
+   stay exactly as they are. This file lives in apps/web so apps/games,
+   which shares kosmik, is unaffected.
+   ========================================================================= */
+
+/* The rainbow. --sweep-ring stays decorative only (a 1px ring or hairline,
+   never a surface text sits on), so the whole wheel is allowed: the app's
+   own accent, group and module hues plus the champion gold, in spectral
+   order so the sweep reads as one continuous band of colour. */
+:root {
+  --sweep-ring: linear-gradient(
+    100deg,
+    var(--accent),
+    var(--group-2),
+    var(--group-3),
+    var(--group-4),
+    var(--gold),
+    var(--group-1),
+    var(--group-5),
+    var(--accent)
+  );
+}
+
+/* ---------------------------------------------------------------- sky */
+
+/* The aurora canvas now spans the whole sky (see aurora-gl.js). */
+.cosmos__aurora-gl--sky {
+  inset: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  position: absolute;
+}
+
+.cosmos__aurora-gl--sky.lit {
+  opacity: var(--au-opacity);
+}
+
+.cosmos__meteors {
+  height: 100%;
+  inset: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+}
+
+/* ----------------------------------------------------------- sweep edge
+
+   .sweep-edge: a rainbow hairline along the top edge of a panel that drifts
+   slowly all the time (the Nav's own treatment, now available to any
+   featured surface: the session bar, dialogs, popovers, hero cards).
+   .sweep-hover: the swept 1px ring on hover and keyboard focus, for any
+   panel that is itself clickable. Both are tier gated like the buttons. */
+/* :where() keeps this at zero specificity, so a host that is already
+   fixed or absolute (a dialog panel, a drawer) keeps its own position. */
+:where(.sweep-edge) {
+  position: relative;
+}
+
+.sweep-edge::before {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  height: 2px;
+  inset: 0 0 auto;
+  mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  opacity: 0.85;
+  pointer-events: none;
+  position: absolute;
+}
+
+:root:not([data-motion-tier="0"]) .sweep-edge::before {
+  animation: aurora-sweep 7s linear infinite;
+}
+
+:where(.sweep-hover) {
+  position: relative;
+}
+
+.sweep-hover {
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    box-shadow var(--dur-fast) var(--ease-reveal),
+    transform var(--dur-fast) var(--ease-out-expo);
+}
+
+.sweep-hover::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+}
+
+.sweep-hover:hover::after,
+.sweep-hover:focus-visible::after,
+.sweep-hover:focus-within::after,
+.sweep-hover[aria-current="true"]::after,
+.sweep-hover[data-state="open"]::after {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"]) .sweep-hover:hover::after,
+:root:not([data-motion-tier="0"]) .sweep-hover:focus-visible::after,
+:root:not([data-motion-tier="0"]) .sweep-hover[aria-current="true"]::after,
+:root:not([data-motion-tier="0"]) .sweep-hover[data-state="open"]::after {
+  animation: aurora-sweep 2.4s linear infinite;
+}
+
+.sweep-hover:hover {
+  box-shadow: var(--shadow-lift);
+}
+
+/* A slow, always-on ring for the one thing on a page that should draw the
+   eye (the running module card, the "next step" card, an open inspector). */
+/* :where() keeps this at zero specificity, so a host that is already
+   fixed or absolute (a dialog panel, a drawer) keeps its own position. */
+:where(.sweep-live) {
+  position: relative;
+}
+
+.sweep-live::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0.8;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+}
+
+:root:not([data-motion-tier="0"]) .sweep-live::after {
+  animation: aurora-sweep 5s linear infinite;
+}
+
+/* ---------------------------------------------------------- scrollbars
+
+   The platform's own scrollbars are a native widget too; tint them to the
+   theme instead of the operating system's grey. */
+html {
+  scrollbar-color: var(--surface-4) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-4);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+  background-clip: padding-box;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* Native number spinners are never used for scores (they are text inputs
+   with inputmode="numeric"), but hide them wherever a number input remains. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  appearance: textfield;
+}
+
+textarea {
+  resize: vertical;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sweep-edge::before,
+  .sweep-hover::after,
+  .sweep-live::after {
+    animation: none !important;
+  }
+}

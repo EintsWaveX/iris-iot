@@ -1,28 +1,25 @@
 /**
- * P6.4: the moving aurora. WebGL curtains at motion tier 2, ported from
- * ../../../../../../Documents/WebApps/portfolio/src/sky.js -- its aurora
- * only (the fbm curtain() x3 and the premultiplied additive night output).
- * The portfolio's stars, comets, clouds and sun are deliberately left
- * behind: this app already has its own canvas star layer
- * (packages/kosmik/js/cosmos.core.js), and apps/web is dark-only, so there
- * is no day branch to port.
+ * The moving aurora: WebGL curtains at motion tier 2 (P6.4, rebuilt in
+ * Phase 8 to look like the real thing).
  *
- * This file is apps/web-only (imported from Cosmos.astro's own <script>,
- * not from cosmos-web.js, which packages/kosmik/js/cosmos.core.js and
- * motion.core.js are shared through with apps/games). It never modifies
- * cosmos.core.js: instead of cosmos.core.js's setScene()/setModuleTint()
- * calling into this module directly, this module watches the same
- * `data-scene` attribute and `--modul-hue` custom property those functions
- * already write to `<html>`, via one MutationObserver -- so apps/games,
- * which has neither this file nor a `.cosmos__aurora-gl` canvas for it to
- * find, is unaffected by this stage in every way, not merely "untouched by
- * convention".
+ * A real aurora is not a soft glow. It is a set of curtains, each hanging
+ * from a sharp, bright lower hem that wanders across the sky, with fine
+ * vertical rays rising from that hem and fading upward, slow folds that
+ * travel along the curtain, and brightness surges that ripple sideways. The
+ * colour changes with height: the hem is the scene's base hue (and nearly
+ * white where it is brightest), the tops shift toward the next hues around
+ * the wheel. That is what the shader below draws, three curtains deep.
  *
- * Colour and intensity are read from the SAME CSS custom properties the
- * ray-based tier-1 layer already defines per scene (--au-1 for hue,
- * --au-opacity for intensity, --modul-hue for the per-module tint) rather
- * than a second, duplicated palette -- cosmos.css stays the one place a
- * scene's aurora colour is actually declared.
+ * The canvas covers the whole sky now (Cosmos.astro moved it out of the
+ * bottom-band .cosmos__aurora box). It renders at a reduced internal
+ * resolution and is upscaled by the browser: the curtains are soft enough
+ * that nobody can tell, and it keeps the fragment cost low.
+ *
+ * Unchanged from P6.4: apps/web only (apps/games has no canvas for it to
+ * find), never touches cosmos.core.js, reads colour and intensity from the
+ * SAME CSS custom properties the ray layer uses (--au-1 hue, --au-opacity,
+ * --modul-hue tint) through one MutationObserver on <html>, and runs only
+ * at motion tier 2 without reduced motion.
  */
 (function () {
   "use strict";
@@ -31,10 +28,6 @@
     "\n",
   );
 
-  // hash21/vnoise/fbm/hue2rgb/curtain are byte-for-byte the portfolio's own
-  // (sky.js), since they are pure math with nothing day/night- or star/comet-
-  // specific about them. main() below is new: night's premultiplied-additive
-  // three-curtain sum only.
   var FRAG = [
     "#ifdef GL_FRAGMENT_PRECISION_HIGH",
     "precision highp float;",
@@ -45,13 +38,11 @@
     "uniform vec2  u_res;",
     "uniform float u_time;",
     "uniform float u_fade;",
-    "uniform float u_height;",
     "uniform float u_intensity;",
     "uniform float u_hueBase;",
     "uniform float u_tint;",
     "uniform vec3  u_seed;",
     "uniform vec3  u_speed;",
-    "uniform vec3  u_freq;",
 
     "float hash21(vec2 p) {",
     "  p = fract(p * vec2(123.34, 456.21));",
@@ -73,12 +64,12 @@
     "float fbm(vec2 p) {",
     "  float s = 0.0;",
     "  float a = 0.5;",
-    "  for (int i = 0; i < 5; i++) {",
+    "  for (int i = 0; i < 4; i++) {",
     "    s += a * vnoise(p);",
     "    p = p * 2.03 + vec2(17.1, 9.7);",
     "    a *= 0.5;",
     "  }",
-    "  return s;",
+    "  return s / 0.9375;",
     "}",
 
     "vec3 hue2rgb(float h) {",
@@ -86,32 +77,52 @@
     "  return clamp(min(k, 4.0 - k), 0.0, 1.0);",
     "}",
 
-    "vec4 curtain(vec2 uv, float t, float seed, float baseHue, float speed, float freq) {",
-    "  float warp = fbm(vec2(uv.y * 1.8 + seed, t * speed * 0.35 + seed)) * 2.0 - 1.0;",
-    "  float x = uv.x * freq + warp * 2.1 + t * speed * 0.10 + seed;",
-    "  float f = fbm(vec2(x * 1.9, uv.y * 1.15 - t * speed * 0.45 + seed));",
-    "  float band = pow(smoothstep(0.30, 0.86, f), 1.45);",
-    "  float vfade = smoothstep(u_height, 0.0, uv.y);",
-    "  float hue = fract(baseHue + uv.x * 0.30 + warp * 0.07 + t * 0.015 * speed);",
-    "  return vec4(hue2rgb(hue), band * vfade);",
+    // One curtain. base = height of the hem (0 bottom, 1 top), amp = how far
+    // the hem wanders, len = how tall the rays reach above it.
+    "vec3 curtain(vec2 uv, float aspect, float t, float seed, float hue, float spd, float base, float amp, float len) {",
+    "  float x = uv.x * aspect;",
+    // Folds: a slow sideways displacement that grows with height, so the
+    // curtain leans and ripples instead of standing like a wall.
+    "  float fold = (fbm(vec2(x * 0.45 + seed, t * 0.03 * spd)) - 0.5) * 2.4;",
+    "  float xf = x + fold * (0.45 + uv.y * 0.9);",
+    "  float hem = base + amp * (fbm(vec2(xf * 0.85 + seed * 1.7, t * 0.045 * spd)) - 0.5) * 2.0;",
+    "  float d = uv.y - hem;",
+    "  float up = exp(-max(d, 0.0) / len);",
+    "  float down = exp(-max(-d, 0.0) / 0.03);",
+    "  float prof = d > 0.0 ? up : down;",
+    "  float edge = exp(-abs(d) / 0.016);",
+    // Rays: noise that varies fast along x and barely along y, drifting
+    // sideways at two speeds so they shimmer rather than slide as one.
+    "  float r1 = vnoise(vec2(xf * 34.0 + t * 0.55 * spd, uv.y * 1.3 + seed));",
+    "  float r2 = vnoise(vec2(xf * 83.0 - t * 0.85 * spd, uv.y * 2.1 + seed + 3.1));",
+    "  float rays = 0.10 + 1.25 * pow(r1 * 0.62 + r2 * 0.38, 2.2);",
+    // Brightness pockets travel along the curtain; surges ripple through.
+    "  float pocket = smoothstep(0.32, 0.84, fbm(vec2(xf * 1.5 - t * 0.085 * spd, seed + t * 0.018)));",
+    "  float surge = 0.72 + 0.28 * sin(t * 0.65 * spd + xf * 2.4 + seed);",
+    "  float a = prof * rays * pocket * surge + edge * pocket * 0.32;",
+    "  float h = fract(hue + clamp(d, 0.0, 0.55) * 0.5);",
+    "  vec3 c = hue2rgb(h);",
+    "  c = mix(c, vec3(1.0), edge * pocket * 0.4);",
+    "  return c * a;",
     "}",
 
     "void main() {",
     "  vec2 uv = gl_FragCoord.xy / u_res;",
+    "  float aspect = u_res.x / max(u_res.y, 1.0);",
+    "  float t = u_time;",
     "  float h0 = fract(u_hueBase + u_tint);",
-    "  float h1 = fract(u_hueBase + u_tint + 0.30);",
-    "  float h2 = fract(u_hueBase + u_tint + 0.62);",
-    "  vec4 c1 = curtain(uv, u_time, u_seed.x, h0, u_speed.x, u_freq.x);",
-    "  vec4 c2 = curtain(uv, u_time, u_seed.y, h1, u_speed.y, u_freq.y);",
-    "  vec4 c3 = curtain(uv, u_time, u_seed.z, h2, u_speed.z, u_freq.z);",
     "  vec3 col = vec3(0.0);",
-    "  col += c1.rgb * c1.a * 0.30 * u_intensity;",
-    "  col += c2.rgb * c2.a * 0.27 * u_intensity;",
-    "  col += c3.rgb * c3.a * 0.20 * u_intensity;",
-    /* Zero alpha under premultiplied blending is pure addition -- see
-       sky.js's own comment. This is what lets the curtains glow over the
-       page rather than sitting on it as an opaque layer. */
-    "  gl_FragColor = vec4(col * u_fade, 0.0);",
+    "  col += curtain(uv, aspect, t, u_seed.x, h0, u_speed.x, 0.30, 0.11, 0.30) * 0.85;",
+    "  col += curtain(uv, aspect, t, u_seed.y, fract(h0 + 0.33), u_speed.y, 0.44, 0.13, 0.22) * 0.62;",
+    "  col += curtain(uv, aspect, t, u_seed.z, fract(h0 + 0.66), u_speed.z, 0.20, 0.08, 0.38) * 0.5;",
+    // Keep the very top of the page (the nav) clear, and lay a faint glow
+    // of the base hue along the horizon underneath the curtains.
+    "  col *= smoothstep(0.98, 0.58, uv.y);",
+    "  col += hue2rgb(h0) * 0.045 * smoothstep(0.45, 0.0, uv.y);",
+    /* Zero alpha under premultiplied blending is pure addition, which is
+       what lets the curtains glow over the page instead of sitting on it
+       as an opaque layer. */
+    "  gl_FragColor = vec4(col * 1.45 * u_intensity * u_fade, 0.0);",
     "}",
   ].join("\n");
 
@@ -168,7 +179,6 @@
   var uRes = gl.getUniformLocation(prog, "u_res");
   var uTime = gl.getUniformLocation(prog, "u_time");
   var uFade = gl.getUniformLocation(prog, "u_fade");
-  var uHeight = gl.getUniformLocation(prog, "u_height");
   var uIntensity = gl.getUniformLocation(prog, "u_intensity");
   var uHueBase = gl.getUniformLocation(prog, "u_hueBase");
   var uTint = gl.getUniformLocation(prog, "u_tint");
@@ -177,26 +187,28 @@
     return a + Math.random() * (b - a);
   }
 
-  // Rolled once per load, same idiom as sky.js: unlike speeds/frequencies so
-  // the three curtains slide past each other rather than moving as one sheet.
+  // Rolled once per load: unlike speeds so the three curtains slide past
+  // each other rather than moving as one sheet.
   gl.uniform3f(gl.getUniformLocation(prog, "u_seed"), rnd(0, 60), rnd(0, 60), rnd(0, 60));
   gl.uniform3f(
     gl.getUniformLocation(prog, "u_speed"),
-    rnd(0.65, 1.35),
-    rnd(0.45, 1.05),
-    rnd(1.0, 1.9),
+    rnd(0.75, 1.25),
+    rnd(0.55, 1.05),
+    rnd(0.9, 1.5),
   );
-  gl.uniform3f(gl.getUniformLocation(prog, "u_freq"), rnd(2.0, 3.4), rnd(2.6, 4.2), rnd(1.6, 2.8));
-  gl.uniform1f(uHeight, 0.5);
 
   gl.clearColor(0, 0, 0, 0);
 
+  // Internal resolution relative to CSS pixels. The curtains are soft, so
+  // 0.6 of the device's own density (capped) is indistinguishable and a
+  // fraction of the fragment work.
+  var RES_SCALE = 0.6;
   var DPR_CAP = 1.5;
   var width = 0;
   var height = 0;
 
   function resize() {
-    var dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+    var dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP) * RES_SCALE;
     var rect = canvas.getBoundingClientRect();
     var w = Math.max(1, Math.round(rect.width * dpr));
     var h = Math.max(1, Math.round(rect.height * dpr));
@@ -267,16 +279,15 @@
     if (!start) start = now;
     var t = (now - start) / 1000;
 
-    // Cheap exponential smoothing toward the current scene's hue/intensity,
-    // so a scene change eases in over about a second instead of snapping --
-    // matching the CSS ray layer's own 1.2s opacity/filter transition.
+    // Ease toward the current scene's hue and intensity, so a scene change
+    // blends over about a second instead of snapping.
     curIntensity += (targetIntensity - curIntensity) * 0.03;
     var hueDelta = targetHue - curHue;
     if (hueDelta > 0.5) hueDelta -= 1;
     if (hueDelta < -0.5) hueDelta += 1;
     curHue = (curHue + hueDelta * 0.03 + 1) % 1;
 
-    fade = Math.min(1, fade + 0.02);
+    fade = Math.min(1, fade + 0.015);
 
     resize();
     gl.uniform1f(uTime, t);
