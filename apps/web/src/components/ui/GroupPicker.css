@@ -73,3 +73,9 @@
 :root:not([data-motion-tier="0"]) .group-picker__item:focus-visible::after {
   animation: aurora-sweep 2.2s linear infinite;
 }
+
+.group-picker__mark {
+  color: var(--gold);
+  font-size: 0.8em;
+  margin-left: 4px;
+}

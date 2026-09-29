@@ -116,49 +116,86 @@ export function nextReading(modul: number, group: number): Reading {
  * network, data link, physical). Generalizes apps/modul4/src/ui-layers.js's
  * per-layer composition across all four modules, per the plan's own table
  * of what each layer means for each protocol. */
-export function describeLayers(reading: Reading): string[] {
+export function describeLayers(reading: Reading, lang: "id" | "en" = "id"): string[] {
   const { modul, seq, rssi, snr, delayMs } = reading;
   const lost = reading.rx === null;
+  const en = lang === "en";
   // Real Module 2/3 telemetry has arrived (not lost) but carries no delay
   // figure at all -- the Pi only ever observes the arrival side, never the
   // ESP32/Pico W's own send time. Simulated readings and Module 4's real
   // data always have one when not lost.
   const delayText = (satuan: string) =>
-    delayMs !== null ? `${delayMs} ${satuan}` : "lihat output serial";
-  const sinyal = rssi !== null ? `${rssi} dBm` : "sinyal WiFi";
+    delayMs !== null
+      ? `${delayMs} ${satuan}`
+      : en
+        ? "see the serial output"
+        : "lihat output serial";
+  const sinyal = rssi !== null ? `${rssi} dBm` : en ? "WiFi signal" : "sinyal WiFi";
   switch (modul) {
     case 1:
-      return [
-        `Notify #${seq}${lost ? " (tidak diterima)" : ""}`,
-        lost ? "belum diterima" : `diterima ${delayText("ms")} setelah dikirim`,
-        "tidak ada lapisan jaringan pada BLE",
-        `interval koneksi aktif, paket #${seq}`,
-        `2,4 GHz, ${sinyal}`,
-      ];
+      return en
+        ? [
+            `Notify #${seq}${lost ? " (not received)" : ""}`,
+            lost ? "not received yet" : `received ${delayText("ms")} after sending`,
+            "BLE has no network layer",
+            `connection interval active, packet #${seq}`,
+            `2.4 GHz, ${sinyal}`,
+          ]
+        : [
+            `Notify #${seq}${lost ? " (tidak diterima)" : ""}`,
+            lost ? "belum diterima" : `diterima ${delayText("ms")} setelah dikirim`,
+            "tidak ada lapisan jaringan pada BLE",
+            `interval koneksi aktif, paket #${seq}`,
+            `2,4 GHz, ${sinyal}`,
+          ];
     case 2:
-      return [
-        `payload JSON, paket #${seq}${lost ? " (tidak sampai)" : ""}`,
-        lost ? "koneksi TCP terputus" : `terkirim lewat TCP, ${delayText("ms")}`,
-        "IP satu hop menuju Orange Pi",
-        "tersambung lewat WiFi 802.11",
-        `2,4 GHz, ${sinyal}`,
-      ];
+      return en
+        ? [
+            `JSON payload, packet #${seq}${lost ? " (did not arrive)" : ""}`,
+            lost ? "TCP connection dropped" : `sent over TCP, ${delayText("ms")}`,
+            "one IP hop to the Orange Pi",
+            "connected over WiFi 802.11",
+            `2.4 GHz, ${sinyal}`,
+          ]
+        : [
+            `payload JSON, paket #${seq}${lost ? " (tidak sampai)" : ""}`,
+            lost ? "koneksi TCP terputus" : `terkirim lewat TCP, ${delayText("ms")}`,
+            "IP satu hop menuju Orange Pi",
+            "tersambung lewat WiFi 802.11",
+            `2,4 GHz, ${sinyal}`,
+          ];
     case 3:
-      return [
-        `topic modul3, QoS 0, paket #${seq}${lost ? " (hilang)" : ""}`,
-        lost ? "tidak diteruskan broker" : `diteruskan broker, ${delayText("ms")}`,
-        "IP lewat broker Mosquitto",
-        "tersambung lewat WiFi 802.11",
-        `2,4 GHz, ${sinyal}`,
-      ];
+      return en
+        ? [
+            `topic modul3, QoS 0, packet #${seq}${lost ? " (lost)" : ""}`,
+            lost ? "not forwarded by the broker" : `forwarded by the broker, ${delayText("ms")}`,
+            "IP through the Mosquitto broker",
+            "connected over WiFi 802.11",
+            `2.4 GHz, ${sinyal}`,
+          ]
+        : [
+            `topic modul3, QoS 0, paket #${seq}${lost ? " (hilang)" : ""}`,
+            lost ? "tidak diteruskan broker" : `diteruskan broker, ${delayText("ms")}`,
+            "IP lewat broker Mosquitto",
+            "tersambung lewat WiFi 802.11",
+            `2,4 GHz, ${sinyal}`,
+          ];
     case 4:
     default:
-      return [
-        `peringkat sementara, paket #${seq}`,
-        "tidak ada lapisan transport pada LoRa P2P",
-        "tidak ada lapisan jaringan pada LoRa P2P",
-        `sync word cocok, urutan ${seq}${lost ? ", hilang" : ""}`,
-        `920 MHz, ${sinyal}${snr !== null ? `, SNR ${snr} dB` : ""}`,
-      ];
+      return en
+        ? [
+            `provisional ranking, packet #${seq}`,
+            "LoRa P2P has no transport layer",
+            "LoRa P2P has no network layer",
+            `sync word matches, sequence ${seq}${lost ? ", lost" : ""}`,
+            `920 MHz, ${sinyal}${snr !== null ? `, SNR ${snr} dB` : ""}`,
+          ]
+        : [
+            `peringkat sementara, paket #${seq}`,
+            "tidak ada lapisan transport pada LoRa P2P",
+            "tidak ada lapisan jaringan pada LoRa P2P",
+            `sync word cocok, urutan ${seq}${lost ? ", hilang" : ""}`,
+            `920 MHz, ${sinyal}${snr !== null ? `, SNR ${snr} dB` : ""}`,
+          ];
   }
 }

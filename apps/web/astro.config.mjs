@@ -11,7 +11,23 @@ export default defineConfig({
     // discovers them on first visit and answers "504 Outdated Optimize Dep",
     // leaving that page's island unhydrated until a restart.
     optimizeDeps: {
-      include: ["qrcode-generator", "react-resizable-panels", "cmdk", "react-day-picker"],
+      include: [
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-hover-card",
+        "@radix-ui/react-popover",
+        "@radix-ui/react-scroll-area",
+        "@radix-ui/react-tabs",
+        "@radix-ui/react-toggle-group",
+        "@radix-ui/react-tooltip",
+        "@vercel/blob/client",
+        "cmdk",
+        "date-fns",
+        "lucide-react",
+        "qrcode-generator",
+        "react-day-picker",
+        "react-resizable-panels",
+        "uplot",
+      ],
     },
     server: {
       fs: {

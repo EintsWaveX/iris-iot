@@ -1,11 +1,5 @@
 .live-sandbox__fire {
-  background: var(--accent);
-  border-radius: var(--radius-md);
-  color: var(--accent-ink);
-  margin-top: var(--space-5);
-  font-weight: 500;
-  min-height: max(var(--tap), 44px);
-  padding-inline: var(--space-5);
+  margin-top: var(--space-4);
 }
 
 .live-sandbox__result {
@@ -25,9 +19,9 @@
    own overflow: hidden otherwise. */
 .live-sandbox__rail {
   border-top: 1px dashed var(--hairline-strong);
-  left: 0;
+  left: var(--space-4);
   position: absolute;
-  right: 0;
+  right: var(--space-4);
   top: calc(1.2em + var(--rail-index) / max(var(--rail-count), 1) * (100% - 2.4em));
 }
 
@@ -36,7 +30,7 @@
   color: var(--text-faint);
   font-family: var(--font-mono);
   font-size: var(--fs-small);
-  padding-inline-end: var(--space-2);
+  padding-inline: var(--space-2);
   position: relative;
   top: -0.7em;
 }

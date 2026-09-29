@@ -20,9 +20,24 @@ interface Props {
   modul: number;
   groups: number[];
   layers: LayerCaption[];
+  lang?: "id" | "en";
 }
 
-export default function LiveSandbox({ modul, groups, layers }: Props) {
+const T = {
+  id: {
+    fire: "Kirim pesan uji",
+    lost: (n: number) => `#${n} hilang di tengah jalan`,
+    ok: (r: Reading) => `#${r.seq} · kirim ${r.tx} · terima ${r.rx} · delta ${r.delayMs} ms`,
+  },
+  en: {
+    fire: "Send a test message",
+    lost: (n: number) => `#${n} was lost on the way`,
+    ok: (r: Reading) => `#${r.seq} · sent ${r.tx} · received ${r.rx} · delta ${r.delayMs} ms`,
+  },
+};
+
+export default function LiveSandbox({ modul, groups, layers, lang = "id" }: Props) {
+  const t = T[lang];
   const [group, setGroup] = useState(groups[0]);
   const [reading, setReading] = useState<Reading | null>(null);
   const [round, setRound] = useState(0);
@@ -41,14 +56,14 @@ export default function LiveSandbox({ modul, groups, layers }: Props) {
     });
   }
 
-  const values = reading ? describeLayers(reading) : null;
+  const values = reading ? describeLayers(reading, lang) : null;
 
   return (
     <div className="live-sandbox">
       {groups.length > 1 && <GroupPicker value={group} onValueChange={setGroup} groups={groups} />}
 
-      <button type="button" className="live-sandbox__fire" onClick={kirim}>
-        Kirim pesan uji
+      <button type="button" className="btn btn--primary btn--lg live-sandbox__fire" onClick={kirim}>
+        {t.fire}
       </button>
 
       {reading && (
@@ -74,9 +89,7 @@ export default function LiveSandbox({ modul, groups, layers }: Props) {
             />
           </div>
           <p className="live-sandbox__readout mono">
-            {reading.rx === null
-              ? `#${reading.seq} hilang di tengah jalan`
-              : `#${reading.seq} · kirim ${reading.tx} · terima ${reading.rx} · delta ${reading.delayMs} ms`}
+            {reading.rx === null ? t.lost(reading.seq) : t.ok(reading)}
           </p>
 
           <ol className="live-sandbox__layers" ref={layersHostRef}>

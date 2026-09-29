@@ -1,0 +1,57 @@
+---
+/**
+ * /groups/[n] and /en/groups/[n] (Phase 8): the group page merged into the
+ * live workspace, so these only forward there with the group preselected,
+ * on the running session's module (Module 1 when none is running). Old
+ * links and bookmarks keep working.
+ */
+import Base from "../layouts/Base.astro";
+
+interface Props {
+  lang: "id" | "en";
+  group: number;
+}
+const { lang, group } = Astro.props;
+const base = lang === "en" ? "/en/modules" : "/modules";
+const fallback = `${base}/1/live?kelompok=${group}`;
+---
+
+<Base
+  title={lang === "en" ? `Group ${group} · IRIS IoT` : `Kelompok ${group} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+>
+  <main id="main" class="page-regular page-main">
+    <div
+      class="state-view state-view--accent"
+      data-group-redirect
+      data-base={base}
+      data-group={group}
+    >
+      <h1 class="state-view__title">
+        {lang === "en" ? "Opening the live view…" : "Membuka ruang live…"}
+      </h1>
+      <p class="state-view__body">
+        <a href={fallback}>{lang === "en" ? "Open it now" : "Buka sekarang"}</a>
+      </p>
+    </div>
+  </main>
+</Base>
+
+<script>
+  import { sekaliPerHalaman } from "../scripts/per-halaman";
+
+  async function forward() {
+    const el = document.querySelector<HTMLElement>("[data-group-redirect]");
+    if (!el) return;
+    let modul = 1;
+    try {
+      const d = await fetch("/api/session/now").then((r) => r.json());
+      if (d?.ok && d.sesi?.modul) modul = Number(d.sesi.modul);
+    } catch {
+      /* no session info: Module 1 */
+    }
+    location.replace(`${el.dataset.base}/${modul}/live?kelompok=${el.dataset.group}`);
+  }
+  sekaliPerHalaman("GrupAlihkan", forward);
+</script>

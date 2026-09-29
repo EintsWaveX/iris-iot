@@ -1,66 +1,10 @@
 ---
-/**
- * That group's own readings and ladder, in its hue -- the plan's own words.
- * No role gate: a praktikan reaches their own group's URL from /dashboard,
- * an assistant reaches any group's from the session console, and neither
- * carries anything sensitive here (everything on this page is simulated,
- * same disclosure as /modules/[n]/live).
- */
-import Base from "../../layouts/Base.astro";
-import { navUtama } from "../../lib/nav-links";
-import PageHeader from "../../components/ui/PageHeader.astro";
-import GroupLive from "../../components/GroupLive";
+import GroupRedirectPage from "../../views/GroupRedirectPage.astro";
 
 export function getStaticPaths() {
   return [1, 2, 3, 4, 5].map((n) => ({ params: { n: String(n) } }));
 }
-
-const { n } = Astro.params;
-const group = Number(n);
-
-const links = navUtama();
+const group = Number(Astro.params.n);
 ---
 
-<Base title={`Kelompok ${group} · IRIS IoT`} cosmosScene="kerja">
-  <main class="page-wide">
-    <div class="group-header" style={`--tile-hue: var(--group-${group})`}>
-      <PageHeader
-        eyebrow={`Kelompok ${group}`}
-        title={`Alur dan bacaan kelompok ${group}`}
-        subtitle="Semua data pada halaman ini disimulasikan di peramban Anda, bukan diambil dari papan atau sesi yang sebenarnya. Pilih modul untuk melihat alur dan bacaannya."
-      />
-    </div>
-
-    <div class="group-panel">
-      <GroupLive client:load group={group} />
-    </div>
-  </main>
-</Base>
-
-<script>
-  import { sekaliPerHalaman } from "../../scripts/per-halaman";
-  function playEntrance() {
-    window.Motion?.enter(".page-header > *");
-  }
-  sekaliPerHalaman("GrupAnimasi", playEntrance);
-</script>
-
-<style>
-  .group-header {
-    border-left: 3px solid var(--tile-hue);
-    padding-inline-start: var(--space-5);
-  }
-
-  .group-header :global(.page-header__eyebrow) {
-    color: var(--tile-hue);
-  }
-
-  .group-header :global(.page-header__eyebrow)::after {
-    background: var(--tile-hue);
-    opacity: 0.35;
-  }
-
-  .group-panel {
-    padding-block: 0 var(--space-10);
-  }
-</style>
+<GroupRedirectPage lang="id" group={group} />

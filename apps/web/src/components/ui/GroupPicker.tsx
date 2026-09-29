@@ -29,9 +29,22 @@ interface Props {
   onValueChange: (group: number) => void;
   groups: number[];
   "aria-label"?: string;
+  /** The word before the number ("Kelompok" / "Group"). */
+  label?: string;
+  /** Phase 8: the viewer's own group gets a small star and this label. */
+  mark?: number;
+  markLabel?: string;
 }
 
-export default function GroupPicker({ value, onValueChange, groups, ...rest }: Props) {
+export default function GroupPicker({
+  value,
+  onValueChange,
+  groups,
+  label = "Kelompok",
+  mark,
+  markLabel,
+  ...rest
+}: Props) {
   return (
     <RadixToggleGroup.Root
       className="group-picker"
@@ -50,7 +63,12 @@ export default function GroupPicker({ value, onValueChange, groups, ...rest }: P
           value={String(g)}
           style={{ "--tile-hue": `var(--group-${g})` } as React.CSSProperties}
         >
-          Kelompok {g}
+          {label} {g}
+          {mark === g && (
+            <span className="group-picker__mark" aria-label={markLabel}>
+              ★
+            </span>
+          )}
         </RadixToggleGroup.Item>
       ))}
     </RadixToggleGroup.Root>
