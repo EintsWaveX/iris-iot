@@ -9,20 +9,15 @@
  * route (`output: 'static'` cannot getStaticPaths() database rows).
  */
 import Base from "../layouts/Base.astro";
-import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
 import Button from "../components/ui/Button.astro";
 import Modal from "../components/ui/Modal.astro";
-import Toast from "../components/ui/Toast";
 import ServerCenter from "../components/ServerCenter";
 
 const links = navUtama();
 ---
 
 <Base title="Pusat server · IRIS IoT" cosmosScene="teknis">
-  <Nav links={links} current="/servers" />
-  <Toast client:load />
-
   <main class="page-wide">
     <ServerCenter client:load />
   </main>

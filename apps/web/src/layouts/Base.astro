@@ -33,9 +33,17 @@ import "../styles/page-header.css";
 // Global, promoted from Field.astro's own scoped style (P7.3) -- the login
 // dialog is a React island and needs the same `.field*` classes.
 import "../styles/field.css";
+// Phase 8: web-only sky layers, the rainbow sweep and themed scrollbars,
+// added on top of the kosmik baseline rather than replacing any of it.
+import "../styles/sky.css";
+import "../styles/app.css";
+// Phase 8: the pill is used as a plain class all over the islands.
+import "../components/ui/Pill.css";
 import { ClientRouter } from "astro:transitions";
 import Cosmos from "../components/Cosmos.astro";
 import LoginDialog from "../components/LoginDialog";
+import AppNav from "../components/shell/AppNav";
+import Toast from "../components/ui/Toast";
 
 interface Props {
   title: string;
@@ -49,9 +57,12 @@ interface Props {
    * which scene it's showing does.
    */
   cosmosScene?: "beranda" | "masuk" | "kerja" | "teknis" | "sesi";
+  /** Phase 8: the app nav (AppNav.tsx) is mounted here for every page;
+   *  a page can opt out (none does today). */
+  nav?: boolean;
 }
 
-const { title, description = "", lang = "id", cosmosScene = "beranda" } = Astro.props;
+const { title, description = "", lang = "id", cosmosScene = "beranda", nav = true } = Astro.props;
 ---
 
 <!doctype html>
@@ -67,11 +78,13 @@ const { title, description = "", lang = "id", cosmosScene = "beranda" } = Astro.
   </head>
   <body>
     <Cosmos />
-    <LoginDialog client:load />
+    <a class="skip-link" href="#main">
+      {lang === "en" ? "Skip to content" : "Lewati ke isi"}
+    </a>
+    {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} />}
+    <LoginDialog client:load lang={lang} />
+    <Toast client:load />
     <slot />
-    <script>
-      import "../scripts/nav-scroll.ts";
-    </script>
   </body>
 </html>
 

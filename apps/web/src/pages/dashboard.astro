@@ -11,14 +11,12 @@
  * dialog at two different destinations.
  */
 import Base from "../layouts/Base.astro";
-import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
 import Card from "../components/ui/Card.astro";
 import Button from "../components/ui/Button.astro";
 import Badge from "../components/ui/Badge.astro";
 import Chip from "../components/ui/Chip.astro";
 import EmptyState from "../components/ui/EmptyState.astro";
-import Toast from "../components/ui/Toast";
 import PresentationCard from "../components/PresentationCard";
 
 const links = navUtama();
@@ -32,9 +30,6 @@ const MODULES = [
 ---
 
 <Base title="Dasbor · IRIS IoT" cosmosScene="kerja">
-  <Nav links={links} current="/dashboard" />
-  <Toast client:load />
-
   <!--
     P7.4 rebuild, following the signed-off P7.2 mockup: a compact single
     -row banner (status badge, module, a slim progress bar, the primary

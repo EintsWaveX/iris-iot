@@ -1,15 +1,31 @@
-/* LoginDialog.tsx's styling (P7.3). */
-
-.lede {
-  color: var(--text-muted);
-  margin-bottom: var(--space-5);
-}
+/* LoginDialog.tsx (P7.3, Phase 8 rebuild). */
 
 .login-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  margin-top: var(--space-5);
+}
+
+.login-form__lede {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.login-form__nim {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  min-height: 60px;
+}
+
+.login-form__nim::placeholder {
+  color: var(--text-faint);
+  opacity: 0.6;
+}
+
+.login-form__submit {
+  width: 100%;
 }
 
 .login-form__actions {
@@ -22,4 +38,93 @@
   .login-form__actions {
     flex-direction: column-reverse;
   }
+  .login-form__actions .btn {
+    width: 100%;
+  }
+}
+
+/* ------------------------------------------------------------ welcome */
+
+.login-welcome {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) 0 var(--space-2);
+  text-align: center;
+}
+
+.login-welcome__orbit {
+  align-items: center;
+  color: var(--accent);
+  display: flex;
+  height: 120px;
+  justify-content: center;
+  position: relative;
+  width: 120px;
+}
+
+.login-welcome__orbit i {
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+  inset: 20px;
+  opacity: 0;
+  position: absolute;
+}
+
+:root:not([data-motion-tier="0"]) .login-welcome__orbit svg {
+  animation: login-spin 2.4s var(--ease-out-expo) both;
+}
+
+:root:not([data-motion-tier="0"]) .login-welcome__orbit i {
+  animation: login-burst 1.6s var(--ease-out-expo) infinite;
+}
+
+.login-welcome__orbit i:nth-child(3) {
+  animation-delay: 0.3s !important;
+  border-color: var(--group-2);
+}
+
+.login-welcome__orbit i:nth-child(4) {
+  animation-delay: 0.6s !important;
+  border-color: var(--group-1);
+}
+
+@keyframes login-burst {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes login-spin {
+  from {
+    transform: rotate(-120deg) scale(0.6);
+    opacity: 0;
+  }
+}
+
+.login-welcome__hi {
+  font-family: var(--font-display);
+  font-size: var(--fs-display-sm);
+  margin: 0;
+}
+
+.login-welcome__sesi {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: var(--fs-small);
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+}
+
+.login-welcome__group {
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
 }

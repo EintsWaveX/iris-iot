@@ -1,0 +1,492 @@
+/* AppNav.tsx (Phase 8). Keeps Nav.astro's surface (glass panel, the swept
+   hairline once scrolled) and adds icons, the role badge and the menus.
+   At 640px and up: full top bar. Below: brand + account button on top, the
+   links in a fixed bottom bar. */
+
+.appnav {
+  align-items: center;
+  background: var(--panel-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  gap: var(--space-4);
+  min-height: var(--nav-size);
+  padding: env(safe-area-inset-top, 0px) var(--gutter) 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.appnav::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  bottom: 0;
+  content: "";
+  height: 1px;
+  left: 0;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  transition: opacity var(--dur-mid) var(--ease-reveal);
+}
+
+.appnav[data-scrolled="yes"]::after {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"]) .appnav[data-scrolled="yes"]::after {
+  animation: aurora-sweep 6s linear infinite;
+}
+
+.appnav__brand {
+  align-items: center;
+  display: flex;
+  flex: none;
+  min-height: 48px;
+}
+
+.appnav__brand img {
+  display: block;
+  filter: drop-shadow(0 0 8px rgba(64, 176, 255, 0.3));
+  height: 28px;
+  transition: filter var(--dur-mid) var(--ease-reveal);
+  width: auto;
+}
+
+.appnav__brand:hover img {
+  filter: drop-shadow(0 0 14px rgba(64, 176, 255, 0.6));
+}
+
+.appnav__links {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: var(--space-1);
+  justify-content: center;
+  min-width: 0;
+}
+
+.appnav__link {
+  align-items: center;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 500;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  position: relative;
+  text-decoration: none;
+  transition:
+    color var(--dur-fast) var(--ease-reveal),
+    background var(--dur-fast) var(--ease-reveal);
+  white-space: nowrap;
+}
+
+.appnav__link:hover {
+  background: var(--hairline-faint);
+  color: var(--text);
+}
+
+.appnav__link[aria-current="page"] {
+  color: var(--text);
+}
+
+.appnav__link[aria-current="page"]::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: 2px;
+  bottom: -2px;
+  content: "";
+  height: 2px;
+  left: var(--space-3);
+  position: absolute;
+  right: var(--space-3);
+}
+
+:root:not([data-motion-tier="0"]) .appnav__link[aria-current="page"]::after {
+  animation: aurora-sweep 5s linear infinite;
+}
+
+.appnav__link svg {
+  opacity: 0.8;
+}
+
+.appnav__live-dot {
+  background: var(--ok);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 var(--ok);
+  height: 7px;
+  position: absolute;
+  right: 4px;
+  top: 8px;
+  width: 7px;
+}
+
+:root:not([data-motion-tier="0"]) .appnav__live-dot {
+  animation: appnav-live 2s ease-out infinite;
+}
+
+@keyframes appnav-live {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.appnav__side {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+.appnav__palette,
+.appnav__lang {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  transition:
+    color var(--dur-fast) var(--ease-reveal),
+    border-color var(--dur-fast) var(--ease-reveal),
+    background var(--dur-fast) var(--ease-reveal);
+}
+
+.appnav__palette:hover,
+.appnav__lang:hover {
+  background: var(--hairline-faint);
+  border-color: var(--hairline-strong);
+  color: var(--text);
+}
+
+.appnav__palette .ctl-kbd {
+  font-size: 0.7rem;
+}
+
+.appnav__signin {
+  min-height: 44px;
+}
+
+.appnav__me {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: var(--fs-small);
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 3px var(--space-3) 3px 3px;
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    background var(--dur-fast) var(--ease-reveal);
+}
+
+.appnav__me:hover,
+.appnav__me[data-state="open"] {
+  border-color: var(--accent);
+}
+
+.appnav__me--mobile {
+  display: none;
+  padding: 3px;
+}
+
+.appnav__avatar {
+  align-items: center;
+  background: linear-gradient(135deg, var(--accent), var(--group-2));
+  border-radius: 50%;
+  color: var(--accent-ink);
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  height: 36px;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  width: 36px;
+}
+
+.appnav__avatar[data-role="praktikan"] {
+  background: linear-gradient(135deg, var(--group-1), var(--accent));
+  font-size: 0.9rem;
+}
+
+.appnav__avatar--lg {
+  font-size: 0.85rem;
+  height: 48px;
+  width: 48px;
+}
+
+.appnav__badge {
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ account */
+
+.appnav__menu {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  overflow: hidden;
+  padding: var(--space-3);
+  width: min(22rem, calc(100vw - 24px));
+  z-index: 90;
+  animation: popover-in var(--dur-fast) var(--ease-out-expo);
+}
+
+.acct {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.acct__who {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+  padding: var(--space-2) var(--space-2) var(--space-3);
+}
+
+.acct__names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.acct__names b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acct__meta {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.acct__row {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
+}
+
+.acct__row span:first-of-type {
+  flex: 1;
+}
+
+.acct__row:hover {
+  background: var(--hairline-faint);
+}
+
+.acct__row svg {
+  color: var(--text-muted);
+}
+
+.acct__row--danger {
+  color: var(--danger);
+}
+
+.acct__row--danger svg {
+  color: var(--danger);
+}
+
+.acct__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.acct__label {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: var(--fs-small);
+  gap: var(--space-2);
+}
+
+.acct__seg {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 3px;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  padding: 3px;
+}
+
+.acct__seg button {
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius-md) - 3px);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-small);
+  min-height: 40px;
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal);
+}
+
+.acct__seg button:hover {
+  color: var(--text);
+}
+
+.acct__seg button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------- bottom bar */
+
+.appbar {
+  background: var(--panel-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--hairline);
+  bottom: 0;
+  display: none;
+  left: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  position: fixed;
+  right: 0;
+  z-index: 50;
+}
+
+.appbar__item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  font: inherit;
+  font-size: 0.68rem;
+  gap: 3px;
+  justify-content: center;
+  min-height: 56px;
+  min-width: 0;
+  padding: 6px 0;
+  position: relative;
+  text-decoration: none;
+}
+
+.appbar__icon {
+  display: inline-flex;
+  position: relative;
+}
+
+.appbar__icon .appnav__live-dot {
+  right: -6px;
+  top: -2px;
+}
+
+.appbar__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appbar__item[aria-current="page"] {
+  color: var(--accent);
+}
+
+.appbar__item[aria-current="page"]::before {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: 0 0 3px 3px;
+  content: "";
+  height: 3px;
+  left: 28%;
+  position: absolute;
+  right: 28%;
+  top: 0;
+}
+
+/* ------------------------------------------------------------ widths */
+
+@media (max-width: 1279px) {
+  .appnav__palette-text {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .appnav__link {
+    padding: 0 var(--space-2);
+  }
+  .appnav__link svg {
+    display: none;
+  }
+  .appnav__badge {
+    display: none;
+  }
+  .appnav__me {
+    padding: 3px;
+  }
+}
+
+@media (max-width: 860px) {
+  .appnav__palette {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .appnav {
+    justify-content: space-between;
+    padding-inline: var(--space-4);
+  }
+  .appnav__links,
+  .appnav__side {
+    display: none;
+  }
+  .appnav__me--mobile {
+    display: inline-flex;
+  }
+  .appbar {
+    display: flex;
+  }
+  body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}

@@ -295,7 +295,7 @@
 }
 
 .btn--sm.btn--quiet {
-  width: var(--tap);
+  width: max(var(--tap), var(--tap-lg, 48px));
 }
 
 /* -- lg: a page's one standout action (P7.1) -- */
@@ -317,11 +317,13 @@
 .btn--quiet {
   flex-shrink: 0;
   padding: 0;
-  width: max(var(--tap), 44px);
+  width: max(var(--tap), var(--tap-lg, 48px));
 }
 
+/* P8: --tap is 0 on desktop, so a bare var(--tap) made small icon buttons
+   2px wide. Square at the 48px working size instead. */
 .btn--icon.btn--sm {
-  width: var(--tap);
+  width: max(var(--tap), var(--tap-lg, 48px));
 }
 
 .btn--icon.btn--lg {

@@ -52,6 +52,10 @@
   max-width: min(38rem, calc(100vw - var(--space-8)));
 }
 
+.dialog__panel--xl {
+  max-width: min(52rem, calc(100vw - var(--space-8)));
+}
+
 /* Bottom sheet: full width, pinned to the viewport's bottom edge, rounded
    top corners only, slides up rather than scaling in. Used for the mobile
    Akun menu and the mobile login dialog. */

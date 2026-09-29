@@ -14,7 +14,6 @@
  * see vercel.json -- checked for on load just below.
  */
 import Base from "../layouts/Base.astro";
-import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
 import Button from "../components/ui/Button.astro";
 import Card from "../components/ui/Card.astro";
@@ -55,8 +54,6 @@ const MODULES = [
   description="Praktikum IoT IRIS. Empat modul, satu papan."
   cosmosScene="beranda"
 >
-  <Nav links={links} current="/" />
-
   <main class="page-regular">
     <!--
       P7.4 rebuild, following the signed-off P7.2 mockup: hero and the

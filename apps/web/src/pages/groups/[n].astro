@@ -7,7 +7,6 @@
  * same disclosure as /modules/[n]/live).
  */
 import Base from "../../layouts/Base.astro";
-import Nav from "../../components/ui/Nav.astro";
 import { navUtama } from "../../lib/nav-links";
 import PageHeader from "../../components/ui/PageHeader.astro";
 import GroupLive from "../../components/GroupLive";
@@ -23,8 +22,6 @@ const links = navUtama();
 ---
 
 <Base title={`Kelompok ${group} · IRIS IoT`} cosmosScene="kerja">
-  <Nav links={links} current="/dashboard" />
-
   <main class="page-wide">
     <div class="group-header" style={`--tile-hue: var(--group-${group})`}>
       <PageHeader

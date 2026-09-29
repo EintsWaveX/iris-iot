@@ -97,6 +97,14 @@ export default function Drawer({
         <RadixDialog.Content
           className="drawer"
           style={{ "--drawer-w": `${width}px` } as CSSProperties}
+          onOpenAutoFocus={(e) => {
+            // Land on the close button, not the resize grip (its focus ring
+            // would outline the whole edge the moment the drawer opens).
+            e.preventDefault();
+            (e.currentTarget as HTMLElement | null)
+              ?.querySelector<HTMLElement>(".drawer__close")
+              ?.focus();
+          }}
           onCloseAutoFocus={(e) => {
             if (openedFrom.current) {
               e.preventDefault();
@@ -122,7 +130,10 @@ export default function Drawer({
                 </RadixDialog.Description>
               )}
             </div>
-            <RadixDialog.Close className="btn btn--ghost btn--icon" aria-label={closeLabel}>
+            <RadixDialog.Close
+              className="btn btn--ghost btn--icon drawer__close"
+              aria-label={closeLabel}
+            >
               ×
             </RadixDialog.Close>
           </header>

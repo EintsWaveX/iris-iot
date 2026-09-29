@@ -5,7 +5,6 @@
  */
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
-import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
 import Card from "../components/ui/Card.astro";
 import Badge from "../components/ui/Badge.astro";
@@ -36,8 +35,6 @@ const links = navUtama(lang === "en" ? "en" : "id");
   cosmosScene="kerja"
   lang={lang}
 >
-  <Nav links={links} current={basePath} lang={lang} />
-
   <main class="page-regular">
     <PageHeader eyebrow="IRIS IoT" title={t.indexTitle} subtitle={t.indexLede} />
 

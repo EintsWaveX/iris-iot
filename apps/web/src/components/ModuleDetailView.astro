@@ -17,7 +17,6 @@
  */
 import { getEntry } from "astro:content";
 import Base from "../layouts/Base.astro";
-import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
 import Card from "../components/ui/Card.astro";
 import Table from "../components/ui/Table.astro";
@@ -79,8 +78,6 @@ const pinRows = m.pin.baris.map((row) => Object.fromEntries(row.map((v, i) => [`
   cosmosScene="kerja"
   lang={lang}
 >
-  <Nav links={links} current={basePath} lang={lang} modul={m.modul} />
-
   <main class="page-wide">
     <PageHeader
       back={{ href: basePath, label: t.backToIndex }}

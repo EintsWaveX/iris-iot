@@ -1,10 +1,7 @@
-/* Toast.tsx's styling, as a plain CSS import rather than an Astro <style>
-   block -- a .tsx file has no template to attach one to. Global by nature
-   (Vite treats a bare .css import as global, matching this file's own
-   previous is:global scope in the vanilla Toast.astro it replaced). */
+/* Toast.tsx (global since Phase 8). Sits above the mobile bottom bar. */
 
 .toast-host {
-  bottom: max(var(--space-5), env(safe-area-inset-bottom, 0px));
+  bottom: calc(max(var(--space-5), env(safe-area-inset-bottom, 0px)) + var(--toast-lift, 0px));
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -12,20 +9,31 @@
   pointer-events: none;
   position: fixed;
   transform: translateX(-50%);
-  width: min(28rem, calc(100vw - var(--space-8)));
+  width: min(30rem, calc(100vw - var(--space-6)));
   z-index: 200;
 }
 
+@media (max-width: 639px) {
+  .toast-host {
+    --toast-lift: 72px;
+  }
+}
+
 .toast {
+  align-items: center;
   background: var(--bg-elevated);
   border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-panel);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
   color: var(--text);
-  font-size: var(--fs-small);
-  padding: var(--space-3) var(--space-4);
+  display: flex;
+  gap: var(--space-3);
   opacity: 0;
-  transform: translateY(8px);
+  overflow: hidden;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  pointer-events: auto;
+  position: relative;
+  transform: translateY(10px) scale(0.98);
   transition:
     opacity var(--dur-mid) var(--ease-out-expo),
     transform var(--dur-mid) var(--ease-out-expo);
@@ -33,7 +41,22 @@
 
 .toast[data-shown="yes"] {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+}
+
+.toast__icon {
+  color: var(--accent);
+  flex: none;
+}
+
+.toast[data-tone="ok"] .toast__icon {
+  color: var(--ok);
+}
+.toast[data-tone="warn"] .toast__icon {
+  color: var(--warn);
+}
+.toast[data-tone="danger"] .toast__icon {
+  color: var(--danger);
 }
 
 .toast[data-tone="warn"] {
@@ -43,5 +66,88 @@
   border-color: color-mix(in srgb, var(--danger) 55%, transparent);
 }
 .toast[data-tone="ok"] {
-  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+
+.toast__msg {
+  flex: 1;
+  font-size: var(--fs-small);
+  margin: 0;
+  min-width: 0;
+  padding-block: var(--space-2);
+}
+
+.toast__action {
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--accent-bright);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+}
+
+.toast__action:hover {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.toast__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--text-faint);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.toast__close:hover {
+  background: var(--hairline-faint);
+  color: var(--text);
+}
+
+.toast__timer {
+  background: var(--sweep-ring);
+  background-size: 200% auto;
+  bottom: 0;
+  height: 2px;
+  left: 0;
+  position: absolute;
+  transform-origin: left;
+  width: 100%;
+}
+
+.toast[data-shown="yes"] .toast__timer {
+  animation-name: toast-timer;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.toast:hover .toast__timer,
+.toast:focus-within .toast__timer {
+  animation-play-state: paused;
+}
+
+@keyframes toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast[data-shown="yes"] .toast__timer {
+    animation: none;
+  }
 }

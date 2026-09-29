@@ -8,18 +8,13 @@
  * ReportsView.tsx.
  */
 import Base from "../layouts/Base.astro";
-import Nav from "../components/ui/Nav.astro";
 import { navUtama } from "../lib/nav-links";
-import Toast from "../components/ui/Toast";
 import ReportsView from "../components/ReportsView";
 
 const links = navUtama();
 ---
 
 <Base title="Laporan · IRIS IoT" cosmosScene="teknis">
-  <Nav links={links} current="/reports" />
-  <Toast client:load />
-
   <main class="page-regular">
     <ReportsView client:load />
   </main>

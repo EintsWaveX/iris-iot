@@ -1,0 +1,24 @@
+---
+/**
+ * /session and /en/session (Phase 8): the assistant console. A static shell
+ * around Console.tsx, which decides everything client-side from /api/auth/me
+ * (the site is output: 'static', so there is no request-time cookie).
+ */
+import Base from "../layouts/Base.astro";
+import Console from "../components/console/Console";
+
+interface Props {
+  lang: "id" | "en";
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  title={lang === "en" ? "Console · IRIS IoT" : "Konsol · IRIS IoT"}
+  lang={lang}
+  cosmosScene="kerja"
+>
+  <main id="main" class="page-full page-main">
+    <Console client:load lang={lang} />
+  </main>
+</Base>

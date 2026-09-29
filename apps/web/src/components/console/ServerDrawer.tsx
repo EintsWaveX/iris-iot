@@ -1,0 +1,141 @@
+/**
+ * The console's server drawer (P8.2): a right slide-over with everything a
+ * running session needs from the Orange Pi, so nobody leaves the console:
+ * health, the hotspot switch (the only one, the old tab's duplicate is
+ * gone), services with restart and log peek, the live command timeline,
+ * and ESP32s by group. It polls every 4 s while open.
+ */
+import { ArrowUpRight, Clock, Cpu, Thermometer, Timer } from "lucide-react";
+import Drawer from "../ui/Drawer";
+import { CommandTimeline, DevicesByGroup, HotspotCard, ServiceList } from "../server/ops";
+import { href, sejak } from "../../lib/app";
+import type { Lang } from "../../lib/kelas";
+import type { Strings } from "./strings";
+import type { ServerState } from "./data";
+import { isOnline, type AsistenRef } from "./types";
+
+function uptime(sec: number | null | undefined, lang: Lang): string {
+  if (!sec) return "·";
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  return lang === "en" ? `${d} d ${h} h` : `${d} hari ${h} jam`;
+}
+
+export default function ServerDrawer({
+  t,
+  lang,
+  open,
+  onOpenChange,
+  servers,
+  refresh,
+  asisten,
+}: {
+  t: Strings;
+  lang: Lang;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  servers: ServerState | null;
+  refresh: () => void;
+  asisten: Map<string, AsistenRef>;
+}) {
+  const d = servers?.detail ?? null;
+  const list = servers?.list ?? [];
+  const hb = d?.denyutTerakhir ?? null;
+  const on = d ? isOnline(hb, d.batasLuringDetik) : false;
+
+  return (
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t.drawerTitle}
+      description={t.drawerSub}
+      storeKey="console-server"
+      defaultWidth={480}
+      closeLabel={t.close}
+      resizeLabel={lang === "en" ? "Resize the drawer" : "Ubah lebar laci"}
+    >
+      {list.length === 0 ? (
+        <p className="empty-note">{t.drawerNone}</p>
+      ) : !d ? (
+        <div className="stack">
+          {list.map((s) => (
+            <a key={s.id} className="deck-row" href={href(lang, `/servers?id=${s.id}`)}>
+              <span
+                className={`dot ${isOnline(s.denyutTerakhir, s.batasLuringDetik) ? "dot--ok" : "dot--danger"}`}
+              />
+              <span className="grow">{s.nama}</span>
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div className="stack stack--lg drawer-ops">
+          <div className="drawer-ops__health">
+            <div className="row">
+              <span
+                className={`dot ${on ? "dot--ok dot--pulse" : "dot--danger"}`}
+                aria-hidden="true"
+              />
+              <b>{d.server.nama}</b>
+              <span className="pill pill--mono">{d.server.kode}</span>
+              <span className={`pill ${on ? "pill--ok" : "pill--danger"}`}>
+                {on ? t.online : t.offlineS}
+              </span>
+            </div>
+            <div className="drawer-ops__facts">
+              <span>
+                <Clock size={15} aria-hidden="true" /> {sejak(hb?.pada ?? null, lang)}
+              </span>
+              <span>
+                <Timer size={15} aria-hidden="true" /> {uptime(hb?.uptimeSec, lang)}
+              </span>
+              <span>
+                <Cpu size={15} aria-hidden="true" />{" "}
+                {hb?.cpu != null ? `${Math.round(hb.cpu)}%` : "·"}
+              </span>
+              <span>
+                <Thermometer size={15} aria-hidden="true" />{" "}
+                {hb?.suhu != null ? `${Math.round(hb.suhu)}°C` : "·"}
+              </span>
+              <span className={hb?.jamSelaras ? "" : "drawer-ops__bad"}>
+                {t.clock}: {hb?.jamSelaras ? t.clockOk : t.clockBad}
+              </span>
+            </div>
+          </div>
+
+          <HotspotCard lang={lang} serverId={d.server.id} hb={hb} onSent={refresh} />
+
+          <section className="stack">
+            <h3 className="label-caps">{t.services}</h3>
+            <ServiceList
+              lang={lang}
+              serverId={d.server.id}
+              hb={hb}
+              perintah={d.perintah}
+              onSent={refresh}
+            />
+          </section>
+
+          <section className="stack">
+            <h3 className="label-caps">{t.commands}</h3>
+            <CommandTimeline
+              lang={lang}
+              perintah={d.perintah}
+              kode={(nim) => (nim ? (asisten.get(nim)?.kode ?? nim) : "")}
+            />
+          </section>
+
+          <section className="stack">
+            <h3 className="label-caps">{t.espByGroup}</h3>
+            <DevicesByGroup lang={lang} devices={d.perangkat} />
+          </section>
+
+          <a className="btn btn--ghost" href={href(lang, `/servers?id=${d.server.id}`)}>
+            {t.drawerOpenFull}
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </a>
+        </div>
+      )}
+    </Drawer>
+  );
+}

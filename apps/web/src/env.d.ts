@@ -12,7 +12,11 @@ interface Window {
     close(id?: string): void;
   };
   Toast?: {
-    show(message: string, tone?: "info" | "ok" | "warn" | "danger"): void;
+    show(
+      message: string,
+      tone?: "info" | "ok" | "warn" | "danger",
+      opts?: { action?: { label: string; onClick: () => void }; duration?: number },
+    ): void;
   };
   // src/components/LoginDialog.tsx (P7.3): a React-state-driven dialog, not
   // an id-addressed Modal.astro panel, so it exposes this instead of

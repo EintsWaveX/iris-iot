@@ -50,8 +50,10 @@ interface Props {
   /** "md" (default, 32rem) fits a confirm dialog; "lg" (38rem) gives a
    *  form with its own role switch and field hints (the login dialog) room
    *  to breathe instead of wrapping every line. */
-  size?: "md" | "lg";
-  children: ReactNode;
+  size?: "md" | "lg" | "xl";
+  /** Phase 8: the close button's accessible label follows the page language. */
+  lang?: "id" | "en";
+  children?: ReactNode;
   /** Rendered right-aligned in the footer, e.g. action buttons. */
   actions?: ReactNode;
 }
@@ -63,6 +65,7 @@ export default function Dialog({
   description,
   sheet = false,
   size = "md",
+  lang = "id",
   children,
   actions,
 }: Props) {
@@ -80,8 +83,10 @@ export default function Dialog({
         <RadixDialog.Content
           className={[
             "dialog__panel",
+            "sweep-edge",
             sheet && "dialog__panel--sheet",
             size === "lg" && "dialog__panel--lg",
+            size === "xl" && "dialog__panel--xl",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -101,12 +106,12 @@ export default function Dialog({
             )}
             <RadixDialog.Close
               className="btn btn--ghost btn--icon dialog__close"
-              aria-label="Tutup"
+              aria-label={lang === "en" ? "Close" : "Tutup"}
             >
               ×
             </RadixDialog.Close>
           </header>
-          <div className="dialog__body">{children}</div>
+          {children != null && <div className="dialog__body">{children}</div>}
           {actions && <footer className="dialog__actions">{actions}</footer>}
         </RadixDialog.Content>
       </RadixDialog.Portal>
