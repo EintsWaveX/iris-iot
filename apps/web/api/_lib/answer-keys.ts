@@ -53,6 +53,17 @@ function exact(correct: string, kenapa: string): AnswerEntry {
   return { cocok: (jawaban) => normalize(jawaban) === target, kenapa, kanonik: () => correct };
 }
 
+/** One canonical answer (what the download splices in) plus equivalent
+ *  spellings that compile the same, e.g. a value and its explicit wrapper. */
+function anyOf(correct: string, juga: string[], kenapa: string): AnswerEntry {
+  const targets = [correct, ...juga].map(normalize);
+  return {
+    cocok: (jawaban) => targets.includes(normalize(jawaban)),
+    kenapa,
+    kanonik: () => correct,
+  };
+}
+
 function perGroup(template: (nomorKelompok: number) => string, kenapa: string): AnswerEntry {
   return {
     cocok: (jawaban, ctx) => normalize(jawaban) === normalize(template(ctx.nomorKelompok)),
@@ -75,9 +86,13 @@ export const ANSWER_KEYS: Record<string, AnswerEntry> = {
     "INPUT",
     "Resistor pull-down eksternal pada skema sudah menyediakan nilai pasti saat tombol tidak ditekan, sehingga mode pin cukup INPUT biasa, bukan INPUT_PULLUP.",
   ),
-  "m1.modul1_ble_central.4": exact(
-    "BLEUUID(SERVICE_UUID)",
-    "getService() menerima objek BLEUUID, bukan string biasa, sehingga SERVICE_UUID harus dibungkus BLEUUID().",
+  // kunci_jawaban (2026-09-29) passes SERVICE_UUID straight in, which the
+  // ESP32 core 3.3 compiles; the handbook's BLEUUID(SERVICE_UUID) is the
+  // same call spelled out, so both are accepted.
+  "m1.modul1_ble_central.4": anyOf(
+    "SERVICE_UUID",
+    ["BLEUUID(SERVICE_UUID)"],
+    "getService() mencari layanan lewat UUID-nya, yaitu SERVICE_UUID yang sama dengan milik Peripheral.",
   ),
   "m1.modul1_ble_central.5": exact(
     "notifyCallback",
@@ -197,7 +212,7 @@ export const ANSWER_KEYS: Record<string, AnswerEntry> = {
   ),
   "m3.modul3_mqtt_subscribe.3": exact(
     "timestamp",
-    "timestamp() dari iris_waktu mengembalikan jam dinding dalam format HH:MM:SS:MS yang sudah diselaraskan NTP.",
+    "timestamp() di bagian atas berkas mengembalikan jam dinding dalam format HH:MM:SS:MS yang sudah diselaraskan NTP.",
   ),
   "m3.modul3_mqtt_subscribe.4": exact(
     "mqtt_subscription_callback",

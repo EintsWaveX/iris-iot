@@ -23,10 +23,10 @@ identical except for GROUP_ID and LORA_SYNC_WORD, both handled at request
 time by src/lib/group-identity.ts rather than baked into the shipped
 template.
 
-Also copies the two non-blanked shared headers Modules 1 and 3 `#include`
-but never contain a blank in (iris_waktu.h, iris_waktu.py) to public/
-sketches/{lang}/, served as plain static downloads rather than through the
-editor -- see the Code step's own download hint for how they're linked.
+Modules 1 and 3 used to `#include`/import a shared iris_waktu.h/.py helper,
+copied to public/sketches/. IRIS ASO eaae72b inlined that helper into the
+sketches themselves, so every module is now a single self-contained file
+and nothing is copied to public/ any more.
 
 Writes two manifests:
   src/content/sketches/identitas.json  per-group GROUP_ID/sync word for
@@ -58,7 +58,6 @@ from pathlib import Path
 
 WEB_ROOT = Path(__file__).resolve().parent.parent  # apps/web/
 SKETCHES_DIR = WEB_ROOT / "src" / "content" / "sketches"
-PUBLIC_SKETCHES_DIR = WEB_ROOT / "public" / "sketches"
 
 DEFAULT_IRIS_ASO = Path(os.path.expanduser("~/Downloads/IRIS ASO"))
 LANGUAGES = ("id", "en")
@@ -77,7 +76,6 @@ MODUL4_FILES = [
     (f"modul4/{MODUL4_REPRESENTATIVE_GROUP}/hunter.ino", "modul4_hunter.ino"),
     (f"modul4/{MODUL4_REPRESENTATIVE_GROUP}/beacon.ino", "modul4_beacon.ino"),
 ]
-HELPER_FILES = ["iris_waktu.h", "iris_waktu.py"]
 
 # Modules whose downloaded/displayed file must be personalised per group --
 # mirrors group-identity.ts's PERSONALIZE_PATTERNS, listed again here only
@@ -132,11 +130,6 @@ def gather_plan(iris_aso: Path) -> dict[str, bytes]:
                 raise SyncError(f"{src} not found")
             plan[f"src/content/sketches/{lang}/{dest_name}"] = src.read_bytes()
 
-        for helper in HELPER_FILES:
-            src = lang_dir / helper
-            if not src.exists():
-                raise SyncError(f"{src} not found")
-            plan[f"public/sketches/{lang}/{helper}"] = src.read_bytes()
 
     sync_words = load_sync_words(iris_aso)
     identitas = {

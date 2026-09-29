@@ -9,7 +9,35 @@ import time
 import ntptime
 import utime
 from umqtt.simple import ________  # (1) Nama kelas client MQTT yang dipakai di bawah
-from iris_waktu import timestamp
+
+# ---- JAM DINDING BERSAMA ----------------------------------------------------
+# Publisher dan Subscriber sama-sama memanggil sync_time_reference() sesudah
+# NTP, sehingga keduanya terkunci ke acuan detik yang sama.
+timezone_offset = 7 * 3600  # WIB (UTC+7).
+
+
+def sync_time_reference():
+    """Menunggu pergantian detik pada RTC, lalu mengunci titik acuan jamnya.
+
+    Sesudah titik ini seluruh timestamp dihitung dari satu basis milidetik
+    Unix, sehingga bagian detik dan milidetiknya tidak pernah saling
+    mendahului dan waktu kedua Pico W benar-benar dapat dikurangkan.
+    """
+    start_second = utime.localtime()[5]
+    while utime.localtime()[5] == start_second:
+        pass
+    return utime.time() * 1000, utime.ticks_ms()
+
+
+def timestamp():
+    """Mengembalikan jam dinding saat ini dalam format HH:MM:SS:MS."""
+    now_ms = _epoch_ms_reference + utime.ticks_diff(utime.ticks_ms(), _ticks_reference)
+    current_time = utime.localtime(now_ms // 1000 + timezone_offset)
+
+    return "{:02}:{:02}:{:02}:{:03}".format(
+        current_time[3], current_time[4], current_time[5], now_ms % 1000
+    )
+
 
 wifi_ssid     = "<YOUR SSID WIFI>"
 wifi_password = "<YOUR WIFI PASSWORD>"
@@ -45,6 +73,10 @@ try:
 except Exception as e:
     print(f'Gagal menyelaraskan jam: {e}')
 
+# Dijalankan sesudah NTP, bukan sebelumnya, supaya acuan detik yang dikunci
+# sudah memakai jam yang benar, bukan RTC Pico W yang belum terkoreksi.
+_epoch_ms_reference, _ticks_reference = sync_time_reference()
+
 
 # Port 1883 adalah nilai `listener` yang dipakai pada mosquitto.conf. keepalive
 # memberi tahu broker untuk mengharapkan ping dari client ini setiap 30 detik.
@@ -60,7 +92,7 @@ mqtt_client = MQTTClient(
 
 def mqtt_subscription_callback(topic, message):
     # Waktu terima dicatat lebih dahulu agar tidak terpengaruh proses lain.
-    received_at = ________()  # (3) Fungsi jam dinding dari iris_waktu di atas
+    received_at = ________()  # (3) Fungsi jam dinding yang didefinisikan di atas
 
     sample, percent = message.decode().split()
 
