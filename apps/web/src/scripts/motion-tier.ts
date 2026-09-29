@@ -55,7 +55,12 @@ type Tier = 0 | 1 | 2;
 // The explicit tri-state setting is the real fix for "stuck reduced", but
 // bumping the key here also gives every existing session one fresh,
 // unpinned measurement rather than trusting a possibly-stale old one.
-const TIER_CACHE_KEY = "iris-motion-tier-v2";
+// v3 (Phase 8): a single 400ms reading taken while the page was still
+// hydrating its islands pinned capable desktops at tier 0 (a frozen sky)
+// for a week. The probe now keeps the better of two readings, floors
+// multi-core machines at tier 1, and re-measures a low verdict after 12
+// hours; bumping the key gives every stuck browser that fresh measurement.
+const TIER_CACHE_KEY = "iris-motion-tier-v3";
 const PROBE_MS = 400;
 const SPRITE_COUNT = 180; // roughly cosmos.core.js's near-layer star density
 
@@ -80,13 +85,17 @@ function readDeclaredWeakSignal(): boolean {
 // a since-upgraded phone or a since-closed background tab is not stuck
 // with a stale verdict indefinitely.
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// A below-best verdict is the one most likely to be a busy-moment artefact,
+// so it is trusted for much less time than a tier 2 one.
+const LOW_TIER_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 function readCachedTier(): Tier | null {
   try {
     const raw = window.localStorage.getItem(TIER_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { tier?: number; probedAt?: number };
-    if (typeof parsed.probedAt === "number" && Date.now() - parsed.probedAt > CACHE_MAX_AGE_MS) {
+    const maxAge = parsed.tier === 2 ? CACHE_MAX_AGE_MS : LOW_TIER_MAX_AGE_MS;
+    if (typeof parsed.probedAt !== "number" || Date.now() - parsed.probedAt > maxAge) {
       return null;
     }
     if (parsed.tier === 0 || parsed.tier === 1 || parsed.tier === 2) return parsed.tier;
@@ -203,6 +212,13 @@ function tierFromFps(fps: number): Tier {
   return 0;
 }
 
+/** Four or more cores always handle the CSS drift layers (tier 1); only
+ *  the canvas tier is left to the measurement. */
+function floorTier(t: Tier): Tier {
+  const cores = navigator.hardwareConcurrency;
+  return typeof cores === "number" && cores >= 4 && t < 1 ? 1 : t;
+}
+
 /**
  * Resolves once the page has reached a quiet point: after `load` (so the
  * measurement below never contends with the rest of the page's own
@@ -243,17 +259,26 @@ async function probeTier(): Promise<Tier> {
   if (readDeclaredWeakSignal()) return 0;
   try {
     await waitForQuietMoment();
-    for (let attempt = 0; attempt < MAX_MEASUREMENT_ATTEMPTS; attempt++) {
+    let best: number | null = null;
+    for (let attempt = 0; attempt < MAX_MEASUREMENT_ATTEMPTS + 1; attempt++) {
       await waitForVisible();
       const fps = await measureFrameRate();
-      if (fps !== null) return tierFromFps(fps);
+      if (fps !== null) {
+        // Contention (hydration, a late script) only ever lowers a reading,
+        // so the better of two is the truer one. A first reading that is
+        // already tier 2 needs no second.
+        best = best === null ? fps : Math.max(best, fps);
+        if (best >= 50 || attempt > 0) return floorTier(tierFromFps(best));
+        await new Promise((r) => setTimeout(r, 600));
+        continue;
+      }
       // The tab went hidden mid-measurement; loop back to waitForVisible()
       // and try again rather than caching a throttled reading. A device
       // stuck backgrounded for the whole session never gets a tier
       // decided, which is correct -- there is nothing meaningful to
       // measure until someone is actually looking at the page.
     }
-    return 0; // repeatedly interrupted: fail safe rather than loop forever
+    return floorTier(best === null ? 0 : tierFromFps(best)); // repeatedly interrupted
   } catch {
     return 0; // fail safe: a broken probe gets the cheapest tier, not the most expensive
   }
