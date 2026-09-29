@@ -18,14 +18,13 @@ export interface NavLink {
 }
 
 export function navUtama(lang: "id" | "en" = "id"): NavLink[] {
+  const en = lang === "en";
   return [
-    { href: "/", label: "Beranda" },
-    { href: "/dashboard", label: "Dasbor", peran: "praktikan" },
-    { href: "/session", label: "Sesi", peran: "asisten" },
-    lang === "en"
-      ? { href: "/en/modules", label: "Modules" }
-      : { href: "/modules", label: "Modul" },
+    { href: "/", label: en ? "Home" : "Beranda" },
+    { href: "/dashboard", label: en ? "Dashboard" : "Dasbor", peran: "praktikan" },
+    { href: "/session", label: en ? "Session" : "Sesi", peran: "asisten" },
+    { href: en ? "/en/modules" : "/modules", label: en ? "Modules" : "Modul" },
     { href: "/servers", label: "Server", peran: "asisten" },
-    { href: "/reports", label: "Laporan", peran: "asisten" },
+    { href: "/reports", label: en ? "Reports" : "Laporan", peran: "asisten" },
   ];
 }

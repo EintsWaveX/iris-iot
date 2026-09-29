@@ -56,7 +56,7 @@ const links = navUtama(lang === "en" ? "en" : "id");
               </Badge>
             </div>
             <div class="modules-index__card-body">
-              <Chip>MODUL {entry.data.modul}</Chip>
+              <Chip>{`${t.moduleWord.toUpperCase()} ${entry.data.modul}`}</Chip>
               <h3 class="modules-index__card-title">{entry.data.judul}</h3>
               <p class="modules-index__card-tagline">{entry.data.tagline}</p>
             </div>
