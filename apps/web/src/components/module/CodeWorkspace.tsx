@@ -6,9 +6,13 @@
  *            handle, or its own close button), open by default at 1680+
  *   <  1280  the code full width, "Pin & skema" opens the same panel as a
  *            bottom sheet
+ *
+ * Mounted client:only, so the first render already knows the width and the
+ * saved dock state. Deciding either after hydration swapped the layout and
+ * remounted the editor, dropping the blank a student had just tapped.
  */
-import { useEffect, useState, type ComponentProps } from "react";
-import { CircuitBoard, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { useState, type ComponentProps } from "react";
+import { CircuitBoard, PanelRightClose } from "lucide-react";
 import ResizablePanes from "../ui/ResizablePanes";
 import Dialog from "../ui/Dialog";
 import ModuleCodeStep from "../ModuleCodeStep";
@@ -48,19 +52,15 @@ export default function CodeWorkspace({
   code: ComponentProps<typeof ModuleCodeStep>;
 }) {
   const t = T[lang];
-  const wide = useMinWidth(1280);
-  const xwide = useMinWidth(1680);
-  const [open, setOpen] = useState(true);
-  const [sheet, setSheet] = useState(false);
-
-  useEffect(() => {
+  const wide = useMinWidth(1280, true);
+  const [open, setOpen] = useState(() => {
     try {
-      const v = localStorage.getItem(OPEN_KEY);
-      setOpen(v === null ? true : v === "1");
+      return localStorage.getItem(OPEN_KEY) !== "0";
     } catch {
-      /* ignore */
+      return true;
     }
-  }, [xwide]);
+  });
+  const [sheet, setSheet] = useState(false);
 
   function toggle(v: boolean) {
     setOpen(v);
@@ -84,7 +84,7 @@ export default function CodeWorkspace({
           className="btn btn--secondary codews__sheetbtn"
           onClick={() => setSheet(true)}
         >
-          <CircuitBoard size={18} aria-hidden="true" /> {t.pins}
+          {t.pins}
         </button>
         {editor}
         <Dialog open={sheet} onOpenChange={setSheet} title={t.pins} sheet size="xl" lang={lang}>
@@ -99,7 +99,7 @@ export default function CodeWorkspace({
       <div className="codews">
         <div className="row row--end">
           <button type="button" className="btn btn--secondary" onClick={() => toggle(true)}>
-            <PanelRightOpen size={18} aria-hidden="true" /> {t.show}
+            {t.show}
           </button>
         </div>
         {editor}

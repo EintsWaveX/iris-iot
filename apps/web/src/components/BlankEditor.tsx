@@ -9,8 +9,9 @@
  * POST /api/modul/cek as a boolean plus an already-decided "why" line, and
  * a wrong guess gets no more information than a blank one did.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { Segment } from "../lib/blanks";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { BlankSegment, Segment } from "../lib/blanks";
+import { BLANK_MARK, detectLang, tokenize } from "../lib/highlight";
 import { needsPersonalization, personalizeSegments } from "../lib/group-identity";
 import { startPolling } from "../scripts/polling";
 import ScrollArea from "./ui/ScrollArea";
@@ -269,6 +270,94 @@ export default function BlankEditor({
   }, [loaded, lengkap]);
   useEffect(() => () => window.clearTimeout(flashTimer.current), []);
 
+  function renderBlank(seg: BlankSegment) {
+    const entry = state[seg.nomor];
+
+    const teman = dariTeman.includes(seg.nomor);
+    const tampakBenar = Boolean(entry?.isi && entry.checkedIsi === entry.isi && entry.benar);
+    // Room for the tick that sits inside a correct field.
+    const width = Math.max(4, (entry?.isi.length ?? 0) + 2) + (tampakBenar ? 2 : 0);
+    return (
+      <span
+        key={`b${seg.nomor}`}
+        className="blank-editor__field"
+        data-teman={teman ? "yes" : undefined}
+        data-state={
+          entry?.checking
+            ? "checking"
+            : entry?.checkedIsi === entry?.isi && entry?.isi
+              ? entry?.benar
+                ? "benar"
+                : "salah"
+              : "netral"
+        }
+      >
+        <input
+          type="text"
+          id={`blank-${berkas}-${seg.nomor}`}
+          name={`blank-${berkas}-${seg.nomor}`}
+          inputMode="text"
+          autoComplete="off"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          disabled={locked}
+          aria-label={seg.hint}
+          style={{ width: `${width}ch` }}
+          value={entry?.isi ?? ""}
+          onChange={(e) => onChange(seg.nomor, e.target.value)}
+          onFocus={() => {
+            fokusNomor.current = seg.nomor;
+          }}
+          onBlur={() => {
+            if (fokusNomor.current === seg.nomor) fokusNomor.current = null;
+            void checkBlank(seg.nomor);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void checkBlank(seg.nomor);
+            }
+          }}
+        />
+        {tampakBenar && (
+          <span className="blank-editor__tick" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="12" height="12">
+              <path
+                d="M3 8.5l3.2 3L13 4.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        )}
+        {teman && (
+          <span className="blank-editor__teman" role="status">
+            {L.teman}
+          </span>
+        )}
+        {tampakBenar && entry?.kenapa && (
+          <span className="blank-editor__kenapa" role="status">
+            {entry.kenapa}
+          </span>
+        )}
+      </span>
+    );
+  }
+
+  // Colour the sketch once per (personalized) template; typing never
+  // re-tokenizes, because each blank is a single placeholder here.
+  const { tokens, blanks } = useMemo(() => {
+    const full = displaySegments.map((s) => (s.kind === "text" ? s.text : BLANK_MARK)).join("");
+    return {
+      tokens: tokenize(full, detectLang(full)),
+      blanks: displaySegments.filter((s): s is BlankSegment => s.kind === "blank"),
+    };
+  }, [displaySegments]);
+
   const L =
     bahasa === "en"
       ? { teman: "filled by a groupmate", buka: "All blanks correct. The file is ready." }
@@ -287,85 +376,29 @@ export default function BlankEditor({
       )}
       <ScrollArea label={bahasa === "en" ? "Code" : "Kode"} className="blank-editor__scroll">
         <pre className="blank-editor__code">
-          {displaySegments.map((seg, i) => {
-            if (seg.kind === "text") return seg.text;
-            const entry = state[seg.nomor];
-            const teman = dariTeman.includes(seg.nomor);
-            const tampakBenar = Boolean(
-              entry?.isi && entry.checkedIsi === entry.isi && entry.benar,
-            );
-            // Room for the tick that sits inside a correct field.
-            const width = Math.max(4, (entry?.isi.length ?? 0) + 2) + (tampakBenar ? 2 : 0);
-            return (
-              <span
-                key={i}
-                className="blank-editor__field"
-                data-teman={teman ? "yes" : undefined}
-                data-state={
-                  entry?.checking
-                    ? "checking"
-                    : entry?.checkedIsi === entry?.isi && entry?.isi
-                      ? entry?.benar
-                        ? "benar"
-                        : "salah"
-                      : "netral"
+          {(() => {
+            const nodes: ReactNode[] = [];
+            let b = 0;
+            tokens.forEach((tok, ti) => {
+              tok.text.split(BLANK_MARK).forEach((part, pi) => {
+                if (pi > 0) {
+                  const seg = blanks[b++];
+                  if (seg) nodes.push(renderBlank(seg));
                 }
-              >
-                <input
-                  type="text"
-                  id={`blank-${berkas}-${seg.nomor}`}
-                  name={`blank-${berkas}-${seg.nomor}`}
-                  inputMode="text"
-                  autoComplete="off"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  disabled={locked}
-                  aria-label={seg.hint}
-                  style={{ width: `${width}ch` }}
-                  value={entry?.isi ?? ""}
-                  onChange={(e) => onChange(seg.nomor, e.target.value)}
-                  onFocus={() => {
-                    fokusNomor.current = seg.nomor;
-                  }}
-                  onBlur={() => {
-                    if (fokusNomor.current === seg.nomor) fokusNomor.current = null;
-                    void checkBlank(seg.nomor);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      void checkBlank(seg.nomor);
-                    }
-                  }}
-                />
-                {tampakBenar && (
-                  <span className="blank-editor__tick" aria-hidden="true">
-                    <svg viewBox="0 0 16 16" width="12" height="12">
-                      <path
-                        d="M3 8.5l3.2 3L13 4.5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
-                )}
-                {teman && (
-                  <span className="blank-editor__teman" role="status">
-                    {L.teman}
-                  </span>
-                )}
-                {tampakBenar && entry?.kenapa && (
-                  <span className="blank-editor__kenapa" role="status">
-                    {entry.kenapa}
-                  </span>
-                )}
-              </span>
-            );
-          })}
+                if (!part) return;
+                nodes.push(
+                  tok.kind ? (
+                    <span key={`t${ti}.${pi}`} className={`tok tok--${tok.kind}`}>
+                      {part}
+                    </span>
+                  ) : (
+                    <Fragment key={`t${ti}.${pi}`}>{part}</Fragment>
+                  ),
+                );
+              });
+            });
+            return nodes;
+          })()}
         </pre>
       </ScrollArea>
 

@@ -160,9 +160,14 @@ export function useLang(routeLang: Lang, kelas?: Kelas | null): Lang {
  *  server and the first client render (reading the window here made a
  *  narrow screen's first render differ from the server HTML, a hydration
  *  mismatch); the effect below applies the real width right after. */
-export function useMinWidth(px: number): boolean {
+/** `clientOnly`: the island is mounted with client:only, so the first render
+ *  may read the real width. Otherwise it starts `true` to match the server
+ *  HTML, and a narrow screen swaps layouts right after hydration. */
+export function useMinWidth(px: number, clientOnly = false): boolean {
   const q = `(min-width: ${px}px)`;
-  const [ok, setOk] = useState(true);
+  const [ok, setOk] = useState(() =>
+    clientOnly && typeof window !== "undefined" ? window.matchMedia(q).matches : true,
+  );
   useEffect(() => {
     const mq = window.matchMedia(q);
     const on = () => setOk(mq.matches);

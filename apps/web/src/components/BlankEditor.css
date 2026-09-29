@@ -314,3 +314,43 @@
   color: var(--text-faint);
   pointer-events: none;
 }
+
+/* Syntax colours (lib/highlight.ts), picked from the sky: violet keywords,
+   aurora green strings, star gold numbers. */
+.blank-editor {
+  --syn-keyword: #c3a6ff;
+  --syn-type: #6fd6e3;
+  --syn-string: #8fe3b0;
+  --syn-number: #f5c77e;
+  --syn-func: #7cc4ff;
+  --syn-preproc: #ff9ecf;
+  --syn-const: #ffb38a;
+  --syn-comment: var(--text-faint);
+}
+
+.tok--keyword {
+  color: var(--syn-keyword);
+}
+.tok--type {
+  color: var(--syn-type);
+}
+.tok--string {
+  color: var(--syn-string);
+}
+.tok--number {
+  color: var(--syn-number);
+}
+.tok--func {
+  color: var(--syn-func);
+}
+.tok--preproc,
+.tok--deco {
+  color: var(--syn-preproc);
+}
+.tok--const {
+  color: var(--syn-const);
+}
+.tok--comment {
+  color: var(--syn-comment);
+  font-style: italic;
+}
