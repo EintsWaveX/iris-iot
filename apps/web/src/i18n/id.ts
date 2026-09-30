@@ -51,12 +51,10 @@ export const id = {
   },
   live: {
     heading: "Tampilan live",
-    // Modul 1 tidak pernah punya sumber data sungguhan (tidak ada relay BLE
-    // sungguhan, dan tidak direncanakan), jadi body/disclosure di bawah ini
-    // tetap berlaku untuknya apa adanya. Modul 2 sampai 4 memakai versi
-    // "Real" lewat bodyFor/disclosureFor, karena Tahap 20 memberi mereka
-    // data sungguhan begitu sesi dan papan yang berjalan mengirimkannya.
-    body: "Alur dan lapisan protokol modul ini, disimulasikan langsung di peramban. Data sungguhan dari sesi dan papan yang berjalan menyusul di tahap berikutnya.",
+    // Modul 1 mendapat data sungguhan dari PC kelompok yang menghubungkan
+    // papan Central lewat USB (BoardLink), bukan dari Pi, jadi kalimatnya
+    // sendiri. Modul 2 sampai 4 memakai versi "Real" lewat bodyFor/disclosureFor.
+    body: "Alur dan lapisan protokol modul ini menampilkan data sungguhan begitu PC kelompok menghubungkan papan Central di halaman live, dan disimulasikan di peramban sebelum itu.",
     bodyReal:
       "Alur dan lapisan protokol modul ini menampilkan data sungguhan dari sesi dan papan yang sedang berjalan begitu tersedia, dan disimulasikan di peramban sebelum itu.",
     bodyFor: (modul: number) => (modul === 1 ? id.live.body : id.live.bodyReal),
@@ -66,7 +64,7 @@ export const id = {
     tabLayers: "Lapisan",
     tabSandbox: "Coba sendiri",
     disclosure:
-      "Semua data pada halaman ini disimulasikan di peramban Anda, bukan diambil dari papan atau sesi yang sebenarnya.",
+      "Data pada halaman ini sungguhan begitu PC kelompok menghubungkan papan Central, dan disimulasikan di peramban Anda sebelum itu.",
     disclosureReal:
       "Data pada halaman ini sungguhan dari sesi dan papan yang sedang berjalan begitu tersedia, dan disimulasikan di peramban Anda sebelum itu.",
     disclosureFor: (modul: number) => (modul === 1 ? id.live.disclosure : id.live.disclosureReal),

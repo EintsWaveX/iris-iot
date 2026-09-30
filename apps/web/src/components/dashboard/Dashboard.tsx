@@ -231,16 +231,14 @@ function MiniFlow({
     resetLiveReadingMemory(modul, kelompok);
     let isLive = false;
     return startPolling(async () => {
-      if (modul !== 1) {
-        const r = await fetchLiveReading(modul, kelompok);
-        if (r) {
-          isLive = true;
-          setLive(true);
-          setRows((p) => [...p, r].slice(-28));
-          return;
-        }
-        if (isLive) return;
+      const r = await fetchLiveReading(modul, kelompok);
+      if (r) {
+        isLive = true;
+        setLive(true);
+        setRows((p) => [...p, r].slice(-28));
+        return;
       }
+      if (isLive) return;
       setRows((p) => [...p, nextReading(modul, kelompok)].slice(-28));
     }, 1500);
   }, [modul, kelompok]);

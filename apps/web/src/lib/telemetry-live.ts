@@ -4,10 +4,8 @@
  * the same `Reading` shape the simulator produces, so Ladder/LayerXray/
  * GroupLive can use either source without knowing which one they got.
  *
- * Module 1 never has a live source (no real BLE relay exists, and none is
- * planned -- see the plan's own "Module 1: simulated, labelled" line), so
- * callers should never call this for modul === 1 in the first place; it
- * would simply always return null (the route itself refuses modul 1).
+ * Module 1's rows come from a group PC reading its central board over Web
+ * Serial (serial-modul1.ts), so this returns them the same way.
  */
 import type { Reading } from "./telemetry-sim";
 

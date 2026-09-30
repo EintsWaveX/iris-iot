@@ -19,6 +19,7 @@
  * POST /api/session/siarkan { pesan } (Stage 10)     — set or clear the running session's broadcast.
  * POST /api/session/catatan { sesiId, kelompokId, catatan, peran } (Stage 10) — per-group note/role.
  * GET  /api/session/telemetry?modul=N&kelompok=M (Stage 20)          — asisten OR praktikan. The Ladder/LayerXray/GroupLive views' live-data source.
+ * POST /api/session/telemetry { readings }          — praktikan. Module 1's readings from the group PC's Web Serial link.
  * POST /api/session/lanjutkan { sesiId }             — reopen an ended session still inside its 150-minute cap.
  * GET  /api/session/akses (P6.5)                     — public, cacheable. Which modules students may open.
  * POST /api/session/akses { terbuka: number[] } (P6.5) — asisten-only, sets the open-module list directly.
@@ -165,12 +166,48 @@ async function handleTelemetry(req: ApiRequest, res: ApiResponse) {
   const modul = Number(req.query.modul);
   const kelompok = Number(req.query.kelompok);
 
-  if (![2, 3, 4].includes(modul) || !Number.isInteger(kelompok) || kelompok < 1) {
+  if (![1, 2, 3, 4].includes(modul) || !Number.isInteger(kelompok) || kelompok < 1) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
 
   const db = getDb();
+  res.setHeader("Cache-Control", "public, s-maxage=5, stale-while-revalidate=10");
+
+  // Module 1 has no Pi: its rows come from the group PC's browser (see
+  // handleTelemetryModul1) and live only in telemetri_log, whose id serves
+  // as the seq viewers dedupe on.
+  if (modul === 1) {
+    const running = await currentSesi();
+    if (!running || running.modul !== 1) {
+      res.status(200).json({ ok: true, reading: null });
+      return;
+    }
+    const [row] = await db
+      .select({
+        seq: telemetriLog.id,
+        tx: telemetriLog.tx,
+        rx: telemetriLog.rx,
+        delayMs: telemetriLog.delayMs,
+        rssi: telemetriLog.rssi,
+        snr: telemetriLog.snr,
+        diperbaruiPada: telemetriLog.dicatatPada,
+      })
+      .from(telemetriLog)
+      .where(
+        and(
+          eq(telemetriLog.sesiId, running.id),
+          eq(telemetriLog.modul, 1),
+          eq(telemetriLog.kelompokNomor, kelompok),
+          gte(telemetriLog.dicatatPada, sql`now() - interval '2 minutes'`),
+        ),
+      )
+      .orderBy(desc(telemetriLog.id))
+      .limit(1);
+    res.status(200).json({ ok: true, reading: row ?? null });
+    return;
+  }
+
   const [row] = await db
     .select({
       seq: telemetriTerkini.seq,
@@ -194,8 +231,54 @@ async function handleTelemetry(req: ApiRequest, res: ApiResponse) {
     )
     .limit(1);
 
-  res.setHeader("Cache-Control", "public, s-maxage=5, stale-while-revalidate=10");
   res.status(200).json({ ok: true, reading: row ?? null });
+}
+
+const MODUL1_BATCH_MAX = 50;
+const MODUL1_TS_RE = /^\d{2}:\d{2}:\d{2}:\d{3}$/;
+
+/** POST /api/session/telemetry { readings: [{ tx, rx, delayMs }] } --
+ *  praktikan only. Module 1's readings, parsed from the central board's
+ *  Serial output in the group PC's browser (src/lib/serial-modul1.ts).
+ *  Accepted only into the running Module 1 session the student signed in
+ *  to, and always under the student's own group. */
+async function handleTelemetryModul1(req: ApiRequest, res: ApiResponse, who: SessionPayload) {
+  const running = await currentSesi();
+  if (!running || running.modul !== 1 || who.sesiId !== running.id || !who.kelompokNomor) {
+    res.status(200).json({ ok: false, kode: "tidak_ada_sesi" });
+    return;
+  }
+  const body = jsonBody(req);
+  const readings = Array.isArray(body.readings) ? body.readings : null;
+  if (!readings || readings.length === 0 || readings.length > MODUL1_BATCH_MAX) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const ts = (v: unknown) => (typeof v === "string" && MODUL1_TS_RE.test(v) ? v : null);
+  const rows = [];
+  for (const r of readings as Record<string, unknown>[]) {
+    const delay = r?.delayMs;
+    const delayMs =
+      Number.isInteger(delay) && (delay as number) >= 0 && (delay as number) <= 600_000
+        ? (delay as number)
+        : null;
+    const tx = ts(r?.tx);
+    const rx = ts(r?.rx);
+    if (!tx && !rx) continue;
+    rows.push({
+      sesiId: running.id,
+      serverId: null,
+      modul: 1,
+      kelompokNomor: who.kelompokNomor,
+      seq: 0,
+      tx,
+      rx,
+      delayMs: rx ? delayMs : null,
+      diukurPada: new Date(),
+    });
+  }
+  if (rows.length) await getDb().insert(telemetriLog).values(rows);
+  res.status(200).json({ ok: true, diterima: rows.length });
 }
 
 async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -470,9 +553,9 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
     );
   const hadirNims = new Set(masukRows.map((r) => r.nim));
 
-  // P6.8: module 1 has no real telemetry (it's simulated client-side), so
-  // this query is only meaningful for 2-4, but running it unconditionally
-  // for module 1 just returns an empty set rather than needing a branch.
+  // Modules 2-4 fill this from the Pi agent; module 1 from the group PC's
+  // Web Serial link (handleTelemetryModul1), or not at all if no board was
+  // connected.
   const telemetriRows = await db
     .select({ kelompokNomor: telemetriLog.kelompokNomor, delayMs: telemetriLog.delayMs })
     .from(telemetriLog)
@@ -1146,6 +1229,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return handleNow(req, res);
   }
   if (aksi === "telemetry") {
+    if (req.method === "POST") {
+      const who = requireRole(req, res, "praktikan");
+      if (!who) return;
+      return handleTelemetryModul1(req, res, who);
+    }
     if (!requireMethod(req, res, "GET")) return;
     if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
     return handleTelemetry(req, res);

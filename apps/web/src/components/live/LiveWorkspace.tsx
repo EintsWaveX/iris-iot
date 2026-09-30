@@ -10,6 +10,8 @@
  *   all fed by one stream (useTelemetry). From 1280 they are resizable
  *   panes with the layers collapsible; below that they stack.
  * - "Coba sendiri" (try it yourself) is a secondary mode, not a third tab.
+ * - Module 1 only: the board panel, which reads the central ESP32 over
+ *   Web Serial on the group PC (BoardLink).
  */
 import { useEffect, useMemo, useState } from "react";
 import { Pause, Play } from "lucide-react";
@@ -23,7 +25,8 @@ import { useMe } from "../../lib/app";
 import { useMinWidth } from "../../lib/hooks";
 import { RAILS, describeLayers, type Reading } from "../../lib/telemetry-sim";
 import type { Lang } from "../../lib/kelas";
-import { flowStats, useTelemetry } from "./useTelemetry";
+import { flowStats, useTelemetry, type Telemetry } from "./useTelemetry";
+import BoardLink from "./BoardLink";
 import "./FlowDiagram.css";
 import "../LayerXray.css";
 import "./LiveWorkspace.css";
@@ -310,7 +313,11 @@ export default function LiveWorkspace({
     else if (own && GROUPS.includes(own)) setGroup(own);
   }, [own, picked]);
 
-  const tel = useTelemetry(modul, group, paused || mode !== "live");
+  // Module 1's board on this PC feeds its own group's view directly.
+  const [boardTel, setBoardTel] = useState<Telemetry | null>(null);
+  const boardGroup = own ?? group;
+  const local = modul === 1 && boardTel && group === boardGroup ? boardTel : null;
+  const tel = useTelemetry(modul, group, paused || mode !== "live", 1000, local);
   const stats = useMemo(() => flowStats(tel.history), [tel.history]);
   const last = tel.history[tel.history.length - 1];
   const hue = `var(--group-${group})`;
@@ -359,6 +366,15 @@ export default function LiveWorkspace({
           />
         </div>
       </div>
+
+      {modul === 1 && (
+        <BoardLink
+          lang={lang}
+          group={boardGroup}
+          canUpload={me?.role === "praktikan"}
+          onTelemetry={setBoardTel}
+        />
+      )}
 
       {mode === "live" ? (
         <>

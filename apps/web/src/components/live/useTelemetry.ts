@@ -3,10 +3,10 @@
  * The flow, the readings table, the stats strip and the layer panel all read
  * this instead of each polling on its own, so a hidden panel costs nothing.
  *
- * Same source rules as before: Modules 2 to 4 poll the real relay first
- * (telemetry-live.ts) and use the simulator only until the first real
- * reading arrives, never mixing the two afterwards; Module 1 always
- * simulates (no real BLE relay exists).
+ * Same source rules as before: every module polls the real relay first
+ * (telemetry-live.ts) and uses the simulator only until the first real
+ * reading arrives, never mixing the two afterwards. A board connected to
+ * this very PC (`local`, Module 1's Web Serial link) wins over both.
  */
 import { useEffect, useState } from "react";
 import { startPolling } from "../../scripts/polling";
@@ -21,7 +21,13 @@ export interface Telemetry {
   updatedAt: number | null;
 }
 
-export function useTelemetry(modul: number, group: number, paused: boolean, ms = 1000): Telemetry {
+export function useTelemetry(
+  modul: number,
+  group: number,
+  paused: boolean,
+  ms = 1000,
+  local: Telemetry | null = null,
+): Telemetry {
   const [state, setState] = useState<Telemetry>({ history: [], live: false, updatedAt: null });
 
   useEffect(() => {
@@ -29,8 +35,9 @@ export function useTelemetry(modul: number, group: number, paused: boolean, ms =
     resetLiveReadingMemory(modul, group);
   }, [modul, group]);
 
+  const polling = !paused && local === null;
   useEffect(() => {
-    if (paused) return;
+    if (!polling) return;
     let live = false;
     // A poll still in flight when the group or module changes must not
     // land in the new group's history.
@@ -44,24 +51,22 @@ export function useTelemetry(modul: number, group: number, paused: boolean, ms =
       }));
     };
     const stop = startPolling(async () => {
-      if (modul !== 1) {
-        const real = await fetchLiveReading(modul, group);
-        if (real) {
-          live = true;
-          push(real, true);
-          return;
-        }
-        if (live) return; // real data has started; a quiet poll just means nothing new yet
+      const real = await fetchLiveReading(modul, group);
+      if (real) {
+        live = true;
+        push(real, true);
+        return;
       }
+      if (live) return; // real data has started; a quiet poll just means nothing new yet
       push(nextReading(modul, group), false);
     }, ms);
     return () => {
       cancelled = true;
       stop();
     };
-  }, [modul, group, paused, ms]);
+  }, [modul, group, polling, ms]);
 
-  return state;
+  return local ?? state;
 }
 
 export interface FlowStats {

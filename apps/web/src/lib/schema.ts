@@ -651,7 +651,7 @@ export const telemetriTerkini = pgTable(
     serverId: integer("server_id")
       .notNull()
       .references(() => server.id, { onDelete: "cascade" }),
-    modul: integer("modul").notNull(), // 2, 3, or 4 -- Module 1 never has real telemetry
+    modul: integer("modul").notNull(), // 2, 3, or 4; Module 1 rows live only in telemetri_log
     kelompokNomor: integer("kelompok_nomor").notNull(),
     seq: integer("seq").notNull(),
     tx: text("tx"),
