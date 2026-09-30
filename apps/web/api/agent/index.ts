@@ -51,6 +51,8 @@ import {
   sweepPerintahKedaluwarsa,
   INTERVAL_AKTIF_SEC,
   INTERVAL_IDLE_SEC,
+  INTERVAL_SIAGA_SEC,
+  adaPerintahBaru,
 } from "../../src/lib/server-lib.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
@@ -208,7 +210,14 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     await pruneOldHeartbeatsOccasionally();
 
     const sesiAktif = await currentSesi();
-    const intervalDetik = sesiAktif ? INTERVAL_AKTIF_SEC : INTERVAL_IDLE_SEC;
+    // Fastest applicable pace wins: a command in flight beats the session/idle
+    // cadence, so the result comes back (and the next press is claimed) fast.
+    const siaga = pending.length > 0 || (await adaPerintahBaru(serverId));
+    const intervalDetik = siaga
+      ? INTERVAL_SIAGA_SEC
+      : sesiAktif
+        ? INTERVAL_AKTIF_SEC
+        : INTERVAL_IDLE_SEC;
 
     await rekamTelemetri(serverId, sesiAktif?.id ?? null, body.telemetri);
     await pruneOldTelemetryOccasionally();

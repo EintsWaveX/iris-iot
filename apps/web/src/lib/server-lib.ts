@@ -15,7 +15,7 @@
  * derived from what arrived.
  */
 import { randomBytes, createHash } from "node:crypto";
-import { and, eq, lt, isNotNull, sql } from "drizzle-orm";
+import { and, eq, gt, lt, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { server, denyut, perintah, telemetriTerkini, telemetriLog } from "./schema.js";
 import { safeEqual } from "./auth.js";
@@ -24,13 +24,17 @@ const ENROLL_TOKEN_TTL_MIN = 30;
 
 // The server, not the agent, knows whether a practicum session is running
 // (a `sesi` row with status "berjalan") -- so the server is what decides the
-// pace, rather than the agent guessing from its own local signals. 15s
-// during a session keeps health/inventory fresh while an assistant might
-// actually be looking at the dashboard; 10min idle matters because Neon's
-// free tier suspends compute after inactivity, and a fixed 15s beat would
-// hold it awake 730 hours a month for nothing.
+// pace, rather than the agent guessing from its own local signals. The agent
+// only hears about a queued command in a heartbeat reply, so this interval is
+// also how long an assistant's button press waits: 15s during a session, 60s
+// idle (it was 10min, which made the Server tab feel stuck), and 5s "siaga"
+// for SIAGA_MENIT after any command was queued, so chained actions (run a
+// diagnostic, then fetch its log) answer within seconds. Idle stays well
+// above the 5min a Neon free-tier compute needs to suspend only overnight.
 export const INTERVAL_AKTIF_SEC = 15;
-export const INTERVAL_IDLE_SEC = 600;
+export const INTERVAL_IDLE_SEC = 60;
+export const INTERVAL_SIAGA_SEC = 5;
+export const SIAGA_MENIT = 10;
 const TENGGANG_LURING_SEC = 60;
 
 /**
@@ -365,6 +369,22 @@ export async function claimPerintahMenunggu(
     .set({ status: "terkirim", terkirimPada: sql`now()` })
     .where(and(eq(perintah.serverId, serverId), eq(perintah.status, "menunggu")))
     .returning({ id: perintah.id, aksi: perintah.aksi, argumen: perintah.argumen });
+}
+
+/**
+ * True when an assistant queued a command for this server within the last
+ * SIAGA_MENIT -- the heartbeat then answers at the fast "siaga" pace so a
+ * follow-up press is picked up in seconds instead of a full idle interval.
+ */
+export async function adaPerintahBaru(serverId: number): Promise<boolean> {
+  const db = getDb();
+  const sejak = new Date(Date.now() - SIAGA_MENIT * 60_000);
+  const rows = await db
+    .select({ id: perintah.id })
+    .from(perintah)
+    .where(and(eq(perintah.serverId, serverId), gt(perintah.dimintaPada, sejak)))
+    .limit(1);
+  return rows.length > 0;
 }
 
 /**
