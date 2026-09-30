@@ -43,6 +43,11 @@ const ASSISTANT_PASSWORD_SUFFIX = "1715";
 const MAX_GAGAL_ASISTEN = 5;
 const MAX_GAGAL_PRAKTIKAN = 12;
 const LOCKOUT_WINDOW_MIN = 15;
+// Per-IP ceilings sit well above the per-NIM ones: a whole lab signs in
+// from one NAT address, so a handful of typos across the room must not
+// lock every phone out. The per-NIM limit above still guards each account.
+const MAX_GAGAL_IP_ASISTEN = 30;
+const MAX_GAGAL_IP_PRAKTIKAN = 80;
 
 function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
@@ -209,7 +214,7 @@ async function isLockedOut(
         gte(percobaanMasuk.pada, since),
       ),
     );
-  return (byIp?.n ?? 0) >= limit;
+  return (byIp?.n ?? 0) >= (jenis === "asisten" ? MAX_GAGAL_IP_ASISTEN : MAX_GAGAL_IP_PRAKTIKAN);
 }
 
 async function recordAttempt(
