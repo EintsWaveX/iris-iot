@@ -13,7 +13,7 @@
  * - Module 1 only: the board panel, which reads the central ESP32 over
  *   Web Serial on the group PC (BoardLink).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import GroupPicker from "../ui/GroupPicker";
 import ResizablePanes from "../ui/ResizablePanes";
@@ -21,11 +21,11 @@ import ScrollArea from "../ui/ScrollArea";
 import SegmentedControl from "../ui/SegmentedControl";
 import { UpdatedAgo } from "../ui/Display";
 import LiveSandbox from "../LiveSandbox";
-import { useMe } from "../../lib/app";
+import { useMe, useTick } from "../../lib/app";
 import { useMinWidth } from "../../lib/hooks";
 import { RAILS, describeLayers, type Reading } from "../../lib/telemetry-sim";
 import type { Lang } from "../../lib/kelas";
-import { flowStats, useTelemetry, type Telemetry } from "./useTelemetry";
+import { flowStats, selangMs, useTelemetry, type Telemetry } from "./useTelemetry";
 import BoardLink from "./BoardLink";
 import "./FlowDiagram.css";
 import "../LayerXray.css";
@@ -63,7 +63,25 @@ const T = {
     csv: "Unduh CSV",
     copied: "Bacaan tersalin.",
     copyFail: "Tidak dapat menyalin ke papan klip.",
-    cols: ["#", "Kirim", "Terima", "Δ (ms)", "RSSI (dBm)"],
+    col: {
+      seq: "#",
+      tx: "Kirim",
+      rx: "Terima",
+      delay: "Δ (ms)",
+      gap: "Selang (ms)",
+      rssi: "RSSI (dBm)",
+    },
+    gapAvg: "rata rata selang",
+    gapJitter: "jitter selang",
+    gapLabel: (ms: number | null) => `selang ${ms ?? "?"} ms`,
+    simM1:
+      "Belum ada papan terhubung, jadi angka di bawah ini simulasi. Colokkan ESP32 Central ke PC ini lalu hubungkan.",
+    simPi: (g: number) =>
+      `Belum ada data dari Orange Pi untuk kelompok ${g}, jadi angka di bawah ini simulasi. Data asli muncul begitu papan kelompok ini mengirim.`,
+    toBoard: "Hubungkan papan",
+    stale: "tidak ada data baru",
+    piOnly:
+      "Orange Pi hanya melihat waktu terima. Waktu kirim dan delay pulang pergi dicetak papanmu (Serial Monitor atau Thonny); salin dari sana ke jurnal.",
     handle: "Ubah lebar panel",
     mine: "kelompokmu",
     pick: "Pilih kelompok",
@@ -97,7 +115,25 @@ const T = {
     csv: "Download CSV",
     copied: "Readings copied.",
     copyFail: "Could not copy to the clipboard.",
-    cols: ["#", "Sent", "Received", "Δ (ms)", "RSSI (dBm)"],
+    col: {
+      seq: "#",
+      tx: "Sent",
+      rx: "Received",
+      delay: "Δ (ms)",
+      gap: "Gap (ms)",
+      rssi: "RSSI (dBm)",
+    },
+    gapAvg: "average gap",
+    gapJitter: "gap jitter",
+    gapLabel: (ms: number | null) => `gap ${ms ?? "?"} ms`,
+    simM1:
+      "No board is connected, so the numbers below are simulated. Plug the Central ESP32 into this PC and connect it.",
+    simPi: (g: number) =>
+      `No data from the Orange Pi for group ${g} yet, so the numbers below are simulated. Real data appears as soon as this group's board sends.`,
+    toBoard: "Connect a board",
+    stale: "no new data",
+    piOnly:
+      "The Orange Pi only sees the receive time. Your board prints the send time and round-trip delay (Serial Monitor or Thonny); copy them from there into the journal.",
     handle: "Resize panel",
     mine: "your group",
     pick: "Choose a group",
@@ -115,13 +151,34 @@ function shortTime(t: string | null): string {
   return p.length === 4 ? `${p[2]}.${p[3]}` : t;
 }
 
+/** Which columns the readings actually carry. Modules 2 and 3 as seen by
+ *  the Pi have a receive time only, so they get the gap between arrivals
+ *  instead of empty send, delay and RSSI columns. */
+export function kolomBacaan(rows: Reading[]) {
+  const delay = rows.some((r) => r.delayMs != null);
+  return {
+    tx: rows.some((r) => r.tx != null),
+    delay,
+    gap: !delay,
+    rssi: rows.some((r) => r.rssi != null),
+  };
+}
+
+type Kolom = [string, (r: Reading, i: number) => string | number];
+
+/** Oldest first, the same columns the table shows. */
 function toTsv(rows: Reading[], lost: string): string {
-  const header = "seq\tkirim\tterima\tdelta_ms\trssi_dbm";
+  const k = kolomBacaan(rows);
+  const gaps = selangMs(rows);
+  const cols: Kolom[] = [["seq", (r) => r.seq]];
+  if (k.tx) cols.push(["kirim", (r) => r.tx ?? ""]);
+  cols.push(["terima", (r) => r.rx ?? lost]);
+  if (k.delay) cols.push(["delta_ms", (r) => r.delayMs ?? ""]);
+  else cols.push(["selang_ms", (_, i) => gaps[i] ?? ""]);
+  if (k.rssi) cols.push(["rssi_dbm", (r) => r.rssi ?? ""]);
   return [
-    header,
-    ...rows.map(
-      (r) => `${r.seq}\t${r.tx ?? ""}\t${r.rx ?? lost}\t${r.delayMs ?? ""}\t${r.rssi ?? ""}`,
-    ),
+    cols.map(([h]) => h).join("\t"),
+    ...rows.map((r, i) => cols.map(([, f]) => f(r, i)).join("\t")),
   ].join("\n");
 }
 
@@ -137,7 +194,10 @@ function Flow({
   hue: string;
 }) {
   const lanes = RAILS[modul] ?? RAILS[1];
-  const rows = history.slice(-24).reverse();
+  const recent = history.slice(-24);
+  const byDelay = recent.some((r) => r.delayMs != null);
+  const gaps = selangMs(recent);
+  const rows = recent.map((r, i) => ({ r, gap: gaps[i] })).reverse();
   return (
     <div className="livews__card" style={{ "--tile-hue": hue } as React.CSSProperties}>
       <h2 className="livews__h">{t.flow}</h2>
@@ -150,12 +210,20 @@ function Flow({
         <p className="flow-diagram__kosong">{t.waiting}</p>
       ) : (
         <div className="flow-rows livews__rows">
-          {rows.map((r) => (
-            <div key={r.seq} className="flow-row" data-hilang={r.rx === null ? "yes" : "no"}>
+          {rows.map(({ r, gap }, i) => (
+            <div
+              key={`${r.seq}-${i}`}
+              className="flow-row"
+              data-hilang={r.rx === null ? "yes" : "no"}
+            >
               <span className="flow-seq">#{r.seq}</span>
               <div className="flow-arrow">
                 <span className="flow-label">
-                  {r.rx === null ? `${t.lost} ✖` : `Δ ${r.delayMs ?? "?"} ms`}
+                  {r.rx === null
+                    ? `${t.lost} ✖`
+                    : byDelay
+                      ? `Δ ${r.delayMs ?? "?"} ms`
+                      : t.gapLabel(gap)}
                 </span>
               </div>
               <span className="flow-time">{shortTime(r.rx)}</span>
@@ -178,17 +246,21 @@ function Readings({
   modul: number;
   group: number;
 }) {
-  const rows = history.slice(-30).reverse();
+  const recent = history.slice(-30);
+  const k = kolomBacaan(recent);
+  const gaps = selangMs(recent);
+  const rows = recent.map((r, i) => ({ r, gap: gaps[i] })).reverse();
+  const tsv = () => toTsv(recent, t.lost);
   async function salin() {
     try {
-      await navigator.clipboard.writeText(toTsv(rows, t.lost));
+      await navigator.clipboard.writeText(tsv());
       window.Toast?.show(t.copied, "ok");
     } catch {
       window.Toast?.show(t.copyFail, "danger");
     }
   }
   function unduh() {
-    const blob = new Blob([toTsv(rows, t.lost).replace(/\t/g, ",")], { type: "text/csv" });
+    const blob = new Blob([tsv().replace(/\t/g, ",")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -226,19 +298,23 @@ function Readings({
           <table className="flow-diagram__readings-table mono livews__table">
             <thead>
               <tr>
-                {t.cols.map((c) => (
-                  <th key={c}>{c}</th>
-                ))}
+                <th>{t.col.seq}</th>
+                {k.tx && <th>{t.col.tx}</th>}
+                <th>{t.col.rx}</th>
+                {k.delay && <th>{t.col.delay}</th>}
+                {k.gap && <th>{t.col.gap}</th>}
+                {k.rssi && <th>{t.col.rssi}</th>}
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.seq} data-hilang={r.rx === null ? "yes" : "no"}>
+              {rows.map(({ r, gap }, i) => (
+                <tr key={`${r.seq}-${i}`} data-hilang={r.rx === null ? "yes" : "no"}>
                   <td>{r.seq}</td>
-                  <td>{r.tx ?? "-"}</td>
+                  {k.tx && <td>{r.tx ?? "-"}</td>}
                   <td>{r.rx ?? t.lost}</td>
-                  <td>{r.delayMs ?? "-"}</td>
-                  <td>{r.rssi ?? "-"}</td>
+                  {k.delay && <td>{r.delayMs ?? "-"}</td>}
+                  {k.gap && <td>{gap ?? "-"}</td>}
+                  {k.rssi && <td>{r.rssi ?? "-"}</td>}
                 </tr>
               ))}
             </tbody>
@@ -318,18 +394,28 @@ export default function LiveWorkspace({
   const boardGroup = own ?? group;
   const local = modul === 1 && boardTel && group === boardGroup ? boardTel : null;
   const tel = useTelemetry(modul, group, paused || mode !== "live", 1000, local);
-  const stats = useMemo(() => flowStats(tel.history), [tel.history]);
+  // A skipped seq is a lost message only where the Pi sees every one
+  // (Modules 2 and 3); Module 4's relay exposes the newest row only.
+  const seqGaps = tel.live && (modul === 2 || modul === 3);
+  const stats = useMemo(() => flowStats(tel.history, 40, seqGaps), [tel.history, seqGaps]);
+  const kolom = useMemo(() => kolomBacaan(tel.history.slice(-40)), [tel.history]);
   const last = tel.history[tel.history.length - 1];
   const hue = `var(--group-${group})`;
+  const now = useTick(2000);
+  const stale = tel.live && tel.updatedAt !== null && now - tel.updatedAt > 20_000;
+  const boardRef = useRef<HTMLDivElement>(null);
+  const num = (v: number | null) => (v == null ? "-" : String(v));
 
   const tiles: { k: string; v: string; unit?: string; bad?: boolean }[] = [
-    { k: t.avg, v: stats.avg == null ? "-" : String(stats.avg), unit: "ms" },
-    { k: t.jitter, v: stats.jitter == null ? "-" : String(stats.jitter), unit: "ms" },
+    kolom.delay
+      ? { k: t.avg, v: num(stats.avg), unit: "ms" }
+      : { k: t.gapAvg, v: num(stats.interval), unit: "ms" },
+    kolom.delay
+      ? { k: t.jitter, v: num(stats.jitter), unit: "ms" }
+      : { k: t.gapJitter, v: num(stats.intervalJitter), unit: "ms" },
     { k: t.loss, v: `${stats.loss}`, unit: "%", bad: stats.loss > 10 },
-    { k: t.rssi, v: stats.rssi == null ? "-" : String(stats.rssi), unit: "dBm" },
-    ...(modul === 4
-      ? [{ k: t.snr, v: stats.snr == null ? "-" : String(stats.snr), unit: "dB" }]
-      : []),
+    ...(kolom.rssi ? [{ k: t.rssi, v: num(stats.rssi), unit: "dBm" }] : []),
+    ...(modul === 4 ? [{ k: t.snr, v: num(stats.snr), unit: "dB" }] : []),
     { k: t.msgs, v: last ? `#${last.seq}` : "-" },
   ];
 
@@ -368,23 +454,27 @@ export default function LiveWorkspace({
       </div>
 
       {modul === 1 && (
-        <BoardLink
-          lang={lang}
-          group={boardGroup}
-          canUpload={me?.role === "praktikan"}
-          onTelemetry={setBoardTel}
-        />
+        <div ref={boardRef} className="livews__boardslot">
+          <BoardLink
+            lang={lang}
+            group={boardGroup}
+            canUpload={me?.role === "praktikan"}
+            onTelemetry={setBoardTel}
+          />
+        </div>
       )}
 
       {mode === "live" ? (
         <>
           <div className="livews__status">
-            <span className={`pill ${tel.live ? "pill--ok" : "pill--mono"}`}>
+            <span
+              className={`pill ${tel.live ? (stale ? "pill--warn" : "pill--ok") : "pill--mono"}`}
+            >
               <span
-                className={`dot ${tel.live ? "dot--ok dot--pulse" : "dot--off"}`}
+                className={`dot ${tel.live ? (stale ? "dot--warn" : "dot--ok dot--pulse") : "dot--off"}`}
                 aria-hidden="true"
               />
-              {tel.live ? t.live : t.sim}
+              {tel.live ? (stale ? t.stale : t.live) : t.sim}
             </span>
             <UpdatedAgo since={tel.updatedAt} template={t.updated} />
             <button
@@ -401,6 +491,30 @@ export default function LiveWorkspace({
               {paused ? t.resume : t.pause}
             </button>
           </div>
+
+          {!tel.live && (
+            <div className="livews__note" role="status">
+              <p>{modul === 1 ? t.simM1 : t.simPi(group)}</p>
+              {modul === 1 && (
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--sm"
+                  onClick={() => {
+                    const el = boardRef.current;
+                    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    el?.querySelector<HTMLButtonElement>(".board .btn--primary")?.focus({
+                      preventScroll: true,
+                    });
+                  }}
+                >
+                  {t.toBoard}
+                </button>
+              )}
+            </div>
+          )}
+          {tel.live && !kolom.delay && modul !== 1 && (
+            <p className="livews__note livews__note--quiet">{t.piOnly}</p>
+          )}
 
           <div className="livews__stats" style={{ "--n": tiles.length } as React.CSSProperties}>
             {tiles.map((s, i) => (

@@ -46,7 +46,16 @@ import {
   useTick,
 } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
-import { CommandTimeline, HotspotCard, OPS_T, ServiceList, sendCommand } from "./ops";
+import {
+  CommandTimeline,
+  HotspotCard,
+  OPS_T,
+  SVC_DOT,
+  SVC_PILL,
+  ServiceList,
+  sendCommand,
+  svcTone,
+} from "./ops";
 import type { Heartbeat, Perangkat, Perintah } from "../console/types";
 import "./ServerCenter.css";
 
@@ -657,7 +666,8 @@ function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: nu
                       {Object.entries(d.layanan).map(([k, st]) => (
                         <span
                           key={k}
-                          className={`pill ${st === "active" || st === "aktif" ? "pill--ok" : "pill--danger"}`}
+                          className={`pill ${SVC_PILL[svcTone(st)]}`}
+                          title={OPS_T[lang].svcState[st] ?? st}
                         >
                           {OPS_T[lang].svc[k] ?? k}
                         </span>
@@ -1301,9 +1311,7 @@ function Overview({
                     <ul className="ovw__list">
                       {hist.timelineLayanan.map((x, i) => (
                         <li key={i}>
-                          <span
-                            className={`dot ${x.status === "active" || x.status === "aktif" ? "dot--ok" : "dot--danger"}`}
-                          />
+                          <span className={`dot ${SVC_DOT[svcTone(x.status)]}`} />
                           {OPS_T[lang].svc[x.layanan] ?? x.layanan}:{" "}
                           {OPS_T[lang].svcState[x.status] ?? x.status} · {fmtWhen(x.dari, lang)}
                         </li>

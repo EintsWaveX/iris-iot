@@ -8,7 +8,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { AlertTriangle, Hand } from "lucide-react";
 import HoverCard from "../ui/HoverCard";
-import { KELOMPOK_NAMA, sejak, useTick } from "../../lib/app";
+import { namaKelompok, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import type { Strings } from "./strings";
 import type { AsistenRef, FeedItem, GroupRow, Perangkat, Stuck } from "./types";
@@ -128,7 +128,7 @@ export default function GroupBoard(p: BoardProps) {
                         <span className="gcard__num" aria-hidden="true">
                           {g.nomor}
                         </span>
-                        <b className="gcard__name">{KELOMPOK_NAMA[g.nomor] ?? g.nama}</b>
+                        <b className="gcard__name">{namaKelompok(g.nomor, g.nama)}</b>
                         {hand && (
                           <span className="gcard__hand">
                             <Hand size={14} aria-hidden="true" />

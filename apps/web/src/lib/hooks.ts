@@ -21,6 +21,10 @@ export interface PollState<T> {
  * Calls `fn` now and then every `ms` while the tab is visible (hidden tabs
  * stop, like src/scripts/polling.ts), and while `enabled`. A thrown or
  * rejected call counts as an error and keeps the last good data.
+ *
+ * A failed call is retried after 2 s, then 4 s, 8 s (never later than the
+ * normal interval), so one cold start does not leave a page on its
+ * skeleton for a whole 20 s poll. A call still in flight is never doubled.
  */
 export function usePoll<T>(fn: () => Promise<T>, ms: number, enabled = true): PollState<T> {
   const [data, setData] = useState<T | null>(null);
@@ -28,17 +32,52 @@ export function usePoll<T>(fn: () => Promise<T>, ms: number, enabled = true): Po
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const fnRef = useRef(fn);
   fnRef.current = fn;
+  const inFlight = useRef(false);
+  const failures = useRef(0);
+  const retry = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const alive = useRef(true);
+
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      if (retry.current !== null) clearTimeout(retry.current);
+    };
+  }, []);
+
+  const again = useRef(false);
 
   const run = useCallback(async () => {
+    // A refresh asked for mid-call (say, right after a save) runs once the
+    // current call lands, so it never returns data from before the save.
+    if (inFlight.current) {
+      again.current = true;
+      return;
+    }
+    inFlight.current = true;
+    again.current = false;
+    if (retry.current !== null) clearTimeout(retry.current);
+    retry.current = null;
     try {
       const d = await fnRef.current();
+      if (!alive.current) return;
+      failures.current = 0;
       setData(d);
       setErrors(0);
       setUpdatedAt(Date.now());
     } catch {
+      if (!alive.current) return;
+      failures.current += 1;
       setErrors((e) => e + 1);
+      if (document.visibilityState === "visible") {
+        const wait = Math.min(ms, 2000 * 2 ** (failures.current - 1));
+        retry.current = setTimeout(() => void run(), wait);
+      }
+    } finally {
+      inFlight.current = false;
+      if (again.current && alive.current) void run();
     }
-  }, []);
+  }, [ms]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -51,6 +90,8 @@ export function usePoll<T>(fn: () => Promise<T>, ms: number, enabled = true): Po
     const stop = () => {
       if (timer !== null) clearInterval(timer);
       timer = null;
+      if (retry.current !== null) clearTimeout(retry.current);
+      retry.current = null;
     };
     const onVis = () => (document.visibilityState === "visible" ? start() : stop());
     if (document.visibilityState === "visible") start();

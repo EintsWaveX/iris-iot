@@ -31,9 +31,13 @@ const ENROLL_TOKEN_TTL_MIN = 30;
 // for SIAGA_MENIT after any command was queued, so chained actions (run a
 // diagnostic, then fetch its log) answer within seconds. Idle stays well
 // above the 5min a Neon free-tier compute needs to suspend only overnight.
+// A Module 2 to 4 session beats every 5s too: its readings reach the live
+// page only with a beat, and 15s made the page jump in bursts.
 export const INTERVAL_AKTIF_SEC = 15;
 export const INTERVAL_IDLE_SEC = 60;
 export const INTERVAL_SIAGA_SEC = 5;
+export const INTERVAL_TELEMETRI_SEC = 5;
+export const MODUL_TELEMETRI_PI: ReadonlySet<number> = new Set([2, 3, 4]);
 export const SIAGA_MENIT = 10;
 const TENGGANG_LURING_SEC = 60;
 
@@ -269,9 +273,16 @@ export interface TelemetriMasuk {
   diukurPada?: string;
 }
 
-const TELEMETRI_MODUL_VALID = new Set([2, 3, 4]); // never Module 1 -- no real relay exists for it
-const TELEMETRI_MAX_PER_DENYUT = 5; // "small rows, at most five per cycle" -- see the plan
+const TELEMETRI_MODUL_VALID = MODUL_TELEMETRI_PI; // never Module 1: its rows come from the group PC
+// Five groups at one reading every 2 s make about 40 rows per 15 s beat. The
+// old cap of 5 dropped the rest; the agent now sends its queue in slices of
+// this size (agent.py TELEMETRI_MAX_PER_DENYUT).
+export const TELEMETRI_MAX_PER_DENYUT = 300;
 const MAX_GRUP_ID = 5; // the practicum's fixed group count
+// tx/rx are copied verbatim from the source ("HH:MM:SS:MS" in every module
+// today); only the length is bounded.
+const tsOrNull = (v: unknown) => (typeof v === "string" && v.length <= 24 ? v : null);
+const intOrNull = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : null);
 
 function telemetriValid(value: unknown): value is TelemetriMasuk {
   if (typeof value !== "object" || value === null) return false;
@@ -291,34 +302,45 @@ function telemetriValid(value: unknown): value is TelemetriMasuk {
 }
 
 /**
- * Upserts each row into telemetriTerkini (one row per server+modul+group,
- * what the live views poll) and appends it to telemetriLog (history, for
- * /reports). `masuk` is untrusted heartbeat input -- anything not shaped
- * like TelemetriMasuk, or beyond the first five entries, is silently
- * dropped rather than rejecting the whole heartbeat over it.
+ * Appends every row to telemetriLog (history, and what the live views read)
+ * in one insert, and upserts each group's newest row into telemetriTerkini.
+ * `masuk` is untrusted heartbeat input -- anything not shaped like
+ * TelemetriMasuk, or beyond the first TELEMETRI_MAX_PER_DENYUT entries, is
+ * silently dropped rather than rejecting the whole heartbeat over it.
  */
+export function telemetriBaris(masuk: unknown) {
+  if (!Array.isArray(masuk)) return [];
+  return masuk
+    .slice(0, TELEMETRI_MAX_PER_DENYUT)
+    .filter(telemetriValid)
+    .map((item) => ({
+      modul: item.modul,
+      kelompokNomor: item.kelompokNomor,
+      seq: item.seq,
+      tx: tsOrNull(item.tx),
+      rx: tsOrNull(item.rx),
+      delayMs: intOrNull(item.delayMs),
+      rssi: intOrNull(item.rssi),
+      snr: intOrNull(item.snr),
+      diukurPada: item.diukurPada ? new Date(item.diukurPada) : null,
+    }));
+}
+
 export async function rekamTelemetri(
   serverId: number,
   sesiId: number | null,
   masuk: unknown,
 ): Promise<void> {
-  if (!Array.isArray(masuk)) return;
+  const rows = telemetriBaris(masuk);
+  if (!rows.length) return;
   const db = getDb();
 
-  for (const item of masuk.slice(0, TELEMETRI_MAX_PER_DENYUT)) {
-    if (!telemetriValid(item)) continue;
+  await db.insert(telemetriLog).values(rows.map((r) => ({ sesiId, serverId, ...r })));
 
-    const row = {
-      modul: item.modul,
-      kelompokNomor: item.kelompokNomor,
-      seq: item.seq,
-      tx: item.tx ?? null,
-      rx: item.rx ?? null,
-      delayMs: item.delayMs ?? null,
-      rssi: item.rssi ?? null,
-      snr: item.snr ?? null,
-    };
-
+  // The queue arrives oldest first, so the last row per group is its newest.
+  const terbaru = new Map<string, (typeof rows)[number]>();
+  for (const r of rows) terbaru.set(`${r.modul}:${r.kelompokNomor}`, r);
+  for (const { diukurPada: _, ...row } of terbaru.values()) {
     await db
       .insert(telemetriTerkini)
       .values({ serverId, ...row })
@@ -326,13 +348,6 @@ export async function rekamTelemetri(
         target: [telemetriTerkini.serverId, telemetriTerkini.modul, telemetriTerkini.kelompokNomor],
         set: { ...row, diperbaruiPada: sql`now()` },
       });
-
-    await db.insert(telemetriLog).values({
-      sesiId,
-      serverId,
-      diukurPada: item.diukurPada ? new Date(item.diukurPada) : null,
-      ...row,
-    });
   }
 }
 

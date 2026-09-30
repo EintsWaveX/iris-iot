@@ -31,6 +31,36 @@
   margin-left: auto;
 }
 
+/* Why the numbers are simulated (and, on Module 1, the way to fix that),
+   or what the Pi cannot see. */
+.livews__note {
+  align-items: center;
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--tile-hue);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.livews__note p {
+  flex: 1 1 32ch;
+  margin: 0;
+}
+
+.livews__note--quiet {
+  border-left-color: var(--hairline);
+  color: var(--text-muted);
+}
+
+.livews__boardslot {
+  scroll-margin-top: var(--space-9);
+}
+
 /* ---------------------------------------------------------------- stats */
 
 .livews__stats {

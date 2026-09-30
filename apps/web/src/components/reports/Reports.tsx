@@ -25,7 +25,7 @@ import DateRangePicker from "../ui/DateRangePicker";
 import ScrollArea from "../ui/ScrollArea";
 import { CountUp, StateView } from "../ui/Display";
 import FeedbackSummary from "../shared/FeedbackSummary";
-import { getJson, href, KELOMPOK_NAMA, MODUL_NAMA, useMe } from "../../lib/app";
+import { getJson, href, MODUL_NAMA, namaKelompok, useMe } from "../../lib/app";
 import { unduhCsv } from "../../lib/csv";
 import { onTablistKeyDown } from "../../lib/tablist-keys";
 import type { Lang } from "../../lib/kelas";
@@ -1075,7 +1075,7 @@ function SessionReport({
             >
               <header>
                 <span className="rep__gnum">{k.nomor}</span>
-                <b>{KELOMPOK_NAMA[k.nomor] ?? k.nama}</b>
+                <b>{namaKelompok(k.nomor, k.nama)}</b>
                 <span
                   className={`code-badge${p ? "" : " code-badge--empty"}`}
                   data-me={p?.kode?.toUpperCase() === meKode ? "yes" : undefined}

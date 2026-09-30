@@ -167,11 +167,11 @@ export async function resolvePraktikanTanpaSesi(
 export async function publicRoster(sesiId: number) {
   const db = getDb();
 
-  const groups = await db.select().from(kelompok);
-  const members = await db
-    .select({ kelompokId: anggota.kelompokId, nama: anggota.nama })
-    .from(anggota);
-  const overrides = await db.select().from(sesiKelompok).where(eq(sesiKelompok.sesiId, sesiId));
+  const [groups, members, overrides] = await Promise.all([
+    db.select().from(kelompok),
+    db.select({ kelompokId: anggota.kelompokId, nama: anggota.nama }).from(anggota),
+    db.select().from(sesiKelompok).where(eq(sesiKelompok.sesiId, sesiId)),
+  ]);
   const overrideByKelompokId = new Map(overrides.map((o) => [o.kelompokId, o]));
 
   return groups

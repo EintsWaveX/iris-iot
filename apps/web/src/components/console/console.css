@@ -1297,6 +1297,29 @@ thead .ntable__name {
   padding-left: var(--space-5);
 }
 
+/* The save confirmation's list of changes. */
+.roster__diff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.roster__diff li {
+  border-left: 3px solid var(--hairline);
+  padding-left: var(--space-3);
+}
+
+.roster__diff li[data-kind="add"] {
+  border-left-color: var(--ok);
+}
+
+.roster__diff li[data-kind="remove"] {
+  border-left-color: var(--danger);
+}
+
 .lib {
   display: flex;
   flex-direction: column;

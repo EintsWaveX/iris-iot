@@ -76,6 +76,9 @@ export const OPS_T = dict({
       inactive: "berhenti",
       failed: "gagal",
       aktif: "berjalan",
+      berhenti: "berhenti",
+      transisi: "sedang berubah",
+      galat: "gagal",
     } as Record<string, string>,
   },
   en: {
@@ -132,9 +135,23 @@ export const OPS_T = dict({
       inactive: "stopped",
       failed: "failed",
       aktif: "running",
+      berhenti: "stopped",
+      transisi: "changing",
+      galat: "failed",
     } as Record<string, string>,
   },
 });
+
+/** A service's state as a tone: running, stopped on purpose (or starting
+ *  or stopping), or crashed. Accepts the agent's words and systemd's. */
+export function svcTone(st: string): "ok" | "off" | "bad" {
+  if (st === "aktif" || st === "active") return "ok";
+  if (st === "galat" || st === "failed") return "bad";
+  return "off";
+}
+
+export const SVC_PILL = { ok: "pill--ok", off: "pill--mono", bad: "pill--danger" } as const;
+export const SVC_DOT = { ok: "dot--ok", off: "dot--off", bad: "dot--danger" } as const;
 
 export async function sendCommand(
   serverId: number,
@@ -229,7 +246,8 @@ export function ServiceList({
   return (
     <ul className="ops-svc">
       {layanan.map(([svc, st]) => {
-        const running = st === "active" || st === "aktif";
+        const tone = svcTone(st);
+        const running = tone === "ok";
         const log = logFor(svc);
         const restarting = perintah.some(
           (p) =>
@@ -238,16 +256,14 @@ export function ServiceList({
             (p.status === "menunggu" || p.status === "antre" || p.status === "terkirim"),
         );
         return (
-          <li key={svc} className="ops-svc__row" data-state={running ? "ok" : "bad"}>
+          <li key={svc} className="ops-svc__row" data-state={tone}>
             <div className="ops-svc__head">
-              <span className={`dot ${running ? "dot--ok" : "dot--danger"}`} aria-hidden="true" />
+              <span className={`dot ${SVC_DOT[tone]}`} aria-hidden="true" />
               <span className="grow stack" style={{ gap: 0 }}>
                 <b>{t.svc[svc] ?? svc}</b>
                 <span className="hint mono">{svc}</span>
               </span>
-              <span className={`pill ${running ? "pill--ok" : "pill--danger"}`}>
-                {t.svcState[st] ?? st}
-              </span>
+              <span className={`pill ${SVC_PILL[tone]}`}>{t.svcState[st] ?? st}</span>
             </div>
             <div className="ops-svc__actions">
               <button

@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   batasLuringDetik,
   INTERVAL_AKTIF_SEC,
+  TELEMETRI_MAX_PER_DENYUT,
+  telemetriBaris,
   INTERVAL_IDLE_SEC,
   downsample,
   detectReboots,
@@ -174,5 +176,41 @@ describe("bangunTimelineLayanan", () => {
 
   it("returns nothing for rows with no layanan data", () => {
     expect(bangunTimelineLayanan([{ pada: "2026-09-24T00:00:00Z", layanan: null }])).toEqual([]);
+  });
+});
+
+describe("telemetriBaris", () => {
+  const row = (seq: number, extra: Record<string, unknown> = {}) => ({
+    modul: 2,
+    kelompokNomor: 1,
+    seq,
+    rx: "17:42:10:000",
+    ...extra,
+  });
+
+  it("keeps a whole beat's worth of rows, not just the first five", () => {
+    const rows = telemetriBaris(Array.from({ length: 40 }, (_, i) => row(i)));
+    expect(rows).toHaveLength(40);
+    expect(rows[39].seq).toBe(39);
+  });
+
+  it("caps one beat and drops malformed rows without failing the rest", () => {
+    const many = Array.from({ length: TELEMETRI_MAX_PER_DENYUT + 20 }, (_, i) => row(i));
+    expect(telemetriBaris(many)).toHaveLength(TELEMETRI_MAX_PER_DENYUT);
+    const mixed = telemetriBaris([
+      row(1),
+      { modul: 1, kelompokNomor: 1, seq: 2 },
+      row(3, { kelompokNomor: 9 }),
+      "x",
+    ]);
+    expect(mixed.map((r) => r.seq)).toEqual([1]);
+  });
+
+  it("nulls fields of the wrong type", () => {
+    const [r] = telemetriBaris([row(1, { delayMs: "12", rssi: -61.5, tx: 5 })]);
+    expect(r.delayMs).toBeNull();
+    expect(r.rssi).toBeNull();
+    expect(r.tx).toBeNull();
+    expect(r.rx).toBe("17:42:10:000");
   });
 });

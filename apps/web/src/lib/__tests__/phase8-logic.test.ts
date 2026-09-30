@@ -210,6 +210,21 @@ describe("feedback", () => {
     expect(validasiUmpanBalik({ ...ok, komentarLab: "x".repeat(501) }).ok).toBe(false);
     expect(validasiUmpanBalik({ ...ok, asistenNim: "" }).ok).toBe(false);
   });
+  it("wants a reason for a rating of 1 or 2", () => {
+    const low = { ...ok, ratingLab: 1 };
+    // The 2026-09-30 test: one star with keyboard mash was accepted.
+    expect(validasiUmpanBalik({ ...low, komentarLab: "asdfghjkl" })).toEqual({
+      ok: false,
+      kode: "butuh_alasan",
+      bagian: "lab",
+    });
+    expect(validasiUmpanBalik({ ...low, komentarLab: "sdf ghj klm" }).ok).toBe(false);
+    expect(validasiUmpanBalik(low).ok).toBe(false);
+    expect(validasiUmpanBalik({ ...low, chipsLab: ["alat_rusak"] }).ok).toBe(true);
+    expect(validasiUmpanBalik({ ...low, komentarLab: "Wi-Fi putus terus" }).ok).toBe(true);
+    // A 3 needs nothing extra.
+    expect(validasiUmpanBalik({ ...ok, ratingLab: 3 }).ok).toBe(true);
+  });
   it("summarises without any author", () => {
     const d = (s: string) => new Date(s);
     const r = ringkas([

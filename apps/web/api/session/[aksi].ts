@@ -42,7 +42,6 @@ import {
   sesi,
   jawaban,
   percobaanMasuk,
-  telemetriTerkini,
   telemetriLog,
   audit,
   nilai,
@@ -172,67 +171,49 @@ async function handleTelemetry(req: ApiRequest, res: ApiResponse) {
   }
 
   const db = getDb();
-  res.setHeader("Cache-Control", "public, s-maxage=5, stale-while-revalidate=10");
+  // One URL per module and group, so the CDN serves every viewer of a group
+  // the same response; clients merge the list by `id`.
+  res.setHeader("Cache-Control", "public, s-maxage=2, stale-while-revalidate=4");
 
   // Module 1 has no Pi: its rows come from the group PC's browser (see
-  // handleTelemetryModul1) and live only in telemetri_log, whose id serves
-  // as the seq viewers dedupe on.
-  if (modul === 1) {
-    const running = await currentSesi();
-    if (!running || running.modul !== 1) {
-      res.status(200).json({ ok: true, reading: null });
-      return;
-    }
-    const [row] = await db
-      .select({
-        seq: telemetriLog.id,
-        tx: telemetriLog.tx,
-        rx: telemetriLog.rx,
-        delayMs: telemetriLog.delayMs,
-        rssi: telemetriLog.rssi,
-        snr: telemetriLog.snr,
-        diperbaruiPada: telemetriLog.dicatatPada,
-      })
-      .from(telemetriLog)
-      .where(
-        and(
-          eq(telemetriLog.sesiId, running.id),
-          eq(telemetriLog.modul, 1),
-          eq(telemetriLog.kelompokNomor, kelompok),
-          gte(telemetriLog.dicatatPada, sql`now() - interval '2 minutes'`),
-        ),
-      )
-      .orderBy(desc(telemetriLog.id))
-      .limit(1);
-    res.status(200).json({ ok: true, reading: row ?? null });
+  // handleTelemetryModul1) and carry no seq of their own, so the log id is
+  // its seq. Modules 2 to 4 keep the board's own seq.
+  const running = await currentSesi();
+  if (modul === 1 && (!running || running.modul !== 1)) {
+    res.status(200).json({ ok: true, reading: null, readings: [] });
     return;
   }
-
-  const [row] = await db
+  const rows = await db
     .select({
-      seq: telemetriTerkini.seq,
-      tx: telemetriTerkini.tx,
-      rx: telemetriTerkini.rx,
-      delayMs: telemetriTerkini.delayMs,
-      rssi: telemetriTerkini.rssi,
-      snr: telemetriTerkini.snr,
-      diperbaruiPada: telemetriTerkini.diperbaruiPada,
+      id: telemetriLog.id,
+      seq: telemetriLog.seq,
+      tx: telemetriLog.tx,
+      rx: telemetriLog.rx,
+      delayMs: telemetriLog.delayMs,
+      rssi: telemetriLog.rssi,
+      snr: telemetriLog.snr,
+      diperbaruiPada: telemetriLog.dicatatPada,
     })
-    .from(telemetriTerkini)
+    .from(telemetriLog)
     .where(
       and(
-        eq(telemetriTerkini.modul, modul),
-        eq(telemetriTerkini.kelompokNomor, kelompok),
-        // telemetri_terkini keeps each group's last row forever, so without
-        // this a reading from a session days ago was served as "live".
+        // During a session its rows carry its id (the indexed path); outside
+        // one, a dry run's rows have none.
+        running ? eq(telemetriLog.sesiId, running.id) : isNull(telemetriLog.sesiId),
+        eq(telemetriLog.modul, modul),
+        eq(telemetriLog.kelompokNomor, kelompok),
         // Anything older than a few heartbeats is no longer live.
-        gte(telemetriTerkini.diperbaruiPada, sql`now() - interval '2 minutes'`),
+        gte(telemetriLog.dicatatPada, sql`now() - interval '2 minutes'`),
       ),
     )
-    .limit(1);
+    .orderBy(desc(telemetriLog.id))
+    .limit(TELEMETRI_BACA_MAKS);
 
-  res.status(200).json({ ok: true, reading: row ?? null });
+  const readings = rows.reverse().map((r) => (modul === 1 ? { ...r, seq: r.id } : r));
+  res.status(200).json({ ok: true, reading: readings.at(-1) ?? null, readings });
 }
+
+const TELEMETRI_BACA_MAKS = 60;
 
 const MODUL1_BATCH_MAX = 50;
 const MODUL1_TS_RE = /^\d{2}:\d{2}:\d{2}:\d{3}$/;
@@ -316,13 +297,18 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
 }
 
 async function handleCurrent(_req: ApiRequest, res: ApiResponse) {
-  const running = await currentSesi();
-
   const db = getDb();
-  const groups = await db.select().from(kelompok);
-  const members = await db
-    .select({ kelompokId: anggota.kelompokId, nim: anggota.nim, nama: anggota.nama })
-    .from(anggota);
+  // Independent reads, so one round trip instead of four in a row: this
+  // call gates the whole console, and a cold start already costs enough.
+  const [running, groups, members] = await Promise.all([
+    currentSesi(),
+    // A group left out of the last roster save is archived (aktif false):
+    // it keeps its history but is no longer part of the roster.
+    db.select().from(kelompok).where(eq(kelompok.aktif, true)),
+    db
+      .select({ kelompokId: anggota.kelompokId, nim: anggota.nim, nama: anggota.nama })
+      .from(anggota),
+  ]);
   const overrides = running
     ? await db.select().from(sesiKelompok).where(eq(sesiKelompok.sesiId, running.id))
     : [];
@@ -427,8 +413,10 @@ async function handleRoster(req: ApiRequest, res: ApiResponse, session: SessionP
   try {
     const db = getDb();
 
+    let diarsipkan = 0;
     await db.transaction(async (tx) => {
       const keepNims = parsed.groups.flatMap((g) => g.anggota.map((m) => m.nim));
+      const keepNomor = parsed.groups.map((g) => g.nomor);
 
       for (const g of parsed.groups) {
         const nama = g.nama || `Kelompok ${g.nomor}`;
@@ -449,21 +437,37 @@ async function handleRoster(req: ApiRequest, res: ApiResponse, session: SessionP
         }
       }
 
-      // Full replace on members only -- see the old roster.ts header comment
-      // for why groups don't get the same treatment.
+      // Members are replaced outright. A group left out of the paste is
+      // archived rather than deleted: its answers, scores and sessions
+      // cascade from it, so deleting would erase history. Archived groups
+      // drop out of the roster, sign-in and the console, and come back
+      // (with that history) the next time their number is pasted.
       if (keepNims.length > 0) {
         await tx.delete(anggota).where(notInArray(anggota.nim, keepNims));
       } else {
         await tx.delete(anggota);
       }
+      const archived = await tx
+        .update(kelompok)
+        .set({ aktif: false })
+        .where(
+          keepNomor.length > 0
+            ? and(eq(kelompok.aktif, true), notInArray(kelompok.nomor, keepNomor))
+            : eq(kelompok.aktif, true),
+        )
+        .returning({ id: kelompok.id });
+      diarsipkan = archived.length;
     });
 
     await writeAudit(session.nim, "roster_set", {
       kelompok: parsed.groups.length,
       anggota: parsed.total,
+      diarsipkan,
     });
 
-    res.status(200).json({ ok: true, groups: parsed.groups.length, total: parsed.total });
+    res
+      .status(200)
+      .json({ ok: true, groups: parsed.groups.length, total: parsed.total, diarsipkan });
   } catch (err) {
     console.error("[api/session/roster] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
@@ -512,54 +516,59 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
     running = found;
   }
 
-  const groups = await db.select().from(kelompok).where(eq(kelompok.aktif, true));
-  const members = await db
-    .select({ kelompokId: anggota.kelompokId, nim: anggota.nim, nama: anggota.nama })
-    .from(anggota);
-  const overrides = await db.select().from(sesiKelompok).where(eq(sesiKelompok.sesiId, running.id));
-  const overrideByKelompokId = new Map(overrides.map((o) => [o.kelompokId, o]));
-
   const prefix = `m${running.modul}.`;
-  const jawabanRows = await db
-    .select({
-      kelompokId: jawaban.kelompokId,
-      soalKode: jawaban.soalKode,
-      benar: jawaban.benar,
-      percobaan: jawaban.percobaan,
-      diubahPada: jawaban.diubahPada,
-    })
-    .from(jawaban)
-    .where(and(eq(jawaban.sesiId, running.id), like(jawaban.soalKode, `${prefix}%`)));
-
   const startedAt = running.mulaiPada ?? running.dibuatPada;
-  // P6.2/B9: a row written from this exact session (sesiId set by
-  // verifyPraktikanLogin's own recordAttempt call, since 0006) is
-  // authoritative. The time-window OR branch is only a fallback for rows
-  // written before that migration -- sesiId IS NULL on every one of them --
-  // so login attempts recorded before P6.2 still count toward attendance
-  // instead of silently vanishing from a report the day this shipped.
-  const masukRows = await db
-    .select({ nim: percobaanMasuk.nim })
-    .from(percobaanMasuk)
-    .where(
-      and(
-        eq(percobaanMasuk.jenis, "praktikan"),
-        eq(percobaanMasuk.berhasil, true),
-        or(
-          eq(percobaanMasuk.sesiId, running.id),
-          and(isNull(percobaanMasuk.sesiId), gte(percobaanMasuk.pada, startedAt)),
+  // Every read below depends only on the session, so they go out together
+  // (the console polls this every 6 s; seven round trips in a row made its
+  // first paint wait on the slowest chain, not the slowest query).
+  const [groups, members, overrides, jawabanRows, masukRows, telemetriRows, tangan, pemilikMap] =
+    await Promise.all([
+      db.select().from(kelompok).where(eq(kelompok.aktif, true)),
+      db
+        .select({ kelompokId: anggota.kelompokId, nim: anggota.nim, nama: anggota.nama })
+        .from(anggota),
+      db.select().from(sesiKelompok).where(eq(sesiKelompok.sesiId, running.id)),
+      db
+        .select({
+          kelompokId: jawaban.kelompokId,
+          soalKode: jawaban.soalKode,
+          benar: jawaban.benar,
+          percobaan: jawaban.percobaan,
+          diubahPada: jawaban.diubahPada,
+        })
+        .from(jawaban)
+        .where(and(eq(jawaban.sesiId, running.id), like(jawaban.soalKode, `${prefix}%`))),
+      // P6.2/B9: a row written from this exact session (sesiId set by
+      // verifyPraktikanLogin's own recordAttempt call, since 0006) is
+      // authoritative. The time-window OR branch is only a fallback for rows
+      // written before that migration -- sesiId IS NULL on every one of them --
+      // so login attempts recorded before P6.2 still count toward attendance
+      // instead of silently vanishing from a report the day this shipped.
+      db
+        .select({ nim: percobaanMasuk.nim })
+        .from(percobaanMasuk)
+        .where(
+          and(
+            eq(percobaanMasuk.jenis, "praktikan"),
+            eq(percobaanMasuk.berhasil, true),
+            or(
+              eq(percobaanMasuk.sesiId, running.id),
+              and(isNull(percobaanMasuk.sesiId), gte(percobaanMasuk.pada, startedAt)),
+            ),
+          ),
         ),
-      ),
-    );
+      // P6.8: per-group telemetry count and delays for the report. Module 1
+      // rows come from the group PC (Web Serial), 2 to 4 from the Pi.
+      db
+        .select({ kelompokNomor: telemetriLog.kelompokNomor, delayMs: telemetriLog.delayMs })
+        .from(telemetriLog)
+        .where(eq(telemetriLog.sesiId, running.id)),
+      // P8: raised hands and group owners, so the board needs one poll only.
+      tanganTerangkat(db, running.id),
+      pemilikKelompok(db, running.id),
+    ]);
+  const overrideByKelompokId = new Map(overrides.map((o) => [o.kelompokId, o]));
   const hadirNims = new Set(masukRows.map((r) => r.nim));
-
-  // Modules 2-4 fill this from the Pi agent; module 1 from the group PC's
-  // Web Serial link (handleTelemetryModul1), or not at all if no board was
-  // connected.
-  const telemetriRows = await db
-    .select({ kelompokNomor: telemetriLog.kelompokNomor, delayMs: telemetriLog.delayMs })
-    .from(telemetriLog)
-    .where(eq(telemetriLog.sesiId, running.id));
   const telemetriByKelompokNomor = new Map<number, number[]>();
   const telemetriCountByKelompokNomor = new Map<number, number>();
   for (const r of telemetriRows) {
@@ -645,9 +654,7 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
     running.durasiDetik ??
     (running.status === "berjalan" ? Math.round((Date.now() - startedAt.getTime()) / 1000) : 0);
 
-  // P8: raised hands and group owners, so the board needs one poll only.
-  const tangan = await tanganTerangkat(db, running.id);
-  const pemilik = Object.fromEntries(await pemilikKelompok(db, running.id));
+  const pemilik = Object.fromEntries(pemilikMap);
 
   res.status(200).json({
     ok: true,

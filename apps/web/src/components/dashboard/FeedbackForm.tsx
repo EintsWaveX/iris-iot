@@ -9,7 +9,14 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { RatingPicker } from "../ui/Display";
 import { postJson } from "../../lib/app";
-import { CHIPS_ASISTEN, CHIPS_LAB, KOMENTAR_MAX, LABEL_CHIP } from "../../lib/umpan-balik";
+import {
+  CHIPS_ASISTEN,
+  CHIPS_LAB,
+  KOMENTAR_MAX,
+  LABEL_CHIP,
+  RATING_BUTUH_ALASAN,
+  kurangAlasan,
+} from "../../lib/umpan-balik";
 import type { Lang } from "../../lib/kelas";
 
 const T = {
@@ -36,6 +43,9 @@ const T = {
     terima: "Terima kasih. Umpan balikmu sudah terkirim.",
     sudah: "Kamu sudah mengirim umpan balik untuk sesi ini.",
     gagal: "Gagal mengirim. Coba lagi.",
+    alasan:
+      "Nilai rendah perlu alasan: pilih salah satu pilihan cepat atau tulis komentar singkat.",
+    alasanHint: "Ceritakan apa yang kurang supaya bisa diperbaiki.",
   },
   en: {
     anon: "Anonymous. Assistants never see your name or student ID.",
@@ -60,6 +70,8 @@ const T = {
     terima: "Thank you. Your feedback has been sent.",
     sudah: "You have already sent feedback for this session.",
     gagal: "Could not send. Try again.",
+    alasan: "A low rating needs a reason: pick a quick option or write a short comment.",
+    alasanHint: "Say what fell short so it can be fixed.",
   },
 };
 
@@ -132,6 +144,10 @@ export default function FeedbackForm({
       setErr(t.butuh);
       return;
     }
+    if (kurangAlasan(ra, ca, ka) || kurangAlasan(rl, cl, kl)) {
+      setErr(t.alasan);
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
@@ -148,7 +164,7 @@ export default function FeedbackForm({
       if (d.ok || d.kode === "sudah_dikirim") {
         window.Toast?.show(d.ok ? t.terima : t.sudah, "ok");
         onDone();
-      } else setErr(t.gagal);
+      } else setErr(d.kode === "butuh_alasan" ? t.alasan : t.gagal);
     } catch {
       setErr(t.gagal);
     } finally {
@@ -195,7 +211,9 @@ export default function FeedbackForm({
         <RatingPicker value={ra} onChange={setRa} labels={t.faces} groupLabel={t.rateA} />
         <Chips keys={CHIPS_ASISTEN} value={ca} onChange={setCa} lang={lang} />
         <label className="fbform__area">
-          <span className="hint">{t.komentar}</span>
+          <span className="hint">
+            {ra > 0 && ra <= RATING_BUTUH_ALASAN ? t.alasanHint : t.komentar}
+          </span>
           <textarea
             rows={2}
             maxLength={KOMENTAR_MAX}
@@ -212,7 +230,9 @@ export default function FeedbackForm({
         <RatingPicker value={rl} onChange={setRl} labels={t.faces} groupLabel={t.rateL} />
         <Chips keys={CHIPS_LAB} value={cl} onChange={setCl} lang={lang} />
         <label className="fbform__area">
-          <span className="hint">{t.komentar}</span>
+          <span className="hint">
+            {rl > 0 && rl <= RATING_BUTUH_ALASAN ? t.alasanHint : t.komentar}
+          </span>
           <textarea
             rows={2}
             maxLength={KOMENTAR_MAX}

@@ -483,7 +483,13 @@ export async function handleFeedbackPost(
     body.asistenNim = k?.nim ?? "";
   }
   const v = validasiUmpanBalik(body);
-  if (!v.ok) return badRequest(res);
+  if (!v.ok) {
+    if (v.kode === "butuh_alasan") {
+      res.status(200).json({ ok: false, kode: v.kode, bagian: v.bagian });
+      return;
+    }
+    return badRequest(res);
+  }
   const [ada] = await db
     .select({ nim: asisten.nim })
     .from(asisten)

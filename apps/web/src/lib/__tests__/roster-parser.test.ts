@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseRosterPaste, rosterToPaste } from "../roster-parser";
+import { parseRosterPaste, rosterDiff, rosterToPaste } from "../roster-parser";
 
 // Fixtures mirror apps/modul4/SETUP.md section 4's own paste examples and
 // apps/modul4/tools/uji_protokol.py's NIM fixtures, so this test is checking the
@@ -89,5 +89,39 @@ describe("parseRosterPaste", () => {
     const reparsed = parseRosterPaste(rendered);
     expect(reparsed.groups).toEqual(parsed.groups);
     expect(reparsed.errors).toEqual([]);
+  });
+});
+
+describe("bare NIMs (no name)", () => {
+  it("keeps short bare NIMs as members and round-trips them", () => {
+    const parsed = parseRosterPaste("#1 Uji\n1111\n2222\n3333");
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.groups[0].anggota.map((m) => m.nim)).toEqual(["1111", "2222", "3333"]);
+    expect(parseRosterPaste(rosterToPaste(parsed.groups)).groups).toEqual(parsed.groups);
+  });
+});
+
+describe("rosterDiff", () => {
+  const saved = parseRosterPaste(
+    "#1 Vela\n2311102001, Alya\n2311102002, Bagus\n#2 Lyra\n2311102003, Citra",
+  ).groups;
+
+  it("reports no change for the same roster", () => {
+    expect(rosterDiff(saved, saved).changed).toBe(false);
+  });
+
+  it("names every kind of change a save will make", () => {
+    const next = parseRosterPaste(
+      "#1 Vela Baru\n2311102001, Alya\n2311102003, Citra\n#3 Cygnus\n9999",
+    ).groups;
+    const d = rosterDiff(saved, next);
+    expect(d.changed).toBe(true);
+    expect(d.groupsAdded).toEqual([3]);
+    expect(d.groupsRenamed).toEqual([{ nomor: 1, from: "Vela", to: "Vela Baru" }]);
+    expect(d.groupsArchived).toEqual([2]);
+    expect(d.membersAdded).toEqual(["9999"]);
+    expect(d.membersRemoved).toEqual(["2311102002"]);
+    expect(d.membersMoved).toEqual([{ nim: "2311102003", from: 2, to: 1 }]);
+    expect(d.nameless).toEqual(["9999"]);
   });
 });

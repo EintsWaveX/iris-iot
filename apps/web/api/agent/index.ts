@@ -52,6 +52,8 @@ import {
   INTERVAL_AKTIF_SEC,
   INTERVAL_IDLE_SEC,
   INTERVAL_SIAGA_SEC,
+  INTERVAL_TELEMETRI_SEC,
+  MODUL_TELEMETRI_PI,
   adaPerintahBaru,
 } from "../../src/lib/server-lib.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
@@ -147,20 +149,26 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     });
 
     const perangkatMasuk = Array.isArray(body.perangkat) ? (body.perangkat as unknown[]) : [];
+    // One statement for the whole list (it was one round trip per device);
+    // de-duplicated by MAC first, since one INSERT ... ON CONFLICT cannot
+    // touch the same row twice.
+    const perangkatBaris = new Map<string, typeof perangkat.$inferInsert>();
     for (const item of perangkatMasuk) {
       if (!isPerangkatMasuk(item) || !MAC_RE.test(item.mac)) continue;
       const mac = item.mac.toUpperCase();
-
+      perangkatBaris.set(mac, {
+        serverId,
+        mac,
+        ip: item.ip ?? null,
+        vendor: item.vendor ?? null,
+        jenis: item.jenis ?? null,
+        sumber: item.sumber,
+      });
+    }
+    if (perangkatBaris.size) {
       await db
         .insert(perangkat)
-        .values({
-          serverId,
-          mac,
-          ip: item.ip ?? null,
-          vendor: item.vendor ?? null,
-          jenis: item.jenis ?? null,
-          sumber: item.sumber,
-        })
+        .values([...perangkatBaris.values()])
         .onConflictDoUpdate({
           target: [perangkat.serverId, perangkat.mac],
           set: {
@@ -215,9 +223,11 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     const siaga = pending.length > 0 || (await adaPerintahBaru(serverId));
     const intervalDetik = siaga
       ? INTERVAL_SIAGA_SEC
-      : sesiAktif
-        ? INTERVAL_AKTIF_SEC
-        : INTERVAL_IDLE_SEC;
+      : sesiAktif && MODUL_TELEMETRI_PI.has(sesiAktif.modul)
+        ? INTERVAL_TELEMETRI_SEC
+        : sesiAktif
+          ? INTERVAL_AKTIF_SEC
+          : INTERVAL_IDLE_SEC;
 
     await rekamTelemetri(serverId, sesiAktif?.id ?? null, body.telemetri);
     await pruneOldTelemetryOccasionally();

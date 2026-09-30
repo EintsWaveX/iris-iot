@@ -25,7 +25,7 @@ import { AlertTriangle, Lock } from "lucide-react";
 import { ScoreInput, Switch } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
 import { ProgressRing } from "../ui/Display";
-import { KELOMPOK_NAMA, postJson, sejak, useTick } from "../../lib/app";
+import { namaKelompok, postJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import type { NilaiLive } from "./data";
@@ -129,7 +129,7 @@ export default function GroupInspector(p: InspectorProps) {
         </span>
         <div className="insp__names">
           <span className="label-caps">{t.group(g.nomor)}</span>
-          <h2 className="insp__title">{KELOMPOK_NAMA[g.nomor] ?? g.nama}</h2>
+          <h2 className="insp__title">{namaKelompok(g.nomor, g.nama)}</h2>
         </div>
         <div className="insp__owner">
           <span

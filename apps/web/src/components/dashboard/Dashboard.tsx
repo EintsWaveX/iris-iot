@@ -24,11 +24,9 @@ import { usePoll } from "../../lib/hooks";
 import { SESI_CAP_MENIT } from "../../lib/jadwal";
 import { langkahBerikutnya, type Langkah } from "../../lib/langkah";
 import { NILAI_KOMPONEN } from "../../lib/nilai-komponen";
-import { startPolling } from "../../scripts/polling";
 import { getAksesState } from "../../scripts/modul-akses";
 import { readSetup } from "../module/SetupChecklist";
-import { fetchLiveReading, resetLiveReadingMemory } from "../../lib/telemetry-live";
-import { nextReading, type Reading } from "../../lib/telemetry-sim";
+import { flowStats, selangMs, useTelemetry } from "../live/useTelemetry";
 import type { Lang } from "../../lib/kelas";
 import FeedbackForm from "./FeedbackForm";
 import PdfViewer from "../ui/PdfViewer";
@@ -95,6 +93,7 @@ const T = {
     live: "langsung",
     sim: "simulasi",
     rata: "rata rata Δ",
+    selang: "selang rata rata",
     hilang: "hilang",
     terakhir: "pesan terakhir",
     bukaLive: "Buka ruang live",
@@ -171,6 +170,7 @@ const T = {
     live: "live",
     sim: "simulated",
     rata: "average Δ",
+    selang: "average gap",
     hilang: "lost",
     terakhir: "last message",
     bukaLive: "Open live view",
@@ -223,32 +223,17 @@ function MiniFlow({
   t: Tx;
   lang: Lang;
 }) {
-  const [rows, setRows] = useState<Reading[]>([]);
-  const [live, setLive] = useState(false);
-  useEffect(() => {
-    setRows([]);
-    setLive(false);
-    resetLiveReadingMemory(modul, kelompok);
-    let isLive = false;
-    return startPolling(async () => {
-      const r = await fetchLiveReading(modul, kelompok);
-      if (r) {
-        isLive = true;
-        setLive(true);
-        setRows((p) => [...p, r].slice(-28));
-        return;
-      }
-      if (isLive) return;
-      setRows((p) => [...p, nextReading(modul, kelompok)].slice(-28));
-    }, 1500);
-  }, [modul, kelompok]);
-
-  const ok = rows.filter((r) => r.delayMs != null);
-  const avg = ok.length
-    ? Math.round(ok.reduce((a, r) => a + (r.delayMs ?? 0), 0) / ok.length)
-    : null;
-  const loss = rows.length ? Math.round(((rows.length - ok.length) / rows.length) * 100) : 0;
-  const max = Math.max(40, ...ok.map((r) => r.delayMs ?? 0));
+  const tel = useTelemetry(modul, kelompok, false, 1500);
+  const rows = tel.history.slice(-28);
+  const live = tel.live;
+  // Modules 2 and 3 carry no send time, so the bars show the gap between
+  // arrivals instead of a delay that was never measured.
+  const stats = flowStats(rows, 28, live && (modul === 2 || modul === 3));
+  const byDelay = rows.some((r) => r.delayMs != null);
+  const values = byDelay ? rows.map((r) => r.delayMs) : selangMs(rows);
+  const avg = byDelay ? stats.avg : stats.interval;
+  const loss = stats.loss;
+  const max = Math.max(40, ...values.map((v) => v ?? 0));
   const last = rows[rows.length - 1];
 
   return (
@@ -256,7 +241,7 @@ function MiniFlow({
       <div className="miniflow__stats">
         <span className="miniflow__stat">
           <b className="num">{avg ?? "-"}</b>
-          <small>ms · {t.rata}</small>
+          <small>ms · {byDelay ? t.rata : t.selang}</small>
         </span>
         <span className="miniflow__stat" data-bad={loss > 10 ? "yes" : undefined}>
           <b className="num">{loss}%</b>
@@ -265,15 +250,17 @@ function MiniFlow({
         <span className={`pill ${live ? "pill--ok" : "pill--mono"}`}>{live ? t.live : t.sim}</span>
       </div>
       <div className="miniflow__bars" aria-hidden="true">
-        {rows.map((r) => (
-          <span
-            key={r.seq}
-            data-lost={r.delayMs == null ? "yes" : undefined}
-            style={{
-              height: `${r.delayMs == null ? 100 : Math.max(8, ((r.delayMs ?? 0) / max) * 100)}%`,
-            }}
-          />
-        ))}
+        {rows.map((r, i) => {
+          const v = values[i];
+          const lost = r.rx === null;
+          return (
+            <span
+              key={i}
+              data-lost={lost ? "yes" : undefined}
+              style={{ height: `${lost ? 100 : v == null ? 8 : Math.max(8, (v / max) * 100)}%` }}
+            />
+          );
+        })}
       </div>
       <div className="miniflow__foot">
         <span className="hint mono">

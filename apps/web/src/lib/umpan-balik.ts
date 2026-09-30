@@ -38,7 +38,30 @@ export interface UmpanBalikInput {
   chipsLab: string[];
 }
 
-type Hasil = { ok: true; nilai: UmpanBalikInput } | { ok: false; kode: "format_salah" };
+type Hasil =
+  | { ok: true; nilai: UmpanBalikInput }
+  | { ok: false; kode: "format_salah" | "butuh_alasan"; bagian?: "asisten" | "lab" };
+
+/** A rating at or below this needs a reason: a quick-pick chip, or a
+ *  comment that says something. Without one a 1 star is noise the
+ *  assistant can neither learn from nor answer. */
+export const RATING_BUTUH_ALASAN = 2;
+
+/** At least two real words (two or more letters, with a vowel), so "asdf"
+ *  or a row of keyboard mash does not count as a reason. */
+export function komentarBermakna(teks: string | null | undefined): boolean {
+  const kata = (teks ?? "").toLowerCase().match(/\p{L}{2,}/gu) ?? [];
+  return kata.filter((k) => /[aeiouy]/.test(k)).length >= 2;
+}
+
+/** True when this section's rating is low and nothing says why. */
+export function kurangAlasan(
+  rating: number,
+  chips: readonly string[],
+  komentar: string | null,
+): boolean {
+  return rating <= RATING_BUTUH_ALASAN && chips.length === 0 && !komentarBermakna(komentar);
+}
 
 function rating(v: unknown): number | null {
   const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
@@ -84,6 +107,8 @@ export function validasiUmpanBalik(body: Record<string, unknown>): Hasil {
   ) {
     return { ok: false, kode: "format_salah" };
   }
+  if (kurangAlasan(ra, ca, ka)) return { ok: false, kode: "butuh_alasan", bagian: "asisten" };
+  if (kurangAlasan(rl, cl, kl)) return { ok: false, kode: "butuh_alasan", bagian: "lab" };
   return {
     ok: true,
     nilai: {

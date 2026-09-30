@@ -7,11 +7,12 @@
  * roster and the libraries on the right), one column below. Nothing is
  * squeezed into a third column, which is what made the prototype cramped.
  */
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import { Check, ChevronDown, Search } from "lucide-react";
-import { parseRosterPaste, rosterToPaste } from "../../lib/roster-parser";
-import { KELOMPOK_NAMA, postJson } from "../../lib/app";
+import { parseRosterPaste, rosterDiff, rosterToPaste } from "../../lib/roster-parser";
+import Dialog from "../ui/Dialog";
+import { namaKelompok, postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import { AccessForm } from "./SessionBar";
@@ -57,7 +58,7 @@ export default function PrepView({
         </section>
       </div>
       <div className="prep__col">
-        <RosterPanel t={t} roster={roster} onChanged={onChanged} />
+        <RosterPanel t={t} lang={lang} roster={roster} onChanged={onChanged} />
         <SlidesLibrary t={t} lang={lang} kode={kode} />
       </div>
       <SchematicLibrary t={t} lang={lang} kode={kode} />
@@ -130,9 +131,9 @@ function AssignmentPanel({
               <span className="assign__group">
                 <span className="assign__num">{g.nomor}</span>
                 <span className="stack" style={{ gap: 0 }}>
-                  <b>{KELOMPOK_NAMA[g.nomor] ?? g.nama}</b>
+                  <b>{namaKelompok(g.nomor, g.nama)}</b>
                   <span className="hint truncate">
-                    {g.anggota.map((m) => m.nama.split(" ")[0]).join(", ")}
+                    {g.anggota.map((m) => (m.nama ? m.nama.split(" ")[0] : m.nim)).join(", ")}
                   </span>
                 </span>
                 {n > 1 && <span className="pill pill--warn">{t.assignHolds(n)}</span>}
@@ -274,29 +275,50 @@ function AssistantPicker({
 
 function RosterPanel({
   t,
+  lang,
   roster,
   onChanged,
 }: {
   t: Strings;
+  lang: Lang;
   roster: RosterGroup[];
   onChanged: () => void;
 }) {
   const [paste, setPaste] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const text = paste ?? rosterToPaste(roster);
+  const [review, setReview] = useState(false);
+  const saved = rosterToPaste(roster);
+  const text = paste ?? saved;
   const parsed = useMemo(() => parseRosterPaste(text), [text]);
-  const dirty = paste !== null && paste !== rosterToPaste(roster);
+  const dirty = paste !== null && paste !== saved;
+  const diff = useMemo(() => rosterDiff(roster, parsed.groups), [roster, parsed.groups]);
+
+  // Fetch the saved roster fresh whenever this panel opens, so the editor
+  // never starts from a copy another assistant (or a cleanup) has replaced.
+  useEffect(() => {
+    onChanged();
+    // Once per mount; onChanged is a fresh closure every render.
+  }, []);
 
   async function save() {
     setSaving(true);
     try {
-      const r = await postJson<{ ok: boolean; kode?: string; groups?: number; total?: number }>(
-        "/api/session/roster",
-        { paste: text },
-      );
+      const r = await postJson<{
+        ok: boolean;
+        kode?: string;
+        groups?: number;
+        total?: number;
+        diarsipkan?: number;
+      }>("/api/session/roster", { paste: text });
       if (r.ok) {
-        window.Toast?.show(t.rosterSaved(r.groups ?? 0, r.total ?? 0), "ok");
+        window.Toast?.show(
+          r.diarsipkan
+            ? t.rosterSavedArchived(r.groups ?? 0, r.total ?? 0, r.diarsipkan)
+            : t.rosterSaved(r.groups ?? 0, r.total ?? 0),
+          "ok",
+        );
         setPaste(null);
+        setReview(false);
         onChanged();
       } else window.Toast?.show(pesan(t, r.kode), "danger");
     } catch {
@@ -305,6 +327,10 @@ function RosterPanel({
       setSaving(false);
     }
   }
+
+  const groupList = (ns: number[]) => ns.map((n) => `#${n}`).join(", ");
+  const nimList = (xs: string[]) =>
+    xs.length > 6 ? `${xs.slice(0, 6).join(", ")} …` : xs.join(", ");
 
   return (
     <section className="panel">
@@ -319,6 +345,7 @@ function RosterPanel({
         rows={10}
         value={text}
         spellCheck={false}
+        autoComplete="off"
         onChange={(e) => setPaste(e.target.value)}
         aria-label={t.rosterTitle}
         placeholder={
@@ -356,13 +383,83 @@ function RosterPanel({
           type="button"
           className="btn btn--primary"
           disabled={!dirty || saving || parsed.errors.length > 0 || !text.trim()}
-          data-loading={saving ? "yes" : undefined}
-          onClick={() => void save()}
+          onClick={() => setReview(true)}
         >
-          <span className="btn__label">{t.rosterSave}</span>
-          <span className="btn__spinner" aria-hidden="true" />
+          {t.rosterSave}
         </button>
       </div>
+
+      {/* Saving replaces the whole roster, so it always goes through this
+          summary first: a stray click on the button (the layout shifts as
+          Persiapan opens) can no longer save on its own. */}
+      <Dialog
+        open={review}
+        onOpenChange={(o) => !saving && setReview(o)}
+        title={t.rosterReview}
+        description={t.rosterReviewSub}
+        lang={lang}
+        actions={
+          <>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => setReview(false)}
+              disabled={saving}
+            >
+              {t.cancel}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={saving || !diff.changed}
+              data-loading={saving ? "yes" : undefined}
+              onClick={() => void save()}
+            >
+              <span className="btn__label">{t.rosterConfirm}</span>
+              <span className="btn__spinner" aria-hidden="true" />
+            </button>
+          </>
+        }
+      >
+        {!diff.changed ? (
+          <p className="hint">{t.rosterNoChange}</p>
+        ) : (
+          <ul className="roster__diff">
+            {diff.groupsAdded.length > 0 && (
+              <li data-kind="add">{t.rosterGroupsAdded(groupList(diff.groupsAdded))}</li>
+            )}
+            {diff.groupsRenamed.length > 0 && (
+              <li>
+                {t.rosterGroupsRenamed(
+                  diff.groupsRenamed.map((g) => `#${g.nomor} ${g.from} → ${g.to}`).join(", "),
+                )}
+              </li>
+            )}
+            {diff.groupsArchived.length > 0 && (
+              <li data-kind="remove">{t.rosterGroupsArchived(groupList(diff.groupsArchived))}</li>
+            )}
+            {diff.membersAdded.length > 0 && (
+              <li data-kind="add">{t.rosterMembersAdded(diff.membersAdded.length)}</li>
+            )}
+            {diff.membersRemoved.length > 0 && (
+              <li data-kind="remove">
+                {t.rosterMembersRemoved(diff.membersRemoved.length, nimList(diff.membersRemoved))}
+              </li>
+            )}
+            {diff.membersMoved.length > 0 && (
+              <li>
+                {t.rosterMembersMoved(
+                  diff.membersMoved.length,
+                  nimList(diff.membersMoved.map((m) => `${m.nim} #${m.from}→#${m.to}`)),
+                )}
+              </li>
+            )}
+            {diff.nameless.length > 0 && (
+              <li className="hint">{t.rosterNameless(diff.nameless.length)}</li>
+            )}
+          </ul>
+        )}
+      </Dialog>
     </section>
   );
 }

@@ -119,6 +119,54 @@ export function parseRosterPaste(text: string): ParseResult {
   };
 }
 
+export interface RosterDiff {
+  groupsAdded: number[];
+  groupsRenamed: { nomor: number; from: string; to: string }[];
+  /** On the saved roster but not in the paste: archived on save. */
+  groupsArchived: number[];
+  membersAdded: string[];
+  membersRemoved: string[];
+  membersMoved: { nim: string; from: number; to: number }[];
+  /** Members pasted as a bare NIM, shown by their NIM. */
+  nameless: string[];
+  changed: boolean;
+}
+
+/** What saving `next` over `saved` will do, for the confirm step. A group
+ *  missing from the paste is archived by the server (see handleRoster). */
+export function rosterDiff(saved: ParsedGroup[], next: ParsedGroup[]): RosterDiff {
+  const before = new Map(saved.map((g) => [g.nomor, g]));
+  const after = new Map(next.map((g) => [g.nomor, g]));
+  const groupOf = (gs: ParsedGroup[]) =>
+    new Map(gs.flatMap((g) => g.anggota.map((m) => [m.nim, g.nomor] as const)));
+  const was = groupOf(saved);
+  const now = groupOf(next);
+
+  const d: RosterDiff = {
+    groupsAdded: next.filter((g) => !before.has(g.nomor)).map((g) => g.nomor),
+    groupsRenamed: next
+      .filter((g) => before.has(g.nomor) && g.nama && g.nama !== before.get(g.nomor)!.nama)
+      .map((g) => ({ nomor: g.nomor, from: before.get(g.nomor)!.nama, to: g.nama })),
+    groupsArchived: saved.filter((g) => !after.has(g.nomor)).map((g) => g.nomor),
+    membersAdded: [...now.keys()].filter((nim) => !was.has(nim)),
+    membersRemoved: [...was.keys()].filter((nim) => !now.has(nim)),
+    membersMoved: [...now.entries()]
+      .filter(([nim, g]) => was.has(nim) && was.get(nim) !== g)
+      .map(([nim, to]) => ({ nim, from: was.get(nim)!, to })),
+    nameless: next.flatMap((g) => g.anggota.filter((m) => !m.nama).map((m) => m.nim)),
+    changed: false,
+  };
+  d.changed =
+    d.groupsAdded.length +
+      d.groupsRenamed.length +
+      d.groupsArchived.length +
+      d.membersAdded.length +
+      d.membersRemoved.length +
+      d.membersMoved.length >
+    0;
+  return d;
+}
+
 /** Renders a saved roster back into the paste format, so an assistant who
  *  re-opens a session sees exactly the text they'd type again — the
  *  round-trip property toPaste() in apps/modul4/src/ui-assistant.js already

@@ -12,8 +12,23 @@ import { usePoll } from "./hooks.js";
 
 export class HttpError extends Error {}
 
+/** A request that hangs (a cold function waiting on the database, a dead
+ *  Wi-Fi link) fails after this long instead of holding a skeleton or a
+ *  spinner on screen forever; pollers then retry. */
+const FETCH_TIMEOUT_MS = 15_000;
+
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: ctl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function getJson<T = Record<string, unknown>>(url: string): Promise<T> {
-  const r = await fetch(url, { headers: { Accept: "application/json" } });
+  const r = await fetchWithTimeout(url, { headers: { Accept: "application/json" } });
   if (!r.ok) throw new HttpError(`${r.status}`);
   return (await r.json()) as T;
 }
@@ -22,7 +37,7 @@ export async function postJson<T = Record<string, unknown>>(
   url: string,
   body: unknown = {},
 ): Promise<T> {
-  const r = await fetch(url, {
+  const r = await fetchWithTimeout(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -149,6 +164,16 @@ export const KELOMPOK_NAMA: Record<number, string> = {
   4: "Orion",
   5: "Carina",
 };
+
+/** A group's display name: the name typed in the roster when it is a real
+ *  one, else the group's star name. A roster line with no label saves as
+ *  "Kelompok N", which counts as no name. */
+export function namaKelompok(nomor: number, nama?: string | null): string {
+  const n = (nama ?? "").trim();
+  if (n && n.toLowerCase() !== `kelompok ${nomor}` && n.toLowerCase() !== `group ${nomor}`)
+    return n;
+  return KELOMPOK_NAMA[nomor] ?? `Kelompok ${nomor}`;
+}
 
 /* ------------------------------------------------------------ time */
 
