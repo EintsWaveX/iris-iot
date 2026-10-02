@@ -60,9 +60,23 @@ is where the fix and the reasoning live.
 
 ## 3. Colour and the contrast contract
 
-All tokens live in `packages/kosmik/style/tokens.css`, shared by both apps in
-this monorepo. Dark only, by decision — there is no light counterpart and no
-`prefers-color-scheme` branch to maintain.
+`packages/kosmik/style/tokens.css` is the shared dark baseline (apps/games
+uses it as is). Phase 9 adds `apps/web/src/styles/theme.css`, loaded right
+after it, with two themes:
+
+- **Dark** (the default): brighter hairlines (`--hairline` .22,
+  `--hairline-strong` .38), solid surfaces `--surface-1` to `--surface-4`,
+  `--invert-bg`/`--invert-ink` for tooltips and the inverse button,
+  `--sel-bg`/`--sel-ink` for text selection, the status hues, and groups 6
+  to 10.
+- **Daylight sky** (light), under `html[data-theme="light"]`: the same
+  layers re-tinted, with dark navy hairlines and darker group hues.
+
+`public/theme-init.js` sets `data-theme` before the first paint from the
+reader's choice (Gelap, Terang, Sistem in the Tampilan panel; stored as
+`iris-theme`), so a light-theme reader never sees a dark flash.
+`apps/web/src/lib/__tests__/contrast.test.ts` parses both blocks and holds
+both themes to the contrast rules below.
 
 ### The bug that motivated this section
 
@@ -104,7 +118,7 @@ constraints, and a test enforces which is which.
 
 Sampled at 5% intervals along its whole length, not merely at its declared
 stops, `--sweep-surface`'s worst point is `--group-2` at **6.96:1** against
-`--accent-ink`. `packages/kosmik/contrast.test.ts` re-measures this on every
+`--accent-ink`. `apps/web/src/lib/__tests__/contrast.test.ts` re-measures this on every
 run rather than trusting a comment: it decodes real sRGB relative luminance,
 walks the gradient in small steps, and fails the build if the worst sampled
 point ever drops below 4.5:1, or if a `--neb-*` token ever finds its way back
@@ -129,7 +143,7 @@ into a text-bearing gradient.
 
 Both columns are measured, not assumed, because a colour used on more than
 one surface has to clear the worst of them, not the easiest. `--text-faint`
-was previously 4.69:1 against `--bg` alone — it scraped AA and failed AAA,
+was previously 4.69:1 against `--bg` alone: it scraped AA and failed AAA,
 and it was the exact pairing (uppercase mono, wide tracking, the smallest
 size on the page) a legibility complaint landed on.
 
@@ -142,16 +156,12 @@ is the fixed dark text colour for anything painted directly on a solid
 non-animated focus ring for form controls, distinct from the swept ring,
 which is for hover.
 
-### Group identity: five, fixed
+### Group identity: up to ten
 
-The practicum runs **five groups per session, fixed for the whole term
-across every module.** This was previously three incompatible numbers in
-different parts of the codebase: the journals for Modules 1 to 3 assumed
-eight, Module 4's hunt assumed seven (one group's board becomes the shared
-beacon), and the separate Arena tournament app assumed four. Five is the
-settled number, and `--group-1` through `--group-5` keep their existing
-hues and numbering — this was a deletion of `--group-6` and `--group-7`,
-not a renumbering.
+A session has five groups by default and up to ten (Phase 9). `--group-1`
+to `--group-5` keep their hues; `--group-6` to `--group-10` were added for
+the larger sessions, each with a darker twin in the Daylight theme. The
+table below is the original five on the dark theme.
 
 | | Hue | On `--bg` | On `--bg-elevated` |
 |---|---|---|---|
@@ -161,16 +171,15 @@ not a renumbering.
 | 4 amber | `#f59e6a` | 9.28:1 | 8.04:1 |
 | 5 ice | `#7dd3fc` | 11.71:1 | 10.15:1 |
 
-`contrast.test.ts` asserts both that groups 1 through 5 exist and that 6
-through 8 do not. A group is never identified by hue alone: every group hue
-is always paired with its number, because the tightest gap between any two
-of the five (mint and ice, 29° apart) is defensible only under that rule.
+A group is never identified by hue alone: every group hue is always paired
+with its written name ("Kelompok 3"), because neighbouring hues (mint and
+ice are 29° apart) are only defensible under that rule.
 
 ### Heat, and why it stays separate from group identity
 
 `--heat-cold` through `--heat-burning` are a sequential ramp describing one
 reading's proximity, unrelated to which group produced it. A card shows its
-group on the rail and its heat on the bar — the two channels are never the
+group on the rail and its heat on the bar: the two channels are never the
 same visual property, so a reading is never mistaken for an identity.
 
 ### Nebula: background only
@@ -183,134 +192,176 @@ a style preference, it is the rule `contrast.test.ts` enforces mechanically.
 
 ## 4. Type
 
-Three faces, self-hosted via `@fontsource` in `apps/web` (see
-`apps/web/src/styles/fonts.css`), so no third-party round trip blocks the
-first paint on lab wifi. `apps/games` keeps loading the same three faces
-from Google Fonts, because it has no bundler to resolve an npm package into
-shipped files — see `packages/kosmik/style/fonts-google.css`.
+Self-hosted via `@fontsource` (`apps/web/src/styles/fonts.css`), so no
+third-party round trip blocks the first paint on lab Wi-Fi.
 
 | Token | Face | Job |
 |---|---|---|
-| `--font-display` | **Instrument Serif** 400 + italic only | Titles at `--fs-display-md` and above. Never set a heavier weight — the browser synthesises a bold and it looks broken. Below that size floor its hairline strokes break down on a dark ground, so smaller titles use `--font-body` instead. |
-| `--font-body` | **Inter** 400/500/600 + 400 italic | Everything else: body, UI, headings below the display floor, eyebrow labels. |
-| `--font-mono` | **JetBrains Mono** 400/500/600 | Every timestamp, every delay, every figure, every code reference. If it can be subtracted or compared, it is mono. |
+| `--font-display` | **Plus Jakarta Sans** 700/800 | Page titles, card titles, hero lines (signed off in the Phase 9 mockup). |
+| `--font-body` | **Inter** 400 to 700 | Everything else. Bigger tab and button labels use 650/700. |
+| `--font-mono` | **JetBrains Mono** 400 to 600 | Every timestamp, delay, figure, code and identifier. If it can be subtracted or compared, it is mono. |
+| `--font-cjk` | **Noto Sans SC** (unicode-range subsets) | Mandarin pages; chained after the Latin face. |
 
-`apps/games` re-declares `--font-body`/`--font-mono` only, to IBM Plex, via
-`src/style/tokens-override.css` — the user's own call, kept live to compare
-against the new stack before deciding whether to retire it.
+Mandarin headings default to 700; the Tampilan panel offers 500 (only
+while the language is Mandarin), stored as `iris-zh-weight` and applied as
+`html[data-zh-weight="500"]`.
 
-Scale: `--fs-small` (0.8rem) through `--fs-display-xl`. `--fs-micro` is an
-alias of `--fs-small`, not a second value — the two used to be independent
-tokens that happened to converge on the same number by coincidence of a
-fix, which only invites them drifting apart again by accident.
+Below 1280px wide the type, tabs and buttons step down one size, and again
+below 640px.
 
 ---
 
 ## 5. Geometry
 
-Radius now encodes elevation rather than only decorating:
-
 ```css
 --radius-sm: 4px;    /* chips, inputs */
---radius-md: 8px;    /* buttons, small cards */
---radius-lg: 14px;   /* standard cards */
---radius-xl: 20px;   /* modals, hero surfaces */
+--radius-md: 8px;    /* buttons, tabs, small cards */
+--radius-lg: 14px;   /* cards, popovers */
+--radius-xl: 20px;   /* dialogs */
 ```
 
-`--lift-control` and `--lift-card` are the two amounts anything ever moves
-on hover, so a button, a card and anything else that lifts all agree on how
-far. Space is a 4px base scale, `--space-1` through `--space-11`.
+`--lift-control` is how far anything moves on hover. Space is a 4px base
+scale, `--space-1` through `--space-11`.
 
 ---
 
-## 6. Layout: four breakpoints, four real designs
+## 6. The kit
 
-A single centred column that only grows wider as the viewport widens is not
-a desktop design, it is a mobile design stretched. `--measure` splits into
-three tokens so the difference is enforceable:
+One shared kit, in `apps/web/src/components/ui` and the global
+`src/styles/controls.css` and `src/styles/app.css` (global because React
+islands sit outside Astro's scoped CSS). It matches the mockup's g-kit
+screen.
 
-```css
---measure-prose: 68ch;   /* body copy, walkthrough steps, lede */
---measure:       1100px; /* the standard content column */
---measure-wide:  1600px; /* dashboards, ladders, tables */
-```
+**Buttons (`.btn`).** Base (surface fill, bright border, the rainbow ring
+sweeps on hover), `--primary` (accent fill, the rainbow sweeps across the
+fill; at most one per view), `--inverse` (the key action on a key card:
+dark, then bright with dark text), `--ghost` (Cancel, Close), `--danger`
+(solid red, dark ink, no ring: sign out, delete, turn off, always asked
+first) and `--danger-soft` (Discard in a dialog footer). Sizes `--sm` 44px,
+base 48px, `--lg` 60px.
 
-**Extra viewport width goes to data and secondary panels. Running prose
-keeps a bounded measure.** Widening a paragraph past a comfortable line
-length is not using the space, it is stretching it.
+**Icon buttons (`IconButton.tsx`, `.iconbtn`).** Only when the icon says
+it all. Always an aria-label and a tooltip with the same words. A disabled
+one stays focusable (aria-disabled) so its tooltip can say why.
 
-| | Width | Shape |
-|---|---|---|
-| `sm` | ≤ 640 | One column. Tables collapse to stacked rows. Grain and the second aurora ribbon drop. |
-| `md` | 641–1024 | Two columns where content genuinely pairs. |
-| `lg` | 1025–1440 | **The primary desktop design.** Content plus a persistent right rail. |
-| `xl` | ≥ 1441 | `--measure-wide` unlocks for data surfaces only. Prose stays at `--measure-prose`. |
+**Icons.** Phosphor (`@phosphor-icons/react`, the `*Icon` exports), regular
+weight; bold for a check inside a small box, fill for a picked rating. Icon
+alone when the action is obvious, icon plus words when both are needed.
 
-Every page needs a real answer for what happens at `lg` and above, not only
-a statement that it does not break. See the Phase 5 plan's page-by-page
-section for the specific shape each page takes at each breakpoint.
+**Cards (`.panel`).** One bright border on every card. `.panel--key` adds
+a rainbow top edge, for the one card per screen that carries its main job.
+`.panel--solo` centres a card that is alone on its view. Grids stretch, so
+cards in a row share one height, and `.panel__actions` pins a card's
+buttons to its bottom edge so neighbouring cards' buttons line up.
 
----
+**Tabs, one style in two forms.** `.seg`, the pill track, switches views
+inside a card or a form. `Tabs.tsx` (`.tabs`), the underline form with a
+rainbow line, switches the main sections of a page. Both scroll sideways
+on phones instead of squeezing.
 
-## 7. Motion, in three tiers, earned
+**Badges (`Pill.tsx`, `.pill`).** Always upper case, a bright edge, and a
+tone: ok, warn, danger, accent, gold, violet, teal, solid, `fit` (the
+sheet's red Ngajar FIT marker), `a24` (the yellow Angkatan 24 marker), or a
+group or module hue. Codes and identifiers (`mono`) and toggle chips keep
+their own case.
 
-**Tier 0**, what everybody gets by default: a fully painted CSS sky with no
-JavaScript and no animation. Not a degraded fallback — the base product, and
-what the practicum's lab phones keep unless a device proves it can afford
-more.
+**Fields.** No native browser widgets: `Dropdown.tsx` instead of
+`<select>`, `DateField`/`TimeField` (in `Controls.tsx`) instead of date and
+time inputs, `Disclose.tsx` instead of `<details>`, `Tooltip.tsx` instead of
+`title`. Dates are written out in full ("Kamis, 1 Oktober 2026").
 
-**Tier 1**: the CSS layers start drifting (nebula, grid pulse, one aurora
-ribbon), gated behind `data-motion="full"` on `<html>`.
+**Back and fades.** One `BackButton` (an arrow and words in a pill) for
+every way back; `PageHeader.astro` draws the same for Astro pages. Every
+in-page view switch fades in (`Fade.tsx`).
 
-**Tier 2**: the canvas starfield, comets and planets mount. On apps/web
-only (P6.4), the aurora also becomes a small WebGL layer of moving fbm
-curtains (`aurora-gl.js`) instead of the CSS rays swaying in place; a
-WebGL failure of any kind just leaves the CSS layer as it already was.
+**Overlays.** Radix keeps one stack, so Esc and outside clicks close only
+the top layer. Every overlay animates in and out. Layer order: drawer 60,
+dialog 100, popover and menu 150, toast 200, tooltip 400, so a picker
+opened inside a dialog is never covered by it. A `blocking` dialog (a
+required confirm, unsaved changes) shakes instead of closing. Dialogs and
+drawers focus their own panel when they open.
 
-A tier is earned once per device by a capability probe (declared signals
-plus a measured frame time over roughly 500ms of a trivial layer), cached in
-`localStorage` so it runs once, not once per page. Reduced motion, at the OS
-level or via the in-page toggle, pins a device to tier 0 regardless of what
-the probe would otherwise allow.
+**Dialog footers.** Buttons keep their normal size. Two buttons sit right:
+Cancel, then the main action. An alternative goes on the left (`alt`).
+Three buttons use the 1-2 footer (`foot="12"`): the main action across the
+top row, the other two below. Under 520px they stack full width with the
+main action on top.
 
-**The toggle means what it says.** Every CSS animation in `cosmos.css` moves
-behind `data-motion="full"`, which the toggle writes directly — previously
-the toggle only reached the canvas and GSAP paths, so a phone where someone
-turned it on kept animating the nebula, the grid and the aurora regardless.
+**Errors (`ErrorView.tsx`).** One view for 400, 401, 403, 404, 408, 409,
+413, 429, 500 and 503: the code and its icon, the cause, what to do, then
+the actions. Praktikan get their own wording, with no internals.
 
-**Navigation is a content-only crossfade.** The outgoing content fades and
-lifts 8px, the incoming content arrives, and the sky does not react. This
-replaces a warp effect that re-shaped every star on every navigation, which
-cost the most on exactly the devices least able to pay for it.
-
-**One entrance and one stagger per page, never a reveal on every section.**
-Motion is spent deliberately, in two places, not distributed evenly across
-everything that could animate.
-
-`prefers-reduced-motion` and the tier-0 state both freeze the sky on a valid
-last frame rather than blanking it — a still night sky is still the design.
-
----
-
-## 8. Voice
-
-No em dashes and no en dashes anywhere in interface copy. A full stop, or a
-restructured sentence. A grep for `—` and `–` across user-facing strings is
-part of verification, not a style suggestion.
+**Keyboard.** The "?" sheet (`ShortcutSheet.tsx`) lists the keys in
+groups, each key as its own chip, with a switch to turn shortcuts off
+(`iris-keys`). Every shortcut handler checks `shortcutsOn()` and stays
+quiet while the reader types in a field.
 
 ---
 
-## 9. Before you build a screen
+## 7. Layout and widths
 
-1. Does this page know which module is running, if that is relevant to it?
-2. Is every timestamp and every delay monospaced, tabular, and stated as a
-   number, not only as a colour?
-3. Does the sky sit behind anything a person is trying to read?
-4. Is a gradient under text using `--sweep-surface`, never `--sweep-ring`?
-5. Does this screen have a real, considered design at `sm`, `md`, `lg` and
-   `xl`, or only one that happens not to break at the others?
-6. Does it work with the "Kurangi efek" toggle on, and does the toggle
-   actually stop every animated layer this screen uses?
-7. Is every string free of em and en dashes?
-8. Would a five-group roster, not a seven or eight-group one, actually fit
-   this layout?
+Every screen is designed per breakpoint, not stretched. Verify each changed
+screen at **360, 390, 820, 1024, 1280×720, 1280 and 1680**, in both themes
+and every interface language. Extra width goes to data and side panels;
+running prose keeps a bounded measure (`--measure-prose`, 68ch).
+
+At 640px and up the navigation is a top bar: the links start right after
+the logo, then the clock, the command palette (from 1100px), Tampilan and
+the account. Below 640px the links move to a bottom tab bar with icons, and
+Tampilan and the account open as bottom sheets.
+
+---
+
+## 8. Background detail and motion
+
+The sky (`src/scripts/sky.ts`, a port of the mockup's sky) has three
+detail levels, chosen in Tampilan and stored as `iris-detail`
+(`html[data-detail]`): **Low Detail** (still; the default), **Normal**
+(twinkling stars, a meteor now and then) and **High Detail** (planets, a
+satellite, comets, aurora).
+
+The detail level is about the background only. The interface's own motion
+(the hover sweeps, overlay open and close, view fades) runs at every
+detail level; only the operating system's reduced-motion setting stops it
+(`packages/kosmik/style/motion.css`), leaving every state still visible.
+
+Nothing animates behind a reading: cards are solid, so the sky never shows
+through under text or figures.
+
+---
+
+## 9. Voice and copy
+
+- Casual Indonesian that keeps the common English terms, English, and
+  Mandarin (Simplified) as the third language. The handbook and the
+  journals stay Indonesian and English. "Brief" is "Ringkasan" in
+  Indonesian.
+- **No em dashes and no en dashes** anywhere in interface copy.
+- **No abbreviations**: "Kelompok 3", not K3 or G3; "Modul 4", not M4;
+  "Internasional", not INTER; "Persiapan", not Prep; "menit", not mnt or
+  min; "detik", not dtk. Use `src/lib/labels.ts`. A vitest
+  (`abbreviations.test.ts`) scans every string, template literal and JSX
+  text for these, and for short month or weekday names in date formats.
+- People are written **"Full Name (CODE)"** (`namaAsisten` in
+  `src/lib/people.ts`). A small code chip may show the code alone.
+- **Title case** for headers, tabs, buttons and menu items ("Buka
+  Persiapan", "Simpan dan Pindah"). Sentence case for hints, body text and
+  toasts.
+- Full dates: "Kamis, 1 Oktober 2026" (`tanggalPanjang` in `src/lib/app.ts`).
+
+---
+
+## 10. Before you build a screen
+
+1. Is every timestamp, delay and figure monospaced and tabular, and stated
+   as a number, not only as a colour?
+2. Is a gradient under text using `--sweep-surface`, never `--sweep-ring`?
+3. Does it have a real design at each of the seven widths, in both themes
+   and all three languages?
+4. Does every overlay animate out as well as in, and does Esc close only
+   the top layer?
+5. Is there any native widget left (`<select>`, a date input, `<details>`,
+   a `title` tooltip)?
+6. Is every string free of dashes and abbreviations, every person "Full
+   Name (CODE)", every button and tab title case?
+7. Would a ten-group session still fit this layout?

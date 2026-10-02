@@ -1,32 +1,15 @@
 /**
- * The Astro-specific glue between the shared cosmos and apps/web's
- * multi-page site: which scene each page wants, firing the warp on
- * navigation, and the two performance levers Stage 3 adds on top of what
- * cosmos.core.js/motion.core.js already carry from games (sprite-cached
- * planets, no mix-blend-mode grain, DPR capped at 2, one shared ticker).
+ * The web app's background detail setting (Phase 9). The sky itself is
+ * src/scripts/sky.ts; this file owns the iris-detail choice and tells
+ * motion.core.js (window.Motion) whether the reader asked for a still sky,
+ * which motion-tier.ts and the GSAP paths read.
  *
- * Scene selection: apps/web/src/layouts/Base.astro stamps the page's
- * chosen scene as data-cosmos-scene on <html> (a static, author-declared
- * "what this page wants"). That is a different attribute from data-scene,
- * which cosmos.core.js itself owns and writes as "what's currently
- * showing" -- keeping them separate means this file never fights the
- * library over who writes data-scene.
- *
- * Navigation: <ClientRouter /> keeps this whole module alive across
- * pages (it's a persisted, deduplicated <script type="module"> included
- * from Base.astro, so it only ever executes once). Navigation is a
- * content-only crossfade now (see Base.astro's ::view-transition-* rules)
- * -- the sky itself never reacts to a page change, only to which scene
- * the new page declares. setScene on astro:page-load retunes the sky to
- * that scene over its own existing ~1.2s opacity transition, which is
- * also the (idempotent) call that establishes the very first page's
- * scene. This deliberately does NOT call Cosmos.warpTo(): the warp
- * re-shapes every star into a radial streak on every navigation, which
- * measured as the single most expensive thing on the page and cost the
- * most on exactly the phones least able to pay for it. apps/games still
- * fires it (a single-page app, so "navigation" there means switching
- * screens within one document, a different situation) -- warpTo stays in
- * cosmos.core.js unchanged for that caller.
+ * Scenes: Base.astro still stamps data-cosmos-scene on <html>, and
+ * astro:page-load hands it to window.Cosmos.setScene when a Cosmos exists.
+ * That is apps/games' kosmik sky (cosmos.core.js); the web app no longer
+ * loads it, so on the web the call is skipped and sky.ts paints one sky
+ * for every page. Navigation is a content-only crossfade (Base.astro's
+ * ::view-transition-* rules); the sky never reacts to a page change.
  *
  * Phase 9: detail levels. The reader picks one in the nav's Tampilan
  * panel, and Low Detail (LDM) is the default:

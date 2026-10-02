@@ -1,4 +1,10 @@
 /**
+ * Phase 9 note: the web app's sky is src/scripts/sky.ts, which follows
+ * html[data-detail] (the Tampilan choice), not this tier. The tier still
+ * gates the GSAP paths and the count-up and stagger effects
+ * (hooks.ts useMotionTier). The cosmos.core.js references below describe
+ * the kosmik sky this probe was written for; apps/games keeps that sky.
+ *
  * The motion-tier probe. Decides which of three tiers this device earns,
  * per docs/design-system.md's motion section, and mirrors it onto
  * window.Motion (packages/kosmik/js/motion.core.js's tier axis) so both

@@ -1,16 +1,14 @@
 /**
- * apps/web's entry point into the shared cosmos. A single side-effecting
- * import so Base.astro has one line to load instead of four, in the exact
- * order that matters: GSAP must exist on window before motion.core.js
- * reads it, motion.core.js must exist before motion-tier.ts's probe calls
- * Motion.setTier(), and the tier must already be set before cosmos.core.js
- * checks window.Motion.getTier() to decide whether to mount the canvas.
+ * apps/web's entry point into the shared motion core. One side-effecting
+ * import so Cosmos.astro has one line to load, in the order that matters:
+ * GSAP must exist on window before motion.core.js reads it, and
+ * motion.core.js must exist before motion-tier.ts's probe calls
+ * Motion.setTier(). (Phase 9: the sky is src/scripts/sky.ts; kosmik's
+ * cosmos.core.js is apps/games' sky and the web app no longer loads it.)
  *
- * cosmos.core.js and motion.core.js stay plain window-assigning scripts
- * (no import/export) because apps/games concatenates them verbatim into
- * one <script> tag via build.py -- a real `export` in either file would be
- * a syntax error there. This file is the thin wrapper the plan called for,
- * so apps/web can still consume them as normal ES modules.
+ * motion.core.js stays a plain window-assigning script (no import/export)
+ * because apps/games concatenates it verbatim into one <script> tag via
+ * build.py, where a real `export` would be a syntax error.
  *
  * This file lives in apps/web, NOT packages/kosmik, even though it wraps
  * kosmik's shared cores: it (and gsap-globals.js) import the bare "gsap"

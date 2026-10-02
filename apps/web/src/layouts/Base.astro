@@ -10,11 +10,11 @@
  * a real package (with its own package.json, in the root workspaces list)
  * would mean one consolidated lockfile for the whole repo, which changes
  * how CI's `npm ci` has to run for every workspace member, not just this
- * import -- more than a CSS import needs. The JS side (cosmos.core.js /
- * motion.core.js) turned out not to need a workspace either: Vite bundles
- * a relative-path JS import exactly like a CSS one, so
- * packages/kosmik/js/cosmos-web.js (imported from components/Cosmos.astro)
- * is a normal ES module import, not a `<script src>` tag.
+ * import -- more than a CSS import needs. The JS side (motion.core.js)
+ * turned out not to need a workspace either: Vite bundles a relative-path
+ * JS import exactly like a CSS one, so src/scripts/cosmos-web.js
+ * (imported from components/Cosmos.astro) is a normal ES module import,
+ * not a `<script src>` tag.
  */
 import "../styles/fonts.css";
 import "../../../../packages/kosmik/style/tokens.css";
@@ -53,11 +53,10 @@ interface Props {
   description?: string;
   lang?: Lang;
   /**
-   * Which of packages/kosmik/js/cosmos.core.js's scenes this page's sky
-   * runs -- see that file's SCENES object and Stage 3's per-page table.
-   * Read by cosmos-router.js off data-cosmos-scene below, not passed to
-   * Cosmos itself: the persisted canvas doesn't change per page, only
-   * which scene it's showing does.
+   * The kosmik scene this page would ask for (data-cosmos-scene below).
+   * Phase 9: the web app's sky (sky.ts) has no scenes, so this is only
+   * read when apps/games' cosmos.core.js is present (see
+   * cosmos-router.js); kept so page metadata stays in one place.
    */
   cosmosScene?: "beranda" | "masuk" | "kerja" | "teknis" | "sesi";
   /** Phase 8: the app nav (AppNav.tsx) is mounted here for every page;
@@ -107,15 +106,14 @@ const {
   /*
    * The page-to-page transition: a content-only crossfade, replacing the
    * hyperspace warp cosmos-router.js used to fire on every navigation.
-   * The sky (packages/kosmik/js/cosmos.core.js's canvas plus cosmos.css's
-   * CSS layers) is transition:persist'd in Cosmos.astro under its own
+   * The sky (src/scripts/sky.ts's canvas) is transition:persist'd in
+   * Cosmos.astro under its own
    * transition:name="cosmos" group, so it never appears here at all --
    * this only ever touches Astro's implicit "root" group, which is
    * everything else on the page (Nav, main, every page's own content).
-   * That split is the whole point: the sky no longer reacts to
-   * navigation, only to setScene()'s own ~1.2s aurora-opacity retune
-   * (cosmos-router.js), while the content still marks the moment a page
-   * changed with something quick and cheap.
+   * That split is the whole point: the sky never reacts to navigation,
+   * while the content still marks the moment a page changed with
+   * something quick and cheap.
    *
    * ::view-transition-old/new(root) are NOT normal DOM elements -- Astro's
    * <ClientRouter/> and the underlying browser View Transitions API
