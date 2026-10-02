@@ -6,40 +6,58 @@
  * - Groups held by someone else are read only, naming the holder.
  * - Enter / Shift+Enter move down / up the same column, like a spreadsheet;
  *   Tab moves across.
- * - The CSV download and the Seelabs helper keep their Stage 12 logic.
+ * - The CSV download keeps its Stage 12 logic. SeeLabs (Phase 9 Stage 3g):
+ *   each of my groups shows its SeeLabs account and status with "Salin untuk
+ *   SeeLabs"; "Kirim ke SeeLabs" opens the full page.
  * - Below 820px the grid becomes one card per student with big fields,
  *   because eight columns do not fit a phone.
  */
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { namaAsisten } from "../../lib/people";
-import { LockSimpleIcon } from "@phosphor-icons/react";
+import { namaAsisten, useDirektori } from "../../lib/people";
+import { CopyIcon, LockSimpleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
 import { ScoreInput } from "../ui/Controls";
 import { UpdatedAgo } from "../ui/Display";
 import { unduhCsv } from "../../lib/csv";
-import { buildSeelabsBookmarklet, buildSeelabsSnippet } from "../../lib/seelabs-helper";
 import { useMinWidth } from "../../lib/hooks";
+import type { Lang } from "../../lib/kelas";
+import SeelabsSheet, { StatusPill } from "./seelabs/SeelabsSheet";
+import type { SeelabsTab } from "./seelabs/SeelabsView";
+import type { SeelabsData } from "./seelabs/data";
+import { SL } from "./seelabs/strings";
 import type { Strings } from "./strings";
 import type { NilaiLive } from "./data";
 import type { AsistenRef, GroupRow } from "./types";
 
 export default function NilaiTable({
   t,
+  lang,
   sesiId,
   nilai,
   groups,
   asisten,
   meNim,
+  seelabs,
+  onSeelabs,
+  onSeelabsChanged,
 }: {
   t: Strings;
+  lang: Lang;
   sesiId: number;
   nilai: NilaiLive;
   groups: GroupRow[];
   asisten: Map<string, AsistenRef>;
   meNim: string;
+  seelabs: SeelabsData | null;
+  onSeelabs: (tab?: SeelabsTab, nomor?: number | null) => void;
+  onSeelabsChanged: () => void;
 }) {
   const wide = useMinWidth(820);
   const [draft, setDraft] = useState<Record<string, string>>({});
-  const [helper, setHelper] = useState<{ bookmarklet: string; snippet: string } | null>(null);
+  const [sheet, setSheet] = useState<number | null>(null);
+  const sl = SL[lang];
+  const dir = useDirektori();
+  const kode = (nim: string | null) =>
+    nim ? (dir.byNim.get(nim)?.kode?.toUpperCase() ?? nim) : "?";
   const data = nilai.data;
 
   if (!data) {
@@ -107,15 +125,32 @@ export default function NilaiTable({
     );
   }
 
-  function makeHelper() {
-    const list = data!.kelompok.flatMap((k) =>
-      k.anggota.map((a) => ({ nim: a.nim, nama: a.nama, skor: a.skor })),
+  /** My group's SeeLabs chip and copy button; others get "Hanya lihat". */
+  function seelabsBits(nomor: number, kid: number) {
+    const sg = seelabs?.kelompok.find((x) => x.nomor === nomor);
+    if (!sg) return null;
+    if (data!.pemilik[kid] !== meNim && sg.akun !== meNim) return null;
+    return (
+      <span className="row ntable__see">
+        <span className="seechip">
+          <span className="hint">{sl.seelabsLabel}</span>
+          <b className="mono">{sg.akun ? kode(sg.akun) : "·"}</b>
+          <StatusPill t={sl} status={sg.status} />
+        </span>
+        <button
+          type="button"
+          className="btn btn--primary btn--sm"
+          disabled={!sg.akun}
+          title={!sg.akun ? sl.pickAccountFirst : undefined}
+          onClick={() => setSheet(nomor)}
+        >
+          <CopyIcon size={16} aria-hidden="true" />
+          {sl.copyFor}
+        </button>
+      </span>
     );
-    setHelper({
-      bookmarklet: buildSeelabsBookmarklet(`Sesi ${sesiId}`, list),
-      snippet: buildSeelabsSnippet(`Sesi ${sesiId}`, list),
-    });
   }
+  const sheetGroup = sheet !== null ? seelabs?.kelompok.find((x) => x.nomor === sheet) : null;
 
   const cell = (nim: string, nama: string, k: string, kid: number, stored: number | undefined) => {
     const key = `${nim}.${k}`;
@@ -150,32 +185,26 @@ export default function NilaiTable({
           <button type="button" className="btn btn--secondary" onClick={csv}>
             {t.csv}
           </button>
-          <button type="button" className="btn btn--secondary" onClick={makeHelper}>
-            {t.seelabs}
+          <button type="button" className="btn btn--secondary" onClick={() => onSeelabs("salin")}>
+            <PaperPlaneTiltIcon size={18} aria-hidden="true" />
+            {sl.openSeelabs}
           </button>
         </div>
       </div>
 
-      {helper && (
-        <div className="ntable__helper">
-          <p className="hint">{t.seelabsBody}</p>
-          <a
-            href={helper.bookmarklet}
-            className="btn btn--primary"
-            onClick={(e) => e.preventDefault()}
-            draggable
-          >
-            <span className="btn__label">{t.seelabsLink}</span>
-          </a>
-          <p className="hint">{t.seelabsSnippet}</p>
-          <textarea
-            readOnly
-            rows={4}
-            className="field__input mono console-textarea"
-            value={helper.snippet}
-            onFocus={(e) => e.currentTarget.select()}
-          />
-        </div>
+      {seelabs && sheetGroup && (
+        <SeelabsSheet
+          open
+          onOpenChange={(o) => !o && setSheet(null)}
+          t={sl}
+          lang={lang}
+          data={seelabs}
+          g={sheetGroup}
+          nama={dir.nama}
+          kode={kode}
+          onHow={() => onSeelabs("pasang")}
+          onChanged={onSeelabsChanged}
+        />
       )}
 
       {wide ? (
@@ -224,6 +253,7 @@ export default function NilaiTable({
                               {t.lockedBy(namaAsisten(holder))}
                             </span>
                           )}
+                          {seelabsBits(k.nomor, k.id)}
                         </span>
                       </th>
                     </tr>
@@ -257,6 +287,7 @@ export default function NilaiTable({
                 <span className="g-stripe" style={{ height: 18 }} />
                 {t.groupFull(k.nomor)}
               </h3>
+              {seelabsBits(k.nomor, k.id)}
               {k.anggota.map((a) => (
                 <div key={a.nim} className="ncard">
                   <div className="row row--between">

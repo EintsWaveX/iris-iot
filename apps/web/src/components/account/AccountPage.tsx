@@ -10,6 +10,7 @@
  *   (feedback about them only, anonymous).
  * - Sign out.
  */
+import SeelabsAccount from "../console/seelabs/SeelabsAccount";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckIcon, UserIcon } from "@phosphor-icons/react";
 import PasswordField, { kekuatanSandi } from "../ui/PasswordField";
@@ -324,6 +325,8 @@ export default function AccountPage({ lang }: { lang: Lang }) {
               <PasswordForm t={t} lang={lang} first={Boolean(me.perluAturSandi)} />
             </section>
           )}
+
+          {asisten && <SeelabsAccount lang={lang} nim={me.nim} />}
         </div>
 
         {asisten && (

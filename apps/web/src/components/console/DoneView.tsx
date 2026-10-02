@@ -15,6 +15,8 @@ import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import { pesan, type Strings } from "./strings";
 import { useRingkasSesi } from "./ringkasSesi";
+import SeelabsLine from "./seelabs/SeelabsLine";
+import type { SeelabsData } from "./seelabs/data";
 import type { SesiRunning } from "./types";
 
 export function kapanSesi(t: Strings, sesi: SesiRunning): string {
@@ -27,6 +29,8 @@ export default function DoneView({
   lang,
   sesi,
   hadir,
+  seelabs,
+  onSeelabs,
   onScores,
   onResumed,
   onNext,
@@ -36,6 +40,8 @@ export default function DoneView({
   lang: Lang;
   sesi: SesiRunning & { selesaiPada?: string };
   hadir: number;
+  seelabs: SeelabsData | null;
+  onSeelabs: () => void;
   onScores: () => void;
   onResumed: () => void;
   onNext: () => void;
@@ -175,6 +181,7 @@ export default function DoneView({
 
         <section className="panel">
           <h2 className="panel__title">{t.afterMissing}</h2>
+          <SeelabsLine lang={lang} data={seelabs} onOpen={onSeelabs} as="div" />
           {!sum ? (
             <span className="skeleton" style={{ height: 96 }} />
           ) : missing.length === 0 ? (

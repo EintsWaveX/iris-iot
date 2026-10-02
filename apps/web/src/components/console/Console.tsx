@@ -51,6 +51,9 @@ import EndFlow from "./EndFlow";
 import DoneView from "./DoneView";
 import NextView from "./NextView";
 import AsistenHome from "./AsistenHome";
+import SeelabsView, { type SeelabsTab } from "./seelabs/SeelabsView";
+import { useSeelabs } from "./seelabs/data";
+import { SL } from "./seelabs/strings";
 import type { AsistenRef, FeedItem, Laporan, SesiRunning, View } from "./types";
 import "./console.css";
 
@@ -65,9 +68,10 @@ function readDone(): (SesiRunning & { hadir: number }) | null {
   }
 }
 
-function readHash(): { view?: View; group?: number; cmd?: string } {
+function readHash(): { view?: View; group?: number; cmd?: string; seelabs?: boolean } {
   const h = location.hash.replace(/^#/, "");
   if (h === "prep" || h === "board" || h === "table") return { view: h };
+  if (h === "seelabs") return { seelabs: true };
   const g = /^k([1-9]|10)$/.exec(h);
   if (g) return { view: "board", group: Number(g[1]) };
   const c = /^cmd=(\w+)$/.exec(h);
@@ -95,9 +99,12 @@ export default function Console({ lang }: { lang: Lang }) {
   const [announce, setAnnounce] = useState(false);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [doneTable, setDoneTable] = useState(false);
+  // Kirim ke SeeLabs, over whatever view is open (Phase 9 Stage 3g).
+  const [see, setSee] = useState<{ tab?: SeelabsTab; nomor?: number | null } | null>(null);
 
   const lap = useLaporan(!!sesi);
   const assign = useAssignment(sesi?.id ?? done?.id ?? null);
+  const seelabs = useSeelabs(sesi?.id ?? done?.id ?? null);
   const servers = useServers(!!sesi, drawer);
   const asisten = useMemo(
     () => new Map<string, AsistenRef>((assign.data?.asisten ?? []).map((a) => [a.nim, a])),
@@ -157,6 +164,7 @@ export default function Console({ lang }: { lang: Lang }) {
       if (h.cmd === "announce") setAnnounce(true);
       if (h.cmd === "drawer") setDrawer(true);
       if (h.cmd === "end") setEndOpen(true);
+      if (h.seelabs) setSee({});
     };
     apply();
     window.addEventListener("hashchange", apply);
@@ -331,7 +339,19 @@ export default function Console({ lang }: { lang: Lang }) {
     current.refresh();
     lap.refresh();
     assign.refresh();
-  }, [current, lap, assign]);
+    seelabs.refresh();
+  }, [current, lap, assign, seelabs]);
+
+  const openSeelabs = useCallback((tab?: SeelabsTab, nomor?: number | null) => {
+    setSee({ tab, nomor });
+    history.replaceState(null, "", "#seelabs");
+    window.scrollTo({ top: 0 });
+  }, []);
+  const closeSeelabs = useCallback(() => {
+    setSee(null);
+    seelabs.refresh();
+    history.replaceState(null, "", location.pathname + location.search);
+  }, [seelabs]);
 
   /* ------------------------------------------------------------ render */
 
@@ -381,6 +401,22 @@ export default function Console({ lang }: { lang: Lang }) {
 
   // No running session.
   if (!sesi) {
+    if (see) {
+      return (
+        <div className="console">
+          {offline}
+          <SeelabsView
+            lang={lang}
+            sesiId={done?.id ?? null}
+            meNim={me!.nim}
+            tab={see.tab}
+            nomor={see.nomor}
+            onBack={closeSeelabs}
+            backLabel={done ? undefined : SL[lang].backHome}
+          />
+        </div>
+      );
+    }
     if (done && doneTable) {
       return (
         <div className="console">
@@ -393,11 +429,15 @@ export default function Console({ lang }: { lang: Lang }) {
           </div>
           <NilaiTable
             t={t}
+            lang={lang}
             sesiId={done.id}
             nilai={nilai}
             groups={[]}
             asisten={asisten}
             meNim={me!.nim}
+            seelabs={seelabs.data}
+            onSeelabs={openSeelabs}
+            onSeelabsChanged={seelabs.refresh}
           />
         </div>
       );
@@ -410,6 +450,8 @@ export default function Console({ lang }: { lang: Lang }) {
             t={t}
             lang={lang}
             sesi={done}
+            seelabs={seelabs.data}
+            onSeelabs={() => openSeelabs("salin")}
             onBack={() => setNextOpen(false)}
             onPrep={(pilih) => {
               sessionStorage.removeItem(DONE_KEY);
@@ -436,6 +478,8 @@ export default function Console({ lang }: { lang: Lang }) {
             lang={lang}
             sesi={done}
             hadir={done.hadir}
+            seelabs={seelabs.data}
+            onSeelabs={() => openSeelabs("salin")}
             onScores={() => setDoneTable(true)}
             onNext={() => setNextOpen(true)}
             onResumed={() => {
@@ -482,6 +526,7 @@ export default function Console({ lang }: { lang: Lang }) {
           me={me!}
           onStarted={refreshAll}
           onPrep={() => setPrepOnly(true)}
+          onHeld={() => openSeelabs("titipan")}
         />
       </div>
     );
@@ -493,6 +538,22 @@ export default function Console({ lang }: { lang: Lang }) {
   const tangan = L?.tangan ?? {};
   const pemilik = L?.pemilik ?? {};
   const selGroup = groups.find((g) => g.id === sel) ?? null;
+
+  if (see) {
+    return (
+      <div className="console" style={{ "--mod-hue": `var(--mod-${sesi.modul})` } as CSSProperties}>
+        {offline}
+        <SeelabsView
+          lang={lang}
+          sesiId={sesi.id}
+          meNim={me!.nim}
+          tab={see.tab}
+          nomor={see.nomor}
+          onBack={closeSeelabs}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="console" style={{ "--mod-hue": `var(--mod-${sesi.modul})` } as CSSProperties}>
@@ -550,11 +611,15 @@ export default function Console({ lang }: { lang: Lang }) {
         {view === "table" && (
           <NilaiTable
             t={t}
+            lang={lang}
             sesiId={sesi.id}
             nilai={nilai}
             groups={groups}
             asisten={asisten}
             meNim={me!.nim}
+            seelabs={seelabs.data}
+            onSeelabs={openSeelabs}
+            onSeelabsChanged={seelabs.refresh}
           />
         )}
 
@@ -600,6 +665,9 @@ export default function Console({ lang }: { lang: Lang }) {
                   nilai={nilai}
                   onChanged={refreshAll}
                   onOpenTable={() => go("table")}
+                  seelabs={seelabs.data}
+                  onSeelabs={openSeelabs}
+                  onSeelabsChanged={seelabs.refresh}
                 />
               ) : null
             }

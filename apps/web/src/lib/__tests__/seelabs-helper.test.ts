@@ -1,109 +1,186 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
-import { buildSeelabsSnippet, buildSeelabsBookmarklet } from "../seelabs-helper";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { HREF_BOOKMARKLET, SUMBER_BOOKMARKLET } from "../seelabs-helper";
+import { buatPayload } from "../seelabs";
 
-const SAMPLE = [
-  { nim: "101022400113", nama: "Giovani Yulianto", skor: { TP: 85, TA: 90, D1: 80 } },
-  { nim: "101022400181", nama: "Nada Aisha Suryanto", skor: { L1: 75, L2: 88 } },
-];
-
-function tableRow(nomor: number, nimBaris: string, nama: string): string {
-  const cells = Array.from({ length: 8 }, () => `<td><input type="number" value="0"></td>`).join(
-    "",
-  );
-  return `<tr><td>${nomor}</td><td>${nimBaris}<br>${nama}</td>${cells}</tr>`;
+/** The SeeLabs score form as read on 2026-10-03: a header "Praktikum |
+ *  Kelompok N", a Livewire snapshot with `kel`, the Modul select and one
+ *  row per member with `wire:model="tp.N"` inputs. */
+function formSeelabs(opsi: { praktikum?: string; kel?: number; nim: string[] }) {
+  const praktikum = opsi.praktikum ?? "Pemrograman Perangkat IoT TE";
+  const kel = opsi.kel ?? 47;
+  const kolom = ["tp", "ta", "d1", "d2", "d3", "d4", "l1", "l2"];
+  const baris = opsi.nim
+    .map(
+      (n, i) =>
+        `<tr><td>${i + 1}</td><td><span class="badge">${n}</span><span>NAMA ${i}</span></td>${kolom
+          .map((k) => `<td><input type="number" value="0" wire:model="${k}.${i}"></td>`)
+          .join("")}</tr>`,
+    )
+    .join("");
+  document.body.innerHTML = `
+    <div wire:snapshot='${JSON.stringify({ data: { pid: "237", kel } })}'>
+      <h4>Input Nilai Praktikum</h4><p>${praktikum} | Kelompok ${kel}</p>
+      <select wire:model="modul"><option value="">--</option>${[1, 2, 3, 4]
+        .map((m) => `<option value="${m}">Modul ${m}</option>`)
+        .join("")}</select>
+      <form><table><tbody>${baris}</tbody></table>
+      <button type="submit">Simpan Penilaian</button></form>
+    </div>`;
+  // jsdom has no layout, so innerText falls back to textContent.
+  Object.defineProperty(document.body, "innerText", {
+    configurable: true,
+    get: () => document.body.textContent,
+  });
 }
 
-function renderTable(rows: string[]) {
-  document.body.innerHTML = `<table><tbody>${rows.join("")}</tbody></table><button>Simpan Penilaian</button>`;
+function payload(over: Partial<Parameters<typeof buatPayload>[0]> = {}) {
+  return buatPayload({
+    kelas: "reguler",
+    klp: ["47"],
+    modul: 3,
+    kelompok: 1,
+    bahasa: "id",
+    baris: [
+      { nim: "101022400015", nama: "A", skor: { TP: 85, TA: 90, D1: 80 } },
+      { nim: "101022400276", nama: "B", skor: { L1: 75, L2: 88.5 } },
+    ],
+    ...over,
+  });
 }
 
-describe("buildSeelabsSnippet", () => {
-  it("embeds every student's data keyed by NIM", () => {
-    const src = buildSeelabsSnippet("Sesi 25/09", SAMPLE);
-    expect(src).toContain("101022400113");
-    expect(src).toContain("101022400181");
-    expect(src).toContain('"TP":85');
+function clipboard(read: () => Promise<string>, write?: (s: string) => Promise<void>) {
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { readText: vi.fn(read), writeText: vi.fn(write ?? (() => Promise.resolve())) },
   });
+}
 
-  it("is syntactically valid JavaScript", () => {
-    const src = buildSeelabsSnippet("Sesi 25/09", SAMPLE);
-    // Parsing our own generated source with `new Function`, never an
-    // attacker-controlled string -- SAMPLE above is a hardcoded test
-    // fixture, not user input.
-    expect(() => new Function(src)).not.toThrow();
-  });
+const jalan = async () => {
+  // Running our own generated source is exactly what is under test.
+  new Function(SUMBER_BOOKMARKLET)();
+  await new Promise((r) => setTimeout(r, 0));
+};
+const nilaiDi = (model: string) =>
+  (document.querySelector(`input[wire\\:model="${model}"]`) as HTMLInputElement).value;
+const panelTeks = () => document.getElementById("iris-isi-seelabs")?.textContent ?? "";
 
-  it("fills every row and clicks Save when every row's NIM matches the embedded data", () => {
-    renderTable([
-      tableRow(1, "101022400113", "Giovani Yulianto"),
-      tableRow(2, "101022400181", "Nada Aisha Suryanto"),
-    ]);
-    const button = document.querySelector("button") as HTMLButtonElement;
-    const clickSpy = vi.spyOn(button, "click");
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const src = buildSeelabsSnippet("Sesi 25/09", SAMPLE);
-    // Evaluating our own generated source against a mock DOM is exactly the
-    // code path this test verifies -- not user input, no injection concern.
-    eval(src);
-
-    const rows = document.querySelectorAll("table tbody tr");
-    const firstRowInputs = rows[0].querySelectorAll("input");
-    expect(firstRowInputs[0].value).toBe("85"); // TP
-    expect(firstRowInputs[1].value).toBe("90"); // TA
-    expect(firstRowInputs[2].value).toBe("80"); // D1
-    expect(firstRowInputs[3].value).toBe("0"); // D2 -- not in this student's skor, left alone
-
-    const secondRowInputs = rows[1].querySelectorAll("input");
-    expect(secondRowInputs[6].value).toBe("75"); // L1
-    expect(secondRowInputs[7].value).toBe("88"); // L2
-
-    expect(clickSpy).toHaveBeenCalledTimes(1);
-    expect(errorSpy).not.toHaveBeenCalled();
-  });
-
-  it("fills matched rows but does NOT click Save when any row's NIM is unrecognised, and logs the skip", () => {
-    renderTable([
-      tableRow(1, "101022400113", "Giovani Yulianto"),
-      tableRow(2, "999999999999", "Unknown Student"),
-    ]);
-    const button = document.querySelector("button") as HTMLButtonElement;
-    const clickSpy = vi.spyOn(button, "click");
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const src = buildSeelabsSnippet("Sesi 25/09", SAMPLE);
-    eval(src);
-
-    const rows = document.querySelectorAll("table tbody tr");
-    // The matched row still gets filled -- only the SAVE is withheld.
-    expect(rows[0].querySelectorAll("input")[0].value).toBe("85");
-    // The unmatched row must be untouched.
-    expect(rows[1].querySelectorAll("input")[0].value).toBe("0");
-
-    expect(clickSpy).not.toHaveBeenCalled();
-    expect(errorSpy).toHaveBeenCalled();
-    const loggedText = errorSpy.mock.calls.flat().join(" ");
-    expect(loggedText).toContain("999999999999");
-  });
-
-  it("does not click Save when the table has no rows at all", () => {
-    renderTable([]);
-    const button = document.querySelector("button") as HTMLButtonElement;
-    const clickSpy = vi.spyOn(button, "click");
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    const src = buildSeelabsSnippet("Sesi 25/09", SAMPLE);
-    eval(src);
-
-    expect(clickSpy).not.toHaveBeenCalled();
-  });
+afterEach(() => {
+  document.body.innerHTML = "";
+  vi.restoreAllMocks();
 });
 
-describe("buildSeelabsBookmarklet", () => {
-  it("is a javascript: URL wrapping the same snippet", () => {
-    const url = buildSeelabsBookmarklet("Sesi 25/09", SAMPLE);
-    expect(url.startsWith("javascript:")).toBe(true);
-    expect(decodeURIComponent(url.slice("javascript:".length))).toContain("101022400113");
+describe("the IRIS · Isi SeeLabs bookmarklet", () => {
+  it("is a javascript: URL that parses", () => {
+    expect(HREF_BOOKMARKLET.startsWith("javascript:")).toBe(true);
+    expect(() => new Function(decodeURIComponent(HREF_BOOKMARKLET.slice(11)))).not.toThrow();
+    // Small enough for any bookmarks bar.
+    expect(HREF_BOOKMARKLET.length).toBeLessThan(20_000);
+  });
+
+  it("fills rows by NIM whatever SeeLabs' row order, picks the Modul, and never saves", async () => {
+    // SeeLabs lists 101022400276 first, the payload lists it second.
+    formSeelabs({ nim: ["101022400276", "101022400015"] });
+    const simpan = vi.fn((e: Event) => e.preventDefault());
+    document.querySelector("form")!.addEventListener("submit", simpan);
+    const klik = vi.spyOn(HTMLButtonElement.prototype, "click");
+    const masukan: string[] = [];
+    document.addEventListener("input", (e) =>
+      masukan.push((e.target as HTMLElement).getAttribute("wire:model") ?? ""),
+    );
+    clipboard(() => Promise.resolve(payload()));
+
+    await jalan();
+
+    expect((document.querySelector("select") as HTMLSelectElement).value).toBe("3");
+    expect(nilaiDi("tp.1")).toBe("85");
+    expect(nilaiDi("ta.1")).toBe("90");
+    expect(nilaiDi("d1.1")).toBe("80");
+    expect(nilaiDi("d2.1")).toBe("0"); // no score in IRIS: left alone
+    expect(nilaiDi("l1.0")).toBe("75");
+    expect(nilaiDi("l2.0")).toBe("88.5");
+    expect(nilaiDi("tp.0")).toBe("0");
+    // Livewire hears every fill through its input event.
+    expect(masukan).toContain("modul");
+    expect(masukan).toContain("tp.1");
+    expect(simpan).not.toHaveBeenCalled();
+    expect(klik).not.toHaveBeenCalled();
+    expect(panelTeks()).toContain("2 dari 2 baris cocok lewat NIM. Modul 3 dipilih.");
+    expect(panelTeks()).toContain("tekan Simpan Penilaian sendiri");
+  });
+
+  it("fills nothing when the form is another KLP", async () => {
+    formSeelabs({ kel: 30, nim: ["101022400015"] });
+    clipboard(() => Promise.resolve(payload({ klp: ["31"] })));
+    await jalan();
+    expect(nilaiDi("tp.0")).toBe("0");
+    expect((document.querySelector("select") as HTMLSelectElement).value).toBe("");
+    expect(panelTeks()).toContain("Form ini KLP 30, isiannya untuk KLP 31. Tidak ada yang diisi.");
+  });
+
+  it("fills nothing when the form is the other class", async () => {
+    formSeelabs({ praktikum: "Pemrograma Perangkat IoT TE INT", nim: ["101022400015"] });
+    clipboard(() => Promise.resolve(payload()));
+    await jalan();
+    expect(nilaiDi("tp.0")).toBe("0");
+    expect(panelTeks()).toContain("Form ini Internasional, isiannya untuk Reguler.");
+  });
+
+  it("lists a NIM it cannot match and the payload rows missing from the form", async () => {
+    formSeelabs({ nim: ["101022400015", "999999999999"] });
+    clipboard(() => Promise.resolve(payload()));
+    await jalan();
+    expect(nilaiDi("tp.0")).toBe("85");
+    expect(panelTeks()).toContain("1 dari 2 baris");
+    expect(panelTeks()).toContain("Tidak ada di isian: 999999999999");
+    expect(panelTeks()).toContain("Tidak ada di form ini: 101022400276");
+  });
+
+  it("speaks the payload's language", async () => {
+    formSeelabs({ nim: ["101022400015", "101022400276"] });
+    clipboard(() => Promise.resolve(payload({ bahasa: "en" })));
+    await jalan();
+    expect(panelTeks()).toContain("2 of 2 rows matched by NIM. Modul 3 picked.");
+  });
+
+  it("falls back to a paste box when the clipboard is blocked", async () => {
+    formSeelabs({ nim: ["101022400015"] });
+    clipboard(() => Promise.reject(new Error("denied")));
+    await jalan();
+    const ta = document.querySelector("#iris-isi-seelabs textarea") as HTMLTextAreaElement;
+    expect(ta).toBeTruthy();
+    ta.value = "something else";
+    (document.querySelectorAll("#iris-isi-seelabs button")[0] as HTMLButtonElement).click();
+    expect(panelTeks()).toContain("Ini bukan isian dari IRIS.");
+    ta.value = payload();
+    (document.querySelectorAll("#iris-isi-seelabs button")[0] as HTMLButtonElement).click();
+    expect(nilaiDi("tp.0")).toBe("85");
+  });
+
+  it("copies the KLP and NIM pairs on the group list", async () => {
+    document.body.innerHTML = `
+      <select wire:model.live="s_praktikum"><option value="237" selected>Pemrograman Perangkat IoT TE</option></select>
+      <table><tbody>
+        <tr><td rowspan="2"><span>KLP</span> <span>47</span></td><td><span>101022400015</span> FERRY</td><td><button>Input Nilai</button></td></tr>
+        <tr><td><span>101022400090</span> TSABIB</td></tr>
+        <tr><td rowspan="1"><span>KLP</span> <span>48</span></td><td><span>101022400248</span> MELSA</td></tr>
+      </tbody></table>`;
+    let tersalin = "";
+    clipboard(
+      () => Promise.resolve(""),
+      (s) => {
+        tersalin = s;
+        return Promise.resolve();
+      },
+    );
+    await jalan();
+    expect(tersalin.startsWith("IRIS-KLP/1 ")).toBe(true);
+    expect(JSON.parse(tersalin.slice(11))).toEqual({
+      kelas: "reguler",
+      kelompok: [
+        { klp: "47", nim: ["101022400015", "101022400090"] },
+        { klp: "48", nim: ["101022400248"] },
+      ],
+    });
   });
 });

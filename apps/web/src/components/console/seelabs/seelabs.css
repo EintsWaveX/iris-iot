@@ -1,0 +1,499 @@
+/* SeeLabs (Phase 9 Stage 3g), ported from the mockup's round5.css and
+   round3.css. The mockup's device container queries are media queries here. */
+
+.seeview {
+  display: grid;
+  gap: var(--space-5, 20px);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.seeview > .tabs-scroll {
+  margin-bottom: -4px;
+}
+
+/* ---- the copy sheet */
+.seebody {
+  gap: 14px;
+}
+
+.seesteps {
+  display: grid;
+  gap: 6px;
+  line-height: 1.5;
+  list-style: decimal;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.seesteps li::marker {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.seetable__wrap {
+  overflow-x: auto;
+}
+
+.seetable {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+.seetable th,
+.seetable td {
+  border-bottom: 1px solid var(--hairline-faint);
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.seetable thead th {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.seetable .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.seetable td[data-empty] {
+  color: var(--text-faint);
+}
+
+.seeact {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 519px) {
+  .seeact > .btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* ---- group picks beside the sheet */
+.seeside {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1100px) {
+  .seeside {
+    align-items: start;
+    grid-template-columns: minmax(340px, 1fr) minmax(0, 2fr);
+  }
+}
+
+.seepicks {
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 640px) and (max-width: 1099px) {
+  .seepicks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.seepick {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 56px;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.seepick:hover {
+  border-color: var(--hairline-strong);
+}
+
+.seepick.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.seepick__text {
+  display: grid;
+  min-width: 0;
+}
+
+.seepick__text b {
+  white-space: nowrap;
+}
+
+/* ---- install */
+.seegrid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .seegrid {
+    align-items: stretch;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.seegrid > .panel {
+  align-content: start;
+  display: grid;
+  gap: 14px;
+}
+
+.bmdrag {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.bmpill {
+  align-items: center;
+  background: linear-gradient(120deg, var(--accent), var(--violet));
+  border-radius: 999px;
+  box-shadow: 0 6px 22px -8px var(--accent-glow);
+  color: var(--accent-ink);
+  cursor: grab;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  text-decoration: none;
+}
+
+.bmpill:active {
+  cursor: grabbing;
+}
+
+.seedoes {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.seedoes li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: max-content minmax(0, 1fr);
+  min-height: 44px;
+  padding: 6px 0;
+}
+
+.seedoes li:last-child {
+  border-bottom: 0;
+}
+
+.seedoes__ok {
+  color: var(--ok);
+}
+
+.seedoes__no {
+  color: var(--text-faint);
+}
+
+/* ---- the form sketch */
+.illo {
+  display: grid;
+  gap: 14px;
+  position: relative;
+}
+
+.illo__cap {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.85rem;
+  gap: 6px;
+}
+
+.illo__form {
+  background: var(--surface-1);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.illo__head {
+  display: flex;
+  font-weight: 700;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.illo__sel {
+  border: 1px solid var(--hairline-strong);
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 4px 12px;
+  transition:
+    background 0.3s,
+    border-color 0.3s;
+}
+
+.illo__sel[data-on="yes"] {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+}
+
+.illo__t {
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  width: 100%;
+}
+
+.illo__t th {
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 6px;
+  text-align: left;
+}
+
+.illo__t td {
+  padding: 4px 6px;
+}
+
+.illo__in {
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  color: var(--text-faint);
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  padding: 4px 8px;
+  text-align: right;
+  transition:
+    background 0.25s,
+    border-color 0.25s,
+    color 0.25s;
+}
+
+.illo__in[data-on="yes"] {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+  color: var(--text);
+}
+
+.illo__save {
+  border: 1px dashed var(--hairline-strong);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-weight: 600;
+  justify-self: end;
+  padding: 8px 16px;
+}
+
+.bmpanel {
+  background: var(--invert-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel, 0 12px 32px -12px rgba(0, 0, 0, 0.45));
+  color: var(--invert-ink);
+  display: grid;
+  gap: 4px;
+  justify-self: end;
+  max-width: 420px;
+  padding: 14px 16px;
+}
+
+.bmpanel b {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.bmpanel .hint {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.bmpanel--bad {
+  background: var(--danger-solid);
+  color: #fff;
+}
+
+.illo__again {
+  justify-self: end;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .illo__sel,
+  .illo__in {
+    transition: none;
+  }
+}
+
+/* ---- held for a lender */
+.inboxrow {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+}
+
+.inboxrow__text {
+  flex: 1 1 220px;
+  gap: 0;
+  min-width: 0;
+}
+
+/* ---- banners (shared with the inspector) */
+.banner.banner--warn {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+}
+
+.banner.banner--warn > svg {
+  color: var(--warn);
+  flex: none;
+}
+
+.banner.banner--lock {
+  background: var(--surface-3);
+  border-style: dashed;
+}
+
+.banner > span {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+/* ---- the SeeLabs chip in the inspector and the score table */
+.seechip {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 6px 4px 12px;
+}
+
+.dmbanner {
+  align-items: start;
+  flex-wrap: nowrap;
+}
+
+.dmbanner > svg {
+  margin-top: 2px;
+}
+
+.dmbanner .field {
+  max-width: 460px;
+}
+
+/* ---- rows elsewhere in the console */
+.seeline {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.seeline .grow {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.ntable__see {
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.ncards > .ntable__see {
+  margin: 0 0 10px;
+}
+
+.insp__see {
+  margin-top: 14px;
+}
+
+.insp__see-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.cmdlist .btn svg {
+  color: inherit;
+}
+
+/* ---- the Account page card */
+.seeacct {
+  container-type: inline-size;
+  display: grid;
+  gap: 14px;
+}
+
+.seeacct__row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container (min-width: 720px) {
+  .seeacct__row {
+    align-items: end;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+}
+
+.seeacct__name {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.seeacct__name .field {
+  flex: 1 1 180px;
+}
+
+/* ---- Preparation › Cocokkan KLP */
+.klpmatch {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.klpmatch li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 0;
+}
+
+.klpmatch li:last-child {
+  border-bottom: 0;
+}
+
+.klpmatch .grow {
+  flex: 1 1 140px;
+}

@@ -8,6 +8,8 @@
  * - Nilai: one student at a time, eight 56px fields; Enter walks TP to L2
  *   and then on to the next student. Only the group's own assistant can
  *   type; everyone else sees the same numbers read only, updated live.
+ * - SeeLabs (Phase 9 Stage 3g): my group's account and status with "Salin
+ *   untuk SeeLabs"; a second group I hold asks for a lender's account.
  * - Anggota, Alur (median delay, messages)
  *   and Catatan / Peran.
  *
@@ -23,7 +25,14 @@ import {
   type KeyboardEvent,
 } from "react";
 import { namaAsisten } from "../../lib/people";
-import { LockSimpleIcon, WarningIcon } from "@phosphor-icons/react";
+import { CopyIcon, HandCoinsIcon, LockSimpleIcon, WarningIcon } from "@phosphor-icons/react";
+import Dropdown from "../ui/Dropdown";
+import { kelompokLabel } from "../../lib/labels";
+import { useDirektori } from "../../lib/people";
+import SeelabsSheet, { StatusPill } from "./seelabs/SeelabsSheet";
+import type { SeelabsTab } from "./seelabs/SeelabsView";
+import { kirimSeelabs, type SeelabsData } from "./seelabs/data";
+import { SL, pesanSl } from "./seelabs/strings";
 import { ScoreInput, Switch } from "../ui/Controls";
 import ChangeAssistant, { usePasangan } from "./ChangeAssistant";
 import { ProgressRing } from "../ui/Display";
@@ -49,6 +58,9 @@ export interface InspectorProps {
   nilai: NilaiLive;
   onChanged: () => void;
   onOpenTable: () => void;
+  seelabs: SeelabsData | null;
+  onSeelabs: (tab?: SeelabsTab, nomor?: number | null) => void;
+  onSeelabsChanged: () => void;
 }
 
 export default function GroupInspector(p: InspectorProps) {
@@ -237,6 +249,7 @@ export default function GroupInspector(p: InspectorProps) {
             ownerKode={owner?.kode ?? null}
             onClaim={() => void assign("klaim")}
           />
+          <SeelabsRow {...p} />
         </section>
 
         {/* ------------------------------------------------ flow */}
@@ -548,6 +561,109 @@ function NotesEditor({
           {state === "saving" ? t.saving : state === "saved" ? t.saved : `${text.length}/300`}
         </span>
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ SeeLabs */
+
+/** The group's SeeLabs line, for its own Asisten (or the lender). A second
+ *  group held by the same Asisten first needs a lender's account. */
+function SeelabsRow(p: InspectorProps) {
+  const { lang, g, meNim, seelabs } = p;
+  const t = SL[lang];
+  const dir = useDirektori();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const sg = seelabs?.kelompok.find((x) => x.nomor === g.nomor);
+  if (!seelabs || !sg) return null;
+  if (sg.penilai !== meNim && sg.akun !== meNim) return null;
+  const kode = (nim: string | null) =>
+    nim ? (dir.byNim.get(nim)?.kode?.toUpperCase() ?? nim) : "?";
+  const label = kelompokLabel(g.nomor, lang);
+  const punyaku = seelabs.kelompok.filter((x) => x.penilai === meNim).map((x) => x.nomor);
+  const kedua = sg.penilai === meNim && punyaku.indexOf(g.nomor) > 0;
+
+  async function pilih(v: string) {
+    const akun = v === "none" ? null : v;
+    if (akun === (sg!.pinjam ? sg!.akun : null)) return;
+    setBusy(true);
+    try {
+      const r = await kirimSeelabs({
+        aksi: "akun",
+        sesiId: seelabs!.sesi.id,
+        kelompok: g.nomor,
+        akun,
+      });
+      if (!r.ok) {
+        window.Toast?.show(pesanSl(t, r.kode), "danger");
+        return;
+      }
+      window.Toast?.show(
+        akun ? t.lenderLogged(dir.nama(meNim), dir.nama(akun), label) : t.lenderCleared(label),
+        "ok",
+      );
+      p.onSeelabsChanged();
+    } catch {
+      window.Toast?.show(t.codeFallback, "danger");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="stack stack--sm insp__see">
+      {kedua && (
+        <div className="banner banner--warn dmbanner">
+          <HandCoinsIcon size={20} aria-hidden="true" />
+          <div className="stack stack--sm grow">
+            <b>{t.holdTitle(punyaku.length)}</b>
+            <span>{t.holdBody(label)}</span>
+            <Dropdown
+              id={`see-akun-${g.nomor}`}
+              label={t.accountFor(label)}
+              value={sg.pinjam && sg.akun ? sg.akun : "none"}
+              disabled={busy}
+              onChange={(v) => void pilih(v)}
+              options={[
+                { value: "none", label: t.pickLender },
+                ...seelabs.pemberi.map((nim) => ({ value: nim, label: dir.nama(nim) })),
+              ]}
+            />
+          </div>
+        </div>
+      )}
+      <div className="row insp__see-row">
+        <span className="seechip">
+          <span className="hint">{t.seelabsLabel}</span>
+          <b className="mono">{sg.akun ? kode(sg.akun) : "·"}</b>
+          <StatusPill t={t} status={sg.status} />
+        </span>
+        <button
+          type="button"
+          className="btn btn--primary btn--sm"
+          disabled={!sg.akun}
+          title={!sg.akun ? t.pickAccountFirst : undefined}
+          onClick={() => setOpen(true)}
+        >
+          <CopyIcon size={16} aria-hidden="true" />
+          {t.copyFor}
+        </button>
+      </div>
+      {open && (
+        <SeelabsSheet
+          open
+          onOpenChange={setOpen}
+          t={t}
+          lang={lang}
+          data={seelabs}
+          g={sg}
+          nama={dir.nama}
+          kode={kode}
+          onHow={() => p.onSeelabs("pasang")}
+          onChanged={p.onSeelabsChanged}
+        />
+      )}
     </div>
   );
 }

@@ -82,6 +82,7 @@ import { blankCountForModul } from "../_lib/answer-keys.js";
 import { SESI_CAP_DETIK, SESI_CAP_MENIT, durasiSesi } from "../../src/lib/jadwal.js";
 import { bolehIsiNilai } from "../../src/lib/penugasan.js";
 import { handleDurasi, handleKejadianGet } from "../_lib/berjalan.js";
+import { handleSeelabsGet, handleSeelabsPost } from "../_lib/seelabs.js";
 import {
   handleAssignmentGet,
   handleAssignmentPost,
@@ -1438,6 +1439,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "lanjutkan") {
     if (!requireMethod(req, res, "POST")) return;
     return handleLanjutkan(req, res, session);
+  }
+  if (aksi === "seelabs") {
+    if (req.method === "POST") return handleSeelabsPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleSeelabsGet(req, res, session);
   }
   if (aksi === "nilai") {
     if (req.method === "POST") return handleNilaiPost(req, res, session);

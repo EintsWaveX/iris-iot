@@ -17,6 +17,8 @@
  * The server enforces every rule shown here (api/session/index.ts and
  * src/lib/sesi-mulai.ts); this page only explains them ahead of time.
  */
+import { useTitipan } from "./seelabs/data";
+import { SL } from "./seelabs/strings";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   CalendarBlankIcon,
@@ -116,14 +118,19 @@ export default function AsistenHome({
   me,
   onStarted,
   onPrep,
+  onHeld,
 }: {
   t: Strings;
   lang: Lang;
   me: Me;
   onStarted: () => void;
   onPrep: () => void;
+  /** Opens Kirim ke SeeLabs on "Titipan" (scores held for my account). */
+  onHeld: () => void;
 }) {
   const h = H[lang];
+  const held = useTitipan();
+  const heldN = held.data?.titipan.length ?? 0;
   const dir = useDirektori();
   const [data, setData] = useState<Beranda | null>(null);
   const [mine, setMine] = useState<Ringkasan | null>(null);
@@ -594,6 +601,21 @@ export default function AsistenHome({
         </section>
 
         <div className="homecols__side">
+          {heldN > 0 && (
+            <section className="panel panel--key">
+              <div className="panel__head">
+                <h2 className="panel__title">{SL[lang].heldCard(heldN)}</h2>
+                <Pill tone="warn">{heldN}</Pill>
+              </div>
+              <span className="hint">{SL[lang].heldCardBody}</span>
+              <div className="panel__actions">
+                <button type="button" className="btn btn--primary btn--sm" onClick={onHeld}>
+                  {SL[lang].open}
+                  <ArrowRightIcon size={16} aria-hidden="true" />
+                </button>
+              </div>
+            </section>
+          )}
           <section className="panel">
             <div className="panel__head">
               <h2 className="panel__title">{h.needScores}</h2>

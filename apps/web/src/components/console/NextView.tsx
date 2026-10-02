@@ -14,9 +14,11 @@
  *
  * Not here yet, by design: clearing the serial buffers and resetting the
  * hunt round need agent commands that don't exist; kit counts need a
- * table; SeeLabs status comes with Stage 3g and the report draft with
- * Stage 6.
+ * table; the report draft comes with Stage 6. The SeeLabs line (groups not
+ * saved there yet) sits at the end of the room list.
  */
+import SeelabsLine from "./seelabs/SeelabsLine";
+import type { SeelabsData } from "./seelabs/data";
 import { useEffect, useState, type CSSProperties } from "react";
 import {
   ArrowRightIcon,
@@ -55,6 +57,8 @@ export default function NextView({
   t,
   lang,
   sesi,
+  seelabs,
+  onSeelabs,
   onBack,
   onPrep,
   onHome,
@@ -62,6 +66,8 @@ export default function NextView({
   t: Strings;
   lang: Lang;
   sesi: SesiRunning;
+  seelabs: SeelabsData | null;
+  onSeelabs: () => void;
   onBack: () => void;
   /** Opens Preparation on a roster: "4-3" for a slot, "d12" for a draft. */
   onPrep: (pilih: string | null) => void;
@@ -275,6 +281,7 @@ export default function NextView({
                 <Pill>{t.cmdSkip}</Pill>
               )}
             </li>
+            <SeelabsLine lang={lang} data={seelabs} onOpen={onSeelabs} />
           </ul>
         </section>
       </div>

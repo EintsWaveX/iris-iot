@@ -305,7 +305,7 @@ export const T = dict({
     seelabs: "SeeLabs 账号",
     seelabsPh: "SeeLabs 用户名",
     notSet: "还没填写",
-    seelabsHint: "他提交分数时用，或者带两个组的助教借用时用。",
+    seelabsHint: "提交分数时用，或者带两个组的助教借用时用。",
     rights: "权限",
     rightsNote: "权限跟着职位走。一个负责人职位只有一位担任人。先担任的人一直保留，直到交接。",
     right: {

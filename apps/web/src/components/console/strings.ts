@@ -179,13 +179,8 @@ export const S = dict({
     // table
     tableTitle: "Tabel nilai",
     tableHint:
-      "Diisi per komponen, tersimpan otomatis saat pindah kolom. Kolomnya sama seperti form Seelabs.",
+      "Diisi per komponen, tersimpan otomatis saat pindah kolom. Kolomnya sama seperti form SeeLabs.",
     csv: "Unduh CSV",
-    seelabs: "Helper Seelabs",
-    seelabsBody:
-      "Seret tautan ini ke bilah markah, lalu klik dari halaman Input Nilai Seelabs. Helper hanya menekan Simpan bila semua NIM cocok.",
-    seelabsLink: "Isi nilai Seelabs",
-    seelabsSnippet: "Atau tempel kode ini di konsol halaman Seelabs:",
     nim: "NIM",
     name: "Nama",
     lockedBy: (k: string) => `dipegang ${k}`,
@@ -614,13 +609,8 @@ export const S = dict({
     evScore: (k: string, n: string) => `${k} entered scores for ${n}`,
     tableTitle: "Score table",
     tableHint:
-      "Enter per component; each field saves when you move on. The columns match the Seelabs form.",
+      "Enter per component; each field saves when you move on. The columns match the SeeLabs form.",
     csv: "Download CSV",
-    seelabs: "Seelabs helper",
-    seelabsBody:
-      "Drag this link to your bookmarks bar, then click it on the Seelabs score page. It only presses Save when every NIM matches.",
-    seelabsLink: "Fill Seelabs scores",
-    seelabsSnippet: "Or paste this code in the console on the Seelabs page:",
     nim: "NIM",
     name: "Name",
     lockedBy: (k: string) => `held by ${k}`,

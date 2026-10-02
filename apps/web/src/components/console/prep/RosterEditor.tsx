@@ -49,6 +49,7 @@ import {
   DotsSixVerticalIcon,
   FileXlsIcon,
   FloppyDiskIcon,
+  LinkSimpleIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   SparkleIcon,
@@ -66,6 +67,8 @@ import { useMinWidth } from "../../../lib/hooks";
 import type { Kelas, Lang } from "../../../lib/kelas";
 import type { Px } from "../prepStrings";
 import { AddStudentDialog, ImportXlsxDialog } from "./StudentDialogs";
+import KlpMatch from "../seelabs/KlpMatch";
+import { SL } from "../seelabs/strings";
 
 export type RosterTarget =
   | { jenis: "slot"; hari: number; slot: number; kelas: Kelas }
@@ -122,6 +125,7 @@ const RosterEditor = forwardRef<
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [matching, setMatching] = useState(false);
   const [active, setActive] = useState<Member | null>(null);
   const snap = useRef<Group[] | null>(null);
   // The keyboard lift: who is lifted, and the roster before it was lifted.
@@ -525,7 +529,28 @@ const RosterEditor = forwardRef<
           <SparkleIcon size={18} aria-hidden="true" />
           {p.autoFill}
         </button>
+        <button type="button" className="btn" onClick={() => setMatching(true)}>
+          <LinkSimpleIcon size={18} aria-hidden="true" />
+          {SL[lang].matchBtn}
+        </button>
       </div>
+      <KlpMatch
+        open={matching}
+        onOpenChange={setMatching}
+        lang={lang}
+        groups={groups.map((g) => ({
+          nomor: g.nomor,
+          nim: g.members.map((m) => m.nim),
+          klp: g.klp,
+        }))}
+        onApply={(peta) => {
+          setGroups(
+            (gs) =>
+              gs && gs.map((g) => (peta.has(g.nomor) ? { ...g, klp: peta.get(g.nomor)! } : g)),
+          );
+          setDirty(true);
+        }}
+      />
       <div className="rgrid">
         {groups.map((g) => (
           <GroupCard
@@ -738,6 +763,7 @@ function GroupCard({
         <span className="row" style={{ gap: 8 }}>
           <Pill group={g.nomor}>{kelompokLabel(g.nomor, lang)}</Pill>
           <b>{KELOMPOK_NAMA[g.nomor]}</b>
+          {g.klp && <span className="pill pill--mono">KLP {g.klp}</span>}
         </span>
         <span className="row" style={{ gap: 8 }}>
           <span className="hint num">
