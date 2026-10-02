@@ -352,6 +352,23 @@
   color: var(--accent-ink);
 }
 
+/* An Asisten's code as a small chip (Phase 9): "NUE", the viewer's own
+   in the accent. */
+.acode {
+  background: var(--surface-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  flex: none;
+  font: 700 0.8rem var(--font-mono);
+  padding: 3px 7px;
+}
+
+.acode--me {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
 .code-badge--empty {
   border-style: dashed;
   color: var(--text-faint);

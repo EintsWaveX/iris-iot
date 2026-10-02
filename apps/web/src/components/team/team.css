@@ -94,21 +94,6 @@
   gap: 6px;
 }
 
-.acode {
-  background: var(--surface-4);
-  border: 1px solid var(--hairline-strong);
-  border-radius: 6px;
-  flex: none;
-  font: 700 0.8rem var(--font-mono);
-  padding: 3px 7px;
-}
-
-.acode--me {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-}
-
 /* ------------------------------------------------------- role holders */
 
 .tim-holders {

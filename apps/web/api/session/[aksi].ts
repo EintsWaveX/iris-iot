@@ -20,7 +20,7 @@
  * POST /api/session/catatan { sesiId, kelompokId, catatan, peran } (Stage 10) — per-group note/role.
  * GET  /api/session/telemetry?modul=N&kelompok=M (Stage 20)          — asisten OR praktikan. The Ladder/LayerXray/GroupLive views' live-data source.
  * POST /api/session/telemetry { readings }          — praktikan. Module 1's readings from the group PC's Web Serial link.
- * POST /api/session/lanjutkan { sesiId }             — reopen an ended session still inside its 150-minute cap.
+ * POST /api/session/lanjutkan { sesiId }             — reopen an ended session until 150 minutes after its start.
  * GET  /api/session/akses (P6.5)                     — public, cacheable. Which modules students may open.
  * POST /api/session/akses { terbuka: number[] } (P6.5) — asisten-only, sets the open-module list directly.
  * GET  /api/session/laporan?sesiId= (P6.8)            — same shape as plain /laporan, for any session by id, not only the running one.
@@ -30,10 +30,12 @@
  * GET  /api/session/nilai?sesiId=&sejak= (Stage 12, P8) — roster + scores + each group's owner; `sejak` (ISO) returns only rows changed since, for the 5 s live poll.
  * POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12, P8) — one field; refused with bukan_pemilik unless the caller holds that group.
  * Phase 8 actions (assignment, help, feedback, results, schedule) are documented in api/_lib/phase8.ts.
+ * Phase 9: tim (api/_lib/tim.ts), beranda and jendela (api/_lib/beranda.ts).
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak } from "../_lib/hak.js";
 import { handleTimGet, handleTimJejak, handleTimPost } from "../_lib/tim.js";
+import { handleBerandaGet, handleJendelaPost } from "../_lib/beranda.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { requireRole, requireAnyRole, currentSession } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
@@ -1315,6 +1317,14 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const session = requireRole(req, res, "asisten");
   if (!session) return;
 
+  if (aksi === "beranda") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleBerandaGet(req, res, session);
+  }
+  if (aksi === "jendela") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleJendelaPost(req, res, session);
+  }
   if (aksi === "tim") {
     if (req.method === "POST") return handleTimPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;

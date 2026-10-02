@@ -37,6 +37,8 @@ import {
   CircleNotchIcon,
   ClockIcon,
   LockSimpleIcon,
+  MinusIcon,
+  PlusIcon,
   UploadSimpleIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
@@ -462,4 +464,54 @@ export const ScoreInput = forwardRef<HTMLInputElement, ScoreProps>(function Scor
 
 export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="ctl-kbd">{children}</kbd>;
+}
+
+/* -------------------------------------------------------------- Stepper */
+
+/** A number picked with minus and plus (Phase 9 kit, mockup Stepper): a
+ *  session's length, a group count, a start window. The ends disable their
+ *  button; `fmt` writes the value ("90 menit"). */
+export function Stepper({
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  label,
+  fmt = String,
+  lessLabel,
+  moreLabel,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  label: string;
+  fmt?: (v: number) => string;
+  lessLabel: string;
+  moreLabel: string;
+}) {
+  const set = (v: number) => onChange(Math.min(max, Math.max(min, v)));
+  return (
+    <div className="ctl-stepper" role="group" aria-label={label}>
+      <button
+        type="button"
+        aria-label={lessLabel}
+        disabled={value <= min}
+        onClick={() => set(value - step)}
+      >
+        <MinusIcon size={18} aria-hidden="true" />
+      </button>
+      <output aria-live="polite">{fmt(value)}</output>
+      <button
+        type="button"
+        aria-label={moreLabel}
+        disabled={value >= max}
+        onClick={() => set(value + step)}
+      >
+        <PlusIcon size={18} aria-hidden="true" />
+      </button>
+    </div>
+  );
 }
