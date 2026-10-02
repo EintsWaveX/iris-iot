@@ -1,73 +1,64 @@
 /**
- * The 404 page (Phase 8): "lost in orbit". Vercel serves one 404.html for
- * every missing path, so the language comes from the URL (/en/... is
- * English) and the way back is role-aware once /me answers.
+ * The 404 page. Vercel serves one 404.html for every missing path, so the
+ * language comes from the URL (/en/ is English, /zh/ Mandarin) and the way
+ * back is role-aware once /me answers. Phase 9: the shared ErrorView.
  */
 import { useEffect, useState } from "react";
+import { BookOpenTextIcon, HouseIcon } from "@phosphor-icons/react";
+import ErrorView from "../ui/ErrorView";
 import { href, useMe, dict } from "../../lib/app";
-import type { Lang } from "../../lib/kelas";
+import { langOfPath, type Lang } from "../../lib/kelas";
 import "./NotFound.css";
 
 const T = dict({
-  id: {
-    eyebrow: "Halaman tidak ditemukan",
-    title: "Tersesat di orbit.",
-    body: "Alamat ini tidak mengarah ke mana pun. Mungkin tautannya lama, atau ada salah ketik.",
-    home: "Ke beranda",
-    modules: "Lihat modul",
-    dash: "Dasbor",
-    console: "Konsol",
-  },
+  id: { home: "Ke Beranda", modules: "Lihat Modul", dash: "Ke Dasbor", console: "Ke Konsol" },
   en: {
-    eyebrow: "Page not found",
-    title: "Lost in orbit.",
-    body: "This address does not lead anywhere. The link may be old, or there may be a typo.",
-    home: "Go home",
-    modules: "Browse modules",
-    dash: "Dashboard",
-    console: "Console",
+    home: "Go Home",
+    modules: "Browse Modules",
+    dash: "Go to Dashboard",
+    console: "Go to Console",
   },
+  zh: { home: "回到首页", modules: "浏览模块", dash: "前往面板", console: "前往控制台" },
 });
 
 export default function NotFound() {
   const [lang, setLang] = useState<Lang>("id");
   const me = useMe();
   useEffect(() => {
-    if (/^\/en(\/|$)/.test(location.pathname)) {
-      setLang("en");
-      document.documentElement.lang = "en";
-    }
+    const l = langOfPath(location.pathname);
+    setLang(l);
+    if (l !== "id") document.documentElement.lang = l === "zh" ? "zh-Hans" : l;
   }, []);
   const t = T[lang];
   return (
-    <section className="nf">
-      <div className="nf__orbit" aria-hidden="true">
-        <span className="nf__digits">404</span>
-        <span className="nf__ring" />
-        <span className="nf__ring nf__ring--2" />
-        <span className="nf__moon" />
-      </div>
-      <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
-      <h1 className="nf__title">{t.title}</h1>
-      <p className="nf__body">{t.body}</p>
-      <div className="nf__actions">
-        <a className="btn btn--primary btn--lg" href={href(lang, "/")}>
-          {t.home}
-        </a>
-        {me?.role === "praktikan" && (
-          <a className="btn btn--ghost btn--lg" href={href(lang, "/dashboard")}>
-            {t.dash}
-          </a>
-        )}
-        {me?.role === "asisten" && (
-          <a className="btn btn--ghost btn--lg" href={href(lang, "/session")}>
-            {t.console}
-          </a>
-        )}
-        <a className="btn btn--ghost btn--lg" href={href(lang, "/modules")}>
-          {t.modules}
-        </a>
-      </div>
-    </section>
+    <div className="nf">
+      <ErrorView
+        code={404}
+        lang={lang}
+        role={me?.role ?? null}
+        actions={
+          <>
+            <a className="btn btn--primary" href={href(lang, "/")}>
+              <HouseIcon size={20} aria-hidden="true" />
+              {t.home}
+            </a>
+            {me?.role === "praktikan" && (
+              <a className="btn" href={href(lang, "/dashboard")}>
+                {t.dash}
+              </a>
+            )}
+            {me?.role === "asisten" && (
+              <a className="btn" href={href(lang, "/session")}>
+                {t.console}
+              </a>
+            )}
+            <a className="btn btn--ghost" href={href(lang, "/modules")}>
+              <BookOpenTextIcon size={20} aria-hidden="true" />
+              {t.modules}
+            </a>
+          </>
+        }
+      />
+    </div>
   );
 }

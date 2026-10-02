@@ -1,0 +1,312 @@
+/**
+ * One error view for every HTTP code the app can meet (Phase 9, the
+ * mockup's g-errors): the code with its icon, a title, the cause and what
+ * the reader can do, then the actions. Praktikan get their own wording for
+ * 403, 409 and 503, with no internals. Callers pass `why`/`todo` when they
+ * know the specifics (who saved first, the file size, the server name) and
+ * their own actions; the defaults cover the generic case.
+ *
+ * Usage:
+ *   <ErrorView code={404} lang={lang} actions={<a className="btn btn--primary" ...>} />
+ *   <ErrorView code={429} lang={lang} retryIn={58} onRetry={retry} />
+ */
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import {
+  ArrowClockwiseIcon,
+  ArrowsClockwiseIcon,
+  BugIcon,
+  CloudXIcon,
+  CompassIcon,
+  CopySimpleIcon,
+  FileArrowUpIcon,
+  HourglassHighIcon,
+  LockKeyIcon,
+  ProhibitIcon,
+  WarningIcon,
+  WifiXIcon,
+  type IconProps,
+} from "@phosphor-icons/react";
+import IconButton from "./IconButton";
+import { dict } from "../../lib/app";
+import type { Lang } from "../../lib/kelas";
+import "./ErrorView.css";
+
+export type ErrorCode = 400 | 401 | 403 | 404 | 408 | 409 | 413 | 429 | 500 | 503;
+
+const ICON: Record<ErrorCode, ComponentType<IconProps>> = {
+  400: WarningIcon,
+  401: LockKeyIcon,
+  403: ProhibitIcon,
+  404: CompassIcon,
+  408: WifiXIcon,
+  409: ArrowsClockwiseIcon,
+  413: FileArrowUpIcon,
+  429: HourglassHighIcon,
+  500: BugIcon,
+  503: CloudXIcon,
+};
+
+interface Copy {
+  title: string;
+  why: string;
+  todo: string;
+}
+
+const T = dict({
+  id: {
+    cause: "Penyebab",
+    todo: "Yang Bisa Kamu Lakukan",
+    retry: "Coba Lagi",
+    retryIn: (n: number) => `Coba Lagi dalam ${n} Detik`,
+    retryAuto: (n: number) => `Mencoba lagi otomatis dalam ${n} detik.`,
+    errCode: "Kode galat",
+    copy: "Salin kode galat",
+    copied: "Kode disalin.",
+    codes: {
+      400: {
+        title: "Permintaan Tidak Dikenali",
+        why: "Data yang dikirim halaman ini tidak lengkap atau rusak. Biasanya karena halaman sudah lama terbuka.",
+        todo: "Muat ulang halaman, lalu coba sekali lagi.",
+      },
+      401: {
+        title: "Kamu Sudah Keluar",
+        why: "Sesi masukmu berakhir, misalnya karena sudah lama atau karena keluar di perangkat lain.",
+        todo: "Masuk lagi. Pekerjaanmu yang sudah tersimpan tetap ada.",
+      },
+      403: {
+        title: "Halaman Ini Bukan untuk Peranmu",
+        why: "Bagian ini butuh peran lain dari peran yang kamu pakai sekarang.",
+        todo: "Minta Admin memberimu akses, atau minta Pengelola melakukannya untukmu.",
+      },
+      404: {
+        title: "Halaman Tidak Ditemukan",
+        why: "Alamat ini tidak ada. Mungkin salah ketik, atau tautannya sudah lama.",
+        todo: "Kembali ke Beranda atau pakai menu di atas.",
+      },
+      408: {
+        title: "Koneksi Terputus",
+        why: "Server tidak menjawab tepat waktu. Wi-Fi lab mungkin sedang ramai, atau perangkatmu lepas dari jaringan.",
+        todo: "Halaman mencoba lagi sendiri. Isianmu disimpan di perangkat ini sampai terkirim.",
+      },
+      409: {
+        title: "Ada yang Menyimpan Lebih Dulu",
+        why: "Orang lain mengubah data ini setelah kamu membukanya.",
+        todo: "Muat ulang untuk melihat versi terbaru, lalu ulangi perubahanmu. Tidak ada yang hilang.",
+      },
+      413: {
+        title: "Berkas Terlalu Besar",
+        why: "Berkas yang kamu pilih melebihi batas ukuran.",
+        todo: "Kecilkan berkasnya, atau pakai tautan sebagai gantinya.",
+      },
+      429: {
+        title: "Terlalu Banyak Percobaan",
+        why: "Ada terlalu banyak percobaan dalam waktu singkat, jadi dikunci sebentar.",
+        todo: "Tunggu hitung mundur selesai, lalu coba lagi.",
+      },
+      500: {
+        title: "Ada yang Rusak di Server",
+        why: "Server gagal menyelesaikan permintaan ini. Ini bukan salahmu.",
+        todo: "Coba lagi. Kalau terulang, laporkan dengan kode galat di bawah.",
+      },
+      503: {
+        title: "Server Lab Sedang Tidak Tersedia",
+        why: "Orange Pi lab tidak mengirim denyut, atau sedang diperbarui.",
+        todo: "Data Live berhenti sementara. Halaman lain tetap jalan.",
+      },
+    } as Record<ErrorCode, Copy>,
+    praktikan: {
+      403: {
+        title: "Halaman Ini untuk Asisten",
+        why: "Bagian ini hanya untuk asisten praktikum.",
+        todo: "Kembali ke Dasbor untuk melanjutkan praktikummu.",
+      },
+      409: {
+        why: "Anggota kelompokmu mengisi blank yang sama lebih dulu.",
+        todo: "Muat ulang untuk melihat isiannya.",
+      },
+      503: {
+        why: "Server lab sedang tidak menjawab.",
+        todo: "Data Live berhenti sementara. Kode dan isianmu tetap tersimpan. Beri tahu asistenmu.",
+      },
+    } as Partial<Record<ErrorCode, Partial<Copy>>>,
+  },
+  en: {
+    cause: "Cause",
+    todo: "What You Can Do",
+    retry: "Try Again",
+    retryIn: (n: number) => `Try Again in ${n} Seconds`,
+    retryAuto: (n: number) => `Retrying on its own in ${n} seconds.`,
+    errCode: "Error code",
+    copy: "Copy the error code",
+    copied: "Code copied.",
+    codes: {
+      400: {
+        title: "Request Not Understood",
+        why: "The data this page sent was incomplete or broken. Usually the page has been open for a long time.",
+        todo: "Reload the page, then try once more.",
+      },
+      401: {
+        title: "You Are Signed Out",
+        why: "Your sign-in ended, for example because it was a while ago or you signed out on another device.",
+        todo: "Sign in again. Work that was saved is still there.",
+      },
+      403: {
+        title: "This Page Isn't for Your Role",
+        why: "This part needs a different role from the one you are using now.",
+        todo: "Ask an Admin to grant you access, or ask a Manager to make the change for you.",
+      },
+      404: {
+        title: "Page Not Found",
+        why: "This address doesn't exist. It may be a typo, or an old link.",
+        todo: "Go back Home or use the menu above.",
+      },
+      408: {
+        title: "Connection Lost",
+        why: "The server didn't answer in time. The lab Wi-Fi may be busy, or your device dropped off the network.",
+        todo: "The page retries on its own. What you typed is kept on this device until it is sent.",
+      },
+      409: {
+        title: "Someone Saved First",
+        why: "Someone else changed this after you opened it.",
+        todo: "Reload to see the newest version, then make your change again. Nothing is lost.",
+      },
+      413: {
+        title: "File Too Large",
+        why: "The file you chose is over the size limit.",
+        todo: "Shrink the file, or use a link instead.",
+      },
+      429: {
+        title: "Too Many Attempts",
+        why: "There were too many attempts in a short time, so it is locked for a moment.",
+        todo: "Wait for the countdown, then try again.",
+      },
+      500: {
+        title: "Something Broke on the Server",
+        why: "The server failed to finish this request. It's not your fault.",
+        todo: "Try again. If it happens again, report it with the error code below.",
+      },
+      503: {
+        title: "The Lab Server Is Unavailable",
+        why: "The lab's Orange Pi isn't sending heartbeats, or it is being updated.",
+        todo: "Live data is paused. The rest of the site keeps working.",
+      },
+    } as Record<ErrorCode, Copy>,
+    praktikan: {
+      403: {
+        title: "This Page Is for Assistants",
+        why: "This part is only for lab assistants.",
+        todo: "Go back to your Dashboard to carry on.",
+      },
+      409: {
+        why: "A groupmate filled the same blank first.",
+        todo: "Reload to see their answer.",
+      },
+      503: {
+        why: "The lab server isn't answering right now.",
+        todo: "Live data is paused. Your code and answers are still saved. Tell your assistant.",
+      },
+    } as Partial<Record<ErrorCode, Partial<Copy>>>,
+  },
+});
+
+interface Props {
+  code: ErrorCode;
+  lang: Lang;
+  /** Praktikan get their own wording for 403, 409 and 503. */
+  role?: "asisten" | "praktikan" | null;
+  why?: string;
+  todo?: string;
+  actions?: ReactNode;
+  /** Shows a Try Again button; with `retryIn` it counts down first. */
+  onRetry?: () => void;
+  retryIn?: number;
+  /** 500: the code to quote in a report. */
+  errorCode?: string;
+}
+
+export default function ErrorView({
+  code,
+  lang,
+  role,
+  why,
+  todo,
+  actions,
+  onRetry,
+  retryIn,
+  errorCode,
+}: Props) {
+  const t = T[lang];
+  const copy: Copy = {
+    ...t.codes[code],
+    ...(role === "praktikan" ? (t.praktikan[code] ?? {}) : {}),
+  };
+  const [left, setLeft] = useState(retryIn ?? 0);
+  useEffect(() => setLeft(retryIn ?? 0), [retryIn]);
+  useEffect(() => {
+    if (left <= 0) return;
+    const id = window.setTimeout(() => setLeft((n) => n - 1), 1000);
+    return () => window.clearTimeout(id);
+  }, [left]);
+  // 408 retries on its own when the countdown ends.
+  useEffect(() => {
+    if (code === 408 && retryIn && left === 0 && onRetry) onRetry();
+  }, [code, retryIn, left, onRetry]);
+
+  const tone =
+    code >= 500 ? "danger" : code === 408 || code === 409 || code === 429 ? "warn" : "accent";
+  const Icon = ICON[code];
+  return (
+    <section className="panel panel--raised errview" data-tone={tone}>
+      <div className="errview__code">
+        <span className="errview__ic" aria-hidden="true">
+          <Icon size={30} />
+        </span>
+        <span className="mono">{code}</span>
+      </div>
+      <h1 className="errview__title">{copy.title}</h1>
+      <div className="errview__why">
+        <span className="label-caps">{t.cause}</span>
+        <p>{why ?? copy.why}</p>
+      </div>
+      <div className="errview__why">
+        <span className="label-caps">{t.todo}</span>
+        <p>{todo ?? copy.todo}</p>
+      </div>
+      {code === 500 && errorCode && (
+        <div className="row">
+          <span className="hint">{t.errCode}</span>
+          <code className="ctl-kbd">{errorCode}</code>
+          <IconButton
+            icon={CopySimpleIcon}
+            label={t.copy}
+            sm
+            onClick={() => {
+              void navigator.clipboard?.writeText(errorCode);
+              window.Toast?.show(t.copied, "ok");
+            }}
+          />
+        </div>
+      )}
+      {code === 408 && retryIn && left > 0 && <span className="hint">{t.retryAuto(left)}</span>}
+      {(onRetry || actions) && (
+        <div className="row">
+          {onRetry && (
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={left > 0 && code === 429}
+              onClick={() => {
+                setLeft(code === 408 ? (retryIn ?? 0) : 0);
+                onRetry();
+              }}
+            >
+              <ArrowClockwiseIcon size={20} aria-hidden="true" />
+              {left > 0 && code === 429 ? t.retryIn(left) : t.retry}
+            </button>
+          )}
+          {actions}
+        </div>
+      )}
+    </section>
+  );
+}

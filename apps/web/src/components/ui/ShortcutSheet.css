@@ -1,0 +1,66 @@
+/* ShortcutSheet.tsx (Phase 9, the mockup's g-keys) */
+
+.keys {
+  color: var(--text);
+  display: grid;
+  gap: 16px;
+}
+
+.keys__grid {
+  align-items: start;
+  display: grid;
+  gap: 18px 28px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 760px) {
+  .keys__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.keys__group {
+  display: grid;
+  gap: 8px;
+}
+
+.keys__title {
+  font-family: var(--font-body);
+  font-size: 1.08rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* The key column takes the width of its widest keys, so every label
+   starts on one line (the tab-stop rule). */
+.keys__rows {
+  align-content: start;
+  column-gap: 14px;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.keys__row {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-height: 42px;
+  padding-block: 6px;
+}
+
+.keys__row:last-child {
+  border-bottom: 0;
+}
+
+.keys__keys {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.keys__set {
+  border-top: 1px solid var(--hairline);
+  padding-top: 14px;
+}

@@ -28,6 +28,7 @@ import {
 import { namaAsisten } from "../../lib/people";
 import BackButton from "../ui/BackButton";
 import Fade from "../ui/Fade";
+import { shortcutsOn } from "../../lib/prefs";
 import Dialog from "../ui/Dialog";
 import { ShieldWarningIcon, SignInIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import ResizablePanes from "../ui/ResizablePanes";
@@ -184,13 +185,14 @@ export default function Console({ lang }: { lang: Lang }) {
     return () => window.removeEventListener(CONSOLE_EVENT, on);
   }, [go, pick]);
 
-  // Keys 1-5 and Esc.
+  // Keys 1-9, 0 for Group 10, and Esc.
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       if (!sesi || e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return;
       if (document.querySelector("[role=dialog]")) return;
-      if (/^[1-5]$/.test(e.key)) {
-        const g = lap.data?.kelompok.find((k) => k.nomor === Number(e.key));
+      if (/^[0-9]$/.test(e.key) && shortcutsOn()) {
+        const nomor = e.key === "0" ? 10 : Number(e.key);
+        const g = lap.data?.kelompok.find((k) => k.nomor === nomor);
         if (g) {
           e.preventDefault();
           pick(g.id);

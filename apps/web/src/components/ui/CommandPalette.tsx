@@ -5,6 +5,7 @@
  * `useCommandPaletteHotkey` wires the shortcut on the whole page.
  */
 import { useEffect, type ReactNode } from "react";
+import { shortcutsOn } from "../../lib/prefs";
 import { Command } from "cmdk";
 import * as RadixDialog from "@radix-ui/react-dialog";
 import "./CommandPalette.css";
@@ -81,7 +82,7 @@ export default function CommandPalette({
 export function useCommandPaletteHotkey(setOpen: (fn: (o: boolean) => boolean) => void): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k" && shortcutsOn()) {
         e.preventDefault();
         setOpen((o) => !o);
       }

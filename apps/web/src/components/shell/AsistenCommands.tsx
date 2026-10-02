@@ -14,6 +14,7 @@
  * (#cmd=announce) from any other page.
  */
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { shortcutsOn } from "../../lib/prefs";
 import CommandPalette, { useCommandPaletteHotkey, type PaletteCommand } from "../ui/CommandPalette";
 import ShortcutSheet, { isTypingTarget, useQuestionMarkHotkey } from "../ui/ShortcutSheet";
 import {
@@ -37,12 +38,12 @@ export type ConsoleCommand =
 
 const T = dict({
   id: {
-    title: "Palet perintah",
+    title: "Palet Perintah",
     placeholder: "Ketik perintah atau tujuan…",
     empty: "Tidak ada yang cocok.",
     go: "Pergi ke",
-    session: "Sesi berjalan",
-    modules: "Akses modul",
+    session: "Sesi Berjalan",
+    modules: "Akses Modul",
     server: "Server",
     home: "Beranda",
     console: "Konsol",
@@ -50,40 +51,51 @@ const T = dict({
     servers: "Server",
     reports: "Laporan",
     mods: "Modul",
-    account: "Akun saya",
+    account: "Halaman Akun",
     group: (n: number) => `Buka Kelompok ${n} · ${KELOMPOK_NAMA[n]}`,
-    announce: "Kirim pengumuman",
-    drawer: "Buka laci server",
-    end: "Akhiri sesi",
+    announce: "Kirim Pengumuman",
+    drawer: "Buka Laci Server",
+    end: "Akhiri Sesi",
     open: (n: number) => `Buka Modul ${n} · ${MODUL_NAMA[n]}`,
     lock: (n: number) => `Tutup Modul ${n} · ${MODUL_NAMA[n]}`,
-    apOn: "Nyalakan hotspot (AP)",
-    apOff: "Matikan hotspot (AP)",
+    apOn: "Nyalakan Hotspot",
+    apOff: "Matikan Hotspot",
     opened: (n: number) => `Modul ${n} dibuka untuk praktikan.`,
     locked: (n: number) => `Modul ${n} ditutup.`,
     undo: "Urungkan",
     fail: "Tidak dapat menghubungi server.",
     apSent: "Perintah dikirim. Berlaku pada denyut berikutnya dari Orange Pi.",
     apNone: "Tidak ada satu Orange Pi tunggal untuk dikirimi perintah. Buka halaman Server.",
-    shortcuts: "Pintasan keyboard",
+    shortcuts: "Pintasan Keyboard",
+    groups: {
+      anywhere: "Di Mana Saja",
+      session: "Saat Sesi",
+      table: "Tabel Nilai",
+    },
     rows: {
       palette: "Palet perintah",
-      help: "Lembar pintasan ini",
-      g: "Pindah halaman: Konsol, Jadwal, Server, Laporan, Modul, Akun",
-      groups: "Pilih kelompok di papan konsol",
-      esc: "Tutup inspektur, laci atau dialog",
-      enter: "Nilai: kolom berikutnya, lalu praktikan berikutnya",
-      shiftEnter: "Nilai: mundur satu kolom",
+      help: "Buka daftar ini",
+      home: "Ke Beranda",
+      console: "Ke Konsol",
+      schedule: "Ke Jadwal",
+      servers: "Ke Server",
+      reports: "Ke Laporan",
+      modules: "Ke Modul",
+      account: "Ke Halaman Akun",
+      esc: "Tutup lapisan teratas",
+      groups: "Pilih kelompok (0 untuk Kelompok 10)",
+      enter: "Kolom berikutnya, lalu praktikan berikutnya",
+      shiftEnter: "Mundur satu kolom",
       panes: "Pada pegangan panel: ciutkan panel kiri atau kanan",
     },
   },
   en: {
-    title: "Command palette",
+    title: "Command Palette",
     placeholder: "Type a command or a place…",
     empty: "Nothing matches.",
     go: "Go to",
-    session: "Running session",
-    modules: "Module access",
+    session: "Running Session",
+    modules: "Module Access",
     server: "Server",
     home: "Home",
     console: "Console",
@@ -91,30 +103,41 @@ const T = dict({
     servers: "Server",
     reports: "Reports",
     mods: "Modules",
-    account: "My account",
+    account: "Account Page",
     group: (n: number) => `Open Group ${n} · ${KELOMPOK_NAMA[n]}`,
-    announce: "Send an announcement",
-    drawer: "Open the server drawer",
-    end: "End the session",
+    announce: "Send an Announcement",
+    drawer: "Open the Server Drawer",
+    end: "End the Session",
     open: (n: number) => `Unlock Module ${n} · ${MODUL_NAMA[n]}`,
     lock: (n: number) => `Lock Module ${n} · ${MODUL_NAMA[n]}`,
-    apOn: "Turn the hotspot (AP) on",
-    apOff: "Turn the hotspot (AP) off",
+    apOn: "Turn the Hotspot On",
+    apOff: "Turn the Hotspot Off",
     opened: (n: number) => `Module ${n} unlocked for students.`,
     locked: (n: number) => `Module ${n} locked.`,
     undo: "Undo",
     fail: "Could not reach the server.",
     apSent: "Command sent. It applies on the Orange Pi's next heartbeat.",
     apNone: "There is no single Orange Pi to send this to. Open the Server page.",
-    shortcuts: "Keyboard shortcuts",
+    shortcuts: "Keyboard Shortcuts",
+    groups: {
+      anywhere: "Anywhere",
+      session: "In a Session",
+      table: "Score Table",
+    },
     rows: {
       palette: "Command palette",
-      help: "This shortcut sheet",
-      g: "Go to: Console, Schedule, Server, Reports, Modules, Account",
-      groups: "Pick a group on the console board",
-      esc: "Close the inspector, drawer or dialog",
-      enter: "Scores: next field, then the next student",
-      shiftEnter: "Scores: back one field",
+      help: "Open this list",
+      home: "Go to Home",
+      console: "Go to Console",
+      schedule: "Go to Schedule",
+      servers: "Go to Server",
+      reports: "Go to Reports",
+      modules: "Go to Modules",
+      account: "Go to the Account Page",
+      esc: "Close the top layer",
+      groups: "Pick a group (0 for Group 10)",
+      enter: "Next field, then the next student",
+      shiftEnter: "Back one field",
       panes: "On a pane handle: collapse the left or right pane",
     },
   },
@@ -213,7 +236,7 @@ export default function AsistenCommands({
   const gAt = useRef(0);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target) || !shortcutsOn()) return;
       const k = e.key.toLowerCase();
       if (k === "g") {
         gAt.current = Date.now();
@@ -372,15 +395,37 @@ export default function AsistenCommands({
         open={shortcutsOpen}
         onOpenChange={setShortcutsOpen}
         title={t.shortcuts}
-        rows={[
-          { keys: "Ctrl K", label: t.rows.palette },
-          { keys: "?", label: t.rows.help },
-          { keys: "G  K J S L M A", label: t.rows.g },
-          { keys: "1 … 5", label: t.rows.groups },
-          { keys: "Esc", label: t.rows.esc },
-          { keys: "Enter", label: t.rows.enter },
-          { keys: "Shift Enter", label: t.rows.shiftEnter },
-          { keys: "[  ]", label: t.rows.panes },
+        lang={lang}
+        groups={[
+          {
+            title: t.groups.anywhere,
+            rows: [
+              { keys: ["Ctrl", "K"], label: t.rows.palette },
+              { keys: ["G", "B"], label: t.rows.home },
+              { keys: ["G", "K"], label: t.rows.console },
+              { keys: ["G", "J"], label: t.rows.schedule },
+              { keys: ["G", "S"], label: t.rows.servers },
+              { keys: ["G", "L"], label: t.rows.reports },
+              { keys: ["G", "M"], label: t.rows.modules },
+              { keys: ["G", "A"], label: t.rows.account },
+              { keys: ["Esc"], label: t.rows.esc },
+              { keys: ["?"], label: t.rows.help },
+            ],
+          },
+          {
+            title: t.groups.session,
+            rows: [
+              { keys: ["1", "…", "9"], label: t.rows.groups },
+              { keys: ["[", "]"], label: t.rows.panes },
+            ],
+          },
+          {
+            title: t.groups.table,
+            rows: [
+              { keys: ["Enter"], label: t.rows.enter },
+              { keys: ["Shift", "Enter"], label: t.rows.shiftEnter },
+            ],
+          },
         ]}
       />
     </>

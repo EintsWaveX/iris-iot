@@ -7,6 +7,7 @@
  *   iris-detail     ldm | normal | hd       (cosmos-router.js owns it)
  *   iris-zh-weight  700 | 500               Mandarin headings only
  *   iris-clock      auto | on | off         the clock in the navigation
+ *   iris-keys       on | off                keyboard shortcuts (the "?" sheet)
  *
  * A change fires "iris-prefs" on window so open islands follow along.
  */
@@ -55,6 +56,12 @@ export function readPrefs(): Prefs {
 }
 
 export const setTheme = (v: ThemePref) => write("iris-theme", v);
+export const setShortcuts = (on: boolean) => write("iris-keys", on ? "on" : "off");
+
+/** Keyboard shortcuts are on unless the reader turned them off. */
+export function shortcutsOn(): boolean {
+  return read("iris-keys") !== "off";
+}
 export const setClock = (v: ClockPref) => write("iris-clock", v);
 export const setZhWeight = (v: ZhWeight) => write("iris-zh-weight", v);
 export function setDetail(v: DetailPref) {

@@ -1,0 +1,61 @@
+/* ErrorView.tsx (Phase 9, the mockup's g-errors) */
+
+.errview {
+  --tone: var(--accent);
+  gap: 16px;
+  justify-self: center;
+  margin-inline: auto;
+  max-width: 640px;
+  width: 100%;
+}
+
+.errview[data-tone="warn"] {
+  --tone: var(--warn);
+}
+
+.errview[data-tone="danger"] {
+  --tone: var(--danger);
+}
+
+.errview__code {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.errview__code .mono {
+  color: var(--tone);
+  font: 800 2.6rem/1 var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.errview__ic {
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  border-radius: 16px;
+  color: var(--tone);
+  display: grid;
+  height: 56px;
+  place-items: center;
+  width: 56px;
+}
+
+.errview__title {
+  font-family: var(--font-body);
+  font-size: 1.7rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.errview__why {
+  display: grid;
+  gap: 4px;
+}
+
+.errview__why p {
+  color: var(--text);
+  font-size: 1.02rem;
+  margin: 0;
+}
