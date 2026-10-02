@@ -26,6 +26,8 @@ import {
   type ReactNode,
 } from "react";
 import { namaAsisten } from "../../lib/people";
+import BackButton from "../ui/BackButton";
+import Fade from "../ui/Fade";
 import Dialog from "../ui/Dialog";
 import { ShieldWarningIcon, SignInIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import ResizablePanes from "../ui/ResizablePanes";
@@ -377,9 +379,7 @@ export default function Console({ lang }: { lang: Lang }) {
         <div className="console">
           {offline}
           <div className="console__modes">
-            <button type="button" className="btn btn--ghost" onClick={() => setDoneTable(false)}>
-              ← {t.back}
-            </button>
+            <BackButton lang={lang} label={t.back} onClick={() => setDoneTable(false)} />
             <h1 className="console__h">
               {t.doneTitle} · {t.modul(done.modul)}
             </h1>
@@ -423,9 +423,7 @@ export default function Console({ lang }: { lang: Lang }) {
         <div className="console">
           {offline}
           <div className="console__modes">
-            <button type="button" className="btn btn--ghost" onClick={() => setPrepOnly(false)}>
-              ← {t.back}
-            </button>
+            <BackButton lang={lang} label={t.backConsole} onClick={() => setPrepOnly(false)} />
             <h1 className="console__h">{t.prepTitle}</h1>
           </div>
           <PrepView
@@ -499,96 +497,98 @@ export default function Console({ lang }: { lang: Lang }) {
         </span>
       </div>
 
-      {view === "prep" && (
-        <PrepView
-          t={t}
-          lang={lang}
-          sesi={sesi}
-          roster={roster}
-          assign={assign.data}
-          meNim={me!.nim}
-          onChanged={refreshAll}
-        />
-      )}
+      <Fade k={view} className="console__view">
+        {view === "prep" && (
+          <PrepView
+            t={t}
+            lang={lang}
+            sesi={sesi}
+            roster={roster}
+            assign={assign.data}
+            meNim={me!.nim}
+            onChanged={refreshAll}
+          />
+        )}
 
-      {view === "table" && (
-        <NilaiTable
-          t={t}
-          sesiId={sesi.id}
-          nilai={nilai}
-          groups={groups}
-          asisten={asisten}
-          meNim={me!.nim}
-        />
-      )}
+        {view === "table" && (
+          <NilaiTable
+            t={t}
+            sesiId={sesi.id}
+            nilai={nilai}
+            groups={groups}
+            asisten={asisten}
+            meNim={me!.nim}
+          />
+        )}
 
-      {view === "board" && (
-        <BoardLayout
-          board={
-            <GroupBoard
-              t={t}
-              lang={lang}
-              groups={groups}
-              stuck={stuck}
-              tangan={tangan}
-              pemilik={pemilik}
-              asisten={asisten}
-              meNim={me!.nim}
-              sel={sel}
-              onSelect={(id) => pick(sel === id ? null : id)}
-            />
-          }
-          feed={
-            <ActivityFeed
-              t={t}
-              lang={lang}
-              items={feed}
-              onPick={(n) => pick(groups.find((g) => g.nomor === n)?.id ?? null)}
-            />
-          }
-          inspector={
-            selGroup ? (
-              <GroupInspector
-                key={selGroup.id}
+        {view === "board" && (
+          <BoardLayout
+            board={
+              <GroupBoard
                 t={t}
                 lang={lang}
-                sesiId={sesi.id}
-                modul={sesi.modul}
-                g={selGroup}
-                stuck={stuck.filter((s) => s.kelompokId === selGroup.id)}
-                hand={tangan[selGroup.id] ?? null}
-                ownerNim={pemilik[selGroup.id] ?? null}
+                groups={groups}
+                stuck={stuck}
+                tangan={tangan}
+                pemilik={pemilik}
                 asisten={asisten}
                 meNim={me!.nim}
-                nilai={nilai}
-                onChanged={refreshAll}
-                onOpenTable={() => go("table")}
+                sel={sel}
+                onSelect={(id) => pick(sel === id ? null : id)}
               />
-            ) : null
-          }
-          empty={
-            <div className="insp-empty">
-              <SquaresFourIcon size={28} aria-hidden="true" />
-              <b>{t.pickGroup}</b>
-              <span className="hint">{t.pickGroupBody}</span>
-              <span className="row">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <Kbd key={n}>{n}</Kbd>
-                ))}
-              </span>
-            </div>
-          }
-          sheetTitle={selGroup ? t.groupFull(selGroup.nomor) : ""}
-          onCloseSheet={() => pick(null)}
-          lang={lang}
-          handleLabel={lang !== "id" ? "Resize panes" : "Ubah ukuran panel"}
-          labels={{
-            board: t.boardTitle,
-            inspector: t.groupFull(selGroup?.nomor ?? 1),
-            feed: t.feed,
-          }}
-        />
-      )}
+            }
+            feed={
+              <ActivityFeed
+                t={t}
+                lang={lang}
+                items={feed}
+                onPick={(n) => pick(groups.find((g) => g.nomor === n)?.id ?? null)}
+              />
+            }
+            inspector={
+              selGroup ? (
+                <GroupInspector
+                  key={selGroup.id}
+                  t={t}
+                  lang={lang}
+                  sesiId={sesi.id}
+                  modul={sesi.modul}
+                  g={selGroup}
+                  stuck={stuck.filter((s) => s.kelompokId === selGroup.id)}
+                  hand={tangan[selGroup.id] ?? null}
+                  ownerNim={pemilik[selGroup.id] ?? null}
+                  asisten={asisten}
+                  meNim={me!.nim}
+                  nilai={nilai}
+                  onChanged={refreshAll}
+                  onOpenTable={() => go("table")}
+                />
+              ) : null
+            }
+            empty={
+              <div className="insp-empty">
+                <SquaresFourIcon size={28} aria-hidden="true" />
+                <b>{t.pickGroup}</b>
+                <span className="hint">{t.pickGroupBody}</span>
+                <span className="row">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Kbd key={n}>{n}</Kbd>
+                  ))}
+                </span>
+              </div>
+            }
+            sheetTitle={selGroup ? t.groupFull(selGroup.nomor) : ""}
+            onCloseSheet={() => pick(null)}
+            lang={lang}
+            handleLabel={lang !== "id" ? "Resize panes" : "Ubah ukuran panel"}
+            labels={{
+              board: t.boardTitle,
+              inspector: t.groupFull(selGroup?.nomor ?? 1),
+              feed: t.feed,
+            }}
+          />
+        )}
+      </Fade>
 
       <ServerDrawer
         t={t}

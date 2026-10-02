@@ -35,16 +35,6 @@
   display: block;
 }
 
-.page-header__context .page-header__back {
-  color: var(--text-faint);
-  font-size: var(--fs-small);
-  text-decoration: none;
-}
-
-.page-header__context .page-header__back:hover {
-  color: var(--text);
-}
-
 .page-header__row {
   align-items: flex-start;
   display: flex;

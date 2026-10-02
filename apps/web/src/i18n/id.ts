@@ -14,7 +14,7 @@ export const id = {
   moduleWord: "Modul",
   langSwitchLabel: "English",
   langSwitchHref: (modul?: number) => (modul ? `/en/modules/${modul}` : "/en/modules"),
-  backToIndex: "Semua modul",
+  backToIndex: "Semua Modul",
   jurnal: {
     title: (m: number) => `Jurnal Modul ${m} belum terbuka untukmu`,
     body: "Persiapan, kode dan live terbuka setelah kamu mengikuti praktikum modul ini. Sambil menunggu, baca modulnya di langkah pertama.",
@@ -59,7 +59,7 @@ export const id = {
       "Alur dan lapisan protokol modul ini menampilkan data sungguhan dari sesi dan papan yang sedang berjalan begitu tersedia, dan disimulasikan di peramban sebelum itu.",
     bodyFor: (modul: number) => (modul === 1 ? id.live.body : id.live.bodyReal),
     cta: "Buka tampilan live",
-    backToModule: "Kembali ke modul",
+    backToModule: "Kembali ke Modul",
     tabLadder: "Alur",
     tabLayers: "Lapisan",
     tabSandbox: "Coba sendiri",

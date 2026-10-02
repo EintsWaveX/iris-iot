@@ -52,6 +52,8 @@ import {
 import type { Lang } from "../../lib/kelas";
 import { durasiLabel } from "../../lib/labels";
 import { useDirektori } from "../../lib/people";
+import BackButton from "../ui/BackButton";
+import Fade from "../ui/Fade";
 import { bacaHasilSiap, urutkanLayanan } from "../../lib/server-shared";
 import {
   CommandTimeline,
@@ -121,7 +123,7 @@ const T = dict({
     temp24: "Suhu 24 jam",
     avail: "Ketersediaan",
     open: "Buka",
-    back: "Semua server",
+    back: "Semua Server",
     code: "Kode",
     forbidden: "Halaman ini khusus asisten",
     forbiddenBody: "Masuk sebagai asisten untuk melihat server.",
@@ -254,7 +256,7 @@ const T = dict({
     temp24: "Temperature 24 hours",
     avail: "Availability",
     open: "Open",
-    back: "All servers",
+    back: "All Servers",
     code: "Code",
     forbidden: "This page is for assistants",
     forbiddenBody: "Sign in as an assistant to see the servers.",
@@ -392,8 +394,8 @@ function fmtUptime(sec: number | null | undefined, lang: Lang): string {
 
 function fmtWhen(iso: string, lang: Lang): string {
   return new Date(iso).toLocaleString(localeOf(lang), {
-    day: "2-digit",
-    month: "short",
+    day: "numeric",
+    month: "long",
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Asia/Jakarta",
@@ -965,16 +967,7 @@ function DetailView({
         retry={poll.refresh}
         retryLabel={t.retry}
       />
-      <a
-        className="srv__back"
-        href={href(lang, "/servers")}
-        onClick={(e) => {
-          e.preventDefault();
-          onBack();
-        }}
-      >
-        {t.back}
-      </a>
+      <BackButton lang={lang} label={t.back} href={href(lang, "/servers")} onClick={onBack} />
       <header
         className="srv__dhead sweep-edge"
         data-state={!data.server.terdaftar ? "wait" : on ? "ok" : "bad"}
@@ -1009,15 +1002,24 @@ function DetailView({
         ))}
       </div>
 
-      {tab === "ringkasan" && (
-        <Overview t={t} lang={lang} id={id} data={data} refresh={poll.refresh} kode={siapa} />
-      )}
-      {tab === "siap" && (
-        <Ready t={t} lang={lang} id={id} data={data} refresh={poll.refresh} kode={siapa} />
-      )}
-      {tab === "pengaturan" && (
-        <Settings t={t} lang={lang} id={id} data={data} refresh={poll.refresh} onDeleted={onBack} />
-      )}
+      <Fade k={tab} className="srv__view">
+        {tab === "ringkasan" && (
+          <Overview t={t} lang={lang} id={id} data={data} refresh={poll.refresh} kode={siapa} />
+        )}
+        {tab === "siap" && (
+          <Ready t={t} lang={lang} id={id} data={data} refresh={poll.refresh} kode={siapa} />
+        )}
+        {tab === "pengaturan" && (
+          <Settings
+            t={t}
+            lang={lang}
+            id={id}
+            data={data}
+            refresh={poll.refresh}
+            onDeleted={onBack}
+          />
+        )}
+      </Fade>
     </div>
   );
 }
@@ -1109,7 +1111,7 @@ function Overview({
             new Date(v * 1000).toLocaleString(loc, {
               timeZone: "Asia/Jakarta",
               ...(rentang === "7d"
-                ? { day: "2-digit", month: "short" }
+                ? { day: "2-digit", month: "2-digit" }
                 : { hour: "2-digit", minute: "2-digit" }),
             }),
           ),

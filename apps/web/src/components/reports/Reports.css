@@ -374,10 +374,6 @@
 
 /* ------------------------------------------------------ session report */
 
-.rep__back {
-  align-self: flex-start;
-}
-
 .rep__sesshead {
   align-items: flex-end;
   background:

@@ -28,6 +28,10 @@ const BANNED: { name: string; re: RegExp }[] = [
   { name: "min for minutes", re: /(\d|\})\s?min\b/ },
 ];
 
+/** Dates are written out ("Kamis, 1 Oktober 2026"): no short month or
+ *  weekday names from Intl. */
+const SHORT_DATE = /(month|weekday): "(short|narrow)"/;
+
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
@@ -61,7 +65,9 @@ describe("no abbreviations in interface copy", () => {
   for (const f of files(join(ROOT))) {
     const rel = relative(ROOT, f);
     if (SKIP_FILES.some((r) => r.test(rel))) continue;
-    for (const lit of literals(readFileSync(f, "utf8"))) {
+    const src = readFileSync(f, "utf8");
+    if (SHORT_DATE.test(src)) hits.push(`${rel}: short month or weekday in a date format`);
+    for (const lit of literals(src)) {
       if (isPathData(lit)) continue;
       for (const b of BANNED) {
         if (b.re.test(lit)) hits.push(`${rel}: ${b.name}: ${JSON.stringify(lit.slice(0, 80))}`);

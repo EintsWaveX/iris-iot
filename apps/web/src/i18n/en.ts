@@ -10,7 +10,7 @@ export const en: ModuleStrings = {
   moduleWord: "Module",
   langSwitchLabel: "Indonesia",
   langSwitchHref: (modul?: number) => (modul ? `/modules/${modul}` : "/modules"),
-  backToIndex: "All modules",
+  backToIndex: "All Modules",
   jurnal: {
     title: (m: number) => `The Module ${m} journal is not open for you yet`,
     body: "Setup, code and live open once you have joined this module's practicum. Meanwhile, read the module in the first step.",
@@ -55,7 +55,7 @@ export const en: ModuleStrings = {
       "This module's ladder and protocol layer view shows real data from a running session and board once it arrives, and simulates it in your browser until then.",
     bodyFor: (modul: number) => (modul === 1 ? en.live.body : en.live.bodyReal),
     cta: "Open the live view",
-    backToModule: "Back to module",
+    backToModule: "Back to Module",
     tabLadder: "Flow",
     tabLayers: "Layers",
     tabSandbox: "Try it yourself",

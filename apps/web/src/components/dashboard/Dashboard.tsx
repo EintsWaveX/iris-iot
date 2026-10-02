@@ -330,8 +330,10 @@ function MyPracticums({
   if (!list) return <span className="skeleton" style={{ height: 96 }} />;
   if (list.length === 0) return <p className="dash__muted">{t.praktikumKosong}</p>;
   const fmt = new Intl.DateTimeFormat(localeOf(lang), {
+    weekday: "long",
     day: "numeric",
-    month: "short",
+    month: "long",
+    year: "numeric",
   });
   return (
     <ul className="dash__prak">

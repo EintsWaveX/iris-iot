@@ -298,6 +298,7 @@ export const S = dict({
       "Sesi yang dibatalkan dianggap tidak pernah ada dan slotnya bebas dipakai lagi. Jawaban yang sudah masuk tetap tersimpan.",
     cancelled: "Sesi dibatalkan.",
     back: "Kembali",
+    backConsole: "Kembali ke Konsol",
     // done
     doneTitle: "Sesi selesai",
     doneSub: "Praktikan bisa mengisi umpan balik kapan saja dari dasbor mereka.",
@@ -638,6 +639,7 @@ export const S = dict({
       "A cancelled session counts as never held and its slot is free again. Answers already in are kept.",
     cancelled: "Session cancelled.",
     back: "Back",
+    backConsole: "Back to Console",
     doneTitle: "Session complete",
     doneSub: "Students can give feedback any time from their dashboard.",
     doneCount: (n: number, t: number) => `${n} of ${t} students responded`,

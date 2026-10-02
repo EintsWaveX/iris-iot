@@ -18,6 +18,8 @@
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { namaAsisten } from "../../lib/people";
+import BackButton from "../ui/BackButton";
+import Fade from "../ui/Fade";
 import { LockSimpleIcon, StarIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -76,7 +78,7 @@ const T = dict({
     time: "Waktu",
     detail: "Detail",
     auditNone: "Tidak ada log yang cocok.",
-    back: "Daftar sesi",
+    back: "Daftar Sesi",
     csvA: "CSV anggota",
     csvB: "CSV rumpang",
     held: "Asisten",
@@ -177,7 +179,7 @@ const T = dict({
     time: "Time",
     detail: "Detail",
     auditNone: "No log entries match.",
-    back: "Session list",
+    back: "Session List",
     csvA: "Members CSV",
     csvB: "Blanks CSV",
     held: "Assistant",
@@ -255,9 +257,10 @@ function fmtDurasi(sec: number | null, t: Tx): string {
 function fmtTanggal(iso: string, lang: Lang): string {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(localeOf(lang), {
-    weekday: "short",
+    weekday: "long",
     day: "numeric",
-    month: "short",
+    month: "long",
+    year: "numeric",
     timeZone: "UTC",
   });
 }
@@ -266,8 +269,8 @@ function fmtWaktu(iso: string, lang: Lang): string {
   return new Date(iso).toLocaleString(localeOf(lang), {
     hour: "2-digit",
     minute: "2-digit",
-    day: "2-digit",
-    month: "short",
+    day: "numeric",
+    month: "long",
   });
 }
 
@@ -381,12 +384,12 @@ function Home({ t, lang, onOpen }: { t: Tx; lang: Lang; onOpen: (id: number) => 
           })}
         </nav>
       </div>
-      <div className="rep__panel">
+      <Fade k={tab} className="rep__panel">
         {tab === "sesi" && <SesiTab t={t} lang={lang} onOpen={onOpen} />}
         {tab === "ringkasan" && <RingkasanTab t={t} lang={lang} />}
         {tab === "lab" && <LabTab t={t} lang={lang} />}
         {tab === "audit" && <AuditTab t={t} lang={lang} />}
-      </div>
+      </Fade>
     </div>
   );
 }
@@ -1018,11 +1021,7 @@ function SessionReport({
     unduhCsv(`laporan-sesi-${sesiId}-blank.csv`, ["Kelompok", "Blank", "Percobaan", "Benar"], rows);
   }
 
-  const back = (
-    <button type="button" className="btn btn--ghost btn--sm rep__back" onClick={onBack}>
-      {t.back}
-    </button>
-  );
+  const back = <BackButton lang={lang} label={t.back} onClick={onBack} />;
 
   if (err) {
     return (

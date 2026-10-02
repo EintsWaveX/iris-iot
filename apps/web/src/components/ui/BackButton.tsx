@@ -1,11 +1,15 @@
 /**
- * The one Back button (Phase 9 kit). A link when it has `href`, otherwise a
- * button that runs `onClick` (going back inside an island's own views).
+ * The one Back button (Phase 9 kit): an arrow and words in a pill, the
+ * same everywhere. A link when it has `href`; with `onClick` too, a plain
+ * click runs `onClick` instead (going back inside an island's own views)
+ * while Ctrl or middle click still opens the link. Without `href` it is a
+ * button. PageHeader.astro draws the same thing for Astro pages.
  *
  * Usage:
- *   <BackButton href={href(lang, "/servers")} label={t.allServers} lang={lang} />
+ *   <BackButton href={href(lang, "/servers")} label={t.back} lang={lang} />
  *   <BackButton onClick={() => setView("list")} lang={lang} />
  */
+import type { MouseEvent } from "react";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -28,8 +32,13 @@ export default function BackButton({ lang, label, href, onClick }: Props) {
     </>
   );
   if (href) {
+    const click = (e: MouseEvent<HTMLAnchorElement>) => {
+      if (!onClick || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+      onClick();
+    };
     return (
-      <a className="back" href={href}>
+      <a className="back" href={href} onClick={click}>
         {body}
       </a>
     );
