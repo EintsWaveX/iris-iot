@@ -2,7 +2,7 @@
 import GroupRedirectPage from "../../views/GroupRedirectPage.astro";
 
 export function getStaticPaths() {
-  return [1, 2, 3, 4, 5].map((n) => ({ params: { n: String(n) } }));
+  return Array.from({ length: 10 }, (_, i) => ({ params: { n: String(i + 1) } }));
 }
 const group = Number(Astro.params.n);
 ---

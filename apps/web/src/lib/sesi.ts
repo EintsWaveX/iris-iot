@@ -17,7 +17,7 @@
 import { eq, and, ne, desc } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { sesi, anggota, kelompok, sesiKelompok } from "./schema.js";
-import { SESI_CAP_DETIK, slotToMulai } from "./jadwal.js";
+import { durasiSesi, slotToMulai } from "./jadwal.js";
 
 export interface ResolvedPraktikan {
   nim: string;
@@ -51,7 +51,9 @@ export async function currentSesi() {
 
   const startedAt = row.mulaiPada ?? row.dibuatPada;
   const elapsedSec = (Date.now() - startedAt.getTime()) / 1000;
-  if (elapsedSec < SESI_CAP_DETIK) return row;
+  // Phase 9: the session's own length, not one fixed cap.
+  const batasDetik = durasiSesi(row) * 60;
+  if (elapsedSec < batasDetik) return row;
 
   // Past the cap: the session's canonical end is the cap itself, not
   // whenever this lazy check happened to run, so selesaiPada/durasiDetik
@@ -60,8 +62,8 @@ export async function currentSesi() {
     .update(sesi)
     .set({
       status: "selesai",
-      selesaiPada: new Date(startedAt.getTime() + SESI_CAP_DETIK * 1000),
-      durasiDetik: SESI_CAP_DETIK,
+      selesaiPada: new Date(startedAt.getTime() + batasDetik * 1000),
+      durasiDetik: batasDetik,
     })
     .where(eq(sesi.id, row.id));
 

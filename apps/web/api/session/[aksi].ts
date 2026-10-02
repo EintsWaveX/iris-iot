@@ -65,7 +65,7 @@ import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
-import { SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
+import { SESI_CAP_DETIK, SESI_CAP_MENIT, durasiSesi } from "../../src/lib/jadwal.js";
 import { bolehIsiNilai } from "../../src/lib/penugasan.js";
 import {
   handleAssignmentGet,
@@ -141,6 +141,9 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       pengumuman: running.pengumuman,
       pengumumanPada: running.pengumumanPada,
       kelas: running.kelas,
+      durasiMenit: durasiSesi(running),
+      jumlahKelompok: running.jumlahKelompok,
+      jenis: running.jenis,
       mintaBantuanPada,
       // A praktikan whose cookie belongs to an earlier session has to sign
       // in again to be counted in this one (the mini-bar asks them to).
@@ -907,7 +910,10 @@ async function handleCatatan(req: ApiRequest, res: ApiResponse, session: Session
 }
 
 /** POST /api/session/lanjutkan { sesiId } -- reopens a session that was
- *  ended, as long as it is still inside its own 150-minute cap. An ended
+ *  ended, as long as 150 minutes (the most a session may run) have not
+ *  passed since it started. A session that ran its own shorter length
+ *  comes back with the full 150, since an assistant who resumes it means
+ *  to keep going. An ended
  *  session keeps holding its slot (sesi_slot_unik), so before this one
  *  stray "Akhiri sesi" left no way back: re-creating the same slot failed
  *  with "sudah_ada" and cancelling refused an ended session. Reopening
@@ -946,9 +952,15 @@ async function handleLanjutkan(req: ApiRequest, res: ApiResponse, session: Sessi
       })
       .where(eq(sesi.status, "berjalan"))
       .returning({ butuhAp: sesi.butuhAp });
+    const habis = Date.now() - startedAt.getTime() >= durasiSesi(row) * 60_000;
     await tx
       .update(sesi)
-      .set({ status: "berjalan", selesaiPada: null, durasiDetik: null })
+      .set({
+        status: "berjalan",
+        selesaiPada: null,
+        durasiDetik: null,
+        ...(habis ? { durasiMenit: SESI_CAP_MENIT } : {}),
+      })
       .where(eq(sesi.id, sesiId));
     return demotedRows[0];
   });

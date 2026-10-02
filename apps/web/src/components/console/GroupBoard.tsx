@@ -2,7 +2,7 @@
  * The console board (P8.1): five group cards and a filter row, plus the live
  * activity feed. Each card carries everything that used to live in three
  * tabs: presence, blanks, stuck questions, a raised hand, the group's device
- * and its assistant. Clicking a card (or pressing 1 to 5) opens it in the
+ * and its assistant. Clicking a card (or pressing its number, 0 for Group 10) opens it in the
  * inspector.
  */
 import { useMemo, useState, type CSSProperties } from "react";

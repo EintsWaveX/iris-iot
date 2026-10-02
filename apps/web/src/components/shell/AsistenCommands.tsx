@@ -15,6 +15,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { shortcutsOn } from "../../lib/prefs";
+import { KELOMPOK_DEFAULT } from "../../lib/jadwal";
 import CommandPalette, { useCommandPaletteHotkey, type PaletteCommand } from "../ui/CommandPalette";
 import ShortcutSheet, { isTypingTarget, useQuestionMarkHotkey } from "../ui/ShortcutSheet";
 import {
@@ -324,12 +325,12 @@ export default function AsistenCommands({
       },
     ];
     if (running) {
-      for (let n = 1; n <= 5; n++) {
+      for (let n = 1; n <= (running.jumlahKelompok ?? KELOMPOK_DEFAULT); n++) {
         list.push({
           id: `group-${n}`,
           group: t.session,
           label: t.group(n),
-          hint: String(n),
+          hint: String(n % 10),
           keywords: [`k${n}`, `g${n}`, "kelompok", "group"],
           run: () => sendConsole({ type: "group", n }, lang),
         });

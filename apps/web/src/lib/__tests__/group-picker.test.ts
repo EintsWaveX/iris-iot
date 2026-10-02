@@ -9,7 +9,7 @@ import { toGroupValue } from "../group-picker";
 
 describe("toGroupValue()", () => {
   it("round-trips a group number through Radix's string value", () => {
-    for (const g of [1, 2, 3, 4, 5]) {
+    for (const g of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
       expect(toGroupValue(String(g))).toBe(g);
     }
   });

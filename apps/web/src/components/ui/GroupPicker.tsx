@@ -17,7 +17,7 @@
  *   <GroupPicker
  *     value={selectedGroup}
  *     onValueChange={setSelectedGroup}
- *     groups={[1, 2, 3, 4, 5]}
+ *     groups={[1, 2, 3, 4, 5, 6]}
  *   />
  */
 import * as RadixToggleGroup from "@radix-ui/react-toggle-group";

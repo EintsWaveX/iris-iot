@@ -23,7 +23,7 @@ import {
   dict,
 } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
-import { SESI_CAP_MENIT } from "../../lib/jadwal";
+import { durasiSesi } from "../../lib/jadwal";
 import { langkahBerikutnya, type Langkah } from "../../lib/langkah";
 import { NILAI_KOMPONEN } from "../../lib/nilai-komponen";
 import { getAksesState } from "../../scripts/modul-akses";
@@ -600,8 +600,9 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
   const k = me.kelompok ?? 0;
   const nama = me.nama.split(/\s+/)[0] ?? me.nama;
   const menit = sesi ? menitBerjalan(sesi.mulaiPada) : 0;
-  const sisa = Math.max(0, SESI_CAP_MENIT - menit);
-  const pct = Math.min(100, (menit / SESI_CAP_MENIT) * 100);
+  const durasi = sesi ? durasiSesi(sesi) : 0;
+  const sisa = Math.max(0, durasi - menit);
+  const pct = durasi ? Math.min(100, (menit / durasi) * 100) : 0;
   const modulSesi = sesi?.modul ?? null;
   const terkunciSesi = modulSesi && terbuka && !terbuka.includes(modulSesi) ? modulSesi : null;
 

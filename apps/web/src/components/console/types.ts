@@ -13,6 +13,10 @@ export interface SesiRunning {
   kelas?: Kelas;
   pengumuman?: string | null;
   pengumumanPada?: string | null;
+  /** Phase 9: this session's own length (30 to 150) and group count. */
+  durasiMenit?: number;
+  jumlahKelompok?: number;
+  jenis?: "reguler" | "susulan";
 }
 
 export interface RosterGroup {

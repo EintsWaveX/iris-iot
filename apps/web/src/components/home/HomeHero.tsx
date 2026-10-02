@@ -17,7 +17,7 @@ import {
   useTick,
   dict,
 } from "../../lib/app";
-import { hariIniWib, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
+import { durasiSesi, hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { slotBerikutnya, type BarisJadwal, type SlotBerikutnya } from "../../lib/jadwal-next";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
 import type { Lang } from "../../lib/kelas";
@@ -108,7 +108,8 @@ export default function HomeHero({ lang }: { lang: Lang }) {
 
   const s = now.data;
   const menit = s ? menitBerjalan(s.mulaiPada) : 0;
-  const sisa = Math.max(0, SESI_CAP_MENIT - menit);
+  const durasi = s ? durasiSesi(s) : 0;
+  const sisa = Math.max(0, durasi - menit);
 
   let card = null;
   if (me?.role === "praktikan") {
@@ -129,7 +130,7 @@ export default function HomeHero({ lang }: { lang: Lang }) {
               {t.running(s.modul)} · {MODUL_NAMA[s.modul]}
             </b>
             <span className="hhero__track" aria-hidden="true">
-              <span style={{ width: `${Math.min(100, (menit / SESI_CAP_MENIT) * 100)}%` }} />
+              <span style={{ width: `${durasi ? Math.min(100, (menit / durasi) * 100) : 0}%` }} />
             </span>
             <span className="hint num">{t.left(sisa)}</span>
             <div className="hhero__actions">

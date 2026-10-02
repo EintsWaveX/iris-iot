@@ -115,6 +115,10 @@ export interface SesiNow {
   pengumuman: string | null;
   pengumumanPada: string | null;
   kelas: Kelas;
+  /** Phase 9: this session's own length (30 to 150) and group count. */
+  durasiMenit?: number;
+  jumlahKelompok?: number;
+  jenis?: "reguler" | "susulan";
   mintaBantuanPada: string | null;
   /** Praktikan only: false when their sign-in belongs to an earlier session. */
   milikSaya?: boolean | null;
@@ -198,6 +202,12 @@ export const KELOMPOK_NAMA: Record<number, string> = {
   3: "Cygnus",
   4: "Orion",
   5: "Carina",
+  // Phase 9: up to ten groups a session.
+  6: "Draco",
+  7: "Pyxis",
+  8: "Lepus",
+  9: "Corvus",
+  10: "Ara",
 };
 
 /** A group's display name: the name typed in the roster when it is a real

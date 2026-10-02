@@ -12,7 +12,7 @@
  *     <  1024  board and activity, the inspector as a bottom sheet
  * - just ended: "Sesi selesai" with the feedback QR
  *
- * Keys: 1 to 5 pick a group, Esc closes the inspector; the Ctrl+K palette
+ * Keys: 1 to 9 and 0 (Group 10) pick a group, Esc closes the inspector; the Ctrl+K palette
  * (AsistenCommands) talks to this component through `iris:console` events
  * or the URL hash.
  */
@@ -67,7 +67,7 @@ function readDone(): (SesiRunning & { hadir: number }) | null {
 function readHash(): { view?: View; group?: number; cmd?: string } {
   const h = location.hash.replace(/^#/, "");
   if (h === "prep" || h === "board" || h === "table") return { view: h };
-  const g = /^k([1-5])$/.exec(h);
+  const g = /^k([1-9]|10)$/.exec(h);
   if (g) return { view: "board", group: Number(g[1]) };
   const c = /^cmd=(\w+)$/.exec(h);
   if (c) return { cmd: c[1] };
@@ -573,8 +573,8 @@ export default function Console({ lang }: { lang: Lang }) {
                 <b>{t.pickGroup}</b>
                 <span className="hint">{t.pickGroupBody}</span>
                 <span className="row">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <Kbd key={n}>{n}</Kbd>
+                  {Array.from({ length: Math.min(groups.length || 5, 10) }, (_, i) => (
+                    <Kbd key={i}>{(i + 1) % 10}</Kbd>
                   ))}
                 </span>
               </div>

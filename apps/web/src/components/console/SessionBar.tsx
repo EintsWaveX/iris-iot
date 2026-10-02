@@ -13,7 +13,7 @@ import { LockSimpleIcon, LockSimpleOpenIcon } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import { Switch } from "../ui/Controls";
 import { getJson, href, jamMenit, menitBerjalan, postJson, useTick } from "../../lib/app";
-import { SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
+import { durasiSesi, SLOT_MULAI } from "../../lib/jadwal";
 import { hotspotMenyala } from "../../lib/server-shared";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
@@ -85,8 +85,9 @@ export default function SessionBar({
 }) {
   const now = useTick(20_000);
   const berjalan = menitBerjalan(sesi.mulaiPada, now);
-  const sisa = Math.max(0, SESI_CAP_MENIT - berjalan);
-  const pct = Math.min(100, Math.round((berjalan / SESI_CAP_MENIT) * 100));
+  const durasi = durasiSesi(sesi);
+  const sisa = Math.max(0, durasi - berjalan);
+  const pct = Math.min(100, Math.round((berjalan / durasi) * 100));
   const [pop, setPop] = useState<"acc" | "deck" | null>(null);
   const list = servers?.list ?? [];
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
@@ -136,7 +137,7 @@ export default function SessionBar({
       <div className="sbar__prog">
         <div className="sbar__prog-row">
           <span className="num">{t.elapsed(berjalan)}</span>
-          <span className="num sbar__left">{t.left(sisa)}</span>
+          <span className="num sbar__left">{t.left(sisa, durasi)}</span>
         </div>
         <div
           className="meter meter--lg"

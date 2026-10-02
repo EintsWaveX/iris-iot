@@ -21,7 +21,8 @@ import ScrollArea from "../ui/ScrollArea";
 import SegmentedControl from "../ui/SegmentedControl";
 import { UpdatedAgo } from "../ui/Display";
 import LiveSandbox from "../LiveSandbox";
-import { useMe, useTick, dict } from "../../lib/app";
+import { useMe, useSessionNow, useTick, dict } from "../../lib/app";
+import { KELOMPOK_DEFAULT } from "../../lib/jadwal";
 import { useMinWidth } from "../../lib/hooks";
 import { RAILS, describeLayers, type Reading } from "../../lib/telemetry-sim";
 import type { Lang } from "../../lib/kelas";
@@ -35,8 +36,6 @@ interface Layer {
   nama: string;
   nilai: string;
 }
-
-const GROUPS = [1, 2, 3, 4, 5];
 
 const T = dict({
   id: {
@@ -373,6 +372,10 @@ export default function LiveWorkspace({
   const t = T[lang];
   const me = useMe();
   const own = me?.role === "praktikan" ? (me.kelompok ?? null) : null;
+  // Phase 9: as many groups as the running session has (1 to 10).
+  const sesiNow = useSessionNow(60_000);
+  const jumlah = sesiNow.data?.jumlahKelompok ?? KELOMPOK_DEFAULT;
+  const GROUPS = useMemo(() => Array.from({ length: jumlah }, (_, i) => i + 1), [jumlah]);
   const [group, setGroup] = useState(1);
   const [picked, setPicked] = useState(false);
   const [mode, setMode] = useState<"live" | "try">("live");
@@ -387,7 +390,7 @@ export default function LiveWorkspace({
     const q = Number(new URLSearchParams(location.search).get("kelompok"));
     if (GROUPS.includes(q)) setGroup(q);
     else if (own && GROUPS.includes(own)) setGroup(own);
-  }, [own, picked]);
+  }, [own, picked, GROUPS]);
 
   // Module 1's board on this PC feeds its own group's view directly.
   const [boardTel, setBoardTel] = useState<Telemetry | null>(null);

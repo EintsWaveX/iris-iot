@@ -13,7 +13,7 @@ import identitas from "../../content/sketches/identitas.json";
 
 const SKETCHES_DIR = fileURLToPath(new URL("../../content/sketches/", import.meta.url));
 const LANGUAGES = ["id", "en"] as const;
-const GROUPS = [1, 2, 3, 4, 5];
+const GROUPS = Array.from({ length: 10 }, (_, i) => i + 1);
 
 function readSketch(bahasa: string, berkas: string): string {
   const ext =
@@ -105,11 +105,11 @@ describe("personalize()", () => {
 });
 
 describe("Module 4 sync words", () => {
-  it("are unique across all five groups", () => {
+  it("are unique across all ten groups (Phase 9: up to ten a session)", () => {
     const table = (identitas as Record<string, Record<string, { syncWord?: string }>>)["4"];
     const words = Object.values(table).map((entry) => entry.syncWord);
     expect(new Set(words).size).toBe(words.length);
-    expect(words.length).toBe(5);
+    expect(words.length).toBe(10);
   });
 });
 

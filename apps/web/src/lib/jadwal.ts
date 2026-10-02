@@ -16,8 +16,23 @@ export const SLOT_MULAI: Record<number, string> = {
   4: "15:30",
 };
 
+/** The longest a session may run (Phase 9: each session sets its own
+ *  length, `sesi.durasi_menit`, from SESI_MIN_MENIT up to this; 150 leaves
+ *  30 minutes before the next slot). Resume works until this much time
+ *  has passed since the start. */
 export const SESI_CAP_MENIT = 150;
 export const SESI_CAP_DETIK = SESI_CAP_MENIT * 60;
+export const SESI_MIN_MENIT = 30;
+
+/** Groups per session (Phase 9: 1 to 10, set per slot in Preparation). */
+export const KELOMPOK_MAKS = 10;
+export const KELOMPOK_DEFAULT = 5;
+
+/** A session's own length in minutes, kept inside the bounds. */
+export function durasiSesi(row: { durasiMenit?: number | null }): number {
+  const d = row.durasiMenit ?? SESI_CAP_MENIT;
+  return Math.min(SESI_CAP_MENIT, Math.max(SESI_MIN_MENIT, d));
+}
 
 export function slotToMulai(slot: number): string | null {
   return SLOT_MULAI[slot] ?? null;

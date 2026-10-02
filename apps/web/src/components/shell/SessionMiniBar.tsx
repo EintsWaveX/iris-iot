@@ -24,7 +24,7 @@ import {
   useTick,
   type SesiNow,
 } from "../../lib/app";
-import { SESI_CAP_MENIT } from "../../lib/jadwal";
+import { durasiSesi } from "../../lib/jadwal";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import "./SessionMiniBar.css";
@@ -149,7 +149,8 @@ export default function SessionMiniBar({
   }, [s, t.newAnn]);
 
   // Time warnings, once each per session.
-  const left = s ? Math.max(0, SESI_CAP_MENIT - menitBerjalan(s.mulaiPada, tick)) : null;
+  const durasi = s ? durasiSesi(s) : 0;
+  const left = s ? Math.max(0, durasi - menitBerjalan(s.mulaiPada, tick)) : null;
   useEffect(() => {
     if (!s || left === null) return;
     for (const [mark, msg] of [
@@ -173,7 +174,7 @@ export default function SessionMiniBar({
   if (!s) return null;
 
   const unread = anns.length > 0 && anns[0].pada !== seen;
-  const pct = Math.min(100, Math.round(((SESI_CAP_MENIT - (left ?? 0)) / SESI_CAP_MENIT) * 100));
+  const pct = Math.min(100, Math.round(((durasi - (left ?? 0)) / durasi) * 100));
   const urgent = left !== null && left <= 10;
 
   async function toggleHand() {
@@ -215,7 +216,7 @@ export default function SessionMiniBar({
         <span className="minibar__track" aria-hidden="true">
           <span className="minibar__fill" style={{ width: `${pct}%` }} />
         </span>
-        <span className="minibar__left num">{t.left(left ?? SESI_CAP_MENIT)}</span>
+        <span className="minibar__left num">{t.left(left ?? durasi)}</span>
       </div>
 
       <div className="minibar__actions">
