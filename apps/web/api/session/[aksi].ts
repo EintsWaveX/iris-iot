@@ -30,12 +30,21 @@
  * GET  /api/session/nilai?sesiId=&sejak= (Stage 12, P8) — roster + scores + each group's owner; `sejak` (ISO) returns only rows changed since, for the 5 s live poll.
  * POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12, P8) — one field; refused with bukan_pemilik unless the caller holds that group.
  * Phase 8 actions (assignment, help, feedback, results, schedule) are documented in api/_lib/phase8.ts.
- * Phase 9: tim (api/_lib/tim.ts), beranda and jendela (api/_lib/beranda.ts).
+ * Phase 9: tim (api/_lib/tim.ts), beranda and jendela (api/_lib/beranda.ts),
+ * rosterslot, praktikan and susulan (api/_lib/persiapan.ts).
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak } from "../_lib/hak.js";
 import { handleTimGet, handleTimJejak, handleTimPost } from "../_lib/tim.js";
 import { handleBerandaGet, handleJendelaPost } from "../_lib/beranda.js";
+import {
+  handlePraktikanGet,
+  handlePraktikanPost,
+  handleRosterSlotGet,
+  handleRosterSlotPost,
+  handleSusulanGet,
+  handleSusulanPost,
+} from "../_lib/persiapan.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { requireRole, requireAnyRole, currentSession } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
@@ -1317,6 +1326,21 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const session = requireRole(req, res, "asisten");
   if (!session) return;
 
+  if (aksi === "rosterslot") {
+    if (req.method === "POST") return handleRosterSlotPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleRosterSlotGet(req, res);
+  }
+  if (aksi === "praktikan") {
+    if (req.method === "POST") return handlePraktikanPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handlePraktikanGet(req, res);
+  }
+  if (aksi === "susulan") {
+    if (req.method === "POST") return handleSusulanPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleSusulanGet(req, res);
+  }
   if (aksi === "beranda") {
     if (!requireMethod(req, res, "GET")) return;
     return handleBerandaGet(req, res, session);
