@@ -22,6 +22,8 @@ import {
   uniqueIndex,
   index,
   jsonb,
+  primaryKey,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
 import { KELAS } from "./kelas.js";
@@ -181,6 +183,19 @@ export const sesi = pgTable(
     // Filled from the jadwal slot at start time, defaulting to reguler for
     // sessions created before the schedule existed.
     kelas: text("kelas", { enum: KELAS }).notNull().default("reguler"),
+    // Phase 9: each session sets its own length (30 to 150 minutes; 150
+    // leaves 30 minutes before the next slot) and group count (1 to 10).
+    // A susulan (makeup) session is free of the schedule window; one made
+    // by "Siapkan Sesi Berikutnya" points back at the session it carries
+    // unfinished groups from. A susulan draft waits as status terjadwal.
+    durasiMenit: integer("durasi_menit").notNull().default(150),
+    jenis: text("jenis", { enum: ["reguler", "susulan"] })
+      .notNull()
+      .default("reguler"),
+    jumlahKelompok: integer("jumlah_kelompok").notNull().default(5),
+    lanjutanDari: integer("lanjutan_dari").references((): AnyPgColumn => sesi.id, {
+      onDelete: "set null",
+    }),
     dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -206,6 +221,9 @@ export const kelompok = pgTable("kelompok", {
   nomor: integer("nomor").notNull().unique(),
   nama: text("nama").notNull(),
   aktif: boolean("aktif").notNull().default(true),
+  /** Phase 9: the group's KLP number in SeeLabs, copied from the slot
+   *  roster when a session starts (see roster_kelompok). */
+  klpSeelabs: text("klp_seelabs"),
   dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -339,6 +357,13 @@ export const jadwal = pgTable(
       .$type<{ kode: string; tag: "fit" | "a24" | null }[]>()
       .notNull()
       .default([]),
+    // Phase 9: the slot's roster shape (Preparation) and its own start
+    // window, minutes before the slot (5 to 30; null = the general default
+    // in pengaturan "jendela_mulai_default").
+    jumlahKelompok: integer("jumlah_kelompok").notNull().default(5),
+    anggotaPerKelompok: integer("anggota_per_kelompok").notNull().default(4),
+    jendelaMulaiMenit: integer("jendela_mulai_menit"),
+    jendelaDiaturOleh: text("jendela_diatur_oleh"),
     diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("jadwal_slot_unik").on(t.semester, t.hari, t.slot)],
@@ -410,7 +435,11 @@ export const presentasi = pgTable(
   {
     id: serial("id").primaryKey(),
     namaBerkas: text("nama_berkas").notNull(),
-    url: text("url").notNull(), // Vercel Blob URL
+    url: text("url").notNull(), // Vercel Blob URL, or the Canva link (jenis tautan)
+    /** Phase 9: an uploaded PDF (berkas) or a Canva view link (tautan). */
+    jenis: text("jenis", { enum: ["berkas", "tautan"] })
+      .notNull()
+      .default("berkas"),
     diunggahOleh: text("diunggah_oleh").notNull(), // NIM, matching audit.aktorNim's shape
     diunggahPada: timestamp("diunggah_pada", { withTimezone: true }).notNull().defaultNow(),
     aktif: boolean("aktif").notNull().default(false),
@@ -436,7 +465,12 @@ export const skema = pgTable(
     id: serial("id").primaryKey(),
     modul: integer("modul").notNull(),
     namaBerkas: text("nama_berkas").notNull(),
-    url: text("url").notNull(), // Vercel Blob URL
+    url: text("url").notNull(), // Vercel Blob URL, or an embed link (jenis tautan)
+    /** Phase 9: an uploaded image (berkas) or a Wokwi, Tinkercad or Canva
+     *  link, or a direct image address (tautan), checked on save. */
+    jenis: text("jenis", { enum: ["berkas", "tautan"] })
+      .notNull()
+      .default("berkas"),
     diunggahOleh: text("diunggah_oleh").notNull(),
     diunggahPada: timestamp("diunggah_pada", { withTimezone: true }).notNull().defaultNow(),
     aktif: boolean("aktif").notNull().default(false),
@@ -823,4 +857,160 @@ export const nilai = pgTable(
     unique("nilai_sesi_nim_komponen").on(t.sesiId, t.nim, t.komponen),
     index("nilai_sesi_idx").on(t.sesiId),
   ],
+);
+
+/* --------------------------------------------- Phase 9 Stage 3: rosters */
+
+/**
+ * The semester's Praktikan list (Preparation, right pane): everyone who may
+ * be placed in a slot roster, from the XLSX import or added by hand.
+ */
+export const praktikan = pgTable(
+  "praktikan",
+  {
+    nim: text("nim").primaryKey(),
+    nama: text("nama").notNull(),
+    kelas: text("kelas", { enum: KELAS }).notNull().default("reguler"),
+    semester: text("semester").notNull(),
+    dibuatOleh: text("dibuat_oleh"),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("praktikan_semester_idx").on(t.semester)],
+);
+
+/**
+ * One group of a weekly slot's roster: whether it runs and its SeeLabs KLP
+ * number. The group count itself is jadwal.jumlah_kelompok.
+ */
+export const rosterKelompok = pgTable(
+  "roster_kelompok",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    hari: integer("hari").notNull(),
+    slot: integer("slot").notNull(),
+    nomor: integer("nomor").notNull(),
+    aktif: boolean("aktif").notNull().default(true),
+    klpSeelabs: text("klp_seelabs"),
+  },
+  (t) => [unique("roster_kelompok_unik").on(t.semester, t.hari, t.slot, t.nomor)],
+);
+
+/**
+ * Who sits in which group of a weekly slot. Rosters belong to the slot and
+ * are reused every week; a Praktikan is in one slot per semester.
+ */
+export const rosterSlot = pgTable(
+  "roster_slot",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    hari: integer("hari").notNull(),
+    slot: integer("slot").notNull(),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    nim: text("nim")
+      .notNull()
+      .references(() => praktikan.nim, { onDelete: "cascade" }),
+    urutan: integer("urutan").notNull().default(0),
+  },
+  (t) => [
+    unique("roster_slot_satu_slot").on(t.semester, t.nim),
+    index("roster_slot_slot_idx").on(t.semester, t.hari, t.slot),
+  ],
+);
+
+/** A Praktikum Susulan's one-off roster, on its draft session. */
+export const rosterSusulan = pgTable(
+  "roster_susulan",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    nim: text("nim").notNull(),
+    nama: text("nama").notNull(),
+    urutan: integer("urutan").notNull().default(0),
+  },
+  (t) => [unique("roster_susulan_unik").on(t.sesiId, t.nim)],
+);
+
+/**
+ * The groups as they were when a session started, so past sessions keep
+ * their own groups after the next session rewrites kelompok and anggota.
+ */
+export const sesiAnggota = pgTable(
+  "sesi_anggota",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    nim: text("nim").notNull(),
+    nama: text("nama").notNull(),
+  },
+  (t) => [
+    unique("sesi_anggota_unik").on(t.sesiId, t.nim),
+    index("sesi_anggota_sesi_idx").on(t.sesiId),
+  ],
+);
+
+/**
+ * The Asisten's own Ringkasan (Brief) per module and language, shown over
+ * the handbook's text on the module page.
+ */
+export const modulBrief = pgTable(
+  "modul_brief",
+  {
+    modul: integer("modul").notNull(),
+    bahasa: text("bahasa").notNull(),
+    isi: jsonb("isi").$type<{ ringkasan: string; langkah: string[] }>().notNull(),
+    diubahOleh: text("diubah_oleh").notNull(),
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.modul, t.bahasa] })],
+);
+
+/**
+ * What happened during a session that Reports needs later: pairing changes
+ * (a group's assistant swapped), extensions, a borrowed SeeLabs account,
+ * the carry into a susulan, the room handover.
+ */
+export const sesiKejadian = pgTable(
+  "sesi_kejadian",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    jenis: text("jenis").notNull(),
+    detail: jsonb("detail").$type<Record<string, unknown>>().notNull().default({}),
+    aktorNim: text("aktor_nim").notNull(),
+    pada: timestamp("pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sesi_kejadian_sesi_idx").on(t.sesiId)],
+);
+
+/**
+ * Each time scores were copied for SeeLabs ("Salin untuk SeeLabs" or the
+ * bookmarklet) and, once confirmed, saved there. The payload hash tells a
+ * later copy whether the scores changed since.
+ */
+export const seelabsEkspor = pgTable(
+  "seelabs_ekspor",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    klp: text("klp"),
+    modul: integer("modul").notNull(),
+    akunNim: text("akun_nim").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    disalinPada: timestamp("disalin_pada", { withTimezone: true }).notNull().defaultNow(),
+    disimpanPada: timestamp("disimpan_pada", { withTimezone: true }),
+  },
+  (t) => [index("seelabs_ekspor_sesi_idx").on(t.sesiId)],
 );
