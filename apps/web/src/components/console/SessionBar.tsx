@@ -1,8 +1,9 @@
 /**
  * The console's sticky session bar (P8.1): what is running and how far in,
  * plus every "while running" tool as a popover, so none of them needs a
- * tab: Pengumuman, Akses modul (applied at once with Undo), Presentasi, the
- * server chip (opens the drawer), Laporan, and Akhiri.
+ * tab: Pengumuman, Akses modul (applied at once with Undo), Presentasi,
+ * Perpanjang (Phase 9: the session's length, 15 minutes from now up to
+ * 150; E opens it), the server chip (opens the drawer), Laporan, and Akhiri.
  *
  * Layout (the "cramped" fix): one row only from 1440px; below that the
  * title and progress share the first row and the tools get a full-width
@@ -11,9 +12,12 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { LockSimpleIcon, LockSimpleOpenIcon } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
-import { Switch } from "../ui/Controls";
+import { Stepper, Switch } from "../ui/Controls";
+import { isTypingTarget } from "../ui/ShortcutSheet";
 import { getJson, href, jamMenit, menitBerjalan, postJson, useTick } from "../../lib/app";
-import { durasiSesi, SLOT_MULAI } from "../../lib/jadwal";
+import { durasiSesi, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
+import { durasiPalingPendek } from "../../lib/sesi-mulai";
+import { shortcutsOn } from "../../lib/prefs";
 import { hotspotMenyala } from "../../lib/server-shared";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
@@ -70,6 +74,7 @@ export default function SessionBar({
   onDrawer,
   onEnd,
   onView,
+  onChanged,
   announceOpen,
   setAnnounceOpen,
 }: {
@@ -80,6 +85,7 @@ export default function SessionBar({
   onDrawer: () => void;
   onEnd: () => void;
   onView: (v: View) => void;
+  onChanged: () => void;
   announceOpen: boolean;
   setAnnounceOpen: (o: boolean) => void;
 }) {
@@ -88,13 +94,26 @@ export default function SessionBar({
   const durasi = durasiSesi(sesi);
   const sisa = Math.max(0, durasi - berjalan);
   const pct = Math.min(100, Math.round((berjalan / durasi) * 100));
-  const [pop, setPop] = useState<"acc" | "deck" | null>(null);
+  const [pop, setPop] = useState<"acc" | "deck" | "ext" | null>(null);
   const list = servers?.list ?? [];
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
   const ap = hotspotMenyala(servers?.detail?.denyutTerakhir?.modeJaringan);
   const kelas = sesi.kelas ?? "reguler";
   const hari = hariDariTanggal(sesi.tanggal);
   const ref = useRef<HTMLElement | null>(null);
+
+  // E opens Extend, like the mockup's tooltip says.
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "e" || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!shortcutsOn() || isTypingTarget(e.target) || document.querySelector("[role=dialog]"))
+        return;
+      e.preventDefault();
+      setPop("ext");
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
 
   // The inspector sticks just below this bar, so publish its height.
   useEffect(() => {
@@ -174,6 +193,23 @@ export default function SessionBar({
             }}
           />
         </Tool>
+        <Tool
+          label={t.extend}
+          open={pop === "ext"}
+          onOpenChange={(o) => setPop(o ? "ext" : null)}
+          width={340}
+        >
+          <ExtendForm
+            t={t}
+            lang={lang}
+            sesi={sesi}
+            berjalan={berjalan}
+            onDone={() => {
+              setPop(null);
+              onChanged();
+            }}
+          />
+        </Tool>
         <button type="button" className="sbar__tool" onClick={onDrawer}>
           <span
             className={`dot ${online > 0 ? "dot--ok" : list.length ? "dot--danger" : "dot--off"}`}
@@ -203,6 +239,68 @@ export default function SessionBar({
         </button>
       </div>
     </section>
+  );
+}
+
+/* ----------------------------------------------------------------- extend */
+
+function ExtendForm({
+  t,
+  lang,
+  sesi,
+  berjalan,
+  onDone,
+}: {
+  t: Strings;
+  lang: Lang;
+  sesi: SesiRunning;
+  berjalan: number;
+  onDone: () => void;
+}) {
+  const durasi = durasiSesi(sesi);
+  const capped = durasi >= SESI_CAP_MENIT;
+  const [len, setLen] = useState(durasi);
+  const [busy, setBusy] = useState(false);
+  const mulai = new Date(sesi.mulaiPada ?? Date.now()).getTime();
+  const selesai = jamMenit(new Date(mulai + len * 60_000), lang);
+
+  async function save() {
+    setBusy(true);
+    const r = await postJson<{ ok: boolean; durasiMenit?: number }>("/api/session/durasi", {
+      menit: len,
+    }).catch(() => ({ ok: false }) as { ok: boolean; durasiMenit?: number });
+    setBusy(false);
+    if (!r.ok) return window.Toast?.show(t.fail, "danger");
+    window.Toast?.show(t.extendDone(r.durasiMenit ?? len), "ok");
+    onDone();
+  }
+
+  return (
+    <div className="stack">
+      <b>{t.extendTitle}</b>
+      <Stepper
+        value={len}
+        onChange={setLen}
+        min={durasiPalingPendek(berjalan)}
+        max={SESI_CAP_MENIT}
+        step={15}
+        label={t.extendLen}
+        fmt={t.extendMenit}
+        lessLabel={t.extendLess}
+        moreLabel={t.extendMore}
+      />
+      <span className="hint">
+        {capped && len === durasi ? t.extendCapped : t.extendEnds(selesai)}
+      </span>
+      <button
+        type="button"
+        className="btn btn--primary"
+        disabled={busy || len === durasi}
+        onClick={() => void save()}
+      >
+        {t.extendSave}
+      </button>
+    </div>
   );
 }
 

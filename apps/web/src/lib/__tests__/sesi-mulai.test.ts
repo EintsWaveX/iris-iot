@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   bacaDurasi,
+  bacaDurasiBaru,
   bacaJumlahKelompok,
+  durasiPalingPendek,
   jamDariMenit,
   jendelaSlot,
   jendelaValid,
@@ -70,5 +72,27 @@ describe("clock helpers", () => {
   it("reads the lab's clock (WIB, UTC+7)", () => {
     expect(menitSekarangWib(new Date("2026-10-01T05:40:00Z"))).toBe(12 * 60 + 40);
     expect(menitSekarangWib(new Date("2026-10-01T17:05:00Z"))).toBe(5);
+  });
+});
+
+describe("extending a running session", () => {
+  it("allows 15 minutes from now up to 150", () => {
+    expect(durasiPalingPendek(20)).toBe(35);
+    expect(durasiPalingPendek(10)).toBe(30);
+    expect(durasiPalingPendek(140)).toBe(150);
+    expect(durasiPalingPendek(149.2)).toBe(150);
+  });
+  it("reads a new length", () => {
+    expect(bacaDurasiBaru(135, 100)).toBe(135);
+    expect(bacaDurasiBaru(150, 100)).toBe(150);
+    expect(bacaDurasiBaru(110, 100)).toBe(null);
+    expect(bacaDurasiBaru(165, 100)).toBe(null);
+    expect(bacaDurasiBaru("120", 30)).toBe(120);
+    expect(bacaDurasiBaru(120.5, 30)).toBe(null);
+    expect(bacaDurasiBaru(undefined, 30)).toBe(null);
+  });
+  it("can shorten, but not below 15 minutes from now", () => {
+    expect(bacaDurasiBaru(60, 40)).toBe(60);
+    expect(bacaDurasiBaru(50, 40)).toBe(null);
   });
 });

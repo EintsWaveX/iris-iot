@@ -2519,3 +2519,18 @@ thead .ntable__name {
   gap: var(--space-2);
   min-width: 0;
 }
+
+/* The line a pairing change leaves in Reports (Phase 9, c-run). */
+.auditline {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 4px;
+  padding: 10px 14px;
+}
+
+.auditline p {
+  font-size: 0.95rem;
+  margin: 0;
+}

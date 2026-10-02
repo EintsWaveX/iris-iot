@@ -1,8 +1,9 @@
 /**
  * The group inspector (P8.1): one group, everything about it, in one place.
  *
- * - Header: the group, its assistant (claim a free group, or take over an
- *   owned one after a confirm), and whether it is active this session.
+ * - Header: the group, its assistant (claim a free group, or Change
+ *   Assistant with a reason, Phase 9), and whether it is active this
+ *   session. The pairing history sits at the bottom.
  * - Bantuan: a raised hand with "Tandai selesai", and the stuck blanks.
  * - Nilai: one student at a time, eight 56px fields; Enter walks TP to L2
  *   and then on to the next student. Only the group's own assistant can
@@ -24,7 +25,7 @@ import {
 import { namaAsisten } from "../../lib/people";
 import { LockSimpleIcon, WarningIcon } from "@phosphor-icons/react";
 import { ScoreInput, Switch } from "../ui/Controls";
-import Confirm from "../ui/Confirm";
+import ChangeAssistant, { usePasangan } from "./ChangeAssistant";
 import { ProgressRing } from "../ui/Display";
 import { namaKelompok, postJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -43,6 +44,8 @@ export interface InspectorProps {
   ownerNim: string | null;
   asisten: Map<string, AsistenRef>;
   meNim: string;
+  /** False when the person has no `pair` right at all (Phase 9). */
+  bolehPasang: boolean;
   nilai: NilaiLive;
   onChanged: () => void;
   onOpenTable: () => void;
@@ -53,10 +56,17 @@ export default function GroupInspector(p: InspectorProps) {
   const now = useTick(15_000);
   const owner = ownerNim ? (asisten.get(ownerNim) ?? null) : null;
   const mine = ownerNim === meNim;
-  const [confirmTake, setConfirmTake] = useState(false);
+  const [chg, setChg] = useState(false);
+  const pasangan = usePasangan(sesiId);
+  const mineEv = pasangan.list.filter((x) => x.kelompokId === g.id);
+  const awal = mineEv[0] ? (mineEv[0].awal ?? mineEv[0].dari) : ownerNim;
+  // Claiming a free group isn't a change from the pairing, so the history
+  // lists only the times someone was replaced.
+  const riwayat = mineEv.filter((x) => x.dari !== null);
+  const nama = (nim: string | null) => (nim ? namaAsisten(asisten.get(nim), nim) : "?");
   const [busy, setBusy] = useState(false);
 
-  async function assign(alasan: "klaim" | "ambil_alih") {
+  async function assign(alasan: "klaim") {
     setBusy(true);
     try {
       const r = await postJson<{ ok: boolean; kode?: string; pemilik?: string }>(
@@ -64,7 +74,7 @@ export default function GroupInspector(p: InspectorProps) {
         { sesiId, kelompokId: g.id, alasan },
       );
       if (r.ok) {
-        window.Toast?.show(alasan === "klaim" ? t.claimed : t.takenOver, "ok");
+        window.Toast?.show(t.claimed, "ok");
         p.onChanged();
         nilai.reload();
         return true;
@@ -140,15 +150,21 @@ export default function GroupInspector(p: InspectorProps) {
             <span className="label-caps">{t.owner}</span>
             <span>{mine ? t.ownerMe : owner ? t.ownerOther(namaAsisten(owner)) : t.ownerNone}</span>
           </span>
-          {!mine && (
+          {!owner ? (
             <button
               type="button"
-              className={`btn ${owner ? "btn--secondary" : "btn--primary"}`}
+              className="btn btn--primary"
               disabled={busy}
-              onClick={() => (owner ? setConfirmTake(true) : void assign("klaim"))}
+              onClick={() => void assign("klaim")}
             >
-              {owner ? t.takeOver : t.claim}
+              {t.claim}
             </button>
+          ) : (
+            p.bolehPasang && (
+              <button type="button" className="btn btn--secondary" onClick={() => setChg(true)}>
+                {t.chg}
+              </button>
+            )
           )}
         </div>
         <div className="insp__active">
@@ -254,17 +270,39 @@ export default function GroupInspector(p: InspectorProps) {
           <h3 className="insp__sec-title">{t.notes}</h3>
           <NotesEditor t={t} sesiId={sesiId} g={g} modul={modul} onSaved={p.onChanged} />
         </section>
+
+        {riwayat.length > 0 && (
+          <section className="insp__sec insp__sec--wide">
+            <div className="auditline">
+              <span className="field__label">{t.chgHistory}</span>
+              {riwayat.map((x, i) => (
+                <p key={i}>
+                  {t.chgLine(nama(x.ke), g.nomor, nama(x.awal ?? x.dari))}
+                  {x.alasan ? ` ${t.chgReason(x.alasan)}` : ""}
+                </p>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
-      <Confirm
-        open={confirmTake}
-        onOpenChange={setConfirmTake}
-        title={t.takeOverTitle(namaAsisten(owner, ""))}
-        body={t.takeOverBody}
-        confirmLabel={t.takeOver}
-        tone="primary"
+      <ChangeAssistant
+        t={t}
         lang={lang}
-        onConfirm={() => assign("ambil_alih")}
+        open={chg}
+        onOpenChange={setChg}
+        sesiId={sesiId}
+        kelompokId={g.id}
+        nomor={g.nomor}
+        cur={ownerNim}
+        awal={awal}
+        meNim={p.meNim}
+        asisten={asisten}
+        onDone={() => {
+          pasangan.reload();
+          p.onChanged();
+          nilai.reload();
+        }}
       />
     </article>
   );

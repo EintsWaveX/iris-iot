@@ -470,6 +470,7 @@ export default function Console({ lang }: { lang: Lang }) {
         onDrawer={() => setDrawer(true)}
         onEnd={() => setEndOpen(true)}
         onView={go}
+        onChanged={refreshAll}
         announceOpen={announce}
         setAnnounceOpen={setAnnounce}
       />
@@ -560,6 +561,7 @@ export default function Console({ lang }: { lang: Lang }) {
                   ownerNim={pemilik[selGroup.id] ?? null}
                   asisten={asisten}
                   meNim={me!.nim}
+                  bolehPasang={me?.hak?.pair !== false}
                   nilai={nilai}
                   onChanged={refreshAll}
                   onOpenTable={() => go("table")}

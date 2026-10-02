@@ -87,6 +87,7 @@ const T = dict({
       account: "Ke Halaman Akun",
       esc: "Tutup lapisan teratas",
       groups: "Pilih kelompok (0 untuk Kelompok 10)",
+      extend: "Perpanjang sesi",
       enter: "Kolom berikutnya, lalu praktikan berikutnya",
       shiftEnter: "Mundur satu kolom",
       panes: "Pada pegangan panel: ciutkan panel kiri atau kanan",
@@ -141,6 +142,7 @@ const T = dict({
       account: "Go to the Account Page",
       esc: "Close the top layer",
       groups: "Pick a group (0 for Group 10)",
+      extend: "Extend the session",
       enter: "Next field, then the next student",
       shiftEnter: "Back one field",
       panes: "On a pane handle: collapse the left or right pane",
@@ -431,6 +433,7 @@ export default function AsistenCommands({
             title: t.groups.session,
             rows: [
               { keys: ["1", "…", "9"], label: t.rows.groups },
+              { keys: ["E"], label: t.rows.extend },
               { keys: ["[", "]"], label: t.rows.panes },
             ],
           },

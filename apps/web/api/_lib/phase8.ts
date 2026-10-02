@@ -43,6 +43,7 @@ import {
 import { validasiUmpanBalik, ringkas } from "../../src/lib/umpan-balik.js";
 import { isKelas, type Kelas } from "../../src/lib/kelas.js";
 import { and, eq, asc, desc, inArray } from "drizzle-orm";
+import { ALASAN_MIN, catatPasangan, cekPasangan } from "./berjalan.js";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -284,9 +285,27 @@ export async function handleAssignmentPost(
     return badRequest(res);
   }
   const db = getDb();
-  const [s] = await db.select({ id: sesi.id }).from(sesi).where(eq(sesi.id, sesiId)).limit(1);
+  const [s] = await db
+    .select({ id: sesi.id, tanggal: sesi.tanggal, slot: sesi.slot })
+    .from(sesi)
+    .where(eq(sesi.id, sesiId))
+    .limit(1);
   if (!s) {
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
+    return;
+  }
+  // Phase 9: the "pair" right. Own slot for an Asisten, any for the rest.
+  const slotRow = await jadwalUntuk(db, s.tanggal, s.slot);
+  const hak = await cekPasangan(db, session.nim, sesiId, (kode) => {
+    const k = kode.toUpperCase();
+    return (
+      !!slotRow &&
+      (slotRow.asisten.some((x) => x.toUpperCase() === k) ||
+        slotRow.pengganti.some((p) => p.kode.toUpperCase() === k))
+    );
+  });
+  if (hak !== "ok") {
+    res.status(403).json({ ok: false, kode: hak, hak: "pair" });
     return;
   }
   const sebelum = (await pemilikKelompok(db, sesiId)).get(kelompokId) ?? null;
@@ -294,6 +313,14 @@ export async function handleAssignmentPost(
   // explicitly confirmed action so it can never happen by accident.
   if (alasan === "klaim" && sebelum && sebelum !== session.nim) {
     res.status(200).json({ ok: false, kode: "sudah_dipegang", pemilik: sebelum });
+    return;
+  }
+  const ke = alasan === "hapus" ? null : asistenNim;
+  // A group losing the assistant it had needs a reason (Phase 9, c-run).
+  const catatan = typeof body.catatan === "string" ? body.catatan.trim().slice(0, 300) : "";
+  const berubah = sebelum !== ke;
+  if (berubah && sebelum && catatan.length < ALASAN_MIN) {
+    res.status(200).json({ ok: false, kode: "alasan_kosong" });
     return;
   }
   if (alasan === "hapus") {
@@ -318,6 +345,16 @@ export async function handleAssignmentPost(
         set: { asistenNim: asistenNim!, diubahPada: new Date() },
       });
   }
+  if (berubah) {
+    await catatPasangan(db, {
+      sesiId,
+      kelompokId,
+      dari: sebelum,
+      ke,
+      alasan: catatan || null,
+      aktorNim: session.nim,
+    });
+  }
   await writeAudit(
     session.nim,
     alasan === "ambil_alih" ? "penugasan_ambil_alih" : "penugasan_ubah",
@@ -326,6 +363,7 @@ export async function handleAssignmentPost(
       kelompokId,
       dari: sebelum,
       ke: asistenNim,
+      ...(catatan ? { alasan: catatan } : {}),
     },
   );
   res.status(200).json({ ok: true, pemilik: asistenNim });

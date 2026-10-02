@@ -29,6 +29,7 @@ import { hariLabel, modulLabel } from "../../lib/labels";
 import type { Kelas, Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import { AccessForm } from "./SessionBar";
+import ChangeAssistant, { usePasangan } from "./ChangeAssistant";
 import RosterEditor, { type RosterHandle, type RosterTarget } from "./prep/RosterEditor";
 import BriefEditor from "./prep/BriefEditor";
 import SchematicEditor from "./prep/SchematicEditor";
@@ -247,6 +248,7 @@ export default function PrepView({
             {sesi && (
               <AssignmentPanel
                 t={t}
+                lang={lang}
                 sesi={sesi}
                 roster={roster}
                 assign={assign}
@@ -459,6 +461,7 @@ function NewDraftDialog({
 
 function AssignmentPanel({
   t,
+  lang,
   sesi,
   roster,
   assign,
@@ -466,6 +469,7 @@ function AssignmentPanel({
   onChanged,
 }: {
   t: Strings;
+  lang: Lang;
   sesi: SesiRunning;
   roster: RosterGroup[];
   assign: Penugasan | null;
@@ -476,6 +480,15 @@ function AssignmentPanel({
   const holds = new Map<string, number>();
   for (const nim of byGroup.values()) holds.set(nim, (holds.get(nim) ?? 0) + 1);
   const groups = roster.filter((g) => g.aktif !== false);
+  // A group that already has an assistant changes through the reason
+  // dialog (Phase 9); a free one is set straight away.
+  const [ask, setAsk] = useState<{ g: RosterGroup; cur: string; pick: string } | null>(null);
+  const pasangan = usePasangan(sesi.id);
+  const byNim = useMemo(() => new Map((assign?.asisten ?? []).map((a) => [a.nim, a])), [assign]);
+  const awalOf = (kelompokId: number) => {
+    const first = pasangan.list.find((x) => x.kelompokId === kelompokId);
+    return first ? (first.awal ?? first.dari) : (byGroup.get(kelompokId) ?? null);
+  };
 
   async function set(kelompokId: number, nomor: number, nim: string | null) {
     try {
@@ -533,12 +546,36 @@ function AssignmentPanel({
                 me={meNim}
                 assign={assign}
                 slotIndex={g.nomor - 1}
-                onPick={(x) => void set(g.id, g.nomor, x?.nim ?? null)}
+                onPick={(x) => {
+                  if (!x || x.nim === nim) return;
+                  if (nim) setAsk({ g, cur: nim, pick: x.nim });
+                  else void set(g.id, g.nomor, x.nim);
+                }}
               />
             </li>
           );
         })}
       </ul>
+      {ask && (
+        <ChangeAssistant
+          t={t}
+          lang={lang}
+          open
+          onOpenChange={(o) => !o && setAsk(null)}
+          sesiId={sesi.id}
+          kelompokId={ask.g.id}
+          nomor={ask.g.nomor}
+          cur={ask.cur}
+          awal={awalOf(ask.g.id)}
+          meNim={meNim}
+          asisten={byNim}
+          pick={ask.pick}
+          onDone={() => {
+            pasangan.reload();
+            onChanged();
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -642,18 +679,6 @@ function AssistantPicker({
             <span className="label-caps">{t.filters.all}</span>
             {all.filter(match).map((a) => row(a))}
           </div>
-          {value && (
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={() => {
-                onPick(null);
-                setOpen(false);
-              }}
-            >
-              {t.assignNone}
-            </button>
-          )}
         </RadixPopover.Content>
       </RadixPopover.Portal>
     </RadixPopover.Root>

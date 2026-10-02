@@ -79,3 +79,17 @@ export function bacaJumlahKelompok(v: unknown, fallback = KELOMPOK_DEFAULT): num
   const n = Number(v);
   return Number.isInteger(n) && n >= 1 && n <= KELOMPOK_MAKS ? n : null;
 }
+
+/** The shortest a running session may be set to after `berjalan` minutes:
+ *  15 minutes from now, never under SESI_MIN_MENIT or over the cap. */
+export function durasiPalingPendek(berjalan: number): number {
+  return Math.max(SESI_MIN_MENIT, Math.min(Math.ceil(berjalan) + 15, SESI_CAP_MENIT));
+}
+
+/** A new length for a running session (Extend), or null. Whole minutes
+ *  from durasiPalingPendek up to SESI_CAP_MENIT. */
+export function bacaDurasiBaru(v: unknown, berjalan: number): number | null {
+  const n = Number(v);
+  if (!Number.isInteger(n)) return null;
+  return n >= durasiPalingPendek(berjalan) && n <= SESI_CAP_MENIT ? n : null;
+}

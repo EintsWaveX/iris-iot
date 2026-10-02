@@ -21,6 +21,8 @@
  * GET  /api/session/telemetry?modul=N&kelompok=M (Stage 20)          — asisten OR praktikan. The Ladder/LayerXray/GroupLive views' live-data source.
  * POST /api/session/telemetry { readings }          — praktikan. Module 1's readings from the group PC's Web Serial link.
  * POST /api/session/lanjutkan { sesiId }             — reopen an ended session until 150 minutes after its start.
+ * POST /api/session/durasi { menit }                 — (Phase 9) Extend the running session (api/_lib/berjalan.ts).
+ * GET  /api/session/kejadian?sesiId=                 — (Phase 9) pairing and length changes, oldest first.
  * GET  /api/session/akses (P6.5)                     — public, cacheable. Which modules students may open.
  * POST /api/session/akses { terbuka: number[] } (P6.5) — asisten-only, sets the open-module list directly.
  * GET  /api/session/laporan?sesiId= (P6.8)            — same shape as plain /laporan, for any session by id, not only the running one.
@@ -79,6 +81,7 @@ import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
 import { SESI_CAP_DETIK, SESI_CAP_MENIT, durasiSesi } from "../../src/lib/jadwal.js";
 import { bolehIsiNilai } from "../../src/lib/penugasan.js";
+import { handleDurasi, handleKejadianGet } from "../_lib/berjalan.js";
 import {
   handleAssignmentGet,
   handleAssignmentPost,
@@ -1423,6 +1426,14 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "catatan") {
     if (!requireMethod(req, res, "POST")) return;
     return handleCatatan(req, res, session);
+  }
+  if (aksi === "durasi") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleDurasi(req, res, session);
+  }
+  if (aksi === "kejadian") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleKejadianGet(req, res);
   }
   if (aksi === "lanjutkan") {
     if (!requireMethod(req, res, "POST")) return;
