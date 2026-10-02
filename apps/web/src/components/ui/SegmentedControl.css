@@ -13,6 +13,18 @@
   padding: 4px;
 }
 
+.segmented--fill {
+  display: flex;
+  width: 100%;
+}
+
+.segmented--fill .segmented__item {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .segmented__item {
   background: transparent;
   border: 1px solid transparent;

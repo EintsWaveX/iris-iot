@@ -309,3 +309,28 @@
   position: absolute;
   right: 0;
 }
+
+/* A Wokwi, Tinkercad or Canva link: the live frame, with the bar under it
+   rather than over its controls. */
+.schem-thumb--frame {
+  background: var(--surface-2);
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+}
+
+.schem-thumb--frame iframe {
+  aspect-ratio: 4 / 3;
+  border: 0;
+  display: block;
+  width: 100%;
+}
+
+.schem-thumb--frame .schem-thumb__bar {
+  position: static;
+}
+
+.schem-thumb--frame .schem-thumb__bar a {
+  color: inherit;
+  display: inline-flex;
+}

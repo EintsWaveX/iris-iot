@@ -44,6 +44,10 @@
  *                                  deleting the deck.
  * POST /api/presentasi/hapus    { id } — asisten only. Deletes the blob and
  *                                  its row.
+ * POST /api/presentasi/tautan   { url, nama? } (Phase 9) — asisten only.
+ *                                  Saves a Canva design link (jenis tautan),
+ *                                  turned into its embed address by
+ *                                  src/lib/tautan.ts.
  *
  * Phase 8 adds the wiring-schematic library (table `skema`) to this same
  * function rather than a new file, since the Hobby plan's function count is
@@ -61,6 +65,13 @@
  * POST /api/presentasi/schematic-save     { url, namaBerkas, modul } —
  *                                            asisten. Records the upload and
  *                                            makes it the module's active one.
+ * POST /api/presentasi/schematic-link     { url, modul } (Phase 9) —
+ *                                            asisten. A Wokwi, Tinkercad or
+ *                                            Canva link or a direct image
+ *                                            address instead of an upload.
+ *                                            Both saves replace the module's
+ *                                            earlier ones (Phase 9 keeps one
+ *                                            source per module).
  * POST /api/presentasi/schematic-activate { id } — asisten.
  * POST /api/presentasi/schematic-default  { modul } — asisten. Back to the
  *                                            bundled schematic.
@@ -76,7 +87,14 @@ import { getDb } from "../../src/lib/db.js";
 import { presentasi, skema } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, ne } from "drizzle-orm";
+import {
+  bacaTautan,
+  namaLayanan,
+  tautanBingkai,
+  TAUTAN_SKEMA,
+  TAUTAN_SLIDES,
+} from "../../src/lib/tautan.js";
 
 // Comfortably above a slide deck; well under what Blob itself allows.
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -173,6 +191,27 @@ async function handleSimpan(req: ApiRequest, res: ApiResponse, session: SessionP
   res.status(200).json({ ok: true, presentasi: row });
 }
 
+async function handleTautan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const t = bacaTautan(typeof body.url === "string" ? body.url : "", TAUTAN_SLIDES);
+  if (!t.ok) {
+    res.status(200).json({ ok: false, kode: t.kode });
+    return;
+  }
+  const nama = typeof body.nama === "string" ? body.nama.trim() : "";
+  if (nama.length > MAX_NAMA_LEN) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  const [row] = await db
+    .insert(presentasi)
+    .values({ namaBerkas: nama || "Canva", url: t.url, jenis: "tautan", diunggahOleh: session.nim })
+    .returning();
+  await writeAudit(session.nim, "presentasi_tautan", { id: row.id, url: t.url });
+  res.status(200).json({ ok: true, presentasi: row });
+}
+
 async function handleAktifkan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
   const id = Number(body.id);
@@ -228,7 +267,7 @@ async function handleHapus(req: ApiRequest, res: ApiResponse, session: SessionPa
 
   const db = getDb();
   const [row] = await db
-    .select({ url: presentasi.url })
+    .select({ url: presentasi.url, jenis: presentasi.jenis })
     .from(presentasi)
     .where(eq(presentasi.id, id))
     .limit(1);
@@ -240,10 +279,13 @@ async function handleHapus(req: ApiRequest, res: ApiResponse, session: SessionPa
   // A blob that is already gone (removed in the Vercel dashboard, or a
   // store that was recreated) must not strand its row: del() throwing
   // here used to 500 the request and leave an undeletable dead entry.
-  try {
-    await del(row.url);
-  } catch (err) {
-    console.error("[api/presentasi/hapus] blob delete failed, removing row anyway:", err);
+  // A link has no blob at all.
+  if (row.jenis === "berkas") {
+    try {
+      await del(row.url);
+    } catch (err) {
+      console.error("[api/presentasi/hapus] blob delete failed, removing row anyway:", err);
+    }
   }
   await db.delete(presentasi).where(eq(presentasi.id, id));
   await writeAudit(session.nim, "presentasi_hapus", { id });
@@ -255,11 +297,24 @@ async function handleHapus(req: ApiRequest, res: ApiResponse, session: SessionPa
 async function handleSchematics(_req: ApiRequest, res: ApiResponse) {
   const db = getDb();
   const rows = await db
-    .select({ modul: skema.modul, url: skema.url, namaBerkas: skema.namaBerkas })
+    .select({
+      modul: skema.modul,
+      url: skema.url,
+      namaBerkas: skema.namaBerkas,
+      jenis: skema.jenis,
+    })
     .from(skema)
     .where(eq(skema.aktif, true));
-  const aktif: Record<string, { url: string; namaBerkas: string }> = {};
-  for (const r of rows) aktif[String(r.modul)] = { url: r.url, namaBerkas: r.namaBerkas };
+  // bingkai: show it in a frame (a Wokwi, Tinkercad or Canva link), not as
+  // an image.
+  const aktif: Record<string, { url: string; namaBerkas: string; bingkai: boolean }> = {};
+  for (const r of rows) {
+    aktif[String(r.modul)] = {
+      url: r.url,
+      namaBerkas: r.namaBerkas,
+      bingkai: r.jenis === "tautan" && tautanBingkai(r.url),
+    };
+  }
   res.status(200).json({ ok: true, aktif });
 }
 
@@ -289,6 +344,40 @@ async function handleSchematicToken(req: ApiRequest, res: ApiResponse, session: 
   }
 }
 
+/** Makes `baru` the module's one schematic: earlier rows go, and so do
+ *  their blobs (best effort, as in handleSchematicDelete). */
+async function simpanSkema(
+  modul: number,
+  baru: { namaBerkas: string; url: string; jenis: "berkas" | "tautan" },
+  nim: string,
+) {
+  const db = getDb();
+  const { row, lama } = await db.transaction(async (tx) => {
+    await tx
+      .update(skema)
+      .set({ aktif: false })
+      .where(and(eq(skema.modul, modul), eq(skema.aktif, true)));
+    const [r] = await tx
+      .insert(skema)
+      .values({ modul, ...baru, diunggahOleh: nim, aktif: true })
+      .returning();
+    const old = await tx
+      .delete(skema)
+      .where(and(eq(skema.modul, modul), ne(skema.id, r.id)))
+      .returning({ url: skema.url, jenis: skema.jenis });
+    return { row: r, lama: old };
+  });
+  for (const o of lama) {
+    if (o.jenis !== "berkas") continue;
+    try {
+      await del(o.url);
+    } catch (err) {
+      console.error("[api/presentasi] replaced schematic blob delete failed:", err);
+    }
+  }
+  return row;
+}
+
 async function handleSchematicSave(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
   const url = typeof body.url === "string" ? body.url : "";
@@ -298,19 +387,29 @@ async function handleSchematicSave(req: ApiRequest, res: ApiResponse, session: S
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  const db = getDb();
-  const row = await db.transaction(async (tx) => {
-    await tx
-      .update(skema)
-      .set({ aktif: false })
-      .where(and(eq(skema.modul, modul), eq(skema.aktif, true)));
-    const [r] = await tx
-      .insert(skema)
-      .values({ modul, namaBerkas, url, diunggahOleh: session.nim, aktif: true })
-      .returning();
-    return r;
-  });
+  const row = await simpanSkema(modul, { namaBerkas, url, jenis: "berkas" }, session.nim);
   await writeAudit(session.nim, "skema_unggah", { id: row.id, modul, namaBerkas });
+  res.status(200).json({ ok: true, skema: row });
+}
+
+async function handleSchematicLink(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const modul = modulValid(body.modul);
+  if (!modul) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const t = bacaTautan(typeof body.url === "string" ? body.url : "", TAUTAN_SKEMA);
+  if (!t.ok) {
+    res.status(200).json({ ok: false, kode: t.kode });
+    return;
+  }
+  const row = await simpanSkema(
+    modul,
+    { namaBerkas: namaLayanan(t.url), url: t.url, jenis: "tautan" },
+    session.nim,
+  );
+  await writeAudit(session.nim, "skema_tautan", { id: row.id, modul, url: t.url });
   res.status(200).json({ ok: true, skema: row });
 }
 
@@ -366,7 +465,7 @@ async function handleSchematicDelete(req: ApiRequest, res: ApiResponse, session:
   }
   const db = getDb();
   const [row] = await db
-    .select({ url: skema.url, modul: skema.modul })
+    .select({ url: skema.url, modul: skema.modul, jenis: skema.jenis })
     .from(skema)
     .where(eq(skema.id, id))
     .limit(1);
@@ -374,13 +473,15 @@ async function handleSchematicDelete(req: ApiRequest, res: ApiResponse, session:
     res.status(200).json({ ok: false, kode: "tidak_ada" });
     return;
   }
-  try {
-    await del(row.url);
-  } catch (err) {
-    console.error(
-      "[api/presentasi/schematic-delete] blob delete failed, removing row anyway:",
-      err,
-    );
+  if (row.jenis === "berkas") {
+    try {
+      await del(row.url);
+    } catch (err) {
+      console.error(
+        "[api/presentasi/schematic-delete] blob delete failed, removing row anyway:",
+        err,
+      );
+    }
   }
   await db.delete(skema).where(eq(skema.id, id));
   await writeAudit(session.nim, "skema_hapus", { id, modul: row.modul });
@@ -392,6 +493,7 @@ type SkemaPost = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => Promi
 const SKEMA_POST: Record<string, SkemaPost> = {
   "schematic-token": handleSchematicToken,
   "schematic-save": handleSchematicSave,
+  "schematic-link": handleSchematicLink,
   "schematic-activate": handleSchematicActivate,
   "schematic-default": handleSchematicDefault,
   "schematic-delete": handleSchematicDelete,
@@ -443,6 +545,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "simpan") {
     if (!requireMethod(req, res, "POST")) return;
     return handleSimpan(req, res, session);
+  }
+  if (aksi === "tautan") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleTautan(req, res, session);
   }
   if (aksi === "aktifkan") {
     if (!requireMethod(req, res, "POST")) return;

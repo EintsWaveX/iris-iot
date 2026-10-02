@@ -12,13 +12,14 @@
  *   data wires carry a moving pulse at motion tier 1+.
  * - The schematic is the assistant's uploaded one when there is an active
  *   upload for this module (GET /api/presentasi/schematics), otherwise the
- *   one bundled with the site.
+ *   one bundled with the site. A Wokwi, Tinkercad or Canva link (Phase 9)
+ *   shows live in a frame instead.
  *
  * `variant="full"` is the Persiapan step's layout; `variant="dock"` is the
  * narrow panel docked beside the code.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ArrowsOutSimpleIcon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, ArrowsOutSimpleIcon } from "@phosphor-icons/react";
 import SchematicViewer from "../ui/SchematicViewer";
 import { getJson, dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -56,6 +57,7 @@ const T = dict({
     legend: { pwr: "Daya", gnd: "Ground", sig: "Sinyal" },
     hint: "Arahkan ke baris tabel atau kabel untuk menelusuri sambungannya.",
     board: "Papan",
+    open: "Buka di tab baru",
   },
   en: {
     wiring: "Wiring diagram",
@@ -65,6 +67,7 @@ const T = dict({
     legend: { pwr: "Power", gnd: "Ground", sig: "Signal" },
     hint: "Point at a table row or a wire to trace the connection.",
     board: "Board",
+    open: "Open in a new tab",
   },
 });
 
@@ -107,26 +110,27 @@ export function boardsFrom(pin: PinData, mcu: string): Board[] {
   return out;
 }
 
-let skemaCache: Promise<Record<string, { url: string; namaBerkas: string }>> | null = null;
+type Aktif = Record<string, { url: string; namaBerkas: string; bingkai?: boolean }>;
+let skemaCache: Promise<Aktif> | null = null;
 function activeSchematics() {
   if (!skemaCache) {
-    skemaCache = getJson<{
-      ok: boolean;
-      aktif: Record<string, { url: string; namaBerkas: string }>;
-    }>("/api/presentasi/schematics")
+    skemaCache = getJson<{ ok: boolean; aktif: Aktif }>("/api/presentasi/schematics")
       .then((d) => (d.ok ? d.aktif : {}))
       .catch(() => ({}));
   }
   return skemaCache;
 }
 
-export function useSchematic(modul: number, fallback: string): { src: string; uploaded: boolean } {
-  const [state, setState] = useState({ src: fallback, uploaded: false });
+export function useSchematic(
+  modul: number,
+  fallback: string,
+): { src: string; uploaded: boolean; frame: boolean } {
+  const [state, setState] = useState({ src: fallback, uploaded: false, frame: false });
   useEffect(() => {
     let alive = true;
     void activeSchematics().then((a) => {
       const hit = a[String(modul)];
-      if (alive && hit) setState({ src: hit.url, uploaded: true });
+      if (alive && hit) setState({ src: hit.url, uploaded: true, frame: !!hit.bingkai });
     });
     return () => {
       alive = false;
@@ -363,7 +367,17 @@ export default function PinSchematic({
     </div>
   );
 
-  const schematic = (
+  const schematic = sch.frame ? (
+    <div className="schem-thumb schem-thumb--frame">
+      <iframe src={sch.src} title={`${t.uploaded} · ${pin.judul}`} loading="lazy" allowFullScreen />
+      <span className="schem-thumb__bar">
+        <span className="schem-thumb__title">{t.uploaded}</span>
+        <a href={sch.src} target="_blank" rel="noopener noreferrer" aria-label={t.open}>
+          <ArrowSquareOutIcon size={16} aria-hidden="true" />
+        </a>
+      </span>
+    </div>
+  ) : (
     <button
       type="button"
       className="schem-thumb sweep-hover"

@@ -1628,6 +1628,10 @@ thead .ntable__name {
   flex: none;
 }
 
+.lib__icon[data-jenis="tautan"] {
+  color: var(--accent);
+}
+
 .lib__name {
   color: var(--text);
   display: block;
@@ -2385,7 +2389,7 @@ thead .ntable__name {
 .schem-grid {
   display: grid;
   gap: var(--space-4);
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
 }
 
 .schem-card {
@@ -2429,6 +2433,38 @@ thead .ntable__name {
   overflow: hidden;
   padding: var(--space-2);
   position: relative;
+  width: 100%;
+}
+
+/* A Wokwi, Tinkercad or Canva link: a placeholder, the frame opens in a
+   dialog (four live simulators in one tab would be heavy). */
+.schem-card__embed {
+  align-content: center;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.schem-card__embed svg {
+  color: var(--accent);
+}
+
+.schem-frame {
+  aspect-ratio: 16 / 10;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  width: 100%;
+}
+
+.schem-frame iframe {
+  border: 0;
+  display: block;
+  height: 100%;
   width: 100%;
 }
 

@@ -31,6 +31,8 @@ interface Props {
   onValueChange: (value: string) => void;
   options: Option[];
   enforceSelection?: boolean;
+  /** Stretch the options to share the full width (the mockup's filled tabs). */
+  fill?: boolean;
   "aria-label": string;
 }
 
@@ -39,11 +41,12 @@ export default function SegmentedControl({
   onValueChange,
   options,
   enforceSelection = true,
+  fill = false,
   ...rest
 }: Props) {
   return (
     <RadixToggleGroup.Root
-      className="segmented"
+      className={fill ? "segmented segmented--fill" : "segmented"}
       type="single"
       value={value}
       onValueChange={(next) => {

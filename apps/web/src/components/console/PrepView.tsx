@@ -10,7 +10,6 @@
  * changes asks first: Save and Move, Discard, or Stay.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { namaAsisten } from "../../lib/people";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
   ArrowRightIcon,
@@ -30,9 +29,10 @@ import { hariLabel, modulLabel } from "../../lib/labels";
 import type { Kelas, Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import { AccessForm } from "./SessionBar";
-import { SchematicLibrary, SlidesLibrary } from "./Libraries";
 import RosterEditor, { type RosterHandle, type RosterTarget } from "./prep/RosterEditor";
 import BriefEditor from "./prep/BriefEditor";
+import SchematicEditor from "./prep/SchematicEditor";
+import SlidesEditor from "./prep/SlidesEditor";
 import { P, type Px } from "./prepStrings";
 import "../ui/Tabs.css";
 import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
@@ -88,12 +88,6 @@ export default function PrepView({
   const [newDraft, setNewDraft] = useState(false);
   const [server, setServer] = useState<{ siap: boolean } | null>(null);
   const editor = useRef<RosterHandle>(null);
-
-  const kode = (nim: string) =>
-    namaAsisten(
-      assign?.asisten.find((a) => a.nim === nim),
-      nim,
-    );
 
   const loadDraf = () =>
     getJson<{ ok: boolean; draf: Draf[] }>("/api/session/susulan")
@@ -275,8 +269,8 @@ export default function PrepView({
             <AccessForm t={t} lang={lang} bare />
           </section>
         )}
-        {tab === "slides" && <SlidesLibrary t={t} lang={lang} kode={kode} />}
-        {tab === "skema" && <SchematicLibrary t={t} lang={lang} kode={kode} />}
+        {tab === "slides" && <SlidesEditor lang={lang} />}
+        {tab === "skema" && <SchematicEditor lang={lang} />}
         {tab === "brief" && <BriefEditor lang={lang} />}
       </Fade>
 
