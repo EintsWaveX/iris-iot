@@ -4,12 +4,9 @@
  * holding a sorted JSON array of module numbers -- kept here rather than
  * a dedicated table because nothing else about it needs its own schema.
  *
- * Cumulative by design: opening module N is meant to also open every
- * module below it (a practicum in week 3 should never re-lock weeks 1-2
- * for a student catching up), so `bukaHingga` unions rather than
- * replaces. An assistant closing a module by hand through
- * `setModulTerbuka` is a direct overwrite instead, since that is a
- * deliberate correction, not a forward step.
+ * Phase 9: only an Asisten opens or closes modules (Preparation, Module
+ * Access, through `setModulTerbuka`); starting a session no longer opens
+ * its module, and a closed module can't be started.
  */
 import { getDb } from "./db.js";
 import { pengaturan, percobaanMasuk, sesi } from "./schema.js";
@@ -80,21 +77,6 @@ async function writeModulTerbuka(list: number[], aktorNim: string | null): Promi
  *  is possible. */
 export async function setModulTerbuka(list: number[], aktorNim: string): Promise<number[]> {
   return writeModulTerbuka(list, aktorNim);
-}
-
-/** Starting a session for `modul` opens it and everything below it, without
- *  ever closing a module that was already open (a union, not a replace).
- *  `aktorNim` is null here on purpose: this is an automatic side effect of
- *  starting a session, not itself an assistant decision worth naming in
- *  the settings' own "changed by" column -- the session-start audit entry
- *  already records who started it. */
-export async function bukaHingga(modul: number): Promise<void> {
-  const current = await getModulTerbuka();
-  const target = new Set(current);
-  for (let m = 1; m <= modul; m++) target.add(m);
-  const next = Array.from(target).sort((a, b) => a - b);
-  if (next.length === current.length && next.every((v, i) => v === current[i])) return;
-  await writeModulTerbuka(next, null);
 }
 
 /* ------------------------------------------------ the journal (Phase 8) */

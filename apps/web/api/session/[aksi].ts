@@ -1000,10 +1000,8 @@ async function handleAksesMeta(_req: ApiRequest, res: ApiResponse) {
 }
 
 /** POST /api/session/akses (P6.5) — an assistant's direct, explicit choice
- *  of which modules are open, including closing one the cumulative
- *  auto-open (bukaHingga, called from api/session/index.ts on a session
- *  start) opened earlier. The actual toggle UI is P6.6's session console;
- *  this endpoint exists now so that UI has something to call. */
+ *  of which modules are open (Preparation, Module Access). Phase 9: this is
+ *  the only way a module opens; a closed module can't be started. */
 async function handleAksesPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
   if (!Array.isArray(body.terbuka)) {
