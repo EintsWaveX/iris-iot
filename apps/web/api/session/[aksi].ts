@@ -33,6 +33,7 @@
  * POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12, P8) — one field; refused with bukan_pemilik unless the caller holds that group.
  * Phase 8 actions (assignment, help, feedback, results, schedule) are documented in api/_lib/phase8.ts.
  * Phase 9: tim (api/_lib/tim.ts), beranda and jendela (api/_lib/beranda.ts),
+ * schedule and penugasan (api/_lib/penugasan-api.ts),
  * rosterslot, praktikan and susulan (api/_lib/persiapan.ts), brief (api/_lib/brief.ts).
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
@@ -84,6 +85,12 @@ import { bolehIsiNilai } from "../../src/lib/penugasan.js";
 import { handleDurasi, handleKejadianGet } from "../_lib/berjalan.js";
 import { handleSeelabsGet, handleSeelabsPost } from "../_lib/seelabs.js";
 import {
+  handlePenugasanGet,
+  handlePenugasanPost,
+  handleScheduleGet,
+  handleSchedulePost,
+} from "../_lib/penugasan-api.js";
+import {
   handleAssignmentGet,
   handleAssignmentPost,
   handleHelpPraktikan,
@@ -92,8 +99,6 @@ import {
   handleFeedbackGet,
   handleResults,
   handleMine,
-  handleScheduleGet,
-  handleSchedulePost,
   pemilikKelompok,
   tanganTerangkat,
   kelompokDariNim,
@@ -1375,6 +1380,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === "POST") return handleAssignmentPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
     return handleAssignmentGet(req, res);
+  }
+  if (aksi === "penugasan") {
+    if (req.method === "POST") return handlePenugasanPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handlePenugasanGet(req, res, session);
   }
   if (aksi === "schedule") {
     if (req.method === "POST") {

@@ -349,9 +349,14 @@ export const jadwal = pgTable(
     hari: integer("hari").notNull(), // 1 = Senin ... 6 = Sabtu
     slot: integer("slot").notNull(), // 1-4, see SLOT_MULAI
     kelas: text("kelas", { enum: KELAS }).notNull().default("reguler"),
-    status: text("status", { enum: ["aktif", "segera"] })
+    // Phase 9: "kosong" = no practicum in this slot all semester, shown in
+    // the sheet's orange or red (warna_kosong; both mean the same). A
+    // holiday is one date only (libur_tanggal), so it isn't a status.
+    status: text("status", { enum: ["aktif", "segera", "kosong"] })
       .notNull()
       .default("aktif"),
+    warnaKosong: text("warna_kosong", { enum: ["oranye", "merah"] }),
+    liburTanggal: text("libur_tanggal"),
     asisten: jsonb("asisten").$type<string[]>().notNull().default([]),
     pengganti: jsonb("pengganti")
       .$type<{ kode: string; tag: "fit" | "a24" | null }[]>()
@@ -364,9 +369,76 @@ export const jadwal = pgTable(
     anggotaPerKelompok: integer("anggota_per_kelompok").notNull().default(4),
     jendelaMulaiMenit: integer("jendela_mulai_menit"),
     jendelaDiaturOleh: text("jendela_diatur_oleh"),
+    diubahOleh: text("diubah_oleh"),
     diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("jadwal_slot_unik").on(t.semester, t.hari, t.slot)],
+);
+
+/**
+ * Phase 9 Stage 4: who teaches a slot on one date, beyond the semester's
+ * default pairing in `jadwal.asisten`. One row per person per date:
+ * - jenis "pengganti": covers a group this date (often for an izin);
+ * - jenis "sukarela": a volunteer outside the schedule ("Saya Bantu");
+ * - jenis "tetap": the slot's own Asisten, only when something about them
+ *   is recorded for the date (hadir).
+ * status: diminta (asked or offered, waiting), diterima, ditolak. A row with
+ * no kelompok_nomor helps the slot without holding a group.
+ */
+export const penugasanSlot = pgTable(
+  "penugasan_slot",
+  {
+    id: serial("id").primaryKey(),
+    jadwalId: integer("jadwal_id")
+      .notNull()
+      .references(() => jadwal.id, { onDelete: "cascade" }),
+    tanggal: text("tanggal").notNull(),
+    kelompokNomor: integer("kelompok_nomor"),
+    nim: text("nim")
+      .notNull()
+      .references(() => asisten.nim, { onDelete: "cascade" }),
+    jenis: text("jenis", { enum: ["tetap", "pengganti", "sukarela"] }).notNull(),
+    tag: text("tag", { enum: ["fit", "a24"] }),
+    status: text("status", { enum: ["diminta", "diterima", "ditolak"] })
+      .notNull()
+      .default("diterima"),
+    hadir: boolean("hadir"),
+    masukPada: timestamp("masuk_pada", { withTimezone: true }),
+    dimintaOleh: text("diminta_oleh").notNull(),
+    dikonfirmasiOleh: text("dikonfirmasi_oleh"),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("penugasan_slot_orang").on(t.jadwalId, t.tanggal, t.nim),
+    index("penugasan_slot_tanggal_idx").on(t.tanggal),
+  ],
+);
+
+/**
+ * Phase 9 Stage 4: an Asisten excused from their slot on one date. While
+ * `pengganti_nim` is null the group needs cover ("dicari" shows it to every
+ * free Asisten in Saya Bantu).
+ */
+export const izin = pgTable(
+  "izin",
+  {
+    id: serial("id").primaryKey(),
+    nim: text("nim")
+      .notNull()
+      .references(() => asisten.nim, { onDelete: "cascade" }),
+    jadwalId: integer("jadwal_id")
+      .notNull()
+      .references(() => jadwal.id, { onDelete: "cascade" }),
+    tanggal: text("tanggal").notNull(),
+    alasan: text("alasan"),
+    status: text("status", { enum: ["aktif", "dicari", "dibatalkan"] })
+      .notNull()
+      .default("aktif"),
+    penggantiNim: text("pengganti_nim"),
+    dibuatOleh: text("dibuat_oleh").notNull(),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("izin_satu").on(t.nim, t.jadwalId, t.tanggal)],
 );
 
 /**

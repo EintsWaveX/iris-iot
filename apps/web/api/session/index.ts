@@ -30,6 +30,7 @@
  * `butuhAp` (Module 4 only) queues the hotspot on, and a replaced session
  * that had it queues it off.
  */
+import { diSlotMinggu, muatMinggu } from "../_lib/penugasan-api.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
@@ -125,12 +126,15 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (susulan) {
       if (!penuh) return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "pair" });
     } else {
-      // Anyone on the slot may start it; the full "pair" right starts any.
-      const kode = orang.kode.toUpperCase();
-      const diSlot =
-        !!slotRow &&
-        (slotRow.asisten.some((k) => k.toUpperCase() === kode) ||
-          slotRow.pengganti.some((p) => p.kode.toUpperCase() === kode));
+      // Anyone teaching the slot that date (its pairing, a cover or a
+      // volunteer, or a listed substitute) may start it; the full "pair"
+      // right starts any. A holiday or No Practicum slot doesn't start.
+      const minggu = slotRow
+        ? (await muatMinggu(db, [slotRow], tanggal)).get(slotRow.id)
+        : undefined;
+      if (minggu?.status === "libur") return tolak(res, "slot_libur");
+      if (minggu?.status === "kosong") return tolak(res, "slot_kosong");
+      const diSlot = !!slotRow && diSlotMinggu(slotRow, minggu, orang.kode);
       if (!penuh && !diSlot) {
         return res.status(403).json({ ok: false, kode: "bukan_slotmu", hak: "pair" });
       }

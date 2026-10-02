@@ -14,6 +14,8 @@
  *   default). The slot's own Asisten may set it, and so may anyone with
  *   the Jadwal right.
  */
+import { diSlotMinggu, muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
+import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -183,6 +185,9 @@ export async function handleBerandaGet(
   }
 
   const roster = Object.fromEntries(rosterHitung.map((r) => [r.slot, r]));
+  // Today's seats: the pairing with today's izin, covers and volunteers.
+  const hariIniRows = minggu.filter((j) => j.hari === hari);
+  const kursiHariIni = await muatMinggu(db, hariIniRows, tanggal);
   res.status(200).json({
     ok: true,
     tanggal,
@@ -191,17 +196,26 @@ export async function handleBerandaGet(
     jendelaDefault: jendelaValid(jendelaRow?.nilai),
     hariIni: minggu
       .filter((j) => j.hari === hari)
-      .map((j) => ({
-        slot: j.slot,
-        kelas: j.kelas,
-        status: j.status,
-        asisten: j.asisten,
-        pengganti: j.pengganti,
-        jumlahKelompok: j.jumlahKelompok,
-        jendelaMulaiMenit: j.jendelaMulaiMenit,
-        jendelaDiaturOleh: j.jendelaDiaturOleh,
-        roster: roster[j.slot] ?? { kelompok: 0, praktikan: 0 },
-      })),
+      .map((j) => {
+        const m = kursiHariIni.get(j.id)!;
+        const bantu = [...orangTanggal(m.kursi, m.tugas)].filter(
+          (k) => !m.kursi.some((x) => x.kode === k),
+        );
+        return {
+          slot: j.slot,
+          kelas: j.kelas,
+          status: m.status,
+          // One code per group today ("" for an open seat), then helpers.
+          asisten: m.kursi.map((x) => x.kode ?? ""),
+          bantu,
+          izin: m.izin.filter((x) => x.status !== "dibatalkan").map((x) => x.kode),
+          pengganti: j.pengganti,
+          jumlahKelompok: j.jumlahKelompok,
+          jendelaMulaiMenit: j.jendelaMulaiMenit,
+          jendelaDiaturOleh: j.jendelaDiaturOleh,
+          roster: roster[j.slot] ?? { kelompok: 0, praktikan: 0 },
+        };
+      }),
     mingguSaya: minggu
       .filter((j) => j.status === "aktif" && j.asisten.some((k) => k.toUpperCase() === kode))
       .map((j) => ({
@@ -246,12 +260,16 @@ export async function handleJendelaPost(
     .limit(1);
   if (!row) return res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
   const orang = await muatOrang(session.nim);
-  const kode = (orang?.kode ?? "").toUpperCase();
-  const diSlot =
-    row.asisten.some((k) => k.toUpperCase() === kode) ||
-    row.pengganti.some((p) => p.kode.toUpperCase() === kode);
+  const m = (await muatMinggu(db, [row])).get(row.id);
+  const diSlot = !!orang && diSlotMinggu(row, m, orang.kode);
   if (!orang || (!diSlot && !boleh(orang, "jadwal"))) {
     return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "jadwal" });
+  }
+  // The slot's own Asisten stay inside the bounds from Schedule Settings.
+  if (menit !== null && !boleh(orang, "jadwal")) {
+    const b = await muatPengaturanJendela(db);
+    if (menit < b.min || menit > b.max)
+      return res.status(200).json({ ok: false, kode: "di_luar_batas", batas: b });
   }
   await db
     .update(jadwal)

@@ -438,6 +438,8 @@ export const S = dict({
       asisten_tidak_ada: "Asisten itu tidak ditemukan.",
       bukan_pemilik: "Kelompok ini dipegang asisten lain.",
       di_luar_jendela: "Slot ini belum atau sudah tidak bisa dimulai sekarang.",
+      slot_libur: "Slot ini libur minggu ini. Pakai Praktikum Susulan kalau perlu.",
+      slot_kosong: "Slot ini Tidak Ada Praktikum semester ini.",
       modul_tertutup: "Modul ini masih tertutup. Buka dulu di Persiapan, Akses Modul.",
       bukan_slotmu:
         "Slot ini bukan slotmu. Hanya asisten slot ini, Pengelola atau Admin yang bisa.",
@@ -866,6 +868,8 @@ export const S = dict({
       asisten_tidak_ada: "That assistant was not found.",
       bukan_pemilik: "Another assistant holds this group.",
       di_luar_jendela: "This slot can't be started right now.",
+      slot_libur: "This slot is on holiday this week. Use a makeup session if needed.",
+      slot_kosong: "This slot has No Practicum this semester.",
       modul_tertutup: "This module is still closed. Open it in Preparation, Module Access first.",
       bukan_slotmu: "This isn't your slot. Only its assistants, a Manager or an Admin can.",
       tanpa_hak: "You don't have the right to do this.",

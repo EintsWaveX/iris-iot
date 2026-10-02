@@ -10,9 +10,7 @@
  * POST /api/session/feedback { asistenNim, ratingAsisten, ... } — praktikan. Once per student per session.
  * GET  /api/session/feedback?scope=mine|lab&sesiId= — asisten. Own Asisten ratings, or everyone's Lab ratings. Never a NIM.
  * GET  /api/session/results                         — praktikan. Own scores for the session in the cookie, once it ended.
- * GET  /api/session/schedule?semester=              — asisten. The imported teaching schedule.
- * POST /api/session/schedule { semester, teksDefault, teksPengganti?, simpan? } — asisten. Preview or replace a semester.
- * POST /api/session/schedule { semester, hari, slot, ubah } — asisten. Edit one slot.
+ * The schedule (GET/POST /api/session/schedule) moved to penugasan-api.ts in Phase 9.
  */
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -33,15 +31,10 @@ import {
   NILAI_KOMPONEN,
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
-import { bagiKelompok } from "../../src/lib/penugasan.js";
-import {
-  buildJadwal,
-  hariDariTanggal,
-  semesterDariTanggal,
-  type TagPengganti,
-} from "../../src/lib/jadwal-parser.js";
+import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { validasiUmpanBalik, ringkas } from "../../src/lib/umpan-balik.js";
-import { isKelas, type Kelas } from "../../src/lib/kelas.js";
+import type { Kelas } from "../../src/lib/kelas.js";
+import { muatMinggu } from "./penugasan-api.js";
 import { and, eq, asc, desc, inArray } from "drizzle-orm";
 import { ALASAN_MIN, catatPasangan, cekPasangan } from "./berjalan.js";
 
@@ -91,29 +84,33 @@ export async function siapkanSesiDariJadwal(
   const slotRow = await jadwalUntuk(db, created.tanggal, created.slot);
   const kelas: Kelas = kelasDiminta ?? (slotRow?.kelas as Kelas | undefined) ?? "reguler";
   await db.update(sesi).set({ kelas }).where(eq(sesi.id, created.id));
-  if (!slotRow || slotRow.status !== "aktif" || slotRow.asisten.length === 0) {
-    return { kelas, ditugaskan: 0 };
-  }
+  if (!slotRow) return { kelas, ditugaskan: 0 };
+  // That date's seats: the semester pairing with its izin and covers
+  // (Phase 9), group by group; groups past the slot's count stay open.
+  const m = (await muatMinggu(db, [slotRow], created.tanggal)).get(slotRow.id);
+  if (!m || m.status !== "aktif") return { kelas, ditugaskan: 0 };
+  const groups = await db
+    .select({ id: kelompok.id, nomor: kelompok.nomor })
+    .from(kelompok)
+    .where(eq(kelompok.aktif, true))
+    .orderBy(asc(kelompok.nomor));
+  const kursi = m.kursi;
+  const kode = [...new Set(kursi.map((k) => k.kode).filter((k): k is string => !!k))];
+  if (kode.length === 0) return { kelas, ditugaskan: 0 };
   const kodeKeNim = new Map(
     (
       await db
         .select({ nim: asisten.nim, kode: asisten.kode })
         .from(asisten)
-        .where(inArray(asisten.kode, slotRow.asisten))
+        .where(inArray(asisten.kode, kode))
     ).map((r) => [r.kode.toUpperCase(), r.nim]),
   );
-  const nims = slotRow.asisten
-    .map((k) => kodeKeNim.get(k.toUpperCase()))
-    .filter((n): n is string => !!n);
-  const groups = await db
-    .select({ id: kelompok.id })
-    .from(kelompok)
-    .where(eq(kelompok.aktif, true))
-    .orderBy(asc(kelompok.nomor));
-  const peta = bagiKelompok(
-    nims,
-    groups.map((g) => g.id),
-  );
+  const peta = new Map<number, string>();
+  for (const g of groups) {
+    const k = kursi[g.nomor - 1]?.kode;
+    const nim = k ? kodeKeNim.get(k) : undefined;
+    if (nim) peta.set(g.id, nim);
+  }
   if (peta.size === 0) return { kelas, ditugaskan: 0 };
   await db
     .insert(sesiAsisten)
@@ -126,95 +123,6 @@ export async function siapkanSesiDariJadwal(
     )
     .onConflictDoNothing();
   return { kelas, ditugaskan: peta.size };
-}
-
-export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
-  const semester = typeof req.query.semester === "string" ? req.query.semester : "";
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(jadwal)
-    .where(semester ? eq(jadwal.semester, semester) : undefined)
-    .orderBy(asc(jadwal.hari), asc(jadwal.slot));
-  const daftarAsisten = await db
-    .select({ nim: asisten.nim, kode: asisten.kode, nama: asisten.nama })
-    .from(asisten)
-    .orderBy(asc(asisten.kode));
-  res.status(200).json({ ok: true, jadwal: rows, asisten: daftarAsisten });
-}
-
-const SEMESTER_RE = /^\d{4}-(ganjil|genap)$/;
-
-export async function handleSchedulePost(
-  req: ApiRequest,
-  res: ApiResponse,
-  session: SessionPayload,
-) {
-  const body = jsonBody(req);
-  const semester = typeof body.semester === "string" ? body.semester : "";
-  if (!SEMESTER_RE.test(semester)) return badRequest(res);
-  const db = getDb();
-
-  // One-slot edit
-  if (body.ubah && typeof body.ubah === "object") {
-    const hari = posInt(body.hari);
-    const slot = posInt(body.slot);
-    const ubah = body.ubah as Record<string, unknown>;
-    if (!hari || hari > 6 || !slot || slot > 4) return badRequest(res);
-    const patch: Partial<typeof jadwal.$inferInsert> = { diubahPada: new Date() };
-    if (ubah.kelas !== undefined) {
-      if (!isKelas(ubah.kelas)) return badRequest(res);
-      patch.kelas = ubah.kelas;
-    }
-    if (ubah.status !== undefined) {
-      if (ubah.status !== "aktif" && ubah.status !== "segera") return badRequest(res);
-      patch.status = ubah.status;
-    }
-    if (ubah.asisten !== undefined) {
-      if (!Array.isArray(ubah.asisten) || !ubah.asisten.every((k) => typeof k === "string"))
-        return badRequest(res);
-      patch.asisten = (ubah.asisten as string[]).map((k) => k.toUpperCase());
-    }
-    if (ubah.pengganti !== undefined) {
-      const p = ubah.pengganti;
-      const tags: TagPengganti[] = ["fit", "a24", null];
-      if (
-        !Array.isArray(p) ||
-        !p.every((x) => x && typeof x.kode === "string" && tags.includes(x.tag ?? null))
-      )
-        return badRequest(res);
-      patch.pengganti = p.map((x) => ({ kode: String(x.kode).toUpperCase(), tag: x.tag ?? null }));
-    }
-    await db
-      .insert(jadwal)
-      .values({ semester, hari, slot, ...patch })
-      .onConflictDoUpdate({ target: [jadwal.semester, jadwal.hari, jadwal.slot], set: patch });
-    await writeAudit(session.nim, "jadwal_ubah", { semester, hari, slot, ubah });
-    res.status(200).json({ ok: true });
-    return;
-  }
-
-  // Paste import (preview, or replace the whole semester when simpan)
-  const teksDefault = typeof body.teksDefault === "string" ? body.teksDefault : "";
-  const teksPengganti = typeof body.teksPengganti === "string" ? body.teksPengganti : "";
-  if (!teksDefault.trim() || teksDefault.length > 50_000 || teksPengganti.length > 50_000)
-    return badRequest(res);
-  const kode = (await db.select({ kode: asisten.kode }).from(asisten)).map((r) => r.kode);
-  const hasil = buildJadwal(teksDefault, teksPengganti, kode);
-  if (!body.simpan) {
-    res.status(200).json({ ok: true, pratinjau: hasil });
-    return;
-  }
-  if (hasil.slot.length === 0) {
-    res.status(200).json({ ok: false, kode: "jadwal_kosong", pratinjau: hasil });
-    return;
-  }
-  await db.transaction(async (tx) => {
-    await tx.delete(jadwal).where(eq(jadwal.semester, semester));
-    await tx.insert(jadwal).values(hasil.slot.map((s) => ({ semester, ...s })));
-  });
-  await writeAudit(session.nim, "jadwal_impor", { semester, slot: hasil.slot.length });
-  res.status(200).json({ ok: true, disimpan: hasil.slot.length, pratinjau: hasil });
 }
 
 /* ---------------------------------------------------------- assignment */
