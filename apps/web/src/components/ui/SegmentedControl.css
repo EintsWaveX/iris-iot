@@ -4,38 +4,59 @@
    glow-ring for keyboard focus). */
 
 .segmented {
-  background: var(--surface-1);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: calc(var(--radius-md) + 4px);
   display: inline-flex;
-  gap: 2px;
-  padding: 2px;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px;
 }
 
 .segmented__item {
   background: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   color: var(--text-muted);
   cursor: pointer;
   font-family: var(--font-body);
-  font-size: var(--fs-body);
-  font-weight: 500;
-  min-height: max(var(--tap), 36px);
-  padding-inline: var(--space-4);
+  font-size: 1.02rem;
+  font-weight: 650;
+  min-height: 46px;
+  padding-inline: 18px;
   position: relative;
   transition:
-    background var(--dur-fast) var(--ease-reveal),
+    background var(--dur-mid) var(--ease-reveal),
+    border-color var(--dur-mid) var(--ease-reveal),
     color var(--dur-fast) var(--ease-reveal);
+  white-space: nowrap;
 }
 
 .segmented__item:hover {
+  background: var(--hairline-faint);
   color: var(--text);
 }
 
 .segmented__item[data-state="on"] {
-  background: var(--surface-3);
+  background: var(--surface-4);
+  border-color: var(--hairline-strong);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 4px 14px rgba(0, 0, 0, 0.22);
   color: var(--text);
+}
+
+:root[data-theme="light"] .segmented__item[data-state="on"] {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(16, 34, 70, 0.14);
+}
+
+@media (max-width: 1279px) {
+  .segmented__item {
+    font-size: 0.98rem;
+    min-height: 44px;
+    padding-inline: 14px;
+  }
 }
 
 .segmented__item:focus-visible {
