@@ -7,10 +7,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Lang } from "../../lib/kelas";
+import { dict } from "../../lib/app";
 
 const KEY = "iris-coach-v1";
 
-const STEPS = {
+const STEPS = dict({
   id: [
     { sel: ".minibar__time", text: "Sisa waktu sesi selalu terlihat di sini, di setiap halaman." },
     {
@@ -30,12 +31,12 @@ const STEPS = {
     },
     { sel: ".dash__cta", text: "This button always takes you to your next step." },
   ],
-};
+});
 
-const L = {
+const L = dict({
   id: { next: "Lanjut", done: "Mengerti", skip: "Lewati" },
   en: { next: "Next", done: "Got it", skip: "Skip" },
-};
+});
 
 function seen(): boolean {
   try {

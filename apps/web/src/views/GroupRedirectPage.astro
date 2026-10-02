@@ -6,18 +6,20 @@
  * links and bookmarks keep working.
  */
 import Base from "../layouts/Base.astro";
+import type { Lang } from "../lib/kelas";
+import { href } from "../lib/app";
 
 interface Props {
-  lang: "id" | "en";
+  lang: Lang;
   group: number;
 }
 const { lang, group } = Astro.props;
-const base = lang === "en" ? "/en/modules" : "/modules";
+const base = href(lang, "/modules");
 const fallback = `${base}/1/live?kelompok=${group}`;
 ---
 
 <Base
-  title={lang === "en" ? `Group ${group} · IRIS IoT` : `Kelompok ${group} · IRIS IoT`}
+  title={lang !== "id" ? `Group ${group} · IRIS IoT` : `Kelompok ${group} · IRIS IoT`}
   lang={lang}
   cosmosScene="kerja"
 >
@@ -29,10 +31,10 @@ const fallback = `${base}/1/live?kelompok=${group}`;
       data-group={group}
     >
       <h1 class="state-view__title">
-        {lang === "en" ? "Opening the live view…" : "Membuka ruang live…"}
+        {lang !== "id" ? "Opening the live view…" : "Membuka ruang live…"}
       </h1>
       <p class="state-view__body">
-        <a href={fallback}>{lang === "en" ? "Open it now" : "Buka sekarang"}</a>
+        <a href={fallback}>{lang !== "id" ? "Open it now" : "Buka sekarang"}</a>
       </p>
     </div>
   </main>

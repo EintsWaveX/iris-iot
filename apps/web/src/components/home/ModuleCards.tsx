@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { Switch } from "../ui/Controls";
 import { ProgressRing } from "../ui/Display";
-import { href, useMe, useSessionNow } from "../../lib/app";
+import { href, useMe, useSessionNow, dict } from "../../lib/app";
 import { getAksesState } from "../../scripts/modul-akses";
 import { setModulAkses } from "../shell/AsistenCommands";
 import { useProgres } from "../shared/useProgres";
@@ -25,7 +25,7 @@ export interface ModulKartu {
   berkas: { slug: string; blanks: number }[];
 }
 
-const T = {
+const T = dict({
   id: {
     modul: "Modul",
     run: "Berjalan",
@@ -46,7 +46,7 @@ const T = {
     access: (n: number) => `Open Module ${n} to students`,
     blanks: (b: number, t: number) => `${b}/${t} blanks`,
   },
-};
+});
 
 const PATHS: Record<number, string[]> = {
   1: ["M7 7l10 10-5 5V2l5 5L7 17"],

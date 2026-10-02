@@ -40,6 +40,7 @@
 import { useRef, type ReactNode } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
 import "./Dialog.css";
+import type { Lang } from "../../lib/kelas";
 
 interface Props {
   open: boolean;
@@ -52,7 +53,7 @@ interface Props {
    *  to breathe instead of wrapping every line. */
   size?: "md" | "lg" | "xl";
   /** Phase 8: the close button's accessible label follows the page language. */
-  lang?: "id" | "en";
+  lang?: Lang;
   children?: ReactNode;
   /** Rendered right-aligned in the footer, e.g. action buttons. */
   actions?: ReactNode;
@@ -106,7 +107,7 @@ export default function Dialog({
             )}
             <RadixDialog.Close
               className="btn btn--ghost btn--icon dialog__close"
-              aria-label={lang === "en" ? "Close" : "Tutup"}
+              aria-label={lang !== "id" ? "Close" : "Tutup"}
             >
               ×
             </RadixDialog.Close>

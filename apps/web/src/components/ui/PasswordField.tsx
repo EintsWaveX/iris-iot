@@ -6,10 +6,10 @@
 import { useId, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import "./PasswordField.css";
+import type { Lang } from "../../lib/kelas";
+import { dict } from "../../lib/app";
 
-type Lang = "id" | "en";
-
-const T = {
+const T = dict({
   id: {
     show: "Tampilkan kata sandi",
     hide: "Sembunyikan kata sandi",
@@ -20,7 +20,7 @@ const T = {
     hide: "Hide password",
     levels: ["Too short", "Weak", "Fair", "Strong", "Very strong"],
   },
-};
+});
 
 /** 0 (under 8 characters) to 4. */
 export function kekuatanSandi(pw: string): number {

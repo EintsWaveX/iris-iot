@@ -580,7 +580,7 @@ export default function Console({ lang }: { lang: Lang }) {
           sheetTitle={selGroup ? t.groupFull(selGroup.nomor) : ""}
           onCloseSheet={() => pick(null)}
           lang={lang}
-          handleLabel={lang === "en" ? "Resize panes" : "Ubah ukuran panel"}
+          handleLabel={lang !== "id" ? "Resize panes" : "Ubah ukuran panel"}
           labels={{
             board: t.boardTitle,
             inspector: t.groupFull(selGroup?.nomor ?? 1),

@@ -26,16 +26,17 @@ import { en as strEn } from "../i18n/en";
 import { getSketchSource } from "../lib/sketches";
 import { parseBlanks } from "../lib/blanks";
 import "../components/module/module.css";
+import { bahasaKonten, type Lang } from "../lib/kelas";
 
 interface Props {
-  lang: "id" | "en";
+  lang: Lang;
   modul: number;
 }
 
 const { lang, modul } = Astro.props;
-const t = lang === "en" ? strEn : strId;
-const en = lang === "en";
-const entry = await getEntry("modules", `${lang}/${modul}`);
+const t = lang !== "id" ? strEn : strId;
+const en = lang !== "id";
+const entry = await getEntry("modules", `${bahasaKonten(lang)}/${modul}`);
 if (!entry) {
   throw new Error(`no module content for ${lang}/${modul}`);
 }
@@ -135,7 +136,7 @@ const L = {
     <section id="modul" role="tabpanel" aria-labelledby="modul-tab" class="modpage__panel">
       <PdfViewer
         client:visible
-        url={`/handbook/${lang}/modul-${m.modul}.pdf`}
+        url={`/handbook/${bahasaKonten(lang)}/modul-${m.modul}.pdf`}
         name={t.modulDoc(m.modul)}
         lang={lang}
         shape="page"
@@ -317,7 +318,7 @@ const L = {
     const modul = Number(match[1]);
     const state = await getAksesState(true);
     if (!jurnalTertutup(state, modul)) return;
-    const en = document.documentElement.lang === "en";
+    const en = document.documentElement.lang !== "id";
     const t = en ? strEn : strId;
     const masuk = await fetch("/api/auth/me")
       .then((r) => r.json())

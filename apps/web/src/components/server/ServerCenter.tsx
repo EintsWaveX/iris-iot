@@ -38,7 +38,17 @@ import Confirm from "../ui/Confirm";
 import HoverCard from "../ui/HoverCard";
 import { OfflineBanner, StateView, UpdatedAgo } from "../ui/Display";
 import { usePoll } from "../../lib/hooks";
-import { dict, getJson, href, jamMenit, postJson, sejak, useMe, useTick } from "../../lib/app";
+import {
+  dict,
+  getJson,
+  href,
+  jamMenit,
+  postJson,
+  sejak,
+  useMe,
+  useTick,
+  localeOf,
+} from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { bacaHasilSiap, urutkanLayanan } from "../../lib/server-shared";
 import {
@@ -377,12 +387,12 @@ function fmtUptime(sec: number | null | undefined, lang: Lang): string {
   const d = Math.floor(sec / 86400);
   const h = Math.floor((sec % 86400) / 3600);
   const m = Math.floor((sec % 3600) / 60);
-  if (d > 0) return lang === "en" ? `${d} d ${h} h` : `${d} hari ${h} jam`;
-  return lang === "en" ? `${h} h ${m} min` : `${h} jam ${m} mnt`;
+  if (d > 0) return lang !== "id" ? `${d} d ${h} h` : `${d} hari ${h} jam`;
+  return lang !== "id" ? `${h} h ${m} min` : `${h} jam ${m} mnt`;
 }
 
 function fmtWhen(iso: string, lang: Lang): string {
-  return new Date(iso).toLocaleString(lang === "en" ? "en-GB" : "id-ID", {
+  return new Date(iso).toLocaleString(localeOf(lang), {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -1108,7 +1118,7 @@ function Overview({
         grid: { stroke: "rgba(255,255,255,0.06)" },
         ticks: { stroke: "rgba(255,255,255,0.1)" },
       };
-      const loc = lang === "en" ? "en-GB" : "id-ID";
+      const loc = localeOf(lang);
       const xAxis = {
         ...axis,
         values: (_u: unknown, vals: number[]) =>

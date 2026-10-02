@@ -1,3 +1,4 @@
+import type { Lang } from "./kelas";
 /**
  * Stage 11's simulator: plausible per-group message traffic for all four
  * modules, generated entirely client-side. Modelled on the RSSI-with-noise,
@@ -116,10 +117,10 @@ export function nextReading(modul: number, group: number): Reading {
  * network, data link, physical). Generalizes apps/modul4/src/ui-layers.js's
  * per-layer composition across all four modules, per the plan's own table
  * of what each layer means for each protocol. */
-export function describeLayers(reading: Reading, lang: "id" | "en" = "id"): string[] {
+export function describeLayers(reading: Reading, lang: Lang = "id"): string[] {
   const { modul, seq, rssi, snr, delayMs } = reading;
   const lost = reading.rx === null;
-  const en = lang === "en";
+  const en = lang !== "id";
   // Real Module 2/3 telemetry has arrived (not lost) but carries no delay
   // figure at all -- the Pi only ever observes the arrival side, never the
   // ESP32/Pico W's own send time. Simulated readings and Module 4's real

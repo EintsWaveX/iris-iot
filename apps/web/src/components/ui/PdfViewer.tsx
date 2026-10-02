@@ -9,11 +9,12 @@
 import { useRef } from "react";
 import type { Lang } from "../../lib/kelas";
 import "./PdfViewer.css";
+import { dict } from "../../lib/app";
 
-const T = {
+const T = dict({
   id: { full: "Layar penuh", tab: "Buka di tab baru" },
   en: { full: "Fullscreen", tab: "Open in a new tab" },
-};
+});
 
 export default function PdfViewer({
   url,

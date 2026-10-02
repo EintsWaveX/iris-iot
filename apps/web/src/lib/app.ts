@@ -124,21 +124,28 @@ export function useSessionNow(ms = 20_000, enabled = true) {
 
 /* --------------------------------------------------------------- i18n */
 
-/** Declare one string table per island: `const T = dict({ id: {...}, en: {...} })`.
- *  The English half is checked against the Indonesian one's shape. */
-export function dict<T>(d: { id: T; en: T }): { id: T; en: T } {
-  return d;
+/** Declare one string table per island: `const T = dict({ id: {...}, en: {...}, zh: {...} })`.
+ *  The English and Mandarin halves are checked against the Indonesian one's
+ *  shape. Mandarin is optional until Stage 8 and falls back to English. */
+export function dict<T>(d: { id: T; en: T; zh?: T }): Record<Lang, T> {
+  return { id: d.id, en: d.en, zh: d.zh ?? d.en };
 }
 
 export function pageLang(): Lang {
   if (typeof document === "undefined") return "id";
-  return document.documentElement.lang === "en" ? "en" : "id";
+  const l = document.documentElement.lang;
+  return l === "en" ? "en" : l.startsWith("zh") ? "zh" : "id";
+}
+
+/** The Intl locale for dates and numbers in each interface language. */
+export function localeOf(lang: Lang): string {
+  return lang === "en" ? "en-GB" : lang === "zh" ? "zh-CN" : "id-ID";
 }
 
 /** Prefix a path for the page language ("/dashboard" -> "/en/dashboard"). */
 export function href(lang: Lang, path: string): string {
   if (lang === "id") return path;
-  return path === "/" ? "/en/" : `/en${path}`;
+  return path === "/" ? `/${lang}/` : `/${lang}${path}`;
 }
 
 /* ------------------------------------------------------------- modules */
@@ -185,7 +192,7 @@ export function menitBerjalan(mulaiPada: string | null, now = Date.now()): numbe
 
 export function jamMenit(iso: string | Date, lang: Lang): string {
   const d = typeof iso === "string" ? new Date(iso) : iso;
-  return d.toLocaleTimeString(lang === "en" ? "en-GB" : "id-ID", {
+  return d.toLocaleTimeString(localeOf(lang), {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Asia/Jakarta",
@@ -196,11 +203,11 @@ export function jamMenit(iso: string | Date, lang: Lang): string {
 export function sejak(iso: string | null, lang: Lang, now = Date.now()): string {
   if (!iso) return "";
   const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
-  if (s < 60) return lang === "en" ? `${s} s ago` : `${s} dtk lalu`;
+  if (s < 60) return lang !== "id" ? `${s} s ago` : `${s} dtk lalu`;
   const m = Math.round(s / 60);
-  if (m < 60) return lang === "en" ? `${m} min ago` : `${m} mnt lalu`;
+  if (m < 60) return lang !== "id" ? `${m} min ago` : `${m} mnt lalu`;
   const h = Math.round(m / 60);
-  return lang === "en" ? `${h} h ago` : `${h} jam lalu`;
+  return lang !== "id" ? `${h} h ago` : `${h} jam lalu`;
 }
 
 /** Re-render every `ms` (for clocks and "N s ago" labels). */

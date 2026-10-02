@@ -20,8 +20,9 @@ import PinSchematic, { type PinData } from "./PinSchematic";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import "./CodeWorkspace.css";
+import { dict } from "../../lib/app";
 
-const T = {
+const T = dict({
   id: {
     pins: "Pin & skema",
     hide: "Sembunyikan panel pin",
@@ -34,7 +35,7 @@ const T = {
     show: "Show the pin panel",
     handle: "Resize the panels",
   },
-};
+});
 
 const OPEN_KEY = "iris-code-dock";
 

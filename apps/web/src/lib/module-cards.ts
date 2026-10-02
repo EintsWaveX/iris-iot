@@ -7,11 +7,12 @@ import { getEntry } from "astro:content";
 import { parseBlanks } from "./blanks";
 import { getSketchSource } from "./sketches";
 import type { ModulKartu } from "../components/home/ModuleCards";
+import { bahasaKonten, type Lang } from "./kelas";
 
-export async function moduleCards(lang: "id" | "en"): Promise<ModulKartu[]> {
+export async function moduleCards(lang: Lang): Promise<ModulKartu[]> {
   const out: ModulKartu[] = [];
   for (const n of [1, 2, 3, 4]) {
-    const entry = await getEntry("modules", `${lang}/${n}`);
+    const entry = await getEntry("modules", `${bahasaKonten(lang)}/${n}`);
     if (!entry) throw new Error(`no module content for ${lang}/${n}`);
     const m = entry.data;
     out.push({

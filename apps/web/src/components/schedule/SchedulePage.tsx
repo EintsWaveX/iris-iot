@@ -22,7 +22,7 @@ import Dropdown from "../ui/Dropdown";
 import SegmentedControl from "../ui/SegmentedControl";
 import { Switch } from "../ui/Controls";
 import { StateView } from "../ui/Display";
-import { getJson, href, postJson, useMe } from "../../lib/app";
+import { getJson, href, postJson, useMe, dict } from "../../lib/app";
 import { useMinWidth } from "../../lib/hooks";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { hariDariTanggal, semesterDariTanggal, type TagPengganti } from "../../lib/jadwal-parser";
@@ -46,7 +46,7 @@ interface Asisten {
 const HARI = [1, 2, 3, 4, 5, 6];
 const SLOTS = [1, 2, 3, 4];
 
-const T = {
+const T = dict({
   id: {
     title: "Jadwal mengajar",
     sub: "Asisten default per kelompok dan pengganti tiap slot. Pilih satu slot untuk mengubahnya.",
@@ -169,7 +169,7 @@ const T = {
     resize: "Resize panel",
     mySlots: (n: number) => `${n} teaching slots this week`,
   },
-};
+});
 type Tx = (typeof T)["id"];
 
 function semesterLabel(s: string, lang: Lang): string {
@@ -177,7 +177,7 @@ function semesterLabel(s: string, lang: Lang): string {
   const n = Number(y);
   const tahun = jenis === "ganjil" ? `${n}/${n + 1}` : `${n - 1}/${n}`;
   const nama =
-    jenis === "ganjil" ? (lang === "en" ? "Odd" : "Ganjil") : lang === "en" ? "Even" : "Genap";
+    jenis === "ganjil" ? (lang !== "id" ? "Odd" : "Ganjil") : lang !== "id" ? "Even" : "Genap";
   return `${nama} ${tahun}`;
 }
 

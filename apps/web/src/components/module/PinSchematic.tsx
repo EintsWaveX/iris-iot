@@ -20,7 +20,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Maximize2 } from "lucide-react";
 import SchematicViewer from "../ui/SchematicViewer";
-import { getJson } from "../../lib/app";
+import { getJson, dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import "./PinSchematic.css";
 
@@ -47,7 +47,7 @@ interface Board {
   wires: Wire[];
 }
 
-const T = {
+const T = dict({
   id: {
     wiring: "Diagram rangkaian",
     schematic: "Skema asli",
@@ -66,7 +66,7 @@ const T = {
     hint: "Point at a table row or a wire to trace the connection.",
     board: "Board",
   },
-};
+});
 
 function kindOf(pin: string): Kind {
   const p = pin.toUpperCase();

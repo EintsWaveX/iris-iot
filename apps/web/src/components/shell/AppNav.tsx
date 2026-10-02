@@ -36,7 +36,7 @@ import {
 import Dialog from "../ui/Dialog";
 import { Kbd } from "../ui/Controls";
 import { dict, href, meChanged, postJson, useMe, useSessionNow, type Me } from "../../lib/app";
-import { langForKelas, pathForLang, type Lang } from "../../lib/kelas";
+import { langForKelas, langOfPath, pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";
 import SessionMiniBar from "./SessionMiniBar";
 import IdentityWatch from "./IdentityWatch";
@@ -179,7 +179,7 @@ export default function AppNav({
   // comes from the address after hydration.
   const [lang, setLang] = useState<Lang>(built);
   useEffect(() => {
-    if (langFromUrl && /^\/en(\/|$)/.test(location.pathname)) setLang("en");
+    if (langFromUrl) setLang(langOfPath(location.pathname));
   }, [langFromUrl]);
   const t = T[lang];
   const me = useMe();
@@ -219,10 +219,10 @@ export default function AppNav({
     }
   }, [me, now.data, lang]);
 
-  function switchLang() {
-    const other: Lang = lang === "id" ? "en" : "id";
-    saveLangPref(other);
-    location.assign(pathForLang(location.pathname + location.search + location.hash, other));
+  function switchLang(to: Lang = lang === "id" ? "en" : "id") {
+    if (to === lang) return;
+    saveLangPref(to);
+    location.assign(pathForLang(location.pathname + location.search + location.hash, to));
   }
 
   async function signOut() {
@@ -289,7 +289,7 @@ export default function AppNav({
           <button
             type="button"
             className="appnav__lang"
-            onClick={switchLang}
+            onClick={() => switchLang()}
             lang={lang === "id" ? "en" : "id"}
           >
             <span>{lang === "id" ? "EN" : "ID"}</span>
@@ -430,7 +430,7 @@ function AccountMenu({
   t: (typeof T)["id"];
   me: Me;
   lang: Lang;
-  onLang: () => void;
+  onLang: (to: Lang) => void;
   onShortcuts: () => void;
   onSignOut: () => void;
 }) {
@@ -467,20 +467,23 @@ function AccountMenu({
       <div className="acct__group">
         <span className="acct__label">{t.language}</span>
         <div className="acct__seg" role="group" aria-label={t.language}>
-          <button
-            type="button"
-            aria-pressed={lang === "id"}
-            onClick={() => lang !== "id" && onLang()}
-          >
-            Indonesia
-          </button>
-          <button
-            type="button"
-            aria-pressed={lang === "en"}
-            onClick={() => lang !== "en" && onLang()}
-          >
-            English
-          </button>
+          {(
+            [
+              ["id", "Indonesia"],
+              ["en", "English"],
+              ["zh", "中文"],
+            ] as const
+          ).map(([v, l]) => (
+            <button
+              key={v}
+              type="button"
+              lang={v}
+              aria-pressed={lang === v}
+              onClick={() => onLang(v)}
+            >
+              {l}
+            </button>
+          ))}
         </div>
       </div>
 

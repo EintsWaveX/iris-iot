@@ -25,7 +25,7 @@ import DateRangePicker from "../ui/DateRangePicker";
 import ScrollArea from "../ui/ScrollArea";
 import { CountUp, StateView } from "../ui/Display";
 import FeedbackSummary from "../shared/FeedbackSummary";
-import { getJson, href, MODUL_NAMA, namaKelompok, useMe } from "../../lib/app";
+import { getJson, href, MODUL_NAMA, namaKelompok, useMe, localeOf, dict } from "../../lib/app";
 import { unduhCsv } from "../../lib/csv";
 import { onTablistKeyDown } from "../../lib/tablist-keys";
 import type { Lang } from "../../lib/kelas";
@@ -36,7 +36,7 @@ import "./Reports.css";
 
 /* ---------------------------------------------------------------- copy */
 
-const T = {
+const T = dict({
   id: {
     title: "Laporan",
     sub: "Riwayat sesi, ringkasan tiap modul, umpan balik lab dan log audit.",
@@ -238,7 +238,7 @@ const T = {
       perangkat_tampilkan: "Showed a device",
     } as Record<string, string>,
   },
-};
+});
 type Tx = (typeof T)["id"];
 
 const KELOMPOK_WARNA = ["#7dd3fc", "#c4b5fd", "#fca5a5", "#fdba74", "#67e8f9"];
@@ -252,7 +252,7 @@ function fmtDurasi(sec: number | null, t: Tx): string {
 
 function fmtTanggal(iso: string, lang: Lang): string {
   const [y, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(lang === "en" ? "en-GB" : "id-ID", {
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(localeOf(lang), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -261,7 +261,7 @@ function fmtTanggal(iso: string, lang: Lang): string {
 }
 
 function fmtWaktu(iso: string, lang: Lang): string {
-  return new Date(iso).toLocaleString(lang === "en" ? "en-GB" : "id-ID", {
+  return new Date(iso).toLocaleString(localeOf(lang), {
     hour: "2-digit",
     minute: "2-digit",
     day: "2-digit",

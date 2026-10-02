@@ -15,20 +15,22 @@ import PageHeader from "../components/ui/PageHeader.astro";
 import LiveWorkspace from "../components/live/LiveWorkspace";
 import { id as strId } from "../i18n/id";
 import { en as strEn } from "../i18n/en";
+import { bahasaKonten, type Lang } from "../lib/kelas";
+import { href } from "../lib/app";
 
 interface Props {
-  lang: "id" | "en";
+  lang: Lang;
   modul: number;
 }
 
 const { lang, modul } = Astro.props;
-const t = lang === "en" ? strEn : strId;
-const entry = await getEntry("modules", `${lang}/${modul}`);
+const t = lang !== "id" ? strEn : strId;
+const entry = await getEntry("modules", `${bahasaKonten(lang)}/${modul}`);
 if (!entry) {
   throw new Error(`no module content for ${lang}/${modul}`);
 }
 const m = entry.data;
-const basePath = lang === "en" ? "/en/modules" : "/modules";
+const basePath = href(lang, "/modules");
 ---
 
 <Base
@@ -64,12 +66,12 @@ const basePath = lang === "en" ? "/en/modules" : "/modules";
   function checkAkses() {
     const match = /\/modules\/(\d)\/live(?:\/|$)/.exec(location.pathname);
     if (!match) return;
-    const t = document.documentElement.lang === "en" ? strEn : strId;
+    const t = document.documentElement.lang !== "id" ? strEn : strId;
     const heading = document.querySelector(".page-header__title");
     void applyLockScreen(
       Number(match[1]),
       t.jurnal.body,
-      document.documentElement.lang === "en" ? "locked for students" : "terkunci untuk praktikan",
+      document.documentElement.lang !== "id" ? "locked for students" : "terkunci untuk praktikan",
       heading,
     );
   }

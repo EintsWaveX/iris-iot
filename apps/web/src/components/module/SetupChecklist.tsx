@@ -8,11 +8,12 @@ import { useEffect, useState } from "react";
 import { Checkbox } from "../ui/Controls";
 import { ProgressRing } from "../ui/Display";
 import type { Lang } from "../../lib/kelas";
+import { dict } from "../../lib/app";
 
-const T = {
+const T = dict({
   id: { done: "Persiapan lengkap. Saatnya menulis kode.", go: "Lanjut ke Kode", reset: "Ulangi" },
   en: { done: "Setup complete. Time to write the code.", go: "Go to Code", reset: "Reset" },
-};
+});
 
 export const setupKey = (modul: number) => `iris-setup-m${modul}`;
 

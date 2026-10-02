@@ -10,6 +10,8 @@ import { RAILS, nextReading, describeLayers, type Reading } from "../lib/telemet
 import GroupPicker from "./ui/GroupPicker";
 import "./LayerXray.css";
 import "./LiveSandbox.css";
+import type { Lang } from "../lib/kelas";
+import { dict } from "../lib/app";
 
 interface LayerCaption {
   nama: string;
@@ -20,10 +22,10 @@ interface Props {
   modul: number;
   groups: number[];
   layers: LayerCaption[];
-  lang?: "id" | "en";
+  lang?: Lang;
 }
 
-const T = {
+const T = dict({
   id: {
     fire: "Kirim pesan uji",
     lost: (n: number) => `#${n} hilang di tengah jalan`,
@@ -34,7 +36,7 @@ const T = {
     lost: (n: number) => `#${n} was lost on the way`,
     ok: (r: Reading) => `#${r.seq} · sent ${r.tx} · received ${r.rx} · delta ${r.delayMs} ms`,
   },
-};
+});
 
 export default function LiveSandbox({ modul, groups, layers, lang = "id" }: Props) {
   const t = T[lang];

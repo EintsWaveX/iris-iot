@@ -15,6 +15,7 @@ import {
   useMe,
   useSessionNow,
   useTick,
+  dict,
 } from "../../lib/app";
 import { hariIniWib, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { slotBerikutnya, type BarisJadwal, type SlotBerikutnya } from "../../lib/jadwal-next";
@@ -22,7 +23,7 @@ import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
 import type { Lang } from "../../lib/kelas";
 import "./HomeHero.css";
 
-const T = {
+const T = dict({
   id: {
     eyebrow: "Praktikum IoT · Laboratorium IRIS",
     title: ["Empat modul.", "Satu papan."],
@@ -71,7 +72,7 @@ const T = {
     noSlot: "No teaching slots this week.",
     hari: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
   },
-};
+});
 
 function menitWib(): number {
   const parts = new Intl.DateTimeFormat("en-GB", {

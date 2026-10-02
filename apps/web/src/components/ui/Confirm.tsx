@@ -7,8 +7,7 @@
  */
 import { useState, type ReactNode } from "react";
 import Dialog from "./Dialog";
-
-type Lang = "id" | "en";
+import type { Lang } from "../../lib/kelas";
 
 export default function Confirm({
   open,
@@ -58,7 +57,7 @@ export default function Confirm({
             disabled={busy}
             onClick={() => onOpenChange(false)}
           >
-            {cancelLabel ?? (lang === "en" ? "Cancel" : "Batal")}
+            {cancelLabel ?? (lang !== "id" ? "Cancel" : "Batal")}
           </button>
           <button
             type="button"

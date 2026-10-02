@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { RatingPicker } from "../ui/Display";
-import { postJson } from "../../lib/app";
+import { postJson, dict } from "../../lib/app";
 import {
   CHIPS_ASISTEN,
   CHIPS_LAB,
@@ -17,9 +17,9 @@ import {
   RATING_BUTUH_ALASAN,
   kurangAlasan,
 } from "../../lib/umpan-balik";
-import type { Lang } from "../../lib/kelas";
+import { bahasaKonten, type Lang } from "../../lib/kelas";
 
-const T = {
+const T = dict({
   id: {
     anon: "Anonim. Asisten tidak pernah melihat nama atau NIM kamu.",
     asisten: (k: string) => `Asisten kelompokmu: ${k}`,
@@ -73,7 +73,7 @@ const T = {
     alasan: "A low rating needs a reason: pick a quick option or write a short comment.",
     alasanHint: "Say what fell short so it can be fixed.",
   },
-};
+});
 
 function Chips({
   keys,
@@ -99,7 +99,7 @@ function Chips({
             onClick={() => onChange(on ? value.filter((x) => x !== k) : [...value, k])}
           >
             {on && <Check size={14} aria-hidden="true" />}
-            {LABEL_CHIP[k]?.[lang] ?? k}
+            {LABEL_CHIP[k]?.[bahasaKonten(lang)] ?? k}
           </button>
         );
       })}

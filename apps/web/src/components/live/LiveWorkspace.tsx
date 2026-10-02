@@ -21,7 +21,7 @@ import ScrollArea from "../ui/ScrollArea";
 import SegmentedControl from "../ui/SegmentedControl";
 import { UpdatedAgo } from "../ui/Display";
 import LiveSandbox from "../LiveSandbox";
-import { useMe, useTick } from "../../lib/app";
+import { useMe, useTick, dict } from "../../lib/app";
 import { useMinWidth } from "../../lib/hooks";
 import { RAILS, describeLayers, type Reading } from "../../lib/telemetry-sim";
 import type { Lang } from "../../lib/kelas";
@@ -38,7 +38,7 @@ interface Layer {
 
 const GROUPS = [1, 2, 3, 4, 5];
 
-const T = {
+const T = dict({
   id: {
     modeLive: "Langsung",
     modeTry: "Coba sendiri",
@@ -142,7 +142,7 @@ const T = {
     showLayers: "Show layers",
     hideLayers: "Hide layers",
   },
-};
+});
 type Tx = (typeof T)["id"];
 
 function shortTime(t: string | null): string {

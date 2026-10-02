@@ -9,7 +9,7 @@ import type { CSSProperties } from "react";
 import { Star } from "lucide-react";
 import { LABEL_CHIP, type Ringkasan } from "../../lib/umpan-balik";
 import { sejak } from "../../lib/app";
-import type { Lang } from "../../lib/kelas";
+import { bahasaKonten, type Lang } from "../../lib/kelas";
 import "./FeedbackSummary.css";
 
 export default function FeedbackSummary({
@@ -62,7 +62,8 @@ export default function FeedbackSummary({
         <div className="row">
           {data.chips.slice(0, 5).map((c) => (
             <span key={c.chip} className="pill">
-              {LABEL_CHIP[c.chip]?.[lang] ?? c.chip} · <span className="num">{c.n}</span>
+              {LABEL_CHIP[c.chip]?.[bahasaKonten(lang)] ?? c.chip} ·{" "}
+              <span className="num">{c.n}</span>
             </span>
           ))}
         </div>

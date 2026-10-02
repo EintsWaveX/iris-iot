@@ -19,6 +19,8 @@ import {
   menitBerjalan,
   useMe,
   useSessionNow,
+  localeOf,
+  dict,
 } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import { SESI_CAP_MENIT } from "../../lib/jadwal";
@@ -53,7 +55,7 @@ interface Hasil {
   lengkap?: boolean;
 }
 
-const T = {
+const T = dict({
   id: {
     halo: (n: string) => `Halo, ${n}`,
     kelompok: (k: number) => `Kelompok ${k}`,
@@ -204,7 +206,7 @@ const T = {
     gagal: "Could not load the dashboard.",
     coba: "Try again",
   },
-};
+});
 
 type Tx = (typeof T)["id"];
 
@@ -327,7 +329,7 @@ function MyPracticums({
 }) {
   if (!list) return <span className="skeleton" style={{ height: 96 }} />;
   if (list.length === 0) return <p className="dash__muted">{t.praktikumKosong}</p>;
-  const fmt = new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "id-ID", {
+  const fmt = new Intl.DateTimeFormat(localeOf(lang), {
     day: "numeric",
     month: "short",
   });

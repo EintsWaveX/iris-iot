@@ -19,7 +19,7 @@ function uptime(sec: number | null | undefined, lang: Lang): string {
   if (!sec) return "·";
   const d = Math.floor(sec / 86400);
   const h = Math.floor((sec % 86400) / 3600);
-  return lang === "en" ? `${d} d ${h} h` : `${d} hari ${h} jam`;
+  return lang !== "id" ? `${d} d ${h} h` : `${d} hari ${h} jam`;
 }
 
 export default function ServerDrawer({
@@ -53,7 +53,7 @@ export default function ServerDrawer({
       storeKey="console-server"
       defaultWidth={480}
       closeLabel={t.close}
-      resizeLabel={lang === "en" ? "Resize the drawer" : "Ubah lebar laci"}
+      resizeLabel={lang !== "id" ? "Resize the drawer" : "Ubah lebar laci"}
     >
       {list.length === 0 ? (
         <p className="empty-note">{t.drawerNone}</p>

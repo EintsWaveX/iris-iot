@@ -10,15 +10,16 @@ import Base from "../layouts/Base.astro";
 import Dashboard, { type ModulInfo } from "../components/dashboard/Dashboard";
 import { getSketchSource } from "../lib/sketches";
 import { parseBlanks } from "../lib/blanks";
+import { bahasaKonten, type Lang } from "../lib/kelas";
 
 interface Props {
-  lang: "id" | "en";
+  lang: Lang;
 }
 const { lang } = Astro.props;
 
 const modules: ModulInfo[] = [];
 for (const n of [1, 2, 3, 4]) {
-  const entry = await getEntry("modules", `${lang}/${n}`);
+  const entry = await getEntry("modules", `${bahasaKonten(lang)}/${n}`);
   if (!entry) throw new Error(`no module content for ${lang}/${n}`);
   const m = entry.data;
   modules.push({
@@ -36,7 +37,7 @@ for (const n of [1, 2, 3, 4]) {
 ---
 
 <Base
-  title={lang === "en" ? "Dashboard · IRIS IoT" : "Dasbor · IRIS IoT"}
+  title={lang !== "id" ? "Dashboard · IRIS IoT" : "Dasbor · IRIS IoT"}
   lang={lang}
   cosmosScene="kerja"
 >

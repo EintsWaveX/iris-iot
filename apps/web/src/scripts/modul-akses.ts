@@ -114,7 +114,7 @@ export async function applyLockScreen(
   if (!main) return false;
   // Phase 8: the app's own lock screen (icon, title, message, a way back)
   // instead of a bare paragraph. Built with DOM calls, never innerHTML.
-  const en = document.documentElement.lang === "en";
+  const en = document.documentElement.lang !== "id";
   main.replaceChildren();
   const wrap = document.createElement("div");
   wrap.className = "lockscreen";

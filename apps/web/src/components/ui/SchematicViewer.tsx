@@ -18,10 +18,10 @@ import {
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { Maximize2, Minus, Plus, X, Download } from "lucide-react";
 import "./SchematicViewer.css";
+import type { Lang } from "../../lib/kelas";
+import { dict } from "../../lib/app";
 
-type Lang = "id" | "en";
-
-const T = {
+const T = dict({
   id: {
     in: "Perbesar",
     out: "Perkecil",
@@ -38,7 +38,7 @@ const T = {
     hint: "Scroll or pinch to zoom, drag to pan.",
     open: "Open the original image",
   },
-};
+});
 
 const MIN = 0.5;
 const MAX = 6;

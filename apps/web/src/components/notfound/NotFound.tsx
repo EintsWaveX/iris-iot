@@ -4,11 +4,11 @@
  * English) and the way back is role-aware once /me answers.
  */
 import { useEffect, useState } from "react";
-import { href, useMe } from "../../lib/app";
+import { href, useMe, dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import "./NotFound.css";
 
-const T = {
+const T = dict({
   id: {
     eyebrow: "Halaman tidak ditemukan",
     title: "Tersesat di orbit.",
@@ -27,7 +27,7 @@ const T = {
     dash: "Dashboard",
     console: "Console",
   },
-};
+});
 
 export default function NotFound() {
   const [lang, setLang] = useState<Lang>("id");

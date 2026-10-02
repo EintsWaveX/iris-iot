@@ -44,11 +44,12 @@ import Cosmos from "../components/Cosmos.astro";
 import LoginDialog from "../components/LoginDialog";
 import AppNav from "../components/shell/AppNav";
 import Toast from "../components/ui/Toast";
+import { langTag, type Lang } from "../lib/kelas";
 
 interface Props {
   title: string;
   description?: string;
-  lang?: "id" | "en";
+  lang?: Lang;
   /**
    * Which of packages/kosmik/js/cosmos.core.js's scenes this page's sky
    * runs -- see that file's SCENES object and Stage 3's per-page table.
@@ -76,7 +77,7 @@ const {
 ---
 
 <!doctype html>
-<html lang={lang} data-cosmos-scene={cosmosScene}>
+<html lang={langTag(lang)} data-cosmos-scene={cosmosScene}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -89,7 +90,7 @@ const {
   <body>
     <Cosmos />
     <a class="skip-link" href="#main">
-      {lang === "en" ? "Skip to content" : "Lewati ke isi"}
+      {lang !== "id" ? "Skip to content" : "Lewati ke isi"}
     </a>
     {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />}
     <LoginDialog client:load lang={lang} />

@@ -5,15 +5,16 @@
  */
 import Base from "../layouts/Base.astro";
 import SchedulePage from "../components/schedule/SchedulePage";
+import type { Lang } from "../lib/kelas";
 
 interface Props {
-  lang: "id" | "en";
+  lang: Lang;
 }
 const { lang } = Astro.props;
 ---
 
 <Base
-  title={lang === "en" ? "Schedule · IRIS IoT" : "Jadwal · IRIS IoT"}
+  title={lang !== "id" ? "Schedule · IRIS IoT" : "Jadwal · IRIS IoT"}
   lang={lang}
   cosmosScene="teknis"
 >

@@ -9,9 +9,10 @@ import Base from "../layouts/Base.astro";
 import HomeHero from "../components/home/HomeHero";
 import ModuleCards from "../components/home/ModuleCards";
 import { moduleCards } from "../lib/module-cards";
+import type { Lang } from "../lib/kelas";
 
 interface Props {
-  lang: "id" | "en";
+  lang: Lang;
 }
 const { lang } = Astro.props;
 const modules = await moduleCards(lang);
@@ -20,7 +21,7 @@ const modules = await moduleCards(lang);
 <Base
   title="IRIS IoT"
   description={
-    lang === "en"
+    lang !== "id"
       ? "The IRIS IoT practicum. Four modules, one board."
       : "Praktikum IoT IRIS. Empat modul, satu papan."
   }

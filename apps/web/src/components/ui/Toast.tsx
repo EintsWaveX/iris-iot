@@ -128,7 +128,7 @@ export default function Toast() {
             <button
               type="button"
               className="toast__close"
-              aria-label={document.documentElement.lang === "en" ? "Close" : "Tutup"}
+              aria-label={document.documentElement.lang !== "id" ? "Close" : "Tutup"}
               onClick={() => hide(t.id)}
             >
               <X size={16} aria-hidden="true" />

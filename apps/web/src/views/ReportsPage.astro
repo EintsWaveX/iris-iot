@@ -6,15 +6,16 @@
  */
 import Base from "../layouts/Base.astro";
 import Reports from "../components/reports/Reports";
+import type { Lang } from "../lib/kelas";
 
 interface Props {
-  lang: "id" | "en";
+  lang: Lang;
 }
 const { lang } = Astro.props;
 ---
 
 <Base
-  title={lang === "en" ? "Reports · IRIS IoT" : "Laporan · IRIS IoT"}
+  title={lang !== "id" ? "Reports · IRIS IoT" : "Laporan · IRIS IoT"}
   lang={lang}
   cosmosScene="teknis"
 >

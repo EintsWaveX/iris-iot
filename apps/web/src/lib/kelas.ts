@@ -10,8 +10,23 @@
 export const KELAS = ["reguler", "internasional"] as const;
 export type Kelas = (typeof KELAS)[number];
 
-export type Lang = "id" | "en";
-export const LANGS: readonly Lang[] = ["id", "en"];
+/** Phase 9: Mandarin (Simplified) is the third interface language, under
+ *  /zh/. The handbook, journals and sketches stay Indonesian and English,
+ *  so a Mandarin reader gets the English content (bahasaKonten). */
+export type Lang = "id" | "en" | "zh";
+export const LANGS: readonly Lang[] = ["id", "en", "zh"];
+
+/** The language content exists in (modules, handbook, sketches, journals). */
+export type BahasaKonten = "id" | "en";
+
+export function bahasaKonten(lang: Lang): BahasaKonten {
+  return lang === "id" ? "id" : "en";
+}
+
+/** The BCP 47 tag for <html lang> and Intl formatting. */
+export function langTag(lang: Lang): string {
+  return lang === "zh" ? "zh-Hans" : lang;
+}
 
 /** Cookie + localStorage key for a person's own language choice. */
 export const LANG_PREF_KEY = "iris-lang";
@@ -21,7 +36,7 @@ export function isKelas(v: unknown): v is Kelas {
 }
 
 export function isLang(v: unknown): v is Lang {
-  return v === "id" || v === "en";
+  return v === "id" || v === "en" || v === "zh";
 }
 
 /** The language a class type defaults to. */
@@ -40,16 +55,25 @@ export function resolveLang(pref: unknown, kelas: Kelas | null | undefined): Lan
 }
 
 /**
- * Map a path to its counterpart in the other language, keeping the same
- * page: "/modules/2/live" <-> "/en/modules/2/live", "/" <-> "/en/".
- * Query and hash are preserved.
+ * Map a path to its counterpart in another language, keeping the same
+ * page: "/modules/2/live" <-> "/en/modules/2/live" <-> "/zh/modules/2/live",
+ * "/" <-> "/en/" <-> "/zh/". Query and hash are preserved.
  */
 export function pathForLang(path: string, lang: Lang): string {
   const m = /^([^?#]*)(.*)$/.exec(path);
   const pathname = m ? m[1] : path;
   const rest = m ? m[2] : "";
-  const bare =
-    pathname === "/en" ? "/" : pathname.startsWith("/en/") ? pathname.slice(3) : pathname;
+  const bare = /^\/(en|zh)$/.test(pathname)
+    ? "/"
+    : /^\/(en|zh)\//.test(pathname)
+      ? pathname.slice(3)
+      : pathname;
   if (lang === "id") return (bare || "/") + rest;
-  return (bare === "/" ? "/en/" : "/en" + bare) + rest;
+  return (bare === "/" ? `/${lang}/` : `/${lang}` + bare) + rest;
+}
+
+/** The language a path is in, from its prefix. */
+export function langOfPath(pathname: string): Lang {
+  const m = /^\/(en|zh)(\/|$)/.exec(pathname);
+  return m ? (m[1] as Lang) : "id";
 }

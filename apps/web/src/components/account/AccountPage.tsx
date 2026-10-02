@@ -16,16 +16,16 @@ import PasswordField, { kekuatanSandi } from "../ui/PasswordField";
 import SegmentedControl from "../ui/SegmentedControl";
 import { StateView } from "../ui/Display";
 import FeedbackSummary from "../shared/FeedbackSummary";
-import { getJson, href, KELOMPOK_NAMA, meChanged, postJson, useMe } from "../../lib/app";
+import { getJson, href, KELOMPOK_NAMA, meChanged, postJson, useMe, dict } from "../../lib/app";
 import { clearLangPref, readLangPref, saveLangPref } from "../../lib/hooks";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { semesterDariTanggal } from "../../lib/jadwal-parser";
-import { pathForLang, type Lang } from "../../lib/kelas";
+import { bahasaKonten, pathForLang, type Lang } from "../../lib/kelas";
 import type { BarisJadwal } from "../../lib/jadwal-next";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import "./AccountPage.css";
 
-const T = {
+const T = dict({
   id: {
     title: "Akun",
     asisten: "Asisten",
@@ -108,7 +108,7 @@ const T = {
     needLogin: "Sign in to see your account.",
     masuk: "Sign in",
   },
-};
+});
 type Tx = (typeof T)["id"];
 
 function PasswordForm({ t, lang, first }: { t: Tx; lang: Lang; first: boolean }) {
@@ -282,7 +282,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
             <span className="pill pill--mono">
               {t.nim} {me.nim}
             </span>
-            {asisten && me.divisi && <span className="pill">{me.divisi[lang]}</span>}
+            {asisten && me.divisi && <span className="pill">{me.divisi[bahasaKonten(lang)]}</span>}
             {!asisten && k > 0 && (
               <span
                 className="pill pill--group"
@@ -312,6 +312,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
                 { value: "auto", label: t.auto },
                 { value: "id", label: "Bahasa Indonesia" },
                 { value: "en", label: "English" },
+                { value: "zh", label: "中文" },
               ]}
             />
           </section>

@@ -11,12 +11,13 @@ import type { Reading } from "../../lib/telemetry-sim";
 import type { Lang } from "../../lib/kelas";
 import type { Telemetry } from "./useTelemetry";
 import { serialSupported, useSerialBoard, type BoardStatus } from "./useSerialBoard";
+import { dict } from "../../lib/app";
 
 const HISTORY_MAX = 80;
 const UPLOAD_MS = 1500;
 const QUEUE_MAX = 200;
 
-const T = {
+const T = dict({
   id: {
     title: "Papan di PC ini",
     intro:
@@ -84,7 +85,7 @@ const T = {
     offline: "Not sent yet, retrying…",
     log: "Board output",
   },
-};
+});
 type Tx = (typeof T)["id"];
 
 function BoardSlot({

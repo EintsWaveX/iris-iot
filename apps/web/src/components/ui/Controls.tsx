@@ -33,8 +33,8 @@ import { format, parseISO, isValid } from "date-fns";
 import { CalendarDays, Check, Upload, Loader2, AlertCircle, Lock } from "lucide-react";
 import Popover from "./Popover";
 import "./Controls.css";
-
-type Lang = "id" | "en";
+import type { Lang } from "../../lib/kelas";
+import { dict } from "../../lib/app";
 
 /* ------------------------------------------------------------- Checkbox */
 
@@ -109,10 +109,10 @@ export function Switch({
 
 /* ----------------------------------------------------------- DatePicker */
 
-const DP_TEXT = {
+const DP_TEXT = dict({
   id: { pick: "Pilih tanggal", today: "Hari ini", fmt: "EEEE, d MMMM yyyy" },
   en: { pick: "Pick a date", today: "Today", fmt: "EEEE, d MMMM yyyy" },
-};
+});
 
 /** `value` and `onChange` use ISO dates ("2026-09-29"), the API's format. */
 export function DatePicker({
@@ -130,7 +130,7 @@ export function DatePicker({
 }) {
   const [open, setOpen] = useState(false);
   const t = DP_TEXT[lang];
-  const locale = lang === "en" ? enUS : localeId;
+  const locale = lang !== "id" ? enUS : localeId;
   const parsed = value ? parseISO(value) : undefined;
   const date = parsed && isValid(parsed) ? parsed : undefined;
   const autoId = useId();
@@ -187,7 +187,7 @@ export function DatePicker({
 
 /* ------------------------------------------------------------- FileDrop */
 
-const FD_TEXT = {
+const FD_TEXT = dict({
   id: {
     drop: "Seret berkas ke sini",
     or: "atau",
@@ -206,7 +206,7 @@ const FD_TEXT = {
     type: "This file type is not accepted.",
     size: (mb: number) => `The file is too large. Up to ${mb} MB.`,
   },
-};
+});
 
 export function FileDrop({
   accept,

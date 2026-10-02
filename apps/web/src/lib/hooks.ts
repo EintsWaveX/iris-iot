@@ -158,7 +158,7 @@ export function readLangPref(): Lang | null {
     /* storage blocked: fall through to the cookie */
   }
   if (typeof document !== "undefined") {
-    const m = document.cookie.match(new RegExp(`(?:^|; )${LANG_PREF_KEY}=(id|en)`));
+    const m = document.cookie.match(new RegExp(`(?:^|; )${LANG_PREF_KEY}=(id|en|zh)`));
     if (m && isLang(m[1])) return m[1];
   }
   return null;
