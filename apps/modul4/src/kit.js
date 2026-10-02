@@ -122,6 +122,9 @@
     return str.replace(/[^\s]+/g, (w) => {
       const lead = first;
       first = /[:·.!?]$/.test(w) || w === "·";
+      /* "8-facing" reads "8-Facing": a number joined to a word */
+      const nw = w.match(/^(\d+-)([a-z])(.*)$/);
+      if (nw) return nw[1] + nw[2].toUpperCase() + nw[3];
       const m = w.match(/^([("“']*)([a-zà-ɏ][a-zà-ɏ'’]*)(.*)$/);
       if (!m || /[0-9_@/]/.test(w)) return w;
       if (!lead && JOIN.has(m[2])) return w;
