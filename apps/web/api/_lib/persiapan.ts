@@ -18,6 +18,11 @@
  * GET  susulan                    the open susulan drafts
  * POST susulan { tanggal, mulai, modul, jumlahKelompok }
  *                                 a new draft (status terjadwal)
+ * POST susulan { tanggal, mulai, lanjutanDari, kelompok: [nomor] }
+ *                                 (c-next) the groups of an ended session
+ *                                 that didn't finish carry on: their
+ *                                 members, numbered from 1 in the order
+ *                                 given, and the module of that session
  *
  * Rosters belong to the slot and are reused every week; a Praktikan sits in
  * one slot per semester. Editing a slot's roster takes the Jadwal right or
@@ -35,6 +40,7 @@ import {
   rosterSlot,
   rosterSusulan,
   sesi,
+  sesiAnggota,
 } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
@@ -445,8 +451,26 @@ export async function handleSusulanPost(
   const body = jsonBody(req);
   const tanggal = typeof body.tanggal === "string" ? body.tanggal : "";
   const mulai = typeof body.mulai === "string" ? body.mulai : "";
-  const modul = Number(body.modul);
-  const jumlah = Number(body.jumlahKelompok ?? 5);
+  // Carrying groups over from an ended session (c-next).
+  const dari = Number(body.lanjutanDari);
+  const lanjut = Number.isInteger(dari) && dari > 0;
+  const pilih = Array.isArray(body.kelompok)
+    ? [...new Set(body.kelompok.map(Number))].filter(
+        (n) => Number.isInteger(n) && n >= 1 && n <= KELOMPOK_MAKS,
+      )
+    : [];
+  let asal: { modul: number; status: string } | null = null;
+  if (lanjut) {
+    [asal] = await getDb()
+      .select({ modul: sesi.modul, status: sesi.status })
+      .from(sesi)
+      .where(eq(sesi.id, dari))
+      .limit(1);
+    if (!asal || asal.status !== "selesai") return tolak(res, "sesi_tidak_ada");
+    if (pilih.length === 0) return tolak(res, "format_salah");
+  }
+  const modul = asal ? asal.modul : Number(body.modul);
+  const jumlah = lanjut ? pilih.length : Number(body.jumlahKelompok ?? 5);
   if (
     !TANGGAL_RE.test(tanggal) ||
     !JAM_RE.test(mulai) ||
@@ -462,19 +486,47 @@ export async function handleSusulanPost(
     return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "pair" });
   }
   try {
-    const [row] = await getDb()
-      .insert(sesi)
-      .values({
-        tanggal,
-        mulai,
-        modul,
-        status: "terjadwal",
-        jenis: "susulan",
-        jumlahKelompok: jumlah,
-      })
-      .returning({ id: sesi.id });
-    await writeAudit(session.nim, "susulan_draf", { sesiId: row.id, tanggal, mulai, modul });
-    res.status(200).json({ ok: true, id: row.id });
+    const db = getDb();
+    const { id, disalin } = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(sesi)
+        .values({
+          tanggal,
+          mulai,
+          modul,
+          status: "terjadwal",
+          jenis: "susulan",
+          jumlahKelompok: jumlah,
+          lanjutanDari: lanjut ? dari : null,
+        })
+        .returning({ id: sesi.id });
+      if (!lanjut) return { id: row.id, disalin: 0 };
+      const orang = await tx
+        .select({ nim: sesiAnggota.nim, nama: sesiAnggota.nama, nomor: sesiAnggota.kelompokNomor })
+        .from(sesiAnggota)
+        .where(and(eq(sesiAnggota.sesiId, dari), inArray(sesiAnggota.kelompokNomor, pilih)))
+        .orderBy(asc(sesiAnggota.kelompokNomor), asc(sesiAnggota.nim));
+      if (orang.length) {
+        await tx.insert(rosterSusulan).values(
+          orang.map((o, i) => ({
+            sesiId: row.id,
+            kelompokNomor: pilih.indexOf(o.nomor) + 1,
+            nim: o.nim,
+            nama: o.nama,
+            urutan: i,
+          })),
+        );
+      }
+      return { id: row.id, disalin: orang.length };
+    });
+    await writeAudit(session.nim, "susulan_draf", {
+      sesiId: id,
+      tanggal,
+      mulai,
+      modul,
+      ...(lanjut ? { lanjutanDari: dari, kelompok: pilih } : {}),
+    });
+    res.status(200).json({ ok: true, id, disalin });
   } catch {
     tolak(res, "sudah_ada");
   }

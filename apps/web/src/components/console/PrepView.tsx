@@ -67,6 +67,7 @@ export default function PrepView({
   meKode,
   onChanged,
   onBack,
+  pilih = null,
 }: {
   t: Strings;
   lang: Lang;
@@ -78,12 +79,14 @@ export default function PrepView({
   onChanged: () => void;
   /** Standalone page (no session): shows Back and the page title. */
   onBack?: () => void;
+  /** The roster to open first ("4-3" for a slot, "d12" for a draft). */
+  pilih?: string | null;
 }) {
   const p = P[lang];
   const [tab, setTab] = useState<Tab>("roster");
   const [jadwal, setJadwal] = useState<JadwalRow[] | null>(null);
   const [draf, setDraf] = useState<Draf[]>([]);
-  const [sel, setSel] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(pilih);
   const [dirty, setDirty] = useState(false);
   const [ask, setAsk] = useState<string | null>(null);
   const [newDraft, setNewDraft] = useState(false);

@@ -49,6 +49,7 @@ import PrepView from "./PrepView";
 import ServerDrawer from "./ServerDrawer";
 import EndFlow from "./EndFlow";
 import DoneView from "./DoneView";
+import NextView from "./NextView";
 import AsistenHome from "./AsistenHome";
 import type { AsistenRef, FeedItem, Laporan, SesiRunning, View } from "./types";
 import "./console.css";
@@ -83,7 +84,11 @@ export default function Console({ lang }: { lang: Lang }) {
   const roster = current.data?.roster ?? [];
   const [view, setView] = useState<View>("board");
   const [prepOnly, setPrepOnly] = useState(false);
-  const [done, setDone] = useState<(SesiRunning & { hadir: number }) | null>(null);
+  const [done, setDone] = useState<(SesiRunning & { hadir: number; selesaiPada?: string }) | null>(
+    null,
+  );
+  const [nextOpen, setNextOpen] = useState(false);
+  const [prepPilih, setPrepPilih] = useState<string | null>(null);
   const [sel, setSel] = useState<number | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
@@ -397,6 +402,31 @@ export default function Console({ lang }: { lang: Lang }) {
         </div>
       );
     }
+    if (done && nextOpen) {
+      return (
+        <div className="console">
+          {offline}
+          <NextView
+            t={t}
+            lang={lang}
+            sesi={done}
+            onBack={() => setNextOpen(false)}
+            onPrep={(pilih) => {
+              sessionStorage.removeItem(DONE_KEY);
+              setNextOpen(false);
+              setDone(null);
+              setPrepPilih(pilih);
+              setPrepOnly(true);
+            }}
+            onHome={() => {
+              sessionStorage.removeItem(DONE_KEY);
+              setNextOpen(false);
+              setDone(null);
+            }}
+          />
+        </div>
+      );
+    }
     if (done) {
       return (
         <div className="console">
@@ -407,6 +437,7 @@ export default function Console({ lang }: { lang: Lang }) {
             sesi={done}
             hadir={done.hadir}
             onScores={() => setDoneTable(true)}
+            onNext={() => setNextOpen(true)}
             onResumed={() => {
               sessionStorage.removeItem(DONE_KEY);
               setDone(null);
@@ -433,7 +464,11 @@ export default function Console({ lang }: { lang: Lang }) {
             meNim={me!.nim}
             meKode={(me!.kode ?? "").toUpperCase()}
             onChanged={refreshAll}
-            onBack={() => setPrepOnly(false)}
+            onBack={() => {
+              setPrepOnly(false);
+              setPrepPilih(null);
+            }}
+            pilih={prepPilih}
           />
         </div>
       );
@@ -618,7 +653,7 @@ export default function Console({ lang }: { lang: Lang }) {
         onEnded={(kind) => {
           if (kind === "end") {
             const hadir = groups.reduce((a, g) => a + g.hadir, 0);
-            const snap = { ...sesi, hadir };
+            const snap = { ...sesi, hadir, selesaiPada: new Date().toISOString() };
             try {
               sessionStorage.setItem(DONE_KEY, JSON.stringify(snap));
             } catch {
