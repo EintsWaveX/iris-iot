@@ -1,49 +1,40 @@
 ---
 /**
- * The persistent background layer: starfield, nebula, aurora and grid,
- * shared with apps/games via packages/kosmik/. Rendered once from
- * Base.astro and marked transition:persist, so <ClientRouter /> keeps the
- * same canvas and JS state alive across every page instead of tearing it
- * down and restarting it on each navigation -- that persistence is what
- * turns "moving between pages" into "the sky warps."
+ * The persistent sky behind every page (Phase 9): one canvas painted by
+ * src/scripts/sky.ts, ported from the signed-off mockup. Marked
+ * transition:persist so <ClientRouter /> keeps the same canvas and its
+ * animation alive across every navigation instead of restarting it.
  *
- * Which scene is showing is NOT a prop here: Base.astro stamps the page's
- * chosen scene as data-cosmos-scene on <html>, and src/scripts/cosmos-router.js
- * reads that to call Cosmos.setScene/warpTo. Cosmos itself doesn't need to
- * know which page it's on.
- *
- * Phase 8 (apps/web only, so apps/games is untouched):
- * - the WebGL aurora canvas moved out of .cosmos__aurora to cover the whole
- *   sky, because real curtains hang from a wavy lower hem with rays rising
- *   above it, which a bottom-band box cannot hold;
- * - a meteor canvas (sky-meteors.js) for shooting stars, the occasional
- *   fireball and small showers, plus glints on a few bright stars.
+ * What it paints follows html[data-theme] and html[data-detail] (see
+ * public/theme-init.js): the night sky or the Daylight sky, at Low
+ * Detail (still), Normal or High Detail. apps/games keeps kosmik's
+ * cosmos.core.js sky; the web app no longer loads it.
  */
 ---
 
-<div class="cosmos" aria-hidden="true" transition:persist transition:name="cosmos">
-  <div class="cosmos__nebula"></div>
-  <div class="cosmos__grid"></div>
-  <canvas class="cosmos__stars" id="cosmos-stars"></canvas>
-  <div class="cosmos__grain"></div>
-  <div class="cosmos__vignette"></div>
-  <div class="cosmos__aurora">
-    <i class="cosmos__aurora__ray"></i>
-    <i class="cosmos__aurora__ray"></i>
-    <i class="cosmos__aurora__ray"></i>
-    <i class="cosmos__aurora__ray"></i>
-    <i class="cosmos__aurora__ray"></i>
-  </div>
-  <canvas class="cosmos__aurora-gl cosmos__aurora-gl--sky"></canvas>
-  <canvas class="cosmos__meteors"></canvas>
+<div class="sky" aria-hidden="true" transition:persist transition:name="cosmos">
+  <canvas id="iris-sky"></canvas>
 </div>
 
 <script>
   import "../scripts/cosmos-web.js";
   import "../scripts/cosmos-router.js";
-  // apps/web only (see its own header): the moving WebGL aurora at motion
-  // tier 2, layered over the CSS rays above and fading them out once it
-  // draws its first frame (P6.4, curtains rebuilt in Phase 8).
-  import "../scripts/aurora-gl.js";
-  import "../scripts/sky-meteors.js";
+  import "../scripts/sky.ts";
 </script>
+
+<style is:global>
+  .sky {
+    contain: layout paint style;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    position: fixed;
+    z-index: -1;
+  }
+
+  .sky canvas {
+    display: block;
+    height: 100%;
+    width: 100%;
+  }
+</style>

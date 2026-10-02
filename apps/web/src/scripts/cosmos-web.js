@@ -28,4 +28,3 @@
 import "./gsap-globals.js";
 import "../../../../packages/kosmik/js/motion.core.js";
 import "./motion-tier.ts";
-import "../../../../packages/kosmik/js/cosmos.core.js";

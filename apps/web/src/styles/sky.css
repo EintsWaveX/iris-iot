@@ -25,28 +25,7 @@
   );
 }
 
-/* ---------------------------------------------------------------- sky */
-
-/* The aurora canvas now spans the whole sky (see aurora-gl.js). */
-.cosmos__aurora-gl--sky {
-  inset: 0;
-  mix-blend-mode: screen;
-  pointer-events: none;
-  position: absolute;
-}
-
-.cosmos__aurora-gl--sky.lit {
-  opacity: var(--au-opacity);
-}
-
-.cosmos__meteors {
-  height: 100%;
-  inset: 0;
-  mix-blend-mode: screen;
-  pointer-events: none;
-  position: absolute;
-  width: 100%;
-}
+/* The sky itself is src/components/Cosmos.astro + src/scripts/sky.ts. */
 
 /* ----------------------------------------------------------- sweep edge
 

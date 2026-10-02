@@ -23,15 +23,11 @@ interface Window {
   // packages/kosmik/js/*.core.js -- shared with apps/games, so these stay
   // untyped `.js` sources rather than gaining a local `.d.ts` there; the
   // ambient shape lives here instead, apps/web's own side of the contract.
+  // src/scripts/sky.ts: scenes no longer change the sky; a running
+  // module's session still tints it faintly.
   Cosmos?: {
-    warpTo(scene: string): void;
     setScene(scene: string): void;
-    // Stage 6: the reactive per-module tint for the "sesi" scene only --
-    // see cosmos.core.js's own comment for why this is a separate concept
-    // from each scene's static (and otherwise still unused) hueShift field.
     setModuleTint(modul: number): void;
-    converge(options?: { inDuration?: number; outDuration?: number; hold?: number }): void;
-    redraw(): void;
   };
   Motion?: {
     isReduced(): boolean;

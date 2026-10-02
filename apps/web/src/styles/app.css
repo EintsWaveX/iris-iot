@@ -35,9 +35,9 @@
 /* ---------------------------------------------------------------- panel */
 
 .panel {
-  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* Phase 9: solid, like the mockup's cards; the sky no longer shows
+     through behind text. */
+  background: var(--surface-1);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-lg);
   display: flex;
