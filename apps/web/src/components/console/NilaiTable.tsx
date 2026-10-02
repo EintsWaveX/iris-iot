@@ -11,7 +11,7 @@
  *   because eight columns do not fit a phone.
  */
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { Lock } from "lucide-react";
+import { LockSimpleIcon } from "@phosphor-icons/react";
 import { ScoreInput } from "../ui/Controls";
 import { UpdatedAgo } from "../ui/Display";
 import { unduhCsv } from "../../lib/csv";
@@ -219,7 +219,7 @@ export default function NilaiTable({
                           </span>
                           {!canEdit(k.id) && (
                             <span className="hint row">
-                              <Lock size={14} aria-hidden="true" />{" "}
+                              <LockSimpleIcon size={14} aria-hidden="true" />{" "}
                               {t.lockedBy(holder?.kode ?? "?")}
                             </span>
                           )}

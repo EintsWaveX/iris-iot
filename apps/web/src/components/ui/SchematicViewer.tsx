@@ -16,7 +16,13 @@ import {
   type WheelEvent,
 } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
-import { Maximize2, Minus, Plus, X, Download } from "lucide-react";
+import {
+  ArrowsOutSimpleIcon,
+  DownloadSimpleIcon,
+  MinusIcon,
+  PlusIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import "./SchematicViewer.css";
 import type { Lang } from "../../lib/kelas";
 import { dict } from "../../lib/app";
@@ -153,7 +159,7 @@ export default function SchematicViewer({
                 aria-label={t.out}
                 onClick={() => zoomAt(z / 1.25)}
               >
-                <Minus size={18} aria-hidden="true" />
+                <MinusIcon size={18} aria-hidden="true" />
               </button>
               <span className="schemv__pct num" aria-live="polite">
                 {Math.round(z * 100)}%
@@ -164,7 +170,7 @@ export default function SchematicViewer({
                 aria-label={t.in}
                 onClick={() => zoomAt(z * 1.25)}
               >
-                <Plus size={18} aria-hidden="true" />
+                <PlusIcon size={18} aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -172,7 +178,7 @@ export default function SchematicViewer({
                 aria-label={t.fit}
                 onClick={fit}
               >
-                <Maximize2 size={18} aria-hidden="true" />
+                <ArrowsOutSimpleIcon size={18} aria-hidden="true" />
               </button>
               <a
                 className="btn btn--ghost btn--icon"
@@ -181,10 +187,10 @@ export default function SchematicViewer({
                 rel="noopener noreferrer"
                 aria-label={t.open}
               >
-                <Download size={18} aria-hidden="true" />
+                <DownloadSimpleIcon size={18} aria-hidden="true" />
               </a>
               <RadixDialog.Close className="btn btn--secondary btn--icon" aria-label={t.close}>
-                <X size={18} aria-hidden="true" />
+                <XIcon size={18} aria-hidden="true" />
               </RadixDialog.Close>
             </div>
           </header>

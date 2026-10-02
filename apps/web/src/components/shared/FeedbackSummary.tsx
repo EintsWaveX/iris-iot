@@ -6,7 +6,7 @@
  * receives a NIM: the API strips it.
  */
 import type { CSSProperties } from "react";
-import { Star } from "lucide-react";
+import { StarIcon } from "@phosphor-icons/react";
 import { LABEL_CHIP, type Ringkasan } from "../../lib/umpan-balik";
 import { sejak } from "../../lib/app";
 import { bahasaKonten, type Lang } from "../../lib/kelas";
@@ -36,9 +36,10 @@ export default function FeedbackSummary({
         <span className="stack" style={{ gap: 2 }}>
           <span className="fbsum__stars" aria-label={`${avg.toFixed(1)} / 5`}>
             {[1, 2, 3, 4, 5].map((i) => (
-              <Star
+              <StarIcon
                 key={i}
                 size={18}
+                weight={i <= Math.round(avg) ? "fill" : "regular"}
                 aria-hidden="true"
                 className={i <= Math.round(avg) ? "fbsum__star--on" : "fbsum__star"}
               />

@@ -8,7 +8,7 @@
  * the two-section feedback form.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Timer } from "lucide-react";
+import { TimerIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { CountUp, ProgressRing, StateView } from "../ui/Display";
 import {
@@ -583,7 +583,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     return (
       <StateView
         tone="danger"
-        icon={<Timer size={28} />}
+        icon={<TimerIcon size={28} />}
         title={t.gagal}
         actions={
           <button type="button" className="btn btn--primary" onClick={hasilPoll.refresh}>

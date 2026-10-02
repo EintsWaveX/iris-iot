@@ -9,7 +9,7 @@
  * second row with their labels kept, instead of shrinking to bare icons.
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Lock, Unlock } from "lucide-react";
+import { LockSimpleIcon, LockSimpleOpenIcon } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import { Switch } from "../ui/Controls";
 import { getJson, href, jamMenit, menitBerjalan, postJson, useTick } from "../../lib/app";
@@ -363,9 +363,9 @@ export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: b
               </span>
               <span className="access-row__name">{t.modulNama(n)}</span>
               {on ? (
-                <Unlock size={16} className="access-row__icon" aria-hidden="true" />
+                <LockSimpleOpenIcon size={16} className="access-row__icon" aria-hidden="true" />
               ) : (
-                <Lock size={16} className="access-row__icon" aria-hidden="true" />
+                <LockSimpleIcon size={16} className="access-row__icon" aria-hidden="true" />
               )}
               <Switch
                 on={on}

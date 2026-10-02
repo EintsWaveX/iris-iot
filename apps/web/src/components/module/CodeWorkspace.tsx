@@ -12,7 +12,7 @@
  * remounted the editor, dropping the blank a student had just tapped.
  */
 import { useState, type ComponentProps } from "react";
-import { CircuitBoard, PanelRightClose } from "lucide-react";
+import { CircuitryIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
 import ResizablePanes from "../ui/ResizablePanes";
 import Dialog from "../ui/Dialog";
 import ModuleCodeStep from "../ModuleCodeStep";
@@ -127,7 +127,7 @@ export default function CodeWorkspace({
             <aside className="codews__dock">
               <div className="codews__dock-head">
                 <b>
-                  <CircuitBoard size={17} aria-hidden="true" /> {t.pins}
+                  <CircuitryIcon size={17} aria-hidden="true" /> {t.pins}
                 </b>
                 <button
                   type="button"
@@ -135,7 +135,7 @@ export default function CodeWorkspace({
                   aria-label={t.hide}
                   onClick={() => toggle(false)}
                 >
-                  <PanelRightClose size={18} aria-hidden="true" />
+                  <SidebarSimpleIcon size={18} aria-hidden="true" />
                 </button>
               </div>
               {panel}

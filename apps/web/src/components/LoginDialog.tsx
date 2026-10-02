@@ -19,7 +19,7 @@
  * hero, a module page's "sign in to save" note).
  */
 import { useEffect, useState, type FormEvent } from "react";
-import { Orbit } from "lucide-react";
+import { PlanetIcon } from "@phosphor-icons/react";
 import { navigate } from "astro:transitions/client";
 import Dialog from "./ui/Dialog";
 import SegmentedControl from "./ui/SegmentedControl";
@@ -415,7 +415,7 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
       {stage === "welcome" && welcome && (
         <div className="login-welcome" aria-live="polite">
           <div className="login-welcome__orbit" aria-hidden="true">
-            <Orbit size={40} />
+            <PlanetIcon size={40} />
             <i />
             <i />
             <i />

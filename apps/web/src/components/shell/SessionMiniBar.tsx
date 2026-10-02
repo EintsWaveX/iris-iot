@@ -11,7 +11,7 @@
  * - Time warnings at 30 and 10 minutes left, once each per session.
  */
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Bell, Hand } from "lucide-react";
+import { BellIcon, HandIcon } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import type { PollState } from "../../lib/hooks";
 import {
@@ -226,7 +226,7 @@ export default function SessionMiniBar({
           disabled={busy}
           onClick={() => void toggleHand()}
         >
-          <Hand size={18} aria-hidden="true" />
+          <HandIcon size={18} aria-hidden="true" />
           <span>{hand ? t.helpOn : t.help}</span>
         </button>
 
@@ -245,7 +245,7 @@ export default function SessionMiniBar({
               data-pulse={pulse ? "yes" : undefined}
               aria-label={`${t.bell}${unread ? " (1)" : ""}`}
             >
-              <Bell size={19} aria-hidden="true" />
+              <BellIcon size={19} aria-hidden="true" />
               {unread && <span className="minibar__unread" aria-hidden="true" />}
             </button>
           </RadixPopover.Trigger>

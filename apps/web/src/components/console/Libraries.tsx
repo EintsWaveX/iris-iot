@@ -14,7 +14,7 @@
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import { upload } from "@vercel/blob/client";
-import { Eye, Trash2 } from "lucide-react";
+import { EyeIcon, TrashIcon } from "@phosphor-icons/react";
 import { FileDrop } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
 import SchematicViewer from "../ui/SchematicViewer";
@@ -146,7 +146,7 @@ export function SlidesLibrary({
                 aria-label={`${t.delete} ${d.namaBerkas}`}
                 onClick={() => setDel(d)}
               >
-                <Trash2 size={17} aria-hidden="true" />
+                <TrashIcon size={17} aria-hidden="true" />
               </button>
             </li>
           ))}
@@ -266,7 +266,7 @@ export function SchematicLibrary({
               >
                 <img src={src} alt="" loading="lazy" />
                 <span className="schem-cur__zoom">
-                  <Eye size={16} aria-hidden="true" /> {t.schemView}
+                  <EyeIcon size={16} aria-hidden="true" /> {t.schemView}
                 </span>
               </button>
               {active && (
@@ -320,7 +320,7 @@ export function SchematicLibrary({
                         aria-label={`${t.delete} ${s.namaBerkas}`}
                         onClick={() => setDel(s)}
                       >
-                        <Trash2 size={16} aria-hidden="true" />
+                        <TrashIcon size={16} aria-hidden="true" />
                       </button>
                     </li>
                   ))}

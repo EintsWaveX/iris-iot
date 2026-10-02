@@ -11,7 +11,7 @@
  * - Sign out.
  */
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Check, UserRound } from "lucide-react";
+import { CheckIcon, UserIcon } from "@phosphor-icons/react";
 import PasswordField, { kekuatanSandi } from "../ui/PasswordField";
 import SegmentedControl from "../ui/SegmentedControl";
 import { StateView } from "../ui/Display";
@@ -180,7 +180,7 @@ function PasswordForm({ t, lang, first }: { t: Tx; lang: Lang; first: boolean })
       <div className="acctpage__actions">
         {done && (
           <span className="acctpage__done" role="status">
-            <Check size={16} aria-hidden="true" />
+            <CheckIcon size={16} aria-hidden="true" />
             {t.ok}
           </span>
         )}
@@ -247,7 +247,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
   if (me === null) {
     return (
       <StateView
-        icon={<UserRound size={28} />}
+        icon={<UserIcon size={28} />}
         title={t.needLogin}
         actions={
           <button

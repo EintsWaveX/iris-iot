@@ -10,6 +10,13 @@
  * - RatingPicker: five big tappable faces, a real radio group
  * - OfflineBanner / UpdatedAgo: poll health, from usePoll's state
  */
+import {
+  SmileyBlankIcon,
+  SmileyIcon,
+  SmileyMehIcon,
+  SmileySadIcon,
+  SmileyWinkIcon,
+} from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useAgeSeconds, useMotionTier } from "../../lib/hooks";
 import "./Display.css";
@@ -121,13 +128,7 @@ export function ProgressRing({
 
 /* --------------------------------------------------------- RatingPicker */
 
-const FACES = [
-  "M8 17s1.5-3 4-3 4 3 4 3",
-  "M8.5 16s1.3-1.5 3.5-1.5 3.5 1.5 3.5 1.5",
-  "M8 15h8",
-  "M8.5 14.5s1.3 1.5 3.5 1.5 3.5-1.5 3.5-1.5",
-  "M8 14s1.5 3 4 3 4-3 4-3",
-];
+const FACES = [SmileySadIcon, SmileyMehIcon, SmileyBlankIcon, SmileyIcon, SmileyWinkIcon];
 
 export function RatingPicker({
   value,
@@ -143,32 +144,31 @@ export function RatingPicker({
 }) {
   return (
     <div className="rating" role="radiogroup" aria-label={groupLabel}>
-      {labels.map((l, i) => (
-        <button
-          key={l}
-          type="button"
-          role="radio"
-          aria-checked={value === i + 1}
-          className="rating__face"
-          onClick={() => onChange(i + 1)}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowRight" || e.key === "ArrowUp")
-              onChange(Math.min(5, (value || 0) + 1));
-            else if (e.key === "ArrowLeft" || e.key === "ArrowDown")
-              onChange(Math.max(1, (value || 2) - 1));
-            else return;
-            e.preventDefault();
-          }}
-          tabIndex={value === i + 1 || (!value && i === 0) ? 0 : -1}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M9 9h.01M15 9h.01" />
-            <path d={FACES[i]} />
-          </svg>
-          <span>{l}</span>
-        </button>
-      ))}
+      {labels.map((l, i) => {
+        const Face = FACES[i];
+        return (
+          <button
+            key={l}
+            type="button"
+            role="radio"
+            aria-checked={value === i + 1}
+            className="rating__face"
+            onClick={() => onChange(i + 1)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowRight" || e.key === "ArrowUp")
+                onChange(Math.min(5, (value || 0) + 1));
+              else if (e.key === "ArrowLeft" || e.key === "ArrowDown")
+                onChange(Math.max(1, (value || 2) - 1));
+              else return;
+              e.preventDefault();
+            }}
+            tabIndex={value === i + 1 || (!value && i === 0) ? 0 : -1}
+          >
+            <Face size={32} weight={value === i + 1 ? "fill" : "regular"} aria-hidden="true" />
+            <span>{l}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

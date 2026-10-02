@@ -11,7 +11,7 @@
  * `milikSaya: false`) is asked to sign in again so this session counts them.
  */
 import { useEffect, useRef, useState } from "react";
-import { LogIn, RefreshCcw } from "lucide-react";
+import { ArrowsCounterClockwiseIcon, SignInIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { dict, getJson, meChanged, type Me, type SesiNow } from "../../lib/app";
 import { startPolling } from "../../scripts/polling";
@@ -104,7 +104,7 @@ export default function IdentityWatch({
           )}
           {k.jenis === "swap" ? (
             <button type="button" className="btn btn--primary" onClick={() => location.reload()}>
-              <RefreshCcw size={17} aria-hidden="true" />
+              <ArrowsCounterClockwiseIcon size={17} aria-hidden="true" />
               {t.muat}
             </button>
           ) : (
@@ -117,7 +117,7 @@ export default function IdentityWatch({
                 window.LoginDialog?.open();
               }}
             >
-              <LogIn size={17} aria-hidden="true" />
+              <SignInIcon size={17} aria-hidden="true" />
               {t.masuk}
             </button>
           )}

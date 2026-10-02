@@ -30,7 +30,14 @@ import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { id as localeId, enUS } from "date-fns/locale";
 import { format, parseISO, isValid } from "date-fns";
-import { CalendarDays, Check, Upload, Loader2, AlertCircle, Lock } from "lucide-react";
+import {
+  CalendarBlankIcon,
+  CheckIcon,
+  CircleNotchIcon,
+  LockSimpleIcon,
+  UploadSimpleIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react";
 import Popover from "./Popover";
 import "./Controls.css";
 import type { Lang } from "../../lib/kelas";
@@ -61,7 +68,7 @@ export function Checkbox({
       onClick={() => onChange(!checked)}
     >
       <span className="ctl-check__box" aria-hidden="true">
-        <Check size={16} strokeWidth={3} />
+        <CheckIcon size={16} weight="bold" />
       </span>
       <span className="ctl-check__text">
         <span className="ctl-check__label">{label}</span>
@@ -150,7 +157,7 @@ export function DatePicker({
             className="ctl-date__trigger"
             aria-labelledby={`${fieldId}-label ${fieldId}`}
           >
-            <CalendarDays size={18} aria-hidden="true" />
+            <CalendarBlankIcon size={18} aria-hidden="true" />
             <span>{date ? format(date, t.fmt, { locale }) : t.pick}</span>
           </button>
         }
@@ -273,7 +280,7 @@ export function FileDrop({
         }}
       />
       <span className="ctl-drop__icon" aria-hidden="true">
-        {busy ? <Loader2 className="ctl-spin" size={22} /> : <Upload size={22} />}
+        {busy ? <CircleNotchIcon className="ctl-spin" size={22} /> : <UploadSimpleIcon size={22} />}
       </span>
       {!compact && <span className="ctl-drop__title">{busy ? t.busy : t.drop}</span>}
       <button
@@ -289,7 +296,7 @@ export function FileDrop({
       </span>
       {err && (
         <span className="ctl-drop__error" role="alert">
-          <AlertCircle size={16} aria-hidden="true" /> {err}
+          <WarningCircleIcon size={16} aria-hidden="true" /> {err}
         </span>
       )}
     </div>
@@ -341,13 +348,13 @@ export const ScoreInput = forwardRef<HTMLInputElement, ScoreProps>(function Scor
       />
       <span className="ctl-score__mark" aria-hidden="true">
         {ro ? (
-          <Lock size={13} />
+          <LockSimpleIcon size={13} />
         ) : state === "saving" ? (
-          <Loader2 className="ctl-spin" size={13} />
+          <CircleNotchIcon className="ctl-spin" size={13} />
         ) : state === "saved" ? (
-          <Check size={13} strokeWidth={3} />
+          <CheckIcon size={13} weight="bold" />
         ) : state === "error" ? (
-          <AlertCircle size={13} />
+          <WarningCircleIcon size={13} />
         ) : null}
       </span>
     </span>

@@ -26,7 +26,7 @@ import {
   type ReactNode,
 } from "react";
 import Dialog from "../ui/Dialog";
-import { LayoutGrid, LogIn, ShieldAlert } from "lucide-react";
+import { ShieldWarningIcon, SignInIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import ResizablePanes from "../ui/ResizablePanes";
 import { OfflineBanner, StateView, UpdatedAgo } from "../ui/Display";
 import { Kbd } from "../ui/Controls";
@@ -341,7 +341,7 @@ export default function Console({ lang }: { lang: Lang }) {
   if (!isAsisten) {
     return (
       <StateView
-        icon={<ShieldAlert size={28} />}
+        icon={<ShieldWarningIcon size={28} />}
         title={t.forbidden}
         body={t.forbiddenBody}
         tone="warn"
@@ -352,7 +352,7 @@ export default function Console({ lang }: { lang: Lang }) {
               className="btn btn--primary"
               onClick={() => window.LoginDialog?.open()}
             >
-              <LogIn size={18} aria-hidden="true" /> {t.signIn}
+              <SignInIcon size={18} aria-hidden="true" /> {t.signIn}
             </button>
           ) : undefined
         }
@@ -567,7 +567,7 @@ export default function Console({ lang }: { lang: Lang }) {
           }
           empty={
             <div className="insp-empty">
-              <LayoutGrid size={28} aria-hidden="true" />
+              <SquaresFourIcon size={28} aria-hidden="true" />
               <b>{t.pickGroup}</b>
               <span className="hint">{t.pickGroupBody}</span>
               <span className="row">

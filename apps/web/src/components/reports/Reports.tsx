@@ -17,7 +17,7 @@
  * outside the plot, and CSV exports.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Lock, Star } from "lucide-react";
+import { LockSimpleIcon, StarIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { DropdownFilter } from "../ui/Dropdown";
@@ -291,7 +291,7 @@ export default function Reports({ lang }: { lang: Lang }) {
   if (me?.role !== "asisten") {
     return (
       <StateView
-        icon={<Lock size={28} />}
+        icon={<LockSimpleIcon size={28} />}
         title={t.forbiddenH}
         body={t.forbidden}
         actions={
@@ -562,7 +562,8 @@ function SesiTab({ t, lang, onOpen }: { t: Tx; lang: Lang; onOpen: (id: number) 
                       <td data-label={t.cols[7]}>
                         {r.lab ? (
                           <span className="rep__lab" aria-label={t.labN(r.lab.n)}>
-                            <Star size={14} aria-hidden="true" /> {r.lab.rata.toFixed(1)}
+                            <StarIcon size={14} weight="fill" aria-hidden="true" />{" "}
+                            {r.lab.rata.toFixed(1)}
                             <small className="hint">({r.lab.n})</small>
                           </span>
                         ) : (
@@ -642,7 +643,7 @@ function RingkasanTab({ t }: { t: Tx; lang: Lang }) {
                 <dd className="num">
                   {m.labRata != null ? (
                     <>
-                      <Star size={16} aria-hidden="true" className="rep__star" />{" "}
+                      <StarIcon size={16} weight="fill" aria-hidden="true" className="rep__star" />{" "}
                       {m.labRata.toFixed(1)}
                     </>
                   ) : (

@@ -15,7 +15,14 @@
  * every action says so instead of pretending it already happened.
  */
 import { useEffect, useState } from "react";
-import { CheckCircle2, CircleDot, Clock3, Loader2, Power, XCircle } from "lucide-react";
+import {
+  CheckCircleIcon,
+  CircleNotchIcon,
+  ClockIcon,
+  PowerIcon,
+  RecordIcon,
+  XCircleIcon,
+} from "@phosphor-icons/react";
 import { Switch } from "../ui/Controls";
 import { dict, jamMenit, postJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -273,7 +280,9 @@ export function ServiceList({
                   ).then(onSent)
                 }
               >
-                {restarting && <Loader2 size={17} className="ctl-spin" aria-hidden="true" />}
+                {restarting && (
+                  <CircleNotchIcon size={17} className="ctl-spin" aria-hidden="true" />
+                )}
                 {running ? t.restart : t.start}
               </button>
               <button
@@ -298,7 +307,7 @@ export function ServiceList({
                   aria-label={`${t.stop} ${t.svc[svc] ?? svc}`}
                   onClick={() => onStop(svc)}
                 >
-                  <Power size={17} aria-hidden="true" />
+                  <PowerIcon size={17} aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -361,11 +370,21 @@ export function CommandTimeline({
         const st = statusTampil(p);
         const step = STEP_OF[st] ?? 0;
         const bad = st === "gagal" || st === "kedaluwarsa" || st === "batal";
-        const Icon = bad ? XCircle : step === 2 ? CheckCircle2 : step === 1 ? CircleDot : Clock3;
+        const Icon = bad
+          ? XCircleIcon
+          : step === 2
+            ? CheckCircleIcon
+            : step === 1
+              ? RecordIcon
+              : ClockIcon;
         return (
           <li key={p.id} className="ops-cmd" data-status={st}>
             <span className="ops-cmd__icon" aria-hidden="true">
-              {step < 2 && !bad ? <Loader2 size={18} className="ctl-spin" /> : <Icon size={18} />}
+              {step < 2 && !bad ? (
+                <CircleNotchIcon size={18} className="ctl-spin" />
+              ) : (
+                <Icon size={18} />
+              )}
             </span>
             <span className="grow stack" style={{ gap: 2 }}>
               <span className="row row--between">

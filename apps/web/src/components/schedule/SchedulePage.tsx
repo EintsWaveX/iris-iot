@@ -14,7 +14,14 @@
  * - Phones get a day-by-day list instead of the grid.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ArrowDown, ArrowUp, CalendarRange, Lock, TriangleAlert, X } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CalendarBlankIcon,
+  LockSimpleIcon,
+  WarningIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Drawer from "../ui/Drawer";
 import Confirm from "../ui/Confirm";
@@ -471,7 +478,7 @@ function SlotEditor({
                     disabled={i === 0}
                     onClick={() => moveSub(i, -1)}
                   >
-                    <ArrowUp size={15} />
+                    <ArrowUpIcon size={15} />
                   </button>
                   <button
                     type="button"
@@ -480,7 +487,7 @@ function SlotEditor({
                     disabled={i === draft.pengganti.length - 1}
                     onClick={() => moveSub(i, 1)}
                   >
-                    <ArrowDown size={15} />
+                    <ArrowDownIcon size={15} />
                   </button>
                   <button
                     type="button"
@@ -490,7 +497,7 @@ function SlotEditor({
                       setDraft({ ...draft, pengganti: draft.pengganti.filter((_, j) => j !== i) })
                     }
                   >
-                    <X size={15} />
+                    <XIcon size={15} />
                   </button>
                 </span>
               </li>
@@ -644,7 +651,7 @@ function ImportDialog({
             <>
               {(pre.kodeTakDikenal.length > 0 || pre.asing.length > 0) && (
                 <div className="jimp__warn" role="status">
-                  <TriangleAlert size={18} aria-hidden="true" />
+                  <WarningIcon size={18} aria-hidden="true" />
                   <div className="stack stack--sm">
                     {pre.kodeTakDikenal.length > 0 && (
                       <span>
@@ -743,7 +750,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   if (me?.role !== "asisten") {
     return (
       <StateView
-        icon={<Lock size={28} />}
+        icon={<LockSimpleIcon size={28} />}
         title={t.forbiddenH}
         body={t.forbidden}
         actions={
@@ -758,7 +765,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
     return (
       <StateView
         tone="danger"
-        icon={<CalendarRange size={28} />}
+        icon={<CalendarBlankIcon size={28} />}
         title={t.loadFail}
         actions={
           <button type="button" className="btn btn--primary" onClick={load}>

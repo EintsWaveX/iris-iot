@@ -22,7 +22,7 @@ export default defineConfig({
         "@vercel/blob/client",
         "cmdk",
         "date-fns",
-        "lucide-react",
+        "@phosphor-icons/react",
         "react-day-picker",
         "react-resizable-panels",
         "uplot",

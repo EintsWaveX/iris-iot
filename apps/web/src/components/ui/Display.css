@@ -131,15 +131,6 @@
   padding: var(--space-3) var(--space-1);
 }
 
-.rating__face svg {
-  fill: none;
-  height: 32px;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 1.8;
-  width: 32px;
-}
-
 .rating__face[aria-checked="true"] {
   background: var(--gold-soft);
   border-color: var(--gold);

@@ -6,7 +6,7 @@
  * inspector.
  */
 import { useMemo, useState, type CSSProperties } from "react";
-import { AlertTriangle, Hand } from "lucide-react";
+import { HandIcon, WarningIcon } from "@phosphor-icons/react";
 import HoverCard from "../ui/HoverCard";
 import { namaKelompok, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -120,13 +120,13 @@ export default function GroupBoard(p: BoardProps) {
                         <b className="gcard__name">{namaKelompok(g.nomor, g.nama)}</b>
                         {hand && (
                           <span className="gcard__hand">
-                            <Hand size={14} aria-hidden="true" />
+                            <HandIcon size={14} aria-hidden="true" />
                             {sejak(hand, lang, now)}
                           </span>
                         )}
                         {st.length > 0 && (
                           <span className="pill pill--warn">
-                            <AlertTriangle size={13} aria-hidden="true" /> {t.stuckN(st.length)}
+                            <WarningIcon size={13} aria-hidden="true" /> {t.stuckN(st.length)}
                           </span>
                         )}
                         {!g.sesiAktif && <span className="pill">{t.inactive}</span>}

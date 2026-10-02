@@ -15,7 +15,7 @@
  * focused, so there is time to reach the button.
  */
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Info, AlertTriangle, XCircle, X } from "lucide-react";
+import { CheckCircleIcon, InfoIcon, WarningIcon, XCircleIcon, XIcon } from "@phosphor-icons/react";
 import "./Toast.css";
 
 type Tone = "info" | "ok" | "warn" | "danger";
@@ -37,10 +37,10 @@ interface ToastItem {
 let nextId = 0;
 
 const ICON = {
-  info: Info,
-  ok: CheckCircle2,
-  warn: AlertTriangle,
-  danger: XCircle,
+  info: InfoIcon,
+  ok: CheckCircleIcon,
+  warn: WarningIcon,
+  danger: XCircleIcon,
 };
 
 export default function Toast() {
@@ -131,7 +131,7 @@ export default function Toast() {
               aria-label={document.documentElement.lang !== "id" ? "Close" : "Tutup"}
               onClick={() => hide(t.id)}
             >
-              <X size={16} aria-hidden="true" />
+              <XIcon size={16} aria-hidden="true" />
             </button>
             <span
               className="toast__timer"

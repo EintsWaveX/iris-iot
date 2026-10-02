@@ -4,7 +4,7 @@
  * and the /account page.
  */
 import { useId, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 import "./PasswordField.css";
 import type { Lang } from "../../lib/kelas";
 import { dict } from "../../lib/app";
@@ -82,7 +82,11 @@ export default function PasswordField({
           aria-pressed={shown}
           onClick={() => setShown((s) => !s)}
         >
-          {shown ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+          {shown ? (
+            <EyeSlashIcon size={18} aria-hidden="true" />
+          ) : (
+            <EyeIcon size={18} aria-hidden="true" />
+          )}
         </button>
       </span>
       {meter && value.length > 0 && (

@@ -21,7 +21,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
 } from "react";
-import { AlertTriangle, Lock } from "lucide-react";
+import { LockSimpleIcon, WarningIcon } from "@phosphor-icons/react";
 import { ScoreInput, Switch } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
 import { ProgressRing } from "../ui/Display";
@@ -173,7 +173,7 @@ export default function GroupInspector(p: InspectorProps) {
               <div className="row">
                 {stuck.map((s) => (
                   <span key={s.soalKode} className="pill pill--warn pill--mono">
-                    <AlertTriangle size={13} aria-hidden="true" /> {s.soalKode.toUpperCase()} ·{" "}
+                    <WarningIcon size={13} aria-hidden="true" /> {s.soalKode.toUpperCase()} ·{" "}
                     {t.tries(s.percobaan)}
                   </span>
                 ))}
@@ -380,7 +380,7 @@ function ScoreEditor({
 
       {(!canEdit || !ownerKode) && (
         <div className="scores__lock" data-tone={canEdit ? "info" : undefined}>
-          <Lock size={16} aria-hidden="true" />
+          <LockSimpleIcon size={16} aria-hidden="true" />
           <span className="grow">{ownerKode ? t.readOnly(ownerKode) : t.readOnlyNone}</span>
           {!ownerKode && (
             <button type="button" className="btn btn--primary btn--sm" onClick={onClaim}>

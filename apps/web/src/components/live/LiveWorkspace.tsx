@@ -14,7 +14,7 @@
  *   Web Serial on the group PC (BoardLink).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { PauseIcon, PlayIcon } from "@phosphor-icons/react";
 import GroupPicker from "../ui/GroupPicker";
 import ResizablePanes from "../ui/ResizablePanes";
 import ScrollArea from "../ui/ScrollArea";
@@ -484,9 +484,9 @@ export default function LiveWorkspace({
               onClick={() => setPaused((p) => !p)}
             >
               {paused ? (
-                <Play size={15} aria-hidden="true" />
+                <PlayIcon size={15} aria-hidden="true" />
               ) : (
-                <Pause size={15} aria-hidden="true" />
+                <PauseIcon size={15} aria-hidden="true" />
               )}
               {paused ? t.resume : t.pause}
             </button>

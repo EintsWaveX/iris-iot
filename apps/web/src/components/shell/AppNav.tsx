@@ -20,19 +20,19 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
-  BarChart3,
-  BookOpen,
-  CalendarRange,
-  Command,
-  Gauge,
-  Home,
-  LayoutDashboard,
-  LogIn,
-  Radio,
-  Server,
-  UserRound,
-  type LucideProps,
-} from "lucide-react";
+  BookOpenTextIcon,
+  BroadcastIcon,
+  CalendarBlankIcon,
+  ChartBarIcon,
+  HardDrivesIcon,
+  HouseIcon,
+  KeyboardIcon,
+  SignInIcon,
+  SquaresFourIcon,
+  UserIcon,
+  UsersThreeIcon,
+  type IconProps,
+} from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { Kbd } from "../ui/Controls";
 import { dict, href, meChanged, postJson, useMe, useSessionNow, type Me } from "../../lib/app";
@@ -43,7 +43,7 @@ import IdentityWatch from "./IdentityWatch";
 import AsistenCommands from "./AsistenCommands";
 import "./AppNav.css";
 
-type Icon = ComponentType<LucideProps>;
+type Icon = ComponentType<IconProps>;
 
 interface Link {
   path: string;
@@ -107,25 +107,25 @@ const T = dict({
 function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
   if (me?.role === "asisten") {
     return [
-      { path: "/", label: t.home, icon: Home },
-      { path: "/session", label: t.console, icon: Gauge },
-      { path: "/schedule", label: t.schedule, icon: CalendarRange },
-      { path: "/servers", label: t.server, icon: Server },
-      { path: "/reports", label: t.reports, icon: BarChart3 },
-      { path: "/modules", label: t.modules, icon: BookOpen },
+      { path: "/", label: t.home, icon: HouseIcon },
+      { path: "/session", label: t.console, icon: UsersThreeIcon },
+      { path: "/schedule", label: t.schedule, icon: CalendarBlankIcon },
+      { path: "/servers", label: t.server, icon: HardDrivesIcon },
+      { path: "/reports", label: t.reports, icon: ChartBarIcon },
+      { path: "/modules", label: t.modules, icon: BookOpenTextIcon },
     ];
   }
   if (me?.role === "praktikan") {
     return [
-      { path: "/", label: t.home, icon: Home },
-      { path: "/dashboard", label: t.dashboard, icon: LayoutDashboard },
-      { path: "/modules", label: t.modules, icon: BookOpen },
-      { path: "/live", label: t.live, icon: Radio },
+      { path: "/", label: t.home, icon: HouseIcon },
+      { path: "/dashboard", label: t.dashboard, icon: SquaresFourIcon },
+      { path: "/modules", label: t.modules, icon: BookOpenTextIcon },
+      { path: "/live", label: t.live, icon: BroadcastIcon },
     ];
   }
   return [
-    { path: "/", label: t.home, icon: Home },
-    { path: "/modules", label: t.modules, icon: BookOpen },
+    { path: "/", label: t.home, icon: HouseIcon },
+    { path: "/modules", label: t.modules, icon: BookOpenTextIcon },
   ];
 }
 
@@ -275,7 +275,7 @@ export default function AppNav({
               onClick={() => setPaletteOpen(true)}
               aria-label={t.palette}
             >
-              <Command size={16} aria-hidden="true" />
+              <KeyboardIcon size={16} aria-hidden="true" />
               <span className="appnav__palette-text">{t.palette}</span>
               <Kbd>Ctrl K</Kbd>
             </button>
@@ -345,7 +345,7 @@ export default function AppNav({
                 : me.nama.slice(0, 1).toUpperCase()}
             </span>
           ) : (
-            <UserRound size={20} aria-hidden="true" />
+            <UserIcon size={20} aria-hidden="true" />
           )}
         </button>
       </header>
@@ -376,7 +376,7 @@ export default function AppNav({
         {me === null && (
           <button type="button" className="appbar__item" onClick={() => window.LoginDialog?.open()}>
             <span className="appbar__icon">
-              <LogIn size={21} aria-hidden="true" />
+              <SignInIcon size={21} aria-hidden="true" />
             </span>
             <span className="appbar__label">{t.signIn}</span>
           </button>

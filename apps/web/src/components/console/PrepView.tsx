@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { CaretDownIcon, CheckIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { parseRosterPaste, rosterDiff, rosterToPaste } from "../../lib/roster-parser";
 import Dialog from "../ui/Dialog";
 import { namaKelompok, postJson } from "../../lib/app";
@@ -202,7 +202,7 @@ function AssistantPicker({
       {star && <span className="pill pill--accent">{t.assignFromSchedule}</span>}
       {tag === "fit" && <span className="pill pill--danger">{t.tagFit}</span>}
       {tag === "a24" && <span className="pill pill--gold">{t.tagA24}</span>}
-      {value?.nim === a.nim && <Check size={18} aria-hidden="true" />}
+      {value?.nim === a.nim && <CheckIcon size={18} aria-hidden="true" />}
     </button>
   );
 
@@ -217,7 +217,7 @@ function AssistantPicker({
             {value?.kode ?? "?"}
           </span>
           <span className="grow truncate">{value?.nama ?? t.assignPick}</span>
-          <ChevronDown size={18} aria-hidden="true" />
+          <CaretDownIcon size={18} aria-hidden="true" />
         </button>
       </RadixPopover.Trigger>
       <RadixPopover.Portal>
@@ -228,7 +228,7 @@ function AssistantPicker({
           collisionPadding={12}
         >
           <label className="picker__search">
-            <Search size={16} aria-hidden="true" />
+            <MagnifyingGlassIcon size={16} aria-hidden="true" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}

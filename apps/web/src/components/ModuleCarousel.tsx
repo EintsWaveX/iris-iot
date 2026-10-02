@@ -13,7 +13,7 @@
  * Panels other than the first must carry `hidden` in their own markup.
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { CaretLeftIcon, CaretRightIcon, CheckIcon } from "@phosphor-icons/react";
 import "./ModuleCarousel.css";
 
 interface Step {
@@ -94,7 +94,7 @@ export default function ModuleCarousel({ id, steps, prevLabel, nextLabel }: Prop
         aria-label={prevLabel}
         onClick={() => index > 0 && select(steps[index - 1].id, true)}
       >
-        <ChevronLeft size={20} aria-hidden="true" />
+        <CaretLeftIcon size={20} aria-hidden="true" />
       </button>
 
       <div className="stepper__track" role="tablist">
@@ -123,7 +123,7 @@ export default function ModuleCarousel({ id, steps, prevLabel, nextLabel }: Prop
               </span>
               <span className="stepper__label">
                 <span className="stepper__num" aria-hidden="true">
-                  {state === "done" ? <Check size={13} strokeWidth={3} /> : i + 1}
+                  {state === "done" ? <CheckIcon size={13} weight="bold" /> : i + 1}
                 </span>
                 <span className="stepper__text">{s.label}</span>
               </span>
@@ -142,7 +142,7 @@ export default function ModuleCarousel({ id, steps, prevLabel, nextLabel }: Prop
         <span className="stepper__next-label">
           {index < steps.length - 1 ? steps[index + 1]?.label : ""}
         </span>
-        <ChevronRight size={20} aria-hidden="true" />
+        <CaretRightIcon size={20} aria-hidden="true" />
       </button>
     </div>
   );

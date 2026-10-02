@@ -6,7 +6,7 @@
  * timeline. It polls every 4 s while open. (Phase 9 dropped the ESP32 list
  * with the Devices tab.)
  */
-import { Clock, Cpu, Thermometer, Timer } from "lucide-react";
+import { ClockIcon, CpuIcon, ThermometerSimpleIcon, TimerIcon } from "@phosphor-icons/react";
 import Drawer from "../ui/Drawer";
 import { CommandTimeline, HotspotCard, Sejak, ServiceList } from "../server/ops";
 import { href } from "../../lib/app";
@@ -84,17 +84,18 @@ export default function ServerDrawer({
             </div>
             <div className="drawer-ops__facts">
               <span>
-                <Clock size={15} aria-hidden="true" /> <Sejak iso={hb?.pada ?? null} lang={lang} />
+                <ClockIcon size={15} aria-hidden="true" />{" "}
+                <Sejak iso={hb?.pada ?? null} lang={lang} />
               </span>
               <span>
-                <Timer size={15} aria-hidden="true" /> {uptime(hb?.uptimeSec, lang)}
+                <TimerIcon size={15} aria-hidden="true" /> {uptime(hb?.uptimeSec, lang)}
               </span>
               <span>
-                <Cpu size={15} aria-hidden="true" />{" "}
+                <CpuIcon size={15} aria-hidden="true" />{" "}
                 {hb?.cpu != null ? `${Math.round(hb.cpu)}%` : "·"}
               </span>
               <span>
-                <Thermometer size={15} aria-hidden="true" />{" "}
+                <ThermometerSimpleIcon size={15} aria-hidden="true" />{" "}
                 {hb?.suhu != null ? `${Math.round(hb.suhu)}°C` : "·"}
               </span>
               <span className={hb?.jamSelaras ? "" : "drawer-ops__bad"}>

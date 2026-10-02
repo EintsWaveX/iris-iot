@@ -22,16 +22,16 @@
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import {
-  AlertTriangle,
-  CheckCircle2,
-  ChevronDown,
-  Copy,
-  Info,
-  ListChecks,
-  Loader2,
-  Server,
-  ShieldAlert,
-} from "lucide-react";
+  CaretDownIcon,
+  CheckCircleIcon,
+  CircleNotchIcon,
+  CopyIcon,
+  HardDrivesIcon,
+  InfoIcon,
+  ListChecksIcon,
+  ShieldWarningIcon,
+  WarningIcon,
+} from "@phosphor-icons/react";
 import "uplot/dist/uPlot.min.css";
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
@@ -436,7 +436,7 @@ export default function ServerCenter({ lang }: { lang: Lang }) {
   if (me?.role !== "asisten") {
     return (
       <StateView
-        icon={<ShieldAlert size={28} />}
+        icon={<ShieldWarningIcon size={28} />}
         title={t.forbidden}
         body={t.forbiddenBody}
         tone="warn"
@@ -775,7 +775,7 @@ function EnrollWizard({
         {t.wizSteps.map((s, i) => (
           <li key={s} data-state={i < step || joined ? "done" : i === step ? "now" : undefined}>
             <span className="wiz__dot">
-              {i < step || (joined && i === 2) ? <CheckCircle2 size={16} /> : i + 1}
+              {i < step || (joined && i === 2) ? <CheckCircleIcon size={16} /> : i + 1}
             </span>
             {s}
           </li>
@@ -846,7 +846,7 @@ function EnrollWizard({
                 })
               }
             >
-              {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}{" "}
+              {copied ? <CheckCircleIcon size={16} /> : <CopyIcon size={16} />}{" "}
               {copied ? t.wizCopied : t.wizCopy}
             </button>
           </div>
@@ -863,7 +863,7 @@ function EnrollWizard({
           {joined ? (
             <>
               <span className="wiz__ok" aria-hidden="true">
-                <CheckCircle2 size={44} />
+                <CheckCircleIcon size={44} />
               </span>
               <b className="wiz__big">{t.wizOk}</b>
               <p className="hint">{t.wizOkBody(joined.nama)}</p>
@@ -885,7 +885,7 @@ function EnrollWizard({
               <span className="wiz__radar" aria-hidden="true">
                 <i />
                 <i />
-                <Server size={28} />
+                <HardDrivesIcon size={28} />
               </span>
               <b>{t.wizWait}</b>
               <p className="hint">{t.wizWaitHint}</p>
@@ -1294,7 +1294,7 @@ function Overview({
               onClick={() => setHistOpen((x) => !x)}
             >
               {t.history}
-              <ChevronDown size={18} className="ovw__chev" aria-hidden="true" />
+              <CaretDownIcon size={18} className="ovw__chev" aria-hidden="true" />
             </button>
             {histOpen && (
               <>
@@ -1367,7 +1367,7 @@ function Overview({
           <section className="panel">
             <div className="panel__head">
               <h2 className="panel__title">
-                <Loader2 size={18} aria-hidden="true" /> {t.commands}
+                <CircleNotchIcon size={18} aria-hidden="true" /> {t.commands}
               </h2>
               <button
                 type="button"
@@ -1375,7 +1375,7 @@ function Overview({
                 aria-expanded={allCmds}
                 onClick={() => setAllCmds((x) => !x)}
               >
-                {t.allCommands} <ChevronDown size={16} aria-hidden="true" />
+                {t.allCommands} <CaretDownIcon size={16} aria-hidden="true" />
               </button>
             </div>
             <CommandTimeline
@@ -1391,7 +1391,7 @@ function Overview({
                 disabled={moreBusy}
                 onClick={() => void more()}
               >
-                {moreBusy && <Loader2 size={15} className="ctl-spin" aria-hidden="true" />}
+                {moreBusy && <CircleNotchIcon size={15} className="ctl-spin" aria-hidden="true" />}
                 {t.moreCmds}
               </button>
             )}
@@ -1508,9 +1508,9 @@ function Ready({
           </div>
           <button type="button" className="btn btn--primary" disabled={pending} onClick={run}>
             {pending ? (
-              <Loader2 size={17} className="ctl-spin" aria-hidden="true" />
+              <CircleNotchIcon size={17} className="ctl-spin" aria-hidden="true" />
             ) : (
-              <ListChecks size={17} aria-hidden="true" />
+              <ListChecksIcon size={17} aria-hidden="true" />
             )}
             {t.readyRun}
           </button>
@@ -1545,7 +1545,11 @@ function Ready({
             <ul className="ready__list">
               {hasil.cek.map((c, i) => {
                 const Icon =
-                  c.status === "ok" ? CheckCircle2 : c.status === "info" ? Info : AlertTriangle;
+                  c.status === "ok"
+                    ? CheckCircleIcon
+                    : c.status === "info"
+                      ? InfoIcon
+                      : WarningIcon;
                 return (
                   <li key={i} className="ready__item" data-st={c.status}>
                     <Icon size={20} className="ready__icon" aria-hidden="true" />
@@ -1758,7 +1762,7 @@ function Settings({
                       aria-expanded={isOpen}
                       onClick={() => setOpen(isOpen ? null : a)}
                     >
-                      <ChevronDown size={18} className="ovw__chev" aria-hidden="true" />
+                      <CaretDownIcon size={18} className="ovw__chev" aria-hidden="true" />
                       <b>{OPS_T[lang].aksi[a]}</b>
                       {l && (
                         <span className="hint">
@@ -1775,7 +1779,8 @@ function Settings({
                         void sendCommand(id, a, {}, lang).then(refresh);
                       }}
                     >
-                      {running(a) ? <Loader2 size={15} className="ctl-spin" /> : null} {t.run}
+                      {running(a) ? <CircleNotchIcon size={15} className="ctl-spin" /> : null}{" "}
+                      {t.run}
                     </button>
                   </div>
                   {isOpen && <pre className="ops-log">{l ? (l.keluaran ?? "·") : t.neverRun}</pre>}

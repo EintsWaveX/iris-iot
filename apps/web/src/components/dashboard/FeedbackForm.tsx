@@ -6,7 +6,7 @@
  * form says plainly so students answer honestly.
  */
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { CheckIcon } from "@phosphor-icons/react";
 import { RatingPicker } from "../ui/Display";
 import { postJson, dict } from "../../lib/app";
 import {
@@ -98,7 +98,7 @@ function Chips({
             aria-pressed={on}
             onClick={() => onChange(on ? value.filter((x) => x !== k) : [...value, k])}
           >
-            {on && <Check size={14} aria-hidden="true" />}
+            {on && <CheckIcon size={14} aria-hidden="true" />}
             {LABEL_CHIP[k]?.[bahasaKonten(lang)] ?? k}
           </button>
         );
@@ -201,7 +201,7 @@ export default function FeedbackForm({
                   className="fbform__chip fbform__chip--code"
                   onClick={() => setKode(k)}
                 >
-                  {kode === k && <Check size={14} aria-hidden="true" />}
+                  {kode === k && <CheckIcon size={14} aria-hidden="true" />}
                   {k}
                 </button>
               ))}

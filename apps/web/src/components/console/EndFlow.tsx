@@ -6,7 +6,7 @@
  * sesi" lives here too, behind its own confirm.
  */
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircleIcon, WarningIcon, XCircleIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
 import { postJson } from "../../lib/app";
@@ -28,7 +28,7 @@ function Item({
   return (
     <li className="endchk__item" data-ok={ok ? "yes" : undefined}>
       <span className="endchk__state" aria-hidden="true">
-        {ok ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+        {ok ? <CheckCircleIcon size={20} /> : <WarningIcon size={20} />}
       </span>
       <span className="grow stack" style={{ gap: 4 }}>
         <b>{title}</b>
@@ -144,7 +144,7 @@ export default function EndFlow({
               className="btn btn--ghost endchk__cancel"
               onClick={() => setConfirmCancel(true)}
             >
-              <XCircle size={17} aria-hidden="true" /> {t.cancelSesi}
+              <XCircleIcon size={17} aria-hidden="true" /> {t.cancelSesi}
             </button>
             <button
               type="button"

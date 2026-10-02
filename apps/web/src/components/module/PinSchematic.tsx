@@ -18,7 +18,7 @@
  * narrow panel docked beside the code.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Maximize2 } from "lucide-react";
+import { ArrowsOutSimpleIcon } from "@phosphor-icons/react";
 import SchematicViewer from "../ui/SchematicViewer";
 import { getJson, dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -373,7 +373,7 @@ export default function PinSchematic({
       <img src={sch.src} alt={pin.judul} loading="lazy" />
       <span className="schem-thumb__bar">
         <span className="schem-thumb__title">{sch.uploaded ? t.uploaded : t.schematic}</span>
-        <Maximize2 size={16} aria-hidden="true" />
+        <ArrowsOutSimpleIcon size={16} aria-hidden="true" />
       </span>
     </button>
   );
