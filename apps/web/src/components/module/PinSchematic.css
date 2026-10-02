@@ -133,11 +133,11 @@
 }
 
 .wiring__wire[data-kind="pwr"] .wiring__line {
-  stroke: #ff7a7a;
+  stroke: var(--danger);
 }
 
 .wiring__wire[data-kind="gnd"] .wiring__line {
-  stroke: #8b93a7;
+  stroke: var(--text-faint);
 }
 
 .wiring__wire[data-kind="sig"] .wiring__line {
@@ -156,7 +156,7 @@
 .wiring__pulse {
   fill: none;
   opacity: 0;
-  stroke: #fff;
+  stroke: var(--invert-bg);
   stroke-dasharray: 6 60;
   stroke-linecap: round;
   stroke-width: 3;
@@ -199,11 +199,11 @@
 }
 
 .wiring-legend [data-kind="pwr"] i {
-  background: #ff7a7a;
+  background: var(--danger);
 }
 
 .wiring-legend [data-kind="gnd"] i {
-  background: #8b93a7;
+  background: var(--text-faint);
 }
 
 .wiring-legend [data-kind="sig"] i {
@@ -255,13 +255,13 @@
 }
 
 .pintable__pin[data-kind="pwr"] {
-  background: rgba(255, 122, 122, 0.12);
-  color: #ff9d9d;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .pintable__pin[data-kind="gnd"] {
-  background: rgba(139, 147, 167, 0.15);
-  color: #b5bccb;
+  background: var(--hairline-faint);
+  color: var(--text-muted);
 }
 
 .pintable__pin[data-kind="sig"] {

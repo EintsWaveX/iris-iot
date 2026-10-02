@@ -289,18 +289,15 @@ function applyTier(tier: Tier): void {
   window.Motion?.setTier?.(tier);
 }
 
+/** Phase 9 detail levels (see cosmos-router.js): Low Detail and reduced
+ *  motion are tier 0, Normal is capped at tier 1, and High Detail is tier
+ *  2 whatever the probe measured, since a stated choice outranks it. */
 function effectiveTier(measured: Tier): Tier {
   if (window.Motion?.isReduced?.()) return 0;
-  // "Penuh" (see cosmos-router.js) is the explicit rescue for a device
-  // whose FPS probe once measured low and got pinned there by the cache
-  // below: without this, the tri-state toggle only ever reached the
-  // reduced-motion axis, never this measured-capability one, so clicking
-  // it did nothing for a session stuck at tier 0 or 1. isReduced() above
-  // still wins over it in the (never co-selected) case both are somehow
-  // true, since Kurangi/OS reduced-motion is a stated preference and
-  // preferences outrank a capability override.
-  if (window.CosmosRouter?.getMotionPref?.() === "penuh") return 2;
-  return measured;
+  const detail = window.CosmosRouter?.getDetail?.() ?? "ldm";
+  if (detail === "ldm") return 0;
+  if (detail === "hd") return 2;
+  return measured > 1 ? 1 : measured;
 }
 
 // The tier this device actually measures at, independent of reduced
@@ -332,11 +329,10 @@ window.Motion?.onReducedChange?.(() => {
   applyTier(effectiveTier(measuredTier));
 });
 
-// P6.4/B10: cosmos-router.js's "Otomatis" setting calls this so a device
-// stuck at a stale or wrong cached tier gets one fresh measurement on
-// request, rather than only ever after the 7-day cache expiry above (see
-// env.d.ts for the ambient type).
+// reprobe(): one fresh measurement, clearing the cached tier first.
+// reapply(): recompute after the detail level changes, without probing.
 window.IrisMotionTier = {
+  reapply: () => applyTier(effectiveTier(measuredTier)),
   reprobe: () => {
     try {
       window.localStorage.removeItem(TIER_CACHE_KEY);

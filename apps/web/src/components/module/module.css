@@ -58,8 +58,9 @@
 
 .modpage__h {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: var(--fs-display-sm);
-  font-weight: 400;
   margin: var(--space-4) 0 0;
 }
 

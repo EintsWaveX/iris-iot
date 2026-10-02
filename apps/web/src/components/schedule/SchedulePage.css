@@ -17,8 +17,9 @@
 
 .jpage__title {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: var(--fs-display-md);
-  font-weight: 400;
   margin: 0;
 }
 

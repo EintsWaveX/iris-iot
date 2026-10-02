@@ -63,6 +63,7 @@ import {
 } from "./ops";
 import type { Heartbeat, Perintah } from "../console/types";
 import "./ServerCenter.css";
+import { chartColors, useThemeKey } from "../../lib/chart-colors";
 
 interface Denyut extends Heartbeat {
   memori: number | null;
@@ -633,7 +634,7 @@ function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: nu
                           .map((x) => x.cpu)
                           .filter((v): v is number => v != null)}
                         unit="%"
-                        hue="#7dd3fc"
+                        hue="var(--chart-1)"
                       />
                     </span>
                     <span className="stack stack--sm">
@@ -643,7 +644,7 @@ function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: nu
                           .map((x) => x.suhu)
                           .filter((v): v is number => v != null)}
                         unit="°C"
-                        hue="#fca5a5"
+                        hue="var(--chart-3)"
                       />
                     </span>
                   </span>
@@ -1093,6 +1094,7 @@ function Overview({
   }
   const [histOpen, setHistOpen] = useState(false);
   const chartRef = useRef<HTMLDivElement | null>(null);
+  const themeKey = useThemeKey();
   const plot = useRef<{
     destroy: () => void;
     setSize: (s: { width: number; height: number }) => void;
@@ -1113,10 +1115,11 @@ function Overview({
       plot.current?.destroy();
       const el = chartRef.current;
       const xs = hist.seri.map((d) => new Date(d.pada).getTime() / 1000);
+      const warna = chartColors();
       const axis = {
-        stroke: "#959da7",
-        grid: { stroke: "rgba(255,255,255,0.06)" },
-        ticks: { stroke: "rgba(255,255,255,0.1)" },
+        stroke: warna.axis,
+        grid: { stroke: warna.grid },
+        ticks: { stroke: warna.tick },
       };
       const loc = localeOf(lang);
       const xAxis = {
@@ -1138,9 +1141,9 @@ function Overview({
           scales: { x: { time: true } },
           series: [
             {},
-            { label: `${t.cpu} %`, stroke: "#7dd3fc", width: 1.8, fill: "rgba(125,211,252,0.08)" },
-            { label: `${t.mem} %`, stroke: "#c4b5fd", width: 1.8 },
-            { label: `${t.temp} °C`, stroke: "#fca5a5", width: 1.8 },
+            { label: `${t.cpu} %`, stroke: warna.series[0], width: 1.8 },
+            { label: `${t.mem} %`, stroke: warna.series[1], width: 1.8 },
+            { label: `${t.temp} °C`, stroke: warna.series[2], width: 1.8 },
           ],
           axes: [xAxis, axis],
           legend: { show: false },
@@ -1157,7 +1160,7 @@ function Overview({
     return () => {
       dead = true;
     };
-  }, [hist, t.cpu, t.mem, t.temp, lang, rentang]);
+  }, [hist, t.cpu, t.mem, t.temp, lang, rentang, themeKey]);
 
   useEffect(() => {
     const el = chartRef.current;
@@ -1268,9 +1271,9 @@ function Overview({
             </div>
             <div className="chart-legend">
               {[
-                [`${t.cpu} %`, "#7dd3fc"],
-                [`${t.mem} %`, "#c4b5fd"],
-                [`${t.temp} °C`, "#fca5a5"],
+                [`${t.cpu} %`, "var(--chart-1)"],
+                [`${t.mem} %`, "var(--chart-2)"],
+                [`${t.temp} °C`, "var(--chart-3)"],
               ].map(([l, c]) => (
                 <span key={l} className="chart-legend__item">
                   <span className="chart-legend__swatch" style={{ background: c }} />

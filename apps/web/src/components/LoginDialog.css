@@ -110,6 +110,8 @@
 
 .login-welcome__hi {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: var(--fs-display-sm);
   margin: 0;
 }

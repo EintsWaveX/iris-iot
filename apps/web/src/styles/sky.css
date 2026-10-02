@@ -185,10 +185,7 @@ html {
   background-clip: padding-box;
 }
 
-::selection {
-  background: var(--accent-soft);
-  color: var(--text);
-}
+/* ::selection lives in theme.css, per theme. */
 
 /* Native number spinners are never used for scores (they are text inputs
    with inputmode="numeric"), but hide them wherever a number input remains. */

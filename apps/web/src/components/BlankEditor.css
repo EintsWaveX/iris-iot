@@ -328,6 +328,17 @@
   --syn-comment: var(--text-faint);
 }
 
+/* Daylight sky: the same hues, dark enough for 4.5:1 on white. */
+:root[data-theme="light"] .blank-editor {
+  --syn-keyword: #6a3fc8;
+  --syn-type: #0a6f7c;
+  --syn-string: #1d7a3e;
+  --syn-number: #8a5a00;
+  --syn-func: #0b5ea8;
+  --syn-preproc: #b0236e;
+  --syn-const: #a04a12;
+}
+
 .tok--keyword {
   color: var(--syn-keyword);
 }

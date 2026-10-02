@@ -78,9 +78,15 @@ interface Window {
   CustomEase?: unknown;
   // src/scripts/cosmos-router.js
   CosmosRouter?: {
-    setMotionPref(pref: "auto" | "penuh" | "kurangi"): void;
-    getMotionPref(): "auto" | "penuh" | "kurangi";
-    cycleMotionPref(): "auto" | "penuh" | "kurangi";
+    setDetail(level: "ldm" | "normal" | "hd"): void;
+    getDetail(): "ldm" | "normal" | "hd";
+  };
+  // public/theme-init.js: re-stamps data-theme, data-detail and
+  // data-zh-weight on <html> after a display choice is saved.
+  IrisPrefs?: {
+    apply(): void;
+    theme(): "dark" | "light";
+    detail(): "ldm" | "normal" | "hd";
   };
   // src/scripts/motion-tier.ts (P6.4/B10): forces one fresh capability
   // measurement, clearing the cached tier first. cosmos-router.js calls
@@ -89,5 +95,6 @@ interface Window {
   // cache expiry.
   IrisMotionTier?: {
     reprobe(): void;
+    reapply(): void;
   };
 }

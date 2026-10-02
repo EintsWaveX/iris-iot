@@ -27,6 +27,8 @@
   background-size: 200% auto;
   color: transparent;
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: 6.5rem;
   line-height: 1;
   -webkit-background-clip: text;
@@ -76,8 +78,9 @@
 
 .nf__title {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: var(--fs-display-md);
-  font-weight: 400;
   margin: 0;
 }
 

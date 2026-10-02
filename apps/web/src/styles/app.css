@@ -216,6 +216,8 @@
 
 .stat__value {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: clamp(1.9rem, 2vw + 1rem, 2.6rem);
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
@@ -530,8 +532,9 @@
 
 .lockscreen__title {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: var(--fs-display-sm);
-  font-weight: 400;
   margin: 0;
 }
 

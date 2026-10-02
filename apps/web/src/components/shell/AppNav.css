@@ -47,14 +47,14 @@
 
 .appnav__brand img {
   display: block;
-  filter: drop-shadow(0 0 8px rgba(64, 176, 255, 0.3));
+  filter: var(--logo-filter) drop-shadow(0 0 8px var(--accent-soft));
   height: 28px;
   transition: filter var(--dur-mid) var(--ease-reveal);
   width: auto;
 }
 
 .appnav__brand:hover img {
-  filter: drop-shadow(0 0 14px rgba(64, 176, 255, 0.6));
+  filter: var(--logo-filter) drop-shadow(0 0 14px var(--accent-glow));
 }
 
 .appnav__links {

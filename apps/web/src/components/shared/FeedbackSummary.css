@@ -12,6 +12,8 @@
 
 .fbsum__avg {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: 3.2rem;
   line-height: 1;
 }

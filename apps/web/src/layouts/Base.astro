@@ -18,6 +18,9 @@
  */
 import "../styles/fonts.css";
 import "../../../../packages/kosmik/style/tokens.css";
+// Phase 9: the web app's dark refresh and the Daylight sky light theme,
+// over kosmik's shared tokens (apps/games keeps those untouched).
+import "../styles/theme.css";
 import "../../../../packages/kosmik/style/base.css";
 import "../../../../packages/kosmik/style/cosmos.css";
 import "../../../../packages/kosmik/style/motion.css";
@@ -81,6 +84,8 @@ const {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Theme, detail level and Mandarin heading weight before first paint. -->
+    <script is:inline src="/theme-init.js"></script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     {description && <meta name="description" content={description} />}

@@ -33,6 +33,7 @@ import type { Ringkasan } from "../../lib/umpan-balik";
 import "../ui/Tabs.css";
 import "uplot/dist/uPlot.min.css";
 import "./Reports.css";
+import { chartColors, useThemeKey, warnaKelompok } from "../../lib/chart-colors";
 
 /* ---------------------------------------------------------------- copy */
 
@@ -241,8 +242,8 @@ const T = dict({
 });
 type Tx = (typeof T)["id"];
 
-const KELOMPOK_WARNA = ["#7dd3fc", "#c4b5fd", "#fca5a5", "#fdba74", "#67e8f9"];
-const DELAY_WARNA = ["#7dd3fc", "#86efac", "#fca5a5"];
+// Median, minimum and maximum delay: the first three chart tokens.
+const DELAY_TOKEN = ["var(--chart-1)", "var(--chart-4)", "var(--chart-3)"];
 
 function fmtDurasi(sec: number | null, t: Tx): string {
   if (sec == null) return "-";
@@ -891,10 +892,13 @@ function SessionReport({
     ? data.kelompok.some((k) => pemilik[k.id]?.kode?.toUpperCase() === meKode)
     : false;
 
+  const themeKey = useThemeKey();
+
   // Correct blanks over time per group (snapshot derived: a blank counts
   // at its latest change).
   useEffect(() => {
     if (!data || !blankRef.current) return;
+    const warna = chartColors();
     let plot: { destroy(): void } | null = null;
     let cancelled = false;
     const per = data.kelompok.map((k) => ({
@@ -926,15 +930,15 @@ function SessionReport({
           scales: { x: { time: true } },
           series: [
             {},
-            ...per.map((k, i) => ({
+            ...per.map((k) => ({
               label: t.kelompok(k.nomor),
-              stroke: KELOMPOK_WARNA[i % 5],
+              stroke: warnaKelompok(warna, k.nomor),
               width: 2,
             })),
           ],
           axes: [
-            { stroke: "#94a3b8", grid: { stroke: "rgba(148,163,184,.12)" } },
-            { stroke: "#94a3b8", grid: { stroke: "rgba(148,163,184,.12)" } },
+            { stroke: warna.axis, grid: { stroke: warna.grid }, ticks: { stroke: warna.tick } },
+            { stroke: warna.axis, grid: { stroke: warna.grid }, ticks: { stroke: warna.tick } },
           ],
           legend: { show: false },
         },
@@ -946,10 +950,12 @@ function SessionReport({
       cancelled = true;
       plot?.destroy();
     };
-  }, [data, t]);
+  }, [data, t, themeKey]);
 
   useEffect(() => {
     if (!data || !delayRef.current) return;
+    const warna = chartColors();
+    const delayWarna = [warna.series[0], warna.series[3], warna.series[2]];
     let plot: { destroy(): void } | null = null;
     let cancelled = false;
     const w = data.kelompok.filter((k) => k.telemetri.delayMedianMs != null);
@@ -964,13 +970,13 @@ function SessionReport({
             { label: t.kelompok(0) },
             ...t.delay.map((label, i) => ({
               label,
-              stroke: DELAY_WARNA[i],
+              stroke: delayWarna[i],
               width: i === 0 ? 2 : 1,
             })),
           ],
           axes: [
-            { stroke: "#94a3b8", grid: { stroke: "rgba(148,163,184,.12)" } },
-            { stroke: "#94a3b8", grid: { stroke: "rgba(148,163,184,.12)" } },
+            { stroke: warna.axis, grid: { stroke: warna.grid }, ticks: { stroke: warna.tick } },
+            { stroke: warna.axis, grid: { stroke: warna.grid }, ticks: { stroke: warna.tick } },
           ],
           legend: { show: false },
         },
@@ -987,7 +993,7 @@ function SessionReport({
       cancelled = true;
       plot?.destroy();
     };
-  }, [data, t]);
+  }, [data, t, themeKey]);
 
   function csvAnggota() {
     if (!data) return;
@@ -1132,9 +1138,9 @@ function SessionReport({
         <section className="panel">
           <h2 className="panel__title">{t.chartBlank}</h2>
           <div className="rep__legend">
-            {data.kelompok.map((k, i) => (
+            {data.kelompok.map((k) => (
               <span key={k.id}>
-                <i style={{ background: KELOMPOK_WARNA[i % 5] }} />
+                <i style={{ background: `var(--group-${k.nomor})` }} />
                 {t.kelompok(k.nomor)}
               </span>
             ))}
@@ -1146,7 +1152,7 @@ function SessionReport({
           <div className="rep__legend">
             {t.delay.map((l, i) => (
               <span key={l}>
-                <i style={{ background: DELAY_WARNA[i] }} />
+                <i style={{ background: DELAY_TOKEN[i] }} />
                 {l}
               </span>
             ))}

@@ -67,10 +67,7 @@ const T = dict({
     account: "Akun",
     myAccount: "Akun saya",
     language: "Bahasa",
-    motion: "Efek gerak",
-    motionAuto: "Otomatis",
-    motionFull: "Penuh",
-    motionLess: "Kurangi",
+    motion: "Detail Latar",
     shortcuts: "Pintasan keyboard",
     palette: "Cari perintah",
     praktikan: "Praktikan",
@@ -95,10 +92,7 @@ const T = dict({
     account: "Account",
     myAccount: "My account",
     language: "Language",
-    motion: "Motion",
-    motionAuto: "Auto",
-    motionFull: "Full",
-    motionLess: "Reduced",
+    motion: "Background Detail",
     shortcuts: "Keyboard shortcuts",
     palette: "Search commands",
     praktikan: "Student",
@@ -135,10 +129,10 @@ function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
   ];
 }
 
-/** "/en/modules/2/live" -> "/modules/2/live" */
+/** "/en/modules/2/live" and "/zh/modules/2/live" -> "/modules/2/live" */
 function barePath(p: string): string {
-  if (p === "/en" || p === "/en/") return "/";
-  const s = p.startsWith("/en/") ? p.slice(3) : p;
+  if (/^\/(en|zh)\/?$/.test(p)) return "/";
+  const s = /^\/(en|zh)\//.test(p) ? p.slice(3) : p;
   return s.length > 1 && s.endsWith("/") ? s.slice(0, -1) : s;
 }
 
@@ -149,18 +143,18 @@ function isActive(link: string, current: string): boolean {
   return current === link || current.startsWith(link + "/");
 }
 
-type MotionPref = "auto" | "penuh" | "kurangi";
+type MotionPref = "ldm" | "normal" | "hd";
 
 function useMotionPref(): [MotionPref, (p: MotionPref) => void] {
-  const [pref, setPref] = useState<MotionPref>("auto");
+  const [pref, setPref] = useState<MotionPref>("ldm");
   useEffect(() => {
-    const cur = window.CosmosRouter?.getMotionPref();
+    const cur = window.CosmosRouter?.getDetail();
     if (cur) setPref(cur);
   }, []);
   return [
     pref,
     (p) => {
-      window.CosmosRouter?.setMotionPref(p);
+      window.CosmosRouter?.setDetail(p);
       setPref(p);
     },
   ];
@@ -436,9 +430,9 @@ function AccountMenu({
 }) {
   const [motion, setMotion] = useMotionPref();
   const opts: { v: MotionPref; l: string }[] = [
-    { v: "auto", l: t.motionAuto },
-    { v: "penuh", l: t.motionFull },
-    { v: "kurangi", l: t.motionLess },
+    { v: "ldm", l: "Low Detail" },
+    { v: "normal", l: "Normal" },
+    { v: "hd", l: "High Detail" },
   ];
   return (
     <div className="acct">

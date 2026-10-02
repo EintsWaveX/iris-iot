@@ -16,8 +16,9 @@
 
 .console__h {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: var(--fs-display-sm);
-  font-weight: 400;
   margin: 0;
 }
 
@@ -685,6 +686,8 @@
   color: var(--g);
   display: inline-flex;
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: 1.8rem;
   grid-area: num;
   height: 56px;
@@ -701,8 +704,9 @@
 
 .insp__title {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: var(--fs-display-sm);
-  font-weight: 400;
   line-height: 1.1;
   margin: 0;
 }
@@ -902,6 +906,8 @@
 
 .scores__total .num {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: 1.6rem;
 }
 
@@ -1034,6 +1040,8 @@ thead .ntable__name {
 
 .ntable__total {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: 1.2rem;
   min-width: 4rem;
 }
@@ -1468,8 +1476,9 @@ thead .ntable__name {
 
 .done__title {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: var(--fs-display-lg);
-  font-weight: 400;
   line-height: 1;
   margin: 0;
 }
@@ -1513,6 +1522,8 @@ thead .ntable__name {
 
 .done__num {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: 2.6rem;
   line-height: 1;
 }
@@ -1539,8 +1550,9 @@ thead .ntable__name {
 
 .home__title {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: var(--fs-display-md);
-  font-weight: 400;
   line-height: 1.05;
   margin: 0;
 }
@@ -1615,6 +1627,8 @@ thead .ntable__name {
 
 .slot__time {
   font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
   font-size: 1.8rem;
   line-height: 1;
 }

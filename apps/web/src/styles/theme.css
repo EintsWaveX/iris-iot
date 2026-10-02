@@ -1,0 +1,231 @@
+/* =========================================================================
+   PHASE 9 THEMES — apps/web only.
+
+   packages/kosmik/style/tokens.css stays the shared dark baseline (apps/games
+   uses it as is). This file, loaded right after it, carries what Phase 9
+   changed for the web app, taken from the signed-off mockup
+   (design-review/mockups/phase9/app/styles.css):
+
+   - dark: brighter hairlines and muted text, the new tokens (invert, select,
+     the six status hues, groups 6 to 10, nav glass, display weight),
+     Plus Jakarta Sans for headings;
+   - light, "Daylight sky": the same layers re-tinted, under
+     html[data-theme="light"].
+
+   html[data-theme] is set before first paint by public/theme-init.js from
+   the reader's choice (Gelap, Terang, Sistem; dark by default) and again
+   after every ClientRouter swap. src/lib/__tests__/contrast.test.ts parses
+   both blocks.
+   ========================================================================= */
+
+:root {
+  color-scheme: dark;
+
+  --surface-1: #10131f;
+  --surface-2: #161a2b;
+  --surface-3: #1d2238;
+  --surface-4: #262c47;
+  --bg-elevated: #181c2c;
+  --glass: rgba(12, 15, 26, 0.72);
+  --scrim: rgba(3, 4, 8, 0.72);
+
+  /* Borders raised from .05/.09/.18 so they read on every surface. */
+  --hairline-faint: rgba(205, 220, 255, 0.11);
+  --hairline: rgba(205, 220, 255, 0.22);
+  --hairline-strong: rgba(205, 220, 255, 0.38);
+  /* Inputs and other controls whose border is their only outline: 3:1 on
+     every surface (WCAG 1.4.11). Hairlines above are decoration. */
+  --control-border: rgba(205, 220, 255, 0.4);
+
+  --text-muted: #b0b8c8;
+  --text-faint: #98a1b3;
+  --accent-soft: rgba(64, 176, 255, 0.16);
+
+  --invert-bg: #eef1f6;
+  --invert-ink: #05060b;
+  --sel-bg: #2f6fb0;
+  --sel-ink: #ffffff;
+
+  --gold-soft: rgba(232, 182, 77, 0.16);
+  --danger: #ff6b6b;
+  --danger-solid: #ff5a5a;
+  --danger-ink: #0b0000;
+  --danger-soft: rgba(255, 107, 107, 0.15);
+  --warn-soft: rgba(245, 181, 68, 0.15);
+  --ok-soft: rgba(94, 234, 212, 0.15);
+  --violet: #b9a2ff;
+  --violet-soft: rgba(185, 162, 255, 0.18);
+  --teal: #7ff0e0;
+  --teal-soft: rgba(127, 240, 224, 0.16);
+  --orange: #ff9d3c;
+  --orange-soft: rgba(255, 157, 60, 0.2);
+  --red: #ff5a5a;
+  --red-soft: rgba(255, 90, 90, 0.2);
+  --yellow: #ffe066;
+  --yellow-soft: rgba(255, 224, 102, 0.2);
+
+  --group-6: #a3e635;
+  --group-7: #f472b6;
+  --group-8: #fde047;
+  --group-9: #93a5ff;
+  --group-10: #e2a3ff;
+  --mod-1: #6cc4ff;
+  --mod-2: #a39cff;
+  --mod-3: #5fe0b0;
+  --mod-4: #ffad6b;
+  --mod-1-soft: rgba(108, 196, 255, 0.14);
+  --mod-2-soft: rgba(163, 156, 255, 0.14);
+  --mod-3-soft: rgba(95, 224, 176, 0.14);
+  --mod-4-soft: rgba(255, 173, 107, 0.14);
+
+  /* Text-bearing (the primary button's fill): fixed light hues, so the
+     dark --accent-ink label clears 4.5:1 in both themes. The group tokens
+     it used to borrow turn dark in the light theme. */
+  --sweep-surface: linear-gradient(100deg, #40b0ff, #7dd3fc, #5eead4, #a78bfa, #8ed0ff, #40b0ff);
+  /* Decorative only (the active nav underline, rings). */
+  --sweep: linear-gradient(100deg, #40b0ff, #a78bfa, #fb7185, #f5b544, #5eead4, #7dd3fc, #40b0ff);
+
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 18px 48px rgba(0, 0, 0, 0.5);
+  --nav-bg: rgba(10, 12, 20, 0.62);
+  --nav-bg-scrolled: rgba(10, 12, 20, 0.9);
+  --logo-filter: none;
+
+  /* Chart strokes, read by chartColors() in src/lib/chart-colors.ts. */
+  --chart-1: #7dd3fc;
+  --chart-2: #c4b5fd;
+  --chart-3: #fca5a5;
+  --chart-4: #5eead4;
+  --chart-axis: #959da7;
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-tick: rgba(255, 255, 255, 0.1);
+
+  /* Plus Jakarta Sans for headings (Stage 0 sign-off); Mandarin headings
+     use Noto Sans SC at the weight chosen in Tampilan (700 or 500). */
+  --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --display-weight: 800;
+  --display-track: -0.025em;
+  --font-cjk: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* ---- LIGHT: "Daylight sky" ---- */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --void: #dfe9f6;
+  --bg: #eef3fa;
+  --bg-sunken: #e3ebf6;
+  --bg-elevated: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #f6f9fd;
+  --surface-3: #eaf0f8;
+  --surface-4: #dbe5f2;
+  --panel-bg: rgba(255, 255, 255, 0.78);
+  --panel-bg-solid: #ffffff;
+  --glass: rgba(255, 255, 255, 0.72);
+  --scrim: rgba(20, 32, 56, 0.42);
+  --scrim-text: rgba(238, 243, 250, 0.6);
+
+  --hairline-faint: rgba(16, 34, 70, 0.1);
+  --hairline: rgba(16, 34, 70, 0.2);
+  --hairline-strong: rgba(16, 34, 70, 0.36);
+  --control-border: rgba(16, 34, 70, 0.5);
+
+  --text: #0e1626;
+  --text-muted: #3d4a63;
+  --text-faint: #55627c;
+
+  --accent: #40b0ff;
+  --accent-bright: #075b9f;
+  --accent-soft: rgba(29, 132, 214, 0.13);
+  --accent-ink: #04121d;
+  --accent-glow: rgba(29, 132, 214, 0.32);
+  --focus-ring: #075b9f;
+
+  --invert-bg: #0e1626;
+  --invert-ink: #ffffff;
+  --sel-bg: #bfe0ff;
+  --sel-ink: #04121d;
+
+  --gold: #8a5a00;
+  --gold-bright: #6b4500;
+  --gold-soft: rgba(212, 150, 20, 0.16);
+  --gold-ink: #ffffff;
+  --gold-glow: rgba(212, 150, 20, 0.35);
+  --silver: #5b6676;
+  --bronze: #8a4f22;
+
+  --danger: #c4242f;
+  --danger-solid: #ff5a5a;
+  --danger-ink: #0b0000;
+  --danger-soft: rgba(214, 40, 52, 0.11);
+  --warn: #8f5700;
+  --warn-soft: rgba(230, 150, 20, 0.16);
+  --ok: #0a7a68;
+  --ok-soft: rgba(16, 160, 136, 0.13);
+  --violet: #5b3ec9;
+  --violet-soft: rgba(110, 80, 220, 0.13);
+  --teal: #08766a;
+  --teal-soft: rgba(20, 170, 150, 0.15);
+  --orange: #a85000;
+  --orange-soft: rgba(255, 140, 30, 0.22);
+  --red: #b3131f;
+  --red-soft: rgba(230, 40, 50, 0.16);
+  --yellow: #7a6000;
+  --yellow-soft: rgba(255, 214, 40, 0.38);
+
+  --group-1: #0a796a;
+  --group-2: #6a4bd8;
+  --group-3: #c42a48;
+  --group-4: #ab510f;
+  --group-5: #0b6aa6;
+  --group-6: #4a770e;
+  --group-7: #b3297e;
+  --group-8: #866700;
+  --group-9: #3f53c9;
+  --group-10: #8b3bb8;
+  --mod-1: #0f6fb3;
+  --mod-2: #5b4fd1;
+  --mod-3: #08805a;
+  --mod-4: #b25a14;
+  --mod-1-soft: rgba(15, 111, 179, 0.12);
+  --mod-2-soft: rgba(91, 79, 209, 0.12);
+  --mod-3-soft: rgba(8, 128, 90, 0.12);
+  --mod-4-soft: rgba(178, 90, 20, 0.12);
+
+  --heat-lost: rgba(16, 34, 70, 0.22);
+  --neb-indigo: #c9d6f2;
+  --neb-violet: #dccff5;
+  --neb-teal: #c8eeea;
+  --neb-plum: #f0d6e8;
+
+  --shadow-color: 16 34 70;
+  --shadow-panel: 0 1px 2px rgba(16, 34, 70, 0.08), 0 12px 32px rgba(16, 34, 70, 0.1);
+  --shadow-lift: 0 18px 48px rgba(16, 34, 70, 0.18);
+  --nav-bg: rgba(246, 250, 255, 0.62);
+  --nav-bg-scrolled: rgba(246, 250, 255, 0.9);
+  --logo-filter: brightness(0.62) saturate(1.5);
+
+  --chart-1: #0b6aa6;
+  --chart-2: #6a4bd8;
+  --chart-3: #c42a48;
+  --chart-4: #0b7f70;
+  --chart-axis: #55627c;
+  --chart-grid: rgba(16, 34, 70, 0.08);
+  --chart-tick: rgba(16, 34, 70, 0.16);
+}
+
+/* Mandarin pages: CJK glyphs come from Noto Sans SC (self-hosted, split by
+   unicode-range so only the characters on the page download). */
+:root:lang(zh) {
+  --font-body: "Inter", var(--font-cjk);
+  --font-display: "Plus Jakarta Sans", var(--font-cjk);
+  --display-weight: 700;
+}
+:root:lang(zh)[data-zh-weight="500"] {
+  --display-weight: 500;
+}
+
+::selection {
+  background: var(--sel-bg);
+  color: var(--sel-ink);
+}
