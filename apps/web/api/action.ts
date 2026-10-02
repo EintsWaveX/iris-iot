@@ -1,10 +1,9 @@
 /**
  * POST /api/action   { tipe: "kirim", serverId, aksi, argumen }
- *                    | { tipe: "adopsi", id, nama, jenis }
- *                    | { tipe: "perangkat", id, aksi, ... }        (P6.7)
  *                    | { tipe: "perintah_ulang", id }              (P6.7)
  *                    | { tipe: "perintah_batal", id }              (P6.7)
- *   — assistant-only for all five.
+ *   — assistant-only for all three. Phase 9 removed "adopsi" and
+ *   "perangkat" with the Devices tab; the perangkat table stays.
  *
  * Two actions that would otherwise be their own route files, merged into
  * one: the Vercel Hobby plan caps a deployment at 12 serverless functions,
@@ -22,34 +21,16 @@
  * recognises is refused at both ends, on purpose. Delivery happens on the
  * agent's next heartbeat (api/agent/index.ts), not immediately -- there is
  * no inbound path to the Pi to deliver it any faster.
- *
- * "adopsi": names a discovered device and, optionally, corrects its
- * guessed type. Once diadopsi is true, a rediscovery on the next heartbeat
- * can no longer overwrite vendor/jenis (see api/agent/index.ts's
- * onConflictDoUpdate) -- this is the write that flips that flag.
  */
 import type { ApiRequest, ApiResponse } from "./_lib/http.js";
 import { requireMethod, jsonBody, noStore, pgErrorCode } from "./_lib/http.js";
 import { requireRole } from "./_lib/session.js";
 import { getDb } from "../src/lib/db.js";
-import { perintah, perangkat, server } from "../src/lib/schema.js";
-import {
-  aksiValid,
-  layananValid,
-  jenisPerangkatValid,
-  unitDiagValid,
-  type JenisPerangkat,
-} from "../src/lib/server-lib.js";
+import { perintah, server } from "../src/lib/schema.js";
+import { aksiValid, layananValid, modulSiapValid, unitDiagValid } from "../src/lib/server-lib.js";
 import { writeAudit } from "../src/lib/auth.js";
 import type { SessionPayload } from "../src/lib/auth.js";
 import { eq, and } from "drizzle-orm";
-
-const MAX_NAMA_LEN = 40;
-const PERANGKAT_AKSI = ["ubah", "sembunyikan", "tampilkan", "lupakan"] as const;
-type PerangkatAksi = (typeof PERANGKAT_AKSI)[number];
-function perangkatAksiValid(value: unknown): value is PerangkatAksi {
-  return typeof value === "string" && (PERANGKAT_AKSI as readonly string[]).includes(value);
-}
 
 async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
@@ -66,6 +47,10 @@ async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPa
     return;
   }
   if (aksi === "diag.log" && !unitDiagValid(argumen.layanan)) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  if (aksi === "diag.siap" && !modulSiapValid(argumen.modul ?? "")) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
@@ -101,146 +86,6 @@ async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPa
       kode: pgErrorCode(err) === "23503" ? "server_tidak_ada" : "galat_server",
     });
   }
-}
-
-async function handleAdopsi(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const body = jsonBody(req);
-  const id = Number(body.id);
-  const nama = typeof body.nama === "string" ? body.nama.trim() : "";
-  const jenisMentah = body.jenis;
-
-  if (!Number.isInteger(id) || id <= 0 || !nama || nama.length > MAX_NAMA_LEN) {
-    res.status(200).json({ ok: false, kode: "format_salah" });
-    return;
-  }
-  if (jenisMentah !== undefined && !jenisPerangkatValid(jenisMentah)) {
-    res.status(200).json({ ok: false, kode: "format_salah" });
-    return;
-  }
-  // Asserted, not narrowed: jenisPerangkatValid() above already proved
-  // this at runtime, but TS's control-flow narrowing does not survive into
-  // a later ternary/ spread the way a straight-line `if` guard normally
-  // would -- confirmed by a real `vercel build` failure showing `jenis:
-  // unknown` still reaching the .set() call, not by reasoning about it.
-  // astro check's own tsconfig (bundler resolution) never caught this,
-  // the same class of gap Phase 1 hit with node16 import extensions.
-  const jenis = jenisMentah as JenisPerangkat | undefined;
-
-  const db = getDb();
-  const result = await db
-    .update(perangkat)
-    .set(jenis === undefined ? { nama, diadopsi: true } : { nama, diadopsi: true, jenis })
-    .where(eq(perangkat.id, id))
-    .returning({ id: perangkat.id, mac: perangkat.mac });
-
-  if (result.length === 0) {
-    res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
-    return;
-  }
-
-  await writeAudit(session.nim, "perangkat_adopsi", { id, nama, mac: result[0].mac });
-  res.status(200).json({ ok: true });
-}
-
-/**
- * "perangkat" (P6.7): the server centre's device management, folded into
- * the same adopsi-shaped route rather than a new file (same 12-function
- * ceiling as the header comment explains). `aksi` picks which of the four
- * operations the device list's row actions need:
- *   ubah         rename, retype, or assign/clear a group number
- *   sembunyikan  hide a device that isn't actually a practicum board
- *   tampilkan    the reverse
- *   lupakan      delete the row outright (a stale/garbage discovery)
- */
-async function handlePerangkat(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const body = jsonBody(req);
-  const id = Number(body.id);
-  const aksi = body.aksi;
-
-  if (!Number.isInteger(id) || id <= 0 || !perangkatAksiValid(aksi)) {
-    res.status(200).json({ ok: false, kode: "format_salah" });
-    return;
-  }
-
-  const db = getDb();
-
-  if (aksi === "lupakan") {
-    const result = await db
-      .delete(perangkat)
-      .where(eq(perangkat.id, id))
-      .returning({ mac: perangkat.mac });
-    if (result.length === 0) {
-      res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
-      return;
-    }
-    await writeAudit(session.nim, "perangkat_lupakan", { id, mac: result[0].mac });
-    res.status(200).json({ ok: true });
-    return;
-  }
-
-  if (aksi === "sembunyikan" || aksi === "tampilkan") {
-    const result = await db
-      .update(perangkat)
-      .set({ disembunyikan: aksi === "sembunyikan" })
-      .where(eq(perangkat.id, id))
-      .returning({ id: perangkat.id });
-    if (result.length === 0) {
-      res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
-      return;
-    }
-    await writeAudit(session.nim, "perangkat_" + aksi, { id });
-    res.status(200).json({ ok: true });
-    return;
-  }
-
-  // aksi === "ubah"
-  const patch: { nama?: string; jenis?: JenisPerangkat; kelompokNomor?: number | null } = {};
-  if ("nama" in body) {
-    const nama = typeof body.nama === "string" ? body.nama.trim() : "";
-    if (!nama || nama.length > MAX_NAMA_LEN) {
-      res.status(200).json({ ok: false, kode: "format_salah" });
-      return;
-    }
-    patch.nama = nama;
-  }
-  if ("jenis" in body) {
-    if (!jenisPerangkatValid(body.jenis)) {
-      res.status(200).json({ ok: false, kode: "format_salah" });
-      return;
-    }
-    // Asserted, not narrowed -- see handleAdopsi's own comment above on why
-    // this project's tsconfig (bundler resolution) does not carry a type
-    // predicate's narrowing across to a later assignment reliably.
-    patch.jenis = body.jenis as JenisPerangkat;
-  }
-  if ("kelompokNomor" in body) {
-    if (body.kelompokNomor === null) {
-      patch.kelompokNomor = null;
-    } else {
-      const n = Number(body.kelompokNomor);
-      if (!Number.isInteger(n) || n < 1 || n > 5) {
-        res.status(200).json({ ok: false, kode: "format_salah" });
-        return;
-      }
-      patch.kelompokNomor = n;
-    }
-  }
-  if (Object.keys(patch).length === 0) {
-    res.status(200).json({ ok: false, kode: "format_salah" });
-    return;
-  }
-
-  const result = await db
-    .update(perangkat)
-    .set({ ...patch, diadopsi: true })
-    .where(eq(perangkat.id, id))
-    .returning({ id: perangkat.id });
-  if (result.length === 0) {
-    res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
-    return;
-  }
-  await writeAudit(session.nim, "perangkat_ubah", { id, ...patch });
-  res.status(200).json({ ok: true });
 }
 
 /**
@@ -323,8 +168,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   const body = jsonBody(req);
   if (body.tipe === "kirim") return handleKirim(req, res, session);
-  if (body.tipe === "adopsi") return handleAdopsi(req, res, session);
-  if (body.tipe === "perangkat") return handlePerangkat(req, res, session);
   if (body.tipe === "perintah_ulang") return handlePerintahUlang(req, res, session);
   if (body.tipe === "perintah_batal") return handlePerintahBatal(req, res, session);
 

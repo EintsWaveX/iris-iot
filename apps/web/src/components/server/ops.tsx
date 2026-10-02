@@ -8,17 +8,19 @@
  *   an inline log peek (the log arrives as the diag.log command's output)
  * - CommandTimeline: recent commands as queued, sent, done / failed steps,
  *   like a CI run, updating as the server polls
- * - DevicesByGroup: ESP32s grouped by Kelompok
+ * - Sejak: an "N s ago" label that ticks every second
+ * (Phase 9 removed DevicesByGroup with the Devices tab.)
  *
  * Commands are delivered on the Pi's next heartbeat, never instantly, so
  * every action says so instead of pretending it already happened.
  */
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { CheckCircle2, Circle, CircleDot, Clock3, Loader2, Power, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, CircleDot, Clock3, Loader2, Power, XCircle } from "lucide-react";
 import { Switch } from "../ui/Controls";
-import { KELOMPOK_NAMA, dict, jamMenit, postJson, sejak, useTick } from "../../lib/app";
+import { dict, jamMenit, postJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
-import type { Heartbeat, Perangkat, Perintah } from "../console/types";
+import { hotspotMenyala, urutkanLayanan } from "../../lib/server-shared";
+import type { Heartbeat, Perintah } from "../console/types";
 import "./ops.css";
 
 export const OPS_T = dict({
@@ -38,11 +40,6 @@ export const OPS_T = dict({
     noCommands: "Belum ada perintah.",
     sent: "Perintah dikirim. Diproses pada denyut berikutnya dari Orange Pi.",
     fail: "Perintah tidak terkirim.",
-    esp: "ESP32 per kelompok",
-    noEsp: "Belum ada ESP32 yang terlihat.",
-    ungrouped: "Tanpa kelompok",
-    group: (n: number) => `K${n} · ${KELOMPOK_NAMA[n]}`,
-    seen: (s: string) => `terlihat ${s}`,
     by: (k: string) => `oleh ${k}`,
     status: {
       menunggu: "menunggu",
@@ -65,6 +62,7 @@ export const OPS_T = dict({
       "diag.log": "Ambil log",
       "diag.jaringan": "Diagnostik jaringan",
       "diag.dmesg": "Pesan kernel",
+      "diag.siap": "Cek kesiapan",
     } as Record<string, string>,
     svc: {
       "modul2-ws": "WebSocket Modul 2",
@@ -97,11 +95,6 @@ export const OPS_T = dict({
     noCommands: "No commands yet.",
     sent: "Command sent. It runs on the Orange Pi's next heartbeat.",
     fail: "The command was not sent.",
-    esp: "ESP32 by group",
-    noEsp: "No ESP32 seen yet.",
-    ungrouped: "No group",
-    group: (n: number) => `G${n} · ${KELOMPOK_NAMA[n]}`,
-    seen: (s: string) => `seen ${s}`,
     by: (k: string) => `by ${k}`,
     status: {
       menunggu: "queued",
@@ -124,6 +117,7 @@ export const OPS_T = dict({
       "diag.log": "Fetch logs",
       "diag.jaringan": "Network diagnostics",
       "diag.dmesg": "Kernel messages",
+      "diag.siap": "Ready check",
     } as Record<string, string>,
     svc: {
       "modul2-ws": "Module 2 WebSocket",
@@ -190,7 +184,7 @@ export function HotspotCard({
   onSent: () => void;
 }) {
   const t = OPS_T[lang];
-  const on = hb?.modeJaringan === "ap";
+  const on = hotspotMenyala(hb?.modeJaringan);
   const [want, setWant] = useState<boolean | null>(null);
   useEffect(() => {
     if (want !== null && want === on) setWant(null);
@@ -240,7 +234,7 @@ export function ServiceList({
 }) {
   const t = OPS_T[lang];
   const [peek, setPeek] = useState<string | null>(null);
-  const layanan = Object.entries(hb?.layanan ?? {});
+  const layanan = urutkanLayanan(hb?.layanan);
   const logFor = (svc: string) =>
     perintah.find((p) => p.aksi === "diag.log" && p.argumen?.layanan === svc);
   return (
@@ -358,7 +352,7 @@ export function CommandTimeline({
   kode?: (nim: string | null) => string;
 }) {
   const t = OPS_T[lang];
-  const now = useTick(5_000);
+  const now = useTick(1_000);
   const rows = perintah.slice(0, limit);
   if (rows.length === 0) return <p className="hint">{t.noCommands}</p>;
   return (
@@ -406,49 +400,11 @@ export function CommandTimeline({
   );
 }
 
-/* --------------------------------------------------------------- devices */
+/* ----------------------------------------------------------------- ago */
 
-export function DevicesByGroup({ lang, devices }: { lang: Lang; devices: Perangkat[] }) {
-  const t = OPS_T[lang];
-  const now = useTick(10_000);
-  const groups = useMemo(() => {
-    const m = new Map<number | null, Perangkat[]>();
-    for (const d of devices.filter((x) => !x.disembunyikan)) {
-      const k = d.kelompokNomor ?? null;
-      m.set(k, [...(m.get(k) ?? []), d]);
-    }
-    return [...m.entries()].sort((a, b) => (a[0] ?? 99) - (b[0] ?? 99));
-  }, [devices]);
-  if (groups.length === 0) return <p className="hint">{t.noEsp}</p>;
-  return (
-    <div className="ops-esp">
-      {groups.map(([n, list]) => (
-        <div
-          key={n ?? "none"}
-          className="ops-esp__group"
-          style={{ "--g": n ? `var(--group-${n})` : "var(--hairline-strong)" } as CSSProperties}
-        >
-          <span className="ops-esp__label">{n ? t.group(n) : t.ungrouped}</span>
-          <ul>
-            {list.map((d) => {
-              const on =
-                !!d.terakhirTerlihat && now - new Date(d.terakhirTerlihat).getTime() < 90_000;
-              return (
-                <li key={d.id}>
-                  {on ? (
-                    <CircleDot size={14} className="ops-esp__on" aria-hidden="true" />
-                  ) : (
-                    <Circle size={14} className="ops-esp__off" aria-hidden="true" />
-                  )}
-                  <span className="grow truncate">{d.nama ?? d.mac}</span>
-                  <span className="mono hint">{d.ip}</span>
-                  <span className="hint">{t.seen(sejak(d.terakhirTerlihat, lang, now))}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
+/** "N s ago" that ticks every second, so a timestamp never looks frozen
+ *  between polls. */
+export function Sejak({ iso, lang }: { iso: string | null; lang: Lang }) {
+  const now = useTick(1_000);
+  return <>{sejak(iso, lang, now)}</>;
 }

@@ -11,7 +11,7 @@ import HoverCard from "../ui/HoverCard";
 import { namaKelompok, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import type { Strings } from "./strings";
-import type { AsistenRef, FeedItem, GroupRow, Perangkat, Stuck } from "./types";
+import type { AsistenRef, FeedItem, GroupRow, Stuck } from "./types";
 
 type Filter = "all" | "help" | "hand" | "absent" | "idle" | "mine";
 
@@ -23,22 +23,13 @@ export interface BoardProps {
   tangan: Record<string, string>;
   pemilik: Record<string, string>;
   asisten: Map<string, AsistenRef>;
-  devices: Perangkat[];
   meNim: string;
   sel: number | null;
   onSelect: (id: number) => void;
 }
 
-export function devicesFor(devices: Perangkat[], nomor: number): Perangkat[] {
-  return devices.filter((d) => d.kelompokNomor === nomor && !d.disembunyikan);
-}
-
-export function deviceOnline(d: Perangkat, now = Date.now()): boolean {
-  return !!d.terakhirTerlihat && now - new Date(d.terakhirTerlihat).getTime() < 90_000;
-}
-
 export default function GroupBoard(p: BoardProps) {
-  const { t, lang, groups, stuck, tangan, pemilik, asisten, devices, meNim, sel, onSelect } = p;
+  const { t, lang, groups, stuck, tangan, pemilik, asisten, meNim, sel, onSelect } = p;
   const [f, setF] = useState<Filter>("all");
   const now = useTick(15_000);
   const stuckBy = useMemo(() => {
@@ -88,8 +79,6 @@ export default function GroupBoard(p: BoardProps) {
           {shown.map((g) => {
             const st = stuckBy.get(g.id) ?? [];
             const owner = pemilik[g.id] ? asisten.get(pemilik[g.id]) : null;
-            const dev = devicesFor(devices, g.nomor);
-            const devOn = dev.some((d) => deviceOnline(d, now));
             const pct = g.total ? Math.round((g.benar / g.total) * 100) : 0;
             const hand = tangan[g.id];
             return (
@@ -172,10 +161,6 @@ export default function GroupBoard(p: BoardProps) {
                       </span>
                     </span>
                     <span className="gcard__side">
-                      <span
-                        className={`dot ${dev.length === 0 ? "dot--off" : devOn ? "dot--ok" : "dot--warn"}`}
-                        aria-label={dev.length === 0 ? t.noDevice : "ESP32"}
-                      />
                       <span
                         className={`code-badge${owner ? "" : " code-badge--empty"}`}
                         data-me={pemilik[g.id] === meNim ? "yes" : undefined}

@@ -14,6 +14,7 @@ import * as RadixPopover from "@radix-ui/react-popover";
 import { Switch } from "../ui/Controls";
 import { getJson, href, jamMenit, menitBerjalan, postJson, useTick } from "../../lib/app";
 import { SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
+import { hotspotMenyala } from "../../lib/server-shared";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
 import type { Lang } from "../../lib/kelas";
@@ -87,7 +88,7 @@ export default function SessionBar({
   const [pop, setPop] = useState<"acc" | "deck" | null>(null);
   const list = servers?.list ?? [];
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
-  const ap = servers?.detail?.denyutTerakhir?.modeJaringan === "ap";
+  const ap = hotspotMenyala(servers?.detail?.denyutTerakhir?.modeJaringan);
   const kelas = sesi.kelas ?? "reguler";
   const hari = hariDariTanggal(sesi.tanggal);
   const ref = useRef<HTMLElement | null>(null);

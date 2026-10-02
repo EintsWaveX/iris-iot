@@ -1,7 +1,7 @@
 /**
  * Ending a session (P8.6b): "Akhiri" opens a recap first, listing what is
  * still open (missing scores per group, groups without notes, stuck blanks,
- * raised hands, devices still online, the Module 4 hotspot), each one a
+ * raised hands, the Module 4 hotspot), each one a
  * button that jumps straight to it. Only then the danger confirm. "Batalkan
  * sesi" lives here too, behind its own confirm.
  */
@@ -12,8 +12,7 @@ import Confirm from "../ui/Confirm";
 import { postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
-import type { NilaiData, GroupRow, Perangkat, SesiRunning, Stuck } from "./types";
-import { deviceOnline } from "./GroupBoard";
+import type { NilaiData, GroupRow, SesiRunning, Stuck } from "./types";
 
 function Item({
   ok,
@@ -54,7 +53,6 @@ export default function EndFlow({
   stuck,
   tangan,
   nilai,
-  devices,
   onJumpGroup,
   onJumpTable,
   onEnded,
@@ -68,7 +66,6 @@ export default function EndFlow({
   stuck: Stuck[];
   tangan: Record<string, string>;
   nilai: NilaiData | null;
-  devices: Perangkat[];
   onJumpGroup: (id: number) => void;
   onJumpTable: () => void;
   onEnded: (kind: "end" | "cancel") => void;
@@ -83,7 +80,6 @@ export default function EndFlow({
   const noNotes = groups.filter((g) => g.sesiAktif && !g.catatan?.trim());
   const stuckGroups = [...new Set(stuck.map((s) => s.kelompokId))];
   const hands = Object.keys(tangan).map(Number);
-  const onlineDev = devices.filter((d) => deviceOnline(d));
 
   function jump(id: number) {
     onOpenChange(false);
@@ -191,11 +187,6 @@ export default function EndFlow({
           <Item ok={hands.length === 0} title={hands.length ? t.chkHands : t.chkHandsOk}>
             {hands.length > 0 && chips(hands)}
           </Item>
-          {onlineDev.length > 0 && (
-            <Item ok={false} title={t.chkDevices}>
-              <span className="hint">{t.chkDevicesN(onlineDev.length)}</span>
-            </Item>
-          )}
           {sesi.modul === 4 && sesi.butuhAp && <Item ok title={t.chkAp} />}
         </ul>
       </Dialog>

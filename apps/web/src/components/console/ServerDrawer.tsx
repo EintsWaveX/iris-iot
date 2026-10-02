@@ -2,13 +2,14 @@
  * The console's server drawer (P8.2): a right slide-over with everything a
  * running session needs from the Orange Pi, so nobody leaves the console:
  * health, the hotspot switch (the only one, the old tab's duplicate is
- * gone), services with restart and log peek, the live command timeline,
- * and ESP32s by group. It polls every 4 s while open.
+ * gone), services with restart and log peek, and the live command
+ * timeline. It polls every 4 s while open. (Phase 9 dropped the ESP32 list
+ * with the Devices tab.)
  */
 import { Clock, Cpu, Thermometer, Timer } from "lucide-react";
 import Drawer from "../ui/Drawer";
-import { CommandTimeline, DevicesByGroup, HotspotCard, ServiceList } from "../server/ops";
-import { href, sejak } from "../../lib/app";
+import { CommandTimeline, HotspotCard, Sejak, ServiceList } from "../server/ops";
+import { href } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import type { Strings } from "./strings";
 import type { ServerState } from "./data";
@@ -83,7 +84,7 @@ export default function ServerDrawer({
             </div>
             <div className="drawer-ops__facts">
               <span>
-                <Clock size={15} aria-hidden="true" /> {sejak(hb?.pada ?? null, lang)}
+                <Clock size={15} aria-hidden="true" /> <Sejak iso={hb?.pada ?? null} lang={lang} />
               </span>
               <span>
                 <Timer size={15} aria-hidden="true" /> {uptime(hb?.uptimeSec, lang)}
@@ -122,11 +123,6 @@ export default function ServerDrawer({
               perintah={d.perintah}
               kode={(nim) => (nim ? (asisten.get(nim)?.kode ?? nim) : "")}
             />
-          </section>
-
-          <section className="stack">
-            <h3 className="label-caps">{t.espByGroup}</h3>
-            <DevicesByGroup lang={lang} devices={d.perangkat} />
           </section>
 
           <a className="btn btn--ghost" href={href(lang, `/servers?id=${d.server.id}`)}>

@@ -458,7 +458,6 @@ export default function Console({ lang }: { lang: Lang }) {
   const stuck = L?.stuck ?? [];
   const tangan = L?.tangan ?? {};
   const pemilik = L?.pemilik ?? {};
-  const devices = servers.data?.detail?.perangkat ?? [];
   const selGroup = groups.find((g) => g.id === sel) ?? null;
 
   return (
@@ -533,7 +532,6 @@ export default function Console({ lang }: { lang: Lang }) {
               tangan={tangan}
               pemilik={pemilik}
               asisten={asisten}
-              devices={devices}
               meNim={me!.nim}
               sel={sel}
               onSelect={(id) => pick(sel === id ? null : id)}
@@ -561,7 +559,6 @@ export default function Console({ lang }: { lang: Lang }) {
                 ownerNim={pemilik[selGroup.id] ?? null}
                 asisten={asisten}
                 meNim={me!.nim}
-                devices={devices}
                 nilai={nilai}
                 onChanged={refreshAll}
                 onOpenTable={() => go("table")}
@@ -612,7 +609,6 @@ export default function Console({ lang }: { lang: Lang }) {
         stuck={stuck}
         tangan={tangan}
         nilai={nilai.data}
-        devices={devices}
         onJumpGroup={(id) => pick(id)}
         onJumpTable={() => go("table")}
         onEnded={(kind) => {

@@ -9,8 +9,11 @@
  * - Device page, three tabs instead of seven:
  *   Ringkasan  health tiles, an action bar (hotspot, clock sync, network
  *              diagnostics), the chart, services with restart/stop/log, the
- *              live command timeline and a History accordion
- *   Perangkat  devices grouped by Kelompok, edited inline
+ *              live command timeline (paged under "Semua perintah") and a
+ *              History accordion
+ *   Siap       (Phase 9, replaces Perangkat) the Ready check: diag.siap runs
+ *              the Pi's preflight and each check shows as passed or with
+ *              its one-line fix, plus the runs before it
  *   Pengaturan the form, agent info, diagnostics and the danger zone
  * All confirmations are the app's own dialog, never window.confirm.
  *
@@ -19,33 +22,25 @@
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import {
+  AlertTriangle,
   CheckCircle2,
   ChevronDown,
   Copy,
+  Info,
+  ListChecks,
   Loader2,
   Server,
   ShieldAlert,
-  Trash2,
 } from "lucide-react";
 import "uplot/dist/uPlot.min.css";
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
-import Dropdown from "../ui/Dropdown";
 import HoverCard from "../ui/HoverCard";
 import { OfflineBanner, StateView, UpdatedAgo } from "../ui/Display";
 import { usePoll } from "../../lib/hooks";
-import {
-  KELOMPOK_NAMA,
-  dict,
-  getJson,
-  href,
-  jamMenit,
-  postJson,
-  sejak,
-  useMe,
-  useTick,
-} from "../../lib/app";
+import { dict, getJson, href, jamMenit, postJson, sejak, useMe, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
+import { bacaHasilSiap, urutkanLayanan } from "../../lib/server-shared";
 import {
   CommandTimeline,
   HotspotCard,
@@ -56,7 +51,7 @@ import {
   sendCommand,
   svcTone,
 } from "./ops";
-import type { Heartbeat, Perangkat, Perintah } from "../console/types";
+import type { Heartbeat, Perintah } from "../console/types";
 import "./ServerCenter.css";
 
 interface Denyut extends Heartbeat {
@@ -83,8 +78,9 @@ interface Detail {
   server: ServerRow;
   denyutTerakhir: Denyut | null;
   batasLuringDetik: number;
-  perangkat: (Perangkat & { diadopsi?: boolean; sumber?: string })[];
   perintah: Perintah[];
+  /** The running session's module, or null when none runs. */
+  sesiModul: number | null;
 }
 
 interface Riwayat {
@@ -99,7 +95,7 @@ interface Riwayat {
 const T = dict({
   id: {
     title: "Pusat server",
-    sub: "Orange Pi yang terdaftar, kesehatannya, dan ESP32 yang terhubung padanya.",
+    sub: "Orange Pi yang terdaftar, kesehatannya, dan kesiapannya untuk praktikum.",
     enroll: "Daftarkan Pi",
     online: "Daring",
     offline: "Luring",
@@ -115,12 +111,12 @@ const T = dict({
     back: "Semua server",
     code: "Kode",
     forbidden: "Halaman ini khusus asisten",
-    forbiddenBody: "Masuk sebagai asisten untuk melihat server dan perangkat.",
+    forbiddenBody: "Masuk sebagai asisten untuk melihat server.",
     signIn: "Masuk",
     offlineBanner: "Koneksi ke server terputus. Mencoba lagi otomatis.",
     retry: "Coba sekarang",
     updated: (s: number) => (s < 5 ? "baru saja diperbarui" : `diperbarui ${s} dtk lalu`),
-    tabs: { ringkasan: "Ringkasan", perangkat: "Perangkat", pengaturan: "Pengaturan" },
+    tabs: { ringkasan: "Ringkasan", siap: "Siap Praktikum", pengaturan: "Pengaturan" },
     tabsLabel: "Bagian server",
     cpu: "CPU",
     mem: "Memori",
@@ -153,36 +149,32 @@ const T = dict({
     cancelCmd: "Batalkan",
     cmdRetried: "Perintah diulang.",
     output: "Keluaran",
-    devices: "Perangkat",
-    devFilter: { semua: "Semua", esp32: "Hanya ESP32", tersembunyi: "Tersembunyi" } as Record<
-      string,
-      string
-    >,
-    devNone: "Tidak ada perangkat yang cocok.",
-    ungrouped: "Tanpa kelompok",
-    group: (n: number) => `K${n} · ${KELOMPOK_NAMA[n]}`,
-    devName: "Nama perangkat",
-    devNamePh: "mis. ESP32 Hunter K3",
-    devType: "Jenis",
-    devGroup: "Kelompok",
-    none: "Tidak ada",
     save: "Simpan",
     saved: "Tersimpan.",
-    hide: "Sembunyikan",
-    show: "Tampilkan",
-    forget: "Lupakan",
-    forgetTitle: "Lupakan perangkat ini?",
-    forgetBody: (mac: string) =>
-      `${mac} dihapus dari daftar. Bila terlihat lagi, ia muncul sebagai perangkat baru.`,
-    stale: "basi",
-    notAdopted: "Belum diberi nama",
-    lastSeen: (s: string) => `terlihat ${s}`,
+    moreCmds: "Muat Lebih Banyak",
+    readyTitle: "Siap untuk praktikum?",
+    readyRun: "Jalankan Cek",
+    readyModul: "Modul yang dicek",
+    readyAll: "Semua",
+    readyMod: (n: string) => `Modul ${n}`,
+    readyLast: "Cek terakhir",
+    readyBy: (k: string) => `oleh ${k}`,
+    readyNever: "Belum pernah dijalankan. Tekan Jalankan Cek sebelum praktikum dimulai.",
+    readyWait: "Cek dikirim. Hasilnya muncul setelah denyut berikutnya dari Orange Pi.",
+    readyPass: "Siap",
+    readyFail: (n: number) => `${n} perlu dibereskan`,
+    readyBad: "Keluarannya tidak terbaca sebagai hasil cek:",
+    readyHist: "Riwayat Cek",
+    readyHistNone: "Belum ada cek sebelumnya.",
+    readyPassed: (n: number) => `${n} lulus`,
+    readyNote: "Teks tiap cek datang langsung dari Orange Pi.",
     settings: "Identitas",
     name: "Nama",
     location: "Lokasi",
     locationPh: "Lab A, meja dekat jendela",
     notes: "Catatan",
     lan: "Alamat LAN",
+    lanHint: "Dilaporkan agen pada tiap denyut.",
     agent: "Agen",
     agentVer: "Versi agen",
     sysInfo: "Info sistem",
@@ -199,7 +191,7 @@ const T = dict({
     del: "Hapus server",
     delTitle: "Hapus server ini?",
     delBody:
-      "Riwayat denyut, perangkat dan perintahnya ikut terhapus. Agen yang masih berjalan akan ditolak pada denyut berikutnya.",
+      "Riwayat denyut dan perintahnya ikut terhapus. Agen yang masih berjalan akan ditolak pada denyut berikutnya.",
     deleted: "Server dihapus.",
     wizTitle: "Daftarkan Orange Pi",
     wizSteps: ["Nama", "Perintah", "Menunggu"],
@@ -236,7 +228,7 @@ const T = dict({
   },
   en: {
     title: "Server centre",
-    sub: "The enrolled Orange Pis, their health, and the ESP32s connected to them.",
+    sub: "The enrolled Orange Pis, their health, and whether they are ready for the practicum.",
     enroll: "Enroll a Pi",
     online: "Online",
     offline: "Offline",
@@ -252,12 +244,12 @@ const T = dict({
     back: "All servers",
     code: "Code",
     forbidden: "This page is for assistants",
-    forbiddenBody: "Sign in as an assistant to see servers and devices.",
+    forbiddenBody: "Sign in as an assistant to see the servers.",
     signIn: "Sign in",
     offlineBanner: "Lost connection to the server. Retrying automatically.",
     retry: "Retry now",
     updated: (s: number) => (s < 5 ? "just updated" : `updated ${s} s ago`),
-    tabs: { ringkasan: "Overview", perangkat: "Devices", pengaturan: "Settings" },
+    tabs: { ringkasan: "Overview", siap: "Ready Check", pengaturan: "Settings" },
     tabsLabel: "Server sections",
     cpu: "CPU",
     mem: "Memory",
@@ -290,36 +282,32 @@ const T = dict({
     cancelCmd: "Cancel",
     cmdRetried: "Command retried.",
     output: "Output",
-    devices: "Devices",
-    devFilter: { semua: "All", esp32: "ESP32 only", tersembunyi: "Hidden" } as Record<
-      string,
-      string
-    >,
-    devNone: "No device matches.",
-    ungrouped: "No group",
-    group: (n: number) => `G${n} · ${KELOMPOK_NAMA[n]}`,
-    devName: "Device name",
-    devNamePh: "e.g. ESP32 Hunter G3",
-    devType: "Type",
-    devGroup: "Group",
-    none: "None",
     save: "Save",
     saved: "Saved.",
-    hide: "Hide",
-    show: "Show",
-    forget: "Forget",
-    forgetTitle: "Forget this device?",
-    forgetBody: (mac: string) =>
-      `${mac} is removed from the list. If seen again it shows up as a new device.`,
-    stale: "stale",
-    notAdopted: "Not named yet",
-    lastSeen: (s: string) => `seen ${s}`,
+    moreCmds: "Load More",
+    readyTitle: "Ready for the practicum?",
+    readyRun: "Run the Check",
+    readyModul: "Module to check",
+    readyAll: "All",
+    readyMod: (n: string) => `Module ${n}`,
+    readyLast: "Last check",
+    readyBy: (k: string) => `by ${k}`,
+    readyNever: "Never run yet. Press Run the Check before the practicum starts.",
+    readyWait: "Check sent. The result arrives after the Orange Pi's next heartbeat.",
+    readyPass: "Ready",
+    readyFail: (n: number) => `${n} to fix`,
+    readyBad: "The output could not be read as a check result:",
+    readyHist: "Check History",
+    readyHistNone: "No earlier checks yet.",
+    readyPassed: (n: number) => `${n} passed`,
+    readyNote: "Each check's text comes straight from the Orange Pi, in Indonesian.",
     settings: "Identity",
     name: "Name",
     location: "Location",
     locationPh: "Lab A, desk by the window",
     notes: "Notes",
     lan: "LAN address",
+    lanHint: "Reported by the agent on every heartbeat.",
     agent: "Agent",
     agentVer: "Agent version",
     sysInfo: "System info",
@@ -336,7 +324,7 @@ const T = dict({
     del: "Delete server",
     delTitle: "Delete this server?",
     delBody:
-      "Its heartbeat history, devices and commands are deleted too. A still-running agent is refused on its next heartbeat.",
+      "Its heartbeat history and commands are deleted too. A still-running agent is refused on its next heartbeat.",
     deleted: "Server deleted.",
     wizTitle: "Enroll an Orange Pi",
     wizSteps: ["Name", "Command", "Waiting"],
@@ -376,13 +364,6 @@ const T = dict({
 
 type Strings = (typeof T)["id"];
 const msg = (t: Strings, kode?: string) => t.codes[kode ?? ""] ?? t.codeFallback;
-
-const JENIS: Record<string, string> = {
-  esp32: "ESP32",
-  "pico-w": "Pico W",
-  "cosmic-lora": "Cosmic LoRa",
-  "tidak-diketahui": "?",
-};
 
 const WARN_CPU = 85;
 const WARN_TEMP = 70;
@@ -509,6 +490,7 @@ function Sparkline({ vals, unit, hue }: { vals: number[]; unit: string; hue: str
 
 function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: number) => void }) {
   const [wizard, setWizard] = useState(false);
+  const now = useTick(1_000);
   const poll = usePoll(async () => {
     const d = await getJson<{ ok: boolean; server: ServerRow[] }>("/api/server");
     const list = d.ok ? d.server : [];
@@ -575,7 +557,7 @@ function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: nu
           </div>
           <div className="stat">
             <span className="stat__value stat__value--sm">
-              {last ? sejak(last, lang) : t.never}
+              {last ? sejak(last, lang, now) : t.never}
             </span>
             <span className="stat__label">{t.lastReport}</span>
           </div>
@@ -659,11 +641,11 @@ function ListView({ t, lang, onOpen }: { t: Strings; lang: Lang; onOpen: (id: nu
                     <span>
                       {t.avail} <b className="num">{h ? `${h.ketersediaan}%` : "·"}</b>
                     </span>
-                    <span className="hint">{d ? sejak(d.pada, lang) : t.never}</span>
+                    <span className="hint">{d ? sejak(d.pada, lang, now) : t.never}</span>
                   </span>
                   {d?.layanan && (
                     <span className="srvcard__svc">
-                      {Object.entries(d.layanan).map(([k, st]) => (
+                      {urutkanLayanan(d.layanan).map(([k, st]) => (
                         <span
                           key={k}
                           className={`pill ${SVC_PILL[svcTone(st)]}`}
@@ -909,7 +891,7 @@ function EnrollWizard({
 
 /* =============================================================== detail */
 
-type Tab = "ringkasan" | "perangkat" | "pengaturan";
+type Tab = "ringkasan" | "siap" | "pengaturan";
 
 function DetailView({
   t,
@@ -924,12 +906,12 @@ function DetailView({
 }) {
   const [tab, setTab] = useState<Tab>(() => {
     const h = typeof location !== "undefined" ? location.hash.slice(1) : "";
-    return h === "perangkat" || h === "pengaturan" ? h : "ringkasan";
+    return h === "siap" || h === "pengaturan" ? h : "ringkasan";
   });
   useEffect(() => {
     const on = () => {
       const h = location.hash.slice(1);
-      setTab(h === "perangkat" || h === "pengaturan" ? h : "ringkasan");
+      setTab(h === "siap" || h === "pengaturan" ? h : "ringkasan");
     };
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
@@ -1008,7 +990,7 @@ function DetailView({
       </header>
 
       <div className="seg seg--views srv__tabs" role="tablist" aria-label={t.tabsLabel}>
-        {(["ringkasan", "perangkat", "pengaturan"] as Tab[]).map((k) => (
+        {(["ringkasan", "siap", "pengaturan"] as Tab[]).map((k) => (
           <button
             key={k}
             type="button"
@@ -1018,11 +1000,6 @@ function DetailView({
             onClick={() => go(k)}
           >
             {t.tabs[k]}
-            {k === "perangkat" && (
-              <span className="board__count num">
-                {data.perangkat.filter((p) => !p.disembunyikan).length}
-              </span>
-            )}
           </button>
         ))}
       </div>
@@ -1037,7 +1014,16 @@ function DetailView({
           kode={(n) => kodeRef.current.get(n ?? "") ?? n ?? ""}
         />
       )}
-      {tab === "perangkat" && <Devices t={t} lang={lang} data={data} refresh={poll.refresh} />}
+      {tab === "siap" && (
+        <Ready
+          t={t}
+          lang={lang}
+          id={id}
+          data={data}
+          refresh={poll.refresh}
+          kode={(n) => kodeRef.current.get(n ?? "") ?? n ?? ""}
+        />
+      )}
       {tab === "pengaturan" && (
         <Settings t={t} lang={lang} id={id} data={data} refresh={poll.refresh} onDeleted={onBack} />
       )}
@@ -1067,6 +1053,34 @@ function Overview({
   const [hist, setHist] = useState<Riwayat | null>(null);
   const [stop, setStop] = useState<string | null>(null);
   const [allCmds, setAllCmds] = useState(false);
+  const [older, setOlder] = useState<Perintah[]>([]);
+  const [lagi, setLagi] = useState(true);
+  const [moreBusy, setMoreBusy] = useState(false);
+  // The poll brings the newest 20; "Muat lebih banyak" appends older pages.
+  const cmds = useMemo(() => {
+    const seen = new Set(data.perintah.map((p) => p.id));
+    return [...data.perintah, ...older.filter((p) => !seen.has(p.id))];
+  }, [data.perintah, older]);
+  const canMore = lagi && data.perintah.length >= 20;
+
+  async function more() {
+    if (!cmds.length) return;
+    setMoreBusy(true);
+    try {
+      const sebelum = Math.min(...cmds.map((p) => p.id));
+      const r = await getJson<{ ok: boolean; perintah: Perintah[]; lagi: boolean }>(
+        `/api/server/${id}?aksi=perintah&sebelum=${sebelum}`,
+      );
+      if (r.ok) {
+        setOlder((o) => [...o, ...r.perintah]);
+        setLagi(r.lagi);
+      }
+    } catch {
+      window.Toast?.show(t.fail, "danger");
+    } finally {
+      setMoreBusy(false);
+    }
+  }
   const [histOpen, setHistOpen] = useState(false);
   const chartRef = useRef<HTMLDivElement | null>(null);
   const plot = useRef<{
@@ -1353,13 +1367,24 @@ function Overview({
             </div>
             <CommandTimeline
               lang={lang}
-              perintah={data.perintah}
-              limit={allCmds ? 50 : 5}
+              perintah={allCmds ? cmds : data.perintah}
+              limit={allCmds ? cmds.length : 5}
               kode={kode}
             />
+            {allCmds && canMore && (
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                disabled={moreBusy}
+                onClick={() => void more()}
+              >
+                {moreBusy && <Loader2 size={15} className="ctl-spin" aria-hidden="true" />}
+                {t.moreCmds}
+              </button>
+            )}
             {allCmds && (
               <ul className="ovw__cmdx">
-                {data.perintah
+                {cmds
                   .filter((p) => ["gagal", "kedaluwarsa", "menunggu"].includes(p.status))
                   .map((p) => (
                     <li key={p.id}>
@@ -1407,212 +1432,166 @@ function Overview({
   );
 }
 
-/* -------------------------------------------------------------- devices */
+/* ---------------------------------------------------------------- ready */
 
-function Devices({
+const MODUL_PILIHAN = ["", "2", "3", "4"] as const;
+
+/**
+ * The Ready check (Phase 9, replaces Devices). One button queues
+ * diag.siap, which runs the Pi's own preflight (opi_preflight.sh --json)
+ * and comes back on the next heartbeat. The module defaults to the running
+ * session's, then to whatever the last run checked.
+ */
+function Ready({
   t,
   lang,
+  id,
   data,
   refresh,
+  kode,
 }: {
   t: Strings;
   lang: Lang;
+  id: number;
   data: Detail;
   refresh: () => void;
+  kode: (nim: string | null) => string;
 }) {
-  const [f, setF] = useState<"semua" | "esp32" | "tersembunyi">("semua");
-  const now = useTick(15_000);
-  const list = data.perangkat.filter((p) =>
-    f === "tersembunyi"
-      ? p.disembunyikan
-      : !p.disembunyikan && (f === "semua" || p.jenis === "esp32"),
-  );
-  const groups = useMemo(() => {
-    const m = new Map<number | null, typeof list>();
-    for (const p of list)
-      m.set(p.kelompokNomor ?? null, [...(m.get(p.kelompokNomor ?? null) ?? []), p]);
-    return [...m.entries()].sort((a, b) => (a[0] ?? 99) - (b[0] ?? 99));
-  }, [list]);
+  const now = useTick(1_000);
+  const runs = data.perintah.filter((p) => p.aksi === "diag.siap");
+  const pending = runs.some((p) => p.status === "menunggu" || p.status === "terkirim");
+  const done = runs.filter((p) => p.status === "selesai" || p.status === "gagal");
+  const last = done[0] ?? null;
+  const hasil = bacaHasilSiap(last?.keluaran);
+  const [modul, setModul] = useState<string>(() => {
+    const m = data.sesiModul;
+    if (m !== null && m >= 2 && m <= 4) return String(m);
+    return last?.argumen?.modul ?? "";
+  });
 
-  return (
-    <div className="stack stack--lg">
-      <div className="board__filters" role="group" aria-label={t.devices}>
-        {(["semua", "esp32", "tersembunyi"] as const).map((x) => (
-          <button
-            key={x}
-            type="button"
-            className="board__filter"
-            aria-pressed={f === x}
-            onClick={() => setF(x)}
-          >
-            {t.devFilter[x]}
-          </button>
-        ))}
-      </div>
-      {groups.length === 0 ? (
-        <p className="empty-note">{t.devNone}</p>
-      ) : (
-        groups.map(([n, items]) => (
-          <section
-            key={n ?? "x"}
-            className="panel devgroup"
-            style={{ "--g": n ? `var(--group-${n})` : "var(--hairline-strong)" } as CSSProperties}
-          >
-            <h2 className="panel__title devgroup__title">
-              <span className="g-stripe" style={{ height: 20 }} /> {n ? t.group(n) : t.ungrouped}
-              <span className="board__count num">{items.length}</span>
-            </h2>
-            <ul className="devlist">
-              {items.map((p) => (
-                <DeviceRow key={p.id} t={t} lang={lang} p={p} now={now} refresh={refresh} />
-              ))}
-            </ul>
-          </section>
-        ))
-      )}
-    </div>
-  );
-}
-
-function DeviceRow({
-  t,
-  lang,
-  p,
-  now,
-  refresh,
-}: {
-  t: Strings;
-  lang: Lang;
-  p: Perangkat & { diadopsi?: boolean };
-  now: number;
-  refresh: () => void;
-}) {
-  const [nama, setNama] = useState(p.nama ?? "");
-  const [jenis, setJenis] = useState(p.jenis ?? "tidak-diketahui");
-  const [grp, setGrp] = useState<number | null>(p.kelompokNomor);
-  const [forget, setForget] = useState(false);
-  const dirty =
-    nama !== (p.nama ?? "") || jenis !== (p.jenis ?? "tidak-diketahui") || grp !== p.kelompokNomor;
-  const seen = p.terakhirTerlihat ? now - new Date(p.terakhirTerlihat).getTime() : Infinity;
-  const on = seen < 90_000;
-  const stale = seen > 20 * 60_000;
-
-  async function call(aksi: string, extra: Record<string, unknown> = {}, ok?: string) {
-    try {
-      const r = await postJson<{ ok: boolean; kode?: string }>("/api/action", {
-        tipe: "perangkat",
-        id: p.id,
-        aksi,
-        ...extra,
-      });
-      if (!r.ok) window.Toast?.show(msg(t, r.kode), "danger");
-      else if (ok) window.Toast?.show(ok, "ok");
+  function run() {
+    void sendCommand(id, "diag.siap", modul ? { modul } : {}, lang, true).then((ok) => {
+      window.Toast?.show(ok ? t.readyWait : OPS_T[lang].fail, ok ? "ok" : "danger");
       refresh();
-      return r.ok;
-    } catch {
-      window.Toast?.show(t.fail, "danger");
-      return false;
-    }
+    });
   }
 
   return (
-    <li className="devrow" data-on={on ? "yes" : undefined}>
-      <div className="devrow__id">
-        <span
-          className={`dot ${on ? "dot--ok dot--pulse" : stale ? "dot--off" : "dot--warn"}`}
-          aria-hidden="true"
-        />
-        <span className="stack" style={{ gap: 0, minWidth: 0 }}>
-          <b className="truncate">{p.nama ?? t.notAdopted}</b>
-          <span className="hint mono truncate">
-            {p.mac} · {p.ip ?? "·"}
-          </span>
-          <span className="hint">
-            {t.lastSeen(sejak(p.terakhirTerlihat, lang, now))}
-            {stale && <span className="pill"> {t.stale}</span>}
-          </span>
-        </span>
-      </div>
-      <div className="devrow__edit">
-        <label className="ctl-field devrow__name">
-          <span className="ctl-field__label">{t.devName}</span>
-          <input
-            className="field__input"
-            value={nama}
-            onChange={(e) => setNama(e.target.value)}
-            placeholder={t.devNamePh}
-          />
-        </label>
-        <Dropdown
-          id={`dev-jenis-${p.id}`}
-          label={t.devType}
-          value={jenis}
-          onChange={setJenis}
-          options={Object.entries(JENIS).map(([value, label]) => ({
-            value,
-            label: value === "tidak-diketahui" ? t.none : label,
-          }))}
-        />
-        <div className="ctl-field">
-          <span className="ctl-field__label">{t.devGroup}</span>
-          <div className="seg" role="radiogroup" aria-label={t.devGroup}>
-            {[null, 1, 2, 3, 4, 5].map((n) => (
+    <div className="grid-2 ready">
+      <section className="panel">
+        <div className="panel__head ready__head">
+          <div className="stack stack--sm">
+            <h2 className="panel__title">{t.readyTitle}</h2>
+            <span className="hint">
+              {last ? (
+                <>
+                  {t.readyLast} {sejak(last.selesaiPada ?? last.dimintaPada, lang, now)}
+                  {last.dimintaOleh ? ` ${t.readyBy(kode(last.dimintaOleh))}` : ""}
+                </>
+              ) : (
+                t.readyNever
+              )}
+            </span>
+          </div>
+          <button type="button" className="btn btn--primary" disabled={pending} onClick={run}>
+            {pending ? (
+              <Loader2 size={17} className="ctl-spin" aria-hidden="true" />
+            ) : (
+              <ListChecks size={17} aria-hidden="true" />
+            )}
+            {t.readyRun}
+          </button>
+        </div>
+
+        <div className="stack stack--sm">
+          <span className="label-caps">{t.readyModul}</span>
+          <div className="seg" role="group" aria-label={t.readyModul}>
+            {MODUL_PILIHAN.map((m) => (
               <button
-                key={n ?? 0}
+                key={m || "semua"}
                 type="button"
-                role="radio"
-                aria-checked={grp === n}
-                aria-pressed={grp === n}
-                style={n ? ({ "--mod-hue": `var(--group-${n})` } as CSSProperties) : undefined}
-                onClick={() => setGrp(n)}
+                aria-pressed={modul === m}
+                onClick={() => setModul(m)}
               >
-                {n ?? "·"}
+                {m ? t.readyMod(m) : t.readyAll}
               </button>
             ))}
           </div>
         </div>
-      </div>
-      <div className="devrow__actions">
-        <button
-          type="button"
-          className="btn btn--primary btn--sm"
-          disabled={!dirty}
-          onClick={() =>
-            void call(
-              "ubah",
-              { nama: nama.trim() || undefined, jenis, kelompokNomor: grp },
-              t.saved,
-            )
-          }
-        >
-          {t.save}
-        </button>
-        <button
-          type="button"
-          className="btn btn--ghost btn--sm"
-          onClick={() => void call(p.disembunyikan ? "tampilkan" : "sembunyikan")}
-        >
-          {p.disembunyikan ? t.show : t.hide}
-        </button>
-        <button
-          type="button"
-          className="btn btn--danger btn--sm btn--icon"
-          aria-label={t.forget}
-          onClick={() => setForget(true)}
-        >
-          <Trash2 size={16} aria-hidden="true" />
-        </button>
-      </div>
-      <Confirm
-        open={forget}
-        onOpenChange={setForget}
-        title={t.forgetTitle}
-        body={t.forgetBody(p.mac)}
-        confirmLabel={t.forget}
-        lang={lang}
-        onConfirm={() => call("lupakan")}
-      />
-    </li>
+
+        {pending && <p className="hint">{t.readyWait}</p>}
+
+        {hasil && (
+          <>
+            <div className="row">
+              <span className={`pill ${hasil.lulus ? "pill--ok" : "pill--danger"}`}>
+                {hasil.lulus ? t.readyPass : t.readyFail(hasil.gagal)}
+              </span>
+              {hasil.modul && <span className="hint">{t.readyMod(hasil.modul)}</span>}
+            </div>
+            <ul className="ready__list">
+              {hasil.cek.map((c, i) => {
+                const Icon =
+                  c.status === "ok" ? CheckCircle2 : c.status === "info" ? Info : AlertTriangle;
+                return (
+                  <li key={i} className="ready__item" data-st={c.status}>
+                    <Icon size={20} className="ready__icon" aria-hidden="true" />
+                    <span className="grow stack" style={{ gap: 2 }}>
+                      <b>{c.judul}</b>
+                      {c.status !== "ok" && c.perbaikan && (
+                        <span className="hint">{c.perbaikan}</span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="hint">{t.readyNote}</p>
+          </>
+        )}
+        {last && !hasil && (
+          <div className="stack stack--sm">
+            <span className="hint">{t.readyBad}</span>
+            <pre className="ops-log">{last.keluaran ?? "·"}</pre>
+          </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <h2 className="panel__title">{t.readyHist}</h2>
+        {done.length <= 1 ? (
+          <p className="hint">{t.readyHistNone}</p>
+        ) : (
+          <ul className="ready__hist">
+            {done.slice(1, 9).map((p) => {
+              const h = bacaHasilSiap(p.keluaran);
+              const lulus = h ? h.cek.filter((c) => c.status === "ok").length : 0;
+              return (
+                <li key={p.id}>
+                  <span className="grow stack" style={{ gap: 0 }}>
+                    <b>{fmtWhen(p.selesaiPada ?? p.dimintaPada, lang)}</b>
+                    <span className="hint">
+                      {p.argumen?.modul ? t.readyMod(p.argumen.modul) : t.readyAll}
+                      {p.dimintaOleh ? ` · ${t.readyBy(kode(p.dimintaOleh))}` : ""}
+                    </span>
+                  </span>
+                  {h ? (
+                    <>
+                      <span className="pill pill--ok">{t.readyPassed(lulus)}</span>
+                      {h.gagal > 0 && (
+                        <span className="pill pill--danger">{t.readyFail(h.gagal)}</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="pill pill--danger">{OPS_T[lang].status.gagal}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
   );
 }
 
@@ -1636,12 +1615,9 @@ function Settings({
   onDeleted: () => void;
 }) {
   const s = data.server;
-  const [form, setForm] = useState({
-    nama: s.nama,
-    lokasi: s.lokasi ?? "",
-    catatan: s.catatan ?? "",
-    alamatLan: s.alamatLan ?? "",
-  });
+  const now = useTick(1_000);
+  const saved = { nama: s.nama, lokasi: s.lokasi ?? "", catatan: s.catatan ?? "" };
+  const [form, setForm] = useState(saved);
   const [busy, setBusy] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -1650,12 +1626,21 @@ function Settings({
 
   async function save(e: FormEvent) {
     e.preventDefault();
+    // Only what changed, so a field nobody touched is never sent and never
+    // overwritten (the API clears a field it receives blank).
+    const patch = Object.fromEntries(
+      Object.entries(form).filter(([k, v]) => v !== saved[k as keyof typeof saved]),
+    );
+    if (Object.keys(patch).length === 0) {
+      window.Toast?.show(t.saved, "ok");
+      return;
+    }
     setBusy(true);
     try {
       const r = await fetch(`/api/server/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(patch),
       }).then((x) => x.json() as Promise<{ ok: boolean; kode?: string }>);
       window.Toast?.show(r.ok ? t.saved : msg(t, r.kode), r.ok ? "ok" : "danger");
       refresh();
@@ -1701,16 +1686,9 @@ function Settings({
           />
         </div>
         <div className="field">
-          <label className="field__label" htmlFor="srv-lan">
-            {t.lan}
-          </label>
-          <input
-            id="srv-lan"
-            className="field__input mono"
-            value={form.alamatLan}
-            placeholder="192.168.1.20"
-            onChange={(e) => setForm({ ...form, alamatLan: e.target.value })}
-          />
+          <span className="field__label">{t.lan}</span>
+          <span className="mono">{s.alamatLan ?? "·"}</span>
+          <span className="hint">{t.lanHint}</span>
         </div>
         <div className="field">
           <label className="field__label" htmlFor="srv-cat">
@@ -1738,7 +1716,7 @@ function Settings({
             <dt>{t.agentVer}</dt>
             <dd className="mono">{s.agenVersi ?? "·"}</dd>
             <dt>{t.sysInfo}</dt>
-            <dd>{s.infoSistemPada ? t.sysUpdated(sejak(s.infoSistemPada, lang)) : "·"}</dd>
+            <dd>{s.infoSistemPada ? t.sysUpdated(sejak(s.infoSistemPada, lang, now)) : "·"}</dd>
             {s.infoSistem &&
               Object.entries(s.infoSistem).map(([k, v]) => (
                 <div key={k} className="kv__row">
@@ -1771,7 +1749,7 @@ function Settings({
                       <b>{OPS_T[lang].aksi[a]}</b>
                       {l && (
                         <span className="hint">
-                          {t.lastRun(sejak(l.selesaiPada ?? l.dimintaPada, lang))}
+                          {t.lastRun(sejak(l.selesaiPada ?? l.dimintaPada, lang, now))}
                         </span>
                       )}
                     </button>

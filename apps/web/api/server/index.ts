@@ -74,6 +74,7 @@ async function handleGet(req: ApiRequest, res: ApiResponse) {
       nama: server.nama,
       kode: server.kode,
       alamatLan: server.alamatLan,
+      lokasi: server.lokasi,
       terdaftarPada: server.terdaftarPada,
       dibuatPada: server.dibuatPada,
     })

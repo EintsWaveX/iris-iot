@@ -7,7 +7,7 @@
  * - Nilai: one student at a time, eight 56px fields; Enter walks TP to L2
  *   and then on to the next student. Only the group's own assistant can
  *   type; everyone else sees the same numbers read only, updated live.
- * - Anggota, Perangkat (this group's ESP32s), Alur (median delay, messages)
+ * - Anggota, Alur (median delay, messages)
  *   and Catatan / Peran.
  *
  * Laid out with a container query, so it reads as one column in a narrow
@@ -29,8 +29,7 @@ import { namaKelompok, postJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import type { NilaiLive } from "./data";
-import { deviceOnline, devicesFor } from "./GroupBoard";
-import type { AsistenRef, GroupRow, Perangkat, Stuck } from "./types";
+import type { AsistenRef, GroupRow, Stuck } from "./types";
 
 export interface InspectorProps {
   t: Strings;
@@ -43,20 +42,18 @@ export interface InspectorProps {
   ownerNim: string | null;
   asisten: Map<string, AsistenRef>;
   meNim: string;
-  devices: Perangkat[];
   nilai: NilaiLive;
   onChanged: () => void;
   onOpenTable: () => void;
 }
 
 export default function GroupInspector(p: InspectorProps) {
-  const { t, lang, sesiId, modul, g, stuck, hand, ownerNim, asisten, meNim, devices, nilai } = p;
+  const { t, lang, sesiId, modul, g, stuck, hand, ownerNim, asisten, meNim, nilai } = p;
   const now = useTick(15_000);
   const owner = ownerNim ? (asisten.get(ownerNim) ?? null) : null;
   const mine = ownerNim === meNim;
   const [confirmTake, setConfirmTake] = useState(false);
   const [busy, setBusy] = useState(false);
-  const dev = devicesFor(devices, g.nomor);
 
   async function assign(alasan: "klaim" | "ambil_alih") {
     setBusy(true);
@@ -223,32 +220,6 @@ export default function GroupInspector(p: InspectorProps) {
             ownerKode={owner?.kode ?? null}
             onClaim={() => void assign("klaim")}
           />
-        </section>
-
-        {/* --------------------------------------------- devices */}
-        <section className="insp__sec">
-          <h3 className="insp__sec-title">{t.devices}</h3>
-          {dev.length === 0 ? (
-            <p className="hint">{t.noDevice}</p>
-          ) : (
-            <ul className="insp__devices">
-              {dev.map((d) => {
-                const on = deviceOnline(d, now);
-                return (
-                  <li key={d.id}>
-                    <span className={`dot ${on ? "dot--ok" : "dot--warn"}`} aria-hidden="true" />
-                    <span className="grow stack" style={{ gap: 0 }}>
-                      <span className="truncate">{d.nama ?? d.mac}</span>
-                      <span className="hint">
-                        <span className="mono">{d.ip}</span> ·{" "}
-                        {t.seen(sejak(d.terakhirTerlihat, lang, now))}
-                      </span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
         </section>
 
         {/* ------------------------------------------------ flow */}

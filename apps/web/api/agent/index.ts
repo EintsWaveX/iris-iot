@@ -2,8 +2,8 @@
  * POST /api/agent   { kode, token }                                (enroll)
  *                | { serverId, agenKunci, cpu, memori, disk, suhu,
  *                    uptimeSec, jamSelaras, modeJaringan, layanan,
- *                    perangkat, telemetri, hasilPerintah,
- *                    agenVersi?, infoSistem? }                    (heartbeat)
+ *                    telemetri, hasilPerintah,
+ *                    agenVersi?, infoSistem?, alamatLan? }        (heartbeat)
  *
  * Two very different operations sharing one file, dispatched on whether
  * `token` is present -- an enrollment body always has one, a heartbeat
@@ -17,8 +17,9 @@
  * agent presents on every heartbeat afterward. No session cookie -- this
  * runs once, from the Pi itself, before the agent has any other credential.
  *
- * Heartbeat: one round trip does six things -- records this cycle's
- * health, upserts whatever devices the agent discovered, records whatever
+ * Heartbeat: one round trip does five things -- records this cycle's
+ * health (Phase 9 stopped storing the devices the agent still lists under
+ * `perangkat`; the Devices tab is gone and the field is ignored), records whatever
  * real telemetry it collected (Stage 20 -- Module 2's journalctl parse,
  * Module 3's mosquitto_sub read, or Module 4's own /telemetri.json),
  * reports the outcome of any commands it ran since the last beat, hands
@@ -31,6 +32,7 @@
  * go up. `agenVersi`/`infoSistem` (P6.2, sent by an agent built from P6.1
  * onward) are stored on the server row when present and simply omitted
  * otherwise, so an older agent's heartbeat needs no special casing here.
+ * `alamatLan` (Phase 9) works the same way.
  * No inbound port on the Pi is ever needed -- the agent always calls out,
  * and commands ride the response of the call it was always going to make
  * anyway.
@@ -38,7 +40,7 @@
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { getDb } from "../../src/lib/db.js";
-import { server, denyut, perangkat, perintah } from "../../src/lib/schema.js";
+import { server, denyut, perintah } from "../../src/lib/schema.js";
 import {
   consumeEnrollToken,
   generateAgentKey,
@@ -58,15 +60,7 @@ import {
 } from "../../src/lib/server-lib.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
-import { eq, and, sql } from "drizzle-orm";
-
-interface PerangkatMasuk {
-  mac: string;
-  ip?: string;
-  vendor?: string | null;
-  jenis?: string | null;
-  sumber: string;
-}
+import { eq, and } from "drizzle-orm";
 
 interface HasilPerintahMasuk {
   id: number;
@@ -74,7 +68,9 @@ interface HasilPerintahMasuk {
   keluaran?: string;
 }
 
-const MAC_RE = /^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$/;
+// The Pi's LAN address as the agent saw it (its default route's source
+// address). An IPv4 or IPv6 literal, nothing else.
+const ALAMAT_LAN_RE = /^[0-9A-Fa-f:.]{2,45}$/;
 
 async function handleDaftar(req: ApiRequest, res: ApiResponse) {
   const body = jsonBody(req);
@@ -148,42 +144,6 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       layanan: isPlainObject(body.layanan) ? body.layanan : null,
     });
 
-    const perangkatMasuk = Array.isArray(body.perangkat) ? (body.perangkat as unknown[]) : [];
-    // One statement for the whole list (it was one round trip per device);
-    // de-duplicated by MAC first, since one INSERT ... ON CONFLICT cannot
-    // touch the same row twice.
-    const perangkatBaris = new Map<string, typeof perangkat.$inferInsert>();
-    for (const item of perangkatMasuk) {
-      if (!isPerangkatMasuk(item) || !MAC_RE.test(item.mac)) continue;
-      const mac = item.mac.toUpperCase();
-      perangkatBaris.set(mac, {
-        serverId,
-        mac,
-        ip: item.ip ?? null,
-        vendor: item.vendor ?? null,
-        jenis: item.jenis ?? null,
-        sumber: item.sumber,
-      });
-    }
-    if (perangkatBaris.size) {
-      await db
-        .insert(perangkat)
-        .values([...perangkatBaris.values()])
-        .onConflictDoUpdate({
-          target: [perangkat.serverId, perangkat.mac],
-          set: {
-            ip: sql`excluded.ip`,
-            sumber: sql`excluded.sumber`,
-            terakhirTerlihat: sql`now()`,
-            // An assistant's adoption (which sets vendor/jenis by hand) must
-            // survive rediscovery -- only overwrite the guess while the
-            // device is still unadopted.
-            vendor: sql`CASE WHEN ${perangkat.diadopsi} THEN ${perangkat.vendor} ELSE excluded.vendor END`,
-            jenis: sql`CASE WHEN ${perangkat.diadopsi} THEN ${perangkat.jenis} ELSE excluded.jenis END`,
-          },
-        });
-    }
-
     const hasilMasuk = Array.isArray(body.hasilPerintah) ? (body.hasilPerintah as unknown[]) : [];
     for (const item of hasilMasuk) {
       if (!isHasilPerintahMasuk(item)) continue;
@@ -203,16 +163,21 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
 
     await sweepPerintahKedaluwarsa();
 
-    if (typeof body.agenVersi === "string" || isPlainObject(body.infoSistem)) {
-      await db
-        .update(server)
-        .set({
-          ...(typeof body.agenVersi === "string" ? { agenVersi: body.agenVersi } : {}),
-          ...(isPlainObject(body.infoSistem)
-            ? { infoSistem: body.infoSistem, infoSistemPada: new Date() }
-            : {}),
-        })
-        .where(eq(server.id, serverId));
+    // Phase 9: the agent's own LAN address wins over a hand-typed one; it
+    // is the address the Pi actually has right now.
+    const alamatLan =
+      typeof body.alamatLan === "string" && ALAMAT_LAN_RE.test(body.alamatLan)
+        ? body.alamatLan
+        : null;
+    const serverSet = {
+      ...(typeof body.agenVersi === "string" ? { agenVersi: body.agenVersi } : {}),
+      ...(isPlainObject(body.infoSistem)
+        ? { infoSistem: body.infoSistem, infoSistemPada: new Date() }
+        : {}),
+      ...(alamatLan && alamatLan !== row.alamatLan ? { alamatLan } : {}),
+    };
+    if (Object.keys(serverSet).length) {
+      await db.update(server).set(serverSet).where(eq(server.id, serverId));
     }
 
     await pruneOldHeartbeatsOccasionally();
@@ -261,12 +226,6 @@ function numOrNull(value: unknown): number | null {
 
 function isPlainObject(value: unknown): value is Record<string, string> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isPerangkatMasuk(value: unknown): value is PerangkatMasuk {
-  if (typeof value !== "object" || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return typeof v.mac === "string" && typeof v.sumber === "string";
 }
 
 function isHasilPerintahMasuk(value: unknown): value is HasilPerintahMasuk {

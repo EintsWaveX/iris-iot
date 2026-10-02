@@ -1,7 +1,13 @@
 /**
  * GET    /api/server/:id   — assistant-only. Everything the server detail
- *   view needs in one call: the server row, its latest heartbeat, every
- *   known device (adopted and not), and its 20 most recent commands.
+ *   view needs in one call: the server row (with lokasi, catatan and the
+ *   agent info, so the Settings form starts from the saved values), its
+ *   latest heartbeat, its 20 most recent commands, and the running
+ *   session's module (the Ready check's default). Phase 9 dropped the
+ *   device list along with the Devices tab.
+ *
+ * GET    /api/server/:id?aksi=perintah&sebelum=<id>  (Phase 9) — the next
+ *   page of 20 commands older than command <id>, for "Semua perintah".
  *
  * DELETE /api/server/:id   — assistant-only. Removes a registered server;
  *   denyut/perangkat/perintah cascade with it (see schema.ts's onDelete).
@@ -30,7 +36,7 @@ import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
-import { server, denyut, perangkat, perintah } from "../../src/lib/schema.js";
+import { server, denyut, perintah } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import {
   generateEnrollToken,
@@ -47,9 +53,10 @@ import {
   bangunTimelineLayanan,
 } from "../../src/lib/server-lib.js";
 import { currentSesi } from "../../src/lib/sesi.js";
-import { desc, asc, and, eq, gte } from "drizzle-orm";
+import { desc, asc, and, eq, gte, lt } from "drizzle-orm";
 
 const MAX_TEXT_LEN = 500;
+const PERINTAH_PER_HALAMAN = 20;
 
 async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
   const db = getDb();
@@ -66,12 +73,6 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
     .orderBy(desc(denyut.pada))
     .limit(1);
 
-  const daftarPerangkat = await db
-    .select()
-    .from(perangkat)
-    .where(eq(perangkat.serverId, id))
-    .orderBy(desc(perangkat.terakhirTerlihat));
-
   const running = await currentSesi();
   const sesiMulaiPada = running ? (running.mulaiPada ?? running.dibuatPada) : null;
 
@@ -79,8 +80,8 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
     .select()
     .from(perintah)
     .where(eq(perintah.serverId, id))
-    .orderBy(desc(perintah.dimintaPada))
-    .limit(20);
+    .orderBy(desc(perintah.id))
+    .limit(PERINTAH_PER_HALAMAN);
 
   res.status(200).json({
     ok: true,
@@ -89,12 +90,39 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
       nama: row.nama,
       kode: row.kode,
       alamatLan: row.alamatLan,
+      lokasi: row.lokasi,
+      catatan: row.catatan,
+      agenVersi: row.agenVersi,
+      infoSistem: row.infoSistem,
+      infoSistemPada: row.infoSistemPada,
       terdaftar: row.terdaftarPada !== null,
     },
     denyutTerakhir: denyutTerakhir ?? null,
     batasLuringDetik: batasLuringDetik(denyutTerakhir?.pada ?? null, sesiMulaiPada),
-    perangkat: daftarPerangkat,
     perintah: daftarPerintah,
+    sesiModul: running?.modul ?? null,
+  });
+}
+
+/** Phase 9: one page of older commands for "Semua perintah", keyed by id
+ *  (ids only grow, so a page boundary never shifts while new commands are
+ *  queued above it). `lagi` says whether another page exists. */
+async function handlePerintah(_req: ApiRequest, res: ApiResponse, id: number, sebelum: number) {
+  if (!Number.isInteger(sebelum) || sebelum <= 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(perintah)
+    .where(and(eq(perintah.serverId, id), lt(perintah.id, sebelum)))
+    .orderBy(desc(perintah.id))
+    .limit(PERINTAH_PER_HALAMAN + 1);
+  res.status(200).json({
+    ok: true,
+    perintah: rows.slice(0, PERINTAH_PER_HALAMAN),
+    lagi: rows.length > PERINTAH_PER_HALAMAN,
   });
 }
 
@@ -256,6 +284,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method === "GET") {
     const aksi = req.query.aksi;
     if (aksi === "riwayat") return handleRiwayat(req, res, id, String(req.query.rentang ?? ""));
+    if (aksi === "perintah") return handlePerintah(req, res, id, Number(req.query.sebelum));
     return handleGet(req, res, id);
   }
   if (req.method === "PATCH") return handlePatch(req, res, id, session.nim);

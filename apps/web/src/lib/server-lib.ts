@@ -19,6 +19,9 @@ import { and, eq, gt, lt, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { server, denyut, perintah, telemetriTerkini, telemetriLog } from "./schema.js";
 import { safeEqual } from "./auth.js";
+import { LAYANAN_URUT } from "./server-shared.js";
+
+export { modulSiapValid, urutkanLayanan, hotspotMenyala } from "./server-shared.js";
 
 const ENROLL_TOKEN_TTL_MIN = 30;
 
@@ -139,6 +142,10 @@ export const AKSI_PERINTAH = [
   "diag.log",
   "diag.jaringan",
   "diag.dmesg",
+  // Phase 9: the Ready check (opi_preflight.sh --json behind iris-diag
+  // siap). Read-only like the rest; its one argument, `modul`, is checked
+  // by modulSiapValid() here and by SIAP_MODUL in commands.py.
+  "diag.siap",
 ] as const;
 export type AksiPerintah = (typeof AKSI_PERINTAH)[number];
 
@@ -193,7 +200,7 @@ export async function queueSoloServerCommand(
   return true;
 }
 
-export const LAYANAN_DIKENAL = ["modul2-ws", "mosquitto", "modul4"] as const;
+export const LAYANAN_DIKENAL = LAYANAN_URUT;
 export type LayananDikenal = (typeof LAYANAN_DIKENAL)[number];
 
 export function layananValid(value: unknown): value is LayananDikenal {

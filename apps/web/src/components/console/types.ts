@@ -117,18 +117,6 @@ export interface ServerRow {
   batasLuringDetik: number;
 }
 
-export interface Perangkat {
-  id: number;
-  mac: string;
-  ip: string | null;
-  vendor: string | null;
-  jenis: string | null;
-  nama: string | null;
-  kelompokNomor: number | null;
-  disembunyikan: boolean;
-  terakhirTerlihat: string | null;
-}
-
 export interface Perintah {
   id: number;
   aksi: string;
@@ -145,7 +133,6 @@ export interface ServerDetail {
   server: ServerRow;
   denyutTerakhir: Heartbeat | null;
   batasLuringDetik: number;
-  perangkat: Perangkat[];
   perintah: Perintah[];
 }
 
