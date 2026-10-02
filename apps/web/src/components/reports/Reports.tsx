@@ -17,6 +17,7 @@
  * outside the plot, and CSV exports.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { namaAsisten } from "../../lib/people";
 import { LockSimpleIcon, StarIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -53,7 +54,7 @@ const T = dict({
       batal: "Batal",
     } as Record<string, string>,
     reguler: "Reguler",
-    inter: "INTER",
+    inter: "Internasional",
     internasional: "Internasional",
     heat: "Sesi per hari",
     heatN: (n: number) => `${n} sesi`,
@@ -153,15 +154,15 @@ const T = dict({
       batal: "Cancelled",
     } as Record<string, string>,
     reguler: "Regular",
-    inter: "INTER",
+    inter: "International",
     internasional: "International",
     heat: "Sessions per day",
     heatN: (n: number) => `${n} ${n === 1 ? "session" : "sessions"}`,
     cols: ["Date", "Start", "Module", "Class", "Assistants", "Status", "Duration", "Lab"],
     none: "No sessions match these filters.",
     loading: "Loading…",
-    menit: (m: number) => `${m} min`,
-    jam: (h: number, m: number) => `${h} h ${m} min`,
+    menit: (m: number) => `${m} minutes`,
+    jam: (h: number, m: number) => `${h} hours ${m} minutes`,
     labN: (n: number) => `${n} ${n === 1 ? "response" : "responses"}`,
     runs: "Sessions run",
     done: "Finished",
@@ -765,7 +766,7 @@ function AuditTab({ t, lang }: { t: Tx; lang: Lang }) {
         <DropdownFilter
           id="rep-aktor"
           label={t.aktor}
-          options={asisten.map((a) => ({ value: a.nim, label: `${a.kode} · ${a.nama}` }))}
+          options={asisten.map((a) => ({ value: a.nim, label: namaAsisten(a) }))}
           values={aktor}
           onChange={setAktor}
         />

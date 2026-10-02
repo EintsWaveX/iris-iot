@@ -99,7 +99,7 @@ const T = dict({
     sim: "simulated",
     pause: "Pause",
     resume: "Resume",
-    updated: (s: number) => (s < 3 ? "just now" : `${s} s ago`),
+    updated: (s: number) => (s < 3 ? "just now" : `${s} seconds ago`),
     avg: "average Δ",
     jitter: "jitter",
     loss: "lost",

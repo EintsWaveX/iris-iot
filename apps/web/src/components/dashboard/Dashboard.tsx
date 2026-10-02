@@ -135,8 +135,8 @@ const T = dict({
     kelompok: (k: number) => `Group ${k}`,
     berjalan: (m: number) => `Session running · Module ${m}`,
     tanpaSesi: "No session running yet",
-    sisa: (m: number) => `${m} min left`,
-    lewat: (m: number) => `${m} min in`,
+    sisa: (m: number) => `${m} minutes left`,
+    lewat: (m: number) => `${m} minutes in`,
     langkahH: "Next step",
     langkah: {
       tunggu: [

@@ -13,6 +13,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Checkbox, DatePicker } from "../ui/Controls";
+import { kelasLabel } from "../../lib/labels";
 import Confirm from "../ui/Confirm";
 import FeedbackSummary from "../shared/FeedbackSummary";
 import { getJson, href, postJson, type Me } from "../../lib/app";
@@ -251,7 +252,9 @@ export default function AsistenHome({
                 ) : (
                   <span className="hint">{soon ? t.slotSoon : t.slotNone}</span>
                 )}
-                {r?.kelas === "internasional" && <span className="pill pill--gold">INTER</span>}
+                {r?.kelas === "internasional" && (
+                  <span className="pill pill--violet">{kelasLabel("internasional", lang)}</span>
+                )}
               </button>
             );
           })}
@@ -307,7 +310,9 @@ export default function AsistenHome({
                   >
                     <b>{t.slot(s)}</b>
                     <span className="num hint">{SLOT_MULAI[s]}</span>
-                    {r?.kelas === "internasional" && <span className="pill pill--gold">INTER</span>}
+                    {r?.kelas === "internasional" && (
+                      <span className="pill pill--violet">{kelasLabel("internasional", lang)}</span>
+                    )}
                   </button>
                 );
               })}
@@ -393,7 +398,9 @@ export default function AsistenHome({
                     <span className="num">
                       {t.slot(j.slot)} · {SLOT_MULAI[j.slot]}
                     </span>
-                    {j.kelas === "internasional" && <span className="pill pill--gold">INTER</span>}
+                    {j.kelas === "internasional" && (
+                      <span className="pill pill--violet">{kelasLabel("internasional", lang)}</span>
+                    )}
                     <span className="grow" />
                     <span className="hint">
                       K{j.asisten.findIndex((k) => k.toUpperCase() === myCode) + 1}

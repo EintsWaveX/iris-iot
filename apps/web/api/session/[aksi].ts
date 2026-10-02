@@ -92,6 +92,7 @@ import {
   isNull,
   isNotNull,
   desc,
+  asc,
   inArray,
 } from "drizzle-orm";
 
@@ -1204,6 +1205,16 @@ async function handleAudit(req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true, audit: rows });
 }
 
+/** GET /api/session/asisten (Phase 9): every Asisten's NIM, code and full
+ *  name, so islands can write people as "Full Name (CODE)" (people.ts). */
+async function handleAsistenDirectory(res: ApiResponse) {
+  const rows = await getDb()
+    .select({ nim: asisten.nim, kode: asisten.kode, nama: asisten.nama })
+    .from(asisten)
+    .orderBy(asc(asisten.kode));
+  res.status(200).json({ ok: true, asisten: rows });
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
@@ -1291,6 +1302,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const session = requireRole(req, res, "asisten");
   if (!session) return;
 
+  if (aksi === "asisten") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleAsistenDirectory(res);
+  }
   if (aksi === "assignment") {
     if (req.method === "POST") return handleAssignmentPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;

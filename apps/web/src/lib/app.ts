@@ -4,6 +4,7 @@
  * running session banner (/api/session/now, polled), the bilingual string
  * helper, and the module names in both languages.
  */
+import { laluLabel } from "./labels.js";
 import { useEffect, useState } from "react";
 import type { Kelas, Lang } from "./kelas.js";
 import { usePoll } from "./hooks.js";
@@ -221,15 +222,10 @@ export function jamMenit(iso: string | Date, lang: Lang): string {
   });
 }
 
-/** "2 mnt lalu" / "2 min ago" from an ISO time. */
+/** "2 menit lalu" / "2 minutes ago" from an ISO time (labels.ts). */
 export function sejak(iso: string | null, lang: Lang, now = Date.now()): string {
   if (!iso) return "";
-  const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
-  if (s < 60) return lang !== "id" ? `${s} s ago` : `${s} dtk lalu`;
-  const m = Math.round(s / 60);
-  if (m < 60) return lang !== "id" ? `${m} min ago` : `${m} mnt lalu`;
-  const h = Math.round(m / 60);
-  return lang !== "id" ? `${h} h ago` : `${h} jam lalu`;
+  return laluLabel((now - new Date(iso).getTime()) / 1000, lang);
 }
 
 /** Re-render every `ms` (for clocks and "N s ago" labels). */

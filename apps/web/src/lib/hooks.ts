@@ -105,7 +105,7 @@ export function usePoll<T>(fn: () => Promise<T>, ms: number, enabled = true): Po
   return { data, errors, updatedAt, refresh: () => void run() };
 }
 
-/** "diperbarui 4 dtk lalu" style age in whole seconds, re-rendering each second. */
+/** "diperbarui 4 detik lalu" style age in whole seconds, re-rendering each second. */
 export function useAgeSeconds(since: number | null): number | null {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

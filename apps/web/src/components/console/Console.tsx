@@ -25,6 +25,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { namaAsisten } from "../../lib/people";
 import Dialog from "../ui/Dialog";
 import { ShieldWarningIcon, SignInIcon, SquaresFourIcon } from "@phosphor-icons/react";
 import ResizablePanes from "../ui/ResizablePanes";
@@ -94,8 +95,8 @@ export default function Console({ lang }: { lang: Lang }) {
     () => new Map<string, AsistenRef>((assign.data?.asisten ?? []).map((a) => [a.nim, a])),
     [assign.data],
   );
-  const kodeOf = useCallback(
-    (nim: string | null) => (nim ? (asisten.get(nim)?.kode ?? "?") : "?"),
+  const namaOf = useCallback(
+    (nim: string | null) => (nim ? namaAsisten(asisten.get(nim), nim) : "?"),
     [asisten],
   );
 
@@ -129,7 +130,7 @@ export default function Console({ lang }: { lang: Lang }) {
             at: new Date(at).getTime(),
             g: g?.nomor ?? null,
             kind: "score" as const,
-            text: t.evScore(kodeOf(who), nama.split(" ")[0]),
+            text: t.evScore(namaOf(who), nama.split(" ")[0]),
           };
         }),
       );

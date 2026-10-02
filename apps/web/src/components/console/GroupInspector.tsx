@@ -21,6 +21,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
 } from "react";
+import { namaAsisten } from "../../lib/people";
 import { LockSimpleIcon, WarningIcon } from "@phosphor-icons/react";
 import { ScoreInput, Switch } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
@@ -69,7 +70,7 @@ export default function GroupInspector(p: InspectorProps) {
         return true;
       }
       if (r.kode === "sudah_dipegang" && r.pemilik)
-        window.Toast?.show(t.ownedBy(asisten.get(r.pemilik)?.kode ?? r.pemilik), "warn");
+        window.Toast?.show(t.ownedBy(namaAsisten(asisten.get(r.pemilik), r.pemilik)), "warn");
       else window.Toast?.show(pesan(t, r.kode), "danger");
       return false;
     } catch {
@@ -137,7 +138,7 @@ export default function GroupInspector(p: InspectorProps) {
           </span>
           <span className="insp__owner-text">
             <span className="label-caps">{t.owner}</span>
-            <span>{mine ? t.ownerMe : owner ? t.ownerOther(owner.kode) : t.ownerNone}</span>
+            <span>{mine ? t.ownerMe : owner ? t.ownerOther(namaAsisten(owner)) : t.ownerNone}</span>
           </span>
           {!mine && (
             <button
@@ -258,7 +259,7 @@ export default function GroupInspector(p: InspectorProps) {
       <Confirm
         open={confirmTake}
         onOpenChange={setConfirmTake}
-        title={t.takeOverTitle(owner?.kode ?? "")}
+        title={t.takeOverTitle(namaAsisten(owner, ""))}
         body={t.takeOverBody}
         confirmLabel={t.takeOver}
         tone="primary"

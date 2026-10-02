@@ -50,6 +50,8 @@ import {
   localeOf,
 } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
+import { durasiLabel } from "../../lib/labels";
+import { useDirektori } from "../../lib/people";
 import { bacaHasilSiap, urutkanLayanan } from "../../lib/server-shared";
 import {
   CommandTimeline,
@@ -126,7 +128,7 @@ const T = dict({
     signIn: "Masuk",
     offlineBanner: "Koneksi ke server terputus. Mencoba lagi otomatis.",
     retry: "Coba sekarang",
-    updated: (s: number) => (s < 5 ? "baru saja diperbarui" : `diperbarui ${s} dtk lalu`),
+    updated: (s: number) => (s < 5 ? "baru saja diperbarui" : `diperbarui ${s} detik lalu`),
     tabs: { ringkasan: "Ringkasan", siap: "Siap Praktikum", pengaturan: "Pengaturan" },
     tabsLabel: "Bagian server",
     cpu: "CPU",
@@ -248,8 +250,8 @@ const T = dict({
     never: "never",
     servers: "servers",
     empty: "No server enrolled yet. Enroll an Orange Pi to start monitoring it.",
-    cpu24: "CPU 24 h",
-    temp24: "Temp 24 h",
+    cpu24: "CPU 24 hours",
+    temp24: "Temperature 24 hours",
     avail: "Availability",
     open: "Open",
     back: "All servers",
@@ -259,7 +261,7 @@ const T = dict({
     signIn: "Sign in",
     offlineBanner: "Lost connection to the server. Retrying automatically.",
     retry: "Retry now",
-    updated: (s: number) => (s < 5 ? "just updated" : `updated ${s} s ago`),
+    updated: (s: number) => (s < 5 ? "just updated" : `updated ${s} seconds ago`),
     tabs: { ringkasan: "Overview", siap: "Ready Check", pengaturan: "Settings" },
     tabsLabel: "Server sections",
     cpu: "CPU",
@@ -279,7 +281,7 @@ const T = dict({
     noReboot: "No reboots in this range.",
     gaps: "Offline gaps",
     noGap: "No offline gaps.",
-    gapLine: (a: string, b: string, m: number) => `${a} to ${b} (${m} min)`,
+    gapLine: (a: string, b: string, m: number) => `${a} to ${b} (${m} minutes)`,
     svcHistory: "Service status history",
     noSvcHistory: "No service history yet.",
     services: "Services",
@@ -385,11 +387,7 @@ function isOnline(d: Heartbeat | null, batas: number): boolean {
 
 function fmtUptime(sec: number | null | undefined, lang: Lang): string {
   if (!sec) return "·";
-  const d = Math.floor(sec / 86400);
-  const h = Math.floor((sec % 86400) / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  if (d > 0) return lang !== "id" ? `${d} d ${h} h` : `${d} hari ${h} jam`;
-  return lang !== "id" ? `${h} h ${m} min` : `${h} jam ${m} mnt`;
+  return durasiLabel(Math.floor(sec / 60), lang);
 }
 
 function fmtWhen(iso: string, lang: Lang): string {
@@ -933,12 +931,8 @@ function DetailView({
     return d as Detail;
   }, 6_000);
   const data = poll.data;
-  const kodeRef = useRef(new Map<string, string>());
-  useEffect(() => {
-    getJson<{ ok: boolean; asisten: { nim: string; kode: string }[] }>("/api/session/schedule")
-      .then((d) => d.ok && d.asisten.forEach((a) => kodeRef.current.set(a.nim, a.kode)))
-      .catch(() => {});
-  }, []);
+  const dir = useDirektori();
+  const siapa = (n: string | null) => (n ? dir.nama(n) : "");
 
   useEffect(() => {
     if (poll.errors >= 3 && !data) {
@@ -1016,24 +1010,10 @@ function DetailView({
       </div>
 
       {tab === "ringkasan" && (
-        <Overview
-          t={t}
-          lang={lang}
-          id={id}
-          data={data}
-          refresh={poll.refresh}
-          kode={(n) => kodeRef.current.get(n ?? "") ?? n ?? ""}
-        />
+        <Overview t={t} lang={lang} id={id} data={data} refresh={poll.refresh} kode={siapa} />
       )}
       {tab === "siap" && (
-        <Ready
-          t={t}
-          lang={lang}
-          id={id}
-          data={data}
-          refresh={poll.refresh}
-          kode={(n) => kodeRef.current.get(n ?? "") ?? n ?? ""}
-        />
+        <Ready t={t} lang={lang} id={id} data={data} refresh={poll.refresh} kode={siapa} />
       )}
       {tab === "pengaturan" && (
         <Settings t={t} lang={lang} id={id} data={data} refresh={poll.refresh} onDeleted={onBack} />

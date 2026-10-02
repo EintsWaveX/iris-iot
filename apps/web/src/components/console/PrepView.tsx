@@ -8,6 +8,7 @@
  * squeezed into a third column, which is what made the prototype cramped.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { namaAsisten } from "../../lib/people";
 import * as RadixPopover from "@radix-ui/react-popover";
 import { CaretDownIcon, CheckIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { parseRosterPaste, rosterDiff, rosterToPaste } from "../../lib/roster-parser";
@@ -36,7 +37,11 @@ export default function PrepView({
   meNim: string;
   onChanged: () => void;
 }) {
-  const kode = (nim: string) => assign?.asisten.find((a) => a.nim === nim)?.kode ?? nim;
+  const kode = (nim: string) =>
+    namaAsisten(
+      assign?.asisten.find((a) => a.nim === nim),
+      nim,
+    );
   return (
     <div className="prep">
       <div className="prep__col">

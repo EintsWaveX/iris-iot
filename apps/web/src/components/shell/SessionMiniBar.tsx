@@ -31,7 +31,7 @@ import "./SessionMiniBar.css";
 const T = dict({
   id: {
     region: "Sesi berjalan",
-    left: (m: number) => `sisa ${m} mnt`,
+    left: (m: number) => `sisa ${m} menit`,
     bell: "Pengumuman",
     none: "Belum ada pengumuman di sesi ini.",
     help: "Minta bantuan",
@@ -47,7 +47,7 @@ const T = dict({
   },
   en: {
     region: "Running session",
-    left: (m: number) => `${m} min left`,
+    left: (m: number) => `${m} minutes left`,
     bell: "Announcements",
     none: "No announcements in this session yet.",
     help: "Ask for help",

@@ -3,7 +3,7 @@
  * entry and export. Shares the live score state with the inspector, so a
  * number typed in either place (or by another assistant) shows in both.
  *
- * - Groups held by someone else are read only, with the holder's code.
+ * - Groups held by someone else are read only, naming the holder.
  * - Enter / Shift+Enter move down / up the same column, like a spreadsheet;
  *   Tab moves across.
  * - The CSV download and the Seelabs helper keep their Stage 12 logic.
@@ -11,6 +11,7 @@
  *   because eight columns do not fit a phone.
  */
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { namaAsisten } from "../../lib/people";
 import { LockSimpleIcon } from "@phosphor-icons/react";
 import { ScoreInput } from "../ui/Controls";
 import { UpdatedAgo } from "../ui/Display";
@@ -62,7 +63,7 @@ export default function NilaiTable({
       return n;
     });
     const r = await nilai.save(nim, k, raw);
-    const holder = asisten.get(data!.pemilik[kid] ?? "")?.kode ?? "?";
+    const holder = namaAsisten(asisten.get(data!.pemilik[kid] ?? ""));
     if (r === "range") window.Toast?.show(t.scoreRange, "danger");
     else if (r === "owner") window.Toast?.show(t.notOwner(holder), "danger");
     else if (r === "fail") window.Toast?.show(t.fail, "danger");
@@ -119,7 +120,7 @@ export default function NilaiTable({
   const cell = (nim: string, nama: string, k: string, kid: number, stored: number | undefined) => {
     const key = `${nim}.${k}`;
     const ro = !canEdit(kid);
-    const holder = asisten.get(data.pemilik[kid] ?? "")?.kode ?? "?";
+    const holder = namaAsisten(asisten.get(data.pemilik[kid] ?? ""));
     return (
       <ScoreInput
         className="ctl-score--table"
@@ -220,7 +221,7 @@ export default function NilaiTable({
                           {!canEdit(k.id) && (
                             <span className="hint row">
                               <LockSimpleIcon size={14} aria-hidden="true" />{" "}
-                              {t.lockedBy(holder?.kode ?? "?")}
+                              {t.lockedBy(namaAsisten(holder))}
                             </span>
                           )}
                         </span>

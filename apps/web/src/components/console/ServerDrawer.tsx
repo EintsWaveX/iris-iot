@@ -14,12 +14,12 @@ import type { Lang } from "../../lib/kelas";
 import type { Strings } from "./strings";
 import type { ServerState } from "./data";
 import { isOnline, type AsistenRef } from "./types";
+import { durasiLabel } from "../../lib/labels";
+import { namaAsisten } from "../../lib/people";
 
 function uptime(sec: number | null | undefined, lang: Lang): string {
   if (!sec) return "·";
-  const d = Math.floor(sec / 86400);
-  const h = Math.floor((sec % 86400) / 3600);
-  return lang !== "id" ? `${d} d ${h} h` : `${d} hari ${h} jam`;
+  return durasiLabel(Math.floor(sec / 60), lang);
 }
 
 export default function ServerDrawer({
@@ -122,7 +122,7 @@ export default function ServerDrawer({
             <CommandTimeline
               lang={lang}
               perintah={d.perintah}
-              kode={(nim) => (nim ? (asisten.get(nim)?.kode ?? nim) : "")}
+              kode={(nim) => (nim ? namaAsisten(asisten.get(nim), nim) : "")}
             />
           </section>
 

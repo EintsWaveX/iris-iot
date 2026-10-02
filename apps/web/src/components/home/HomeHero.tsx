@@ -55,7 +55,7 @@ const T = dict({
     masuk: "Sign in",
     browse: "Browse modules",
     running: (m: number) => `Session running · Module ${m}`,
-    left: (m: number) => `${m} min left`,
+    left: (m: number) => `${m} minutes left`,
     lanjut: (m: number) => `Continue Module ${m}`,
     dasbor: "Dashboard",
     noSession: "No session is running yet. You can study the modules that are already open.",

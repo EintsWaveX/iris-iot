@@ -18,6 +18,7 @@ import { hotspotMenyala } from "../../lib/server-shared";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
 import type { Lang } from "../../lib/kelas";
+import { useDirektori } from "../../lib/people";
 import type { Strings } from "./strings";
 import type { ServerState } from "./data";
 import { isOnline, type SesiRunning, type View } from "./types";
@@ -338,6 +339,7 @@ function AccessBadge() {
 }
 
 export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: boolean }) {
+  const dir = useDirektori();
   const { terbuka, setTerbuka, meta } = useAkses();
   const [busy, setBusy] = useState<number | null>(null);
   async function flip(n: number) {
@@ -380,7 +382,7 @@ export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: b
       <span className="hint">{t.accHint}</span>
       {meta.diubahPada && meta.diubahOleh && (
         <span className="hint faint">
-          {t.accBy(meta.diubahOleh, jamMenit(meta.diubahPada, lang))}
+          {t.accBy(dir.nama(meta.diubahOleh), jamMenit(meta.diubahPada, lang))}
         </span>
       )}
     </div>

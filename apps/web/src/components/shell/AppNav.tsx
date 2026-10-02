@@ -45,6 +45,7 @@ import NavClock from "./NavClock";
 import { dict, href, meChanged, postJson, useMe, useSessionNow, type Me } from "../../lib/app";
 import { langForKelas, langOfPath, pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";
+import { kelompokLabel } from "../../lib/labels";
 import SessionMiniBar from "./SessionMiniBar";
 import IdentityWatch from "./IdentityWatch";
 import AsistenCommands from "./AsistenCommands";
@@ -72,13 +73,13 @@ const T = dict({
     signIn: "Masuk",
     signOut: "Keluar",
     account: "Akun",
-    myAccount: "Akun saya",
+    myAccount: "Halaman Akun",
     display: "Tampilan",
-    shortcuts: "Pintasan keyboard",
+    shortcuts: "Pintasan Keyboard",
     palette: "Cari perintah",
     praktikan: "Praktikan",
     asisten: "Asisten",
-    group: (n: number) => `K${n}`,
+    group: (n: number) => kelompokLabel(n, "id"),
     notSignedIn: "Belum masuk",
     signInHint: "Masuk untuk membuka dasbor dan menyimpan jawaban.",
   },
@@ -92,16 +93,16 @@ const T = dict({
     schedule: "Schedule",
     server: "Server",
     reports: "Reports",
-    signIn: "Sign in",
-    signOut: "Sign out",
+    signIn: "Sign In",
+    signOut: "Sign Out",
     account: "Account",
-    myAccount: "My account",
+    myAccount: "Account Page",
     display: "Display",
-    shortcuts: "Keyboard shortcuts",
+    shortcuts: "Keyboard Shortcuts",
     palette: "Search commands",
     praktikan: "Student",
     asisten: "Assistant",
-    group: (n: number) => `G${n}`,
+    group: (n: number) => kelompokLabel(n, "en"),
     notSignedIn: "Not signed in",
     signInHint: "Sign in to open your dashboard and save your answers.",
   },
