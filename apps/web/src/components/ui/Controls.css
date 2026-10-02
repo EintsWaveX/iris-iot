@@ -190,14 +190,14 @@
 }
 
 .ctl-date__trigger svg {
-  color: var(--accent);
+  color: var(--text-muted);
   flex: none;
 }
 
 .ctl-date__trigger span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .ctl-date__trigger:hover,
@@ -252,6 +252,41 @@
 
 .ctl-date__panel .rdp-chevron {
   fill: var(--text-muted);
+}
+
+/* The time grid in TimeField's popover */
+.ctl-time {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: 260px;
+  overflow: auto;
+}
+
+.ctl-time__o {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  min-height: 40px;
+}
+
+.ctl-time__o:hover {
+  border-color: var(--text-muted);
+}
+
+.ctl-time__o:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.ctl-time__o[aria-selected="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
 }
 
 /* ------------------------------------------------------------ filedrop */

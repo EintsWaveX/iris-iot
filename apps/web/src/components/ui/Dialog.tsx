@@ -1,46 +1,47 @@
 /**
- * A Radix-backed dialog (P7.1). This is a NEW primitive, separate from
- * Modal.astro: Modal.astro is a vanilla-JS, ID-addressed dialog opened by
- * `src/scripts/modal.ts`'s global API from anywhere, including plain HTML
- * `data-modal-open` attributes -- that contract has real call sites today
- * and stays exactly as it is. This component is for React-island call
- * sites that want a dialog driven by component state instead (the login
- * dialog's eventual rewrite, a confirm dialog embedded in a React island
- * like SessionConsole's Akhiri/Batalkan actions, and the mobile "Akun"
- * sheet). Adopting it in any of those places is P7.3/P7.4 work, not this
- * stage's -- P7.1 only builds the primitive.
+ * A Radix-backed dialog (P7.1, Phase 9 kit), driven by the caller's `open`
+ * state. Modal.astro stays for the old vanilla, ID-addressed dialogs.
  *
- * `sheet` renders as a bottom sheet (slides up from the bottom edge,
- * rounded top corners only) instead of a centred panel -- used for the
- * mobile Akun menu and the mobile login dialog. Centring for the non-sheet
- * case is grid placement (`place-items: center`), not
- * `transform: translate(-50%, -50%)` -- see Modal.astro's own docblock for
- * the exact GSAP-clobbering bug that rule avoids; the same reasoning
- * applies here.
+ * Layers (Phase 9 overlay rules). Radix keeps one stack for every dialog,
+ * drawer, popover and menu, so Esc and outside clicks reach only the top
+ * layer. On top of that:
+ * - every dialog animates in and out (data-state="closed" plays before
+ *   Radix unmounts it);
+ * - `blocking` marks a dialog that must be answered (a required confirm,
+ *   unsaved changes). Esc and clicks outside it make it shake instead of
+ *   closing, and since it is the top layer, the layers under it cannot
+ *   close either;
+ * - popovers and menus sit above dialogs, and toasts and tooltips above
+ *   everything.
+ *
+ * Footer rule (`actions`): the buttons keep their normal size. Two buttons
+ * sit right, Cancel then the main action. An alternative action goes in
+ * `alt`, on the left. `foot="12"` is the three-button form: the main action
+ * across the top row, the other two sharing the row below; pass the main
+ * action first. Under 520px wide the buttons stack full width with the
+ * main action on top.
+ *
+ * `sheet` renders a bottom sheet (the phone Akun menu and login dialog).
+ *
+ * Without a Radix Trigger, focus would drop to <body> on close, so the
+ * element that opened the dialog is remembered and focused again. The
+ * capture ref starts at `false` so a dialog the parent mounts already open
+ * (`open` always true) still counts as "just opened".
  *
  * Usage:
- *   <Dialog open={open} onOpenChange={setOpen} title="Masuk">
+ *   <Dialog open={open} onOpenChange={setOpen} title="Masuk" actions={...}>
  *     <p>...</p>
  *   </Dialog>
- *
- * None of this file's call sites use `RadixDialog.Trigger` (every one is
- * opened from a plain button via this controlled `open` prop instead, since
- * the trigger sometimes lives outside this component's own tree entirely --
- * LoginDialog's is a vanilla nav script calling `window.LoginDialog.open()`).
- * Without a Trigger, Radix has no element to return focus to on close, so it
- * drops to <body> -- this component tracks and restores it itself instead.
- * Two call-site shapes both need this to work: a component that persists
- * and toggles its own `open` state (LoginDialog, AkunSheet, SessionConsole's
- * confirms), and one the parent only mounts while it should be open
- * (ServerCenter's DaftarServerModal, `open` always literally `true`) -- the
- * capture ref below starts at `false` regardless of `open`'s own initial
- * value specifically so the latter's first-and-only render still counts as
- * "just opened".
  */
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
+import { XIcon } from "@phosphor-icons/react";
+import IconButton from "./IconButton";
+import { dict } from "../../lib/app";
 import "./Dialog.css";
 import type { Lang } from "../../lib/kelas";
+
+const T = dict({ id: "Tutup", en: "Close", zh: "关闭" });
 
 interface Props {
   open: boolean;
@@ -48,15 +49,18 @@ interface Props {
   title: string;
   description?: string;
   sheet?: boolean;
-  /** "md" (default, 32rem) fits a confirm dialog; "lg" (38rem) gives a
-   *  form with its own role switch and field hints (the login dialog) room
-   *  to breathe instead of wrapping every line. */
-  size?: "md" | "lg" | "xl";
-  /** Phase 8: the close button's accessible label follows the page language. */
+  /** sm 540px (confirms), md 680px (default), lg 740px, xl 1040px. */
+  size?: "sm" | "md" | "lg" | "xl";
   lang?: Lang;
   children?: ReactNode;
-  /** Rendered right-aligned in the footer, e.g. action buttons. */
+  /** The footer's buttons: Cancel, then the main action. */
   actions?: ReactNode;
+  /** An alternative action, on the left of the footer. */
+  alt?: ReactNode;
+  /** "12": three buttons, the main one (first) across the top. */
+  foot?: "row" | "12";
+  /** Must be answered: Esc and outside clicks shake it instead. */
+  blocking?: boolean;
 }
 
 export default function Dialog({
@@ -69,6 +73,9 @@ export default function Dialog({
   lang = "id",
   children,
   actions,
+  alt,
+  foot = "row",
+  blocking = false,
 }: Props) {
   const openedFromRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
@@ -76,6 +83,12 @@ export default function Dialog({
     openedFromRef.current = document.activeElement as HTMLElement | null;
   }
   wasOpenRef.current = open;
+  const [shake, setShake] = useState(0);
+  const nudge = (e: Event) => {
+    if (!blocking) return;
+    e.preventDefault();
+    setShake((n) => n + 1);
+  };
 
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
@@ -84,13 +97,23 @@ export default function Dialog({
         <RadixDialog.Content
           className={[
             "dialog__panel",
-            "sweep-edge",
             sheet && "dialog__panel--sheet",
-            size === "lg" && "dialog__panel--lg",
-            size === "xl" && "dialog__panel--xl",
+            `dialog__panel--${size}`,
+            alt != null && "dialog__panel--alt",
           ]
             .filter(Boolean)
             .join(" ")}
+          data-shake={shake ? (shake % 2 ? "a" : "b") : undefined}
+          tabIndex={-1}
+          onOpenAutoFocus={(e) => {
+            // Focus the panel, as the mockup does: landing on the close
+            // button would pop its tooltip the moment the dialog opens.
+            e.preventDefault();
+            (e.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+          }}
+          onEscapeKeyDown={nudge}
+          onPointerDownOutside={nudge}
+          onFocusOutside={(e) => blocking && e.preventDefault()}
           onCloseAutoFocus={(e) => {
             if (openedFromRef.current) {
               e.preventDefault();
@@ -99,21 +122,29 @@ export default function Dialog({
           }}
         >
           <header className="dialog__head">
-            <RadixDialog.Title className="dialog__title">{title}</RadixDialog.Title>
-            {description && (
-              <RadixDialog.Description className="dialog__lede">
-                {description}
-              </RadixDialog.Description>
+            <div className="dialog__titles">
+              <RadixDialog.Title className="dialog__title">{title}</RadixDialog.Title>
+              {description && (
+                <RadixDialog.Description className="dialog__lede">
+                  {description}
+                </RadixDialog.Description>
+              )}
+            </div>
+            {!blocking && (
+              <RadixDialog.Close asChild>
+                <IconButton icon={XIcon} label={T[lang]} kind="ghost" />
+              </RadixDialog.Close>
             )}
-            <RadixDialog.Close
-              className="btn btn--ghost btn--icon dialog__close"
-              aria-label={lang !== "id" ? "Close" : "Tutup"}
-            >
-              ×
-            </RadixDialog.Close>
           </header>
           {children != null && <div className="dialog__body">{children}</div>}
-          {actions && <footer className="dialog__actions">{actions}</footer>}
+          {(actions || alt) && (
+            <footer
+              className={foot === "12" ? "dialog__actions dialog__actions--12" : "dialog__actions"}
+            >
+              {alt != null && <span className="dialog__alt">{alt}</span>}
+              {actions}
+            </footer>
+          )}
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>

@@ -1,30 +1,51 @@
-/* Popover.tsx's styling (P7.1). Same surface language as Dialog/Modal, at
-   a smaller radius since a popover panel is never as prominent as a
-   dialog. */
+/* Popover.tsx's styling. Phase 9 kit: the mockup's popover, with an open
+   and a close animation (Radix keeps the panel mounted while
+   data-state="closed" plays). It sits above dialogs and drawers, so a
+   picker opened inside one is never covered by it. */
 
 .popover__panel {
-  background: var(--bg-elevated);
+  animation: popover-in 220ms var(--ease-out-expo) both;
+  background: var(--surface-2);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lift);
-  padding: var(--space-4);
-  z-index: 90;
-  animation: popover-in var(--dur-fast) var(--ease-out-expo);
+  display: grid;
+  gap: 14px;
+  max-height: var(--radix-popover-content-available-height);
+  max-width: calc(100vw - 16px);
+  min-width: min(320px, calc(100vw - 16px));
+  overflow: auto;
+  padding: 18px;
+  transform-origin: var(--radix-popover-content-transform-origin);
+  z-index: 150;
+}
+
+.popover__panel:focus {
+  outline: none;
+}
+
+.popover__panel[data-state="closed"] {
+  animation: popover-out 160ms ease-in both;
+  pointer-events: none;
 }
 
 @keyframes popover-in {
   from {
     opacity: 0;
-    transform: translateY(-4px) scale(0.98);
+    transform: translateY(-6px) scale(0.97);
   }
+}
+
+@keyframes popover-out {
   to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .popover__panel {
+  .popover__panel,
+  .popover__panel[data-state="closed"] {
     animation-duration: 1ms;
   }
 }

@@ -48,6 +48,7 @@ export default function Confirm({
       onOpenChange={(o) => !busy && onOpenChange(o)}
       title={title}
       description={body}
+      size="sm"
       lang={lang}
       actions={
         <>

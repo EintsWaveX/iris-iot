@@ -1,8 +1,13 @@
 .drawer__overlay {
+  animation: drawer-fade-in 220ms ease both;
   background: var(--scrim);
   inset: 0;
   position: fixed;
   z-index: 60;
+}
+
+.drawer__overlay[data-state="closed"] {
+  animation: drawer-fade-out 180ms ease both;
 }
 
 .drawer {
@@ -16,6 +21,10 @@
   position: fixed;
   width: 100vw;
   z-index: 61;
+}
+
+.drawer:focus {
+  outline: none;
 }
 
 @media (min-width: 640px) {
@@ -64,8 +73,8 @@
   align-items: center;
   border-bottom: 1px solid var(--hairline);
   display: flex;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
+  gap: 12px;
+  padding: 16px 24px;
 }
 
 .drawer__titles {
@@ -76,8 +85,10 @@
 }
 
 .drawer__title {
-  font-size: 1.1rem;
-  font-weight: 650;
+  font-family: var(--font-body);
+  font-size: 1.28rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -93,18 +104,77 @@
   flex: 1;
   gap: var(--space-5);
   overflow: auto;
-  padding: var(--space-5);
+  padding: 18px 24px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  :root:not([data-motion-tier="0"]) .drawer[data-state="open"] {
-    animation: drawer-in var(--dur-mid, 280ms) var(--ease-out-expo, ease-out);
+/* The same footer rule as Dialog.css */
+.drawer__foot {
+  align-items: center;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px 24px;
+}
+
+.drawer__foot .btn {
+  font-size: 0.98rem;
+  min-height: 44px;
+  padding: 0 18px;
+}
+
+@media (max-width: 519px) {
+  .drawer__foot {
+    align-items: stretch;
+    flex-direction: column-reverse;
   }
+
+  .drawer__foot .btn {
+    width: 100%;
+  }
+}
+
+.drawer[data-state="open"] {
+  animation: drawer-in 300ms var(--ease-out-expo) both;
+}
+
+.drawer[data-state="closed"] {
+  animation: drawer-out 200ms ease-in both;
+  pointer-events: none;
 }
 
 @keyframes drawer-in {
   from {
     opacity: 0;
     transform: translateX(30%);
+  }
+}
+
+@keyframes drawer-out {
+  to {
+    opacity: 0;
+    transform: translateX(30%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .drawer[data-state="closed"],
+  .drawer__overlay {
+    animation-duration: 1ms;
+  }
+}
+
+@keyframes drawer-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-fade-out {
+  to {
+    opacity: 0;
   }
 }

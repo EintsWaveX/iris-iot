@@ -1,0 +1,52 @@
+/* Disclose.tsx's styling (Phase 9 kit). */
+
+.disc {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.disc__head {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-weight: 600;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.disc__head:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.disc__head svg {
+  flex: none;
+  transition: transform var(--dur-mid) var(--ease-out-expo);
+}
+
+.disc[data-open="yes"] > .disc__head svg {
+  transform: rotate(180deg);
+}
+
+.disc__body {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.panel.disc {
+  padding-block: 8px;
+}
+
+.panel.disc[data-open="yes"] {
+  padding-bottom: 16px;
+}

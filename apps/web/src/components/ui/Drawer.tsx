@@ -17,6 +17,8 @@ import {
   type ReactNode,
 } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
+import { XIcon } from "@phosphor-icons/react";
+import IconButton from "./IconButton";
 import "./Drawer.css";
 
 interface Props {
@@ -25,6 +27,8 @@ interface Props {
   title: string;
   description?: string;
   children: ReactNode;
+  /** Footer buttons, by the dialog footer rule (Cancel, then main). */
+  foot?: ReactNode;
   storeKey: string;
   defaultWidth?: number;
   minWidth?: number;
@@ -47,6 +51,7 @@ export default function Drawer({
   title,
   description,
   children,
+  foot,
   storeKey,
   defaultWidth = 440,
   minWidth = 360,
@@ -96,14 +101,14 @@ export default function Drawer({
         <RadixDialog.Overlay className="drawer__overlay" />
         <RadixDialog.Content
           className="drawer"
+          tabIndex={-1}
           style={{ "--drawer-w": `${width}px` } as CSSProperties}
           onOpenAutoFocus={(e) => {
-            // Land on the close button, not the resize grip (its focus ring
-            // would outline the whole edge the moment the drawer opens).
+            // Land on the panel itself: not the resize grip (its focus ring
+            // would outline the whole edge) and not the close button (its
+            // tooltip would pop the moment the drawer opens).
             e.preventDefault();
-            (e.currentTarget as HTMLElement | null)
-              ?.querySelector<HTMLElement>(".drawer__close")
-              ?.focus();
+            (e.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
           }}
           onCloseAutoFocus={(e) => {
             if (openedFrom.current) {
@@ -129,14 +134,12 @@ export default function Drawer({
                 </RadixDialog.Description>
               )}
             </div>
-            <RadixDialog.Close
-              className="btn btn--ghost btn--icon drawer__close"
-              aria-label={closeLabel}
-            >
-              ×
+            <RadixDialog.Close asChild>
+              <IconButton icon={XIcon} label={closeLabel} kind="ghost" className="drawer__close" />
             </RadixDialog.Close>
           </header>
           <div className="drawer__body">{children}</div>
+          {foot && <footer className="drawer__foot">{foot}</footer>}
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>

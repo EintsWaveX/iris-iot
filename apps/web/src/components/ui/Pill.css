@@ -1,64 +1,130 @@
+/* Badges (Phase 9 kit): always UPPERCASE, a bright fill and readable text
+   in both themes. Codes (.pill--mono) and toggle chips (.pill--button)
+   keep their own case. */
 .pill {
   align-items: center;
   background: var(--surface-3);
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-pill);
-  color: var(--text-muted);
+  color: var(--text);
   display: inline-flex;
-  font-size: var(--fs-small);
-  gap: var(--space-1);
-  line-height: 1.2;
-  min-height: 28px;
-  padding: 2px var(--space-3);
+  font: 700 0.76rem/1 var(--font-body);
+  gap: 6px;
+  letter-spacing: 0.07em;
+  min-height: 26px;
+  padding: 2px 10px;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+
+.pill--lg {
+  font-size: 0.82rem;
+  min-height: 32px;
+  padding: 4px 13px;
 }
 
 .pill--mono {
   font-family: var(--font-mono);
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.pill .dot {
+  height: 8px;
+  width: 8px;
 }
 
 .pill--ok {
   background: var(--ok-soft);
-  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
   color: var(--ok);
 }
 
 .pill--warn {
   background: var(--warn-soft);
-  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
   color: var(--warn);
 }
 
 .pill--danger {
   background: var(--danger-soft);
-  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
   color: var(--danger);
 }
 
 .pill--accent {
   background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
   color: var(--accent-bright);
 }
 
 .pill--gold {
   background: var(--gold-soft);
-  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 55%, transparent);
   color: var(--gold);
 }
 
+.pill--violet {
+  background: var(--violet-soft);
+  border-color: color-mix(in srgb, var(--violet) 60%, transparent);
+  color: var(--violet);
+}
+
+.pill--teal {
+  background: var(--teal-soft);
+  border-color: color-mix(in srgb, var(--teal) 60%, transparent);
+  color: var(--teal);
+}
+
+/* Schedule sheet markers: red = Ngajar FIT, yellow = Angkatan 24 */
+.pill--fit {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.pill--a24 {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #1a1400;
+}
+
+:root[data-theme="light"] .pill--fit {
+  background: #d71f2b;
+}
+
+:root[data-theme="light"] .pill--a24 {
+  background: #ffd83a;
+  border-color: #e0b800;
+  color: #2a2000;
+}
+
+.pill--solid {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Group and module colours (--pill-hue set inline) */
 .pill--group {
-  background: color-mix(in srgb, var(--pill-hue) 16%, transparent);
-  border-color: color-mix(in srgb, var(--pill-hue) 40%, transparent);
+  background: color-mix(in srgb, var(--pill-hue) 22%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--pill-hue) 65%, transparent);
   color: var(--pill-hue);
+}
+
+:root[data-theme="light"] .pill--group {
+  background: color-mix(in srgb, var(--pill-hue) 12%, #fff);
 }
 
 .pill--button {
   cursor: pointer;
   font: inherit;
   font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0;
   min-height: 40px;
+  text-transform: none;
 }
 
 .pill--button:hover {

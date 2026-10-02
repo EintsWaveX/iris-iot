@@ -84,36 +84,47 @@
 }
 
 /* -----------------------------------------------------------------------
-   .btn -- the full button component. Every direct <button>/<a>/<label>
-   styled as a clickable action reaches for this rather than its own
-   bespoke class. Button.astro emits exactly these classes; anything that
-   cannot render through Button.astro (a React island, a vanilla-script
-   <button> created at runtime) applies them by hand.
+   .btn -- the full button component (Phase 9 kit, the mockup's g-kit).
+   Every <button>/<a>/<label> styled as an action uses it; Button.astro
+   emits the same classes for Astro markup.
+
+     (base)       surface fill, bright border; the rainbow ring sweeps on
+                  hover. --secondary is the same look, kept for callers.
+     primary      accent fill; the rainbow sweeps across the fill on hover.
+                  At most one per view.
+     inverse      the most important action on a key card: dark, then
+                  bright with dark text on hover or press. No ring.
+     ghost        no fill until hovered (Cancel, Close).
+     danger       bright red fill, dark icon and text, no ring (sign out,
+                  delete, turn off). It always asks before acting.
+     danger-soft  the quieter red, for Discard in a dialog footer.
    ----------------------------------------------------------------------- */
 .btn {
   align-items: center;
-  background: transparent;
+  background: var(--surface-3);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-md);
   color: var(--text);
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-body);
-  font-size: var(--fs-body);
-  font-weight: 500;
-  gap: var(--space-2);
+  font-size: 1rem;
+  font-weight: 650;
+  gap: 9px;
+  isolation: isolate;
   justify-content: center;
   min-height: max(var(--tap), var(--tap-lg, 48px));
-  padding: 0 var(--space-5);
+  padding: 0 20px;
   position: relative;
   text-decoration: none;
   transition:
-    background var(--dur-fast) var(--ease-reveal),
-    border-color var(--dur-fast) var(--ease-reveal),
-    box-shadow var(--dur-fast) var(--ease-reveal),
-    color var(--dur-fast) var(--ease-reveal),
+    background var(--dur-mid) var(--ease-reveal),
+    border-color var(--dur-mid) var(--ease-reveal),
+    box-shadow var(--dur-mid) var(--ease-reveal),
+    color var(--dur-mid) var(--ease-reveal),
     opacity var(--dur-fast) var(--ease-reveal),
     transform var(--dur-fast) var(--ease-out-expo);
+  white-space: nowrap;
 }
 
 /* The native `hidden` attribute is otherwise silently defeated: the UA
@@ -124,9 +135,6 @@
 }
 
 .btn:hover:not(:disabled):not([aria-disabled="true"]) {
-  border-color: var(--hairline-strong);
-  background: var(--hairline-faint);
-  box-shadow: var(--shadow-lift);
   transform: var(--lift-control);
 }
 
@@ -140,93 +148,74 @@
 
 .btn:disabled,
 .btn[aria-disabled="true"] {
+  box-shadow: none;
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.45;
+  transform: none;
 }
 
-/* The swept gradient-border ring: a 1px frame painted with --sweep-ring and
-   punched out with mask-composite so only the ring itself is visible.
-   Ghost, danger and quiet keep a real border underneath, so this rides on
-   top of it rather than replacing it. --sweep-ring, not --sweep-surface: a
-   1px ring is decoration, never a surface text sits on, so it is free to
-   use the nebula-toned gradient. */
-.btn--ghost::after,
-.btn--secondary::after,
-.btn--danger::after,
-.btn--quiet::after {
-  background-image: var(--sweep-ring);
-  background-size: 200% auto;
+/* The swept ring: a 1.5px frame painted with --sweep and punched out with
+   mask-composite so only the ring shows. Base, secondary and ghost only. */
+.btn::after {
+  background: var(--sweep);
+  background-size: 300% 100%;
   border-radius: inherit;
   content: "";
-  inset: 0;
+  inset: -1px;
   mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
   opacity: 0;
-  padding: 1px;
+  padding: 1.5px;
   pointer-events: none;
   position: absolute;
-  transition: opacity var(--dur-fast) var(--ease-reveal);
+  transition: opacity var(--dur-mid) var(--ease-reveal);
 }
 
-.btn--ghost:hover:not(:disabled):not([aria-disabled="true"])::after,
-.btn--ghost:focus-visible:not([aria-disabled="true"])::after,
-.btn--secondary:hover:not(:disabled):not([aria-disabled="true"])::after,
-.btn--secondary:focus-visible:not([aria-disabled="true"])::after,
-.btn--danger:hover:not(:disabled):not([aria-disabled="true"])::after,
-.btn--danger:focus-visible:not([aria-disabled="true"])::after,
-.btn--quiet:hover:not(:disabled):not([aria-disabled="true"])::after,
-.btn--quiet:focus-visible:not([aria-disabled="true"])::after {
+.btn:hover:not(:disabled):not([aria-disabled="true"])::after,
+.btn:focus-visible:not([aria-disabled="true"])::after {
   opacity: 1;
 }
 
-/* Tier-gated for the same reason .control-hover's ring is (see above). */
-:root:not([data-motion-tier="0"])
-  .btn--ghost:hover:not(:disabled):not([aria-disabled="true"])::after,
-:root:not([data-motion-tier="0"]) .btn--ghost:focus-visible:not([aria-disabled="true"])::after,
-:root:not([data-motion-tier="0"])
-  .btn--secondary:hover:not(:disabled):not([aria-disabled="true"])::after,
-:root:not([data-motion-tier="0"]) .btn--secondary:focus-visible:not([aria-disabled="true"])::after,
-:root:not([data-motion-tier="0"])
-  .btn--danger:hover:not(:disabled):not([aria-disabled="true"])::after,
-:root:not([data-motion-tier="0"]) .btn--danger:focus-visible:not([aria-disabled="true"])::after,
-:root:not([data-motion-tier="0"])
-  .btn--quiet:hover:not(:disabled):not([aria-disabled="true"])::after,
-:root:not([data-motion-tier="0"]) .btn--quiet:focus-visible:not([aria-disabled="true"])::after {
-  animation: aurora-sweep 2.2s linear infinite;
+/* The sweep keeps running in every detail level, as in the mockup; only the
+   OS reduced-motion setting stops it (motion.css), leaving a static ring. */
+.btn::after,
+.btn--primary::before {
+  animation: kit-sweep 4s linear infinite;
 }
 
-/* -- primary: the accent-filled call to action, at most one per view -- */
+@keyframes kit-sweep {
+  to {
+    background-position: -300% 0;
+  }
+}
+
+.btn--primary::after,
+.btn--inverse::after,
+.btn--danger::after,
+.btn--danger-soft::after,
+.btn:disabled::after,
+.btn[aria-disabled="true"]::after {
+  display: none;
+}
+
+/* -- secondary: the base look, named -- */
+.btn--secondary {
+  background: var(--surface-3);
+}
+
+/* -- primary -- */
 .btn--primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
 }
 
-.btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--accent-bright);
-  border-color: var(--accent-bright);
-}
-
-/* Primary already has a solid fill, so the sweep arrives as a second layer
-   faded in via opacity rather than a background swap -- gradients don't
-   interpolate, so swapping background-image outright would snap instead of
-   transition. --sweep-surface, not --sweep-ring: the label paints on top of
-   this layer, so every stop has to clear 4.5:1 against --accent-ink (see
-   tokens.css's own note on why --sweep-ring is decorative-only and would
-   have made the label unreadable twice per loop). */
-/* The sweep sits behind the button's content (isolation + z-index -1), so
-   bare text and icons in React islands stay visible on hover and focus,
-   not only children wrapped in .btn__label. */
-.btn--primary {
-  isolation: isolate;
-}
-
 .btn--primary::before {
-  background-image: var(--sweep-surface);
-  background-size: 200% auto;
+  background: var(--sweep-surface);
+  background-size: 300% 100%;
   border-radius: inherit;
   content: "";
   inset: 0;
@@ -242,10 +231,8 @@
   opacity: 1;
 }
 
-:root:not([data-motion-tier="0"])
-  .btn--primary:hover:not(:disabled):not([aria-disabled="true"])::before,
-:root:not([data-motion-tier="0"]) .btn--primary:focus-visible:not([aria-disabled="true"])::before {
-  animation: aurora-sweep 2.6s linear infinite;
+.btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: 0 10px 30px var(--accent-glow);
 }
 
 .btn--primary .btn__label,
@@ -254,88 +241,200 @@
   z-index: 1;
 }
 
-/* -- secondary: a real filled surface for a page's other real actions
-   (P7.1) -- more present than ghost, but not the one-per-view accent of
-   primary. Sits on --surface-2 rather than transparent, so it still reads
-   as a solid control next to a primary button. -- */
-.btn--secondary {
-  background: var(--surface-2);
-  border-color: var(--hairline-strong);
+/* -- inverse -- */
+.btn--inverse {
+  background: var(--surface-4);
+  border: 1.5px solid var(--text);
   color: var(--text);
 }
 
-.btn--secondary:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--surface-3);
-  border-color: var(--accent);
+.btn--inverse:hover:not(:disabled):not([aria-disabled="true"]),
+.btn--inverse:active:not(:disabled):not([aria-disabled="true"]),
+.btn--inverse[aria-pressed="true"] {
+  background: var(--invert-bg);
+  box-shadow: 0 10px 30px var(--accent-glow);
+  color: var(--invert-ink);
 }
 
-/* -- danger: destructive assistant actions get a visually distinct control -- */
+/* -- ghost -- */
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
+.btn--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--hairline-faint);
+  color: var(--text);
+}
+
+/* -- danger -- */
 .btn--danger {
+  background: var(--danger-solid);
+  border-color: var(--danger-solid);
+  color: var(--danger-ink);
+}
+
+.btn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--danger-solid) 40%, transparent);
+}
+
+.btn--danger-soft {
+  background: var(--danger-soft);
   border-color: color-mix(in srgb, var(--danger) 55%, transparent);
   color: var(--danger);
 }
 
-.btn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--danger-soft);
+.btn--danger-soft:hover:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--danger);
 }
 
-/* -- quiet: a bordered icon-only control (carousel arrows, a table's own
-   inline action) -- square rather than padded, no label. Its shape rules
-   (flex-shrink/padding/width) now live below, shared with the newer
-   `.btn--icon` modifier so the two can't drift apart. -- */
+/* -- quiet: the old bordered icon-only control -- */
 .btn--quiet {
-  color: var(--text-muted);
-}
-
-.btn--quiet:hover:not(:disabled):not([aria-disabled="true"]) {
-  border-color: var(--accent);
-  color: var(--text);
+  background: var(--surface-2);
 }
 
 /* -- sizes -- */
 .btn--sm {
-  font-size: var(--fs-small);
-  /* P8: "small" is now only the type and padding; the height keeps the
-     48px working size so no button in the app is hard to hit. */
-  min-height: max(var(--tap), var(--tap-lg, 48px));
-  padding-inline: var(--space-3);
+  font-size: 0.95rem;
+  min-height: 44px;
+  padding-inline: 14px;
 }
 
-.btn--sm.btn--quiet {
-  width: max(var(--tap), var(--tap-lg, 48px));
-}
-
-/* -- lg: a page's one standout action (P7.1) -- */
 .btn--lg {
-  font-size: var(--fs-body-lg);
-  min-height: max(var(--tap), 56px);
-  padding-inline: var(--space-7);
+  font-size: 1.12rem;
+  min-height: 60px;
+  padding-inline: 26px;
 }
 
-/* -- icon: a square, icon-only footprint that combines with any `kind`
-   (P7.1) -- pass an icon via the slot and a real `aria-label`, since the
-   visible `.btn__label` text is what a screen reader announces and an
-   icon-only button has none to speak of otherwise. Shares its sizing with
-   the older `.btn--quiet` shape rather than duplicating it, so the two
-   stay in sync; `.btn--quiet` itself is unchanged for existing call sites
-   (see the Button.astro doc comment on why the two now exist side by
-   side). -- */
+.btn--block {
+  width: 100%;
+}
+
+/* -- icon: a square, icon-only footprint that combines with any kind.
+   New code uses IconButton.tsx (.iconbtn), which always adds the tooltip
+   and the aria-label; these stay for existing call sites. -- */
 .btn--icon,
 .btn--quiet {
   flex-shrink: 0;
+  min-height: 46px;
   padding: 0;
-  width: max(var(--tap), var(--tap-lg, 48px));
+  width: 46px;
 }
 
-/* P8: --tap is 0 on desktop, so a bare var(--tap) made small icon buttons
-   2px wide. Square at the 48px working size instead. */
-.btn--icon.btn--sm {
-  width: max(var(--tap), var(--tap-lg, 48px));
+.btn--icon.btn--sm,
+.btn--sm.btn--quiet {
+  min-height: 38px;
+  width: 38px;
 }
 
 .btn--icon.btn--lg {
-  width: max(var(--tap), 52px);
+  min-height: 60px;
+  width: 60px;
+}
+
+/* -----------------------------------------------------------------------
+   .iconbtn -- an icon-only action (IconButton.tsx). It always carries a
+   tooltip and an aria-label. Only for actions whose icon says it all.
+   ----------------------------------------------------------------------- */
+.iconbtn {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-grid;
+  flex: none;
+  height: 46px;
+  justify-items: center;
+  padding: 0;
+  position: relative;
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    border-color var(--dur-fast) var(--ease-reveal),
+    transform var(--dur-fast) var(--ease-out-expo);
+  width: 46px;
+}
+
+.iconbtn:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--surface-4);
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+
+.iconbtn:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.iconbtn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+
+.iconbtn--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.iconbtn--danger {
+  background: var(--danger-solid);
+  border-color: var(--danger-solid);
+  color: var(--danger-ink);
+}
+
+.iconbtn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+  border-color: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+}
+
+.iconbtn--sm {
+  height: 38px;
+  width: 38px;
+}
+
+.iconbtn:disabled,
+.iconbtn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+/* -----------------------------------------------------------------------
+   .back -- the one Back button (BackButton.tsx)
+   ----------------------------------------------------------------------- */
+.back {
+  align-items: center;
+  align-self: start;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 650;
+  gap: 8px;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 16px 0 10px;
+  text-decoration: none;
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    transform var(--dur-fast) var(--ease-out-expo);
+}
+
+.back:hover {
+  background: var(--surface-4);
+  transform: translateX(-2px);
+}
+
+.back:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
 }
 
 /* -- loading state -- */

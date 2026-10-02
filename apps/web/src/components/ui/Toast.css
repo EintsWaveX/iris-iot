@@ -1,4 +1,5 @@
-/* Toast.tsx (global since Phase 8). Sits above the mobile bottom bar. */
+/* Toast.tsx (global since Phase 8). Above every layer but tooltips: phones
+   centre it over the bottom bar, wider screens pin it bottom right. */
 
 .toast-host {
   bottom: calc(max(var(--space-5), env(safe-area-inset-bottom, 0px)) + var(--toast-lift, 0px));
@@ -19,9 +20,19 @@
   }
 }
 
+@media (min-width: 640px) {
+  .toast-host {
+    bottom: 24px;
+    left: auto;
+    right: 24px;
+    transform: none;
+    width: min(460px, calc(100vw - 48px));
+  }
+}
+
 .toast {
   align-items: center;
-  background: var(--bg-elevated);
+  background: var(--surface-4);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lift);

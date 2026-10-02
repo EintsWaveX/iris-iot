@@ -5,8 +5,9 @@
  *
  * - Checkbox: a real role="checkbox" button, big enough to hit (48px row)
  * - Switch:   role="switch", for settings that apply immediately
- * - DatePicker: a calendar in the app's own popover (react-day-picker),
- *   with the date shown the Indonesian or English way, never mm/dd/yyyy
+ * - DateField / DatePicker: a calendar in the app's own popover
+ *   (react-day-picker), the date written out in full in the page language;
+ *   TimeField: a grid of times (Phase 9)
  * - FileDrop: a drop zone with a big "choose file" button. The file dialog
  *   itself belongs to the operating system and cannot be restyled, but the
  *   control around it is ours, with type and size checks before upload
@@ -28,12 +29,13 @@ import {
 } from "react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
-import { id as localeId, enUS } from "date-fns/locale";
+import { id as localeId, enGB, zhCN } from "date-fns/locale";
 import { format, parseISO, isValid } from "date-fns";
 import {
   CalendarBlankIcon,
   CheckIcon,
   CircleNotchIcon,
+  ClockIcon,
   LockSimpleIcon,
   UploadSimpleIcon,
   WarningCircleIcon,
@@ -41,7 +43,7 @@ import {
 import Popover from "./Popover";
 import "./Controls.css";
 import type { Lang } from "../../lib/kelas";
-import { dict } from "../../lib/app";
+import { dict, tanggalPanjang, waktuPilihan } from "../../lib/app";
 
 /* ------------------------------------------------------------- Checkbox */
 
@@ -114,81 +116,176 @@ export function Switch({
   );
 }
 
-/* ----------------------------------------------------------- DatePicker */
+/* ------------------------------------------- DateField, TimeField, DatePicker
+   Phase 9 kit: the site's own pickers, never the browser's date and time
+   inputs. DateField opens a calendar popover and writes the date out in
+   full ("Kamis, 1 Oktober 2026"); TimeField opens a grid of times. Both
+   take the API's formats: "2026-10-01" and "09:30". */
 
 const DP_TEXT = dict({
-  id: { pick: "Pilih tanggal", today: "Hari ini", fmt: "EEEE, d MMMM yyyy" },
-  en: { pick: "Pick a date", today: "Today", fmt: "EEEE, d MMMM yyyy" },
+  id: { pick: "Pilih tanggal", pickTime: "Pilih jam", today: "Hari ini" },
+  en: { pick: "Pick a date", pickTime: "Pick a time", today: "Today" },
+  zh: { pick: "选择日期", pickTime: "选择时间", today: "今天" },
 });
 
-/** `value` and `onChange` use ISO dates ("2026-09-29"), the API's format. */
-export function DatePicker({
+const DP_LOCALE = { id: localeId, en: enGB, zh: zhCN } as const;
+
+interface DateFieldProps {
+  value: string;
+  onChange: (iso: string) => void;
+  /** The field's name, read out by screen readers. */
+  label: string;
+  lang?: Lang;
+  id?: string;
+  /** Earliest and latest dates that can be picked (ISO). */
+  min?: string;
+  max?: string;
+  /** Points at a visible label instead of `label`. */
+  labelledBy?: string;
+}
+
+export function DateField({
   value,
   onChange,
   label,
   lang = "id",
   id,
-}: {
-  value: string;
-  onChange: (iso: string) => void;
-  label: string;
-  lang?: Lang;
-  id?: string;
-}) {
+  min,
+  max,
+  labelledBy,
+}: DateFieldProps) {
   const [open, setOpen] = useState(false);
   const t = DP_TEXT[lang];
-  const locale = lang !== "id" ? enUS : localeId;
   const parsed = value ? parseISO(value) : undefined;
   const date = parsed && isValid(parsed) ? parsed : undefined;
-  const autoId = useId();
-  const fieldId = id ?? autoId;
+  const today = format(new Date(), "yyyy-MM-dd");
+  const todayOk = (!min || today >= min) && (!max || today <= max);
+  const disabled = [
+    ...(min ? [{ before: parseISO(min) }] : []),
+    ...(max ? [{ after: parseISO(max) }] : []),
+  ];
   return (
-    <div className="ctl-field">
-      <span className="ctl-field__label" id={`${fieldId}-label`}>
-        {label}
-      </span>
-      <Popover
-        open={open}
-        onOpenChange={setOpen}
-        trigger={
-          <button
-            type="button"
-            id={fieldId}
-            className="ctl-date__trigger"
-            aria-labelledby={`${fieldId}-label ${fieldId}`}
-          >
-            <CalendarBlankIcon size={18} aria-hidden="true" />
-            <span>{date ? format(date, t.fmt, { locale }) : t.pick}</span>
-          </button>
-        }
-      >
-        <div className="ctl-date__panel">
-          <DayPicker
-            mode="single"
-            selected={date}
-            defaultMonth={date}
-            onSelect={(d) => {
-              if (!d) return;
-              onChange(format(d, "yyyy-MM-dd"));
-              setOpen(false);
-            }}
-            locale={locale}
-            weekStartsOn={1}
-            showOutsideDays
-          />
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      trigger={
+        <button
+          type="button"
+          id={id}
+          className="ctl-date__trigger"
+          aria-label={labelledBy ? undefined : label}
+          aria-labelledby={labelledBy && id ? `${labelledBy} ${id}` : labelledBy}
+        >
+          <span>{date ? tanggalPanjang(value, lang) : t.pick}</span>
+          <CalendarBlankIcon size={20} aria-hidden="true" />
+        </button>
+      }
+    >
+      <div className="ctl-date__panel">
+        <DayPicker
+          mode="single"
+          selected={date}
+          defaultMonth={date}
+          disabled={disabled}
+          onSelect={(d) => {
+            if (!d) return;
+            onChange(format(d, "yyyy-MM-dd"));
+            setOpen(false);
+          }}
+          locale={DP_LOCALE[lang]}
+          weekStartsOn={1}
+          showOutsideDays
+        />
+        {todayOk && (
           <button
             type="button"
             className="btn btn--ghost btn--sm"
             onClick={() => {
-              onChange(format(new Date(), "yyyy-MM-dd"));
+              onChange(today);
               setOpen(false);
             }}
           >
             {t.today}
           </button>
-        </div>
-      </Popover>
+        )}
+      </div>
+    </Popover>
+  );
+}
+
+/** A DateField with its visible label above it. */
+export function DatePicker(props: DateFieldProps) {
+  const autoId = useId();
+  const fieldId = props.id ?? autoId;
+  return (
+    <div className="ctl-field">
+      <span className="ctl-field__label" id={`${fieldId}-label`}>
+        {props.label}
+      </span>
+      <DateField {...props} id={fieldId} labelledBy={`${fieldId}-label`} />
     </div>
+  );
+}
+
+export function TimeField({
+  value,
+  onChange,
+  label,
+  lang = "id",
+  id,
+  from = 6,
+  to = 18,
+  step = 30,
+  labelledBy,
+}: {
+  value: string;
+  onChange: (hhmm: string) => void;
+  label: string;
+  lang?: Lang;
+  id?: string;
+  from?: number;
+  to?: number;
+  step?: number;
+  labelledBy?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const opts = waktuPilihan(from, to, step);
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      trigger={
+        <button
+          type="button"
+          id={id}
+          className="ctl-date__trigger"
+          aria-haspopup="listbox"
+          aria-label={labelledBy ? undefined : label}
+          aria-labelledby={labelledBy && id ? `${labelledBy} ${id}` : labelledBy}
+        >
+          <span className="num">{value || DP_TEXT[lang].pickTime}</span>
+          <ClockIcon size={20} aria-hidden="true" />
+        </button>
+      }
+    >
+      <div className="ctl-time" role="listbox" aria-label={label}>
+        {opts.map((o) => (
+          <button
+            key={o}
+            type="button"
+            role="option"
+            className="ctl-time__o num"
+            aria-selected={o === value}
+            onClick={() => {
+              onChange(o);
+              setOpen(false);
+            }}
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+    </Popover>
   );
 }
 

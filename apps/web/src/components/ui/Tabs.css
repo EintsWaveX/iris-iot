@@ -45,10 +45,10 @@
 }
 
 .tabs {
-  border-bottom: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline-strong);
   display: flex;
   flex-wrap: nowrap;
-  gap: var(--space-2);
+  gap: 2px;
   overflow-x: auto;
   scroll-behavior: smooth;
   scrollbar-width: none;
@@ -58,32 +58,54 @@
   display: none;
 }
 
+/* Tabs, underline form (Phase 9 kit): for the main sections of a page. A
+   rainbow line marks the active tab. The pill form is .seg (app.css). */
 .tabs__tab {
-  border-bottom: 2px solid transparent;
-  color: var(--text-faint);
-  font-size: var(--fs-body);
-  font-weight: 500;
-  min-height: max(var(--tap), 44px);
-  padding: 0 var(--space-4);
-  transition:
-    color var(--dur-fast) var(--ease-reveal),
-    border-color var(--dur-fast) var(--ease-reveal);
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 1.06rem;
+  font-weight: 650;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 18px;
+  position: relative;
+  transition: color var(--dur-fast) var(--ease-reveal);
   white-space: nowrap;
 }
 
+.tabs__tab:hover,
 .tabs__tab[aria-selected="true"] {
-  border-bottom-color: var(--accent);
   color: var(--text);
 }
 
-.tabs__tab:hover {
-  color: var(--text);
+.tabs__tab[aria-selected="true"]::after {
+  background: var(--sweep);
+  background-size: 300% 100%;
+  border-radius: 3px 3px 0 0;
+  bottom: -1px;
+  content: "";
+  height: 3px;
+  left: 10px;
+  position: absolute;
+  right: 10px;
+}
+
+.tabs__tab[aria-selected="true"]::after {
+  animation: kit-sweep 6s linear infinite;
+}
+
+@media (max-width: 1279px) {
+  .tabs__tab {
+    font-size: 1rem;
+    min-height: 50px;
+    padding: 0 14px;
+  }
 }
 
 /* P6.3/B11: an underline tab strip keeps its own flush-bottom-border shape
-   (a lift/shadow treatment would break that alignment across siblings), but
-   it had no keyboard focus indicator at all before this -- --glow-ring is
-   the same focus treatment every button on the site uses. */
+   (a lift/shadow treatment would break that alignment across siblings);
+   --glow-ring is the same focus treatment every button on the site uses. */
 .tabs__tab:focus-visible {
   box-shadow: var(--glow-ring);
   outline: none;

@@ -142,6 +142,28 @@ export function localeOf(lang: Lang): string {
   return lang === "en" ? "en-GB" : lang === "zh" ? "zh-CN" : "id-ID";
 }
 
+/** A date written out in full: "Kamis, 1 Oktober 2026", "Thursday 1 October
+ *  2026", "2026年10月1日星期四". Takes an ISO date ("2026-10-01"). */
+export function tanggalPanjang(iso: string, lang: Lang): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(localeOf(lang), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/** Every time from `from` to `to` o'clock, `step` minutes apart. */
+export function waktuPilihan(from: number, to: number, step: number): string[] {
+  const out: string[] = [];
+  for (let m = from * 60; m <= to * 60; m += step) {
+    out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+  }
+  return out;
+}
+
 /** Prefix a path for the page language ("/dashboard" -> "/en/dashboard"). */
 export function href(lang: Lang, path: string): string {
   if (lang === "id") return path;

@@ -1,28 +1,35 @@
-/* Tooltip.tsx's styling (P7.1). */
+/* Tooltip.tsx's styling. Phase 9 kit: an inverted chip (light on the dark
+   theme, dark on the light one) that sits above every other layer. */
 
 .tooltip__panel {
-  background: var(--bg-elevated);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-panel);
-  color: var(--text);
-  font-size: var(--fs-small);
-  max-width: 24rem;
-  padding: var(--space-2) var(--space-3);
-  z-index: 95;
-  animation: tooltip-in var(--dur-fast) var(--ease-out-expo);
+  animation: tooltip-in 140ms var(--ease-out-expo) both;
+  background: var(--invert-bg);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--invert-ink);
+  font: 600 13px/1.35 var(--font-body);
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 7px 11px;
+  pointer-events: none;
+  text-align: center;
+  z-index: 400;
 }
 
-.tooltip__arrow {
-  fill: var(--bg-elevated);
+.tooltip__panel[data-side="bottom"] {
+  animation-name: tooltip-in-below;
 }
 
 @keyframes tooltip-in {
   from {
     opacity: 0;
+    transform: translateY(4px);
   }
-  to {
-    opacity: 1;
+}
+
+@keyframes tooltip-in-below {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 

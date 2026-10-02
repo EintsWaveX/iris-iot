@@ -1,132 +1,298 @@
-/* Dialog.tsx's styling (P7.1). Mirrors Modal.astro's visual language
-   (same surface, radius, shadow, entrance motion) so the two dialog systems
-   read as one design even though they're built on different mechanisms. */
+/* Dialog.tsx's styling (Phase 9 kit: the mockup's dialog). The head and
+   footer stay put; only the body scrolls. Every dialog animates in and out.
+   Centring is fixed + translate, which the open and close keyframes keep;
+   no GSAP touches these panels (Modal.astro's caveat does not apply). */
 
 .dialog__overlay {
+  animation: dialog-fade-in 220ms ease both;
   background: var(--scrim);
   inset: 0;
   position: fixed;
   z-index: 100;
-  animation: dialog-overlay-in var(--dur-mid) var(--ease-out-expo);
 }
 
-@keyframes dialog-overlay-in {
+.dialog__overlay[data-state="closed"] {
+  animation: dialog-fade-out 180ms ease both;
+}
+
+@keyframes dialog-fade-in {
   from {
     opacity: 0;
   }
+}
+
+@keyframes dialog-fade-out {
   to {
-    opacity: 1;
+    opacity: 0;
   }
 }
 
 .dialog__panel {
-  background: var(--bg-elevated);
+  animation: dialog-pop 260ms var(--ease-out-expo) both;
+  background: var(--surface-2);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lift);
+  display: flex;
+  flex-direction: column;
   left: 50%;
-  max-height: calc(100% - var(--space-8));
-  max-width: min(32rem, calc(100vw - var(--space-8)));
-  overflow-y: auto;
-  padding: var(--space-6);
+  max-height: calc(100dvh - 48px);
+  outline: none;
   position: fixed;
   top: 50%;
-  transform: translate(-50%, -50%) scale(0.96);
-  width: 100%;
+  transform: translate(-50%, -50%);
+  width: min(680px, calc(100vw - 32px));
   z-index: 101;
-  animation: dialog-panel-in var(--dur-mid) var(--ease-out-expo);
 }
 
-@keyframes dialog-panel-in {
+.dialog__panel[data-state="closed"] {
+  animation: dialog-pop-out 180ms ease-in both;
+  pointer-events: none;
+}
+
+@keyframes dialog-pop {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -46%) scale(0.97);
   }
 }
 
-.dialog__panel--lg {
-  max-width: min(38rem, calc(100vw - var(--space-8)));
+@keyframes dialog-pop-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -47%) scale(0.98);
+  }
+}
+
+/* A blocking dialog shakes when something tries to close it. Two names so
+   every nudge restarts the animation. */
+.dialog__panel[data-shake="a"] {
+  animation: dialog-shake-a 380ms ease both;
+}
+
+.dialog__panel[data-shake="b"] {
+  animation: dialog-shake-b 380ms ease both;
+}
+
+@keyframes dialog-shake-a {
+  0%,
+  100% {
+    transform: translate(-50%, -50%);
+  }
+  20%,
+  60% {
+    transform: translate(calc(-50% - 9px), -50%);
+  }
+  40%,
+  80% {
+    transform: translate(calc(-50% + 9px), -50%);
+  }
+}
+
+@keyframes dialog-shake-b {
+  0%,
+  100% {
+    transform: translate(-50%, -50%);
+  }
+  20%,
+  60% {
+    transform: translate(calc(-50% - 9px), -50%);
+  }
+  40%,
+  80% {
+    transform: translate(calc(-50% + 9px), -50%);
+  }
+}
+
+.dialog__panel--sm {
+  width: min(540px, calc(100vw - 32px));
+}
+
+.dialog__panel--lg,
+.dialog__panel--alt {
+  width: min(740px, calc(100vw - 32px));
 }
 
 .dialog__panel--xl {
-  max-width: min(52rem, calc(100vw - var(--space-8)));
+  width: min(1040px, calc(100vw - 32px));
 }
 
-/* Bottom sheet: full width, pinned to the viewport's bottom edge, rounded
-   top corners only, slides up rather than scaling in. Used for the mobile
-   Akun menu and the mobile login dialog. */
+/* Bottom sheet: full width, pinned to the bottom edge, rounded top corners
+   only, slides up. The phone Akun menu and the phone login dialog. */
 .dialog__panel--sheet {
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  animation: dialog-rise 300ms var(--ease-out-expo) both;
   border-bottom: 0;
+  border-radius: 22px 22px 0 0;
   bottom: 0;
   left: 0;
-  max-height: min(85vh, calc(100% - var(--space-8)));
-  max-width: 100%;
-  padding-bottom: max(var(--space-6), env(safe-area-inset-bottom, 0px));
+  max-height: min(90dvh, calc(100dvh - 24px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   top: auto;
-  transform: translateY(0);
-  animation: dialog-sheet-in var(--dur-mid) var(--ease-out-expo);
+  transform: none;
+  width: 100%;
 }
 
-@keyframes dialog-sheet-in {
+.dialog__panel--sheet[data-state="closed"] {
+  animation: dialog-sink 200ms ease-in both;
+}
+
+.dialog__panel--sheet::before {
+  align-self: center;
+  background: var(--hairline-strong);
+  border-radius: 9px;
+  content: "";
+  flex: none;
+  height: 5px;
+  margin-top: 10px;
+  width: 46px;
+}
+
+.dialog__body:last-child {
+  padding-bottom: 20px;
+}
+
+@keyframes dialog-rise {
   from {
-    transform: translateY(100%);
+    opacity: 0;
+    transform: translateY(40%);
   }
+}
+
+@keyframes dialog-sink {
   to {
-    transform: translateY(0);
+    opacity: 0;
+    transform: translateY(40%);
   }
 }
 
 .dialog__head {
+  align-items: start;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-bottom: var(--space-5);
-  padding-right: var(--space-8);
-  position: relative;
+  flex: none;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 20px 20px 0 24px;
+}
+
+.dialog__titles {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
 .dialog__title {
-  font-size: var(--fs-display-sm);
+  font-family: var(--font-body);
+  font-size: 1.28rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin: 0;
 }
 
 .dialog__lede {
   color: var(--text-muted);
-}
-
-.dialog__close {
-  position: absolute;
-  right: var(--space-2);
-  top: calc(var(--space-1) * -1);
-  font-size: 1.25rem;
-  line-height: 1;
+  font-size: 0.96rem;
+  margin: 0;
 }
 
 .dialog__body {
+  align-content: start;
   color: var(--text-muted);
+  display: grid;
+  flex: 1 1 auto;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 24px 4px;
 }
 
+/* Footer rule: Cancel then the main action on the right; an alternative
+   (.dialog__alt) on the left. Buttons keep the normal size. */
 .dialog__actions {
+  align-items: center;
   display: flex;
-  gap: var(--space-3);
+  flex: none;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: flex-end;
-  margin-top: var(--space-6);
+  padding: 16px 24px 20px;
 }
 
-@media (max-width: 480px) {
+.dialog__actions .btn {
+  font-size: 0.98rem;
+  min-height: 44px;
+  padding: 0 18px;
+  width: auto;
+}
+
+.dialog__alt {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-right: auto;
+}
+
+/* Three buttons: the main action (first) across the top row, the other two
+   sharing the row below. */
+.dialog__actions--12 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialog__actions--12 > .btn {
+  width: 100%;
+}
+
+.dialog__actions--12 > .btn:first-child {
+  grid-column: 1 / -1;
+  min-height: 48px;
+}
+
+@media (max-width: 519px) {
   .dialog__actions {
+    align-items: stretch;
     flex-direction: column-reverse;
+  }
+
+  .dialog__actions .btn {
+    width: 100%;
+  }
+
+  .dialog__actions--12 {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dialog__alt {
+    align-items: stretch;
+    flex-direction: column;
+    margin-right: 0;
+  }
+
+  .dialog__panel:not(.dialog__panel--sheet) {
+    max-height: calc(100dvh - 24px);
+    width: calc(100vw - 24px);
+  }
+
+  .dialog__head {
+    padding: 16px 14px 0 18px;
+  }
+
+  .dialog__body {
+    padding: 12px 18px 4px;
+  }
+
+  .dialog__actions {
+    padding: 14px 18px 16px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dialog__overlay,
   .dialog__panel,
-  .dialog__panel--sheet {
+  .dialog__panel[data-state="closed"],
+  .dialog__panel[data-shake] {
     animation-duration: 1ms;
   }
 }

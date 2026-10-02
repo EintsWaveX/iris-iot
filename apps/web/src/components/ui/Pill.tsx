@@ -3,21 +3,27 @@
  * Astro components, and SessionConsole, ServerCenter and ReportsView each
  * grew their own ad-hoc chip classes because of it. One pill, four jobs:
  *
- * - neutral mono label ("MODUL 2", "M2", a count): `<Pill mono>`
- * - state: `tone` ok | warn | danger | accent | gold
- * - a group's own hue: `group={3}` (uses --group-3)
+ * - a code or identifier in its own case: `<Pill mono>`
+ * - state: `tone` ok | warn | danger | accent | gold | violet | teal | solid,
+ *   and the schedule sheet markers fit (red) and a24 (yellow)
+ * - a group's or module's own hue: `group={3}` / `modul={2}`
  * - a toggle chip (filters): `pressed` + `onClick` renders a real button
+ *
+ * Phase 9: every badge is upper case (CSS), except codes and toggle chips.
  */
 import type { CSSProperties, ReactNode } from "react";
 import "./Pill.css";
 
-type Tone = "ok" | "warn" | "danger" | "accent" | "gold";
+type Tone =
+  "ok" | "warn" | "danger" | "accent" | "gold" | "violet" | "teal" | "solid" | "fit" | "a24";
 
 interface Props {
   children: ReactNode;
   tone?: Tone;
   group?: number;
+  modul?: number;
   mono?: boolean;
+  lg?: boolean;
   title?: string;
   className?: string;
   /** Present => renders a <button aria-pressed>. */
@@ -29,7 +35,9 @@ export default function Pill({
   children,
   tone,
   group,
+  modul,
   mono,
+  lg,
   title,
   className,
   pressed,
@@ -38,14 +46,16 @@ export default function Pill({
   const cls = [
     "pill",
     tone && `pill--${tone}`,
-    group && "pill--group",
+    (group || modul) && "pill--group",
     mono && "pill--mono",
+    lg && "pill--lg",
     onClick && "pill--button",
     className,
   ]
     .filter(Boolean)
     .join(" ");
-  const style = group ? ({ "--pill-hue": `var(--group-${group})` } as CSSProperties) : undefined;
+  const hue = group ? `var(--group-${group})` : modul ? `var(--mod-${modul})` : undefined;
+  const style = hue ? ({ "--pill-hue": hue } as CSSProperties) : undefined;
   if (onClick) {
     return (
       <button
