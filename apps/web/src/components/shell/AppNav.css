@@ -57,12 +57,14 @@
   filter: var(--logo-filter) drop-shadow(0 0 14px var(--accent-glow));
 }
 
+/* Phase 9 (G2): the links start right after the logo, one size bigger */
 .appnav__links {
   align-items: center;
   display: flex;
   flex: 1;
-  gap: var(--space-1);
-  justify-content: center;
+  gap: 2px;
+  justify-content: flex-start;
+  margin-left: var(--space-2);
   min-width: 0;
 }
 
@@ -71,11 +73,11 @@
   border-radius: var(--radius-md);
   color: var(--text-muted);
   display: inline-flex;
-  font-size: 0.92rem;
-  font-weight: 500;
+  font-size: 1.04rem;
+  font-weight: 550;
   gap: var(--space-2);
-  min-height: 44px;
-  padding: 0 var(--space-3);
+  min-height: 46px;
+  padding: 0 13px;
   position: relative;
   text-decoration: none;
   transition:
@@ -91,6 +93,7 @@
 
 .appnav__link[aria-current="page"] {
   color: var(--text);
+  font-weight: 650;
 }
 
 .appnav__link[aria-current="page"]::after {
@@ -145,40 +148,117 @@
   gap: var(--space-2);
 }
 
-.appnav__palette,
-.appnav__lang {
-  align-items: center;
-  background: transparent;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  cursor: pointer;
+.appnav__palette {
   display: inline-flex;
-  font: inherit;
-  font-size: var(--fs-small);
-  font-weight: 500;
-  gap: var(--space-2);
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  transition:
-    color var(--dur-fast) var(--ease-reveal),
-    border-color var(--dur-fast) var(--ease-reveal),
-    background var(--dur-fast) var(--ease-reveal);
-}
-
-.appnav__palette:hover,
-.appnav__lang:hover {
-  background: var(--hairline-faint);
-  border-color: var(--hairline-strong);
-  color: var(--text);
-}
-
-.appnav__palette .ctl-kbd {
-  font-size: 0.7rem;
 }
 
 .appnav__signin {
   min-height: 44px;
+}
+
+/* The nav clock (NavClock.tsx) */
+.navclock {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.92rem;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.navclock__time {
+  color: var(--text);
+  font-size: 0.98rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.navclock__sep {
+  color: var(--text-faint);
+}
+
+/* Tampilan (DisplayPanel.tsx): a popover here, a bottom sheet on phones */
+.appnav__disp {
+  width: min(440px, calc(100vw - 24px));
+}
+
+.appnav__disp-mobile,
+.navclock--mobile {
+  display: none;
+}
+
+.disp {
+  display: grid;
+  gap: 16px;
+}
+
+.disp__group {
+  display: grid;
+  gap: 6px;
+}
+
+.disp__label {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.disp__opts {
+  display: grid;
+  gap: 6px;
+}
+
+.disp__opt {
+  align-items: center;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  min-height: 58px;
+  padding: 6px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.disp__opt:hover,
+.disp__opt[aria-checked="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-bright);
+}
+
+.disp__opt:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.disp__opt svg {
+  flex: none;
+  margin-left: auto;
+}
+
+.disp__opt-text {
+  display: grid;
+  min-width: 0;
+}
+
+.disp__opt-text b {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.disp__tag {
+  min-height: 20px;
+  padding: 1px 7px;
+}
+
+.disp .seg button {
+  font-size: 0.95rem;
+  min-height: 44px;
+  padding: 0 8px;
 }
 
 .appnav__me {
@@ -445,15 +525,23 @@
 
 /* ------------------------------------------------------------ widths */
 
-@media (max-width: 1439px) {
-  .appnav__palette-text {
+@media (max-width: 1279px) {
+  .navclock__date,
+  .navclock__sep {
+    display: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .navclock__sec {
     display: none;
   }
 }
 
 @media (max-width: 1100px) {
   .appnav__link {
-    padding: 0 var(--space-2);
+    font-size: 0.98rem;
+    padding: 0 9px;
   }
   .appnav__link svg {
     display: none;
@@ -466,7 +554,7 @@
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1099px) {
   .appnav__palette {
     display: none;
   }
@@ -483,6 +571,15 @@
   }
   .appnav__me--mobile {
     display: inline-flex;
+  }
+  .appnav__disp-mobile {
+    display: inline-grid;
+  }
+  .navclock--mobile {
+    display: inline-flex;
+  }
+  .appnav__brand {
+    margin-right: auto;
   }
   .appbar {
     display: flex;

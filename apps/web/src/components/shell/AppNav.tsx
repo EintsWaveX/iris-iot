@@ -5,11 +5,13 @@
  * - Links follow the role: signed out (Beranda, Modul), praktikan (Beranda,
  *   Dasbor, Modul, Live) and asisten (Beranda, Konsol, Jadwal, Server,
  *   Laporan, Modul).
- * - The language switch is on every page and lands on the same page in the
- *   other language (pathForLang), and the choice is saved per person.
+ * - Phase 9: the Tampilan button (theme, background detail, language,
+ *   the Mandarin heading weight, the nav clock) is on every page, signed
+ *   out too; a popover at 640px and up, a bottom sheet below. A language
+ *   choice lands on the same page in the new language (pathForLang) and is
+ *   saved per person. The nav clock sits beside it.
  * - The account menu (a popover at 640px and up, a bottom sheet below)
- *   holds the person's badge, language, motion setting, shortcuts and
- *   Keluar.
+ *   holds the person's badge, the account page, shortcuts and Keluar.
  * - A praktikan also gets the session mini-bar under the nav, and an
  *   assistant gets the Ctrl+K palette and the "?" shortcut sheet.
  *
@@ -26,15 +28,20 @@ import {
   ChartBarIcon,
   HardDrivesIcon,
   HouseIcon,
-  KeyboardIcon,
+  MagnifyingGlassIcon,
+  SignOutIcon,
   SignInIcon,
+  SlidersHorizontalIcon,
   SquaresFourIcon,
   UserIcon,
   UsersThreeIcon,
   type IconProps,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
+import IconButton from "../ui/IconButton";
 import { Kbd } from "../ui/Controls";
+import DisplayPanel from "./DisplayPanel";
+import NavClock from "./NavClock";
 import { dict, href, meChanged, postJson, useMe, useSessionNow, type Me } from "../../lib/app";
 import { langForKelas, langOfPath, pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";
@@ -66,14 +73,12 @@ const T = dict({
     signOut: "Keluar",
     account: "Akun",
     myAccount: "Akun saya",
-    language: "Bahasa",
-    motion: "Detail Latar",
+    display: "Tampilan",
     shortcuts: "Pintasan keyboard",
     palette: "Cari perintah",
     praktikan: "Praktikan",
     asisten: "Asisten",
     group: (n: number) => `K${n}`,
-    switchTo: "English",
     notSignedIn: "Belum masuk",
     signInHint: "Masuk untuk membuka dasbor dan menyimpan jawaban.",
   },
@@ -91,14 +96,12 @@ const T = dict({
     signOut: "Sign out",
     account: "Account",
     myAccount: "My account",
-    language: "Language",
-    motion: "Background Detail",
+    display: "Display",
     shortcuts: "Keyboard shortcuts",
     palette: "Search commands",
     praktikan: "Student",
     asisten: "Assistant",
     group: (n: number) => `G${n}`,
-    switchTo: "Bahasa Indonesia",
     notSignedIn: "Not signed in",
     signInHint: "Sign in to open your dashboard and save your answers.",
   },
@@ -143,23 +146,6 @@ function isActive(link: string, current: string): boolean {
   return current === link || current.startsWith(link + "/");
 }
 
-type MotionPref = "ldm" | "normal" | "hd";
-
-function useMotionPref(): [MotionPref, (p: MotionPref) => void] {
-  const [pref, setPref] = useState<MotionPref>("ldm");
-  useEffect(() => {
-    const cur = window.CosmosRouter?.getDetail();
-    if (cur) setPref(cur);
-  }, []);
-  return [
-    pref,
-    (p) => {
-      window.CosmosRouter?.setDetail(p);
-      setPref(p);
-    },
-  ];
-}
-
 export default function AppNav({
   lang: built,
   path,
@@ -181,6 +167,7 @@ export default function AppNav({
   const current = barePath(path);
   const links = useMemo(() => linksFor(me, t), [me, t]);
   const [sheet, setSheet] = useState(false);
+  const [dispSheet, setDispSheet] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -213,7 +200,7 @@ export default function AppNav({
     }
   }, [me, now.data, lang]);
 
-  function switchLang(to: Lang = lang === "id" ? "en" : "id") {
+  function switchLang(to: Lang) {
     if (to === lang) return;
     saveLangPref(to);
     location.assign(pathForLang(location.pathname + location.search + location.hash, to));
@@ -269,25 +256,39 @@ export default function AppNav({
 
         <div className="appnav__side">
           {me?.role === "asisten" && (
-            <button
-              type="button"
-              className="appnav__palette"
-              onClick={() => setPaletteOpen(true)}
-              aria-label={t.palette}
-            >
-              <KeyboardIcon size={16} aria-hidden="true" />
-              <span className="appnav__palette-text">{t.palette}</span>
-              <Kbd>Ctrl K</Kbd>
-            </button>
+            <span className="appnav__palette">
+              <IconButton
+                icon={MagnifyingGlassIcon}
+                label={t.palette}
+                tip={`${t.palette} (Ctrl K)`}
+                tipSide="bottom"
+                onClick={() => setPaletteOpen(true)}
+              />
+            </span>
           )}
-          <button
-            type="button"
-            className="appnav__lang"
-            onClick={() => switchLang()}
-            lang={lang === "id" ? "en" : "id"}
-          >
-            <span>{lang === "id" ? "EN" : "ID"}</span>
-          </button>
+          <NavClock lang={lang} inSession={!!now.data} />
+          <RadixPopover.Root>
+            <RadixPopover.Trigger asChild>
+              <IconButton icon={SlidersHorizontalIcon} label={t.display} tipSide="bottom" />
+            </RadixPopover.Trigger>
+            <RadixPopover.Portal>
+              <RadixPopover.Content
+                className="popover__panel appnav__disp"
+                tabIndex={-1}
+                onOpenAutoFocus={(e) => {
+                  // Focus the panel, not its first radio: a ring on "Gelap"
+                  // read as if Gelap were picked.
+                  e.preventDefault();
+                  (e.currentTarget as HTMLElement | null)?.focus();
+                }}
+                align="end"
+                sideOffset={10}
+                collisionPadding={12}
+              >
+                <DisplayPanel lang={lang} onLang={switchLang} />
+              </RadixPopover.Content>
+            </RadixPopover.Portal>
+          </RadixPopover.Root>
 
           {me === null && (
             <button
@@ -322,7 +323,6 @@ export default function AppNav({
                     t={t}
                     me={me}
                     lang={lang}
-                    onLang={switchLang}
                     onShortcuts={() => setShortcutsOpen(true)}
                     onSignOut={() => void signOut()}
                   />
@@ -332,6 +332,13 @@ export default function AppNav({
           )}
         </div>
 
+        <NavClock lang={lang} inSession={!!now.data} className="navclock--mobile" />
+        <IconButton
+          icon={SlidersHorizontalIcon}
+          label={t.display}
+          className="appnav__disp-mobile"
+          onClick={() => setDispSheet(true)}
+        />
         <button
           type="button"
           className="appnav__me appnav__me--mobile"
@@ -383,13 +390,16 @@ export default function AppNav({
         )}
       </nav>
 
+      <Dialog open={dispSheet} onOpenChange={setDispSheet} title={t.display} sheet lang={lang}>
+        <DisplayPanel lang={lang} onLang={switchLang} />
+      </Dialog>
+
       <Dialog open={sheet} onOpenChange={setSheet} title={t.account} sheet lang={lang}>
         {me && (
           <AccountMenu
             t={t}
             me={me}
             lang={lang}
-            onLang={switchLang}
             onShortcuts={() => {
               setSheet(false);
               setShortcutsOpen(true);
@@ -417,23 +427,15 @@ function AccountMenu({
   t,
   me,
   lang,
-  onLang,
   onShortcuts,
   onSignOut,
 }: {
   t: (typeof T)["id"];
   me: Me;
   lang: Lang;
-  onLang: (to: Lang) => void;
   onShortcuts: () => void;
   onSignOut: () => void;
 }) {
-  const [motion, setMotion] = useMotionPref();
-  const opts: { v: MotionPref; l: string }[] = [
-    { v: "ldm", l: "Low Detail" },
-    { v: "normal", l: "Normal" },
-    { v: "hd", l: "High Detail" },
-  ];
   return (
     <div className="acct">
       <div className="acct__who">
@@ -458,45 +460,6 @@ function AccountMenu({
         </a>
       )}
 
-      <div className="acct__group">
-        <span className="acct__label">{t.language}</span>
-        <div className="acct__seg" role="group" aria-label={t.language}>
-          {(
-            [
-              ["id", "Indonesia"],
-              ["en", "English"],
-              ["zh", "中文"],
-            ] as const
-          ).map(([v, l]) => (
-            <button
-              key={v}
-              type="button"
-              lang={v}
-              aria-pressed={lang === v}
-              onClick={() => onLang(v)}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="acct__group">
-        <span className="acct__label">{t.motion}</span>
-        <div className="acct__seg" role="group" aria-label={t.motion}>
-          {opts.map((o) => (
-            <button
-              key={o.v}
-              type="button"
-              aria-pressed={motion === o.v}
-              onClick={() => setMotion(o.v)}
-            >
-              {o.l}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {me.role === "asisten" && (
         <button type="button" className="acct__row" onClick={onShortcuts}>
           <span>{t.shortcuts}</span>
@@ -504,8 +467,9 @@ function AccountMenu({
         </button>
       )}
 
-      <button type="button" className="acct__row acct__row--danger" onClick={onSignOut}>
-        <span>{t.signOut}</span>
+      <button type="button" className="btn btn--danger btn--block" onClick={onSignOut}>
+        <SignOutIcon size={20} aria-hidden="true" />
+        {t.signOut}
       </button>
     </div>
   );
