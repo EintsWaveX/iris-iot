@@ -360,27 +360,6 @@
   min-width: 0;
 }
 
-/* ---- banners (shared with the inspector) */
-.banner.banner--warn {
-  background: var(--warn-soft);
-  border-color: var(--warn);
-}
-
-.banner.banner--warn > svg {
-  color: var(--warn);
-  flex: none;
-}
-
-.banner.banner--lock {
-  background: var(--surface-3);
-  border-style: dashed;
-}
-
-.banner > span {
-  flex: 1 1 240px;
-  min-width: 0;
-}
-
 /* ---- the SeeLabs chip in the inspector and the score table */
 .seechip {
   align-items: center;

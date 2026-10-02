@@ -54,8 +54,9 @@ import {
   pasanganTanggal,
   statusSlotTanggal,
   tanggalBerikut,
-  type KursiKelompok,
-  type StatusSlot,
+  type IzinInfo,
+  type MingguSlot,
+  type TugasInfo,
 } from "../../src/lib/penugasan-minggu.js";
 import {
   JENDELA_DEFAULT,
@@ -100,35 +101,6 @@ export async function muatPengaturanJendela(db: Db): Promise<PengaturanJendela> 
 }
 
 /* ------------------------------------------------------------ the week */
-
-export interface TugasInfo {
-  id: number;
-  nim: string;
-  kode: string;
-  kelompokNomor: number | null;
-  jenis: "tetap" | "pengganti" | "sukarela";
-  status: "diminta" | "diterima" | "ditolak";
-  tag: "fit" | "a24" | null;
-  dimintaOleh: string;
-  dikonfirmasiOleh: string | null;
-}
-
-export interface IzinInfo {
-  id: number;
-  nim: string;
-  kode: string;
-  status: "aktif" | "dicari" | "dibatalkan";
-  alasan: string | null;
-  penggantiNim: string | null;
-}
-
-export interface MingguSlot {
-  tanggal: string;
-  status: StatusSlot;
-  kursi: KursiKelompok[];
-  tugas: TugasInfo[];
-  izin: IzinInfo[];
-}
 
 /** For each slot row: its next date and who teaches it then. */
 export async function muatMinggu(
@@ -391,8 +363,10 @@ async function ubahSlot(
   // The holiday, for the slot's next date only.
   if (libur !== null) {
     const liburTanggal = libur ? tanggal : row.liburTanggal === tanggal ? null : row.liburTanggal;
-    if (liburTanggal !== row.liburTanggal)
-      await db.update(jadwal).set({ liburTanggal }).where(eq(jadwal.id, row.id));
+    // A holiday on a No Practicum slot makes it a running slot again.
+    const status = libur && row.status === "kosong" ? "aktif" : row.status;
+    if (liburTanggal !== row.liburTanggal || status !== row.status)
+      await db.update(jadwal).set({ liburTanggal, status }).where(eq(jadwal.id, row.id));
   }
 
   // The next date's seats.

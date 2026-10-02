@@ -2135,17 +2135,6 @@ thead .ntable__name {
   color: var(--accent-bright);
 }
 
-.banner {
-  align-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 12px 16px;
-}
-
 .modpick {
   display: grid;
   gap: 10px;

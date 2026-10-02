@@ -104,3 +104,34 @@ export function statusSlotTanggal(
   if (j.liburTanggal === tanggal) return "libur";
   return j.status;
 }
+
+/* ---------------------------------------- the API shapes (schedule GET) */
+
+export interface TugasInfo {
+  id: number;
+  nim: string;
+  kode: string;
+  kelompokNomor: number | null;
+  jenis: "tetap" | "pengganti" | "sukarela";
+  status: "diminta" | "diterima" | "ditolak";
+  tag: "fit" | "a24" | null;
+  dimintaOleh: string;
+  dikonfirmasiOleh: string | null;
+}
+
+export interface IzinInfo {
+  id: number;
+  nim: string;
+  kode: string;
+  status: "aktif" | "dicari" | "dibatalkan";
+  alasan: string | null;
+  penggantiNim: string | null;
+}
+
+export interface MingguSlot {
+  tanggal: string;
+  status: StatusSlot;
+  kursi: KursiKelompok[];
+  tugas: TugasInfo[];
+  izin: IzinInfo[];
+}

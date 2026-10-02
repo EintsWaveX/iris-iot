@@ -1,738 +1,393 @@
 /**
- * /schedule and /en/schedule (Phase 8): the teaching schedule, assistants
- * only.
+ * /schedule (Phase 9 Stage 4, mockups s-week and s-slot): the teaching
+ * schedule, Asisten only.
  *
- * - A week grid (Senin to Sabtu by the four slots). Each cell lists the
- *   default assistant per group in group order, in that group's hue, marks
- *   the International class and "segera" (announced, no assistants yet),
- *   and highlights the viewer's own slots.
- * - Picking a cell opens its editor: class, status, the assistant for each
- *   group, and the ranked substitutes with their Ngajar FIT / Angkatan 24
- *   tags (the sheet's colours do not survive a copy, so they are set here).
- * - "Impor dari sheet": paste the sheet's two blocks as TSV, preview the
- *   result with unknown codes flagged, then replace the semester.
- * - Phones get a day-by-day list instead of the grid.
+ * - The week grid, days by the four slots, from the semester's jadwal rows.
+ *   For the semester in progress each cell shows the slot's next date: a
+ *   holiday, izin (struck code, with the cover), covers and volunteers.
+ *   International in violet, Soon in teal, No Practicum in the sheet's
+ *   orange or red. Phones get one card per day.
+ * - The weekly teaching load: every Asisten with their slots a week.
+ * - Every slot opens the editor (SlotEditor) in a drawer. Leaving it with
+ *   unsaved changes (another slot, the semester, closing, the page) asks
+ *   first.
+ * - The gear (the Schedule right): Schedule Settings, the start window's
+ *   default and the bounds for slot Asisten.
+ * - Impor dari Sheet opens the two-pane import (ImportView).
  */
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
   CalendarBlankIcon,
+  CaretDownIcon,
+  CaretUpIcon,
+  FloppyDiskIcon,
+  GearSixIcon,
   LockSimpleIcon,
-  WarningIcon,
-  XIcon,
+  UploadSimpleIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Drawer from "../ui/Drawer";
-import Confirm from "../ui/Confirm";
 import Dropdown from "../ui/Dropdown";
-import SegmentedControl from "../ui/SegmentedControl";
-import { Switch } from "../ui/Controls";
+import IconButton from "../ui/IconButton";
+import Pill from "../ui/Pill";
+import Tooltip from "../ui/Tooltip";
 import { StateView } from "../ui/Display";
-import { getJson, href, postJson, useMe, dict } from "../../lib/app";
+import { Stepper, Switch } from "../ui/Controls";
+import { getJson, href, postJson, useMe } from "../../lib/app";
 import { useMinWidth } from "../../lib/hooks";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
-import { hariDariTanggal, semesterDariTanggal, type TagPengganti } from "../../lib/jadwal-parser";
-import type { Kelas, Lang } from "../../lib/kelas";
+import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
+import { hariLabel, kelompokLabel } from "../../lib/labels";
+import { pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
+import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
+import type { Lang } from "../../lib/kelas";
+import SlotEditor, { type SlotEditorHandle } from "./SlotEditor";
+import ImportView from "./ImportView";
+import { J, pesanJ, type Jx } from "./strings";
+import { HARI, SLOTS, type DataJadwal, type JadwalRow, type PengaturanJendela } from "./types";
 import "./SchedulePage.css";
 
-interface Row {
-  hari: number;
-  slot: number;
-  kelas: Kelas;
-  status: "aktif" | "segera";
-  asisten: string[];
-  pengganti: { kode: string; tag: TagPengganti }[];
+/* ------------------------------------------------------------ semesters */
+
+const urut = (s: string) => {
+  const [y, j] = s.split("-");
+  return Number(y) * 2 + (j === "ganjil" ? 1 : 0);
+};
+const dariUrut = (n: number) => `${Math.floor(n / 2)}-${n % 2 ? "ganjil" : "genap"}`;
+/** Odd 2026/2027 is the first semester the app knows. */
+const PERTAMA = urut("2026-ganjil");
+
+export function semesterPilihan(kini: string): string[] {
+  const k = urut(kini);
+  return [k - 1, k, k + 1, k + 2].filter((n) => n >= PERTAMA).map(dariUrut);
 }
-interface Asisten {
-  nim: string;
-  kode: string;
-  nama: string;
-}
 
-const HARI = [1, 2, 3, 4, 5, 6];
-const SLOTS = [1, 2, 3, 4];
-
-const T = dict({
-  id: {
-    title: "Jadwal mengajar",
-    sub: "Asisten default per kelompok dan pengganti tiap slot. Pilih satu slot untuk mengubahnya.",
-    semester: "Semester",
-    mine: "Sorot slot saya",
-    import: "Impor dari sheet",
-    hari: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
-    slot: (n: number) => `Slot ${n}`,
-    inter: "Internasional",
-    segera: "Segera",
-    none: "Tidak ada praktikum",
-    you: "Kamu",
-    legend: "Keterangan",
-    editH: "Ubah slot",
-    pick: "Pilih salah satu slot di jadwal untuk melihat dan mengubah asistennya.",
-    kelas: "Kelas",
-    reguler: "Reguler",
-    internasional: "Internasional",
-    segeraSw: "Segera (belum ada asisten)",
-    groups: "Asisten per kelompok",
-    kelompok: (k: number) => `Kelompok ${k}`,
-    empty: "Kosong",
-    subs: "Pengganti berurutan",
-    noSubs: "Belum ada pengganti.",
-    addSub: "Tambah pengganti",
-    tag: "Tanda",
-    tagNone: "Biasa",
-    fit: "Ngajar FIT",
-    a24: "Angkt 24",
-    up: "Naikkan",
-    down: "Turunkan",
-    remove: "Hapus",
-    save: "Simpan slot",
-    saved: "Slot tersimpan.",
-    fail: "Gagal menyimpan. Coba lagi.",
-    unsaved: "Ada perubahan yang belum disimpan.",
-    loadFail: "Gagal memuat jadwal.",
-    retry: "Coba lagi",
-    forbiddenH: "Khusus asisten",
-    forbidden: "Halaman jadwal hanya untuk asisten.",
-    home: "Ke beranda",
-    impH: "Impor jadwal dari sheet",
-    impBody:
-      "Salin blok dari sheet JADWAL NGAJAR (pilih sel lalu Ctrl+C) dan tempel di sini. Warna sel tidak ikut tersalin, jadi tanda FIT dan Angkt 24 diatur setelahnya.",
-    impDefault: "Blok ASISTEN DEFAULT",
-    impPeng: "Blok ASISTEN PENGGANTI (boleh kosong)",
-    preview: "Pratinjau",
-    previewing: "Memeriksa…",
-    result: (n: number) => `${n} slot terbaca`,
-    unknown: "Kode tidak dikenal",
-    strange: "Sel diabaikan",
-    replace: "Ganti jadwal semester ini",
-    replaceH: "Ganti seluruh jadwal semester?",
-    replaceBody: "Jadwal yang ada untuk semester ini dihapus dan diganti dengan hasil pratinjau.",
-    replaced: (n: number) => `${n} slot tersimpan.`,
-    emptySheet: "Tidak ada slot yang terbaca dari tempelan ini.",
-    cancel: "Batal",
-    close: "Tutup",
-    resize: "Ubah lebar panel",
-    mySlots: (n: number) => `${n} slot mengajar minggu ini`,
-  },
-  en: {
-    title: "Teaching schedule",
-    sub: "The default assistant per group and the substitutes for every slot. Pick a slot to change it.",
-    semester: "Semester",
-    mine: "Highlight my slots",
-    import: "Import from sheet",
-    hari: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-    slot: (n: number) => `Slot ${n}`,
-    inter: "International",
-    segera: "Soon",
-    none: "No practicum",
-    you: "You",
-    legend: "Legend",
-    editH: "Edit slot",
-    pick: "Pick a slot in the schedule to see and change its assistants.",
-    kelas: "Class",
-    reguler: "Regular",
-    internasional: "International",
-    segeraSw: "Soon (no assistants yet)",
-    groups: "Assistant per group",
-    kelompok: (k: number) => `Group ${k}`,
-    empty: "Empty",
-    subs: "Ranked substitutes",
-    noSubs: "No substitutes yet.",
-    addSub: "Add a substitute",
-    tag: "Tag",
-    tagNone: "None",
-    fit: "Teaches FIT",
-    a24: "Batch 24",
-    up: "Move up",
-    down: "Move down",
-    remove: "Remove",
-    save: "Save slot",
-    saved: "Slot saved.",
-    fail: "Could not save. Try again.",
-    unsaved: "There are unsaved changes.",
-    loadFail: "Could not load the schedule.",
-    retry: "Try again",
-    forbiddenH: "Assistants only",
-    forbidden: "The schedule page is for assistants.",
-    home: "Go home",
-    impH: "Import the schedule from the sheet",
-    impBody:
-      "Copy the blocks from the JADWAL NGAJAR sheet (select the cells, then Ctrl+C) and paste them here. Cell colours do not survive a copy, so the FIT and Batch 24 tags are set afterwards.",
-    impDefault: "ASISTEN DEFAULT block",
-    impPeng: "ASISTEN PENGGANTI block (optional)",
-    preview: "Preview",
-    previewing: "Checking…",
-    result: (n: number) => `${n} ${n === 1 ? "slot" : "slots"} read`,
-    unknown: "Unknown codes",
-    strange: "Cells ignored",
-    replace: "Replace this semester's schedule",
-    replaceH: "Replace the whole semester's schedule?",
-    replaceBody: "The existing schedule for this semester is deleted and replaced by the preview.",
-    replaced: (n: number) => `${n} ${n === 1 ? "slot" : "slots"} saved.`,
-    emptySheet: "No slots could be read from this paste.",
-    cancel: "Cancel",
-    close: "Close",
-    resize: "Resize panel",
-    mySlots: (n: number) => `${n} teaching slots this week`,
-  },
-});
-type Tx = (typeof T)["id"];
-
-function semesterLabel(s: string, lang: Lang): string {
-  const [y, jenis] = s.split("-");
+export function labelSemester(s: string, t: Jx): string {
+  const [y, j] = s.split("-");
   const n = Number(y);
-  const tahun = jenis === "ganjil" ? `${n}/${n + 1}` : `${n - 1}/${n}`;
-  const nama =
-    jenis === "ganjil" ? (lang !== "id" ? "Odd" : "Ganjil") : lang !== "id" ? "Even" : "Genap";
-  return `${nama} ${tahun}`;
+  return j === "ganjil" ? t.semesterLabel(true, n, n + 1) : t.semesterLabel(false, n - 1, n);
 }
 
-function semesterTetangga(s: string): string[] {
-  const [y, jenis] = s.split("-");
-  const n = Number(y);
-  return jenis === "ganjil"
-    ? [`${n}-genap`, s, `${n + 1}-genap`]
-    : [`${n - 1}-ganjil`, s, `${n}-ganjil`];
+/* -------------------------------------------------------------- cells */
+
+interface CellProps {
+  t: Jx;
+  lang: Lang;
+  row: JadwalRow | undefined;
+  minggu: MingguSlot | undefined;
+  meKode: string;
+  dim: boolean;
+  known: Set<string>;
+  label: string;
+  onOpen: () => void;
 }
 
-/* ----------------------------------------------------------------- cell */
-
-function Cell({
-  row,
-  t,
-  myCode,
-  highlight,
-  selected,
-  onPick,
-}: {
-  row: Row | undefined;
-  t: Tx;
-  myCode: string;
-  highlight: boolean;
-  selected: boolean;
-  onPick: () => void;
-}) {
-  const mine = Boolean(row && myCode && row.asisten.includes(myCode));
+function Cell({ t, lang, row, minggu: m, meKode, dim, known, label, onOpen }: CellProps) {
+  const status = m?.status ?? row?.status ?? "kosong";
+  const subs = row?.pengganti.length ?? 0;
+  if (status === "libur")
+    return (
+      <button type="button" className="jcell jcell--libur" aria-label={label} onClick={onOpen}>
+        <Pill lg>{t.holiday}</Pill>
+        <span className="hint">{t.holidayHint}</span>
+      </button>
+    );
+  if (status === "kosong" || !row)
+    return (
+      <button
+        type="button"
+        className="jcell jcell--off"
+        data-c={row?.warnaKosong ?? "oranye"}
+        aria-label={label}
+        onClick={onOpen}
+      >
+        <span className="jcell__off">{t.none}</span>
+      </button>
+    );
+  const kursi =
+    m?.kursi ??
+    pasanganSemester(row.asisten, row.jumlahKelompok).map((k, i) => ({
+      nomor: i + 1,
+      kode: k,
+      jenis: "tetap" as const,
+      tetap: k,
+      izin: false,
+    }));
+  const filled = kursi.filter((k) => k.kode || k.tetap).length;
+  if (status === "segera" || filled === 0)
+    return (
+      <button type="button" className="jcell jcell--soon" aria-label={label} onClick={onOpen}>
+        <Pill tone="teal" lg>
+          {status === "segera" ? t.soon : t.active}
+        </Pill>
+        <span className="hint">{filled ? t.someAsisten(filled, kursi.length) : t.noAsisten}</span>
+        <span className="hint">{t.subsCount(subs)}</span>
+      </button>
+    );
+  const helpers = (m?.tugas ?? []).filter(
+    (x) => x.status === "diterima" && x.kelompokNomor == null,
+  );
+  const code = (k: string, extra = "") => (
+    <span
+      className={["acode", k === meKode && "acode--me", !known.has(k) && "acode--unknown", extra]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {k}
+    </span>
+  );
   return (
     <button
       type="button"
-      className="jcell"
-      data-state={!row ? "none" : row.status === "segera" ? "soon" : "on"}
-      data-inter={row?.kelas === "internasional" ? "yes" : undefined}
-      data-mine={highlight && mine ? "yes" : undefined}
-      data-dim={highlight && !mine ? "yes" : undefined}
-      aria-pressed={selected}
-      onClick={onPick}
+      className={`jcell${row.kelas === "internasional" ? " jcell--intl" : ""}`}
+      data-dim={dim ? "yes" : undefined}
+      aria-label={label}
+      onClick={onOpen}
     >
-      {!row ? (
-        <span className="jcell__none">{t.none}</span>
-      ) : (
-        <>
-          <span className="jcell__tags">
-            {row.kelas === "internasional" && <span className="jcell__inter">{t.inter}</span>}
-            {row.status === "segera" && <span className="jcell__soon">{t.segera}</span>}
-            {mine && <span className="jcell__you">{t.you}</span>}
-          </span>
-          <span className="jcell__codes">
-            {row.asisten.map((k, i) => (
-              <span
-                key={`${k}-${i}`}
-                className="jcell__code"
-                data-me={k === myCode ? "yes" : undefined}
-                style={{ "--g": `var(--group-${i + 1})` } as CSSProperties}
-              >
-                <small>{i + 1}</small>
-                {k}
+      {row.kelas === "internasional" && <Pill tone="violet">{t.inter}</Pill>}
+      {kursi.map((k) => (
+        <span key={k.nomor} className="jrow">
+          <Pill group={k.nomor}>{kelompokLabel(k.nomor, lang)}</Pill>
+          {k.izin && k.tetap ? (
+            <Tooltip label={t.izinTip(k.tetap, k.kode)}>
+              <span className="row jrow__codes" tabIndex={-1}>
+                {code(k.tetap, "acode--izin")}
+                {k.kode && code(k.kode)}
               </span>
-            ))}
-          </span>
-          {row.pengganti.length > 0 && <span className="jcell__subs">+{row.pengganti.length}</span>}
-        </>
+            </Tooltip>
+          ) : k.kode ? (
+            <span className="row jrow__codes">
+              {code(k.kode, k.jenis !== "tetap" ? `acode--${k.jenis}` : "")}
+            </span>
+          ) : (
+            <span className="hint">{t.noneYet}</span>
+          )}
+        </span>
+      ))}
+      {helpers.length > 0 && (
+        <span className="row jrow__codes">
+          {helpers.map((h) => code(h.kode, "acode--sukarela"))}
+        </span>
       )}
+      {subs > 0 && <span className="hint">{t.subsMore(subs)}</span>}
     </button>
   );
 }
 
-function WeekGrid({
-  rows,
-  t,
-  myCode,
-  highlight,
-  sel,
-  onPick,
-  readOnly,
-}: {
-  rows: Row[];
-  t: Tx;
-  myCode: string;
-  highlight: boolean;
-  sel: { hari: number; slot: number } | null;
-  onPick: (hari: number, slot: number) => void;
-  readOnly?: boolean;
-}) {
-  const today = hariDariTanggal(hariIniWib());
-  const at = (h: number, s: number) => rows.find((r) => r.hari === h && r.slot === s);
-  return (
-    <div className="jgrid-scroll">
-      <div className="jgrid" data-readonly={readOnly ? "yes" : undefined} role="grid">
-        <span className="jgrid__corner" />
-        {HARI.map((h) => (
-          <span
-            key={h}
-            className="jgrid__day"
-            data-today={h === today ? "yes" : undefined}
-            role="columnheader"
-          >
-            {t.hari[h]}
-          </span>
-        ))}
-        {SLOTS.map((s) => (
-          <div key={s} className="jgrid__row" role="row">
-            <span className="jgrid__slot" role="rowheader">
-              <b>{t.slot(s)}</b>
-              <small className="mono">{SLOT_MULAI[s]}</small>
-            </span>
-            {HARI.map((h) => (
-              <Cell
-                key={h}
-                row={at(h, s)}
-                t={t}
-                myCode={myCode}
-                highlight={highlight}
-                selected={sel?.hari === h && sel.slot === s}
-                onPick={() => onPick(h, s)}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+/* --------------------------------------------------------------- load */
 
-/* --------------------------------------------------------------- editor */
-
-function SlotEditor({
-  row,
-  hari,
-  slot,
-  semester,
-  asisten,
-  t,
-  onSaved,
-  bare = false,
-}: {
-  bare?: boolean;
-  row: Row | undefined;
-  hari: number;
-  slot: number;
-  semester: string;
-  asisten: Asisten[];
-  t: Tx;
-  onSaved: () => void;
-}) {
-  const base: Row = row ?? {
-    hari,
-    slot,
-    kelas: "reguler",
-    status: "aktif",
-    asisten: [],
-    pengganti: [],
-  };
-  const [draft, setDraft] = useState<Row>(base);
-  const [busy, setBusy] = useState(false);
-  const [adding, setAdding] = useState("");
-  const dirty = JSON.stringify(draft) !== JSON.stringify(base);
-  const nama = (k: string) => asisten.find((a) => a.kode.toUpperCase() === k)?.nama ?? "";
-  const opsi = [
-    { value: "", label: `(${t.empty})` },
-    ...asisten.map((a) => ({ value: a.kode.toUpperCase(), label: `${a.kode} · ${a.nama}` })),
-  ];
-
-  function setGroup(i: number, kode: string) {
-    const a = [...draft.asisten];
-    while (a.length <= i) a.push("");
-    a[i] = kode;
-    while (a.length && !a[a.length - 1]) a.pop();
-    setDraft({ ...draft, asisten: a });
-  }
-  function moveSub(i: number, d: -1 | 1) {
-    const p = [...draft.pengganti];
-    const j = i + d;
-    if (j < 0 || j >= p.length) return;
-    [p[i], p[j]] = [p[j], p[i]];
-    setDraft({ ...draft, pengganti: p });
-  }
-  async function save() {
-    setBusy(true);
-    try {
-      const d = await postJson<{ ok: boolean }>("/api/session/schedule", {
-        semester,
-        hari,
-        slot,
-        ubah: {
-          kelas: draft.kelas,
-          status: draft.status,
-          asisten: draft.asisten.filter(Boolean),
-          pengganti: draft.pengganti,
-        },
-      });
-      if (!d.ok) throw new Error();
-      window.Toast?.show(t.saved, "ok");
-      onSaved();
-    } catch {
-      window.Toast?.show(t.fail, "danger");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className={bare ? "jedit jedit--bare" : "jedit"}>
-      <div className="jedit__head">
-        <span className="label-caps">{t.editH}</span>
-        <b className="jedit__title">
-          {t.hari[hari]} · {t.slot(slot)} · <span className="mono">{SLOT_MULAI[slot]}</span>
-        </b>
-      </div>
-
-      <div className="jedit__row">
-        <SegmentedControl
-          value={draft.kelas}
-          onValueChange={(v) => setDraft({ ...draft, kelas: v as Kelas })}
-          aria-label={t.kelas}
-          options={[
-            { value: "reguler", label: t.reguler },
-            { value: "internasional", label: t.internasional },
-          ]}
-        />
-      </div>
-      <Switch
-        on={draft.status === "segera"}
-        onChange={(v) => setDraft({ ...draft, status: v ? "segera" : "aktif" })}
-        label={t.segeraSw}
-        showLabel
-      />
-
-      <section className="jedit__sec">
-        <h3>{t.groups}</h3>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="jedit__group"
-            style={{ "--g": `var(--group-${i + 1})` } as CSSProperties}
-          >
-            <span className="jedit__gk">{t.kelompok(i + 1)}</span>
-            <div className="grow">
-              <Dropdown
-                id={`jadwal-k${i + 1}`}
-                label={t.kelompok(i + 1)}
-                hideLabel
-                options={opsi}
-                value={draft.asisten[i] ?? ""}
-                onChange={(v) => setGroup(i, v)}
-                disabled={draft.status === "segera"}
-              />
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <section className="jedit__sec">
-        <h3>{t.subs}</h3>
-        {draft.pengganti.length === 0 ? (
-          <p className="hint">{t.noSubs}</p>
-        ) : (
-          <ol className="jedit__subs">
-            {draft.pengganti.map((p, i) => (
-              <li key={`${p.kode}-${i}`}>
-                <span className="jedit__rank num">{i + 1}</span>
-                <span className="jedit__subname">
-                  <b className="mono">{p.kode}</b>
-                  <small className="hint">{nama(p.kode)}</small>
-                </span>
-                <span className="jedit__tags" role="group" aria-label={t.tag}>
-                  {(["fit", "a24"] as const).map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      className="jedit__tag"
-                      data-tag={tag}
-                      aria-pressed={p.tag === tag}
-                      onClick={() => {
-                        const ps = [...draft.pengganti];
-                        ps[i] = { ...p, tag: p.tag === tag ? null : tag };
-                        setDraft({ ...draft, pengganti: ps });
-                      }}
-                    >
-                      {tag === "fit" ? t.fit : t.a24}
-                    </button>
-                  ))}
-                </span>
-                <span className="jedit__moves">
-                  <button
-                    type="button"
-                    className="btn btn--icon btn--sm btn--quiet"
-                    aria-label={t.up}
-                    disabled={i === 0}
-                    onClick={() => moveSub(i, -1)}
-                  >
-                    <ArrowUpIcon size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--icon btn--sm btn--quiet"
-                    aria-label={t.down}
-                    disabled={i === draft.pengganti.length - 1}
-                    onClick={() => moveSub(i, 1)}
-                  >
-                    <ArrowDownIcon size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--icon btn--sm btn--quiet"
-                    aria-label={t.remove}
-                    onClick={() =>
-                      setDraft({ ...draft, pengganti: draft.pengganti.filter((_, j) => j !== i) })
-                    }
-                  >
-                    <XIcon size={15} />
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-        <div className="jedit__add">
-          <div className="grow">
-            <Dropdown
-              id="jadwal-add-sub"
-              label={t.addSub}
-              hideLabel
-              options={[
-                { value: "", label: t.addSub },
-                ...asisten
-                  .filter((a) => !draft.pengganti.some((p) => p.kode === a.kode.toUpperCase()))
-                  .map((a) => ({ value: a.kode.toUpperCase(), label: `${a.kode} · ${a.nama}` })),
-              ]}
-              value={adding}
-              onChange={setAdding}
-            />
-          </div>
-          <button
-            type="button"
-            className="btn btn--secondary"
-            disabled={!adding}
-            onClick={() => {
-              setDraft({ ...draft, pengganti: [...draft.pengganti, { kode: adding, tag: null }] });
-              setAdding("");
-            }}
-          >
-            {t.addSub}
-          </button>
-        </div>
-      </section>
-
-      <div className="jedit__foot">
-        {dirty && <span className="hint">{t.unsaved}</span>}
-        <button type="button" className="btn btn--primary" disabled={!dirty || busy} onClick={save}>
-          {t.save}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* --------------------------------------------------------------- import */
-
-function ImportDialog({
-  open,
-  onOpenChange,
-  semester,
+function LoadPanel({
   t,
   lang,
-  onDone,
+  rows,
+  meKode,
+  nama,
 }: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  semester: string;
-  t: Tx;
+  t: Jx;
   lang: Lang;
-  onDone: () => void;
+  rows: JadwalRow[];
+  meKode: string;
+  nama: Map<string, string>;
 }) {
-  const [def, setDef] = useState("");
-  const [peng, setPeng] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [pre, setPre] = useState<{ slot: Row[]; kodeTakDikenal: string[]; asing: string[] } | null>(
-    null,
-  );
-  const [confirm, setConfirm] = useState(false);
-
-  async function preview() {
-    setBusy(true);
-    try {
-      const d = await postJson<{ ok: boolean; pratinjau?: typeof pre }>("/api/session/schedule", {
-        semester,
-        teksDefault: def,
-        teksPengganti: peng,
-      });
-      setPre(d.ok && d.pratinjau ? d.pratinjau : null);
-      if (!d.ok) window.Toast?.show(t.fail, "danger");
-    } catch {
-      window.Toast?.show(t.fail, "danger");
-    } finally {
-      setBusy(false);
+  const phone = !useMinWidth(640);
+  const [shut, setShut] = useState(phone);
+  const [open, setOpen] = useState<string | null>(null);
+  useEffect(() => setShut(phone), [phone]);
+  const list = useMemo(() => {
+    const m = new Map<string, JadwalRow[]>();
+    for (const j of rows) {
+      if (j.status === "kosong") continue;
+      for (const k of new Set(pasanganSemester(j.asisten, j.jumlahKelompok)))
+        if (k) m.set(k, [...(m.get(k) ?? []), j]);
     }
-  }
-  async function simpan() {
-    setBusy(true);
-    try {
-      const d = await postJson<{ ok: boolean; kode?: string; disimpan?: number }>(
-        "/api/session/schedule",
-        {
-          semester,
-          teksDefault: def,
-          teksPengganti: peng,
-          simpan: true,
-        },
-      );
-      if (d.ok) {
-        window.Toast?.show(t.replaced(d.disimpan ?? 0), "ok");
-        onDone();
-        onOpenChange(false);
-        setPre(null);
-      } else window.Toast?.show(d.kode === "jadwal_kosong" ? t.emptySheet : t.fail, "danger");
-    } catch {
-      window.Toast?.show(t.fail, "danger");
-    } finally {
-      setBusy(false);
-      setConfirm(false);
-    }
-  }
-
+    return [...m.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  }, [rows]);
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange} title={t.impH} size="xl" lang={lang}>
-        <div className="jimp">
-          <p className="hint">{t.impBody}</p>
-          <div className="jimp__areas">
-            <label className="jimp__area">
-              <span>{t.impDefault}</span>
-              <textarea
-                rows={6}
-                value={def}
-                onChange={(e) => setDef(e.target.value)}
-                spellCheck={false}
-              />
-            </label>
-            <label className="jimp__area">
-              <span>{t.impPeng}</span>
-              <textarea
-                rows={6}
-                value={peng}
-                onChange={(e) => setPeng(e.target.value)}
-                spellCheck={false}
-              />
-            </label>
-          </div>
-          <div className="row">
-            <button
-              type="button"
-              className="btn btn--secondary"
-              disabled={!def.trim() || busy}
-              onClick={preview}
-            >
-              {busy ? t.previewing : t.preview}
-            </button>
-            {pre && <span className="pill pill--accent">{t.result(pre.slot.length)}</span>}
-          </div>
-          {pre && (
-            <>
-              {(pre.kodeTakDikenal.length > 0 || pre.asing.length > 0) && (
-                <div className="jimp__warn" role="status">
-                  <WarningIcon size={18} aria-hidden="true" />
-                  <div className="stack stack--sm">
-                    {pre.kodeTakDikenal.length > 0 && (
-                      <span>
-                        <b>{t.unknown}:</b>{" "}
-                        <span className="mono">{pre.kodeTakDikenal.join(", ")}</span>
-                      </span>
-                    )}
-                    {pre.asing.length > 0 && (
-                      <span>
-                        <b>{t.strange}:</b>{" "}
-                        <span className="mono">{pre.asing.slice(0, 12).join(", ")}</span>
-                      </span>
-                    )}
-                  </div>
+    <section className="panel loadcard">
+      <div className="panel__head">
+        <h2 className="panel__title">{t.loadTitle}</h2>
+        {phone ? (
+          <IconButton
+            icon={shut ? CaretDownIcon : CaretUpIcon}
+            label={shut ? t.showList : t.hideList}
+            sm
+            onClick={() => setShut(!shut)}
+          />
+        ) : (
+          <Pill>{t.loadCount(list.length)}</Pill>
+        )}
+      </div>
+      {!shut && (
+        <div className="loadlist">
+          {list.map(([k, slots]) => (
+            <div key={k} className="loadrow" data-open={open === k ? "yes" : undefined}>
+              <button
+                type="button"
+                className="loadrow__btn"
+                aria-expanded={open === k}
+                onClick={() => setOpen(open === k ? null : k)}
+              >
+                <span className={`acode${k === meKode ? " acode--me" : ""}`}>{k}</span>
+                <span className="loadrow__name">
+                  {nama.get(k) ?? <Pill tone="danger">{t.unknownCode}</Pill>}
+                </span>
+                <Pill tone={slots.length >= 3 ? "warn" : undefined}>
+                  {t.sessions(slots.length)}
+                </Pill>
+                <CaretDownIcon size={16} aria-hidden="true" className="loadrow__caret" />
+              </button>
+              {open === k && (
+                <div className="loadrow__slots">
+                  {slots.map((j) => (
+                    <Pill key={j.id}>
+                      {hariLabel(j.hari, lang)} · {SLOT_MULAI[j.slot].replace(":", ".")}
+                    </Pill>
+                  ))}
                 </div>
               )}
-              <WeekGrid
-                rows={pre.slot}
-                t={t}
-                myCode=""
-                highlight={false}
-                sel={null}
-                onPick={() => {}}
-                readOnly
-              />
-              <div className="row row--end">
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  disabled={busy || pre.slot.length === 0}
-                  onClick={() => setConfirm(true)}
-                >
-                  {t.replace}
-                </button>
-              </div>
-            </>
-          )}
+            </div>
+          ))}
         </div>
-      </Dialog>
-      <Confirm
-        open={confirm}
-        onOpenChange={setConfirm}
-        title={t.replaceH}
-        body={t.replaceBody}
-        confirmLabel={t.replace}
-        cancelLabel={t.cancel}
-        tone="danger"
-        onConfirm={simpan}
-        lang={lang}
-      />
-    </>
+      )}
+    </section>
   );
 }
 
-/* ----------------------------------------------------------------- page */
+/* ------------------------------------------------------------ settings */
+
+function Settings({
+  t,
+  lang,
+  jendela,
+  onClose,
+  onSaved,
+}: {
+  t: Jx;
+  lang: Lang;
+  jendela: PengaturanJendela;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [d, setD] = useState(jendela.default);
+  const [mn, setMn] = useState(jendela.min);
+  const [mx, setMx] = useState(jendela.max);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={t.setTitle}
+      lang={lang}
+      actions={
+        <>
+          <button type="button" className="btn btn--ghost" onClick={onClose}>
+            {t.cancel}
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              const r = await postJson<{ ok: boolean; kode?: string }>("/api/session/penugasan", {
+                aksi: "pengaturan",
+                default: d,
+                min: mn,
+                max: mx,
+              }).catch(() => ({ ok: false, kode: undefined }));
+              setBusy(false);
+              if (!r.ok) return window.Toast?.show(pesanJ(t, r.kode), "danger");
+              window.Toast?.show(t.setSaved, "ok");
+              onSaved();
+              onClose();
+            }}
+          >
+            <FloppyDiskIcon size={18} aria-hidden="true" />
+            {t.save}
+          </button>
+        </>
+      }
+    >
+      <div className="stack stack--lg jset">
+        <div className="field">
+          <span className="field__label">{t.setDefault}</span>
+          <Stepper
+            value={d}
+            onChange={setD}
+            min={mn}
+            max={mx}
+            step={5}
+            label={t.setDefault}
+            fmt={t.minutes}
+            lessLabel={t.fewer}
+            moreLabel={t.more}
+          />
+          <span className="field__hint">{t.setDefaultHint}</span>
+        </div>
+        <div className="grid-2 jset__bounds">
+          <div className="field">
+            <span className="field__label">{t.setMin}</span>
+            <Stepper
+              value={mn}
+              onChange={setMn}
+              min={JENDELA_MIN}
+              max={d}
+              step={5}
+              label={t.setMin}
+              fmt={t.minutes}
+              lessLabel={t.fewer}
+              moreLabel={t.more}
+            />
+          </div>
+          <div className="field">
+            <span className="field__label">{t.setMax}</span>
+            <Stepper
+              value={mx}
+              onChange={setMx}
+              min={d}
+              max={JENDELA_MAX}
+              step={5}
+              label={t.setMax}
+              fmt={t.minutes}
+              lessLabel={t.fewer}
+              moreLabel={t.more}
+            />
+          </div>
+        </div>
+        <span className="hint">{t.setHint}</span>
+      </div>
+    </Dialog>
+  );
+}
+
+/* --------------------------------------------------------------- page */
+
+type Tujuan = { hari: number; slot: number } | { semester: string } | "tutup";
 
 export default function SchedulePage({ lang }: { lang: Lang }) {
-  const t = T[lang];
+  const t = J[lang];
   const me = useMe();
-  const [semester, setSemester] = useState(() => semesterDariTanggal(hariIniWib()));
-  const [rows, setRows] = useState<Row[] | null>(null);
-  const [asisten, setAsisten] = useState<Asisten[]>([]);
+  const kini = semesterDariTanggal(hariIniWib());
+  const [semester, setSemester] = useState(kini);
+  const [data, setData] = useState<DataJadwal | null>(null);
   const [err, setErr] = useState(false);
   const [sel, setSel] = useState<{ hari: number; slot: number } | null>(null);
-  const [highlight, setHighlight] = useState(true);
-  const [imp, setImp] = useState(false);
-  const [openDay, setOpenDay] = useState<number | null>(() => {
-    const h = hariDariTanggal(hariIniWib());
-    return h >= 1 && h <= 6 ? h : 1;
-  });
+  const [highlight, setHighlight] = useState(false);
+  const [view, setView] = useState<"week" | "import">("week");
+  const [setting, setSetting] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [ask, setAsk] = useState<Tujuan | null>(null);
+  const editor = useRef<SlotEditorHandle>(null);
   const grid = useMinWidth(640);
-  const wide = useMinWidth(1680);
+  const narrow = !useMinWidth(820);
+  const wide = useMinWidth(1440);
 
   function load() {
     setErr(false);
-    getJson<{ ok: boolean; jadwal: Row[]; asisten: Asisten[] }>(
-      `/api/session/schedule?semester=${semester}`,
-    )
+    getJson<{ ok: boolean } & DataJadwal>(`/api/session/schedule?semester=${semester}`)
       .then((d) => {
-        setRows(d.ok ? d.jadwal : []);
-        setAsisten(d.asisten ?? []);
+        if (!d.ok) throw new Error();
+        setData(d);
       })
       .catch(() => setErr(true));
   }
@@ -740,10 +395,26 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
     if (me?.role === "asisten") load();
   }, [me, semester]);
 
-  const myCode = (me?.kode ?? "").toUpperCase();
-  const mine = useMemo(
-    () => (rows ?? []).filter((r) => r.asisten.includes(myCode)).length,
-    [rows, myCode],
+  // Leaving the page with unsaved changes asks the browser's own question.
+  useEffect(() => {
+    if (!dirty) return;
+    const on = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", on);
+    return () => window.removeEventListener("beforeunload", on);
+  }, [dirty]);
+
+  const meKode = (me?.kode ?? "").toUpperCase();
+  const bolehJadwal = me?.hak?.jadwal !== false && !!me?.hak;
+  const known = useMemo(
+    () => new Set((data?.asisten ?? []).map((a) => a.kode.toUpperCase())),
+    [data],
+  );
+  const namaKode = useMemo(
+    () => new Map((data?.asisten ?? []).map((a) => [a.kode.toUpperCase(), a.nama])),
+    [data],
   );
 
   if (me === undefined) return <span className="skeleton" style={{ height: 420 }} />;
@@ -776,177 +447,339 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
     );
   }
 
-  const pick = (hari: number, slot: number) => {
-    setSel({ hari, slot });
+  if (view === "import" && data) {
+    return (
+      <ImportView
+        lang={lang}
+        semester={semester}
+        semesterLabel={labelSemester(semester, t)}
+        data={data}
+        meKode={meKode}
+        onBack={() => setView("week")}
+        onDone={() => {
+          setView("week");
+          load();
+        }}
+      />
+    );
+  }
+
+  const rows = data?.jadwal ?? [];
+  const rowAt = (h: number, s: number) => rows.find((r) => r.hari === h && r.slot === s);
+  const mingguOf = (r: JadwalRow | undefined) => (r ? data?.minggu[String(r.id)] : undefined);
+  const today = semester === kini ? hariDariTanggal(hariIniWib()) : -1;
+  const slotLabel = (h: number, s: number) =>
+    `${hariLabel(h, lang)} · Slot ${s} · ${SLOT_MULAI[s].replace(":", ".")}`;
+  const mine = (r: JadwalRow | undefined, m: MingguSlot | undefined) =>
+    !!r &&
+    (m
+      ? m.kursi.some((k) => k.kode === meKode) ||
+        m.tugas.some((x) => x.kode === meKode && x.status === "diterima")
+      : pasanganSemester(r.asisten, r.jumlahKelompok).includes(meKode));
+
+  function pergi(to: Tujuan) {
+    setAsk(null);
+    setDirty(false);
+    if (to === "tutup") setSel(null);
+    else if ("semester" in to) {
+      setSel(null);
+      setSemester(to.semester);
+      setData(null);
+    } else setSel(to);
+  }
+  const coba = (to: Tujuan) => (dirty ? setAsk(to) : pergi(to));
+
+  const cell = (h: number, s: number) => {
+    const r = rowAt(h, s);
+    const m = mingguOf(r);
+    return (
+      <Cell
+        key={`${h}-${s}`}
+        t={t}
+        lang={lang}
+        row={r}
+        minggu={m}
+        meKode={meKode}
+        dim={highlight && !mine(r, m)}
+        known={known}
+        label={slotLabel(h, s)}
+        onOpen={() => (sel?.hari === h && sel.slot === s ? undefined : coba({ hari: h, slot: s }))}
+      />
+    );
   };
-  const selRow =
-    sel && rows ? rows.find((r) => r.hari === sel.hari && r.slot === sel.slot) : undefined;
+
+  const selRow = sel ? rowAt(sel.hari, sel.slot) : undefined;
+  const selM = mingguOf(selRow);
+  const onSelSlot =
+    !!selM &&
+    (selM.kursi.some((k) => k.kode === meKode) ||
+      (selRow?.pengganti ?? []).some((p) => p.kode.toUpperCase() === meKode));
 
   return (
     <div className="jpage">
-      <header className="jpage__head">
-        <div className="stack stack--sm">
-          <span className="label-caps">IRIS IoT</span>
-          <h1 className="jpage__title">{t.title}</h1>
-          <p className="hint jpage__sub">{t.sub}</p>
+      <div className="jpage__head">
+        <div className="page-header__heading">
+          <span className="page-header__eyebrow">{t.eyebrow}</span>
+          <h1 className="page-header__title">{t.title}</h1>
         </div>
-        <div className="jpage__tools">
-          <div className="jpage__sem">
+        <div className="jtools">
+          <div className="jtools__sem">
             <Dropdown
               id="jadwal-semester"
               label={t.semester}
               hideLabel
-              options={semesterTetangga(semesterDariTanggal(hariIniWib())).map((s) => ({
-                value: s,
-                label: semesterLabel(s, lang),
-              }))}
+              options={semesterPilihan(kini).map((s) => ({ value: s, label: labelSemester(s, t) }))}
               value={semester}
-              onChange={(v) => {
-                setSemester(v);
-                setRows(null);
-                setSel(null);
-              }}
+              onChange={(v) => v !== semester && coba({ semester: v })}
             />
           </div>
-          <Switch on={highlight} onChange={setHighlight} label={t.mine} showLabel />
-          <button type="button" className="btn btn--secondary" onClick={() => setImp(true)}>
-            {t.import}
-          </button>
+          <label className="togglechip">
+            <Switch on={highlight} onChange={setHighlight} label={t.mine} />
+            <span>{t.mine}</span>
+          </label>
+          {bolehJadwal &&
+            (narrow ? (
+              <IconButton
+                icon={UploadSimpleIcon}
+                label={t.import}
+                onClick={() => setView("import")}
+              />
+            ) : (
+              <button type="button" className="btn" onClick={() => setView("import")}>
+                <UploadSimpleIcon size={18} aria-hidden="true" />
+                {t.import}
+              </button>
+            ))}
+          {bolehJadwal && (
+            <IconButton icon={GearSixIcon} label={t.settings} onClick={() => setSetting(true)} />
+          )}
         </div>
-      </header>
-
-      <div className="jpage__legend" aria-label={t.legend}>
-        {[1, 2, 3, 4, 5].map((k) => (
-          <span
-            key={k}
-            className="jpage__lg"
-            style={{ "--g": `var(--group-${k})` } as CSSProperties}
-          >
-            <i />
-            {t.kelompok(k)}
-          </span>
-        ))}
-        <span className="jcell__inter">{t.inter}</span>
-        <span className="jcell__soon">{t.segera}</span>
-        {myCode && (
-          <span className="pill pill--accent">
-            {myCode} · {t.mySlots(mine)}
-          </span>
-        )}
       </div>
 
-      <div className="jpage__body" data-wide={wide ? "yes" : undefined}>
-        <div className="jpage__main">
-          {rows === null ? (
-            <span className="skeleton" style={{ height: 420 }} />
+      <div className="jlegend">
+        {[1, 2, 3, 4, 5].map((g) => (
+          <Pill key={g} group={g}>
+            {kelompokLabel(g, lang)}
+          </Pill>
+        ))}
+        <Pill tone="violet">{t.inter}</Pill>
+        <Pill tone="teal">{t.soon}</Pill>
+        <span className="pill jswatch" data-c="oranye">
+          {t.none}
+        </span>
+        <span className="pill jswatch" data-c="merah">
+          {t.none}
+        </span>
+        <Tooltip label={t.fitTip}>
+          <span tabIndex={0}>
+            <Pill tone="fit">{t.fit}</Pill>
+          </span>
+        </Tooltip>
+        <Tooltip label={t.a24Tip}>
+          <span tabIndex={0}>
+            <Pill tone="a24">{t.a24}</Pill>
+          </span>
+        </Tooltip>
+        <span className="row jlegend__izin">
+          <span className="acode acode--izin">ABC</span>
+          <span className="hint">{t.onLeave}</span>
+        </span>
+        <span className="pill jswatch" data-c="libur">
+          {t.holiday}
+        </span>
+      </div>
+
+      <div className="jlayout" data-wide={wide ? "yes" : undefined}>
+        <div className="jlayout__main">
+          {!data ? (
+            <span className="skeleton" style={{ height: 520 }} />
           ) : grid ? (
-            <WeekGrid
-              rows={rows}
-              t={t}
-              myCode={myCode}
-              highlight={highlight}
-              sel={sel}
-              onPick={pick}
-            />
+            <div className="jgrid-scroll">
+              <div className="jgrid" role="grid" aria-label={t.title}>
+                <span />
+                {SLOTS.map((s) => (
+                  <span key={s} className="jgrid__h" role="columnheader">
+                    Slot {s}
+                    <b className="num">{SLOT_MULAI[s].replace(":", ".")}</b>
+                  </span>
+                ))}
+                {HARI.map((h) => (
+                  <div key={h} className="jgrid__row" role="row">
+                    <span
+                      className="jgrid__day"
+                      data-today={h === today ? "yes" : undefined}
+                      role="rowheader"
+                    >
+                      {hariLabel(h, lang)}
+                      {h === today && <Pill tone="accent">{t.today}</Pill>}
+                    </span>
+                    {SLOTS.map((s) => cell(h, s))}
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="jdays">
-              {HARI.map((h) => {
-                const open = openDay === h;
-                const count = rows.filter((r) => r.hari === h).length;
-                return (
-                  <section key={h} className="jdays__day" data-open={open ? "yes" : undefined}>
-                    <button
-                      type="button"
-                      className="jdays__head"
-                      aria-expanded={open}
-                      onClick={() => setOpenDay(open ? null : h)}
-                    >
-                      <b>{t.hari[h]}</b>
-                      <span className="pill pill--mono">{count}</span>
-                    </button>
-                    {open && (
-                      <div className="jdays__slots">
-                        {SLOTS.map((s) => (
-                          <div key={s} className="jdays__slot">
-                            <span className="jgrid__slot">
-                              <b>{t.slot(s)}</b>
-                              <small className="mono">{SLOT_MULAI[s]}</small>
-                            </span>
-                            <Cell
-                              row={rows.find((r) => r.hari === h && r.slot === s)}
-                              t={t}
-                              myCode={myCode}
-                              highlight={highlight}
-                              selected={sel?.hari === h && sel.slot === s}
-                              onPick={() => pick(h, s)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
+              {HARI.map((h) => (
+                <DayCard
+                  key={h}
+                  open0={h === today || (today < 1 && h === 1)}
+                  title={hariLabel(h, lang)}
+                  today={h === today ? t.today : null}
+                >
+                  {SLOTS.map((s) => (
+                    <div key={s} className="jdays__slot">
+                      <span className="hint">
+                        Slot {s} · {SLOT_MULAI[s].replace(":", ".")}
+                      </span>
+                      {cell(h, s)}
+                    </div>
+                  ))}
+                </DayCard>
+              ))}
             </div>
           )}
         </div>
-        {wide && (
-          <aside className="jpage__side" id="jedit">
-            {sel ? (
-              <SlotEditor
-                key={`${semester}-${sel.hari}-${sel.slot}`}
-                row={selRow}
-                hari={sel.hari}
-                slot={sel.slot}
-                semester={semester}
-                asisten={asisten}
-                t={t}
-                onSaved={load}
-              />
-            ) : (
-              <div className="jedit jedit--empty">
-                <p className="hint">{t.pick}</p>
-              </div>
-            )}
-          </aside>
-        )}
+        {data && <LoadPanel t={t} lang={lang} rows={rows} meKode={meKode} nama={namaKode} />}
       </div>
 
-      {!wide && (
-        <Drawer
-          open={sel !== null}
-          onOpenChange={(o) => !o && setSel(null)}
-          title={t.editH}
-          storeKey="jadwal"
-          defaultWidth={460}
-          minWidth={360}
-          closeLabel={t.close}
-          resizeLabel={t.resize}
-        >
-          {sel && (
-            <SlotEditor
-              key={`${semester}-${sel.hari}-${sel.slot}`}
-              row={selRow}
-              hari={sel.hari}
-              slot={sel.slot}
-              semester={semester}
-              asisten={asisten}
-              t={t}
-              onSaved={load}
-              bare
-            />
-          )}
-        </Drawer>
-      )}
+      <Drawer
+        open={sel !== null}
+        onOpenChange={(o) => !o && coba("tutup")}
+        title={t.editH}
+        description={sel ? slotLabel(sel.hari, sel.slot) : undefined}
+        storeKey="jadwal-p9"
+        defaultWidth={wide ? 720 : 640}
+        minWidth={360}
+        closeLabel={t.close}
+        resizeLabel={t.resize}
+        foot={
+          sel && (
+            <>
+              {dirty && (
+                <span className="drawer__alt">
+                  <Pill tone="warn">{t.notSaved}</Pill>
+                </span>
+              )}
+              <button type="button" className="btn btn--ghost" onClick={() => coba("tutup")}>
+                {bolehJadwal || onSelSlot ? t.cancel : t.close}
+              </button>
+              {(bolehJadwal || onSelSlot) && (
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={!dirty}
+                  onClick={async () => {
+                    if (await editor.current?.save()) {
+                      setDirty(false);
+                      setSel(null);
+                    }
+                  }}
+                >
+                  <FloppyDiskIcon size={18} aria-hidden="true" />
+                  {t.save}
+                </button>
+              )}
+            </>
+          )
+        }
+      >
+        {sel && data && (
+          <SlotEditor
+            ref={editor}
+            key={`${semester}-${sel.hari}-${sel.slot}-${selRow?.id ?? 0}`}
+            t={t}
+            lang={lang}
+            semester={semester}
+            kini={semester === kini}
+            hari={sel.hari}
+            slot={sel.slot}
+            row={selRow}
+            minggu={selM}
+            orang={data.asisten}
+            jendela={data.jendela}
+            meKode={meKode}
+            meNim={me.nim}
+            bolehJadwal={bolehJadwal}
+            onDirty={setDirty}
+            onSaved={load}
+          />
+        )}
+      </Drawer>
 
-      <ImportDialog
-        open={imp}
-        onOpenChange={setImp}
-        semester={semester}
-        t={t}
+      <Dialog
+        open={ask !== null}
+        onOpenChange={(o) => !o && setAsk(null)}
+        title={t.unsavedTitle}
+        description={sel ? t.unsavedBody(slotLabel(sel.hari, sel.slot)) : undefined}
+        size="sm"
         lang={lang}
-        onDone={load}
+        blocking
+        foot="12"
+        actions={
+          <>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={async () => {
+                const to = ask;
+                if (to && (await editor.current?.save())) pergi(to);
+              }}
+            >
+              {t.saveAndMove}
+            </button>
+            <button
+              type="button"
+              className="btn btn--danger-soft"
+              onClick={() => ask && pergi(ask)}
+            >
+              {t.discard}
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={() => setAsk(null)}>
+              {t.stay}
+            </button>
+          </>
+        }
       />
+
+      {setting && data && (
+        <Settings
+          t={t}
+          lang={lang}
+          jendela={data.jendela}
+          onClose={() => setSetting(false)}
+          onSaved={load}
+        />
+      )}
     </div>
+  );
+}
+
+function DayCard({
+  open0,
+  title,
+  today,
+  children,
+}: {
+  open0: boolean;
+  title: string;
+  today: string | null;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(open0);
+  return (
+    <section className="panel jdays__day" data-open={open ? "yes" : undefined}>
+      <button
+        type="button"
+        className="jdays__head"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <b>{title}</b>
+        {today && <Pill tone="accent">{today}</Pill>}
+        <CaretDownIcon size={18} aria-hidden="true" className="jdays__caret" />
+      </button>
+      {open && <div className="jdays__slots">{children}</div>}
+    </section>
   );
 }
