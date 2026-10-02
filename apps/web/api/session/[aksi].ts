@@ -31,12 +31,13 @@
  * POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12, P8) — one field; refused with bukan_pemilik unless the caller holds that group.
  * Phase 8 actions (assignment, help, feedback, results, schedule) are documented in api/_lib/phase8.ts.
  * Phase 9: tim (api/_lib/tim.ts), beranda and jendela (api/_lib/beranda.ts),
- * rosterslot, praktikan and susulan (api/_lib/persiapan.ts).
+ * rosterslot, praktikan and susulan (api/_lib/persiapan.ts), brief (api/_lib/brief.ts).
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak } from "../_lib/hak.js";
 import { handleTimGet, handleTimJejak, handleTimPost } from "../_lib/tim.js";
 import { handleBerandaGet, handleJendelaPost } from "../_lib/beranda.js";
+import { handleBriefGet, handleBriefPost } from "../_lib/brief.js";
 import {
   handlePraktikanGet,
   handlePraktikanPost,
@@ -1323,9 +1324,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return handleResults(req, res, who);
   }
 
+  // Phase 9: the Asisten's Module Brief is public to read.
+  if (aksi === "brief" && req.method === "GET") return handleBriefGet(req, res);
+
   const session = requireRole(req, res, "asisten");
   if (!session) return;
 
+  if (aksi === "brief") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleBriefPost(req, res, session);
+  }
   if (aksi === "rosterslot") {
     if (req.method === "POST") return handleRosterSlotPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;

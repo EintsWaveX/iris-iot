@@ -302,18 +302,16 @@ export async function handleRosterSlotPost(
         ),
       );
     if (isian.kelompok.length) {
-      await tx
-        .insert(rosterKelompok)
-        .values(
-          isian.kelompok.map((k) => ({
-            semester,
-            hari,
-            slot,
-            nomor: k.nomor,
-            aktif: k.aktif,
-            klpSeelabs: k.klp,
-          })),
-        );
+      await tx.insert(rosterKelompok).values(
+        isian.kelompok.map((k) => ({
+          semester,
+          hari,
+          slot,
+          nomor: k.nomor,
+          aktif: k.aktif,
+          klpSeelabs: k.klp,
+        })),
+      );
     }
     await tx
       .update(jadwal)

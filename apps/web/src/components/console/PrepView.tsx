@@ -1,24 +1,60 @@
 /**
- * Persiapan (P8.1): everything a session needs, usable before and during
- * it. Assistant assignment (one per group, suggested from the schedule),
- * module access, the roster paste, slides and schematics.
+ * Preparation (Phase 9 Stage 3, mockup c-prep): everything a session needs,
+ * before it or during it.
  *
- * Layout: two columns from 1024px (assignment and access on the left, the
- * roster and the libraries on the right), one column below. Nothing is
- * squeezed into a third column, which is what made the prototype cramped.
+ * The head row names whose roster is open ("Roster for": every weekly slot
+ * with a practicum, the makeup drafts, and a new makeup session) and the
+ * server's Ready state. Five tabs follow: Roster (the two-pane editor; while
+ * a session runs, the group assistants come first), Module Access, Slides,
+ * Wiring Schematics and Module Brief. Switching rosters with unsaved
+ * changes asks first: Save and Move, Discard, or Stay.
  */
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { namaAsisten } from "../../lib/people";
 import * as RadixPopover from "@radix-ui/react-popover";
-import { CaretDownIcon, CheckIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
-import { parseRosterPaste, rosterDiff, rosterToPaste } from "../../lib/roster-parser";
+import {
+  ArrowRightIcon,
+  CaretDownIcon,
+  CheckIcon,
+  MagnifyingGlassIcon,
+} from "@phosphor-icons/react";
+import BackButton from "../ui/BackButton";
 import Dialog from "../ui/Dialog";
-import { namaKelompok, postJson } from "../../lib/app";
-import type { Lang } from "../../lib/kelas";
+import Dropdown from "../ui/Dropdown";
+import Fade from "../ui/Fade";
+import { DateField, Stepper, TimeField } from "../ui/Controls";
+import { getJson, href, namaKelompok, postJson, tanggalPanjang } from "../../lib/app";
+import { hariIniWib, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
+import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
+import { hariLabel, modulLabel } from "../../lib/labels";
+import type { Kelas, Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import { AccessForm } from "./SessionBar";
 import { SchematicLibrary, SlidesLibrary } from "./Libraries";
+import RosterEditor, { type RosterHandle, type RosterTarget } from "./prep/RosterEditor";
+import BriefEditor from "./prep/BriefEditor";
+import { P, type Px } from "./prepStrings";
+import "../ui/Tabs.css";
 import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
+
+interface JadwalRow {
+  hari: number;
+  slot: number;
+  kelas: Kelas;
+  status: string;
+  asisten: string[];
+}
+
+interface Draf {
+  id: number;
+  tanggal: string;
+  mulai: string;
+  modul: number;
+  jumlahKelompok: number;
+}
+
+const TABS = ["roster", "akses", "slides", "skema", "brief"] as const;
+type Tab = (typeof TABS)[number];
 
 export default function PrepView({
   t,
@@ -27,7 +63,9 @@ export default function PrepView({
   roster,
   assign,
   meNim,
+  meKode,
   onChanged,
+  onBack,
 }: {
   t: Strings;
   lang: Lang;
@@ -35,39 +73,383 @@ export default function PrepView({
   roster: RosterGroup[];
   assign: Penugasan | null;
   meNim: string;
+  meKode: string;
   onChanged: () => void;
+  /** Standalone page (no session): shows Back and the page title. */
+  onBack?: () => void;
 }) {
+  const p = P[lang];
+  const [tab, setTab] = useState<Tab>("roster");
+  const [jadwal, setJadwal] = useState<JadwalRow[] | null>(null);
+  const [draf, setDraf] = useState<Draf[]>([]);
+  const [sel, setSel] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [ask, setAsk] = useState<string | null>(null);
+  const [newDraft, setNewDraft] = useState(false);
+  const [server, setServer] = useState<{ siap: boolean } | null>(null);
+  const editor = useRef<RosterHandle>(null);
+
   const kode = (nim: string) =>
     namaAsisten(
       assign?.asisten.find((a) => a.nim === nim),
       nim,
     );
+
+  const loadDraf = () =>
+    getJson<{ ok: boolean; draf: Draf[] }>("/api/session/susulan")
+      .then((d) => d.ok && setDraf(d.draf))
+      .catch(() => {});
+
+  useEffect(() => {
+    const today = hariIniWib();
+    getJson<{ ok: boolean; jadwal: JadwalRow[] }>(
+      `/api/session/schedule?semester=${semesterDariTanggal(today)}`,
+    )
+      .then((d) => setJadwal(d.ok ? d.jadwal : []))
+      .catch(() => setJadwal([]));
+    void loadDraf();
+    getJson<{
+      ok: boolean;
+      server: { siap: { lulus: boolean; waktu: string | null } | null } | null;
+    }>("/api/session/beranda")
+      .then((d) => {
+        const s = d.server?.siap;
+        const hariIni =
+          !!s?.waktu &&
+          new Date(s.waktu).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) === today;
+        setServer({ siap: !!s?.lulus && hariIni });
+      })
+      .catch(() => {});
+  }, []);
+
+  const slots = useMemo(
+    () => (jadwal ?? []).filter((j) => j.status === "aktif" && j.asisten.length > 0),
+    [jadwal],
+  );
+
+  // The first roster to open: the running session's slot, else my slot
+  // today, else my first slot this week, else the first slot.
+  useEffect(() => {
+    if (!jadwal || sel !== null) return;
+    const mine = (j: JadwalRow) => j.asisten.some((k) => k.toUpperCase() === meKode);
+    const hari = hariDariTanggal(hariIniWib());
+    const pick =
+      (sesi?.slot
+        ? slots.find((j) => j.hari === hariDariTanggal(sesi.tanggal) && j.slot === sesi.slot)
+        : undefined) ??
+      slots.find((j) => j.hari === hari && mine(j)) ??
+      slots.find(mine) ??
+      slots[0];
+    if (pick) setSel(`${pick.hari}-${pick.slot}`);
+    else if (draf[0]) setSel(`d${draf[0].id}`);
+  }, [jadwal, draf]);
+
+  const target: RosterTarget | null = useMemo(() => {
+    if (!sel) return null;
+    if (sel.startsWith("d")) return { jenis: "susulan", sesiId: Number(sel.slice(1)) };
+    const [h, s] = sel.split("-").map(Number);
+    const row = slots.find((j) => j.hari === h && j.slot === s);
+    return row ? { jenis: "slot", hari: h, slot: s, kelas: row.kelas } : null;
+  }, [sel, slots]);
+
+  const labelOf = (v: string | null): string => {
+    if (!v) return "";
+    if (v.startsWith("d")) {
+      const d = draf.find((x) => x.id === Number(v.slice(1)));
+      return d ? p.draftOpt(tanggalPanjang(d.tanggal, lang), d.mulai.replace(":", ".")) : "";
+    }
+    const [h, s] = v.split("-").map(Number);
+    return `${hariLabel(h, lang)} slot ${s}`;
+  };
+
+  const options = [
+    ...slots.map((j) => ({
+      value: `${j.hari}-${j.slot}`,
+      label:
+        p.slotOpt(hariLabel(j.hari, lang), j.slot, SLOT_MULAI[j.slot].replace(":", ".")) +
+        (j.kelas === "internasional" ? ` · ${p.intl}` : ""),
+    })),
+    ...draf.map((d) => ({
+      value: `d${d.id}`,
+      label: p.draftOpt(tanggalPanjang(d.tanggal, lang), d.mulai.replace(":", ".")),
+    })),
+    { value: "new", label: p.newDraft },
+  ];
+
+  function choose(v: string) {
+    if (v === "new") return setNewDraft(true);
+    if (v === sel) return;
+    if (dirty) return setAsk(v);
+    setSel(v);
+  }
+
+  const tablist = (
+    <div className="tabs-scroll">
+      <nav className="tabs" role="tablist" aria-label={p.title}>
+        {TABS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            tabIndex={tab === id ? 0 : -1}
+            className="tabs__tab"
+            onClick={() => setTab(id)}
+          >
+            {p.tabs[id]}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+
   return (
     <div className="prep">
-      <div className="prep__col">
-        {sesi && (
-          <AssignmentPanel
-            t={t}
-            sesi={sesi}
-            roster={roster}
-            assign={assign}
-            meNim={meNim}
-            onChanged={onChanged}
-          />
-        )}
-        <section className="panel">
-          <div className="panel__head">
-            <h2 className="panel__title">{t.accTitle}</h2>
+      {onBack && <BackButton lang={lang} label={p.back} onClick={onBack} />}
+      <div className="prep__head">
+        {onBack && (
+          <div className="page-header__heading">
+            <span className="page-header__eyebrow">{p.eyebrow}</span>
+            <h1 className="page-header__title">{p.title}</h1>
           </div>
-          <AccessForm t={t} lang={lang} bare />
-        </section>
+        )}
+        <div className="prep__tools">
+          {tab === "roster" && (
+            <div className="prep__for">
+              {options.length > 1 ? (
+                <Dropdown
+                  id="prep-for"
+                  label={p.rosterFor}
+                  value={sel ?? ""}
+                  onChange={choose}
+                  options={options}
+                />
+              ) : (
+                <span className="hint">{p.noSlots}</span>
+              )}
+            </div>
+          )}
+          <a className="srvchip" href={`${href(lang, "/servers")}#siap`}>
+            <span className={`dot ${server?.siap ? "dot--ok" : "dot--warn"}`} aria-hidden="true" />
+            {server?.siap ? p.serverReady : p.serverCheck}
+            <ArrowRightIcon size={14} aria-hidden="true" />
+          </a>
+        </div>
       </div>
-      <div className="prep__col">
-        <RosterPanel t={t} lang={lang} roster={roster} onChanged={onChanged} />
-        <SlidesLibrary t={t} lang={lang} kode={kode} />
-      </div>
-      <SchematicLibrary t={t} lang={lang} kode={kode} />
+
+      {tablist}
+
+      <Fade k={tab}>
+        {tab === "roster" && (
+          <div className="stack">
+            {sesi && (
+              <AssignmentPanel
+                t={t}
+                sesi={sesi}
+                roster={roster}
+                assign={assign}
+                meNim={meNim}
+                onChanged={onChanged}
+              />
+            )}
+            {target ? (
+              <RosterEditor
+                key={sel ?? ""}
+                ref={editor}
+                target={target}
+                label={labelOf(sel)}
+                p={p}
+                lang={lang}
+                onDirty={setDirty}
+              />
+            ) : (
+              jadwal !== null && <p className="hint">{p.noSlots}</p>
+            )}
+          </div>
+        )}
+        {tab === "akses" && (
+          <section className="panel panel--solo">
+            <div className="panel__head">
+              <h2 className="panel__title">{t.accTitle}</h2>
+            </div>
+            <AccessForm t={t} lang={lang} bare />
+          </section>
+        )}
+        {tab === "slides" && <SlidesLibrary t={t} lang={lang} kode={kode} />}
+        {tab === "skema" && <SchematicLibrary t={t} lang={lang} kode={kode} />}
+        {tab === "brief" && <BriefEditor lang={lang} />}
+      </Fade>
+
+      <Dialog
+        open={ask !== null}
+        onOpenChange={(o) => !o && setAsk(null)}
+        title={p.unsavedTitle}
+        description={p.unsavedBody(labelOf(sel))}
+        size="sm"
+        lang={lang}
+        blocking
+        foot="12"
+        actions={
+          <>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={async () => {
+                const v = ask;
+                if (await editor.current?.save()) {
+                  setAsk(null);
+                  setSel(v);
+                }
+              }}
+            >
+              {p.saveAndMove}
+            </button>
+            <button
+              type="button"
+              className="btn btn--danger-soft"
+              onClick={() => {
+                const v = ask;
+                setAsk(null);
+                setDirty(false);
+                setSel(v);
+              }}
+            >
+              {p.discard}
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={() => setAsk(null)}>
+              {p.stay}
+            </button>
+          </>
+        }
+      />
+
+      {newDraft && (
+        <NewDraftDialog
+          p={p}
+          lang={lang}
+          t={t}
+          onClose={() => setNewDraft(false)}
+          onCreated={async (id) => {
+            await loadDraf();
+            setSel(`d${id}`);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------ new draft */
+
+function NewDraftDialog({
+  p,
+  t,
+  lang,
+  onClose,
+  onCreated,
+}: {
+  p: Px;
+  t: Strings;
+  lang: Lang;
+  onClose: () => void;
+  onCreated: (id: number) => Promise<void>;
+}) {
+  const [tanggal, setTanggal] = useState(hariIniWib());
+  const [jam, setJam] = useState("13:00");
+  const [modul, setModul] = useState("1");
+  const [jumlah, setJumlah] = useState(5);
+  const [busy, setBusy] = useState(false);
+  async function create() {
+    setBusy(true);
+    const r = await postJson<{ ok: boolean; kode?: string; id?: number }>("/api/session/susulan", {
+      tanggal,
+      mulai: jam,
+      modul: Number(modul),
+      jumlahKelompok: jumlah,
+    }).catch(() => ({ ok: false, kode: "gagal" }) as { ok: boolean; kode?: string; id?: number });
+    setBusy(false);
+    if (!r.ok || !r.id)
+      return window.Toast?.show(p.errors[r.kode ?? "gagal"] ?? p.errors.gagal, "danger");
+    window.Toast?.show(p.created, "ok");
+    await onCreated(r.id);
+    onClose();
+  }
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={p.draftTitle}
+      description={p.draftDesc}
+      lang={lang}
+      actions={
+        <>
+          <button type="button" className="btn btn--ghost" onClick={onClose}>
+            {p.cancel}
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={busy}
+            onClick={() => void create()}
+          >
+            {p.create}
+          </button>
+        </>
+      }
+    >
+      <div className="draftgrid">
+        <div className="field">
+          <span className="field__label" id="dr-date">
+            {p.date}
+          </span>
+          <DateField
+            value={tanggal}
+            onChange={setTanggal}
+            label={p.date}
+            labelledBy="dr-date"
+            lang={lang}
+            min={hariIniWib()}
+          />
+        </div>
+        <div className="field">
+          <span className="field__label" id="dr-time">
+            {p.time}
+          </span>
+          <TimeField
+            value={jam}
+            onChange={setJam}
+            label={p.time}
+            labelledBy="dr-time"
+            lang={lang}
+            from={6}
+            to={21}
+            step={15}
+          />
+        </div>
+        <Dropdown
+          id="dr-mod"
+          label={p.module}
+          value={modul}
+          onChange={setModul}
+          options={[1, 2, 3, 4].map((m) => ({
+            value: String(m),
+            label: `${modulLabel(m, lang)} · ${t.modulNama(m)}`,
+          }))}
+        />
+        <div className="field">
+          <span className="field__label">{p.groups}</span>
+          <Stepper
+            value={jumlah}
+            onChange={setJumlah}
+            min={1}
+            max={KELOMPOK_MAKS}
+            label={p.groups}
+            lessLabel={p.fewer}
+            moreLabel={p.more}
+          />
+        </div>
+      </div>
+    </Dialog>
   );
 }
 
@@ -91,7 +473,7 @@ function AssignmentPanel({
   const byGroup = new Map((assign?.penugasan ?? []).map((p) => [p.kelompokId, p.asistenNim]));
   const holds = new Map<string, number>();
   for (const nim of byGroup.values()) holds.set(nim, (holds.get(nim) ?? 0) + 1);
-  const groups = roster.filter((g) => g.aktif !== false).slice(0, 5);
+  const groups = roster.filter((g) => g.aktif !== false);
 
   async function set(kelompokId: number, nomor: number, nim: string | null) {
     try {
@@ -273,198 +655,5 @@ function AssistantPicker({
         </RadixPopover.Content>
       </RadixPopover.Portal>
     </RadixPopover.Root>
-  );
-}
-
-/* ---------------------------------------------------------------- roster */
-
-function RosterPanel({
-  t,
-  lang,
-  roster,
-  onChanged,
-}: {
-  t: Strings;
-  lang: Lang;
-  roster: RosterGroup[];
-  onChanged: () => void;
-}) {
-  const [paste, setPaste] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [review, setReview] = useState(false);
-  const saved = rosterToPaste(roster);
-  const text = paste ?? saved;
-  const parsed = useMemo(() => parseRosterPaste(text), [text]);
-  const dirty = paste !== null && paste !== saved;
-  const diff = useMemo(() => rosterDiff(roster, parsed.groups), [roster, parsed.groups]);
-
-  // Fetch the saved roster fresh whenever this panel opens, so the editor
-  // never starts from a copy another assistant (or a cleanup) has replaced.
-  useEffect(() => {
-    onChanged();
-    // Once per mount; onChanged is a fresh closure every render.
-  }, []);
-
-  async function save() {
-    setSaving(true);
-    try {
-      const r = await postJson<{
-        ok: boolean;
-        kode?: string;
-        groups?: number;
-        total?: number;
-        diarsipkan?: number;
-      }>("/api/session/roster", { paste: text });
-      if (r.ok) {
-        window.Toast?.show(
-          r.diarsipkan
-            ? t.rosterSavedArchived(r.groups ?? 0, r.total ?? 0, r.diarsipkan)
-            : t.rosterSaved(r.groups ?? 0, r.total ?? 0),
-          "ok",
-        );
-        setPaste(null);
-        setReview(false);
-        onChanged();
-      } else window.Toast?.show(pesan(t, r.kode), "danger");
-    } catch {
-      window.Toast?.show(t.fail, "danger");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const groupList = (ns: number[]) => ns.map((n) => `#${n}`).join(", ");
-  const nimList = (xs: string[]) =>
-    xs.length > 6 ? `${xs.slice(0, 6).join(", ")} …` : xs.join(", ");
-
-  return (
-    <section className="panel">
-      <div className="panel__head">
-        <div className="stack stack--sm">
-          <h2 className="panel__title">{t.rosterTitle}</h2>
-          <p className="panel__sub">{t.rosterSub}</p>
-        </div>
-      </div>
-      <textarea
-        className="field__input mono console-textarea roster__paste"
-        rows={10}
-        value={text}
-        spellCheck={false}
-        autoComplete="off"
-        onChange={(e) => setPaste(e.target.value)}
-        aria-label={t.rosterTitle}
-        placeholder={
-          "#1 Vela\n2311102001 Alya Rahmawati\n2311102014 Bagus Prasetyo\n\n#2 Lyra\n2311102033 Dimas Aditya"
-        }
-      />
-      <div className="row">
-        <span className="pill pill--mono">{t.rosterStats(parsed.groups.length, parsed.total)}</span>
-        {parsed.errors.length > 0 ? (
-          <span className="pill pill--danger">{t.rosterErr(parsed.errors.length)}</span>
-        ) : (
-          dirty && <span className="pill pill--ok">{t.rosterOk}</span>
-        )}
-      </div>
-      {parsed.errors.length > 0 && (
-        <ul className="roster__errors">
-          {parsed.errors.slice(0, 6).map((e, i) => (
-            <li key={i}>
-              {e.kode === "tanpa_kelompok"
-                ? t.rosterErrNoGroup(e.baris ?? 0)
-                : e.kode === "nim_ganda"
-                  ? t.rosterErrDup(e.nim ?? "")
-                  : t.rosterErrLine(e.baris ?? 0)}
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="panel__foot">
-        {dirty && (
-          <button type="button" className="btn btn--ghost" onClick={() => setPaste(null)}>
-            {t.cancel}
-          </button>
-        )}
-        <button
-          type="button"
-          className="btn btn--primary"
-          disabled={!dirty || saving || parsed.errors.length > 0 || !text.trim()}
-          onClick={() => setReview(true)}
-        >
-          {t.rosterSave}
-        </button>
-      </div>
-
-      {/* Saving replaces the whole roster, so it always goes through this
-          summary first: a stray click on the button (the layout shifts as
-          Persiapan opens) can no longer save on its own. */}
-      <Dialog
-        open={review}
-        onOpenChange={(o) => !saving && setReview(o)}
-        title={t.rosterReview}
-        description={t.rosterReviewSub}
-        lang={lang}
-        actions={
-          <>
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={() => setReview(false)}
-              disabled={saving}
-            >
-              {t.cancel}
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              disabled={saving || !diff.changed}
-              data-loading={saving ? "yes" : undefined}
-              onClick={() => void save()}
-            >
-              <span className="btn__label">{t.rosterConfirm}</span>
-              <span className="btn__spinner" aria-hidden="true" />
-            </button>
-          </>
-        }
-      >
-        {!diff.changed ? (
-          <p className="hint">{t.rosterNoChange}</p>
-        ) : (
-          <ul className="roster__diff">
-            {diff.groupsAdded.length > 0 && (
-              <li data-kind="add">{t.rosterGroupsAdded(groupList(diff.groupsAdded))}</li>
-            )}
-            {diff.groupsRenamed.length > 0 && (
-              <li>
-                {t.rosterGroupsRenamed(
-                  diff.groupsRenamed.map((g) => `#${g.nomor} ${g.from} → ${g.to}`).join(", "),
-                )}
-              </li>
-            )}
-            {diff.groupsArchived.length > 0 && (
-              <li data-kind="remove">{t.rosterGroupsArchived(groupList(diff.groupsArchived))}</li>
-            )}
-            {diff.membersAdded.length > 0 && (
-              <li data-kind="add">{t.rosterMembersAdded(diff.membersAdded.length)}</li>
-            )}
-            {diff.membersRemoved.length > 0 && (
-              <li data-kind="remove">
-                {t.rosterMembersRemoved(diff.membersRemoved.length, nimList(diff.membersRemoved))}
-              </li>
-            )}
-            {diff.membersMoved.length > 0 && (
-              <li>
-                {t.rosterMembersMoved(
-                  diff.membersMoved.length,
-                  nimList(diff.membersMoved.map((m) => `${m.nim} #${m.from}→#${m.to}`)),
-                )}
-              </li>
-            )}
-            {diff.nameless.length > 0 && (
-              <li className="hint">{t.rosterNameless(diff.nameless.length)}</li>
-            )}
-          </ul>
-        )}
-      </Dialog>
-    </section>
   );
 }

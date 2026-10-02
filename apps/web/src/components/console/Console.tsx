@@ -424,10 +424,6 @@ export default function Console({ lang }: { lang: Lang }) {
       return (
         <div className="console">
           {offline}
-          <div className="console__modes">
-            <BackButton lang={lang} label={t.backConsole} onClick={() => setPrepOnly(false)} />
-            <h1 className="console__h">{t.prepTitle}</h1>
-          </div>
           <PrepView
             t={t}
             lang={lang}
@@ -435,7 +431,9 @@ export default function Console({ lang }: { lang: Lang }) {
             roster={roster}
             assign={null}
             meNim={me!.nim}
+            meKode={(me!.kode ?? "").toUpperCase()}
             onChanged={refreshAll}
+            onBack={() => setPrepOnly(false)}
           />
         </div>
       );
@@ -508,6 +506,7 @@ export default function Console({ lang }: { lang: Lang }) {
             roster={roster}
             assign={assign.data}
             meNim={me!.nim}
+            meKode={(me!.kode ?? "").toUpperCase()}
             onChanged={refreshAll}
           />
         )}

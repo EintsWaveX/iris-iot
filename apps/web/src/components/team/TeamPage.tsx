@@ -465,7 +465,7 @@ function People({
   return (
     <>
       <div className="panel panel--tight tim-filter">
-        <label className="tim-search">
+        <label className="searchbox">
           <MagnifyingGlassIcon size={16} aria-hidden="true" />
           <input
             value={q}

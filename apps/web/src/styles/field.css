@@ -49,3 +49,12 @@
   color: var(--danger);
   font-size: var(--fs-small);
 }
+
+/* A multi-line field (Phase 9): the same box, taller, growing by hand. */
+.field__textarea {
+  font: inherit;
+  line-height: 1.5;
+  min-height: 120px;
+  padding: var(--space-3) var(--space-4);
+  resize: vertical;
+}
