@@ -6,6 +6,8 @@ Satu proses melayani tiga hal sekaligus pada port yang sama:
 
     GET  /              halaman papan skor (berkas tunggal hasil build.py)
     GET  /roster.json   nama anggota kelompok sesi berjalan (TANPA NIM)
+    GET  /jejak.json    jejak 1 Hz tiap kelompok + peristiwa, untuk tayangan ulang
+    GET  /jejak.csv     jejak yang sama sebagai CSV, untuk diunduh asisten
     GET  /telemetri.json  baris mentah per kelompok untuk agent Orange Pi (Stage 20, loopback saja)
     GET  /foto/<berkas> foto klaim yang diunggah sebuah kelompok
     WS   /beacon        beacon melaporkan tiap nomor paket yang dipancarkan
@@ -64,6 +66,7 @@ import shutil
 import time
 from datetime import datetime
 from http import HTTPStatus
+from urllib.parse import parse_qs, urlsplit
 
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.datastructures import Headers
@@ -89,6 +92,11 @@ SILENCE_SEC = 3.0
 # angka ini, sehingga permainan yang sama berjalan baik di dalam satu ruangan
 # maupun di lapangan terbuka selebar ratusan meter. Ubah lewat --arena.
 ARENA_RADIUS_M = 300.0
+
+# Batas jari-jari yang boleh diatur dari ruang kendali. Di bawah 10 m tangga
+# panas sudah ditentukan lantainya saja; di atas 2000 m melewati MAX_RANGE_M.
+ARENA_MIN_M = 10.0
+ARENA_MAX_M = 2000.0
 
 # Tangga panas, sebagai pecahan jari-jari arena. Lantai mutlaknya menjaga agar
 # arena yang sangat kecil tidak menyusutkan "membara" menjadi setengah meter.
@@ -170,7 +178,62 @@ AKSI_ASISTEN = frozenset({
     # Itu satu-satunya jalan keluar NIM selain balasan "masuk" kepada orang
     # yang baru saja mengetikkan NIM-nya sendiri.
     "jadwal_set", "jadwal_baca", "jadwal_hapus", "sesi_mulai", "sesi_akhiri",
+    # Mission control: menutup panggilan sebuah kelompok, mengumumkan ke
+    # semua ponsel, dan memutar hitung mundur di proyektor.
+    "panggil_selesai", "pengumuman", "aba_aba",
+    # Jari-jari arena dari ruang kendali, tanpa menyalakan ulang server.
+    "arena",
 })
+
+# ---------------------------------------------------------------------------
+# Permainan: peran, sinyal tim, sapuan, jejak
+# ---------------------------------------------------------------------------
+
+# Peran lunak di dalam satu kelompok. Tidak ada yang dikunci: setiap ponsel
+# tetap melihat seluruh perburuan, peran hanya menentukan apa yang tampil
+# paling atas. Huruf tunggalnya dipakai di bingkai 10 Hz supaya ringkas.
+PERAN_TIM = {"pemandu": "p", "pengintai": "i", "operator": "o"}
+
+# Empat sinyal teks siap pakai. Hanya sampai ke kelompok itu sendiri dan ke
+# asisten, tidak pernah ke proyektor maupun kelompok lain.
+PING_KODE = frozenset({"ke_sini", "naik", "tunggu", "cek_klaim"})
+PING_JEDA_SEC = 3.0            # satu sinyal per koneksi per sekian detik
+PING_RIWAYAT = 5               # sinyal terakhir yang disimpan per kelompok
+
+MAX_PENGUMUMAN = 140
+
+# Sapuan 8 arah: RSSI halus per arah. Di luar rentang ini bukan pembacaan
+# SX1276 yang sah, dan sapuan dengan kurang dari 4 arah tidak berarti apa-apa.
+SAPUAN_ARAH = 8
+SAPUAN_MIN_TERISI = 4
+SAPUAN_RSSI_MIN = -140.0
+SAPUAN_RSSI_MAX = 0.0
+
+# Jejak untuk tayangan ulang: satu cuplikan per detik per kelompok, cukup
+# untuk satu sesi penuh (150 menit = 9000 detik).
+JEJAK_CAP = 9000
+JEJAK_PERISTIWA_CAP = 2000
+JEJAK_KIND = frozenset({
+    "zona", "klaim", "tolak", "ditemukan", "sapuan", "salip", "panggil",
+})
+
+# Titik jangkar kurva logaritmik yang sama dengan reach() di sense.js.
+REACH_D0_M = 3.0
+
+# jarak_awal adalah median jarak sepanjang sekian detik pertama sebuah
+# kelompok melapor. Kemajuan dihitung terhadapnya, sehingga lima kelompok
+# yang berangkat dari lima jarak berbeda tetap dapat dibandingkan secara adil.
+AWAL_JENDELA_SEC = 10
+
+# Urutan tangga panas sebagai angka, untuk peristiwa "masuk zona".
+HEAT_LEVEL = {"hilang": 0, "dingin": 1, "sejuk": 2, "hangat": 3,
+              "panas": 4, "membara": 5}
+
+# Salip: urutan kemajuan (dihaluskan) dibandingkan tiap sekian detik, dan
+# pasangan yang sama tidak diumumkan lagi sebelum jedanya lewat.
+SALIP_TIAP_SEC = 20
+SALIP_JEDA_SEC = 180
+SALIP_SELISIH = 0.015
 
 # ---------------------------------------------------------------------------
 # Unggahan foto klaim
@@ -308,14 +371,40 @@ class Hunt:
         # Satu ronde, satu folder foto.
         self.ronde = ronde_baru()
 
+        # Permainan. Semuanya milik satu ronde, jadi "Ronde baru" dan
+        # pergantian sesi membuang seluruhnya bersama foto-fotonya.
+        self.pings: dict[int, list[dict]] = {}
+        self.ping_seq = 0
+        self.panggil: dict[int, float] = {}
+        self.sapuan: dict[int, dict] = {}
+        self.pengumuman: dict | None = None
+        self.pengumuman_seq = 0
+        self.jejak_peristiwa: list[dict] = []
+        self.salip_ema: dict[int, float] = {}
+        self.salip_urut: list[int] | None = None
+        self.salip_akhir: dict[str, int] = {}
+        self.cuplik_terakhir = -1
+
     # -- catatan peristiwa ------------------------------------------------
 
+    def detik(self) -> int:
+        """Detik sejak perburuan dimulai; 0 sebelum ada yang memancar."""
+        return self.elapsed() if self.started_at is not None else 0
+
     def note(self, kind: str, group: int | None = None, **extra) -> None:
-        """Satu baris untuk lajur notifikasi pada papan skor."""
-        self.events.append(
-            {"kind": kind, "grup": group, "at": timestamp(), **extra}
-        )
+        """Satu baris untuk lajur notifikasi pada papan skor.
+
+        "t" adalah detik perburuan, supaya tayangan ulang dapat menaruh
+        peristiwa yang sama di sumbu waktunya sendiri. Jam dinding "at"
+        tetap ada untuk toast dan untuk kunci penghapus duplikat di klien.
+        """
+        entry = {"kind": kind, "grup": group, "at": timestamp(),
+                 "t": self.detik(), **extra}
+        self.events.append(entry)
         del self.events[:-40]
+        if kind in JEJAK_KIND:
+            self.jejak_peristiwa.append(entry)
+            del self.jejak_peristiwa[:-JEJAK_PERISTIWA_CAP]
         self.rev += 1
 
     # -- masukan dari perangkat -------------------------------------------
@@ -380,6 +469,14 @@ class Hunt:
                 "found_at": None,
                 "finish_seq": None,
                 "durasi": None,
+
+                # Jejak 1 Hz untuk tayangan ulang: (detik, jarak_m,
+                # kemajuan, tingkat panas). Lihat cuplik().
+                "jejak": [],
+                "awal": [],
+                "awal_mulai": None,
+                "jarak_awal": None,
+                "heat_max": None,
             }
             self.groups[gid] = slot
             self.note("bergabung", gid)
@@ -402,6 +499,13 @@ class Hunt:
     def on_hunter(self, msg: dict, ip: str | None) -> None:
         gid = int(msg["grup"])
         slot = self.group_slot(gid)
+
+        # Hunter yang tersambung lebih dulu daripada beacon-nya (Wi-Fi beacon
+        # sedang rewel) tetap memulai jam perburuan. Tanpa ini ronde itu
+        # tidak punya jejak sama sekali, karena cuplik() menunggu started_at.
+        if self.started_at is None:
+            self.started_at = time.monotonic()
+            self.note("mulai")
 
         was_silent = self._silent(slot)
 
@@ -580,6 +684,156 @@ class Hunt:
         # tipis, bukan batang kosong yang terbaca seperti papan rusak.
         span = (slot["halus"] - low) / (high - low)
         return round(0.04 + 0.96 * clamp(span, 0.0, 1.0), 3)
+
+    # -- kemajuan dan jejak -----------------------------------------------
+
+    def kemajuan(self, slot: dict) -> float:
+        """Pecahan jarak SENDIRI yang sudah ditutup, 0..1.
+
+        Satu-satunya angka kedekatan yang sah dibandingkan antar kelompok:
+        setiap kelompok memburu beacon yang berbeda, jadi RSSI mentah atau
+        jarak mentah tidak bisa diadu. Yang diadu adalah seberapa jauh
+        masing-masing sudah berjalan dari titik berangkatnya sendiri,
+        pada kurva logaritmik yang sama dengan reach() di sense.js, supaya
+        tiga meter terakhir tidak hilang di ujung skala.
+        """
+        if slot["status"] == "menang":
+            return 1.0
+        awal = slot["jarak_awal"]
+        jarak = self.distance_m(slot["halus"])
+        if awal is None or jarak is None:
+            return 0.0
+        # Kelompok yang berangkat sudah di dekat beacon-nya tidak boleh
+        # membagi dengan hampir nol. Acuannya paling sedikit dua kali
+        # jari-jari "membara".
+        acuan = max(awal, 2.0 * self.heat_radius(*HEAT_LADDER[0][1:]))
+        skala = math.log(1.0 + acuan / REACH_D0_M)
+        nilai = 1.0 - math.log(1.0 + jarak / REACH_D0_M) / skala
+        return round(clamp(nilai, 0.0, 1.0), 4)
+
+    def cuplik(self) -> None:
+        """Satu cuplikan jejak per detik perburuan, dipanggil dari siaran.
+
+        Juga tempat dua peristiwa permainan dihitung, karena keduanya butuh
+        irama tetap yang sama: masuk zona yang lebih dekat, dan salip
+        (urutan kemajuan yang dihaluskan berubah).
+        """
+        if self.started_at is None or self.round_ended_at is not None:
+            return
+        t = self.detik()
+        if t == self.cuplik_terakhir:
+            return
+        self.cuplik_terakhir = t
+
+        for gid, slot in self.groups.items():
+            if slot["halus"] is None or self._silent(slot):
+                continue
+            jarak = self.distance_m(slot["halus"])
+            heat = self.heat(slot)
+            level = HEAT_LEVEL[heat]
+
+            if slot["jarak_awal"] is None:
+                if slot["awal_mulai"] is None:
+                    slot["awal_mulai"] = t
+                slot["awal"].append(jarak)
+                if (t - slot["awal_mulai"] >= AWAL_JENDELA_SEC
+                        and len(slot["awal"]) >= 3):
+                    urut = sorted(slot["awal"])
+                    slot["jarak_awal"] = urut[len(urut) // 2]
+                    slot["awal"] = []
+                    # Zona awal bukan pencapaian: kelompok yang berangkat
+                    # di zona hangat tidak diumumkan "masuk zona hangat".
+                    slot["heat_max"] = level
+
+            kem = self.kemajuan(slot)
+            slot["jejak"].append((t, jarak, kem, level))
+            del slot["jejak"][:-JEJAK_CAP]
+
+            if slot["heat_max"] is not None and level > slot["heat_max"]:
+                slot["heat_max"] = level
+                if level >= HEAT_LEVEL["hangat"] and slot["status"] != "menang":
+                    self.note("zona", gid, heat=heat)
+
+            if slot["jarak_awal"] is not None and slot["status"] != "menang":
+                lama = self.salip_ema.get(gid)
+                self.salip_ema[gid] = kem if lama is None else lama * 0.9 + kem * 0.1
+
+        if t > 0 and t % SALIP_TIAP_SEC == 0:
+            self._periksa_salip(t)
+
+    def _periksa_salip(self, t: int) -> None:
+        """Umumkan satu salip bila urutan kemajuan berubah sejak terakhir."""
+        hidup = [gid for gid, slot in self.groups.items()
+                 if slot["status"] != "menang" and gid in self.salip_ema]
+        hidup.sort(key=lambda g: -self.salip_ema[g])
+        lalu = self.salip_urut
+        self.salip_urut = hidup
+        if not lalu:
+            return
+        for i, gid in enumerate(hidup):
+            sebelum = lalu.index(gid) if gid in lalu else -1
+            if sebelum <= i:
+                continue
+            lawan = lalu[i] if i < len(lalu) else None
+            if lawan is None or lawan not in hidup or hidup.index(lawan) <= i:
+                break
+            if self.salip_ema[gid] - self.salip_ema[lawan] <= SALIP_SELISIH:
+                break
+            kunci = f"{gid}>{lawan}"
+            if t - self.salip_akhir.get(kunci, -SALIP_JEDA_SEC) < SALIP_JEDA_SEC:
+                break
+            self.salip_akhir[kunci] = t
+            self.note("salip", gid, lawan=lawan)
+            break
+
+    def jejak(self, grup: int | None = None, sejak: int | None = None,
+              detik: int | None = None, langkah: int = 1) -> dict:
+        """Bentuk publik jejak untuk /jejak.json.
+
+        Hanya nomor kelompok, jarak, kemajuan, tingkat panas dan waktu.
+        Tidak ada NIM, dan tidak ada nama selain nama depan pada peristiwa
+        sapuan, yang memang sudah publik lewat /roster.json.
+        """
+        kini = self.detik()
+        batas_bawah = -1
+        if sejak is not None:
+            batas_bawah = max(batas_bawah, sejak)
+        if detik is not None:
+            batas_bawah = max(batas_bawah, kini - detik)
+        langkah = max(1, langkah)
+
+        keluar: dict[str, dict] = {}
+        for gid, slot in sorted(self.groups.items()):
+            if grup is not None and gid != grup:
+                continue
+            baris = [s for s in slot["jejak"] if s[0] > batas_bawah]
+            if langkah > 1:
+                # Cuplikan terakhir selalu ikut, supaya garisnya berakhir
+                # tepat di "sekarang" berapa pun langkahnya.
+                terakhir = baris[-1:] if baris else []
+                baris = [s for s in baris if s[0] % langkah == 0]
+                if terakhir and (not baris or baris[-1] is not terakhir[0]):
+                    baris.append(terakhir[0])
+            keluar[str(gid)] = {
+                "jarak_awal": slot["jarak_awal"],
+                "status": slot["status"],
+                "durasi": slot["durasi"],
+                "s": [[s[0], s[1], s[2], s[3]] for s in baris],
+            }
+
+        peristiwa = [
+            {k: v for k, v in e.items() if k != "at"}
+            for e in self.jejak_peristiwa
+            if e["t"] > batas_bawah and (grup is None or e["grup"] == grup)
+        ]
+        return {
+            "ronde": self.ronde,
+            "berjalan": kini,
+            "selesai": self.round_ended_at is not None,
+            "arena_m": self.arena_m,
+            "grup": keluar,
+            "peristiwa": peristiwa,
+        }
 
     # -- keputusan asisten -------------------------------------------------
 
@@ -792,6 +1046,8 @@ class Hunt:
                 # nominee() dan on_beacon().
                 "calon": self.nominee(slot),
                 "durasi": slot["durasi"],
+                "kemajuan": self.kemajuan(slot),
+                "jarak_awal": slot["jarak_awal"],
                 "beacon": {
                     "online": beacon_online,
                     "seq": slot["beacon_seq"],
@@ -873,6 +1129,18 @@ class Hunt:
             # tidak perlu ada pesan dorong khusus untuk pergantian sesi.
             "sesi": JADWAL["aktif"],
             "sesi_sisa": sesi_sisa(),
+            # Permainan. Kunci kelompok berupa string di keempatnya, sama
+            # dengan /roster.json. tim memakai huruf per anggota, searah
+            # dengan urutan nama di /roster.json, supaya bingkai 10 Hz tidak
+            # membawa nama siapa pun: "p" pemandu, "i" pengintai, "o"
+            # operator radio, "-" belum memilih; hadir "1" berarti ada
+            # ponselnya yang sedang tersambung.
+            "tim": tim_bingkai(),
+            "panggil": {
+                str(g): int(now - at) for g, at in sorted(self.panggil.items())
+            },
+            "sapuan": {str(g): s for g, s in sorted(self.sapuan.items())},
+            "pengumuman": self.pengumuman,
         }
 
     # -- penghargaan --------------------------------------------------------
@@ -963,6 +1231,42 @@ HUNT = Hunt()
 VIEWERS: dict[ServerConnection, dict] = {}
 
 TOKEN: str = ""
+
+# NIM -> peran lunak yang dipilih orangnya. Milik satu sesi, bukan satu
+# ronde: "Ronde baru" di tengah sesi tidak membuat orang yang sama harus
+# memilih ulang, tetapi pergantian sesi membuangnya bersama orangnya (lihat
+# ronde_bersih). Kuncinya NIM supaya peran selamat dari ponsel yang
+# menyambung ulang; NIM itu sendiri tidak pernah keluar dari proses ini.
+PERAN: dict[str, str] = {}
+
+
+def nama_depan(nama: str) -> str:
+    """Nama depan saja, untuk sinyal tim dan sapuan."""
+    bagian = (nama or "").split()
+    return bagian[0] if bagian else ""
+
+
+def tim_bingkai() -> dict:
+    """Peran dan kehadiran tiap anggota, per kelompok sesi berjalan.
+
+    Urutannya mengikuti daftar anggota di /roster.json, jadi klien cukup
+    menyejajarkan huruf ke-i dengan nama ke-i. Tanpa nama, tanpa NIM.
+    """
+    hadir_nim: set[str] = set()
+    for meta in VIEWERS.values():
+        if meta.get("nim") and meta.get("grup") is not None:
+            hadir_nim.add(meta["nim"])
+
+    keluar = {}
+    for gid, isi in regu_aktif().items():
+        huruf = []
+        hadir = []
+        for anggota in isi.get("anggota", []):
+            nim = anggota.get("nim", "")
+            huruf.append(PERAN_TIM.get(PERAN.get(nim, ""), "-"))
+            hadir.append("1" if nim in hadir_nim else "0")
+        keluar[str(gid)] = {"peran": "".join(huruf), "hadir": "".join(hadir)}
+    return keluar
 
 # Rencana satu hari. "sesi" selalu berisi empat entri, urut menurut id.
 # "aktif" adalah id sesi yang sedang berjalan, atau None di antara sesi.
@@ -1417,7 +1721,9 @@ async def ronde_bersih() -> None:
 
     Rencana hari TIDAK ikut terhapus: itulah beda pergantian sesi dengan
     penghapusan rencana. Asisten mengetik daftarnya sekali di pagi hari.
+    Peran lunak ikut dibuang, karena orangnya sudah berganti.
     """
+    PERAN.clear()
     HUNT.reset()
     await sapu_unggahan(semua=True)
 
@@ -1527,6 +1833,9 @@ def process_request(connection: ServerConnection, request) -> Response | None:
         })
         return Response(HTTPStatus.OK, "OK", headers, body)
 
+    if path in ("/jejak.json", "/jejak.csv"):
+        return sajikan_jejak(connection, request.path, csv=path.endswith(".csv"))
+
     if path == "/telemetri.json":
         # Stage 20: baris mentah per kelompok (tx/rx/delay_ms/rssi/snr), untuk
         # agent Orange Pi sendiri meneruskannya ke situs web lewat denyut
@@ -1564,6 +1873,62 @@ def process_request(connection: ServerConnection, request) -> Response | None:
         return sajikan_foto(connection, path)
 
     return connection.respond(HTTPStatus.NOT_FOUND, "Tidak ditemukan\n")
+
+
+def _angka_kueri(kueri: dict, kunci: str, bawah: int, atas: int) -> int | None:
+    """Satu bilangan bulat dari query string, atau None bila tidak ada/cacat."""
+    nilai = kueri.get(kunci)
+    if not nilai:
+        return None
+    try:
+        return int(clamp(int(nilai[0]), bawah, atas))
+    except (TypeError, ValueError):
+        return None
+
+
+def sajikan_jejak(connection: ServerConnection, raw_path: str,
+                  csv: bool) -> Response:
+    """Jejak ronde berjalan, tanpa token.
+
+    Publik dengan sengaja, sama seperti /roster.json: proyektor dan setiap
+    ponsel memutar tayangan ulang dari sini. Isinya hanya nomor kelompok,
+    waktu, jarak dan kemajuan, jadi tidak ada yang perlu dilindungi.
+
+        ?grup=3       satu kelompok saja
+        ?detik=90     hanya 90 detik terakhir (jejak di layar Buru)
+        ?sejak=412    hanya yang lebih baru dari detik 412 (pengambilan susulan)
+        ?langkah=5    satu cuplikan tiap 5 detik (tayangan panjang di ponsel)
+    """
+    kueri = parse_qs(urlsplit(raw_path).query)
+    data = HUNT.jejak(
+        grup=_angka_kueri(kueri, "grup", 1, MAX_GRUP_ID),
+        sejak=_angka_kueri(kueri, "sejak", -1, 10 ** 7),
+        detik=_angka_kueri(kueri, "detik", 1, JEJAK_CAP),
+        langkah=_angka_kueri(kueri, "langkah", 1, 600) or 1,
+    )
+
+    if csv:
+        baris = ["grup,detik,jarak_m,kemajuan,panas"]
+        nama_panas = {v: k for k, v in HEAT_LEVEL.items()}
+        for gid, isi in data["grup"].items():
+            for t, jarak, kem, level in isi["s"]:
+                baris.append(f"{gid},{t},{jarak},{kem},{nama_panas.get(level, '')}")
+        body = ("\n".join(baris) + "\n").encode("utf-8")
+        headers = Headers({
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Length": str(len(body)),
+            "Content-Disposition": f'attachment; filename="jejak-{HUNT.ronde}.csv"',
+            "Cache-Control": "no-store",
+        })
+        return Response(HTTPStatus.OK, "OK", headers, body)
+
+    body = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    headers = Headers({
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Length": str(len(body)),
+        "Cache-Control": "no-store",
+    })
+    return Response(HTTPStatus.OK, "OK", headers, body)
 
 
 def sajikan_foto(connection: ServerConnection, path: str) -> Response:
@@ -1737,6 +2102,109 @@ async def terima_foto(connection: ServerConnection, meta: dict,
                 berkas=nama, url=f"/foto/{nama}")
 
 
+def _penerima_ping(gid: int) -> list[ServerConnection]:
+    """Siapa yang boleh melihat sinyal kelompok ini: anggotanya dan asisten."""
+    return [conn for conn, meta in VIEWERS.items()
+            if meta["peran"] == PERAN_ASISTEN or meta.get("grup") == gid]
+
+
+async def kirim_riwayat_ping(connection: ServerConnection, meta: dict) -> None:
+    """Lima sinyal terakhir, supaya ponsel yang baru masuk tidak buta."""
+    if meta["peran"] == PERAN_ASISTEN:
+        daftar = [p for g in sorted(HUNT.pings) for p in HUNT.pings[g]]
+        daftar.sort(key=lambda p: p["id"])
+    elif meta.get("grup") is not None:
+        daftar = list(HUNT.pings.get(meta["grup"], []))
+    else:
+        return
+    await kirim(connection, "ping_riwayat", daftar=daftar)
+
+
+async def kirim_ping(connection: ServerConnection, meta: dict, kode) -> None:
+    """Satu sinyal tim, hanya ke kelompoknya sendiri dan ke asisten."""
+    gid = meta.get("grup")
+    if gid is None or not meta.get("nim"):
+        await kirim(connection, "balas", aksi="ping", ok=False,
+                    alasan="masuk dengan NIM dulu")
+        return
+    if kode not in PING_KODE:
+        await kirim(connection, "balas", aksi="ping", ok=False,
+                    alasan="sinyal tidak dikenal")
+        return
+    now = time.monotonic()
+    if now - meta["ping_at"] < PING_JEDA_SEC:
+        await kirim(connection, "balas", aksi="ping", ok=False,
+                    alasan="tunggu sebentar", kode="terlalu_cepat")
+        return
+    meta["ping_at"] = now
+
+    HUNT.ping_seq += 1
+    ping = {
+        "id": HUNT.ping_seq,
+        "grup": gid,
+        "kode": kode,
+        "dari": nama_depan(meta["nama"]),
+        # Nomor koneksi pengirim (bukan rahasia; sama dengan yang dicatat
+        # log) supaya ponsel pengirim mengenali sinyalnya sendiri.
+        "dari_id": meta["id"],
+        "at": timestamp(),
+        "t": HUNT.detik(),
+    }
+    riwayat = HUNT.pings.setdefault(gid, [])
+    riwayat.append(ping)
+    del riwayat[:-PING_RIWAYAT]
+
+    payload = json.dumps({"tipe": "ping", **ping})
+    targets = _penerima_ping(gid)
+    await asyncio.gather(*(t.send(payload) for t in targets),
+                         return_exceptions=True)
+    await kirim(connection, "balas", aksi="ping", ok=True)
+
+
+def simpan_sapuan(meta: dict, msg: dict) -> tuple[bool, str]:
+    """Validasi dan simpan satu sapuan 8 arah dari anggota kelompok."""
+    gid = meta.get("grup")
+    if gid is None or not meta.get("nim"):
+        return False, "masuk dengan NIM dulu"
+
+    arah = msg.get("arah")
+    if not isinstance(arah, list) or len(arah) != SAPUAN_ARAH:
+        return False, f"sapuan butuh {SAPUAN_ARAH} arah"
+    bersih: list[float | None] = []
+    for nilai in arah:
+        if nilai is None:
+            bersih.append(None)
+            continue
+        if isinstance(nilai, bool) or not isinstance(nilai, (int, float)):
+            return False, "nilai arah tidak sah"
+        if not (SAPUAN_RSSI_MIN <= float(nilai) <= SAPUAN_RSSI_MAX):
+            return False, "nilai arah di luar rentang RSSI"
+        bersih.append(round(float(nilai), 1))
+    if sum(1 for v in bersih if v is not None) < SAPUAN_MIN_TERISI:
+        return False, f"paling sedikit {SAPUAN_MIN_TERISI} arah terekam"
+
+    mode = msg.get("mode", "manual")
+    if mode not in ("manual", "kompas"):
+        return False, "mode sapuan tidak dikenal"
+    awal = msg.get("awal_deg")
+    if awal is not None:
+        if isinstance(awal, bool) or not isinstance(awal, (int, float)) \
+                or not 0 <= float(awal) < 360:
+            return False, "arah awal tidak sah"
+        awal = round(float(awal), 1)
+
+    terisi = [(i, v) for i, v in enumerate(bersih) if v is not None]
+    terkuat = max(terisi, key=lambda p: p[1])[0]
+    oleh = nama_depan(meta["nama"])
+    HUNT.sapuan[gid] = {
+        "arah": bersih, "mode": mode, "awal_deg": awal,
+        "terkuat": terkuat, "oleh": oleh, "t": HUNT.detik(),
+        "at": timestamp(),
+    }
+    HUNT.note("sapuan", gid, dari=oleh, terkuat=terkuat)
+    return True, ""
+
+
 async def handle_viewer(connection: ServerConnection) -> None:
     meta = {
         "id": secrets.token_hex(4),   # untuk log, bukan rahasia
@@ -1749,6 +2217,8 @@ async def handle_viewer(connection: ServerConnection) -> None:
         "gagal": 0,
         "gagal_masuk": 0,
         "unggah": None,
+        "nama": "",
+        "ping_at": 0.0,
     }
     VIEWERS[connection] = meta
     print(f"[{timestamp()}] papan skor dibuka ({meta['ip']})")
@@ -1834,13 +2304,16 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         orang = cari_nim(nim)
         meta["grup"] = gid
         meta["nim"] = nim.strip().upper()
+        meta["nama"] = orang["nama"]
         meta["sesi"] = JADWAL["aktif"]
         if meta["peran"] != PERAN_ASISTEN:
             meta["peran"] = PERAN_ANGGOTA
         print(f"[{timestamp()}] masuk: kelompok {gid} ({meta['ip']})")
         await kirim(connection, "masuk", ok=True, grup=gid,
                     nama=orang["nama"], sesi=JADWAL["aktif"],
-                    peran=meta["peran"])
+                    peran=meta["peran"], id=meta["id"],
+                    peran_tim=PERAN.get(meta["nim"]))
+        await kirim_riwayat_ping(connection, meta)
         return
 
     if aksi == "halo":
@@ -1863,6 +2336,8 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         meta["grup"] = gid
         meta["nim"] = msg.get("nim", "").strip().upper() if gid is not None else None
         meta["sesi"] = JADWAL["aktif"] if gid is not None else None
+        orang = cari_nim(meta["nim"]) if meta["nim"] else None
+        meta["nama"] = orang["nama"] if orang else ""
 
         if punya_token:
             meta["peran"] = PERAN_ASISTEN
@@ -1876,7 +2351,109 @@ async def layani_aksi(connection: ServerConnection, meta: dict,
         await kirim(connection, "halo", ok=not alasan, alasan=alasan, kode=kode,
                     peran=meta["peran"], grup=meta["grup"], id=meta["id"],
                     ronde=HUNT.ronde, sesi=JADWAL["aktif"],
-                    roster_rev=JADWAL["rev"])
+                    roster_rev=JADWAL["rev"],
+                    nama=meta["nama"],
+                    peran_tim=PERAN.get(meta["nim"]) if meta["nim"] else None)
+        await kirim_riwayat_ping(connection, meta)
+        return
+
+    if aksi == "tim_peran":
+        if meta["grup"] is None or not meta["nim"]:
+            await kirim(connection, "balas", aksi="tim_peran", ok=False,
+                        alasan="masuk dengan NIM dulu")
+            return
+        peran = msg.get("peran")
+        if peran is not None and peran not in PERAN_TIM:
+            await kirim(connection, "balas", aksi="tim_peran", ok=False,
+                        alasan="peran tidak dikenal")
+            return
+        if peran is None:
+            PERAN.pop(meta["nim"], None)
+        else:
+            PERAN[meta["nim"]] = peran
+        HUNT.rev += 1
+        await kirim(connection, "balas", aksi="tim_peran", ok=True, peran=peran)
+        return
+
+    if aksi == "ping":
+        await kirim_ping(connection, meta, msg.get("kode"))
+        return
+
+    if aksi == "panggil_asisten":
+        gid = meta["grup"]
+        if gid is None:
+            await kirim(connection, "balas", aksi="panggil_asisten", ok=False,
+                        alasan="masuk dengan NIM dulu")
+            return
+        if msg.get("batal"):
+            HUNT.panggil.pop(gid, None)
+            HUNT.rev += 1
+        elif gid not in HUNT.panggil:
+            HUNT.panggil[gid] = time.monotonic()
+            HUNT.note("panggil", gid, dari=nama_depan(meta["nama"]))
+        await kirim(connection, "balas", aksi="panggil_asisten", ok=True,
+                    aktif=gid in HUNT.panggil)
+        return
+
+    if aksi == "panggil_selesai":
+        gid = _grup_valid(msg.get("grup"))
+        if gid is None or gid not in HUNT.panggil:
+            await kirim(connection, "balas", aksi="panggil_selesai", ok=False,
+                        alasan="kelompok itu tidak sedang memanggil")
+            return
+        HUNT.panggil.pop(gid, None)
+        HUNT.rev += 1
+        await kirim(connection, "balas", aksi="panggil_selesai", ok=True, grup=gid)
+        return
+
+    if aksi == "sapuan":
+        ok, alasan = simpan_sapuan(meta, msg)
+        await kirim(connection, "balas", aksi="sapuan", ok=ok, alasan=alasan)
+        return
+
+    if aksi == "pengumuman":
+        teks = msg.get("teks")
+        if not isinstance(teks, str):
+            teks = ""
+        teks = "".join(c for c in teks if c.isprintable()).strip()
+        if len(teks) > MAX_PENGUMUMAN:
+            await kirim(connection, "balas", aksi="pengumuman", ok=False,
+                        alasan=f"paling banyak {MAX_PENGUMUMAN} karakter")
+            return
+        if teks:
+            HUNT.pengumuman_seq += 1
+            HUNT.pengumuman = {"id": HUNT.pengumuman_seq, "teks": teks,
+                               "at": timestamp(), "t": HUNT.detik()}
+            HUNT.note("pengumuman")
+        else:
+            HUNT.pengumuman = None
+            HUNT.rev += 1
+        await kirim(connection, "balas", aksi="pengumuman", ok=True,
+                    aktif=HUNT.pengumuman is not None)
+        return
+
+    if aksi == "aba_aba":
+        HUNT.note("aba-aba")
+        await kirim(connection, "balas", aksi="aba_aba", ok=True)
+        return
+
+    if aksi == "arena":
+        # Mengubah jari-jari menggeser seluruh tangga panas seketika, persis
+        # seperti --arena, tetapi tanpa menyalakan ulang server (dan karena
+        # itu tanpa kehilangan ronde yang sedang berjalan).
+        try:
+            nilai = float(msg.get("arena_m"))
+        except (TypeError, ValueError):
+            nilai = float("nan")
+        if not ARENA_MIN_M <= nilai <= ARENA_MAX_M:
+            await kirim(connection, "balas", aksi="arena", ok=False,
+                        alasan=f"jari-jari arena {ARENA_MIN_M:.0f} sampai "
+                               f"{ARENA_MAX_M:.0f} m")
+            return
+        HUNT.arena_m = round(nilai, 1)
+        HUNT.note("arena", arena_m=HUNT.arena_m)
+        await kirim(connection, "balas", aksi="arena", ok=True,
+                    arena_m=HUNT.arena_m)
         return
 
     if aksi == "foto_mulai":
@@ -2045,6 +2622,11 @@ async def broadcast_loop() -> None:
 
     while True:
         await asyncio.sleep(period)
+        # Jejak dicuplik SEBELUM pemeriksaan penonton: ronde tetap tercatat
+        # utuh walau tidak ada satu tab pun yang terbuka, supaya tayangan
+        # ulangnya tidak berlubang. cuplik() sendiri menjaga satu cuplikan
+        # per detik perburuan.
+        HUNT.cuplik()
         if not VIEWERS:
             continue
 

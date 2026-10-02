@@ -83,6 +83,23 @@ dan selisih itulah yang dicatat praktikan.
 
 ## 2. Membangun dan menjalankan papan skor
 
+Di Orange Pi papan skor berjalan sebagai `modul4.service` dan dikirim lewat
+`IRIS ASO/orangepi/deploy.sh --modul 4`; perintah di bawah ini untuk
+menjalankannya dengan tangan.
+
+### Sumber berkas (klien Phase 9)
+
+Kliennya Preact + htm (`src/vendor/`, tanpa CDN), dipindahkan dari mockup
+Phase 9 dan memakai tiga bahasa (`?lang=id|en|zh`). Berkas hasil alat:
+
+- `src/style/mockup.css`: `node tools/prune_css.mjs <mockups/phase9/app>`
+- `src/icons.js`: `node tools/sync_icons.mjs <mockups/phase9/app/icons.js>`
+- `src/i18n/zh.json`: `python tools/zh_sync.py --from <mockups/phase9/tools>`, lalu
+  terjemahkan yang masih kurang; `build.py` menolak membangun bila ada kunci yang hilang.
+- `src/fonts/noto-sans-sc-hunt-*.woff2`: `python tools/subset_cjk.py <NotoSansSC[wght].ttf>`
+  (Google Fonts, OFL), wajib dijalankan ulang bila `zh.json` memakai aksara baru.
+
+
 ```bash
 python modul4/build.py                    # menghasilkan modul4/public/index.html
 source ~/venv-iris/bin/activate         # venv yang sama dengan Modul 2
@@ -134,8 +151,10 @@ rapat dengan RSSI yang mengikuti jarak (di dalam jangkauan). Peralihan dari
 
 ### Token asisten
 
-Setiap kali server dinyalakan, sebuah token enam huruf dibangkitkan dan
-dicetak di konsol:
+Di Orange Pi, `modul4.service` membaca token tetap dari
+`/var/lib/iris-modul4/token` (dibuat sekali oleh `opi_provision.sh`, mode 0600),
+jadi token **tidak** berganti saat layanan dinyalakan ulang. Dijalankan dengan
+tangan tanpa `--token`, server membangkitkan token enam huruf dan mencetaknya:
 
 ```
 [13:02:52:686] +-----------------------------+
@@ -143,14 +162,12 @@ dicetak di konsol:
 [13:02:52:686] +-----------------------------+
 ```
 
-Asisten membuka alamat yang sama dengan praktikan, **mengetuk lambang IRIS di
-pojok kiri atas tiga kali**, lalu mengetikkan token itu. Tokennya tersimpan di
+Asisten membuka alamat yang sama dengan praktikan, mengetuk **Saya asisten** di kartu masuk NIM, lalu mengetikkan token itu. Tokennya tersimpan di
 peramban asisten, jadi cukup sekali per perangkat.
 
 Abjadnya sengaja tanpa huruf dan angka yang mudah tertukar saat dibacakan
 (tanpa 0/O, 1/I/L, 2/Z, 5/S, 8/B), dan salah ketik lima kali menutup koneksi.
-Pakai `--token KODE` bila ingin token yang tetap sepanjang hari; tanpa itu,
-token berganti setiap kali server dijalankan ulang.
+Pakai `--token KODE` untuk token tetap saat menjalankan server dengan tangan.
 
 > Tanpa token, tidak ada yang bisa mengesahkan pemenang, menolak klaim,
 > mengkalibrasi, memulai sesi baru, atau menyunting nama. Sebelum revisi ini
@@ -175,48 +192,83 @@ Buka `http://192.168.4.1:8080` untuk papan skor, dan
 
 ## 3. Menjalankan permainan
 
+Lima kelompok, lima pasangan Beacon/Hunter, lima beacon tersembunyi. Tiap
+kelompok memburu **beacon-nya sendiri**; pasangan-pasangan itu tidak saling
+mendengar karena kata sinkron radionya berbeda.
+
 1. Nyalakan hotspot, lalu jalankan server. Catat tokennya.
-2. Unggah `beacon.ino` (dari folder kelompok mana pun — isinya identik) ke satu
-   papan, pasang antenanya, nyalakan, dan **sembunyikan**.
-3. Tiap kelompok mengunggah `hunter.ino` dari foldernya sendiri. Tidak ada baris
-   yang perlu disunting.
-4. **Asisten mengisi jadwal sehari.** Buka `http://192.168.4.1:8080`, ketuk
-   lambang IRIS tiga kali, masukkan token, lalu buka tab **Asisten**. Tempelkan
-   daftar tiap sesi ke kotaknya masing-masing (lihat bagian 4), dan **hapus
-   kelompok yang papannya dipakai sebagai beacon** dari sesi itu — anggotanya
-   tidak akan bisa masuk, karena mereka memang tidak punya perburuan.
-5. **Tiap praktikan membuka alamat yang sama di ponselnya** dan mengetikkan
-   **NIM**-nya. Papan mencari NIM itu di sesi yang sedang berjalan, menampilkan
-   namanya sendiri beserta nama satu kelompoknya untuk dipastikan, lalu
-   mengingatnya di ponsel tersebut.
-6. **Kalibrasi acuan jarak.** Pegang satu papan Hunter tepat **1 meter** dari
-   Beacon, lalu tekan **Kalibrasi 1 m**. Sesudah ini perkiraan jarak memakai
-   lapangan yang sebenarnya, bukan angka bawaan di dalam kode. Kalibrasi
-   bertahan melewati **Ronde baru** dan pergantian sesi, jadi cukup sekali per
-   lokasi.
-7. Papan skor mulai memeringkat begitu paket pertama masuk. Tiap ponsel
-   menampilkan perburuan kelompoknya sendiri di atas, dan kelompok lain
-   sebagai daftar ringkas di bawahnya.
-8. **Ketika sebuah kelompok merasa memegang beacon**, tombol *Kami
-   menemukannya* di ponsel mereka terbuka sendiri — tetapi hanya kalau mereka
-   benar-benar sudah dekat (keadaan MEMBARA). Mereka memotret beacon-nya dan
-   mengirim klaim.
-9. **Asisten meninjau dari ruang praktikum.** Klaim masuk ke antrean di tab
-   Asisten menurut urutan pengajuan, lengkap dengan fotonya, jarak saat
-   mengklaim, dan nama anggota. Asisten menekan **Sahkan** atau **Tolak**
-   dengan alasan. Klaim yang ditolak mengembalikan kelompok itu ke perburuan,
-   dan mereka boleh mengklaim lagi.
-10. Begitu satu klaim disahkan, perburuan selesai: klaim lain yang menggantung
-    ditutup, tab **Penghargaan** membeku, dan proyektor menampilkan pemenang.
-11. **Ronde baru** mengosongkan peringkat, klaim, dan foto untuk ronde
-    berikutnya di dalam sesi yang sama. Jadwal dan kalibrasi 1 meter tetap
-    tersimpan.
+2. Tiap kelompok mengunggah `beacon.ino` **dan** `hunter.ino` dari foldernya
+   sendiri (`grupN/`). Tidak ada baris yang perlu disunting. Asisten
+   **menyembunyikan** kelima beacon di sekitar gedung.
+3. **Asisten mengisi jadwal sehari.** Buka `http://192.168.4.1:8080`, ketuk
+   lambang di kiri atas tiga kali, masukkan token. Tab **Asisten** (mission
+   control) terbuka sendiri. Buka **Jadwal dan kendali**, tempelkan daftar
+   tiap sesi (lihat bagian 4), lalu **Mulai sesi ini**.
+4. **Tiap praktikan membuka alamat yang sama di ponselnya** dan mengetikkan
+   **NIM**-nya. Papan menampilkan kelompoknya sebagai rasi bintang beserta
+   nama anggotanya untuk dipastikan, lalu tiga kartu singkat (tujuan, membaca
+   sonar, mengklaim) dan pilihan **peran**.
+5. **Kalibrasi acuan jarak.** Pegang satu papan Hunter tepat **1 meter** dari
+   beacon-nya, pilih kelompok itu di **Jadwal dan kendali**, tekan
+   **Kalibrasi 1 m**. Kalibrasi berlaku untuk semua kelompok dan bertahan
+   melewati **Ronde baru** dan pergantian sesi, jadi cukup sekali per lokasi.
+6. Proyektor membuka `http://192.168.4.1:8080/?stage=1`. Tombol
+   **Hitung mundur di proyektor** memutar 3, 2, 1, Buru! di layar besar;
+   memulai sesi memutarnya sendiri.
+7. **Perburuan.** Layar **Buru** di tiap ponsel: sonar (cincin terang adalah
+   jarak kelompok, bukan arahnya; warnanya naik dari Dingin ke Membara),
+   angka jarak dengan rentang perkiraannya, jejak 90 detik, sinyal tim,
+   balapan, dan angka tautan radio. Langit ikut berganti warna sesuai panas
+   kelompok itu sendiri.
+8. **Mengklaim.** Di zona **Membara**, tombol klaim menyala. Tahan 1,2 detik,
+   ambil foto beacon (boleh tanpa foto), kirim. Ponsel menampilkan radar
+   "sedang ditinjau".
+9. **Asisten meninjau dari mission control.** Klaim masuk ke antrean di sisi
+   kanan menurut urutan pengajuan, dengan foto (ketuk untuk memperbesar),
+   jarak saat mengklaim, dan nama anggota. **Terima** meminta konfirmasi;
+   **Tolak** membuka pilihan alasan (Foto buram, Bukan beacon kalian, Beacon
+   tidak terlihat, atau alasan lain). Klaim yang ditolak mengembalikan
+   kelompok itu ke perburuan tanpa penalti.
+10. **Tiap kelompok selesai sendiri-sendiri.** Kelompok yang diterima
+    melihat kartu kemenangannya, dan proyektor menayangkan kemenangan itu
+    sekitar delapan detik, lengkap dengan seluruh jejak perburuannya.
+    Kelompok lain terus berburu. Ronde baru benar-benar selesai begitu
+    **semua** kelompok ditemukan: penghargaan membeku dan proyektor pindah ke
+    podium. Tombol **P** di proyektor menampilkan atau menyembunyikan podium
+    kapan saja.
+11. **Ronde baru** (di **Jadwal dan kendali**) mengosongkan waktu temu,
+    klaim, jejak, dan foto untuk ronde berikutnya di dalam sesi yang sama.
+    Jadwal, peran tim, dan kalibrasi tetap tersimpan. Unduh **jejak CSV**
+    atau **JSON** lebih dulu kalau datanya ingin disimpan.
+
+Kalau papan sebuah kelompok mati di tengah perburuan padahal beacon-nya
+sudah di tangan, pilih kelompok itu di **Jadwal dan kendali** lalu **tahan**
+tombol *Tahan: sahkan tanpa klaim*. Tombol itu sengaja butuh tekan-lama.
+
+### Peran, sinyal tim, dan sapuan
+
+- **Peran** (Pemandu, Pengintai, Operator radio) hanya mengubah urutan layar
+  Buru: Pemandu mendapat sonar paling atas, Pengintai tombol klaim, Operator
+  angka tautan. Semua ponsel tetap melihat seluruh perburuan. Peran bisa
+  diganti kapan saja dari tab **Tim**; mission control menandai peran yang
+  kosong dengan warna kuning.
+- **Sinyal tim** (Ke sini, Sinyal naik, Tunggu, Cek klaim) hanya sampai ke
+  ponsel satu kelompok dan ke asisten, tidak pernah ke proyektor. Jedanya
+  tiga detik per ponsel.
+- **Sapu 8 arah**: tubuh pemegang papan menghalangi sinyal dari belakang,
+  jadi berputar di tempat menunjukkan arah terkuat. Papan merekam empat
+  detik per arah (jam 12, 1.30, 3, dan seterusnya searah jarum jam), lalu
+  hasilnya dikirim ke seluruh tim sebagai mawar arah.
+- **Panggil asisten** di tab Tim membuat lajur kelompok itu berdenyut merah
+  di mission control sampai asisten menekan **Selesai**.
+- **Pengumuman** dari mission control (maksimal 140 huruf) tampil di semua
+  ponsel dan di proyektor sampai dihapus.
 
 ### Detak jarak: berburu tanpa melihat layar
 
-Di bawah tombol klaim ada satu saklar, **Detak jarak**, dan ia **mati secara
-bawaan**. Dinyalakan, ponsel mengeluarkan bunyi pendek berulang seperti
-pencacah Geiger: makin dekat beacon, makin rapat dan makin tinggi bunyinya.
+Di bawah sonar ada satu saklar, **Suara sonar**, dan ia **mati secara
+bawaan**. Dinyalakan, ponsel berbunyi pada tiap sapuan sonar: makin dekat
+beacon, makin rapat dan makin tinggi bunyinya.
 Begitu kelompok masuk **HANGAT**, tiap detak ikut disertai getaran.
 
 Ini bukan hiasan. Perburuan berlangsung di lapangan terbuka sambil berjalan,
@@ -258,8 +310,8 @@ Satu kalimat di awal sesi, dan masalahnya hilang untuk 150 menit berikutnya.
 ### Kalau kamera atau baterai bermasalah
 
 Klaim boleh dikirim tanpa foto — tombol *Kirim klaim* tetap bekerja meski
-tidak ada gambar yang dipilih, dan antrean asisten akan menuliskan "Tanpa
-foto." Pipeline foto tidak boleh menjadi hal yang membuat permainan tidak
+tidak ada gambar yang dipilih, dan antrean asisten akan menuliskan "tanpa
+foto". Pipeline foto tidak boleh menjadi hal yang membuat permainan tidak
 bisa diselesaikan.
 
 ---
@@ -358,7 +410,7 @@ saat **Ronde baru**, saat sesi berganti, dan saat server dimatikan dengan
 rapi.
 
 Foto klaim yang masih ditinjau hanya tampil di antrean asisten. Foto kelompok
-yang **menang** menjadi terbuka di tab Penghargaan. Foto sengaja tidak pernah
+yang **menang** menjadi terbuka di tab Hasil. Foto sengaja tidak pernah
 selamat dari restart: seluruh keadaan klaim ada di memori, jadi foto yang
 selamat hanya akan menjadi yatim.
 
@@ -390,6 +442,21 @@ luas dengan berjalan lebih lama, bukan dengan bergerak lebih cepat, dan
 simulator yang curang di sini akan membuat arena 300 m terlihat bisa
 diselesaikan dalam lima belas detik.
 
+Untuk melihat seluruh permainan tanpa satu orang pun di lapangan:
+
+```bash
+python modul4/server.py --token UJICOBA
+python modul4/tools/fake_hunt.py --jalur --bot --token UJICOBA --tempo 3
+```
+
+`--jalur` membuat kelima hunter berjalan mendekati beacon masing-masing
+dengan dua kemunduran di tengah jalan, `--bot` mengisi jadwal contoh dan
+memainkan satu anggota per kelompok (memilih peran, mengirim sinyal, menyapu,
+mengklaim di Membara) serta seorang asisten tiruan yang menolak klaim pertama
+kelompok 3 dan menerima sisanya. Masuk di ponsel dengan NIM **D0300** untuk
+bergabung dengan kelompok 3 di samping bot-nya, atau buka `?nim=D0300`.
+`--tempo 3` menjalankan waktunya tiga kali lebih cepat.
+
 ### Menguji protokolnya
 
 `fake_hunt.py` hanya memalsukan radio. Seluruh perintah dari peramban —
@@ -400,13 +467,14 @@ python modul4/server.py --token UJICOBA &
 python modul4/tools/uji_protokol.py --token UJICOBA
 ```
 
-Empat puluh satu pemeriksaan: tamu ditolak pada tiap perintah asisten,
+Seratus dua puluh delapan pemeriksaan: tamu ditolak pada tiap perintah asisten,
 anggota tidak bisa mengklaim untuk kelompok lain, klaim dari luar jangkauan
 ditolak, foto yang ukurannya tidak cocok atau bukan gambar ditolak, lintas
-jalur pada `/foto/` ditolak, `/roster.json` tidak membocorkan NIM, klaim yang
-ditolak boleh diulang, dan pemenang kedua ditolak. Keluar dengan status
-bukan-nol bila ada satu saja yang gagal. Jalankan ini setiap kali skema
-pesannya diubah.
+jalur pada `/foto/` ditolak, `/roster.json` dan `/jejak.json` tidak
+membocorkan NIM, peran tim, sinyal tim yang tidak menyeberang ke kelompok
+lain, panggilan asisten, sapuan, pengumuman, kemajuan tiap kelompok, dan
+bentuk `/jejak.json` serta `/jejak.csv`. Keluar dengan status bukan-nol bila
+ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
 
 ---
 

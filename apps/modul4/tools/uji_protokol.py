@@ -86,6 +86,304 @@ async def kirim_hunter(url: str, gid: int, rssi: float, seq: int) -> None:
         await asyncio.sleep(0.15)
 
 
+async def bingkai_sampai(ws, syarat, timeout: float = 3.0) -> dict | None:
+    """Bingkai pertama yang memenuhi syarat, atau bingkai terakhir yang dilihat.
+
+    Bingkai siaran yang sudah diserialisasi sebelum sebuah aksi diproses
+    bisa saja tiba sesudah balasannya, jadi memeriksa "bingkai berikutnya"
+    saja adalah balapan. Ini menunggu sampai keadaan barunya terlihat.
+    """
+    terakhir = None
+    batas = asyncio.get_event_loop().time() + timeout
+    while True:
+        sisa = batas - asyncio.get_event_loop().time()
+        if sisa <= 0:
+            return terakhir
+        f = await bingkai(ws, timeout=sisa)
+        if f is None:
+            return terakhir
+        terakhir = f
+        try:
+            if syarat(f):
+                return f
+        except (KeyError, TypeError, AttributeError):
+            pass
+
+
+async def tunggu_tipe(ws, tipe: str, timeout: float = 2.0) -> dict | None:
+    """Pesan langsung pertama bertipe `tipe`, atau None bila tidak datang."""
+    async def cari():
+        async for raw in ws:
+            if isinstance(raw, (bytes, bytearray)):
+                continue
+            msg = json.loads(raw)
+            if msg.get("tipe") == tipe:
+                return msg
+        return None
+    try:
+        return await asyncio.wait_for(cari(), timeout)
+    except asyncio.TimeoutError:
+        return None
+
+
+def ambil_json(url: str):
+    with urllib.request.urlopen(url) as resp:
+        return resp.status, resp.headers.get("Content-Type", ""), resp.read()
+
+
+async def uji_permainan(args, T: str) -> None:
+    """Peran, sinyal tim, panggilan, sapuan, pengumuman, jejak.
+
+    Dijalankan saat sesi 1 berjalan: kelompok 1 (Ani, Budi) sudah menang,
+    kelompok 2 (Cici) masih berburu. Setiap perintah yang harus ditolak
+    memakai koneksinya sendiri, supaya penjaga token tidak menutup koneksi
+    di tengah daftar dan membuat perintah berikutnya tampak lulus.
+    """
+    # Dua ponsel kelompok 1, satu ponsel kelompok 2, satu asisten.
+    ani = await connect(args.url + "/live")
+    budi = await connect(args.url + "/live")
+    cici = await connect(args.url + "/live")
+    asisten = await connect(args.url + "/live")
+    try:
+        await ani.send(json.dumps({"aksi": "halo", "nim": "2311102001"}))
+        r = await balas(ani, "halo")
+        cek("halo membawa nama sendiri", (r or {}).get("nama") == "Ani",
+            str((r or {}).get("nama")))
+        await budi.send(json.dumps({"aksi": "halo", "nim": "2311102002"}))
+        await balas(budi, "halo")
+        await cici.send(json.dumps({"aksi": "halo", "nim": "2311102010"}))
+        await balas(cici, "halo")
+        await asisten.send(json.dumps({"aksi": "halo", "token": T}))
+        await balas(asisten, "halo")
+
+        # ---- peran lunak --------------------------------------------------
+        await ani.send(json.dumps({"aksi": "tim_peran", "peran": "pemandu"}))
+        r = await balas(ani, "tim_peran")
+        cek("tim_peran sah diterima", r is not None and r.get("ok") is True,
+            (r or {}).get("alasan", ""))
+
+        await budi.send(json.dumps({"aksi": "tim_peran", "peran": "kapten"}))
+        r = await balas(budi, "tim_peran")
+        cek("tim_peran asing ditolak", r is not None and r.get("ok") is False,
+            (r or {}).get("alasan", ""))
+
+        async with connect(args.url + "/live") as tamu:
+            await tamu.send(json.dumps({"aksi": "tim_peran", "peran": "operator"}))
+            r = await balas(tamu, "tim_peran")
+            cek("tamu tak bisa memilih peran",
+                r is not None and r.get("ok") is False, (r or {}).get("alasan", ""))
+
+        f = await bingkai_sampai(asisten, lambda f: f["tim"]["1"]["peran"] == "p-")
+        tim1 = ((f or {}).get("tim") or {}).get("1", {})
+        cek("bingkai membawa peran per anggota", tim1.get("peran") == "p-",
+            json.dumps(tim1))
+        cek("bingkai membawa kehadiran per anggota", tim1.get("hadir") == "11",
+            json.dumps(tim1))
+        cek("bingkai tim tanpa nama maupun NIM",
+            "Ani" not in json.dumps(f.get("tim")) and "2311102001" not in json.dumps(f),
+            "hanya huruf peran dan kehadiran")
+
+        # ---- sinyal tim ---------------------------------------------------
+        await ani.send(json.dumps({"aksi": "ping", "kode": "naik"}))
+        r = await balas(ani, "ping")
+        cek("ping diterima", r is not None and r.get("ok") is True,
+            (r or {}).get("alasan", ""))
+        p = await tunggu_tipe(budi, "ping")
+        cek("ping sampai ke kelompoknya sendiri",
+            p is not None and p.get("grup") == 1 and p.get("kode") == "naik"
+            and p.get("dari") == "Ani", json.dumps(p)[:80])
+        p = await tunggu_tipe(asisten, "ping")
+        cek("ping sampai ke asisten", p is not None and p.get("grup") == 1,
+            json.dumps(p)[:60])
+        p = await tunggu_tipe(cici, "ping", timeout=1.0)
+        cek("ping TIDAK sampai ke kelompok lain", p is None, json.dumps(p)[:60])
+
+        await ani.send(json.dumps({"aksi": "ping", "kode": "tunggu"}))
+        r = await balas(ani, "ping")
+        cek("ping beruntun dibatasi", r is not None and r.get("ok") is False,
+            (r or {}).get("alasan", ""))
+
+        await budi.send(json.dumps({"aksi": "ping", "kode": "halo-semua"}))
+        r = await balas(budi, "ping")
+        cek("kode ping asing ditolak", r is not None and r.get("ok") is False,
+            (r or {}).get("alasan", ""))
+
+        async with connect(args.url + "/live") as tamu:
+            await tamu.send(json.dumps({"aksi": "ping", "kode": "naik"}))
+            r = await balas(tamu, "ping")
+            cek("tamu tak bisa mengirim ping",
+                r is not None and r.get("ok") is False, (r or {}).get("alasan", ""))
+
+        async with connect(args.url + "/live") as baru:
+            await baru.send(json.dumps({"aksi": "halo", "nim": "2311102002"}))
+            await balas(baru, "halo")
+            rw = await tunggu_tipe(baru, "ping_riwayat")
+            daftar = (rw or {}).get("daftar", [])
+            cek("riwayat ping dikirim sesudah halo",
+                len(daftar) == 1 and daftar[0]["kode"] == "naik", json.dumps(daftar)[:70])
+
+        # ---- panggilan ----------------------------------------------------
+        await cici.send(json.dumps({"aksi": "panggil_asisten"}))
+        r = await balas(cici, "panggil_asisten")
+        cek("panggil asisten diterima", r is not None and r.get("ok") is True,
+            (r or {}).get("alasan", ""))
+        f = await bingkai_sampai(asisten, lambda f: "2" in f["panggil"])
+        cek("bingkai menandai kelompok yang memanggil",
+            "2" in ((f or {}).get("panggil") or {}), json.dumps((f or {}).get("panggil")))
+
+        async with connect(args.url + "/live") as tamu:
+            await tamu.send(json.dumps({"aksi": "panggil_selesai", "grup": 2}))
+            r = await balas(tamu, "panggil_selesai")
+            cek("tamu tak bisa menutup panggilan",
+                r is not None and r.get("ok") is False, (r or {}).get("alasan", ""))
+
+        await asisten.send(json.dumps({"aksi": "panggil_selesai", "grup": 2}))
+        r = await balas(asisten, "panggil_selesai")
+        cek("asisten menutup panggilan", r is not None and r.get("ok") is True,
+            (r or {}).get("alasan", ""))
+        f = await bingkai_sampai(asisten, lambda f: "2" not in f["panggil"])
+        cek("panggilan hilang dari bingkai",
+            "2" not in ((f or {}).get("panggil") or {}), json.dumps((f or {}).get("panggil")))
+
+        # ---- sapuan -------------------------------------------------------
+        for nama, isi in [
+            ("sapuan 7 arah ditolak", {"arah": [-70] * 7}),
+            ("sapuan di luar rentang ditolak", {"arah": [-70] * 7 + [12]}),
+            ("sapuan terlalu sedikit arah ditolak",
+             {"arah": [-70, -72, None, None, None, None, None, -80]}),
+            ("sapuan bukan angka ditolak", {"arah": ["x"] * 8}),
+            ("mode sapuan asing ditolak", {"arah": [-70] * 8, "mode": "gps"}),
+        ]:
+            await ani.send(json.dumps({"aksi": "sapuan", **isi}))
+            r = await balas(ani, "sapuan")
+            cek(nama, r is not None and r.get("ok") is False, (r or {}).get("alasan", ""))
+
+        arah = [-71, -64, -69, -78, -84, -86, -82, -76]
+        await ani.send(json.dumps({"aksi": "sapuan", "arah": arah, "mode": "manual"}))
+        r = await balas(ani, "sapuan")
+        cek("sapuan sah diterima", r is not None and r.get("ok") is True,
+            (r or {}).get("alasan", ""))
+        f = await bingkai_sampai(asisten, lambda f: "1" in f["sapuan"])
+        sw = ((f or {}).get("sapuan") or {}).get("1", {})
+        cek("sapuan tersimpan dengan arah terkuat",
+            sw.get("terkuat") == 1 and sw.get("oleh") == "Ani", json.dumps(sw)[:80])
+
+        # ---- pengumuman ---------------------------------------------------
+        async with connect(args.url + "/live") as tamu:
+            await tamu.send(json.dumps({"aksi": "pengumuman", "teks": "halo"}))
+            r = await balas(tamu, "pengumuman")
+            cek("tamu tak bisa mengumumkan",
+                r is not None and r.get("ok") is False, (r or {}).get("alasan", ""))
+
+        await asisten.send(json.dumps({"aksi": "pengumuman", "teks": "x" * 141}))
+        r = await balas(asisten, "pengumuman")
+        cek("pengumuman lebih dari 140 karakter ditolak",
+            r is not None and r.get("ok") is False, (r or {}).get("alasan", ""))
+
+        await asisten.send(json.dumps({"aksi": "pengumuman",
+                                       "teks": "Sisa 30 menit."}))
+        r = await balas(asisten, "pengumuman")
+        cek("pengumuman diterima", r is not None and r.get("ok") is True,
+            (r or {}).get("alasan", ""))
+        f = await bingkai_sampai(cici, lambda f: f["pengumuman"] is not None)
+        cek("pengumuman sampai di bingkai",
+            ((f or {}).get("pengumuman") or {}).get("teks") == "Sisa 30 menit.",
+            json.dumps((f or {}).get("pengumuman")))
+
+        await asisten.send(json.dumps({"aksi": "pengumuman", "teks": ""}))
+        await balas(asisten, "pengumuman")
+        f = await bingkai_sampai(cici, lambda f: f["pengumuman"] is None)
+        cek("pengumuman kosong menghapusnya", (f or {}).get("pengumuman") is None,
+            json.dumps((f or {}).get("pengumuman")))
+
+        async with connect(args.url + "/live") as tamu:
+            await tamu.send(json.dumps({"aksi": "aba_aba"}))
+            r = await balas(tamu, "aba_aba")
+            cek("tamu tak bisa memutar hitung mundur",
+                r is not None and r.get("ok") is False, (r or {}).get("alasan", ""))
+        await asisten.send(json.dumps({"aksi": "aba_aba"}))
+        r = await balas(asisten, "aba_aba")
+        cek("asisten memutar hitung mundur", r is not None and r.get("ok") is True,
+            (r or {}).get("alasan", ""))
+
+        # ---- jari-jari arena dari ruang kendali ----------------------------
+        semula = ((await bingkai(asisten)) or {}).get("model", {}).get("arena_m", 300)
+        for nama, nilai in [("arena terlalu kecil ditolak", 5),
+                            ("arena terlalu besar ditolak", 5000),
+                            ("arena bukan angka ditolak", "luas")]:
+            await asisten.send(json.dumps({"aksi": "arena", "arena_m": nilai}))
+            r = await balas(asisten, "arena")
+            cek(nama, r is not None and r.get("ok") is False, (r or {}).get("alasan", ""))
+        await asisten.send(json.dumps({"aksi": "arena", "arena_m": 150}))
+        r = await balas(asisten, "arena")
+        cek("asisten mengubah arena", r is not None and r.get("ok") is True
+            and r.get("arena_m") == 150, json.dumps(r)[:80])
+        f = await bingkai_sampai(asisten, lambda b: b.get("model", {}).get("arena_m") == 150)
+        cek("arena baru sampai di bingkai", f is not None, "model.arena_m")
+        await asisten.send(json.dumps({"aksi": "arena", "arena_m": semula}))
+        await balas(asisten, "arena")
+
+        # ---- kemajuan dan jejak --------------------------------------------
+        f = await bingkai(asisten)
+        nilai = [g.get("kemajuan") for g in (f or {}).get("grup", [])]
+        cek("kemajuan selalu di antara 0 dan 1",
+            bool(nilai) and all(isinstance(k, (int, float)) and 0 <= k <= 1 for k in nilai),
+            json.dumps(nilai))
+        menang = [g for g in (f or {}).get("grup", []) if g["status"] == "menang"]
+        cek("kelompok yang menang berkemajuan 1",
+            bool(menang) and all(g["kemajuan"] == 1 for g in menang),
+            json.dumps([g["kemajuan"] for g in menang]))
+
+        status, tipe, body = ambil_json(f"{args.http}/jejak.json")
+        data = json.loads(body)
+        mentah = body.decode("utf-8")
+        cek("GET /jejak.json", status == 200 and "json" in tipe
+            and isinstance(data.get("grup"), dict) and isinstance(data.get("peristiwa"), list),
+            f"{status} {tipe}")
+        cek("/jejak.json tanpa NIM",
+            "nim" not in mentah.lower() and "2311102001" not in mentah, mentah[:60])
+        cuplikan = [s for isi in data["grup"].values() for s in isi["s"]]
+        cek("/jejak.json memuat cuplikan", len(cuplikan) > 0, str(len(cuplikan)))
+        cek("kemajuan di jejak selalu di antara 0 dan 1",
+            all(0 <= s[2] <= 1 for s in cuplikan), str(len(cuplikan)))
+        jenis = {e["kind"] for e in data["peristiwa"]}
+        cek("/jejak.json memuat peristiwa klaim, tolak, temuan dan sapuan",
+            {"klaim", "tolak", "ditemukan", "sapuan"} <= jenis, json.dumps(sorted(jenis)))
+
+        status, _, body = ambil_json(f"{args.http}/jejak.json?grup=2&detik=90")
+        satu = json.loads(body)
+        cek("/jejak.json?grup=2 hanya kelompok 2",
+            list(satu["grup"].keys()) in ([], ["2"]), json.dumps(list(satu["grup"].keys())))
+
+        status, tipe, body = ambil_json(f"{args.http}/jejak.csv")
+        cek("GET /jejak.csv", status == 200 and tipe.startswith("text/csv")
+            and body.decode("utf-8").startswith("grup,detik,jarak_m,kemajuan,panas"),
+            f"{status} {tipe}")
+
+        # ---- ronde baru membersihkan permainan -----------------------------
+        await ani.send(json.dumps({"aksi": "panggil_asisten"}))
+        await balas(ani, "panggil_asisten")
+        await asisten.send(json.dumps({"aksi": "pengumuman", "teks": "tes"}))
+        await balas(asisten, "pengumuman")
+        await asisten.send(json.dumps({"aksi": "reset"}))
+        r = await balas(asisten, "reset")
+        f = await bingkai_sampai(asisten, lambda f: f["panggil"] == {} and f["pengumuman"] is None)
+        cek("ronde baru membuang panggilan, sapuan dan pengumuman",
+            (f or {}).get("panggil") == {} and (f or {}).get("sapuan") == {}
+            and (f or {}).get("pengumuman") is None,
+            json.dumps({k: (f or {}).get(k) for k in ("panggil", "sapuan", "pengumuman")}))
+        _, _, body = ambil_json(f"{args.http}/jejak.json")
+        cek("ronde baru membuang jejak", json.loads(body)["grup"] == {},
+            body.decode("utf-8")[:60])
+        f = await bingkai(asisten)
+        cek("peran selamat dari ronde baru dalam sesi yang sama",
+            ((f or {}).get("tim") or {}).get("1", {}).get("peran") == "p-",
+            json.dumps((f or {}).get("tim")))
+    finally:
+        for ws in (ani, budi, cici, asisten):
+            await ws.close()
+
+
 async def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--url", default="ws://127.0.0.1:8080")
@@ -174,7 +472,8 @@ async def main() -> int:
                         ("jadwal_baca", {}),
                         ("jadwal_hapus", {}),
                         ("sesi_mulai", {"sesi": 2}),
-                        ("sesi_akhiri", {})]:
+                        ("sesi_akhiri", {}),
+                        ("arena", {"arena_m": 100})]:
         async with connect(args.url + "/live") as tamu:
             await tamu.send(json.dumps({"aksi": aksi, **extra}))
             r = await balas(tamu, aksi)
@@ -477,6 +776,8 @@ async def main() -> int:
         cek("penghargaan belum dibekukan (kelompok 2 belum menang)",
             hadiah.get("beku") is False,
             json.dumps(hadiah.get("podium", []))[:70])
+
+    await uji_permainan(args, T)
 
     # ---- pergantian sesi -------------------------------------------------
     async with connect(args.url + "/live") as asisten:

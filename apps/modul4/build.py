@@ -6,18 +6,28 @@ Assembles modul4/public/index.html from the pieces in modul4/src/ into ONE
 self-contained file, which is what modul4/server.py serves from the Orange Pi.
 
     python modul4/build.py            (from the project root)
-    python build.py                 (from inside modul4/)
+    python build.py                   (from inside modul4/)
 
-A single file matters more here than it did for games/: the Orange Pi is an
-access point with no upstream internet, so anything the page cannot carry
-itself is simply unavailable on lab day. The one exception is the Google Fonts
-@import inherited from tokens.css -- see the note on FONT fallbacks below.
+A single file matters here: the Orange Pi is an access point with no
+upstream internet, so anything the page cannot carry itself is simply
+unavailable on lab day. That includes the typefaces (inlined as @font-face
+data URIs), Preact and htm (vendored), the icons, the IRIS mark and the
+Mandarin strings with a CJK font cut down to the characters they use.
 
-Adapted from games/build.py. Its guard rails are kept deliberately: they exist
-because a NUL byte once shipped to production through that build, and because
-an unescaped "</script" inside a bundle silently truncates the page.
+The client is the Phase 9 design: Preact + htm screens ported from the
+Phase 9 mockup, in three languages (Indonesian, English, Mandarin). See
+SETUP.md for where each source comes from and how to refresh it.
+
+Stdlib only, Python 3.10: this also runs on the Orange Pi itself
+(orangepi/build_bundle.py calls it).
+
+Guard rails kept from games/build.py: they exist because a NUL byte once
+shipped to production through that build, and because an unescaped
+"</script" inside a bundle silently truncates the page.
 """
 
+import base64
+import json
 import re
 import sys
 from pathlib import Path
@@ -25,90 +35,72 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 SRC_DIR = SCRIPT_DIR / "src"
 OUTPUT_PATH = SCRIPT_DIR / "public" / "index.html"
-
 SHELL_PATH = SRC_DIR / "shell.html"
-STYLE_DIR = SRC_DIR / "style"
-VENDOR_DIR = SRC_DIR / "vendor"
+FONT_DIR = SRC_DIR / "fonts"
+ZH_PATH = SRC_DIR / "i18n" / "zh.json"
+CJK_CHARS_PATH = FONT_DIR / "cjk-chars.txt"
+LOGO_PATH = SRC_DIR / "logo.webp"
 
-# Order IS the cascade: tokens first, then the reset, then the background
-# layers (which must lose to everything painted on top of them), then the
-# hunt's own screens, then the motion layer last so it can override.
+# Order IS the cascade: the mockup's styles (generated, pruned to what the
+# hunt uses), then the hunt's own layer on top.
 STYLE_FILES = [
-    "tokens.css",
-    "base.css",
-    "cosmos.css",
-    "hunt.css",
-    "motion.css",
-    # Last, so a phone can override anything the desktop layout set.
-    "mobile.css",
+    "style/mockup.css",
+    "style/app.css",
 ]
 
+# Third-party bundles, unmodified (see src/vendor/README.md).
 VENDOR_FILES = [
-    "gsap.min.js",           # window.gsap
-    "CustomEase.min.js",     # window.CustomEase
-    "SplitText.min.js",      # window.SplitText
-    "confetti.browser.js",   # window.confetti
+    "vendor/htm-preact-standalone.umd.js",   # window.htmPreact
 ]
 
-# i18n before everything that reads strings; motion before cosmos (shared
-# ticker); store before the ui-* modules; app.js wires it all together last.
+# Icons and the kit before everything, the socket before the screens that
+# read it, app.js last (it renders and opens the socket).
 SCRIPT_FILES = [
-    "i18n.js",
-    "motion.js",
-    "cosmos.js",
-    # identity before store: the socket announces who we are on open.
-    "identity.js",
-    "roster.js",
-    "store.js",
-    # modal before every ui-* module that opens one.
-    "modal.js",
+    "icons.js",
+    "kit.js",
+    "net.js",
     "sense.js",
-    "ui-hunt.js",
-    "ui-layers.js",
-    "ui-notify.js",
-    "ui-claim.js",
-    "ui-awards.js",
-    "ui-assistant.js",
-    "ui-onboard.js",
-    "ui-stage.js",
+    "screens-hunt.js",
+    "screens-hunt2.js",
     "app.js",
+]
+
+# The typefaces: (family, weight, file, unicode-range or None).
+CJK_RANGE = "U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF"
+FONTS = [
+    ("Inter", 400, "inter-latin-400-normal.woff2", None),
+    ("Inter", 500, "inter-latin-500-normal.woff2", None),
+    ("Inter", 600, "inter-latin-600-normal.woff2", None),
+    ("Inter", 700, "inter-latin-700-normal.woff2", None),
+    ("Plus Jakarta Sans", 700, "plus-jakarta-sans-latin-700-normal.woff2", None),
+    ("Plus Jakarta Sans", 800, "plus-jakarta-sans-latin-800-normal.woff2", None),
+    ("JetBrains Mono", 400, "jetbrains-mono-latin-400-normal.woff2", None),
+    ("JetBrains Mono", 600, "jetbrains-mono-latin-600-normal.woff2", None),
+    ("Noto Sans SC", 400, "noto-sans-sc-hunt-400.woff2", CJK_RANGE),
+    ("Noto Sans SC", 700, "noto-sans-sc-hunt-700.woff2", CJK_RANGE),
 ]
 
 PLACEHOLDER_STYLE = "<!--STYLE-->"
 PLACEHOLDER_SCRIPT = "<!--SCRIPT-->"
 
-MAX_OUTPUT_BYTES = 16 * 1024 * 1024
+# Twenty-five phones load this over one Orange Pi hotspot at the start of a
+# session. The fonts are most of it; anything past this budget is a mistake
+# (a stray asset, a vendored file twice), not a feature.
+MAX_OUTPUT_BYTES = int(1.5 * 1024 * 1024)
 
-# The page is served over plain HTTP from an access point with no route to the
-# internet, so the Google Fonts @import in tokens.css will simply fail on lab
-# day. That is fine and expected -- the font stacks in tokens.css already fall
-# back to Georgia / system-ui / Consolas -- but it must be a deliberate choice
-# rather than a surprise, so the build says so out loud.
-FONT_NOTE = (
-    "tokens.css imports Instrument Serif + IBM Plex from Google Fonts.\n"
-    "             On the Orange Pi hotspot there is no internet, so the page\n"
-    "             falls back to Georgia / system-ui / Consolas. To ship the\n"
-    "             real faces, download the woff2 files into src/vendor/ and\n"
-    "             inline them as @font-face data URIs."
-)
+# The house voice rule: no em dash and no en dash in anything the hunt says,
+# in any of its three languages. Checked in the hunt's own sources and in
+# the Mandarin strings, not in vendored files.
+DASHES = {chr(0x2014): "em dash", chr(0x2013): "en dash"}
 
 STANDALONE_HEAD = """<!doctype html>
 <html lang="id">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Papan skor Perburuan LoRa IRIS - Modul 4.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta name="description" content="Perburuan LoRa IRIS, Modul 4.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2305060b'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%2340b0ff'/%3E%3Ccircle cx='32' cy='32' r='13' stroke='%2340b0ff' stroke-width='1.6' fill='none' opacity='.6'/%3E%3Ccircle cx='32' cy='32' r='21' stroke='%2340b0ff' stroke-width='1.2' fill='none' opacity='.3'/%3E%3C/svg%3E">
-<meta name="theme-color" content="#05060b">
-<style>
-:root { color-scheme: dark; }
-* { box-sizing: border-box; }
-body { margin: 0; font: 14px system-ui, -apple-system, "Segoe UI", sans-serif; }
-img { max-width: 100%; }
-[hidden] { display: none !important; }
-</style>
+<meta name="theme-color" content="#0a0c14">
 """
 
 STANDALONE_TAIL = """
@@ -162,12 +154,83 @@ def check_no_control_chars(text, what):
         )
 
 
+def check_no_dashes(text, what):
+    """Refuse an em or en dash in the hunt's own copy, with its line."""
+    for char, name in DASHES.items():
+        index = text.find(char)
+        if index != -1:
+            line = text.count("\n", 0, index) + 1
+            raise BuildError(
+                f"{what}: {name} at line {line}. House rule: no em or en "
+                "dashes in the copy; write a middle dot, a comma or "
+                "'antara X dan Y' instead.")
+
+
 def read_required(path, what):
     if not path.is_file():
         raise BuildError(f"Missing required source: {what} not found at {path}")
     text = path.read_text(encoding="utf-8")
     check_no_control_chars(text, what)
     return text
+
+
+def font_faces():
+    """The woff2 files as @font-face rules with data URIs."""
+    rules = []
+    total = 0
+    for family, weight, name, urange in FONTS:
+        path = FONT_DIR / name
+        if not path.is_file():
+            raise BuildError(f"Missing font: src/fonts/{name} (see SETUP.md, 'Sumber berkas')")
+        data = path.read_bytes()
+        total += len(data)
+        encoded = base64.b64encode(data).decode("ascii")
+        rules.append(
+            "@font-face {\n"
+            f'  font-family: "{family}";\n'
+            "  font-style: normal;\n"
+            f"  font-weight: {weight};\n"
+            "  font-display: swap;\n"
+            + (f"  unicode-range: {urange};\n" if urange else "")
+            + f'  src: url(data:font/woff2;base64,{encoded}) format("woff2");\n'
+            "}")
+    return "\n".join(rules), total
+
+
+def mandarin():
+    """zh.json, checked: every key the scripts use, no dashes, and every
+    CJK character covered by the subset font."""
+    # Both helpers are stdlib at import time (subset_cjk only loads
+    # fontTools inside its own main), so the Pi can run this too.
+    sys.path.insert(0, str(SCRIPT_DIR / "tools"))
+    try:
+        import subset_cjk
+        import zh_sync
+    finally:
+        sys.path.pop(0)
+
+    text = read_required(ZH_PATH, "src/i18n/zh.json")
+    try:
+        zh = json.loads(text)
+    except json.JSONDecodeError as err:
+        raise BuildError(f"src/i18n/zh.json is not valid JSON: {err}") from err
+    check_no_dashes(text, "src/i18n/zh.json")
+
+    gone = zh_sync.missing(zh)
+    if gone:
+        listed = "\n    ".join(gone[:20])
+        raise BuildError(
+            f"{len(gone)} English string(s) have no Mandarin in src/i18n/zh.json:\n    {listed}\n"
+            "  Run python tools/zh_sync.py --check, translate them, then build again.")
+
+    covered = set(read_required(CJK_CHARS_PATH, "src/fonts/cjk-chars.txt").strip())
+    need = subset_cjk.needed()
+    lacking = sorted(set(need) - covered)
+    if lacking:
+        raise BuildError(
+            f"{len(lacking)} CJK character(s) are not in the subset font: {''.join(lacking[:40])}\n"
+            "  Run python tools/subset_cjk.py <NotoSansSC[wght].ttf> again.")
+    return zh
 
 
 def wrap_standalone(inner):
@@ -199,13 +262,17 @@ def main():
     print()
 
     shell = read_required(SHELL_PATH, "src/shell.html")
+    check_no_dashes(shell, "src/shell.html")
     sizes = [("src/shell.html", len(shell.encode("utf-8")))]
 
     # ---- styles ------------------------------------------------------
-    styles = []
+    faces, font_bytes = font_faces()
+    sizes.append((f"src/fonts ({len(FONTS)} woff2)", font_bytes))
+    styles = [f"/* ---- fonts ---- */\n{faces}"]
     for name in STYLE_FILES:
-        text = read_required(STYLE_DIR / name, f"src/style/{name}")
-        sizes.append((f"src/style/{name}", len(text.encode("utf-8"))))
+        text = read_required(SRC_DIR / name, f"src/{name}")
+        check_no_dashes(text, f"src/{name}")
+        sizes.append((f"src/{name}", len(text.encode("utf-8"))))
         styles.append(f"/* ---- {name} ---- */\n{text}")
 
     if PLACEHOLDER_STYLE not in shell:
@@ -216,12 +283,25 @@ def main():
     # ---- scripts -----------------------------------------------------
     scripts = []
     for name in VENDOR_FILES:
-        text = read_required(VENDOR_DIR / name, f"src/vendor/{name}")
-        sizes.append((f"src/vendor/{name}", len(text.encode("utf-8"))))
+        text = read_required(SRC_DIR / name, f"src/{name}")
+        sizes.append((f"src/{name}", len(text.encode("utf-8"))))
         scripts.append(text)
+
+    # Data the scripts read at start: the Mandarin strings and the IRIS
+    # mark. "</" is escaped so a string can never close the script block.
+    zh = mandarin()
+    zh_js = json.dumps(zh, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    if not LOGO_PATH.is_file():
+        raise BuildError("Missing src/logo.webp")
+    logo = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+    prelude = (f"window.HUNT_ZH={zh_js};\n"
+               f'window.HUNT_LOGO="data:image/webp;base64,{logo}";')
+    sizes.append(("src/i18n/zh.json + logo", len(prelude.encode("utf-8"))))
+    scripts.append(f"/* ---- data ---- */\n{prelude}")
 
     for name in SCRIPT_FILES:
         text = read_required(SRC_DIR / name, f"src/{name}")
+        check_no_dashes(text, f"src/{name}")
         sizes.append((f"src/{name}", len(text.encode("utf-8"))))
         scripts.append(f"/* ---- {name} ---- */\n{text}")
 
@@ -241,7 +321,7 @@ def main():
     script_open = lowered.find("<script>")
     if script_open != -1:
         inner = lowered[script_open + len("<script>"):]
-        end = inner.find("</script>")
+        end = inner.rfind("</script>")
         if end != -1 and "</script" in inner[:end]:
             raise BuildError(
                 "a source file contains a literal '</script' inside the JS "
@@ -254,7 +334,7 @@ def main():
     # Word boundary matters: <header> and <body> both start with a document
     # tag's spelling, and a naive substring test rejects perfectly good markup.
     markup = lowered[:script_open if script_open != -1 else len(lowered)]
-    stray = re.search(r"<(?:!doctype|html|head|body)", markup)
+    stray = re.search(r"<(?:!doctype|html|head|body)\b", markup)
     if stray:
         raise BuildError(
             f"shell.html must not contain {stray.group(0)}; build.py supplies "
@@ -266,7 +346,7 @@ def main():
     if len(output_bytes) > MAX_OUTPUT_BYTES:
         raise BuildError(
             f"output is {human_size(len(output_bytes))}, over the "
-            f"{human_size(MAX_OUTPUT_BYTES)} limit")
+            f"{human_size(MAX_OUTPUT_BYTES)} budget")
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_bytes(output_bytes)
@@ -277,8 +357,6 @@ def main():
     print()
     print(f"  wrote {OUTPUT_PATH} ({human_size(len(output_bytes))}, "
           f"{output.count(chr(10)) + 1:,} lines)")
-    print()
-    print(f"  NOTE: {FONT_NOTE}")
 
 
 if __name__ == "__main__":

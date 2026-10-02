@@ -8,7 +8,7 @@ name: CI
 #            rebuild, so a change elsewhere in this repo can never silently
 #            break it without CI noticing
 #   modul4   the Module 4 LoRa scoreboard (apps/modul4): start the real
-#            server, run its 74-assertion protocol suite against it, then
+#            server, run its 128-assertion protocol suite against it, then
 #            rebuild -- the same job IRIS ASO ran before Stage 15 moved
 #            this directory here (git history preserved; see that stage's
 #            commit for how)
@@ -151,7 +151,7 @@ jobs:
             sleep 0.5
           done
 
-      - name: Protocol suite (74 assertions)
+      - name: Protocol suite (128 assertions)
         run: python tools/uji_protokol.py --token UJICI
 
       - name: Stop the server
