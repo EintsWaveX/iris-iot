@@ -27,6 +27,7 @@ import { getSketchSource } from "../lib/sketches";
 import { parseBlanks } from "../lib/blanks";
 import "../components/module/module.css";
 import { bahasaKonten, type Lang } from "../lib/kelas";
+import { modulLabel } from "../lib/labels";
 
 interface Props {
   lang: Lang;
@@ -107,7 +108,7 @@ const L = {
             data-modul={m.modul - 1}
             style={`--mod-hue: var(--mod-${m.modul - 1})`}
           >
-            <span aria-hidden="true">‹</span> M{m.modul - 1}
+            <span aria-hidden="true">‹</span> {modulLabel(m.modul - 1, lang)}
           </a>
         )}
         {m.modul < 4 && (
@@ -117,7 +118,7 @@ const L = {
             data-modul={m.modul + 1}
             style={`--mod-hue: var(--mod-${m.modul + 1})`}
           >
-            M{m.modul + 1} <span aria-hidden="true">›</span>
+            {modulLabel(m.modul + 1, lang)} <span aria-hidden="true">›</span>
           </a>
         )}
       </nav>

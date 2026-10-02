@@ -2,8 +2,8 @@
  * The clock in the navigation (Phase 9): the full date and the time,
  * ticking every second. The Tampilan panel sets when it shows: "auto"
  * hides it while the reader's own session runs (the session bar carries
- * the clock then), "on" always shows it, "off" never does. Phones show
- * only the time; under 900px it drops the seconds.
+ * the clock then), "on" always shows it, "off" never does. The date shows
+ * from 1440px; under 900px the time drops its seconds.
  */
 import { useEffect, useState } from "react";
 import { dict, localeOf, tanggalPanjang } from "../../lib/app";

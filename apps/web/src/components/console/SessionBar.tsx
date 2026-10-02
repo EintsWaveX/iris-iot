@@ -19,6 +19,7 @@ import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
 import type { Lang } from "../../lib/kelas";
 import { useDirektori } from "../../lib/people";
+import { modulLabel } from "../../lib/labels";
 import type { Strings } from "./strings";
 import type { ServerState } from "./data";
 import { isOnline, type SesiRunning, type View } from "./types";
@@ -119,7 +120,7 @@ export default function SessionBar({
     >
       <div className="sbar__title">
         <span className="dot dot--ok dot--pulse" aria-hidden="true" />
-        <span className="sbar__mod">M{sesi.modul}</span>
+        <span className="sbar__mod">{modulLabel(sesi.modul, lang)}</span>
         <div className="sbar__names">
           <h1 className="sbar__h">{t.modulNama(sesi.modul)}</h1>
           <span className="sbar__meta">
@@ -361,7 +362,7 @@ export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: b
                 className="access-row__mod"
                 style={{ "--mod-hue": `var(--mod-${n})` } as CSSProperties}
               >
-                M{n}
+                {modulLabel(n, lang)}
               </span>
               <span className="access-row__name">{t.modulNama(n)}</span>
               {on ? (

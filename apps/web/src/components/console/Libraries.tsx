@@ -20,6 +20,7 @@ import Confirm from "../ui/Confirm";
 import SchematicViewer from "../ui/SchematicViewer";
 import { getJson, jamMenit, postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
+import { modulLabel } from "../../lib/labels";
 import type { Strings } from "./strings";
 
 interface Deck {
@@ -247,7 +248,7 @@ export function SchematicLibrary({
               style={{ "--mod-hue": `var(--mod-${modul})` } as CSSProperties}
             >
               <div className="schem-card__head">
-                <span className="schem-card__mod">M{modul}</span>
+                <span className="schem-card__mod">{modulLabel(modul, lang)}</span>
                 <b className="grow truncate">{t.modulNama(modul)}</b>
                 <span className={`pill ${active ? "pill--accent" : ""}`}>
                   {active ? t.schemCustom : t.schemDefault}

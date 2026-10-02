@@ -13,7 +13,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Checkbox, DatePicker } from "../ui/Controls";
-import { kelasLabel } from "../../lib/labels";
+import { kelasLabel, kelompokLabel, modulLabel } from "../../lib/labels";
 import Confirm from "../ui/Confirm";
 import FeedbackSummary from "../shared/FeedbackSummary";
 import { getJson, href, postJson, type Me } from "../../lib/app";
@@ -342,7 +342,7 @@ export default function AsistenHome({
                   style={{ "--mod-hue": `var(--mod-${m})` } as CSSProperties}
                   onClick={() => setModul(m)}
                 >
-                  <span className="start__mod-n">M{m}</span>
+                  <span className="start__mod-n">{modulLabel(m, lang)}</span>
                   <span className="start__mod-name">{t.modulNama(m)}</span>
                 </button>
               ))}
@@ -403,7 +403,10 @@ export default function AsistenHome({
                     )}
                     <span className="grow" />
                     <span className="hint">
-                      K{j.asisten.findIndex((k) => k.toUpperCase() === myCode) + 1}
+                      {kelompokLabel(
+                        j.asisten.findIndex((k) => k.toUpperCase() === myCode) + 1,
+                        lang,
+                      )}
                     </span>
                   </li>
                 ))}

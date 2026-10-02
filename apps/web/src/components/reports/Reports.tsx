@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { namaAsisten } from "../../lib/people";
 import BackButton from "../ui/BackButton";
 import Fade from "../ui/Fade";
+import { modulLabel } from "../../lib/labels";
 import { LockSimpleIcon, StarIcon } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -534,7 +535,8 @@ function SesiTab({ t, lang, onOpen }: { t: Tx; lang: Lang; onOpen: (id: number) 
                           className="rep__mod"
                           style={{ "--mod-hue": `var(--mod-${r.modul})` } as CSSProperties}
                         >
-                          M{r.modul} <span className="hint">{MODUL_NAMA[r.modul]}</span>
+                          {modulLabel(r.modul, lang)}{" "}
+                          <span className="hint">{MODUL_NAMA[r.modul]}</span>
                         </span>
                       </td>
                       <td data-label={t.cols[3]}>

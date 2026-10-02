@@ -26,6 +26,7 @@ import {
 } from "../../lib/app";
 import { SESI_CAP_MENIT } from "../../lib/jadwal";
 import type { Lang } from "../../lib/kelas";
+import { modulLabel } from "../../lib/labels";
 import "./SessionMiniBar.css";
 
 const T = dict({
@@ -206,7 +207,7 @@ export default function SessionMiniBar({
     >
       <a className="minibar__mod" href={href(lang, `/modules/${s.modul}`)} aria-label={t.open}>
         <span className="minibar__dot" aria-hidden="true" />
-        <span className="minibar__chip">M{s.modul}</span>
+        <span className="minibar__chip">{modulLabel(s.modul, lang)}</span>
         <b className="minibar__name">{MODUL_SINGKAT[s.modul]}</b>
       </a>
 

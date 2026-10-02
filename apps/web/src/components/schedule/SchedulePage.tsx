@@ -423,7 +423,7 @@ function SlotEditor({
             className="jedit__group"
             style={{ "--g": `var(--group-${i + 1})` } as CSSProperties}
           >
-            <span className="jedit__gk">K{i + 1}</span>
+            <span className="jedit__gk">{t.kelompok(i + 1)}</span>
             <div className="grow">
               <Dropdown
                 id={`jadwal-k${i + 1}`}
@@ -822,7 +822,8 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             className="jpage__lg"
             style={{ "--g": `var(--group-${k})` } as CSSProperties}
           >
-            <i />K{k}
+            <i />
+            {t.kelompok(k)}
           </span>
         ))}
         <span className="jcell__inter">{t.inter}</span>

@@ -66,6 +66,10 @@ describe("no abbreviations in interface copy", () => {
     const rel = relative(ROOT, f);
     if (SKIP_FILES.some((r) => r.test(rel))) continue;
     const src = readFileSync(f, "utf8");
+    // JSX that builds the short form from parts: <span>M{n}</span>, K{k}
+    for (const m of src.matchAll(/(^|[>\s])([KGM])\{(?![^}]*\$)/gm)) {
+      hits.push(`${rel}: ${m[2]} plus a number built in JSX`);
+    }
     if (SHORT_DATE.test(src)) hits.push(`${rel}: short month or weekday in a date format`);
     for (const lit of literals(src)) {
       if (isPathData(lit)) continue;

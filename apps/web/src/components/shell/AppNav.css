@@ -496,7 +496,9 @@
 
 /* ------------------------------------------------------------ widths */
 
-@media (max-width: 1279px) {
+/* The date needs the room the links take at 1280 in English, and more
+   once Team joins them; the time stays. */
+@media (max-width: 1439px) {
   .navclock__date,
   .navclock__sep {
     display: none;

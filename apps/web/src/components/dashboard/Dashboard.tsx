@@ -30,6 +30,7 @@ import { getAksesState } from "../../scripts/modul-akses";
 import { readSetup } from "../module/SetupChecklist";
 import { flowStats, selangMs, useTelemetry } from "../live/useTelemetry";
 import type { Lang } from "../../lib/kelas";
+import { kelompokLabel, modulLabel } from "../../lib/labels";
 import FeedbackForm from "./FeedbackForm";
 import PdfViewer from "../ui/PdfViewer";
 import { useProgres } from "../shared/useProgres";
@@ -345,7 +346,7 @@ function MyPracticums({
             className="dash__prak-row"
             style={{ "--mod-hue": `var(--mod-${p.modul})` } as React.CSSProperties}
           >
-            <span className="mono dash__mod-n">M{p.modul}</span>
+            <span className="dash__mod-n">{modulLabel(p.modul, lang)}</span>
             <span className="grow stack" style={{ gap: 2 }}>
               <b>{MODUL_NAMA[p.modul]}</b>
               <span className="hint num">
@@ -684,7 +685,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
                       />
                       <span className="dash__mod-text">
                         <span className="dash__mod-name">
-                          <span className="mono dash__mod-n">M{m.modul}</span>
+                          <span className="dash__mod-n">{modulLabel(m.modul, lang)}</span>
                           <b>{m.judul}</b>
                         </span>
                         {lock ? (
@@ -715,7 +716,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
                 className="pill pill--group"
                 style={{ "--pill-hue": `var(--group-${k || 1})` } as React.CSSProperties}
               >
-                K{k}
+                {kelompokLabel(k, lang)}
               </span>
             </div>
             {sesi && k ? (
