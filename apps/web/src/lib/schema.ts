@@ -25,6 +25,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
 import { KELAS } from "./kelas.js";
+import type { StatusOrang, Tier } from "./hak.js";
 export { NILAI_KOMPONEN } from "./nilai-komponen.js";
 export type { NilaiKomponen } from "./nilai-komponen.js";
 
@@ -54,7 +55,73 @@ export const asisten = pgTable("asisten", {
   // entirely, which is the point of moving off it.
   passwordHash: text("password_hash"),
   passwordDiaturPada: timestamp("password_diatur_pada", { withTimezone: true }),
+  // Phase 9 roles (lib/hak.ts). The tier follows the position: it is
+  // recomputed whenever a head role changes hands (jabatan_pemegang).
+  /** ASO, ARD, ADS, ADC, AER or ARM; null for the Inti. */
+  divisi: text("divisi"),
+  tier: text("tier").$type<Tier>().notNull().default("asisten"),
+  /** "dev" and/or "pencipta". */
+  badges: jsonb("badges").$type<string[]>().notNull().default([]),
+  status: text("status").$type<StatusOrang>().notNull().default("aktif"),
+  /** The SeeLabs username. Never a password. */
+  seelabsAkun: text("seelabs_akun"),
+  /** An Admin's per-person overrides of single rights: { jadwal: true }. */
+  hakOverride: jsonb("hak_override").$type<Record<string, boolean>>().notNull().default({}),
 });
+
+/**
+ * Who holds each of the ten head roles (lib/hak.ts KATEGORI), and since
+ * when. One open row per role: the partial unique index makes a second
+ * holder impossible, so whoever held it first keeps it until a handover
+ * closes their row (selesai) and opens the next one in one transaction.
+ * Division members have no row; their division is asisten.divisi.
+ */
+export const jabatanPemegang = pgTable(
+  "jabatan_pemegang",
+  {
+    id: serial("id").primaryKey(),
+    kategori: text("kategori").notNull(),
+    nim: text("nim")
+      .notNull()
+      .references(() => asisten.nim),
+    mulai: timestamp("mulai", { withTimezone: true }).notNull().defaultNow(),
+    selesai: timestamp("selesai", { withTimezone: true }),
+    /** NIM of whoever assigned it; null for the handbook import. */
+    diberikanOleh: text("diberikan_oleh"),
+  },
+  (t) => [
+    uniqueIndex("jabatan_pemegang_satu_pemegang")
+      .on(t.kategori)
+      .where(sql`${t.selesai} IS NULL`),
+    index("jabatan_pemegang_nim").on(t.nim),
+  ],
+);
+
+/**
+ * A request to move a head role from its holder to someone else
+ * ("Minta Serah Terima"). The holder or an Admin accepts or declines;
+ * until then the holder keeps the role.
+ */
+export const serahTerima = pgTable(
+  "serah_terima",
+  {
+    id: serial("id").primaryKey(),
+    kategori: text("kategori").notNull(),
+    dariNim: text("dari_nim").notNull(),
+    keNim: text("ke_nim").notNull(),
+    /** menunggu, diterima, ditolak or dibatalkan */
+    status: text("status").notNull().default("menunggu"),
+    dimintaOleh: text("diminta_oleh").notNull(),
+    diputusOleh: text("diputus_oleh"),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+    diputusPada: timestamp("diputus_pada", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("serah_terima_satu_menunggu")
+      .on(t.kategori)
+      .where(sql`${t.status} = 'menunggu'`),
+  ],
+);
 
 /**
  * One practicum session: a single module, on a single day, at a single

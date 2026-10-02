@@ -56,6 +56,13 @@ ASISTEN_RE = re.compile(
     re.DOTALL,
 )
 
+# Phase 9 rulings applied on top of the finalized handbook (which is never
+# edited): two codes renamed to match the schedule sheet, and NUE's full
+# name corrected. Migration 0012 applies the same to existing rows, so a
+# re-seed keeps them.
+KODE_BARU = {"RGZ": "REG", "FAT": "TIR"}
+NAMA_BARU = {"NUE": "Immanuel Eben Haezer Joseph Aletheia"}
+
 # The (nama: "...", nim: "...") pairs in #let penyusun-praktikum -- used
 # only as a cross-check, since the vendored file is known to have one NIM
 # spelled two different ways in two places.
@@ -117,8 +124,8 @@ def main() -> int:
         rows.append(
             {
                 "nim": nim,
-                "nama": m.group("nama").strip(),
-                "kode": m.group("kode").strip(),
+                "nama": NAMA_BARU.get(m.group("kode").strip(), m.group("nama").strip()),
+                "kode": KODE_BARU.get(m.group("kode").strip(), m.group("kode").strip()),
                 "divisiId": div_id,
                 "divisiEn": div_en,
             }
