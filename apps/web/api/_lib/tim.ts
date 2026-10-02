@@ -80,18 +80,39 @@ export async function handleTimGet(_req: ApiRequest, res: ApiResponse, session: 
     db.select().from(serahTerima).orderBy(desc(serahTerima.dibuatPada)).limit(20),
     muatOrang(session.nim),
     db
-      .select({ asisten: jadwal.asisten, status: jadwal.status })
+      .select({
+        hari: jadwal.hari,
+        slot: jadwal.slot,
+        kelas: jadwal.kelas,
+        asisten: jadwal.asisten,
+        pengganti: jadwal.pengganti,
+        status: jadwal.status,
+      })
       .from(jadwal)
       .where(eq(jadwal.semester, semesterDariTanggal(hariIniWib()))),
   ]);
 
-  // Slots a week per code, from the weekly schedule.
+  // Slots a week per code, from the weekly schedule: the count of slots
+  // they teach, and the list with substitute seats too.
+  type SlotOrang = { hari: number; slot: number; kelas: string; peran: "tetap" | "pengganti" };
   const slotMinggu: Record<string, number> = {};
+  const slotDaftar: Record<string, SlotOrang[]> = {};
+  const tambahSlot = (k: string, s: SlotOrang) => (slotDaftar[k] ??= []).push(s);
   for (const j of slots) {
     if (j.status !== "aktif") continue;
-    for (const k of new Set(j.asisten.map((x) => x.toUpperCase()))) {
+    const tetap = new Set(j.asisten.map((x) => x.toUpperCase()));
+    for (const k of tetap) {
       slotMinggu[k] = (slotMinggu[k] ?? 0) + 1;
+      tambahSlot(k, { hari: j.hari, slot: j.slot, kelas: j.kelas, peran: "tetap" });
     }
+    for (const p of j.pengganti) {
+      const k = p.kode.toUpperCase();
+      if (!tetap.has(k))
+        tambahSlot(k, { hari: j.hari, slot: j.slot, kelas: j.kelas, peran: "pengganti" });
+    }
+  }
+  for (const list of Object.values(slotDaftar)) {
+    list.sort((a, b) => a.hari - b.hari || a.slot - b.slot);
   }
 
   res.status(200).json({
@@ -100,6 +121,7 @@ export async function handleTimGet(_req: ApiRequest, res: ApiResponse, session: 
     pemegang,
     serahTerima: serah,
     slotMinggu,
+    slotDaftar,
     saya: saya ? { nim: saya.nim, hak: petaHak(saya) } : null,
   });
 }

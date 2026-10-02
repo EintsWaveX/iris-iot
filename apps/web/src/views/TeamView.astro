@@ -1,0 +1,21 @@
+---
+/**
+ * /team, /en/team and /zh/team (Phase 9 Stage 2): the Asisten team, one
+ * island (team/TeamPage.tsx). Every Asisten reads it; the Tim right edits.
+ */
+import Base from "../layouts/Base.astro";
+import TeamPage from "../components/team/TeamPage";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const title = lang === "en" ? "Team" : lang === "zh" ? "团队" : "Tim";
+---
+
+<Base title={`${title} · IRIS IoT`} lang={lang} cosmosScene="teknis">
+  <main id="main" class="page-wide page-main">
+    <TeamPage client:load lang={lang} />
+  </main>
+</Base>

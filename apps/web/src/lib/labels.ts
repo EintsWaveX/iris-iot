@@ -4,6 +4,7 @@
  * INTER, Prep or mnt anywhere in the interface). Browser-safe.
  */
 import type { Kelas, Lang } from "./kelas.js";
+import { divisiKepala, type Inti, type Kategori, type StatusOrang, type Tier } from "./hak.js";
 
 /** "Modul 2", "Module 2", "模块 2" */
 export function modulLabel(n: number, lang: Lang): string {
@@ -69,4 +70,62 @@ export function laluLabel(detik: number, lang: Lang): string {
   const h = Math.round(m / 60);
   if (lang === "en") return `${en(h, "hour")} ago`;
   return lang === "zh" ? `${h} 小时前` : `${h} jam lalu`;
+}
+
+/** "Senin", "Monday", "星期一" (1 = Senin ... 6 = Sabtu, 0 = Minggu) */
+export function hariLabel(h: number, lang: Lang): string {
+  const id = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const en = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const zh = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+  return (lang === "en" ? en : lang === "zh" ? zh : id)[h] ?? String(h);
+}
+
+type Tri = readonly [id: string, en: string, zh: string];
+const pick = (t: Tri, lang: Lang) => (lang === "en" ? t[1] : lang === "zh" ? t[2] : t[0]);
+
+const TIER: Record<Tier, Tri> = {
+  admin: ["Admin", "Admin", "管理员"],
+  pengelola: ["Pengelola", "Manager", "主管"],
+  asisten: ["Asisten", "Assistant", "助教"],
+};
+
+/** The tier (role) a position gives: Admin, Pengelola, Asisten. */
+export function tierLabel(t: Tier, lang: Lang): string {
+  return pick(TIER[t] ?? TIER.asisten, lang);
+}
+
+const JABATAN: Record<Inti | "kepala" | "anggota", Tri> = {
+  ketua: ["Koordinator Asisten", "Assistant Coordinator", "助教协调人"],
+  wakil: ["Wakil Koordinator Asisten", "Vice Assistant Coordinator", "助教副协调人"],
+  sekretaris: ["Sekretaris", "Secretary", "秘书"],
+  bendahara: ["Bendahara", "Treasurer", "财务"],
+  kepala: ["Kepala Divisi", "Division Chief", "部门负责人"],
+  anggota: ["Anggota Divisi", "Division Member", "部门成员"],
+};
+
+/** A head role's name: "Bendahara", "Kepala Divisi ARD", "ARD 部门负责人". */
+export function kategoriLabel(k: Kategori, lang: Lang): string {
+  const div = divisiKepala(k);
+  if (!div) return pick(JABATAN[k as Inti], lang);
+  return lang === "zh" ? `${div} ${JABATAN.kepala[2]}` : `${pick(JABATAN.kepala, lang)} ${div}`;
+}
+
+/** A person's position: their head role, or "Anggota Divisi ASO". */
+export function jabatanLabel(k: Kategori | null, divisi: string | null, lang: Lang): string {
+  if (k) return kategoriLabel(k, lang);
+  const base = pick(JABATAN.anggota, lang);
+  if (!divisi) return base;
+  return lang === "zh" ? `${divisi} ${base}` : `${base} ${divisi}`;
+}
+
+const STATUS: Record<StatusOrang, Tri> = {
+  aktif: ["Aktif", "Active", "在岗"],
+  cuti: ["Cuti", "On Leave", "休假中"],
+  nonaktif: ["Nonaktif", "Inactive", "停用"],
+  alumni: ["Alumni", "Alumni", "已毕业"],
+};
+
+/** A person's membership status. */
+export function statusOrangLabel(s: StatusOrang, lang: Lang): string {
+  return pick(STATUS[s] ?? STATUS.aktif, lang);
 }

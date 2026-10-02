@@ -1,0 +1,529 @@
+/* The Tim page (Phase 9 Stage 2), from the mockup's t-list and t-person. */
+
+.tim {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.tim__head {
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------ badges */
+
+.tier {
+  align-items: center;
+  border: 1px solid;
+  border-radius: 6px;
+  display: inline-flex;
+  font: 700 0.76rem/1 var(--font-body);
+  letter-spacing: 0.06em;
+  min-height: 26px;
+  padding: 2px 10px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tier--admin {
+  background: var(--gold-soft);
+  border-color: color-mix(in srgb, var(--gold) 55%, transparent);
+  color: var(--gold);
+}
+
+.tier--pengelola {
+  background: var(--violet-soft);
+  border-color: color-mix(in srgb, var(--violet) 55%, transparent);
+  color: var(--violet);
+}
+
+.tier--asisten {
+  background: var(--surface-3);
+  border-color: var(--hairline-strong);
+  color: var(--text-muted);
+}
+
+.pbadge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font: 800 0.74rem/1 var(--font-body);
+  gap: 5px;
+  letter-spacing: 0.07em;
+  min-height: 26px;
+  padding: 2px 10px 2px 7px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pbadge--dev {
+  background: var(--teal-soft);
+  border: 1px solid color-mix(in srgb, var(--teal) 55%, transparent);
+  color: var(--teal);
+  font-family: var(--font-mono);
+}
+
+/* The Creator: a gold-to-sky pill that keeps sweeping in every detail level
+   (only the OS reduced-motion setting stops it, as with the kit sweeps). */
+.pbadge--pencipta {
+  animation: kit-sweep 6s linear infinite;
+  background: linear-gradient(100deg, #ffe08a, #ffb36b, #f2a3ff, #8ed0ff, #ffe08a);
+  background-size: 300% 100%;
+  box-shadow:
+    0 0 0 1px rgba(255, 224, 138, 0.6),
+    0 0 16px rgba(255, 190, 120, 0.35);
+  color: #1a1200;
+}
+
+.pbadge--sm {
+  font-size: 0.68rem;
+  min-height: 22px;
+  padding: 1px 8px 1px 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pbadge--pencipta {
+    animation: none;
+  }
+}
+
+.tim-badges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.acode {
+  background: var(--surface-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  flex: none;
+  font: 700 0.8rem var(--font-mono);
+  padding: 3px 7px;
+}
+
+.acode--me {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* ------------------------------------------------------- role holders */
+
+.tim-holders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tim-holders__head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-4);
+  justify-content: space-between;
+}
+
+.holdgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1100px) {
+  .holdgrid {
+    column-gap: var(--space-6);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.holdrow {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1.4fr) auto;
+  min-height: 52px;
+  padding: 6px 0;
+}
+
+.holdrow.is-pending {
+  background: color-mix(in srgb, var(--warn) 7%, transparent);
+  border-radius: 10px;
+  margin-inline: -8px;
+  padding-inline: 8px;
+}
+
+.holdrow__role {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.holdrow__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 519px) {
+  .holdrow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .holdrow__role {
+    grid-column: 1 / -1;
+  }
+}
+
+.handover {
+  align-items: center;
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--hairline));
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 16px;
+}
+
+.handover__ic {
+  background: var(--warn-soft);
+  border-radius: 14px;
+  color: var(--warn);
+  display: grid;
+  height: 46px;
+  place-items: center;
+  width: 46px;
+}
+
+.handover__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.handover__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.handover__act {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+@media (max-width: 519px) {
+  .handover__act {
+    flex-direction: column-reverse;
+  }
+  .handover__act .btn {
+    width: 100%;
+  }
+}
+
+/* -------------------------------------------------------------- filter */
+
+.panel.tim-filter {
+  align-items: center;
+  flex-direction: row;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tim-search {
+  align-items: center;
+  background: var(--bg-sunken);
+  border: 1px solid var(--control-border, var(--hairline-strong));
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  display: flex;
+  flex: 1 1 220px;
+  gap: var(--space-2);
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 var(--space-3);
+}
+
+.tim-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--glow-ring);
+}
+
+.tim-search input {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  flex: 1;
+  font: inherit;
+  min-width: 0;
+  outline: none;
+}
+
+.tim-filter .dropdown {
+  flex: none;
+  min-width: 170px;
+}
+
+/* --------------------------------------------------------------- table */
+
+.tim-tablewrap {
+  overflow-x: auto;
+}
+
+.tim-table {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+.tim-table th {
+  background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tim-table td {
+  border-top: 1px solid var(--hairline-faint);
+  padding: var(--space-3) var(--space-4);
+  vertical-align: middle;
+}
+
+.tim-table .tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.tim-table tbody tr {
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-reveal);
+}
+
+.tim-table tbody tr:hover,
+.tim-table tbody tr:focus-visible {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  outline: none;
+}
+
+.tim-table tbody tr:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.tim-table tr[data-off="yes"] td {
+  opacity: 0.6;
+}
+
+.who {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.who__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tim-table .who__text > * {
+  white-space: nowrap;
+}
+
+@media (max-width: 1099px) {
+  .tim-table th,
+  .tim-table td {
+    padding-inline: var(--space-3);
+  }
+}
+
+.tim-empty {
+  padding: var(--space-5);
+  text-align: center;
+}
+
+/* Phones: rows become cards, each cell labelled. */
+@media (max-width: 719px) {
+  .tim-table thead {
+    display: none;
+  }
+  .tim-table,
+  .tim-table tbody,
+  .tim-table tr,
+  .tim-table td {
+    display: block;
+    width: 100%;
+  }
+  .tim-tablewrap {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+  .tim-table tbody tr {
+    background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    display: grid;
+    gap: 6px var(--space-3);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: var(--space-2);
+    padding: var(--space-3);
+  }
+  .tim-table td {
+    border: 0;
+    padding: 2px 0;
+  }
+  .tim-table td:first-child {
+    grid-column: 1 / -1;
+  }
+  .tim-table .who__text > * {
+    white-space: normal;
+  }
+  .tim-table td[data-empty="yes"] {
+    display: none;
+  }
+  .tim-table td:not(:first-child)::before {
+    color: var(--text-faint);
+    content: attr(data-col);
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+}
+
+/* -------------------------------------------------------------- drawer */
+
+.tim-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.tim-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tim-sec__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.rightsnote {
+  align-items: start;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.88rem;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.rightsnote svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* Rows in three columns that line up across the list (icon or chip, text,
+   control), like the mockup's tabstops. */
+.tim-rows {
+  column-gap: 14px;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+}
+
+.tim-row {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-height: 44px;
+  padding: 6px 0;
+}
+
+.tim-row:last-child {
+  border-bottom: 0;
+}
+
+.tim-row--2 > :last-child {
+  grid-column: 2 / -1;
+}
+
+.rightic {
+  color: var(--text-faint);
+  display: grid;
+  place-items: center;
+}
+
+.rightic.is-on {
+  color: var(--ok);
+}
+
+.rights__text {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.clash {
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 50%, var(--hairline));
+  border-radius: var(--radius-md);
+  color: var(--text);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-top: var(--space-2);
+  padding: 12px 14px;
+}
+
+.clash > svg {
+  color: var(--warn);
+  margin-top: 2px;
+}
+
+.clash__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tim-foot12 {
+  gap: 10px;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------- add dialog */
+
+.tim-add {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 559px) {
+  .tim-add {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tim-add__hint {
+  margin: var(--space-3) 0 0;
+}

@@ -34,6 +34,7 @@ import {
   SlidersHorizontalIcon,
   SquaresFourIcon,
   UserIcon,
+  UsersFourIcon,
   UsersThreeIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -70,6 +71,7 @@ const T = dict({
     schedule: "Jadwal",
     server: "Server",
     reports: "Laporan",
+    team: "Tim",
     signIn: "Masuk",
     signOut: "Keluar",
     account: "Akun",
@@ -93,6 +95,7 @@ const T = dict({
     schedule: "Schedule",
     server: "Server",
     reports: "Reports",
+    team: "Team",
     signIn: "Sign In",
     signOut: "Sign Out",
     account: "Account",
@@ -116,6 +119,7 @@ function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
       { path: "/schedule", label: t.schedule, icon: CalendarBlankIcon },
       { path: "/servers", label: t.server, icon: HardDrivesIcon },
       { path: "/reports", label: t.reports, icon: ChartBarIcon },
+      { path: "/team", label: t.team, icon: UsersFourIcon },
       { path: "/modules", label: t.modules, icon: BookOpenTextIcon },
     ];
   }
@@ -167,6 +171,16 @@ export default function AppNav({
   const now = useSessionNow(30_000, me !== undefined && me !== null);
   const current = barePath(path);
   const links = useMemo(() => linksFor(me, t), [me, t]);
+  // The phone bar holds five: an Asisten reaches Home from the logo and
+  // Modules from Home, so both stay in the top bar only (mockup rule).
+  const barLinks = useMemo(
+    () =>
+      (me?.role === "asisten"
+        ? links.filter((l) => l.path !== "/" && l.path !== "/modules")
+        : links
+      ).slice(0, 5),
+    [links, me],
+  );
   const [sheet, setSheet] = useState(false);
   const [dispSheet, setDispSheet] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -362,7 +376,7 @@ export default function AppNav({
       <IdentityWatch lang={lang} me={me} now={now.data} />
 
       <nav className="appbar" aria-label={t.main}>
-        {links.map((l) => {
+        {barLinks.map((l) => {
           const active = isActive(l.path, current);
           return (
             <a
