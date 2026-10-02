@@ -2674,3 +2674,72 @@ thead .ntable__name {
     width: 100%;
   }
 }
+
+/* ---- Butuh Bantuan Hari Ini (Phase 9 Stage 4) */
+.helpcard {
+  display: grid;
+  gap: 12px;
+}
+
+.helplist {
+  display: grid;
+}
+
+.helprow {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 6px 14px;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  min-height: 56px;
+  padding: 8px 0;
+}
+
+.helprow:last-child {
+  border-bottom: 0;
+}
+
+.helprow__text {
+  gap: 2px;
+  min-width: 0;
+}
+
+.helprow__st {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.9rem;
+  gap: 6px;
+}
+
+.helprow__st[data-tone="ok"] {
+  color: var(--ok);
+}
+
+.helprow__st[data-tone="danger"] {
+  color: var(--danger);
+}
+
+.helprow__act {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+@media (max-width: 519px) {
+  .helprow {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .helprow > :last-child {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+
+.helpbullets {
+  display: grid;
+  gap: 6px;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 20px;
+}

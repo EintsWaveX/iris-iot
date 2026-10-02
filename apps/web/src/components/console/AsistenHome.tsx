@@ -17,6 +17,7 @@
  * The server enforces every rule shown here (api/session/index.ts and
  * src/lib/sesi-mulai.ts); this page only explains them ahead of time.
  */
+import HelpCard from "./HelpCard";
 import { useTitipan } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
@@ -70,8 +71,13 @@ import { H, type Hx } from "./homeStrings";
 interface SlotHariIni {
   slot: number;
   kelas: Kelas;
-  status: "aktif" | "segera";
+  /** Today's status: a holiday or No Practicum shows here too (Phase 9). */
+  status: "aktif" | "segera" | "libur" | "kosong";
+  /** One code per group today ("" for an open seat). */
   asisten: string[];
+  /** Covers and volunteers helping without a group, and who is excused. */
+  bantu?: string[];
+  izin?: string[];
   pengganti: { kode: string }[];
   jumlahKelompok: number;
   jendelaMulaiMenit: number | null;
@@ -165,10 +171,14 @@ export default function AsistenHome({
   const myCode = (me.kode ?? "").toUpperCase();
 
   const row = (s: number) => data?.hariIni.find((r) => r.slot === s) ?? null;
+  // Everyone teaching a slot today, once each: the seats, then helpers.
+  const kodeSlot = (r: SlotHariIni) => [
+    ...new Set([...r.asisten, ...(r.bantu ?? [])].map((k) => k.toUpperCase()).filter(Boolean)),
+  ];
   const jendelaOf = (s: number) => row(s)?.jendelaMulaiMenit ?? data?.jendelaDefault ?? 15;
   const ada = (s: number) => {
     const r = row(s);
-    return !!r && r.status === "aktif" && r.asisten.length > 0;
+    return !!r && r.status === "aktif" && kodeSlot(r).length > 0;
   };
 
   // Done, Now (inside its start window), Next (the first upcoming slot with
@@ -209,8 +219,7 @@ export default function AsistenHome({
   const r = row(sel);
   const diSlot =
     !!r &&
-    (r.asisten.some((k) => k.toUpperCase() === myCode) ||
-      r.pengganti.some((p) => p.kode.toUpperCase() === myCode));
+    (kodeSlot(r).includes(myCode) || r.pengganti.some((p) => p.kode.toUpperCase() === myCode));
   const win = jendelaSlot(SLOT_MULAI[sel], jendelaOf(sel), menitNow);
   const blok: "past" | "future" | "notMine" | "empty" | null = susulan
     ? null
@@ -333,14 +342,20 @@ export default function AsistenHome({
                 </span>
                 {ada(s) ? (
                   <span className="slot__codes">
-                    {[...new Set(rs!.asisten.map((k) => k.toUpperCase()))].map((k) => (
+                    {kodeSlot(rs!).map((k) => (
                       <span key={k} className={`acode${k === myCode ? " acode--me" : ""}`}>
                         {k}
                       </span>
                     ))}
                   </span>
                 ) : (
-                  <span className="hint">{rs?.status === "segera" ? h.soon : h.noPracticum}</span>
+                  <span className="hint">
+                    {rs?.status === "segera"
+                      ? h.soon
+                      : rs?.status === "libur"
+                        ? h.holiday
+                        : h.noPracticum}
+                  </span>
                 )}
               </button>
             );
@@ -366,6 +381,8 @@ export default function AsistenHome({
           ))}
         </div>
       </section>
+
+      <HelpCard lang={lang} nama={dir.nama} onChanged={load} />
 
       <section className="panel panel--key panel--raised prepcard">
         <div className="prepcard__text">
@@ -443,7 +460,7 @@ export default function AsistenHome({
                 </b>
                 {ada(sel) ? (
                   <span className="row" style={{ gap: 4 }}>
-                    {[...new Set(r!.asisten.map((k) => k.toUpperCase()))].map((k) => {
+                    {kodeSlot(r!).map((k) => {
                       const a = [...dir.byNim.values()].find((x) => x.kode?.toUpperCase() === k);
                       return (
                         <Tooltip key={k} label={a ? `${a.nama} (${k})` : k}>

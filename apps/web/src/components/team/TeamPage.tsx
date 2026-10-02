@@ -3,12 +3,16 @@
  * Asisten with position, role, badges, status and SeeLabs account; the ten
  * head-role holders and their handovers; one person's drawer with rights,
  * slots this week and the trail. Everyone reads it; the Tim right edits.
- * The slot assignment board joins in Stage 4 and payments in Stage 6.
+ * Penugasan Slot (Stage 4, AssignBoard.tsx) is the second tab, #penugasan;
+ * payments join in Stage 6.
  *
  * A head role has one holder. Picking a role someone else holds never
  * saves: the footer turns into Ask for a Handover, Make a Member, Cancel,
  * and the holder keeps the role until they or an Admin accept.
  */
+import AssignBoard, { A } from "./AssignBoard";
+import { namaAsisten } from "../../lib/people";
+import Fade from "../ui/Fade";
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import {
   CheckCircleIcon,
@@ -58,6 +62,7 @@ import {
 import { SLOT_MULAI } from "../../lib/jadwal";
 import type { Kelas, Lang } from "../../lib/kelas";
 import { T, type Tx } from "./strings";
+import "../ui/Tabs.css";
 import "./team.css";
 
 /* ---------------------------------------------------------------- data */
@@ -168,6 +173,14 @@ export default function TeamPage({ lang }: { lang: Lang }) {
   const [fail, setFail] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [tab, setTab0] = useState<"orang" | "penugasan">("orang");
+  useEffect(() => {
+    if (location.hash === "#penugasan") setTab0("penugasan");
+  }, []);
+  const setTab = (v: "orang" | "penugasan") => {
+    setTab0(v);
+    history.replaceState(null, "", v === "penugasan" ? "#penugasan" : location.pathname);
+  };
 
   const load = useCallback(async () => {
     try {
@@ -203,7 +216,7 @@ export default function TeamPage({ lang }: { lang: Lang }) {
             <h1 className="page-header__title">{t.title}</h1>
           </div>
           <div className="page-header__actions">
-            {admin ? (
+            {tab === "penugasan" ? null : admin ? (
               <button type="button" className="btn btn--primary" onClick={() => setAdding(true)}>
                 <UserPlusIcon size={18} aria-hidden="true" />
                 {t.add}
@@ -218,8 +231,53 @@ export default function TeamPage({ lang }: { lang: Lang }) {
         </div>
       </header>
 
-      <Holders data={data} t={t} lang={lang} admin={admin} reload={load} />
-      <People data={data} t={t} lang={lang} onOpen={setOpen} />
+      <div className="tabs-scroll">
+        <nav className="tabs" role="tablist" aria-label={A[lang].tabsLabel}>
+          {(["orang", "penugasan"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={tab === v}
+              tabIndex={tab === v ? 0 : -1}
+              className="tabs__tab"
+              onClick={() => setTab(v)}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                  const n = v === "orang" ? "penugasan" : "orang";
+                  setTab(n);
+                  const list = e.currentTarget.parentElement;
+                  requestAnimationFrame(() =>
+                    (list?.querySelector('[aria-selected="true"]') as HTMLElement | null)?.focus(),
+                  );
+                }
+              }}
+            >
+              {A[lang].tabs[v]}
+              {v === "orang" && <span className="tabs__count">{data.orang.length}</span>}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <Fade k={tab}>
+        {tab === "orang" ? (
+          <>
+            <Holders data={data} t={t} lang={lang} admin={admin} reload={load} />
+            <People data={data} t={t} lang={lang} onOpen={setOpen} />
+          </>
+        ) : (
+          <AssignBoard
+            lang={lang}
+            bolehJadwal={data.saya?.hak.jadwal !== false && !!data.saya}
+            nama={(nim) => {
+              const o = data.orang.find((x) => x.nim === nim);
+              return o ? namaAsisten(o, nim ?? "?") : (nim ?? "?");
+            }}
+            meKode={(me.kode ?? "").toUpperCase()}
+          />
+        )}
+      </Fade>
 
       {person && (
         <PersonDrawer

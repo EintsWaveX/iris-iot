@@ -28,6 +28,7 @@ import { kirimSeelabs, salinTeks, useSeelabs, useTitipan, type KelompokSeelabs }
 import { SL, pesanSl, type SeelabsStrings } from "./strings";
 import { SavedButton, SeelabsBody, StatusPill, tandaiSimpan } from "./SeelabsSheet";
 import BookmarkletPill from "./BookmarkletPill";
+import "../../ui/Tabs.css";
 import "./seelabs.css";
 
 export type SeelabsTab = "salin" | "pasang" | "cara" | "tidak" | "titipan";

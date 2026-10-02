@@ -483,3 +483,238 @@
 .tim-add__hint {
   margin: var(--space-3) 0 0;
 }
+
+/* ---- Penugasan Slot (Phase 9 Stage 4, mockup t-assign) */
+.tabs__count {
+  background: var(--surface-3);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  margin-left: 8px;
+  padding: 1px 8px;
+}
+
+.tassign-wrap {
+  display: grid;
+  gap: 18px;
+}
+
+.reqlane {
+  display: grid;
+  gap: 10px;
+}
+
+.reqlane .panel__head {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.reqlane__save {
+  margin-left: auto;
+}
+
+.reqlist {
+  display: grid;
+}
+
+.reqrow {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 6px 14px;
+  grid-template-columns: max-content minmax(0, 1fr) max-content max-content;
+  min-height: 56px;
+  padding: 6px 0;
+}
+
+.reqrow:last-child {
+  border-bottom: 0;
+}
+
+.reqrow__text {
+  gap: 0;
+  min-width: 0;
+}
+
+.reqrow__act {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+@media (max-width: 639px) {
+  .reqrow {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+}
+
+.tassign {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .tassign {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+
+  .tpool {
+    max-height: calc(100vh - 120px);
+    position: sticky;
+    top: 84px;
+  }
+}
+
+.tpool {
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.tpool__list {
+  align-content: start;
+  display: grid;
+  gap: 4px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.tpool__row {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  border-radius: 8px;
+  cursor: grab;
+  display: flex;
+  gap: 10px;
+  min-height: 50px;
+  padding: 4px 8px;
+  touch-action: none;
+}
+
+.tpool__row > .grow {
+  min-width: 100px;
+}
+
+.tpool__row[data-ro="yes"] {
+  cursor: default;
+}
+
+.tpool__row[data-off="yes"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tpool__row[data-dragging="yes"] {
+  opacity: 0.4;
+}
+
+.tslots {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+
+.tslot {
+  align-content: start;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 8px;
+  min-height: 140px;
+  padding: 12px;
+  transition:
+    border-color var(--dur-fast, 0.15s),
+    background var(--dur-fast, 0.15s);
+}
+
+.tslot[data-over="yes"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.tslot[data-need="yes"] {
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface-1));
+  border-color: var(--warn);
+}
+
+.tslot[data-st="libur"] {
+  border-style: dashed;
+}
+
+.tslot[data-st="segera"] {
+  border: 2px dashed var(--teal);
+}
+
+.tslot__head {
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.tslot__st {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+.tslot__st:disabled {
+  cursor: default;
+}
+
+.tslot__need {
+  align-items: center;
+  color: var(--warn);
+  display: inline-flex;
+  font-size: 0.88rem;
+  gap: 6px;
+}
+
+.tslot__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tchip {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px 4px 2px 6px;
+}
+
+.tchip__kind {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tchip__kind:disabled {
+  cursor: default;
+}
+
+.tchip .pill {
+  font-size: 0.66rem;
+  min-height: 22px;
+  padding: 1px 7px;
+}
+
+.impchip--lifted {
+  box-shadow: 0 10px 28px -10px rgba(0, 0, 0, 0.55);
+  cursor: grabbing;
+}

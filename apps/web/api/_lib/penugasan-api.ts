@@ -373,13 +373,27 @@ async function ubahSlot(
   if (ubah.minggu !== undefined && semester === kini) {
     const kursi = bacaKursi((ubah.minggu as { kursi?: unknown })?.kursi, row.jumlahKelompok);
     if (!kursi) return tolak(res, "format_salah", 400);
-    for (const k of kursi) {
-      if (!k.kode) continue;
-      const o = byKode.get(k.kode);
+    // Optional: the helpers without a group, as the whole list (Tim's
+    // slot board); absent, they're left as they are.
+    const bantuRaw = (ubah.minggu as { bantu?: unknown })?.bantu;
+    let bantu: { kode: string; jenis: "pengganti" | "sukarela" }[] | null = null;
+    if (bantuRaw !== undefined) {
+      if (!Array.isArray(bantuRaw)) return tolak(res, "format_salah", 400);
+      bantu = [];
+      for (const x of bantuRaw) {
+        const r = x as { kode?: unknown; jenis?: unknown };
+        if (typeof r.kode !== "string" || (r.jenis !== "pengganti" && r.jenis !== "sukarela"))
+          return tolak(res, "format_salah", 400);
+        bantu.push({ kode: r.kode.trim().toUpperCase(), jenis: r.jenis });
+      }
+    }
+    for (const kode of [...kursi.map((k) => k.kode), ...(bantu ?? []).map((b) => b.kode)]) {
+      if (!kode) continue;
+      const o = byKode.get(kode);
       if (!o) return tolak(res, "kode_tidak_dikenal");
       if (o.status !== "aktif") return tolak(res, "orang_tidak_aktif");
     }
-    await simpanMinggu(db, session.nim, row, tanggal, kursi, byKode);
+    await simpanMinggu(db, session.nim, row, tanggal, kursi, byKode, bantu);
   }
 
   await writeAudit(session.nim, "jadwal_ubah", { semester, hari, slot, ubah });
@@ -396,6 +410,7 @@ async function simpanMinggu(
   tanggal: string,
   kursi: KursiBaru[],
   byKode: Map<string, { nim: string; kode: string; status: string }>,
+  bantu: { kode: string; jenis: "pengganti" | "sukarela" }[] | null = null,
 ) {
   const m = (await muatMinggu(db, [j])).get(j.id)!;
   const tetapOf = new Map(m.kursi.map((k) => [k.nomor, k.tetap]));
@@ -487,6 +502,34 @@ async function simpanMinggu(
           .where(eq(penugasanSlot.id, t.id));
       else await tx.delete(penugasanSlot).where(eq(penugasanSlot.id, t.id));
     }
+    // The helpers without a group, when the caller sent the whole list.
+    if (bantu) {
+      const mau = new Map(
+        bantu
+          .map((b) => [byKode.get(b.kode)?.nim, b.jenis] as const)
+          .filter((x): x is [string, "pengganti" | "sukarela"] => !!x[0] && !seatedNim.has(x[0])),
+      );
+      for (const t of m.tugas)
+        if (t.status === "diterima" && t.kelompokNomor == null && !mau.has(t.nim))
+          await tx.delete(penugasanSlot).where(eq(penugasanSlot.id, t.id));
+      for (const [nim, jenis] of mau)
+        await tx
+          .insert(penugasanSlot)
+          .values({
+            jadwalId: j.id,
+            tanggal,
+            kelompokNomor: null,
+            nim,
+            jenis,
+            status: "diterima",
+            dimintaOleh: oleh,
+            dikonfirmasiOleh: oleh,
+          })
+          .onConflictDoUpdate({
+            target: [penugasanSlot.jadwalId, penugasanSlot.tanggal, penugasanSlot.nim],
+            set: { kelompokNomor: null, jenis, status: "diterima", dikonfirmasiOleh: oleh },
+          });
+    }
   });
 }
 
@@ -502,6 +545,8 @@ interface SlotBantu {
   kosong: number[];
   izin: { kode: string; nim: string; status: string }[];
   saya: "diminta" | "diterima" | "ditolak" | null;
+  /** Who answered my offer. */
+  oleh: string | null;
 }
 
 export async function handlePenugasanGet(
@@ -529,9 +574,14 @@ export async function handlePenugasanGet(
     if (m.tanggal !== hariIni || m.status !== "aktif") continue;
     const kosong = m.kursi.filter((k) => !k.kode).map((k) => k.nomor);
     const cari = m.izin.filter((x) => x.status !== "dibatalkan" && !x.penggantiNim);
-    if (kosong.length === 0 && cari.length === 0) continue;
-    if (orangTanggal(m.kursi, m.tugas).has(kodeSaya)) continue;
-    const saya = m.tugas.find((t) => t.nim === me.nim)?.status ?? null;
+    // My own offer stays listed whatever came of it, so I see the answer.
+    const tugasSaya = m.tugas.find((t) => t.nim === me.nim && t.jenis === "sukarela");
+    const saya = tugasSaya?.status ?? null;
+    if (!saya) {
+      if (kosong.length === 0 && cari.length === 0) continue;
+      if (orangTanggal(m.kursi, m.tugas).has(kodeSaya)) continue;
+      if (m.kursi.some((k) => k.tetap === kodeSaya)) continue;
+    }
     bantu.push({
       jadwalId: j.id,
       hari: j.hari,
@@ -541,6 +591,7 @@ export async function handlePenugasanGet(
       kosong,
       izin: cari.map((x) => ({ kode: x.kode, nim: x.nim, status: x.status })),
       saya,
+      oleh: tugasSaya?.dikonfirmasiOleh ?? null,
     });
   }
 
