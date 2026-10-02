@@ -128,12 +128,14 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
       </div>
       <div className="briefbar">
         <SegmentedControl
+          fill
           aria-label={t.module}
           value={String(m)}
           onValueChange={(v) => setM(Number(v))}
           options={[1, 2, 3, 4].map((x) => ({ value: String(x), label: modulLabel(x, lang) }))}
         />
         <SegmentedControl
+          fill
           aria-label={t.lang}
           value={lg}
           onValueChange={(v) => setLg(v as "id" | "en" | "zh")}

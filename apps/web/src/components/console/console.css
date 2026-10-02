@@ -1131,15 +1131,32 @@ thead .ntable__name {
 }
 
 .prep__tools {
-  align-items: flex-end;
+  align-items: center;
   display: flex;
   flex-wrap: nowrap;
   gap: 10px 14px;
   margin-left: auto;
 }
 
+/* "Roster for" and its dropdown on one line (mockup .inlinefield). */
 .prep__for {
-  min-width: min(420px, 100%);
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  width: min(480px, 100%);
+}
+
+.prep__forlabel {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.prep__for .dropdown {
+  flex: 1;
+  min-width: 0;
 }
 
 @media (max-width: 819px) {
@@ -1157,7 +1174,9 @@ thead .ntable__name {
   align-items: center;
   background: var(--surface-2);
   border: 1px solid var(--hairline-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-md);
+  flex: none;
+  white-space: nowrap;
   color: var(--text);
   display: inline-flex;
   font-weight: 650;
@@ -1405,10 +1424,20 @@ thead .ntable__name {
 }
 
 .briefbar {
-  display: flex;
-  flex-wrap: wrap;
+  align-items: stretch;
+  display: grid;
   gap: 10px;
-  justify-content: space-between;
+  grid-template-columns: 4fr 2fr;
+}
+
+@media (max-width: 759px) {
+  .briefbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.briefbar .segmented__item {
+  padding-inline: 8px;
 }
 
 .panel__actions--end {

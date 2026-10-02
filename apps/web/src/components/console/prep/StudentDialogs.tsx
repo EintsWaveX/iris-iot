@@ -201,6 +201,7 @@ export function AddStudentDialog({
     >
       <div className="stack">
         <SegmentedControl
+          fill
           aria-label={p.addTitle}
           value={mode}
           onValueChange={(v) => setMode(v as "one" | "many")}
@@ -240,6 +241,7 @@ export function AddStudentDialog({
             <div className="field">
               <span className="field__label">{p.kelas}</span>
               <SegmentedControl
+                fill
                 aria-label={p.kelas}
                 value={kelas}
                 onValueChange={(v) => setKelas(v as Kelas)}

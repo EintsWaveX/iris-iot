@@ -211,13 +211,21 @@ export default function PrepView({
           {tab === "roster" && (
             <div className="prep__for">
               {options.length > 1 ? (
-                <Dropdown
-                  id="prep-for"
-                  label={p.rosterFor}
-                  value={sel ?? ""}
-                  onChange={choose}
-                  options={options}
-                />
+                <>
+                  {/* The mockup's inline label; the Dropdown keeps its own
+                      (visually hidden) label for screen readers. */}
+                  <span className="prep__forlabel" aria-hidden="true">
+                    {p.rosterFor}
+                  </span>
+                  <Dropdown
+                    id="prep-for"
+                    label={p.rosterFor}
+                    hideLabel
+                    value={sel ?? ""}
+                    onChange={choose}
+                    options={options}
+                  />
+                </>
               ) : (
                 <span className="hint">{p.noSlots}</span>
               )}

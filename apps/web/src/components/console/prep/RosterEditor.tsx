@@ -648,6 +648,7 @@ const RosterEditor = forwardRef<
         ) : (
           <>
             <SegmentedControl
+              fill
               aria-label={p.paneRoster}
               value={pane}
               onValueChange={(v) => setPane(v as "roster" | "pool")}
