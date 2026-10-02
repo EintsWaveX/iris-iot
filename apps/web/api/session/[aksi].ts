@@ -32,6 +32,8 @@
  * Phase 8 actions (assignment, help, feedback, results, schedule) are documented in api/_lib/phase8.ts.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { cekHak } from "../_lib/hak.js";
+import { handleTimGet, handleTimJejak, handleTimPost } from "../_lib/tim.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { requireRole, requireAnyRole, currentSession } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
@@ -1228,6 +1230,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === "POST") {
       const session = requireRole(req, res, "asisten");
       if (!session) return;
+      if (!(await cekHak(res, session.nim, "jadwal"))) return;
       return handleAksesPost(req, res, session);
     }
     if (!requireMethod(req, res, "GET")) return;
@@ -1302,6 +1305,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const session = requireRole(req, res, "asisten");
   if (!session) return;
 
+  if (aksi === "tim") {
+    if (req.method === "POST") return handleTimPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    if (typeof req.query.nim === "string") return handleTimJejak(req, res);
+    return handleTimGet(req, res, session);
+  }
   if (aksi === "asisten") {
     if (!requireMethod(req, res, "GET")) return;
     return handleAsistenDirectory(res);
@@ -1312,7 +1321,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return handleAssignmentGet(req, res);
   }
   if (aksi === "schedule") {
-    if (req.method === "POST") return handleSchedulePost(req, res, session);
+    if (req.method === "POST") {
+      if (!(await cekHak(res, session.nim, "jadwal"))) return;
+      return handleSchedulePost(req, res, session);
+    }
     if (!requireMethod(req, res, "GET")) return;
     return handleScheduleGet(req, res);
   }

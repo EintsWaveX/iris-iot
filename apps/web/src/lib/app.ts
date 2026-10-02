@@ -5,6 +5,7 @@
  * helper, and the module names in both languages.
  */
 import { laluLabel } from "./labels.js";
+import type { HakKey, HakNilai, Tier } from "./hak.js";
 import { useEffect, useState } from "react";
 import type { Kelas, Lang } from "./kelas.js";
 import { usePoll } from "./hooks.js";
@@ -58,6 +59,10 @@ export interface Me {
   kode?: string;
   perluAturSandi?: boolean;
   divisi?: { id: string; en: string };
+  /** Asisten only (Phase 9): see lib/hak.ts. */
+  tier?: Tier;
+  badges?: string[];
+  hak?: Record<HakKey, HakNilai>;
 }
 
 let mePromise: Promise<Me | null> | null = null;

@@ -8,6 +8,7 @@
  *   recent heartbeat, for the server list view.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { cekHak } from "../_lib/hak.js";
 import { jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
@@ -27,6 +28,8 @@ const KODE_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
 async function handlePost(req: ApiRequest, res: ApiResponse) {
   const session = requireRole(req, res, "asisten");
   if (!session) return;
+  // Phase 9: registering a Pi is the full Server view (Admin and DEV).
+  if (!(await cekHak(res, session.nim, "full"))) return;
 
   const body = jsonBody(req);
   const nama = typeof body.nama === "string" ? body.nama.trim() : "";

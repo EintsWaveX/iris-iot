@@ -23,6 +23,7 @@
  * no inbound path to the Pi to deliver it any faster.
  */
 import type { ApiRequest, ApiResponse } from "./_lib/http.js";
+import { cekHak } from "./_lib/hak.js";
 import { requireMethod, jsonBody, noStore, pgErrorCode } from "./_lib/http.js";
 import { requireRole } from "./_lib/session.js";
 import { getDb } from "../src/lib/db.js";
@@ -159,6 +160,9 @@ async function handlePerintahBatal(req: ApiRequest, res: ApiResponse, session: S
   res.status(200).json({ ok: true });
 }
 
+/** Commands any Asisten may send while running a slot. */
+const AKSI_SLOT = new Set(["ap.nyala", "ap.mati", "jam.selaraskan", "diag.siap"]);
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
   if (!requireMethod(req, res, "POST")) return;
@@ -167,6 +171,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (!session) return;
 
   const body = jsonBody(req);
+  // Phase 9: commands need the Server right, except the few an Asisten
+  // needs to run their own slot (hotspot, clock, Ready check).
+  const kunci = body.tipe === "kirim" && AKSI_SLOT.has(String(body.aksi)) ? "own" : "server";
+  if (!(await cekHak(res, session.nim, kunci))) return;
   if (body.tipe === "kirim") return handleKirim(req, res, session);
   if (body.tipe === "perintah_ulang") return handlePerintahUlang(req, res, session);
   if (body.tipe === "perintah_batal") return handlePerintahBatal(req, res, session);

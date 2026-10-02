@@ -14,6 +14,7 @@
  * POST /api/auth/change-password { lama, baru }      — assistant-only, any time (P8 /account). Rate-limited like a login.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { petaHak } from "../_lib/hak.js";
 import { requireMethod, jsonBody, clientIp, noStore } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
 import {
@@ -48,6 +49,7 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
   let kode: string | undefined;
   let perluAturSandi: boolean | undefined;
   let divisi: { id: string; en: string } | undefined;
+  let peran: { tier: string; badges: string[]; hak: Record<string, unknown> } | undefined;
   if (session.role === "asisten") {
     try {
       const [row] = await getDb()
@@ -56,6 +58,9 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
           hash: asisten.passwordHash,
           divisiId: asisten.divisiId,
           divisiEn: asisten.divisiEn,
+          tier: asisten.tier,
+          badges: asisten.badges,
+          hakOverride: asisten.hakOverride,
         })
         .from(asisten)
         .where(eq(asisten.nim, session.nim))
@@ -63,6 +68,9 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
       kode = row?.kode;
       perluAturSandi = row ? !row.hash : undefined;
       divisi = row ? { id: row.divisiId, en: row.divisiEn } : undefined;
+      // Phase 9: the tier, badges and every right, so the interface can
+      // hide what the API would refuse anyway.
+      peran = row ? { tier: row.tier, badges: row.badges, hak: petaHak(row) } : undefined;
     } catch (err) {
       console.error("[api/auth/me] asisten lookup failed:", err);
     }
@@ -77,6 +85,7 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
     kode,
     perluAturSandi,
     divisi,
+    ...peran,
   });
 }
 

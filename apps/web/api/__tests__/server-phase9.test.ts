@@ -62,6 +62,11 @@ async function call(
   return res.body as Record<string, unknown>;
 }
 
+/** The row cekHak loads for the signed-in Asisten (Phase 9 rights). */
+const orang = (tier: string) => [
+  { nim: "1010", kode: "TST", nama: "Tester", tier, badges: [], hakOverride: {}, status: "aktif" },
+];
+
 beforeEach(() => {
   hasil.length = 0;
   ditulis.length = 0;
@@ -126,28 +131,50 @@ describe("POST /api/action kirim diag.siap", () => {
     });
 
   it("queues the Ready check for a known module", async () => {
-    hasil.push([{ id: 3 }], [{ id: 55 }]);
+    hasil.push(orang("pengelola"), [{ id: 3 }], [{ id: 55 }]);
     expect(await kirim({ modul: "4" })).toEqual({ ok: true, id: 55 });
     expect(ditulis[0]).toMatchObject({ aksi: "diag.siap", argumen: { modul: "4" } });
   });
 
   it("queues it with no module named", async () => {
-    hasil.push([{ id: 3 }], [{ id: 56 }]);
+    hasil.push(orang("pengelola"), [{ id: 3 }], [{ id: 56 }]);
     expect(await kirim({})).toEqual({ ok: true, id: 56 });
   });
 
   it("refuses a module the agent would refuse", async () => {
     for (const modul of ["1", "5", "4; reboot", "--modul"]) {
+      hasil.push(orang("pengelola"));
       expect(await kirim({ modul })).toEqual({ ok: false, kode: "format_salah" });
     }
     expect(ditulis).toEqual([]);
   });
 
   it("no longer accepts the removed device actions", async () => {
+    hasil.push(orang("admin"));
     const body = await call(action, {
       method: "POST",
       body: { tipe: "adopsi", id: 1, nama: "x", jenis: "esp32" },
     });
     expect(body).toEqual({ ok: false, kode: "format_salah" });
+  });
+
+  it("lets an Asisten run the Ready check for their own slot", async () => {
+    hasil.push(orang("asisten"), [{ id: 3 }], [{ id: 57 }]);
+    expect(await kirim({ modul: "2" })).toEqual({ ok: true, id: 57 });
+  });
+
+  it("refuses service control to an Asisten without the Server right", async () => {
+    hasil.push(orang("asisten"));
+    const body = await call(action, {
+      method: "POST",
+      body: {
+        tipe: "kirim",
+        serverId: 3,
+        aksi: "layanan.mulai_ulang",
+        argumen: { layanan: "mosquitto" },
+      },
+    });
+    expect(body).toEqual({ ok: false, kode: "tanpa_hak", hak: "server" });
+    expect(ditulis).toEqual([]);
   });
 });

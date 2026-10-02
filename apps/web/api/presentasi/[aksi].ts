@@ -67,6 +67,7 @@
  * POST /api/presentasi/schematic-delete   { id } — asisten.
  */
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { cekHak } from "../_lib/hak.js";
 import { del } from "@vercel/blob";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -418,6 +419,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   const session = requireRole(req, res, "asisten");
   if (!session) return;
+  // Phase 9: changing slides and schematics needs the Jadwal right.
+  if (req.method === "POST" && !(await cekHak(res, session.nim, "jadwal"))) return;
 
   if (aksi === "schematic-list") {
     if (!requireMethod(req, res, "GET")) return;

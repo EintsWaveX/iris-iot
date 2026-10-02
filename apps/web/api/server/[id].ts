@@ -33,6 +33,7 @@
  *   nama/lokasi/catatan/alamatLan (the server centre's Pengaturan tab).
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { cekHak } from "../_lib/hak.js";
 import { jsonBody, noStore } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
@@ -287,6 +288,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "perintah") return handlePerintah(req, res, id, Number(req.query.sebelum));
     return handleGet(req, res, id);
   }
+  // Phase 9: settings, removing a Pi and new enrolment tokens are the full
+  // Server view (Admin and DEV).
+  if (!(await cekHak(res, session.nim, "full"))) return;
   if (req.method === "PATCH") return handlePatch(req, res, id, session.nim);
   if (req.method === "DELETE") return handleDelete(req, res, id, session.nim);
   if (req.method === "POST") return handleTokenBaru(req, res, id, session.nim);
