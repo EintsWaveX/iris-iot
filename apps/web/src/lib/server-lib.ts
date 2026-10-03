@@ -20,6 +20,7 @@ import { getDb } from "./db.js";
 import { server, denyut, perintah, telemetriTerkini, telemetriLog } from "./schema.js";
 import { safeEqual } from "./auth.js";
 import { LAYANAN_URUT } from "./server-shared.js";
+import { KELOMPOK_MAKS } from "./jadwal.js";
 
 export { modulSiapValid, urutkanLayanan, hotspotMenyala } from "./server-shared.js";
 
@@ -278,6 +279,8 @@ export interface TelemetriMasuk {
   delayMs?: number | null;
   rssi?: number | null;
   snr?: number | null;
+  /** Phase 9: the reading's own values (see telemetriLog.nilai). */
+  nilai?: Record<string, unknown> | null;
   // P6.1's agent stamps this centrally in kumpulkan_telemetri() (an ISO
   // timestamp of when the reading was actually collected) -- optional here
   // because an agent built before P6.1 simply never sends it, and a missing
@@ -291,11 +294,22 @@ const TELEMETRI_MODUL_VALID = MODUL_TELEMETRI_PI; // never Module 1: its rows co
 // old cap of 5 dropped the rest; the agent now sends its queue in slices of
 // this size (agent.py TELEMETRI_MAX_PER_DENYUT).
 export const TELEMETRI_MAX_PER_DENYUT = 300;
-const MAX_GRUP_ID = 5; // the practicum's fixed group count
+const MAX_GRUP_ID = KELOMPOK_MAKS; // Phase 9: up to ten groups per session
 // tx/rx are copied verbatim from the source ("HH:MM:SS:MS" in every module
 // today); only the length is bounded.
 const tsOrNull = (v: unknown) => (typeof v === "string" && v.length <= 24 ? v : null);
 const intOrNull = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : null);
+const numOrNull = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+/** Up to 8 finite numbers under short known-shape keys; anything else is
+ *  dropped (the heartbeat is untrusted input). Null when nothing is left. */
+export function nilaiOrNull(v: unknown): Record<string, number> | null {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return null;
+  const out: Record<string, number> = {};
+  for (const [k, x] of Object.entries(v).slice(0, 8)) {
+    if (/^[a-zA-Z]{1,16}$/.test(k) && typeof x === "number" && Number.isFinite(x)) out[k] = x;
+  }
+  return Object.keys(out).length ? out : null;
+}
 
 function telemetriValid(value: unknown): value is TelemetriMasuk {
   if (typeof value !== "object" || value === null) return false;
@@ -334,7 +348,8 @@ export function telemetriBaris(masuk: unknown) {
       rx: tsOrNull(item.rx),
       delayMs: intOrNull(item.delayMs),
       rssi: intOrNull(item.rssi),
-      snr: intOrNull(item.snr),
+      snr: numOrNull(item.snr),
+      nilai: nilaiOrNull(item.nilai),
       diukurPada: item.diukurPada ? new Date(item.diukurPada) : null,
     }));
 }

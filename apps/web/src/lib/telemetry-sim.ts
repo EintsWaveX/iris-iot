@@ -27,6 +27,10 @@ export interface Reading {
    *  carries a real RSSI figure). Always set when simulated. */
   rssi: number | null;
   snr: number | null;
+  /** Phase 9: the reading itself, per module (telemetri_log.nilai):
+   *  M1 {led, tombol}, M2 {suhu, lembap}, M3 {posisi},
+   *  M4 {rssiHalus, jarak, tren, hilang}. Absent from an older source. */
+  nilai?: Record<string, number> | null;
 }
 
 // Two rails per module except MQTT's three -- the broker in the middle is
@@ -90,15 +94,56 @@ function nextSeq(modul: number, group: number): number {
   return next;
 }
 
+// Slow per-group values for the Live cards: a room's temperature and
+// humidity, and a potentiometer someone turns now and then.
+const nilaiSim = new Map<string, Record<string, number>>();
+const r1 = (x: number) => Math.round(x * 10) / 10;
+
+function simNilai(modul: number, group: number, rssi: number, metres: number) {
+  const key = `${modul}:${group}`;
+  const prev = nilaiSim.get(key);
+  let next: Record<string, number>;
+  if (modul === 1) {
+    const led = prev ? (Math.random() < 0.3 ? 1 - prev.led : prev.led) : 0;
+    next = { led, tombol: led };
+  } else if (modul === 2) {
+    next = {
+      suhu: r1(Math.max(24, Math.min(32, (prev?.suhu ?? 27 + group * 0.3) + gauss(0, 0.15)))),
+      lembap: r1(Math.max(45, Math.min(80, (prev?.lembap ?? 60 + group) + gauss(0, 0.4)))),
+    };
+  } else if (modul === 3) {
+    const p = prev?.posisi ?? 20 + group * 10;
+    next = {
+      posisi: Math.round(Math.max(0, Math.min(100, p + (Math.random() < 0.3 ? gauss(0, 12) : 0)))),
+    };
+  } else {
+    const halus = prev ? prev.rssiHalus * 0.75 + rssi * 0.25 : rssi;
+    next = {
+      rssiHalus: r1(halus),
+      jarak: r1(metres),
+      tren: r1(prev ? halus - prev.rssiHalus : 0),
+      hilang: prev?.hilang ?? 0,
+    };
+  }
+  nilaiSim.set(key, next);
+  return next;
+}
+
 /** One simulated reading for this module/group. About 4% loss, matching
  * fake_hunt.py's own rate, so the ladder has something real to show broken. */
 export function nextReading(modul: number, group: number): Reading {
   const seq = nextSeq(modul, group);
-  const rssi = rssiAt(driftFor(modul, group));
+  const metres = driftFor(modul, group);
+  const rssi = rssiAt(metres);
   const tx = timestamp();
   if (Math.random() < 0.04) {
+    if (modul === 4) {
+      const n = nilaiSim.get("4:" + group);
+      if (n) n.hilang += 1;
+    }
     return { modul, group, seq, tx, rx: null, delayMs: null, rssi, snr: null };
   }
+  const nilai = simNilai(modul, group, rssi, metres);
   const delayMs = Math.round(8 + Math.random() * 40 + (modul === 4 ? 20 : 0));
   return {
     modul,
@@ -109,6 +154,7 @@ export function nextReading(modul: number, group: number): Reading {
     delayMs,
     rssi,
     snr: modul === 4 ? Math.round((4 + Math.random() * 7) * 10) / 10 : null,
+    nilai,
   };
 }
 

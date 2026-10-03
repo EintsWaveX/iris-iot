@@ -23,6 +23,7 @@ interface TelemetryRow {
   delayMs: number | null;
   rssi: number | null;
   snr: number | null;
+  nilai?: Record<string, number> | null;
   diperbaruiPada: string;
 }
 
@@ -75,6 +76,7 @@ export async function fetchLiveReadings(
       delayMs: r.delayMs,
       rssi: r.rssi,
       snr: r.snr,
+      nilai: r.nilai ?? null,
     })),
   };
 }

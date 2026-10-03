@@ -68,6 +68,7 @@ describe("Modul1Pairer", () => {
       delayMs: 40,
       rssi: null,
       snr: null,
+      nilai: { tombol: 1, led: 1 },
     });
   });
 

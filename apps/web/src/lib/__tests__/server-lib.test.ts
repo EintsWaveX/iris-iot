@@ -200,7 +200,7 @@ describe("telemetriBaris", () => {
     const mixed = telemetriBaris([
       row(1),
       { modul: 1, kelompokNomor: 1, seq: 2 },
-      row(3, { kelompokNomor: 9 }),
+      row(3, { kelompokNomor: 11 }),
       "x",
     ]);
     expect(mixed.map((r) => r.seq)).toEqual([1]);
@@ -212,5 +212,24 @@ describe("telemetriBaris", () => {
     expect(r.rssi).toBeNull();
     expect(r.tx).toBeNull();
     expect(r.rx).toBe("17:42:10:000");
+  });
+
+  it("keeps groups six to ten (Phase 9 allows ten)", () => {
+    expect(telemetriBaris([row(1, { kelompokNomor: 10 })])).toHaveLength(1);
+  });
+
+  it("keeps a fractional SNR (the Hunter prints 7.5 dB)", () => {
+    const [r] = telemetriBaris([row(1, { modul: 4, snr: 7.5, rssi: -70 })]);
+    expect(r.snr).toBe(7.5);
+    expect(r.rssi).toBe(-70);
+  });
+
+  it("keeps the reading's values and drops anything not a short-keyed number", () => {
+    const [r] = telemetriBaris([
+      row(1, { nilai: { suhu: 27.3, lembap: 61.2, "bad key": 1, teks: "x", besar: Infinity } }),
+    ]);
+    expect(r.nilai).toEqual({ suhu: 27.3, lembap: 61.2 });
+    const [kosong] = telemetriBaris([row(2, { nilai: ["x"] })]);
+    expect(kosong.nilai).toBeNull();
   });
 });

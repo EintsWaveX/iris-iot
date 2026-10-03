@@ -120,6 +120,13 @@
       "when": 1790996286978,
       "tag": "0016_phase9_bayar_laporan",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791031673494,
+      "tag": "0017_phase9_telemetri_nilai",
+      "breakpoints": true
     }
   ]
 }

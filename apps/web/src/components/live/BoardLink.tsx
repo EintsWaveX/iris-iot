@@ -239,7 +239,12 @@ export default function BoardLink({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            readings: batch.map((x) => ({ tx: x.tx, rx: x.rx, delayMs: x.delayMs })),
+            readings: batch.map((x) => ({
+              tx: x.tx,
+              rx: x.rx,
+              delayMs: x.delayMs,
+              nilai: x.nilai,
+            })),
           }),
         });
         const d = (await r.json()) as { ok: boolean; kode?: string };

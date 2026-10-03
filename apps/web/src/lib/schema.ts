@@ -24,6 +24,7 @@ import {
   jsonb,
   primaryKey,
   check,
+  real,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
@@ -843,7 +844,10 @@ export const telemetriTerkini = pgTable(
     rx: text("rx"),
     delayMs: integer("delay_ms"),
     rssi: integer("rssi"), // Module 4 only
-    snr: integer("snr"), // Module 4 only, tenths of a dB (45 = 4.5 dB)
+    snr: real("snr"), // Module 4 only, dB as the Hunter prints it (0017: was an integer that dropped 7.5)
+    // Phase 9 (0017): the reading itself, per module. M2 {suhu, lembap},
+    // M3 {posisi}, M4 {rssiHalus, jarak, tren, hilang}. Shape: TelemetriNilai.
+    nilai: jsonb("nilai").$type<Record<string, number>>(),
     diperbaruiPada: timestamp("diperbarui_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -881,7 +885,8 @@ export const telemetriLog = pgTable(
     rx: text("rx"),
     delayMs: integer("delay_ms"),
     rssi: integer("rssi"),
-    snr: integer("snr"),
+    snr: real("snr"),
+    nilai: jsonb("nilai").$type<Record<string, number>>(),
     // P6.2 (0006, fixes half of B8): when the agent actually measured this
     // reading (its own diukurPada), distinct from dicatatPada below, which
     // is only ever this row's INSERT time. A Pi that spooled readings while

@@ -76,7 +76,7 @@ import {
   setModulTerbuka,
 } from "../../src/lib/akses.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
-import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
+import { queueSoloServerCommand, nilaiOrNull } from "../../src/lib/server-lib.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
@@ -167,7 +167,8 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
 
 /** GET /api/session/telemetry?modul=N&kelompok=M -- asisten OR praktikan,
  *  Stage 20's live-data source for Ladder/LayerXray/GroupLive. Group
- *  numbers and protocol figures only (seq, tx, rx, delay, rssi, snr) --
+ *  numbers, protocol figures and the reading's own values only (seq, tx,
+ *  rx, delay, rssi, snr, nilai) --
  *  same privacy rule publicRoster() already follows: a route a student's
  *  browser can reach must never return another student's NIM, and
  *  telemetry never carried one to begin with. `reading: null` means no
@@ -211,6 +212,7 @@ async function handleTelemetry(req: ApiRequest, res: ApiResponse) {
       delayMs: telemetriLog.delayMs,
       rssi: telemetriLog.rssi,
       snr: telemetriLog.snr,
+      nilai: telemetriLog.nilai,
       diperbaruiPada: telemetriLog.dicatatPada,
     })
     .from(telemetriLog)
@@ -274,6 +276,7 @@ async function handleTelemetryModul1(req: ApiRequest, res: ApiResponse, who: Ses
       tx,
       rx,
       delayMs: rx ? delayMs : null,
+      nilai: nilaiOrNull(r?.nilai),
       diukurPada: new Date(),
     });
   }

@@ -8,7 +8,7 @@ Satu proses melayani tiga hal sekaligus pada port yang sama:
     GET  /roster.json   nama anggota kelompok sesi berjalan (TANPA NIM)
     GET  /jejak.json    jejak 1 Hz tiap kelompok + peristiwa, untuk tayangan ulang
     GET  /jejak.csv     jejak yang sama sebagai CSV, untuk diunduh asisten
-    GET  /telemetri.json  baris mentah per kelompok untuk agent Orange Pi (Stage 20, loopback saja)
+    GET  /telemetri.json  baris per kelompok (mentah + RSSI halus, jarak, tren) untuk agent Orange Pi (loopback saja)
     GET  /foto/<berkas> foto klaim yang diunggah sebuah kelompok
     WS   /beacon        beacon melaporkan tiap nomor paket yang dipancarkan
     WS   /hunter        tiap hunter melaporkan RSSI paket yang tertangkap
@@ -1858,6 +1858,11 @@ def process_request(connection: ServerConnection, request) -> Response | None:
                 "delay_ms": baris["delay_ms"],
                 "rssi": baris["rssi"],
                 "snr": baris["snr"],
+                # Phase 9: kartu nilai Live dan tangkapan jurnal (tabel jarak).
+                "halus": baris["halus"],
+                "jarak_m": baris["jarak_m"],
+                "trend": baris["trend"],
+                "hilang": baris["hilang"],
             }
             for baris in HUNT.snapshot()["grup"]
         ]

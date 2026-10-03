@@ -60,6 +60,7 @@ export function pcTimeString(d = new Date()): string {
  */
 export class Modul1Pairer {
   private pending: string | null = null;
+  private value: string | null = null;
   private seq = 0;
 
   constructor(private group: number) {}
@@ -70,16 +71,41 @@ export class Modul1Pairer {
     if (line.kind === "send") {
       if (this.pending) out.push(this.reading(this.pending, null, null));
       this.pending = line.ts;
+      this.value = line.value;
     } else if (line.kind === "echo") {
-      out.push(this.reading(this.pending, line.ts, line.delayMs));
+      out.push(this.reading(this.pending, line.ts, line.delayMs, line.value));
       this.pending = null;
     }
     return out;
   }
 
-  private reading(tx: string | null, rx: string | null, delayMs: number | null): Reading {
+  private reading(
+    tx: string | null,
+    rx: string | null,
+    delayMs: number | null,
+    echo?: string,
+  ): Reading {
     this.seq += 1;
-    return { modul: 1, group: this.group, seq: this.seq, tx, rx, delayMs, rssi: null, snr: null };
+    // The button state the Central sent, and the LED state the Peripheral
+    // echoed back (the same 0/1 when the link is healthy).
+    const n = (v: string | null | undefined) =>
+      v != null && /^[01]$/.test(v.trim()) ? Number(v) : null;
+    const tombol = n(this.value);
+    const led = n(echo);
+    const nilai: Record<string, number> = {};
+    if (tombol !== null) nilai.tombol = tombol;
+    if (led !== null) nilai.led = led;
+    return {
+      modul: 1,
+      group: this.group,
+      seq: this.seq,
+      tx,
+      rx,
+      delayMs,
+      rssi: null,
+      snr: null,
+      nilai: Object.keys(nilai).length ? nilai : null,
+    };
   }
 }
 
