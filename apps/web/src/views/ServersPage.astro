@@ -1,5 +1,5 @@
 ---
-/** /servers and /en/servers (Phase 8): the server centre island. */
+/** /servers, /en/servers and /zh/servers: the Server page island (Phase 9 Stage 5). */
 import Base from "../layouts/Base.astro";
 import ServerCenter from "../components/server/ServerCenter";
 import type { Lang } from "../lib/kelas";
@@ -8,13 +8,10 @@ interface Props {
   lang: Lang;
 }
 const { lang } = Astro.props;
+const title = lang === "en" ? "Servers" : lang === "zh" ? "服务器" : "Server";
 ---
 
-<Base
-  title={lang !== "id" ? "Servers · IRIS IoT" : "Server · IRIS IoT"}
-  lang={lang}
-  cosmosScene="teknis"
->
+<Base title={`${title} · IRIS IoT`} lang={lang} cosmosScene="teknis">
   <main id="main" class="page-wide page-main">
     <ServerCenter client:load lang={lang} />
   </main>

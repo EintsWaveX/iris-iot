@@ -54,9 +54,19 @@ import {
   bangunTimelineLayanan,
 } from "../../src/lib/server-lib.js";
 import { currentSesi } from "../../src/lib/sesi.js";
-import { desc, asc, and, eq, gte, lt } from "drizzle-orm";
+import { desc, asc, and, eq, gte, inArray, lt, sql } from "drizzle-orm";
 
 const MAX_TEXT_LEN = 500;
+const AKSI_TERAKHIR = [
+  "diag.siap",
+  "diag.rinci",
+  "diag.journal",
+  "diag.ringkas",
+  "diag.jaringan",
+  "diag.dmesg",
+  "diag.log",
+  "info.segarkan",
+];
 const PERINTAH_PER_HALAMAN = 20;
 
 async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
@@ -84,6 +94,33 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
     .orderBy(desc(perintah.id))
     .limit(PERINTAH_PER_HALAMAN);
 
+  // Stage 5: each diagnostic's newest finished result (per service for
+  // diag.log), so a busy command list never pushes one off the page.
+  const layananArg = sql<string>`coalesce(${perintah.argumen}->>'layanan', '')`;
+  const terakhir = await db
+    .selectDistinctOn([perintah.aksi, layananArg])
+    .from(perintah)
+    .where(
+      and(
+        eq(perintah.serverId, id),
+        inArray(perintah.aksi, AKSI_TERAKHIR),
+        inArray(perintah.status, ["selesai", "gagal"]),
+      ),
+    )
+    .orderBy(perintah.aksi, layananArg, desc(perintah.id));
+  const siapRiwayat = await db
+    .select()
+    .from(perintah)
+    .where(
+      and(
+        eq(perintah.serverId, id),
+        eq(perintah.aksi, "diag.siap"),
+        inArray(perintah.status, ["selesai", "gagal"]),
+      ),
+    )
+    .orderBy(desc(perintah.id))
+    .limit(9);
+
   res.status(200).json({
     ok: true,
     server: {
@@ -107,6 +144,8 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
     denyutTerakhir: denyutTerakhir ?? null,
     batasLuringDetik: batasLuringDetik(denyutTerakhir?.pada ?? null, sesiMulaiPada),
     perintah: daftarPerintah,
+    terakhir,
+    siapRiwayat,
     sesiModul: running?.modul ?? null,
   });
 }

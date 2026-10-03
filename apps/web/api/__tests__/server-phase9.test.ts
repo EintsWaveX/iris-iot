@@ -22,7 +22,7 @@ function chain(): unknown {
 }
 
 vi.mock("../../src/lib/db", () => ({
-  getDb: () => ({ select: () => chain(), insert: () => chain() }),
+  getDb: () => ({ select: () => chain(), selectDistinctOn: () => chain(), insert: () => chain() }),
 }));
 vi.mock("../_lib/session", () => ({
   requireRole: () => ({ nim: "1010", role: "asisten" }),
