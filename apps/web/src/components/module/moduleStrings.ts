@@ -28,7 +28,10 @@ export const M = dict({
     history: "Riwayat",
     finishedOn: (tgl: string) => `Selesai ${tgl}. Semua tampil, tidak bisa diubah.`,
     lockedTitle: (m: string) => `Jurnal ${m} belum terbuka untukmu`,
-    lockedBody: "Jurnal terbuka setelah kamu mengikuti praktikum modul ini.",
+    lockedBody:
+      "Jurnal terbuka setelah kamu mengikuti praktikum modul ini. Modulnya sendiri bisa dibaca siapa saja.",
+    lockedBodyP: (m: string) =>
+      `Kamu belum mengikuti praktikum ${m}. Jurnalnya terbuka setelah kamu ikut sesinya.`,
     readModule: "Baca Modul",
     signIn: "Masuk",
     inSession: "Sesimu sedang berjalan",
@@ -84,7 +87,10 @@ export const M = dict({
     history: "History",
     finishedOn: (tgl: string) => `Finished ${tgl}. Everything shows, nothing can change.`,
     lockedTitle: (m: string) => `The ${m} journal isn't open for you yet`,
-    lockedBody: "The journal opens once you have attended this module's practicum.",
+    lockedBody:
+      "The journal opens once you have attended this module's practicum. Anyone can read the module itself.",
+    lockedBodyP: (m: string) =>
+      `You haven't attended the ${m} practicum yet. Its journal opens after you join its session.`,
     readModule: "Read the Module",
     signIn: "Sign In",
     inSession: "Your session is running",
@@ -139,7 +145,8 @@ export const M = dict({
     history: "记录",
     finishedOn: (tgl: string) => `${tgl}完成。全部都能看，但不能再改。`,
     lockedTitle: (m: string) => `${m}的日志还没对你开放`,
-    lockedBody: "上过这个模块的实验课后，日志就会打开。",
+    lockedBody: "上过这个模块的实验课后，日志就会打开。模块本身谁都可以读。",
+    lockedBodyP: (m: string) => `你还没上过${m}的实验课。参加那节课后，日志就会打开。`,
     readModule: "读模块",
     signIn: "登录",
     inSession: "你的课正在进行",

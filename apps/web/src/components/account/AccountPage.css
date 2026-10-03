@@ -131,3 +131,25 @@
   min-height: 48px;
   padding: 0 var(--space-4);
 }
+
+/* Praktikan (Phase 9, mockup p-account): two equal cards. */
+.pacct {
+  padding-top: var(--space-page-top);
+}
+
+.pacct .page-header {
+  margin: 0;
+}
+
+.pacct__grid {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 820px) {
+  .pacct__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

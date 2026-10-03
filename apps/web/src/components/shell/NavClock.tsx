@@ -6,7 +6,7 @@
  * from 1440px; under 900px the time drops its seconds.
  */
 import { useEffect, useState } from "react";
-import { dict, localeOf, tanggalPanjang } from "../../lib/app";
+import { dict, tanggalPanjang } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { usePrefs } from "../../lib/prefs";
 
@@ -33,7 +33,8 @@ export default function NavClock({
     return () => window.clearInterval(id);
   }, []);
   if (!now || clock === "off" || (clock === "auto" && inSession)) return null;
-  const time = now.toLocaleTimeString(localeOf(lang), {
+  // Colons in every language ("02:14:26"), like the session strip.
+  const time = now.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

@@ -21,6 +21,7 @@ import { shortcutsOn } from "../../lib/prefs";
 import { hotspotMenyala } from "../../lib/server-shared";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { setModulAkses } from "../shell/AsistenCommands";
+import SessionStrip from "../shell/SessionStrip";
 import type { Lang } from "../../lib/kelas";
 import { useDirektori } from "../../lib/people";
 import { modulLabel } from "../../lib/labels";
@@ -93,7 +94,6 @@ export default function SessionBar({
   const berjalan = menitBerjalan(sesi.mulaiPada, now);
   const durasi = durasiSesi(sesi);
   const sisa = Math.max(0, durasi - berjalan);
-  const pct = Math.min(100, Math.round((berjalan / durasi) * 100));
   const [pop, setPop] = useState<"acc" | "deck" | "ext" | null>(null);
   const list = servers?.list ?? [];
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
@@ -154,17 +154,11 @@ export default function SessionBar({
       </div>
 
       <div className="sbar__prog">
-        <div className="sbar__prog-row">
-          <span className="num">{t.elapsed(berjalan)}</span>
-          <span className="num sbar__left">{t.left(sisa, durasi)}</span>
-        </div>
-        <div
-          className="meter meter--lg"
-          role="progressbar"
-          aria-valuenow={pct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          style={{ "--meter": pct, "--meter-hue": `var(--mod-${sesi.modul})` } as CSSProperties}
+        <SessionStrip
+          lang={lang}
+          mulaiPada={sesi.mulaiPada}
+          durasi={durasi}
+          hue={`var(--mod-${sesi.modul})`}
         />
       </div>
 

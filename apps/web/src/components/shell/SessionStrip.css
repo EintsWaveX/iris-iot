@@ -1,0 +1,108 @@
+/* SessionStrip.tsx: clock · time left · minutes bar. */
+
+.strip {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  min-width: 0;
+}
+
+.strip__i {
+  display: inline-grid;
+  gap: 1px;
+  line-height: 1.1;
+}
+
+.strip__i small {
+  color: var(--text-faint);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:lang(zh) .strip__i small {
+  letter-spacing: 0.02em;
+}
+
+.strip__i b {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.strip__left b {
+  color: var(--accent-bright);
+}
+
+.strip__left[data-low="yes"] b {
+  color: var(--warn);
+}
+
+.strip__dot {
+  color: var(--text-faint);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.strip__prog {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 150px;
+}
+
+.strip__prog .hint {
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.strip--compact {
+  gap: 10px;
+}
+
+.strip--compact .strip__i b {
+  font-size: 1.06rem;
+}
+
+.strip--compact .strip__prog {
+  max-width: 220px;
+  min-width: 120px;
+}
+
+@media (max-width: 1099px) {
+  .strip--compact .strip__prog,
+  .strip--compact .strip__prog-dot {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .strip {
+    gap: 8px;
+  }
+
+  .strip__i b {
+    font-size: 0.98rem;
+  }
+
+  .strip__i small {
+    font-size: 0.66rem;
+  }
+
+  .strip__dot {
+    font-size: 1rem;
+  }
+
+  .strip--compact .strip__i b {
+    font-size: 0.94rem;
+  }
+}
+
+@media (max-width: 419px) {
+  .strip--compact .strip__dot {
+    display: none;
+  }
+}

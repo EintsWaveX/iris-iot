@@ -5,8 +5,9 @@
  *   monospace digits), an assistant adds a password.
  * - Validation is the dialog's own (no browser "please fill in this field"
  *   bubbles): the form is noValidate and errors sit under their field.
- * - A student's successful check-in shows which session they joined
- *   ("Modul 2 · Slot 2 · Reguler") with a short orbit burst, then goes on.
+ * - A student's successful check-in shows the module, their group and its
+ *   assistant (Phase 9 mockup p-login: never a slot or a time), then one
+ *   button into the practicum, or to the dashboard when no session runs.
  * - An assistant still on the starting password gets the set-password
  *   stage, now with show/hide and a strength meter; "Later" keeps working
  *   and the Asisten home keeps a reminder until it is done.
@@ -19,14 +20,23 @@
  * hero, a module page's "sign in to save" note).
  */
 import { useEffect, useState, type FormEvent } from "react";
-import { PlanetIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import { navigate } from "astro:transitions/client";
 import Dialog from "./ui/Dialog";
 import SegmentedControl from "./ui/SegmentedControl";
 import PasswordField from "./ui/PasswordField";
-import { dict, getJson, meChanged, postJson, MODUL_NAMA, type SesiNow } from "../lib/app";
+import {
+  dict,
+  getJson,
+  KELOMPOK_NAMA,
+  meChanged,
+  postJson,
+  MODUL_NAMA,
+  type SesiNow,
+} from "../lib/app";
 import { langForKelas, pathForLang, type Lang } from "../lib/kelas";
 import { readLangPref } from "../lib/hooks";
+import { namaAsisten } from "../lib/people";
 import "./LoginDialog.css";
 
 type Role = "praktikan" | "asisten";
@@ -57,14 +67,15 @@ const T = dict({
     later: "Nanti saja",
     setBtn: "Setel kata sandi",
     welcome: (nama: string) => `Halo, ${nama.split(" ")[0]}`,
-    joined: "Kamu tercatat hadir di sesi ini.",
-    signedIn: "Kamu sudah masuk.",
+    inSession: "Kamu masuk ke sesi",
     noSession:
-      "Belum ada sesi berjalan. Nilai, umpan balik dan jurnal praktikum yang sudah kamu ikuti ada di dasbor.",
-    session: (m: number, slot: number | null, kelas: string) =>
-      `Modul ${m} · ${MODUL_NAMA[m]}${slot ? ` · Slot ${slot}` : ""} · ${kelas === "internasional" ? "Internasional" : "Reguler"}`,
+      "Belum ada sesi berjalan. Kamu tetap bisa melihat nilai dan jurnal yang sudah kamu kerjakan.",
+    modul: (m: number) => `Modul ${m}`,
     group: (n: number, nama?: string) => `Kelompok ${n}${nama ? ` · ${nama}` : ""}`,
-    go: "Lanjut",
+    asistenL: "Asisten",
+    belumAda: "belum ada",
+    go: "Masuk ke Praktikum",
+    goDash: "Ke Dasbor",
     offline: "Tidak dapat menghubungi server.",
     codes: {
       format_salah: "Formatnya belum benar. Periksa kembali isiannya.",
@@ -72,8 +83,7 @@ const T = dict({
       tidak_cocok: "NIM atau kata sandi tidak cocok.",
       tidak_ada_sesi:
         "Belum ada sesi yang berjalan. Masuk bisa dilakukan begitu asisten memulai sesi di jam praktikummu.",
-      tidak_terdaftar:
-        "NIM ini belum ada di daftar kelompok. Minta asisten memeriksa roster, lalu coba lagi.",
+      tidak_terdaftar: "NIM ini tidak ada di roster sesi yang berjalan. Tanyakan ke asistenmu.",
       terlalu_pendek: "Kata sandi minimal 8 karakter.",
       galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
     } as Record<string, string>,
@@ -103,14 +113,15 @@ const T = dict({
     later: "Later",
     setBtn: "Set password",
     welcome: (nama: string) => `Hi, ${nama.split(" ")[0]}`,
-    joined: "You are checked in to this session.",
-    signedIn: "You are signed in.",
+    inSession: "You are in the session",
     noSession:
-      "No session is running. Scores, feedback and the journals of practicums you joined are on your dashboard.",
-    session: (m: number, slot: number | null, kelas: string) =>
-      `Module ${m} · ${MODUL_NAMA[m]}${slot ? ` · Slot ${slot}` : ""} · ${kelas === "internasional" ? "International" : "Regular"}`,
+      "No session is running. You can still see your scores and the journals you have done.",
+    modul: (m: number) => `Module ${m}`,
     group: (n: number, nama?: string) => `Group ${n}${nama ? ` · ${nama}` : ""}`,
-    go: "Continue",
+    asistenL: "Assistant",
+    belumAda: "not yet",
+    go: "Go to the Practicum",
+    goDash: "To the Dashboard",
     offline: "Could not reach the server.",
     codes: {
       format_salah: "That format is not right. Check what you typed.",
@@ -118,12 +129,54 @@ const T = dict({
       tidak_cocok: "The NIM or password does not match.",
       tidak_ada_sesi:
         "No session is running yet. You can sign in once an assistant starts the session for your slot.",
-      tidak_terdaftar:
-        "This NIM is not on a group roster yet. Ask an assistant to check the roster, then try again.",
+      tidak_terdaftar: "This NIM isn't on the running session's roster. Ask your assistant.",
       terlalu_pendek: "The password needs at least 8 characters.",
       galat_server: "The server is having trouble. Try again in a moment.",
     } as Record<string, string>,
     fallback: "Sign-in failed. Try again.",
+  },
+  zh: {
+    title: "登录",
+    setTitle: "设置你自己的密码",
+    lede: "学员只需要 NIM。助教还要输入密码。",
+    role: "角色",
+    praktikan: "学员",
+    asisten: "助教",
+    nim: "NIM",
+    nimHint: "4 到 20 个字母和数字，和学生证上一样。",
+    nimPh: "2311102001",
+    nimPhA: "助教 NIM",
+    pwLabel: "密码",
+    submit: "登录",
+    needNim: "先填 NIM。",
+    needPw: "先填密码。",
+    setLede: "这个账号的初始密码很容易猜到。在这里设置一次你自己的密码，初始密码就会失效。",
+    newPw: "新密码",
+    newPw2: "再输一次新密码",
+    min8: "至少 8 个字符。",
+    mismatch: "两次密码还不一样。",
+    later: "以后再说",
+    setBtn: "设置密码",
+    welcome: (nama: string) => `你好，${nama.split(" ")[0]}`,
+    inSession: "你正在上课",
+    noSession: "现在没有课。你仍然可以看你的分数和做过的日志。",
+    modul: (m: number) => `模块 ${m}`,
+    group: (n: number, nama?: string) => `第 ${n} 组${nama ? ` · ${nama}` : ""}`,
+    asistenL: "助教",
+    belumAda: "还没有",
+    go: "去实验页",
+    goDash: "去仪表盘",
+    offline: "连不上服务器。",
+    codes: {
+      format_salah: "格式不对。检查一下你输入的内容。",
+      terkunci: "失败次数太多。等几分钟再试。",
+      tidak_cocok: "NIM 或密码不对。",
+      tidak_ada_sesi: "现在还没有课。助教开始你那节课后就能登录。",
+      tidak_terdaftar: "这个 NIM 不在正在进行的这节课名单里。问问你的助教。",
+      terlalu_pendek: "密码至少要 8 个字符。",
+      galat_server: "服务器出了点问题。稍后再试。",
+    } as Record<string, string>,
+    fallback: "登录失败，再试一次。",
   },
 });
 
@@ -170,6 +223,7 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
     kelompok?: number;
     kelompokNama?: string;
     sesi: SesiNow | null;
+    asisten: { kode: string; nama: string } | null;
   } | null>(null);
   const sheet = useIsMobile();
 
@@ -201,10 +255,15 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
     }
   }, []);
 
-  function finish(r: Role, kelas: string | null) {
+  function finish(r: Role, kelas: string | null, path?: string) {
     setOpen(false);
     meChanged();
-    const to = destination(r, lang, kelas);
+    const to = path
+      ? pathForLang(
+          path,
+          readLangPref() ?? (kelas ? langForKelas(kelas as "reguler" | "internasional") : lang),
+        )
+      : destination(r, lang, kelas);
     if (to === location.pathname + location.search) location.reload();
     else navigate(to);
   }
@@ -242,17 +301,24 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
         finish("asisten", null);
         return;
       }
-      const now = await getJson<{ ok: boolean; sesi: SesiNow | null }>("/api/session/now").catch(
-        () => ({ ok: false, sesi: null }),
-      );
+      const [now, hasil] = await Promise.all([
+        getJson<{ ok: boolean; sesi: SesiNow | null }>("/api/session/now").catch(() => ({
+          ok: false,
+          sesi: null,
+        })),
+        getJson<{ ok: boolean; asisten?: { kode: string; nama: string } | null }>(
+          "/api/session/results",
+        ).catch(() => ({ ok: false, asisten: null })),
+      ]);
+      const mine = now.sesi && now.sesi.milikSaya !== false ? now.sesi : null;
       setWelcome({
         nama: data.nama ?? n,
         kelompok: data.kelompok,
         kelompokNama: data.kelompokNama,
-        sesi: now.sesi,
+        sesi: mine,
+        asisten: mine ? (hasil.asisten ?? null) : null,
       });
       setStage("welcome");
-      setTimeout(() => finish("praktikan", now.sesi?.kelas ?? null), 2200);
     } catch {
       setErr({ field: "form", msg: t.offline });
     } finally {
@@ -286,10 +352,8 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
   const title =
     stage === "set-password"
       ? t.setTitle
-      : stage === "welcome"
-        ? welcome?.sesi
-          ? t.joined
-          : t.signedIn
+      : stage === "welcome" && welcome
+        ? t.welcome(welcome.nama)
         : t.title;
 
   return (
@@ -414,34 +478,53 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
 
       {stage === "welcome" && welcome && (
         <div className="login-welcome" aria-live="polite">
-          <div className="login-welcome__orbit" aria-hidden="true">
-            <PlanetIcon size={40} />
-            <i />
-            <i />
-            <i />
-          </div>
-          <p className="login-welcome__hi">{t.welcome(welcome.nama)}</p>
-          {welcome.sesi ? (
-            <p className="login-welcome__sesi">
-              {t.session(welcome.sesi.modul, welcome.sesi.slot, welcome.sesi.kelas)}
-            </p>
-          ) : (
-            <p className="login-welcome__sesi">{t.noSession}</p>
+          {welcome.sesi && (
+            <span className="pill pill--ok login-welcome__badge">
+              <span className="dot dot--ok" aria-hidden="true" />
+              {t.inSession}
+            </span>
           )}
-          {welcome.kelompok && (
-            <p
-              className="login-welcome__group"
-              style={{ color: `var(--group-${welcome.kelompok})` }}
-            >
-              {t.group(welcome.kelompok, welcome.kelompokNama)}
-            </p>
+          {welcome.sesi ? (
+            <div className="login-welcome__stats">
+              <div className="stat">
+                <b>{t.modul(welcome.sesi.modul)}</b>
+                <span className="stat__label">{MODUL_NAMA[welcome.sesi.modul]}</span>
+              </div>
+              <div className="stat">
+                <b
+                  style={
+                    welcome.kelompok ? { color: `var(--group-${welcome.kelompok})` } : undefined
+                  }
+                >
+                  {welcome.kelompok
+                    ? t.group(welcome.kelompok, KELOMPOK_NAMA[welcome.kelompok])
+                    : "-"}
+                </b>
+                <span className="stat__label">
+                  {t.asistenL}: {welcome.asisten ? namaAsisten(welcome.asisten) : t.belumAda}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="banner">
+              <span>{t.noSession}</span>
+            </div>
           )}
           <button
             type="button"
-            className="btn btn--primary"
-            onClick={() => finish("praktikan", welcome.sesi?.kelas ?? null)}
+            className="btn btn--primary btn--lg btn--block"
+            onClick={() =>
+              welcome.sesi
+                ? finish(
+                    "praktikan",
+                    welcome.sesi.kelas ?? null,
+                    `/modules/${welcome.sesi.modul}?step=setup`,
+                  )
+                : finish("praktikan", null, "/dashboard")
+            }
           >
-            {t.go}
+            {welcome.sesi ? t.go : t.goDash}
+            <ArrowRightIcon size={18} aria-hidden="true" />
           </button>
         </div>
       )}

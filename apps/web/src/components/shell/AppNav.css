@@ -576,3 +576,14 @@
     display: none;
   }
 }
+
+/* OfflineNotice.tsx: under the nav (and the mini bar), sticky with them. */
+.offline {
+  background: color-mix(in srgb, var(--warn) 16%, var(--bg-elevated));
+  border-radius: 0;
+  border-width: 0 0 1px;
+  padding-inline: var(--gutter);
+  position: sticky;
+  top: calc(var(--nav-size) + var(--minibar-h, 0px));
+  z-index: 48;
+}

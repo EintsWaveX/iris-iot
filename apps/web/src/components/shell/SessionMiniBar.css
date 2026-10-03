@@ -281,3 +281,34 @@
     width: 44px;
   }
 }
+
+/* Phase 9: the strip carries the clock and the time left. */
+.minibar__time {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  margin-left: auto;
+  max-width: none;
+  white-space: nowrap;
+}
+
+.minibar__time + .minibar__actions {
+  margin-left: 0;
+}
+
+.minibar__warn {
+  color: var(--warn);
+  font-size: var(--fs-small);
+}
+
+@media (max-width: 1099px) {
+  .minibar__warn {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .minibar > .pill--violet,
+  .minibar__dot {
+    display: none;
+  }
+}

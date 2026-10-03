@@ -12,6 +12,7 @@
  * - Sign out.
  */
 import SeelabsAccount from "../console/seelabs/SeelabsAccount";
+import PraktikanAccount from "./PraktikanAccount";
 import { EarningsCard } from "../bayar/Earnings";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckIcon, UserIcon } from "@phosphor-icons/react";
@@ -268,6 +269,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
 
   const asisten = me.role === "asisten";
   const k = me.kelompok ?? 0;
+  if (!asisten) return <PraktikanAccount lang={lang} me={me} />;
 
   return (
     <div className="acctpage">

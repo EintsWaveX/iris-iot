@@ -270,6 +270,21 @@ html {
   white-space: nowrap;
 }
 
+/* A practicum row (Praktikan dashboard and account): the module's hue on
+   the left edge. Set --m. */
+.pracrow {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-left: 4px solid var(--m);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-height: 56px;
+  padding: 8px 12px;
+}
+
 /* ---------------------------------------------------------------- stats */
 
 .stat {

@@ -32,6 +32,11 @@
   color: var(--warn);
 }
 
+.state-view--ok .state-view__icon {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
 .state-view__title {
   font-size: 1.15rem;
   font-weight: 650;

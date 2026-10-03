@@ -37,8 +37,6 @@ export const S = dict({
     kbdShort: "pintasan",
     // bar
     running: "Sesi berjalan",
-    elapsed: (m: number) => `${m} menit berjalan`,
-    left: (m: number, dari: number) => `sisa ${m} dari ${dari} menit`,
     announce: "Pengumuman",
     access: "Akses Modul",
     slides: "Presentasi",
@@ -479,8 +477,6 @@ export const S = dict({
     kbdHint: "commands",
     kbdShort: "shortcuts",
     running: "Running session",
-    elapsed: (m: number) => `${m} minutes in`,
-    left: (m: number, dari: number) => `${m} of ${dari} minutes left`,
     announce: "Announce",
     access: "Module Access",
     slides: "Slides",

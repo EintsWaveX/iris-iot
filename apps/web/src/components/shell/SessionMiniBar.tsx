@@ -27,6 +27,7 @@ import {
 import { durasiSesi } from "../../lib/jadwal";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
+import SessionStrip from "./SessionStrip";
 import "./SessionMiniBar.css";
 
 const T = dict({
@@ -45,6 +46,8 @@ const T = dict({
     warn30: "Sisa 30 menit. Mulai rapikan pekerjaanmu.",
     warn10: "Sisa 10 menit. Unduh berkas dan simpan pekerjaanmu sekarang.",
     open: "Buka modul",
+    warnLine: "Unduh berkas dan simpan pekerjaanmu",
+    kelas: "Internasional",
   },
   en: {
     region: "Running session",
@@ -61,6 +64,26 @@ const T = dict({
     warn30: "30 minutes left. Start wrapping up.",
     warn10: "10 minutes left. Download your file and save your work now.",
     open: "Open module",
+    warnLine: "Download your file and save your work",
+    kelas: "International",
+  },
+  zh: {
+    region: "正在上课",
+    left: (m: number) => `剩余 ${m} 分钟`,
+    bell: "公告",
+    none: "这节课还没有公告。",
+    help: "求助",
+    helpOn: "等助教过来",
+    helpSent: "已举手。你组的助教会在面板上看到。",
+    helpOff: "求助已取消。",
+    helpFail: "发送失败，再试一次。",
+    stale: "课已经换了。请重新登录这节课。",
+    newAnn: "新公告",
+    warn30: "还剩 30 分钟。开始整理你的作业。",
+    warn10: "还剩 10 分钟。现在下载文件并保存你的作业。",
+    open: "打开模块",
+    warnLine: "下载文件并保存你的作业",
+    kelas: "国际班",
   },
 });
 
@@ -174,8 +197,8 @@ export default function SessionMiniBar({
   if (!s) return null;
 
   const unread = anns.length > 0 && anns[0].pada !== seen;
-  const pct = Math.min(100, Math.round(((durasi - (left ?? 0)) / durasi) * 100));
   const urgent = left !== null && left <= 10;
+  const warn = left !== null && left <= 30;
 
   async function toggleHand() {
     setBusy(true);
@@ -211,12 +234,17 @@ export default function SessionMiniBar({
         <span className="minibar__chip">{modulLabel(s.modul, lang)}</span>
         <b className="minibar__name">{MODUL_SINGKAT[s.modul]}</b>
       </a>
+      {s.kelas === "internasional" && <span className="pill pill--violet">{t.kelas}</span>}
 
       <div className="minibar__time">
-        <span className="minibar__track" aria-hidden="true">
-          <span className="minibar__fill" style={{ width: `${pct}%` }} />
-        </span>
-        <span className="minibar__left num">{t.left(left ?? durasi)}</span>
+        {warn && <b className="minibar__warn">{t.warnLine}</b>}
+        <SessionStrip
+          lang={lang}
+          mulaiPada={s.mulaiPada}
+          durasi={durasi}
+          compact
+          hue={`var(--mod-${s.modul})`}
+        />
       </div>
 
       <div className="minibar__actions">

@@ -310,6 +310,20 @@ export default function BlankFile(p: Props) {
   const shownRight = mode === "asisten" ? (keys ? total : 0) : right;
   const complete = loaded && total > 0 && (mode === "asisten" ? keys : right === total);
 
+  // Back online: send every answer typed while the network was gone (the
+  // state keeps them; a failed send left them unchecked).
+  const checkRef = useRef(check);
+  checkRef.current = check;
+  useEffect(() => {
+    const on = () => {
+      for (const [n, e] of Object.entries(stateRef.current))
+        if (e && e.isi.trim() && e.isi !== e.checkedIsi && !e.teman)
+          void checkRef.current(Number(n));
+    };
+    window.addEventListener("online", on);
+    return () => window.removeEventListener("online", on);
+  }, []);
+
   // The first blank still to do is the line you start on.
   useEffect(() => {
     if (!loaded || target !== null) return;

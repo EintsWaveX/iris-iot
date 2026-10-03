@@ -3,7 +3,7 @@
  * every page, replacing Nav.astro + AkunSheet.tsx.
  *
  * - Links follow the role: signed out (Beranda, Modul), praktikan (Beranda,
- *   Dasbor, Modul, Live) and asisten (Beranda, Konsol, Jadwal, Server,
+ *   Dasbor, Modul; Live lives in the module page since Phase 9) and asisten (Beranda, Konsol, Jadwal, Server,
  *   Laporan, Modul).
  * - Phase 9: the Tampilan button (theme, background detail, language,
  *   the Mandarin heading weight, the nav clock) is on every page, signed
@@ -23,7 +23,6 @@ import { useEffect, useMemo, useRef, useState, type ComponentType } from "react"
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
   BookOpenTextIcon,
-  BroadcastIcon,
   CalendarBlankIcon,
   ChartBarIcon,
   HardDrivesIcon,
@@ -48,6 +47,7 @@ import { langForKelas, langOfPath, pathForLang, type Lang } from "../../lib/kela
 import { readLangPref, saveLangPref } from "../../lib/hooks";
 import { kelompokLabel } from "../../lib/labels";
 import SessionMiniBar from "./SessionMiniBar";
+import OfflineNotice from "./OfflineNotice";
 import IdentityWatch from "./IdentityWatch";
 import AsistenCommands from "./AsistenCommands";
 import "./AppNav.css";
@@ -66,7 +66,6 @@ const T = dict({
     home: "Beranda",
     dashboard: "Dasbor",
     modules: "Modul",
-    live: "Live",
     console: "Konsol",
     schedule: "Jadwal",
     server: "Server",
@@ -90,7 +89,6 @@ const T = dict({
     home: "Home",
     dashboard: "Dashboard",
     modules: "Modules",
-    live: "Live",
     console: "Console",
     schedule: "Schedule",
     server: "Server",
@@ -128,7 +126,6 @@ function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
       { path: "/", label: t.home, icon: HouseIcon },
       { path: "/dashboard", label: t.dashboard, icon: SquaresFourIcon },
       { path: "/modules", label: t.modules, icon: BookOpenTextIcon },
-      { path: "/live", label: t.live, icon: BroadcastIcon },
     ];
   }
   return [
@@ -146,8 +143,7 @@ function barePath(p: string): string {
 
 function isActive(link: string, current: string): boolean {
   if (link === "/") return current === "/";
-  if (link === "/live") return /^\/modules\/\d\/live/.test(current);
-  if (link === "/modules") return current.startsWith("/modules") && !/\/live/.test(current);
+  if (link === "/modules") return current.startsWith("/modules");
   return current === link || current.startsWith(link + "/");
 }
 
@@ -186,7 +182,6 @@ export default function AppNav({
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const liveModul = now.data?.modul ?? null;
 
   // Scroll hairline (was nav-scroll.ts for Nav.astro).
   useEffect(() => {
@@ -231,7 +226,6 @@ export default function AppNav({
   }
 
   function linkHref(l: Link): string {
-    if (l.path === "/live") return href(lang, `/modules/${liveModul ?? 1}/live`);
     return href(lang, l.path);
   }
 
@@ -373,6 +367,7 @@ export default function AppNav({
       </header>
 
       {me?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} />}
+      <OfflineNotice lang={lang} />
       <IdentityWatch lang={lang} me={me} now={now.data} />
 
       <nav className="appbar" aria-label={t.main}>

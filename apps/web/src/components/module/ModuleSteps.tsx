@@ -382,7 +382,7 @@ function Hands({
       <StateView
         icon={<LockSimpleIcon size={28} />}
         title={t.lockedTitle(modulLabel(modul, lang))}
-        body={t.lockedBody}
+        body={guest ? t.lockedBody : t.lockedBodyP(modulLabel(modul, lang))}
         actions={
           guest ? (
             <button

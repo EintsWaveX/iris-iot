@@ -45,88 +45,29 @@
 
 /* ------------------------------------------------------------ welcome */
 
+/* Phase 9 (mockup p-login welcome): a badge, the greeting, two facts and
+   one button into the practicum. */
 .login-welcome {
-  align-items: center;
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+}
+
+.login-welcome__badge {
+  align-self: flex-start;
+}
+
+.login-welcome__stats {
+  display: grid;
   gap: var(--space-3);
-  padding: var(--space-4) 0 var(--space-2);
-  text-align: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.login-welcome__orbit {
-  align-items: center;
-  color: var(--accent);
-  display: flex;
-  height: 120px;
+.login-welcome__stats b {
+  font-size: 1.05rem;
+}
+
+.login-welcome .btn--block {
   justify-content: center;
-  position: relative;
-  width: 120px;
-}
-
-.login-welcome__orbit i {
-  border: 1.5px solid var(--accent);
-  border-radius: 50%;
-  inset: 20px;
-  opacity: 0;
-  position: absolute;
-}
-
-:root:not([data-motion-tier="0"]) .login-welcome__orbit svg {
-  animation: login-spin 2.4s var(--ease-out-expo) both;
-}
-
-:root:not([data-motion-tier="0"]) .login-welcome__orbit i {
-  animation: login-burst 1.6s var(--ease-out-expo) infinite;
-}
-
-.login-welcome__orbit i:nth-child(3) {
-  animation-delay: 0.3s !important;
-  border-color: var(--group-2);
-}
-
-.login-welcome__orbit i:nth-child(4) {
-  animation-delay: 0.6s !important;
-  border-color: var(--group-1);
-}
-
-@keyframes login-burst {
-  0% {
-    opacity: 0.9;
-    transform: scale(0.5);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.5);
-  }
-}
-
-@keyframes login-spin {
-  from {
-    transform: rotate(-120deg) scale(0.6);
-    opacity: 0;
-  }
-}
-
-.login-welcome__hi {
-  font-family: var(--font-display);
-  font-weight: var(--display-weight);
-  letter-spacing: var(--display-track);
-  font-size: var(--fs-display-sm);
-  margin: 0;
-}
-
-.login-welcome__sesi {
-  background: var(--surface-2);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  color: var(--text);
-  font-size: var(--fs-small);
-  margin: 0;
-  padding: var(--space-2) var(--space-4);
-}
-
-.login-welcome__group {
-  font-weight: 600;
-  margin: 0 0 var(--space-2);
 }

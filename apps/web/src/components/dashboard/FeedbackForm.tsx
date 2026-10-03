@@ -4,10 +4,16 @@
  * 1-5 face rating, a few quick-pick chips and an optional comment. It is
  * anonymous to every assistant (the API never returns the NIM), which the
  * form says plainly so students answer honestly.
+ *
+ * Phase 9 (mockup p-feedback): two cards, the Assistant card with our own
+ * Dropdown of "Full Name (CODE)" in its head; the send button says what is
+ * still missing.
  */
 import { useState } from "react";
 import { CheckIcon } from "@phosphor-icons/react";
 import { RatingPicker } from "../ui/Display";
+import Dropdown from "../ui/Dropdown";
+import { namaAsisten } from "../../lib/people";
 import { postJson, dict } from "../../lib/app";
 import {
   CHIPS_ASISTEN,
@@ -17,17 +23,16 @@ import {
   RATING_BUTUH_ALASAN,
   kurangAlasan,
 } from "../../lib/umpan-balik";
-import { bahasaKonten, type Lang } from "../../lib/kelas";
+import type { Lang } from "../../lib/kelas";
 
 const T = dict({
   id: {
-    anon: "Anonim. Asisten tidak pernah melihat nama atau NIM kamu.",
-    asisten: (k: string) => `Asisten kelompokmu: ${k}`,
-    siapa: "Siapa asisten yang membantu kelompokmu?",
+    siapa: "Asisten yang membantu kelompokmu",
+    pilihDulu: "Pilih asisten",
     butuhAsisten: "Pilih asisten yang membantu kelompokmu.",
     asistenH: "Asisten",
     labH: "Lab",
-    faces: ["Buruk", "Kurang", "Cukup", "Baik", "Luar biasa"] as [
+    faces: ["Buruk", "Kurang", "Cukup", "Baik", "Hebat"] as [
       string,
       string,
       string,
@@ -37,7 +42,11 @@ const T = dict({
     rateA: "Nilai asisten",
     rateL: "Nilai lab",
     komentar: "Komentar (boleh kosong)",
-    kirim: "Kirim umpan balik",
+    komentarA: "Komentar untuk asisten",
+    komentarL: "Komentar tentang lab",
+    kirim: "Kirim Umpan Balik",
+    pilihLab: "Pilih Penilaian Lab Dulu",
+    pilihAsisten: "Pilih Penilaian Asisten Dulu",
     mengirim: "Mengirim…",
     butuh: "Pilih nilai untuk kedua bagian dulu.",
     terima: "Terima kasih. Umpan balikmu sudah terkirim.",
@@ -48,23 +57,20 @@ const T = dict({
     alasanHint: "Ceritakan apa yang kurang supaya bisa diperbaiki.",
   },
   en: {
-    anon: "Anonymous. Assistants never see your name or student ID.",
-    asisten: (k: string) => `Your group's assistant: ${k}`,
-    siapa: "Which assistant helped your group?",
+    siapa: "The assistant who helped your group",
+    pilihDulu: "Pick an assistant",
     butuhAsisten: "Pick the assistant who helped your group.",
     asistenH: "Assistant",
     labH: "Lab",
-    faces: ["Poor", "Fair", "Okay", "Good", "Excellent"] as [
-      string,
-      string,
-      string,
-      string,
-      string,
-    ],
+    faces: ["Poor", "Meh", "Okay", "Good", "Great"] as [string, string, string, string, string],
     rateA: "Rate the assistant",
     rateL: "Rate the lab",
     komentar: "Comment (optional)",
-    kirim: "Send feedback",
+    komentarA: "Comment for the assistant",
+    komentarL: "Comment about the lab",
+    kirim: "Send Feedback",
+    pilihLab: "Pick a Lab Rating First",
+    pilihAsisten: "Pick an Assistant Rating First",
     mengirim: "Sending…",
     butuh: "Pick a rating for both sections first.",
     terima: "Thank you. Your feedback has been sent.",
@@ -72,6 +78,29 @@ const T = dict({
     gagal: "Could not send. Try again.",
     alasan: "A low rating needs a reason: pick a quick option or write a short comment.",
     alasanHint: "Say what fell short so it can be fixed.",
+  },
+  zh: {
+    siapa: "帮助你们组的助教",
+    pilihDulu: "选择助教",
+    butuhAsisten: "选择帮助你们组的助教。",
+    asistenH: "助教",
+    labH: "实验室",
+    faces: ["差", "一般般", "还行", "好", "很棒"] as [string, string, string, string, string],
+    rateA: "给助教打分",
+    rateL: "给实验室打分",
+    komentar: "留言（可选）",
+    komentarA: "给助教的留言",
+    komentarL: "关于实验室的留言",
+    kirim: "发送反馈",
+    pilihLab: "先给实验室打个分",
+    pilihAsisten: "先给助教打个分",
+    mengirim: "发送中…",
+    butuh: "先给两个部分都打分。",
+    terima: "谢谢。你的反馈已发送。",
+    sudah: "你已经为这节课发过反馈了。",
+    gagal: "发送失败，再试一次。",
+    alasan: "低分需要理由：选一个快捷选项或写一句简短留言。",
+    alasanHint: "说说哪里不够好，方便改进。",
   },
 });
 
@@ -99,7 +128,7 @@ function Chips({
             onClick={() => onChange(on ? value.filter((x) => x !== k) : [...value, k])}
           >
             {on && <CheckIcon size={14} aria-hidden="true" />}
-            {LABEL_CHIP[k]?.[bahasaKonten(lang)] ?? k}
+            {LABEL_CHIP[k]?.[lang] ?? k}
           </button>
         );
       })}
@@ -118,14 +147,14 @@ export default function FeedbackForm({
   /** The practicum this feedback is about (any ended one they attended). */
   sesiId: number;
   /** The group's assigned assistant, preselected when there is one. */
-  asisten: { kode: string } | null;
-  /** Codes the student may credit instead (the session's assistants). */
-  pilihan: string[];
+  asisten: { kode: string; nama: string } | null;
+  /** Who the student may credit instead (the session's assistants). */
+  pilihan: { kode: string; nama: string }[];
   onDone: () => void;
 }) {
   const t = T[lang];
-  const [kode, setKode] = useState<string | null>(asisten?.kode ?? null);
-  const opsi = [...new Set([...(asisten ? [asisten.kode] : []), ...pilihan])];
+  const [kode, setKode] = useState<string>(asisten?.kode ?? "");
+  const opsi = [...(asisten ? [asisten] : []), ...pilihan.filter((p) => p.kode !== asisten?.kode)];
   const [ra, setRa] = useState(0);
   const [rl, setRl] = useState(0);
   const [ca, setCa] = useState<string[]>([]);
@@ -172,6 +201,8 @@ export default function FeedbackForm({
     }
   }
 
+  const label = busy ? t.mengirim : !ra ? t.pilihAsisten : !rl ? t.pilihLab : t.kirim;
+
   return (
     <form
       className="fbform"
@@ -181,33 +212,23 @@ export default function FeedbackForm({
         void kirim();
       }}
     >
-      <p className="fbform__anon">{t.anon}</p>
-
-      <section className="fbform__sec">
-        <div className="fbform__head">
-          <h3>{t.asistenH}</h3>
-          {asisten && <span className="pill pill--mono">{t.asisten(asisten.kode)}</span>}
-        </div>
-        {(!asisten || opsi.length > 1) && (
-          <div className="fbform__who" role="radiogroup" aria-label={t.siapa}>
-            <span className="hint">{t.siapa}</span>
-            <div className="fbform__chips">
-              {opsi.map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  role="radio"
-                  aria-checked={kode === k}
-                  className="fbform__chip fbform__chip--code"
-                  onClick={() => setKode(k)}
-                >
-                  {kode === k && <CheckIcon size={14} aria-hidden="true" />}
-                  {k}
-                </button>
-              ))}
-            </div>
+      <section className="panel fbform__sec">
+        <div className="panel__head">
+          <h2 className="panel__title">{t.asistenH}</h2>
+          <div className="fbform__who">
+            <Dropdown
+              id={`fb-asisten-${sesiId}`}
+              label={t.siapa}
+              hideLabel
+              value={kode}
+              onChange={setKode}
+              options={[
+                ...(kode ? [] : [{ value: "", label: t.pilihDulu, disabled: true }]),
+                ...opsi.map((o) => ({ value: o.kode, label: namaAsisten(o) })),
+              ]}
+            />
           </div>
-        )}
+        </div>
         <RatingPicker value={ra} onChange={setRa} labels={t.faces} groupLabel={t.rateA} />
         <Chips keys={CHIPS_ASISTEN} value={ca} onChange={setCa} lang={lang} />
         <label className="fbform__area">
@@ -215,18 +236,17 @@ export default function FeedbackForm({
             {ra > 0 && ra <= RATING_BUTUH_ALASAN ? t.alasanHint : t.komentar}
           </span>
           <textarea
-            rows={2}
+            rows={3}
             maxLength={KOMENTAR_MAX}
             value={ka}
+            aria-label={t.komentarA}
             onChange={(e) => setKa(e.target.value)}
           />
         </label>
       </section>
 
-      <section className="fbform__sec">
-        <div className="fbform__head">
-          <h3>{t.labH}</h3>
-        </div>
+      <section className="panel fbform__sec">
+        <h2 className="panel__title">{t.labH}</h2>
         <RatingPicker value={rl} onChange={setRl} labels={t.faces} groupLabel={t.rateL} />
         <Chips keys={CHIPS_LAB} value={cl} onChange={setCl} lang={lang} />
         <label className="fbform__area">
@@ -234,9 +254,10 @@ export default function FeedbackForm({
             {rl > 0 && rl <= RATING_BUTUH_ALASAN ? t.alasanHint : t.komentar}
           </span>
           <textarea
-            rows={2}
+            rows={3}
             maxLength={KOMENTAR_MAX}
             value={kl}
+            aria-label={t.komentarL}
             onChange={(e) => setKl(e.target.value)}
           />
         </label>
@@ -247,8 +268,12 @@ export default function FeedbackForm({
           {err}
         </p>
       )}
-      <button type="submit" className="btn btn--primary btn--lg fbform__send" disabled={busy}>
-        {busy ? t.mengirim : t.kirim}
+      <button
+        type="submit"
+        className="btn btn--primary btn--lg fbform__send"
+        disabled={busy || !ra || !rl}
+      >
+        {label}
       </button>
     </form>
   );

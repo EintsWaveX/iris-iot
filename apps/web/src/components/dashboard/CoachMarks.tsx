@@ -1,41 +1,31 @@
 /**
- * First-visit coach marks for praktikan (Phase 8): three short bubbles that
- * point at the session mini-bar's clock, the announcement bell and the
- * "next step" button. Seen once per browser (localStorage), skippable, and
+ * First-visit coach marks for praktikan (Phase 8, steps redone in Phase 9):
+ * three short bubbles that point at the next step card, the raise hand
+ * button and the Live card. Seen once per browser (localStorage), skippable, and
  * a step whose target is not on the page is simply left out.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Lang } from "../../lib/kelas";
 import { dict } from "../../lib/app";
+import { DS } from "./dashStrings";
 
-const KEY = "iris-coach-v1";
+const KEY = "iris-coach-v2";
 
-const STEPS = dict({
-  id: [
-    { sel: ".minibar__time", text: "Sisa waktu sesi selalu terlihat di sini, di setiap halaman." },
-    {
-      sel: ".minibar__bell",
-      text: "Pengumuman asisten masuk ke lonceng ini. Titik merah berarti ada yang baru.",
-    },
-    { sel: ".dash__cta", text: "Tombol ini selalu membawamu ke langkah berikutnya." },
-  ],
-  en: [
-    {
-      sel: ".minibar__time",
-      text: "Time left in the session is always shown here, on every page.",
-    },
-    {
-      sel: ".minibar__bell",
-      text: "Assistant announcements land in this bell. A red dot means something new.",
-    },
-    { sel: ".dash__cta", text: "This button always takes you to your next step." },
-  ],
-});
+// Phase 9 (mockup p-dash tour): the next step card, the raise hand button
+// and the Live card. Titles and text come from the dashboard strings.
+const SEL = [".dash__next", ".minibar__help", ".dash__live-cta"];
+const STEPS = Object.fromEntries(
+  (Object.keys(DS) as Lang[]).map((l) => [
+    l,
+    DS[l].tour.map(([title, text], n) => ({ sel: SEL[n], title, text })),
+  ]),
+) as Record<Lang, { sel: string; title: string; text: string }[]>;
 
 const L = dict({
-  id: { next: "Lanjut", done: "Mengerti", skip: "Lewati" },
-  en: { next: "Next", done: "Got it", skip: "Skip" },
+  id: { next: "Lanjut", done: "Selesai", skip: "Lewati" },
+  en: { next: "Next", done: "Done", skip: "Skip" },
+  zh: { next: "下一个", done: "完成", skip: "跳过" },
 });
 
 function seen(): boolean {
@@ -97,7 +87,7 @@ export default function CoachMarks({ lang }: { lang: Lang }) {
 
   if (i === null || !step || !rect) return null;
   const last = i >= steps.length - 1;
-  const w = Math.min(300, window.innerWidth - 32);
+  const w = Math.min(360, window.innerWidth - 32);
   const below = rect.bottom + 14 + 150 < window.innerHeight;
   const left = Math.max(
     16,
@@ -107,7 +97,7 @@ export default function CoachMarks({ lang }: { lang: Lang }) {
   const t = L[lang];
 
   return createPortal(
-    <div className="coach" role="dialog" aria-live="polite" aria-label={step.text}>
+    <div className="coach" role="dialog" aria-live="polite" aria-label={step.title}>
       <span
         className="coach__ring"
         style={{
@@ -128,6 +118,10 @@ export default function CoachMarks({ lang }: { lang: Lang }) {
           ["--arrow" as string]: `${arrow}px`,
         }}
       >
+        <span className="pill">
+          {i + 1}/{steps.length}
+        </span>
+        <b className="coach__title">{step.title}</b>
         <p>{step.text}</p>
         <div className="coach__foot">
           <span className="coach__dots" aria-hidden="true">
@@ -136,7 +130,7 @@ export default function CoachMarks({ lang }: { lang: Lang }) {
             ))}
           </span>
           {!last && (
-            <button type="button" className="btn btn--quiet btn--sm" onClick={end}>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={end}>
               {t.skip}
             </button>
           )}

@@ -21,21 +21,26 @@ import {
   asisten,
   anggota,
   jadwal,
+  jawaban,
+  jurnalTangkapan,
   kelompok,
   nilai,
   percobaanMasuk,
   sesi,
+  sesiAnggota,
   sesiAsisten,
   sesiKelompok,
+  telemetriLog,
   umpanBalik,
   NILAI_KOMPONEN,
 } from "../../src/lib/schema.js";
+import { blankCountForModul } from "./answer-keys.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { validasiUmpanBalik, ringkas } from "../../src/lib/umpan-balik.js";
 import type { Kelas } from "../../src/lib/kelas.js";
 import { muatMinggu } from "./penugasan-api.js";
-import { and, eq, asc, desc, inArray } from "drizzle-orm";
+import { and, eq, asc, desc, inArray, isNotNull, sql } from "drizzle-orm";
 import { ALASAN_MIN, catatKejadian, catatPasangan, cekPasangan } from "./berjalan.js";
 
 type Db = ReturnType<typeof getDb>;
@@ -562,16 +567,98 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
     .from(umpanBalik)
     .where(and(eq(umpanBalik.sesiId, s.id), eq(umpanBalik.nim, session.nim)))
     .limit(1);
-  let pemilik: { kode: string } | null = null;
-  if (session.kelompokId) {
+  // Phase 9 (7g): the student's group in THIS session comes from the
+  // session's roster snapshot; the cookie's group is the fallback.
+  const [snap] = await db
+    .select({ nomor: sesiAnggota.kelompokNomor })
+    .from(sesiAnggota)
+    .where(and(eq(sesiAnggota.sesiId, s.id), eq(sesiAnggota.nim, session.nim)))
+    .limit(1);
+  let kelompokId = session.sesiId === s.id ? (session.kelompokId ?? null) : null;
+  let kelompokNomor = session.sesiId === s.id ? (session.kelompokNomor ?? null) : null;
+  if (snap) {
+    const [k] = await db
+      .select({ id: kelompok.id })
+      .from(kelompok)
+      .where(eq(kelompok.nomor, snap.nomor))
+      .limit(1);
+    kelompokId = k?.id ?? kelompokId;
+    kelompokNomor = snap.nomor;
+  }
+  let pemilik: { kode: string; nama: string } | null = null;
+  if (kelompokId) {
     const [p] = await db
-      .select({ kode: asisten.kode })
+      .select({ kode: asisten.kode, nama: asisten.nama })
       .from(sesiAsisten)
       .innerJoin(asisten, eq(asisten.nim, sesiAsisten.asistenNim))
-      .where(and(eq(sesiAsisten.sesiId, s.id), eq(sesiAsisten.kelompokId, session.kelompokId)))
+      .where(and(eq(sesiAsisten.sesiId, s.id), eq(sesiAsisten.kelompokId, kelompokId)))
       .limit(1);
-    pemilik = p?.kode ? { kode: p.kode } : null;
+    pemilik = p?.kode ? { kode: p.kode, nama: p.nama } : null;
   }
+  // Groupmates' names only (never a NIM), the blanks, and the timeline.
+  const [teman, isian, masuk, tangkap, tunda] = await Promise.all([
+    kelompokNomor
+      ? db
+          .select({ nama: sesiAnggota.nama })
+          .from(sesiAnggota)
+          .where(and(eq(sesiAnggota.sesiId, s.id), eq(sesiAnggota.kelompokNomor, kelompokNomor)))
+          .orderBy(asc(sesiAnggota.nama))
+      : Promise.resolve([] as { nama: string }[]),
+    kelompokId
+      ? db
+          .select({ benar: jawaban.benar, pada: jawaban.diubahPada })
+          .from(jawaban)
+          .where(and(eq(jawaban.sesiId, s.id), eq(jawaban.kelompokId, kelompokId)))
+      : Promise.resolve([] as { benar: boolean; pada: Date }[]),
+    db
+      .select({ pada: percobaanMasuk.pada })
+      .from(percobaanMasuk)
+      .where(
+        and(
+          eq(percobaanMasuk.sesiId, s.id),
+          eq(percobaanMasuk.nim, session.nim),
+          eq(percobaanMasuk.berhasil, true),
+        ),
+      )
+      .orderBy(asc(percobaanMasuk.pada))
+      .limit(1),
+    kelompokId
+      ? db
+          .select({ pada: jurnalTangkapan.dibuatPada, jenis: jurnalTangkapan.jenis })
+          .from(jurnalTangkapan)
+          .where(and(eq(jurnalTangkapan.sesiId, s.id), eq(jurnalTangkapan.kelompokId, kelompokId)))
+          .orderBy(asc(jurnalTangkapan.id))
+      : Promise.resolve([] as { pada: Date; jenis: string }[]),
+    kelompokNomor
+      ? db
+          .select({ rata: sql<number | null>`round(avg(${telemetriLog.delayMs}))::int` })
+          .from(telemetriLog)
+          .where(
+            and(
+              eq(telemetriLog.sesiId, s.id),
+              eq(telemetriLog.kelompokNomor, kelompokNomor),
+              isNotNull(telemetriLog.delayMs),
+            ),
+          )
+      : Promise.resolve([] as { rata: number | null }[]),
+  ]);
+  const benar = isian.filter((x) => x.benar);
+  const total = blankCountForModul(s.modul);
+  const linimasa: { pada: string; jenis: string; n?: number; dari?: number }[] = [];
+  if (masuk[0]) linimasa.push({ pada: masuk[0].pada.toISOString(), jenis: "masuk" });
+  if (benar.length) {
+    const akhir = benar.reduce((a, b) => (b.pada > a.pada ? b : a));
+    linimasa.push({
+      pada: akhir.pada.toISOString(),
+      jenis: "blank",
+      n: benar.length,
+      dari: total,
+    });
+  }
+  for (const t of tangkap)
+    linimasa.push({ pada: t.pada.toISOString(), jenis: t.jenis === "jarak" ? "jarak" : "tangkap" });
+  if (s.selesaiPada) linimasa.push({ pada: s.selesaiPada.toISOString(), jenis: "selesai" });
+  linimasa.sort((a, b) => a.pada.localeCompare(b.pada));
   // Who the student can credit: the session's assigned assistants and anyone
   // who graded in it; when neither exists yet, every assistant with a code.
   const [ditugaskan, penilai] = await Promise.all([
@@ -585,18 +672,33 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
     ...new Set([...ditugaskan, ...penilai].map((r) => r.nim).filter((n): n is string => !!n)),
   ];
   const kodeRows = await db
-    .select({ kode: asisten.kode })
+    .select({ kode: asisten.kode, nama: asisten.nama })
     .from(asisten)
     .where(terlibat.length ? inArray(asisten.nim, terlibat) : undefined);
-  const pilihanAsisten = [
-    ...new Set(kodeRows.map((r) => r.kode?.toUpperCase()).filter((k): k is string => !!k)),
-  ].sort();
+  const namaKode = new Map<string, string>();
+  for (const r of kodeRows) if (r.kode) namaKode.set(r.kode.toUpperCase(), r.nama);
+  const pilihanAsisten = [...namaKode.keys()].sort();
+  // Phase 9: the feedback picker shows "Full Name (CODE)".
+  const pilihanOrang = pilihanAsisten.map((kode) => ({ kode, nama: namaKode.get(kode) ?? kode }));
   const base = {
     ok: true,
-    sesi: { id: s.id, modul: s.modul, status: s.status, kelas: s.kelas },
+    sesi: {
+      id: s.id,
+      modul: s.modul,
+      status: s.status,
+      kelas: s.kelas,
+      tanggal: s.tanggal,
+      selesaiPada: s.selesaiPada,
+    },
     asisten: pemilik,
     pilihanAsisten,
+    pilihanOrang,
     sudahUmpanBalik: Boolean(fb),
+    kelompok: kelompokNomor ? { nomor: kelompokNomor, anggota: teman.map((x) => x.nama) } : null,
+    blank: { benar: benar.length, total },
+    tangkapan: tangkap.filter((x) => x.jenis === "paket").length,
+    delayRata: tunda[0]?.rata ?? null,
+    linimasa,
   };
   // Scores are only shown once the session has ended.
   if (s.status !== "selesai") {

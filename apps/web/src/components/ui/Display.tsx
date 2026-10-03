@@ -23,7 +23,7 @@ import "./Display.css";
 
 /* ------------------------------------------------------------ StateView */
 
-type Tone = "accent" | "danger" | "warn";
+type Tone = "accent" | "danger" | "warn" | "ok";
 
 export function StateView({
   icon,
