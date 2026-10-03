@@ -1,19 +1,27 @@
 /**
- * The four module cards (Phase 8), shared by the landing page and the
- * modules index. Each card shows its live state: running now, open or
- * locked. A praktikan also sees their code progress as a ring; an assistant
- * gets the module's lock switch right on the card (the same action as the
- * console's access popover, with undo). Cards tilt towards the pointer and
- * glow in the module's hue at motion tier 1 and up, and the running module
- * pulses slowly.
+ * The Modules page (Phase 9 Stage 7, mockup m-list): the page head and the
+ * four module cards, all the same height.
+ * - A Praktikan whose session is running gets no four-way choice: one card
+ *   that continues straight to this session's module.
+ * - Everyone else chooses freely. A signed-in viewer sees the running
+ *   module; a Praktikan sees Done on modules they have attended.
+ * - An Asisten sees Open or Locked on each card with the access switch
+ *   inline (the same action as the Console's, with Undo).
  */
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  ArrowRightIcon,
+  BluetoothIcon,
+  BroadcastIcon,
+  ChatsCircleIcon,
+  PlugsConnectedIcon,
+} from "@phosphor-icons/react";
 import { Switch } from "../ui/Controls";
-import { ProgressRing } from "../ui/Display";
-import { href, useMe, useSessionNow, dict } from "../../lib/app";
+import Pill from "../ui/Pill";
+import { dict, href, MODUL_NAMA, useMe, useSessionNow } from "../../lib/app";
 import { getAksesState } from "../../scripts/modul-akses";
 import { setModulAkses } from "../shell/AsistenCommands";
-import { useProgres } from "../shared/useProgres";
+import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import "./ModuleCards.css";
 
@@ -27,150 +35,162 @@ export interface ModulKartu {
 
 const T = dict({
   id: {
-    modul: "Modul",
-    run: "Berjalan",
+    eyebrow: "Modul",
+    title: "Empat Modul Praktikum",
+    today: "Modulmu Hari Ini",
+    ledeA:
+      "Atur akses langsung dari kartu. Modul yang terkunci juga tidak bisa dipilih saat memulai sesi.",
+    lede: "Setiap modul bisa dibaca siapa saja. Jurnal praktikum terbuka setelah kamu mengikuti sesinya.",
+    running: "Sesimu sedang berjalan",
+    todayLede:
+      "Selama sesimu berjalan, Modul langsung membawamu ke modul sesi ini. Modul lain bisa kamu buka lagi setelah sesi selesai.",
+    cont: "Lanjutkan ke Praktikum",
+    run: "Sedang Berjalan",
     open: "Terbuka",
-    locked: "Belum dibuka",
-    jurnal: "Jurnal terbuka",
-    go: "Buka modul",
-    access: (n: number) => `Buka Modul ${n} untuk praktikan`,
-    blanks: (b: number, t: number) => `${b}/${t} rumpang`,
+    locked: "Terkunci",
+    done: "Selesai",
+    cta: "Klik untuk membuka modul",
+    access: "Akses",
+    accessOf: (n: number) => `Akses Modul ${n}`,
+    tagline: null as string[] | null,
   },
   en: {
-    modul: "Module",
+    eyebrow: "Modules",
+    title: "Four Practicum Modules",
+    today: "Your Module Today",
+    ledeA:
+      "Set access straight from each card. A locked module also can't be picked when starting a session.",
+    lede: "Anyone can read every module. The practicum journal opens after you have attended its session.",
+    running: "Your session is running",
+    todayLede:
+      "While your session runs, Modules takes you straight to this session's module. You can open the other modules again after the session.",
+    cont: "Continue to the Practicum",
     run: "Running",
     open: "Open",
-    locked: "Not open yet",
-    jurnal: "Journal open",
-    go: "Open module",
-    access: (n: number) => `Open Module ${n} to students`,
-    blanks: (b: number, t: number) => `${b}/${t} blanks`,
+    locked: "Locked",
+    done: "Done",
+    cta: "Click to open the module",
+    access: "Access",
+    accessOf: (n: number) => `Module ${n} access`,
+    tagline: null as string[] | null,
+  },
+  zh: {
+    eyebrow: "模块",
+    title: "四个实验模块",
+    today: "你今天的模块",
+    ledeA: "直接在每张卡片上设置权限。锁住的模块在开始上课时也选不了。",
+    lede: "每个人都能读所有模块。上过那节课之后，实验日志才会打开。",
+    running: "你的课正在进行",
+    todayLede: "上课时，模块会直接带你到这节课的模块。下课后可以再打开其他模块。",
+    cont: "继续去实验",
+    run: "进行中",
+    open: "开放",
+    locked: "已锁定",
+    done: "完成",
+    cta: "点击打开模块",
+    access: "权限",
+    accessOf: (n: number) => `模块 ${n} 权限`,
+    // The handbook has no Mandarin, so the cards carry their own line.
+    tagline: [
+      "",
+      "一个 Central 和一个 Peripheral 通过 GATT 交换信号，不用 IP 网络。",
+      "ESP32 通过本地 Wi-Fi 把传感器数据发给 Python 服务器。",
+      "两块板子通过 Eclipse Mosquitto broker 交换数据。",
+      "ESP32 板子之间的 LoRa P2P 信号寻踪。",
+    ] as string[] | null,
   },
 });
 
-const PATHS: Record<number, string[]> = {
-  1: ["M7 7l10 10-5 5V2l5 5L7 17"],
-  2: ["M4 12h4l2-6 4 12 2-6h4"],
-  3: ["M12 3v4M12 17v4M3 12h4M17 12h4", "M12 9.6a2.4 2.4 0 1 0 0 4.8a2.4 2.4 0 1 0 0-4.8"],
-  4: [
-    "M4 18c4-8 12-8 16 0M7.5 18c2.4-4.8 6.6-4.8 9 0",
-    "M12 16.6a1.4 1.4 0 1 0 0 2.8a1.4 1.4 0 1 0 0-2.8",
-  ],
+const ICON: Record<number, (p: { size: number }) => ReactNode> = {
+  1: (p) => <BluetoothIcon {...p} />,
+  2: (p) => <PlugsConnectedIcon {...p} />,
+  3: (p) => <ChatsCircleIcon {...p} />,
+  4: (p) => <BroadcastIcon {...p} />,
 };
 
-export function ModIcon({ modul }: { modul: number }) {
+export function ModIcon({ modul, size = 28 }: { modul: number; size?: number }) {
   return (
-    <span className="mcard__icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        {PATHS[modul]?.map((d) => (
-          <path key={d} d={d} />
-        ))}
-      </svg>
+    <span className="modcard__icon" aria-hidden="true">
+      {ICON[modul]?.({ size })}
     </span>
   );
 }
 
 function Card({
   m,
-  i,
   lang,
-  state,
-  progres,
+  run,
+  open,
+  done,
   asisten,
-  onToggle,
 }: {
   m: ModulKartu;
-  i: number;
   lang: Lang;
-  state: "run" | "open" | "locked" | "jurnal" | null;
-  progres: { benar: number; total: number } | null | undefined;
+  run: boolean;
+  open: boolean | null;
+  done: boolean;
   asisten: boolean;
-  onToggle: (open: boolean) => void;
 }) {
   const t = T[lang];
-  const ref = useRef<HTMLDivElement>(null);
-  const total = m.berkas.reduce((a, b) => a + b.blanks, 0);
-
-  function tilt(e: PointerEvent<HTMLDivElement>) {
-    const el = ref.current;
-    if (!el || e.pointerType !== "mouse") return;
-    const r = el.getBoundingClientRect();
-    el.style.setProperty("--rx", `${((e.clientY - r.top) / r.height - 0.5) * -6}deg`);
-    el.style.setProperty("--ry", `${((e.clientX - r.left) / r.width - 0.5) * 8}deg`);
-    el.style.setProperty("--gx", `${((e.clientX - r.left) / r.width) * 100}%`);
-    el.style.setProperty("--gy", `${((e.clientY - r.top) / r.height) * 100}%`);
-  }
-  function reset() {
-    ref.current?.style.setProperty("--rx", "0deg");
-    ref.current?.style.setProperty("--ry", "0deg");
-  }
-
+  const url = href(lang, `/modules/${m.modul}`);
   return (
-    <div
-      ref={ref}
-      className="mcard"
-      data-state={state ?? undefined}
-      style={{ "--mod-hue": `var(--mod-${m.modul})`, "--i": i } as CSSProperties}
-      onPointerMove={tilt}
-      onPointerLeave={reset}
+    <article
+      className="panel modcard"
+      style={{ "--m": `var(--mod-${m.modul})` } as CSSProperties}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("a, button, .modcard__access")) return;
+        location.href = url;
+      }}
     >
-      <a className="mcard__link" href={href(lang, `/modules/${m.modul}`)}>
-        <span className="mcard__glow" aria-hidden="true" />
-        <span className="mcard__head">
-          <ModIcon modul={m.modul} />
-          {state && (
-            <span
-              className={`pill ${state === "run" ? "pill--ok" : state === "locked" ? "" : "pill--accent"}`}
-            >
-              {state === "run" && <span className="dot dot--ok dot--pulse" aria-hidden="true" />}
-              {state === "run"
-                ? t.run
-                : state === "open"
-                  ? t.open
-                  : state === "jurnal"
-                    ? t.jurnal
-                    : t.locked}
-            </span>
+      <div className="row row--between">
+        <ModIcon modul={m.modul} />
+        <span className="row modcard__badges">
+          {run && (
+            <Pill tone="ok">
+              <span className="dot dot--ok dot--pulse" aria-hidden="true" />
+              {t.run}
+            </Pill>
           )}
-        </span>
-        <span className="mcard__eyebrow mono">
-          {t.modul} {m.modul}
-        </span>
-        <b className="mcard__title">{m.judul}</b>
-        <span className="mcard__tagline">{m.tagline}</span>
-        <span className="mcard__facts">
-          {m.fakta.slice(0, 3).map((f) => (
-            <span key={f} className="pill pill--mono">
-              {f}
-            </span>
-          ))}
-        </span>
-        <span className="mcard__foot">
-          {progres ? (
-            <span className="mcard__progress">
-              <ProgressRing
-                value={progres.benar}
-                max={progres.total || 1}
-                color={progres.benar === progres.total ? "var(--ok)" : `var(--mod-${m.modul})`}
-              />
-              <span className="hint">{t.blanks(progres.benar, total)}</span>
-            </span>
-          ) : (
-            <span />
+          {asisten && open !== null && (
+            <Pill tone={open ? "accent" : undefined}>{open ? t.open : t.locked}</Pill>
           )}
-          <span className="mcard__go">{t.go}</span>
+          {!asisten && done && <Pill tone="ok">{t.done}</Pill>}
         </span>
-      </a>
-      {asisten && state && (
-        <div className="mcard__admin">
-          <Switch on={state !== "locked"} onChange={onToggle} label={t.access(m.modul)} showLabel />
-        </div>
-      )}
-    </div>
+      </div>
+      <Pill modul={m.modul} lg>
+        {modulLabel(m.modul, lang)}
+      </Pill>
+      <h2 className="modcard__title">{MODUL_NAMA[m.modul]}</h2>
+      <p className="panel__sub">{t.tagline?.[m.modul] || m.tagline}</p>
+      <div className="row modcard__facts">
+        {m.fakta.slice(0, 3).map((f) => (
+          <Pill key={f}>{f}</Pill>
+        ))}
+      </div>
+      <div className="modcard__foot">
+        <a className="modcard__cta" href={url}>
+          {t.cta}
+          <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
+        </a>
+        {asisten && open !== null && (
+          <span className="modcard__access">
+            <span className="hint" aria-hidden="true">
+              {t.access}
+            </span>
+            <Switch
+              on={open}
+              onChange={(v) => void setModulAkses(m.modul, v, lang)}
+              label={t.accessOf(m.modul)}
+            />
+          </span>
+        )}
+      </div>
+    </article>
   );
 }
 
 export default function ModuleCards({ lang, modules }: { lang: Lang; modules: ModulKartu[] }) {
+  const t = T[lang];
   const me = useMe();
   const signedIn = Boolean(me);
   const now = useSessionNow(30_000, signedIn);
@@ -191,40 +211,68 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
     return () => window.removeEventListener("iris:akses-berubah", load);
   }, [me]);
 
-  const progres = useProgres(modules, me?.role === "praktikan" ? terbuka : null);
-  const running = now.data?.modul ?? null;
+  const sesi = now.data;
+  const running = signedIn ? (sesi?.modul ?? null) : null;
+
+  // A Praktikan in their running session: one card, straight to it.
+  if (me?.role === "praktikan" && sesi && sesi.milikSaya !== false) {
+    const m = modules.find((x) => x.modul === sesi.modul);
+    return (
+      <div className="stack stack--lg modlist modlist--one">
+        <header className="modlist__head">
+          <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
+          <h1 className="modlist__title">{t.today}</h1>
+        </header>
+        <article
+          className="panel panel--key panel--raised modhero"
+          style={{ "--m": `var(--mod-${sesi.modul})` } as CSSProperties}
+        >
+          <ModIcon modul={sesi.modul} size={36} />
+          <div className="stack">
+            <div className="row">
+              <Pill modul={sesi.modul} lg>
+                {modulLabel(sesi.modul, lang)}
+              </Pill>
+              <Pill tone="ok">
+                <span className="dot dot--ok dot--pulse" aria-hidden="true" />
+                {t.running}
+              </Pill>
+            </div>
+            <h2 className="modlist__title">{MODUL_NAMA[sesi.modul]}</h2>
+            {m && <p className="panel__sub">{t.tagline?.[m.modul] || m.tagline}</p>}
+            <p className="modlist__lede">{t.todayLede}</p>
+            <div className="row">
+              <a className="btn btn--inverse btn--lg" href={href(lang, `/modules/${sesi.modul}`)}>
+                {t.cont}
+                <ArrowRightIcon aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        </article>
+      </div>
+    );
+  }
 
   return (
-    <div className="mcards">
-      {modules.map((m, i) => {
-        // Every card opens the module's public handbook. Assistants see the
-        // students' access state (and switch it); a student sees whether the
-        // journal is theirs to open; a visitor sees no state at all.
-        const state =
-          terbuka === null
-            ? null
-            : running === m.modul && signedIn
-              ? "run"
-              : asisten
-                ? terbuka.includes(m.modul)
-                  ? "open"
-                  : "locked"
-                : jurnal.includes(m.modul)
-                  ? "jurnal"
-                  : null;
-        return (
+    <div className="stack stack--lg modlist">
+      <header className="modlist__head">
+        <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
+        <h1 className="modlist__title">{t.title}</h1>
+        <p className="modlist__lede">{asisten ? t.ledeA : t.lede}</p>
+      </header>
+      <div className="modgrid">
+        {modules.map((m) => (
           <Card
             key={m.modul}
             m={m}
-            i={i}
             lang={lang}
-            state={state}
-            progres={progres[m.modul]}
+            run={running === m.modul}
+            open={terbuka === null ? null : terbuka.includes(m.modul)}
+            done={me?.role === "praktikan" && jurnal.includes(m.modul)}
             asisten={asisten}
-            onToggle={(open) => void setModulAkses(m.modul, open, lang)}
           />
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }

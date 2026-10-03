@@ -1,11 +1,10 @@
 ---
 /**
- * /modules and /en/modules: the four module cards (home/ModuleCards.tsx)
- * with their live state, the student's progress, and for an assistant each
- * module's lock switch on the card.
+ * /modules, /en/modules and /zh/modules: the Modules page
+ * (home/ModuleCards.tsx), which owns its own head because it changes with
+ * who is looking (a Praktikan in session gets one Continue card).
  */
 import Base from "../layouts/Base.astro";
-import PageHeader from "../components/ui/PageHeader.astro";
 import ModuleCards from "../components/home/ModuleCards";
 import { moduleCards } from "../lib/module-cards";
 import { id as strId } from "../i18n/id";
@@ -27,8 +26,7 @@ const modules = await moduleCards(lang);
   cosmosScene="kerja"
   lang={lang}
 >
-  <main id="main" class="page-regular page-main">
-    <PageHeader eyebrow="IRIS IoT" title={t.indexTitle} subtitle={t.indexLede} />
+  <main id="main" class="page-wide page-main">
     <ModuleCards client:load lang={lang} modules={modules} />
   </main>
 </Base>

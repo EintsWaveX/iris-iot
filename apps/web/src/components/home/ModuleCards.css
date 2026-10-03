@@ -1,202 +1,205 @@
-/* The module cards (Phase 8), on the landing page and the modules index. */
+/* The Modules page (Phase 9 Stage 7, mockup m-list). */
 
-.mcards {
+.modlist {
+  padding-top: var(--space-page-top);
+}
+
+.modlist__head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.modlist__head .eyebrow {
+  margin: 0;
+}
+
+.modlist__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 2.6vw + 0.6rem, 2.8rem);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
+  line-height: 1.08;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.modlist__lede {
+  color: var(--text-muted);
+  font-size: var(--fs-body-lg);
+  margin: 0;
+  max-width: 64ch;
+}
+
+.modgrid {
   display: grid;
   gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 640px) {
-  .mcards {
+@media (min-width: 720px) {
+  .modgrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-.mcard {
-  --rx: 0deg;
-  --ry: 0deg;
-  --gx: 50%;
-  --gy: 0%;
-  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
-  isolation: isolate;
+@media (min-width: 1280px) {
+  .modgrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.modcard {
+  cursor: pointer;
   overflow: hidden;
   position: relative;
   transition:
-    border-color var(--dur-mid) var(--ease-reveal),
-    box-shadow var(--dur-mid) var(--ease-reveal),
-    transform var(--dur-mid) var(--ease-out-expo);
+    border-color var(--dur-fast),
+    transform var(--dur-fast);
 }
 
-:root:not([data-motion-tier="0"]) .mcard {
-  animation: app-rise var(--dur-slow) var(--ease-out-expo) both;
-  animation-delay: calc(var(--i) * 70ms);
+.modcard:hover {
+  border-color: color-mix(in srgb, var(--m) 60%, var(--hairline));
 }
 
-.mcard:hover,
-.mcard:focus-within {
-  border-color: color-mix(in srgb, var(--mod-hue) 60%, transparent);
-  box-shadow: 0 18px 40px -18px color-mix(in srgb, var(--mod-hue) 55%, transparent);
-}
-
-:root:not([data-motion-tier="0"]) .mcard:hover {
-  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-3px);
-}
-
-.mcard__glow {
+.modcard::after {
+  aspect-ratio: 1;
   background: radial-gradient(
-    420px circle at var(--gx) var(--gy),
-    color-mix(in srgb, var(--mod-hue) 22%, transparent),
-    transparent 60%
+    circle,
+    color-mix(in srgb, var(--m) 26%, transparent),
+    transparent 70%
   );
-  inset: 0;
-  opacity: 0;
+  border-radius: 50%;
+  content: "";
+  inset: auto -30% -60% auto;
   pointer-events: none;
   position: absolute;
-  transition: opacity var(--dur-mid) var(--ease-reveal);
-  z-index: -1;
+  width: 70%;
 }
 
-.mcard:hover .mcard__glow {
-  opacity: 1;
+.modcard > .pill {
+  align-self: flex-start;
 }
 
-/* The running module breathes. */
-.mcard[data-state="run"] {
-  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
-}
-
-:root:not([data-motion-tier="0"]) .mcard[data-state="run"] {
-  animation:
-    app-rise var(--dur-slow) var(--ease-out-expo) both,
-    mcard-breathe 3.6s ease-in-out 1s infinite;
-}
-
-@keyframes mcard-breathe {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 0%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--ok) 18%, transparent);
-  }
-}
-
-.mcard__link {
-  color: inherit;
-  display: flex;
-  flex: 1;
+.modcard__badges {
+  align-items: flex-end;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-5);
+  gap: 6px;
+  min-height: 56px;
+  justify-content: center;
+}
+
+.modcard__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--m) 22%, var(--surface-1));
+  border: 1.5px solid color-mix(in srgb, var(--m) 70%, transparent);
+  border-radius: 14px;
+  color: var(--m);
+  display: inline-grid;
+  flex: none;
+  height: 56px;
+  justify-items: center;
+  width: 56px;
+}
+
+.modcard__title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
+  line-height: 1.05;
+  margin: 0;
+}
+
+.modcard__facts {
+  gap: 6px;
+}
+
+.modcard__foot {
+  align-items: center;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.modcard__cta {
+  align-items: center;
+  color: var(--m);
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
   text-decoration: none;
 }
 
-.mcard__link:focus-visible {
-  box-shadow: inset var(--glow-ring);
-  outline: none;
+.modcard__cta svg {
+  transition: transform var(--dur-fast);
 }
 
-.mcard__head {
-  align-items: flex-start;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
+.modcard:hover .modcard__cta svg {
+  transform: translateX(3px);
 }
 
-.mcard__icon {
-  align-items: center;
-  background: color-mix(in srgb, var(--mod-hue) 16%, transparent);
-  border-radius: var(--radius-md);
-  color: var(--mod-hue);
-  display: inline-flex;
-  height: 48px;
-  justify-content: center;
-  transition: transform var(--dur-mid) var(--ease-out-expo);
-  width: 48px;
-}
-
-.mcard__icon svg {
-  height: 24px;
-  width: 24px;
-}
-
-:root:not([data-motion-tier="0"]) .mcard:hover .mcard__icon {
-  transform: scale(1.08) rotate(-4deg);
-}
-
-.mcard__eyebrow {
-  color: var(--mod-hue);
-  font-size: var(--fs-small);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.mcard__title {
-  font-family: var(--font-display);
-  font-weight: var(--display-weight);
-  letter-spacing: var(--display-track);
-  font-size: var(--fs-display-sm);
-  line-height: 1.1;
-}
-
-.mcard__tagline {
-  color: var(--text-muted);
-}
-
-.mcard__facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-top: var(--space-2);
-}
-
-.mcard__foot {
-  align-items: center;
-  display: flex;
-  gap: var(--space-3);
-  justify-content: space-between;
-  margin-top: auto;
-  padding-top: var(--space-4);
-}
-
-.mcard__progress {
+.modcard__access {
   align-items: center;
   display: inline-flex;
-  gap: var(--space-2);
-}
-
-.mcard__go {
-  align-items: center;
-  color: var(--mod-hue);
-  display: inline-flex;
-  font-size: var(--fs-small);
-  font-weight: 600;
-  gap: 4px;
-  transition: gap var(--dur-fast) var(--ease-reveal);
-}
-
-.mcard:hover .mcard__go {
   gap: 8px;
 }
 
-.mcard__admin {
-  border-top: 1px solid var(--hairline);
-  padding: var(--space-2) var(--space-5);
+/* Four narrow columns: the switch alone keeps the foot on one line (it
+   still carries its own label for screen readers). */
+@media (min-width: 1280px) and (max-width: 1599px) {
+  .modcard__access .hint {
+    display: none;
+  }
+
+  .modcard__cta {
+    font-size: 0.92rem;
+  }
 }
 
-.mcard__admin .ctl-switch {
-  flex-direction: row-reverse;
-  justify-content: space-between;
+/* The one card a Praktikan in session gets. */
+.modhero {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.modlist--one {
+  margin-inline: auto;
+  max-width: 980px;
   width: 100%;
 }
 
-.mcard__admin .ctl-switch__label {
-  color: var(--text-muted);
-  font-size: var(--fs-small);
-  font-weight: 500;
-  text-align: left;
+.modhero .modcard__icon {
+  height: 72px;
+  width: 72px;
+}
+
+@media (min-width: 720px) {
+  .modhero {
+    align-items: start;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1279px) {
+  .modcard__title {
+    font-size: 1.7rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .modcard__title {
+    font-size: 1.5rem;
+  }
+
+  .modhero .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }
