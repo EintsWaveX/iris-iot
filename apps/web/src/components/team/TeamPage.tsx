@@ -4,16 +4,21 @@
  * head-role holders and their handovers; one person's drawer with rights,
  * slots this week and the trail. Everyone reads it; the Tim right edits.
  * Penugasan Slot (Stage 4, AssignBoard.tsx) is the second tab, #penugasan;
- * payments join in Stage 6.
+ * Pembayaran (Stage 6, bayar/PayBoard.tsx) is the third, #pembayaran, for
+ * the Tim right only, which also sees everyone's earnings in the list.
  *
  * A head role has one holder. Picking a role someone else holds never
  * saves: the footer turns into Ask for a Handover, Make a Member, Cancel,
  * and the holder keeps the role until they or an Admin accept.
  */
 import AssignBoard, { A } from "./AssignBoard";
+import PayBoard, { XlsxButton } from "../bayar/PayBoard";
+import { useBayar, type BayarData } from "../bayar/data";
+import { B } from "../bayar/strings";
+import { jumlahkan, rupiah } from "../../lib/bayar";
 import { namaAsisten } from "../../lib/people";
 import Fade from "../ui/Fade";
-import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   CheckCircleIcon,
   CodeIcon,
@@ -122,6 +127,20 @@ interface Jejak {
 
 const API = "/api/session/tim";
 
+type TabTim = "orang" | "penugasan" | "bayar";
+const HASH_TAB: Record<TabTim, string> = {
+  orang: "",
+  penugasan: "#penugasan",
+  bayar: "#pembayaran",
+};
+
+/** Each scorer's units this semester, summed. */
+function hakSemester(d: BayarData): Map<string, ReturnType<typeof jumlahkan>> {
+  const per = new Map<string, BayarData["units"]>();
+  for (const u of d.units) per.set(u.nimPenilai, [...(per.get(u.nimPenilai) ?? []), u]);
+  return new Map([...per].map(([nim, us]) => [nim, jumlahkan(us)]));
+}
+
 /** A timestamp's date in the lab's timezone, written out in full. */
 function tgl(ts: string, lang: Lang): string {
   const d = new Date(ts).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
@@ -173,13 +192,14 @@ export default function TeamPage({ lang }: { lang: Lang }) {
   const [fail, setFail] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [tab, setTab0] = useState<"orang" | "penugasan">("orang");
+  const [tab, setTab0] = useState<TabTim>("orang");
   useEffect(() => {
     if (location.hash === "#penugasan") setTab0("penugasan");
+    if (location.hash === "#pembayaran") setTab0("bayar");
   }, []);
-  const setTab = (v: "orang" | "penugasan") => {
+  const setTab = (v: TabTim) => {
     setTab0(v);
-    history.replaceState(null, "", v === "penugasan" ? "#penugasan" : location.pathname);
+    history.replaceState(null, "", v === "orang" ? location.pathname : HASH_TAB[v]);
   };
 
   const load = useCallback(async () => {
@@ -196,6 +216,18 @@ export default function TeamPage({ lang }: { lang: Lang }) {
   useEffect(() => {
     if (me?.role === "asisten") void load();
   }, [me, load]);
+  // Everyone gets their own units back; the Tim right gets the whole ledger.
+  const bayar = useBayar(!!data);
+  // On a phone the third tab starts off screen; keep the open one in view.
+  const tabsRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const list = tabsRef.current;
+    const on = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!list || !on) return;
+    const l = list.getBoundingClientRect();
+    const o = on.getBoundingClientRect();
+    if (o.right > l.right || o.left < l.left) list.scrollLeft += o.left - l.left - 16;
+  }, [tab, data]);
 
   if (me === undefined) return <span className="skeleton" style={{ height: 420 }} />;
   if (me?.role !== "asisten") {
@@ -206,6 +238,12 @@ export default function TeamPage({ lang }: { lang: Lang }) {
 
   const admin = data.saya?.hak.tim === true;
   const person = open ? data.orang.find((o) => o.nim === open) : undefined;
+  const tabs: TabTim[] = admin ? ["orang", "penugasan", "bayar"] : ["orang", "penugasan"];
+  const shown: TabTim = tabs.includes(tab) ? tab : "orang";
+  const nama = (nim: string | null) => {
+    const o = data.orang.find((x) => x.nim === nim);
+    return o ? namaAsisten(o, nim ?? "?") : (nim ?? "?");
+  };
 
   return (
     <div className="tim">
@@ -216,7 +254,9 @@ export default function TeamPage({ lang }: { lang: Lang }) {
             <h1 className="page-header__title">{t.title}</h1>
           </div>
           <div className="page-header__actions">
-            {tab === "penugasan" ? null : admin ? (
+            {shown === "bayar" ? (
+              bayar.data && <XlsxButton lang={lang} data={bayar.data} nama={nama} />
+            ) : shown === "penugasan" ? null : admin ? (
               <button type="button" className="btn btn--primary" onClick={() => setAdding(true)}>
                 <UserPlusIcon size={18} aria-hidden="true" />
                 {t.add}
@@ -232,20 +272,20 @@ export default function TeamPage({ lang }: { lang: Lang }) {
       </header>
 
       <div className="tabs-scroll">
-        <nav className="tabs" role="tablist" aria-label={A[lang].tabsLabel}>
-          {(["orang", "penugasan"] as const).map((v) => (
+        <nav ref={tabsRef} className="tabs" role="tablist" aria-label={A[lang].tabsLabel}>
+          {tabs.map((v, i) => (
             <button
               key={v}
               type="button"
               role="tab"
-              aria-selected={tab === v}
-              tabIndex={tab === v ? 0 : -1}
+              aria-selected={shown === v}
+              tabIndex={shown === v ? 0 : -1}
               className="tabs__tab"
               onClick={() => setTab(v)}
               onKeyDown={(e) => {
                 if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-                  const n = v === "orang" ? "penugasan" : "orang";
-                  setTab(n);
+                  const d = e.key === "ArrowRight" ? 1 : -1;
+                  setTab(tabs[(i + d + tabs.length) % tabs.length]);
                   const list = e.currentTarget.parentElement;
                   requestAnimationFrame(() =>
                     (list?.querySelector('[aria-selected="true"]') as HTMLElement | null)?.focus(),
@@ -253,29 +293,47 @@ export default function TeamPage({ lang }: { lang: Lang }) {
                 }
               }}
             >
-              {A[lang].tabs[v]}
+              {v === "bayar" ? B[lang].tab : A[lang].tabs[v]}
               {v === "orang" && <span className="tabs__count">{data.orang.length}</span>}
             </button>
           ))}
         </nav>
       </div>
 
-      <Fade k={tab}>
-        {tab === "orang" ? (
+      <Fade k={shown}>
+        {shown === "orang" ? (
           <>
             <Holders data={data} t={t} lang={lang} admin={admin} reload={load} />
-            <People data={data} t={t} lang={lang} onOpen={setOpen} />
+            <People
+              data={data}
+              t={t}
+              lang={lang}
+              onOpen={setOpen}
+              hak={admin && bayar.data ? hakSemester(bayar.data) : null}
+            />
           </>
-        ) : (
+        ) : shown === "penugasan" ? (
           <AssignBoard
             lang={lang}
             bolehJadwal={data.saya?.hak.jadwal !== false && !!data.saya}
-            nama={(nim) => {
-              const o = data.orang.find((x) => x.nim === nim);
-              return o ? namaAsisten(o, nim ?? "?") : (nim ?? "?");
-            }}
+            nama={nama}
             meKode={(me.kode ?? "").toUpperCase()}
           />
+        ) : bayar.data ? (
+          <PayBoard
+            lang={lang}
+            data={bayar.data}
+            nama={nama}
+            orang={data.orang
+              .filter((o) => o.status === "aktif")
+              .map((o) => ({ nim: o.nim, label: nama(o.nim) }))
+              .sort((a, b) => a.label.localeCompare(b.label))}
+            reload={() => void bayar.load()}
+          />
+        ) : bayar.fail ? (
+          <ErrorView code={500} lang={lang} onRetry={() => void bayar.load()} />
+        ) : (
+          <span className="skeleton" style={{ height: 420 }} />
         )}
       </Fade>
 
@@ -287,6 +345,7 @@ export default function TeamPage({ lang }: { lang: Lang }) {
           t={t}
           lang={lang}
           admin={admin}
+          bayar={admin || person.nim === data.saya?.nim ? bayar.data : null}
           onClose={() => setOpen(null)}
           reload={load}
         />
@@ -483,11 +542,14 @@ function People({
   t,
   lang,
   onOpen,
+  hak,
 }: {
   data: TimData;
   t: Tx;
   lang: Lang;
   onOpen: (nim: string) => void;
+  /** Earnings per NIM, for the Tim right only. */
+  hak: Map<string, ReturnType<typeof jumlahkan>> | null;
 }) {
   const [q, setQ] = useState("");
   const [tier, setTier] = useState("all");
@@ -576,6 +638,7 @@ function People({
               <th>{t.colStatus}</th>
               <th>{t.colSeelabs}</th>
               <th>{t.colSlots}</th>
+              {hak && <th className="tnum">{B[lang].colEarned}</th>}
             </tr>
           </thead>
           <tbody>
@@ -621,6 +684,11 @@ function People({
                 <td data-col={t.colSlots} className="tnum">
                   {data.slotMinggu[(o.kode ?? "").toUpperCase()] ?? 0}
                 </td>
+                {hak && (
+                  <td data-col={B[lang].colEarned} className="tnum">
+                    {rupiah(hak.get(o.nim)?.kotor ?? 0)}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -678,6 +746,7 @@ function PersonDrawer({
   t,
   lang,
   admin,
+  bayar,
   onClose,
   reload,
 }: {
@@ -686,6 +755,8 @@ function PersonDrawer({
   t: Tx;
   lang: Lang;
   admin: boolean;
+  /** Payments data when the viewer may see this person's earnings. */
+  bayar: BayarData | null;
   onClose: () => void;
   reload: () => Promise<void>;
 }) {
@@ -932,12 +1003,36 @@ function PersonDrawer({
           <SlotList slots={data.slotDaftar[(p.kode ?? "").toUpperCase()] ?? []} t={t} lang={lang} />
         </section>
 
+        {bayar && <DrawerPay nim={p.nim} data={bayar} lang={lang} />}
+
         <section className="tim-sec">
           <h3 className="tim-sec__title">{t.trail}</h3>
           <Trail jejak={jejak} t={t} lang={lang} w={w} />
         </section>
       </div>
     </Drawer>
+  );
+}
+
+function DrawerPay({ nim, data, lang }: { nim: string; data: BayarData; lang: Lang }) {
+  const b = B[lang];
+  const j = jumlahkan(data.units.filter((u) => u.nimPenilai === nim));
+  return (
+    <section className="tim-sec">
+      <h3 className="tim-sec__title">{b.drawerPay}</h3>
+      <div className="tim-paystats">
+        <div className="stat">
+          <b className="stat__value">{rupiah(j.kotor)}</b>
+          <span className="stat__label">{b.earnedSem}</span>
+        </div>
+        <div className="stat">
+          <b className="stat__value">
+            {j.reguler} + {j.internasional}
+          </b>
+          <span className="stat__label">{b.unitsGroups}</span>
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -1,0 +1,251 @@
+/* Payments and uang kas (Phase 9 Stage 6), ported from the mockup's
+   t-pay, a-account and c-home pieces. */
+
+.bayar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.bayar-side,
+.bayar-g2 {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.bayar-g2 {
+  gap: 12px;
+}
+
+@media (min-width: 1024px) {
+  .bayar-side {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+}
+
+@media (min-width: 520px) {
+  .bayar-g2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.money {
+  font: 800 1.6rem/1.1 var(--font-body);
+  letter-spacing: -0.01em;
+}
+
+/* Bersih big, Kotor and the kas cut under it */
+.kasfig {
+  align-items: end;
+  display: grid;
+  gap: 4px 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.kasfig__i {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kasfig__net {
+  grid-column: 1 / -1;
+}
+
+.kasfig__i:not(.kasfig__net) b {
+  color: var(--text-muted);
+  font-size: 0.98rem;
+}
+
+.kasfig__i b.kasfig__cut {
+  color: var(--warn);
+}
+
+.earn {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .earn {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.7fr);
+  }
+}
+
+.paylines {
+  display: grid;
+  gap: 10px;
+}
+
+.payline {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 12px;
+}
+
+.payline__t {
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.payline__v {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* the Uang Kas card */
+.kascard .kasrate {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 720px) {
+  .kascard .kasrate {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+.kasrate__ex {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.kashist > .disc__head {
+  color: var(--text-muted);
+}
+
+.moneyin {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.moneyin .field__input {
+  max-width: 180px;
+}
+
+/* tabstops, shared shape with the Server page */
+.bayar .tabstops,
+.kascard .tabstops {
+  align-items: center;
+  column-gap: 14px;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.kascard .tabstops--3 {
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+}
+
+.bayar .tabstops__row,
+.kascard .tabstops__row {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-height: 44px;
+  padding: 6px 0;
+}
+
+.bayar .tabstops__row:last-child,
+.kascard .tabstops__row:last-child {
+  border-bottom: 0;
+}
+
+.bayar .tabstops__row > *,
+.kascard .tabstops__row > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bayar .txstops {
+  grid-template-columns: max-content minmax(0, 1fr) max-content max-content;
+}
+
+.txstops .tabstops__row {
+  padding: 10px 0;
+}
+
+@media (max-width: 1439px) {
+  .bayar .txstops {
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+  }
+  .txstops .tabstops__row > :nth-child(4) {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 639px) {
+  .bayar .txstops {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .txstops .tabstops__row > :first-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .txstops .tabstops__row > :nth-child(2) {
+    grid-column: 1;
+  }
+  .txstops .tabstops__row > :nth-child(3) {
+    grid-column: 2;
+    justify-self: end;
+  }
+  .txstops .tabstops__row > :nth-child(4) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* the ledger */
+.bayar-scroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.bayar-table {
+  border-collapse: collapse;
+  font-size: 0.96rem;
+  width: 100%;
+}
+
+.bayar-table th {
+  border-bottom: 1px solid var(--hairline-strong);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 12px;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bayar-table td {
+  border-bottom: 1px solid var(--hairline-faint);
+  padding: 12px;
+  vertical-align: middle;
+}
+
+.bayar-table .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}

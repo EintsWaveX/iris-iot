@@ -8,9 +8,11 @@
  * - Assistants: change password at any time (current, new with a strength
  *   meter, repeat), their week from the schedule, and "Umpan balik saya"
  *   (feedback about them only, anonymous).
+ * - Assistants (Phase 9 Stage 6): Pendapatan, their own earnings, on top.
  * - Sign out.
  */
 import SeelabsAccount from "../console/seelabs/SeelabsAccount";
+import { EarningsCard } from "../bayar/Earnings";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckIcon, UserIcon } from "@phosphor-icons/react";
 import PasswordField, { kekuatanSandi } from "../ui/PasswordField";
@@ -299,6 +301,8 @@ export default function AccountPage({ lang }: { lang: Lang }) {
           {t.keluar}
         </button>
       </header>
+
+      {asisten && <EarningsCard lang={lang} nim={me.nim} />}
 
       <div className="acctpage__grid">
         <div className="acctpage__col">

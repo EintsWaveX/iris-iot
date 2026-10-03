@@ -23,6 +23,7 @@ import {
   index,
   jsonb,
   primaryKey,
+  check,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
@@ -193,6 +194,8 @@ export const sesi = pgTable(
       .notNull()
       .default("reguler"),
     jumlahKelompok: integer("jumlah_kelompok").notNull().default(5),
+    // Stage 6: when this session's pay units were last rebuilt (null: never).
+    bayarSinkronPada: timestamp("bayar_sinkron_pada", { withTimezone: true }),
     lanjutanDari: integer("lanjutan_dari").references((): AnyPgColumn => sesi.id, {
       onDelete: "set null",
     }),
@@ -1094,4 +1097,152 @@ export const seelabsEkspor = pgTable(
     disimpanPada: timestamp("disimpan_pada", { withTimezone: true }),
   },
   (t) => [index("seelabs_ekspor_sesi_idx").on(t.sesiId)],
+);
+
+/* ------------------------------------ Phase 9 Stage 6: payments, reports */
+
+/**
+ * The uang kas rate per semester. A new row starts on `berlaku_mulai`;
+ * sessions before it keep the rate they had (each unit snapshots it).
+ */
+export const kasTarif = pgTable(
+  "kas_tarif",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    persen: integer("persen").notNull(),
+    berlakuMulai: text("berlaku_mulai").notNull(), // ISO date
+    diubahOleh: text("diubah_oleh"),
+    alasan: text("alasan"),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("kas_tarif_semester_idx").on(t.semester),
+    check("kas_tarif_persen", sql`${t.persen} between 0 and 50`),
+  ],
+);
+
+/** A per-person uang kas rate for one semester, overriding kas_tarif. */
+export const kasPengecualian = pgTable(
+  "kas_pengecualian",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    nim: text("nim").notNull(),
+    persen: integer("persen").notNull(),
+    alasan: text("alasan"),
+    diubahOleh: text("diubah_oleh"),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("kas_pengecualian_unik").on(t.semester, t.nim),
+    check("kas_pengecualian_persen", sql`${t.persen} between 0 and 50`),
+  ],
+);
+
+/**
+ * One scored group in a finished session: one pay unit for the Asisten who
+ * scored it (whoever's SeeLabs account carried it). Rate and kas are
+ * snapshots from when the unit was made, so a later change never rewrites
+ * what was already earned.
+ */
+export const unitBayar = pgTable(
+  "unit_bayar",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    tanggal: text("tanggal").notNull(),
+    nimPenilai: text("nim_penilai").notNull(),
+    nimAkunSeelabs: text("nim_akun_seelabs"),
+    kelas: text("kelas", { enum: KELAS }).notNull(),
+    kotor: integer("kotor").notNull(),
+    kasPersen: integer("kas_persen").notNull(),
+    kas: integer("kas").notNull(),
+    bersih: integer("bersih").notNull(),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+    diperbaruiPada: timestamp("diperbarui_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("unit_bayar_unik").on(t.sesiId, t.kelompokNomor),
+    index("unit_bayar_nim_idx").on(t.nimPenilai),
+  ],
+);
+
+/**
+ * A transfer that was made, per Asisten and month: "kotor" from the
+ * Bendahara to the Asisten, "balik" (the uang kas) from the Asisten to the
+ * Kas IRIS. What is still owed is computed from unit_bayar minus these.
+ */
+export const transfer = pgTable(
+  "transfer",
+  {
+    id: serial("id").primaryKey(),
+    periode: text("periode").notNull(), // "2026-09"
+    jenis: text("jenis", { enum: ["kotor", "balik"] }).notNull(),
+    nim: text("nim").notNull(),
+    jumlah: integer("jumlah").notNull(),
+    ditransferPada: timestamp("ditransfer_pada", { withTimezone: true }).notNull().defaultNow(),
+    ditandaiOleh: text("ditandai_oleh").notNull(),
+  },
+  (t) => [index("transfer_periode_idx").on(t.periode)],
+);
+
+/**
+ * A written report (Laporan › Dokumen): a block document. Drafts are the
+ * author's own; once sent, every Asisten can read it. Requests to the Admin
+ * move on to diproses and selesai, with the Admin's reply.
+ */
+export const laporan = pgTable(
+  "laporan",
+  {
+    id: serial("id").primaryKey(),
+    judul: text("judul").notNull(),
+    jenis: text("jenis", { enum: ["sesi", "kerusakan", "permintaan", "lainnya"] }).notNull(),
+    status: text("status", { enum: ["draf", "terkirim", "diproses", "selesai"] })
+      .notNull()
+      .default("draf"),
+    blok: jsonb("blok").$type<Record<string, unknown>[]>().notNull().default([]),
+    konteks: jsonb("konteks").$type<Record<string, unknown>>().notNull().default({}),
+    penulisNim: text("penulis_nim").notNull(),
+    balasan: text("balasan"),
+    diprosesOleh: text("diproses_oleh"),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+    dikirimPada: timestamp("dikirim_pada", { withTimezone: true }),
+  },
+  (t) => [index("laporan_status_idx").on(t.status), index("laporan_penulis_idx").on(t.penulisNim)],
+);
+
+export const laporanKomentar = pgTable(
+  "laporan_komentar",
+  {
+    id: serial("id").primaryKey(),
+    laporanId: integer("laporan_id")
+      .notNull()
+      .references(() => laporan.id, { onDelete: "cascade" }),
+    nim: text("nim").notNull(),
+    isi: text("isi").notNull(),
+    pada: timestamp("pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("laporan_komentar_idx").on(t.laporanId)],
+);
+
+export const laporanLampiran = pgTable(
+  "laporan_lampiran",
+  {
+    id: serial("id").primaryKey(),
+    laporanId: integer("laporan_id")
+      .notNull()
+      .references(() => laporan.id, { onDelete: "cascade" }),
+    nama: text("nama").notNull(),
+    url: text("url").notNull(),
+    tipe: text("tipe").notNull(),
+    ukuran: integer("ukuran").notNull(),
+    nim: text("nim").notNull(),
+    pada: timestamp("pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("laporan_lampiran_idx").on(t.laporanId)],
 );

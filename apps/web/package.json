@@ -49,6 +49,7 @@
     "react-resizable-panels": "^4.14.1",
     "read-excel-file": "^9.3.10",
     "uplot": "^1.6.32",
+    "write-excel-file": "^2.3.10",
     "ws": "^8.21.3"
   },
   "allowScripts": {

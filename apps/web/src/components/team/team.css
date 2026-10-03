@@ -718,3 +718,15 @@
   box-shadow: 0 10px 28px -10px rgba(0, 0, 0, 0.55);
   cursor: grabbing;
 }
+
+/* Drawer: this person's earnings (Stage 6), Tim right or the person only. */
+.tim-paystats {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tim-paystats .stat__value {
+  font-size: 1.3rem;
+  overflow-wrap: anywhere;
+}

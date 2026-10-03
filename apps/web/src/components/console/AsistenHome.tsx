@@ -12,12 +12,14 @@
  *   when, and the slot's own Asisten can change its window (5 to 30
  *   minutes). Class type, length (30 to 150) and module (closed ones are
  *   off) come next; Start is pinned to the card bottom.
- * - Still Needs Scores and Feedback for You on the right.
+ * - Still Needs Scores, Earnings This Month (Stage 6) and Feedback for You
+ *   on the right.
  *
  * The server enforces every rule shown here (api/session/index.ts and
  * src/lib/sesi-mulai.ts); this page only explains them ahead of time.
  */
 import HelpCard from "./HelpCard";
+import { EarningsMini } from "../bayar/Earnings";
 import { useTitipan } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
@@ -676,6 +678,8 @@ export default function AsistenHome({
               </div>
             )}
           </section>
+
+          <EarningsMini lang={lang} nim={me.nim} />
 
           <FeedbackCard data={mine} h={h} lang={lang} />
         </div>
