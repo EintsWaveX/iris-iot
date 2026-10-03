@@ -37,7 +37,7 @@ import { getJson, href, postJson, useMe } from "../../lib/app";
 import { useMinWidth } from "../../lib/hooks";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
-import { hariLabel, kelompokLabel } from "../../lib/labels";
+import { hariLabel, kelompokLabel, slotLabel as slotName } from "../../lib/labels";
 import { pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
 import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
 import type { Lang } from "../../lib/kelas";
@@ -240,7 +240,7 @@ function LoadPanel({
                 <div className="loadrow__slots">
                   {slots.map((j) => (
                     <Pill key={j.id}>
-                      {hariLabel(j.hari, lang)} · {SLOT_MULAI[j.slot].replace(":", ".")}
+                      {hariLabel(j.hari, lang)} · {SLOT_MULAI[j.slot]}
                     </Pill>
                   ))}
                 </div>
@@ -469,7 +469,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   const mingguOf = (r: JadwalRow | undefined) => (r ? data?.minggu[String(r.id)] : undefined);
   const today = semester === kini ? hariDariTanggal(hariIniWib()) : -1;
   const slotLabel = (h: number, s: number) =>
-    `${hariLabel(h, lang)} · Slot ${s} · ${SLOT_MULAI[s].replace(":", ".")}`;
+    `${hariLabel(h, lang)} · ${slotName(s, lang)} · ${SLOT_MULAI[s]}`;
   const mine = (r: JadwalRow | undefined, m: MingguSlot | undefined) =>
     !!r &&
     (m
@@ -599,8 +599,8 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
                 <span />
                 {SLOTS.map((s) => (
                   <span key={s} className="jgrid__h" role="columnheader">
-                    Slot {s}
-                    <b className="num">{SLOT_MULAI[s].replace(":", ".")}</b>
+                    {slotName(s, lang)}
+                    <b className="num">{SLOT_MULAI[s]}</b>
                   </span>
                 ))}
                 {HARI.map((h) => (
@@ -630,7 +630,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
                   {SLOTS.map((s) => (
                     <div key={s} className="jdays__slot">
                       <span className="hint">
-                        Slot {s} · {SLOT_MULAI[s].replace(":", ".")}
+                        {slotName(s, lang)} · {SLOT_MULAI[s]}
                       </span>
                       {cell(h, s)}
                     </div>

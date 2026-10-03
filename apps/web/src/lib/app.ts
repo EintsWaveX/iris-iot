@@ -136,9 +136,19 @@ export function useSessionNow(ms = 20_000, enabled = true) {
 
 /** Declare one string table per island: `const T = dict({ id: {...}, en: {...}, zh: {...} })`.
  *  The English and Mandarin halves are checked against the Indonesian one's
- *  shape. Mandarin is optional until Stage 8 and falls back to English. */
-export function dict<T>(d: { id: T; en: T; zh?: T }): Record<Lang, T> {
-  return { id: d.id, en: d.en, zh: d.zh ?? d.en };
+ *  shape, and since Stage 8 every table must carry its Mandarin half (a
+ *  missing one fails the type check). Each table is also kept in a list so
+ *  the zh check test can read them all. */
+const TABLES: { id: unknown; en: unknown; zh: unknown }[] = [];
+
+export function dict<T>(d: { id: T; en: T; zh: T }): Record<Lang, T> {
+  TABLES.push(d);
+  return { id: d.id, en: d.en, zh: d.zh };
+}
+
+/** Every table dict() has built so far in this process (for tests). */
+export function dictTables(): readonly { id: unknown; en: unknown; zh: unknown }[] {
+  return TABLES;
 }
 
 export function pageLang(): Lang {

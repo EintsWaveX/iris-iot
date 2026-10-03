@@ -20,6 +20,11 @@ const T = dict({
     hide: "Hide password",
     levels: ["Too short", "Weak", "Fair", "Strong", "Very strong"],
   },
+  zh: {
+    show: "显示密码",
+    hide: "隐藏密码",
+    levels: ["太短", "弱", "一般", "强", "很强"],
+  },
 });
 
 /** 0 (under 8 characters) to 4. */

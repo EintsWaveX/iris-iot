@@ -206,7 +206,7 @@ function GroupCard({
             </Pill>
           </span>
           <span className="hint">
-            {t.asisten}: {hasil?.asisten ? namaAsisten(hasil.asisten) : t.belumAda}
+            {t.asistenLine(hasil?.asisten ? namaAsisten(hasil.asisten) : t.belumAda)}
           </span>
           <div className="dash__people">
             {k.anggota.map((n) => (

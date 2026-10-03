@@ -3,6 +3,7 @@
  * (mine) and All Reports (every sent one), filters by type and author, and
  * New Report, which asks for the type and opens the editor.
  */
+import { slotLabel } from "../../lib/labels";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarBlankIcon,
@@ -144,7 +145,9 @@ export default function Docs({
   );
   const ctx = (d: DocRow) => {
     const s = sesi.find((x) => x.id === d.konteks.sesiId);
-    return s ? `${tanggalPanjang(s.tanggal, lang)}${s.slot ? ` · Slot ${s.slot}` : ""}` : "";
+    return s
+      ? `${tanggalPanjang(s.tanggal, lang)}${s.slot ? ` · ${slotLabel(s.slot, lang)}` : ""}`
+      : "";
   };
   const baru = async (j: JenisDokumen) => {
     setBusy(true);

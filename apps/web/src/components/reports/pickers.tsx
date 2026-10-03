@@ -28,7 +28,7 @@ import {
 import { upload } from "@vercel/blob/client";
 import { getJson, namaKelompok, tanggalPanjang } from "../../lib/app";
 import { namaPeriode, rupiah } from "../../lib/bayar";
-import { hariLabel, kelasLabel, kelompokLabel, modulLabel } from "../../lib/labels";
+import { hariLabel, kelasLabel, kelompokLabel, modulLabel, slotLabel } from "../../lib/labels";
 import {
   BLOK_DATA,
   BLOK_TEKS,
@@ -610,7 +610,7 @@ function SlotPick({
         onChange={setSlot}
         options={rows.map((r) => ({
           value: String(r.id),
-          label: `${hariLabel(r.hari, lang)} · Slot ${r.slot} · ${jamSlot(r.slot)} · ${kelasLabel(r.kelas, lang)}`,
+          label: `${hariLabel(r.hari, lang)} · ${slotLabel(r.slot, lang)} · ${jamSlot(r.slot)} · ${kelasLabel(r.kelas, lang)}`,
         }))}
       />
       <Dropdown

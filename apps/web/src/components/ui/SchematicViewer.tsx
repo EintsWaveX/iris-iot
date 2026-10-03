@@ -44,6 +44,14 @@ const T = dict({
     hint: "Scroll or pinch to zoom, drag to pan.",
     open: "Open the original image",
   },
+  zh: {
+    in: "放大",
+    out: "缩小",
+    fit: "适应屏幕",
+    close: "关闭",
+    hint: "滚动或双指缩放，拖动平移。",
+    open: "打开原图",
+  },
 });
 
 const MIN = 0.5;

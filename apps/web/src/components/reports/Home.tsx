@@ -23,7 +23,7 @@ import {
 import { getJson, localeOf, tanggalPanjang } from "../../lib/app";
 import { jumlahkan, rupiah } from "../../lib/bayar";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
-import { kelasLabel, modulLabel } from "../../lib/labels";
+import { kelasLabel, modulLabel, slotLabel } from "../../lib/labels";
 import {
   beban,
   cocok,
@@ -415,7 +415,7 @@ function SessionsTab({
           <span className="rp-date">
             <b>{tanggalPanjang(s.tanggal, lang)}</b>
             <span className="hint">
-              {s.jenis === "susulan" ? t.susulan : s.slot ? `Slot ${s.slot}` : ""}
+              {s.jenis === "susulan" ? t.susulan : s.slot ? slotLabel(s.slot, lang) : ""}
               {" · "}
               {jamSlot(s.slot, s.mulai)}
             </span>

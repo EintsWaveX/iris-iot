@@ -10,8 +10,7 @@
 import { getEntry } from "astro:content";
 import Base from "../layouts/Base.astro";
 import ModuleSteps from "../components/module/ModuleSteps";
-import { id as strId } from "../i18n/id";
-import { en as strEn } from "../i18n/en";
+import { stringsFor } from "../i18n/zh";
 import { getSketchSource } from "../lib/sketches";
 import { parseBlanks } from "../lib/blanks";
 import "../components/module/module.css";
@@ -25,7 +24,7 @@ interface Props {
 }
 
 const { lang, modul } = Astro.props;
-const t = lang !== "id" ? strEn : strId;
+const t = stringsFor(lang);
 const entry = await getEntry("modules", `${bahasaKonten(lang)}/${modul}`);
 if (!entry) {
   throw new Error(`no module content for ${lang}/${modul}`);

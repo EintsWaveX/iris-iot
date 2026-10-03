@@ -14,7 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import { localeOf, namaKelompok, tanggalPanjang } from "../../lib/app";
 import { rupiah } from "../../lib/bayar";
-import { hariLabel, kelasLabel, kelompokLabel, modulLabel } from "../../lib/labels";
+import { hariLabel, kelasLabel, kelompokLabel, modulLabel, slotLabel } from "../../lib/labels";
 import type { Blok } from "../../lib/laporan";
 import type { Kelas, Lang } from "../../lib/kelas";
 import type { Direktori } from "../../lib/people";
@@ -380,7 +380,7 @@ export function BlokIsi({
           <div className="row">
             <Pill modul={v.modul}>{modulLabel(v.modul, lang)}</Pill>
             <b>
-              {tanggalPanjang(v.tanggal, lang)} · {v.slot ? `Slot ${v.slot} · ` : ""}
+              {tanggalPanjang(v.tanggal, lang)} · {v.slot ? `${slotLabel(v.slot, lang)} · ` : ""}
               {jamSlot(v.slot, v.mulai)}
             </b>
             <Pill tone={v.status === "berjalan" ? "ok" : undefined}>
@@ -573,7 +573,7 @@ export function BlokIsi({
         <div className="rp-dblock">
           <div className="row">
             <Pill tone={v.kelas === "internasional" ? "violet" : undefined}>
-              {hariLabel(v.hari, lang)} · Slot {v.slot} · {jamSlot(v.slot)}
+              {hariLabel(v.hari, lang)} · {slotLabel(v.slot, lang)} · {jamSlot(v.slot)}
             </Pill>
             <ArrowsLeftRightIcon size={18} aria-hidden="true" />
             <span>{dir.nama(v.dari)}</span>

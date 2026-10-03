@@ -11,6 +11,17 @@ export function modulLabel(n: number, lang: Lang): string {
   return lang === "en" ? `Module ${n}` : lang === "zh" ? `模块 ${n}` : `Modul ${n}`;
 }
 
+/** One short string in three languages, for a lone label that doesn't
+ *  merit its own dict() table. */
+export function tri(lang: Lang, id: string, en: string, zh: string): string {
+  return lang === "zh" ? zh : lang === "en" ? en : id;
+}
+
+/** "Slot 2", "Slot 2", "时段 2" */
+export function slotLabel(n: number, lang: Lang): string {
+  return lang === "zh" ? `时段 ${n}` : `Slot ${n}`;
+}
+
 /** "Kelompok 3", "Group 3", "第 3 组" */
 export function kelompokLabel(n: number, lang: Lang): string {
   return lang === "en" ? `Group ${n}` : lang === "zh" ? `第 ${n} 组` : `Kelompok ${n}`;

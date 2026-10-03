@@ -1,4 +1,5 @@
 ---
+import { tri } from "../lib/labels";
 /**
  * /reports and /en/reports (Phase 8): session history, module summary, lab
  * feedback and audit, plus each session's own report (?sesi=N). One island,
@@ -15,7 +16,7 @@ const { lang } = Astro.props;
 ---
 
 <Base
-  title={lang !== "id" ? "Reports · IRIS IoT" : "Laporan · IRIS IoT"}
+  title={`${tri(lang, "Laporan", "Reports", "报告")} · IRIS IoT`}
   lang={lang}
   cosmosScene="teknis"
 >

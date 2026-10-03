@@ -19,7 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import BackButton from "../../ui/BackButton";
 import Fade from "../../ui/Fade";
-import { tanggalPanjang } from "../../../lib/app";
+import { localeOf, tanggalPanjang } from "../../../lib/app";
 import { hariLabel, kelompokLabel, modulLabel } from "../../../lib/labels";
 import { useDirektori } from "../../../lib/people";
 import type { Lang } from "../../../lib/kelas";
@@ -144,7 +144,7 @@ export default function SeelabsView({
             {g.disimpanPada && (
               <span className="hint">
                 {t.savedAt(
-                  new Date(g.disimpanPada).toLocaleTimeString(lang === "en" ? "en-GB" : "id-ID", {
+                  new Date(g.disimpanPada).toLocaleTimeString(localeOf(lang), {
                     hour: "2-digit",
                     minute: "2-digit",
                   }),
@@ -408,7 +408,7 @@ function Held({
               <span className="stack inboxrow__text">
                 <b>{t.heldFrom(nama(g.penilai), klp, modulLabel(x.modul, lang))}</b>
                 <span className="hint">
-                  {tanggalPanjang(x.tanggal, lang)} · {x.mulai.slice(0, 5).replace(":", ".")}
+                  {tanggalPanjang(x.tanggal, lang)} · {x.mulai.slice(0, 5)}
                 </span>
               </span>
               <span className="row">

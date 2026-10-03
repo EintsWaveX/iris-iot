@@ -72,7 +72,7 @@ const T = dict({
       "Belum ada sesi berjalan. Kamu tetap bisa melihat nilai dan jurnal yang sudah kamu kerjakan.",
     modul: (m: number) => `Modul ${m}`,
     group: (n: number, nama?: string) => `Kelompok ${n}${nama ? ` · ${nama}` : ""}`,
-    asistenL: "Asisten",
+    asistenL: (n: string) => `Asisten: ${n}`,
     belumAda: "belum ada",
     go: "Masuk ke Praktikum",
     goDash: "Ke Dasbor",
@@ -118,7 +118,7 @@ const T = dict({
       "No session is running. You can still see your scores and the journals you have done.",
     modul: (m: number) => `Module ${m}`,
     group: (n: number, nama?: string) => `Group ${n}${nama ? ` · ${nama}` : ""}`,
-    asistenL: "Assistant",
+    asistenL: (n: string) => `Assistant: ${n}`,
     belumAda: "not yet",
     go: "Go to the Practicum",
     goDash: "To the Dashboard",
@@ -162,7 +162,7 @@ const T = dict({
     noSession: "现在没有课。你仍然可以看你的分数和做过的日志。",
     modul: (m: number) => `模块 ${m}`,
     group: (n: number, nama?: string) => `第 ${n} 组${nama ? ` · ${nama}` : ""}`,
-    asistenL: "助教",
+    asistenL: (n: string) => `助教：${n}`,
     belumAda: "还没有",
     go: "去实验页",
     goDash: "去仪表盘",
@@ -501,7 +501,7 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
                     : "-"}
                 </b>
                 <span className="stat__label">
-                  {t.asistenL}: {welcome.asisten ? namaAsisten(welcome.asisten) : t.belumAda}
+                  {t.asistenL(welcome.asisten ? namaAsisten(welcome.asisten) : t.belumAda)}
                 </span>
               </div>
             </div>

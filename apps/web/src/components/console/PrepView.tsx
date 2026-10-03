@@ -154,7 +154,7 @@ export default function PrepView({
     if (!v) return "";
     if (v.startsWith("d")) {
       const d = draf.find((x) => x.id === Number(v.slice(1)));
-      return d ? p.draftOpt(tanggalPanjang(d.tanggal, lang), d.mulai.replace(":", ".")) : "";
+      return d ? p.draftOpt(tanggalPanjang(d.tanggal, lang), d.mulai) : "";
     }
     const [h, s] = v.split("-").map(Number);
     return `${hariLabel(h, lang)} slot ${s}`;
@@ -164,12 +164,12 @@ export default function PrepView({
     ...slots.map((j) => ({
       value: `${j.hari}-${j.slot}`,
       label:
-        p.slotOpt(hariLabel(j.hari, lang), j.slot, SLOT_MULAI[j.slot].replace(":", ".")) +
+        p.slotOpt(hariLabel(j.hari, lang), j.slot, SLOT_MULAI[j.slot]) +
         (j.kelas === "internasional" ? ` · ${p.intl}` : ""),
     })),
     ...draf.map((d) => ({
       value: `d${d.id}`,
-      label: p.draftOpt(tanggalPanjang(d.tanggal, lang), d.mulai.replace(":", ".")),
+      label: p.draftOpt(tanggalPanjang(d.tanggal, lang), d.mulai),
     })),
     { value: "new", label: p.newDraft },
   ];

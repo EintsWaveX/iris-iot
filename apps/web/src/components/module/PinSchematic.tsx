@@ -69,6 +69,16 @@ const T = dict({
     board: "Board",
     open: "Open in a new tab",
   },
+  zh: {
+    wiring: "接线图",
+    schematic: "实际电路图",
+    zoom: "放大电路图",
+    uploaded: "助教上传的电路图",
+    legend: { pwr: "电源", gnd: "接地", sig: "信号" },
+    hint: "指向表格的一行或一根线，可以追踪连接。",
+    board: "板子",
+    open: "在新标签页打开",
+  },
 });
 
 function kindOf(pin: string): Kind {

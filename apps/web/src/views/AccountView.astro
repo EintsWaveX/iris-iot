@@ -1,4 +1,5 @@
 ---
+import { tri } from "../lib/labels";
 /**
  * /account and /en/account (Phase 8): profile, language, and for
  * assistants the password change, their week and their own feedback.
@@ -13,11 +14,7 @@ interface Props {
 const { lang } = Astro.props;
 ---
 
-<Base
-  title={lang !== "id" ? "Account · IRIS IoT" : "Akun · IRIS IoT"}
-  lang={lang}
-  cosmosScene="kerja"
->
+<Base title={`${tri(lang, "Akun", "Account", "账号")} · IRIS IoT`} lang={lang} cosmosScene="kerja">
   <main id="main" class="page-regular page-main">
     <AccountPage client:load lang={lang} />
   </main>

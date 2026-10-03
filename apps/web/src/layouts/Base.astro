@@ -1,4 +1,5 @@
 ---
+import { tri } from "../lib/labels";
 /**
  * IRIS IoT practicum site — the one page shell.
  *
@@ -94,7 +95,7 @@ const {
   <body>
     <Cosmos />
     <a class="skip-link" href="#main">
-      {lang !== "id" ? "Skip to content" : "Lewati ke isi"}
+      {tri(lang, "Lewati ke isi", "Skip to content", "跳到正文")}
     </a>
     {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />}
     <LoginDialog client:load lang={lang} />

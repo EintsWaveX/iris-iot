@@ -17,6 +17,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircleIcon, InfoIcon, WarningIcon, XCircleIcon, XIcon } from "@phosphor-icons/react";
 import "./Toast.css";
+import { pageLang } from "../../lib/app";
 
 type Tone = "info" | "ok" | "warn" | "danger";
 
@@ -128,7 +129,7 @@ export default function Toast() {
             <button
               type="button"
               className="toast__close"
-              aria-label={document.documentElement.lang !== "id" ? "Close" : "Tutup"}
+              aria-label={{ id: "Tutup", en: "Close", zh: "关闭" }[pageLang()]}
               onClick={() => hide(t.id)}
             >
               <XIcon size={16} aria-hidden="true" />

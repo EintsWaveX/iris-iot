@@ -52,7 +52,7 @@ import {
   type SesiLaporan,
   type StatusDokumen,
 } from "../../lib/laporan";
-import { modulLabel } from "../../lib/labels";
+import { modulLabel, slotLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import type { Direktori } from "../../lib/people";
 import { unduhPdf, type BagianPdf } from "../../lib/pdf";
@@ -233,7 +233,7 @@ function blokKePdf(b: Blok, t: Tx, lang: Lang, dir: Direktori): BagianPdf[] {
       return [
         {
           k: "p",
-          teks: `${hariLabel(s.hari, lang)} · Slot ${s.slot} · ${jamSlot(s.slot)}: ${t.swap(dir.nama(s.dari), dir.nama(s.ke))}`,
+          teks: `${hariLabel(s.hari, lang)} · ${slotLabel(s.slot, lang)} · ${jamSlot(s.slot)}: ${t.swap(dir.nama(s.dari), dir.nama(s.ke))}`,
         },
       ];
     }

@@ -42,6 +42,18 @@ const T = dict({
     muat: "Reload the page",
     nanti: "Later",
   },
+  zh: {
+    swapH: "这个标签页换了账号",
+    swap: (n: string) =>
+      `${n} 在这个浏览器的另一个标签页登录了，所以这个标签页现在用的是那个账号。`,
+    goneH: "你已经退出登录",
+    gone: "你的登录已结束，或者你在另一个标签页退出了。重新登录才能继续。",
+    newH: "新的一节课开始了",
+    newB: "你还登录在上一节课。重新登录，你的答案和出勤才会算在这节课里。",
+    masuk: "重新登录",
+    muat: "重新加载页面",
+    nanti: "以后再说",
+  },
 });
 
 type Keadaan = { jenis: "swap"; nama: string } | { jenis: "gone" } | { jenis: "baru" } | null;

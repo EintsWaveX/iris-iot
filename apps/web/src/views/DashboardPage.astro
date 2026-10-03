@@ -1,4 +1,5 @@
 ---
+import { tri } from "../lib/labels";
 /**
  * /dashboard and /en/dashboard (Phase 8): the praktikan home, one island.
  * The blank totals per module are counted here at build time from the same
@@ -37,7 +38,7 @@ for (const n of [1, 2, 3, 4]) {
 ---
 
 <Base
-  title={lang !== "id" ? "Dashboard · IRIS IoT" : "Dasbor · IRIS IoT"}
+  title={`${tri(lang, "Dasbor", "Dashboard", "仪表盘")} · IRIS IoT`}
   lang={lang}
   cosmosScene="kerja"
 >

@@ -16,6 +16,7 @@
  * (AsistenCommands) talks to this component through `iris:console` events
  * or the URL hash.
  */
+import { tri } from "../../lib/labels";
 import {
   useCallback,
   useEffect,
@@ -686,7 +687,7 @@ export default function Console({ lang }: { lang: Lang }) {
             sheetTitle={selGroup ? t.groupFull(selGroup.nomor) : ""}
             onCloseSheet={() => pick(null)}
             lang={lang}
-            handleLabel={lang !== "id" ? "Resize panes" : "Ubah ukuran panel"}
+            handleLabel={tri(lang, "Ubah ukuran panel", "Resize panes", "调整面板大小")}
             labels={{
               board: t.boardTitle,
               inspector: t.groupFull(selGroup?.nomor ?? 1),

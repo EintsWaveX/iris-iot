@@ -16,9 +16,7 @@ describe("tanggalPanjang", () => {
 });
 
 describe("dict", () => {
-  it("falls back to English when Mandarin is missing", () => {
-    const T = dict({ id: "Kembali", en: "Back" });
-    expect(T.zh).toBe("Back");
+  it("returns the Mandarin half for zh", () => {
     expect(dict({ id: "a", en: "b", zh: "c" }).zh).toBe("c");
   });
 });

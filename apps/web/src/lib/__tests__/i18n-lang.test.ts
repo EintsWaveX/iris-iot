@@ -51,10 +51,8 @@ describe("Mandarin as the third interface language", () => {
     expect(localeOf("id")).toBe("id-ID");
   });
 
-  it("falls back to English until a table has its Mandarin half", () => {
-    const T = dict({ id: { a: "Simpan" }, en: { a: "Save" } });
-    expect(T.zh.a).toBe("Save");
+  it("gives each language its own half", () => {
     const U = dict({ id: { a: "Simpan" }, en: { a: "Save" }, zh: { a: "保存" } });
-    expect(U.zh.a).toBe("保存");
+    expect([U.id.a, U.en.a, U.zh.a]).toEqual(["Simpan", "Save", "保存"]);
   });
 });

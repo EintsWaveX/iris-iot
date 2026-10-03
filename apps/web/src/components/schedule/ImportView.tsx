@@ -358,7 +358,7 @@ function Arrange({
     const [, jid, gi] = String(id).split(":").map(Number);
     const j = rows.find((x) => x.id === jid);
     return j
-      ? `${hariLabel(j.hari, lang)} ${SLOT_MULAI[j.slot].replace(":", ".")}, ${kelompokLabel(gi + 1, lang)}`
+      ? `${hariLabel(j.hari, lang)} ${SLOT_MULAI[j.slot]}, ${kelompokLabel(gi + 1, lang)}`
       : "";
   };
 
@@ -502,7 +502,7 @@ function SlotCard({
   return (
     <div className="panel impcard" data-intl={j.kelas === "internasional" ? "yes" : undefined}>
       <b>
-        {hariLabel(j.hari, lang)} · {SLOT_MULAI[j.slot].replace(":", ".")}
+        {hariLabel(j.hari, lang)} · {SLOT_MULAI[j.slot]}
       </b>
       {seats.map((k, i) => (
         <Seat key={i} jid={j.id} gi={i} kode={k} lang={lang} meKode={meKode} drag={drag} />

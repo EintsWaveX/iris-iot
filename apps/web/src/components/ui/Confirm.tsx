@@ -7,6 +7,7 @@
  */
 import { useState, type ReactNode } from "react";
 import Dialog from "./Dialog";
+import { tri } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 
 export default function Confirm({
@@ -58,7 +59,7 @@ export default function Confirm({
             disabled={busy}
             onClick={() => onOpenChange(false)}
           >
-            {cancelLabel ?? (lang !== "id" ? "Cancel" : "Batal")}
+            {cancelLabel ?? tri(lang, "Batal", "Cancel", "取消")}
           </button>
           <button
             type="button"

@@ -36,6 +36,11 @@ const T = dict({
     lost: (n: number) => `#${n} was lost on the way`,
     ok: (r: Reading) => `#${r.seq} · sent ${r.tx} · received ${r.rx} · delta ${r.delayMs} ms`,
   },
+  zh: {
+    fire: "发送一条测试消息",
+    lost: (n: number) => `#${n} 在路上丢了`,
+    ok: (r: Reading) => `#${r.seq} · 发送 ${r.tx} · 收到 ${r.rx} · 差 ${r.delayMs} ms`,
+  },
 });
 
 export default function LiveSandbox({ modul, groups, layers, lang = "id" }: Props) {

@@ -1,4 +1,5 @@
 ---
+import { tri } from "../lib/labels";
 /**
  * /session and /en/session (Phase 8): the assistant console. A static shell
  * around Console.tsx, which decides everything client-side from /api/auth/me
@@ -15,7 +16,7 @@ const { lang } = Astro.props;
 ---
 
 <Base
-  title={lang !== "id" ? "Console · IRIS IoT" : "Konsol · IRIS IoT"}
+  title={`${tri(lang, "Konsol", "Console", "控制台")} · IRIS IoT`}
   lang={lang}
   cosmosScene="kerja"
 >

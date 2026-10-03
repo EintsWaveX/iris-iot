@@ -10,6 +10,7 @@ import { ClockIcon, CpuIcon, ThermometerSimpleIcon, TimerIcon } from "@phosphor-
 import Drawer from "../ui/Drawer";
 import { CommandTimeline, HotspotCard, Sejak, ServiceList } from "../server/ops";
 import { href } from "../../lib/app";
+import { tri } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import type { Strings } from "./strings";
 import type { ServerState } from "./data";
@@ -53,7 +54,7 @@ export default function ServerDrawer({
       storeKey="console-server"
       defaultWidth={480}
       closeLabel={t.close}
-      resizeLabel={lang !== "id" ? "Resize the drawer" : "Ubah lebar laci"}
+      resizeLabel={tri(lang, "Ubah lebar laci", "Resize the drawer", "调整抽屉宽度")}
     >
       {list.length === 0 ? (
         <p className="empty-note">{t.drawerNone}</p>

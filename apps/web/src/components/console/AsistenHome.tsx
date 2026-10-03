@@ -46,7 +46,15 @@ import Pill from "../ui/Pill";
 import Popover from "../ui/Popover";
 import SegmentedControl from "../ui/SegmentedControl";
 import Tooltip from "../ui/Tooltip";
-import { getJson, href, jamMenit, postJson, tanggalPanjang, type Me } from "../../lib/app";
+import {
+  getJson,
+  href,
+  jamMenit,
+  localeOf,
+  postJson,
+  tanggalPanjang,
+  type Me,
+} from "../../lib/app";
 import { hariIniWib, SESI_CAP_MENIT, SESI_MIN_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import {
   durasiLabel,
@@ -240,7 +248,7 @@ export default function AsistenHome({
   const mulaiMenit = susulan ? menitDariJam(susJam) : menitDariJam(SLOT_MULAI[sel]);
   const dariMenit =
     susulan && susTanggal !== hariIniWib() ? mulaiMenit : Math.max(mulaiMenit, menitNow);
-  const selesai = jamDariMenit(dariMenit + durasi).replace(":", ".");
+  const selesai = jamDariMenit(dariMenit + durasi);
 
   async function start() {
     if (modul === null) return;
@@ -329,7 +337,7 @@ export default function AsistenHome({
                 onClick={() => pick(s)}
               >
                 <span className="slot__top">
-                  <b className="slot__time num">{SLOT_MULAI[s].replace(":", ".")}</b>
+                  <b className="slot__time num">{SLOT_MULAI[s]}</b>
                   {label && (
                     <Pill tone={st === "now" ? "ok" : st === "next" ? "accent" : undefined}>
                       {label}
@@ -373,7 +381,7 @@ export default function AsistenHome({
               data-now={w.hari === data.hari && states[w.slot] === "now" ? "yes" : undefined}
             >
               <b>
-                {hariLabel(w.hari, lang)} · {SLOT_MULAI[w.slot].replace(":", ".")}
+                {hariLabel(w.hari, lang)} · {SLOT_MULAI[w.slot]}
               </b>
               <span className="hint">{h.groups(daftar(w.kelompok.map(String), h.and))}</span>
               {w.kelas === "internasional" && (
@@ -457,7 +465,7 @@ export default function AsistenHome({
               <div className="banner">
                 <CalendarBlankIcon size={20} aria-hidden="true" />
                 <b>
-                  {hariNama} · {h.slot(sel)} · {SLOT_MULAI[sel].replace(":", ".")}
+                  {hariNama} · {h.slot(sel)} · {SLOT_MULAI[sel]}
                 </b>
                 {ada(sel) ? (
                   <span className="row" style={{ gap: 4 }}>
@@ -483,8 +491,8 @@ export default function AsistenHome({
             <WindowInfo
               kind={blok}
               slot={sel}
-              open={win.buka.replace(":", ".")}
-              end={win.tutup.replace(":", ".")}
+              open={win.buka}
+              end={win.tutup}
               minutesToOpen={menitDariJam(win.buka) - menitNow}
               row={r}
               def={data?.jendelaDefault ?? 15}
@@ -959,9 +967,7 @@ function FeedbackCard({ data, h, lang }: { data: Ringkasan | null; h: Hx; lang: 
         <>
           <div className="fbcard__top">
             <div className="fbcard__avgbox">
-              <b className="fbcard__avg num">
-                {data.rataRata?.toLocaleString(lang === "en" ? "en-GB" : "id-ID")}
-              </b>
+              <b className="fbcard__avg num">{data.rataRata?.toLocaleString(localeOf(lang))}</b>
               <span className="hint">{h.ofFive(n)}</span>
             </div>
             <div className="fbdist">

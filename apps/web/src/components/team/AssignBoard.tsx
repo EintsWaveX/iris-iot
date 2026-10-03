@@ -43,7 +43,7 @@ import Pill from "../ui/Pill";
 import { dict, getJson, postJson, tanggalPanjang } from "../../lib/app";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { semesterDariTanggal } from "../../lib/jadwal-parser";
-import { hariLabel, statusOrangLabel } from "../../lib/labels";
+import { hariLabel, statusOrangLabel, slotLabel } from "../../lib/labels";
 import { pasanganSemester, type MingguSlot, type TugasInfo } from "../../lib/penugasan-minggu";
 import type { Lang } from "../../lib/kelas";
 import type { DataJadwal, JadwalRow } from "../schedule/types";
@@ -276,7 +276,7 @@ export default function AssignBoard({
     return m;
   }, [rows, edit, awal]);
   const when = (x: { hari: number; slot: number; tanggal?: string }) =>
-    `${x.tanggal ? tanggalPanjang(x.tanggal, lang) : hariLabel(x.hari, lang)} · Slot ${x.slot} · ${SLOT_MULAI[x.slot].replace(":", ".")}`;
+    `${x.tanggal ? tanggalPanjang(x.tanggal, lang) : hariLabel(x.hari, lang)} · ${slotLabel(x.slot, lang)} · ${SLOT_MULAI[x.slot]}`;
   const set = (id: number, s: SlotState) => setEdit((e) => ({ ...e, [id]: s }));
 
   function onEnd(e: DragEndEvent) {
@@ -440,7 +440,7 @@ export default function AssignBoard({
                   j={j}
                   s={now(j.id)}
                   lang={lang}
-                  label={`${hariLabel(j.hari, lang)} · ${SLOT_MULAI[j.slot].replace(":", ".")}`}
+                  label={`${hariLabel(j.hari, lang)} · ${SLOT_MULAI[j.slot]}`}
                   meKode={meKode}
                   ro={!bolehJadwal}
                   onChange={(s) => set(j.id, s)}

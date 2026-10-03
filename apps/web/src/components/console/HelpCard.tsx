@@ -25,7 +25,7 @@ import Pill from "../ui/Pill";
 import { dict, getJson, postJson, tanggalPanjang } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import { SLOT_MULAI } from "../../lib/jadwal";
-import { hariLabel, kelasLabel, kelompokLabel } from "../../lib/labels";
+import { hariLabel, kelasLabel, kelompokLabel, slotLabel } from "../../lib/labels";
 import type { Kelas, Lang } from "../../lib/kelas";
 import type { TugasInfo } from "../../lib/penugasan-minggu";
 
@@ -175,7 +175,7 @@ export default function HelpCard({
   const d = poll.data;
   if (!d || d.bantu.length + d.permintaan.length + d.tawaran.length === 0) return null;
   const when = (x: Konteks) =>
-    `${tanggalPanjang(x.tanggal, lang)} · Slot ${x.slot} · ${SLOT_MULAI[x.slot].replace(":", ".")}`;
+    `${tanggalPanjang(x.tanggal, lang)} · ${slotLabel(x.slot, lang)} · ${SLOT_MULAI[x.slot]}`;
 
   async function kirim(body: Record<string, unknown>, ok?: string) {
     setBusy(true);
@@ -228,7 +228,7 @@ export default function HelpCard({
       <div className="helplist">
         {d.permintaan.map((x) => (
           <div key={`p${x.id}`} className="helprow">
-            <Pill tone="accent">{SLOT_MULAI[x.slot].replace(":", ".")}</Pill>
+            <Pill tone="accent">{SLOT_MULAI[x.slot]}</Pill>
             <span className="stack helprow__text">
               <b>{t.reqTitle}</b>
               <span className="hint">
@@ -240,7 +240,7 @@ export default function HelpCard({
         ))}
         {d.tawaran.map((x) => (
           <div key={`t${x.id}`} className="helprow">
-            <Pill tone="violet">{SLOT_MULAI[x.slot].replace(":", ".")}</Pill>
+            <Pill tone="violet">{SLOT_MULAI[x.slot]}</Pill>
             <span className="stack helprow__text">
               <b>{t.offerLine(nama(x.nim))}</b>
               <span className="hint">{when(x)}</span>
@@ -252,9 +252,7 @@ export default function HelpCard({
           const mine = d.milikku.find((m) => m.jadwalId === r.jadwalId);
           return (
             <div key={`b${r.jadwalId}`} className="helprow">
-              <Pill tone={r.izin.length ? "danger" : "warn"}>
-                {SLOT_MULAI[r.slot].replace(":", ".")}
-              </Pill>
+              <Pill tone={r.izin.length ? "danger" : "warn"}>{SLOT_MULAI[r.slot]}</Pill>
               <span className="stack helprow__text">
                 <b>{t.slotLine(hariLabel(r.hari, lang), r.slot, kelasLabel(r.kelas, lang))}</b>
                 <span className="hint">
@@ -309,7 +307,7 @@ export default function HelpCard({
         title={t.askTitle}
         description={
           ask
-            ? `${hariLabel(ask.hari, lang)} · Slot ${ask.slot} · ${SLOT_MULAI[ask.slot].replace(":", ".")}`
+            ? `${hariLabel(ask.hari, lang)} · ${slotLabel(ask.slot, lang)} · ${SLOT_MULAI[ask.slot]}`
             : undefined
         }
         size="sm"

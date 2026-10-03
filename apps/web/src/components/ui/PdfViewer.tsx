@@ -14,6 +14,7 @@ import { dict } from "../../lib/app";
 const T = dict({
   id: { full: "Layar penuh", tab: "Buka di tab baru" },
   en: { full: "Fullscreen", tab: "Open in a new tab" },
+  zh: { full: "全屏", tab: "在新标签页打开" },
 });
 
 export default function PdfViewer({

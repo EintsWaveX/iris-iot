@@ -39,7 +39,7 @@ import SegmentedControl from "../ui/SegmentedControl";
 import Tooltip from "../ui/Tooltip";
 import { Stepper } from "../ui/Controls";
 import { postJson, tanggalPanjang } from "../../lib/app";
-import { kelompokLabel, statusOrangLabel } from "../../lib/labels";
+import { kelompokLabel, statusOrangLabel, slotLabel as slotName } from "../../lib/labels";
 import { KELOMPOK_DEFAULT, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
 import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
 import { orangTanggal, pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
@@ -631,7 +631,7 @@ function FindCover({
   );
   const excusedNim = orang.find((o) => o.kode.toUpperCase() === excused)?.nim ?? "";
   const nama = (o: OrangJadwal) => `${o.nama} (${o.kode.toUpperCase()})`;
-  const slotLabel = `${tanggalPanjang(m.tanggal, lang)} · Slot ${row.slot} · ${SLOT_MULAI[row.slot].replace(":", ".")}`;
+  const slotLabel = `${tanggalPanjang(m.tanggal, lang)} · ${slotName(row.slot, lang)} · ${SLOT_MULAI[row.slot]}`;
   const ex = orang.find((o) => o.kode.toUpperCase() === excused);
 
   async function minta(o: OrangJadwal) {

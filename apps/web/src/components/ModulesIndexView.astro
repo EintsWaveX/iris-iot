@@ -7,8 +7,7 @@
 import Base from "../layouts/Base.astro";
 import ModuleCards from "../components/home/ModuleCards";
 import { moduleCards } from "../lib/module-cards";
-import { id as strId } from "../i18n/id";
-import { en as strEn } from "../i18n/en";
+import { stringsFor } from "../i18n/zh";
 import type { Lang } from "../lib/kelas";
 
 interface Props {
@@ -16,7 +15,7 @@ interface Props {
 }
 
 const { lang } = Astro.props;
-const t = lang !== "id" ? strEn : strId;
+const t = stringsFor(lang);
 const modules = await moduleCards(lang);
 ---
 

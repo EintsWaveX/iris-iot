@@ -223,9 +223,7 @@ export default function NextView({
               <span className="skeleton" style={{ height: 44 }} />
             ) : next ? (
               <span className="stack" style={{ gap: 2 }}>
-                <b>
-                  {t.roomNext(next.slot, (SLOT_MULAI[next.slot] ?? "").replace(":", "."), mName)}
-                </b>
+                <b>{t.roomNext(next.slot, SLOT_MULAI[next.slot] ?? "", mName)}</b>
                 <span className="row" style={{ gap: 4 }}>
                   {[...new Set(next.asisten)].map((k) => (
                     <span key={k} className="acode">

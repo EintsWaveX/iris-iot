@@ -1043,7 +1043,7 @@ function SlotList({ slots, t, lang }: { slots: SlotOrang[]; t: Tx; lang: Lang })
       {slots.map((s) => (
         <div key={`${s.hari}-${s.slot}`} className="tim-row">
           <Pill>
-            {hariLabel(s.hari, lang)} · {SLOT_MULAI[s.slot]?.replace(":", ".")}
+            {hariLabel(s.hari, lang)} · {SLOT_MULAI[s.slot]}
           </Pill>
           <span>{s.peran === "tetap" ? t.tetap : t.pengganti}</span>
           <span className="hint">{kelasLabel(s.kelas, lang)}</span>

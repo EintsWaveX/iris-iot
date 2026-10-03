@@ -53,6 +53,7 @@ const T = dict({
     access: "Akses",
     accessOf: (n: number) => `Akses Modul ${n}`,
     tagline: null as string[] | null,
+    fakta: null as Record<string, string> | null,
   },
   en: {
     eyebrow: "Modules",
@@ -73,6 +74,7 @@ const T = dict({
     access: "Access",
     accessOf: (n: number) => `Module ${n} access`,
     tagline: null as string[] | null,
+    fakta: null as Record<string, string> | null,
   },
   zh: {
     eyebrow: "模块",
@@ -98,6 +100,10 @@ const T = dict({
       "两块板子通过 Eclipse Mosquitto broker 交换数据。",
       "ESP32 板子之间的 LoRa P2P 信号寻踪。",
     ] as string[] | null,
+    fakta: { "No IP network": "不用 IP 网络", "Pi hotspot": "Pi 热点" } as Record<
+      string,
+      string
+    > | null,
   },
 });
 
@@ -163,9 +169,12 @@ function Card({
       <h2 className="modcard__title">{MODUL_NAMA[m.modul]}</h2>
       <p className="panel__sub">{t.tagline?.[m.modul] || m.tagline}</p>
       <div className="row modcard__facts">
-        {m.fakta.slice(0, 3).map((f) => (
-          <Pill key={f}>{f}</Pill>
-        ))}
+        {m.fakta
+          .slice(0, 3)
+          .map((f) => t.fakta?.[f] ?? f)
+          .map((f) => (
+            <Pill key={f}>{f}</Pill>
+          ))}
       </div>
       <div className="modcard__foot">
         <a className="modcard__cta" href={url}>

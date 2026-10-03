@@ -673,6 +673,15 @@ const FD_TEXT = dict({
     type: "This file type is not accepted.",
     size: (mb: number) => `The file is too large. Up to ${mb} MB.`,
   },
+  zh: {
+    drop: "把文件拖到这里",
+    or: "或",
+    choose: "选择文件",
+    busy: "上传中…",
+    max: (mb: number) => `最大 ${mb} MB`,
+    type: "不接受这种文件类型。",
+    size: (mb: number) => `文件太大。最大 ${mb} MB。`,
+  },
 });
 
 export function FileDrop({

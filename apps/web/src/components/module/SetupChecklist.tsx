@@ -13,6 +13,7 @@ import { dict } from "../../lib/app";
 const T = dict({
   id: { done: "Persiapan lengkap. Saatnya menulis kode.", go: "Lanjut ke Kode", reset: "Ulangi" },
   en: { done: "Setup complete. Time to write the code.", go: "Go to Code", reset: "Reset" },
+  zh: { done: "准备完成。该写代码了。", go: "去代码", reset: "重置" },
 });
 
 export const setupKey = (modul: number) => `iris-setup-m${modul}`;
