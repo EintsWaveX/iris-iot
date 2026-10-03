@@ -360,7 +360,7 @@ export async function handleHelpAsisten(
 
 /** Sessions this student attended (signed in to while it ran), newest
  *  first. The same attendance rule as akses.ts's modulDiikuti. */
-async function sesiDiikuti(nim: string) {
+export async function sesiDiikuti(nim: string) {
   return getDb()
     .selectDistinct({
       id: sesi.id,

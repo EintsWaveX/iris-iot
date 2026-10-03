@@ -1251,3 +1251,55 @@ export const laporanLampiran = pgTable(
   },
   (t) => [index("laporan_lampiran_idx").on(t.laporanId)],
 );
+
+/**
+ * Phase 9 (0018): "Tangkap 5 Data Terakhir" from the Live room, saved to the
+ * group's journal. One row per save: the paper table's rows exactly as the
+ * capture showed them (`jenis` "paket" = the module's message table, 5 rows;
+ * "jarak" = Module 4's Near / Middle / Far table, 3 rows). `nim` is whoever
+ * pressed Save (a Praktikan, or the paired Asisten acting as the group).
+ */
+export const jurnalTangkapan = pgTable(
+  "jurnal_tangkapan",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokId: integer("kelompok_id")
+      .notNull()
+      .references(() => kelompok.id, { onDelete: "cascade" }),
+    modul: integer("modul").notNull(),
+    jenis: text("jenis", { enum: ["paket", "jarak"] }).notNull(),
+    baris: jsonb("baris").$type<Record<string, string | number | boolean | null>[]>().notNull(),
+    nim: text("nim").notNull(),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("jurnal_tangkapan_kelompok_idx").on(t.kelompokId, t.modul),
+    index("jurnal_tangkapan_sesi_idx").on(t.sesiId),
+    check("jurnal_tangkapan_jenis", sql`${t.jenis} in ('paket', 'jarak')`),
+    check("jurnal_tangkapan_modul", sql`${t.modul} between 1 and 4`),
+  ],
+);
+
+/**
+ * Phase 9 (0018): the Asisten's serial mirror. The group laptop forwards its
+ * boards' raw lines (rate-limited) so the Asisten sees them without standing
+ * at the desk. Only the running session's rows are read, and each group
+ * keeps its newest few hundred.
+ */
+export const serialCermin = pgTable(
+  "serial_cermin",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    sumber: text("sumber").notNull(),
+    teks: text("teks").notNull(),
+    /** Milliseconds since midnight, from the line's own stamp or its arrival. */
+    t: integer("t").notNull(),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("serial_cermin_sesi_kelompok_idx").on(t.sesiId, t.kelompokNomor, t.id)],
+);

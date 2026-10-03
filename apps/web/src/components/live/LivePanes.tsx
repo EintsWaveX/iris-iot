@@ -217,6 +217,10 @@ export interface Source {
   k: string;
   label: string;
   lines: LogLine[];
+  /** A hint under the tab line while this source is open. */
+  note?: string;
+  /** Shown in place of "waiting" when this source has no lines. */
+  empty?: string;
 }
 
 function Help({ lang, modul }: { lang: Lang; modul: number }) {
@@ -298,7 +302,8 @@ export function SerialMonitor({
     { v: "all", label: t.combined },
     ...sources.map((s) => ({ v: s.k, label: s.label })),
   ];
-  const tag = (k: string) => (k === "pi" ? "Pi" : String(Number(k.slice(1)) + 1));
+  const tag = (k: string) =>
+    k === "pi" ? "Pi" : k === "mir" ? "PC" : String(Number(k.slice(1)) + 1);
   const boardEmpty = role === "own" && cur && cur.k !== "pi" && cur.lines.length === 0;
 
   return (
@@ -307,7 +312,7 @@ export function SerialMonitor({
         <TabLine value={tab} onChange={setTab} label={t.source} tabs={tabs} />
         <Help lang={lang} modul={modul} />
       </div>
-      {role === "asisten" && <p className="hint">{t.piOnlyAsisten}</p>}
+      {cur?.note && <p className="hint">{cur.note}</p>}
       {boardEmpty ? (
         <div className="serial__empty">
           <UsbIcon size={28} aria-hidden="true" />
@@ -328,7 +333,7 @@ export function SerialMonitor({
           }}
         >
           {lines.length === 0 ? (
-            <p className="serial__wait">{t.waiting}</p>
+            <p className="serial__wait">{cur?.empty ?? t.waiting}</p>
           ) : (
             lines.map((x) => (
               <div className="sline" data-src={x.src} key={`${x.src}-${x.id}`}>

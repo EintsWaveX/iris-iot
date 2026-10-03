@@ -77,6 +77,12 @@ import {
 } from "../../src/lib/akses.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { queueSoloServerCommand, nilaiOrNull } from "../../src/lib/server-lib.js";
+import {
+  handleCerminGet,
+  handleCerminPost,
+  handleTangkapanGet,
+  handleTangkapanPost,
+} from "../_lib/tangkapan.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
@@ -1095,6 +1101,29 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireMethod(req, res, "GET")) return;
     if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
     return handleTelemetry(req, res);
+  }
+
+  // Phase 9 (7f): journal captures and the serial mirror.
+  if (aksi === "tangkapan") {
+    if (req.method === "POST") {
+      const who = requireRole(req, res, "praktikan");
+      if (!who) return;
+      return handleTangkapanPost(req, res, who);
+    }
+    if (!requireMethod(req, res, "GET")) return;
+    const who = requireAnyRole(req, res, ["asisten", "praktikan"]);
+    if (!who) return;
+    return handleTangkapanGet(req, res, who);
+  }
+  if (aksi === "cermin") {
+    if (req.method === "POST") {
+      const who = requireRole(req, res, "praktikan");
+      if (!who) return;
+      return handleCerminPost(req, res, who);
+    }
+    if (!requireMethod(req, res, "GET")) return;
+    if (!requireRole(req, res, "asisten")) return;
+    return handleCerminGet(req, res);
   }
 
   // P8 actions a praktikan can call (each checks the role it needs).

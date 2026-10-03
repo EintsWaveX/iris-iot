@@ -45,6 +45,8 @@ import CodeStep, { type CodeProps } from "./CodeStep";
 import PinSchematic, { type PinData } from "./PinSchematic";
 import SetupChecklist from "./SetupChecklist";
 import LiveRoom from "../live/LiveRoom";
+import { CaptureList, useTangkapan } from "../live/Capture";
+import { CV } from "../live/captureStrings";
 import BriefStep from "./BriefStep";
 import { getJson, href, tanggalPanjang, useMe, useSessionNow } from "../../lib/app";
 import { getAksesState, type AksesState } from "../../scripts/modul-akses";
@@ -285,7 +287,7 @@ export default function ModuleSteps(p: Props) {
               code={p.code}
             />
           ) : mode === "done" ? (
-            <Done lang={lang} done={done} />
+            <Done lang={lang} modul={modul} done={done} />
           ) : (
             <LiveRoom lang={lang} modul={modul} layers={p.layers} />
           )}
@@ -409,36 +411,47 @@ function Hands({
   );
 }
 
-function Done({ lang, done }: { lang: Lang; done?: Praktikum }) {
+function Done({ lang, modul, done }: { lang: Lang; modul: number; done?: Praktikum }) {
   const t = M[lang];
+  const cap = useTangkapan(modul, true);
   return (
-    <div className="panel panel--raised">
-      <div className="row">
-        <Pill tone="ok">
-          <CheckCircleIcon aria-hidden="true" />
-          {t.doneBadge}
-        </Pill>
-        {done && <span className="hint">{tanggalPanjang(done.tanggal, lang)}</span>}
+    <div className="stack stack--lg">
+      <div className="panel panel--raised">
+        <div className="row">
+          <Pill tone="ok">
+            <CheckCircleIcon aria-hidden="true" />
+            {t.doneBadge}
+          </Pill>
+          {done && <span className="hint">{tanggalPanjang(done.tanggal, lang)}</span>}
+        </div>
+        <h2 className="modhands__title">{t.doneTitle}</h2>
+        <p className="panel__sub">{t.doneBody}</p>
+        <div className="modstats">
+          <div className="stat">
+            <span className="stat__value num">{done?.rataRata ?? t.notSent}</span>
+            <span className="stat__label">{t.finalScore}</span>
+          </div>
+          <div className="stat">
+            <span className="stat__value">{done?.sudahUmpanBalik ? t.sent : t.notSent}</span>
+            <span className="stat__label">{t.feedback}</span>
+          </div>
+        </div>
+        {done && !done.sudahUmpanBalik && (
+          <div className="panel__actions">
+            <a className="btn btn--inverse" href={href(lang, "/dashboard")}>
+              {t.giveFeedback}
+            </a>
+          </div>
+        )}
       </div>
-      <h2 className="modhands__title">{t.doneTitle}</h2>
-      <p className="panel__sub">{t.doneBody}</p>
-      <div className="modstats">
-        <div className="stat">
-          <span className="stat__value num">{done?.rataRata ?? t.notSent}</span>
-          <span className="stat__label">{t.finalScore}</span>
-        </div>
-        <div className="stat">
-          <span className="stat__value">{done?.sudahUmpanBalik ? t.sent : t.notSent}</span>
-          <span className="stat__label">{t.feedback}</span>
-        </div>
-      </div>
-      {done && !done.sudahUmpanBalik && (
-        <div className="panel__actions">
-          <a className="btn btn--inverse" href={href(lang, "/dashboard")}>
-            {t.giveFeedback}
-          </a>
-        </div>
-      )}
+      <section className="panel">
+        <h2 className="panel__title">{CV[lang].listTitle}</h2>
+        {cap.rows === null ? (
+          <p className="hint">…</p>
+        ) : (
+          <CaptureList lang={lang} modul={modul} rows={cap.rows} />
+        )}
+      </section>
     </div>
   );
 }

@@ -27,6 +27,7 @@ import {
   UsbIcon,
   ArrowClockwiseIcon,
   ClockIcon,
+  CameraIcon,
 } from "@phosphor-icons/react";
 import GroupPicker from "../ui/GroupPicker";
 import SegmentedControl from "../ui/SegmentedControl";
@@ -46,6 +47,8 @@ import { useTelemetry } from "./useTelemetry";
 import { serialSupported, useSerialBoard, type BoardStatus, type LogLine } from "./useSerialBoard";
 import { FlowPane, ReadingsPane, SerialMonitor, ValueCards, type Source } from "./LivePanes";
 import { LV } from "./liveStrings";
+import { CV } from "./captureStrings";
+import { CaptureDialog, useTangkapan } from "./Capture";
 import "./live-room.css";
 
 interface Layer {
@@ -54,6 +57,15 @@ interface Layer {
 }
 
 const EVENTS_MAX = 600;
+/** The laptop mirror: at most this many lines per POST, one POST per tick. */
+const MIRROR_BATCH = 60;
+const MIRROR_TICK = 2000;
+
+interface MirrorLine {
+  sumber: string;
+  teks: string;
+  t: number;
+}
 
 interface SlotState {
   status: BoardStatus;
@@ -157,6 +169,7 @@ export default function LiveRoom({
   layers: Layer[];
 }) {
   const t = LV[lang];
+  const tc = CV[lang];
   const me = useMe();
   const praktikan = me?.role === "praktikan";
   const ownGroup = praktikan ? (me?.kelompok ?? null) : null;
@@ -192,6 +205,9 @@ export default function LiveRoom({
   const sentN = useRef(0);
   const [upload, setUpload] = useState<Upload>({ kind: "idle" });
   const [lastBoard, setLastBoard] = useState<number | null>(null);
+  const mirrorQ = useRef<MirrorLine[]>([]);
+  const [capOpen, setCapOpen] = useState(false);
+  const saved = useTangkapan(modul, canPorts);
 
   useEffect(() => {
     pairer.current = new Modul1Pairer(ownGroup ?? 1);
@@ -201,6 +217,10 @@ export default function LiveRoom({
     (slot: number, line: LogLine, ev: SerialEvent) => {
       setLastBoard(Date.now());
       setBoardLines((m) => ({ ...m, [slot]: [...(m[slot] ?? []), line].slice(-300) }));
+      mirrorQ.current = [
+        ...mirrorQ.current,
+        { sumber: `b${slot}`, teks: line.text.slice(0, 300), t: Math.floor(line.t) },
+      ].slice(-200);
       if (ev && (ev.k === "send" || ev.k === "recv" || ev.k === "echo"))
         setEvents((e) => [...e, ev].slice(-EVENTS_MAX));
       if (modul === 1) {
@@ -256,6 +276,69 @@ export default function LiveRoom({
     return () => window.clearInterval(id);
   }, [modul, praktikan, anyOpen]);
 
+  // The laptop mirror: this laptop's raw board lines go up for the Asisten.
+  useEffect(() => {
+    if (!canPorts || !anyOpen) return;
+    let stop = false;
+    const id = window.setInterval(async () => {
+      if (stop) return;
+      const batch = mirrorQ.current.slice(-MIRROR_BATCH);
+      if (!batch.length) return;
+      mirrorQ.current = [];
+      try {
+        const r = await fetch("/api/session/cermin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ baris: batch }),
+        });
+        const d = (await r.json()) as { ok: boolean; kode?: string };
+        // No running session: nobody can read the mirror, so stop sending.
+        if (!d.ok && d.kode === "tidak_ada_sesi") stop = true;
+      } catch {
+        /* the next tick sends newer lines; the mirror is best effort */
+      }
+    }, MIRROR_TICK);
+    return () => window.clearInterval(id);
+  }, [canPorts, anyOpen]);
+
+  // The Asisten reads a group's mirror while Live is on screen.
+  const asisten = me?.role === "asisten";
+  const [mirror, setMirror] = useState<{ g: number; lines: LogLine[] }>({ g: 0, lines: [] });
+  useEffect(() => {
+    if (!asisten || mode !== "live" || paused) return;
+    let alive = true;
+    let last = 0;
+    setMirror({ g: group, lines: [] });
+    const pull = async () => {
+      try {
+        const r = await fetch(`/api/session/cermin?kelompok=${group}&sesudah=${last}`);
+        const d = (await r.json()) as {
+          ok: boolean;
+          baris?: { id: number; sumber: string; teks: string; t: number }[];
+        };
+        if (!alive || !d.ok || !d.baris?.length) return;
+        last = d.baris[d.baris.length - 1].id;
+        const add = d.baris.map((x) => ({
+          id: x.id,
+          text: `${Number(x.sumber.slice(1)) + 1} │ ${x.teks}`,
+          t: x.t,
+        }));
+        setMirror((m) => ({
+          g: group,
+          lines: [...(m.g === group ? m.lines : []), ...add].slice(-300),
+        }));
+      } catch {
+        /* try again next tick */
+      }
+    };
+    void pull();
+    const id = window.setInterval(() => void pull(), MIRROR_TICK);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, [asisten, mode, paused, group]);
+
   const tel = useTelemetry(modul, group, paused || mode !== "live", 1000, null);
   const localEvents = own ? events : [];
   const live = tel.live || localEvents.length > 0;
@@ -304,8 +387,21 @@ export default function LiveRoom({
                 return { id: -1 - i, text, t: ms };
               })
           : [];
-      out.push({ k: "pi", label: t.piServer, lines });
+      out.push({
+        k: "pi",
+        label: t.piServer,
+        lines,
+        note: praktikan ? undefined : t.piOnlyAsisten,
+      });
     }
+    if (asisten)
+      out.push({
+        k: "mir",
+        label: tc.mirror,
+        lines: mirror.g === group ? mirror.lines : [],
+        note: tc.mirrorNote,
+        empty: tc.mirrorEmpty,
+      });
     return out;
   }, [
     own,
@@ -319,6 +415,10 @@ export default function LiveRoom({
     paused,
     group,
     t,
+    tc,
+    asisten,
+    praktikan,
+    mirror,
   ]);
 
   // Pause freezes what is shown; ports keep reading underneath.
@@ -446,6 +546,30 @@ export default function LiveRoom({
                 pressed={paused}
                 onClick={() => setPaused((p) => !p)}
               />
+              {canPorts && (
+                <span className="livebar__cap row">
+                  {saved.rows !== null && (
+                    <span className="hint">
+                      {/* One Module 4 save writes both tables: count saves, not rows. */}
+                      {tc.savedCount(
+                        Math.max(
+                          saved.rows.filter((x) => x.jenis === "paket").length,
+                          saved.rows.filter((x) => x.jenis === "jarak").length,
+                        ),
+                      )}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    onClick={() => setCapOpen(true)}
+                  >
+                    <CameraIcon aria-hidden="true" />
+                    <span className="livebar__capl">{tc.capture}</span>
+                    <span className="livebar__caps">{tc.captureShort}</span>
+                  </button>
+                </span>
+              )}
             </div>
             {!live && !paused && (
               <p className="banner" role="status">
@@ -492,6 +616,17 @@ export default function LiveRoom({
           </div>
         )}
       </Fade>
+      {canPorts && (
+        <CaptureDialog
+          lang={lang}
+          modul={modul}
+          group={group}
+          records={records}
+          open={capOpen}
+          onOpenChange={setCapOpen}
+          onSaved={saved.reload}
+        />
+      )}
     </div>
   );
 }
