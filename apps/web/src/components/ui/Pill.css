@@ -137,3 +137,13 @@
   border-color: var(--accent);
   color: var(--accent-bright);
 }
+
+/* "BETA" beside a label (the Mandarin language choice): small, and spaced
+   off the word it marks. */
+.beta-badge {
+  font-size: 0.66rem;
+  margin-inline-start: 8px;
+  min-height: 20px;
+  padding-inline: 7px;
+  vertical-align: middle;
+}

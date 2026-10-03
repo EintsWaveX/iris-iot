@@ -27,6 +27,7 @@ import { bahasaKonten, pathForLang, type Lang } from "../../lib/kelas";
 import type { BarisJadwal } from "../../lib/jadwal-next";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import "./AccountPage.css";
+import BetaBadge from "../ui/BetaBadge";
 
 const T = dict({
   id: {
@@ -317,7 +318,15 @@ export default function AccountPage({ lang }: { lang: Lang }) {
                 { value: "auto", label: t.auto },
                 { value: "id", label: "Bahasa Indonesia" },
                 { value: "en", label: "English" },
-                { value: "zh", label: "中文" },
+                {
+                  value: "zh",
+                  label: (
+                    <>
+                      中文
+                      <BetaBadge />
+                    </>
+                  ),
+                },
               ]}
             />
           </section>

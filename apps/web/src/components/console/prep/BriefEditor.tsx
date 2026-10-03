@@ -21,6 +21,7 @@ import en1 from "../../../content/modules/en/1.json";
 import en2 from "../../../content/modules/en/2.json";
 import en3 from "../../../content/modules/en/3.json";
 import en4 from "../../../content/modules/en/4.json";
+import BetaBadge from "../../ui/BetaBadge";
 
 const BAWAAN: Record<"id" | "en", Record<number, { ringkasan: string[] }>> = {
   id: { 1: id1, 2: id2, 3: id3, 4: id4 },
@@ -142,7 +143,15 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
           options={[
             { value: "id", label: "ID" },
             { value: "en", label: "EN" },
-            { value: "zh", label: "中文" },
+            {
+              value: "zh",
+              label: (
+                <>
+                  中文
+                  <BetaBadge />
+                </>
+              ),
+            },
           ]}
         />
       </div>

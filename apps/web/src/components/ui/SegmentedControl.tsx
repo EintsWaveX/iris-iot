@@ -18,12 +18,13 @@
  *     options={[{value: "praktikan", label: "Praktikan"}, {value: "asisten", label: "Asisten"}]}
  *   />
  */
+import type { ReactNode } from "react";
 import * as RadixToggleGroup from "@radix-ui/react-toggle-group";
 import "./SegmentedControl.css";
 
 interface Option {
   value: string;
-  label: string;
+  label: ReactNode;
 }
 
 interface Props {

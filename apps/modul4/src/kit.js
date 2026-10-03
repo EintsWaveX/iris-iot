@@ -420,7 +420,7 @@
     const st = H.useStore();
     const sub = { id: L("Indonesia", "Indonesian"), en: L("Inggris", "English"), zh: L("Mandarin, aksara sederhana", "Mandarin, Simplified") };
     return html`<div class="langpick" role="radiogroup" aria-label=${L("Bahasa", "Language")}>${H.LANGS.map((o) => html`<button type="button" role="radio" class="langpick__o" aria-checked=${String(st.lang === o.v)} onClick=${() => H.set({ lang: o.v })}>
-      <span class="stack" style="gap:0"><b lang=${o.v === "zh" ? "zh-Hans" : o.v}>${o.l}</b><span class="hint">${sub[o.v]}</span></span>${st.lang === o.v && html`<${Icon} n="check" />`}</button>`)}</div>`;
+      <span class="stack" style="gap:0"><b lang=${o.v === "zh" ? "zh-Hans" : o.v}>${o.l}${o.v === "zh" && html` <${H.Badge} tone="warn">Beta</${H.Badge}>`}</b><span class="hint">${sub[o.v]}</span></span>${st.lang === o.v && html`<${Icon} n="check" />`}</button>`)}</div>`;
   };
   /* Mandarin only: the heading weight */
   H.ZhWeight = () => {

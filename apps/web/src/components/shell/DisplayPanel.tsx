@@ -19,6 +19,8 @@ import {
   type ThemePref,
 } from "../../lib/prefs";
 
+import BetaBadge from "../ui/BetaBadge";
+
 const T = dict({
   id: {
     theme: "Tema",
@@ -30,7 +32,11 @@ const T = dict({
     normal: "Bintang berkelip, meteor sesekali.",
     hd: "Planet, satelit, komet, aurora.",
     language: "Bahasa",
-    langSub: { id: "Indonesia", en: "Inggris", zh: "Mandarin, aksara sederhana" },
+    langSub: {
+      id: "Indonesia",
+      en: "Inggris",
+      zh: "Mandarin, aksara sederhana. Masih dikembangkan.",
+    },
     clock: "Jam di Navigasi",
     auto: "Otomatis",
     on: "Selalu",
@@ -51,7 +57,7 @@ const T = dict({
     normal: "Twinkling stars, a meteor now and then.",
     hd: "Planets, a satellite, comets, aurora.",
     language: "Language",
-    langSub: { id: "Indonesian", en: "English", zh: "Mandarin, Simplified" },
+    langSub: { id: "Indonesian", en: "English", zh: "Mandarin, Simplified. Still in development." },
     clock: "Clock in the Navigation",
     auto: "Automatic",
     on: "Always",
@@ -72,7 +78,7 @@ const T = dict({
     normal: "星星闪烁，偶尔有流星。",
     hd: "行星、卫星、彗星、极光。",
     language: "语言",
-    langSub: { id: "印尼语", en: "英语", zh: "中文，简体" },
+    langSub: { id: "印尼语", en: "英语", zh: "中文，简体。仍在开发中。" },
     clock: "导航栏时钟",
     auto: "自动",
     on: "总是显示",
@@ -173,7 +179,10 @@ export default function DisplayPanel({ lang, onLang }: { lang: Lang; onLang: (to
               onClick={() => onLang(o.v)}
             >
               <span className="disp__opt-text">
-                <b lang={o.v === "zh" ? "zh-Hans" : o.v}>{o.l}</b>
+                <b lang={o.v === "zh" ? "zh-Hans" : o.v}>
+                  {o.l}
+                  {o.v === "zh" && <BetaBadge />}
+                </b>
                 <span className="hint">{t.langSub[o.v]}</span>
               </span>
               {lang === o.v && <CheckIcon size={20} aria-hidden="true" />}
