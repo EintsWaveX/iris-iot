@@ -343,11 +343,15 @@ export async function handleKejadianPost(
     const lama = (k.detail as { teks?: string }).teks ?? "";
     if (body.aksi === "hapus") {
       await db.delete(sesiKejadian).where(eq(sesiKejadian.id, id));
+      // The Audit copy is also what Undo restores from: the client never
+      // says who wrote the note or when.
       await writeAudit(session.nim, "kejadian_hapus", {
         sesiId: k.sesiId,
         id,
         teks: lama,
         penulis: k.aktorNim,
+        pada: k.pada.toISOString(),
+        detail: k.detail,
       });
       res.status(200).json({ ok: true });
       return;
@@ -371,30 +375,73 @@ export async function handleKejadianPost(
   res.status(200).json({ ok: false, kode: "format_salah" });
 }
 
-/** Undo after deleting a note: the same text, time and author come back. */
+/** How long Undo stays possible after a delete. */
+const PULIH_MENIT = 15;
+
+/**
+ * Undo after deleting a note. The client sends only the deleted note's id;
+ * the text, author, time and edit mark come back from the Audit copy the
+ * delete wrote. Only the person who deleted it can undo, once, within
+ * PULIH_MENIT minutes.
+ */
 async function pulihkan(body: Record<string, unknown>, res: ApiResponse, session: SessionPayload) {
-  const sesiId = posInt(body.sesiId);
-  const teks = typeof body.teks === "string" ? body.teks.trim() : "";
-  const pada = typeof body.pada === "string" ? new Date(body.pada) : null;
-  const penulis = typeof body.penulis === "string" ? body.penulis : session.nim;
-  // An edited note comes back still marked as edited, by the same person.
-  const diubahPada = typeof body.diubahPada === "string" ? new Date(body.diubahPada) : null;
-  const diubah =
-    typeof body.diubahOleh === "string" &&
-    /^\d{6,12}$/.test(body.diubahOleh) &&
-    diubahPada &&
-    !Number.isNaN(diubahPada.getTime())
-      ? { diubahOleh: body.diubahOleh, diubahPada: diubahPada.toISOString() }
-      : {};
-  if (!sesiId || !teks || !pada || Number.isNaN(pada.getTime())) {
+  const id = posInt(body.id);
+  if (!id) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  const [row] = await getDb()
+  const db = getDb();
+  const sejak = new Date(Date.now() - PULIH_MENIT * 60_000);
+  const [hapus] = await db
+    .select()
+    .from(audit)
+    .where(
+      and(
+        eq(audit.aksi, "kejadian_hapus"),
+        eq(audit.aktorNim, session.nim),
+        gte(audit.pada, sejak),
+        sql`(${audit.detail})::jsonb ->> 'id' = ${String(id)}`,
+      ),
+    )
+    .orderBy(desc(audit.id))
+    .limit(1);
+  if (!hapus?.detail) {
+    res.status(200).json({ ok: false, kode: "tidak_bisa_dipulihkan" });
+    return;
+  }
+  const [sudah] = await db
+    .select({ id: audit.id })
+    .from(audit)
+    .where(
+      and(
+        eq(audit.aksi, "kejadian_pulih"),
+        sql`(${audit.detail})::jsonb ->> 'dari' = ${String(id)}`,
+      ),
+    )
+    .limit(1);
+  if (sudah) {
+    res.status(200).json({ ok: false, kode: "sudah_dipulihkan" });
+    return;
+  }
+  const salinan = JSON.parse(hapus.detail) as {
+    sesiId: number;
+    teks: string;
+    penulis: string;
+    pada?: string;
+    detail?: Record<string, unknown>;
+  };
+  const pada = salinan.pada ? new Date(salinan.pada) : hapus.pada;
+  const [row] = await db
     .insert(sesiKejadian)
-    .values({ sesiId, jenis: "catatan", detail: { teks, ...diubah }, aktorNim: penulis, pada })
+    .values({
+      sesiId: salinan.sesiId,
+      jenis: "catatan",
+      detail: salinan.detail ?? { teks: salinan.teks },
+      aktorNim: salinan.penulis,
+      pada,
+    })
     .returning();
-  await writeAudit(session.nim, "kejadian_pulih", { sesiId, id: row.id });
+  await writeAudit(session.nim, "kejadian_pulih", { sesiId: salinan.sesiId, id: row.id, dari: id });
   res.status(200).json({ ok: true, kejadian: row });
 }
 

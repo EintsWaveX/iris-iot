@@ -100,15 +100,10 @@ export function IncidentList({
       action: {
         label: t.undo,
         onClick: () =>
-          void kirim(API, {
-            aksi: "pulih",
-            sesiId: k.sesiId,
-            teks: (k.detail as { teks?: string }).teks ?? "",
-            pada: k.pada,
-            penulis: k.aktorNim,
-            diubahOleh: (k.detail as { diubahOleh?: string }).diubahOleh,
-            diubahPada: (k.detail as { diubahPada?: string }).diubahPada,
-          }).then(() => onChanged()),
+          void kirim(API, { aksi: "pulih", id: k.id }).then((r) => {
+            if (!r.ok) window.Toast?.show(t.err, "danger");
+            onChanged();
+          }),
       },
     });
   };
