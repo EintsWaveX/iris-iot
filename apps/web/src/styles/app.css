@@ -768,7 +768,7 @@ html {
 }
 
 /* A one-line notice inside a card or dialog (Phase 8 Console, shared from
-   Phase 9): plain, warn (amber) and lock (dashed, read only). */
+   Phase 9): plain, ok (green), warn (amber) and lock (dashed, read only). */
 .banner {
   align-items: center;
   background: var(--surface-2);
@@ -796,6 +796,15 @@ html {
 
 .banner--warn > svg {
   color: var(--warn);
+}
+
+.banner--ok {
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 60%, transparent);
+}
+
+.banner--ok > svg {
+  color: var(--ok);
 }
 
 .banner--lock {

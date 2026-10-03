@@ -4,7 +4,8 @@
  * (a narrow card, long labels, a phone), this sets data-cols="2" (two per
  * row) or data-cols="1" (stacked) on it, and the CSS lays it out. One
  * observer for the whole page, so a new switch needs no wiring. Renders
- * nothing.
+ * nothing. A switch with its own narrow layout opts out with
+ * data-segfit="off" (the module page's steps).
  */
 import { useEffect } from "react";
 
@@ -26,7 +27,7 @@ function natural(item: HTMLElement): number {
 }
 
 function fit(el: HTMLElement) {
-  if (!el.isConnected || el.clientWidth === 0) return;
+  if (!el.isConnected || el.clientWidth === 0 || el.dataset.segfit === "off") return;
   const items = [...el.children].filter(
     (c): c is HTMLElement => c instanceof HTMLElement && c.getClientRects().length > 0,
   );

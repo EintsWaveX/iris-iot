@@ -1,0 +1,437 @@
+/**
+ * The module page below its head (Phase 9 Stage 7, mockups m-browse and
+ * p-module). Who is looking decides the steps:
+ *
+ * - browse (a guest, a Praktikan who has not done this module, or one
+ *   whose session of another module is running):
+ *   Module, Brief, Hands-on Practicum. The last one is a lock card (Sign In
+ *   for a guest), or "Go to the practicum" for a Praktikan whose session of
+ *   another module is running.
+ * - now (a Praktikan in this module's running session) and asisten:
+ *   Module, Brief, Setup, Code, Live. An Asisten also gets the access
+ *   banner with its switch, and edits the Brief in place.
+ * - done (a Praktikan who has done this module): the same five steps, read
+ *   only, the last one being Captures and Scores.
+ *
+ * The step is mirrored into ?step= so a step is bookmarkable, and
+ * `iris:go-step` (detail: a step id) moves to it from anywhere on the page.
+ */
+import {
+  useEffect,
+  useState,
+  type ComponentProps,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import {
+  ArrowRightIcon,
+  BookOpenTextIcon,
+  BroadcastIcon,
+  CheckCircleIcon,
+  CircuitryIcon,
+  CodeIcon,
+  DoorOpenIcon,
+  LockSimpleIcon,
+  LockSimpleOpenIcon,
+  NoteIcon,
+  WrenchIcon,
+} from "@phosphor-icons/react";
+import PdfViewer from "../ui/PdfViewer";
+import Fade from "../ui/Fade";
+import Pill from "../ui/Pill";
+import { StateView } from "../ui/Display";
+import { Switch } from "../ui/Controls";
+import CodeWorkspace from "./CodeWorkspace";
+import PinSchematic, { type PinData } from "./PinSchematic";
+import SetupChecklist from "./SetupChecklist";
+import LiveWorkspace from "../live/LiveWorkspace";
+import BriefStep from "./BriefStep";
+import { getJson, href, tanggalPanjang, useMe, useSessionNow } from "../../lib/app";
+import { getAksesState, type AksesState } from "../../scripts/modul-akses";
+import { setModulAkses } from "../shell/AsistenCommands";
+import { modulLabel } from "../../lib/labels";
+import type { Lang } from "../../lib/kelas";
+import { M } from "./moduleStrings";
+
+type Mode = "browse" | "now" | "done" | "asisten";
+type Step = "modul" | "brief" | "praktikum" | "setup" | "code" | "live";
+
+interface Praktikum {
+  sesiId: number;
+  modul: number;
+  tanggal: string;
+  status: string;
+  sudahUmpanBalik: boolean;
+  rataRata: number | null;
+}
+
+interface Props {
+  lang: Lang;
+  modul: number;
+  pdfUrl: string;
+  pdfName: string;
+  ringkasan: string[];
+  permainan?: string[];
+  fakta: string[];
+  toolchain: { label: string; alat: string }[];
+  perangkat: { nama: string; jumlah: string }[];
+  persiapan: string[];
+  pin: PinData;
+  mcu: string;
+  skema: string;
+  layers: ComponentProps<typeof LiveWorkspace>["layers"];
+  code: ComponentProps<typeof CodeWorkspace>["code"];
+}
+
+const ICON: Record<Step, ReactNode> = {
+  modul: <BookOpenTextIcon aria-hidden="true" />,
+  brief: <NoteIcon aria-hidden="true" />,
+  praktikum: <CircuitryIcon aria-hidden="true" />,
+  setup: <WrenchIcon aria-hidden="true" />,
+  code: <CodeIcon aria-hidden="true" />,
+  live: <BroadcastIcon aria-hidden="true" />,
+};
+
+function stepFromUrl(steps: Step[]): Step | null {
+  const s = new URLSearchParams(location.search).get("step") as Step | null;
+  return s && steps.includes(s) ? s : null;
+}
+
+export default function ModuleSteps(p: Props) {
+  const { lang, modul } = p;
+  const t = M[lang];
+  const me = useMe();
+  const now = useSessionNow(30_000, me?.role === "praktikan");
+  const [akses, setAkses] = useState<AksesState | null>(null);
+  const [mine, setMine] = useState<Praktikum[] | null>(null);
+
+  useEffect(() => {
+    if (me === undefined) return;
+    const load = () => void getAksesState(true).then(setAkses);
+    load();
+    window.addEventListener("iris:akses-berubah", load);
+    return () => window.removeEventListener("iris:akses-berubah", load);
+  }, [me]);
+
+  useEffect(() => {
+    if (me?.role !== "praktikan") return;
+    getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine")
+      .then((d) => setMine(d.ok ? d.praktikum : []))
+      .catch(() => setMine([]));
+  }, [me]);
+
+  const sesi = now.data;
+  const mySession = me?.role === "praktikan" && sesi && sesi.milikSaya !== false ? sesi : null;
+  const loading =
+    me === undefined ||
+    akses === null ||
+    (me?.role === "praktikan" && now.updatedAt === null && now.errors === 0);
+
+  const mode: Mode =
+    me?.role === "asisten"
+      ? "asisten"
+      : mySession
+        ? mySession.modul === modul
+          ? "now"
+          : "browse"
+        : me?.role === "praktikan" && akses?.jurnal.includes(modul)
+          ? "done"
+          : "browse";
+
+  const steps: Step[] =
+    mode === "browse"
+      ? ["modul", "brief", "praktikum"]
+      : ["modul", "brief", "setup", "code", "live"];
+
+  const [step, setStep] = useState<Step>("modul");
+  const [picked, setPicked] = useState(false);
+  // The first step to show: the URL's, else Code in a running session,
+  // else the module itself.
+  useEffect(() => {
+    if (loading || picked) return;
+    setPicked(true);
+    setStep(stepFromUrl(steps) ?? (mode === "now" ? "code" : "modul"));
+  }, [loading, picked, mode]);
+
+  const go = (s: Step) => {
+    setStep(s);
+    const url = new URL(location.href);
+    url.searchParams.set("step", s);
+    history.replaceState(history.state, "", url);
+  };
+
+  useEffect(() => {
+    const on = (e: Event) => {
+      const s = (e as CustomEvent<string>).detail as Step;
+      if (steps.includes(s)) {
+        go(s);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+    window.addEventListener("iris:go-step", on);
+    return () => window.removeEventListener("iris:go-step", on);
+  }, [steps.join()]);
+
+  if (loading) {
+    return (
+      <div className="stack stack--lg">
+        <span className="skeleton" style={{ height: 58 }} />
+        <span className="skeleton" style={{ height: 420 }} />
+      </div>
+    );
+  }
+
+  const label: Record<Step, string> = {
+    modul: t.modul,
+    brief: t.brief,
+    praktikum: t.praktikum,
+    setup: t.setup,
+    code: t.code,
+    live: mode === "done" ? t.captures : t.live,
+  };
+  const done = mode === "done" ? mine?.find((x) => x.modul === modul) : undefined;
+  const open = akses?.terbuka.includes(modul) ?? false;
+  const canEdit = mode === "asisten" && me?.hak?.jadwal === true;
+
+  return (
+    <div className="stack stack--lg modsteps">
+      {mode === "asisten" && (
+        <div className={`banner modsteps__access ${open ? "banner--ok" : "banner--warn"}`}>
+          {open ? <LockSimpleOpenIcon aria-hidden="true" /> : <LockSimpleIcon aria-hidden="true" />}
+          <b>{open ? t.openStudents : t.lockedStudents}</b>
+          <span className="hint modsteps__hide-sm">{t.seeAll}</span>
+          <span className="grow" />
+          <Switch
+            on={open}
+            onChange={(v) => void setModulAkses(modul, v, lang)}
+            label={t.access(modul)}
+          />
+        </div>
+      )}
+      {mode === "done" && (
+        <div className="banner banner--ok">
+          <CheckCircleIcon aria-hidden="true" />
+          <b>{t.history}</b>
+          {done && <span className="hint">{t.finishedOn(tanggalPanjang(done.tanggal, lang))}</span>}
+        </div>
+      )}
+
+      <div
+        className="seg seg--big modsteps__tabs"
+        role="tablist"
+        aria-label={t.steps}
+        data-segfit="off"
+      >
+        {steps.map((s, i) => (
+          <button
+            key={s}
+            type="button"
+            role="tab"
+            id={`step-${s}`}
+            aria-selected={step === s}
+            aria-controls="modsteps-panel"
+            tabIndex={step === s ? 0 : -1}
+            onClick={() => go(s)}
+            onKeyDown={(e) => {
+              const k = e.key;
+              const j =
+                k === "ArrowRight"
+                  ? i + 1
+                  : k === "ArrowLeft"
+                    ? i - 1
+                    : k === "Home"
+                      ? 0
+                      : k === "End"
+                        ? steps.length - 1
+                        : null;
+              if (j === null) return;
+              e.preventDefault();
+              const next = steps[Math.max(0, Math.min(steps.length - 1, j))];
+              go(next);
+              requestAnimationFrame(() => document.getElementById(`step-${next}`)?.focus());
+            }}
+          >
+            {ICON[s]}
+            <span className="modsteps__label">{label[s]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div id="modsteps-panel" role="tabpanel" aria-labelledby={`step-${step}`}>
+        <Fade k={`${step}-${mode}`}>
+          {step === "modul" ? (
+            <PdfViewer url={p.pdfUrl} name={p.pdfName} lang={lang} shape="page" />
+          ) : step === "brief" ? (
+            <BriefStep
+              lang={lang}
+              modul={modul}
+              ringkasan={p.ringkasan}
+              permainan={p.permainan}
+              fakta={p.fakta}
+              toolchain={p.toolchain}
+              canEdit={canEdit}
+            />
+          ) : step === "praktikum" ? (
+            <Hands lang={lang} modul={modul} guest={me === null} sesiModul={mySession?.modul} />
+          ) : step === "setup" ? (
+            <Setup {...p} />
+          ) : step === "code" ? (
+            <CodeWorkspace lang={lang} pin={p.pin} mcu={p.mcu} skema={p.skema} code={p.code} />
+          ) : mode === "done" ? (
+            <Done lang={lang} done={done} />
+          ) : (
+            <LiveWorkspace lang={lang} modul={modul} layers={p.layers} />
+          )}
+        </Fade>
+      </div>
+    </div>
+  );
+}
+
+function Setup(p: Props) {
+  const t = M[p.lang];
+  return (
+    <div className="stack stack--lg">
+      <div className="modsetup">
+        <section className="panel">
+          <h2 className="panel__title">{t.whatYouNeed}</h2>
+          <ul className="modpage__kv">
+            {p.perangkat.map((x) => (
+              <li key={x.nama}>
+                <b>{x.nama}</b>
+                <span className="mono hint">{x.jumlah}</span>
+              </li>
+            ))}
+          </ul>
+          <ul className="modpage__kv">
+            {p.toolchain.map((tc) => (
+              <li key={tc.label}>
+                <span className="hint">{tc.label}</span>
+                <b>{tc.alat}</b>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section className="panel">
+          <h2 className="panel__title">{t.checklist}</h2>
+          <SetupChecklist lang={p.lang} modul={p.modul} items={p.persiapan} />
+        </section>
+      </div>
+      <section className="stack">
+        <h2 className="modpage__h">{t.pins}</h2>
+        <PinSchematic
+          lang={p.lang}
+          modul={p.modul}
+          pin={p.pin}
+          mcu={p.mcu}
+          skema={p.skema}
+          variant="full"
+        />
+      </section>
+    </div>
+  );
+}
+
+function Hands({
+  lang,
+  modul,
+  guest,
+  sesiModul,
+}: {
+  lang: Lang;
+  modul: number;
+  guest: boolean;
+  sesiModul?: number;
+}) {
+  const t = M[lang];
+  if (sesiModul && sesiModul !== modul) {
+    return (
+      <div
+        className="panel panel--key panel--raised modhands"
+        style={{ "--m": `var(--mod-${sesiModul})` } as CSSProperties}
+      >
+        <div className="row">
+          <span className="dot dot--ok dot--pulse" aria-hidden="true" />
+          <Pill tone="ok">{t.inSession}</Pill>
+        </div>
+        <h2 className="modhands__title">{t.inSessionTitle(modulLabel(sesiModul, lang))}</h2>
+        <p className="modlist__lede">{t.inSessionBody}</p>
+        <div className="panel__actions">
+          <a
+            className="btn btn--inverse btn--lg"
+            href={href(lang, `/modules/${sesiModul}?step=code`)}
+          >
+            {t.goPracticum}
+            <ArrowRightIcon aria-hidden="true" />
+          </a>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="modlock">
+      <StateView
+        icon={<LockSimpleIcon size={28} />}
+        title={t.lockedTitle(modulLabel(modul, lang))}
+        body={t.lockedBody}
+        actions={
+          guest ? (
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => window.LoginDialog?.open()}
+            >
+              <DoorOpenIcon aria-hidden="true" />
+              {t.signIn}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn"
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent("iris:go-step", { detail: "modul" }))
+              }
+            >
+              <BookOpenTextIcon aria-hidden="true" />
+              {t.readModule}
+            </button>
+          )
+        }
+      />
+    </div>
+  );
+}
+
+function Done({ lang, done }: { lang: Lang; done?: Praktikum }) {
+  const t = M[lang];
+  return (
+    <div className="panel panel--raised">
+      <div className="row">
+        <Pill tone="ok">
+          <CheckCircleIcon aria-hidden="true" />
+          {t.doneBadge}
+        </Pill>
+        {done && <span className="hint">{tanggalPanjang(done.tanggal, lang)}</span>}
+      </div>
+      <h2 className="modhands__title">{t.doneTitle}</h2>
+      <p className="panel__sub">{t.doneBody}</p>
+      <div className="modstats">
+        <div className="stat">
+          <span className="stat__value num">{done?.rataRata ?? t.notSent}</span>
+          <span className="stat__label">{t.finalScore}</span>
+        </div>
+        <div className="stat">
+          <span className="stat__value">{done?.sudahUmpanBalik ? t.sent : t.notSent}</span>
+          <span className="stat__label">{t.feedback}</span>
+        </div>
+      </div>
+      {done && !done.sudahUmpanBalik && (
+        <div className="panel__actions">
+          <a className="btn btn--inverse" href={href(lang, "/dashboard")}>
+            {t.giveFeedback}
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}

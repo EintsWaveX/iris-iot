@@ -1,59 +1,43 @@
-/* The module page (Phase 8): ModuleDetailView.astro and its islands. Global
-   because the islands render outside Astro's scoped styles. */
+/* The module page (Phase 9 Stage 7): ModuleDetailView.astro and its
+   islands (module/ModuleSteps.tsx). Global because the islands render
+   outside Astro's scoped styles. */
 
 .modpage .page-header {
   margin-bottom: var(--space-5);
 }
 
-.modpage__adjacent {
+.modhead__heading {
+  align-items: flex-start;
+}
+
+.modhead__jump {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
-.modpage__adj {
-  align-items: center;
-  border: 1px solid color-mix(in srgb, var(--mod-hue) 50%, transparent);
-  border-radius: 999px;
-  color: var(--mod-hue);
-  display: inline-flex;
-  font-family: var(--font-mono);
-  font-size: var(--fs-small);
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 var(--space-4);
-  text-decoration: none;
-  transition: background var(--dur-fast) var(--ease-reveal);
+/* Previous and next module: bright buttons in the module's own hue. */
+.modjump {
+  border-color: var(--m);
 }
 
-.modpage__adj:hover {
-  background: color-mix(in srgb, var(--mod-hue) 12%, transparent);
+@media (max-width: 639px) {
+  .modhead__jump {
+    width: 100%;
+  }
+
+  .modhead__jump .btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
 }
 
-.modpage__adj[data-locked="yes"] {
-  opacity: 0.55;
+.modjump svg {
+  color: var(--m);
 }
 
-.modpage__stepper {
-  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--space-6);
-  padding: var(--space-2) var(--space-3);
-  position: sticky;
-  top: calc(var(--nav-size) + var(--minibar-h, 0px) + 8px);
-  z-index: 30;
-}
-
-.modpage__panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-:root:not([data-motion-tier="0"]) .modpage__panel:not([hidden]) {
-  animation: app-rise var(--dur-slow) var(--ease-out-expo);
+.modjump:hover svg {
+  color: inherit;
 }
 
 .modpage__h {
@@ -61,10 +45,61 @@
   font-weight: var(--display-weight);
   letter-spacing: var(--display-track);
   font-size: var(--fs-display-sm);
-  margin: var(--space-4) 0 0;
+  margin: 0;
 }
 
-.modpage__lede {
+/* ------------------------------------------------------------- steps */
+
+.modsteps__tabs svg {
+  flex: none;
+  height: 20px;
+  width: 20px;
+}
+
+.modsteps__access svg {
+  flex: none;
+}
+
+@media (max-width: 639px) {
+  .modsteps__hide-sm {
+    display: none;
+  }
+}
+
+/* A narrow screen keeps every step in one row: the icon with its label
+   under it (SegFit is off for this switch). */
+@media (max-width: 819px) {
+  .modsteps__tabs button {
+    flex-direction: column;
+    font-size: 0.8rem;
+    gap: 2px;
+    line-height: 1.15;
+    min-height: 58px;
+    padding: 4px;
+    white-space: normal;
+  }
+}
+
+/* -------------------------------------------------------------- brief */
+
+.modbrief {
+  align-items: start;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .modbrief {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+}
+
+.modbrief__wide {
+  grid-column: 1 / -1;
+}
+
+.modbrief__p {
   color: var(--text-muted);
   font-size: var(--fs-body-lg);
   line-height: 1.65;
@@ -72,33 +107,83 @@
   max-width: var(--measure-prose);
 }
 
-.modpage__go {
-  align-self: flex-start;
+.modticks {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.modpage__brief,
-.modpage__live {
+.modticks li {
+  align-items: start;
+  display: flex;
+  gap: 10px;
+}
+
+.modticks svg {
+  color: var(--ok);
+  flex: none;
+  margin-top: 4px;
+}
+
+/* -------------------------------------------------------------- setup */
+
+.modsetup {
   align-items: start;
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-4);
   grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 1024px) {
-  .modpage__brief,
-  .modpage__live {
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  .modsetup {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
   }
 }
 
-.modpage__facts {
-  border-top: 3px solid var(--mod-hue);
+.panel > .setupcheck {
+  background: none;
+  border: 0;
+  padding: 0;
 }
 
-.modpage__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+.modsetup .setupcheck__list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* ------------------------------------------------- practicum and done */
+
+.modlock {
+  display: grid;
+  min-height: 380px;
+  place-items: center;
+}
+
+.modlock > * {
+  max-width: 560px;
+  width: 100%;
+}
+
+.modhands {
+  margin-inline: auto;
+  max-width: 980px;
+  width: 100%;
+}
+
+.modhands__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.6vw + 0.8rem, 2rem);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-track);
+  line-height: 1.12;
+  margin: 0;
+}
+
+.modstats {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .modpage__kv {
@@ -121,47 +206,6 @@
 
 .modpage__kv li:last-child {
   border-bottom: 0;
-}
-
-.modpage__codehead {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.modpage__note {
-  max-width: 80ch;
-}
-
-.layerstack {
-  counter-reset: layer;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  list-style: none;
-  margin: var(--space-2) 0 0;
-  padding: 0;
-}
-
-.layerstack li {
-  align-items: center;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--mod-hue) calc(22% - var(--i) * 4%), transparent),
-    transparent 80%
-  );
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  display: flex;
-  gap: var(--space-3);
-  justify-content: space-between;
-  min-height: 52px;
-  padding: 0 var(--space-4);
-}
-
-:root:not([data-motion-tier="0"]) .layerstack li {
-  animation: app-rise var(--dur-slow) var(--ease-out-expo) both;
-  animation-delay: calc(var(--i) * 70ms);
 }
 
 /* ----------------------------------------------------------- checklist */
@@ -213,16 +257,4 @@
   .setupcheck__list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-/* The journal gate (Phase 8): a gated step shows only its notice. */
-.modpage__jurnal[data-gated] > :not(.jurnal-gate) {
-  display: none !important;
-}
-
-.jurnal-gate {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  max-width: 44rem;
 }

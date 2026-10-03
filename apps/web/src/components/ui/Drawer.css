@@ -119,6 +119,14 @@
   padding: 14px 24px;
 }
 
+/* A note or badge on the footer's left, like Dialog's .dialog__alt. */
+.drawer__alt {
+  align-items: center;
+  display: inline-flex;
+  gap: var(--space-2);
+  margin-right: auto;
+}
+
 .drawer__foot .btn {
   font-size: 0.98rem;
   min-height: 44px;
