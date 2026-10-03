@@ -22,13 +22,13 @@ export const zh: ModuleStrings = {
   modulDoc: (m: number) => `模块 ${m} · IRIS IoT`,
   stepLabels: {
     modul: "模块",
-    brief: "概要",
+    brief: "简介",
     setup: "准备",
     code: "代码",
     live: "Live",
   },
   brief: {
-    heading: "概要",
+    heading: "简介",
     gameHeading: "游戏怎么玩",
   },
   setup: {

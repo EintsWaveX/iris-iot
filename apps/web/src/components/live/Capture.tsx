@@ -36,6 +36,7 @@ import {
   type JarakBaris,
 } from "../../lib/jurnal-tabel";
 import { CV } from "./captureStrings";
+import "./capture.css";
 
 const jam = (d: Date | string) =>
   new Date(d).toLocaleTimeString("en-GB", {

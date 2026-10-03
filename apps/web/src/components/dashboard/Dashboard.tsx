@@ -39,6 +39,7 @@ import { getAksesState } from "../../scripts/modul-akses";
 import { readSetup } from "../module/SetupChecklist";
 import { useTelemetry } from "../live/useTelemetry";
 import { CaptureList, useTangkapan } from "../live/Capture";
+import { rataJurnal, type JRow } from "../../lib/jurnal-tabel";
 import { bahasaKonten, type Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
 import FeedbackForm from "./FeedbackForm";
@@ -659,7 +660,10 @@ function Summary({
   const info = modules.find((m) => m.modul === modul);
   const rows = (cap.rows ?? []).filter((r) => r.sesiId === sesi);
   const lini = h.linimasa ?? [];
-  const lastCap = rows.find((r) => r.jenis === "paket");
+  // The Pi's own average when it has one, else the saved journal table's.
+  const paket = rows.find((r) => r.jenis === "paket");
+  const delay =
+    h.delayRata ?? (paket ? (rataJurnal(modul, paket.baris as JRow[])[0] ?? null) : null);
   return (
     <div className="stack stack--lg dash__summary">
       {ended && (
@@ -706,14 +710,11 @@ function Summary({
       <div className="dash__sumstats">
         <Stat value={h.rataRata != null ? String(h.rataRata) : t.menunggu} label={t.nilaiDari} />
         <Stat value={`${h.blank?.benar ?? 0}/${h.blank?.total ?? 0}`} label={t.blankBenar} />
-        <Stat value={h.delayRata != null ? `${h.delayRata} ms` : "-"} label={t.delayRata} />
+        <Stat value={delay != null ? `${Math.round(delay)} ms` : "-"} label={t.delayRata} />
         <Stat value={String(h.tangkapan ?? 0)} label={t.tangkapanSimpan} />
       </div>
       <section className="panel">
-        <div className="panel__head">
-          <h2 className="panel__title">{t.tangkapanH}</h2>
-          {lastCap && <span className="hint num">{jam(lastCap.dibuatPada)}</span>}
-        </div>
+        <h2 className="panel__title">{t.tangkapanH}</h2>
         {cap.rows === null ? (
           <span className="skeleton" style={{ height: 160 }} />
         ) : (

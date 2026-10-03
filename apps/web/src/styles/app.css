@@ -285,6 +285,12 @@ html {
   padding: 8px 12px;
 }
 
+/* The name keeps room for itself, so a narrow row wraps its score and
+   badges onto the next line instead of drawing them over the name. */
+.pracrow > .grow {
+  min-width: min(9rem, 100%);
+}
+
 /* ---------------------------------------------------------------- stats */
 
 .stat {

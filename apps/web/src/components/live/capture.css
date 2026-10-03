@@ -1,0 +1,109 @@
+/* Capture.tsx (Phase 9 Stage 7f): the paper journal tables and the
+   capture dialog. Its own file so the dashboard summary gets it too. */
+
+/* ------------------------------------------- journal captures (7f) */
+/* The paper journal's table: paper white in both themes, as printed. */
+.paper {
+  background: #fbfaf6;
+  color: #15171c;
+  border-radius: var(--radius-md, 10px);
+  padding: 14px;
+  overflow-x: auto;
+  box-shadow:
+    0 1px 0 rgb(0 0 0 / 0.08),
+    0 10px 30px rgb(0 0 0 / 0.18);
+}
+.jtable {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font: 0.875rem/1.4 var(--font-body);
+  color: #15171c;
+}
+.jtable--dist {
+  min-width: 520px;
+}
+.jtable th,
+.jtable td {
+  border: 1px solid #3b3f48;
+  padding: 7px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+.jtable th {
+  background: #e7ebf2;
+  font-weight: 700;
+}
+.jtable th span,
+.jtable th small {
+  display: block;
+}
+.jtable th small {
+  font-size: 0.6875rem;
+  color: #3b3f48;
+}
+.jtable td.mono {
+  font: 0.8125rem var(--font-mono);
+}
+.jtable td.num {
+  font-variant-numeric: tabular-nums;
+}
+.jtable tfoot td {
+  font-weight: 700;
+  background: #f1f3f7;
+}
+.jtable tfoot td:first-child {
+  text-align: right;
+}
+.jin {
+  width: 72px;
+  height: 34px;
+  border: 1px dashed #3b3f48;
+  border-radius: 6px;
+  background: #fff;
+  color: #15171c;
+  text-align: center;
+  font: inherit;
+  font-size: 16px;
+}
+.jin:focus-visible,
+.jyn button:focus-visible {
+  outline: 2px solid #2f5bd3;
+  outline-offset: 2px;
+}
+.jyn {
+  display: inline-flex;
+  border: 1px solid #3b3f48;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.jyn button {
+  min-width: 52px;
+  min-height: 34px;
+  border: 0;
+  background: #fff;
+  color: #15171c;
+  font: 600 0.8125rem var(--font-body);
+  cursor: pointer;
+}
+.jyn button + button {
+  border-left: 1px solid #3b3f48;
+}
+.jyn button[aria-pressed="true"] {
+  background: #15171c;
+  color: #fff;
+}
+.capture__tools {
+  gap: 6px;
+  flex: none;
+}
+.capture__marks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 519px) {
+  .capture__marks {
+    grid-template-columns: 1fr;
+  }
+}
