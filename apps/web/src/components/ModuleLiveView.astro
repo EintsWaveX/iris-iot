@@ -1,8 +1,8 @@
 ---
 /**
  * /modules/[n]/live and /en/modules/[n]/live (Phase 8): the one live
- * workspace (live/LiveWorkspace.tsx): flow, readings, stats and protocol
- * layers from one stream, with the student's own group preselected.
+ * room (live/LiveRoom.tsx, Phase 9): value cards, boards over Web Serial,
+ * Serial Monitor, flow and readings, with the student's own group preselected.
  * /groups/[n] redirects here.
  *
  * Every module shows real data once it arrives and simulates it until then:
@@ -12,7 +12,7 @@
 import { getEntry } from "astro:content";
 import Base from "../layouts/Base.astro";
 import PageHeader from "../components/ui/PageHeader.astro";
-import LiveWorkspace from "../components/live/LiveWorkspace";
+import LiveRoom from "../components/live/LiveRoom";
 import { id as strId } from "../i18n/id";
 import { en as strEn } from "../i18n/en";
 import { bahasaKonten, type Lang } from "../lib/kelas";
@@ -46,7 +46,7 @@ const basePath = href(lang, "/modules");
       title={`${m.judul} · ${t.live.heading}`}
       subtitle={t.live.disclosureFor(m.modul)}
     />
-    <LiveWorkspace client:load lang={lang} modul={m.modul} layers={m.lapisan} />
+    <LiveRoom client:load lang={lang} modul={m.modul} layers={m.lapisan} />
   </main>
 </Base>
 

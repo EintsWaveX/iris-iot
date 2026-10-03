@@ -1,11 +1,19 @@
 /**
- * One ESP32 on this PC's USB, over Web Serial (Chrome/Edge on a desktop).
- * Opens the port at the sketches' 115200 baud, resets the board so its
- * 10-second "waiting for PC time" prompt comes up while we listen, answers
- * that prompt with pcTimeString(), and hands every line to `onLine`.
+ * One board on this laptop's USB, over Web Serial (Chrome or Edge on a
+ * desktop), for any module (Phase 9 Stage 7e; Module 1 only before).
+ * Opens the port at the sketches' 115200 baud and hands every line, with
+ * its parsed event (serial-lines.ts), to `onLine`.
+ *
+ * - ESP32 boards (Modules 1, 2 and 4): connecting pulses EN so the board
+ *   reboots while we listen; Module 1's "waiting for PC time" prompt is
+ *   answered with pcTimeString().
+ * - Pico W (Module 3): MicroPython holds no reset line; Restart sends
+ *   Ctrl C then Ctrl D, a soft reset that runs main.py again.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LineBuffer, parseModul1Line, pcTimeString } from "../../lib/serial-modul1";
+import { LineBuffer, pcTimeString } from "../../lib/serial-modul1";
+import { parseSerialLine, type BoardRole, type SerialEvent } from "../../lib/serial-lines";
+import { jamMs } from "../../lib/live-records";
 
 // The DOM lib here has no Web Serial types yet; only what this file uses.
 interface SerialPortLike {
@@ -27,15 +35,23 @@ export type BoardStatus = "idle" | "open" | "lost" | "busy" | "error";
 export interface LogLine {
   id: number;
   text: string;
+  /** Milliseconds since midnight: the line's own [HH:MM:SS:MS] stamp, or
+   *  when it arrived. Used to merge sources in time order. */
+  t: number;
 }
 
-const LOG_MAX = 200;
+const LOG_MAX = 300;
 const BAUD = 115200;
 
-export function useSerialBoard(onLine: (line: string) => void) {
+function nowMs() {
+  const d = new Date();
+  return ((d.getHours() * 60 + d.getMinutes()) * 60 + d.getSeconds()) * 1000 + d.getMilliseconds();
+}
+
+export function useSerialBoard(modul: number, onLine?: (line: LogLine, ev: SerialEvent) => void) {
   const [status, setStatus] = useState<BoardStatus>("idle");
   const [log, setLog] = useState<LogLine[]>([]);
-  const [role, setRole] = useState<"central" | "peripheral" | null>(null);
+  const [role, setRole] = useState<BoardRole | null>(null);
   const [synced, setSynced] = useState(false);
   const port = useRef<SerialPortLike | null>(null);
   const reader = useRef<ReadableStreamDefaultReader<string> | null>(null);
@@ -44,41 +60,48 @@ export function useSerialBoard(onLine: (line: string) => void) {
   const onLineRef = useRef(onLine);
   onLineRef.current = onLine;
 
-  const write = useCallback(async (text: string) => {
+  const writeRaw = useCallback(async (text: string) => {
     const w = port.current?.writable?.getWriter();
     if (!w) return;
     try {
-      await w.write(new TextEncoder().encode(text + "\n"));
+      await w.write(new TextEncoder().encode(text));
     } finally {
       w.releaseLock();
     }
   }, []);
 
-  const sendTime = useCallback(() => write(pcTimeString()), [write]);
+  const sendTime = useCallback(() => writeRaw(pcTimeString() + "\n"), [writeRaw]);
 
   const handle = useCallback(
     (text: string) => {
       const clean = text.replace(/\r$/, "");
-      if (!clean) return;
+      if (!clean.trim()) return;
       lineId.current += 1;
-      const id = lineId.current;
-      setLog((l) => [...l, { id, text: clean }].slice(-LOG_MAX));
-      const p = parseModul1Line(clean);
-      if (p?.kind === "prompt" || p?.kind === "retry") void sendTime();
-      if (p?.kind === "synced") setSynced(true);
-      if (p?.kind === "send" || p?.kind === "echo") setRole("central");
-      if (p?.kind === "peripheral") setRole("peripheral");
-      onLineRef.current(clean);
+      const stamp = /^\[(\d{2}:\d{2}:\d{2}:\d{3})\]/.exec(clean)?.[1] ?? null;
+      const line: LogLine = { id: lineId.current, text: clean, t: jamMs(stamp) ?? nowMs() };
+      setLog((l) => [...l, line].slice(-LOG_MAX));
+      const ev = parseSerialLine(modul, clean);
+      if (ev?.k === "prompt" || ev?.k === "retry") void sendTime();
+      if (ev?.k === "synced") setSynced(true);
+      if (ev && "role" in ev) setRole(ev.role);
+      onLineRef.current?.(line, ev);
     },
-    [sendTime],
+    [modul, sendTime],
   );
 
-  /** EN low for a moment with IO0 left high: a normal reboot, the same
-   *  pulse esptool and the Arduino IDE use on these dev boards. */
+  /** ESP32: EN low for a moment with IO0 left high, the same pulse esptool
+   *  and the Arduino IDE use. Pico W: Ctrl C stops the program, Ctrl D
+   *  soft-resets, and main.py runs again. */
   const reset = useCallback(async () => {
     const p = port.current;
     if (!p) return;
     setSynced(false);
+    if (modul === 3) {
+      await writeRaw("\x03");
+      await new Promise((r) => setTimeout(r, 150));
+      await writeRaw("\x04");
+      return;
+    }
     try {
       await p.setSignals({ dataTerminalReady: false, requestToSend: true });
       await new Promise((r) => setTimeout(r, 120));
@@ -86,7 +109,7 @@ export function useSerialBoard(onLine: (line: string) => void) {
     } catch {
       // Boards without the auto-reset circuit: the EN button does the same.
     }
-  }, []);
+  }, [modul, writeRaw]);
 
   const close = useCallback(async (next: BoardStatus = "idle") => {
     const p = port.current;
@@ -123,7 +146,7 @@ export function useSerialBoard(onLine: (line: string) => void) {
     try {
       await p.open({ baudRate: BAUD });
     } catch {
-      setStatus("busy"); // most often Arduino's Serial Monitor holding it
+      setStatus("busy"); // most often the Arduino Serial Monitor or Thonny holding it
       return;
     }
     port.current = p;
@@ -136,7 +159,7 @@ export function useSerialBoard(onLine: (line: string) => void) {
     piped.current = p.readable!.pipeTo(decoder.writable as WritableStream<Uint8Array>);
     const r = decoder.readable.getReader();
     reader.current = r;
-    void reset();
+    if (modul !== 3) void reset();
 
     const lines = new LineBuffer();
     try {
@@ -151,7 +174,7 @@ export function useSerialBoard(onLine: (line: string) => void) {
       return;
     }
     if (port.current === p) await close("lost");
-  }, [close, handle, reset]);
+  }, [close, handle, reset, modul]);
 
   useEffect(
     () => () => {

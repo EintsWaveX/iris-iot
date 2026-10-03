@@ -1,0 +1,489 @@
+/* The Live room (Phase 9 Stage 7e, mockup p-live). Global: islands render
+   outside Astro's scoped styles. */
+
+.liveroom__top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+}
+
+.liveroom__top > :first-child {
+  min-width: 0;
+}
+
+/* Live / Try It keeps its own width beside the group picker. */
+.liveroom__top > .segmented {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.livebar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+
+/* ---------------------------------------------------------------- ports */
+
+.ports {
+  gap: 14px;
+}
+
+.ports__steps {
+  color: var(--text-muted);
+  display: grid;
+  gap: 6px;
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 1.3em;
+}
+
+.ports__steps li::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.ports__list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+.port {
+  align-items: center;
+  background: var(--bg-sunken);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 12px 14px;
+}
+
+.port[data-on="yes"] {
+  background: color-mix(in srgb, var(--ok) 8%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+  border-style: solid;
+}
+
+.port[data-warn="yes"] {
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+}
+
+.port__ic {
+  background: var(--surface-3);
+  border-radius: 12px;
+  color: var(--text-muted);
+  display: grid;
+  height: 40px;
+  place-items: center;
+  width: 40px;
+}
+
+.port[data-on="yes"] .port__ic {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+
+.port__t {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.port__act {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------- value cards */
+
+.vcards {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .vcards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .vcards {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+.vcard {
+  align-content: start;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+}
+
+.vcard--wide {
+  grid-column: span 2;
+}
+
+.vcard[data-tone="ok"] {
+  background: color-mix(in srgb, var(--ok) 8%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--ok) 60%, transparent);
+}
+
+.vcard[data-tone="warn"] {
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+}
+
+.vcard__l {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.vcard__v {
+  font:
+    700 1.55rem/1.15 var(--font-body),
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.vcard__v small {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.vcard__s {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.vspark {
+  display: block;
+  height: 26px;
+  margin-top: 2px;
+  width: 100%;
+}
+
+.vspark polyline {
+  fill: none;
+  stroke: var(--m, var(--accent));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.vdial {
+  display: block;
+  height: auto;
+  max-width: 120px;
+  width: 100%;
+}
+
+.vdial__track,
+.vdial__fill {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 8;
+}
+
+.vdial__track {
+  stroke: var(--hairline);
+}
+
+.vdial__fill {
+  stroke: var(--m, var(--accent));
+}
+
+.vtimes {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.vtimes > span {
+  display: grid;
+  gap: 1px;
+}
+
+.vtimes small {
+  color: var(--text-faint);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.vtimes b {
+  font-size: 1.02rem;
+}
+
+.vtimes > svg {
+  color: var(--text-faint);
+}
+
+/* ------------------------------------------------------- Serial Monitor */
+
+.serial {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  position: relative;
+}
+
+.serial > * {
+  min-width: 0;
+}
+
+.serial__bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.serial__bar > .tabs-scroll {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.serial__log {
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 13px;
+  height: 300px;
+  line-height: 1.65;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 10px 12px;
+}
+
+.serial__log:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+@media (max-height: 800px) {
+  .serial__log {
+    height: 220px;
+  }
+}
+
+@media (max-width: 639px) {
+  .serial__log {
+    font-size: 12px;
+    height: 260px;
+  }
+}
+
+.serial__wait {
+  color: var(--text-faint);
+  margin: 0;
+}
+
+.sline {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.sline[data-src="b0"] {
+  color: var(--text);
+}
+
+.sline[data-src="b1"] {
+  color: var(--accent-bright);
+}
+
+.sline[data-src="pi"] {
+  color: var(--ok);
+}
+
+.sline__src {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  min-width: 22px;
+  opacity: 0.85;
+  padding: 0 4px;
+  text-align: center;
+}
+
+.serial__empty {
+  border: 1.5px dashed var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 36px 16px;
+  text-align: center;
+}
+
+.serial__follow {
+  align-items: center;
+  background: var(--surface-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  bottom: 12px;
+  box-shadow: var(--shadow-panel);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  position: absolute;
+  right: 14px;
+}
+
+.serial__help {
+  display: grid;
+  gap: 8px;
+  max-width: 380px;
+}
+
+.serial__help .helplist {
+  display: grid;
+  gap: 8px;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 20px;
+}
+
+/* ------------------------------------------------------ flow, readings */
+
+.livepair {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.livepair > .panel {
+  min-width: 0;
+}
+
+.flow {
+  display: grid;
+  gap: 6px;
+}
+
+.flow__row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 56px minmax(0, 1fr) 72px;
+  min-height: 30px;
+}
+
+.flow__row b {
+  font-size: 0.92rem;
+  text-align: right;
+}
+
+.flow__bar {
+  background: var(--hairline-faint);
+  border-radius: 99px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.flow__bar i {
+  background: var(--m, var(--accent));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.flow__row[data-lost="yes"] .flow__bar i {
+  background: repeating-linear-gradient(135deg, var(--danger) 0 6px, transparent 6px 12px);
+  opacity: 0.6;
+}
+
+.flow__row[data-lost="yes"] b,
+.readings__lost {
+  color: var(--danger);
+}
+
+.readings__scroll {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.readings table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.readings th {
+  background: var(--surface-1);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  padding: 8px 10px;
+  position: sticky;
+  text-align: left;
+  top: 0;
+  white-space: nowrap;
+}
+
+.readings td {
+  border-top: 1px solid var(--hairline-faint);
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.liveroom__try {
+  gap: 12px;
+}
+
+/* Long tab lines and logs scroll inside their card, never widen the page. */
+.liveroom,
+.liveroom > *,
+.liveroom .stack > *,
+.liveroom .panel {
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  .liveroom__top > .segmented {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .port {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .port__act {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  .port__act > .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

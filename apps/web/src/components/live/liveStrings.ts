@@ -1,0 +1,423 @@
+/** The Live room's words (Phase 9 Stage 7e, mockup p-live). */
+import { dict } from "../../lib/app";
+import type { BoardRole } from "../../lib/serial-lines";
+
+export const LV = dict({
+  id: {
+    group: "Kelompok",
+    pickGroup: "Pilih kelompok",
+    mine: "kelompokmu",
+    mode: "Mode tampilan",
+    modeLive: "Langsung",
+    modeTry: "Coba Sendiri",
+    real: "Data Asli",
+    sim: "Simulasi",
+    stale: "Tidak Ada Data Baru",
+    paused: "Dijeda",
+    updated: (s: number) => (s < 3 ? "Diperbarui barusan" : `Diperbarui ${s} detik lalu`),
+    pause: "Jeda",
+    resume: "Lanjutkan",
+    simNote: (g: number) =>
+      `Belum ada data asli untuk kelompok ${g}, jadi angka di bawah ini simulasi. Data asli muncul begitu papan kelompok ini mengirim.`,
+    // Ports
+    ports: "Sambungkan Papan",
+    notConnected: (n: number) => `${n} belum tersambung`,
+    allConnected: "Semua tersambung",
+    step1: "Colok papan ke laptop pakai kabel USB data.",
+    step2: (m: number) =>
+      m === 3
+        ? "Tutup Thonny dulu. Satu port cuma bisa dipakai satu aplikasi."
+        : "Tutup Serial Monitor di Arduino IDE dulu. Satu port cuma bisa dipakai satu aplikasi.",
+    step3: "Tekan Hubungkan, lalu pilih port papannya di jendela Chrome.",
+    connect: "Hubungkan",
+    disconnect: "Putuskan",
+    restart: (m: number) =>
+      m === 3 ? "Mulai ulang (Ctrl C, Ctrl D: menjalankan main.py)" : "Mulai ulang papan",
+    sendTime: "Kirim waktu PC",
+    optional: "Opsional, Hunter sudah cukup",
+    portOn: (synced: boolean | null) =>
+      synced === null
+        ? "115200 baud"
+        : synced
+          ? "115200 baud · waktu PC tersinkron"
+          : "115200 baud · menunggu waktu PC",
+    status: {
+      idle: "Belum tersambung",
+      open: "Tersambung",
+      lost: "Terputus. Hubungkan lagi.",
+      busy: "Port sedang dipakai aplikasi lain",
+      error: "Galat",
+    } as Record<string, string>,
+    portsHint: "Pakai Chrome atau Edge. Kalau kabel tercabut, tekan Hubungkan lagi.",
+    unsupported:
+      "Menyambungkan papan butuh Chrome atau Edge di laptop. Halaman ini tetap menampilkan data kelompokmu dari Orange Pi.",
+    uploadSent: (n: number) => `${n} bacaan terkirim ke asisten`,
+    uploadNoSession: "Belum terkirim: tidak ada sesi Modul 1 berjalan yang kamu ikuti.",
+    uploadOffline: "Belum terkirim, mencoba lagi…",
+    // Cards
+    ledState: "Status LED",
+    on: "Nyala",
+    off: "Mati",
+    fromPeripheral: "dari Peripheral",
+    button: "Tombol",
+    pressed: "Ditekan",
+    released: "Dilepas",
+    onCentral: "di Central",
+    times: "Waktu Kirim dan Terima",
+    oneway: "Delay Satu Arah",
+    rtt: "Delay Round-Trip",
+    average: (ms: number | null) => (ms === null ? "rata-rata belum ada" : `rata-rata ${ms} ms`),
+    quality: "Kualitas",
+    lostPct: "% hilang",
+    jitter: (ms: number | null) => `jitter ±${ms ?? 0} ms`,
+    temp: "Suhu",
+    hum: "Kelembapan",
+    position: "Posisi Potensiometer",
+    sampleNo: "Nomor Sampel",
+    sampleSub: "naik tiap posisi bergeser 2%",
+    distance: "Perkiraan Jarak",
+    closer: "Mendekat",
+    farther: "Menjauh",
+    smoothed: (v: number | null) => (v === null ? "halus belum ada" : `halus ${v} dBm`),
+    // Panes
+    serial: "Serial Monitor",
+    flow: "Alur Pesan",
+    flowShort: "Alur",
+    readings: "Bacaan Terbaru",
+    readingsShort: "Bacaan",
+    panes: "Panel",
+    source: "Sumber",
+    combined: "Gabungan",
+    piServer: "Server Pi",
+    board: (role: BoardRole) => ROLE_ID[role],
+    noLines: "Tidak Ada Baris?",
+    emptyTitle: "Kalau Serial Monitor kosong",
+    help: (m: number) => HELP_ID[m] ?? HELP_ID[1],
+    plugTitle: "Colok papan ke laptop lewat USB",
+    plugBody: (m: number) =>
+      m === 3
+        ? "Tutup Thonny dulu (atau Run › Disconnect), lalu tekan Hubungkan di kartu Sambungkan Papan."
+        : "Tekan Hubungkan di kartu Sambungkan Papan, lalu pilih port papannya.",
+    ownOnly: "Serial hanya untuk papan kelompokmu",
+    ownOnlyBody: "Pilih kelompokmu untuk melihatnya.",
+    piOnlyAsisten:
+      "Baris dari papan hanya tampil di laptop kelompok. Di sini tampil baris server Pi.",
+    noPiLines: "Modul ini tidak punya log server Pi. Baris papan tampil di laptop kelompok.",
+    waiting: "Menunggu baris pertama…",
+    follow: "Ikuti Baris Terbaru",
+    lost: "hilang",
+    sent: "Kirim",
+    received: "Terima",
+    delay: "Delay",
+    copy: "Salin tabel",
+    csv: "Unduh CSV",
+    copied: "Tabel tersalin.",
+    copyFail: "Tidak bisa menyalin ke papan klip.",
+    waitingMsg: "Menunggu pesan pertama…",
+    tryHint:
+      "Tekan tombol untuk mengirim satu pesan uji dan lihat pesan itu melewati setiap lapisan.",
+  },
+  en: {
+    group: "Group",
+    pickGroup: "Choose a group",
+    mine: "your group",
+    mode: "View mode",
+    modeLive: "Live",
+    modeTry: "Try It",
+    real: "Real Data",
+    sim: "Simulated",
+    stale: "No New Data",
+    paused: "Paused",
+    updated: (s: number) => (s < 3 ? "Updated just now" : `Updated ${s} seconds ago`),
+    pause: "Pause",
+    resume: "Resume",
+    simNote: (g: number) =>
+      `No real data for group ${g} yet, so the numbers below are simulated. Real data appears as soon as this group's board sends.`,
+    ports: "Connect Your Boards",
+    notConnected: (n: number) => `${n} not connected`,
+    allConnected: "All connected",
+    step1: "Plug the board into your laptop with a USB data cable.",
+    step2: (m: number) =>
+      m === 3
+        ? "Close Thonny first. Only one app can use a port at a time."
+        : "Close the Arduino IDE Serial Monitor first. Only one app can use a port at a time.",
+    step3: "Press Connect, then pick the board's port in the Chrome window.",
+    connect: "Connect",
+    disconnect: "Disconnect",
+    restart: (m: number) =>
+      m === 3 ? "Restart (Ctrl C, Ctrl D: runs main.py)" : "Restart the board",
+    sendTime: "Send PC time",
+    optional: "Optional, the Hunter is enough",
+    portOn: (synced: boolean | null) =>
+      synced === null
+        ? "115200 baud"
+        : synced
+          ? "115200 baud · PC time synced"
+          : "115200 baud · waiting for PC time",
+    status: {
+      idle: "Not connected",
+      open: "Connected",
+      lost: "Disconnected. Connect again.",
+      busy: "Another app is using this port",
+      error: "Error",
+    } as Record<string, string>,
+    portsHint: "Use Chrome or Edge. If the cable slips out, press Connect again.",
+    unsupported:
+      "Connecting a board needs Chrome or Edge on a laptop. This page still shows your group's data from the Orange Pi.",
+    uploadSent: (n: number) => `${n} readings sent to your assistant`,
+    uploadNoSession: "Not sent: there is no running Module 1 session you joined.",
+    uploadOffline: "Not sent yet, retrying…",
+    ledState: "LED State",
+    on: "On",
+    off: "Off",
+    fromPeripheral: "from the Peripheral",
+    button: "Button",
+    pressed: "Pressed",
+    released: "Released",
+    onCentral: "on the Central",
+    times: "Send and Receive Time",
+    oneway: "One-Way Delay",
+    rtt: "Round-Trip Delay",
+    average: (ms: number | null) => (ms === null ? "no average yet" : `average ${ms} ms`),
+    quality: "Quality",
+    lostPct: "% lost",
+    jitter: (ms: number | null) => `jitter ±${ms ?? 0} ms`,
+    temp: "Temperature",
+    hum: "Humidity",
+    position: "Potentiometer Position",
+    sampleNo: "Sample Number",
+    sampleSub: "goes up with each 2% move",
+    distance: "Estimated Distance",
+    closer: "Getting closer",
+    farther: "Moving away",
+    smoothed: (v: number | null) => (v === null ? "no smoothed value yet" : `smoothed ${v} dBm`),
+    serial: "Serial Monitor",
+    flow: "Message Flow",
+    flowShort: "Flow",
+    readings: "Latest Readings",
+    readingsShort: "Readings",
+    panes: "Panel",
+    source: "Source",
+    combined: "Combined",
+    piServer: "Pi Server",
+    board: (role: BoardRole) => ROLE_EN[role],
+    noLines: "No Lines?",
+    emptyTitle: "If the Serial Monitor stays empty",
+    help: (m: number) => HELP_EN[m] ?? HELP_EN[1],
+    plugTitle: "Plug the board into the laptop over USB",
+    plugBody: (m: number) =>
+      m === 3
+        ? "Close Thonny first (or Run › Disconnect), then press Connect on the Connect Your Boards card."
+        : "Press Connect on the Connect Your Boards card, then pick the board's port.",
+    ownOnly: "Serial only shows your own group's boards",
+    ownOnlyBody: "Pick your own group to see it.",
+    piOnlyAsisten: "Board lines show on the group's laptop only. The Pi server's lines show here.",
+    noPiLines: "This module has no Pi server log. Board lines show on the group's laptop.",
+    waiting: "Waiting for the first line…",
+    follow: "Follow the Newest Line",
+    lost: "lost",
+    sent: "Sent",
+    received: "Received",
+    delay: "Delay",
+    copy: "Copy the table",
+    csv: "Download CSV",
+    copied: "Table copied.",
+    copyFail: "Could not copy to the clipboard.",
+    waitingMsg: "Waiting for the first message…",
+    tryHint: "Press the button to send one test message and watch it cross every layer.",
+  },
+  zh: {
+    group: "小组",
+    pickGroup: "选择小组",
+    mine: "你的小组",
+    mode: "显示模式",
+    modeLive: "实时",
+    modeTry: "自己试试",
+    real: "真实数据",
+    sim: "模拟",
+    stale: "没有新数据",
+    paused: "已暂停",
+    updated: (s: number) => (s < 3 ? "刚刚更新" : `${s} 秒前更新`),
+    pause: "暂停",
+    resume: "继续",
+    simNote: (g: number) =>
+      `第 ${g} 组还没有真实数据，下面的数字是模拟的。这个小组的板子一发送，真实数据就会出现。`,
+    ports: "连接板子",
+    notConnected: (n: number) => `${n} 个未连接`,
+    allConnected: "全部已连接",
+    step1: "用 USB 数据线把板子插到笔记本电脑上。",
+    step2: (m: number) =>
+      m === 3
+        ? "先关闭 Thonny。一个端口同时只能被一个应用使用。"
+        : "先关闭 Arduino IDE 的 Serial Monitor。一个端口同时只能被一个应用使用。",
+    step3: "按“连接”，然后在 Chrome 弹出的窗口里选择板子的端口。",
+    connect: "连接",
+    disconnect: "断开",
+    restart: (m: number) => (m === 3 ? "重启（Ctrl C、Ctrl D：运行 main.py）" : "重启板子"),
+    sendTime: "发送电脑时间",
+    optional: "可选，有 Hunter 就够了",
+    portOn: (synced: boolean | null) =>
+      synced === null
+        ? "115200 baud"
+        : synced
+          ? "115200 baud · 电脑时间已同步"
+          : "115200 baud · 等待电脑时间",
+    status: {
+      idle: "未连接",
+      open: "已连接",
+      lost: "已断开，请重新连接。",
+      busy: "端口正被其他应用使用",
+      error: "错误",
+    } as Record<string, string>,
+    portsHint: "请使用 Chrome 或 Edge。如果数据线松了，再按一次“连接”。",
+    unsupported:
+      "连接板子需要在笔记本电脑上使用 Chrome 或 Edge。这个页面仍会显示来自 Orange Pi 的小组数据。",
+    uploadSent: (n: number) => `已向助教发送 ${n} 条读数`,
+    uploadNoSession: "未发送：没有你参加的正在进行的模块 1 实验课。",
+    uploadOffline: "还未发送，正在重试…",
+    ledState: "LED 状态",
+    on: "亮",
+    off: "灭",
+    fromPeripheral: "来自 Peripheral",
+    button: "按钮",
+    pressed: "按下",
+    released: "松开",
+    onCentral: "在 Central 上",
+    times: "发送和接收时间",
+    oneway: "单向延迟",
+    rtt: "往返延迟",
+    average: (ms: number | null) => (ms === null ? "还没有平均值" : `平均 ${ms} ms`),
+    quality: "质量",
+    lostPct: "% 丢失",
+    jitter: (ms: number | null) => `抖动 ±${ms ?? 0} ms`,
+    temp: "温度",
+    hum: "湿度",
+    position: "电位器位置",
+    sampleNo: "样本编号",
+    sampleSub: "位置每变化 2% 加一",
+    distance: "估计距离",
+    closer: "在靠近",
+    farther: "在远离",
+    smoothed: (v: number | null) => (v === null ? "还没有平滑值" : `平滑 ${v} dBm`),
+    serial: "Serial Monitor",
+    flow: "消息流",
+    flowShort: "消息流",
+    readings: "最新读数",
+    readingsShort: "读数",
+    panes: "面板",
+    source: "来源",
+    combined: "合并",
+    piServer: "Pi 服务器",
+    board: (role: BoardRole) => ROLE_ZH[role],
+    noLines: "没有输出？",
+    emptyTitle: "如果 Serial Monitor 一直是空的",
+    help: (m: number) => HELP_ZH[m] ?? HELP_ZH[1],
+    plugTitle: "用 USB 把板子插到笔记本电脑上",
+    plugBody: (m: number) =>
+      m === 3
+        ? "先关闭 Thonny（或 Run › Disconnect），然后在“连接板子”卡片上按“连接”。"
+        : "在“连接板子”卡片上按“连接”，然后选择板子的端口。",
+    ownOnly: "Serial 只显示你自己小组的板子",
+    ownOnlyBody: "选择你的小组就能看到。",
+    piOnlyAsisten: "板子的输出只显示在小组的笔记本电脑上。这里显示 Pi 服务器的输出。",
+    noPiLines: "这个模块没有 Pi 服务器日志。板子的输出显示在小组的笔记本电脑上。",
+    waiting: "等待第一行…",
+    follow: "跟随最新一行",
+    lost: "丢失",
+    sent: "发送",
+    received: "接收",
+    delay: "延迟",
+    copy: "复制表格",
+    csv: "下载 CSV",
+    copied: "表格已复制。",
+    copyFail: "无法复制到剪贴板。",
+    waitingMsg: "等待第一条消息…",
+    tryHint: "按下按钮发送一条测试消息，看它穿过每一层。",
+  },
+});
+
+const ROLE_ID: Record<BoardRole, string> = {
+  central: "Papan 1 · Central",
+  peripheral: "Papan 2 · Peripheral",
+  esp32: "Papan · ESP32",
+  publisher: "Papan 1 · Publisher",
+  subscriber: "Papan 2 · Subscriber",
+  beacon: "Papan 1 · Beacon",
+  hunter: "Papan 2 · Hunter",
+};
+const ROLE_EN: Record<BoardRole, string> = {
+  central: "Board 1 · Central",
+  peripheral: "Board 2 · Peripheral",
+  esp32: "Board · ESP32",
+  publisher: "Board 1 · Publisher",
+  subscriber: "Board 2 · Subscriber",
+  beacon: "Board 1 · Beacon",
+  hunter: "Board 2 · Hunter",
+};
+const ROLE_ZH: Record<BoardRole, string> = {
+  central: "板子 1 · Central",
+  peripheral: "板子 2 · Peripheral",
+  esp32: "板子 · ESP32",
+  publisher: "板子 1 · Publisher",
+  subscriber: "板子 2 · Subscriber",
+  beacon: "板子 1 · Beacon",
+  hunter: "板子 2 · Hunter",
+};
+
+const ESP_ID = [
+  "ESP32-S3 lewat port USB bawaan: di Arduino IDE buka Tools › USB CDC On Boot › Enabled, lalu upload ulang. Atau colok ke port UART/COM.",
+  "Tutup Serial Monitor Arduino IDE. Satu port hanya bisa dibuka satu aplikasi.",
+  "Baud harus 115200, sama dengan Serial.begin di sketsa.",
+];
+const ESP_EN = [
+  "ESP32-S3 on its native USB port: in the Arduino IDE open Tools › USB CDC On Boot › Enabled, then upload again. Or plug into the UART/COM port.",
+  "Close the Arduino IDE Serial Monitor. One port opens in one app at a time.",
+  "Baud must be 115200, the same as Serial.begin in the sketch.",
+];
+const ESP_ZH = [
+  "ESP32-S3 使用自带 USB 口时：在 Arduino IDE 里打开 Tools › USB CDC On Boot › Enabled，然后重新上传。或者插到 UART/COM 口。",
+  "关闭 Arduino IDE 的 Serial Monitor。一个端口同时只能被一个应用打开。",
+  "波特率必须是 115200，和程序里的 Serial.begin 一样。",
+];
+const HELP_ID: Record<number, string[]> = {
+  1: ESP_ID,
+  2: ESP_ID,
+  3: [
+    "Simpan programnya ke papan sebagai main.py.",
+    "Tutup Thonny, atau pilih Run › Disconnect. Thonny memegang port selama Shell-nya terbuka.",
+    "Tekan Mulai Ulang. Halaman mengirim Ctrl C lalu Ctrl D (soft reset), main.py berjalan dan print-nya muncul.",
+  ],
+  4: [
+    "Cukup Hunter yang dicolok. Beacon boleh dicolok juga untuk memastikan waktu kirim.",
+    "Waktu kirim diambil dari isi paket LoRa yang diteruskan Hunter ke Pi, dipasangkan lewat nomor paket.",
+    "ESP32-S3 lewat port USB bawaan butuh USB CDC On Boot › Enabled.",
+  ],
+};
+const HELP_EN: Record<number, string[]> = {
+  1: ESP_EN,
+  2: ESP_EN,
+  3: [
+    "Save the program on the board as main.py.",
+    "Close Thonny, or pick Run › Disconnect. Thonny holds the port while its Shell is open.",
+    "Press Restart. The page sends Ctrl C then Ctrl D (a soft reset), main.py runs and its prints show up.",
+  ],
+  4: [
+    "The Hunter is enough. Plug the Beacon in too if you want to confirm the send time.",
+    "The send time comes from the LoRa packet the Hunter forwards to the Pi, matched by packet number.",
+    "ESP32-S3 on its native USB port needs USB CDC On Boot › Enabled.",
+  ],
+};
+const HELP_ZH: Record<number, string[]> = {
+  1: ESP_ZH,
+  2: ESP_ZH,
+  3: [
+    "把程序以 main.py 的名字保存到板子上。",
+    "关闭 Thonny，或选择 Run › Disconnect。Thonny 的 Shell 打开时会一直占用端口。",
+    "按“重启”。页面会发送 Ctrl C 再发送 Ctrl D（软重启），main.py 运行后就能看到它的输出。",
+  ],
+  4: [
+    "只插 Hunter 就够了。也可以插上 Beacon 来确认发送时间。",
+    "发送时间来自 Hunter 转发给 Pi 的 LoRa 数据包内容，按包编号配对。",
+    "ESP32-S3 使用自带 USB 口时需要 USB CDC On Boot › Enabled。",
+  ],
+};

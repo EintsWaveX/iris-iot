@@ -44,7 +44,7 @@ import { Switch } from "../ui/Controls";
 import CodeStep, { type CodeProps } from "./CodeStep";
 import PinSchematic, { type PinData } from "./PinSchematic";
 import SetupChecklist from "./SetupChecklist";
-import LiveWorkspace from "../live/LiveWorkspace";
+import LiveRoom from "../live/LiveRoom";
 import BriefStep from "./BriefStep";
 import { getJson, href, tanggalPanjang, useMe, useSessionNow } from "../../lib/app";
 import { getAksesState, type AksesState } from "../../scripts/modul-akses";
@@ -79,7 +79,7 @@ interface Props {
   pin: PinData;
   mcu: string;
   skema: string;
-  layers: ComponentProps<typeof LiveWorkspace>["layers"];
+  layers: ComponentProps<typeof LiveRoom>["layers"];
   code: CodeProps;
 }
 
@@ -287,7 +287,7 @@ export default function ModuleSteps(p: Props) {
           ) : mode === "done" ? (
             <Done lang={lang} done={done} />
           ) : (
-            <LiveWorkspace lang={lang} modul={modul} layers={p.layers} />
+            <LiveRoom lang={lang} modul={modul} layers={p.layers} />
           )}
         </Fade>
       </div>
