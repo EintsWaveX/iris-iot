@@ -694,6 +694,15 @@ export const server = pgTable("server", {
   // starts sending one, without a second migration just for that.
   infoSistem: jsonb("info_sistem").$type<Record<string, unknown>>(),
   infoSistemPada: timestamp("info_sistem_pada", { withTimezone: true }),
+  // Phase 9 Stage 5 (0015): the latest `kondisi` block from the heartbeat
+  // (load average, memory, swap and disk in bytes, uplink traffic, clock
+  // offset). Only the newest one is kept; the charts still come from denyut.
+  kondisi: jsonb("kondisi").$type<Record<string, unknown>>(),
+  kondisiPada: timestamp("kondisi_pada", { withTimezone: true }),
+  // "Kosongkan log" on the History dialog: events before this are hidden
+  // (the denyut rows stay, the charts need them). The audit log keeps what
+  // was cleared.
+  riwayatSejak: timestamp("riwayat_sejak", { withTimezone: true }),
 });
 
 /**

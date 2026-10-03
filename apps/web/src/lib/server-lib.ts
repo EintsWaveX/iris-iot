@@ -146,6 +146,12 @@ export const AKSI_PERINTAH = [
   // siap). Read-only like the rest; its one argument, `modul`, is checked
   // by modulSiapValid() here and by SIAP_MODUL in commands.py.
   "diag.siap",
+  // Phase 9 Stage 5: the Full view (rinci.py on the Pi, JSON), the system
+  // journal (unit and level from fixed lists, journalArgValid), and a
+  // request for a fresh infoSistem on the next beat. All read only.
+  "diag.rinci",
+  "diag.journal",
+  "info.segarkan",
 ] as const;
 export type AksiPerintah = (typeof AKSI_PERINTAH)[number];
 

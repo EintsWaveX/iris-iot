@@ -96,8 +96,14 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
       agenVersi: row.agenVersi,
       infoSistem: row.infoSistem,
       infoSistemPada: row.infoSistemPada,
+      kondisi: row.kondisi,
+      kondisiPada: row.kondisiPada,
+      riwayatSejak: row.riwayatSejak,
       terdaftar: row.terdaftarPada !== null,
     },
+    // Stage 5: what the Updates card compares the Pi's bundle with. Set on
+    // Vercel; null in local runs, where the card shows the SHA only.
+    situsIot: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     denyutTerakhir: denyutTerakhir ?? null,
     batasLuringDetik: batasLuringDetik(denyutTerakhir?.pada ?? null, sesiMulaiPada),
     perintah: daftarPerintah,
@@ -144,6 +150,14 @@ async function handleRiwayat(_req: ApiRequest, res: ApiResponse, id: number, ren
   const db = getDb();
   const mulai = new Date(Date.now() - RENTANG_DETIK[rentang] * 1000);
   const akhir = new Date();
+  const [srv] = await db
+    .select({ sejak: server.riwayatSejak })
+    .from(server)
+    .where(eq(server.id, id))
+    .limit(1);
+  // Stage 5: events before "Kosongkan log" stay out of the lists; the
+  // chart series and availability still use every row.
+  const sejak = srv?.sejak?.toISOString() ?? "";
 
   const rows = await db
     .select({
@@ -167,10 +181,10 @@ async function handleRiwayat(_req: ApiRequest, res: ApiResponse, id: number, ren
     mulai: mulai.toISOString(),
     akhir: akhir.toISOString(),
     seri: downsample(withIso, RIWAYAT_MAX_POINTS),
-    reboot: detectReboots(withIso),
-    gap: detectGaps(withIso),
+    reboot: detectReboots(withIso).filter((r) => r.pada >= sejak),
+    gap: detectGaps(withIso).filter((g) => g.sampai >= sejak),
     ketersediaan: hitungKetersediaan(withIso, mulai, akhir),
-    timelineLayanan: bangunTimelineLayanan(withIso),
+    timelineLayanan: bangunTimelineLayanan(withIso).filter((x) => x.dari >= sejak),
   });
 }
 

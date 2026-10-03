@@ -60,6 +60,7 @@ import {
 } from "../../src/lib/server-lib.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
+import { saringKondisi } from "../../src/lib/server-shared.js";
 import { eq, and } from "drizzle-orm";
 
 interface HasilPerintahMasuk {
@@ -169,12 +170,15 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       typeof body.alamatLan === "string" && ALAMAT_LAN_RE.test(body.alamatLan)
         ? body.alamatLan
         : null;
+    const kondisi = saringKondisi(body.kondisi);
     const serverSet = {
       ...(typeof body.agenVersi === "string" ? { agenVersi: body.agenVersi } : {}),
       ...(isPlainObject(body.infoSistem)
         ? { infoSistem: body.infoSistem, infoSistemPada: new Date() }
         : {}),
       ...(alamatLan && alamatLan !== row.alamatLan ? { alamatLan } : {}),
+      // Stage 5: the newest "Pi right now" numbers; only the known keys.
+      ...(kondisi ? { kondisi, kondisiPada: new Date() } : {}),
     };
     if (Object.keys(serverSet).length) {
       await db.update(server).set(serverSet).where(eq(server.id, serverId));
