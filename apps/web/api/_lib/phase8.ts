@@ -36,7 +36,7 @@ import { validasiUmpanBalik, ringkas } from "../../src/lib/umpan-balik.js";
 import type { Kelas } from "../../src/lib/kelas.js";
 import { muatMinggu } from "./penugasan-api.js";
 import { and, eq, asc, desc, inArray } from "drizzle-orm";
-import { ALASAN_MIN, catatPasangan, cekPasangan } from "./berjalan.js";
+import { ALASAN_MIN, catatKejadian, catatPasangan, cekPasangan } from "./berjalan.js";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -292,6 +292,25 @@ export async function handleHelpPraktikan(
   const aktif = Boolean(jsonBody(req).aktif);
   const pada = aktif ? new Date() : null;
   const db = getDb();
+  if (aktif) {
+    // One line per raised hand: a repeat while the hand is up logs nothing.
+    const [g] = await db
+      .select({ nomor: kelompok.nomor, naik: sesiKelompok.mintaBantuanPada })
+      .from(kelompok)
+      .leftJoin(
+        sesiKelompok,
+        and(eq(sesiKelompok.kelompokId, kelompok.id), eq(sesiKelompok.sesiId, running.id)),
+      )
+      .where(eq(kelompok.id, session.kelompokId))
+      .limit(1);
+    if (!g?.naik)
+      await catatKejadian(
+        running.id,
+        "tangan",
+        { kelompokId: session.kelompokId, nomor: g?.nomor ?? null },
+        session.nim,
+      );
+  }
   await db
     .insert(sesiKelompok)
     .values({ sesiId: running.id, kelompokId: session.kelompokId, mintaBantuanPada: pada })
@@ -311,6 +330,24 @@ export async function handleHelpAsisten(
   const sesiId = posInt(body.sesiId);
   const kelompokId = posInt(body.kelompokId);
   if (!sesiId || !kelompokId) return badRequest(res);
+  const [naik] = await getDb()
+    .select({ pada: sesiKelompok.mintaBantuanPada, nomor: kelompok.nomor })
+    .from(sesiKelompok)
+    .innerJoin(kelompok, eq(kelompok.id, sesiKelompok.kelompokId))
+    .where(and(eq(sesiKelompok.sesiId, sesiId), eq(sesiKelompok.kelompokId, kelompokId)))
+    .limit(1);
+  if (naik?.pada) {
+    await catatKejadian(
+      sesiId,
+      "tangan_jawab",
+      {
+        kelompokId,
+        nomor: naik.nomor,
+        detik: Math.max(0, Math.round((Date.now() - naik.pada.getTime()) / 1000)),
+      },
+      session.nim,
+    );
+  }
   await getDb()
     .update(sesiKelompok)
     .set({ mintaBantuanPada: null })
@@ -465,10 +502,17 @@ export async function handleFeedbackGet(
   const scope = req.query.scope === "lab" ? "lab" : "mine";
   const sesiId = req.query.sesiId === undefined ? null : posInt(req.query.sesiId);
   if (req.query.sesiId !== undefined && !sesiId) return badRequest(res);
+  // Reports › Lab Feedback: the sessions the filter bar shows.
+  const sesiIds =
+    typeof req.query.sesiIds === "string"
+      ? req.query.sesiIds.split(",").filter(Boolean).map(posInt)
+      : null;
+  if (sesiIds && (sesiIds.length > 1000 || sesiIds.some((x) => !x))) return badRequest(res);
   const db = getDb();
   const kondisi = [
     scope === "mine" ? eq(umpanBalik.asistenNim, session.nim) : undefined,
     sesiId ? eq(umpanBalik.sesiId, sesiId) : undefined,
+    sesiIds ? inArray(umpanBalik.sesiId, sesiIds.length ? (sesiIds as number[]) : [0]) : undefined,
   ].filter((x): x is NonNullable<typeof x> => !!x);
   const rows = await db
     .select({

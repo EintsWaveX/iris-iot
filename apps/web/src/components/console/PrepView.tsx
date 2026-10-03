@@ -430,7 +430,6 @@ function NewDraftDialog({
             lang={lang}
             from={6}
             to={21}
-            step={15}
           />
         </div>
         <Dropdown

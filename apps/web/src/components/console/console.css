@@ -348,6 +348,11 @@
   justify-content: space-between;
 }
 
+.console__modes > .seg {
+  flex: 1 1 auto;
+  width: auto;
+}
+
 .console__hints {
   align-items: center;
   display: inline-flex;
@@ -1204,6 +1209,13 @@ thead .ntable__name {
   justify-content: space-between;
 }
 
+@media (max-width: 639px) {
+  .rostertab__bar > .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
 .prepsplit {
   align-items: start;
   display: grid;
@@ -1223,6 +1235,19 @@ thead .ntable__name {
   display: flex;
   flex-wrap: wrap;
   gap: 14px 18px;
+}
+
+/* The two steppers and the two buttons share the roster's width. */
+.rostertools > * {
+  flex: 1 1 11rem;
+}
+
+.rostertools > .btn {
+  flex-basis: 9rem;
+}
+
+.rostertools .ctl-stepper {
+  width: 100%;
 }
 
 .rgrid {
@@ -1315,6 +1340,37 @@ thead .ntable__name {
   grid-template-columns: auto auto minmax(0, 1fr) auto auto;
 }
 
+/* On a phone the name gets the row's width and the NIM sits under it. */
+@media (max-width: 639px) {
+  .mrow {
+    grid-template-areas:
+      "grip name tag act"
+      "grip nim tag act";
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    row-gap: 0;
+  }
+
+  .mrow > :first-child {
+    grid-area: grip;
+  }
+
+  .mrow > .mono {
+    grid-area: nim;
+  }
+
+  .mrow > .mrow__name {
+    grid-area: name;
+  }
+
+  .mrow > .pill {
+    grid-area: tag;
+  }
+
+  .mrow > :last-child {
+    grid-area: act;
+  }
+}
+
 .mrow:focus-visible {
   box-shadow: 0 0 0 2px var(--accent);
   outline: none;
@@ -1369,13 +1425,25 @@ thead .ntable__name {
 }
 
 /* The 1-3 filter block: the working list across the top, three under it. */
+/* The student list filter: equal cells, two by two in a narrow pane and
+   four in a row once there is room. */
+:has(> .tabs13) {
+  container-type: inline-size;
+}
+
 .tabs13 {
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-md);
   display: grid;
   gap: 4px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 4px;
+}
+
+@container (min-width: 640px) {
+  .tabs13 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .tabs13 > button {
@@ -1387,10 +1455,6 @@ thead .ntable__name {
   font: inherit;
   font-weight: 600;
   min-height: 40px;
-}
-
-.tabs13 > button:first-child {
-  grid-column: 1 / -1;
 }
 
 .tabs13 > button[aria-selected="true"] {
@@ -1427,7 +1491,8 @@ thead .ntable__name {
   align-items: stretch;
   display: grid;
   gap: 10px;
-  grid-template-columns: 4fr 2fr;
+  /* Four modules and three languages: every segment in the row the same width. */
+  grid-template-columns: 4fr 3fr;
 }
 
 @media (max-width: 759px) {
@@ -2104,11 +2169,28 @@ thead .ntable__name {
   grid-column: 1 / -1;
 }
 
+/* The stepper, then the quick lengths sharing the rest of the card. */
 .startcard__len {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.startcard__len > .chipbtn {
+  flex: 1 1 56px;
+}
+
+@media (max-width: 639px) {
+  .startcard__len {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .startcard__len > .ctl-stepper {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
 }
 
 .chipbtn {

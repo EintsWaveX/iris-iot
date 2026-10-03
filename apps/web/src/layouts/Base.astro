@@ -46,6 +46,7 @@ import Cosmos from "../components/Cosmos.astro";
 import LoginDialog from "../components/LoginDialog";
 import AppNav from "../components/shell/AppNav";
 import Toast from "../components/ui/Toast";
+import SegFit from "../components/shell/SegFit";
 import { langTag, type Lang } from "../lib/kelas";
 
 interface Props {
@@ -98,6 +99,7 @@ const {
     {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />}
     <LoginDialog client:load lang={lang} />
     <Toast client:load />
+    <SegFit client:load />
     <slot />
   </body>
 </html>

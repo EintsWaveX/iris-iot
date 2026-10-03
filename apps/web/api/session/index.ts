@@ -54,6 +54,7 @@ import { writeAudit } from "../../src/lib/auth.js";
 import { getModulTerbuka } from "../../src/lib/akses.js";
 import { isKelas } from "../../src/lib/kelas.js";
 import { jadwalUntuk, siapkanSesiDariJadwal } from "../_lib/phase8.js";
+import { catatKejadian } from "../_lib/berjalan.js";
 
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
 const JAM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -208,6 +209,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       console.error("[api/session] schedule prefill failed:", err);
     }
 
+    await catatKejadian(created.id, "mulai", { modul, slot, jenis: created.jenis }, session.nim);
     await writeAudit(session.nim, "sesi_mulai", {
       tanggal,
       mulai,

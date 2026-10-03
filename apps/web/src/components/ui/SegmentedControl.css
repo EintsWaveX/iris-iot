@@ -7,10 +7,16 @@
   background: var(--bg-sunken);
   border: 1px solid var(--hairline-strong);
   border-radius: calc(var(--radius-md) + 4px);
-  display: inline-flex;
+  display: flex;
   gap: 4px;
   max-width: 100%;
   padding: 4px;
+  width: 100%;
+}
+
+/* Phase 9: the options always share the width in equal parts. */
+.segmented__item {
+  flex: 1 1 0;
 }
 
 .segmented--fill {

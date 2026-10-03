@@ -4,6 +4,22 @@
    islands sit outside Astro's scoped CSS. Built only from kosmik tokens.
    ========================================================================= */
 
+/* Phase 9: type scales with the screen. Everything is sized in rem, so the
+   root sets it: 100% (the browser's own size, 16px by default) from about
+   1280px wide, easing down to 87.5% (14px) on a 360px phone. Percentages
+   keep a reader's own browser font size in charge. */
+html {
+  font-size: clamp(87.5%, 82.5% + 0.21vw, 100%);
+}
+
+/* iOS Safari zooms into any field under 16px; fields there stay at 16px. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea {
+    font-size: max(1rem, 16px);
+  }
+}
+
 .skip-link {
   background: var(--accent);
   border-radius: var(--radius-md);
@@ -108,6 +124,19 @@
   gap: var(--space-2) var(--space-3);
   justify-content: space-between;
   min-height: 32px;
+}
+
+/* On a phone a group of buttons in a card head takes the card's width,
+   each button an equal share. */
+@media (max-width: 639px) {
+  .panel__head > .row:has(> .btn + .btn) {
+    flex: 1 1 100%;
+  }
+
+  .panel__head > .row:has(> .btn + .btn) > .btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
 }
 
 .panel__title {
@@ -441,17 +470,48 @@
   background: var(--bg-sunken);
   border: 1px solid var(--hairline-strong);
   border-radius: calc(var(--radius-md) + 4px);
-  display: inline-grid;
+  display: grid;
   gap: 4px;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
   max-width: 100%;
   padding: 4px;
+  width: 100%;
+}
+
+/* Phase 9: every switch fills its card (or the row it sits in) in equal
+   parts. Beside other controls in a row it starts at its own width, takes
+   the room that is left, and drops to its own line only when it no longer
+   fits beside them. */
+.row > .seg,
+.row > .segmented {
+  flex: 1 1 auto;
+  width: auto;
 }
 
 .seg--wide {
   display: grid;
   width: 100%;
+}
+
+/* When the options cannot be equal in one row, SegFit.tsx sets data-cols:
+   two per row, or one per row on the narrowest screens. An odd last option
+   takes the whole row. */
+.seg[data-cols],
+.segmented[data-cols] {
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-columns: repeat(var(--seg-cols, 2), minmax(0, 1fr));
+}
+
+.seg[data-cols="1"],
+.segmented[data-cols="1"] {
+  --seg-cols: 1;
+}
+
+.seg[data-cols="2"] > :last-child:nth-child(odd),
+.segmented[data-cols="2"] > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .seg button {

@@ -165,15 +165,6 @@ export function tanggalPanjang(iso: string, lang: Lang): string {
   });
 }
 
-/** Every time from `from` to `to` o'clock, `step` minutes apart. */
-export function waktuPilihan(from: number, to: number, step: number): string[] {
-  const out: string[] = [];
-  for (let m = from * 60; m <= to * 60; m += step) {
-    out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
-  }
-  return out;
-}
-
 /** Prefix a path for the page language ("/dashboard" -> "/en/dashboard"). */
 export function href(lang: Lang, path: string): string {
   if (lang === "id") return path;

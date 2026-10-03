@@ -347,6 +347,21 @@
   }
 }
 
+/* Compact / Full: its own width beside the name; a full row on a phone. */
+.detailsw .segmented {
+  width: max-content;
+}
+
+@media (max-width: 639px) {
+  .detailsw {
+    flex: 1 1 100%;
+  }
+
+  .detailsw .segmented {
+    width: 100%;
+  }
+}
+
 .detailsw .segmented__item {
   align-items: center;
   display: inline-flex;
@@ -1060,10 +1075,11 @@ button.qa__b[aria-disabled="true"] {
   border: 1.5px solid var(--danger);
 }
 
+/* The three diagnostics act as tabs: equal widths across the card. */
 .srv-diagbtns {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 }
 
 .srv-diagbtns .btn[aria-pressed="true"] {

@@ -15,17 +15,17 @@ export const CHIPS_LAB = [
 ] as const;
 export const KOMENTAR_MAX = 500;
 
-export const LABEL_CHIP: Record<string, { id: string; en: string }> = {
-  jelas: { id: "Penjelasan jelas", en: "Clear explanations" },
-  sabar: { id: "Sabar", en: "Patient" },
-  cepat: { id: "Cepat membantu", en: "Quick to help" },
-  kurang_jelas: { id: "Perlu lebih jelas", en: "Could be clearer" },
-  sulit_ditemui: { id: "Sulit ditemui", en: "Hard to reach" },
-  alat_lengkap: { id: "Alat lengkap", en: "Tools complete" },
-  wifi_stabil: { id: "Wi-Fi stabil", en: "Stable Wi-Fi" },
-  alat_rusak: { id: "Alat rusak", en: "Broken tools" },
-  ruang_panas: { id: "Ruangan panas", en: "Room too hot" },
-  waktu_kurang: { id: "Waktu kurang", en: "Not enough time" },
+export const LABEL_CHIP: Record<string, { id: string; en: string; zh: string }> = {
+  jelas: { id: "Penjelasan jelas", en: "Clear explanations", zh: "讲解清楚" },
+  sabar: { id: "Sabar", en: "Patient", zh: "有耐心" },
+  cepat: { id: "Cepat membantu", en: "Quick to help", zh: "帮忙很快" },
+  kurang_jelas: { id: "Perlu lebih jelas", en: "Could be clearer", zh: "可以更清楚" },
+  sulit_ditemui: { id: "Sulit ditemui", en: "Hard to reach", zh: "很难找到" },
+  alat_lengkap: { id: "Alat lengkap", en: "Tools complete", zh: "器材齐全" },
+  wifi_stabil: { id: "Wi-Fi stabil", en: "Stable Wi-Fi", zh: "Wi-Fi 稳定" },
+  alat_rusak: { id: "Alat rusak", en: "Broken tools", zh: "器材坏了" },
+  ruang_panas: { id: "Ruangan panas", en: "Room too hot", zh: "教室太热" },
+  waktu_kurang: { id: "Waktu kurang", en: "Not enough time", zh: "时间不够" },
 };
 
 export interface UmpanBalikInput {

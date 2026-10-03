@@ -5,9 +5,8 @@
  * POST /api/session/durasi    { menit }   — asisten. Extend (or shorten)
  *                              the running session: 15 minutes from now at
  *                              the least, 150 at most (src/lib/sesi-mulai).
- * GET  /api/session/kejadian?sesiId=      — asisten. The session's events
- *                              (pairing changes, length changes), oldest
- *                              first.
+ * The session's incident log itself is read and written in
+ * api/_lib/laporan-data.ts (GET and POST /api/session/kejadian).
  *
  * Pairing changes themselves stay on /api/session/assignment
  * (api/_lib/phase8.ts), which calls `cekPasangan` and `catatPasangan` here:
@@ -34,6 +33,25 @@ type Db = ReturnType<typeof getDb>;
 
 /** Shortest reason a pairing change accepts (the dialog's own rule). */
 export const ALASAN_MIN = 5;
+
+/**
+ * One line in a session's incident log (Reports › Incidents). Kinds the
+ * system writes: mulai, akhiri, batal, siarkan, lanjutkan, durasi,
+ * pasangan, akun_seelabs, tangan, tangan_jawab. Asisten write "catatan".
+ * Best effort: a failed log line never fails the action it describes.
+ */
+export async function catatKejadian(
+  sesiId: number,
+  jenis: string,
+  detail: Record<string, unknown>,
+  aktorNim: string,
+): Promise<void> {
+  try {
+    await getDb().insert(sesiKejadian).values({ sesiId, jenis, detail, aktorNim });
+  } catch (err) {
+    console.error("[kejadian] log line failed:", jenis, err);
+  }
+}
 
 export async function handleDurasi(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const running = await currentSesi();
@@ -64,20 +82,6 @@ export async function handleDurasi(req: ApiRequest, res: ApiResponse, session: S
     .values({ sesiId: running.id, jenis: "durasi", detail: { dari, ke }, aktorNim: session.nim });
   await writeAudit(session.nim, "sesi_durasi", { sesiId: running.id, dari, ke });
   res.status(200).json({ ok: true, durasiMenit: ke });
-}
-
-export async function handleKejadianGet(req: ApiRequest, res: ApiResponse) {
-  const sesiId = Number(req.query.sesiId);
-  if (!Number.isInteger(sesiId) || sesiId <= 0) {
-    res.status(400).json({ ok: false, kode: "format_salah" });
-    return;
-  }
-  const rows = await getDb()
-    .select()
-    .from(sesiKejadian)
-    .where(eq(sesiKejadian.sesiId, sesiId))
-    .orderBy(asc(sesiKejadian.pada), asc(sesiKejadian.id));
-  res.status(200).json({ ok: true, kejadian: rows });
 }
 
 /**

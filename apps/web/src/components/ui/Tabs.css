@@ -60,10 +60,15 @@
 
 /* Tabs, underline form (Phase 9 kit): for the main sections of a page. A
    rainbow line marks the active tab. The pill form is .seg (app.css). */
+/* Phase 9: the tabs share the row's width in equal parts; when they no
+   longer fit, each keeps its own width and the row scrolls. */
 .tabs__tab {
   align-items: center;
   color: var(--text-muted);
   display: inline-flex;
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: max-content;
   font-size: 1.06rem;
   font-weight: 650;
   gap: 8px;

@@ -254,39 +254,189 @@
   fill: var(--text-muted);
 }
 
-/* The time grid in TimeField's popover */
-.ctl-time {
-  display: grid;
-  gap: 4px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  max-height: 260px;
-  overflow: auto;
-}
-
-.ctl-time__o {
-  background: var(--surface-1);
-  border: 1px solid var(--hairline);
-  border-radius: 8px;
+/* TimeField: the field holds two boxes (HH and MM) and a clock button */
+.ctl-clock {
+  align-items: center;
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
   color: var(--text);
+  display: flex;
+  gap: 2px;
+  min-height: 48px;
+  padding: 0 4px 0 var(--space-3);
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    box-shadow var(--dur-fast) var(--ease-reveal);
+  width: 100%;
+}
+
+.ctl-clock {
   cursor: pointer;
+}
+
+.ctl-clock:hover,
+.ctl-clock[data-state="open"] {
+  border-color: var(--accent);
+}
+
+.ctl-clock:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--glow-ring);
+}
+
+.ctl-clock__part {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: inherit;
   font: inherit;
-  min-height: 40px;
+  font-size: 1.05em;
+  font-weight: 600;
+  height: 36px;
+  padding: 0;
+  text-align: center;
+  width: 2.4ch;
 }
 
-.ctl-time__o:hover {
-  border-color: var(--text-muted);
+.ctl-clock__part::placeholder {
+  color: var(--text-faint);
 }
 
-.ctl-time__o:focus-visible {
+.ctl-clock__part:focus {
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.ctl-clock__part::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.ctl-clock__sep {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.ctl-clock__open {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm, 8px);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  margin-left: auto;
+  width: 40px;
+}
+
+.ctl-clock__open:hover {
+  background: var(--hairline-faint);
+  color: var(--text);
+}
+
+.ctl-clock__open:focus-visible {
   box-shadow: var(--glow-ring);
   outline: none;
 }
 
-.ctl-time__o[aria-selected="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 700;
+/* The picker: two drums, like a phone's alarm clock. The row under the
+   centre line is big and bright; its neighbours shrink and fade. */
+.popover__panel.ctl-clockpick {
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 16px 14px;
+  /* As wide as the field it opens from, within reason. */
+  width: clamp(248px, var(--radix-popover-trigger-width, 248px), 360px);
+}
+
+.ctl-clockpick__heads,
+.ctl-clockpick__wheels {
+  display: grid;
+  grid-template-columns: 1fr 20px 1fr;
+  justify-items: center;
+}
+
+.ctl-clockpick__heads span:last-child {
+  grid-column: 3;
+}
+
+.ctl-clockpick__wheels {
+  align-items: center;
+}
+
+.ctl-clockpick__sep {
+  color: var(--text);
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1;
+  padding-bottom: 4px;
+}
+
+.ctl-wheel {
+  border-radius: var(--radius-md);
+  height: calc(44px * 5);
+  mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+  outline: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-block: calc(44px * 2);
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  width: 100%;
+}
+
+.ctl-wheel::-webkit-scrollbar {
+  display: none;
+}
+
+/* The drum being turned shows its centre digits in the accent colour. */
+.ctl-wheel:focus-visible .ctl-wheel__o[data-d="0"] {
+  color: var(--accent-bright);
+}
+
+.ctl-wheel__o {
+  align-items: center;
+  color: var(--text-faint);
+  cursor: pointer;
+  display: flex;
+  font-size: 2.25rem;
+  font-weight: 600;
+  height: 44px;
+  justify-content: center;
+  line-height: 1;
+  scroll-snap-align: center;
+  transform: scale(0.55);
+  transition:
+    color 140ms ease,
+    transform 140ms ease;
+  user-select: none;
+}
+
+.ctl-wheel__o[data-d="0"] {
+  color: var(--text);
+  transform: none;
+}
+
+.ctl-wheel__o[data-d="1"] {
+  color: var(--text-muted);
+  transform: scale(0.68);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ctl-wheel__o {
+    transition: none;
+  }
+}
+
+.ctl-clockpick__foot {
+  display: grid;
+  gap: var(--space-2);
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
 }
 
 /* ------------------------------------------------------------ filedrop */
@@ -528,6 +678,7 @@
 }
 
 .ctl-stepper output {
+  flex: 1;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   min-width: 96px;

@@ -60,12 +60,10 @@ import {
   jawaban,
   percobaanMasuk,
   telemetriLog,
-  audit,
   nilai,
   NILAI_KOMPONEN,
   asisten,
-  sesiAsisten,
-  umpanBalik,
+  sesiAnggota,
 } from "../../src/lib/schema.js";
 import type { NilaiKomponen } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
@@ -82,7 +80,16 @@ import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
 import { SESI_CAP_DETIK, SESI_CAP_MENIT, durasiSesi } from "../../src/lib/jadwal.js";
 import { bolehIsiNilai } from "../../src/lib/penugasan.js";
-import { handleDurasi, handleKejadianGet } from "../_lib/berjalan.js";
+import { catatKejadian, handleDurasi } from "../_lib/berjalan.js";
+import {
+  handleKejadianDaftar,
+  handleKejadianPost,
+  handleRekapGet,
+  handleAuditLaporan,
+  handleRekapPost,
+  handleRiwayatLaporan,
+} from "../_lib/laporan-data.js";
+import { handleDokumenGet, handleDokumenPost } from "../_lib/dokumen.js";
 import { handleBayarGet, handleBayarPost } from "../_lib/bayar.js";
 import { handleSeelabsGet, handleSeelabsPost } from "../_lib/seelabs.js";
 import {
@@ -104,25 +111,7 @@ import {
   tanganTerangkat,
   kelompokDariNim,
 } from "../_lib/phase8.js";
-import {
-  eq,
-  and,
-  or,
-  gte,
-  lte,
-  like,
-  sql,
-  notInArray,
-  isNull,
-  isNotNull,
-  desc,
-  asc,
-  inArray,
-} from "drizzle-orm";
-
-const RIWAYAT_MODUL_VALID = new Set([1, 2, 3, 4]);
-const RIWAYAT_STATUS_VALID = new Set(["terjadwal", "berjalan", "selesai", "batal"]);
-const AUDIT_BATAS = 500;
+import { eq, and, or, gte, like, sql, notInArray, isNull, desc, asc } from "drizzle-orm";
 
 const PESAN_MAX_LEN = 200;
 const CATATAN_MAX_LEN = 300;
@@ -314,6 +303,7 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
   }
 
   await db.update(sesi).set({ status: "batal" }).where(eq(sesi.id, sesiId));
+  await catatKejadian(sesiId, "batal", {}, session.nim);
   await writeAudit(session.nim, "sesi_batal", { sesiId });
 
   // Same as handleEnd: a cancelled hotspot session must not leave the Pi
@@ -376,6 +366,7 @@ async function handleEnd(_req: ApiRequest, res: ApiResponse, session: SessionPay
     .where(eq(sesi.id, running.id))
     .returning();
 
+  await catatKejadian(running.id, "akhiri", {}, session.nim);
   await writeAudit(session.nim, "sesi_akhiri", { sesiId: running.id });
 
   // Mirror of the auto-queue in api/session/index.ts: a session that turned
@@ -830,15 +821,26 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
     return;
   }
-  const [member] = await db.select().from(anggota).where(eq(anggota.nim, nim)).limit(1);
-  if (!member) {
+  // Phase 9: the session's own roster snapshot decides the student's group,
+  // so scores of a past session stay editable after the roster moved on.
+  // Sessions from before the snapshot fall back to the master roster.
+  const [snap] = await db
+    .select({ kelompokId: kelompok.id })
+    .from(sesiAnggota)
+    .innerJoin(kelompok, eq(kelompok.nomor, sesiAnggota.kelompokNomor))
+    .where(and(eq(sesiAnggota.sesiId, sesiId), eq(sesiAnggota.nim, nim)))
+    .limit(1);
+  const [member] = snap
+    ? [null]
+    : await db.select().from(anggota).where(eq(anggota.nim, nim)).limit(1);
+  if (!snap && !member) {
     res.status(200).json({ ok: false, kode: "nim_tidak_ada" });
     return;
   }
   // P8: one assistant per group. Only the group's holder may write its
   // scores; an unassigned group stays open to anyone.
   const pemilik = await pemilikKelompok(db, sesiId);
-  const kelompokId = (await kelompokDariNim(db, nim)) ?? member.kelompokId;
+  const kelompokId = snap?.kelompokId ?? (await kelompokDariNim(db, nim)) ?? member!.kelompokId;
   if (!bolehIsiNilai(pemilik, kelompokId, session.nim)) {
     res.status(200).json({ ok: false, kode: "bukan_pemilik", pemilik: pemilik.get(kelompokId) });
     return;
@@ -886,6 +888,7 @@ async function handleSiarkan(req: ApiRequest, res: ApiResponse, session: Session
     .set({ pengumuman: pesan, pengumumanPada: new Date() })
     .where(eq(sesi.id, running.id));
 
+  if (pesan) await catatKejadian(running.id, "siarkan", { pesan }, session.nim);
   await writeAudit(session.nim, "sesi_siarkan", { sesiId: running.id, pesan });
   res.status(200).json({ ok: true });
 }
@@ -987,6 +990,7 @@ async function handleLanjutkan(req: ApiRequest, res: ApiResponse, session: Sessi
     return demotedRows[0];
   });
 
+  await catatKejadian(sesiId, "lanjutkan", {}, session.nim);
   await writeAudit(session.nim, "sesi_lanjutkan", { sesiId });
 
   if (row.butuhAp) {
@@ -1033,210 +1037,6 @@ async function handleAksesPost(req: ApiRequest, res: ApiResponse, session: Sessi
   const terbuka = await setModulTerbuka(body.terbuka as unknown[] as number[], session.nim);
   await writeAudit(session.nim, "modul_akses_ubah", { terbuka });
   res.status(200).json({ ok: true, terbuka });
-}
-
-/** GET /api/session/riwayat?modul=&dari=&sampai=&status= (P6.8) -- the
- *  session list for /reports, filtered server-side rather than fetching
- *  everything and filtering in the browser (a full practicum's session
- *  table is small today, but there is no reason to grow that habit). `dari`
- *  and `sampai` are ISO dates ("2026-09-19") compared against `sesi.tanggal`
- *  as plain text, the same column type every other date comparison in this
- *  file already relies on. */
-async function handleRiwayatSesi(req: ApiRequest, res: ApiResponse) {
-  // modul/status accept a comma-separated list (?modul=1,3&status=selesai,batal)
-  // so the report page's filter menus can be true multi-select chips, the
-  // same DropdownFilter idiom the server centre's list view already uses,
-  // rather than forcing a single choice at the API boundary.
-  const modulList =
-    typeof req.query.modul === "string" ? req.query.modul.split(",").map(Number) : [];
-  const statusList =
-    typeof req.query.status === "string" ? req.query.status.split(",").filter(Boolean) : [];
-  const dari = typeof req.query.dari === "string" ? req.query.dari : null;
-  const sampai = typeof req.query.sampai === "string" ? req.query.sampai : null;
-
-  if (
-    modulList.some((m) => !RIWAYAT_MODUL_VALID.has(m)) ||
-    statusList.some((s) => !RIWAYAT_STATUS_VALID.has(s))
-  ) {
-    res.status(200).json({ ok: false, kode: "format_salah" });
-    return;
-  }
-
-  const kondisi = [];
-  if (modulList.length) kondisi.push(inArray(sesi.modul, modulList));
-  if (dari) kondisi.push(gte(sesi.tanggal, dari));
-  if (sampai) kondisi.push(lte(sesi.tanggal, sampai));
-  if (statusList.length) {
-    kondisi.push(
-      inArray(sesi.status, statusList as ("terjadwal" | "berjalan" | "selesai" | "batal")[]),
-    );
-  }
-
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(sesi)
-    .where(kondisi.length ? and(...kondisi) : undefined)
-    .orderBy(desc(sesi.tanggal), desc(sesi.mulai));
-
-  // P8: who taught each session (codes in group order) and the Lab half of
-  // its feedback, averaged. The Asisten half never appears here: it is
-  // only ever shown to the assessed assistant.
-  const ids = rows.map((r) => r.id);
-  const kodeBySesi = new Map<number, { kelompokId: number; kode: string }[]>();
-  const labBySesi = new Map<number, { rata: number; n: number }>();
-  if (ids.length) {
-    const tugas = await db
-      .select({
-        sesiId: sesiAsisten.sesiId,
-        kelompokId: sesiAsisten.kelompokId,
-        kode: asisten.kode,
-      })
-      .from(sesiAsisten)
-      .innerJoin(asisten, eq(asisten.nim, sesiAsisten.asistenNim))
-      .where(inArray(sesiAsisten.sesiId, ids));
-    for (const t of tugas) {
-      const list = kodeBySesi.get(t.sesiId) ?? [];
-      list.push({ kelompokId: t.kelompokId, kode: t.kode });
-      kodeBySesi.set(t.sesiId, list);
-    }
-    const lab = await db
-      .select({
-        sesiId: umpanBalik.sesiId,
-        rata: sql<string>`avg(${umpanBalik.ratingLab})`,
-        n: sql<number>`count(*)::int`,
-      })
-      .from(umpanBalik)
-      .where(inArray(umpanBalik.sesiId, ids))
-      .groupBy(umpanBalik.sesiId);
-    for (const l of lab)
-      labBySesi.set(l.sesiId, { rata: Math.round(Number(l.rata) * 10) / 10, n: l.n });
-  }
-
-  res.status(200).json({
-    ok: true,
-    sesi: rows.map((r) => ({
-      ...r,
-      asisten: [
-        ...new Set(
-          (kodeBySesi.get(r.id) ?? [])
-            .sort((a, b) => a.kelompokId - b.kelompokId)
-            .map((x) => x.kode),
-        ),
-      ],
-      lab: labBySesi.get(r.id) ?? null,
-    })),
-  });
-}
-
-/** GET /api/session/ringkasan (P6.8) -- the "module overview across the 4
- *  weeks" the plan asks for: one row per module with how many sessions have
- *  run, how many finished, how many distinct students have logged in during
- *  one of that module's sessions, and how many code blanks (across every
- *  session of that module, ever) are correct out of how many were
- *  attempted. Three small full-table scans -- this project's whole-practicum
- *  tables are all a few thousand rows at most, so this is simpler and cheap
- *  enough for a page an assistant loads a handful of times a week, unlike
- *  the per-poll telemetry/laporan routes this file also serves. */
-async function handleRingkasanModul(_req: ApiRequest, res: ApiResponse) {
-  const db = getDb();
-
-  const sesiRows = await db.select({ modul: sesi.modul, status: sesi.status }).from(sesi);
-  const jumlahByModul = new Map<number, { sesi: number; selesai: number }>();
-  for (const r of sesiRows) {
-    const e = jumlahByModul.get(r.modul) ?? { sesi: 0, selesai: 0 };
-    e.sesi += 1;
-    if (r.status === "selesai") e.selesai += 1;
-    jumlahByModul.set(r.modul, e);
-  }
-
-  const hadirRows = await db
-    .select({ modul: sesi.modul, nim: percobaanMasuk.nim })
-    .from(percobaanMasuk)
-    .innerJoin(sesi, eq(percobaanMasuk.sesiId, sesi.id))
-    .where(and(eq(percobaanMasuk.jenis, "praktikan"), eq(percobaanMasuk.berhasil, true)));
-  const hadirByModul = new Map<number, Set<string>>();
-  for (const r of hadirRows) {
-    if (!hadirByModul.has(r.modul)) hadirByModul.set(r.modul, new Set());
-    hadirByModul.get(r.modul)!.add(r.nim);
-  }
-
-  const jawabanRows = await db
-    .select({ soalKode: jawaban.soalKode, benar: jawaban.benar })
-    .from(jawaban)
-    .where(isNotNull(jawaban.sesiId));
-  const blankByModul = new Map<number, { benar: number; total: number }>();
-  for (const r of jawabanRows) {
-    const cocok = /^m([1-4])\./.exec(r.soalKode);
-    if (!cocok) continue;
-    const modul = Number(cocok[1]);
-    const e = blankByModul.get(modul) ?? { benar: 0, total: 0 };
-    e.total += 1;
-    if (r.benar) e.benar += 1;
-    blankByModul.set(modul, e);
-  }
-
-  const labRows = await db
-    .select({ modul: sesi.modul, rating: umpanBalik.ratingLab })
-    .from(umpanBalik)
-    .innerJoin(sesi, eq(umpanBalik.sesiId, sesi.id));
-  const labByModul = new Map<number, { sum: number; n: number }>();
-  for (const r of labRows) {
-    const e = labByModul.get(r.modul) ?? { sum: 0, n: 0 };
-    e.sum += r.rating;
-    e.n += 1;
-    labByModul.set(r.modul, e);
-  }
-
-  const modul = [1, 2, 3, 4].map((n) => ({
-    modul: n,
-    labRata: labByModul.get(n)
-      ? Math.round((labByModul.get(n)!.sum / labByModul.get(n)!.n) * 10) / 10
-      : null,
-    labN: labByModul.get(n)?.n ?? 0,
-    sesi: jumlahByModul.get(n)?.sesi ?? 0,
-    selesai: jumlahByModul.get(n)?.selesai ?? 0,
-    hadirUnik: hadirByModul.get(n)?.size ?? 0,
-    blankBenar: blankByModul.get(n)?.benar ?? 0,
-    blankTotal: blankByModul.get(n)?.total ?? 0,
-  }));
-
-  res.status(200).json({ ok: true, modul });
-}
-
-/** GET /api/session/audit?aksiLog=&aktor=&dari= (P6.8) -- the audit
- *  viewer's data source. The filter is named `aksiLog`, not `aksi` --
- *  `aksi` is already this whole dynamic function's own route-selector
- *  (the `[aksi].ts` path segment lands in this exact same `req.query`
- *  object as `aksi === "audit"`), so a query string `?aksi=sesi_akhiri`
- *  alongside it would collide with routing itself rather than filtering
- *  the log. Capped at 500 rows (newest first): this route has no
- *  pagination yet, and an assistant reading through the log a few hundred
- *  actions back is already an edge case the cap does not need to solve for
- *  on day one. `dari` is compared as a timestamp, not a date, since
- *  `audit.pada` carries a time -- an invalid value is simply ignored rather
- *  than rejected, so a malformed query still returns the unfiltered log
- *  instead of a hard error for what is a read-only convenience filter. */
-async function handleAudit(req: ApiRequest, res: ApiResponse) {
-  const aksiLog = typeof req.query.aksiLog === "string" ? req.query.aksiLog : null;
-  const aktor = typeof req.query.aktor === "string" ? req.query.aktor : null;
-  const dariRaw = typeof req.query.dari === "string" ? new Date(req.query.dari) : null;
-  const dari = dariRaw && !Number.isNaN(dariRaw.getTime()) ? dariRaw : null;
-
-  const kondisi = [];
-  if (aksiLog) kondisi.push(eq(audit.aksi, aksiLog));
-  if (aktor) kondisi.push(eq(audit.aktorNim, aktor));
-  if (dari) kondisi.push(gte(audit.pada, dari));
-
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(audit)
-    .where(kondisi.length ? and(...kondisi) : undefined)
-    .orderBy(desc(audit.pada))
-    .limit(AUDIT_BATAS);
-
-  res.status(200).json({ ok: true, audit: rows });
 }
 
 /** GET /api/session/asisten (Phase 9): every Asisten's NIM, code and full
@@ -1421,15 +1221,21 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "riwayat") {
     if (!requireMethod(req, res, "GET")) return;
-    return handleRiwayatSesi(req, res);
+    return handleRiwayatLaporan(req, res);
   }
-  if (aksi === "ringkasan") {
+  if (aksi === "rekap") {
+    if (req.method === "POST") return handleRekapPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
-    return handleRingkasanModul(req, res);
+    return handleRekapGet(req, res, session);
+  }
+  if (aksi === "dokumen") {
+    if (req.method === "POST") return handleDokumenPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleDokumenGet(req, res, session);
   }
   if (aksi === "audit") {
     if (!requireMethod(req, res, "GET")) return;
-    return handleAudit(req, res);
+    return handleAuditLaporan(req, res);
   }
   if (aksi === "siarkan") {
     if (!requireMethod(req, res, "POST")) return;
@@ -1444,8 +1250,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return handleDurasi(req, res, session);
   }
   if (aksi === "kejadian") {
+    if (req.method === "POST") return handleKejadianPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
-    return handleKejadianGet(req, res);
+    return handleKejadianDaftar(req, res);
   }
   if (aksi === "lanjutkan") {
     if (!requireMethod(req, res, "POST")) return;

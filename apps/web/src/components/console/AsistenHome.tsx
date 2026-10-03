@@ -449,7 +449,6 @@ export default function AsistenHome({
                     lang={lang}
                     from={6}
                     to={21}
-                    step={15}
                   />
                 </div>
                 <span className="hint startcard__wide">{h.susulanHint}</span>

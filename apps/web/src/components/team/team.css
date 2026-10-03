@@ -226,6 +226,25 @@
   min-width: 170px;
 }
 
+/* Search, the role switch and the two dropdowns share one line when they
+   fit; the search and the switch take the spare room. */
+.tim-filter > .searchbox {
+  flex: 1 1 16rem;
+  width: auto;
+}
+
+.tim-filter > .segmented {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+@media (max-width: 639px) {
+  .tim-filter .dropdown {
+    flex: 1 1 8rem;
+    min-width: 0;
+  }
+}
+
 /* --------------------------------------------------------------- table */
 
 .tim-tablewrap {
@@ -578,6 +597,8 @@
   align-content: start;
   display: grid;
   gap: 4px;
+  /* Rows keep their own height (a long name wraps to three lines); the list scrolls. */
+  grid-auto-rows: max-content;
   min-height: 0;
   overflow: auto;
 }

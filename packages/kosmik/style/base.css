@@ -19,6 +19,9 @@
 
 html {
   color-scheme: dark;
+  /* The scrollbar's room stays reserved, so a page that gets shorter or
+     longer (a filter, a tab switch) never shifts sideways. */
+  scrollbar-gutter: stable;
 }
 
 body {

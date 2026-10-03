@@ -80,6 +80,7 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { cekHak } from "../_lib/hak.js";
 import { del } from "@vercel/blob";
+import { LAMPIRAN_MAKS, LAMPIRAN_TIPE } from "../_lib/dokumen.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { requireRole, requireAnyRole } from "../_lib/session.js";
@@ -488,6 +489,29 @@ async function handleSchematicDelete(req: ApiRequest, res: ApiResponse, session:
   res.status(200).json({ ok: true });
 }
 
+/** The upload handshake for a written report's attachment (Reports ›
+ *  Written report › Photo or file): images and PDFs up to 10 MB. The
+ *  report row itself is written by /api/session/dokumen { aksi: "lampiran" }. */
+async function handleLampiranToken(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req) as unknown as HandleUploadBody;
+  try {
+    const jsonResponse = await handleUpload({
+      body,
+      request: req as unknown as Request,
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: LAMPIRAN_TIPE,
+        maximumSizeInBytes: LAMPIRAN_MAKS,
+        addRandomSuffix: true,
+        tokenPayload: JSON.stringify({ nim: session.nim }),
+      }),
+    });
+    res.status(200).json(jsonResponse);
+  } catch (err) {
+    console.error("[api/presentasi/lampiran-token] unexpected error:", err);
+    res.status(400).json({ error: err instanceof Error ? err.message : "unggah gagal" });
+  }
+}
+
 type SkemaPost = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => Promise<void>;
 
 const SKEMA_POST: Record<string, SkemaPost> = {
@@ -521,6 +545,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   const session = requireRole(req, res, "asisten");
   if (!session) return;
+  // Phase 9: a written report's photo or file; any Asisten may attach one.
+  if (aksi === "lampiran-token") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleLampiranToken(req, res, session);
+  }
   // Phase 9: changing slides and schematics needs the Jadwal right.
   if (req.method === "POST" && !(await cekHak(res, session.nim, "jadwal"))) return;
 
