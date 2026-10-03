@@ -1,59 +1,29 @@
 ---
 /**
- * / and /en/ (Phase 8): the role-aware landing page. The hero (HomeHero)
- * changes with who is signed in; the module cards (ModuleCards) show each
- * module's live state. Arriving at /?login=1 (where /masuk and /login
- * redirect) opens the login dialog; LoginDialog.tsx handles that itself.
+ * /, /en/ and /zh/: Home, concept A "The lab right now" (Phase 9 Stage 7).
+ * HomePage.tsx holds the hero by role, the live lab card, how a session
+ * runs and the module lanes. The module cards live on /modules only.
+ * Arriving at /?login=1 (where /masuk and /login redirect) opens the login
+ * dialog; LoginDialog.tsx handles that itself.
  */
 import Base from "../layouts/Base.astro";
-import HomeHero from "../components/home/HomeHero";
-import ModuleCards from "../components/home/ModuleCards";
-import { moduleCards } from "../lib/module-cards";
+import HomePage from "../components/home/HomePage";
 import type { Lang } from "../lib/kelas";
 
 interface Props {
   lang: Lang;
 }
 const { lang } = Astro.props;
-const modules = await moduleCards(lang);
+const description =
+  lang === "en"
+    ? "The IRIS IoT practicum. Four modules, one board."
+    : lang === "zh"
+      ? "IRIS 物联网实验。四个模块，一块板子。"
+      : "Praktikum IoT IRIS. Empat modul, satu papan.";
 ---
 
-<Base
-  title="IRIS IoT"
-  description={
-    lang !== "id"
-      ? "The IRIS IoT practicum. Four modules, one board."
-      : "Praktikum IoT IRIS. Empat modul, satu papan."
-  }
-  cosmosScene="beranda"
-  lang={lang}
->
+<Base title="IRIS IoT" description={description} cosmosScene="beranda" lang={lang}>
   <main id="main" class="page-wide page-main">
-    <div class="landing">
-      <HomeHero client:load lang={lang} />
-      <ModuleCards client:load lang={lang} modules={modules} />
-    </div>
+    <HomePage client:load lang={lang} />
   </main>
 </Base>
-
-<style>
-  .landing {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-    padding-top: var(--space-page-top);
-  }
-
-  @media (min-width: 1024px) {
-    .landing {
-      align-items: center;
-      display: grid;
-      gap: var(--space-9);
-      grid-template-columns: minmax(0, 440px) minmax(0, 640px);
-      justify-content: center;
-      margin-inline: auto;
-      max-width: 1200px;
-      min-height: calc(100vh - var(--nav-size) - var(--minibar-h, 0px) - 120px);
-    }
-  }
-</style>

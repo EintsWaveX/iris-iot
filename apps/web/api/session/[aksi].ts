@@ -34,13 +34,15 @@
  * Phase 8 actions (assignment, help, feedback, results, schedule) are documented in api/_lib/phase8.ts.
  * Phase 9: tim (api/_lib/tim.ts), beranda and jendela (api/_lib/beranda.ts),
  * schedule and penugasan (api/_lib/penugasan-api.ts),
- * rosterslot, praktikan and susulan (api/_lib/persiapan.ts), brief (api/_lib/brief.ts).
+ * rosterslot, praktikan and susulan (api/_lib/persiapan.ts), brief (api/_lib/brief.ts),
+ * lab (api/_lib/lab.ts, public).
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak } from "../_lib/hak.js";
 import { handleTimGet, handleTimJejak, handleTimPost } from "../_lib/tim.js";
 import { handleBerandaGet, handleJendelaPost } from "../_lib/beranda.js";
 import { handleBriefGet, handleBriefPost } from "../_lib/brief.js";
+import { handleLab } from "../_lib/lab.js";
 import {
   handlePraktikanGet,
   handlePraktikanPost,
@@ -1132,6 +1134,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const who = requireRole(req, res, "praktikan");
     if (!who) return;
     return handleResults(req, res, who);
+  }
+
+  // Phase 9: Home's "In the lab now" counts are public.
+  if (aksi === "lab") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleLab(req, res);
   }
 
   // Phase 9: the Asisten's Module Brief is public to read.
