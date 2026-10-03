@@ -29,6 +29,12 @@
     width: min(460px, calc(100vw - 48px));
   }
 }
+/* 640 to 759 keeps the phone bottom bar (AppNav.css); stay above it. */
+@media (min-width: 640px) and (max-width: 759px) {
+  .toast-host {
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+}
 
 .toast {
   align-items: center;

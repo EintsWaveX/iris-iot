@@ -1,7 +1,7 @@
 /* AppNav.tsx (Phase 8). Keeps Nav.astro's surface (glass panel, the swept
    hairline once scrolled) and adds icons, the role badge and the menus.
-   At 640px and up: full top bar. Below: brand + account button on top, the
-   links in a fixed bottom bar. */
+   At 760px and up: full top bar (seven Asisten links need that room). Below:
+   brand + account button on top, the links in a fixed bottom bar. */
 
 .appnav {
   align-items: center;
@@ -533,7 +533,7 @@
   }
 }
 
-@media (max-width: 639px) {
+@media (max-width: 759px) {
   .appnav {
     justify-content: space-between;
     padding-inline: var(--space-4);
@@ -559,5 +559,20 @@
   }
   body {
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Seven Asisten links and the clock are tight on a small tablet: tighter
+   links below 900, and below 800 the clock gives way. */
+@media (min-width: 760px) and (max-width: 899px) {
+  .appnav__link {
+    font-size: 0.94rem;
+    padding: 0 6px;
+  }
+}
+
+@media (min-width: 760px) and (max-width: 799px) {
+  .appnav__side .navclock {
+    display: none;
   }
 }
