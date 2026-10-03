@@ -1,0 +1,494 @@
+/* The Code step (Phase 9 Stage 7d, mockup p-module › Code): head row,
+   blank chips, the code card with its line gutter and state bands, and the
+   pin panel beside it from 1280 wide. */
+
+.codestep {
+  /* Syntax colours (lib/highlight.ts), picked from the sky: violet
+     keywords, aurora green strings, star gold numbers. */
+  --syn-keyword: #c3a6ff;
+  --syn-type: #6fd6e3;
+  --syn-string: #8fe3b0;
+  --syn-number: #f5c77e;
+  --syn-func: #7cc4ff;
+  --syn-preproc: #ff9ecf;
+  --syn-const: #ffb38a;
+  --syn-comment: var(--text-faint);
+  /* An Asisten's Show Answers. */
+  --key-c: #c3a6ff;
+}
+
+/* Daylight sky: the same hues, dark enough for 4.5:1 on white. */
+:root[data-theme="light"] .codestep {
+  --syn-keyword: #6a3fc8;
+  --syn-type: #0a6f7c;
+  --syn-string: #1d7a3e;
+  --syn-number: #8a5a00;
+  --syn-func: #0b5ea8;
+  --syn-preproc: #b0236e;
+  --syn-const: #a04a12;
+  --key-c: #6a3fc8;
+}
+
+.tok--keyword {
+  color: var(--syn-keyword);
+}
+.tok--type {
+  color: var(--syn-type);
+}
+.tok--string {
+  color: var(--syn-string);
+}
+.tok--number {
+  color: var(--syn-number);
+}
+.tok--func {
+  color: var(--syn-func);
+}
+.tok--preproc,
+.tok--deco {
+  color: var(--syn-preproc);
+}
+.tok--const {
+  color: var(--syn-const);
+}
+.tok--comment {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------ head row */
+
+.codehead {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.codehead__files {
+  display: inline-grid;
+  flex: 0 1 auto;
+  grid-auto-flow: column;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.codehead__tools {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.codestep__keys-hint {
+  min-width: 0;
+}
+
+/* --------------------------------------------------------- blank chips */
+
+.blanknav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.blankchip {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 10px;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+.blankchip:hover {
+  border-color: var(--text-muted);
+}
+
+.blankchip:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.blankchip[aria-current="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.blankchip__dot {
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  height: 10px;
+  width: 10px;
+}
+
+.blankchip[data-st="ok"] .blankchip__dot,
+.blankchip[data-st="peer"] .blankchip__dot {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+.blankchip[data-st="bad"] .blankchip__dot {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.blankchip[data-st="key"] .blankchip__dot {
+  background: var(--key-c);
+  border-color: var(--key-c);
+}
+
+/* ------------------------------------------------------------ the code */
+
+.codegrid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1280px) {
+  .codegrid--side {
+    align-items: start;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+}
+
+.codecard {
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.code {
+  background: var(--bg-sunken);
+  font: 0.906rem/1.85 var(--font-mono);
+  margin: 0;
+  max-height: min(460px, 62vh);
+  overflow: auto;
+  padding: 10px 0;
+}
+
+.code:focus-visible {
+  box-shadow: inset var(--glow-ring);
+  outline: none;
+}
+
+.code[data-loading="yes"] {
+  opacity: 0.6;
+}
+
+@media (max-height: 800px) {
+  .code {
+    max-height: 340px;
+  }
+}
+
+.cl {
+  display: flex;
+  min-height: 1.85em;
+  min-width: max-content;
+  position: relative;
+}
+
+.cl__t {
+  padding-right: 16px;
+  white-space: pre;
+}
+
+.ln {
+  color: var(--text-faint);
+  flex: none;
+  padding-right: 14px;
+  text-align: right;
+  user-select: none;
+  width: 46px;
+}
+
+/* A line with an unfinished blank keeps a faint still band in its state
+   colour; the line you are on breathes, never covering the text. */
+.cl--todo::before,
+.cl--target::before {
+  background: var(--accent);
+  content: "";
+  inset: 0;
+  opacity: 0.06;
+  pointer-events: none;
+  position: absolute;
+}
+
+.cl--target::before {
+  opacity: 0.1;
+}
+
+:root:not([data-motion-tier="0"]) .cl--target::before {
+  animation: code-linepulse 2.4s ease-in-out infinite;
+}
+
+.cl--target {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.cl[data-st="empty"]::before {
+  background: var(--text-muted);
+}
+.cl[data-st="bad"]::before {
+  background: var(--danger);
+}
+.cl[data-st="ok"]::before {
+  background: var(--ok);
+}
+.cl[data-st="peer"]::before {
+  background: var(--g, var(--group-4));
+}
+.cl[data-st="key"]::before {
+  background: var(--key-c);
+}
+.cl--todo[data-st="bad"]::before {
+  opacity: 0.1;
+}
+
+.cl--target[data-st="empty"] {
+  box-shadow: inset 3px 0 0 var(--text-muted);
+}
+.cl--target[data-st="bad"] {
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+.cl--target[data-st="ok"] {
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+.cl--target[data-st="peer"] {
+  box-shadow: inset 3px 0 0 var(--g, var(--group-4));
+}
+.cl--target[data-st="key"] {
+  box-shadow: inset 3px 0 0 var(--key-c);
+}
+
+@keyframes code-linepulse {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.24;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl--target::before {
+    animation: none !important;
+    opacity: 0.18;
+  }
+}
+
+/* ---------------------------------------------------------- the blanks */
+
+.blank {
+  align-items: center;
+  display: inline-flex;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.blank input {
+  background: var(--accent-soft);
+  border: 1.5px dashed var(--accent);
+  border-radius: 6px;
+  color: var(--accent-bright);
+  font: inherit;
+  height: 30px;
+  line-height: 1;
+  padding: 0 8px;
+}
+
+.blank input::placeholder {
+  color: color-mix(in srgb, var(--accent-bright) 60%, transparent);
+}
+
+.blank input:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.blank input[readonly] {
+  cursor: default;
+}
+
+.blank--empty input[readonly] {
+  border-color: var(--hairline-strong);
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.blank--ok input {
+  background: var(--ok-soft);
+  border: 1.5px solid var(--ok);
+  color: var(--ok);
+  padding-right: 26px;
+}
+
+.blank--bad input {
+  background: var(--danger-soft);
+  border: 1.5px solid var(--danger);
+  color: var(--danger);
+}
+
+.blank--peer input {
+  background: color-mix(in srgb, var(--g, var(--group-4)) 14%, transparent);
+  border: 1.5px solid var(--g, var(--group-4));
+  color: var(--g, var(--group-4));
+}
+
+.blank--key input {
+  background: color-mix(in srgb, var(--key-c) 14%, transparent);
+  border: 1.5px dashed var(--key-c);
+  color: var(--key-c);
+}
+
+.blank[data-checking="yes"] input {
+  opacity: 0.6;
+}
+
+.blank__tick {
+  color: var(--ok);
+  display: grid;
+  pointer-events: none;
+  position: absolute;
+  right: 7px;
+}
+
+:root:not([data-motion-tier="0"]) .blank--bad input {
+  animation: code-shake 380ms ease;
+}
+
+:root:not([data-motion-tier="0"]) .blank__tick {
+  animation: code-tick 420ms var(--ease-out-expo) both;
+}
+
+:root:not([data-motion-tier="0"]) .blank[data-flash="yes"] input {
+  animation: code-flash 1.2s ease;
+}
+
+@keyframes code-shake {
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes code-tick {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-30deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes code-flash {
+  0% {
+    box-shadow: 0 0 0 0 var(--g, var(--group-4));
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blank input,
+  .blank__tick {
+    animation: none !important;
+  }
+}
+
+/* --------------------------------------------------------- under the code */
+
+.codefoot {
+  align-items: center;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.codefoot__peer {
+  background: color-mix(in srgb, var(--g, var(--group-4)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--g, var(--group-4)) 50%, transparent);
+  border-radius: 999px;
+  color: var(--g, var(--group-4));
+  font-size: var(--fs-small);
+  font-weight: 650;
+  padding: 2px 10px;
+}
+
+.codefoot__why {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.codefoot__why > svg {
+  color: var(--ok);
+  flex: none;
+}
+
+.codestep__pins {
+  max-height: calc(100vh - var(--nav-size, 64px) - 40px);
+  overflow: auto;
+  position: sticky;
+  top: calc(var(--nav-size, 64px) + 20px);
+}
+
+:root:not([data-motion-tier="0"]) .codestep__done {
+  animation: code-rise 420ms var(--ease-out-expo) both;
+}
+
+@keyframes code-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Phones: the file switch takes its own row, the tools go under it. */
+@media (max-width: 639px) {
+  .codehead__files {
+    flex: 1 1 100%;
+  }
+  .codestep__keys-hint {
+    display: none;
+  }
+  .blanknav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .blankchip {
+    justify-content: center;
+    width: 100%;
+  }
+  .code {
+    font-size: 0.844rem;
+  }
+}

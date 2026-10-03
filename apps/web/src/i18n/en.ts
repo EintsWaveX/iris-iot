@@ -35,16 +35,6 @@ export const en: ModuleStrings = {
     pinHeading: "Pins",
     checklistHeading: "Before running the program",
   },
-  code: {
-    heading: "Program source",
-    board: "Board",
-    note: "Fill in each blank box and click outside it to check the answer. A correct answer shows why; every answer saves automatically, so you can pick this back up any time.",
-    download: "Download file",
-    downloadHint: "Finish every blank in this file to unlock its download.",
-    masuk: "Log in as a praktikan to fill in and save answers here.",
-    sesiBerubah: "A new session has started. Please log in again.",
-    terkunci: "This module is not open yet. Your assistant opens it when its week arrives.",
-  },
   live: {
     heading: "Live view",
     // Module 1 gets real data from a group PC connecting its Central board

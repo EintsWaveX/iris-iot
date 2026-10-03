@@ -1,5 +1,5 @@
 /**
- * /api/modul/:aksi — praktikan-only. The editor's server side: draft
+ * /api/modul/:aksi — Praktikan only, except `kunci` (Asisten only). The editor's server side: draft
  * retrieval, per-blank checking, and the gated full-file download. Kept as
  * one dynamic-segment function for the same reason api/session/[aksi].ts
  * and api/auth/[aksi].ts already are: the Vercel Hobby plan's serverless
@@ -8,17 +8,21 @@
  * GET  /api/modul/draft?modul=&berkas=   — this group's saved answers for one file (isi + benar only, never the key).
  * POST /api/modul/cek    { modul, berkas, nomor, jawaban } — check one blank, persist the attempt.
  * GET  /api/modul/unduh?modul=&berkas=   — the reconstructed file, gated on every blank being correct.
+ * GET  /api/modul/kunci?modul=&berkas=[&unduh=1&bahasa=] — Asisten only: the key per blank
+ *      (Show Answers on the module page), or the complete file.
  *
  * The single most important rule in this file: a correct answer string
- * never appears in any response body, bundled script, or error message.
+ * never appears in any response body, bundled script, or error message
+ * that a Praktikan can reach. `kunci` is the one exception, and it checks
+ * the Asisten role before anything else.
  * checkJawaban() only ever returns a boolean plus a "why" line that exists
  * independently of the answer itself -- see answer-keys.ts's own header.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
-import { requireCurrentPraktikanSesi } from "../_lib/session.js";
+import { requireCurrentPraktikanSesi, requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
-import { jawaban } from "../../src/lib/schema.js";
+import { anggota, jawaban } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
 import { checkJawaban, blankCountFor, canonicalAnswer } from "../_lib/answer-keys.js";
@@ -26,7 +30,7 @@ import { getSketchSourceForApi } from "../_lib/sketch-sources.js";
 import { personalize } from "../../src/lib/group-identity.js";
 import { getModulTerbuka, jurnalBolehDibuka } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { and, asc, eq, isNull, like, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, like, sql } from "drizzle-orm";
 
 const MAX_JAWABAN_LEN = 200;
 
@@ -107,15 +111,39 @@ async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPa
   const running = await currentSesi();
   const db = getDb();
   const rows = await db
-    .select({ soalKode: jawaban.soalKode, isi: jawaban.isi, benar: jawaban.benar })
+    .select({
+      soalKode: jawaban.soalKode,
+      isi: jawaban.isi,
+      benar: jawaban.benar,
+      oleh: jawaban.diubahOleh,
+    })
     .from(jawaban)
     .where(jawabanScope(running, kelompokId, prefix))
     .orderBy(asc(jawaban.diubahPada));
 
-  const out: Record<string, { isi: string; benar: boolean }> = {};
+  // Who filled each blank, by first name of the group's own members only:
+  // the editor says "Kirana filled blank (4)" without exposing anyone
+  // outside the group.
+  const nims = [...new Set(rows.map((r) => r.oleh).filter((x): x is string => !!x))];
+  const nama = new Map<string, string>();
+  if (nims.length > 0) {
+    const ang = await db
+      .select({ nim: anggota.nim, nama: anggota.nama })
+      .from(anggota)
+      .where(and(eq(anggota.kelompokId, kelompokId), inArray(anggota.nim, nims)));
+    for (const a of ang) nama.set(a.nim, a.nama);
+  }
+
+  const out: Record<string, { isi: string; benar: boolean; saya: boolean; oleh: string | null }> =
+    {};
   for (const row of rows) {
     const nomor = row.soalKode.slice(prefix.length);
-    out[nomor] = { isi: row.isi, benar: row.benar };
+    out[nomor] = {
+      isi: row.isi,
+      benar: row.benar,
+      saya: row.oleh === session.nim,
+      oleh: row.oleh ? (nama.get(row.oleh) ?? null) : null,
+    };
   }
   // Not a secret -- a group already knows its own number, and this is the
   // signal the editor's Code step uses to show the sketch's identity line
@@ -300,8 +328,52 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
   res.end(reconstructed);
 }
 
+/** The Asisten's key for one file, as group `kelompok` would get it (group
+ *  1 by default, the generic template's own identity). With `unduh=1` the
+ *  complete file instead, in the asked language track. */
+async function handleKunci(req: ApiRequest, res: ApiResponse) {
+  const parsed = parseModulBerkas(req.query);
+  if (!parsed) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const k = Number(req.query.kelompok ?? 1);
+  const nomorKelompok = Number.isInteger(k) && k >= 1 && k <= 10 ? k : 1;
+  const total = blankCountFor(parsed.modul, parsed.berkas);
+  const kunci: Record<string, string> = {};
+  for (let n = 1; n <= total; n++) {
+    const v = canonicalAnswer(soalKode(parsed.modul, parsed.berkas, n), { nomorKelompok });
+    if (v !== undefined) kunci[n] = v;
+  }
+  if (req.query.unduh !== "1") {
+    res.status(200).json({ ok: true, kunci });
+    return;
+  }
+  const bahasa = req.query.bahasa === "en" ? "en" : "id";
+  const ext = BERKAS_EXT[parsed.berkas];
+  const filename = `${parsed.berkas}${ext ?? ""}`;
+  const template = ext ? getSketchSourceForApi(bahasa, filename) : undefined;
+  if (template === undefined) {
+    res.status(200).json({ ok: false, kode: "berkas_tidak_ada" });
+    return;
+  }
+  const generic = parseBlanks(template)
+    .map((s) => (s.kind === "text" ? s.text : (kunci[s.nomor] ?? "")))
+    .join("");
+  res.status(200);
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.end(personalize(parsed.berkas, generic, nomorKelompok));
+}
+
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
+
+  if (req.query.aksi === "kunci") {
+    if (!requireMethod(req, res, "GET")) return;
+    if (!requireRole(req, res, "asisten")) return;
+    return handleKunci(req, res);
+  }
 
   const session = await requireCurrentPraktikanSesi(req, res);
   if (!session) return;

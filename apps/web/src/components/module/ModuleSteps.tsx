@@ -41,7 +41,7 @@ import Fade from "../ui/Fade";
 import Pill from "../ui/Pill";
 import { StateView } from "../ui/Display";
 import { Switch } from "../ui/Controls";
-import CodeWorkspace from "./CodeWorkspace";
+import CodeStep, { type CodeProps } from "./CodeStep";
 import PinSchematic, { type PinData } from "./PinSchematic";
 import SetupChecklist from "./SetupChecklist";
 import LiveWorkspace from "../live/LiveWorkspace";
@@ -80,7 +80,7 @@ interface Props {
   mcu: string;
   skema: string;
   layers: ComponentProps<typeof LiveWorkspace>["layers"];
-  code: ComponentProps<typeof CodeWorkspace>["code"];
+  code: CodeProps;
 }
 
 const ICON: Record<Step, ReactNode> = {
@@ -276,7 +276,14 @@ export default function ModuleSteps(p: Props) {
           ) : step === "setup" ? (
             <Setup {...p} />
           ) : step === "code" ? (
-            <CodeWorkspace lang={lang} pin={p.pin} mcu={p.mcu} skema={p.skema} code={p.code} />
+            <CodeStep
+              lang={lang}
+              mode={mode === "browse" ? "done" : mode}
+              pin={p.pin}
+              mcu={p.mcu}
+              skema={p.skema}
+              code={p.code}
+            />
           ) : mode === "done" ? (
             <Done lang={lang} done={done} />
           ) : (

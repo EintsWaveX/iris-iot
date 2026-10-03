@@ -39,16 +39,6 @@ export const id = {
     pinHeading: "Pin",
     checklistHeading: "Sebelum menjalankan program",
   },
-  code: {
-    heading: "Kode program",
-    board: "Papan",
-    note: "Isikan setiap kotak rumpang lalu klik di luar kotak untuk memeriksa jawabannya. Jawaban yang benar menampilkan alasannya; jawaban tersimpan otomatis sehingga bisa dilanjutkan kapan saja.",
-    download: "Unduh berkas",
-    downloadHint: "Selesaikan semua bagian rumpang pada berkas ini untuk membuka unduhan.",
-    masuk: "Masuk sebagai praktikan untuk mengisi dan menyimpan jawaban di sini.",
-    sesiBerubah: "Sesi baru dimulai, silakan masuk lagi.",
-    terkunci: "Modul ini belum dibuka. Asisten akan membukanya saat pekannya tiba.",
-  },
   live: {
     heading: "Tampilan live",
     // Modul 1 mendapat data sungguhan dari PC kelompok yang menghubungkan

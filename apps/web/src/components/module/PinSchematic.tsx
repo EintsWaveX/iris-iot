@@ -124,7 +124,7 @@ function activeSchematics() {
 export function useSchematic(
   modul: number,
   fallback: string,
-): { src: string; uploaded: boolean; frame: boolean } {
+): { src: string; uploaded: boolean; frame: boolean; gagal: () => void } {
   const [state, setState] = useState({ src: fallback, uploaded: false, frame: false });
   useEffect(() => {
     let alive = true;
@@ -136,7 +136,10 @@ export function useSchematic(
       alive = false;
     };
   }, [modul]);
-  return state;
+  // An uploaded image that no longer loads falls back to the handbook's own.
+  const gagal = () =>
+    setState((x) => (x.uploaded ? { src: fallback, uploaded: false, frame: false } : x));
+  return { ...state, gagal };
 }
 
 /* ------------------------------------------------------------ the diagram */
@@ -384,7 +387,7 @@ export default function PinSchematic({
       onClick={() => setView(true)}
       aria-label={t.zoom}
     >
-      <img src={sch.src} alt={pin.judul} loading="lazy" />
+      <img src={sch.src} alt={pin.judul} loading="lazy" onError={sch.gagal} />
       <span className="schem-thumb__bar">
         <span className="schem-thumb__title">{sch.uploaded ? t.uploaded : t.schematic}</span>
         <ArrowsOutSimpleIcon size={16} aria-hidden="true" />
