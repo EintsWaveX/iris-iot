@@ -10,10 +10,8 @@
  * still missing.
  */
 import { useState } from "react";
-import { CheckIcon } from "@phosphor-icons/react";
 import { RatingPicker } from "../ui/Display";
 import Dropdown from "../ui/Dropdown";
-import { namaAsisten } from "../../lib/people";
 import { postJson, dict } from "../../lib/app";
 import {
   CHIPS_ASISTEN,
@@ -127,7 +125,6 @@ function Chips({
             aria-pressed={on}
             onClick={() => onChange(on ? value.filter((x) => x !== k) : [...value, k])}
           >
-            {on && <CheckIcon size={14} aria-hidden="true" />}
             {LABEL_CHIP[k]?.[lang] ?? k}
           </button>
         );
@@ -224,7 +221,7 @@ export default function FeedbackForm({
               onChange={setKode}
               options={[
                 ...(kode ? [] : [{ value: "", label: t.pilihDulu, disabled: true }]),
-                ...opsi.map((o) => ({ value: o.kode, label: namaAsisten(o) })),
+                ...opsi.map((o) => ({ value: o.kode, label: o.nama, chip: o.kode.toUpperCase() })),
               ]}
             />
           </div>
@@ -232,13 +229,12 @@ export default function FeedbackForm({
         <RatingPicker value={ra} onChange={setRa} labels={t.faces} groupLabel={t.rateA} />
         <Chips keys={CHIPS_ASISTEN} value={ca} onChange={setCa} lang={lang} />
         <label className="fbform__area">
-          <span className="hint">
-            {ra > 0 && ra <= RATING_BUTUH_ALASAN ? t.alasanHint : t.komentar}
-          </span>
+          {ra > 0 && ra <= RATING_BUTUH_ALASAN && <span className="hint">{t.alasanHint}</span>}
           <textarea
             rows={3}
             maxLength={KOMENTAR_MAX}
             value={ka}
+            placeholder={t.komentar}
             aria-label={t.komentarA}
             onChange={(e) => setKa(e.target.value)}
           />
@@ -250,13 +246,12 @@ export default function FeedbackForm({
         <RatingPicker value={rl} onChange={setRl} labels={t.faces} groupLabel={t.rateL} />
         <Chips keys={CHIPS_LAB} value={cl} onChange={setCl} lang={lang} />
         <label className="fbform__area">
-          <span className="hint">
-            {rl > 0 && rl <= RATING_BUTUH_ALASAN ? t.alasanHint : t.komentar}
-          </span>
+          {rl > 0 && rl <= RATING_BUTUH_ALASAN && <span className="hint">{t.alasanHint}</span>}
           <textarea
             rows={3}
             maxLength={KOMENTAR_MAX}
             value={kl}
+            placeholder={t.komentar}
             aria-label={t.komentarL}
             onChange={(e) => setKl(e.target.value)}
           />

@@ -298,14 +298,15 @@
   background: var(--surface-2);
   border: 1px solid var(--hairline-strong);
   border-radius: 999px;
-  color: var(--text-muted);
+  color: var(--text);
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: var(--fs-small);
+  font-size: 0.95rem;
+  font-weight: 700;
   gap: 6px;
-  min-height: 40px;
-  padding: 0 var(--space-4);
+  min-height: 44px;
+  padding: 0 12px;
   transition:
     background var(--dur-fast) var(--ease-reveal),
     color var(--dur-fast) var(--ease-reveal),
@@ -341,8 +342,9 @@
   border-radius: var(--radius-md);
   color: var(--text);
   font: inherit;
-  min-height: 64px;
-  padding: var(--space-3);
+  line-height: 1.5;
+  min-height: 110px;
+  padding: 10px 14px;
   resize: vertical;
 }
 
