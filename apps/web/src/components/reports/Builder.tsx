@@ -412,7 +412,7 @@ function SidePanel({
   return (
     <aside className={`rp-docside${sheet ? " rp-docside--sheet" : ""}`}>
       <section className="rp-docside__sec">
-        <span className="label-caps">{t.sideStatus}</span>
+        <span className="field__label">{t.sideStatus}</span>
         <div className="rp-docsteps">
           {steps.map((k, i) => (
             <span key={k} data-st={now > i ? "done" : now === i ? "now" : "wait"}>
@@ -474,7 +474,7 @@ function SidePanel({
           )}
       </section>
       <section className="rp-docside__sec">
-        <span className="label-caps">{t.whoReads}</span>
+        <span className="field__label">{t.whoReads}</span>
         <span className="row">
           {doc.status === "draf" ? (
             <Pill>
@@ -491,7 +491,7 @@ function SidePanel({
         <span className="hint">{t.whoReadsHint}</span>
       </section>
       <section className="rp-docside__sec">
-        <span className="label-caps">{t.mention}</span>
+        <span className="field__label">{t.mention}</span>
         <div className="row">
           {sebut.map((nim) => (
             <span key={nim} className="rp-chipp">
@@ -524,7 +524,7 @@ function SidePanel({
       </section>
       {doc.status !== "draf" && (
         <section className="rp-docside__sec">
-          <span className="label-caps">{t.comments(komentar.length)}</span>
+          <span className="field__label">{t.comments(komentar.length)}</span>
           {komentar.length === 0 && <span className="hint">{t.noComments}</span>}
           {komentar.map((k) => (
             <div key={k.id} className="rp-comment">
