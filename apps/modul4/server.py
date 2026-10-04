@@ -1129,6 +1129,8 @@ class Hunt:
             # tidak perlu ada pesan dorong khusus untuk pergantian sesi.
             "sesi": JADWAL["aktif"],
             "sesi_sisa": sesi_sisa(),
+            # Panjang sesi ini dalam detik, untuk bilah "N dari M menit".
+            "sesi_total": int(sesi_batas(JADWAL["aktif"])) if JADWAL["aktif"] else None,
             # Permainan. Kunci kelompok berupa string di keempatnya, sama
             # dengan /roster.json. tim memakai huruf per anggota, searah
             # dengan urutan nama di /roster.json, supaya bingkai 10 Hz tidak

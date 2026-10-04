@@ -260,7 +260,7 @@
     let body;
     if (noSession && g === null)
       body = html`<section class="card card--raised hjoin"><${H.StateView} icon="hourglass-high" title=${L("Belum ada perburuan", "No hunt yet")} body=${nextSlot() ? L(`Perburuan berikutnya mulai pukul ${nextSlot()}. Halaman ini terbuka sendiri saat asisten memulainya.`, `The next hunt starts at ${nextSlot()}. This page opens by itself when the assistant starts it.`) : L("Tidak ada sesi lagi hari ini. Halaman ini terbuka sendiri saat asisten memulai sesi.", "There are no more sessions today. This page opens by itself when an assistant starts one.")} /><${HClock} />
-        <button type="button" class="hjoin__asisten" onClick=${() => H.go("mission")}><${Icon} n="shield-check" sm />${L("Saya asisten", "I'm an assistant")}</button></section>`;
+        <button type="button" class="hjoin__asisten" onClick=${() => H.go("mission")}><${Icon} n="shield-check" sm />${L("Saya Asisten", "I'm an Assistant")}</button></section>`;
     else if (step === "nim" || g === null) {
       const msg = {
         tak_terdaftar: L("NIM ini tidak ada di daftar sesi yang berjalan. Cek lagi, atau panggil asisten.", "This NIM isn't on the running session's list. Check it, or call an assistant."),
@@ -276,7 +276,7 @@
           ${msg && html`<span class="error"><${Icon} n="warning" sm />${msg}</span>`}</label>
         <${Btn} type="submit" kind="primary" lg block icon="arrow-right" disabled=${nim.length < 4 || busy}>${busy ? L("Mencari", "Looking Up") : L("Masuk", "Sign In")}</${Btn}>
         <span class="hint">${L("Tanpa internet. Kamu tersambung ke Pi lewat Wi-Fi IRIS-IOT.", "No internet. You're connected to the Pi over the IRIS-IOT Wi-Fi.")}</span>
-        <button type="button" class="hjoin__asisten" onClick=${() => H.go("mission")}><${Icon} n="shield-check" sm />${L("Saya asisten", "I'm an assistant")}</button>
+        <button type="button" class="hjoin__asisten" onClick=${() => H.go("mission")}><${Icon} n="shield-check" sm />${L("Saya Asisten", "I'm an Assistant")}</button>
       </form>`;
     } else if (step === "reveal") {
       const mem = H.members(g);
@@ -468,7 +468,7 @@
         <div class="dcards hdcards">
           <${H.DataCard} label="SNR" value=${H.fmt(row.snr, 1)} unit="dB" dp=${1} series=${H.series(g, "snr")} />
           <${H.DataCard} label=${L("Paket hilang", "Lost packets")} value=${H.fmt(row.rugi_persen, 1)} unit="%" dp=${1} tone="var(--danger)" series=${H.series(g, "lost")} />
-          <${H.DataCard} label=${L("Delay", "Delay")} value=${H.fmt(row.delay_ms)} unit="ms" tone="var(--accent)" series=${H.series(g, "delay")} />
+          <${H.DataCard} label=${L("Delay satu arah", "One-way delay")} value=${H.fmt(row.delay_ms)} unit="ms" tone="var(--accent)" series=${H.series(g, "delay")} />
         </div></section>`,
       sweep: html`<section class="card hsweep"><div class="card__head"><h2 class="card__title">${H.T("Sapuan 8 arah", "8-facing sweep")}</h2>${sw && html`<span class="hint">${L(`oleh ${sw.oleh} pada ${sw.at.slice(0, 5)}`, `by ${sw.oleh} at ${sw.at.slice(0, 5)}`)}</span>`}</div>
         <div class="hsweep__row"><${H.Rose} vals=${sw ? sw.arah : [null, null, null, null, null, null, null, null]} best=${sw ? sw.terkuat : null} /><div class="stack stack--sm"><b>${sw ? L(`Terkuat di arah jam ${clockText(sw.terkuat)}`, `Strongest at ${clockText(sw.terkuat)} o'clock`) : L("Belum ada sapuan", "No sweep yet")}</b><span class="hint">${L("Tubuhmu jadi antena: hadap satu arah, diam 4 detik, putar 45 derajat.", "Your body is the antenna: face one way, stand still 4 seconds, turn 45 degrees.")}</span>

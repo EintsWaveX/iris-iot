@@ -208,7 +208,7 @@
       ${err != null && html`<span class="error"><${Icon} n="warning" sm />${err >= 0 ? L(`Token salah. Sisa ${err} kali coba sebelum sambungan ditutup.`, `Wrong token. ${err} tries left before the connection closes.`) : L("Tidak tersambung ke Pi. Coba lagi.", "Not connected to the Pi. Try again.")}</span>`}
       <${Btn} type="submit" kind="primary" lg block icon="lock-key" disabled=${code.length < 4 || busy}>${L("Buka", "Open")}</${Btn}>
       <span class="hint">${L("Tab Asisten tidak tampil di ponsel praktikan sampai token benar.", "The Assistant tab doesn't show on student phones until the token is right.")}</span>
-      ${N.grup === null && html`<button type="button" class="hjoin__asisten" onClick=${() => H.go("hunt")}><${Icon} n="arrow-left" sm />${L("Kembali ke masuk NIM", "Back to the NIM sign-in")}</button>`}
+      ${N.grup === null && html`<button type="button" class="hjoin__asisten" onClick=${() => H.go("hunt")}><${Icon} n="arrow-left" sm />${L("Kembali ke Masuk NIM", "Back to the NIM Sign-In")}</button>`}
     </form></div></${H.HuntApp}>`;
   };
   const act = async (aksi, extra, ok) => {
@@ -264,10 +264,14 @@
     const reasons = REASONS();
     const reason = why === reasons.length - 1 ? other.trim() || reasons[why] : reasons[why];
     const pings = N.pings.slice(-6).reverse();
+    const d = new Date();
+    const jam = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+    const tot = f.sesi_total ? Math.round(f.sesi_total / 60) : 0;
+    const lewat = tot ? Math.max(0, Math.min(tot, Math.round((f.sesi_total - (f.sesi_sisa || 0)) / 60))) : 0;
     return html`<${H.HuntApp} tab="mission">
       <div class="hpage__in">
         <div class="pagehead pagehead__row pagehead__row--center"><div class="stack stack--sm"><span class="eyebrow">${L("Ruang kendali", "Mission control")} · ${H.tgl(new Date())}${f.sesi ? L(` · Sesi ${f.sesi}`, ` · Session ${f.sesi}`) : ""}</span><h1 class="h-title">${f.sesi ? H.T("Perburuan berjalan", "Hunt running") : H.T("Belum ada sesi", "No session running")}</h1></div>
-          ${f.sesi_sisa != null && html`<span class="strip strip--compact" role="timer"><span class="strip__i strip__left" data-low=${f.sesi_sisa < 1800 ? "yes" : "no"}><small>${L("Sisa", "Left")}</small><b class="mono">${H.hms(f.sesi_sisa)}</b></span></span>`}</div>
+          ${f.sesi_sisa != null && html`<span class="strip strip--compact" role="timer"><span class="strip__i"><small>${L("Jam", "Time")}</small><b class="mono">${H.hms(jam)}</b></span><span class="strip__dot" aria-hidden="true">·</span><span class="strip__i strip__left" data-low=${f.sesi_sisa < 1800 ? "yes" : "no"}><small>${L("Sisa", "Left")}</small><b class="mono">${H.hms(f.sesi_sisa)}</b></span>${tot && html`<span class="strip__dot strip__prog-dot" aria-hidden="true">·</span><span class="strip__prog"><${H.Bar} p=${Math.round((lewat / tot) * 100)} /><span class="hint num">${L(`${lewat} dari ${tot} menit`, `${lewat} of ${tot} minutes`)}</span></span>`}</span>`}</div>
         <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Jalur kelompok", "Group lanes")}</h2><span class="hint">${L("dibandingkan lewat jarak tertutup", "compared by distance closed")}</span></div>
           ${ids.length ? html`<div class="lanes">${ids.map((g) => {
             const r = H.row(g);
@@ -379,7 +383,7 @@
     const N = H.useNet();
     H.useTick(1000);
     const V = {
-      offline: ["wifi-slash", L("Tidak tersambung ke IRIS-IOT", "Not connected to IRIS-IOT"), L("Ponselmu keluar dari Wi-Fi hotspot Pi. Biasanya karena terlalu jauh dari gedung, atau ponsel pindah ke data seluler.", "Your phone left the Pi's hotspot Wi-Fi. Usually you're too far from the building, or the phone switched to mobile data."), L("Mencoba lagi sendiri", "Trying again by itself")],
+      offline: ["wifi-slash", L("Tidak Tersambung ke IRIS-IOT", "Not Connected to IRIS-IOT"), L("Ponselmu keluar dari Wi-Fi hotspot Pi. Biasanya karena terlalu jauh dari gedung, atau ponsel pindah ke data seluler.", "Your phone left the Pi's hotspot Wi-Fi. Usually you're too far from the building, or the phone switched to mobile data."), L("Mencoba lagi sendiri", "Trying again by itself")],
       restart: ["arrows-clockwise", L("Server perburuan dimulai ulang", "The hunt server is restarting"), L("Asisten memulai ulang server. Posisi dan klaim kalian aman.", "An assistant restarted the server. Your progress and claims are safe."), L("Tersambung lagi sendiri", "Reconnects by itself")],
       ended: ["flag-checkered", L("Ronde selesai", "Round over"), L("Semua kelompok sudah menemukan beaconnya, atau asisten menutup ronde.", "Every group found its beacon, or an assistant closed the round."), null],
       rolled: ["calendar-blank", L("Sesi sudah berganti", "The session changed"), L("Sesi ini sudah lewat. Masuk lagi dengan NIM kalau kamu ikut sesi berikutnya.", "This session is over. Sign in again with your NIM if you're in the next one."), null],
