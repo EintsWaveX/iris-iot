@@ -31,6 +31,7 @@ import Pill from "../ui/Pill";
 import PdfViewer from "../ui/PdfViewer";
 import { getJson, href, KELOMPOK_NAMA, MODUL_NAMA, useMe, useSessionNow } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
+import { bacaProyektor, useProyektor } from "../../lib/proyektor";
 import { hariIniWib } from "../../lib/jadwal";
 import { langkahBerikutnya, type Langkah } from "../../lib/langkah";
 import { NILAI_KOMPONEN } from "../../lib/nilai-komponen";
@@ -828,21 +829,30 @@ function FeedbackPage({
 export default function Dashboard({ lang, modules }: { lang: Lang; modules: ModulInfo[] }) {
   const t = DS[lang];
   const me = useMe();
-  const praktikan = me?.role === "praktikan";
+  // Projector mode: an Asisten sees their held group's Dasbor as its
+  // Praktikan do (ruled 2026-10-04); there is no practicum history of theirs.
+  const pro = useProyektor(me);
+  const sendiri = me?.role === "praktikan";
+  const praktikan = sendiri || pro !== null;
   const [view, go] = useView();
   const now = useSessionNow(15_000, praktikan);
   const sesi = now.data && now.data.milikSaya !== false ? now.data : null;
-  const hasilPoll = usePoll(() => getJson<Hasil>("/api/session/results"), 20_000, praktikan);
+  const hasilPoll = usePoll(
+    () => getJson<Hasil>(`/api/session/results${pro ? `?kelompok=${pro}` : ""}`),
+    20_000,
+    praktikan,
+  );
   const minePoll = usePoll(
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
     60_000,
-    praktikan,
+    sendiri,
   );
   const hasil = hasilPoll.data;
 
   useEffect(() => {
     if (me === null) location.assign(href(lang, "/?login=1&next=/dashboard"));
-    else if (me?.role === "asisten") location.replace(href(lang, "/session"));
+    else if (me?.role === "asisten" && bacaProyektor() === null)
+      location.replace(href(lang, "/session"));
   }, [me, lang]);
 
   // ?feedback=1 (an older link) opens the feedback page for the latest session.
@@ -919,8 +929,10 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
       </div>
     );
 
-  const k = hasil?.kelompok?.nomor ?? me.kelompok ?? null;
-  const nama = me.nama.split(/\s+/)[0] ?? me.nama;
+  const k = hasil?.kelompok?.nomor ?? pro ?? me.kelompok ?? null;
+  const nama = pro
+    ? (KELOMPOK_NAMA[pro] ?? kelompokLabel(pro, lang))
+    : (me.nama.split(/\s+/)[0] ?? me.nama);
   const list = minePoll.data?.ok ? minePoll.data.praktikum : [];
   const endedToday =
     !sesi && hasil?.ok && hasil.sesi?.status === "selesai" && hasil.sesi.tanggal === today
@@ -964,7 +976,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
         <h1 className="page-header__title">{t.halo(nama)}</h1>
       </header>
       {body}
-      {sesi && <CoachMarks lang={lang} />}
+      {sesi && !pro && <CoachMarks lang={lang} />}
     </div>
   );
 }

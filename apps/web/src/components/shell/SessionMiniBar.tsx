@@ -117,9 +117,12 @@ function writeList(k: string, list: Ann[], seen: string | null) {
 export default function SessionMiniBar({
   lang,
   now,
+  proyektor = false,
 }: {
   lang: Lang;
   now: PollState<SesiNow | null>;
+  /** Projector mode: an Asisten can't raise a Praktikan's hand. */
+  proyektor?: boolean;
 }) {
   const t = T[lang];
   const s = now.data;
@@ -249,17 +252,19 @@ export default function SessionMiniBar({
       </div>
 
       <div className="minibar__actions">
-        <button
-          type="button"
-          className="minibar__help"
-          aria-pressed={Boolean(hand)}
-          aria-label={hand ? t.helpOn : t.help}
-          disabled={busy}
-          onClick={() => void toggleHand()}
-        >
-          <HandIcon size={18} aria-hidden="true" />
-          <span>{hand ? t.helpOn : t.help}</span>
-        </button>
+        {!proyektor && (
+          <button
+            type="button"
+            className="minibar__help"
+            aria-pressed={Boolean(hand)}
+            aria-label={hand ? t.helpOn : t.help}
+            disabled={busy}
+            onClick={() => void toggleHand()}
+          >
+            <HandIcon size={18} aria-hidden="true" />
+            <span>{hand ? t.helpOn : t.help}</span>
+          </button>
+        )}
 
         <RadixPopover.Root
           onOpenChange={(o) => {

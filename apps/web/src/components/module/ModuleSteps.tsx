@@ -62,6 +62,7 @@ import HuntStep, { usePerburuan } from "./HuntStep";
 import { H } from "./huntStrings";
 import { getJson, href, tanggalPanjang, useMe, useSessionNow } from "../../lib/app";
 import { getAksesState, type AksesState } from "../../scripts/modul-akses";
+import { useProyektor } from "../../lib/proyektor";
 import { setModulAkses } from "../shell/AsistenCommands";
 import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
@@ -123,12 +124,14 @@ interface LabSaya {
 }
 
 /** `?lihat=N` for an Asisten: undefined while loading, null when it does not apply. */
-function useWakil(modul: number, asisten: boolean): Wakil | null | undefined {
-  const [lihat] = useState(() =>
+function useWakil(modul: number, asisten: boolean, pro: number | null): Wakil | null | undefined {
+  const [dariUrl] = useState(() =>
     typeof location === "undefined"
       ? NaN
       : Number(new URLSearchParams(location.search).get("lihat")),
   );
+  // Projector mode shows the group the Asisten holds, without ?lihat=.
+  const lihat = pro ?? dariUrl;
   const minta = asisten && Number.isInteger(lihat) && lihat >= 1;
   const [w, setW] = useState<Wakil | null | undefined>(undefined);
   useEffect(() => {
@@ -185,7 +188,8 @@ export default function ModuleSteps(p: Props) {
       .catch(() => setMine([]));
   }, [me]);
 
-  const wakil = useWakil(modul, me?.role === "asisten");
+  const pro = useProyektor(me);
+  const wakil = useWakil(modul, me?.role === "asisten", pro);
   const [lihatGagal] = useState(
     () => typeof location !== "undefined" && new URLSearchParams(location.search).has("lihat"),
   );
@@ -201,7 +205,9 @@ export default function ModuleSteps(p: Props) {
     me?.role === "asisten"
       ? wakil
         ? "now"
-        : "asisten"
+        : pro
+          ? "browse"
+          : "asisten"
       : mySession
         ? mySession.modul === modul
           ? "now"
@@ -273,7 +279,7 @@ export default function ModuleSteps(p: Props) {
 
   return (
     <div className="stack stack--lg modsteps">
-      {wakil && (
+      {wakil && !pro && (
         <div className={`banner modsteps__viewas ${wakil.own ? "banner--ok" : ""}`}>
           <EyeIcon aria-hidden="true" />
           <b>{wakil.own ? t.viewedOwn(wakil.nomor) : t.viewedOther(wakil.nomor)}</b>
@@ -403,7 +409,7 @@ export default function ModuleSteps(p: Props) {
               wakil={wakil ?? undefined}
             />
           ) : step === "hunt" ? (
-            <HuntStep lang={lang} data={hunt.data} asisten={me?.role === "asisten"} />
+            <HuntStep lang={lang} data={hunt.data} asisten={me?.role === "asisten" && !pro} />
           ) : mode === "done" ? (
             <Done lang={lang} modul={modul} done={done} />
           ) : (

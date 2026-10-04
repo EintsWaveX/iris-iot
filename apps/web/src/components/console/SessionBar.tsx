@@ -16,6 +16,7 @@ import {
   ArrowSquareOutIcon,
   DotsThreeIcon,
   EyeIcon,
+  ProjectorScreenIcon,
   FlagCheckeredIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
@@ -102,6 +103,7 @@ export default function SessionBar({
   onView,
   onChanged,
   onAsPraktikan,
+  onProjector,
   announceOpen,
   setAnnounceOpen,
 }: {
@@ -114,6 +116,8 @@ export default function SessionBar({
   onView: (v: View) => void;
   onChanged: () => void;
   onAsPraktikan: () => void;
+  /** Projector mode on the group I hold; undefined when I hold none. */
+  onProjector?: () => void;
   announceOpen: boolean;
   setAnnounceOpen: (o: boolean) => void;
 }) {
@@ -188,11 +192,12 @@ export default function SessionBar({
     setMenu(null);
     setAnnounceOpen(false);
   };
-  const tools: { k: Menu | "see" | "skor"; icon: PhIcon; label: string }[] = [
+  const tools: { k: Menu | "see" | "proj" | "skor"; icon: PhIcon; label: string }[] = [
     { k: "ann", icon: MegaphoneIcon, label: t.announce },
     { k: "acc", icon: LockSimpleOpenIcon, label: t.access },
     { k: "deck", icon: PresentationChartIcon, label: t.slides },
     { k: "see", icon: EyeIcon, label: t.viewAs },
+    { k: "proj", icon: ProjectorScreenIcon, label: t.projector },
     ...(sesi.modul === 4 ? [{ k: "skor" as const, icon: TrophyIcon, label: t.scoreboard }] : []),
   ];
 
@@ -267,6 +272,17 @@ export default function SessionBar({
                 <EyeIcon size={20} aria-hidden="true" />
               </button>
             </Tooltip>
+            <Tooltip label={onProjector ? t.projector : t.projectorNone} side="bottom">
+              <button
+                type="button"
+                className="iconbtn"
+                aria-label={t.projector}
+                aria-disabled={onProjector ? undefined : true}
+                onClick={() => onProjector?.()}
+              >
+                <ProjectorScreenIcon size={20} aria-hidden="true" />
+              </button>
+            </Tooltip>
             {sesi.modul === 4 && (
               <Tooltip label={t.scoreboard} side="bottom">
                 <a
@@ -333,6 +349,10 @@ export default function SessionBar({
                           if (x.k === "see") {
                             closeMore();
                             onAsPraktikan();
+                          } else if (x.k === "proj") {
+                            closeMore();
+                            if (onProjector) onProjector();
+                            else window.Toast?.show(t.projectorNone, "warn");
                           } else if (x.k !== "skor") setMenu(x.k);
                         }}
                       >

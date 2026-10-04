@@ -1218,7 +1218,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "results") {
     if (!requireMethod(req, res, "GET")) return;
-    const who = requireRole(req, res, "praktikan");
+    // Projector mode: an Asisten reads the group they hold, as its Praktikan.
+    const wakil = nomorWakil(req);
+    const who = wakil
+      ? await wakilKelompok(req, res, wakil, true)
+      : requireRole(req, res, "praktikan");
     if (!who) return;
     return handleResults(req, res, who);
   }

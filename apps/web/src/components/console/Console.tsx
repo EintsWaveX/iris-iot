@@ -23,7 +23,8 @@ import { shortcutsOn } from "../../lib/prefs";
 import { ShieldWarningIcon, SignInIcon } from "@phosphor-icons/react";
 import { OfflineBanner, StateView } from "../ui/Display";
 import { isTypingTarget } from "../ui/ShortcutSheet";
-import { useMe } from "../../lib/app";
+import { href, useMe } from "../../lib/app";
+import { masukProyektor } from "../../lib/proyektor";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { CONSOLE_EVENT, type ConsoleCommand } from "../shell/AsistenCommands";
@@ -397,6 +398,8 @@ export default function Console({ lang }: { lang: Lang }) {
   const pemilik = L?.pemilik ?? {};
   // The inspector always shows a group (mockup c-run): the picked one, else
   // the first group I hold, else the first group.
+  // Projector mode shows the first group I hold (ruled 2026-10-04).
+  const milikku = groups.find((g) => pemilik[g.id] === me?.nim) ?? null;
   const selGroup =
     groups.find((g) => g.id === sel) ??
     groups.find((g) => pemilik[g.id] === me?.nim) ??
@@ -432,6 +435,14 @@ export default function Console({ lang }: { lang: Lang }) {
         onView={go}
         onChanged={refreshAll}
         onAsPraktikan={() => setAsP(selGroup?.id ?? groups[0]?.id ?? null)}
+        onProjector={
+          milikku
+            ? () => {
+                masukProyektor(milikku.nomor);
+                location.assign(href(lang, "/dashboard"));
+              }
+            : undefined
+        }
         announceOpen={announce}
         setAnnounceOpen={setAnnounce}
       />

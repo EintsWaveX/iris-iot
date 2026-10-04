@@ -41,6 +41,7 @@ import Fade from "../ui/Fade";
 import TabLine from "../ui/TabLine";
 import LiveSandbox from "../LiveSandbox";
 import { useMe, useSessionNow, useTick } from "../../lib/app";
+import { useProyektor } from "../../lib/proyektor";
 import { KELOMPOK_DEFAULT } from "../../lib/jadwal";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
@@ -184,6 +185,8 @@ export default function LiveRoom({
   const tc = CV[lang];
   const me = useMe();
   const praktikan = me?.role === "praktikan";
+  // Projector mode: the room looks exactly as the Praktikan's does.
+  const pro = useProyektor(me);
   // The Asisten holding the viewed group acts for it, like a Praktikan would.
   const acting = !!wakil?.own;
   const ownGroup = praktikan ? (me?.kelompok ?? null) : wakil ? wakil.nomor : null;
@@ -465,7 +468,7 @@ export default function LiveRoom({
 
   return (
     <div className="stack stack--lg liveroom" style={{ "--m": hue } as CSSProperties}>
-      {!(embed && praktikan) && (
+      {!(embed && (praktikan || pro)) && (
         <div className="liveroom__top">
           {wakil ? (
             <span className="pill">

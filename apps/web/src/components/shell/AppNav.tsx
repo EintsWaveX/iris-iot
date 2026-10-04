@@ -36,6 +36,7 @@ import {
   HouseIcon,
   DoorOpenIcon,
   MagnifyingGlassIcon,
+  ProjectorScreenIcon,
   SignOutIcon,
   SlidersHorizontalIcon,
   SquaresFourIcon,
@@ -62,6 +63,7 @@ import { langForKelas, langOfPath, pathForLang, type Lang } from "../../lib/kela
 import { readLangPref, saveLangPref, usePoll } from "../../lib/hooks";
 import { kelompokLabel } from "../../lib/labels";
 import SessionMiniBar from "./SessionMiniBar";
+import { keluarProyektor, useProyektor } from "../../lib/proyektor";
 import AsistenMiniBar from "./AsistenMiniBar";
 import OfflineNotice from "./OfflineNotice";
 import IdentityWatch from "./IdentityWatch";
@@ -96,6 +98,7 @@ const T = dict({
     palette: "Cari perintah",
     praktikan: "Praktikan",
     asisten: "Asisten",
+    proyektorKeluar: "Keluar Proyektor",
     group: (n: number) => kelompokLabel(n, "id"),
     notSignedIn: "Belum masuk",
     signInHint: "Masuk untuk membuka dasbor dan menyimpan jawaban.",
@@ -121,6 +124,7 @@ const T = dict({
     palette: "Search commands",
     praktikan: "Student",
     asisten: "Assistant",
+    proyektorKeluar: "Leave Projector",
     group: (n: number) => kelompokLabel(n, "en"),
     notSignedIn: "Not signed in",
     signInHint: "Sign in to open your dashboard and save your answers.",
@@ -146,6 +150,7 @@ const T = dict({
     palette: "搜索命令",
     praktikan: "学员",
     asisten: "助教",
+    proyektorKeluar: "退出投影",
     group: (n: number) => kelompokLabel(n, "zh"),
     notSignedIn: "未登录",
     signInHint: "登录后可以打开你的仪表盘并保存答案。",
@@ -258,16 +263,21 @@ export default function AppNav({
     sebelum.current = menunggu;
   }, [menunggu, t.konsolBaru]);
   const current = barePath(path);
-  const links = useMemo(() => linksFor(me, t), [me, t]);
+  // Projector mode: the Asisten is drawn as a Praktikan of the group they
+  // hold, so nothing Asisten-only reaches the projector (ruled 2026-10-04).
+  const pro = useProyektor(me);
+  const tampil: Me | null | undefined =
+    me && pro ? { ...me, role: "praktikan", kelompok: pro } : me;
+  const links = useMemo(() => linksFor(tampil, t), [tampil?.role, me, t]);
   // The phone bar holds five: an Asisten reaches Home from the logo and
   // Modules from Home, so both stay in the top bar only (mockup rule).
   const barLinks = useMemo(
     () =>
-      (me?.role === "asisten"
+      (tampil?.role === "asisten"
         ? links.filter((l) => l.path !== "/" && l.path !== "/modules")
         : links
       ).slice(0, 5),
-    [links, me],
+    [links, tampil?.role],
   );
   const [sheet, setSheet] = useState(false);
   const [dispSheet, setDispSheet] = useState(false);
@@ -325,15 +335,21 @@ export default function AppNav({
   // bar, the Asisten's own "Sesimu berjalan" bar, or the Console's session
   // bar; the nav clock steps aside for it (mockup G6).
   const onConsole = isActive("/session", current);
-  const asistenBar = me?.role === "asisten" && !!now.data?.mengajar && !onConsole;
+  const asistenBar = tampil?.role === "asisten" && !!now.data?.mengajar && !onConsole;
   const sesiBar =
-    me?.role === "praktikan"
+    tampil?.role === "praktikan"
       ? !!now.data
-      : me?.role === "asisten"
+      : tampil?.role === "asisten"
         ? !!now.data?.mengajar || (onConsole && !!now.data)
         : false;
 
-  const badge = me?.role === "asisten" ? t.asisten : me?.role === "praktikan" ? t.praktikan : null;
+  const badge =
+    tampil?.role === "asisten" ? t.asisten : tampil?.role === "praktikan" ? t.praktikan : null;
+
+  function leaveProjector() {
+    keluarProyektor();
+    location.assign(href(lang, "/session"));
+  }
 
   return (
     <>
@@ -369,7 +385,7 @@ export default function AppNav({
         </nav>
 
         <div className="appnav__side">
-          {me?.role === "asisten" && (
+          {tampil?.role === "asisten" && (
             <span className="appnav__palette">
               <IconButton
                 icon={MagnifyingGlassIcon}
@@ -415,7 +431,14 @@ export default function AppNav({
             </button>
           )}
 
-          {me && (
+          {me && pro && (
+            <button type="button" className="btn btn--sm appnav__leave" onClick={leaveProjector}>
+              <ProjectorScreenIcon size={18} aria-hidden="true" />
+              <span className="btn__label">{t.proyektorKeluar}</span>
+            </button>
+          )}
+
+          {me && !pro && (
             <RadixPopover.Root>
               <RadixPopover.Trigger asChild>
                 <button type="button" className="appnav__me" aria-label={t.account}>
@@ -459,6 +482,13 @@ export default function AppNav({
             <DoorOpenIcon size={20} aria-hidden="true" />
             <span className="btn__label">{t.signIn}</span>
           </button>
+        ) : me && pro ? (
+          <IconButton
+            icon={ProjectorScreenIcon}
+            label={t.proyektorKeluar}
+            className="appnav__me--mobile"
+            onClick={leaveProjector}
+          />
         ) : (
           me && (
             <button
@@ -473,7 +503,7 @@ export default function AppNav({
         )}
       </header>
 
-      {me?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} />}
+      {tampil?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} proyektor={!!pro} />}
       {asistenBar && now.data && <AsistenMiniBar lang={lang} s={now.data} />}
       <OfflineNotice lang={lang} />
       <IdentityWatch lang={lang} me={me} now={now.data} />

@@ -86,6 +86,9 @@ export const S = dict({
     lockedScores: (who: string) =>
       `Dinilai oleh ${who}. Kamu bisa melihat, tapi tidak bisa mengisi atau mengirim nilai kelompok ini.`,
     viewAs: "Lihat Sebagai Praktikan",
+    projector: "Mode Proyektor",
+    projectorNone:
+      "Mode Proyektor menampilkan kelompok yang kamu pegang. Pegang satu kelompok dulu.",
     viewAsDesc: "Buka halaman modul seperti yang dilihat kelompok ini.",
     viewAsGroup: "Kelompok",
     viewAsOwn:
@@ -601,6 +604,8 @@ export const S = dict({
     lockedScores: (who: string) =>
       `Scored by ${who}. You can look, but you can't enter or submit this group's scores.`,
     viewAs: "View as a Student",
+    projector: "Projector Mode",
+    projectorNone: "Projector Mode shows the group you hold. Hold a group first.",
     viewAsDesc: "Open the module page the way this group sees it.",
     viewAsGroup: "Group",
     viewAsOwn: "Your group: you can connect ports, capture data and fill in like a student.",
@@ -1100,6 +1105,8 @@ export const S = dict({
     enteredBy: (who: string) => `录入人：${who}`,
     lockedScores: (who: string) => `由 ${who} 评分。你可以查看，但不能录入或提交这个组的分数。`,
     viewAs: "以学员身份查看",
+    projector: "投影模式",
+    projectorNone: "投影模式显示你负责的组。请先负责一个组。",
     viewAsDesc: "按这个组看到的样子打开模块页面。",
     viewAsGroup: "组",
     viewAsOwn: "你的组：你可以像学员一样连接串口、采集数据和填写。",
