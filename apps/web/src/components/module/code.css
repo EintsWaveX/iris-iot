@@ -167,10 +167,29 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* The code card is as tall as Pin dan Skema beside it (user ruling
+   2026-10-04), and never shorter than --code-h: `contain: size` keeps the
+   code's own length out of the row's height, so the pin panel (or the
+   floor) sets it and the code scrolls inside. */
+.codegrid {
+  --code-h: 560px;
+}
+
 @media (min-width: 1280px) {
   .codegrid--side {
-    align-items: start;
+    align-items: stretch;
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+  .codegrid--side > .codecard {
+    contain: size;
+    display: flex;
+    flex-direction: column;
+    min-height: var(--code-h);
+  }
+  .codegrid--side > .codecard > .code {
+    flex: 1 1 0;
+    max-height: none;
+    min-height: 0;
   }
 }
 
@@ -184,7 +203,7 @@
   background: var(--bg-sunken);
   font: 0.906rem/1.85 var(--font-mono);
   margin: 0;
-  max-height: min(460px, 62vh);
+  max-height: min(var(--code-h), 70vh);
   overflow: auto;
   padding: 10px 0;
 }
@@ -199,6 +218,9 @@
 }
 
 @media (max-height: 800px) {
+  .codegrid {
+    --code-h: 420px;
+  }
   .code {
     max-height: 340px;
   }
