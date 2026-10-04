@@ -66,3 +66,13 @@ button.hphoto--sm { width: 84px; }
    (position: relative) came later and pushed it into the flow, leaving an
    empty band at the top of the card. */
 .hwin > .hwin__burst { position: absolute; }
+
+/* On a phone a filled tab line of three icon tabs (Your Role on the Team
+   screen) ran past the card and clipped "Operator Radio": the icon goes
+   above the label and long labels wrap inside their third. */
+@container huntapp (max-width: 479px) {
+  .tabs--fill:not(:has(> :nth-child(4))) button:has(svg) {
+    flex: 1 1 0; flex-direction: column; gap: 3px; min-width: 0; min-height: 54px;
+    padding: 6px 4px; font-size: 0.84rem; line-height: 1.15; text-align: center; white-space: normal;
+  }
+}

@@ -711,7 +711,8 @@ async def main() -> int:
         if telemetri:
             baris = telemetri[0]
             cek("/telemetri.json baris punya bidang yang diharapkan",
-                set(baris.keys()) == {"grup", "seq", "tx", "rx", "delay_ms", "rssi", "snr"},
+                set(baris.keys()) == {"grup", "seq", "tx", "rx", "delay_ms", "rssi", "snr",
+                                   "halus", "jarak_m", "trend", "hilang"},
                 json.dumps(list(baris.keys())))
 
         # Tolak, lalu klaim ulang harus boleh.
