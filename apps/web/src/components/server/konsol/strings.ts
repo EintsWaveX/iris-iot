@@ -171,7 +171,7 @@ export const K = dict({
     cutDesc: "Konsol langsung ditutup di Pi. Alasanmu terlihat oleh yang membuka dan masuk Audit.",
     cutWhy: "Alasan",
     // safety
-    safeTitle: "Cara amannya",
+    safeTitle: "Cara Amannya",
     safe: [
       "Pi tidak membuka port. Agen di Pi menelepon keluar ke relay (Cloudflare Worker) lewat WSS, hanya setelah konsol disetujui.",
       "Browser masuk ke ruang yang sama dengan tiket 60 detik dari server IRIS. Tiketnya sekali pakai dan terikat ke orang, server dan ruangnya.",
@@ -349,7 +349,7 @@ export const K = dict({
     cutDesc:
       "The console closes on the Pi at once. Its opener sees your reason, and it goes into Audit.",
     cutWhy: "Reason",
-    safeTitle: "How it stays safe",
+    safeTitle: "How It Stays Safe",
     safe: [
       "The Pi opens no ports. The agent on the Pi dials out to a relay (Cloudflare Worker) over WSS, only once the console is approved.",
       "The browser joins the same room with a 60-second ticket from the IRIS server. The ticket is single use and tied to the person, the server and the room.",

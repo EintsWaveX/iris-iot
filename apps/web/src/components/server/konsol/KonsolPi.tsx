@@ -15,7 +15,6 @@ import {
   ChatCircleTextIcon,
   CheckIcon,
   CircleNotchIcon,
-  CodeIcon,
   ClockCountdownIcon,
   DesktopIcon,
   FileTextIcon,
@@ -34,6 +33,7 @@ import {
 import Dialog from "../../ui/Dialog";
 import Disclose from "../../ui/Disclose";
 import Fade from "../../ui/Fade";
+import PersonBadges from "../../ui/PersonBadges";
 import PasswordField from "../../ui/PasswordField";
 import { StateView } from "../../ui/Display";
 import { href, tanggalPanjang, useTick } from "../../../lib/app";
@@ -316,14 +316,7 @@ function Ask({
     <section className="panel panel--solo pkask">
       <div className="panel__head">
         <h2 className="panel__title">{t.askTitle}</h2>
-        <span className="pill pill--violet">
-          {pencipta ? (
-            <StarFourIcon size={14} aria-hidden="true" />
-          ) : (
-            <CodeIcon size={14} aria-hidden="true" />
-          )}
-          {pencipta ? t.badgePencipta : "DEV"}
-        </span>
+        <PersonBadges badges={pencipta ? ["pencipta", "dev"] : ["dev"]} lang={lang} sm />
       </div>
       {sesi && (
         <div className="banner banner--warn">
