@@ -345,6 +345,8 @@ class Hunt:
         self.arena_m = ARENA_RADIUS_M
         self.rssi_at_1m = RSSI_AT_1M
         self.path_loss_n = PATH_LOSS_N
+        # Jam dinding (YYYY-MM-DD HH:MM) kalibrasi terakhir; None = bawaan.
+        self.kalibrasi_pada: str | None = None
         self.reset()
 
     def reset(self) -> None:
@@ -636,6 +638,7 @@ class Hunt:
         if slot is None or slot["halus"] is None:
             return
         self.rssi_at_1m = round(slot["halus"], 1)
+        self.kalibrasi_pada = datetime.now().strftime("%Y-%m-%d %H:%M")
         self.note("kalibrasi", gid, rssi=self.rssi_at_1m)
 
     def heat_radius(self, fraction: float, floor_m: float) -> float:
@@ -1099,6 +1102,7 @@ class Hunt:
             },
             "model": {
                 "rssi_1m": self.rssi_at_1m,
+                "diukur": self.kalibrasi_pada,
                 "n": self.path_loss_n,
                 "tak_pasti_db": RSSI_UNCERTAINTY_DB,
                 "arena_m": self.arena_m,

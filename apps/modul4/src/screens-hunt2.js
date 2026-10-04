@@ -237,6 +237,16 @@
       ${ask === "paksa" && html`<${Confirm} danger title=${L("Paksa konfirmasi", "Force confirm")} body=${L(`${H.gname(g)} dicatat menemukan beaconnya sekarang, tanpa klaim. Tidak bisa dibatalkan.`, `${H.gname(g)} is recorded as finding its beacon now, without a claim. This can't be undone.`)} okLabel=${L("Paksa Konfirmasi", "Force Confirm")} onOk=${() => act("konfirmasi", { grup: g, paksa: true }, L(`${H.gname(g)} menang.`, `${H.gname(g)} wins.`))} onClose=${() => setAsk(null)} />`}
     </div>`}</${H.Dialog}>`;
   };
+  /* "Ukur Ulang di 1 M": pick whose hunter is held 1 m from its beacon. */
+  const KalPick = ({ rows, onClose }) => {
+    const ready = rows.filter((r) => r.halus != null).map((r) => r.grup);
+    const [g, setG] = useState(ready[0] ?? null);
+    return html`<${H.Dialog} sm title=${L("Kalibrasi 1 m", "1 m calibration")} onClose=${onClose}
+      foot=${(c) => html`<${Btn} kind="ghost" onClick=${c}>${L("Batal", "Cancel")}</${Btn}><${Btn} kind="primary" icon="ruler" disabled=${g == null} onClick=${() => { c(); act("kalibrasi", { grup: g }, L("Kalibrasi tersimpan.", "Calibration saved.")); }}>${L("Ukur", "Measure")}</${Btn}>`}>
+      <div class="stack"><p>${L("Taruh hunter 1 m dari beacon, diam 5 detik, lalu tekan Ukur. Seluruh perkiraan jarak ikut bergeser.", "Put the hunter 1 m from the beacon, still for 5 seconds, then press Measure. Every distance estimate shifts with it.")}</p>
+        <span class="label">${L("Hunter kelompok", "Group's hunter")}</span>
+        <div class="row" style="gap:8px">${ready.map((id) => html`<button type="button" class="chipbtn" aria-pressed=${String(id === g)} onClick=${() => setG(id)}>${H.gname(id)}</button>`)}</div></div></${H.Dialog}>`;
+  };
   const Mission = () => {
     const N = H.useNet();
     const f = N.frame || {};
@@ -299,8 +309,8 @@
               <${Btn} icon="timer" onClick=${() => act("aba_aba", {}, L("Hitung mundur tampil di proyektor.", "The countdown is on the projector."))}>${L("Hitung Mundur 10 Detik", "10-Second Countdown")}</${Btn}>
               <${Btn} kind="primary" icon="megaphone" disabled=${!ann.trim()} onClick=${() => act("pengumuman", { teks: ann.trim() }, L("Pengumuman terkirim.", "Announcement sent.")).then((r) => r.ok && setAnn(""))}>${L("Kirim", "Send")}</${Btn}></div></section>
           <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Kalibrasi dan arena", "Calibration and arena")}</h2></div>
-            <div class="kv"><span class="label">${L("RSSI pada 1 m", "RSSI at 1 m")}</span><span class="mono">${f.model ? H.fmt(f.model.rssi_1m, 1) : "·"} dBm</span><span class="label">${L("Eksponen n", "Exponent n")}</span><span class="mono">${f.model ? H.fmt(f.model.n, 1) : "·"}</span></div>
-            <span class="hint">${L("Ukur ulang lewat menu kelompok: hunter tepat 1 m dari beaconnya.", "Measure again from a group's menu: its hunter exactly 1 m from its beacon.")}</span>
+            <div class="kv"><span class="label">${L("RSSI pada 1 m", "RSSI at 1 m")}</span><span class="mono">${f.model ? H.fmt(f.model.rssi_1m, 1) : "·"} dBm</span><span class="label">${L("Diukur", "Measured")}</span><span>${f.model && f.model.diukur ? `${H.tgl(new Date(f.model.diukur.replace(" ", "T")))} · ${f.model.diukur.slice(11)}` : L("belum, angka bawaan", "not yet, the default")}</span><span class="label">${L("Eksponen n", "Exponent n")}</span><span class="mono">${f.model ? H.fmt(f.model.n, 1) : "·"}</span></div>
+            <${Btn} block icon="ruler" disabled=${!rows.some((r) => r.halus != null)} onClick=${() => setAsk("kal")}>${L("Ukur Ulang di 1 M", "Measure Again at 1 M")}</${Btn}>
             <div class="field"><span class="label">${L("Jari-jari arena", "Arena radius")}</span><${Stepper} value=${arena == null ? arenaNow : arena} min=${50} max=${600} step=${50} onChange=${changeArena} fmt=${(v) => v + " m"} label=${L("Jari-jari arena", "Arena radius")} /><span class="hint">${L("Tangga panas ikut ukuran arena. Ruang terbuka di sekitar gedung: 300 m.", "The heat ladder follows the arena size. Open ground around the building: 300 m.")}</span></div></section>
           <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Sesi", "Session")}</h2></div>
             <div class="kv"><span class="label">${L("Tanggal", "Date")}</span><span>${H.tgl(new Date())}</span><span class="label">${L("Sesi", "Session")}</span><span>${f.sesi ? f.sesi : L("tidak ada", "none")}</span><span class="label">${L("Praktikan tersambung", "Students connected")}</span><span class="num">${totalIn}/${total}</span><span class="label">${L("Paket diterima", "Packets received")}</span><span class="num">${H.fmt(packets)}</span></div>
@@ -319,6 +329,7 @@
         foot=${(c) => html`<${Btn} kind="ghost" onClick=${c}>${L("Batal", "Cancel")}</${Btn}><${Btn} kind="danger" icon="x" onClick=${() => { c(); act("tolak", { grup: rej, alasan: reason }, L("Klaim ditolak. Kelompok melihat alasannya.", "Claim turned down. The group sees the reason.")); }}>${L("Tolak", "Turn Down")}</${Btn}>`}>
         <div class="row" style="gap:8px">${reasons.map((r, i) => html`<button type="button" class="chipbtn" aria-pressed=${String(i === why)} onClick=${() => setWhy(i)}>${r}</button>`)}</div>
         ${why === reasons.length - 1 && html`<label class="field"><span class="label">${L("Alasan", "Reason")}</span><input class="input" maxlength="120" value=${other} onInput=${(e) => setOther(e.target.value)} /></label>`}</${H.Dialog}>`}
+      ${ask === "kal" && html`<${KalPick} rows=${rows} onClose=${() => setAsk(null)} />`}
       ${ask === "reset" && html`<${Confirm} danger title=${L("Mulai ronde baru", "Start a new round")} body=${L("Semua kemajuan, klaim, foto dan jejak ronde ini dihapus. Daftar sesi dan kalibrasi tetap.", "All progress, claims, photos and the track of this round are cleared. The session list and calibration stay.")} okLabel=${L("Ronde Baru", "New Round")} onOk=${() => act("reset", {}, L("Ronde baru dimulai.", "A new round started."))} onClose=${() => setAsk(null)} />`}
       ${ask === "akhiri" && html`<${Confirm} danger title=${L("Akhiri sesi", "End the session")} body=${L("Ponsel praktikan kembali ke layar masuk dan foto klaim dihapus.", "Student phones go back to the sign-in screen and the claim photos are deleted.")} okLabel=${L("Akhiri Sesi", "End the Session")} onOk=${() => act("sesi_akhiri", {}, L("Sesi diakhiri.", "Session ended."))} onClose=${() => setAsk(null)} />`}
       ${ask === "mulai" && html`<${H.Dialog} sm title=${L("Mulai sesi", "Start a session")} onClose=${() => setAsk(null)} foot=${(c) => html`<${Btn} kind="ghost" onClick=${c}>${L("Batal", "Cancel")}</${Btn}>`}>${(c) => html`<div class="stack">
@@ -368,7 +379,7 @@
       body = html`<div class="hstage__lanes">${rows.length ? rows.map((r, i) => html`<div class="slane" style=${`--g:var(--group-${r.grup})`}>
           <span class="slane__rank num">${i + 1}</span><span class="slane__n"><b>${H.gname(r.grup)}</b><span>${H.kelompok(r.grup)}</span></span>
           <span class="slane__bar"><i style=${`width:${H.closedOf(r)}%`}></i></span>
-          <b class="slane__v num">${r.status === "menang" ? H.ms(r.durasi) : H.closedOf(r) + "%"}</b><${H.HeatChip} k=${H.heatOf(r)} lg /></div>`) : html`<p class="lede" style="text-align:center">${L("Belum ada hunter yang mengirim data.", "No hunter is sending data yet.")}</p>`}</div>
+          <b class="slane__v num">${r.status === "menang" ? H.ms(r.durasi) : H.closedOf(r) + "%"}</b><${H.HeatChip} k=${H.heatOf(r)} lg /></div>`) : html`<p class="lede" style="text-align:center;margin-inline:auto">${L("Belum ada hunter yang mengirim data.", "No hunter is sending data yet.")}</p>`}</div>
         <div class="ticker"><div class="ticker__in">${(st.reduce ? items : items.concat(items)).map((x, i) => html`<span aria-hidden=${i >= items.length ? "true" : undefined}><${Icon} n="sparkle" sm />${x.t}</span>`)}</div></div>`;
     return html`<div class="hstage" data-sun=${st.sun ? "yes" : "no"}>
       <header class="hstage__top"><img src=${H.LOGO} alt="IRIS" /><b>${H.T("Perburuan LoRa", "LoRa Hunt")} · ${H.modul(4)}</b><span class="grow"></span>
