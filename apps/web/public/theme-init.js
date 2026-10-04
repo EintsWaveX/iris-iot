@@ -9,6 +9,8 @@
  *                   default; the pre-Phase 9 iris-kurangi-efek "penuh"
  *                   becomes hd, anything else ldm)
  *   data-zh-weight  500 when Mandarin headings are set lighter than 700
+ *   data-keyhints   on when the reader asked to see shortcut keys on buttons
+ *                   (iris-keyhints, the "?" sheet)
  *
  * ClientRouter replaces <html>'s attributes on every navigation, so the
  * same choices are stamped onto the incoming document before the swap.
@@ -52,6 +54,8 @@
     root.setAttribute("data-detail", detail());
     if (get("iris-zh-weight") === "500") root.setAttribute("data-zh-weight", "500");
     else root.removeAttribute("data-zh-weight");
+    if (get("iris-keyhints") === "on") root.setAttribute("data-keyhints", "on");
+    else root.removeAttribute("data-keyhints");
   }
 
   apply(document.documentElement);

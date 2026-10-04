@@ -208,6 +208,7 @@ async function handleRiwayat(_req: ApiRequest, res: ApiResponse, id: number, ren
       memori: denyut.memori,
       disk: denyut.disk,
       suhu: denyut.suhu,
+      jaringan: denyut.jaringan,
       uptimeSec: denyut.uptimeSec,
       layanan: denyut.layanan,
     })

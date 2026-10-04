@@ -12,27 +12,32 @@
  *   next module needs (restart its services; the hotspot only around
  *   Module 4), each sent with /api/action like the Server page does.
  *
- * Not here yet, by design: clearing the serial buffers and resetting the
- * hunt round need agent commands that don't exist; kit counts need a
- * table; the report draft comes with Stage 6. The SeeLabs line (groups not
- * saved there yet) sits at the end of the room list.
+ * Clearing the serial buffers and the hunt round happen on their own (Live
+ * and the Laptop Mirror are per session; the hunt clears its round when
+ * the next session starts), so those rows say Automatic. The kit count is
+ * saved on the session (POST /api/session/kit) with a "Laporkan Kerusakan"
+ * into a damage report; the SeeLabs line and the session note in Reports
+ * close the list.
  */
 import SeelabsLine from "./seelabs/SeelabsLine";
 import type { SeelabsData } from "./seelabs/data";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowRightIcon,
   ArrowsClockwiseIcon,
+  BroadcastIcon,
+  BroomIcon,
   CalendarPlusIcon,
   CheckCircleIcon,
   WifiHighIcon,
+  WrenchIcon,
 } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import Dialog from "../ui/Dialog";
 import Pill from "../ui/Pill";
 import SegmentedControl from "../ui/SegmentedControl";
-import { DateField, TimeField } from "../ui/Controls";
-import { getJson, namaKelompok, postJson, tanggalPanjang } from "../../lib/app";
+import { DateField, Stepper, TimeField } from "../ui/Controls";
+import { getJson, href, namaKelompok, postJson, tanggalPanjang } from "../../lib/app";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import type { Lang } from "../../lib/kelas";
@@ -81,6 +86,33 @@ export default function NextView({
   const [made, setMade] = useState<{ id: number; text: string } | null>(null);
   const [slots, setSlots] = useState<SlotHariIni[] | null>(null);
   const [sent, setSent] = useState<Record<string, boolean>>({});
+  const kitTotal = sesi.kit?.total ?? sesi.jumlahKelompok ?? 5;
+  const [kit, setKit] = useState({
+    kembali: sesi.kit?.kembali ?? kitTotal,
+    rusak: sesi.kit?.rusak ?? 0,
+  });
+  const kitTimer = useRef<number | undefined>(undefined);
+  // Each change is saved a moment after the last tap.
+  function ubahKit(next: { kembali: number; rusak: number }) {
+    setKit(next);
+    window.clearTimeout(kitTimer.current);
+    kitTimer.current = window.setTimeout(() => {
+      void postJson<{ ok: boolean; kode?: string }>("/api/session/kit", {
+        sesiId: sesi.id,
+        ...next,
+      })
+        .then((r) =>
+          window.Toast?.show(r.ok ? t.kitSaved : pesan(t, r.kode), r.ok ? "ok" : "danger"),
+        )
+        .catch(() => window.Toast?.show(t.fail, "danger"));
+    }, 700);
+  }
+  useEffect(() => () => window.clearTimeout(kitTimer.current), []);
+  // A count saved earlier (this screen opened again) replaces the default.
+  const kitTersimpan = sum?.kit;
+  useEffect(() => {
+    if (kitTersimpan) setKit({ kembali: kitTersimpan.kembali, rusak: kitTersimpan.rusak });
+  }, [kitTersimpan?.kembali, kitTersimpan?.rusak]);
 
   useEffect(() => {
     void getJson<{ ok: boolean; hariIni: SlotHariIni[] }>("/api/session/beranda")
@@ -279,7 +311,73 @@ export default function NextView({
                 <Pill>{t.cmdSkip}</Pill>
               )}
             </li>
+            <li>
+              <BroomIcon size={20} aria-hidden="true" />
+              <span className="grow stack" style={{ gap: 2 }}>
+                <span>{t.cmdSerial}</span>
+                <span className="hint">{t.cmdSerialSub}</span>
+              </span>
+              <Pill tone="ok">{t.cmdAuto}</Pill>
+            </li>
+            <li>
+              <BroadcastIcon size={20} aria-hidden="true" />
+              <span className="grow stack" style={{ gap: 2 }}>
+                <span>{t.cmdHunt}</span>
+                <span className="hint">{m === 4 ? t.cmdHuntSub : t.cmdHuntSkip}</span>
+              </span>
+              {m === 4 ? <Pill tone="ok">{t.cmdAuto}</Pill> : <Pill>{t.cmdSkip}</Pill>}
+            </li>
+          </ul>
+          <div className="field">
+            <span className="field__label">{t.kitLabel}</span>
+            <div className="kitrow">
+              <span className="kitrow__i">
+                <span className="hint">{t.kitBack}</span>
+                <Stepper
+                  value={kit.kembali}
+                  min={0}
+                  max={kitTotal}
+                  onChange={(v) => ubahKit({ ...kit, kembali: v })}
+                  fmt={(v) => `${v}/${kitTotal}`}
+                  label={t.kitBack}
+                  lessLabel={t.kitBack + " −1"}
+                  moreLabel={t.kitBack + " +1"}
+                />
+              </span>
+              <span className="kitrow__i">
+                <span className="hint">{t.kitBroken}</span>
+                <Stepper
+                  value={kit.rusak}
+                  min={0}
+                  max={kitTotal}
+                  onChange={(v) => ubahKit({ ...kit, rusak: v })}
+                  label={t.kitBroken}
+                  lessLabel={t.kitBroken + " −1"}
+                  moreLabel={t.kitBroken + " +1"}
+                />
+              </span>
+              <a
+                className="btn btn--ghost btn--sm"
+                href={href(lang, `/reports?dokumen&baru=kerusakan&konteks=${sesi.id}`)}
+              >
+                <WrenchIcon size={18} aria-hidden="true" />
+                {t.kitReport}
+              </a>
+            </div>
+          </div>
+          <ul className="cmdlist">
             <SeelabsLine lang={lang} data={seelabs} onOpen={onSeelabs} />
+            <li>
+              <Pill tone="ok">{t.reportTag}</Pill>
+              <span className="grow">{t.reportLine}</span>
+              <a
+                className="btn btn--secondary btn--sm"
+                href={href(lang, `/reports?sesi=${sesi.id}`)}
+              >
+                {t.open}
+                <ArrowRightIcon size={16} aria-hidden="true" />
+              </a>
+            </li>
           </ul>
         </section>
       </div>

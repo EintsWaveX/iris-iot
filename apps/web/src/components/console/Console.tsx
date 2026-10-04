@@ -48,6 +48,7 @@ import { useSeelabs } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
 import type { AsistenRef, SesiRunning, View } from "./types";
 import "./console.css";
+import { openSignIn } from "../../lib/signin";
 
 const DONE_KEY = "iris-console-done";
 
@@ -60,10 +61,19 @@ function readDone(): (SesiRunning & { hadir: number }) | null {
   }
 }
 
-function readHash(): { view?: View; group?: number; cmd?: string; seelabs?: boolean } {
+function readHash(): {
+  view?: View;
+  group?: number;
+  cmd?: string;
+  seelabs?: boolean;
+  seelabsTab?: SeelabsTab;
+} {
   const h = location.hash.replace(/^#/, "");
   if (h === "prep" || h === "board" || h === "table") return { view: h };
   if (h === "seelabs") return { seelabs: true };
+  // #seelabs=pasang (the Account page's "Cara Pakai") opens one tab.
+  const st = /^seelabs=(salin|pasang|cara|tidak|titipan)$/.exec(h);
+  if (st) return { seelabs: true, seelabsTab: st[1] as SeelabsTab };
   const g = /^k([1-9]|10)$/.exec(h);
   if (g) return { view: "board", group: Number(g[1]) };
   const c = /^cmd=(\w+)$/.exec(h);
@@ -125,7 +135,7 @@ export default function Console({ lang }: { lang: Lang }) {
       if (h.cmd === "announce") setAnnounce(true);
       if (h.cmd === "drawer") setDrawer(true);
       if (h.cmd === "end") setEndOpen(true);
-      if (h.seelabs) setSee({});
+      if (h.seelabs) setSee(h.seelabsTab ? { tab: h.seelabsTab } : {});
     };
     apply();
     window.addEventListener("hashchange", apply);
@@ -236,11 +246,7 @@ export default function Console({ lang }: { lang: Lang }) {
         tone="warn"
         actions={
           me === null ? (
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={() => window.LoginDialog?.open()}
-            >
+            <button type="button" className="btn btn--primary" onClick={() => openSignIn()}>
               <SignInIcon size={18} aria-hidden="true" /> {t.signIn}
             </button>
           ) : undefined

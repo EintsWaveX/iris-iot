@@ -9,6 +9,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { HandIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
+import KeyHint from "../ui/KeyHint";
 import { namaKelompok } from "../../lib/app";
 import { namaAsisten } from "../../lib/people";
 import type { Strings } from "./strings";
@@ -59,6 +60,7 @@ export default function GroupBoard(p: BoardProps) {
               <span className="grow-row__top">
                 <b>
                   {t.group(g.nomor)} · {namaKelompok(g.nomor, g.nama)}
+                  {g.nomor <= 10 && <KeyHint k={String(g.nomor % 10)} />}
                 </b>
                 {tangan[g.id] && (
                   <Pill tone="warn">

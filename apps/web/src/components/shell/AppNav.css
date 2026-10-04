@@ -164,6 +164,7 @@
 
 .appnav__palette {
   display: inline-flex;
+  position: relative;
 }
 
 .appnav__signin {

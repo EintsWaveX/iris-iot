@@ -28,6 +28,8 @@ export interface RingkasSesi {
   benar: number;
   total: number;
   delay: number | null;
+  /** The hand-over's saved kit count, if any (sesi.kit). */
+  kit: { kembali: number; rusak: number; total: number } | null;
 }
 
 /** A group is unfinished while a blank is still wrong or a student is
@@ -77,6 +79,7 @@ export function useRingkasSesi(sesiId: number): RingkasSesi | null {
           delay: delays.length
             ? Math.round(delays.reduce((s, d) => s + d, 0) / delays.length)
             : null,
+          kit: lap.sesi?.kit ?? null,
         });
       })
       .catch(() => {});

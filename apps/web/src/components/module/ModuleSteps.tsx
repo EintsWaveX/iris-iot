@@ -67,6 +67,7 @@ import { setModulAkses } from "../shell/AsistenCommands";
 import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import { M } from "./moduleStrings";
+import { openSignIn } from "../../lib/signin";
 
 type Mode = "browse" | "now" | "done" | "asisten";
 type Step = "modul" | "brief" | "praktikum" | "setup" | "code" | "live" | "hunt";
@@ -522,11 +523,7 @@ function Hands({
         body={guest ? t.lockedBody : t.lockedBodyP(modulLabel(modul, lang))}
         actions={
           guest ? (
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={() => window.LoginDialog?.open()}
-            >
+            <button type="button" className="btn btn--primary" onClick={() => openSignIn()}>
               <DoorOpenIcon aria-hidden="true" />
               {t.signIn}
             </button>

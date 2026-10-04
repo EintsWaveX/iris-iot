@@ -22,6 +22,7 @@ import ServerList from "./ServerList";
 import type { Bisa } from "./data";
 import { S } from "./strings";
 import "./server.css";
+import { openSignIn } from "../../lib/signin";
 
 export default function ServerCenter({ lang }: { lang: Lang }) {
   const t = S[lang];
@@ -61,11 +62,7 @@ export default function ServerCenter({ lang }: { lang: Lang }) {
         tone="warn"
         actions={
           me === null ? (
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={() => window.LoginDialog?.open()}
-            >
+            <button type="button" className="btn btn--primary" onClick={() => openSignIn()}>
               {t.signIn}
             </button>
           ) : undefined

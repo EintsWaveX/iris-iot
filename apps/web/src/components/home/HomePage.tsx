@@ -36,6 +36,7 @@ import Pill from "../ui/Pill";
 import { H, LANES } from "./homeStrings";
 import "../ui/Display.css";
 import "./home.css";
+import { openSignIn } from "../../lib/signin";
 
 interface Lab {
   modul: number;
@@ -112,11 +113,7 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
   if (me === null) {
     return (
       <div className="row home__cta">
-        <button
-          type="button"
-          className="btn btn--primary btn--lg"
-          onClick={() => window.LoginDialog?.open()}
-        >
+        <button type="button" className="btn btn--primary btn--lg" onClick={() => openSignIn()}>
           <DoorOpenIcon aria-hidden="true" />
           {t.masuk}
         </button>

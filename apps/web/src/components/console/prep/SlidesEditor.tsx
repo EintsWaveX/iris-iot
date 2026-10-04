@@ -8,6 +8,7 @@ import { upload } from "@vercel/blob/client";
 import { FilePdfIcon, LinkSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { FileDrop } from "../../ui/Controls";
 import Confirm from "../../ui/Confirm";
+import ErrorView from "../../ui/ErrorView";
 import Fade from "../../ui/Fade";
 import IconButton from "../../ui/IconButton";
 import Pill from "../../ui/Pill";
@@ -24,6 +25,8 @@ const T = dict({
     canva: "Tautan Canva",
     src: "Sumber",
     canvaUrl: "Tautan desain Canva",
+    bigWhy: (mb: string) => `Berkas yang kamu pilih ${mb} MB. Batasnya 20 MB.`,
+    bigTodo: "Kecilkan PDF-nya, atau pakai tautan Canva.",
     canvaName: "Nama (boleh kosong)",
     canvaNamePh: "Misalnya Pengantar Modul 3",
     canvaHint:
@@ -58,6 +61,8 @@ const T = dict({
     canva: "Canva Link",
     src: "Source",
     canvaUrl: "Canva design link",
+    bigWhy: (mb: string) => `The file you chose is ${mb} MB. The limit is 20 MB.`,
+    bigTodo: "Shrink the PDF, or use a Canva link.",
     canvaName: "Name (optional)",
     canvaNamePh: "For example Module 3 intro",
     canvaHint:
@@ -91,6 +96,8 @@ const T = dict({
     canva: "Canva 链接",
     src: "来源",
     canvaUrl: "Canva 设计链接",
+    bigWhy: (mb: string) => `你选的文件有 ${mb} MB，上限是 20 MB。`,
+    bigTodo: "把 PDF 压小一点，或者改用 Canva 链接。",
     canvaName: "名称（可不填）",
     canvaNamePh: "例如：模块 3 导读",
     canvaHint: "请用 Canva 分享按钮里的“仅查看”链接。学生会在仪表板上看到。",
@@ -140,6 +147,9 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
   const dir = useDirektori();
   const [list, setList] = useState<Deck[] | null>(null);
   const [src, setSrc] = useState<"pdf" | "canva">("pdf");
+  // A PDF over 20 MB shows the 413 view: switch to a link, or pick again.
+  const [tooBig, setTooBig] = useState<number | null>(null);
+  const [pick, setPick] = useState(0);
   const [busy, setBusy] = useState(false);
   const [url, setUrl] = useState("");
   const [nama, setNama] = useState("");
@@ -217,7 +227,22 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
           ]}
         />
         <Fade k={src}>
-          {src === "pdf" ? (
+          {src === "pdf" && tooBig !== null ? (
+            <ErrorView
+              code={413}
+              lang={lang}
+              why={t.bigWhy(String(Math.ceil(tooBig / 1024 / 1024)))}
+              todo={t.bigTodo}
+              onUseLink={() => {
+                setTooBig(null);
+                setSrc("canva");
+              }}
+              onPickFile={() => {
+                setTooBig(null);
+                setPick((n) => n + 1);
+              }}
+            />
+          ) : src === "pdf" ? (
             <FileDrop
               accept={["application/pdf"]}
               maxBytes={20 * 1024 * 1024}
@@ -225,6 +250,8 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
               busy={busy}
               lang={lang}
               onFile={(f) => void onFile(f)}
+              onTooBig={(f) => setTooBig(f.size)}
+              pick={pick}
             />
           ) : (
             <form

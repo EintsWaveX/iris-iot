@@ -8,6 +8,7 @@
  *   iris-zh-weight  700 | 500               Mandarin headings only
  *   iris-clock      auto | on | off         the clock in the navigation
  *   iris-keys       on | off                keyboard shortcuts (the "?" sheet)
+ *   iris-keyhints   on | off                shortcut keys shown on buttons (off)
  *
  * A change fires "iris-prefs" on window so open islands follow along.
  */
@@ -61,6 +62,12 @@ export const setShortcuts = (on: boolean) => write("iris-keys", on ? "on" : "off
 /** Keyboard shortcuts are on unless the reader turned them off. */
 export function shortcutsOn(): boolean {
   return read("iris-keys") !== "off";
+}
+export const setKeyHints = (on: boolean) => write("iris-keyhints", on ? "on" : "off");
+
+/** Shortcut keys on buttons (`data-key`) are hidden unless asked for. */
+export function keyHintsOn(): boolean {
+  return read("iris-keyhints") === "on";
 }
 export const setClock = (v: ClockPref) => write("iris-clock", v);
 export const setZhWeight = (v: ZhWeight) => write("iris-zh-weight", v);

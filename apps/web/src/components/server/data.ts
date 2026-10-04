@@ -9,6 +9,8 @@ import { S, pesan } from "./strings";
 export interface Denyut extends Heartbeat {
   memori: number | null;
   disk: number | null;
+  /** Network in + out, bytes per second (Phase 9, 0021). */
+  jaringan?: number | null;
 }
 
 export interface ServerRow {

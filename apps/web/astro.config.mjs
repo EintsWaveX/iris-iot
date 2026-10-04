@@ -28,6 +28,7 @@ export default defineConfig({
         "uplot",
         "@xterm/xterm",
         "@xterm/addon-fit",
+        "pdfjs-dist",
       ],
       // Konsol Pi's noVNC is plain ES modules with a top-level await; served
       // as is rather than pre-bundled.

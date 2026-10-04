@@ -46,6 +46,7 @@ import {
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import IconButton from "../ui/IconButton";
+import KeyHint from "../ui/KeyHint";
 import { Kbd } from "../ui/Controls";
 import DisplayPanel from "./DisplayPanel";
 import NavClock from "./NavClock";
@@ -69,6 +70,7 @@ import OfflineNotice from "./OfflineNotice";
 import IdentityWatch from "./IdentityWatch";
 import AsistenCommands from "./AsistenCommands";
 import "./AppNav.css";
+import { openSignIn } from "../../lib/signin";
 
 type Icon = ComponentType<IconProps>;
 
@@ -159,6 +161,18 @@ const T = dict({
   },
 });
 
+/** The Asisten's "G then a letter" shortcuts (AsistenCommands), shown on
+ *  the links when the reader turns key hints on. */
+const NAV_KEY: Record<string, string> = {
+  "/": "G B",
+  "/session": "G K",
+  "/schedule": "G J",
+  "/servers": "G S",
+  "/reports": "G L",
+  "/team": "G T",
+  "/modules": "G M",
+};
+
 function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
   if (me?.role === "asisten") {
     return [
@@ -241,6 +255,16 @@ export default function AppNav({
   useEffect(() => {
     if (langFromUrl) setLang(langOfPath(location.pathname));
   }, [langFromUrl]);
+  // Older links (?login=1, once the sign-in dialog) go to the /login page.
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    if (q.get("login") !== "1") return;
+    q.delete("login");
+    const next = q.get("next");
+    q.delete("next");
+    const rest = q.toString();
+    openSignIn(next ?? location.pathname + (rest ? `?${rest}` : ""));
+  }, []);
   const t = T[lang];
   const me = useMe();
   const now = useSessionNow(30_000, me !== undefined && me !== null);
@@ -368,6 +392,9 @@ export default function AppNav({
                 href={linkHref(l)}
                 aria-current={active ? "page" : undefined}
               >
+                {tampil?.role === "asisten" && NAV_KEY[l.path] && (
+                  <KeyHint k={NAV_KEY[l.path]} corner />
+                )}
                 <l.icon size={17} aria-hidden="true" />
                 <span>{l.label}</span>
                 {l.path === "/session" && now.data && (
@@ -387,6 +414,7 @@ export default function AppNav({
         <div className="appnav__side">
           {tampil?.role === "asisten" && (
             <span className="appnav__palette">
+              <KeyHint k="Ctrl K" corner />
               <IconButton
                 icon={MagnifyingGlassIcon}
                 label={t.palette}
@@ -424,7 +452,7 @@ export default function AppNav({
             <button
               type="button"
               className="btn btn--primary appnav__signin"
-              onClick={() => window.LoginDialog?.open()}
+              onClick={() => openSignIn()}
             >
               <DoorOpenIcon size={20} aria-hidden="true" />
               <span className="btn__label">{t.signIn}</span>
@@ -477,7 +505,7 @@ export default function AppNav({
           <button
             type="button"
             className="btn btn--primary appnav__signin appnav__signin--mobile"
-            onClick={() => window.LoginDialog?.open()}
+            onClick={() => openSignIn()}
           >
             <DoorOpenIcon size={20} aria-hidden="true" />
             <span className="btn__label">{t.signIn}</span>

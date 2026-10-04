@@ -17,6 +17,8 @@ export interface SesiRunning {
   durasiMenit?: number;
   jumlahKelompok?: number;
   jenis?: "reguler" | "susulan";
+  /** The hand-over's kit count (c-next), once someone set it. */
+  kit?: { kembali: number; rusak: number; total: number } | null;
 }
 
 export interface RosterGroup {
@@ -81,6 +83,7 @@ export interface Laporan {
     status: string;
     kelas?: Kelas;
     durasiDetik: number;
+    kit?: { kembali: number; rusak: number; total: number } | null;
   } | null;
   kelompok: GroupRow[];
   stuck: Stuck[];

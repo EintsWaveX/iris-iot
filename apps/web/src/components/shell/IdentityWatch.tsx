@@ -16,6 +16,7 @@ import Dialog from "../ui/Dialog";
 import { dict, getJson, meChanged, type Me, type SesiNow } from "../../lib/app";
 import { startPolling } from "../../scripts/polling";
 import type { Lang } from "../../lib/kelas";
+import { openSignIn } from "../../lib/signin";
 
 const T = dict({
   id: {
@@ -126,7 +127,7 @@ export default function IdentityWatch({
               onClick={() => {
                 close();
                 meChanged();
-                window.LoginDialog?.open();
+                openSignIn();
               }}
             >
               <SignInIcon size={17} aria-hidden="true" />

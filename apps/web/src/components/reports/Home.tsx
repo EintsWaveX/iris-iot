@@ -1200,7 +1200,7 @@ export default function Home({
       .catch(() => window.Toast?.show(t.err, "danger"));
   };
   return (
-    <div className="rp">
+    <div className="rp rp--home">
       <header className="page-header">
         <div className="page-header__row">
           <div className="page-header__heading">

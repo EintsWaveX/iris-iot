@@ -56,11 +56,13 @@ import {
   UserPlusIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import Dialog from "../../ui/Dialog";
+import ErrorView from "../../ui/ErrorView";
 import IconButton from "../../ui/IconButton";
 import Pill from "../../ui/Pill";
 import SegmentedControl from "../../ui/SegmentedControl";
 import { Stepper, Switch } from "../../ui/Controls";
-import { getJson, KELOMPOK_NAMA, postJson } from "../../../lib/app";
+import { getJson, KELOMPOK_NAMA, postJson, sejak } from "../../../lib/app";
 import { KELOMPOK_MAKS } from "../../../lib/jadwal";
 import { hariLabel, kelasLabel, kelompokLabel } from "../../../lib/labels";
 import { useMinWidth } from "../../../lib/hooks";
@@ -69,6 +71,36 @@ import type { Px } from "../prepStrings";
 import { AddStudentDialog, ImportXlsxDialog } from "./StudentDialogs";
 import KlpMatch from "../seelabs/KlpMatch";
 import { SL } from "../seelabs/strings";
+
+/** Who saved a slot roster last, and when (its version). */
+interface Versi {
+  pada: string;
+  nim: string;
+  nama: string | null;
+  kode: string | null;
+}
+
+interface RosterGet {
+  ok: boolean;
+  versi?: Versi | null;
+  jumlahKelompok: number;
+  anggotaPerKelompok: number;
+  kelompok: { nomor: number; aktif: boolean; klp: string | null }[];
+  anggota: { nim: string; nama: string; nomor: number }[];
+}
+
+function keGrup(d: RosterGet): Group[] {
+  const info = new Map(d.kelompok.map((k) => [k.nomor, k]));
+  return Array.from({ length: d.jumlahKelompok }, (_, i) => {
+    const n = i + 1;
+    return {
+      nomor: n,
+      aktif: info.get(n)?.aktif ?? true,
+      klp: info.get(n)?.klp ?? null,
+      members: d.anggota.filter((a) => a.nomor === n).map((a) => ({ nim: a.nim, nama: a.nama })),
+    };
+  });
+}
 
 export type RosterTarget =
   | { jenis: "slot"; hari: number; slot: number; kelas: Kelas }
@@ -131,6 +163,11 @@ const RosterEditor = forwardRef<
   // The keyboard lift: who is lifted, and the roster before it was lifted.
   const [kb, setKb] = useState<{ nim: string; before: Group[] } | null>(null);
   const [say, setSay] = useState("");
+  // The version this editor loaded; a newer save by someone else stops ours
+  // with the 409 view (Bandingkan / Muat Ulang).
+  const versi = useRef<string | null>(null);
+  const [bentrok, setBentrok] = useState<{ versi: Versi | null; terbaru: RosterGet } | null>(null);
+  const [banding, setBanding] = useState(false);
 
   const setDirty = (d: boolean) => {
     setDirty0(d);
@@ -152,32 +189,12 @@ const RosterEditor = forwardRef<
       target.jenis === "slot"
         ? `/api/session/rosterslot?hari=${target.hari}&slot=${target.slot}`
         : `/api/session/rosterslot?sesiId=${target.sesiId}`;
-    void Promise.all([
-      getJson<{
-        ok: boolean;
-        jumlahKelompok: number;
-        anggotaPerKelompok: number;
-        kelompok: { nomor: number; aktif: boolean; klp: string | null }[];
-        anggota: { nim: string; nama: string; nomor: number }[];
-      }>(url),
-      loadList(),
-    ]).then(([d]) => {
+    setBentrok(null);
+    void Promise.all([getJson<RosterGet>(url), loadList()]).then(([d]) => {
       if (!alive || !d.ok) return;
-      const info = new Map(d.kelompok.map((k) => [k.nomor, k]));
+      versi.current = d.versi?.pada ?? null;
       setPer(d.anggotaPerKelompok);
-      setGroups(
-        Array.from({ length: d.jumlahKelompok }, (_, i) => {
-          const n = i + 1;
-          return {
-            nomor: n,
-            aktif: info.get(n)?.aktif ?? true,
-            klp: info.get(n)?.klp ?? null,
-            members: d.anggota
-              .filter((a) => a.nomor === n)
-              .map((a) => ({ nim: a.nim, nama: a.nama })),
-          };
-        }),
-      );
+      setGroups(keGrup(d));
     });
     return () => {
       alive = false;
@@ -465,22 +482,56 @@ const RosterEditor = forwardRef<
     window.Toast?.show(p.autoFilled, "ok");
   }
 
-  async function save(): Promise<boolean> {
+  const urlSlot =
+    target.jenis === "slot"
+      ? `/api/session/rosterslot?hari=${target.hari}&slot=${target.slot}`
+      : "";
+
+  /** Drops local changes and shows the newest saved roster. */
+  function pakaiTerbaru(d: RosterGet) {
+    versi.current = d.versi?.pada ?? null;
+    setPer(d.anggotaPerKelompok);
+    setGroups(keGrup(d));
+    setDirty(false);
+    setBentrok(null);
+    setBanding(false);
+  }
+
+  async function save(paksa = false): Promise<boolean> {
     if (!groups) return false;
     setBusy(true);
     const body = {
       ...(target.jenis === "slot"
-        ? { hari: target.hari, slot: target.slot }
+        ? {
+            hari: target.hari,
+            slot: target.slot,
+            versi: versi.current,
+            ...(paksa ? { paksa } : {}),
+          }
         : { sesiId: target.sesiId }),
       jumlahKelompok: groups.length,
       anggotaPerKelompok: per,
       kelompok: groups.map((g) => ({ nomor: g.nomor, aktif: g.aktif, klp: g.klp })),
       anggota: groups.flatMap((g) => g.members.map((m) => ({ nim: m.nim, nomor: g.nomor }))),
     };
-    const r = await postJson<{ ok: boolean; kode?: string }>("/api/session/rosterslot", body).catch(
-      () => ({ ok: false, kode: "gagal" }),
-    );
+    const r = await postJson<{ ok: boolean; kode?: string; versi?: unknown }>(
+      "/api/session/rosterslot",
+      body,
+    ).catch(() => ({ ok: false, kode: "gagal", versi: null }));
+    if (!r.ok && r.kode === "versi_berubah" && urlSlot) {
+      const terbaru = await getJson<RosterGet>(urlSlot).catch(() => null);
+      setBusy(false);
+      if (terbaru?.ok) {
+        setBentrok({ versi: terbaru.versi ?? null, terbaru });
+        return false;
+      }
+    }
     setBusy(false);
+    if (r.ok) {
+      if (typeof r.versi === "string") versi.current = r.versi;
+      setBentrok(null);
+      setBanding(false);
+    }
     if (!r.ok) {
       window.Toast?.show(p.errors[r.kode ?? "gagal"] ?? p.errors.gagal, "danger");
       return false;
@@ -648,6 +699,59 @@ const RosterEditor = forwardRef<
       <span className="visually-hidden" aria-live="assertive">
         {say}
       </span>
+      {bentrok && (
+        <ErrorView
+          code={409}
+          lang={lang}
+          why={p.clashWhy(
+            bentrok.versi?.nama
+              ? `${bentrok.versi.nama}${bentrok.versi.kode ? ` (${bentrok.versi.kode})` : ""}`
+              : p.someone,
+            sejak(bentrok.versi?.pada ?? null, lang),
+          )}
+          todo={p.clashTodo}
+          onCompare={() => setBanding(true)}
+          onRetry={() => pakaiTerbaru(bentrok.terbaru)}
+        />
+      )}
+      {bentrok && banding && groups && (
+        <Dialog
+          open
+          onOpenChange={(o) => !o && setBanding(false)}
+          title={p.compareTitle}
+          description={label}
+          size="lg"
+          lang={lang}
+          actions={
+            <>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => pakaiTerbaru(bentrok.terbaru)}
+              >
+                {p.takeLatest}
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={busy}
+                onClick={() => void save(true)}
+              >
+                <FloppyDiskIcon size={18} aria-hidden="true" />
+                {p.keepMine}
+              </button>
+            </>
+          }
+        >
+          <Banding
+            p={p}
+            lang={lang}
+            mine={groups}
+            latest={keGrup(bentrok.terbaru)}
+            who={bentrok.versi?.kode ?? bentrok.versi?.nama ?? p.someone}
+          />
+        </Dialog>
+      )}
       <DndContext
         sensors={sensors}
         accessibility={{
@@ -914,5 +1018,60 @@ function PoolList({
         })}
       </div>
     </SortableContext>
+  );
+}
+
+/** "Bandingkan": both rosters side by side; a name only on one side is marked. */
+function Banding({
+  p,
+  lang,
+  mine,
+  latest,
+  who,
+}: {
+  p: Px;
+  lang: Lang;
+  mine: Group[];
+  latest: Group[];
+  who: string;
+}) {
+  const where = (gs: Group[]) => {
+    const m = new Map<string, number>();
+    for (const g of gs) for (const x of g.members) m.set(x.nim, g.nomor);
+    return m;
+  };
+  const wMine = where(mine);
+  const wLatest = where(latest);
+  const col = (gs: Group[], other: Map<string, number>, title: string) => (
+    <div className="stack stack--sm">
+      <h3 className="panel__title" style={{ fontSize: "1rem" }}>
+        {title}
+      </h3>
+      {gs.map((g) => (
+        <div key={g.nomor} className="rbanding__g">
+          <b>{namaGrup(g.nomor, lang)}</b>
+          {g.members.length === 0 ? (
+            <span className="hint">{p.compareEmpty}</span>
+          ) : (
+            <ul>
+              {g.members.map((x) => (
+                <li key={x.nim} data-beda={other.get(x.nim) !== g.nomor ? "yes" : undefined}>
+                  {x.nama} <span className="mono hint">{x.nim}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <div className="stack">
+      <span className="hint">{p.compareHint}</span>
+      <div className="rbanding">
+        {col(mine, wLatest, p.mine)}
+        {col(latest, wMine, p.latest(who))}
+      </div>
+    </div>
   );
 }

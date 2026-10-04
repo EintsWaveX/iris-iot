@@ -3,8 +3,8 @@
  *  in to SeeLabs. The username is saved through the Tim API, which lets
  *  anyone set their own. */
 import { useEffect, useState } from "react";
-import { LockSimpleIcon } from "@phosphor-icons/react";
-import { getJson, postJson } from "../../../lib/app";
+import { ArrowRightIcon, LockSimpleIcon } from "@phosphor-icons/react";
+import { getJson, href, postJson } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { SL } from "./strings";
 import BookmarkletPill from "./BookmarkletPill";
@@ -90,7 +90,13 @@ export default function SeelabsAccount({ lang, nim }: { lang: Lang; nim: string 
         </form>
         <div className="stack stack--sm">
           <span className="field__label">{t.acctBm}</span>
-          <BookmarkletPill t={t} />
+          <span className="row" style={{ gap: 8 }}>
+            <BookmarkletPill t={t} />
+            <a className="btn btn--ghost btn--sm" href={href(lang, "/session#seelabs=pasang")}>
+              {t.howTo}
+              <ArrowRightIcon size={16} aria-hidden="true" />
+            </a>
+          </span>
         </div>
       </div>
       <span className="hint">{t.acctNever}</span>

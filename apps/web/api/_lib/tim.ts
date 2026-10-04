@@ -12,16 +12,21 @@
  *   serah_minta  ask to move a head role to someone (Tim right or holder)
  *   serah_putus  accept or decline a handover (the holder or Tim right)
  *   serah_batal  withdraw a handover (whoever asked, or Tim right)
+ *   impor        match the table against the handbook roster (Tim right):
+ *                without `terapkan` it only reports; with it, it adds the
+ *                missing people and takes the handbook's names and codes
+ *                (a code change follows into the schedule)
  *
  * A head role has one holder. Taking a role someone holds is never a plain
  * save: it becomes a handover request, and the holder keeps the role until
  * it is accepted. Accepting closes the old holding and opens the new one in
  * one transaction, and recomputes both tiers.
  */
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang, petaHak } from "./hak.js";
+import { handbookRoster } from "./handbook.js";
 import { getDb } from "../../src/lib/db.js";
 import { asisten, audit, jabatanPemegang, jadwal, serahTerima } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
@@ -133,7 +138,7 @@ export async function handleTimJejak(req: ApiRequest, res: ApiResponse) {
   const rows = await getDb()
     .select()
     .from(audit)
-    .where(inArray(audit.aksi, ["tim_tambah", "tim_ubah", "tim_serah_terima"]))
+    .where(inArray(audit.aksi, ["tim_tambah", "tim_ubah", "tim_serah_terima", "tim_impor"]))
     .orderBy(desc(audit.pada))
     .limit(300);
   const mine = rows.filter((r) => {
@@ -159,6 +164,10 @@ export async function handleTimPost(req: ApiRequest, res: ApiResponse, session: 
   if (aksi === "tambah") {
     if (!admin) return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "tim" });
     return tambah(res, body, session.nim);
+  }
+  if (aksi === "impor") {
+    if (!admin) return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "tim" });
+    return impor(res, body.terapkan === true, session.nim);
   }
   if (aksi === "ubah") return ubah(res, body, session.nim, admin);
   if (aksi === "serah_minta") return serahMinta(res, body, session.nim, admin);
@@ -253,6 +262,128 @@ async function tambah(res: ApiResponse, body: Record<string, unknown>, oleh: str
   if (!hasil.ok) return res.status(200).json(hasil);
   await writeAudit(oleh, "tim_tambah", { nim, kode, jabatan, mintaSerah });
   res.status(200).json({ ok: true });
+}
+
+/* ---------------------------------------------------------------- impor */
+
+const KUNCI_JABATAN: Record<string, Kategori> = {
+  ketua: "ketua",
+  wakil: "wakil",
+  sekretaris: "sekretaris",
+  bendahara: "bendahara",
+};
+
+async function impor(res: ApiResponse, terapkan: boolean, oleh: string) {
+  let buku;
+  try {
+    buku = handbookRoster();
+  } catch {
+    return tolak(res, "data_modul_rusak");
+  }
+  const db = getDb();
+  const ada = await db
+    .select({ nim: asisten.nim, nama: asisten.nama, kode: asisten.kode })
+    .from(asisten);
+  const perNim = new Map(ada.map((a) => [a.nim, a]));
+  const pemilikKode = new Map(ada.map((a) => [a.kode, a.nim]));
+  const diBuku = new Set(buku.map((h) => h.nim));
+
+  const baru: {
+    nim: string;
+    nama: string;
+    kode: string;
+    divisi: string | null;
+    jabatan: string;
+  }[] = [];
+  const ubahan: {
+    nim: string;
+    kode: string;
+    sekarang: string;
+    nama?: [string, string];
+    kodeBaru?: [string, string];
+  }[] = [];
+  const bentrok: { nim: string; nama: string; kode: string; dipakai: string }[] = [];
+  for (const h of buku) {
+    const a = perNim.get(h.nim);
+    const pemilik = pemilikKode.get(h.kode);
+    if (!a) {
+      if (pemilik) bentrok.push({ nim: h.nim, nama: h.nama, kode: h.kode, dipakai: pemilik });
+      else
+        baru.push({
+          nim: h.nim,
+          nama: h.nama,
+          kode: h.kode,
+          divisi: h.divisi,
+          jabatan: h.divisiId,
+        });
+      continue;
+    }
+    const u: (typeof ubahan)[number] = { nim: h.nim, kode: a.kode, sekarang: a.nama };
+    if (a.nama !== h.nama) u.nama = [a.nama, h.nama];
+    if (a.kode !== h.kode) {
+      if (pemilik && pemilik !== h.nim)
+        bentrok.push({ nim: h.nim, nama: h.nama, kode: h.kode, dipakai: pemilik });
+      else u.kodeBaru = [a.kode, h.kode];
+    }
+    if (u.nama || u.kodeBaru) ubahan.push(u);
+  }
+  const diluar = ada
+    .filter((a) => !diBuku.has(a.nim))
+    .map((a) => ({ nim: a.nim, nama: a.nama, kode: a.kode }));
+  const laporan = { total: buku.length, baru, ubah: ubahan, bentrok, diluar };
+  if (!terapkan || (!baru.length && !ubahan.length)) {
+    return res.status(200).json({ ok: true, diterapkan: false, ...laporan });
+  }
+
+  await db.transaction(async (tx) => {
+    for (const b of baru) {
+      const h = buku.find((x) => x.nim === b.nim)!;
+      await tx.insert(asisten).values({
+        nim: h.nim,
+        nama: h.nama,
+        kode: h.kode,
+        divisi: h.divisi,
+        divisiId: h.divisiId,
+        divisiEn: h.divisiEn,
+        badges: h.divisi === "ASO" || h.divisi === "ARM" ? ["dev"] : [],
+      });
+      // The handbook's head role goes to the new person only while it is free.
+      const kat =
+        KUNCI_JABATAN[h.kunci] ??
+        (h.kunci.startsWith("k-") && isKategori(`kepala-${h.divisi}`)
+          ? (`kepala-${h.divisi}` as Kategori)
+          : null);
+      if (kat && !(await pemegangDari(tx, kat))) await pasangJabatan(tx, h.nim, kat, oleh);
+    }
+    for (const u of ubahan) {
+      await tx
+        .update(asisten)
+        .set({
+          ...(u.nama ? { nama: u.nama[1] } : {}),
+          ...(u.kodeBaru ? { kode: u.kodeBaru[1] } : {}),
+        })
+        .where(eq(asisten.nim, u.nim));
+      if (u.kodeBaru) {
+        const [lama, kode] = u.kodeBaru;
+        // The schedule names Asisten by code: rename it there too.
+        await tx.execute(sql`
+          update jadwal set
+            asisten = coalesce((select jsonb_agg(case when x = ${lama} then to_jsonb(${kode}::text) else to_jsonb(x) end)
+                       from jsonb_array_elements_text(asisten) x), '[]'::jsonb),
+            pengganti = coalesce((select jsonb_agg(case when p->>'kode' = ${lama} then jsonb_set(p, '{kode}', to_jsonb(${kode}::text)) else p end)
+                       from jsonb_array_elements(pengganti) p), '[]'::jsonb)
+          where asisten ? ${lama} or pengganti @> ${JSON.stringify([{ kode: lama }])}::jsonb`);
+      }
+    }
+  });
+  for (const b of baru) await writeAudit(oleh, "tim_impor", { nim: b.nim, baru: true });
+  for (const u of ubahan)
+    await writeAudit(oleh, "tim_impor", {
+      nim: u.nim,
+      ...(u.nama ? { nama: u.nama } : {}),
+      ...(u.kodeBaru ? { kode: u.kodeBaru } : {}),
+    });
+  res.status(200).json({ ok: true, diterapkan: true, ...laporan });
 }
 
 async function ubah(res: ApiResponse, body: Record<string, unknown>, oleh: string, admin: boolean) {

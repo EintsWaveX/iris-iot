@@ -64,7 +64,7 @@ import {
 } from "../../src/lib/server-lib.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
-import { saringKondisi } from "../../src/lib/server-shared.js";
+import { bacaKondisi, saringKondisi } from "../../src/lib/server-shared.js";
 import { saringHotspot, saringPerburuan } from "../../src/lib/perburuan.js";
 import { eq, and } from "drizzle-orm";
 
@@ -138,8 +138,11 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
   try {
     const db = getDb();
 
+    // Phase 9: the network rate (in + out) gets a series like CPU and memory.
+    const net = bacaKondisi(body.kondisi)?.jaringan;
     await db.insert(denyut).values({
       serverId,
+      jaringan: net ? Math.round(net.masuk + net.keluar) : null,
       cpu: numOrNull(body.cpu),
       memori: numOrNull(body.memori),
       disk: numOrNull(body.disk),

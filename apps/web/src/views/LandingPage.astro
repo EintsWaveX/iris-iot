@@ -3,8 +3,7 @@
  * /, /en/ and /zh/: Home, concept A "The lab right now" (Phase 9 Stage 7).
  * HomePage.tsx holds the hero by role, the live lab card, how a session
  * runs and the module lanes. The module cards live on /modules only.
- * Arriving at /?login=1 (where /masuk and /login redirect) opens the login
- * dialog; LoginDialog.tsx handles that itself.
+ * Sign-in is its own page, /login (SignInView.astro).
  */
 import Base from "../layouts/Base.astro";
 import HomePage from "../components/home/HomePage";

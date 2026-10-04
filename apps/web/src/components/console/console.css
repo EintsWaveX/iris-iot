@@ -2641,3 +2641,48 @@ thead .ntable__name {
     display: none;
   }
 }
+
+/* Roster 409 "Bandingkan": the two versions side by side. */
+.rbanding {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+.rbanding__g {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.rbanding__g ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+.rbanding__g li[data-beda] {
+  color: var(--warn);
+  font-weight: 650;
+}
+.rbanding__g li[data-beda]::before {
+  content: "● ";
+}
+
+/* c-next "Papan dan kit": back and broken counts, then the damage report. */
+.kitrow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+.kitrow__i {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.nextv .field {
+  margin: 14px 0 6px;
+}

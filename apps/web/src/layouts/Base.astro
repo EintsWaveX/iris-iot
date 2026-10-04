@@ -44,7 +44,6 @@ import "../styles/app.css";
 import "../components/ui/Pill.css";
 import { ClientRouter } from "astro:transitions";
 import Cosmos from "../components/Cosmos.astro";
-import LoginDialog from "../components/LoginDialog";
 import AppNav from "../components/shell/AppNav";
 import Toast from "../components/ui/Toast";
 import SegFit from "../components/shell/SegFit";
@@ -98,7 +97,6 @@ const {
       {tri(lang, "Lewati ke isi", "Skip to content", "跳到正文")}
     </a>
     {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />}
-    <LoginDialog client:load lang={lang} />
     <Toast client:load />
     <SegFit client:load />
     <slot />

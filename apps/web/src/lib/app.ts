@@ -14,6 +14,22 @@ import { usePoll } from "./hooks.js";
 
 export class HttpError extends Error {}
 
+/** The HTTP codes the shared error view (ui/ErrorView.tsx) knows. */
+export type ErrorCode = 400 | 401 | 403 | 404 | 408 | 409 | 413 | 429 | 500 | 503;
+const KODE_DIKENAL = new Set([400, 401, 403, 404, 408, 409, 413, 429, 500, 503]);
+
+/** Which error view a failed request deserves: its own status when the view
+ *  knows it, 408 when it timed out or the network dropped, else 500. */
+export function kodeGalat(e: unknown): ErrorCode {
+  if (e instanceof HttpError) {
+    const n = Number(e.message);
+    return (KODE_DIKENAL.has(n) ? n : 500) as ErrorCode;
+  }
+  if (e instanceof DOMException && e.name === "AbortError") return 408;
+  if (e instanceof TypeError) return 408;
+  return 500;
+}
+
 /** A request that hangs (a cold function waiting on the database, a dead
  *  Wi-Fi link) fails after this long instead of holding a skeleton or a
  *  spinner on screen forever; pollers then retry. */

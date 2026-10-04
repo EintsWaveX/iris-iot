@@ -36,6 +36,7 @@ import {
   CheckIcon,
   DownloadSimpleIcon,
   SidebarSimpleIcon,
+  SignInIcon,
   StarIcon,
 } from "@phosphor-icons/react";
 import type { BlankSegment, Segment } from "../../lib/blanks";
@@ -46,6 +47,7 @@ import IconButton from "../ui/IconButton";
 import { ProgressRing } from "../ui/Display";
 import type { Lang } from "../../lib/kelas";
 import { C } from "./codeStrings";
+import { openSignIn } from "../../lib/signin";
 
 export type CodeMode = "now" | "done" | "asisten";
 
@@ -211,7 +213,6 @@ export default function BlankFile(p: Props) {
   function onFail(kode: string | undefined) {
     if (kode === "sesi_berganti") {
       setLockedReason("sesiBerubah");
-      window.LoginDialog?.open();
     } else if (kode === "modul_terkunci") setLockedReason("terkunci");
     else if (kode === "belum_masuk" || kode === "peran_salah") setLockedReason("masuk");
   }
@@ -508,6 +509,12 @@ export default function BlankFile(p: Props) {
             ? t.locked
             : t.signIn}
       </span>
+      {lockedReason !== "terkunci" && (
+        <button type="button" className="btn btn--sm" onClick={() => openSignIn()}>
+          <SignInIcon size={16} aria-hidden="true" />
+          {t.signInBtn}
+        </button>
+      )}
     </div>
   ) : null;
 

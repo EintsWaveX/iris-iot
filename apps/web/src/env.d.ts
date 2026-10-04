@@ -4,7 +4,7 @@
  * Ambient globals installed by the client-side scripts in
  * src/components/ui/*.astro. Declared once here rather than cast with
  * `as any` at every call site, so a typo in a call to window.Toast.show()
- * or window.LoginDialog.open() is still caught by the checker.
+ * is still caught by the checker.
  */
 interface Window {
   Toast?: {
@@ -13,12 +13,6 @@ interface Window {
       tone?: "info" | "ok" | "warn" | "danger",
       opts?: { action?: { label: string; onClick: () => void }; duration?: number },
     ): void;
-  };
-  // src/components/LoginDialog.tsx (P7.3): opened from anywhere, including
-  // islands that do not share its React tree.
-  LoginDialog?: {
-    open(): void;
-    close(): void;
   };
   // packages/kosmik/js/*.core.js -- shared with apps/games, so these stay
   // untyped `.js` sources rather than gaining a local `.d.ts` there; the

@@ -13,7 +13,7 @@ import {
   PlusIcon,
   WarningOctagonIcon,
 } from "@phosphor-icons/react";
-import { getJson, tanggalPanjang } from "../../lib/app";
+import { getJson, kodeGalat, tanggalPanjang, type ErrorCode } from "../../lib/app";
 import { blokAwal, JENIS_DOKUMEN, type JenisDokumen, type StatusDokumen } from "../../lib/laporan";
 import type { Lang } from "../../lib/kelas";
 import type { Direktori } from "../../lib/people";
@@ -103,11 +103,29 @@ export default function Docs({
 }) {
   const [rows, setRows] = useState<DocRow[] | null>(null);
   const [sesi, setSesi] = useState<{ id: number; tanggal: string; slot: number | null }[]>([]);
-  const [fail, setFail] = useState(false);
+  const [fail, setFail] = useState<ErrorCode | false>(false);
   const [tab, setTab] = useState<TabDoc>("semua");
   const [jenis, setJenis] = useState<JenisDokumen | "all">("all");
   const [penulis, setPenulis] = useState("all");
   const [neu, setNeu] = useState(false);
+  // ?baru=1 (an error page's "Laporkan") opens the type picker at once;
+  // ?baru=kerusakan&konteks=N (the hand-over's "Laporkan Kerusakan") makes
+  // that kind of draft, tied to the session, and opens it.
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    const b = q.get("baru");
+    if (!b) return;
+    const sesiId = Number(q.get("konteks")) || undefined;
+    q.delete("baru");
+    q.delete("konteks");
+    const rest = q.toString().replace(/=(&|$)/g, "$1");
+    history.replaceState(history.state, "", location.pathname + (rest ? `?${rest}` : ""));
+    if ((JENIS_DOKUMEN as readonly string[]).includes(b)) {
+      void buatDraf(b as JenisDokumen, { sesiId }).then((id) =>
+        id ? onOpen(id) : window.Toast?.show(t.err, "danger"),
+      );
+    } else setNeu(true);
+  }, []);
   const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
     try {
@@ -118,8 +136,8 @@ export default function Docs({
       setRows(d.laporan);
       setSesi(d.sesi);
       setFail(false);
-    } catch {
-      setFail(true);
+    } catch (e) {
+      setFail(kodeGalat(e));
     }
   }, []);
   useEffect(() => {
@@ -221,7 +239,7 @@ export default function Docs({
       <Fade k={tab}>
         <section className="panel">
           {fail && !rows ? (
-            <ErrorView code={500} lang={lang} onRetry={() => void load()} />
+            <ErrorView code={fail} lang={lang} onRetry={() => void load()} />
           ) : rows === null ? (
             <span className="skeleton" style={{ height: 220 }} />
           ) : list.length === 0 ? (

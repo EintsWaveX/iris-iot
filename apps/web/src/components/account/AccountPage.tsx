@@ -30,6 +30,7 @@ import "./AccountPage.css";
 import DisplayPanel from "../shell/DisplayPanel";
 import PersonBadges from "../ui/PersonBadges";
 import TierBadge from "../ui/TierBadge";
+import { openSignIn } from "../../lib/signin";
 
 const T = dict({
   id: {
@@ -250,11 +251,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
         icon={<UserIcon size={28} />}
         title={t.needLogin}
         actions={
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => window.LoginDialog?.open()}
-          >
+          <button type="button" className="btn btn--primary" onClick={() => openSignIn()}>
             {t.masuk}
           </button>
         }

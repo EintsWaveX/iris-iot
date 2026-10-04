@@ -1,9 +1,9 @@
 /**
  * "The Pi right now" (Phase 9 Stage 5, mockup v-over PiGauges): six
  * numbers from the newest heartbeat and its `kondisi` block. CPU, memory,
- * temperature and storage open their own chart (range switch, the limit
- * band, now/lowest/highest/average, the latest readings and a CSV);
- * network and uptime have no series, so they are plain cards.
+ * temperature, storage and network open their own chart (range switch,
+ * the limit band, now/lowest/highest/average, the latest readings and a
+ * CSV); uptime has no series, so it is a plain card.
  */
 import { useEffect, useState } from "react";
 import { ArrowsOutSimpleIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
@@ -17,14 +17,22 @@ import ZoomChart, { useZoom } from "./ZoomChart";
 import { angka, laju, WARN_CPU, WARN_TEMP, type Denyut, type Detail, type Riwayat } from "./data";
 import { S } from "./strings";
 
-type Metrik = "cpu" | "memori" | "suhu" | "disk";
+type Metrik = "cpu" | "memori" | "suhu" | "disk" | "jaringan";
 
 const META: Record<Metrik, { unit: string; lo: number; hi: number; batas?: number; c: string }> = {
   cpu: { unit: "%", lo: 0, hi: 100, batas: WARN_CPU, c: "var(--accent)" },
   memori: { unit: "%", lo: 0, hi: 100, c: "var(--chart-2)" },
   suhu: { unit: "°C", lo: 30, hi: 90, batas: WARN_TEMP, c: "var(--warn)" },
   disk: { unit: "%", lo: 0, hi: 100, batas: 90, c: "var(--chart-4)" },
+  // The top follows the busiest reading (see `atas` below).
+  jaringan: { unit: "KB/s", lo: 0, hi: 64, c: "var(--accent)" },
 };
+
+/** One heartbeat's value; the network rate is stored in bytes per second. */
+function nilai(d: Denyut, m: Metrik): number | null {
+  if (m !== "jaringan") return d[m] ?? null;
+  return d.jaringan === null || d.jaringan === undefined ? null : d.jaringan / 1024;
+}
 
 function DataDialog({
   lang,
@@ -53,12 +61,16 @@ function DataDialog({
   const k = META[m];
   const seri = (h?.seri ?? []).map((d: Denyut) => ({
     t: new Date(d.pada).getTime(),
-    v: { [m]: d[m] ?? null },
+    v: { [m]: nilai(d, m) },
   }));
   const zoom = useZoom(seri.length);
   const vals = seri.map((s) => s.v[m]).filter((v): v is number => v !== null);
+  const atas =
+    m === "jaringan" ? Math.max(k.hi, Math.ceil((Math.max(0, ...vals) * 1.2) / 16) * 16) : k.hi;
   const f = (v: number | undefined) =>
-    v === undefined ? "·" : `${angka(v, lang, m === "suhu" ? 1 : 0)} ${k.unit}`;
+    v === undefined
+      ? "·"
+      : `${angka(v, lang, m === "suhu" || (m === "jaringan" && v < 10) ? 1 : 0)} ${k.unit}`;
   const stats: [string, string][] = [
     [t.dNow, f(vals.at(-1))],
     [t.dLow, f(vals.length ? Math.min(...vals) : undefined)],
@@ -139,9 +151,9 @@ function DataDialog({
               {
                 k: m,
                 label,
-                judul: `${t.panel(label, String(k.lo), `${k.hi} ${k.unit}`)}${k.batas !== undefined ? ` · ${t.dLimit(`${k.batas} ${k.unit}`)}` : ""}`,
+                judul: `${t.panel(label, String(k.lo), `${atas} ${k.unit}`)}${k.batas !== undefined ? ` · ${t.dLimit(`${k.batas} ${k.unit}`)}` : ""}`,
                 lo: k.lo,
-                hi: k.hi,
+                hi: atas,
                 c: k.c,
                 unit: k.unit,
                 batas: k.batas,
@@ -205,7 +217,13 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
   const k = bacaKondisi(data.server.kondisi);
   const nol = (n: number | null | undefined) =>
     n === null || n === undefined ? "·" : String(Math.round(n));
-  const label: Record<Metrik, string> = { cpu: t.cpu, memori: t.mem, suhu: t.temp, disk: t.disk };
+  const label: Record<Metrik, string> = {
+    cpu: t.cpu,
+    memori: t.mem,
+    suhu: t.temp,
+    disk: t.disk,
+    jaringan: t.net,
+  };
   const beban = k?.beban?.map((v) => angka(v, lang, 2)).join(" · ");
 
   const cards: { m: Metrik; v: string; unit: string; sub: string; warn?: boolean }[] = [
@@ -238,6 +256,13 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
     },
   ];
   const net = k?.jaringan;
+  const lajuNet = net ? laju(net.masuk + net.keluar, lang).split(" ") : null;
+  cards.push({
+    m: "jaringan",
+    v: lajuNet?.[0] ?? "·",
+    unit: lajuNet?.[1] ?? "",
+    sub: net ? t.netIo(net.antarmuka, laju(net.masuk, lang), laju(net.keluar, lang)) : t.noData,
+  });
   const up = hb?.uptimeSec ?? null;
   const ms = k?.jamSelisihMs;
 
@@ -268,16 +293,6 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
             </span>
           </button>
         ))}
-        <div className="dcard dcard--static">
-          <span className="dcard__l">{t.net}</span>
-          <span className="dcard__v">
-            <b>{net ? laju(net.masuk + net.keluar, lang).split(" ")[0] : "·"}</b>
-            <small>{net ? laju(net.masuk + net.keluar, lang).split(" ")[1] : ""}</small>
-          </span>
-          <span className="hint">
-            {net ? t.netIo(net.antarmuka, laju(net.masuk, lang), laju(net.keluar, lang)) : t.noData}
-          </span>
-        </div>
         <div className="dcard dcard--static">
           <span className="dcard__l">{t.upFor}</span>
           <span className="dcard__v">

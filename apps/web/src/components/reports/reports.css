@@ -6,6 +6,12 @@
   flex-direction: column;
   gap: var(--space-5);
   min-width: 0;
+  padding-top: var(--space-page-top);
+}
+
+/* The Reports home's header already sits at the page top space. */
+.rp--home {
+  padding-top: 0;
 }
 
 .rp .page-header {

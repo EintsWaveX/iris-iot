@@ -1,28 +1,25 @@
 /**
- * Login, as one dialog over any page (P7.3, rebuilt in Phase 8).
+ * Sign-in, its own page at /login (Phase 9 mockup p-login; a dialog over
+ * any page until then).
  *
- * - One dialog, two roles: a praktikan types only the NIM (shown in big
+ * - One card, two roles: a praktikan types only the NIM (shown in big
  *   monospace digits), an assistant adds a password.
- * - Validation is the dialog's own (no browser "please fill in this field"
+ * - Validation is the page's own (no browser "please fill in this field"
  *   bubbles): the form is noValidate and errors sit under their field.
  * - A student's successful check-in shows the module, their group and its
- *   assistant (Phase 9 mockup p-login: never a slot or a time), then one
- *   button into the practicum, or to the dashboard when no session runs.
+ *   assistant (never a slot or a time), then one button into the practicum,
+ *   or to the dashboard when no session runs.
  * - An assistant still on the starting password gets the set-password
- *   stage, now with show/hide and a strength meter; "Later" keeps working
- *   and the Asisten home keeps a reminder until it is done.
- * - Where to go next: `?next=` if present; otherwise the page the dialog was
- *   opened on, unless that was the landing page, in which case the role's
+ *   stage, with show/hide and a strength meter; "Later" keeps working and
+ *   the Asisten home keeps a reminder until it is done.
+ * - Where to go next: `?next=` if present (every "Masuk" button sets it to
+ *   the page it was pressed on, see lib/signin.ts), otherwise the role's
  *   home (Dasbor or Konsol). A student in the International class with no
  *   language choice of their own lands on the English pages.
- *
- * Opened from anywhere with window.LoginDialog.open() (the nav, the landing
- * hero, a module page's "sign in to save" note).
+ * - Someone already signed in who opens /login goes straight on.
  */
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRightIcon } from "@phosphor-icons/react";
-import { navigate } from "astro:transitions/client";
-import Dialog from "./ui/Dialog";
 import SegmentedControl from "./ui/SegmentedControl";
 import PasswordField from "./ui/PasswordField";
 import {
@@ -37,7 +34,8 @@ import {
 import { langForKelas, pathForLang, type Lang } from "../lib/kelas";
 import { readLangPref } from "../lib/hooks";
 import { namaAsisten } from "../lib/people";
-import "./LoginDialog.css";
+import { isSignInPath } from "../lib/signin";
+import "./SignIn.css";
 
 type Role = "praktikan" | "asisten";
 type Stage = "login" | "set-password" | "welcome";
@@ -174,35 +172,21 @@ const T = dict({
   },
 });
 
-function useIsMobile(breakpointPx = 639): boolean {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${breakpointPx}px)`);
-    const update = () => setIsMobile(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, [breakpointPx]);
-  return isMobile;
-}
-
 function destination(role: Role, lang: Lang, kelas: string | null): string {
   const next = new URLSearchParams(location.search).get("next");
-  let path: string;
-  if (next && next.startsWith("/") && !next.startsWith("//")) path = next;
-  else {
-    const here = location.pathname;
-    const onLanding = here === "/" || here === "/en" || here === "/en/";
-    path = onLanding ? (role === "asisten" ? "/session" : "/dashboard") : here;
-  }
+  const path =
+    next && next.startsWith("/") && !next.startsWith("//") && !isSignInPath(next.split("?")[0])
+      ? next
+      : role === "asisten"
+        ? "/session"
+        : "/dashboard";
   const pref = readLangPref();
   const want: Lang = pref ?? (kelas ? langForKelas(kelas as "reguler" | "internasional") : lang);
   return pathForLang(path, want);
 }
 
-export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
+export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
   const t = T[lang];
-  const [open, setOpen] = useState(false);
   const [stage, setStage] = useState<Stage>("login");
   const [role, setRole] = useState<Role>("praktikan");
   const [nim, setNim] = useState("");
@@ -219,38 +203,18 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
     sesi: SesiNow | null;
     asisten: { kode: string; nama: string } | null;
   } | null>(null);
-  const sheet = useIsMobile();
 
+  // Already signed in: nothing to do here, go on to where they were headed.
   useEffect(() => {
-    window.LoginDialog = {
-      open: () => {
-        setStage("login");
-        setErr(null);
-        setOpen(true);
-      },
-      close: () => setOpen(false),
-    };
-    const params = new URLSearchParams(location.search);
-    if (params.get("login") === "1") {
-      // Drop the flag at once, so a reload or the language redirect after
-      // signing in can't reopen the dialog. "next" stays for destination().
-      params.delete("login");
-      const q = params.toString();
-      history.replaceState(
-        history.state,
-        "",
-        location.pathname + (q ? `?${q}` : "") + location.hash,
-      );
-      getJson<{ ok: boolean }>("/api/auth/me")
-        .then((me) => {
-          if (!me.ok) setOpen(true);
-        })
-        .catch(() => setOpen(true));
-    }
-  }, []);
+    getJson<{ ok: boolean; role?: string }>("/api/auth/me")
+      .then((me) => {
+        if (me.ok && (me.role === "asisten" || me.role === "praktikan"))
+          location.replace(destination(me.role, lang, null));
+      })
+      .catch(() => {});
+  }, [lang]);
 
   function finish(r: Role, kelas: string | null, path?: string) {
-    setOpen(false);
     meChanged();
     const to = path
       ? pathForLang(
@@ -259,7 +223,7 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
         )
       : destination(r, lang, kelas);
     if (to === location.pathname + location.search) location.reload();
-    else navigate(to);
+    else location.assign(to);
   }
 
   async function submitLogin(ev: FormEvent) {
@@ -351,7 +315,14 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
         : t.title;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen} title={title} sheet={sheet} size="lg" lang={lang}>
+    <section className="panel panel--key panel--raised signin">
+      {stage === "welcome" && welcome?.sesi && (
+        <span className="pill pill--ok signin__badge">
+          <span className="dot dot--ok" aria-hidden="true" />
+          {t.inSession}
+        </span>
+      )}
+      <h1 className="signin__title">{title}</h1>
       {stage === "login" && (
         <form onSubmit={submitLogin} className="login-form" noValidate>
           <SegmentedControl
@@ -471,12 +442,6 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
 
       {stage === "welcome" && welcome && (
         <div className="login-welcome" aria-live="polite">
-          {welcome.sesi && (
-            <span className="pill pill--ok login-welcome__badge">
-              <span className="dot dot--ok" aria-hidden="true" />
-              {t.inSession}
-            </span>
-          )}
           {welcome.sesi ? (
             <div className="login-welcome__stats">
               <div className="stat">
@@ -521,6 +486,6 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
           </button>
         </div>
       )}
-    </Dialog>
+    </section>
   );
 }

@@ -10,7 +10,7 @@ import Dialog from "./Dialog";
 import { Switch } from "./Controls";
 import { dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
-import { setShortcuts, shortcutsOn } from "../../lib/prefs";
+import { keyHintsOn, setKeyHints, setShortcuts, shortcutsOn } from "../../lib/prefs";
 import "./ShortcutSheet.css";
 
 export interface ShortcutRow {
@@ -28,16 +28,22 @@ const T = dict({
   id: {
     desc: "Tekan ? kapan saja untuk membuka daftar ini.",
     on: "Pintasan Aktif",
+    hints: "Tampilkan Tombol Pintasan",
+    hintsHint: "Huruf pintasan tampil di tombolnya.",
     quiet: "Pintasan diam saat kamu sedang mengetik di kolom isian.",
   },
   en: {
     desc: "Press ? any time to open this list.",
     on: "Shortcuts On",
+    hints: "Show Shortcut Keys",
+    hintsHint: "Shortcut letters show on their buttons.",
     quiet: "Shortcuts stay quiet while you type in a field.",
   },
   zh: {
     desc: "随时按 ? 打开这个列表。",
     on: "启用快捷键",
+    hints: "显示快捷键提示",
+    hintsHint: "在按钮上显示对应的快捷键。",
     quiet: "在输入框里打字时，快捷键不会触发。",
   },
 });
@@ -53,10 +59,12 @@ interface Props {
 export default function ShortcutSheet({ open, onOpenChange, title, groups, lang }: Props) {
   const t = T[lang];
   const [on, setOn] = useState(true);
+  const [hints, setHints] = useState(false);
   const [phone, setPhone] = useState(false);
   useEffect(() => {
     if (!open) return;
     setOn(shortcutsOn());
+    setHints(keyHintsOn());
     setPhone(window.matchMedia("(max-width: 639px)").matches);
   }, [open]);
   return (
@@ -101,6 +109,16 @@ export default function ShortcutSheet({ open, onOpenChange, title, groups, lang 
               setShortcuts(v);
             }}
           />
+          <Switch
+            on={hints}
+            label={t.hints}
+            showLabel
+            onChange={(v) => {
+              setHints(v);
+              setKeyHints(v);
+            }}
+          />
+          <span className="hint">{t.hintsHint}</span>
         </div>
         <span className="hint">{t.quiet}</span>
       </div>

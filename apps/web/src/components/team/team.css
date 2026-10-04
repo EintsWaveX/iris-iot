@@ -677,3 +677,40 @@
   font-size: 1.3rem;
   overflow-wrap: anywhere;
 }
+
+/* Impor: what the handbook data would change, grouped. */
+.tim-impor {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.tim-impor__lede {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.tim-impor__group {
+  display: grid;
+  gap: 8px;
+}
+
+.tim-impor__h {
+  align-items: center;
+  display: flex;
+  font-size: 1rem;
+  font-weight: 700;
+  gap: 8px;
+  margin: 0;
+}
+
+.tim-impor__row {
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  gap: 2px;
+  padding-top: 8px;
+}
+
+.tim-impor__who {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

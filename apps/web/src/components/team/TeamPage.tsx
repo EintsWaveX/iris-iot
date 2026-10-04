@@ -29,6 +29,7 @@ import {
   UserPlusIcon,
   WarningIcon,
   ArrowsLeftRightIcon,
+  FileXlsIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Drawer from "../ui/Drawer";
@@ -267,10 +268,13 @@ export default function TeamPage({ lang }: { lang: Lang }) {
             {shown === "bayar" ? (
               bayar.data && <XlsxButton lang={lang} data={bayar.data} nama={nama} />
             ) : shown === "penugasan" ? null : admin ? (
-              <button type="button" className="btn btn--primary" onClick={() => setAdding(true)}>
-                <UserPlusIcon size={18} aria-hidden="true" />
-                {t.add}
-              </button>
+              <>
+                <ImportButton t={t} lang={lang} reload={load} />
+                <button type="button" className="btn btn--primary" onClick={() => setAdding(true)}>
+                  <UserPlusIcon size={18} aria-hidden="true" />
+                  {t.add}
+                </button>
+              </>
             ) : (
               <Pill>
                 <EyeIcon size={14} aria-hidden="true" />
@@ -1063,6 +1067,7 @@ function kalimat(j: Jejak, t: Tx, lang: Lang, w: Who): string {
   const by = w.who(j.aktorNim);
   const katOf = (v: unknown) => (isKategori(v) ? kategoriLabel(v, lang) : String(v ?? ""));
   if (j.aksi === "tim_tambah") return t.j.added(by);
+  if (j.aksi === "tim_impor") return d.baru ? t.j.imported : t.j.importUpd(by);
   if (j.aksi === "tim_serah_terima") {
     const what = t.j.serah(
       katOf(d.kategori),
@@ -1103,6 +1108,172 @@ function Trail({ jejak, t, lang, w }: { jejak: Jejak[] | null; t: Tx; lang: Lang
 }
 
 /* ---------------------------------------------------------- add dialog */
+
+/* --------------------------------------------------------------- impor */
+
+interface ImporLaporan {
+  total: number;
+  baru: { nim: string; nama: string; kode: string; jabatan: string }[];
+  ubah: {
+    nim: string;
+    kode: string;
+    sekarang: string;
+    nama?: [string, string];
+    kodeBaru?: [string, string];
+  }[];
+  bentrok: { nim: string; nama: string; kode: string }[];
+  diluar: { nim: string; nama: string; kode: string }[];
+}
+
+/** Impor (mockup t-list): matches the team against the handbook roster.
+ *  Nothing to change is a toast, as in the mockup; anything else opens a
+ *  review of what would change before it is applied. */
+function ImportButton({ t, lang, reload }: { t: Tx; lang: Lang; reload: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [lap, setLap] = useState<ImporLaporan | null>(null);
+
+  const run = async (terapkan: boolean) => {
+    setBusy(true);
+    try {
+      const r = await postJson<{ ok: boolean; kode?: string } & ImporLaporan>(API, {
+        aksi: "impor",
+        terapkan,
+      });
+      if (!r.ok) return toast(t.err[r.kode ?? ""] ?? t.err.gagal, "danger");
+      if (terapkan) {
+        toast(t.imporSelesai(r.baru.length, r.ubah.length));
+        setLap(null);
+        await reload();
+      } else if (!r.baru.length && !r.ubah.length && !r.bentrok.length) {
+        toast(t.imporSama(r.total, r.diluar.length));
+      } else setLap(r);
+    } catch (e) {
+      toast(
+        e instanceof HttpError && e.message === "403" ? t.err.tanpa_hak : t.err.gagal,
+        "danger",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const bisa = !!lap && (lap.baru.length > 0 || lap.ubah.length > 0);
+  return (
+    <>
+      <button
+        type="button"
+        className="btn"
+        data-loading={busy && !lap ? "yes" : "no"}
+        disabled={busy}
+        onClick={() => void run(false)}
+      >
+        <FileXlsIcon size={18} aria-hidden="true" />
+        <span className="btn__label">{t.impor}</span>
+        <span className="btn__spinner" aria-hidden="true" />
+      </button>
+      {lap && (
+        <Dialog
+          open
+          onOpenChange={(o) => !o && setLap(null)}
+          title={t.imporTitle}
+          lang={lang}
+          actions={
+            <>
+              <button type="button" className="btn btn--ghost" onClick={() => setLap(null)}>
+                {bisa ? t.cancel : t.close}
+              </button>
+              {bisa && (
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  data-loading={busy ? "yes" : "no"}
+                  disabled={busy}
+                  onClick={() => void run(true)}
+                >
+                  <CheckCircleIcon size={18} aria-hidden="true" />
+                  <span className="btn__label">{t.imporTerapkan}</span>
+                  <span className="btn__spinner" aria-hidden="true" />
+                </button>
+              )}
+            </>
+          }
+        >
+          <div className="tim-impor">
+            <p className="tim-impor__lede">{t.imporLede(lap.total)}</p>
+            {lap.baru.length > 0 && (
+              <section className="tim-impor__group">
+                <h3 className="tim-impor__h">
+                  {t.imporBaru} <span className="tabs__count">{lap.baru.length}</span>
+                </h3>
+                {lap.baru.map((b) => (
+                  <div key={b.nim} className="tim-impor__row">
+                    <span className="tim-impor__who">
+                      {b.nama} <span className="acode">{b.kode}</span>
+                    </span>
+                    <span className="hint">{b.jabatan}</span>
+                  </div>
+                ))}
+              </section>
+            )}
+            {lap.ubah.length > 0 && (
+              <section className="tim-impor__group">
+                <h3 className="tim-impor__h">
+                  {t.imporUbah} <span className="tabs__count">{lap.ubah.length}</span>
+                </h3>
+                {lap.ubah.map((u) => (
+                  <div key={u.nim} className="tim-impor__row">
+                    <span className="tim-impor__who">
+                      {u.sekarang} <span className="acode">{u.kode}</span>
+                    </span>
+                    <span className="hint">
+                      {[
+                        u.nama && t.imporNama(u.nama[0], u.nama[1]),
+                        u.kodeBaru && t.imporKode(u.kodeBaru[0], u.kodeBaru[1]),
+                      ]
+                        .filter(Boolean)
+                        .join(". ")}
+                    </span>
+                  </div>
+                ))}
+              </section>
+            )}
+            {lap.bentrok.length > 0 && (
+              <section className="tim-impor__group">
+                <h3 className="tim-impor__h">
+                  {t.imporBentrok} <span className="tabs__count">{lap.bentrok.length}</span>
+                </h3>
+                <span className="hint">{t.imporBentrokHint}</span>
+                {lap.bentrok.map((b) => (
+                  <div key={b.nim} className="tim-impor__row">
+                    <span className="tim-impor__who">
+                      {b.nama} <span className="acode">{b.kode}</span>
+                    </span>
+                    <span className="hint">{t.imporDipakai(b.kode)}</span>
+                  </div>
+                ))}
+              </section>
+            )}
+            {lap.diluar.length > 0 && (
+              <section className="tim-impor__group">
+                <h3 className="tim-impor__h">
+                  {t.imporLuar} <span className="tabs__count">{lap.diluar.length}</span>
+                </h3>
+                <span className="hint">{t.imporLuarHint}</span>
+                {lap.diluar.map((b) => (
+                  <div key={b.nim} className="tim-impor__row">
+                    <span className="tim-impor__who">
+                      {b.nama} <span className="acode">{b.kode}</span>
+                    </span>
+                  </div>
+                ))}
+              </section>
+            )}
+          </div>
+        </Dialog>
+      )}
+    </>
+  );
+}
 
 function AddDialog({
   data,

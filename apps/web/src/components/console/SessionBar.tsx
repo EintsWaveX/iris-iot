@@ -29,6 +29,7 @@ import {
 import * as RadixPopover from "@radix-ui/react-popover";
 import { Stepper, Switch } from "../ui/Controls";
 import Tooltip from "../ui/Tooltip";
+import KeyHint from "../ui/KeyHint";
 import Pill from "../ui/Pill";
 import { isTypingTarget } from "../ui/ShortcutSheet";
 import { getJson, jamMenit, menitBerjalan, postJson, useTick } from "../../lib/app";
@@ -377,6 +378,7 @@ export default function SessionBar({
                 <button type="button" className="btn sbar__btn" aria-pressed={pop === "ext"}>
                   <TimerIcon size={18} aria-hidden="true" />
                   {t.extend}
+                  <KeyHint k="E" />
                 </button>
               </RadixPopover.Trigger>
             </Tooltip>

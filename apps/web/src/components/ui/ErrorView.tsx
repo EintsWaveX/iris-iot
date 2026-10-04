@@ -14,6 +14,14 @@ import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import {
   ArrowClockwiseIcon,
   ArrowsClockwiseIcon,
+  ArrowsLeftRightIcon,
+  DoorOpenIcon,
+  HardDrivesIcon,
+  HouseIcon,
+  LinkIcon,
+  NotePencilIcon,
+  SquaresFourIcon,
+  UsersFourIcon,
   BugIcon,
   CloudXIcon,
   CompassIcon,
@@ -27,11 +35,12 @@ import {
   type IconProps,
 } from "@phosphor-icons/react";
 import IconButton from "./IconButton";
-import { dict } from "../../lib/app";
+import { dict, href, type ErrorCode } from "../../lib/app";
+import { openSignIn } from "../../lib/signin";
 import type { Lang } from "../../lib/kelas";
 import "./ErrorView.css";
 
-export type ErrorCode = 400 | 401 | 403 | 404 | 408 | 409 | 413 | 429 | 500 | 503;
+export type { ErrorCode };
 
 const ICON: Record<ErrorCode, ComponentType<IconProps>> = {
   400: WarningIcon,
@@ -62,6 +71,19 @@ const T = dict({
     errCode: "Kode galat",
     copy: "Salin kode galat",
     copied: "Kode disalin.",
+    act: {
+      reload: "Muat Ulang",
+      home: "Ke Beranda",
+      signIn: "Masuk",
+      dash: "Ke Dasbor",
+      admins: "Lihat Admin di Tim",
+      console: "Ke Konsol",
+      report: "Laporkan",
+      server: "Lihat Status Server",
+      compare: "Bandingkan",
+      link: "Pakai Tautan",
+      otherFile: "Pilih Berkas Lain",
+    },
     codes: {
       400: {
         title: "Permintaan Tidak Dikenali",
@@ -139,6 +161,19 @@ const T = dict({
     errCode: "Error code",
     copy: "Copy the error code",
     copied: "Code copied.",
+    act: {
+      reload: "Reload",
+      home: "Go Home",
+      signIn: "Sign In",
+      dash: "Go to Dashboard",
+      admins: "See Admins on Team",
+      console: "Go to Console",
+      report: "Report It",
+      server: "See Server Status",
+      compare: "Compare",
+      link: "Use a Link",
+      otherFile: "Choose Another File",
+    },
     codes: {
       400: {
         title: "Request Not Understood",
@@ -216,6 +251,19 @@ const T = dict({
     errCode: "错误代码",
     copy: "复制错误代码",
     copied: "代码已复制。",
+    act: {
+      reload: "重新加载",
+      home: "回到首页",
+      signIn: "登录",
+      dash: "前往面板",
+      admins: "在团队页查看管理员",
+      console: "前往控制台",
+      report: "报告问题",
+      server: "查看服务器状态",
+      compare: "对比",
+      link: "改用链接",
+      otherFile: "选择其他文件",
+    },
     codes: {
       400: {
         title: "看不懂这个请求",
@@ -299,6 +347,36 @@ interface Props {
   retryIn?: number;
   /** 500: the code to quote in a report. */
   errorCode?: string;
+  /** 409: open the two versions side by side. */
+  onCompare?: () => void;
+  /** 413: switch the upload to a link, or pick another file. */
+  onUseLink?: () => void;
+  onPickFile?: () => void;
+}
+
+function Btn({
+  primary,
+  ghost,
+  icon: Icon,
+  onClick,
+  children,
+}: {
+  primary?: boolean;
+  ghost?: boolean;
+  icon?: ComponentType<IconProps>;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={"btn" + (primary ? " btn--primary" : ghost ? " btn--ghost" : "")}
+      onClick={onClick}
+    >
+      {Icon && <Icon size={20} aria-hidden="true" />}
+      {children}
+    </button>
+  );
 }
 
 export default function ErrorView({
@@ -311,6 +389,9 @@ export default function ErrorView({
   onRetry,
   retryIn,
   errorCode,
+  onCompare,
+  onUseLink,
+  onPickFile,
 }: Props) {
   const t = T[lang];
   const copy: Copy = {
@@ -328,6 +409,97 @@ export default function ErrorView({
   useEffect(() => {
     if (code === 408 && retryIn && left === 0 && onRetry) onRetry();
   }, [code, retryIn, left, onRetry]);
+
+  // The mockup's actions for each code, when the caller brings none, so no
+  // error ends in a dead end.
+  const a = t.act;
+  const go = (path: string) => () => location.assign(href(lang, path));
+  const reload = () => location.reload();
+  const prak = role === "praktikan";
+  const fallback: ReactNode = actions
+    ? null
+    : {
+        400: (
+          <>
+            <Btn primary icon={ArrowClockwiseIcon} onClick={reload}>
+              {a.reload}
+            </Btn>
+            <Btn icon={HouseIcon} ghost onClick={go("/")}>
+              {a.home}
+            </Btn>
+          </>
+        ),
+        401: (
+          <Btn primary icon={DoorOpenIcon} onClick={() => openSignIn()}>
+            {a.signIn}
+          </Btn>
+        ),
+        403: prak ? (
+          <Btn primary icon={SquaresFourIcon} onClick={go("/dashboard")}>
+            {a.dash}
+          </Btn>
+        ) : (
+          <>
+            <Btn primary icon={UsersFourIcon} onClick={go("/team")}>
+              {a.admins}
+            </Btn>
+            <Btn ghost onClick={go("/session")}>
+              {a.console}
+            </Btn>
+          </>
+        ),
+        404: (
+          <Btn primary icon={HouseIcon} onClick={go("/")}>
+            {a.home}
+          </Btn>
+        ),
+        408: onRetry ? null : (
+          <Btn primary icon={ArrowClockwiseIcon} onClick={reload}>
+            {a.reload}
+          </Btn>
+        ),
+        409: (
+          <>
+            {onCompare && (
+              <Btn primary icon={ArrowsLeftRightIcon} onClick={onCompare}>
+                {a.compare}
+              </Btn>
+            )}
+            <Btn primary={!onCompare} icon={ArrowClockwiseIcon} onClick={onRetry ?? reload}>
+              {a.reload}
+            </Btn>
+          </>
+        ),
+        413: (
+          <>
+            {onUseLink && (
+              <Btn primary icon={LinkIcon} onClick={onUseLink}>
+                {a.link}
+              </Btn>
+            )}
+            {onPickFile && (
+              <Btn ghost={!!onUseLink} primary={!onUseLink} onClick={onPickFile}>
+                {a.otherFile}
+              </Btn>
+            )}
+          </>
+        ),
+        429: null,
+        500: prak ? null : (
+          <Btn icon={NotePencilIcon} onClick={go("/reports?dokumen&baru=1")}>
+            {a.report}
+          </Btn>
+        ),
+        503: prak ? (
+          <Btn primary icon={SquaresFourIcon} onClick={go("/dashboard")}>
+            {a.dash}
+          </Btn>
+        ) : (
+          <Btn primary icon={HardDrivesIcon} onClick={go("/servers")}>
+            {a.server}
+          </Btn>
+        ),
+      }[code];
 
   const tone =
     code >= 500 ? "danger" : code === 408 || code === 409 || code === 429 ? "warn" : "accent";
@@ -365,9 +537,10 @@ export default function ErrorView({
         </div>
       )}
       {code === 408 && retryIn && left > 0 && <span className="hint">{t.retryAuto(left)}</span>}
-      {(onRetry || actions) && (
+      {(onRetry || actions || fallback) && (
         <div className="row">
-          {onRetry && (
+          {/* 409's own Muat Ulang already runs onRetry. */}
+          {onRetry && code !== 409 && (
             <button
               type="button"
               className="btn btn--primary"
@@ -381,7 +554,7 @@ export default function ErrorView({
               {left > 0 && code === 429 ? t.retryIn(left) : t.retry}
             </button>
           )}
-          {actions}
+          {actions ?? fallback}
         </div>
       )}
     </section>

@@ -28,12 +28,14 @@
  * one slot per semester. Editing a slot's roster takes the Jadwal right or
  * being on that slot; drafts take the full "pair" right, like starting one.
  */
-import { and, asc, eq, inArray, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang, type OrangHak } from "./hak.js";
 import { getDb } from "../../src/lib/db.js";
 import {
+  asisten,
+  audit,
   jadwal,
   praktikan,
   rosterKelompok,
@@ -115,7 +117,7 @@ export async function handleRosterSlotGet(req: ApiRequest, res: ApiResponse) {
   const row = await slotRow(hari, slot);
   if (!row) return tolak(res, "slot_tidak_ada");
   const semester = semesterIni();
-  const [kelompok, anggota] = await Promise.all([
+  const [kelompok, anggota, versi] = await Promise.all([
     db
       .select({
         nomor: rosterKelompok.nomor,
@@ -147,15 +149,41 @@ export async function handleRosterSlotGet(req: ApiRequest, res: ApiResponse) {
         ),
       )
       .orderBy(asc(rosterSlot.kelompokNomor), asc(rosterSlot.urutan)),
+    versiRoster(db, hari, slot),
   ]);
   res.status(200).json({
     ok: true,
+    versi,
     kelas: row.kelas,
     jumlahKelompok: row.jumlahKelompok,
     anggotaPerKelompok: row.anggotaPerKelompok,
     kelompok,
     anggota,
   });
+}
+
+/**
+ * A slot roster's version: its newest "roster_slot" audit row. The editor
+ * sends back the one it loaded; a newer one means someone saved after it
+ * opened, and the save stops with `versi_berubah` (the 409 view).
+ */
+type Db = ReturnType<typeof getDb>;
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+async function versiRoster(db: Db | Tx, hari: number, slot: number) {
+  const [v] = await db
+    .select({ pada: audit.pada, nim: audit.aktorNim, nama: asisten.nama, kode: asisten.kode })
+    .from(audit)
+    .leftJoin(asisten, eq(asisten.nim, audit.aktorNim))
+    .where(
+      and(
+        eq(audit.aksi, "roster_slot"),
+        sql`(${audit.detail})::jsonb->>'hari' = ${String(hari)}`,
+        sql`(${audit.detail})::jsonb->>'slot' = ${String(slot)}`,
+      ),
+    )
+    .orderBy(desc(audit.pada), desc(audit.id))
+    .limit(1);
+  return v ? { pada: v.pada.toISOString(), nim: v.nim, nama: v.nama, kode: v.kode } : null;
 }
 
 /* ---------------------------------------------------------- roster POST */
@@ -262,7 +290,16 @@ export async function handleRosterSlotPost(
   }
 
   const nims = isian.anggota.map((a) => a.nim);
+  // `versi` is what the editor loaded (null for a roster never saved);
+  // `paksa` is "Simpan Versiku" after comparing.
+  const dimuat = typeof body.versi === "string" || body.versi === null ? body.versi : undefined;
   const hasil = await db.transaction(async (tx) => {
+    if (dimuat !== undefined && body.paksa !== true) {
+      const kini = await versiRoster(tx, hari, slot);
+      if ((kini?.pada ?? null) !== dimuat) {
+        return { ok: false as const, kode: "versi_berubah", versi: kini };
+      }
+    }
     if (nims.length) {
       // Everyone must be on the semester's list, and in no other slot.
       const ada = await tx
@@ -326,16 +363,26 @@ export async function handleRosterSlotPost(
         anggotaPerKelompok: isian.anggotaPerKelompok,
       })
       .where(eq(jadwal.id, row.id));
-    return { ok: true as const };
+    // The audit row is the new version, so it is written in the same
+    // transaction as the roster.
+    const [a] = await tx
+      .insert(audit)
+      .values({
+        aktorNim: session.nim,
+        aksi: "roster_slot",
+        detail: JSON.stringify({
+          hari,
+          slot,
+          jumlahKelompok: isian.jumlahKelompok,
+          praktikan: isian.anggota.length,
+          ...(body.paksa === true ? { paksa: true } : {}),
+        }),
+      })
+      .returning({ pada: audit.pada });
+    return { ok: true as const, versi: a.pada.toISOString() };
   });
   if (!hasil.ok) return res.status(200).json(hasil);
-  await writeAudit(session.nim, "roster_slot", {
-    hari,
-    slot,
-    jumlahKelompok: isian.jumlahKelompok,
-    praktikan: isian.anggota.length,
-  });
-  res.status(200).json({ ok: true });
+  res.status(200).json({ ok: true, versi: hasil.versi });
 }
 
 /* ------------------------------------------------------------- praktikan */

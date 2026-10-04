@@ -97,7 +97,7 @@ import type { SessionPayload } from "../../src/lib/auth.js";
 import { blankCountForModul } from "../_lib/answer-keys.js";
 import { SESI_CAP_DETIK, SESI_CAP_MENIT, durasiSesi } from "../../src/lib/jadwal.js";
 import { bolehIsiNilai } from "../../src/lib/penugasan.js";
-import { catatKejadian, handleDurasi } from "../_lib/berjalan.js";
+import { catatKejadian, handleDurasi, handleKit } from "../_lib/berjalan.js";
 import {
   handleKejadianDaftar,
   handleKejadianPost,
@@ -726,6 +726,8 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
       status: running.status,
       kelas: running.kelas,
       durasiDetik,
+      // The hand-over's kit count (Siapkan Sesi Berikutnya).
+      kit: running.kit ?? null,
     },
     kelompok: daftarKelompok,
     stuck,
@@ -1353,6 +1355,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "durasi") {
     if (!requireMethod(req, res, "POST")) return;
     return handleDurasi(req, res, session);
+  }
+  if (aksi === "kit") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleKit(req, res, session);
   }
   if (aksi === "kejadian") {
     if (req.method === "POST") return handleKejadianPost(req, res, session);

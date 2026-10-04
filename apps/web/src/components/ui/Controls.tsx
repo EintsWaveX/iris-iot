@@ -692,11 +692,18 @@ export function FileDrop({
   lang = "id",
   kinds,
   compact,
+  onTooBig,
+  pick,
 }: {
   /** MIME types, e.g. ["application/pdf"]. */
   accept: string[];
   maxBytes: number;
   onFile: (f: File) => void;
+  /** Hands an oversized file to the caller (the 413 view) instead of the
+   *  inline error. */
+  onTooBig?: (f: File) => void;
+  /** Bump to open the file picker (e.g. the 413 view's "Pilih Berkas Lain"). */
+  pick?: number;
   busy?: boolean;
   lang?: Lang;
   /** Human label of the accepted kinds, e.g. "PDF" or "PNG, JPG". */
@@ -708,11 +715,17 @@ export function FileDrop({
   const [over, setOver] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const mb = Math.floor(maxBytes / 1024 / 1024);
+  useEffect(() => {
+    if (pick) inputRef.current?.click();
+  }, [pick]);
 
   function take(f: File | undefined) {
     if (!f) return;
     if (!accept.includes(f.type)) return setErr(t.type);
-    if (f.size > maxBytes) return setErr(t.size(mb));
+    if (f.size > maxBytes) {
+      if (onTooBig) return onTooBig(f);
+      return setErr(t.size(mb));
+    }
     setErr(null);
     onFile(f);
   }

@@ -916,3 +916,36 @@ html {
   border-color: var(--hairline-strong);
   color: var(--text-muted);
 }
+
+/* Phase 9 "?" sheet, "Tampilkan Tombol Pintasan": a control with a shortcut
+   carries a KeyHint (ui/KeyHint.tsx); its key cap shows only when the reader
+   turned the hints on. */
+.keyhint {
+  display: none;
+}
+html[data-keyhints="on"] .keyhint {
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  color: var(--text-muted);
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  margin-inline-start: 6px;
+  padding: 3px 5px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+html[data-keyhints="on"] .keyhint--corner {
+  font-size: 0.6rem;
+  margin: 0;
+  padding: 2px 4px;
+  pointer-events: none;
+  position: absolute;
+  right: -2px;
+  top: -4px;
+  z-index: 1;
+}

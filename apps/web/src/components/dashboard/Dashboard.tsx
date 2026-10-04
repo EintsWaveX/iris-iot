@@ -850,7 +850,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
   const hasil = hasilPoll.data;
 
   useEffect(() => {
-    if (me === null) location.assign(href(lang, "/?login=1&next=/dashboard"));
+    if (me === null) location.assign(href(lang, "/login?next=/dashboard"));
     else if (me?.role === "asisten" && bacaProyektor() === null)
       location.replace(href(lang, "/session"));
   }, [me, lang]);

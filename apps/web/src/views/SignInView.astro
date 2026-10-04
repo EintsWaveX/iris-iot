@@ -1,0 +1,21 @@
+---
+/**
+ * /login, /en/login and /zh/login (Phase 9 mockup p-login): sign-in as its
+ * own page. /masuk redirects here (vercel.json).
+ */
+import { tri } from "../lib/labels";
+import Base from "../layouts/Base.astro";
+import SignInPage from "../components/SignInPage";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base title={`${tri(lang, "Masuk", "Sign in", "登录")} · IRIS IoT`} lang={lang} cosmosScene="masuk">
+  <main id="main" class="page-narrow page-main signin-page">
+    <SignInPage client:load lang={lang} />
+  </main>
+</Base>

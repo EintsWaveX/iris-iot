@@ -152,3 +152,37 @@ export async function catatPasangan(
     aktorNim: p.aktorNim,
   });
 }
+
+/** POST /api/session/kit { sesiId, kembali, rusak } -- the hand-over's
+ *  "Papan dan kit" count (mockup c-next): kits back and broken, out of one
+ *  per group. Any Asisten may set it for a session that ran today. */
+export async function handleKit(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const sesiId = Number(body.sesiId);
+  const kembali = Number(body.kembali);
+  const rusak = Number(body.rusak);
+  if (!Number.isInteger(sesiId) || sesiId <= 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  const [row] = await db
+    .select({ id: sesi.id, status: sesi.status, jumlahKelompok: sesi.jumlahKelompok })
+    .from(sesi)
+    .where(eq(sesi.id, sesiId))
+    .limit(1);
+  if (!row || row.status === "batal" || row.status === "terjadwal") {
+    res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
+    return;
+  }
+  const total = row.jumlahKelompok;
+  const ok = (n: number) => Number.isInteger(n) && n >= 0 && n <= total;
+  if (!ok(kembali) || !ok(rusak)) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const kit = { kembali, rusak, total, oleh: session.nim, pada: new Date().toISOString() };
+  await db.update(sesi).set({ kit }).where(eq(sesi.id, sesiId));
+  await writeAudit(session.nim, "sesi_kit", { sesiId, kembali, rusak, total });
+  res.status(200).json({ ok: true, kit });
+}

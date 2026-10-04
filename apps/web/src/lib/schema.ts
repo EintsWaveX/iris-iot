@@ -143,6 +143,15 @@ export const serahTerima = pgTable(
  * for a replacement instead of leaving it permanently unusable — the
  * failure mode a plain unique constraint on this trio produced before.
  */
+/** sesi.kit: the hand-over count of kits (one per group). */
+export interface KitSesi {
+  kembali: number;
+  rusak: number;
+  total: number;
+  oleh: string;
+  pada: string;
+}
+
 export const sesi = pgTable(
   "sesi",
   {
@@ -200,6 +209,9 @@ export const sesi = pgTable(
     lanjutanDari: integer("lanjutan_dari").references((): AnyPgColumn => sesi.id, {
       onDelete: "set null",
     }),
+    // Phase 9 (c-next "Papan dan kit"): kits back and broken when the room
+    // was handed over, of `total` (the session's group count).
+    kit: jsonb("kit").$type<KitSesi>(),
     dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -734,6 +746,8 @@ export const denyut = pgTable(
     memori: integer("memori"), // percent, 0-100
     disk: integer("disk"), // percent, 0-100
     suhu: integer("suhu"), // celsius
+    // Phase 9 (0021): network in + out, bytes per second, from `kondisi`.
+    jaringan: integer("jaringan"),
     uptimeSec: integer("uptime_sec"),
     jamSelaras: boolean("jam_selaras").notNull().default(false),
     modeJaringan: text("mode_jaringan"), // "ethernet-router" | "ap-mandiri" | "ap+uplink" | "offline"

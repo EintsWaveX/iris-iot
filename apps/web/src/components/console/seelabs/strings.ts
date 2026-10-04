@@ -139,6 +139,7 @@ export const SL = dict({
     acctName: "Nama akun SeeLabs",
     acctNamePh: "nama pengguna SeeLabs",
     acctBm: "Bookmarklet pengisi nilai",
+    howTo: "Cara Pakai",
     acctNever:
       "IRIS tidak pernah masuk ke SeeLabs untukmu. Bookmarklet hanya mengisi form di tab SeeLabs milikmu sendiri, dan kamu yang menekan Simpan Penilaian.",
     acctSaved: "Akun SeeLabs disimpan.",
@@ -303,6 +304,7 @@ export const SL = dict({
     acctName: "SeeLabs account name",
     acctNamePh: "SeeLabs username",
     acctBm: "Score fill bookmarklet",
+    howTo: "How to Use It",
     acctNever:
       "IRIS never signs in to SeeLabs for you. The bookmarklet only fills the form in your own SeeLabs tab, and you press Simpan Penilaian.",
     acctSaved: "SeeLabs account saved.",
@@ -462,6 +464,7 @@ export const SL = dict({
     acctName: "SeeLabs 账号名",
     acctNamePh: "SeeLabs 用户名",
     acctBm: "填分数的书签小工具",
+    howTo: "使用方法",
     acctNever:
       "IRIS 从不替你登录 SeeLabs。书签小工具只在你自己的 SeeLabs 标签页里填表，由你自己按 Simpan Penilaian。",
     acctSaved: "SeeLabs 账号已保存。",
