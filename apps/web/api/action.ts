@@ -4,6 +4,8 @@
  *                    | { tipe: "perintah_batal", id }              (P6.7)
  *                    | { tipe: "perintah_hapus", serverId }        (Phase 9)
  *                    | { tipe: "riwayat_hapus", serverId }         (Phase 9)
+ *                    | { tipe: "konsol_*", ... }  (Phase 9 Stage 9, Konsol Pi;
+ *                      see _lib/konsol.ts, rights by badge there)
  *   — assistant-only for all three. Phase 9 removed "adopsi" and
  *   "perangkat" with the Devices tab; the perangkat table stays.
  *
@@ -41,6 +43,7 @@ import {
   unitDiagValid,
 } from "../src/lib/server-lib.js";
 import { journalArgValid } from "../src/lib/server-shared.js";
+import { handleKonsolAksi } from "./_lib/konsol.js";
 import { writeAudit } from "../src/lib/auth.js";
 import type { SessionPayload } from "../src/lib/auth.js";
 import { and, asc, desc, eq, gte, notInArray } from "drizzle-orm";
@@ -53,6 +56,11 @@ async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPa
 
   if (!Number.isInteger(serverId) || serverId <= 0 || !aksiValid(aksi)) {
     res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  // Konsol Pi opens only through its own approved ticket flow.
+  if (aksi === "konsol.buka") {
+    res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "konsol" });
     return;
   }
   if (aksi.startsWith("layanan.") && !layananValid(argumen.layanan)) {
@@ -272,6 +280,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (!session) return;
 
   const body = jsonBody(req);
+  // Konsol Pi checks its own rights (the DEV badge, the Pencipta).
+  if (typeof body.tipe === "string" && body.tipe.startsWith("konsol_"))
+    return handleKonsolAksi(req, res, session, body.tipe);
   // Phase 9: commands need the Server right, except the few an Asisten
   // needs to run their own slot (hotspot, clock, Ready check).
   // Stage 5: the Full view's reads and clearing a log need the full right.

@@ -37,6 +37,7 @@
  * and commands ride the response of the call it was always going to make
  * anyway.
  */
+import { konsolSiaga, terimaLaporanKonsol } from "../_lib/konsol.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { getDb } from "../../src/lib/db.js";
@@ -158,6 +159,9 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         .where(and(eq(perintah.id, item.id), eq(perintah.serverId, serverId)));
     }
 
+    // Phase 9 Stage 9: the Pi bridge's Konsol reports (joined, ended).
+    await terimaLaporanKonsol(serverId, body.konsol);
+
     // A single atomic claim (P6.2/B7) -- see claimPerintahMenunggu's own
     // comment for the race this replaces.
     const pending = await claimPerintahMenunggu(serverId);
@@ -189,7 +193,8 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     const sesiAktif = await currentSesi();
     // Fastest applicable pace wins: a command in flight beats the session/idle
     // cadence, so the result comes back (and the next press is claimed) fast.
-    const siaga = pending.length > 0 || (await adaPerintahBaru(serverId));
+    const siaga =
+      pending.length > 0 || (await adaPerintahBaru(serverId)) || (await konsolSiaga(serverId));
     const intervalDetik = siaga
       ? INTERVAL_SIAGA_SEC
       : sesiAktif && MODUL_TELEMETRI_PI.has(sesiAktif.modul)

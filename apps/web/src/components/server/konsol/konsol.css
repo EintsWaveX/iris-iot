@@ -1,0 +1,391 @@
+/* Konsol Pi (Phase 9 Stage 9), ported from the mockup's round5.css rules
+   for v-console: the step strip, the ask card, the terminal and the screen.
+   The terminal and the screen stay dark in both themes (they show the Pi). */
+
+.pk .grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pk .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.pkhead {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  justify-content: space-between;
+}
+
+.pksteps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pksteps li {
+  align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 600;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px 0 6px;
+}
+
+.pksteps li span {
+  background: var(--surface-2);
+  border-radius: 50%;
+  display: grid;
+  font-size: 0.8rem;
+  height: 26px;
+  place-items: center;
+  width: 26px;
+}
+
+.pksteps li[data-on="yes"] {
+  border-color: var(--hairline-strong);
+  color: var(--text);
+}
+
+.pksteps li[data-on="yes"] span {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.pksteps li[aria-current="step"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.pkhead__live {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.pkhead__left {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.pkask,
+.pkreq {
+  display: grid;
+  gap: 18px;
+  max-width: 760px;
+  width: 100%;
+}
+
+.pkact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 639px) {
+  /* Phones stack the buttons with the main action on top. */
+  .pkact {
+    flex-direction: column-reverse;
+  }
+  .pkact .btn {
+    width: 100%;
+  }
+  .pkhead__live {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+.pk .wininfo {
+  align-items: start;
+  background: var(--surface-1);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: max-content minmax(0, 1fr);
+  padding: 18px;
+}
+
+.pk .wininfo__ic {
+  background: var(--accent-soft);
+  border-radius: 14px;
+  color: var(--accent-bright);
+  display: grid;
+  height: 52px;
+  place-items: center;
+  width: 52px;
+}
+
+.pk .wininfo b {
+  font-size: 1.15rem;
+}
+
+.pk .helplist {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding-left: 1.2em;
+}
+
+.pksec .disc__head {
+  min-height: 44px;
+}
+
+.kv {
+  align-items: baseline;
+  display: grid;
+  gap: 10px 18px;
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.kv__row {
+  display: contents;
+}
+
+.kv__row > :last-child {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 459px) {
+  .kv {
+    gap: 2px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kv__row > :last-child {
+    margin-bottom: 8px;
+  }
+}
+
+.pkstats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 639px) {
+  .pkstats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pknotes {
+  display: grid;
+  gap: 6px;
+}
+
+.pknotes p {
+  margin: 0;
+}
+
+.pkwarn {
+  align-items: center;
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  overflow: hidden;
+  padding: 12px 16px;
+  position: relative;
+}
+
+.pkwarn i {
+  background: var(--warn);
+  bottom: 0;
+  height: 3px;
+  left: 0;
+  position: absolute;
+  transition: width 1s linear;
+}
+
+/* the pane: the terminal or the screen, with a status layer on top while
+   it connects or after it drops */
+.pkpane {
+  min-width: 0;
+  position: relative;
+}
+
+.pkpane__over {
+  align-items: center;
+  background: rgb(5 7 11 / 0.82);
+  border-radius: var(--radius-lg);
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: 24px;
+  position: absolute;
+  z-index: 2;
+}
+
+.pkstatus {
+  align-items: center;
+  color: #e4ebf7;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  max-width: 420px;
+  text-align: center;
+}
+
+.pkbanner {
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------ terminal */
+.term {
+  background: #0b0f17;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  color: #d8e1f0;
+  overflow: hidden;
+}
+
+.term__bar {
+  align-items: center;
+  background: rgb(255 255 255 / 0.04);
+  border-bottom: 1px solid rgb(255 255 255 / 0.1);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 8px 10px 8px 14px;
+}
+
+.term__who {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.term__who b {
+  color: #f2f5fb;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.term__hint {
+  color: #8d99ad;
+}
+
+@media (max-width: 639px) {
+  .term__hint {
+    display: none;
+  }
+}
+
+.term__tools {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.term__tools .iconbtn {
+  color: #c8d2e4;
+}
+
+.term__xterm {
+  height: clamp(340px, 60vh, 620px);
+  padding: 10px 6px 6px 12px;
+}
+
+.term__xterm .xterm {
+  height: 100%;
+}
+
+/* -------------------------------------------------------------- screen */
+.vnc {
+  display: grid;
+  gap: 10px;
+  /* noVNC's canvas has the remote width (1280 px): keep it from sizing the
+     column, it scales to fit instead */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.vnc__bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: space-between;
+}
+
+.vnc__ctl {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.vnc__tools {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.vnc__frame {
+  background: #05070b;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  position: relative;
+}
+
+.vnc__frame[data-ctl="yes"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.vnc__frame:fullscreen {
+  border-radius: 0;
+  padding: 0;
+}
+
+.vnc__screen {
+  aspect-ratio: 1280 / 800;
+  border-radius: 8px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.vnc__frame:fullscreen .vnc__screen {
+  aspect-ratio: auto;
+  height: 100%;
+}
+
+.vnc__ro {
+  align-items: center;
+  background: rgb(0 0 0 / 0.7);
+  border-radius: 999px;
+  bottom: 20px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 6px;
+  padding: 6px 12px;
+  pointer-events: none;
+  position: absolute;
+  right: 20px;
+}
+
+.vnc__clip {
+  font-family: var(--font-mono);
+  min-height: 120px;
+  width: 100%;
+}

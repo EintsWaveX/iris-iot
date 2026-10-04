@@ -42,9 +42,18 @@ import IconButton from "../ui/IconButton";
 import { Kbd } from "../ui/Controls";
 import DisplayPanel from "./DisplayPanel";
 import NavClock from "./NavClock";
-import { dict, href, meChanged, postJson, useMe, useSessionNow, type Me } from "../../lib/app";
+import {
+  dict,
+  getJson,
+  href,
+  meChanged,
+  postJson,
+  useMe,
+  useSessionNow,
+  type Me,
+} from "../../lib/app";
 import { langForKelas, langOfPath, pathForLang, type Lang } from "../../lib/kelas";
-import { readLangPref, saveLangPref } from "../../lib/hooks";
+import { readLangPref, saveLangPref, usePoll } from "../../lib/hooks";
 import { kelompokLabel } from "../../lib/labels";
 import SessionMiniBar from "./SessionMiniBar";
 import OfflineNotice from "./OfflineNotice";
@@ -83,6 +92,8 @@ const T = dict({
     group: (n: number) => kelompokLabel(n, "id"),
     notSignedIn: "Belum masuk",
     signInHint: "Masuk untuk membuka dasbor dan menyimpan jawaban.",
+    konsolBaru: "Ada permintaan Konsol Pi yang menunggu jawabanmu di halaman Server.",
+    konsolDot: "Ada permintaan Konsol Pi yang menunggu",
   },
   en: {
     main: "Main",
@@ -106,6 +117,8 @@ const T = dict({
     group: (n: number) => kelompokLabel(n, "en"),
     notSignedIn: "Not signed in",
     signInHint: "Sign in to open your dashboard and save your answers.",
+    konsolBaru: "A Pi Console request is waiting for you on the Server page.",
+    konsolDot: "A Pi Console request is waiting",
   },
   zh: {
     main: "主菜单",
@@ -129,6 +142,8 @@ const T = dict({
     group: (n: number) => kelompokLabel(n, "zh"),
     notSignedIn: "未登录",
     signInHint: "登录后可以打开你的仪表盘并保存答案。",
+    konsolBaru: "有一个 Pi 控制台申请在服务器页面等你回复。",
+    konsolDot: "有 Pi 控制台申请等你回复",
   },
 });
 
@@ -188,6 +203,24 @@ export default function AppNav({
   const t = T[lang];
   const me = useMe();
   const now = useSessionNow(30_000, me !== undefined && me !== null);
+  // Phase 9 Stage 9: DEVs and the Pencipta get a dot on Server while a Konsol
+  // Pi request (or a console the Pencipta opened) waits for them, and a toast
+  // when a new one comes in.
+  const dev = !!me?.badges?.some((b) => b === "dev" || b === "pencipta");
+  const konsol = usePoll(
+    () =>
+      getJson<{ ok: boolean; menunggu?: number }>("/api/server/konsol").then(
+        (d) => d.menunggu ?? 0,
+      ),
+    30_000,
+    dev,
+  );
+  const menunggu = konsol.data ?? 0;
+  const sebelum = useRef(0);
+  useEffect(() => {
+    if (menunggu > sebelum.current) window.Toast?.show(t.konsolBaru, "warn");
+    sebelum.current = menunggu;
+  }, [menunggu, t.konsolBaru]);
   const current = barePath(path);
   const links = useMemo(() => linksFor(me, t), [me, t]);
   // The phone bar holds five: an Asisten reaches Home from the logo and
@@ -280,6 +313,12 @@ export default function AppNav({
                 <span>{l.label}</span>
                 {l.path === "/session" && now.data && (
                   <span className="appnav__live-dot" aria-hidden="true" />
+                )}
+                {l.path === "/servers" && menunggu > 0 && (
+                  <span
+                    className="appnav__live-dot appnav__live-dot--warn"
+                    aria-label={t.konsolDot}
+                  />
                 )}
               </a>
             );
@@ -407,6 +446,12 @@ export default function AppNav({
                 <l.icon size={21} aria-hidden="true" />
                 {l.path === "/session" && now.data && (
                   <span className="appnav__live-dot" aria-hidden="true" />
+                )}
+                {l.path === "/servers" && menunggu > 0 && (
+                  <span
+                    className="appnav__live-dot appnav__live-dot--warn"
+                    aria-label={t.konsolDot}
+                  />
                 )}
               </span>
               <span className="appbar__label">{l.label}</span>

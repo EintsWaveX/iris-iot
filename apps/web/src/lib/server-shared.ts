@@ -101,7 +101,7 @@ export function bacaHasilSiap(keluaran: string | null | undefined): HasilSiap | 
 
 /** The agent protocol this site relies on. Bump with AGEN_PROTOKOL in the
  *  agent's agent.py whenever the site starts needing something new. */
-export const AGEN_PROTOKOL_TERBARU = 2;
+export const AGEN_PROTOKOL_TERBARU = 3;
 
 /** diag.journal's arguments, mirrored by JOURNAL_UNIT and JOURNAL_TINGKAT
  *  in the agent's commands.py. */

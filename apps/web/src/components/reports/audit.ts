@@ -64,6 +64,8 @@ export interface Kalimat {
   teks: string;
   jenis: JenisAudit | "lain";
   danger?: boolean;
+  /** Konsol Pi: the terminal record, shown on request. */
+  transkrip?: string;
 }
 
 type D = Record<string, unknown>;
@@ -153,6 +155,19 @@ const W = {
     sandiAtur: "mengatur kata sandinya",
     sandiGanti: "mengganti kata sandinya",
     konsol: "memakai Konsol Pi",
+    konsolTarget: (t: unknown) => (t === "terminal" ? "terminal" : `layar ${t}`),
+    konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
+      `${langsung ? "membuka tanpa persetujuan" : "meminta"} Konsol Pi ${x} di ${srv} (${pk}): ${why}`,
+    konsolPaksa: (pk: string, why: unknown) => `memaksa ${pk} saat sesi berjalan: ${why}`,
+    konsolSetujui: (pk: string) => `menyetujui ${pk}`,
+    konsolTolak: (pk: string, why: string) => `menolak ${pk}${why ? `: ${why}` : ""}`,
+    konsolBatal: (pk: string) => `membatalkan permintaan ${pk}`,
+    konsolBuka: (pk: string, x: string) => `membuka ${pk} (${x})`,
+    konsolAkhiri: (pk: string) => `menutup ${pk}`,
+    konsolPutus: (pk: string, why: unknown) => `memutus ${pk}: ${why}`,
+    konsolSelesai: (pk: string, data: string) => `${pk} selesai, ${data} lewat`,
+    konsolOke: (pk: string) => `sudah melihat ${pk}`,
+    konsolTanya: (pk: string, q: unknown) => `bertanya soal ${pk}: ${q}`,
     statusProses: "diproses",
     statusSelesai: "selesai",
     lain: (a: string) => a.replace(/_/g, " "),
@@ -231,6 +246,19 @@ const W = {
     sandiAtur: "set their password",
     sandiGanti: "changed their password",
     konsol: "used the Pi Console",
+    konsolTarget: (t: unknown) => (t === "terminal" ? "terminal" : `display ${t}`),
+    konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
+      `${langsung ? "opened without approval" : "asked for"} the Pi Console ${x} on ${srv} (${pk}): ${why}`,
+    konsolPaksa: (pk: string, why: unknown) => `forced ${pk} during a session: ${why}`,
+    konsolSetujui: (pk: string) => `approved ${pk}`,
+    konsolTolak: (pk: string, why: string) => `rejected ${pk}${why ? `: ${why}` : ""}`,
+    konsolBatal: (pk: string) => `cancelled the request ${pk}`,
+    konsolBuka: (pk: string, x: string) => `opened ${pk} (${x})`,
+    konsolAkhiri: (pk: string) => `closed ${pk}`,
+    konsolPutus: (pk: string, why: unknown) => `cut off ${pk}: ${why}`,
+    konsolSelesai: (pk: string, data: string) => `${pk} ended, ${data} moved`,
+    konsolOke: (pk: string) => `has seen ${pk}`,
+    konsolTanya: (pk: string, q: unknown) => `asked about ${pk}: ${q}`,
     statusProses: "In Progress",
     statusSelesai: "Done",
     lain: (a: string) => a.replace(/_/g, " "),
@@ -308,6 +336,19 @@ const W = {
     sandiAtur: "设置了密码",
     sandiGanti: "修改了密码",
     konsol: "使用了 Pi 控制台",
+    konsolTarget: (t: unknown) => (t === "terminal" ? "终端" : `屏幕 ${t}`),
+    konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
+      `${langsung ? "无需批准直接打开了" : "申请了"} ${srv} 的 Pi 控制台${x}（${pk}）：${why}`,
+    konsolPaksa: (pk: string, why: unknown) => `在课程进行中强制打开了 ${pk}：${why}`,
+    konsolSetujui: (pk: string) => `批准了 ${pk}`,
+    konsolTolak: (pk: string, why: string) => `拒绝了 ${pk}${why ? `：${why}` : ""}`,
+    konsolBatal: (pk: string) => `取消了申请 ${pk}`,
+    konsolBuka: (pk: string, x: string) => `打开了 ${pk}（${x}）`,
+    konsolAkhiri: (pk: string) => `关闭了 ${pk}`,
+    konsolPutus: (pk: string, why: unknown) => `断开了 ${pk}：${why}`,
+    konsolSelesai: (pk: string, data: string) => `${pk} 已结束，传输 ${data}`,
+    konsolOke: (pk: string) => `已查看 ${pk}`,
+    konsolTanya: (pk: string, q: unknown) => `就 ${pk} 提问：${q}`,
     statusProses: "处理中",
     statusSelesai: "完成",
     lain: (a: string) => a.replace(/_/g, " "),
@@ -393,6 +434,9 @@ export function bantuAudit(
     },
   };
 }
+
+/** "PK-0007", as the Konsol Pi summary card names it. */
+const pk = (id: unknown) => `PK-${String(Number(id) || 0).padStart(4, "0")}`;
 
 export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
   const w = W[b.lang];
@@ -584,6 +628,47 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(KeyIcon, w.sandiAtur);
     case "sandi_diganti":
       return k(KeyIcon, w.sandiGanti);
+    case "konsol_minta":
+      return k(
+        TerminalWindowIcon,
+        w.konsolMinta(
+          w.konsolTarget(d.target),
+          b.server(d.serverId),
+          pk(d.id),
+          d.alasan,
+          d.pencipta === true,
+        ),
+      );
+    case "konsol_paksa":
+      return k(WarningIcon, w.konsolPaksa(pk(d.id), d.alasan), true);
+    case "konsol_setujui":
+      return k(TerminalWindowIcon, w.konsolSetujui(pk(d.id)));
+    case "konsol_tolak":
+      return k(XCircleIcon, w.konsolTolak(pk(d.id), String(d.catatan ?? d.teks ?? "")));
+    case "konsol_batal":
+      return k(XCircleIcon, w.konsolBatal(pk(d.id)));
+    case "konsol_buka":
+      return k(TerminalWindowIcon, w.konsolBuka(pk(d.id), w.konsolTarget(d.target)));
+    case "konsol_akhiri":
+      return k(StopIcon, w.konsolAkhiri(pk(d.id)));
+    case "konsol_putus":
+      return k(StopIcon, w.konsolPutus(pk(d.id), d.alasan), true);
+    case "konsol_selesai": {
+      const n = Number(d.bytes);
+      const data = Number.isFinite(n)
+        ? n < 1024 * 1024
+          ? `${Math.max(1, Math.round(n / 1024))} KB`
+          : `${(n / 1024 ** 2).toFixed(1)} MB`
+        : "?";
+      return {
+        ...k(MonitorIcon, w.konsolSelesai(pk(d.id), data)),
+        transkrip: typeof d.transkrip === "string" && d.transkrip ? d.transkrip : undefined,
+      };
+    }
+    case "konsol_oke":
+      return k(MonitorIcon, w.konsolOke(pk(d.id)));
+    case "konsol_tanya":
+      return k(ChatTextIcon, w.konsolTanya(pk(d.id), d.teks));
     default:
       if (row.aksi.startsWith("konsol_")) return k(MonitorIcon, w.konsol);
       return k(BroadcastIcon, w.lain(row.aksi));

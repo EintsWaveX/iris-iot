@@ -4,7 +4,7 @@
  * only with the full right, remembered in this browser), the location strip
  * and the tab line. The detail is polled every 6 s and handed to the tab.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   HeartbeatIcon,
   ListBulletsIcon,
@@ -29,15 +29,16 @@ import { isOnline, type Bisa, type Detail } from "./data";
 import Overview from "./Overview";
 import Ready from "./Ready";
 import Settings from "./Settings";
+import KonsolPi, { KonsolBanner } from "./konsol/KonsolPi";
+import type { KonsolData } from "./konsol/data";
 import { S } from "./strings";
 
-export type Tab = "ringkasan" | "siap" | "pengaturan";
-const TABS: Tab[] = ["ringkasan", "siap", "pengaturan"];
+export type Tab = "ringkasan" | "siap" | "pengaturan" | "konsol";
 const KUNCI_DETAIL = "iris-srv-detail";
 
-function bacaTab(): Tab {
+function bacaTab(tabs: Tab[]): Tab {
   const h = typeof location !== "undefined" ? location.hash.slice(1) : "";
-  return (TABS as string[]).includes(h) ? (h as Tab) : "ringkasan";
+  return (tabs as string[]).includes(h) ? (h as Tab) : "ringkasan";
 }
 
 export default function ServerDetail({
@@ -53,7 +54,12 @@ export default function ServerDetail({
 }) {
   const t = S[lang];
   const now = useTick(1_000);
-  const [tab, setTab] = useState<Tab>(bacaTab);
+  // Konsol Pi is hidden, not disabled, for anyone without DEV or Pencipta.
+  const TABS = useMemo<Tab[]>(
+    () => ["ringkasan", "siap", "pengaturan", ...(bisa.konsol ? (["konsol"] as const) : [])],
+    [bisa.konsol],
+  );
+  const [tab, setTab] = useState<Tab>(() => bacaTab(TABS));
   const [autoCmd, setAutoCmd] = useState(false);
   const [lengkap, setLengkap] = useState(() => {
     try {
@@ -65,10 +71,10 @@ export default function ServerDetail({
   const full = bisa.full && lengkap;
 
   useEffect(() => {
-    const on = () => setTab(bacaTab());
+    const on = () => setTab(bacaTab(TABS));
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
-  }, []);
+  }, [TABS]);
 
   const poll = usePoll(async () => {
     const d = await getJson<{ ok: boolean } & Detail>(`/api/server/${id}`);
@@ -76,6 +82,13 @@ export default function ServerDetail({
     return d as Detail;
   }, 6_000);
   const data = poll.data;
+  // Phase 9 Stage 9: Konsol Pi's state, for the tab and the banner.
+  const konsol = usePoll(async () => {
+    const d = await getJson<KonsolData | { ok: false }>(`/api/server/${id}?aksi=konsol`);
+    if (!d.ok) throw new Error("konsol");
+    return { d: d as KonsolData, pada: Date.now() };
+  }, 4_000);
+  const kd = konsol.data?.d ?? null;
   const dir = useDirektori();
   const siapa = (n: string | null) => (n ? dir.nama(n) : "");
 
@@ -157,6 +170,15 @@ export default function ServerDetail({
         retryLabel={t.retry}
       />
       <div className="stack">
+        {kd?.aktif && kd.aktif.oleh !== bisa.nim && (
+          <KonsolBanner
+            lang={lang}
+            row={kd.aktif}
+            dibaca={konsol.data?.pada ?? 0}
+            bisaPutus={bisa.putus}
+            refresh={konsol.refresh}
+          />
+        )}
         <BackButton lang={lang} label={t.back} href={href(lang, "/servers")} onClick={onBack} />
         <div className="srv-head__row">
           <div className="srv-head__name">
@@ -238,6 +260,18 @@ export default function ServerDetail({
         )}
         {tab === "siap" && (
           <Ready lang={lang} id={id} data={data} refresh={poll.refresh} bisa={bisa} siapa={siapa} />
+        )}
+        {tab === "konsol" && bisa.konsol && (
+          <KonsolPi
+            lang={lang}
+            serverId={id}
+            serverNama={s.nama}
+            data={kd}
+            dibaca={konsol.data?.pada ?? 0}
+            refresh={konsol.refresh}
+            pencipta={bisa.pencipta}
+            onOverview={() => go("ringkasan")}
+          />
         )}
         {tab === "pengaturan" && (
           <Settings

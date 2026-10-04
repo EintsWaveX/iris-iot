@@ -30,7 +30,19 @@ export const AKSI_PER_JENIS: Record<JenisAudit, readonly string[]> = {
     "penugasan_batal",
     "izin_umumkan",
   ],
-  konsol: ["konsol_minta", "konsol_setujui", "konsol_buka", "konsol_putus", "konsol_tolak"],
+  konsol: [
+    "konsol_minta",
+    "konsol_paksa",
+    "konsol_setujui",
+    "konsol_tolak",
+    "konsol_batal",
+    "konsol_buka",
+    "konsol_akhiri",
+    "konsol_putus",
+    "konsol_selesai",
+    "konsol_oke",
+    "konsol_tanya",
+  ],
   // tim_ubah lines that change rights are picked out by their detail.
   hak: ["tim_ubah"],
 };

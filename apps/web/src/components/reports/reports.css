@@ -1486,3 +1486,17 @@ button.rp-stat:focus-visible {
 .rp-spread__row > :last-child {
   text-align: right;
 }
+
+/* Phase 9 Stage 9: a Konsol Pi terminal record, from the Audit line. */
+.rp-transkrip {
+  background: #0b0f17;
+  border-radius: var(--radius-md);
+  color: #d8e1f0;
+  font: 400 13px/1.55 var(--font-mono);
+  margin: 0;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 14px 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

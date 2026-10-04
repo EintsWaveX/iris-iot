@@ -134,6 +134,11 @@
   width: 7px;
 }
 
+/* Phase 9 Stage 9: a Konsol Pi request waiting for this DEV. */
+.appnav__live-dot--warn {
+  background: var(--warn);
+}
+
 :root:not([data-motion-tier="0"]) .appnav__live-dot {
   animation: appnav-live 2s ease-out infinite;
 }
@@ -586,4 +591,8 @@
   position: sticky;
   top: calc(var(--nav-size) + var(--minibar-h, 0px));
   z-index: 48;
+}
+
+:root:not([data-motion-tier="0"]) .appnav__live-dot--warn {
+  animation: none;
 }

@@ -1,0 +1,17 @@
+# Konsol Pi relay (Phase 9 Stage 9). One Durable Object room per approved
+# console pairs the browser and the Pi's bridge; it stores nothing but the
+# nonces it has already accepted. The shared secret is set with
+#   npx wrangler secret put KONSOL_RELAY_SECRET
+# (the same value as KONSOL_RELAY_SECRET in the web app's Vercel env) and,
+# for `wrangler dev`, in a git-ignored .dev.vars file.
+name = "iris-konsol"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[[durable_objects.bindings]]
+name = "RUANG"
+class_name = "Ruang"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Ruang"]

@@ -15,6 +15,7 @@ import {
   ColumnsIcon,
   ExportIcon,
   FileCsvIcon,
+  FileTextIcon,
   FilePdfIcon,
   FileXlsIcon,
   NotePencilIcon,
@@ -41,7 +42,8 @@ import type { Kelas, Lang } from "../../lib/kelas";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import { LABEL_CHIP } from "../../lib/umpan-balik";
 import type { Direktori } from "../../lib/people";
-import { JENIS_AUDIT, type JenisAudit } from "../../lib/audit-jenis";
+import { isJenisAudit, JENIS_AUDIT, type JenisAudit } from "../../lib/audit-jenis";
+import Dialog from "../ui/Dialog";
 import Dropdown from "../ui/Dropdown";
 import { DateField, Switch } from "../ui/Controls";
 import Popover from "../ui/Popover";
@@ -788,8 +790,14 @@ function LabTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
 
 function AuditTab({ f, c }: { f: Filter; c: Ctx }) {
   const { t, lang, dir } = c;
-  const [jenis, setJenis] = useState<JenisAudit | "all">("all");
+  // ?audit=konsol (Konsol Pi's "See the Record") opens on that filter.
+  const [jenis, setJenis] = useState<JenisAudit | "all">(() => {
+    const q =
+      typeof location !== "undefined" ? new URLSearchParams(location.search).get("audit") : null;
+    return isJenisAudit(q) ? q : "all";
+  });
   const [rows, setRows] = useState<AuditRow[] | null>(null);
+  const [rekam, setRekam] = useState<string | null>(null);
   const [ctx, setCtx] = useState<AuditKonteks>({ sesi: [], kelompok: [], jadwal: [], server: [] });
   const [lagi, setLagi] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -894,7 +902,18 @@ function AuditTab({ f, c }: { f: Filter; c: Ctx }) {
                       <b>{dir.nama(r.aktorNim)}</b> {k.teks}
                     </span>
                   </span>
-                  <span />
+                  {k.transkrip ? (
+                    <button
+                      type="button"
+                      className="btn btn--sm"
+                      onClick={() => setRekam(k.transkrip ?? null)}
+                    >
+                      <FileTextIcon size={16} aria-hidden="true" />
+                      {t.transkrip}
+                    </button>
+                  ) : (
+                    <span />
+                  )}
                 </div>
               );
             })}
@@ -908,6 +927,23 @@ function AuditTab({ f, c }: { f: Filter; c: Ctx }) {
           </div>
         )}
       </section>
+      <Dialog
+        open={rekam !== null}
+        onOpenChange={(o) => !o && setRekam(null)}
+        title={t.transkripTitle}
+        description={t.transkripDesc}
+        size="xl"
+        lang={lang}
+        actions={
+          <button type="button" className="btn btn--primary" onClick={() => setRekam(null)}>
+            {t.close}
+          </button>
+        }
+      >
+        <pre className="rp-transkrip" tabIndex={0}>
+          {rekam}
+        </pre>
+      </Dialog>
     </div>
   );
 }

@@ -56,6 +56,12 @@ export interface Bisa {
   server: boolean;
   /** The Full view, settings, clearing logs, registering a Pi. */
   full: boolean;
+  /** Phase 9 Stage 9: Konsol Pi (the DEV badge or the Pencipta). */
+  konsol: boolean;
+  pencipta: boolean;
+  /** Cutting off someone else's console: DEV, Pencipta or Admin. */
+  putus: boolean;
+  nim: string;
 }
 
 export const WARN_CPU = 85;

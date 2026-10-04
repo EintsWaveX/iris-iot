@@ -153,6 +153,10 @@ export const AKSI_PERINTAH = [
   "diag.rinci",
   "diag.journal",
   "info.segarkan",
+  // Phase 9 Stage 9: Konsol Pi. Only ever queued by konsol_tiket after an
+  // approval (action.ts refuses it from "kirim"); the agent checks the
+  // relay origin and the target against its own fixed config.
+  "konsol.buka",
 ] as const;
 export type AksiPerintah = (typeof AKSI_PERINTAH)[number];
 

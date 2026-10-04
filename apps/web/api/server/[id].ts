@@ -29,9 +29,12 @@
  *   detection, offline gaps, availability % and a per-service status
  *   timeline, all computed in server-lib.ts's pure history functions.
  *
+ * GET    /api/server/konsol (Phase 9 Stage 9) — Konsol requests waiting on
+ *   this DEV, for the nav's dot. GET ?aksi=konsol is one Pi's console.
  * PATCH  /api/server/:id   (P6.7) — assistant-only. Edits any subset of
  *   nama/lokasi/catatan/alamatLan (the server centre's Pengaturan tab).
  */
+import { handleKonsolGet, konsolMenunggu } from "../_lib/konsol.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak } from "../_lib/hak.js";
 import { jsonBody, noStore } from "../_lib/http.js";
@@ -329,6 +332,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const session = requireRole(req, res, "asisten");
   if (!session) return;
 
+  // Phase 9 Stage 9: the nav's dot for DEVs, Konsol requests waiting on
+  // them across every Pi (0 for everyone else).
+  if (req.query.id === "konsol" && req.method === "GET") {
+    res.status(200).json({ ok: true, menunggu: await konsolMenunggu(session.nim) });
+    return;
+  }
+
   const id = Number(req.query.id);
   if (!Number.isInteger(id) || id <= 0) {
     res.status(200).json({ ok: false, kode: "format_salah" });
@@ -339,6 +349,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const aksi = req.query.aksi;
     if (aksi === "riwayat") return handleRiwayat(req, res, id, String(req.query.rentang ?? ""));
     if (aksi === "perintah") return handlePerintah(req, res, id, Number(req.query.sebelum));
+    if (aksi === "konsol") return handleKonsolGet(res, id, session.nim);
     return handleGet(req, res, id);
   }
   // Phase 9: settings, removing a Pi and new enrolment tokens are the full

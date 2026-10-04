@@ -26,7 +26,12 @@ export default defineConfig({
         "react-day-picker",
         "react-resizable-panels",
         "uplot",
+        "@xterm/xterm",
+        "@xterm/addon-fit",
       ],
+      // Konsol Pi's noVNC is plain ES modules with a top-level await; served
+      // as is rather than pre-bundled.
+      exclude: ["@novnc/novnc"],
     },
     server: {
       fs: {

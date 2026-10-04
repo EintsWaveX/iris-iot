@@ -1303,3 +1303,80 @@ export const serialCermin = pgTable(
   },
   (t) => [index("serial_cermin_sesi_kelompok_idx").on(t.sesiId, t.kelompokNomor, t.id)],
 );
+
+/**
+ * Phase 9 Stage 9 (0019): Konsol Pi, the terminal and the Pi's screens in the
+ * Server page, for DEV and the Pencipta only. One row per request, from the
+ * ask to the end; `transkrip` is the terminal output the Pi's bridge kept
+ * (trimmed), reported on a later heartbeat. Approval, a forced open during a
+ * session and every end reason are kept here and in Audit.
+ */
+export const konsolPi = pgTable(
+  "konsol_pi",
+  {
+    id: serial("id").primaryKey(),
+    serverId: integer("server_id")
+      .notNull()
+      .references(() => server.id, { onDelete: "cascade" }),
+    nim: text("nim").notNull(),
+    target: text("target", { enum: ["terminal", ":0", ":1"] }).notNull(),
+    alasan: text("alasan").notNull(),
+    status: text("status", {
+      enum: ["diminta", "disetujui", "ditolak", "aktif", "selesai", "kedaluwarsa", "diputus"],
+    })
+      .notNull()
+      .default("diminta"),
+    // The relay room; a random id, never a secret (the tickets are).
+    kanal: text("kanal").notNull().unique(),
+    disetujuiOleh: text("disetujui_oleh"),
+    // The Pencipta opens without an approver; the other DEVs are told.
+    tanpaPersetujuan: boolean("tanpa_persetujuan").notNull().default(false),
+    overrideSesiOleh: text("override_sesi_oleh"),
+    overrideAlasan: text("override_alasan"),
+    dimintaPada: timestamp("diminta_pada", { withTimezone: true }).notNull().defaultNow(),
+    disetujuiPada: timestamp("disetujui_pada", { withTimezone: true }),
+    mulai: timestamp("mulai", { withTimezone: true }),
+    selesai: timestamp("selesai", { withTimezone: true }),
+    alasanSelesai: text("alasan_selesai"),
+    diputusOleh: text("diputus_oleh"),
+    transkripBytes: integer("transkrip_bytes"),
+    transkrip: text("transkrip"),
+  },
+  (t) => [
+    index("konsol_pi_server_status_idx").on(t.serverId, t.status),
+    check("konsol_pi_target", sql`${t.target} in ('terminal', ':0', ':1')`),
+    check(
+      "konsol_pi_status",
+      sql`${t.status} in ('diminta', 'disetujui', 'ditolak', 'aktif', 'selesai', 'kedaluwarsa', 'diputus')`,
+    ),
+  ],
+);
+
+/** Every ticket nonce issued for Konsol Pi (the relay refuses a reused one). */
+export const konsolTiketNonce = pgTable("konsol_tiket_nonce", {
+  nonce: text("nonce").primaryKey(),
+  konsolId: integer("konsol_id")
+    .notNull()
+    .references(() => konsolPi.id, { onDelete: "cascade" }),
+  peran: text("peran", { enum: ["web", "pi"] }).notNull(),
+  dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Questions and objections to a console the Pencipta opened (Ask, Reject). */
+export const konsolKeberatan = pgTable(
+  "konsol_keberatan",
+  {
+    id: serial("id").primaryKey(),
+    konsolId: integer("konsol_id")
+      .notNull()
+      .references(() => konsolPi.id, { onDelete: "cascade" }),
+    nim: text("nim").notNull(),
+    jenis: text("jenis", { enum: ["oke", "tanya", "tolak"] }).notNull(),
+    teks: text("teks"),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("konsol_keberatan_konsol_idx").on(t.konsolId),
+    check("konsol_keberatan_jenis", sql`${t.jenis} in ('oke', 'tanya', 'tolak')`),
+  ],
+);

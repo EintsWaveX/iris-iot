@@ -74,7 +74,16 @@ export default function ServerCenter({ lang }: { lang: Lang }) {
     );
   }
 
-  const bisa: Bisa = { server: me.hak?.server === true, full: me.hak?.full === true };
+  const badges = me.badges ?? [];
+  const konsol = badges.includes("dev") || badges.includes("pencipta");
+  const bisa: Bisa = {
+    server: me.hak?.server === true,
+    full: me.hak?.full === true,
+    konsol,
+    pencipta: badges.includes("pencipta"),
+    putus: konsol || me.tier === "admin",
+    nim: me.nim,
+  };
 
   return id ? (
     <ServerDetail lang={lang} id={id} bisa={bisa} onBack={() => open(null)} />

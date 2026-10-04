@@ -94,3 +94,14 @@ interface Window {
     reapply(): void;
   };
 }
+
+// Phase 9 Stage 9: noVNC ships plain ES modules without types. Konsol Pi
+// (components/server/konsol/Layar.tsx) types the few members it uses.
+declare module "@novnc/novnc" {
+  const RFB: new (
+    target: HTMLElement,
+    channel: WebSocket | string,
+    options?: { credentials?: { password?: string }; shared?: boolean },
+  ) => unknown;
+  export default RFB;
+}

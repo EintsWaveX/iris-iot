@@ -1,6 +1,6 @@
 name: CI
 
-# Four jobs, each independently useful as a regression gate:
+# Five jobs, each independently useful as a regression gate:
 #
 #   web      the Astro app (apps/web): typecheck, lint, format, unit tests,
 #            build, CSP hash check
@@ -12,6 +12,8 @@ name: CI
 #            rebuild -- the same job IRIS ASO ran before Stage 15 moved
 #            this directory here (git history preserved; see that stage's
 #            commit for how)
+#   relay    the Konsol Pi relay (apps/relay): typecheck, then a room's
+#            whole life on local workerd (no Cloudflare login)
 #   secrets  a repo-wide scan for anything that looks like a credential
 #
 # Deploying is not a job here. Vercel's own GitHub integration builds
@@ -126,6 +128,28 @@ jobs:
         run: node test_api.mjs
       - name: Rebuild
         run: python build.py --standalone
+
+  relay:
+    name: relay (Konsol Pi Worker: typecheck + a room's life on local workerd)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/relay/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npm run check
+      # wrangler dev needs no Cloudflare login; the secret is a throwaway.
+      - name: Room life suite
+        run: |
+          echo "KONSOL_RELAY_SECRET=$(openssl rand -hex 32)" > .dev.vars
+          npm test
 
   modul4:
     name: modul4 (protocol suite against a live server + rebuild)
