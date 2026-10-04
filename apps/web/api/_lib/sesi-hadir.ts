@@ -14,9 +14,10 @@
  *        group. The weekly roster is left as it is.
  *
  * An Asisten counts as present from opening the session or any action they
- * take in it (their first audit row since it started), or from Tandai Hadir.
+ * take in it (their first audit row from the session's sesi_mulai row on),
+ * or from Tandai Hadir.
  */
-import { and, asc, eq, gte } from "drizzle-orm";
+import { and, asc, desc, eq, gte } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { cekHak } from "./hak.js";
@@ -31,6 +32,7 @@ import {
   percobaanMasuk,
   sesiAnggota,
   sesiAsisten,
+  sesiKejadian,
   sesiKelompok,
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
@@ -84,6 +86,30 @@ export async function handleHadirGet(_req: ApiRequest, res: ApiResponse) {
   const mulai = running.mulaiPada ? new Date(running.mulaiPada) : new Date(running.dibuatPada);
   const jumlah = running.jumlahKelompok ?? 10;
 
+  // The audit rows of this session: from its own sesi_mulai row on, by row
+  // order rather than by clock (the app's and the database's clocks need
+  // not agree); by time only if that row can't be found.
+  const starts = await db
+    .select({ id: audit.id, detail: audit.detail })
+    .from(audit)
+    .where(eq(audit.aksi, "sesi_mulai"))
+    .orderBy(desc(audit.id))
+    .limit(50);
+  const startId = starts.find((r) => {
+    try {
+      const d = JSON.parse(r.detail ?? "{}") as {
+        tanggal?: string;
+        mulai?: string;
+        modul?: number;
+      };
+      return (
+        d.tanggal === running.tanggal && d.mulai === running.mulai && d.modul === running.modul
+      );
+    } catch {
+      return false;
+    }
+  })?.id;
+
   const [orang, groups, members, masuk, pegangRows, jejak] = await Promise.all([
     db.select({ nim: asisten.nim, kode: asisten.kode, nama: asisten.nama }).from(asisten),
     db
@@ -124,8 +150,8 @@ export async function handleHadirGet(_req: ApiRequest, res: ApiResponse) {
     db
       .select({ nim: audit.aktorNim, aksi: audit.aksi, detail: audit.detail, pada: audit.pada })
       .from(audit)
-      .where(gte(audit.pada, mulai))
-      .orderBy(asc(audit.pada)),
+      .where(startId ? gte(audit.id, startId) : gte(audit.pada, mulai))
+      .orderBy(asc(audit.id)),
   ]);
 
   // Students: first sign-in per NIM for this session.
@@ -226,6 +252,14 @@ export async function handleHadirGet(_req: ApiRequest, res: ApiResponse) {
       }
     }
   }
+  // Whoever opened the session teaches it, slot or not (a makeup session
+  // has no slot at all).
+  const [buka] = await db
+    .select({ nim: sesiKejadian.aktorNim })
+    .from(sesiKejadian)
+    .where(and(eq(sesiKejadian.sesiId, running.id), eq(sesiKejadian.jenis, "mulai")))
+    .limit(1);
+  if (buka && !people.has(buka.nim)) tambah(buka.nim, running.slot ? "pengganti" : "tetap");
   // Anyone holding a group without a place in the slot came in as cover.
   for (const r of pegangRows) if (!people.has(r.nim)) tambah(r.nim, "pengganti");
   const mengajar = [...people.values()].sort(
