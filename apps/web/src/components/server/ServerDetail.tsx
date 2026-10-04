@@ -162,7 +162,7 @@ export default function ServerDetail({
   );
 
   return (
-    <div className="srv">
+    <div className="srv srv--detail">
       <OfflineBanner
         errors={poll.errors}
         text={t.offlineBanner}

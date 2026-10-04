@@ -308,6 +308,7 @@ export function CaptureDialog({
       </div>
       {modul === 4 && (
         <TabLine
+          seg
           value={tab}
           onChange={setTab}
           label={t.title}

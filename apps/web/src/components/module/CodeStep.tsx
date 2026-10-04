@@ -35,7 +35,7 @@ interface Props {
   skema: string;
   code: CodeProps;
   /** Lihat Sebagai Praktikan: the group an Asisten acts for. */
-  wakil?: { nomor: number; own: boolean };
+  wakil?: { nomor: number; own: boolean; pemegang?: string | null };
 }
 
 export default function CodeStep({ lang, mode, pin, mcu, skema, code, wakil }: Props) {
@@ -82,17 +82,15 @@ export default function CodeStep({ lang, mode, pin, mcu, skema, code, wakil }: P
     <div className="stack codestep">
       {mode === "asisten" && (
         <div className="banner codestep__keys">
-          <EyeIcon aria-hidden="true" />
+          <Switch on={showKeys} onChange={setShowKeys} label={t.showKeys} />
           <b>{t.showKeys}</b>
           <span className="hint codestep__keys-hint">{t.keysOnly}</span>
-          <span className="grow" />
-          <Switch on={showKeys} onChange={setShowKeys} label={t.showKeys} />
         </div>
       )}
       {wakil && !wakil.own && (
         <div className="banner banner--lock">
           <EyeIcon aria-hidden="true" />
-          <span>{t.viewOnly}</span>
+          <span>{wakil.pemegang ? t.viewOnly : t.viewOnlyFree}</span>
         </div>
       )}
       {code.berkas.map((f) => (

@@ -551,7 +551,7 @@ function CommandsCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
             <div key={p.id} className="logrow">
               <StatusPill t={t} p={p} />
               <span className="stack" style={{ gap: 0 }}>
-                <b className="truncate">{labelPerintah(t, p)}</b>
+                <b>{labelPerintah(t, p)}</b>
                 <span className="hint">{siapa(p.dimintaOleh) || "·"}</span>
               </span>
               <span className="hint num">{sejak(p.selesaiPada ?? p.dimintaPada, lang, now)}</span>

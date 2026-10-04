@@ -5,6 +5,7 @@
   display: grid;
   gap: var(--space-5, 20px);
   grid-template-columns: minmax(0, 1fr);
+  padding-top: var(--space-page-top);
 }
 
 .jpage__head {

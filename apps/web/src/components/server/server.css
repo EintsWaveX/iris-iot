@@ -8,6 +8,12 @@
   min-width: 0;
 }
 
+/* The detail opens on its back button, not a page header: the same top
+   space every page has. */
+.srv--detail {
+  padding-top: var(--space-page-top);
+}
+
 /* ------------------------------------------------------------- grids */
 .srv-g2,
 .srv-g3,
@@ -247,6 +253,7 @@
 
 .enroll {
   align-content: center;
+  display: grid;
   background: transparent;
   border: 2px dashed var(--hairline-strong);
   color: var(--text);

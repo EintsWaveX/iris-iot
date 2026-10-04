@@ -52,6 +52,8 @@ export type CodeMode = "now" | "done" | "asisten";
 export interface BerkasEntry {
   slug: string;
   judul: string;
+  /** The sketch's file name, shown on the file switch (mockup p-module). */
+  path?: string;
   segments: Segment[];
 }
 
@@ -99,6 +101,22 @@ interface Props {
 /** "Central/Client: Bluetooth Low Energy (ESP32)" to "Central/Client". */
 function shortLabel(judul: string): string {
   return judul.split(":")[0].trim();
+}
+
+/** The file name, free to wrap after each underscore on a narrow switch. */
+function FileName({ f }: { f: BerkasEntry }) {
+  if (!f.path) return <>{shortLabel(f.judul)}</>;
+  const parts = f.path.split("_");
+  return (
+    <>
+      {parts.map((x, i) => (
+        <Fragment key={i}>
+          {i > 0 && <wbr />}
+          {i < parts.length - 1 ? `${x}_` : x}
+        </Fragment>
+      ))}
+    </>
+  );
 }
 
 function saveBlob(blob: Blob, name: string) {
@@ -509,13 +527,18 @@ export default function BlankFile(p: Props) {
                 role="tab"
                 aria-selected={f.slug === berkas}
                 onClick={() => p.onPick(f.slug)}
+                title={shortLabel(f.judul)}
               >
-                <span className="truncate">{shortLabel(f.judul)}</span>
+                <span className="codehead__name">
+                  <FileName f={f} />
+                </span>
               </button>
             ))}
           </div>
         ) : (
-          <b className="truncate">{shortLabel(file.judul)}</b>
+          <b className="codehead__name" title={shortLabel(file.judul)}>
+            <FileName f={file} />
+          </b>
         )}
         <span className="codehead__tools">
           <ProgressRing

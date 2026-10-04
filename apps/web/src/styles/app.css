@@ -856,6 +856,12 @@ html {
   flex: none;
 }
 
+/* A switch in a banner keeps the mockup's one-line banner height; the
+   banner's own padding is its touch margin. */
+.banner .ctl-switch {
+  min-height: 30px;
+}
+
 .banner--warn {
   background: var(--warn-soft);
   border-color: var(--warn);

@@ -66,7 +66,12 @@ export default function ServerList({
     );
     return { list, hist };
   }, 15_000);
-  const list = poll.data?.list ?? [];
+  // Online servers first, then by name (mockup v-list).
+  const list = [...(poll.data?.list ?? [])].sort(
+    (a, b) =>
+      Number(isOnline(b.denyutTerakhir, b.batasLuringDetik)) -
+        Number(isOnline(a.denyutTerakhir, a.batasLuringDetik)) || a.nama.localeCompare(b.nama),
+  );
   const hist = poll.data?.hist ?? {};
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
   const last = list

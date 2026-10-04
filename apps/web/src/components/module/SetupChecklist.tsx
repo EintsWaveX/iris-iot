@@ -5,8 +5,8 @@
  * it offers the jump to the Kode step.
  */
 import { useEffect, useState } from "react";
-import { Checkbox } from "../ui/Controls";
-import { ProgressRing } from "../ui/Display";
+import { CheckIcon } from "@phosphor-icons/react";
+import Pill from "../ui/Pill";
 import type { Lang } from "../../lib/kelas";
 import { dict } from "../../lib/app";
 
@@ -31,17 +31,19 @@ export default function SetupChecklist({
   lang,
   modul,
   items,
+  title,
 }: {
   lang: Lang;
   modul: number;
   items: string[];
+  title: string;
 }) {
   const t = T[lang];
   const [done, setDone] = useState<number[]>([]);
   useEffect(() => setDone(readSetup(modul)), [modul]);
 
-  function flip(i: number, v: boolean) {
-    const next = v ? [...new Set([...done, i])] : done.filter((x) => x !== i);
+  function flip(i: number) {
+    const next = done.includes(i) ? done.filter((x) => x !== i) : [...new Set([...done, i])];
     setDone(next);
     try {
       localStorage.setItem(setupKey(modul), JSON.stringify(next));
@@ -50,36 +52,49 @@ export default function SetupChecklist({
     }
   }
 
-  const all = done.length >= items.length && items.length > 0;
+  const n = items.filter((_, i) => done.includes(i)).length;
+  const all = n === items.length && items.length > 0;
+  // Mockup p-module Setup: the count sits in the card head, each item is a
+  // row with a hairline above it, and a ticked item is struck through.
   return (
-    <div className="setupcheck">
-      <div className="setupcheck__head">
-        <ProgressRing
-          value={Math.min(done.length, items.length)}
-          max={items.length}
-          size="lg"
-          color={all ? "var(--ok)" : "var(--accent)"}
-        />
-        {all && (
-          <div className="setupcheck__done" role="status">
-            <span className="grow">{t.done}</span>
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={() =>
-                window.dispatchEvent(new CustomEvent("iris:go-step", { detail: "code" }))
-              }
-            >
-              {t.go}
-            </button>
-          </div>
-        )}
+    <section className="panel setupcheck">
+      <div className="panel__head">
+        <h2 className="panel__title">{title}</h2>
+        <Pill tone={all ? "ok" : undefined}>
+          {n}/{items.length}
+        </Pill>
       </div>
       <div className="setupcheck__list">
         {items.map((it, i) => (
-          <Checkbox key={i} checked={done.includes(i)} onChange={(v) => flip(i, v)} label={it} />
+          <button
+            key={i}
+            type="button"
+            role="checkbox"
+            aria-checked={done.includes(i)}
+            className="checkitem"
+            onClick={() => flip(i)}
+          >
+            <span className="checkitem__box" aria-hidden="true">
+              <CheckIcon size={14} weight="bold" />
+            </span>
+            <span>{it}</span>
+          </button>
         ))}
       </div>
-    </div>
+      {all && (
+        <div className="setupcheck__done" role="status">
+          <span className="grow">{t.done}</span>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent("iris:go-step", { detail: "code" }))
+            }
+          >
+            {t.go}
+          </button>
+        </div>
+      )}
+    </section>
   );
 }

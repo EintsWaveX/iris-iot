@@ -86,6 +86,11 @@
     padding: 4px;
     white-space: normal;
   }
+  /* The five session steps have no icons (p-module): a shorter row. */
+  .modsteps__tabs--plain button {
+    font-size: 0.875rem;
+    min-height: 48px;
+  }
 }
 
 /* -------------------------------------------------------------- brief */
@@ -144,26 +149,55 @@
 /* -------------------------------------------------------------- setup */
 
 .modsetup {
-  align-items: start;
+  align-items: stretch;
   display: grid;
-  gap: var(--space-4);
+  gap: 18px;
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 1024px) {
+/* The mockup's g3 equal: two columns from 640, three from 1100. */
+@media (min-width: 640px) {
   .modsetup {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-.panel > .setupcheck {
-  background: none;
-  border: 0;
+@media (min-width: 1100px) {
+  .modsetup {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.modsetup__tools {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ticks {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
   padding: 0;
 }
 
-.modsetup .setupcheck__list {
-  grid-template-columns: minmax(0, 1fr);
+.ticks li {
+  align-items: start;
+  display: flex;
+  gap: 10px;
+}
+
+.ticks li > svg {
+  color: var(--ok);
+  flex: none;
+  height: 16px;
+  margin-top: 3px;
+  width: 16px;
+}
+
+.ticks__note {
+  color: var(--text-muted);
+  font-size: 0.875em;
 }
 
 /* ------------------------------------------------- practicum and done */
@@ -224,23 +258,6 @@
 
 /* ----------------------------------------------------------- checklist */
 
-.setupcheck {
-  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-}
-
-.setupcheck__head {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-}
-
 .setupcheck__done {
   align-items: center;
   background: var(--ok-soft);
@@ -264,11 +281,54 @@
 .setupcheck__list {
   display: grid;
   gap: 2px;
-  grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 1024px) {
-  .setupcheck__list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.checkitem {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  border-top: 1px solid var(--hairline-faint);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 12px;
+  min-height: 48px;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.checkitem:hover {
+  background: var(--hairline-faint);
+}
+
+.checkitem:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.checkitem__box {
+  border: 2px solid var(--hairline-strong);
+  border-radius: 7px;
+  color: transparent;
+  display: grid;
+  flex: none;
+  height: 24px;
+  place-items: center;
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast);
+  width: 24px;
+}
+
+.checkitem[aria-checked="true"] .checkitem__box {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--accent-ink);
+}
+
+.checkitem[aria-checked="true"] > span:last-child {
+  color: var(--text-muted);
+  text-decoration: line-through;
 }

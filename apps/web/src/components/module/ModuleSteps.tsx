@@ -31,16 +31,14 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   BookOpenTextIcon,
-  BroadcastIcon,
   CheckCircleIcon,
+  CheckIcon,
   CircuitryIcon,
-  CodeIcon,
   DoorOpenIcon,
   EyeIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
   NoteIcon,
-  WrenchIcon,
 } from "@phosphor-icons/react";
 import PdfViewer from "../ui/PdfViewer";
 import Fade from "../ui/Fade";
@@ -91,13 +89,11 @@ interface Props {
   code: CodeProps;
 }
 
-const ICON: Record<Step, ReactNode> = {
+/** Only the three browse steps carry an icon. */
+const ICON: Partial<Record<Step, ReactNode>> = {
   modul: <BookOpenTextIcon aria-hidden="true" />,
   brief: <NoteIcon aria-hidden="true" />,
   praktikum: <CircuitryIcon aria-hidden="true" />,
-  setup: <WrenchIcon aria-hidden="true" />,
-  code: <CodeIcon aria-hidden="true" />,
-  live: <BroadcastIcon aria-hidden="true" />,
 };
 
 /** Lihat Sebagai Praktikan: the group an Asisten views the page as. */
@@ -304,7 +300,7 @@ export default function ModuleSteps(p: Props) {
       )}
 
       <div
-        className="seg seg--big modsteps__tabs"
+        className={`seg seg--big modsteps__tabs${mode === "browse" ? "" : " modsteps__tabs--plain"}`}
         role="tablist"
         aria-label={t.steps}
         data-segfit="off"
@@ -338,9 +334,9 @@ export default function ModuleSteps(p: Props) {
               requestAnimationFrame(() => document.getElementById(`step-${next}`)?.focus());
             }}
           >
-            {ICON[s]}
-            {/* Browse numbers the three steps (mockup m-browse); the five
-                session steps are not numbered (p-module). */}
+            {mode === "browse" && ICON[s]}
+            {/* Browse numbers the three steps and gives them icons (mockup
+                m-browse); the five session steps are plain text (p-module). */}
             <span className="modsteps__label">
               {mode === "browse" ? `${i + 1} ${label[s]}` : label[s]}
             </span>
@@ -379,7 +375,13 @@ export default function ModuleSteps(p: Props) {
           ) : mode === "done" ? (
             <Done lang={lang} modul={modul} done={done} />
           ) : (
-            <LiveRoom lang={lang} modul={modul} layers={p.layers} wakil={wakil ?? undefined} />
+            <LiveRoom
+              lang={lang}
+              modul={modul}
+              layers={p.layers}
+              wakil={wakil ?? undefined}
+              embed
+            />
           )}
         </Fade>
       </div>
@@ -389,44 +391,51 @@ export default function ModuleSteps(p: Props) {
 
 function Setup(p: Props) {
   const t = M[p.lang];
+  // Each tool once, as a badge; its use stays in the tooltip.
+  const tools = [...new Set(p.toolchain.map((tc) => tc.alat))];
+  // Mockup p-module Setup: three equal cards, what you need, pins and
+  // schematic, the checklist.
   return (
-    <div className="stack stack--lg">
-      <div className="modsetup">
-        <section className="panel">
-          <h2 className="panel__title">{t.whatYouNeed}</h2>
-          <ul className="modpage__kv">
-            {p.perangkat.map((x) => (
-              <li key={`${x.nama}|${x.jumlah}`}>
-                <b>{x.nama}</b>
-                <span className="mono hint">{x.jumlah}</span>
-              </li>
-            ))}
-          </ul>
-          <ul className="modpage__kv">
-            {p.toolchain.map((tc) => (
-              <li key={tc.label}>
-                <span className="hint">{tc.label}</span>
-                <b>{tc.alat}</b>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section className="panel">
-          <h2 className="panel__title">{t.checklist}</h2>
-          <SetupChecklist lang={p.lang} modul={p.modul} items={p.persiapan} />
-        </section>
-      </div>
-      <section className="stack">
-        <h2 className="modpage__h">{t.pins}</h2>
+    <div className="modsetup">
+      <section className="panel">
+        <h2 className="panel__title">{t.whatYouNeed}</h2>
+        <ul className="ticks">
+          {p.perangkat.map((x) => (
+            <li key={`${x.nama}|${x.jumlah}`}>
+              <CheckIcon aria-hidden="true" />
+              <span>
+                {x.nama}
+                {x.jumlah && <span className="ticks__note"> · {x.jumlah}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="row modsetup__tools">
+          {tools.map((a) => (
+            <Pill
+              key={a}
+              title={p.toolchain
+                .filter((tc) => tc.alat === a)
+                .map((tc) => tc.label)
+                .join(", ")}
+            >
+              {a}
+            </Pill>
+          ))}
+        </div>
+      </section>
+      <section className="panel">
+        <h2 className="panel__title">{t.pins}</h2>
         <PinSchematic
           lang={p.lang}
           modul={p.modul}
           pin={p.pin}
           mcu={p.mcu}
           skema={p.skema}
-          variant="full"
+          variant="dock"
         />
       </section>
+      <SetupChecklist lang={p.lang} modul={p.modul} items={p.persiapan} title={t.checklist} />
     </div>
   );
 }

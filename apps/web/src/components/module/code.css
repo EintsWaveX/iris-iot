@@ -75,6 +75,14 @@
   min-width: 0;
 }
 
+/* The sketch's file name: one line where it fits, else it breaks after an
+   underscore (BlankFile's FileName puts the break points there). */
+.codehead__name {
+  min-width: 0;
+  line-height: 1.25;
+  text-align: center;
+}
+
 .codehead__tools {
   align-items: center;
   display: inline-flex;

@@ -169,10 +169,14 @@ export default function LiveRoom({
   modul,
   layers,
   wakil,
+  embed,
 }: {
   lang: Lang;
   modul: number;
   layers: Layer[];
+  /** Inside the module page: a Praktikan sees only their own group, live
+   * (mockup p-module Live has no group picker and no Try It). */
+  embed?: boolean;
   /** Lihat Sebagai Praktikan: the group an Asisten views the room as. */
   wakil?: { nomor: number; own: boolean; sesiId: number };
 }) {
@@ -461,36 +465,86 @@ export default function LiveRoom({
 
   return (
     <div className="stack stack--lg liveroom" style={{ "--m": hue } as CSSProperties}>
-      <div className="liveroom__top">
-        {wakil ? (
-          <span className="pill">
-            <EyeIcon aria-hidden="true" />
-            {t.viewingGroup(wakil.nomor)}
-          </span>
-        ) : (
-          <GroupPicker
-            value={group}
-            onValueChange={(g) => {
-              setPicked(true);
-              setGroup(g);
-            }}
-            groups={GROUPS}
-            label={t.group}
-            aria-label={t.pickGroup}
-            mark={ownGroup ?? undefined}
-            markLabel={t.mine}
+      {!(embed && praktikan) && (
+        <div className="liveroom__top">
+          {wakil ? (
+            <span className="pill">
+              <EyeIcon aria-hidden="true" />
+              {t.viewingGroup(wakil.nomor)}
+            </span>
+          ) : (
+            <GroupPicker
+              value={group}
+              onValueChange={(g) => {
+                setPicked(true);
+                setGroup(g);
+              }}
+              groups={GROUPS}
+              label={t.group}
+              aria-label={t.pickGroup}
+              mark={ownGroup ?? undefined}
+              markLabel={t.mine}
+            />
+          )}
+          <SegmentedControl
+            value={mode}
+            onValueChange={(v) => setMode(v as "live" | "try")}
+            aria-label={t.mode}
+            options={[
+              { value: "live", label: t.modeLive },
+              { value: "try", label: t.modeTry },
+            ]}
           />
-        )}
-        <SegmentedControl
-          value={mode}
-          onValueChange={(v) => setMode(v as "live" | "try")}
-          aria-label={t.mode}
-          options={[
-            { value: "live", label: t.modeLive },
-            { value: "try", label: t.modeTry },
-          ]}
-        />
-      </div>
+        </div>
+      )}
+
+      {mode === "live" && (
+        <div className="livebar">
+          <span
+            className={`pill ${paused ? "pill--mono" : live ? (stale ? "pill--warn" : "pill--ok") : "pill--mono"}`}
+          >
+            <span
+              className={`dot ${paused ? "dot--off" : live ? (stale ? "dot--warn" : "dot--ok dot--pulse") : "dot--off"}`}
+              aria-hidden="true"
+            />
+            {paused ? t.paused : live ? (stale ? t.stale : t.real) : t.sim}
+          </span>
+          {ago !== null && <span className="hint">{t.updated(ago)}</span>}
+          <IconButton
+            sm
+            icon={paused ? PlayIcon : PauseIcon}
+            label={paused ? t.resume : t.pause}
+            pressed={paused}
+            onClick={() => setPaused((p) => !p)}
+          />
+          {wakil && !wakil.own && (
+            <span className="pill livebar__cap">
+              <EyeIcon aria-hidden="true" />
+              {t.viewOnly}
+            </span>
+          )}
+          {canPorts && (
+            <span className="livebar__cap row">
+              {saved.rows !== null && (
+                <span className="hint">
+                  {/* One Module 4 save writes both tables: count saves, not rows. */}
+                  {tc.savedCount(
+                    Math.max(
+                      saved.rows.filter((x) => x.jenis === "paket").length,
+                      saved.rows.filter((x) => x.jenis === "jarak").length,
+                    ),
+                  )}
+                </span>
+              )}
+              <button type="button" className="btn btn--primary" onClick={() => setCapOpen(true)}>
+                <CameraIcon aria-hidden="true" />
+                <span className="livebar__capl">{tc.capture}</span>
+                <span className="livebar__caps">{tc.captureShort}</span>
+              </button>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Kept mounted in Try It so an open port is not dropped. */}
       {canPorts && (
@@ -553,55 +607,6 @@ export default function LiveRoom({
           </section>
         ) : (
           <div className="stack stack--lg">
-            <div className="livebar">
-              <span
-                className={`pill ${paused ? "pill--mono" : live ? (stale ? "pill--warn" : "pill--ok") : "pill--mono"}`}
-              >
-                <span
-                  className={`dot ${paused ? "dot--off" : live ? (stale ? "dot--warn" : "dot--ok dot--pulse") : "dot--off"}`}
-                  aria-hidden="true"
-                />
-                {paused ? t.paused : live ? (stale ? t.stale : t.real) : t.sim}
-              </span>
-              {ago !== null && <span className="hint">{t.updated(ago)}</span>}
-              <IconButton
-                sm
-                icon={paused ? PlayIcon : PauseIcon}
-                label={paused ? t.resume : t.pause}
-                pressed={paused}
-                onClick={() => setPaused((p) => !p)}
-              />
-              {wakil && !wakil.own && (
-                <span className="pill livebar__cap">
-                  <EyeIcon aria-hidden="true" />
-                  {t.viewOnly}
-                </span>
-              )}
-              {canPorts && (
-                <span className="livebar__cap row">
-                  {saved.rows !== null && (
-                    <span className="hint">
-                      {/* One Module 4 save writes both tables: count saves, not rows. */}
-                      {tc.savedCount(
-                        Math.max(
-                          saved.rows.filter((x) => x.jenis === "paket").length,
-                          saved.rows.filter((x) => x.jenis === "jarak").length,
-                        ),
-                      )}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    className="btn btn--primary"
-                    onClick={() => setCapOpen(true)}
-                  >
-                    <CameraIcon aria-hidden="true" />
-                    <span className="livebar__capl">{tc.capture}</span>
-                    <span className="livebar__caps">{tc.captureShort}</span>
-                  </button>
-                </span>
-              )}
-            </div>
             {!live && !paused && (
               <p className="banner" role="status">
                 <span>{t.simNote(group)}</span>
@@ -636,6 +641,7 @@ export default function LiveRoom({
             ) : (
               <section className="panel">
                 <TabLine
+                  seg
                   value={pane}
                   onChange={setPane}
                   label={t.panes}

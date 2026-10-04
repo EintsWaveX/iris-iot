@@ -1498,3 +1498,12 @@ button.rp-stat:focus-visible {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Phones: two filters a row leave no room for the longer labels
+   ("Tampilan Tersimpan"), so they wrap instead of being cut. */
+@media (max-width: 639px) {
+  .rp-fbar .dropdown__value {
+    line-height: 1.2;
+    white-space: normal;
+  }
+}

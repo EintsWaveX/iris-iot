@@ -21,13 +21,11 @@ import Fade from "../ui/Fade";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   CheckCircleIcon,
-  CodeIcon,
   EyeIcon,
   HandshakeIcon,
   InfoIcon,
   MagnifyingGlassIcon,
   ProhibitIcon,
-  StarFourIcon,
   UserPlusIcon,
   WarningIcon,
   ArrowsLeftRightIcon,
@@ -38,7 +36,7 @@ import Dropdown, { type DropdownOption } from "../ui/Dropdown";
 import ErrorView from "../ui/ErrorView";
 import Pill from "../ui/Pill";
 import SegmentedControl from "../ui/SegmentedControl";
-import Tooltip from "../ui/Tooltip";
+import PersonBadges from "../ui/PersonBadges";
 import { Switch } from "../ui/Controls";
 import { getJson, HttpError, jamMenit, postJson, tanggalPanjang, useMe } from "../../lib/app";
 import {
@@ -314,7 +312,7 @@ export default function TeamPage({ lang }: { lang: Lang }) {
 
       <Fade k={shown}>
         {shown === "orang" ? (
-          <>
+          <div className="stack stack--lg">
             <Holders data={data} t={t} lang={lang} admin={admin} reload={load} />
             <People
               data={data}
@@ -323,7 +321,7 @@ export default function TeamPage({ lang }: { lang: Lang }) {
               onOpen={setOpen}
               hak={admin && bayar.data ? hakSemester(bayar.data) : null}
             />
-          </>
+          </div>
         ) : shown === "penugasan" ? (
           <AssignBoard
             lang={lang}
@@ -387,29 +385,6 @@ export default function TeamPage({ lang }: { lang: Lang }) {
 }
 
 /* ------------------------------------------------------------- badges */
-
-function PersonBadges({ badges, t, sm }: { badges: string[]; t: Tx; sm?: boolean }) {
-  return (
-    <>
-      {badges.includes("pencipta") && (
-        <Tooltip label={t.pencipta}>
-          <span className={`pbadge pbadge--pencipta${sm ? " pbadge--sm" : ""}`} tabIndex={0}>
-            <StarFourIcon size={13} weight="fill" aria-hidden="true" />
-            {t.penciptaName}
-          </span>
-        </Tooltip>
-      )}
-      {badges.includes("dev") && (
-        <Tooltip label={t.dev}>
-          <span className={`pbadge pbadge--dev${sm ? " pbadge--sm" : ""}`} tabIndex={0}>
-            <CodeIcon size={13} aria-hidden="true" />
-            DEV
-          </span>
-        </Tooltip>
-      )}
-    </>
-  );
-}
 
 const STATUS_TONE: Record<StatusOrang, "ok" | "warn" | undefined> = {
   aktif: "ok",
@@ -693,7 +668,7 @@ function People({
                 </td>
                 <td data-col={t.colBadges} data-empty={o.badges.length ? undefined : "yes"}>
                   <span className="tim-badges">
-                    <PersonBadges badges={o.badges} t={t} sm />
+                    <PersonBadges badges={o.badges} lang={lang} sm />
                   </span>
                 </td>
                 <td data-col={t.colStatus}>
@@ -911,7 +886,7 @@ function PersonDrawer({
       <div className="tim-drawer">
         <div className="tim-badges">
           <TierBadge tier={p.tier} lang={lang} />
-          <PersonBadges badges={p.badges} t={t} />
+          <PersonBadges badges={p.badges} lang={lang} />
           <StatusBadge status={st} lang={lang} />
         </div>
 

@@ -692,9 +692,14 @@
   align-self: flex-start;
 }
 
+/* Mockup c-run table: the hint and the download sit right of the title. */
+.ntable__tools {
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
 .ntable__scroll {
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
   max-height: calc(100vh - 280px);
   overflow: auto;
 }
@@ -714,35 +719,37 @@
 }
 
 .ntable__grid thead th {
-  background: var(--bg-elevated);
+  background: var(--surface-1);
   color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   padding: var(--space-3) 6px;
   position: sticky;
+  text-transform: uppercase;
   top: 0;
   z-index: 3;
 }
 
 .ntable__nim,
 .ntable__name {
-  background: var(--bg-elevated);
-  left: 0;
-  position: sticky;
   text-align: left !important;
-  z-index: 2;
 }
 
 .ntable__nim {
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   min-width: 8.5rem;
 }
 
+/* The name stays in view while the score columns scroll sideways. */
 .ntable__name {
-  left: 8.5rem;
+  background: var(--surface-1);
+  left: 0;
   max-width: 14rem;
   min-width: 11rem;
+  position: sticky;
+  z-index: 2;
 }
 
 .ntable__name .truncate {
@@ -750,7 +757,6 @@
   max-width: 14rem;
 }
 
-thead .ntable__nim,
 thead .ntable__name {
   z-index: 4;
 }
@@ -764,8 +770,8 @@ thead .ntable__name {
 }
 
 .ntable__group th {
-  background: color-mix(in srgb, var(--g) 12%, var(--bg-elevated));
-  border-top: 1px solid color-mix(in srgb, var(--g) 40%, transparent);
+  background: color-mix(in srgb, var(--g) 10%, var(--surface-1));
+  border-top: 2px solid color-mix(in srgb, var(--g) 70%, transparent);
   color: var(--text);
   font-weight: 650;
   left: 0;

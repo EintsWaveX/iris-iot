@@ -4,20 +4,20 @@
  * number typed in either place (or by another assistant) shows in both.
  *
  * - Groups held by someone else are read only, naming the holder.
- * - Enter / Shift+Enter move down / up the same column, like a spreadsheet;
- *   Tab moves across.
- * - The CSV download keeps its Stage 12 logic. SeeLabs (Phase 9 Stage 3g):
- *   each of my groups shows its SeeLabs account and status with "Salin untuk
- *   SeeLabs"; "Kirim ke SeeLabs" opens the full page.
+ * - Enter / Shift+Enter save and move down / up the same column, like a
+ *   spreadsheet; the arrow keys move between cells (mockup c-run table).
+ * - The XLSX download keeps the Stage 12 columns. SeeLabs (Phase 9 Stage
+ *   3g): each of my groups shows its SeeLabs account and status with "Salin
+ *   untuk SeeLabs"; the full SeeLabs page opens from the board.
  * - Below 820px the grid becomes one card per student with big fields,
  *   because eight columns do not fit a phone.
  */
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { namaAsisten, useDirektori } from "../../lib/people";
-import { CopyIcon, LockSimpleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
+import { CopyIcon, DownloadSimpleIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import { ScoreInput } from "../ui/Controls";
-import { UpdatedAgo } from "../ui/Display";
-import { unduhCsv } from "../../lib/csv";
+import Pill from "../ui/Pill";
+import { unduhXlsx } from "../../lib/xlsx";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import SeelabsSheet, { StatusPill } from "./seelabs/SeelabsSheet";
@@ -87,21 +87,37 @@ export default function NilaiTable({
     else if (r === "fail") window.Toast?.show(t.fail, "danger");
   }
 
+  /** Enter, Shift+Enter and Up/Down move along the column; Left/Right move
+   *  along the row. Only editable cells are stops. */
   function moveRow(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
+    const k = e.key;
     const cell = e.currentTarget.closest("td");
     const row = cell?.parentElement;
     if (!cell || !row) return;
-    const col = Array.prototype.indexOf.call(row.children, cell);
-    let target = e.shiftKey ? row.previousElementSibling : row.nextElementSibling;
-    while (target && !target.children[col]?.querySelector("input:not([readonly])")) {
-      target = e.shiftKey ? target.previousElementSibling : target.nextElementSibling;
+    const open = (el: Element | null | undefined) =>
+      el?.querySelector<HTMLInputElement>("input:not([readonly])") ?? null;
+    if (k === "ArrowLeft" || k === "ArrowRight") {
+      let next = k === "ArrowLeft" ? cell.previousElementSibling : cell.nextElementSibling;
+      while (next && !open(next)) {
+        next = k === "ArrowLeft" ? next.previousElementSibling : next.nextElementSibling;
+      }
+      if (!next) return;
+      e.preventDefault();
+      open(next)?.focus();
+      return;
     }
-    (target?.children[col]?.querySelector("input") as HTMLInputElement | null)?.focus();
+    if (k !== "Enter" && k !== "ArrowUp" && k !== "ArrowDown") return;
+    e.preventDefault();
+    const up = k === "ArrowUp" || (k === "Enter" && e.shiftKey);
+    const col = Array.prototype.indexOf.call(row.children, cell);
+    let target = up ? row.previousElementSibling : row.nextElementSibling;
+    while (target && !open(target.children[col])) {
+      target = up ? target.previousElementSibling : target.nextElementSibling;
+    }
+    open(target?.children[col])?.focus();
   }
 
-  function csv() {
+  function xlsx() {
     const baris: (string | number)[][] = [];
     for (const k of data!.kelompok) {
       const lk = groups.find((g) => g.id === k.id);
@@ -118,10 +134,11 @@ export default function NilaiTable({
         ]);
       }
     }
-    unduhCsv(
-      `nilai-sesi-${sesiId}.csv`,
+    void unduhXlsx(
+      `nilai-sesi-${sesiId}`,
       ["NIM", "Nama", "Kelompok", "Hadir", "Blank benar", "Blank total", ...data!.komponen],
       baris,
+      "Nilai",
     );
   }
 
@@ -160,7 +177,6 @@ export default function NilaiTable({
       <ScoreInput
         className="ctl-score--table"
         value={draft[key] ?? (stored != null ? String(stored) : "")}
-        placeholder="·"
         state={nilai.states[key] ?? "idle"}
         flash={nilai.flash[key]}
         readOnlyReason={ro ? t.readOnly(holder) : undefined}
@@ -176,20 +192,14 @@ export default function NilaiTable({
   return (
     <section className="panel ntable">
       <div className="panel__head">
-        <div className="stack stack--sm">
-          <h2 className="panel__title">{t.tableTitle}</h2>
-          <p className="panel__sub">{t.tableHint}</p>
-        </div>
-        <div className="row">
-          <UpdatedAgo since={nilai.updatedAt} template={t.updated} />
-          <button type="button" className="btn btn--secondary" onClick={csv}>
-            {t.csv}
+        <h2 className="panel__title">{t.tableTitle}</h2>
+        <span className="row ntable__tools">
+          <span className="hint">{t.tableHint}</span>
+          <button type="button" className="btn" onClick={xlsx}>
+            <DownloadSimpleIcon size={18} aria-hidden="true" />
+            {t.xlsx}
           </button>
-          <button type="button" className="btn btn--secondary" onClick={() => onSeelabs("salin")}>
-            <PaperPlaneTiltIcon size={18} aria-hidden="true" />
-            {sl.openSeelabs}
-          </button>
-        </div>
+        </span>
       </div>
 
       {seelabs && sheetGroup && (
@@ -212,11 +222,11 @@ export default function NilaiTable({
           <table className="ntable__grid">
             <thead>
               <tr>
-                <th scope="col" className="ntable__nim">
-                  {t.nim}
-                </th>
                 <th scope="col" className="ntable__name">
                   {t.name}
+                </th>
+                <th scope="col" className="ntable__nim">
+                  {t.nim}
                 </th>
                 {data.komponen.map((k) => (
                   <th scope="col" key={k}>
@@ -239,19 +249,17 @@ export default function NilaiTable({
                     >
                       <th colSpan={data.komponen.length + 3}>
                         <span className="row">
-                          <span className="g-stripe" style={{ height: 18 }} />
-                          {t.groupFull(k.nomor)}
-                          <span
-                            className={`code-badge${holder ? "" : " code-badge--empty"}`}
-                            data-me={data.pemilik[k.id] === meNim ? "yes" : undefined}
-                          >
-                            {holder?.kode ?? "?"}
-                          </span>
+                          <Pill group={k.nomor}>{t.groupFull(k.nomor)}</Pill>
+                          {holder ? (
+                            <span>{namaAsisten(holder)}</span>
+                          ) : (
+                            <span className="hint">{t.notHeld}</span>
+                          )}
                           {!canEdit(k.id) && (
-                            <span className="hint row">
-                              <LockSimpleIcon size={14} aria-hidden="true" />{" "}
-                              {t.lockedBy(namaAsisten(holder))}
-                            </span>
+                            <Pill>
+                              <LockSimpleIcon size={14} aria-hidden="true" />
+                              {t.viewOnlyPill}
+                            </Pill>
                           )}
                           {seelabsBits(k.nomor, k.id)}
                         </span>
@@ -259,10 +267,10 @@ export default function NilaiTable({
                     </tr>
                     {k.anggota.map((a) => (
                       <tr key={a.nim} data-lengkap={a.lengkap ? "yes" : undefined}>
-                        <td className="ntable__nim mono">{a.nim}</td>
                         <td className="ntable__name">
                           <span className="truncate">{a.nama}</span>
                         </td>
+                        <td className="ntable__nim mono">{a.nim}</td>
                         {data.komponen.map((c) => (
                           <td key={c}>{cell(a.nim, a.nama, c, k.id, a.skor[c])}</td>
                         ))}

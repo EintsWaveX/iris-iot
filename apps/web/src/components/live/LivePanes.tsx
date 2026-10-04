@@ -380,7 +380,7 @@ export function SerialMonitor({
   return (
     <div className="serial">
       <div className="serial__bar">
-        <TabLine value={tab} onChange={setTab} label={t.source} tabs={tabs} />
+        <TabLine seg value={tab} onChange={setTab} label={t.source} tabs={tabs} />
         <Help lang={lang} modul={modul} />
       </div>
       {cur?.note && <p className="hint">{cur.note}</p>}

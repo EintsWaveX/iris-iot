@@ -22,6 +22,9 @@ interface Props<V extends string> {
   /** The tablist's accessible name. */
   label: string;
   className?: string;
+  /** The boxed segmented look (mockup Tabs) instead of the underline. It
+   * fills its row in equal parts and SegFit wraps it when labels can't fit. */
+  seg?: boolean;
 }
 
 /** Edge fade state for a horizontally scrolling row. */
@@ -66,6 +69,7 @@ export default function TabLine<V extends string>({
   onChange,
   label,
   className,
+  seg,
 }: Props<V>) {
   const { ref, edge, update } = useEdgeFade<HTMLDivElement>();
 
@@ -83,32 +87,45 @@ export default function TabLine<V extends string>({
     );
   };
 
+  const buttons = tabs.map((t, i) => (
+    <button
+      key={t.v}
+      type="button"
+      role="tab"
+      data-tab={t.v}
+      aria-selected={value === t.v}
+      tabIndex={value === t.v ? 0 : -1}
+      className={seg ? undefined : "tabs__tab"}
+      onClick={() => onChange(t.v)}
+      onKeyDown={(e) => {
+        if (e.key === "ArrowRight") move(i + 1);
+        else if (e.key === "ArrowLeft") move(i - 1);
+        else if (e.key === "Home") move(0);
+        else if (e.key === "End") move(tabs.length - 1);
+        else return;
+        e.preventDefault();
+      }}
+    >
+      {t.label}
+      {t.n != null && <span className="tabs__count">{t.n}</span>}
+    </button>
+  ));
+
+  if (seg)
+    return (
+      <div
+        ref={ref}
+        className={`seg${className ? ` ${className}` : ""}`}
+        role="tablist"
+        aria-label={label}
+      >
+        {buttons}
+      </div>
+    );
   return (
     <div className={`tabs-scroll${className ? ` ${className}` : ""}`} data-edge={edge}>
       <div ref={ref} className="tabs" role="tablist" aria-label={label}>
-        {tabs.map((t, i) => (
-          <button
-            key={t.v}
-            type="button"
-            role="tab"
-            data-tab={t.v}
-            aria-selected={value === t.v}
-            tabIndex={value === t.v ? 0 : -1}
-            className="tabs__tab"
-            onClick={() => onChange(t.v)}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowRight") move(i + 1);
-              else if (e.key === "ArrowLeft") move(i - 1);
-              else if (e.key === "Home") move(0);
-              else if (e.key === "End") move(tabs.length - 1);
-              else return;
-              e.preventDefault();
-            }}
-          >
-            {t.label}
-            {t.n != null && <span className="tabs__count">{t.n}</span>}
-          </button>
-        ))}
+        {buttons}
       </div>
     </div>
   );
