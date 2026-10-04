@@ -54,6 +54,13 @@
   gap: 4px;
 }
 
+/* Mockup g-errors: a plain bold label, not caps. */
+.errview__k {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
 .errview__why p {
   color: var(--text);
   font-size: 1.02rem;

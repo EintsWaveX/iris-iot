@@ -63,6 +63,10 @@ export interface DropdownOption {
   value: string;
   label: string;
   disabled?: boolean;
+  /** A code chip after the label, like the mockup's "TIR". */
+  chip?: string;
+  /** A small second line under the label, in the list only. */
+  note?: string;
 }
 
 interface Rect {
@@ -294,6 +298,7 @@ export default function Dropdown({
   }
 
   const selectedLabel = options[selectedIndex]?.label ?? "";
+  const selectedChip = options[selectedIndex]?.chip;
 
   return (
     <div className="dropdown">
@@ -320,6 +325,7 @@ export default function Dropdown({
         onKeyDown={onTriggerKeyDown}
       >
         <span className="dropdown__value">{selectedLabel}</span>
+        {selectedChip && <span className="acode dropdown__chip">{selectedChip}</span>}
         <svg className="dropdown__chevron" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -373,7 +379,11 @@ export default function Dropdown({
                     onMouseEnter={() => setActiveIndex(i)}
                     onClick={() => commit(i)}
                   >
-                    {opt.label}
+                    <span className="dropdown__txt">
+                      {opt.label}
+                      {opt.note && <small className="dropdown__note">{opt.note}</small>}
+                    </span>
+                    {opt.chip && <span className="acode dropdown__chip">{opt.chip}</span>}
                   </li>
                 ))}
               </ul>

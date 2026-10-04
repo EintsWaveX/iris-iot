@@ -46,12 +46,10 @@ const T = dict({
   id: {
     title: "Masuk",
     setTitle: "Setel kata sandi asli",
-    lede: "Praktikan cukup NIM. Asisten memakai NIM dan kata sandi.",
     role: "Peran",
     praktikan: "Praktikan",
     asisten: "Asisten",
     nim: "NIM",
-    nimHint: "4 sampai 20 huruf dan angka, seperti di kartu mahasiswa.",
     nimPh: "2311102001",
     nimPhA: "NIM asisten",
     pwLabel: "Kata sandi",
@@ -66,7 +64,7 @@ const T = dict({
     mismatch: "Kedua kata sandi belum sama.",
     later: "Nanti saja",
     setBtn: "Setel kata sandi",
-    welcome: (nama: string) => `Halo, ${nama.split(" ")[0]}`,
+    welcome: (nama: string) => `Halo, ${nama}`,
     inSession: "Kamu masuk ke sesi",
     noSession:
       "Belum ada sesi berjalan. Kamu tetap bisa melihat nilai dan jurnal yang sudah kamu kerjakan.",
@@ -92,12 +90,10 @@ const T = dict({
   en: {
     title: "Sign in",
     setTitle: "Set your own password",
-    lede: "Students need only their NIM. Assistants add a password.",
     role: "Role",
     praktikan: "Student",
     asisten: "Assistant",
     nim: "NIM",
-    nimHint: "4 to 20 letters and digits, as on your student card.",
     nimPh: "2311102001",
     nimPhA: "Assistant NIM",
     pwLabel: "Password",
@@ -112,7 +108,7 @@ const T = dict({
     mismatch: "The two passwords do not match yet.",
     later: "Later",
     setBtn: "Set password",
-    welcome: (nama: string) => `Hi, ${nama.split(" ")[0]}`,
+    welcome: (nama: string) => `Hi, ${nama}`,
     inSession: "You are in the session",
     noSession:
       "No session is running. You can still see your scores and the journals you have done.",
@@ -138,12 +134,10 @@ const T = dict({
   zh: {
     title: "登录",
     setTitle: "设置你自己的密码",
-    lede: "学员只需要 NIM。助教还要输入密码。",
     role: "角色",
     praktikan: "学员",
     asisten: "助教",
     nim: "NIM",
-    nimHint: "4 到 20 个字母和数字，和学生证上一样。",
     nimPh: "2311102001",
     nimPhA: "助教 NIM",
     pwLabel: "密码",
@@ -157,7 +151,7 @@ const T = dict({
     mismatch: "两次密码还不一样。",
     later: "以后再说",
     setBtn: "设置密码",
-    welcome: (nama: string) => `你好，${nama.split(" ")[0]}`,
+    welcome: (nama: string) => `你好，${nama}`,
     inSession: "你正在上课",
     noSession: "现在没有课。你仍然可以看你的分数和做过的日志。",
     modul: (m: number) => `模块 ${m}`,
@@ -360,7 +354,6 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
     <Dialog open={open} onOpenChange={setOpen} title={title} sheet={sheet} size="lg" lang={lang}>
       {stage === "login" && (
         <form onSubmit={submitLogin} className="login-form" noValidate>
-          <p className="login-form__lede">{t.lede}</p>
           <SegmentedControl
             value={role}
             onValueChange={(next) => {
@@ -395,7 +388,7 @@ export default function LoginDialog({ lang = "id" }: { lang?: Lang }) {
               className={err?.field === "nim" ? "field__error" : "field__hint"}
               role={err?.field === "nim" ? "alert" : undefined}
             >
-              {err?.field === "nim" ? err.msg : role === "praktikan" ? t.nimHint : ""}
+              {err?.field === "nim" ? err.msg : ""}
             </p>
           </div>
 

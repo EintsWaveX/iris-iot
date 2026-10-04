@@ -220,7 +220,6 @@ function BriefDrawer({
       title={t.drawerTitle(modul)}
       description={t.langNames[lg]}
       storeKey="modul-brief"
-      defaultWidth={560}
       closeLabel={t.close}
       resizeLabel={t.resize}
       foot={

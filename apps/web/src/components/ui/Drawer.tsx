@@ -3,9 +3,10 @@
  * Radix Dialog like Dialog.tsx (focus trap, Esc, focus return), but docked
  * to the right edge with a draggable left edge:
  *
+ * - the width follows the mockup: 760px from 1024, 880px from 1440,
+ *   min(720px, 92%) from 640, full screen below that
  * - drag the edge, or focus it and use Left/Right, to resize; double click
  *   resets; the width is remembered per `storeKey` (localStorage, guarded)
- * - below 1024px it is 80% wide, below 640px full screen, and not resizable
  */
 import {
   useEffect,
@@ -30,18 +31,18 @@ interface Props {
   /** Footer buttons, by the dialog footer rule (Cancel, then main). */
   foot?: ReactNode;
   storeKey: string;
-  defaultWidth?: number;
   minWidth?: number;
   closeLabel: string;
   resizeLabel: string;
 }
 
-function readWidth(key: string, dflt: number): number {
+/** A width the person dragged to, or null for the CSS default. */
+function readWidth(key: string): number | null {
   try {
     const v = Number(localStorage.getItem(`iris-drawer-${key}`));
-    return Number.isFinite(v) && v > 0 ? v : dflt;
+    return Number.isFinite(v) && v > 0 ? v : null;
   } catch {
-    return dflt;
+    return null;
   }
 }
 
@@ -53,18 +54,18 @@ export default function Drawer({
   children,
   foot,
   storeKey,
-  defaultWidth = 440,
   minWidth = 360,
   closeLabel,
   resizeLabel,
 }: Props) {
-  const [width, setWidth] = useState(defaultWidth);
+  const [width, setWidth] = useState<number | null>(null);
+  const panel = useRef<HTMLDivElement | null>(null);
   const openedFrom = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
   if (open && !wasOpen.current) openedFrom.current = document.activeElement as HTMLElement | null;
   wasOpen.current = open;
 
-  useEffect(() => setWidth(readWidth(storeKey, defaultWidth)), [storeKey, defaultWidth]);
+  useEffect(() => setWidth(readWidth(storeKey)), [storeKey]);
 
   const save = (w: number) => {
     const max = Math.max(minWidth, window.innerWidth - 240);
@@ -88,9 +89,19 @@ export default function Drawer({
     window.addEventListener("pointerup", up);
   };
 
+  const reset = () => {
+    setWidth(null);
+    try {
+      localStorage.removeItem(`iris-drawer-${storeKey}`);
+    } catch {
+      /* ignore */
+    }
+  };
+
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
-    if (e.key === "ArrowLeft") save(width + 24);
-    else if (e.key === "ArrowRight") save(width - 24);
+    const now = width ?? panel.current?.offsetWidth ?? 760;
+    if (e.key === "ArrowLeft") save(now + 24);
+    else if (e.key === "ArrowRight") save(now - 24);
     else return;
     e.preventDefault();
   };
@@ -101,8 +112,9 @@ export default function Drawer({
         <RadixDialog.Overlay className="drawer__overlay" />
         <RadixDialog.Content
           className="drawer"
+          ref={panel}
           tabIndex={-1}
-          style={{ "--drawer-w": `${width}px` } as CSSProperties}
+          style={width ? ({ "--drawer-w": `${width}px` } as CSSProperties) : undefined}
           onOpenAutoFocus={(e) => {
             // Land on the panel itself: not the resize grip (its focus ring
             // would outline the whole edge) and not the close button (its
@@ -123,7 +135,7 @@ export default function Drawer({
             aria-label={resizeLabel}
             onPointerDown={onPointerDown}
             onKeyDown={onKeyDown}
-            onDoubleClick={() => save(defaultWidth)}
+            onDoubleClick={reset}
           />
           <header className="drawer__head">
             <div className="drawer__titles">

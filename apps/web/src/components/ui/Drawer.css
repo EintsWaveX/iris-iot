@@ -27,15 +27,22 @@
   outline: none;
 }
 
+/* Mockup round 4 widths. */
 @media (min-width: 640px) {
   .drawer {
-    width: 80vw;
+    width: min(720px, 92vw);
   }
 }
 
 @media (min-width: 1024px) {
   .drawer {
-    width: var(--drawer-w, 440px);
+    width: var(--drawer-w, 760px);
+  }
+}
+
+@media (min-width: 1440px) {
+  .drawer {
+    width: var(--drawer-w, 880px);
   }
 }
 

@@ -145,9 +145,9 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
     { value: "", label: t.pick },
     ...p.orang.map((o) => ({
       value: o.kode.toUpperCase(),
-      label:
-        `${o.nama} (${o.kode.toUpperCase()})` +
-        (o.status !== "aktif" ? ` · ${t.notPickable(statusOrangLabel(o.status, lang))}` : ""),
+      label: o.nama,
+      chip: o.kode.toUpperCase(),
+      note: o.status !== "aktif" ? t.notPickable(statusOrangLabel(o.status, lang)) : undefined,
       disabled: o.status !== "aktif",
     })),
   ];

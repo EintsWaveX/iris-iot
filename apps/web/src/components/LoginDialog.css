@@ -11,12 +11,14 @@
   margin: 0;
 }
 
+/* Mockup .nimin. */
 .login-form__nim {
   font-family: var(--font-mono);
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   min-height: 60px;
+  text-align: center;
 }
 
 .login-form__nim::placeholder {

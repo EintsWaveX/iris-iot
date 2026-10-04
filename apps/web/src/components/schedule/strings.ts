@@ -50,10 +50,10 @@ export const J = dict({
     editH: "Ubah Slot",
     readOnly: "Hanya Pengelola dan Admin yang bisa mengubah jadwal. Kamu bisa melihat isinya.",
     nextDate: (tgl: string) => `Minggu ini: ${tgl}`,
-    kelas: "Jenis Kelas",
+    kelas: "Jenis kelas",
     reguler: "Reguler",
     internasional: "Internasional",
-    status: "Status Slot",
+    status: "Status slot",
     statusOpt: { aktif: "Aktif", segera: "Segera", libur: "Libur", kosong: "Tidak Ada Praktikum" },
     statusHint: {
       aktif: "Praktikum berjalan seperti biasa.",
@@ -62,19 +62,19 @@ export const J = dict({
       kosong:
         "Tidak ada praktikum di slot ini sepanjang semester. Oranye dan merah mengikuti warna di sheet JADWAL, artinya sama.",
     } as Record<string, string>,
-    warna: "Warna Penanda",
+    warna: "Warna penanda",
     oranye: "Oranye",
     merah: "Merah",
     offHidden:
       "Kelompok, asisten dan pengganti disembunyikan selama slot ini Tidak Ada Praktikum. Pilih status lain untuk mengisinya lagi; isian sebelumnya tetap tersimpan.",
-    window: "Jendela Mulai",
+    window: "Jendela mulai",
     windowDefault: (m: number) => `Ikut Default (${m} Menit)`,
     windowOwn: "Atur Sendiri",
     windowHintDefault: "Sesi bisa dimulai sekian menit sebelum jadwal, sesuai pengaturan umum.",
     windowHintOwn: (who: string, min: number, max: number) =>
       `Diatur ${who} untuk slot ini. Asisten slot ini juga boleh mengubahnya, ${min} sampai ${max} menit.`,
     minutes: (m: number) => `${m} menit`,
-    groups: "Jumlah Kelompok",
+    groups: "Jumlah kelompok",
     groupsHint: "Paling banyak 10",
     fewer: "Kurangi",
     more: "Tambah",
@@ -238,10 +238,10 @@ export const J = dict({
     editH: "Edit Slot",
     readOnly: "Only Managers and Admins can change the schedule. You can look at it.",
     nextDate: (tgl: string) => `This week: ${tgl}`,
-    kelas: "Class Type",
+    kelas: "Class type",
     reguler: "Regular",
     internasional: "International",
-    status: "Slot Status",
+    status: "Slot status",
     statusOpt: { aktif: "Active", segera: "Soon", libur: "Holiday", kosong: "No Practicum" },
     statusHint: {
       aktif: "The practicum runs as usual.",
@@ -250,12 +250,12 @@ export const J = dict({
       kosong:
         "No practicum in this slot for the whole semester. Orange and red follow the JADWAL sheet's colours and mean the same.",
     } as Record<string, string>,
-    warna: "Marker Colour",
+    warna: "Marker colour",
     oranye: "Orange",
     merah: "Red",
     offHidden:
       "Groups, assistants and substitutes are hidden while this slot has No Practicum. Pick another status to fill them again; what was there is kept.",
-    window: "Start Window",
+    window: "Start window",
     windowDefault: (m: number) => `Use Default (${m} Minutes)`,
     windowOwn: "Set Here",
     windowHintDefault:
@@ -263,7 +263,7 @@ export const J = dict({
     windowHintOwn: (who: string, min: number, max: number) =>
       `Set by ${who} for this slot. This slot's assistants may change it too, ${min} to ${max} minutes.`,
     minutes: (m: number) => (m === 1 ? "1 minute" : `${m} minutes`),
-    groups: "Number of Groups",
+    groups: "Number of groups",
     groupsHint: "Up to 10",
     fewer: "Fewer",
     more: "More",

@@ -428,7 +428,7 @@ export default function Settings({
               </button>
             )}
           </div>
-          <pre className="srv-log">{hasil?.keluaran ?? "·"}</pre>
+          {hasil?.keluaran != null && <pre className="srv-log">{hasil.keluaran}</pre>}
         </section>
       </div>
 

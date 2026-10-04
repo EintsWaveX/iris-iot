@@ -342,11 +342,11 @@ export default function ErrorView({
       </div>
       <h1 className="errview__title">{copy.title}</h1>
       <div className="errview__why">
-        <span className="label-caps">{t.cause}</span>
+        <span className="errview__k">{t.cause}</span>
         <p>{why ?? copy.why}</p>
       </div>
       <div className="errview__why">
-        <span className="label-caps">{t.todo}</span>
+        <span className="errview__k">{t.todo}</span>
         <p>{todo ?? copy.todo}</p>
       </div>
       {code === 500 && errorCode && (

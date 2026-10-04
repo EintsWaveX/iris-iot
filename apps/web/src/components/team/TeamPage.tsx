@@ -878,7 +878,6 @@ function PersonDrawer({
       title={w.who(p.nim)}
       description={jabatanLabel(kat0, p.divisi, lang)}
       storeKey="tim-orang"
-      defaultWidth={520}
       closeLabel={t.closeDrawer}
       resizeLabel={t.resize}
       foot={foot}

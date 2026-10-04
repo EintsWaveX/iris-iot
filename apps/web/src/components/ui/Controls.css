@@ -10,8 +10,8 @@
 
 .ctl-field__label {
   color: var(--text-muted);
-  font-size: var(--fs-small);
-  font-weight: 500;
+  font-size: 0.92rem;
+  font-weight: 650;
 }
 
 /* ------------------------------------------------------------ checkbox */

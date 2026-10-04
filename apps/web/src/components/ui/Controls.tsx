@@ -36,12 +36,12 @@ import { id as localeId, enGB, zhCN } from "date-fns/locale";
 import { format, parseISO, isValid } from "date-fns";
 import {
   CalendarBlankIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
   CheckIcon,
   CircleNotchIcon,
   ClockIcon,
   LockSimpleIcon,
-  MinusIcon,
-  PlusIcon,
   UploadSimpleIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
@@ -871,7 +871,7 @@ export function Stepper({
         disabled={value <= min}
         onClick={() => set(value - step)}
       >
-        <MinusIcon size={18} aria-hidden="true" />
+        <CaretLeftIcon size={18} aria-hidden="true" />
       </button>
       <output aria-live="polite">{fmt(value)}</output>
       <button
@@ -880,7 +880,7 @@ export function Stepper({
         disabled={value >= max}
         onClick={() => set(value + step)}
       >
-        <PlusIcon size={18} aria-hidden="true" />
+        <CaretRightIcon size={18} aria-hidden="true" />
       </button>
     </div>
   );
