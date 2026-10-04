@@ -1,20 +1,37 @@
 /**
- * The console's sticky session bar (P8.1): what is running and how far in,
- * plus every "while running" tool as a popover, so none of them needs a
- * tab: Pengumuman, Akses modul (applied at once with Undo), Presentasi,
- * Perpanjang (Phase 9: the session's length, 15 minutes from now up to
- * 150; E opens it), the server chip (opens the drawer), Laporan, and Akhiri.
+ * The console's sticky session bar (P8.1, redrawn to the Phase 9 mockup
+ * c-run): one band under the nav with what is running, the session strip
+ * (time, time left, minutes) and the tools on the right.
  *
- * Layout (the "cramped" fix): one row only from 1440px; below that the
- * title and progress share the first row and the tools get a full-width
- * second row with their labels kept, instead of shrinking to bare icons.
+ * - From 1100px the "while running" tools are icon buttons with tooltips:
+ *   Pengumuman, Akses Modul, Presentasi, Lihat Sebagai Praktikan, and the
+ *   Module 4 scoreboard. Below 1100 they share one More menu, where a pick
+ *   opens its form in the same popover.
+ * - Perpanjang (E) keeps its label, then the Server chip (opens the
+ *   drawer) and the red Akhiri.
  */
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { LockSimpleIcon, LockSimpleOpenIcon } from "@phosphor-icons/react";
+import {
+  ArrowLeftIcon,
+  ArrowSquareOutIcon,
+  DotsThreeIcon,
+  EyeIcon,
+  FlagCheckeredIcon,
+  LockSimpleIcon,
+  LockSimpleOpenIcon,
+  MegaphoneIcon,
+  PresentationChartIcon,
+  TimerIcon,
+  TrophyIcon,
+  type Icon as PhIcon,
+} from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import { Stepper, Switch } from "../ui/Controls";
+import Tooltip from "../ui/Tooltip";
+import Pill from "../ui/Pill";
 import { isTypingTarget } from "../ui/ShortcutSheet";
-import { getJson, href, jamMenit, menitBerjalan, postJson, useTick } from "../../lib/app";
+import { getJson, jamMenit, menitBerjalan, postJson, useTick } from "../../lib/app";
+import { useMinWidth } from "../../lib/hooks";
 import { durasiSesi, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { durasiPalingPendek } from "../../lib/sesi-mulai";
 import { shortcutsOn } from "../../lib/prefs";
@@ -29,16 +46,14 @@ import type { Strings } from "./strings";
 import type { ServerState } from "./data";
 import { isOnline, type SesiRunning, type View } from "./types";
 
-function Tool({
-  label,
-  badge,
+function Pop({
+  trigger,
   children,
   open,
   onOpenChange,
   width = 360,
 }: {
-  label: string;
-  badge?: ReactNode;
+  trigger: ReactNode;
   children: ReactNode;
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -46,12 +61,7 @@ function Tool({
 }) {
   return (
     <RadixPopover.Root open={open} onOpenChange={onOpenChange}>
-      <RadixPopover.Trigger asChild>
-        <button type="button" className="sbar__tool">
-          <span className="sbar__tool-label">{label}</span>
-          {badge}
-        </button>
-      </RadixPopover.Trigger>
+      {trigger}
       <RadixPopover.Portal>
         <RadixPopover.Content
           className="console-pop sweep-edge"
@@ -67,6 +77,21 @@ function Tool({
   );
 }
 
+/** An icon-only popover trigger with its tooltip. */
+function IconTrigger({ icon: I, label, open }: { icon: PhIcon; label: string; open: boolean }) {
+  return (
+    <Tooltip label={label} side="bottom">
+      <RadixPopover.Trigger asChild>
+        <button type="button" className="iconbtn" aria-label={label} aria-pressed={open}>
+          <I size={20} aria-hidden="true" />
+        </button>
+      </RadixPopover.Trigger>
+    </Tooltip>
+  );
+}
+
+type Menu = "ann" | "acc" | "deck";
+
 export default function SessionBar({
   t,
   lang,
@@ -76,6 +101,7 @@ export default function SessionBar({
   onEnd,
   onView,
   onChanged,
+  onAsPraktikan,
   announceOpen,
   setAnnounceOpen,
 }: {
@@ -87,6 +113,7 @@ export default function SessionBar({
   onEnd: () => void;
   onView: (v: View) => void;
   onChanged: () => void;
+  onAsPraktikan: () => void;
   announceOpen: boolean;
   setAnnounceOpen: (o: boolean) => void;
 }) {
@@ -94,10 +121,17 @@ export default function SessionBar({
   const berjalan = menitBerjalan(sesi.mulaiPada, now);
   const durasi = durasiSesi(sesi);
   const sisa = Math.max(0, durasi - berjalan);
-  const [pop, setPop] = useState<"acc" | "deck" | "ext" | null>(null);
+  const wide = useMinWidth(1100);
+  const [pop, setPop] = useState<Menu | "ext" | "more" | null>(null);
+  const [menu, setMenu] = useState<Menu | null>(null);
   const list = servers?.list ?? [];
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
   const ap = hotspotMenyala(servers?.detail?.denyutTerakhir?.modeJaringan);
+  // Phones and the projector reach the hunt at 192.168.4.1 on the hotspot;
+  // with the hotspot off, only the Pi's LAN address answers.
+  const lan = servers?.detail?.server.alamatLan;
+  const papanSkor =
+    servers?.detail && !ap && lan ? `http://${lan}:8080/` : "http://192.168.4.1:8080/";
   const kelas = sesi.kelas ?? "reguler";
   const hari = hariDariTanggal(sesi.tanggal);
   const ref = useRef<HTMLElement | null>(null);
@@ -130,27 +164,59 @@ export default function SessionBar({
     return () => ro.disconnect();
   }, []);
 
+  const form = (m: Menu) =>
+    m === "ann" ? (
+      <AnnounceForm t={t} lang={lang} sesi={sesi} onDone={() => setAnnounceOpen(false)} />
+    ) : m === "acc" ? (
+      <AccessForm t={t} lang={lang} />
+    ) : (
+      <DeckForm
+        t={t}
+        onManage={() => {
+          setPop(null);
+          setMenu(null);
+          onView("prep");
+        }}
+      />
+    );
+
+  // Below 1100 the A shortcut (announceOpen) opens the More menu on its form.
+  const moreOpen = pop === "more" || (!wide && announceOpen);
+  const moreView: Menu | null = !wide && announceOpen ? "ann" : menu;
+  const closeMore = () => {
+    setPop(null);
+    setMenu(null);
+    setAnnounceOpen(false);
+  };
+  const tools: { k: Menu | "see" | "skor"; icon: PhIcon; label: string }[] = [
+    { k: "ann", icon: MegaphoneIcon, label: t.announce },
+    { k: "acc", icon: LockSimpleOpenIcon, label: t.access },
+    { k: "deck", icon: PresentationChartIcon, label: t.slides },
+    { k: "see", icon: EyeIcon, label: t.viewAs },
+    ...(sesi.modul === 4 ? [{ k: "skor" as const, icon: TrophyIcon, label: t.scoreboard }] : []),
+  ];
+
   return (
     <section
       ref={ref}
-      className="sbar sweep-edge"
+      className="sbar"
       aria-label={t.running}
       style={{ "--mod-hue": `var(--mod-${sesi.modul})` } as CSSProperties}
       data-urgent={sisa <= 10 ? "yes" : undefined}
     >
       <div className="sbar__title">
         <span className="dot dot--ok dot--pulse" aria-hidden="true" />
-        <span className="sbar__mod">{modulLabel(sesi.modul, lang)}</span>
         <div className="sbar__names">
-          <h1 className="sbar__h">{t.modulNama(sesi.modul)}</h1>
+          <span className="sbar__line">
+            <Pill modul={sesi.modul}>{modulLabel(sesi.modul, lang)}</Pill>
+            <h1 className="sbar__h">{t.modulNama(sesi.modul)}</h1>
+            <Pill tone={kelas === "internasional" ? "violet" : "accent"}>{t.kelas[kelas]}</Pill>
+          </span>
           <span className="sbar__meta">
             {t.hari[hari]} ·{" "}
             {sesi.slot ? `${t.slot(sesi.slot)} · ${SLOT_MULAI[sesi.slot]}` : sesi.mulai}
           </span>
         </div>
-        <span className="pill" data-kelas={kelas}>
-          {t.kelas[kelas]}
-        </span>
       </div>
 
       <div className="sbar__prog">
@@ -163,35 +229,138 @@ export default function SessionBar({
       </div>
 
       <div className="sbar__tools">
-        <Tool label={t.announce} open={announceOpen} onOpenChange={setAnnounceOpen} width={400}>
-          <AnnounceForm t={t} lang={lang} sesi={sesi} onDone={() => setAnnounceOpen(false)} />
-        </Tool>
-        <Tool
-          label={t.access}
-          open={pop === "acc"}
-          onOpenChange={(o) => setPop(o ? "acc" : null)}
-          badge={<AccessBadge />}
-        >
-          <AccessForm t={t} lang={lang} />
-        </Tool>
-        <Tool
-          label={t.slides}
-          open={pop === "deck"}
-          onOpenChange={(o) => setPop(o ? "deck" : null)}
-        >
-          <DeckForm
-            t={t}
-            onManage={() => {
-              setPop(null);
-              onView("prep");
-            }}
-          />
-        </Tool>
-        <Tool
-          label={t.extend}
+        {wide ? (
+          <>
+            <Pop
+              open={announceOpen}
+              onOpenChange={setAnnounceOpen}
+              width={400}
+              trigger={<IconTrigger icon={MegaphoneIcon} label={t.announce} open={announceOpen} />}
+            >
+              {form("ann")}
+            </Pop>
+            <Pop
+              open={pop === "acc"}
+              onOpenChange={(o) => setPop(o ? "acc" : null)}
+              trigger={
+                <IconTrigger icon={LockSimpleOpenIcon} label={t.access} open={pop === "acc"} />
+              }
+            >
+              {form("acc")}
+            </Pop>
+            <Pop
+              open={pop === "deck"}
+              onOpenChange={(o) => setPop(o ? "deck" : null)}
+              trigger={
+                <IconTrigger icon={PresentationChartIcon} label={t.slides} open={pop === "deck"} />
+              }
+            >
+              {form("deck")}
+            </Pop>
+            <Tooltip label={t.viewAs} side="bottom">
+              <button
+                type="button"
+                className="iconbtn"
+                aria-label={t.viewAs}
+                onClick={onAsPraktikan}
+              >
+                <EyeIcon size={20} aria-hidden="true" />
+              </button>
+            </Tooltip>
+            {sesi.modul === 4 && (
+              <Tooltip label={t.scoreboard} side="bottom">
+                <a
+                  className="iconbtn"
+                  href={papanSkor}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t.scoreboard}
+                >
+                  <TrophyIcon size={20} aria-hidden="true" />
+                </a>
+              </Tooltip>
+            )}
+          </>
+        ) : (
+          <Pop
+            open={moreOpen}
+            onOpenChange={(o) => (o ? setPop("more") : closeMore())}
+            width={moreView === "ann" ? 400 : 320}
+            trigger={<IconTrigger icon={DotsThreeIcon} label={t.more} open={moreOpen} />}
+          >
+            {moreView ? (
+              <div className="stack">
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm sbar__back"
+                  onClick={() => {
+                    setMenu(null);
+                    setAnnounceOpen(false);
+                    setPop("more");
+                  }}
+                >
+                  <ArrowLeftIcon size={16} aria-hidden="true" />
+                  {t.back}
+                </button>
+                {form(moreView)}
+              </div>
+            ) : (
+              <div className="stack stack--sm">
+                <b>{t.more}</b>
+                <div className="menu" role="menu">
+                  {tools.map((x) =>
+                    x.k === "skor" ? (
+                      <a
+                        key={x.k}
+                        role="menuitem"
+                        className="menu__i"
+                        href={papanSkor}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={closeMore}
+                      >
+                        <x.icon size={18} aria-hidden="true" />
+                        {x.label}
+                        <ArrowSquareOutIcon size={14} aria-hidden="true" className="menu__end" />
+                      </a>
+                    ) : (
+                      <button
+                        key={x.k}
+                        type="button"
+                        role="menuitem"
+                        className="menu__i"
+                        onClick={() => {
+                          if (x.k === "see") {
+                            closeMore();
+                            onAsPraktikan();
+                          } else if (x.k !== "skor") setMenu(x.k);
+                        }}
+                      >
+                        <x.icon size={18} aria-hidden="true" />
+                        {x.label}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+          </Pop>
+        )}
+
+        <Pop
           open={pop === "ext"}
           onOpenChange={(o) => setPop(o ? "ext" : null)}
           width={340}
+          trigger={
+            <Tooltip label={`${t.extend} · E`} side="bottom">
+              <RadixPopover.Trigger asChild>
+                <button type="button" className="btn sbar__btn" aria-pressed={pop === "ext"}>
+                  <TimerIcon size={18} aria-hidden="true" />
+                  {t.extend}
+                </button>
+              </RadixPopover.Trigger>
+            </Tooltip>
+          }
         >
           <ExtendForm
             t={t}
@@ -203,33 +372,24 @@ export default function SessionBar({
               onChanged();
             }}
           />
-        </Tool>
-        <button type="button" className="sbar__tool" onClick={onDrawer}>
+        </Pop>
+        <button type="button" className="srvchip" onClick={onDrawer}>
           <span
             className={`dot ${online > 0 ? "dot--ok" : list.length ? "dot--danger" : "dot--off"}`}
             aria-hidden="true"
           />
-          <span className="sbar__tool-label">
-            {t.server}{" "}
-            {list.length > 0 && <span className="faint">{t.serverChip(online, list.length)}</span>}
-            {sesi.butuhAp && <span className="faint"> · {ap ? t.apOn : t.apOff}</span>}
+          {t.server}
+          <span className="hint">
+            {servers?.detail
+              ? ap
+                ? t.apStateOn
+                : t.apStateOff
+              : t.serverChip(online, list.length)}
           </span>
         </button>
-        {sesi.modul === 4 && (
-          <a
-            className="sbar__tool"
-            href="http://192.168.4.1:8080/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="sbar__tool-label">{t.scoreboard}</span>
-          </a>
-        )}
-        <a className="sbar__tool" href={href(lang, `/reports?sesi=${sesi.id}`)}>
-          <span className="sbar__tool-label">{t.report}</span>
-        </a>
-        <button type="button" className="btn btn--danger sbar__end" onClick={onEnd}>
-          <span className="btn__label">{t.end}</span>
+        <button type="button" className="btn btn--danger sbar__btn" onClick={onEnd}>
+          <FlagCheckeredIcon size={18} aria-hidden="true" />
+          {t.endShort}
         </button>
       </div>
     </section>
@@ -424,12 +584,6 @@ export function useAkses() {
     return () => window.removeEventListener("iris:akses-berubah", load);
   }, []);
   return { terbuka, setTerbuka, meta };
-}
-
-function AccessBadge() {
-  const { terbuka } = useAkses();
-  if (!terbuka.length) return null;
-  return <span className="sbar__badge mono">{terbuka.join(" ")}</span>;
 }
 
 export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: boolean }) {

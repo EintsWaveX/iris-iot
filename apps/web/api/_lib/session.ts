@@ -8,6 +8,9 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { parseCookies } from "./http.js";
 import { readSessionCookie, type SessionPayload } from "../../src/lib/auth.js";
 import { currentSesi } from "../../src/lib/sesi.js";
+import { getDb } from "../../src/lib/db.js";
+import { anggota } from "../../src/lib/schema.js";
+import { eq } from "drizzle-orm";
 
 export function currentSession(req: ApiRequest): SessionPayload | null {
   const cookies = parseCookies(req);
@@ -61,6 +64,20 @@ export async function requireCurrentPraktikanSesi(
   if (running && session.sesiId !== running.id) {
     res.status(401).json({ ok: false, kode: "sesi_berganti" });
     return null;
+  }
+  // Phase 9: an Asisten moved this student to another group during the
+  // session (api/_lib/sesi-hadir.ts). The cookie still names the old one,
+  // so they sign in again and land in the new group.
+  if (running && session.kelompokId) {
+    const [r] = await getDb()
+      .select({ kelompokId: anggota.kelompokId })
+      .from(anggota)
+      .where(eq(anggota.nim, session.nim))
+      .limit(1);
+    if (r && r.kelompokId !== session.kelompokId) {
+      res.status(401).json({ ok: false, kode: "sesi_berganti" });
+      return null;
+    }
   }
   return session;
 }

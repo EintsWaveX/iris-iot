@@ -8,7 +8,7 @@ const pesanZh = ["", "条 BLE 消息", "条 WebSocket 消息", "条 MQTT 消息"
 export const H = dict({
   id: {
     eyebrow: "Praktikum IoT · Laboratorium IRIS",
-    title: "Empat modul. Satu papan.",
+    title: "Empat Modul. Satu Papan.",
     lede: "Bluetooth, WebSocket, MQTT dan LoRa. Di sini kamu membaca modul, mengerjakan jurnal saat sesi, dan melihat data dari papanmu secara langsung.",
     masuk: "Masuk",
     browse: "Lihat Modul",
@@ -39,7 +39,7 @@ export const H = dict({
     here: "praktikan hadir",
     blanks: "blank kode terisi",
     pesan: (m: number) => pesanId[m] ?? "pesan",
-    flowTitle: "Satu Sesi Praktikum, dari Awal sampai Akhir",
+    flowTitle: "Satu Sesi Praktikum, dari Awal Sampai Akhir",
     before: "Sebelum Sesi",
     during: "Saat Sesi",
     after: "Sesudah Sesi",
@@ -63,7 +63,7 @@ export const H = dict({
   },
   en: {
     eyebrow: "IoT Practicum · IRIS Laboratory",
-    title: "Four modules. One board.",
+    title: "Four Modules. One Board.",
     lede: "Bluetooth, WebSocket, MQTT and LoRa. Here you read the modules, do the journal during your session, and watch data from your board live.",
     masuk: "Sign In",
     browse: "Browse Modules",

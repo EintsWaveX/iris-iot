@@ -12,6 +12,10 @@
  *   banner with its switch, and edits the Brief in place.
  * - done (a Praktikan who has done this module): the same five steps, read
  *   only, the last one being Captures and Scores.
+ * - Lihat Sebagai Praktikan (`?lihat=N` from the Console, an Asisten on the
+ *   running module): the five steps as group N sees them. The Asisten who
+ *   holds N fills blanks, connects ports and captures for it; any other
+ *   Asisten only looks.
  *
  * The step is mirrored into ?step= so a step is bookmarkable, and
  * `iris:go-step` (detail: a step id) moves to it from anywhere on the page.
@@ -24,6 +28,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  ArrowLeftIcon,
   ArrowRightIcon,
   BookOpenTextIcon,
   BroadcastIcon,
@@ -31,6 +36,7 @@ import {
   CircuitryIcon,
   CodeIcon,
   DoorOpenIcon,
+  EyeIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
   NoteIcon,
@@ -94,6 +100,59 @@ const ICON: Record<Step, ReactNode> = {
   live: <BroadcastIcon aria-hidden="true" />,
 };
 
+/** Lihat Sebagai Praktikan: the group an Asisten views the page as. */
+export interface Wakil {
+  nomor: number;
+  /** This Asisten holds the group: full control. */
+  own: boolean;
+  sesiId: number;
+  /** "Name (CODE)" of whoever holds it. */
+  pemegang: string | null;
+}
+
+interface LabSaya {
+  ok: boolean;
+  sesi: { modul: number; kelompok: number } | null;
+  pegang?: number[];
+  sesiId?: number;
+  pemegang?: Record<string, string>;
+}
+
+/** `?lihat=N` for an Asisten: undefined while loading, null when it does not apply. */
+function useWakil(modul: number, asisten: boolean): Wakil | null | undefined {
+  const [lihat] = useState(() =>
+    typeof location === "undefined"
+      ? NaN
+      : Number(new URLSearchParams(location.search).get("lihat")),
+  );
+  const minta = asisten && Number.isInteger(lihat) && lihat >= 1;
+  const [w, setW] = useState<Wakil | null | undefined>(undefined);
+  useEffect(() => {
+    if (!minta) return;
+    let alive = true;
+    getJson<LabSaya>("/api/session/lab?saya=1")
+      .then((d) => {
+        if (!alive) return;
+        const s = d.ok ? d.sesi : null;
+        setW(
+          s && s.modul === modul && lihat <= s.kelompok && d.sesiId
+            ? {
+                nomor: lihat,
+                own: (d.pegang ?? []).includes(lihat),
+                sesiId: d.sesiId,
+                pemegang: d.pemegang?.[lihat] ?? null,
+              }
+            : null,
+        );
+      })
+      .catch(() => alive && setW(null));
+    return () => {
+      alive = false;
+    };
+  }, [minta, modul, lihat]);
+  return minta ? w : null;
+}
+
 function stepFromUrl(steps: Step[]): Step | null {
   const s = new URLSearchParams(location.search).get("step") as Step | null;
   return s && steps.includes(s) ? s : null;
@@ -122,16 +181,23 @@ export default function ModuleSteps(p: Props) {
       .catch(() => setMine([]));
   }, [me]);
 
+  const wakil = useWakil(modul, me?.role === "asisten");
+  const [lihatGagal] = useState(
+    () => typeof location !== "undefined" && new URLSearchParams(location.search).has("lihat"),
+  );
   const sesi = now.data;
   const mySession = me?.role === "praktikan" && sesi && sesi.milikSaya !== false ? sesi : null;
   const loading =
     me === undefined ||
     akses === null ||
+    wakil === undefined ||
     (me?.role === "praktikan" && now.updatedAt === null && now.errors === 0);
 
   const mode: Mode =
     me?.role === "asisten"
-      ? "asisten"
+      ? wakil
+        ? "now"
+        : "asisten"
       : mySession
         ? mySession.modul === modul
           ? "now"
@@ -197,6 +263,25 @@ export default function ModuleSteps(p: Props) {
 
   return (
     <div className="stack stack--lg modsteps">
+      {wakil && (
+        <div className={`banner modsteps__viewas ${wakil.own ? "banner--ok" : ""}`}>
+          <EyeIcon aria-hidden="true" />
+          <b>{wakil.own ? t.viewedOwn(wakil.nomor) : t.viewedOther(wakil.nomor)}</b>
+          <span className="hint grow">
+            {wakil.own ? t.viewedOwnHint : t.viewedOtherHint(wakil.pemegang)}
+          </span>
+          <a className="btn btn--sm btn--ghost" href={href(lang, "/session")}>
+            <ArrowLeftIcon aria-hidden="true" />
+            {t.backToSession}
+          </a>
+        </div>
+      )}
+      {mode === "asisten" && lihatGagal && (
+        <div className="banner banner--warn">
+          <EyeIcon aria-hidden="true" />
+          <span>{t.viewedEnded}</span>
+        </div>
+      )}
       {mode === "asisten" && (
         <div className={`banner modsteps__access ${open ? "banner--ok" : "banner--warn"}`}>
           {open ? <LockSimpleOpenIcon aria-hidden="true" /> : <LockSimpleIcon aria-hidden="true" />}
@@ -254,7 +339,11 @@ export default function ModuleSteps(p: Props) {
             }}
           >
             {ICON[s]}
-            <span className="modsteps__label">{label[s]}</span>
+            {/* Browse numbers the three steps (mockup m-browse); the five
+                session steps are not numbered (p-module). */}
+            <span className="modsteps__label">
+              {mode === "browse" ? `${i + 1} ${label[s]}` : label[s]}
+            </span>
           </button>
         ))}
       </div>
@@ -285,11 +374,12 @@ export default function ModuleSteps(p: Props) {
               mcu={p.mcu}
               skema={p.skema}
               code={p.code}
+              wakil={wakil ?? undefined}
             />
           ) : mode === "done" ? (
             <Done lang={lang} modul={modul} done={done} />
           ) : (
-            <LiveRoom lang={lang} modul={modul} layers={p.layers} />
+            <LiveRoom lang={lang} modul={modul} layers={p.layers} wakil={wakil ?? undefined} />
           )}
         </Fade>
       </div>

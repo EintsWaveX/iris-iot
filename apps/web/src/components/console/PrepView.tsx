@@ -25,7 +25,7 @@ import { DateField, Stepper, TimeField } from "../ui/Controls";
 import { getJson, href, namaKelompok, postJson, tanggalPanjang } from "../../lib/app";
 import { hariIniWib, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
-import { hariLabel, modulLabel } from "../../lib/labels";
+import { hariLabel, modulLabel, slotLabel } from "../../lib/labels";
 import type { Kelas, Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import { AccessForm } from "./SessionBar";
@@ -68,6 +68,7 @@ export default function PrepView({
   onChanged,
   onBack,
   pilih = null,
+  tab0 = "roster",
 }: {
   t: Strings;
   lang: Lang;
@@ -81,9 +82,11 @@ export default function PrepView({
   onBack?: () => void;
   /** The roster to open first ("4-3" for a slot, "d12" for a draft). */
   pilih?: string | null;
+  /** The tab to open first. */
+  tab0?: Tab;
 }) {
   const p = P[lang];
-  const [tab, setTab] = useState<Tab>("roster");
+  const [tab, setTab] = useState<Tab>(tab0);
   const [jadwal, setJadwal] = useState<JadwalRow[] | null>(null);
   const [draf, setDraf] = useState<Draf[]>([]);
   const [sel, setSel] = useState<string | null>(pilih);
@@ -157,7 +160,7 @@ export default function PrepView({
       return d ? p.draftOpt(tanggalPanjang(d.tanggal, lang), d.mulai) : "";
     }
     const [h, s] = v.split("-").map(Number);
-    return `${hariLabel(h, lang)} slot ${s}`;
+    return `${hariLabel(h, lang)} ${slotLabel(s, lang)}`;
   };
 
   const options = [
@@ -461,11 +464,13 @@ function NewDraftDialog({
 
 /* ------------------------------------------------------------ assignment */
 
-function AssignmentPanel({
+/** Changing a group's assistant during a session, shared by the roster
+ *  tab's assignment list and the live Preparation view: a free group is
+ *  set straight away, a held one goes through the reason dialog. */
+export function usePairing({
   t,
   lang,
   sesi,
-  roster,
   assign,
   meNim,
   onChanged,
@@ -473,18 +478,14 @@ function AssignmentPanel({
   t: Strings;
   lang: Lang;
   sesi: SesiRunning;
-  roster: RosterGroup[];
   assign: Penugasan | null;
   meNim: string;
   onChanged: () => void;
 }) {
   const byGroup = new Map((assign?.penugasan ?? []).map((p) => [p.kelompokId, p.asistenNim]));
-  const holds = new Map<string, number>();
-  for (const nim of byGroup.values()) holds.set(nim, (holds.get(nim) ?? 0) + 1);
-  const groups = roster.filter((g) => g.aktif !== false);
-  // A group that already has an assistant changes through the reason
-  // dialog (Phase 9); a free one is set straight away.
-  const [ask, setAsk] = useState<{ g: RosterGroup; cur: string; pick: string } | null>(null);
+  const [ask, setAsk] = useState<{ id: number; nomor: number; cur: string; pick: string } | null>(
+    null,
+  );
   const pasangan = usePasangan(sesi.id);
   const byNim = useMemo(() => new Map((assign?.asisten ?? []).map((a) => [a.nim, a])), [assign]);
   const awalOf = (kelompokId: number) => {
@@ -512,6 +513,59 @@ function AssignmentPanel({
     }
   }
 
+  const pick = (g: { id: number; nomor: number }, x: AsistenRef | null) => {
+    const nim = byGroup.get(g.id) ?? null;
+    if (!x || x.nim === nim) return;
+    if (nim) setAsk({ id: g.id, nomor: g.nomor, cur: nim, pick: x.nim });
+    else void set(g.id, g.nomor, x.nim);
+  };
+
+  const dialog = ask && (
+    <ChangeAssistant
+      t={t}
+      lang={lang}
+      open
+      onOpenChange={(o) => !o && setAsk(null)}
+      sesiId={sesi.id}
+      kelompokId={ask.id}
+      nomor={ask.nomor}
+      cur={ask.cur}
+      awal={awalOf(ask.id)}
+      meNim={meNim}
+      asisten={byNim}
+      pick={ask.pick}
+      onDone={() => {
+        pasangan.reload();
+        onChanged();
+      }}
+    />
+  );
+
+  return { byGroup, byNim, awalOf, pick, dialog };
+}
+
+function AssignmentPanel({
+  t,
+  lang,
+  sesi,
+  roster,
+  assign,
+  meNim,
+  onChanged,
+}: {
+  t: Strings;
+  lang: Lang;
+  sesi: SesiRunning;
+  roster: RosterGroup[];
+  assign: Penugasan | null;
+  meNim: string;
+  onChanged: () => void;
+}) {
+  const pair = usePairing({ t, lang, sesi, assign, meNim, onChanged });
+  const holds = new Map<string, number>();
+  for (const nim of pair.byGroup.values()) holds.set(nim, (holds.get(nim) ?? 0) + 1);
+  const groups = roster.filter((g) => g.aktif !== false);
+
   return (
     <section className="panel">
       <div className="panel__head">
@@ -523,7 +577,7 @@ function AssignmentPanel({
       {!assign?.jadwal && <p className="hint">{t.noSchedule}</p>}
       <ul className="assign">
         {groups.map((g) => {
-          const nim = byGroup.get(g.id) ?? null;
+          const nim = pair.byGroup.get(g.id) ?? null;
           const a = nim ? (assign?.asisten.find((x) => x.nim === nim) ?? null) : null;
           const n = nim ? (holds.get(nim) ?? 0) : 0;
           return (
@@ -548,41 +602,18 @@ function AssignmentPanel({
                 me={meNim}
                 assign={assign}
                 slotIndex={g.nomor - 1}
-                onPick={(x) => {
-                  if (!x || x.nim === nim) return;
-                  if (nim) setAsk({ g, cur: nim, pick: x.nim });
-                  else void set(g.id, g.nomor, x.nim);
-                }}
+                onPick={(x) => pair.pick(g, x)}
               />
             </li>
           );
         })}
       </ul>
-      {ask && (
-        <ChangeAssistant
-          t={t}
-          lang={lang}
-          open
-          onOpenChange={(o) => !o && setAsk(null)}
-          sesiId={sesi.id}
-          kelompokId={ask.g.id}
-          nomor={ask.g.nomor}
-          cur={ask.cur}
-          awal={awalOf(ask.g.id)}
-          meNim={meNim}
-          asisten={byNim}
-          pick={ask.pick}
-          onDone={() => {
-            pasangan.reload();
-            onChanged();
-          }}
-        />
-      )}
+      {pair.dialog}
     </section>
   );
 }
 
-function AssistantPicker({
+export function AssistantPicker({
   t,
   value,
   me,

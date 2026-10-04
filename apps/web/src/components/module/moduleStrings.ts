@@ -26,6 +26,16 @@ export const M = dict({
     seeAll: "Kamu tetap melihat semua langkah.",
     access: (n: number) => `Akses Modul ${n}`,
     history: "Riwayat",
+    viewedOwn: (n: number) => `Dilihat sebagai Kelompok ${n}, kelompokmu`,
+    viewedOther: (n: number) => `Dilihat sebagai Kelompok ${n} · hanya melihat`,
+    viewedOwnHint:
+      "Kamu bisa sambung port, tangkap data, dan isi blank seperti praktikan. Isianmu tercatat atas namamu, dan kelompok melihatnya sebagai 'diisi asisten'.",
+    viewedOtherHint: (who: string | null) =>
+      who
+        ? `Kelompok ini dipegang ${who}. Isian, sambung port dan tangkapan dimatikan.`
+        : "Kelompok ini belum dipegang asisten. Isian, sambung port dan tangkapan dimatikan.",
+    viewedEnded: "Lihat Sebagai Praktikan hanya untuk modul yang sesinya sedang berjalan.",
+    backToSession: "Kembali ke Sesi",
     finishedOn: (tgl: string) => `Selesai ${tgl}. Semua tampil, tidak bisa diubah.`,
     lockedTitle: (m: string) => `Jurnal ${m} belum terbuka untukmu`,
     lockedBody:
@@ -85,6 +95,16 @@ export const M = dict({
     seeAll: "You still see every step.",
     access: (n: number) => `Module ${n} access`,
     history: "History",
+    viewedOwn: (n: number) => `Viewed as Group ${n}, your group`,
+    viewedOther: (n: number) => `Viewed as Group ${n} · view only`,
+    viewedOwnHint:
+      "You can connect ports, capture data and fill blanks like a student. Your answers are logged under your name, and the group sees them as 'filled by your assistant'.",
+    viewedOtherHint: (who: string | null) =>
+      who
+        ? `${who} holds this group. Answers, port connections and captures are off.`
+        : "No assistant holds this group yet. Answers, port connections and captures are off.",
+    viewedEnded: "View as a Student only works for the module whose session is running.",
+    backToSession: "Back to the Session",
     finishedOn: (tgl: string) => `Finished ${tgl}. Everything shows, nothing can change.`,
     lockedTitle: (m: string) => `The ${m} journal isn't open for you yet`,
     lockedBody:
@@ -143,6 +163,16 @@ export const M = dict({
     seeAll: "你仍然能看到每一步。",
     access: (n: number) => `模块 ${n} 权限`,
     history: "记录",
+    viewedOwn: (n: number) => `以第 ${n} 组的身份查看，你的组`,
+    viewedOther: (n: number) => `以第 ${n} 组的身份查看 · 只能查看`,
+    viewedOwnHint:
+      "你可以像学员一样连接串口、采集数据和填写空格。你的填写记在你的名下，小组看到的是“助教填写”。",
+    viewedOtherHint: (who: string | null) =>
+      who
+        ? `这个组由 ${who} 负责。填写、连接串口和采集都已关闭。`
+        : "这个组还没有助教负责。填写、连接串口和采集都已关闭。",
+    viewedEnded: "以学员身份查看只适用于正在进行的实验课的模块。",
+    backToSession: "返回实验课",
     finishedOn: (tgl: string) => `${tgl}完成。全部都能看，但不能再改。`,
     lockedTitle: (m: string) => `${m}的日志还没对你开放`,
     lockedBody: "上过这个模块的实验课后，日志就会打开。模块本身谁都可以读。",

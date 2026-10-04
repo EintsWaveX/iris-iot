@@ -12,7 +12,7 @@ import {
   InfoIcon,
   PlusIcon,
 } from "@phosphor-icons/react";
-import { localeOf, namaKelompok, tanggalPanjang } from "../../lib/app";
+import { localeOf, namaKelompok, tanggalPanjang, titikDua } from "../../lib/app";
 import { rupiah } from "../../lib/bayar";
 import { hariLabel, kelasLabel, kelompokLabel, modulLabel, slotLabel } from "../../lib/labels";
 import type { Blok } from "../../lib/laporan";
@@ -244,13 +244,15 @@ function Grafik({ v, t, lang }: { v: VChart; t: Tx; lang: Lang }) {
     .join(" ");
   const unit = v.ukuran === "suhu" ? "°C" : "%";
   const jam = (ms: number) =>
-    new Date(ms).toLocaleString(localeOf(lang), {
-      hour: "2-digit",
-      minute: "2-digit",
-      day: "numeric",
-      month: "long",
-      timeZone: "Asia/Jakarta",
-    });
+    titikDua(
+      new Date(ms).toLocaleString(localeOf(lang), {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "numeric",
+        month: "long",
+        timeZone: "Asia/Jakarta",
+      }),
+    );
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}

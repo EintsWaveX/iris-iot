@@ -198,6 +198,7 @@ export function CaptureDialog({
   open,
   onOpenChange,
   onSaved,
+  kelompok,
 }: {
   lang: Lang;
   modul: number;
@@ -206,6 +207,8 @@ export function CaptureDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onSaved: () => void;
+  /** Lihat Sebagai Praktikan: the group an Asisten saves for. */
+  kelompok?: number;
 }) {
   const t = CV[lang];
   const wide = useMinWidth(640);
@@ -263,7 +266,7 @@ export function CaptureDialog({
         const r = await fetch("/api/session/tangkapan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ modul, ...j }),
+          body: JSON.stringify({ modul, ...j, ...(kelompok ? { kelompok } : {}) }),
         });
         const d = (await r.json().catch(() => ({ ok: false }))) as { ok: boolean; kode?: string };
         if (!d.ok) {
@@ -401,14 +404,22 @@ export interface Tangkapan {
   dibuatPada: string;
 }
 
-/** A Praktikan's saved captures for one module (their own group). */
-export function useTangkapan(modul: number, enabled: boolean) {
+/** A Praktikan's saved captures for one module (their own group), or, for
+ *  an Asisten acting for a group (`wakil`), that group's in this session. */
+export function useTangkapan(
+  modul: number,
+  enabled: boolean,
+  wakil?: { sesiId: number; nomor: number } | null,
+) {
   const [rows, setRows] = useState<Tangkapan[] | null>(null);
   const [n, setN] = useState(0);
+  const url = wakil
+    ? `/api/session/tangkapan?sesi=${wakil.sesiId}&kelompok=${wakil.nomor}`
+    : `/api/session/tangkapan?modul=${modul}`;
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
-    fetch(`/api/session/tangkapan?modul=${modul}`)
+    fetch(url)
       .then((r) => r.json())
       .then((d: { ok: boolean; tangkapan?: Tangkapan[] }) => {
         if (alive) setRows(d.ok ? (d.tangkapan ?? []) : []);
@@ -417,7 +428,7 @@ export function useTangkapan(modul: number, enabled: boolean) {
     return () => {
       alive = false;
     };
-  }, [modul, enabled, n]);
+  }, [url, enabled, n]);
   return { rows, reload: () => setN((x) => x + 1) };
 }
 

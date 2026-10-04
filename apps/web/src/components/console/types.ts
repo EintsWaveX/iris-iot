@@ -59,6 +59,8 @@ export interface GroupRow {
     delayMinMs: number | null;
     delayMedianMs: number | null;
     delayMaxMs: number | null;
+    delayRataMs?: number | null;
+    hilangPct?: number | null;
   };
 }
 
@@ -117,6 +119,8 @@ export interface ServerRow {
   id: number;
   nama: string;
   kode: string;
+  /** The Pi's own LAN address, reported by the agent. */
+  alamatLan?: string | null;
   denyutTerakhir: Heartbeat | null;
   batasLuringDetik: number;
 }

@@ -5,7 +5,7 @@
  * "Mark as Transferred" and Undo, the unit rates, the Uang Kas card, and
  * the semester ledger with an XLSX export.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { CheckIcon, FileXlsIcon, FloppyDiskIcon } from "@phosphor-icons/react";
 import { tanggalPanjang } from "../../lib/app";
 import { jumlahkan, namaPeriode, rupiah } from "../../lib/bayar";
@@ -76,12 +76,15 @@ export default function PayBoard({
   nama,
   orang,
   reload,
+  siapa,
 }: {
   lang: Lang;
   data: BayarData;
   nama: (nim: string | null) => string;
   orang: { nim: string; label: string }[];
   reload: () => void;
+  /** The ledger's person cell (code, name, role), as on the Team list. */
+  siapa?: (nim: string) => ReactNode;
 }) {
   const t = B[lang];
   const [rate, setRate] = useState({
@@ -274,7 +277,7 @@ export default function PayBoard({
               <tbody>
                 {ledger.map((r) => (
                   <tr key={r.nim}>
-                    <td>{nama(r.nim)}</td>
+                    <td>{siapa ? siapa(r.nim) : nama(r.nim)}</td>
                     <td className="num">
                       {r.j.reguler} + {r.j.internasional}
                     </td>

@@ -27,6 +27,7 @@ import {
 import { durasiSesi } from "../../lib/jadwal";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
+import Pill from "../ui/Pill";
 import SessionStrip from "./SessionStrip";
 import "./SessionMiniBar.css";
 
@@ -36,7 +37,7 @@ const T = dict({
     left: (m: number) => `sisa ${m} menit`,
     bell: "Pengumuman",
     none: "Belum ada pengumuman di sesi ini.",
-    help: "Minta bantuan",
+    help: "Minta Bantuan",
     helpOn: "Menunggu asisten",
     helpSent: "Tangan terangkat. Asisten kelompokmu melihatnya di papan.",
     helpOff: "Permintaan bantuan dibatalkan.",
@@ -54,7 +55,7 @@ const T = dict({
     left: (m: number) => `${m} minutes left`,
     bell: "Announcements",
     none: "No announcements in this session yet.",
-    help: "Ask for help",
+    help: "Ask for Help",
     helpOn: "Waiting for assistant",
     helpSent: "Hand raised. Your group's assistant sees it on the board.",
     helpOff: "Help request cancelled.",
@@ -231,7 +232,7 @@ export default function SessionMiniBar({
     >
       <a className="minibar__mod" href={href(lang, `/modules/${s.modul}`)} aria-label={t.open}>
         <span className="minibar__dot" aria-hidden="true" />
-        <span className="minibar__chip">{modulLabel(s.modul, lang)}</span>
+        <Pill modul={s.modul}>{modulLabel(s.modul, lang)}</Pill>
         <b className="minibar__name">{MODUL_SINGKAT[s.modul]}</b>
       </a>
       {s.kelas === "internasional" && <span className="pill pill--violet">{t.kelas}</span>}

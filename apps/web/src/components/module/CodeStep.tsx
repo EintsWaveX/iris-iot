@@ -34,9 +34,11 @@ interface Props {
   mcu: string;
   skema: string;
   code: CodeProps;
+  /** Lihat Sebagai Praktikan: the group an Asisten acts for. */
+  wakil?: { nomor: number; own: boolean };
 }
 
-export default function CodeStep({ lang, mode, pin, mcu, skema, code }: Props) {
+export default function CodeStep({ lang, mode, pin, mcu, skema, code, wakil }: Props) {
   const t = C[lang];
   const wide = useMinWidth(1280, true);
   const [active, setActive] = useState(code.berkas[0]?.slug ?? "");
@@ -87,6 +89,12 @@ export default function CodeStep({ lang, mode, pin, mcu, skema, code }: Props) {
           <Switch on={showKeys} onChange={setShowKeys} label={t.showKeys} />
         </div>
       )}
+      {wakil && !wakil.own && (
+        <div className="banner banner--lock">
+          <EyeIcon aria-hidden="true" />
+          <span>{t.viewOnly}</span>
+        </div>
+      )}
       {code.berkas.map((f) => (
         <div key={f.slug} hidden={f.slug !== active}>
           <BlankFile
@@ -102,6 +110,7 @@ export default function CodeStep({ lang, mode, pin, mcu, skema, code }: Props) {
             onPins={togglePins}
             wide={wide}
             side={f.slug === active ? side : undefined}
+            wakil={wakil}
           />
         </div>
       ))}

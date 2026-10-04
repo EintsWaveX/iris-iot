@@ -21,11 +21,11 @@ import type { LogLine } from "./useSerialBoard";
 import { LV } from "./liveStrings";
 import DataModal, { type DataKind } from "./DataModal";
 
-const dash = (v: number | string | null | undefined) => (v === null || v === undefined ? "-" : v);
+const dash = (v: number | string | null | undefined) => (v === null || v === undefined ? "·" : v);
 
 /* ------------------------------------------------------------ visuals */
 
-function Spark({ vals }: { vals: number[] }) {
+export function Spark({ vals }: { vals: number[] }) {
   if (vals.length < 2) return <span className="vspark" aria-hidden="true" />;
   const lo = Math.min(...vals);
   const hi = Math.max(...vals);
@@ -53,7 +53,7 @@ function Dial({ p }: { p: number }) {
   );
 }
 
-function VCard({
+export function VCard({
   label,
   v,
   unit,
@@ -78,7 +78,7 @@ function VCard({
       <span className="vcard__l">{label}</span>
       <span className="vcard__v num">
         {v}
-        {unit && v !== "-" && <small>{unit}</small>}
+        {unit && v !== "·" && <small>{unit}</small>}
       </span>
       {children}
       {sub && <span className="vcard__s">{sub}</span>}
@@ -201,14 +201,14 @@ export function ValueCards({
       <div className="vcards">
         <VCard
           label={t.ledState}
-          v={led === null ? "-" : led ? t.on : t.off}
+          v={led === null ? "·" : led ? t.on : t.off}
           unit={led === null ? undefined : `(${led})`}
           tone={led ? "ok" : undefined}
           sub={t.fromPeripheral}
         />
         <VCard
           label={t.button}
-          v={tombol === null ? "-" : tombol ? t.pressed : t.released}
+          v={tombol === null ? "·" : tombol ? t.pressed : t.released}
           sub={t.onCentral}
         />
         <TimeCard label={t.times} r={last} a="Central" b="Peripheral" />
@@ -243,7 +243,7 @@ export function ValueCards({
         <VCard label={t.position} v={dash(pos)} unit="%" {...buka("posisi", t.position)}>
           {pos !== null && <Dial p={pos} />}
         </VCard>
-        <VCard label={t.sampleNo} v={last ? `#${last.seq}` : "-"} sub={t.sampleSub} />
+        <VCard label={t.sampleNo} v={last ? `#${last.seq}` : "·"} sub={t.sampleSub} />
         <TimeCard label={t.times} r={last} a="Publisher" b="Subscriber" />
         {delay}
         {quality}
@@ -448,7 +448,7 @@ export function FlowPane({ lang, records }: { lang: Lang; records: LiveRecord[] 
                 }}
               />
             </span>
-            <b className="num">{r.lost ? t.lost : d === null ? "-" : `${d} ms`}</b>
+            <b className="num">{r.lost ? t.lost : d === null ? "·" : `${d} ms`}</b>
           </div>
         );
       })}

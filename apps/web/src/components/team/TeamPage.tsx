@@ -68,6 +68,7 @@ import { SLOT_MULAI } from "../../lib/jadwal";
 import type { Kelas, Lang } from "../../lib/kelas";
 import { T, type Tx } from "./strings";
 import "../ui/Tabs.css";
+import TierBadge from "../ui/TierBadge";
 import "./team.css";
 
 /* ---------------------------------------------------------------- data */
@@ -193,9 +194,20 @@ export default function TeamPage({ lang }: { lang: Lang }) {
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [tab, setTab0] = useState<TabTim>("orang");
+  // The tab follows the hash on load and on a same-page link (Console's
+  // "Penugasan" link, the command palette), like the Server page.
   useEffect(() => {
-    if (location.hash === "#penugasan") setTab0("penugasan");
-    if (location.hash === "#pembayaran") setTab0("bayar");
+    const on = () =>
+      setTab0(
+        location.hash === "#penugasan"
+          ? "penugasan"
+          : location.hash === "#pembayaran"
+            ? "bayar"
+            : "orang",
+      );
+    on();
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
   }, []);
   const setTab = (v: TabTim) => {
     setTab0(v);
@@ -329,6 +341,23 @@ export default function TeamPage({ lang }: { lang: Lang }) {
               .map((o) => ({ nim: o.nim, label: nama(o.nim) }))
               .sort((a, b) => a.label.localeCompare(b.label))}
             reload={() => void bayar.load()}
+            siapa={(nim) => {
+              const o = data.orang.find((x) => x.nim === nim);
+              if (!o) return nama(nim);
+              return (
+                <span className="who">
+                  <span className={`acode${nim === me.nim ? " acode--me" : ""}`}>
+                    {o.kode ?? "?"}
+                  </span>
+                  <span className="who__text">
+                    <b>{o.nama}</b>
+                    <span className="hint">
+                      {jabatanLabel(kategoriOf(data, nim), o.divisi, lang)}
+                    </span>
+                  </span>
+                </span>
+              );
+            }}
           />
         ) : bayar.fail ? (
           <ErrorView code={500} lang={lang} onRetry={() => void bayar.load()} />
@@ -358,10 +387,6 @@ export default function TeamPage({ lang }: { lang: Lang }) {
 }
 
 /* ------------------------------------------------------------- badges */
-
-function TierBadge({ tier, lang }: { tier: Tier; lang: Lang }) {
-  return <span className={`tier tier--${tier}`}>{tierLabel(tier, lang)}</span>;
-}
 
 function PersonBadges({ badges, t, sm }: { badges: string[]; t: Tx; sm?: boolean }) {
   return (

@@ -13,6 +13,10 @@
  *   1600 wide, Serial and Flow sit side by side with Readings below;
  *   narrower, one card with a tab line.
  *
+ * Lihat Sebagai Praktikan (`wakil`): the room is fixed on that group. The
+ * Asisten who holds it gets the ports, captures and uploads a Praktikan
+ * would (saved under their own name); any other Asisten only looks.
+ *
  * Records (live-records.ts) pair the boards' lines with the Pi's rows by
  * message number, so send, receive, one-way and round-trip come out the
  * way the journal wants them.
@@ -28,6 +32,7 @@ import {
   ArrowClockwiseIcon,
   ClockIcon,
   CameraIcon,
+  EyeIcon,
 } from "@phosphor-icons/react";
 import GroupPicker from "../ui/GroupPicker";
 import SegmentedControl from "../ui/SegmentedControl";
@@ -163,16 +168,21 @@ export default function LiveRoom({
   lang,
   modul,
   layers,
+  wakil,
 }: {
   lang: Lang;
   modul: number;
   layers: Layer[];
+  /** Lihat Sebagai Praktikan: the group an Asisten views the room as. */
+  wakil?: { nomor: number; own: boolean; sesiId: number };
 }) {
   const t = LV[lang];
   const tc = CV[lang];
   const me = useMe();
   const praktikan = me?.role === "praktikan";
-  const ownGroup = praktikan ? (me?.kelompok ?? null) : null;
+  // The Asisten holding the viewed group acts for it, like a Praktikan would.
+  const acting = !!wakil?.own;
+  const ownGroup = praktikan ? (me?.kelompok ?? null) : wakil ? wakil.nomor : null;
   const sesiNow = useSessionNow(60_000);
   const jumlah = sesiNow.data?.jumlahKelompok ?? KELOMPOK_DEFAULT;
   const GROUPS = useMemo(() => Array.from({ length: jumlah }, (_, i) => i + 1), [jumlah]);
@@ -193,7 +203,9 @@ export default function LiveRoom({
   }, [ownGroup, picked, GROUPS]);
 
   const own = ownGroup !== null && group === ownGroup;
-  const canPorts = praktikan && own;
+  const canPorts = (praktikan || acting) && own;
+  /** Sent with every write when an Asisten acts for the group. */
+  const wakilBody = acting && wakil ? { kelompok: wakil.nomor } : {};
 
   // Board lines and events from this laptop, kept for the own group only.
   const slots = BOARDS[modul] ?? BOARDS[1];
@@ -207,7 +219,11 @@ export default function LiveRoom({
   const [lastBoard, setLastBoard] = useState<number | null>(null);
   const mirrorQ = useRef<MirrorLine[]>([]);
   const [capOpen, setCapOpen] = useState(false);
-  const saved = useTangkapan(modul, canPorts);
+  const saved = useTangkapan(
+    modul,
+    canPorts,
+    acting && wakil ? { sesiId: wakil.sesiId, nomor: wakil.nomor } : null,
+  );
 
   useEffect(() => {
     pairer.current = new Modul1Pairer(ownGroup ?? 1);
@@ -243,7 +259,7 @@ export default function LiveRoom({
 
   // Module 1: the Central's readings go up so the Asisten and groupmates see them.
   useEffect(() => {
-    if (modul !== 1 || !praktikan || !anyOpen) return;
+    if (modul !== 1 || !canPorts || !anyOpen) return;
     const id = window.setInterval(async () => {
       const batch = queue.current.slice(0, 50);
       if (!batch.length) return;
@@ -258,6 +274,7 @@ export default function LiveRoom({
               delayMs: x.delayMs,
               nilai: x.nilai,
             })),
+            ...wakilBody,
           }),
         });
         const d = (await r.json()) as { ok: boolean; kode?: string };
@@ -274,7 +291,7 @@ export default function LiveRoom({
       }
     }, 1500);
     return () => window.clearInterval(id);
-  }, [modul, praktikan, anyOpen]);
+  }, [modul, canPorts, anyOpen, acting]);
 
   // The laptop mirror: this laptop's raw board lines go up for the Asisten.
   useEffect(() => {
@@ -289,7 +306,7 @@ export default function LiveRoom({
         const r = await fetch("/api/session/cermin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ baris: batch }),
+          body: JSON.stringify({ baris: batch, ...wakilBody }),
         });
         const d = (await r.json()) as { ok: boolean; kode?: string };
         // No running session: nobody can read the mirror, so stop sending.
@@ -299,7 +316,7 @@ export default function LiveRoom({
       }
     }, MIRROR_TICK);
     return () => window.clearInterval(id);
-  }, [canPorts, anyOpen]);
+  }, [canPorts, anyOpen, acting]);
 
   // The Asisten reads a group's mirror while Live is on screen.
   const asisten = me?.role === "asisten";
@@ -340,7 +357,7 @@ export default function LiveRoom({
   }, [asisten, mode, paused, group]);
 
   const tel = useTelemetry(modul, group, paused || mode !== "live", 1000, null);
-  const localEvents = own ? events : [];
+  const localEvents = canPorts ? events : [];
   const live = tel.live || localEvents.length > 0;
 
   const records = useMemo(() => {
@@ -354,7 +371,7 @@ export default function LiveRoom({
   }, [modul, tel.history, tel.live, localEvents]);
 
   const now = useTick(1000);
-  const lastAt = Math.max(tel.updatedAt ?? 0, own ? (lastBoard ?? 0) : 0);
+  const lastAt = Math.max(tel.updatedAt ?? 0, canPorts ? (lastBoard ?? 0) : 0);
   const ago = lastAt ? Math.max(0, Math.round((now - lastAt) / 1000)) : null;
   const stale =
     tel.live && tel.updatedAt !== null && now - tel.updatedAt > 20_000 && !localEvents.length;
@@ -362,7 +379,7 @@ export default function LiveRoom({
   // Serial Monitor sources.
   const sources: Source[] = useMemo(() => {
     const out: Source[] = [];
-    if (own)
+    if (canPorts)
       slots.forEach((s, i) =>
         out.push({
           k: `b${i}`,
@@ -391,7 +408,7 @@ export default function LiveRoom({
         k: "pi",
         label: t.piServer,
         lines,
-        note: praktikan ? undefined : t.piOnlyAsisten,
+        note: praktikan || acting ? undefined : t.piOnlyAsisten,
       });
     }
     if (asisten)
@@ -404,7 +421,8 @@ export default function LiveRoom({
       });
     return out;
   }, [
-    own,
+    canPorts,
+    acting,
     slots,
     slotState,
     boardLines,
@@ -433,7 +451,7 @@ export default function LiveRoom({
       lang={lang}
       modul={modul}
       sources={shown.current.sources}
-      role={praktikan ? (own ? "own" : "other") : "asisten"}
+      role={praktikan ? (own ? "own" : "other") : acting ? "own" : "asisten"}
     />
   );
   const flow = <FlowPane lang={lang} records={shown.current.records} />;
@@ -444,18 +462,25 @@ export default function LiveRoom({
   return (
     <div className="stack stack--lg liveroom" style={{ "--m": hue } as CSSProperties}>
       <div className="liveroom__top">
-        <GroupPicker
-          value={group}
-          onValueChange={(g) => {
-            setPicked(true);
-            setGroup(g);
-          }}
-          groups={GROUPS}
-          label={t.group}
-          aria-label={t.pickGroup}
-          mark={ownGroup ?? undefined}
-          markLabel={t.mine}
-        />
+        {wakil ? (
+          <span className="pill">
+            <EyeIcon aria-hidden="true" />
+            {t.viewingGroup(wakil.nomor)}
+          </span>
+        ) : (
+          <GroupPicker
+            value={group}
+            onValueChange={(g) => {
+              setPicked(true);
+              setGroup(g);
+            }}
+            groups={GROUPS}
+            label={t.group}
+            aria-label={t.pickGroup}
+            mark={ownGroup ?? undefined}
+            markLabel={t.mine}
+          />
+        )}
         <SegmentedControl
           value={mode}
           onValueChange={(v) => setMode(v as "live" | "try")}
@@ -546,6 +571,12 @@ export default function LiveRoom({
                 pressed={paused}
                 onClick={() => setPaused((p) => !p)}
               />
+              {wakil && !wakil.own && (
+                <span className="pill livebar__cap">
+                  <EyeIcon aria-hidden="true" />
+                  {t.viewOnly}
+                </span>
+              )}
               {canPorts && (
                 <span className="livebar__cap row">
                   {saved.rows !== null && (
@@ -631,6 +662,7 @@ export default function LiveRoom({
           open={capOpen}
           onOpenChange={setCapOpen}
           onSaved={saved.reload}
+          kelompok={acting && wakil ? wakil.nomor : undefined}
         />
       )}
     </div>

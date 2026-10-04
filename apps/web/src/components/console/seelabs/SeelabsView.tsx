@@ -19,7 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import BackButton from "../../ui/BackButton";
 import Fade from "../../ui/Fade";
-import { localeOf, tanggalPanjang } from "../../../lib/app";
+import { localeOf, tanggalPanjang, titikDua } from "../../../lib/app";
 import { hariLabel, kelompokLabel, modulLabel } from "../../../lib/labels";
 import { useDirektori } from "../../../lib/people";
 import type { Lang } from "../../../lib/kelas";
@@ -144,10 +144,12 @@ export default function SeelabsView({
             {g.disimpanPada && (
               <span className="hint">
                 {t.savedAt(
-                  new Date(g.disimpanPada).toLocaleTimeString(localeOf(lang), {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
+                  titikDua(
+                    new Date(g.disimpanPada).toLocaleTimeString(localeOf(lang), {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
+                  ),
                 )}
               </span>
             )}

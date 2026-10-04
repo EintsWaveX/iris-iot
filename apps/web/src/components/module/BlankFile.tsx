@@ -55,7 +55,10 @@ export interface BerkasEntry {
   segments: Segment[];
 }
 
-type Saved = Record<string, { isi: string; benar: boolean; saya?: boolean; oleh?: string | null }>;
+type Saved = Record<
+  string,
+  { isi: string; benar: boolean; saya?: boolean; oleh?: string | null; asisten?: boolean }
+>;
 
 interface BlankState {
   isi: string;
@@ -89,6 +92,8 @@ interface Props {
   wide: boolean;
   /** The pin panel, rendered beside the code when open on a wide screen. */
   side?: ReactNode;
+  /** Lihat Sebagai Praktikan: the group an Asisten acts for (own = full control). */
+  wakil?: { nomor: number; own: boolean };
 }
 
 /** "Central/Client: Bluetooth Low Energy (ESP32)" to "Central/Client". */
@@ -134,20 +139,24 @@ export default function BlankFile(p: Props) {
   const [kunci, setKunci] = useState<Record<string, string> | null>(null);
   const [target, setTarget] = useState<number | null>(null);
   const [flash, setFlash] = useState<number[]>([]);
-  const [lastPeer, setLastPeer] = useState<{ nomor: number; oleh: string | null } | null>(null);
+  const [lastPeer, setLastPeer] = useState<{
+    nomor: number;
+    oleh: string | null;
+    asisten?: boolean;
+  } | null>(null);
   const [why, setWhy] = useState<{ nomor: number; text: string } | null>(null);
   const fokus = useRef<number | null>(null);
   const mounted = useRef(true);
   const flashTimer = useRef<number | undefined>(undefined);
   const box = useRef<HTMLDivElement | null>(null);
 
-  const readOnly = mode !== "now" || locked;
+  const readOnly = mode !== "now" || locked || (p.wakil !== undefined && !p.wakil.own);
 
   /** Merges the group's saved answers, never over a blank being typed in. */
   function terapkanDraft(saved: Saved, tandai = false) {
     const next = { ...stateRef.current };
     const berubah: number[] = [];
-    let peer: { nomor: number; oleh: string | null } | null = null;
+    let peer: { nomor: number; oleh: string | null; asisten?: boolean } | null = null;
     for (const [k, e] of Object.entries(saved ?? {})) {
       const nomor = Number(k);
       const lokal = next[nomor];
@@ -165,7 +174,7 @@ export default function BlankFile(p: Props) {
         kenapa: lokal.isi === e.isi ? lokal.kenapa : undefined,
       };
       berubah.push(nomor);
-      if (tandai && teman) peer = { nomor, oleh: e.oleh ?? null };
+      if (tandai && teman) peer = { nomor, oleh: e.oleh ?? null, asisten: e.asisten };
     }
     if (berubah.length === 0) return;
     stateRef.current = next;
@@ -189,7 +198,8 @@ export default function BlankFile(p: Props) {
     else if (kode === "belum_masuk" || kode === "peran_salah") setLockedReason("masuk");
   }
 
-  const draftUrl = `/api/modul/draft?modul=${modul}&berkas=${berkas}`;
+  const wakilQs = p.wakil ? `&kelompok=${p.wakil.nomor}` : "";
+  const draftUrl = `/api/modul/draft?modul=${modul}&berkas=${berkas}${wakilQs}`;
 
   // The group's answers, once, then on a poll while the session runs.
   useEffect(() => {
@@ -269,7 +279,13 @@ export default function BlankFile(p: Props) {
       const d = await fetch("/api/modul/cek", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modul, berkas, nomor, jawaban: isi }),
+        body: JSON.stringify({
+          modul,
+          berkas,
+          nomor,
+          jawaban: isi,
+          ...(p.wakil ? { kelompok: p.wakil.nomor } : {}),
+        }),
       }).then((r) => r.json());
       if (!d.ok) {
         // Not a verdict (an expired sign-in, a rejected request): the blank
@@ -596,7 +612,9 @@ export default function BlankFile(p: Props) {
                   <span className="hint">
                     {lastPeer.oleh
                       ? t.peerBy(lastPeer.oleh, lastPeer.nomor)
-                      : t.peerSome(lastPeer.nomor)}
+                      : lastPeer.asisten
+                        ? t.peerAsisten(lastPeer.nomor)
+                        : t.peerSome(lastPeer.nomor)}
                   </span>
                 </>
               )}

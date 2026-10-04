@@ -28,6 +28,8 @@ export function useTelemetry(
   paused: boolean,
   ms = 1000,
   local: Telemetry | null = null,
+  /** False keeps the simulator out (the console inspector shows only real rows). */
+  sim = true,
 ): Telemetry {
   const [state, setState] = useState<Telemetry>({ history: [], live: false, updatedAt: null });
 
@@ -60,14 +62,14 @@ export function useTelemetry(
         push(batch.readings, true);
         return;
       }
-      if (live) return; // real data has started; a quiet poll just means nothing new yet
+      if (live || !sim) return; // real data has started; a quiet poll just means nothing new yet
       push([nextReading(modul, group)], false);
     }, ms);
     return () => {
       cancelled = true;
       stop();
     };
-  }, [modul, group, polling, ms]);
+  }, [modul, group, polling, ms, sim]);
 
   return local ?? state;
 }

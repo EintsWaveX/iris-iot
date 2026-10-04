@@ -52,7 +52,12 @@ import {
   handleSusulanPost,
 } from "../_lib/persiapan.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
-import { requireRole, requireAnyRole, currentSession } from "../_lib/session.js";
+import {
+  requireRole,
+  requireAnyRole,
+  currentSession,
+  requireCurrentPraktikanSesi,
+} from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   kelompok,
@@ -76,6 +81,9 @@ import {
   setModulTerbuka,
 } from "../../src/lib/akses.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
+import { hilangPersen, selisihJamMs } from "../../src/lib/telemetri-ringkas.js";
+import { nomorWakil, wakilKelompok } from "../_lib/wakil.js";
+import { handleHadirGet, handleHadirPost } from "../_lib/sesi-hadir.js";
 import { queueSoloServerCommand, nilaiOrNull } from "../../src/lib/server-lib.js";
 import {
   handleCerminGet,
@@ -590,7 +598,13 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
       // P6.8: per-group telemetry count and delays for the report. Module 1
       // rows come from the group PC (Web Serial), 2 to 4 from the Pi.
       db
-        .select({ kelompokNomor: telemetriLog.kelompokNomor, delayMs: telemetriLog.delayMs })
+        .select({
+          kelompokNomor: telemetriLog.kelompokNomor,
+          delayMs: telemetriLog.delayMs,
+          seq: telemetriLog.seq,
+          tx: telemetriLog.tx,
+          rx: telemetriLog.rx,
+        })
         .from(telemetriLog)
         .where(eq(telemetriLog.sesiId, running.id)),
       // P8: raised hands and group owners, so the board needs one poll only.
@@ -601,20 +615,29 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
   const hadirNims = new Set(masukRows.map((r) => r.nim));
   const telemetriByKelompokNomor = new Map<number, number[]>();
   const telemetriCountByKelompokNomor = new Map<number, number>();
+  // Phase 9: every module's one-way delay (the Pi's own delayMs, else the
+  // board's send and receive stamps) and the seq range, for the inspector's
+  // per-group delay and lost-message charts.
+  const seqByKelompokNomor = new Map<number, number[]>();
   for (const r of telemetriRows) {
     telemetriCountByKelompokNomor.set(
       r.kelompokNomor,
       (telemetriCountByKelompokNomor.get(r.kelompokNomor) ?? 0) + 1,
     );
-    if (r.delayMs != null) {
+    const d = r.delayMs ?? selisihJamMs(r.tx, r.rx);
+    if (d != null) {
       const arr = telemetriByKelompokNomor.get(r.kelompokNomor) ?? [];
-      arr.push(r.delayMs);
+      arr.push(d);
       telemetriByKelompokNomor.set(r.kelompokNomor, arr);
     }
+    const sq = seqByKelompokNomor.get(r.kelompokNomor) ?? [];
+    sq.push(r.seq);
+    seqByKelompokNomor.set(r.kelompokNomor, sq);
   }
 
   const total = blankCountForModul(running.modul);
   const daftarKelompok = groups
+    .filter((g) => g.nomor <= (running.jumlahKelompok ?? 10))
     .sort((a, b) => a.nomor - b.nomor)
     .map((g) => {
       const override = overrideByKelompokId.get(g.id);
@@ -661,6 +684,10 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
           delayMinMs: delays.length ? Math.min(...delays) : null,
           delayMedianMs: median(delays),
           delayMaxMs: delays.length ? Math.max(...delays) : null,
+          delayRataMs: delays.length
+            ? Math.round(delays.reduce((a, b) => a + b, 0) / delays.length)
+            : null,
+          hilangPct: hilangPersen(seqByKelompokNomor.get(g.nomor) ?? []),
         },
       };
     });
@@ -770,6 +797,7 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
   }
 
   const daftarKelompok = groups
+    .filter((g) => g.nomor <= (running.jumlahKelompok ?? 10))
     .sort((a, b) => a.nomor - b.nomor)
     .map((g) => {
       const anggotaKelompok = members.filter((m) => m.kelompokId === g.id);
@@ -1094,7 +1122,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "telemetry") {
     if (req.method === "POST") {
-      const who = requireRole(req, res, "praktikan");
+      // An Asisten writing for the group they hold (Lihat Sebagai Praktikan).
+      const wakil = nomorWakil(req, jsonBody(req));
+      const who = wakil
+        ? await wakilKelompok(req, res, wakil, true)
+        : await requireCurrentPraktikanSesi(req, res);
       if (!who) return;
       return handleTelemetryModul1(req, res, who);
     }
@@ -1106,7 +1138,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   // Phase 9 (7f): journal captures and the serial mirror.
   if (aksi === "tangkapan") {
     if (req.method === "POST") {
-      const who = requireRole(req, res, "praktikan");
+      // An Asisten writing for the group they hold (Lihat Sebagai Praktikan).
+      const wakil = nomorWakil(req, jsonBody(req));
+      const who = wakil
+        ? await wakilKelompok(req, res, wakil, true)
+        : await requireCurrentPraktikanSesi(req, res);
       if (!who) return;
       return handleTangkapanPost(req, res, who);
     }
@@ -1117,7 +1153,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "cermin") {
     if (req.method === "POST") {
-      const who = requireRole(req, res, "praktikan");
+      // An Asisten writing for the group they hold (Lihat Sebagai Praktikan).
+      const wakil = nomorWakil(req, jsonBody(req));
+      const who = wakil
+        ? await wakilKelompok(req, res, wakil, true)
+        : await requireCurrentPraktikanSesi(req, res);
       if (!who) return;
       return handleCerminPost(req, res, who);
     }
@@ -1216,6 +1256,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "asisten") {
     if (!requireMethod(req, res, "GET")) return;
     return handleAsistenDirectory(res);
+  }
+  // Phase 9: the running session's Preparation view (who teaches, who is here).
+  if (aksi === "hadir") {
+    if (req.method === "POST") return handleHadirPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleHadirGet(req, res);
   }
   if (aksi === "assignment") {
     if (req.method === "POST") return handleAssignmentPost(req, res, session);

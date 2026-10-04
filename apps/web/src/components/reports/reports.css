@@ -13,8 +13,10 @@
 }
 
 /* ------------------------------------------------------------ filter bar
-   One row of equal cells that fills the card (1440 and up), two rows of
-   four (820 to 1439), two per row on phones. */
+   Two even rows of four (the fifth column only holds the clear button),
+   two per row on phones. One row of eight never fits: the page width
+   caps at about 1376, which leaves 165px a cell and clips "Tampilan
+   Tersimpan". */
 .rp-fbar {
   align-items: stretch;
   background: var(--surface-1);
@@ -22,8 +24,17 @@
   border-radius: var(--radius-lg);
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(8, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 10px;
+}
+
+.rp-fbar:has(> .rp-fbar__clear) {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+}
+
+.rp-fbar > .rp-fbar__clear {
+  grid-column: 5;
+  grid-row: 1;
 }
 
 .rp-fbar > * {
@@ -90,20 +101,6 @@
   white-space: nowrap;
 }
 
-@media (max-width: 1439px) {
-  /* Two even rows of four; the fifth column only holds the clear button. */
-  .rp-fbar {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .rp-fbar:has(> .rp-fbar__clear) {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  }
-  .rp-fbar > .rp-fbar__clear {
-    grid-column: 5;
-    grid-row: 1;
-  }
-}
-
 @media (max-width: 1099px) {
   .rp-fbar > .btn svg,
   .rp-fchip > svg:first-child {
@@ -112,7 +109,8 @@
 }
 
 @media (max-width: 819px) {
-  .rp-fbar {
+  .rp-fbar,
+  .rp-fbar:has(> .rp-fbar__clear) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .rp-fbar > .rp-fbar__clear {

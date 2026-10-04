@@ -16,6 +16,14 @@
   gap: var(--space-2);
 }
 
+/* Beside the title, level with the title and subtitle (mockup m-browse),
+   not up at the module pill. */
+@media (min-width: 640px) {
+  .modhead .page-header__row {
+    align-items: flex-end;
+  }
+}
+
 /* Previous and next module: bright buttons in the module's own hue. */
 .modjump {
   border-color: var(--m);

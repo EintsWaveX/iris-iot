@@ -1,5 +1,7 @@
 /** Shapes and small helpers the Server page's parts share (Phase 9 Stage 5). */
-import { localeOf, postJson } from "../../lib/app";
+import { jamMenit, localeOf, postJson, tanggalPanjang } from "../../lib/app";
+import { hariIniWib } from "../../lib/jadwal";
+import { tri } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import type { Heartbeat, Perintah } from "../console/types";
 import { S, pesan } from "./strings";
@@ -153,15 +155,21 @@ export function ukuran(b: number, lang: Lang): string {
   return `${angka(b / 1024, lang, 0)} KB`;
 }
 
+/** "Hari ini 12:20", "Kemarin 09:10", "Rabu 15:05" within the week, else
+ *  "Kamis, 24 September 2026 · 12:20" (mockup v-ready history). */
 export function waktuPendek(iso: string, lang: Lang): string {
-  return new Date(iso).toLocaleString(localeOf(lang), {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Jakarta",
-  });
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const tgl = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(d);
+  const hari = Math.round((Date.parse(hariIniWib()) - Date.parse(tgl)) / 86_400_000);
+  const jam = jamMenit(d, lang);
+  if (hari === 0) return `${tri(lang, "Hari ini", "Today", "今天")} ${jam}`;
+  if (hari === 1) return `${tri(lang, "Kemarin", "Yesterday", "昨天")} ${jam}`;
+  if (hari > 1 && hari < 7) {
+    const wd = d.toLocaleDateString(localeOf(lang), { weekday: "long", timeZone: "Asia/Jakarta" });
+    return `${wd} ${jam}`;
+  }
+  return `${tanggalPanjang(tgl, lang)} · ${jam}`;
 }
 
 export function unduhTeks(nama: string, isi: string) {

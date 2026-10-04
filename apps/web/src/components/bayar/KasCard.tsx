@@ -87,7 +87,7 @@ export default function KasCard({
       <p className="panel__sub">{t.kasHint}</p>
       <div className="kasrate">
         <div className="stack stack--sm">
-          <span className="label-caps">{t.kasSemester(B[lang].semester(data.semester))}</span>
+          <span className="field__label">{t.kasSemester(B[lang].semester(data.semester))}</span>
           {bisa ? (
             <Stepper
               value={rate}
@@ -112,7 +112,7 @@ export default function KasCard({
           )}
         </div>
         <div className="stack stack--sm kasrate__ex">
-          <span className="label-caps">{t.kasExample}</span>
+          <span className="field__label">{t.kasExample}</span>
           <span className="num">
             {t.kasExampleLine(rupiah(contoh.kotor), rupiah(contoh.kas), rupiah(contoh.bersih))}
           </span>
@@ -130,7 +130,7 @@ export default function KasCard({
         </div>
       )}
       <div className="stack stack--sm">
-        <span className="label-caps">{t.exc}</span>
+        <span className="field__label">{t.exc}</span>
         {k.pengecualian.length === 0 ? (
           <p className="hint">{t.excNone}</p>
         ) : (

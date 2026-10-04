@@ -1,0 +1,329 @@
+/**
+ * The running session's Preparation view (Phase 9, mockup c-run ›
+ * Persiapan): who teaches this slot and whether they are here, and each
+ * group's members with the time they signed in.
+ *
+ * GET  /api/session/hadir                         Asisten: { mengajar, kelompok }
+ * POST /api/session/hadir { aksi: "praktikan", nim }  mark a student present: a
+ *        sign-in row for this session (ip "manual:<NIM of the Asisten>"),
+ *        so every attendance count reads it like a real sign-in.
+ *      { aksi: "asisten", nim }    mark an Asisten present (audit asisten_hadir).
+ *      { aksi: "pindah", nim, ke } move a student to group `ke` for the rest of
+ *        this session (the "pair" right). Their next action asks them to sign
+ *        in again (requireCurrentPraktikanSesi), which puts them in the new
+ *        group. The weekly roster is left as it is.
+ *
+ * An Asisten counts as present from opening the session or any action they
+ * take in it (their first audit row since it started), or from Tandai Hadir.
+ */
+import { and, asc, eq, gte } from "drizzle-orm";
+import type { ApiRequest, ApiResponse } from "./http.js";
+import { jsonBody } from "./http.js";
+import { cekHak } from "./hak.js";
+import { muatMinggu } from "./penugasan-api.js";
+import { getDb } from "../../src/lib/db.js";
+import {
+  anggota,
+  asisten,
+  audit,
+  jadwal,
+  kelompok,
+  percobaanMasuk,
+  sesiAnggota,
+  sesiAsisten,
+  sesiKelompok,
+} from "../../src/lib/schema.js";
+import { currentSesi } from "../../src/lib/sesi.js";
+import { writeAudit } from "../../src/lib/auth.js";
+import type { SessionPayload } from "../../src/lib/auth.js";
+import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
+
+export type JenisMengajar = "tetap" | "pengganti" | "sukarela" | "izin";
+
+export interface Mengajar {
+  nim: string;
+  kode: string;
+  nama: string;
+  jenis: JenisMengajar;
+  /** Group numbers this person holds in this session. */
+  pegang: number[];
+  /** First sign of them in this session (ISO), or null. */
+  hadirPada: string | null;
+  /** Izin: the reason given. */
+  alasan?: string | null;
+  /** Sukarela: the offer and its state, for Terima and Tolak. */
+  tugasId?: number;
+  status?: "diminta" | "diterima" | "ditolak";
+}
+
+export interface AnggotaHadir {
+  nim: string;
+  nama: string;
+  masukPada: string | null;
+  manual: boolean;
+}
+
+export interface KelompokHadir {
+  id: number;
+  nomor: number;
+  nama: string;
+  aktif: boolean;
+  anggota: AnggotaHadir[];
+}
+
+const URUT: Record<JenisMengajar, number> = { tetap: 0, pengganti: 1, sukarela: 2, izin: 3 };
+
+function tolak(res: ApiResponse, kode: string, status = 200) {
+  res.status(status).json({ ok: false, kode });
+}
+
+export async function handleHadirGet(_req: ApiRequest, res: ApiResponse) {
+  const running = await currentSesi();
+  if (!running) return tolak(res, "tidak_ada_sesi");
+  const db = getDb();
+  const mulai = running.mulaiPada ? new Date(running.mulaiPada) : new Date(running.dibuatPada);
+  const jumlah = running.jumlahKelompok ?? 10;
+
+  const [orang, groups, members, masuk, pegangRows, jejak] = await Promise.all([
+    db.select({ nim: asisten.nim, kode: asisten.kode, nama: asisten.nama }).from(asisten),
+    db
+      .select({
+        id: kelompok.id,
+        nomor: kelompok.nomor,
+        nama: kelompok.nama,
+        aktif: kelompok.aktif,
+        sesiAktif: sesiKelompok.aktif,
+      })
+      .from(kelompok)
+      .leftJoin(
+        sesiKelompok,
+        and(eq(sesiKelompok.kelompokId, kelompok.id), eq(sesiKelompok.sesiId, running.id)),
+      )
+      .where(eq(kelompok.aktif, true))
+      .orderBy(asc(kelompok.nomor)),
+    db
+      .select({ nim: anggota.nim, nama: anggota.nama, kelompokId: anggota.kelompokId })
+      .from(anggota)
+      .orderBy(asc(anggota.nama)),
+    db
+      .select({ nim: percobaanMasuk.nim, pada: percobaanMasuk.pada, ip: percobaanMasuk.ip })
+      .from(percobaanMasuk)
+      .where(
+        and(
+          eq(percobaanMasuk.sesiId, running.id),
+          eq(percobaanMasuk.jenis, "praktikan"),
+          eq(percobaanMasuk.berhasil, true),
+        ),
+      )
+      .orderBy(asc(percobaanMasuk.pada)),
+    db
+      .select({ nim: sesiAsisten.asistenNim, nomor: kelompok.nomor })
+      .from(sesiAsisten)
+      .innerJoin(kelompok, eq(kelompok.id, sesiAsisten.kelompokId))
+      .where(eq(sesiAsisten.sesiId, running.id)),
+    db
+      .select({ nim: audit.aktorNim, aksi: audit.aksi, detail: audit.detail, pada: audit.pada })
+      .from(audit)
+      .where(gte(audit.pada, mulai))
+      .orderBy(asc(audit.pada)),
+  ]);
+
+  // Students: first sign-in per NIM for this session.
+  const masukOf = new Map<string, { pada: Date; manual: boolean }>();
+  for (const m of masuk)
+    if (!masukOf.has(m.nim))
+      masukOf.set(m.nim, { pada: m.pada, manual: m.ip.startsWith("manual:") });
+  const kelompokOut: KelompokHadir[] = groups
+    .filter((g) => g.nomor <= jumlah)
+    .map((g) => ({
+      id: g.id,
+      nomor: g.nomor,
+      nama: g.nama,
+      aktif: g.sesiAktif ?? true,
+      anggota: members
+        .filter((m) => m.kelompokId === g.id)
+        .map((m) => {
+          const x = masukOf.get(m.nim);
+          return {
+            nim: m.nim,
+            nama: m.nama,
+            masukPada: x ? x.pada.toISOString() : null,
+            manual: x?.manual ?? false,
+          };
+        }),
+    }));
+
+  // Assistants: first action (or Tandai Hadir) since the session started.
+  const hadirOf = new Map<string, Date>();
+  const tandai = (nim: string, pada: Date) => {
+    if (!hadirOf.has(nim)) hadirOf.set(nim, pada);
+  };
+  for (const a of jejak) {
+    if (a.aksi === "asisten_hadir") {
+      try {
+        const d = JSON.parse(a.detail ?? "{}") as { sesiId?: number; nim?: string };
+        if (d.sesiId === running.id && d.nim) tandai(d.nim, a.pada);
+      } catch {
+        /* a malformed row marks nobody */
+      }
+    } else tandai(a.nim, a.pada);
+  }
+
+  const byNim = new Map(orang.map((o) => [o.nim, o]));
+  const byKode = new Map(orang.map((o) => [o.kode.toUpperCase(), o]));
+  const pegangOf = new Map<string, number[]>();
+  for (const r of pegangRows) pegangOf.set(r.nim, [...(pegangOf.get(r.nim) ?? []), r.nomor]);
+
+  const people = new Map<string, Mengajar>();
+  const tambah = (nim: string, jenis: JenisMengajar, extra: Partial<Mengajar> = {}) => {
+    const o = byNim.get(nim);
+    if (!o) return;
+    const cur = people.get(nim);
+    // The schedule's kind wins over "pengganti" from the pairing alone,
+    // and an izin only stands when the person isn't teaching after all.
+    if (cur && URUT[cur.jenis] <= URUT[jenis]) return;
+    people.set(nim, {
+      nim,
+      kode: o.kode.toUpperCase(),
+      nama: o.nama,
+      jenis,
+      pegang: (pegangOf.get(nim) ?? []).sort((a, b) => a - b),
+      hadirPada: hadirOf.get(nim)?.toISOString() ?? null,
+      ...extra,
+    });
+  };
+
+  // The weekly slot this session runs in, when it has one.
+  if (running.slot) {
+    const [row] = await db
+      .select()
+      .from(jadwal)
+      .where(
+        and(
+          eq(jadwal.semester, semesterDariTanggal(running.tanggal)),
+          eq(jadwal.hari, hariDariTanggal(running.tanggal)),
+          eq(jadwal.slot, running.slot),
+        ),
+      )
+      .limit(1);
+    if (row) {
+      const m = (await muatMinggu(db, [row], running.tanggal)).get(row.id);
+      if (m) {
+        for (const k of m.kursi) {
+          const o = k.kode ? byKode.get(k.kode.toUpperCase()) : undefined;
+          if (o)
+            tambah(
+              o.nim,
+              k.kode === k.tetap ? "tetap" : k.jenis === "sukarela" ? "sukarela" : "pengganti",
+            );
+        }
+        for (const t of m.tugas)
+          if (t.jenis === "sukarela" && t.status !== "ditolak")
+            tambah(t.nim, "sukarela", { tugasId: t.id, status: t.status });
+        for (const x of m.izin)
+          if (x.status !== "dibatalkan" && !people.has(x.nim))
+            tambah(x.nim, "izin", { alasan: x.alasan });
+      }
+    }
+  }
+  // Anyone holding a group without a place in the slot came in as cover.
+  for (const r of pegangRows) if (!people.has(r.nim)) tambah(r.nim, "pengganti");
+  const mengajar = [...people.values()].sort(
+    (a, b) =>
+      URUT[a.jenis] - URUT[b.jenis] ||
+      (a.pegang[0] ?? 99) - (b.pegang[0] ?? 99) ||
+      a.kode.localeCompare(b.kode),
+  );
+
+  res.status(200).json({ ok: true, sesiId: running.id, mengajar, kelompok: kelompokOut });
+}
+
+export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const aksi = typeof body.aksi === "string" ? body.aksi : "";
+  const nim = typeof body.nim === "string" ? body.nim.trim().toUpperCase() : "";
+  if (!nim) return tolak(res, "format_salah");
+  const running = await currentSesi();
+  if (!running) return tolak(res, "tidak_ada_sesi");
+  const db = getDb();
+
+  if (aksi === "asisten") {
+    const [o] = await db
+      .select({ nim: asisten.nim })
+      .from(asisten)
+      .where(eq(asisten.nim, nim))
+      .limit(1);
+    if (!o) return tolak(res, "tidak_ada");
+    await writeAudit(session.nim, "asisten_hadir", { sesiId: running.id, nim });
+    return res.status(200).json({ ok: true });
+  }
+
+  // The student must be in one of this session's running groups.
+  const [m] = await db
+    .select({ nim: anggota.nim, kelompokId: anggota.kelompokId, nomor: kelompok.nomor })
+    .from(anggota)
+    .innerJoin(kelompok, eq(kelompok.id, anggota.kelompokId))
+    .where(and(eq(anggota.nim, nim), eq(kelompok.aktif, true)))
+    .limit(1);
+  if (!m || m.nomor > (running.jumlahKelompok ?? 10)) return tolak(res, "tidak_terdaftar");
+
+  if (aksi === "praktikan") {
+    const sudah = await db
+      .select({ id: percobaanMasuk.id })
+      .from(percobaanMasuk)
+      .where(
+        and(
+          eq(percobaanMasuk.sesiId, running.id),
+          eq(percobaanMasuk.nim, nim),
+          eq(percobaanMasuk.jenis, "praktikan"),
+          eq(percobaanMasuk.berhasil, true),
+        ),
+      )
+      .limit(1);
+    if (sudah.length === 0) {
+      await db.insert(percobaanMasuk).values({
+        nim,
+        ip: `manual:${session.nim}`,
+        jenis: "praktikan",
+        berhasil: true,
+        sesiId: running.id,
+      });
+      await writeAudit(session.nim, "praktikan_hadir", { sesiId: running.id, nim });
+    }
+    return res.status(200).json({ ok: true });
+  }
+
+  if (aksi === "pindah") {
+    if (!(await cekHak(res, session.nim, "pair"))) return;
+    const ke = Number(body.ke);
+    if (!Number.isInteger(ke) || ke < 1 || ke > (running.jumlahKelompok ?? 10))
+      return tolak(res, "format_salah");
+    if (ke === m.nomor) return res.status(200).json({ ok: true });
+    const [g] = await db
+      .select({ id: kelompok.id })
+      .from(kelompok)
+      .where(and(eq(kelompok.nomor, ke), eq(kelompok.aktif, true)))
+      .limit(1);
+    if (!g) return tolak(res, "kelompok_tidak_diketahui");
+    const [aktif] = await db
+      .select({ aktif: sesiKelompok.aktif })
+      .from(sesiKelompok)
+      .where(and(eq(sesiKelompok.sesiId, running.id), eq(sesiKelompok.kelompokId, g.id)))
+      .limit(1);
+    if (aktif && !aktif.aktif) return tolak(res, "kelompok_mati");
+    await db.update(anggota).set({ kelompokId: g.id }).where(eq(anggota.nim, nim));
+    await db
+      .update(sesiAnggota)
+      .set({ kelompokNomor: ke })
+      .where(and(eq(sesiAnggota.sesiId, running.id), eq(sesiAnggota.nim, nim)));
+    await writeAudit(session.nim, "praktikan_pindah", {
+      sesiId: running.id,
+      nim,
+      dari: m.nomor,
+      ke,
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  tolak(res, "format_salah");
+}

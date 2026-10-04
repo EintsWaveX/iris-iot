@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { ArrowsOutSimpleIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
-import { getJson, localeOf } from "../../lib/app";
+import { getJson, localeOf, titikDua } from "../../lib/app";
 import { unduhCsv } from "../../lib/csv";
 import { durasiLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
@@ -66,12 +66,14 @@ function DataDialog({
     [t.dAvg, f(vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : undefined)],
   ];
   const fmt = (ms: number) =>
-    new Date(ms).toLocaleString(localeOf(lang), {
-      timeZone: "Asia/Jakarta",
-      weekday: "long",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    titikDua(
+      new Date(ms).toLocaleString(localeOf(lang), {
+        timeZone: "Asia/Jakarta",
+        weekday: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    );
 
   return (
     <Dialog
@@ -186,12 +188,14 @@ function DataDialog({
 }
 
 function bootLabel(uptime: number, lang: Lang) {
-  return new Date(Date.now() - uptime * 1000).toLocaleString(localeOf(lang), {
-    timeZone: "Asia/Jakarta",
-    weekday: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return titikDua(
+    new Date(Date.now() - uptime * 1000).toLocaleString(localeOf(lang), {
+      timeZone: "Asia/Jakarta",
+      weekday: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  );
 }
 
 export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {

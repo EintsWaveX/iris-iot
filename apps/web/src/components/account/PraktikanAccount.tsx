@@ -132,12 +132,15 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
               ))}
             </div>
           )}
-          <div className="panel__actions">
-            <button type="button" className="btn btn--danger" onClick={() => void keluar()}>
-              <SignOutIcon size={18} aria-hidden="true" />
-              {t.out}
-            </button>
-          </div>
+          {/* Full width, right under the practicum list (mockup p-account). */}
+          <button
+            type="button"
+            className="btn btn--danger btn--block"
+            onClick={() => void keluar()}
+          >
+            <SignOutIcon size={18} aria-hidden="true" />
+            {t.out}
+          </button>
         </section>
       </div>
     </div>

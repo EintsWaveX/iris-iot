@@ -2,13 +2,15 @@
  * GET /api/session/lab (Phase 9, Home concept A): "In the lab now". Public,
  * so the Home page shows it to guests too. Only counts and the module leave
  * this route: no names, no NIMs, no group numbers. With `?saya=1` an Asisten
- * also gets the group numbers they hold; that URL is never cached by the CDN,
- * so the plain one stays one shared response for every visitor.
+ * also gets the group numbers they hold, the session id and who holds each
+ * group (Lihat Sebagai Praktikan); that URL is never cached by the CDN, so
+ * the plain one stays one shared response for every visitor.
  */
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { currentSession } from "./session.js";
 import { getDb } from "../../src/lib/db.js";
 import {
+  asisten,
   jawaban,
   kelompok,
   percobaanMasuk,
@@ -62,13 +64,26 @@ export async function handleLab(req: ApiRequest, res: ApiResponse) {
 
   const who = currentSession(req);
   let pegang: number[] | undefined;
+  let pemegang: Record<number, string> | undefined;
   if (req.query.saya === "1" && who?.role === "asisten") {
     const rows = await db
-      .select({ nomor: kelompok.nomor })
+      .select({
+        nomor: kelompok.nomor,
+        nim: sesiAsisten.asistenNim,
+        nama: asisten.nama,
+        kode: asisten.kode,
+      })
       .from(sesiAsisten)
       .innerJoin(kelompok, eq(kelompok.id, sesiAsisten.kelompokId))
-      .where(and(eq(sesiAsisten.sesiId, s.id), eq(sesiAsisten.asistenNim, who.nim)));
-    pegang = rows.map((r) => r.nomor).sort((a, b) => a - b);
+      .leftJoin(asisten, eq(asisten.nim, sesiAsisten.asistenNim))
+      .where(eq(sesiAsisten.sesiId, s.id));
+    pegang = rows
+      .filter((r) => r.nim === who.nim)
+      .map((r) => r.nomor)
+      .sort((a, b) => a - b);
+    pemegang = {};
+    for (const r of rows)
+      if (r.nama) pemegang[r.nomor] = r.kode ? `${r.nama} (${r.kode.toUpperCase()})` : r.nama;
   }
 
   const out: LabSekarang = {
@@ -85,5 +100,9 @@ export async function handleLab(req: ApiRequest, res: ApiResponse) {
   // The per-viewer answer must not be shared by the CDN.
   if (req.query.saya === "1") res.setHeader("Cache-Control", "private, no-store");
   else res.setHeader("Cache-Control", "public, max-age=0, s-maxage=10");
-  res.status(200).json({ ok: true, sesi: out, pegang });
+  // An Asisten also gets the session id (Lihat Sebagai Praktikan reads that
+  // session's captures); a guest never does.
+  res
+    .status(200)
+    .json({ ok: true, sesi: out, pegang, ...(pegang ? { sesiId: s.id, pemegang } : {}) });
 }

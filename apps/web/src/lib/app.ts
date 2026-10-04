@@ -229,13 +229,25 @@ export function menitBerjalan(mulaiPada: string | null, now = Date.now()): numbe
   return Number.isNaN(t) ? 0 : Math.max(0, Math.floor((now - t) / 60000));
 }
 
-export function jamMenit(iso: string | Date, lang: Lang): string {
+/** Turns the Indonesian locale's "15.02" (and "15.02.09") into "15:02":
+ *  times keep their colon in every language (Stage 8). */
+export function titikDua(s: string): string {
+  return s.replace(
+    /\b(\d{1,2})\.(\d{2})(?:\.(\d{2}))?\b/g,
+    (_, h: string, m: string, d?: string) => (d ? `${h}:${m}:${d}` : `${h}:${m}`),
+  );
+}
+
+/** "13:30" in Jakarta time. Every language keeps the colon (Stage 8): the
+ *  Indonesian locale would print "13.30". */
+export function jamMenit(iso: string | Date, _lang?: Lang): string {
   const d = typeof iso === "string" ? new Date(iso) : iso;
-  return d.toLocaleTimeString(localeOf(lang), {
+  return new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
     timeZone: "Asia/Jakarta",
-  });
+  }).format(d);
 }
 
 /** "2 menit lalu" / "2 minutes ago" from an ISO time (labels.ts). */

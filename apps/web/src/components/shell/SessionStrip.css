@@ -69,7 +69,9 @@
 
 .strip--compact .strip__prog {
   max-width: 220px;
-  min-width: 120px;
+  /* Never narrower than "126 dari 150 menit": the label must not run
+     under the tools beside it (no-clipping rule). */
+  min-width: max-content;
 }
 
 @media (max-width: 1099px) {

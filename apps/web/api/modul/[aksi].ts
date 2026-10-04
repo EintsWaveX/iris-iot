@@ -10,6 +10,8 @@
  * GET  /api/modul/unduh?modul=&berkas=   — the reconstructed file, gated on every blank being correct.
  * GET  /api/modul/kunci?modul=&berkas=[&unduh=1&bahasa=] — Asisten only: the key per blank
  *      (Show Answers on the module page), or the complete file.
+ * draft and cek also take `kelompok=N` from an Asisten (Lihat Sebagai Praktikan, Phase 9):
+ *      any Asisten reads group N of the running module; only N's Asisten answers for it.
  *
  * The single most important rule in this file: a correct answer string
  * never appears in any response body, bundled script, or error message
@@ -21,8 +23,9 @@
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
 import { requireCurrentPraktikanSesi, requireRole } from "../_lib/session.js";
+import { nomorWakil, wakilKelompok } from "../_lib/wakil.js";
 import { getDb } from "../../src/lib/db.js";
-import { anggota, jawaban } from "../../src/lib/schema.js";
+import { anggota, asisten, jawaban } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
 import { checkJawaban, blankCountFor, canonicalAnswer } from "../_lib/answer-keys.js";
@@ -94,13 +97,18 @@ async function bolehJurnal(
   return true;
 }
 
-async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+async function handleDraft(
+  req: ApiRequest,
+  res: ApiResponse,
+  session: SessionPayload,
+  wakil = false,
+) {
   const parsed = parseModulBerkas(req.query);
   if (!parsed) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  if (!(await bolehJurnal(res, session, parsed.modul))) return;
+  if (!wakil && !(await bolehJurnal(res, session, parsed.modul))) return;
   const kelompokId = session.kelompokId;
   if (!kelompokId) {
     res.status(200).json({ ok: false, kode: "kelompok_tidak_diketahui" });
@@ -134,15 +142,34 @@ async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPa
     for (const a of ang) nama.set(a.nim, a.nama);
   }
 
-  const out: Record<string, { isi: string; benar: boolean; saya: boolean; oleh: string | null }> =
-    {};
+  // A filler outside the group is an Asisten (Lihat Sebagai Praktikan):
+  // the group sees "diisi asisten", Asisten see the name and code.
+  const luar = nims.filter((n) => !nama.has(n));
+  const asistenNama = new Map<string, string>();
+  if (luar.length > 0) {
+    const as = await db
+      .select({ nim: asisten.nim, nama: asisten.nama, kode: asisten.kode })
+      .from(asisten)
+      .where(inArray(asisten.nim, luar));
+    for (const a of as)
+      asistenNama.set(a.nim, a.kode ? `${a.nama} (${a.kode.toUpperCase()})` : a.nama);
+  }
+
+  const out: Record<
+    string,
+    { isi: string; benar: boolean; saya: boolean; oleh: string | null; asisten?: boolean }
+  > = {};
   for (const row of rows) {
     const nomor = row.soalKode.slice(prefix.length);
+    const olehAsisten = !!row.oleh && asistenNama.has(row.oleh);
     out[nomor] = {
       isi: row.isi,
       benar: row.benar,
       saya: row.oleh === session.nim,
-      oleh: row.oleh ? (nama.get(row.oleh) ?? null) : null,
+      oleh: row.oleh
+        ? (nama.get(row.oleh) ?? (wakil ? (asistenNama.get(row.oleh) ?? null) : null))
+        : null,
+      ...(olehAsisten ? { asisten: true } : {}),
     };
   }
   // Not a secret -- a group already knows its own number, and this is the
@@ -152,7 +179,12 @@ async function handleDraft(req: ApiRequest, res: ApiResponse, session: SessionPa
   res.status(200).json({ ok: true, jawaban: out, nomorKelompok: session.kelompokNomor ?? null });
 }
 
-async function handleCek(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+async function handleCek(
+  req: ApiRequest,
+  res: ApiResponse,
+  session: SessionPayload,
+  wakil = false,
+) {
   const body = jsonBody(req);
   const modul = Number(body.modul);
   const berkas = typeof body.berkas === "string" ? body.berkas : "";
@@ -173,7 +205,7 @@ async function handleCek(req: ApiRequest, res: ApiResponse, session: SessionPayl
     return;
   }
 
-  if (!(await bolehJurnal(res, session, modul))) return;
+  if (!wakil && !(await bolehJurnal(res, session, modul))) return;
 
   const kelompokId = session.kelompokId;
   const nomorKelompok = session.kelompokNomor;
@@ -375,10 +407,30 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return handleKunci(req, res);
   }
 
+  const aksi = req.query.aksi;
+
+  // Lihat Sebagai Praktikan (Phase 9): an Asisten reads any group of the
+  // running module, and answers only for the group they hold.
+  const wakil = aksi === "draft" || aksi === "cek" ? nomorWakil(req, jsonBody(req)) : null;
+  if (wakil !== null) {
+    const as = await wakilKelompok(req, res, wakil, aksi === "cek");
+    if (!as) return;
+    const running = await currentSesi();
+    const m = Number(aksi === "cek" ? jsonBody(req).modul : req.query.modul);
+    if (!running || running.modul !== m) {
+      res.status(200).json({ ok: false, kode: "modul_bukan_sesi" });
+      return;
+    }
+    if (aksi === "draft") {
+      if (!requireMethod(req, res, "GET")) return;
+      return handleDraft(req, res, as, true);
+    }
+    if (!requireMethod(req, res, "POST")) return;
+    return handleCek(req, res, as, true);
+  }
+
   const session = await requireCurrentPraktikanSesi(req, res);
   if (!session) return;
-
-  const aksi = req.query.aksi;
 
   if (aksi === "draft") {
     if (!requireMethod(req, res, "GET")) return;

@@ -12,37 +12,6 @@
 
 /* ------------------------------------------------------------ badges */
 
-.tier {
-  align-items: center;
-  border: 1px solid;
-  border-radius: 6px;
-  display: inline-flex;
-  font: 700 0.76rem/1 var(--font-body);
-  letter-spacing: 0.06em;
-  min-height: 26px;
-  padding: 2px 10px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.tier--admin {
-  background: var(--gold-soft);
-  border-color: color-mix(in srgb, var(--gold) 55%, transparent);
-  color: var(--gold);
-}
-
-.tier--pengelola {
-  background: var(--violet-soft);
-  border-color: color-mix(in srgb, var(--violet) 55%, transparent);
-  color: var(--violet);
-}
-
-.tier--asisten {
-  background: var(--surface-3);
-  border-color: var(--hairline-strong);
-  color: var(--text-muted);
-}
-
 .pbadge {
   align-items: center;
   border-radius: 999px;

@@ -26,6 +26,7 @@ const T = dict({
   id: {
     builtIn: "Bawaan",
     builtInSrc: "Gambar bawaan modul",
+    broken: "Gambar tidak bisa dimuat. Ganti dengan berkas atau tautan lain.",
     image: "Gambar",
     link: "Tautan",
     src: "Sumber",
@@ -53,6 +54,7 @@ const T = dict({
   en: {
     builtIn: "Built-in",
     builtInSrc: "The module's built-in image",
+    broken: "The image can't be loaded. Replace it with another file or link.",
     image: "Image",
     link: "Link",
     src: "Source",
@@ -79,6 +81,7 @@ const T = dict({
   zh: {
     builtIn: "自带",
     builtInSrc: "模块自带的图片",
+    broken: "图片无法加载。请换一个文件或链接。",
     image: "图片",
     link: "链接",
     src: "来源",
@@ -234,6 +237,8 @@ function SchemCard({
   useEffect(() => setMode(isLink ? "link" : "img"), [isLink]);
 
   const src = aktif?.url ?? `/schematics/Module ${modul}.png`;
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [src]);
   const title = `${modulLabel(modul, lang)} · ${judul}`;
   const cek = bacaTautan(url, TAUTAN_SKEMA);
   const err = tried && !cek.ok ? t.errors[cek.kode] : null;
@@ -292,8 +297,10 @@ function SchemCard({
       style={{ "--mod-hue": `var(--mod-${modul})` } as CSSProperties}
     >
       <div className="schem-card__head">
+        {/* The module name stays in the labels: the head only has room
+            for the two pills without clipping (mockup c-prep Skema). */}
         <Pill modul={modul}>{modulLabel(modul, lang)}</Pill>
-        <b className="grow truncate">{judul}</b>
+        <span className="grow" />
         <Pill tone={frame ? "accent" : undefined}>{kind}</Pill>
       </div>
       {loading ? (
@@ -309,6 +316,15 @@ function SchemCard({
           <b>{namaLayanan(aktif.url)}</b>
           <span className="hint">{t.preview}</span>
         </button>
+      ) : broken ? (
+        <div
+          className="schem-card__thumb schem-card__embed schem-card__broken"
+          role="img"
+          aria-label={t.broken}
+        >
+          <CircuitryIcon size={28} aria-hidden="true" />
+          <span className="hint">{t.broken}</span>
+        </div>
       ) : (
         <button
           type="button"
@@ -316,7 +332,7 @@ function SchemCard({
           aria-label={`${t.view} ${title}`}
           onClick={() => onView({ src, title, frame: false })}
         >
-          <img src={src} alt="" loading="lazy" />
+          <img src={src} alt="" loading="lazy" onError={() => setBroken(true)} />
           <span className="schem-cur__zoom">
             <EyeIcon size={16} aria-hidden="true" /> {t.view}
           </span>

@@ -47,15 +47,6 @@
   animation: appnav-live 2s ease-out infinite;
 }
 
-.minibar__chip {
-  border: 1px solid color-mix(in srgb, var(--mod-hue) 60%, transparent);
-  border-radius: 999px;
-  color: var(--mod-hue);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  padding: 2px 8px;
-}
-
 .minibar__time {
   align-items: center;
   color: var(--text-muted);

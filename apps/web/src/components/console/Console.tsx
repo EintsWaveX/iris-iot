@@ -4,37 +4,24 @@
  *
  * - no session: Asisten home (schedule, start form, my feedback), with
  *   Persiapan reachable before anything starts
- * - a running session: the sticky session bar, then Persiapan | Papan |
- *   Tabel nilai. Papan is the group board + inspector (+ live activity),
- *   laid out per width:
- *     >= 1680  three resizable panes: board · inspector · activity
- *     >= 1024  two resizable panes: board and activity · inspector
- *     <  1024  board and activity, the inspector as a bottom sheet
+ * - a running session (Phase 9 mockup c-run): the session bar band, then
+ *   Persiapan | Papan | Tabel Nilai with "Kamu: Full Name (CODE)" and the
+ *   tier on the right. Papan is the group list beside the inspector of one
+ *   group (stacked under 1024; picking a row scrolls to it). A group is
+ *   always open: the picked one, else my first, else the first.
  * - just ended: "Sesi selesai" with the feedback QR
  *
- * Keys: 1 to 9 and 0 (Group 10) pick a group, Esc closes the inspector; the Ctrl+K palette
+ * Keys: 1 to 9 and 0 (Group 10) pick a group; the Ctrl+K palette
  * (AsistenCommands) talks to this component through `iris:console` events
  * or the URL hash.
  */
-import { tri } from "../../lib/labels";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { namaAsisten } from "../../lib/people";
 import BackButton from "../ui/BackButton";
 import Fade from "../ui/Fade";
 import { shortcutsOn } from "../../lib/prefs";
-import Dialog from "../ui/Dialog";
-import { ShieldWarningIcon, SignInIcon, SquaresFourIcon } from "@phosphor-icons/react";
-import ResizablePanes from "../ui/ResizablePanes";
-import { OfflineBanner, StateView, UpdatedAgo } from "../ui/Display";
-import { Kbd } from "../ui/Controls";
+import { ShieldWarningIcon, SignInIcon } from "@phosphor-icons/react";
+import { OfflineBanner, StateView } from "../ui/Display";
 import { isTypingTarget } from "../ui/ShortcutSheet";
 import { useMe } from "../../lib/app";
 import { useMinWidth } from "../../lib/hooks";
@@ -43,10 +30,13 @@ import { CONSOLE_EVENT, type ConsoleCommand } from "../shell/AsistenCommands";
 import { S } from "./strings";
 import { useAssignment, useCurrent, useLaporan, useNilaiLive, useServers } from "./data";
 import SessionBar from "./SessionBar";
-import GroupBoard, { ActivityFeed } from "./GroupBoard";
+import GroupBoard from "./GroupBoard";
+import ViewAsDialog from "./ViewAsDialog";
+import TierBadge from "../ui/TierBadge";
 import GroupInspector from "./GroupInspector";
 import NilaiTable from "./NilaiTable";
 import PrepView from "./PrepView";
+import LivePrep from "./LivePrep";
 import ServerDrawer from "./ServerDrawer";
 import EndFlow from "./EndFlow";
 import DoneView from "./DoneView";
@@ -55,7 +45,7 @@ import AsistenHome from "./AsistenHome";
 import SeelabsView, { type SeelabsTab } from "./seelabs/SeelabsView";
 import { useSeelabs } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
-import type { AsistenRef, FeedItem, Laporan, SesiRunning, View } from "./types";
+import type { AsistenRef, SesiRunning, View } from "./types";
 import "./console.css";
 
 const DONE_KEY = "iris-console-done";
@@ -89,6 +79,9 @@ export default function Console({ lang }: { lang: Lang }) {
   const roster = current.data?.roster ?? [];
   const [view, setView] = useState<View>("board");
   const [prepOnly, setPrepOnly] = useState(false);
+  // In a running session Preparation is the live view; its Module Access
+  // and Slides buttons open the full tabs, with a way back.
+  const [prepFull, setPrepFull] = useState<"akses" | "slides" | null>(null);
   const [done, setDone] = useState<(SesiRunning & { hadir: number; selesaiPada?: string }) | null>(
     null,
   );
@@ -98,7 +91,8 @@ export default function Console({ lang }: { lang: Lang }) {
   const [drawer, setDrawer] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
   const [announce, setAnnounce] = useState(false);
-  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [asP, setAsP] = useState<number | null>(null);
+  const wide = useMinWidth(1024);
   const [doneTable, setDoneTable] = useState(false);
   // Kirim ke SeeLabs, over whatever view is open (Phase 9 Stage 3g).
   const [see, setSee] = useState<{ tab?: SeelabsTab; nomor?: number | null } | null>(null);
@@ -116,42 +110,7 @@ export default function Console({ lang }: { lang: Lang }) {
     [asisten],
   );
 
-  const pushFeed = useCallback((items: FeedItem[]) => {
-    if (!items.length) return;
-    setFeed((f) => {
-      const seen = new Set(f.map((x) => x.id));
-      return [...items.filter((x) => !seen.has(x.id)), ...f]
-        .sort((a, b) => b.at - a.at)
-        .slice(0, 30);
-    });
-  }, []);
-
-  const nilai = useNilaiLive(
-    sesi?.id ?? (doneTable ? (done?.id ?? null) : null),
-    me?.nim,
-    (rows) => {
-      const byNim = new Map<string, { who: string; at: string }>();
-      for (const r of rows) {
-        const prev = byNim.get(r.nim);
-        if (!prev || r.diubahPada > prev.at)
-          byNim.set(r.nim, { who: r.diubahOleh ?? "", at: r.diubahPada });
-      }
-      const all = lap.data?.kelompok ?? [];
-      pushFeed(
-        [...byNim.entries()].map(([nim, { who, at }]) => {
-          const g = all.find((k) => k.anggota.some((a) => a.nim === nim));
-          const nama = g?.anggota.find((a) => a.nim === nim)?.nama ?? nim;
-          return {
-            id: `score-${nim}-${at}`,
-            at: new Date(at).getTime(),
-            g: g?.nomor ?? null,
-            kind: "score" as const,
-            text: t.evScore(namaOf(who), nama.split(" ")[0]),
-          };
-        }),
-      );
-    },
-  );
+  const nilai = useNilaiLive(sesi?.id ?? (doneTable ? (done?.id ?? null) : null), me?.nim);
 
   // Restore the done screen after a reload.
   useEffect(() => setDone(readDone()), []);
@@ -211,11 +170,11 @@ export default function Console({ lang }: { lang: Lang }) {
           e.preventDefault();
           pick(g.id);
         }
-      } else if (e.key === "Escape" && sel !== null) pick(null);
+      }
     };
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
-  }, [sesi, lap.data, sel, pick]);
+  }, [sesi, lap.data, pick]);
 
   // The sky follows the session (the "sesi" scene is deliberately calm).
   const inSesiScene = useRef(false);
@@ -232,108 +191,6 @@ export default function Console({ lang }: { lang: Lang }) {
       window.Cosmos?.setModuleTint(0);
     }
   }, [sesi]);
-
-  // Activity feed from successive board polls.
-  const prevLap = useRef<Laporan | null>(null);
-  useEffect(() => {
-    const cur = lap.data;
-    if (!cur?.ok || !cur.sesi) return;
-    const prev = prevLap.current;
-    prevLap.current = cur;
-    const now = Date.now();
-    const out: FeedItem[] = [];
-    if (!prev) {
-      // Seed with the latest blank attempts so the feed is never blank.
-      for (const g of cur.kelompok) {
-        const rinci = g.blankRinci ?? [];
-        for (const b of rinci.filter((x) => !x.benar)) {
-          out.push({
-            id: `w-${g.id}-${b.soalKode}-${b.percobaan}`,
-            at: new Date(b.diubahPada).getTime(),
-            g: g.nomor,
-            kind: "wrong",
-            text: t.evWrong(g.nomor, b.soalKode.toUpperCase(), b.percobaan),
-          });
-        }
-        const right = rinci.filter((x) => x.benar);
-        if (right.length) {
-          const at = Math.max(...right.map((x) => new Date(x.diubahPada).getTime()));
-          out.push({
-            id: `r-${g.id}-${g.benar}`,
-            at,
-            g: g.nomor,
-            kind: g.benar >= g.total ? "done" : "right",
-            text: g.benar >= g.total ? t.evDone(g.nomor) : t.evRight(g.nomor, g.benar, g.total),
-          });
-        }
-      }
-      for (const [kid, at] of Object.entries(cur.tangan ?? {})) {
-        const g = cur.kelompok.find((k) => k.id === Number(kid));
-        if (g)
-          out.push({
-            id: `h-${kid}-${at}`,
-            at: new Date(at).getTime(),
-            g: g.nomor,
-            kind: "hand",
-            text: t.evHand(g.nomor),
-          });
-      }
-      pushFeed(out.sort((a, b) => b.at - a.at).slice(0, 10));
-      return;
-    }
-    for (const g of cur.kelompok) {
-      const pg = prev.kelompok.find((k) => k.id === g.id);
-      if (!pg) continue;
-      for (const a of g.anggota) {
-        if (a.hadir && !pg.anggota.find((x) => x.nim === a.nim)?.hadir)
-          out.push({
-            id: `in-${a.nim}`,
-            at: now,
-            g: g.nomor,
-            kind: "login",
-            text: t.evLogin(a.nama),
-          });
-      }
-      if (g.benar > pg.benar)
-        out.push({
-          id: `r-${g.id}-${g.benar}`,
-          at: now,
-          g: g.nomor,
-          kind: g.benar >= g.total ? "done" : "right",
-          text: g.benar >= g.total ? t.evDone(g.nomor) : t.evRight(g.nomor, g.benar, g.total),
-        });
-      for (const b of g.blankRinci ?? []) {
-        const pb = pg.blankRinci?.find((x) => x.soalKode === b.soalKode);
-        if (!b.benar && (!pb || b.percobaan > pb.percobaan))
-          out.push({
-            id: `w-${g.id}-${b.soalKode}-${b.percobaan}`,
-            at: now,
-            g: g.nomor,
-            kind: "wrong",
-            text: t.evWrong(g.nomor, b.soalKode.toUpperCase(), b.percobaan),
-          });
-      }
-      const h = cur.tangan?.[g.id];
-      const ph = prev.tangan?.[g.id];
-      if (h && h !== ph)
-        out.push({
-          id: `h-${g.id}-${h}`,
-          at: now,
-          g: g.nomor,
-          kind: "hand",
-          text: t.evHand(g.nomor),
-        });
-      if (!h && ph)
-        out.push({
-          id: `hd-${g.id}-${ph}`,
-          at: now,
-          g: g.nomor,
-          kind: "note",
-          text: t.evHandDown(g.nomor),
-        });
-    }
-    pushFeed(out);
-  }, [lap.data, pushFeed, t]);
 
   // Tell the whole page when this island's view of the session changes.
   const refreshAll = useCallback(() => {
@@ -538,7 +395,13 @@ export default function Console({ lang }: { lang: Lang }) {
   const stuck = L?.stuck ?? [];
   const tangan = L?.tangan ?? {};
   const pemilik = L?.pemilik ?? {};
-  const selGroup = groups.find((g) => g.id === sel) ?? null;
+  // The inspector always shows a group (mockup c-run): the picked one, else
+  // the first group I hold, else the first group.
+  const selGroup =
+    groups.find((g) => g.id === sel) ??
+    groups.find((g) => pemilik[g.id] === me?.nim) ??
+    groups[0] ??
+    null;
 
   if (see) {
     return (
@@ -568,6 +431,7 @@ export default function Console({ lang }: { lang: Lang }) {
         onEnd={() => setEndOpen(true)}
         onView={go}
         onChanged={refreshAll}
+        onAsPraktikan={() => setAsP(selGroup?.id ?? groups[0]?.id ?? null)}
         announceOpen={announce}
         setAnnounceOpen={setAnnounce}
       />
@@ -587,27 +451,42 @@ export default function Console({ lang }: { lang: Lang }) {
             </button>
           ))}
         </div>
-        <span className="console__hints hint">
-          <UpdatedAgo since={lap.updatedAt} template={t.updated} />
-          <span className="console__kbd">
-            <Kbd>Ctrl K</Kbd> {t.kbdHint} · <Kbd>?</Kbd> {t.kbdShort}
-          </span>
+        <span className="console__me">
+          <span className="hint">{t.youLabel}:</span>
+          <b>{namaOf(me!.nim)}</b>
+          {me?.tier && <TierBadge tier={me.tier} lang={lang} />}
         </span>
       </div>
 
       <Fade k={view} className="console__view">
-        {view === "prep" && (
-          <PrepView
-            t={t}
-            lang={lang}
-            sesi={sesi}
-            roster={roster}
-            assign={assign.data}
-            meNim={me!.nim}
-            meKode={(me!.kode ?? "").toUpperCase()}
-            onChanged={refreshAll}
-          />
-        )}
+        {view === "prep" &&
+          (prepFull ? (
+            <div className="stack">
+              <BackButton lang={lang} label={t.lp.back} onClick={() => setPrepFull(null)} />
+              <PrepView
+                key={prepFull}
+                t={t}
+                lang={lang}
+                sesi={sesi}
+                roster={roster}
+                assign={assign.data}
+                meNim={me!.nim}
+                meKode={(me!.kode ?? "").toUpperCase()}
+                onChanged={refreshAll}
+                tab0={prepFull}
+              />
+            </div>
+          ) : (
+            <LivePrep
+              t={t}
+              lang={lang}
+              sesi={sesi}
+              assign={assign.data}
+              meNim={me!.nim}
+              onChanged={refreshAll}
+              onOpen={setPrepFull}
+            />
+          ))}
 
         {view === "table" && (
           <NilaiTable
@@ -625,77 +504,66 @@ export default function Console({ lang }: { lang: Lang }) {
         )}
 
         {view === "board" && (
-          <BoardLayout
-            board={
-              <GroupBoard
+          <div className="boardgrid">
+            <GroupBoard
+              t={t}
+              groups={groups}
+              stuck={stuck}
+              tangan={tangan}
+              pemilik={pemilik}
+              asisten={asisten}
+              meNim={me!.nim}
+              sel={selGroup?.id ?? null}
+              onSelect={(id) => {
+                pick(id);
+                if (!wide)
+                  requestAnimationFrame(() =>
+                    document
+                      .querySelector(".boardgrid .inspector")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                  );
+              }}
+            />
+            {selGroup && (
+              <GroupInspector
+                key={selGroup.id}
                 t={t}
                 lang={lang}
+                sesiId={sesi.id}
+                modul={sesi.modul}
+                g={selGroup}
                 groups={groups}
-                stuck={stuck}
-                tangan={tangan}
-                pemilik={pemilik}
+                stuck={stuck.filter((s) => s.kelompokId === selGroup.id)}
+                hand={tangan[selGroup.id] ?? null}
+                ownerNim={pemilik[selGroup.id] ?? null}
                 asisten={asisten}
                 meNim={me!.nim}
-                sel={sel}
-                onSelect={(id) => pick(sel === id ? null : id)}
+                bolehPasang={me?.hak?.pair !== false}
+                nilai={nilai}
+                onChanged={refreshAll}
+                onAsPraktikan={(id) => setAsP(id)}
+                seelabs={seelabs.data}
+                onSeelabs={openSeelabs}
+                onSeelabsChanged={seelabs.refresh}
               />
-            }
-            feed={
-              <ActivityFeed
-                t={t}
-                lang={lang}
-                items={feed}
-                onPick={(n) => pick(groups.find((g) => g.nomor === n)?.id ?? null)}
-              />
-            }
-            inspector={
-              selGroup ? (
-                <GroupInspector
-                  key={selGroup.id}
-                  t={t}
-                  lang={lang}
-                  sesiId={sesi.id}
-                  modul={sesi.modul}
-                  g={selGroup}
-                  stuck={stuck.filter((s) => s.kelompokId === selGroup.id)}
-                  hand={tangan[selGroup.id] ?? null}
-                  ownerNim={pemilik[selGroup.id] ?? null}
-                  asisten={asisten}
-                  meNim={me!.nim}
-                  bolehPasang={me?.hak?.pair !== false}
-                  nilai={nilai}
-                  onChanged={refreshAll}
-                  onOpenTable={() => go("table")}
-                  seelabs={seelabs.data}
-                  onSeelabs={openSeelabs}
-                  onSeelabsChanged={seelabs.refresh}
-                />
-              ) : null
-            }
-            empty={
-              <div className="insp-empty">
-                <SquaresFourIcon size={28} aria-hidden="true" />
-                <b>{t.pickGroup}</b>
-                <span className="hint">{t.pickGroupBody}</span>
-                <span className="row">
-                  {Array.from({ length: Math.min(groups.length || 5, 10) }, (_, i) => (
-                    <Kbd key={i}>{(i + 1) % 10}</Kbd>
-                  ))}
-                </span>
-              </div>
-            }
-            sheetTitle={selGroup ? t.groupFull(selGroup.nomor) : ""}
-            onCloseSheet={() => pick(null)}
-            lang={lang}
-            handleLabel={tri(lang, "Ubah ukuran panel", "Resize panes", "调整面板大小")}
-            labels={{
-              board: t.boardTitle,
-              inspector: t.groupFull(selGroup?.nomor ?? 1),
-              feed: t.feed,
-            }}
-          />
+            )}
+          </div>
         )}
       </Fade>
+
+      {asP !== null && (
+        <ViewAsDialog
+          t={t}
+          lang={lang}
+          modul={sesi.modul}
+          groups={groups}
+          pemilik={pemilik}
+          asisten={asisten}
+          meNim={me!.nim}
+          initial={asP}
+          onClose={() => setAsP(null)}
+        />
+      )}
 
       <ServerDrawer
         t={t}
@@ -733,103 +601,6 @@ export default function Console({ lang }: { lang: Lang }) {
           refreshAll();
         }}
       />
-    </div>
-  );
-}
-
-function BoardLayout({
-  board,
-  feed,
-  inspector,
-  empty,
-  sheetTitle,
-  onCloseSheet,
-  lang,
-  handleLabel,
-  labels,
-}: {
-  board: ReactNode;
-  feed: ReactNode;
-  inspector: ReactNode | null;
-  empty: ReactNode;
-  sheetTitle: string;
-  onCloseSheet: () => void;
-  lang: Lang;
-  handleLabel: string;
-  labels: { board: string; inspector: string; feed: string };
-}) {
-  const xl = useMinWidth(1680);
-  const lg = useMinWidth(1024);
-  const insp = <div className="console__insp">{inspector ?? empty}</div>;
-
-  if (xl) {
-    return (
-      <ResizablePanes
-        id="console-board-3"
-        className="console__panes"
-        handleLabel={handleLabel}
-        panes={[
-          {
-            id: "board",
-            label: labels.board,
-            defaultSize: 29,
-            minSize: 22,
-            maxSize: 40,
-            content: board,
-          },
-          { id: "inspector", label: labels.inspector, defaultSize: 47, minSize: 34, content: insp },
-          {
-            id: "feed",
-            label: labels.feed,
-            defaultSize: 24,
-            minSize: 16,
-            maxSize: 34,
-            collapsible: true,
-            content: <div className="console__feedcol">{feed}</div>,
-          },
-        ]}
-      />
-    );
-  }
-  if (lg) {
-    return (
-      <ResizablePanes
-        id="console-board-2"
-        className="console__panes"
-        handleLabel={handleLabel}
-        panes={[
-          {
-            id: "board",
-            label: labels.board,
-            defaultSize: 40,
-            minSize: 30,
-            maxSize: 55,
-            content: (
-              <div className="stack stack--lg">
-                {board}
-                {feed}
-              </div>
-            ),
-          },
-          { id: "inspector", label: labels.inspector, defaultSize: 60, minSize: 45, content: insp },
-        ]}
-      />
-    );
-  }
-  return (
-    <div className="stack stack--lg">
-      {board}
-      {feed}
-      <Dialog
-        open={!!inspector}
-        onOpenChange={(o) => !o && onCloseSheet()}
-        title={sheetTitle}
-        sheet
-        size="xl"
-        lang={lang}
-      >
-        {inspector}
-      </Dialog>
     </div>
   );
 }

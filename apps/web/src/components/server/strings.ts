@@ -106,7 +106,7 @@ export const S = dict({
       "Pi membuat Wi-Fi sendiri bernama IRIS-IOT untuk Modul 4. Papan dan HP masuk ke sana untuk papan skor dan jam Pi, tanpa internet.",
     // chart
     chart: "Prosesor dan Suhu",
-    ranges: { "1h": "1 jam", "24h": "24 jam", "7d": "7 hari" } as Record<string, string>,
+    ranges: { "1h": "1 Jam", "24h": "24 Jam", "7d": "7 Hari" } as Record<string, string>,
     range: "Rentang",
     zoomIn: "Perbesar",
     zoomOut: "Perkecil",
@@ -489,7 +489,7 @@ export const S = dict({
     hotspotHint:
       "The Pi makes its own Wi-Fi, IRIS-IOT, for Module 4. Boards and phones join it to reach the scoreboard and the Pi's clock, with no internet.",
     chart: "CPU and Temperature",
-    ranges: { "1h": "1 hour", "24h": "24 hours", "7d": "7 days" } as Record<string, string>,
+    ranges: { "1h": "1 Hour", "24h": "24 Hours", "7d": "7 Days" } as Record<string, string>,
     range: "Range",
     zoomIn: "Zoom In",
     zoomOut: "Zoom Out",
