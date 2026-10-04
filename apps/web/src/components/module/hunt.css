@@ -14,28 +14,20 @@
   }
 }
 
-.huntjoin__step {
-  align-items: start;
-  border-top: 1px solid var(--hairline);
+/* One step at a time: the QR centred and large, so a camera can only
+   catch the one on screen. */
+.huntjoin__one {
+  align-items: center;
   display: grid;
   gap: 14px;
-  grid-template-columns: auto auto minmax(0, 1fr);
-  padding: 12px 0;
+  justify-items: center;
+  padding-top: 6px;
+  text-align: center;
 }
 
-.huntjoin__step--noqr {
-  grid-template-columns: auto minmax(0, 1fr);
-}
-
-.huntjoin__n {
-  background: var(--accent-soft);
-  border-radius: 50%;
-  color: var(--accent-bright);
-  display: grid;
-  font-weight: 700;
-  height: 28px;
-  place-items: center;
-  width: 28px;
+.huntjoin__one .huntjoin__url {
+  text-align: left;
+  width: 100%;
 }
 
 .qrbox {
@@ -43,10 +35,6 @@
   border-radius: 10px;
   line-height: 0;
   padding: 6px;
-}
-
-.qrbox {
-  justify-self: start;
 }
 
 .qrbox svg {
@@ -69,19 +57,6 @@
   font-size: 0.9rem;
   min-width: 0;
   overflow-wrap: anywhere;
-}
-
-/* Phones: the QR sits under its number, the text runs full width. */
-@media (max-width: 639px) {
-  .huntjoin__step {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-  .huntjoin__step .huntjoin__text {
-    grid-column: 1 / -1;
-  }
-  .huntjoin__step--noqr .huntjoin__text {
-    grid-column: 2;
-  }
 }
 
 .hunt-team__tags {

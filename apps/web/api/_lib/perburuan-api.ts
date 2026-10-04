@@ -69,8 +69,9 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
     ap = hotspotMenyala(d?.modeJaringan);
   }
   const host = !ap && srv?.alamatLan ? srv.alamatLan : ALAMAT_HOTSPOT;
-  const nimParam = who.role === "praktikan" ? `?nim=${encodeURIComponent(who.nim)}` : "";
-  const url = `http://${host}:${PORT_HUNT}/${nimParam}`;
+  // One PC per group: every member scans the same screen and types their
+  // own NIM on the phone, so the link is just the address (ruled 22:49).
+  const url = `http://${host}:${PORT_HUNT}/`;
   const wifi = ap && srv?.hotspot ? srv.hotspot : null;
 
   // The same roster the Pi got (sesi.ts's jadwalModul4Hari): the group's
