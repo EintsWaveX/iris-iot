@@ -715,6 +715,22 @@ async def main() -> int:
                                    "halus", "jarak_m", "trend", "hilang"},
                 json.dumps(list(baris.keys())))
 
+        # /ringkas.json (Phase 9): langkah Perburuan di situs web. Loopback
+        # saja, sama seperti /telemetri.json, dan membawa NIM anggota.
+        with urllib.request.urlopen(f"{args.http}/ringkas.json") as resp:
+            ringkas = json.loads(resp.read())
+        cek("GET /ringkas.json punya bidang yang diharapkan",
+            {"versi", "jam", "sesi", "mulai", "selesai", "berjalan", "grup",
+             "penghargaan", "peristiwa"} <= set(ringkas.keys()),
+            json.dumps(sorted(ringkas.keys())))
+        cek("/ringkas.json menyebut sesi berjalan", ringkas.get("sesi") == 1,
+            str(ringkas.get("sesi")))
+        satu = [g for g in ringkas.get("grup", []) if g.get("grup") == 1]
+        cek("/ringkas.json kelompok 1 membawa anggota ber-NIM",
+            bool(satu) and all("nim" in a and "hadir" in a for a in satu[0]["anggota"])
+            and len(satu[0]["anggota"]) > 0,
+            json.dumps(satu[0] if satu else None)[:160])
+
         # Tolak, lalu klaim ulang harus boleh.
         await asisten.send(json.dumps({"aksi": "tolak", "grup": 1,
                                        "alasan": "itu kotak sekring"}))

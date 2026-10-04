@@ -3,7 +3,8 @@
  *                | { serverId, agenKunci, cpu, memori, disk, suhu,
  *                    uptimeSec, jamSelaras, modeJaringan, layanan,
  *                    telemetri, hasilPerintah,
- *                    agenVersi?, infoSistem?, alamatLan? }        (heartbeat)
+ *                    agenVersi?, infoSistem?, alamatLan?,
+ *                    perburuan?, hotspot? }                      (heartbeat)
  *
  * Two very different operations sharing one file, dispatched on whether
  * `token` is present -- an enrollment body always has one, a heartbeat
@@ -32,7 +33,9 @@
  * go up. `agenVersi`/`infoSistem` (P6.2, sent by an agent built from P6.1
  * onward) are stored on the server row when present and simply omitted
  * otherwise, so an older agent's heartbeat needs no special casing here.
- * `alamatLan` (Phase 9) works the same way.
+ * `alamatLan` (Phase 9) works the same way, and so do `perburuan` (the
+ * Module 4 hunt's /ringkas.json) and `hotspot` (the SSID and passphrase the
+ * agent reads from the Pi's own hostapd file), both for the Perburuan step.
  * No inbound port on the Pi is ever needed -- the agent always calls out,
  * and commands ride the response of the call it was always going to make
  * anyway.
@@ -62,6 +65,7 @@ import {
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
 import { saringKondisi } from "../../src/lib/server-shared.js";
+import { saringHotspot, saringPerburuan } from "../../src/lib/perburuan.js";
 import { eq, and } from "drizzle-orm";
 
 interface HasilPerintahMasuk {
@@ -175,6 +179,10 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         ? body.alamatLan
         : null;
     const kondisi = saringKondisi(body.kondisi);
+    // Phase 9: the Module 4 hunt's summary and the Pi's hotspot, for the
+    // Praktikan's Perburuan step. Only the newest of each is kept.
+    const perburuanMasuk = saringPerburuan(body.perburuan);
+    const hotspot = saringHotspot(body.hotspot);
     const serverSet = {
       ...(typeof body.agenVersi === "string" ? { agenVersi: body.agenVersi } : {}),
       ...(isPlainObject(body.infoSistem)
@@ -183,6 +191,13 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       ...(alamatLan && alamatLan !== row.alamatLan ? { alamatLan } : {}),
       // Stage 5: the newest "Pi right now" numbers; only the known keys.
       ...(kondisi ? { kondisi, kondisiPada: new Date() } : {}),
+      ...(perburuanMasuk
+        ? {
+            perburuan: perburuanMasuk as unknown as Record<string, unknown>,
+            perburuanPada: new Date(),
+          }
+        : {}),
+      ...(hotspot ? { hotspot } : {}),
     };
     if (Object.keys(serverSet).length) {
       await db.update(server).set(serverSet).where(eq(server.id, serverId));

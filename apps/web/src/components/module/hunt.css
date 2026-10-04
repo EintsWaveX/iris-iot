@@ -1,0 +1,146 @@
+/* HuntStep.tsx: Module 4's Perburuan step (ruled 2026-10-04). */
+
+/* Two equal cards, side by side from 900 (the mockup's g2 equal). */
+.huntjoin {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .huntjoin {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.huntjoin__step {
+  align-items: start;
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  padding: 12px 0;
+}
+
+.huntjoin__step--noqr {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.huntjoin__n {
+  background: var(--accent-soft);
+  border-radius: 50%;
+  color: var(--accent-bright);
+  display: grid;
+  font-weight: 700;
+  height: 28px;
+  place-items: center;
+  width: 28px;
+}
+
+.qrbox {
+  background: #fff;
+  border-radius: 10px;
+  line-height: 0;
+  padding: 6px;
+}
+
+.qrbox {
+  justify-self: start;
+}
+
+.qrbox svg {
+  display: block;
+}
+
+.huntjoin__url {
+  align-items: center;
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 6px 6px 6px 12px;
+}
+
+.huntjoin__url .mono {
+  flex: 1;
+  font-size: 0.9rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Phones: the QR sits under its number, the text runs full width. */
+@media (max-width: 639px) {
+  .huntjoin__step {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .huntjoin__step .huntjoin__text {
+    grid-column: 1 / -1;
+  }
+  .huntjoin__step--noqr .huntjoin__text {
+    grid-column: 2;
+  }
+}
+
+.hunt-team__tags {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hunt-team,
+.hunt-history {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hunt-team__row,
+.hunt-history__row {
+  align-items: center;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.hunt-team__row:first-child,
+.hunt-history__row:first-child {
+  border-top: 0;
+}
+
+.hunt-team__dot {
+  background: var(--text-faint);
+  border-radius: 50%;
+  flex: none;
+  height: 9px;
+  width: 9px;
+}
+
+.hunt-team__dot.is-on {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent);
+}
+
+.hunt-history__row .mono {
+  flex: none;
+}
+
+.hunt-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .hunt-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.hunt-awards {
+  flex-wrap: wrap;
+  gap: 8px;
+}

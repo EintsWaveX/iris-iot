@@ -9,6 +9,7 @@ Satu proses melayani tiga hal sekaligus pada port yang sama:
     GET  /jejak.json    jejak 1 Hz tiap kelompok + peristiwa, untuk tayangan ulang
     GET  /jejak.csv     jejak yang sama sebagai CSV, untuk diunduh asisten
     GET  /telemetri.json  baris per kelompok (mentah + RSSI halus, jarak, tren) untuk agent Orange Pi (loopback saja)
+    GET  /ringkas.json  ringkasan perburuan per kelompok (status, anggota, peristiwa) untuk agent (loopback saja)
     GET  /foto/<berkas> foto klaim yang diunggah sebuah kelompok
     WS   /beacon        beacon melaporkan tiap nomor paket yang dipancarkan
     WS   /hunter        tiap hunter melaporkan RSSI paket yang tertangkap
@@ -1876,10 +1877,77 @@ def process_request(connection: ServerConnection, request) -> Response | None:
         })
         return Response(HTTPStatus.OK, "OK", headers, body)
 
+    if path == "/ringkas.json":
+        # Phase 9: langkah Perburuan di situs web. Agent meneruskannya lewat
+        # denyut, dan situs menunjukkan tiap praktikan keadaan kelompoknya
+        # sendiri. Loopback saja, sama seperti /telemetri.json, karena di
+        # sini NIM ikut keluar.
+        ip = peer_ip(connection)
+        if ip not in ("127.0.0.1", "::1"):
+            return connection.respond(
+                HTTPStatus.FORBIDDEN, "Hanya diizinkan dari loopback (127.0.0.1).\n",
+            )
+        body = json.dumps(ringkasan_perburuan(), ensure_ascii=False).encode("utf-8")
+        headers = Headers({
+            "Content-Type": "application/json; charset=utf-8",
+            "Content-Length": str(len(body)),
+            "Cache-Control": "no-store",
+        })
+        return Response(HTTPStatus.OK, "OK", headers, body)
+
     if path.startswith("/foto/"):
         return sajikan_foto(connection, path)
 
     return connection.respond(HTTPStatus.NOT_FOUND, "Tidak ditemukan\n")
+
+
+def ringkasan_perburuan() -> dict:
+    """Keadaan perburuan per kelompok untuk situs web (lewat agent).
+
+    "sesi" bukan None berarti asisten sudah memulai sesi di ruang kendali,
+    jadi langkah Perburuan terbuka. "mulai" berarti beacon sudah memancar,
+    "selesai" berarti ronde sudah ditutup. Anggota membawa NIM supaya situs
+    bisa mencocokkan praktikan yang masuk; karena itu rute ini loopback saja.
+    """
+    bingkai = HUNT.snapshot()
+    hadir_nim: set[str] = set()
+    for meta in VIEWERS.values():
+        if meta.get("nim") and meta.get("grup") is not None:
+            hadir_nim.add(meta["nim"])
+    baris = {r["grup"]: r for r in bingkai["grup"]}
+    grup = []
+    for gid, isi in sorted(regu_aktif().items(), key=lambda kv: int(kv[0])):
+        r = baris.get(int(gid), {})
+        grup.append({
+            "grup": int(gid),
+            "status": r.get("status"),
+            "heat": r.get("heat"),
+            "rank": r.get("rank"),
+            "durasi": r.get("durasi"),
+            "klaim_ke": r.get("klaim_ke"),
+            "anggota": [
+                {
+                    "nim": a.get("nim", ""),
+                    "peran": PERAN.get(a.get("nim", "")) or None,
+                    "hadir": a.get("nim", "") in hadir_nim,
+                }
+                for a in isi.get("anggota", [])
+            ],
+        })
+    return {
+        "versi": 1,
+        "jam": bingkai["jam"],
+        "sesi": JADWAL["aktif"],
+        "mulai": HUNT.started_at is not None,
+        "selesai": HUNT.round_ended_at is not None,
+        "berjalan": bingkai["berjalan"],
+        "grup": grup,
+        "penghargaan": bingkai["penghargaan"],
+        "peristiwa": [
+            {k: v for k, v in e.items() if k in ("kind", "grup", "at", "t", "durasi", "heat", "alasan")}
+            for e in HUNT.jejak_peristiwa[-60:]
+        ],
+    }
 
 
 def _angka_kueri(kueri: dict, kunci: str, bawah: int, atas: int) -> int | None:

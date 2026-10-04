@@ -17,6 +17,11 @@
  *   holds N fills blanks, connects ports and captures for it; any other
  *   Asisten only looks.
  *
+ * Module 4 adds a sixth step in a running session, Perburuan (ruled
+ * 2026-10-04): the hand-off from the laptop to the phones for the LoRa
+ * hunt, locked until the Asisten starts a session in the hunt's control
+ * room, then the group's result.
+ *
  * The step is mirrored into ?step= so a step is bookmarkable, and
  * `iris:go-step` (detail: a step id) moves to it from anywhere on the page.
  */
@@ -36,6 +41,7 @@ import {
   CircuitryIcon,
   DoorOpenIcon,
   EyeIcon,
+  FlagCheckeredIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
   NoteIcon,
@@ -52,6 +58,8 @@ import LiveRoom from "../live/LiveRoom";
 import { CaptureList, useTangkapan } from "../live/Capture";
 import { CV } from "../live/captureStrings";
 import BriefStep from "./BriefStep";
+import HuntStep, { usePerburuan } from "./HuntStep";
+import { H } from "./huntStrings";
 import { getJson, href, tanggalPanjang, useMe, useSessionNow } from "../../lib/app";
 import { getAksesState, type AksesState } from "../../scripts/modul-akses";
 import { setModulAkses } from "../shell/AsistenCommands";
@@ -60,7 +68,7 @@ import type { Lang } from "../../lib/kelas";
 import { M } from "./moduleStrings";
 
 type Mode = "browse" | "now" | "done" | "asisten";
-type Step = "modul" | "brief" | "praktikum" | "setup" | "code" | "live";
+type Step = "modul" | "brief" | "praktikum" | "setup" | "code" | "live" | "hunt";
 
 interface Praktikum {
   sesiId: number;
@@ -202,10 +210,15 @@ export default function ModuleSteps(p: Props) {
           ? "done"
           : "browse";
 
+  const berburu = modul === 4 && mode === "now";
   const steps: Step[] =
     mode === "browse"
       ? ["modul", "brief", "praktikum"]
-      : ["modul", "brief", "setup", "code", "live"];
+      : berburu
+        ? ["modul", "brief", "setup", "code", "live", "hunt"]
+        : ["modul", "brief", "setup", "code", "live"];
+  const hunt = usePerburuan(berburu && !loading, wakil?.nomor);
+  const keadaan = hunt.data?.aktif ? (hunt.data.keadaan ?? "tunggu") : "tunggu";
 
   const [step, setStep] = useState<Step>("modul");
   const [picked, setPicked] = useState(false);
@@ -252,6 +265,7 @@ export default function ModuleSteps(p: Props) {
     setup: t.setup,
     code: t.code,
     live: mode === "done" ? t.captures : t.live,
+    hunt: H[lang].step,
   };
   const done = mode === "done" ? mine?.find((x) => x.modul === modul) : undefined;
   const open = akses?.terbuka.includes(modul) ?? false;
@@ -299,8 +313,23 @@ export default function ModuleSteps(p: Props) {
         </div>
       )}
 
+      {berburu && keadaan !== "tunggu" && step !== "hunt" && (
+        <div className="banner banner--ok modsteps__hunt">
+          <FlagCheckeredIcon aria-hidden="true" />
+          <b>{keadaan === "selesai" ? H[lang].bannerDone : H[lang].bannerOpen}</b>
+          <span className="hint modsteps__hide-sm">
+            {keadaan === "selesai" ? H[lang].bannerDoneHint : H[lang].bannerOpenHint}
+          </span>
+          <span className="grow" />
+          <button type="button" className="btn btn--sm btn--primary" onClick={() => go("hunt")}>
+            {H[lang].toHunt}
+            <ArrowRightIcon aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
       <div
-        className={`seg seg--big modsteps__tabs${mode === "browse" ? "" : " modsteps__tabs--plain"}`}
+        className={`seg seg--big modsteps__tabs${mode === "browse" ? "" : " modsteps__tabs--plain"}${steps.length === 6 ? " modsteps__tabs--six" : ""}`}
         role="tablist"
         aria-label={t.steps}
         data-segfit="off"
@@ -335,6 +364,7 @@ export default function ModuleSteps(p: Props) {
             }}
           >
             {mode === "browse" && ICON[s]}
+            {s === "hunt" && keadaan === "tunggu" && <LockSimpleIcon aria-hidden="true" />}
             {/* Browse numbers the three steps and gives them icons (mockup
                 m-browse); the five session steps are plain text (p-module). */}
             <span className="modsteps__label">
@@ -372,6 +402,8 @@ export default function ModuleSteps(p: Props) {
               code={p.code}
               wakil={wakil ?? undefined}
             />
+          ) : step === "hunt" ? (
+            <HuntStep lang={lang} data={hunt.data} asisten={me?.role === "asisten"} />
           ) : mode === "done" ? (
             <Done lang={lang} modul={modul} done={done} />
           ) : (

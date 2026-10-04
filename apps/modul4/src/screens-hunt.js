@@ -232,12 +232,13 @@
       }
     }, [N.grup]);
     const noSession = N.frame && N.frame.sesi == null;
-    const submit = async (e) => {
+    const submit = async (e, given) => {
       if (e) e.preventDefault();
-      if (busy || nim.length < 4) return;
+      const v = given || nim;
+      if (busy || v.length < 4) return;
       setBusy(true);
       setErr(null);
-      const r = await H.masuk(nim);
+      const r = await H.masuk(v);
       setBusy(false);
       if (r.ok) {
         setRole(r.peran_tim || null);
@@ -256,6 +257,14 @@
       }
       H.go("hunt");
     };
+    /* a NIM from the web's QR link signs in as soon as the Pi answers */
+    useEffect(() => {
+      if (!H.urlNim || step !== "nim" || N.status !== "live" || noSession) return;
+      const v = H.urlNim;
+      H.urlNim = null;
+      setNim(v);
+      submit(null, v);
+    }, [N.status, step, noSession]);
     const g = N.grup;
     let body;
     if (noSession && g === null)

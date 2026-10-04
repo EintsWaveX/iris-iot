@@ -707,6 +707,13 @@ export const server = pgTable("server", {
   // (the denyut rows stay, the charts need them). The audit log keeps what
   // was cleared.
   riwayatSejak: timestamp("riwayat_sejak", { withTimezone: true }),
+  // Phase 9 (0020): the Module 4 hunt's latest /ringkas.json, forwarded by
+  // the agent, for the Praktikan's Perburuan step. Only the newest is kept.
+  perburuan: jsonb("perburuan").$type<Record<string, unknown>>(),
+  perburuanPada: timestamp("perburuan_pada", { withTimezone: true }),
+  // The hotspot the Pi runs for Module 4, read by the agent from its own
+  // hostapd file at run time ({ ssid, sandi }), for the join QR.
+  hotspot: jsonb("hotspot").$type<{ ssid: string; sandi: string | null }>(),
 });
 
 /**

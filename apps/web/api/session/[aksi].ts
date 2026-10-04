@@ -37,6 +37,7 @@
  * rosterslot, praktikan and susulan (api/_lib/persiapan.ts), brief (api/_lib/brief.ts),
  * lab (api/_lib/lab.ts, public).
  */
+import { handlePerburuan } from "../_lib/perburuan-api.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak } from "../_lib/hak.js";
 import { handleTimGet, handleTimJejak, handleTimPost } from "../_lib/tim.js";
@@ -1135,6 +1136,18 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireMethod(req, res, "GET")) return;
     if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
     return handleTelemetry(req, res);
+  }
+
+  // Phase 9: the Module 4 Perburuan step (the hunt on the Pi, as one group
+  // sees it). An Asisten reads the group they view as.
+  if (aksi === "perburuan") {
+    if (!requireMethod(req, res, "GET")) return;
+    const wakil = nomorWakil(req);
+    const who = wakil
+      ? await wakilKelompok(req, res, wakil, false)
+      : await requireCurrentPraktikanSesi(req, res);
+    if (!who) return;
+    return handlePerburuan(req, res, who);
   }
 
   // Phase 9 (7f): journal captures and the serial mirror.

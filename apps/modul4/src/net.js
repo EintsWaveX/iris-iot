@@ -53,6 +53,22 @@
     pings: [],
   };
   H.net = N;
+  /* Phase 9: the web's Perburuan step links here with ?nim=, so a phone
+     that scanned the QR signs in without typing. Read once, then dropped
+     from the address so a reload doesn't sign in again. */
+  H.urlNim = (() => {
+    try {
+      const u = new URL(window.location.href);
+      const v = cleanNim(u.searchParams.get("nim"));
+      if (u.searchParams.has("nim")) {
+        u.searchParams.delete("nim");
+        window.history.replaceState(null, "", u.pathname + u.search + u.hash);
+      }
+      return v;
+    } catch (e) {
+      return null;
+    }
+  })();
 
   /* ------------------------------------------------ change notification */
   const subs = new Set();

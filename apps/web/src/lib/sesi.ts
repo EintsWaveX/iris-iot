@@ -17,7 +17,7 @@
 import { eq, and, ne, desc } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { sesi, anggota, kelompok, sesiKelompok } from "./schema.js";
-import { durasiSesi, slotToMulai } from "./jadwal.js";
+import { durasiSesi, idHuntSusulan, slotToMulai } from "./jadwal.js";
 
 export interface ResolvedPraktikan {
   nim: string;
@@ -223,10 +223,26 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
   const withSlot = slots.filter(
     (s): s is { id: number; slot: number; mulai: string } => s.slot !== null,
   );
-  if (withSlot.length === 0) return null;
+  // Phase 9: a Module 4 Praktikum Susulan has no slot, so it borrows the
+  // nearest free one (idHuntSusulan) and keeps its own start time; before,
+  // it never reached the Pi and its Praktikan couldn't join the hunt.
+  const dipakai = new Set(withSlot.map((s) => s.slot));
+  const susulan = slots
+    .filter((s) => s.slot === null)
+    .sort((a, b) => a.mulai.localeCompare(b.mulai));
+  const semua: { id: number; slot: number; mulai: string; susulan: boolean }[] = withSlot.map(
+    (s) => ({ ...s, susulan: false }),
+  );
+  for (const s of susulan) {
+    const id = idHuntSusulan(s.mulai, dipakai);
+    if (id === null) continue;
+    dipakai.add(id);
+    semua.push({ id: s.id, slot: id, mulai: s.mulai, susulan: true });
+  }
+  if (semua.length === 0) return null;
 
   const sesiOut: JadwalModul4["sesi"] = [];
-  for (const s of withSlot) {
+  for (const s of semua) {
     // Stage 21 removed this loop's own fallback onto the retired
     // `arsipRegu`/`arsipPraktikan` pair, for the same reason resolvePraktikan()
     // dropped its own -- see that function's docblock. The `regu` KEY on the
@@ -263,7 +279,11 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
       if (row.nim) kelompokSesi[key].anggota.push({ nim: row.nim, nama: row.anggotaNama ?? "" });
     }
 
-    sesiOut.push({ id: s.slot, mulai: slotToMulai(s.slot) ?? s.mulai, regu: kelompokSesi });
+    sesiOut.push({
+      id: s.slot,
+      mulai: s.susulan ? s.mulai : (slotToMulai(s.slot) ?? s.mulai),
+      regu: kelompokSesi,
+    });
   }
 
   sesiOut.sort((a, b) => a.id - b.id);

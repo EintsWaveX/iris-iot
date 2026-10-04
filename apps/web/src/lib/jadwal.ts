@@ -39,6 +39,30 @@ export function slotToMulai(slot: number): string | null {
 }
 
 /**
+ * The hunt's session id for a Module 4 Praktikum Susulan (no slot of its
+ * own): the slot whose start is nearest its own start, among the ids no
+ * regular Module 4 session uses that day. The hunt knows four sessions a
+ * day by slot id, so a susulan borrows a free one. Null when all four are
+ * taken.
+ */
+export function idHuntSusulan(mulai: string, dipakai: ReadonlySet<number>): number | null {
+  const menit = (hm: string) => {
+    const [h, m] = hm.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const target = menit(mulai);
+  let best: number | null = null;
+  for (const [k, v] of Object.entries(SLOT_MULAI)) {
+    const id = Number(k);
+    if (dipakai.has(id)) continue;
+    if (best === null || Math.abs(menit(v) - target) < Math.abs(menit(SLOT_MULAI[best]) - target)) {
+      best = id;
+    }
+  }
+  return best;
+}
+
+/**
  * Today's date as "YYYY-MM-DD" in the lab's own timezone (WIB, UTC+7,
  * matching `sesi.tanggal`'s convention) -- never the server's, since Vercel
  * runs serverless functions in UTC and a naive `new Date()` split would name

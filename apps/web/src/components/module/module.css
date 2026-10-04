@@ -91,6 +91,11 @@
     font-size: 0.875rem;
     min-height: 48px;
   }
+  /* Module 4's six session steps: two rows of three on a phone. */
+  .modsteps__tabs--six {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* -------------------------------------------------------------- brief */
