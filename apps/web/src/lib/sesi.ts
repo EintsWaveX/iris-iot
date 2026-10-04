@@ -18,6 +18,7 @@ import { eq, and, ne, desc } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { sesi, anggota, kelompok, sesiKelompok } from "./schema.js";
 import { durasiSesi, idHuntSusulan, slotToMulai } from "./jadwal.js";
+import { namaKelompok } from "./kelompok-nama.js";
 
 export interface ResolvedPraktikan {
   nim: string;
@@ -271,7 +272,9 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
       const key = String(row.nomor);
       if (!kelompokSesi[key]) {
         kelompokSesi[key] = {
-          nama: row.nama,
+          // The star name when the roster left "Kelompok N" (the hunt's
+          // reveal and headings show it, like the web does).
+          nama: namaKelompok(row.nomor, row.nama),
           aktif: row.kelompokAktif && (row.sesiAktif ?? true),
           anggota: [],
         };

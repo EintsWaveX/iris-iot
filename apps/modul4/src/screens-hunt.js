@@ -222,11 +222,14 @@
     const [busy, setBusy] = useState(false);
     const [role, setRole] = useState(N.peranTim);
     const st = H.useStore();
+    /* set while the form signs in, so the group reveal isn't skipped: the
+       effect below runs with the step from before the sign-in resolved */
+    const viaForm = useRef(false);
     /* the server is the authority: a stored NIM that resolves on connect
        skips straight to the role, one that stops resolving goes back */
     useEffect(() => {
       if (N.grup === null && step !== "nim") setStep("nim");
-      if (N.grup !== null && step === "nim") {
+      if (N.grup !== null && step === "nim" && !viaForm.current) {
         setRole(N.peranTim);
         setStep("role");
       }
@@ -238,8 +241,10 @@
       if (busy || v.length < 4) return;
       setBusy(true);
       setErr(null);
+      viaForm.current = true;
       const r = await H.masuk(v);
       setBusy(false);
+      if (!r.ok) viaForm.current = false;
       if (r.ok) {
         setRole(r.peran_tim || null);
         setStep("reveal");
