@@ -135,7 +135,7 @@ export default function Drawer({
               )}
             </div>
             <RadixDialog.Close asChild>
-              <IconButton icon={XIcon} label={closeLabel} kind="ghost" className="drawer__close" />
+              <IconButton icon={XIcon} label={closeLabel} className="drawer__close" />
             </RadixDialog.Close>
           </header>
           <div className="drawer__body">{children}</div>

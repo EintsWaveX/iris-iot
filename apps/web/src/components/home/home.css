@@ -3,14 +3,14 @@
 .home {
   display: flex;
   flex-direction: column;
-  gap: var(--space-9);
+  gap: 26px;
   padding-top: var(--space-page-top);
 }
 
 .home__top {
   align-items: center;
   display: grid;
-  gap: var(--space-6);
+  gap: 18px;
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -22,7 +22,7 @@
 
 .home__display {
   font-family: var(--font-display);
-  font-size: clamp(2.3rem, 4.6vw, 4.4rem);
+  font-size: clamp(2.3rem, 6.4vw, 4.4rem);
   font-weight: var(--display-weight);
   letter-spacing: var(--display-track);
   line-height: 1.02;
@@ -32,27 +32,25 @@
 
 .home__lede {
   color: var(--text-muted);
-  font-size: var(--fs-body-lg);
+  font-size: 1.05rem;
   margin: 0;
   max-width: 64ch;
 }
 
 .home__h1 {
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
-  font-weight: var(--display-weight);
-  letter-spacing: var(--display-track);
-  line-height: 1.1;
+  font-size: 1.7rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
   margin: 0;
   text-wrap: balance;
 }
 
 .home__h2 {
-  font-family: var(--font-display);
-  font-size: 1.45rem;
-  font-weight: var(--display-weight);
-  letter-spacing: var(--display-track);
-  line-height: 1.15;
+  font-size: 1.28rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
   margin: 0;
 }
 
@@ -62,25 +60,34 @@
 
 .home__stats {
   display: grid;
-  gap: var(--space-3);
+  gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.home__stats .stat__value {
-  font-size: clamp(1.6rem, 1.4vw + 1rem, 2.1rem);
 }
 
 /* --------------------------------------------- before, during, after */
 
 .home__steps {
   display: grid;
-  gap: var(--space-4);
+  gap: 18px;
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 820px) {
+/* The mockup's g3: two columns from 640, three from 1100. */
+@media (min-width: 640px) {
+  .home__steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
   .home__steps {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .home {
+    gap: 18px;
   }
 }
 
@@ -134,14 +141,6 @@
 
 .home__lanerow:last-child {
   border-bottom: 0;
-}
-
-.home__lanerow > .pill {
-  justify-self: start;
-}
-
-.home__lanerow > .btn {
-  justify-self: start;
 }
 
 @media (min-width: 1024px) {

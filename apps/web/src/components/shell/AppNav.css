@@ -10,9 +10,9 @@
   background: var(--nav-bg);
   border-bottom: 1px solid var(--hairline);
   display: flex;
-  gap: var(--space-4);
+  gap: 4px;
   min-height: var(--nav-size);
-  padding: env(safe-area-inset-top, 0px) var(--gutter) 0;
+  padding: env(safe-area-inset-top, 0px) 24px 0;
   position: sticky;
   top: 0;
   transition:
@@ -46,15 +46,18 @@
 
 .appnav__brand {
   align-items: center;
+  border-radius: 8px;
   display: flex;
   flex: none;
+  margin-right: 12px;
   min-height: 48px;
+  padding: 4px;
 }
 
 .appnav__brand img {
   display: block;
   filter: var(--logo-filter) drop-shadow(0 0 8px var(--accent-soft));
-  height: 28px;
+  height: 30px;
   transition: filter var(--dur-mid) var(--ease-reveal);
   width: auto;
 }
@@ -70,7 +73,6 @@
   flex: 1;
   gap: 2px;
   justify-content: flex-start;
-  margin-left: var(--space-2);
   min-width: 0;
 }
 
@@ -156,7 +158,8 @@
   align-items: center;
   display: flex;
   flex: none;
-  gap: var(--space-2);
+  gap: 8px;
+  margin-left: auto;
 }
 
 .appnav__palette {
@@ -167,20 +170,30 @@
   min-height: 44px;
 }
 
-/* The nav clock (NavClock.tsx) */
+/* The nav clock (NavClock.tsx), a pill as in the mockup (G6) */
 .navclock {
   align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill, 999px);
   color: var(--text-muted);
   display: inline-flex;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
   white-space: nowrap;
+}
+
+.navclock__date {
+  font-weight: 600;
 }
 
 .navclock__time {
   color: var(--text);
-  font-size: 0.98rem;
+  font-size: 1.04rem;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .navclock__sep {
@@ -193,7 +206,8 @@
 }
 
 .appnav__disp-mobile,
-.navclock--mobile {
+.navclock--mobile,
+.appnav__signin--mobile {
   display: none;
 }
 
@@ -281,10 +295,10 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: var(--fs-small);
-  gap: var(--space-2);
-  min-height: 44px;
-  padding: 3px var(--space-3) 3px 3px;
+  font-size: 0.92rem;
+  gap: 8px;
+  min-height: 40px;
+  padding: 3px 12px 3px 4px;
   transition:
     border-color var(--dur-fast) var(--ease-reveal),
     background var(--dur-fast) var(--ease-reveal);
@@ -302,23 +316,28 @@
 
 .appnav__avatar {
   align-items: center;
-  background: linear-gradient(135deg, var(--accent), var(--group-2));
+  background: var(--accent);
   border-radius: 50%;
   color: var(--accent-ink);
   display: inline-flex;
   flex: none;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 11px;
   font-weight: 700;
-  height: 36px;
+  height: 32px;
   justify-content: center;
   letter-spacing: 0.02em;
-  width: 36px;
+  width: 32px;
 }
 
 .appnav__avatar[data-role="praktikan"] {
-  background: linear-gradient(135deg, var(--group-1), var(--accent));
-  font-size: 0.9rem;
+  background: var(--g, var(--group-4));
+}
+
+.appnav__avatar[data-pencipta="yes"] {
+  box-shadow:
+    0 0 0 2px var(--surface-2),
+    0 0 0 4px #ffb36b;
 }
 
 .appnav__avatar--lg {
@@ -501,12 +520,42 @@
 
 /* ------------------------------------------------------------ widths */
 
-/* The date needs the room the links take at 1280 in English, and more
-   once Team joins them; the time stays. */
-@media (max-width: 1439px) {
+/* 1280 to 1439: the full date sits above the time, so long English links
+   still fit beside it; below 1280 the time stands alone (mockup G6). */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  .navclock {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 0;
+    justify-content: center;
+    line-height: 1.15;
+    padding: 2px 12px;
+  }
+  .navclock__sep {
+    display: none;
+  }
+  .navclock__date {
+    font-size: 0.72rem;
+  }
+  .navclock__time {
+    font-size: 0.94rem;
+  }
+}
+
+@media (max-width: 1279px) {
   .navclock__date,
   .navclock__sep {
     display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .navclock {
+    min-height: 36px;
+    padding: 0 10px;
+  }
+  .navclock__time {
+    font-size: 0.95rem;
   }
 }
 
@@ -516,14 +565,21 @@
   }
 }
 
-@media (max-width: 1100px) {
+@media (min-width: 1100px) {
+  .appnav__link {
+    font-size: 1.08rem;
+    padding: 0 15px;
+  }
+}
+
+@media (max-width: 899px) {
   .appnav__link {
     font-size: 0.98rem;
     padding: 0 9px;
   }
-  .appnav__link svg {
-    display: none;
-  }
+}
+
+@media (max-width: 1099px) {
   .appnav__badge {
     display: none;
   }
@@ -553,7 +609,8 @@
   .appnav__disp-mobile {
     display: inline-grid;
   }
-  .navclock--mobile {
+  .navclock--mobile,
+  .appnav__signin--mobile {
     display: inline-flex;
   }
   .appnav__brand {

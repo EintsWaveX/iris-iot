@@ -19,7 +19,14 @@
  * follows the running session's class (International is English). The
  * redirect happens here because this is the one island on every page.
  */
-import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+} from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
   BookOpenTextIcon,
@@ -27,12 +34,11 @@ import {
   ChartBarIcon,
   HardDrivesIcon,
   HouseIcon,
+  DoorOpenIcon,
   MagnifyingGlassIcon,
   SignOutIcon,
-  SignInIcon,
   SlidersHorizontalIcon,
   SquaresFourIcon,
-  UserIcon,
   UsersFourIcon,
   UsersThreeIcon,
   type IconProps,
@@ -56,6 +62,7 @@ import { langForKelas, langOfPath, pathForLang, type Lang } from "../../lib/kela
 import { readLangPref, saveLangPref, usePoll } from "../../lib/hooks";
 import { kelompokLabel } from "../../lib/labels";
 import SessionMiniBar from "./SessionMiniBar";
+import AsistenMiniBar from "./AsistenMiniBar";
 import OfflineNotice from "./OfflineNotice";
 import IdentityWatch from "./IdentityWatch";
 import AsistenCommands from "./AsistenCommands";
@@ -185,6 +192,35 @@ function isActive(link: string, current: string): boolean {
   return current === link || current.startsWith(link + "/");
 }
 
+/** The round initials in the account chip (mockup rolebadge): the Asisten's
+ *  code, or a Praktikan's two initials on their group colour; the Pencipta
+ *  gets an amber ring. */
+function initials(nama: string): string {
+  const w = nama.trim().split(/\s+/).filter(Boolean);
+  return (
+    (w[0]?.[0] ?? "") + (w.length > 1 ? (w[w.length - 1]?.[0] ?? "") : (w[0]?.[1] ?? ""))
+  ).toUpperCase();
+}
+
+function Avatar({ me, lg = false }: { me: NonNullable<ReturnType<typeof useMe>>; lg?: boolean }) {
+  const praktikan = me.role === "praktikan";
+  return (
+    <span
+      className={lg ? "appnav__avatar appnav__avatar--lg" : "appnav__avatar"}
+      data-role={me.role}
+      data-pencipta={me.badges?.includes("pencipta") ? "yes" : undefined}
+      style={
+        praktikan && me.kelompok
+          ? ({ "--g": `var(--group-${((me.kelompok - 1) % 10) + 1})` } as CSSProperties)
+          : undefined
+      }
+      aria-hidden="true"
+    >
+      {praktikan ? initials(me.nama) : (me.kode || me.nama).slice(0, 3).toUpperCase()}
+    </span>
+  );
+}
+
 export default function AppNav({
   lang: built,
   path,
@@ -285,12 +321,19 @@ export default function AppNav({
     return href(lang, l.path);
   }
 
-  const badge =
-    me?.role === "asisten"
-      ? `${t.asisten} · ${me.kode || me.nama.split(" ")[0]}`
-      : me?.role === "praktikan"
-        ? `${t.praktikan}${me.kelompok ? ` · ${t.group(me.kelompok)}` : ""}`
-        : null;
+  // The session's clock lives in a bar under the nav: the Praktikan's mini
+  // bar, the Asisten's own "Sesimu berjalan" bar, or the Console's session
+  // bar; the nav clock steps aside for it (mockup G6).
+  const onConsole = isActive("/session", current);
+  const asistenBar = me?.role === "asisten" && !!now.data?.mengajar && !onConsole;
+  const sesiBar =
+    me?.role === "praktikan"
+      ? !!now.data
+      : me?.role === "asisten"
+        ? !!now.data?.mengajar || (onConsole && !!now.data)
+        : false;
+
+  const badge = me?.role === "asisten" ? t.asisten : me?.role === "praktikan" ? t.praktikan : null;
 
   return (
     <>
@@ -337,7 +380,7 @@ export default function AppNav({
               />
             </span>
           )}
-          <NavClock lang={lang} inSession={!!now.data} />
+          <NavClock lang={lang} inSession={sesiBar} />
           <RadixPopover.Root>
             <RadixPopover.Trigger asChild>
               <IconButton icon={SlidersHorizontalIcon} label={t.display} tipSide="bottom" />
@@ -367,6 +410,7 @@ export default function AppNav({
               className="btn btn--primary appnav__signin"
               onClick={() => window.LoginDialog?.open()}
             >
+              <DoorOpenIcon size={20} aria-hidden="true" />
               <span className="btn__label">{t.signIn}</span>
             </button>
           )}
@@ -375,11 +419,7 @@ export default function AppNav({
             <RadixPopover.Root>
               <RadixPopover.Trigger asChild>
                 <button type="button" className="appnav__me" aria-label={t.account}>
-                  <span className="appnav__avatar" data-role={me.role} aria-hidden="true">
-                    {me.role === "asisten"
-                      ? (me.kode || me.nama).slice(0, 3).toUpperCase()
-                      : me.nama.slice(0, 1).toUpperCase()}
-                  </span>
+                  <Avatar me={me} />
                   <span className="appnav__badge">{badge}</span>
                 </button>
               </RadixPopover.Trigger>
@@ -403,32 +443,38 @@ export default function AppNav({
           )}
         </div>
 
-        <NavClock lang={lang} inSession={!!now.data} className="navclock--mobile" />
+        <NavClock lang={lang} inSession={sesiBar} className="navclock--mobile" />
         <IconButton
           icon={SlidersHorizontalIcon}
           label={t.display}
           className="appnav__disp-mobile"
           onClick={() => setDispSheet(true)}
         />
-        <button
-          type="button"
-          className="appnav__me appnav__me--mobile"
-          onClick={() => (me === null ? window.LoginDialog?.open() : setSheet(true))}
-          aria-label={me === null ? t.signIn : t.account}
-        >
-          {me ? (
-            <span className="appnav__avatar" data-role={me.role} aria-hidden="true">
-              {me.role === "asisten"
-                ? (me.kode || me.nama).slice(0, 3).toUpperCase()
-                : me.nama.slice(0, 1).toUpperCase()}
-            </span>
-          ) : (
-            <UserIcon size={20} aria-hidden="true" />
-          )}
-        </button>
+        {me === null ? (
+          <button
+            type="button"
+            className="btn btn--primary appnav__signin appnav__signin--mobile"
+            onClick={() => window.LoginDialog?.open()}
+          >
+            <DoorOpenIcon size={20} aria-hidden="true" />
+            <span className="btn__label">{t.signIn}</span>
+          </button>
+        ) : (
+          me && (
+            <button
+              type="button"
+              className="appnav__me appnav__me--mobile"
+              onClick={() => setSheet(true)}
+              aria-label={t.account}
+            >
+              <Avatar me={me} />
+            </button>
+          )
+        )}
       </header>
 
       {me?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} />}
+      {asistenBar && now.data && <AsistenMiniBar lang={lang} s={now.data} />}
       <OfflineNotice lang={lang} />
       <IdentityWatch lang={lang} me={me} now={now.data} />
 
@@ -458,14 +504,6 @@ export default function AppNav({
             </a>
           );
         })}
-        {me === null && (
-          <button type="button" className="appbar__item" onClick={() => window.LoginDialog?.open()}>
-            <span className="appbar__icon">
-              <SignInIcon size={21} aria-hidden="true" />
-            </span>
-            <span className="appbar__label">{t.signIn}</span>
-          </button>
-        )}
       </nav>
 
       <Dialog open={dispSheet} onOpenChange={setDispSheet} title={t.display} sheet lang={lang}>
@@ -517,11 +555,7 @@ function AccountMenu({
   return (
     <div className="acct">
       <div className="acct__who">
-        <span className="appnav__avatar appnav__avatar--lg" data-role={me.role} aria-hidden="true">
-          {me.role === "asisten"
-            ? (me.kode || me.nama).slice(0, 3).toUpperCase()
-            : me.nama.slice(0, 1).toUpperCase()}
-        </span>
+        <Avatar me={me} lg />
         <span className="acct__names">
           <b>{me.nama}</b>
           <span className="acct__meta">

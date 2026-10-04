@@ -91,15 +91,16 @@
 /* -------------------------------------------------------------- brief */
 
 .modbrief {
-  align-items: start;
+  align-items: stretch;
   display: grid;
-  gap: var(--space-4);
+  gap: 18px;
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 900px) {
+/* The mockup's g2 equal: two equal cards from 720. */
+@media (min-width: 720px) {
   .modbrief {
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -109,10 +110,15 @@
 
 .modbrief__p {
   color: var(--text-muted);
-  font-size: var(--fs-body-lg);
-  line-height: 1.65;
+  font-size: 0.95rem;
   margin: 0;
-  max-width: var(--measure-prose);
+}
+
+.modbrief__foot {
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .modticks {

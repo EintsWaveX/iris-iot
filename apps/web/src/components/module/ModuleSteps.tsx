@@ -396,7 +396,7 @@ function Setup(p: Props) {
           <h2 className="panel__title">{t.whatYouNeed}</h2>
           <ul className="modpage__kv">
             {p.perangkat.map((x) => (
-              <li key={x.nama}>
+              <li key={`${x.nama}|${x.jumlah}`}>
                 <b>{x.nama}</b>
                 <span className="mono hint">{x.jumlah}</span>
               </li>

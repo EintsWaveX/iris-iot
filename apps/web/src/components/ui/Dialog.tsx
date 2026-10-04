@@ -7,10 +7,11 @@
  * layer. On top of that:
  * - every dialog animates in and out (data-state="closed" plays before
  *   Radix unmounts it);
- * - `blocking` marks a dialog that must be answered (a required confirm,
- *   unsaved changes). Esc and clicks outside it make it shake instead of
- *   closing, and since it is the top layer, the layers under it cannot
- *   close either;
+ * - `blocking` marks a dialog that answers for the layer under it (a
+ *   required confirm, unsaved changes): while it is open that layer cannot
+ *   close, since it is the top layer. The dialog itself keeps its close
+ *   button, and Esc or a click outside closes it like Cancel (mockup G10:
+ *   a blocking child only stops its parent closing underneath it);
  * - popovers and menus sit above dialogs, and toasts and tooltips above
  *   everything.
  *
@@ -33,7 +34,7 @@
  *     <p>...</p>
  *   </Dialog>
  */
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { XIcon } from "@phosphor-icons/react";
 import IconButton from "./IconButton";
@@ -83,12 +84,6 @@ export default function Dialog({
     openedFromRef.current = document.activeElement as HTMLElement | null;
   }
   wasOpenRef.current = open;
-  const [shake, setShake] = useState(0);
-  const nudge = (e: Event) => {
-    if (!blocking) return;
-    e.preventDefault();
-    setShake((n) => n + 1);
-  };
 
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
@@ -103,7 +98,6 @@ export default function Dialog({
           ]
             .filter(Boolean)
             .join(" ")}
-          data-shake={shake ? (shake % 2 ? "a" : "b") : undefined}
           tabIndex={-1}
           onOpenAutoFocus={(e) => {
             // Focus the panel, as the mockup does: landing on the close
@@ -111,8 +105,6 @@ export default function Dialog({
             e.preventDefault();
             (e.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
           }}
-          onEscapeKeyDown={nudge}
-          onPointerDownOutside={nudge}
           onFocusOutside={(e) => blocking && e.preventDefault()}
           onCloseAutoFocus={(e) => {
             if (openedFromRef.current) {
@@ -130,11 +122,9 @@ export default function Dialog({
                 </RadixDialog.Description>
               )}
             </div>
-            {!blocking && (
-              <RadixDialog.Close asChild>
-                <IconButton icon={XIcon} label={T[lang]} kind="ghost" />
-              </RadixDialog.Close>
-            )}
+            <RadixDialog.Close asChild>
+              <IconButton icon={XIcon} label={T[lang]} />
+            </RadixDialog.Close>
           </header>
           {children != null && <div className="dialog__body">{children}</div>}
           {(actions || alt) && (

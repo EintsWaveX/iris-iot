@@ -6,7 +6,7 @@
 
 .modlist__head {
   display: grid;
-  gap: var(--space-2);
+  gap: 10px;
 }
 
 .modlist__head .eyebrow {
@@ -15,7 +15,7 @@
 
 .modlist__title {
   font-family: var(--font-display);
-  font-size: clamp(1.9rem, 2.6vw + 0.6rem, 2.8rem);
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
   font-weight: var(--display-weight);
   letter-spacing: var(--display-track);
   line-height: 1.08;
@@ -25,7 +25,7 @@
 
 .modlist__lede {
   color: var(--text-muted);
-  font-size: var(--fs-body-lg);
+  font-size: 1.05rem;
   margin: 0;
   max-width: 64ch;
 }
@@ -81,11 +81,7 @@
 }
 
 .modcard__badges {
-  align-items: flex-end;
-  flex-direction: column;
   gap: 6px;
-  min-height: 56px;
-  justify-content: center;
 }
 
 .modcard__icon {
@@ -108,9 +104,11 @@
   letter-spacing: var(--display-track);
   line-height: 1.05;
   margin: 0;
+  text-wrap: wrap;
 }
 
 .modcard__facts {
+  flex: 1 1 auto;
   gap: 6px;
 }
 
@@ -148,18 +146,6 @@
   align-items: center;
   display: inline-flex;
   gap: 8px;
-}
-
-/* Four narrow columns: the switch alone keeps the foot on one line (it
-   still carries its own label for screen readers). */
-@media (min-width: 1280px) and (max-width: 1599px) {
-  .modcard__access .hint {
-    display: none;
-  }
-
-  .modcard__cta {
-    font-size: 0.92rem;
-  }
 }
 
 /* The one card a Praktikan in session gets. */

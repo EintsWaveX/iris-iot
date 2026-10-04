@@ -2,28 +2,17 @@
 
 .minibar {
   align-items: center;
-  background: color-mix(in srgb, var(--bg-elevated) 82%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--nav-bg-scrolled);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--hairline);
   display: flex;
-  gap: var(--space-4);
-  min-height: 56px;
-  padding: var(--space-1) var(--gutter);
+  gap: 10px;
+  min-height: 60px;
+  padding: 8px 24px;
   position: sticky;
   top: var(--nav-size);
   z-index: 49;
-}
-
-.minibar::before {
-  background: linear-gradient(90deg, var(--mod-hue), transparent 60%);
-  bottom: 0;
-  content: "";
-  height: 2px;
-  left: 0;
-  opacity: 0.8;
-  position: absolute;
-  right: 0;
 }
 
 .minibar__mod {
@@ -253,8 +242,9 @@
 
 @media (max-width: 639px) {
   .minibar {
-    gap: var(--space-2);
-    padding-inline: var(--space-3);
+    gap: 8px;
+    min-height: 56px;
+    padding: 6px 12px;
     top: var(--nav-size);
   }
   .minibar__name {

@@ -12,6 +12,48 @@ html {
   font-size: clamp(87.5%, 82.5% + 0.21vw, 100%);
 }
 
+/* Phase 9 final pass: the page grid of the signed-off mockup (styles.css
+   .page and .nav): a 64px nav, page sides 14 / 24 / 36px and top 18 / 30 /
+   36px at under 640 / 640 to 1279 / 1280 and up, containers 820 / 1240 /
+   1640px. These tokens are apps/web's own, so the Arena site is untouched. */
+:root {
+  --nav-size: 64px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --container-narrow: 820px;
+  --container-regular: 1240px;
+  --container-wide: 1640px;
+  --page-margin: 24px;
+  --space-page-top: 30px;
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --page-margin: 36px;
+    --space-page-top: 36px;
+  }
+}
+
+@media (max-width: 639px) {
+  :root {
+    --page-margin: 14px;
+    --space-page-top: 18px;
+  }
+}
+
+/* The mockup's eyebrow (styles.css .eyebrow): bold, accent, no trailing
+   rule. */
+.eyebrow {
+  color: var(--accent-bright, var(--accent));
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.eyebrow::after {
+  content: none;
+}
+
 /* iOS Safari zooms into any field under 16px; fields there stay at 16px. */
 @supports (-webkit-touch-callout: none) {
   input,
@@ -58,7 +100,7 @@ html {
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 14px;
   min-width: 0;
   padding: var(--space-5);
 }
@@ -157,7 +199,7 @@ html {
 
 .panel__sub {
   color: var(--text-muted);
-  font-size: var(--fs-small);
+  font-size: 0.95rem;
   margin: 0;
 }
 
@@ -294,28 +336,32 @@ html {
 /* ---------------------------------------------------------------- stats */
 
 .stat {
-  background: var(--surface-1);
+  background: var(--surface-2);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  padding: var(--space-4);
+  padding: 14px 16px;
 }
 
+/* The mockup's stat (styles.css .stat b): Inter 700, 1.5rem; the root
+   size scales it on smaller screens. */
 .stat__value {
-  font-family: var(--font-display);
-  font-weight: var(--display-weight);
-  letter-spacing: var(--display-track);
-  font-size: clamp(1.9rem, 2vw + 1rem, 2.6rem);
+  font: 700 1.5rem/1.2 var(--font-body);
   font-variant-numeric: tabular-nums;
-  line-height: 1.05;
 }
 
 .stat__label {
-  color: var(--text-muted);
-  font-size: var(--fs-small);
+  color: var(--text-faint);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 639px) {
+  .stat {
+    padding: 10px 12px;
+  }
 }
 
 /* A slim progress bar; set --meter (0-100) and optionally --meter-hue. */

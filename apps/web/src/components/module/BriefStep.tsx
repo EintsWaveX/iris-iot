@@ -39,6 +39,7 @@ export interface BriefRow {
   bahasa: string;
   isi: { ringkasan: string; langkah: string[] };
   diubahOleh: string;
+  diubahOlehNama: string | null;
   diubahPada: string;
 }
 
@@ -68,7 +69,7 @@ export default function BriefStep({
   canEdit,
 }: Props) {
   const t = M[lang];
-  const dir = useDirektori();
+  const dir = useDirektori(canEdit);
   const [rows, setRows] = useState<BriefRow[] | null>(null);
   const [edit, setEdit] = useState(false);
 
@@ -135,19 +136,19 @@ export default function BriefStep({
           ))}
         </section>
       )}
-      {(row || canEdit) && (
-        <div className="row row--between modbrief__wide">
-          <span className="hint">
-            {row ? t.lastBy(dir.nama(row.diubahOleh), sejak(row.diubahPada, lang)) : t.fromHandbook}
-          </span>
-          {canEdit && (
-            <button type="button" className="btn btn--sm" onClick={() => setEdit(true)}>
-              <PencilSimpleIcon aria-hidden="true" />
-              {t.editBrief}
-            </button>
-          )}
-        </div>
-      )}
+      <div className="panel modbrief__wide modbrief__foot">
+        <span className="hint">
+          {row
+            ? t.lastBy(row.diubahOlehNama ?? dir.nama(row.diubahOleh), sejak(row.diubahPada, lang))
+            : t.fromHandbook}
+        </span>
+        {canEdit && (
+          <button type="button" className="btn btn--sm" onClick={() => setEdit(true)}>
+            <PencilSimpleIcon aria-hidden="true" />
+            {t.editBrief}
+          </button>
+        )}
+      </div>
       {edit && rows && (
         <BriefDrawer
           lang={lang}

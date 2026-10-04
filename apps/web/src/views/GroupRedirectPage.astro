@@ -45,7 +45,9 @@ const fallback = `${base}/1/live?kelompok=${group}`;
     if (!el) return;
     let modul = 1;
     try {
-      const d = await fetch("/api/session/now").then((r) => r.json());
+      // The public lab summary: /now needs a sign-in, and a guest opening
+      // an old group link would only get a 401 in the console.
+      const d = await fetch("/api/session/lab").then((r) => r.json());
       if (d?.ok && d.sesi?.modul) modul = Number(d.sesi.modul);
     } catch {
       /* no session info: Module 1 */

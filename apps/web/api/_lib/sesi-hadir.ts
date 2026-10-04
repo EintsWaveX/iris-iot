@@ -272,6 +272,55 @@ export async function handleHadirGet(_req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true, sesiId: running.id, mengajar, kelompok: kelompokOut });
 }
 
+/** Whether `nim` teaches the running session `running`: they hold a group
+ *  in it, opened it, or have a seat (or an accepted volunteer place) in its
+ *  weekly slot without an izin. Drives the Asisten's "Sesimu berjalan" bar
+ *  on every page (mockup G6) through /api/session/now. */
+export async function asistenMengajar(
+  running: { id: number; slot: number | null; tanggal: string },
+  nim: string,
+): Promise<boolean> {
+  const db = getDb();
+  const [pegang] = await db
+    .select({ id: sesiAsisten.id })
+    .from(sesiAsisten)
+    .where(and(eq(sesiAsisten.sesiId, running.id), eq(sesiAsisten.asistenNim, nim)))
+    .limit(1);
+  if (pegang) return true;
+  const [buka] = await db
+    .select({ nim: sesiKejadian.aktorNim })
+    .from(sesiKejadian)
+    .where(and(eq(sesiKejadian.sesiId, running.id), eq(sesiKejadian.jenis, "mulai")))
+    .limit(1);
+  if (buka?.nim === nim) return true;
+  if (!running.slot) return false;
+  const [row] = await db
+    .select()
+    .from(jadwal)
+    .where(
+      and(
+        eq(jadwal.semester, semesterDariTanggal(running.tanggal)),
+        eq(jadwal.hari, hariDariTanggal(running.tanggal)),
+        eq(jadwal.slot, running.slot),
+      ),
+    )
+    .limit(1);
+  if (!row) return false;
+  const m = (await muatMinggu(db, [row], running.tanggal)).get(row.id);
+  if (!m) return false;
+  if (m.izin.some((x) => x.nim === nim && x.status !== "dibatalkan")) return false;
+  const [saya] = await db
+    .select({ kode: asisten.kode })
+    .from(asisten)
+    .where(eq(asisten.nim, nim))
+    .limit(1);
+  const kode = saya?.kode.toUpperCase();
+  return (
+    (!!kode && m.kursi.some((k) => k.kode?.toUpperCase() === kode)) ||
+    m.tugas.some((t) => t.nim === nim && t.jenis === "sukarela" && t.status === "diterima")
+  );
+}
+
 export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
   const aksi = typeof body.aksi === "string" ? body.aksi : "";

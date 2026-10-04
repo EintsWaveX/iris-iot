@@ -341,7 +341,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
         <LiveNow lang={lang} lab={labData} />
       </div>
 
-      <section className="stack stack--lg">
+      <section className="stack">
         <h2 className="home__h1">{t.flowTitle}</h2>
         <div className="home__steps">
           {steps.map((s) => (
@@ -363,7 +363,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      <section className="stack stack--lg">
+      <section className="stack">
         <h2 className="home__h1">{t.boardTitle}</h2>
         <div className="panel home__lanes">
           {LANES.map((l) => (

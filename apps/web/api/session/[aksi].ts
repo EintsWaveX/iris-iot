@@ -83,7 +83,7 @@ import {
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { hilangPersen, selisihJamMs } from "../../src/lib/telemetri-ringkas.js";
 import { nomorWakil, wakilKelompok } from "../_lib/wakil.js";
-import { handleHadirGet, handleHadirPost } from "../_lib/sesi-hadir.js";
+import { asistenMengajar, handleHadirGet, handleHadirPost } from "../_lib/sesi-hadir.js";
 import { queueSoloServerCommand, nilaiOrNull } from "../../src/lib/server-lib.js";
 import {
   handleCerminGet,
@@ -175,6 +175,8 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       // A praktikan whose cookie belongs to an earlier session has to sign
       // in again to be counted in this one (the mini-bar asks them to).
       milikSaya: who?.role === "praktikan" ? who.sesiId === running.id : null,
+      // An Asisten teaching it gets the "Sesimu berjalan" bar on every page.
+      mengajar: who?.role === "asisten" ? await asistenMengajar(running, who.nim) : null,
     },
   });
 }
