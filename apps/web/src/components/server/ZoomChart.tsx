@@ -8,6 +8,7 @@
  */
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { localeOf } from "../../lib/app";
+import "./ZoomChart.css";
 import type { Lang } from "../../lib/kelas";
 
 export interface Titik {
@@ -25,6 +26,8 @@ export interface Panel {
   /** A CSS colour, e.g. "var(--accent)". */
   c: string;
   unit: string;
+  /** Decimals in the tooltip (0 by default). */
+  dp?: number;
   /** Values above this get a warning band. */
   batas?: number;
 }
@@ -69,6 +72,7 @@ export default function ZoomChart({
   zoom,
   lang,
   harian,
+  detik,
   sm,
   label,
   empty,
@@ -79,6 +83,8 @@ export default function ZoomChart({
   lang: Lang;
   /** Label the time axis with dates instead of clock times. */
   harian?: boolean;
+  /** Clock times with seconds (live data a few seconds apart). */
+  detik?: boolean;
   sm?: boolean;
   label: string;
   empty: string;
@@ -94,14 +100,18 @@ export default function ZoomChart({
   const x = (i: number) => (i / Math.max(1, vis.length - 1)) * W;
   const loc = localeOf(lang);
   const fmtT = (t: number, panjang = false) =>
-    new Date(t).toLocaleString(loc, {
-      timeZone: "Asia/Jakarta",
-      ...(harian && !panjang
-        ? { day: "numeric", month: "long" }
-        : harian
-          ? { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }
-          : { hour: "2-digit", minute: "2-digit" }),
-    });
+    new Date(t)
+      .toLocaleString(loc, {
+        timeZone: "Asia/Jakarta",
+        ...(harian && !panjang
+          ? { day: "numeric", month: "long" }
+          : harian
+            ? { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }
+            : { hour: "2-digit", minute: "2-digit", ...(detik ? { second: "2-digit" } : {}) }),
+      })
+      .replace(/(\d{2})\.(\d{2})(?:\.(\d{2}))?/g, (_, h, m, d) =>
+        d ? `${h}:${m}:${d}` : `${h}:${m}`,
+      ); // clock times keep their colon in every language
 
   // Scroll to zoom needs a non-passive listener (React's onWheel is passive).
   const zoomRef = useRef(zoom);
@@ -242,7 +252,10 @@ export default function ZoomChart({
               const v = vis[hi].v[p.k];
               return (
                 <span key={p.k} className="legend" style={{ "--c": p.c } as CSSProperties}>
-                  {p.label} {v === null || v === undefined ? "·" : `${Math.round(v)} ${p.unit}`}
+                  {p.label}{" "}
+                  {v === null || v === undefined
+                    ? "·"
+                    : `${v.toLocaleString(loc, { maximumFractionDigits: p.dp ?? 0, minimumFractionDigits: p.dp ?? 0 })} ${p.unit}`}
                 </span>
               );
             })}

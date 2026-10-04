@@ -78,7 +78,8 @@ export const LV = dict({
     distance: "Perkiraan Jarak",
     closer: "Mendekat",
     farther: "Menjauh",
-    smoothed: (v: number | null) => (v === null ? "halus belum ada" : `halus ${v} dBm`),
+    smoothed: (v: number | null) =>
+      v === null ? "halus belum ada" : `halus ${v.toLocaleString("id-ID")} dBm`,
     // Panes
     serial: "Serial Monitor",
     flow: "Alur Pesan",
@@ -116,6 +117,24 @@ export const LV = dict({
     waitingMsg: "Menunggu pesan pertama…",
     tryHint:
       "Tekan tombol untuk mengirim satu pesan uji dan lihat pesan itu melewati setiap lapisan.",
+    // Data modal (mockup G2)
+    openData: (l: string) => `Buka data ${l}`,
+    dmTempHum: "Suhu dan Kelembapan",
+    smoothedL: "RSSI Halus",
+    now: "Sekarang",
+    lowest: "Terendah",
+    highest: "Tertinggi",
+    averageL: "Rata-rata",
+    timeline: "Garis waktu",
+    noChart: "Belum cukup data untuk grafik.",
+    oneTimeline:
+      "Dua grafik, satu garis waktu: arahkan ke salah satu, keduanya menunjuk detik yang sama.",
+    slowest: "Pesan Paling Lambat",
+    slowHint: "Di atas p95. Biasanya Wi-Fi sedang ramai atau papan baru tersambung ulang.",
+    window: (n: number) =>
+      `${n} pesan terakhir yang ada di halaman ini, diperbarui tiap ada pesan baru.`,
+    done: "Selesai",
+    liveSub: (g: number, live: boolean) => `Kelompok ${g} · ${live ? "data langsung" : "simulasi"}`,
   },
   en: {
     group: "Group",
@@ -225,6 +244,22 @@ export const LV = dict({
     copyFail: "Could not copy to the clipboard.",
     waitingMsg: "Waiting for the first message…",
     tryHint: "Press the button to send one test message and watch it cross every layer.",
+    // Data modal (mockup G2)
+    openData: (l: string) => `Open the ${l} data`,
+    dmTempHum: "Temperature and Humidity",
+    smoothedL: "Smoothed RSSI",
+    now: "Now",
+    lowest: "Lowest",
+    highest: "Highest",
+    averageL: "Average",
+    timeline: "Timeline",
+    noChart: "Not enough data for a chart yet.",
+    oneTimeline: "Two charts, one timeline: point at either and both mark the same second.",
+    slowest: "Slowest Messages",
+    slowHint: "Above p95. Usually busy Wi-Fi or a board that just reconnected.",
+    window: (n: number) => `The last ${n} messages this page holds, updated as each one arrives.`,
+    done: "Done",
+    liveSub: (g: number, live: boolean) => `Group ${g} · ${live ? "live data" : "simulation"}`,
   },
   zh: {
     group: "小组",
@@ -333,6 +368,22 @@ export const LV = dict({
     copyFail: "无法复制到剪贴板。",
     waitingMsg: "等待第一条消息…",
     tryHint: "按下按钮发送一条测试消息，看它穿过每一层。",
+    // Data modal (mockup G2)
+    openData: (l: string) => `打开${l}数据`,
+    dmTempHum: "温度和湿度",
+    smoothedL: "平滑 RSSI",
+    now: "当前",
+    lowest: "最低",
+    highest: "最高",
+    averageL: "平均",
+    timeline: "时间线",
+    noChart: "数据还不够画图。",
+    oneTimeline: "两张图，一条时间线：指向其中一张，两张都会标出同一秒。",
+    slowest: "最慢的消息",
+    slowHint: "高于 p95。通常是 Wi-Fi 拥挤，或板子刚重新连接。",
+    window: (n: number) => `本页保存的最近 ${n} 条消息，每来一条就更新。`,
+    done: "完成",
+    liveSub: (g: number, live: boolean) => `第 ${g} 组 · ${live ? "实时数据" : "模拟"}`,
   },
 });
 

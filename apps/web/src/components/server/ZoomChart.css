@@ -1,0 +1,113 @@
+/* The time chart (ZoomChart.tsx): the Server page and the Live room's data modal. */
+.zchart {
+  cursor: grab;
+  height: 270px;
+  min-width: 0;
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.zchart[data-drag="yes"] {
+  cursor: grabbing;
+}
+
+.zchart--sm {
+  height: 220px;
+}
+
+.zchart svg {
+  display: block;
+  height: 100%;
+  overflow: visible;
+  width: 100%;
+}
+
+.zchart__grid {
+  stroke: var(--hairline-faint);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.zchart__line {
+  fill: none;
+  stroke: var(--c);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.zchart__area {
+  fill: var(--c);
+  opacity: 0.1;
+}
+
+.zchart__limit {
+  fill: var(--warn);
+  opacity: 0.08;
+}
+
+.zchart__limitline {
+  stroke: var(--warn);
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.zchart__cross {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.zchart__panel {
+  background: color-mix(in srgb, var(--bg-sunken) 80%, transparent);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font: 700 0.76rem var(--font-body);
+  left: 10px;
+  letter-spacing: 0.06em;
+  padding: 4px 6px;
+  pointer-events: none;
+  position: absolute;
+  text-transform: uppercase;
+}
+
+.zchart__x {
+  color: var(--text-faint);
+  display: flex;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.zchart__tip {
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  display: grid;
+  font-size: 0.86rem;
+  gap: 2px;
+  padding: 8px 10px;
+  pointer-events: none;
+  position: absolute;
+  top: 8px;
+  transform: translateX(10px);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.zchart__tip[data-side="left"] {
+  transform: translateX(calc(-100% - 10px));
+}
+
+.zchart__empty {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  height: 100%;
+  justify-content: center;
+}

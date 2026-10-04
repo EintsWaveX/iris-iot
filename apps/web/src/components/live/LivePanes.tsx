@@ -6,6 +6,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "reac
 import {
   ArrowDownIcon,
   ArrowRightIcon,
+  ArrowsOutSimpleIcon,
   CopySimpleIcon,
   FileCsvIcon,
   QuestionIcon,
@@ -18,6 +19,7 @@ import type { Lang } from "../../lib/kelas";
 import { recordStats, type LiveRecord } from "../../lib/live-records";
 import type { LogLine } from "./useSerialBoard";
 import { LV } from "./liveStrings";
+import DataModal, { type DataKind } from "./DataModal";
 
 const dash = (v: number | string | null | undefined) => (v === null || v === undefined ? "-" : v);
 
@@ -58,6 +60,8 @@ function VCard({
   sub,
   tone,
   children,
+  onOpen,
+  openLabel,
 }: {
   label: string;
   v: ReactNode;
@@ -65,9 +69,12 @@ function VCard({
   sub?: string;
   tone?: "ok" | "warn";
   children?: ReactNode;
+  /** Opens the card's data modal (mockup G2). */
+  onOpen?: () => void;
+  openLabel?: string;
 }) {
-  return (
-    <div className="vcard" data-tone={tone}>
+  const inner = (
+    <>
       <span className="vcard__l">{label}</span>
       <span className="vcard__v num">
         {v}
@@ -75,7 +82,26 @@ function VCard({
       </span>
       {children}
       {sub && <span className="vcard__s">{sub}</span>}
-    </div>
+    </>
+  );
+  if (!onOpen)
+    return (
+      <div className="vcard" data-tone={tone}>
+        {inner}
+      </div>
+    );
+  return (
+    <button
+      type="button"
+      className="vcard vcard--btn"
+      data-tone={tone}
+      onClick={onOpen}
+      aria-haspopup="dialog"
+      aria-label={openLabel}
+    >
+      {inner}
+      <ArrowsOutSimpleIcon className="vcard__more" size={16} aria-hidden="true" />
+    </button>
   );
 }
 
@@ -104,12 +130,32 @@ export function ValueCards({
   lang,
   modul,
   records,
+  group,
+  live,
 }: {
   lang: Lang;
   modul: number;
   records: LiveRecord[];
+  group: number;
+  live: boolean;
 }) {
   const t = LV[lang];
+  const [dm, setDm] = useState<DataKind | null>(null);
+  const buka = (k: DataKind, label: string) => ({
+    onOpen: () => setDm(k),
+    openLabel: t.openData(label),
+  });
+  const modal = dm && (
+    <DataModal
+      lang={lang}
+      modul={modul}
+      kind={dm}
+      records={records}
+      sub={t.liveSub(group, live)}
+      open
+      onOpenChange={(o) => !o && setDm(null)}
+    />
+  );
   const rows = records.slice(-40);
   const s = recordStats(rows);
   const ok = rows.filter((r) => !r.lost);
@@ -119,7 +165,13 @@ export function ValueCards({
     ok.map(f).filter((x): x is number => typeof x === "number");
 
   const delay = (
-    <VCard label={t.oneway} v={dash(last?.oneway)} unit="ms" sub={t.average(s.oneway)}>
+    <VCard
+      label={t.oneway}
+      v={dash(last?.oneway)}
+      unit="ms"
+      sub={t.average(s.oneway)}
+      {...buka("oneway", t.oneway)}
+    >
       <Spark vals={series((r) => r.oneway)} />
     </VCard>
   );
@@ -132,7 +184,15 @@ export function ValueCards({
       tone={s.lost > 5 ? "warn" : undefined}
     />
   );
-  const rtt = <VCard label={t.rtt} v={dash(last?.rtt)} unit="ms" sub={t.average(s.rtt)} />;
+  const rtt = (
+    <VCard
+      label={t.rtt}
+      v={dash(last?.rtt)}
+      unit="ms"
+      sub={t.average(s.rtt)}
+      {...buka("rtt", t.rtt)}
+    />
+  );
 
   if (modul === 1) {
     const led = n("led") ?? n("tombol");
@@ -155,22 +215,24 @@ export function ValueCards({
         {delay}
         {rtt}
         {quality}
+        {modal}
       </div>
     );
   }
   if (modul === 2) {
     return (
       <div className="vcards">
-        <VCard label={t.temp} v={dash(n("suhu"))} unit="°C">
+        <VCard label={t.temp} v={dash(n("suhu"))} unit="°C" {...buka("suhu", t.temp)}>
           <Spark vals={series((r) => r.nilai.suhu)} />
         </VCard>
-        <VCard label={t.hum} v={dash(n("lembap"))} unit="%">
+        <VCard label={t.hum} v={dash(n("lembap"))} unit="%" {...buka("lembap", t.hum)}>
           <Spark vals={series((r) => r.nilai.lembap)} />
         </VCard>
         <TimeCard label={t.times} r={last} a="ESP32" b="Orange Pi" />
         {delay}
         {rtt}
         {quality}
+        {modal}
       </div>
     );
   }
@@ -178,13 +240,14 @@ export function ValueCards({
     const pos = n("posisi");
     return (
       <div className="vcards">
-        <VCard label={t.position} v={dash(pos)} unit="%">
+        <VCard label={t.position} v={dash(pos)} unit="%" {...buka("posisi", t.position)}>
           {pos !== null && <Dial p={pos} />}
         </VCard>
         <VCard label={t.sampleNo} v={last ? `#${last.seq}` : "-"} sub={t.sampleSub} />
         <TimeCard label={t.times} r={last} a="Publisher" b="Subscriber" />
         {delay}
         {quality}
+        {modal}
       </div>
     );
   }
@@ -193,20 +256,28 @@ export function ValueCards({
   const closer = tren === null ? null : tren > 0;
   return (
     <div className="vcards">
-      <VCard label="RSSI" v={dash(last?.rssi)} unit="dBm" sub={t.smoothed(halus)}>
+      <VCard
+        label="RSSI"
+        v={dash(last?.rssi)}
+        unit="dBm"
+        sub={t.smoothed(halus)}
+        {...buka("rssi", "RSSI")}
+      >
         <Spark vals={series((r) => r.nilai.rssiHalus ?? r.rssi)} />
       </VCard>
-      <VCard label="SNR" v={dash(last?.snr)} unit="dB" />
+      <VCard label="SNR" v={dash(last?.snr)} unit="dB" {...buka("snr", "SNR")} />
       <VCard
         label={t.distance}
         v={dash(n("jarak"))}
         unit="m"
         sub={closer === null ? undefined : closer ? t.closer : t.farther}
+        {...buka("jarak", t.distance)}
         tone={closer === null ? undefined : closer ? "ok" : "warn"}
       />
       <TimeCard label={t.times} r={last} a="Beacon" b="Hunter" />
       {delay}
       {quality}
+      {modal}
     </div>
   );
 }

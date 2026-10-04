@@ -504,3 +504,114 @@
     display: inline;
   }
 }
+
+/* -------------------------------------------- value cards open their data
+   (mockup G2): the card is a button with a corner mark */
+.vcard--btn {
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  position: relative;
+  text-align: left;
+  transition:
+    border-color 160ms,
+    transform 160ms;
+}
+
+.vcard--btn:hover {
+  border-color: var(--hairline-strong);
+  transform: translateY(-2px);
+}
+
+.vcard--btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.vcard__more {
+  color: var(--text-faint);
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.vcard--btn:hover .vcard__more {
+  color: var(--accent);
+}
+
+.vcard--btn .vcard__l {
+  padding-right: 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vcard--btn:hover {
+    transform: none;
+  }
+}
+
+/* the data modal */
+.dmodal {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.dmodal__stats {
+  display: grid;
+  gap: 8px;
+}
+
+.dmodal__stats .stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.dmodal__stats .stat {
+  padding: 10px 12px;
+}
+
+.dmodal__stats .stat b {
+  font-size: 1.25rem;
+}
+
+.dmodal__stats .stat span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.dmodal__cap {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.dmodal__slow ul {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+}
+
+.dmodal__slow li {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 639px) {
+  .dmodal__stats .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.dmodal__ms {
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  color: var(--warn);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 2px 10px;
+}

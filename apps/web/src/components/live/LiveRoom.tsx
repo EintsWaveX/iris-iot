@@ -577,7 +577,13 @@ export default function LiveRoom({
               </p>
             )}
 
-            <ValueCards lang={lang} modul={modul} records={shown.current.records} />
+            <ValueCards
+              lang={lang}
+              modul={modul}
+              records={shown.current.records}
+              group={group}
+              live={live}
+            />
 
             {wide ? (
               <>
