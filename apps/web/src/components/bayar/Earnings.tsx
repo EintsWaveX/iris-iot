@@ -45,16 +45,16 @@ export function KasFigures({
   return (
     <div className="kasfig">
       <div className="kasfig__i kasfig__net">
-        <span className="label-caps">{t.net}</span>
+        <span className="earn__k">{t.net}</span>
         <b className="money num">{rupiah(r.bersih)}</b>
         {sub && <span className="hint">{sub}</span>}
       </div>
       <div className="kasfig__i">
-        <span className="label-caps">{t.gross}</span>
+        <span className="earn__k">{t.gross}</span>
         <b className="num">{rupiah(r.kotor)}</b>
       </div>
       <div className="kasfig__i">
-        <span className="label-caps">{t.kasPct(persen)}</span>
+        <span className="earn__k">{t.kasPct(persen)}</span>
         <b className="num kasfig__cut">− {rupiah(r.kas)}</b>
       </div>
     </div>
@@ -87,7 +87,7 @@ export function EarningsCard({ lang, nim }: { lang: Lang; nim: string }) {
       ) : (
         <div className="earn">
           <div className="stack stack--sm">
-            <span className="label-caps">{t.thisSemester}</span>
+            <span className="earn__k">{t.thisSemester}</span>
             <KasFigures
               t={t}
               r={sem}
@@ -101,7 +101,7 @@ export function EarningsCard({ lang, nim }: { lang: Lang; nim: string }) {
             />
           </div>
           <div className="stack stack--sm">
-            <span className="label-caps">{t.thisMonth}</span>
+            <span className="earn__k">{t.thisMonth}</span>
             <KasFigures
               t={t}
               r={bln}
@@ -110,7 +110,7 @@ export function EarningsCard({ lang, nim }: { lang: Lang; nim: string }) {
             />
           </div>
           <div className="stack stack--sm">
-            <span className="label-caps">{t.monthTransfers}</span>
+            <span className="earn__k">{t.monthTransfers}</span>
             {nim === data.bendahara ? (
               <p className="hint">{t.selfHeld}</p>
             ) : (
@@ -170,7 +170,7 @@ export function EarningsMini({ lang, nim }: { lang: Lang; nim: string }) {
       </div>
       <div className="row row--between">
         <span className="stack" style={{ gap: 0 }}>
-          <span className="label-caps">{t.net}</span>
+          <span className="earn__k">{t.net}</span>
           <b className="money num">{rupiah(r.bersih)}</b>
         </span>
         <a className="btn btn--ghost btn--sm" href={href(lang, "/account")}>

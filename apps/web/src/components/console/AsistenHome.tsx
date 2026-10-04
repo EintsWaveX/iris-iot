@@ -372,7 +372,7 @@ export default function AsistenHome({
           })}
         </div>
         <div className="weekstrip">
-          <span className="label-caps">{h.myWeek}</span>
+          <span className="weekstrip__k">{h.myWeek}</span>
           {data && data.mingguSaya.length === 0 && <span className="hint">{h.myWeekEmpty}</span>}
           {data?.mingguSaya.map((w) => (
             <span

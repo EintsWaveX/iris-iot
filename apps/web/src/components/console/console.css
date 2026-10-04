@@ -1747,7 +1747,11 @@ thead .ntable__name {
   padding-top: 12px;
 }
 
-.weekstrip > .label-caps {
+/* Mockup c-home: a plain bold row label, not caps. */
+.weekstrip__k {
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 650;
   margin-right: 4px;
 }
 

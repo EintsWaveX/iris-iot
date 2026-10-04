@@ -249,3 +249,10 @@
   text-align: right;
   white-space: nowrap;
 }
+
+/* Mockup c-home and a-account: "Bersih", "Kotor" as plain bold labels. */
+.earn__k {
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 650;
+}

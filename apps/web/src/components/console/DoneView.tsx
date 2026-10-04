@@ -6,6 +6,13 @@
  * resume; it offers "Get the Next Session Ready" (NextView) instead.
  */
 import { useEffect, useState, type CSSProperties } from "react";
+import {
+  ArrowClockwiseIcon,
+  CalendarDotsIcon,
+  ChartBarIcon,
+  LockSimpleIcon,
+  PencilSimpleIcon,
+} from "@phosphor-icons/react";
 import { CountUp } from "../ui/Display";
 import Pill from "../ui/Pill";
 import { getJson, href, menitBerjalan, postJson } from "../../lib/app";
@@ -143,20 +150,24 @@ export default function DoneView({
               className="btn btn--inverse btn--lg btn--block"
               onClick={onScores}
             >
+              <PencilSimpleIcon size={20} aria-hidden="true" />
               {t.doneScores}
             </button>
             <a
               className="btn btn--secondary btn--block"
               href={href(lang, `/reports?sesi=${sesi.id}`)}
             >
+              <ChartBarIcon size={18} aria-hidden="true" />
               {t.doneReport}
             </a>
             {capped ? (
               <>
                 <button type="button" className="btn btn--ghost btn--block" disabled>
+                  <LockSimpleIcon size={18} aria-hidden="true" />
                   {t.afterCapped}
                 </button>
                 <button type="button" className="btn btn--secondary btn--block" onClick={onNext}>
+                  <CalendarDotsIcon size={18} aria-hidden="true" />
                   {t.afterNextReady}
                 </button>
                 <span className="hint">{t.afterNextHint}</span>
@@ -168,6 +179,7 @@ export default function DoneView({
                   className="btn btn--ghost btn--block"
                   onClick={() => void resume()}
                 >
+                  <ArrowClockwiseIcon size={18} aria-hidden="true" />
                   {t.afterResume}
                 </button>
                 <span className="hint">{t.afterStopped(ran, SESI_CAP_MENIT - ran)}</span>
