@@ -22,9 +22,13 @@ export interface Titipan extends SesiSeelabsInfo {
 export function useSeelabs(sesiId: number | null) {
   const poll = usePoll(
     () =>
-      getJson<{ ok: boolean } & SeelabsData>(`/api/session/seelabs?sesiId=${sesiId}`).then((d) =>
-        d.ok ? d : null,
-      ),
+      // The console's refresh-everything also calls this with no session:
+      // asking then was a 400 for `sesiId=null` on every page load.
+      sesiId === null
+        ? Promise.resolve(null)
+        : getJson<{ ok: boolean } & SeelabsData>(`/api/session/seelabs?sesiId=${sesiId}`).then(
+            (d) => (d.ok ? d : null),
+          ),
     20_000,
     sesiId !== null,
     ["sesi", "bayar", "nilai"],
