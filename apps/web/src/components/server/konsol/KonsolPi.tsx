@@ -633,7 +633,10 @@ function Ask({
                 onClick={() => setTarget(x)}
               >
                 <Ic size={18} aria-hidden="true" />
-                {targetLabel(t, x)}
+                <span className="konsol-pick">
+                  {t.pick[x][0]}
+                  <small>({t.pick[x][1]})</small>
+                </span>
               </button>
             );
           })}

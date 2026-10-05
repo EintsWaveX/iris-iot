@@ -491,3 +491,19 @@
   letter-spacing: 0;
   text-transform: none;
 }
+
+/* The Buka Konsol Pi picker: the name, and below it who sees it. */
+.konsol-pick {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+  text-align: left;
+}
+
+.konsol-pick small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: normal;
+}
