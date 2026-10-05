@@ -307,7 +307,17 @@ export default function ModuleSteps(p: Props) {
           <span className="grow" />
           <Switch
             on={open}
-            onChange={(v) => void setModulAkses(modul, v, lang)}
+            onChange={(v) => {
+              // The switch moves now; the reload after the save confirms it.
+              setAkses(
+                (a) =>
+                  a && {
+                    ...a,
+                    terbuka: v ? [...a.terbuka, modul] : a.terbuka.filter((x) => x !== modul),
+                  },
+              );
+              void setModulAkses(modul, v, lang);
+            }}
             label={t.access(modul)}
           />
         </div>

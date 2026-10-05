@@ -20,6 +20,16 @@ export interface AksesState {
 
 let cached: Promise<AksesState> | null = null;
 
+/** The public list is cached at Vercel's edge for up to 45 s, so an Asisten
+ *  reads the uncached `?meta=1` one: right after a switch flips, the cached
+ *  copy still holds the old list and would flip it back on screen. */
+async function terbukaUntuk(asisten: boolean): Promise<number[] | null> {
+  const d = await fetch(asisten ? "/api/session/akses?meta=1" : "/api/session/akses")
+    .then((r) => r.json())
+    .catch(() => null);
+  return Array.isArray(d?.terbuka) ? d.terbuka : null;
+}
+
 /** Fetched once per page (astro:page-load resets the module-level cache
  *  via the `reset` param some callers pass), never per card -- the index
  *  page alone can have four module cards asking the same question. */
@@ -27,20 +37,20 @@ export function getAksesState(reset = false): Promise<AksesState> {
   if (reset) cached = null;
   if (!cached) {
     cached = Promise.all([
-      fetch("/api/session/akses")
-        .then((r) => r.json())
-        .catch(() => null),
       fetch("/api/auth/me")
         .then((r) => r.json())
         .catch(() => null),
       fetch("/api/session/jurnal")
         .then((r) => r.json())
         .catch(() => null),
-    ]).then(([akses, me, jurnal]) => ({
-      terbuka: Array.isArray(akses?.terbuka) ? akses.terbuka : [1],
-      asisten: Boolean(me?.ok && me?.role === "asisten"),
-      jurnal: Array.isArray(jurnal?.jurnal) ? jurnal.jurnal : [],
-    }));
+    ]).then(async ([me, jurnal]) => {
+      const asisten = Boolean(me?.ok && me?.role === "asisten");
+      return {
+        terbuka: (await terbukaUntuk(asisten)) ?? [1],
+        asisten,
+        jurnal: Array.isArray(jurnal?.jurnal) ? jurnal.jurnal : [],
+      };
+    });
   }
   return cached;
 }

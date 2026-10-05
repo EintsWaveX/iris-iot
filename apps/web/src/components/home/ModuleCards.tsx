@@ -129,6 +129,7 @@ function Card({
   open,
   done,
   asisten,
+  onAccess,
 }: {
   m: ModulKartu;
   lang: Lang;
@@ -136,6 +137,7 @@ function Card({
   open: boolean | null;
   done: boolean;
   asisten: boolean;
+  onAccess: (open: boolean) => void;
 }) {
   const t = T[lang];
   const url = href(lang, `/modules/${m.modul}`);
@@ -186,11 +188,7 @@ function Card({
             <span className="hint" aria-hidden="true">
               {t.access}
             </span>
-            <Switch
-              on={open}
-              onChange={(v) => void setModulAkses(m.modul, v, lang)}
-              label={t.accessOf(m.modul)}
-            />
+            <Switch on={open} onChange={onAccess} label={t.accessOf(m.modul)} />
           </span>
         )}
       </div>
@@ -279,6 +277,13 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
             open={terbuka === null ? null : terbuka.includes(m.modul)}
             done={me?.role === "praktikan" && jurnal.includes(m.modul)}
             asisten={asisten}
+            onAccess={(v) => {
+              // The switch moves now; the reload after the save confirms it.
+              setTerbuka((l) =>
+                v ? [...(l ?? []), m.modul] : (l ?? []).filter((x) => x !== m.modul),
+              );
+              void setModulAkses(m.modul, v, lang);
+            }}
           />
         ))}
       </div>

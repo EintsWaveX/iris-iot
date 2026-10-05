@@ -230,29 +230,47 @@ export function sendConsole(cmd: ConsoleCommand, lang: Lang): void {
   location.assign(href(lang, "/session") + hash);
 }
 
-export async function setModulAkses(n: number, open: boolean, lang: Lang): Promise<void> {
+// Flips run one after another, each from the uncached list (?meta=1; the
+// public one is edge-cached), so two quick flips can't undo each other.
+// Views reload only once the queue is empty, so a switch already flipped
+// on screen doesn't jump back while a later flip is still on its way.
+let antrean: Promise<void> = Promise.resolve();
+let tertunda = 0;
+
+async function ubahAkses(ubah: (before: number[]) => number[]): Promise<number[]> {
+  const cur = await getJson<{ ok: boolean; terbuka: number[] }>("/api/session/akses?meta=1");
+  if (!cur.ok) throw new Error();
+  const before = cur.terbuka ?? [];
+  const r = await postJson<{ ok: boolean; terbuka?: number[] }>("/api/session/akses", {
+    terbuka: ubah(before),
+  });
+  if (!r.ok) throw new Error();
+  return before;
+}
+
+export function setModulAkses(n: number, open: boolean, lang: Lang): Promise<void> {
   const t = T[lang];
-  const apply = async (list: number[]) =>
-    postJson<{ ok: boolean }>("/api/session/akses", { terbuka: list });
-  try {
-    const cur = await getJson<{ ok: boolean; terbuka: number[] }>("/api/session/akses");
-    const before = cur.terbuka ?? [];
-    const next = open
-      ? [...new Set([...before, n])].sort((a, b) => a - b)
-      : before.filter((m) => m !== n);
-    const r = await apply(next);
-    if (!r.ok) throw new Error();
-    window.dispatchEvent(new Event("iris:akses-berubah"));
-    window.Toast?.show(open ? t.opened(n) : t.locked(n), "ok", {
-      action: {
-        label: t.undo,
-        onClick: () =>
-          void apply(before).then(() => window.dispatchEvent(new Event("iris:akses-berubah"))),
-      },
-    });
-  } catch {
-    window.Toast?.show(t.fail, "danger");
-  }
+  const run = async () => {
+    try {
+      await ubahAkses((before) =>
+        open ? [...new Set([...before, n])].sort((a, b) => a - b) : before.filter((m) => m !== n),
+      );
+      window.Toast?.show(open ? t.opened(n) : t.locked(n), "ok", {
+        action: {
+          label: t.undo,
+          // Undo puts back only this module, not the whole list as it was.
+          onClick: () => void setModulAkses(n, !open, lang),
+        },
+      });
+    } catch {
+      window.Toast?.show(t.fail, "danger");
+    } finally {
+      if (--tertunda === 0) window.dispatchEvent(new Event("iris:akses-berubah"));
+    }
+  };
+  tertunda++;
+  antrean = antrean.then(run);
+  return antrean;
 }
 
 export async function setHotspot(on: boolean, lang: Lang): Promise<void> {
