@@ -118,14 +118,21 @@ function modulValid(v: unknown): number | null {
   return Number.isInteger(n) && n >= 1 && n <= 4 ? n : null;
 }
 
+/** The active deck (the PDF first), and `pilihan`: every active one (a PDF
+ *  and a Canva link at most), so the Praktikan can switch between them. */
 async function handleAktif(_req: ApiRequest, res: ApiResponse) {
   const db = getDb();
-  const [row] = await db
-    .select({ id: presentasi.id, namaBerkas: presentasi.namaBerkas, url: presentasi.url })
+  const rows = await db
+    .select({
+      id: presentasi.id,
+      namaBerkas: presentasi.namaBerkas,
+      url: presentasi.url,
+      jenis: presentasi.jenis,
+    })
     .from(presentasi)
-    .where(eq(presentasi.aktif, true))
-    .limit(1);
-  res.status(200).json({ ok: true, presentasi: row ?? null });
+    .where(eq(presentasi.aktif, true));
+  const pilihan = rows.sort((a, b) => (a.jenis === b.jenis ? 0 : a.jenis === "berkas" ? -1 : 1));
+  res.status(200).json({ ok: true, presentasi: pilihan[0] ?? null, pilihan });
 }
 
 async function handleDaftar(_req: ApiRequest, res: ApiResponse) {
@@ -225,12 +232,17 @@ async function handleAktifkan(req: ApiRequest, res: ApiResponse, session: Sessio
   const db = getDb();
   const ada = await db.transaction(async (tx) => {
     const [row] = await tx
-      .select({ id: presentasi.id })
+      .select({ id: presentasi.id, jenis: presentasi.jenis })
       .from(presentasi)
       .where(eq(presentasi.id, id))
       .limit(1);
     if (!row) return false;
-    await tx.update(presentasi).set({ aktif: false }).where(eq(presentasi.aktif, true));
+    // Replaces the active one of the same kind; a PDF and a Canva link
+    // can both be active.
+    await tx
+      .update(presentasi)
+      .set({ aktif: false })
+      .where(and(eq(presentasi.aktif, true), eq(presentasi.jenis, row.jenis)));
     await tx.update(presentasi).set({ aktif: true }).where(eq(presentasi.id, id));
     return true;
   });
@@ -243,19 +255,24 @@ async function handleAktifkan(req: ApiRequest, res: ApiResponse, session: Sessio
   res.status(200).json({ ok: true });
 }
 
-async function handleNonaktifkan(_req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+/** `{ id }` turns that deck off; no id turns every active one off. */
+async function handleNonaktifkan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const id = Number(jsonBody(req).id);
   const db = getDb();
-  const [row] = await db
-    .select({ id: presentasi.id })
-    .from(presentasi)
-    .where(eq(presentasi.aktif, true))
-    .limit(1);
-  if (!row) {
+  const rows = await db
+    .update(presentasi)
+    .set({ aktif: false })
+    .where(
+      Number.isInteger(id) && id > 0
+        ? and(eq(presentasi.aktif, true), eq(presentasi.id, id))
+        : eq(presentasi.aktif, true),
+    )
+    .returning({ id: presentasi.id });
+  if (!rows.length) {
     res.status(200).json({ ok: false, kode: "tidak_ada" });
     return;
   }
-  await db.update(presentasi).set({ aktif: false }).where(eq(presentasi.id, row.id));
-  await writeAudit(session.nim, "presentasi_nonaktifkan", { id: row.id });
+  for (const r of rows) await writeAudit(session.nim, "presentasi_nonaktifkan", { id: r.id });
   res.status(200).json({ ok: true });
 }
 
@@ -308,14 +325,21 @@ async function handleSchematics(_req: ApiRequest, res: ApiResponse) {
     .from(skema)
     .where(eq(skema.aktif, true));
   // bingkai: show it in a frame (a Wokwi, Tinkercad or Canva link), not as
-  // an image.
-  const aktif: Record<string, { url: string; namaBerkas: string; bingkai: boolean }> = {};
-  for (const r of rows) {
-    aktif[String(r.modul)] = {
+  // an image. Per module: the image first, then `pilihan` with every active
+  // one (an image and a link at most) for the Praktikan's switch.
+  type Pilihan = { url: string; namaBerkas: string; bingkai: boolean; jenis: "berkas" | "tautan" };
+  const aktif: Record<string, Pilihan & { pilihan: Pilihan[] }> = {};
+  const urut = [...rows].sort((a, b) => (a.jenis === b.jenis ? 0 : a.jenis === "berkas" ? -1 : 1));
+  for (const r of urut) {
+    const p: Pilihan = {
       url: r.url,
       namaBerkas: r.namaBerkas,
       bingkai: r.jenis === "tautan" && tautanBingkai(r.url),
+      jenis: r.jenis,
     };
+    const k = String(r.modul);
+    if (aktif[k]) aktif[k].pilihan.push(p);
+    else aktif[k] = { ...p, pilihan: [p] };
   }
   res.status(200).json({ ok: true, aktif });
 }
@@ -355,17 +379,19 @@ async function simpanSkema(
 ) {
   const db = getDb();
   const { row, lama } = await db.transaction(async (tx) => {
+    // Replaces the module's source of the same kind only: an image and a
+    // link can both stay.
     await tx
       .update(skema)
       .set({ aktif: false })
-      .where(and(eq(skema.modul, modul), eq(skema.aktif, true)));
+      .where(and(eq(skema.modul, modul), eq(skema.jenis, baru.jenis), eq(skema.aktif, true)));
     const [r] = await tx
       .insert(skema)
       .values({ modul, ...baru, diunggahOleh: nim, aktif: true })
       .returning();
     const old = await tx
       .delete(skema)
-      .where(and(eq(skema.modul, modul), ne(skema.id, r.id)))
+      .where(and(eq(skema.modul, modul), eq(skema.jenis, baru.jenis), ne(skema.id, r.id)))
       .returning({ url: skema.url, jenis: skema.jenis });
     return { row: r, lama: old };
   });
@@ -424,7 +450,7 @@ async function handleSchematicActivate(req: ApiRequest, res: ApiResponse, sessio
   const db = getDb();
   const modul = await db.transaction(async (tx) => {
     const [row] = await tx
-      .select({ modul: skema.modul })
+      .select({ modul: skema.modul, jenis: skema.jenis })
       .from(skema)
       .where(eq(skema.id, id))
       .limit(1);
@@ -432,7 +458,7 @@ async function handleSchematicActivate(req: ApiRequest, res: ApiResponse, sessio
     await tx
       .update(skema)
       .set({ aktif: false })
-      .where(and(eq(skema.modul, row.modul), eq(skema.aktif, true)));
+      .where(and(eq(skema.modul, row.modul), eq(skema.jenis, row.jenis), eq(skema.aktif, true)));
     await tx.update(skema).set({ aktif: true }).where(eq(skema.id, id));
     return row.modul;
   });

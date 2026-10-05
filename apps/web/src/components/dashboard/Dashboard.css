@@ -467,3 +467,19 @@
 .coach__title {
   font-size: 1.05rem;
 }
+
+/* A Canva deck in the slides dialog (the PDF has its own viewer). */
+.dash-slides-frame {
+  aspect-ratio: 16 / 9;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  width: 100%;
+}
+
+.dash-slides-frame iframe {
+  border: 0;
+  display: block;
+  height: 100%;
+  width: 100%;
+}

@@ -4,7 +4,9 @@
  * with the site, an uploaded image (Vercel Blob), or a link: a Wokwi,
  * Tinkercad or Canva design shown in a frame, or a direct image address
  * (src/lib/tautan.ts checks it, the server checks again). Uploading or
- * linking replaces the card's source; deleting goes back to the bundled one.
+ * linking replaces the card's source of that kind; deleting goes back to the
+ * bundled one. An image and a link may both be active (the Praktikan then
+ * switches between them on the module page).
  * Module 4 bundles none, so its card starts empty.
  */
 import { useEffect, useState, type CSSProperties } from "react";
@@ -47,6 +49,11 @@ const T = dict({
     deleted: (m: string) => `Skema ${m} dihapus. Kembali ke gambar bawaan.`,
     delBodyNone: "Modul ini kembali tanpa skema.",
     deletedNone: (m: string) => `Skema ${m} dihapus.`,
+    both: "Gambar + Tautan",
+    noLink: "Belum ada tautan",
+    emptyLink: "Belum ada tautan. Tempel tautan Wokwi, Tinkercad atau Canva.",
+    delBodyLink: "Tautan ini dilepas dari modul. Gambarnya tetap ada.",
+    deletedLink: (m: string) => `Tautan skema ${m} dihapus.`,
     replaced: (m: string) => `Skema ${m} diganti.`,
     uploadFail: "Gambar gagal diunggah. Coba lagi.",
     fail: "Gagal. Coba lagi.",
@@ -80,6 +87,11 @@ const T = dict({
     deleted: (m: string) => `${m} schematic deleted. Back to the built-in image.`,
     delBodyNone: "This module goes back to having no schematic.",
     deletedNone: (m: string) => `${m} schematic deleted.`,
+    both: "Image + Link",
+    noLink: "No link yet",
+    emptyLink: "No link yet. Paste a Wokwi, Tinkercad or Canva link.",
+    delBodyLink: "This link leaves the module. Its image stays.",
+    deletedLink: (m: string) => `${m} schematic link deleted.`,
     replaced: (m: string) => `${m} schematic replaced.`,
     uploadFail: "Couldn't upload the image. Try again.",
     fail: "That didn't work. Try again.",
@@ -112,6 +124,11 @@ const T = dict({
     deleted: (m: string) => `${m}的电路图已删除，改回自带图片。`,
     delBodyNone: "这个模块会改回没有电路图。",
     deletedNone: (m: string) => `${m}的电路图已删除。`,
+    both: "图片 + 链接",
+    noLink: "还没有链接",
+    emptyLink: "还没有链接。请粘贴 Wokwi、Tinkercad 或 Canva 链接。",
+    delBodyLink: "这个链接会从模块移除，图片保留。",
+    deletedLink: (m: string) => `${m}的电路图链接已删除。`,
     replaced: (m: string) => `${m}的电路图已替换。`,
     uploadFail: "图片上传失败，请再试一次。",
     fail: "没有成功，请再试一次。",
@@ -158,7 +175,10 @@ export default function SchematicEditor({ lang }: { lang: Lang }) {
             key={m}
             modul={m}
             judul={MODUL_NAMA[m]}
-            aktif={list?.find((s) => s.modul === m && s.aktif) ?? null}
+            aktif={{
+              berkas: list?.find((s) => s.modul === m && s.aktif && s.jenis === "berkas") ?? null,
+              tautan: list?.find((s) => s.modul === m && s.aktif && s.jenis === "tautan") ?? null,
+            }}
             loading={list === null}
             t={t}
             lang={lang}
@@ -211,7 +231,9 @@ export default function SchematicEditor({ lang }: { lang: Lang }) {
         title={t.delTitle(del ? nama(del.modul) : "")}
         body={
           del
-            ? `${skemaBawaan(del.modul) ? t.delBody : t.delBodyNone}${del.jenis === "berkas" ? ` ${t.delFile}` : ""}`
+            ? del.jenis === "tautan"
+              ? t.delBodyLink
+              : `${skemaBawaan(del.modul) ? t.delBody : t.delBodyNone} ${t.delFile}`
             : ""
         }
         confirmLabel={t.del}
@@ -221,7 +243,12 @@ export default function SchematicEditor({ lang }: { lang: Lang }) {
           const r = await postJson<{ ok: boolean }>("/api/presentasi/schematic-delete", {
             id: del.id,
           }).catch(() => ({ ok: false }));
-          const pesan = skemaBawaan(del.modul) ? t.deleted : t.deletedNone;
+          const pesan =
+            del.jenis === "tautan"
+              ? t.deletedLink
+              : skemaBawaan(del.modul)
+                ? t.deleted
+                : t.deletedNone;
           window.Toast?.show(r.ok ? pesan(nama(del.modul)) : t.fail, r.ok ? "ok" : "danger");
           await load();
         }}
@@ -243,7 +270,7 @@ function SchemCard({
 }: {
   modul: number;
   judul: string;
-  aktif: Skema | null;
+  aktif: { berkas: Skema | null; tautan: Skema | null };
   loading: boolean;
   t: Tx;
   lang: Lang;
@@ -251,15 +278,18 @@ function SchemCard({
   onDelete: (s: Skema) => void;
   onSaved: () => void;
 }) {
-  const frame = !!aktif && aktif.jenis === "tautan" && tautanBingkai(aktif.url);
-  const isLink = aktif?.jenis === "tautan";
-  const [mode, setMode] = useState<"img" | "link">(isLink ? "link" : "img");
+  // Each tab shows its own source: the image, or the link.
+  const hanyaTautan = !aktif.berkas && !!aktif.tautan;
+  const [mode, setMode] = useState<"img" | "link">(hanyaTautan ? "link" : "img");
   const [url, setUrl] = useState("");
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
-  useEffect(() => setMode(isLink ? "link" : "img"), [isLink]);
+  useEffect(() => setMode(hanyaTautan ? "link" : "img"), [hanyaTautan]);
+  const cur = mode === "link" ? aktif.tautan : aktif.berkas;
+  const frame = !!cur && cur.jenis === "tautan" && tautanBingkai(cur.url);
+  const isLink = cur?.jenis === "tautan";
 
-  const src = aktif?.url ?? skemaBawaan(modul);
+  const src = cur?.url ?? (mode === "img" ? skemaBawaan(modul) : null);
   const [broken, setBroken] = useState(false);
   useEffect(() => setBroken(false), [src]);
   const title = `${modulLabel(modul, lang)} · ${judul}`;
@@ -306,19 +336,30 @@ function SchemCard({
     onSaved();
   }
 
-  const kind = !aktif ? (src ? t.builtIn : t.none) : frame ? t.link : t.image;
-  const source = !aktif
-    ? src
-      ? t.builtInSrc
-      : t.noneSrc
-    : isLink
-      ? aktif.url.replace(/^https:\/\//, "")
-      : aktif.namaBerkas;
+  const kind =
+    aktif.berkas && aktif.tautan
+      ? t.both
+      : aktif.tautan
+        ? t.link
+        : aktif.berkas
+          ? t.image
+          : skemaBawaan(modul)
+            ? t.builtIn
+            : t.none;
+  const source = cur
+    ? isLink
+      ? cur.url.replace(/^https:\/\//, "")
+      : cur.namaBerkas
+    : mode === "link"
+      ? t.noLink
+      : src
+        ? t.builtInSrc
+        : t.noneSrc;
 
   return (
     <div
       className="schem-card"
-      data-custom={aktif ? "yes" : undefined}
+      data-custom={aktif.berkas || aktif.tautan ? "yes" : undefined}
       style={{ "--mod-hue": `var(--mod-${modul})` } as CSSProperties}
     >
       <div className="schem-card__head">
@@ -326,7 +367,7 @@ function SchemCard({
             for the two pills without clipping (mockup c-prep Skema). */}
         <Pill modul={modul}>{modulLabel(modul, lang)}</Pill>
         <span className="grow" />
-        <Pill tone={frame ? "accent" : undefined}>{kind}</Pill>
+        <Pill tone={aktif.tautan ? "accent" : undefined}>{kind}</Pill>
       </div>
       {loading ? (
         <span className="skeleton schem-card__thumb" />
@@ -335,20 +376,20 @@ function SchemCard({
           type="button"
           className="schem-card__thumb schem-card__embed sweep-hover"
           aria-label={`${t.view} ${title}`}
-          onClick={() => onView({ src: aktif.url, title, frame: true })}
+          onClick={() => onView({ src: cur.url, title, frame: true })}
         >
           <CircuitryIcon size={28} aria-hidden="true" />
-          <b>{namaLayanan(aktif.url)}</b>
+          <b>{namaLayanan(cur.url)}</b>
           <span className="hint">{t.preview}</span>
         </button>
       ) : !src ? (
         <div
           className="schem-card__thumb schem-card__embed schem-card__broken"
           role="img"
-          aria-label={t.empty}
+          aria-label={mode === "link" ? t.emptyLink : t.empty}
         >
           <CircuitryIcon size={28} aria-hidden="true" />
-          <span className="hint">{t.empty}</span>
+          <span className="hint">{mode === "link" ? t.emptyLink : t.empty}</span>
         </div>
       ) : broken ? (
         <div
@@ -424,14 +465,14 @@ function SchemCard({
           </form>
         )}
       </Fade>
-      {aktif && (
+      {cur && (
         <div className="row row--end">
           <IconButton
             icon={TrashIcon}
             label={`${t.del} ${title}`}
             kind="danger"
             sm
-            onClick={() => onDelete(aktif)}
+            onClick={() => onDelete(cur)}
           />
         </div>
       )}

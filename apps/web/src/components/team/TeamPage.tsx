@@ -68,6 +68,7 @@ import type { Kelas, Lang } from "../../lib/kelas";
 import { T, type Tx } from "./strings";
 import "../ui/Tabs.css";
 import TierBadge from "../ui/TierBadge";
+import AsistenKode from "../ui/AsistenKode";
 import "./team.css";
 import { useSiaran } from "../../lib/siaran";
 
@@ -84,6 +85,8 @@ interface OrangTim {
   seelabsAkun: string | null;
   hakOverride: Partial<Record<string, boolean>>;
   hak: Record<HakKey, HakNilai>;
+  /** Presence (lib/kehadiran.ts). */
+  terakhirAktif: string | null;
 }
 
 interface Pemegang {
@@ -225,7 +228,7 @@ export default function TeamPage({ lang }: { lang: Lang }) {
     }
   }, []);
 
-  useSiaran(["tim", "jadwal", "bayar"], () => void load(), me?.role === "asisten");
+  useSiaran(["tim", "jadwal", "bayar", "online"], () => void load(), me?.role === "asisten");
 
   useEffect(() => {
     if (me?.role === "asisten") void load();
@@ -351,9 +354,12 @@ export default function TeamPage({ lang }: { lang: Lang }) {
               if (!o) return nama(nim);
               return (
                 <span className="who">
-                  <span className={`acode${nim === me.nim ? " acode--me" : ""}`}>
-                    {o.kode ?? "?"}
-                  </span>
+                  <AsistenKode
+                    kode={o.kode}
+                    me={nim === me.nim}
+                    terakhirAktif={o.terakhirAktif}
+                    lang={lang}
+                  />
                   <span className="who__text">
                     <b>{o.nama}</b>
                     <span className="hint">
@@ -659,9 +665,12 @@ function People({
               >
                 <td data-col={t.colAsisten}>
                   <span className="who">
-                    <span className={`acode${o.nim === saya ? " acode--me" : ""}`}>
-                      {o.kode ?? "?"}
-                    </span>
+                    <AsistenKode
+                      kode={o.kode}
+                      me={o.nim === saya}
+                      terakhirAktif={o.terakhirAktif}
+                      lang={lang}
+                    />
                     <span className="who__text">
                       <b>{o.nama}</b>
                       <span className="hint">

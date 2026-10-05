@@ -686,7 +686,7 @@ function DeckForm({ t, onManage }: { t: Strings; onManage: () => void }) {
   async function pick(d: Deck) {
     try {
       const r = d.aktif
-        ? await postJson<{ ok: boolean }>("/api/presentasi/nonaktifkan")
+        ? await postJson<{ ok: boolean }>("/api/presentasi/nonaktifkan", { id: d.id })
         : await postJson<{ ok: boolean }>("/api/presentasi/aktifkan", { id: d.id });
       window.Toast?.show(d.aktif ? t.slidesOff : t.slidesSwitched, r.ok ? "ok" : "danger");
       await load();

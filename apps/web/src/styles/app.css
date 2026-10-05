@@ -465,6 +465,28 @@ html {
   padding: 3px 7px;
 }
 
+/* Online dot (ui/AsistenKode.tsx): green while their app is open. */
+.acode[data-online] {
+  position: relative;
+}
+
+.acode[data-online]::after {
+  background: var(--text-faint);
+  border: 2px solid var(--surface-1);
+  border-radius: 50%;
+  content: "";
+  height: 10px;
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  width: 10px;
+}
+
+.acode[data-online="yes"]::after {
+  background: var(--ok);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--ok) 60%, transparent);
+}
+
 .acode--me {
   background: var(--accent);
   border-color: var(--accent);

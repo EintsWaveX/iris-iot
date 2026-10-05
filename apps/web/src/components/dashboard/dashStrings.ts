@@ -45,6 +45,7 @@ export const DS = dict({
     slidesH: "Presentasi",
     slidesKosong: "Asisten belum memasang presentasi.",
     bukaSlides: "Buka Presentasi",
+    slidesSumber: "Sumber presentasi",
     slidesTitle: (m: string) => `Presentasi ${m}`,
     waitH: "Menunggu Asisten",
     waitP: "Asisten belum membuka sesi. Halaman ini berubah sendiri begitu sesi dimulai.",
@@ -147,6 +148,7 @@ export const DS = dict({
     slidesH: "Slides",
     slidesKosong: "Your assistant hasn't put up slides yet.",
     bukaSlides: "Open Slides",
+    slidesSumber: "Slides source",
     slidesTitle: (m: string) => `${m} slides`,
     waitH: "Waiting for Your Assistant",
     waitP:
@@ -246,6 +248,7 @@ export const DS = dict({
     slidesH: "幻灯片",
     slidesKosong: "助教还没放幻灯片。",
     bukaSlides: "打开幻灯片",
+    slidesSumber: "幻灯片来源",
     slidesTitle: (m: string) => `${m} 幻灯片`,
     waitH: "等你的助教",
     waitP: "你的助教还没开始这节课。开始后这个页面会自己更新。",

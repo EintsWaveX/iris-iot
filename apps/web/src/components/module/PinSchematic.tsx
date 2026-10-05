@@ -22,6 +22,8 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ArrowSquareOutIcon, ArrowsOutSimpleIcon } from "@phosphor-icons/react";
 import SchematicViewer from "../ui/SchematicViewer";
+import SegmentedControl from "../ui/SegmentedControl";
+import { namaLayanan } from "../../lib/tautan";
 import { getJson, dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import "./PinSchematic.css";
@@ -54,6 +56,8 @@ const T = dict({
   id: {
     wiring: "Diagram rangkaian",
     schematic: "Skema asli",
+    image: "Gambar",
+    source: "Sumber skema",
     zoom: "Perbesar skema",
     uploaded: "Skema dari asisten",
     legend: { pwr: "Daya", gnd: "Ground", sig: "Sinyal" },
@@ -64,6 +68,8 @@ const T = dict({
   en: {
     wiring: "Wiring diagram",
     schematic: "Actual schematic",
+    image: "Image",
+    source: "Schematic source",
     zoom: "Enlarge the schematic",
     uploaded: "Schematic from the assistant",
     legend: { pwr: "Power", gnd: "Ground", sig: "Signal" },
@@ -74,6 +80,8 @@ const T = dict({
   zh: {
     wiring: "接线图",
     schematic: "实际电路图",
+    image: "图片",
+    source: "电路图来源",
     zoom: "放大电路图",
     uploaded: "助教上传的电路图",
     legend: { pwr: "电源", gnd: "接地", sig: "信号" },
@@ -122,7 +130,8 @@ export function boardsFrom(pin: PinData, mcu: string): Board[] {
   return out;
 }
 
-type Aktif = Record<string, { url: string; namaBerkas: string; bingkai?: boolean }>;
+type Pilihan = { url: string; namaBerkas: string; bingkai?: boolean; jenis?: "berkas" | "tautan" };
+type Aktif = Record<string, Pilihan & { pilihan?: Pilihan[] }>;
 let skemaCache: Promise<Aktif> | null = null;
 function activeSchematics() {
   if (!skemaCache) {
@@ -133,22 +142,33 @@ function activeSchematics() {
   return skemaCache;
 }
 
+/** The module's schematic: the Asisten's upload or link when there is one,
+ *  else the bundled image. With both an image and a link active,
+ *  `pilihan` holds both and `pilih` switches between them. */
 export function useSchematic(
   modul: number,
   fallback: string,
-): { src: string; uploaded: boolean; frame: boolean; gagal: () => void } {
-  const [state, setState] = useState({ src: fallback, uploaded: false, frame: false });
+): {
+  src: string;
+  uploaded: boolean;
+  frame: boolean;
+  gagal: () => void;
+  pilihan: Pilihan[];
+  idx: number;
+  pilih: (i: number) => void;
+} {
+  const [pilihan, setPilihan] = useState<Pilihan[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [rusak, setRusak] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
     const muat = () =>
       void activeSchematics().then((a) => {
         const hit = a[String(modul)];
         if (!alive) return;
-        setState(
-          hit
-            ? { src: hit.url, uploaded: true, frame: !!hit.bingkai }
-            : { src: fallback, uploaded: false, frame: false },
-        );
+        const list = hit ? (hit.pilihan ?? [hit]) : [];
+        setPilihan(list);
+        setIdx((i) => Math.min(i, Math.max(0, list.length - 1)));
       });
     muat();
     // An Asisten replacing or removing the schematic (live updates).
@@ -161,10 +181,18 @@ export function useSchematic(
       lepas();
     };
   }, [modul]);
+  const cur = pilihan[idx] ?? null;
   // An uploaded image that no longer loads falls back to the handbook's own.
-  const gagal = () =>
-    setState((x) => (x.uploaded ? { src: fallback, uploaded: false, frame: false } : x));
-  return { ...state, gagal };
+  const pakai = cur && cur.url !== rusak ? cur : null;
+  return {
+    src: pakai ? pakai.url : fallback,
+    uploaded: !!pakai,
+    frame: !!pakai?.bingkai,
+    gagal: () => cur && setRusak(cur.url),
+    pilihan,
+    idx,
+    pilih: setIdx,
+  };
 }
 
 /* ------------------------------------------------------------ the diagram */
@@ -442,7 +470,23 @@ export default function PinSchematic({
         {variant === "full" && <p className="hint">{t.hint}</p>}
       </div>
       <div className="pins__table">{table}</div>
-      {schematic && <div className="pins__schem">{schematic}</div>}
+      {schematic && (
+        <div className="pins__schem">
+          {sch.pilihan.length > 1 && (
+            <SegmentedControl
+              fill
+              aria-label={t.source}
+              value={String(sch.idx)}
+              onValueChange={(v) => sch.pilih(Number(v))}
+              options={sch.pilihan.map((p, i) => ({
+                value: String(i),
+                label: p.jenis === "tautan" ? namaLayanan(p.url) : t.image,
+              }))}
+            />
+          )}
+          {schematic}
+        </div>
+      )}
       {pin.catatan.length > 0 && (
         <ul className="pins__notes">
           {pin.catatan.map((c, i) => (

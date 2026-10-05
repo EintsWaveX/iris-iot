@@ -1,0 +1,1 @@
+ALTER TABLE "asisten" ADD COLUMN "terakhir_aktif" timestamp with time zone;

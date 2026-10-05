@@ -130,6 +130,7 @@ import {
 } from "../_lib/phase8.js";
 import { eq, and, or, gte, like, sql, notInArray, isNull, desc, asc } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
+import { tandaiAktif } from "../_lib/kehadiran.js";
 
 const PESAN_MAX_LEN = 200;
 const CATATAN_MAX_LEN = 300;
@@ -141,6 +142,9 @@ const PERAN_VALID = new Set(["beacon", "hunter"]);
  *  another student's NIM even as a side effect (see publicRoster()'s own
  *  header comment for the same rule). */
 async function handleNow(req: ApiRequest, res: ApiResponse) {
+  // Every signed-in page polls this while in view: an Asisten's presence.
+  const saya = currentSession(req);
+  if (saya?.role === "asisten") await tandaiAktif(saya.nim);
   const running = await currentSesi();
   if (!running) {
     res.status(200).json({ ok: true, sesi: null });

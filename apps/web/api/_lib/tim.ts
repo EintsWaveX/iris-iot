@@ -71,6 +71,7 @@ export async function handleTimGet(_req: ApiRequest, res: ApiResponse, session: 
         status: asisten.status,
         seelabsAkun: asisten.seelabsAkun,
         hakOverride: asisten.hakOverride,
+        terakhirAktif: asisten.terakhirAktif,
       })
       .from(asisten)
       .orderBy(asc(asisten.kode)),

@@ -8,7 +8,7 @@
  * asks the API again with its own sign-in. Topics:
  *
  *   akses brief jadwal roster tim sesi nilai laporan bayar umpan
- *   presentasi server jurnal
+ *   presentasi server jurnal online (an Asisten came online)
  *
  * Pi heartbeats (api/agent) send nothing: the Server pages poll them.
  */

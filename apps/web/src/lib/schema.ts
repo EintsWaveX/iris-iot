@@ -71,6 +71,9 @@ export const asisten = pgTable("asisten", {
   seelabsAkun: text("seelabs_akun"),
   /** An Admin's per-person overrides of single rights: { jadwal: true }. */
   hakOverride: jsonb("hak_override").$type<Record<string, boolean>>().notNull().default({}),
+  /** Last seen with the app open (the signed-in page's /now poll, written at
+   *  most once a minute); online while recent (lib/kehadiran.ts). */
+  terakhirAktif: timestamp("terakhir_aktif", { withTimezone: true }),
 });
 
 /**
@@ -532,9 +535,11 @@ export const presentasi = pgTable(
     diunggahPada: timestamp("diunggah_pada", { withTimezone: true }).notNull().defaultNow(),
     aktif: boolean("aktif").notNull().default(false),
   },
+  // One active per kind (Phase 9, after the deploy): a PDF and a Canva link
+  // may both be active, and the Praktikan switches between them.
   (t) => [
-    uniqueIndex("presentasi_aktif_unik")
-      .on(t.aktif)
+    uniqueIndex("presentasi_aktif_per_jenis")
+      .on(t.jenis)
       .where(sql`${t.aktif} = true`),
   ],
 );
@@ -563,9 +568,11 @@ export const skema = pgTable(
     diunggahPada: timestamp("diunggah_pada", { withTimezone: true }).notNull().defaultNow(),
     aktif: boolean("aktif").notNull().default(false),
   },
+  // One active per module and kind: an image and a link (a Wokwi project,
+  // say) may both be active, and the Praktikan switches between them.
   (t) => [
-    uniqueIndex("skema_aktif_per_modul")
-      .on(t.modul)
+    uniqueIndex("skema_aktif_per_modul_jenis")
+      .on(t.modul, t.jenis)
       .where(sql`${t.aktif} = true`),
   ],
 );

@@ -29,6 +29,7 @@ import Dialog from "../ui/Dialog";
 import { StateView } from "../ui/Display";
 import Pill from "../ui/Pill";
 import PdfViewer from "../ui/PdfViewer";
+import SegmentedControl from "../ui/SegmentedControl";
 import { getJson, href, KELOMPOK_NAMA, MODUL_NAMA, useMe, useSessionNow } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import { bacaProyektor, useProyektor } from "../../lib/proyektor";
@@ -305,18 +306,23 @@ function LiveCard({
   );
 }
 
+type Deck = { url: string; namaBerkas: string; jenis?: "berkas" | "tautan" };
+
+/** The active slides: a PDF, a Canva design, or both (then a switch). */
 function SlidesCard({ t, lang, modul }: { t: DashT; lang: Lang; modul: number }) {
   const poll = usePoll(
     () =>
-      getJson<{ ok: boolean; presentasi: { url: string; namaBerkas: string } | null }>(
+      getJson<{ ok: boolean; presentasi: Deck | null; pilihan?: Deck[] }>(
         "/api/presentasi/aktif",
-      ).then((d) => (d.ok ? d.presentasi : null)),
+      ).then((d) => (d.ok ? (d.pilihan ?? (d.presentasi ? [d.presentasi] : [])) : [])),
     30_000,
     true,
     ["presentasi"],
   );
   const [open, setOpen] = useState(false);
-  const p = poll.data;
+  const [idx, setIdx] = useState(0);
+  const list = poll.data ?? [];
+  const p = list[Math.min(idx, list.length - 1)] ?? null;
   return (
     <section className="panel dash__card">
       <h2 className="panel__title">{t.slidesH}</h2>
@@ -337,7 +343,28 @@ function SlidesCard({ t, lang, modul }: { t: DashT; lang: Lang; modul: number })
         size="lg"
         lang={lang}
       >
-        {p && <PdfViewer url={p.url} name={p.namaBerkas} lang={lang} />}
+        <div className="stack">
+          {list.length > 1 && (
+            <SegmentedControl
+              fill
+              aria-label={t.slidesSumber}
+              value={String(Math.min(idx, list.length - 1))}
+              onValueChange={(v) => setIdx(Number(v))}
+              options={list.map((d, i) => ({
+                value: String(i),
+                label: d.jenis === "tautan" ? "Canva" : "PDF",
+              }))}
+            />
+          )}
+          {p &&
+            (p.jenis === "tautan" ? (
+              <div className="dash-slides-frame">
+                <iframe src={p.url} title={p.namaBerkas} loading="lazy" allowFullScreen />
+              </div>
+            ) : (
+              <PdfViewer url={p.url} name={p.namaBerkas} lang={lang} />
+            ))}
+        </div>
       </Dialog>
     </section>
   );
