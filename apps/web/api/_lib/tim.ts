@@ -22,22 +22,13 @@
  * it is accepted. Accepting closes the old holding and opens the new one in
  * one transaction, and recomputes both tiers.
  */
-import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang, petaHak } from "./hak.js";
 import { handbookRoster } from "./handbook.js";
 import { getDb } from "../../src/lib/db.js";
-import {
-  asisten,
-  audit,
-  jabatanPemegang,
-  jadwal,
-  kehadiranAsisten,
-  serahTerima,
-  sesi,
-} from "../../src/lib/schema.js";
-import { kunciKehadiranTertinggal } from "./sesi-hadir.js";
+import { asisten, audit, jabatanPemegang, jadwal, serahTerima } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import {
@@ -130,43 +121,6 @@ export async function handleTimGet(_req: ApiRequest, res: ApiResponse, session: 
     list.sort((a, b) => a.hari - b.hari || a.slot - b.slot);
   }
 
-  // Mangkir this semester: counts per person, and their late or missed
-  // sessions, newest first. Ended sessions are locked in first.
-  await kunciKehadiranTertinggal();
-  const semester = semesterDariTanggal(hariIniWib());
-  const hadirRows = (
-    await db
-      .select({
-        nim: kehadiranAsisten.nim,
-        status: kehadiranAsisten.status,
-        telatMenit: kehadiranAsisten.telatMenit,
-        otomatis: kehadiranAsisten.otomatis,
-        tanggal: sesi.tanggal,
-        mulai: sesi.mulai,
-        modul: sesi.modul,
-      })
-      .from(kehadiranAsisten)
-      .innerJoin(sesi, eq(sesi.id, kehadiranAsisten.sesiId))
-      .where(gte(sesi.dibuatPada, new Date(Date.now() - 200 * 86_400_000)))
-      .orderBy(desc(sesi.tanggal), desc(sesi.mulai))
-  ).filter((r) => semesterDariTanggal(r.tanggal) === semester);
-  type Hadir = {
-    tepat: number;
-    mangkirNgajar: number;
-    mangkir: number;
-    riwayat: Omit<(typeof hadirRows)[number], "nim">[];
-  };
-  const kehadiran: Record<string, Hadir> = {};
-  for (const { nim, ...r } of hadirRows) {
-    const h = (kehadiran[nim] ??= { tepat: 0, mangkirNgajar: 0, mangkir: 0, riwayat: [] });
-    if (r.status === "tepat") h.tepat++;
-    else {
-      if (r.status === "mangkir") h.mangkir++;
-      else h.mangkirNgajar++;
-      if (h.riwayat.length < 12) h.riwayat.push(r);
-    }
-  }
-
   res.status(200).json({
     ok: true,
     orang: orang.map((o) => ({ ...o, hak: petaHak(o) })),
@@ -174,7 +128,6 @@ export async function handleTimGet(_req: ApiRequest, res: ApiResponse, session: 
     serahTerima: serah,
     slotMinggu,
     slotDaftar,
-    kehadiran,
     saya: saya ? { nim: saya.nim, hak: petaHak(saya) } : null,
   });
 }

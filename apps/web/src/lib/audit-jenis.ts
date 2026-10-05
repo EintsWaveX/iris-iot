@@ -29,7 +29,6 @@ export const AKSI_PER_JENIS: Record<JenisAudit, readonly string[]> = {
     "penugasan_konfirmasi",
     "penugasan_batal",
     "izin_umumkan",
-    "kehadiran_asisten",
   ],
   konsol: [
     "konsol_minta",

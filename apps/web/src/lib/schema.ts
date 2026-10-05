@@ -321,40 +321,6 @@ export const sesiAsisten = pgTable(
 );
 
 /**
- * Mangkir (2026-10-05): whether each scheduled Asisten (the slot's own and
- * accepted substitutes; not volunteers, not anyone on izin) turned up on
- * time. The deadline is the session's scheduled start plus 5 minutes
- * (lib/mangkir.ts). "tepat" = by the deadline; "mangkir_ngajar" = later but
- * still taught (telat_menit after the start); "mangkir" = never came.
- * Rows are written when the session ends (otomatis), or by hand from the
- * running session's Preparation (otomatis false, ditandai_oleh); a hand
- * row is never overwritten by the automatic one.
- */
-export const kehadiranAsisten = pgTable(
-  "kehadiran_asisten",
-  {
-    id: serial("id").primaryKey(),
-    sesiId: integer("sesi_id")
-      .notNull()
-      .references(() => sesi.id, { onDelete: "cascade" }),
-    nim: text("nim")
-      .notNull()
-      .references(() => asisten.nim, { onDelete: "cascade" }),
-    status: text("status", { enum: ["tepat", "mangkir_ngajar", "mangkir"] }).notNull(),
-    datangPada: timestamp("datang_pada", { withTimezone: true }),
-    telatMenit: integer("telat_menit"),
-    otomatis: boolean("otomatis").notNull().default(true),
-    ditandaiOleh: text("ditandai_oleh"),
-    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    unique("kehadiran_asisten_satu").on(t.sesiId, t.nim),
-    index("kehadiran_asisten_nim_idx").on(t.nim),
-    check("kehadiran_asisten_status", sql`${t.status} in ('tepat', 'mangkir_ngajar', 'mangkir')`),
-  ],
-);
-
-/**
  * Phase 8: one praktikan's feedback for one session, in the journal's two
  * sections (Asisten and Lab). `nim` is stored only to enforce one row per
  * student per session; it is never returned to an assistant. The Asisten

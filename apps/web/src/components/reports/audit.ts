@@ -121,10 +121,6 @@ const W = {
     konfirmasi: (ok: boolean) => (ok ? "menerima tawaran bantuan" : "menolak tawaran bantuan"),
     penugasanBatal: "membatalkan permintaan atau tawaran penugasan",
     izin: (who: string, s: string) => `mengumumkan izin ${who} di ${s} dan mencari pengganti`,
-    kehadiran: (who: string, st: string) =>
-      st === "otomatis"
-        ? `mengembalikan kehadiran ${who} ke jam`
-        : `mengubah kehadiran ${who} jadi ${({ tepat: "Tepat Waktu", mangkir_ngajar: "Mangkir/Ngajar", mangkir: "Mangkir" } as Record<string, string>)[st] ?? st}`,
     jadwalUbah: (s: string) => `mengubah slot ${s} di Jadwal`,
     jadwalImpor: (n: unknown) => `mengimpor jadwal (${n} slot)`,
     jadwalPengaturan: "mengubah pengaturan jendela mulai di Jadwal",
@@ -160,7 +156,7 @@ const W = {
     sandiGanti: "mengganti kata sandinya",
     konsol: "memakai Konsol Pi",
     konsolTarget: (t: unknown) =>
-      t === "terminal" ? "terminal" : t === ":0" ? "layar Pi (HDMI)" : "desktop virtual",
+      t === "terminal" ? "terminal (SSH)" : t === ":0" ? "layar Pi (HDMI)" : "desktop virtual",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
       `${langsung ? "membuka tanpa persetujuan" : "meminta"} Konsol Pi ${x} di ${srv} (${pk}): ${why}`,
     konsolPaksa: (pk: string, why: unknown) => `memaksa ${pk} saat sesi berjalan: ${why}`,
@@ -222,10 +218,6 @@ const W = {
     konfirmasi: (ok: boolean) => (ok ? "accepted an offer to help" : "declined an offer to help"),
     penugasanBatal: "withdrew an assignment request or offer",
     izin: (who: string, s: string) => `announced ${who} is excused on ${s} and asked for a cover`,
-    kehadiran: (who: string, st: string) =>
-      st === "otomatis"
-        ? `set ${who}'s attendance back to the clock`
-        : `set ${who}'s attendance to ${({ tepat: "On Time", mangkir_ngajar: "Late, Still Taught", mangkir: "No Show" } as Record<string, string>)[st] ?? st}`,
     jadwalUbah: (s: string) => `changed the ${s} slot in the Schedule`,
     jadwalImpor: (n: unknown) => `imported the schedule (${n} slots)`,
     jadwalPengaturan: "changed the start window settings in the Schedule",
@@ -261,7 +253,7 @@ const W = {
     sandiGanti: "changed their password",
     konsol: "used the Pi Console",
     konsolTarget: (t: unknown) =>
-      t === "terminal" ? "terminal" : t === ":0" ? "Pi screen (HDMI)" : "virtual desktop",
+      t === "terminal" ? "terminal (SSH)" : t === ":0" ? "Pi screen (HDMI)" : "virtual desktop",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
       `${langsung ? "opened without approval" : "asked for"} the Pi Console ${x} on ${srv} (${pk}): ${why}`,
     konsolPaksa: (pk: string, why: unknown) => `forced ${pk} during a session: ${why}`,
@@ -322,10 +314,6 @@ const W = {
     konfirmasi: (ok: boolean) => (ok ? "接受了帮忙" : "拒绝了帮忙"),
     penugasanBatal: "撤回了一个安排请求或帮忙",
     izin: (who: string, s: string) => `公布 ${who} 在 ${s} 请假并找人代课`,
-    kehadiran: (who: string, st: string) =>
-      st === "otomatis"
-        ? `把 ${who} 的出勤改回按时间判断`
-        : `把 ${who} 的出勤改为${({ tepat: "准时", mangkir_ngajar: "迟到但授课", mangkir: "缺勤" } as Record<string, string>)[st] ?? st}`,
     jadwalUbah: (s: string) => `修改了课表里的 ${s}`,
     jadwalImpor: (n: unknown) => `导入了课表（${n} 个时段）`,
     jadwalPengaturan: "修改了课表的开课窗口设置",
@@ -361,7 +349,7 @@ const W = {
     sandiGanti: "修改了密码",
     konsol: "使用了 Pi 控制台",
     konsolTarget: (t: unknown) =>
-      t === "terminal" ? "终端" : t === ":0" ? "Pi 屏幕（HDMI）" : "虚拟桌面",
+      t === "terminal" ? "终端（SSH）" : t === ":0" ? "Pi 屏幕（HDMI）" : "虚拟桌面",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
       `${langsung ? "无需批准直接打开了" : "申请了"} ${srv} 的 Pi 控制台${x}（${pk}）：${why}`,
     konsolPaksa: (pk: string, why: unknown) => `在课程进行中强制打开了 ${pk}：${why}`,
@@ -573,8 +561,6 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(XCircleIcon, w.penugasanBatal);
     case "izin_umumkan":
       return k(XCircleIcon, w.izin(b.who(d.nim), b.slot(d.jadwalId, d.tanggal)));
-    case "kehadiran_asisten":
-      return k(UserSwitchIcon, w.kehadiran(b.who(d.nim), String(d.status)));
     case "jadwal_ubah":
       return k(CalendarDotsIcon, w.jadwalUbah(slotHari(d.hari, d.slot)));
     case "jadwal_impor":
