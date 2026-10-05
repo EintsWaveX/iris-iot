@@ -44,6 +44,13 @@ function buka(path) {
       resolve({ refused: true, code: e.code });
     };
     ws.onopen = () => resolve(s);
+    // A socket that neither opens nor closes would hang the whole suite.
+    setTimeout(() => {
+      if (ws.readyState === WebSocket.CONNECTING) {
+        ws.close();
+        resolve({ refused: true, code: "timeout" });
+      }
+    }, 10_000);
   });
 }
 const tunggu = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -59,11 +66,34 @@ const teks = (d) => (typeof d === "string" ? d : Buffer.from(d).toString());
 
 const dev = spawn("npx", ["wrangler", "dev", "--port", String(PORT), "--ip", "127.0.0.1"], {
   shell: true,
+  // Its own process group off Windows, so the group can be stopped at once.
+  detached: process.platform !== "win32",
   stdio: ["ignore", "pipe", "pipe"],
 });
 let log = "";
 dev.stdout.on("data", (d) => (log += d));
 dev.stderr.on("data", (d) => (log += d));
+
+function hentiDev() {
+  // The whole tree (npx, wrangler, workerd), before exiting: on Windows the
+  // tree goes first, since killing the shell alone orphans wrangler.
+  if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(dev.pid), "/t", "/f"]);
+  else {
+    try {
+      process.kill(-dev.pid, "SIGTERM");
+    } catch {
+      dev.kill();
+    }
+  }
+}
+
+// The whole suite takes seconds; if it stalls, fail with wrangler's log
+// instead of holding a CI runner until GitHub's six-hour limit.
+setTimeout(() => {
+  console.log(`GAGAL the suite stalled after ${lulus} checks. wrangler said:\n${log.slice(-4000)}`);
+  hentiDev();
+  process.exit(1);
+}, 180_000).unref();
 
 try {
   const siap = await sampai(() => /Ready on/.test(log), 60_000);
@@ -289,10 +319,7 @@ try {
     }).catch(() => null);
     console.log(q ? await q.text() : "no log api");
   }
-  // The whole tree (npx, wrangler, workerd), before exiting: on Windows the
-  // tree goes first, since killing the shell alone orphans wrangler.
-  if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(dev.pid), "/t", "/f"]);
-  else dev.kill();
+  hentiDev();
 }
 console.log(`\n${lulus} lulus, ${gagal} gagal`);
 process.exit(gagal ? 1 : 0);

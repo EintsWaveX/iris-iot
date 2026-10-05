@@ -132,6 +132,7 @@ jobs:
   relay:
     name: "relay (Konsol Pi Worker: typecheck + a room's life on local workerd)"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: apps/relay
