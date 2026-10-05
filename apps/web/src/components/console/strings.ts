@@ -791,7 +791,7 @@ export const S = dict({
         belum: "Not Here Yet",
         lewat: "Past 5 Minutes",
       },
-      telat: (n: number) => `${n} min late`,
+      telat: (n: number) => `${n} minutes late`,
       byHand: "set by hand",
       hadirTitle: (nama: string) => `${nama}'s Attendance`,
       hadirRule: (jam: string, n: number) =>

@@ -251,7 +251,7 @@ export const T = dict({
     hadirNgajar: "Late, Still Taught",
     hadirMangkir: "No Show",
     hadirNone: "No sessions recorded this semester yet.",
-    hadirTelat: (n: number) => `${n} min late`,
+    hadirTelat: (n: number) => `${n} minutes late`,
     hadirHand: "set by hand",
     trail: "Trail",
     noTrail: "No changes yet.",
