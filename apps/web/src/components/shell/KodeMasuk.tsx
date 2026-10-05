@@ -19,17 +19,25 @@ export default function KodeMasuk({
   kode,
   lang,
   besar = false,
+  kecil = false,
 }: {
   kode: string;
   lang: Lang;
   /** Projector size. */
   besar?: boolean;
+  /** Inline in a line of text (the Console's session bar). */
+  kecil?: boolean;
 }) {
   const t = T[lang];
   return (
     <Tooltip label={t.tip} side="bottom">
-      <span className="kodemasuk" data-besar={besar ? "yes" : undefined} tabIndex={0}>
-        <KeyIcon size={besar ? 22 : 16} aria-hidden="true" />
+      <span
+        className="kodemasuk"
+        data-besar={besar ? "yes" : undefined}
+        data-kecil={kecil ? "yes" : undefined}
+        tabIndex={0}
+      >
+        <KeyIcon size={besar ? 22 : kecil ? 13 : 16} aria-hidden="true" />
         <span className="kodemasuk__k">{t.k}</span>
         <b className="kodemasuk__v num">{kode}</b>
       </span>

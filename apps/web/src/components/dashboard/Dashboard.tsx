@@ -26,11 +26,8 @@ import {
   TrophyIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
-import Dialog from "../ui/Dialog";
 import { StateView } from "../ui/Display";
 import Pill from "../ui/Pill";
-import PdfViewer from "../ui/PdfViewer";
-import SegmentedControl from "../ui/SegmentedControl";
 import { getJson, href, KELOMPOK_NAMA, MODUL_NAMA, useMe, useSessionNow } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import { bacaProyektor, useProyektor } from "../../lib/proyektor";
@@ -48,6 +45,7 @@ import { kelompokLabel, modulLabel } from "../../lib/labels";
 import FeedbackForm from "./FeedbackForm";
 import CoachMarks from "./CoachMarks";
 import { DS, type DashT } from "./dashStrings";
+import SlidesDialog, { useSlides } from "../shell/SlidesDialog";
 import "../ui/Display.css";
 import "./Dashboard.css";
 
@@ -307,66 +305,25 @@ function LiveCard({
   );
 }
 
-type Deck = { url: string; namaBerkas: string; jenis?: "berkas" | "tautan" };
-
-/** The active slides: a PDF, a Canva design, or both (then a switch). */
+/** The active slides: a PDF, a Canva design, or both (shell/SlidesDialog). */
 function SlidesCard({ t, lang, modul }: { t: DashT; lang: Lang; modul: number }) {
-  const poll = usePoll(
-    () =>
-      getJson<{ ok: boolean; presentasi: Deck | null; pilihan?: Deck[] }>(
-        "/api/presentasi/aktif",
-      ).then((d) => (d.ok ? (d.pilihan ?? (d.presentasi ? [d.presentasi] : [])) : [])),
-    30_000,
-    true,
-    ["presentasi"],
-  );
+  const { list, loaded } = useSlides();
   const [open, setOpen] = useState(false);
-  const [idx, setIdx] = useState(0);
-  const list = poll.data ?? [];
-  const p = list[Math.min(idx, list.length - 1)] ?? null;
+  const p = list[0] ?? null;
   return (
     <section className="panel dash__card">
       <h2 className="panel__title">{t.slidesH}</h2>
       <p className="panel__sub">
         {modulLabel(modul, lang)} · {MODUL_NAMA[modul]}
       </p>
-      {poll.updatedAt !== null && !p && <p className="hint">{t.slidesKosong}</p>}
+      {loaded && !p && <p className="hint">{t.slidesKosong}</p>}
       <div className="panel__actions">
         <button type="button" className="btn" disabled={!p} onClick={() => setOpen(true)}>
           <PresentationChartIcon size={18} aria-hidden="true" />
           {t.bukaSlides}
         </button>
       </div>
-      <Dialog
-        open={open && Boolean(p)}
-        onOpenChange={setOpen}
-        title={t.slidesTitle(modulLabel(modul, lang))}
-        size="lg"
-        lang={lang}
-      >
-        <div className="stack">
-          {list.length > 1 && (
-            <SegmentedControl
-              fill
-              aria-label={t.slidesSumber}
-              value={String(Math.min(idx, list.length - 1))}
-              onValueChange={(v) => setIdx(Number(v))}
-              options={list.map((d, i) => ({
-                value: String(i),
-                label: d.jenis === "tautan" ? "Canva" : "PDF",
-              }))}
-            />
-          )}
-          {p &&
-            (p.jenis === "tautan" ? (
-              <div className="dash-slides-frame">
-                <iframe src={p.url} title={p.namaBerkas} loading="lazy" allowFullScreen />
-              </div>
-            ) : (
-              <PdfViewer url={p.url} name={p.namaBerkas} lang={lang} />
-            ))}
-        </div>
-      </Dialog>
+      <SlidesDialog open={open} onOpenChange={setOpen} list={list} modul={modul} lang={lang} />
     </section>
   );
 }

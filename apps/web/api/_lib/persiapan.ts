@@ -483,6 +483,8 @@ export async function handleSusulanGet(_req: ApiRequest, res: ApiResponse) {
       modul: sesi.modul,
       jumlahKelompok: sesi.jumlahKelompok,
       lanjutanDari: sesi.lanjutanDari,
+      // How many Praktikan its roster holds, for Home's draft picker.
+      praktikan: sql<number>`(select count(*)::int from ${rosterSusulan} where ${rosterSusulan.sesiId} = ${sesi.id})`,
     })
     .from(sesi)
     .where(and(eq(sesi.status, "terjadwal"), eq(sesi.jenis, "susulan")))

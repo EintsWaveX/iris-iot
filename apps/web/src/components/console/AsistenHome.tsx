@@ -36,11 +36,13 @@ import {
   PencilSimpleIcon,
   PlayIcon,
   ProhibitIcon,
+  UsersThreeIcon,
   WarningIcon,
   ArrowRightIcon,
 } from "@phosphor-icons/react";
 import { Checkbox, DateField, Stepper, Switch, TimeField } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
+import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
 import IconButton from "../ui/IconButton";
 import Pill from "../ui/Pill";
@@ -131,6 +133,15 @@ function daftar(items: string[], and: string): string {
   return `${items.slice(0, -1).join(", ")} ${and} ${items[items.length - 1]}`;
 }
 
+interface Draf {
+  id: number;
+  tanggal: string;
+  mulai: string;
+  modul: number;
+  jumlahKelompok: number;
+  praktikan: number;
+}
+
 export default function AsistenHome({
   t,
   lang,
@@ -166,6 +177,10 @@ export default function AsistenHome({
   const [busy, setBusy] = useState(false);
   const [resume, setResume] = useState<number | null>(null);
   const [belum, setBelum] = useState<BelumSiap | null>(null);
+  // Susulan drafts made in Preparation, Roster (2026-10-06): starting one
+  // brings its roster. Before this Home could only start an empty susulan.
+  const [drafts, setDrafts] = useState<Draf[] | null>(null);
+  const [draf, setDraf] = useState<number | "baru">("baru");
   const [menitNow, setMenitNow] = useState(() => menitSekarangWib());
 
   const load = () =>
@@ -184,6 +199,51 @@ export default function AsistenHome({
   }, []);
 
   const penuh = me.hak?.pair === true;
+
+  const muatDraf = (pilihUlang: boolean) =>
+    getJson<{ ok: boolean; draf: Draf[] }>("/api/session/susulan")
+      .then((d) => {
+        if (!d.ok) return;
+        setDrafts(d.draf);
+        if (!pilihUlang) return;
+        // The first draft with people in it, else a new one.
+        const pilih = d.draf.find((x) => x.praktikan > 0) ?? null;
+        setDraf(pilih ? pilih.id : "baru");
+        if (pilih) setModul(pilih.modul);
+      })
+      .catch(() => setDrafts([]));
+  useEffect(() => {
+    if (susulan && penuh) void muatDraf(true);
+  }, [susulan, penuh]);
+  useSiaran(["roster", "sesi"], () => void muatDraf(false), susulan && penuh);
+  const drafDipilih = draf === "baru" ? null : (drafts?.find((x) => x.id === draf) ?? null);
+  // A susulan starts only with Praktikan in it (2026-10-06): one started
+  // empty had nobody who could sign in, and its roster can't be filled
+  // once it runs. Until then the main button makes the susulan and opens
+  // its roster.
+  const perluRoster = susulan && (!drafDipilih || drafDipilih.praktikan === 0);
+
+  async function buatRoster() {
+    if (drafDipilih) return onPrep(`d${drafDipilih.id}`);
+    if (modul === null) return;
+    setBusy(true);
+    try {
+      const r = await postJson<{ ok: boolean; kode?: string; id?: number }>(
+        "/api/session/susulan",
+        { tanggal: susTanggal, mulai: susJam, modul, jumlahKelompok: 5 },
+      );
+      if (!r.ok || !r.id) {
+        window.Toast?.show(pesan(t, r.kode), "danger");
+        return;
+      }
+      window.Toast?.show(h.susCreated, "ok");
+      onPrep(`d${r.id}`);
+    } catch {
+      window.Toast?.show(t.fail, "danger");
+    } finally {
+      setBusy(false);
+    }
+  }
   const bisaJadwal = me.hak?.jadwal !== undefined && me.hak.jadwal !== false;
   const myCode = (me.kode ?? "").toUpperCase();
 
@@ -262,9 +322,11 @@ export default function AsistenHome({
     const ap = apPaksa ?? butuhAp;
     setBusy(true);
     try {
-      const body = susulan
-        ? { jenis: "susulan", tanggal: susTanggal, mulai: susJam }
-        : { tanggal: data?.tanggal ?? hariIniWib(), slot: sel };
+      const body = drafDipilih
+        ? { jenis: "susulan", sesiId: drafDipilih.id }
+        : susulan
+          ? { jenis: "susulan", tanggal: susTanggal, mulai: susJam }
+          : { tanggal: data?.tanggal ?? hariIniWib(), slot: sel };
       const d = await postJson<{
         ok: boolean;
         kode?: string;
@@ -453,33 +515,78 @@ export default function AsistenHome({
           <Fade k={`${susulan}-${sel}`}>
             {susulan ? (
               <div className="startcard__sus-fields">
-                <div className="field">
-                  <span className="field__label" id="sus-date-l">
-                    {h.date}
-                  </span>
-                  <DateField
-                    value={susTanggal}
-                    onChange={setSusTanggal}
-                    label={h.date}
-                    labelledBy="sus-date-l"
-                    lang={lang}
-                    min={hariIniWib()}
+                <div className="startcard__wide">
+                  <Dropdown
+                    id="sus-roster"
+                    label={h.susRoster}
+                    value={String(draf)}
+                    onChange={(v) => {
+                      const id = v === "baru" ? "baru" : Number(v);
+                      setDraf(id);
+                      const d = drafts?.find((x) => x.id === id);
+                      if (d) setModul(d.modul);
+                    }}
+                    options={[
+                      ...(drafts ?? []).map((d) => ({
+                        value: String(d.id),
+                        label: h.susDraft(
+                          tanggalPanjang(d.tanggal, lang),
+                          d.mulai,
+                          d.modul,
+                          d.praktikan,
+                        ),
+                      })),
+                      { value: "baru", label: h.susNew },
+                    ]}
                   />
                 </div>
-                <div className="field">
-                  <span className="field__label" id="sus-time-l">
-                    {h.startTime}
+                {drafDipilih ? (
+                  <span className="startcard__wide row" style={{ alignItems: "center", gap: 8 }}>
+                    <span className="hint grow">
+                      {drafDipilih.praktikan
+                        ? h.susDraftInfo(drafDipilih.praktikan, drafDipilih.jumlahKelompok)
+                        : h.susDraftEmpty}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => onPrep(`d${drafDipilih.id}`)}
+                    >
+                      {h.susEdit}
+                    </button>
                   </span>
-                  <TimeField
-                    value={susJam}
-                    onChange={setSusJam}
-                    label={h.startTime}
-                    labelledBy="sus-time-l"
-                    lang={lang}
-                    from={6}
-                    to={21}
-                  />
-                </div>
+                ) : (
+                  <>
+                    <div className="field">
+                      <span className="field__label" id="sus-date-l">
+                        {h.date}
+                      </span>
+                      <DateField
+                        value={susTanggal}
+                        onChange={setSusTanggal}
+                        label={h.date}
+                        labelledBy="sus-date-l"
+                        lang={lang}
+                        min={hariIniWib()}
+                      />
+                    </div>
+                    <div className="field">
+                      <span className="field__label" id="sus-time-l">
+                        {h.startTime}
+                      </span>
+                      <TimeField
+                        value={susJam}
+                        onChange={setSusJam}
+                        label={h.startTime}
+                        labelledBy="sus-time-l"
+                        lang={lang}
+                        from={6}
+                        to={21}
+                      />
+                    </div>
+                    <span className="hint startcard__wide">{h.susEmpty}</span>
+                  </>
+                )}
                 <span className="hint startcard__wide">{h.susulanHint}</span>
               </div>
             ) : (
@@ -620,7 +727,19 @@ export default function AsistenHome({
           )}
 
           <div className="panel__actions">
-            {can ? (
+            {can && perluRoster ? (
+              <button
+                type="button"
+                className="btn btn--primary btn--lg btn--block"
+                disabled={busy}
+                data-loading={busy ? "yes" : undefined}
+                onClick={() => void buatRoster()}
+              >
+                <UsersThreeIcon size={20} aria-hidden="true" />
+                <span className="btn__label">{drafDipilih ? h.susFill : h.susCreate}</span>
+                <span className="btn__spinner" aria-hidden="true" />
+              </button>
+            ) : can ? (
               <button
                 type="button"
                 className="btn btn--primary btn--lg btn--block"

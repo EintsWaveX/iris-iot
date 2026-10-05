@@ -20,7 +20,7 @@ import { namaAsisten } from "../../lib/people";
 import BackButton from "../ui/BackButton";
 import Fade from "../ui/Fade";
 import { shortcutsOn } from "../../lib/prefs";
-import { ShieldWarningIcon, SignInIcon } from "@phosphor-icons/react";
+import { ShieldWarningIcon, SignInIcon, WarningIcon } from "@phosphor-icons/react";
 import { OfflineBanner, StateView } from "../ui/Display";
 import { isTypingTarget } from "../ui/ShortcutSheet";
 import { href, useMe } from "../../lib/app";
@@ -457,7 +457,7 @@ export default function Console({ lang }: { lang: Lang }) {
         onEnd={() => setEndOpen(true)}
         onView={go}
         onChanged={refreshAll}
-        onAsPraktikan={() => setAsP(selGroup?.id ?? groups[0]?.id ?? null)}
+        onAsPraktikan={() => setAsP(selGroup?.id ?? groups[0]?.id ?? 0)}
         onProjector={
           milikku
             ? () => {
@@ -537,6 +537,16 @@ export default function Console({ lang }: { lang: Lang }) {
           />
         )}
 
+        {/* A session with nobody in it (a susulan started before its roster
+            was filled): nobody can sign in, so say so and how to recover. */}
+        {view === "board" && lap.data && groups.length === 0 && (
+          <div className="banner banner--warn" role="status">
+            <WarningIcon size={20} aria-hidden="true" />
+            <span>
+              <b>{t.emptyRosterH}</b> {t.emptyRosterP}
+            </span>
+          </div>
+        )}
         {view === "board" && (
           <div className="boardgrid">
             <GroupBoard

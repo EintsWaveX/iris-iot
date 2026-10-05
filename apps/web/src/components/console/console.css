@@ -110,7 +110,9 @@
 }
 
 .sbar__prog {
-  flex: 1 1 320px;
+  /* Its own width, no more: growing to 560px pushed the tools onto a
+     second row on a 1440px laptop. */
+  flex: 0 1 auto;
   max-width: 560px;
   /* Its content width at least, so the tools wrap below instead of
      painting over the clock and the minutes label. */
@@ -148,7 +150,30 @@
   align-self: flex-start;
 }
 
-/* The More menu below 1100 */
+/* One row on a laptop (2026-10-06): below 1600 Perpanjang is its icon
+   (the tooltip and E still name it) and the Server chip its dot; below
+   1600 the strip also keeps only the clock and time left. */
+@media (max-width: 1599px) {
+  .sbar__ext .sbar__lbl,
+  .sbar__ext .keyhint,
+  .srvchip .sbar__srvhint {
+    display: none;
+  }
+  .sbar__ext {
+    justify-content: center;
+    padding-inline: 0;
+    width: 46px;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1599px) {
+  .sbar .strip__prog-dot,
+  .sbar .strip__prog {
+    display: none;
+  }
+}
+
+/* The More menu below 1280 (was 1100) */
 .menu {
   display: flex;
   flex-direction: column;

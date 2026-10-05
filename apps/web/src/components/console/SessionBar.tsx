@@ -128,7 +128,9 @@ export default function SessionBar({
   const berjalan = menitBerjalan(sesi.mulaiPada, now);
   const durasi = durasiSesi(sesi);
   const sisa = Math.max(0, durasi - berjalan);
-  const wide = useMinWidth(1100);
+  // The five icon tools fold into More below 1280 (was 1100), so the bar
+  // stays one row on a laptop (2026-10-06).
+  const wide = useMinWidth(1280);
   const [pop, setPop] = useState<Menu | "ext" | "more" | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
   const list = servers?.list ?? [];
@@ -223,6 +225,9 @@ export default function SessionBar({
           <span className="sbar__meta">
             {t.hari[hari]} ·{" "}
             {sesi.slot ? `${t.slot(sesi.slot)} · ${SLOT_MULAI[sesi.slot]}` : sesi.mulai}
+            {/* Here, not among the tools: there it pushed Perpanjang and
+                Akhiri onto a second row. */}
+            {sesi.kodeMasuk && <KodeMasuk kode={sesi.kodeMasuk} lang={lang} kecil />}
           </span>
         </div>
       </div>
@@ -237,7 +242,6 @@ export default function SessionBar({
       </div>
 
       <div className="sbar__tools">
-        {sesi.kodeMasuk && <KodeMasuk kode={sesi.kodeMasuk} lang={lang} />}
         {wide ? (
           <>
             <Pop
@@ -378,9 +382,14 @@ export default function SessionBar({
           trigger={
             <Tooltip label={`${t.extend} · E`} side="bottom">
               <RadixPopover.Trigger asChild>
-                <button type="button" className="btn sbar__btn" aria-pressed={pop === "ext"}>
+                <button
+                  type="button"
+                  className="btn sbar__btn sbar__ext"
+                  aria-pressed={pop === "ext"}
+                  aria-label={t.extend}
+                >
                   <TimerIcon size={18} aria-hidden="true" />
-                  {t.extend}
+                  <span className="sbar__lbl">{t.extend}</span>
                   <KeyHint k="E" />
                 </button>
               </RadixPopover.Trigger>
@@ -404,7 +413,7 @@ export default function SessionBar({
             aria-hidden="true"
           />
           {t.server}
-          <span className="hint">
+          <span className="hint sbar__srvhint">
             {servers?.detail
               ? ap
                 ? t.apStateOn

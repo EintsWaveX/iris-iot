@@ -5,7 +5,7 @@
  * else's (view only), then open the module page as that group.
  */
 import { useState } from "react";
-import { ArrowRightIcon, CheckCircleIcon, EyeIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CheckCircleIcon, EyeIcon, WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Dropdown from "../ui/Dropdown";
 import { href, namaKelompok } from "../../lib/app";
@@ -36,7 +36,36 @@ export default function ViewAsDialog({
 }) {
   const [id, setId] = useState(initial);
   const g = groups.find((x) => x.id === id) ?? groups[0];
-  if (!g) return null;
+  // A session whose live roster is empty (a susulan started before its
+  // roster was filled) has no group to view as. The button used to do
+  // nothing then; it says why and still offers the module page.
+  if (!g)
+    return (
+      <Dialog
+        open
+        onOpenChange={(o) => !o && onClose()}
+        title={t.viewAs}
+        description={t.viewAsDesc}
+        size="sm"
+        lang={lang}
+        actions={
+          <>
+            <button type="button" className="btn btn--ghost" onClick={onClose}>
+              {t.cancel}
+            </button>
+            <a className="btn btn--primary" href={href(lang, `/modules/${modul}`)}>
+              {t.viewAsModule}
+              <ArrowRightIcon size={18} aria-hidden="true" />
+            </a>
+          </>
+        }
+      >
+        <div className="banner banner--warn">
+          <WarningIcon size={20} aria-hidden="true" />
+          <span>{t.viewAsEmpty}</span>
+        </div>
+      </Dialog>
+    );
   const mine = pemilik[g.id] === meNim;
   return (
     <Dialog

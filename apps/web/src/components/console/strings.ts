@@ -94,6 +94,12 @@ export const S = dict({
     viewAsOwn:
       "Kelompokmu: kamu bisa menyambung port, menangkap data dan mengisi seperti praktikan.",
     viewAsOther: "Bukan kelompokmu: hanya melihat. Isian, sambung port dan tangkapan dimatikan.",
+    viewAsEmpty:
+      "Sesi ini belum punya kelompok, jadi belum ada yang bisa dilihat sebagai Praktikan. Roster praktikum susulan diisi lewat drafnya di Persiapan, Roster sebelum sesi dimulai.",
+    viewAsModule: "Buka Halaman Modul",
+    emptyRosterH: "Sesi ini belum punya Praktikan.",
+    emptyRosterP:
+      "Tidak ada yang bisa masuk, dan roster tidak bisa diisi selama sesi berjalan. Akhiri sesi ini, lalu di Beranda nyalakan Waktu lain (praktikum susulan) dan tekan Buat dan Isi Roster.",
     open: "Buka",
     cardBlank: "Blank benar",
     cardDelay: "Rata-rata delay",
@@ -148,7 +154,7 @@ export const S = dict({
     },
     filterLabel: "Saring kelompok",
     noMatch: "Tidak ada kelompok yang cocok dengan saringan ini.",
-    noGroups: "Belum ada kelompok. Tempel roster di Persiapan.",
+    noGroups: "Belum ada kelompok di sesi ini.",
     here: (h: number, t: number) => `${h}/${t} hadir`,
     blanks: (b: number, t: number) => `${b}/${t} benar`,
     handFor: (t: string) => `tangan ${t}`,
@@ -632,6 +638,12 @@ export const S = dict({
     viewAsGroup: "Group",
     viewAsOwn: "Your group: you can connect ports, capture data and fill in like a student.",
     viewAsOther: "Not your group: view only. Answers, port connections and captures are off.",
+    viewAsEmpty:
+      "This session has no groups yet, so there is nobody to view as. A makeup session's roster is filled in its draft in Preparation, Roster before the session starts.",
+    viewAsModule: "Open the Module Page",
+    emptyRosterH: "This session has no Praktikan yet.",
+    emptyRosterP:
+      "Nobody can sign in, and a roster can't be filled while the session runs. End this session, then on Home turn on Other time (makeup session) and press Create and Fill Roster.",
     open: "Open",
     cardBlank: "Blanks correct",
     cardDelay: "Average delay",
@@ -682,7 +694,7 @@ export const S = dict({
     },
     filterLabel: "Filter groups",
     noMatch: "No group matches this filter.",
-    noGroups: "No groups yet. Paste the roster in Preparation.",
+    noGroups: "No groups in this session yet.",
     here: (h: number, t: number) => `${h}/${t} here`,
     blanks: (b: number, t: number) => `${b}/${t} correct`,
     handFor: (t: string) => `hand ${t}`,
@@ -1155,6 +1167,12 @@ export const S = dict({
     viewAsGroup: "组",
     viewAsOwn: "你的组：你可以像学员一样连接串口、采集数据和填写。",
     viewAsOther: "不是你的组：只能查看。填写、连接串口和采集都已关闭。",
+    viewAsEmpty:
+      "这节课还没有小组，所以还不能用学员视角查看。补课的名单要在开课前，在准备的名单里通过草稿填写。",
+    viewAsModule: "打开模块页面",
+    emptyRosterH: "这节课还没有学员。",
+    emptyRosterP:
+      "没有人能登录，上课期间也无法填写名单。先结束这节课，然后在首页打开“其他时间（补课）”，点“建立并填写名单”。",
     open: "打开",
     cardBlank: "填空正确",
     cardDelay: "平均延迟",
@@ -1204,7 +1222,7 @@ export const S = dict({
     },
     filterLabel: "筛选组",
     noMatch: "没有符合这个筛选的组。",
-    noGroups: "还没有组。在课前准备里粘贴名单。",
+    noGroups: "这节课还没有小组。",
     here: (h: number, t: number) => `${h}/${t} 到场`,
     blanks: (b: number, t: number) => `${b}/${t} 正确`,
     handFor: (t: string) => `举手 ${t}`,

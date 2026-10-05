@@ -36,6 +36,19 @@ export const H = dict({
     susulanLocked: "Hanya Pengelola dan Admin yang bisa membuat praktikum susulan.",
     date: "Tanggal",
     startTime: "Jam mulai",
+    susRoster: "Roster",
+    susNew: "Susulan baru",
+    susDraft: (tgl: string, jam: string, m: number, n: number) =>
+      `${tgl} · ${jam} · Modul ${m} · ${n} praktikan`,
+    susDraftInfo: (n: number, k: number) =>
+      `Roster dari draf ini: ${n} praktikan dalam ${k} kelompok.`,
+    susEdit: "Ubah di Persiapan",
+    susEmpty:
+      "Susulan butuh roster dulu. Tekan Buat dan Isi Roster: susulan ini disimpan dan rosternya langsung terbuka. Setelah disimpan, kembali ke sini untuk memulai.",
+    susDraftEmpty: "Roster susulan ini masih kosong. Isi dulu sebelum memulai.",
+    susCreate: "Buat dan Isi Roster",
+    susFill: "Isi Roster",
+    susCreated: "Susulan disimpan. Isi rosternya, lalu kembali ke Beranda untuk memulai.",
     susulanHint:
       "Tidak terikat jendela jadwal. Hanya Pengelola dan Admin yang bisa membuatnya. Kelompok dan asisten diatur di Persiapan.",
     noAssistants: "Belum ada asisten",
@@ -126,6 +139,19 @@ export const H = dict({
     susulanLocked: "Only Managers and Admins can create a makeup session.",
     date: "Date",
     startTime: "Start time",
+    susRoster: "Roster",
+    susNew: "New makeup session",
+    susDraft: (tgl: string, jam: string, m: number, n: number) =>
+      `${tgl} · ${jam} · Module ${m} · ${n} Praktikan`,
+    susDraftInfo: (n: number, k: number) =>
+      `Roster from this draft: ${n} Praktikan in ${k} groups.`,
+    susEdit: "Edit in Preparation",
+    susEmpty:
+      "A makeup session needs its roster first. Press Create and Fill Roster: the session is saved and its roster opens right away. Once saved, come back here to start it.",
+    susDraftEmpty: "This makeup session's roster is still empty. Fill it before starting.",
+    susCreate: "Create and Fill Roster",
+    susFill: "Fill Roster",
+    susCreated: "Makeup session saved. Fill its roster, then come back to Home to start it.",
     susulanHint:
       "Not bound to the schedule window. Only Managers and Admins can create one. Groups and assistants are set in Preparation.",
     noAssistants: "No assistants yet",
@@ -217,6 +243,18 @@ export const H = dict({
     susulanLocked: "只有主管和管理员可以安排补课。",
     date: "日期",
     startTime: "开始时间",
+    susRoster: "名单",
+    susNew: "新补课",
+    susDraft: (tgl: string, jam: string, m: number, n: number) =>
+      `${tgl} · ${jam} · 模块 ${m} · ${n} 名学员`,
+    susDraftInfo: (n: number, k: number) => `名单来自这个草稿：${k} 个小组共 ${n} 名学员。`,
+    susEdit: "在准备里修改",
+    susEmpty:
+      "补课需要先有名单。点“建立并填写名单”：补课会被保存，名单随即打开。保存后回到这里开始上课。",
+    susDraftEmpty: "这节补课的名单还是空的。开始前先填好。",
+    susCreate: "建立并填写名单",
+    susFill: "填写名单",
+    susCreated: "补课已保存。填好名单后回到首页开始上课。",
     susulanHint: "不受课表时间窗限制。只有主管和管理员可以安排。小组和助教在准备里设置。",
     noAssistants: "还没有助教",
     classType: "班级类型",

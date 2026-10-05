@@ -11,7 +11,7 @@
  * - Time warnings at 30 and 10 minutes left, once each per session.
  */
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { BellIcon, HandIcon } from "@phosphor-icons/react";
+import { BellIcon, HandIcon, PresentationChartIcon } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import type { PollState } from "../../lib/hooks";
 import {
@@ -30,6 +30,7 @@ import { modulLabel } from "../../lib/labels";
 import Pill from "../ui/Pill";
 import SessionStrip from "./SessionStrip";
 import KodeMasuk from "./KodeMasuk";
+import SlidesDialog, { useSlides } from "./SlidesDialog";
 import "./SessionMiniBar.css";
 
 const T = dict({
@@ -37,6 +38,7 @@ const T = dict({
     region: "Sesi berjalan",
     left: (m: number) => `sisa ${m} menit`,
     bell: "Pengumuman",
+    slides: "Presentasi",
     none: "Belum ada pengumuman di sesi ini.",
     help: "Minta Bantuan",
     helpOn: "Menunggu asisten",
@@ -55,6 +57,7 @@ const T = dict({
     region: "Running session",
     left: (m: number) => `${m} minutes left`,
     bell: "Announcements",
+    slides: "Slides",
     none: "No announcements in this session yet.",
     help: "Ask for Help",
     helpOn: "Waiting for assistant",
@@ -73,6 +76,7 @@ const T = dict({
     region: "正在上课",
     left: (m: number) => `剩余 ${m} 分钟`,
     bell: "公告",
+    slides: "幻灯片",
     none: "这节课还没有公告。",
     help: "求助",
     helpOn: "等助教过来",
@@ -134,6 +138,9 @@ export default function SessionMiniBar({
   const [busy, setBusy] = useState(false);
   const [hand, setHand] = useState<string | null>(null);
   const first = useRef(true);
+  // The slides, reachable from every page during a session (2026-10-06).
+  const slides = useSlides(s !== null);
+  const [slidesOpen, setSlidesOpen] = useState(false);
 
   useEffect(() => setHand(s?.mintaBantuanPada ?? null), [s?.mintaBantuanPada]);
 
@@ -268,6 +275,18 @@ export default function SessionMiniBar({
           </button>
         )}
 
+        {slides.list.length > 0 && (
+          <button
+            type="button"
+            className="minibar__bell"
+            aria-label={t.slides}
+            title={t.slides}
+            onClick={() => setSlidesOpen(true)}
+          >
+            <PresentationChartIcon size={19} aria-hidden="true" />
+          </button>
+        )}
+
         <RadixPopover.Root
           onOpenChange={(o) => {
             if (o && anns[0]) {
@@ -311,6 +330,13 @@ export default function SessionMiniBar({
           </RadixPopover.Portal>
         </RadixPopover.Root>
       </div>
+      <SlidesDialog
+        open={slidesOpen}
+        onOpenChange={setSlidesOpen}
+        list={slides.list}
+        modul={s.modul}
+        lang={lang}
+      />
     </div>
   );
 }
