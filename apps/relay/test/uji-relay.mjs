@@ -33,6 +33,11 @@ function tiket(o) {
 
 /** Opens a socket; resolves {ws, msgs, closed} once open, or {refused}. */
 function buka(path) {
+  // wrangler dev fills in request.cf from where this machine reaches
+  // Cloudflare, so on a CI runner abroad every room would be turned back as
+  // "jauh" (far from the lab). The suite tests rooms, not the runner's
+  // location: room sockets come in as a side's last try does.
+  if (/^\/(web|pi)\//.test(path)) path += `${path.includes("?") ? "&" : "?"}jauh=boleh`;
   return new Promise((resolve) => {
     const ws = new WebSocket(`${WS}${path}`);
     ws.binaryType = "arraybuffer";
