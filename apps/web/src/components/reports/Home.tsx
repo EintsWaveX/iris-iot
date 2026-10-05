@@ -72,6 +72,8 @@ export type TabHome = (typeof TAB_HOME)[number];
 
 export interface Filter extends Saringan {
   preset: Preset;
+  /** Mode TOT: list the practice sessions instead of the real ones. */
+  tot: boolean;
 }
 
 export function filterAwal(): Filter {
@@ -85,6 +87,7 @@ export function filterAwal(): Filter {
     kelas: "all",
     asisten: "all",
     status: "all",
+    tot: false,
   };
 }
 
@@ -270,6 +273,17 @@ function FilterBar({
         ]}
       />
       <Dropdown
+        id="rp-sumber"
+        label={t.sumber}
+        hideLabel
+        value={f.tot ? "tot" : "asli"}
+        onChange={(v) => setF({ ...f, tot: v === "tot" })}
+        options={[
+          { value: "asli", label: t.sumberAsli },
+          { value: "tot", label: t.sumberTot },
+        ]}
+      />
+      <Dropdown
         id="rp-view"
         label={t.views}
         hideLabel
@@ -417,7 +431,13 @@ function SessionsTab({
           <span className="rp-date">
             <b>{tanggalPanjang(s.tanggal, lang)}</b>
             <span className="hint">
-              {s.jenis === "susulan" ? t.susulan : s.slot ? slotLabel(s.slot, lang) : ""}
+              {s.jenis === "tot"
+                ? t.tot
+                : s.jenis === "susulan"
+                  ? t.susulan
+                  : s.slot
+                    ? slotLabel(s.slot, lang)
+                    : ""}
               {" · "}
               {jamSlot(s.slot, s.mulai)}
             </span>

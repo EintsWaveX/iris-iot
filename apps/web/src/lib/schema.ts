@@ -203,8 +203,11 @@ export const sesi = pgTable(
     // A susulan (makeup) session is free of the schedule window; one made
     // by "Siapkan Sesi Berikutnya" points back at the session it carries
     // unfinished groups from. A susulan draft waits as status terjadwal.
+    // A tot session (2026-10-05) is the Asisten's practice run with the
+    // dummy Praktikan of Mode TOT (src/lib/tot.ts), kept out of pay,
+    // SeeLabs and the real reports.
     durasiMenit: integer("durasi_menit").notNull().default(150),
-    jenis: text("jenis", { enum: ["reguler", "susulan"] })
+    jenis: text("jenis", { enum: ["reguler", "susulan", "tot"] })
       .notNull()
       .default("reguler"),
     jumlahKelompok: integer("jumlah_kelompok").notNull().default(5),

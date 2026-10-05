@@ -41,10 +41,10 @@ export default function ReportsApp({ lang }: { lang: Lang }) {
   const me = useMe();
   const asisten = me?.role === "asisten";
   const dir = useDirektori(asisten);
-  const riwayat = useRiwayat(asisten);
   // The server render has no address; the view is read once mounted.
   const [rute, setRute] = useState<Rute>({ v: "home", tab: "sesi" });
   const [f, setF] = useState<Filter>(filterAwal);
+  const riwayat = useRiwayat(asisten, f.tot);
 
   useEffect(() => {
     const on = () => setRute(bacaRute());

@@ -5,8 +5,8 @@
  * The head row names whose roster is open ("Roster for": every weekly slot
  * with a practicum, the makeup drafts, and a new makeup session) and the
  * server's Ready state. The tabs follow: Roster (the two-pane editor; while
- * a session runs, the group assistants come first), Module Access, Module
- * Brief, Kode Jurnal (the ASO division and Admins only, prep/CodeEditor.tsx),
+ * a session runs, the group assistants come first), Module Access, Mode TOT
+ * (prep/TotPanel.tsx), Module Brief, Kode Jurnal (the ASO division and Admins only, prep/CodeEditor.tsx),
  * Slides and Wiring Schematics. Switching rosters with unsaved
  * changes asks first: Save and Move, Discard, or Stay.
  */
@@ -37,6 +37,7 @@ import BriefEditor from "./prep/BriefEditor";
 import SchematicEditor from "./prep/SchematicEditor";
 import SlidesEditor from "./prep/SlidesEditor";
 import CodeEditor from "./prep/CodeEditor";
+import TotPanel from "./prep/TotPanel";
 import { P, type Px } from "./prepStrings";
 import "../ui/Tabs.css";
 import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
@@ -58,7 +59,7 @@ interface Draf {
   jumlahKelompok: number;
 }
 
-const TABS = ["roster", "akses", "brief", "kode", "slides", "skema"] as const;
+const TABS = ["roster", "akses", "tot", "brief", "kode", "slides", "skema"] as const;
 
 /** The slot the clock is in ("2-3"): today's first slot that hasn't ended
  *  (start plus the session cap), else the next day's first slot, Sunday
@@ -71,6 +72,8 @@ function slotJam(): string {
   return `${hari >= 1 && hari < 6 ? hari + 1 : 1}-1`;
 }
 type Tab = (typeof TABS)[number];
+
+export type PrepTab = Tab;
 
 export default function PrepView({
   t,
@@ -350,6 +353,7 @@ export default function PrepView({
             <AccessForm t={t} lang={lang} bare />
           </section>
         )}
+        {tab === "tot" && <TotPanel t={t} lang={lang} sesi={sesi} onChanged={onChanged} />}
         {tab === "slides" && <SlidesEditor lang={lang} />}
         {tab === "skema" && <SchematicEditor lang={lang} />}
         {tab === "brief" && <BriefEditor lang={lang} />}

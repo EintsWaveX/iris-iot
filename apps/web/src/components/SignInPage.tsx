@@ -80,6 +80,8 @@ const T = dict({
       tidak_ada_sesi:
         "Belum ada sesi yang berjalan. Masuk bisa dilakukan begitu asisten memulai sesi di jam praktikummu.",
       tidak_terdaftar: "NIM ini tidak ada di roster sesi yang berjalan. Tanyakan ke asistenmu.",
+      mode_tot:
+        "Asisten sedang latihan TOT, jadi akun Praktikan belum bisa dipakai. Coba lagi setelah latihannya selesai.",
       terlalu_pendek: "Kata sandi minimal 8 karakter.",
       galat_server: "Server sedang bermasalah. Coba lagi sesaat lagi.",
     } as Record<string, string>,
@@ -124,6 +126,8 @@ const T = dict({
       tidak_ada_sesi:
         "No session is running yet. You can sign in once an assistant starts the session for your slot.",
       tidak_terdaftar: "This NIM isn't on the running session's roster. Ask your assistant.",
+      mode_tot:
+        "The Asisten are in a TOT practice run, so Praktikan accounts can't be used yet. Try again once it's over.",
       terlalu_pendek: "The password needs at least 8 characters.",
       galat_server: "The server is having trouble. Try again in a moment.",
     } as Record<string, string>,
@@ -165,6 +169,7 @@ const T = dict({
       tidak_cocok: "NIM 或密码不对。",
       tidak_ada_sesi: "现在还没有课。助教开始你那节课后就能登录。",
       tidak_terdaftar: "这个 NIM 不在正在进行的这节课名单里。问问你的助教。",
+      mode_tot: "助教正在进行 TOT 练习，学员账号暂时不能使用。练习结束后再试。",
       terlalu_pendek: "密码至少要 8 个字符。",
       galat_server: "服务器出了点问题。稍后再试。",
     } as Record<string, string>,

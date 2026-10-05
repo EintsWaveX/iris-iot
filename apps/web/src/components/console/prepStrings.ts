@@ -24,6 +24,7 @@ export const P = dict({
     tabs: {
       roster: "Roster",
       akses: "Akses Modul",
+      tot: "Mode TOT",
       slides: "Presentasi",
       skema: "Skema Rangkaian",
       brief: "Ringkasan Modul",
@@ -172,6 +173,7 @@ export const P = dict({
     tabs: {
       roster: "Roster",
       akses: "Module Access",
+      tot: "TOT Mode",
       slides: "Slides",
       skema: "Wiring Schematics",
       brief: "Module Brief",
@@ -316,6 +318,7 @@ export const P = dict({
     tabs: {
       roster: "名单",
       akses: "模块权限",
+      tot: "TOT 模式",
       slides: "幻灯片",
       skema: "接线图",
       brief: "模块简介",

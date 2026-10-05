@@ -62,6 +62,12 @@ const posInt = (v: unknown) => {
   return Number.isInteger(n) && n > 0 ? n : null;
 };
 
+/** Mode TOT: a TOT session's dummy scores never go to SeeLabs or pay. */
+export async function sesiTot(db: Db, sesiId: number): Promise<boolean> {
+  const [s] = await db.select({ jenis: sesi.jenis }).from(sesi).where(eq(sesi.id, sesiId)).limit(1);
+  return s?.jenis === "tot";
+}
+
 /** Everything SeeLabs needs about one session, or null when it is unknown. */
 export async function muatSeelabs(db: Db, sesiId: number): Promise<SesiSeelabs | null> {
   const [s] = await db.select().from(sesi).where(eq(sesi.id, sesiId)).limit(1);
@@ -258,6 +264,10 @@ export async function handleSeelabsGet(req: ApiRequest, res: ApiResponse, sessio
     res.status(400).json({ ok: false, kode: "format_salah" });
     return;
   }
+  if (await sesiTot(db, sesiId)) {
+    res.status(200).json({ ok: false, kode: "sesi_tot" });
+    return;
+  }
   const data = await muatSeelabs(db, sesiId);
   if (!data) {
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
@@ -280,6 +290,10 @@ export async function handleSeelabsPost(
     return;
   }
   const db = getDb();
+  if (await sesiTot(db, sesiId)) {
+    res.status(200).json({ ok: false, kode: "sesi_tot" });
+    return;
+  }
   const data = await muatSeelabs(db, sesiId);
   if (!data) {
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });

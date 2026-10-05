@@ -14,7 +14,7 @@ export interface SesiLaporan {
   modul: number;
   kelas: Kelas;
   status: "berjalan" | "selesai";
-  jenis: "reguler" | "susulan";
+  jenis: "reguler" | "susulan" | "tot";
   durasiDetik: number | null;
   /** Who holds each group, in group order. */
   pasangan: { nomor: number; nim: string }[];

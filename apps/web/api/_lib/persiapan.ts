@@ -506,14 +506,15 @@ export async function handleSusulanPost(
         (n) => Number.isInteger(n) && n >= 1 && n <= KELOMPOK_MAKS,
       )
     : [];
-  let asal: { modul: number; status: string } | null = null;
+  let asal: { modul: number; status: string; jenis: string } | null = null;
   if (lanjut) {
     [asal] = await getDb()
-      .select({ modul: sesi.modul, status: sesi.status })
+      .select({ modul: sesi.modul, status: sesi.status, jenis: sesi.jenis })
       .from(sesi)
       .where(eq(sesi.id, dari))
       .limit(1);
     if (!asal || asal.status !== "selesai") return tolak(res, "sesi_tidak_ada");
+    if (asal.jenis === "tot") return tolak(res, "sesi_tot");
     if (pilih.length === 0) return tolak(res, "format_salah");
   }
   const modul = asal ? asal.modul : Number(body.modul);

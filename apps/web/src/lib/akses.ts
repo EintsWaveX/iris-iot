@@ -11,6 +11,7 @@
 import { getDb } from "./db.js";
 import { pengaturan, percobaanMasuk, sesi } from "./schema.js";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { isNimTot } from "./tot.js";
 
 const KUNCI = "modul_terbuka";
 const DEFAULT_TERBUKA: number[] = [1];
@@ -109,6 +110,8 @@ export async function jurnalBolehDibuka(who: {
   nim: string;
 }): Promise<number[]> {
   if (who.role === "asisten") return [1, 2, 3, 4];
+  // Mode TOT: a dummy's journals are the TOT sessions they did, open or not.
+  if (isNimTot(who.nim)) return modulDiikuti(who.nim);
   const [terbuka, diikuti] = await Promise.all([getModulTerbuka(), modulDiikuti(who.nim)]);
   return terbuka.filter((m) => diikuti.includes(m));
 }

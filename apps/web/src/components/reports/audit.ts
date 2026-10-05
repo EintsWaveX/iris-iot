@@ -7,6 +7,7 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
   ArrowsClockwiseIcon,
+  ChalkboardTeacherIcon,
   BankIcon,
   BroadcastIcon,
   CalendarBlankIcon,
@@ -131,6 +132,9 @@ const W = {
     praktikanTambah: (n: unknown) => `menambahkan ${n} praktikan`,
     susulanDraf: (t: string) => `membuat draf susulan ${t}`,
     modulAkses: (m: string) => (m ? `membuka akses ${m}` : "menutup semua akses modul"),
+    totNyala: "menyalakan Mode TOT; roster asli disimpan",
+    totMati: "mematikan Mode TOT; roster asli dikembalikan",
+    tot: " (TOT)",
     brief: (m: string, b: string) => `mengubah Ringkasan ${m} (${b})`,
     presentasi: "mengubah slide presentasi",
     skema: (m: string) => `mengubah skema rangkaian ${m}`,
@@ -228,6 +232,9 @@ const W = {
     praktikanTambah: (n: unknown) => `added ${n} students`,
     susulanDraf: (t: string) => `made a makeup draft for ${t}`,
     modulAkses: (m: string) => (m ? `opened ${m}` : "closed every module"),
+    totNyala: "switched TOT Mode on; the real roster was saved",
+    totMati: "switched TOT Mode off; the real roster was put back",
+    tot: " (TOT)",
     brief: (m: string, b: string) => `changed the ${m} Brief (${b})`,
     presentasi: "changed the presentation slides",
     skema: (m: string) => `changed the ${m} wiring schematic`,
@@ -324,6 +331,9 @@ const W = {
     praktikanTambah: (n: unknown) => `添加了 ${n} 位学员`,
     susulanDraf: (t: string) => `为 ${t} 建了补课草稿`,
     modulAkses: (m: string) => (m ? `开放了${m}` : "关闭了所有模块"),
+    totNyala: "开启了 TOT 模式，真实名单已保存",
+    totMati: "关闭了 TOT 模式，真实名单已恢复",
+    tot: "（TOT）",
     brief: (m: string, b: string) => `修改了${m}的简介（${b}）`,
     presentasi: "修改了演示幻灯片",
     skema: (m: string) => `修改了${m}的接线图`,
@@ -480,7 +490,7 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       const sfx = tgl
         ? ` · ${tgl}${d.slot ? ` · ${b.lang === "zh" ? "时段" : "Slot"} ${d.slot}` : ""}`
         : "";
-      return k(PlayIcon, w.sesiMulai(m, sfx));
+      return k(PlayIcon, w.sesiMulai(m, sfx) + (d.jenis === "tot" ? w.tot : ""));
     }
     case "sesi_akhiri":
       return k(StopIcon, w.sesiAkhiri(b.sesi(d.sesiId)));
@@ -582,6 +592,10 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
         CalendarBlankIcon,
         w.susulanDraf(typeof d.tanggal === "string" ? tanggalPanjang(d.tanggal, b.lang) : "?"),
       );
+    case "tot_nyala":
+      return k(ChalkboardTeacherIcon, w.totNyala);
+    case "tot_mati":
+      return k(ChalkboardTeacherIcon, w.totMati);
     case "modul_akses_ubah": {
       const t = Array.isArray(d.terbuka) ? (d.terbuka as number[]) : [];
       return k(LockKeyIcon, w.modulAkses(t.map((m) => modulLabel(m, b.lang)).join(", ")));

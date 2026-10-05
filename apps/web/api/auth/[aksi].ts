@@ -34,6 +34,8 @@ import { getDb } from "../../src/lib/db.js";
 import { asisten } from "../../src/lib/schema.js";
 import { eq } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
+import { totAktif } from "../../src/lib/mode-tot.js";
+import { praktikanBolehMasuk } from "../../src/lib/tot.js";
 
 async function handleMe(req: ApiRequest, res: ApiResponse) {
   if (!requireMethod(req, res, "GET")) return;
@@ -41,6 +43,13 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
   const session = currentSession(req);
   if (!session) {
     res.status(200).json({ ok: false });
+    return;
+  }
+  // Mode TOT: a Praktikan on the wrong side of the switch is signed out
+  // here, and the page's identity check says why (IdentityWatch).
+  if (session.role === "praktikan" && !praktikanBolehMasuk(session.nim, await totAktif())) {
+    res.setHeader("Set-Cookie", clearSessionCookieHeader());
+    res.status(200).json({ ok: false, kode: "mode_tot" });
     return;
   }
 

@@ -27,10 +27,11 @@
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
-import { requireCurrentPraktikanSesi, requireRole } from "../_lib/session.js";
+import { requireCurrentPraktikanSesi, requireRole, tolakPraktikanTot } from "../_lib/session.js";
 import { nomorWakil, wakilKelompok } from "../_lib/wakil.js";
 import { getDb } from "../../src/lib/db.js";
-import { anggota, asisten, jawaban } from "../../src/lib/schema.js";
+import { anggota, asisten, jawaban, sesi } from "../../src/lib/schema.js";
+import { isNimTot } from "../../src/lib/tot.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
 import { cekCelah, jumlahCelah, kanonik, kodeModul, type KodeAktif } from "../_lib/kode-aktif.js";
@@ -44,7 +45,7 @@ import {
 import { personalize } from "../../src/lib/group-identity.js";
 import { getModulTerbuka, jurnalBolehDibuka } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { and, asc, eq, inArray, isNull, like, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, like, notInArray, or, sql } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 
 const MAX_JAWABAN_LEN = 200;
@@ -71,10 +72,23 @@ async function parseModulBerkas(
  *  While a session runs, only its rows count, matching handleLaporan's
  *  scope exactly. With none running, every row counts and the newest per
  *  blank wins (callers order by diubahPada), so a student who keeps going
- *  after the session auto-ends still sees their own latest work. */
-function jawabanScope(running: { id: number } | null, kelompokId: number, prefix: string) {
+ *  after the session auto-ends still sees their own latest work.
+ *
+ *  Mode TOT (2026-10-05): TOT and real groups share `kelompok` ids, so with
+ *  no session running a dummy sees only TOT sessions' rows and a real
+ *  Praktikan never sees them. */
+function jawabanScope(
+  running: { id: number } | null,
+  kelompokId: number,
+  prefix: string,
+  dummy: boolean,
+) {
   const base = and(eq(jawaban.kelompokId, kelompokId), like(jawaban.soalKode, `${prefix}%`));
-  return running ? and(base, eq(jawaban.sesiId, running.id)) : base;
+  if (running) return and(base, eq(jawaban.sesiId, running.id));
+  const sesiTot = getDb().select({ id: sesi.id }).from(sesi).where(eq(sesi.jenis, "tot"));
+  return dummy
+    ? and(base, inArray(jawaban.sesiId, sesiTot))
+    : and(base, or(isNull(jawaban.sesiId), notInArray(jawaban.sesiId, sesiTot)));
 }
 
 /** The journal gate (Phase 8): the module must be open AND this student
@@ -85,7 +99,8 @@ async function bolehJurnal(
   session: SessionPayload,
   modul: number,
 ): Promise<boolean> {
-  if (!(await getModulTerbuka()).includes(modul)) {
+  // A dummy's journals are the TOT sessions they did, whatever is open.
+  if (!isNimTot(session.nim) && !(await getModulTerbuka()).includes(modul)) {
     res.status(200).json({ ok: false, kode: "modul_terkunci" });
     return false;
   }
@@ -125,7 +140,7 @@ async function handleDraft(
       oleh: jawaban.diubahOleh,
     })
     .from(jawaban)
-    .where(jawabanScope(running, kelompokId, prefix))
+    .where(jawabanScope(running, kelompokId, prefix, isNimTot(session.nim)))
     .orderBy(asc(jawaban.diubahPada));
 
   // Who filled each blank, by first name of the group's own members only:
@@ -231,6 +246,13 @@ async function handleCek(
   const running = await currentSesi();
   const db = getDb();
 
+  // Mode TOT: a dummy writes only inside a TOT session. Home practice rows
+  // (sesiId null) sit on group ids real groups share, so they'd leak.
+  if (!running && isNimTot(session.nim)) {
+    res.status(200).json({ ok: false, kode: "modul_terkunci" });
+    return;
+  }
+
   // sesiId is only meaningful while a session is running (see jawaban's own
   // schema comment); practising at home writes a row with sesiId null, and
   // the table's partial unique index is what still keeps that to one row
@@ -307,7 +329,7 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
   const rows = await db
     .select({ soalKode: jawaban.soalKode, benar: jawaban.benar })
     .from(jawaban)
-    .where(jawabanScope(running, kelompokId, prefix))
+    .where(jawabanScope(running, kelompokId, prefix, isNimTot(session.nim)))
     .orderBy(asc(jawaban.diubahPada));
 
   // The downloaded file gets each blank's as-authored canonical text, not
@@ -424,6 +446,7 @@ const EDITOR: Record<
 
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
+  if (await tolakPraktikanTot(req, res)) return;
 
   if (req.query.aksi === "kode") {
     if (!requireMethod(req, res, "GET")) return;

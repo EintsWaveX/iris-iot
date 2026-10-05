@@ -58,7 +58,9 @@ import {
   requireAnyRole,
   currentSession,
   requireCurrentPraktikanSesi,
+  tolakPraktikanTot,
 } from "../_lib/session.js";
+import { handleTotGet, handleTotPost } from "../_lib/tot.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   kelompok,
@@ -1107,6 +1109,7 @@ async function handleAsistenDirectory(res: ApiResponse) {
 
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
+  if (await tolakPraktikanTot(req, res)) return;
 
   const aksi = req.query.aksi;
 
@@ -1266,6 +1269,16 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === "POST") return handlePraktikanPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
     return handlePraktikanGet(req, res);
+  }
+  // Mode TOT (2026-10-05): anyone signed in as Asisten sees the state;
+  // switching it needs the Schedule right (Pengelola, Admin).
+  if (aksi === "tot") {
+    if (req.method === "POST") {
+      if (!(await cekHak(res, session.nim, "jadwal"))) return;
+      return handleTotPost(req, res, session);
+    }
+    if (!requireMethod(req, res, "GET")) return;
+    return handleTotGet(req, res);
   }
   if (aksi === "susulan") {
     if (req.method === "POST") return handleSusulanPost(req, res, session);

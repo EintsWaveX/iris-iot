@@ -8,7 +8,7 @@
  * asks the API again with its own sign-in. Topics:
  *
  *   akses brief jadwal roster tim sesi nilai laporan bayar umpan
- *   presentasi server jurnal online (an Asisten came online) kode
+ *   presentasi server jurnal online (an Asisten came online) kode tot
  *
  * Pi heartbeats (api/agent) send nothing: the Server pages poll them.
  */
@@ -29,6 +29,7 @@ const TOPIK: Record<string, string[]> = {
   "session:rosterslot": ["roster"],
   "session:praktikan": ["roster"],
   "session:susulan": ["roster", "sesi", "jadwal"],
+  "session:tot": ["tot", "roster", "sesi"],
   "session:hadir": ["sesi", "roster"],
   "session:group": ["sesi", "roster"],
   "session:nilai": ["nilai"],

@@ -512,6 +512,14 @@ export const S = dict({
     >,
     codes: {
       tidak_terdaftar: "Praktikan ini tidak ada di kelompok sesi ini.",
+      mode_tot: "Mode TOT masih aktif. Matikan dulu di Persiapan, Mode TOT.",
+      tot_mati: "Mode TOT belum aktif. Nyalakan dulu di Persiapan, Mode TOT.",
+      sesi_tot: "Ini sesi TOT, jadi tidak dikirim ke SeeLabs atau dipakai untuk sesi asli.",
+      sudah_aktif: "Mode TOT sudah aktif.",
+      sudah_mati: "Mode TOT sudah mati.",
+      sesi_berjalan: "Masih ada sesi yang berjalan. Akhiri dulu.",
+      cadangan_hilang:
+        "Cadangan roster tidak ditemukan, jadi Mode TOT tidak dimatikan. Hubungi Admin.",
       kelompok_mati: "Kelompok itu tidak berjalan di sesi ini.",
       tidak_ada: "Asisten itu tidak ditemukan.",
       kelompok_tidak_diketahui: "Kelompok itu tidak ada.",
@@ -1028,6 +1036,14 @@ export const S = dict({
     >,
     codes: {
       tidak_terdaftar: "This student isn't in a group of this session.",
+      mode_tot: "TOT Mode is still on. Switch it off in Preparation, TOT Mode first.",
+      tot_mati: "TOT Mode isn't on. Switch it on in Preparation, TOT Mode first.",
+      sesi_tot: "This is a TOT session, so it isn't sent to SeeLabs or used for real sessions.",
+      sudah_aktif: "TOT Mode is already on.",
+      sudah_mati: "TOT Mode is already off.",
+      sesi_berjalan: "A session is still running. End it first.",
+      cadangan_hilang:
+        "The roster backup is missing, so TOT Mode was not switched off. Contact an Admin.",
       kelompok_mati: "That group doesn't run in this session.",
       tidak_ada: "That assistant wasn't found.",
       kelompok_tidak_diketahui: "That group doesn't exist.",
@@ -1523,6 +1539,13 @@ export const S = dict({
     svcState: { active: "运行中", inactive: "已停止", failed: "失败" } as Record<string, string>,
     codes: {
       tidak_terdaftar: "这名学员不在本节课的小组里。",
+      mode_tot: "TOT 模式仍在开启。请先在课前准备的 TOT 模式里关闭。",
+      tot_mati: "TOT 模式还没开启。请先在课前准备的 TOT 模式里开启。",
+      sesi_tot: "这是 TOT 课程，不会发送到 SeeLabs，也不用于正式课程。",
+      sudah_aktif: "TOT 模式已经开启。",
+      sudah_mati: "TOT 模式已经关闭。",
+      sesi_berjalan: "还有课程在进行。请先结束。",
+      cadangan_hilang: "找不到名单备份，所以没有关闭 TOT 模式。请联系 Admin。",
       kelompok_mati: "那个小组本节课不开。",
       tidak_ada: "找不到那位助教。",
       kelompok_tidak_diketahui: "没有那个小组。",

@@ -134,7 +134,7 @@ export interface SesiNow {
   /** Phase 9: this session's own length (30 to 150) and group count. */
   durasiMenit?: number;
   jumlahKelompok?: number;
-  jenis?: "reguler" | "susulan";
+  jenis?: "reguler" | "susulan" | "tot";
   mintaBantuanPada: string | null;
   /** Praktikan only: false when their sign-in belongs to an earlier session. */
   milikSaya?: boolean | null;

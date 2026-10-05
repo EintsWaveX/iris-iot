@@ -229,6 +229,7 @@ export default function SessionPage({
                 {kelasLabel(s.kelas, lang)}
               </Pill>
               {s.jenis === "susulan" && <Pill>{t.susulan}</Pill>}
+              {s.jenis === "tot" && <Pill tone="warn">{t.tot}</Pill>}
               <Pill tone={st === "kurang" ? "warn" : "ok"}>{t.st[st]}</Pill>
             </div>
             <h1 className="page-header__title">{judul}</h1>

@@ -99,6 +99,8 @@ export async function handleRiwayatLaporan(req: ApiRequest, res: ApiResponse) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
+  // Mode TOT: practice runs are listed apart (?tot=1), never mixed in.
+  const tot = req.query.tot === "1";
   const db = getDb();
   const rows = await db
     .select()
@@ -106,6 +108,7 @@ export async function handleRiwayatLaporan(req: ApiRequest, res: ApiResponse) {
     .where(
       and(
         inArray(sesi.status, ["berjalan", "selesai"]),
+        tot ? eq(sesi.jenis, "tot") : not(eq(sesi.jenis, "tot")),
         dari ? gte(sesi.tanggal, dari) : undefined,
       ),
     )

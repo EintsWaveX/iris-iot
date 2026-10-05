@@ -11,19 +11,23 @@ import { unduhPdf, type BagianPdf } from "../../lib/pdf";
 import { unduhXlsx } from "../../lib/xlsx";
 import { useSiaran } from "../../lib/siaran";
 
-export function useRiwayat(enabled = true) {
+/** `tot`: Mode TOT's practice sessions instead of the real ones; the API
+ *  never mixes the two. */
+export function useRiwayat(enabled = true, tot = false) {
   const [rows, setRows] = useState<SesiLaporan[] | null>(null);
   const [fail, setFail] = useState(false);
   const load = useCallback(async () => {
     try {
-      const d = await getJson<{ ok: boolean; sesi?: SesiLaporan[] }>("/api/session/riwayat");
+      const d = await getJson<{ ok: boolean; sesi?: SesiLaporan[] }>(
+        tot ? "/api/session/riwayat?tot=1" : "/api/session/riwayat",
+      );
       if (!d.ok) throw new Error("riwayat");
       setRows(d.sesi ?? []);
       setFail(false);
     } catch {
       setFail(true);
     }
-  }, []);
+  }, [tot]);
   useEffect(() => {
     if (enabled) void load();
   }, [enabled, load]);

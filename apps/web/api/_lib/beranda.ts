@@ -16,7 +16,7 @@
  */
 import { diSlotMinggu, muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
 import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
-import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
@@ -154,6 +154,7 @@ export async function handleBerandaGet(
       and(
         eq(sesiAsisten.asistenNim, session.nim),
         eq(sesi.status, "selesai"),
+        ne(sesi.jenis, "tot"),
         gte(sesi.dibuatPada, sejak),
       ),
     )

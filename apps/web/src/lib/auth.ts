@@ -32,6 +32,8 @@ import { eq, and, gte, count } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { asisten, percobaanMasuk, audit } from "./schema.js";
 import { resolvePraktikan, resolvePraktikanTanpaSesi, currentSesi } from "./sesi.js";
+import { totAktif } from "./mode-tot.js";
+import { praktikanBolehMasuk } from "./tot.js";
 
 const SESSION_TTL_SEC = 3 * 60 * 60; // 3 hours, > SESI_CAP_MENIT (150 min)
 const ASSISTANT_PASSWORD_SUFFIX = "1715";
@@ -245,7 +247,7 @@ export type PraktikanLoginResult =
       kelompokNomor: number;
       kelompokNama: string;
     }
-  | { ok: false; kode: "terkunci" | "tidak_ada_sesi" | "tidak_terdaftar" };
+  | { ok: false; kode: "terkunci" | "tidak_ada_sesi" | "tidak_terdaftar" | "mode_tot" };
 
 /**
  * Resolve a student's NIM against the running session. Trimmed and
@@ -262,6 +264,13 @@ export async function verifyPraktikanLogin(
 
   if (await isLockedOut(nim, ip, "praktikan")) {
     return { ok: false, kode: "terkunci" };
+  }
+
+  // Mode TOT (2026-10-05): only the dummy accounts while it is on, only
+  // real Praktikan while it is off. Not a failed attempt: it says nothing
+  // about whether the NIM is real, so it never counts toward a lockout.
+  if (!praktikanBolehMasuk(nim, await totAktif())) {
+    return { ok: false, kode: "mode_tot" };
   }
 
   // Checked separately from resolvePraktikan() so the two refusal reasons

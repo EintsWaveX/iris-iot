@@ -68,6 +68,7 @@ import { keluarProyektor, useProyektor } from "../../lib/proyektor";
 import AsistenMiniBar from "./AsistenMiniBar";
 import OfflineNotice from "./OfflineNotice";
 import IdentityWatch from "./IdentityWatch";
+import TotNotice from "./TotNotice";
 import AsistenCommands from "./AsistenCommands";
 import "./AppNav.css";
 import { openSignIn } from "../../lib/signin";
@@ -535,6 +536,7 @@ export default function AppNav({
       {tampil?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} proyektor={!!pro} />}
       {asistenBar && now.data && <AsistenMiniBar lang={lang} s={now.data} />}
       <OfflineNotice lang={lang} />
+      {me?.role === "asisten" && !pro && <TotNotice lang={lang} />}
       <IdentityWatch lang={lang} me={me} now={now.data} />
 
       <nav className="appbar" aria-label={t.main}>

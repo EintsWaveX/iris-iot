@@ -83,6 +83,11 @@ export async function sinkronUnit(
   const data = await muatSeelabs(db, sesiId);
   const [s] = await db.select().from(sesi).where(eq(sesi.id, sesiId)).limit(1);
   if (!data || !s) return;
+  // Mode TOT: practice runs earn nothing.
+  if (s.jenis === "tot") {
+    await db.delete(unitBayar).where(eq(unitBayar.sesiId, sesiId));
+    return;
+  }
   const tarifUnit = ctx?.tarifUnit ?? (await muatTarifUnit(db));
   const kas = ctx?.kas ?? (await muatKas(db));
   const semester = semesterDariTanggal(s.tanggal);
@@ -134,7 +139,7 @@ export async function sinkronUnit(
 async function sinkronYangBerubah(db: Db, dari: string, sampai: string) {
   const rows = await db.execute(sql`
     select s.id from sesi s
-    where s.status = 'selesai' and s.tanggal between ${dari} and ${sampai}
+    where s.status = 'selesai' and s.jenis <> 'tot' and s.tanggal between ${dari} and ${sampai}
       and (
         s.bayar_sinkron_pada is null
         or s.bayar_sinkron_pada < greatest(

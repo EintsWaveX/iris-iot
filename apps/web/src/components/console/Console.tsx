@@ -36,7 +36,7 @@ import ViewAsDialog from "./ViewAsDialog";
 import TierBadge from "../ui/TierBadge";
 import GroupInspector from "./GroupInspector";
 import NilaiTable from "./NilaiTable";
-import PrepView from "./PrepView";
+import PrepView, { type PrepTab } from "./PrepView";
 import LivePrep from "./LivePrep";
 import ServerDrawer from "./ServerDrawer";
 import EndFlow from "./EndFlow";
@@ -67,8 +67,11 @@ function readHash(): {
   cmd?: string;
   seelabs?: boolean;
   seelabsTab?: SeelabsTab;
+  tot?: boolean;
 } {
   const h = location.hash.replace(/^#/, "");
+  // #tot: Preparation's Mode TOT tab (the TOT banner links here).
+  if (h === "tot") return { tot: true };
   if (h === "prep" || h === "board" || h === "table") return { view: h };
   if (h === "seelabs") return { seelabs: true };
   // #seelabs=pasang (the Account page's "Cara Pakai") opens one tab.
@@ -92,7 +95,8 @@ export default function Console({ lang }: { lang: Lang }) {
   const [prepOnly, setPrepOnly] = useState(false);
   // In a running session Preparation is the live view; its Module Access
   // and Slides buttons open the full tabs, with a way back.
-  const [prepFull, setPrepFull] = useState<"akses" | "slides" | null>(null);
+  const [prepFull, setPrepFull] = useState<"akses" | "slides" | "tot" | null>(null);
+  const [prepTab, setPrepTab] = useState<PrepTab | undefined>(undefined);
   const [done, setDone] = useState<(SesiRunning & { hadir: number; selesaiPada?: string }) | null>(
     null,
   );
@@ -136,6 +140,12 @@ export default function Console({ lang }: { lang: Lang }) {
       if (h.cmd === "drawer") setDrawer(true);
       if (h.cmd === "end") setEndOpen(true);
       if (h.seelabs) setSee(h.seelabsTab ? { tab: h.seelabsTab } : {});
+      if (h.tot) {
+        setView("prep");
+        setPrepFull("tot");
+        setPrepTab("tot");
+        setPrepOnly(true);
+      }
     };
     apply();
     window.addEventListener("hashchange", apply);
@@ -365,6 +375,7 @@ export default function Console({ lang }: { lang: Lang }) {
         <div className="console">
           {offline}
           <PrepView
+            key={prepTab ?? "roster"}
             t={t}
             lang={lang}
             sesi={null}
@@ -376,8 +387,11 @@ export default function Console({ lang }: { lang: Lang }) {
             onBack={() => {
               setPrepOnly(false);
               setPrepPilih(null);
+              setPrepTab(undefined);
+              if (location.hash === "#tot") history.replaceState(null, "", location.pathname);
             }}
             pilih={prepPilih}
+            tab0={prepTab}
           />
         </div>
       );

@@ -30,6 +30,8 @@ const T = dict({
     masuk: "Masuk lagi",
     muat: "Muat ulang halaman",
     nanti: "Nanti",
+    totH: "Sedang ada latihan TOT",
+    tot: "Asisten sedang latihan TOT, jadi akun Praktikan tidak bisa dipakai dulu. Kamu sudah dikeluarkan; masuk lagi setelah latihannya selesai.",
   },
   en: {
     swapH: "This tab switched accounts",
@@ -42,6 +44,8 @@ const T = dict({
     masuk: "Sign in again",
     muat: "Reload the page",
     nanti: "Later",
+    totH: "A TOT practice run is on",
+    tot: "The Asisten are in a TOT practice run, so Praktikan accounts can't be used for now. You've been signed out; sign in again once it's over.",
   },
   zh: {
     swapH: "这个标签页换了账号",
@@ -54,10 +58,13 @@ const T = dict({
     masuk: "重新登录",
     muat: "重新加载页面",
     nanti: "以后再说",
+    totH: "正在进行 TOT 练习",
+    tot: "助教正在进行 TOT 练习，学员账号暂时不能使用。你已被登出，练习结束后再登录。",
   },
 });
 
-type Keadaan = { jenis: "swap"; nama: string } | { jenis: "gone" } | { jenis: "baru" } | null;
+type Keadaan =
+  { jenis: "swap"; nama: string } | { jenis: "gone" } | { jenis: "baru" } | { jenis: "tot" } | null;
 
 export default function IdentityWatch({
   lang,
@@ -76,14 +83,21 @@ export default function IdentityWatch({
   useEffect(() => {
     if (!nim) return;
     return startPolling(async () => {
-      let d: { ok?: boolean; nim?: string; nama?: string };
+      let d: { ok?: boolean; nim?: string; nama?: string; kode?: string };
       try {
         d = await getJson("/api/auth/me");
       } catch {
         return; // a failed check is not evidence of a swap
       }
       if (d.ok && d.nim === nim) return;
-      setK(d.ok ? { jenis: "swap", nama: d.nama ?? d.nim ?? "" } : { jenis: "gone" });
+      // Mode TOT signed this Praktikan out (api/auth/me): say why.
+      setK(
+        d.ok
+          ? { jenis: "swap", nama: d.nama ?? d.nim ?? "" }
+          : d.kode === "mode_tot"
+            ? { jenis: "tot" }
+            : { jenis: "gone" },
+      );
     }, 20_000);
   }, [nim]);
 
@@ -99,8 +113,22 @@ export default function IdentityWatch({
     if (k.jenis === "baru") dismissedBaru.current = sesiKey;
     setK(null);
   };
-  const title = k.jenis === "swap" ? t.swapH : k.jenis === "gone" ? t.goneH : t.newH;
-  const body = k.jenis === "swap" ? t.swap(k.nama) : k.jenis === "gone" ? t.gone : t.newB;
+  const title =
+    k.jenis === "swap"
+      ? t.swapH
+      : k.jenis === "gone"
+        ? t.goneH
+        : k.jenis === "tot"
+          ? t.totH
+          : t.newH;
+  const body =
+    k.jenis === "swap"
+      ? t.swap(k.nama)
+      : k.jenis === "gone"
+        ? t.gone
+        : k.jenis === "tot"
+          ? t.tot
+          : t.newB;
 
   return (
     <Dialog
@@ -115,7 +143,7 @@ export default function IdentityWatch({
               {t.nanti}
             </button>
           )}
-          {k.jenis === "swap" ? (
+          {k.jenis === "swap" || k.jenis === "tot" ? (
             <button type="button" className="btn btn--primary" onClick={() => location.reload()}>
               <ArrowsCounterClockwiseIcon size={17} aria-hidden="true" />
               {t.muat}

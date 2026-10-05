@@ -83,7 +83,7 @@ import { del } from "@vercel/blob";
 import { LAMPIRAN_MAKS, LAMPIRAN_TIPE } from "../_lib/dokumen.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
-import { requireRole, requireAnyRole } from "../_lib/session.js";
+import { requireRole, requireAnyRole, tolakPraktikanTot } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
 import { presentasi, skema } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
@@ -552,6 +552,7 @@ const SKEMA_POST: Record<string, SkemaPost> = {
 
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
+  if (await tolakPraktikanTot(req, res)) return;
 
   const aksi = req.query.aksi;
 

@@ -16,7 +16,7 @@ export interface SesiRunning {
   /** Phase 9: this session's own length (30 to 150) and group count. */
   durasiMenit?: number;
   jumlahKelompok?: number;
-  jenis?: "reguler" | "susulan";
+  jenis?: "reguler" | "susulan" | "tot";
   /** The hand-over's kit count (c-next), once someone set it. */
   kit?: { kembali: number; rusak: number; total: number } | null;
 }

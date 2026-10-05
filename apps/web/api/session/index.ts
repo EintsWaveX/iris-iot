@@ -8,6 +8,9 @@
  *   { jenis: "susulan", sesiId, ... }
  *     a Praktikum Susulan: its own date and time, or a draft made in
  *     Preparation or by "Siapkan Sesi Berikutnya" (status terjadwal)
+ *   { jenis: "tot", modul, kelas?, durasiMenit?, butuhAp? }
+ *     a TOT session (2026-10-05): today, now, the six division groups of
+ *     dummy Praktikan Mode TOT put in the live roster (src/lib/tot.ts)
  *
  * Phase 9 rules (src/lib/sesi-mulai.ts holds the shared ones):
  * - A scheduled slot starts only today, inside its start window: from the
@@ -16,6 +19,10 @@
  *   slot (its assistants or substitutes) may start it; the full "pair"
  *   right (Pengelola, Admin) starts any slot.
  * - A susulan has no window and needs the full "pair" right.
+ * - Mode TOT: while it is on only a TOT session starts, and a TOT session
+ *   starts only while it is on (same "pair" right as a susulan). It may use
+ *   a closed module, and copies no roster: the live one already holds the
+ *   dummies, so it is only snapshotted.
  * - A closed module can't be started; modules are opened in Preparation.
  *   (Before Phase 9 a start opened its module and the ones below; that
  *   undid an Asisten who had closed one on purpose.)
@@ -38,6 +45,8 @@ import { muatOrang } from "../_lib/hak.js";
 import { salinRosterKeSesi, type SumberRoster } from "../_lib/roster.js";
 import { getDb } from "../../src/lib/db.js";
 import { pengaturan, sesi } from "../../src/lib/schema.js";
+import { totAktif } from "../../src/lib/mode-tot.js";
+import { TOT_JUMLAH_KELOMPOK } from "../../src/lib/tot.js";
 import { hariIniWib, slotToMulai, SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
 import { semesterDariTanggal, hariDariTanggal } from "../../src/lib/jadwal-parser.js";
 import {
@@ -81,6 +90,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (!session) return;
 
   const body = jsonBody(req);
+  const tot = body.jenis === "tot";
   const susulan = body.jenis === "susulan";
   const draftId = susulan && body.sesiId != null ? Number(body.sesiId) : null;
   const butuhAp = Boolean(body.butuhAp);
@@ -98,20 +108,25 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     }
   }
 
-  const tanggal = draft?.tanggal ?? (typeof body.tanggal === "string" ? body.tanggal : "");
+  const menitKini = menitSekarangWib();
+  const tanggal = tot
+    ? hariIniWib()
+    : (draft?.tanggal ?? (typeof body.tanggal === "string" ? body.tanggal : ""));
   const modul = body.modul != null ? Number(body.modul) : (draft?.modul ?? NaN);
-  const slot = susulan ? null : body.slot == null ? null : Number(body.slot);
-  const mulai = susulan
-    ? (draft?.mulai ?? (typeof body.mulai === "string" ? body.mulai : ""))
-    : slot !== null
-      ? (slotToMulai(slot) ?? "")
-      : "";
+  const slot = susulan || tot ? null : body.slot == null ? null : Number(body.slot);
+  const mulai = tot
+    ? `${String(Math.floor(menitKini / 60)).padStart(2, "0")}:${String(menitKini % 60).padStart(2, "0")}`
+    : susulan
+      ? (draft?.mulai ?? (typeof body.mulai === "string" ? body.mulai : ""))
+      : slot !== null
+        ? (slotToMulai(slot) ?? "")
+        : "";
 
   if (
     !TANGGAL_RE.test(tanggal) ||
     !JAM_RE.test(mulai) ||
     ![1, 2, 3, 4].includes(modul) ||
-    (!susulan && (slot === null || ![1, 2, 3, 4].includes(slot))) ||
+    (!susulan && !tot && (slot === null || ![1, 2, 3, 4].includes(slot))) ||
     (butuhAp && modul !== 4) ||
     (kelasDiminta !== null && !isKelas(kelasDiminta)) ||
     durasiMenit === null
@@ -124,8 +139,13 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!orang) return tolak(res, "tanpa_hak");
     const penuh = bolehPenuh(orang, "pair");
 
+    // Mode TOT decides which kind of session may start at all.
+    const modeTot = await totAktif();
+    if (modeTot && !tot) return tolak(res, "mode_tot");
+    if (!modeTot && tot) return tolak(res, "tot_mati");
+
     const slotRow = await jadwalUntuk(db, tanggal, slot);
-    if (susulan) {
+    if (susulan || tot) {
       if (!penuh) return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "pair" });
     } else {
       // Anyone teaching the slot that date (its pairing, a cover or a
@@ -150,12 +170,14 @@ async function handler(req: ApiRequest, res: ApiResponse) {
       }
     }
 
-    if (!(await getModulTerbuka()).includes(modul)) return tolak(res, "modul_tertutup");
+    if (!tot && !(await getModulTerbuka()).includes(modul)) return tolak(res, "modul_tertutup");
 
-    const jumlahKelompok = bacaJumlahKelompok(
-      body.jumlahKelompok,
-      draft?.jumlahKelompok ?? slotRow?.jumlahKelompok ?? undefined,
-    );
+    const jumlahKelompok = tot
+      ? TOT_JUMLAH_KELOMPOK
+      : bacaJumlahKelompok(
+          body.jumlahKelompok,
+          draft?.jumlahKelompok ?? slotRow?.jumlahKelompok ?? undefined,
+        );
     if (jumlahKelompok === null) return tolak(res, "format_salah");
 
     const { created, demoted, disalin } = await db.transaction(async (tx) => {
@@ -175,7 +197,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
         mulaiPada: new Date(),
         durasiMenit,
         jumlahKelompok,
-        jenis: susulan ? ("susulan" as const) : ("reguler" as const),
+        jenis: tot ? ("tot" as const) : susulan ? ("susulan" as const) : ("reguler" as const),
       };
       const [row] = draft
         ? await tx.update(sesi).set(nilai).where(eq(sesi.id, draft.id)).returning()
@@ -183,8 +205,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
             .insert(sesi)
             .values({ ...nilai, tanggal, mulai, slot })
             .returning();
+      // A TOT session (like a susulan with no roster of its own) copies
+      // nothing: the live roster is kept as it is and snapshotted.
       const sumber: SumberRoster =
-        !susulan && slot !== null
+        !susulan && !tot && slot !== null
           ? {
               jenis: "slot",
               semester: semesterDariTanggal(tanggal),

@@ -11,6 +11,8 @@ import { currentSesi } from "../../src/lib/sesi.js";
 import { getDb } from "../../src/lib/db.js";
 import { anggota } from "../../src/lib/schema.js";
 import { eq } from "drizzle-orm";
+import { totAktif } from "../../src/lib/mode-tot.js";
+import { praktikanBolehMasuk } from "../../src/lib/tot.js";
 
 export function currentSession(req: ApiRequest): SessionPayload | null {
   const cookies = parseCookies(req);
@@ -80,6 +82,21 @@ export async function requireCurrentPraktikanSesi(
     }
   }
   return session;
+}
+
+/**
+ * Mode TOT (2026-10-05): while it is on only the dummy Praktikan may use the
+ * site, and while it is off only real ones may. A Praktikan cookie on the
+ * wrong side gets 401 `sesi_berganti` (the client already signs out and asks
+ * for a new sign-in on it, which then says why). Returns true when it
+ * answered. Asisten and visitors pass through untouched.
+ */
+export async function tolakPraktikanTot(req: ApiRequest, res: ApiResponse): Promise<boolean> {
+  const session = currentSession(req);
+  if (!session || session.role !== "praktikan") return false;
+  if (praktikanBolehMasuk(session.nim, await totAktif())) return false;
+  res.status(401).json({ ok: false, kode: "sesi_berganti", alasan: "mode_tot" });
+  return true;
 }
 
 /** Same contract as requireRole, but accepts any role in the given list --
