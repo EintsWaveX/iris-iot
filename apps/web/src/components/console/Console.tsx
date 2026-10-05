@@ -85,7 +85,7 @@ export default function Console({ lang }: { lang: Lang }) {
   const t = S[lang];
   const me = useMe();
   const isAsisten = me?.role === "asisten";
-  const current = useCurrent();
+  const current = useCurrent(isAsisten);
   const sesi = isAsisten ? (current.data?.sesi ?? null) : null;
   const roster = current.data?.roster ?? [];
   const [view, setView] = useState<View>("board");

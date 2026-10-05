@@ -24,13 +24,15 @@ import type {
 } from "./types";
 import type { SaveState } from "../ui/Controls";
 
-export function useCurrent() {
+/** Off until the viewer is known to be an Asisten (a guest sees the gate). */
+export function useCurrent(enabled = true) {
   return usePoll(
     () =>
       getJson<{ ok: boolean; sesi: SesiRunning | null; roster: RosterGroup[] }>(
         "/api/session/current",
       ),
     20_000,
+    enabled,
   );
 }
 

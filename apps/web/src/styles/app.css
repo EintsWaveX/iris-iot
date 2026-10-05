@@ -90,6 +90,12 @@ html {
   padding-bottom: var(--space-9);
 }
 
+/* A page that is only a gate card (a guest on the Console, Schedule, Tim,
+   an error) gets the same top space as a page header. */
+.page-main > astro-island:first-child > :is(.state-view, .errview):first-child {
+  margin-top: var(--space-page-top);
+}
+
 /* ---------------------------------------------------------------- panel */
 
 .panel {
