@@ -60,6 +60,7 @@ import {
   jabatanLabel,
   kategoriLabel,
   kelasLabel,
+  modulLabel,
   statusOrangLabel,
   tierLabel,
 } from "../../lib/labels";
@@ -118,7 +119,23 @@ interface TimData {
   serahTerima: Serah[];
   slotMinggu: Record<string, number>;
   slotDaftar: Record<string, SlotOrang[]>;
+  /** Mangkir this semester, by NIM (lib/mangkir.ts). */
+  kehadiran?: Record<string, HadirOrang>;
   saya: { nim: string; hak: Record<HakKey, HakNilai> } | null;
+}
+
+interface HadirOrang {
+  tepat: number;
+  mangkirNgajar: number;
+  mangkir: number;
+  riwayat: {
+    tanggal: string;
+    mulai: string;
+    modul: number;
+    status: "tepat" | "mangkir_ngajar" | "mangkir";
+    telatMenit: number | null;
+    otomatis: boolean;
+  }[];
 }
 
 interface Jejak {
@@ -1018,6 +1035,12 @@ function PersonDrawer({
           <SlotList slots={data.slotDaftar[(p.kode ?? "").toUpperCase()] ?? []} t={t} lang={lang} />
         </section>
 
+        <section className="tim-sec">
+          <h3 className="tim-sec__title">{t.hadirH}</h3>
+          <span className="hint">{t.hadirSub}</span>
+          <HadirList h={data.kehadiran?.[p.nim]} t={t} lang={lang} />
+        </section>
+
         {bayar && <DrawerPay nim={p.nim} data={bayar} lang={lang} />}
 
         <section className="tim-sec">
@@ -1065,6 +1088,50 @@ function SlotList({ slots, t, lang }: { slots: SlotOrang[]; t: Tx; lang: Lang })
         </div>
       ))}
     </div>
+  );
+}
+
+/** Mangkir this semester: the three counts, then each late or missed session. */
+function HadirList({ h, t, lang }: { h: HadirOrang | undefined; t: Tx; lang: Lang }) {
+  if (!h || h.tepat + h.mangkirNgajar + h.mangkir === 0)
+    return <span className="hint">{t.hadirNone}</span>;
+  return (
+    <>
+      <div className="row">
+        <Pill tone="ok">
+          {t.hadirTepat} {h.tepat}
+        </Pill>
+        <Pill tone={h.mangkirNgajar ? "warn" : undefined}>
+          {t.hadirNgajar} {h.mangkirNgajar}
+        </Pill>
+        <Pill tone={h.mangkir ? "danger" : undefined}>
+          {t.hadirMangkir} {h.mangkir}
+        </Pill>
+      </div>
+      {h.riwayat.length > 0 && (
+        <div className="tim-rows">
+          {h.riwayat.map((r) => (
+            <div key={`${r.tanggal}-${r.mulai}`} className="tim-row">
+              <Pill tone={r.status === "mangkir" ? "danger" : "warn"}>
+                {r.status === "mangkir" ? t.hadirMangkir : t.hadirNgajar}
+              </Pill>
+              <span>
+                {tanggalPanjang(r.tanggal, lang)} · {r.mulai}
+              </span>
+              <span className="hint">
+                {[
+                  modulLabel(r.modul, lang),
+                  r.telatMenit !== null ? t.hadirTelat(r.telatMenit) : null,
+                  r.otomatis ? null : t.hadirHand,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

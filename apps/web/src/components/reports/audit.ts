@@ -121,6 +121,10 @@ const W = {
     konfirmasi: (ok: boolean) => (ok ? "menerima tawaran bantuan" : "menolak tawaran bantuan"),
     penugasanBatal: "membatalkan permintaan atau tawaran penugasan",
     izin: (who: string, s: string) => `mengumumkan izin ${who} di ${s} dan mencari pengganti`,
+    kehadiran: (who: string, st: string) =>
+      st === "otomatis"
+        ? `mengembalikan kehadiran ${who} ke jam`
+        : `mengubah kehadiran ${who} jadi ${({ tepat: "Tepat Waktu", mangkir_ngajar: "Mangkir/Ngajar", mangkir: "Mangkir" } as Record<string, string>)[st] ?? st}`,
     jadwalUbah: (s: string) => `mengubah slot ${s} di Jadwal`,
     jadwalImpor: (n: unknown) => `mengimpor jadwal (${n} slot)`,
     jadwalPengaturan: "mengubah pengaturan jendela mulai di Jadwal",
@@ -212,6 +216,10 @@ const W = {
     konfirmasi: (ok: boolean) => (ok ? "accepted an offer to help" : "declined an offer to help"),
     penugasanBatal: "withdrew an assignment request or offer",
     izin: (who: string, s: string) => `announced ${who} is excused on ${s} and asked for a cover`,
+    kehadiran: (who: string, st: string) =>
+      st === "otomatis"
+        ? `set ${who}'s attendance back to the clock`
+        : `set ${who}'s attendance to ${({ tepat: "On Time", mangkir_ngajar: "Late, Still Taught", mangkir: "No Show" } as Record<string, string>)[st] ?? st}`,
     jadwalUbah: (s: string) => `changed the ${s} slot in the Schedule`,
     jadwalImpor: (n: unknown) => `imported the schedule (${n} slots)`,
     jadwalPengaturan: "changed the start window settings in the Schedule",
@@ -302,6 +310,10 @@ const W = {
     konfirmasi: (ok: boolean) => (ok ? "接受了帮忙" : "拒绝了帮忙"),
     penugasanBatal: "撤回了一个安排请求或帮忙",
     izin: (who: string, s: string) => `公布 ${who} 在 ${s} 请假并找人代课`,
+    kehadiran: (who: string, st: string) =>
+      st === "otomatis"
+        ? `把 ${who} 的出勤改回按时间判断`
+        : `把 ${who} 的出勤改为${({ tepat: "准时", mangkir_ngajar: "迟到但授课", mangkir: "缺勤" } as Record<string, string>)[st] ?? st}`,
     jadwalUbah: (s: string) => `修改了课表里的 ${s}`,
     jadwalImpor: (n: unknown) => `导入了课表（${n} 个时段）`,
     jadwalPengaturan: "修改了课表的开课窗口设置",
@@ -543,6 +555,8 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(XCircleIcon, w.penugasanBatal);
     case "izin_umumkan":
       return k(XCircleIcon, w.izin(b.who(d.nim), b.slot(d.jadwalId, d.tanggal)));
+    case "kehadiran_asisten":
+      return k(UserSwitchIcon, w.kehadiran(b.who(d.nim), String(d.status)));
     case "jadwal_ubah":
       return k(CalendarDotsIcon, w.jadwalUbah(slotHari(d.hari, d.slot)));
     case "jadwal_impor":

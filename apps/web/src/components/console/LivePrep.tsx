@@ -2,7 +2,9 @@
  * Preparation while a session runs (Phase 9, mockup c-run › Persiapan):
  *
  * - Teaching This Slot: everyone on the slot today (regular, substitute,
- *   volunteer, excused), the groups they hold, and when they turned up.
+ *   volunteer, excused), the groups they hold, and when they turned up,
+ *   with their Mangkir status (lib/mangkir.ts: Tepat Waktu, Mangkir/Ngajar,
+ *   Mangkir), which anyone teaching the session can correct by hand.
  *   A volunteer's offer is accepted or declined here; anyone missing can be
  *   marked present.
  * - The attendance line, with Module Access and Slides (the full
@@ -29,6 +31,7 @@ import DragLayer from "../ui/DragLayer";
 import {
   CheckIcon,
   DotsSixVerticalIcon,
+  DotsThreeVerticalIcon,
   HandHeartIcon,
   LockSimpleOpenIcon,
   PresentationChartIcon,
@@ -37,6 +40,9 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
+import IconButton from "../ui/IconButton";
+import Popover from "../ui/Popover";
+import { TELAT_MENIT, type StatusHadir, type StatusHadirLive } from "../../lib/mangkir";
 import { getJson, jamMenit, namaKelompok, postJson } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import { kelompokLabel } from "../../lib/labels";
@@ -57,7 +63,22 @@ interface Mengajar {
   alasan?: string | null;
   tugasId?: number;
   status?: "diminta" | "diterima" | "ditolak";
+  /** Mangkir: only for the slot's own Asisten and substitutes. */
+  kehadiran?: {
+    status: StatusHadirLive;
+    telatMenit: number | null;
+    otomatis: boolean;
+    oleh: string | null;
+  } | null;
 }
+
+const HADIR_TONE: Record<StatusHadirLive, "ok" | "warn" | "danger" | undefined> = {
+  tepat: "ok",
+  mangkir_ngajar: "warn",
+  mangkir: "danger",
+  belum: undefined,
+  lewat: "danger",
+};
 
 interface Anggota {
   nim: string;
@@ -77,6 +98,8 @@ interface Kelompok {
 interface Hadir {
   ok: boolean;
   kode?: string;
+  /** The session's scheduled start, for the on-time deadline. */
+  mulai?: string;
   mengajar: Mengajar[];
   kelompok: Kelompok[];
 }
@@ -245,8 +268,21 @@ export default function LivePrep({
                     </>
                   ) : (
                     <>
-                      <span className="hint num">
-                        {m.hadirPada ? l.here(jamMenit(m.hadirPada)) : l.absent}
+                      <span className="stack teachrow__hadir">
+                        {m.kehadiran && (
+                          <Pill tone={HADIR_TONE[m.kehadiran.status]}>
+                            {l.hadir[m.kehadiran.status]}
+                          </Pill>
+                        )}
+                        <span className="hint num">
+                          {[
+                            m.hadirPada ? l.here(jamMenit(m.hadirPada)) : l.absent,
+                            m.kehadiran?.telatMenit ? l.telat(m.kehadiran.telatMenit) : null,
+                            m.kehadiran && !m.kehadiran.otomatis ? l.byHand : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
                       </span>
                       <span className="row teachrow__act">
                         {!m.hadirPada && m.jenis !== "izin" && (
@@ -259,6 +295,19 @@ export default function LivePrep({
                           >
                             {l.mark}
                           </button>
+                        )}
+                        {m.kehadiran && (
+                          <SetHadir
+                            l={l}
+                            m={m}
+                            mulai={data.mulai ?? ""}
+                            onSet={(status) =>
+                              void kirim(
+                                { aksi: "kehadiran", nim: m.nim, status },
+                                l.hadirSet(m.nama),
+                              )
+                            }
+                          />
                         )}
                       </span>
                     </>
@@ -406,5 +455,65 @@ function MemberRow({
         </span>
       )}
     </div>
+  );
+}
+
+/** Correcting someone's Mangkir status: the three statuses, or back to the
+ *  clock. Each change is in Audit. */
+function SetHadir({
+  l,
+  m,
+  mulai,
+  onSet,
+}: {
+  l: Strings["lp"];
+  m: Mengajar;
+  mulai: string;
+  onSet: (status: StatusHadir | "otomatis") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const pilih = (s: StatusHadir | "otomatis") => {
+    setOpen(false);
+    onSet(s);
+  };
+  const now = m.kehadiran?.otomatis === false ? m.kehadiran.status : null;
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      align="end"
+      trigger={
+        <IconButton
+          icon={DotsThreeVerticalIcon}
+          label={l.hadirTitle(m.nama)}
+          sm
+          kind="ghost"
+          onClick={() => setOpen((v) => !v)}
+        />
+      }
+    >
+      <div className="stack sethadir">
+        <strong>{l.hadirTitle(m.nama)}</strong>
+        <span className="hint">{l.hadirRule(mulai, TELAT_MENIT)}</span>
+        {(["tepat", "mangkir_ngajar", "mangkir"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            className={`btn btn--sm${now === s ? " btn--primary" : ""}`}
+            onClick={() => pilih(s)}
+          >
+            {l.hadir[s]}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="btn btn--sm btn--ghost"
+          disabled={m.kehadiran?.otomatis !== false}
+          onClick={() => pilih("otomatis")}
+        >
+          {l.hadirAuto}
+        </button>
+      </div>
+    </Popover>
   );
 }

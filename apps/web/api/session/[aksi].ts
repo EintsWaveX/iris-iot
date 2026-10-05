@@ -84,7 +84,12 @@ import {
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { hilangPersen, selisihJamMs } from "../../src/lib/telemetri-ringkas.js";
 import { nomorWakil, wakilKelompok } from "../_lib/wakil.js";
-import { asistenMengajar, handleHadirGet, handleHadirPost } from "../_lib/sesi-hadir.js";
+import {
+  asistenMengajar,
+  handleHadirGet,
+  handleHadirPost,
+  kunciKehadiran,
+} from "../_lib/sesi-hadir.js";
 import { queueSoloServerCommand, nilaiOrNull } from "../../src/lib/server-lib.js";
 import {
   handleCerminGet,
@@ -395,6 +400,8 @@ async function handleEnd(_req: ApiRequest, res: ApiResponse, session: SessionPay
 
   await catatKejadian(running.id, "akhiri", {}, session.nim);
   await writeAudit(session.nim, "sesi_akhiri", { sesiId: running.id });
+  // Mangkir: lock in who came on time, late or not at all.
+  if (updated) await kunciKehadiran(updated);
 
   // Mirror of the auto-queue in api/session/index.ts: a session that turned
   // the hotspot on when it started should turn it back off when it ends,
