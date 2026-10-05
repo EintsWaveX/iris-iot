@@ -60,6 +60,29 @@ vercel deploy --prebuilt   # add --prod for production
 function build enforces (`tsconfig.api.json`), so an import that only
 `vercel build` would reject fails locally and in CI first.
 
+## Production checks and backups
+
+- **Smoke test.** `node scripts/rehearse.mjs` checks the live site read-only
+  (pages, headers, API, the relay's live updates). It runs on its own after
+  every production deploy (`.github/workflows/smoke.yml`).
+- **TOT rehearsal.** `IRIS_NIM=... IRIS_PW=... node scripts/rehearse.mjs --tot`
+  switches Mode TOT on, starts a TOT session, signs dummies in with the
+  session code, ends it, switches TOT off and clears the TOT history. Add
+  `--load 30 --menit 3` for 30 dummy Praktikan at once. Refused during class
+  hours (06:00 to 21:00 WIB, Monday to Saturday) or while a session runs,
+  unless `--force`. Credentials come from the environment only.
+- **Backups.** `.github/workflows/backup.yml` dumps production every night at
+  02:00 WIB, encrypted with age, kept 30 days as the `iris-backup` artifact.
+  The private key is `~/.iris-backup/age-key.txt` on the maintainer's PC
+  (keep a copy in a password manager: without it the backups can't be read).
+  Restore into an empty database:
+
+  ```sh
+  gh run download <run-id> -R EintsWaveX/iris-iot -n iris-backup
+  age -d -i ~/.iris-backup/age-key.txt iris-*.dump.age > iris.dump
+  pg_restore --no-owner --no-acl -d "<empty database url>" iris.dump
+  ```
+
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).

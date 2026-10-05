@@ -1,0 +1,58 @@
+name: Smoke
+
+# After every successful production deploy (Vercel's GitHub integration
+# reports it as a deployment status), check the live site from outside:
+# pages, security headers, the API, the relay's live updates
+# (apps/web/scripts/rehearse.mjs). Read-only. A failure emails the repo
+# owner, like any failed workflow.
+#
+# Run by hand (Actions, Smoke, Run workflow, tick "tot") it can also run
+# the TOT rehearsal: Mode TOT on, a TOT session, dummy sign-ins with the
+# session code, end, TOT off, history cleared. That needs the IRIS_NIM and
+# IRIS_PW secrets (an Asisten with the jadwal and pair rights), and the
+# script refuses it during class hours or while a session runs. It never
+# runs on its own after a deploy, since Mode TOT locks real Praktikan out.
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      tot:
+        description: "Also run the TOT rehearsal (needs IRIS_NIM / IRIS_PW secrets)"
+        type: boolean
+        default: false
+
+jobs:
+  smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: apps/web/scripts
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # The production alias moves to the new build a few seconds after the
+      # deployment reports success.
+      - name: Wait for the alias
+        if: github.event_name == 'deployment_status'
+        run: sleep 30
+
+      - name: Smoke test
+        env:
+          IRIS_NIM: ${{ secrets.IRIS_NIM }}
+          IRIS_PW: ${{ secrets.IRIS_PW }}
+          TOT: ${{ github.event_name == 'workflow_dispatch' && inputs.tot }}
+        run: |
+          if [ "$TOT" = "true" ] && [ -n "$IRIS_NIM" ]; then
+            node apps/web/scripts/rehearse.mjs --tot
+          else
+            node apps/web/scripts/rehearse.mjs
+          fi

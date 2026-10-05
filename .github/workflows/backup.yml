@@ -1,0 +1,66 @@
+name: Backup
+
+# A nightly pg_dump of the production database (2026-10-05; before this,
+# backups were a manual pg_dump). 02:00 WIB, after the last session.
+#
+# The dump is encrypted with age to the public key below before it is
+# stored, so the artifact is unreadable without the private key, which
+# lives only on the maintainer's PC (~/.iris-backup/age-key.txt), never in
+# this repo or in GitHub. Kept as a workflow artifact for 30 days.
+#
+# Needs one secret: PROD_DATABASE_URL, the unpooled Neon connection string.
+#
+# Restore (practised 2026-10-06, see apps/web/README.md "Backups"):
+#   gh run download <run-id> -n iris-backup
+#   age -d -i ~/.iris-backup/age-key.txt iris-*.dump.age > iris.dump
+#   pg_restore --no-owner --no-acl -d <empty database> iris.dump
+
+on:
+  schedule:
+    - cron: "0 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AGE_RECIPIENT: age1e08tnc8mpk0cs3znyujtlmt5z4cd5fevu3zsecsk0c7hgcaxnpzs2fwv4w
+    steps:
+      # Neon runs PostgreSQL 18; pg_dump must be at least that new.
+      - name: Install pg_dump 18 and age
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18 age
+          /usr/lib/postgresql/18/bin/pg_dump --version
+
+      - name: Dump and encrypt
+        env:
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$PROD_DATABASE_URL" || { echo "PROD_DATABASE_URL is not set"; exit 1; }
+          name="iris-$(date -u +%Y-%m-%dT%H%MZ).dump"
+          /usr/lib/postgresql/18/bin/pg_dump --format=custom --no-owner --no-acl \
+            --dbname="$PROD_DATABASE_URL" \
+            | age -r "$AGE_RECIPIENT" -o "$name.age"
+          size=$(stat -c %s "$name.age")
+          echo "$name.age: $size bytes"
+          # A dump this small means something went wrong.
+          test "$size" -gt 50000
+          echo "NAME=$name.age" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iris-backup
+          path: ${{ env.NAME }}
+          retention-days: 30
+          if-no-files-found: error
