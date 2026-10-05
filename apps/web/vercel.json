@@ -110,7 +110,10 @@
       "includeFiles": "src/content/sketches/**"
     },
     "api/session/[aksi].ts": {
-      "includeFiles": "scripts/data_asisten.typ"
+      "includeFiles": "{scripts/data_asisten.typ,src/content/sketches/**}"
+    },
+    "api/session/index.ts": {
+      "includeFiles": "src/content/sketches/**"
     }
   }
 }

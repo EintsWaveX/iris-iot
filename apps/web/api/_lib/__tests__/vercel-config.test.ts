@@ -20,4 +20,13 @@ describe("vercel.json function bundling", () => {
     expect(dirs.size).toBe(1);
     for (const dir of dirs) expect(include.startsWith(dir)).toBe(true);
   });
+
+  it("ships the sketches with every function that reaches kode-aktif.ts", () => {
+    // Blank counts on the board and reports fall back to the bundled
+    // version 1 (kode-aktif.ts), which reads the same files.
+    for (const fn of ["api/modul/[aksi].ts", "api/session/[aksi].ts", "api/session/index.ts"]) {
+      const include: string = vercel.functions?.[fn]?.includeFiles ?? "";
+      expect(include, fn).toContain("src/content/sketches/**");
+    }
+  });
 });

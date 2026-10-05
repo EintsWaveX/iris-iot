@@ -25,7 +25,8 @@ export type Topik =
   | "presentasi"
   | "server"
   | "jurnal"
-  | "online";
+  | "online"
+  | "kode";
 
 type Fn = () => void;
 

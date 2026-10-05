@@ -27,6 +27,7 @@ export async function muatOrang(nim: string): Promise<OrangHak | null> {
       kode: asisten.kode,
       nama: asisten.nama,
       tier: asisten.tier,
+      divisi: asisten.divisi,
       badges: asisten.badges,
       hakOverride: asisten.hakOverride,
       status: asisten.status,

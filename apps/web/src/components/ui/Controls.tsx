@@ -695,7 +695,7 @@ export function FileDrop({
   onTooBig,
   pick,
 }: {
-  /** MIME types, e.g. ["application/pdf"]. */
+  /** MIME types, e.g. ["application/pdf"], or extensions (".ino"). */
   accept: string[];
   maxBytes: number;
   onFile: (f: File) => void;
@@ -721,7 +721,9 @@ export function FileDrop({
 
   function take(f: File | undefined) {
     if (!f) return;
-    if (!accept.includes(f.type)) return setErr(t.type);
+    const cocok = (x: string) =>
+      x.startsWith(".") ? f.name.toLowerCase().endsWith(x) : x === f.type;
+    if (!accept.some(cocok)) return setErr(t.type);
     if (f.size > maxBytes) {
       if (onTooBig) return onTooBig(f);
       return setErr(t.size(mb));

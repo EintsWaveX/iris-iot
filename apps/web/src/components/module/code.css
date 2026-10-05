@@ -2,8 +2,9 @@
    blank chips, the code card with its line gutter and state bands, and the
    pin panel beside it from 1280 wide. */
 
-.codestep {
-  /* Syntax colours (lib/highlight.ts), picked from the sky: violet
+.codestep,
+.kodeed {
+  /* Syntax colours (lib/highlight.ts, also Preparation's code editor), picked from the sky: violet
      keywords, aurora green strings, star gold numbers. */
   --syn-keyword: #c3a6ff;
   --syn-type: #6fd6e3;
@@ -18,7 +19,8 @@
 }
 
 /* Daylight sky: the same hues, dark enough for 4.5:1 on white. */
-:root[data-theme="light"] .codestep {
+:root[data-theme="light"] .codestep,
+:root[data-theme="light"] .kodeed {
   --syn-keyword: #6a3fc8;
   --syn-type: #0a6f7c;
   --syn-string: #1d7a3e;

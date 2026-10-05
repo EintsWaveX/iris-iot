@@ -1,8 +1,8 @@
 /**
  * Splits a sketch source into text/blank segments for the editor. Safe to
  * import from client code: this only knows WHERE a blank sits and what its
- * hint says, never what the correct value is -- that lives entirely in
- * api/_lib/answer-keys.ts, which nothing under src/ ever imports.
+ * hint says, never what the correct value is -- that lives in the
+ * module's published code version, served by api/_lib/kode-aktif.ts.
  *
  * The practicum's blank convention (see iris-blank-format-underscores): a
  * run of four or more underscores, followed later on the SAME line by a

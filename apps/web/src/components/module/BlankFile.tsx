@@ -313,6 +313,7 @@ export default function BlankFile(p: Props) {
           berkas,
           nomor,
           jawaban: isi,
+          bahasa: p.bahasa,
           ...(p.wakil ? { kelompok: p.wakil.nomor } : {}),
         }),
       }).then((r) => r.json());

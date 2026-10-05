@@ -30,6 +30,7 @@ import {
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
 import { KELAS } from "./kelas.js";
 import type { StatusOrang, Tier } from "./hak.js";
+import type { KodeBerkas } from "./kode-jurnal.js";
 export { NILAI_KOMPONEN } from "./nilai-komponen.js";
 export type { NilaiKomponen } from "./nilai-komponen.js";
 
@@ -574,6 +575,42 @@ export const skema = pgTable(
     uniqueIndex("skema_aktif_per_modul_jenis")
       .on(t.modul, t.jenis)
       .where(sql`${t.aktif} = true`),
+  ],
+);
+
+/**
+ * Journal code, managed in the app by ASO and Admins (2026-10-05). One row
+ * is one version of a module's code files: every file's complete id and en
+ * text plus the shared blanks (src/lib/kode-jurnal.ts KodeBerkas[]). Per
+ * module at most one draft (shared by every editor) and one published
+ * version; publishing archives the previous one. A module with no published
+ * row serves version 1 from the bundled files (api/_lib/kode-aktif.ts).
+ */
+export const kodeVersi = pgTable(
+  "kode_versi",
+  {
+    id: serial("id").primaryKey(),
+    modul: integer("modul").notNull(),
+    /** Set on publish: 1, 2, 3 ... per module. Null while a draft. */
+    nomor: integer("nomor"),
+    status: text("status", { enum: ["draf", "terbit", "arsip"] }).notNull(),
+    berkas: jsonb("berkas").$type<KodeBerkas[]>().notNull(),
+    catatan: text("catatan"),
+    dibuatOleh: text("dibuat_oleh").notNull(),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+    diubahOleh: text("diubah_oleh").notNull(),
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+    terbitOleh: text("terbit_oleh"),
+    terbitPada: timestamp("terbit_pada", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("kode_versi_nomor").on(t.modul, t.nomor),
+    uniqueIndex("kode_versi_draf")
+      .on(t.modul)
+      .where(sql`${t.status} = 'draf'`),
+    uniqueIndex("kode_versi_terbit")
+      .on(t.modul)
+      .where(sql`${t.status} = 'terbit'`),
   ],
 );
 

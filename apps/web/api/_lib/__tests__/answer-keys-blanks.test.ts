@@ -3,10 +3,10 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { parseBlanks, soalKode } from "../../../src/lib/blanks";
-import { ANSWER_KEYS } from "../answer-keys";
+import { KUNCI_V1 } from "../answer-keys";
 
 // Stage 16: no existing test ever cross-checked that every blank a real
-// sketch carries has a matching ANSWER_KEYS entry (or the reverse) --
+// sketch carries has a matching KUNCI_V1 entry (or the reverse) --
 // Stage 14's Module 4 rework changed the underlying sketches without any
 // automated check that answer-keys.ts still lined up with what they
 // actually parse to. This one does, for all four modules and both
@@ -43,14 +43,14 @@ describe("every parsed blank has an answer-key entry, and vice versa", () => {
           expect(blankNomors.length).toBeGreaterThan(0);
           for (const nomor of blankNomors) {
             const kode = soalKode(modul, berkas, nomor);
-            expect(ANSWER_KEYS, `missing ANSWER_KEYS entry for ${kode}`).toHaveProperty(kode);
+            expect(KUNCI_V1, `missing KUNCI_V1 entry for ${kode}`).toHaveProperty(kode);
           }
         });
       }
     }
   }
 
-  it("every ANSWER_KEYS entry matches a real blank in at least one language", () => {
+  it("every KUNCI_V1 entry matches a real blank in at least one language", () => {
     const foundByKode = new Set<string>();
     for (const [modulStr, berkasList] of Object.entries(BERKAS_BY_MODUL)) {
       const modul = Number(modulStr);
@@ -63,8 +63,8 @@ describe("every parsed blank has an answer-key entry, and vice versa", () => {
         }
       }
     }
-    for (const kode of Object.keys(ANSWER_KEYS)) {
-      expect(foundByKode, `ANSWER_KEYS has "${kode}" but no sketch has that blank`).toContain(kode);
+    for (const kode of Object.keys(KUNCI_V1)) {
+      expect(foundByKode, `KUNCI_V1 has "${kode}" but no sketch has that blank`).toContain(kode);
     }
   });
 });

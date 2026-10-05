@@ -4,9 +4,10 @@
  *
  * The head row names whose roster is open ("Roster for": every weekly slot
  * with a practicum, the makeup drafts, and a new makeup session) and the
- * server's Ready state. Five tabs follow: Roster (the two-pane editor; while
- * a session runs, the group assistants come first), Module Access, Slides,
- * Wiring Schematics and Module Brief. Switching rosters with unsaved
+ * server's Ready state. The tabs follow: Roster (the two-pane editor; while
+ * a session runs, the group assistants come first), Module Access, Module
+ * Brief, Kode Jurnal (the ASO division and Admins only, prep/CodeEditor.tsx),
+ * Slides and Wiring Schematics. Switching rosters with unsaved
  * changes asks first: Save and Move, Discard, or Stay.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -22,7 +23,7 @@ import Dialog from "../ui/Dialog";
 import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
 import { DateField, Stepper, TimeField } from "../ui/Controls";
-import { getJson, href, namaKelompok, postJson, tanggalPanjang } from "../../lib/app";
+import { getJson, href, namaKelompok, postJson, tanggalPanjang, useMe } from "../../lib/app";
 import { hariIniWib, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
 import { hariLabel, modulLabel, slotLabel } from "../../lib/labels";
@@ -34,6 +35,7 @@ import RosterEditor, { type RosterHandle, type RosterTarget } from "./prep/Roste
 import BriefEditor from "./prep/BriefEditor";
 import SchematicEditor from "./prep/SchematicEditor";
 import SlidesEditor from "./prep/SlidesEditor";
+import CodeEditor from "./prep/CodeEditor";
 import { P, type Px } from "./prepStrings";
 import "../ui/Tabs.css";
 import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
@@ -55,7 +57,7 @@ interface Draf {
   jumlahKelompok: number;
 }
 
-const TABS = ["roster", "akses", "slides", "skema", "brief"] as const;
+const TABS = ["roster", "akses", "brief", "kode", "slides", "skema"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function PrepView({
@@ -87,6 +89,9 @@ export default function PrepView({
   tab0?: Tab;
 }) {
   const p = P[lang];
+  const me = useMe();
+  const bolehKode = me?.hak?.kode === true;
+  const tabs = TABS.filter((id) => id !== "kode" || bolehKode);
   const [tab, setTab] = useState<Tab>(tab0);
   const [jadwal, setJadwal] = useState<JadwalRow[] | null>(null);
   const [draf, setDraf] = useState<Draf[]>([]);
@@ -196,7 +201,7 @@ export default function PrepView({
   const tablist = (
     <div className="tabs-scroll">
       <nav className="tabs" role="tablist" aria-label={p.title}>
-        {TABS.map((id) => (
+        {tabs.map((id) => (
           <button
             key={id}
             type="button"
@@ -297,6 +302,7 @@ export default function PrepView({
         {tab === "slides" && <SlidesEditor lang={lang} />}
         {tab === "skema" && <SchematicEditor lang={lang} />}
         {tab === "brief" && <BriefEditor lang={lang} />}
+        {tab === "kode" && bolehKode && <CodeEditor lang={lang} />}
       </Fade>
 
       <Dialog

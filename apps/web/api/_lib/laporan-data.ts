@@ -30,7 +30,7 @@
 import { and, asc, desc, eq, gte, inArray, isNull, like, lt, lte, not, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
-import { blankCountForModul } from "./answer-keys.js";
+import { jumlahCelahModul, jumlahCelahPer, kodeModul } from "./kode-aktif.js";
 import { muatSeelabs } from "./seelabs.js";
 import { getDb } from "../../src/lib/db.js";
 import {
@@ -216,6 +216,7 @@ export async function handleRiwayatLaporan(req: ApiRequest, res: ApiResponse) {
   const delayPer = new Map(delay.map((d) => [d.sesiId, d]));
   const labPer = new Map(lab.map((l) => [l.sesiId, l]));
 
+  const celahPer = await jumlahCelahPer(rows.map((r) => r.modul));
   const out: SesiLaporan[] = rows.map((r) => {
     const mem = member.get(r.id) ?? [];
     const nims = new Set(mem.map((m) => m.nim));
@@ -251,7 +252,7 @@ export async function handleRiwayatLaporan(req: ApiRequest, res: ApiResponse) {
       hadir: [[...hadir].filter((n) => nims.has(n)).length, nims.size],
       dinilai: [[...dinilai].filter((n) => nims.has(n)).length, nims.size],
       skor: { jumlah: skorRows.reduce((a, x) => a + x.skor, 0), n: skorRows.length },
-      blank: [blankPer.get(r.id) ?? 0, blankCountForModul(r.modul) * nomorKelompok.size],
+      blank: [blankPer.get(r.id) ?? 0, (celahPer.get(r.modul) ?? 0) * nomorKelompok.size],
       lab: { jumlah: l?.jumlah ?? 0, n: l?.n ?? 0 },
       delay: { jumlah: Number(d?.jumlah ?? 0), n: d?.n ?? 0 },
       ganti: [...ganti],
@@ -529,7 +530,7 @@ export async function handleRekapGet(req: ApiRequest, res: ApiResponse, session:
     ]);
 
   const hadir = new Set(masuk.map((m) => m.nim));
-  const perBlank = blankCountForModul(s.modul);
+  const perBlank = jumlahCelahModul(await kodeModul(s.modul));
   const nomor = [...new Set([...member.map((m) => m.nomor), ...tugas.map((t) => t.nomor)])].sort(
     (a, b) => a - b,
   );

@@ -10,15 +10,20 @@
  * GET  /api/modul/unduh?modul=&berkas=   — the reconstructed file, gated on every blank being correct.
  * GET  /api/modul/kunci?modul=&berkas=[&unduh=1&bahasa=] — Asisten only: the key per blank
  *      (Show Answers on the module page), or the complete file.
+ * GET  /api/modul/kode?modul=             — anyone: the module's Praktikan files as published
+ *      (blanks only, never answers), so the Code step shows a version newer than the build.
+ * kode-edit, kode-simpan, kode-terbit, kode-buang, kode-pulihkan — the ASO code editor
+ *      (_lib/kode-editor.ts), for the `kode` right.
+ * Blanks and answers come from the module's published version (_lib/kode-aktif.ts).
  * draft and cek also take `kelompok=N` from an Asisten (Lihat Sebagai Praktikan, Phase 9):
  *      any Asisten reads group N of the running module; only N's Asisten answers for it.
  *
  * The single most important rule in this file: a correct answer string
  * never appears in any response body, bundled script, or error message
- * that a Praktikan can reach. `kunci` is the one exception, and it checks
- * the Asisten role before anything else.
- * checkJawaban() only ever returns a boolean plus a "why" line that exists
- * independently of the answer itself -- see answer-keys.ts's own header.
+ * that a Praktikan can reach. `kunci` and the code editor's actions are the
+ * exceptions, and they check the Asisten role (and the `kode` right) first.
+ * cekCelah() only ever returns a boolean plus a "why" line that exists
+ * independently of the answer itself.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
@@ -28,8 +33,14 @@ import { getDb } from "../../src/lib/db.js";
 import { anggota, asisten, jawaban } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
-import { checkJawaban, blankCountFor, canonicalAnswer } from "../_lib/answer-keys.js";
-import { getSketchSourceForApi } from "../_lib/sketch-sources.js";
+import { cekCelah, jumlahCelah, kanonik, kodeModul, type KodeAktif } from "../_lib/kode-aktif.js";
+import {
+  handleKodeBuang,
+  handleKodeEdit,
+  handleKodePulihkan,
+  handleKodeSimpan,
+  handleKodeTerbit,
+} from "../_lib/kode-editor.js";
 import { personalize } from "../../src/lib/group-identity.js";
 import { getModulTerbuka, jurnalBolehDibuka } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
@@ -38,31 +49,18 @@ import { denganSiaran } from "../_lib/siaran.js";
 
 const MAX_JAWABAN_LEN = 200;
 
-/** File extension per berkas slug, matched explicitly rather than guessed
- *  from the name -- see sketch-sources.ts for the same 8 slugs' real
- *  filenames, which this must stay in sync with by hand. */
-const BERKAS_EXT: Record<string, string> = {
-  modul1_ble_central: ".ino",
-  modul1_ble_peripheral: ".ino",
-  modul2_websocket_server: ".py",
-  modul2_websocket_esp32: ".ino",
-  modul3_mqtt_publish: ".py",
-  modul3_mqtt_subscribe: ".py",
-  modul4_hunter: ".ino",
-  modul4_beacon: ".ino",
-};
-
-function parseModulBerkas(
+async function parseModulBerkas(
   query: Record<string, string | string[] | undefined>,
-): { modul: number; berkas: string } | null {
+): Promise<{ modul: number; berkas: string; kode: KodeAktif } | null> {
   const modulRaw = query.modul;
   const berkasRaw = query.berkas;
   const modul = Number(Array.isArray(modulRaw) ? modulRaw[0] : modulRaw);
   const berkas = Array.isArray(berkasRaw) ? berkasRaw[0] : berkasRaw;
   if (!Number.isInteger(modul) || modul < 1 || modul > 4) return null;
   if (!berkas || !/^[a-z0-9_]+$/.test(berkas)) return null;
-  if (blankCountFor(modul, berkas) === 0) return null;
-  return { modul, berkas };
+  const kode = await kodeModul(modul);
+  if (jumlahCelah(kode, berkas) === 0) return null;
+  return { modul, berkas, kode };
 }
 
 /** Which jawaban rows count as "this group's answers" right now. The
@@ -104,7 +102,7 @@ async function handleDraft(
   session: SessionPayload,
   wakil = false,
 ) {
-  const parsed = parseModulBerkas(req.query);
+  const parsed = await parseModulBerkas(req.query);
   if (!parsed) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
@@ -216,7 +214,15 @@ async function handleCek(
   }
 
   const kode = soalKode(modul, berkas, nomor);
-  const result = checkJawaban(kode, jawabanTeks, { nomorKelompok });
+  const bahasa = body.bahasa === "en" ? "en" : "id";
+  const result = cekCelah(
+    await kodeModul(modul),
+    berkas,
+    nomor,
+    jawabanTeks,
+    nomorKelompok,
+    bahasa,
+  );
   if (!result.ditemukan) {
     res.status(200).json({ ok: false, kode: "soal_tidak_ada" });
     return;
@@ -280,7 +286,7 @@ async function handleCek(
 }
 
 async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const parsed = parseModulBerkas(req.query);
+  const parsed = await parseModulBerkas(req.query);
   if (!parsed) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
@@ -293,7 +299,7 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
     return;
   }
 
-  const total = blankCountFor(parsed.modul, parsed.berkas);
+  const total = jumlahCelah(parsed.kode, parsed.berkas);
   const prefix = soalKodePrefix(parsed.modul, parsed.berkas);
 
   const running = await currentSesi();
@@ -305,8 +311,8 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
     .orderBy(asc(jawaban.diubahPada));
 
   // The downloaded file gets each blank's as-authored canonical text, not
-  // the student's raw isi -- see canonicalAnswer()'s own comment for why
-  // (a normalized-equal but noisy answer would otherwise not compile).
+  // the student's raw isi: "blescan.h" with stray spaces passes the
+  // normalized check but would not compile spliced into `#include <...>`.
   // Newest row per blank wins, the same rule handleDraft shows the editor,
   // so a blank the editor currently marks wrong never passes the gate.
   const answers = new Map<number, string>();
@@ -316,7 +322,7 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
       answers.delete(nomor);
       continue;
     }
-    const canonical = canonicalAnswer(row.soalKode, { nomorKelompok });
+    const canonical = kanonik(parsed.kode, parsed.berkas, nomor, nomorKelompok);
     if (canonical === undefined) continue;
     answers.set(nomor, canonical);
   }
@@ -330,17 +336,9 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
   // student working the id/ carousel gets the id/ comments back, not a
   // silently swapped-in en/ file with the same code.
   const bahasa = req.query.bahasa === "en" ? "en" : "id";
-  const ext = BERKAS_EXT[parsed.berkas];
-  if (!ext) {
-    res.status(200).json({ ok: false, kode: "berkas_tidak_ada" });
-    return;
-  }
-  const filename = `${parsed.berkas}${ext}`;
-  const template = getSketchSourceForApi(bahasa, filename);
-  if (template === undefined) {
-    res.status(200).json({ ok: false, kode: "berkas_tidak_ada" });
-    return;
-  }
+  const aktif = parsed.kode.berkas.get(parsed.berkas)!;
+  const filename = aktif.berkas.path;
+  const template = aktif.templat[bahasa];
 
   const segments = parseBlanks(template);
   const reconstructedGeneric = segments
@@ -365,17 +363,17 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
  *  1 by default, the generic template's own identity). With `unduh=1` the
  *  complete file instead, in the asked language track. */
 async function handleKunci(req: ApiRequest, res: ApiResponse) {
-  const parsed = parseModulBerkas(req.query);
+  const parsed = await parseModulBerkas(req.query);
   if (!parsed) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
   const k = Number(req.query.kelompok ?? 1);
   const nomorKelompok = Number.isInteger(k) && k >= 1 && k <= 10 ? k : 1;
-  const total = blankCountFor(parsed.modul, parsed.berkas);
+  const total = jumlahCelah(parsed.kode, parsed.berkas);
   const kunci: Record<string, string> = {};
   for (let n = 1; n <= total; n++) {
-    const v = canonicalAnswer(soalKode(parsed.modul, parsed.berkas, n), { nomorKelompok });
+    const v = kanonik(parsed.kode, parsed.berkas, n, nomorKelompok);
     if (v !== undefined) kunci[n] = v;
   }
   if (req.query.unduh !== "1") {
@@ -383,13 +381,9 @@ async function handleKunci(req: ApiRequest, res: ApiResponse) {
     return;
   }
   const bahasa = req.query.bahasa === "en" ? "en" : "id";
-  const ext = BERKAS_EXT[parsed.berkas];
-  const filename = `${parsed.berkas}${ext ?? ""}`;
-  const template = ext ? getSketchSourceForApi(bahasa, filename) : undefined;
-  if (template === undefined) {
-    res.status(200).json({ ok: false, kode: "berkas_tidak_ada" });
-    return;
-  }
+  const aktif = parsed.kode.berkas.get(parsed.berkas)!;
+  const filename = aktif.berkas.path;
+  const template = aktif.templat[bahasa];
   const generic = parseBlanks(template)
     .map((s) => (s.kind === "text" ? s.text : (kunci[s.nomor] ?? "")))
     .join("");
@@ -399,8 +393,55 @@ async function handleKunci(req: ApiRequest, res: ApiResponse) {
   res.end(personalize(parsed.berkas, generic, nomorKelompok));
 }
 
+/** The module's Praktikan files as published: blanks only, no answers. */
+async function handleKode(req: ApiRequest, res: ApiResponse) {
+  const modul = Number(req.query.modul);
+  if (!Number.isInteger(modul) || modul < 1 || modul > 4) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const k = await kodeModul(modul);
+  res.status(200).json({
+    ok: true,
+    versi: k.versi,
+    berkas: [...k.berkas.values()].map((b) => ({
+      slug: b.berkas.slug,
+      path: b.berkas.path,
+      templat: b.templat,
+    })),
+  });
+}
+
+const EDITOR: Record<
+  string,
+  (req: ApiRequest, res: ApiResponse, s: SessionPayload) => Promise<void>
+> = {
+  "kode-simpan": handleKodeSimpan,
+  "kode-terbit": handleKodeTerbit,
+  "kode-buang": handleKodeBuang,
+  "kode-pulihkan": handleKodePulihkan,
+};
+
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
+
+  if (req.query.aksi === "kode") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleKode(req, res);
+  }
+  if (req.query.aksi === "kode-edit") {
+    if (!requireMethod(req, res, "GET")) return;
+    const s = requireRole(req, res, "asisten");
+    if (!s) return;
+    return handleKodeEdit(req, res, s);
+  }
+  const editor = EDITOR[String(req.query.aksi)];
+  if (editor) {
+    if (!requireMethod(req, res, "POST")) return;
+    const s = requireRole(req, res, "asisten");
+    if (!s) return;
+    return editor(req, res, s);
+  }
 
   if (req.query.aksi === "kunci") {
     if (!requireMethod(req, res, "GET")) return;

@@ -72,6 +72,20 @@ describe("the rights matrix", () => {
     expect(boleh(orang("pengelola", [], { server: false }), "server")).toBe(false);
   });
 
+  it("gives the journal code to the ASO division and Admins only", () => {
+    const di = (tier: Orang["tier"], divisi: string | null): Orang => ({
+      ...orang(tier),
+      divisi,
+    });
+    expect(boleh(di("asisten", "ASO"), "kode")).toBe(true);
+    expect(boleh(di("pengelola", "ASO"), "kode")).toBe(true);
+    expect(boleh(di("admin", null), "kode")).toBe(true);
+    expect(boleh(di("pengelola", "ARD"), "kode")).toBe(false);
+    expect(boleh(di("asisten", "ARM"), "kode")).toBe(false);
+    expect(boleh({ ...di("asisten", "ARD"), hakOverride: { kode: true } }, "kode")).toBe(true);
+    expect(boleh({ ...di("asisten", "ASO"), hakOverride: { kode: false } }, "kode")).toBe(false);
+  });
+
   it("never reduces the Pencipta", () => {
     const n = orang("pengelola", ["pencipta", "dev"], { tim: false, server: false });
     expect(bolehPenuh(n, "tim")).toBe(true);

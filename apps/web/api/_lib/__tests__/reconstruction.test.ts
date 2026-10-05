@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import path from "node:path";
 import { parseBlanks } from "../../../src/lib/blanks";
-import { canonicalAnswer } from "../answer-keys";
+import { kanonik, kodeBawaan } from "../kode-aktif";
 import { personalize } from "../../../src/lib/group-identity";
 
 /**
@@ -41,7 +41,7 @@ function reconstruct(
     .map((s) => {
       if (s.kind === "text") return s.text;
       const kode = `m${modul}.${berkas}.${s.nomor}`;
-      const answer = canonicalAnswer(kode, { nomorKelompok });
+      const answer = kanonik(kodeBawaan(modul), berkas, s.nomor, nomorKelompok);
       if (answer === undefined) throw new Error(`no canonical answer for ${kode}`);
       return answer;
     })

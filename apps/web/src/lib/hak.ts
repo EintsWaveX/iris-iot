@@ -13,6 +13,9 @@
  * Badges are not roles: DEV (the ASO and ARM divisions, who built the site)
  * adds the full Server view; Pencipta (the site's creator) holds every right
  * and can't be reduced. An Admin can override any single right per person.
+ *
+ * `kode` (the journal code files and their blanks, 2026-10-05) follows the
+ * division instead of the tier: the ASO division and every Admin.
  */
 
 export const DIVISI = ["ASO", "ARD", "ADS", "ADC", "AER", "ARM"] as const;
@@ -38,7 +41,7 @@ export type Badge = (typeof BADGE)[number];
 export const DIVISI_DEV: readonly Divisi[] = ["ASO", "ARM"];
 
 /** The rights each tier starts with. "own" means: only their own slot. */
-export const HAK = ["own", "pair", "jadwal", "server", "full", "tim"] as const;
+export const HAK = ["own", "pair", "jadwal", "server", "full", "tim", "kode"] as const;
 export type HakKey = (typeof HAK)[number];
 export type HakNilai = boolean | "own";
 
@@ -55,7 +58,12 @@ const MATRIX: Record<HakKey, Record<Tier, HakNilai>> = {
   full: { asisten: false, pengelola: false, admin: true },
   // edit the Team: people, positions, rights, payments
   tim: { asisten: false, pengelola: false, admin: true },
+  // edit the journal code files and their blanks (Admins; ASO below)
+  kode: { asisten: false, pengelola: false, admin: true },
 };
+
+/** The division that keeps the journal code. */
+export const DIVISI_KODE: Divisi = "ASO";
 
 export function isKategori(v: unknown): v is Kategori {
   return typeof v === "string" && (KATEGORI as readonly string[]).includes(v);
@@ -80,6 +88,8 @@ export interface Orang {
   tier: Tier;
   badges: readonly string[];
   hakOverride: Readonly<Partial<Record<string, boolean>>>;
+  /** asisten.divisi; null for the Inti. Only `kode` reads it. */
+  divisi?: string | null;
 }
 
 export function isPencipta(o: Pick<Orang, "badges">): boolean {
@@ -87,9 +97,10 @@ export function isPencipta(o: Pick<Orang, "badges">): boolean {
 }
 
 /** What the tier and badges give, before any override. */
-export function hakDasar(o: Pick<Orang, "tier" | "badges">, key: HakKey): HakNilai {
+export function hakDasar(o: Pick<Orang, "tier" | "badges" | "divisi">, key: HakKey): HakNilai {
   if (isPencipta(o)) return true;
   if (key === "full" && o.badges.includes("dev")) return true;
+  if (key === "kode" && o.divisi === DIVISI_KODE) return true;
   return MATRIX[key][o.tier];
 }
 

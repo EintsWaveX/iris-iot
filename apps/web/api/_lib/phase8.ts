@@ -34,7 +34,7 @@ import {
   umpanBalik,
   NILAI_KOMPONEN,
 } from "../../src/lib/schema.js";
-import { blankCountForModul } from "./answer-keys.js";
+import { jumlahCelahModul, kodeModul } from "./kode-aktif.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { validasiUmpanBalik, ringkas } from "../../src/lib/umpan-balik.js";
@@ -643,7 +643,7 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
       : Promise.resolve([] as { rata: number | null }[]),
   ]);
   const benar = isian.filter((x) => x.benar);
-  const total = blankCountForModul(s.modul);
+  const total = jumlahCelahModul(await kodeModul(s.modul));
   const linimasa: { pada: string; jenis: string; n?: number; dari?: number }[] = [];
   if (masuk[0]) linimasa.push({ pada: masuk[0].pada.toISOString(), jenis: "masuk" });
   if (benar.length) {

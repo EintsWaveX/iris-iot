@@ -94,7 +94,7 @@ import {
 } from "../_lib/tangkapan.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { blankCountForModul } from "../_lib/answer-keys.js";
+import { jumlahCelahModul, kodeModul } from "../_lib/kode-aktif.js";
 import { SESI_CAP_DETIK, SESI_CAP_MENIT, durasiSesi } from "../../src/lib/jadwal.js";
 import { bolehIsiNilai } from "../../src/lib/penugasan.js";
 import { catatKejadian, handleDurasi, handleKit } from "../_lib/berjalan.js";
@@ -643,7 +643,7 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
     seqByKelompokNomor.set(r.kelompokNomor, sq);
   }
 
-  const total = blankCountForModul(running.modul);
+  const total = jumlahCelahModul(await kodeModul(running.modul));
   const daftarKelompok = groups
     .filter((g) => g.nomor <= (running.jumlahKelompok ?? 10))
     .sort((a, b) => a.nomor - b.nomor)

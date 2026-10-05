@@ -7,6 +7,9 @@
  * used here instead: node-file-trace (Vercel's function bundler) can only
  * discover non-code assets a function needs when the path is a statically
  * visible literal like this, not a runtime-built string.
+ *
+ * Read on first use, not at load: the session functions reach this through
+ * kode-aktif.ts too, and a missing file must not take a whole function down.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -18,7 +21,9 @@ function read(relative: string): string {
   return readFileSync(path.join(here, relative), "utf-8");
 }
 
-const SOURCES: Record<string, string> = {
+let SOURCES: Record<string, string> | null = null;
+
+const muat = (): Record<string, string> => ({
   "id/modul1_ble_central.ino": read("../../src/content/sketches/id/modul1_ble_central.ino"),
   "id/modul1_ble_peripheral.ino": read("../../src/content/sketches/id/modul1_ble_peripheral.ino"),
   "id/modul2_websocket_server.py": read("../../src/content/sketches/id/modul2_websocket_server.py"),
@@ -35,8 +40,9 @@ const SOURCES: Record<string, string> = {
   "en/modul3_mqtt_subscribe.py": read("../../src/content/sketches/en/modul3_mqtt_subscribe.py"),
   "en/modul4_hunter.ino": read("../../src/content/sketches/en/modul4_hunter.ino"),
   "en/modul4_beacon.ino": read("../../src/content/sketches/en/modul4_beacon.ino"),
-};
+});
 
 export function getSketchSourceForApi(bahasa: string, filename: string): string | undefined {
+  SOURCES ??= muat();
   return SOURCES[`${bahasa}/${filename}`];
 }

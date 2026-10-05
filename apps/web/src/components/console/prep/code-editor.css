@@ -1,0 +1,500 @@
+/* Preparation's Kode Jurnal tab (prep/CodeEditor.tsx). The code itself
+   reuses the module page's code card (module/code.css): gutter, tokens,
+   the breathing line for the selected blank. */
+
+.kodeed__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.kodeed__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kodeed__status {
+  align-items: center;
+  display: flex;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.kodeed__switches code {
+  font-size: 0.875rem;
+}
+
+.kodeed__tools {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Sized to their labels, like the file switch beside them. */
+.kodeed__tools > .seg {
+  display: inline-grid;
+  grid-auto-columns: auto;
+  width: auto;
+}
+
+@media (max-width: 820px) {
+  .kodeed__switches > .seg,
+  .kodeed__tools,
+  .kodeed__tools > .seg {
+    width: 100%;
+  }
+  .kodeed__tools > .seg {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+  }
+}
+
+/* The code and the side column share one fixed-height row (user ruling
+   2026-10-05): the code scrolls inside, the blank list fills what the Add
+   card leaves. The blank's details get the full width below. */
+.kodeed {
+  --kode-h: clamp(480px, calc(100vh - 170px), 760px);
+}
+
+.kodeed__grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.kodeed__side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.kodeed__card {
+  display: flex;
+  flex-direction: column;
+  height: 520px;
+}
+
+.kodeed__card > .kodeed__code {
+  flex: 1 1 0;
+  max-height: none;
+  min-height: 0;
+}
+
+.kodeed__daftar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.kodeed__daftar .panel__title {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+}
+
+@media (min-width: 1100px) {
+  .kodeed__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    height: var(--kode-h);
+  }
+  .kodeed__card {
+    height: auto;
+  }
+  .kodeed__daftar {
+    flex: 1 1 0;
+  }
+  .kodeed__daftar .kodeed__list {
+    flex: 1 1 0;
+    max-height: none;
+    min-height: 0;
+  }
+}
+
+.kodeed__card {
+  position: relative;
+}
+
+/* The selected blank's details: full width, fixed height, fields in up to
+   three columns (answer and number, spellings and groups, hints). */
+.kodeed__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kodeed__detail-head {
+  align-items: center;
+  gap: 12px;
+}
+
+.kodeed__detail-head .panel__title code {
+  font-size: 0.95em;
+  overflow-wrap: anywhere;
+}
+
+.kodeed__detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.kodeed__detail-grid {
+  display: grid;
+  gap: 18px 24px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 820px) {
+  .kodeed__detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kodeed__detail-grid > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1280px) {
+  .kodeed__detail-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .kodeed__detail-grid > :last-child {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 1100px) {
+  .kodeed__detail {
+    height: 460px;
+  }
+  .kodeed__detail-body {
+    flex: 1 1 0;
+    overflow: auto;
+    padding-right: 4px;
+  }
+}
+
+.kodeed__detail--kosong {
+  height: auto;
+}
+
+.kodeed__code {
+  max-height: min(680px, 72vh);
+  position: relative;
+  user-select: text;
+}
+
+/* Berkas Lengkap: a textarea laid exactly over the highlighted lines. The
+   gutter (module/code.css .ln) is 46px wide, padding included. */
+/* Both layers on whole pixels and upright: a fractional size or an italic
+   comment would let the caret drift off the coloured letters. */
+.kodeed__area,
+.kodeed__area-input {
+  font-size: 14px;
+  font-style: normal;
+  font-synthesis: none;
+  letter-spacing: 0;
+  line-height: 26px;
+}
+
+.kodeed__area .cl {
+  min-height: 26px;
+}
+
+.kodeed__area .tok--comment {
+  font-style: normal;
+}
+
+.kodeed__area {
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md, 10px);
+  height: min(560px, 64vh);
+  padding: 0;
+  position: relative;
+}
+
+.kodeed__area-lapis {
+  inset: 0;
+  overflow: hidden;
+  padding: 10px 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.kodeed__area-input {
+  background: transparent;
+  border: 0;
+  caret-color: var(--text);
+  color: transparent;
+  font-family: inherit;
+  font-weight: inherit;
+  height: 100%;
+  inset: 0;
+  margin: 0;
+  outline: none;
+  overflow: auto;
+  padding: 10px 16px 10px 46px;
+  position: absolute;
+  resize: none;
+  tab-size: 2;
+  white-space: pre;
+  width: 100%;
+}
+
+.kodeed__area-input::selection {
+  background: var(--sel-bg);
+  color: transparent;
+}
+
+.kodeed__area:focus-within {
+  box-shadow: var(--glow-ring);
+}
+
+.kodeed__terpilih {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.kodeed__terpilih code {
+  background: var(--bg-sunken);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+  padding: 2px 8px;
+}
+
+.kodeed__langkah {
+  list-style: decimal;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.kodeed__langkah li + li {
+  margin-top: 4px;
+}
+
+.kodeed__code ::selection {
+  background: var(--sel-bg);
+  color: var(--sel-ink);
+}
+
+.kodeed__mark {
+  background: color-mix(in srgb, var(--key-c, var(--accent)) 22%, transparent);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--key-c, var(--accent));
+  color: inherit;
+  cursor: pointer;
+  padding: 1px 0;
+}
+
+.kodeed__mark:hover {
+  background: color-mix(in srgb, var(--key-c, var(--accent)) 32%, transparent);
+}
+
+.kodeed__mark[aria-current="true"] {
+  background: color-mix(in srgb, var(--key-c, var(--accent)) 40%, transparent);
+  box-shadow: 0 0 0 2px var(--key-c, var(--accent));
+}
+
+.kodeed__blank {
+  border: 1px dashed var(--accent);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.kodeed__float {
+  position: absolute;
+  z-index: 5;
+}
+
+.kodeed__float .btn {
+  box-shadow: var(--shadow-lift);
+}
+
+/* The rows' hover box reaches into the card padding, so their text lines
+   up with the title and the card keeps one padding on every side. */
+.kodeed__list {
+  align-content: start;
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0 -10px -8px;
+  max-height: 340px;
+  overflow: auto;
+  padding: 0;
+}
+
+/* One row per blank: number, answer, and its line in the open file. */
+.kodeed__row {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 10px;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  padding: 8px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.kodeed__row:hover {
+  background: var(--surface-2);
+}
+
+.kodeed__row:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.kodeed__row[aria-current="true"] {
+  background: var(--surface-3);
+  border-color: var(--key-c, var(--accent));
+}
+
+.kodeed__row[data-st="ok"] .blankchip__dot {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+.kodeed__row[data-st="bad"] .blankchip__dot {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.kodeed__row-j {
+  font-size: 0.86rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kodeed__row-l {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.kodeed__jawaban {
+  background: var(--bg-sunken);
+  border-radius: 8px;
+  display: block;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+}
+
+.field__input.kodeed__mono {
+  font-family: var(--font-mono);
+}
+
+.kodeed__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: -6px 0 0;
+  padding: 0;
+}
+
+.kodeed__chip {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 2px;
+  max-width: 100%;
+  padding: 2px 2px 2px 10px;
+}
+
+.kodeed__chip code {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.kodeed__posisi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kodeed__switch {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.kodeed__masalah ul,
+ul.kodeed__masalah {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.kodeed__masalah li + li {
+  margin-top: 4px;
+}
+
+.kodeed__riwayat {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kodeed__versi {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 0;
+}
+
+.kodeed__versi:last-child {
+  border-bottom: 0;
+}
+
+.kodeed__versi-isi {
+  gap: 4px;
+  min-width: 0;
+}
+
+.kodeed__versi-judul {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .kodeed__actions {
+    width: 100%;
+  }
+  .kodeed__actions .btn {
+    flex: 1 1 auto;
+  }
+  .kodeed__area {
+    height: 360px;
+  }
+}
+
+.kodeed__jumlah {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pratinjau Praktikan: the same tall card, the full width. */
+.kodeed__card--pratinjau,
+.kodeed__card.kodeed__card--pratinjau {
+  height: var(--kode-h);
+}

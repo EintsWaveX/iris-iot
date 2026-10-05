@@ -60,6 +60,7 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
           divisiId: asisten.divisiId,
           divisiEn: asisten.divisiEn,
           tier: asisten.tier,
+          divisi: asisten.divisi,
           badges: asisten.badges,
           hakOverride: asisten.hakOverride,
         })

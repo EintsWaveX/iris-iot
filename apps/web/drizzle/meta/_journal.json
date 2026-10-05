@@ -169,6 +169,13 @@
       "when": 1791179453848,
       "tag": "0023_dua_sumber",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791182860275,
+      "tag": "0024_kode_jurnal",
+      "breakpoints": true
     }
   ]
 }

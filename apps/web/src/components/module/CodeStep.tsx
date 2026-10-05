@@ -7,14 +7,21 @@
  *
  * Mounted client:only (through ModuleSteps), so the first render already
  * knows the width and the saved dock state.
+ *
+ * The files come baked into the page (version 1); once ASO publish a newer
+ * version, the published Praktikan files replace them (GET /api/modul/kode,
+ * again whenever a version is published).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EyeIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { Switch } from "../ui/Controls";
 import PinSchematic, { type PinData } from "./PinSchematic";
 import BlankFile, { type BerkasEntry, type CodeMode } from "./BlankFile";
 import { useMinWidth } from "../../lib/hooks";
+import { getJson } from "../../lib/app";
+import { parseBlanks } from "../../lib/blanks";
+import { useSiaran } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
 import { C } from "./codeStrings";
 import "./code.css";
@@ -38,8 +45,36 @@ interface Props {
   wakil?: { nomor: number; own: boolean; pemegang?: string | null };
 }
 
-export default function CodeStep({ lang, mode, pin, mcu, skema, code, wakil }: Props) {
+interface KodeTerbit {
+  ok: boolean;
+  versi: number | null;
+  berkas: { slug: string; templat: Record<"id" | "en", string> }[];
+}
+
+/** The module's files as published, over the baked ones. */
+function useBerkasTerbit(code: CodeProps): BerkasEntry[] {
+  const [berkas, setBerkas] = useState(code.berkas);
+  const muat = () =>
+    getJson<KodeTerbit>(`/api/modul/kode?modul=${code.modul}`)
+      .then((d) => {
+        if (!d.ok || d.versi === null) return;
+        setBerkas(
+          code.berkas.map((f) => {
+            const t = d.berkas.find((b) => b.slug === f.slug)?.templat[code.bahasa];
+            return t === undefined ? f : { ...f, segments: parseBlanks(t) };
+          }),
+        );
+      })
+      .catch(() => {});
+  useEffect(() => void muat(), [code.modul, code.bahasa]);
+  useSiaran(["kode"], muat);
+  return berkas;
+}
+
+export default function CodeStep({ lang, mode, pin, mcu, skema, code: baked, wakil }: Props) {
   const t = C[lang];
+  const berkas = useBerkasTerbit(baked);
+  const code = { ...baked, berkas };
   const wide = useMinWidth(1280, true);
   const [active, setActive] = useState(code.berkas[0]?.slug ?? "");
   const [showKeys, setShowKeys] = useState(false);
