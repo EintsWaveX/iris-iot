@@ -20,16 +20,61 @@
   gap: 6px;
 }
 
-.acctpage__grid {
-  align-items: start;
+.acctpage__main {
   display: grid;
   gap: var(--space-5);
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Wide screens: Ganti Kata Sandi over Jadwalku on the left, Tampilan on
+   the right spanning both, so the two columns end on the same line; the
+   card that is shorter stretches. Feedback runs full width below. */
 @media (min-width: 1024px) {
-  .acctpage__grid {
+  .acctpage__main {
+    align-items: stretch;
+    grid-template-areas:
+      "pw display"
+      "mine display"
+      "fb fb";
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .acctpage__pwcard {
+    grid-area: pw;
+  }
+
+  .acctpage__display {
+    grid-area: display;
+  }
+
+  .acctpage__mine {
+    grid-area: mine;
+  }
+
+  .acctpage__fb {
+    grid-area: fb;
+  }
+
+  /* The score and bars on the left, the comments on the right in a box of
+     fixed height that scrolls, so a long list never stretches the page. */
+  .acctpage__fb .fbsum {
+    align-items: start;
+    display: grid;
+    gap: var(--space-4) var(--space-6);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  }
+
+  .acctpage__fb .fbsum > :not(.fbsum__quotes) {
+    grid-column: 1;
+  }
+
+  .acctpage__fb .fbsum__quotes {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 4px;
   }
 }
 

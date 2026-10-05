@@ -316,7 +316,9 @@ function Ask({
     <section className="panel panel--solo pkask">
       <div className="panel__head">
         <h2 className="panel__title">{t.askTitle}</h2>
-        <PersonBadges badges={pencipta ? ["pencipta", "dev"] : ["dev"]} lang={lang} sm />
+        <span className="panel__badges">
+          <PersonBadges badges={pencipta ? ["pencipta", "dev"] : ["dev"]} lang={lang} sm />
+        </span>
       </div>
       {sesi && (
         <div className="banner banner--warn">

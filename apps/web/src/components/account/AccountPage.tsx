@@ -265,8 +265,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
   if (me.role !== "asisten") return <PraktikanAccount lang={lang} me={me} />;
 
   // Mockup a-account: the name as the page title with its badges, then
-  // Pendapatan, SeeLabs, and Ganti Kata Sandi beside Tampilan. The week and
-  // the feedback (Phase 8) follow. Signing out lives in the account menu.
+  // Pendapatan and SeeLabs. Signing out lives in the account menu.
   return (
     <div className="acctpage">
       <header className="page-header">
@@ -283,20 +282,19 @@ export default function AccountPage({ lang }: { lang: Lang }) {
       <EarningsCard lang={lang} nim={me.nim} />
       <SeelabsAccount lang={lang} nim={me.nim} />
 
-      <div className="acctpage__grid">
-        <section className="panel">
+      {/* Wide screens: Ganti Kata Sandi above Jadwalku on the left, Tampilan
+          beside both with the same bottom edge, then Feedback full width. */}
+      <div className="acctpage__main">
+        <section className="panel acctpage__pwcard">
           <h2 className="panel__title">{t.pwH}</h2>
           <p className="hint">{t.pwSub}</p>
           <PasswordForm t={t} lang={lang} first={Boolean(me.perluAturSandi)} />
         </section>
-        <section className="panel">
+        <section className="panel acctpage__display">
           <h2 className="panel__title">{t.display}</h2>
           <DisplayPanel lang={lang} onLang={pilihBahasa} />
         </section>
-      </div>
-
-      <div className="acctpage__grid">
-        <section className="panel">
+        <section className="panel acctpage__mine">
           <div className="panel__head">
             <h2 className="panel__title">{t.jadwalH}</h2>
             <a className="btn btn--ghost btn--sm" href={href(lang, "/schedule")}>
@@ -328,7 +326,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
           )}
         </section>
 
-        <section className="panel">
+        <section className="panel acctpage__fb">
           <h2 className="panel__title">{t.fbH}</h2>
           <p className="hint">{t.fbSub}</p>
           <FeedbackSummary data={fb} lang={lang} empty={t.fbEmpty} countLabel={t.fbCount} />

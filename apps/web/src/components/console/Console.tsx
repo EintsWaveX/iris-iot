@@ -390,7 +390,10 @@ export default function Console({ lang }: { lang: Lang }) {
           lang={lang}
           me={me!}
           onStarted={refreshAll}
-          onPrep={() => setPrepOnly(true)}
+          onPrep={(pilih) => {
+            setPrepPilih(pilih);
+            setPrepOnly(true);
+          }}
           onHeld={() => openSeelabs("titipan")}
         />
       </div>

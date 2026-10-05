@@ -56,6 +56,7 @@ import {
   type Me,
 } from "../../lib/app";
 import { hariIniWib, SESI_CAP_MENIT, SESI_MIN_MENIT, SLOT_MULAI } from "../../lib/jadwal";
+import { hariDariTanggal } from "../../lib/jadwal-parser";
 import {
   durasiLabel,
   hariLabel,
@@ -141,7 +142,9 @@ export default function AsistenHome({
   lang: Lang;
   me: Me;
   onStarted: () => void;
-  onPrep: () => void;
+  /** Opens Preparation on the roster Start has picked ("2-1": Selasa,
+   *  slot 1), or with no pick for a makeup session. */
+  onPrep: (pilih: string | null) => void;
   /** Opens Kirim ke SeeLabs on "Titipan" (scores held for my account). */
   onHeld: () => void;
 }) {
@@ -407,7 +410,11 @@ export default function AsistenHome({
             )}
           </div>
         </div>
-        <button type="button" className="btn btn--inverse btn--lg" onClick={onPrep}>
+        <button
+          type="button"
+          className="btn btn--inverse btn--lg"
+          onClick={() => onPrep(susulan ? null : `${hariDariTanggal(hariIniWib())}-${sel}`)}
+        >
           <ListChecksIcon size={20} aria-hidden="true" />
           {h.prepOpen}
         </button>

@@ -220,10 +220,12 @@
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lift);
-  max-height: min(34rem, calc(100vh - 120px));
+  /* Never taller than the room Radix measured on the side it opened. */
+  max-height: min(34rem, var(--radix-popover-content-available-height, calc(100vh - 120px)));
   overflow: auto;
   padding: var(--space-4);
-  z-index: 90;
+  /* Above dialogs and drawers (100), like every other popover. */
+  z-index: 150;
   animation: popover-in var(--dur-fast) var(--ease-out-expo);
 }
 

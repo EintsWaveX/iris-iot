@@ -174,6 +174,16 @@ html {
   min-height: 32px;
 }
 
+/* Badges at a card's top right corner, kept together as one group. */
+.panel__badges {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
 /* On a phone a group of buttons in a card head takes the card's width,
    each button an equal share. */
 @media (max-width: 639px) {
@@ -710,8 +720,11 @@ html {
 }
 
 /* Every in-page view switch fades in (Fade.tsx) */
+/* "backwards", not "both": a transform kept after the fade (even the
+   identity one) makes this box the containing block of every fixed child,
+   which threw drag previews and popups off the pointer (2026-10-05). */
 .fade {
-  animation: kit-fade 260ms var(--ease-out-expo) both;
+  animation: kit-fade 260ms var(--ease-out-expo) backwards;
 }
 
 @keyframes kit-fade {

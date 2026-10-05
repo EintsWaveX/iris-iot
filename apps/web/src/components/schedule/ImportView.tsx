@@ -14,7 +14,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
-  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   closestCenter,
@@ -27,6 +26,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import DragLayer from "../ui/DragLayer";
 import {
   ArrowUUpLeftIcon,
   DotsSixVerticalIcon,
@@ -444,9 +444,9 @@ function Arrange({
           </div>
         </div>
       </div>
-      <DragOverlay>
+      <DragLayer>
         {drag && <span className="acode impchip impchip--lifted">{drag.kode}</span>}
-      </DragOverlay>
+      </DragLayer>
     </DndContext>
   );
 }

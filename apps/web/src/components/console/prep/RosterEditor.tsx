@@ -28,7 +28,6 @@ import {
 } from "react";
 import {
   DndContext,
-  DragOverlay,
   PointerSensor,
   closestCorners,
   useDroppable,
@@ -38,6 +37,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import DragLayer from "../../ui/DragLayer";
 import {
   SortableContext,
   arrayMove,
@@ -808,7 +808,7 @@ const RosterEditor = forwardRef<
             {pane === "roster" ? left : right}
           </>
         )}
-        <DragOverlay>
+        <DragLayer>
           {active ? (
             <div className="mrow mrow--lifted">
               <DotsSixVerticalIcon size={16} aria-hidden="true" />
@@ -816,7 +816,7 @@ const RosterEditor = forwardRef<
               <span className="mrow__name">{active.nama}</span>
             </div>
           ) : null}
-        </DragOverlay>
+        </DragLayer>
       </DndContext>
       {adding && (
         <AddStudentDialog

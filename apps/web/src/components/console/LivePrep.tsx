@@ -17,7 +17,6 @@
 import { useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import {
   DndContext,
-  DragOverlay,
   PointerSensor,
   useDraggable,
   useDroppable,
@@ -26,6 +25,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import DragLayer from "../ui/DragLayer";
 import {
   CheckIcon,
   DotsSixVerticalIcon,
@@ -339,14 +339,14 @@ export default function LivePrep({
                 );
               })}
         </div>
-        <DragOverlay>
+        <DragLayer>
           {drag && (
             <div className="mrow" data-lifted="yes">
               <DotsSixVerticalIcon size={16} aria-hidden="true" className="mrow__grip" />
               <span className="mrow__name">{drag.nama}</span>
             </div>
           )}
-        </DragOverlay>
+        </DragLayer>
       </DndContext>
       {pair.dialog}
     </div>

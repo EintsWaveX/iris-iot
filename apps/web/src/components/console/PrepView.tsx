@@ -24,7 +24,8 @@ import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
 import { DateField, Stepper, TimeField } from "../ui/Controls";
 import { getJson, href, namaKelompok, postJson, tanggalPanjang, useMe } from "../../lib/app";
-import { hariIniWib, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
+import { hariIniWib, KELOMPOK_MAKS, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
+import { menitDariJam, menitSekarangWib } from "../../lib/sesi-mulai";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
 import { hariLabel, modulLabel, slotLabel } from "../../lib/labels";
 import type { Kelas, Lang } from "../../lib/kelas";
@@ -58,6 +59,17 @@ interface Draf {
 }
 
 const TABS = ["roster", "akses", "brief", "kode", "slides", "skema"] as const;
+
+/** The slot the clock is in ("2-3"): today's first slot that hasn't ended
+ *  (start plus the session cap), else the next day's first slot, Sunday
+ *  skipped. Whether it has a practicum is decided by the schedule. */
+function slotJam(): string {
+  const hari = hariDariTanggal(hariIniWib());
+  const m = menitSekarangWib();
+  const s = [1, 2, 3, 4].find((n) => m < menitDariJam(SLOT_MULAI[n]) + SESI_CAP_MENIT);
+  if (hari >= 1 && hari <= 6 && s) return `${hari}-${s}`;
+  return `${hari >= 1 && hari < 6 ? hari + 1 : 1}-1`;
+}
 type Tab = (typeof TABS)[number];
 
 export default function PrepView({
@@ -67,7 +79,6 @@ export default function PrepView({
   roster,
   assign,
   meNim,
-  meKode,
   onChanged,
   onBack,
   pilih = null,
@@ -142,22 +153,34 @@ export default function PrepView({
     [jadwal],
   );
 
-  // The first roster to open: the running session's slot, else my slot
-  // today, else my first slot this week, else the first slot.
+  // The first roster to open: the running session's slot, else the slot
+  // the clock is in (a slot without a practicum says so, see kosong).
   useEffect(() => {
     if (!jadwal || sel !== null) return;
-    const mine = (j: JadwalRow) => j.asisten.some((k) => k.toUpperCase() === meKode);
-    const hari = hariDariTanggal(hariIniWib());
-    const pick =
-      (sesi?.slot
-        ? slots.find((j) => j.hari === hariDariTanggal(sesi.tanggal) && j.slot === sesi.slot)
-        : undefined) ??
-      slots.find((j) => j.hari === hari && mine(j)) ??
-      slots.find(mine) ??
-      slots[0];
-    if (pick) setSel(`${pick.hari}-${pick.slot}`);
-    else if (draf[0]) setSel(`d${draf[0].id}`);
+    const jalan = sesi?.slot ? `${hariDariTanggal(sesi.tanggal)}-${sesi.slot}` : null;
+    if (jalan) return setSel(jalan);
+    if (sesi && !sesi.slot) {
+      // A makeup session runs: its draft, when it is still listed.
+      if (draf[0]) setSel(`d${draf[0].id}`);
+      return;
+    }
+    setSel(slotJam());
   }, [jadwal, draf]);
+
+  // The picked slot when it has no practicum this semester: not in the
+  // schedule, "Tidak Ada Praktikum", or "Segera" without its Asisten yet.
+  const kosong = useMemo(() => {
+    if (!sel || sel.startsWith("d") || !jadwal) return null;
+    const [h, s] = sel.split("-").map(Number);
+    if (slots.some((j) => j.hari === h && j.slot === s)) return null;
+    const row = jadwal.find((j) => j.hari === h && j.slot === s);
+    const urut = [...slots].sort((a, b) => a.hari - b.hari || a.slot - b.slot);
+    const lanjut = urut.find((j) => j.hari > h || (j.hari === h && j.slot > s)) ?? urut[0];
+    return {
+      segera: row?.status === "segera" || (row?.status === "aktif" && row.asisten.length === 0),
+      lanjut: lanjut ? `${lanjut.hari}-${lanjut.slot}` : null,
+    };
+  }, [sel, jadwal, slots]);
 
   const target: RosterTarget | null = useMemo(() => {
     if (!sel) return null;
@@ -178,6 +201,11 @@ export default function PrepView({
   };
 
   const options = [
+    // The slot the clock picked, when it has no practicum: listed so the
+    // picker names it instead of showing the first slot.
+    ...(kosong && sel
+      ? [{ value: sel, label: `${labelOf(sel)} · ${kosong.segera ? p.segeraTag : p.kosongTag}` }]
+      : []),
     ...slots.map((j) => ({
       value: `${j.hari}-${j.slot}`,
       label:
@@ -286,6 +314,29 @@ export default function PrepView({
                 lang={lang}
                 onDirty={setDirty}
               />
+            ) : kosong && sel ? (
+              <section className="panel panel--solo prep__kosong">
+                <div className="panel__head">
+                  <h2 className="panel__title">{labelOf(sel)}</h2>
+                  <span className={`pill${kosong.segera ? " pill--warn" : ""}`}>
+                    {kosong.segera ? p.segeraTag : p.kosongTag}
+                  </span>
+                </div>
+                <p>{kosong.segera ? p.segeraBody : p.kosongBody}</p>
+                <p className="hint">{p.kosongHint}</p>
+                {kosong.lanjut && (
+                  <div className="row">
+                    <button
+                      type="button"
+                      className="btn btn--primary"
+                      onClick={() => choose(kosong.lanjut!)}
+                    >
+                      {p.bukaSlot(labelOf(kosong.lanjut))}
+                      <ArrowRightIcon aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </section>
             ) : (
               jadwal !== null && <p className="hint">{p.noSlots}</p>
             )}

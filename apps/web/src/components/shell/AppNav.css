@@ -358,7 +358,8 @@
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lift);
-  overflow: hidden;
+  max-height: var(--radix-popover-content-available-height, calc(100vh - 24px));
+  overflow: hidden auto;
   padding: var(--space-3);
   width: min(22rem, calc(100vw - 24px));
   z-index: 150;

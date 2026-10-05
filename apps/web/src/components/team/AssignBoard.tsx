@@ -19,7 +19,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
-  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   closestCenter,
@@ -31,6 +30,7 @@ import {
   type CollisionDetection,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import DragLayer from "../ui/DragLayer";
 import {
   CheckIcon,
   DotsSixVerticalIcon,
@@ -456,7 +456,7 @@ export default function AssignBoard({
             </div>
           )}
         </div>
-        <DragOverlay>{drag && <span className="acode impchip--lifted">{drag}</span>}</DragOverlay>
+        <DragLayer>{drag && <span className="acode impchip--lifted">{drag}</span>}</DragLayer>
       </DndContext>
     </div>
   );

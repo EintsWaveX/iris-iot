@@ -23,7 +23,8 @@
  *             group/status filters). Also no live call site yet.
  *
  * All three share one popover engine (usePopover below): a trigger button
- * in normal document flow, a listbox portalled to document.body so it is
+ * in normal document flow, a listbox portalled to document.body (or into
+ * the open dialog that holds the trigger, see usePopover) so it is
  * never a `position: fixed` DESCENDANT of anything with backdrop-filter --
  * see Nav.astro's own docblock for the exact containing-block trap that
  * would otherwise create, which is why the popover here is portalled OUT
@@ -69,13 +70,6 @@ export interface DropdownOption {
   note?: string;
 }
 
-interface Rect {
-  top: number;
-  left: number;
-  width: number;
-  bottom: number;
-}
-
 const MOBILE_SHEET_MAX_WIDTH = 640;
 const TYPEAHEAD_RESET_MS = 700;
 
@@ -92,35 +86,102 @@ function useIsMobile(): boolean {
 }
 
 /**
- * Shared popover mechanics: open state, the trigger's measured position
- * (recomputed on open/scroll/resize), outside-click and Escape dismissal.
- * Every mode below (select/multi/filter) drives the SAME engine so the
- * "where does this thing render and how does it close" behaviour never
- * drifts between the three.
+ * Shared popover mechanics: open state, where the popup goes, outside-click
+ * dismissal. Every mode below (select/multi/filter) drives the SAME engine
+ * so the "where does this thing render and how does it close" behaviour
+ * never drifts between the three.
+ *
+ * Inside a dialog or drawer the popup is portalled into that dialog, not
+ * the body: a modal Radix layer turns pointer events off everywhere else
+ * and blocks wheel scrolling outside itself, so a list on the body could
+ * only be used with the keyboard (2026-10-05, Tambah Pengganti). A dialog
+ * that carries a transform becomes the containing block of a fixed child,
+ * so the popup is placed by measuring where it actually lands and
+ * correcting by the difference. It opens below the trigger, or above when
+ * there is more room there, and is never taller than the space it has.
  */
-function usePopover(triggerRef: React.RefObject<HTMLElement | null>) {
-  const [open, setOpen] = useState(false);
-  const [rect, setRect] = useState<Rect | null>(null);
-  const popupRef = useRef<HTMLDivElement | null>(null);
+const POPUP_GAP = 6;
+const VIEW_MARGIN = 8;
+const POPUP_MAX = 360;
 
-  const measure = useCallback(() => {
-    const el = triggerRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    setRect({ top: r.top, left: r.left, width: r.width, bottom: r.bottom });
-  }, [triggerRef]);
+function usePopover(triggerRef: React.RefObject<HTMLElement | null>, sheet: boolean) {
+  const [open, setOpen] = useState(false);
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
+  const scrimRef = useRef<HTMLDivElement | null>(null);
+
+  const place = useCallback(() => {
+    const t = triggerRef.current;
+    const p = popupRef.current;
+    if (!t || !p) return;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    // Where (0, 0) of a fixed child really is: the viewport, or the
+    // dialog when a transform makes it the containing block.
+    p.style.top = "0px";
+    p.style.left = "0px";
+    p.style.bottom = "auto";
+    p.style.maxHeight = "none";
+    const o = p.getBoundingClientRect();
+    const ox = o.left;
+    const oy = o.top;
+    const scrim = scrimRef.current;
+    if (scrim) {
+      scrim.style.left = `${-ox}px`;
+      scrim.style.top = `${-oy}px`;
+      scrim.style.width = `${vw}px`;
+      scrim.style.height = `${vh}px`;
+    }
+    if (sheet) {
+      const h = Math.min(p.scrollHeight, vh * 0.7);
+      p.style.left = `${-ox}px`;
+      p.style.width = `${vw}px`;
+      p.style.maxHeight = `${vh * 0.7}px`;
+      p.style.top = `${vh - h - oy}px`;
+      return;
+    }
+    const r = t.getBoundingClientRect();
+    p.style.width = "";
+    p.style.minWidth = `${r.width}px`;
+    const natural = Math.min(p.scrollHeight, POPUP_MAX, vh * 0.6);
+    const below = vh - r.bottom - POPUP_GAP - VIEW_MARGIN;
+    const above = r.top - POPUP_GAP - VIEW_MARGIN;
+    const up = below < natural && above > below;
+    const h = Math.max(120, Math.min(natural, up ? above : below));
+    p.style.maxHeight = `${h}px`;
+    const top = up ? r.top - POPUP_GAP - Math.min(h, p.scrollHeight) : r.bottom + POPUP_GAP;
+    const w = p.getBoundingClientRect().width;
+    const left = Math.max(VIEW_MARGIN, Math.min(r.left, vw - VIEW_MARGIN - w));
+    p.style.top = `${top - oy}px`;
+    p.style.left = `${left - ox}px`;
+    p.dataset.side = up ? "top" : "bottom";
+  }, [triggerRef, sheet]);
 
   useLayoutEffect(() => {
     if (!open) return;
-    measure();
-    const onScrollOrResize = () => measure();
+    setHost(triggerRef.current?.closest<HTMLElement>('[role="dialog"]') ?? document.body);
+  }, [open, triggerRef]);
+
+  useLayoutEffect(() => {
+    if (!open || !host) return;
+    place();
+    const onScrollOrResize = () => place();
     window.addEventListener("scroll", onScrollOrResize, true);
     window.addEventListener("resize", onScrollOrResize);
+    // A drawer still sliding in moves the trigger without a scroll.
+    window.addEventListener("animationend", onScrollOrResize, true);
+    window.addEventListener("transitionend", onScrollOrResize, true);
+    // The options can change while open (a list that loads late).
+    const ro = popupRef.current ? new ResizeObserver(onScrollOrResize) : null;
+    if (ro && popupRef.current) ro.observe(popupRef.current.firstElementChild ?? popupRef.current);
     return () => {
       window.removeEventListener("scroll", onScrollOrResize, true);
       window.removeEventListener("resize", onScrollOrResize);
+      window.removeEventListener("animationend", onScrollOrResize, true);
+      window.removeEventListener("transitionend", onScrollOrResize, true);
+      ro?.disconnect();
     };
-  }, [open, measure]);
+  }, [open, host, place]);
 
   useEffect(() => {
     if (!open) return;
@@ -134,7 +195,7 @@ function usePopover(triggerRef: React.RefObject<HTMLElement | null>) {
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [open, triggerRef]);
 
-  return { open, setOpen, rect, popupRef };
+  return { open, setOpen, host: open ? host : null, popupRef, scrimRef };
 }
 
 function typeaheadIndex(options: DropdownOption[], from: number, buffer: string): number | null {
@@ -187,8 +248,8 @@ export default function Dropdown({
 
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const hiddenRef = useRef<HTMLInputElement | null>(null);
-  const { open, setOpen, rect, popupRef } = usePopover(triggerRef);
   const isMobile = useIsMobile();
+  const { open, setOpen, host, popupRef, scrimRef } = usePopover(triggerRef, isMobile);
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
   const typeaheadBuffer = useRef("");
   const typeaheadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -344,23 +405,18 @@ export default function Dropdown({
         </p>
       )}
       {open &&
+        host &&
         createPortal(
           <>
             {isMobile && (
-              <div className="dropdown__scrim" onClick={() => setOpen(false)} aria-hidden="true" />
+              <div
+                ref={scrimRef}
+                className="dropdown__scrim"
+                onClick={() => setOpen(false)}
+                aria-hidden="true"
+              />
             )}
-            <div
-              ref={popupRef}
-              className="dropdown__popup"
-              data-sheet={isMobile ? "yes" : "no"}
-              style={
-                isMobile
-                  ? undefined
-                  : rect
-                    ? { top: rect.bottom + 6, left: rect.left, minWidth: rect.width }
-                    : undefined
-              }
-            >
+            <div ref={popupRef} className="dropdown__popup" data-sheet={isMobile ? "yes" : "no"}>
               <ul
                 className="dropdown__list"
                 role="listbox"
@@ -389,7 +445,7 @@ export default function Dropdown({
               </ul>
             </div>
           </>,
-          document.body,
+          host,
         )}
     </div>
   );
@@ -412,8 +468,8 @@ interface MultiProps {
 
 export function DropdownMulti({ id, label, options, values, onChange, summary }: MultiProps) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const { open, setOpen, rect, popupRef } = usePopover(triggerRef);
   const isMobile = useIsMobile();
+  const { open, setOpen, host, popupRef, scrimRef } = usePopover(triggerRef, isMobile);
   const listId = useId();
 
   function toggle(value: string) {
@@ -446,23 +502,18 @@ export function DropdownMulti({ id, label, options, values, onChange, summary }:
         </svg>
       </button>
       {open &&
+        host &&
         createPortal(
           <>
             {isMobile && (
-              <div className="dropdown__scrim" onClick={() => setOpen(false)} aria-hidden="true" />
+              <div
+                ref={scrimRef}
+                className="dropdown__scrim"
+                onClick={() => setOpen(false)}
+                aria-hidden="true"
+              />
             )}
-            <div
-              ref={popupRef}
-              className="dropdown__popup"
-              data-sheet={isMobile ? "yes" : "no"}
-              style={
-                isMobile
-                  ? undefined
-                  : rect
-                    ? { top: rect.bottom + 6, left: rect.left, minWidth: rect.width }
-                    : undefined
-              }
-            >
+            <div ref={popupRef} className="dropdown__popup" data-sheet={isMobile ? "yes" : "no"}>
               <ul
                 className="dropdown__list"
                 role="listbox"
@@ -487,7 +538,7 @@ export function DropdownMulti({ id, label, options, values, onChange, summary }:
               </ul>
             </div>
           </>,
-          document.body,
+          host,
         )}
     </div>
   );
