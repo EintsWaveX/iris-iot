@@ -5,6 +5,7 @@
  * Tinkercad or Canva design shown in a frame, or a direct image address
  * (src/lib/tautan.ts checks it, the server checks again). Uploading or
  * linking replaces the card's source; deleting goes back to the bundled one.
+ * Module 4 bundles none, so its card starts empty.
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import { upload } from "@vercel/blob/client";
@@ -17,7 +18,7 @@ import IconButton from "../../ui/IconButton";
 import Pill from "../../ui/Pill";
 import SchematicViewer from "../../ui/SchematicViewer";
 import SegmentedControl from "../../ui/SegmentedControl";
-import { dict, getJson, MODUL_NAMA, postJson } from "../../../lib/app";
+import { dict, getJson, MODUL_NAMA, postJson, skemaBawaan } from "../../../lib/app";
 import { modulLabel } from "../../../lib/labels";
 import { bacaTautan, namaLayanan, TAUTAN_SKEMA, tautanBingkai } from "../../../lib/tautan";
 import type { Lang } from "../../../lib/kelas";
@@ -26,6 +27,9 @@ const T = dict({
   id: {
     builtIn: "Bawaan",
     builtInSrc: "Gambar bawaan modul",
+    none: "Kosong",
+    noneSrc: "Modul ini tidak punya gambar bawaan",
+    empty: "Belum ada skema. Unggah gambar atau pasang tautan Wokwi.",
     broken: "Gambar tidak bisa dimuat. Ganti dengan berkas atau tautan lain.",
     image: "Gambar",
     link: "Tautan",
@@ -40,6 +44,8 @@ const T = dict({
     delBody: "Modul ini kembali memakai gambar bawaannya.",
     delFile: "Gambarnya juga dihapus dari penyimpanan.",
     deleted: (m: string) => `Skema ${m} dihapus. Kembali ke gambar bawaan.`,
+    delBodyNone: "Modul ini kembali tanpa skema.",
+    deletedNone: (m: string) => `Skema ${m} dihapus.`,
     replaced: (m: string) => `Skema ${m} diganti.`,
     uploadFail: "Gambar gagal diunggah. Coba lagi.",
     fail: "Gagal. Coba lagi.",
@@ -54,6 +60,9 @@ const T = dict({
   en: {
     builtIn: "Built-in",
     builtInSrc: "The module's built-in image",
+    none: "None",
+    noneSrc: "This module has no built-in image",
+    empty: "No schematic yet. Upload an image or add a Wokwi link.",
     broken: "The image can't be loaded. Replace it with another file or link.",
     image: "Image",
     link: "Link",
@@ -68,6 +77,8 @@ const T = dict({
     delBody: "This module goes back to its built-in image.",
     delFile: "The image also leaves storage.",
     deleted: (m: string) => `${m} schematic deleted. Back to the built-in image.`,
+    delBodyNone: "This module goes back to having no schematic.",
+    deletedNone: (m: string) => `${m} schematic deleted.`,
     replaced: (m: string) => `${m} schematic replaced.`,
     uploadFail: "Couldn't upload the image. Try again.",
     fail: "That didn't work. Try again.",
@@ -81,6 +92,9 @@ const T = dict({
   zh: {
     builtIn: "自带",
     builtInSrc: "模块自带的图片",
+    none: "无",
+    noneSrc: "这个模块没有自带的图片",
+    empty: "还没有电路图。上传图片或添加 Wokwi 链接。",
     broken: "图片无法加载。请换一个文件或链接。",
     image: "图片",
     link: "链接",
@@ -95,6 +109,8 @@ const T = dict({
     delBody: "这个模块会改回使用自带的图片。",
     delFile: "图片也会从存储中删除。",
     deleted: (m: string) => `${m}的电路图已删除，改回自带图片。`,
+    delBodyNone: "这个模块会改回没有电路图。",
+    deletedNone: (m: string) => `${m}的电路图已删除。`,
     replaced: (m: string) => `${m}的电路图已替换。`,
     uploadFail: "图片上传失败，请再试一次。",
     fail: "没有成功，请再试一次。",
@@ -191,7 +207,11 @@ export default function SchematicEditor({ lang }: { lang: Lang }) {
         open={!!del}
         onOpenChange={(o) => !o && setDel(null)}
         title={t.delTitle(del ? nama(del.modul) : "")}
-        body={del ? `${t.delBody}${del.jenis === "berkas" ? ` ${t.delFile}` : ""}` : ""}
+        body={
+          del
+            ? `${skemaBawaan(del.modul) ? t.delBody : t.delBodyNone}${del.jenis === "berkas" ? ` ${t.delFile}` : ""}`
+            : ""
+        }
         confirmLabel={t.del}
         lang={lang}
         onConfirm={async () => {
@@ -199,7 +219,8 @@ export default function SchematicEditor({ lang }: { lang: Lang }) {
           const r = await postJson<{ ok: boolean }>("/api/presentasi/schematic-delete", {
             id: del.id,
           }).catch(() => ({ ok: false }));
-          window.Toast?.show(r.ok ? t.deleted(nama(del.modul)) : t.fail, r.ok ? "ok" : "danger");
+          const pesan = skemaBawaan(del.modul) ? t.deleted : t.deletedNone;
+          window.Toast?.show(r.ok ? pesan(nama(del.modul)) : t.fail, r.ok ? "ok" : "danger");
           await load();
         }}
       />
@@ -236,7 +257,7 @@ function SchemCard({
   const [busy, setBusy] = useState(false);
   useEffect(() => setMode(isLink ? "link" : "img"), [isLink]);
 
-  const src = aktif?.url ?? `/schematics/Module ${modul}.png`;
+  const src = aktif?.url ?? skemaBawaan(modul);
   const [broken, setBroken] = useState(false);
   useEffect(() => setBroken(false), [src]);
   const title = `${modulLabel(modul, lang)} · ${judul}`;
@@ -283,9 +304,11 @@ function SchemCard({
     onSaved();
   }
 
-  const kind = !aktif ? t.builtIn : frame ? t.link : t.image;
+  const kind = !aktif ? (src ? t.builtIn : t.none) : frame ? t.link : t.image;
   const source = !aktif
-    ? t.builtInSrc
+    ? src
+      ? t.builtInSrc
+      : t.noneSrc
     : isLink
       ? aktif.url.replace(/^https:\/\//, "")
       : aktif.namaBerkas;
@@ -316,6 +339,15 @@ function SchemCard({
           <b>{namaLayanan(aktif.url)}</b>
           <span className="hint">{t.preview}</span>
         </button>
+      ) : !src ? (
+        <div
+          className="schem-card__thumb schem-card__embed schem-card__broken"
+          role="img"
+          aria-label={t.empty}
+        >
+          <CircuitryIcon size={28} aria-hidden="true" />
+          <span className="hint">{t.empty}</span>
+        </div>
       ) : broken ? (
         <div
           className="schem-card__thumb schem-card__embed schem-card__broken"

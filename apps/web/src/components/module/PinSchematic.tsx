@@ -12,8 +12,9 @@
  *   data wires carry a moving pulse at motion tier 1+.
  * - The schematic is the assistant's uploaded one when there is an active
  *   upload for this module (GET /api/presentasi/schematics), otherwise the
- *   one bundled with the site. A Wokwi, Tinkercad or Canva link (Phase 9)
- *   shows live in a frame instead.
+ *   one bundled with the site. Module 4 bundles none, so without an upload
+ *   the schematic cell is left out. A Wokwi, Tinkercad or Canva link
+ *   (Phase 9) shows live in a frame instead.
  *
  * `variant="full"` is the Persiapan step's layout; `variant="dock"` is the
  * narrow panel docked beside the code.
@@ -380,7 +381,7 @@ export default function PinSchematic({
     </div>
   );
 
-  const schematic = sch.frame ? (
+  const schematic = !sch.src ? null : sch.frame ? (
     <div className="schem-thumb schem-thumb--frame">
       <iframe src={sch.src} title={`${t.uploaded} · ${pin.judul}`} loading="lazy" allowFullScreen />
       <span className="schem-thumb__bar">
@@ -406,7 +407,7 @@ export default function PinSchematic({
   );
 
   return (
-    <div className={`pins pins--${variant}`}>
+    <div className={`pins pins--${variant}${schematic ? "" : " pins--noschem"}`}>
       <div className="pins__wiring">
         <div className="row row--between">
           <span className="label-caps">
@@ -427,7 +428,7 @@ export default function PinSchematic({
         {variant === "full" && <p className="hint">{t.hint}</p>}
       </div>
       <div className="pins__table">{table}</div>
-      <div className="pins__schem">{schematic}</div>
+      {schematic && <div className="pins__schem">{schematic}</div>}
       {pin.catatan.length > 0 && (
         <ul className="pins__notes">
           {pin.catatan.map((c, i) => (
@@ -435,13 +436,15 @@ export default function PinSchematic({
           ))}
         </ul>
       )}
-      <SchematicViewer
-        open={view}
-        onOpenChange={setView}
-        src={sch.src}
-        title={`${pin.judul}`}
-        lang={lang}
-      />
+      {schematic && (
+        <SchematicViewer
+          open={view}
+          onOpenChange={setView}
+          src={sch.src}
+          title={`${pin.judul}`}
+          lang={lang}
+        />
+      )}
     </div>
   );
 }

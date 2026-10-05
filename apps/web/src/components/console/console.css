@@ -2254,7 +2254,7 @@ thead .ntable__name {
   color: var(--accent);
 }
 
-/* An uploaded image or link that no longer loads. */
+/* An uploaded image or link that no longer loads, or no schematic yet. */
 .schem-card__broken {
   background: var(--surface-2);
   border: 1px dashed var(--hairline);

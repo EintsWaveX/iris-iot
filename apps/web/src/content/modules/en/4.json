@@ -45,7 +45,7 @@
       "jumlah": "1x per group"
     }
   ],
-  "skema": "/schematics/Module 4.png",
+  "skema": "",
   "pin": {
     "judul": "RFM95W radio pins on the Cosmic LoRa Aurora V2",
     "kolom": ["Signal", "Pin"],

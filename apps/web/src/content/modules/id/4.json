@@ -45,7 +45,7 @@
       "jumlah": "1x per kelompok"
     }
   ],
-  "skema": "/schematics/Module 4.png",
+  "skema": "",
   "pin": {
     "judul": "Pin radio RFM95W pada Cosmic LoRa Aurora V2",
     "kolom": ["Sinyal", "Pin"],

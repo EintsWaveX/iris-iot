@@ -24,6 +24,17 @@
   }
 }
 
+/* No schematic (Module 4 bundles none, no upload yet): one column. */
+@media (min-width: 1024px) {
+  .pins--full.pins--noschem {
+    grid-template-areas:
+      "wiring"
+      "table"
+      "notes";
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .pins--dock {
   gap: var(--space-4);
   grid-template-areas:
