@@ -54,6 +54,25 @@ const KANAL_RE = /^[A-Za-z0-9_-]{16,64}$/;
 const KONTROL = "\u0000relay:";
 /** Frames from the browser held while the Pi hasn't joined yet. */
 const ANTRE_MAKS = 64 * 1024;
+/**
+ * Data centers near the lab. Indonesian providers send some connections
+ * through Europe instead (2026-10-05: Paris and Marseille, 190 ms each way),
+ * so a side that came in anywhere else is told "jauh" first thing and opens
+ * a new connection, which usually lands near.
+ */
+const DEKAT = new Set([
+  "SIN",
+  "CGK",
+  "KUL",
+  "JHB",
+  "BKK",
+  "HKG",
+  "MNL",
+  "SGN",
+  "HAN",
+]);
+/** The Pi may use its ticket this many times, to move off a far route. */
+const PI_SAMBUNG_MAKS = 5;
 
 type Bingkai = string | ArrayBuffer;
 
@@ -62,12 +81,18 @@ type Bingkai = string | ArrayBuffer;
 async function bingkai(d: unknown): Promise<Bingkai> {
   if (typeof d === "string" || d instanceof ArrayBuffer) return d;
   if (ArrayBuffer.isView(d))
-    return d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength) as ArrayBuffer;
+    return d.buffer.slice(
+      d.byteOffset,
+      d.byteOffset + d.byteLength,
+    ) as ArrayBuffer;
   return (d as Blob).arrayBuffer();
 }
 
 function teks(status: number, body: string): Response {
-  return new Response(body, { status, headers: { "content-type": "text/plain; charset=utf-8" } });
+  return new Response(body, {
+    status,
+    headers: { "content-type": "text/plain; charset=utf-8" },
+  });
 }
 
 async function hmacHex(secret: string, data: string): Promise<string> {
@@ -78,7 +103,9 @@ async function hmacHex(secret: string, data: string): Promise<string> {
     false,
     ["sign"],
   );
-  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data)));
+  const sig = new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data)),
+  );
   return [...sig].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
@@ -98,19 +125,36 @@ export default {
     if (!kanal || !KANAL_RE.test(kanal)) return teks(404, "tidak ditemukan");
     if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
       return teks(503, "relay belum diatur");
-    const ruang = env.RUANG.get(env.RUANG.idFromName(kanal));
+    // Every frame crosses the room twice (page to Pi and back), so it has to
+    // live near both, which are in Indonesia. Without the hint Cloudflare
+    // sometimes made a room far away (2026-10-05: 185 ms from the page
+    // instead of 35). The hint only counts when the room is first made.
+    const ruang = env.RUANG.get(env.RUANG.idFromName(kanal), {
+      locationHint: "apac",
+    });
 
     if (ujung === "tutup" && req.method === "POST") {
       const ts = Number(req.headers.get("x-konsol-ts"));
       const tanda = req.headers.get("x-konsol-tanda") ?? "";
-      if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 60) return teks(403, "kedaluwarsa");
-      const ok = samaPersis(tanda, await hmacHex(env.KONSOL_RELAY_SECRET, `tutup|${kanal}|${ts}`));
+      if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 60)
+        return teks(403, "kedaluwarsa");
+      const ok = samaPersis(
+        tanda,
+        await hmacHex(env.KONSOL_RELAY_SECRET, `tutup|${kanal}|${ts}`),
+      );
       if (!ok) return teks(403, "tanda salah");
       return ruang.fetch("https://ruang/tutup", { method: "POST" });
     }
 
-    if ((ujung === "web" || ujung === "pi") && req.headers.get("Upgrade") === "websocket") {
-      const cek = await cekTiket(url.searchParams.get("tiket") ?? "", env.KONSOL_RELAY_SECRET, ujung);
+    if (
+      (ujung === "web" || ujung === "pi") &&
+      req.headers.get("Upgrade") === "websocket"
+    ) {
+      const cek = await cekTiket(
+        url.searchParams.get("tiket") ?? "",
+        env.KONSOL_RELAY_SECRET,
+        ujung,
+      );
       if (!cek.ok) return teks(403, `tiket ${cek.kode}`);
       if (cek.tiket.k !== kanal) return teks(403, "tiket ruang lain");
       const h = new Headers(req.headers);
@@ -121,6 +165,11 @@ export default {
       h.set("x-nim", cek.tiket.u);
       h.set("x-nama", encodeURIComponent(cek.tiket.nm ?? cek.tiket.u));
       h.set("x-pemilik", cek.tiket.pk ? "1" : "0");
+      // The data center this connection came in through (lag checks).
+      h.set(
+        "x-pintu",
+        String((req as { cf?: { colo?: string } }).cf?.colo ?? ""),
+      );
       return ruang.fetch(new Request("https://ruang/sambung", { headers: h }));
     }
     return teks(404, "tidak ditemukan");
@@ -128,18 +177,30 @@ export default {
 };
 
 /** /siaran (a page listening) and /siaran/kirim (the API telling them). */
-async function siaran(req: Request, env: Env, sub: string | undefined): Promise<Response> {
+async function siaran(
+  req: Request,
+  env: Env,
+  sub: string | undefined,
+): Promise<Response> {
   const pusat = env.SIARAN.get(env.SIARAN.idFromName("semua"));
-  if (!sub && req.headers.get("Upgrade") === "websocket") return pusat.fetch(req);
-  if (sub !== "kirim" || req.method !== "POST") return teks(404, "tidak ditemukan");
+  if (!sub && req.headers.get("Upgrade") === "websocket")
+    return pusat.fetch(req);
+  if (sub !== "kirim" || req.method !== "POST")
+    return teks(404, "tidak ditemukan");
   if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
     return teks(503, "relay belum diatur");
   const body = await req.text();
   if (body.length > SIARAN_MAKS) return teks(413, "terlalu besar");
   const ts = Number(req.headers.get("x-siaran-ts"));
   const tanda = req.headers.get("x-siaran-tanda") ?? "";
-  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 60) return teks(403, "kedaluwarsa");
-  if (!samaPersis(tanda, await hmacHex(env.KONSOL_RELAY_SECRET, `siaran|${body}|${ts}`)))
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 60)
+    return teks(403, "kedaluwarsa");
+  if (
+    !samaPersis(
+      tanda,
+      await hmacHex(env.KONSOL_RELAY_SECRET, `siaran|${body}|${ts}`),
+    )
+  )
     return teks(403, "tanda salah");
   let t: unknown;
   try {
@@ -147,9 +208,16 @@ async function siaran(req: Request, env: Env, sub: string | undefined): Promise<
   } catch {
     return teks(400, "format");
   }
-  if (!Array.isArray(t) || !t.length || !t.every((x) => typeof x === "string" && TOPIK_RE.test(x)))
+  if (
+    !Array.isArray(t) ||
+    !t.length ||
+    !t.every((x) => typeof x === "string" && TOPIK_RE.test(x))
+  )
     return teks(400, "format");
-  return pusat.fetch("https://siaran/kirim", { method: "POST", body: JSON.stringify({ t }) });
+  return pusat.fetch("https://siaran/kirim", {
+    method: "POST",
+    body: JSON.stringify({ t }),
+  });
 }
 
 /** Every open page's socket. Hibernation keeps idle sockets free; "ping"
@@ -159,7 +227,9 @@ export class Siaran {
     private ctx: DurableObjectState,
     private env: Env,
   ) {
-    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+    this.ctx.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair("ping", "pong"),
+    );
   }
 
   async fetch(req: Request): Promise<Response> {
@@ -203,11 +273,14 @@ interface Web {
   /** The person who asked for the console. */
   pemilik: boolean;
   masuk: number;
+  /** The data center this viewer came in through. */
+  pintu: string;
 }
 
 /** 2-byte viewer id in front of a frame to or from the Pi. */
 function tandai(id: number, f: Bingkai): ArrayBuffer {
-  const isi = typeof f === "string" ? new TextEncoder().encode(f) : new Uint8Array(f);
+  const isi =
+    typeof f === "string" ? new TextEncoder().encode(f) : new Uint8Array(f);
   const out = new Uint8Array(isi.byteLength + 2);
   out[0] = (id >> 8) & 0xff;
   out[1] = id & 0xff;
@@ -232,6 +305,9 @@ export class Ruang {
   private terakhirWeb = Date.now();
   private akhir = 0;
   private tutup = false;
+  /** The Cloudflare data center this room runs in (for lag checks). */
+  private colo = "";
+  private piPintu = "";
 
   constructor(
     private ctx: DurableObjectState,
@@ -249,30 +325,47 @@ export class Ruang {
       return teks(200, "ditutup");
     }
     // The flag is also stored: a room evicted from memory stays closed.
-    if (this.tutup || (await this.ctx.storage.get("tutup"))) return teks(410, "ruang sudah ditutup");
+    if (this.tutup || (await this.ctx.storage.get("tutup")))
+      return teks(410, "ruang sudah ditutup");
     const peran = req.headers.get("x-peran");
     const nonce = req.headers.get("x-nonce") ?? "";
     if (peran !== "web" && peran !== "pi") return teks(400, "peran");
-    // A nonce works once, ever (kept until the room is cleaned up).
-    if (await this.ctx.storage.get(`n:${nonce}`)) return teks(403, "tiket sudah dipakai");
-    await this.ctx.storage.put(`n:${nonce}`, Date.now());
-    this.akhir = Math.max(this.akhir, Number(req.headers.get("x-akhir")) * 1000 || 0);
+    // A page's nonce works once, ever (kept until the room is cleaned up).
+    // The Pi's works a few times inside its minute, to move off a far route.
+    const dipakai = Number(await this.ctx.storage.get(`n:${nonce}`)) || 0;
+    if (dipakai && (peran !== "pi" || dipakai >= PI_SAMBUNG_MAKS))
+      return teks(403, "tiket sudah dipakai");
+    await this.ctx.storage.put(`n:${nonce}`, dipakai + 1);
+    this.akhir = Math.max(
+      this.akhir,
+      Number(req.headers.get("x-akhir")) * 1000 || 0,
+    );
     this.target = req.headers.get("x-target") || this.target;
 
     const pair = new WebSocketPair();
     const [klien, sisi] = [pair[0], pair[1]];
     sisi.accept();
     // noVNC asks for the "binary" subprotocol; echo the first one offered.
-    const proto = req.headers.get("Sec-WebSocket-Protocol")?.split(",")[0]?.trim();
+    const proto = req.headers
+      .get("Sec-WebSocket-Protocol")
+      ?.split(",")[0]
+      ?.trim();
 
-    if (peran === "pi") this.pasangPi(sisi);
-    else
+    const pintu = req.headers.get("x-pintu") ?? "";
+    // First, before anything else: this side came in far from the lab.
+    if (pintu && !DEKAT.has(pintu)) sisi.send(`${KONTROL}jauh:${pintu}`);
+    if (peran === "pi") {
+      this.piPintu = pintu;
+      this.pasangPi(sisi);
+    } else
       this.pasangWeb(sisi, {
         nim: req.headers.get("x-nim") ?? "",
         nama: decodeURIComponent(req.headers.get("x-nama") ?? ""),
         pemilik: req.headers.get("x-pemilik") === "1",
+        pintu,
       });
     await this.ctx.storage.setAlarm(Date.now() + 30_000);
+    if (!this.colo) this.ctx.waitUntil(this.cariColo());
     return new Response(null, {
       status: 101,
       webSocket: klien,
@@ -306,7 +399,8 @@ export class Ruang {
     // Who controls first, so the bridge hands each viewer the right
     // password the first time.
     sisi.send(`${KONTROL}kendali:${this.pengendali ?? 0}`);
-    for (const w of this.webs.values()) sisi.send(`${KONTROL}web-masuk:${w.id}`);
+    for (const w of this.webs.values())
+      sisi.send(`${KONTROL}web-masuk:${w.id}`);
     for (const f of this.antre) sisi.send(f);
     this.antre = [];
     this.antreBytes = 0;
@@ -343,7 +437,10 @@ export class Ruang {
 
   /* ------------------------------------------------------ the people */
 
-  private pasangWeb(sisi: WebSocket, o: { nim: string; nama: string; pemilik: boolean }) {
+  private pasangWeb(
+    sisi: WebSocket,
+    o: { nim: string; nama: string; pemilik: boolean; pintu: string },
+  ) {
     // The same person again (a reload, a second tab): the new socket takes
     // over their place, control included.
     const lama = [...this.webs.values()].find((w) => w.nim && w.nim === o.nim);
@@ -365,7 +462,8 @@ export class Ruang {
         if (this.webs.get(id) !== w) return;
         const f = await bingkai(e.data);
         if (typeof f === "string") {
-          if (f.startsWith(KONTROL)) return this.perintah(w, f.slice(KONTROL.length));
+          if (f.startsWith(KONTROL))
+            return this.perintah(w, f.slice(KONTROL.length));
           // Text (the terminal's size, still here) only from whoever controls.
           if (this.pengendali === id) this.kePiKirim(`\u0000web:${id}:${f}`);
           return;
@@ -411,10 +509,15 @@ export class Ruang {
     const [aksi, arg] = cmd.split(":");
     const ke = Number(arg);
     if (aksi === "minta") {
-      if (this.pengendali !== w.id && !this.minta.includes(w.id)) this.minta.push(w.id);
+      if (this.pengendali !== w.id && !this.minta.includes(w.id))
+        this.minta.push(w.id);
     } else if (aksi === "batal") {
       this.minta = this.minta.filter((x) => x !== w.id);
-    } else if (aksi === "beri" && this.pengendali === w.id && this.webs.has(ke)) {
+    } else if (
+      aksi === "beri" &&
+      this.pengendali === w.id &&
+      this.webs.has(ke)
+    ) {
       this.pengendali = ke;
       this.minta = this.minta.filter((x) => x !== ke);
       this.pi?.send(`${KONTROL}kendali:${ke}`);
@@ -422,6 +525,17 @@ export class Ruang {
       this.minta = this.minta.filter((x) => x !== ke);
       this.webs.get(ke)?.ws.send(`${KONTROL}ditolak`);
     } else return;
+    this.kabari();
+  }
+
+  /** Where this room landed, from Cloudflare's own trace page. */
+  private async cariColo() {
+    try {
+      const r = await fetch("https://cloudflare.com/cdn-cgi/trace");
+      this.colo = /^colo=(\w+)$/m.exec(await r.text())?.[1] ?? "?";
+    } catch {
+      this.colo = "?";
+    }
     this.kabari();
   }
 
@@ -439,6 +553,8 @@ export class Ruang {
             minta: this.minta,
             orang,
             pi: this.pi !== null,
+            ...(this.colo ? { colo: this.colo } : {}),
+            pintu: { aku: w.pintu, pi: this.piPintu },
           })}`,
         );
       } catch {
@@ -471,7 +587,8 @@ export class Ruang {
     }
     if (this.akhir && now > this.akhir) return this.selesai("batas");
     // Idle: no frame from any viewer, or nobody at all, for 10 minutes.
-    if (this.pi && now - this.terakhirWeb > DIAM_MENIT * 60_000) return this.selesai("diam");
+    if (this.pi && now - this.terakhirWeb > DIAM_MENIT * 60_000)
+      return this.selesai("diam");
     if (!this.webs.size && !this.pi) {
       // Nobody connected: keep the nonces until the ticket window is long past.
       await this.ctx.storage.setAlarm(now + 600_000);

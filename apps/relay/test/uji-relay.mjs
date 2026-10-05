@@ -126,6 +126,21 @@ try {
   const lagi = await buka(`/web/${k}?tiket=${encodeURIComponent(webT)}`);
   cek("a ticket works once", lagi.refused === true);
 
+  // The Pi's ticket works a few times (to move off a far route), then no more.
+  const kUlang = id();
+  const piT2 = tiket({ p: "pi", k: kUlang });
+  const kali = [];
+  for (let i = 0; i < 6; i++) {
+    const s = await buka(`/pi/${kUlang}?tiket=${encodeURIComponent(piT2)}`);
+    kali.push(s.refused === true);
+    if (!s.refused) s.ws.close();
+  }
+  cek(
+    "the Pi's ticket works five times, then is refused",
+    kali.slice(0, 5).every((x) => !x) && kali[5] === true,
+    JSON.stringify(kali),
+  );
+
   // A second person joins: they watch, their keys don't reach the terminal.
   const b = await buka(
     `/web/${k}?tiket=${encodeURIComponent(tiket({ p: "web", k, u: "B", nm: "Budi (BUD)" }))}`,
