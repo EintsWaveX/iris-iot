@@ -129,6 +129,7 @@ import {
   kelompokDariNim,
 } from "../_lib/phase8.js";
 import { eq, and, or, gte, like, sql, notInArray, isNull, desc, asc } from "drizzle-orm";
+import { denganSiaran } from "../_lib/siaran.js";
 
 const PESAN_MAX_LEN = 200;
 const CATATAN_MAX_LEN = 300;
@@ -210,7 +211,7 @@ async function handleTelemetry(req: ApiRequest, res: ApiResponse) {
   const db = getDb();
   // One URL per module and group, so the CDN serves every viewer of a group
   // the same response; clients merge the list by `id`.
-  res.setHeader("Cache-Control", "public, s-maxage=2, stale-while-revalidate=4");
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=2, stale-while-revalidate=4");
 
   // Module 1 has no Pi: its rows come from the group PC's browser (see
   // handleTelemetryModul1) and carry no seq of their own, so the log id is
@@ -1051,8 +1052,15 @@ async function handleLanjutkan(req: ApiRequest, res: ApiResponse, session: Sessi
  *  15s, same idea as the CDN caching Stage 20 already uses for the
  *  telemetry route -- this changes only when an assistant opens a module
  *  or starts a session, never per request. */
-async function handleAksesGet(_req: ApiRequest, res: ApiResponse) {
-  res.setHeader("Cache-Control", "public, s-maxage=15, stale-while-revalidate=30");
+async function handleAksesGet(req: ApiRequest, res: ApiResponse) {
+  // max-age=0: browsers keep a "public" answer otherwise. `?segar=1` skips
+  // the edge too, for a page refetching after a live update.
+  res.setHeader(
+    "Cache-Control",
+    req.query.segar === "1"
+      ? "no-store"
+      : "public, max-age=0, s-maxage=15, stale-while-revalidate=30",
+  );
   const terbuka = await getModulTerbuka();
   res.status(200).json({ ok: true, terbuka });
 }
@@ -1093,7 +1101,7 @@ async function handleAsistenDirectory(res: ApiResponse) {
   res.status(200).json({ ok: true, asisten: rows });
 }
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
   const aksi = req.query.aksi;
@@ -1387,3 +1395,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
 }
+
+// A successful write tells every open page what changed (_lib/siaran.ts).
+export default denganSiaran("session", handler);

@@ -55,7 +55,7 @@ export interface PerburuanData {
 /** Polls the step's data while Module 4 runs; every 5 s, like the Live room. */
 export function usePerburuan(enabled: boolean, wakilNomor?: number) {
   const url = `/api/session/perburuan${wakilNomor ? `?kelompok=${wakilNomor}` : ""}`;
-  return usePoll(() => getJson<PerburuanData>(url), 5_000, enabled);
+  return usePoll(() => getJson<PerburuanData>(url), 5_000, enabled, ["sesi"]);
 }
 
 function Qr({ text, label, size = 220 }: { text: string; label: string; size?: number }) {

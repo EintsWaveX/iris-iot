@@ -58,6 +58,7 @@ import {
 } from "../../src/lib/server-lib.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { desc, asc, and, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { denganSiaran } from "../_lib/siaran.js";
 
 const MAX_TEXT_LEN = 500;
 const AKSI_TERAKHIR = [
@@ -327,7 +328,7 @@ async function handleTokenBaru(_req: ApiRequest, res: ApiResponse, id: number, a
   res.status(200).json({ ok: true, id, kode: result[0].kode, token });
 }
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
   const session = requireRole(req, res, "asisten");
@@ -363,3 +364,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   res.setHeader("Allow", "GET, PATCH, DELETE, POST");
   res.status(405).json({ ok: false, kode: "metode_tidak_diizinkan" });
 }
+
+// A successful write tells every open page what changed (_lib/siaran.ts).
+export default denganSiaran("server", handler);

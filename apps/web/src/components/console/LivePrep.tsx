@@ -107,7 +107,10 @@ export default function LivePrep({
   onOpen: (tab: "akses" | "slides") => void;
 }) {
   const l = t.lp;
-  const poll = usePoll(() => getJson<Hadir>("/api/session/hadir"), 10_000);
+  const poll = usePoll(() => getJson<Hadir>("/api/session/hadir"), 10_000, true, [
+    "sesi",
+    "roster",
+  ]);
   const data = poll.data?.ok ? poll.data : null;
   const pair = usePairing({
     t,

@@ -25,6 +25,7 @@ import SchematicViewer from "../ui/SchematicViewer";
 import { getJson, dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import "./PinSchematic.css";
+import { dengar } from "../../lib/siaran";
 
 export interface PinData {
   judul: string;
@@ -139,12 +140,25 @@ export function useSchematic(
   const [state, setState] = useState({ src: fallback, uploaded: false, frame: false });
   useEffect(() => {
     let alive = true;
-    void activeSchematics().then((a) => {
-      const hit = a[String(modul)];
-      if (alive && hit) setState({ src: hit.url, uploaded: true, frame: !!hit.bingkai });
+    const muat = () =>
+      void activeSchematics().then((a) => {
+        const hit = a[String(modul)];
+        if (!alive) return;
+        setState(
+          hit
+            ? { src: hit.url, uploaded: true, frame: !!hit.bingkai }
+            : { src: fallback, uploaded: false, frame: false },
+        );
+      });
+    muat();
+    // An Asisten replacing or removing the schematic (live updates).
+    const lepas = dengar(["presentasi"], () => {
+      skemaCache = null;
+      muat();
     });
     return () => {
       alive = false;
+      lepas();
     };
   }, [modul]);
   // An uploaded image that no longer loads falls back to the handbook's own.

@@ -33,6 +33,7 @@ import ErrorView from "../ui/ErrorView";
 import { AddIncident, IncidentList, useKejadian } from "./Incidents";
 import { type Format, ekspor, jamWib, kirim, tanggalWib } from "./data";
 import type { Tx } from "./strings";
+import { useSiaran } from "../../lib/siaran";
 
 type Skor = Partial<Record<NilaiKomponen, number>>;
 
@@ -109,6 +110,7 @@ export default function SessionPage({
     return (TABS as readonly string[]).includes(h) ? (h as TabSesi) : "kejadian";
   });
   const [chart, setChart] = useState<"blank" | "delay" | null>(null);
+  useSiaran(["sesi", "nilai", "laporan", "umpan"], () => void load());
   const load = useCallback(async () => {
     try {
       const d = await getJson<{ ok: boolean; kode?: string } & Rekap>(

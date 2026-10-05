@@ -26,6 +26,7 @@ import Fade from "../ui/Fade";
 import ErrorView from "../ui/ErrorView";
 import { kirim } from "./data";
 import type { Tx } from "./strings";
+import { useSiaran } from "../../lib/siaran";
 
 export const TYPE_TONE: Record<JenisDokumen, "accent" | "danger" | "violet" | undefined> = {
   sesi: "accent",
@@ -127,6 +128,7 @@ export default function Docs({
     } else setNeu(true);
   }, []);
   const [busy, setBusy] = useState(false);
+  useSiaran(["laporan"], () => void load());
   const load = useCallback(async () => {
     try {
       const d = await getJson<{ ok: boolean; laporan: DocRow[]; sesi: typeof sesi }>(

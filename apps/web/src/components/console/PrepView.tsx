@@ -37,6 +37,7 @@ import SlidesEditor from "./prep/SlidesEditor";
 import { P, type Px } from "./prepStrings";
 import "../ui/Tabs.css";
 import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
+import { useSiaran } from "../../lib/siaran";
 
 interface JadwalRow {
   hari: number;
@@ -100,6 +101,14 @@ export default function PrepView({
     getJson<{ ok: boolean; draf: Draf[] }>("/api/session/susulan")
       .then((d) => d.ok && setDraf(d.draf))
       .catch(() => {});
+  useSiaran(["roster", "sesi"], loadDraf);
+  useSiaran(["jadwal"], () => {
+    getJson<{ ok: boolean; jadwal: JadwalRow[] }>(
+      `/api/session/schedule?semester=${semesterDariTanggal(hariIniWib())}`,
+    )
+      .then((d) => d.ok && setJadwal(d.jadwal))
+      .catch(() => {});
+  });
 
   useEffect(() => {
     const today = hariIniWib();

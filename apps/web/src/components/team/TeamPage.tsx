@@ -69,6 +69,7 @@ import { T, type Tx } from "./strings";
 import "../ui/Tabs.css";
 import TierBadge from "../ui/TierBadge";
 import "./team.css";
+import { useSiaran } from "../../lib/siaran";
 
 /* ---------------------------------------------------------------- data */
 
@@ -223,6 +224,8 @@ export default function TeamPage({ lang }: { lang: Lang }) {
       setFail(true);
     }
   }, []);
+
+  useSiaran(["tim", "jadwal", "bayar"], () => void load(), me?.role === "asisten");
 
   useEffect(() => {
     if (me?.role === "asisten") void load();

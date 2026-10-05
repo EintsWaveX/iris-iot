@@ -34,6 +34,7 @@ import { personalize } from "../../src/lib/group-identity.js";
 import { getModulTerbuka, jurnalBolehDibuka } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { and, asc, eq, inArray, isNull, like, sql } from "drizzle-orm";
+import { denganSiaran } from "../_lib/siaran.js";
 
 const MAX_JAWABAN_LEN = 200;
 
@@ -398,7 +399,7 @@ async function handleKunci(req: ApiRequest, res: ApiResponse) {
   res.end(personalize(parsed.berkas, generic, nomorKelompok));
 }
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
   if (req.query.aksi === "kunci") {
@@ -447,3 +448,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
 }
+
+// A successful write tells every open page what changed (_lib/siaran.ts).
+export default denganSiaran("modul", handler);

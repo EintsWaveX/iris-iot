@@ -20,6 +20,7 @@ import { TimeField } from "../ui/Controls";
 import { SesiPick } from "./pickers";
 import { jamKejadian, kalimatKejadian, kirim, labelSesi, type TagKejadian } from "./data";
 import type { Tx } from "./strings";
+import { useSiaran } from "../../lib/siaran";
 
 const API = "/api/session/kejadian";
 const TONE: Record<TagKejadian, "violet" | "warn" | "accent" | "teal" | undefined> = {
@@ -39,6 +40,7 @@ export function useKejadian(sesiIds: number[]) {
   const kunci = sesiIds.join(",");
   const [rows, setRows] = useState<Kejadian[] | null>(null);
   const [fail, setFail] = useState(false);
+  useSiaran(["laporan", "sesi"], () => void load());
   const load = useCallback(async () => {
     if (!kunci) {
       setRows([]);

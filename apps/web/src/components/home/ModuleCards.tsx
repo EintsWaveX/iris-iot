@@ -24,6 +24,7 @@ import { setModulAkses } from "../shell/AsistenCommands";
 import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import "./ModuleCards.css";
+import { dengar } from "../../lib/siaran";
 
 export interface ModulKartu {
   modul: number;
@@ -207,15 +208,21 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
 
   useEffect(() => {
     if (me === undefined) return;
-    const load = () =>
-      void getAksesState(true).then((s) => {
+    const load = (segar = false) =>
+      void getAksesState(true, segar).then((s) => {
         setTerbuka(s.terbuka);
         setAsisten(s.asisten);
         setJurnal(s.jurnal);
       });
     load();
-    window.addEventListener("iris:akses-berubah", load);
-    return () => window.removeEventListener("iris:akses-berubah", load);
+    const biasa = () => load();
+    window.addEventListener("iris:akses-berubah", biasa);
+    // Another Asisten opening a module, or a practicum ending (live updates).
+    const lepas = dengar(["akses", "sesi"], () => load(true));
+    return () => {
+      window.removeEventListener("iris:akses-berubah", biasa);
+      lepas();
+    };
   }, [me]);
 
   const sesi = now.data;

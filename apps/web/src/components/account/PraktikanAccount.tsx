@@ -64,6 +64,8 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
   const poll = usePoll(
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
     120_000,
+    true,
+    ["sesi", "nilai", "jurnal"],
   );
   const list = poll.data?.ok ? poll.data.praktikum : null;
   const modul = list ? [...new Set(list.map((p) => p.modul))].sort() : [];

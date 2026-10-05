@@ -16,13 +16,27 @@
  * The Pi side alone gets small control frames, text starting with "\0relay:"
  * (web-masuk, web-keluar, tutup:<why>), so the bridge knows when to open and
  * close its local connection. The browser only ever sees the Pi's bytes.
+ *
+ * Live updates (Phase 9, after the deploy) share this Worker:
+ *
+ *   GET  /siaran          every open IRIS page (WebSocket, anyone)
+ *   POST /siaran/kirim    the IRIS API, signed: {"t": ["jadwal", ...]}
+ *
+ * One Durable Object holds every page's socket (hibernating, so an idle
+ * page costs nothing) and passes each signed message to all of them. A
+ * message only names what changed, never the data, so a page that hears
+ * one asks the API again with its own sign-in.
  */
 import { cekTiket, DIAM_MENIT } from "../../web/src/lib/konsol.ts";
 
 export interface Env {
   RUANG: DurableObjectNamespace;
+  SIARAN: DurableObjectNamespace;
   KONSOL_RELAY_SECRET: string;
 }
+
+const TOPIK_RE = /^[a-z]{2,16}$/;
+const SIARAN_MAKS = 1024;
 
 const KANAL_RE = /^[A-Za-z0-9_-]{16,64}$/;
 const KONTROL = "\u0000relay:";
@@ -68,6 +82,7 @@ export default {
     const url = new URL(req.url);
     const [, ujung, kanal] = url.pathname.split("/");
     if (!ujung) return teks(200, "IRIS Konsol relay");
+    if (ujung === "siaran") return siaran(req, env, kanal);
     if (!kanal || !KANAL_RE.test(kanal)) return teks(404, "tidak ditemukan");
     if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
       return teks(503, "relay belum diatur");
@@ -95,6 +110,73 @@ export default {
     return teks(404, "tidak ditemukan");
   },
 };
+
+/** /siaran (a page listening) and /siaran/kirim (the API telling them). */
+async function siaran(req: Request, env: Env, sub: string | undefined): Promise<Response> {
+  const pusat = env.SIARAN.get(env.SIARAN.idFromName("semua"));
+  if (!sub && req.headers.get("Upgrade") === "websocket") return pusat.fetch(req);
+  if (sub !== "kirim" || req.method !== "POST") return teks(404, "tidak ditemukan");
+  if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
+    return teks(503, "relay belum diatur");
+  const body = await req.text();
+  if (body.length > SIARAN_MAKS) return teks(413, "terlalu besar");
+  const ts = Number(req.headers.get("x-siaran-ts"));
+  const tanda = req.headers.get("x-siaran-tanda") ?? "";
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 60) return teks(403, "kedaluwarsa");
+  if (!samaPersis(tanda, await hmacHex(env.KONSOL_RELAY_SECRET, `siaran|${body}|${ts}`)))
+    return teks(403, "tanda salah");
+  let t: unknown;
+  try {
+    t = (JSON.parse(body) as { t?: unknown }).t;
+  } catch {
+    return teks(400, "format");
+  }
+  if (!Array.isArray(t) || !t.length || !t.every((x) => typeof x === "string" && TOPIK_RE.test(x)))
+    return teks(400, "format");
+  return pusat.fetch("https://siaran/kirim", { method: "POST", body: JSON.stringify({ t }) });
+}
+
+/** Every open page's socket. Hibernation keeps idle sockets free; "ping"
+ *  is answered without waking the object. */
+export class Siaran {
+  constructor(
+    private ctx: DurableObjectState,
+    private env: Env,
+  ) {
+    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+  }
+
+  async fetch(req: Request): Promise<Response> {
+    if (new URL(req.url).pathname === "/kirim") {
+      const pesan = await req.text();
+      let n = 0;
+      for (const ws of this.ctx.getWebSockets()) {
+        try {
+          ws.send(pesan);
+          n++;
+        } catch {
+          /* closing */
+        }
+      }
+      return teks(200, String(n));
+    }
+    const pair = new WebSocketPair();
+    this.ctx.acceptWebSocket(pair[1]);
+    return new Response(null, { status: 101, webSocket: pair[0] });
+  }
+
+  async webSocketMessage() {
+    /* pages only listen */
+  }
+
+  async webSocketClose(ws: WebSocket, code: number) {
+    try {
+      ws.close(code === 1005 ? 1000 : code, "tutup");
+    } catch {
+      /* already closed */
+    }
+  }
+}
 
 export class Ruang {
   private web: WebSocket | null = null;

@@ -68,6 +68,7 @@ import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import { M } from "./moduleStrings";
 import { openSignIn } from "../../lib/signin";
+import { dengar } from "../../lib/siaran";
 
 type Mode = "browse" | "now" | "done" | "asisten";
 type Step = "modul" | "brief" | "praktikum" | "setup" | "code" | "live" | "hunt";
@@ -179,7 +180,12 @@ export default function ModuleSteps(p: Props) {
     const load = () => void getAksesState(true).then(setAkses);
     load();
     window.addEventListener("iris:akses-berubah", load);
-    return () => window.removeEventListener("iris:akses-berubah", load);
+    // Another Asisten opening a module, or a practicum ending (live updates).
+    const lepas = dengar(["akses", "sesi"], () => void getAksesState(true, true).then(setAkses));
+    return () => {
+      window.removeEventListener("iris:akses-berubah", load);
+      lepas();
+    };
   }, [me]);
 
   useEffect(() => {

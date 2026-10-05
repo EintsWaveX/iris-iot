@@ -23,6 +23,7 @@ import type {
   SesiRunning,
 } from "./types";
 import type { SaveState } from "../ui/Controls";
+import { dengar } from "../../lib/siaran";
 
 /** Off until the viewer is known to be an Asisten (a guest sees the gate). */
 export function useCurrent(enabled = true) {
@@ -33,11 +34,16 @@ export function useCurrent(enabled = true) {
       ),
     20_000,
     enabled,
+    ["sesi", "roster", "jadwal"],
   );
 }
 
 export function useLaporan(enabled: boolean) {
-  return usePoll(() => getJson<Laporan>("/api/session/laporan"), 6_000, enabled);
+  return usePoll(() => getJson<Laporan>("/api/session/laporan"), 6_000, enabled, [
+    "sesi",
+    "nilai",
+    "roster",
+  ]);
 }
 
 export function useAssignment(sesiId: number | null) {
@@ -48,6 +54,7 @@ export function useAssignment(sesiId: number | null) {
       ),
     15_000,
     sesiId !== null,
+    ["jadwal", "tim", "sesi"],
   );
   const { refresh } = poll;
   useEffect(() => {
@@ -76,6 +83,7 @@ export function useServers(enabled: boolean, fast: boolean) {
     },
     fast ? 4_000 : 12_000,
     enabled,
+    ["server"],
   );
 }
 
@@ -224,8 +232,11 @@ export function useNilaiLive(
     const onVis = () => (document.visibilityState === "visible" ? start() : stop());
     if (document.visibilityState === "visible") start();
     document.addEventListener("visibilitychange", onVis);
+    // Another Asisten's score lands at once rather than on the next tick.
+    const lepas = dengar(["nilai"], () => void tick());
     return () => {
       stop();
+      lepas();
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [sesiId, meNim]);

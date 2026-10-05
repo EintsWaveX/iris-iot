@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LANG_PREF_KEY, isLang, resolveLang, type Kelas, type Lang } from "./kelas.js";
+import { useSiaran, type Topik } from "./siaran.js";
 
 /* ------------------------------------------------------------- usePoll */
 
@@ -25,8 +26,16 @@ export interface PollState<T> {
  * A failed call is retried after 2 s, then 4 s, 8 s (never later than the
  * normal interval), so one cold start does not leave a page on its
  * skeleton for a whole 20 s poll. A call still in flight is never doubled.
+ *
+ * `topik`: also fetch at once when another device changes that data
+ * (live updates, lib/siaran.ts), instead of waiting for the next tick.
  */
-export function usePoll<T>(fn: () => Promise<T>, ms: number, enabled = true): PollState<T> {
+export function usePoll<T>(
+  fn: () => Promise<T>,
+  ms: number,
+  enabled = true,
+  topik: readonly Topik[] = [],
+): PollState<T> {
   const [data, setData] = useState<T | null>(null);
   const [errors, setErrors] = useState(0);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
@@ -101,6 +110,8 @@ export function usePoll<T>(fn: () => Promise<T>, ms: number, enabled = true): Po
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [ms, enabled, run]);
+
+  useSiaran(topik, () => void run(), enabled);
 
   return { data, errors, updatedAt, refresh: () => void run() };
 }

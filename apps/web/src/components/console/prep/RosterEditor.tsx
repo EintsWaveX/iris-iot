@@ -71,6 +71,7 @@ import type { Px } from "../prepStrings";
 import { AddStudentDialog, ImportXlsxDialog } from "./StudentDialogs";
 import KlpMatch from "../seelabs/KlpMatch";
 import { SL } from "../seelabs/strings";
+import { useSiaran } from "../../../lib/siaran";
 
 /** Who saved a slot roster last, and when (its version). */
 interface Versi {
@@ -200,6 +201,24 @@ const RosterEditor = forwardRef<
       alive = false;
     };
   }, [key]);
+
+  // Another Asisten's roster change shows here, unless this one has unsaved
+  // moves (their save then meets the version check and can compare).
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  useSiaran(["roster"], () => {
+    if (dirtyRef.current) return;
+    const url =
+      target.jenis === "slot"
+        ? `/api/session/rosterslot?hari=${target.hari}&slot=${target.slot}`
+        : `/api/session/rosterslot?sesiId=${target.sesiId}`;
+    void Promise.all([getJson<RosterGet>(url), loadList()]).then(([d]) => {
+      if (!d.ok || dirtyRef.current) return;
+      versi.current = d.versi?.pada ?? null;
+      setPer(d.anggotaPerKelompok);
+      setGroups(keGrup(d));
+    });
+  });
 
   // Leaving the page with unsaved changes asks the browser's own question;
   // switching rosters inside the page asks ours (the parent's dialog).

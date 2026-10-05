@@ -16,6 +16,7 @@ import { namaAsisten } from "../../lib/people";
 import type { Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import type { AsistenRef } from "./types";
+import { useSiaran } from "../../lib/siaran";
 
 const ALASAN_MIN = 5;
 
@@ -56,6 +57,7 @@ export function usePasangan(sesiId: number | null) {
       .catch(() => {});
   }, [sesiId]);
   useEffect(load, [load]);
+  useSiaran(["sesi"], load);
   return { list, reload: load };
 }
 

@@ -31,6 +31,7 @@ import DisplayPanel from "../shell/DisplayPanel";
 import PersonBadges from "../ui/PersonBadges";
 import TierBadge from "../ui/TierBadge";
 import { openSignIn } from "../../lib/signin";
+import { useSiaran } from "../../lib/siaran";
 
 const T = dict({
   id: {
@@ -217,7 +218,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
   const [jadwal, setJadwal] = useState<BarisJadwal[] | null>(null);
   const [fb, setFb] = useState<Ringkasan | null>(null);
 
-  useEffect(() => {
+  const muat = () => {
     if (me?.role !== "asisten") return;
     getJson<{ ok: boolean; jadwal: BarisJadwal[] }>(
       `/api/session/schedule?semester=${semesterDariTanggal(hariIniWib())}`,
@@ -227,7 +228,9 @@ export default function AccountPage({ lang }: { lang: Lang }) {
     getJson<{ ok: boolean; ringkasan: Ringkasan }>("/api/session/feedback?scope=mine")
       .then((d) => d.ok && setFb(d.ringkasan))
       .catch(() => {});
-  }, [me]);
+  };
+  useEffect(muat, [me]);
+  useSiaran(["jadwal", "tim", "umpan"], muat, me?.role === "asisten");
 
   const kode = (me?.kode ?? "").toUpperCase();
   const mine = useMemo(

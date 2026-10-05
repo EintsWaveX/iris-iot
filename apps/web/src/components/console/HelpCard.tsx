@@ -169,6 +169,8 @@ export default function HelpCard({
     () =>
       getJson<{ ok: boolean } & Penugasan>("/api/session/penugasan").then((d) => (d.ok ? d : null)),
     60_000,
+    true,
+    ["jadwal", "tim"],
   );
   const [ask, setAsk] = useState<SlotBantu | null>(null);
   const [busy, setBusy] = useState(false);

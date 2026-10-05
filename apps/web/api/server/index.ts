@@ -22,6 +22,7 @@ import {
 import { currentSesi } from "../../src/lib/sesi.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { desc, eq } from "drizzle-orm";
+import { denganSiaran } from "../_lib/siaran.js";
 
 const KODE_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
 
@@ -110,10 +111,13 @@ async function handleGet(req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true, server: daftar });
 }
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
   if (req.method === "POST") return handlePost(req, res);
   if (req.method === "GET") return handleGet(req, res);
   res.setHeader("Allow", "GET, POST");
   res.status(405).json({ ok: false, kode: "metode_tidak_diizinkan" });
 }
+
+// A successful write tells every open page what changed (_lib/siaran.ts).
+export default denganSiaran("server", handler);

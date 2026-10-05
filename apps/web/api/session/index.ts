@@ -55,6 +55,7 @@ import { getModulTerbuka } from "../../src/lib/akses.js";
 import { isKelas } from "../../src/lib/kelas.js";
 import { jadwalUntuk, siapkanSesiDariJadwal } from "../_lib/phase8.js";
 import { catatKejadian } from "../_lib/berjalan.js";
+import { denganSiaran } from "../_lib/siaran.js";
 
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
 const JAM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -72,7 +73,7 @@ async function jendelaDefault(db: ReturnType<typeof getDb>): Promise<number> {
   return jendelaValid(row?.nilai);
 }
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
   if (!requireMethod(req, res, "POST")) return;
 
@@ -289,3 +290,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     res.status(200).json({ ok: false, kode: "galat_server" });
   }
 }
+
+// A successful write tells every open page what changed (_lib/siaran.ts).
+export default denganSiaran("session", handler);

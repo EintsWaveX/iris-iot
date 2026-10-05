@@ -25,6 +25,7 @@ import en1 from "../../content/modules/en/1.json";
 import en2 from "../../content/modules/en/2.json";
 import en3 from "../../content/modules/en/3.json";
 import en4 from "../../content/modules/en/4.json";
+import { useSiaran } from "../../lib/siaran";
 
 const BAWAAN: Record<"id" | "en", Record<number, { ringkasan: string[] }>> = {
   id: { 1: id1, 2: id2, 3: id3, 4: id4 },
@@ -73,15 +74,16 @@ export default function BriefStep({
   const [rows, setRows] = useState<BriefRow[] | null>(null);
   const [edit, setEdit] = useState(false);
 
-  const load = () =>
-    // An editor reads uncached: the edge copy would show the text from
-    // before their save.
+  // Uncached (`segar`) for an editor and after a live update: the edge
+  // copy would show the text from before the save.
+  const load = (segar = canEdit) =>
     getJson<{ ok: boolean; brief: BriefRow[] }>(
-      canEdit ? "/api/session/brief?segar=1" : "/api/session/brief",
+      segar ? "/api/session/brief?segar=1" : "/api/session/brief",
     )
       .then((d) => setRows(d.ok ? d.brief.filter((r) => r.modul === modul) : []))
       .catch(() => setRows([]));
   useEffect(() => void load(), [modul, canEdit]);
+  useSiaran(["brief"], () => void load(true));
 
   const row =
     rows?.find((r) => r.bahasa === lang) ??

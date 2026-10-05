@@ -312,6 +312,8 @@ function SlidesCard({ t, lang, modul }: { t: DashT; lang: Lang; modul: number })
         "/api/presentasi/aktif",
       ).then((d) => (d.ok ? d.presentasi : null)),
     30_000,
+    true,
+    ["presentasi"],
   );
   const [open, setOpen] = useState(false);
   const p = poll.data;
@@ -841,11 +843,13 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     () => getJson<Hasil>(`/api/session/results${pro ? `?kelompok=${pro}` : ""}`),
     20_000,
     praktikan,
+    ["sesi", "nilai", "jurnal"],
   );
   const minePoll = usePoll(
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
     60_000,
     sendiri,
+    ["sesi"],
   );
   const hasil = hasilPoll.data;
 

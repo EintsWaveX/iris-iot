@@ -148,6 +148,7 @@ export function useSessionNow(ms = 20_000, enabled = true) {
     () => getJson<{ ok: boolean; sesi: SesiNow | null }>("/api/session/now").then((d) => d.sesi),
     ms,
     enabled,
+    ["sesi"],
   );
 }
 

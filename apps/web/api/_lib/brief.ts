@@ -24,7 +24,9 @@ const BAHASA = ["id", "en", "zh"];
 export async function handleBriefGet(req: ApiRequest, res: ApiResponse) {
   res.setHeader(
     "Cache-Control",
-    req.query.segar === "1" ? "no-store" : "public, s-maxage=30, stale-while-revalidate=60",
+    req.query.segar === "1"
+      ? "no-store"
+      : "public, max-age=0, s-maxage=30, stale-while-revalidate=60",
   );
   const rows = await getDb()
     .select({ brief: modulBrief, nama: asisten.nama, kode: asisten.kode })

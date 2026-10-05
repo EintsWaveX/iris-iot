@@ -317,6 +317,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
       ),
     20_000,
     me !== undefined,
+    ["sesi", "jadwal"],
   );
   const labData = lab.data ? lab.data.sesi : lab.errors > 0 ? null : undefined;
 

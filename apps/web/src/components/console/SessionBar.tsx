@@ -47,6 +47,7 @@ import { modulLabel } from "../../lib/labels";
 import type { Strings } from "./strings";
 import type { ServerState } from "./data";
 import { isOnline, type SesiRunning, type View } from "./types";
+import { dengar, useSiaran } from "../../lib/siaran";
 
 function Pop({
   trigger,
@@ -603,7 +604,12 @@ export function useAkses() {
         .catch(() => {});
     load();
     window.addEventListener("iris:akses-berubah", load);
-    return () => window.removeEventListener("iris:akses-berubah", load);
+    // Another Asisten opening or closing a module (live updates).
+    const lepas = dengar(["akses"], load);
+    return () => {
+      window.removeEventListener("iris:akses-berubah", load);
+      lepas();
+    };
   }, []);
   return { terbuka, setTerbuka, meta };
 }
@@ -676,6 +682,7 @@ function DeckForm({ t, onManage }: { t: Strings; onManage: () => void }) {
   useEffect(() => {
     void load();
   }, []);
+  useSiaran(["presentasi"], load);
   async function pick(d: Deck) {
     try {
       const r = d.aktif

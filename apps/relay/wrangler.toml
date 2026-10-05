@@ -15,3 +15,12 @@ class_name = "Ruang"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Ruang"]
+
+# Live updates for every IRIS page (/siaran).
+[[durable_objects.bindings]]
+name = "SIARAN"
+class_name = "Siaran"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Siaran"]

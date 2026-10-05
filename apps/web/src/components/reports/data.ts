@@ -9,6 +9,7 @@ import type { Kejadian, SesiLaporan } from "../../lib/laporan";
 import type { Lang } from "../../lib/kelas";
 import { unduhPdf, type BagianPdf } from "../../lib/pdf";
 import { unduhXlsx } from "../../lib/xlsx";
+import { useSiaran } from "../../lib/siaran";
 
 export function useRiwayat(enabled = true) {
   const [rows, setRows] = useState<SesiLaporan[] | null>(null);
@@ -26,6 +27,7 @@ export function useRiwayat(enabled = true) {
   useEffect(() => {
     if (enabled) void load();
   }, [enabled, load]);
+  useSiaran(["sesi", "nilai", "laporan", "umpan", "bayar"], () => void load(), enabled);
   return { rows, fail, load };
 }
 

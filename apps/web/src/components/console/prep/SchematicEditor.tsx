@@ -22,6 +22,7 @@ import { dict, getJson, MODUL_NAMA, postJson, skemaBawaan } from "../../../lib/a
 import { modulLabel } from "../../../lib/labels";
 import { bacaTautan, namaLayanan, TAUTAN_SKEMA, tautanBingkai } from "../../../lib/tautan";
 import type { Lang } from "../../../lib/kelas";
+import { useSiaran } from "../../../lib/siaran";
 
 const T = dict({
   id: {
@@ -145,6 +146,7 @@ export default function SchematicEditor({ lang }: { lang: Lang }) {
       .then((d) => setList(d.ok ? d.daftar : []))
       .catch(() => setList([]));
   useEffect(() => void load(), []);
+  useSiaran(["presentasi"], load);
 
   const nama = (m: number) => modulLabel(m, lang);
 

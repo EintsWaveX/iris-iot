@@ -27,6 +27,7 @@ export function useSeelabs(sesiId: number | null) {
       ),
     20_000,
     sesiId !== null,
+    ["sesi", "bayar", "nilai"],
   );
   const { refresh } = poll;
   useEffect(() => {
@@ -45,6 +46,7 @@ export function useTitipan(enabled = true) {
       ).then((d) => (d.ok ? d : null)),
     60_000,
     enabled,
+    ["sesi", "bayar"],
   );
 }
 

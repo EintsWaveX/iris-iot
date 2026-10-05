@@ -47,6 +47,7 @@ import { handleKonsolAksi } from "./_lib/konsol.js";
 import { writeAudit } from "../src/lib/auth.js";
 import type { SessionPayload } from "../src/lib/auth.js";
 import { and, asc, desc, eq, gte, notInArray } from "drizzle-orm";
+import { denganSiaran } from "./_lib/siaran.js";
 
 async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
@@ -272,7 +273,7 @@ const AKSI_SLOT = new Set(["ap.nyala", "ap.mati", "jam.selaraskan", "diag.siap"]
 /** Commands that belong to the Full view (DEV, Admin, Pencipta). */
 const AKSI_FULL = new Set(["diag.rinci", "diag.journal"]);
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
   if (!requireMethod(req, res, "POST")) return;
 
@@ -307,3 +308,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 function isPlainObject(value: unknown): value is Record<string, string> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+// A successful write tells every open page what changed (_lib/siaran.ts).
+export default denganSiaran("action", handler);

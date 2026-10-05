@@ -96,6 +96,7 @@ import {
   TAUTAN_SKEMA,
   TAUTAN_SLIDES,
 } from "../../src/lib/tautan.js";
+import { denganSiaran } from "../_lib/siaran.js";
 
 // Comfortably above a slide deck; well under what Blob itself allows.
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -523,7 +524,7 @@ const SKEMA_POST: Record<string, SkemaPost> = {
   "schematic-delete": handleSchematicDelete,
 };
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
   const aksi = req.query.aksi;
@@ -594,3 +595,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
 }
+
+// A successful write tells every open page what changed (_lib/siaran.ts).
+export default denganSiaran("presentasi", handler);

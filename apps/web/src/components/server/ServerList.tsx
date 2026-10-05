@@ -50,22 +50,27 @@ export default function ServerList({
   const t = S[lang];
   const [enroll, setEnroll] = useState(false);
   const now = useTick(1_000);
-  const poll = usePoll(async () => {
-    const d = await getJson<{ ok: boolean; server: ServerRow[] }>("/api/server");
-    const list = d.ok ? d.server : [];
-    const hist: Record<number, Riwayat> = {};
-    await Promise.all(
-      list
-        .filter((s) => s.terdaftar)
-        .map(async (s) => {
-          const r = await getJson<{ ok: boolean } & Riwayat>(
-            `/api/server/${s.id}?aksi=riwayat&rentang=24h`,
-          ).catch(() => null);
-          if (r?.ok) hist[s.id] = r;
-        }),
-    );
-    return { list, hist };
-  }, 15_000);
+  const poll = usePoll(
+    async () => {
+      const d = await getJson<{ ok: boolean; server: ServerRow[] }>("/api/server");
+      const list = d.ok ? d.server : [];
+      const hist: Record<number, Riwayat> = {};
+      await Promise.all(
+        list
+          .filter((s) => s.terdaftar)
+          .map(async (s) => {
+            const r = await getJson<{ ok: boolean } & Riwayat>(
+              `/api/server/${s.id}?aksi=riwayat&rentang=24h`,
+            ).catch(() => null);
+            if (r?.ok) hist[s.id] = r;
+          }),
+      );
+      return { list, hist };
+    },
+    15_000,
+    true,
+    ["server"],
+  );
   // Online servers first, then by name (mockup v-list).
   const list = [...(poll.data?.list ?? [])].sort(
     (a, b) =>

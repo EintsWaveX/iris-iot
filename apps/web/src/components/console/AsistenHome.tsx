@@ -77,6 +77,7 @@ import type { Kelas, Lang } from "../../lib/kelas";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import { pesan, type Strings } from "./strings";
 import { H, type Hx } from "./homeStrings";
+import { useSiaran } from "../../lib/siaran";
 
 interface SlotHariIni {
   slot: number;
@@ -166,6 +167,7 @@ export default function AsistenHome({
     getJson<{ ok: boolean } & Beranda>("/api/session/beranda")
       .then((d) => d.ok && setData(d))
       .catch(() => {});
+  useSiaran(["sesi", "jadwal", "tim", "akses", "server", "roster"], load);
 
   useEffect(() => {
     void load();

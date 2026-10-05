@@ -33,6 +33,7 @@ import {
 import { getDb } from "../../src/lib/db.js";
 import { asisten } from "../../src/lib/schema.js";
 import { eq } from "drizzle-orm";
+import { denganSiaran } from "../_lib/siaran.js";
 
 async function handleMe(req: ApiRequest, res: ApiResponse) {
   if (!requireMethod(req, res, "GET")) return;
@@ -238,7 +239,7 @@ async function handleChangePassword(req: ApiRequest, res: ApiResponse) {
   }
 }
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
   const aksi = req.query.aksi;
@@ -252,3 +253,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
 }
+
+// A successful write tells every open page what changed (_lib/siaran.ts).
+export default denganSiaran("auth", handler);

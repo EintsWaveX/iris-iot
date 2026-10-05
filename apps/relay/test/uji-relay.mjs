@@ -142,6 +142,40 @@ try {
     `/web/${k2}?tiket=${encodeURIComponent(tiket({ p: "web", k: k2, end: now() - 1 }))}`,
   );
   cek("a ticket past the console's end is refused", habis.refused === true);
+
+  // Live updates: every page hears a signed message; nothing else gets in.
+  const kirim = (body, o = {}) => {
+    const ts = o.ts ?? now();
+    const tanda = o.tanda ?? createHmac("sha256", secret).update(`siaran|${body}|${ts}`).digest("hex");
+    return fetch(`${BASE}/siaran/kirim`, {
+      method: "POST",
+      headers: { "x-siaran-ts": String(ts), "x-siaran-tanda": tanda },
+      body,
+    });
+  };
+  const p1 = await buka("/siaran");
+  const p2 = await buka("/siaran");
+  cek("pages connect to /siaran without a ticket", !p1.refused && !p2.refused);
+  let r = await kirim(JSON.stringify({ t: ["jadwal", "tim"] }));
+  await sampai(() => p1.msgs.length >= 1 && p2.msgs.length >= 1);
+  cek(
+    "a signed message reaches every page, topics only",
+    r.ok && teks(p1.msgs[0]) === '{"t":["jadwal","tim"]}' && teks(p2.msgs[0]) === teks(p1.msgs[0]),
+    `${r.status} ${p1.msgs.map(teks)}`,
+  );
+  r = await kirim(JSON.stringify({ t: ["jadwal"] }), { tanda: "0".repeat(64) });
+  cek("a wrong signature is refused", r.status === 403);
+  r = await kirim(JSON.stringify({ t: ["jadwal"] }), { ts: now() - 120 });
+  cek("an old message is refused", r.status === 403);
+  r = await kirim(JSON.stringify({ t: ["<b>x</b>"] }));
+  cek("a topic that isn't a plain word is refused", r.status === 400);
+  p1.ws.send("ping");
+  await sampai(() => p1.msgs.length >= 2);
+  cek("ping gets pong", teks(p1.msgs[1]) === "pong", p1.msgs.map(teks).join(","));
+  await tunggu(200);
+  cek("nothing else arrived", p2.msgs.length === 1, p2.msgs.map(teks).join(","));
+  p1.ws.close();
+  p2.ws.close();
 } finally {
   if (process.env.DEBUG_RELAY) {
     const q = await fetch(`${BASE}/cdn-cgi/local/explorer/api/local/observability/query`, {

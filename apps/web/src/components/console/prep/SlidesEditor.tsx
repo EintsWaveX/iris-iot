@@ -17,6 +17,7 @@ import { dict, getJson, postJson, sejak } from "../../../lib/app";
 import { useDirektori } from "../../../lib/people";
 import { bacaTautan, TAUTAN_SLIDES } from "../../../lib/tautan";
 import type { Lang } from "../../../lib/kelas";
+import { useSiaran } from "../../../lib/siaran";
 
 const T = dict({
   id: {
@@ -161,6 +162,7 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
       .then((d) => setList(d.ok ? d.daftar : []))
       .catch(() => setList([]));
   useEffect(() => void load(), []);
+  useSiaran(["presentasi"], load);
 
   const cek = bacaTautan(url, TAUTAN_SLIDES);
   const err = tried && !cek.ok ? t.errors[cek.kode] : null;

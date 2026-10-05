@@ -5,7 +5,7 @@
  * (Mandarin starts from the English one); clearing both fields and saving
  * brings the handbook's text back.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FloppyDiskIcon } from "@phosphor-icons/react";
 import SegmentedControl from "../../ui/SegmentedControl";
 import Fade from "../../ui/Fade";
@@ -22,6 +22,7 @@ import en2 from "../../../content/modules/en/2.json";
 import en3 from "../../../content/modules/en/3.json";
 import en4 from "../../../content/modules/en/4.json";
 import BetaBadge from "../../ui/BetaBadge";
+import { useSiaran } from "../../../lib/siaran";
 
 const BAWAAN: Record<"id" | "en", Record<number, { ringkasan: string[] }>> = {
   id: { 1: id1, 2: id2, 3: id3, 4: id4 },
@@ -97,11 +98,15 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
       .then((d) => setRows(d.ok ? d.brief : []))
       .catch(() => setRows([]));
   useEffect(() => void load(), []);
+  // Another Asisten's save shows here too, unless this one is mid-edit.
+  const diubah = useRef(false);
+  useSiaran(["brief"], () => !diubah.current && void load());
 
   const row = rows?.find((r) => r.modul === m && r.bahasa === lg) ?? null;
   useEffect(() => {
     if (!rows) return;
     const base = BAWAAN[lg === "id" ? "id" : "en"][m];
+    diubah.current = false;
     setSum(row ? row.isi.ringkasan : base.ringkasan.join("\n\n"));
     setSteps(row ? row.isi.langkah.join("\n") : "");
   }, [rows, m, lg]);
@@ -168,7 +173,10 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
                 rows={6}
                 lang={lg === "zh" ? "zh-CN" : lg}
                 value={sum}
-                onChange={(e) => setSum(e.target.value)}
+                onChange={(e) => {
+                  diubah.current = true;
+                  setSum(e.target.value);
+                }}
               />
             </label>
             <label className="field">
@@ -178,7 +186,10 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
                 rows={5}
                 lang={lg === "zh" ? "zh-CN" : lg}
                 value={steps}
-                onChange={(e) => setSteps(e.target.value)}
+                onChange={(e) => {
+                  diubah.current = true;
+                  setSteps(e.target.value);
+                }}
               />
               <span className="field__hint">
                 {t.stepsHint} {t.reset}

@@ -46,6 +46,7 @@ import ImportView from "./ImportView";
 import { J, pesanJ, type Jx } from "./strings";
 import { HARI, SLOTS, type DataJadwal, type JadwalRow, type PengaturanJendela } from "./types";
 import "./SchedulePage.css";
+import { useSiaran } from "../../lib/siaran";
 
 /* ------------------------------------------------------------ semesters */
 
@@ -394,6 +395,10 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   useEffect(() => {
     if (me?.role === "asisten") load();
   }, [me, semester]);
+  // Someone else's change shows at once, unless this page has unsaved edits.
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  useSiaran(["jadwal", "tim"], () => !dirtyRef.current && load(), me?.role === "asisten");
 
   // Leaving the page with unsaved changes asks the browser's own question.
   useEffect(() => {

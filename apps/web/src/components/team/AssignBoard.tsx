@@ -16,7 +16,7 @@
  * with the date's seats), so both pages always agree. Without the Schedule
  * right the board is read only.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -47,6 +47,7 @@ import { hariLabel, statusOrangLabel, slotLabel } from "../../lib/labels";
 import { pasanganSemester, type MingguSlot, type TugasInfo } from "../../lib/penugasan-minggu";
 import type { Lang } from "../../lib/kelas";
 import type { DataJadwal, JadwalRow } from "../schedule/types";
+import { useSiaran } from "../../lib/siaran";
 
 export const A = dict({
   id: {
@@ -260,6 +261,11 @@ export default function AssignBoard({
   useEffect(() => {
     void load().catch(() => window.Toast?.show(t.fail, "danger"));
   }, []);
+  // Someone else's change shows at once, unless this board has unsaved moves.
+  const adaUbah = useRef(false);
+  useSiaran(["jadwal", "tim"], () => {
+    if (!adaUbah.current) void load().catch(() => {});
+  });
 
   const rows = useMemo(() => (data?.jadwal ?? []).filter((j) => j.status !== "kosong"), [data]);
   const awal = useMemo(
@@ -268,6 +274,7 @@ export default function AssignBoard({
   );
   const now = (id: number) => edit[id] ?? awal[id];
   const changed = rows.filter((j) => JSON.stringify(now(j.id)) !== JSON.stringify(awal[j.id]));
+  adaUbah.current = changed.length > 0;
   const load7 = useMemo(() => {
     const m = new Map<string, number>();
     for (const j of rows)

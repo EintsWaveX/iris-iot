@@ -279,6 +279,7 @@ export default function AppNav({
       ),
     30_000,
     dev,
+    ["server"],
   );
   const menunggu = konsol.data ?? 0;
   const sebelum = useRef(0);

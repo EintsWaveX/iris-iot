@@ -76,18 +76,28 @@ export default function ServerDetail({
     return () => window.removeEventListener("hashchange", on);
   }, [TABS]);
 
-  const poll = usePoll(async () => {
-    const d = await getJson<{ ok: boolean } & Detail>(`/api/server/${id}`);
-    if (!d.ok) throw new Error("gone");
-    return d as Detail;
-  }, 6_000);
+  const poll = usePoll(
+    async () => {
+      const d = await getJson<{ ok: boolean } & Detail>(`/api/server/${id}`);
+      if (!d.ok) throw new Error("gone");
+      return d as Detail;
+    },
+    6_000,
+    true,
+    ["server"],
+  );
   const data = poll.data;
   // Phase 9 Stage 9: Konsol Pi's state, for the tab and the banner.
-  const konsol = usePoll(async () => {
-    const d = await getJson<KonsolData | { ok: false }>(`/api/server/${id}?aksi=konsol`);
-    if (!d.ok) throw new Error("konsol");
-    return { d: d as KonsolData, pada: Date.now() };
-  }, 4_000);
+  const konsol = usePoll(
+    async () => {
+      const d = await getJson<KonsolData | { ok: false }>(`/api/server/${id}?aksi=konsol`);
+      if (!d.ok) throw new Error("konsol");
+      return { d: d as KonsolData, pada: Date.now() };
+    },
+    4_000,
+    true,
+    ["server"],
+  );
   const kd = konsol.data?.d ?? null;
   const dir = useDirektori();
   const siapa = (n: string | null) => (n ? dir.nama(n) : "");

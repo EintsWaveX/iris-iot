@@ -48,6 +48,7 @@ import { ProgressRing } from "../ui/Display";
 import type { Lang } from "../../lib/kelas";
 import { C } from "./codeStrings";
 import { openSignIn } from "../../lib/signin";
+import { dengar } from "../../lib/siaran";
 
 export type CodeMode = "now" | "done" | "asisten";
 
@@ -256,11 +257,7 @@ export default function BlankFile(p: Props) {
   useEffect(() => {
     if (mode !== "now" || !loaded || locked) return;
     let first = true;
-    return startPolling(async () => {
-      if (first) {
-        first = false;
-        return;
-      }
+    const ambil = async () => {
       try {
         const d = await fetch(draftUrl).then((r) => r.json());
         if (!mounted.current) return;
@@ -269,7 +266,20 @@ export default function BlankFile(p: Props) {
       } catch {
         // The next tick tries again.
       }
+    };
+    const stop = startPolling(async () => {
+      if (first) {
+        first = false;
+        return;
+      }
+      await ambil();
     }, POLL_MS);
+    // A groupmate's answer shows at once (live updates).
+    const lepas = dengar(["jurnal"], () => void ambil());
+    return () => {
+      stop();
+      lepas();
+    };
   }, [mode, loaded, locked, modul, berkas]);
 
   // The key, for an Asisten who switched Show Answers on.
