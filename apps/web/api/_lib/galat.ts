@@ -66,6 +66,14 @@ export function catatGalat(aksi: "galat_server" | "galat_klien", detail: Record<
   void p.finally(() => tertunda.delete(p));
 }
 
+/** Node's own process warnings ("(node:4) [DEP0169] DeprecationWarning:
+ *  ...", "ExperimentalWarning") also reach console.error, once per cold
+ *  start; on production that was one row per cold start, enough to trip
+ *  the burst alert during a class. They aren't errors of this site. */
+export function bukanGalat(pesan: string): boolean {
+  return /^\(node:\d+\) /.test(pesan);
+}
+
 /** Hooks console.error once per function instance. */
 export function pasangPencatat() {
   if (terpasang) return;
@@ -74,6 +82,7 @@ export function pasangPencatat() {
     asli(...args);
     try {
       const pesan = args.map(teks).join(" ").slice(0, PESAN_MAKS);
+      if (bukanGalat(pesan)) return;
       catatGalat("galat_server", { rute: ruteKini, pesan });
     } catch {
       /* reporting must never break the caller */
