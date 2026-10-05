@@ -41,12 +41,17 @@
   background: rgb(255 255 255 / 0.16);
 }
 
+/* Wraps to two lines on a phone rather than cutting off (mockup m-browse). */
 .pdfv__name {
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
   flex: 1 1 auto;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.25;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .pdfv__pos {
