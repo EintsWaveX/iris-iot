@@ -49,11 +49,13 @@ export function getAksesState(reset = false, segar = false): Promise<AksesState>
         .catch(() => null),
     ]).then(async ([me, jurnal]) => {
       const asisten = Boolean(me?.ok && me?.role === "asisten");
-      return {
-        terbuka: (await terbukaUntuk(asisten, segar)) ?? [1],
-        asisten,
-        jurnal: Array.isArray(jurnal?.jurnal) ? jurnal.jurnal : [],
-      };
+      const bisa: number[] = Array.isArray(jurnal?.jurnal) ? jurnal.jurnal : [];
+      const umum = (await terbukaUntuk(asisten, segar)) ?? [1];
+      // A Praktikan's own journals count as open to them: for a real one
+      // they always are already; for a Mode TOT dummy they are the TOT
+      // session's module, which may be closed to everyone else.
+      const terbuka = asisten ? umum : [...new Set([...umum, ...bisa])].sort((a, b) => a - b);
+      return { terbuka, asisten, jurnal: bisa };
     });
   }
   return cached;
