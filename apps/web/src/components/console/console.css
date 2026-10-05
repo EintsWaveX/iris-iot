@@ -2712,3 +2712,9 @@ thead .ntable__name {
     grid-template-columns: 1fr;
   }
 }
+
+/* Mode TOT's tab (PrepView.tsx): last, with the banner's icon and colour,
+   because switching it changes who can sign in at all. */
+.tabs__tab[data-unik="yes"] svg {
+  color: var(--warn);
+}

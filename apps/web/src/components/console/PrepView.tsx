@@ -5,9 +5,10 @@
  * The head row names whose roster is open ("Roster for": every weekly slot
  * with a practicum, the makeup drafts, and a new makeup session) and the
  * server's Ready state. The tabs follow: Roster (the two-pane editor; while
- * a session runs, the group assistants come first), Module Access, Mode TOT
- * (prep/TotPanel.tsx), Module Brief, Kode Jurnal (the ASO division and Admins only, prep/CodeEditor.tsx),
- * Slides and Wiring Schematics. Switching rosters with unsaved
+ * a session runs, the group assistants come first), Module Access, Module
+ * Brief, Kode Jurnal (the ASO division and Admins only, prep/CodeEditor.tsx),
+ * Slides, Wiring Schematics and, last and marked with its own icon, Mode TOT
+ * (prep/TotPanel.tsx). Switching rosters with unsaved
  * changes asks first: Save and Move, Discard, or Stay.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -15,6 +16,7 @@ import * as RadixPopover from "@radix-ui/react-popover";
 import {
   ArrowRightIcon,
   CaretDownIcon,
+  ChalkboardTeacherIcon,
   CheckIcon,
   MagnifyingGlassIcon,
 } from "@phosphor-icons/react";
@@ -60,7 +62,9 @@ interface Draf {
   jumlahKelompok: number;
 }
 
-const TABS = ["roster", "akses", "tot", "brief", "kode", "slides", "skema"] as const;
+// Mode TOT sits last, set apart with its own icon: it changes who can sign
+// in at all, unlike the preparation tabs before it.
+const TABS = ["roster", "akses", "brief", "kode", "slides", "skema", "tot"] as const;
 
 /** The slot the clock is in ("2-3"): today's first slot that hasn't ended
  *  (start plus the session cap), else the next day's first slot, Sunday
@@ -241,8 +245,10 @@ export default function PrepView({
             aria-selected={tab === id}
             tabIndex={tab === id ? 0 : -1}
             className="tabs__tab"
+            data-unik={id === "tot" ? "yes" : undefined}
             onClick={() => setTab(id)}
           >
+            {id === "tot" && <ChalkboardTeacherIcon size={19} aria-hidden="true" />}
             {p.tabs[id]}
           </button>
         ))}
