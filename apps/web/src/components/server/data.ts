@@ -60,11 +60,15 @@ export interface Bisa {
   server: boolean;
   /** The Full view, settings, clearing logs, registering a Pi. */
   full: boolean;
-  /** Phase 9 Stage 9: Konsol Pi (the DEV badge or the Pencipta). */
+  /** Konsol Pi: every Asisten may ask or join (2026-10-05). */
   konsol: boolean;
+  /** Opens and joins without an approver: the Pencipta, the Inti, DEV. */
+  istimewa: boolean;
   pencipta: boolean;
-  /** Cutting off someone else's console: DEV, Pencipta or Admin. */
+  /** Cutting off someone else's console: the Pencipta, the Inti or DEV. */
   putus: boolean;
+  badges: string[];
+  admin: boolean;
   nim: string;
 }
 

@@ -84,36 +84,125 @@ try {
   );
   cek("an expired ticket is refused", lewat.refused === true);
 
-  // The browser first: its frames wait for the Pi.
-  const webT = tiket({ p: "web", k });
+  // The owner first: their keys wait for the Pi, tagged with their id.
+  const kontrol = (m) => teks(m).startsWith("\u0000relay:");
+  const ruangDari = (s) => {
+    const r = s.msgs.map(teks).filter((m) => m.startsWith("\u0000relay:ruang:"));
+    return r.length ? JSON.parse(r[r.length - 1].slice("\u0000relay:ruang:".length)) : null;
+  };
+  const data = (s) => s.msgs.filter((m) => !kontrol(m)).map(teks);
+  const webT = tiket({ p: "web", k, u: "A", nm: "Ani (ANI)", pk: true });
   const web = await buka(`/web/${k}?tiket=${encodeURIComponent(webT)}`);
-  cek("the browser joins", !web.refused);
+  cek("the owner joins", !web.refused);
+  await sampai(() => ruangDari(web));
+  const r1 = ruangDari(web);
+  cek(
+    "the first one in controls",
+    r1 && r1.pengendali === r1.aku && r1.orang[0]?.nama === "Ani (ANI)" && r1.pi === false,
+    JSON.stringify(r1),
+  );
   web.ws.send(new Uint8Array([108, 115, 13]));
+  await tunggu(100);
   const pi = await buka(`/pi/${k}?tiket=${encodeURIComponent(tiket({ p: "pi", k }))}`);
   cek("the Pi joins", !pi.refused);
-  await sampai(() => pi.msgs.length >= 2);
-  cek("the Pi hears the browser is in", teks(pi.msgs[0] ?? "") === "\u0000relay:web-masuk");
+  await sampai(() => pi.msgs.length >= 3);
+  const a = r1.aku;
   cek(
-    "frames sent before the Pi joined arrive",
-    teks(pi.msgs[1] ?? "") === "ls\r",
-    JSON.stringify(pi.msgs.map(teks)),
+    "the Pi hears who is in and who controls",
+    teks(pi.msgs[0]) === `\u0000relay:kendali:${a}` && teks(pi.msgs[1]) === `\u0000relay:web-masuk:${a}`,
+    JSON.stringify(pi.msgs.slice(0, 2).map(teks)),
   );
-  pi.ws.send(new Uint8Array([0x68, 0x69]));
-  await sampai(() => web.msgs.length >= 1);
-  cek("the Pi's bytes reach the browser", teks(web.msgs[0] ?? "") === "hi");
+  const b2 = new Uint8Array(pi.msgs[2] instanceof ArrayBuffer ? pi.msgs[2] : []);
   cek(
-    "the browser never sees relay control frames",
-    !web.msgs.some((m) => teks(m).startsWith("\u0000relay:")),
+    "keys sent before the Pi joined arrive, tagged with the sender",
+    b2.length === 5 && ((b2[0] << 8) | b2[1]) === a && Buffer.from(b2.slice(2)).toString() === "ls\r",
   );
+  pi.ws.send(new Uint8Array([0, 0, 0x68, 0x69]));
+  await sampai(() => data(web).length >= 1);
+  cek("output for everyone reaches the owner, untagged", data(web)[0] === "hi");
+  await sampai(() => ruangDari(web)?.pi === true);
+  cek("the owner hears the Pi is in", ruangDari(web)?.pi === true);
 
   const lagi = await buka(`/web/${k}?tiket=${encodeURIComponent(webT)}`);
   cek("a ticket works once", lagi.refused === true);
 
-  // A reload: a fresh ticket replaces the browser socket.
-  const web2 = await buka(`/web/${k}?tiket=${encodeURIComponent(tiket({ p: "web", k }))}`);
+  // A second person joins: they watch, their keys don't reach the terminal.
+  const b = await buka(
+    `/web/${k}?tiket=${encodeURIComponent(tiket({ p: "web", k, u: "B", nm: "Budi (BUD)" }))}`,
+  );
+  cek("a second person joins", !b.refused);
+  await sampai(() => ruangDari(b));
+  const rb = ruangDari(b);
+  const bid = rb.aku;
+  cek("they see who controls", rb.pengendali === a && rb.orang.length === 2, JSON.stringify(rb));
+  await sampai(() => pi.msgs.some((m) => teks(m) === `\u0000relay:web-masuk:${bid}`));
+  cek("the Pi hears them come in", pi.msgs.some((m) => teks(m) === `\u0000relay:web-masuk:${bid}`));
+  const sebelum = pi.msgs.length;
+  b.ws.send(new Uint8Array([0x72, 0x6d]));
+  b.ws.send('{"t":"r","c":80,"r":24}');
+  await tunggu(300);
+  cek("a watcher's keys and size don't reach the terminal", pi.msgs.length === sebelum);
+  pi.ws.send(new Uint8Array([0, 0, 0x6f, 0x6b]));
+  await sampai(() => data(b).includes("ok"));
+  cek("output for everyone reaches the watcher", data(b).includes("ok"));
+
+  // Asking for control, and getting it.
+  b.ws.send("\u0000relay:minta");
+  await sampai(() => ruangDari(web)?.minta?.includes(bid));
+  cek("the controller sees the request", ruangDari(web)?.minta?.includes(bid));
+  b.ws.send(`\u0000relay:beri:${bid}`);
+  await tunggu(200);
+  cek("only the controller can hand it over", ruangDari(b)?.pengendali === a);
+  web.ws.send(`\u0000relay:beri:${bid}`);
+  await sampai(() => ruangDari(b)?.pengendali === bid);
+  cek("control moves when the controller gives it", ruangDari(web)?.pengendali === bid);
+  await sampai(() => pi.msgs.some((m) => teks(m) === `\u0000relay:kendali:${bid}`));
+  cek("the Pi hears who controls now", pi.msgs.some((m) => teks(m) === `\u0000relay:kendali:${bid}`));
+  b.ws.send(new Uint8Array([0x70, 0x77, 0x64]));
+  b.ws.send('{"t":"r","c":100,"r":30}');
+  await sampai(() =>
+    pi.msgs.some((m) => teks(m) === `\u0000web:${bid}:{"t":"r","c":100,"r":30}`),
+  );
+  const kb = pi.msgs.find(
+    (m) => m instanceof ArrayBuffer && ((new Uint8Array(m)[0] << 8) | new Uint8Array(m)[1]) === bid,
+  );
+  cek(
+    "the new controller's keys and size reach the Pi",
+    kb && Buffer.from(new Uint8Array(kb).slice(2)).toString() === "pwd",
+  );
+  web.ws.send("\u0000relay:minta");
+  await sampai(() => ruangDari(b)?.minta?.includes(a));
+  b.ws.send(`\u0000relay:tolak:${a}`);
+  await sampai(() => web.msgs.some((m) => teks(m) === "\u0000relay:ditolak"));
+  cek(
+    "a declined request is cleared and the asker told",
+    web.msgs.some((m) => teks(m) === "\u0000relay:ditolak") && !ruangDari(web)?.minta?.length,
+  );
+
+  // A note for one person only.
+  pi.ws.send(`\u0000ke:${bid}:{"t":"siap"}`);
+  await sampai(() => data(b).includes('{"t":"siap"}'));
+  cek(
+    "a note for one person reaches them alone",
+    data(b).includes('{"t":"siap"}') && !data(web).includes('{"t":"siap"}'),
+  );
+
+  // The controller leaves: control goes back to the owner.
+  b.ws.close();
+  await sampai(() => ruangDari(web)?.pengendali === a && ruangDari(web)?.orang.length === 1);
+  cek("when the controller leaves, the owner controls again", ruangDari(web)?.pengendali === a);
+  await sampai(() => pi.msgs.some((m) => teks(m) === `\u0000relay:web-keluar:${bid}`));
+  cek("the Pi hears them leave", pi.msgs.some((m) => teks(m) === `\u0000relay:web-keluar:${bid}`));
+
+  // A reload: a fresh ticket for the same person takes over their place.
+  const web2 = await buka(
+    `/web/${k}?tiket=${encodeURIComponent(tiket({ p: "web", k, u: "A", nm: "Ani (ANI)", pk: true }))}`,
+  );
   cek("a fresh ticket rejoins", !web2.refused);
   await sampai(() => web.closed !== null);
-  cek("the old browser socket is replaced", web.closed === 4000, String(web.closed));
+  cek("the old socket is replaced", web.closed === 4000, String(web.closed));
+  await sampai(() => ruangDari(web2));
+  cek("and keeps control", ruangDari(web2)?.pengendali === ruangDari(web2)?.aku);
 
   const ts = now();
   const salah = await fetch(`${BASE}/tutup/${k}`, {

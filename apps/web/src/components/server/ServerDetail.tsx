@@ -187,6 +187,7 @@ export default function ServerDetail({
             dibaca={konsol.data?.pada ?? 0}
             bisaPutus={bisa.putus}
             refresh={konsol.refresh}
+            onJoin={tab === "konsol" ? undefined : () => go("konsol")}
           />
         )}
         <BackButton lang={lang} label={t.back} href={href(lang, "/servers")} onClick={onBack} />
@@ -279,7 +280,8 @@ export default function ServerDetail({
             data={kd}
             dibaca={konsol.data?.pada ?? 0}
             refresh={konsol.refresh}
-            pencipta={bisa.pencipta}
+            badges={bisa.badges}
+            admin={bisa.admin}
             onOverview={() => go("ringkasan")}
           />
         )}

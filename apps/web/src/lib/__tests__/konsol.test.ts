@@ -3,6 +3,7 @@ import {
   acakId,
   bolehKonsol,
   bolehSetujui,
+  istimewaKonsol,
   cekTiket,
   sisaDetikKonsol,
   statusEfektif,
@@ -26,12 +27,20 @@ const base = (p: Tiket["p"]): Tiket => ({
 
 describe("Konsol Pi rights", () => {
   it("only DEV or the Pencipta may open it", () => {
-    expect(bolehKonsol({ badges: ["dev"] })).toBe(true);
-    expect(bolehKonsol({ badges: ["pencipta"] })).toBe(true);
-    expect(bolehKonsol({ badges: [] })).toBe(false);
+    expect(bolehKonsol({ status: "aktif" })).toBe(true);
+    expect(bolehKonsol({})).toBe(true);
+    expect(bolehKonsol({ status: "cuti" })).toBe(false);
   });
-  it("another DEV approves, never the asker", () => {
+  it("the Pencipta, the Inti and DEV need no approver", () => {
+    expect(istimewaKonsol({ badges: ["dev"] })).toBe(true);
+    expect(istimewaKonsol({ badges: ["pencipta"] })).toBe(true);
+    expect(istimewaKonsol({ badges: [], tier: "admin" })).toBe(true);
+    expect(istimewaKonsol({ badges: [], tier: "pengelola" })).toBe(false);
+    expect(istimewaKonsol({ badges: [] })).toBe(false);
+  });
+  it("one of them approves, never the asker", () => {
     expect(bolehSetujui({ nim: "a", badges: ["dev"] }, { nim: "b" })).toBe(true);
+    expect(bolehSetujui({ nim: "a", badges: [], tier: "admin" }, { nim: "b" })).toBe(true);
     expect(bolehSetujui({ nim: "a", badges: ["dev"] }, { nim: "a" })).toBe(false);
     expect(bolehSetujui({ nim: "a", badges: [] }, { nim: "b" })).toBe(false);
   });

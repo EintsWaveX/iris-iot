@@ -1,14 +1,25 @@
 /**
- * Konsol Pi (Phase 9 Stage 9): the API side. Rules and tickets live in
- * src/lib/konsol.ts; this file is the database and the flow.
+ * Konsol Pi (Phase 9 Stage 9; rooms and joining since 2026-10-05): the API
+ * side. Rules and tickets live in src/lib/konsol.ts; this file is the
+ * database and the flow.
  *
- * GET  /api/server/:id?aksi=konsol   anyone with Server access: the open
- *      console's banner; DEV and the Pencipta also get their own request,
- *      the ones waiting for them and the recent history.
+ * GET  /api/server/:id?aksi=konsol   any Asisten: the open console with who
+ *      is in it, their own request and their place in the open console; the
+ *      Pencipta, the Inti and DEV also get the requests waiting for them and
+ *      the recent history.
  * POST /api/action { tipe: "konsol_minta" | "konsol_setujui" | "konsol_tolak"
- *      | "konsol_batal" | "konsol_tiket" | "konsol_putus" | "konsol_keberatan" }
+ *      | "konsol_batal" | "konsol_tiket" | "konsol_putus" | "konsol_keberatan"
+ *      | "konsol_gabung" | "konsol_gabung_jawab" | "konsol_gabung_batal"
+ *      | "konsol_kendali" }
  * Heartbeat: the agent reports `konsol: [{kanal, status, ...}]` from the Pi
  * bridge (mulai when the Pi joined the relay, selesai with the transcript).
+ *
+ * Who: every active Asisten may ask for a console or to join an open one.
+ * The Pencipta, the Inti (Admin tier) and DEV do both without an approver
+ * (the others of them are told, and can ask or reject); anyone else waits
+ * for one of them, or, to join, for the console's owner. Inside the room one
+ * person controls at a time, which the relay keeps (konsol_kendali only
+ * writes the hand-over to Audit).
  *
  * Nothing here talks to the Pi directly: opening queues the agent command
  * `konsol.buka` (delivered on the next heartbeat), and cutting off asks the
@@ -18,11 +29,12 @@ import { createHmac } from "node:crypto";
 import { and, desc, eq, gte, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { clientIp, jsonBody } from "./http.js";
-import { muatOrang } from "./hak.js";
+import { muatOrang, type OrangHak } from "./hak.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
   konsolKeberatan,
+  konsolPeserta,
   konsolPi,
   konsolTiketNonce,
   perintah,
@@ -38,6 +50,7 @@ import {
   acakId,
   bolehKonsol,
   bolehSetujui,
+  istimewaKonsol,
   sisaDetikKonsol,
   statusEfektif,
   tandaTiket,
@@ -46,6 +59,7 @@ import {
 } from "../../src/lib/konsol.js";
 
 const TERBUKA: KonsolStatus[] = ["diminta", "disetujui", "aktif"];
+const BERJALAN: KonsolStatus[] = ["disetujui", "aktif"];
 
 /** The relay's address and the shared secret, or null when not set up. */
 export function konsolEnv(): { relay: string; secret: string } | null {
@@ -56,6 +70,7 @@ export function konsolEnv(): { relay: string; secret: string } | null {
 }
 
 type Row = typeof konsolPi.$inferSelect;
+type Peserta = typeof konsolPeserta.$inferSelect;
 
 /** Brings a row's status up to date (expiry, the 60 minute cap). */
 async function segarkan(r: Row): Promise<Row> {
@@ -122,9 +137,39 @@ function publik(r: Row, n: Map<string, string>) {
   };
 }
 
+function publikPeserta(p: Peserta, n: Map<string, string>) {
+  return {
+    id: p.id,
+    konsolId: p.konsolId,
+    nim: p.nim,
+    nama: n.get(p.nim) ?? p.nim,
+    status: p.status,
+    alasan: p.alasan,
+    tanpaPersetujuan: p.tanpaPersetujuan,
+    disetujuiOleh: p.disetujuiOleh ? (n.get(p.disetujuiOleh) ?? p.disetujuiOleh) : null,
+    dimintaPada: p.dimintaPada,
+  };
+}
+
 async function sesiBerjalan() {
   const s = await currentSesi();
   return s ? { modul: s.modul, slot: s.slot, tanggal: s.tanggal, mulai: s.mulai } : null;
+}
+
+async function pesertaDari(konsolIds: number[]): Promise<Peserta[]> {
+  if (!konsolIds.length) return [];
+  return getDb()
+    .select()
+    .from(konsolPeserta)
+    .where(inArray(konsolPeserta.konsolId, konsolIds))
+    .orderBy(konsolPeserta.dimintaPada);
+}
+
+/** May answer a join request to console `r`: its owner, or the Pencipta,
+ *  the Inti and DEV (never the asker). */
+function bolehJawabGabung(o: OrangHak, r: Row, p: Peserta): boolean {
+  if (p.nim === o.nim) return false;
+  return r.nim === o.nim || istimewaKonsol(o);
 }
 
 /* ---------------------------------------------------------------- GET */
@@ -132,7 +177,8 @@ async function sesiBerjalan() {
 export async function handleKonsolGet(res: ApiResponse, serverId: number, nim: string) {
   const db = getDb();
   const orang = await muatOrang(nim);
-  const dev = orang ? bolehKonsol(orang) : false;
+  const istimewa = orang ? istimewaKonsol(orang) : false;
+  const boleh = orang ? bolehKonsol(orang) : false;
   const rows = await Promise.all(
     (
       await db
@@ -140,54 +186,103 @@ export async function handleKonsolGet(res: ApiResponse, serverId: number, nim: s
         .from(konsolPi)
         .where(eq(konsolPi.serverId, serverId))
         .orderBy(desc(konsolPi.id))
-        .limit(dev ? 20 : 5)
+        .limit(20)
     ).map(segarkan),
   );
-  const n = await nama(
-    rows.flatMap((r) => [r.nim, r.disetujuiOleh, r.overrideSesiOleh, r.diputusOleh]),
+  const aktifRow = rows.find((r) => BERJALAN.includes(r.status)) ?? null;
+  const peserta = await pesertaDari(
+    rows.filter((r) => TERBUKA.includes(r.status)).map((r) => r.id),
   );
-  const aktif = rows.find((r) => r.status === "aktif" || r.status === "disetujui") ?? null;
+  const n = await nama([
+    ...rows.flatMap((r) => [r.nim, r.disetujuiOleh, r.overrideSesiOleh, r.diputusOleh]),
+    ...peserta.flatMap((p) => [p.nim, p.disetujuiOleh]),
+  ]);
+  const diAktif = aktifRow ? peserta.filter((p) => p.konsolId === aktifRow.id) : [];
+  const sayaDiAktif = diAktif.find((p) => p.nim === nim) ?? null;
+  const aktif = aktifRow
+    ? {
+        ...publik(aktifRow, n),
+        peserta: diAktif.filter((p) => p.status === "disetujui").map((p) => publikPeserta(p, n)),
+      }
+    : null;
   const base = {
     ok: true,
     siap: konsolEnv() !== null,
-    dev,
-    aktif: aktif ? publik(aktif, n) : null,
+    // Old name, still read by the page: "joins and opens without asking".
+    dev: istimewa,
+    istimewa,
+    boleh,
+    aktif,
+    // My place in the open console.
+    saya: !aktifRow
+      ? null
+      : aktifRow.nim === nim
+        ? { peran: "pemilik" as const }
+        : sayaDiAktif
+          ? {
+              peran:
+                sayaDiAktif.status === "disetujui"
+                  ? ("peserta" as const)
+                  : sayaDiAktif.status === "diminta"
+                    ? ("diminta" as const)
+                    : ("ditolak" as const),
+              pesertaId: sayaDiAktif.id,
+            }
+          : { peran: null },
   };
-  if (!dev) {
-    res.status(200).json(base);
-    return;
-  }
   const mine =
     rows.find((r) => r.nim === nim && (TERBUKA.includes(r.status) || r === rows[0])) ?? null;
+  // Join requests I can answer, on any open console of this Pi.
+  const gabung = orang
+    ? peserta
+        .filter((p) => p.status === "diminta")
+        .filter((p) => {
+          const r = rows.find((x) => x.id === p.konsolId);
+          return r && BERJALAN.includes(r.status) && bolehJawabGabung(orang, r, p);
+        })
+        .map((p) => {
+          const r = rows.find((x) => x.id === p.konsolId)!;
+          return { ...publikPeserta(p, n), target: r.target, pemilikNama: n.get(r.nim) ?? r.nim };
+        })
+    : [];
+  if (!istimewa) {
+    res.status(200).json({
+      ...base,
+      sesi: await sesiBerjalan(),
+      pemeriksa: await pemeriksa(nim),
+      milikku: mine ? publik(mine, n) : null,
+      untukku: [],
+      gabungUntukku: gabung,
+      riwayat: rows
+        .filter((r) => r.nim === nim && !TERBUKA.includes(r.status))
+        .slice(0, 8)
+        .map((r) => publik(r, n)),
+    });
+    return;
+  }
   const ids = rows.map((r) => r.id);
   const keb = ids.length
     ? await db.select().from(konsolKeberatan).where(inArray(konsolKeberatan.konsolId, ids))
     : [];
   const kn = await nama(keb.map((k) => k.nim));
-  // Who else can answer: the other DEVs and the Pencipta, still active.
-  const devs = await db
-    .select({ nim: asisten.nim, nama: asisten.nama, kode: asisten.kode, badges: asisten.badges })
-    .from(asisten)
-    .where(eq(asisten.status, "aktif"));
   res.status(200).json({
     ...base,
     sesi: await sesiBerjalan(),
-    pemeriksa: devs
-      .filter((d) => d.nim !== nim && bolehKonsol(d))
-      .map((d) => ({ kode: d.kode, nama: d.kode ? `${d.nama} (${d.kode})` : d.nama })),
+    pemeriksa: await pemeriksa(nim),
     milikku: mine ? publik(mine, n) : null,
-    // Waiting for me: someone else's request, or a console the Pencipta
-    // opened that I haven't answered yet.
+    // Waiting for me: someone else's request, or a console one of us opened
+    // without an approver that I haven't answered yet.
     untukku: rows
       .filter(
         (r) =>
           r.nim !== nim &&
           (r.status === "diminta" ||
             (r.tanpaPersetujuan &&
-              (r.status === "aktif" || r.status === "disetujui") &&
+              BERJALAN.includes(r.status) &&
               !keb.some((k) => k.konsolId === r.id && k.nim === nim))),
       )
       .map((r) => publik(r, n)),
+    gabungUntukku: gabung,
     keberatan: keb.map((k) => ({
       konsolId: k.konsolId,
       jenis: k.jenis,
@@ -202,42 +297,83 @@ export async function handleKonsolGet(res: ApiResponse, serverId: number, nim: s
   });
 }
 
-/** For the nav dot: what waits for this DEV on any Pi, a request to answer
- *  or a console the Pencipta opened that they haven't looked at yet. */
+/** Who can answer a request: the Pencipta, the Inti and DEV, still active. */
+async function pemeriksa(nim: string) {
+  const rows = await getDb()
+    .select({
+      nim: asisten.nim,
+      nama: asisten.nama,
+      kode: asisten.kode,
+      badges: asisten.badges,
+      tier: asisten.tier,
+    })
+    .from(asisten)
+    .where(eq(asisten.status, "aktif"));
+  return rows
+    .filter((d) => d.nim !== nim && istimewaKonsol(d))
+    .map((d) => ({ kode: d.kode, nama: d.kode ? `${d.nama} (${d.kode})` : d.nama }));
+}
+
+/** For the nav dot: what waits for this person on any Pi. The Pencipta,
+ *  the Inti and DEV: requests to answer, and consoles one of them opened
+ *  that they haven't looked at. Anyone: requests to join a console they
+ *  own (or, for those three, any console). */
 export async function konsolMenunggu(nim: string): Promise<number> {
   const orang = await muatOrang(nim);
-  if (!orang || !bolehKonsol(orang)) return 0;
+  if (!orang) return 0;
+  const istimewa = istimewaKonsol(orang);
   const db = getDb();
   const since = new Date(Date.now() - 60 * 60_000);
   const rows = await db
     .select()
     .from(konsolPi)
-    .where(
-      and(
-        ne(konsolPi.nim, nim),
-        inArray(konsolPi.status, TERBUKA),
-        gte(konsolPi.dimintaPada, since),
-      ),
-    );
-  const terbuka = rows.filter((r) => {
-    const s = statusEfektif(r);
-    return s === "diminta" || (r.tanpaPersetujuan && (s === "aktif" || s === "disetujui"));
-  });
-  if (!terbuka.length) return 0;
-  const sudah = await db
-    .select({ konsolId: konsolKeberatan.konsolId })
-    .from(konsolKeberatan)
-    .where(
-      and(
-        eq(konsolKeberatan.nim, nim),
-        inArray(
-          konsolKeberatan.konsolId,
-          terbuka.map((r) => r.id),
+    .where(and(inArray(konsolPi.status, TERBUKA), gte(konsolPi.dimintaPada, since)));
+  let n = 0;
+  if (istimewa) {
+    const terbuka = rows.filter((r) => {
+      if (r.nim === nim) return false;
+      const s = statusEfektif(r);
+      return s === "diminta" || (r.tanpaPersetujuan && (s === "aktif" || s === "disetujui"));
+    });
+    if (terbuka.length) {
+      const sudah = await db
+        .select({ konsolId: konsolKeberatan.konsolId })
+        .from(konsolKeberatan)
+        .where(
+          and(
+            eq(konsolKeberatan.nim, nim),
+            inArray(
+              konsolKeberatan.konsolId,
+              terbuka.map((r) => r.id),
+            ),
+          ),
+        );
+      n += terbuka.filter(
+        (r) => r.status === "diminta" || !sudah.some((k) => k.konsolId === r.id),
+      ).length;
+    }
+  }
+  const berjalan = rows.filter((r) => BERJALAN.includes(statusEfektif(r)));
+  if (berjalan.length) {
+    const minta = await db
+      .select()
+      .from(konsolPeserta)
+      .where(
+        and(
+          eq(konsolPeserta.status, "diminta"),
+          ne(konsolPeserta.nim, nim),
+          inArray(
+            konsolPeserta.konsolId,
+            berjalan.map((r) => r.id),
+          ),
         ),
-      ),
-    );
-  return terbuka.filter((r) => r.status === "diminta" || !sudah.some((k) => k.konsolId === r.id))
-    .length;
+      );
+    n += minta.filter((p) => {
+      const r = berjalan.find((x) => x.id === p.konsolId)!;
+      return bolehJawabGabung(orang, r, p);
+    }).length;
+  }
+  return n;
 }
 
 /* ---------------------------------------------------------- actions */
@@ -255,6 +391,14 @@ function teks(v: unknown, max = 500): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
 }
 
+/** Step up: the password again, and a real one (not the starting one). */
+async function sandiLagi(req: ApiRequest, nim: string, sandi: unknown): Promise<string | null> {
+  const cek = await verifyAsistenLogin(nim, String(sandi ?? ""), clientIp(req));
+  if (!cek.ok) return cek.kode === "terkunci" ? "terkunci" : "sandi_salah";
+  if (cek.perluAturSandi) return "perlu_sandi_asli";
+  return null;
+}
+
 export async function handleKonsolAksi(
   req: ApiRequest,
   res: ApiResponse,
@@ -263,15 +407,14 @@ export async function handleKonsolAksi(
 ) {
   const body: Body = jsonBody(req);
   const orang = await muatOrang(session.nim);
-  if (!orang) {
-    res.status(403).json({ ok: false, kode: "tanpa_hak" });
+  if (!orang || !bolehKonsol(orang)) {
+    res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "konsol" });
     return;
   }
-  const dev = bolehKonsol(orang);
+  const istimewa = istimewaKonsol(orang);
   const db = getDb();
 
   if (tipe === "konsol_minta") {
-    if (!dev) return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "konsol" });
     const serverId = Number(body.serverId);
     const target = body.target;
     const alasan = teks(body.alasan);
@@ -285,14 +428,8 @@ export async function handleKonsolAksi(
       .where(eq(server.id, serverId))
       .limit(1);
     if (!srv) return void res.status(200).json({ ok: false, kode: "server_tidak_ada" });
-    // Step up: the password again, and a real one (not the starting password).
-    const cek = await verifyAsistenLogin(session.nim, String(body.sandi ?? ""), clientIp(req));
-    if (!cek.ok)
-      return void res
-        .status(200)
-        .json({ ok: false, kode: cek.kode === "terkunci" ? "terkunci" : "sandi_salah" });
-    if (cek.perluAturSandi)
-      return void res.status(200).json({ ok: false, kode: "perlu_sandi_asli" });
+    const salah = await sandiLagi(req, session.nim, body.sandi);
+    if (salah) return void res.status(200).json({ ok: false, kode: salah });
     const open = await Promise.all(
       (
         await db
@@ -307,7 +444,6 @@ export async function handleKonsolAksi(
     const paksa = teks(body.paksa);
     if (sesi && paksa.length < 5)
       return void res.status(200).json({ ok: false, kode: "ada_sesi", sesi });
-    const pencipta = orang.badges.includes("pencipta");
     const [row] = await db
       .insert(konsolPi)
       .values({
@@ -316,9 +452,9 @@ export async function handleKonsolAksi(
         target,
         alasan,
         kanal: acakId(),
-        status: pencipta ? "disetujui" : "diminta",
-        tanpaPersetujuan: pencipta,
-        disetujuiPada: pencipta ? new Date() : null,
+        status: istimewa ? "disetujui" : "diminta",
+        tanpaPersetujuan: istimewa,
+        disetujuiPada: istimewa ? new Date() : null,
         overrideSesiOleh: sesi ? session.nim : null,
         overrideAlasan: sesi ? paksa : null,
       })
@@ -328,18 +464,54 @@ export async function handleKonsolAksi(
       serverId,
       target,
       alasan,
-      pencipta,
+      tanpaPersetujuan: istimewa,
     });
     if (sesi) await writeAudit(session.nim, "konsol_paksa", { id: row.id, sesi, alasan: paksa });
     const n = await nama([row.nim, row.overrideSesiOleh]);
     return void res.status(200).json({ ok: true, konsol: publik(row, n) });
   }
 
+  if (tipe === "konsol_gabung_jawab") {
+    const pid = Number(body.pesertaId);
+    const [p] = Number.isInteger(pid)
+      ? await db.select().from(konsolPeserta).where(eq(konsolPeserta.id, pid)).limit(1)
+      : [];
+    if (!p) return void res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
+    const r = await muatRow(p.konsolId);
+    if (!r || !BERJALAN.includes(r.status))
+      return void res.status(200).json({ ok: false, kode: "sudah_selesai" });
+    if (!bolehJawabGabung(orang, r, p))
+      return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "konsol" });
+    if (p.status !== "diminta")
+      return void res.status(200).json({ ok: false, kode: "sudah_dijawab" });
+    const setuju = body.setuju === true;
+    await db
+      .update(konsolPeserta)
+      .set({
+        status: setuju ? "disetujui" : "ditolak",
+        disetujuiOleh: session.nim,
+        dijawabPada: new Date(),
+      })
+      .where(and(eq(konsolPeserta.id, p.id), eq(konsolPeserta.status, "diminta")));
+    await writeAudit(session.nim, setuju ? "konsol_gabung_setujui" : "konsol_gabung_tolak", {
+      id: r.id,
+      nim: p.nim,
+    });
+    return void res.status(200).json({ ok: true });
+  }
+
   const r = await muatRow(body.id);
   if (!r) return void res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
+  const [sayaPeserta] = await db
+    .select()
+    .from(konsolPeserta)
+    .where(and(eq(konsolPeserta.konsolId, r.id), eq(konsolPeserta.nim, session.nim)))
+    .limit(1);
+  const pemilik = r.nim === session.nim;
+  const diDalam = pemilik || sayaPeserta?.status === "disetujui";
 
   if (tipe === "konsol_setujui" || tipe === "konsol_tolak") {
-    if (!bolehSetujui({ nim: session.nim, badges: orang.badges }, r))
+    if (!bolehSetujui(orang, r))
       return void res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "konsol" });
     if (r.status !== "diminta")
       return void res.status(200).json({ ok: false, kode: "sudah_dijawab", status: r.status });
@@ -368,7 +540,7 @@ export async function handleKonsolAksi(
   }
 
   if (tipe === "konsol_batal") {
-    if (r.nim !== session.nim) return void res.status(403).json({ ok: false, kode: "tanpa_hak" });
+    if (!pemilik) return void res.status(403).json({ ok: false, kode: "tanpa_hak" });
     if (r.status !== "diminta" && r.status !== "disetujui")
       return void res.status(200).json({ ok: false, kode: "tidak_bisa_dibatalkan" });
     await db
@@ -379,8 +551,46 @@ export async function handleKonsolAksi(
     return void res.status(200).json({ ok: true });
   }
 
+  if (tipe === "konsol_gabung") {
+    if (pemilik) return void res.status(200).json({ ok: false, kode: "sudah_di_dalam" });
+    if (!BERJALAN.includes(r.status))
+      return void res.status(200).json({ ok: false, kode: "sudah_selesai" });
+    if (sayaPeserta?.status === "disetujui") return void res.status(200).json({ ok: true });
+    if (sayaPeserta?.status === "diminta")
+      return void res.status(200).json({ ok: false, kode: "sudah_diminta" });
+    const alasan = teks(body.alasan);
+    if (!istimewa && alasan.length < 5)
+      return void res.status(200).json({ ok: false, kode: "alasan_kosong" });
+    const salah = await sandiLagi(req, session.nim, body.sandi);
+    if (salah) return void res.status(200).json({ ok: false, kode: salah });
+    const nilai = {
+      status: istimewa ? ("disetujui" as const) : ("diminta" as const),
+      alasan: alasan || null,
+      tanpaPersetujuan: istimewa,
+      disetujuiOleh: null,
+      dimintaPada: new Date(),
+      dijawabPada: istimewa ? new Date() : null,
+    };
+    await db
+      .insert(konsolPeserta)
+      .values({ konsolId: r.id, nim: session.nim, ...nilai })
+      .onConflictDoUpdate({ target: [konsolPeserta.konsolId, konsolPeserta.nim], set: nilai });
+    await writeAudit(session.nim, istimewa ? "konsol_gabung" : "konsol_minta_gabung", {
+      id: r.id,
+      alasan,
+    });
+    return void res.status(200).json({ ok: true, masuk: istimewa });
+  }
+
+  if (tipe === "konsol_gabung_batal") {
+    if (sayaPeserta?.status !== "diminta")
+      return void res.status(200).json({ ok: false, kode: "tidak_bisa_dibatalkan" });
+    await db.delete(konsolPeserta).where(eq(konsolPeserta.id, sayaPeserta.id));
+    return void res.status(200).json({ ok: true });
+  }
+
   if (tipe === "konsol_tiket") {
-    if (r.nim !== session.nim) return void res.status(403).json({ ok: false, kode: "tanpa_hak" });
+    if (!diDalam) return void res.status(403).json({ ok: false, kode: "tanpa_hak" });
     if (r.status !== "disetujui" && r.status !== "aktif")
       return void res.status(200).json({ ok: false, kode: "belum_disetujui", status: r.status });
     const env = konsolEnv();
@@ -396,6 +606,8 @@ export async function handleKonsolAksi(
         k: r.kanal,
         s: r.serverId,
         u: session.nim,
+        nm: orang.kode ? `${orang.nama} (${orang.kode})` : orang.nama,
+        pk: pemilik,
         t: r.target as "terminal",
         exp: now + TIKET_WEB_DETIK,
         end,
@@ -404,10 +616,10 @@ export async function handleKonsolAksi(
       env.secret,
     );
     await db.insert(konsolTiketNonce).values({ nonce: webNonce, konsolId: r.id, peran: "web" });
-    // The Pi joins once, when the console first opens, or again when the
-    // page says the Pi side is gone (ulangPi).
+    // The Pi joins once, when the owner first opens the console, or again
+    // when someone in the room says the Pi side is gone (ulangPi).
     let antre = false;
-    if (r.status === "disetujui" || body.ulangPi === true) {
+    if ((r.status === "disetujui" && pemilik) || body.ulangPi === true) {
       const piNonce = acakId();
       const pi = await tandaTiket(
         {
@@ -444,25 +656,34 @@ export async function handleKonsolAksi(
     });
   }
 
+  if (tipe === "konsol_kendali") {
+    // The relay moved control; this only writes it down.
+    if (!diDalam) return void res.status(403).json({ ok: false, kode: "tanpa_hak" });
+    const ke = teks(body.ke, 20);
+    if (!/^\d{5,15}$/.test(ke))
+      return void res.status(200).json({ ok: false, kode: "format_salah" });
+    await writeAudit(session.nim, "konsol_kendali", { id: r.id, ke });
+    return void res.status(200).json({ ok: true });
+  }
+
   if (tipe === "konsol_putus") {
-    const milik = r.nim === session.nim;
     const admin = orang.tier === "admin";
-    if (!milik && !dev && !admin)
+    if (!pemilik && !istimewa && !admin)
       return void res.status(403).json({ ok: false, kode: "tanpa_hak" });
     if (!TERBUKA.includes(r.status))
       return void res.status(200).json({ ok: false, kode: "sudah_selesai" });
-    const alasan = teks(body.alasan) || (milik ? "diakhiri" : "diputus");
+    const alasan = teks(body.alasan) || (pemilik ? "diakhiri" : "diputus");
     await db
       .update(konsolPi)
       .set({
-        status: milik ? "selesai" : "diputus",
+        status: pemilik ? "selesai" : "diputus",
         selesai: new Date(),
         alasanSelesai: alasan,
-        diputusOleh: milik ? null : session.nim,
+        diputusOleh: pemilik ? null : session.nim,
       })
       .where(eq(konsolPi.id, r.id));
     const relay = await tutupRelay(r.kanal);
-    await writeAudit(session.nim, milik ? "konsol_akhiri" : "konsol_putus", {
+    await writeAudit(session.nim, pemilik ? "konsol_akhiri" : "konsol_putus", {
       id: r.id,
       alasan,
       relay,
@@ -471,8 +692,7 @@ export async function handleKonsolAksi(
   }
 
   if (tipe === "konsol_keberatan") {
-    if (!dev || r.nim === session.nim)
-      return void res.status(403).json({ ok: false, kode: "tanpa_hak" });
+    if (!istimewa || pemilik) return void res.status(403).json({ ok: false, kode: "tanpa_hak" });
     const jenis = body.jenis;
     if (jenis !== "oke" && jenis !== "tanya" && jenis !== "tolak")
       return void res.status(200).json({ ok: false, kode: "format_salah" });

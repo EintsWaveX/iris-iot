@@ -2,11 +2,16 @@
  * Konsol Pi (Phase 9 Stage 9): the shapes GET /api/server/:id?aksi=konsol
  * returns, the actions, and useSambung, the browser's end of the relay.
  *
- * The relay passes frames untouched. From the Pi's bridge, binary frames are
- * the terminal's output or the RFB stream, and text frames are its notes:
- * {"t":"siap",...} each time the page joins, or {"t":"galat","kode":...}.
- * From the page, binary frames are keystrokes or RFB, and text frames are
- * {"t":"r",c,r} (terminal size) and {"t":"hidup"} (still here).
+ * The relay passes the Pi's frames on. From the Pi's bridge, binary frames
+ * are the terminal's output or the RFB stream, and text frames are its
+ * notes: {"t":"siap",...} each time the page joins (and, on a screen, again
+ * whenever control moves), or {"t":"galat","kode":...}. From the page,
+ * binary frames are keystrokes or RFB, and text frames are {"t":"r",c,r}
+ * (terminal size) and {"t":"hidup"} (still here).
+ *
+ * Rooms (2026-10-05): the relay adds "\0relay:ruang:{json}" (who is in, who
+ * controls, who asked) and "\0relay:ditolak", and takes "\0relay:minta",
+ * "batal", "beri:<id>" and "tolak:<id>" (see apps/relay).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { postJson } from "../../../lib/app";
@@ -39,11 +44,34 @@ export interface Keberatan {
   pada: string;
 }
 
+export interface PesertaRow {
+  id: number;
+  konsolId: number;
+  nim: string;
+  nama: string;
+  status: "diminta" | "disetujui" | "ditolak";
+  alasan: string | null;
+  tanpaPersetujuan: boolean;
+  disetujuiOleh: string | null;
+  dimintaPada: string;
+}
+
 export interface KonsolData {
   ok: true;
   siap: boolean;
+  /** Opens and joins without an approver (the Pencipta, the Inti, DEV). */
   dev: boolean;
-  aktif: KonsolRow | null;
+  istimewa?: boolean;
+  /** May ask at all (every active Asisten). */
+  boleh?: boolean;
+  aktif: (KonsolRow & { peserta?: PesertaRow[] }) | null;
+  /** My place in the open console. */
+  saya?: {
+    peran: "pemilik" | "peserta" | "diminta" | "ditolak" | null;
+    pesertaId?: number;
+  } | null;
+  /** Join requests I can answer. */
+  gabungUntukku?: (PesertaRow & { target: KonsolTarget; pemilikNama: string })[];
   sesi?: { modul: number; slot: number | null; tanggal: string; mulai: string } | null;
   pemeriksa?: { kode: string | null; nama: string }[];
   milikku?: KonsolRow | null;
@@ -69,6 +97,17 @@ export const nomorKonsol = (id: number) => `PK-${String(id).padStart(4, "0")}`;
 
 /* ------------------------------------------------------------ the relay */
 
+/** The room as the relay tells it. */
+export interface Ruang {
+  aku: number;
+  pengendali: number | null;
+  minta: number[];
+  orang: { id: number; nim: string; nama: string; pemilik: boolean }[];
+  pi: boolean;
+}
+
+const KONTROL = "\u0000relay:";
+
 export type Keadaan =
   | { k: "tiket" }
   | { k: "pi"; sejak: number }
@@ -84,18 +123,21 @@ interface Opsi {
   onSiap?: (o: Record<string, unknown>) => void;
   /** The console ended on the relay (cut off, idle, the cap), with why. */
   onTutup?: (why: string) => void;
+  /** My request for control was declined. */
+  onDitolak?: () => void;
 }
 
 /** One live connection to the relay for an approved console. `kirim` sends
  *  a frame; `sambung(ulangPi)` asks for a fresh ticket (and, when the Pi side
  *  is gone, for the Pi to join again). */
-export function useSambung({ id, onData, onSiap, onTutup }: Opsi) {
+export function useSambung({ id, onData, onSiap, onTutup, onDitolak }: Opsi) {
   const [keadaan, setKeadaan] = useState<Keadaan>({ k: "tiket" });
+  const [ruang, setRuang] = useState<Ruang | null>(null);
   const ws = useRef<WebSocket | null>(null);
   // Each call bumps this; an older call still waiting for its ticket stops.
   const gen = useRef(0);
-  const cb = useRef({ onData, onSiap, onTutup });
-  cb.current = { onData, onSiap, onTutup };
+  const cb = useRef({ onData, onSiap, onTutup, onDitolak });
+  cb.current = { onData, onSiap, onTutup, onDitolak };
 
   const sambung = useCallback(
     async (ulangPi = false) => {
@@ -116,6 +158,17 @@ export function useSambung({ id, onData, onSiap, onTutup }: Opsi) {
       s.onmessage = (e) => {
         if (ws.current !== s) return;
         if (typeof e.data === "string") {
+          if (e.data.startsWith(KONTROL)) {
+            const isi = e.data.slice(KONTROL.length);
+            if (isi.startsWith("ruang:")) {
+              try {
+                setRuang(JSON.parse(isi.slice(6)) as Ruang);
+              } catch {
+                /* a broken note changes nothing */
+              }
+            } else if (isi === "ditolak") cb.current.onDitolak?.();
+            return;
+          }
           let o: Record<string, unknown> = {};
           try {
             o = JSON.parse(e.data) as Record<string, unknown>;
@@ -156,7 +209,13 @@ export function useSambung({ id, onData, onSiap, onTutup }: Opsi) {
     if (s && s.readyState === WebSocket.OPEN) s.send(d as string);
   }, []);
 
-  return { keadaan, sambung, kirim, ws };
+  /** The room's own notes: minta, batal, beri:<id>, tolak:<id>. */
+  const kontrol = useCallback((cmd: string) => {
+    const s = ws.current;
+    if (s && s.readyState === WebSocket.OPEN) s.send(KONTROL + cmd);
+  }, []);
+
+  return { keadaan, sambung, kirim, ws, ruang, kontrol };
 }
 
 /** Minutes left, rounded up, from the row's seconds and when it was read. */

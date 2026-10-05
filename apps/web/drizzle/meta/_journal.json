@@ -183,6 +183,13 @@
       "when": 1791192680819,
       "tag": "0025_kehadiran_asisten",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791194736258,
+      "tag": "0026_konsol_peserta",
+      "breakpoints": true
     }
   ]
 }

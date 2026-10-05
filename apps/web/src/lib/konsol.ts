@@ -3,9 +3,12 @@
  * the API (Vercel, Node), the relay (Cloudflare Worker) and the tests. Pure
  * and browser safe: the HMAC uses WebCrypto, which all three have.
  *
- * - Who: DEV badge or the Pencipta. Approval: another DEV or the Pencipta,
- *   never the asker. The Pencipta opens without an approver; the other DEVs
- *   are told and can ask or reject (reject cuts it off).
+ * - Who (2026-10-05): every active Asisten may ask, or ask to join an open
+ *   console. The Pencipta, the Inti (Admin tier) and DEV open and join
+ *   without an approver; the others of them are told and can ask or reject
+ *   (reject cuts it off). Anyone else's request is answered by one of them,
+ *   never the asker; a join, also by the console's owner. Inside the room
+ *   one person controls at a time (the relay, apps/relay).
  * - Time: a request expires after 10 minutes unanswered; an open console
  *   closes after 10 minutes idle and 60 minutes at most.
  * - Tickets: `base64url(payload).base64url(hmac)`, HMAC-SHA256 over the
@@ -46,15 +49,22 @@ export function targetValid(v: unknown): v is KonsolTarget {
   return typeof v === "string" && (KONSOL_TARGET as readonly string[]).includes(v);
 }
 
-export function bolehKonsol(o: { badges: readonly string[] }): boolean {
-  return o.badges.includes("dev") || o.badges.includes("pencipta");
+/** Opens and joins without an approver, and answers others: the Pencipta,
+ *  the Inti (Admin tier) and DEV. */
+export function istimewaKonsol(o: { badges: readonly string[]; tier?: string | null }): boolean {
+  return o.badges.includes("dev") || o.badges.includes("pencipta") || o.tier === "admin";
+}
+
+/** May ask for a console, or to join one: every active Asisten. */
+export function bolehKonsol(o: { status?: string | null }): boolean {
+  return (o.status ?? "aktif") === "aktif";
 }
 
 export function bolehSetujui(
-  penyetuju: { nim: string; badges: readonly string[] },
+  penyetuju: { nim: string; badges: readonly string[]; tier?: string | null },
   peminta: { nim: string },
 ): boolean {
-  return bolehKonsol(penyetuju) && penyetuju.nim !== peminta.nim;
+  return istimewaKonsol(penyetuju) && penyetuju.nim !== peminta.nim;
 }
 
 export interface KonsolBaris {
@@ -101,6 +111,11 @@ export interface Tiket {
   s: number;
   /** The person (web) or "" (pi). */
   u: string;
+  /** Their name and code, for the others in the room (web). */
+  nm?: string;
+  /** The person who asked for the console (web): control comes back to
+   *  them when the controller leaves. */
+  pk?: boolean;
   t: KonsolTarget;
   /** Ticket expiry, unix seconds. */
   exp: number;

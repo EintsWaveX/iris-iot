@@ -2,10 +2,13 @@
  * Konsol Pi's terminal (mockup v-console "term"): xterm.js on the relay.
  * Keystrokes go out as binary frames, the Pi's output comes back as binary,
  * and the size goes out as {"t":"r",c,r} whenever the pane changes. The bar
- * has the font size, Copy (the selection) and Paste.
+ * has the font size, Copy (the selection), Paste and Full Screen. Only the
+ * one in control of the room types (the relay drops anyone else's keys);
+ * the others watch the same shell.
  */
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowsOutIcon,
   ClipboardTextIcon,
   CopyIcon,
   MagnifyingGlassMinusIcon,
@@ -31,6 +34,8 @@ export default function Terminal({
   kirim,
   onKetik,
   apiRef,
+  bisaKetik,
+  onFull,
   onSiap,
 }: {
   t: KStrings;
@@ -39,6 +44,10 @@ export default function Terminal({
   /** Any keystroke, for the idle timer. */
   onKetik: () => void;
   apiRef: { current: TermApi | null };
+  /** I control the room: my keys reach the shell. */
+  bisaKetik: boolean;
+  /** Full screen on the whole pane, so the room's prompts show there too. */
+  onFull: () => void;
   /** The terminal is drawn and can take output. */
   onSiap?: () => void;
 }) {
@@ -52,8 +61,8 @@ export default function Terminal({
       return 14;
     }
   });
-  const cb = useRef({ kirim, onKetik });
-  cb.current = { kirim, onKetik };
+  const cb = useRef({ kirim, onKetik, bisaKetik });
+  cb.current = { kirim, onKetik, bisaKetik };
 
   useEffect(() => {
     if (!box.current) return;
@@ -105,6 +114,7 @@ export default function Terminal({
     };
     ukur();
     const d1 = x.onData((s) => {
+      if (!cb.current.bisaKetik) return;
       cb.current.onKetik();
       cb.current.kirim(enc.encode(s));
     });
@@ -156,7 +166,13 @@ export default function Terminal({
     }
   }
 
+  useEffect(() => {
+    const x = term.current;
+    if (x) x.options.disableStdin = !bisaKetik;
+  }, [bisaKetik]);
+
   async function tempel() {
+    if (!bisaKetik) return;
     try {
       const s = await navigator.clipboard.readText();
       if (s) {
@@ -175,7 +191,7 @@ export default function Terminal({
         <span className="term__who">
           <span className="dot dot--ok" aria-hidden="true" />
           <b className="mono">{host}</b>
-          <span className="hint term__hint">{t.termHint}</span>
+          <span className="hint term__hint">{bisaKetik ? t.termHint : t.termWatch}</span>
         </span>
         <span className="term__tools">
           <IconButton
@@ -200,8 +216,10 @@ export default function Terminal({
             kind="ghost"
             icon={ClipboardTextIcon}
             label={t.paste}
+            disabled={!bisaKetik}
             onClick={() => void tempel()}
           />
+          <IconButton sm kind="ghost" icon={ArrowsOutIcon} label={t.full} onClick={onFull} />
         </span>
       </div>
       <div className="term__xterm" ref={box} role="region" aria-label={t.termOut} />

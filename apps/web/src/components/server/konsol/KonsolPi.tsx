@@ -1,10 +1,14 @@
 /**
- * The Konsol Pi tab (Phase 9 Stage 9, mockup v-console), DEV and the
- * Pencipta only: ask (target, reason, password again), wait for another DEV
- * or the Pencipta, then a terminal or a screen of the Pi through the relay,
- * and a summary when it closes. Requests waiting for this DEV, and consoles
- * the Pencipta opened without approval, show on top with their answers.
- * A running session blocks it unless forced with a reason.
+ * The Konsol Pi tab (Phase 9 Stage 9, mockup v-console; rooms since
+ * 2026-10-05): ask (target, reason, password again), wait for the Pencipta,
+ * the Inti or a DEV (they themselves open at once), then a terminal or a
+ * screen of the Pi through the relay, and a summary when it closes.
+ * Someone else's open console can be joined (at once for those three, else
+ * asked for); inside, one person controls and the rest watch, and anyone
+ * can ask the controller for control (the prompt sits inside the pane, so
+ * it shows in full screen too). Requests waiting for me, consoles opened
+ * without approval, and requests to join show on top with their answers.
+ * A running session blocks opening unless forced with a reason.
  *
  * The data comes from ServerDetail's poll of GET ?aksi=konsol, so the head's
  * banner and this tab read the same state.
@@ -23,7 +27,11 @@ import {
   MonitorIcon,
   PaperPlaneTiltIcon,
   PowerIcon,
+  EyeIcon,
+  HandIcon,
   ShieldCheckIcon,
+  SignInIcon,
+  SignOutIcon,
   StarFourIcon,
   TerminalWindowIcon,
   UsersIcon,
@@ -34,6 +42,7 @@ import Dialog from "../../ui/Dialog";
 import Disclose from "../../ui/Disclose";
 import Fade from "../../ui/Fade";
 import PersonBadges from "../../ui/PersonBadges";
+import TierBadge from "../../ui/TierBadge";
 import PasswordField from "../../ui/PasswordField";
 import { StateView } from "../../ui/Display";
 import { href, tanggalPanjang, useTick } from "../../../lib/app";
@@ -51,6 +60,8 @@ import {
   useSambung,
   type KonsolData,
   type KonsolRow,
+  type PesertaRow,
+  type Ruang,
 } from "./data";
 import { K, pesanK, type KStrings } from "./strings";
 import "./konsol.css";
@@ -87,7 +98,8 @@ export default function KonsolPi({
   data,
   dibaca,
   refresh,
-  pencipta,
+  badges,
+  admin,
   onOverview,
 }: {
   lang: Lang;
@@ -96,68 +108,115 @@ export default function KonsolPi({
   data: KonsolData | null;
   dibaca: number;
   refresh: () => void;
-  pencipta: boolean;
+  /** My badges and whether I'm Inti, for the Ask card's corner. */
+  badges: string[];
+  admin: boolean;
   onOverview: () => void;
 }) {
   const t = K[lang];
   const now = useTick(1_000);
   // "Ask Again" after a closed console shows the form instead of the summary.
   const [lagi, setLagi] = useState(false);
+  // Left a console I joined (the page shows the Join card again).
+  const [keluar, setKeluar] = useState<number | null>(null);
 
   if (!data) {
     return <span className="skeleton" style={{ height: 320 }} aria-busy="true" />;
   }
+  const bebas = data.istimewa ?? data.dev;
   const mine = data.milikku ?? null;
   const open = mine && TERBUKA.includes(mine.status) ? mine : null;
   const ended = mine && !open && !lagi ? mine : null;
-  const ord = !mine || lagi ? 0 : mine.status === "diminta" ? 1 : open ? 2 : 3;
-  const steps = pencipta ? t.stepsPencipta : t.steps;
   const untuk = data.untukku ?? [];
-  const sisa = sisaMenit(open, dibaca, now);
-
-  // One console per Pi: while someone else's is asked for or open, there is
-  // nothing to ask (the banner or the cards above say whose it is).
-  const lain =
-    !open &&
-    (untuk.some((r) => r.status === "diminta") || (data.aktif && data.aktif.oleh !== mine?.oleh))
-      ? (untuk[0] ?? data.aktif)
-      : null;
+  const gabung = data.gabungUntukku ?? [];
+  const aktifLain = !open && data.aktif && data.aktif.oleh !== mine?.oleh ? data.aktif : null;
+  const peran = data.saya?.peran ?? null;
+  const ikut = aktifLain && peran === "peserta" && keluar !== aktifLain.id ? aktifLain : null;
+  const tunggu = aktifLain && peran === "diminta" ? aktifLain : null;
+  const bisaGabung = aktifLain && !ikut && !tunggu ? aktifLain : null;
+  // Someone else's request is still waiting (one console per Pi).
+  const antre = !open && !aktifLain ? (untuk.find((r) => r.status === "diminta") ?? null) : null;
+  const sendiri = !ikut && !tunggu && !bisaGabung && !antre;
+  const ord = !mine || lagi ? 0 : mine.status === "diminta" ? 1 : open ? 2 : 3;
+  const steps = bebas ? t.stepsPencipta : t.steps;
+  const sisa = sisaMenit(open ?? ikut, dibaca, now);
 
   let body: ReactNode;
-  if (lain && !ended) {
-    body = (
-      <section className="panel panel--solo">
-        <StateView
-          icon={<UsersIcon size={28} />}
-          title={t.busyTitle}
-          body={t.busyBody(lain.olehNama)}
-        />
-      </section>
-    );
-  } else if (open && open.status === "diminta") {
+  let kunci: string;
+  if (open && open.status === "diminta") {
+    kunci = "wait";
     body = <Wait t={t} row={open} data={data} refresh={refresh} />;
   } else if (open) {
+    kunci = "open";
     body = (
       <Open
         key={open.id}
         t={t}
         lang={lang}
         row={open}
+        pemilik
         serverNama={serverNama}
         refresh={refresh}
         keberatan={(data.keberatan ?? []).filter((k) => k.konsolId === open.id)}
       />
     );
+  } else if (ikut) {
+    kunci = "ikut";
+    body = (
+      <Open
+        key={`ikut-${ikut.id}`}
+        t={t}
+        lang={lang}
+        row={ikut}
+        pemilik={false}
+        serverNama={serverNama}
+        refresh={refresh}
+        keberatan={(data.keberatan ?? []).filter((k) => k.konsolId === ikut.id)}
+      />
+    );
+  } else if (tunggu) {
+    kunci = "tunggu";
+    body = <JoinWait t={t} row={tunggu} refresh={refresh} />;
+  } else if (bisaGabung) {
+    kunci = "gabung";
+    body = (
+      <Join
+        t={t}
+        lang={lang}
+        row={bisaGabung}
+        bebas={bebas}
+        ditolak={peran === "ditolak"}
+        refresh={() => {
+          setKeluar(null);
+          refresh();
+        }}
+      />
+    );
+  } else if (antre && !ended) {
+    kunci = "busy";
+    body = (
+      <section className="panel panel--solo">
+        <StateView
+          icon={<UsersIcon size={28} />}
+          title={t.busyTitle}
+          body={t.busyBody(antre.olehNama)}
+        />
+      </section>
+    );
   } else if (ended) {
+    kunci = "done";
     body = <Done t={t} lang={lang} row={ended} onAgain={() => setLagi(true)} />;
   } else {
+    kunci = "ask";
     body = (
       <Ask
         t={t}
         lang={lang}
         data={data}
         serverId={serverId}
-        pencipta={pencipta}
+        bebas={bebas}
+        badges={badges}
+        admin={admin}
         refresh={() => {
           setLagi(false);
           refresh();
@@ -176,8 +235,11 @@ export default function KonsolPi({
           <Notice key={r.id} t={t} lang={lang} row={r} serverNama={serverNama} refresh={refresh} />
         ),
       )}
+      {gabung.map((p) => (
+        <JoinApprove key={`g${p.id}`} t={t} lang={lang} p={p} refresh={refresh} />
+      ))}
       <div className="pkhead">
-        {!(lain && !ended) && (
+        {sendiri && (
           <ol className="pksteps" aria-label={t.stepsLabel}>
             {steps.map((s, i) => (
               <li
@@ -194,6 +256,22 @@ export default function KonsolPi({
         {open && open.status !== "diminta" && sisa !== null && (
           <EndButton t={t} lang={lang} row={open} sisa={sisa} refresh={refresh} />
         )}
+        {ikut && sisa !== null && (
+          <span className="pkhead__live">
+            <span className="pkhead__left">
+              <span className="dot dot--ok dot--pulse" aria-hidden="true" />
+              <b className="num">{t.left(sisa)}</b>
+            </span>
+            <button
+              type="button"
+              className="btn btn--sm btn--ghost"
+              onClick={() => setKeluar(ikut.id)}
+            >
+              <SignOutIcon size={16} aria-hidden="true" />
+              {t.leave}
+            </button>
+          </span>
+        )}
       </div>
       {!data.siap && (
         <div className="banner banner--warn" role="status">
@@ -201,9 +279,7 @@ export default function KonsolPi({
           <span>{t.notReady}</span>
         </div>
       )}
-      <Fade k={open ? (open.status === "diminta" ? "wait" : "open") : ended ? "done" : "ask"}>
-        {body}
-      </Fade>
+      <Fade k={kunci}>{body}</Fade>
       <Disclose className="panel pksec" head={<b>{t.safeTitle}</b>}>
         <ul className="helplist">
           {t.safe.map((s) => (
@@ -215,6 +291,217 @@ export default function KonsolPi({
   );
 }
 
+/* --------------------------------------------------------------- join */
+
+/** Someone else's console is open: who is in it, and Join (or Ask to Join
+ *  with a reason, for anyone but the Pencipta, the Inti and DEV). */
+function Join({
+  t,
+  lang,
+  row,
+  bebas,
+  ditolak,
+  refresh,
+}: {
+  t: KStrings;
+  lang: Lang;
+  row: KonsolRow & { peserta?: PesertaRow[] };
+  bebas: boolean;
+  ditolak: boolean;
+  refresh: () => void;
+}) {
+  const [alasan, setAlasan] = useState("");
+  const [sandi, setSandi] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const siap = sandi.length > 0 && (bebas || alasan.trim().length >= 5);
+  async function kirim() {
+    setBusy(true);
+    setErr(null);
+    const r = await aksiKonsol("konsol_gabung", { id: row.id, alasan: alasan.trim(), sandi });
+    setBusy(false);
+    setSandi("");
+    if (!r.ok) {
+      setErr(pesanK(t, r.kode));
+      return;
+    }
+    window.Toast?.show(r.masuk ? t.joinIn : t.joinSent, "ok");
+    refresh();
+  }
+  const peserta = row.peserta ?? [];
+  return (
+    <section className="panel panel--solo pkask">
+      <div className="panel__head">
+        <h2 className="panel__title">{t.joinTitle}</h2>
+        <span className="pill pill--ok">
+          <span className="dot dot--ok dot--pulse" aria-hidden="true" />
+          {targetLabel(t, row.target)}
+        </span>
+      </div>
+      <p>{t.joinBody(row.olehNama, targetLabel(t, row.target))}</p>
+      <KV
+        rows={[
+          [t.owner, row.olehNama],
+          [t.reason, row.alasan],
+          [t.inRoom, peserta.length ? peserta.map((p) => p.nama).join(", ") : "-"],
+          [
+            t.opened,
+            `${tanggalPanjang(tanggalWib(row.mulai ?? row.dimintaPada), lang)} · ${jamWib(row.mulai ?? row.dimintaPada)}`,
+          ],
+        ]}
+      />
+      {ditolak && (
+        <div className="banner banner--warn" role="status">
+          <WarningIcon size={20} aria-hidden="true" />
+          <span>{t.joinDeclined}</span>
+        </div>
+      )}
+      {!bebas && (
+        <label className="field">
+          <span className="field__label">{t.reason}</span>
+          <input
+            className="field__input"
+            value={alasan}
+            maxLength={500}
+            placeholder={t.joinReasonPh}
+            onChange={(e) => setAlasan(e.target.value)}
+          />
+        </label>
+      )}
+      <PasswordField
+        label={t.password}
+        value={sandi}
+        onChange={setSandi}
+        autoComplete="current-password"
+        hint={t.passwordHint}
+        lang={lang}
+      />
+      <div className="tabstops">
+        <div className="tabstops__row">
+          {bebas ? (
+            <StarFourIcon size={20} aria-hidden="true" />
+          ) : (
+            <UsersIcon size={20} aria-hidden="true" />
+          )}
+          <span>{bebas ? t.joinRuleBebas : t.joinRuleAsk}</span>
+        </div>
+      </div>
+      {err && (
+        <p className="field__error" role="alert">
+          {err}
+        </p>
+      )}
+      <div className="panel__actions">
+        <button
+          type="button"
+          className="btn btn--primary btn--lg btn--block"
+          disabled={!siap || busy}
+          onClick={() => void kirim()}
+        >
+          {busy ? (
+            <CircleNotchIcon size={18} className="ctl-spin" aria-hidden="true" />
+          ) : (
+            <SignInIcon size={18} aria-hidden="true" />
+          )}
+          {bebas ? t.joinNow : t.joinAsk}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function JoinWait({ t, row, refresh }: { t: KStrings; row: KonsolRow; refresh: () => void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <section className="panel panel--solo">
+      <StateView
+        icon={<HourglassHighIcon size={28} />}
+        title={t.joinWaitTitle}
+        body={t.joinWaitBody(row.olehNama)}
+        actions={
+          <button
+            type="button"
+            className="btn btn--ghost"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              const r = await aksiKonsol("konsol_gabung_batal", { id: row.id });
+              setBusy(false);
+              if (!r.ok) window.Toast?.show(pesanK(t, r.kode), "danger");
+              refresh();
+            }}
+          >
+            {t.cancel}
+          </button>
+        }
+      />
+    </section>
+  );
+}
+
+/** A request to join a console I own (or, for the Pencipta, the Inti and
+ *  DEV, any console). */
+function JoinApprove({
+  t,
+  lang,
+  p,
+  refresh,
+}: {
+  t: KStrings;
+  lang: Lang;
+  p: PesertaRow & { target: KonsolTarget; pemilikNama: string };
+  refresh: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  async function jawab(setuju: boolean) {
+    setBusy(true);
+    const r = await aksiKonsol("konsol_gabung_jawab", { pesertaId: p.id, setuju });
+    setBusy(false);
+    if (!r.ok) window.Toast?.show(pesanK(t, r.kode), "danger");
+    else window.Toast?.show(setuju ? t.joinOk(p.nama) : t.joinNo(p.nama), "ok");
+    refresh();
+  }
+  return (
+    <section className="panel panel--solo panel--key pkreq">
+      <div className="panel__head">
+        <h2 className="panel__title">{t.joinReqTitle}</h2>
+        <span className="pill pill--warn">{t.needsYou}</span>
+      </div>
+      <p className="hint">{t.joinReqBody(p.nama)}</p>
+      <KV
+        rows={[
+          [t.who, p.nama],
+          [t.what, `${targetLabel(t, p.target)} · ${p.pemilikNama}`],
+          [t.reason, p.alasan ?? "-"],
+          [
+            t.asked,
+            `${tanggalPanjang(tanggalWib(p.dimintaPada), lang)} · ${jamWib(p.dimintaPada)}`,
+          ],
+        ]}
+      />
+      <div className="panel__actions pkact">
+        <button
+          type="button"
+          className="btn btn--ghost"
+          disabled={busy}
+          onClick={() => void jawab(false)}
+        >
+          {t.decline}
+        </button>
+        <button
+          type="button"
+          className="btn btn--primary"
+          disabled={busy}
+          onClick={() => void jawab(true)}
+        >
+          <CheckIcon size={18} aria-hidden="true" />
+          {t.approve}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 /* ---------------------------------------------------------------- ask */
 
 function Ask({
@@ -222,7 +509,9 @@ function Ask({
   lang,
   data,
   serverId,
-  pencipta,
+  bebas,
+  badges,
+  admin,
   refresh,
   onOverview,
 }: {
@@ -230,7 +519,10 @@ function Ask({
   lang: Lang;
   data: KonsolData;
   serverId: number;
-  pencipta: boolean;
+  /** Opens without an approver (the Pencipta, the Inti, DEV). */
+  bebas: boolean;
+  badges: string[];
+  admin: boolean;
   refresh: () => void;
   onOverview: () => void;
 }) {
@@ -301,12 +593,12 @@ function Ask({
       setErr(pesanK(t, r.kode));
       return;
     }
-    window.Toast?.show(pencipta ? t.sentPencipta : t.sent, "ok");
+    window.Toast?.show(bebas ? t.sentPencipta : t.sent, "ok");
     refresh();
   }
 
   const rules: [typeof UsersIcon, string][] = [
-    pencipta ? [StarFourIcon, t.rulePencipta] : [UsersIcon, t.ruleApprove],
+    bebas ? [StarFourIcon, t.rulePencipta] : [UsersIcon, t.ruleApprove],
     [ClockCountdownIcon, t.ruleIdle],
     [LockKeyIcon, t.ruleSession],
   ];
@@ -317,7 +609,8 @@ function Ask({
       <div className="panel__head">
         <h2 className="panel__title">{t.askTitle}</h2>
         <span className="panel__badges">
-          <PersonBadges badges={pencipta ? ["pencipta", "dev"] : ["dev"]} lang={lang} sm />
+          <PersonBadges badges={badges} lang={lang} sm />
+          {admin && <TierBadge tier="admin" lang={lang} />}
         </span>
       </div>
       {sesi && (
@@ -388,12 +681,12 @@ function Ask({
         >
           {busy ? (
             <CircleNotchIcon size={18} className="ctl-spin" aria-hidden="true" />
-          ) : pencipta ? (
+          ) : bebas ? (
             <TerminalWindowIcon size={18} aria-hidden="true" />
           ) : (
             <PaperPlaneTiltIcon size={18} aria-hidden="true" />
           )}
-          {pencipta ? t.openNow : t.send}
+          {bebas ? t.openNow : t.send}
         </button>
       </div>
     </section>
@@ -713,6 +1006,7 @@ function Open({
   t,
   lang,
   row,
+  pemilik,
   serverNama,
   refresh,
   keberatan,
@@ -720,6 +1014,8 @@ function Open({
   t: KStrings;
   lang: Lang;
   row: KonsolRow;
+  /** I asked for this console (else I joined it). */
+  pemilik: boolean;
   serverNama: string;
   refresh: () => void;
   keberatan: NonNullable<KonsolData["keberatan"]>;
@@ -727,19 +1023,27 @@ function Open({
   const now = useTick(1_000);
   const term = useRef<TermApi | null>(null);
   const layar = useRef<LayarApi | null>(null);
+  const pane = useRef<HTMLDivElement | null>(null);
   const terakhir = useRef(Date.now());
   // Output that arrives before xterm.js has loaded waits here.
   const tunda = useRef<ArrayBuffer[]>([]);
-  // RFB bytes that arrive after the ready frame but before noVNC has
-  // mounted wait here; anything before the ready frame belongs to an
-  // earlier x11vnc connection and is dropped.
+  // RFB bytes that arrive after a ready frame but before noVNC has mounted
+  // wait here; anything before the ready frame belongs to an earlier x11vnc
+  // connection and is dropped.
   const tundaLayar = useRef<ArrayBuffer[]>([]);
   const siapLayar = useRef(false);
   const [sandi, setSandi] = useState<string | undefined>();
+  const [kendaliLayar, setKendaliLayar] = useState(false);
+  // A short note shown inside the pane, so it is seen in full screen too.
+  const [kabar, setKabar] = useState<{ teks: string; sampai: number } | null>(null);
   const terminal = row.target === "terminal";
   const ketik = () => (terakhir.current = Date.now());
+  const umumkan = (teks: string, tone: "ok" | "warn" = "ok") => {
+    setKabar({ teks, sampai: Date.now() + 4_000 });
+    if (!document.fullscreenElement) window.Toast?.show(teks, tone);
+  };
 
-  const { keadaan, sambung, kirim, ws } = useSambung({
+  const { keadaan, sambung, kirim, ws, ruang, kontrol } = useSambung({
     id: row.id,
     onData: (d) => {
       if (!terminal) {
@@ -754,17 +1058,24 @@ function Open({
         term.current?.ukur();
         term.current?.fokus();
       } else {
+        // A new x11vnc connection: its bytes wait for the new noVNC, never
+        // for the one being replaced.
+        layar.current = null;
         tundaLayar.current = [];
         siapLayar.current = true;
         setSandi(typeof o.sandi === "string" ? o.sandi : undefined);
+        setKendaliLayar(o.kendali === true);
       }
     },
     onTutup: (why) => {
-      // The relay closed the room (idle, the cap, cut off): close the row
-      // now rather than wait for the Pi's report. A row already closed by
-      // someone else just answers "sudah_selesai".
-      void aksiKonsol("konsol_putus", { id: row.id, alasan: why || "diam" }).then(refresh);
+      // The relay closed the room (idle, the cap, cut off). The owner closes
+      // the row now rather than wait for the Pi's report; the others only
+      // read it again.
+      if (pemilik)
+        void aksiKonsol("konsol_putus", { id: row.id, alasan: why || "diam" }).then(refresh);
+      else refresh();
     },
+    onDitolak: () => umumkan(t.ctlDeclined, "warn"),
   });
 
   useEffect(() => {
@@ -774,17 +1085,58 @@ function Open({
     }
   }, [keadaan.k]);
 
-  // Idle: a warning at 9 minutes without input, closed at 10.
+  const pegang = !!ruang && ruang.pengendali === ruang.aku;
+  const namaDari = (id: number | null) => ruang?.orang.find((o) => o.id === id)?.nama ?? "";
+  const nimDari = (id: number | null) => ruang?.orang.find((o) => o.id === id)?.nim ?? "";
+
+  // Control moved: say so, and the new controller's terminal sends its size.
+  const pengendaliLama = useRef<number | null | undefined>(undefined);
+  useEffect(() => {
+    if (!ruang) return;
+    const lama = pengendaliLama.current;
+    pengendaliLama.current = ruang.pengendali;
+    if (lama === undefined || lama === ruang.pengendali) return;
+    if (pegang) {
+      umumkan(t.ctlYours);
+      if (terminal) {
+        term.current?.ukur();
+        term.current?.fokus();
+      }
+    } else if (ruang.pengendali !== null) umumkan(t.ctlMoved(namaDari(ruang.pengendali)));
+  }, [ruang?.pengendali]);
+
+  useEffect(() => {
+    if (!kabar) return;
+    const h = setTimeout(() => setKabar(null), Math.max(0, kabar.sampai - Date.now()));
+    return () => clearTimeout(h);
+  }, [kabar]);
+
+  const sayaMinta = !!ruang && ruang.minta.includes(ruang.aku);
+  const peminta = pegang && ruang ? (ruang.minta[0] ?? null) : null;
+
+  function beri(id: number) {
+    kontrol(`beri:${id}`);
+    const ke = nimDari(id);
+    if (ke) void aksiKonsol("konsol_kendali", { id: row.id, ke });
+  }
+
+  // Idle: a warning at 9 minutes without input, closed at 10. Only the one
+  // in control is timed; the others are only watching.
   const diam = (now - terakhir.current) / 1000;
   const batas = DIAM_MENIT * 60;
-  const peringatan = keadaan.k === "siap" && diam >= batas - 60;
+  const peringatan = keadaan.k === "siap" && pegang && diam >= batas - 60;
   const tutupDiam = useRef(false);
   useEffect(() => {
-    if (keadaan.k === "siap" && diam >= batas && !tutupDiam.current) {
+    if (!pegang) terakhir.current = Date.now();
+  }, [pegang]);
+  useEffect(() => {
+    if (keadaan.k === "siap" && pegang && diam >= batas && !tutupDiam.current) {
       tutupDiam.current = true;
       void aksiKonsol("konsol_putus", { id: row.id, alasan: "diam" }).then(refresh);
     }
-  }, [diam, batas, keadaan.k, row.id, refresh]);
+  }, [diam, batas, keadaan.k, pegang, row.id, refresh]);
+
+  const penuh = () => void pane.current?.requestFullscreen?.();
 
   const overlay = (() => {
     if (keadaan.k === "siap") return null;
@@ -873,7 +1225,20 @@ function Open({
           <i style={{ width: `${(Math.max(0, batas - diam) / 60) * 100}%` }} />
         </div>
       )}
-      <div className="pkpane">
+      {ruang && (
+        <RuangBar
+          t={t}
+          ruang={ruang}
+          pegang={pegang}
+          sayaMinta={sayaMinta}
+          onMinta={() => {
+            kontrol("minta");
+            umumkan(t.askedControl);
+          }}
+          onBatal={() => kontrol("batal")}
+        />
+      )}
+      <div className="pkpane" ref={pane}>
         {terminal ? (
           <Terminal
             t={t}
@@ -881,6 +1246,8 @@ function Open({
             kirim={kirim}
             onKetik={ketik}
             apiRef={term}
+            bisaKetik={pegang}
+            onFull={penuh}
             onSiap={() => {
               for (const d of tunda.current.splice(0)) term.current?.tulis(d);
               term.current?.ukur();
@@ -893,14 +1260,101 @@ function Open({
             target={row.target}
             ws={keadaan.k === "siap" ? ws.current : null}
             sandi={sandi}
+            kendali={kendaliLayar && pegang}
             kirim={kirim}
             onGerak={ketik}
+            onFull={penuh}
             apiRef={layar}
             tunda={tundaLayar}
           />
         )}
         {overlay && <div className="pkpane__over">{overlay}</div>}
+        {peminta !== null && (
+          <div className="pkctl" role="alertdialog" aria-label={t.ctlReq(namaDari(peminta))}>
+            <b>{t.ctlReq(namaDari(peminta))}</b>
+            <span className="hint">{t.ctlReqBody}</span>
+            <span className="row pkctl__act">
+              <button
+                type="button"
+                className="btn btn--sm btn--ghost"
+                onClick={() => kontrol(`tolak:${peminta}`)}
+              >
+                {t.keep}
+              </button>
+              <button
+                type="button"
+                className="btn btn--sm btn--primary"
+                onClick={() => beri(peminta)}
+              >
+                <HandIcon size={16} aria-hidden="true" />
+                {t.give}
+              </button>
+            </span>
+          </div>
+        )}
+        {kabar && (
+          <div className="pkkabar" role="status">
+            {kabar.teks}
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** Who is in the console, who controls it, and Ask for Control. */
+function RuangBar({
+  t,
+  ruang,
+  pegang,
+  sayaMinta,
+  onMinta,
+  onBatal,
+}: {
+  t: KStrings;
+  ruang: Ruang;
+  pegang: boolean;
+  sayaMinta: boolean;
+  onMinta: () => void;
+  onBatal: () => void;
+}) {
+  return (
+    <div className="pkroom">
+      <span className="label-caps">{t.people}</span>
+      <span className="pkroom__people">
+        {ruang.orang.map((o) => (
+          <span
+            key={o.id}
+            className={`pill${o.id === ruang.pengendali ? " pill--accent" : ""}`}
+            title={o.id === ruang.pengendali ? t.controls : t.watching}
+          >
+            {o.id === ruang.pengendali ? (
+              <HandIcon size={14} aria-hidden="true" />
+            ) : (
+              <EyeIcon size={14} aria-hidden="true" />
+            )}
+            {o.nama}
+            {o.id === ruang.aku ? ` (${t.you})` : ""}
+            {o.pemilik ? ` · ${t.owner}` : ""}
+          </span>
+        ))}
+        {!ruang.pi && <span className="pill pill--warn">{t.waitingPi}</span>}
+      </span>
+      <span className="pkroom__act">
+        {pegang ? (
+          <span className="pill pill--ok">{t.controls}</span>
+        ) : sayaMinta ? (
+          <button type="button" className="btn btn--sm btn--ghost" onClick={onBatal}>
+            <XIcon size={16} aria-hidden="true" />
+            {t.cancelAsk}
+          </button>
+        ) : (
+          <button type="button" className="btn btn--sm" onClick={onMinta}>
+            <HandIcon size={16} aria-hidden="true" />
+            {t.askControl}
+          </button>
+        )}
+      </span>
     </div>
   );
 }
@@ -994,12 +1448,15 @@ export function KonsolBanner({
   dibaca,
   bisaPutus,
   refresh,
+  onJoin,
 }: {
   lang: Lang;
-  row: KonsolRow;
+  row: KonsolRow & { peserta?: PesertaRow[] };
   dibaca: number;
   bisaPutus: boolean;
   refresh: () => void;
+  /** Opens the Konsol tab, to watch or join. */
+  onJoin?: () => void;
 }) {
   const t = K[lang];
   const now = useTick(5_000);
@@ -1011,7 +1468,13 @@ export function KonsolBanner({
   return (
     <div className="banner banner--warn pkbanner" role="status">
       <ShieldCheckIcon size={20} aria-hidden="true" />
-      <span className="grow">{t.banner(row.olehNama, by, m)}</span>
+      <span className="grow">{t.banner(row.olehNama, by, m, row.peserta?.length ?? 0)}</span>
+      {onJoin && (
+        <button type="button" className="btn btn--sm" onClick={onJoin}>
+          <SignInIcon size={16} aria-hidden="true" />
+          {t.joinLink}
+        </button>
+      )}
       {bisaPutus && (
         <button type="button" className="btn btn--sm btn--danger-soft" onClick={() => setAsk(true)}>
           <PowerIcon size={16} aria-hidden="true" />

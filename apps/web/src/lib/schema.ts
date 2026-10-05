@@ -1405,7 +1405,8 @@ export const serialCermin = pgTable(
 
 /**
  * Phase 9 Stage 9 (0019): Konsol Pi, the terminal and the Pi's screens in the
- * Server page, for DEV and the Pencipta only. One row per request, from the
+ * Server page. Since 2026-10-05 any active Asisten may ask; the Pencipta,
+ * the Inti and DEV open without an approver (lib/konsol.ts). One row per request, from the
  * ask to the end; `transkrip` is the terminal output the Pi's bridge kept
  * (trimmed), reported on a later heartbeat. Approval, a forced open during a
  * session and every end reason are kept here and in Audit.
@@ -1448,6 +1449,35 @@ export const konsolPi = pgTable(
       "konsol_pi_status",
       sql`${t.status} in ('diminta', 'disetujui', 'ditolak', 'aktif', 'selesai', 'kedaluwarsa', 'diputus')`,
     ),
+  ],
+);
+
+/**
+ * Konsol Pi (2026-10-05): everyone besides the owner who is let into an open
+ * console. The Pencipta, the Inti (Admin tier) and DEV join without asking
+ * (tanpa_persetujuan); anyone else asks, and the owner or one of those
+ * answers. Who controls inside the room is the relay's (apps/relay).
+ */
+export const konsolPeserta = pgTable(
+  "konsol_peserta",
+  {
+    id: serial("id").primaryKey(),
+    konsolId: integer("konsol_id")
+      .notNull()
+      .references(() => konsolPi.id, { onDelete: "cascade" }),
+    nim: text("nim").notNull(),
+    status: text("status", { enum: ["diminta", "disetujui", "ditolak"] })
+      .notNull()
+      .default("diminta"),
+    alasan: text("alasan"),
+    tanpaPersetujuan: boolean("tanpa_persetujuan").notNull().default(false),
+    disetujuiOleh: text("disetujui_oleh"),
+    dimintaPada: timestamp("diminta_pada", { withTimezone: true }).notNull().defaultNow(),
+    dijawabPada: timestamp("dijawab_pada", { withTimezone: true }),
+  },
+  (t) => [
+    unique("konsol_peserta_satu").on(t.konsolId, t.nim),
+    check("konsol_peserta_status", sql`${t.status} in ('diminta', 'disetujui', 'ditolak')`),
   ],
 );
 

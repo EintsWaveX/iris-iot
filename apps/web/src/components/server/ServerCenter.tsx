@@ -12,6 +12,7 @@
  * Full view, settings, clearing logs and registering need the full right
  * (lib/hak.ts); the API checks the same rights again.
  */
+import { istimewaKonsol } from "../../lib/konsol";
 import { useEffect, useState } from "react";
 import { ShieldWarningIcon } from "@phosphor-icons/react";
 import { StateView } from "../ui/Display";
@@ -72,13 +73,16 @@ export default function ServerCenter({ lang }: { lang: Lang }) {
   }
 
   const badges = me.badges ?? [];
-  const konsol = badges.includes("dev") || badges.includes("pencipta");
+  const istimewa = istimewaKonsol({ badges, tier: me.tier });
   const bisa: Bisa = {
     server: me.hak?.server === true,
     full: me.hak?.full === true,
-    konsol,
+    konsol: true,
+    istimewa,
     pencipta: badges.includes("pencipta"),
-    putus: konsol || me.tier === "admin",
+    putus: istimewa,
+    badges,
+    admin: me.tier === "admin",
     nim: me.nim,
   };
 

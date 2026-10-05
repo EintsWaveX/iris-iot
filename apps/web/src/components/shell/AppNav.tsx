@@ -268,10 +268,10 @@ export default function AppNav({
   const t = T[lang];
   const me = useMe();
   const now = useSessionNow(30_000, me !== undefined && me !== null);
-  // Phase 9 Stage 9: DEVs and the Pencipta get a dot on Server while a Konsol
-  // Pi request (or a console the Pencipta opened) waits for them, and a toast
-  // when a new one comes in.
-  const dev = !!me?.badges?.some((b) => b === "dev" || b === "pencipta");
+  // Konsol Pi: a dot on Server while something waits for this Asisten (a
+  // request to answer, a console opened without approval, someone asking to
+  // join theirs), and a toast when a new one comes in.
+  const dev = me?.role === "asisten";
   const konsol = usePoll(
     () =>
       getJson<{ ok: boolean; menunggu?: number }>("/api/server/konsol").then(

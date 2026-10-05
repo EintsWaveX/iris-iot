@@ -389,3 +389,105 @@
   min-height: 120px;
   width: 100%;
 }
+
+/* ---------------------------------------------- rooms (2026-10-05) */
+/* who is in the console, who controls it, and Ask for Control */
+.pkroom {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.pkroom__people {
+  align-items: center;
+  display: inline-flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pkroom__act {
+  margin-left: auto;
+}
+
+/* The pane is what goes full screen, so a request for control and the
+   short notes show there too. */
+.pkpane:fullscreen {
+  background: #05070b;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+
+.pkpane:fullscreen > .term,
+.pkpane:fullscreen > .vnc {
+  flex: 1;
+  min-height: 0;
+}
+
+.pkpane:fullscreen .term {
+  display: flex;
+  flex-direction: column;
+}
+
+.pkpane:fullscreen .term__xterm {
+  flex: 1;
+  height: auto;
+}
+
+.pkpane:fullscreen .vnc {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.pkpane:fullscreen .vnc__screen {
+  aspect-ratio: auto;
+  height: 100%;
+}
+
+.pkpane:fullscreen .vnc__bar {
+  color: #e4ebf7;
+}
+
+.pkctl {
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  display: grid;
+  gap: 6px;
+  max-width: min(360px, calc(100% - 24px));
+  padding: 14px 16px;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 3;
+}
+
+.pkctl__act {
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pkkabar {
+  background: rgb(0 0 0 / 0.78);
+  border-radius: 999px;
+  bottom: 18px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  left: 50%;
+  max-width: calc(100% - 32px);
+  padding: 8px 16px;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+/* Names read as names, not as the pills' usual capitals. */
+.pkroom__people .pill {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}

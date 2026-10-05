@@ -159,7 +159,8 @@ const W = {
     sandiAtur: "mengatur kata sandinya",
     sandiGanti: "mengganti kata sandinya",
     konsol: "memakai Konsol Pi",
-    konsolTarget: (t: unknown) => (t === "terminal" ? "terminal" : `layar ${t}`),
+    konsolTarget: (t: unknown) =>
+      t === "terminal" ? "terminal" : t === ":0" ? "layar Pi (HDMI)" : "desktop virtual",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
       `${langsung ? "membuka tanpa persetujuan" : "meminta"} Konsol Pi ${x} di ${srv} (${pk}): ${why}`,
     konsolPaksa: (pk: string, why: unknown) => `memaksa ${pk} saat sesi berjalan: ${why}`,
@@ -172,6 +173,11 @@ const W = {
     konsolSelesai: (pk: string, data: string) => `${pk} selesai, ${data} lewat`,
     konsolOke: (pk: string) => `sudah melihat ${pk}`,
     konsolTanya: (pk: string, q: unknown) => `bertanya soal ${pk}: ${q}`,
+    konsolGabung: (pk: string) => `ikut masuk ke ${pk}`,
+    konsolMintaGabung: (pk: string, why: unknown) => `minta ikut masuk ke ${pk}: ${why}`,
+    konsolGabungJawab: (pk: string, who: string, ok: boolean) =>
+      `${ok ? "mengizinkan" : "menolak"} ${who} masuk ke ${pk}`,
+    konsolKendali: (pk: string, who: string) => `memberi kendali ${pk} ke ${who}`,
     statusProses: "diproses",
     statusSelesai: "selesai",
     lain: (a: string) => a.replace(/_/g, " "),
@@ -254,7 +260,8 @@ const W = {
     sandiAtur: "set their password",
     sandiGanti: "changed their password",
     konsol: "used the Pi Console",
-    konsolTarget: (t: unknown) => (t === "terminal" ? "terminal" : `display ${t}`),
+    konsolTarget: (t: unknown) =>
+      t === "terminal" ? "terminal" : t === ":0" ? "Pi screen (HDMI)" : "virtual desktop",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
       `${langsung ? "opened without approval" : "asked for"} the Pi Console ${x} on ${srv} (${pk}): ${why}`,
     konsolPaksa: (pk: string, why: unknown) => `forced ${pk} during a session: ${why}`,
@@ -267,6 +274,11 @@ const W = {
     konsolSelesai: (pk: string, data: string) => `${pk} ended, ${data} moved`,
     konsolOke: (pk: string) => `has seen ${pk}`,
     konsolTanya: (pk: string, q: unknown) => `asked about ${pk}: ${q}`,
+    konsolGabung: (pk: string) => `joined ${pk}`,
+    konsolMintaGabung: (pk: string, why: unknown) => `asked to join ${pk}: ${why}`,
+    konsolGabungJawab: (pk: string, who: string, ok: boolean) =>
+      `${ok ? "let" : "didn't let"} ${who} into ${pk}`,
+    konsolKendali: (pk: string, who: string) => `gave control of ${pk} to ${who}`,
     statusProses: "In Progress",
     statusSelesai: "Done",
     lain: (a: string) => a.replace(/_/g, " "),
@@ -348,7 +360,8 @@ const W = {
     sandiAtur: "设置了密码",
     sandiGanti: "修改了密码",
     konsol: "使用了 Pi 控制台",
-    konsolTarget: (t: unknown) => (t === "terminal" ? "终端" : `屏幕 ${t}`),
+    konsolTarget: (t: unknown) =>
+      t === "terminal" ? "终端" : t === ":0" ? "Pi 屏幕（HDMI）" : "虚拟桌面",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
       `${langsung ? "无需批准直接打开了" : "申请了"} ${srv} 的 Pi 控制台${x}（${pk}）：${why}`,
     konsolPaksa: (pk: string, why: unknown) => `在课程进行中强制打开了 ${pk}：${why}`,
@@ -361,6 +374,11 @@ const W = {
     konsolSelesai: (pk: string, data: string) => `${pk} 已结束，传输 ${data}`,
     konsolOke: (pk: string) => `已查看 ${pk}`,
     konsolTanya: (pk: string, q: unknown) => `就 ${pk} 提问：${q}`,
+    konsolGabung: (pk: string) => `加入了 ${pk}`,
+    konsolMintaGabung: (pk: string, why: unknown) => `申请加入 ${pk}：${why}`,
+    konsolGabungJawab: (pk: string, who: string, ok: boolean) =>
+      `${ok ? "同意" : "拒绝"} ${who} 加入 ${pk}`,
+    konsolKendali: (pk: string, who: string) => `把 ${pk} 的控制交给 ${who}`,
     statusProses: "处理中",
     statusSelesai: "完成",
     lain: (a: string) => a.replace(/_/g, " "),
@@ -650,9 +668,21 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
           b.server(d.serverId),
           pk(d.id),
           d.alasan,
-          d.pencipta === true,
+          d.pencipta === true || d.tanpaPersetujuan === true,
         ),
       );
+    case "konsol_gabung":
+      return k(TerminalWindowIcon, w.konsolGabung(pk(d.id)));
+    case "konsol_minta_gabung":
+      return k(TerminalWindowIcon, w.konsolMintaGabung(pk(d.id), d.alasan));
+    case "konsol_gabung_setujui":
+    case "konsol_gabung_tolak":
+      return k(
+        row.aksi === "konsol_gabung_setujui" ? TerminalWindowIcon : XCircleIcon,
+        w.konsolGabungJawab(pk(d.id), b.who(d.nim), row.aksi === "konsol_gabung_setujui"),
+      );
+    case "konsol_kendali":
+      return k(TerminalWindowIcon, w.konsolKendali(pk(d.id), b.who(d.ke)));
     case "konsol_paksa":
       return k(WarningIcon, w.konsolPaksa(pk(d.id), d.alasan), true);
     case "konsol_setujui":

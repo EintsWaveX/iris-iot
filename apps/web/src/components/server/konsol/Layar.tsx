@@ -1,17 +1,23 @@
 /**
  * Konsol Pi's screen (mockup v-console "screen"): noVNC on the relay. noVNC
  * takes a WebSocket-like channel, so Saluran hands it the relay's binary
- * frames only (the bridge's JSON notes stay with the page). It starts view
- * only; Take Control lets the mouse and keyboard through, never on phones.
- * The VNC password is the bridge's one-time one, from its ready frame.
+ * frames only (the bridge's JSON notes stay with the page). Only the one
+ * in control of the room uses the mouse and keyboard (never on a phone);
+ * the bridge gives everyone else a view-only password, so that holds on the
+ * Pi too. The VNC password comes in the bridge's ready frame, and a new one
+ * comes whenever control moves, which logs noVNC in again.
  */
 import { useEffect, useRef, useState } from "react";
-import { ArrowsOutIcon, ClipboardTextIcon, EyeIcon, KeyboardIcon } from "@phosphor-icons/react";
+import {
+  ArrowsOutIcon,
+  ClipboardTextIcon,
+  EyeIcon,
+  HandIcon,
+  KeyboardIcon,
+} from "@phosphor-icons/react";
 import type { KonsolTarget } from "../../../lib/konsol";
 import Dialog from "../../ui/Dialog";
 import IconButton from "../../ui/IconButton";
-import Tooltip from "../../ui/Tooltip";
-import { Switch } from "../../ui/Controls";
 import type { Lang } from "../../../lib/kelas";
 import type { KStrings } from "./strings";
 
@@ -71,8 +77,10 @@ export default function Layar({
   target,
   ws,
   sandi,
+  kendali,
   kirim,
   onGerak,
+  onFull,
   apiRef,
   tunda,
 }: {
@@ -81,17 +89,19 @@ export default function Layar({
   target: KonsolTarget;
   ws: WebSocket | null;
   sandi: string | undefined;
+  /** I control the room (my ready frame carried the full password). */
+  kendali: boolean;
   kirim: (d: ArrayBufferLike | ArrayBufferView) => void;
   /** Any input on the screen, for the idle timer. */
   onGerak: () => void;
+  /** Full screen on the whole pane, so the room's prompts show there too. */
+  onFull: () => void;
   apiRef: { current: LayarApi | null };
   /** Bytes that came after the ready frame, before this mounted. */
   tunda: { current: ArrayBuffer[] };
 }) {
   const box = useRef<HTMLDivElement | null>(null);
-  const frame = useRef<HTMLDivElement | null>(null);
   const rfb = useRef<RfbLike | null>(null);
-  const [kendali, setKendali] = useState(false);
   const [hp, setHp] = useState(false);
   const [klip, setKlip] = useState(false);
   const [teksKlip, setTeksKlip] = useState("");
@@ -104,8 +114,8 @@ export default function Layar({
     return () => mq.removeEventListener("change", on);
   }, []);
 
-  // One RFB per join: the bridge opens a fresh x11vnc connection each time
-  // the page joins, and says so with a ready frame carrying the password.
+  // One RFB per ready frame: the bridge opens a fresh x11vnc connection
+  // each time the page joins or control moves, with the password to use.
   useEffect(() => {
     if (!ws || !sandi || !box.current) return;
     let mati = false;
@@ -120,7 +130,7 @@ export default function Layar({
       }) as unknown as RfbLike;
       r.scaleViewport = true;
       r.resizeSession = false;
-      r.viewOnly = true;
+      r.viewOnly = !pegangRef.current;
       r.addEventListener("credentialsrequired", () => r.sendCredentials({ password: sandi }));
       r.addEventListener("clipboard", (e) => setTeksKlip(String(e.detail?.text ?? "")));
       rfb.current = r;
@@ -139,27 +149,24 @@ export default function Layar({
   }, [ws, sandi, kirim, apiRef, tunda]);
 
   const pegang = kendali && !hp;
+  const pegangRef = useRef(pegang);
+  pegangRef.current = pegang;
   useEffect(() => {
     if (rfb.current) rfb.current.viewOnly = !pegang;
   }, [pegang]);
-
-  const sw = (
-    <label className="vnc__ctl">
-      <Switch
-        on={pegang}
-        onChange={(v) => !hp && setKendali(v)}
-        label={t.takeControl}
-        disabled={hp}
-      />
-      <b>{t.takeControl}</b>
-    </label>
-  );
 
   return (
     <div className="vnc">
       <div className="vnc__bar">
         <span className="pill pill--violet">{target === ":0" ? t.screen0 : t.screen1}</span>
-        {hp ? <Tooltip label={t.phoneView}>{sw}</Tooltip> : sw}
+        <span className={`pill${pegang ? " pill--ok" : ""}`}>
+          {pegang ? (
+            <HandIcon size={14} aria-hidden="true" />
+          ) : (
+            <EyeIcon size={14} aria-hidden="true" />
+          )}
+          {pegang ? t.controls : kendali && hp ? t.phoneView : t.watching}
+        </span>
         <span className="vnc__tools">
           <IconButton
             sm
@@ -176,18 +183,11 @@ export default function Layar({
             label={t.clipboard}
             onClick={() => setKlip(true)}
           />
-          <IconButton
-            sm
-            kind="ghost"
-            icon={ArrowsOutIcon}
-            label={t.full}
-            onClick={() => void frame.current?.requestFullscreen?.()}
-          />
+          <IconButton sm kind="ghost" icon={ArrowsOutIcon} label={t.full} onClick={onFull} />
         </span>
       </div>
       <div
         className="vnc__frame"
-        ref={frame}
         data-ctl={pegang ? "yes" : "no"}
         onPointerDown={onGerak}
         onKeyDown={onGerak}
@@ -217,7 +217,7 @@ export default function Layar({
             <button
               type="button"
               className="btn btn--primary"
-              disabled={!teksKlip}
+              disabled={!teksKlip || !pegang}
               onClick={() => {
                 rfb.current?.clipboardPasteFrom(teksKlip);
                 setKlip(false);
