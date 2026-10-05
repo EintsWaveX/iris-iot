@@ -87,6 +87,25 @@ export function svcTone(st: string | undefined): "ok" | "off" | "bad" | "wait" {
   return "off";
 }
 
+/**
+ * Whether a heartbeat newer than the Full report shows any service in
+ * another state than the report does. Only a newer heartbeat counts, so a
+ * report that finished after it is never asked for twice. `unit` maps the
+ * heartbeat's service names to the report's systemd units.
+ */
+export function rinciUsang(
+  hb: Heartbeat | null | undefined,
+  layanan: { unit: string; keadaan: string }[],
+  laporanPada: string,
+  unit: Record<string, string>,
+): boolean {
+  if (!hb?.layanan || !(Date.parse(hb.pada) > Date.parse(laporanPada))) return false;
+  return Object.entries(hb.layanan).some(([k, st]) => {
+    const x = layanan.find((y) => y.unit === unit[k]);
+    return !!x && !!st && svcTone(x.keadaan) !== svcTone(st);
+  });
+}
+
 export const TONE_PILL = {
   ok: "pill--ok",
   off: "pill--danger",

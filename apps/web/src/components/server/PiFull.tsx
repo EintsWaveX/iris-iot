@@ -3,7 +3,9 @@
  * diag.rinci: per-core CPU, memory and swap, every mount; interfaces, the
  * hotspot, NTP and DNS; services with uptime, restarts and memory; the top
  * processes, versions and the journal's error count. Opening Full asks the
- * Pi for a fresh report when the last one is older than five minutes.
+ * Pi for a fresh report when the last one is older than five minutes, and
+ * again whenever a newer heartbeat shows a service in another state than
+ * the report does, so the services table keeps up with History.
  */
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { ArrowClockwiseIcon, CircleNotchIcon } from "@phosphor-icons/react";
@@ -15,6 +17,7 @@ import {
   angka,
   kirim,
   laju,
+  rinciUsang,
   sedangBerjalan,
   svcTone,
   terakhirDari,
@@ -74,6 +77,15 @@ export default function PiFull({
     minta();
     // Once per visit of the Full view; the button asks again.
   }, []);
+
+  const usang =
+    !!r &&
+    !!last &&
+    rinciUsang(data.denyutTerakhir, r.layanan, last.selesaiPada ?? last.dimintaPada, t.unit);
+
+  useEffect(() => {
+    if (usang && !jalan) minta();
+  }, [usang, jalan]);
 
   const head = (
     <div className="row row--between">
