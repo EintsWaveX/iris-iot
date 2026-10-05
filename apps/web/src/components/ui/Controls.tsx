@@ -47,6 +47,7 @@ import {
 } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import Popover from "./Popover";
+import { useDialogHost } from "./dialogHost";
 import "./Controls.css";
 import type { Lang } from "../../lib/kelas";
 import { dict, tanggalPanjang } from "../../lib/app";
@@ -509,6 +510,7 @@ export function TimeField({
   labelledBy?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const dialogHost = useDialogHost();
   const t = DP_TEXT[lang];
   const ok = /^\d{2}:\d{2}$/.test(value);
   const h = ok ? Number(value.slice(0, 2)) : null;
@@ -530,6 +532,7 @@ export function TimeField({
 
   return (
     <RadixPopover.Root open={open} onOpenChange={setOpen}>
+      {dialogHost.marker}
       <RadixPopover.Anchor asChild>
         <div
           className="ctl-clock"
@@ -586,7 +589,7 @@ export function TimeField({
           </RadixPopover.Trigger>
         </div>
       </RadixPopover.Anchor>
-      <RadixPopover.Portal>
+      <RadixPopover.Portal container={dialogHost.host}>
         <RadixPopover.Content
           className="popover__panel ctl-clockpick"
           align="start"

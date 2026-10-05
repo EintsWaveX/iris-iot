@@ -22,6 +22,7 @@ import BackButton from "../ui/BackButton";
 import Dialog from "../ui/Dialog";
 import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
+import { useDialogHost } from "../ui/dialogHost";
 import { DateField, Stepper, TimeField } from "../ui/Controls";
 import { getJson, href, namaKelompok, postJson, tanggalPanjang, useMe } from "../../lib/app";
 import { hariIniWib, KELOMPOK_MAKS, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
@@ -699,6 +700,7 @@ export function AssistantPicker({
   onPick: (a: AsistenRef | null) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const dialogHost = useDialogHost();
   const [q, setQ] = useState("");
   const all = assign?.asisten ?? [];
   const byKode = useMemo(() => new Map(all.map((a) => [a.kode.toUpperCase(), a])), [all]);
@@ -749,7 +751,8 @@ export function AssistantPicker({
           <CaretDownIcon size={18} aria-hidden="true" />
         </button>
       </RadixPopover.Trigger>
-      <RadixPopover.Portal>
+      {dialogHost.marker}
+      <RadixPopover.Portal container={dialogHost.host}>
         <RadixPopover.Content
           className="console-pop picker sweep-edge"
           align="end"

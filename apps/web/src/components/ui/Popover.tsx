@@ -16,6 +16,7 @@
 import type { ReactNode } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import "./Popover.css";
+import { useDialogHost } from "./dialogHost";
 
 interface Props {
   trigger: ReactNode;
@@ -26,10 +27,12 @@ interface Props {
 }
 
 export default function Popover({ trigger, children, open, onOpenChange, align = "start" }: Props) {
+  const dialogHost = useDialogHost();
   return (
     <RadixPopover.Root open={open} onOpenChange={onOpenChange}>
       <RadixPopover.Trigger asChild>{trigger}</RadixPopover.Trigger>
-      <RadixPopover.Portal>
+      {dialogHost.marker}
+      <RadixPopover.Portal container={dialogHost.host}>
         <RadixPopover.Content
           className="popover__panel"
           align={align}

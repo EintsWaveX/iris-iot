@@ -116,6 +116,9 @@ function usePopover(triggerRef: React.RefObject<HTMLElement | null>, sheet: bool
     if (!t || !p) return;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    // Measuring below lifts the height cap for a moment, which would
+    // throw the list back to its top; keep where the reader was.
+    const scrolled = p.scrollTop;
     // Where (0, 0) of a fixed child really is: the viewport, or the
     // dialog when a transform makes it the containing block.
     p.style.top = "0px";
@@ -138,6 +141,7 @@ function usePopover(triggerRef: React.RefObject<HTMLElement | null>, sheet: bool
       p.style.width = `${vw}px`;
       p.style.maxHeight = `${vh * 0.7}px`;
       p.style.top = `${vh - h - oy}px`;
+      p.scrollTop = scrolled;
       return;
     }
     const r = t.getBoundingClientRect();
@@ -155,6 +159,7 @@ function usePopover(triggerRef: React.RefObject<HTMLElement | null>, sheet: bool
     p.style.top = `${top - oy}px`;
     p.style.left = `${left - ox}px`;
     p.dataset.side = up ? "top" : "bottom";
+    p.scrollTop = scrolled;
   }, [triggerRef, sheet]);
 
   useLayoutEffect(() => {
@@ -165,14 +170,19 @@ function usePopover(triggerRef: React.RefObject<HTMLElement | null>, sheet: bool
   useLayoutEffect(() => {
     if (!open || !host) return;
     place();
-    const onScrollOrResize = () => place();
+    const onScrollOrResize = (ev?: Event) => {
+      // Scrolling the list itself moves nothing; re-placing it then used
+      // to snap it back to the top, so a long list looked stuck.
+      if (ev?.type === "scroll" && popupRef.current?.contains(ev.target as Node)) return;
+      place();
+    };
     window.addEventListener("scroll", onScrollOrResize, true);
     window.addEventListener("resize", onScrollOrResize);
     // A drawer still sliding in moves the trigger without a scroll.
     window.addEventListener("animationend", onScrollOrResize, true);
     window.addEventListener("transitionend", onScrollOrResize, true);
     // The options can change while open (a list that loads late).
-    const ro = popupRef.current ? new ResizeObserver(onScrollOrResize) : null;
+    const ro = popupRef.current ? new ResizeObserver(() => onScrollOrResize()) : null;
     if (ro && popupRef.current) ro.observe(popupRef.current.firstElementChild ?? popupRef.current);
     return () => {
       window.removeEventListener("scroll", onScrollOrResize, true);
