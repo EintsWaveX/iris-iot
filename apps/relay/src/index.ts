@@ -56,9 +56,9 @@ const KONTROL = "\u0000relay:";
 const ANTRE_MAKS = 64 * 1024;
 /**
  * Data centers near the lab. Indonesian providers send some connections
- * through Europe instead (2026-10-05: Paris and Marseille, 190 ms each way),
- * so a side that came in anywhere else is told "jauh" first thing and opens
- * a new connection, which usually lands near.
+ * through Europe instead (2026-10-05: Paris, Marseille, Milan, 190 ms each
+ * way), so a side that came in anywhere else is turned back with "jauh"
+ * and opens a new connection, which usually lands near.
  */
 const DEKAT = new Set([
   "SIN",
@@ -157,6 +157,17 @@ export default {
       );
       if (!cek.ok) return teks(403, `tiket ${cek.kode}`);
       if (cek.tiket.k !== kanal) return teks(403, "tiket ruang lain");
+      // A far way in is turned back here, before the room is touched: the
+      // room is made where the first connection reaches it, so only a near
+      // one may make it. The ticket stays unused. "jauh=boleh" (a side's
+      // last try) comes in anyway.
+      const pintu = String((req as { cf?: { colo?: string } }).cf?.colo ?? "");
+      if (
+        pintu &&
+        !DEKAT.has(pintu) &&
+        url.searchParams.get("jauh") !== "boleh"
+      )
+        return tolakJauh(req, pintu);
       const h = new Headers(req.headers);
       h.set("x-peran", ujung);
       h.set("x-nonce", cek.tiket.n);
@@ -166,15 +177,31 @@ export default {
       h.set("x-nama", encodeURIComponent(cek.tiket.nm ?? cek.tiket.u));
       h.set("x-pemilik", cek.tiket.pk ? "1" : "0");
       // The data center this connection came in through (lag checks).
-      h.set(
-        "x-pintu",
-        String((req as { cf?: { colo?: string } }).cf?.colo ?? ""),
-      );
+      h.set("x-pintu", pintu);
       return ruang.fetch(new Request("https://ruang/sambung", { headers: h }));
     }
     return teks(404, "tidak ditemukan");
   },
 };
+
+/** Opens the socket only to say "jauh" (came in far from the lab) and close. */
+function tolakJauh(req: Request, pintu: string): Response {
+  const pair = new WebSocketPair();
+  const [klien, sisi] = [pair[0], pair[1]];
+  sisi.accept();
+  sisi.send(`${KONTROL}jauh:${pintu}`);
+  sisi.close(4009, "jauh");
+  // noVNC asks for a subprotocol; without the echo the page never opens.
+  const proto = req.headers
+    .get("Sec-WebSocket-Protocol")
+    ?.split(",")[0]
+    ?.trim();
+  return new Response(null, {
+    status: 101,
+    webSocket: klien,
+    headers: proto ? { "Sec-WebSocket-Protocol": proto } : undefined,
+  });
+}
 
 /** /siaran (a page listening) and /siaran/kirim (the API telling them). */
 async function siaran(
@@ -352,8 +379,6 @@ export class Ruang {
       ?.trim();
 
     const pintu = req.headers.get("x-pintu") ?? "";
-    // First, before anything else: this side came in far from the lab.
-    if (pintu && !DEKAT.has(pintu)) sisi.send(`${KONTROL}jauh:${pintu}`);
     if (peran === "pi") {
       this.piPintu = pintu;
       this.pasangPi(sisi);

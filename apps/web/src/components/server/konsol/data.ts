@@ -153,7 +153,8 @@ export function useSambung({ id, onData, onSiap, onTutup, onDitolak }: Opsi) {
         setKeadaan({ k: "galat", kode: String(r.kode ?? "jaringan") });
         return;
       }
-      const s = new WebSocket(r.url);
+      // After three moves the next try comes in wherever it lands.
+      const s = new WebSocket(pindah.current >= 3 ? `${r.url}&jauh=boleh` : r.url);
       s.binaryType = "arraybuffer";
       ws.current = s;
       setKeadaan({ k: "pi", sejak: Date.now() });
@@ -169,10 +170,10 @@ export function useSambung({ id, onData, onSiap, onTutup, onDitolak }: Opsi) {
                 /* a broken note changes nothing */
               }
             } else if (isi === "ditolak") cb.current.onDitolak?.();
-            // This connection came in through a data center far from the
-            // lab (an Indonesian provider routing via Europe): a new one
-            // usually lands near. It comes first, before any data.
-            else if (isi.startsWith("jauh:") && pindah.current < 4) {
+            // The relay turned this connection back: it came in through a
+            // data center far from the lab (an Indonesian provider routing
+            // via Europe). A new one usually lands near.
+            else if (isi.startsWith("jauh:") && pindah.current < 3) {
               pindah.current++;
               void sambung(false);
             }
@@ -185,6 +186,7 @@ export function useSambung({ id, onData, onSiap, onTutup, onDitolak }: Opsi) {
             return;
           }
           if (o.t === "siap") {
+            pindah.current = 0;
             setKeadaan({ k: "siap", sandi: typeof o.sandi === "string" ? o.sandi : undefined });
             cb.current.onSiap?.(o);
           } else if (o.t === "galat") setKeadaan({ k: "galat", kode: String(o.kode ?? "") });
