@@ -92,7 +92,8 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
   const [busy, setBusy] = useState(false);
 
   const load = () =>
-    getJson<{ ok: boolean; brief: Row[] }>("/api/session/brief")
+    // Uncached: the edge copy would show the text from before a save.
+    getJson<{ ok: boolean; brief: Row[] }>("/api/session/brief?segar=1")
       .then((d) => setRows(d.ok ? d.brief : []))
       .catch(() => setRows([]));
   useEffect(() => void load(), []);

@@ -4,7 +4,8 @@
  *
  * GET   every saved brief (public, like the module pages that show it),
  *       with the editor's display name, since a guest can't read the
- *       Asisten directory
+ *       Asisten directory. Edge-cached; `?segar=1` skips the cache, for
+ *       the editors, which read back right after a save
  * POST  { modul, bahasa, ringkasan, langkah: string[] }   Jadwal right;
  *       an empty ringkasan with no steps removes the override, so the
  *       handbook's own text shows again
@@ -20,8 +21,11 @@ import type { SessionPayload } from "../../src/lib/auth.js";
 
 const BAHASA = ["id", "en", "zh"];
 
-export async function handleBriefGet(_req: ApiRequest, res: ApiResponse) {
-  res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
+export async function handleBriefGet(req: ApiRequest, res: ApiResponse) {
+  res.setHeader(
+    "Cache-Control",
+    req.query.segar === "1" ? "no-store" : "public, s-maxage=30, stale-while-revalidate=60",
+  );
   const rows = await getDb()
     .select({ brief: modulBrief, nama: asisten.nama, kode: asisten.kode })
     .from(modulBrief)

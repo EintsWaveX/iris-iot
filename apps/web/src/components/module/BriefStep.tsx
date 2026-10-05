@@ -74,10 +74,14 @@ export default function BriefStep({
   const [edit, setEdit] = useState(false);
 
   const load = () =>
-    getJson<{ ok: boolean; brief: BriefRow[] }>("/api/session/brief")
+    // An editor reads uncached: the edge copy would show the text from
+    // before their save.
+    getJson<{ ok: boolean; brief: BriefRow[] }>(
+      canEdit ? "/api/session/brief?segar=1" : "/api/session/brief",
+    )
       .then((d) => setRows(d.ok ? d.brief.filter((r) => r.modul === modul) : []))
       .catch(() => setRows([]));
-  useEffect(() => void load(), [modul]);
+  useEffect(() => void load(), [modul, canEdit]);
 
   const row =
     rows?.find((r) => r.bahasa === lang) ??

@@ -293,7 +293,7 @@ function FilterBar({
         onOpenChange={setEx}
         align="end"
         trigger={
-          <button type="button" className="btn" aria-expanded={ex}>
+          <button type="button" className="btn btn--inverse" aria-expanded={ex}>
             <ExportIcon size={18} aria-hidden="true" />
             {t.exportView}
           </button>
