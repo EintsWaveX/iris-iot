@@ -919,7 +919,7 @@ function AuditTab({ f, c }: { f: Filter; c: Ctx }) {
                   <span className="rp-audline">
                     <Ic size={20} aria-hidden="true" />
                     <span>
-                      <b>{dir.nama(r.aktorNim)}</b> {k.teks}
+                      <b>{r.aktorNim === "sistem" ? t.audSistem : dir.nama(r.aktorNim)}</b> {k.teks}
                     </span>
                   </span>
                   {k.transkrip ? (

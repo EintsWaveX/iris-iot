@@ -3,7 +3,7 @@
  * filter tab. The API filters on these lists, so a tab pages through its
  * own lines instead of a slice of everything. Browser-safe.
  */
-export const JENIS_AUDIT = ["pair", "seelabs", "tim", "konsol", "hak"] as const;
+export const JENIS_AUDIT = ["pair", "seelabs", "tim", "konsol", "hak", "galat"] as const;
 export type JenisAudit = (typeof JENIS_AUDIT)[number];
 
 export const AKSI_PER_JENIS: Record<JenisAudit, readonly string[]> = {
@@ -50,6 +50,8 @@ export const AKSI_PER_JENIS: Record<JenisAudit, readonly string[]> = {
   ],
   // tim_ubah lines that change rights are picked out by their detail.
   hak: ["tim_ubah"],
+  // Errors the site saved itself (api/_lib/galat.ts), 2026-10-05.
+  galat: ["galat_server", "galat_klien"],
 };
 
 export function isJenisAudit(v: unknown): v is JenisAudit {

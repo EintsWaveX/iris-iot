@@ -133,8 +133,12 @@ const W = {
     susulanDraf: (t: string) => `membuat draf susulan ${t}`,
     modulAkses: (m: string) => (m ? `membuka akses ${m}` : "menutup semua akses modul"),
     totNyala: "menyalakan Mode TOT; roster asli disimpan",
+    totHapus: (n: unknown) => `menghapus riwayat TOT (${n} sesi)`,
     totMati: "mematikan Mode TOT; roster asli dikembalikan",
     tot: " (TOT)",
+    paksa: (a: string) => `, dimulai tetap walau lab belum siap. Alasan: ${a}`,
+    galatServer: (r: string, p: string) => `mencatat galat server${r ? ` di ${r}` : ""}: ${p}`,
+    galatKlien: (h: string, p: string) => `mencatat galat di halaman ${h || "?"}: ${p}`,
     brief: (m: string, b: string) => `mengubah Ringkasan ${m} (${b})`,
     presentasi: "mengubah slide presentasi",
     skema: (m: string) => `mengubah skema rangkaian ${m}`,
@@ -233,8 +237,12 @@ const W = {
     susulanDraf: (t: string) => `made a makeup draft for ${t}`,
     modulAkses: (m: string) => (m ? `opened ${m}` : "closed every module"),
     totNyala: "switched TOT Mode on; the real roster was saved",
+    totHapus: (n: unknown) => `cleared the TOT history (${n} sessions)`,
     totMati: "switched TOT Mode off; the real roster was put back",
     tot: " (TOT)",
+    paksa: (a: string) => `, started anyway with the lab not ready. Reason: ${a}`,
+    galatServer: (r: string, p: string) => `logged a server error${r ? ` in ${r}` : ""}: ${p}`,
+    galatKlien: (h: string, p: string) => `logged an error on page ${h || "?"}: ${p}`,
     brief: (m: string, b: string) => `changed the ${m} Brief (${b})`,
     presentasi: "changed the presentation slides",
     skema: (m: string) => `changed the ${m} wiring schematic`,
@@ -332,8 +340,12 @@ const W = {
     susulanDraf: (t: string) => `为 ${t} 建了补课草稿`,
     modulAkses: (m: string) => (m ? `开放了${m}` : "关闭了所有模块"),
     totNyala: "开启了 TOT 模式，真实名单已保存",
+    totHapus: (n: unknown) => `清除了 TOT 记录（${n} 节课）`,
     totMati: "关闭了 TOT 模式，真实名单已恢复",
     tot: "（TOT）",
+    paksa: (a: string) => `，实验室未就绪仍照样开始。原因：${a}`,
+    galatServer: (r: string, p: string) => `记录了服务器错误${r ? `（${r}）` : ""}：${p}`,
+    galatKlien: (h: string, p: string) => `记录了页面 ${h || "?"} 的错误：${p}`,
     brief: (m: string, b: string) => `修改了${m}的简介（${b}）`,
     presentasi: "修改了演示幻灯片",
     skema: (m: string) => `修改了${m}的接线图`,
@@ -490,7 +502,14 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       const sfx = tgl
         ? ` · ${tgl}${d.slot ? ` · ${b.lang === "zh" ? "时段" : "Slot"} ${d.slot}` : ""}`
         : "";
-      return k(PlayIcon, w.sesiMulai(m, sfx) + (d.jenis === "tot" ? w.tot : ""));
+      const paksa = d.dipaksa as { alasan?: unknown } | undefined;
+      return k(
+        PlayIcon,
+        w.sesiMulai(m, sfx) +
+          (d.jenis === "tot" ? w.tot : "") +
+          (paksa ? w.paksa(String(paksa.alasan ?? "")) : ""),
+        !!paksa,
+      );
     }
     case "sesi_akhiri":
       return k(StopIcon, w.sesiAkhiri(b.sesi(d.sesiId)));
@@ -594,6 +613,8 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       );
     case "tot_nyala":
       return k(ChalkboardTeacherIcon, w.totNyala);
+    case "tot_hapus_riwayat":
+      return k(TrashIcon, w.totHapus(d.sesi));
     case "tot_mati":
       return k(ChalkboardTeacherIcon, w.totMati);
     case "modul_akses_ubah": {
@@ -713,6 +734,10 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(MonitorIcon, w.konsolOke(pk(d.id)));
     case "konsol_tanya":
       return k(ChatTextIcon, w.konsolTanya(pk(d.id), d.teks));
+    case "galat_server":
+      return k(WarningIcon, w.galatServer(String(d.rute ?? ""), String(d.pesan ?? "")), true);
+    case "galat_klien":
+      return k(WarningIcon, w.galatKlien(String(d.halaman ?? ""), String(d.pesan ?? "")), true);
     default:
       if (row.aksi.startsWith("konsol_")) return k(MonitorIcon, w.konsol);
       return k(BroadcastIcon, w.lain(row.aksi));

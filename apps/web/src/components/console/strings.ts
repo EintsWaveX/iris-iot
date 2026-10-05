@@ -513,6 +513,7 @@ export const S = dict({
     codes: {
       tidak_terdaftar: "Praktikan ini tidak ada di kelompok sesi ini.",
       mode_tot: "Mode TOT masih aktif. Matikan dulu di Persiapan, Mode TOT.",
+      belum_siap: "Lab belum siap. Cek Pi dan layanannya di Server.",
       tot_mati: "Mode TOT belum aktif. Nyalakan dulu di Persiapan, Mode TOT.",
       sesi_tot: "Ini sesi TOT, jadi tidak dikirim ke SeeLabs atau dipakai untuk sesi asli.",
       sudah_aktif: "Mode TOT sudah aktif.",
@@ -1037,6 +1038,7 @@ export const S = dict({
     codes: {
       tidak_terdaftar: "This student isn't in a group of this session.",
       mode_tot: "TOT Mode is still on. Switch it off in Preparation, TOT Mode first.",
+      belum_siap: "The lab isn't ready. Check the Pi and its services on Server.",
       tot_mati: "TOT Mode isn't on. Switch it on in Preparation, TOT Mode first.",
       sesi_tot: "This is a TOT session, so it isn't sent to SeeLabs or used for real sessions.",
       sudah_aktif: "TOT Mode is already on.",
@@ -1540,6 +1542,7 @@ export const S = dict({
     codes: {
       tidak_terdaftar: "这名学员不在本节课的小组里。",
       mode_tot: "TOT 模式仍在开启。请先在课前准备的 TOT 模式里关闭。",
+      belum_siap: "实验室还没准备好。请在服务器页面检查 Pi 和它的服务。",
       tot_mati: "TOT 模式还没开启。请先在课前准备的 TOT 模式里开启。",
       sesi_tot: "这是 TOT 课程，不会发送到 SeeLabs，也不用于正式课程。",
       sudah_aktif: "TOT 模式已经开启。",

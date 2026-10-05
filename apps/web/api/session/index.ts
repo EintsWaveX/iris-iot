@@ -9,6 +9,7 @@
  *     a Praktikum Susulan: its own date and time, or a draft made in
  *     Preparation or by "Siapkan Sesi Berikutnya" (status terjadwal)
  *   { jenis: "tot", modul, kelas?, durasiMenit?, butuhAp? }
+ *   Any of these may add `paksa: "<reason>"` to start past the lab check.
  *     a TOT session (2026-10-05): today, now, the six division groups of
  *     dummy Praktikan Mode TOT put in the live roster (src/lib/tot.ts)
  *
@@ -23,6 +24,11 @@
  *   starts only while it is on (same "pair" right as a susulan). It may use
  *   a closed module, and copies no roster: the live one already holds the
  *   dummies, so it is only snapshotted.
+ * - The lab check (src/lib/siap-mulai.ts): the Pi online, the module's
+ *   service running and, for Module 4, the hotspot on or queued. Any of
+ *   those failing answers `belum_siap` with the checks, and `paksa` (a
+ *   reason, 5+ characters) starts anyway; the reason goes to the audit
+ *   log and the session's events.
  * - A closed module can't be started; modules are opened in Preparation.
  *   (Before Phase 9 a start opened its module and the ones below; that
  *   undid an Asisten who had closed one on purpose.)
@@ -45,7 +51,6 @@ import { muatOrang } from "../_lib/hak.js";
 import { salinRosterKeSesi, type SumberRoster } from "../_lib/roster.js";
 import { getDb } from "../../src/lib/db.js";
 import { pengaturan, sesi } from "../../src/lib/schema.js";
-import { totAktif } from "../../src/lib/mode-tot.js";
 import { TOT_JUMLAH_KELOMPOK } from "../../src/lib/tot.js";
 import { hariIniWib, slotToMulai, SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
 import { semesterDariTanggal, hariDariTanggal } from "../../src/lib/jadwal-parser.js";
@@ -60,7 +65,8 @@ import { bolehPenuh } from "../../src/lib/hak.js";
 import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { writeAudit } from "../../src/lib/auth.js";
-import { getModulTerbuka } from "../../src/lib/akses.js";
+import { cekSiapMulai } from "../_lib/siap-mulai.js";
+import { ALASAN_PAKSA_MIN, gagalMulai } from "../../src/lib/siap-mulai.js";
 import { isKelas } from "../../src/lib/kelas.js";
 import { jadwalUntuk, siapkanSesiDariJadwal } from "../_lib/phase8.js";
 import { catatKejadian } from "../_lib/berjalan.js";
@@ -139,11 +145,6 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!orang) return tolak(res, "tanpa_hak");
     const penuh = bolehPenuh(orang, "pair");
 
-    // Mode TOT decides which kind of session may start at all.
-    const modeTot = await totAktif();
-    if (modeTot && !tot) return tolak(res, "mode_tot");
-    if (!modeTot && tot) return tolak(res, "tot_mati");
-
     const slotRow = await jadwalUntuk(db, tanggal, slot);
     if (susulan || tot) {
       if (!penuh) return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "pair" });
@@ -170,7 +171,19 @@ async function handler(req: ApiRequest, res: ApiResponse) {
       }
     }
 
-    if (!tot && !(await getModulTerbuka()).includes(modul)) return tolak(res, "modul_tertutup");
+    // The lab check (src/lib/siap-mulai.ts). Mode TOT's side and a closed
+    // module refuse outright, as before; an offline Pi, a stopped service
+    // or the Module 4 hotspot left off can be forced past with a reason.
+    const { cek, serverId } = await cekSiapMulai({ modul, tot, butuhAp });
+    const { keras, lunak } = gagalMulai(cek);
+    if (keras.length) {
+      const k = keras[0].id === "tot" ? (tot ? "tot_mati" : "mode_tot") : "modul_tertutup";
+      return tolak(res, k, { cek, serverId });
+    }
+    const paksa = typeof body.paksa === "string" ? body.paksa.trim().slice(0, 300) : "";
+    if (lunak.length && paksa.length < ALASAN_PAKSA_MIN)
+      return tolak(res, "belum_siap", { cek, serverId });
+    const dipaksa = lunak.length ? { alasan: paksa, gagal: lunak.map((c) => c.id) } : null;
 
     const jumlahKelompok = tot
       ? TOT_JUMLAH_KELOMPOK
@@ -234,7 +247,12 @@ async function handler(req: ApiRequest, res: ApiResponse) {
       console.error("[api/session] schedule prefill failed:", err);
     }
 
-    await catatKejadian(created.id, "mulai", { modul, slot, jenis: created.jenis }, session.nim);
+    await catatKejadian(
+      created.id,
+      "mulai",
+      { modul, slot, jenis: created.jenis, ...(dipaksa ? { dipaksa } : {}) },
+      session.nim,
+    );
     await writeAudit(session.nim, "sesi_mulai", {
       tanggal,
       mulai,
@@ -246,6 +264,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
       jumlahKelompok,
       disalin,
       ...persiapan,
+      ...(dipaksa ? { dipaksa } : {}),
     });
 
     // Best-effort: a session that needs the hotspot should not also need an

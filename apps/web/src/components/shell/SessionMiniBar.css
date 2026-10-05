@@ -293,3 +293,57 @@
     display: none;
   }
 }
+
+/* KodeMasuk.tsx: the session's sign-in code. */
+.kodemasuk {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  flex: none;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.kodemasuk__k {
+  color: var(--text-muted);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.kodemasuk__v {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.12em;
+}
+
+.kodemasuk[data-besar="yes"] {
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 18px;
+}
+
+.kodemasuk[data-besar="yes"] .kodemasuk__k {
+  font-size: 1rem;
+}
+
+.kodemasuk[data-besar="yes"] .kodemasuk__v {
+  font-size: 1.75rem;
+}
+
+@media (max-width: 520px) {
+  .minibar .kodemasuk__k {
+    display: none;
+  }
+}
+
+/* The Asisten's bar has no room for it on a phone; the session bar on the
+   Console still shows it. */
+@media (max-width: 640px) {
+  .minibar--asisten .kodemasuk {
+    display: none;
+  }
+}

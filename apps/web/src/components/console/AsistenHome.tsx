@@ -19,6 +19,7 @@
  * src/lib/sesi-mulai.ts); this page only explains them ahead of time.
  */
 import HelpCard from "./HelpCard";
+import StartCheck, { type BelumSiap } from "./StartCheck";
 import { EarningsMini } from "../bayar/Earnings";
 import { useTitipan } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
@@ -164,6 +165,7 @@ export default function AsistenHome({
   const [butuhAp, setButuhAp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [resume, setResume] = useState<number | null>(null);
+  const [belum, setBelum] = useState<BelumSiap | null>(null);
   const [menitNow, setMenitNow] = useState(() => menitSekarangWib());
 
   const load = () =>
@@ -255,8 +257,9 @@ export default function AsistenHome({
     susulan && susTanggal !== hariIniWib() ? mulaiMenit : Math.max(mulaiMenit, menitNow);
   const selesai = jamDariMenit(dariMenit + durasi);
 
-  async function start() {
+  async function start(paksa?: string, apPaksa?: boolean) {
     if (modul === null) return;
+    const ap = apPaksa ?? butuhAp;
     setBusy(true);
     try {
       const body = susulan
@@ -268,13 +271,22 @@ export default function AsistenHome({
         ditugaskan?: number;
         apDiantre?: boolean | null;
         sesiLama?: { id: number; status: string; bisaDilanjutkan: boolean } | null;
+        cek?: BelumSiap["cek"];
+        serverId?: number | null;
       }>("/api/session", {
         ...body,
         modul,
         kelas,
         durasiMenit: durasi,
-        butuhAp: modul === 4 && butuhAp,
+        butuhAp: modul === 4 && ap,
+        paksa,
       });
+      // The lab check found something: show it instead of a toast.
+      if (d.kode === "belum_siap" && d.cek) {
+        setBelum({ cek: d.cek, serverId: d.serverId ?? null });
+        return;
+      }
+      setBelum(null);
       if (d.ok) {
         window.Toast?.show(d.ditugaskan ? t.startedAssign(d.ditugaskan) : t.started, "ok");
         if (d.apDiantre === false) window.Toast?.show(t.apNotQueued, "warn", { duration: 12_000 });
@@ -700,6 +712,21 @@ export default function AsistenHome({
           <FeedbackCard data={mine} h={h} lang={lang} />
         </div>
       </div>
+
+      <StartCheck
+        data={belum}
+        modul={modul ?? 1}
+        tot={false}
+        lang={lang}
+        busy={busy}
+        onClose={() => setBelum(null)}
+        onRecheck={() => void start()}
+        onForce={(alasan) => void start(alasan)}
+        onApOn={() => {
+          setButuhAp(true);
+          void start(undefined, true);
+        }}
+      />
 
       <Confirm
         open={resume !== null}

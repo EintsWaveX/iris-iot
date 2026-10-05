@@ -9,8 +9,9 @@
  * refused while a session runs (api/_lib/tot.ts).
  */
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { ArrowRightIcon, PlayIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, PlayIcon, TrashIcon } from "@phosphor-icons/react";
 import Confirm from "../../ui/Confirm";
+import StartCheck, { type BelumSiap } from "../StartCheck";
 import Pill from "../../ui/Pill";
 import { Checkbox, Stepper, Switch } from "../../ui/Controls";
 import { dict, getJson, href, postJson, tanggalPanjang, useMe } from "../../../lib/app";
@@ -29,6 +30,8 @@ interface TotState {
   sejak: string | null;
   olehKode: string | null;
   jumlah: number;
+  /** Finished TOT sessions still kept. */
+  riwayat?: number;
 }
 
 const T = dict({
@@ -45,7 +48,8 @@ const T = dict({
     noRight: "Hanya Pengelola dan Admin yang bisa menyalakan atau mematikan Mode TOT.",
     running: "Akhiri sesi yang sedang berjalan dulu sebelum mengubah Mode TOT.",
     accounts: "Akun Praktikan TOT",
-    accountsHint: "Masuk sebagai Praktikan dengan NIM ini, tanpa kata sandi.",
+    accountsHint:
+      "Masuk sebagai Praktikan dengan NIM ini, tanpa kata sandi. Saat sesi berjalan, isi juga Kode Masuk yang tampil di bar sesi.",
     group: (n: number) => `Kelompok ${n}`,
     sampai: "sampai",
     names: (d: string) => `TOT ${d} 01 sampai ${TOT_PER_KELOMPOK}`,
@@ -73,6 +77,12 @@ const T = dict({
     turnedOn: "Mode TOT aktif.",
     turnedOff: "Mode TOT dimatikan. Roster asli sudah kembali.",
     started: "Sesi TOT dimulai.",
+    history: (n: number) => `Riwayat TOT: ${n} sesi latihan tersimpan.`,
+    clear: "Hapus Riwayat",
+    clearTitle: "Hapus Riwayat TOT?",
+    clearBody: (n: number) =>
+      `${n} sesi TOT yang sudah selesai dihapus beserta nilai, jawaban, dan catatan masuknya. Sesi asli tidak tersentuh.`,
+    cleared: (n: number) => `${n} sesi TOT dihapus.`,
   },
   en: {
     title: "TOT Mode",
@@ -87,7 +97,8 @@ const T = dict({
     noRight: "Only Pengelola and Admins can switch TOT Mode on or off.",
     running: "End the running session first before changing TOT Mode.",
     accounts: "TOT Praktikan Accounts",
-    accountsHint: "Sign in as Praktikan with these NIMs, no password.",
+    accountsHint:
+      "Sign in as Praktikan with these NIMs, no password. While a session runs, also type the Sign-in Code shown on the session bar.",
     group: (n: number) => `Group ${n}`,
     sampai: "to",
     names: (d: string) => `TOT ${d} 01 to ${TOT_PER_KELOMPOK}`,
@@ -115,6 +126,12 @@ const T = dict({
     turnedOn: "TOT Mode is on.",
     turnedOff: "TOT Mode is off. The real roster is back.",
     started: "TOT session started.",
+    history: (n: number) => `TOT history: ${n} practice sessions kept.`,
+    clear: "Clear History",
+    clearTitle: "Clear TOT History?",
+    clearBody: (n: number) =>
+      `${n} finished TOT sessions are deleted with their scores, answers and sign-ins. Real sessions are untouched.`,
+    cleared: (n: number) => `${n} TOT sessions deleted.`,
   },
   zh: {
     title: "TOT 模式",
@@ -129,7 +146,8 @@ const T = dict({
     noRight: "只有 Pengelola 和 Admin 可以开启或关闭 TOT 模式。",
     running: "请先结束正在进行的课程，再更改 TOT 模式。",
     accounts: "TOT 学员账号",
-    accountsHint: "用这些 NIM 以学员身份登录，无需密码。",
+    accountsHint:
+      "用这些 NIM 以学员身份登录，无需密码。课程进行时，还要输入课程栏上显示的登录代码。",
     group: (n: number) => `第 ${n} 组`,
     sampai: "至",
     names: (d: string) => `TOT ${d} 01 至 ${TOT_PER_KELOMPOK}`,
@@ -155,6 +173,12 @@ const T = dict({
     turnedOn: "TOT 模式已开启。",
     turnedOff: "TOT 模式已关闭，真实名单已恢复。",
     started: "TOT 课程已开始。",
+    history: (n: number) => `TOT 记录：保存了 ${n} 节练习课。`,
+    clear: "清除记录",
+    clearTitle: "清除 TOT 记录？",
+    clearBody: (n: number) =>
+      `将删除 ${n} 节已结束的 TOT 课程及其分数、答案和登录记录。正式课程不受影响。`,
+    cleared: (n: number) => `已删除 ${n} 节 TOT 课程。`,
   },
 });
 
@@ -177,10 +201,12 @@ export default function TotPanel({
   const bolehMulai = me?.hak?.pair === true;
   const [st, setSt] = useState<TotState | null>(null);
   const [ask, setAsk] = useState<boolean | null>(null);
+  const [hapus, setHapus] = useState(false);
   const [modul, setModul] = useState(1);
   const [durasi, setDurasi] = useState(120);
   const [butuhAp, setButuhAp] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [belum, setBelum] = useState<BelumSiap | null>(null);
 
   const load = useCallback(() => {
     getJson<{ ok: boolean } & TotState>("/api/session/tot")
@@ -204,13 +230,28 @@ export default function TotPanel({
     return true;
   }
 
-  async function mulai() {
+  async function mulai(paksa?: string, apPaksa?: boolean) {
     setBusy(true);
     try {
-      const d = await postJson<{ ok: boolean; kode?: string; apDiantre?: boolean | null }>(
-        "/api/session",
-        { jenis: "tot", modul, durasiMenit: durasi, butuhAp: modul === 4 && butuhAp },
-      );
+      const d = await postJson<{
+        ok: boolean;
+        kode?: string;
+        apDiantre?: boolean | null;
+        cek?: BelumSiap["cek"];
+        serverId?: number | null;
+      }>("/api/session", {
+        jenis: "tot",
+        modul,
+        durasiMenit: durasi,
+        butuhAp: modul === 4 && (apPaksa ?? butuhAp),
+        paksa,
+      });
+      // The lab check found something: show it instead of a toast.
+      if (d.kode === "belum_siap" && d.cek) {
+        setBelum({ cek: d.cek, serverId: d.serverId ?? null });
+        return;
+      }
+      setBelum(null);
       if (!d.ok) {
         window.Toast?.show(pesan(t, d.kode), "danger");
         return;
@@ -258,6 +299,15 @@ export default function TotPanel({
         {aktif && st.sejak && <p className="hint">{k.since(sejak, st.olehKode)}</p>}
         {!bolehUbah && <p className="hint">{k.noRight}</p>}
         {bolehUbah && jalan && <p className="hint">{k.running}</p>}
+        {bolehUbah && !!st.riwayat && (
+          <div className="row" style={{ alignItems: "center", gap: "var(--space-3)" }}>
+            <span className="hint grow">{k.history(st.riwayat)}</span>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setHapus(true)}>
+              <TrashIcon size={16} aria-hidden="true" />
+              {k.clear}
+            </button>
+          </div>
+        )}
       </section>
 
       {aktif && (
@@ -383,6 +433,45 @@ export default function TotPanel({
         tone={ask ? "danger" : "primary"}
         lang={lang}
         onConfirm={() => ubah(!!ask)}
+      />
+
+      <Confirm
+        open={hapus}
+        onOpenChange={setHapus}
+        title={k.clearTitle}
+        body={k.clearBody(st.riwayat ?? 0)}
+        confirmLabel={k.clear}
+        cancelLabel={k.cancel}
+        tone="danger"
+        lang={lang}
+        onConfirm={async () => {
+          const d = await postJson<{ ok: boolean; kode?: string; dihapus?: number }>(
+            "/api/session/tot",
+            { hapusRiwayat: true },
+          ).catch(() => ({ ok: false, kode: undefined, dihapus: 0 }));
+          if (!d.ok) {
+            window.Toast?.show(pesan(t, d.kode), "danger");
+            return false;
+          }
+          window.Toast?.show(k.cleared(d.dihapus ?? 0), "ok");
+          load();
+          onChanged();
+        }}
+      />
+
+      <StartCheck
+        data={belum}
+        modul={modul}
+        tot
+        lang={lang}
+        busy={busy}
+        onClose={() => setBelum(null)}
+        onRecheck={() => void mulai()}
+        onForce={(alasan) => void mulai(alasan)}
+        onApOn={() => {
+          setButuhAp(true);
+          void mulai(undefined, true);
+        }}
       />
     </div>
   );

@@ -61,6 +61,9 @@ import {
   tolakPraktikanTot,
 } from "../_lib/session.js";
 import { handleTotGet, handleTotPost } from "../_lib/tot.js";
+import { AMBANG_GALAT } from "../_lib/galat.js";
+import { faktaPi } from "../_lib/siap-mulai.js";
+import { LAYANAN_MODUL } from "../../src/lib/siap-mulai.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   kelompok,
@@ -74,6 +77,7 @@ import {
   NILAI_KOMPONEN,
   asisten,
   sesiAnggota,
+  audit,
 } from "../../src/lib/schema.js";
 import type { NilaiKomponen } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
@@ -94,7 +98,7 @@ import {
   handleTangkapanGet,
   handleTangkapanPost,
 } from "../_lib/tangkapan.js";
-import { writeAudit } from "../../src/lib/auth.js";
+import { kodeMasukSesi, writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { jumlahCelahModul, kodeModul } from "../_lib/kode-aktif.js";
 import { SESI_CAP_DETIK, SESI_CAP_MENIT, durasiSesi } from "../../src/lib/jadwal.js";
@@ -185,6 +189,9 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       milikSaya: who?.role === "praktikan" ? who.sesiId === running.id : null,
       // An Asisten teaching it gets the "Sesimu berjalan" bar on every page.
       mengajar: who?.role === "asisten" ? await asistenMengajar(running, who.nim) : null,
+      // The sign-in code, for the projector and the Asisten's bars. Never
+      // to a Praktikan or a visitor.
+      kodeMasuk: who?.role === "asisten" ? kodeMasukSesi(running) : undefined,
     },
   });
 }
@@ -343,6 +350,57 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
   res.status(200).json({ ok: true });
 }
 
+/**
+ * GET /api/session/waspada (2026-10-05) -- asisten-only. What the alert on
+ * every Asisten page watches (shell/LabAlert.tsx): server errors in the
+ * last AMBANG_GALAT.menit minutes (api/_lib/galat.ts saves them), and,
+ * while a session that needs the Pi runs, whether the Pi went silent.
+ */
+async function handleWaspada(_req: ApiRequest, res: ApiResponse) {
+  const db = getDb();
+  const sejak = new Date(Date.now() - AMBANG_GALAT.menit * 60_000);
+  const [[n], [terakhir], running] = await Promise.all([
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(audit)
+      .where(and(eq(audit.aksi, "galat_server"), gte(audit.pada, sejak))),
+    db
+      .select({ id: audit.id, pada: audit.pada, detail: audit.detail })
+      .from(audit)
+      .where(eq(audit.aksi, "galat_server"))
+      .orderBy(desc(audit.id))
+      .limit(1),
+    currentSesi(),
+  ]);
+  let pi: { luring: boolean; umurDetik: number | null } | null = null;
+  if (running && running.modul in LAYANAN_MODUL) {
+    const f = await faktaPi();
+    pi = {
+      luring: !f || f.umurDetik === null || f.umurDetik > f.batasLuringDetik,
+      umurDetik: f?.umurDetik ?? null,
+    };
+  }
+  let pesan = "";
+  try {
+    pesan = String((JSON.parse(terakhir?.detail ?? "{}") as { pesan?: unknown }).pesan ?? "");
+  } catch {
+    /* an old row with a plain detail */
+  }
+  res.status(200).json({
+    ok: true,
+    galat: {
+      jumlah: n?.n ?? 0,
+      menit: AMBANG_GALAT.menit,
+      ambang: AMBANG_GALAT.jumlah,
+      terakhir: terakhir
+        ? { id: terakhir.id, pada: terakhir.pada.toISOString(), pesan: pesan.slice(0, 200) }
+        : null,
+    },
+    pi,
+    sesi: running ? { id: running.id, modul: running.modul } : null,
+  });
+}
+
 async function handleCurrent(_req: ApiRequest, res: ApiResponse) {
   const db = getDb();
   // Independent reads, so one round trip instead of four in a row: this
@@ -374,7 +432,12 @@ async function handleCurrent(_req: ApiRequest, res: ApiResponse) {
         .map((m) => ({ nim: m.nim, nama: m.nama })),
     }));
 
-  res.status(200).json({ ok: true, sesi: running, roster });
+  // Asisten-only route: the sign-in code rides along for the session bar.
+  res.status(200).json({
+    ok: true,
+    sesi: running ? { ...running, kodeMasuk: kodeMasukSesi(running) } : null,
+    roster,
+  });
 }
 
 async function handleEnd(_req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -1330,6 +1393,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "current") {
     if (!requireMethod(req, res, "GET")) return;
     return handleCurrent(req, res);
+  }
+  if (aksi === "waspada") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleWaspada(req, res);
   }
   if (aksi === "end") {
     if (!requireMethod(req, res, "POST")) return;

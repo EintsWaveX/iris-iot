@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircleIcon, InfoIcon, WarningIcon, XCircleIcon, XIcon } from "@phosphor-icons/react";
 import "./Toast.css";
 import { pageLang } from "../../lib/app";
+import { pasangLaporGalat } from "../../scripts/lapor-galat";
 
 type Tone = "info" | "ok" | "warn" | "danger";
 
@@ -64,6 +65,9 @@ export default function Toast() {
       setTimeout(() => hide(id), ms),
     );
   }
+
+  // This island is on every page, so the page's error reporter starts here.
+  useEffect(pasangLaporGalat, []);
 
   useEffect(() => {
     function show(

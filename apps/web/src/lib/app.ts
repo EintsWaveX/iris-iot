@@ -141,6 +141,8 @@ export interface SesiNow {
   /** Asisten only: true when they teach this session (slot seat, opener,
    *  a held group or an accepted volunteer place). */
   mengajar?: boolean | null;
+  /** Asisten only: the four digits a Praktikan types to sign in. */
+  kodeMasuk?: string;
 }
 
 export function useSessionNow(ms = 20_000, enabled = true) {

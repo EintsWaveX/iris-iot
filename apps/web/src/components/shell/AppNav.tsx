@@ -69,6 +69,8 @@ import AsistenMiniBar from "./AsistenMiniBar";
 import OfflineNotice from "./OfflineNotice";
 import IdentityWatch from "./IdentityWatch";
 import TotNotice from "./TotNotice";
+import LiveNotice from "./LiveNotice";
+import LabAlert from "./LabAlert";
 import AsistenCommands from "./AsistenCommands";
 import "./AppNav.css";
 import { openSignIn } from "../../lib/signin";
@@ -536,7 +538,9 @@ export default function AppNav({
       {tampil?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} proyektor={!!pro} />}
       {asistenBar && now.data && <AsistenMiniBar lang={lang} s={now.data} />}
       <OfflineNotice lang={lang} />
+      {!pro && <LiveNotice lang={lang} />}
       {me?.role === "asisten" && !pro && <TotNotice lang={lang} />}
+      {me?.role === "asisten" && !pro && <LabAlert lang={lang} me={me} sesiBerjalan={!!now.data} />}
       <IdentityWatch lang={lang} me={me} now={now.data} />
 
       <nav className="appbar" aria-label={t.main}>

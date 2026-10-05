@@ -10,6 +10,7 @@
  * - Perpanjang (E) keeps its label, then the Server chip (opens the
  *   drawer) and the red Akhiri.
  */
+import KodeMasuk from "../shell/KodeMasuk";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowLeftIcon,
@@ -236,6 +237,7 @@ export default function SessionBar({
       </div>
 
       <div className="sbar__tools">
+        {sesi.kodeMasuk && <KodeMasuk kode={sesi.kodeMasuk} lang={lang} />}
         {wide ? (
           <>
             <Pop

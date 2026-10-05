@@ -7,11 +7,13 @@
  * and /api/auth/keluar onto these exact English paths.
  *
  * GET  /api/auth/me            — who is signed in, if anyone. P8: an assistant also gets `kode` and `perluAturSandi`.
- * POST /api/auth/student       { nim }              — no password.
+ * POST /api/auth/student       { nim, kodeSesi? }   — no password; while a session runs, its 4-digit code.
  * POST /api/auth/assistant     { nim, password }
  * POST /api/auth/logout        (no body)
  * POST /api/auth/set-password  { password }         — assistant-only, first-login flow.
  * POST /api/auth/change-password { lama, baru }      — assistant-only, any time (P8 /account). Rate-limited like a login.
+ * POST /api/auth/galat         { pesan, sumber?, baris?, halaman? } — anyone: the browser reporting its
+ *                              own uncaught error (2026-10-05, _lib/galat.ts). Capped per IP.
  */
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { petaHak } from "../_lib/hak.js";
@@ -34,6 +36,7 @@ import { getDb } from "../../src/lib/db.js";
 import { asisten } from "../../src/lib/schema.js";
 import { eq } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
+import { catatGalat } from "../_lib/galat.js";
 import { totAktif } from "../../src/lib/mode-tot.js";
 import { praktikanBolehMasuk } from "../../src/lib/tot.js";
 
@@ -113,7 +116,8 @@ async function handleStudent(req: ApiRequest, res: ApiResponse) {
   }
 
   try {
-    const result = await verifyPraktikanLogin(nim, clientIp(req));
+    const kodeSesi = typeof body.kodeSesi === "string" ? body.kodeSesi.slice(0, 8) : "";
+    const result = await verifyPraktikanLogin(nim, clientIp(req), kodeSesi);
 
     if (!result.ok) {
       // Asserted, not narrowed: see the old student.ts header comment --
@@ -249,6 +253,41 @@ async function handleChangePassword(req: ApiRequest, res: ApiResponse) {
   }
 }
 
+/** Per IP, per function instance: enough for a real crash loop to show,
+ *  too few to fill the audit log. */
+const galatPerIp = new Map<string, { n: number; sejak: number }>();
+const GALAT_IP_MAKS = 10;
+
+async function handleGalat(req: ApiRequest, res: ApiResponse) {
+  if (!requireMethod(req, res, "POST")) return;
+  const body = jsonBody(req);
+  const s = (v: unknown, n: number) => (typeof v === "string" ? v.slice(0, n) : "");
+  const pesan = s(body.pesan, 400);
+  if (!pesan) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const ip = clientIp(req);
+  const kini = Date.now();
+  const r = galatPerIp.get(ip);
+  const baris = r && kini - r.sejak < 10 * 60_000 ? r : { n: 0, sejak: kini };
+  baris.n += 1;
+  galatPerIp.set(ip, baris);
+  if (galatPerIp.size > 500) galatPerIp.clear();
+  if (baris.n <= GALAT_IP_MAKS) {
+    const who = currentSession(req);
+    catatGalat("galat_klien", {
+      pesan,
+      sumber: s(body.sumber, 200),
+      baris: typeof body.baris === "number" ? body.baris : undefined,
+      halaman: s(body.halaman, 200),
+      peran: who?.role ?? "tamu",
+      nim: who?.role === "asisten" ? who.nim : undefined,
+    });
+  }
+  res.status(200).json({ ok: true });
+}
+
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
 
@@ -260,6 +299,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "logout") return handleLogout(req, res);
   if (aksi === "set-password") return handleSetPassword(req, res);
   if (aksi === "change-password") return handleChangePassword(req, res);
+  if (aksi === "galat") return handleGalat(req, res);
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
 }

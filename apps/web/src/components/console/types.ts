@@ -19,6 +19,8 @@ export interface SesiRunning {
   jenis?: "reguler" | "susulan" | "tot";
   /** The hand-over's kit count (c-next), once someone set it. */
   kit?: { kembali: number; rusak: number; total: number } | null;
+  /** The four digits Praktikan type to sign in to this session. */
+  kodeMasuk?: string;
 }
 
 export interface RosterGroup {

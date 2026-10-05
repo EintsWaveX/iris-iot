@@ -15,6 +15,7 @@
 import { createHmac } from "node:crypto";
 import type { ApiHandler, ApiRequest, ApiResponse } from "./http.js";
 import { konsolEnv } from "./konsol.js";
+import { denganGalat } from "./galat.js";
 
 /** Writes, as "route:aksi" (or just "route"), and what they change. A
  *  write not listed here announces its route's name. */
@@ -55,6 +56,7 @@ const TOPIK: Record<string, string[]> = {
   "auth:logout": [],
   "auth:set-password": [],
   "auth:change-password": [],
+  "auth:galat": [],
   "modul:draft": ["jurnal"],
   "modul:kunci": ["jurnal"],
   "modul:cek": [],
@@ -99,7 +101,8 @@ export async function siarkan(topik: string[]): Promise<void> {
  * already been sent by then, so the caller never waits on the relay.
  */
 export function denganSiaran(rute: string, handler: ApiHandler): ApiHandler {
-  return async (req: ApiRequest, res: ApiResponse) => {
+  // Errors it logs or throws are reported too (_lib/galat.ts).
+  return denganGalat(rute, async (req: ApiRequest, res: ApiResponse) => {
     if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") {
       return handler(req, res);
     }
@@ -111,5 +114,5 @@ export function denganSiaran(rute: string, handler: ApiHandler): ApiHandler {
     };
     await handler(req, res);
     if (!gagal && res.statusCode < 300) await siarkan(topikUntuk(rute, req.query.aksi));
-  };
+  });
 }

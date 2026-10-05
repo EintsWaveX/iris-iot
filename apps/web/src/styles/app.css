@@ -912,6 +912,15 @@ html {
   color: var(--warn);
 }
 
+.banner--danger {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.banner--danger > svg {
+  color: var(--danger);
+}
+
 .banner--ok {
   background: var(--ok-soft);
   border-color: color-mix(in srgb, var(--ok) 60%, transparent);

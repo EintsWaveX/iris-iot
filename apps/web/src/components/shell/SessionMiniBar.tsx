@@ -29,6 +29,7 @@ import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import Pill from "../ui/Pill";
 import SessionStrip from "./SessionStrip";
+import KodeMasuk from "./KodeMasuk";
 import "./SessionMiniBar.css";
 
 const T = dict({
@@ -252,6 +253,7 @@ export default function SessionMiniBar({
       </div>
 
       <div className="minibar__actions">
+        {proyektor && s.kodeMasuk && <KodeMasuk kode={s.kodeMasuk} lang={lang} besar />}
         {!proyektor && (
           <button
             type="button"

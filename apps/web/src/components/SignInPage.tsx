@@ -3,7 +3,9 @@
  * any page until then).
  *
  * - One card, two roles: a praktikan types only the NIM (shown in big
- *   monospace digits), an assistant adds a password.
+ *   monospace digits), an assistant adds a password. While a session runs
+ *   the server also asks a praktikan for its 4-digit code (perlu_kode),
+ *   and the code field appears under the NIM.
  * - Validation is the page's own (no browser "please fill in this field"
  *   bubbles): the form is noValidate and errors sit under their field.
  * - A student's successful check-in shows the module, their group and its
@@ -54,6 +56,9 @@ const T = dict({
     submit: "Masuk",
     needNim: "Isi NIM dulu.",
     needPw: "Isi kata sandi dulu.",
+    kodeL: "Kode sesi",
+    kodeHint: "4 angka di layar depan kelas.",
+    needKode: "Isi 4 angka kode sesi.",
     setLede:
       "Kata sandi awal akun ini mudah ditebak. Setel kata sandi asli sekali di sini, dan kata sandi awal berhenti berlaku.",
     newPw: "Kata sandi baru",
@@ -77,6 +82,8 @@ const T = dict({
       format_salah: "Formatnya belum benar. Periksa kembali isiannya.",
       terkunci: "Terlalu banyak percobaan gagal. Tunggu beberapa menit lalu coba lagi.",
       tidak_cocok: "NIM atau kata sandi tidak cocok.",
+      perlu_kode: "Sesi sedang berjalan. Masukkan juga kode sesi dari layar depan.",
+      kode_salah: "Kode sesinya belum cocok. Lihat lagi di layar depan.",
       tidak_ada_sesi:
         "Belum ada sesi yang berjalan. Masuk bisa dilakukan begitu asisten memulai sesi di jam praktikummu.",
       tidak_terdaftar: "NIM ini tidak ada di roster sesi yang berjalan. Tanyakan ke asistenmu.",
@@ -100,6 +107,9 @@ const T = dict({
     submit: "Sign in",
     needNim: "Enter your NIM first.",
     needPw: "Enter your password first.",
+    kodeL: "Session code",
+    kodeHint: "The 4 digits on the screen at the front of the class.",
+    needKode: "Enter the 4-digit session code.",
     setLede:
       "This account's starting password is easy to guess. Set your own once here and the starting one stops working.",
     newPw: "New password",
@@ -123,6 +133,8 @@ const T = dict({
       format_salah: "That format is not right. Check what you typed.",
       terkunci: "Too many failed attempts. Wait a few minutes and try again.",
       tidak_cocok: "The NIM or password does not match.",
+      perlu_kode: "A session is running. Also enter the session code from the front screen.",
+      kode_salah: "That session code doesn't match. Check the front screen again.",
       tidak_ada_sesi:
         "No session is running yet. You can sign in once an assistant starts the session for your slot.",
       tidak_terdaftar: "This NIM isn't on the running session's roster. Ask your assistant.",
@@ -146,6 +158,9 @@ const T = dict({
     submit: "登录",
     needNim: "先填 NIM。",
     needPw: "先填密码。",
+    kodeL: "课程代码",
+    kodeHint: "教室前方屏幕上的 4 位数字。",
+    needKode: "请输入 4 位课程代码。",
     setLede: "这个账号的初始密码很容易猜到。在这里设置一次你自己的密码，初始密码就会失效。",
     newPw: "新密码",
     newPw2: "再输一次新密码",
@@ -167,6 +182,8 @@ const T = dict({
       format_salah: "格式不对。检查一下你输入的内容。",
       terkunci: "失败次数太多。等几分钟再试。",
       tidak_cocok: "NIM 或密码不对。",
+      perlu_kode: "课程正在进行。请同时输入前方屏幕上的课程代码。",
+      kode_salah: "课程代码不对。再看一下前方屏幕。",
       tidak_ada_sesi: "现在还没有课。助教开始你那节课后就能登录。",
       tidak_terdaftar: "这个 NIM 不在正在进行的这节课名单里。问问你的助教。",
       mode_tot: "助教正在进行 TOT 练习，学员账号暂时不能使用。练习结束后再试。",
@@ -196,7 +213,14 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
   const [role, setRole] = useState<Role>("praktikan");
   const [nim, setNim] = useState("");
   const [password, setPassword] = useState("");
-  const [err, setErr] = useState<{ field: "nim" | "pw" | "form"; msg: string } | null>(null);
+  const [err, setErr] = useState<{
+    field: "nim" | "pw" | "kode" | "form";
+    msg: string;
+  } | null>(null);
+  // Shown once the server says a session runs (perlu_kode).
+  const [perluKode, setPerluKode] = useState(false);
+  const [kode, setKode] = useState("");
+  const [kodePesan, setKodePesan] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
@@ -237,6 +261,8 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
     const n = nim.trim();
     if (!n) return setErr({ field: "nim", msg: t.needNim });
     if (role === "asisten" && !password) return setErr({ field: "pw", msg: t.needPw });
+    if (role === "praktikan" && perluKode && !/^\d{4}$/.test(kode))
+      return setErr({ field: "kode", msg: t.needKode });
     setErr(null);
     setLoading(true);
     try {
@@ -249,10 +275,21 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
         perluAturSandi?: boolean;
       }>(role === "praktikan" ? "/api/auth/student" : "/api/auth/assistant", {
         nim: n,
-        ...(role === "asisten" ? { password } : {}),
+        ...(role === "asisten" ? { password } : perluKode ? { kodeSesi: kode } : {}),
       });
       if (!data.ok) {
         const msg = t.codes[data.kode ?? ""] ?? t.fallback;
+        if (data.kode === "perlu_kode" || data.kode === "kode_salah") {
+          setPerluKode(true);
+          // Being asked for the code isn't a mistake: say why under the
+          // field, in the hint's colour. A wrong code is an error.
+          if (data.kode === "perlu_kode") {
+            setErr(null);
+            setKodePesan(msg);
+          } else setErr({ field: "kode", msg });
+          setTimeout(() => document.getElementById("login-kode")?.focus(), 0);
+          return;
+        }
         setErr({ field: data.kode === "tidak_cocok" && role === "asisten" ? "pw" : "nim", msg });
         return;
       }
@@ -367,6 +404,33 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
               {err?.field === "nim" ? err.msg : ""}
             </p>
           </div>
+
+          {role === "praktikan" && perluKode && (
+            <div className="field" data-invalid={err?.field === "kode" ? "yes" : undefined}>
+              <label className="field__label" htmlFor="login-kode">
+                {t.kodeL}
+              </label>
+              <input
+                id="login-kode"
+                className="field__input login-form__nim"
+                value={kode}
+                onChange={(ev) => setKode(ev.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="0000"
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength={4}
+                aria-invalid={err?.field === "kode" || undefined}
+                aria-describedby="login-kode-msg"
+              />
+              <p
+                id="login-kode-msg"
+                className={err?.field === "kode" ? "field__error" : "field__hint"}
+                role={err?.field === "kode" ? "alert" : undefined}
+              >
+                {err?.field === "kode" ? err.msg : (kodePesan ?? t.kodeHint)}
+              </p>
+            </div>
+          )}
 
           {role === "asisten" && (
             <PasswordField

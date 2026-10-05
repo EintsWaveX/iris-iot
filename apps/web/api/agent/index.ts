@@ -42,6 +42,7 @@
  */
 import { konsolSiaga, terimaLaporanKonsol } from "../_lib/konsol.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { denganGalat } from "../_lib/galat.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { getDb } from "../../src/lib/db.js";
 import { server, denyut, perintah } from "../../src/lib/schema.js";
@@ -238,7 +239,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
   }
 }
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
   if (!requireMethod(req, res, "POST")) return;
 
@@ -260,3 +261,6 @@ function isHasilPerintahMasuk(value: unknown): value is HasilPerintahMasuk {
   const v = value as Record<string, unknown>;
   return typeof v.id === "number" && (v.status === "selesai" || v.status === "gagal");
 }
+
+// Errors it logs or throws are reported (_lib/galat.ts).
+export default denganGalat("agent", handler);

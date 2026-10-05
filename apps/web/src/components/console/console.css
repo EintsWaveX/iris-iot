@@ -2718,3 +2718,45 @@ thead .ntable__name {
 .tabs__tab[data-unik="yes"] svg {
   color: var(--warn);
 }
+
+/* Lab Belum Siap (StartCheck.tsx): one row per check, its fix on the right. */
+.startcheck {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+.startcheck__i {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.startcheck__i > svg {
+  flex: none;
+}
+
+.startcheck__i[data-status="ok"] > svg {
+  color: var(--ok);
+}
+
+.startcheck__i[data-status="gagal"] > svg {
+  color: var(--warn);
+}
+
+.startcheck__i[data-status="lewat"] > svg {
+  color: var(--text-muted);
+}
+
+.startcheck__txt {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.startcheck__i .btn {
+  flex: none;
+}

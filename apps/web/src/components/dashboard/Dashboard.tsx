@@ -11,6 +11,7 @@
  *   moment the Asisten ends the running session.
  * - `?view=feedback&session=N`: the feedback page.
  */
+import { isNimTot } from "../../lib/tot";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowRightIcon,
@@ -963,7 +964,9 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
   const k = hasil?.kelompok?.nomor ?? pro ?? me.kelompok ?? null;
   const nama = pro
     ? (KELOMPOK_NAMA[pro] ?? kelompokLabel(pro, lang))
-    : (me.nama.split(/\s+/)[0] ?? me.nama);
+    : isNimTot(me.nim)
+      ? me.nama // "TOT ASO 01": a first name alone would greet "Halo, TOT"
+      : (me.nama.split(/\s+/)[0] ?? me.nama);
   const list = minePoll.data?.ok ? minePoll.data.praktikum : [];
   const endedToday =
     !sesi && hasil?.ok && hasil.sesi?.status === "selesai" && hasil.sesi.tanggal === today

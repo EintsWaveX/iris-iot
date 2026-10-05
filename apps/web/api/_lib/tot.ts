@@ -13,13 +13,20 @@
  * from them, see api/_lib/roster.ts). A group TOT had to create stays,
  * switched off.
  */
-import { asc, eq, gt, inArray, notInArray, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, ne, notInArray, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
-import { anggota, asisten, kelompok, pengaturan, sesi } from "../../src/lib/schema.js";
+import {
+  anggota,
+  asisten,
+  kelompok,
+  pengaturan,
+  percobaanMasuk,
+  sesi,
+} from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { KUNCI_TOT, bacaModeTot } from "../../src/lib/mode-tot.js";
 import {
@@ -167,6 +174,10 @@ export async function handleTotGet(_req: ApiRequest, res: ApiResponse) {
       .limit(1);
     olehKode = a?.kode ?? null;
   }
+  const [r] = await getDb()
+    .select({ n: sql<number>`count(*)::int` })
+    .from(sesi)
+    .where(and(eq(sesi.jenis, "tot"), ne(sesi.status, "berjalan")));
   res.status(200).json({
     ok: true,
     aktif: mode.aktif,
@@ -174,13 +185,40 @@ export async function handleTotGet(_req: ApiRequest, res: ApiResponse) {
     oleh: mode.oleh,
     olehKode,
     jumlah: PRAKTIKAN_TOT.length,
+    riwayat: r?.n ?? 0,
   });
 }
 
-/** POST /api/session/tot { aktif: boolean } (right `jadwal`, checked by the
- *  dispatcher). */
+/**
+ * Clears finished TOT sessions (2026-10-05): the practice runs' scores,
+ * answers, sign-ins and events go with them (every table cascades from
+ * `sesi`). A TOT session still running is kept. The dummies' sign-in
+ * attempts are removed first, since that table only unlinks.
+ */
+async function hapusRiwayatTot(): Promise<number> {
+  return getDb().transaction(async (tx) => {
+    const rows = await tx
+      .select({ id: sesi.id })
+      .from(sesi)
+      .where(and(eq(sesi.jenis, "tot"), ne(sesi.status, "berjalan")));
+    const ids = rows.map((r) => r.id);
+    if (!ids.length) return 0;
+    await tx.delete(percobaanMasuk).where(inArray(percobaanMasuk.sesiId, ids));
+    await tx.delete(sesi).where(inArray(sesi.id, ids));
+    return ids.length;
+  });
+}
+
+/** POST /api/session/tot { aktif: boolean } | { hapusRiwayat: true } (right
+ *  `jadwal`, checked by the dispatcher). */
 export async function handleTotPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
+  if (body.hapusRiwayat === true) {
+    const n = await hapusRiwayatTot();
+    await writeAudit(session.nim, "tot_hapus_riwayat", { sesi: n });
+    res.status(200).json({ ok: true, dihapus: n });
+    return;
+  }
   if (typeof body.aktif !== "boolean") return tolak(res, "format_salah");
   const hasil = body.aktif ? await nyalakanTot(session.nim) : await matikanTot(session.nim);
   if (!hasil.ok) return tolak(res, hasil.kode);

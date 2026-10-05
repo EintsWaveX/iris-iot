@@ -3,7 +3,9 @@
  *
  * Two roles, two very different trust levels:
  *
- *   praktikan   a student. Types their NIM alone. The server resolves it
+ *   praktikan   a student. Types their NIM, plus the running session's
+ *               four-digit code from the projector (kodeMasukSesi). The
+ *               server resolves it
  *               against the currently running session and returns the
  *               group it found — the group is never something the client
  *               asserts, mirroring cari_nim() in apps/modul4/server.py.
@@ -235,6 +237,23 @@ async function recordAttempt(
 // roster-paste validator agree on exactly what counts as a NIM.
 export const NIM_PATTERN = /^[A-Za-z0-9]{4,20}$/;
 
+/**
+ * The session's sign-in code (2026-10-05): four digits on the projector and
+ * the Asisten's screen, typed with the NIM while a session runs, so knowing
+ * a classmate's NIM is no longer enough to sign them in from elsewhere.
+ * Derived from the session's id and start time with the cookie secret, so
+ * it needs no column, changes every session, and only the server knows it.
+ */
+export function kodeMasukSesi(s: { id: number; mulaiPada: Date | null; dibuatPada: Date }): string {
+  const mulai = (s.mulaiPada ?? s.dibuatPada).toISOString();
+  const mac = createHmac("sha256", getSessionSecret())
+    .update(`kode-masuk|${s.id}|${mulai}`)
+    .digest();
+  return String(mac.readUInt32BE(0) % 10_000).padStart(4, "0");
+}
+
+export const KODE_MASUK_RE = /^\d{4}$/;
+
 export type PraktikanLoginResult =
   | {
       ok: true;
@@ -247,7 +266,16 @@ export type PraktikanLoginResult =
       kelompokNomor: number;
       kelompokNama: string;
     }
-  | { ok: false; kode: "terkunci" | "tidak_ada_sesi" | "tidak_terdaftar" | "mode_tot" };
+  | {
+      ok: false;
+      kode:
+        | "terkunci"
+        | "tidak_ada_sesi"
+        | "tidak_terdaftar"
+        | "mode_tot"
+        | "perlu_kode"
+        | "kode_salah";
+    };
 
 /**
  * Resolve a student's NIM against the running session. Trimmed and
@@ -259,6 +287,7 @@ export type PraktikanLoginResult =
 export async function verifyPraktikanLogin(
   rawNim: string,
   ip: string,
+  kodeMasuk = "",
 ): Promise<PraktikanLoginResult> {
   const nim = rawNim.trim().toUpperCase();
 
@@ -287,6 +316,16 @@ export async function verifyPraktikanLogin(
     await recordAttempt(nim, ip, "praktikan", luar !== null);
     if (!luar) return { ok: false, kode: "tidak_terdaftar" };
     return { ok: true, ...luar, sesiId: null };
+  }
+
+  // The session's code comes first, so a wrong one says nothing about
+  // whether the NIM is on the roster. Asking for it is not a failure; a
+  // wrong one counts toward the lockout like a wrong NIM.
+  const kode = kodeMasuk.trim();
+  if (!kode) return { ok: false, kode: "perlu_kode" };
+  if (!KODE_MASUK_RE.test(kode) || !safeEqual(kode, kodeMasukSesi(running))) {
+    await recordAttempt(nim, ip, "praktikan", false, running.id);
+    return { ok: false, kode: "kode_salah" };
   }
 
   const resolved = await resolvePraktikan(nim);

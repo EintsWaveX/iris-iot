@@ -269,7 +269,9 @@ async function handleRiwayatHapus(req: ApiRequest, res: ApiResponse, session: Se
 }
 
 /** Commands any Asisten may send while running a slot. */
-const AKSI_SLOT = new Set(["ap.nyala", "ap.mati", "jam.selaraskan", "diag.siap"]);
+// layanan.mulai (2026-10-05): the start check offers it for a stopped
+// practicum service; stopping and restarting still need the Server right.
+const AKSI_SLOT = new Set(["ap.nyala", "ap.mati", "jam.selaraskan", "diag.siap", "layanan.mulai"]);
 /** Commands that belong to the Full view (DEV, Admin, Pencipta). */
 const AKSI_FULL = new Set(["diag.rinci", "diag.journal"]);
 

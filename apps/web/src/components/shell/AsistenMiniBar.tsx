@@ -12,6 +12,7 @@ import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import Pill from "../ui/Pill";
 import SessionStrip from "./SessionStrip";
+import KodeMasuk from "./KodeMasuk";
 import "./SessionMiniBar.css";
 
 const T = dict({
@@ -44,6 +45,7 @@ export default function AsistenMiniBar({ lang, s }: { lang: Lang; s: SesiNow }) 
         />
       </div>
       <div className="minibar__actions">
+        {s.kodeMasuk && <KodeMasuk kode={s.kodeMasuk} lang={lang} />}
         <a className="btn btn--inverse btn--sm minibar__open" href={href(lang, "/session")}>
           <span>{t.open}</span>
           <ArrowRightIcon size={16} aria-hidden="true" />
