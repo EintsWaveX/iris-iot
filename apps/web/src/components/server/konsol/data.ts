@@ -138,6 +138,8 @@ export function useSambung({ id, onData, onSiap, onTutup, onDitolak }: Opsi) {
   const gen = useRef(0);
   const cb = useRef({ onData, onSiap, onTutup, onDitolak });
   cb.current = { onData, onSiap, onTutup, onDitolak };
+  // Times this page moved off a far route ("jauh" from the relay).
+  const pindah = useRef(0);
 
   const sambung = useCallback(
     async (ulangPi = false) => {
@@ -167,6 +169,13 @@ export function useSambung({ id, onData, onSiap, onTutup, onDitolak }: Opsi) {
                 /* a broken note changes nothing */
               }
             } else if (isi === "ditolak") cb.current.onDitolak?.();
+            // This connection came in through a data center far from the
+            // lab (an Indonesian provider routing via Europe): a new one
+            // usually lands near. It comes first, before any data.
+            else if (isi.startsWith("jauh:") && pindah.current < 4) {
+              pindah.current++;
+              void sambung(false);
+            }
             return;
           }
           let o: Record<string, unknown> = {};
