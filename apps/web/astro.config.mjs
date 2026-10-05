@@ -34,6 +34,12 @@ export default defineConfig({
       // as is rather than pre-bundled.
       exclude: ["@novnc/novnc"],
     },
+    build: {
+      // Fonts always ship as files. A few Noto Sans SC subsets are under
+      // Vite's 4 KB inline limit and became data: URLs, which the CSP's
+      // `font-src 'self'` blocks on every page.
+      assetsInlineLimit: (file) => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined),
+    },
     server: {
       fs: {
         // Base.astro imports packages/kosmik/style/*.css by relative path
