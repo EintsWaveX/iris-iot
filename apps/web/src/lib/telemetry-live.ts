@@ -39,18 +39,24 @@ export interface LiveBatch {
  * nothing new since the last call); callers fall back to the simulator
  * then, never treating it as an error. Start with `afterId` -1.
  */
+/** Set by the first 401 or 403: a guest's room runs on the simulator, so
+ *  it stops asking (a sign-in reloads the page, which clears this). */
+let tanpaIzin = false;
+
 export async function fetchLiveReadings(
   modul: number,
   group: number,
   afterId: number,
 ): Promise<LiveBatch> {
   const none = { readings: [], lastId: afterId };
+  if (tanpaIzin) return none;
   let res: Response;
   try {
     res = await fetch(`/api/session/telemetry?modul=${modul}&kelompok=${group}`);
   } catch {
     return none;
   }
+  if (res.status === 401 || res.status === 403) tanpaIzin = true;
   if (!res.ok) return none;
 
   let body: { ok: boolean; reading: TelemetryRow | null; readings?: TelemetryRow[] };

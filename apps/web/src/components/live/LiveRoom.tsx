@@ -190,7 +190,8 @@ export default function LiveRoom({
   // The Asisten holding the viewed group acts for it, like a Praktikan would.
   const acting = !!wakil?.own;
   const ownGroup = praktikan ? (me?.kelompok ?? null) : wakil ? wakil.nomor : null;
-  const sesiNow = useSessionNow(60_000);
+  // /now needs a sign-in; a guest's room just shows the default group count.
+  const sesiNow = useSessionNow(60_000, !!me);
   const jumlah = sesiNow.data?.jumlahKelompok ?? KELOMPOK_DEFAULT;
   const GROUPS = useMemo(() => Array.from({ length: jumlah }, (_, i) => i + 1), [jumlah]);
   const [group, setGroup] = useState(1);

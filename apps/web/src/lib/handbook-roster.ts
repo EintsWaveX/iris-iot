@@ -4,7 +4,7 @@
  * seeds the table). The Tim page's Impor (Phase 9 mockup t-list) matches the
  * table against it. Phone numbers and Line IDs are never read.
  */
-import { isDivisi, type Divisi } from "./hak";
+import { isDivisi, type Divisi } from "./hak.js";
 
 export interface HandbookAsisten {
   nim: string;
