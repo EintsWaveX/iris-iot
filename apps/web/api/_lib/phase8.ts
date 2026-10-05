@@ -199,7 +199,7 @@ export async function handleAssignmentPost(
   }
   const db = getDb();
   const [s] = await db
-    .select({ id: sesi.id, tanggal: sesi.tanggal, slot: sesi.slot })
+    .select({ id: sesi.id, tanggal: sesi.tanggal, slot: sesi.slot, jenis: sesi.jenis })
     .from(sesi)
     .where(eq(sesi.id, sesiId))
     .limit(1);
@@ -208,9 +208,12 @@ export async function handleAssignmentPost(
     return;
   }
   // Phase 9: the "pair" right. Own slot for an Asisten, any for the rest.
+  // A TOT session has no slot and is everyone's practice: any Asisten may
+  // take a group in it (Mode TOT, 2026-10-05).
   const slotRow = await jadwalUntuk(db, s.tanggal, s.slot);
   const hak = await cekPasangan(db, session.nim, sesiId, (kode) => {
     const k = kode.toUpperCase();
+    if (s.jenis === "tot") return true;
     return (
       !!slotRow &&
       (slotRow.asisten.some((x) => x.toUpperCase() === k) ||
