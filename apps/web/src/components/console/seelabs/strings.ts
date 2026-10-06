@@ -103,7 +103,7 @@ export const SL = dict({
       "Tidak mengirim data ke IRIS. Status Terkirim kamu tandai sendiri.",
     ],
     listMode:
-      "Mode Daftar KLP: klik di halaman Input Nilai (daftar kelompok jaga) untuk menyalin pasangan KLP dan NIM, lalu tempel di Persiapan › Cocokkan KLP.",
+      "Mode Daftar KLP: klik di halaman Input Nilai (daftar kelompok jaga) untuk menyalin pasangan KLP dan NIM, lalu tempel lewat tombol Cocokkan KLP di Persiapan › Roster.",
     // the form sketch
     illoCap: "Ilustrasi form Input Nilai SeeLabs (gambar skema, bukan tangkapan layar)",
     illoGroup: "Kelompok",
@@ -268,7 +268,7 @@ export const SL = dict({
       "Sends nothing back to IRIS. You mark it Sent yourself.",
     ],
     listMode:
-      "KLP List mode: click it on the Input Nilai page (the duty group list) to copy KLP and NIM pairs, then paste them in Preparation › Match KLP.",
+      "KLP List mode: click it on the Input Nilai page (the duty group list) to copy KLP and NIM pairs, then paste them with the Match KLP button in Preparation › Roster.",
     illoCap: "Sketch of the SeeLabs Input Nilai form (a schematic, not a screenshot)",
     illoGroup: "Group",
     illoFilled: (n: number, total: number, modul: number) =>
@@ -432,7 +432,7 @@ export const SL = dict({
       "不往 IRIS 发回任何东西。“已发送”由你自己标。",
     ],
     listMode:
-      "KLP 列表模式：在 Input Nilai 页面（值班组列表）上点它，复制 KLP 和 NIM 的对应关系，然后贴到课前准备 › 匹配 KLP。",
+      "KLP 列表模式：在 Input Nilai 页面（值班组列表）上点它，复制 KLP 和 NIM 的对应关系，然后在课前准备 › Roster 里点匹配 KLP 粘贴。",
     illoCap: "SeeLabs Input Nilai 表单的示意图（是简图，不是截图）",
     illoGroup: "Kelompok",
     illoFilled: (n: number, total: number, modul: number) =>
