@@ -2849,3 +2849,9 @@ thead .ntable__name {
 .prep__ro {
   opacity: 0.85;
 }
+
+/* Raised hands, on the Papan tab from any view (2026-10-06). */
+.console__hands {
+  margin-left: 8px;
+  vertical-align: middle;
+}

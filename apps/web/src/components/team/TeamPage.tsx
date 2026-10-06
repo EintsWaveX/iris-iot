@@ -457,7 +457,9 @@ function Holders({
     <section className="panel tim-holders">
       <div className="panel__head tim-holders__head">
         <h2 className="panel__title">{t.holders}</h2>
-        <span className="hint">{t.holdersHint}</span>
+        <span className="hint">
+          {t.holdersHint} {admin && t.holdersHow}
+        </span>
       </div>
       <div className="holdgrid">
         {KATEGORI.map((k) => {
@@ -641,6 +643,8 @@ function People({
         />
       </div>
 
+      {/* Said before the table, where it is read (2026-10-06). */}
+      <span className="hint">{t.rowHint}</span>
       <section className="panel panel--flush tim-tablewrap">
         <table className="tim-table">
           <thead>
@@ -711,7 +715,6 @@ function People({
         </table>
         {rows.length === 0 && <p className="hint tim-empty">{t.empty}</p>}
       </section>
-      <span className="hint">{t.rowHint}</span>
     </>
   );
 }

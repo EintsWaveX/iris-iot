@@ -98,6 +98,8 @@ export const S = dict({
       "Sesi ini belum punya kelompok, jadi belum ada yang bisa dilihat sebagai Praktikan. Roster praktikum susulan diisi lewat drafnya di Persiapan, Roster sebelum sesi dimulai.",
     viewAsModule: "Buka Halaman Modul",
     emptyRosterH: "Sesi ini belum punya Praktikan.",
+    handToast: (k: string) => `${k} minta bantuan.`,
+    handLook: "Lihat",
     emptyRosterP:
       "Tidak ada yang bisa masuk, dan roster tidak bisa diisi selama sesi berjalan. Akhiri sesi ini, lalu di Beranda nyalakan Waktu lain (praktikum susulan) dan tekan Buat dan Isi Roster.",
     open: "Buka",
@@ -642,6 +644,8 @@ export const S = dict({
       "This session has no groups yet, so there is nobody to view as. A makeup session's roster is filled in its draft in Preparation, Roster before the session starts.",
     viewAsModule: "Open the Module Page",
     emptyRosterH: "This session has no Praktikan yet.",
+    handToast: (k: string) => `${k} is asking for help.`,
+    handLook: "View",
     emptyRosterP:
       "Nobody can sign in, and a roster can't be filled while the session runs. End this session, then on Home turn on Other time (makeup session) and press Create and Fill Roster.",
     open: "Open",
@@ -1171,6 +1175,8 @@ export const S = dict({
       "这节课还没有小组，所以还不能用学员视角查看。补课的名单要在开课前，在准备的名单里通过草稿填写。",
     viewAsModule: "打开模块页面",
     emptyRosterH: "这节课还没有学员。",
+    handToast: (k: string) => `${k} 请求帮助。`,
+    handLook: "查看",
     emptyRosterP:
       "没有人能登录，上课期间也无法填写名单。先结束这节课，然后在首页打开“其他时间（补课）”，点“建立并填写名单”。",
     open: "打开",

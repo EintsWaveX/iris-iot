@@ -110,6 +110,18 @@ export default function SessionPage({
     return (TABS as readonly string[]).includes(h) ? (h as TabSesi) : "kejadian";
   });
   const [chart, setChart] = useState<"blank" | "delay" | null>(null);
+  // A link to a tab (Home's "Isi Nilai" lands on #nilai, 2026-10-06)
+  // brings that tab into view once the page has drawn, not just selects it.
+  const dilihat = useRef(false);
+  useEffect(() => {
+    if (!data || dilihat.current || !location.hash) return;
+    dilihat.current = true;
+    requestAnimationFrame(() =>
+      document
+        .querySelector(".rp-sesi-tabs")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  }, [data]);
   useSiaran(["sesi", "nilai", "laporan", "umpan"], () => void load());
   const load = useCallback(async () => {
     try {
@@ -301,6 +313,7 @@ export default function SessionPage({
 
       <TabLine
         label={t.sessReport}
+        className="rp-sesi-tabs"
         value={tab}
         onChange={pilihTab}
         tabs={TABS.map((v) => ({

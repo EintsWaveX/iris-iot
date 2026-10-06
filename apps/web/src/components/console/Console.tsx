@@ -27,6 +27,7 @@ import { href, useMe } from "../../lib/app";
 import { masukProyektor } from "../../lib/proyektor";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
+import { kelompokLabel } from "../../lib/labels";
 import { CONSOLE_EVENT, type ConsoleCommand } from "../shell/AsistenCommands";
 import { S } from "./strings";
 import { useAssignment, useCurrent, useLaporan, useNilaiLive, useServers } from "./data";
@@ -208,6 +209,29 @@ export default function Console({ lang }: { lang: Lang }) {
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
   }, [sesi, lap.data, pick]);
+
+  // A raised hand reaches me wherever I am in the console (2026-10-06:
+  // it only marked the group on Papan, unseen from Persiapan or Tabel
+  // Nilai): my groups and groups nobody holds, once per raise.
+  const tanganLalu = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const L = lap.data;
+    if (!L) return;
+    const kini = new Set(Object.keys(L.tangan ?? {}));
+    const lalu = tanganLalu.current;
+    tanganLalu.current = kini;
+    if (!lalu) return;
+    for (const id of kini) {
+      if (lalu.has(id)) continue;
+      const g = L.kelompok.find((k) => String(k.id) === id);
+      const pemegang = L.pemilik?.[g?.id ?? -1] ?? null;
+      if (!g || (pemegang && pemegang !== me?.nim)) continue;
+      window.Toast?.show(t.handToast(kelompokLabel(g.nomor, lang)), "warn", {
+        duration: 15_000,
+        action: { label: t.handLook, onClick: () => pick(g.id) },
+      });
+    }
+  }, [lap.data]);
 
   // The sky follows the session (the "sesi" scene is deliberately calm).
   const inSesiScene = useRef(false);
@@ -495,6 +519,9 @@ export default function Console({ lang }: { lang: Lang }) {
               onClick={() => go(v)}
             >
               {t.views[v]}
+              {v === "board" && Object.keys(tangan).length > 0 && (
+                <span className="pill pill--warn console__hands">{Object.keys(tangan).length}</span>
+              )}
             </button>
           ))}
         </div>

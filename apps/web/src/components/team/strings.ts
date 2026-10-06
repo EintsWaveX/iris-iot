@@ -30,6 +30,7 @@ export const T = dict({
     holders: "Pemegang Jabatan",
     holdersHint:
       "Satu jabatan kepala, satu orang. Yang memegang lebih dulu tetap memegang sampai serah terima.",
+    holdersHow: "Untuk mengisi jabatan, buka orangnya di daftar di bawah, lalu pilih Jabatan.",
     since: (d: string) => `sejak ${d}`,
     vacant: "Kosong",
     toWhom: (k: string) => `ke ${k}`,
@@ -175,6 +176,7 @@ export const T = dict({
     signIn: "Sign in as an assistant to see the team.",
     holders: "Role Holders",
     holdersHint: "One head role, one person. Whoever held it first keeps it until a handover.",
+    holdersHow: "To fill a role, open the person in the list below, then pick their Position.",
     since: (d: string) => `since ${d}`,
     vacant: "Vacant",
     toWhom: (k: string) => `to ${k}`,
@@ -316,6 +318,7 @@ export const T = dict({
     signIn: "以助教身份登录后查看团队。",
     holders: "职位负责人",
     holdersHint: "一个负责人职位，一个人。先担任的人一直保留，直到交接。",
+    holdersHow: "要指定负责人，在下面的名单里打开那个人，然后选择职位。",
     since: (d: string) => `自 ${d}`,
     vacant: "空缺",
     toWhom: (k: string) => `交给 ${k}`,

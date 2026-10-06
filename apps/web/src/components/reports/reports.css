@@ -1521,3 +1521,8 @@ button.rp-stat:focus-visible {
     white-space: normal;
   }
 }
+
+/* A link to a session's tab scrolls here, clear of the sticky nav. */
+.rp-sesi-tabs {
+  scroll-margin-top: 84px;
+}
