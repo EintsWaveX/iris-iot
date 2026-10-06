@@ -595,6 +595,9 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
         </span>
       </div>
 
+      {/* The cells open the slot editor; nothing on them said so. */}
+      <p className="hint">{bolehJadwal ? t.gridHint : t.gridHintRo}</p>
+
       <div className="jlayout" data-wide={wide ? "yes" : undefined}>
         <div className="jlayout__main">
           {!data ? (
