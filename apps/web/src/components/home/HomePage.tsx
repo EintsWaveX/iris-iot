@@ -27,6 +27,7 @@ import {
   useTick,
 } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
+import { useTampil } from "../../lib/proyektor";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { slotBerikutnya, type BarisJadwal, type SlotBerikutnya } from "../../lib/jadwal-next";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
@@ -89,7 +90,8 @@ function Lane({ m, via }: { m: number; via?: boolean }) {
 
 function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: number[] }) {
   const t = H[lang];
-  const me = useMe();
+  // Projector mode draws the Asisten as a Praktikan of the projected group.
+  const me = useTampil(useMe());
   const now = useSessionNow(30_000, me?.role === "praktikan");
   useTick(30_000);
   const [next, setNext] = useState<SlotBerikutnya | null | undefined>(undefined);
@@ -308,7 +310,7 @@ function LiveNow({ lang, lab }: { lang: Lang; lab: Lab | null | undefined }) {
 
 export default function HomePage({ lang }: { lang: Lang }) {
   const t = H[lang];
-  const me = useMe();
+  const me = useTampil(useMe());
   const saya = me?.role === "asisten";
   const lab = usePoll(
     () =>

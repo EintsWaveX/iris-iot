@@ -64,7 +64,7 @@ import { langForKelas, langOfPath, pathForLang, type Lang } from "../../lib/kela
 import { readLangPref, saveLangPref, usePoll } from "../../lib/hooks";
 import { kelompokLabel } from "../../lib/labels";
 import SessionMiniBar from "./SessionMiniBar";
-import { keluarProyektor, useProyektor } from "../../lib/proyektor";
+import { keluarProyektor, sebagaiTampil, useProyektor } from "../../lib/proyektor";
 import AsistenMiniBar from "./AsistenMiniBar";
 import OfflineNotice from "./OfflineNotice";
 import IdentityWatch from "./IdentityWatch";
@@ -294,8 +294,7 @@ export default function AppNav({
   // Projector mode: the Asisten is drawn as a Praktikan of the group they
   // hold, so nothing Asisten-only reaches the projector (ruled 2026-10-04).
   const pro = useProyektor(me);
-  const tampil: Me | null | undefined =
-    me && pro ? { ...me, role: "praktikan", kelompok: pro } : me;
+  const tampil = useMemo(() => sebagaiTampil(me, pro), [me, pro]);
   const links = useMemo(() => linksFor(tampil, t), [tampil?.role, me, t]);
   // The phone bar holds five: an Asisten reaches Home from the logo and
   // Modules from Home, so both stay in the top bar only (mockup rule).
@@ -590,7 +589,9 @@ export default function AppNav({
         )}
       </Dialog>
 
-      {me?.role === "asisten" && (
+      {/* No palette or G-shortcuts on the projector: a stray key would open an
+          Asisten page in front of the class. */}
+      {me?.role === "asisten" && !pro && (
         <AsistenCommands
           lang={lang}
           paletteOpen={paletteOpen}

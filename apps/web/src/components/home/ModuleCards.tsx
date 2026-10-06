@@ -19,6 +19,7 @@ import {
 import { Switch } from "../ui/Controls";
 import Pill from "../ui/Pill";
 import { dict, href, MODUL_NAMA, useMe, useSessionNow } from "../../lib/app";
+import { useTampil } from "../../lib/proyektor";
 import { getAksesState } from "../../scripts/modul-akses";
 import { setModulAkses } from "../shell/AsistenCommands";
 import { modulLabel } from "../../lib/labels";
@@ -203,7 +204,11 @@ function Card({
 
 export default function ModuleCards({ lang, modules }: { lang: Lang; modules: ModulKartu[] }) {
   const t = T[lang];
-  const me = useMe();
+  const asli = useMe();
+  // Projector mode draws the Asisten as a Praktikan of the projected group:
+  // no access switches, and the running module's single card.
+  const me = useTampil(asli);
+  const pro = me !== asli;
   const signedIn = Boolean(me);
   const now = useSessionNow(30_000, signedIn);
   const [terbuka, setTerbuka] = useState<number[] | null>(null);
@@ -227,7 +232,7 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
       window.removeEventListener("iris:akses-berubah", biasa);
       lepas();
     };
-  }, [me]);
+  }, [asli]);
 
   const sesi = now.data;
   const running = signedIn ? (sesi?.modul ?? null) : null;
@@ -276,7 +281,7 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
       <header className="modlist__head">
         <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
         <h1 className="modlist__title">{t.title}</h1>
-        <p className="modlist__lede">{asisten ? t.ledeA : t.lede}</p>
+        <p className="modlist__lede">{asisten && !pro ? t.ledeA : t.lede}</p>
       </header>
       <div className="modgrid">
         {modules.map((m) => (
@@ -286,8 +291,8 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
             lang={lang}
             run={running === m.modul}
             open={terbuka === null ? null : terbuka.includes(m.modul)}
-            done={me?.role === "praktikan" && jurnal.includes(m.modul)}
-            asisten={asisten}
+            done={!pro && me?.role === "praktikan" && jurnal.includes(m.modul)}
+            asisten={asisten && !pro}
             bolehUbah={me?.hak?.jadwal === true}
             onAccess={(v) => {
               // The switch moves now; the reload after the save confirms it.

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { BookOpenTextIcon, HouseIcon } from "@phosphor-icons/react";
 import ErrorView from "../ui/ErrorView";
 import { href, useMe, dict } from "../../lib/app";
+import { useTampil } from "../../lib/proyektor";
 import { langOfPath, type Lang } from "../../lib/kelas";
 import "./NotFound.css";
 
@@ -23,7 +24,7 @@ const T = dict({
 
 export default function NotFound() {
   const [lang, setLang] = useState<Lang>("id");
-  const me = useMe();
+  const me = useTampil(useMe());
   useEffect(() => {
     const l = langOfPath(location.pathname);
     setLang(l);
