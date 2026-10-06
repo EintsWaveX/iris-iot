@@ -21,6 +21,7 @@ import { denganGalat } from "./galat.js";
  *  write not listed here announces its route's name. */
 const TOPIK: Record<string, string[]> = {
   "session:akses": ["akses"],
+  "session:final": ["akses"],
   "session:brief": ["brief"],
   "session:schedule": ["jadwal"],
   "session:jendela": ["jadwal"],

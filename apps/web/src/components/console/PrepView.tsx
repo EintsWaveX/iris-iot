@@ -42,6 +42,7 @@ import SchematicEditor from "./prep/SchematicEditor";
 import SlidesEditor from "./prep/SlidesEditor";
 import CodeEditor from "./prep/CodeEditor";
 import TotPanel from "./prep/TotPanel";
+import RiwayatPanel from "./RiwayatPanel";
 import { P, type Px } from "./prepStrings";
 import { PrepChecks, type Beranda } from "./AsistenHome";
 import { H } from "./homeStrings";
@@ -396,12 +397,15 @@ export default function PrepView({
           </div>
         )}
         {tab === "akses" && (
-          <section className="panel panel--solo">
-            <div className="panel__head">
-              <h2 className="panel__title">{t.accTitle}</h2>
-            </div>
-            <AccessForm t={t} lang={lang} bare />
-          </section>
+          <div className="stack">
+            <section className="panel panel--solo">
+              <div className="panel__head">
+                <h2 className="panel__title">{t.accTitle}</h2>
+              </div>
+              <AccessForm t={t} lang={lang} bare />
+            </section>
+            <RiwayatPanel lang={lang} />
+          </div>
         )}
         {tab === "tot" && <TotPanel t={t} lang={lang} sesi={sesi} onChanged={onChanged} />}
         {tab === "slides" && <SlidesEditor lang={lang} />}

@@ -12,6 +12,12 @@ import { getDb } from "./db.js";
 import { pengaturan, percobaanMasuk, sesi } from "./schema.js";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { isNimTot } from "./tot.js";
+import { currentSesi } from "./sesi.js";
+import { hariIniWib } from "./jadwal.js";
+import { semesterDariTanggal } from "./jadwal-parser.js";
+import { riwayatTerbuka } from "./riwayat.js";
+
+export { riwayatTerbuka };
 
 const KUNCI = "modul_terbuka";
 const DEFAULT_TERBUKA: number[] = [1];
@@ -101,17 +107,89 @@ export async function modulDiikuti(nim: string): Promise<number[]> {
   return rows.map((r) => r.modul).sort((a, b) => a - b);
 }
 
+/* ------------------------------------------- practicum history (2026-10-06) */
+
+const KUNCI_FINAL = "praktikum_final";
+
+export interface PraktikumFinal {
+  semester: string;
+  pada: string;
+  oleh: string | null;
+}
+
+/** "Selesaikan Praktikum" for this semester, if a Kepala Divisi or Inti has
+ *  pressed it: every module's history opens, Module 4 included. */
+export async function getPraktikumFinal(): Promise<PraktikumFinal | null> {
+  const [row] = await getDb()
+    .select({ nilai: pengaturan.nilai })
+    .from(pengaturan)
+    .where(eq(pengaturan.kunci, KUNCI_FINAL))
+    .limit(1);
+  const v = row?.nilai as Partial<PraktikumFinal> | null | undefined;
+  if (!v || typeof v.semester !== "string" || typeof v.pada !== "string") return null;
+  // A new semester starts closed again.
+  if (v.semester !== semesterDariTanggal(hariIniWib())) return null;
+  return { semester: v.semester, pada: v.pada, oleh: v.oleh ?? null };
+}
+
+export async function setPraktikumFinal(on: boolean, aktorNim: string): Promise<void> {
+  const nilai = on
+    ? {
+        semester: semesterDariTanggal(hariIniWib()),
+        pada: new Date().toISOString(),
+        oleh: aktorNim,
+      }
+    : { batal: true }; // nilai is NOT NULL; an undo leaves this marker
+  await getDb()
+    .insert(pengaturan)
+    .values({ kunci: KUNCI_FINAL, nilai, diubahOleh: aktorNim, diubahPada: sql`now()` })
+    .onConflictDoUpdate({
+      target: pengaturan.kunci,
+      set: { nilai, diubahOleh: aktorNim, diubahPada: sql`now()` },
+    });
+}
+
+export interface StatusRiwayat {
+  /** Modules this student may open the journal of now. */
+  jurnal: number[];
+  /** Modules they have done a practicum of. */
+  diikuti: number[];
+  /** Modules whose history is open to Praktikan. */
+  riwayat: number[];
+  final: boolean;
+}
+
 /** Which modules' full journal (setup, code, live) this person may open.
- *  Assistants: all four. A student: a module that is open AND whose
- *  practicum they have done; being open alone is not enough. Everyone
- *  else reads only the public handbook. */
+ *  Assistants: all four. A student: the module of the running session they
+ *  are signed in to, and, read only, the history of a module they did once
+ *  that history is open (riwayatTerbuka). Before 2026-10-06 any open module
+ *  they had done opened, so the first class of the week could read its
+ *  worked journal before the last class had done it. Everyone else reads
+ *  only the public handbook. */
+export async function statusRiwayat(who: {
+  role: "asisten" | "praktikan";
+  nim: string;
+  sesiId?: number | null;
+}): Promise<StatusRiwayat> {
+  const [terbuka, diikuti, final] = await Promise.all([
+    getModulTerbuka(),
+    who.role === "asisten" ? Promise.resolve([] as number[]) : modulDiikuti(who.nim),
+    getPraktikumFinal(),
+  ]);
+  const riwayat = riwayatTerbuka(terbuka, !!final);
+  if (who.role === "asisten") return { jurnal: [1, 2, 3, 4], diikuti, riwayat, final: !!final };
+  // Mode TOT: a dummy's journals are the TOT sessions they did, open or not.
+  if (isNimTot(who.nim)) return { jurnal: diikuti, diikuti, riwayat, final: !!final };
+  const running = await currentSesi();
+  const sekarang = running && who.sesiId === running.id ? running.modul : null;
+  const jurnal = diikuti.filter((m) => m === sekarang || riwayat.includes(m));
+  return { jurnal, diikuti, riwayat, final: !!final };
+}
+
 export async function jurnalBolehDibuka(who: {
   role: "asisten" | "praktikan";
   nim: string;
+  sesiId?: number | null;
 }): Promise<number[]> {
-  if (who.role === "asisten") return [1, 2, 3, 4];
-  // Mode TOT: a dummy's journals are the TOT sessions they did, open or not.
-  if (isNimTot(who.nim)) return modulDiikuti(who.nim);
-  const [terbuka, diikuti] = await Promise.all([getModulTerbuka(), modulDiikuti(who.nim)]);
-  return terbuka.filter((m) => diikuti.includes(m));
+  return (await statusRiwayat(who)).jurnal;
 }

@@ -15,6 +15,7 @@ import { anggota, jurnalTangkapan, kelompok, serialCermin } from "../../src/lib/
 import { currentSesi } from "../../src/lib/sesi.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { sesiDiikuti } from "./phase8.js";
+import { statusRiwayat } from "../../src/lib/akses.js";
 
 const BARIS_MAKS = { paket: 5, jarak: 3 } as const;
 const SUMBER = /^(b0|b1)$/;
@@ -97,6 +98,12 @@ export async function handleTangkapanGet(req: ApiRequest, res: ApiResponse, who:
     const modul = Number(req.query.modul);
     if (!Number.isInteger(modul) || modul < 1 || modul > 4) {
       res.status(200).json({ ok: false, kode: "format_salah" });
+      return;
+    }
+    // Part of the journal, so the same rule (akses.ts statusRiwayat): their
+    // running session, else the module's history once it is open.
+    if (!(await statusRiwayat(who)).jurnal.includes(modul)) {
+      res.status(200).json({ ok: true, tangkapan: [], terkunci: true });
       return;
     }
     // Their group's captures from the sessions of this module they attended.

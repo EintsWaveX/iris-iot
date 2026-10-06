@@ -7,6 +7,7 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
   ArrowsClockwiseIcon,
+  FlagCheckeredIcon,
   ChalkboardTeacherIcon,
   BankIcon,
   BroadcastIcon,
@@ -132,6 +133,8 @@ const W = {
     praktikanTambah: (n: unknown) => `menambahkan ${n} praktikan`,
     praktikanTambahSesi: (nim: unknown, k: unknown) =>
       `memasukkan ${nim} ke Kelompok ${k} di sesi berjalan`,
+    praktikumFinal: "menyelesaikan praktikum semester ini (riwayat keempat modul terbuka)",
+    praktikumFinalBatal: "membatalkan penyelesaian praktikum",
     susulanDraf: (t: string) => `membuat draf susulan ${t}`,
     modulAkses: (m: string) => (m ? `membuka akses ${m}` : "menutup semua akses modul"),
     totNyala: "menyalakan Mode TOT; roster asli disimpan",
@@ -238,6 +241,8 @@ const W = {
     praktikanTambah: (n: unknown) => `added ${n} students`,
     praktikanTambahSesi: (nim: unknown, k: unknown) =>
       `put ${nim} in Group ${k} of the running session`,
+    praktikumFinal: "finished this semester's practicum (all four histories open)",
+    praktikumFinalBatal: "undid the practicum finish",
     susulanDraf: (t: string) => `made a makeup draft for ${t}`,
     modulAkses: (m: string) => (m ? `opened ${m}` : "closed every module"),
     totNyala: "switched TOT Mode on; the real roster was saved",
@@ -342,6 +347,8 @@ const W = {
     rosterSet: "替换了旧名单",
     praktikanTambah: (n: unknown) => `添加了 ${n} 位学员`,
     praktikanTambahSesi: (nim: unknown, k: unknown) => `把 ${nim} 加入正在进行的课程的第 ${k} 组`,
+    praktikumFinal: "结束了本学期的实验课（四个模块的记录都已开放）",
+    praktikumFinalBatal: "撤销了实验课的结束",
     susulanDraf: (t: string) => `为 ${t} 建了补课草稿`,
     modulAkses: (m: string) => (m ? `开放了${m}` : "关闭了所有模块"),
     totNyala: "开启了 TOT 模式，真实名单已保存",
@@ -611,6 +618,10 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(UsersThreeIcon, w.rosterSet);
     case "praktikan_tambah":
       return k(UserPlusIcon, w.praktikanTambah(d.ditambah));
+    case "praktikum_final":
+      return k(FlagCheckeredIcon, w.praktikumFinal);
+    case "praktikum_final_batal":
+      return k(FlagCheckeredIcon, w.praktikumFinalBatal);
     case "praktikan_tambah_sesi":
       return k(UserPlusIcon, w.praktikanTambahSesi(d.nim, d.ke));
     case "susulan_draf":

@@ -653,6 +653,12 @@ function Summary({
   }, [sesi]);
   const modul = h?.sesi?.modul ?? 0;
   const cap = useTangkapan(modul, modul > 0);
+  // The sketch holds the worked answers: it downloads only while the
+  // journal is open to them (their session, or the opened history).
+  const [bolehUnduh, setBolehUnduh] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (modul > 0) void getAksesState(true).then((s) => setBolehUnduh(s.jurnal.includes(modul)));
+  }, [modul]);
   if (!h) return <SummarySkeleton />;
   if (!h.ok || !h.sesi) {
     return (
@@ -699,11 +705,16 @@ function Summary({
           <h1 className="page-header__title">{t.ringkasanH}</h1>
         </div>
         <div className="row dash__sumtools">
-          {info && (
+          {info && bolehUnduh && (
             <button type="button" className="btn" onClick={() => void unduhSketsa(info, lang)}>
               <DownloadSimpleIcon size={18} aria-hidden="true" />
               {t.unduhSketsa}
             </button>
+          )}
+          {info && bolehUnduh === false && (
+            <span className="hint">
+              {modul >= 4 ? t.unduhNantiAkhir : t.unduhNanti(modulLabel(modul + 1, lang))}
+            </span>
           )}
           {h.sesi.status === "selesai" && !h.sudahUmpanBalik && (
             <button

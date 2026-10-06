@@ -45,6 +45,11 @@ export const M = dict({
     lockedBodyP: (m: string) =>
       `Kamu belum mengikuti praktikum ${m}. Jurnalnya terbuka setelah kamu ikut sesinya.`,
     readModule: "Baca Modul",
+    histTitle: (m: string) => `Riwayat ${m} belum terbuka`,
+    histBody: (next: string) =>
+      `Kamu sudah mengikuti praktikum ini. Riwayatnya bisa dibaca begitu ${next} dibuka, supaya kelompok yang belum praktikum tidak melihatnya lebih dulu.`,
+    histLast:
+      "Kamu sudah mengikuti praktikum ini. Riwayat modul terakhir terbuka setelah asisten menyelesaikan praktikum semester ini.",
     signIn: "Masuk",
     inSession: "Sesimu sedang berjalan",
     inSessionTitle: (m: string) => `Kamu sedang di sesi ${m}`,
@@ -116,6 +121,11 @@ export const M = dict({
     lockedBodyP: (m: string) =>
       `You haven't attended the ${m} practicum yet. Its journal opens after you join its session.`,
     readModule: "Read the Module",
+    histTitle: (m: string) => `The ${m} history isn't open yet`,
+    histBody: (next: string) =>
+      `You've done this practicum. Its history opens once ${next} opens, so groups who haven't done it yet can't see it first.`,
+    histLast:
+      "You've done this practicum. The last module's history opens once the assistants finish this semester's practicum.",
     signIn: "Sign In",
     inSession: "Your session is running",
     inSessionTitle: (m: string) => `You Are in the ${m} Session`,
@@ -184,6 +194,10 @@ export const M = dict({
     lockedBody: "上过这个模块的实验课后，日志就会打开。模块本身谁都可以读。",
     lockedBodyP: (m: string) => `你还没上过${m}的实验课。参加那节课后，日志就会打开。`,
     readModule: "读模块",
+    histTitle: (m: string) => `${m}的记录还没开放`,
+    histBody: (next: string) =>
+      `你已经上过这节实验课。等${next}开放后就能查看记录，这样还没上课的小组不会先看到。`,
+    histLast: "你已经上过这节实验课。最后一个模块的记录要等助教结束本学期的实验课后才开放。",
     signIn: "登录",
     inSession: "你的课正在进行",
     inSessionTitle: (m: string) => `你在${m}的课上`,

@@ -2866,3 +2866,60 @@ thead .ntable__name {
   margin-left: 8px;
   vertical-align: middle;
 }
+
+/* Riwayat Praktikan (2026-10-06): each module's history state, then
+   Selesaikan Praktikum. */
+.riwayat__list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.riwayat__row {
+  align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+
+.riwayat__mod {
+  font-weight: 650;
+}
+
+.riwayat__st {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  gap: 6px;
+}
+
+.riwayat__row[data-open="yes"] .riwayat__st {
+  color: var(--ok);
+}
+
+.riwayat__final {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: var(--space-3, 12px);
+  padding: 14px 16px;
+}
+
+.riwayat__final > svg {
+  color: var(--accent-bright, var(--accent));
+  flex: none;
+}
+
+.riwayat__final .grow {
+  min-width: 220px;
+}

@@ -13,9 +13,15 @@
 export interface AksesState {
   terbuka: number[];
   asisten: boolean;
-  /** Phase 8: modules whose full journal this viewer may open (open AND a
-   *  practicum they did; all four for an assistant, none signed out). */
+  /** Modules whose full journal this viewer may open: their running
+   *  session's, and the history of ones they did once it is open (akses.ts
+   *  statusRiwayat; all four for an assistant, none signed out). */
   jurnal: number[];
+  /** 2026-10-06: modules they did a practicum of, modules whose history is
+   *  open to Praktikan, and whether the practicum is finalized. */
+  diikuti: number[];
+  riwayat: number[];
+  final: boolean;
 }
 
 let cached: Promise<AksesState> | null = null;
@@ -55,7 +61,15 @@ export function getAksesState(reset = false, segar = false): Promise<AksesState>
       // they always are already; for a Mode TOT dummy they are the TOT
       // session's module, which may be closed to everyone else.
       const terbuka = asisten ? umum : [...new Set([...umum, ...bisa])].sort((a, b) => a - b);
-      return { terbuka, asisten, jurnal: bisa };
+      const daftar = (v: unknown) => (Array.isArray(v) ? (v as number[]) : []);
+      return {
+        terbuka,
+        asisten,
+        jurnal: bisa,
+        diikuti: daftar(jurnal?.diikuti),
+        riwayat: daftar(jurnal?.riwayat),
+        final: jurnal?.final === true,
+      };
     });
   }
   return cached;

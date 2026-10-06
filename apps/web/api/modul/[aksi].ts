@@ -43,7 +43,7 @@ import {
   handleKodeTerbit,
 } from "../_lib/kode-editor.js";
 import { personalize } from "../../src/lib/group-identity.js";
-import { getModulTerbuka, jurnalBolehDibuka } from "../../src/lib/akses.js";
+import { statusRiwayat } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { and, asc, eq, inArray, isNull, like, notInArray, or, sql } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
@@ -91,24 +91,33 @@ function jawabanScope(
     : and(base, or(isNull(jawaban.sesiId), notInArray(jawaban.sesiId, sesiTot)));
 }
 
-/** The journal gate (Phase 8): the module must be open AND this student
- *  must have done its practicum. Answers "modul_terkunci" when it is not
- *  open at all, "belum_praktikum" when it is open but not theirs yet. */
+/** The journal gate (akses.ts statusRiwayat): this student's running
+ *  session of the module, or its history once that is open (2026-10-06).
+ *  Answers "riwayat_belum_terbuka" to someone who did the practicum but
+ *  whose history isn't open yet, "belum_praktikum" to anyone else. */
 async function bolehJurnal(
   res: ApiResponse,
   session: SessionPayload,
   modul: number,
 ): Promise<boolean> {
-  // A dummy's journals are the TOT sessions they did, whatever is open.
-  if (!isNimTot(session.nim) && !(await getModulTerbuka()).includes(modul)) {
-    res.status(200).json({ ok: false, kode: "modul_terkunci" });
-    return false;
-  }
-  if (!(await jurnalBolehDibuka(session)).includes(modul)) {
-    res.status(200).json({ ok: false, kode: "belum_praktikum" });
-    return false;
-  }
-  return true;
+  const st = await statusRiwayat(session);
+  if (st.jurnal.includes(modul)) return true;
+  res.status(200).json({
+    ok: false,
+    kode: st.diikuti.includes(modul) ? "riwayat_belum_terbuka" : "belum_praktikum",
+  });
+  return false;
+}
+
+/** History is read only (2026-10-06): a Praktikan checks blanks only in
+ *  the running session of that module they signed in to. Practising at
+ *  home after the class used to be allowed. */
+async function bolehTulis(res: ApiResponse, session: SessionPayload, modul: number) {
+  if (session.role !== "praktikan") return true;
+  const running = await currentSesi();
+  if (running && session.sesiId === running.id && running.modul === modul) return true;
+  res.status(200).json({ ok: false, kode: "riwayat_baca_saja" });
+  return false;
 }
 
 async function handleDraft(
@@ -220,6 +229,7 @@ async function handleCek(
   }
 
   if (!wakil && !(await bolehJurnal(res, session, modul))) return;
+  if (!wakil && !(await bolehTulis(res, session, modul))) return;
 
   const kelompokId = session.kelompokId;
   const nomorKelompok = session.kelompokNomor;

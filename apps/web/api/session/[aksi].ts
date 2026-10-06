@@ -84,8 +84,10 @@ import { currentSesi } from "../../src/lib/sesi.js";
 import {
   getModulTerbuka,
   getModulTerbukaMeta,
-  jurnalBolehDibuka,
+  getPraktikumFinal,
   setModulTerbuka,
+  setPraktikumFinal,
+  statusRiwayat,
 } from "../../src/lib/akses.js";
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { hilangPersen, selisihJamMs } from "../../src/lib/telemetri-ringkas.js";
@@ -1295,11 +1297,32 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   // Which journals the viewer may open (Phase 8). Anyone may ask; a
   // visitor who is not signed in simply gets none.
+  // 2026-10-06: also which modules they did and whose history is open,
+  // so a page can say when a locked history opens.
   if (aksi === "jurnal") {
     if (!requireMethod(req, res, "GET")) return;
     const who = currentSession(req);
-    const jurnal = who ? await jurnalBolehDibuka(who) : [];
-    res.status(200).json({ ok: true, jurnal });
+    if (!who) {
+      res.status(200).json({ ok: true, jurnal: [], diikuti: [], riwayat: [], final: false });
+      return;
+    }
+    res.status(200).json({ ok: true, ...(await statusRiwayat(who)) });
+    return;
+  }
+  // "Selesaikan Praktikum" (2026-10-06): GET for any Asisten; POST
+  // { aktif } with the Jadwal right opens every module's history to the
+  // Praktikan who did it, Module 4 included, and can be undone.
+  if (aksi === "final") {
+    const session = requireRole(req, res, "asisten");
+    if (!session) return;
+    if (req.method === "POST") {
+      if (!(await cekHak(res, session.nim, "jadwal"))) return;
+      const aktif = jsonBody(req).aktif === true;
+      await setPraktikumFinal(aktif, session.nim);
+      await writeAudit(session.nim, aktif ? "praktikum_final" : "praktikum_final_batal", {});
+    } else if (!requireMethod(req, res, "GET")) return;
+    const [final, terbuka] = await Promise.all([getPraktikumFinal(), getModulTerbuka()]);
+    res.status(200).json({ ok: true, final, terbuka });
     return;
   }
   if (aksi === "results") {

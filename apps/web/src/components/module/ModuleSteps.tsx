@@ -415,7 +415,17 @@ export default function ModuleSteps(p: Props) {
               canEdit={canEdit}
             />
           ) : step === "praktikum" ? (
-            <Hands lang={lang} modul={modul} guest={me === null} sesiModul={mySession?.modul} />
+            <Hands
+              lang={lang}
+              modul={modul}
+              guest={me === null}
+              sesiModul={mySession?.modul}
+              riwayatTunggu={
+                me?.role === "praktikan" &&
+                !!akses?.diikuti.includes(modul) &&
+                !akses.jurnal.includes(modul)
+              }
+            />
           ) : step === "setup" ? (
             <Setup {...p} />
           ) : step === "code" ? (
@@ -535,11 +545,14 @@ function Hands({
   modul,
   guest,
   sesiModul,
+  riwayatTunggu = false,
 }: {
   lang: Lang;
   modul: number;
   guest: boolean;
   sesiModul?: number;
+  /** They did this practicum, but its history isn't open yet (2026-10-06). */
+  riwayatTunggu?: boolean;
 }) {
   const t = M[lang];
   if (sesiModul && sesiModul !== modul) {
@@ -570,8 +583,20 @@ function Hands({
     <div className="modlock">
       <StateView
         icon={<LockSimpleIcon size={28} />}
-        title={t.lockedTitle(modulLabel(modul, lang))}
-        body={guest ? t.lockedBody : t.lockedBodyP(modulLabel(modul, lang))}
+        title={
+          riwayatTunggu
+            ? t.histTitle(modulLabel(modul, lang))
+            : t.lockedTitle(modulLabel(modul, lang))
+        }
+        body={
+          guest
+            ? t.lockedBody
+            : riwayatTunggu
+              ? modul >= 4
+                ? t.histLast
+                : t.histBody(modulLabel(modul + 1, lang))
+              : t.lockedBodyP(modulLabel(modul, lang))
+        }
         actions={
           guest ? (
             <button type="button" className="btn btn--primary" onClick={() => openSignIn()}>
