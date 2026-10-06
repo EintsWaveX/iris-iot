@@ -17,6 +17,7 @@ import { dict, getJson, postJson, sejak } from "../../../lib/app";
 import { useDirektori } from "../../../lib/people";
 import { bacaTautan, TAUTAN_SLIDES } from "../../../lib/tautan";
 import type { Lang } from "../../../lib/kelas";
+import TanpaHak, { useBolehJadwal } from "./TanpaHak";
 import { useSiaran } from "../../../lib/siaran";
 
 const T = dict({
@@ -147,6 +148,7 @@ function pendek(url: string): string {
 
 export default function SlidesEditor({ lang }: { lang: Lang }) {
   const t = T[lang];
+  const boleh = useBolehJadwal();
   const dir = useDirektori();
   const [list, setList] = useState<Deck[] | null>(null);
   const [src, setSrc] = useState<"pdf" | "canva">("pdf");
@@ -215,94 +217,97 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className="grid-2">
-      <section className="panel">
-        <div className="panel__head">
-          <h3 className="panel__title">{t.addTitle}</h3>
-        </div>
-        <SegmentedControl
-          fill
-          aria-label={t.src}
-          value={src}
-          onValueChange={(v) => setSrc(v as "pdf" | "canva")}
-          options={[
-            { value: "pdf", label: t.pdf },
-            { value: "canva", label: t.canva },
-          ]}
-        />
-        <Fade k={src}>
-          {src === "pdf" && tooBig !== null ? (
-            <ErrorView
-              code={413}
-              lang={lang}
-              why={t.bigWhy(String(Math.ceil(tooBig / 1024 / 1024)))}
-              todo={t.bigTodo}
-              onUseLink={() => {
-                setTooBig(null);
-                setSrc("canva");
-              }}
-              onPickFile={() => {
-                setTooBig(null);
-                setPick((n) => n + 1);
-              }}
-            />
-          ) : src === "pdf" ? (
-            <FileDrop
-              accept={["application/pdf"]}
-              maxBytes={20 * 1024 * 1024}
-              kinds="PDF"
-              busy={busy}
-              lang={lang}
-              onFile={(f) => void onFile(f)}
-              onTooBig={(f) => setTooBig(f.size)}
-              pick={pick}
-            />
-          ) : (
-            <form
-              className="stack"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void addLink();
-              }}
-            >
-              <label className="field" data-invalid={err ? "yes" : undefined}>
-                <span className="field__label">{t.canvaUrl}</span>
-                <input
-                  className="field__input"
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://www.canva.com/design/…/view"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  onBlur={() => url && setTried(true)}
-                  aria-invalid={err ? true : undefined}
-                />
-                {err ? (
-                  <span className="field__error">{err}</span>
-                ) : (
-                  <span className="field__hint">{t.canvaHint}</span>
-                )}
-              </label>
-              <label className="field">
-                <span className="field__label">{t.canvaName}</span>
-                <input
-                  className="field__input"
-                  maxLength={200}
-                  placeholder={t.canvaNamePh}
-                  value={nama}
-                  onChange={(e) => setNama(e.target.value)}
-                />
-              </label>
-              <div className="panel__actions panel__actions--end">
-                <button type="submit" className="btn btn--primary" disabled={busy || !url.trim()}>
-                  <PlusIcon size={18} aria-hidden="true" />
-                  {t.add}
-                </button>
-              </div>
-            </form>
-          )}
-        </Fade>
-      </section>
+    <div className={boleh ? "grid-2" : "stack"}>
+      {!boleh && <TanpaHak lang={lang} />}
+      {boleh && (
+        <section className="panel">
+          <div className="panel__head">
+            <h3 className="panel__title">{t.addTitle}</h3>
+          </div>
+          <SegmentedControl
+            fill
+            aria-label={t.src}
+            value={src}
+            onValueChange={(v) => setSrc(v as "pdf" | "canva")}
+            options={[
+              { value: "pdf", label: t.pdf },
+              { value: "canva", label: t.canva },
+            ]}
+          />
+          <Fade k={src}>
+            {src === "pdf" && tooBig !== null ? (
+              <ErrorView
+                code={413}
+                lang={lang}
+                why={t.bigWhy(String(Math.ceil(tooBig / 1024 / 1024)))}
+                todo={t.bigTodo}
+                onUseLink={() => {
+                  setTooBig(null);
+                  setSrc("canva");
+                }}
+                onPickFile={() => {
+                  setTooBig(null);
+                  setPick((n) => n + 1);
+                }}
+              />
+            ) : src === "pdf" ? (
+              <FileDrop
+                accept={["application/pdf"]}
+                maxBytes={20 * 1024 * 1024}
+                kinds="PDF"
+                busy={busy}
+                lang={lang}
+                onFile={(f) => void onFile(f)}
+                onTooBig={(f) => setTooBig(f.size)}
+                pick={pick}
+              />
+            ) : (
+              <form
+                className="stack"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void addLink();
+                }}
+              >
+                <label className="field" data-invalid={err ? "yes" : undefined}>
+                  <span className="field__label">{t.canvaUrl}</span>
+                  <input
+                    className="field__input"
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://www.canva.com/design/…/view"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onBlur={() => url && setTried(true)}
+                    aria-invalid={err ? true : undefined}
+                  />
+                  {err ? (
+                    <span className="field__error">{err}</span>
+                  ) : (
+                    <span className="field__hint">{t.canvaHint}</span>
+                  )}
+                </label>
+                <label className="field">
+                  <span className="field__label">{t.canvaName}</span>
+                  <input
+                    className="field__input"
+                    maxLength={200}
+                    placeholder={t.canvaNamePh}
+                    value={nama}
+                    onChange={(e) => setNama(e.target.value)}
+                  />
+                </label>
+                <div className="panel__actions panel__actions--end">
+                  <button type="submit" className="btn btn--primary" disabled={busy || !url.trim()}>
+                    <PlusIcon size={18} aria-hidden="true" />
+                    {t.add}
+                  </button>
+                </div>
+              </form>
+            )}
+          </Fade>
+        </section>
+      )}
 
       <section className="panel">
         <div className="panel__head">
@@ -338,7 +343,7 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
                   </span>
                   {d.aktif ? (
                     <Pill tone="ok">{t.active}</Pill>
-                  ) : (
+                  ) : !boleh ? null : (
                     <button
                       type="button"
                       className="btn btn--secondary btn--sm"
@@ -347,13 +352,15 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
                       {t.makeActive}
                     </button>
                   )}
-                  <IconButton
-                    icon={TrashIcon}
-                    label={`${t.del} ${d.namaBerkas}`}
-                    kind="danger"
-                    sm
-                    onClick={() => setDel(d)}
-                  />
+                  {boleh && (
+                    <IconButton
+                      icon={TrashIcon}
+                      label={`${t.del} ${d.namaBerkas}`}
+                      kind="danger"
+                      sm
+                      onClick={() => setDel(d)}
+                    />
+                  )}
                 </li>
               );
             })}

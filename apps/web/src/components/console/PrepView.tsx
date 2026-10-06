@@ -18,6 +18,7 @@ import {
   CaretDownIcon,
   ChalkboardTeacherIcon,
   CheckIcon,
+  LockSimpleIcon,
   MagnifyingGlassIcon,
 } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
@@ -112,6 +113,7 @@ export default function PrepView({
   const p = P[lang];
   const me = useMe();
   const bolehKode = me?.hak?.kode === true;
+  const bolehJadwal = me?.hak?.jadwal === true;
   const tabs = TABS.filter((id) => id !== "kode" || bolehKode);
   const [tab, setTab] = useState<Tab>(tab0);
   const [jadwal, setJadwal] = useState<JadwalRow[] | null>(null);
@@ -170,7 +172,18 @@ export default function PrepView({
       if (draf[0]) setSel(`d${draf[0].id}`);
       return;
     }
-    setSel(slotJam());
+    // My own next slot with a practicum (2026-10-06: it opened the slot the
+    // clock was in, often one without a practicum or someone else's), else
+    // the slot the clock is in.
+    const kini = slotJam();
+    const [kh, ks] = kini.split("-").map(Number);
+    const kode = (me?.kode ?? "").toUpperCase();
+    const punyaku = slots
+      .filter((j) => j.asisten.some((k) => k.toUpperCase() === kode))
+      .sort((a, b) => a.hari - b.hari || a.slot - b.slot);
+    const berikut =
+      punyaku.find((j) => j.hari > kh || (j.hari === kh && j.slot >= ks)) ?? punyaku[0];
+    setSel(berikut ? `${berikut.hari}-${berikut.slot}` : kini);
   }, [jadwal, draf]);
 
   // The picked slot when it has no practicum this semester: not in the
@@ -195,6 +208,17 @@ export default function PrepView({
     const row = slots.find((j) => j.hari === h && j.slot === s);
     return row ? { jenis: "slot", hari: h, slot: s, kelas: row.kelas } : null;
   }, [sel, slots]);
+
+  // The roster saves only for this slot's Asisten or the Jadwal right; a
+  // makeup draft needs the full "pair" right (api/_lib/persiapan.ts).
+  // Anyone else sees it read only, told why, instead of a refused save.
+  const rosterRo: string | null = useMemo(() => {
+    if (!target || bolehJadwal) return null;
+    if (target.jenis === "susulan") return me?.hak?.pair === true ? null : p.rosterRoDraft;
+    const row = slots.find((j) => j.hari === target.hari && j.slot === target.slot);
+    const kode = (me?.kode ?? "").toUpperCase();
+    return row?.asisten.some((k) => k.toUpperCase() === kode) ? null : p.rosterRoSlot;
+  }, [target, bolehJadwal, slots, me, p]);
 
   const labelOf = (v: string | null): string => {
     if (!v) return "";
@@ -324,15 +348,25 @@ export default function PrepView({
               />
             )}
             {target ? (
-              <RosterEditor
-                key={sel ?? ""}
-                ref={editor}
-                target={target}
-                label={labelOf(sel)}
-                p={p}
-                lang={lang}
-                onDirty={setDirty}
-              />
+              <>
+                {rosterRo && (
+                  <div className="banner banner--lock" role="note">
+                    <LockSimpleIcon size={20} aria-hidden="true" />
+                    <span>{rosterRo}</span>
+                  </div>
+                )}
+                <div inert={!!rosterRo} className={rosterRo ? "prep__ro" : undefined}>
+                  <RosterEditor
+                    key={sel ?? ""}
+                    ref={editor}
+                    target={target}
+                    label={labelOf(sel)}
+                    p={p}
+                    lang={lang}
+                    onDirty={setDirty}
+                  />
+                </div>
+              </>
             ) : kosong && sel ? (
               <section className="panel panel--solo prep__kosong">
                 <div className="panel__head">

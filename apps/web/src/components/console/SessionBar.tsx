@@ -49,6 +49,7 @@ import type { Strings } from "./strings";
 import type { ServerState } from "./data";
 import { isOnline, type SesiRunning, type View } from "./types";
 import { dengar, useSiaran } from "../../lib/siaran";
+import TanpaHak, { useBolehJadwal } from "./prep/TanpaHak";
 
 function Pop({
   trigger,
@@ -632,6 +633,7 @@ export function useAkses() {
 export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: boolean }) {
   const dir = useDirektori();
   const { terbuka, setTerbuka, meta, dimuat } = useAkses();
+  const boleh = useBolehJadwal();
   const [busy, setBusy] = useState<number | null>(null);
   async function flip(n: number) {
     const open = !terbuka.includes(n);
@@ -643,6 +645,7 @@ export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: b
   return (
     <div className="stack">
       {!bare && <b className="console-pop__title">{t.accTitle}</b>}
+      {!boleh && <TanpaHak lang={lang} />}
       <ul className="access-list" aria-busy={!dimuat || undefined}>
         {[1, 2, 3, 4].map((n) => {
           if (!dimuat)
@@ -665,6 +668,7 @@ export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: b
               <Switch
                 on={on}
                 busy={busy === n}
+                disabled={!boleh}
                 onChange={() => void flip(n)}
                 label={`${t.modul(n)} ${t.modulNama(n)}`}
               />
@@ -691,6 +695,7 @@ interface Deck {
 }
 
 function DeckForm({ t, onManage }: { t: Strings; onManage: () => void }) {
+  const boleh = useBolehJadwal();
   const [list, setList] = useState<Deck[] | null>(null);
   const load = () =>
     getJson<{ ok: boolean; daftar: Deck[] }>("/api/presentasi/daftar")
@@ -726,6 +731,7 @@ function DeckForm({ t, onManage }: { t: Strings; onManage: () => void }) {
               type="button"
               className="deck-row"
               aria-pressed={d.aktif}
+              disabled={!boleh}
               onClick={() => void pick(d)}
             >
               <span className="truncate grow">{d.namaBerkas}</span>

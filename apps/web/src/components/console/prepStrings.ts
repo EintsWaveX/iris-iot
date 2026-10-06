@@ -20,6 +20,9 @@ export const P = dict({
     kosongHint: "Slot ini dipilih dari hari dan jam sekarang. Pilih slot lain di Roster untuk.",
     bukaSlot: (label: string) => `Buka ${label}`,
     readyLabel: "Kesiapan",
+    rosterRoSlot:
+      "Ini bukan slotmu, jadi rosternya hanya bisa dilihat. Yang bisa mengubah: asisten slot ini, Kepala Divisi dan Inti.",
+    rosterRoDraft: "Roster susulan diubah oleh Kepala Divisi dan Inti. Kamu hanya bisa melihatnya.",
     serverReady: "Server siap",
     serverCheck: "Cek server",
     tabs: {
@@ -170,6 +173,10 @@ export const P = dict({
     kosongHint: "Picked from today's day and time. Choose another slot in Roster for.",
     bukaSlot: (label: string) => `Open ${label}`,
     readyLabel: "Readiness",
+    rosterRoSlot:
+      "This isn't your slot, so its roster is view only. It can be changed by this slot's assistants, the Division Heads and the Core team.",
+    rosterRoDraft:
+      "Makeup rosters are changed by the Division Heads and the Core team. You can only view this one.",
     serverReady: "Server ready",
     serverCheck: "Check the server",
     tabs: {
@@ -316,6 +323,9 @@ export const P = dict({
     kosongHint: "根据现在的日期和时间选出。可以在“名单对应”里换别的时段。",
     bukaSlot: (label: string) => `打开 ${label}`,
     readyLabel: "就绪状态",
+    rosterRoSlot:
+      "这不是你的时段，名单只能查看。要修改需要排班权限（各部门负责人和核心团队），或成为这个时段的助教。",
+    rosterRoDraft: "补课名单由各部门负责人和核心团队修改，你只能查看。",
     serverReady: "服务器就绪",
     serverCheck: "检查服务器",
     tabs: {

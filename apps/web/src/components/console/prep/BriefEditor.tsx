@@ -23,6 +23,7 @@ import en3 from "../../../content/modules/en/3.json";
 import en4 from "../../../content/modules/en/4.json";
 import BetaBadge from "../../ui/BetaBadge";
 import { useSiaran } from "../../../lib/siaran";
+import TanpaHak, { useBolehJadwal } from "./TanpaHak";
 
 const BAWAAN: Record<"id" | "en", Record<number, { ringkasan: string[] }>> = {
   id: { 1: id1, 2: id2, 3: id3, 4: id4 },
@@ -84,6 +85,7 @@ interface Row {
 
 export default function BriefEditor({ lang }: { lang: Lang }) {
   const t = T[lang];
+  const boleh = useBolehJadwal();
   const dir = useDirektori();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [m, setM] = useState(1);
@@ -161,6 +163,7 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
           ]}
         />
       </div>
+      {!boleh && <TanpaHak lang={lang} />}
       {!rows ? (
         <span className="skeleton" style={{ height: 220 }} />
       ) : (
@@ -172,6 +175,7 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
                 className="field__input field__textarea"
                 rows={6}
                 lang={lg === "zh" ? "zh-CN" : lg}
+                readOnly={!boleh}
                 value={sum}
                 onChange={(e) => {
                   diubah.current = true;
@@ -185,6 +189,7 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
                 className="field__input field__textarea"
                 rows={5}
                 lang={lg === "zh" ? "zh-CN" : lg}
+                readOnly={!boleh}
                 value={steps}
                 onChange={(e) => {
                   diubah.current = true;
@@ -195,17 +200,19 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
                 {t.stepsHint} {t.reset}
               </span>
             </label>
-            <div className="panel__actions panel__actions--end">
-              <button
-                type="button"
-                className="btn btn--primary"
-                disabled={busy}
-                onClick={() => void save()}
-              >
-                <FloppyDiskIcon size={18} aria-hidden="true" />
-                {t.save}
-              </button>
-            </div>
+            {boleh && (
+              <div className="panel__actions panel__actions--end">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={busy}
+                  onClick={() => void save()}
+                >
+                  <FloppyDiskIcon size={18} aria-hidden="true" />
+                  {t.save}
+                </button>
+              </div>
+            )}
           </div>
         </Fade>
       )}

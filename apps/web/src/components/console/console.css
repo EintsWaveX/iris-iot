@@ -2844,3 +2844,8 @@ thead .ntable__name {
   margin-bottom: var(--space-3, 12px);
   padding: 10px 16px;
 }
+
+/* A roster I can't change (2026-10-06): shown, dimmed a little, inert. */
+.prep__ro {
+  opacity: 0.85;
+}

@@ -130,6 +130,7 @@ function Card({
   open,
   done,
   asisten,
+  bolehUbah,
   onAccess,
 }: {
   m: ModulKartu;
@@ -138,6 +139,9 @@ function Card({
   open: boolean | null;
   done: boolean;
   asisten: boolean;
+  /** The Jadwal right: the switch shows only to who can use it (the
+   *  Open/Locked badge tells everyone else; 2026-10-06). */
+  bolehUbah: boolean;
   onAccess: (open: boolean) => void;
 }) {
   const t = T[lang];
@@ -184,7 +188,7 @@ function Card({
           {t.cta}
           <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
         </a>
-        {asisten && open !== null && (
+        {asisten && bolehUbah && open !== null && (
           <span className="modcard__access">
             <span className="hint" aria-hidden="true">
               {t.access}
@@ -284,6 +288,7 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
             open={terbuka === null ? null : terbuka.includes(m.modul)}
             done={me?.role === "praktikan" && jurnal.includes(m.modul)}
             asisten={asisten}
+            bolehUbah={me?.hak?.jadwal === true}
             onAccess={(v) => {
               // The switch moves now; the reload after the save confirms it.
               setTerbuka((l) =>

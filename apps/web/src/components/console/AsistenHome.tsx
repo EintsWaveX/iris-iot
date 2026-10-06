@@ -372,6 +372,9 @@ export default function AsistenHome({
     }
   }
 
+  // The roster Preparation opens on: the picked slot when it has a
+  // practicum, else Preparation's own pick (my next slot, 2026-10-06).
+  const pilihPrep = susulan || !ada(sel) ? null : `${hariDariTanggal(hariIniWib())}-${sel}`;
   const hariNama = data ? hariLabel(data.hari, lang) : "";
   const whoMe = me.kode ? `${me.nama} (${me.kode})` : me.nama;
 
@@ -489,9 +492,7 @@ export default function AsistenHome({
                 susulan={susulan}
                 h={h}
                 lang={lang}
-                onGo={(tab) =>
-                  onPrep(susulan ? null : `${hariDariTanggal(hariIniWib())}-${sel}`, tab)
-                }
+                onGo={(tab) => onPrep(pilihPrep, tab)}
               />
             ) : (
               <span className="skeleton" style={{ height: 24, width: 320 }} />
@@ -501,7 +502,7 @@ export default function AsistenHome({
         <button
           type="button"
           className="btn btn--inverse btn--lg"
-          onClick={() => onPrep(susulan ? null : `${hariDariTanggal(hariIniWib())}-${sel}`)}
+          onClick={() => onPrep(pilihPrep)}
         >
           <ListChecksIcon size={20} aria-hidden="true" />
           {h.prepOpen}

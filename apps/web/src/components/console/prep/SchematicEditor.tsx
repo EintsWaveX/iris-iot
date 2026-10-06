@@ -24,6 +24,7 @@ import { dict, getJson, MODUL_NAMA, postJson, skemaBawaan } from "../../../lib/a
 import { modulLabel } from "../../../lib/labels";
 import { bacaTautan, namaLayanan, TAUTAN_SKEMA, tautanBingkai } from "../../../lib/tautan";
 import type { Lang } from "../../../lib/kelas";
+import TanpaHak, { useBolehJadwal } from "./TanpaHak";
 import { useSiaran } from "../../../lib/siaran";
 
 const T = dict({
@@ -154,6 +155,7 @@ type Tx = (typeof T)["id"];
 
 export default function SchematicEditor({ lang }: { lang: Lang }) {
   const t = T[lang];
+  const boleh = useBolehJadwal();
   const [list, setList] = useState<Skema[] | null>(null);
   const [view, setView] = useState<{ src: string; title: string; frame: boolean } | null>(null);
   const [del, setDel] = useState<Skema | null>(null);
@@ -169,10 +171,12 @@ export default function SchematicEditor({ lang }: { lang: Lang }) {
 
   return (
     <div className="stack">
+      {!boleh && <TanpaHak lang={lang} />}
       <div className="schem-grid">
         {[1, 2, 3, 4].map((m) => (
           <SchemCard
             key={m}
+            boleh={boleh}
             modul={m}
             judul={MODUL_NAMA[m]}
             aktif={{
@@ -258,6 +262,7 @@ export default function SchematicEditor({ lang }: { lang: Lang }) {
 }
 
 function SchemCard({
+  boleh,
   modul,
   judul,
   aktif,
@@ -268,6 +273,8 @@ function SchemCard({
   onDelete,
   onSaved,
 }: {
+  /** The Jadwal right: without it the card only shows. */
+  boleh: boolean;
   modul: number;
   judul: string;
   aktif: { berkas: Skema | null; tautan: Skema | null };
@@ -426,46 +433,48 @@ function SchemCard({
           { value: "link", label: t.link },
         ]}
       />
-      <Fade k={mode}>
-        {mode === "img" ? (
-          <FileDrop
-            accept={["image/png", "image/jpeg", "image/webp"]}
-            maxBytes={8 * 1024 * 1024}
-            kinds="PNG, JPG, WebP"
-            busy={busy}
-            lang={lang}
-            compact
-            onFile={(f) => void onFile(f)}
-          />
-        ) : (
-          <form
-            className="stack stack--sm"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void saveLink();
-            }}
-          >
-            <label className="field" data-invalid={err ? "yes" : undefined}>
-              <span className="field__label">{t.linkLabel}</span>
-              <input
-                className="field__input"
-                type="url"
-                inputMode="url"
-                placeholder="https://wokwi.com/projects/…"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onBlur={() => url && setTried(true)}
-                aria-invalid={err ? true : undefined}
-              />
-              {err && <span className="field__error">{err}</span>}
-            </label>
-            <button type="submit" className="btn btn--secondary" disabled={busy || !url.trim()}>
-              {t.save}
-            </button>
-          </form>
-        )}
-      </Fade>
-      {cur && (
+      {boleh && (
+        <Fade k={mode}>
+          {mode === "img" ? (
+            <FileDrop
+              accept={["image/png", "image/jpeg", "image/webp"]}
+              maxBytes={8 * 1024 * 1024}
+              kinds="PNG, JPG, WebP"
+              busy={busy}
+              lang={lang}
+              compact
+              onFile={(f) => void onFile(f)}
+            />
+          ) : (
+            <form
+              className="stack stack--sm"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveLink();
+              }}
+            >
+              <label className="field" data-invalid={err ? "yes" : undefined}>
+                <span className="field__label">{t.linkLabel}</span>
+                <input
+                  className="field__input"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://wokwi.com/projects/…"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onBlur={() => url && setTried(true)}
+                  aria-invalid={err ? true : undefined}
+                />
+                {err && <span className="field__error">{err}</span>}
+              </label>
+              <button type="submit" className="btn btn--secondary" disabled={busy || !url.trim()}>
+                {t.save}
+              </button>
+            </form>
+          )}
+        </Fade>
+      )}
+      {cur && boleh && (
         <div className="row row--end">
           <IconButton
             icon={TrashIcon}
