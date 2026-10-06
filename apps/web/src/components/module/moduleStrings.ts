@@ -4,6 +4,8 @@ import { dict } from "../../lib/app";
 export const M = dict({
   id: {
     steps: "Langkah",
+    prevStep: (s: string) => `Sebelumnya: ${s}`,
+    nextStep: (s: string) => `Lanjut: ${s}`,
     modul: "Modul",
     brief: "Ringkasan",
     praktikum: "Praktikum",
@@ -73,6 +75,8 @@ export const M = dict({
   },
   en: {
     steps: "Steps",
+    prevStep: (s: string) => `Back: ${s}`,
+    nextStep: (s: string) => `Next: ${s}`,
     modul: "Module",
     brief: "Brief",
     praktikum: "Hands-on Practicum",
@@ -141,6 +145,8 @@ export const M = dict({
   },
   zh: {
     steps: "步骤",
+    prevStep: (s: string) => `上一步：${s}`,
+    nextStep: (s: string) => `下一步：${s}`,
     modul: "模块",
     brief: "简介",
     praktikum: "动手实验",

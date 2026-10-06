@@ -346,3 +346,21 @@
   color: var(--text-muted);
   text-decoration: line-through;
 }
+
+/* Previous / next step under each step (2026-10-06). */
+.modsteps__pager {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3, 12px);
+  justify-content: space-between;
+}
+
+@media (max-width: 520px) {
+  .modsteps__pager {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .modsteps__pager > span:empty {
+    display: none;
+  }
+}

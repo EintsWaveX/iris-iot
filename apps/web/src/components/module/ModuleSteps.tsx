@@ -440,6 +440,38 @@ export default function ModuleSteps(p: Props) {
           )}
         </Fade>
       </div>
+
+      {/* The way on from the bottom of a long step (2026-10-06): the tabs
+          are far above by then. */}
+      {(() => {
+        const i = steps.indexOf(step);
+        const prev = i > 0 ? steps[i - 1] : null;
+        const next = i >= 0 && i < steps.length - 1 ? steps[i + 1] : null;
+        if (!prev && !next) return null;
+        const pindah = (s: Step) => {
+          go(s);
+          document.querySelector(".modsteps__tabs")?.scrollIntoView({ block: "start" });
+          requestAnimationFrame(() => document.getElementById(`step-${s}`)?.focus());
+        };
+        return (
+          <nav className="modsteps__pager" aria-label={t.steps}>
+            {prev ? (
+              <button type="button" className="btn btn--ghost" onClick={() => pindah(prev)}>
+                <ArrowLeftIcon size={18} aria-hidden="true" />
+                {t.prevStep(label[prev])}
+              </button>
+            ) : (
+              <span />
+            )}
+            {next && (
+              <button type="button" className="btn btn--secondary" onClick={() => pindah(next)}>
+                {t.nextStep(label[next])}
+                <ArrowRightIcon size={18} aria-hidden="true" />
+              </button>
+            )}
+          </nav>
+        );
+      })()}
     </div>
   );
 }

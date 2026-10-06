@@ -17,9 +17,9 @@ import "./SlidesDialog.css";
 export type Deck = { url: string; namaBerkas: string; jenis?: "berkas" | "tautan" };
 
 const T = dict({
-  id: { sumber: "Sumber presentasi", judul: (m: string) => `Presentasi ${m}` },
-  en: { sumber: "Slides source", judul: (m: string) => `${m} slides` },
-  zh: { sumber: "幻灯片来源", judul: (m: string) => `${m} 幻灯片` },
+  id: { sumber: "Sumber presentasi", judul: (m: string) => `Presentasi ${m}`, polos: "Presentasi" },
+  en: { sumber: "Slides source", judul: (m: string) => `${m} slides`, polos: "Slides" },
+  zh: { sumber: "幻灯片来源", judul: (m: string) => `${m} 幻灯片`, polos: "幻灯片" },
 });
 
 /** The active decks, refreshed when an Asisten changes them. */
@@ -46,7 +46,8 @@ export default function SlidesDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   list: Deck[];
-  modul: number;
+  /** The running session's module, for the title; none before a session. */
+  modul?: number;
   lang: Lang;
 }) {
   const t = T[lang];
@@ -56,7 +57,7 @@ export default function SlidesDialog({
     <Dialog
       open={open && Boolean(p)}
       onOpenChange={onOpenChange}
-      title={t.judul(modulLabel(modul, lang))}
+      title={modul ? t.judul(modulLabel(modul, lang)) : t.polos}
       size="lg"
       lang={lang}
     >

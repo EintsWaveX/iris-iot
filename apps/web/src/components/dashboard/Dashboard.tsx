@@ -305,6 +305,27 @@ function LiveCard({
   );
 }
 
+/** Before a session (2026-10-06): the slides the Asisten made active, so a
+ *  Praktikan can read ahead. Shows only when there are some. */
+function SlidesAhead({ t, lang }: { t: DashT; lang: Lang }) {
+  const { list } = useSlides();
+  const [open, setOpen] = useState(false);
+  if (!list.length) return null;
+  return (
+    <section className="panel dash__card">
+      <h2 className="panel__title">{t.slidesH}</h2>
+      <p className="panel__sub">{list.map((d) => d.namaBerkas).join(" · ")}</p>
+      <div className="panel__actions">
+        <button type="button" className="btn" onClick={() => setOpen(true)}>
+          <PresentationChartIcon size={18} aria-hidden="true" />
+          {t.bukaSlides}
+        </button>
+      </div>
+      <SlidesDialog open={open} onOpenChange={setOpen} list={list} lang={lang} />
+    </section>
+  );
+}
+
 /** The active slides: a PDF, a Canva design, or both (shell/SlidesDialog). */
 function SlidesCard({ t, lang, modul }: { t: DashT; lang: Lang; modul: number }) {
   const { list, loaded } = useSlides();
@@ -602,6 +623,7 @@ function Waiting({
         </div>
       </section>
       {hasil?.kelompok ? <GroupCard t={t} lang={lang} hasil={hasil} me={me} /> : null}
+      <SlidesAhead t={t} lang={lang} />
     </div>
   );
 }
@@ -950,7 +972,12 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
       </>
     );
   } else if (list.length > 0) {
-    body = <Practicums t={t} lang={lang} list={list} go={go} />;
+    body = (
+      <>
+        <Practicums t={t} lang={lang} list={list} go={go} />
+        <SlidesAhead t={t} lang={lang} />
+      </>
+    );
   } else {
     body = <Waiting t={t} lang={lang} hasil={null} me={me.nama} />;
   }
