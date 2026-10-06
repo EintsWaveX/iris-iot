@@ -143,6 +143,8 @@ export interface SesiNow {
   mengajar?: boolean | null;
   /** Asisten only: the four digits a Praktikan types to sign in. */
   kodeMasuk?: string;
+  /** Asisten only: how many groups have a hand up. */
+  tangan?: number;
 }
 
 export function useSessionNow(ms = 20_000, enabled = true) {

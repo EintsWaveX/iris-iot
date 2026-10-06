@@ -364,3 +364,20 @@
 .kodemasuk[data-kecil="yes"] .kodemasuk__v {
   font-size: 0.95rem;
 }
+
+/* The Asisten bar's raised hands (2026-10-06). */
+.minibar__hands {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+  color: var(--text);
+}
+
+.minibar__hands svg {
+  color: var(--warn);
+}
+
+@media (max-width: 639px) {
+  .minibar__hands span {
+    display: none;
+  }
+}

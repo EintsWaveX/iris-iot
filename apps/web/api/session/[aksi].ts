@@ -189,6 +189,12 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       milikSaya: who?.role === "praktikan" ? who.sesiId === running.id : null,
       // An Asisten teaching it gets the "Sesimu berjalan" bar on every page.
       mengajar: who?.role === "asisten" ? await asistenMengajar(running, who.nim) : null,
+      // Asisten only (2026-10-06): how many groups have a hand up, so the
+      // bar on every other page can say so and lead to the board.
+      tangan:
+        who?.role === "asisten"
+          ? Object.keys(await tanganTerangkat(getDb(), running.id)).length
+          : undefined,
       // The sign-in code, for the projector and the Asisten's bars. Never
       // to a Praktikan or a visitor.
       kodeMasuk: who?.role === "asisten" ? kodeMasukSesi(running) : undefined,
