@@ -1008,3 +1008,8 @@ button.qa__b[aria-disabled="true"] {
     transition: none;
   }
 }
+
+/* "Opened from Preparation" with the way back (2026-10-06). */
+.srv-from {
+  margin-bottom: var(--space-4, 16px);
+}

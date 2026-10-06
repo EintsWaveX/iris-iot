@@ -597,6 +597,9 @@ function AnnounceForm({
 
 export function useAkses() {
   const [terbuka, setTerbuka] = useState<number[]>([]);
+  // Until the first answer the switches can't say anything true (they used
+  // to show every module closed, then flip on; 2026-10-06).
+  const [dimuat, setDimuat] = useState(false);
   const [meta, setMeta] = useState<{ diubahOleh: string | null; diubahPada: string | null }>({
     diubahOleh: null,
     diubahPada: null,
@@ -608,6 +611,7 @@ export function useAkses() {
       )
         .then((d) => {
           if (d.ok) {
+            setDimuat(true);
             setTerbuka(d.terbuka);
             setMeta({ diubahOleh: d.diubahOleh ?? null, diubahPada: d.diubahPada ?? null });
           }
@@ -622,12 +626,12 @@ export function useAkses() {
       lepas();
     };
   }, []);
-  return { terbuka, setTerbuka, meta };
+  return { terbuka, setTerbuka, meta, dimuat };
 }
 
 export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: boolean }) {
   const dir = useDirektori();
-  const { terbuka, setTerbuka, meta } = useAkses();
+  const { terbuka, setTerbuka, meta, dimuat } = useAkses();
   const [busy, setBusy] = useState<number | null>(null);
   async function flip(n: number) {
     const open = !terbuka.includes(n);
@@ -639,8 +643,10 @@ export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: b
   return (
     <div className="stack">
       {!bare && <b className="console-pop__title">{t.accTitle}</b>}
-      <ul className="access-list">
+      <ul className="access-list" aria-busy={!dimuat || undefined}>
         {[1, 2, 3, 4].map((n) => {
+          if (!dimuat)
+            return <li key={n} className="skeleton" style={{ height: 52, borderRadius: 12 }} />;
           const on = terbuka.includes(n);
           return (
             <li key={n} className="access-row" data-on={on ? "yes" : undefined}>

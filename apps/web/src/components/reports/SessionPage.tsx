@@ -707,8 +707,8 @@ function FeedbackCard({ data, t, lang }: { data: Rekap; t: Tx; lang: Lang }) {
           ))}
         </div>
       )}
-      {r.komentar.slice(0, 5).map((k) => (
-        <blockquote key={k.pada + k.teks} className="rp-quote">
+      {r.komentar.slice(0, 5).map((k, i) => (
+        <blockquote key={`${i}-${k.pada}`} className="rp-quote">
           <p>{k.teks}</p>
         </blockquote>
       ))}

@@ -220,7 +220,14 @@ export default function StartCheck({
             : undefined,
         aksi:
           c.status === "gagal" ? (
-            <a className="btn btn--ghost btn--sm" href={href(lang, "/servers")}>
+            <a
+              className="btn btn--ghost btn--sm"
+              href={
+                data?.serverId
+                  ? `${href(lang, "/servers")}?id=${data.serverId}&dari=persiapan`
+                  : href(lang, "/servers")
+              }
+            >
               {t.server}
               <ArrowRightIcon size={14} aria-hidden="true" />
             </a>

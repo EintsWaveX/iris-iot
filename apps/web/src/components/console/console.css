@@ -1837,14 +1837,41 @@ thead .ntable__name {
 .checks {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  gap: 8px 10px;
 }
 
+/* Each check is a way to its fix (2026-10-06). */
 .checks__i {
   align-items: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: inherit;
+  cursor: pointer;
   display: inline-flex;
+  font: inherit;
   font-weight: 550;
   gap: 8px;
+  margin-inline: -8px 0;
+  padding: 6px 8px;
+  text-align: left;
+  text-decoration: none;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.checks__i:hover,
+.checks__i:focus-visible {
+  background: var(--surface-hover, rgb(255 255 255 / 0.05));
+  border-color: var(--hairline-strong);
+  outline: none;
+}
+
+.checks__i[data-ok="no"] {
+  background: var(--warn-soft, rgb(245 166 35 / 0.1));
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+  margin-inline: 0;
 }
 
 .checks__i[data-ok="yes"] svg {
@@ -1853,6 +1880,24 @@ thead .ntable__name {
 
 .checks__i[data-ok="no"] svg {
   color: var(--warn);
+}
+
+.checks__i .checks__arrow {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.checks__i[data-ok="no"] .checks__arrow {
+  color: var(--warn);
+  opacity: 1;
+}
+
+.checks__go {
+  color: var(--warn);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* Start on the left, the two side cards stretching to its height. */
@@ -2784,4 +2829,18 @@ thead .ntable__name {
 
 .startcheck__i .btn {
   flex: none;
+}
+
+/* Preparation's readiness strip (2026-10-06): the Home checks, each a way
+   to its fix (a tab here, or the server's Ready check). */
+.prep__ready {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: var(--space-3, 12px);
+  padding: 10px 16px;
 }

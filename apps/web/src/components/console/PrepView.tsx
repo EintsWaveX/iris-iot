@@ -26,7 +26,7 @@ import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
 import { useDialogHost } from "../ui/dialogHost";
 import { DateField, Stepper, TimeField } from "../ui/Controls";
-import { getJson, href, namaKelompok, postJson, tanggalPanjang, useMe } from "../../lib/app";
+import { getJson, namaKelompok, postJson, tanggalPanjang, useMe } from "../../lib/app";
 import { hariIniWib, KELOMPOK_MAKS, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { menitDariJam, menitSekarangWib } from "../../lib/sesi-mulai";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
@@ -42,6 +42,8 @@ import SlidesEditor from "./prep/SlidesEditor";
 import CodeEditor from "./prep/CodeEditor";
 import TotPanel from "./prep/TotPanel";
 import { P, type Px } from "./prepStrings";
+import { PrepChecks, type Beranda } from "./AsistenHome";
+import { H } from "./homeStrings";
 import "../ui/Tabs.css";
 import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
 import { useSiaran } from "../../lib/siaran";
@@ -118,7 +120,14 @@ export default function PrepView({
   const [dirty, setDirty] = useState(false);
   const [ask, setAsk] = useState<string | null>(null);
   const [newDraft, setNewDraft] = useState(false);
-  const [server, setServer] = useState<{ siap: boolean } | null>(null);
+  // The readiness checks (2026-10-06): the same ones as Home, each a way
+  // to its fix; before, only a small chip linked to the server list.
+  const [beranda, setBeranda] = useState<Beranda | null>(null);
+  const muatBeranda = () =>
+    getJson<{ ok: boolean } & Beranda>("/api/session/beranda")
+      .then((d) => d.ok && setBeranda(d))
+      .catch(() => {});
+  useSiaran(["akses", "server", "presentasi", "roster", "jadwal"], muatBeranda);
   const editor = useRef<RosterHandle>(null);
 
   const loadDraf = () =>
@@ -142,18 +151,7 @@ export default function PrepView({
       .then((d) => setJadwal(d.ok ? d.jadwal : []))
       .catch(() => setJadwal([]));
     void loadDraf();
-    getJson<{
-      ok: boolean;
-      server: { siap: { lulus: boolean; waktu: string | null } | null } | null;
-    }>("/api/session/beranda")
-      .then((d) => {
-        const s = d.server?.siap;
-        const hariIni =
-          !!s?.waktu &&
-          new Date(s.waktu).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) === today;
-        setServer({ siap: !!s?.lulus && hariIni });
-      })
-      .catch(() => {});
+    void muatBeranda();
   }, []);
 
   const slots = useMemo(
@@ -290,13 +288,24 @@ export default function PrepView({
               )}
             </div>
           )}
-          <a className="srvchip" href={`${href(lang, "/servers")}#siap`}>
-            <span className={`dot ${server?.siap ? "dot--ok" : "dot--warn"}`} aria-hidden="true" />
-            {server?.siap ? p.serverReady : p.serverCheck}
-            <ArrowRightIcon size={14} aria-hidden="true" />
-          </a>
         </div>
       </div>
+
+      {beranda && (
+        <div className="prep__ready">
+          <span className="label-caps">{p.readyLabel}</span>
+          <div className="checks">
+            <PrepChecks
+              data={beranda}
+              slot={1}
+              susulan
+              h={H[lang]}
+              lang={lang}
+              onGo={(x) => setTab(x)}
+            />
+          </div>
+        </div>
+      )}
 
       {tablist}
 
@@ -509,7 +518,6 @@ function NewDraftDialog({
             labelledBy="dr-time"
             lang={lang}
             from={6}
-            to={21}
           />
         </div>
         <Dropdown

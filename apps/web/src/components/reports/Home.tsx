@@ -796,8 +796,9 @@ function LabTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
         {data.komentar.length === 0 ? (
           <p className="hint">{t.noFeedback}</p>
         ) : (
-          data.komentar.slice(0, 4).map((k) => (
-            <blockquote key={k.pada + k.teks} className="rp-quote">
+          // Two Praktikan can send the same words at the same minute.
+          data.komentar.slice(0, 4).map((k, i) => (
+            <blockquote key={`${i}-${k.pada}`} className="rp-quote">
               <p>{k.teks}</p>
               <span className="hint">{tanggalPanjang(tanggalWib(k.pada), lang)}</span>
             </blockquote>

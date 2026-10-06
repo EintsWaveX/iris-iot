@@ -68,8 +68,13 @@ function readHash(): {
   seelabs?: boolean;
   seelabsTab?: SeelabsTab;
   tot?: boolean;
+  prep?: PrepTab;
 } {
   const h = location.hash.replace(/^#/, "");
+  // #persiapan (or #persiapan=akses): Preparation, from a page outside the
+  // console (the Server page's way back, 2026-10-06).
+  const pr = /^persiapan(?:=(roster|akses|brief|kode|slides|skema))?$/.exec(h);
+  if (pr) return { prep: (pr[1] as PrepTab | undefined) ?? "roster" };
   // #tot: Preparation's Mode TOT tab (the TOT banner links here).
   if (h === "tot") return { tot: true };
   if (h === "prep" || h === "board" || h === "table") return { view: h };
@@ -95,7 +100,7 @@ export default function Console({ lang }: { lang: Lang }) {
   const [prepOnly, setPrepOnly] = useState(false);
   // In a running session Preparation is the live view; its Module Access
   // and Slides buttons open the full tabs, with a way back.
-  const [prepFull, setPrepFull] = useState<"akses" | "slides" | "tot" | null>(null);
+  const [prepFull, setPrepFull] = useState<PrepTab | null>(null);
   const [prepTab, setPrepTab] = useState<PrepTab | undefined>(undefined);
   const [done, setDone] = useState<(SesiRunning & { hadir: number; selesaiPada?: string }) | null>(
     null,
@@ -140,6 +145,13 @@ export default function Console({ lang }: { lang: Lang }) {
       if (h.cmd === "drawer") setDrawer(true);
       if (h.cmd === "end") setEndOpen(true);
       if (h.seelabs) setSee(h.seelabsTab ? { tab: h.seelabsTab } : {});
+      if (h.prep) {
+        setView("prep");
+        setPrepTab(h.prep);
+        setPrepFull(h.prep === "roster" ? null : h.prep);
+        setPrepOnly(true);
+        history.replaceState(null, "", location.pathname + location.search);
+      }
       if (h.tot) {
         setView("prep");
         setPrepFull("tot");
@@ -404,8 +416,9 @@ export default function Console({ lang }: { lang: Lang }) {
           lang={lang}
           me={me!}
           onStarted={refreshAll}
-          onPrep={(pilih) => {
+          onPrep={(pilih, tab) => {
             setPrepPilih(pilih);
+            setPrepTab(tab);
             setPrepOnly(true);
           }}
           onHeld={() => openSeelabs("titipan")}

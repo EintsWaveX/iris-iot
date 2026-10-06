@@ -569,12 +569,13 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
         ))}
         <Pill tone="violet">{t.inter}</Pill>
         <Pill tone="teal">{t.soon}</Pill>
-        <span className="pill jswatch" data-c="oranye">
-          {t.none}
-        </span>
-        <span className="pill jswatch" data-c="merah">
-          {t.none}
-        </span>
+        {/* One chip for both colours (2026-10-06): two identical labels
+            read as two different states. */}
+        <Tooltip label={t.statusHint.kosong}>
+          <span className="pill jswatch" data-c="kosong" tabIndex={0}>
+            {t.none}
+          </span>
+        </Tooltip>
         <Tooltip label={t.fitTip}>
           <span tabIndex={0}>
             <Pill tone="fit">{t.fit}</Pill>

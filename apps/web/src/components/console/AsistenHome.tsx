@@ -81,6 +81,7 @@ import type { Kelas, Lang } from "../../lib/kelas";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import { pesan, type Strings } from "./strings";
 import { H, type Hx } from "./homeStrings";
+import type { PrepTab } from "./PrepView";
 import { useSiaran } from "../../lib/siaran";
 
 interface SlotHariIni {
@@ -100,7 +101,7 @@ interface SlotHariIni {
   roster: { kelompok: number; praktikan: number };
 }
 
-interface Beranda {
+export interface Beranda {
   tanggal: string;
   hari: number;
   jendelaDefault: number;
@@ -109,6 +110,7 @@ interface Beranda {
   terbuka: number[];
   presentasiAktif: { nama: string; jenis: string } | null;
   server: {
+    id: number;
     nama: string;
     denyutPada: string | null;
     siap: { lulus: boolean; gagal: number; waktu: string | null } | null;
@@ -156,7 +158,7 @@ export default function AsistenHome({
   onStarted: () => void;
   /** Opens Preparation on the roster Start has picked ("2-1": Selasa,
    *  slot 1), or with no pick for a makeup session. */
-  onPrep: (pilih: string | null) => void;
+  onPrep: (pilih: string | null, tab?: PrepTab) => void;
   /** Opens Kirim ke SeeLabs on "Titipan" (scores held for my account). */
   onHeld: () => void;
 }) {
@@ -182,6 +184,8 @@ export default function AsistenHome({
   const [drafts, setDrafts] = useState<Draf[] | null>(null);
   const [draf, setDraf] = useState<number | "baru">("baru");
   const [menitNow, setMenitNow] = useState(() => menitSekarangWib());
+  // A closed module picked in Start: say so and offer Module Access.
+  const [tutup, setTutup] = useState<number | null>(null);
 
   const load = () =>
     getJson<{ ok: boolean } & Beranda>("/api/session/beranda")
@@ -476,9 +480,19 @@ export default function AsistenHome({
       <section className="panel panel--key panel--raised prepcard">
         <div className="prepcard__text">
           <h2 className="prepcard__title">{h.prepTitle}</h2>
+          <span className="hint">{h.prepHint}</span>
           <div className="checks">
             {data ? (
-              <PrepChecks data={data} slot={sel} susulan={susulan} h={h} lang={lang} />
+              <PrepChecks
+                data={data}
+                slot={sel}
+                susulan={susulan}
+                h={h}
+                lang={lang}
+                onGo={(tab) =>
+                  onPrep(susulan ? null : `${hariDariTanggal(hariIniWib())}-${sel}`, tab)
+                }
+              />
             ) : (
               <span className="skeleton" style={{ height: 24, width: 320 }} />
             )}
@@ -581,7 +595,6 @@ export default function AsistenHome({
                         labelledBy="sus-time-l"
                         lang={lang}
                         from={6}
-                        to={21}
                       />
                     </div>
                     <span className="hint startcard__wide">{h.susEmpty}</span>
@@ -691,7 +704,7 @@ export default function AsistenHome({
                         aria-disabled={off || undefined}
                         className="modpick__b"
                         style={{ "--m": `var(--mod-${m})` } as CSSProperties}
-                        onClick={() => !off && setModul(m)}
+                        onClick={() => (off ? setTutup(m) : (setModul(m), setTutup(null)))}
                       >
                         <span className="modpick__top">
                           <Pill modul={m}>{modulLabel(m, lang)}</Pill>
@@ -715,6 +728,20 @@ export default function AsistenHome({
                   })}
                 </div>
               </div>
+              {tutup !== null && (
+                <div className="banner banner--warn" role="status">
+                  <LockSimpleIcon size={20} aria-hidden="true" />
+                  <span className="grow">{h.closedPick(modulLabel(tutup, lang))}</span>
+                  <button
+                    type="button"
+                    className="btn btn--sm"
+                    onClick={() => onPrep(null, "akses")}
+                  >
+                    {h.openAccess}
+                    <ArrowRightIcon size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
               {modul === 4 && (
                 <Checkbox
                   checked={butuhAp}
@@ -873,27 +900,36 @@ export default function AsistenHome({
 
 /* ------------------------------------------------------- prep checks */
 
-function PrepChecks({
+export function PrepChecks({
   data,
   slot,
   susulan,
   h,
   lang,
+  onGo,
 }: {
   data: Beranda;
   slot: number;
   susulan: boolean;
   h: Hx;
   lang: Lang;
+  /** Opens Preparation on the tab that fixes a check. */
+  onGo: (tab: PrepTab) => void;
 }) {
   const r = data.hariIni.find((x) => x.slot === slot);
   const hari = hariLabel(data.hari, lang);
-  const items: [boolean, string][] = [];
-  if (!susulan) {
+  // Each check leads to where it is fixed (2026-10-06: they were plain
+  // text, and the server check needed the Server tab found by hand).
+  type Item = [boolean, string, PrepTab | string];
+  const items: Item[] = [];
+  // A slot without a practicum today needs no roster: no warning for it.
+  const adaPraktikum =
+    !!r && r.status === "aktif" && [...r.asisten, ...(r.bantu ?? [])].some(Boolean);
+  if (!susulan && adaPraktikum) {
     items.push(
       r && r.roster.praktikan > 0
-        ? [true, h.chkRoster(hari, slot, r.roster.kelompok, r.roster.praktikan)]
-        : [false, h.chkRosterNone(hari, slot)],
+        ? [true, h.chkRoster(hari, slot, r.roster.kelompok, r.roster.praktikan), "roster"]
+        : [false, h.chkRosterNone(hari, slot), "roster"],
     );
   }
   items.push(
@@ -906,39 +942,62 @@ function PrepChecks({
               h.and,
             ),
           ),
+          "akses",
         ]
-      : [false, h.chkAccessNone],
+      : [false, h.chkAccessNone, "akses"],
   );
   items.push(
     data.presentasiAktif
-      ? [true, h.chkSlides(data.presentasiAktif.nama)]
-      : [false, h.chkSlidesNone],
+      ? [true, h.chkSlides(data.presentasiAktif.nama), "slides"]
+      : [false, h.chkSlidesNone, "slides"],
   );
+  const srvHref = data.server
+    ? `${href(lang, "/servers")}?id=${data.server.id}&dari=persiapan#siap`
+    : `${href(lang, "/servers")}?dari=persiapan`;
   const siap = data.server?.siap;
   const hariIni =
     !!siap?.waktu &&
     new Date(siap.waktu).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) === hariIniWib();
   items.push(
     !data.server
-      ? [false, h.chkServerAbsent]
+      ? [false, h.chkServerAbsent, srvHref]
       : siap && hariIni
         ? siap.lulus
-          ? [true, h.chkServer(jamMenit(siap.waktu!, lang))]
-          : [false, h.chkServerFail(siap.gagal)]
-        : [false, h.chkServerNone],
+          ? [true, h.chkServer(jamMenit(siap.waktu!, lang)), srvHref]
+          : [false, h.chkServerFail(siap.gagal), srvHref]
+        : [false, h.chkServerNone, srvHref],
   );
   return (
     <>
-      {items.map(([ok, text]) => (
-        <span key={text} className="checks__i" data-ok={ok ? "yes" : "no"}>
-          {ok ? (
-            <CheckCircleIcon size={20} aria-hidden="true" />
-          ) : (
-            <WarningIcon size={20} aria-hidden="true" />
-          )}
-          {text}
-        </span>
-      ))}
+      {items.map(([ok, text, to]) => {
+        const isi = (
+          <>
+            {ok ? (
+              <CheckCircleIcon size={20} aria-hidden="true" />
+            ) : (
+              <WarningIcon size={20} aria-hidden="true" />
+            )}
+            <span>{text}</span>
+            {!ok && <span className="checks__go">{h.goFix}</span>}
+            <ArrowRightIcon size={14} aria-hidden="true" className="checks__arrow" />
+          </>
+        );
+        return to.startsWith("/") ? (
+          <a key={text} className="checks__i" data-ok={ok ? "yes" : "no"} href={to}>
+            {isi}
+          </a>
+        ) : (
+          <button
+            key={text}
+            type="button"
+            className="checks__i"
+            data-ok={ok ? "yes" : "no"}
+            onClick={() => onGo(to as PrepTab)}
+          >
+            {isi}
+          </button>
+        );
+      })}
     </>
   );
 }

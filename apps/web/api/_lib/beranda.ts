@@ -90,6 +90,7 @@ export async function handleBerandaGet(
 
   // The server's last heartbeat and its last finished Ready check.
   let serverInfo: {
+    id: number;
     nama: string;
     denyutPada: string | null;
     siap: { lulus: boolean; gagal: number; waktu: string | null } | null;
@@ -117,6 +118,8 @@ export async function handleBerandaGet(
     ]);
     const hasil = bacaHasilSiap(cek?.keluaran);
     serverInfo = {
+      // The Ready check links straight to this server (2026-10-06).
+      id: srv[0].id,
       nama: srv[0].nama,
       denyutPada: beat?.pada?.toISOString() ?? null,
       siap: hasil

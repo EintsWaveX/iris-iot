@@ -921,6 +921,16 @@ html {
   color: var(--danger);
 }
 
+/* Where you came from and what to do here (2026-10-06). */
+.banner--accent {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.banner--accent > svg {
+  color: var(--accent-bright, var(--accent));
+}
+
 .banner--ok {
   background: var(--ok-soft);
   border-color: color-mix(in srgb, var(--ok) 60%, transparent);

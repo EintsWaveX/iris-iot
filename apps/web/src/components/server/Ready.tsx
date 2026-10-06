@@ -7,6 +7,7 @@
 import { useRef, useState } from "react";
 import {
   ArrowDownIcon,
+  ArrowLeftIcon,
   CheckCircleIcon,
   CircleNotchIcon,
   ClockIcon,
@@ -15,7 +16,7 @@ import {
   PlayIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
-import { sejak, useTick } from "../../lib/app";
+import { href, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { bacaHasilSiap, MODUL_SIAP } from "../../lib/server-shared";
 import Updates from "./Updates";
@@ -40,6 +41,7 @@ export default function Ready({
   refresh,
   bisa,
   siapa,
+  dari = null,
 }: {
   lang: Lang;
   id: number;
@@ -47,6 +49,7 @@ export default function Ready({
   refresh: () => void;
   bisa: Bisa;
   siapa: (nim: string | null) => string;
+  dari?: string | null;
 }) {
   const t = S[lang];
   const now = useTick(1_000);
@@ -121,6 +124,16 @@ export default function Ready({
             </div>
           )}
 
+          {hasil && hasil.lulus && !pending && dari === "persiapan" && (
+            <div className="banner banner--ok" role="status">
+              <CheckCircleIcon size={20} aria-hidden="true" />
+              <span>{t.readyBackBody}</span>
+              <a className="btn btn--sm btn--primary" href={`${href(lang, "/session")}#persiapan`}>
+                <ArrowLeftIcon size={16} aria-hidden="true" />
+                {t.backPrep}
+              </a>
+            </div>
+          )}
           {hasil && (
             <>
               <div className="row">

@@ -88,6 +88,16 @@
   color: var(--red);
 }
 
+/* The legend's No Practicum chip: orange and red mean the same. */
+.jswatch[data-c="kosong"] {
+  background:
+    repeating-linear-gradient(135deg, var(--orange-soft) 0 10px, var(--red-soft) 10px 20px),
+    var(--surface-1);
+  border: 2px solid;
+  border-color: var(--orange) var(--red) var(--red) var(--orange);
+  color: var(--text);
+}
+
 .jswatch[data-c="libur"] {
   background: repeating-linear-gradient(135deg, var(--hairline-faint) 0 6px, transparent 6px 12px);
   border: 2px dashed var(--hairline-strong);

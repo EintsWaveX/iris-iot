@@ -19,6 +19,7 @@ export const P = dict({
     segeraBody: "Slot ini sudah diumumkan, tapi praktikumnya belum ditambahkan.",
     kosongHint: "Slot ini dipilih dari hari dan jam sekarang. Pilih slot lain di Roster untuk.",
     bukaSlot: (label: string) => `Buka ${label}`,
+    readyLabel: "Kesiapan",
     serverReady: "Server siap",
     serverCheck: "Cek server",
     tabs: {
@@ -168,6 +169,7 @@ export const P = dict({
     segeraBody: "This slot is announced, but its practicum hasn't been added yet.",
     kosongHint: "Picked from today's day and time. Choose another slot in Roster for.",
     bukaSlot: (label: string) => `Open ${label}`,
+    readyLabel: "Readiness",
     serverReady: "Server ready",
     serverCheck: "Check the server",
     tabs: {
@@ -313,6 +315,7 @@ export const P = dict({
     segeraBody: "这个时段已经公布，但实验课还没加上。",
     kosongHint: "根据现在的日期和时间选出。可以在“名单对应”里换别的时段。",
     bukaSlot: (label: string) => `打开 ${label}`,
+    readyLabel: "就绪状态",
     serverReady: "服务器就绪",
     serverCheck: "检查服务器",
     tabs: {

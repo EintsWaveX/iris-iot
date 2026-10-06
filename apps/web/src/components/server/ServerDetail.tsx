@@ -46,11 +46,14 @@ export default function ServerDetail({
   id,
   bisa,
   onBack,
+  dari = null,
 }: {
   lang: Lang;
   id: number;
   bisa: Bisa;
   onBack: () => void;
+  /** "persiapan": opened from a readiness check, which Ready links back to. */
+  dari?: string | null;
 }) {
   const t = S[lang];
   const now = useTick(1_000);
@@ -270,7 +273,15 @@ export default function ServerDetail({
           />
         )}
         {tab === "siap" && (
-          <Ready lang={lang} id={id} data={data} refresh={poll.refresh} bisa={bisa} siapa={siapa} />
+          <Ready
+            lang={lang}
+            id={id}
+            data={data}
+            refresh={poll.refresh}
+            bisa={bisa}
+            siapa={siapa}
+            dari={dari}
+          />
         )}
         {tab === "konsol" && bisa.konsol && (
           <KonsolPi
