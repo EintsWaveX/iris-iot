@@ -9,7 +9,9 @@
  * - Four live cards (G2), each opening its detail: correct blanks and the
  *   average delay and lost messages (per-group charts), then the module's
  *   own value (LED, temperature, position, distance) over the live rows.
- * - Nilai: one student at a time, TP to L2 in one row; Enter walks on.
+ * - Nilai: one student at a time, TP to L2 in one row; Enter walks on. Sama
+ *   Rata enters one row for every present member instead, and each
+ *   Praktikan has a Tidak Hadir switch (all fields 0, left out of Sama Rata).
  * - Footer: who enters the scores, Lihat Sebagai Praktikan, the SeeLabs
  *   chip and Salin untuk SeeLabs. The pairing history closes the card.
  */
@@ -31,7 +33,8 @@ import {
 } from "@phosphor-icons/react";
 import Dropdown from "../ui/Dropdown";
 import Pill from "../ui/Pill";
-import { ScoreInput } from "../ui/Controls";
+import { ScoreInput, Switch } from "../ui/Controls";
+import SegmentedControl from "../ui/SegmentedControl";
 import { ProgressRing } from "../ui/Display";
 import { kelompokLabel } from "../../lib/labels";
 import { namaAsisten, useDirektori } from "../../lib/people";
@@ -47,6 +50,8 @@ import type { SeelabsTab } from "./seelabs/SeelabsView";
 import { kirimSeelabs, type SeelabsData } from "./seelabs/data";
 import { SL, pesanSl } from "./seelabs/strings";
 import ChangeAssistant, { usePasangan } from "./ChangeAssistant";
+import { useCaraNilai } from "./caraNilai";
+import { useTandaAbsen } from "./TandaAbsen";
 import GroupBarsModal, { type BarKind } from "./GroupBarsModal";
 import { pesan, type Strings } from "./strings";
 import type { NilaiLive } from "./data";
@@ -187,10 +192,12 @@ export default function GroupInspector(p: InspectorProps) {
       <h3 className="inspector__h">{t.scores}</h3>
       <ScoreEditor
         t={t}
+        lang={lang}
         g={g}
         nilai={nilai}
         canEdit={mine || !ownerNim}
         ownerKode={owner?.kode ?? null}
+        ownerName={ownerName}
       />
 
       <div className="inspector__foot">
@@ -341,16 +348,20 @@ function InspectorCards(p: InspectorProps) {
 
 function ScoreEditor({
   t,
+  lang,
   g,
   nilai,
   canEdit,
   ownerKode,
+  ownerName,
 }: {
   t: Strings;
+  lang: Lang;
   g: GroupRow;
   nilai: NilaiLive;
   canEdit: boolean;
   ownerKode: string | null;
+  ownerName: string;
 }) {
   const group = nilai.data?.kelompok.find((k) => k.id === g.id) ?? null;
   const komponen = nilai.data?.komponen ?? [];
@@ -359,6 +370,8 @@ function ScoreEditor({
   const refs = useRef<(HTMLInputElement | null)[]>([]);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const pendingFocus = useRef<number | null>(null);
+  const [cara, setCara] = useCaraNilai();
+  const absen = useTandaAbsen(t, lang, nilai, () => ownerName);
 
   useEffect(() => setIdx(0), [g.id]);
   useEffect(() => {
@@ -372,11 +385,25 @@ function ScoreEditor({
   if (!nilai.data) return <span className="skeleton" style={{ height: 120 }} />;
   if (!group || students.length === 0) return <p className="hint">{t.noGroups}</p>;
 
+  const rata = cara === "rata";
   const s = students[Math.min(idx, students.length - 1)];
+  const hadir = students.filter((a) => !a.absen);
   const filled = (a: (typeof students)[number]) => komponen.filter((k) => a.skor[k] != null).length;
+  const readOnlyReason = canEdit ? undefined : ownerKode ? t.readOnly(ownerKode) : t.readOnlyNone;
+
+  /** Sama Rata shows a field's shared value, or nothing with ≠ when the
+   *  present members still differ. */
+  const bersama = (k: string): { v: string; beda: boolean } => {
+    const vals = new Set(hadir.map((a) => a.skor[k] ?? null));
+    if (vals.size !== 1) return { v: "", beda: true };
+    const [v] = [...vals];
+    return { v: v === null ? "" : String(v), beda: false };
+  };
+  const adaBeda = rata && komponen.some((k) => bersama(k).beda);
+  const totalBersama = new Set(hadir.map((a) => a.total)).size === 1 ? hadir[0]?.total : null;
 
   async function commit(k: string) {
-    const key = `${s.nim}.${k}`;
+    const key = rata ? `${g.id}.rata.${k}` : `${s.nim}.${k}`;
     const raw = draft[key];
     if (raw === undefined) return;
     // Drop the draft first so the blur that follows an Enter does not save twice.
@@ -385,7 +412,13 @@ function ScoreEditor({
       delete n[key];
       return n;
     });
-    const r = await nilai.save(s.nim, k, raw);
+    const r = rata
+      ? await nilai.saveMany(
+          hadir.map((a) => a.nim),
+          k,
+          raw,
+        )
+      : await nilai.save(s.nim, k, raw);
     if (r === "range") window.Toast?.show(t.scoreRange, "danger");
     else if (r === "owner") window.Toast?.show(t.notOwner(ownerKode ?? "?"), "danger");
     else if (r === "fail") window.Toast?.show(t.fail, "danger");
@@ -399,6 +432,7 @@ function ScoreEditor({
     e.currentTarget.blur();
     if (!back && i < komponen.length - 1) refs.current[i + 1]?.focus();
     else if (back && i > 0) refs.current[i - 1]?.focus();
+    else if (rata) return;
     else if (!back && idx < students.length - 1) {
       pendingFocus.current = 0;
       setIdx(idx + 1);
@@ -408,27 +442,99 @@ function ScoreEditor({
     }
   }
 
+  /** One field: a student's own (Per Orang) or the group's (Sama Rata). */
+  const field = (k: string, i: number) => {
+    const key = rata ? `${g.id}.rata.${k}` : `${s.nim}.${k}`;
+    const b = rata ? bersama(k) : null;
+    const v = draft[key] ?? (b ? b.v : s.skor[k] != null ? String(s.skor[k]) : "");
+    // A group field shows a member's save state; they all move together.
+    const stateKey = rata ? `${hadir[0]?.nim}.${k}` : key;
+    return (
+      <label key={k} className="scorerow__cell">
+        <span className="scorerow__k">{k}</span>
+        <ScoreInput
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
+          value={v}
+          placeholder={b?.beda ? "≠" : "·"}
+          state={nilai.states[stateKey] ?? "idle"}
+          flash={rata ? hadir.some((a) => nilai.flash[`${a.nim}.${k}`]) : nilai.flash[key]}
+          readOnlyReason={rata && hadir.length === 0 ? t.rataNone : readOnlyReason}
+          aria-label={t.scoreFor(k, rata ? t.groupFull(g.nomor) : s.nama)}
+          onValue={(x) => setDraft((d) => ({ ...d, [key]: x }))}
+          onBlur={() => void commit(k)}
+          onKeyDown={(e) => onKey(e, i)}
+          onFocus={(e) => e.currentTarget.select()}
+        />
+      </label>
+    );
+  };
+
   return (
     <div className="scores">
-      <div className="scores__students" role="tablist" aria-label={t.scores}>
-        {students.map((a, i) => (
-          <button
-            key={a.nim}
-            type="button"
-            role="tab"
-            aria-selected={i === idx}
-            className="scores__student"
-            onClick={() => setIdx(i)}
-          >
-            <ProgressRing
-              value={filled(a)}
-              max={komponen.length}
-              color={a.lengkap ? "var(--ok)" : "var(--g, var(--accent))"}
-            />
-            <span className="truncate">{a.nama}</span>
-          </button>
-        ))}
+      <div className="scores__mode">
+        <span className="field__label">{t.caraLabel}</span>
+        <SegmentedControl
+          fill
+          value={cara}
+          onValueChange={(v) => setCara(v === "rata" ? "rata" : "orang")}
+          aria-label={t.caraLabel}
+          options={[
+            { value: "orang", label: t.caraOrang },
+            { value: "rata", label: t.caraRata },
+          ]}
+        />
       </div>
+
+      {rata ? (
+        <ul className="scores__members" aria-label={t.members}>
+          {students.map((a) => (
+            <li key={a.nim} className="scores__member" data-absen={a.absen ? "yes" : undefined}>
+              <ProgressRing
+                value={filled(a)}
+                max={komponen.length}
+                color={a.lengkap ? "var(--ok)" : "var(--g, var(--accent))"}
+              />
+              <span className="grow scores__memberName">
+                <span className="truncate">{a.nama}</span>
+                <span className="hint mono">{a.nim}</span>
+              </span>
+              <span className="scores__absen">
+                <span className="hint">{t.absen}</span>
+                <Switch
+                  on={a.absen}
+                  label={t.absenFor(a.nama)}
+                  disabled={!canEdit}
+                  onChange={(on) => absen.ubah(a, on)}
+                />
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="scores__students" role="tablist" aria-label={t.scores}>
+          {students.map((a, i) => (
+            <button
+              key={a.nim}
+              type="button"
+              role="tab"
+              aria-selected={i === idx}
+              className="scores__student"
+              data-absen={a.absen ? "yes" : undefined}
+              onClick={() => setIdx(i)}
+            >
+              <ProgressRing
+                value={filled(a)}
+                max={komponen.length}
+                color={a.lengkap ? "var(--ok)" : "var(--g, var(--accent))"}
+              />
+              <span className="truncate">{a.nama}</span>
+              {a.absen && <span className="scores__absenTag">{t.absen}</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {!ownerKode && (
         <div className="banner banner--lock">
@@ -437,46 +543,51 @@ function ScoreEditor({
         </div>
       )}
 
-      <div className="scorerow" role="tabpanel" aria-label={s.nama}>
-        {komponen.map((k, i) => {
-          const key = `${s.nim}.${k}`;
-          const v = draft[key] ?? (s.skor[k] != null ? String(s.skor[k]) : "");
-          return (
-            <label key={k} className="scorerow__cell">
-              <span className="scorerow__k">{k}</span>
-              <ScoreInput
-                ref={(el) => {
-                  refs.current[i] = el;
-                }}
-                value={v}
-                placeholder="·"
-                state={nilai.states[key] ?? "idle"}
-                flash={nilai.flash[key]}
-                readOnlyReason={
-                  canEdit ? undefined : ownerKode ? t.readOnly(ownerKode) : t.readOnlyNone
-                }
-                aria-label={t.scoreFor(k, s.nama)}
-                onValue={(x) => setDraft((d) => ({ ...d, [key]: x }))}
-                onBlur={() => void commit(k)}
-                onKeyDown={(e) => onKey(e, i)}
-                onFocus={(e) => e.currentTarget.select()}
-              />
-            </label>
-          );
-        })}
+      <div
+        className="scorerow"
+        role={rata ? "group" : "tabpanel"}
+        aria-label={rata ? t.groupFull(g.nomor) : s.nama}
+      >
+        {komponen.map(field)}
       </div>
-      <div className="scores__who">
-        <span className="hint">
-          {s.nama} · <span className="mono">{s.nim}</span>
-        </span>
-        <span className="grow" />
-        <Pill tone={s.lengkap ? "ok" : undefined}>{s.lengkap ? t.complete : t.incomplete}</Pill>
-        <span className="scores__total">
-          <span className="label-caps">{t.total}</span>
-          <span className="num">{s.total}</span>
-        </span>
-      </div>
-      {canEdit && <p className="hint">{t.enterHint}</p>}
+
+      {rata ? (
+        <div className="scores__who">
+          <span className="hint grow">
+            {hadir.length === 0 ? t.rataNone : t.rataHint(hadir.length)}
+            {adaBeda ? ` ${t.rataMixed}` : ""}
+          </span>
+          {totalBersama != null && (
+            <span className="scores__total">
+              <span className="label-caps">{t.total}</span>
+              <span className="num">{totalBersama}</span>
+            </span>
+          )}
+        </div>
+      ) : (
+        <div className="scores__who">
+          <span className="hint">
+            {s.nama} · <span className="mono">{s.nim}</span>
+          </span>
+          <span className="grow" />
+          <span className="scores__absen">
+            <span className="hint">{t.absen}</span>
+            <Switch
+              on={s.absen}
+              label={t.absenFor(s.nama)}
+              disabled={!canEdit}
+              onChange={(on) => absen.ubah(s, on)}
+            />
+          </span>
+          <Pill tone={s.lengkap ? "ok" : undefined}>{s.lengkap ? t.complete : t.incomplete}</Pill>
+          <span className="scores__total">
+            <span className="label-caps">{t.total}</span>
+            <span className="num">{s.total}</span>
+          </span>
+        </div>
+      )}
+      {canEdit && !rata && <p className="hint">{t.enterHint}</p>}
+      {absen.dialog}
     </div>
   );
 }

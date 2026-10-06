@@ -89,16 +89,18 @@ export function useServers(enabled: boolean, fast: boolean) {
 
 /* ------------------------------------------------------------ live scores */
 
+export type SaveResult = "ok" | "range" | "owner" | "fail" | "same";
+
 export interface NilaiLive {
   data: NilaiData | null;
   states: Record<string, SaveState>;
   /** Keys ("nim.komponen") another assistant just changed, for a flash. */
   flash: Record<string, boolean>;
-  save: (
-    nim: string,
-    komponen: string,
-    raw: string,
-  ) => Promise<"ok" | "range" | "owner" | "fail" | "same">;
+  save: (nim: string, komponen: string, raw: string) => Promise<SaveResult>;
+  /** The same field for several Praktikan at once (Sama Rata). */
+  saveMany: (nims: string[], komponen: string, raw: string) => Promise<SaveResult>;
+  /** Tidak Hadir: every field 0 (on), or the zeros removed (off). */
+  setAbsen: (nim: string, on: boolean) => Promise<"ok" | "owner" | "fail">;
   reload: () => void;
   updatedAt: number | null;
   errors: number;
@@ -111,6 +113,19 @@ type Berubah = {
   diubahOleh: string | null;
   diubahPada: string;
 };
+
+type Anggota = NilaiData["kelompok"][number]["anggota"][number];
+
+/** A student's total and completeness from their fields. */
+function hitung(a: Anggota, komponen: string[], skor: Anggota["skor"]): Anggota {
+  const vals = komponen.map((c) => skor[c]).filter((v) => v != null) as number[];
+  return {
+    ...a,
+    skor,
+    total: vals.reduce((x, y) => x + y, 0),
+    lengkap: vals.length === komponen.length,
+  };
+}
 
 export function useNilaiLive(
   sesiId: number | null,
@@ -143,6 +158,8 @@ export function useNilaiLive(
       setErrors((e) => e + 1);
     }
   }, [sesiId]);
+  const loadRef = useRef(load);
+  loadRef.current = load;
 
   useEffect(() => {
     setData(null);
@@ -161,9 +178,24 @@ export function useNilaiLive(
           ok: boolean;
           berubah: Berubah[];
           pemilik: Record<string, string>;
+          absen?: string[];
           server: string;
         }>(`/api/session/nilai?sesiId=${sesiId}&sejak=${encodeURIComponent(serverTs.current)}`);
         if (!d.ok) return;
+        // Someone marked or unmarked Tidak Hadir: unmarking deletes zeros,
+        // which a delta cannot carry, so load the whole session again.
+        if (d.absen) {
+          const now = dataRef.current?.kelompok
+            .flatMap((g) => g.anggota)
+            .filter((a) => a.absen)
+            .map((a) => a.nim)
+            .sort()
+            .join(",");
+          if (now !== undefined && now !== [...d.absen].sort().join(",")) {
+            void loadRef.current();
+            return;
+          }
+        }
         serverTs.current = d.server;
         setUpdatedAt(Date.now());
         setErrors(0);
@@ -192,14 +224,7 @@ export function useNilaiLive(
                     changed = true;
                   }
                 }
-                if (!changed) return a;
-                const vals = prev.komponen.map((c) => skor[c]).filter((v) => v != null) as number[];
-                return {
-                  ...a,
-                  skor,
-                  total: vals.reduce((x, y) => x + y, 0),
-                  lengkap: vals.length === prev.komponen.length,
-                };
+                return changed ? hitung(a, prev.komponen, skor) : a;
               }),
             })),
           };
@@ -241,7 +266,12 @@ export function useNilaiLive(
     };
   }, [sesiId, meNim]);
 
-  function applyLocal(nim: string, komponen: string, skor: number | undefined) {
+  /** Changes some students locally; `ubah` gets a copy of each one's fields. */
+  function applyLocal(
+    nims: string[],
+    ubah: (skor: Anggota["skor"], a: Anggota) => void,
+    absen?: boolean,
+  ) {
     setData((prev) =>
       prev
         ? {
@@ -249,17 +279,11 @@ export function useNilaiLive(
             kelompok: prev.kelompok.map((k) => ({
               ...k,
               anggota: k.anggota.map((a) => {
-                if (a.nim !== nim) return a;
+                if (!nims.includes(a.nim)) return a;
                 const s = { ...a.skor };
-                if (skor === undefined) delete s[komponen];
-                else s[komponen] = skor;
-                const vals = prev.komponen.map((c) => s[c]).filter((v) => v != null) as number[];
-                return {
-                  ...a,
-                  skor: s,
-                  total: vals.reduce((x, y) => x + y, 0),
-                  lengkap: vals.length === prev.komponen.length,
-                };
+                ubah(s, a);
+                const n = hitung(a, prev.komponen, s);
+                return absen === undefined ? n : { ...n, absen };
               }),
             })),
           }
@@ -267,41 +291,113 @@ export function useNilaiLive(
     );
   }
 
-  const save: NilaiLive["save"] = async (nim, komponen, raw) => {
-    const key = `${nim}.${komponen}`;
-    const prevVal = data?.kelompok.flatMap((k) => k.anggota).find((a) => a.nim === nim)?.skor[
-      komponen
-    ];
+  const nilaiDari = (nim: string, komponen: string) =>
+    dataRef.current?.kelompok.flatMap((k) => k.anggota).find((a) => a.nim === nim)?.skor[komponen];
+
+  const saveMany: NilaiLive["saveMany"] = async (nims, komponen, raw) => {
     if (raw === "") return "same";
     const skor = Number(raw);
+    const keys = nims.map((nim) => `${nim}.${komponen}`);
+    const mark = (st: SaveState) =>
+      setStates((s) => ({ ...s, ...Object.fromEntries(keys.map((k) => [k, st])) }));
     if (!Number.isInteger(skor) || skor < 0 || skor > 100) {
-      setStates((s) => ({ ...s, [key]: "error" }));
+      mark("error");
       return "range";
     }
-    if (prevVal === skor) return "same";
-    applyLocal(nim, komponen, skor);
-    setStates((s) => ({ ...s, [key]: "saving" }));
-    try {
-      const r = await postJson<{ ok: boolean; kode?: string }>("/api/session/nilai", {
-        sesiId,
-        nim,
-        komponen,
-        skor,
+    const prev = new Map(nims.map((nim) => [nim, nilaiDari(nim, komponen)]));
+    const target = nims.filter((nim) => prev.get(nim) !== skor);
+    if (target.length === 0) return "same";
+    const undo = () =>
+      applyLocal(target, (s, a) => {
+        const v = prev.get(a.nim);
+        if (v === undefined) delete s[komponen];
+        else s[komponen] = v;
       });
+    applyLocal(target, (s) => {
+      s[komponen] = skor;
+    });
+    mark("saving");
+    try {
+      const r = await postJson<{ ok: boolean; kode?: string }>(
+        "/api/session/nilai",
+        target.length === 1
+          ? { sesiId, nim: target[0], komponen, skor }
+          : { sesiId, nims: target, komponen, skor },
+      );
       if (!r.ok) {
-        applyLocal(nim, komponen, prevVal);
-        setStates((s) => ({ ...s, [key]: "error" }));
+        undo();
+        mark("error");
         return r.kode === "bukan_pemilik" ? "owner" : "fail";
       }
-      setStates((s) => ({ ...s, [key]: "saved" }));
-      setTimeout(() => setStates((s) => (s[key] === "saved" ? { ...s, [key]: "idle" } : s)), 1800);
+      mark("saved");
+      setTimeout(
+        () =>
+          setStates((s) => {
+            const n = { ...s };
+            for (const k of keys) if (n[k] === "saved") n[k] = "idle";
+            return n;
+          }),
+        1800,
+      );
       return "ok";
     } catch {
-      applyLocal(nim, komponen, prevVal);
-      setStates((s) => ({ ...s, [key]: "error" }));
+      undo();
+      mark("error");
       return "fail";
     }
   };
 
-  return { data, states, flash, save, reload: () => void load(), updatedAt, errors };
+  const save: NilaiLive["save"] = (nim, komponen, raw) => saveMany([nim], komponen, raw);
+
+  const setAbsen: NilaiLive["setAbsen"] = async (nim, on) => {
+    const sebelum = dataRef.current?.kelompok.flatMap((k) => k.anggota).find((a) => a.nim === nim);
+    const komponen = dataRef.current?.komponen ?? [];
+    applyLocal(
+      [nim],
+      (s) => {
+        for (const c of komponen) {
+          if (on) s[c] = 0;
+          else if (s[c] === 0) delete s[c];
+        }
+      },
+      on,
+    );
+    const undo = () =>
+      sebelum &&
+      applyLocal(
+        [nim],
+        (s) => {
+          for (const c of komponen) delete s[c];
+          Object.assign(s, sebelum.skor);
+        },
+        sebelum.absen,
+      );
+    try {
+      const r = await postJson<{ ok: boolean; kode?: string }>("/api/session/nilai", {
+        sesiId,
+        nim,
+        absen: on,
+      });
+      if (!r.ok) {
+        undo();
+        return r.kode === "bukan_pemilik" ? "owner" : "fail";
+      }
+      return "ok";
+    } catch {
+      undo();
+      return "fail";
+    }
+  };
+
+  return {
+    data,
+    states,
+    flash,
+    save,
+    saveMany,
+    setAbsen,
+    reload: () => void load(),
+    updatedAt,
+    errors,
+  };
 }

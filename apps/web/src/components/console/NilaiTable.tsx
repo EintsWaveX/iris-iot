@@ -11,11 +11,15 @@
  *   untuk SeeLabs"; the full SeeLabs page opens from the board.
  * - Below 820px the grid becomes one card per student with big fields,
  *   because eight columns do not fit a phone.
+ * - Sama Rata (the inspector's choice, shared): a score typed for a present
+ *   Praktikan fills that column for the group's present members. Each row
+ *   has a Tidak Hadir switch: every field 0, left out of Sama Rata.
  */
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { namaAsisten, useDirektori } from "../../lib/people";
 import { CopyIcon, DownloadSimpleIcon, LockSimpleIcon } from "@phosphor-icons/react";
-import { ScoreInput } from "../ui/Controls";
+import { ScoreInput, Switch } from "../ui/Controls";
+import SegmentedControl from "../ui/SegmentedControl";
 import Pill from "../ui/Pill";
 import { unduhXlsx } from "../../lib/xlsx";
 import { useMinWidth } from "../../lib/hooks";
@@ -26,7 +30,9 @@ import type { SeelabsData } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
 import type { Strings } from "./strings";
 import type { NilaiLive } from "./data";
-import type { AsistenRef, GroupRow } from "./types";
+import type { AsistenRef, GroupRow, NilaiAnggota } from "./types";
+import { useCaraNilai } from "./caraNilai";
+import { useTandaAbsen } from "./TandaAbsen";
 
 export default function NilaiTable({
   t,
@@ -59,6 +65,13 @@ export default function NilaiTable({
   const kode = (nim: string | null) =>
     nim ? (dir.byNim.get(nim)?.kode?.toUpperCase() ?? nim) : "?";
   const data = nilai.data;
+  const [cara, setCara] = useCaraNilai();
+  const rata = cara === "rata";
+  const holderOf = (nim: string) => {
+    const k = data?.kelompok.find((x) => x.anggota.some((a) => a.nim === nim));
+    return namaAsisten(asisten.get((k && data?.pemilik[k.id]) ?? ""));
+  };
+  const absen = useTandaAbsen(t, lang, nilai, (a) => holderOf(a.nim));
 
   if (!data) {
     return (
@@ -80,7 +93,18 @@ export default function NilaiTable({
       delete n[key];
       return n;
     });
-    const r = await nilai.save(nim, k, raw);
+    // Sama Rata: a present Praktikan's score goes to the group's present
+    // members; a Tidak Hadir one stays their own.
+    const group = data!.kelompok.find((x) => x.id === kid);
+    const me = group?.anggota.find((a) => a.nim === nim);
+    const r =
+      rata && group && me && !me.absen
+        ? await nilai.saveMany(
+            group.anggota.filter((a) => !a.absen).map((a) => a.nim),
+            k,
+            raw,
+          )
+        : await nilai.save(nim, k, raw);
     const holder = namaAsisten(asisten.get(data!.pemilik[kid] ?? ""));
     if (r === "range") window.Toast?.show(t.scoreRange, "danger");
     else if (r === "owner") window.Toast?.show(t.notOwner(holder), "danger");
@@ -127,7 +151,7 @@ export default function NilaiTable({
           a.nim,
           a.nama,
           k.nomor,
-          hadir ? "ya" : "tidak",
+          hadir && !a.absen ? "ya" : "tidak",
           lk?.benar ?? 0,
           lk?.total ?? 0,
           ...data!.komponen.map((c) => a.skor[c] ?? ""),
@@ -169,6 +193,15 @@ export default function NilaiTable({
   }
   const sheetGroup = sheet !== null ? seelabs?.kelompok.find((x) => x.nomor === sheet) : null;
 
+  const absenSwitch = (a: NilaiAnggota, kid: number) => (
+    <Switch
+      on={a.absen}
+      label={t.absenFor(a.nama)}
+      disabled={!canEdit(kid)}
+      onChange={(on) => absen.ubah(a, on)}
+    />
+  );
+
   const cell = (nim: string, nama: string, k: string, kid: number, stored: number | undefined) => {
     const key = `${nim}.${k}`;
     const ro = !canEdit(kid);
@@ -194,7 +227,16 @@ export default function NilaiTable({
       <div className="panel__head">
         <h2 className="panel__title">{t.tableTitle}</h2>
         <span className="row ntable__tools">
-          <span className="hint">{t.tableHint}</span>
+          <span className="hint">{rata ? t.rataTable : t.tableHint}</span>
+          <SegmentedControl
+            value={cara}
+            onValueChange={(v) => setCara(v === "rata" ? "rata" : "orang")}
+            aria-label={t.caraLabel}
+            options={[
+              { value: "orang", label: t.caraOrang },
+              { value: "rata", label: t.caraRata },
+            ]}
+          />
           <button type="button" className="btn" onClick={xlsx}>
             <DownloadSimpleIcon size={18} aria-hidden="true" />
             {t.xlsx}
@@ -228,6 +270,9 @@ export default function NilaiTable({
                 <th scope="col" className="ntable__nim">
                   {t.nim}
                 </th>
+                <th scope="col" className="ntable__absen">
+                  {t.absen}
+                </th>
                 {data.komponen.map((k) => (
                   <th scope="col" key={k}>
                     {k}
@@ -247,7 +292,7 @@ export default function NilaiTable({
                       className="ntable__group"
                       style={{ "--g": `var(--group-${k.nomor})` } as CSSProperties}
                     >
-                      <th colSpan={data.komponen.length + 3}>
+                      <th colSpan={data.komponen.length + 4}>
                         <span className="row">
                           <Pill group={k.nomor}>{t.groupFull(k.nomor)}</Pill>
                           {holder ? (
@@ -266,11 +311,16 @@ export default function NilaiTable({
                       </th>
                     </tr>
                     {k.anggota.map((a) => (
-                      <tr key={a.nim} data-lengkap={a.lengkap ? "yes" : undefined}>
+                      <tr
+                        key={a.nim}
+                        data-lengkap={a.lengkap ? "yes" : undefined}
+                        data-absen={a.absen ? "yes" : undefined}
+                      >
                         <td className="ntable__name">
                           <span className="truncate">{a.nama}</span>
                         </td>
                         <td className="ntable__nim mono">{a.nim}</td>
+                        <td className="ntable__absen">{absenSwitch(a, k.id)}</td>
                         {data.komponen.map((c) => (
                           <td key={c}>{cell(a.nim, a.nama, c, k.id, a.skor[c])}</td>
                         ))}
@@ -297,13 +347,17 @@ export default function NilaiTable({
               </h3>
               {seelabsBits(k.nomor, k.id)}
               {k.anggota.map((a) => (
-                <div key={a.nim} className="ncard">
+                <div key={a.nim} className="ncard" data-absen={a.absen ? "yes" : undefined}>
                   <div className="row row--between">
                     <b className="truncate">{a.nama}</b>
                     <span className="num hint">
                       {t.total} {a.total}
                     </span>
                   </div>
+                  <span className="scores__absen">
+                    <span className="hint">{t.absen}</span>
+                    {absenSwitch(a, k.id)}
+                  </span>
                   <div className="ncard__grid">
                     {data.komponen.map((c) => (
                       <label key={c} className="scores__cell">
@@ -318,6 +372,7 @@ export default function NilaiTable({
           ))}
         </div>
       )}
+      {absen.dialog}
     </section>
   );
 }

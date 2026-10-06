@@ -703,6 +703,70 @@
   font-size: 1.6rem;
 }
 
+/* Per Orang / Sama Rata, and the Tidak Hadir switches. */
+.scores__mode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scores__members {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@container (min-width: 620px) {
+  .scores__members {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.scores__member {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2);
+}
+
+.scores__memberName {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.scores__absen {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+.scores__member[data-absen] .scores__memberName,
+.scores__student[data-absen] .truncate,
+.ntable__grid tr[data-absen] .ntable__name,
+.ncard[data-absen] b {
+  color: var(--text-muted);
+}
+
+.scores__absenTag {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+  border-radius: 999px;
+  color: var(--warn);
+  flex: none;
+  font-size: 0.75rem;
+  font-weight: 650;
+  padding: 2px 8px;
+}
+
 /* ------------------------------------------------------------ table */
 
 .ntable__helper {
@@ -767,6 +831,10 @@
   color: var(--text-muted);
   font-size: 0.85rem;
   min-width: 8.5rem;
+}
+
+.ntable__absen {
+  min-width: 6.5rem;
 }
 
 /* The name stays in view while the score columns scroll sideways. */

@@ -31,6 +31,8 @@
  * GET  /api/session/audit?aksiLog=&aktor=&dari= (P6.8) — the audit log viewer's data source.
  * GET  /api/session/nilai?sesiId=&sejak= (Stage 12, P8) — roster + scores + each group's owner; `sejak` (ISO) returns only rows changed since, for the 5 s live poll.
  * POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12, P8) — one field; refused with bukan_pemilik unless the caller holds that group.
+ *      { sesiId, nims, komponen, skor } — the same field for several Praktikan at once (Sama Rata).
+ *      { sesiId, nim, absen } — marks a Praktikan Tidak Hadir (every field 0) or takes the mark off (the zeros go).
  * Phase 8 actions (assignment, help, feedback, results, schedule) are documented in api/_lib/phase8.ts.
  * Phase 9: tim (api/_lib/tim.ts), beranda and jendela (api/_lib/beranda.ts),
  * schedule and penugasan (api/_lib/penugasan-api.ts),
@@ -74,6 +76,7 @@ import {
   percobaanMasuk,
   telemetriLog,
   nilai,
+  nilaiAbsen,
   NILAI_KOMPONEN,
   asisten,
   sesiAnggota,
@@ -863,7 +866,13 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
       })
       .from(nilai)
       .where(and(eq(nilai.sesiId, sesiId), gte(nilai.diubahPada, sejak)));
-    res.status(200).json({ ok: true, berubah, pemilik, server: new Date().toISOString() });
+    // The whole Tidak Hadir list rides along: taking a mark off deletes
+    // zeros, which a "changed since" list cannot show, so a client whose
+    // list differs loads everything again.
+    const absen = await daftarAbsen(db, sesiId);
+    res
+      .status(200)
+      .json({ ok: true, berubah, pemilik, absen: [...absen], server: new Date().toISOString() });
     return;
   }
 
@@ -878,6 +887,7 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
     entry[r.komponen] = r.skor;
     nilaiByNim.set(r.nim, entry);
   }
+  const absen = await daftarAbsen(db, sesiId);
 
   const daftarKelompok = groups
     .filter((g) => g.nomor <= (running.jumlahKelompok ?? 10))
@@ -897,6 +907,7 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
             skor,
             total: NILAI_KOMPONEN.reduce((acc, k) => acc + (skor[k] ?? 0), 0),
             lengkap: diisi === NILAI_KOMPONEN.length,
+            absen: absen.has(m.nim),
           };
         }),
       };
@@ -916,22 +927,35 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
  *  field, one save: the grading tab autosaves on blur rather than batching a
  *  whole row, the same granularity BlankEditor's draft save already uses for
  *  code blanks, for the same reason (a lost connection mid-entry should
- *  cost at most one field, not a whole student's row). */
+ *  cost at most one field, not a whole student's row).
+ *
+ *  `nims` instead of `nim` writes the same field for several Praktikan (Sama
+ *  Rata), refused whole if any of them is not the caller's to score.
+ *  `absen` instead of komponen and skor marks one Praktikan Tidak Hadir:
+ *  every field becomes 0, still editable. Taking the mark off removes the
+ *  fields that are still 0, so the row is empty again, not graded. */
 async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
   const sesiId = Number(body.sesiId);
-  const nim = typeof body.nim === "string" ? body.nim.trim() : "";
+  const nims = Array.isArray(body.nims)
+    ? body.nims.map((x) => (typeof x === "string" ? x.trim() : ""))
+    : [typeof body.nim === "string" ? body.nim.trim() : ""];
+  const absen = typeof body.absen === "boolean" ? body.absen : null;
   const komponen = typeof body.komponen === "string" ? body.komponen : "";
   const skor = Number(body.skor);
 
   if (
     !Number.isInteger(sesiId) ||
     sesiId <= 0 ||
-    !nim ||
-    !NILAI_KOMPONEN_SET.has(komponen) ||
-    !Number.isInteger(skor) ||
-    skor < SKOR_MIN ||
-    skor > SKOR_MAX
+    nims.length === 0 ||
+    nims.length > NIMS_MAX ||
+    nims.some((n) => !n) ||
+    (absen === null
+      ? !NILAI_KOMPONEN_SET.has(komponen) ||
+        !Number.isInteger(skor) ||
+        skor < SKOR_MIN ||
+        skor > SKOR_MAX
+      : nims.length !== 1)
   ) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
@@ -943,6 +967,61 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
     return;
   }
+  // P8: one assistant per group. Only the group's holder may write its
+  // scores; an unassigned group stays open to anyone.
+  const pemilik = await pemilikKelompok(db, sesiId);
+  for (const nim of new Set(nims)) {
+    const kelompokId = await kelompokNilai(db, sesiId, nim);
+    if (kelompokId === null) {
+      res.status(200).json({ ok: false, kode: "nim_tidak_ada" });
+      return;
+    }
+    if (!bolehIsiNilai(pemilik, kelompokId, session.nim)) {
+      res.status(200).json({ ok: false, kode: "bukan_pemilik", pemilik: pemilik.get(kelompokId) });
+      return;
+    }
+  }
+
+  if (absen !== null) {
+    const nim = nims[0];
+    if (absen) {
+      await db
+        .insert(nilaiAbsen)
+        .values({ sesiId, nim, ditandaiOleh: session.nim })
+        .onConflictDoNothing();
+      await simpanNilai(db, sesiId, [nim], [...NILAI_KOMPONEN], 0, session.nim);
+    } else {
+      await db
+        .delete(nilaiAbsen)
+        .where(and(eq(nilaiAbsen.sesiId, sesiId), eq(nilaiAbsen.nim, nim)));
+      await db
+        .delete(nilai)
+        .where(and(eq(nilai.sesiId, sesiId), eq(nilai.nim, nim), eq(nilai.skor, 0)));
+    }
+    await writeAudit(session.nim, "nilai_absen", { sesiId, nim, absen });
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  const unik = [...new Set(nims)];
+  await simpanNilai(db, sesiId, unik, [komponen as NilaiKomponen], skor, session.nim);
+  // One line per Praktikan, so the session's score history reads the same
+  // whichever way the field was entered.
+  for (const nim of unik) {
+    await writeAudit(session.nim, "nilai_set", { sesiId, nim, komponen, skor });
+  }
+  res.status(200).json({ ok: true });
+}
+
+/** Sama Rata writes a group at once; 40 is far above any group's size. */
+const NIMS_MAX = 40;
+
+/** The group a Praktikan is scored in for this session, or null. */
+async function kelompokNilai(
+  db: ReturnType<typeof getDb>,
+  sesiId: number,
+  nim: string,
+): Promise<number | null> {
   // Phase 9: the session's own roster snapshot decides the student's group,
   // so scores of a past session stay editable after the roster moved on.
   // Sessions from before the snapshot fall back to the master roster.
@@ -952,38 +1031,39 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     .innerJoin(kelompok, eq(kelompok.nomor, sesiAnggota.kelompokNomor))
     .where(and(eq(sesiAnggota.sesiId, sesiId), eq(sesiAnggota.nim, nim)))
     .limit(1);
-  const [member] = snap
-    ? [null]
-    : await db.select().from(anggota).where(eq(anggota.nim, nim)).limit(1);
-  if (!snap && !member) {
-    res.status(200).json({ ok: false, kode: "nim_tidak_ada" });
-    return;
-  }
-  // P8: one assistant per group. Only the group's holder may write its
-  // scores; an unassigned group stays open to anyone.
-  const pemilik = await pemilikKelompok(db, sesiId);
-  const kelompokId = snap?.kelompokId ?? (await kelompokDariNim(db, nim)) ?? member!.kelompokId;
-  if (!bolehIsiNilai(pemilik, kelompokId, session.nim)) {
-    res.status(200).json({ ok: false, kode: "bukan_pemilik", pemilik: pemilik.get(kelompokId) });
-    return;
-  }
+  if (snap) return snap.kelompokId;
+  const [member] = await db.select().from(anggota).where(eq(anggota.nim, nim)).limit(1);
+  if (!member) return null;
+  return (await kelompokDariNim(db, nim)) ?? member.kelompokId;
+}
 
+async function simpanNilai(
+  db: ReturnType<typeof getDb>,
+  sesiId: number,
+  nims: string[],
+  komponen: NilaiKomponen[],
+  skor: number,
+  oleh: string,
+) {
   await db
     .insert(nilai)
-    .values({
-      sesiId,
-      nim,
-      komponen: komponen as NilaiKomponen,
-      skor,
-      diubahOleh: session.nim,
-    })
+    .values(
+      nims.flatMap((nim) =>
+        komponen.map((k) => ({ sesiId, nim, komponen: k, skor, diubahOleh: oleh })),
+      ),
+    )
     .onConflictDoUpdate({
       target: [nilai.sesiId, nilai.nim, nilai.komponen],
-      set: { skor, diubahOleh: session.nim, diubahPada: new Date() },
+      set: { skor, diubahOleh: oleh, diubahPada: new Date() },
     });
+}
 
-  await writeAudit(session.nim, "nilai_set", { sesiId, nim, komponen, skor });
-  res.status(200).json({ ok: true });
+async function daftarAbsen(db: ReturnType<typeof getDb>, sesiId: number): Promise<Set<string>> {
+  const rows = await db
+    .select({ nim: nilaiAbsen.nim })
+    .from(nilaiAbsen)
+    .where(eq(nilaiAbsen.sesiId, sesiId));
+  return new Set(rows.map((r) => r.nim));
 }
 
 /** POST /api/session/siarkan { pesan } (Stage 10) — an empty/whitespace-only

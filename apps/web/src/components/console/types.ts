@@ -155,6 +155,8 @@ export interface NilaiAnggota {
   skor: Partial<Record<string, number>>;
   total: number;
   lengkap: boolean;
+  /** Marked Tidak Hadir for this session: fields start at 0, Sama Rata skips them. */
+  absen: boolean;
 }
 
 export interface NilaiKelompok {

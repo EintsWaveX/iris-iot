@@ -1016,6 +1016,24 @@ export const nilai = pgTable(
   ],
 );
 
+/**
+ * A Praktikan the scoring Asisten marked Tidak Hadir for one session: every
+ * component starts at 0 (still editable), and Sama Rata entry skips them.
+ */
+export const nilaiAbsen = pgTable(
+  "nilai_absen",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    nim: text("nim").notNull(),
+    ditandaiOleh: text("ditandai_oleh").notNull(),
+    ditandaiPada: timestamp("ditandai_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("nilai_absen_sesi_nim").on(t.sesiId, t.nim)],
+);
+
 /* --------------------------------------------- Phase 9 Stage 3: rosters */
 
 /**

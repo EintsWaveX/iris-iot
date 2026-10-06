@@ -94,6 +94,8 @@ const W = {
     ambilAlih: (g: string) => `mengambil alih ${g}`,
     bantuan: (g: string) => `menjawab angkat tangan ${g}`,
     nilai: (n: unknown, k: unknown, s: string) => `mengisi nilai ${k} untuk ${n} di ${s}`,
+    absen: (n: unknown, on: boolean, s: string) =>
+      on ? `menandai ${n} Tidak Hadir di ${s}` : `membatalkan Tidak Hadir ${n} di ${s}`,
     seelabsAkun: (g: string, a: string) =>
       a ? `memakai akun SeeLabs ${a} untuk ${g}` : `melepas akun SeeLabs pinjaman untuk ${g}`,
     seelabsSimpan: (g: string) => `menandai nilai ${g} sudah disimpan di SeeLabs`,
@@ -204,6 +206,8 @@ const W = {
     ambilAlih: (g: string) => `took over ${g}`,
     bantuan: (g: string) => `answered ${g}'s raised hand`,
     nilai: (n: unknown, k: unknown, s: string) => `entered the ${k} score for ${n} in ${s}`,
+    absen: (n: unknown, on: boolean, s: string) =>
+      on ? `marked ${n} Absent in ${s}` : `took the Absent mark off ${n} in ${s}`,
     seelabsAkun: (g: string, a: string) =>
       a ? `used ${a}'s SeeLabs account for ${g}` : `stopped borrowing a SeeLabs account for ${g}`,
     seelabsSimpan: (g: string) => `marked ${g}'s scores as saved in SeeLabs`,
@@ -311,6 +315,8 @@ const W = {
     ambilAlih: (g: string) => `接手了${g}`,
     bantuan: (g: string) => `回应了${g}的举手`,
     nilai: (n: unknown, k: unknown, s: string) => `在 ${s} 给 ${n} 填了 ${k} 分数`,
+    absen: (n: unknown, on: boolean, s: string) =>
+      on ? `在 ${s} 把 ${n} 标为缺席` : `在 ${s} 取消了 ${n} 的缺席标记`,
     seelabsAkun: (g: string, a: string) =>
       a ? `用 ${a} 的 SeeLabs 账号提交${g}` : `不再为${g}借用 SeeLabs 账号`,
     seelabsSimpan: (g: string) => `把${g}的分数标为已存到 SeeLabs`,
@@ -549,6 +555,8 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(HandHeartIcon, w.bantuan(b.grup(d)));
     case "nilai_set":
       return k(PencilSimpleIcon, w.nilai(d.nim, d.komponen, b.sesi(d.sesiId)));
+    case "nilai_absen":
+      return k(PencilSimpleIcon, w.absen(d.nim, d.absen === true, b.sesi(d.sesiId)));
     case "seelabs_akun":
       return k(HandCoinsIcon, w.seelabsAkun(b.grup(d), d.akun ? b.who(d.akun) : ""));
     case "seelabs_simpan":
