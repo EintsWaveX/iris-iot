@@ -1409,10 +1409,12 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "results") {
     if (!requireMethod(req, res, "GET")) return;
-    // Projector mode: an Asisten reads the group they hold, as its Praktikan.
+    // Projector mode: an Asisten reads a group as its Praktikan. A read, so
+    // open to any Asisten (2026-10-07: after another Asisten took the group
+    // over, the projector froze on its last answer).
     const wakil = nomorWakil(req);
     const who = wakil
-      ? await wakilKelompok(req, res, wakil, true)
+      ? await wakilKelompok(req, res, wakil, false)
       : requireRole(req, res, "praktikan");
     if (!who) return;
     return handleResults(req, res, who);

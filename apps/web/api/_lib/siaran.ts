@@ -34,6 +34,11 @@ const TOPIK: Record<string, string[]> = {
   "session:tot": ["tot", "roster", "sesi"],
   "session:hadir": ["sesi", "roster"],
   "session:group": ["sesi", "roster"],
+  // Pegang Kelompok, Ganti Asisten: who holds a group decides who scores it
+  // and what the projector and the group's Praktikan see (2026-10-07: it fell
+  // through to "session", a topic no page listens to).
+  "session:assignment": ["sesi", "nilai"],
+  "session:rekap": ["laporan"],
   "session:nilai": ["nilai"],
   "session:catatan": ["nilai"],
   "session:end": ["sesi", "jadwal", "laporan"],

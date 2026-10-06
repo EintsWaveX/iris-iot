@@ -136,6 +136,14 @@ function useWakil(modul: number, asisten: boolean, pro: number | null): Wakil | 
   const lihat = pro ?? dariUrl;
   const minta = asisten && Number.isInteger(lihat) && lihat >= 1;
   const [w, setW] = useState<Wakil | null | undefined>(undefined);
+  // Asked again when the session or a group's holder changes (2026-10-07:
+  // after the session ended or another Asisten took the group, the
+  // projector kept the live session and acted as the group's holder).
+  const [kali, setKali] = useState(0);
+  useEffect(() => {
+    if (!minta) return;
+    return dengar(["sesi", "nilai"], () => setKali((n) => n + 1));
+  }, [minta]);
   useEffect(() => {
     if (!minta) return;
     let alive = true;
@@ -158,7 +166,7 @@ function useWakil(modul: number, asisten: boolean, pro: number | null): Wakil | 
     return () => {
       alive = false;
     };
-  }, [minta, modul, lihat]);
+  }, [minta, modul, lihat, kali]);
   return minta ? w : null;
 }
 

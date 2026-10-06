@@ -397,8 +397,12 @@ function Running({
 }) {
   const [terbuka, setTerbuka] = useState<number[] | null>(null);
   const [, force] = useState(0);
+  // The running session's module is always open to its own group (a TOT
+  // dummy's comes through its journal list); the projector reads the
+  // Asisten's list, which lacked it (2026-10-07: "Modul 1 belum dibuka"
+  // on the projector during a TOT session on Module 1).
   useEffect(() => {
-    void getAksesState(true).then((s) => setTerbuka(s.terbuka));
+    void getAksesState(true).then((s) => setTerbuka([...new Set([...s.terbuka, modul])]));
   }, [modul]);
   // The setup checklist lives on this device; re-read it on return.
   useEffect(() => {

@@ -9,12 +9,12 @@
  * group (kelompokId, kelompokNomor, sesiId), with role and NIM still the
  * Asisten's, so the existing handlers can take it as `who` unchanged.
  */
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { currentSession } from "./session.js";
 import { pemilikKelompok } from "./phase8.js";
 import { getDb } from "../../src/lib/db.js";
-import { kelompok } from "../../src/lib/schema.js";
+import { kelompok, sesi } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 
@@ -38,7 +38,10 @@ export async function wakilKelompok(
     res.status(403).json({ ok: false, kode: "peran_salah" });
     return null;
   }
-  const running = await currentSesi();
+  // A read may also look at the session that just ended (the projector
+  // shows its summary, as the group's Praktikan see); a write needs a
+  // running one.
+  const running = (await currentSesi()) ?? (tulis ? null : await sesiBaruSelesai());
   if (!running) {
     res.status(200).json({ ok: false, kode: "tidak_ada_sesi" });
     return null;
@@ -65,4 +68,17 @@ export async function wakilKelompok(
     }
   }
   return { ...session, kelompokId: g.id, kelompokNomor: nomor, sesiId: running.id };
+}
+
+/** The latest session that ended in the last 12 hours, if any. */
+async function sesiBaruSelesai() {
+  const [row] = await getDb()
+    .select()
+    .from(sesi)
+    .where(
+      and(eq(sesi.status, "selesai"), gte(sesi.selesaiPada, new Date(Date.now() - 12 * 3_600_000))),
+    )
+    .orderBy(desc(sesi.selesaiPada))
+    .limit(1);
+  return row ?? null;
 }
