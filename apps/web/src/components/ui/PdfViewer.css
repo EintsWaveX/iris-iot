@@ -22,8 +22,99 @@
   color: #eef1f6;
   display: flex;
   flex: none;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 6px 10px;
+}
+
+/* 2026-10-07: the browser viewer's groups, in its order. On a narrow frame
+   the name row stays on top and the controls wrap under it. */
+.pdfv__grp {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.pdfv__grp--name {
+  flex: 1 1 220px;
   gap: 8px;
-  padding: 8px 12px;
+  min-width: 0;
+}
+
+.pdfv__grp--end {
+  margin-left: auto;
+}
+
+.pdfv__pagebox {
+  background: rgb(0 0 0 / 0.35);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-sm);
+  color: #eef1f6;
+  font: inherit;
+  font-size: 0.9rem;
+  height: 30px;
+  margin-inline: 4px;
+  text-align: center;
+  width: 3.4em;
+}
+
+.pdfv__pagebox:focus-visible,
+.pdfv__findbox:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.pdfv__zoom {
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: #eef1f6;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  min-width: 4.2em;
+  padding: 5px 6px;
+}
+
+.pdfv__zoom:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.1);
+}
+
+.pdfv__zoom:disabled {
+  cursor: default;
+}
+
+.pdfv__zoom:focus-visible {
+  outline: 2px solid var(--focus-ring);
+}
+
+.pdfv__find {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pdfv__findbox {
+  background: rgb(0 0 0 / 0.35);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: var(--radius-sm);
+  color: #eef1f6;
+  flex: 1 1 140px;
+  font: inherit;
+  font-size: 0.92rem;
+  height: 30px;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.pdfv__findn {
+  color: rgb(238 241 246 / 0.7);
+  font-size: 0.82rem;
+  padding-inline: 6px;
+  white-space: nowrap;
 }
 
 .pdfv__bar .iconbtn {
@@ -133,12 +224,177 @@
   box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
   flex: none;
   max-width: none;
+  position: relative;
 }
 
 .pdfv__page canvas {
   display: block;
   height: 100%;
   width: 100%;
+}
+
+/* A whole page on screen: pages settle centred, like turning slides. */
+.pdfv[data-snap="yes"] .pdfv__scroll {
+  scroll-snap-type: y proximity;
+}
+
+.pdfv[data-snap="yes"] .pdfv__page {
+  scroll-snap-align: center;
+}
+
+/* Full screen presents the file: no frame, the bar over the top edge,
+   hidden while the mouse rests. */
+.pdfv[data-fs="yes"] {
+  border: 0;
+  border-radius: 0;
+  height: 100vh;
+  min-height: 0;
+  position: relative;
+  background: #1d1e22;
+}
+
+.pdfv[data-fs="yes"] .pdfv__bar {
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+  z-index: 2;
+}
+
+.pdfv[data-fs="yes"][data-idle="yes"] .pdfv__bar {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-100%);
+}
+
+.pdfv[data-fs="yes"][data-idle="yes"] .pdfv__scroll {
+  cursor: none;
+}
+
+.pdfv[data-fs="yes"] .pdfv__page {
+  box-shadow: none;
+}
+
+/* One page per screen: the gap (set in PdfViewer) keeps the next page out of view. */
+.pdfv[data-fs="yes"] .pdfv__scroll {
+  padding: 0;
+  scroll-snap-type: y mandatory;
+}
+
+.pdfv[data-fs="yes"] .pdfv__page {
+  scroll-snap-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdfv[data-fs="yes"] .pdfv__bar {
+    transition: none;
+  }
+}
+
+/* pdf.js text layer (from pdfjs-dist/web/pdf_viewer.css): transparent text
+   over the picture, so it can be selected, copied and found. */
+.pdfv .textLayer {
+  color-scheme: only light;
+  forced-color-adjust: none;
+  inset: 0;
+  line-height: 1;
+  opacity: 1;
+  overflow: clip;
+  position: absolute;
+  text-align: initial;
+  text-size-adjust: none;
+  transform-origin: 0 0;
+  z-index: 0;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.pdfv .textLayer :is(span, br) {
+  color: transparent;
+  cursor: text;
+  position: absolute;
+  transform-origin: 0% 0%;
+  user-select: text;
+  white-space: pre;
+}
+
+.pdfv .textLayer > :not(.markedContent),
+.pdfv .textLayer .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+  z-index: 1;
+}
+
+.pdfv .textLayer .markedContent {
+  display: contents;
+}
+
+.pdfv .textLayer span[role="img"] {
+  cursor: default;
+  user-select: none;
+}
+
+.pdfv .textLayer .highlight {
+  background-color: rgb(255 196 0 / 0.42);
+  border-radius: 3px;
+  margin: -1px;
+  padding: 1px;
+}
+
+.pdfv .textLayer .highlight.appended {
+  position: initial;
+}
+
+.pdfv .textLayer ::selection {
+  background: rgb(64 140 255 / 0.32);
+  color: transparent;
+}
+
+.pdfv .textLayer br::selection {
+  background: transparent;
+}
+
+.pdfv .textLayer .endOfContent {
+  cursor: default;
+  display: block;
+  inset: 100% 0 0;
+  position: absolute;
+  user-select: none;
+  z-index: 0;
+}
+
+.pdfv .textLayer.selecting .endOfContent {
+  top: 0;
+}
+
+/* Print: only the file's pages, one per sheet (PdfViewer printPages). */
+.pdfv-print {
+  display: none;
+}
+
+@media print {
+  html.pdfv-printing body > :not(.pdfv-print) {
+    display: none !important;
+  }
+  html.pdfv-printing .pdfv-print {
+    display: block;
+  }
+  .pdfv-print img {
+    break-after: page;
+    display: block;
+    height: auto;
+    width: 100%;
+  }
+  .pdfv-print img:last-child {
+    break-after: auto;
+  }
 }
 
 .pdfv__state {
@@ -243,4 +499,72 @@
   .pdfv__toc--thumbs {
     width: 156px;
   }
+}
+
+.pdfv__grp[hidden] {
+  display: none;
+}
+
+/* Compact bar (a narrow frame): one row, the rest under More. */
+.pdfv__bar[data-compact="yes"] {
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding-inline: 6px;
+}
+
+.pdfv__bar[data-compact="yes"] .pdfv__grp--name {
+  flex: 0 0 auto;
+}
+
+.pdfv__bar[data-compact="yes"] .pdfv__grp--name:has(.pdfv__find) {
+  flex: 1 1 auto;
+}
+
+/* The More menu (a popover in the app's own theme). */
+.pdfv__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+}
+
+.pdfv__mi {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 10px;
+  text-align: left;
+  text-decoration: none;
+}
+
+.pdfv__mi:hover:not(:disabled),
+.pdfv__mi:focus-visible {
+  background: var(--surface-3, rgb(127 127 127 / 0.14));
+  outline: none;
+}
+
+.pdfv__mi:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.pdfv__mzoom {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-strong);
+  display: grid;
+  gap: 2px;
+  grid-template-columns: 44px 1fr 44px;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+}
+
+.pdfv__mzoom .pdfv__mi {
+  justify-content: center;
 }

@@ -14,11 +14,13 @@ export function useDialogHost() {
   const ref = useRef<HTMLSpanElement>(null);
   const [host, setHost] = useState<HTMLElement | undefined>(undefined);
   useLayoutEffect(() => {
+    // Full screen first: a full-screen element inside a dialog (the slides'
+    // PDF viewer) shows only itself, so a menu portalled to the dialog vanishes.
+    const fs = document.fullscreenElement as HTMLElement | null;
     const h =
+      (fs?.contains(ref.current) ? fs : undefined) ??
       ref.current?.closest<HTMLElement>('[role="dialog"]') ??
-      (document.fullscreenElement?.contains(ref.current)
-        ? (document.fullscreenElement as HTMLElement)
-        : undefined);
+      undefined;
     setHost((prev) => (prev === h ? prev : h));
   });
   return { marker: <span ref={ref} hidden />, host };

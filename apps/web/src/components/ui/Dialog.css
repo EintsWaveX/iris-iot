@@ -117,6 +117,10 @@
   width: min(1040px, calc(100vw - 32px));
 }
 
+.dialog__panel--wide {
+  width: min(1560px, calc(100vw - 32px));
+}
+
 /* Bottom sheet: full width, pinned to the bottom edge, rounded top corners
    only, slides up. The phone Akun menu and the phone login dialog. */
 .dialog__panel--sheet {

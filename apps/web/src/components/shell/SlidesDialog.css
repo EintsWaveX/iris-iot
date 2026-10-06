@@ -1,10 +1,28 @@
-/* SlidesDialog.tsx: a Canva design at 16:9 inside the dialog. */
+/* SlidesDialog.tsx (2026-10-07: wide, nearly the whole screen). The slides
+   take what the screen leaves under the dialog's head, but no more than a
+   16:9 slide needs at the dialog's width, so they are never square-ish. */
+.slides {
+  --slides-chrome: 180px;
+  --slides-w: calc(min(1560px, 100vw - 32px) - 48px);
+}
+
+.slides--two {
+  --slides-chrome: 236px;
+}
+
+.slides-pdf.pdfv {
+  height: min(calc(100dvh - var(--slides-chrome)), calc(var(--slides-w) * 0.5625 + 92px));
+  min-height: 300px;
+}
+
+/* A Canva design at 16:9, as wide as the height allows. */
 .slides-frame {
   aspect-ratio: 16 / 9;
   background: var(--surface-2);
   border-radius: var(--radius-md);
+  margin-inline: auto;
   overflow: hidden;
-  width: 100%;
+  width: min(100%, calc((100dvh - var(--slides-chrome)) * 16 / 9));
 }
 
 .slides-frame iframe {

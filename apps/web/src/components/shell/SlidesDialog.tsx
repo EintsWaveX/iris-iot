@@ -58,10 +58,10 @@ export default function SlidesDialog({
       open={open && Boolean(p)}
       onOpenChange={onOpenChange}
       title={modul ? t.judul(modulLabel(modul, lang)) : t.polos}
-      size="lg"
+      size="wide"
       lang={lang}
     >
-      <div className="stack">
+      <div className={"stack slides" + (list.length > 1 ? " slides--two" : "")}>
         {list.length > 1 && (
           <SegmentedControl
             fill
@@ -77,10 +77,16 @@ export default function SlidesDialog({
         {p &&
           (p.jenis === "tautan" ? (
             <div className="slides-frame">
-              <iframe src={p.url} title={p.namaBerkas} loading="lazy" allowFullScreen />
+              <iframe
+                src={p.url}
+                title={p.namaBerkas}
+                loading="lazy"
+                allow="fullscreen"
+                allowFullScreen
+              />
             </div>
           ) : (
-            <PdfViewer url={p.url} name={p.namaBerkas} lang={lang} />
+            <PdfViewer url={p.url} name={p.namaBerkas} lang={lang} className="slides-pdf" />
           ))}
       </div>
     </Dialog>

@@ -55,8 +55,9 @@ interface Props {
   title: string;
   description?: string;
   sheet?: boolean;
-  /** sm 540px (confirms), md 680px (default), lg 740px, xl 1040px. */
-  size?: "sm" | "md" | "lg" | "xl";
+  /** sm 540px (confirms), md 680px (default), lg 740px, xl 1040px, wide
+   *  1560px (slides, nearly the whole screen). */
+  size?: "sm" | "md" | "lg" | "xl" | "wide";
   lang?: Lang;
   children?: ReactNode;
   /** The footer's buttons: Cancel, then the main action. */
@@ -89,7 +90,10 @@ export default function Dialog({
     openedFromRef.current = document.activeElement as HTMLElement | null;
   }
   wasOpenRef.current = open;
-  const fs = useFullscreenEl();
+  // A full-screen element inside a dialog (the slides' PDF viewer) is already
+  // on screen; moving the dialog into its own child would unmount it.
+  const fsEl = useFullscreenEl();
+  const fs = fsEl && !fsEl.closest('[role="dialog"]') ? fsEl : null;
 
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
