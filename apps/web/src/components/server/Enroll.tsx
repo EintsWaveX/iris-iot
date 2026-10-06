@@ -158,7 +158,11 @@ export default function Enroll({
               placeholder="iris-pi-01"
               onChange={(e) => setNama(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
               onKeyDown={(e) => {
-                if (e.key === "Enter") void lanjut();
+                // Handled here: the dialog's own Enter must not press Next too.
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void lanjut();
+                }
               }}
             />
             <p className={err ? "field__error" : "field__hint"}>
