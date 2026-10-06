@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowsCounterClockwiseIcon, SignInIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
-import { dict, getJson, meChanged, type Me, type SesiNow } from "../../lib/app";
+import { dengarAkunLain, dict, getJson, meChanged, type Me, type SesiNow } from "../../lib/app";
 import { startPolling } from "../../scripts/polling";
 import type { Lang } from "../../lib/kelas";
 import { openSignIn } from "../../lib/signin";
@@ -82,7 +82,7 @@ export default function IdentityWatch({
 
   useEffect(() => {
     if (!nim) return;
-    return startPolling(async () => {
+    const cek = async () => {
       let d: { ok?: boolean; nim?: string; nama?: string; kode?: string };
       try {
         d = await getJson("/api/auth/me");
@@ -98,7 +98,14 @@ export default function IdentityWatch({
             ? { jenis: "tot" }
             : { jenis: "gone" },
       );
-    }, 20_000);
+    };
+    const henti = startPolling(cek, 20_000);
+    // A sign-in or sign-out in another tab: check now.
+    const lepas = dengarAkunLain(() => void cek());
+    return () => {
+      henti();
+      lepas();
+    };
   }, [nim]);
 
   const sesiKey = now ? `${now.tanggal}-${now.slot ?? now.mulai}` : null;
@@ -134,6 +141,8 @@ export default function IdentityWatch({
     <Dialog
       open
       onOpenChange={(o) => !o && close()}
+      // Signed out or another account: nothing to go back to on this page.
+      required={k.jenis !== "baru"}
       title={title}
       lang={lang}
       actions={

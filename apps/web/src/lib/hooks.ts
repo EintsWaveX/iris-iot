@@ -15,6 +15,10 @@ export interface PollState<T> {
   errors: number;
   /** When the last successful fetch landed (ms since epoch), for "updated N s ago". */
   updatedAt: number | null;
+  /** The last failure was a refusal (401/403: signed out, or another account
+   *  in this browser now), not a lost connection. IdentityWatch explains
+   *  those, so "connection lost" banners stay quiet (2026-10-07). */
+  ditolak: boolean;
   refresh: () => void;
 }
 
@@ -39,6 +43,7 @@ export function usePoll<T>(
   const [data, setData] = useState<T | null>(null);
   const [errors, setErrors] = useState(0);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const [ditolak, setDitolak] = useState(false);
   const fnRef = useRef(fn);
   fnRef.current = fn;
   const inFlight = useRef(false);
@@ -73,9 +78,12 @@ export function usePoll<T>(
       failures.current = 0;
       setData(d);
       setErrors(0);
+      setDitolak(false);
       setUpdatedAt(Date.now());
-    } catch {
+    } catch (e) {
       if (!alive.current) return;
+      // getJson throws HttpError("<status>").
+      setDitolak(e instanceof Error && (e.message === "401" || e.message === "403"));
       failures.current += 1;
       setErrors((e) => e + 1);
       if (document.visibilityState === "visible") {
@@ -113,7 +121,7 @@ export function usePoll<T>(
 
   useSiaran(topik, () => void run(), enabled);
 
-  return { data, errors, updatedAt, refresh: () => void run() };
+  return { data, errors, updatedAt, ditolak, refresh: () => void run() };
 }
 
 /** "diperbarui 4 detik lalu" style age in whole seconds, re-rendering each second. */

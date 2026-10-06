@@ -90,7 +90,7 @@ export default function ServerList({
   return (
     <div className="srv">
       <OfflineBanner
-        errors={poll.errors}
+        errors={poll.ditolak ? 0 : poll.errors}
         text={t.offlineBanner}
         retry={poll.refresh}
         retryLabel={t.retry}

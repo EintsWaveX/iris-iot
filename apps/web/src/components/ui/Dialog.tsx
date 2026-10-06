@@ -68,6 +68,9 @@ interface Props {
   foot?: "row" | "12";
   /** Must be answered: Esc and outside clicks shake it instead. */
   blocking?: boolean;
+  /** No way out but its own actions: no close button, Esc and outside
+   *  clicks do nothing (signed out on this page, 2026-10-07). */
+  required?: boolean;
 }
 
 export default function Dialog({
@@ -83,6 +86,7 @@ export default function Dialog({
   alt,
   foot = "row",
   blocking = false,
+  required = false,
 }: Props) {
   const openedFromRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
@@ -115,7 +119,9 @@ export default function Dialog({
             e.preventDefault();
             (e.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
           }}
-          onFocusOutside={(e) => blocking && e.preventDefault()}
+          onFocusOutside={(e) => (blocking || required) && e.preventDefault()}
+          onEscapeKeyDown={(e) => required && e.preventDefault()}
+          onPointerDownOutside={(e) => required && e.preventDefault()}
           onKeyDown={(e) => enterPressesMain(e, e.currentTarget, ".dialog__actions")}
           onCloseAutoFocus={(e) => {
             if (openedFromRef.current) {
@@ -133,9 +139,11 @@ export default function Dialog({
                 </RadixDialog.Description>
               )}
             </div>
-            <RadixDialog.Close asChild>
-              <IconButton icon={XIcon} label={T[lang]} />
-            </RadixDialog.Close>
+            {!required && (
+              <RadixDialog.Close asChild>
+                <IconButton icon={XIcon} label={T[lang]} />
+              </RadixDialog.Close>
+            )}
           </header>
           {children != null && <div className="dialog__body">{children}</div>}
           {(actions || alt) && (

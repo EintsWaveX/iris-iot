@@ -97,6 +97,30 @@ export function loadMe(force = false): Promise<Me | null> {
 export function meChanged(): void {
   mePromise = null;
   window.dispatchEvent(new Event(ME_CHANGED));
+  // Other tabs share the cookie: tell them now, not at their next 20 s check
+  // (2026-10-07: an Asisten tab kept its pages after a Praktikan signed in
+  // in another tab of the same laptop).
+  try {
+    const ch = new BroadcastChannel(AKUN);
+    ch.postMessage(TAB);
+    ch.close();
+  } catch {
+    /* no BroadcastChannel: the periodic check still catches it */
+  }
+}
+
+const AKUN = "iris-akun";
+const TAB = Math.random().toString(36).slice(2);
+
+/** Runs `fn` when another tab of this browser signs in or out. */
+export function dengarAkunLain(fn: () => void): () => void {
+  try {
+    const ch = new BroadcastChannel(AKUN);
+    ch.onmessage = (e) => e.data !== TAB && fn();
+    return () => ch.close();
+  } catch {
+    return () => {};
+  }
 }
 
 /** `undefined` while loading, `null` when signed out. */

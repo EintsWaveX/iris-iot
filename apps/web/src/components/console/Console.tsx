@@ -303,7 +303,7 @@ export default function Console({ lang }: { lang: Lang }) {
 
   const offline = (
     <OfflineBanner
-      errors={Math.max(current.errors, lap.errors)}
+      errors={current.ditolak || lap.ditolak ? 0 : Math.max(current.errors, lap.errors)}
       text={t.offline}
       retry={refreshAll}
       retryLabel={t.retry}

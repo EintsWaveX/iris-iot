@@ -177,7 +177,7 @@ export default function ServerDetail({
   return (
     <div className="srv srv--detail">
       <OfflineBanner
-        errors={poll.errors}
+        errors={poll.ditolak ? 0 : poll.errors}
         text={t.offlineBanner}
         retry={poll.refresh}
         retryLabel={t.retry}
