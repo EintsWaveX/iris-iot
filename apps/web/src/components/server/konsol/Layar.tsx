@@ -9,6 +9,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowsInIcon,
   ArrowsOutIcon,
   ClipboardTextIcon,
   EyeIcon,
@@ -18,6 +19,7 @@ import {
 import type { KonsolTarget } from "../../../lib/konsol";
 import Dialog from "../../ui/Dialog";
 import IconButton from "../../ui/IconButton";
+import Popover from "../../ui/Popover";
 import type { Lang } from "../../../lib/kelas";
 import type { KStrings } from "./strings";
 
@@ -62,10 +64,33 @@ interface RfbLike {
   resizeSession: boolean;
   disconnect(): void;
   sendCtrlAltDel(): void;
+  sendKey(keysym: number, code: string | null, down?: boolean): void;
   clipboardPasteFrom(text: string): void;
   sendCredentials(c: { password: string }): void;
   addEventListener(type: string, fn: (e: CustomEvent) => void): void;
 }
+
+/** X keysyms for the Send Keys menu (2026-10-06): combinations Windows or
+ *  the browser would keep for themselves, so they can't be typed. */
+const XK = {
+  ctrl: [0xffe3, "ControlLeft"],
+  alt: [0xffe9, "AltLeft"],
+  del: [0xffff, "Delete"],
+  tab: [0xff09, "Tab"],
+  f4: [0xffc1, "F4"],
+  t: [0x0074, "KeyT"],
+  superL: [0xffeb, "MetaLeft"],
+  esc: [0xff1b, "Escape"],
+} as const;
+type Kunci = keyof typeof XK;
+const PINTAS: { id: "cad" | "altTab" | "altF4" | "term" | "super" | "esc"; keys: Kunci[] }[] = [
+  { id: "cad", keys: ["ctrl", "alt", "del"] },
+  { id: "altTab", keys: ["alt", "tab"] },
+  { id: "altF4", keys: ["alt", "f4"] },
+  { id: "term", keys: ["ctrl", "alt", "t"] },
+  { id: "super", keys: ["superL"] },
+  { id: "esc", keys: ["esc"] },
+];
 
 export interface LayarApi {
   terima: (d: ArrayBuffer) => void;
@@ -81,6 +106,8 @@ export default function Layar({
   kirim,
   onGerak,
   onFull,
+  full,
+  onKabar,
   apiRef,
   tunda,
 }: {
@@ -96,6 +123,10 @@ export default function Layar({
   onGerak: () => void;
   /** Full screen on the whole pane, so the room's prompts show there too. */
   onFull: () => void;
+  /** The pane is full screen now: the button leaves it. */
+  full: boolean;
+  /** A short note shown inside the pane (seen in full screen too). */
+  onKabar: (teks: string) => void;
   apiRef: { current: LayarApi | null };
   /** Bytes that came after the ready frame, before this mounted. */
   tunda: { current: ArrayBuffer[] };
@@ -105,6 +136,18 @@ export default function Layar({
   const [hp, setHp] = useState(false);
   const [klip, setKlip] = useState(false);
   const [teksKlip, setTeksKlip] = useState("");
+  const [menu, setMenu] = useState(false);
+
+  /** Presses the keys in order, then lets them go in reverse. */
+  function kirimPintas(p: (typeof PINTAS)[number]) {
+    const r = rfb.current;
+    setMenu(false);
+    if (!r) return;
+    for (const k of p.keys) r.sendKey(XK[k][0], XK[k][1], true);
+    for (const k of [...p.keys].reverse()) r.sendKey(XK[k][0], XK[k][1], false);
+    onGerak();
+    onKabar(t.keySent(t.keyNames[p.id].split(" · ")[0]));
+  }
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 639px)");
@@ -168,14 +211,30 @@ export default function Layar({
           {pegang ? t.controls : kendali && hp ? t.phoneView : t.watching}
         </span>
         <span className="vnc__tools">
-          <IconButton
-            sm
-            kind="ghost"
-            icon={KeyboardIcon}
-            label={t.cad}
-            disabled={!pegang}
-            onClick={() => rfb.current?.sendCtrlAltDel()}
-          />
+          <Popover
+            open={menu && pegang}
+            onOpenChange={setMenu}
+            align="end"
+            trigger={
+              <IconButton sm kind="ghost" icon={KeyboardIcon} label={t.keys} disabled={!pegang} />
+            }
+          >
+            <div className="vnc__keys" role="menu" aria-label={t.keysTitle}>
+              <b className="vnc__keys-h">{t.keysTitle}</b>
+              <span className="hint">{t.keysHint}</span>
+              {PINTAS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="menuitem"
+                  className="vnc__key"
+                  onClick={() => kirimPintas(p)}
+                >
+                  {t.keyNames[p.id]}
+                </button>
+              ))}
+            </div>
+          </Popover>
           <IconButton
             sm
             kind="ghost"
@@ -183,7 +242,13 @@ export default function Layar({
             label={t.clipboard}
             onClick={() => setKlip(true)}
           />
-          <IconButton sm kind="ghost" icon={ArrowsOutIcon} label={t.full} onClick={onFull} />
+          <IconButton
+            sm
+            kind="ghost"
+            icon={full ? ArrowsInIcon : ArrowsOutIcon}
+            label={full ? t.exitFull : t.full}
+            onClick={onFull}
+          />
         </span>
       </div>
       <div
@@ -221,7 +286,7 @@ export default function Layar({
               onClick={() => {
                 rfb.current?.clipboardPasteFrom(teksKlip);
                 setKlip(false);
-                window.Toast?.show(t.clipSent, "ok");
+                onKabar(t.clipSent);
               }}
             >
               {t.clipSend}

@@ -507,3 +507,37 @@
   font-weight: 500;
   white-space: normal;
 }
+
+/* Send Keys (2026-10-06): combinations the browser or Windows would keep. */
+.vnc__keys {
+  display: grid;
+  gap: 4px;
+  max-width: 300px;
+}
+
+.vnc__keys-h {
+  font-size: 0.95rem;
+}
+
+.vnc__keys .hint {
+  margin-bottom: 4px;
+}
+
+.vnc__key {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.vnc__key:hover,
+.vnc__key:focus-visible {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  outline: none;
+}

@@ -51,6 +51,7 @@ import { DIAM_MENIT, type KonsolTarget } from "../../../lib/konsol";
 import { hariLabel, menitLabel, modulLabel, slotLabel } from "../../../lib/labels";
 import { jamWib, tanggalWib } from "../../reports/data";
 import Layar, { type LayarApi } from "./Layar";
+import { useFullscreenEl } from "../../ui/fullscreen";
 import Terminal, { type TermApi } from "./Terminal";
 import {
   aksiKonsol,
@@ -1139,7 +1140,24 @@ function Open({
     }
   }, [diam, batas, keadaan.k, pegang, row.id, refresh]);
 
-  const penuh = () => void pane.current?.requestFullscreen?.();
+  // The pane's full screen button toggles (2026-10-06: inside full screen
+  // it did nothing, so only the Esc key got out). While full screen and in
+  // control, the keyboard is locked to the page where the browser allows
+  // it, so Esc and Alt+Tab reach the Pi; holding Esc still leaves.
+  const fsEl = useFullscreenEl();
+  const full = !!fsEl && fsEl === pane.current;
+  const penuh = () => {
+    if (document.fullscreenElement) void document.exitFullscreen?.();
+    else void pane.current?.requestFullscreen?.();
+  };
+  useEffect(() => {
+    const kb = (
+      navigator as Navigator & { keyboard?: { lock?: () => Promise<void>; unlock?: () => void } }
+    ).keyboard;
+    if (!full || !pegang || !kb?.lock) return;
+    kb.lock().catch(() => {});
+    return () => kb.unlock?.();
+  }, [full, pegang]);
 
   const overlay = (() => {
     if (keadaan.k === "siap") return null;
@@ -1251,6 +1269,7 @@ function Open({
             apiRef={term}
             bisaKetik={pegang}
             onFull={penuh}
+            full={full}
             onSiap={() => {
               for (const d of tunda.current.splice(0)) term.current?.tulis(d);
               term.current?.ukur();
@@ -1267,6 +1286,8 @@ function Open({
             kirim={kirim}
             onGerak={ketik}
             onFull={penuh}
+            full={full}
+            onKabar={(teks) => umumkan(teks)}
             apiRef={layar}
             tunda={tundaLayar}
           />

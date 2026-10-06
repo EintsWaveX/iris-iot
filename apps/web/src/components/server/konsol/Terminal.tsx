@@ -8,6 +8,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowsInIcon,
   ArrowsOutIcon,
   ClipboardTextIcon,
   CopyIcon,
@@ -36,6 +37,7 @@ export default function Terminal({
   apiRef,
   bisaKetik,
   onFull,
+  full,
   onSiap,
 }: {
   t: KStrings;
@@ -48,6 +50,8 @@ export default function Terminal({
   bisaKetik: boolean;
   /** Full screen on the whole pane, so the room's prompts show there too. */
   onFull: () => void;
+  /** The pane is full screen now: the button leaves it. */
+  full: boolean;
   /** The terminal is drawn and can take output. */
   onSiap?: () => void;
 }) {
@@ -219,7 +223,13 @@ export default function Terminal({
             disabled={!bisaKetik}
             onClick={() => void tempel()}
           />
-          <IconButton sm kind="ghost" icon={ArrowsOutIcon} label={t.full} onClick={onFull} />
+          <IconButton
+            sm
+            kind="ghost"
+            icon={full ? ArrowsInIcon : ArrowsOutIcon}
+            label={full ? t.exitFull : t.full}
+            onClick={onFull}
+          />
         </span>
       </div>
       <div className="term__xterm" ref={box} role="region" aria-label={t.termOut} />
