@@ -311,21 +311,24 @@ export default function ModuleSteps(p: Props) {
           <b>{open ? t.openStudents : t.lockedStudents}</b>
           <span className="hint modsteps__hide-sm">{t.seeAll}</span>
           <span className="grow" />
-          <Switch
-            on={open}
-            onChange={(v) => {
-              // The switch moves now; the reload after the save confirms it.
-              setAkses(
-                (a) =>
-                  a && {
-                    ...a,
-                    terbuka: v ? [...a.terbuka, modul] : a.terbuka.filter((x) => x !== modul),
-                  },
-              );
-              void setModulAkses(modul, v, lang);
-            }}
-            label={t.access(modul)}
-          />
+          {/* Only who may change it gets the switch (the Jadwal right). */}
+          {me?.hak?.jadwal === true && (
+            <Switch
+              on={open}
+              onChange={(v) => {
+                // The switch moves now; the reload after the save confirms it.
+                setAkses(
+                  (a) =>
+                    a && {
+                      ...a,
+                      terbuka: v ? [...a.terbuka, modul] : a.terbuka.filter((x) => x !== modul),
+                    },
+                );
+                void setModulAkses(modul, v, lang);
+              }}
+              label={t.access(modul)}
+            />
+          )}
         </div>
       )}
       {mode === "done" && (

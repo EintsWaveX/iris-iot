@@ -25,6 +25,7 @@ import {
   getJson,
   href,
   postJson,
+  useMe,
   type SesiNow,
 } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -309,6 +310,9 @@ export default function AsistenCommands({
   running: SesiNow | null;
 }) {
   const t = T[lang];
+  // Opening and locking modules needs the Jadwal right (2026-10-06: the
+  // palette offered it to everyone and the API refused it).
+  const bolehAkses = useMe()?.hak?.jadwal === true;
   useCommandPaletteHotkey(setPaletteOpen as (fn: (o: boolean) => boolean) => void);
   const openSheet = useCallback(() => setShortcutsOpen(true), [setShortcutsOpen]);
   useQuestionMarkHotkey(openSheet);
@@ -433,7 +437,7 @@ export default function AsistenCommands({
         },
       );
     }
-    for (let n = 1; n <= 4; n++) {
+    for (let n = 1; n <= 4 && bolehAkses; n++) {
       list.push(
         {
           id: `open-${n}`,
@@ -468,7 +472,7 @@ export default function AsistenCommands({
       },
     );
     return list;
-  }, [lang, running, t]);
+  }, [lang, running, t, bolehAkses]);
 
   return (
     <>
