@@ -30,7 +30,7 @@ interface Waspada {
     ambang: number;
     terakhir: { id: number; pada: string; pesan: string } | null;
   };
-  pi: { luring: boolean; umurDetik: number | null } | null;
+  pi: { luring: boolean; umurDetik: number | null; serverId?: number | null } | null;
   sesi: { id: number; modul: number } | null;
 }
 
@@ -179,7 +179,14 @@ export default function LabAlert({
             {t.piP(umur == null ? t.piNever : t.ago(Math.floor(umur / 60)))}
           </span>
           {tombolIzin}
-          <a className="btn btn--ghost btn--sm" href={href(lang, "/servers")}>
+          <a
+            className="btn btn--ghost btn--sm"
+            href={
+              w?.pi?.serverId
+                ? `${href(lang, "/servers")}?id=${w.pi.serverId}#siap`
+                : href(lang, "/servers")
+            }
+          >
             {t.piGo}
             <ArrowRightIcon size={14} aria-hidden="true" />
           </a>

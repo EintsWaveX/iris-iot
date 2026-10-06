@@ -383,12 +383,14 @@ async function handleWaspada(_req: ApiRequest, res: ApiResponse) {
       .limit(1),
     currentSesi(),
   ]);
-  let pi: { luring: boolean; umurDetik: number | null } | null = null;
+  let pi: { luring: boolean; umurDetik: number | null; serverId: number | null } | null = null;
   if (running && running.modul in LAYANAN_MODUL) {
     const f = await faktaPi();
     pi = {
       luring: !f || f.umurDetik === null || f.umurDetik > f.batasLuringDetik,
       umurDetik: f?.umurDetik ?? null,
+      // The banner opens this Pi, not the server list (ledger W5).
+      serverId: f?.id ?? null,
     };
   }
   let pesan = "";
