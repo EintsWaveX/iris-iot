@@ -14,7 +14,11 @@ export function useDialogHost() {
   const ref = useRef<HTMLSpanElement>(null);
   const [host, setHost] = useState<HTMLElement | undefined>(undefined);
   useLayoutEffect(() => {
-    const h = ref.current?.closest<HTMLElement>('[role="dialog"]') ?? undefined;
+    const h =
+      ref.current?.closest<HTMLElement>('[role="dialog"]') ??
+      (document.fullscreenElement?.contains(ref.current)
+        ? (document.fullscreenElement as HTMLElement)
+        : undefined);
     setHost((prev) => (prev === h ? prev : h));
   });
   return { marker: <span ref={ref} hidden />, host };

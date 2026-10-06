@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import "./Popover.css";
 import { useDialogHost } from "./dialogHost";
+import { enterPressesMain } from "./enterKey";
 
 interface Props {
   trigger: ReactNode;
@@ -35,6 +36,8 @@ export default function Popover({ trigger, children, open, onOpenChange, align =
       <RadixPopover.Portal container={dialogHost.host}>
         <RadixPopover.Content
           className="popover__panel"
+          // Enter presses the button marked data-enter (a small form's Save).
+          onKeyDown={(e) => enterPressesMain(e, e.currentTarget, "[data-enter-foot]")}
           align={align}
           sideOffset={8}
           collisionPadding={16}

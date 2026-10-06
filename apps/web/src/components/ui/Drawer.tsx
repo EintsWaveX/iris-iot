@@ -20,6 +20,8 @@ import {
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { XIcon } from "@phosphor-icons/react";
 import IconButton from "./IconButton";
+import { enterPressesMain } from "./enterKey";
+import { useFullscreenEl } from "./fullscreen";
 import "./Drawer.css";
 
 interface Props {
@@ -106,9 +108,10 @@ export default function Drawer({
     e.preventDefault();
   };
 
+  const fs = useFullscreenEl();
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
-      <RadixDialog.Portal>
+      <RadixDialog.Portal container={fs ?? undefined}>
         <RadixDialog.Overlay className="drawer__overlay" />
         <RadixDialog.Content
           className="drawer"
@@ -122,6 +125,7 @@ export default function Drawer({
             e.preventDefault();
             (e.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
           }}
+          onKeyDown={(e) => enterPressesMain(e, e.currentTarget, ".drawer__foot")}
           onCloseAutoFocus={(e) => {
             if (openedFrom.current) {
               e.preventDefault();

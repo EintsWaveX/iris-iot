@@ -27,6 +27,7 @@ import {
   type DragEvent,
   type InputHTMLAttributes,
   type KeyboardEvent,
+  type PointerEvent,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -318,6 +319,49 @@ function ClockPart({
     const n = value + arah * step;
     onSet(n > max ? min : n < min ? fit(max) : n);
   };
+  // Hold the mouse on the box and move it up or down to turn the value
+  // (2026-10-06), round past either end like the wheel. A press that
+  // doesn't move stays a click: it opens the picker and leaves the caret.
+  const tarik = useRef<{ y: number; dari: number; jalan: boolean } | null>(null);
+  const jumlah = Math.floor((max - min) / step) + 1;
+  const putar = (dari: number, langkah: number) => {
+    const i = (((Math.round((dari - min) / step) + langkah) % jumlah) + jumlah) % jumlah;
+    return min + i * step;
+  };
+  const onPointerDown = (e: PointerEvent<HTMLInputElement>) => {
+    if (e.pointerType === "touch" || e.button !== 0) return;
+    tarik.current = { y: e.clientY, dari: value ?? min, jalan: false };
+  };
+  const onPointerMove = (e: PointerEvent<HTMLInputElement>) => {
+    const d = tarik.current;
+    if (!d) return;
+    const dy = d.y - e.clientY;
+    if (!d.jalan && Math.abs(dy) < 6) return;
+    if (!d.jalan) {
+      d.jalan = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      document.documentElement.dataset.tarikJam = "yes";
+    }
+    e.preventDefault();
+    setDraft(null);
+    const n = putar(d.dari, Math.round(dy / 14));
+    if (n !== value) onSet(n);
+  };
+  const lepas = (e: PointerEvent<HTMLInputElement>) => {
+    const d = tarik.current;
+    tarik.current = null;
+    if (!d?.jalan) return;
+    delete document.documentElement.dataset.tarikJam;
+    if (e.currentTarget.hasPointerCapture(e.pointerId))
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    // Swallow the click that ends a drag, so it doesn't open the picker.
+    const telan = (c: Event) => {
+      c.stopPropagation();
+      c.preventDefault();
+    };
+    window.addEventListener("click", telan, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener("click", telan, { capture: true }), 0);
+  };
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     const el = e.currentTarget;
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
@@ -362,7 +406,17 @@ function ClockPart({
       maxLength={2}
       value={draft ?? (value == null ? "" : pad2(value))}
       onFocus={(e) => e.currentTarget.select()}
+      // A click on a box that already has focus selects it again too: with
+      // the caret after two digits, maxLength swallowed every key typed.
+      onClick={(e) => e.currentTarget.select()}
       onKeyDown={onKey}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={lepas}
+      onPointerCancel={lepas}
+      // The digits are selected on focus; dragging them would start the
+      // browser's own text drag and cancel the turn.
+      onDragStart={(e) => e.preventDefault()}
       onBlur={() => commit(draftRef.current)}
       onChange={(e) => {
         const d = e.target.value.replace(/\D/g, "").slice(0, 2);
@@ -441,6 +495,38 @@ function Wheel({
     }, 120);
   };
   const turn = (rows: number) => ref.current?.scrollBy({ top: rows * WHEEL_H, behavior: "smooth" });
+  // A mouse can grab the drum and drag it up or down like a finger
+  // (2026-10-06); a press that doesn't move still picks the row clicked.
+  const tarik = useRef<{ y: number; top: number; jalan: boolean } | null>(null);
+  const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "touch" || e.button !== 0 || !ref.current) return;
+    tarik.current = { y: e.clientY, top: ref.current.scrollTop, jalan: false };
+  };
+  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    const d = tarik.current;
+    const el = ref.current;
+    if (!d || !el) return;
+    const dy = e.clientY - d.y;
+    if (!d.jalan && Math.abs(dy) < 4) return;
+    if (!d.jalan) {
+      d.jalan = true;
+      el.setPointerCapture(e.pointerId);
+      el.style.scrollSnapType = "none";
+      el.dataset.tarik = "yes";
+    }
+    e.preventDefault();
+    el.scrollTop = d.top - dy;
+  };
+  const onPointerUp = (e: PointerEvent<HTMLDivElement>) => {
+    const d = tarik.current;
+    const el = ref.current;
+    tarik.current = null;
+    if (!d?.jalan || !el) return;
+    if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+    delete el.dataset.tarik;
+    el.style.scrollSnapType = "";
+    el.scrollTo({ top: row() * WHEEL_H, behavior: "smooth" });
+  };
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const by: Record<string, number> = { ArrowDown: 1, ArrowUp: -1, PageDown: 5, PageUp: -5 };
     if (e.key in by) {
@@ -465,6 +551,10 @@ function Wheel({
       aria-valuetext={pad2(value)}
       onScroll={onScroll}
       onKeyDown={onKey}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
       {Array.from({ length: WHEEL_COPIES * n }, (_, i) => (
         <div
@@ -485,8 +575,10 @@ function Wheel({
  * The site's clock control (Phase 9): hours and minutes as two separate
  * boxes. Type into either (a phone shows the number pad), use the arrow
  * keys, or open the picker for an Hour column and a Minute column. Takes
- * and gives "HH:MM". `from` and `to` bound the hours; `step` is the minute
- * step (every minute by default).
+ * and gives "HH:MM". Every hour of the day is offered (2026-10-06: no cap
+ * at 21); `from` is the hour the drums start at, so with 6 they run 06 to
+ * 23 and then 00 to 05. Drag a box or a drum up or down with the mouse to
+ * turn it. `step` is the minute step (every minute by default).
  */
 export function TimeField({
   value,
@@ -495,7 +587,6 @@ export function TimeField({
   lang = "id",
   id,
   from = 0,
-  to = 23,
   step = 1,
   labelledBy,
 }: {
@@ -505,7 +596,6 @@ export function TimeField({
   lang?: Lang;
   id?: string;
   from?: number;
-  to?: number;
   step?: number;
   labelledBy?: string;
 }) {
@@ -518,13 +608,12 @@ export function TimeField({
   const hRef = useRef<HTMLInputElement>(null);
   const mRef = useRef<HTMLInputElement>(null);
   const hWheel = useRef<HTMLDivElement>(null);
-  const hours = Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  const hours = Array.from({ length: 24 }, (_, i) => (from + i) % 24);
   const minutes = Array.from({ length: Math.ceil(60 / step) }, (_, i) => i * step);
   const now = jamSekarang();
   const nowH = Number(now.slice(0, 2));
-  const nowOk = nowH >= from && nowH <= to;
   /** The hour used when only the minute is picked. */
-  const jamAsal = h ?? (nowOk ? nowH : from);
+  const jamAsal = h ?? nowH;
   const set = (hh: number, mm: number) => onChange(`${pad2(hh)}:${pad2(mm)}`);
   const fieldRef = useRef<HTMLDivElement>(null);
   /** Opened by a mouse click on HH or MM: the box keeps focus for typing. */
@@ -557,8 +646,8 @@ export function TimeField({
         >
           <ClockPart
             value={h}
-            min={from}
-            max={to}
+            min={0}
+            max={23}
             step={1}
             label={t.hour}
             inputRef={hRef}
@@ -605,6 +694,13 @@ export function TimeField({
           onInteractOutside={(e) => {
             if (fieldRef.current?.contains(e.target as Node)) e.preventDefault();
           }}
+          // Enter on a drum is Done, like the footer's main button.
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !(e.target as HTMLElement).closest("button")) {
+              e.preventDefault();
+              setOpen(false);
+            }
+          }}
         >
           <div className="ctl-clockpick__heads" aria-hidden="true">
             <span className="label-caps">{t.hour}</span>
@@ -613,7 +709,7 @@ export function TimeField({
           <div className="ctl-clockpick__wheels">
             <Wheel
               items={hours}
-              value={h ?? (nowOk ? nowH : from)}
+              value={h ?? nowH}
               label={t.hour}
               wheelRef={hWheel}
               onPick={(x) => set(x, m ?? 0)}
@@ -629,18 +725,16 @@ export function TimeField({
             />
           </div>
           <div className="ctl-clockpick__foot">
-            {nowOk && (
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                onClick={() => {
-                  set(nowH, Math.floor(Number(now.slice(3, 5)) / step) * step);
-                  setOpen(false);
-                }}
-              >
-                {t.now}
-              </button>
-            )}
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => {
+                set(nowH, Math.floor(Number(now.slice(3, 5)) / step) * step);
+                setOpen(false);
+              }}
+            >
+              {t.now}
+            </button>
             <button
               type="button"
               className="btn btn--primary btn--sm"

@@ -15,6 +15,7 @@
  */
 import type { ReactNode } from "react";
 import * as RadixTooltip from "@radix-ui/react-tooltip";
+import { useFullscreenEl } from "./fullscreen";
 import "./Tooltip.css";
 
 export function TooltipProvider({ children }: { children: ReactNode }) {
@@ -32,11 +33,12 @@ interface Props {
 }
 
 export default function Tooltip({ label, children, side = "top" }: Props) {
+  const fs = useFullscreenEl();
   return (
     <RadixTooltip.Provider delayDuration={300} skipDelayDuration={100}>
       <RadixTooltip.Root>
         <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
-        <RadixTooltip.Portal>
+        <RadixTooltip.Portal container={fs ?? undefined}>
           <RadixTooltip.Content
             className="tooltip__panel"
             side={side}

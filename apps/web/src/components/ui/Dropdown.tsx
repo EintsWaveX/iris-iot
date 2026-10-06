@@ -164,7 +164,13 @@ function usePopover(triggerRef: React.RefObject<HTMLElement | null>, sheet: bool
 
   useLayoutEffect(() => {
     if (!open) return;
-    setHost(triggerRef.current?.closest<HTMLElement>('[role="dialog"]') ?? document.body);
+    const t = triggerRef.current;
+    setHost(
+      t?.closest<HTMLElement>('[role="dialog"]') ??
+        (document.fullscreenElement?.contains(t ?? null)
+          ? (document.fullscreenElement as HTMLElement)
+          : document.body),
+    );
   }, [open, triggerRef]);
 
   useLayoutEffect(() => {

@@ -389,6 +389,15 @@
   width: 100%;
 }
 
+/* Dragged with the mouse (2026-10-06): the hand closes while it turns. */
+.ctl-wheel[data-tarik="yes"],
+.ctl-wheel[data-tarik="yes"] .ctl-wheel__o,
+html[data-tarik-jam="yes"],
+html[data-tarik-jam="yes"] * {
+  cursor: ns-resize !important;
+  user-select: none;
+}
+
 .ctl-wheel::-webkit-scrollbar {
   display: none;
 }

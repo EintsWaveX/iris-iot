@@ -494,7 +494,6 @@ function DraftDialog({
             labelledBy="nx-time"
             lang={lang}
             from={6}
-            to={21}
           />
         </div>
       </div>

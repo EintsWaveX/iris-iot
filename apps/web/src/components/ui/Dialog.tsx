@@ -24,6 +24,9 @@
  *
  * `sheet` renders a bottom sheet (the phone Akun menu and login dialog).
  *
+ * Enter presses the main footer button (ui/enterKey.ts) unless the focused
+ * control uses Enter itself.
+ *
  * Without a Radix Trigger, focus would drop to <body> on close, so the
  * element that opened the dialog is remembered and focused again. The
  * capture ref starts at `false` so a dialog the parent mounts already open
@@ -38,6 +41,8 @@ import { useRef, type ReactNode } from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { XIcon } from "@phosphor-icons/react";
 import IconButton from "./IconButton";
+import { enterPressesMain } from "./enterKey";
+import { useFullscreenEl } from "./fullscreen";
 import { dict } from "../../lib/app";
 import "./Dialog.css";
 import type { Lang } from "../../lib/kelas";
@@ -84,10 +89,11 @@ export default function Dialog({
     openedFromRef.current = document.activeElement as HTMLElement | null;
   }
   wasOpenRef.current = open;
+  const fs = useFullscreenEl();
 
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
-      <RadixDialog.Portal>
+      <RadixDialog.Portal container={fs ?? undefined}>
         <RadixDialog.Overlay className="dialog__overlay" />
         <RadixDialog.Content
           className={[
@@ -106,6 +112,7 @@ export default function Dialog({
             (e.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
           }}
           onFocusOutside={(e) => blocking && e.preventDefault()}
+          onKeyDown={(e) => enterPressesMain(e, e.currentTarget, ".dialog__actions")}
           onCloseAutoFocus={(e) => {
             if (openedFromRef.current) {
               e.preventDefault();

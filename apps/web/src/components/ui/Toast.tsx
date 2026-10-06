@@ -15,6 +15,8 @@
  * focused, so there is time to reach the button.
  */
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useFullscreenEl } from "./fullscreen";
 import { CheckCircleIcon, InfoIcon, WarningIcon, XCircleIcon, XIcon } from "@phosphor-icons/react";
 import "./Toast.css";
 import { pageLang } from "../../lib/app";
@@ -96,7 +98,9 @@ export default function Toast() {
     };
   }, []);
 
-  return (
+  // While something is full screen (Konsol Pi), toasts show inside it.
+  const fs = useFullscreenEl();
+  const host = (
     <div className="toast-host" id="toast-host" aria-live="polite" aria-atomic="false">
       {toasts.map((t) => {
         const Icon = ICON[t.tone];
@@ -148,4 +152,5 @@ export default function Toast() {
       })}
     </div>
   );
+  return fs ? createPortal(host, fs) : host;
 }
