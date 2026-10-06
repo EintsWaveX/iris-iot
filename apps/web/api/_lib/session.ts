@@ -9,7 +9,7 @@ import { parseCookies } from "./http.js";
 import { readSessionCookie, type SessionPayload } from "../../src/lib/auth.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { getDb } from "../../src/lib/db.js";
-import { anggota } from "../../src/lib/schema.js";
+import { anggota, kelompok } from "../../src/lib/schema.js";
 import { eq } from "drizzle-orm";
 import { totAktif } from "../../src/lib/mode-tot.js";
 import { praktikanBolehMasuk } from "../../src/lib/tot.js";
@@ -72,12 +72,14 @@ export async function requireCurrentPraktikanSesi(
   // so they sign in again and land in the new group.
   if (running && session.kelompokId) {
     const [r] = await getDb()
-      .select({ kelompokId: anggota.kelompokId })
+      .select({ kelompokId: anggota.kelompokId, nomor: kelompok.nomor })
       .from(anggota)
+      .leftJoin(kelompok, eq(kelompok.id, anggota.kelompokId))
       .where(eq(anggota.nim, session.nim))
       .limit(1);
     if (r && r.kelompokId !== session.kelompokId) {
-      res.status(401).json({ ok: false, kode: "sesi_berganti" });
+      // `alasan` lets the page say "moved to Kelompok N", not "a new session".
+      res.status(401).json({ ok: false, kode: "sesi_berganti", alasan: "pindah", ke: r.nomor });
       return null;
     }
   }

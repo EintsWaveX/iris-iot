@@ -16,7 +16,7 @@ import Dialog from "../ui/Dialog";
 import { dengarAkunLain, dict, getJson, meChanged, type Me, type SesiNow } from "../../lib/app";
 import { startPolling } from "../../scripts/polling";
 import type { Lang } from "../../lib/kelas";
-import { openSignIn } from "../../lib/signin";
+import { isSignInPath, openSignIn } from "../../lib/signin";
 
 const T = dict({
   id: {
@@ -30,6 +30,9 @@ const T = dict({
     masuk: "Masuk lagi",
     muat: "Muat ulang halaman",
     nanti: "Nanti",
+    pindahH: (n: number) => `Kamu dipindah ke Kelompok ${n}`,
+    pindah: (n: number) =>
+      `Asisten memindahkanmu ke Kelompok ${n}. Masuk lagi supaya jawaban dan kehadiranmu tercatat di kelompok barumu.`,
     totH: "Sedang ada latihan TOT",
     tot: "Asisten sedang latihan TOT, jadi akun Praktikan tidak bisa dipakai dulu. Kamu sudah dikeluarkan; masuk lagi setelah latihannya selesai.",
   },
@@ -44,6 +47,9 @@ const T = dict({
     masuk: "Sign in again",
     muat: "Reload the page",
     nanti: "Later",
+    pindahH: (n: number) => `You were moved to Group ${n}`,
+    pindah: (n: number) =>
+      `An Asisten moved you to Group ${n}. Sign in again so your answers and attendance count in your new group.`,
     totH: "A TOT practice run is on",
     tot: "The Asisten are in a TOT practice run, so Praktikan accounts can't be used for now. You've been signed out; sign in again once it's over.",
   },
@@ -58,13 +64,20 @@ const T = dict({
     masuk: "重新登录",
     muat: "重新加载页面",
     nanti: "以后再说",
+    pindahH: (n: number) => `你被调到了第 ${n} 组`,
+    pindah: (n: number) => `助教把你调到了第 ${n} 组。重新登录，你的答案和出勤才会记在新的组里。`,
     totH: "正在进行 TOT 练习",
     tot: "助教正在进行 TOT 练习，学员账号暂时不能使用。你已被登出，练习结束后再登录。",
   },
 });
 
 type Keadaan =
-  { jenis: "swap"; nama: string } | { jenis: "gone" } | { jenis: "baru" } | { jenis: "tot" } | null;
+  | { jenis: "swap"; nama: string }
+  | { jenis: "gone" }
+  | { jenis: "baru" }
+  | { jenis: "tot" }
+  | { jenis: "pindah"; ke: number }
+  | null;
 
 export default function IdentityWatch({
   lang,
@@ -108,6 +121,13 @@ export default function IdentityWatch({
     };
   }, [nim]);
 
+  // Moved to another group mid-session (2026-10-07: they only found out
+  // from a "new session" note on the Code step, if they were on it).
+  const ke = me?.role === "praktikan" ? (now?.dipindahKe ?? null) : null;
+  useEffect(() => {
+    if (ke) setK((prev) => (prev && prev.jenis !== "baru" ? prev : { jenis: "pindah", ke }));
+  }, [ke]);
+
   const sesiKey = now ? `${now.tanggal}-${now.slot ?? now.mulai}` : null;
   useEffect(() => {
     if (me?.role !== "praktikan" || now?.milikSaya !== false || !sesiKey) return;
@@ -115,7 +135,8 @@ export default function IdentityWatch({
     setK((prev) => prev ?? { jenis: "baru" });
   }, [me?.role, now?.milikSaya, sesiKey]);
 
-  if (!k) return null;
+  // The sign-in page is where these dialogs send people; never cover its form.
+  if (!k || isSignInPath()) return null;
   const close = () => {
     if (k.jenis === "baru") dismissedBaru.current = sesiKey;
     setK(null);
@@ -127,7 +148,9 @@ export default function IdentityWatch({
         ? t.goneH
         : k.jenis === "tot"
           ? t.totH
-          : t.newH;
+          : k.jenis === "pindah"
+            ? t.pindahH(k.ke)
+            : t.newH;
   const body =
     k.jenis === "swap"
       ? t.swap(k.nama)
@@ -135,7 +158,9 @@ export default function IdentityWatch({
         ? t.gone
         : k.jenis === "tot"
           ? t.tot
-          : t.newB;
+          : k.jenis === "pindah"
+            ? t.pindah(k.ke)
+            : t.newB;
 
   return (
     <Dialog

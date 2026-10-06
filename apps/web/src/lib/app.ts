@@ -162,6 +162,8 @@ export interface SesiNow {
   mintaBantuanPada: string | null;
   /** Praktikan only: false when their sign-in belongs to an earlier session. */
   milikSaya?: boolean | null;
+  /** Praktikan only: the group an Asisten moved them to this session. */
+  dipindahKe?: number | null;
   /** Asisten only: true when they teach this session (slot seat, opener,
    *  a held group or an accepted volunteer place). */
   mengajar?: boolean | null;

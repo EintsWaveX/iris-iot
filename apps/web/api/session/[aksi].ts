@@ -173,6 +173,18 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       .limit(1);
     mintaBantuanPada = row?.pada?.toISOString() ?? null;
   }
+  // 2026-10-07: a Praktikan an Asisten moved to another group mid-session is
+  // told so on whatever page they are (their cookie still names the old one).
+  let dipindahKe: number | null = null;
+  if (who?.role === "praktikan" && who.kelompokId && who.sesiId === running.id) {
+    const [r] = await getDb()
+      .select({ kelompokId: anggota.kelompokId, nomor: kelompok.nomor })
+      .from(anggota)
+      .leftJoin(kelompok, eq(kelompok.id, anggota.kelompokId))
+      .where(eq(anggota.nim, who.nim))
+      .limit(1);
+    if (r && r.kelompokId !== who.kelompokId) dipindahKe = r.nomor;
+  }
   res.status(200).json({
     ok: true,
     sesi: {
@@ -192,6 +204,7 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       // A praktikan whose cookie belongs to an earlier session has to sign
       // in again to be counted in this one (the mini-bar asks them to).
       milikSaya: who?.role === "praktikan" ? who.sesiId === running.id : null,
+      dipindahKe: who?.role === "praktikan" ? dipindahKe : undefined,
       // An Asisten teaching it gets the "Sesimu berjalan" bar on every page.
       mengajar: who?.role === "asisten" ? await asistenMengajar(running, who.nim) : null,
       // Asisten only (2026-10-06): how many groups have a hand up, so the

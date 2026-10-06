@@ -23,5 +23,9 @@ export function openSignIn(next?: string): void {
     nim?.select();
     return;
   }
-  location.assign(signInHref(next));
+  // ulang=1: the app asked for a fresh sign-in, so /login shows its form even
+  // to someone still signed in (2026-10-07: a Praktikan moved to another
+  // group, or on an earlier session's sign-in, bounced straight back).
+  const to = signInHref(next);
+  location.assign(to + (to.includes("?") ? "&" : "?") + "ulang=1");
 }

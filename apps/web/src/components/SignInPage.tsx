@@ -234,7 +234,9 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
   } | null>(null);
 
   // Already signed in: nothing to do here, go on to where they were headed.
+  // Unless the app sent them to sign in again (?ulang=1, lib/signin).
   useEffect(() => {
+    if (new URLSearchParams(location.search).has("ulang")) return;
     getJson<{ ok: boolean; role?: string }>("/api/auth/me")
       .then((me) => {
         if (me.ok && (me.role === "asisten" || me.role === "praktikan"))
