@@ -1792,6 +1792,17 @@ thead .ntable__name {
   min-height: 40px;
   padding: 4px 12px;
   white-space: nowrap;
+  /* A button since 2026-10-06: opens the slot's roster. */
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 140ms ease;
+}
+
+.weekchip:hover,
+.weekchip:focus-visible {
+  border-color: var(--accent);
+  outline: none;
 }
 
 .weekchip[data-now="yes"] {

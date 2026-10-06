@@ -461,10 +461,13 @@ export default function AsistenHome({
           <span className="weekstrip__k">{h.myWeek}</span>
           {data && data.mingguSaya.length === 0 && <span className="hint">{h.myWeekEmpty}</span>}
           {data?.mingguSaya.map((w) => (
-            <span
+            // Each of my slots opens its roster in Persiapan (2026-10-06).
+            <button
+              type="button"
               key={`${w.hari}-${w.slot}`}
               className="weekchip"
               data-now={w.hari === data.hari && states[w.slot] === "now" ? "yes" : undefined}
+              onClick={() => onPrep(`${w.hari}-${w.slot}`, "roster")}
             >
               <b>
                 {hariLabel(w.hari, lang)} · {SLOT_MULAI[w.slot]}
@@ -473,7 +476,7 @@ export default function AsistenHome({
               {w.kelas === "internasional" && (
                 <Pill tone="violet">{kelasLabel("internasional", lang)}</Pill>
               )}
-            </span>
+            </button>
           ))}
         </div>
       </section>
