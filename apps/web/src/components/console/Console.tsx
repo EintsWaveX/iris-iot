@@ -186,7 +186,8 @@ export default function Console({ lang }: { lang: Lang }) {
         setPrepTab(h.prep);
         setPrepFull(h.prep === "roster" ? null : h.prep);
         setPrepOnly(true);
-        history.replaceState(null, "", location.pathname + location.search);
+        // The hash stays: PrepView keeps it on the open tab, so a reload or a
+        // language switch comes back to it (2026-10-07).
       }
       if (h.tot) {
         setView("prep");
@@ -459,7 +460,8 @@ export default function Console({ lang }: { lang: Lang }) {
               setPrepOnly(false);
               setPrepPilih(null);
               setPrepTab(undefined);
-              if (location.hash === "#tot") history.replaceState(null, "", location.pathname);
+              if (location.hash === "#tot" || location.hash.startsWith("#persiapan"))
+                history.replaceState(null, "", location.pathname);
             }}
             pilih={prepPilih}
             tab0={prepTab}

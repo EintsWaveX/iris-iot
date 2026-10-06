@@ -117,6 +117,16 @@ export default function PrepView({
   const bolehJadwal = me?.hak?.jadwal === true;
   const tabs = TABS.filter((id) => id !== "kode" || bolehKode);
   const [tab, setTab] = useState<Tab>(tab0);
+  // Standalone Persiapan keeps its tab in the address (Console readHash), so
+  // a reload or a language switch opens the same tab (2026-10-07: it went
+  // back to the default view).
+  const standalone = !!onBack && !sesi;
+  useEffect(() => {
+    if (!standalone) return;
+    const want = tab === "roster" ? "#persiapan" : tab === "tot" ? "#tot" : `#persiapan=${tab}`;
+    if (location.hash !== want)
+      history.replaceState(null, "", location.pathname + location.search + want);
+  }, [tab, standalone]);
   const [jadwal, setJadwal] = useState<JadwalRow[] | null>(null);
   const [draf, setDraf] = useState<Draf[]>([]);
   const [sel, setSel] = useState<string | null>(pilih);
