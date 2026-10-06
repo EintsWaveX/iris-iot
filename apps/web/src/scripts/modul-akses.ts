@@ -144,7 +144,10 @@ export async function applyLockScreen(
   if (!main) return false;
   // Phase 8: the app's own lock screen (icon, title, message, a way back)
   // instead of a bare paragraph. Built with DOM calls, never innerHTML.
-  const en = document.documentElement.lang !== "id";
+  // Mandarin pages say lang="zh-Hans" (pageLang() in lib/app, which this
+  // plain script doesn't import so it stays free of React).
+  const l = document.documentElement.lang;
+  const lang = l === "en" ? "en" : l.startsWith("zh") ? "zh" : "id";
   main.replaceChildren();
   const wrap = document.createElement("div");
   wrap.className = "lockscreen";
@@ -169,18 +172,26 @@ export async function applyLockScreen(
   const h = document.createElement("h1");
   h.className = "lockscreen__title";
   h.textContent = belumDibuka
-    ? en
-      ? `Module ${modul} is not open yet`
-      : `Modul ${modul} belum dibuka`
-    : en
-      ? `The Module ${modul} journal is not open for you yet`
-      : `Jurnal Modul ${modul} belum terbuka untukmu`;
+    ? {
+        id: `Modul ${modul} belum dibuka`,
+        en: `Module ${modul} is not open yet`,
+        zh: `模块 ${modul} 还没开放`,
+      }[lang]
+    : {
+        id: `Jurnal Modul ${modul} belum terbuka untukmu`,
+        en: `The Module ${modul} journal is not open for you yet`,
+        zh: `模块 ${modul} 的日志还没对你开放`,
+      }[lang];
   const p = document.createElement("p");
   p.textContent = message;
   const back = document.createElement("a");
   back.className = "btn btn--secondary";
-  back.href = en ? `/en/modules/${modul}` : `/modules/${modul}`;
-  back.textContent = en ? `Read Module ${modul}` : `Baca Modul ${modul}`;
+  back.href = lang === "id" ? `/modules/${modul}` : `/${lang}/modules/${modul}`;
+  back.textContent = {
+    id: `Baca Modul ${modul}`,
+    en: `Read Module ${modul}`,
+    zh: `读模块 ${modul}`,
+  }[lang];
   wrap.append(icon, h, p, back);
   main.appendChild(wrap);
   return true;

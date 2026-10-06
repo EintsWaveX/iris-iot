@@ -14,7 +14,7 @@ import Base from "../layouts/Base.astro";
 import PageHeader from "../components/ui/PageHeader.astro";
 import LiveRoom from "../components/live/LiveRoom";
 import { stringsFor } from "../i18n/zh";
-import { bahasaKonten, type Lang } from "../lib/kelas";
+import type { Lang } from "../lib/kelas";
 import { href } from "../lib/app";
 
 interface Props {
@@ -24,7 +24,7 @@ interface Props {
 
 const { lang, modul } = Astro.props;
 const t = stringsFor(lang);
-const entry = await getEntry("modules", `${bahasaKonten(lang)}/${modul}`);
+const entry = await getEntry("modules", `${lang}/${modul}`);
 if (!entry) {
   throw new Error(`no module content for ${lang}/${modul}`);
 }
@@ -66,7 +66,7 @@ const basePath = href(lang, "/modules");
     const match = /\/modules\/(\d)\/live(?:\/|$)/.exec(location.pathname);
     if (!match) return;
     const l = document.documentElement.lang;
-    const lang = isLang(l) ? l : "id";
+    const lang = l.startsWith("zh") ? "zh" : isLang(l) ? l : "id";
     const t = stringsFor(lang);
     const heading = document.querySelector(".page-header__title");
     void applyLockScreen(

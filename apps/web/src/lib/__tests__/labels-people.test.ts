@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  divisiLabel,
   durasiLabel,
   kelasLabel,
   kelompokLabel,
@@ -49,5 +50,23 @@ describe("namaAsisten", () => {
     expect(namaAsisten({ nama: "Desta Saputra", kode: null })).toBe("Desta Saputra");
     expect(namaAsisten(undefined, "1101200002")).toBe("1101200002");
     expect(namaAsisten(null)).toBe("?");
+  });
+});
+
+describe("divisiLabel", () => {
+  const anggota = { id: "Anggota Divisi ASO", en: "Member of ASO Division" };
+  it("keeps the stored Indonesian and English names", () => {
+    expect(divisiLabel(anggota, "id")).toBe("Anggota Divisi ASO");
+    expect(divisiLabel(anggota, "en")).toBe("Member of ASO Division");
+  });
+  it("builds the Mandarin name from the English one", () => {
+    expect(divisiLabel(anggota, "zh")).toBe("ASO 部成员");
+    expect(divisiLabel({ id: "Kepala Divisi ARM", en: "Chief of ARM Division" }, "zh")).toBe(
+      "ARM 部部长",
+    );
+    expect(divisiLabel({ id: "Bendahara", en: "Treasurer" }, "zh")).toBe("财务");
+  });
+  it("falls back to English for a name it does not know", () => {
+    expect(divisiLabel({ id: "Lainnya", en: "Something Else" }, "zh")).toBe("Something Else");
   });
 });

@@ -1,0 +1,104 @@
+{
+  "modul": 1,
+  "bahasa": "zh",
+  "judul": "Bluetooth Low Energy",
+  "topik": "Bluetooth Low Energy（BLE）连接",
+  "tagline": "Central 和 Peripheral 通过 GATT 互发信号，不需要 IP 网络。",
+  "fakta": ["ESP32", "GATT", "无 IP 网络"],
+  "ringkasan": [
+    "两块 ESP32 通过 GATT 协议连接：一块当 Central，读取按钮；另一块当 Peripheral，一收到通知就把 LED 打开或关掉。",
+    "测量的延迟是从 Central 到 Peripheral 的单程时间，再和 Central 收到回显后自己打印的往返延迟做比较。"
+  ],
+  "toolchain": [
+    {
+      "label": "两块 ESP32（Central 和 Peripheral）",
+      "alat": "Arduino IDE"
+    }
+  ],
+  "perangkat": [
+    {
+      "nama": "ESP32-S3（或 ESP32 DevKit V1）",
+      "jumlah": "2 个"
+    },
+    {
+      "nama": "4 脚按钮",
+      "jumlah": "1 个"
+    },
+    {
+      "nama": "5mm LED（颜色不限）",
+      "jumlah": "1 个"
+    },
+    {
+      "nama": "10 kOhm 电阻",
+      "jumlah": "1 个"
+    },
+    {
+      "nama": "220 Ohm 电阻",
+      "jumlah": "1 个"
+    },
+    {
+      "nama": "面包板",
+      "jumlah": "2 个"
+    },
+    {
+      "nama": "杜邦线/跳线",
+      "jumlah": "按需"
+    }
+  ],
+  "skema": "/schematics/Module 1.png",
+  "pin": {
+    "judul": "Central/Client 和 Peripheral/Server",
+    "kolom": ["元件（Central）", "引脚", "元件（Peripheral）", "引脚"],
+    "baris": [
+      ["按钮（脚 1）", "3V3", "LED（正极）", "GPIO16"],
+      ["按钮（脚 2）", "GPIO17", "LED（负极，经 220 Ohm 电阻）", "GND"]
+    ],
+    "catatan": [
+      "按钮的脚 2 还要经过 10 kOhm 电阻接到 GND（下拉），这样没按时 GPIO17 读到 LOW，按下时读到 HIGH。",
+      "LED 的负极要串一个 220 Ohm 限流电阻，让电流保持在 GPIO 的安全范围内。"
+    ]
+  },
+  "persiapan": [
+    "在 Arduino IDE 里给两块板都选 ESP32S3 Dev Module（用 DevKit V1 的话选 ESP32 Dev Module）",
+    "把两个程序里的 GROUP_ID 改成你们组的编号",
+    "按原理图接好按钮的 10 kOhm 下拉电阻和 LED 的 220 Ohm 限流电阻",
+    "用同一台电脑给两块板同步时钟"
+  ],
+  "berkas": [
+    {
+      "path": "modul1_ble_central.ino",
+      "judul": "Central/Client：Bluetooth Low Energy（ESP32）",
+      "bahasaKode": "cpp"
+    },
+    {
+      "path": "modul1_ble_peripheral.ino",
+      "judul": "Peripheral/Server：Bluetooth Low Energy（ESP32）",
+      "bahasaKode": "cpp"
+    }
+  ],
+  "ladder": {
+    "jalur": 2
+  },
+  "lapisan": [
+    {
+      "nama": "应用层",
+      "nilai": "GATT characteristic"
+    },
+    {
+      "nama": "传输层",
+      "nilai": "Notify"
+    },
+    {
+      "nama": "网络层",
+      "nilai": "（无）"
+    },
+    {
+      "nama": "数据链路层",
+      "nilai": "LE 链路，连接间隔"
+    },
+    {
+      "nama": "物理层",
+      "nilai": "2.4 GHz，RSSI"
+    }
+  ]
+}

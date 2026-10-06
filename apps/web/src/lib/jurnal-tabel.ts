@@ -3,13 +3,13 @@
  * Terakhir". Headers are copied from the worksheets in IRIS ASO\jurnal\
  * ("ID_Modul N - Lembar Kerja.typ", "EN_Module N - Worksheet.typ"): same
  * words, same order, same units. The journals stay in Indonesian and
- * English, so a Mandarin page shows the English table.
+ * English; a Mandarin page shows the same columns with Mandarin headers.
  */
 import type { Lang } from "./kelas";
 import type { LiveRecord } from "./live-records";
 
-export type JLang = "id" | "en";
-export const jLang = (l: Lang): JLang => (l === "id" ? "id" : "en");
+export type JLang = Lang;
+export const jLang = (l: Lang): JLang => l;
 
 export type JKey =
   | "trial"
@@ -29,10 +29,12 @@ interface JDef {
   keys: JKey[];
   id: { cols: [string, string][]; foot: string; span: number };
   en: { cols: [string, string][]; foot: string; span: number };
+  zh: { cols: [string, string][]; foot: string; span: number };
 }
 
 const TRIAL_ID: [string, string] = ["Percobaan ke-...", ""];
 const TRIAL_EN: [string, string] = ["Trial no. ...", ""];
+const TRIAL_ZH: [string, string] = ["第 ... 次试验", ""];
 const HMS = "[HH:MM:SS:MS]";
 
 export const JURNAL: Record<number, JDef> = {
@@ -60,6 +62,18 @@ export const JURNAL: Record<number, JDef> = {
         ["Round-trip delay", "[ms]"],
       ],
       foot: "Average delay (ms)",
+      span: 4,
+    },
+    zh: {
+      cols: [
+        TRIAL_ZH,
+        ["LED 状态", "[0/1]"],
+        ["发送时间", `(Central) ${HMS}`],
+        ["接收时间", `(Peripheral) ${HMS}`],
+        ["单程延迟", "[ms]"],
+        ["往返延迟", "[ms]"],
+      ],
+      foot: "平均延迟 (ms)",
       span: 4,
     },
   },
@@ -91,6 +105,19 @@ export const JURNAL: Record<number, JDef> = {
       foot: "Average delay (ms)",
       span: 5,
     },
+    zh: {
+      cols: [
+        TRIAL_ZH,
+        ["温度", "[°C]"],
+        ["湿度", "[%]"],
+        ["发送时间", `(ESP32) ${HMS}`],
+        ["接收时间", `(Orange Pi) ${HMS}`],
+        ["单程延迟", "[ms]"],
+        ["往返延迟", "[ms]"],
+      ],
+      foot: "平均延迟 (ms)",
+      span: 5,
+    },
   },
   3: {
     keys: ["trial", "seq", "pos", "tx", "rx", "oneway"],
@@ -116,6 +143,18 @@ export const JURNAL: Record<number, JDef> = {
         ["One-way delay", "[ms]"],
       ],
       foot: "Average one-way delay (ms)",
+      span: 5,
+    },
+    zh: {
+      cols: [
+        TRIAL_ZH,
+        ["样本编号", ""],
+        ["位置", "[%]"],
+        ["发布时间", `(Publisher) ${HMS}`],
+        ["接收时间", `(Subscriber) ${HMS}`],
+        ["单程延迟", "[ms]"],
+      ],
+      foot: "平均单程延迟 (ms)",
       span: 5,
     },
   },
@@ -147,6 +186,19 @@ export const JURNAL: Record<number, JDef> = {
       foot: "Average one-way delay (ms)",
       span: 6,
     },
+    zh: {
+      cols: [
+        TRIAL_ZH,
+        ["数据包编号", ""],
+        ["RSSI", "[dBm]"],
+        ["SNR", "[dB]"],
+        ["发送时间", `(Beacon) ${HMS}`],
+        ["接收时间", `(Hunter) ${HMS}`],
+        ["单程延迟", "[ms]"],
+      ],
+      foot: "平均单程延迟 (ms)",
+      span: 6,
+    },
   },
 };
 
@@ -175,6 +227,18 @@ export const JARAK = {
     rows: ["Near", "Middle", "Far"],
     yes: "yes",
     no: "no",
+  },
+  zh: {
+    cols: [
+      ["位置", ""],
+      ["实际距离", "(卷尺) [m]"],
+      ["平滑 RSSI", "[dBm]"],
+      ["记分板估计", "[m]"],
+      ["有遮挡吗？", "(是 / 否)"],
+    ] as [string, string][],
+    rows: ["近", "中", "远"],
+    yes: "是",
+    no: "否",
   },
 };
 

@@ -1,0 +1,115 @@
+{
+  "modul": 4,
+  "bahasa": "zh",
+  "judul": "LoRa",
+  "topik": "远距离通信（LoRa 点对点）",
+  "tagline": "ESP32 板之间的 LoRa P2P 寻信号游戏。",
+  "fakta": ["ESP32", "LoRa P2P", "Pi 热点"],
+  "ringkasan": [
+    "这个模块完全不用外接传感器或执行器。要测的就是无线电波本身：信号强度和距离之间的关系。",
+    "点对点 LoRa 没有自带的信道协议，所以每条网络规则，包括 sync word 和发送间隔，都由参与者自己定。"
+  ],
+  "permainan": [
+    "五对完全独立的 Beacon/Hunter，每组一对，不是大家抢同一个 Beacon。助教给每个组藏一块 Beacon，作为那个组自己的目标。每个组拿一块只负责收听的 Hunter，再通过 Wi-Fi 把收到的信号强度报给记分板。",
+    "离自己的目标越近，读数越强。最快找到自己目标的组获胜。组和组之间不能比距离，因为每个目标藏的地方都不一样。"
+  ],
+  "toolchain": [
+    {
+      "label": "每个组的 Hunter 板",
+      "alat": "Arduino IDE"
+    },
+    {
+      "label": "Beacon 板（由助教上传）",
+      "alat": "Arduino IDE"
+    }
+  ],
+  "perangkat": [
+    {
+      "nama": "Cosmic LoRa Aurora V2",
+      "jumlah": "每组 1 个，当 Hunter"
+    },
+    {
+      "nama": "Cosmic LoRa Aurora V2",
+      "jumlah": "每组 1 个，当这个组要找的 Beacon"
+    },
+    {
+      "nama": "920 MHz LoRa 天线",
+      "jumlah": "每块板 1 个"
+    },
+    {
+      "nama": "Orange Pi 4 PRO",
+      "jumlah": "每个班 1 个，当热点和记分板"
+    },
+    {
+      "nama": "充电宝或长 USB 线",
+      "jumlah": "每组 1 个"
+    }
+  ],
+  "skema": "",
+  "pin": {
+    "judul": "Cosmic LoRa Aurora V2 上的 RFM95W 射频引脚",
+    "kolom": ["信号", "引脚"],
+    "baris": [
+      ["RFM（NSS）", "GPIO15"],
+      ["RFM（DIO0）", "GPIO27"],
+      ["RFM（RST）", "GPIO0"],
+      ["RFM（SCK）", "GPIO18"],
+      ["RFM（MISO）", "GPIO19"],
+      ["RFM（MOSI）", "GPIO23"],
+      ["RFM（EN）", "GPIO32"]
+    ],
+    "catatan": [
+      "先装好 920 MHz 天线，再插 USB 线。没装天线就发射可能会永久损坏射频模块，Beacon 板和 Hunter 板都一样。",
+      "GPIO 15、0、27、32、18、19 和 23 已经被射频模块占用，不能拿来做别的。",
+      "Hunter 不需要分压电路，因为上面什么都不接。"
+    ]
+  },
+  "persiapan": [
+    "插 USB 线之前先把 920 MHz 天线装到板子上",
+    "在 Arduino IDE 的库管理器里安装 Sandeep Mistry 的 LoRa 库",
+    "在 Arduino IDE 的库管理器里安装 Markus Sattler 的 WebSockets 库",
+    "在 Arduino IDE 里选择 ESP32 Dev Module 板",
+    "确认 Orange Pi 的 IRIS-IOT 热点和记分板都在运行",
+    "复制你们组的文件夹，然后不做任何修改直接上传 hunter.ino",
+    "确认 Serial Monitor 打印出 IP 地址和已同步的时钟",
+    "打开记分板，输入你的学号，确认自己的组出现了",
+    "在离 Beacon 1 米处校准距离基准"
+  ],
+  "berkas": [
+    {
+      "path": "modul4_hunter.ino",
+      "judul": "Hunter：LoRa 寻信号（Cosmic LoRa Aurora V2）",
+      "bahasaKode": "cpp"
+    },
+    {
+      "path": "modul4_beacon.ino",
+      "judul": "Beacon：LoRa 寻信号（Cosmic LoRa Aurora V2）",
+      "bahasaKode": "cpp"
+    }
+  ],
+  "ladder": {
+    "jalur": 2
+  },
+  "lapisan": [
+    {
+      "nama": "应用层",
+      "nilai": "排名，热度"
+    },
+    {
+      "nama": "传输层",
+      "nilai": "（无）"
+    },
+    {
+      "nama": "网络层",
+      "nilai": "（无）"
+    },
+    {
+      "nama": "数据链路层",
+      "nilai": "Sync word，序号，丢包"
+    },
+    {
+      "nama": "物理层",
+      "nilai": "920 MHz，SF，BW，RSSI，SNR"
+    }
+  ]
+}

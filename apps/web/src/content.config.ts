@@ -2,7 +2,7 @@ import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
 
 /**
- * One entry per module per language (src/content/modules/{id,en}/{1..4}.json),
+ * One entry per module per language (src/content/modules/{id,en,zh}/{1..4}.json),
  * the parallel id/en layout the practicum journals themselves use. The data
  * here is curated from jurnal/{id,en}/*.typ and kode_praktikum/{id,en}/* in
  * the practicum repo (Downloads/IRIS ASO), which stays the source of truth --
@@ -13,7 +13,7 @@ const modules = defineCollection({
   loader: glob({ pattern: "*/*.json", base: "./src/content/modules" }),
   schema: z.object({
     modul: z.number().int().min(1).max(4),
-    bahasa: z.enum(["id", "en"]),
+    bahasa: z.enum(["id", "en", "zh"]),
     judul: z.string(),
     topik: z.string(),
     // P7.4: the one-line pitch and 2-3 short fact chips (board, protocol,

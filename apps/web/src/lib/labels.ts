@@ -140,3 +140,19 @@ const STATUS: Record<StatusOrang, Tri> = {
 export function statusOrangLabel(s: StatusOrang, lang: Lang): string {
   return pick(STATUS[s] ?? STATUS.aktif, lang);
 }
+
+/** A person's position as the Tim data stores it (Indonesian and English);
+ *  Mandarin is built from the English ("Member of ASO Division"). */
+export function divisiLabel(d: { id: string; en: string }, lang: Lang): string {
+  if (lang !== "zh") return d[lang];
+  const m = /^(Member|Chief) of (\w+) Division$/.exec(d.en);
+  if (m) return `${m[2]} 部${m[1] === "Chief" ? "部长" : "成员"}`;
+  const tetap: Record<string, string> = {
+    "Assistant Coordinator": "助教协调人",
+    "Vice Assistant Coordinator": "助教副协调人",
+    Secretary: "秘书",
+    Treasurer: "财务",
+    Research: "研究",
+  };
+  return tetap[d.en] ?? d.en;
+}

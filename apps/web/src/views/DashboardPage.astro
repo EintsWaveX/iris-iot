@@ -20,7 +20,7 @@ const { lang } = Astro.props;
 
 const modules: ModulInfo[] = [];
 for (const n of [1, 2, 3, 4]) {
-  const entry = await getEntry("modules", `${bahasaKonten(lang)}/${n}`);
+  const entry = await getEntry("modules", `${lang}/${n}`);
   if (!entry) throw new Error(`no module content for ${lang}/${n}`);
   const m = entry.data;
   modules.push({
@@ -30,8 +30,9 @@ for (const n of [1, 2, 3, 4]) {
     persiapan: m.persiapan.length,
     berkas: m.berkas.map((b) => ({
       slug: b.path.replace(/\.(ino|py)$/, ""),
-      blanks: parseBlanks(getSketchSource(m.bahasa, b.path)).filter((s) => s.kind === "blank")
-        .length,
+      blanks: parseBlanks(getSketchSource(bahasaKonten(lang), b.path)).filter(
+        (s) => s.kind === "blank",
+      ).length,
     })),
   });
 }

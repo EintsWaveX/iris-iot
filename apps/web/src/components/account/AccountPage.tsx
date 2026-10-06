@@ -23,7 +23,8 @@ import { getJson, href, meChanged, postJson, useMe, dict } from "../../lib/app";
 import { saveLangPref } from "../../lib/hooks";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { semesterDariTanggal } from "../../lib/jadwal-parser";
-import { bahasaKonten, pathForLang, type Lang } from "../../lib/kelas";
+import { pathForLang, type Lang } from "../../lib/kelas";
+import { divisiLabel } from "../../lib/labels";
 import type { BarisJadwal } from "../../lib/jadwal-next";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import "./AccountPage.css";
@@ -283,7 +284,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
         <h1 className="page-header__title">{me.nama}</h1>
         <span className="acctpage__badges">
           {kode && <span className="pill pill--accent pill--mono">{kode}</span>}
-          {me.divisi && <span className="pill">{me.divisi[bahasaKonten(lang)]}</span>}
+          {me.divisi && <span className="pill">{divisiLabel(me.divisi, lang)}</span>}
           {me.tier && <TierBadge tier={me.tier} lang={lang} />}
           <PersonBadges badges={me.badges ?? []} lang={lang} />
         </span>

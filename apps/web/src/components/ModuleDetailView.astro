@@ -25,7 +25,7 @@ interface Props {
 
 const { lang, modul } = Astro.props;
 const t = stringsFor(lang);
-const entry = await getEntry("modules", `${bahasaKonten(lang)}/${modul}`);
+const entry = await getEntry("modules", `${lang}/${modul}`);
 if (!entry) {
   throw new Error(`no module content for ${lang}/${modul}`);
 }
@@ -36,7 +36,7 @@ const back = lang === "zh" ? "全部模块" : t.backToIndex;
 const berkasSource = m.berkas.map((b) => ({
   ...b,
   slug: b.path.replace(/\.(ino|py)$/, ""),
-  segments: parseBlanks(getSketchSource(m.bahasa, b.path)),
+  segments: parseBlanks(getSketchSource(bahasaKonten(lang), b.path)),
 }));
 const mcu = m.fakta[0] ?? "ESP32";
 const arrowLeft =
@@ -128,7 +128,7 @@ const caretRight =
       mcu={mcu}
       skema={m.skema}
       layers={m.lapisan}
-      code={{ modul: m.modul, bahasa: m.bahasa, berkas: berkasSource }}
+      code={{ modul: m.modul, bahasa: bahasaKonten(lang), berkas: berkasSource }}
     />
   </main>
 </Base>

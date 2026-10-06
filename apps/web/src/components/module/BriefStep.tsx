@@ -25,11 +25,16 @@ import en1 from "../../content/modules/en/1.json";
 import en2 from "../../content/modules/en/2.json";
 import en3 from "../../content/modules/en/3.json";
 import en4 from "../../content/modules/en/4.json";
+import zh1 from "../../content/modules/zh/1.json";
+import zh2 from "../../content/modules/zh/2.json";
+import zh3 from "../../content/modules/zh/3.json";
+import zh4 from "../../content/modules/zh/4.json";
 import { useSiaran } from "../../lib/siaran";
 
-const BAWAAN: Record<"id" | "en", Record<number, { ringkasan: string[] }>> = {
+const BAWAAN: Record<"id" | "en" | "zh", Record<number, { ringkasan: string[] }>> = {
   id: { 1: id1, 2: id2, 3: id3, 4: id4 },
   en: { 1: en1, 2: en2, 3: en3, 4: en4 },
+  zh: { 1: zh1, 2: zh2, 3: zh3, 4: zh4 },
 };
 
 type Bahasa = "id" | "en" | "zh";
@@ -188,7 +193,7 @@ function BriefDrawer({
       const r = rows.find((x) => x.bahasa === b);
       out[b] = r
         ? { sum: r.isi.ringkasan, steps: r.isi.langkah.join("\n") }
-        : { sum: BAWAAN[b === "id" ? "id" : "en"][modul].ringkasan.join("\n\n"), steps: "" };
+        : { sum: BAWAAN[b][modul].ringkasan.join("\n\n"), steps: "" };
     }
     return out;
   }, [rows, modul]);
