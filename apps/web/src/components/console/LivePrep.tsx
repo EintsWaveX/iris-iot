@@ -35,9 +35,11 @@ import {
   UserIcon,
   UserSwitchIcon,
   XCircleIcon,
+  UserPlusIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { getJson, jamMenit, namaKelompok, postJson } from "../../lib/app";
+import TambahPraktikan from "./TambahPraktikan";
 import { usePoll } from "../../lib/hooks";
 import { kelompokLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
@@ -124,6 +126,7 @@ export default function LivePrep({
     },
   });
   const [drag, setDrag] = useState<Anggota | null>(null);
+  const [tambah, setTambah] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   async function kirim(body: Record<string, unknown>, ok: string) {
@@ -273,6 +276,10 @@ export default function LivePrep({
       <div className="liveprep__bar">
         <span className="pill pill--ok">{l.count(hadir, semua.length)}</span>
         <span className="hint grow">{l.countHint}</span>
+        <button type="button" className="btn btn--sm" onClick={() => setTambah(true)}>
+          <UserPlusIcon aria-hidden="true" />
+          {l.addStudent}
+        </button>
         <button type="button" className="btn btn--sm" onClick={() => onOpen("akses")}>
           <LockSimpleOpenIcon aria-hidden="true" />
           {l.access}
@@ -282,6 +289,17 @@ export default function LivePrep({
           {l.slides}
         </button>
       </div>
+
+      <TambahPraktikan
+        lang={lang}
+        open={tambah}
+        onOpenChange={setTambah}
+        groups={groups}
+        onAdded={() => {
+          poll.refresh();
+          onChanged();
+        }}
+      />
 
       <DndContext
         sensors={sensors}

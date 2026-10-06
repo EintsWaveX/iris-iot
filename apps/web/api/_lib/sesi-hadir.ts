@@ -12,6 +12,13 @@
  *        this session (the "pair" right). Their next action asks them to sign
  *        in again (requireCurrentPraktikanSesi), which puts them in the new
  *        group. The weekly roster is left as it is.
+ *      { aksi: "tambah", nim, ke, nama? } (2026-10-06) put a student who isn't
+ *        in this session into group `ke` (the "pair" right), so they can sign
+ *        in: a late or misplaced Praktikan used to be told "tidak terdaftar"
+ *        with no way in short of ending the session. A NIM not yet among the
+ *        semester's Praktikan needs `nama` and is added to them too. Already
+ *        in a group: answered `sudah_di_kelompok` (use pindah). The weekly
+ *        roster is left as it is.
  *
  * An Asisten counts as present from opening the session or any action they
  * take in it (their first audit row from the session's sesi_mulai row on),
@@ -30,6 +37,7 @@ import {
   jadwal,
   kelompok,
   percobaanMasuk,
+  praktikan,
   sesiAnggota,
   sesiAsisten,
   sesiKejadian,
@@ -330,6 +338,8 @@ export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session
   if (!running) return tolak(res, "tidak_ada_sesi");
   const db = getDb();
 
+  if (aksi === "tambah") return tambahPraktikan(res, session, running, nim, body);
+
   if (aksi === "asisten") {
     const [o] = await db
       .select({ nim: asisten.nim })
@@ -409,4 +419,86 @@ export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session
   }
 
   tolak(res, "format_salah");
+}
+
+const NIM_PRAKTIKAN = /^\d{10}(\d{2})?$/;
+
+async function tambahPraktikan(
+  res: ApiResponse,
+  session: SessionPayload,
+  running: NonNullable<Awaited<ReturnType<typeof currentSesi>>>,
+  nim: string,
+  body: Record<string, unknown>,
+) {
+  if (!(await cekHak(res, session.nim, "pair"))) return;
+  const ke = Number(body.ke);
+  if (!Number.isInteger(ke) || ke < 1 || ke > (running.jumlahKelompok ?? 10))
+    return tolak(res, "format_salah");
+  const db = getDb();
+
+  const [sudah] = await db
+    .select({ nomor: kelompok.nomor, aktif: kelompok.aktif })
+    .from(anggota)
+    .innerJoin(kelompok, eq(kelompok.id, anggota.kelompokId))
+    .where(eq(anggota.nim, nim))
+    .limit(1);
+  if (sudah?.aktif)
+    return res.status(200).json({ ok: false, kode: "sudah_di_kelompok", nomor: sudah.nomor });
+
+  const [g] = await db
+    .select({ id: kelompok.id })
+    .from(kelompok)
+    .where(and(eq(kelompok.nomor, ke), eq(kelompok.aktif, true)))
+    .limit(1);
+  if (!g) return tolak(res, "kelompok_tidak_diketahui");
+  const [mati] = await db
+    .select({ aktif: sesiKelompok.aktif })
+    .from(sesiKelompok)
+    .where(and(eq(sesiKelompok.sesiId, running.id), eq(sesiKelompok.kelompokId, g.id)))
+    .limit(1);
+  if (mati && !mati.aktif) return tolak(res, "kelompok_mati");
+
+  // Their name: the semester's Praktikan list, else the one typed in.
+  const [p] = await db
+    .select({ nama: praktikan.nama })
+    .from(praktikan)
+    .where(eq(praktikan.nim, nim))
+    .limit(1);
+  let nama = p?.nama ?? "";
+  if (!p) {
+    // Only a new NIM is checked for its shape; one on the list is theirs.
+    if (!NIM_PRAKTIKAN.test(nim)) return tolak(res, "nim_salah");
+    nama = typeof body.nama === "string" ? body.nama.trim().replace(/\s+/g, " ") : "";
+    if (nama.length < 2 || nama.length > 120)
+      return res.status(200).json({ ok: false, kode: "perlu_nama" });
+    await db
+      .insert(praktikan)
+      .values({
+        nim,
+        nama,
+        kelas: running.kelas,
+        semester: semesterDariTanggal(running.tanggal),
+        dibuatOleh: session.nim,
+      })
+      .onConflictDoNothing();
+  }
+
+  await db
+    .insert(anggota)
+    .values({ kelompokId: g.id, nim, nama })
+    .onConflictDoUpdate({ target: anggota.nim, set: { kelompokId: g.id, nama } });
+  await db
+    .insert(sesiAnggota)
+    .values({ sesiId: running.id, kelompokNomor: ke, nim, nama })
+    .onConflictDoUpdate({
+      target: [sesiAnggota.sesiId, sesiAnggota.nim],
+      set: { kelompokNomor: ke },
+    });
+  await writeAudit(session.nim, "praktikan_tambah_sesi", {
+    sesiId: running.id,
+    nim,
+    ke,
+    baru: !p,
+  });
+  return res.status(200).json({ ok: true, nama, nomor: ke });
 }

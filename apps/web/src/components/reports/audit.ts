@@ -130,6 +130,8 @@ const W = {
     rosterSusulan: (n: unknown) => `menyimpan roster susulan (${n} praktikan)`,
     rosterSet: "mengganti roster lama",
     praktikanTambah: (n: unknown) => `menambahkan ${n} praktikan`,
+    praktikanTambahSesi: (nim: unknown, k: unknown) =>
+      `memasukkan ${nim} ke Kelompok ${k} di sesi berjalan`,
     susulanDraf: (t: string) => `membuat draf susulan ${t}`,
     modulAkses: (m: string) => (m ? `membuka akses ${m}` : "menutup semua akses modul"),
     totNyala: "menyalakan Mode TOT; roster asli disimpan",
@@ -234,6 +236,8 @@ const W = {
     rosterSusulan: (n: unknown) => `saved a makeup roster (${n} students)`,
     rosterSet: "replaced the old roster",
     praktikanTambah: (n: unknown) => `added ${n} students`,
+    praktikanTambahSesi: (nim: unknown, k: unknown) =>
+      `put ${nim} in Group ${k} of the running session`,
     susulanDraf: (t: string) => `made a makeup draft for ${t}`,
     modulAkses: (m: string) => (m ? `opened ${m}` : "closed every module"),
     totNyala: "switched TOT Mode on; the real roster was saved",
@@ -337,6 +341,7 @@ const W = {
     rosterSusulan: (n: unknown) => `保存了补课名单（${n} 位学员）`,
     rosterSet: "替换了旧名单",
     praktikanTambah: (n: unknown) => `添加了 ${n} 位学员`,
+    praktikanTambahSesi: (nim: unknown, k: unknown) => `把 ${nim} 加入正在进行的课程的第 ${k} 组`,
     susulanDraf: (t: string) => `为 ${t} 建了补课草稿`,
     modulAkses: (m: string) => (m ? `开放了${m}` : "关闭了所有模块"),
     totNyala: "开启了 TOT 模式，真实名单已保存",
@@ -606,6 +611,8 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(UsersThreeIcon, w.rosterSet);
     case "praktikan_tambah":
       return k(UserPlusIcon, w.praktikanTambah(d.ditambah));
+    case "praktikan_tambah_sesi":
+      return k(UserPlusIcon, w.praktikanTambahSesi(d.nim, d.ke));
     case "susulan_draf":
       return k(
         CalendarBlankIcon,

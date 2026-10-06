@@ -585,6 +585,9 @@ export default function Console({ lang }: { lang: Lang }) {
             <span>
               <b>{t.emptyRosterH}</b> {t.emptyRosterP}
             </span>
+            <button type="button" className="btn btn--sm" onClick={() => go("prep")}>
+              {t.emptyRosterGo}
+            </button>
           </div>
         )}
         {view === "board" && (
