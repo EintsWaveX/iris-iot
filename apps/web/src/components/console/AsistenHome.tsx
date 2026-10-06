@@ -390,7 +390,7 @@ export default function AsistenHome({
       </header>
 
       {me.perluAturSandi && (
-        <a className="home__pw" href={href(lang, "/account")}>
+        <a className="home__pw" href={`${href(lang, "/account")}#sandi`}>
           <WarningIcon size={20} aria-hidden="true" />
           <span className="grow stack" style={{ gap: 2 }}>
             <b>{t.pwReminder}</b>

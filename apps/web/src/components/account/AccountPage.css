@@ -152,3 +152,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Home's password reminder lands here, clear of the sticky nav. */
+.acctpage__pwcard {
+  scroll-margin-top: 84px;
+}

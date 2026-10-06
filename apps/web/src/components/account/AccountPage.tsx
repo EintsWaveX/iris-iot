@@ -231,6 +231,16 @@ export default function AccountPage({ lang }: { lang: Lang }) {
   };
   useEffect(muat, [me]);
   useSiaran(["jadwal", "tim", "umpan"], muat, me?.role === "asisten");
+  // #sandi (Home's "Setel Sekarang", 2026-10-06): straight to the form,
+  // the cursor in its first field, instead of the top of the page.
+  useEffect(() => {
+    if (me?.role !== "asisten" || location.hash !== "#sandi") return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById("sandi");
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      el?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+    });
+  }, [me]);
 
   const kode = (me?.kode ?? "").toUpperCase();
   const mine = useMemo(
@@ -285,7 +295,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
       {/* Wide screens: Ganti Kata Sandi above Jadwalku on the left, Tampilan
           beside both with the same bottom edge, then Feedback full width. */}
       <div className="acctpage__main">
-        <section className="panel acctpage__pwcard">
+        <section className="panel acctpage__pwcard" id="sandi">
           <h2 className="panel__title">{t.pwH}</h2>
           <p className="hint">{t.pwSub}</p>
           <PasswordForm t={t} lang={lang} first={Boolean(me.perluAturSandi)} />
