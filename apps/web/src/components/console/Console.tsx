@@ -23,7 +23,7 @@ import { shortcutsOn } from "../../lib/prefs";
 import { ShieldWarningIcon, SignInIcon, WarningIcon } from "@phosphor-icons/react";
 import { OfflineBanner, StateView } from "../ui/Display";
 import { isTypingTarget } from "../ui/ShortcutSheet";
-import { href, useMe } from "../../lib/app";
+import { getJson, href, useMe } from "../../lib/app";
 import { masukProyektor } from "../../lib/proyektor";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
@@ -135,6 +135,41 @@ export default function Console({ lang }: { lang: Lang }) {
 
   // Restore the done screen after a reload.
   useEffect(() => setDone(readDone()), []);
+
+  // Ended elsewhere (another tab, device or Asisten): the closed screen, as
+  // after this Console's own Akhiri, not a jump to Home mid-scoring
+  // (2026-10-07). A cancelled session (batal) just goes back to Home.
+  const tadi = useRef<{ s: SesiRunning; hadir: number } | null>(null);
+  useEffect(() => {
+    if (sesi) {
+      const hadir = (lap.data?.kelompok ?? []).reduce((n, g) => n + (g.hadir ?? 0), 0);
+      tadi.current = { s: sesi, hadir };
+      return;
+    }
+    const lama = tadi.current;
+    tadi.current = null;
+    if (!lama || readDone()?.id === lama.s.id) return;
+    void getJson<{ ok: boolean; sesi?: { status?: string; selesaiPada?: string | null } | null }>(
+      `/api/session/laporan?sesiId=${lama.s.id}`,
+    )
+      .then((d) => {
+        if (d.ok && d.sesi?.status === "batal") window.Toast?.show(t.cancelledElsewhere, "warn");
+        if (!d.ok || d.sesi?.status !== "selesai") return;
+        const snap = {
+          ...lama.s,
+          hadir: lama.hadir,
+          selesaiPada: d.sesi.selesaiPada ?? new Date().toISOString(),
+        };
+        try {
+          sessionStorage.setItem(DONE_KEY, JSON.stringify(snap));
+        } catch {
+          /* ignore */
+        }
+        setDone(snap);
+        window.Toast?.show(t.endedElsewhere, "warn");
+      })
+      .catch(() => {});
+  }, [sesi?.id, lap.data]);
 
   // Hash routing (views, #k3, #cmd=announce from the palette elsewhere).
   useEffect(() => {
