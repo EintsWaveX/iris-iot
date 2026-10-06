@@ -133,11 +133,10 @@ export const K = dict({
     cad: "Kirim Ctrl+Alt+Del",
     keys: "Kirim tombol ke Pi",
     keysTitle: "Kirim Tombol",
-    keysHint:
-      "Kombinasi yang biasanya ditangkap browser atau Windows, dikirim langsung ke Pi. Hasilnya tergantung desktop Pi.",
+    keysHint: "Kombinasi yang biasanya ditangkap browser atau Windows, dikirim langsung ke Pi.",
     keySent: (k: string) => `${k} terkirim ke Pi.`,
     keyNames: {
-      cad: "Ctrl+Alt+Del",
+      cad: "Ctrl+Alt+Del · Task Manager",
       altTab: "Alt+Tab · Ganti Jendela",
       altF4: "Alt+F4 · Tutup Jendela",
       term: "Ctrl+Alt+T · Buka Terminal",
@@ -371,11 +370,10 @@ export const K = dict({
     cad: "Send Ctrl+Alt+Del",
     keys: "Send keys to the Pi",
     keysTitle: "Send Keys",
-    keysHint:
-      "Combinations the browser or Windows would usually catch, sent straight to the Pi. What they do depends on the Pi's desktop.",
+    keysHint: "Combinations the browser or Windows would usually catch, sent straight to the Pi.",
     keySent: (k: string) => `${k} sent to the Pi.`,
     keyNames: {
-      cad: "Ctrl+Alt+Del",
+      cad: "Ctrl+Alt+Del · Task Manager",
       altTab: "Alt+Tab · Switch Window",
       altF4: "Alt+F4 · Close Window",
       term: "Ctrl+Alt+T · Open Terminal",
@@ -602,10 +600,10 @@ export const K = dict({
     cad: "发送 Ctrl+Alt+Del",
     keys: "向 Pi 发送按键",
     keysTitle: "发送按键",
-    keysHint: "通常会被浏览器或 Windows 截住的组合键，直接发送到 Pi。效果取决于 Pi 的桌面。",
+    keysHint: "通常会被浏览器或 Windows 截住的组合键，直接发送到 Pi。",
     keySent: (k: string) => `${k} 已发送到 Pi。`,
     keyNames: {
-      cad: "Ctrl+Alt+Del",
+      cad: "Ctrl+Alt+Del · 任务管理器",
       altTab: "Alt+Tab · 切换窗口",
       altF4: "Alt+F4 · 关闭窗口",
       term: "Ctrl+Alt+T · 打开终端",
