@@ -79,7 +79,13 @@ export default function SeelabsView({
   if (tab === "salin") {
     body = !data ? (
       <section className="panel">
-        <span className="skeleton" style={{ height: 320 }} />
+        {sl.kode ? (
+          <p className="hint" role="status">
+            {pesanSl(t, sl.kode)}
+          </p>
+        ) : (
+          <span className="skeleton" style={{ height: 320 }} />
+        )}
       </section>
     ) : (
       <div className="seeside">
