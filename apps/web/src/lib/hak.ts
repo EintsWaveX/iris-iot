@@ -11,8 +11,9 @@
  * (serah_terima) is accepted.
  *
  * Badges are not roles: DEV (the ASO and ARM divisions, who built the site)
- * adds the full Server view; Pencipta (the site's creator) holds every right
- * and can't be reduced. An Admin can override any single right per person.
+ * and Pencipta (the site's creator). The Pencipta, every Admin and every DEV
+ * hold every right and can't be reduced (user, 2026-10-07). An Admin can
+ * override any single right of anyone else.
  *
  * `kode` (the journal code files and their blanks, 2026-10-05) follows the
  * division instead of the tier: the ASO division and every Admin.
@@ -96,17 +97,21 @@ export function isPencipta(o: Pick<Orang, "badges">): boolean {
   return o.badges.includes("pencipta");
 }
 
+/** Every right, never reduced: the Pencipta, the Admin tier and DEV. */
+export function hakPenuh(o: Pick<Orang, "tier" | "badges">): boolean {
+  return isPencipta(o) || o.tier === "admin" || o.badges.includes("dev");
+}
+
 /** What the tier and badges give, before any override. */
 export function hakDasar(o: Pick<Orang, "tier" | "badges" | "divisi">, key: HakKey): HakNilai {
-  if (isPencipta(o)) return true;
-  if (key === "full" && o.badges.includes("dev")) return true;
+  if (hakPenuh(o)) return true;
   if (key === "kode" && o.divisi === DIVISI_KODE) return true;
   return MATRIX[key][o.tier];
 }
 
-/** The right after an Admin's override. The Pencipta can't be reduced. */
+/** The right after an Admin's override. Full holders can't be reduced. */
 export function hakDari(o: Orang, key: HakKey): HakNilai {
-  if (isPencipta(o)) return true;
+  if (hakPenuh(o)) return true;
   const over = o.hakOverride[key];
   return over === undefined ? hakDasar(o, key) : over;
 }

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  HAK,
   KATEGORI,
   boleh,
   bolehPenuh,
   divisiKepala,
   hakDari,
+  hakPenuh,
   isKategori,
   tierUntuk,
   type Orang,
@@ -62,9 +64,11 @@ describe("the rights matrix", () => {
     }
   });
 
-  it("adds the full Server view for DEV", () => {
-    expect(boleh(orang("asisten", ["dev"]), "full")).toBe(true);
-    expect(boleh(orang("asisten", ["dev"]), "server")).toBe(false);
+  it("gives a DEV every right, whatever the tier", () => {
+    for (const k of HAK) {
+      expect(bolehPenuh(orang("asisten", ["dev"]), k)).toBe(true);
+      expect(bolehPenuh(orang("pengelola", ["dev"]), k)).toBe(true);
+    }
   });
 
   it("applies an Admin's override, both ways", () => {
@@ -90,5 +94,19 @@ describe("the rights matrix", () => {
     const n = orang("pengelola", ["pencipta", "dev"], { tim: false, server: false });
     expect(bolehPenuh(n, "tim")).toBe(true);
     expect(bolehPenuh(n, "server")).toBe(true);
+  });
+
+  it("never reduces an Admin or a DEV either", () => {
+    const semuaMati = Object.fromEntries(HAK.map((k) => [k, false]));
+    for (const o of [
+      orang("admin", [], semuaMati),
+      orang("asisten", ["dev"], semuaMati),
+      { ...orang("asisten", ["dev"], semuaMati), divisi: "ARD" },
+    ]) {
+      expect(hakPenuh(o)).toBe(true);
+      for (const k of HAK) expect(bolehPenuh(o, k)).toBe(true);
+    }
+    expect(hakPenuh(orang("pengelola"))).toBe(false);
+    expect(hakPenuh(orang("asisten"))).toBe(false);
   });
 });

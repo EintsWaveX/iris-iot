@@ -48,6 +48,7 @@ import {
   TIER,
   divisiKepala,
   hakDasar,
+  hakPenuh,
   isKategori,
   type HakKey,
   type HakNilai,
@@ -782,8 +783,10 @@ function PersonDrawer({
   const w = useWho(data.orang);
   const sendiri = data.saya?.nim === p.nim;
   const pencipta = p.badges.includes("pencipta");
-  // The Pencipta's position is theirs to change; their rights never shrink.
+  // The Pencipta's position is theirs to change.
   const editJab = admin && (!pencipta || sendiri);
+  // The Pencipta, Admins and DEV hold every right; it never shrinks.
+  const penuh = hakPenuh(p);
   const kat0 = kategoriOf(data, p.nim);
   const [jab, setJab] = useState<string>(kat0 ?? "anggota");
   const [div, setDiv] = useState<string>(p.divisi ?? "");
@@ -989,7 +992,7 @@ function PersonDrawer({
           <div className="tim-rows rights">
             {HAK.map((k) => {
               const base = hakDasar(p, k);
-              const val: HakNilai = pencipta ? true : (over[k] ?? base);
+              const val: HakNilai = penuh ? true : (over[k] ?? base);
               const on = val !== false;
               return (
                 <div key={k} className="tim-row">
@@ -1001,10 +1004,9 @@ function PersonDrawer({
                       {t.right[k]}
                       {val === "own" && <span className="hint"> · {t.ownOnly}</span>}
                     </span>
-                    {!pencipta && val !== base && <Pill tone="violet">{t.override}</Pill>}
-                    {k === "full" && p.badges.includes("dev") && <Pill tone="teal">DEV</Pill>}
+                    {!penuh && val !== base && <Pill tone="violet">{t.override}</Pill>}
                   </span>
-                  {admin && !pencipta ? (
+                  {admin && !penuh ? (
                     <Switch on={on} onChange={(v) => setRight(k, v)} label={t.right[k]} />
                   ) : (
                     <span />
@@ -1013,7 +1015,7 @@ function PersonDrawer({
               );
             })}
           </div>
-          {pencipta && <span className="hint">{t.penciptaHint}</span>}
+          {penuh && <span className="hint">{t.penuhHint}</span>}
         </section>
 
         <section className="tim-sec">
