@@ -7,7 +7,7 @@
  * Full Name (CODE) and time.
  */
 import { useEffect, useMemo, useState } from "react";
-import { CheckIcon, FloppyDiskIcon, PencilSimpleIcon } from "@phosphor-icons/react";
+import { CheckIcon, FloppyDiskIcon, InfoIcon, PencilSimpleIcon } from "@phosphor-icons/react";
 import Drawer from "../ui/Drawer";
 import SegmentedControl from "../ui/SegmentedControl";
 import Fade from "../ui/Fade";
@@ -147,11 +147,20 @@ export default function BriefStep({
           ))}
         </section>
       )}
+      {/* Where this brief comes from: the handbook, or the Asisten's own
+          version (2026-10-07: "Teks dari modul." alone said too little). */}
       <div className="panel modbrief__wide modbrief__foot">
-        <span className="hint">
-          {row
-            ? t.lastBy(row.diubahOlehNama ?? dir.nama(row.diubahOleh), sejak(row.diubahPada, lang))
-            : t.fromHandbook}
+        <span className="hint modbrief__src">
+          <InfoIcon size={18} aria-hidden="true" />
+          <span>
+            {row
+              ? t.lastBy(
+                  row.diubahOlehNama ?? dir.nama(row.diubahOleh),
+                  sejak(row.diubahPada, lang),
+                )
+              : t.fromHandbook}
+            {canEdit && <> {t.editHint}</>}
+          </span>
         </span>
         {canEdit && (
           <button type="button" className="btn btn--sm" onClick={() => setEdit(true)}>
