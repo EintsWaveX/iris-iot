@@ -7,7 +7,7 @@
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { parseCookies } from "./http.js";
 import { readSessionCookie, type SessionPayload } from "../../src/lib/auth.js";
-import { currentSesi } from "../../src/lib/sesi.js";
+import { currentSesi, resolvePraktikan } from "../../src/lib/sesi.js";
 import { getDb } from "../../src/lib/db.js";
 import { anggota, kelompok } from "../../src/lib/schema.js";
 import { eq } from "drizzle-orm";
@@ -82,6 +82,30 @@ export async function requireCurrentPraktikanSesi(
       res.status(401).json({ ok: false, kode: "sesi_berganti", alasan: "pindah", ke: r.nomor });
       return null;
     }
+  }
+  return session;
+}
+
+/**
+ * For reading a journal (draft, download) rather than writing to it
+ * (2026-10-07): history needs no sign-in to the running session, so a
+ * Praktikan who signed in only to look around, or whose own slot is another
+ * day, still reads it. Only the running module asks someone on its roster
+ * to sign in for it first; inside the session it is the full check above.
+ */
+export async function requirePraktikanBaca(
+  req: ApiRequest,
+  res: ApiResponse,
+  modul: number,
+): Promise<SessionPayload | null> {
+  const session = requireRole(req, res, "praktikan");
+  if (!session) return null;
+  const running = await currentSesi();
+  if (!running) return session;
+  if (session.sesiId === running.id) return requireCurrentPraktikanSesi(req, res);
+  if (running.modul === modul && (await resolvePraktikan(session.nim))) {
+    res.status(401).json({ ok: false, kode: "sesi_berganti" });
+    return null;
   }
   return session;
 }

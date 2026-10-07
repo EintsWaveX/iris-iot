@@ -16,8 +16,17 @@
  */
 import { eq, and, ne, desc } from "drizzle-orm";
 import { getDb } from "./db.js";
-import { sesi, anggota, kelompok, sesiKelompok } from "./schema.js";
-import { durasiSesi, idHuntSusulan, slotToMulai } from "./jadwal.js";
+import {
+  sesi,
+  anggota,
+  kelompok,
+  sesiKelompok,
+  praktikan,
+  rosterSlot,
+  rosterKelompok,
+} from "./schema.js";
+import { durasiSesi, hariIniWib, idHuntSusulan, slotToMulai } from "./jadwal.js";
+import { semesterDariTanggal } from "./jadwal-parser.js";
 import { namaKelompok } from "./kelompok-nama.js";
 
 export interface ResolvedPraktikan {
@@ -131,10 +140,58 @@ export async function resolvePraktikan(nim: string): Promise<ResolvedPraktikan |
 }
 
 /** The roster lookup without a session (Phase 8's off-session sign-in):
- *  the student's own group, if that group is active on the roster. */
+ *  the student's own group, if that group is active on the roster.
+ *
+ *  The live roster only holds the slot that started last (salinRosterKeSesi
+ *  swaps it in), so everyone else is found on this semester's slot roster
+ *  (2026-10-07: until then only that one slot could sign in between
+ *  sessions, or look around while another slot's session ran). */
 export async function resolvePraktikanTanpaSesi(
   nim: string,
 ): Promise<Omit<ResolvedPraktikan, "sesiId"> | null> {
+  return (await dariRosterHidup(nim)) ?? (await dariRosterSlot(nim));
+}
+
+async function dariRosterSlot(nim: string): Promise<Omit<ResolvedPraktikan, "sesiId"> | null> {
+  const db = getDb();
+  const semester = semesterDariTanggal(hariIniWib());
+  const [r] = await db
+    .select({
+      nama: praktikan.nama,
+      nomor: rosterSlot.kelompokNomor,
+      aktif: rosterKelompok.aktif,
+    })
+    .from(rosterSlot)
+    .innerJoin(praktikan, eq(praktikan.nim, rosterSlot.nim))
+    .leftJoin(
+      rosterKelompok,
+      and(
+        eq(rosterKelompok.semester, rosterSlot.semester),
+        eq(rosterKelompok.hari, rosterSlot.hari),
+        eq(rosterKelompok.slot, rosterSlot.slot),
+        eq(rosterKelompok.nomor, rosterSlot.kelompokNomor),
+      ),
+    )
+    .where(and(eq(rosterSlot.semester, semester), eq(rosterSlot.nim, nim)))
+    .limit(1);
+  if (!r || r.aktif === false) return null;
+  // Group ids are shared by every slot's Group N. One that no session has
+  // made yet has no journals either, so 0 simply finds none.
+  const [k] = await db
+    .select({ id: kelompok.id, nama: kelompok.nama })
+    .from(kelompok)
+    .where(eq(kelompok.nomor, r.nomor))
+    .limit(1);
+  return {
+    nim,
+    nama: r.nama,
+    kelompokId: k?.id ?? 0,
+    kelompokNomor: r.nomor,
+    kelompokNama: k?.nama ?? `Kelompok ${r.nomor}`,
+  };
+}
+
+async function dariRosterHidup(nim: string): Promise<Omit<ResolvedPraktikan, "sesiId"> | null> {
   const [row] = await getDb()
     .select({
       nim: anggota.nim,
