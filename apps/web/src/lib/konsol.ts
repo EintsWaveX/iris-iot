@@ -20,6 +20,9 @@
 
 export const KONSOL_TARGET = ["terminal", ":0", ":1"] as const;
 export type KonsolTarget = (typeof KONSOL_TARGET)[number];
+/** What a new console may open: the terminal and the Pi's own screen (what
+ *  the HDMI shows). ":1" (a virtual desktop) only names older history rows. */
+export const KONSOL_BUKA = ["terminal", ":0"] as const;
 
 export const KONSOL_STATUS = [
   "diminta",
@@ -47,6 +50,10 @@ export const TRANSKRIP_MAKS = 256 * 1024;
 
 export function targetValid(v: unknown): v is KonsolTarget {
   return typeof v === "string" && (KONSOL_TARGET as readonly string[]).includes(v);
+}
+
+export function targetBuka(v: unknown): v is (typeof KONSOL_BUKA)[number] {
+  return typeof v === "string" && (KONSOL_BUKA as readonly string[]).includes(v);
 }
 
 /** Opens and joins without an approver, and answers others: the Pencipta,

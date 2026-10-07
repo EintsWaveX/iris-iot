@@ -54,7 +54,7 @@ import {
   sisaDetikKonsol,
   statusEfektif,
   tandaTiket,
-  targetValid,
+  targetBuka,
   type KonsolStatus,
 } from "../../src/lib/konsol.js";
 
@@ -418,7 +418,7 @@ export async function handleKonsolAksi(
     const serverId = Number(body.serverId);
     const target = body.target;
     const alasan = teks(body.alasan);
-    if (!Number.isInteger(serverId) || !targetValid(target) || alasan.length < 5)
+    if (!Number.isInteger(serverId) || !targetBuka(target) || alasan.length < 5)
       return void res
         .status(200)
         .json({ ok: false, kode: alasan.length < 5 ? "alasan_kosong" : "format_salah" });

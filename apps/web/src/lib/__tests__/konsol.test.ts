@@ -8,6 +8,7 @@ import {
   sisaDetikKonsol,
   statusEfektif,
   tandaTiket,
+  targetBuka,
   type Tiket,
 } from "../konsol";
 
@@ -43,6 +44,12 @@ describe("Konsol Pi rights", () => {
     expect(bolehSetujui({ nim: "a", badges: [], tier: "admin" }, { nim: "b" })).toBe(true);
     expect(bolehSetujui({ nim: "a", badges: ["dev"] }, { nim: "a" })).toBe(false);
     expect(bolehSetujui({ nim: "a", badges: [] }, { nim: "b" })).toBe(false);
+  });
+  it("opens the terminal or the Pi's own screen, never a virtual desktop", () => {
+    expect(targetBuka("terminal")).toBe(true);
+    expect(targetBuka(":0")).toBe(true);
+    expect(targetBuka(":1")).toBe(false);
+    expect(targetBuka("x0")).toBe(false);
   });
 });
 

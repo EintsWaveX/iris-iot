@@ -47,7 +47,7 @@ import PasswordField from "../../ui/PasswordField";
 import { StateView } from "../../ui/Display";
 import { href, tanggalPanjang, useTick } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
-import { DIAM_MENIT, type KonsolTarget } from "../../../lib/konsol";
+import { DIAM_MENIT, KONSOL_BUKA, type KonsolTarget } from "../../../lib/konsol";
 import { hariLabel, menitLabel, modulLabel, slotLabel } from "../../../lib/labels";
 import { jamWib, tanggalWib } from "../../reports/data";
 import Layar, { type LayarApi } from "./Layar";
@@ -623,7 +623,7 @@ function Ask({
       <div className="field">
         <span className="field__label">{t.what}</span>
         <div className="seg seg--big" role="radiogroup" aria-label={t.what}>
-          {(["terminal", ":0", ":1"] as const).map((x) => {
+          {KONSOL_BUKA.map((x) => {
             const Ic = TARGET_IKON[x];
             return (
               <button
