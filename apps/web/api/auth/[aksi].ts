@@ -124,7 +124,13 @@ async function handleStudent(req: ApiRequest, res: ApiResponse) {
       // vercel build's type-check fails to narrow this discriminated union
       // the way astro check's bundler resolution does.
       const gagal = result as Extract<PraktikanLoginResult, { ok: false }>;
-      res.status(200).json({ ok: false, kode: gagal.kode });
+      res.status(200).json({
+        ok: false,
+        kode: gagal.kode,
+        ...(gagal.sisaPercobaan !== undefined ? { sisaPercobaan: gagal.sisaPercobaan } : {}),
+        ...(gagal.sisaDetik !== undefined ? { sisaDetik: gagal.sisaDetik } : {}),
+        ...(gagal.sesiBerikutnya ? { sesiBerikutnya: gagal.sesiBerikutnya } : {}),
+      });
       return;
     }
 

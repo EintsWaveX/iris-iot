@@ -23,6 +23,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import SegmentedControl from "./ui/SegmentedControl";
+import KodeSesiDialog from "./KodeSesiDialog";
 import PasswordField from "./ui/PasswordField";
 import {
   dict,
@@ -31,6 +32,7 @@ import {
   meChanged,
   postJson,
   MODUL_NAMA,
+  tanggalPanjang,
   type SesiNow,
 } from "../lib/app";
 import { langForKelas, pathForLang, type Lang } from "../lib/kelas";
@@ -56,9 +58,20 @@ const T = dict({
     submit: "Masuk",
     needNim: "Isi NIM dulu.",
     needPw: "Isi kata sandi dulu.",
-    kodeL: "Kode sesi",
-    kodeHint: "4 angka di layar depan kelas.",
-    needKode: "Isi 4 angka kode sesi.",
+    kodeD: {
+      title: "Kode Sesi",
+      desc: "Sesi sedang berjalan. Ketik 4 angka yang tampil di layar depan kelas.",
+      digit: (i: number) => `Angka ke-${i}`,
+      submit: "Masuk",
+      cancel: "Batal",
+      checking: "Memeriksa…",
+      triesLeft: (n: number) => (n === 1 ? "Sisa 1 kali coba." : `Sisa ${n} kali coba.`),
+      locked: (w: string) => `Dua kode salah. Coba lagi dalam ${w}.`,
+      lockedNote:
+        "Lihat lagi angkanya di layar depan. Tiap kali salah dua kali, waktu tunggunya jadi dua kali lipat.",
+    },
+    bukanSesimu: (tgl: string, jam: string) =>
+      `Sesi yang berjalan sekarang bukan sesimu. Kamu bisa masuk mulai ${tgl} pukul ${jam.replace(":", ".")}.`,
     setLede:
       "Kata sandi awal akun ini mudah ditebak. Setel kata sandi asli sekali di sini, dan kata sandi awal berhenti berlaku.",
     newPw: "Kata sandi baru",
@@ -107,9 +120,20 @@ const T = dict({
     submit: "Sign in",
     needNim: "Enter your NIM first.",
     needPw: "Enter your password first.",
-    kodeL: "Session code",
-    kodeHint: "The 4 digits on the screen at the front of the class.",
-    needKode: "Enter the 4-digit session code.",
+    kodeD: {
+      title: "Session Code",
+      desc: "A session is running. Type the 4 digits on the screen at the front of the class.",
+      digit: (i: number) => `Digit ${i}`,
+      submit: "Sign In",
+      cancel: "Cancel",
+      checking: "Checking…",
+      triesLeft: (n: number) => (n === 1 ? "1 try left." : `${n} tries left.`),
+      locked: (w: string) => `Two wrong codes. Try again in ${w}.`,
+      lockedNote:
+        "Check the digits on the front screen again. Each time two tries fail, the wait doubles.",
+    },
+    bukanSesimu: (tgl: string, jam: string) =>
+      `The session running now isn't yours. You can sign in from ${tgl} at ${jam}.`,
     setLede:
       "This account's starting password is easy to guess. Set your own once here and the starting one stops working.",
     newPw: "New password",
@@ -158,9 +182,19 @@ const T = dict({
     submit: "登录",
     needNim: "先填 NIM。",
     needPw: "先填密码。",
-    kodeL: "课程代码",
-    kodeHint: "教室前方屏幕上的 4 位数字。",
-    needKode: "请输入 4 位课程代码。",
+    kodeD: {
+      title: "课程代码",
+      desc: "课程正在进行。请输入教室前方屏幕上的 4 位数字。",
+      digit: (i: number) => `第 ${i} 位`,
+      submit: "登录",
+      cancel: "取消",
+      checking: "正在检查…",
+      triesLeft: (n: number) => `还可以试 ${n} 次。`,
+      locked: (w: string) => `两次代码错误。请在 ${w} 后再试。`,
+      lockedNote: "再看一下前方屏幕上的数字。每连续错两次，等待时间加倍。",
+    },
+    bukanSesimu: (tgl: string, jam: string) =>
+      `现在进行的不是你的课程。你可以在 ${tgl} ${jam} 起登录。`,
     setLede: "这个账号的初始密码很容易猜到。在这里设置一次你自己的密码，初始密码就会失效。",
     newPw: "新密码",
     newPw2: "再输一次新密码",
@@ -217,10 +251,28 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
     field: "nim" | "pw" | "kode" | "form";
     msg: string;
   } | null>(null);
-  // Shown once the server says a session runs (perlu_kode).
-  const [perluKode, setPerluKode] = useState(false);
-  const [kode, setKode] = useState("");
-  const [kodePesan, setKodePesan] = useState<string | null>(null);
+  // The session code dialog, once the server says a session runs
+  // (perlu_kode), with the server's count of tries and lock (2026-10-07).
+  const [kodeBuka, setKodeBuka] = useState(false);
+  // Someone else's session (bukan_sesimu): this NIM waits for its own.
+  const [gerbang, setGerbang] = useState<{ nim: string; sampai: number } | null>(null);
+  useEffect(() => {
+    if (!gerbang) return;
+    const id = window.setTimeout(
+      () => {
+        setGerbang(null);
+        setErr(null);
+      },
+      Math.min(Math.max(0, gerbang.sampai - Date.now()), 2 ** 31 - 1),
+    );
+    return () => window.clearTimeout(id);
+  }, [gerbang]);
+  const tertahan = !!gerbang && role === "praktikan" && gerbang.nim === nim.trim().toUpperCase();
+  const [kodeSt, setKodeSt] = useState<{ sisa: number; detik: number; pesan: string | null }>({
+    sisa: 2,
+    detik: 0,
+    pesan: null,
+  });
   const [loading, setLoading] = useState(false);
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
@@ -257,14 +309,16 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
     else location.assign(to);
   }
 
-  async function submitLogin(ev: FormEvent) {
+  function submitLogin(ev: FormEvent) {
     ev.preventDefault();
+    void masuk();
+  }
+
+  async function masuk(kodeSesi?: string) {
     if (loading) return;
     const n = nim.trim();
     if (!n) return setErr({ field: "nim", msg: t.needNim });
     if (role === "asisten" && !password) return setErr({ field: "pw", msg: t.needPw });
-    if (role === "praktikan" && perluKode && !/^\d{4}$/.test(kode))
-      return setErr({ field: "kode", msg: t.needKode });
     setErr(null);
     setLoading(true);
     try {
@@ -275,21 +329,34 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
         kelompok?: number;
         kelompokNama?: string;
         perluAturSandi?: boolean;
+        sisaPercobaan?: number;
+        sisaDetik?: number;
+        sesiBerikutnya?: { tanggal: string; buka: string; bukaPada: string };
       }>(role === "praktikan" ? "/api/auth/student" : "/api/auth/assistant", {
         nim: n,
-        ...(role === "asisten" ? { password } : perluKode ? { kodeSesi: kode } : {}),
+        ...(role === "asisten" ? { password } : kodeSesi ? { kodeSesi } : {}),
       });
       if (!data.ok) {
         const msg = t.codes[data.kode ?? ""] ?? t.fallback;
-        if (data.kode === "perlu_kode" || data.kode === "kode_salah") {
-          setPerluKode(true);
-          // Being asked for the code isn't a mistake: say why under the
-          // field, in the hint's colour. A wrong code is an error.
-          if (data.kode === "perlu_kode") {
-            setErr(null);
-            setKodePesan(msg);
-          } else setErr({ field: "kode", msg });
-          setTimeout(() => document.getElementById("login-kode")?.focus(), 0);
+        if (
+          data.kode === "perlu_kode" ||
+          data.kode === "kode_salah" ||
+          data.kode === "kode_terkunci"
+        ) {
+          // Being asked for the code isn't a mistake; a wrong one is.
+          setKodeSt({
+            sisa: data.sisaPercobaan ?? 2,
+            detik: data.sisaDetik ?? 0,
+            pesan: data.kode === "kode_salah" ? msg : null,
+          });
+          setKodeBuka(true);
+          return;
+        }
+        setKodeBuka(false);
+        if (data.kode === "bukan_sesimu" && data.sesiBerikutnya) {
+          const nb = data.sesiBerikutnya;
+          setGerbang({ nim: n.toUpperCase(), sampai: Date.parse(nb.bukaPada) });
+          setErr({ field: "nim", msg: t.bukanSesimu(tanggalPanjang(nb.tanggal, lang), nb.buka) });
           return;
         }
         setErr({ field: data.kode === "tidak_cocok" && role === "asisten" ? "pw" : "nim", msg });
@@ -407,31 +474,18 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
             </p>
           </div>
 
-          {role === "praktikan" && perluKode && (
-            <div className="field" data-invalid={err?.field === "kode" ? "yes" : undefined}>
-              <label className="field__label" htmlFor="login-kode">
-                {t.kodeL}
-              </label>
-              <input
-                id="login-kode"
-                className="field__input login-form__nim"
-                value={kode}
-                onChange={(ev) => setKode(ev.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="0000"
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                maxLength={4}
-                aria-invalid={err?.field === "kode" || undefined}
-                aria-describedby="login-kode-msg"
-              />
-              <p
-                id="login-kode-msg"
-                className={err?.field === "kode" ? "field__error" : "field__hint"}
-                role={err?.field === "kode" ? "alert" : undefined}
-              >
-                {err?.field === "kode" ? err.msg : (kodePesan ?? t.kodeHint)}
-              </p>
-            </div>
+          {role === "praktikan" && (
+            <KodeSesiDialog
+              open={kodeBuka}
+              onOpenChange={setKodeBuka}
+              lang={lang}
+              t={t.kodeD}
+              sisaPercobaan={kodeSt.sisa}
+              sisaDetik={kodeSt.detik}
+              pesan={kodeSt.pesan}
+              busy={loading}
+              onSubmit={(k) => void masuk(k)}
+            />
           )}
 
           {role === "asisten" && (
@@ -455,7 +509,7 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
             type="submit"
             className="btn btn--primary btn--lg login-form__submit"
             data-loading={loading ? "yes" : "no"}
-            disabled={loading}
+            disabled={loading || tertahan}
           >
             <span className="btn__label">{t.submit}</span>
             <span className="btn__spinner" aria-hidden="true" />

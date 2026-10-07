@@ -30,12 +30,13 @@
  * their own session ended.
  */
 import { createHmac, timingSafeEqual, randomBytes, scryptSync } from "node:crypto";
-import { eq, and, gte, count } from "drizzle-orm";
+import { eq, and, gte, gt, count, desc, inArray } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { asisten, percobaanMasuk, audit } from "./schema.js";
 import { resolvePraktikan, resolvePraktikanTanpaSesi, currentSesi } from "./sesi.js";
 import { totAktif } from "./mode-tot.js";
 import { praktikanBolehMasuk } from "./tot.js";
+import { sesiBerikutnya, type SesiBerikutnya } from "./sesi-gerbang.js";
 
 const SESSION_TTL_SEC = 3 * 60 * 60; // 3 hours, > SESI_CAP_MENIT (150 min)
 const ASSISTANT_PASSWORD_SUFFIX = "1715";
@@ -213,7 +214,10 @@ async function isLockedOut(
     .where(
       and(
         eq(percobaanMasuk.ip, ip),
-        eq(percobaanMasuk.jenis, jenis),
+        // Wrong session codes count here too, so guessing can't hop NIMs.
+        jenis === "praktikan"
+          ? inArray(percobaanMasuk.jenis, ["praktikan", "kode"])
+          : eq(percobaanMasuk.jenis, jenis),
         eq(percobaanMasuk.berhasil, false),
         gte(percobaanMasuk.pada, since),
       ),
@@ -224,7 +228,7 @@ async function isLockedOut(
 async function recordAttempt(
   nim: string,
   ip: string,
-  jenis: "asisten" | "praktikan",
+  jenis: "asisten" | "praktikan" | "kode",
   berhasil: boolean,
   sesiId: number | null = null,
 ): Promise<void> {
@@ -274,8 +278,69 @@ export type PraktikanLoginResult =
         | "tidak_terdaftar"
         | "mode_tot"
         | "perlu_kode"
-        | "kode_salah";
+        | "kode_salah"
+        | "kode_terkunci"
+        | "bukan_sesimu";
+      /** bukan_sesimu: when this Praktikan's own session opens. */
+      sesiBerikutnya?: SesiBerikutnya;
+      /** The code's own lock (2026-10-07): tries left in this round, or
+       *  seconds until the next round may start. */
+      sisaPercobaan?: number;
+      sisaDetik?: number;
     };
+
+/** Two tries per round; a failed round locks 30 s, doubling each time. */
+export const KODE_PERCOBAAN = 2;
+export const KODE_KUNCI_AWAL_DETIK = 30;
+const KODE_KUNCI_MAKS_DETIK = 30 * 60;
+
+/**
+ * Where a NIM stands with this session's code: wrong codes since its last
+ * sign-in to the session, two to a round. After a full round of wrong ones
+ * it waits 30 s, then 60, 120... (capped at 30 min). A new session or a
+ * successful sign-in starts over.
+ */
+export async function statusKode(
+  nim: string,
+  sesiId: number,
+): Promise<{ sisaPercobaan: number; sisaDetik: number }> {
+  const db = getDb();
+  const [masuk] = await db
+    .select({ pada: percobaanMasuk.pada })
+    .from(percobaanMasuk)
+    .where(
+      and(
+        eq(percobaanMasuk.nim, nim),
+        eq(percobaanMasuk.jenis, "praktikan"),
+        eq(percobaanMasuk.berhasil, true),
+        eq(percobaanMasuk.sesiId, sesiId),
+      ),
+    )
+    .orderBy(desc(percobaanMasuk.pada))
+    .limit(1);
+  const salah = await db
+    .select({ pada: percobaanMasuk.pada })
+    .from(percobaanMasuk)
+    .where(
+      and(
+        eq(percobaanMasuk.nim, nim),
+        eq(percobaanMasuk.jenis, "kode"),
+        eq(percobaanMasuk.sesiId, sesiId),
+        ...(masuk ? [gt(percobaanMasuk.pada, masuk.pada)] : []),
+      ),
+    )
+    .orderBy(desc(percobaanMasuk.pada))
+    .limit(200);
+  const n = salah.length;
+  if (n === 0) return { sisaPercobaan: KODE_PERCOBAAN, sisaDetik: 0 };
+  if (n % KODE_PERCOBAAN !== 0)
+    return { sisaPercobaan: KODE_PERCOBAAN - (n % KODE_PERCOBAAN), sisaDetik: 0 };
+  const ronde = n / KODE_PERCOBAAN;
+  const kunci = Math.min(KODE_KUNCI_AWAL_DETIK * 2 ** (ronde - 1), KODE_KUNCI_MAKS_DETIK);
+  const sampai = salah[0].pada.getTime() + kunci * 1000;
+  const sisaDetik = Math.max(0, Math.ceil((sampai - Date.now()) / 1000));
+  return { sisaPercobaan: sisaDetik > 0 ? 0 : KODE_PERCOBAAN, sisaDetik };
+}
 
 /**
  * Resolve a student's NIM against the running session. Trimmed and
@@ -321,11 +386,27 @@ export async function verifyPraktikanLogin(
   // The session's code comes first, so a wrong one says nothing about
   // whether the NIM is on the roster. Asking for it is not a failure; a
   // wrong one counts toward the lockout like a wrong NIM.
+  // Someone else's session (2026-10-07, user): right code or wrong, the
+  // answer is when their own opens, and the gate lifts then by itself. If
+  // their own slot is open right now they are only missing from this
+  // roster, which the Asisten fixes with Tambah Praktikan: fall through.
+  if (!(await resolvePraktikan(nim))) {
+    const nanti = await sesiBerikutnya(nim);
+    if (nanti && new Date(nanti.bukaPada).getTime() > Date.now()) {
+      return { ok: false, kode: "bukan_sesimu", sesiBerikutnya: nanti };
+    }
+  }
+
   const kode = kodeMasuk.trim();
-  if (!kode) return { ok: false, kode: "perlu_kode" };
+  const st = await statusKode(nim, running.id);
+  if (st.sisaDetik > 0) return { ok: false, kode: "kode_terkunci", ...st };
+  if (!kode) return { ok: false, kode: "perlu_kode", ...st };
   if (!KODE_MASUK_RE.test(kode) || !safeEqual(kode, kodeMasukSesi(running))) {
-    await recordAttempt(nim, ip, "praktikan", false, running.id);
-    return { ok: false, kode: "kode_salah" };
+    await recordAttempt(nim, ip, "kode", false, running.id);
+    const lalu = await statusKode(nim, running.id);
+    return lalu.sisaDetik > 0
+      ? { ok: false, kode: "kode_terkunci", ...lalu }
+      : { ok: false, kode: "kode_salah", ...lalu };
   }
 
   const resolved = await resolvePraktikan(nim);

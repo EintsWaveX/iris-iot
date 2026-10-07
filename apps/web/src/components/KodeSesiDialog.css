@@ -1,0 +1,58 @@
+/* The session code dialog: four one-digit boxes (2026-10-07). */
+.kodesesi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.kodesesi__boxes {
+  display: grid;
+  gap: clamp(8px, 3vw, 14px);
+  grid-template-columns: repeat(4, minmax(0, 72px));
+  justify-content: center;
+}
+
+.kodesesi__box {
+  aspect-ratio: 4 / 5;
+  background: var(--bg-sunken);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: clamp(1.6rem, 7vw, 2.2rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-width: 0;
+  text-align: center;
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    box-shadow var(--dur-fast) var(--ease-reveal);
+  width: 100%;
+}
+
+.kodesesi__box:focus-visible,
+.kodesesi__box:focus {
+  border-color: var(--accent);
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.kodesesi__box[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.kodesesi__box:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.kodesesi__msg {
+  margin: 0;
+  min-height: 1.4em;
+  text-align: center;
+}
+
+.kodesesi__note {
+  margin: 0;
+  text-align: center;
+}
