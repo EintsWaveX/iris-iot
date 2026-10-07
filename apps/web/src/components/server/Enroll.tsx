@@ -25,7 +25,7 @@ export function perintahDaftar(kode: string, token: string): string {
   return [
     "sudo -u iris-agent IRIS_AGENT_CONFIG=/etc/iris-agent/config.json \\",
     `  python3 /opt/iris-agent/agent.py enroll --kode ${kode} --token ${token} \\`,
-    `  --server https://${location.host} --repo-root /home/orangepi/IRIS-ASO`,
+    `  --server https://${location.host} --repo-root /home/iris/IRIS-ASO`,
     "sudo systemctl restart iris-agent.service",
   ].join("\n");
 }
