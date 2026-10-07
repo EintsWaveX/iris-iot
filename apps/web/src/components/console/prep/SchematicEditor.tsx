@@ -288,7 +288,14 @@ function SchemCard({
   // Each tab shows its own source: the image, or the link.
   const hanyaTautan = !aktif.berkas && !!aktif.tautan;
   const [mode, setMode] = useState<"img" | "link">(hanyaTautan ? "link" : "img");
-  const [url, setUrl] = useState("");
+  // The field always shows the link in use (2026-10-07: it emptied after a
+  // save, so only the preview said a link was there); typing takes over.
+  const tautanKini = aktif.tautan?.url ?? "";
+  const [url, setUrl] = useState(tautanKini);
+  const [mengetik, setMengetik] = useState(false);
+  useEffect(() => {
+    if (!mengetik) setUrl(tautanKini);
+  }, [tautanKini, mengetik]);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => setMode(hanyaTautan ? "link" : "img"), [hanyaTautan]);
@@ -338,7 +345,7 @@ function SchemCard({
     setBusy(false);
     if (!r.ok) return window.Toast?.show(t.errors[r.kode ?? ""] ?? t.fail, "danger");
     window.Toast?.show(t.replaced(modulLabel(modul, lang)), "ok");
-    setUrl("");
+    setMengetik(false);
     setTried(false);
     onSaved();
   }
@@ -461,13 +468,20 @@ function SchemCard({
                   inputMode="url"
                   placeholder="https://wokwi.com/projects/…"
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    setMengetik(true);
+                  }}
                   onBlur={() => url && setTried(true)}
                   aria-invalid={err ? true : undefined}
                 />
                 {err && <span className="field__error">{err}</span>}
               </label>
-              <button type="submit" className="btn btn--secondary" disabled={busy || !url.trim()}>
+              <button
+                type="submit"
+                className="btn btn--secondary"
+                disabled={busy || !url.trim() || url.trim() === tautanKini}
+              >
                 {t.save}
               </button>
             </form>
