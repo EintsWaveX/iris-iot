@@ -101,7 +101,7 @@ export function bacaHasilSiap(keluaran: string | null | undefined): HasilSiap | 
 
 /** The agent protocol this site relies on. Bump with AGEN_PROTOKOL in the
  *  agent's agent.py whenever the site starts needing something new. */
-export const AGEN_PROTOKOL_TERBARU = 3;
+export const AGEN_PROTOKOL_TERBARU = 4;
 
 /** diag.journal's arguments, mirrored by JOURNAL_UNIT and JOURNAL_TINGKAT
  *  in the agent's commands.py. */
@@ -148,7 +148,15 @@ export interface Kondisi {
   disk: [number, number] | null;
   jaringan: { antarmuka: string; masuk: number; keluar: number } | null;
   jamSelisihMs: number | null;
+  /** Konsol Pi's screen: "siap", or why it can't open (2026-10-07). */
+  layar: LayarKonsol | null;
+  /** The Pi's clock minus the site's, in seconds, measured by the site on
+   *  each heartbeat (chrony's own offset can't see a wrong reference). */
+  selisihDetik: number | null;
 }
+
+export const LAYAR_KONSOL = ["siap", "x11vnc_tidak_ada", "layar_tidak_ada"] as const;
+export type LayarKonsol = (typeof LAYAR_KONSOL)[number];
 
 export function bacaKondisi(raw: unknown): Kondisi | null {
   const o = obj(raw);
@@ -173,6 +181,8 @@ export function bacaKondisi(raw: unknown): Kondisi | null {
           }
         : null,
     jamSelisihMs: num(o.jamSelisihMs),
+    layar: (LAYAR_KONSOL as readonly unknown[]).includes(o.layar) ? (o.layar as LayarKonsol) : null,
+    selisihDetik: num(o.selisihDetik),
   };
 }
 
@@ -312,15 +322,47 @@ export interface BarisPembaruan {
   baru: string | null;
   status: StatusPembaruan;
   keamanan?: number;
+  /** What its Update button sends: the three bundle rows share one. */
+  aksi: "pembaruan.bundel" | "pembaruan.apt";
+}
+
+/** The newest bundle CI published (api/_lib/bundel.ts), without the zip. */
+export interface BundelTerbit {
+  aso: string;
+  iot: string;
+  sha256: string;
+  ukuran: number;
+  dibuat: string;
+}
+
+/** How the last install or apt upgrade went, from the agent's infoSistem. */
+export interface HasilPembaruan {
+  status: "berjalan" | "selesai" | "gagal";
+  pesan: string;
+  pada: number | null;
+}
+
+export function bacaHasilPembaruan(
+  info: Record<string, unknown> | null | undefined,
+  mode: "bundel" | "apt",
+): HasilPembaruan | null {
+  const o = obj(obj(info?.pembaruan)?.[mode]);
+  if (!o || !["berjalan", "selesai", "gagal"].includes(o.status as string)) return null;
+  return {
+    status: o.status as HasilPembaruan["status"],
+    pesan: str(o.pesan).slice(0, 1500),
+    pada: num(o.pada),
+  };
 }
 
 /** The Updates card's rows, from the agent's infoSistem and agenVersi and
- *  what the site knows is newest (its own iris-iot commit when deployed).
- *  The site can't see the IRIS ASO repo, so that row only shows the SHA. */
+ *  what the site knows is newest: the bundle CI published (both commits),
+ *  else the site's own iris-iot commit when deployed. */
 export function barisPembaruan(
   info: Record<string, unknown> | null | undefined,
   agenVersi: string | null | undefined,
   situsIot: string | null | undefined,
+  terbit: Pick<BundelTerbit, "aso" | "iot"> | null = null,
 ): BarisPembaruan[] {
   const i = info ?? {};
   const protokol = num(i.protokol);
@@ -328,19 +370,34 @@ export function barisPembaruan(
   const apt = obj(i.apt);
   const bisa = apt ? num(apt.bisa) : null;
   const sama = (x: string, y: string) => x.slice(0, 7) === y.slice(0, 7);
+  const iotBaru = terbit?.iot ?? (situsIot ? situsIot.slice(0, 7) : null);
   return [
     {
       k: "agen",
       sekarang: protokol === null ? null : String(protokol),
       baru: String(AGEN_PROTOKOL_TERBARU),
       status: protokol !== null && protokol >= AGEN_PROTOKOL_TERBARU ? "terbaru" : "perlu",
+      aksi: "pembaruan.bundel",
     },
-    { k: "bundel", sekarang: b.aso, baru: null, status: b.aso ? "terbaru" : "tidak_tahu" },
+    {
+      k: "bundel",
+      sekarang: b.aso,
+      baru: terbit?.aso ?? null,
+      status: !b.aso ? "tidak_tahu" : terbit && !sama(b.aso, terbit.aso) ? "perlu" : "terbaru",
+      aksi: "pembaruan.bundel",
+    },
     {
       k: "modul4",
       sekarang: b.iot,
-      baru: situsIot ? situsIot.slice(0, 7) : null,
-      status: !b.iot ? "tidak_tahu" : !situsIot || sama(b.iot, situsIot) ? "terbaru" : "beda",
+      baru: iotBaru,
+      status: !b.iot
+        ? "tidak_tahu"
+        : !iotBaru || sama(b.iot, iotBaru)
+          ? "terbaru"
+          : terbit
+            ? "perlu"
+            : "beda",
+      aksi: "pembaruan.bundel",
     },
     {
       k: "apt",
@@ -348,6 +405,7 @@ export function barisPembaruan(
       baru: null,
       status: bisa === null ? "tidak_tahu" : bisa > 0 ? "perlu" : "terbaru",
       keamanan: apt ? (num(apt.keamanan) ?? 0) : 0,
+      aksi: "pembaruan.apt",
     },
   ];
 }

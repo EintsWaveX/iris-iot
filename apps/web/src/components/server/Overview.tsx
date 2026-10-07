@@ -26,7 +26,8 @@ import IconButton from "../ui/IconButton";
 import { Switch } from "../ui/Controls";
 import { getJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
-import { hotspotMenyala, LAYANAN_URUT, urutkanLayanan } from "../../lib/server-shared";
+import { bacaKondisi, hotspotMenyala, LAYANAN_URUT, urutkanLayanan } from "../../lib/server-shared";
+import { durasiLabel } from "../../lib/labels";
 import type { Perintah } from "../console/types";
 import Gauges from "./Gauges";
 import PiFull from "./PiFull";
@@ -75,6 +76,7 @@ function Tile({
   onClick,
   busy,
   disabled,
+  warn,
 }: {
   icon: typeof ClockIcon;
   title: string;
@@ -82,11 +84,13 @@ function Tile({
   onClick: () => void;
   busy?: boolean;
   disabled?: boolean;
+  warn?: boolean;
 }) {
   return (
     <button
       type="button"
       className="qa__b"
+      data-warn={warn ? "yes" : undefined}
       aria-disabled={disabled || busy || undefined}
       onClick={() => !disabled && !busy && onClick()}
     >
@@ -119,6 +123,10 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
   const netLast = terakhirDari(data, "diag.jaringan");
   const netRun = sedangBerjalan(data, "diag.jaringan");
   const syncRun = sedangBerjalan(data, "jam.selaraskan");
+  // The Pi's clock against the site's (measured on each heartbeat): a
+  // minute or more apart is shown, whatever chrony thinks.
+  const selisih = bacaKondisi(data.server.kondisi)?.selisihDetik ?? 0;
+  const jauh = Math.abs(selisih) >= 60;
   const tip = bisa.server ? undefined : t.needRight;
 
   const restartAll = async () => {
@@ -139,7 +147,14 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
         <Tile
           icon={ClockIcon}
           title={t.sync}
-          hint={hb?.jamSelaras ? t.syncOk : t.syncHint}
+          warn={jauh}
+          hint={
+            jauh
+              ? t.clockApart(durasiLabel(Math.max(1, Math.round(Math.abs(selisih) / 60)), lang))
+              : hb?.jamSelaras
+                ? t.syncOk
+                : t.syncHint
+          }
           busy={syncRun}
           onClick={() => void kirim(id, "jam.selaraskan", {}, lang, t.syncSent).then(refresh)}
         />

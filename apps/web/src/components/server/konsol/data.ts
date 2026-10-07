@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { postJson } from "../../../lib/app";
 import type { KonsolStatus, KonsolTarget } from "../../../lib/konsol";
+import type { LayarKonsol } from "../../../lib/server-shared";
 
 export interface KonsolRow {
   id: number;
@@ -59,6 +60,8 @@ export interface PesertaRow {
 export interface KonsolData {
   ok: true;
   siap: boolean;
+  /** Whether the Pi can show its own screen; null when it never said. */
+  layar?: LayarKonsol | null;
   /** Opens and joins without an approver (the Pencipta, the Inti, DEV). */
   dev: boolean;
   istimewa?: boolean;

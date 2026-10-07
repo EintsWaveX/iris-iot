@@ -34,6 +34,10 @@ export const K = dict({
       ":0": ["Layar Pi", "HDMI, Semua"],
       ":1": ["Desktop Virtual", "Privat"],
     } as Record<string, [string, string]>,
+    layarNo: {
+      x11vnc_tidak_ada: "x11vnc belum ada di Pi",
+      layar_tidak_ada: "Tidak ada desktop di HDMI",
+    } as Record<string, string>,
     reason: "Alasan",
     reasonPh: "contoh: modul4 tidak mau jalan setelah update",
     reasonHint: "Masuk Audit bersama jam mulai, jam selesai dan catatan terminal.",
@@ -278,6 +282,10 @@ export const K = dict({
       ":0": ["Pi Screen", "HDMI, All"],
       ":1": ["Virtual Desktop", "Private"],
     } as Record<string, [string, string]>,
+    layarNo: {
+      x11vnc_tidak_ada: "x11vnc isn't on the Pi",
+      layar_tidak_ada: "No desktop on the HDMI",
+    } as Record<string, string>,
     reason: "Reason",
     reasonPh: "e.g. modul4 won't start after the update",
     reasonHint: "Goes into Audit with the start time, the end time and the terminal record.",
@@ -513,6 +521,10 @@ export const K = dict({
       ":0": ["Pi 屏幕", "HDMI，所有人"],
       ":1": ["虚拟桌面", "私人"],
     } as Record<string, [string, string]>,
+    layarNo: {
+      x11vnc_tidak_ada: "Pi 上没有 x11vnc",
+      layar_tidak_ada: "HDMI 上没有桌面",
+    } as Record<string, string>,
     reason: "原因",
     reasonPh: "例如：更新后 modul4 无法启动",
     reasonHint: "会和开始时间、结束时间以及终端记录一起进入审计。",

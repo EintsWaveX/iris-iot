@@ -73,6 +73,7 @@ export const S = dict({
     upFor: "Menyala sejak",
     bootAt: (w: string) => `boot ${w}`,
     clockOff: (ms: string) => `jam selisih ${ms} ms`,
+    clockApart: (x: string) => `Jam Pi selisih ${x} dari situs`,
     noData: "Belum ada data",
     // data dialog
     dNow: "Sekarang",
@@ -306,16 +307,23 @@ export const S = dict({
       !a
         ? "belum melapor"
         : b && a.slice(0, 7) !== b
-          ? `${a.slice(0, 7)}, situs ${b}`
+          ? `${a.slice(0, 7)}, terbaru ${b}`
           : a.slice(0, 7),
-    updHow: "Cara Memperbarui",
+    updDo: "Perbarui",
     updNote:
-      "Pembaruan dipasang dari laptop lewat SSH, bukan dari situs ini, supaya web tidak pernah menjalankan perintah root di Pi.",
-    howTitle: "Cara Memperbarui",
-    howBundle:
-      "Bangun bundel baru lalu kirim ke Pi dari laptop. Agen, skrip dan server Modul 4 ikut terpasang.",
-    howApt: "Masuk ke Pi lewat SSH lalu jalankan:",
-    howSession: "Jangan saat sesi berjalan: layanan berhenti beberapa detik.",
+      "Perbarui memasang bundel terakhir yang dibangun dan ditandatangani CI. Pi menolak bundel yang tanda tangannya tidak cocok.",
+    updAskBundle: "Perbarui Bundel Pi?",
+    updAskApt: "Perbarui Paket Sistem?",
+    updBundleBody: (aso: string, iot: string) =>
+      `Pi mengunduh bundel IRIS ASO ${aso} dan iris-iot ${iot}, mengecek tanda tangannya, lalu memasangnya. Agen, skrip dan server Modul 4 diperbarui sekaligus. Layanan berhenti sekitar satu menit.`,
+    updAptBody:
+      "Pi menjalankan apt upgrade untuk semua paket sistem. Ini bisa makan beberapa menit, dan paket kernel serta layar dari Orange Pi ikut diperbarui.",
+    updCancel: "Batal",
+    updSent: "Pi mulai memperbarui pada denyut berikutnya.",
+    updInSession: "Tunggu sesi selesai dulu.",
+    updNoBundle: "CI belum menerbitkan bundel.",
+    updLast: { bundel: "Pemasangan bundel terakhir", apt: "apt upgrade terakhir" },
+    updHasilSt: { berjalan: "sedang berjalan", selesai: "berhasil", gagal: "gagal" },
     copy: "Salin",
     copied: "Disalin.",
     // settings
@@ -390,6 +398,8 @@ export const S = dict({
     // errors
     codes: {
       format_salah: "Formatnya belum benar.",
+      sesi_berjalan: "Sesi sedang berjalan. Perbarui setelah sesi selesai.",
+      bundel_belum_ada: "CI belum menerbitkan bundel untuk dipasang.",
       kode_dipakai: "Nama ini sudah dipakai server lain.",
       tidak_ditemukan: "Tidak ditemukan.",
       server_tidak_ada: "Server ini tidak ditemukan.",
@@ -464,6 +474,7 @@ export const S = dict({
     upFor: "Up For",
     bootAt: (w: string) => `booted ${w}`,
     clockOff: (ms: string) => `clock off by ${ms} ms`,
+    clockApart: (x: string) => `Pi clock is ${x} off the site`,
     noData: "No data yet",
     dNow: "Now",
     dLow: "Lowest",
@@ -684,16 +695,23 @@ export const S = dict({
       !a
         ? "not reported"
         : b && a.slice(0, 7) !== b
-          ? `${a.slice(0, 7)}, site ${b}`
+          ? `${a.slice(0, 7)}, newest ${b}`
           : a.slice(0, 7),
-    updHow: "How to Update",
+    updDo: "Update",
     updNote:
-      "Updates are installed from a laptop over SSH, not from this site, so the web never runs root commands on the Pi.",
-    howTitle: "How to Update",
-    howBundle:
-      "Build a new bundle and send it to the Pi from a laptop. The agent, the scripts and the Module 4 server all come with it.",
-    howApt: "SSH into the Pi and run:",
-    howSession: "Not during a session: services stop for a few seconds.",
+      "Update installs the newest bundle CI built and signed. The Pi refuses any bundle whose signature doesn't match.",
+    updAskBundle: "Update the Pi Bundle?",
+    updAskApt: "Update System Packages?",
+    updBundleBody: (aso: string, iot: string) =>
+      `The Pi downloads bundle IRIS ASO ${aso} with iris-iot ${iot}, checks its signature, then installs it. The agent, the scripts and the Module 4 server update together. Services stop for about a minute.`,
+    updAptBody:
+      "The Pi runs apt upgrade for every system package. It can take a few minutes, and Orange Pi's kernel and display packages update too.",
+    updCancel: "Cancel",
+    updSent: "The Pi starts updating on its next heartbeat.",
+    updInSession: "Wait until the session ends.",
+    updNoBundle: "CI hasn't published a bundle yet.",
+    updLast: { bundel: "Last bundle install", apt: "Last apt upgrade" },
+    updHasilSt: { berjalan: "running", selesai: "done", gagal: "failed" },
     copy: "Copy",
     copied: "Copied.",
     identity: "Identity",
@@ -765,6 +783,8 @@ export const S = dict({
     wizFinish: "Done",
     codes: {
       format_salah: "That format isn't right.",
+      sesi_berjalan: "A session is running. Update after it ends.",
+      bundel_belum_ada: "CI hasn't published a bundle to install yet.",
       kode_dipakai: "Another server already uses this name.",
       tidak_ditemukan: "Not found.",
       server_tidak_ada: "This server was not found.",
@@ -834,6 +854,7 @@ export const S = dict({
     upFor: "已运行",
     bootAt: (w: string) => `${w} 启动`,
     clockOff: (ms: string) => `时钟偏差 ${ms} ms`,
+    clockApart: (x: string) => `Pi 时钟和网站差 ${x}`,
     noData: "还没有数据",
     dNow: "现在",
     dLow: "最低",
@@ -1051,13 +1072,21 @@ export const S = dict({
           ? "全部是最新的"
           : `${n} 个可升级${sec ? `，${sec} 个安全更新` : ""}`,
     updSite: (a: string | null, b: string | null) =>
-      !a ? "还没上报" : b && a.slice(0, 7) !== b ? `${a.slice(0, 7)}，网站 ${b}` : a.slice(0, 7),
-    updHow: "怎么更新",
-    updNote: "更新是从笔记本通过 SSH 安装的，不是从这个网站，所以网站从不在 Pi 上运行 root 命令。",
-    howTitle: "怎么更新",
-    howBundle: "构建新的安装包，再从笔记本发送到 Pi。agent、脚本和模块 4 服务器都会一起装上。",
-    howApt: "通过 SSH 登录 Pi，然后运行：",
-    howSession: "不要在上课时更新：服务会停几秒。",
+      !a ? "还没上报" : b && a.slice(0, 7) !== b ? `${a.slice(0, 7)}，最新 ${b}` : a.slice(0, 7),
+    updDo: "更新",
+    updNote: "更新会安装 CI 最新构建并签名的安装包。签名不对的安装包 Pi 会拒绝。",
+    updAskBundle: "更新 Pi 安装包？",
+    updAskApt: "更新系统软件包？",
+    updBundleBody: (aso: string, iot: string) =>
+      `Pi 会下载安装包 IRIS ASO ${aso} 和 iris-iot ${iot}，检查签名后再安装。agent、脚本和模块 4 服务器一起更新。服务会停大约一分钟。`,
+    updAptBody:
+      "Pi 会对所有系统软件包运行 apt upgrade。可能需要几分钟，Orange Pi 的内核和显示软件包也会一起更新。",
+    updCancel: "取消",
+    updSent: "Pi 会在下一次心跳时开始更新。",
+    updInSession: "等这节课结束再更新。",
+    updNoBundle: "CI 还没发布安装包。",
+    updLast: { bundel: "上次安装包安装", apt: "上次 apt upgrade" },
+    updHasilSt: { berjalan: "进行中", selesai: "成功", gagal: "失败" },
     copy: "复制",
     copied: "已复制。",
     identity: "身份",
@@ -1128,6 +1157,8 @@ export const S = dict({
     wizFinish: "完成",
     codes: {
       format_salah: "格式不对。",
+      sesi_berjalan: "正在上课。下课后再更新。",
+      bundel_belum_ada: "CI 还没发布可安装的安装包。",
       kode_dipakai: "这个名称已被别的服务器使用。",
       tidak_ditemukan: "找不到。",
       server_tidak_ada: "找不到这台服务器。",

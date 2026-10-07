@@ -44,6 +44,8 @@ import {
 } from "../src/lib/server-lib.js";
 import { journalArgValid } from "../src/lib/server-shared.js";
 import { handleKonsolAksi } from "./_lib/konsol.js";
+import { bundelTerbaru } from "./_lib/bundel.js";
+import { currentSesi } from "../src/lib/sesi.js";
 import { writeAudit } from "../src/lib/auth.js";
 import type { SessionPayload } from "../src/lib/auth.js";
 import { and, asc, desc, eq, gte, notInArray } from "drizzle-orm";
@@ -53,7 +55,7 @@ async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPa
   const body = jsonBody(req);
   const serverId = Number(body.serverId);
   const aksi = body.aksi;
-  const argumen = isPlainObject(body.argumen) ? body.argumen : {};
+  let argumen = isPlainObject(body.argumen) ? body.argumen : {};
 
   if (!Number.isInteger(serverId) || serverId <= 0 || !aksiValid(aksi)) {
     res.status(200).json({ ok: false, kode: "format_salah" });
@@ -79,6 +81,24 @@ async function handleKirim(req: ApiRequest, res: ApiResponse, session: SessionPa
   if (aksi === "diag.journal" && !journalArgValid(argumen)) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
+  }
+  // The Updates card: services restart while it installs, so never during
+  // a session, and the bundle is always the one CI published last.
+  if (aksi === "pembaruan.bundel" || aksi === "pembaruan.apt") {
+    if (await currentSesi()) {
+      res.status(200).json({ ok: false, kode: "sesi_berjalan" });
+      return;
+    }
+    if (aksi === "pembaruan.bundel") {
+      const terbit = await bundelTerbaru();
+      if (!terbit) {
+        res.status(200).json({ ok: false, kode: "bundel_belum_ada" });
+        return;
+      }
+      argumen = { sha256: terbit.sha256 };
+    } else {
+      argumen = {};
+    }
   }
 
   try {

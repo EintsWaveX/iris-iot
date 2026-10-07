@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AGEN_PROTOKOL_TERBARU,
   bacaBundel,
+  bacaHasilPembaruan,
   bacaKondisi,
   bacaRinci,
   barisPembaruan,
@@ -147,5 +148,54 @@ describe("Updates card", () => {
 
   it("treats an agent with no protocol field as needing an update", () => {
     expect(barisPembaruan({}, null, null)[0].status).toBe("perlu");
+  });
+
+  it("compares with the bundle CI published, and names each row's button", () => {
+    const terbit = { aso: "ffff000", iot: "acea86e" };
+    const rows = barisPembaruan(
+      { protokol: AGEN_PROTOKOL_TERBARU, apt: { bisa: 0 } },
+      "bdb8ef1 / acea86e",
+      "1111111",
+      terbit,
+    );
+    expect(rows.map((r) => [r.k, r.status, r.aksi])).toEqual([
+      ["agen", "terbaru", "pembaruan.bundel"],
+      ["bundel", "perlu", "pembaruan.bundel"],
+      ["modul4", "terbaru", "pembaruan.bundel"],
+      ["apt", "terbaru", "pembaruan.apt"],
+    ]);
+    // A Module 4 behind the published bundle needs that bundle, not "differs".
+    expect(barisPembaruan({}, "ffff000 / 0000000", null, terbit)[2].status).toBe("perlu");
+  });
+
+  it("reads the last install and apt outcome", () => {
+    const info = {
+      pembaruan: {
+        bundel: { status: "gagal", pesan: "tanda tangan bundel tidak sah", pada: 5 },
+        apt: { status: "aneh" },
+      },
+    };
+    expect(bacaHasilPembaruan(info, "bundel")).toEqual({
+      status: "gagal",
+      pesan: "tanda tangan bundel tidak sah",
+      pada: 5,
+    });
+    expect(bacaHasilPembaruan(info, "apt")).toBeNull();
+    expect(bacaHasilPembaruan(null, "bundel")).toBeNull();
+  });
+
+  it("keeps the Konsol screen and the site-measured clock in kondisi", () => {
+    expect(bacaKondisi({ layar: "siap", selisihDetik: -3120 })).toMatchObject({
+      layar: "siap",
+      selisihDetik: -3120,
+    });
+    expect(bacaKondisi({ layar: "lain" })?.layar).toBeNull();
+    expect(saringKondisi({ selisihDetik: 4 })).toEqual({ selisihDetik: 4 });
+  });
+
+  it("whitelists the two update commands", () => {
+    for (const a of ["pembaruan.bundel", "pembaruan.apt"]) {
+      expect(AKSI_PERINTAH as readonly string[]).toContain(a);
+    }
   });
 });

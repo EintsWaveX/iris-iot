@@ -625,18 +625,21 @@ function Ask({
         <div className="seg seg--big" role="radiogroup" aria-label={t.what}>
           {KONSOL_BUKA.map((x) => {
             const Ic = TARGET_IKON[x];
+            // The Pi said it has no screen to show (no desktop, no x11vnc).
+            const tidak = x === ":0" && !!data.layar && data.layar !== "siap" ? data.layar : null;
             return (
               <button
                 key={x}
                 type="button"
                 role="radio"
                 aria-checked={target === x}
+                disabled={!!tidak}
                 onClick={() => setTarget(x)}
               >
                 <Ic size={18} aria-hidden="true" />
                 <span className="konsol-pick">
                   {t.pick[x][0]}
-                  <small>({t.pick[x][1]})</small>
+                  <small>({tidak ? t.layarNo[tidak] : t.pick[x][1]})</small>
                 </span>
               </button>
             );

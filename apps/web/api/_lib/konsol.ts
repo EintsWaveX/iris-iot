@@ -41,6 +41,7 @@ import {
   server,
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
+import { bacaKondisi } from "../../src/lib/server-shared.js";
 import { verifyAsistenLogin, writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import {
   BATAS_MENIT,
@@ -205,9 +206,17 @@ export async function handleKonsolGet(res: ApiResponse, serverId: number, nim: s
         peserta: diAktif.filter((p) => p.status === "disetujui").map((p) => publikPeserta(p, n)),
       }
     : null;
+  // Whether the Pi said it can show its own screen (2026-10-07); null when
+  // an older agent never said.
+  const [srv] = await db
+    .select({ kondisi: server.kondisi })
+    .from(server)
+    .where(eq(server.id, serverId))
+    .limit(1);
   const base = {
     ok: true,
     siap: konsolEnv() !== null,
+    layar: bacaKondisi(srv?.kondisi)?.layar ?? null,
     // Old name, still read by the page: "joins and opens without asking".
     dev: istimewa,
     istimewa,

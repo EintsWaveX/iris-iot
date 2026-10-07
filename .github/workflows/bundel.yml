@@ -1,0 +1,48 @@
+name: Bundel Pi
+
+# Builds the Orange Pi bundle (IRIS ASO's orangepi/ plus apps/modul4 here),
+# signs it, and publishes it to this site for the Server page's Updates
+# card (2026-10-07). The builder and the publisher live in IRIS ASO
+# (orangepi/build_bundle.py, orangepi/terbitkan_bundel.py), which runs the
+# same job on its own pushes. Secrets here:
+#   ASO_DEPLOY_KEY      read-only deploy key for EintsWaveX/iris-iot-aso
+#   BUNDEL_KUNCI_TANDA  the Ed25519 signing key (PEM)
+#   BUNDEL_TERBIT       the site's publish secret (Vercel env BUNDEL_TERBIT)
+# A push here also deploys the site; the publisher retries while that lands.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/modul4/**"
+      - ".github/workflows/bundel.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: bundel-pi
+  cancel-in-progress: false
+
+jobs:
+  terbit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: iris-iot
+      - uses: actions/checkout@v4
+        with:
+          repository: EintsWaveX/iris-iot-aso
+          ref: main
+          path: aso
+          ssh-key: ${{ secrets.ASO_DEPLOY_KEY }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Build
+        run: python aso/orangepi/build_bundle.py --iris-iot iris-iot --branch main
+      - name: Sign and publish
+        env:
+          BUNDEL_KUNCI_TANDA: ${{ secrets.BUNDEL_KUNCI_TANDA }}
+          BUNDEL_TERBIT: ${{ secrets.BUNDEL_TERBIT }}
+        run: python aso/orangepi/terbitkan_bundel.py --situs https://iris-praktikum-jurnal.vercel.app

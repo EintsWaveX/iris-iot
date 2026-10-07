@@ -59,6 +59,7 @@ import {
 import { currentSesi } from "../../src/lib/sesi.js";
 import { desc, asc, and, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
+import { bundelTerbaru } from "../_lib/bundel.js";
 
 const MAX_TEXT_LEN = 500;
 const AKSI_TERAKHIR = [
@@ -145,6 +146,8 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
     // Stage 5: what the Updates card compares the Pi's bundle with. Set on
     // Vercel; null in local runs, where the card shows the SHA only.
     situsIot: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    // 2026-10-07: the newest bundle CI published, what Update installs.
+    bundelTerbit: await bundelTerbaru(),
     denyutTerakhir: denyutTerakhir ?? null,
     batasLuringDetik: batasLuringDetik(denyutTerakhir?.pada ?? null, sesiMulaiPada),
     perintah: daftarPerintah,

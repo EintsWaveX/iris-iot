@@ -157,6 +157,12 @@ export const AKSI_PERINTAH = [
   // approval (action.ts refuses it from "kirim"); the agent checks the
   // relay origin and the target against its own fixed config.
   "konsol.buka",
+  // 2026-10-07: the Updates card's buttons. pembaruan.bundel's one argument
+  // (the published bundle's sha256) is filled in by the API, never taken
+  // from the page; the Pi installs only a bundle signed by CI. Both are
+  // refused while a session runs.
+  "pembaruan.bundel",
+  "pembaruan.apt",
 ] as const;
 export type AksiPerintah = (typeof AKSI_PERINTAH)[number];
 

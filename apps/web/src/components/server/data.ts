@@ -5,6 +5,7 @@ import { tri } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import type { Heartbeat, Perintah } from "../console/types";
 import { S, pesan } from "./strings";
+import type { BundelTerbit } from "../../lib/server-shared";
 
 export interface Denyut extends Heartbeat {
   memori: number | null;
@@ -43,6 +44,7 @@ export interface Detail {
   /** The running session's module, or null when none runs. */
   sesiModul: number | null;
   situsIot: string | null;
+  bundelTerbit: BundelTerbit | null;
 }
 
 export interface Riwayat {

@@ -4,7 +4,10 @@
  *                    uptimeSec, jamSelaras, modeJaringan, layanan,
  *                    telemetri, hasilPerintah,
  *                    agenVersi?, infoSistem?, alamatLan?,
- *                    perburuan?, hotspot? }                      (heartbeat)
+ *                    perburuan?, hotspot?, jamPi? }              (heartbeat)
+ *                | { serverId, agenKunci, bundel: sha256 }       (fetch, 2026-10-07)
+ *                | { tipe: "bundel_terbit", aso, iot, sha256, isi, tanda }
+ *                  with Authorization: Bearer BUNDEL_TERBIT       (CI publish)
  *
  * Two very different operations sharing one file, dispatched on whether
  * `token` is present -- an enrollment body always has one, a heartbeat
@@ -38,9 +41,16 @@
  * agent reads from the Pi's own hostapd file), both for the Perburuan step.
  * No inbound port on the Pi is ever needed -- the agent always calls out,
  * and commands ride the response of the call it was always going to make
- * anyway.
+ * anyway. Each reply carries the site's clock (`waktu`), and `jamPi` (the
+ * Pi's) becomes kondisi.selisihDetik, so a Pi with a wrong clock is shown
+ * as such and its Konsol still gets the full time.
+ *
+ * The Updates card (2026-10-07): CI publishes the signed bundle here, and
+ * the agent fetches it here when someone presses Update (see
+ * _lib/bundel.ts). Both ride this route for the same 12-function cap.
  */
 import { konsolSiaga, terimaLaporanKonsol } from "../_lib/konsol.js";
+import { ambilBundel, terbitkan } from "../_lib/bundel.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
@@ -195,7 +205,12 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       typeof body.alamatLan === "string" && ALAMAT_LAN_RE.test(body.alamatLan)
         ? body.alamatLan
         : null;
-    const kondisi = saringKondisi(body.kondisi);
+    // The Pi's clock against the site's, measured here on every beat.
+    const jamPi = typeof body.jamPi === "number" && Number.isFinite(body.jamPi) ? body.jamPi : null;
+    const kondisi = saringKondisi({
+      ...(isPlainObject(body.kondisi) ? body.kondisi : {}),
+      selisihDetik: jamPi === null ? null : Math.round(jamPi - Date.now() / 1000),
+    });
     // Phase 9: the Module 4 hunt's summary and the Pi's hotspot, for the
     // Praktikan's Perburuan step. Only the newest of each is kept.
     const perburuanMasuk = saringPerburuan(body.perburuan);
@@ -257,9 +272,13 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // A command handed out now changes its status on the Server pages too.
     if (pending.length) berubah.add("server");
 
-    res
-      .status(200)
-      .json({ ok: true, perintah: pending, intervalDetik, ...(jadwal ? { jadwal } : {}) });
+    res.status(200).json({
+      ok: true,
+      perintah: pending,
+      intervalDetik,
+      waktu: Date.now() / 1000,
+      ...(jadwal ? { jadwal } : {}),
+    });
     await siarkan([...berubah]);
   } catch (err) {
     console.error("[api/agent denyut] unexpected error:", err);
@@ -272,8 +291,36 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (!requireMethod(req, res, "POST")) return;
 
   const body = jsonBody(req);
+  if (body.tipe === "bundel_terbit") return handleTerbit(req, res, body);
   if (typeof body.token === "string") return handleDaftar(req, res);
+  if (typeof body.bundel === "string") return handleUnduh(res, body);
   return handleDenyut(req, res);
+}
+
+/** CI publishes a signed bundle (2026-10-07). */
+async function handleTerbit(req: ApiRequest, res: ApiResponse, body: Record<string, unknown>) {
+  const auth = req.headers.authorization;
+  const rahasia = typeof auth === "string" && auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const r = await terbitkan(body, rahasia, process.env.BUNDEL_TERBIT);
+  res.status(r.ok ? 200 : r.kode === "rahasia_salah" ? 401 : 400).json(r);
+  if (r.ok && r.kode === "baru") await siarkan(["server"]);
+}
+
+/** The agent fetches the bundle its `pembaruan.bundel` names. */
+async function handleUnduh(res: ApiResponse, body: Record<string, unknown>) {
+  const serverId = Number(body.serverId);
+  const agenKunci = typeof body.agenKunci === "string" ? body.agenKunci : "";
+  if (!Number.isInteger(serverId) || serverId <= 0 || !agenKunci) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  if (!(await verifyAgentKey(serverId, agenKunci))) {
+    res.status(401).json({ ok: false, kode: "kunci_tidak_sah" });
+    return;
+  }
+  const r = await ambilBundel(String(body.bundel));
+  if (typeof r === "string") res.status(200).json({ ok: false, kode: r });
+  else res.status(200).json({ ok: true, ...r });
 }
 
 function numOrNull(value: unknown): number | null {

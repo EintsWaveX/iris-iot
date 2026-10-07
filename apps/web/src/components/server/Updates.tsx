@@ -1,22 +1,18 @@
 /**
  * The Updates card (Phase 9 Stage 5, mockup v-ready Updates). The agent
  * reports what is installed (its protocol, the bundle's commits, apt's
- * upgradable count) and the site compares that with what it knows is
- * newest. Installing happens from a laptop over SSH, never from the site:
- * "How to Update" shows the exact lines to run.
+ * upgradable count) and the site compares that with what is newest: the
+ * bundle CI built, signed and published. Since 2026-10-07 each row that is
+ * behind has an Update button that sends the command to the Pi: the three
+ * bundle rows install that one signed bundle (root on the Pi checks the
+ * signature first), the apt row runs apt upgrade. Never during a session.
  */
 import { useState } from "react";
-import {
-  ArrowsClockwiseIcon,
-  CircleNotchIcon,
-  CopyIcon,
-  QuestionIcon,
-} from "@phosphor-icons/react";
-import Dialog from "../ui/Dialog";
-import IconButton from "../ui/IconButton";
+import { ArrowsClockwiseIcon, CircleNotchIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
+import Confirm from "../ui/Confirm";
 import { sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
-import { barisPembaruan, type BarisPembaruan } from "../../lib/server-shared";
+import { bacaHasilPembaruan, barisPembaruan, type BarisPembaruan } from "../../lib/server-shared";
 import { kirim, sedangBerjalan, type Bisa, type Detail } from "./data";
 import { S, type SStrings } from "./strings";
 
@@ -30,23 +26,7 @@ const TONE = {
 function Baris({ t, b }: { t: SStrings; b: BarisPembaruan }) {
   if (b.k === "agen") return <>{t.updProto(b.sekarang, b.baru ?? "")}</>;
   if (b.k === "apt") return <>{t.updApt(b.sekarang, b.keamanan ?? 0)}</>;
-  if (b.k === "modul4") return <>{t.updSite(b.sekarang, b.baru)}</>;
-  return <>{b.sekarang ? b.sekarang.slice(0, 7) : t.updSite(null, null)}</>;
-}
-
-function Salin({ t, teks }: { t: SStrings; teks: string }) {
-  return (
-    <div className="srv-cmd">
-      <pre>{teks}</pre>
-      <IconButton
-        icon={CopyIcon}
-        label={t.copy}
-        onClick={() =>
-          void navigator.clipboard?.writeText(teks).then(() => window.Toast?.show(t.copied, "ok"))
-        }
-      />
-    </div>
-  );
+  return <>{t.updSite(b.sekarang, b.baru)}</>;
 }
 
 export default function Updates({
@@ -64,10 +44,19 @@ export default function Updates({
 }) {
   const t = S[lang];
   const now = useTick(1_000);
-  const [how, setHow] = useState<BarisPembaruan["k"] | null>(null);
+  const [ask, setAsk] = useState<BarisPembaruan["aksi"] | null>(null);
   const s = data.server;
-  const rows = barisPembaruan(s.infoSistem, s.agenVersi, data.situsIot);
+  const terbit = data.bundelTerbit;
+  const rows = barisPembaruan(s.infoSistem, s.agenVersi, data.situsIot, terbit);
   const checking = sedangBerjalan(data, "info.segarkan");
+  const hasil = {
+    "pembaruan.bundel": bacaHasilPembaruan(s.infoSistem, "bundel"),
+    "pembaruan.apt": bacaHasilPembaruan(s.infoSistem, "apt"),
+  };
+  // Sent and not yet picked up, or picked up and still installing.
+  const jalan = (a: BarisPembaruan["aksi"]) =>
+    sedangBerjalan(data, a) || hasil[a]?.status === "berjalan";
+  const sesi = data.sesiModul !== null;
 
   return (
     <section className="panel">
@@ -95,61 +84,79 @@ export default function Updates({
         )}
       </div>
       <div className="tabstops tabstops--3 srv-upd">
-        {rows.map((b) => (
-          <div key={b.k} className="tabstops__row">
-            <span className={`pill ${TONE[b.status]}`}>{t.updSt[b.status]}</span>
-            <span className="stack" style={{ gap: 0 }}>
-              <b>{t.updRow[b.k]}</b>
-              <span className="hint mono">
-                <Baris t={t} b={b} />
+        {rows.map((b) => {
+          const behind = b.status === "perlu" || b.status === "beda";
+          const tanpaBundel = b.aksi === "pembaruan.bundel" && !terbit;
+          const busy = jalan(b.aksi);
+          const alasan = sesi ? t.updInSession : tanpaBundel ? t.updNoBundle : undefined;
+          return (
+            <div key={b.k} className="tabstops__row">
+              <span className={`pill ${TONE[b.status]}`}>{t.updSt[b.status]}</span>
+              <span className="stack" style={{ gap: 0 }}>
+                <b>{t.updRow[b.k]}</b>
+                <span className="hint mono">
+                  <Baris t={t} b={b} />
+                </span>
               </span>
-            </span>
-            {b.status === "perlu" || b.status === "beda" ? (
-              <button type="button" className="btn btn--sm" onClick={() => setHow(b.k)}>
-                <QuestionIcon size={16} aria-hidden="true" />
-                {t.updHow}
-              </button>
-            ) : (
-              <span />
-            )}
-          </div>
-        ))}
-      </div>
-      <span className="hint panel__actions">{t.updNote}</span>
-      {how && (
-        <Dialog
-          open
-          onOpenChange={(o) => !o && setHow(null)}
-          title={t.howTitle}
-          description={t.updRow[how]}
-          lang={lang}
-          actions={
-            <button type="button" className="btn btn--primary" onClick={() => setHow(null)}>
-              {t.close}
-            </button>
-          }
-        >
-          <div className="stack">
-            {how === "apt" ? (
-              <>
-                <p className="hint">{t.howApt}</p>
-                <Salin t={t} teks={"ssh orangepi\nsudo apt update && sudo apt upgrade"} />
-              </>
-            ) : (
-              <>
-                <p className="hint">{t.howBundle}</p>
-                <Salin
-                  t={t}
-                  teks={"python orangepi/build_bundle.py\nsh orangepi/deploy.sh orangepi --modul 4"}
-                />
-              </>
-            )}
-            <div className="banner banner--warn">
-              <span>{t.howSession}</span>
+              {bisa.server && (behind || busy) ? (
+                <button
+                  type="button"
+                  className="btn btn--sm btn--primary"
+                  disabled={busy || !!alasan}
+                  title={alasan}
+                  onClick={() => setAsk(b.aksi)}
+                >
+                  {busy ? (
+                    <CircleNotchIcon size={16} className="ctl-spin" aria-hidden="true" />
+                  ) : (
+                    <DownloadSimpleIcon size={16} aria-hidden="true" />
+                  )}
+                  {t.updDo}
+                </button>
+              ) : (
+                <span />
+              )}
             </div>
-          </div>
-        </Dialog>
-      )}
+          );
+        })}
+      </div>
+      {(["pembaruan.bundel", "pembaruan.apt"] as const).map((a) => {
+        const h = hasil[a];
+        if (!h) return null;
+        return (
+          <p key={a} className="hint">
+            {t.updLast[a === "pembaruan.bundel" ? "bundel" : "apt"]}: {t.updHasilSt[h.status]}
+            {h.pada ? ` · ${sejak(new Date(h.pada * 1000).toISOString(), lang, now)}` : ""}
+            {h.status === "gagal" && h.pesan ? (
+              <>
+                <br />
+                <span className="mono">{h.pesan}</span>
+              </>
+            ) : null}
+          </p>
+        );
+      })}
+      <span className="hint panel__actions">{sesi ? t.updInSession : t.updNote}</span>
+      <Confirm
+        open={ask !== null}
+        onOpenChange={(o) => !o && setAsk(null)}
+        title={ask === "pembaruan.apt" ? t.updAskApt : t.updAskBundle}
+        body={
+          ask === "pembaruan.apt"
+            ? t.updAptBody
+            : t.updBundleBody(terbit?.aso ?? "", terbit?.iot ?? "")
+        }
+        confirmLabel={t.updDo}
+        cancelLabel={t.updCancel}
+        tone="primary"
+        lang={lang}
+        onConfirm={async () => {
+          if (!ask) return false;
+          const ok = await kirim(id, ask, {}, lang, t.updSent);
+          refresh();
+          return ok;
+        }}
+      />
     </section>
   );
 }
