@@ -12,8 +12,9 @@
 import { createHash, createPublicKey, verify } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
-import { pengaturan } from "../../src/lib/schema.js";
+import { pengaturan, server } from "../../src/lib/schema.js";
 import { safeEqual } from "../../src/lib/auth.js";
+import { sha256 as hashToken } from "../../src/lib/server-lib.js";
 import type { BundelTerbit } from "../../src/lib/server-shared.js";
 
 /** The public half of BUNDEL_KUNCI_TANDA; the same file as IRIS ASO's
@@ -147,4 +148,67 @@ export async function ambilBundel(
   const isi = r?.nilai as { sha256?: string; isi?: string } | undefined;
   if (!isi || isi.sha256 !== sha256 || typeof isi.isi !== "string") return "tidak_ada";
   return { isi: isi.isi, tanda: meta.tanda };
+}
+
+export type HasilPasang =
+  | {
+      ok: true;
+      /** The server this token registers, so a Pi already reporting to it
+       *  only re-registers, and one reporting elsewhere is asked first. */
+      serverId: number;
+      relay: string | null;
+      waktu: number;
+      /** The bundle, left out when the Pi only asked who it would report to. */
+      isi?: string;
+      tanda?: string;
+      sha256?: string;
+      aso?: string;
+      iot?: string;
+    }
+  | {
+      ok: false;
+      kode: "format_salah" | "tidak_ditemukan" | "token_tidak_sah" | "bundel_belum_ada";
+    };
+
+/** The one-line install (public/pasang-pi.sh, 2026-10-07), for whoever holds
+ *  a server's one-time enrol token. The token is only checked here;
+ *  enrolment uses it up a minute later. `ringkas` answers which server it
+ *  is (a Pi that already has an agent only switches servers); otherwise
+ *  the newest bundle comes too, for a fresh Pi. Both carry the Konsol relay
+ *  and the site's clock, which a fresh Pi lacks. */
+export async function bundelUntukPasang(
+  kodeMentah: unknown,
+  tokenMentah: unknown,
+  ringkas = false,
+): Promise<HasilPasang> {
+  const kode = typeof kodeMentah === "string" ? kodeMentah.trim().toLowerCase() : "";
+  const token = typeof tokenMentah === "string" ? tokenMentah.trim() : "";
+  if (!kode || !token) return { ok: false, kode: "format_salah" };
+  const db = getDb();
+  const [row] = await db
+    .select({ id: server.id, hash: server.daftarTokenHash, exp: server.daftarTokenExp })
+    .from(server)
+    .where(eq(server.kode, kode))
+    .limit(1);
+  if (!row) return { ok: false, kode: "tidak_ditemukan" };
+  if (
+    !row.hash ||
+    !row.exp ||
+    row.exp.getTime() < Date.now() ||
+    !safeEqual(hashToken(token), row.hash)
+  )
+    return { ok: false, kode: "token_tidak_sah" };
+  const relay = process.env.KONSOL_RELAY_URL?.trim() ?? "";
+  const dasar = {
+    ok: true as const,
+    serverId: row.id,
+    relay: /^wss:\/\//.test(relay) ? relay : null,
+    waktu: Date.now() / 1000,
+  };
+  if (ringkas) return dasar;
+  const terbit = await bundelTerbaru();
+  if (!terbit) return { ok: false, kode: "bundel_belum_ada" };
+  const b = await ambilBundel(terbit.sha256);
+  if (typeof b === "string") return { ok: false, kode: "bundel_belum_ada" };
+  return { ...dasar, ...b, sha256: terbit.sha256, aso: terbit.aso, iot: terbit.iot };
 }

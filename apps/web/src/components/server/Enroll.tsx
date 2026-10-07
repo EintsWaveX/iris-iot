@@ -1,8 +1,12 @@
 /**
  * Register a server (Phase 9 Stage 5, mockup v-list "Enroll"): a 3-step
  * dialog. Name it (the name is also its code, lower case and hyphens), run
- * the enrol line on the Pi, then wait for the first heartbeat. Back is on
+ * the one line on the Pi, then wait for the first heartbeat. Back is on
  * the left; once the server exists, step 1 only shows its name.
+ *
+ * The line (2026-10-07) installs everything on a fresh Pi and registers it
+ * (public/pasang-pi.sh): no laptop step, and a Pi that already has an
+ * iris-agent is asked before it is reinstalled for this server.
  */
 import { useEffect, useState } from "react";
 import {
@@ -22,11 +26,11 @@ import { S, pesan } from "./strings";
 const KODE_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
 
 export function perintahDaftar(kode: string, token: string): string {
+  const situs = location.origin;
   return [
-    "sudo -u iris-agent IRIS_AGENT_CONFIG=/etc/iris-agent/config.json \\",
-    `  python3 /opt/iris-agent/agent.py enroll --kode ${kode} --token ${token} \\`,
-    `  --server https://${location.host} --repo-root /home/iris/IRIS-ASO`,
-    "sudo systemctl restart iris-agent.service",
+    `curl -fsSL ${situs}/pasang-pi.sh | sudo sh -s -- \\`,
+    `  --situs ${situs} \\`,
+    `  --kode ${kode} --token ${token}`,
   ].join("\n");
 }
 

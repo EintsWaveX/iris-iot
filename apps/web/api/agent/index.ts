@@ -6,6 +6,7 @@
  *                    agenVersi?, infoSistem?, alamatLan?,
  *                    perburuan?, hotspot?, jamPi? }              (heartbeat)
  *                | { serverId, agenKunci, bundel: sha256 }       (fetch, 2026-10-07)
+ *                | { tipe: "bundel_pasang", kode, token, ringkas? } (one-line install)
  *                | { tipe: "bundel_terbit", aso, iot, sha256, isi, tanda }
  *                  with Authorization: Bearer BUNDEL_TERBIT       (CI publish)
  *
@@ -50,7 +51,7 @@
  * _lib/bundel.ts). Both ride this route for the same 12-function cap.
  */
 import { konsolSiaga, terimaLaporanKonsol } from "../_lib/konsol.js";
-import { ambilBundel, terbitkan } from "../_lib/bundel.js";
+import { ambilBundel, bundelUntukPasang, terbitkan } from "../_lib/bundel.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
@@ -292,6 +293,13 @@ async function handler(req: ApiRequest, res: ApiResponse) {
 
   const body = jsonBody(req);
   if (body.tipe === "bundel_terbit") return handleTerbit(req, res, body);
+  // A fresh Pi's one-line install (public/pasang-pi.sh) fetches the bundle
+  // with its enrol token before it has an agent key.
+  if (body.tipe === "bundel_pasang") {
+    const r = await bundelUntukPasang(body.kode, body.token, body.ringkas === true);
+    res.status(200).json(r);
+    return;
+  }
   if (typeof body.token === "string") return handleDaftar(req, res);
   if (typeof body.bundel === "string") return handleUnduh(res, body);
   return handleDenyut(req, res);

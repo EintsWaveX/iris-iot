@@ -374,7 +374,8 @@ export const S = dict({
     tokenBody:
       "Token lama langsung berhenti bekerja. Agen di Pi harus didaftarkan ulang dengan token baru.",
     tokenMake: "Buat Token",
-    tokenMade: "Token baru dibuat. Jalankan perintah di bawah di Pi.",
+    tokenMade:
+      "Token baru dibuat. Jalankan baris di bawah di Pi: agennya didaftarkan ulang, tidak ada yang dipasang ulang.",
     delAsk: (n: string) => `Hapus ${n}?`,
     delBody: "Riwayat dan log server ini ikut terhapus. Agen di Pi berhenti melapor.",
     del: "Hapus",
@@ -387,7 +388,8 @@ export const S = dict({
     wizNameHint: "Huruf kecil, angka dan tanda hubung, tampil di kartu server.",
     wizNameBad: "Huruf kecil, angka dan tanda hubung saja, 2 sampai 40 karakter.",
     wizMade: "Sudah dibuat. Namanya bisa diubah nanti di Pengaturan.",
-    wizCmd: "Jalankan baris ini di Pi lewat SSH. Tokennya sekali pakai dan habis dalam 30 menit.",
+    wizCmd:
+      "Jalankan baris ini di Pi (pengguna iris, lewat SSH atau terminal). Pi baru memasang semuanya lalu mendaftar sendiri. Pi yang sudah punya iris-agent tidak dipasang ulang, cukup pindah ke server ini, dan menanyakan dulu kalau sebelumnya melapor ke server lain. Tokennya sekali pakai dan habis dalam 30 menit.",
     wizCopyCmd: "Salin Perintah",
     wizWait: (n: string) => `Menunggu denyut dari ${n}…`,
     wizOk: (n: string) => `${n} mengirim denyut pertama.`,
@@ -761,7 +763,8 @@ export const S = dict({
     tokenBody:
       "The old token stops working at once. The agent on the Pi has to enrol again with the new one.",
     tokenMake: "Make Token",
-    tokenMade: "New token made. Run the command below on the Pi.",
+    tokenMade:
+      "New token made. Run the line below on the Pi: its agent registers again, nothing is reinstalled.",
     delAsk: (n: string) => `Delete ${n}?`,
     delBody: "This server's history and logs go with it. The agent on the Pi stops reporting.",
     del: "Delete",
@@ -773,7 +776,8 @@ export const S = dict({
     wizNameHint: "Lower case, digits and hyphens, shown on the server card.",
     wizNameBad: "Lower case, digits and hyphens only, 2 to 40 characters.",
     wizMade: "Already made. You can rename it later in Settings.",
-    wizCmd: "Run this on the Pi over SSH. The token works once and expires in 30 minutes.",
+    wizCmd:
+      "Run this line on the Pi (user iris, over SSH or in a terminal). A fresh Pi installs everything and registers itself. A Pi that already has an iris-agent isn't reinstalled, it just moves to this server, and asks first if it reported to another one. The token works once and expires in 30 minutes.",
     wizCopyCmd: "Copy the Command",
     wizWait: (n: string) => `Waiting for a heartbeat from ${n}…`,
     wizOk: (n: string) => `${n} sent its first heartbeat.`,
@@ -1135,7 +1139,7 @@ export const S = dict({
     tokenAsk: "生成新令牌？",
     tokenBody: "旧令牌立即失效。Pi 上的 agent 需要用新令牌重新注册。",
     tokenMake: "生成令牌",
-    tokenMade: "新令牌已生成。在 Pi 上运行下面的命令。",
+    tokenMade: "新令牌已生成。在 Pi 上运行下面这一行：agent 会重新注册，不会重新安装任何东西。",
     delAsk: (n: string) => `删除 ${n}？`,
     delBody: "这台服务器的历史和日志会一并删除。Pi 上的 agent 将停止上报。",
     del: "删除",
@@ -1147,7 +1151,8 @@ export const S = dict({
     wizNameHint: "使用小写字母、数字和连字符，会显示在服务器卡片上。",
     wizNameBad: "只能用小写字母、数字和连字符，2 到 40 个字符。",
     wizMade: "已经建好了。之后可以在设置里改名。",
-    wizCmd: "通过 SSH 在 Pi 上运行这一行。令牌只能用一次，30 分钟后失效。",
+    wizCmd:
+      "在 Pi 上运行这一行（用户 iris，通过 SSH 或终端）。新的 Pi 会安装所有东西并自己注册。已经有 iris-agent 的 Pi 不会重新安装，只会换到这台服务器；如果之前向别的服务器报告，会先询问。令牌只能用一次，30 分钟后失效。",
     wizCopyCmd: "复制命令",
     wizWait: (n: string) => `等待 ${n} 的心跳…`,
     wizOk: (n: string) => `${n} 发送了第一次心跳。`,

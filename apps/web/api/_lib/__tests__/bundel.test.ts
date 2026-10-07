@@ -1,4 +1,5 @@
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BUNDEL_PUB, tandaSah, terbitkan } from "../bundel";
 
@@ -19,6 +20,11 @@ describe("Pi bundle signature", () => {
 
   it("ships the same public key as the Pi's bundel.pub", () => {
     expect(BUNDEL_PUB).toContain("MCowBQYDK2VwAyEAFQ2KYNT9tPyJC52+GY5cGnNESAHH00MiEqvMb4xXhdM=");
+  });
+
+  it("gives the one-line installer the same key", () => {
+    const skrip = readFileSync(new URL("../../../public/pasang-pi.sh", import.meta.url), "utf8");
+    expect(skrip).toContain(BUNDEL_PUB);
   });
 });
 
