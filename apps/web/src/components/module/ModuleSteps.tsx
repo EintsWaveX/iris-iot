@@ -24,6 +24,8 @@
  *
  * The step is mirrored into ?step= so a step is bookmarkable, and
  * `iris:go-step` (detail: a step id) moves to it from anywhere on the page.
+ * Each move is a history entry, so the browser's Back goes to the previous
+ * step before it leaves the module (2026-10-07, user).
  */
 import {
   useEffect,
@@ -242,21 +244,31 @@ export default function ModuleSteps(p: Props) {
   const keadaan = hunt.data?.aktif ? (hunt.data.keadaan ?? "tunggu") : "tunggu";
 
   const [step, setStep] = useState<Step>("modul");
+  const awal: Step = mode === "now" ? "code" : "modul";
   const [picked, setPicked] = useState(false);
   // The first step to show: the URL's, else Code in a running session,
   // else the module itself.
   useEffect(() => {
     if (loading || picked) return;
     setPicked(true);
-    setStep(stepFromUrl(steps) ?? (mode === "now" ? "code" : "modul"));
+    setStep(stepFromUrl(steps) ?? awal);
   }, [loading, picked, mode]);
 
   const go = (s: Step) => {
     setStep(s);
     const url = new URL(location.href);
+    if (url.searchParams.get("step") === s) return;
     url.searchParams.set("step", s);
-    history.replaceState(history.state, "", url);
+    history.pushState(history.state, "", url);
   };
+
+  // Back and Forward: the step the address now names, or the first step.
+  useEffect(() => {
+    if (loading) return;
+    const on = () => setStep(stepFromUrl(steps) ?? awal);
+    window.addEventListener("popstate", on);
+    return () => window.removeEventListener("popstate", on);
+  }, [loading, steps.join(), awal]);
 
   useEffect(() => {
     const on = (e: Event) => {
