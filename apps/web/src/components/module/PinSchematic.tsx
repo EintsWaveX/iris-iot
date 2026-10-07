@@ -98,9 +98,11 @@ function kindOf(pin: string): Kind {
   return "sig";
 }
 
-/** "DHT (DATA)" -> ["DHT", "DATA"]; "Tombol (kaki 1)" -> ["Tombol", "kaki 1"]. */
+/** "DHT (DATA)" -> ["DHT", "DATA"]; "Tombol (kaki 1)" -> ["Tombol", "kaki 1"].
+ *  Mandarin writes full-width brackets, "按钮（脚 1）" (2026-10-07: each pin
+ *  became its own part, with no signal). */
 function splitPart(s: string): [string, string] {
-  const m = /^(.*?)\s*\((.*)\)\s*$/.exec(s);
+  const m = /^(.*?)\s*[(（](.*)[)）]\s*$/.exec(s);
   return m ? [m[1].trim(), m[2].trim()] : [s.trim(), ""];
 }
 
@@ -109,7 +111,7 @@ export function boardsFrom(pin: PinData, mcu: string): Board[] {
   const out: Board[] = [];
   for (let p = 0; p < pairs; p++) {
     const head = pin.kolom[p * 2];
-    const label = /\((.*)\)/.exec(head)?.[1] ?? mcu;
+    const label = /[(（](.*)[)）]/.exec(head)?.[1] ?? mcu;
     const wires: Wire[] = [];
     pin.baris.forEach((row, r) => {
       const comp = row[p * 2];
@@ -120,7 +122,7 @@ export function boardsFrom(pin: PinData, mcu: string): Board[] {
         row: r,
         pin: pn,
         part,
-        signal: signalFull.split(",")[0].trim(),
+        signal: signalFull.split(/[,，]/)[0].trim(),
         signalFull,
         kind: kindOf(pn),
       });
@@ -199,6 +201,40 @@ export function useSchematic(
 
 const ROW = 40;
 const PAD = 26;
+/** The band at the top of each box that holds its name (2026-10-07: the
+ *  name sat on the first pin, and a long one ran out of its box). */
+const HEAD = 30;
+
+let kanvas: CanvasRenderingContext2D | null | undefined;
+/** A label's drawn width: measured with the page's own font once mounted,
+ *  estimated before (the same on the server and the first client render). */
+function lebar(s: string, bold: boolean, px: number, ukur: boolean): number {
+  if (ukur && typeof document !== "undefined") {
+    if (kanvas === undefined) kanvas = document.createElement("canvas").getContext("2d");
+    if (kanvas) {
+      const css = getComputedStyle(document.documentElement);
+      const fam = css.getPropertyValue(bold ? "--font-body" : "--font-mono").trim() || "sans-serif";
+      kanvas.font = `${bold ? 700 : 400} ${px}px ${fam}`;
+      return kanvas.measureText(s).width;
+    }
+  }
+  return [...s].reduce((a, c) => a + (/[　-鿿＀-￯]/.test(c) ? px : px * 0.64), 0);
+}
+
+/** True once mounted and the fonts are in, so labels are measured for real. */
+function useUkur(): boolean {
+  const [siap, setSiap] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const go = () => alive && setSiap(true);
+    if (document.fonts?.ready) void document.fonts.ready.then(go);
+    else go();
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return siap;
+}
 
 function Diagram({
   board,
@@ -213,29 +249,46 @@ function Diagram({
   modul: number;
   compact?: boolean;
 }) {
+  const ukur = useUkur();
   const pins = [...new Set(board.wires.map((w) => w.pin))];
   const parts = [...new Set(board.wires.map((w) => w.part))];
   const partSignals = parts.map((p) => board.wires.filter((w) => w.part === p));
-  const rightRows = partSignals.reduce((a, s) => a + s.length, 0) + (parts.length - 1) * 0.6;
-  const h = Math.max(pins.length, rightRows) * ROW + PAD * 2;
-  // The dock is narrow, so its drawing is narrower too (text keeps its size).
-  const W = compact ? 380 : 560;
-  const mcuX = compact ? 8 : 24;
-  const mcuW = compact ? 118 : 150;
-  const partX = compact ? 254 : 380;
-  const partW = compact ? 118 : 150;
-  const pinY = (i: number) => PAD + ROW / 2 + i * ROW + (h - PAD * 2 - pins.length * ROW) / 2;
 
-  let cursor = PAD + (h - PAD * 2 - rightRows * ROW) / 2;
+  // Widths: each box fits its name and its pin labels; the wires give up
+  // room first, and the drawing only widens when they can't (text keeps its
+  // size, since the drawing scales to its container).
+  const mcuX = compact ? 8 : 24;
+  const mcuW = Math.max(
+    compact ? 118 : 150,
+    lebar(board.label, true, 14, ukur) + 30,
+    Math.max(0, ...pins.map((p) => lebar(p, false, 12, ukur))) + 40,
+  );
+  const partW = Math.max(
+    compact ? 118 : 150,
+    Math.max(0, ...parts.map((p) => lebar(p, true, 14, ukur))) + 26,
+    Math.max(0, ...board.wires.map((w) => lebar(w.signal, false, 12, ukur))) + 36,
+  );
+  const W = Math.max(compact ? 380 : 560, mcuX * 2 + mcuW + partW + (compact ? 96 : 140));
+  const partX = W - mcuX - partW;
+
+  // Heights: a name band on top of every box, then one row per pin.
+  const leftH = HEAD + pins.length * ROW;
+  const rightH =
+    partSignals.reduce((a, sg) => a + HEAD + sg.length * ROW, 0) + (parts.length - 1) * 0.6 * ROW;
+  const h = Math.max(leftH, rightH) + PAD * 2;
+  const mcuTop = (h - leftH) / 2;
+  const pinY = (i: number) => mcuTop + HEAD + ROW / 2 + i * ROW;
+
+  let cursor = (h - rightH) / 2;
   const partBoxes = partSignals.map((sigs, i) => {
     const top = cursor;
-    cursor += sigs.length * ROW + 0.6 * ROW;
-    return { name: parts[i], top, height: sigs.length * ROW, sigs };
+    cursor += HEAD + sigs.length * ROW + 0.6 * ROW;
+    return { name: parts[i], top, height: HEAD + sigs.length * ROW, sigs };
   });
   const sigY = (w: Wire) => {
     const box = partBoxes.find((b) => b.name === w.part)!;
     const idx = box.sigs.indexOf(w);
-    return box.top + ROW / 2 + idx * ROW;
+    return box.top + HEAD + ROW / 2 + idx * ROW;
   };
 
   return (
@@ -260,12 +313,12 @@ function Diagram({
       <rect
         className="wiring__mcu"
         x={mcuX}
-        y={PAD - 8}
+        y={mcuTop - 4}
         width={mcuW}
-        height={h - PAD * 2 + 16}
+        height={leftH + 8}
         rx="12"
       />
-      <text className="wiring__mcu-label" x={mcuX + 14} y={PAD + 12}>
+      <text className="wiring__mcu-label" x={mcuX + 14} y={mcuTop + 20}>
         {board.label}
       </text>
       {pins.map((p, i) => (
@@ -290,15 +343,15 @@ function Diagram({
           <rect
             className="wiring__part"
             x={partX}
-            y={b.top - 6}
+            y={b.top - 4}
             width={partW}
-            height={b.height + 12}
+            height={b.height + 8}
             rx="10"
           />
           <text
             className="wiring__part-label"
             x={partX + partW - 12}
-            y={b.top + 14}
+            y={b.top + 20}
             textAnchor="end"
           >
             {b.name}
@@ -327,7 +380,7 @@ function Diagram({
         const y2 = sigY(w);
         const x1 = mcuX + mcuW + 4;
         const x2 = partX - 4;
-        const bend = compact ? 50 : 90;
+        const bend = Math.min(compact ? 50 : 90, (x2 - x1) * 0.42);
         const d = `M${x1},${y1} C${x1 + bend},${y1} ${x2 - bend},${y2} ${x2},${y2}`;
         const on = active === w.row;
         return (
