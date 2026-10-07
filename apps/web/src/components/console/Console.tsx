@@ -197,8 +197,26 @@ export default function Console({ lang }: { lang: Lang }) {
       }
     };
     apply();
+    // A link to this page's own #... (the Mode TOT banner, the readiness
+    // chips) did nothing here: the site router moves the address with
+    // pushState, which fires no hashchange (2026-10-07). Apply it directly.
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+        return;
+      const a = (e.target as Element | null)?.closest?.("a[href]");
+      if (!(a instanceof HTMLAnchorElement) || a.target || !a.hash) return;
+      const u = new URL(a.href);
+      if (u.origin !== location.origin || u.pathname !== location.pathname) return;
+      e.preventDefault();
+      history.pushState(null, "", u.pathname + u.search + u.hash);
+      apply();
+    };
+    document.addEventListener("click", onClick, true);
     window.addEventListener("hashchange", apply);
-    return () => window.removeEventListener("hashchange", apply);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.removeEventListener("hashchange", apply);
+    };
   }, []);
 
   const go = useCallback((v: View) => {
