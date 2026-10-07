@@ -53,11 +53,12 @@ export async function bundelTerbaru(): Promise<BundelTerbit | null> {
     sha256: n.sha256,
     ukuran: typeof n.ukuran === "number" ? n.ukuran : 0,
     dibuat: typeof n.dibuat === "string" ? n.dibuat : "",
+    dibangun: typeof n.dibangun === "string" ? n.dibangun : "",
   };
 }
 
 export type HasilTerbit =
-  | { ok: true; kode: "baru" | "sudah_ada" }
+  | { ok: true; kode: "baru" | "sudah_ada" | "lebih_lama" }
   | {
       ok: false;
       kode: "rahasia_salah" | "format_salah" | "terlalu_besar" | "sha_beda" | "tanda_tidak_sah";
@@ -72,6 +73,7 @@ export async function terbitkan(
   if (!rahasiaBenar || !safeEqual(rahasia, rahasiaBenar))
     return { ok: false, kode: "rahasia_salah" };
   const { aso, iot, sha256, isi, tanda } = body;
+  const dibangun = typeof body.dibangun === "string" ? body.dibangun : "";
   if (
     typeof aso !== "string" ||
     !COMMIT_RE.test(aso) ||
@@ -91,6 +93,12 @@ export async function terbitkan(
 
   const lama = await bundelTerbaru();
   if (lama && lama.aso === aso && lama.iot === iot) return { ok: true, kode: "sudah_ada" };
+  // Both repositories' CI jobs publish; one that retried while the site
+  // deployed may land after a newer build. The later build wins.
+  const t = Date.parse(dibangun);
+  const tLama = lama ? Date.parse(lama.dibangun) : NaN;
+  if (Number.isFinite(t) && Number.isFinite(tLama) && t < tLama)
+    return { ok: true, kode: "lebih_lama" };
 
   const meta: BundelTerbit & { tanda: string } = {
     aso,
@@ -98,6 +106,7 @@ export async function terbitkan(
     sha256,
     ukuran: zip.length,
     dibuat: new Date().toISOString(),
+    dibangun,
     tanda,
   };
   const db = getDb();

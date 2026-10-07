@@ -333,6 +333,8 @@ export interface BundelTerbit {
   sha256: string;
   ukuran: number;
   dibuat: string;
+  /** When CI built it (BUNDLE.txt); the later build wins. */
+  dibangun: string;
 }
 
 /** How the last install or apt upgrade went, from the agent's infoSistem. */
