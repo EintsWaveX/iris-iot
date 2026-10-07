@@ -5,85 +5,25 @@
  * on one device shows on the others without a refresh.
  *
  * A message carries topic names only, never data: a page that hears one
- * asks the API again with its own sign-in. Topics:
+ * asks the API again with its own sign-in. The topics, and which write sends
+ * which, live in src/lib/siaran-topik.ts, shared with the pages.
  *
- *   akses brief jadwal roster tim sesi nilai laporan bayar umpan
- *   presentasi server jurnal online (an Asisten came online) kode tot
+ * The answer also names its topics in an `x-siaran` header, so the tab that
+ * made the write refreshes its other panels at once, relay or not
+ * (2026-10-07).
  *
- * Pi heartbeats (api/agent) send nothing: the Server pages poll them.
+ * Pi heartbeats (api/agent) send only when something a page shows changed.
  */
 import { createHmac } from "node:crypto";
 import type { ApiHandler, ApiRequest, ApiResponse } from "./http.js";
 import { konsolEnv } from "./konsol.js";
 import { denganGalat } from "./galat.js";
-
-/** Writes, as "route:aksi" (or just "route"), and what they change. A
- *  write not listed here announces its route's name. */
-const TOPIK: Record<string, string[]> = {
-  "session:akses": ["akses"],
-  "session:final": ["akses"],
-  "session:brief": ["brief"],
-  "session:schedule": ["jadwal"],
-  "session:jendela": ["jadwal"],
-  "session:penugasan": ["jadwal", "tim"],
-  "session:tim": ["tim", "jadwal"],
-  "session:roster": ["roster"],
-  "session:rosterslot": ["roster"],
-  "session:praktikan": ["roster"],
-  "session:susulan": ["roster", "sesi", "jadwal"],
-  "session:tot": ["tot", "roster", "sesi"],
-  "session:hadir": ["sesi", "roster"],
-  "session:group": ["sesi", "roster"],
-  // Pegang Kelompok, Ganti Asisten: who holds a group decides who scores it
-  // and what the projector and the group's Praktikan see (2026-10-07: it fell
-  // through to "session", a topic no page listens to).
-  "session:assignment": ["sesi", "nilai"],
-  "session:rekap": ["laporan"],
-  "session:nilai": ["nilai"],
-  "session:catatan": ["nilai"],
-  "session:end": ["sesi", "jadwal", "laporan"],
-  "session:cancel": ["sesi", "jadwal"],
-  "session:lanjutkan": ["sesi"],
-  "session:durasi": ["sesi"],
-  "session:help": ["sesi"],
-  "session:kit": ["sesi", "laporan"],
-  "session:siarkan": ["sesi"],
-  "session:perburuan": ["sesi"],
-  "session:tangkapan": ["sesi"],
-  "session:cermin": ["sesi"],
-  "session:seelabs": ["sesi", "bayar"],
-  "session:kejadian": ["laporan"],
-  "session:dokumen": ["laporan"],
-  "session:feedback": ["umpan", "laporan"],
-  "session:bayar": ["bayar"],
-  session: ["sesi", "jadwal"],
-  "auth:student": ["sesi"],
-  "auth:assistant": [],
-  "auth:logout": [],
-  "auth:set-password": [],
-  "auth:change-password": [],
-  "auth:galat": [],
-  "modul:draft": ["jurnal"],
-  "modul:kunci": ["jurnal"],
-  "modul:cek": [],
-  "modul:unduh": [],
-  "modul:kode-simpan": ["kode"],
-  "modul:kode-buang": ["kode"],
-  "modul:kode-pulihkan": ["kode"],
-  "modul:kode-terbit": ["kode", "jurnal"],
-  "presentasi:token": [],
-  "presentasi:lampiran-token": [],
-};
-
-function topikUntuk(rute: string, aksi: unknown): string[] {
-  const kunci = typeof aksi === "string" && aksi ? `${rute}:${aksi}` : rute;
-  return TOPIK[kunci] ?? [rute === "action" ? "server" : rute];
-}
+import { topikUntuk, type Topik } from "../../src/lib/siaran-topik.js";
 
 /** Sends the topics to the relay; quietly does nothing when the relay is
  *  not set up or doesn't answer within 1.5 s (pages also refetch when they
  *  come back into view, so a lost message only delays an update). */
-export async function siarkan(topik: string[]): Promise<void> {
+export async function siarkan(topik: readonly Topik[]): Promise<void> {
   const env = konsolEnv();
   if (!env || !topik.length) return;
   const body = JSON.stringify({ t: [...new Set(topik)] });
@@ -112,13 +52,24 @@ export function denganSiaran(rute: string, handler: ApiHandler): ApiHandler {
     if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") {
       return handler(req, res);
     }
-    let gagal = false;
+    const aksi = req.query?.aksi;
+    const topik = topikUntuk(rute, aksi) ?? [];
+    // An answer that isn't JSON counts by its status alone.
+    let berhasil: boolean | null = null;
     const json = res.json.bind(res);
     res.json = (body: unknown) => {
-      gagal = !!body && typeof body === "object" && (body as { ok?: unknown }).ok === false;
+      const gagal = !!body && typeof body === "object" && (body as { ok?: unknown }).ok === false;
+      berhasil = !gagal && res.statusCode < 300;
+      if (berhasil && topik.length && !res.headersSent) res.setHeader("x-siaran", topik.join(","));
       json(body);
     };
     await handler(req, res);
-    if (!gagal && res.statusCode < 300) await siarkan(topikUntuk(rute, req.query.aksi));
+    if (!(berhasil ?? res.statusCode < 300)) return;
+    if (topikUntuk(rute, aksi) === null) {
+      // A write missing from siaran-topik.ts: reported, so it gets listed.
+      console.error(`[siaran] ${rute}:${String(aksi ?? "")} has no topics`);
+      return;
+    }
+    await siarkan(topik);
   });
 }

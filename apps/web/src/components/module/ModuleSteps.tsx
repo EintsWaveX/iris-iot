@@ -70,7 +70,7 @@ import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import { M } from "./moduleStrings";
 import { openSignIn } from "../../lib/signin";
-import { dengar } from "../../lib/siaran";
+import { dengar, useSegar } from "../../lib/siaran";
 
 type Mode = "browse" | "now" | "done" | "asisten";
 type Step = "modul" | "brief" | "praktikum" | "setup" | "code" | "live" | "hunt";
@@ -198,12 +198,13 @@ export default function ModuleSteps(p: Props) {
     };
   }, [me]);
 
+  const segarMine = useSegar(["sesi", "nilai", "jawaban"], me?.role === "praktikan");
   useEffect(() => {
     if (me?.role !== "praktikan") return;
     getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine")
       .then((d) => setMine(d.ok ? d.praktikum : []))
       .catch(() => setMine([]));
-  }, [me]);
+  }, [me, segarMine]);
 
   const pro = useProyektor(me);
   const wakil = useWakil(modul, me?.role === "asisten", pro);

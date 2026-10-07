@@ -52,10 +52,11 @@ export interface PerburuanData {
   peristiwa?: PeristiwaRingkas[];
 }
 
-/** Polls the step's data while Module 4 runs; every 5 s, like the Live room. */
+/** The step's data while Module 4 runs: fetched again whenever the Pi's
+ *  hunt summary changes (buru, 2026-10-07), with a slow poll behind it. */
 export function usePerburuan(enabled: boolean, wakilNomor?: number) {
   const url = `/api/session/perburuan${wakilNomor ? `?kelompok=${wakilNomor}` : ""}`;
-  return usePoll(() => getJson<PerburuanData>(url), 5_000, enabled, ["sesi"]);
+  return usePoll(() => getJson<PerburuanData>(url), 30_000, enabled, ["sesi", "buru"]);
 }
 
 function Qr({ text, label, size = 220 }: { text: string; label: string; size?: number }) {

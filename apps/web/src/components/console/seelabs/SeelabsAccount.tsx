@@ -2,9 +2,10 @@
  *  SeeLabs username and the bookmarklet. Never a password: IRIS doesn't sign
  *  in to SeeLabs. The username is saved through the Tim API, which lets
  *  anyone set their own. */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRightIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import { getJson, href, postJson } from "../../../lib/app";
+import { useSegar } from "../../../lib/siaran";
 import type { Lang } from "../../../lib/kelas";
 import { SL } from "./strings";
 import BookmarkletPill from "./BookmarkletPill";
@@ -15,6 +16,9 @@ export default function SeelabsAccount({ lang, nim }: { lang: Lang; nim: string 
   const [saved, setSaved] = useState<string | null>(null);
   const [val, setVal] = useState("");
   const [busy, setBusy] = useState(false);
+  // Saved from another device: shown here too, unless this box was edited.
+  const segar = useSegar(["tim"]);
+  const tersimpan = useRef<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -24,14 +28,16 @@ export default function SeelabsAccount({ lang, nim }: { lang: Lang; nim: string 
       .then((d) => {
         if (!alive || !d.ok) return;
         const v = d.orang.find((o) => o.nim === nim)?.seelabsAkun ?? "";
+        const tadi = tersimpan.current;
+        tersimpan.current = v;
         setSaved(v);
-        setVal(v);
+        setVal((cur) => (tadi === null || cur === tadi ? v : cur));
       })
-      .catch(() => alive && setSaved(""));
+      .catch(() => alive && setSaved((s) => s ?? ""));
     return () => {
       alive = false;
     };
-  }, [nim]);
+  }, [nim, segar]);
 
   async function save() {
     setBusy(true);

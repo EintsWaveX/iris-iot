@@ -43,6 +43,8 @@
 import { konsolSiaga, terimaLaporanKonsol } from "../_lib/konsol.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
+import { siarkan } from "../_lib/siaran.js";
+import type { Topik } from "../../src/lib/siaran-topik.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { getDb } from "../../src/lib/db.js";
 import { server, denyut, perintah } from "../../src/lib/schema.js";
@@ -62,6 +64,7 @@ import {
   INTERVAL_TELEMETRI_SEC,
   MODUL_TELEMETRI_PI,
   adaPerintahBaru,
+  batasLuringDetik,
 } from "../../src/lib/server-lib.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
@@ -154,9 +157,18 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       layanan: isPlainObject(body.layanan) ? body.layanan : null,
     });
 
+    // What this beat changed that a page shows, broadcast once it is
+    // answered (2026-10-07). A beat that changes nothing sends nothing.
+    const berubah = new Set<Topik>();
+    // Silent past the idle cadence's grace: the Pi was offline until now.
+    const terakhir = row.kondisiPada?.getTime() ?? 0;
+    if (Date.now() - terakhir > batasLuringDetik(null, null) * 1000) berubah.add("server");
+
     const hasilMasuk = Array.isArray(body.hasilPerintah) ? (body.hasilPerintah as unknown[]) : [];
     for (const item of hasilMasuk) {
       if (!isHasilPerintahMasuk(item)) continue;
+      // A command finished: the Ready check, a restart, a Konsol step.
+      berubah.add("server");
       await db
         .update(perintah)
         .set({
@@ -169,6 +181,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
 
     // Phase 9 Stage 9: the Pi bridge's Konsol reports (joined, ended).
     await terimaLaporanKonsol(serverId, body.konsol);
+    if (Array.isArray(body.konsol) && body.konsol.length) berubah.add("server");
 
     // A single atomic claim (P6.2/B7) -- see claimPerintahMenunggu's own
     // comment for the race this replaces.
@@ -206,6 +219,17 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     if (Object.keys(serverSet).length) {
       await db.update(server).set(serverSet).where(eq(server.id, serverId));
     }
+    if ("alamatLan" in serverSet || (serverSet.agenVersi && serverSet.agenVersi !== row.agenVersi))
+      berubah.add("server");
+    // The hunt's scoreboard and hotspot, for the Perburuan step: only when
+    // they differ from what was kept, so at most one per beat.
+    // (The stored copies go through the same filter, so key order matches.)
+    if (
+      (perburuanMasuk &&
+        JSON.stringify(perburuanMasuk) !== JSON.stringify(saringPerburuan(row.perburuan))) ||
+      (hotspot && JSON.stringify(hotspot) !== JSON.stringify(saringHotspot(row.hotspot)))
+    )
+      berubah.add("buru");
 
     await pruneOldHeartbeatsOccasionally();
 
@@ -230,9 +254,13 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // and the field is simply omitted rather than sent as an empty schedule.
     const jadwal = await jadwalModul4Hari(hariIniWib());
 
+    // A command handed out now changes its status on the Server pages too.
+    if (pending.length) berubah.add("server");
+
     res
       .status(200)
       .json({ ok: true, perintah: pending, intervalDetik, ...(jadwal ? { jadwal } : {}) });
+    await siarkan([...berubah]);
   } catch (err) {
     console.error("[api/agent denyut] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });

@@ -38,6 +38,7 @@ import { H, LANES } from "./homeStrings";
 import "../ui/Display.css";
 import "./home.css";
 import { openSignIn } from "../../lib/signin";
+import { useSegar } from "../../lib/siaran";
 
 interface Lab {
   modul: number;
@@ -95,6 +96,8 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
   const now = useSessionNow(30_000, me?.role === "praktikan");
   useTick(30_000);
   const [next, setNext] = useState<SlotBerikutnya | null | undefined>(undefined);
+  // A cover or a schedule change moves the next slot (live updates).
+  const segarJadwal = useSegar(["jadwal", "tim"], me?.role === "asisten");
 
   useEffect(() => {
     if (me?.role !== "asisten") return;
@@ -108,7 +111,7 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
         ),
       )
       .catch(() => setNext(null));
-  }, [me]);
+  }, [me, segarJadwal]);
 
   if (me === undefined) return <span className="skeleton" style={{ height: 56, maxWidth: 360 }} />;
 
@@ -317,7 +320,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
       getJson<{ ok: boolean; sesi: Lab | null; pegang?: number[] }>(
         `/api/session/lab${saya ? "?saya=1" : ""}`,
       ),
-    20_000,
+    60_000,
     me !== undefined,
     ["sesi", "jadwal"],
   );

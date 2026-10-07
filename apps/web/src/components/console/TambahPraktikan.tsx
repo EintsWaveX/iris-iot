@@ -15,6 +15,7 @@ import Dropdown from "../ui/Dropdown";
 import { dict, getJson, postJson } from "../../lib/app";
 import { kelompokLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
+import { useSegar } from "../../lib/siaran";
 
 const T = dict({
   id: {
@@ -115,10 +116,15 @@ export default function TambahPraktikan({
     setNama("");
     setErr(null);
     setKe(String(jalan[0]?.nomor ?? ""));
+  }, [open]);
+  // The semester list, again when a roster changes while this is open.
+  const segar = useSegar(["roster"], open);
+  useEffect(() => {
+    if (!open) return;
     getJson<{ ok: boolean; praktikan: { nim: string; nama: string }[] }>("/api/session/praktikan")
       .then((d) => setDaftar(new Map((d.ok ? d.praktikan : []).map((p) => [p.nim, p.nama]))))
       .catch(() => setDaftar(new Map()));
-  }, [open]);
+  }, [open, segar]);
 
   const bersih = nim.replace(/\D/g, "");
   // A NIM on the semester's list counts whatever its length; a new one

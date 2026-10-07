@@ -9,6 +9,8 @@ import type { HakKey, HakNilai, Tier } from "./hak.js";
 import { useEffect, useState } from "react";
 import type { Kelas, Lang } from "./kelas.js";
 import { usePoll } from "./hooks.js";
+import { dengar } from "./siaran.js";
+import { adaBelumSimpan, saatBersih } from "./belum-simpan.js";
 
 /* ------------------------------------------------------------ fetching */
 
@@ -123,23 +125,91 @@ export function dengarAkunLain(fn: () => void): () => void {
   }
 }
 
+/* Rights change live (2026-10-07): a `tim` broadcast (an Admin changed
+ * someone's rights, tier or badges) reloads /api/auth/me, and every useMe
+ * on the page takes the new rights in place. Losing a right while an editor
+ * holds unsaved edits waits, with a notice, until they are saved or
+ * discarded (lib/belum-simpan.ts), so a tab doesn't vanish mid-edit. */
+// A plain table, not dict(): this runs before dict's registry exists.
+const HAK_TAHAN: Record<Lang, string> = {
+  id: "Hak aksesmu baru saja berubah. Simpan atau buang perubahanmu, lalu halaman ini menyesuaikan.",
+  en: "Your access rights just changed. Save or discard your edits, and this page adjusts.",
+  zh: "你的访问权限刚刚变更。保存或放弃你的修改后，此页面会随之调整。",
+};
+
+let pemakaiHak = 0;
+let lepasHak: (() => void) | null = null;
+let lepasBersih: (() => void) | null = null;
+
+function terapkanMe(m: Me | null) {
+  mePromise = Promise.resolve(m);
+  window.dispatchEvent(new Event(ME_CHANGED));
+}
+
+/** True when `baru` lost something `lama` had: a right, or the role. */
+function hakBerkurang(lama: Me | null, baru: Me | null): boolean {
+  if (!lama) return false;
+  if (!baru || baru.role !== lama.role || baru.nim !== lama.nim) return true;
+  const a = (lama.hak ?? {}) as Record<string, unknown>;
+  const b = (baru.hak ?? {}) as Record<string, unknown>;
+  return Object.keys(a).some((k) => !!a[k] && b[k] !== a[k]);
+}
+
+async function segarkanHak() {
+  const lama = await (mePromise ?? Promise.resolve(null));
+  let baru: Me | null;
+  try {
+    const d = await getJson<{ ok: boolean } & Partial<Me>>("/api/auth/me");
+    baru = d.ok ? (d as Me) : null;
+  } catch {
+    return; // a lost connection isn't a sign-out; the next change retries
+  }
+  if (JSON.stringify(baru) === JSON.stringify(lama)) return;
+  // A different person or a sign-out is IdentityWatch's to explain.
+  if (!baru || baru.nim !== lama?.nim) return;
+  if (hakBerkurang(lama, baru) && adaBelumSimpan()) {
+    if (!lepasBersih) {
+      window.Toast?.show(HAK_TAHAN[pageLang()], "warn");
+      lepasBersih = saatBersih(() => {
+        lepasBersih?.();
+        lepasBersih = null;
+        void segarkanHak();
+      });
+    }
+    return;
+  }
+  terapkanMe(baru);
+}
+
+function ikutHak(): () => void {
+  if (pemakaiHak++ === 0) lepasHak = dengar(["tim"], () => void segarkanHak());
+  return () => {
+    if (--pemakaiHak > 0) return;
+    lepasHak?.();
+    lepasHak = null;
+  };
+}
+
 /** `undefined` while loading, `null` when signed out. */
 export function useMe(): Me | null | undefined {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
   useEffect(() => {
     let alive = true;
-    const run = (force: boolean) =>
-      void loadMe(force).then((m) => {
+    const run = () =>
+      void loadMe().then((m) => {
         if (alive) setMe(m);
       });
-    run(false);
-    const on = () => run(true);
-    window.addEventListener(ME_CHANGED, on);
+    run();
+    // meChanged() and a rights change both reset the shared promise first,
+    // so every island on the page shares one fetch.
+    window.addEventListener(ME_CHANGED, run);
     return () => {
       alive = false;
-      window.removeEventListener(ME_CHANGED, on);
+      window.removeEventListener(ME_CHANGED, run);
     };
   }, []);
+  const asisten = me?.role === "asisten";
+  useEffect(() => (asisten ? ikutHak() : undefined), [asisten]);
   return me;
 }
 

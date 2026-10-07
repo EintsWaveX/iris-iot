@@ -47,6 +47,7 @@ import { pesan, type Strings } from "./strings";
 import { kapanSesi } from "./DoneView";
 import { belumSelesai, useRingkasSesi } from "./ringkasSesi";
 import type { SesiRunning } from "./types";
+import { useSegar } from "../../lib/siaran";
 
 /** The Orange Pi service each module runs (Module 1 runs none). */
 const LAYANAN: Record<number, string | undefined> = { 2: "modul2-ws", 3: "mosquitto", 4: "modul4" };
@@ -114,11 +115,12 @@ export default function NextView({
     if (kitTersimpan) setKit({ kembali: kitTersimpan.kembali, rusak: kitTersimpan.rusak });
   }, [kitTersimpan?.kembali, kitTersimpan?.rusak]);
 
+  const segarSlot = useSegar(["jadwal", "sesi"]);
   useEffect(() => {
     void getJson<{ ok: boolean; hariIni: SlotHariIni[] }>("/api/session/beranda")
       .then((d) => setSlots(d.ok ? d.hariIni : []))
       .catch(() => setSlots([]));
-  }, []);
+  }, [segarSlot]);
 
   const lanjut = unfin.filter((g) => (picks[g.nomor] ?? "lanjut") === "lanjut");
   const today = sesi.tanggal === hariIniWib();

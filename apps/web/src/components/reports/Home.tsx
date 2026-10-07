@@ -5,7 +5,7 @@
  * Sessions, Overview, Assistant Workload, Incidents, Lab Feedback, Audit and
  * Payments.
  */
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowsDownUpIcon,
   CalendarDotsIcon,
@@ -58,6 +58,7 @@ import { IncidentsTab } from "./Incidents";
 import { bantuAudit, kalimatAudit, type AuditKonteks, type AuditRow } from "./audit";
 import { type Format, ekspor, jamSlot, jamWib, tanggalWib } from "./data";
 import type { Tx } from "./strings";
+import { useSegar } from "../../lib/siaran";
 
 export const TAB_HOME = [
   "sesi",
@@ -744,10 +745,16 @@ function LabTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
   const kunci = ids.join(",");
   const [data, setData] = useState<Ringkasan | null>(null);
   const [fail, setFail] = useState(false);
+  // New feedback counts in at once; only a new selection shows the skeleton.
+  const segar = useSegar(["umpan"]);
+  const kunciTadi = useRef<string | null>(null);
   useEffect(() => {
     let alive = true;
-    setData(null);
-    setFail(false);
+    if (kunciTadi.current !== kunci) {
+      kunciTadi.current = kunci;
+      setData(null);
+      setFail(false);
+    }
     getJson<{ ok: boolean; ringkasan: Ringkasan }>(
       `/api/session/feedback?scope=lab&sesiIds=${kunci}`,
     )
@@ -756,7 +763,7 @@ function LabTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
     return () => {
       alive = false;
     };
-  }, [kunci]);
+  }, [kunci, segar]);
   if (fail) return <p className="empty-note">{t.err}</p>;
   if (!data) return <span className="skeleton" style={{ height: 220 }} />;
   return (
@@ -858,11 +865,46 @@ function AuditTab({ f, c }: { f: Filter; c: Ctx }) {
       alive = false;
     };
   }, [jenis, f.asisten, f.dari, f.sampai]);
+  // New entries show on top while only the first page is open; after Load
+  // More the list stays put so the reader keeps their place.
+  const segarAudit = useSegar([
+    "sesi",
+    "jadwal",
+    "tim",
+    "nilai",
+    "laporan",
+    "akses",
+    "bayar",
+    "presentasi",
+    "server",
+    "kode",
+    "roster",
+  ]);
+  const dimuatLagi = useRef(false);
+  useEffect(() => {
+    if (!segarAudit || dimuatLagi.current) return;
+    let alive = true;
+    ambil()
+      .then((d) => {
+        if (!alive || dimuatLagi.current) return;
+        setRows(d.audit);
+        setCtx(d.konteks);
+        setLagi(d.lagi);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [segarAudit]);
+  useEffect(() => {
+    dimuatLagi.current = false;
+  }, [jenis, f.asisten, f.dari, f.sampai]);
   const more = async () => {
     if (!rows?.length) return;
     setBusy(true);
     try {
       const d = await ambil(rows[rows.length - 1].id);
+      dimuatLagi.current = true;
       setRows([...rows, ...d.audit]);
       setCtx({
         sesi: [...ctx.sesi, ...d.konteks.sesi],

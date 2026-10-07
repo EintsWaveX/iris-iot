@@ -19,29 +19,16 @@
  */
 import { useEffect, useRef, useState } from "react";
 
-export type Topik =
-  | "akses"
-  | "brief"
-  | "jadwal"
-  | "roster"
-  | "tim"
-  | "sesi"
-  | "nilai"
-  | "laporan"
-  | "bayar"
-  | "umpan"
-  | "presentasi"
-  | "server"
-  | "jurnal"
-  | "online"
-  | "kode"
-  | "tot";
+import type { Topik } from "./siaran-topik";
+
+export type { Topik };
 
 type Fn = () => void;
 
 const PING_MS = 20_000;
 const PONG_MS = 8_000;
 const FALLBACK_MS = 30_000;
+const SAFETY_MS = 60_000;
 /** A gap this long between 5 s ticks means the tab or laptop slept. */
 const TIDUR_MS = 20_000;
 
@@ -70,14 +57,18 @@ let status: StatusSiaran = "diam";
 function setStatus(s: StatusSiaran) {
   if (s === status) return;
   status = s;
-  // The timer refetch runs only while there is no live socket.
-  if (s === "putus" && !cadangan) {
-    cadangan = setInterval(() => {
-      if (!document.hidden) jadwalkan("semua");
-    }, FALLBACK_MS);
-  } else if (s !== "putus" && cadangan) {
-    clearInterval(cadangan);
-    cadangan = null;
+  // A timer refetch backs the socket up: every FALLBACK_MS while there is
+  // no live socket, and a slow SAFETY_MS one while there is, in case a
+  // message was lost on the way (2026-10-07).
+  if (cadangan) clearInterval(cadangan);
+  cadangan = null;
+  if (s !== "diam") {
+    cadangan = setInterval(
+      () => {
+        if (!document.hidden) jadwalkan("semua");
+      },
+      s === "putus" ? FALLBACK_MS : SAFETY_MS,
+    );
   }
   for (const f of pemantau) f(s);
 }
@@ -183,7 +174,10 @@ function sambung() {
     if (typeof e.data !== "string" || e.data === "pong") return;
     try {
       const t = (JSON.parse(e.data) as { t?: unknown }).t;
-      if (Array.isArray(t)) jadwalkan(t.filter((x): x is string => typeof x === "string"));
+      if (Array.isArray(t)) {
+        const ts = t.filter((x): x is string => typeof x === "string");
+        if (!sudahDigema(ts)) jadwalkan(ts);
+      }
     } catch {
       /* not ours */
     }
@@ -233,6 +227,71 @@ function bangun() {
   }
 }
 
+/* ------------------------------------------------------------ echo */
+
+/* A write's answer names its topics (`x-siaran`, api/_lib/siaran.ts), so the
+ * tab that made it, and this browser's other tabs, refresh at once without
+ * waiting on the relay, and still do when the relay is down (2026-10-07).
+ * The relay's copy of the same write, arriving a moment later, is then
+ * skipped once so the panels don't fetch twice. */
+const GEMA_MS = 5000;
+const digema = new Map<string, number[]>();
+
+function kunciGema(t: readonly string[]): string {
+  return [...new Set(t)].sort().join(",");
+}
+
+function catatGema(t: readonly string[]) {
+  const k = kunciGema(t);
+  digema.set(k, [...(digema.get(k) ?? []), Date.now() + GEMA_MS]);
+}
+
+/** True (and forgotten) when this message is the relay's copy of a write
+ *  this browser already refreshed for. */
+function sudahDigema(t: readonly string[]): boolean {
+  const k = kunciGema(t);
+  const kini = Date.now();
+  const sisa = (digema.get(k) ?? []).filter((x) => x > kini);
+  const ada = sisa.length > 0;
+  if (ada) sisa.shift();
+  if (sisa.length) digema.set(k, sisa);
+  else digema.delete(k);
+  return ada;
+}
+
+function gema(t: string[]) {
+  if (!t.length) return;
+  catatGema(t);
+  jadwalkan(t);
+}
+
+if (typeof window !== "undefined" && typeof window.fetch === "function") {
+  let kanal: BroadcastChannel | null = null;
+  try {
+    kanal = new BroadcastChannel("iris-siaran");
+    kanal.onmessage = (e) => {
+      if (Array.isArray(e.data)) gema(e.data.filter((x): x is string => typeof x === "string"));
+    };
+  } catch {
+    /* no BroadcastChannel: other tabs hear the relay */
+  }
+  const asli = window.fetch.bind(window);
+  window.fetch = async (...args: Parameters<typeof fetch>) => {
+    const r = await asli(...args);
+    const h = r.headers.get("x-siaran");
+    if (h) {
+      const t = h.split(",").filter((x) => /^[a-z]{2,16}$/.test(x));
+      gema(t);
+      try {
+        kanal?.postMessage(t);
+      } catch {
+        /* closed */
+      }
+    }
+    return r;
+  };
+}
+
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) bangun();
@@ -272,6 +331,14 @@ export function useSiaran(topik: readonly Topik[], fn: Fn, enabled = true): void
     if (!enabled || !key) return;
     return dengar(key.split(",") as Topik[], () => ref.current());
   }, [key, enabled]);
+}
+
+/** React: a number that goes up whenever one of `topik` changes. Put it in
+ *  a loading effect's dependencies to fetch again on a change. */
+export function useSegar(topik: readonly Topik[], enabled = true): number {
+  const [n, setN] = useState(0);
+  useSiaran(topik, () => setN((x) => x + 1), enabled);
+  return n;
 }
 
 /** React: whether this page's live updates are working right now. */

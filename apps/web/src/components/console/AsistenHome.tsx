@@ -191,13 +191,18 @@ export default function AsistenHome({
     getJson<{ ok: boolean } & Beranda>("/api/session/beranda")
       .then((d) => d.ok && setData(d))
       .catch(() => {});
-  useSiaran(["sesi", "jadwal", "tim", "akses", "server", "roster"], load);
-
-  useEffect(() => {
-    void load();
+  // presentasi: the readiness card's "Presentasi aktif" line (2026-10-07: it
+  // kept naming a deck turned off elsewhere until it was clicked).
+  useSiaran(["sesi", "jadwal", "tim", "akses", "server", "roster", "presentasi"], load);
+  const muatUmpan = () =>
     getJson<{ ok: boolean; ringkasan: Ringkasan }>("/api/session/feedback?scope=mine")
       .then((d) => d.ok && setMine(d.ringkasan))
       .catch(() => {});
+  useSiaran(["umpan"], muatUmpan);
+
+  useEffect(() => {
+    void load();
+    void muatUmpan();
     const id = setInterval(() => setMenitNow(menitSekarangWib()), 30_000);
     return () => clearInterval(id);
   }, []);

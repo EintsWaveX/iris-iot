@@ -22,6 +22,7 @@ import IconButton from "../ui/IconButton";
 import TabLine from "../ui/TabLine";
 import Fade from "../ui/Fade";
 import { useMinWidth } from "../../lib/hooks";
+import { useSiaran } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
 import type { LiveRecord } from "../../lib/live-records";
 import {
@@ -430,6 +431,8 @@ export function useTangkapan(
       alive = false;
     };
   }, [url, enabled, n]);
+  // A groupmate's capture, or one an Asisten saved for the group.
+  useSiaran(["tangkapan"], () => setN((x) => x + 1), enabled);
   return { rows, reload: () => setN((x) => x + 1) };
 }
 

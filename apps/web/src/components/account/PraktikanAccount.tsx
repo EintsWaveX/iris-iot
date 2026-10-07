@@ -65,7 +65,7 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
     120_000,
     true,
-    ["sesi", "nilai", "jurnal"],
+    ["sesi", "nilai", "jurnal", "jawaban", "tangkapan"],
   );
   const list = poll.data?.ok ? poll.data.praktikum : null;
   const modul = list ? [...new Set(list.map((p) => p.modul))].sort() : [];

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getJson, postJson } from "../../lib/app";
 import type { Kelas, TarifUnit } from "../../lib/bayar";
+import { useSiaran } from "../../lib/siaran";
 
 export interface UnitRow {
   id: number;
@@ -76,6 +77,8 @@ export function useBayar(enabled = true) {
   useEffect(() => {
     if (enabled) void load();
   }, [enabled, load]);
+  // Pay follows ended sessions, covers and rates (2026-10-07: it loaded once).
+  useSiaran(["bayar", "jadwal", "laporan", "tim"], () => void load(), enabled);
   return { data, fail, load };
 }
 

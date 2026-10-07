@@ -75,6 +75,9 @@ export async function handleBerandaGet(
       .select({ nama: presentasi.namaBerkas, jenis: presentasi.jenis })
       .from(presentasi)
       .where(eq(presentasi.aktif, true))
+      // The PDF first, like /api/presentasi/aktif, so this names the deck
+      // the Praktikan see.
+      .orderBy(sql`case when ${presentasi.jenis} = 'berkas' then 0 else 1 end`)
       .limit(1),
     db.select({ id: server.id, nama: server.nama }).from(server).orderBy(asc(server.id)).limit(1),
     db

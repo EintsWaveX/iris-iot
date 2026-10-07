@@ -879,9 +879,9 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
   const sesi = now.data && now.data.milikSaya !== false ? now.data : null;
   const hasilPoll = usePoll(
     () => getJson<Hasil>(`/api/session/results${pro ? `?kelompok=${pro}` : ""}`),
-    20_000,
+    60_000,
     praktikan,
-    ["sesi", "nilai", "jurnal"],
+    ["sesi", "nilai", "jurnal", "jawaban", "tangkapan", "buru"],
   );
   const minePoll = usePoll(
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),

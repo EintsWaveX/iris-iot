@@ -49,6 +49,7 @@ import { H } from "./homeStrings";
 import "../ui/Tabs.css";
 import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
 import { useSiaran } from "../../lib/siaran";
+import { useBelumSimpan } from "../../lib/belum-simpan";
 
 interface JadwalRow {
   hari: number;
@@ -131,6 +132,7 @@ export default function PrepView({
   const [draf, setDraf] = useState<Draf[]>([]);
   const [sel, setSel] = useState<string | null>(pilih);
   const [dirty, setDirty] = useState(false);
+  useBelumSimpan(dirty);
   const [ask, setAsk] = useState<string | null>(null);
   const [newDraft, setNewDraft] = useState(false);
   // The readiness checks (2026-10-06): the same ones as Home, each a way

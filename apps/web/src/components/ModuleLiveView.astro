@@ -51,7 +51,8 @@ const basePath = href(lang, "/modules");
 
 <script>
   import { sekaliPerHalaman } from "../scripts/per-halaman";
-  import { applyLockScreen } from "../scripts/modul-akses";
+  import { applyLockScreen, getAksesState, jurnalTertutup } from "../scripts/modul-akses";
+  import { dengar } from "../lib/siaran";
   import { stringsFor } from "../i18n/zh";
   import { isLang } from "../lib/kelas";
   function playEntrance() {
@@ -69,12 +70,23 @@ const basePath = href(lang, "/modules");
     const lang = l.startsWith("zh") ? "zh" : isLang(l) ? l : "id";
     const t = stringsFor(lang);
     const heading = document.querySelector(".page-header__title");
-    void applyLockScreen(
-      Number(match[1]),
-      t.jurnal.body,
-      { id: "terkunci untuk praktikan", en: "locked for students", zh: "对学员锁定" }[lang],
-      heading,
-    );
+    const modul = Number(match[1]);
+    const kunci = () =>
+      applyLockScreen(
+        modul,
+        t.jurnal.body,
+        { id: "terkunci untuk praktikan", en: "locked for students", zh: "对学员锁定" }[lang],
+        heading,
+      );
+    void kunci();
+    // Live (2026-10-07): a module closed while this page is open locks it;
+    // one opened while the lock screen shows brings the room back.
+    const lepas = dengar(["akses", "sesi"], async () => {
+      const st = await getAksesState(true, true);
+      if (!document.querySelector(".lockscreen")) void kunci();
+      else if (!jurnalTertutup(st, modul)) location.reload();
+    });
+    document.addEventListener("astro:before-swap", lepas, { once: true });
   }
   sekaliPerHalaman("ModulLiveAkses", checkAkses);
 </script>

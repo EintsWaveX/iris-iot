@@ -6,6 +6,7 @@
  */
 import { useEffect, useState } from "react";
 import { getJson } from "./app";
+import { useSegar } from "./siaran";
 
 export interface AsistenOrang {
   nim: string;
@@ -25,9 +26,12 @@ export function namaAsisten(
 }
 
 let cache: Promise<AsistenOrang[]> | null = null;
+let cacheDibuat = 0;
 
-/** Every Asisten, fetched once per page load and shared by all islands. */
+/** Every Asisten, fetched once per page load and shared by all islands
+ *  (and again after a `tim` change, see useDirektori). */
 export function loadDirektori(): Promise<AsistenOrang[]> {
+  if (!cache) cacheDibuat = Date.now();
   cache ??= getJson<{ ok: boolean; asisten?: AsistenOrang[] }>("/api/session/asisten")
     .then((d) => (d.ok ? (d.asisten ?? []) : []))
     .catch(() => {
@@ -46,6 +50,12 @@ export interface Direktori {
 /** The Asisten directory for an Asisten-only island. */
 export function useDirektori(enabled = true): Direktori {
   const [byNim, setByNim] = useState<Map<string, AsistenOrang>>(() => new Map());
+  // A new Asisten or a renamed one: every island on the page heard the same
+  // message at once, so only the first drops the shared copy.
+  const segar = useSegar(["tim"], enabled);
+  useEffect(() => {
+    if (segar && Date.now() - cacheDibuat > 2000) cache = null;
+  }, [segar]);
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
@@ -55,7 +65,7 @@ export function useDirektori(enabled = true): Direktori {
     return () => {
       alive = false;
     };
-  }, [enabled]);
+  }, [enabled, segar]);
   return {
     byNim,
     nama: (nim) => (nim ? namaAsisten(byNim.get(nim), nim) : "?"),

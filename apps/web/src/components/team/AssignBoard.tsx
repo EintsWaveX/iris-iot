@@ -48,6 +48,7 @@ import { pasanganSemester, type MingguSlot, type TugasInfo } from "../../lib/pen
 import type { Lang } from "../../lib/kelas";
 import type { DataJadwal, JadwalRow } from "../schedule/types";
 import { useSiaran } from "../../lib/siaran";
+import { useBelumSimpan } from "../../lib/belum-simpan";
 
 export const A = dict({
   id: {
@@ -275,6 +276,7 @@ export default function AssignBoard({
   const now = (id: number) => edit[id] ?? awal[id];
   const changed = rows.filter((j) => JSON.stringify(now(j.id)) !== JSON.stringify(awal[j.id]));
   adaUbah.current = changed.length > 0;
+  useBelumSimpan(changed.length > 0);
   const load7 = useMemo(() => {
     const m = new Map<string, number>();
     for (const j of rows)

@@ -43,6 +43,8 @@ export function useLaporan(enabled: boolean) {
     "sesi",
     "nilai",
     "roster",
+    "jawaban",
+    "tangkapan",
   ]);
 }
 

@@ -57,6 +57,7 @@ import { useSiaran } from "../../../lib/siaran";
 import { K } from "./kodeStrings";
 import "../../module/code.css";
 import "./code-editor.css";
+import { useBelumSimpan } from "../../../lib/belum-simpan";
 
 interface Ringkas {
   id: number;
@@ -385,6 +386,7 @@ export default function CodeEditor({ lang }: { lang: Lang }) {
   const dirty = !!kerja && JSON.stringify(kerja) !== asal;
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
+  useBelumSimpan(dirty);
 
   function terima(d: EditData) {
     setData(d);

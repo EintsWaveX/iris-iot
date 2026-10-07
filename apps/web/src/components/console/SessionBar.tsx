@@ -48,7 +48,7 @@ import { modulLabel } from "../../lib/labels";
 import type { Strings } from "./strings";
 import type { ServerState } from "./data";
 import { isOnline, type SesiRunning, type View } from "./types";
-import { dengar, useSiaran } from "../../lib/siaran";
+import { dengar, useSegar, useSiaran } from "../../lib/siaran";
 import TanpaHak, { useBolehJadwal } from "./prep/TanpaHak";
 
 function Pop({
@@ -523,17 +523,23 @@ function AnnounceForm({
   const [pesan, setPesan] = useState("");
   const [last, setLast] = useState<{ pesan: string; pada: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Another Asisten's announcement shows here too.
+  const segar = useSegar(["sesi"]);
   useEffect(() => {
     getJson<{
       ok: boolean;
       sesi: { pengumuman: string | null; pengumumanPada: string | null } | null;
     }>("/api/session/now")
       .then((d) => {
-        if (d.sesi?.pengumuman && d.sesi.pengumumanPada)
-          setLast({ pesan: d.sesi.pengumuman, pada: d.sesi.pengumumanPada });
+        if (!d.ok) return;
+        setLast(
+          d.sesi?.pengumuman && d.sesi.pengumumanPada
+            ? { pesan: d.sesi.pengumuman, pada: d.sesi.pengumumanPada }
+            : null,
+        );
       })
       .catch(() => {});
-  }, [sesi.id]);
+  }, [sesi.id, segar]);
 
   async function kirim(text: string) {
     setBusy(true);

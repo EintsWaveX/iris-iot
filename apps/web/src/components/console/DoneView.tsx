@@ -25,6 +25,7 @@ import { useRingkasSesi } from "./ringkasSesi";
 import SeelabsLine from "./seelabs/SeelabsLine";
 import type { SeelabsData } from "./seelabs/data";
 import type { SesiRunning } from "./types";
+import { useSegar } from "../../lib/siaran";
 
 export function kapanSesi(t: Strings, sesi: SesiRunning): string {
   const hari = t.hari[hariDariTanggal(sesi.tanggal)];
@@ -56,6 +57,8 @@ export default function DoneView({
 }) {
   const [n, setN] = useState(0);
   const sum = useRingkasSesi(sesi.id);
+  // Each new feedback counts up at once (umpan); the poll is a backstop.
+  const segarUmpan = useSegar(["umpan"]);
   useEffect(() => {
     let alive = true;
     const load = () =>
@@ -65,12 +68,12 @@ export default function DoneView({
         .then((d) => alive && d.ok && setN(d.ringkasan.jumlah))
         .catch(() => {});
     void load();
-    const id = setInterval(load, 5_000);
+    const id = setInterval(load, 60_000);
     return () => {
       alive = false;
       clearInterval(id);
     };
-  }, [sesi.id]);
+  }, [sesi.id, segarUmpan]);
 
   // Resume works until 150 minutes after the start.
   const capped = menitBerjalan(sesi.mulaiPada) >= SESI_CAP_MENIT;

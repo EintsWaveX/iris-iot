@@ -29,7 +29,7 @@ export function useSlides(enabled = true): { list: Deck[]; loaded: boolean } {
       getJson<{ ok: boolean; presentasi: Deck | null; pilihan?: Deck[] }>(
         "/api/presentasi/aktif",
       ).then((d) => (d.ok ? (d.pilihan ?? (d.presentasi ? [d.presentasi] : [])) : [])),
-    30_000,
+    60_000,
     enabled,
     ["presentasi"],
   );

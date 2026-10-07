@@ -79,7 +79,8 @@ type St = "empty" | "ok" | "bad" | "peer" | "key";
 
 type Item = { t: "tok"; tok: Token; text: string } | { t: "blank"; seg: BlankSegment };
 
-const POLL_MS = 15_000;
+// A safety net only: groupmates' answers arrive live (jawaban).
+const POLL_MS = 60_000;
 
 interface Props {
   lang: Lang;
@@ -274,8 +275,9 @@ export default function BlankFile(p: Props) {
       }
       await ambil();
     }, POLL_MS);
-    // A groupmate's answer shows at once (live updates).
-    const lepas = dengar(["jurnal"], () => void ambil());
+    // A groupmate's answer shows at once (live updates: modul:cek sends
+    // jawaban since 2026-10-07; before, only this poll brought it).
+    const lepas = dengar(["jurnal", "jawaban"], () => void ambil());
     return () => {
       stop();
       lepas();

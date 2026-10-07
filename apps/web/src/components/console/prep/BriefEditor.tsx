@@ -28,6 +28,7 @@ import zh4 from "../../../content/modules/zh/4.json";
 import BetaBadge from "../../ui/BetaBadge";
 import { useSiaran } from "../../../lib/siaran";
 import TanpaHak, { useBolehJadwal } from "./TanpaHak";
+import { useBelumSimpan } from "../../../lib/belum-simpan";
 
 const BAWAAN: Record<"id" | "en" | "zh", Record<number, { ringkasan: string[] }>> = {
   id: { 1: id1, 2: id2, 3: id3, 4: id4 },
@@ -107,6 +108,8 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
   useEffect(() => void load(), []);
   // Another Asisten's save shows here too, unless this one is mid-edit.
   const diubah = useRef(false);
+  const [kotor, setKotor] = useState(false);
+  useBelumSimpan(kotor);
   useSiaran(["brief"], () => !diubah.current && void load());
 
   const row = rows?.find((r) => r.modul === m && r.bahasa === lg) ?? null;
@@ -114,6 +117,7 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
     if (!rows) return;
     const base = BAWAAN[lg][m];
     diubah.current = false;
+    setKotor(false);
     setSum(row ? row.isi.ringkasan : base.ringkasan.join("\n\n"));
     setSteps(row ? row.isi.langkah.join("\n") : "");
   }, [rows, m, lg]);
@@ -184,6 +188,7 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
                 value={sum}
                 onChange={(e) => {
                   diubah.current = true;
+                  setKotor(true);
                   setSum(e.target.value);
                 }}
               />
@@ -198,6 +203,7 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
                 value={steps}
                 onChange={(e) => {
                   diubah.current = true;
+                  setKotor(true);
                   setSteps(e.target.value);
                 }}
               />

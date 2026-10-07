@@ -47,6 +47,7 @@ import { J, pesanJ, type Jx } from "./strings";
 import { HARI, SLOTS, type DataJadwal, type JadwalRow, type PengaturanJendela } from "./types";
 import "./SchedulePage.css";
 import { useSiaran } from "../../lib/siaran";
+import { useBelumSimpan } from "../../lib/belum-simpan";
 
 /* ------------------------------------------------------------ semesters */
 
@@ -377,6 +378,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   const [view, setView] = useState<"week" | "import">("week");
   const [setting, setSetting] = useState(false);
   const [dirty, setDirty] = useState(false);
+  useBelumSimpan(dirty);
   const [ask, setAsk] = useState<Tujuan | null>(null);
   const editor = useRef<SlotEditorHandle>(null);
   const grid = useMinWidth(640);
