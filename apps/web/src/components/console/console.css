@@ -674,6 +674,38 @@
   border-color: var(--hairline-strong);
 }
 
+.scores__student {
+  position: relative;
+}
+
+.scores__student::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+  inset: -1px;
+}
+
+.scores__student:hover::after,
+.scores__student:focus-visible::after {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"]) .scores__student:hover::after,
+:root:not([data-motion-tier="0"]) .scores__student:focus-visible::after {
+  animation: aurora-sweep 2.2s linear infinite;
+}
+
 .scores__student[aria-selected="true"] {
   background: color-mix(in srgb, var(--g) 16%, var(--surface-2));
   border-color: var(--g);
@@ -1265,6 +1297,39 @@ thead .ntable__name {
 .tabs13 > button[aria-selected="true"] {
   background: var(--surface-4);
   color: var(--text);
+}
+
+/* The swept ring on hover and focus, like every other switch (2026-10-07). */
+.tabs13 > button {
+  position: relative;
+}
+
+.tabs13 > button::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+}
+
+.tabs13 > button:hover::after,
+.tabs13 > button:focus-visible::after {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"]) .tabs13 > button:hover::after,
+:root:not([data-motion-tier="0"]) .tabs13 > button:focus-visible::after {
+  animation: aurora-sweep 2.2s linear infinite;
 }
 
 .prevtable {

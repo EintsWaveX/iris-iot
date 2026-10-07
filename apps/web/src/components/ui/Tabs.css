@@ -100,6 +100,35 @@
   animation: kit-sweep 6s linear infinite;
 }
 
+/* The swept ring on hover and focus, like every other switch (2026-10-07). */
+.tabs__tab::before {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: var(--radius-md);
+  content: "";
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+  inset: 6px 4px;
+}
+
+.tabs__tab:hover::before,
+.tabs__tab:focus-visible::before {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"]) .tabs__tab:hover::before,
+:root:not([data-motion-tier="0"]) .tabs__tab:focus-visible::before {
+  animation: aurora-sweep 2.2s linear infinite;
+}
+
 @media (max-width: 1279px) {
   .tabs__tab {
     font-size: 1rem;

@@ -647,6 +647,40 @@ html {
   color: var(--text);
 }
 
+/* Every tab and toggle gets the swept ring on hover and focus, like the
+   SegmentedControl (2026-10-07: some switches only faded). */
+.seg button {
+  position: relative;
+}
+
+.seg button::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: inherit;
+  content: "";
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  padding: 1px;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+  inset: 0;
+}
+
+.seg button:hover:not(:disabled)::after,
+.seg button:focus-visible::after {
+  opacity: 1;
+}
+
+:root:not([data-motion-tier="0"]) .seg button:hover:not(:disabled)::after,
+:root:not([data-motion-tier="0"]) .seg button:focus-visible::after {
+  animation: aurora-sweep 2.2s linear infinite;
+}
+
 .seg button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
