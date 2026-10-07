@@ -47,6 +47,10 @@ export const DS = dict({
     bukaSlides: "Buka Presentasi",
     slidesSumber: "Sumber presentasi",
     slidesTitle: (m: string) => `Presentasi ${m}`,
+    ikutH: "Sesimu Sedang Berjalan",
+    ikutP:
+      "Kamu masuk tanpa ikut sesi, jadi belum tercatat hadir. Ikut lewat kode sesi dari layar depan.",
+    ikutBtn: "Ikut Praktikum",
     waitH: "Menunggu Asisten",
     waitP: "Asisten belum membuka sesi. Halaman ini berubah sendiri begitu sesi dimulai.",
     bacaDulu: "Baca Modul Dulu",
@@ -152,6 +156,10 @@ export const DS = dict({
     bukaSlides: "Open Slides",
     slidesSumber: "Slides source",
     slidesTitle: (m: string) => `${m} slides`,
+    ikutH: "Your Session Is Running",
+    ikutP:
+      "You signed in without joining, so you aren't counted as present yet. Join with the session code on the front screen.",
+    ikutBtn: "Join the Practicum",
     waitH: "Waiting for Your Assistant",
     waitP:
       "Your assistant hasn't opened the session yet. This page updates on its own once it starts.",
@@ -254,6 +262,9 @@ export const DS = dict({
     bukaSlides: "打开幻灯片",
     slidesSumber: "幻灯片来源",
     slidesTitle: (m: string) => `${m} 幻灯片`,
+    ikutH: "你的课正在进行",
+    ikutP: "你登录时没有加入这节课，所以还没记出勤。用前方屏幕上的课程代码加入。",
+    ikutBtn: "参加实验",
     waitH: "等你的助教",
     waitP: "你的助教还没开始这节课。开始后这个页面会自己更新。",
     bacaDulu: "先读模块",

@@ -83,7 +83,7 @@ import {
   audit,
 } from "../../src/lib/schema.js";
 import type { NilaiKomponen } from "../../src/lib/schema.js";
-import { currentSesi } from "../../src/lib/sesi.js";
+import { currentSesi, resolvePraktikan } from "../../src/lib/sesi.js";
 import {
   getModulTerbuka,
   getModulTerbukaMeta,
@@ -192,6 +192,13 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       .limit(1);
     if (r && r.kelompokId !== who.kelompokId) dipindahKe = r.nomor;
   }
+  // 2026-10-07: a Praktikan not signed in to this session learns only
+  // whether it is theirs to join (on its roster), never anything about it
+  // otherwise; one who chose to look around isn't nudged to join.
+  const bisaIkut =
+    who?.role === "praktikan" && who.sesiId !== running.id
+      ? (await resolvePraktikan(who.nim)) !== null
+      : undefined;
   res.status(200).json({
     ok: true,
     sesi: {
@@ -212,6 +219,8 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       // in again to be counted in this one (the mini-bar asks them to).
       milikSaya: who?.role === "praktikan" ? who.sesiId === running.id : null,
       dipindahKe: who?.role === "praktikan" ? dipindahKe : undefined,
+      bisaIkut,
+      lihatSaja: who?.role === "praktikan" && who.sesiId !== running.id ? !!who.lihat : undefined,
       // An Asisten teaching it gets the "Sesimu berjalan" bar on every page.
       mengajar: who?.role === "asisten" ? await asistenMengajar(running, who.nim) : null,
       // Asisten only (2026-10-06): how many groups have a hand up, so the

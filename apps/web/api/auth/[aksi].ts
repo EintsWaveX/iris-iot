@@ -7,7 +7,8 @@
  * and /api/auth/keluar onto these exact English paths.
  *
  * GET  /api/auth/me            — who is signed in, if anyone. P8: an assistant also gets `kode` and `perluAturSandi`.
- * POST /api/auth/student       { nim, kodeSesi? }   — no password; while a session runs, its 4-digit code.
+ * POST /api/auth/student       { nim, tujuan?, kodeSesi? } — no password; while a session runs, why
+ *                              ("praktikum" | "lihat"), and to join it, its 4-digit code.
  * POST /api/auth/assistant     { nim, password }
  * POST /api/auth/logout        (no body)
  * POST /api/auth/set-password  { password }         — assistant-only, first-login flow.
@@ -117,7 +118,8 @@ async function handleStudent(req: ApiRequest, res: ApiResponse) {
 
   try {
     const kodeSesi = typeof body.kodeSesi === "string" ? body.kodeSesi.slice(0, 8) : "";
-    const result = await verifyPraktikanLogin(nim, clientIp(req), kodeSesi);
+    const tujuan = body.tujuan === "praktikum" || body.tujuan === "lihat" ? body.tujuan : undefined;
+    const result = await verifyPraktikanLogin(nim, clientIp(req), kodeSesi, tujuan);
 
     if (!result.ok) {
       // Asserted, not narrowed: see the old student.ts header comment --
@@ -141,6 +143,7 @@ async function handleStudent(req: ApiRequest, res: ApiResponse) {
       kelompokId: result.kelompokId,
       kelompokNomor: result.kelompokNomor,
       sesiId: result.sesiId ?? undefined,
+      ...(result.lihat ? { lihat: true as const } : {}),
     });
     res.setHeader("Set-Cookie", sessionCookieHeader(cookie));
     res.status(200).json({
@@ -149,6 +152,7 @@ async function handleStudent(req: ApiRequest, res: ApiResponse) {
       nama: result.nama,
       kelompok: result.kelompokNomor,
       kelompokNama: result.kelompokNama,
+      ...(result.lihat ? { lihat: true } : {}),
     });
   } catch (err) {
     console.error("[api/auth/student] unexpected error:", err);

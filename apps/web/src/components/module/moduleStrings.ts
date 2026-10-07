@@ -59,6 +59,7 @@ export const M = dict({
     inSessionBody:
       "Persiapan alat, Kode dan Live terbuka di halaman praktikum. Pekerjaanmu tersimpan otomatis.",
     goPracticum: "Masuk ke Praktikum",
+    joinSession: "Ikut Praktikum",
     doneBadge: "Selesai",
     doneTitle: "Kamu Sudah Menyelesaikan Praktikum Ini",
     doneBody: "Jurnal lengkapmu tetap bisa dibuka kapan saja.",
@@ -137,6 +138,7 @@ export const M = dict({
     inSessionTitle: (m: string) => `You Are in the ${m} Session`,
     inSessionBody: "Setup, Code and Live are on the practicum page. Your work saves on its own.",
     goPracticum: "Go to the Practicum",
+    joinSession: "Join the Practicum",
     doneBadge: "Completed",
     doneTitle: "You Have Completed This Practicum",
     doneBody: "Your full journal stays open any time.",
@@ -210,6 +212,7 @@ export const M = dict({
     inSessionTitle: (m: string) => `你在${m}的课上`,
     inSessionBody: "准备、代码和 Live 都在实验页上。你的进度会自动保存。",
     goPracticum: "去实验页",
+    joinSession: "参加实验",
     doneBadge: "完成",
     doneTitle: "你已经完成这个实验",
     doneBody: "你的完整日志随时都能打开。",

@@ -439,12 +439,7 @@ export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session
       ke,
       alasan,
     });
-    await catatKejadian(
-      running.id,
-      "pindah",
-      { nim, dari: m.nomor, ke, alasan },
-      session.nim,
-    );
+    await catatKejadian(running.id, "pindah", { nim, dari: m.nomor, ke, alasan }, session.nim);
     return res.status(200).json({ ok: true });
   }
 

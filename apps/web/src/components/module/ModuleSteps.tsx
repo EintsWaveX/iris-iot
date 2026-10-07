@@ -428,6 +428,12 @@ export default function ModuleSteps(p: Props) {
               modul={modul}
               guest={me === null}
               sesiModul={mySession?.modul}
+              bisaIkut={
+                me?.role === "praktikan" &&
+                sesi?.modul === modul &&
+                sesi.milikSaya === false &&
+                sesi.bisaIkut === true
+              }
               riwayatTunggu={
                 me?.role === "praktikan" &&
                 !!akses?.diikuti.includes(modul) &&
@@ -554,6 +560,7 @@ function Hands({
   guest,
   sesiModul,
   riwayatTunggu = false,
+  bisaIkut = false,
 }: {
   lang: Lang;
   modul: number;
@@ -561,6 +568,9 @@ function Hands({
   sesiModul?: number;
   /** They did this practicum, but its history isn't open yet (2026-10-06). */
   riwayatTunggu?: boolean;
+  /** This module's session is theirs and runs, but they signed in without
+   *  joining it, e.g. only to look around (2026-10-07). */
+  bisaIkut?: boolean;
 }) {
   const t = M[lang];
   if (sesiModul && sesiModul !== modul) {
@@ -612,16 +622,28 @@ function Hands({
               {t.signIn}
             </button>
           ) : (
-            <button
-              type="button"
-              className="btn"
-              onClick={() =>
-                window.dispatchEvent(new CustomEvent("iris:go-step", { detail: "modul" }))
-              }
-            >
-              <BookOpenTextIcon aria-hidden="true" />
-              {t.readModule}
-            </button>
+            <>
+              <button
+                type="button"
+                className="btn"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("iris:go-step", { detail: "modul" }))
+                }
+              >
+                <BookOpenTextIcon aria-hidden="true" />
+                {t.readModule}
+              </button>
+              {bisaIkut && (
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => openSignIn(undefined, { ikut: true })}
+                >
+                  <DoorOpenIcon aria-hidden="true" />
+                  {t.joinSession}
+                </button>
+              )}
+            </>
           )
         }
       />

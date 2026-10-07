@@ -521,7 +521,11 @@ export default function BlankFile(p: Props) {
             : t.signIn}
       </span>
       {lockedReason !== "terkunci" && (
-        <button type="button" className="btn btn--sm" onClick={() => openSignIn()}>
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={() => openSignIn(undefined, { ikut: lockedReason === "sesiBerubah" })}
+        >
           <SignInIcon size={16} aria-hidden="true" />
           {t.signInBtn}
         </button>

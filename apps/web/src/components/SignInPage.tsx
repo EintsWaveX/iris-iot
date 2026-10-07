@@ -4,8 +4,10 @@
  *
  * - One card, two roles: a praktikan types only the NIM (shown in big
  *   monospace digits), an assistant adds a password. While a session runs
- *   the server also asks a praktikan for its 4-digit code (perlu_kode),
- *   and the code field appears under the NIM.
+ *   the server first asks a praktikan why (perlu_tujuan): joining goes on
+ *   to the 4-digit code dialog (perlu_kode) and the other-session gate;
+ *   looking around signs in at once, with no attendance (2026-10-07).
+ *   `?ikut=1` (a "join" button elsewhere) already means joining.
  * - Validation is the page's own (no browser "please fill in this field"
  *   bubbles): the form is noValidate and errors sit under their field.
  * - A student's successful check-in shows the module, their group and its
@@ -21,9 +23,10 @@
  * - Someone already signed in who opens /login goes straight on.
  */
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRightIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, BookOpenTextIcon } from "@phosphor-icons/react";
 import SegmentedControl from "./ui/SegmentedControl";
 import KodeSesiDialog from "./KodeSesiDialog";
+import TujuanMasukDialog from "./TujuanMasukDialog";
 import PasswordField from "./ui/PasswordField";
 import {
   dict,
@@ -70,8 +73,20 @@ const T = dict({
       lockedNote:
         "Lihat lagi angkanya di layar depan. Tiap kali salah dua kali, waktu tunggunya jadi dua kali lipat.",
     },
+    tujuanD: {
+      title: "Sesi Sedang Berjalan",
+      desc: "Mau ikut praktikum, atau cuma lihat-lihat?",
+      ikut: "Ikut Praktikum",
+      ikutD: "Pakai kode sesi dari layar depan. Kehadiranmu tercatat.",
+      lihat: "Lihat-lihat Saja",
+      lihatD: "Ringkasan modul, riwayat jurnal dan nilai. Tidak tercatat hadir.",
+      cancel: "Batal",
+    },
     bukanSesimu: (tgl: string, jam: string) =>
       `Sesi yang berjalan sekarang bukan sesimu. Kamu bisa masuk mulai ${tgl} pukul ${jam.replace(":", ".")}.`,
+    lihatSaja: "Lihat-lihat Saja",
+    lihatBanner:
+      "Kamu masuk untuk lihat-lihat, jadi tidak tercatat hadir. Ringkasan, riwayat jurnal dan nilaimu ada di Dasbor.",
     setLede:
       "Kata sandi awal akun ini mudah ditebak. Setel kata sandi asli sekali di sini, dan kata sandi awal berhenti berlaku.",
     newPw: "Kata sandi baru",
@@ -132,8 +147,20 @@ const T = dict({
       lockedNote:
         "Check the digits on the front screen again. Each time two tries fail, the wait doubles.",
     },
+    tujuanD: {
+      title: "A Session Is Running",
+      desc: "Joining the practicum, or just looking around?",
+      ikut: "Join the Practicum",
+      ikutD: "Use the session code on the front screen. Your attendance counts.",
+      lihat: "Just Look Around",
+      lihatD: "Module briefs, journal history and scores. Not counted as attendance.",
+      cancel: "Cancel",
+    },
     bukanSesimu: (tgl: string, jam: string) =>
       `The session running now isn't yours. You can sign in from ${tgl} at ${jam}.`,
+    lihatSaja: "Just Look Around",
+    lihatBanner:
+      "You signed in to look around, so this doesn't count as attendance. Your module briefs, journal history and scores are on the Dashboard.",
     setLede:
       "This account's starting password is easy to guess. Set your own once here and the starting one stops working.",
     newPw: "New password",
@@ -193,8 +220,19 @@ const T = dict({
       locked: (w: string) => `两次代码错误。请在 ${w} 后再试。`,
       lockedNote: "再看一下前方屏幕上的数字。每连续错两次，等待时间加倍。",
     },
+    tujuanD: {
+      title: "课程正在进行",
+      desc: "要参加实验，还是只是看看？",
+      ikut: "参加实验",
+      ikutD: "用前方屏幕上的课程代码。会记出勤。",
+      lihat: "只是看看",
+      lihatD: "模块概要、日志记录和分数。不记出勤。",
+      cancel: "取消",
+    },
     bukanSesimu: (tgl: string, jam: string) =>
       `现在进行的不是你的课程。你可以在 ${tgl} ${jam} 起登录。`,
+    lihatSaja: "只是看看",
+    lihatBanner: "你是登录来看看的，所以不记出勤。你的模块概要、日志记录和分数都在仪表盘里。",
     setLede: "这个账号的初始密码很容易猜到。在这里设置一次你自己的密码，初始密码就会失效。",
     newPw: "新密码",
     newPw2: "再输一次新密码",
@@ -254,6 +292,14 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
   // The session code dialog, once the server says a session runs
   // (perlu_kode), with the server's count of tries and lock (2026-10-07).
   const [kodeBuka, setKodeBuka] = useState(false);
+  // Why they sign in while a session runs (perlu_tujuan, 2026-10-07): asked
+  // once per visit; a "join" button elsewhere sends ?ikut=1 instead.
+  const [tujuanBuka, setTujuanBuka] = useState(false);
+  const [tujuan, setTujuan] = useState<"praktikum" | "lihat" | null>(() =>
+    typeof location !== "undefined" && new URLSearchParams(location.search).has("ikut")
+      ? "praktikum"
+      : null,
+  );
   // Someone else's session (bukan_sesimu): this NIM waits for its own.
   const [gerbang, setGerbang] = useState<{ nim: string; sampai: number } | null>(null);
   useEffect(() => {
@@ -283,6 +329,7 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
     kelompokNama?: string;
     sesi: SesiNow | null;
     asisten: { kode: string; nama: string } | null;
+    lihat?: boolean;
   } | null>(null);
 
   // Already signed in: nothing to do here, go on to where they were headed.
@@ -314,8 +361,9 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
     void masuk();
   }
 
-  async function masuk(kodeSesi?: string) {
+  async function masuk(kodeSesi?: string, pilih?: "praktikum" | "lihat") {
     if (loading) return;
+    const mau = pilih ?? tujuan;
     const n = nim.trim();
     if (!n) return setErr({ field: "nim", msg: t.needNim });
     if (role === "asisten" && !password) return setErr({ field: "pw", msg: t.needPw });
@@ -332,12 +380,19 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
         sisaPercobaan?: number;
         sisaDetik?: number;
         sesiBerikutnya?: { tanggal: string; buka: string; bukaPada: string };
+        lihat?: boolean;
       }>(role === "praktikan" ? "/api/auth/student" : "/api/auth/assistant", {
         nim: n,
-        ...(role === "asisten" ? { password } : kodeSesi ? { kodeSesi } : {}),
+        ...(role === "asisten"
+          ? { password }
+          : { ...(mau ? { tujuan: mau } : {}), ...(kodeSesi ? { kodeSesi } : {}) }),
       });
       if (!data.ok) {
         const msg = t.codes[data.kode ?? ""] ?? t.fallback;
+        if (data.kode === "perlu_tujuan") {
+          setTujuanBuka(true);
+          return;
+        }
         if (
           data.kode === "perlu_kode" ||
           data.kode === "kode_salah" ||
@@ -386,6 +441,7 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
         kelompokNama: data.kelompokNama,
         sesi: mine,
         asisten: mine ? (hasil.asisten ?? null) : null,
+        lihat: !!data.lihat,
       });
       setStage("welcome");
     } catch {
@@ -475,16 +531,35 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
           </div>
 
           {role === "praktikan" && (
+            <TujuanMasukDialog
+              open={tujuanBuka}
+              onOpenChange={setTujuanBuka}
+              lang={lang}
+              t={t.tujuanD}
+              busy={loading}
+              onPilih={(v) => {
+                setTujuan(v);
+                setTujuanBuka(false);
+                void masuk(undefined, v);
+              }}
+            />
+          )}
+
+          {role === "praktikan" && (
             <KodeSesiDialog
               open={kodeBuka}
-              onOpenChange={setKodeBuka}
+              onOpenChange={(o) => {
+                setKodeBuka(o);
+                // Backing out of the code is backing out of joining: ask again.
+                if (!o) setTujuan(null);
+              }}
               lang={lang}
               t={t.kodeD}
               sisaPercobaan={kodeSt.sisa}
               sisaDetik={kodeSt.detik}
               pesan={kodeSt.pesan}
               busy={loading}
-              onSubmit={(k) => void masuk(k)}
+              onSubmit={(k) => void masuk(k, "praktikum")}
             />
           )}
 
@@ -503,6 +578,21 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
             <p className="field__error" role="alert">
               {err.msg}
             </p>
+          )}
+
+          {tertahan && (
+            <button
+              type="button"
+              className="btn btn--ghost login-form__lihat"
+              disabled={loading}
+              onClick={() => {
+                setTujuan("lihat");
+                void masuk(undefined, "lihat");
+              }}
+            >
+              <BookOpenTextIcon size={18} aria-hidden="true" />
+              {t.lihatSaja}
+            </button>
           )}
 
           <button
@@ -590,7 +680,7 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
             </div>
           ) : (
             <div className="banner">
-              <span>{t.noSession}</span>
+              <span>{welcome.lihat ? t.lihatBanner : t.noSession}</span>
             </div>
           )}
           <button

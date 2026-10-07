@@ -7,8 +7,10 @@
  * else.
  *
  * It also catches the praktikan case the API reports as "sesi_berganti": a
- * student still signed in to an earlier session (the mini-bar's `now` says
- * `milikSaya: false`) is asked to sign in again so this session counts them.
+ * student whose own session runs but who isn't signed in to it (an earlier
+ * session's sign-in, or one from before it started: `milikSaya: false`,
+ * `bisaIkut: true`) is asked to join it. Not someone who chose to look
+ * around, and not a student of another slot (2026-10-07).
  */
 import { useEffect, useRef, useState } from "react";
 import { ArrowsCounterClockwiseIcon, SignInIcon } from "@phosphor-icons/react";
@@ -25,8 +27,9 @@ const T = dict({
       `${n} masuk di tab lain pada peramban ini, jadi tab ini sekarang memakai akun tersebut.`,
     goneH: "Kamu sudah keluar",
     gone: "Sesi masuk berakhir atau kamu keluar di tab lain. Masuk lagi untuk melanjutkan.",
-    newH: "Sesi baru sudah dimulai",
-    newB: "Kamu masih tercatat di sesi sebelumnya. Masuk lagi supaya jawaban dan kehadiranmu masuk ke sesi ini.",
+    newH: "Sesimu Sudah Dimulai",
+    newB: "Sesi praktikummu sedang berjalan, tapi kamu belum masuk ke sesi ini. Masuk dengan kode sesi supaya jawaban dan kehadiranmu tercatat.",
+    ikut: "Ikut Praktikum",
     masuk: "Masuk lagi",
     muat: "Muat ulang halaman",
     nanti: "Nanti",
@@ -42,8 +45,9 @@ const T = dict({
       `${n} signed in on another tab in this browser, so this tab now uses that account.`,
     goneH: "You are signed out",
     gone: "Your sign-in ended or you signed out on another tab. Sign in again to continue.",
-    newH: "A new session has started",
-    newB: "You are still signed in to the previous session. Sign in again so your answers and attendance count in this one.",
+    newH: "Your Session Has Started",
+    newB: "Your practicum session is running, but you aren't signed in to it yet. Sign in with the session code so your answers and attendance count.",
+    ikut: "Join the Practicum",
     masuk: "Sign in again",
     muat: "Reload the page",
     nanti: "Later",
@@ -59,8 +63,9 @@ const T = dict({
       `${n} 在这个浏览器的另一个标签页登录了，所以这个标签页现在用的是那个账号。`,
     goneH: "你已经退出登录",
     gone: "你的登录已结束，或者你在另一个标签页退出了。重新登录才能继续。",
-    newH: "新的一节课开始了",
-    newB: "你还登录在上一节课。重新登录，你的答案和出勤才会算在这节课里。",
+    newH: "你的课已经开始了",
+    newB: "你的实验课正在进行，但你还没有登录这节课。用课程代码登录，你的答案和出勤才会记上。",
+    ikut: "参加实验",
     masuk: "重新登录",
     muat: "重新加载页面",
     nanti: "以后再说",
@@ -132,9 +137,10 @@ export default function IdentityWatch({
   const sesiKey = now ? `${now.tanggal}-${now.slot ?? now.mulai}` : null;
   useEffect(() => {
     if (me?.role !== "praktikan" || now?.milikSaya !== false || !sesiKey) return;
+    if (now.bisaIkut === false || now.lihatSaja) return;
     if (dismissedBaru.current === sesiKey) return;
     setK((prev) => prev ?? { jenis: "baru" });
-  }, [me?.role, now?.milikSaya, sesiKey]);
+  }, [me?.role, now?.milikSaya, now?.bisaIkut, now?.lihatSaja, sesiKey]);
 
   // The sign-in page is where these dialogs send people; never cover its form.
   if (!k || isSignInPath()) return null;
@@ -190,11 +196,11 @@ export default function IdentityWatch({
               onClick={() => {
                 close();
                 meChanged();
-                openSignIn();
+                openSignIn(undefined, { ikut: k.jenis === "baru" || k.jenis === "pindah" });
               }}
             >
               <SignInIcon size={17} aria-hidden="true" />
-              {t.masuk}
+              {k.jenis === "baru" ? t.ikut : t.masuk}
             </button>
           )}
         </>

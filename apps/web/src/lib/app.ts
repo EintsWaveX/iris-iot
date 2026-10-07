@@ -164,6 +164,11 @@ export interface SesiNow {
   milikSaya?: boolean | null;
   /** Praktikan only: the group an Asisten moved them to this session. */
   dipindahKe?: number | null;
+  /** Praktikan not signed in to this session: true when it is theirs to
+   *  join (on its roster), false when it belongs to another slot. */
+  bisaIkut?: boolean;
+  /** Praktikan not signed in to this session: they chose to look around. */
+  lihatSaja?: boolean;
   /** Asisten only: true when they teach this session (slot seat, opener,
    *  a held group or an accepted volunteer place). */
   mengajar?: boolean | null;

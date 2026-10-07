@@ -16,7 +16,9 @@ export function signInHref(next?: string): string {
   return `${base}?next=${encodeURIComponent(here)}`;
 }
 
-export function openSignIn(next?: string): void {
+/** `ikut`: the Praktikan is signing in to join the running session (a
+ *  "join" button), so the page skips asking why and goes to the code. */
+export function openSignIn(next?: string, opts: { ikut?: boolean } = {}): void {
   if (isSignInPath()) {
     const nim = document.getElementById("login-nim") as HTMLInputElement | null;
     nim?.focus();
@@ -27,5 +29,5 @@ export function openSignIn(next?: string): void {
   // to someone still signed in (2026-10-07: a Praktikan moved to another
   // group, or on an earlier session's sign-in, bounced straight back).
   const to = signInHref(next);
-  location.assign(to + (to.includes("?") ? "&" : "?") + "ulang=1");
+  location.assign(to + (to.includes("?") ? "&" : "?") + "ulang=1" + (opts.ikut ? "&ikut=1" : ""));
 }

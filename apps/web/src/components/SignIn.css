@@ -52,7 +52,8 @@
   opacity: 0.6;
 }
 
-.login-form__submit {
+.login-form__submit,
+.login-form__lihat {
   width: 100%;
 }
 

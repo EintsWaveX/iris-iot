@@ -23,6 +23,7 @@ import {
   DownloadSimpleIcon,
   PresentationChartIcon,
   PulseIcon,
+  SignInIcon,
   TrophyIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
@@ -30,6 +31,7 @@ import { StateView } from "../ui/Display";
 import Pill from "../ui/Pill";
 import { getJson, href, KELOMPOK_NAMA, MODUL_NAMA, useMe, useSessionNow } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
+import { openSignIn } from "../../lib/signin";
 import { bacaProyektor, useProyektor } from "../../lib/proyektor";
 import { hariIniWib } from "../../lib/jadwal";
 import { langkahBerikutnya, type Langkah } from "../../lib/langkah";
@@ -600,30 +602,44 @@ function Practicums({
   );
 }
 
+/** No session of theirs to show: the Asisten hasn't opened it, or
+ *  (`ikut`, 2026-10-07) it runs but they signed in without joining it. */
 function Waiting({
   t,
   lang,
   hasil,
   me,
+  ikut = false,
 }: {
   t: DashT;
   lang: Lang;
   hasil: Hasil | null;
   me: string;
+  ikut?: boolean;
 }) {
   return (
     <div className="dash__pair">
       <section className="panel panel--key panel--raised dash__card">
         <span className="row">
-          <span className="dot dot--warn" aria-hidden="true" />
+          <span className={ikut ? "dot dot--ok dot--pulse" : "dot dot--warn"} aria-hidden="true" />
         </span>
-        <h2 className="dash__h">{t.waitH}</h2>
-        <p className="dash__lede">{t.waitP}</p>
+        <h2 className="dash__h">{ikut ? t.ikutH : t.waitH}</h2>
+        <p className="dash__lede">{ikut ? t.ikutP : t.waitP}</p>
         <div className="panel__actions">
           <a className="btn" href={href(lang, "/modules")}>
             <BookOpenTextIcon size={18} aria-hidden="true" />
             {t.bacaDulu}
           </a>
+          {ikut && (
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => openSignIn(undefined, { ikut: true })}
+            >
+              <SignInIcon size={18} aria-hidden="true" />
+              {t.ikutBtn}
+            </button>
+          )}
         </div>
       </section>
       {hasil?.kelompok ? <GroupCard t={t} lang={lang} hasil={hasil} me={me} /> : null}
@@ -967,8 +983,18 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
       ? hasil
       : null;
 
+  // Their session runs, but they signed in without joining it (2026-10-07).
+  const belumIkut = sendiri && !sesi && now.data?.milikSaya === false && now.data.bisaIkut === true;
+
   let body;
-  if (sesi) {
+  if (belumIkut) {
+    body = (
+      <>
+        <Waiting t={t} lang={lang} hasil={null} me={me.nama} ikut />
+        {list.length > 0 && <Practicums t={t} lang={lang} list={list} go={go} />}
+      </>
+    );
+  } else if (sesi) {
     body = (
       <Running
         t={t}

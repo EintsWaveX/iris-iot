@@ -11,7 +11,7 @@
  * - Time warnings at 30 and 10 minutes left, once each per session.
  */
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { BellIcon, HandIcon, PresentationChartIcon } from "@phosphor-icons/react";
+import { BellIcon, HandIcon, PresentationChartIcon, SignInIcon } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import type { PollState } from "../../lib/hooks";
 import {
@@ -31,6 +31,7 @@ import Pill from "../ui/Pill";
 import SessionStrip from "./SessionStrip";
 import KodeMasuk from "./KodeMasuk";
 import SlidesDialog, { useSlides } from "./SlidesDialog";
+import { openSignIn } from "../../lib/signin";
 import "./SessionMiniBar.css";
 
 const T = dict({
@@ -41,6 +42,8 @@ const T = dict({
     slides: "Presentasi",
     none: "Belum ada pengumuman di sesi ini.",
     help: "Minta Bantuan",
+    ikut: "Ikut Praktikum",
+    ikutS: "Ikut",
     helpOn: "Menunggu asisten",
     helpSent: "Tangan terangkat. Asisten kelompokmu melihatnya di papan.",
     helpOff: "Permintaan bantuan dibatalkan.",
@@ -60,6 +63,8 @@ const T = dict({
     slides: "Slides",
     none: "No announcements in this session yet.",
     help: "Ask for Help",
+    ikut: "Join the Practicum",
+    ikutS: "Join",
     helpOn: "Waiting for assistant",
     helpSent: "Hand raised. Your group's assistant sees it on the board.",
     helpOff: "Help request cancelled.",
@@ -79,6 +84,8 @@ const T = dict({
     slides: "幻灯片",
     none: "这节课还没有公告。",
     help: "求助",
+    ikut: "参加实验",
+    ikutS: "参加",
     helpOn: "等助教过来",
     helpSent: "已举手。你组的助教会在面板上看到。",
     helpOff: "求助已取消。",
@@ -207,6 +214,10 @@ export default function SessionMiniBar({
   }, [left, s, t.warn10, t.warn30]);
 
   if (!s) return null;
+  // Not signed in to this session (2026-10-07): another slot's is none of
+  // their business; their own offers to join it in place of the hand.
+  const belumIkut = s.milikSaya === false;
+  if (belumIkut && s.bisaIkut === false) return null;
 
   const unread = anns.length > 0 && anns[0].pada !== seen;
   const urgent = left !== null && left <= 10;
@@ -240,6 +251,7 @@ export default function SessionMiniBar({
       aria-label={t.region}
       style={{ "--mod-hue": `var(--mod-${s.modul})` } as CSSProperties}
       data-urgent={urgent ? "yes" : undefined}
+      data-ikut={belumIkut && !proyektor ? "yes" : undefined}
     >
       <a className="minibar__mod" href={href(lang, `/modules/${s.modul}`)} aria-label={t.open}>
         <span className="minibar__dot" aria-hidden="true" />
@@ -261,7 +273,19 @@ export default function SessionMiniBar({
 
       <div className="minibar__actions">
         {proyektor && s.kodeMasuk && <KodeMasuk kode={s.kodeMasuk} lang={lang} besar />}
-        {!proyektor && (
+        {!proyektor && belumIkut && (
+          <button
+            type="button"
+            className="minibar__help minibar__ikut"
+            aria-label={t.ikut}
+            onClick={() => openSignIn(undefined, { ikut: true })}
+          >
+            <SignInIcon size={18} aria-hidden="true" />
+            <span className="minibar__ikut-l">{t.ikut}</span>
+            <span className="minibar__ikut-s">{t.ikutS}</span>
+          </button>
+        )}
+        {!proyektor && !belumIkut && (
           <button
             type="button"
             className="minibar__help"

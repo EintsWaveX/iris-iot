@@ -218,9 +218,15 @@ async function tot() {
     );
 
     const p = new Klien("100000");
-    const tanpa = await p.minta("/api/auth/student", { nim: "100000" });
+    const tujuan = await p.minta("/api/auth/student", { nim: "100000" });
     cek(
-      "a dummy without the code is asked for it",
+      "a dummy is first asked why they sign in",
+      tujuan.json.kode === "perlu_tujuan",
+      tujuan.json.kode,
+    );
+    const tanpa = await p.minta("/api/auth/student", { nim: "100000", tujuan: "praktikum" });
+    cek(
+      "a dummy joining without the code is asked for it",
       tanpa.json.kode === "perlu_kode",
       tanpa.json.kode,
     );

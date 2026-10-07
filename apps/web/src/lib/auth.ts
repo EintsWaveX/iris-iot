@@ -115,6 +115,9 @@ export interface SessionPayload {
    *  so a rollover can invalidate a stale cookie the same way apps/modul4/'s
    *  identity.js compares its stored `sesi` against the live frame. */
   sesiId?: number;
+  /** Only set for a praktikan who signed in to look around while a session
+   *  ran (2026-10-07, user): no code, no attendance, and no nudges to join. */
+  lihat?: true;
   exp: number; // unix seconds
 }
 
@@ -269,6 +272,8 @@ export type PraktikanLoginResult =
       kelompokId: number;
       kelompokNomor: number;
       kelompokNama: string;
+      /** Signed in to look around while a session runs (tujuan "lihat"). */
+      lihat?: true;
     }
   | {
       ok: false;
@@ -277,6 +282,7 @@ export type PraktikanLoginResult =
         | "tidak_ada_sesi"
         | "tidak_terdaftar"
         | "mode_tot"
+        | "perlu_tujuan"
         | "perlu_kode"
         | "kode_salah"
         | "kode_terkunci"
@@ -349,10 +355,16 @@ export async function statusKode(
  * case, and rejecting it on that basis would be a self-inflicted support
  * ticket, not a security measure.
  */
+/** Why a Praktikan signs in while a session runs (2026-10-07, user): to
+ *  join it, or only to look around (the next module's Ringkasan, journal
+ *  history, results). Only joining asks for the code and meets the gate. */
+export type TujuanMasuk = "praktikum" | "lihat";
+
 export async function verifyPraktikanLogin(
   rawNim: string,
   ip: string,
   kodeMasuk = "",
+  tujuan?: TujuanMasuk,
 ): Promise<PraktikanLoginResult> {
   const nim = rawNim.trim().toUpperCase();
 
@@ -372,16 +384,20 @@ export async function verifyPraktikanLogin(
   // yang berjalan" versus "NIM ini tidak terdaftar" -- stay distinguishable
   // here too, rather than collapsing back into one generic failure.
   const running = await currentSesi();
-  if (!running) {
+  if (!running || tujuan === "lihat") {
     // Phase 8: with no session running a rostered student may still sign
     // in, to see results, give feedback and reopen journals they have
     // done. The attempt row has no sesi_id, so it never counts as having
-    // attended anything.
+    // attended anything. Looking around while one runs is the same sign-in.
     const luar = await resolvePraktikanTanpaSesi(nim);
     await recordAttempt(nim, ip, "praktikan", luar !== null);
     if (!luar) return { ok: false, kode: "tidak_terdaftar" };
-    return { ok: true, ...luar, sesiId: null };
+    return { ok: true, ...luar, sesiId: null, ...(running ? { lihat: true as const } : {}) };
   }
+  // Asked before the code or the gate, and for any NIM alike, so it says
+  // nothing about the roster. A code sent without a purpose is an older
+  // page joining.
+  if (!tujuan && !kodeMasuk.trim()) return { ok: false, kode: "perlu_tujuan" };
 
   // The session's code comes first, so a wrong one says nothing about
   // whether the NIM is on the roster. Asking for it is not a failure; a
