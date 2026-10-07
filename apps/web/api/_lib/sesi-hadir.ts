@@ -8,10 +8,15 @@
  *        sign-in row for this session (ip "manual:<NIM of the Asisten>"),
  *        so every attendance count reads it like a real sign-in.
  *      { aksi: "asisten", nim }    mark an Asisten present (audit asisten_hadir).
- *      { aksi: "pindah", nim, ke } move a student to group `ke` for the rest of
- *        this session (the "pair" right). Their next action asks them to sign
- *        in again (requireCurrentPraktikanSesi), which puts them in the new
- *        group. The weekly roster is left as it is.
+ *      { aksi: "pindah", nim, ke, alasan } move a student to group `ke` for
+ *        the rest of this session only (the "pair" right). Their next action
+ *        asks them to sign in again (requireCurrentPraktikanSesi), which puts
+ *        them in the new group. Rosters are final (user, 2026-10-07): a move
+ *        is a temporary exception, so it needs a reason, is logged as an
+ *        incident, shows as Sementara with the group it came from, and the
+ *        live roster goes back when the session ends or is cancelled
+ *        (kembalikanPindahan; Lanjutkan applies it again). The weekly
+ *        roster (roster_slot) is never touched.
  *      { aksi: "tambah", nim, ke, nama? } (2026-10-06) put a student who isn't
  *        in this session into group `ke` (the "pair" right), so they can sign
  *        in: a late or misplaced Praktikan used to be told "tidak terdaftar"
@@ -24,10 +29,11 @@
  * take in it (their first audit row from the session's sesi_mulai row on),
  * or from Tandai Hadir.
  */
-import { and, asc, desc, eq, gte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { cekHak } from "./hak.js";
+import { ALASAN_MIN, catatKejadian } from "./berjalan.js";
 import { muatMinggu } from "./penugasan-api.js";
 import { getDb } from "../../src/lib/db.js";
 import {
@@ -167,6 +173,18 @@ export async function handleHadirGet(_req: ApiRequest, res: ApiResponse) {
   for (const m of masuk)
     if (!masukOf.has(m.nim))
       masukOf.set(m.nim, { pada: m.pada, manual: m.ip.startsWith("manual:") });
+  // Temporary moves this session: the group each moved student came from.
+  const asalOf = new Map<string, number>();
+  for (const a of jejak) {
+    if (a.aksi !== "praktikan_pindah") continue;
+    try {
+      const d = JSON.parse(a.detail ?? "{}") as { sesiId?: number; nim?: string; dari?: number };
+      if (d.sesiId === running.id && d.nim && d.dari && !asalOf.has(d.nim))
+        asalOf.set(d.nim, d.dari);
+    } catch {
+      // A malformed audit line just isn't a move.
+    }
+  }
   const kelompokOut: KelompokHadir[] = groups
     .filter((g) => g.nomor <= jumlah)
     .map((g) => ({
@@ -183,6 +201,9 @@ export async function handleHadirGet(_req: ApiRequest, res: ApiResponse) {
             nama: m.nama,
             masukPada: x ? x.pada.toISOString() : null,
             manual: x?.manual ?? false,
+            ...(asalOf.has(m.nim) && asalOf.get(m.nim) !== g.nomor
+              ? { asal: asalOf.get(m.nim) }
+              : {}),
           };
         }),
     }));
@@ -388,6 +409,8 @@ export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session
 
   if (aksi === "pindah") {
     if (!(await cekHak(res, session.nim, "pair"))) return;
+    const alasan = typeof body.alasan === "string" ? body.alasan.trim().slice(0, 300) : "";
+    if (alasan.length < ALASAN_MIN) return tolak(res, "alasan_kosong");
     const ke = Number(body.ke);
     if (!Number.isInteger(ke) || ke < 1 || ke > (running.jumlahKelompok ?? 10))
       return tolak(res, "format_salah");
@@ -414,7 +437,14 @@ export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session
       nim,
       dari: m.nomor,
       ke,
+      alasan,
     });
+    await catatKejadian(
+      running.id,
+      "pindah",
+      { nim, dari: m.nomor, ke, alasan },
+      session.nim,
+    );
     return res.status(200).json({ ok: true });
   }
 
@@ -501,4 +531,59 @@ async function tambahPraktikan(
     baru: !p,
   });
   return res.status(200).json({ ok: true, nama, nomor: ke });
+}
+
+/**
+ * A session's temporary moves, undone or done again (2026-10-07). The live
+ * roster (`anggota`) is what sign-in reads, so a move lingered after its
+ * session until the next one rebuilt it. Ending or cancelling puts each
+ * moved student back in the group they started in; Lanjutkan moves them
+ * again from the session's own snapshot. Best effort: a failure here must
+ * not stop the end itself.
+ */
+export async function kembalikanPindahan(sesiId: number, arah: "pulih" | "ulang"): Promise<void> {
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({ detail: audit.detail })
+      .from(audit)
+      .where(
+        and(
+          eq(audit.aksi, "praktikan_pindah"),
+          sql`(${audit.detail}::jsonb ->> 'sesiId')::int = ${sesiId}`,
+        ),
+      )
+      .orderBy(asc(audit.id));
+    const asal = new Map<string, number>();
+    for (const r of rows) {
+      try {
+        const d = JSON.parse(r.detail ?? "{}") as { nim?: string; dari?: number };
+        if (d.nim && d.dari && !asal.has(d.nim)) asal.set(d.nim, d.dari);
+      } catch {
+        // skip
+      }
+    }
+    if (!asal.size) return;
+    const ids = new Map(
+      (await db.select({ id: kelompok.id, nomor: kelompok.nomor }).from(kelompok)).map((k) => [
+        k.nomor,
+        k.id,
+      ]),
+    );
+    const snap = new Map(
+      (
+        await db
+          .select({ nim: sesiAnggota.nim, nomor: sesiAnggota.kelompokNomor })
+          .from(sesiAnggota)
+          .where(eq(sesiAnggota.sesiId, sesiId))
+      ).map((x) => [x.nim, x.nomor]),
+    );
+    for (const [nim, dari] of asal) {
+      const nomor = arah === "pulih" ? dari : snap.get(nim);
+      const id = nomor === undefined ? undefined : ids.get(nomor);
+      if (id) await db.update(anggota).set({ kelompokId: id }).where(eq(anggota.nim, nim));
+    }
+  } catch (err) {
+    console.error("[pindah] restoring the live roster failed:", sesiId, err);
+  }
 }

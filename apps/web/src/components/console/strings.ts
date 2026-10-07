@@ -279,7 +279,16 @@ export const S = dict({
       asisten: "Asisten",
       marked: (nama: string) => `${nama} ditandai hadir.`,
       moved: (nama: string, g: number) =>
-        `${nama} dipindah ke Kelompok ${g}. Dia diminta masuk lagi.`,
+        `${nama} dipindah sementara ke Kelompok ${g}. Dia diminta masuk lagi.`,
+      moveTitle: "Pindah Sementara",
+      moveDesc: (nama: string, a: number, b: number) =>
+        `${nama} pindah dari Kelompok ${a} ke Kelompok ${b} untuk sesi ini saja. Roster asli tidak berubah, dan dia kembali ke Kelompok ${a} saat sesi berakhir.`,
+      moveNote:
+        "Roster sudah final. Pindahkan hanya untuk hal kecil, misalnya alat kelompok rusak.",
+      moveReason: "Alasan",
+      moveReasonPh: "Misal: papan Kelompok 3 rusak",
+      moveGo: "Pindah Sementara",
+      temp: (a: number) => `Sementara · asal Kelompok ${a}`,
       back: "Kembali ke Sesi Ini",
       empty: "Belum ada anggota",
       awal: (k: string) => `awal: ${k}`,
@@ -833,7 +842,16 @@ export const S = dict({
       asisten: "Assistant",
       marked: (nama: string) => `${nama} marked as here.`,
       moved: (nama: string, g: number) =>
-        `${nama} moved to Group ${g}. They're asked to sign in again.`,
+        `${nama} moved to Group ${g} for now. They're asked to sign in again.`,
+      moveTitle: "Move for This Session",
+      moveDesc: (nama: string, a: number, b: number) =>
+        `${nama} moves from Group ${a} to Group ${b} for this session only. The roster itself doesn't change, and they go back to Group ${a} when the session ends.`,
+      moveNote:
+        "Rosters are final. Move someone only for something small, such as a group's broken kit.",
+      moveReason: "Reason",
+      moveReasonPh: "For example: Group 3's board is broken",
+      moveGo: "Move for Now",
+      temp: (a: number) => `For now · from Group ${a}`,
       back: "Back to This Session",
       empty: "No members yet",
       awal: (k: string) => `original: ${k}`,
@@ -1378,7 +1396,15 @@ export const S = dict({
       slides: "演示",
       asisten: "助教",
       marked: (nama: string) => `${nama} 已标记到场。`,
-      moved: (nama: string, g: number) => `${nama} 已换到第 ${g} 组，需要重新登录。`,
+      moved: (nama: string, g: number) => `${nama} 已临时换到第 ${g} 组，需要重新登录。`,
+      moveTitle: "临时换组",
+      moveDesc: (nama: string, a: number, b: number) =>
+        `${nama} 只在本节课从第 ${a} 组换到第 ${b} 组。原名单不变，课程结束后回到第 ${a} 组。`,
+      moveNote: "名单已经定了。只在小事上换组，比如某组器材坏了。",
+      moveReason: "原因",
+      moveReasonPh: "例如：第 3 组的板子坏了",
+      moveGo: "临时换组",
+      temp: (a: number) => `临时 · 原第 ${a} 组`,
       back: "返回本节课",
       empty: "还没有成员",
       awal: (k: string) => `原本：${k}`,

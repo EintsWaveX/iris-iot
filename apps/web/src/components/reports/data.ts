@@ -74,6 +74,8 @@ const KJ = {
     tangan: (g: string) => `${g} angkat tangan.`,
     jawab: (g: string, who: string, m: string) =>
       `Angkat tangan ${g} dijawab ${who}${m ? ` ${m} kemudian` : ""}.`,
+    pindah: (who: string, nim: string, a: string, b: string, al: string) =>
+      `${who} memindah ${nim} sementara dari ${a} ke ${b}, untuk sesi ini saja. Roster asli tidak berubah.${al ? ` Alasan: ${al}` : ""}`,
   },
   en: {
     mulai: (who: string) => `Session started by ${who}.`,
@@ -93,6 +95,8 @@ const KJ = {
     tangan: (g: string) => `${g} raised a hand.`,
     jawab: (g: string, who: string, m: string) =>
       `${g}'s raised hand answered by ${who}${m ? ` ${m} later` : ""}.`,
+    pindah: (who: string, nim: string, a: string, b: string, al: string) =>
+      `${who} moved ${nim} from ${a} to ${b} for this session only. The roster itself is unchanged.${al ? ` Reason: ${al}` : ""}`,
   },
   zh: {
     mulai: (who: string) => `${who} 开始了这节课。`,
@@ -110,6 +114,8 @@ const KJ = {
         : `${who} 不再为${g}借用 SeeLabs 账号。`,
     tangan: (g: string) => `${g}举手了。`,
     jawab: (g: string, who: string, m: string) => `${who}${m ? ` ${m}后` : ""}回应了${g}的举手。`,
+    pindah: (who: string, nim: string, a: string, b: string, al: string) =>
+      `${who} 把 ${nim} 从${a}临时移到${b}，只限本节课。原名单不变。${al ? `原因：${al}` : ""}`,
   },
 };
 
@@ -157,6 +163,17 @@ export function kalimatKejadian(
       return {
         tag: "seelabs",
         teks: w.akun(by, g, d.akun ? who(d.akun as string) : ""),
+      };
+    case "pindah":
+      return {
+        tag: "asisten",
+        teks: w.pindah(
+          by,
+          String(d.nim ?? ""),
+          kelompokLabel(Number(d.dari), lang),
+          kelompokLabel(Number(d.ke), lang),
+          typeof d.alasan === "string" ? d.alasan : "",
+        ),
       };
     case "tangan":
       return { tag: "tangan", teks: w.tangan(g) };

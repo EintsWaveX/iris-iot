@@ -38,6 +38,7 @@ import {
   UserPlusIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
+import Dialog from "../ui/Dialog";
 import { getJson, jamMenit, namaKelompok, postJson } from "../../lib/app";
 import TambahPraktikan from "./TambahPraktikan";
 import { usePoll } from "../../lib/hooks";
@@ -66,6 +67,8 @@ interface Anggota {
   nama: string;
   masukPada: string | null;
   manual: boolean;
+  /** Moved here for this session only: the group they came from. */
+  asal?: number;
 }
 
 interface Kelompok {
@@ -162,10 +165,22 @@ export default function LivePrep({
   const semua = groups.flatMap((g) => g.anggota);
   const hadir = semua.filter((m) => m.masukPada).length;
 
+  // Rosters are final (2026-10-07): a move is for this session only, asked
+  // with a reason first, and undone when the session ends.
+  const [mau, setMau] = useState<{ m: Anggota; dari: number; ke: number } | null>(null);
+  const [alasan, setAlasan] = useState("");
   const pindah = (m: Anggota, ke: number) => {
     const g = groups.find((x) => x.nomor === ke);
-    if (!g || !g.aktif || nomorOf.get(m.nim) === ke) return;
-    void kirim({ aksi: "pindah", nim: m.nim, ke }, l.moved(m.nama, ke));
+    const dari = nomorOf.get(m.nim);
+    if (!g || !g.aktif || dari === undefined || dari === ke) return;
+    setAlasan("");
+    setMau({ m, dari, ke });
+  };
+  const pindahkan = async () => {
+    if (!mau || alasan.trim().length < 5) return;
+    const { m, ke } = mau;
+    setMau(null);
+    await kirim({ aksi: "pindah", nim: m.nim, ke, alasan: alasan.trim() }, l.moved(m.nama, ke));
   };
 
   function onDragStart(e: DragStartEvent) {
@@ -290,6 +305,46 @@ export default function LivePrep({
         </button>
       </div>
 
+      <Dialog
+        open={!!mau}
+        onOpenChange={(o) => !o && setMau(null)}
+        title={l.moveTitle}
+        description={mau ? l.moveDesc(mau.m.nama, mau.dari, mau.ke) : undefined}
+        size="sm"
+        lang={lang}
+        actions={
+          <>
+            <button type="button" className="btn" onClick={() => setMau(null)}>
+              {t.cancel}
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={alasan.trim().length < 5}
+              onClick={() => void pindahkan()}
+            >
+              {l.moveGo}
+            </button>
+          </>
+        }
+      >
+        <div className="stack stack--sm">
+          <p className="hint">{l.moveNote}</p>
+          <label className="field">
+            <span className="field__label">{l.moveReason}</span>
+            <input
+              id="pindah-alasan"
+              className="field__input"
+              value={alasan}
+              onChange={(e) => setAlasan(e.target.value)}
+              placeholder={l.moveReasonPh}
+              maxLength={300}
+              autoFocus
+            />
+          </label>
+        </div>
+      </Dialog>
+
       <TambahPraktikan
         lang={lang}
         open={tambah}
@@ -410,6 +465,7 @@ function MemberRow({
     >
       <DotsSixVerticalIcon size={16} aria-hidden="true" className="mrow__grip" />
       <span className="mrow__name">{m.nama}</span>
+      {m.asal !== undefined && <span className="pill pill--warn">{t.lp.temp(m.asal)}</span>}
       {m.masukPada ? (
         <span className="pill pill--ok num">{jamMenit(m.masukPada)}</span>
       ) : (

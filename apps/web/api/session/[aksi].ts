@@ -95,7 +95,12 @@ import {
 import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { hilangPersen, selisihJamMs } from "../../src/lib/telemetri-ringkas.js";
 import { nomorWakil, wakilKelompok } from "../_lib/wakil.js";
-import { asistenMengajar, handleHadirGet, handleHadirPost } from "../_lib/sesi-hadir.js";
+import {
+  asistenMengajar,
+  handleHadirGet,
+  handleHadirPost,
+  kembalikanPindahan,
+} from "../_lib/sesi-hadir.js";
 import { queueSoloServerCommand, nilaiOrNull } from "../../src/lib/server-lib.js";
 import {
   handleCerminGet,
@@ -366,6 +371,7 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
 
   await db.update(sesi).set({ status: "batal" }).where(eq(sesi.id, sesiId));
   await catatKejadian(sesiId, "batal", {}, session.nim);
+  await kembalikanPindahan(sesiId, "pulih");
   await writeAudit(session.nim, "sesi_batal", { sesiId });
 
   // Same as handleEnd: a cancelled hotspot session must not leave the Pi
@@ -496,6 +502,7 @@ async function handleEnd(_req: ApiRequest, res: ApiResponse, session: SessionPay
   }
 
   await catatKejadian(running.id, "akhiri", {}, session.nim);
+  await kembalikanPindahan(running.id, "pulih");
   await writeAudit(session.nim, "sesi_akhiri", { sesiId: running.id });
 
   // Mirror of the auto-queue in api/session/index.ts: a session that turned
@@ -1230,6 +1237,7 @@ async function handleLanjutkan(req: ApiRequest, res: ApiResponse, session: Sessi
   });
 
   await catatKejadian(sesiId, "lanjutkan", {}, session.nim);
+  await kembalikanPindahan(sesiId, "ulang");
   await writeAudit(session.nim, "sesi_lanjutkan", { sesiId });
 
   if (row.butuhAp) {
