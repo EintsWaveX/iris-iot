@@ -138,6 +138,8 @@ import {
   pemilikKelompok,
   tanganTerangkat,
   kelompokDariNim,
+  cekKendaliSesi,
+  hakKendaliSesi,
 } from "../_lib/phase8.js";
 import { eq, and, or, gte, like, sql, notInArray, isNull, desc, asc } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
@@ -427,7 +429,7 @@ async function handleWaspada(_req: ApiRequest, res: ApiResponse) {
   });
 }
 
-async function handleCurrent(_req: ApiRequest, res: ApiResponse) {
+async function handleCurrent(_req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const db = getDb();
   // Independent reads, so one round trip instead of four in a row: this
   // call gates the whole console, and a cold start already costs enough.
@@ -458,10 +460,12 @@ async function handleCurrent(_req: ApiRequest, res: ApiResponse) {
         .map((m) => ({ nim: m.nim, nama: m.nama })),
     }));
 
-  // Asisten-only route: the sign-in code rides along for the session bar.
+  // Asisten-only route: the sign-in code rides along for the session bar,
+  // and whether this Asisten may run it (end, extend, announce).
+  const kendali = running ? (await hakKendaliSesi(session.nim, running.id)) === "ok" : false;
   res.status(200).json({
     ok: true,
-    sesi: running ? { ...running, kodeMasuk: kodeMasukSesi(running) } : null,
+    sesi: running ? { ...running, kodeMasuk: kodeMasukSesi(running), kendali } : null,
     roster,
   });
 }
@@ -481,8 +485,15 @@ async function handleEnd(_req: ApiRequest, res: ApiResponse, session: SessionPay
       selesaiPada: sql`now()`,
       durasiDetik: sql`extract(epoch from now() - coalesce(${sesi.mulaiPada}, ${sesi.dibuatPada}))::int`,
     })
-    .where(eq(sesi.id, running.id))
+    .where(and(eq(sesi.id, running.id), eq(sesi.status, "berjalan")))
     .returning();
+  // Akhiri pressed twice at once (2026-10-07): the second changes nothing,
+  // so it logs nothing and queues no second hotspot command.
+  if (!updated) {
+    const [nanti] = await db.select().from(sesi).where(eq(sesi.id, running.id)).limit(1);
+    res.status(200).json({ ok: true, sesi: nanti });
+    return;
+  }
 
   await catatKejadian(running.id, "akhiri", {}, session.nim);
   await writeAudit(session.nim, "sesi_akhiri", { sesiId: running.id });
@@ -957,7 +968,13 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     : [typeof body.nim === "string" ? body.nim.trim() : ""];
   const absen = typeof body.absen === "boolean" ? body.absen : null;
   const komponen = typeof body.komponen === "string" ? body.komponen : "";
-  const skor = Number(body.skor);
+  // An empty field is no score, never 0 (Number("") and Number(null) are 0).
+  const skor =
+    typeof body.skor === "number"
+      ? body.skor
+      : typeof body.skor === "string" && body.skor.trim() !== ""
+        ? Number(body.skor)
+        : NaN;
 
   if (
     !Number.isInteger(sesiId) ||
@@ -1018,8 +1035,13 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     return;
   }
 
-  const unik = [...new Set(nims)];
-  await simpanNilai(db, sesiId, unik, [komponen as NilaiKomponen], skor, session.nim);
+  // Sama Rata skips Tidak Hadir members on the server too: a screen that
+  // had not yet seen the mark still sent them (2026-10-07).
+  const tidakHadir = Array.isArray(body.nims) ? await daftarAbsen(db, sesiId) : new Set<string>();
+  const unik = [...new Set(nims)].filter((n) => !tidakHadir.has(n));
+  if (unik.length) {
+    await simpanNilai(db, sesiId, unik, [komponen as NilaiKomponen], skor, session.nim);
+  }
   // One line per Praktikan, so the session's score history reads the same
   // whichever way the field was entered.
   for (const nim of unik) {
@@ -1273,6 +1295,10 @@ async function handleAsistenDirectory(res: ApiResponse) {
   res.status(200).json({ ok: true, asisten: rows });
 }
 
+/** Session controls behind cekKendaliSesi; the first three act on the running one. */
+const KENDALI = new Set(["end", "durasi", "siarkan", "catatan", "cancel", "lanjutkan"]);
+const KENDALI_BERJALAN = new Set(["end", "durasi", "siarkan"]);
+
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
   if (await tolakPraktikanTot(req, res)) return;
@@ -1445,6 +1471,17 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   const session = requireRole(req, res, "asisten");
   if (!session) return;
 
+  // Running a session belongs to its own people (2026-10-07): the running
+  // one for end, extend and announce; the named one for the rest.
+  if (req.method === "POST" && typeof aksi === "string" && KENDALI.has(aksi)) {
+    const id = KENDALI_BERJALAN.has(aksi) ? null : Number(jsonBody(req).sesiId);
+    if (id !== null && (!Number.isInteger(id) || id <= 0)) {
+      res.status(200).json({ ok: false, kode: "format_salah" });
+      return;
+    }
+    if (!(await cekKendaliSesi(res, session.nim, id))) return;
+  }
+
   if (aksi === "brief") {
     if (!requireMethod(req, res, "POST")) return;
     return handleBriefPost(req, res, session);
@@ -1518,7 +1555,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "current") {
     if (!requireMethod(req, res, "GET")) return;
-    return handleCurrent(req, res);
+    return handleCurrent(req, res, session);
   }
   if (aksi === "waspada") {
     if (!requireMethod(req, res, "GET")) return;

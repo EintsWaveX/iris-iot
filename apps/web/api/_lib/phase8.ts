@@ -40,7 +40,7 @@ import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parse
 import { validasiUmpanBalik, ringkas } from "../../src/lib/umpan-balik.js";
 import type { Kelas } from "../../src/lib/kelas.js";
 import { muatMinggu } from "./penugasan-api.js";
-import { and, eq, asc, desc, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, eq, asc, desc, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { ALASAN_MIN, catatKejadian, catatPasangan, cekPasangan } from "./berjalan.js";
 
 type Db = ReturnType<typeof getDb>;
@@ -72,6 +72,53 @@ export async function jadwalUntuk(db: Db, tanggal: string, slot: number | null) 
     )
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * May this person run a session: end, extend, cancel, resume, announce,
+ * write group notes (2026-10-07: an Asisten off the slot could end someone
+ * else's class)? The same people as pairing changes: the slot's own
+ * Asisten and substitutes, anyone holding a group in it, and the full
+ * `pair` right. A TOT session is everyone's practice. `sesiId` null means
+ * the running session; no session lets the action answer for itself.
+ */
+export async function cekKendaliSesi(
+  res: ApiResponse,
+  nim: string,
+  sesiId: number | null,
+): Promise<boolean> {
+  const hak = await hakKendaliSesi(nim, sesiId);
+  if (hak === "ok") return true;
+  res.status(403).json({ ok: false, kode: hak, hak: "pair" });
+  return false;
+}
+
+/** cekKendaliSesi without the answer, for screens that hide the controls. */
+export async function hakKendaliSesi(
+  nim: string,
+  sesiId: number | null,
+): Promise<"ok" | "tanpa_hak" | "bukan_slotmu"> {
+  const db = getDb();
+  const s =
+    sesiId === null
+      ? await currentSesi()
+      : (
+          await db
+            .select({ id: sesi.id, tanggal: sesi.tanggal, slot: sesi.slot, jenis: sesi.jenis })
+            .from(sesi)
+            .where(eq(sesi.id, sesiId))
+            .limit(1)
+        )[0];
+  if (!s || s.jenis === "tot") return "ok";
+  const slotRow = await jadwalUntuk(db, s.tanggal, s.slot);
+  return cekPasangan(db, nim, s.id, (kode) => {
+    const k = kode.toUpperCase();
+    return (
+      !!slotRow &&
+      (slotRow.asisten.some((x) => x.toUpperCase() === k) ||
+        slotRow.pengganti.some((p) => p.kode.toUpperCase() === k))
+    );
+  });
 }
 
 /**
@@ -253,13 +300,33 @@ export async function handleAssignmentPost(
       res.status(200).json({ ok: false, kode: "asisten_tidak_ada" });
       return;
     }
-    await db
-      .insert(sesiAsisten)
-      .values({ sesiId, kelompokId, asistenNim: asistenNim! })
-      .onConflictDoUpdate({
-        target: [sesiAsisten.sesiId, sesiAsisten.kelompokId],
-        set: { asistenNim: asistenNim!, diubahPada: new Date() },
-      });
+    if (alasan === "klaim") {
+      // Two Asisten pressing Pegang at once both read the group as free
+      // (2026-10-07); only the insert decides, the other is told who won.
+      const masuk = await db
+        .insert(sesiAsisten)
+        .values({ sesiId, kelompokId, asistenNim: session.nim })
+        .onConflictDoNothing()
+        .returning({ id: sesiAsisten.id });
+      if (!masuk.length) {
+        const kini = (await pemilikKelompok(db, sesiId)).get(kelompokId) ?? null;
+        res
+          .status(200)
+          .json(
+            kini === session.nim
+              ? { ok: true, pemilik: kini }
+              : { ok: false, kode: "sudah_dipegang", pemilik: kini },
+          );
+        return;
+      }
+    } else
+      await db
+        .insert(sesiAsisten)
+        .values({ sesiId, kelompokId, asistenNim: asistenNim! })
+        .onConflictDoUpdate({
+          target: [sesiAsisten.sesiId, sesiAsisten.kelompokId],
+          set: { asistenNim: asistenNim!, diubahPada: new Date() },
+        });
   }
   if (berubah) {
     await catatPasangan(db, {
@@ -298,35 +365,50 @@ export async function handleHelpPraktikan(
     return;
   }
   const aktif = Boolean(jsonBody(req).aktif);
-  const pada = aktif ? new Date() : null;
   const db = getDb();
   if (aktif) {
-    // One line per raised hand: a repeat while the hand is up logs nothing.
-    const [g] = await db
-      .select({ nomor: kelompok.nomor, naik: sesiKelompok.mintaBantuanPada })
-      .from(kelompok)
-      .leftJoin(
-        sesiKelompok,
-        and(eq(sesiKelompok.kelompokId, kelompok.id), eq(sesiKelompok.sesiId, running.id)),
-      )
-      .where(eq(kelompok.id, session.kelompokId))
-      .limit(1);
-    if (!g?.naik)
+    // One line per raised hand, and the first raise keeps its time: two
+    // members pressing at once both saw it down and logged twice (2026-10-07).
+    const naik = await db
+      .insert(sesiKelompok)
+      .values({ sesiId: running.id, kelompokId: session.kelompokId, mintaBantuanPada: new Date() })
+      .onConflictDoUpdate({
+        target: [sesiKelompok.sesiId, sesiKelompok.kelompokId],
+        set: { mintaBantuanPada: new Date() },
+        setWhere: isNull(sesiKelompok.mintaBantuanPada),
+      })
+      .returning({ pada: sesiKelompok.mintaBantuanPada });
+    if (naik.length) {
+      const [g] = await db
+        .select({ nomor: kelompok.nomor })
+        .from(kelompok)
+        .where(eq(kelompok.id, session.kelompokId))
+        .limit(1);
       await catatKejadian(
         running.id,
         "tangan",
         { kelompokId: session.kelompokId, nomor: g?.nomor ?? null },
         session.nim,
       );
+    }
+    const [kini] = await db
+      .select({ pada: sesiKelompok.mintaBantuanPada })
+      .from(sesiKelompok)
+      .where(
+        and(eq(sesiKelompok.sesiId, running.id), eq(sesiKelompok.kelompokId, session.kelompokId)),
+      )
+      .limit(1);
+    res.status(200).json({ ok: true, mintaBantuanPada: kini?.pada?.toISOString() ?? null });
+    return;
   }
   await db
     .insert(sesiKelompok)
-    .values({ sesiId: running.id, kelompokId: session.kelompokId, mintaBantuanPada: pada })
+    .values({ sesiId: running.id, kelompokId: session.kelompokId, mintaBantuanPada: null })
     .onConflictDoUpdate({
       target: [sesiKelompok.sesiId, sesiKelompok.kelompokId],
-      set: { mintaBantuanPada: pada },
+      set: { mintaBantuanPada: null },
     });
-  res.status(200).json({ ok: true, mintaBantuanPada: pada?.toISOString() ?? null });
+  res.status(200).json({ ok: true, mintaBantuanPada: null });
 }
 
 export async function handleHelpAsisten(

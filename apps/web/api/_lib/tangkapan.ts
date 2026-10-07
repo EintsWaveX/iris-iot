@@ -7,7 +7,7 @@
  * POST cermin { baris: [{ sumber, teks, t }] } Praktikan in a running session.
  * GET  cermin?kelompok=K&sesudah=ID Asisten: the running session's mirrored lines.
  */
-import { and, asc, desc, eq, gt, inArray, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
@@ -18,6 +18,8 @@ import { sesiDiikuti } from "./phase8.js";
 import { statusRiwayat } from "../../src/lib/akses.js";
 
 const BARIS_MAKS = { paket: 5, jarak: 3 } as const;
+/** First key of the per-group lock that serialises capture saves. */
+const KUNCI_TANGKAPAN = 7101;
 const SUMBER = /^(b0|b1)$/;
 const CERMIN_PER_PANGGIL = 60;
 const CERMIN_SIMPAN = 600;
@@ -68,17 +70,38 @@ export async function handleTangkapanPost(req: ApiRequest, res: ApiResponse, who
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  const [row] = await getDb()
-    .insert(jurnalTangkapan)
-    .values({
-      sesiId: running.id,
-      kelompokId: who.kelompokId!,
-      modul,
-      jenis,
-      baris: baris as Record<string, Sel>[],
-      nim: who.nim,
-    })
-    .returning({ id: jurnalTangkapan.id, dibuatPada: jurnalTangkapan.dibuatPada });
+  // The same rows again from this group within a minute (a double click, or
+  // two members saving one capture) keep the first save (2026-10-07). The
+  // group's lock makes two saves at the same moment take turns.
+  const row = await getDb().transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${KUNCI_TANGKAPAN}, ${who.kelompokId!})`);
+    const [sama] = await tx
+      .select({ id: jurnalTangkapan.id, dibuatPada: jurnalTangkapan.dibuatPada })
+      .from(jurnalTangkapan)
+      .where(
+        and(
+          eq(jurnalTangkapan.sesiId, running.id),
+          eq(jurnalTangkapan.kelompokId, who.kelompokId!),
+          eq(jurnalTangkapan.jenis, jenis),
+          gt(jurnalTangkapan.dibuatPada, new Date(Date.now() - 60_000)),
+          sql`${jurnalTangkapan.baris} = ${JSON.stringify(baris)}::jsonb`,
+        ),
+      )
+      .limit(1);
+    if (sama) return sama;
+    const [baru] = await tx
+      .insert(jurnalTangkapan)
+      .values({
+        sesiId: running.id,
+        kelompokId: who.kelompokId!,
+        modul,
+        jenis,
+        baris: baris as Record<string, Sel>[],
+        nim: who.nim,
+      })
+      .returning({ id: jurnalTangkapan.id, dibuatPada: jurnalTangkapan.dibuatPada });
+    return baru;
+  });
   res.status(200).json({ ok: true, id: row.id, dibuatPada: row.dibuatPada });
 }
 

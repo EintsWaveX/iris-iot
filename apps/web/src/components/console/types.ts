@@ -21,6 +21,9 @@ export interface SesiRunning {
   kit?: { kembali: number; rusak: number; total: number } | null;
   /** The four digits Praktikan type to sign in to this session. */
   kodeMasuk?: string;
+  /** May this Asisten end, extend and announce (its slot, a held group,
+   *  Pengelola or Admin; anyone in TOT)? Others only watch. */
+  kendali?: boolean;
 }
 
 export interface RosterGroup {

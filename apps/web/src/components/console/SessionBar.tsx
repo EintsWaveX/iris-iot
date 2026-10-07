@@ -146,9 +146,12 @@ export default function SessionBar({
   const hari = hariDariTanggal(sesi.tanggal);
   const ref = useRef<HTMLElement | null>(null);
 
+  const kendaliRef = useRef(sesi.kendali !== false);
+  kendaliRef.current = sesi.kendali !== false;
   // E opens Extend, like the mockup's tooltip says.
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
+      if (!kendaliRef.current) return;
       if (e.key.toLowerCase() !== "e" || e.ctrlKey || e.metaKey || e.altKey) return;
       if (!shortcutsOn() || isTypingTarget(e.target) || document.querySelector("[role=dialog]"))
         return;
@@ -198,8 +201,11 @@ export default function SessionBar({
     setMenu(null);
     setAnnounceOpen(false);
   };
+  // Off the slot (2026-10-07): watch the session, but leave ending,
+  // extending and announcing to the people running it.
+  const kendali = sesi.kendali !== false;
   const tools: { k: Menu | "see" | "proj" | "skor"; icon: PhIcon; label: string }[] = [
-    { k: "ann", icon: MegaphoneIcon, label: t.announce },
+    ...(kendali ? [{ k: "ann" as const, icon: MegaphoneIcon, label: t.announce }] : []),
     { k: "acc", icon: LockSimpleOpenIcon, label: t.access },
     { k: "deck", icon: PresentationChartIcon, label: t.slides },
     { k: "see", icon: EyeIcon, label: t.viewAs },
@@ -245,14 +251,18 @@ export default function SessionBar({
       <div className="sbar__tools">
         {wide ? (
           <>
-            <Pop
-              open={announceOpen}
-              onOpenChange={setAnnounceOpen}
-              width={400}
-              trigger={<IconTrigger icon={MegaphoneIcon} label={t.announce} open={announceOpen} />}
-            >
-              {form("ann")}
-            </Pop>
+            {kendali && (
+              <Pop
+                open={announceOpen}
+                onOpenChange={setAnnounceOpen}
+                width={400}
+                trigger={
+                  <IconTrigger icon={MegaphoneIcon} label={t.announce} open={announceOpen} />
+                }
+              >
+                {form("ann")}
+              </Pop>
+            )}
             <Pop
               open={pop === "acc"}
               onOpenChange={(o) => setPop(o ? "acc" : null)}
@@ -376,38 +386,40 @@ export default function SessionBar({
           </Pop>
         )}
 
-        <Pop
-          open={pop === "ext"}
-          onOpenChange={(o) => setPop(o ? "ext" : null)}
-          width={340}
-          trigger={
-            <Tooltip label={`${t.extend} · E`} side="bottom">
-              <RadixPopover.Trigger asChild>
-                <button
-                  type="button"
-                  className="btn sbar__btn sbar__ext"
-                  aria-pressed={pop === "ext"}
-                  aria-label={t.extend}
-                >
-                  <TimerIcon size={18} aria-hidden="true" />
-                  <span className="sbar__lbl">{t.extend}</span>
-                  <KeyHint k="E" />
-                </button>
-              </RadixPopover.Trigger>
-            </Tooltip>
-          }
-        >
-          <ExtendForm
-            t={t}
-            lang={lang}
-            sesi={sesi}
-            berjalan={berjalan}
-            onDone={() => {
-              setPop(null);
-              onChanged();
-            }}
-          />
-        </Pop>
+        {kendali && (
+          <Pop
+            open={pop === "ext"}
+            onOpenChange={(o) => setPop(o ? "ext" : null)}
+            width={340}
+            trigger={
+              <Tooltip label={`${t.extend} · E`} side="bottom">
+                <RadixPopover.Trigger asChild>
+                  <button
+                    type="button"
+                    className="btn sbar__btn sbar__ext"
+                    aria-pressed={pop === "ext"}
+                    aria-label={t.extend}
+                  >
+                    <TimerIcon size={18} aria-hidden="true" />
+                    <span className="sbar__lbl">{t.extend}</span>
+                    <KeyHint k="E" />
+                  </button>
+                </RadixPopover.Trigger>
+              </Tooltip>
+            }
+          >
+            <ExtendForm
+              t={t}
+              lang={lang}
+              sesi={sesi}
+              berjalan={berjalan}
+              onDone={() => {
+                setPop(null);
+                onChanged();
+              }}
+            />
+          </Pop>
+        )}
         <button type="button" className="srvchip" onClick={onDrawer}>
           <span
             className={`dot ${online > 0 ? "dot--ok" : list.length ? "dot--danger" : "dot--off"}`}
@@ -422,10 +434,12 @@ export default function SessionBar({
               : t.serverChip(online, list.length)}
           </span>
         </button>
-        <button type="button" className="btn btn--danger sbar__btn" onClick={onEnd}>
-          <FlagCheckeredIcon size={18} aria-hidden="true" />
-          {t.endShort}
-        </button>
+        {kendali && (
+          <button type="button" className="btn btn--danger sbar__btn" onClick={onEnd}>
+            <FlagCheckeredIcon size={18} aria-hidden="true" />
+            {t.endShort}
+          </button>
+        )}
       </div>
     </section>
   );

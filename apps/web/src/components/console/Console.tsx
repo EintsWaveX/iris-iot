@@ -540,7 +540,7 @@ export default function Console({ lang }: { lang: Lang }) {
               }
             : undefined
         }
-        announceOpen={announce}
+        announceOpen={announce && sesi.kendali !== false}
         setAnnounceOpen={setAnnounce}
       />
 
@@ -702,7 +702,7 @@ export default function Console({ lang }: { lang: Lang }) {
       <EndFlow
         t={t}
         lang={lang}
-        open={endOpen}
+        open={endOpen && sesi.kendali !== false}
         onOpenChange={setEndOpen}
         sesi={sesi}
         groups={groups}
