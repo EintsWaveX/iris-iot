@@ -60,10 +60,29 @@ function TanpaState({
   [k: string]: unknown;
 }) {
   if (!isValidElement(children)) return <>{children}</>;
-  const el = children as ReactElement<{ ref?: Ref<HTMLElement> }>;
+  const el = children as ReactElement<Record<string, unknown> & { ref?: Ref<HTMLElement> }>;
   const own = el.props.ref;
+  // Merge like Radix's Slot: both handlers run (the button's first), class
+  // names and styles add up. Spreading the trigger's props over the button
+  // replaced its own onClick, so no icon button did anything (2026-10-07:
+  // search, Tampilan, a dialog's X).
+  const gabung: Record<string, unknown> = { ...rest };
+  for (const [k, v] of Object.entries(rest)) {
+    const milik = el.props[k];
+    if (/^on[A-Z]/.test(k) && typeof v === "function" && typeof milik === "function") {
+      gabung[k] = (...args: unknown[]) => {
+        const hasil = (milik as (...a: unknown[]) => unknown)(...args);
+        (v as (...a: unknown[]) => unknown)(...args);
+        return hasil;
+      };
+    } else if (k === "className" && milik) {
+      gabung[k] = [milik, v].filter(Boolean).join(" ");
+    } else if (k === "style" && milik) {
+      gabung[k] = { ...(milik as object), ...(v as object) };
+    }
+  }
   return cloneElement(el, {
-    ...rest,
+    ...gabung,
     ref: (node: HTMLElement | null) => {
       for (const r of [ref, own]) {
         if (typeof r === "function") r(node);

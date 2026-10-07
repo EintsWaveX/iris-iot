@@ -9,11 +9,16 @@
  * Usage:
  *   <IconButton icon={TrashIcon} label={t.delete} kind="danger" onClick={hapus} />
  */
-import { forwardRef, type ComponentType, type MouseEvent } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ComponentType, type MouseEvent } from "react";
 import type { IconProps } from "@phosphor-icons/react";
 import Tooltip from "./Tooltip";
 
-interface Props {
+/** Other button props pass through, so a popover or menu trigger wrapping
+ *  this (Radix asChild) can set aria-expanded, aria-haspopup and data-state. */
+interface Props extends Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "onClick" | "type" | "disabled" | "className" | "children"
+> {
   icon: ComponentType<IconProps>;
   label: string;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
@@ -41,6 +46,7 @@ const IconButton = forwardRef<HTMLButtonElement, Props>(function IconButton(
     type = "button",
     className,
     tipSide,
+    ...rest
   },
   ref,
 ) {
@@ -50,6 +56,7 @@ const IconButton = forwardRef<HTMLButtonElement, Props>(function IconButton(
   return (
     <Tooltip label={tip ?? label} side={tipSide}>
       <button
+        {...rest}
         ref={ref}
         type={type}
         className={cls}
