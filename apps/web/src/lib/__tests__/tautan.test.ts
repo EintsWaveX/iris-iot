@@ -99,3 +99,41 @@ describe("schematic links", () => {
     expect(namaLayanan("https://example.com/x")).toBe("");
   });
 });
+
+describe("Canva short links (canva.link, 2026-10-07)", () => {
+  it("passes a short link to the server to follow, on slides and schematics", () => {
+    for (const boleh of [TAUTAN_SLIDES, TAUTAN_SKEMA]) {
+      expect(bacaTautan("https://canva.link/nogfet2t11egt48", boleh)).toEqual({
+        ok: true,
+        jenis: "canva",
+        url: "https://canva.link/nogfet2t11egt48",
+        pendek: true,
+      });
+    }
+    expect(bacaTautan("https://canva.link/nogfet2t11egt48/", TAUTAN_SLIDES)).toMatchObject({
+      url: "https://canva.link/nogfet2t11egt48",
+    });
+  });
+  it("turns where it lands into the embed address", () => {
+    expect(
+      bacaTautan(
+        "https://www.canva.com/design/DAHSp-pMGu4/4sVrdorfFcudwHJ4jT28-A/view?utm_content=DAHSp-pMGu4&utlId=hf454a7df9c",
+        TAUTAN_SLIDES,
+      ),
+    ).toEqual({
+      ok: true,
+      jenis: "canva",
+      url: "https://www.canva.com/design/DAHSp-pMGu4/4sVrdorfFcudwHJ4jT28-A/view?embed",
+    });
+  });
+  it("refuses a short link with a path it does not know", () => {
+    expect(bacaTautan("https://canva.link/a/b", TAUTAN_SLIDES)).toEqual({
+      ok: false,
+      kode: "tidak_didukung",
+    });
+    expect(bacaTautan("http://canva.link/nogfet2t11egt48", TAUTAN_SLIDES)).toEqual({
+      ok: false,
+      kode: "bukan_tautan",
+    });
+  });
+});

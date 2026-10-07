@@ -91,6 +91,8 @@ import type { SessionPayload } from "../../src/lib/auth.js";
 import { and, eq, desc, ne } from "drizzle-orm";
 import {
   bacaTautan,
+  type HasilTautan,
+  type JenisTautan,
   namaLayanan,
   tautanBingkai,
   TAUTAN_SKEMA,
@@ -200,9 +202,43 @@ async function handleSimpan(req: ApiRequest, res: ApiResponse, session: SessionP
   res.status(200).json({ ok: true, presentasi: row });
 }
 
+/**
+ * A canva.link short link, followed to the /design/.../view address it
+ * stands for (2026-10-07), so it is saved and framed like a design link.
+ * Only Canva's own hosts are followed, at most four hops, 8 s each.
+ */
+async function bukaTautanPendek(
+  t: HasilTautan,
+  boleh: readonly JenisTautan[],
+): Promise<HasilTautan> {
+  if (!t.ok || !t.pendek) return t;
+  let url = t.url;
+  for (let i = 0; i < 4; i++) {
+    let r: Response;
+    try {
+      r = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(8000) });
+    } catch {
+      return { ok: false, kode: "canva_pendek" };
+    }
+    const ke = r.status >= 300 && r.status < 400 ? r.headers.get("location") : null;
+    if (!ke) return { ok: false, kode: "canva_pendek" };
+    url = new URL(ke, url).href;
+    const h = bacaTautan(url, boleh);
+    if (h.ok && !h.pendek) return h;
+    if (!h.ok && h.kode === "canva_edit") return h;
+    const host = new URL(url).hostname;
+    if (!(h.ok && h.pendek) && host !== "canva.com" && !host.endsWith(".canva.com"))
+      return { ok: false, kode: "canva_pendek" };
+  }
+  return { ok: false, kode: "canva_pendek" };
+}
+
 async function handleTautan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
-  const t = bacaTautan(typeof body.url === "string" ? body.url : "", TAUTAN_SLIDES);
+  const t = await bukaTautanPendek(
+    bacaTautan(typeof body.url === "string" ? body.url : "", TAUTAN_SLIDES),
+    TAUTAN_SLIDES,
+  );
   if (!t.ok) {
     res.status(200).json({ ok: false, kode: t.kode });
     return;
@@ -427,7 +463,10 @@ async function handleSchematicLink(req: ApiRequest, res: ApiResponse, session: S
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  const t = bacaTautan(typeof body.url === "string" ? body.url : "", TAUTAN_SKEMA);
+  const t = await bukaTautanPendek(
+    bacaTautan(typeof body.url === "string" ? body.url : "", TAUTAN_SKEMA),
+    TAUTAN_SKEMA,
+  );
   if (!t.ok) {
     res.status(200).json({ ok: false, kode: t.kode });
     return;

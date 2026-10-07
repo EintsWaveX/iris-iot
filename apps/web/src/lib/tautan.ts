@@ -10,7 +10,10 @@
  *
  * - Canva: /design/<id>/<key>/view (or /watch) -> .../view?embed. An /edit
  *   link only works for people signed in to the design, so it is refused
- *   with its own reason.
+ *   with its own reason. Canva's Share button now also gives a short public
+ *   link, canva.link/<code> (2026-10-07): it passes here marked `pendek`,
+ *   and the server follows it to its /design/.../view address before saving
+ *   (a browser can't read another site's redirect).
  * - Wokwi: /projects/<id> frames as it is.
  * - Tinkercad: /things/<id>[-slug][/edit] -> /embed/<id> (the /things page
  *   refuses frames).
@@ -19,8 +22,8 @@
 export type JenisTautan = "canva" | "wokwi" | "tinkercad" | "gambar";
 
 export type HasilTautan =
-  | { ok: true; jenis: JenisTautan; url: string }
-  | { ok: false; kode: "bukan_tautan" | "canva_edit" | "tidak_didukung" };
+  | { ok: true; jenis: JenisTautan; url: string; pendek?: true }
+  | { ok: false; kode: "bukan_tautan" | "canva_edit" | "tidak_didukung" | "canva_pendek" };
 
 export const TAUTAN_SLIDES: readonly JenisTautan[] = ["canva"];
 export const TAUTAN_SKEMA: readonly JenisTautan[] = ["wokwi", "tinkercad", "canva", "gambar"];
@@ -37,6 +40,18 @@ function canva(u: URL): HasilTautan | null {
   if (m[3] === "edit") return { ok: false, kode: "canva_edit" };
   const key = m[2] ? `/${m[2]}` : "";
   return { ok: true, jenis: "canva", url: `https://www.canva.com/design/${m[1]}${key}/view?embed` };
+}
+
+/** Canva's short share link; the server resolves it (bukaTautanPendek). */
+function canvaPendek(u: URL): HasilTautan | null {
+  if (u.hostname !== "canva.link" && u.hostname !== "www.canva.link") return null;
+  if (!/^\/[A-Za-z0-9_-]{4,40}\/?$/.test(u.pathname)) return { ok: false, kode: "tidak_didukung" };
+  return {
+    ok: true,
+    jenis: "canva",
+    url: `https://canva.link${u.pathname.replace(/\/$/, "")}`,
+    pendek: true,
+  };
 }
 
 function wokwi(u: URL): HasilTautan | null {
@@ -65,7 +80,7 @@ export function bacaTautan(raw: string, boleh: readonly JenisTautan[]): HasilTau
   }
   if (u.protocol !== "https:" || u.username || u.password)
     return { ok: false, kode: "bukan_tautan" };
-  for (const f of [canva, wokwi, tinkercad]) {
+  for (const f of [canva, canvaPendek, wokwi, tinkercad]) {
     const r = f(u);
     if (r) return r.ok && !boleh.includes(r.jenis) ? { ok: false, kode: "tidak_didukung" } : r;
   }

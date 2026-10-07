@@ -26,13 +26,13 @@ const T = dict({
     pdf: "Berkas PDF",
     canva: "Tautan Canva",
     src: "Sumber",
-    canvaUrl: "Tautan desain Canva",
+    canvaUrl: "Tautan Canva",
     bigWhy: (mb: string) => `Berkas yang kamu pilih ${mb} MB. Batasnya 20 MB.`,
     bigTodo: "Kecilkan PDF-nya, atau pakai tautan Canva.",
     canvaName: "Nama (boleh kosong)",
     canvaNamePh: "Misalnya Pengantar Modul 3",
     canvaHint:
-      "Pakai tautan 'Lihat saja' dari tombol Bagikan di Canva. Praktikan membukanya dari tombol Presentasi di bilah sesi dan di Dasbor.",
+      "Pakai tautan publik dari tombol Bagikan di Canva: canva.link/… atau canva.com/design/…/view. Praktikan membukanya dari tombol Presentasi di bilah sesi dan di Dasbor.",
     add: "Tambahkan",
     added: "Presentasi Canva ditambahkan ke daftar.",
     uploaded: "PDF diunggah.",
@@ -55,7 +55,9 @@ const T = dict({
       bukan_tautan: "Ini bukan tautan https.",
       canva_edit:
         "Ini tautan untuk mengedit. Ambil tautan 'Lihat saja' dari tombol Bagikan di Canva.",
-      tidak_didukung: "Yang diterima cuma tautan desain Canva.",
+      canva_pendek:
+        "Tautan canva.link ini tidak bisa dibuka. Cek tautannya, atau tempel tautan desain Canva.",
+      tidak_didukung: "Yang diterima cuma tautan Canva: canva.link/… atau canva.com/design/….",
     } as Record<string, string>,
   },
   en: {
@@ -63,13 +65,13 @@ const T = dict({
     pdf: "PDF File",
     canva: "Canva Link",
     src: "Source",
-    canvaUrl: "Canva design link",
+    canvaUrl: "Canva link",
     bigWhy: (mb: string) => `The file you chose is ${mb} MB. The limit is 20 MB.`,
     bigTodo: "Shrink the PDF, or use a Canva link.",
     canvaName: "Name (optional)",
     canvaNamePh: "For example Module 3 intro",
     canvaHint:
-      "Use the view-only link from Canva's Share button. Students open them from the Slides button on the session bar and on their Dashboard.",
+      "Use the public link from Canva's Share button: canva.link/… or canva.com/design/…/view. Students open them from the Slides button on the session bar and on their Dashboard.",
     add: "Add",
     added: "Canva slides added to the list.",
     uploaded: "PDF uploaded.",
@@ -91,7 +93,8 @@ const T = dict({
     errors: {
       bukan_tautan: "That isn't an https link.",
       canva_edit: "That's an edit link. Take the view-only link from Canva's Share button.",
-      tidak_didukung: "Only Canva design links work here.",
+      canva_pendek: "That canva.link link won't open. Check it, or paste the Canva design link.",
+      tidak_didukung: "Only Canva links work here: canva.link/… or canva.com/design/….",
     } as Record<string, string>,
   },
   zh: {
@@ -99,12 +102,13 @@ const T = dict({
     pdf: "PDF 文件",
     canva: "Canva 链接",
     src: "来源",
-    canvaUrl: "Canva 设计链接",
+    canvaUrl: "Canva 链接",
     bigWhy: (mb: string) => `你选的文件有 ${mb} MB，上限是 20 MB。`,
     bigTodo: "把 PDF 压小一点，或者改用 Canva 链接。",
     canvaName: "名称（可不填）",
     canvaNamePh: "例如：模块 3 导读",
-    canvaHint: "请用 Canva 分享按钮里的“仅查看”链接。学生可从课程栏和仪表板上的幻灯片按钮打开。",
+    canvaHint:
+      "请用 Canva 分享按钮里的公开链接：canva.link/… 或 canva.com/design/…/view。学生可从课程栏和仪表板上的幻灯片按钮打开。",
     add: "添加",
     added: "Canva 演示文稿已加入列表。",
     uploaded: "PDF 已上传。",
@@ -125,7 +129,8 @@ const T = dict({
     errors: {
       bukan_tautan: "这不是 https 链接。",
       canva_edit: "这是编辑链接。请用 Canva 分享按钮里的“仅查看”链接。",
-      tidak_didukung: "这里只接受 Canva 设计链接。",
+      canva_pendek: "这个 canva.link 链接打不开。请检查，或粘贴 Canva 设计链接。",
+      tidak_didukung: "这里只接受 Canva 链接：canva.link/… 或 canva.com/design/…。",
     } as Record<string, string>,
   },
 });
@@ -275,7 +280,7 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
                     className="field__input"
                     type="url"
                     inputMode="url"
-                    placeholder="https://www.canva.com/design/…/view"
+                    placeholder="https://canva.link/…"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onBlur={() => url && setTried(true)}

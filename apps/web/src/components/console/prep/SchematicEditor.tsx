@@ -63,6 +63,8 @@ const T = dict({
       bukan_tautan: "Ini bukan tautan https.",
       canva_edit:
         "Ini tautan untuk mengedit. Ambil tautan 'Lihat saja' dari tombol Bagikan di Canva.",
+      canva_pendek:
+        "Tautan canva.link ini tidak bisa dibuka. Cek tautannya, atau tempel tautan desain Canva.",
       tidak_didukung: "Tautan ini tidak dikenal. Pakai Wokwi, Tinkercad, Canva atau alamat gambar.",
     } as Record<string, string>,
   },
@@ -100,6 +102,7 @@ const T = dict({
     errors: {
       bukan_tautan: "That isn't an https link.",
       canva_edit: "That's an edit link. Take the view-only link from Canva's Share button.",
+      canva_pendek: "That canva.link link won't open. Check it, or paste the Canva design link.",
       tidak_didukung: "Unknown link. Use Wokwi, Tinkercad, Canva or an image address.",
     } as Record<string, string>,
   },
@@ -137,6 +140,7 @@ const T = dict({
     errors: {
       bukan_tautan: "这不是 https 链接。",
       canva_edit: "这是编辑链接。请用 Canva 分享按钮里的“仅查看”链接。",
+      canva_pendek: "这个 canva.link 链接打不开。请检查，或粘贴 Canva 设计链接。",
       tidak_didukung: "无法识别这个链接。请用 Wokwi、Tinkercad、Canva 或图片地址。",
     } as Record<string, string>,
   },
