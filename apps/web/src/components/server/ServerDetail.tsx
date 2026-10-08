@@ -29,6 +29,7 @@ import { isOnline, type Bisa, type Detail } from "./data";
 import Overview from "./Overview";
 import Ready from "./Ready";
 import Settings from "./Settings";
+import Enroll from "./Enroll";
 import KonsolPi, { KonsolBanner } from "./konsol/KonsolPi";
 import type { KonsolData } from "./konsol/data";
 import { S } from "./strings";
@@ -64,6 +65,7 @@ export default function ServerDetail({
   );
   const [tab, setTab] = useState<Tab>(() => bacaTab(TABS));
   const [autoCmd, setAutoCmd] = useState(false);
+  const [setup, setSetup] = useState(false);
   const [lengkap, setLengkap] = useState(() => {
     try {
       return localStorage.getItem(KUNCI_DETAIL) === "full";
@@ -228,6 +230,25 @@ export default function ServerDetail({
             </span>
           ))}
         </div>
+        {st === "wait" && bisa.full && (
+          <div className="banner banner--warn srv-setupban">
+            <PlugsConnectedIcon size={20} aria-hidden="true" />
+            <span>{t.setupBanner}</span>
+            <button type="button" className="btn btn--sm" onClick={() => setSetup(true)}>
+              {t.setupContinue}
+            </button>
+          </div>
+        )}
+        {setup && (
+          <Enroll
+            lang={lang}
+            server={{ id: s.id, kode: s.kode, nama: s.nama }}
+            onClose={() => {
+              setSetup(false);
+              poll.refresh();
+            }}
+          />
+        )}
         <div className="tabs-scroll">
           <nav className="tabs" role="tablist" aria-label={t.tabsLabel}>
             {TABS.map((k, i) => (

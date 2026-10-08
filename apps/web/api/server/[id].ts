@@ -34,6 +34,7 @@
  * PATCH  /api/server/:id   (P6.7) — assistant-only. Edits any subset of
  *   nama/lokasi/catatan/alamatLan (the server centre's Pengaturan tab).
  */
+import { bacaRekamPasang, hapusRekamPasang } from "../_lib/pasang.js";
 import { handleKonsolGet, konsolMenunggu } from "../_lib/konsol.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak } from "../_lib/hak.js";
@@ -142,7 +143,10 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
       kondisiPada: row.kondisiPada,
       riwayatSejak: row.riwayatSejak,
       terdaftar: row.terdaftarPada !== null,
+      terdaftarPada: row.terdaftarPada,
     },
+    // 2026-10-08: the one-line install's progress, for the wizard.
+    pasang: await bacaRekamPasang(id),
     // Stage 5: what the Updates card compares the Pi's bundle with. Set on
     // Vercel; null in local runs, where the card shows the SHA only.
     situsIot: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
@@ -311,6 +315,7 @@ async function handleDelete(_req: ApiRequest, res: ApiResponse, id: number, akto
     res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
     return;
   }
+  await hapusRekamPasang(id);
   await writeAudit(aktorNim, "server_hapus", { id, kode: result[0].kode });
   res.status(200).json({ ok: true });
 }
@@ -327,6 +332,7 @@ async function handleTokenBaru(_req: ApiRequest, res: ApiResponse, id: number, a
     res.status(200).json({ ok: false, kode: "tidak_ditemukan" });
     return;
   }
+  await hapusRekamPasang(id);
   await writeAudit(aktorNim, "server_token_baru", { id, kode: result[0].kode });
   res.status(200).json({ ok: true, id, kode: result[0].kode, token });
 }

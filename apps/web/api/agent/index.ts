@@ -7,6 +7,8 @@
  *                    perburuan?, hotspot?, jamPi? }              (heartbeat)
  *                | { serverId, agenKunci, bundel: sha256 }       (fetch, 2026-10-07)
  *                | { tipe: "bundel_pasang", kode, token, ringkas? } (one-line install)
+ *                | { tipe: "pasang_kabar", kode, token, tahap, ulang?, gagal? }
+ *                  (the install's progress, for the wizard)
  *                | { tipe: "bundel_terbit", aso, iot, sha256, isi, tanda }
  *                  with Authorization: Bearer BUNDEL_TERBIT       (CI publish)
  *
@@ -55,6 +57,7 @@ import { ambilBundel, bundelUntukPasang, terbitkan } from "../_lib/bundel.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
+import { catatKabar } from "../_lib/pasang.js";
 import type { Topik } from "../../src/lib/siaran-topik.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { getDb } from "../../src/lib/db.js";
@@ -128,6 +131,8 @@ async function handleDaftar(req: ApiRequest, res: ApiResponse) {
       .where(eq(server.id, row.id));
 
     res.status(200).json({ ok: true, serverId: row.id, agenKunci });
+    // The wizard's Activate step turns green on this.
+    await siarkan(["server"]);
   } catch (err) {
     console.error("[api/agent daftar] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
@@ -298,6 +303,12 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (body.tipe === "bundel_pasang") {
     const r = await bundelUntukPasang(body.kode, body.token, body.ringkas === true);
     res.status(200).json(r);
+    return;
+  }
+  if (body.tipe === "pasang_kabar") {
+    const r = await catatKabar(body);
+    res.status(200).json(r.ok ? { ok: true } : r);
+    if (r.ok) await siarkan(["server"]);
     return;
   }
   if (typeof body.token === "string") return handleDaftar(req, res);

@@ -1,8 +1,9 @@
 /**
  * The Settings tab (Phase 9 Stage 5, mockup v-settings): Identity and
  * "Agent and diagnostics" as two columns of the same height, the Full
- * view's journal and network configuration, then the danger zone across
- * the full width. Changing anything needs the full right; everyone else
+ * view's journal and network configuration, the Setup card (the Register
+ * a Server dialog again, 2026-10-08), then the danger zone across the
+ * full width. Changing anything needs the full right; everyone else
  * reads it.
  */
 import { useState, type FormEvent } from "react";
@@ -10,10 +11,10 @@ import {
   CircleNotchIcon,
   DownloadSimpleIcon,
   FloppyDiskIcon,
-  KeyIcon,
   ListBulletsIcon,
   LockSimpleIcon,
   PlayIcon,
+  PlugsConnectedIcon,
   PulseIcon,
   TerminalWindowIcon,
   TrashIcon,
@@ -25,8 +26,13 @@ import Tooltip from "../ui/Tooltip";
 import { sejak, useTick } from "../../lib/app";
 import { durasiLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
-import { bacaRinci, JOURNAL_UNIT } from "../../lib/server-shared";
-import { perintahDaftar } from "./Enroll";
+import {
+  bacaRinci,
+  JOURNAL_UNIT,
+  LANGKAH_PASANG,
+  posisiPasang,
+} from "../../lib/server-shared";
+import Enroll, { bacaPerintah } from "./Enroll";
 import {
   kirim,
   sedangBerjalan,
@@ -253,8 +259,8 @@ export default function Settings({
   const [form, setForm] = useState(saved);
   const [busy, setBusy] = useState(false);
   const [diag, setDiag] = useState<(typeof DIAGS)[number][0]>("diag.ringkas");
-  const [ask, setAsk] = useState<"token" | "hapus" | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [ask, setAsk] = useState<"hapus" | null>(null);
+  const [setup, setSetup] = useState(false);
   const ro = !bisa.full;
   const info = s.infoSistem ?? {};
   const protokol = typeof info.protokol === "number" ? String(info.protokol) : "·";
@@ -445,52 +451,47 @@ export default function Settings({
       )}
 
       {bisa.full && (
+        <section className="panel">
+          <div className="panel__head">
+            <div className="stack stack--sm">
+              <h2 className="panel__title">{t.setupTitle}</h2>
+              <span className="hint">{t.setupSub}</span>
+            </div>
+            <button type="button" className="btn" onClick={() => setSetup(true)}>
+              <PlugsConnectedIcon size={18} aria-hidden="true" />
+              {s.terdaftar ? t.setupOpen : t.setupContinue}
+            </button>
+          </div>
+          <SetupState lang={lang} id={id} data={data} now={now} />
+        </section>
+      )}
+
+      {bisa.full && (
         <section className="panel dangerzone">
           <div className="panel__head">
             <div className="stack stack--sm">
               <h2 className="panel__title">{t.danger}</h2>
               <span className="hint">{t.dangerHint}</span>
             </div>
-            <div className="row">
-              <button type="button" className="btn" onClick={() => setAsk("token")}>
-                <KeyIcon size={18} aria-hidden="true" />
-                {t.newToken}
-              </button>
-              <button type="button" className="btn btn--danger" onClick={() => setAsk("hapus")}>
-                <TrashIcon size={18} aria-hidden="true" />
-                {t.delServer}
-              </button>
-            </div>
+            <button type="button" className="btn btn--danger" onClick={() => setAsk("hapus")}>
+              <TrashIcon size={18} aria-hidden="true" />
+              {t.delServer}
+            </button>
           </div>
-          {token && (
-            <div className="stack stack--sm">
-              <span className="hint">{t.tokenMade}</span>
-              <div className="srv-cmd">
-                <pre>{perintahDaftar(s.kode, token)}</pre>
-              </div>
-            </div>
-          )}
         </section>
       )}
 
-      <Confirm
-        open={ask === "token"}
-        onOpenChange={(o) => !o && setAsk(null)}
-        title={t.tokenAsk}
-        body={t.tokenBody}
-        confirmLabel={t.tokenMake}
-        lang={lang}
-        onConfirm={async () => {
-          const r = await fetch(`/api/server/${id}`, { method: "POST" })
-            .then((x) => x.json() as Promise<{ ok: boolean; kode?: string; token?: string }>)
-            .catch(() => ({ ok: false, kode: undefined, token: undefined }));
-          if (!r.ok) {
-            window.Toast?.show(pesan(t, r.kode), "danger");
-            return false;
-          }
-          setToken(r.token ?? null);
-        }}
-      />
+      {setup && (
+        <Enroll
+          lang={lang}
+          server={{ id, kode: s.kode, nama: s.nama }}
+          onClose={() => {
+            setSetup(false);
+            refresh();
+          }}
+        />
+      )}
+
       <Confirm
         open={ask === "hapus"}
         onOpenChange={(o) => !o && setAsk(null)}
@@ -511,5 +512,37 @@ export default function Settings({
         }}
       />
     </div>
+  );
+}
+
+/** One line on how this server's install stands. */
+function SetupState({ lang, id, data, now }: { lang: Lang; id: number; data: Detail; now: number }) {
+  const t = S[lang];
+  const s = data.server;
+  const pos = posisiPasang(
+    data.pasang,
+    s.terdaftarPada ?? null,
+    data.denyutTerakhir?.pada ?? null,
+    bacaPerintah(id)?.dibuat ?? null,
+  );
+  const [teks, st] = pos.gagal
+    ? [t.setupFail, "danger"]
+    : pos.langkah === LANGKAH_PASANG
+      ? [t.setupDone(sejak(s.terdaftarPada ?? null, lang, now)), "ok"]
+      : pos.langkah === 4
+        ? [t.setupBeat, "warn"]
+        : data.pasang
+          ? [t.setupRun(t.wizRows[pos.langkah]), "warn"]
+          : s.terdaftar
+            ? [t.setupDone(sejak(s.terdaftarPada ?? null, lang, now)), "ok"]
+            : [t.setupNone, "warn"];
+  return (
+    <p className="srv-wait" aria-live="polite">
+      <span
+        className={`dot dot--${st}${st === "warn" && data.pasang ? " dot--pulse" : ""}`}
+        aria-hidden="true"
+      />
+      <span>{teks}</span>
+    </p>
   );
 }

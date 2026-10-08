@@ -12,9 +12,9 @@
 import { createHash, createPublicKey, verify } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
-import { pengaturan, server } from "../../src/lib/schema.js";
+import { pengaturan } from "../../src/lib/schema.js";
 import { safeEqual } from "../../src/lib/auth.js";
-import { sha256 as hashToken } from "../../src/lib/server-lib.js";
+import { cekTokenPasang } from "./pasang.js";
 import type { BundelTerbit } from "../../src/lib/server-shared.js";
 
 /** The public half of BUNDEL_KUNCI_TANDA; the same file as IRIS ASO's
@@ -181,27 +181,12 @@ export async function bundelUntukPasang(
   tokenMentah: unknown,
   ringkas = false,
 ): Promise<HasilPasang> {
-  const kode = typeof kodeMentah === "string" ? kodeMentah.trim().toLowerCase() : "";
-  const token = typeof tokenMentah === "string" ? tokenMentah.trim() : "";
-  if (!kode || !token) return { ok: false, kode: "format_salah" };
-  const db = getDb();
-  const [row] = await db
-    .select({ id: server.id, hash: server.daftarTokenHash, exp: server.daftarTokenExp })
-    .from(server)
-    .where(eq(server.kode, kode))
-    .limit(1);
-  if (!row) return { ok: false, kode: "tidak_ditemukan" };
-  if (
-    !row.hash ||
-    !row.exp ||
-    row.exp.getTime() < Date.now() ||
-    !safeEqual(hashToken(token), row.hash)
-  )
-    return { ok: false, kode: "token_tidak_sah" };
+  const cek = await cekTokenPasang(kodeMentah, tokenMentah);
+  if (!cek.ok) return cek;
   const relay = process.env.KONSOL_RELAY_URL?.trim() ?? "";
   const dasar = {
     ok: true as const,
-    serverId: row.id,
+    serverId: cek.serverId,
     relay: /^wss:\/\//.test(relay) ? relay : null,
     waktu: Date.now() / 1000,
   };

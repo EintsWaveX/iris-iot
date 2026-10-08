@@ -411,3 +411,72 @@ export function barisPembaruan(
     },
   ];
 }
+
+/* ------------------------------------------------- One-line install */
+
+/** What the one-line install (public/pasang-pi.sh) reports as it goes, the
+ *  step it is starting: the token checked, the bundle, provisioning, then
+ *  enrolment (2026-10-08). */
+export const TAHAP_PASANG = ["mulai", "bundel", "pasang", "daftar"] as const;
+export type TahapPasang = (typeof TAHAP_PASANG)[number];
+
+export interface Pasang {
+  tahap: TahapPasang;
+  /** The Pi already had an agent: only enrolment, nothing reinstalled. */
+  ulang: boolean;
+  /** The installer's own failure line, or null while it runs. */
+  gagal: string | null;
+  /** The first report under this token, and the newest. */
+  mulai: string;
+  pada: string;
+}
+
+export function bacaPasang(raw: unknown): Pasang | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (!TAHAP_PASANG.includes(r.tahap as TahapPasang)) return null;
+  if (typeof r.mulai !== "string" || typeof r.pada !== "string") return null;
+  return {
+    tahap: r.tahap as TahapPasang,
+    ulang: r.ulang === true,
+    gagal: typeof r.gagal === "string" && r.gagal ? r.gagal : null,
+    mulai: r.mulai,
+    pada: r.pada,
+  };
+}
+
+/** The wizard's Activation rows: the Pi runs the line, the bundle,
+ *  provisioning, the agent's activation, its first heartbeat. */
+export const LANGKAH_PASANG = 5;
+
+export interface PosisiPasang {
+  /** The row in progress (0 to 4); LANGKAH_PASANG once all are done. */
+  langkah: number;
+  /** Rows 1 and 2 were skipped: the Pi already had an agent. */
+  lewati: boolean;
+  gagal: string | null;
+}
+
+/** Where an install stands, from its reports, the server's newest enrolment
+ *  and its newest heartbeat. A heartbeat only counts after that enrolment,
+ *  so a Pi that is moving servers is not "done" by its old beats, and an
+ *  enrolment only counts after `perintahPada`, when the wizard made the
+ *  command it is waiting on (null: whatever enrolled last). */
+export function posisiPasang(
+  p: Pasang | null,
+  terdaftarPada: string | null,
+  denyutPada: string | null,
+  perintahPada: number | null = null,
+): PosisiPasang {
+  const daftar = terdaftarPada ? Date.parse(terdaftarPada) : NaN;
+  const beat = denyutPada ? Date.parse(denyutPada) : NaN;
+  const sejak = p ? Date.parse(p.mulai) : (perintahPada ?? -Infinity);
+  const terdaftar = !Number.isNaN(daftar) && daftar >= sejak;
+  if (terdaftar) {
+    const aktif = !Number.isNaN(beat) && beat > daftar;
+    return { langkah: aktif ? LANGKAH_PASANG : 4, lewati: !!p?.ulang, gagal: null };
+  }
+  if (!p) return { langkah: 0, lewati: false, gagal: null };
+  const langkah = { mulai: 1, bundel: 1, pasang: 2, daftar: 3 }[p.tahap];
+  return { langkah: p.ulang && langkah < 3 ? 3 : langkah, lewati: p.ulang, gagal: p.gagal };
+}

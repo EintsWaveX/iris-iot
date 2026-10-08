@@ -5,7 +5,7 @@ import { tri } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import type { Heartbeat, Perintah } from "../console/types";
 import { S, pesan } from "./strings";
-import type { BundelTerbit } from "../../lib/server-shared";
+import type { BundelTerbit, Pasang } from "../../lib/server-shared";
 
 export interface Denyut extends Heartbeat {
   memori: number | null;
@@ -28,6 +28,8 @@ export interface ServerRow {
   kondisiPada?: string | null;
   riwayatSejak?: string | null;
   terdaftar: boolean;
+  /** The newest enrolment (a new token's enrolment moves it). */
+  terdaftarPada?: string | null;
   denyutTerakhir: Denyut | null;
   batasLuringDetik: number;
 }
@@ -45,6 +47,8 @@ export interface Detail {
   sesiModul: number | null;
   situsIot: string | null;
   bundelTerbit: BundelTerbit | null;
+  /** The one-line install's reports under the current token (2026-10-08). */
+  pasang: Pasang | null;
 }
 
 export interface Riwayat {

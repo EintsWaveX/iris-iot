@@ -38,7 +38,28 @@ while [ $# -gt 0 ]; do
 done
 
 langkah() { printf '\n== %s\n' "$1"; }
-gagal() { printf '\nGAGAL: %s\n' "$1" >&2; exit 1; }
+gagal() {
+  printf '\nGAGAL: %s\n' "$1" >&2
+  [ -z "$TAHAP" ] || kabar "$TAHAP" "$1"
+  exit 1
+}
+# The step the site's wizard shows; empty until the site accepted the token.
+TAHAP=""
+ULANG_KABAR=false
+# kabar <tahap> [failure]: tells the site's wizard where the install is.
+# Best effort: a report that doesn't arrive never stops the install.
+kabar() {
+  TAHAP="$1"
+  python3 - "$KERJA/kabar.json" "$KODE" "$TOKEN" "$1" "$ULANG_KABAR" "${2:-}" <<'PY' || return 0
+import json, sys
+berkas, kode, token, tahap, ulang, gagal = sys.argv[1:7]
+with open(berkas, "w") as f:
+    json.dump({"tipe": "pasang_kabar", "kode": kode, "token": token, "tahap": tahap,
+               "ulang": ulang == "true", "gagal": gagal}, f)
+PY
+  curl -fsS --max-time 10 -H "Content-Type: application/json" --data @"$KERJA/kabar.json" \
+    "$SITUS/api/agen" -o /dev/null 2>/dev/null || true
+}
 
 [ "$(id -u)" -eq 0 ] || gagal "jalankan lewat sudo: ... | sudo sh -s -- ..."
 [ -n "$KODE" ] && [ -n "$TOKEN" ] || gagal "--kode dan --token wajib (salin baris lengkap dari situs)"
@@ -54,7 +75,7 @@ SITUS="${SITUS%/}"
 # The user whose home holds the code: whoever ran sudo, else iris.
 PENGGUNA="${SUDO_USER:-}"
 [ -z "$PENGGUNA" ] || [ "$PENGGUNA" = root ] && PENGGUNA=iris
-[ "$(id -u "$PENGGUNA" 2>/dev/null || echo 0)" -ge 1000 ] || gagal "pengguna $PENGGUNA tidak ada. Di Armbian, buat pengguna iris saat login pertama."
+[ "$(id -u "$PENGGUNA" 2>/dev/null || echo 0)" -ge 1000 ] || gagal "pengguna $PENGGUNA tidak ada. Jalankan baris ini dari terminal pengguna desktop Pi (orangepi atau iris), bukan sebagai root."
 REPO_ROOT="/home/$PENGGUNA/IRIS-ASO"
 
 KERJA=$(mktemp -d)
@@ -66,18 +87,18 @@ minta() {
   printf '{"tipe":"bundel_pasang","kode":"%s","token":"%s","ringkas":%s}' "$KODE" "$TOKEN" "$1" > "$KERJA/minta.json"
   curl -fsS --max-time 300 -H "Content-Type: application/json" --data @"$KERJA/minta.json" \
     "$SITUS/api/agen" -o "$KERJA/jawab.json" || gagal "situs tidak bisa dihubungi ($SITUS)"
-  python3 - "$KERJA" <<'PY' || exit 1
+  PESAN=$(python3 - "$KERJA" <<'PY'
 import json, os, sys
 j = json.load(open(os.path.join(sys.argv[1], "jawab.json")))
 if not j.get("ok"):
-    pesan = {
-        "token_tidak_sah": "token sudah dipakai atau habis (30 menit); buat token baru di situs",
+    print({
+        "token_tidak_sah": "token sudah dipakai atau habis (30 menit); buat perintah baru di situs",
         "tidak_ditemukan": "server ini tidak ada di situs",
         "bundel_belum_ada": "CI belum menerbitkan bundel",
-    }.get(j.get("kode"), j.get("kode"))
-    print(f"\nGAGAL: {pesan}", file=sys.stderr)
-    sys.exit(1)
+    }.get(j.get("kode"), j.get("kode")))
 PY
+) || gagal "jawaban situs tidak bisa dibaca"
+  [ -z "$PESAN" ] || gagal "$PESAN"
 }
 # baca <field>: one field of the site's answer.
 baca() { python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2]) or '')" "$KERJA/jawab.json" "$1"; }
@@ -113,6 +134,10 @@ langkah "2/5 server \"$KODE\" di situs"
 minta true
 SERVER_BARU=$(baca serverId)
 echo "token sah, server #$SERVER_BARU"
+if [ -f "$AGEN_DIR/agent.py" ] && [ "$ULANG" -ne 1 ]; then
+  ULANG_KABAR=true
+fi
+kabar mulai
 
 # --- A Pi already reporting somewhere: same server goes on, another asks. ---
 if [ -f "$CONFIG" ]; then
@@ -142,6 +167,7 @@ if [ -f "$AGEN_DIR/agent.py" ] && [ "$ULANG" -ne 1 ]; then
   langkah "3/5 iris-agent sudah terpasang, tidak dipasang ulang"
   langkah "4/5 lewati pemasangan (pembaruan kode lewat tombol Perbarui di situs)"
   langkah "5/5 daftarkan ke situs"
+  kabar daftar
   daftar
   printf '\nSelesai. Pi ini sekarang server "%s" dan mengirim denyut; lihat halaman Server di situs.\n' "$KODE"
   exit 0
@@ -149,6 +175,7 @@ fi
 
 # --- A fresh Pi (or --pasang-ulang): the whole install. ---
 langkah "3/5 bundel dari situs"
+kabar bundel
 minta false
 # The bundle's own key (the same as agent/bundel.pub and the site's).
 cat > "$KERJA/bundel.pub" <<'KUNCI'
@@ -160,13 +187,12 @@ KUNCI
 if [ -n "$UJI" ] && [ -n "${IRIS_PASANG_KUNCI:-}" ]; then
   cp "$IRIS_PASANG_KUNCI" "$KERJA/bundel.pub"
 fi
-python3 - "$KERJA" <<'PY' || exit 1
+python3 - "$KERJA" <<'PY' || gagal "bundel rusak di jalan, jalankan perintahnya lagi"
 import base64, hashlib, json, os, sys
 d = sys.argv[1]
 j = json.load(open(os.path.join(d, "jawab.json")))
 isi = base64.b64decode(j["isi"])
 if hashlib.sha256(isi).hexdigest() != j["sha256"]:
-    print("\nGAGAL: bundel rusak di jalan", file=sys.stderr)
     sys.exit(1)
 open(os.path.join(d, "bundel.zip"), "wb").write(isi)
 open(os.path.join(d, "bundel.sig"), "wb").write(base64.b64decode(j["tanda"]))
@@ -187,6 +213,7 @@ if [ "${WAKTU:-0}" -gt 0 ] && [ "$SELISIH" -gt 30 ] && [ -z "$UJI" ]; then
 fi
 
 langkah "4/5 pasang (bundel ke $REPO_ROOT, lalu provisioning)"
+kabar pasang
 chmod 0644 "$KERJA/bundel.zip"
 runuser -u "$PENGGUNA" -- sh -c 'mkdir -p "$1" && rm -rf "$1/modul4/src" && unzip -oq "$2" -d "$1"' \
   sh "$REPO_ROOT" "$KERJA/bundel.zip" || gagal "bundel tidak bisa dibuka ke $REPO_ROOT"
@@ -195,10 +222,17 @@ if [ -n "$UJI" ]; then
   echo "uji: provisioning dilewati"
 else
   KONSOL_RELAY=$(baca relay)
-  export KONSOL_RELAY
-  sh "$REPO_ROOT/scripts/opi_provision.sh" --repo-root "$REPO_ROOT" || gagal "provisioning gagal, lihat keluaran di atas"
+  # IRIS_FROM_SITE: provisioning leaves out the manual enrol and preflight
+  # steps, since this script enrols next and the site runs the Ready check.
+  IRIS_FROM_SITE=1
+  export KONSOL_RELAY IRIS_FROM_SITE
+  if ! sh "$REPO_ROOT/scripts/opi_provision.sh" --repo-root "$REPO_ROOT"; then
+    TERAKHIR=$(grep '^== ' /var/log/iris-provision.log 2>/dev/null | tail -1 | sed 's/^== //; s/ ==$//')
+    gagal "provisioning berhenti di \"${TERAKHIR:-?}\"; log lengkap di Pi: /var/log/iris-provision.log"
+  fi
 fi
 
 langkah "5/5 daftarkan ke situs"
+kabar daftar
 daftar
-printf '\nSelesai. "%s" terpasang dan mengirim denyut; lihat halaman Server di situs.\n' "$KODE"
+printf '\nSelesai. "%s" terpasang dan mengirim denyut. Kembali ke situs, sisanya dari sana.\n' "$KODE"

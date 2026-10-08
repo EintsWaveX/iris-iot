@@ -1007,6 +1007,101 @@ button.qa__b[aria-disabled="true"] {
   gap: 10px;
 }
 
+/* The wizard's Activate rows (2026-10-08): one line per step the Pi reports. */
+.srv-prog {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.srv-prog__i {
+  align-items: start;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.srv-prog__i > svg {
+  flex: none;
+}
+
+.srv-prog__i[data-st="ok"] > svg {
+  color: var(--ok);
+}
+
+.srv-prog__i[data-st="gagal"] > svg {
+  color: var(--danger);
+}
+
+.srv-prog__i[data-st="jalan"] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.srv-prog__i[data-st="jalan"] > svg {
+  color: var(--accent-bright);
+}
+
+.srv-prog__i[data-st="ok"],
+.srv-prog__i[data-st="gagal"] {
+  color: var(--text);
+}
+
+.srv-prog__dot {
+  border: 1.5px solid var(--text-faint);
+  border-radius: 50%;
+  flex: none;
+  height: 14px;
+  margin: 3px;
+  width: 14px;
+}
+
+.srv-prog__t {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.srv-prog__t b {
+  font-weight: 600;
+}
+
+.srv-prog__t small {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.srv-prog__i[data-st="lewat"] b {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-faint);
+}
+
+/* The wizard's result line keeps its icon beside the text in a narrow dialog. */
+.srv-progban {
+  flex-wrap: nowrap;
+}
+
+.srv-progban > span {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.srv-setupban {
+  flex-wrap: wrap;
+}
+
+.srv-setupban > span {
+  flex: 1 1 14rem;
+}
+
+.srv-setupban > .btn {
+  flex: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .checkrow {
     animation: none;

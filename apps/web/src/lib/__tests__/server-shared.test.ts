@@ -5,6 +5,9 @@ import {
   LAYANAN_URUT,
   modulSiapValid,
   urutkanLayanan,
+  bacaPasang,
+  LANGKAH_PASANG,
+  posisiPasang,
 } from "../server-shared";
 import { aksiValid, LAYANAN_DIKENAL } from "../server-lib";
 
@@ -118,5 +121,50 @@ describe("bacaHasilSiap", () => {
     expect(bacaHasilSiap("aksi tidak dikenal: 'diag.siap'")).toBeNull();
     expect(bacaHasilSiap("{not json}")).toBeNull();
     expect(bacaHasilSiap('{"lulus":true}')).toBeNull();
+  });
+});
+
+describe("posisiPasang", () => {
+  const p = (tahap: string, ubah: Record<string, unknown> = {}) =>
+    bacaPasang({ tahap, mulai: "2026-10-08T08:00:00Z", pada: "2026-10-08T08:05:00Z", ...ubah });
+
+  it("waits on the Pi before any report", () => {
+    expect(posisiPasang(null, null, null).langkah).toBe(0);
+  });
+
+  it("follows the reported step", () => {
+    expect(posisiPasang(p("mulai"), null, null).langkah).toBe(1);
+    expect(posisiPasang(p("pasang"), null, null).langkah).toBe(2);
+    expect(posisiPasang(p("daftar"), null, null).langkah).toBe(3);
+  });
+
+  it("skips the install rows for a Pi that already has an agent", () => {
+    expect(posisiPasang(p("mulai", { ulang: true }), null, null)).toMatchObject({ langkah: 3, lewati: true });
+  });
+
+  it("carries the installer's failure", () => {
+    expect(posisiPasang(p("pasang", { gagal: "provisioning berhenti" }), null, null).gagal).toBe(
+      "provisioning berhenti",
+    );
+  });
+
+  it("counts only an enrolment and heartbeat after this install began", () => {
+    const old = "2026-10-07T08:00:00Z";
+    expect(posisiPasang(p("daftar"), old, "2026-10-08T08:06:00Z").langkah).toBe(3);
+    expect(posisiPasang(p("daftar"), "2026-10-08T08:06:00Z", null).langkah).toBe(4);
+    expect(posisiPasang(p("daftar"), "2026-10-08T08:06:00Z", "2026-10-08T08:07:00Z").langkah).toBe(
+      LANGKAH_PASANG,
+    );
+  });
+
+  it("ignores an old enrolment while waiting on a new command", () => {
+    const dibuat = Date.parse("2026-10-08T09:00:00Z");
+    expect(posisiPasang(null, "2026-10-08T08:06:00Z", "2026-10-08T08:59:00Z", dibuat).langkah).toBe(0);
+    expect(posisiPasang(null, "2026-10-08T08:06:00Z", "2026-10-08T08:59:00Z").langkah).toBe(LANGKAH_PASANG);
+  });
+
+  it("rejects a malformed record", () => {
+    expect(bacaPasang({ tahap: "x", mulai: "a", pada: "b" })).toBeNull();
+    expect(bacaPasang(null)).toBeNull();
   });
 });
