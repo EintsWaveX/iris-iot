@@ -59,7 +59,7 @@ export async function handleBerandaGet(
   const saya = await muatOrang(session.nim);
   const kode = (saya?.kode ?? "").toUpperCase();
 
-  const [minggu, [jendelaRow], terbuka, [slide], srv, rosterHitung] = await Promise.all([
+  const [minggu, [jendelaRow], terbuka, slides, srv, rosterHitung] = await Promise.all([
     db
       .select()
       .from(jadwal)
@@ -72,13 +72,12 @@ export async function handleBerandaGet(
       .limit(1),
     getModulTerbuka(),
     db
-      .select({ nama: presentasi.namaBerkas, jenis: presentasi.jenis })
+      .select({ nama: presentasi.namaBerkas, jenis: presentasi.jenis, modul: presentasi.modul })
       .from(presentasi)
       .where(eq(presentasi.aktif, true))
-      // The PDF first, like /api/presentasi/aktif, so this names the deck
+      // The PDF first, like /api/presentasi/slides, so this names the deck
       // the Praktikan see.
-      .orderBy(sql`case when ${presentasi.jenis} = 'berkas' then 0 else 1 end`)
-      .limit(1),
+      .orderBy(sql`case when ${presentasi.jenis} = 'berkas' then 0 else 1 end`),
     db.select({ id: server.id, nama: server.nama }).from(server).orderBy(asc(server.id)).limit(1),
     db
       .select({
@@ -192,6 +191,10 @@ export async function handleBerandaGet(
   }
 
   const roster = Object.fromEntries(rosterHitung.map((r) => [r.slot, r]));
+  // Decks are per module (2026-10-08): the one that counts is the latest
+  // open module's.
+  const modulKini = terbuka.length ? Math.max(...terbuka) : null;
+  const slide = slides.find((d) => d.modul === modulKini);
   // Today's seats: the pairing with today's izin, covers and volunteers.
   const hariIniRows = minggu.filter((j) => j.hari === hari);
   const kursiHariIni = await muatMinggu(db, hariIniRows, tanggal);
@@ -234,7 +237,7 @@ export async function handleBerandaGet(
           .filter((n) => n > 0),
       })),
     terbuka,
-    presentasiAktif: slide ?? null,
+    presentasiAktif: slide ? { nama: slide.nama, jenis: slide.jenis } : null,
     server: serverInfo,
     perluNilai,
   });

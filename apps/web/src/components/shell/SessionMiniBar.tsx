@@ -146,7 +146,7 @@ export default function SessionMiniBar({
   const [hand, setHand] = useState<string | null>(null);
   const first = useRef(true);
   // The slides, reachable from every page during a session (2026-10-06).
-  const slides = useSlides(s !== null);
+  const slides = useSlides(s?.modul, s !== null);
   const [slidesOpen, setSlidesOpen] = useState(false);
 
   useEffect(() => setHand(s?.mintaBantuanPada ?? null), [s?.mintaBantuanPada]);

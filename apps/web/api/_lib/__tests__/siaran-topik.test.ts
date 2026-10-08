@@ -29,7 +29,7 @@ const BACA: Record<string, string[]> = {
     "waspada",
   ],
   modul: ["draft", "kode", "kode-edit", "kunci", "unduh"],
-  presentasi: ["aktif", "daftar", "schematic-list", "schematics"],
+  presentasi: ["schematic-list", "schematics", "slides", "slides-list"],
   auth: ["me"],
 };
 

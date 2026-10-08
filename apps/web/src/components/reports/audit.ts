@@ -656,6 +656,7 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
     case "presentasi_tautan":
     case "presentasi_aktifkan":
     case "presentasi_nonaktifkan":
+    case "presentasi_modul":
     case "presentasi_hapus":
       return k(FileTextIcon, w.presentasi);
     case "skema_unggah":

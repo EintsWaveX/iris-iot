@@ -144,8 +144,7 @@ export const S = dict({
     slidesTitle: "Presentasi aktif",
     slidesNone: "Tidak ada presentasi aktif",
     slidesManage: "Kelola di Persiapan",
-    slidesSwitched: "Presentasi diganti. Dasbor praktikan ikut berganti.",
-    slidesOff: "Presentasi dinonaktifkan.",
+    slidesOpen: "Buka Presentasi",
     // board
     filters: {
       all: "Semua",
@@ -716,8 +715,7 @@ export const S = dict({
     slidesTitle: "Active slides",
     slidesNone: "No active slides",
     slidesManage: "Manage in Preparation",
-    slidesSwitched: "Slides switched. Student dashboards follow.",
-    slidesOff: "Slides turned off.",
+    slidesOpen: "Open Slides",
     filters: {
       all: "All",
       help: "Needs help",
@@ -1274,8 +1272,7 @@ export const S = dict({
     slidesTitle: "当前幻灯片",
     slidesNone: "没有当前幻灯片",
     slidesManage: "在课前准备里管理",
-    slidesSwitched: "幻灯片已切换。学员的仪表盘会跟着变。",
-    slidesOff: "幻灯片已关闭。",
+    slidesOpen: "打开幻灯片",
     filters: {
       all: "全部",
       help: "需要帮助",

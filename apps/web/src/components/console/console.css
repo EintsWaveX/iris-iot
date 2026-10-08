@@ -1602,6 +1602,22 @@ thead .ntable__name {
   font-weight: 500;
 }
 
+/* A name that opens the viewer (Slides, decks with no module yet). */
+button.lib__name {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  max-width: 100%;
+  padding: 0;
+  text-align: start;
+}
+
+button.lib__name:hover {
+  text-decoration: underline;
+}
+
 .lib__thumb {
   background: #fff;
   border-radius: var(--radius-sm);

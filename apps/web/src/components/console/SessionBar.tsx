@@ -48,8 +48,9 @@ import { modulLabel } from "../../lib/labels";
 import type { Strings } from "./strings";
 import type { ServerState } from "./data";
 import { isOnline, type SesiRunning, type View } from "./types";
-import { dengar, useSegar, useSiaran } from "../../lib/siaran";
+import { dengar, useSegar } from "../../lib/siaran";
 import TanpaHak, { useBolehJadwal } from "./prep/TanpaHak";
+import SlidesDialog, { useSlides } from "../shell/SlidesDialog";
 
 function Pop({
   trigger,
@@ -185,6 +186,8 @@ export default function SessionBar({
     ) : (
       <DeckForm
         t={t}
+        lang={lang}
+        modul={sesi.modul}
         onManage={() => {
           setPop(null);
           setMenu(null);
@@ -708,61 +711,46 @@ export function AccessForm({ t, lang, bare }: { t: Strings; lang: Lang; bare?: b
 
 /* ------------------------------------------------------------------ slides */
 
-interface Deck {
-  id: number;
-  namaBerkas: string;
-  aktif: boolean;
-}
-
-function DeckForm({ t, onManage }: { t: Strings; onManage: () => void }) {
-  const boleh = useBolehJadwal();
-  const [list, setList] = useState<Deck[] | null>(null);
-  const load = () =>
-    getJson<{ ok: boolean; daftar: Deck[] }>("/api/presentasi/daftar")
-      .then((d) => setList(d.ok ? d.daftar : []))
-      .catch(() => setList([]));
-  useEffect(() => {
-    void load();
-  }, []);
-  useSiaran(["presentasi"], load);
-  async function pick(d: Deck) {
-    try {
-      const r = d.aktif
-        ? await postJson<{ ok: boolean }>("/api/presentasi/nonaktifkan", { id: d.id })
-        : await postJson<{ ok: boolean }>("/api/presentasi/aktifkan", { id: d.id });
-      window.Toast?.show(d.aktif ? t.slidesOff : t.slidesSwitched, r.ok ? "ok" : "danger");
-      await load();
-    } catch {
-      window.Toast?.show(t.fail, "danger");
-    }
-  }
+/** The running module's slides (per module since 2026-10-08): what the
+ *  Praktikan see, with Open, and Manage for Preparation › Slides. */
+function DeckForm({
+  t,
+  lang,
+  modul,
+  onManage,
+}: {
+  t: Strings;
+  lang: Lang;
+  modul: number;
+  onManage: () => void;
+}) {
+  const { list, loaded } = useSlides(modul);
+  const [open, setOpen] = useState(false);
   return (
     <div className="stack">
       <b className="console-pop__title">{t.slidesTitle}</b>
-      {list === null ? (
+      <span className="hint">{modulLabel(modul, lang)}</span>
+      {!loaded ? (
         <span className="skeleton" style={{ height: 48 }} />
       ) : list.length === 0 ? (
-        <span className="hint">{t.emptyLib}</span>
+        <span className="hint">{t.slidesNone}</span>
       ) : (
         <div className="stack stack--sm">
           {list.map((d) => (
-            <button
-              key={d.id}
-              type="button"
-              className="deck-row"
-              aria-pressed={d.aktif}
-              disabled={!boleh}
-              onClick={() => void pick(d)}
-            >
+            <div key={d.url} className="deck-row">
               <span className="truncate grow">{d.namaBerkas}</span>
-              {d.aktif && <span className="pill pill--ok">{t.activeBadge}</span>}
-            </button>
+              <span className="pill">{d.jenis === "tautan" ? "Canva" : "PDF"}</span>
+            </div>
           ))}
+          <button type="button" className="btn btn--secondary" onClick={() => setOpen(true)}>
+            {t.slidesOpen}
+          </button>
         </div>
       )}
       <button type="button" className="btn btn--ghost" onClick={onManage}>
         {t.slidesManage}
       </button>
+      <SlidesDialog open={open} onOpenChange={setOpen} list={list} modul={modul} lang={lang} />
     </div>
   );
 }

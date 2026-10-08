@@ -529,6 +529,9 @@ export const presentasi = pgTable(
   "presentasi",
   {
     id: serial("id").primaryKey(),
+    /** The module the deck belongs to; null for a deck from before decks
+     *  went per module, waiting for an Asisten to give it one. */
+    modul: integer("modul"),
     namaBerkas: text("nama_berkas").notNull(),
     url: text("url").notNull(), // Vercel Blob URL, or the Canva link (jenis tautan)
     /** Phase 9: an uploaded PDF (berkas) or a Canva view link (tautan). */
@@ -539,11 +542,11 @@ export const presentasi = pgTable(
     diunggahPada: timestamp("diunggah_pada", { withTimezone: true }).notNull().defaultNow(),
     aktif: boolean("aktif").notNull().default(false),
   },
-  // One active per kind (Phase 9, after the deploy): a PDF and a Canva link
-  // may both be active, and the Praktikan switches between them.
+  // One active per module and kind, like skema: a PDF and a Canva link may
+  // both be active, and the Praktikan switches between them.
   (t) => [
-    uniqueIndex("presentasi_aktif_per_jenis")
-      .on(t.jenis)
+    uniqueIndex("presentasi_aktif_per_modul_jenis")
+      .on(t.modul, t.jenis)
       .where(sql`${t.aktif} = true`),
   ],
 );

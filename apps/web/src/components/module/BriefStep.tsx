@@ -7,13 +7,20 @@
  * Full Name (CODE) and time.
  */
 import { useEffect, useMemo, useState } from "react";
-import { CheckIcon, FloppyDiskIcon, InfoIcon, PencilSimpleIcon } from "@phosphor-icons/react";
+import {
+  CheckIcon,
+  FloppyDiskIcon,
+  InfoIcon,
+  PencilSimpleIcon,
+  PresentationChartIcon,
+} from "@phosphor-icons/react";
 import Drawer from "../ui/Drawer";
 import SegmentedControl from "../ui/SegmentedControl";
 import Fade from "../ui/Fade";
 import Pill from "../ui/Pill";
 import BetaBadge from "../ui/BetaBadge";
-import { getJson, postJson, sejak } from "../../lib/app";
+import { getJson, postJson, sejak, useMe } from "../../lib/app";
+import SlidesDialog, { useSlides } from "../shell/SlidesDialog";
 import { useDirektori } from "../../lib/people";
 import type { Lang } from "../../lib/kelas";
 import { M } from "./moduleStrings";
@@ -78,6 +85,9 @@ export default function BriefStep({
   const dir = useDirektori(canEdit);
   const [rows, setRows] = useState<BriefRow[] | null>(null);
   const [edit, setEdit] = useState(false);
+  const me = useMe();
+  const slides = useSlides(modul, !!me);
+  const [slidesOpen, setSlidesOpen] = useState(false);
 
   // Uncached (`segar`) for an editor and after a live update: the edge
   // copy would show the text from before the save.
@@ -100,7 +110,17 @@ export default function BriefStep({
   return (
     <div className="modbrief">
       <section className="panel">
-        <h2 className="panel__title">{t.summary}</h2>
+        <div className="panel__head">
+          <h2 className="panel__title">{t.summary}</h2>
+          {/* Only once the module's practicum is done (2026-10-08), so a
+              guest and a Praktikan who hasn't attended it get nothing. */}
+          {slides.list.length > 0 && (
+            <button type="button" className="btn btn--sm" onClick={() => setSlidesOpen(true)}>
+              <PresentationChartIcon aria-hidden="true" />
+              {t.viewSlides}
+            </button>
+          )}
+        </div>
         {sum.map((p) => (
           <p key={p} className="modbrief__p">
             {p}
@@ -169,6 +189,13 @@ export default function BriefStep({
           </button>
         )}
       </div>
+      <SlidesDialog
+        open={slidesOpen}
+        onOpenChange={setSlidesOpen}
+        list={slides.list}
+        modul={modul}
+        lang={lang}
+      />
       {edit && rows && (
         <BriefDrawer
           lang={lang}

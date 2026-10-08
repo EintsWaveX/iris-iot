@@ -1,77 +1,58 @@
 /**
- * /api/presentasi/:aksi — the assistant-uploaded presentation library
- * (Stage 9). The one dynamic-segment function for this feature, same
+ * /api/presentasi/:aksi — the Asisten's slides and wiring schematics, one
+ * set per module. The one dynamic-segment function for both, same
  * consolidation reasoning as api/session/[aksi].ts and api/modul/[aksi].ts:
  * the Vercel Hobby plan's serverless function ceiling.
  *
  * Storage is Vercel Blob (BLOB_READ_WRITE_TOKEN, set once a Blob store is
  * created on the project's Storage tab and pulled with `vercel env pull`,
  * the same manual provisioning step DATABASE_URL already needed). File
- * bytes never pass through this function: handleToken() only brokers a
+ * bytes never pass through this function: the token handlers only broker a
  * short-lived, content-type- and size-restricted client token, and the
  * browser then PUTs the file straight to Vercel Blob's own API. That is
  * what lets a slide deck exceed Vercel's ~4.5 MB request body ceiling at
- * all, which a plain multipart upload through this route could not.
+ * all, which a plain multipart upload through this route could not. The
+ * save actions then record the blob's URL (deliberately not
+ * onUploadCompleted: that callback is a webhook Vercel calls back on a
+ * publicly reachable deployment URL, which doesn't exist during local
+ * development, and upload() on the client already resolves with the blob's
+ * URL the moment the direct PUT finishes).
  *
- * GET  /api/presentasi/aktif    — asisten OR praktikan. The one entry the
- *                                  dashboard card shows, or null.
- * GET  /api/presentasi/daftar   — asisten only. The full library, for the
- *                                  management list.
- * POST /api/presentasi/token    { ...client-upload handshake body } —
- *                                  asisten only. Issues the upload token.
- * POST /api/presentasi/simpan   { url, namaBerkas } — asisten only. Records
- *                                  a completed upload. Deliberately not
- *                                  onUploadCompleted: that callback is a
- *                                  webhook Vercel calls back on a publicly
- *                                  reachable deployment URL, which doesn't
- *                                  exist during local development or this
- *                                  project's throwaway-Postgres
- *                                  verification, and upload() on the client
- *                                  already resolves with the blob's own URL
- *                                  the moment the direct PUT finishes -- no
- *                                  need to wait on the webhook for that.
- * POST /api/presentasi/aktifkan { id } — asisten only. Exactly one row is
- *                                  aktif at a time (presentasi_aktif_unik).
- * POST /api/presentasi/nonaktifkan (no body) (P6.6/B12) — asisten only.
- *                                  Turns the active entry off without
- *                                  deleting it, working around
- *                                  presentasi_aktif_unik's partial unique
- *                                  index the same way handleAktifkan does
- *                                  (a plain UPDATE ... SET aktif=false), the
- *                                  gap being that switching TO another entry
- *                                  was the only existing way to turn one
- *                                  OFF, which meant "show nothing" required
- *                                  deleting the deck.
- * POST /api/presentasi/hapus    { id } — asisten only. Deletes the blob and
- *                                  its row.
- * POST /api/presentasi/tautan   { url, nama? } (Phase 9) — asisten only.
- *                                  Saves a Canva design link (jenis tautan),
- *                                  turned into its embed address by
- *                                  src/lib/tautan.ts.
+ * Both kinds work the same way (2026-10-08): per module, one uploaded file
+ * (berkas) and one link (tautan) may be active, and a new one of a kind
+ * replaces the old one, its blob included. Both are for signed-in users
+ * only, and a Praktikan sees a module's only once they did its practicum
+ * (akses.ts modulDiikuti); an Asisten sees all four.
  *
- * Phase 8 adds the wiring-schematic library (table `skema`) to this same
- * function rather than a new file, since the Hobby plan's function count is
- * fixed. It is the presentation library again, one per module, with images
- * instead of PDFs:
+ * GET  /api/presentasi/slides          — signed in. The active decks per
+ *                                        module the caller may see, as
+ *                                        { "1": {url, namaBerkas, jenis,
+ *                                        bingkai, pilihan[]}, ... }.
+ * GET  /api/presentasi/slides-list     — asisten. Every deck, including
+ *                                        those from before decks went per
+ *                                        module (modul null).
+ * POST /api/presentasi/slides-token    — asisten. Upload handshake, PDF only.
+ * POST /api/presentasi/slides-save     { url, namaBerkas, modul } — asisten.
+ * POST /api/presentasi/slides-link     { url, modul, nama? } — asisten. A
+ *                                        Canva view link, turned into its
+ *                                        embed address by src/lib/tautan.ts.
+ * POST /api/presentasi/slides-assign   { id, modul } — asisten. Gives an
+ *                                        older deck a module, replacing that
+ *                                        module's deck of the same kind.
+ * POST /api/presentasi/slides-delete   { id } — asisten.
  *
- * GET  /api/presentasi/schematics         — public (module pages are). The
- *                                            active upload per module, as
- *                                            { "1": {url, namaBerkas}, ... };
- *                                            a missing module means "use the
+ * GET  /api/presentasi/schematics         — signed in, as slides above; a
+ *                                            missing module means "use the
  *                                            bundled schematic".
  * GET  /api/presentasi/schematic-list     — asisten. Every upload.
  * POST /api/presentasi/schematic-token    — asisten. Upload handshake,
  *                                            PNG/JPEG/WebP only.
  * POST /api/presentasi/schematic-save     { url, namaBerkas, modul } —
- *                                            asisten. Records the upload and
- *                                            makes it the module's active one.
+ *                                            asisten.
  * POST /api/presentasi/schematic-link     { url, modul } (Phase 9) —
  *                                            asisten. A Wokwi, Tinkercad or
  *                                            Canva link or a direct image
  *                                            address instead of an upload.
- *                                            Both saves replace the module's
- *                                            earlier ones (Phase 9 keeps one
- *                                            source per module).
  * POST /api/presentasi/schematic-activate { id } — asisten.
  * POST /api/presentasi/schematic-default  { modul } — asisten. Back to the
  *                                            bundled schematic.
@@ -88,6 +69,7 @@ import { getDb } from "../../src/lib/db.js";
 import { presentasi, skema } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
+import { modulDiikuti } from "../../src/lib/akses.js";
 import { and, eq, desc, ne } from "drizzle-orm";
 import {
   bacaTautan,
@@ -107,6 +89,8 @@ const MAX_NAMA_LEN = 200;
 const SKEMA_MAX_BYTES = 8 * 1024 * 1024;
 const SKEMA_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
+type Jenis = "berkas" | "tautan";
+
 function blobUrlValid(url: string): boolean {
   try {
     return new URL(url).hostname.endsWith(BLOB_HOST_SUFFIX);
@@ -120,86 +104,87 @@ function modulValid(v: unknown): number | null {
   return Number.isInteger(n) && n >= 1 && n <= 4 ? n : null;
 }
 
-/** The active deck (the PDF first), and `pilihan`: every active one (a PDF
- *  and a Canva link at most), so the Praktikan can switch between them. */
-async function handleAktif(_req: ApiRequest, res: ApiResponse) {
-  const db = getDb();
-  const rows = await db
-    .select({
-      id: presentasi.id,
-      namaBerkas: presentasi.namaBerkas,
-      url: presentasi.url,
-      jenis: presentasi.jenis,
-    })
-    .from(presentasi)
-    .where(eq(presentasi.aktif, true));
-  const pilihan = rows.sort((a, b) => (a.jenis === b.jenis ? 0 : a.jenis === "berkas" ? -1 : 1));
-  res.status(200).json({ ok: true, presentasi: pilihan[0] ?? null, pilihan });
+function idValid(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-async function handleDaftar(_req: ApiRequest, res: ApiResponse) {
-  const db = getDb();
-  const rows = await db.select().from(presentasi).orderBy(desc(presentasi.diunggahPada));
-  res.status(200).json({ ok: true, daftar: rows });
+/** Best effort: a blob that is already gone (removed in the Vercel
+ *  dashboard, or a recreated store) must not strand its row. */
+async function hapusBlob(list: { url: string; jenis: Jenis }[], asal: string) {
+  for (const o of list) {
+    if (o.jenis !== "berkas") continue;
+    try {
+      await del(o.url);
+    } catch (err) {
+      console.error(`[api/presentasi/${asal}] blob delete failed, row removed anyway:`, err);
+    }
+  }
 }
 
-/**
- * The client-upload handshake. Vercel's own SDK dictates this response
- * shape (not this project's usual {ok, kode} contract) since @vercel/blob's
- * browser-side upload() parses it directly -- see the docs' own route
- * example, matched here on purpose.
- */
-async function handleToken(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+/** The modules whose slides and schematics this caller may see: all four
+ *  for an Asisten, the ones a Praktikan did a practicum of. */
+async function modulBoleh(session: SessionPayload): Promise<Set<number>> {
+  return new Set(session.role === "asisten" ? [1, 2, 3, 4] : await modulDiikuti(session.nim));
+}
+
+/** Active rows per module, the file first, then `pilihan` with every active
+ *  one (a file and a link at most) for the viewer's switch. `bingkai`: show
+ *  it in a frame, not as an image or a PDF. */
+function perModul(
+  rows: { modul: number | null; url: string; namaBerkas: string; jenis: Jenis }[],
+  boleh: Set<number>,
+  bingkai: (r: { url: string; jenis: Jenis }) => boolean,
+) {
+  type Pilihan = { url: string; namaBerkas: string; bingkai: boolean; jenis: Jenis };
+  const aktif: Record<string, Pilihan & { pilihan: Pilihan[] }> = {};
+  const urut = [...rows].sort((a, b) => (a.jenis === b.jenis ? 0 : a.jenis === "berkas" ? -1 : 1));
+  for (const r of urut) {
+    if (r.modul === null || !boleh.has(r.modul)) continue;
+    const p: Pilihan = {
+      url: r.url,
+      namaBerkas: r.namaBerkas,
+      bingkai: bingkai(r),
+      jenis: r.jenis,
+    };
+    const k = String(r.modul);
+    if (aktif[k]) aktif[k].pilihan.push(p);
+    else aktif[k] = { ...p, pilihan: [p] };
+  }
+  return aktif;
+}
+
+/** The client-upload handshake. Vercel's own SDK dictates this response
+ *  shape (not this project's usual {ok, kode} contract) since
+ *  @vercel/blob's browser-side upload() parses it directly. No
+ *  onUploadCompleted, deliberately: even an empty one made @vercel/blob
+ *  register the route as a webhook, and Blob's callback, carrying no
+ *  session cookie, always failed the asisten check with 401. */
+async function beriToken(
+  req: ApiRequest,
+  res: ApiResponse,
+  session: SessionPayload,
+  tipe: string[],
+  maks: number,
+  asal: string,
+) {
   const body = jsonBody(req) as unknown as HandleUploadBody;
   try {
     const jsonResponse = await handleUpload({
       body,
       request: req as unknown as Request,
       onBeforeGenerateToken: async () => ({
-        allowedContentTypes: ["application/pdf"],
-        maximumSizeInBytes: MAX_BYTES,
+        allowedContentTypes: tipe,
+        maximumSizeInBytes: maks,
         addRandomSuffix: true,
         tokenPayload: JSON.stringify({ nim: session.nim }),
       }),
-      // No onUploadCompleted, deliberately (see this file's header). Even
-      // an empty one made @vercel/blob register this route as a webhook on
-      // every deployed upload, and Blob's callback POST, carrying no
-      // session cookie, always failed this route's asisten check with 401.
     });
     res.status(200).json(jsonResponse);
   } catch (err) {
-    console.error("[api/presentasi/token] unexpected error:", err);
+    console.error(`[api/presentasi/${asal}] unexpected error:`, err);
     res.status(400).json({ error: err instanceof Error ? err.message : "unggah gagal" });
   }
-}
-
-async function handleSimpan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const body = jsonBody(req);
-  const url = typeof body.url === "string" ? body.url : "";
-  const namaBerkas = typeof body.namaBerkas === "string" ? body.namaBerkas : "";
-
-  let host = "";
-  try {
-    host = new URL(url).hostname;
-  } catch {
-    // host stays empty, rejected below alongside every other malformed case
-  }
-  if (
-    !host.endsWith(BLOB_HOST_SUFFIX) ||
-    namaBerkas.length === 0 ||
-    namaBerkas.length > MAX_NAMA_LEN
-  ) {
-    res.status(200).json({ ok: false, kode: "format_salah" });
-    return;
-  }
-
-  const db = getDb();
-  const [row] = await db
-    .insert(presentasi)
-    .values({ namaBerkas, url, diunggahOleh: session.nim })
-    .returning();
-  await writeAudit(session.nim, "presentasi_unggah", { id: row.id, namaBerkas });
-  res.status(200).json({ ok: true, presentasi: row });
 }
 
 /**
@@ -233,8 +218,87 @@ async function bukaTautanPendek(
   return { ok: false, kode: "canva_pendek" };
 }
 
-async function handleTautan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+/* ----------------------------------------------------------------- slides */
+
+async function handleSlides(_req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const rows = await getDb()
+    .select({
+      modul: presentasi.modul,
+      url: presentasi.url,
+      namaBerkas: presentasi.namaBerkas,
+      jenis: presentasi.jenis,
+    })
+    .from(presentasi)
+    .where(eq(presentasi.aktif, true));
+  const aktif = perModul(rows, await modulBoleh(session), (r) => r.jenis === "tautan");
+  res.status(200).json({ ok: true, aktif });
+}
+
+async function handleSlidesList(_req: ApiRequest, res: ApiResponse) {
+  const rows = await getDb().select().from(presentasi).orderBy(desc(presentasi.diunggahPada));
+  res.status(200).json({ ok: true, daftar: rows });
+}
+
+/** Makes `baru` the module's deck of its kind: earlier decks of that module
+ *  and kind go, and so do their blobs. An `id` moves that existing row in
+ *  (slides-assign) instead of inserting one. */
+async function simpanSlide(
+  modul: number,
+  baru: { namaBerkas: string; url: string; jenis: Jenis; id?: number },
+  nim: string,
+) {
+  const { row, lama } = await getDb().transaction(async (tx) => {
+    const [r] = baru.id
+      ? await tx
+          .update(presentasi)
+          .set({ modul, aktif: false })
+          .where(eq(presentasi.id, baru.id))
+          .returning()
+      : await tx
+          .insert(presentasi)
+          .values({
+            modul,
+            namaBerkas: baru.namaBerkas,
+            url: baru.url,
+            jenis: baru.jenis,
+            diunggahOleh: nim,
+          })
+          .returning();
+    const old = await tx
+      .delete(presentasi)
+      .where(
+        and(eq(presentasi.modul, modul), eq(presentasi.jenis, baru.jenis), ne(presentasi.id, r.id)),
+      )
+      .returning({ url: presentasi.url, jenis: presentasi.jenis });
+    await tx.update(presentasi).set({ aktif: true }).where(eq(presentasi.id, r.id));
+    return { row: { ...r, aktif: true }, lama: old };
+  });
+  await hapusBlob(lama, "slides");
+  return row;
+}
+
+async function handleSlidesSave(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
+  const url = typeof body.url === "string" ? body.url : "";
+  const namaBerkas = typeof body.namaBerkas === "string" ? body.namaBerkas : "";
+  const modul = modulValid(body.modul);
+  if (!blobUrlValid(url) || !modul || !namaBerkas || namaBerkas.length > MAX_NAMA_LEN) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const row = await simpanSlide(modul, { namaBerkas, url, jenis: "berkas" }, session.nim);
+  await writeAudit(session.nim, "presentasi_unggah", { id: row.id, modul, namaBerkas });
+  res.status(200).json({ ok: true, presentasi: row });
+}
+
+async function handleSlidesLink(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const body = jsonBody(req);
+  const modul = modulValid(body.modul);
+  const nama = typeof body.nama === "string" ? body.nama.trim() : "";
+  if (!modul || nama.length > MAX_NAMA_LEN) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
   const t = await bukaTautanPendek(
     bacaTautan(typeof body.url === "string" ? body.url : "", TAUTAN_SLIDES),
     TAUTAN_SLIDES,
@@ -243,115 +307,60 @@ async function handleTautan(req: ApiRequest, res: ApiResponse, session: SessionP
     res.status(200).json({ ok: false, kode: t.kode });
     return;
   }
-  const nama = typeof body.nama === "string" ? body.nama.trim() : "";
-  if (nama.length > MAX_NAMA_LEN) {
-    res.status(200).json({ ok: false, kode: "format_salah" });
-    return;
-  }
-  const db = getDb();
-  const [row] = await db
-    .insert(presentasi)
-    .values({ namaBerkas: nama || "Canva", url: t.url, jenis: "tautan", diunggahOleh: session.nim })
-    .returning();
-  await writeAudit(session.nim, "presentasi_tautan", { id: row.id, url: t.url });
+  const row = await simpanSlide(
+    modul,
+    { namaBerkas: nama || "Canva", url: t.url, jenis: "tautan" },
+    session.nim,
+  );
+  await writeAudit(session.nim, "presentasi_tautan", { id: row.id, modul, url: t.url });
   res.status(200).json({ ok: true, presentasi: row });
 }
 
-async function handleAktifkan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+async function handleSlidesAssign(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
-  const id = Number(body.id);
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = idValid(body.id);
+  const modul = modulValid(body.modul);
+  if (!id || !modul) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-
-  const db = getDb();
-  const ada = await db.transaction(async (tx) => {
-    const [row] = await tx
-      .select({ id: presentasi.id, jenis: presentasi.jenis })
-      .from(presentasi)
-      .where(eq(presentasi.id, id))
-      .limit(1);
-    if (!row) return false;
-    // Replaces the active one of the same kind; a PDF and a Canva link
-    // can both be active.
-    await tx
-      .update(presentasi)
-      .set({ aktif: false })
-      .where(and(eq(presentasi.aktif, true), eq(presentasi.jenis, row.jenis)));
-    await tx.update(presentasi).set({ aktif: true }).where(eq(presentasi.id, id));
-    return true;
-  });
-
-  if (!ada) {
+  const [cur] = await getDb()
+    .select({ namaBerkas: presentasi.namaBerkas, url: presentasi.url, jenis: presentasi.jenis })
+    .from(presentasi)
+    .where(eq(presentasi.id, id))
+    .limit(1);
+  if (!cur) {
     res.status(200).json({ ok: false, kode: "tidak_ada" });
     return;
   }
-  await writeAudit(session.nim, "presentasi_aktifkan", { id });
+  await simpanSlide(modul, { ...cur, id }, session.nim);
+  await writeAudit(session.nim, "presentasi_modul", { id, modul });
   res.status(200).json({ ok: true });
 }
 
-/** `{ id }` turns that deck off; no id turns every active one off. */
-async function handleNonaktifkan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const id = Number(jsonBody(req).id);
-  const db = getDb();
-  const rows = await db
-    .update(presentasi)
-    .set({ aktif: false })
-    .where(
-      Number.isInteger(id) && id > 0
-        ? and(eq(presentasi.aktif, true), eq(presentasi.id, id))
-        : eq(presentasi.aktif, true),
-    )
-    .returning({ id: presentasi.id });
+async function handleSlidesDelete(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const id = idValid(jsonBody(req).id);
+  if (!id) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const rows = await getDb()
+    .delete(presentasi)
+    .where(eq(presentasi.id, id))
+    .returning({ url: presentasi.url, jenis: presentasi.jenis, modul: presentasi.modul });
   if (!rows.length) {
     res.status(200).json({ ok: false, kode: "tidak_ada" });
     return;
   }
-  for (const r of rows) await writeAudit(session.nim, "presentasi_nonaktifkan", { id: r.id });
-  res.status(200).json({ ok: true });
-}
-
-async function handleHapus(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const body = jsonBody(req);
-  const id = Number(body.id);
-  if (!Number.isInteger(id) || id <= 0) {
-    res.status(200).json({ ok: false, kode: "format_salah" });
-    return;
-  }
-
-  const db = getDb();
-  const [row] = await db
-    .select({ url: presentasi.url, jenis: presentasi.jenis })
-    .from(presentasi)
-    .where(eq(presentasi.id, id))
-    .limit(1);
-  if (!row) {
-    res.status(200).json({ ok: false, kode: "tidak_ada" });
-    return;
-  }
-
-  // A blob that is already gone (removed in the Vercel dashboard, or a
-  // store that was recreated) must not strand its row: del() throwing
-  // here used to 500 the request and leave an undeletable dead entry.
-  // A link has no blob at all.
-  if (row.jenis === "berkas") {
-    try {
-      await del(row.url);
-    } catch (err) {
-      console.error("[api/presentasi/hapus] blob delete failed, removing row anyway:", err);
-    }
-  }
-  await db.delete(presentasi).where(eq(presentasi.id, id));
-  await writeAudit(session.nim, "presentasi_hapus", { id });
+  await hapusBlob(rows, "slides-delete");
+  await writeAudit(session.nim, "presentasi_hapus", { id, modul: rows[0].modul });
   res.status(200).json({ ok: true });
 }
 
 /* ------------------------------------------------------ wiring schematics */
 
-async function handleSchematics(_req: ApiRequest, res: ApiResponse) {
-  const db = getDb();
-  const rows = await db
+async function handleSchematics(_req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const rows = await getDb()
     .select({
       modul: skema.modul,
       url: skema.url,
@@ -360,61 +369,27 @@ async function handleSchematics(_req: ApiRequest, res: ApiResponse) {
     })
     .from(skema)
     .where(eq(skema.aktif, true));
-  // bingkai: show it in a frame (a Wokwi, Tinkercad or Canva link), not as
-  // an image. Per module: the image first, then `pilihan` with every active
-  // one (an image and a link at most) for the Praktikan's switch.
-  type Pilihan = { url: string; namaBerkas: string; bingkai: boolean; jenis: "berkas" | "tautan" };
-  const aktif: Record<string, Pilihan & { pilihan: Pilihan[] }> = {};
-  const urut = [...rows].sort((a, b) => (a.jenis === b.jenis ? 0 : a.jenis === "berkas" ? -1 : 1));
-  for (const r of urut) {
-    const p: Pilihan = {
-      url: r.url,
-      namaBerkas: r.namaBerkas,
-      bingkai: r.jenis === "tautan" && tautanBingkai(r.url),
-      jenis: r.jenis,
-    };
-    const k = String(r.modul);
-    if (aktif[k]) aktif[k].pilihan.push(p);
-    else aktif[k] = { ...p, pilihan: [p] };
-  }
+  const aktif = perModul(
+    rows,
+    await modulBoleh(session),
+    (r) => r.jenis === "tautan" && tautanBingkai(r.url),
+  );
   res.status(200).json({ ok: true, aktif });
 }
 
 async function handleSchematicList(_req: ApiRequest, res: ApiResponse) {
-  const db = getDb();
-  const rows = await db.select().from(skema).orderBy(desc(skema.diunggahPada));
+  const rows = await getDb().select().from(skema).orderBy(desc(skema.diunggahPada));
   res.status(200).json({ ok: true, daftar: rows });
 }
 
-async function handleSchematicToken(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const body = jsonBody(req) as unknown as HandleUploadBody;
-  try {
-    const jsonResponse = await handleUpload({
-      body,
-      request: req as unknown as Request,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: SKEMA_TYPES,
-        maximumSizeInBytes: SKEMA_MAX_BYTES,
-        addRandomSuffix: true,
-        tokenPayload: JSON.stringify({ nim: session.nim }),
-      }),
-    });
-    res.status(200).json(jsonResponse);
-  } catch (err) {
-    console.error("[api/presentasi/schematic-token] unexpected error:", err);
-    res.status(400).json({ error: err instanceof Error ? err.message : "unggah gagal" });
-  }
-}
-
-/** Makes `baru` the module's one schematic: earlier rows go, and so do
- *  their blobs (best effort, as in handleSchematicDelete). */
+/** Makes `baru` the module's schematic of its kind: earlier rows of that
+ *  module and kind go, and so do their blobs. */
 async function simpanSkema(
   modul: number,
-  baru: { namaBerkas: string; url: string; jenis: "berkas" | "tautan" },
+  baru: { namaBerkas: string; url: string; jenis: Jenis },
   nim: string,
 ) {
-  const db = getDb();
-  const { row, lama } = await db.transaction(async (tx) => {
+  const { row, lama } = await getDb().transaction(async (tx) => {
     // Replaces the module's source of the same kind only: an image and a
     // link can both stay.
     await tx
@@ -431,14 +406,7 @@ async function simpanSkema(
       .returning({ url: skema.url, jenis: skema.jenis });
     return { row: r, lama: old };
   });
-  for (const o of lama) {
-    if (o.jenis !== "berkas") continue;
-    try {
-      await del(o.url);
-    } catch (err) {
-      console.error("[api/presentasi] replaced schematic blob delete failed:", err);
-    }
-  }
+  await hapusBlob(lama, "schematic");
   return row;
 }
 
@@ -481,13 +449,12 @@ async function handleSchematicLink(req: ApiRequest, res: ApiResponse, session: S
 }
 
 async function handleSchematicActivate(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const id = Number(jsonBody(req).id);
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = idValid(jsonBody(req).id);
+  if (!id) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  const db = getDb();
-  const modul = await db.transaction(async (tx) => {
+  const modul = await getDb().transaction(async (tx) => {
     const [row] = await tx
       .select({ modul: skema.modul, jenis: skema.jenis })
       .from(skema)
@@ -515,8 +482,7 @@ async function handleSchematicDefault(req: ApiRequest, res: ApiResponse, session
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  const db = getDb();
-  await db
+  await getDb()
     .update(skema)
     .set({ aktif: false })
     .where(and(eq(skema.modul, modul), eq(skema.aktif, true)));
@@ -525,62 +491,39 @@ async function handleSchematicDefault(req: ApiRequest, res: ApiResponse, session
 }
 
 async function handleSchematicDelete(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const id = Number(jsonBody(req).id);
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = idValid(jsonBody(req).id);
+  if (!id) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  const db = getDb();
-  const [row] = await db
-    .select({ url: skema.url, modul: skema.modul, jenis: skema.jenis })
-    .from(skema)
+  const rows = await getDb()
+    .delete(skema)
     .where(eq(skema.id, id))
-    .limit(1);
-  if (!row) {
+    .returning({ url: skema.url, jenis: skema.jenis, modul: skema.modul });
+  if (!rows.length) {
     res.status(200).json({ ok: false, kode: "tidak_ada" });
     return;
   }
-  if (row.jenis === "berkas") {
-    try {
-      await del(row.url);
-    } catch (err) {
-      console.error(
-        "[api/presentasi/schematic-delete] blob delete failed, removing row anyway:",
-        err,
-      );
-    }
-  }
-  await db.delete(skema).where(eq(skema.id, id));
-  await writeAudit(session.nim, "skema_hapus", { id, modul: row.modul });
+  await hapusBlob(rows, "schematic-delete");
+  await writeAudit(session.nim, "skema_hapus", { id, modul: rows[0].modul });
   res.status(200).json({ ok: true });
 }
 
-/** The upload handshake for a written report's attachment (Reports ›
- *  Written report › Photo or file): images and PDFs up to 10 MB. The
- *  report row itself is written by /api/session/dokumen { aksi: "lampiran" }. */
-async function handleLampiranToken(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const body = jsonBody(req) as unknown as HandleUploadBody;
-  try {
-    const jsonResponse = await handleUpload({
-      body,
-      request: req as unknown as Request,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: LAMPIRAN_TIPE,
-        maximumSizeInBytes: LAMPIRAN_MAKS,
-        addRandomSuffix: true,
-        tokenPayload: JSON.stringify({ nim: session.nim }),
-      }),
-    });
-    res.status(200).json(jsonResponse);
-  } catch (err) {
-    console.error("[api/presentasi/lampiran-token] unexpected error:", err);
-    res.status(400).json({ error: err instanceof Error ? err.message : "unggah gagal" });
-  }
-}
+/* ------------------------------------------------------------------ routes */
 
-type SkemaPost = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => Promise<void>;
+type Post = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => Promise<void>;
 
-const SKEMA_POST: Record<string, SkemaPost> = {
+const handleToken: Post = (req, res, s) =>
+  beriToken(req, res, s, ["application/pdf"], MAX_BYTES, "slides-token");
+const handleSchematicToken: Post = (req, res, s) =>
+  beriToken(req, res, s, SKEMA_TYPES, SKEMA_MAX_BYTES, "schematic-token");
+
+const POST: Record<string, Post> = {
+  "slides-token": handleToken,
+  "slides-save": handleSlidesSave,
+  "slides-link": handleSlidesLink,
+  "slides-assign": handleSlidesAssign,
+  "slides-delete": handleSlidesDelete,
   "schematic-token": handleSchematicToken,
   "schematic-save": handleSchematicSave,
   "schematic-link": handleSchematicLink,
@@ -595,68 +538,38 @@ async function handler(req: ApiRequest, res: ApiResponse) {
 
   const aksi = req.query.aksi;
 
-  // "aktif" is the one action either role can call, checked before the
-  // blanket asisten-only guard below -- the dashboard card a praktikan's
-  // browser reaches needs it, same shape as /api/session/now.
-  if (aksi === "aktif") {
+  // The two viewer lists either role reads, before the asisten-only guard;
+  // each filters to the modules the caller may see.
+  if (aksi === "slides" || aksi === "schematics") {
     if (!requireMethod(req, res, "GET")) return;
-    if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
-    return handleAktif(req, res);
-  }
-
-  // Module pages are public, so the active schematic per module is too.
-  if (aksi === "schematics") {
-    if (!requireMethod(req, res, "GET")) return;
-    return handleSchematics(req, res);
+    const session = requireAnyRole(req, res, ["asisten", "praktikan"]);
+    if (!session) return;
+    return aksi === "slides"
+      ? handleSlides(req, res, session)
+      : handleSchematics(req, res, session);
   }
 
   const session = requireRole(req, res, "asisten");
   if (!session) return;
-  // Phase 9: a written report's photo or file; any Asisten may attach one.
+  // Phase 9: a written report's photo or file (Reports › Written report ›
+  // Photo or file); any Asisten may attach one, images and PDFs up to
+  // 10 MB. The report row itself is written by /api/session/dokumen.
   if (aksi === "lampiran-token") {
     if (!requireMethod(req, res, "POST")) return;
-    return handleLampiranToken(req, res, session);
-  }
-  // Phase 9: changing slides and schematics needs the Jadwal right.
-  if (req.method === "POST" && !(await cekHak(res, session.nim, "jadwal"))) return;
-
-  if (aksi === "schematic-list") {
-    if (!requireMethod(req, res, "GET")) return;
-    return handleSchematicList(req, res);
-  }
-  const skemaHandler = typeof aksi === "string" ? SKEMA_POST[aksi] : undefined;
-  if (skemaHandler) {
-    if (!requireMethod(req, res, "POST")) return;
-    return skemaHandler(req, res, session);
+    return beriToken(req, res, session, LAMPIRAN_TIPE, LAMPIRAN_MAKS, "lampiran-token");
   }
 
-  if (aksi === "daftar") {
+  if (aksi === "slides-list" || aksi === "schematic-list") {
     if (!requireMethod(req, res, "GET")) return;
-    return handleDaftar(req, res);
+    return aksi === "slides-list" ? handleSlidesList(req, res) : handleSchematicList(req, res);
   }
-  if (aksi === "token") {
+
+  const post = typeof aksi === "string" ? POST[aksi] : undefined;
+  if (post) {
     if (!requireMethod(req, res, "POST")) return;
-    return handleToken(req, res, session);
-  }
-  if (aksi === "simpan") {
-    if (!requireMethod(req, res, "POST")) return;
-    return handleSimpan(req, res, session);
-  }
-  if (aksi === "tautan") {
-    if (!requireMethod(req, res, "POST")) return;
-    return handleTautan(req, res, session);
-  }
-  if (aksi === "aktifkan") {
-    if (!requireMethod(req, res, "POST")) return;
-    return handleAktifkan(req, res, session);
-  }
-  if (aksi === "nonaktifkan") {
-    if (!requireMethod(req, res, "POST")) return;
-    return handleNonaktifkan(req, res, session);
-  }
-  if (aksi === "hapus") {
-    if (!requireMethod(req, res, "POST")) return;
-    return handleHapus(req, res, session);
+    // Phase 9: changing slides and schematics needs the Jadwal right.
+    if (!(await cekHak(res, session.nim, "jadwal"))) return;
+    return post(req, res, session);
   }
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
