@@ -1465,6 +1465,9 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === "POST") {
       const session = requireRole(req, res, "asisten");
       if (!session) return;
+      // Like end, extend and announce: only the running session's own
+      // people may turn the hotspot and the scoreboard on or off.
+      if (!(await cekKendaliSesi(res, session.nim, null))) return;
       return handlePerburuanPost(req, res, session);
     }
     if (!requireMethod(req, res, "GET")) return;
