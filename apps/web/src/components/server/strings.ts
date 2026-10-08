@@ -1210,7 +1210,8 @@ export const S = dict({
     wizExisting: "这台服务器已经存在。下面这一行会为它安装 Pi。",
     wizMake: "生成命令",
     wizRemake: "生成新命令",
-    wizNeedCmd: "生成命令来重新安装这台 Pi，或把另一台 Pi 换到这台服务器。现在的 agent 会一直运行，直到新命令被使用。",
+    wizNeedCmd:
+      "生成命令来重新安装这台 Pi，或把另一台 Pi 换到这台服务器。现在的 agent 会一直运行，直到新命令被使用。",
     wizBusyWarn: "Pi 正在用之前的命令安装。生成新命令会让那次安装在最后失败。",
     wizCmd:
       "在 Pi 桌面的终端里粘贴这一行一次（用户 orangepi 或 iris）。剩下的会自己完成：新的 Pi 会安装所需的一切，已经有 agent 的 Pi 只会换到这台服务器。进度显示在下一步，不用看终端。",

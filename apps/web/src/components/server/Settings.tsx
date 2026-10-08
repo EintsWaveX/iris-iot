@@ -26,12 +26,7 @@ import Tooltip from "../ui/Tooltip";
 import { sejak, useTick } from "../../lib/app";
 import { durasiLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
-import {
-  bacaRinci,
-  JOURNAL_UNIT,
-  LANGKAH_PASANG,
-  posisiPasang,
-} from "../../lib/server-shared";
+import { bacaRinci, JOURNAL_UNIT, LANGKAH_PASANG, posisiPasang } from "../../lib/server-shared";
 import Enroll, { bacaPerintah } from "./Enroll";
 import {
   kirim,
@@ -516,7 +511,17 @@ export default function Settings({
 }
 
 /** One line on how this server's install stands. */
-function SetupState({ lang, id, data, now }: { lang: Lang; id: number; data: Detail; now: number }) {
+function SetupState({
+  lang,
+  id,
+  data,
+  now,
+}: {
+  lang: Lang;
+  id: number;
+  data: Detail;
+  now: number;
+}) {
   const t = S[lang];
   const s = data.server;
   const pos = posisiPasang(

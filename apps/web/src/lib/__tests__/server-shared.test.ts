@@ -139,7 +139,10 @@ describe("posisiPasang", () => {
   });
 
   it("skips the install rows for a Pi that already has an agent", () => {
-    expect(posisiPasang(p("mulai", { ulang: true }), null, null)).toMatchObject({ langkah: 3, lewati: true });
+    expect(posisiPasang(p("mulai", { ulang: true }), null, null)).toMatchObject({
+      langkah: 3,
+      lewati: true,
+    });
   });
 
   it("carries the installer's failure", () => {
@@ -159,8 +162,12 @@ describe("posisiPasang", () => {
 
   it("ignores an old enrolment while waiting on a new command", () => {
     const dibuat = Date.parse("2026-10-08T09:00:00Z");
-    expect(posisiPasang(null, "2026-10-08T08:06:00Z", "2026-10-08T08:59:00Z", dibuat).langkah).toBe(0);
-    expect(posisiPasang(null, "2026-10-08T08:06:00Z", "2026-10-08T08:59:00Z").langkah).toBe(LANGKAH_PASANG);
+    expect(posisiPasang(null, "2026-10-08T08:06:00Z", "2026-10-08T08:59:00Z", dibuat).langkah).toBe(
+      0,
+    );
+    expect(posisiPasang(null, "2026-10-08T08:06:00Z", "2026-10-08T08:59:00Z").langkah).toBe(
+      LANGKAH_PASANG,
+    );
   });
 
   it("rejects a malformed record", () => {

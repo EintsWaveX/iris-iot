@@ -140,7 +140,10 @@ export default function Enroll({
     setBusy(true);
     try {
       const r = ada
-        ? await postJson<{ ok: boolean; kode?: string; token?: string }>(`/api/server/${ada.id}`, {})
+        ? await postJson<{ ok: boolean; kode?: string; token?: string }>(
+            `/api/server/${ada.id}`,
+            {},
+          )
         : await postJson<{ ok: boolean; id?: number; kode?: string; token?: string }>(
             "/api/server",
             { nama, kode: nama },
@@ -285,7 +288,9 @@ export default function Enroll({
                   />
                 </div>
                 <div className="row row--between">
-                  <span className="hint">{t.wizCmdAge(sejak(new Date(cmd.dibuat).toISOString(), lang, now))}</span>
+                  <span className="hint">
+                    {t.wizCmdAge(sejak(new Date(cmd.dibuat).toISOString(), lang, now))}
+                  </span>
                   <button
                     type="button"
                     className="btn btn--sm btn--ghost"

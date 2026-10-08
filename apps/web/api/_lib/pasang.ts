@@ -30,7 +30,10 @@ export function kunciPasang(serverId: number): string {
 export async function cekTokenPasang(
   kodeMentah: unknown,
   tokenMentah: unknown,
-): Promise<{ ok: true; serverId: number } | { ok: false; kode: "format_salah" | "tidak_ditemukan" | "token_tidak_sah" }> {
+): Promise<
+  | { ok: true; serverId: number }
+  | { ok: false; kode: "format_salah" | "tidak_ditemukan" | "token_tidak_sah" }
+> {
   const kode = typeof kodeMentah === "string" ? kodeMentah.trim().toLowerCase() : "";
   const token = typeof tokenMentah === "string" ? tokenMentah.trim() : "";
   if (!kode || !token) return { ok: false, kode: "format_salah" };
@@ -100,5 +103,7 @@ export async function bacaRekamPasang(serverId: number): Promise<Pasang | null> 
 
 /** A new token (or a removed server) starts the install record over. */
 export async function hapusRekamPasang(serverId: number): Promise<void> {
-  await getDb().delete(pengaturan).where(eq(pengaturan.kunci, kunciPasang(serverId)));
+  await getDb()
+    .delete(pengaturan)
+    .where(eq(pengaturan.kunci, kunciPasang(serverId)));
 }
