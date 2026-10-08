@@ -1,0 +1,686 @@
+/* Phase 10 shared pieces (mockup phase10.css): the trace, constellations,
+   the star path, the session clock, the session log, gauges and the live
+   instrument. Every colour is a token, so the light theme follows; motion
+   runs only above motion tier 0. */
+
+/* ------------------------------------------------------------ the trace */
+.trace {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.trace canvas {
+  background: color-mix(in srgb, var(--bg-sunken) 85%, transparent);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: block;
+  height: var(--h, 72px);
+  width: 100%;
+}
+
+.trace figcaption {
+  color: var(--text-faint);
+  display: flex;
+  font-size: 0.78rem;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+/* -------------------------------------------------------- constellation */
+.cst {
+  display: block;
+  overflow: visible;
+  width: 100%;
+}
+
+.cst__link {
+  fill: none;
+  stroke: color-mix(in srgb, var(--m) 55%, transparent);
+  stroke-width: 0.5;
+}
+
+.cst__link--dash {
+  stroke-dasharray: 1.6 1.6;
+}
+
+.cst__via {
+  fill: var(--text-faint);
+  font: 600 3.9px var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.cst__pkt {
+  fill: var(--m);
+  filter: drop-shadow(0 0 1.2px var(--m));
+}
+
+.cst__halo {
+  fill: color-mix(in srgb, var(--m) 16%, transparent);
+}
+
+.cst__core {
+  fill: var(--m);
+  filter: drop-shadow(0 0 1.6px var(--m));
+}
+
+.cst__star[data-kind="hub"] .cst__core {
+  fill: var(--surface-1);
+  stroke: var(--m);
+  stroke-width: 0.9;
+}
+
+.cst__star[data-kind="via"] .cst__core {
+  fill: var(--text-faint);
+  filter: none;
+}
+
+.cst__star[data-kind="via"] .cst__halo {
+  fill: none;
+}
+
+.cst__name {
+  fill: var(--text-muted);
+  font: 600 4.3px var(--font-body);
+}
+
+.cst__ring {
+  fill: none;
+  stroke: color-mix(in srgb, var(--m) 45%, transparent);
+  stroke-dasharray: 1 1.4;
+  stroke-width: 0.4;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+:root:not([data-motion-tier="0"]) .cst__ring[data-moving="yes"] {
+  animation: p10-cst-ring 2.4s ease-out infinite;
+}
+
+@keyframes p10-cst-ring {
+  from {
+    opacity: 1;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 0.15;
+    transform: scale(1.15);
+  }
+}
+
+/* --------------------------------------------------------------- journey */
+.journey {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.journey__stop {
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  min-width: 0;
+  position: relative;
+  text-align: center;
+}
+
+.journey__stop + .journey__stop::before {
+  background: linear-gradient(90deg, var(--hairline-strong), var(--hairline));
+  border-radius: 2px;
+  content: "";
+  height: 2px;
+  left: calc(-50% + 22px);
+  position: absolute;
+  right: calc(50% + 22px);
+  top: 19px;
+}
+
+.journey__stop[data-state="done"] + .journey__stop::before,
+.journey__stop[data-state="now"]::before,
+.journey__stop[data-state="done"]::before {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--mod-1) 70%, transparent), var(--m));
+}
+
+.journey__star {
+  background: var(--surface-1);
+  border: 2px solid var(--m);
+  border-radius: 50%;
+  color: var(--m);
+  cursor: pointer;
+  display: grid;
+  height: 40px;
+  padding: 0;
+  place-items: center;
+  position: relative;
+  width: 40px;
+}
+
+.journey__star:disabled {
+  cursor: default;
+}
+
+.journey__stop[data-state="done"] .journey__star {
+  background: var(--m);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--m) 18%, transparent),
+    0 0 18px color-mix(in srgb, var(--m) 55%, transparent);
+  color: var(--bg);
+}
+
+.journey__stop[data-state="now"] .journey__star {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--m) 22%, transparent);
+}
+
+.journey__stop[data-state="next"] .journey__star {
+  border-color: color-mix(in srgb, var(--m) 60%, transparent);
+}
+
+.journey__stop[data-state="locked"] .journey__star {
+  background: transparent;
+  border-color: var(--hairline-strong);
+  border-style: dashed;
+  color: var(--text-faint);
+}
+
+.journey__pulse {
+  background: var(--m);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--m);
+  height: 14px;
+  width: 14px;
+}
+
+:root:not([data-motion-tier="0"]) .journey__pulse {
+  animation: p10-journey-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes p10-journey-pulse {
+  50% {
+    opacity: 0.6;
+    transform: scale(0.65);
+  }
+}
+
+.journey__dot {
+  background: color-mix(in srgb, var(--m) 70%, transparent);
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+}
+
+.journey__m {
+  color: var(--m);
+  font: 700 0.74rem / 1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.journey__stop[data-state="locked"] .journey__m {
+  color: var(--text-faint);
+}
+
+.journey__name {
+  font-size: 0.92rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.journey__st {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.journey__stop[data-state="done"] .journey__st {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.journey__stop[data-state="now"] .journey__st {
+  color: var(--m);
+  font-weight: 600;
+}
+
+.journey--compact .journey__star {
+  height: 30px;
+  width: 30px;
+}
+
+.journey--compact .journey__stop + .journey__stop::before {
+  left: calc(-50% + 17px);
+  right: calc(50% + 17px);
+  top: 14px;
+}
+
+.journey--compact .journey__pulse {
+  height: 10px;
+  width: 10px;
+}
+
+.journey--compact .journey__st {
+  font-size: 0.74rem;
+}
+
+@media (max-width: 420px) {
+  .journey__st {
+    font-size: 0.7rem;
+  }
+
+  .journey__name {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------- session clock */
+.mclock {
+  --s: 128px;
+  flex: none;
+  height: var(--s);
+  position: relative;
+  width: var(--s);
+}
+
+.mclock svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.mclock__track {
+  fill: none;
+  stroke: var(--hairline-strong);
+  stroke-width: 5;
+}
+
+.mclock__tick {
+  stroke: var(--text-faint);
+  stroke-width: 1.4;
+}
+
+.mclock__arc {
+  fill: none;
+  filter: drop-shadow(0 0 3px var(--accent-glow, var(--accent)));
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-width: 5;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.mclock[data-warn="yes"] .mclock__arc {
+  filter: drop-shadow(0 0 3px var(--warn));
+  stroke: var(--warn);
+}
+
+.mclock__in {
+  display: grid;
+  gap: 2px;
+  inset: 0;
+  place-content: center;
+  position: absolute;
+  text-align: center;
+}
+
+.mclock__t {
+  font-size: calc(var(--s) * 0.13);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mclock__left {
+  color: var(--text-muted);
+  font-size: calc(var(--s) * 0.095);
+}
+
+.mclock--idle .mclock__track {
+  stroke-dasharray: 3 5;
+}
+
+.mclock--idle .mclock__t {
+  color: var(--text-faint);
+}
+
+/* --------------------------------------------------------------- the log */
+.elog {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.elog__row {
+  align-items: baseline;
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  padding: 7px 8px;
+}
+
+.elog__row:nth-child(odd) {
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+}
+
+:root:not([data-motion-tier="0"]) .elog__row[data-fresh="yes"] {
+  animation: p10-log-in 0.6s var(--ease-out-expo) both;
+}
+
+@keyframes p10-log-in {
+  from {
+    background: var(--accent-soft);
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.elog__row time {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.elog__tag {
+  border: 1px solid;
+  border-radius: 5px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+}
+
+.elog__tag[data-tone="ok"] {
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
+  color: var(--ok);
+}
+
+.elog__tag[data-tone="warn"] {
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+  color: var(--warn);
+}
+
+.elog__tag[data-tone="accent"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--accent-bright);
+}
+
+.elog__tag[data-tone="violet"] {
+  background: var(--violet-soft);
+  border-color: color-mix(in srgb, var(--violet) 50%, transparent);
+  color: var(--violet);
+}
+
+.elog__text {
+  font-size: 0.92rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------ gauges, readouts */
+.readout {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.readout b {
+  color: var(--text);
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.readout b small {
+  color: var(--text-muted);
+  font-size: 0.55em;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.readout > span {
+  color: var(--text-faint);
+  font-size: 0.82rem;
+}
+
+.readouts {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.arcg {
+  max-width: 150px;
+  position: relative;
+  width: 100%;
+}
+
+.arcg svg {
+  display: block;
+  width: 100%;
+}
+
+.arcg__track {
+  fill: none;
+  stroke: var(--hairline-strong);
+  stroke-linecap: round;
+  stroke-width: 7;
+}
+
+.arcg__val {
+  fill: none;
+  filter: drop-shadow(0 0 3px var(--c));
+  stroke: var(--c);
+  stroke-linecap: round;
+  stroke-width: 7;
+  transition: stroke-dasharray 0.8s var(--ease-out-expo);
+}
+
+.arcg__in {
+  display: grid;
+  gap: 0;
+  inset: 22% 0 auto;
+  justify-items: center;
+  position: absolute;
+}
+
+.arcg__in b {
+  font-size: 1.25rem;
+}
+
+.arcg__in b small {
+  color: var(--text-muted);
+  font-size: 0.6em;
+}
+
+.arcg__in span {
+  color: var(--text-faint);
+  font-size: 0.74rem;
+}
+
+.arcpair {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  justify-items: center;
+}
+
+.servo {
+  display: block;
+  margin: 0 auto;
+  max-width: 240px;
+  overflow: visible;
+  width: 100%;
+}
+
+.servo__track {
+  fill: none;
+  stroke: var(--hairline-strong);
+  stroke-linecap: round;
+  stroke-width: 4;
+}
+
+.servo__tick {
+  stroke: var(--text-faint);
+  stroke-width: 1.2;
+}
+
+.servo__arm {
+  transform-origin: 60px 62px;
+  transition: transform 0.8s var(--ease-out-expo);
+}
+
+.servo__arm line {
+  filter: drop-shadow(0 0 3px var(--mod-3));
+  stroke: var(--mod-3);
+  stroke-linecap: round;
+  stroke-width: 3.2;
+}
+
+.servo__arm circle {
+  fill: var(--mod-3);
+}
+
+.servo__hub {
+  fill: var(--surface-3);
+  stroke: var(--mod-3);
+  stroke-width: 1.6;
+}
+
+.servo__lab {
+  fill: var(--text-faint);
+  font: 600 6px var(--font-mono);
+}
+
+.radar {
+  display: block;
+  margin: 0 auto;
+  max-width: 210px;
+  width: 100%;
+}
+
+.radar__ring {
+  fill: none;
+  stroke: color-mix(in srgb, var(--mod-4) 40%, transparent);
+  stroke-width: 0.6;
+}
+
+.radar__lab {
+  fill: var(--text-faint);
+  font: 600 3.4px var(--font-mono);
+}
+
+.radar__axis {
+  stroke: var(--hairline);
+  stroke-width: 0.4;
+}
+
+.radar__sweep {
+  transform-origin: 50px 50px;
+}
+
+.radar__sweep path {
+  fill: color-mix(in srgb, var(--mod-4) 30%, transparent);
+}
+
+:root:not([data-motion-tier="0"]) .radar__sweep[data-moving="yes"] {
+  animation: p10-radar-spin 3.2s linear infinite;
+}
+
+@keyframes p10-radar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.radar__blip {
+  fill: var(--mod-4);
+  filter: drop-shadow(0 0 3px var(--mod-4));
+  transition:
+    cx 0.8s var(--ease-out-expo),
+    cy 0.8s var(--ease-out-expo);
+}
+
+.radar__me {
+  fill: var(--text);
+}
+
+/* ------------------------------------------------------- the live card */
+.instr {
+  gap: 14px;
+}
+
+.instr__body {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+}
+
+.instr__read {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 420px) {
+  .instr__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .instr__read {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ------------------------------------------------------ segmented meter */
+.cells {
+  --c: var(--accent);
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto;
+}
+
+.cells__l {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.cells__row {
+  display: flex;
+  gap: 4px;
+}
+
+.cells__row i {
+  background: var(--surface-3);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  flex: 1;
+  height: 12px;
+}
+
+.cells__row i[data-on="yes"] {
+  background: var(--c);
+  border-color: transparent;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--c) 55%, transparent);
+}
+
+.cells b {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 400px) {
+  .cells {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cells__row {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}

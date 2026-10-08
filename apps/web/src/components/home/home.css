@@ -1,23 +1,11 @@
-/* Home, concept A (Phase 9 Stage 7, mockup h-home). */
+/* Home, Phase 10 (mockup h10-home): the lab sky, four constellations and
+   the path of one session. */
 
 .home {
   display: flex;
   flex-direction: column;
   gap: 26px;
   padding-top: var(--space-page-top);
-}
-
-.home__top {
-  align-items: center;
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-@media (min-width: 1024px) {
-  .home__top {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  }
 }
 
 .home__display {
@@ -54,208 +42,336 @@
   margin: 0;
 }
 
-.home__role {
-  max-width: 640px;
-}
-
-.home__stats {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-/* --------------------------------------------- before, during, after */
-
-.home__steps {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-/* The mockup's g3: two columns from 640, three from 1100. */
-@media (min-width: 640px) {
-  .home__steps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1100px) {
-  .home__steps {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 639px) {
   .home {
     gap: 18px;
   }
 }
 
-.home__tile {
+/* ------------------------------------------------------- top: the sky */
+
+.home10__top {
   align-items: center;
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 14px;
-  color: var(--accent-bright);
-  display: inline-grid;
-  height: 54px;
-  justify-content: center;
-  width: 54px;
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.home__ticks {
+@media (min-width: 1024px) {
+  .home10__top {
+    gap: 34px;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  }
+}
+
+.home10__head {
   display: grid;
-  gap: var(--space-2);
+  gap: 6px;
+}
+
+.labsky {
+  gap: 12px;
+}
+
+.labsky__field {
+  aspect-ratio: 100 / 58;
+  background:
+    radial-gradient(
+      ellipse at 50% 40%,
+      color-mix(in srgb, var(--m, var(--accent)) 12%, transparent),
+      transparent 70%
+    ),
+    color-mix(in srgb, var(--bg-sunken) 70%, transparent);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+}
+
+.labsky__bg {
+  inset: 8% 6% auto;
+  opacity: 0.32;
+  position: absolute;
+}
+
+.labsky__bg .cst__name,
+.labsky__bg .cst__via,
+.labsky__mini .cst__name,
+.labsky__mini .cst__via {
+  display: none;
+}
+
+.labsky__groups {
+  height: 100%;
+  inset: 0;
+  overflow: visible;
+  position: absolute;
+  width: 100%;
+}
+
+.labsky__field--quiet {
+  align-content: center;
+  aspect-ratio: auto;
+  display: grid;
+  gap: 4px 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 10px 14px;
+}
+
+.labsky__mini {
+  color: var(--m);
+  display: grid;
+  font: 700 0.72rem var(--font-mono);
+  justify-items: center;
+  letter-spacing: 0.06em;
+  opacity: 0.55;
+  text-transform: uppercase;
+}
+
+.gstar__line {
+  stroke: var(--hairline-strong);
+  stroke-dasharray: 0.8 1.2;
+  stroke-width: 0.35;
+}
+
+.gstar__halo {
+  fill: color-mix(in srgb, var(--g) calc(6% + var(--p) * 12%), transparent);
+}
+
+.gstar__core {
+  fill: var(--g);
+  filter: drop-shadow(0 0 calc(0.6px + var(--p) * 2.4px) var(--g));
+  opacity: calc(0.45 + var(--p) * 0.55);
+}
+
+.gstar[data-done="yes"] .gstar__core {
+  opacity: 1;
+}
+
+.gstar__mine {
+  fill: none;
+  stroke: var(--text);
+  stroke-dasharray: 1.2 0.9;
+  stroke-width: 0.45;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+:root:not([data-motion-tier="0"]) .gstar__mine {
+  animation: p10-mine-spin 14s linear infinite;
+}
+
+@keyframes p10-mine-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gstar__name {
+  fill: var(--text);
+  font: 700 3.2px var(--font-body);
+}
+
+.gstar__p {
+  fill: var(--text-faint);
+  font: 600 2.6px var(--font-mono);
+}
+
+.labsky__stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.labsky__stats > div {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.labsky__stats b {
+  font-size: 1.3rem;
+}
+
+.labsky__stats > div > span {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 639px) {
+  .labsky__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gstar__p {
+    display: none;
+  }
+}
+
+.labsky__key {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.gstar__keyring {
+  border: 1.5px dashed var(--text);
+  border-radius: 50%;
+  flex: none;
+  height: 14px;
+  width: 14px;
+}
+
+/* ------------------------------------------------- the role card */
+
+.bridge {
+  gap: 14px;
+  max-width: 640px;
+}
+
+.bridge__top {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+}
+
+@media (max-width: 400px) {
+  .bridge__top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* Pinned card actions fill the card; two share it equally. */
+.home10 .panel__actions > .btn {
+  flex: 1 1 180px;
+  justify-content: center;
+}
+
+/* ------------------------------------------- four constellations */
+
+.home10__rasi {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .home10__rasi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1240px) {
+  .home10__rasi {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.rasi {
+  gap: 10px;
+}
+
+.rasi__head {
+  flex-wrap: nowrap;
+}
+
+.rasi__head .hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rasi .cst {
+  margin: 2px 0 4px;
+}
+
+/* ------------------------------------------- the path of one session */
+
+.orbitpath {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.orbitpath__stop {
+  align-content: start;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  position: relative;
+}
+
+@media (min-width: 820px) {
+  .orbitpath {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .orbitpath::before {
+    background: repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 12px);
+    content: "";
+    height: 2px;
+    left: 6%;
+    opacity: 0.5;
+    position: absolute;
+    right: 6%;
+    top: 44px;
+  }
+
+  .orbitpath__stop {
+    background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  }
+}
+
+.orbitpath__node {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent-bright);
+  display: grid;
+  height: 48px;
+  place-items: center;
+  position: relative;
+  width: 48px;
+  z-index: 1;
+}
+
+.orbitpath__list {
+  color: var(--text-muted);
+  display: grid;
+  gap: 6px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.home__ticks li {
-  align-items: start;
+.orbitpath__list li {
+  align-items: center;
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-.home__ticks svg {
+.orbitpath__list svg {
   color: var(--ok);
   flex: none;
-  margin-top: 4px;
-}
-
-/* ------------------------------------------------------ module lanes */
-
-.home__lanes {
-  gap: 0;
-  padding-block: var(--space-2);
-}
-
-.home__lanerow {
-  align-items: center;
-  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
-  display: grid;
-  gap: 10px 16px;
-  grid-template-columns: minmax(0, 1fr);
-  padding: 16px 0;
-}
-
-.home__lanerow:last-child {
-  border-bottom: 0;
-}
-
-@media (min-width: 1024px) {
-  .home__lanerow {
-    grid-template-columns: 130px minmax(260px, 1.4fr) minmax(0, 1.2fr) auto;
-  }
-}
-
-.lane {
-  align-items: center;
-  display: flex;
-  min-width: 0;
-  padding-top: 18px;
-}
-
-.lane__node {
-  background: color-mix(in srgb, var(--m, var(--accent)) 14%, var(--surface-1));
-  border: 1.5px solid var(--m, var(--accent));
-  border-radius: 10px;
-  color: var(--m, var(--accent));
-  flex: none;
-  font: 700 0.86rem var(--font-mono);
-  padding: 7px 12px;
-  white-space: nowrap;
-}
-
-.lane__wire {
-  background: color-mix(in srgb, var(--m, var(--accent)) 45%, transparent);
-  flex: 1;
-  height: 2px;
-  margin: 0 6px;
-  min-width: 22px;
-  position: relative;
-}
-
-.lane__wire i {
-  animation: home-packet 2.4s linear infinite;
-  background: var(--m, var(--accent));
-  border-radius: 50%;
-  box-shadow: 0 0 10px var(--m, var(--accent));
-  height: 10px;
-  left: 0;
-  position: absolute;
-  top: -4px;
-  width: 10px;
-}
-
-.lane__wire i:nth-child(2) {
-  animation-delay: 0.8s;
-}
-
-.lane__wire i:nth-child(3) {
-  animation-delay: 1.6s;
-}
-
-.lane__wire b {
-  background: var(--surface-1);
-  color: var(--text-muted);
-  font: 600 0.78rem var(--font-mono);
-  left: 50%;
-  padding: 0 6px;
-  position: absolute;
-  top: -24px;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
-
-.home__live .lane__wire b {
-  background: var(--surface-2);
-}
-
-@keyframes home-packet {
-  from {
-    left: 0;
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  to {
-    left: calc(100% - 10px);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lane__wire i {
-    animation: none;
-    opacity: 0;
-  }
-
-  .lane__wire i:first-child {
-    left: calc(50% - 5px);
-    opacity: 1;
-  }
-}
-
-@media (max-width: 520px) {
-  .lane__node {
-    font-size: 0.74rem;
-    padding: 5px 7px;
-  }
-
-  .lane__wire b {
-    font-size: 0.7rem;
-  }
 }
 
 /* Phones: the hero's buttons share their row equally. */
 @media (max-width: 639px) {
-  .home__cta > .btn,
-  .home__role .panel__actions > .btn {
+  .home__cta > .btn {
     flex: 1 1 0;
     justify-content: center;
   }

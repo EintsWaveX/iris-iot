@@ -469,3 +469,361 @@
 }
 
 /* A Canva deck in the slides dialog (the PDF has its own viewer). */
+
+/* ======================================================================
+   Phase 10 (mockup d10-dasbor, d10-summary): the star path on top, the
+   ground station while a session runs.
+   ====================================================================== */
+
+/* The head uses the body's own columns, so the star path starts exactly
+   where the second card below starts (the live card while running). */
+.dash10__head {
+  align-items: end;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 720px) {
+  .dash10__head[data-grid="g2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 760px) {
+  .dash10__head[data-grid="gs"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1240px) {
+  .dash10__head[data-grid="gs"] {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 5fr) minmax(0, 4fr);
+  }
+
+  .dash10__head[data-grid="gs"] > :last-child {
+    grid-column: 2 / -1;
+  }
+}
+
+.dash10__journey {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+:root:not([data-motion-tier="0"])
+  .dash10__journey[data-ignite="1"]
+  .journey__stop:nth-child(1)
+  .journey__star,
+:root:not([data-motion-tier="0"])
+  .dash10__journey[data-ignite="2"]
+  .journey__stop:nth-child(2)
+  .journey__star,
+:root:not([data-motion-tier="0"])
+  .dash10__journey[data-ignite="3"]
+  .journey__stop:nth-child(3)
+  .journey__star,
+:root:not([data-motion-tier="0"])
+  .dash10__journey[data-ignite="4"]
+  .journey__stop:nth-child(4)
+  .journey__star {
+  animation: p10-ignite 1.4s var(--ease-out-expo) both;
+}
+
+@keyframes p10-ignite {
+  0% {
+    box-shadow: 0 0 0 0 var(--m);
+    transform: scale(0.6);
+  }
+  45% {
+    box-shadow:
+      0 0 0 16px transparent,
+      0 0 40px var(--m);
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* The ground station: cockpit, instrument, log; group and materials. */
+.gs {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.gs > * {
+  height: 100%;
+}
+
+@media (min-width: 760px) {
+  .gs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gs__log {
+    grid-row: span 2;
+  }
+}
+
+@media (min-width: 1240px) {
+  .gs {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 5fr) minmax(0, 4fr);
+  }
+}
+
+.kokpit {
+  gap: 16px;
+}
+
+.kokpit__top {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+}
+
+@media (max-width: 400px) {
+  .kokpit__top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.kokpit__next {
+  font-size: 1.22rem;
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.kokpit__warn {
+  align-items: center;
+  background: var(--warn-soft);
+  border-radius: var(--radius-md);
+  color: var(--warn);
+  display: flex;
+  font-size: 0.92rem;
+  font-weight: 600;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+/* Pinned card actions fill the card; two share it equally. */
+.dash10 .panel__actions > .btn {
+  flex: 1 1 180px;
+  justify-content: center;
+}
+
+/* On a phone the actions stack (see above): no basis, or it turns into
+   the buttons' height. */
+@media (max-width: 639px) {
+  .dash10 .panel__actions > .btn {
+    flex: none;
+  }
+}
+
+.crew {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.crew li {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  display: flex;
+  gap: 10px;
+  padding: 6px 8px;
+}
+
+.crew li[data-me="yes"] {
+  background: color-mix(in srgb, var(--g, var(--accent)) 12%, transparent);
+}
+
+.crew__star {
+  background: var(--g, var(--accent));
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--g, var(--accent));
+  flex: none;
+  height: 10px;
+  width: 10px;
+}
+
+.pracs {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.prac {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--m);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.prac__star {
+  background: var(--m);
+  border-radius: 50%;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--m) 50%, transparent);
+  color: var(--bg);
+  display: grid;
+  flex: none;
+  height: 30px;
+  place-items: center;
+  width: 30px;
+}
+
+.prac__score {
+  display: grid;
+  justify-items: end;
+}
+
+.prac__score b {
+  font-size: 1.3rem;
+}
+
+.prac__score small {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+
+.ended10 {
+  position: relative;
+}
+
+.ended10__burst {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--m, var(--accent)) 40%, transparent),
+    transparent 70%
+  );
+  border-radius: 50%;
+  height: 200px;
+  pointer-events: none;
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 200px;
+}
+
+:root:not([data-motion-tier="0"]) .ended10__burst {
+  animation: p10-burst 2.4s var(--ease-out-expo) both;
+}
+
+@keyframes p10-burst {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+}
+
+.scorebig {
+  display: grid;
+  justify-items: center;
+}
+
+.scorebig .arcg {
+  max-width: 190px;
+}
+
+.scorebig .arcg__in b {
+  font-size: 2.2rem;
+}
+
+.comp10 {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.comp10__c {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.comp10__c small {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+
+.comp10__bar {
+  align-items: flex-end;
+  background: var(--surface-3);
+  border-radius: 6px;
+  display: flex;
+  height: 70px;
+  max-width: 26px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.comp10__bar i {
+  background: linear-gradient(0deg, var(--m), color-mix(in srgb, var(--m) 50%, var(--accent)));
+  border-radius: 6px;
+  width: 100%;
+}
+
+.comp10__c[data-none="yes"] .comp10__bar {
+  background: repeating-linear-gradient(45deg, var(--surface-3) 0 4px, var(--surface-2) 4px 8px);
+}
+
+.comp10__c b {
+  font-size: 0.86rem;
+}
+
+/* The module's materials in a session: slides, the module, the schematic. */
+.bahan {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bahan li {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.bahan__ic {
+  background: color-mix(in srgb, var(--m) 16%, transparent);
+  border-radius: 10px;
+  color: var(--m);
+  display: grid;
+  flex: none;
+  height: 36px;
+  place-items: center;
+  width: 36px;
+}
+
+.bahan li .stack {
+  min-width: 0;
+}

@@ -1,12 +1,15 @@
 /**
- * /dashboard (Phase 9 Stage 7g, mockup p-dash, p-journal, p-feedback): the
- * Praktikan's home, one island with three views.
+ * /dashboard (Phase 10, mockup d10-dasbor, d10-summary, d10-states; the
+ * feedback page from Phase 9's p-feedback): the Praktikan's home, one
+ * island with three views.
  *
- * - The dashboard by state. In their session: one key card (the next thing
- *   to do, from langkahBerikutnya), progress, the group, a small live card
- *   and the slides. Just after it ended: the feedback prompt and this
- *   session's result. Outside a session: every practicum. Nothing yet: a
- *   waiting card. Never a schedule or a time (Praktikan never see one).
+ * - The dashboard by state, under the group's star path (Modules 1 to 4:
+ *   done, now, next, not open yet). In their session, the ground station:
+ *   the cockpit (session clock, next step from langkahBerikutnya, three
+ *   segmented meters), the module's live instrument, the session log, the
+ *   group and the module's materials. Just after it ended: this session's
+ *   result and the feedback prompt. Outside a session: every practicum.
+ *   Nothing yet: a waiting card. Never a schedule (Praktikan never see one).
  * - `?view=summary&session=N`: the session summary. It opens by itself the
  *   moment the Asisten ends the running session.
  * - `?view=feedback&session=N`: the feedback page.
@@ -20,16 +23,27 @@ import {
   ChatCircleTextIcon,
   CheckCircleIcon,
   CheckIcon,
+  CircuitryIcon,
   DownloadSimpleIcon,
   PresentationChartIcon,
-  PulseIcon,
   SignInIcon,
-  TrophyIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
 import { StateView } from "../ui/Display";
 import Pill from "../ui/Pill";
-import { getJson, href, KELOMPOK_NAMA, MODUL_NAMA, useMe, useSessionNow } from "../../lib/app";
+import BackButton from "../ui/BackButton";
+import {
+  getJson,
+  href,
+  KELOMPOK_NAMA,
+  MODUL_NAMA,
+  menitBerjalan,
+  tanggalPanjang,
+  useMe,
+  useSessionNow,
+  useTick,
+  type SesiNow,
+} from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import { openSignIn } from "../../lib/signin";
 import { bacaProyektor, useProyektor } from "../../lib/proyektor";
@@ -39,11 +53,24 @@ import { NILAI_KOMPONEN } from "../../lib/nilai-komponen";
 import { namaAsisten } from "../../lib/people";
 import { getAksesState } from "../../scripts/modul-akses";
 import { readSetup } from "../module/SetupChecklist";
-import { useTelemetry } from "../live/useTelemetry";
 import { CaptureList, useTangkapan } from "../live/Capture";
 import { rataJurnal, type JRow } from "../../lib/jurnal-tabel";
 import { bahasaKonten, type Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
+import {
+  Arc,
+  Cells,
+  IdleClock,
+  Instrument,
+  Journey,
+  journeyFrom,
+  MissionClock,
+  Readout,
+  SessionLog,
+  Trace,
+  type LogItem,
+  type Stop,
+} from "../shared/Instruments";
 import FeedbackForm from "./FeedbackForm";
 import CoachMarks from "./CoachMarks";
 import { DS, type DashT } from "./dashStrings";
@@ -77,7 +104,7 @@ export interface Hasil {
   blank?: { benar: number; total: number };
   tangkapan?: number;
   delayRata?: number | null;
-  linimasa?: { pada: string; jenis: string; n?: number; dari?: number }[];
+  linimasa?: LogItem[];
   skor?: Partial<Record<string, number>> | null;
   rataRata?: number | null;
   lengkap?: boolean;
@@ -95,15 +122,13 @@ interface Praktikum {
 type View =
   { v: "home" } | { v: "summary"; sesi: number; ended?: boolean } | { v: "feedback"; sesi: number };
 
-const IOT_BOARD_URL = "http://192.168.4.1:8080/";
-
-/** "13:41" in lab time, the same in every language (mockup timeline). */
-const jam = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Jakarta",
-  });
+/** Which journal column each module's captured-data trace follows. */
+const TRACE_KEY: Record<number, { key: string; min: number; max: number; unit: string }> = {
+  1: { key: "oneway", min: 0, max: 100, unit: " ms" },
+  2: { key: "temp", min: 20, max: 35, unit: "°C" },
+  3: { key: "pos", min: 0, max: 100, unit: "%" },
+  4: { key: "rssi", min: -120, max: -50, unit: "" },
+};
 
 function readView(): View {
   const q = new URLSearchParams(location.search);
@@ -161,31 +186,6 @@ async function unduhSketsa(info: ModulInfo, lang: Lang) {
 
 /* ------------------------------------------------------------ cards */
 
-function Bar({ value, max }: { value: number; max: number }) {
-  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  return (
-    <span
-      className="meter"
-      role="progressbar"
-      aria-valuenow={pct}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      style={
-        { "--meter": pct, "--meter-hue": pct >= 100 ? "var(--ok)" : undefined } as CSSProperties
-      }
-    />
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="stat">
-      <span className="stat__value num">{value}</span>
-      <span className="stat__label">{label}</span>
-    </div>
-  );
-}
-
 function GroupCard({
   t,
   lang,
@@ -200,25 +200,29 @@ function GroupCard({
   const k = hasil?.kelompok;
   return (
     <section className="panel dash__card">
-      <h2 className="panel__title">{t.groupH}</h2>
+      <div className="panel__head">
+        <h2 className="panel__title">{t.groupH}</h2>
+        {k && (
+          <Pill group={k.nomor}>
+            {kelompokLabel(k.nomor, lang)}
+            {KELOMPOK_NAMA[k.nomor] ? ` · ${KELOMPOK_NAMA[k.nomor]}` : ""}
+          </Pill>
+        )}
+      </div>
       {k ? (
         <>
-          <span className="row">
-            <Pill group={k.nomor}>
-              {kelompokLabel(k.nomor, lang)}
-              {KELOMPOK_NAMA[k.nomor] ? ` · ${KELOMPOK_NAMA[k.nomor]}` : ""}
-            </Pill>
-          </span>
+          <ul className="crew">
+            {k.anggota.map((n) => (
+              <li key={n} data-me={n === me ? "yes" : "no"}>
+                <span className="crew__star" aria-hidden="true" />
+                <span className="grow">{n}</span>
+                {n === me && <Pill>{t.kamu}</Pill>}
+              </li>
+            ))}
+          </ul>
           <span className="hint">
             {t.asistenLine(hasil?.asisten ? namaAsisten(hasil.asisten) : t.belumAda)}
           </span>
-          <div className="dash__people">
-            {k.anggota.map((n) => (
-              <span key={n} className={n === me ? "person person--me" : "person"}>
-                {n}
-              </span>
-            ))}
-          </div>
         </>
       ) : (
         <span className="skeleton" style={{ height: 72 }} />
@@ -227,104 +231,53 @@ function GroupCard({
   );
 }
 
-function fmt(n: number | null | undefined, unit: string, digits = 0) {
-  return n == null || !Number.isFinite(n) ? "-" : `${n.toFixed(digits)} ${unit}`.trim();
-}
-
-function LiveCard({
-  t,
-  lang,
-  modul,
-  kelompok,
-  nim,
-}: {
-  t: DashT;
-  lang: Lang;
-  modul: number;
-  kelompok: number;
-  nim: string;
-}) {
-  const tel = useTelemetry(modul, kelompok, false, 2000);
-  const rows = tel.history;
-  const last = [...rows].reverse().find((r) => r.rx !== null);
-  const v = last?.nilai ?? {};
-  const delays = rows.map((r) => r.delayMs).filter((d): d is number => d != null);
-  const avg = delays.length ? delays.reduce((a, b) => a + b, 0) / delays.length : null;
-  const lost = rows.length ? (rows.filter((r) => r.rx === null).length / rows.length) * 100 : null;
-  const stats: [string, string][] =
-    modul === 2
-      ? [
-          [fmt(v.suhu, "°C", 1), t.stat.suhu],
-          [fmt(v.lembap, "%", 0), t.stat.lembap],
-        ]
-      : modul === 3
-        ? [
-            [fmt(v.posisi, "%", 0), t.stat.posisi],
-            [fmt(avg, "ms"), t.stat.delay],
-          ]
-        : modul === 4
-          ? [
-              [fmt(v.rssiHalus ?? last?.rssi, "dBm"), t.stat.rssi],
-              [fmt(v.jarak, "m", 1), t.stat.jarak],
-            ]
-          : [
-              [fmt(avg, "ms"), t.stat.delay],
-              [lost == null ? "-" : `${Math.round(lost)} %`, t.stat.hilang],
-            ];
-  return (
-    <section className="panel dash__card">
-      <div className="panel__head">
-        <h2 className="panel__title">{t.liveH}</h2>
-        <Pill tone={tel.live ? "ok" : undefined}>
-          {tel.live && <span className="dot dot--ok" aria-hidden="true" />}
-          {tel.live ? t.langsung : t.simulasi}
-        </Pill>
-      </div>
-      <div className="dash__stats">
-        {stats.map(([a, b]) => (
-          <Stat key={b} value={a} label={b} />
-        ))}
-      </div>
-      {modul === 4 && <p className="panel__sub">{t.huntHint}</p>}
-      <div className="panel__actions">
-        <a className="btn dash__live-cta" href={href(lang, `/modules/${modul}?step=live`)}>
-          <PulseIcon size={18} aria-hidden="true" />
-          {t.bukaLive}
-        </a>
-        {modul === 4 && (
-          <a
-            className="btn"
-            href={`${IOT_BOARD_URL}?nim=${encodeURIComponent(nim)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <TrophyIcon size={18} aria-hidden="true" />
-            {t.papanSkor}
-          </a>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/** The session module's slides: a PDF, a Canva design, or both (shell/SlidesDialog). */
-function SlidesCard({ t, lang, modul }: { t: DashT; lang: Lang; modul: number }) {
+/** The session module's materials: its slides (shell/SlidesDialog), the
+ *  module itself and its wiring schematic (the Code step's Pin dan Skema). */
+function MaterialsCard({ t, lang, modul }: { t: DashT; lang: Lang; modul: number }) {
   const { list, loaded } = useSlides(modul);
   const [open, setOpen] = useState(false);
   const p = list[0] ?? null;
   return (
-    <section className="panel dash__card">
-      <h2 className="panel__title">{t.slidesH}</h2>
-      <p className="panel__sub">
-        {modulLabel(modul, lang)} · {MODUL_NAMA[modul]}
-      </p>
-      {loaded && !p && <p className="hint">{t.slidesKosong}</p>}
-      <div className="panel__actions">
-        <button type="button" className="btn" disabled={!p} onClick={() => setOpen(true)}>
-          <PresentationChartIcon size={18} aria-hidden="true" />
-          {t.bukaSlides}
-        </button>
-      </div>
+    <section className="panel dash__card" style={{ "--m": `var(--mod-${modul})` } as CSSProperties}>
+      <h2 className="panel__title">{t.bahanH(modulLabel(modul, lang))}</h2>
+      <ul className="bahan">
+        <li>
+          <span className="bahan__ic" aria-hidden="true">
+            <PresentationChartIcon size={20} />
+          </span>
+          <span className="stack grow" style={{ gap: 0 }}>
+            <b>{t.bahanSlides}</b>
+            <span className="hint">{loaded && !p ? t.slidesKosong : t.bahanSlidesSub}</span>
+          </span>
+          <button type="button" className="btn btn--sm" disabled={!p} onClick={() => setOpen(true)}>
+            {t.buka}
+          </button>
+        </li>
+        <li>
+          <span className="bahan__ic" aria-hidden="true">
+            <BookOpenTextIcon size={20} />
+          </span>
+          <span className="stack grow" style={{ gap: 0 }}>
+            <b>{t.bahanModul}</b>
+            <span className="hint">{t.bahanModulSub}</span>
+          </span>
+          <a className="btn btn--sm" href={href(lang, `/modules/${modul}`)}>
+            {t.baca}
+          </a>
+        </li>
+        <li>
+          <span className="bahan__ic" aria-hidden="true">
+            <CircuitryIcon size={20} />
+          </span>
+          <span className="stack grow" style={{ gap: 0 }}>
+            <b>{t.bahanSkema}</b>
+            <span className="hint">{t.bahanSkemaSub}</span>
+          </span>
+          <a className="btn btn--sm" href={href(lang, `/modules/${modul}?step=code`)}>
+            {t.lihat}
+          </a>
+        </li>
+      </ul>
       <SlidesDialog open={open} onOpenChange={setOpen} list={list} modul={modul} lang={lang} />
     </section>
   );
@@ -361,23 +314,26 @@ function nextHref(l: Langkah, lang: Lang, modul: number): string {
   return href(lang, `/modules/${modul}?step=${step}`);
 }
 
+/** The ground station: cockpit, instrument, log; group and materials. */
 function Running({
   t,
   lang,
-  modul,
+  sesi,
   hasil,
   modules,
   me,
 }: {
   t: DashT;
   lang: Lang;
-  modul: number;
+  sesi: SesiNow;
   hasil: Hasil | null;
   modules: ModulInfo[];
   me: { nama: string; nim: string };
 }) {
+  const modul = sesi.modul;
   const [terbuka, setTerbuka] = useState<number[] | null>(null);
   const [, force] = useState(0);
+  const now = useTick(30_000);
   // The running session's module is always open to its own group (a TOT
   // dummy's comes through its journal list); the projector reads the
   // Asisten's list, which lacked it (2026-10-07: "Modul 1 belum dibuka"
@@ -407,11 +363,29 @@ function Running({
     sudahUmpanBalik: false,
   });
   const terkunci = terbuka && !terbuka.includes(modul) ? modul : null;
+  const durasi = sesi.durasiMenit ?? 120;
+  const sisa = durasi - menitBerjalan(sesi.mulaiPada, now);
   return (
-    <div className="dashgrid">
-      <section className="panel panel--key panel--raised dash__card dash__next">
-        <h2 className="panel__title">{t.nextH}</h2>
-        <p className="dash__lede">{nextLine(t, langkah, terkunci, lang)}</p>
+    <div className="gs">
+      <section className="panel panel--key panel--raised dash__card dash__next kokpit">
+        <div className="kokpit__top">
+          <MissionClock mulaiPada={sesi.mulaiPada} durasiMenit={durasi} size={128} lang={lang} />
+          <div className="stack stack--sm">
+            <span className="eyebrow">{t.nextEyebrow}</span>
+            <p className="kokpit__next">{nextLine(t, langkah, terkunci, lang)}</p>
+          </div>
+        </div>
+        {sisa <= 30 && sisa > 0 && (
+          <div className="kokpit__warn">
+            <WarningIcon size={18} aria-hidden="true" />
+            {t.warn30}
+          </div>
+        )}
+        <div className="stack stack--sm">
+          <Cells label={t.progSetup} a={setup} b={info?.persiapan ?? 0} tone="--ok" />
+          <Cells label={t.progBlank} a={blank.benar} b={blank.total} tone={`--mod-${modul}`} />
+          <Cells label={t.progTangkap} a={tangkap} b={target} tone="--violet" />
+        </div>
         <div className="panel__actions">
           <a className="btn btn--inverse btn--lg dash__cta" href={nextHref(langkah, lang, modul)}>
             {t.lanjut}
@@ -419,31 +393,26 @@ function Running({
           </a>
         </div>
       </section>
-      <section className="panel dash__card">
-        <h2 className="panel__title">{t.progresH}</h2>
-        {(
-          [
-            [t.progSetup, setup, info?.persiapan ?? 0],
-            [t.progBlank, blank.benar, blank.total],
-            [t.progTangkap, tangkap, target],
-          ] as const
-        ).map(([l, a, b]) => (
-          <div className="progrow" key={l}>
-            <span>{l}</span>
-            <Bar value={a} max={b} />
-            <b className="num">
-              {a}/{b}
-            </b>
-          </div>
-        ))}
+      {hasil?.kelompok ? (
+        <Instrument
+          m={modul}
+          kelompok={hasil.kelompok.nomor}
+          lang={lang}
+          title={t.liveH}
+          nim={me.nim}
+        />
+      ) : (
+        <span className="skeleton" style={{ minHeight: 320 }} />
+      )}
+      <section className="panel dash__card gs__log">
+        <div className="panel__head">
+          <h2 className="panel__title">{t.logH}</h2>
+          <span className="hint mono">{t.logHint}</span>
+        </div>
+        <SessionLog items={hasil?.linimasa ?? []} lang={lang} />
       </section>
       <GroupCard t={t} lang={lang} hasil={hasil} me={me.nama} />
-      {hasil?.kelompok ? (
-        <LiveCard t={t} lang={lang} modul={modul} kelompok={hasil.kelompok.nomor} nim={me.nim} />
-      ) : (
-        <span className="skeleton" style={{ minHeight: 200 }} />
-      )}
-      <SlidesCard t={t} lang={lang} modul={modul} />
+      <MaterialsCard t={t} lang={lang} modul={modul} />
     </div>
   );
 }
@@ -452,19 +421,34 @@ function jarakAda(h: Hasil | null): number {
   return h?.linimasa?.some((x) => x.jenis === "jarak") ? 1 : 0;
 }
 
-function Ended({ t, hasil, go }: { t: DashT; hasil: Hasil; go: (v: View) => void }) {
+function Ended({
+  t,
+  lang,
+  hasil,
+  go,
+}: {
+  t: DashT;
+  lang: Lang;
+  hasil: Hasil;
+  go: (v: View) => void;
+}) {
   const id = hasil.sesi!.id;
+  const modul = hasil.sesi!.modul;
   return (
     <div className="dash__pair">
-      <section className="panel panel--key panel--raised dash__card">
+      <section
+        className="panel panel--key panel--raised dash__card ended10"
+        style={{ "--m": `var(--mod-${modul})` } as CSSProperties}
+      >
+        <span className="ended10__burst" aria-hidden="true" />
         <span className="row">
           <Pill tone="ok">
             <CheckIcon size={14} aria-hidden="true" />
             {t.endedBadge}
           </Pill>
         </span>
-        <h2 className="dash__h">{t.endedH}</h2>
-        <p className="dash__lede">{t.endedP}</p>
+        <h2 className="dash__h">{t.endedPath(modulLabel(modul, lang))}</h2>
+        <p className="dash__lede">{t.endedAsk}</p>
         <div className="panel__actions">
           {!hasil.sudahUmpanBalik && (
             <button
@@ -484,12 +468,14 @@ function Ended({ t, hasil, go }: { t: DashT; hasil: Hasil; go: (v: View) => void
       </section>
       <section className="panel dash__card">
         <h2 className="panel__title">{t.hasilH}</h2>
-        <div className="dash__stats">
-          <Stat
-            value={`${hasil.blank?.benar ?? 0}/${hasil.blank?.total ?? 0}`}
+        <div className="readouts">
+          <Readout
+            v={hasil.blank?.benar ?? 0}
+            unit={`/${hasil.blank?.total ?? 0}`}
             label={t.blankBenar}
           />
-          <Stat value={String(hasil.tangkapan ?? 0)} label={t.tangkapanSimpan} />
+          <Readout v={hasil.tangkapan ?? 0} unit="" label={t.tangkapanSimpan} />
+          <Readout v={hasil.delayRata ?? null} unit=" ms" label={t.delayRata} />
         </div>
         {hasil.rataRata != null ? (
           <Scores hasil={hasil} t={t} />
@@ -520,6 +506,7 @@ function Scores({ hasil, t }: { hasil: Hasil; t: DashT }) {
   );
 }
 
+/** Every practicum attended, newest first, each opening its summary. */
 function Practicums({
   t,
   lang,
@@ -531,52 +518,61 @@ function Practicums({
   list: Praktikum[];
   go: (v: View) => void;
 }) {
+  const rows = [...list].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
   return (
     <section className="panel">
       <h2 className="panel__title">{t.prakH}</h2>
-      <div className="stack stack--sm">
-        {[1, 2, 3, 4].map((m) => {
-          const p = list.find((x) => x.modul === m);
-          return (
-            <div className="pracrow" key={m} style={{ "--m": `var(--mod-${m})` } as CSSProperties}>
-              <Pill modul={m}>{modulLabel(m, lang)}</Pill>
-              <b className="grow">{MODUL_NAMA[m]}</b>
-              {!p ? (
-                <span className="hint">{t.belumIkut}</span>
+      <ul className="pracs">
+        {rows.map((p) => (
+          <li
+            className="prac"
+            key={p.sesiId}
+            style={{ "--m": `var(--mod-${p.modul})` } as CSSProperties}
+          >
+            <span className="prac__star" aria-hidden="true">
+              <CheckIcon size={14} weight="bold" />
+            </span>
+            <span className="stack" style={{ gap: 2 }}>
+              <b>
+                {modulLabel(p.modul, lang)} · {MODUL_NAMA[p.modul]}
+              </b>
+              <span className="hint">{tanggalPanjang(p.tanggal, lang)}</span>
+            </span>
+            <span className="grow" />
+            {p.status !== "selesai" ? (
+              <Pill tone="ok">{t.berjalan}</Pill>
+            ) : p.rataRata != null ? (
+              <span className="prac__score">
+                <b className="mono">{p.rataRata}</b>
+                <small>{t.rataSingkat}</small>
+              </span>
+            ) : (
+              <span className="hint">{t.menungguNilai}</span>
+            )}
+            {p.status === "selesai" &&
+              (p.sudahUmpanBalik ? (
+                <Pill tone="ok">{t.umpanTerkirim}</Pill>
               ) : (
-                <>
-                  {p.status !== "selesai" ? (
-                    <Pill tone="ok">{t.berjalan}</Pill>
-                  ) : p.rataRata != null ? (
-                    <span className="num dash__score">{p.rataRata}</span>
-                  ) : (
-                    <span className="hint">{t.menungguNilai}</span>
-                  )}
-                  {p.status === "selesai" &&
-                    (p.sudahUmpanBalik ? (
-                      <Pill tone="ok">{t.umpanTerkirim}</Pill>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn--sm"
-                        onClick={() => go({ v: "feedback", sesi: p.sesiId })}
-                      >
-                        {t.beriUmpan}
-                      </button>
-                    ))}
-                  <a
-                    className="iconbtn iconbtn--sm"
-                    href={href(lang, `/modules/${m}`)}
-                    aria-label={t.bukaRiwayat(modulLabel(m, lang))}
-                  >
-                    <ArrowRightIcon size={18} aria-hidden="true" />
-                  </a>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                <button
+                  type="button"
+                  className="btn btn--sm"
+                  onClick={() => go({ v: "feedback", sesi: p.sesiId })}
+                >
+                  <ChatCircleTextIcon size={16} aria-hidden="true" />
+                  {t.beriUmpan}
+                </button>
+              ))}
+            <button
+              type="button"
+              className="iconbtn iconbtn--sm"
+              aria-label={t.bukaRingkasan}
+              onClick={() => go({ v: "summary", sesi: p.sesiId })}
+            >
+              <ArrowRightIcon size={18} aria-hidden="true" />
+            </button>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -599,25 +595,28 @@ function Waiting({
   return (
     <div className="dash__pair">
       <section className="panel panel--key panel--raised dash__card">
-        <span className="row">
-          <span className={ikut ? "dot dot--ok dot--pulse" : "dot dot--warn"} aria-hidden="true" />
-        </span>
-        <h2 className="dash__h">{ikut ? t.ikutH : t.waitH}</h2>
-        <p className="dash__lede">{ikut ? t.ikutP : t.waitP}</p>
+        <div className="kokpit__top">
+          <IdleClock size={112} lang={lang} />
+          <div className="stack stack--sm">
+            <h2 className="dash__h">{ikut ? t.ikutH : t.waitH}</h2>
+            <p className="dash__lede">{ikut ? t.ikutP : t.waitP}</p>
+          </div>
+        </div>
         <div className="panel__actions">
-          <a className="btn" href={href(lang, "/modules")}>
-            <BookOpenTextIcon size={18} aria-hidden="true" />
-            {t.bacaDulu}
-          </a>
-          {ikut && (
+          {ikut ? (
             <button
               type="button"
-              className="btn btn--primary"
+              className="btn btn--primary btn--lg"
               onClick={() => openSignIn(undefined, { ikut: true })}
             >
               <SignInIcon size={18} aria-hidden="true" />
               {t.ikutBtn}
             </button>
+          ) : (
+            <a className="btn" href={href(lang, "/modules")}>
+              <BookOpenTextIcon size={18} aria-hidden="true" />
+              {t.bacaDulu}
+            </a>
           )}
         </div>
       </section>
@@ -673,11 +672,17 @@ function Summary({
   }
   const info = modules.find((m) => m.modul === modul);
   const rows = (cap.rows ?? []).filter((r) => r.sesiId === sesi);
-  const lini = h.linimasa ?? [];
   // The Pi's own average when it has one, else the saved journal table's.
   const paket = rows.find((r) => r.jenis === "paket");
   const delay =
     h.delayRata ?? (paket ? (rataJurnal(modul, paket.baris as JRow[])[0] ?? null) : null);
+  const tk = TRACE_KEY[modul];
+  const series = tk
+    ? rows
+        .filter((r) => r.jenis === "paket")
+        .flatMap((r) => (r.baris as JRow[]).map((b) => Number(b[tk.key])))
+        .filter((x) => Number.isFinite(x))
+    : [];
   return (
     <div className="stack stack--lg dash__summary">
       {ended && (
@@ -687,12 +692,16 @@ function Summary({
           <span className="hint">{t.endBannerHint}</span>
         </div>
       )}
+      <BackButton lang={lang} label={t.kembali} onClick={() => go({ v: "home" })} />
       <div className="dash__sumhead">
         <div className="stack stack--sm">
+          <span className="eyebrow">
+            {t.sumEyebrow} · {tanggalPanjang(h.sesi.tanggal, lang)}
+          </span>
           <span className="row">
-            <Pill modul={modul} lg>
-              {modulLabel(modul, lang)}
-            </Pill>
+            <h1 className="page-header__title">
+              {modulLabel(modul, lang)} · {MODUL_NAMA[modul]}
+            </h1>
             {h.sesi.status === "selesai" && (
               <Pill tone="ok">
                 <CheckIcon size={14} aria-hidden="true" />
@@ -700,7 +709,6 @@ function Summary({
               </Pill>
             )}
           </span>
-          <h1 className="page-header__title">{t.ringkasanH}</h1>
         </div>
         <div className="row dash__sumtools">
           {info && bolehUnduh && (
@@ -726,34 +734,83 @@ function Summary({
           )}
         </div>
       </div>
-      <div className="dash__sumstats">
-        <Stat value={h.rataRata != null ? String(h.rataRata) : t.menunggu} label={t.nilaiDari} />
-        <Stat value={`${h.blank?.benar ?? 0}/${h.blank?.total ?? 0}`} label={t.blankBenar} />
-        <Stat value={delay != null ? `${Math.round(delay)} ms` : "-"} label={t.delayRata} />
-        <Stat value={String(h.tangkapan ?? 0)} label={t.tangkapanSimpan} />
+      <div className="dash__pair">
+        <section
+          className="panel panel--raised"
+          style={{ "--m": `var(--mod-${modul})` } as CSSProperties}
+        >
+          <div className="panel__head">
+            <h2 className="panel__title">{t.nilaiH}</h2>
+            {h.kelompok && (
+              <Pill group={h.kelompok.nomor}>
+                {kelompokLabel(h.kelompok.nomor, lang)}
+                {KELOMPOK_NAMA[h.kelompok.nomor] ? ` · ${KELOMPOK_NAMA[h.kelompok.nomor]}` : ""}
+              </Pill>
+            )}
+          </div>
+          {h.rataRata != null ? (
+            <>
+              <div className="scorebig">
+                <Arc
+                  v={h.rataRata}
+                  min={0}
+                  max={100}
+                  unit=""
+                  label={t.rataSingkat}
+                  color={`--mod-${modul}`}
+                />
+              </div>
+              <div className="comp10">
+                {NILAI_KOMPONEN.map((k) => {
+                  const v = h.skor?.[k];
+                  return (
+                    <div className="comp10__c" key={k} data-none={v == null ? "yes" : "no"}>
+                      <small className="mono">{k}</small>
+                      <span className="comp10__bar">
+                        <i style={{ height: `${v ?? 0}%` }} />
+                      </span>
+                      <b className="mono">{v ?? "-"}</b>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <span className="hint">{t.nilaiNanti}</span>
+          )}
+          <div className="readouts">
+            <Readout
+              v={h.blank?.benar ?? 0}
+              unit={`/${h.blank?.total ?? 0}`}
+              label={t.blankBenar}
+            />
+            <Readout v={delay} unit=" ms" label={t.delayRata} />
+            <Readout v={h.tangkapan ?? 0} unit="" label={t.tangkapanSimpan} />
+          </div>
+        </section>
+        <section className="panel">
+          <h2 className="panel__title">{t.logIniH}</h2>
+          <SessionLog items={h.linimasa ?? []} lang={lang} max={9} />
+        </section>
       </div>
-      <section className="panel">
-        <h2 className="panel__title">{t.tangkapanH}</h2>
+      <section className="panel" style={{ "--m": `var(--mod-${modul})` } as CSSProperties}>
+        <h2 className="panel__title">{t.dataH}</h2>
+        {tk && series.length > 1 && (
+          <Trace
+            values={series}
+            min={tk.min}
+            max={tk.max}
+            unit={tk.unit}
+            color={`--mod-${modul}`}
+            label={t.tangkapanH}
+            h={96}
+          />
+        )}
         {cap.rows === null ? (
           <span className="skeleton" style={{ height: 160 }} />
         ) : (
           <CaptureList lang={lang} modul={modul} rows={rows} />
         )}
-      </section>
-      <section className="panel">
-        <h2 className="panel__title">{t.riwayatH}</h2>
-        <div className="dash__timeline">
-          {lini.map((x, i) => (
-            <div className="dash__trow" key={i}>
-              <span className="mono hint">{jam(x.pada)}</span>
-              <span>
-                {x.jenis === "blank"
-                  ? t.linimasa.blank(x.n ?? 0, x.dari ?? 0)
-                  : (t.linimasa[x.jenis as "masuk" | "tangkap" | "jarak" | "selesai"] ?? x.jenis)}
-              </span>
-            </div>
-          ))}
-        </div>
       </section>
       <span className="hint">{t.nantiRiwayat}</span>
     </div>
@@ -764,10 +821,9 @@ function SummarySkeleton() {
   return (
     <div className="stack stack--lg" aria-busy="true">
       <span className="skeleton" style={{ height: 46, width: "60%" }} />
-      <div className="dash__sumstats">
-        {[0, 1, 2, 3].map((i) => (
-          <span key={i} className="skeleton" style={{ height: 96 }} />
-        ))}
+      <div className="dash__pair">
+        <span className="skeleton" style={{ height: 320 }} />
+        <span className="skeleton" style={{ height: 320 }} />
       </div>
       <span className="skeleton" style={{ height: 220 }} />
     </div>
@@ -899,12 +955,18 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
 
   if (me === undefined || (praktikan && hasilPoll.updatedAt === null && hasilPoll.errors === 0)) {
     return (
-      <div className="dash" aria-busy="true">
-        <span className="skeleton" style={{ height: 64, maxWidth: 420 }} />
-        <div className="dashgrid">
-          <span className="skeleton dash__next" style={{ height: 200 }} />
-          <span className="skeleton" style={{ height: 200 }} />
-          <span className="skeleton" style={{ height: 200 }} />
+      <div className="dash dash10" aria-busy="true">
+        <div className="dash10__head" data-grid="gs">
+          <div className="stack stack--sm">
+            <span className="skeleton" style={{ height: 18, width: 160 }} />
+            <span className="skeleton" style={{ height: 44, width: 260 }} />
+          </div>
+          <span className="skeleton" style={{ height: 118 }} />
+        </div>
+        <div className="gs">
+          <span className="skeleton" style={{ height: 320 }} />
+          <span className="skeleton" style={{ height: 320 }} />
+          <span className="skeleton" style={{ height: 320 }} />
         </div>
       </div>
     );
@@ -929,7 +991,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
 
   if (view.v === "summary")
     return (
-      <div className="dash">
+      <div className="dash dash10">
         <Summary t={t} lang={lang} sesi={view.sesi} ended={view.ended} modules={modules} go={go} />
       </div>
     );
@@ -968,7 +1030,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
   if (belumIkut) {
     body = (
       <>
-        <Waiting t={t} lang={lang} hasil={null} me={me.nama} ikut />
+        <Waiting t={t} lang={lang} hasil={hasil ?? null} me={me.nama} ikut />
         {list.length > 0 && <Practicums t={t} lang={lang} list={list} go={go} />}
       </>
     );
@@ -977,7 +1039,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
       <Running
         t={t}
         lang={lang}
-        modul={sesi.modul}
+        sesi={sesi}
         hasil={hasil?.sesi?.status === "berjalan" ? hasil : null}
         modules={modules}
         me={me}
@@ -986,27 +1048,52 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
   } else if (endedToday) {
     body = (
       <>
-        <Ended t={t} hasil={endedToday} go={go} />
+        <Ended t={t} lang={lang} hasil={endedToday} go={go} />
         {list.length > 0 && <Practicums t={t} lang={lang} list={list} go={go} />}
       </>
     );
   } else if (list.length > 0) {
     body = <Practicums t={t} lang={lang} list={list} go={go} />;
   } else {
-    body = <Waiting t={t} lang={lang} hasil={null} me={me.nama} />;
+    body = <Waiting t={t} lang={lang} hasil={hasil ?? null} me={me.nama} />;
   }
 
+  const mods = journeyFrom(list, sesi?.modul ?? null);
+  const pick = (x: Stop) => {
+    const p = list.find((y) => y.modul === x.m && y.status === "selesai");
+    if (x.state === "done" && p) go({ v: "summary", sesi: p.sesiId });
+    else location.assign(href(lang, `/modules/${x.m}`));
+  };
+
   return (
-    <div className="dash" style={k ? ({ "--g": `var(--group-${k})` } as CSSProperties) : undefined}>
-      <header className="page-header">
-        {k ? (
-          <span className="page-header__eyebrow">
-            {kelompokLabel(k, lang)}
-            {KELOMPOK_NAMA[k] ? ` · ${KELOMPOK_NAMA[k]}` : ""}
-          </span>
-        ) : null}
-        <h1 className="page-header__title">{t.halo(nama)}</h1>
-      </header>
+    <div
+      className="dash dash10"
+      style={k ? ({ "--g": `var(--group-${k})` } as CSSProperties) : undefined}
+    >
+      <div className="dash10__head" data-grid={sesi ? "gs" : "g2"}>
+        <header className="page-header">
+          {k ? (
+            <span className="page-header__eyebrow">
+              {kelompokLabel(k, lang)}
+              {KELOMPOK_NAMA[k] ? ` · ${KELOMPOK_NAMA[k]}` : ""}
+            </span>
+          ) : null}
+          <h1 className="page-header__title">{t.halo(nama)}</h1>
+        </header>
+        <div
+          className="panel dash10__journey"
+          data-ignite={endedToday ? endedToday.sesi!.modul : 0}
+        >
+          <span className="eyebrow">{t.jejak}</span>
+          <Journey
+            mods={mods}
+            compact={Boolean(sesi)}
+            onPick={pick}
+            lang={lang}
+            names={MODUL_NAMA}
+          />
+        </div>
+      </div>
       {body}
       {sesi && !pro && <CoachMarks lang={lang} />}
     </div>

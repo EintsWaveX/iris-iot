@@ -1,7 +1,9 @@
 /**
  * GET /api/session/lab (Phase 9, Home concept A): "In the lab now". Public,
  * so the Home page shows it to guests too. Only counts and the module leave
- * this route: no names, no NIMs, no group numbers. With `?saya=1` an Asisten
+ * this route: no names and no NIMs. Phase 10's lab sky adds each group's
+ * blanks filled, by group number only (the group names are the fixed
+ * constellation names, never people). With `?saya=1` an Asisten
  * also gets the group numbers they hold, the session id and who holds each
  * group (Lihat Sebagai Praktikan); that URL is never cached by the CDN, so
  * the plain one stays one shared response for every visitor.
@@ -20,6 +22,7 @@ import {
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { durasiSesi } from "../../src/lib/jadwal.js";
+import { jumlahCelahModul, kodeModul } from "./kode-aktif.js";
 import { and, eq, ne, sql } from "drizzle-orm";
 
 export interface LabSekarang {
@@ -32,6 +35,10 @@ export interface LabSekarang {
   anggota: number;
   blank: number;
   pesan: number;
+  /** The module's blanks per group (the lab sky's full star). */
+  celah: number;
+  /** Blanks filled per group number, every group of the session listed. */
+  bintang: { nomor: number; terisi: number }[];
 }
 
 export async function handleLab(req: ApiRequest, res: ApiResponse) {
@@ -43,7 +50,7 @@ export async function handleLab(req: ApiRequest, res: ApiResponse) {
   }
   const db = getDb();
   const n = sql<number>`count(*)::int`;
-  const [[hadir], [anggota], [blank], [pesan]] = await Promise.all([
+  const [[hadir], [anggota], [blank], [pesan], perKelompok, kode] = await Promise.all([
     db
       .select({ n: sql<number>`count(distinct ${percobaanMasuk.nim})::int` })
       .from(percobaanMasuk)
@@ -60,7 +67,20 @@ export async function handleLab(req: ApiRequest, res: ApiResponse) {
       .from(jawaban)
       .where(and(eq(jawaban.sesiId, s.id), ne(jawaban.isi, ""))),
     db.select({ n }).from(telemetriLog).where(eq(telemetriLog.sesiId, s.id)),
+    db
+      .select({ nomor: kelompok.nomor, n })
+      .from(jawaban)
+      .innerJoin(kelompok, eq(kelompok.id, jawaban.kelompokId))
+      .where(and(eq(jawaban.sesiId, s.id), ne(jawaban.isi, "")))
+      .groupBy(kelompok.nomor),
+    kodeModul(s.modul),
   ]);
+  const jumlah = s.jumlahKelompok ?? 5;
+  const terisi = new Map(perKelompok.map((r) => [r.nomor, r.n]));
+  const bintang = Array.from({ length: jumlah }, (_, i) => ({
+    nomor: i + 1,
+    terisi: terisi.get(i + 1) ?? 0,
+  }));
 
   const who = currentSession(req);
   let pegang: number[] | undefined;
@@ -91,11 +111,13 @@ export async function handleLab(req: ApiRequest, res: ApiResponse) {
     kelas: s.kelas === "internasional" ? "internasional" : "reguler",
     mulaiPada: (s.mulaiPada ?? s.dibuatPada).toISOString(),
     durasiMenit: durasiSesi(s),
-    kelompok: s.jumlahKelompok ?? 5,
+    kelompok: jumlah,
     hadir: hadir?.n ?? 0,
     anggota: anggota?.n ?? 0,
     blank: blank?.n ?? 0,
     pesan: pesan?.n ?? 0,
+    celah: jumlahCelahModul(kode),
+    bintang,
   };
   // The per-viewer answer must not be shared by the CDN.
   if (req.query.saya === "1") res.setHeader("Cache-Control", "private, no-store");

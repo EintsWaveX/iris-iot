@@ -1,27 +1,28 @@
 /**
- * Home, concept A "The lab right now" (Phase 9 Stage 7, mockup h-home).
- * The hero card changes with who is looking: a guest gets Sign In, a
- * Praktikan in a session gets Continue Module N, an Asisten gets the
- * Console. Next to it, what is happening in the lab now (public counts from
- * /api/session/lab), then how a session runs and one lane per module.
- * Praktikan never see a schedule here.
+ * Home, Phase 10 (mockup h10-home): the lab as a sky. Each group in the
+ * running session is a star that brightens with its blanks filled, drawn
+ * over the running module's constellation (public counts from
+ * /api/session/lab). The card under the title changes with who is looking:
+ * a guest gets Sign In, a Praktikan in a session gets the session clock and
+ * Continue Module N, a Praktikan without one gets their star path, an
+ * Asisten gets the clock or their next slot. Under it the four modules as
+ * four constellations and the path of one session. Praktikan never see a
+ * schedule here.
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import {
   ArrowRightIcon,
   BookOpenTextIcon,
-  ChatsCircleIcon,
+  ChatCircleTextIcon,
   CheckIcon,
   CircuitryIcon,
   DoorOpenIcon,
-  FilePdfIcon,
 } from "@phosphor-icons/react";
 import {
   getJson,
   href,
   KELOMPOK_NAMA,
   MODUL_NAMA,
-  menitBerjalan,
   useMe,
   useSessionNow,
   useTick,
@@ -34,6 +35,7 @@ import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
 import { hariLabel, kelasLabel, kelompokLabel, modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import Pill from "../ui/Pill";
+import { Journey, journeyFrom, MissionClock, ModConstellation } from "../shared/Instruments";
 import { H, LANES } from "./homeStrings";
 import "../ui/Display.css";
 import "./home.css";
@@ -50,7 +52,36 @@ interface Lab {
   anggota: number;
   blank: number;
   pesan: number;
+  celah?: number;
+  bintang?: { nomor: number; terisi: number }[];
 }
+
+interface Praktikum {
+  sesiId: number;
+  modul: number;
+  status: string;
+  rataRata: number | null;
+}
+
+/** Where each group's star sits in the sky (100 x 60). */
+const SPOTS: [number, number][] = [
+  [14, 16],
+  [33, 40],
+  [52, 12],
+  [70, 36],
+  [88, 18],
+  [86, 46],
+];
+const LINES: [number, number][] = [
+  [0, 2],
+  [2, 4],
+  [1, 3],
+  [0, 1],
+  [3, 4],
+  [2, 3],
+  [3, 5],
+  [4, 5],
+];
 
 function menitWib(): number {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -73,31 +104,31 @@ function daftarKelompok(list: number[], lang: Lang): string {
   return `${[head, ...rest].join(", ")} ${H[lang].and} ${last}`;
 }
 
-function Lane({ m, via }: { m: number; via?: boolean }) {
-  const l = LANES[m - 1];
-  return (
-    <div className="lane" style={{ "--m": `var(--mod-${m})` } as CSSProperties} aria-hidden="true">
-      <span className="lane__node">{l.a}</span>
-      <span className="lane__wire">
-        <i />
-        <i />
-        <i />
-        {via && <b>{l.via}</b>}
-      </span>
-      <span className="lane__node">{l.b}</span>
-    </div>
-  );
-}
-
 function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: number[] }) {
   const t = H[lang];
   // Projector mode draws the Asisten as a Praktikan of the projected group.
   const me = useTampil(useMe());
-  const now = useSessionNow(30_000, me?.role === "praktikan");
+  const praktikan = me?.role === "praktikan";
+  const now = useSessionNow(30_000, praktikan);
   useTick(30_000);
   const [next, setNext] = useState<SlotBerikutnya | null | undefined>(undefined);
   // A cover or a schedule change moves the next slot (live updates).
   const segarJadwal = useSegar(["jadwal", "tim"], me?.role === "asisten");
+  const s = now.data;
+  const mine = Boolean(s && s.milikSaya !== false);
+  const hasil = usePoll(
+    () =>
+      getJson<{ ok: boolean; blank?: { benar: number; total: number } }>("/api/session/results"),
+    60_000,
+    praktikan && mine,
+    ["jawaban", "sesi"],
+  );
+  const riwayat = usePoll(
+    () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
+    120_000,
+    praktikan && !mine,
+    ["sesi"],
+  );
 
   useEffect(() => {
     if (me?.role !== "asisten") return;
@@ -131,11 +162,13 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
 
   if (me.role === "praktikan") {
     const k = me.kelompok ?? 0;
-    const s = now.data;
-    const mine = s && s.milikSaya !== false;
-    if (!mine) {
+    if (!mine || !s) {
+      const list = riwayat.data?.ok ? riwayat.data.praktikum : [];
       return (
-        <div className="panel panel--key home__role">
+        <div
+          className="panel panel--key bridge"
+          style={{ "--g": `var(--group-${k || 1})` } as CSSProperties}
+        >
           {k > 0 && (
             <div className="row">
               <Pill group={k}>
@@ -144,6 +177,7 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
             </div>
           )}
           <p className="panel__sub">{t.noSessionP}</p>
+          <Journey compact mods={journeyFrom(list, null)} lang={lang} names={MODUL_NAMA} />
           <div className="panel__actions">
             <a className="btn btn--inverse btn--lg" href={href(lang, "/dashboard")}>
               {t.dasbor}
@@ -153,32 +187,36 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
         </div>
       );
     }
-    const durasi = s.durasiMenit ?? 120;
-    const jalan = menitBerjalan(s.mulaiPada);
+    const b = hasil.data?.ok ? hasil.data.blank : undefined;
+    const sisa = b ? Math.max(0, b.total - b.benar) : null;
     return (
       <div
-        className="panel panel--key home__role"
+        className="panel panel--key bridge"
         style={{ "--g": `var(--group-${k || 1})` } as CSSProperties}
       >
-        <div className="row">
-          <span className="dot dot--ok dot--pulse" aria-hidden="true" />
-          <Pill tone="ok">{t.inPracticum}</Pill>
-          {k > 0 && (
-            <Pill group={k}>
-              {kelompokLabel(k, lang)} · {KELOMPOK_NAMA[k]}
-            </Pill>
-          )}
-        </div>
-        <h2 className="home__h2">
-          {modulLabel(s.modul, lang)} · {MODUL_NAMA[s.modul]}
-        </h2>
-        <div className="row row--nowrap">
-          <span
-            className="meter grow"
-            style={{ "--meter": Math.min(100, (jalan / durasi) * 100) } as CSSProperties}
-            aria-hidden="true"
+        <div className="bridge__top">
+          <MissionClock
+            mulaiPada={s.mulaiPada}
+            durasiMenit={s.durasiMenit ?? 120}
+            size={104}
+            lang={lang}
           />
-          <span className="num hint">{t.left(Math.max(0, durasi - jalan))}</span>
+          <div className="stack stack--sm">
+            <div className="row">
+              <Pill tone="ok">{t.inPracticum}</Pill>
+              {k > 0 && (
+                <Pill group={k}>
+                  {kelompokLabel(k, lang)} · {KELOMPOK_NAMA[k]}
+                </Pill>
+              )}
+            </div>
+            <h2 className="home__h2">
+              {modulLabel(s.modul, lang)} · {MODUL_NAMA[s.modul]}
+            </h2>
+            {sisa !== null && (
+              <span className="hint">{sisa > 0 ? t.nextBlank(sisa) : t.nextLive}</span>
+            )}
+          </div>
         </div>
         <div className="panel__actions">
           <a className="btn btn--inverse btn--lg" href={href(lang, `/modules/${s.modul}`)}>
@@ -199,22 +237,29 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
       ? null
       : undefined;
   return (
-    <div className="panel panel--key home__role">
+    <div className="panel panel--key bridge">
       {lab ? (
-        <>
-          <div className="row">
-            <span className="dot dot--ok dot--pulse" aria-hidden="true" />
-            <Pill tone="ok">{t.running}</Pill>
-            <Pill>{kelasLabel(lab.kelas, lang)}</Pill>
+        <div className="bridge__top">
+          <MissionClock
+            mulaiPada={lab.mulaiPada}
+            durasiMenit={lab.durasiMenit}
+            size={104}
+            lang={lang}
+          />
+          <div className="stack stack--sm">
+            <div className="row">
+              <Pill tone="ok">{t.running}</Pill>
+              <Pill>{kelasLabel(lab.kelas, lang)}</Pill>
+            </div>
+            <h2 className="home__h2">
+              {modulLabel(lab.modul, lang)} · {MODUL_NAMA[lab.modul]}
+            </h2>
+            <span className="hint">
+              {pegang.length ? t.hold(daftarKelompok(pegang, lang)) : t.holdNone}
+              {nextText ? ` ${t.nextSlot(nextText)}` : ""}
+            </span>
           </div>
-          <h2 className="home__h2">
-            {modulLabel(lab.modul, lang)} · {MODUL_NAMA[lab.modul]}
-          </h2>
-          <p className="panel__sub">
-            {pegang.length ? t.hold(daftarKelompok(pegang, lang)) : t.holdNone}
-            {nextText ? ` ${t.nextSlot(nextText)}` : ""}
-          </p>
-        </>
+        </div>
       ) : (
         <>
           <span className="label-caps">{t.nextTitle}</span>
@@ -259,54 +304,137 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
   );
 }
 
-function LiveNow({ lang, lab }: { lang: Lang; lab: Lab | null | undefined }) {
+/** The lab sky: the module's devices faint behind, the groups in front. */
+function LabSky({
+  lang,
+  lab,
+  mine,
+  holder,
+}: {
+  lang: Lang;
+  lab: Lab | null | undefined;
+  mine: number[];
+  holder: "praktikan" | "asisten" | null;
+}) {
   const t = H[lang];
   if (lab === undefined) {
-    return <span className="skeleton home__live" style={{ minHeight: 280 }} />;
+    return <span className="skeleton labsky" style={{ minHeight: 320 }} />;
   }
   if (!lab) {
     return (
-      <section className="panel panel--raised home__live">
+      <section className="panel panel--raised labsky" data-quiet="yes">
         <div className="panel__head">
-          <h2 className="panel__title">{t.labNow}</h2>
+          <h2 className="panel__title">{t.sky}</h2>
           <Pill>{t.quiet}</Pill>
         </div>
-        <p className="panel__sub">{t.quietBody}</p>
-        <Lane m={3} />
+        <div className="labsky__field labsky__field--quiet">
+          {[1, 2, 3, 4].map((m) => (
+            <div
+              className="labsky__mini"
+              key={m}
+              style={{ "--m": `var(--mod-${m})` } as CSSProperties}
+            >
+              <ModConstellation m={m} h={70} lang={lang} />
+              <span>{modulLabel(m, lang)}</span>
+            </div>
+          ))}
+        </div>
+        <p className="panel__sub">{t.skyQuiet}</p>
       </section>
     );
   }
+  const celah = lab.celah ?? 0;
+  const bintang = lab.bintang ?? [];
+  const spots = bintang.map((_, i) => SPOTS[i % SPOTS.length]);
   const stats: [string, string][] = [
     [String(lab.kelompok), t.groups],
     [lab.anggota ? `${lab.hadir}/${lab.anggota}` : String(lab.hadir), t.here],
-    [String(lab.blank), t.blanks],
+    [celah ? t.blankOf(lab.blank, celah * lab.kelompok) : String(lab.blank), t.blanks],
     [String(lab.pesan), t.pesan(lab.modul)],
   ];
   return (
-    <section className="panel panel--raised home__live">
+    <section
+      className="panel panel--raised labsky"
+      style={{ "--m": `var(--mod-${lab.modul})` } as CSSProperties}
+    >
       <div className="panel__head">
-        <h2 className="panel__title">{t.labNow}</h2>
-        <Pill tone="ok">
-          <span className="dot dot--ok" aria-hidden="true" />
-          {t.live}
-        </Pill>
+        <h2 className="panel__title">{t.sky}</h2>
+        <div className="panel__badges">
+          <Pill modul={lab.modul}>
+            {modulLabel(lab.modul, lang)} · {MODUL_NAMA[lab.modul]}
+          </Pill>
+          <Pill tone="ok">
+            <span className="dot dot--ok dot--pulse" aria-hidden="true" />
+            {t.live}
+          </Pill>
+        </div>
       </div>
-      <div className="row">
-        <Pill modul={lab.modul} lg>
-          {modulLabel(lab.modul, lang)}
-        </Pill>
-        <b>{MODUL_NAMA[lab.modul]}</b>
-        <span className="hint">{kelasLabel(lab.kelas, lang)}</span>
+      <div className="labsky__field">
+        <div className="labsky__bg">
+          <ModConstellation m={lab.modul} h={220} lang={lang} />
+        </div>
+        <svg
+          className="labsky__groups"
+          viewBox="0 0 100 60"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={t.skyAria}
+        >
+          {LINES.filter(([a, b]) => a < spots.length && b < spots.length).map(([a, b]) => (
+            <line
+              key={`${a}-${b}`}
+              className="gstar__line"
+              x1={spots[a][0]}
+              y1={spots[a][1]}
+              x2={spots[b][0]}
+              y2={spots[b][1]}
+            />
+          ))}
+          {bintang.map((g, i) => {
+            const [x, y] = spots[i];
+            const p = celah ? Math.min(1, g.terisi / celah) : 0;
+            const me = mine.includes(g.nomor);
+            const r = 1.6 + p * 2.2;
+            return (
+              <g
+                key={g.nomor}
+                className="gstar"
+                data-me={me ? "yes" : "no"}
+                data-done={p === 1 ? "yes" : "no"}
+                style={
+                  { "--g": `var(--group-${((g.nomor - 1) % 5) + 1})`, "--p": p } as CSSProperties
+                }
+              >
+                {me && <circle className="gstar__mine" cx={x} cy={y} r={4.6 + p * 2.4} />}
+                <circle className="gstar__halo" cx={x} cy={y} r={r * 1.8} />
+                <circle className="gstar__core" cx={x} cy={y} r={r} />
+                <text className="gstar__name" x={x} y={y + 9} textAnchor="middle">
+                  {KELOMPOK_NAMA[g.nomor]
+                    ? `${g.nomor} · ${KELOMPOK_NAMA[g.nomor]}`
+                    : String(g.nomor)}
+                </text>
+                <text className="gstar__p" x={x} y={y + 13.5} textAnchor="middle">
+                  {p === 1 ? t.starDone : t.starP(g.terisi, celah)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
-      <div className="home__stats">
+      <div className="labsky__stats">
         {stats.map(([v, l]) => (
-          <div className="stat" key={l}>
-            <span className="stat__value num">{v}</span>
-            <span className="stat__label">{l}</span>
+          <div key={l}>
+            <b className="mono">{v}</b>
+            <span>{l}</span>
           </div>
         ))}
       </div>
-      <Lane m={lab.modul} />
+      {mine.length > 0 && holder && (
+        <span className="hint labsky__key">
+          <span className="gstar__keyring" aria-hidden="true" />
+          {holder === "praktikan" ? t.keyMine : t.keyHold}
+        </span>
+      )}
     </section>
   );
 }
@@ -322,38 +450,83 @@ export default function HomePage({ lang }: { lang: Lang }) {
       ),
     60_000,
     me !== undefined,
-    ["sesi", "jadwal"],
+    ["sesi", "jadwal", "jawaban"],
   );
   const labData = lab.data ? lab.data.sesi : lab.errors > 0 ? null : undefined;
+  const pegang = lab.data?.pegang ?? [];
+  const holder = me?.role === "praktikan" ? "praktikan" : me?.role === "asisten" ? "asisten" : null;
+  const mine =
+    holder === "praktikan"
+      ? me?.kelompok
+        ? [me.kelompok]
+        : []
+      : holder === "asisten"
+        ? pegang
+        : [];
 
   const steps = [
-    { icon: <BookOpenTextIcon size={28} />, title: t.before, list: t.beforeList },
-    { icon: <CircuitryIcon size={28} />, title: t.during, list: t.duringList },
-    { icon: <ChatsCircleIcon size={28} />, title: t.after, list: t.afterList },
+    { icon: <BookOpenTextIcon size={24} />, title: t.before, list: t.beforeList },
+    { icon: <CircuitryIcon size={24} />, title: t.during, list: t.duringList },
+    { icon: <ChatCircleTextIcon size={24} />, title: t.after, list: t.afterList },
   ];
 
   return (
-    <div className="home">
-      <div className="home__top">
+    <div className="home home10">
+      <div className="home10__top">
         <div className="stack stack--lg">
           <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
           <h1 className="home__display">{t.title}</h1>
           <p className="home__lede">{t.lede}</p>
-          <RoleCard lang={lang} lab={labData ?? null} pegang={lab.data?.pegang ?? []} />
+          <RoleCard lang={lang} lab={labData ?? null} pegang={pegang} />
         </div>
-        <LiveNow lang={lang} lab={labData} />
+        <LabSky lang={lang} lab={labData} mine={mine} holder={holder} />
       </div>
 
       <section className="stack">
-        <h2 className="home__h1">{t.flowTitle}</h2>
-        <div className="home__steps">
+        <div className="home10__head">
+          <span className="eyebrow">{t.rasiEyebrow}</span>
+          <h2 className="home__h1">{t.rasiTitle}</h2>
+        </div>
+        <div className="home10__rasi">
+          {LANES.map((l) => (
+            <article
+              className="panel rasi"
+              key={l.m}
+              style={{ "--m": `var(--mod-${l.m})` } as CSSProperties}
+            >
+              <div className="panel__head rasi__head">
+                <Pill modul={l.m}>{modulLabel(l.m, lang)}</Pill>
+                <span className="hint mono">
+                  {l.a} · {l.via}
+                </span>
+              </div>
+              <ModConstellation m={l.m} h={150} lang={lang} />
+              <h3 className="home__h2">{MODUL_NAMA[l.m]}</h3>
+              <p className="panel__sub">{t.lanes[l.m]}</p>
+              <div className="panel__actions">
+                <a className="btn" href={href(lang, `/modules/${l.m}`)}>
+                  <BookOpenTextIcon size={18} aria-hidden="true" />
+                  {t.read}
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="stack">
+        <div className="home10__head">
+          <span className="eyebrow">{t.flowEyebrow}</span>
+          <h2 className="home__h1">{t.flowTitle}</h2>
+        </div>
+        <ol className="orbitpath">
           {steps.map((s) => (
-            <div className="panel" key={s.title}>
-              <span className="home__tile" aria-hidden="true">
+            <li className="orbitpath__stop" key={s.title}>
+              <span className="orbitpath__node" aria-hidden="true">
                 {s.icon}
               </span>
               <h3 className="home__h2">{s.title}</h3>
-              <ul className="home__ticks">
+              <ul className="orbitpath__list">
                 {s.list.map((x) => (
                   <li key={x}>
                     <CheckIcon size={16} weight="bold" aria-hidden="true" />
@@ -361,32 +534,9 @@ export default function HomePage({ lang }: { lang: Lang }) {
                   </li>
                 ))}
               </ul>
-            </div>
+            </li>
           ))}
-        </div>
-      </section>
-
-      <section className="stack">
-        <h2 className="home__h1">{t.boardTitle}</h2>
-        <div className="panel home__lanes">
-          {LANES.map((l) => (
-            <div
-              className="home__lanerow"
-              key={l.m}
-              style={{ "--m": `var(--mod-${l.m})` } as CSSProperties}
-            >
-              <Pill modul={l.m} lg>
-                {modulLabel(l.m, lang)}
-              </Pill>
-              <Lane m={l.m} via />
-              <span className="hint">{t.lanes[l.m]}</span>
-              <a className="btn btn--sm" href={href(lang, `/modules/${l.m}`)}>
-                <FilePdfIcon aria-hidden="true" />
-                {t.read}
-              </a>
-            </div>
-          ))}
-        </div>
+        </ol>
       </section>
     </div>
   );

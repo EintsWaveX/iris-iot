@@ -681,7 +681,7 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
     pemilik = p?.kode ? { kode: p.kode, nama: p.nama } : null;
   }
   // Groupmates' names only (never a NIM), the blanks, and the timeline.
-  const [teman, isian, masuk, tangkap, tunda] = await Promise.all([
+  const [teman, isian, masuk, tangkap, tunda, dataPertama, bantuan] = await Promise.all([
     kelompokNomor
       ? db
           .select({ nama: sesiAnggota.nama })
@@ -691,10 +691,14 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
       : Promise.resolve([] as { nama: string }[]),
     kelompokId
       ? db
-          .select({ benar: jawaban.benar, pada: jawaban.diubahPada })
+          .select({
+            benar: jawaban.benar,
+            percobaan: jawaban.percobaan,
+            pada: jawaban.diubahPada,
+          })
           .from(jawaban)
           .where(and(eq(jawaban.sesiId, s.id), eq(jawaban.kelompokId, kelompokId)))
-      : Promise.resolve([] as { benar: boolean; pada: Date }[]),
+      : Promise.resolve([] as { benar: boolean; percobaan: number; pada: Date }[]),
     db
       .select({ pada: percobaanMasuk.pada })
       .from(percobaanMasuk)
@@ -726,20 +730,39 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
             ),
           )
       : Promise.resolve([] as { rata: number | null }[]),
+    // Phase 10's session log: the group's first reading and a raised hand.
+    kelompokNomor
+      ? db
+          .select({ pada: sql<Date | null>`min(${telemetriLog.dicatatPada})` })
+          .from(telemetriLog)
+          .where(and(eq(telemetriLog.sesiId, s.id), eq(telemetriLog.kelompokNomor, kelompokNomor)))
+      : Promise.resolve([] as { pada: Date | null }[]),
+    kelompokId
+      ? db
+          .select({ pada: sesiKelompok.mintaBantuanPada })
+          .from(sesiKelompok)
+          .where(and(eq(sesiKelompok.sesiId, s.id), eq(sesiKelompok.kelompokId, kelompokId)))
+          .limit(1)
+      : Promise.resolve([] as { pada: Date | null }[]),
   ]);
   const benar = isian.filter((x) => x.benar);
   const total = jumlahCelahModul(await kodeModul(s.modul));
-  const linimasa: { pada: string; jenis: string; n?: number; dari?: number }[] = [];
+  const linimasa: { pada: string; jenis: string; n?: number; dari?: number; teks?: string }[] = [];
+  const iso = (d: Date | string) => new Date(d).toISOString();
+  if (s.mulaiPada) linimasa.push({ pada: iso(s.mulaiPada), jenis: "mulai" });
   if (masuk[0]) linimasa.push({ pada: masuk[0].pada.toISOString(), jenis: "masuk" });
-  if (benar.length) {
-    const akhir = benar.reduce((a, b) => (b.pada > a.pada ? b : a));
-    linimasa.push({
-      pada: akhir.pada.toISOString(),
-      jenis: "blank",
-      n: benar.length,
-      dari: total,
-    });
-  }
+  // Every right blank in the order it came: "1 of 5", "2 of 5", ...
+  [...benar]
+    .sort((a, b) => a.pada.getTime() - b.pada.getTime())
+    .forEach((b, i) =>
+      linimasa.push({ pada: b.pada.toISOString(), jenis: "blank", n: i + 1, dari: total }),
+    );
+  for (const x of isian)
+    if (!x.benar && x.percobaan > 0) linimasa.push({ pada: x.pada.toISOString(), jenis: "salah" });
+  if (dataPertama[0]?.pada) linimasa.push({ pada: iso(dataPertama[0].pada), jenis: "data" });
+  if (s.pengumuman && s.pengumumanPada)
+    linimasa.push({ pada: iso(s.pengumumanPada), jenis: "info", teks: s.pengumuman });
+  if (bantuan[0]?.pada) linimasa.push({ pada: iso(bantuan[0].pada), jenis: "bantu" });
   for (const t of tangkap)
     linimasa.push({ pada: t.pada.toISOString(), jenis: t.jenis === "jarak" ? "jarak" : "tangkap" });
   if (s.selesaiPada) linimasa.push({ pada: s.selesaiPada.toISOString(), jenis: "selesai" });
