@@ -103,6 +103,10 @@ export interface NilaiLive {
   saveMany: (nims: string[], komponen: string, raw: string) => Promise<SaveResult>;
   /** Tidak Hadir: every field 0 (on), or the zeros removed (off). */
   setAbsen: (nim: string, on: boolean) => Promise<"ok" | "owner" | "fail">;
+  /** Kirim Nilai for a complete group; `kurang` is the empty fields left. */
+  kirim: (
+    kelompokId: number,
+  ) => Promise<{ r: "ok" | "owner" | "incomplete" | "fail"; kurang?: number }>;
   reload: () => void;
   updatedAt: number | null;
   errors: number;
@@ -153,7 +157,12 @@ export function useNilaiLive(
       );
       if (!d.ok) return;
       serverTs.current = d.server;
-      setData({ komponen: d.komponen, kelompok: d.kelompok, pemilik: d.pemilik ?? {} });
+      setData({
+        komponen: d.komponen,
+        kelompok: d.kelompok,
+        pemilik: d.pemilik ?? {},
+        terkirim: d.terkirim ?? {},
+      });
       setUpdatedAt(Date.now());
       setErrors(0);
     } catch {
@@ -181,6 +190,7 @@ export function useNilaiLive(
           berubah: Berubah[];
           pemilik: Record<string, string>;
           absen?: string[];
+          terkirim?: NilaiData["terkirim"];
           server: string;
         }>(`/api/session/nilai?sesiId=${sesiId}&sejak=${encodeURIComponent(serverTs.current)}`);
         if (!d.ok) return;
@@ -214,6 +224,7 @@ export function useNilaiLive(
           return {
             ...prev,
             pemilik: d.pemilik ?? prev.pemilik,
+            terkirim: d.terkirim ?? prev.terkirim,
             kelompok: prev.kelompok.map((k) => ({
               ...k,
               anggota: k.anggota.map((a) => {
@@ -391,6 +402,35 @@ export function useNilaiLive(
     }
   };
 
+  const kirim: NilaiLive["kirim"] = async (kelompokId) => {
+    try {
+      const r = await postJson<{ ok: boolean; kode?: string; kurang?: number }>(
+        "/api/session/nilai",
+        { sesiId, kelompokId, kirim: true },
+      );
+      if (r.ok) {
+        const nomor = dataRef.current?.kelompok.find((k) => k.id === kelompokId)?.nomor;
+        if (nomor !== undefined)
+          setData((prev) =>
+            prev && !prev.terkirim[nomor]
+              ? {
+                  ...prev,
+                  terkirim: {
+                    ...prev.terkirim,
+                    [nomor]: { pada: new Date().toISOString(), oleh: meNim ?? "" },
+                  },
+                }
+              : prev,
+          );
+        return { r: "ok" };
+      }
+      if (r.kode === "belum_lengkap") return { r: "incomplete", kurang: r.kurang };
+      return { r: r.kode === "bukan_pemilik" ? "owner" : "fail" };
+    } catch {
+      return { r: "fail" };
+    }
+  };
+
   return {
     data,
     states,
@@ -398,6 +438,7 @@ export function useNilaiLive(
     save,
     saveMany,
     setAbsen,
+    kirim,
     reload: () => void load(),
     updatedAt,
     errors,

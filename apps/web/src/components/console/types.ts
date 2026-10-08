@@ -24,6 +24,8 @@ export interface SesiRunning {
   /** May this Asisten end, extend and announce (its slot, a held group,
    *  Pengelola or Admin; anyone in TOT)? Others only watch. */
   kendali?: boolean;
+  /** Module 4: the Asisten's Mulai/Selesai Perburuan (2026-10-08). */
+  perburuan?: { mulai: string | null; selesai: string | null; oleh: string | null } | null;
 }
 
 export interface RosterGroup {
@@ -173,6 +175,8 @@ export interface NilaiData {
   komponen: string[];
   kelompok: NilaiKelompok[];
   pemilik: Record<string, string>;
+  /** Groups whose scores were sent (Kirim Nilai), by group number. */
+  terkirim: Record<string, { pada: string; oleh: string }>;
 }
 
 export type View = "prep" | "board" | "table";

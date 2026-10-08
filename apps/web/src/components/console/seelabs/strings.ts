@@ -12,6 +12,7 @@ export const SL = dict({
     back: "Kembali ke sesi",
     backHome: "Kembali ke Konsol",
     tabs: {
+      panduan: "Panduan",
       salin: "Salin",
       pasang: "Bookmarklet",
       cara: "Cara Mengisi",
@@ -180,6 +181,7 @@ export const SL = dict({
     back: "Back to the session",
     backHome: "Back to the Console",
     tabs: {
+      panduan: "Guide",
       salin: "Copy",
       pasang: "Bookmarklet",
       cara: "How It Fills",
@@ -345,6 +347,7 @@ export const SL = dict({
     back: "回到这节课",
     backHome: "回到控制台",
     tabs: {
+      panduan: "指南",
       salin: "复制",
       pasang: "书签小工具",
       cara: "怎么填",

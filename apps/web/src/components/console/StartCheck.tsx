@@ -1,8 +1,7 @@
 /**
  * "Lab Belum Siap" (2026-10-05): what a session start answers when the lab
  * check finds a problem (src/lib/siap-mulai.ts). Lists every check, offers
- * the fix it can (start a stopped service, turn the hotspot on with the
- * session, open the Server page), and lets the Asisten start anyway with a
+ * the fix it can (start a stopped service, open the Server page), and lets the Asisten start anyway with a
  * reason, the same way Konsol is forced during a session.
  *
  * Used by Home's Start card and Preparation's Mode TOT start.
@@ -42,13 +41,7 @@ const T = dict({
     svcBad: (u: string) => `Layanan ${u} tidak berjalan`,
     svcSkip: (u: string) => `Layanan ${u} belum bisa dicek`,
     svcState: (k: string) => `Laporan terakhir Pi: ${k}.`,
-    apOk: "Hotspot menyala",
-    apQueued: "Hotspot dinyalakan saat sesi mulai",
-    apBad: "Hotspot mati",
-    apSkip: "Hotspot belum bisa dicek",
-    apWhy: "Modul 4 butuh hotspot IRIS-IOT.",
     start: "Nyalakan",
-    apOn: "Nyalakan Bersama Sesi",
     server: "Buka Server",
     sent: "Perintah dikirim. Pi menjalankannya dalam beberapa detik, lalu Cek Lagi.",
     sendFail: "Perintah tidak terkirim.",
@@ -79,13 +72,7 @@ const T = dict({
     svcBad: (u: string) => `Service ${u} not running`,
     svcSkip: (u: string) => `Service ${u} can't be checked yet`,
     svcState: (k: string) => `The Pi last reported: ${k}.`,
-    apOk: "Hotspot on",
-    apQueued: "Hotspot turns on when the session starts",
-    apBad: "Hotspot off",
-    apSkip: "Hotspot can't be checked yet",
-    apWhy: "Module 4 needs the IRIS-IOT hotspot.",
     start: "Start It",
-    apOn: "Turn On With Session",
     server: "Open Server",
     sent: "Command sent. The Pi runs it within seconds, then Check Again.",
     sendFail: "The command wasn't sent.",
@@ -115,13 +102,7 @@ const T = dict({
     svcBad: (u: string) => `服务 ${u} 没有运行`,
     svcSkip: (u: string) => `服务 ${u} 暂时无法检查`,
     svcState: (k: string) => `Pi 最后报告：${k}。`,
-    apOk: "热点已开启",
-    apQueued: "热点会在课程开始时开启",
-    apBad: "热点已关闭",
-    apSkip: "热点暂时无法检查",
-    apWhy: "模块 4 需要 IRIS-IOT 热点。",
     start: "启动",
-    apOn: "随课程开启",
     server: "打开服务器",
     sent: "命令已发送。Pi 会在几秒内执行，然后再检查一次。",
     sendFail: "命令没有发出。",
@@ -163,7 +144,6 @@ export default function StartCheck({
   onClose,
   onRecheck,
   onForce,
-  onApOn,
 }: {
   data: BelumSiap | null;
   modul: number;
@@ -174,8 +154,6 @@ export default function StartCheck({
   /** Ask the API again (a start without a reason). */
   onRecheck: () => void;
   onForce: (alasan: string) => void;
-  /** Tick "turn the hotspot on" and check again. */
-  onApOn?: () => void;
 }) {
   const t = T[lang];
   const [alasan, setAlasan] = useState("");
@@ -249,25 +227,6 @@ export default function StartCheck({
             >
               <PlayIcon size={14} aria-hidden="true" />
               {t.start}
-            </button>
-          ) : undefined,
-      });
-    } else if (c.id === "hotspot") {
-      rows.push({
-        status: c.status,
-        judul:
-          c.status === "ok"
-            ? c.diantre
-              ? t.apQueued
-              : t.apOk
-            : c.status === "gagal"
-              ? t.apBad
-              : t.apSkip,
-        detail: c.status === "gagal" ? t.apWhy : undefined,
-        aksi:
-          c.status === "gagal" && onApOn ? (
-            <button type="button" className="btn btn--secondary btn--sm" onClick={onApOn}>
-              {t.apOn}
             </button>
           ) : undefined,
       });

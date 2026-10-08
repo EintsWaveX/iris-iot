@@ -24,10 +24,12 @@ import {
   praktikan,
   rosterSlot,
   rosterKelompok,
+  pengaturan,
 } from "./schema.js";
 import { durasiSesi, hariIniWib, idHuntSusulan, slotToMulai } from "./jadwal.js";
 import { semesterDariTanggal } from "./jadwal-parser.js";
 import { namaKelompok } from "./kelompok-nama.js";
+import { bacaPerburuanSesi, perburuanBerjalan } from "./perburuan.js";
 
 export interface ResolvedPraktikan {
   nim: string;
@@ -253,6 +255,10 @@ export interface JadwalModul4 {
       string,
       { nama: string; aktif: boolean; anggota: Array<{ nim: string; nama: string }> }
     >;
+    /** When the Asisten pressed Mulai Perburuan for this slot's running
+     *  session (until Selesai): the Pi's hunt starts this round at once,
+     *  whatever its clock window says (2026-10-09). */
+    berburu?: string;
   }>;
 }
 
@@ -274,13 +280,12 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
   const db = getDb();
 
   const slots = await db
-    .select({ id: sesi.id, slot: sesi.slot, mulai: sesi.mulai })
+    .select({ id: sesi.id, slot: sesi.slot, mulai: sesi.mulai, status: sesi.status })
     .from(sesi)
     .where(and(eq(sesi.tanggal, tanggal), eq(sesi.modul, 4), ne(sesi.status, "batal")));
 
-  const withSlot = slots.filter(
-    (s): s is { id: number; slot: number; mulai: string } => s.slot !== null,
-  );
+  type Baris = (typeof slots)[number];
+  const withSlot = slots.filter((s): s is Baris & { slot: number } => s.slot !== null);
   // Phase 9: a Module 4 Praktikum Susulan has no slot, so it borrows the
   // nearest free one (idHuntSusulan) and keeps its own start time; before,
   // it never reached the Pi and its Praktikan couldn't join the hunt.
@@ -288,14 +293,15 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
   const susulan = slots
     .filter((s) => s.slot === null)
     .sort((a, b) => a.mulai.localeCompare(b.mulai));
-  const semua: { id: number; slot: number; mulai: string; susulan: boolean }[] = withSlot.map(
-    (s) => ({ ...s, susulan: false }),
-  );
+  const semua: (Baris & { slot: number; susulan: boolean })[] = withSlot.map((s) => ({
+    ...s,
+    susulan: false,
+  }));
   for (const s of susulan) {
     const id = idHuntSusulan(s.mulai, dipakai);
     if (id === null) continue;
     dipakai.add(id);
-    semua.push({ id: s.id, slot: id, mulai: s.mulai, susulan: true });
+    semua.push({ ...s, slot: id, susulan: true });
   }
   if (semua.length === 0) return null;
 
@@ -308,6 +314,18 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
     // own wire format (jadwal_set()/jadwal_muat()), not a database name, and
     // renaming it would break the Pi-side import this function feeds.
     const kelompokSesi: JadwalModul4["sesi"][number]["regu"] = {};
+    // An ended session hands its slot back empty (2026-10-09): the Pi's hunt
+    // refuses a NIM that sits in two slots of the day, so a re-run of the
+    // same people (a TOT rehearsal, a session ended by mistake) was locked
+    // out of the hunt until the ended slot let them go.
+    if (s.status === "selesai") {
+      sesiOut.push({
+        id: s.slot,
+        mulai: s.susulan ? s.mulai : (slotToMulai(s.slot) ?? s.mulai),
+        regu: kelompokSesi,
+      });
+      continue;
+    }
 
     const rows = await db
       .select({
@@ -339,10 +357,23 @@ export async function jadwalModul4Hari(tanggal: string): Promise<JadwalModul4 | 
       if (row.nim) kelompokSesi[key].anggota.push({ nim: row.nim, nama: row.anggotaNama ?? "" });
     }
 
+    // The running session's Mulai Perburuan, while it lasts.
+    let berburu: string | undefined;
+    if (s.status === "berjalan") {
+      const [p] = await db
+        .select({ nilai: pengaturan.nilai })
+        .from(pengaturan)
+        .where(eq(pengaturan.kunci, `perburuan_sesi_${s.id}`))
+        .limit(1);
+      const h = bacaPerburuanSesi(p?.nilai);
+      if (perburuanBerjalan(h)) berburu = h!.mulai!;
+    }
+
     sesiOut.push({
       id: s.slot,
       mulai: s.susulan ? s.mulai : (slotToMulai(s.slot) ?? s.mulai),
       regu: kelompokSesi,
+      ...(berburu ? { berburu } : {}),
     });
   }
 

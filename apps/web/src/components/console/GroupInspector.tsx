@@ -15,6 +15,7 @@
  * - Footer: who enters the scores, Lihat Sebagai Praktikan, the SeeLabs
  *   chip and Salin untuk SeeLabs. The pairing history closes the card.
  */
+import KirimNilai from "./KirimNilai";
 import {
   useEffect,
   useMemo,
@@ -587,6 +588,7 @@ function ScoreEditor({
         </div>
       )}
       {canEdit && !rata && <p className="hint">{t.enterHint}</p>}
+      <KirimNilai t={t} nilai={nilai} kelompokId={g.id} canEdit={canEdit} />
       {absen.dialog}
     </div>
   );

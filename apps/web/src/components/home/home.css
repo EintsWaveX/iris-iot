@@ -94,6 +94,12 @@
   position: absolute;
 }
 
+/* Guests see the running module's devices, not the groups. */
+.labsky__field[data-guest="yes"] .labsky__bg {
+  inset: 14% 6% auto;
+  opacity: 0.85;
+}
+
 .labsky__bg .cst__name,
 .labsky__bg .cst__via,
 .labsky__mini .cst__name,
@@ -375,4 +381,9 @@
     flex: 1 1 0;
     justify-content: center;
   }
+}
+
+.labsky__field[data-guest="yes"] .labsky__bg .cst__name,
+.labsky__field[data-guest="yes"] .labsky__bg .cst__via {
+  display: inline;
 }

@@ -9,16 +9,21 @@
  *   opens its form in the same popover.
  * - Perpanjang (E) keeps its label, then the Server chip (opens the
  *   drawer) and the red Akhiri.
+ * - Module 4 (2026-10-08): Mulai Perburuan turns the IRIS-IOT hotspot and
+ *   the scoreboard on and opens the Praktikan's Perburuan step; Selesai
+ *   Perburuan turns both off (api/_lib/perburuan-sesi.ts).
  */
 import KodeMasuk from "../shell/KodeMasuk";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowLeftIcon,
   ArrowSquareOutIcon,
+  CrosshairIcon,
   DotsThreeIcon,
   EyeIcon,
   ProjectorScreenIcon,
   FlagCheckeredIcon,
+  StopCircleIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
   MegaphoneIcon,
@@ -30,6 +35,7 @@ import {
 import * as RadixPopover from "@radix-ui/react-popover";
 import { Stepper, Switch } from "../ui/Controls";
 import Tooltip from "../ui/Tooltip";
+import Confirm from "../ui/Confirm";
 import KeyHint from "../ui/KeyHint";
 import Pill from "../ui/Pill";
 import { isTypingTarget } from "../ui/ShortcutSheet";
@@ -138,11 +144,17 @@ export default function SessionBar({
   const list = servers?.list ?? [];
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
   const ap = hotspotMenyala(servers?.detail?.denyutTerakhir?.modeJaringan);
-  // Phones and the projector reach the hunt at 192.168.4.1 on the hotspot;
-  // with the hotspot off, only the Pi's LAN address answers.
+  // Phones reach the hunt at 192.168.4.1 on IRIS-IOT. This laptop stays on
+  // campus Wi-Fi, so it uses the Pi's LAN address whenever the Pi still has
+  // its campus link (no hotspot, or the router on the cable); only a Pi whose
+  // own radio became the hotspot with no uplink answers on 192.168.4.1 alone.
   const lan = servers?.detail?.server.alamatLan;
+  const mandiri = servers?.detail?.denyutTerakhir?.modeJaringan === "ap-mandiri";
   const papanSkor =
-    servers?.detail && !ap && lan ? `http://${lan}:8080/` : "http://192.168.4.1:8080/";
+    servers?.detail && lan && !mandiri ? `http://${lan}:8080/` : "http://192.168.4.1:8080/";
+  const buru = sesi.perburuan ?? null;
+  const buruJalan = !!buru?.mulai && !buru.selesai;
+  const [tanyaBuru, setTanyaBuru] = useState(false);
   const kelas = sesi.kelas ?? "reguler";
   const hari = hariDariTanggal(sesi.tanggal);
   const ref = useRef<HTMLElement | null>(null);
@@ -389,6 +401,23 @@ export default function SessionBar({
           </Pop>
         )}
 
+        {kendali && sesi.modul === 4 && (
+          <Tooltip label={buruJalan ? t.huntStop : t.huntStart} side="bottom">
+            <button
+              type="button"
+              className={`btn sbar__btn sbar__hunt ${buruJalan ? "btn--secondary" : "btn--primary"}`}
+              aria-label={buruJalan ? t.huntStop : t.huntStart}
+              onClick={() => setTanyaBuru(true)}
+            >
+              {buruJalan ? (
+                <StopCircleIcon size={18} aria-hidden="true" />
+              ) : (
+                <CrosshairIcon size={18} aria-hidden="true" />
+              )}
+              <span className="sbar__lbl">{buruJalan ? t.huntStop : t.huntStart}</span>
+            </button>
+          </Tooltip>
+        )}
         {kendali && (
           <Pop
             open={pop === "ext"}
@@ -444,6 +473,29 @@ export default function SessionBar({
           </button>
         )}
       </div>
+
+      <Confirm
+        open={tanyaBuru}
+        onOpenChange={setTanyaBuru}
+        tone={buruJalan ? "danger" : "primary"}
+        title={buruJalan ? t.huntStopAsk : t.huntStartAsk}
+        body={buruJalan ? t.huntStopBody : t.huntStartBody}
+        confirmLabel={buruJalan ? t.huntStop : t.huntStart}
+        lang={lang}
+        onConfirm={async () => {
+          const r = await postJson<{ ok: boolean; kode?: string; diantre?: boolean }>(
+            "/api/session/perburuan",
+            { langkah: buruJalan ? "selesai" : "mulai" },
+          ).catch(() => ({ ok: false, kode: undefined, diantre: undefined }));
+          if (!r.ok) {
+            window.Toast?.show(t.fail, "danger");
+            return false;
+          }
+          if (r.diantre === false) window.Toast?.show(t.huntNoPi, "warn");
+          else window.Toast?.show(buruJalan ? t.huntStopped : t.huntStarted, "ok");
+          onChanged();
+        }}
+      />
     </section>
   );
 }

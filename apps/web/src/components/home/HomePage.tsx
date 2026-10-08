@@ -369,7 +369,7 @@ function LabSky({
           </Pill>
         </div>
       </div>
-      <div className="labsky__field">
+      <div className="labsky__field" data-guest={lab.bintang ? "no" : "yes"}>
         <div className="labsky__bg">
           <ModConstellation m={lab.modul} h={220} lang={lang} />
         </div>
@@ -429,6 +429,7 @@ function LabSky({
           </div>
         ))}
       </div>
+      {!lab.bintang && <span className="hint">{t.skyGuest}</span>}
       {mine.length > 0 && holder && (
         <span className="hint labsky__key">
           <span className="gstar__keyring" aria-hidden="true" />
@@ -442,7 +443,8 @@ function LabSky({
 export default function HomePage({ lang }: { lang: Lang }) {
   const t = H[lang];
   const me = useTampil(useMe());
-  const saya = me?.role === "asisten";
+  // Signed in: the private answer with each group's stars (guests get counts).
+  const saya = Boolean(me);
   const lab = usePoll(
     () =>
       getJson<{ ok: boolean; sesi: Lab | null; pegang?: number[] }>(

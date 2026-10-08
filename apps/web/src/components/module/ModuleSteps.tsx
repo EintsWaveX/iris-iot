@@ -360,7 +360,7 @@ export default function ModuleSteps(p: Props) {
         </div>
       )}
 
-      {berburu && keadaan !== "tunggu" && step !== "hunt" && (
+      {berburu && keadaan !== "tunggu" && keadaan !== "belum" && step !== "hunt" && (
         <div className="banner banner--ok modsteps__hunt">
           <FlagCheckeredIcon aria-hidden="true" />
           <b>{keadaan === "selesai" ? H[lang].bannerDone : H[lang].bannerOpen}</b>
@@ -411,7 +411,9 @@ export default function ModuleSteps(p: Props) {
             }}
           >
             {mode === "browse" && ICON[s]}
-            {s === "hunt" && keadaan === "tunggu" && <LockSimpleIcon aria-hidden="true" />}
+            {s === "hunt" && (keadaan === "tunggu" || keadaan === "belum") && (
+              <LockSimpleIcon aria-hidden="true" />
+            )}
             {/* Browse numbers the three steps and gives them icons (mockup
                 m-browse); the five session steps are plain text (p-module). */}
             <span className="modsteps__label">

@@ -117,6 +117,9 @@ interface Praktikum {
   status: string;
   sudahUmpanBalik: boolean;
   rataRata: number | null;
+  /** Their group's scores were sent (Kirim Nilai); only then `skor`. */
+  terkirim?: boolean;
+  skor?: Partial<Record<string, number>> | null;
 }
 
 type View =
@@ -577,6 +580,47 @@ function Practicums({
   );
 }
 
+/** Nilaiku (2026-10-09): their own scores per module, once their group's
+ *  Asisten sent them; never a groupmate's. */
+function Nilaiku({ t, lang, list }: { t: DashT; lang: Lang; list: Praktikum[] }) {
+  const rows = list.filter((p) => p.terkirim && p.skor).sort((a, b) => a.modul - b.modul);
+  if (!rows.length) return null;
+  return (
+    <section className="panel nilaiku">
+      <div className="panel__head">
+        <h2 className="panel__title">{t.nilaikuH}</h2>
+        <span className="hint">{t.nilaikuHint}</span>
+      </div>
+      <div className="nilaiku__rows">
+        {rows.map((p) => (
+          <div
+            className="nilaiku__row"
+            key={p.sesiId}
+            style={{ "--m": `var(--mod-${p.modul})` } as CSSProperties}
+          >
+            <span className="nilaiku__mod">
+              <Pill modul={p.modul}>{modulLabel(p.modul, lang)}</Pill>
+              <b>{MODUL_NAMA[p.modul]}</b>
+            </span>
+            <span className="nilaiku__comp">
+              {NILAI_KOMPONEN.map((k) => (
+                <span key={k} data-none={p.skor?.[k] == null ? "yes" : "no"}>
+                  <small className="mono">{k}</small>
+                  <b className="num">{p.skor?.[k] ?? "-"}</b>
+                </span>
+              ))}
+            </span>
+            <span className="nilaiku__avg">
+              <b className="num">{p.rataRata ?? "-"}</b>
+              <small>{t.rataSingkat}</small>
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /** No session of theirs to show: the Asisten hasn't opened it, or
  *  (`ikut`, 2026-10-07) it runs but they signed in without joining it. */
 function Waiting({
@@ -921,7 +965,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
     60_000,
     sendiri,
-    ["sesi"],
+    ["sesi", "nilai"],
   );
   const hasil = hasilPoll.data;
 
@@ -1031,29 +1075,39 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     body = (
       <>
         <Waiting t={t} lang={lang} hasil={hasil ?? null} me={me.nama} ikut />
+        <Nilaiku t={t} lang={lang} list={list} />
         {list.length > 0 && <Practicums t={t} lang={lang} list={list} go={go} />}
       </>
     );
   } else if (sesi) {
     body = (
-      <Running
-        t={t}
-        lang={lang}
-        sesi={sesi}
-        hasil={hasil?.sesi?.status === "berjalan" ? hasil : null}
-        modules={modules}
-        me={me}
-      />
+      <>
+        <Running
+          t={t}
+          lang={lang}
+          sesi={sesi}
+          hasil={hasil?.sesi?.status === "berjalan" ? hasil : null}
+          modules={modules}
+          me={me}
+        />
+        <Nilaiku t={t} lang={lang} list={list} />
+      </>
     );
   } else if (endedToday) {
     body = (
       <>
         <Ended t={t} lang={lang} hasil={endedToday} go={go} />
+        <Nilaiku t={t} lang={lang} list={list} />
         {list.length > 0 && <Practicums t={t} lang={lang} list={list} go={go} />}
       </>
     );
   } else if (list.length > 0) {
-    body = <Practicums t={t} lang={lang} list={list} go={go} />;
+    body = (
+      <>
+        <Nilaiku t={t} lang={lang} list={list} />
+        <Practicums t={t} lang={lang} list={list} go={go} />
+      </>
+    );
   } else {
     body = <Waiting t={t} lang={lang} hasil={hasil ?? null} me={me.nama} />;
   }

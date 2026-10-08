@@ -25,6 +25,7 @@ import {
   jurnalTangkapan,
   kelompok,
   nilai,
+  nilaiKirim,
   percobaanMasuk,
   sesi,
   sesiAnggota,
@@ -495,7 +496,7 @@ export async function handleMine(_req: ApiRequest, res: ApiResponse, session: Se
   const ikut = await sesiDiikuti(session.nim);
   const ids = ikut.map((x) => x.id);
   const db = getDb();
-  const [fb, skor] = ids.length
+  const [fb, skor, kirim, grup] = ids.length
     ? await Promise.all([
         db
           .select({ sesiId: umpanBalik.sesiId })
@@ -505,11 +506,27 @@ export async function handleMine(_req: ApiRequest, res: ApiResponse, session: Se
           .select({ sesiId: nilai.sesiId, komponen: nilai.komponen, skor: nilai.skor })
           .from(nilai)
           .where(and(eq(nilai.nim, session.nim), inArray(nilai.sesiId, ids))),
+        db
+          .select({ sesiId: nilaiKirim.sesiId, nomor: nilaiKirim.kelompokNomor })
+          .from(nilaiKirim)
+          .where(inArray(nilaiKirim.sesiId, ids)),
+        db
+          .select({ sesiId: sesiAnggota.sesiId, nomor: sesiAnggota.kelompokNomor })
+          .from(sesiAnggota)
+          .where(and(eq(sesiAnggota.nim, session.nim), inArray(sesiAnggota.sesiId, ids))),
       ])
-    : [[], []];
+    : [[], [], [], []];
   const sudah = new Set(fb.map((r) => r.sesiId));
+  // Their group in each session (the roster snapshot, else today's group),
+  // and whether its Asisten sent the scores (Kirim Nilai, 2026-10-09).
+  const grupDi = new Map(grup.map((r) => [r.sesiId, r.nomor]));
+  const terkirim = (sesiId: number) => {
+    const nomor = grupDi.get(sesiId) ?? session.kelompokNomor ?? null;
+    return kirim.some((k) => k.sesiId === sesiId && (nomor === null || k.nomor === nomor));
+  };
   const praktikum = ikut.map((x) => {
-    const mine = skor.filter((r) => r.sesiId === x.id);
+    const kirimDi = terkirim(x.id);
+    const mine = kirimDi ? skor.filter((r) => r.sesiId === x.id) : [];
     const isi = mine.map((r) => r.skor);
     return {
       sesiId: x.id,
@@ -519,10 +536,10 @@ export async function handleMine(_req: ApiRequest, res: ApiResponse, session: Se
       status: x.status,
       kelas: x.kelas,
       sudahUmpanBalik: sudah.has(x.id),
-      rataRata:
-        x.status === "selesai" && isi.length
-          ? Math.round(isi.reduce((a, b) => a + b, 0) / isi.length)
-          : null,
+      terkirim: kirimDi,
+      // Only their own row, never a groupmate's.
+      skor: kirimDi ? Object.fromEntries(mine.map((r) => [r.komponen, r.skor])) : null,
+      rataRata: isi.length ? Math.round(isi.reduce((a, b) => a + b, 0) / isi.length) : null,
     };
   });
   res.status(200).json({ ok: true, praktikum });
@@ -808,9 +825,17 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
     delayRata: tunda[0]?.rata ?? null,
     linimasa,
   };
-  // Scores are only shown once the session has ended.
-  if (s.status !== "selesai") {
-    res.status(200).json({ ...base, skor: null });
+  // Scores show once the group's Asisten sent them (Kirim Nilai,
+  // 2026-10-09), while the session runs or after; only the caller's own.
+  const [kirim] = kelompokNomor
+    ? await db
+        .select({ id: nilaiKirim.id })
+        .from(nilaiKirim)
+        .where(and(eq(nilaiKirim.sesiId, s.id), eq(nilaiKirim.kelompokNomor, kelompokNomor)))
+        .limit(1)
+    : [];
+  if (!kirim) {
+    res.status(200).json({ ...base, terkirim: false, skor: null });
     return;
   }
   const rows = await db
@@ -823,9 +848,13 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
   const rata = isi.length
     ? Math.round(isi.reduce((a, k) => a + (skor[k] ?? 0), 0) / isi.length)
     : null;
-  res
-    .status(200)
-    .json({ ...base, skor, rataRata: rata, lengkap: isi.length === NILAI_KOMPONEN.length });
+  res.status(200).json({
+    ...base,
+    terkirim: true,
+    skor,
+    rataRata: rata,
+    lengkap: isi.length === NILAI_KOMPONEN.length,
+  });
 }
 
 /* --------------------------------------------- helpers for other actions */

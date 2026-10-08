@@ -1331,6 +1331,7 @@ def jadwal_awal() -> None:
     JADWAL["aktif"] = None
     JADWAL["mulai_pada"] = None
     JADWAL["selesai"] = []
+    JADWAL["berburu"] = None
 
 
 def sesi_oleh_id(sid) -> dict | None:
@@ -1457,6 +1458,7 @@ def jadwal_simpan() -> None:
         "aktif": JADWAL["aktif"],
         "mulai_pada": JADWAL["mulai_pada"],
         "selesai": JADWAL["selesai"],
+        "berburu": JADWAL["berburu"],
     }
     tmp = JADWAL_PATH.with_suffix(".json.tmp")
     try:
@@ -1517,6 +1519,8 @@ def jadwal_muat() -> None:
     JADWAL["mulai_pada"] = data.get("mulai_pada")
     tercatat = data.get("selesai")
     JADWAL["selesai"] = tercatat if isinstance(tercatat, list) else []
+    berburu = data.get("berburu")
+    JADWAL["berburu"] = berburu if isinstance(berburu, str) else None
 
     # Sesi yang batasnya sudah lewat selama server mati tidak dihidupkan lagi.
     if JADWAL["aktif"] and sesi_jatuh_tempo():
@@ -1625,10 +1629,18 @@ def jadwal_set(sid, patch: dict) -> tuple[bool, str]:
     return True, ""
 
 
-def jadwal_impor(path: pathlib.Path) -> None:
+def jadwal_impor(path: pathlib.Path) -> int | None:
     """Tarik jadwal Modul 4 hari ini dari berkas yang ditulis agent Orange Pi
     (Stage 18), diisi dari respons denyut jantungnya sendiri
     (jadwalModul4Hari() pada apps/web).
+
+    Sesi yang membawa `berburu` (waktu asisten menekan Mulai Perburuan di
+    web, 2026-10-09) harus berjalan sekarang, apa pun jam jendelanya: sesi
+    susulan, TOT, atau sesi yang mulai terlambat tidak lagi menunggu jendela
+    jam bawaan. Satu tekanan menyalakan satu ronde; tekanan yang sama yang
+    datang lagi tiap denyut diabaikan, dan tercatat di jadwal.json supaya
+    server yang dinyalakan ulang di tengah perburuan tidak menghapus
+    rondenya. Mengembalikan nomor sesi yang harus dimulai, atau None.
 
     Sebuah sesi yang sumber-nya sudah "pi" -- pernah ditempel manual di
     Orange Pi sejak impor terakhir -- DILEWATI, bukan ditimpa: kotak tempel
@@ -1642,12 +1654,13 @@ def jadwal_impor(path: pathlib.Path) -> None:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as err:
         print(f"[{timestamp()}] jadwal impor gagal dibaca: {err}")
-        return
+        return None
     if not isinstance(data, dict) or not isinstance(data.get("sesi"), list):
         print(f"[{timestamp()}] jadwal impor: bentuk tidak dikenal, diabaikan")
-        return
+        return None
 
     diterapkan = 0
+    mulai_sekarang: int | None = None
     for slot in data["sesi"]:
         if not isinstance(slot, dict):
             continue
@@ -1655,6 +1668,10 @@ def jadwal_impor(path: pathlib.Path) -> None:
         entry = sesi_oleh_id(sid if isinstance(sid, int) else -1)
         if entry is None:
             continue
+        berburu = slot.get("berburu")
+        if isinstance(berburu, str) and berburu and berburu != JADWAL.get("berburu"):
+            JADWAL["berburu"] = berburu
+            mulai_sekarang = entry["id"]
         if entry.get("sumber") == "pi":
             continue
 
@@ -1671,12 +1688,14 @@ def jadwal_impor(path: pathlib.Path) -> None:
     if diterapkan:
         JADWAL["rev"] += 1
         JADWAL["hari"] = hari_ini()
-        jadwal_simpan()
         HUNT.note("jadwal-impor", None, sesi=diterapkan)
         print(f"[{timestamp()}] jadwal diimpor: {diterapkan} sesi dari {path}")
+    if diterapkan or mulai_sekarang is not None:
+        jadwal_simpan()
+    return mulai_sekarang
 
 
-def jadwal_impor_jika_berubah(path: pathlib.Path) -> None:
+def jadwal_impor_jika_berubah(path: pathlib.Path) -> int | None:
     """Impor hanya ketika mtime berkas berubah sejak pemeriksaan terakhir --
     dipanggil tiap denyut penjaga_sesi(), sehingga tarikan baru dari web
     sampai dalam SESI_SAPU_SEC detik tanpa membaca ulang berkas yang sama
@@ -1685,11 +1704,11 @@ def jadwal_impor_jika_berubah(path: pathlib.Path) -> None:
     try:
         mtime = path.stat().st_mtime
     except OSError:
-        return
+        return None
     if mtime == JADWAL_IMPOR_MTIME:
-        return
+        return None
     JADWAL_IMPOR_MTIME = mtime
-    jadwal_impor(path)
+    return jadwal_impor(path)
 
 
 def jadwal_jam(jam_baru) -> tuple[bool, str]:
@@ -2736,7 +2755,9 @@ async def penjaga_sesi() -> None:
     while True:
         await asyncio.sleep(SESI_SAPU_SEC)
 
-        jadwal_impor_jika_berubah(JADWAL_IMPOR_PATH)
+        mulai_web = jadwal_impor_jika_berubah(JADWAL_IMPOR_PATH)
+        if mulai_web is not None:
+            await sesi_mulai(mulai_web, "Mulai Perburuan dari web")
 
         # Urutannya penting: sesi yang jatuh tempo ditutup lebih dulu,
         # supaya sesi berikutnya yang kebetulan sudah waktunya mulai tidak
@@ -2776,7 +2797,9 @@ async def main(host: str, port: int) -> None:
     # berkas sekaligus folder yatim sesudah server mati mendadak.
     await sapu_unggahan(semua=True)
     jadwal_muat()
-    jadwal_impor_jika_berubah(JADWAL_IMPOR_PATH)
+    mulai_web = jadwal_impor_jika_berubah(JADWAL_IMPOR_PATH)
+    if mulai_web is not None:
+        await sesi_mulai(mulai_web, "Mulai Perburuan dari web")
 
     # Kalau server dinyalakan di tengah jam sebuah sesi, sesi itulah yang
     # berlaku. Tanpa ini asisten harus menekan "mulai" setiap kali Orange Pi

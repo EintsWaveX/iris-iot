@@ -10,6 +10,8 @@ export const DS = dict({
     halo: (n: string) => `Halo, ${n}`,
     // Phase 10 (mockup d10)
     jejak: "Jejak bintangmu",
+    nilaikuH: "Nilaiku",
+    nilaikuHint: "Hanya nilaimu sendiri, muncul setelah asisten mengirim nilai kelompokmu.",
     nextEyebrow: "Langkah berikutnya",
     warn30: "30 menit lagi. Simpan tangkapan jurnalmu sebelum sesi berakhir.",
     logH: "Log Sesi",
@@ -143,6 +145,8 @@ export const DS = dict({
   en: {
     halo: (n: string) => `Hi, ${n}`,
     jejak: "Your star path",
+    nilaikuH: "My Scores",
+    nilaikuHint: "Only your own scores, shown once your assistant sends your group's scores.",
     nextEyebrow: "Next step",
     warn30: "30 minutes left. Save your journal captures before the session ends.",
     logH: "Session Log",
@@ -273,6 +277,8 @@ export const DS = dict({
   zh: {
     halo: (n: string) => `你好，${n}`,
     jejak: "你的星路",
+    nilaikuH: "我的分数",
+    nilaikuHint: "只显示你自己的分数，助教发送你们组的分数后出现。",
     nextEyebrow: "下一步",
     warn30: "还剩 30 分钟。下课前保存好你的日志采集。",
     logH: "课程记录",

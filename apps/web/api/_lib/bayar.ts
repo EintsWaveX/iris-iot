@@ -13,8 +13,9 @@
  *      every POST needs the Tim right and writes the audit log.
  *
  * Units are rebuilt from finished sessions here, lazily: a session whose
- * scores, pairing or SeeLabs lender changed after its last rebuild gets
- * rebuilt on the next GET (a few per request). A unit keeps the class rate
+ * scores, pairing, SeeLabs lender or sent groups changed after its last
+ * rebuild gets rebuilt on the next GET (a few per request). Only a group
+ * whose scores were sent (Kirim Nilai) earns a unit. A unit keeps the class rate
  * and the kas rate it was made with.
  */
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
@@ -28,6 +29,7 @@ import {
   jabatanPemegang,
   kasPengecualian,
   kasTarif,
+  nilaiKirim,
   pengaturan,
   sesi,
   transfer,
@@ -97,10 +99,19 @@ export async function sinkronUnit(
       u,
     ]),
   );
+  // A group earns its unit once its scores are sent (Kirim Nilai,
+  // 2026-10-09), not at the first score typed.
+  const terkirim = new Set(
+    (
+      await db
+        .select({ nomor: nilaiKirim.kelompokNomor })
+        .from(nilaiKirim)
+        .where(eq(nilaiKirim.sesiId, sesiId))
+    ).map((r) => r.nomor),
+  );
   const tetap = new Set<number>();
   for (const g of data.kelompok) {
-    const dinilai = g.baris.some((b) => Object.keys(b.skor).length > 0);
-    if (s.status !== "selesai" || !g.penilai || !dinilai) continue;
+    if (s.status !== "selesai" || !g.penilai || !terkirim.has(g.nomor)) continue;
     tetap.add(g.nomor);
     const lama = ada.get(g.nomor);
     if (lama && lama.nimPenilai === g.penilai) {
@@ -146,7 +157,8 @@ async function sinkronYangBerubah(db: Db, dari: string, sampai: string) {
           s.selesai_pada,
           (select max(n.diubah_pada) from nilai n where n.sesi_id = s.id),
           (select max(a.diubah_pada) from sesi_asisten a where a.sesi_id = s.id),
-          (select max(k.pada) from sesi_kejadian k where k.sesi_id = s.id and k.jenis = 'akun_seelabs')
+          (select max(k.pada) from sesi_kejadian k where k.sesi_id = s.id and k.jenis = 'akun_seelabs'),
+          (select max(x.dikirim_pada) from nilai_kirim x where x.sesi_id = s.id)
         )
       )
     order by s.tanggal

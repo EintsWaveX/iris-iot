@@ -13,7 +13,7 @@ import { ArrowRightIcon, PlayIcon, TrashIcon } from "@phosphor-icons/react";
 import Confirm from "../../ui/Confirm";
 import StartCheck, { type BelumSiap } from "../StartCheck";
 import Pill from "../../ui/Pill";
-import { Checkbox, Stepper, Switch } from "../../ui/Controls";
+import { Stepper, Switch } from "../../ui/Controls";
 import { dict, getJson, href, postJson, tanggalPanjang, useMe } from "../../../lib/app";
 import { SESI_CAP_MENIT, SESI_MIN_MENIT } from "../../../lib/jadwal";
 import { menitLabel, modulLabel } from "../../../lib/labels";
@@ -204,7 +204,6 @@ export default function TotPanel({
   const [hapus, setHapus] = useState(false);
   const [modul, setModul] = useState(1);
   const [durasi, setDurasi] = useState(120);
-  const [butuhAp, setButuhAp] = useState(true);
   const [busy, setBusy] = useState(false);
   const [belum, setBelum] = useState<BelumSiap | null>(null);
 
@@ -230,7 +229,7 @@ export default function TotPanel({
     return true;
   }
 
-  async function mulai(paksa?: string, apPaksa?: boolean) {
+  async function mulai(paksa?: string) {
     setBusy(true);
     try {
       const d = await postJson<{
@@ -243,7 +242,7 @@ export default function TotPanel({
         jenis: "tot",
         modul,
         durasiMenit: durasi,
-        butuhAp: modul === 4 && (apPaksa ?? butuhAp),
+        butuhAp: modul === 4,
         paksa,
       });
       // The lab check found something: show it instead of a toast.
@@ -377,14 +376,6 @@ export default function TotPanel({
                   ))}
                 </div>
               </div>
-              {modul === 4 && (
-                <Checkbox
-                  checked={butuhAp}
-                  onChange={setButuhAp}
-                  label={t.apLabel}
-                  hint={t.apHint}
-                />
-              )}
               <div className="panel__actions">
                 <button
                   type="button"
@@ -468,10 +459,6 @@ export default function TotPanel({
         onClose={() => setBelum(null)}
         onRecheck={() => void mulai()}
         onForce={(alasan) => void mulai(alasan)}
-        onApOn={() => {
-          setButuhAp(true);
-          void mulai(undefined, true);
-        }}
       />
     </div>
   );

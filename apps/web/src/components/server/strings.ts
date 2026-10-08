@@ -427,6 +427,19 @@ export const S = dict({
     setupRun: (langkah: string) => `Sedang berjalan: ${langkah.toLowerCase()}.`,
     setupFail: "Pemasangan terakhir berhenti. Buka pemasangan untuk melihat alasannya.",
     setupNone: "Belum dipasang di Pi mana pun.",
+    // hotspot source (2026-10-08)
+    apSrcTitle: "Hotspot IRIS-IOT",
+    apSrcSub: "Dari mana Wi-Fi perburuan Modul 4 berasal.",
+    apSrcKabel: "Router (Kabel LAN)",
+    apSrcWifi: "Wi-Fi Pi",
+    apSrcKabelHint:
+      "Router TP-Link mode Access Point di port LAN Pi menyiarkan IRIS-IOT. Wi-Fi Pi tetap di jaringan kampus selama perburuan.",
+    apSrcWifiHint:
+      "Radio Wi-Fi Pi sendiri menjadi IRIS-IOT. Tanpa uplink kedua, Pi terputus dari situs selama perburuan.",
+    apSrcOld: "Perbarui agen di kartu Pembaruan dulu (butuh protokol 5).",
+    apSrcBusy: "Hotspot sedang menyala. Selesaikan perburuan dulu sebelum mengganti sumbernya.",
+    apSrcWait: "Menunggu Pi menerapkan pilihan ini…",
+    apSrcSent: "Pilihan dikirim ke Pi.",
     // errors
     codes: {
       format_salah: "Formatnya belum benar.",
@@ -845,6 +858,19 @@ export const S = dict({
     setupRun: (langkah: string) => `In progress: ${langkah.toLowerCase()}.`,
     setupFail: "The last install stopped. Open the setup to see why.",
     setupNone: "Not set up on any Pi yet.",
+    // hotspot source (2026-10-08)
+    apSrcTitle: "IRIS-IOT Hotspot",
+    apSrcSub: "Where the Module 4 hunt's Wi-Fi comes from.",
+    apSrcKabel: "Router (LAN Cable)",
+    apSrcWifi: "Pi Wi-Fi",
+    apSrcKabelHint:
+      "A TP-Link router in Access Point mode on the Pi's LAN port broadcasts IRIS-IOT. The Pi's Wi-Fi stays on the campus network during the hunt.",
+    apSrcWifiHint:
+      "The Pi's own Wi-Fi radio becomes IRIS-IOT. Without a second uplink, the Pi drops off the site during the hunt.",
+    apSrcOld: "Update the agent on the Updates card first (needs protocol 5).",
+    apSrcBusy: "The hotspot is on. End the hunt before changing its source.",
+    apSrcWait: "Waiting for the Pi to apply this choice…",
+    apSrcSent: "Choice sent to the Pi.",
     codes: {
       format_salah: "That format isn't right.",
       sesi_berjalan: "A session is running. Update after it ends.",
@@ -1243,6 +1269,19 @@ export const S = dict({
     setupRun: (langkah: string) => `正在进行：${langkah}。`,
     setupFail: "上一次安装停止了。打开安装看看原因。",
     setupNone: "还没有安装到任何 Pi 上。",
+    // hotspot source (2026-10-08)
+    apSrcTitle: "IRIS-IOT 热点",
+    apSrcSub: "模块 4 寻踪用的 Wi-Fi 从哪里来。",
+    apSrcKabel: "路由器（网线）",
+    apSrcWifi: "Pi 的 Wi-Fi",
+    apSrcKabelHint:
+      "接在 Pi 网口上的 TP-Link 路由器（AP 模式）发出 IRIS-IOT。寻踪时 Pi 的 Wi-Fi 仍然连着校园网。",
+    apSrcWifiHint:
+      "Pi 自己的 Wi-Fi 变成 IRIS-IOT。没有第二条上行网络时，寻踪期间 Pi 会和网站断开。",
+    apSrcOld: "先在更新卡片里更新 agent（需要协议 5）。",
+    apSrcBusy: "热点正在开启。先结束寻踪再更换来源。",
+    apSrcWait: "等待 Pi 应用这个选择…",
+    apSrcSent: "选择已发送到 Pi。",
     codes: {
       format_salah: "格式不对。",
       sesi_berjalan: "正在上课。下课后再更新。",

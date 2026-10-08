@@ -159,6 +159,8 @@
   .srvchip .sbar__srvhint {
     display: none;
   }
+  /* Mulai Perburuan keeps its words: it is the one step that opens the
+     whole hunt, so it must not hide as an unnamed icon (2026-10-09). */
   .sbar__ext {
     justify-content: center;
     padding-inline: 0;
@@ -3071,4 +3073,28 @@ button.lib__name:hover {
 
 .riwayat__final .grow {
   min-width: 220px;
+}
+
+/* Kirim Nilai (2026-10-09): the button or the sent state, with its hint. */
+.kirim {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+.scores > .kirim {
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  padding-top: 12px;
+}
+
+.ntable__group .kirim {
+  margin-left: auto;
+}
+
+.ntable__group .kirim .hint {
+  font-weight: 500;
+  text-transform: none;
 }

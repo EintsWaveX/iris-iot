@@ -52,7 +52,6 @@ export interface FaktaMulai {
 }
 
 const aktif = (st: string | undefined) => st === "active" || st === "aktif";
-const hotspotNyala = (m: string | null) => m === "ap" || m === "ap-mandiri" || m === "ap+uplink";
 
 export function cekMulai(f: FaktaMulai): CekMulai[] {
   const out: CekMulai[] = [];
@@ -83,16 +82,8 @@ export function cekMulai(f: FaktaMulai): CekMulai[] {
     keadaan: keadaan ?? (unit && online ? "tidak dilaporkan" : undefined),
   });
 
-  if (f.modul === 4) {
-    const nyala = hotspotNyala(f.pi?.modeJaringan ?? null);
-    out.push({
-      id: "hotspot",
-      // Queued with this start counts, as long as the Pi is there to hear it.
-      status: !online ? "lewat" : nyala || f.butuhAp ? "ok" : "gagal",
-      keras: false,
-      diantre: !nyala && f.butuhAp,
-    });
-  }
+  // No hotspot check (2026-10-08): Module 4 starts with the hotspot off, and
+  // the Asisten's Mulai Perburuan turns it on later in the session.
   return out;
 }
 

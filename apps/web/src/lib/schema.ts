@@ -1039,6 +1039,26 @@ export const nilaiAbsen = pgTable(
   (t) => [unique("nilai_absen_sesi_nim").on(t.sesiId, t.nim)],
 );
 
+/**
+ * Kirim Nilai (2026-10-09): a group's scores sent by its Asisten once every
+ * member is complete. Only then do its Praktikan see their own scores and
+ * does the group earn its payment unit. Later edits stay allowed and show
+ * at once; the row keeps who sent it first and when.
+ */
+export const nilaiKirim = pgTable(
+  "nilai_kirim",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    dikirimOleh: text("dikirim_oleh").notNull(),
+    dikirimPada: timestamp("dikirim_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("nilai_kirim_sesi_kelompok").on(t.sesiId, t.kelompokNomor)],
+);
+
 /* --------------------------------------------- Phase 9 Stage 3: rosters */
 
 /**

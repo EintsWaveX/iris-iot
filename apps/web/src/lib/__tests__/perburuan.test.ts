@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  bacaPerburuanSesi,
   keadaanPerburuan,
+  perburuanBerjalan,
   penghargaanKelompok,
   saringHotspot,
   saringPerburuan,
@@ -71,13 +73,36 @@ describe("saringPerburuan", () => {
 
 describe("keadaanPerburuan", () => {
   const r = saringPerburuan(contoh)!;
-  it("follows the round", () => {
-    expect(keadaanPerburuan(null, 1)).toBe("tunggu");
-    expect(keadaanPerburuan({ ...r, sesi: null }, 1)).toBe("tunggu");
-    expect(keadaanPerburuan({ ...r, mulai: false }, 1)).toBe("buka");
-    expect(keadaanPerburuan(r, 1)).toBe("main");
-    expect(keadaanPerburuan(r, 2)).toBe("selesai");
-    expect(keadaanPerburuan({ ...r, selesai: true }, 1)).toBe("selesai");
+  const jalan = { mulai: "2026-10-08T13:00:00Z", selesai: null, oleh: "1101200009" };
+  it("follows the round once the Asisten started the hunt", () => {
+    expect(keadaanPerburuan(null, 1, jalan)).toBe("tunggu");
+    expect(keadaanPerburuan({ ...r, sesi: null }, 1, jalan)).toBe("tunggu");
+    expect(keadaanPerburuan({ ...r, mulai: false }, 1, jalan)).toBe("buka");
+    expect(keadaanPerburuan(r, 1, jalan)).toBe("main");
+    expect(keadaanPerburuan(r, 2, jalan)).toBe("selesai");
+    expect(keadaanPerburuan({ ...r, selesai: true }, 1, jalan)).toBe("selesai");
+  });
+
+  it("stays locked until Mulai Perburuan, whatever the Pi reports", () => {
+    expect(keadaanPerburuan(r, 1)).toBe("belum");
+    expect(keadaanPerburuan(r, 1, null)).toBe("belum");
+    expect(keadaanPerburuan(r, 1, { mulai: null, selesai: null, oleh: null })).toBe("belum");
+  });
+
+  it("is over after Selesai Perburuan, the result still readable", () => {
+    expect(keadaanPerburuan(r, 1, { ...jalan, selesai: "2026-10-08T14:00:00Z" })).toBe("selesai");
+  });
+});
+
+describe("bacaPerburuanSesi and perburuanBerjalan", () => {
+  it("reads the record and tells a running hunt apart", () => {
+    const p = bacaPerburuanSesi({ mulai: "2026-10-08T13:00:00Z", selesai: null, oleh: "x" });
+    expect(p).toEqual({ mulai: "2026-10-08T13:00:00Z", selesai: null, oleh: "x" });
+    expect(perburuanBerjalan(p)).toBe(true);
+    expect(perburuanBerjalan({ ...p!, selesai: "2026-10-08T14:00:00Z" })).toBe(false);
+    expect(perburuanBerjalan(null)).toBe(false);
+    expect(bacaPerburuanSesi(null)).toBeNull();
+    expect(bacaPerburuanSesi({ mulai: 5 })).toEqual({ mulai: null, selesai: null, oleh: null });
   });
 });
 

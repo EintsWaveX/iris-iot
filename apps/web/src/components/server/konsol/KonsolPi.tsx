@@ -1162,6 +1162,24 @@ function Open({
     return () => kb.unlock?.();
   }, [full, pegang]);
 
+  // The status layer (connecting, dropped) starts under the pane's toolbar,
+  // so the screen and control badges and the full screen button stay
+  // readable and clickable while it shows (2026-10-09).
+  useEffect(() => {
+    const el = pane.current;
+    const box = el?.querySelector<HTMLElement>(".vnc__frame, .term__xterm");
+    if (!el || !box) return;
+    const ukur = () =>
+      el.style.setProperty(
+        "--pk-bar",
+        `${Math.max(0, box.getBoundingClientRect().top - el.getBoundingClientRect().top)}px`,
+      );
+    ukur();
+    const ro = new ResizeObserver(ukur);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [terminal, full]);
+
   const overlay = (() => {
     if (keadaan.k === "siap") return null;
     if (keadaan.k === "tiket")

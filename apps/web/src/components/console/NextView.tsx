@@ -132,8 +132,9 @@ export default function NextView({
   const m = sesi.modul;
   const mName = modulLabel(m, lang);
   const layanan = LAYANAN[m];
-  // The next slot runs this week's module; the hotspot is Module 4's.
-  const hotspot: "on" | "off" | null = m === 4 ? (next ? "on" : "off") : null;
+  // The hotspot is Module 4's, and between sessions it is only ever turned
+  // off: the next session's Mulai Perburuan turns it on (2026-10-08).
+  const hotspot: "off" | null = m === 4 ? "off" : null;
 
   async function kirim(key: string, aksi: string, argumen: Record<string, string>) {
     try {
@@ -293,19 +294,13 @@ export default function NextView({
             </li>
             <li>
               <WifiHighIcon size={20} aria-hidden="true" />
-              <span className="grow">
-                {hotspot === "on"
-                  ? t.cmdHotOn
-                  : hotspot === "off"
-                    ? t.cmdHotOff
-                    : t.cmdHotSkip(mName)}
-              </span>
+              <span className="grow">{hotspot === "off" ? t.cmdHotOff : t.cmdHotSkip(mName)}</span>
               {hotspot ? (
                 <button
                   type="button"
                   className="btn btn--secondary btn--sm"
                   disabled={sent.ap}
-                  onClick={() => void kirim("ap", hotspot === "on" ? "ap.nyala" : "ap.mati", {})}
+                  onClick={() => void kirim("ap", "ap.mati", {})}
                 >
                   {sent.ap ? t.cmdDone : t.cmdRun}
                 </button>

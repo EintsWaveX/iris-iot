@@ -17,6 +17,7 @@ import { anggota as anggotaT, denyut, kelompok, server } from "../../src/lib/sch
 import { currentSesi } from "../../src/lib/sesi.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { hotspotMenyala } from "../../src/lib/server-shared.js";
+import { bacaPerburuanSesi } from "./perburuan-sesi.js";
 import {
   keadaanPerburuan,
   penghargaanKelompok,
@@ -58,6 +59,8 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
     .limit(1);
 
   const ringkas: Ringkas | null = srv ? saringPerburuan(srv.perburuan) : null;
+  // 2026-10-08: the step opens only with the Asisten's Mulai Perburuan
+  const perburuan = await bacaPerburuanSesi(running.id);
   let ap = true;
   if (srv) {
     const [d] = await db
@@ -100,7 +103,7 @@ export async function handlePerburuan(req: ApiRequest, res: ApiResponse, who: Se
   res.status(200).json({
     ok: true,
     aktif: true,
-    keadaan: keadaanPerburuan(ringkas, nomor),
+    keadaan: keadaanPerburuan(ringkas, nomor, perburuan),
     piTerhubung: !!ringkas,
     // The hunt's own roster doesn't hold this NIM (a late roster change):
     // the step says to ask the Asisten instead of showing a link that fails.

@@ -101,7 +101,16 @@ export function bacaHasilSiap(keluaran: string | null | undefined): HasilSiap | 
 
 /** The agent protocol this site relies on. Bump with AGEN_PROTOKOL in the
  *  agent's agent.py whenever the site starts needing something new. */
-export const AGEN_PROTOKOL_TERBARU = 4;
+export const AGEN_PROTOKOL_TERBARU = 5;
+
+/** Where the IRIS-IOT hotspot comes from (agent protocol 5): a router in
+ *  Access Point mode on the Pi's LAN port, or the Pi's own Wi-Fi radio. */
+export const AP_SUMBER = ["kabel", "wifi"] as const;
+export type ApSumber = (typeof AP_SUMBER)[number];
+
+export function apSumberValid(value: unknown): value is ApSumber {
+  return typeof value === "string" && (AP_SUMBER as readonly string[]).includes(value);
+}
 
 /** diag.journal's arguments, mirrored by JOURNAL_UNIT and JOURNAL_TINGKAT
  *  in the agent's commands.py. */

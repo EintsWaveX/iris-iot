@@ -299,10 +299,37 @@
   overflow-wrap: anywhere;
 }
 
+/* Location, LAN address and last heartbeat side by side, the notes on a
+   row of their own: three across from 1024, two (location full width) from
+   640, stacked on a phone. */
 .locstrip {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.locstrip__i[data-k="catatan"] {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  .locstrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .locstrip__i[data-k="lokasi"] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .locstrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .locstrip__i[data-k="lokasi"] {
+    grid-column: auto;
+  }
 }
 
 .locstrip__i {
@@ -346,12 +373,6 @@
 .locstrip__i b.is-empty {
   color: var(--text-faint);
   font-weight: 500;
-}
-
-@media (max-width: 639px) {
-  .locstrip__i {
-    flex: 1 1 100%;
-  }
 }
 
 /* Compact / Full: its own width beside the name; a full row on a phone. */

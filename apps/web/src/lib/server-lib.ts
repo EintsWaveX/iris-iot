@@ -163,6 +163,10 @@ export const AKSI_PERINTAH = [
   // refused while a session runs.
   "pembaruan.bundel",
   "pembaruan.apt",
+  // 2026-10-08 (agent protocol 5): where IRIS-IOT comes from, a router on
+  // the Pi's LAN port (kabel) or the Pi's own radio (wifi). One argument,
+  // `sumber`, from AP_SUMBER; the Pi refuses it while the hotspot is on.
+  "ap.sumber",
 ] as const;
 export type AksiPerintah = (typeof AKSI_PERINTAH)[number];
 
@@ -204,6 +208,7 @@ export function unitDiagValid(value: unknown): value is string {
 export async function queueSoloServerCommand(
   aksi: AksiPerintah,
   dimintaOleh: string,
+  argumen?: Record<string, string>,
 ): Promise<boolean> {
   const db = getDb();
   const enrolled = await db
@@ -213,7 +218,9 @@ export async function queueSoloServerCommand(
 
   if (enrolled.length !== 1) return false;
 
-  await db.insert(perintah).values({ serverId: enrolled[0].id, aksi, dimintaOleh });
+  await db
+    .insert(perintah)
+    .values({ serverId: enrolled[0].id, aksi, dimintaOleh, ...(argumen ? { argumen } : {}) });
   return true;
 }
 

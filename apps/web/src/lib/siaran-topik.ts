@@ -70,6 +70,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:kit": ["sesi", "laporan"],
   "session:siarkan": ["sesi"],
   "session:tangkapan": ["tangkapan"],
+  // Mulai/Selesai Perburuan (2026-10-08): the step opens, the hotspot chip moves.
+  "session:perburuan": ["sesi", "buru", "server"],
   // Every 2 s per laptop while a port is open; the Asisten mirror polls.
   "session:cermin": [],
   // Every 1.5 s per laptop; the Live page polls.

@@ -55,6 +55,7 @@ const T = dict({
     team: "Tim",
     mods: "Modul",
     account: "Halaman Akun",
+    seelabsGuide: "Panduan Nilai ke SeeLabs",
     group: (n: number) => `Buka Kelompok ${n} · ${KELOMPOK_NAMA[n]}`,
     announce: "Kirim Pengumuman",
     drawer: "Buka Laci Server",
@@ -110,6 +111,7 @@ const T = dict({
     team: "Team",
     mods: "Modules",
     account: "Account Page",
+    seelabsGuide: "Scores to SeeLabs Guide",
     group: (n: number) => `Open Group ${n} · ${KELOMPOK_NAMA[n]}`,
     announce: "Send an Announcement",
     drawer: "Open the Server Drawer",
@@ -165,6 +167,7 @@ const T = dict({
     team: "团队",
     mods: "模块",
     account: "账号页面",
+    seelabsGuide: "分数提交到 SeeLabs 指南",
     group: (n: number) => `打开第 ${n} 组 · ${KELOMPOK_NAMA[n]}`,
     announce: "发公告",
     drawer: "打开服务器抽屉",
@@ -401,6 +404,13 @@ export default function AsistenCommands({
         hint: "G A",
         keywords: ["password", "sandi"],
         run: go("/account"),
+      },
+      {
+        id: "seelabs-guide",
+        group: t.go,
+        label: t.seelabsGuide,
+        keywords: ["seelabs", "nilai", "scores", "panduan", "guide", "tutorial", "bookmarklet"],
+        run: go("/session#seelabs=panduan"),
       },
     ];
     if (running) {

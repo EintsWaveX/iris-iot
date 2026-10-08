@@ -17,7 +17,12 @@
  */
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { namaAsisten, useDirektori } from "../../lib/people";
-import { CopyIcon, DownloadSimpleIcon, LockSimpleIcon } from "@phosphor-icons/react";
+import {
+  BookOpenTextIcon,
+  CopyIcon,
+  DownloadSimpleIcon,
+  LockSimpleIcon,
+} from "@phosphor-icons/react";
 import { ScoreInput, Switch } from "../ui/Controls";
 import SegmentedControl from "../ui/SegmentedControl";
 import Pill from "../ui/Pill";
@@ -33,6 +38,8 @@ import type { NilaiLive } from "./data";
 import type { AsistenRef, GroupRow, NilaiAnggota } from "./types";
 import { useCaraNilai } from "./caraNilai";
 import { useTandaAbsen } from "./TandaAbsen";
+import KirimNilai from "./KirimNilai";
+import { PD } from "./seelabs/panduanStrings";
 
 export default function NilaiTable({
   t,
@@ -237,6 +244,10 @@ export default function NilaiTable({
               { value: "rata", label: t.caraRata },
             ]}
           />
+          <button type="button" className="btn" onClick={() => onSeelabs("panduan")}>
+            <BookOpenTextIcon size={18} aria-hidden="true" />
+            {PD[lang].btn}
+          </button>
           <button type="button" className="btn" onClick={xlsx}>
             <DownloadSimpleIcon size={18} aria-hidden="true" />
             {t.xlsx}
@@ -307,6 +318,13 @@ export default function NilaiTable({
                             </Pill>
                           )}
                           {seelabsBits(k.nomor, k.id)}
+                          <KirimNilai
+                            t={t}
+                            nilai={nilai}
+                            kelompokId={k.id}
+                            canEdit={canEdit(k.id)}
+                            compact
+                          />
                         </span>
                       </th>
                     </tr>
@@ -346,6 +364,7 @@ export default function NilaiTable({
                 {t.groupFull(k.nomor)}
               </h3>
               {seelabsBits(k.nomor, k.id)}
+              <KirimNilai t={t} nilai={nilai} kelompokId={k.id} canEdit={canEdit(k.id)} compact />
               {k.anggota.map((a) => (
                 <div key={a.nim} className="ncard" data-absen={a.absen ? "yes" : undefined}>
                   <div className="row row--between">

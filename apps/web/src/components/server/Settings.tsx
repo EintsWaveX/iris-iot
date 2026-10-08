@@ -26,7 +26,16 @@ import Tooltip from "../ui/Tooltip";
 import { sejak, useTick } from "../../lib/app";
 import { durasiLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
-import { bacaRinci, JOURNAL_UNIT, LANGKAH_PASANG, posisiPasang } from "../../lib/server-shared";
+import {
+  AP_SUMBER,
+  apSumberValid,
+  bacaRinci,
+  hotspotMenyala,
+  JOURNAL_UNIT,
+  LANGKAH_PASANG,
+  posisiPasang,
+  type ApSumber,
+} from "../../lib/server-shared";
 import Enroll, { bacaPerintah } from "./Enroll";
 import {
   kirim,
@@ -461,6 +470,8 @@ export default function Settings({
         </section>
       )}
 
+      {bisa.full && <HotspotSource lang={lang} id={id} data={data} refresh={refresh} />}
+
       {bisa.full && (
         <section className="panel dangerzone">
           <div className="panel__head">
@@ -507,6 +518,72 @@ export default function Settings({
         }}
       />
     </div>
+  );
+}
+
+/** Where IRIS-IOT comes from (agent protocol 5): the kit's router on the
+ *  Pi's LAN port, or the Pi's own Wi-Fi radio. */
+function HotspotSource({
+  lang,
+  id,
+  data,
+  refresh,
+}: {
+  lang: Lang;
+  id: number;
+  data: Detail;
+  refresh: () => void;
+}) {
+  const t = S[lang];
+  const [busy, setBusy] = useState(false);
+  const info = data.server.infoSistem ?? {};
+  const protokol = typeof info.protokol === "number" ? info.protokol : 0;
+  const sekarang = apSumberValid(info.apSumber) ? info.apSumber : null;
+  const menyala = hotspotMenyala(data.denyutTerakhir?.modeJaringan);
+  const jalan = data.perintah.some(
+    (p) => p.aksi === "ap.sumber" && (p.status === "menunggu" || p.status === "terkirim"),
+  );
+  const kunci = protokol < 5 ? t.apSrcOld : menyala ? t.apSrcBusy : null;
+
+  async function pilih(sumber: ApSumber) {
+    if (sumber === sekarang || kunci) return;
+    setBusy(true);
+    await kirim(id, "ap.sumber", { sumber }, lang, t.apSrcSent);
+    setBusy(false);
+    refresh();
+  }
+
+  return (
+    <section className="panel">
+      <div className="stack stack--sm">
+        <h2 className="panel__title">{t.apSrcTitle}</h2>
+        <span className="hint">{t.apSrcSub}</span>
+      </div>
+      <div className="srv-diagbtns" role="group" aria-label={t.apSrcTitle}>
+        {AP_SUMBER.map((s) => (
+          <button
+            key={s}
+            type="button"
+            className="btn"
+            aria-pressed={sekarang === s}
+            disabled={busy || jalan || !!kunci}
+            onClick={() => void pilih(s)}
+          >
+            {s === "kabel" ? (
+              <PlugsConnectedIcon size={18} aria-hidden="true" />
+            ) : (
+              <WifiHighIcon size={18} aria-hidden="true" />
+            )}
+            {s === "kabel" ? t.apSrcKabel : t.apSrcWifi}
+          </button>
+        ))}
+      </div>
+      <p className="hint" aria-live="polite">
+        {jalan
+          ? t.apSrcWait
+          : (kunci ?? (sekarang === "kabel" ? t.apSrcKabelHint : t.apSrcWifiHint))}
+      </p>
+    </section>
   );
 }
 

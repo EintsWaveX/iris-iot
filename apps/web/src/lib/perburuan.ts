@@ -6,7 +6,27 @@
  * (keadaanPerburuan), so both sides agree on the shape.
  */
 
-export type KeadaanHunt = "tunggu" | "buka" | "main" | "selesai";
+/** "belum": the Asisten hasn't pressed Mulai Perburuan yet (2026-10-08). */
+export type KeadaanHunt = "belum" | "tunggu" | "buka" | "main" | "selesai";
+
+/** The Asisten's Mulai/Selesai Perburuan for one session (pengaturan). */
+export interface PerburuanSesi {
+  mulai: string | null;
+  selesai: string | null;
+  oleh: string | null;
+}
+
+export function bacaPerburuanSesi(raw: unknown): PerburuanSesi | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const teks = (v: unknown) => (typeof v === "string" && v ? v : null);
+  return { mulai: teks(r.mulai), selesai: teks(r.selesai), oleh: teks(r.oleh) };
+}
+
+/** Whether the hunt is open for the session: started and not yet ended. */
+export function perburuanBerjalan(p: PerburuanSesi | null): boolean {
+  return !!p?.mulai && !p.selesai;
+}
 
 export interface AnggotaRingkas {
   nim: string;
@@ -171,7 +191,14 @@ export function penghargaanKelompok(
  * "buka" once it has, "main" once the beacons are on air, "selesai" when
  * the group found its beacon or the round closed.
  */
-export function keadaanPerburuan(r: Ringkas | null, nomor: number): KeadaanHunt {
+export function keadaanPerburuan(
+  r: Ringkas | null,
+  nomor: number,
+  p: PerburuanSesi | null = null,
+): KeadaanHunt {
+  // Locked until the Asisten's Mulai Perburuan; after Selesai the result stays readable
+  if (!p?.mulai) return "belum";
+  if (p.selesai) return "selesai";
   if (!r || r.sesi === null) return "tunggu";
   const g = r.grup.find((x) => x.grup === nomor);
   if (r.selesai || g?.status === "menang") return "selesai";

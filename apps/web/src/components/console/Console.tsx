@@ -81,7 +81,7 @@ function readHash(): {
   if (h === "prep" || h === "board" || h === "table") return { view: h };
   if (h === "seelabs") return { seelabs: true };
   // #seelabs=pasang (the Account page's "Cara Pakai") opens one tab.
-  const st = /^seelabs=(salin|pasang|cara|tidak|titipan)$/.exec(h);
+  const st = /^seelabs=(panduan|salin|pasang|cara|tidak|titipan)$/.exec(h);
   if (st) return { seelabs: true, seelabsTab: st[1] as SeelabsTab };
   const g = /^k([1-9]|10)$/.exec(h);
   if (g) return { view: "board", group: Number(g[1]) };
@@ -378,6 +378,14 @@ export default function Console({ lang }: { lang: Lang }) {
             nomor={see.nomor}
             onBack={closeSeelabs}
             backLabel={done ? undefined : SL[lang].backHome}
+            onTable={
+              done
+                ? () => {
+                    closeSeelabs();
+                    setDoneTable(true);
+                  }
+                : undefined
+            }
           />
         </div>
       );
@@ -532,6 +540,10 @@ export default function Console({ lang }: { lang: Lang }) {
           tab={see.tab}
           nomor={see.nomor}
           onBack={closeSeelabs}
+          onTable={() => {
+            closeSeelabs();
+            go("table");
+          }}
         />
       </div>
     );

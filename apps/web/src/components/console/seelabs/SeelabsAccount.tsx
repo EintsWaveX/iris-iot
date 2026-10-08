@@ -98,7 +98,7 @@ export default function SeelabsAccount({ lang, nim }: { lang: Lang; nim: string 
           <span className="field__label">{t.acctBm}</span>
           <span className="row" style={{ gap: 8 }}>
             <BookmarkletPill t={t} />
-            <a className="btn btn--ghost btn--sm" href={href(lang, "/session#seelabs=pasang")}>
+            <a className="btn btn--ghost btn--sm" href={href(lang, "/session#seelabs=panduan")}>
               {t.howTo}
               <ArrowRightIcon size={16} aria-hidden="true" />
             </a>

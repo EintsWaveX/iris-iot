@@ -103,13 +103,20 @@ export default function HuntStep({
   const k = data.kelompok;
   const keadaan = data.keadaan ?? "tunggu";
 
-  if (keadaan === "tunggu") {
+  // "belum": the Asisten hasn't pressed Mulai Perburuan yet (2026-10-08)
+  if (keadaan === "tunggu" || keadaan === "belum") {
     return (
       <div className="modlock">
         <StateView
           icon={<FlagCheckeredIcon size={28} />}
           title={t.waitTitle}
-          body={data.piTerhubung ? t.waitBody : `${t.waitBody} ${t.waitNoPi}`}
+          body={
+            keadaan === "belum"
+              ? t.waitAsisten
+              : data.piTerhubung
+                ? t.waitBody
+                : `${t.waitBody} ${t.waitNoPi}`
+          }
           actions={
             <button
               type="button"

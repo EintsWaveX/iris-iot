@@ -40,6 +40,7 @@
  * lab (api/_lib/lab.ts, public).
  */
 import { handlePerburuan } from "../_lib/perburuan-api.js";
+import { bacaPerburuanSesi, handlePerburuanPost, tutupPerburuan } from "../_lib/perburuan-sesi.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { cekHak } from "../_lib/hak.js";
 import { handleTimGet, handleTimJejak, handleTimPost } from "../_lib/tim.js";
@@ -77,6 +78,7 @@ import {
   telemetriLog,
   nilai,
   nilaiAbsen,
+  nilaiKirim,
   NILAI_KOMPONEN,
   asisten,
   sesiAnggota,
@@ -101,7 +103,7 @@ import {
   handleHadirPost,
   kembalikanPindahan,
 } from "../_lib/sesi-hadir.js";
-import { queueSoloServerCommand, nilaiOrNull } from "../../src/lib/server-lib.js";
+import { nilaiOrNull } from "../../src/lib/server-lib.js";
 import {
   handleCerminGet,
   handleCerminPost,
@@ -146,7 +148,7 @@ import {
   cekKendaliSesi,
   hakKendaliSesi,
 } from "../_lib/phase8.js";
-import { eq, and, or, gte, like, sql, notInArray, isNull, desc, asc } from "drizzle-orm";
+import { eq, and, or, gte, like, sql, notInArray, inArray, isNull, desc, asc } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 import { tandaiAktif } from "../_lib/kehadiran.js";
 
@@ -365,7 +367,7 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
 
   const db = getDb();
   const [row] = await db
-    .select({ status: sesi.status, butuhAp: sesi.butuhAp })
+    .select({ status: sesi.status, modul: sesi.modul })
     .from(sesi)
     .where(eq(sesi.id, sesiId))
     .limit(1);
@@ -383,10 +385,10 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
   await kembalikanPindahan(sesiId, "pulih");
   await writeAudit(session.nim, "sesi_batal", { sesiId });
 
-  // Same as handleEnd: a cancelled hotspot session must not leave the Pi
-  // stuck as a hotspot, off campus Wi-Fi, for the rest of the day.
-  if (row.status === "berjalan" && row.butuhAp) {
-    await queueSoloServerCommand("ap.mati", session.nim);
+  // Same as handleEnd: a cancelled Module 4 session closes its hunt, so the
+  // hotspot and the scoreboard never outlive it.
+  if (row.status === "berjalan") {
+    await tutupPerburuan(sesiId, row.modul, session.nim);
   }
   res.status(200).json({ ok: true });
 }
@@ -480,7 +482,15 @@ async function handleCurrent(_req: ApiRequest, res: ApiResponse, session: Sessio
   const kendali = running ? (await hakKendaliSesi(session.nim, running.id)) === "ok" : false;
   res.status(200).json({
     ok: true,
-    sesi: running ? { ...running, kodeMasuk: kodeMasukSesi(running), kendali } : null,
+    sesi: running
+      ? {
+          ...running,
+          kodeMasuk: kodeMasukSesi(running),
+          kendali,
+          // 2026-10-08: the session bar's Mulai/Selesai Perburuan
+          perburuan: running.modul === 4 ? await bacaPerburuanSesi(running.id) : null,
+        }
+      : null,
     roster,
   });
 }
@@ -514,12 +524,9 @@ async function handleEnd(_req: ApiRequest, res: ApiResponse, session: SessionPay
   await kembalikanPindahan(running.id, "pulih");
   await writeAudit(session.nim, "sesi_akhiri", { sesiId: running.id });
 
-  // Mirror of the auto-queue in api/session/index.ts: a session that turned
-  // the hotspot on when it started should turn it back off when it ends,
-  // without needing an assistant to remember the manual /servers button.
-  if (running.butuhAp) {
-    await queueSoloServerCommand("ap.mati", session.nim);
-  }
+  // A Module 4 session closes its hunt: the hotspot and the scoreboard go
+  // off without anyone remembering the Server page (2026-10-08).
+  await tutupPerburuan(running.id, running.modul, session.nim);
 
   res.status(200).json({ ok: true, sesi: updated });
 }
@@ -912,9 +919,15 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
     // zeros, which a "changed since" list cannot show, so a client whose
     // list differs loads everything again.
     const absen = await daftarAbsen(db, sesiId);
-    res
-      .status(200)
-      .json({ ok: true, berubah, pemilik, absen: [...absen], server: new Date().toISOString() });
+    const terkirim = await daftarKirim(db, sesiId);
+    res.status(200).json({
+      ok: true,
+      berubah,
+      pemilik,
+      absen: [...absen],
+      terkirim,
+      server: new Date().toISOString(),
+    });
     return;
   }
 
@@ -961,6 +974,7 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
     komponen: NILAI_KOMPONEN,
     kelompok: daftarKelompok,
     pemilik,
+    terkirim: await daftarKirim(db, sesiId),
     server: new Date().toISOString(),
   });
 }
@@ -979,6 +993,7 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
 async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
   const sesiId = Number(body.sesiId);
+  if (body.kirim === true) return kirimNilai(req, res, session, sesiId, Number(body.kelompokId));
   const nims = Array.isArray(body.nims)
     ? body.nims.map((x) => (typeof x === "string" ? x.trim() : ""))
     : [typeof body.nim === "string" ? body.nim.trim() : ""];
@@ -1064,6 +1079,87 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     await writeAudit(session.nim, "nilai_set", { sesiId, nim, komponen, skor });
   }
   res.status(200).json({ ok: true });
+}
+
+/**
+ * POST /api/session/nilai { sesiId, kelompokId, kirim: true } (2026-10-09):
+ * Kirim Nilai. Only the group's holder (or anyone, while nobody holds it),
+ * and only when every member has all eight components (Tidak Hadir members
+ * have their zeros). Sending lets the group's Praktikan see their own
+ * scores and gives the holder the group's payment unit once the session has
+ * ended. Sending again keeps the first time; later edits show at once.
+ */
+async function kirimNilai(
+  _req: ApiRequest,
+  res: ApiResponse,
+  session: SessionPayload,
+  sesiId: number,
+  kelompokId: number,
+) {
+  if (!Number.isInteger(sesiId) || sesiId <= 0 || !Number.isInteger(kelompokId)) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  const [target] = await db.select().from(sesi).where(eq(sesi.id, sesiId)).limit(1);
+  const [g] = await db.select().from(kelompok).where(eq(kelompok.id, kelompokId)).limit(1);
+  if (!target || !g) {
+    res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
+    return;
+  }
+  const pemilik = await pemilikKelompok(db, sesiId);
+  if (!bolehIsiNilai(pemilik, kelompokId, session.nim)) {
+    res.status(200).json({ ok: false, kode: "bukan_pemilik", pemilik: pemilik.get(kelompokId) });
+    return;
+  }
+  // The same members the score table shows for this group.
+  const members = await db
+    .select({ nim: anggota.nim })
+    .from(anggota)
+    .where(eq(anggota.kelompokId, kelompokId));
+  if (!members.length) {
+    res.status(200).json({ ok: false, kode: "nim_tidak_ada" });
+    return;
+  }
+  const rows = await db
+    .select({ nim: nilai.nim })
+    .from(nilai)
+    .where(
+      and(
+        eq(nilai.sesiId, sesiId),
+        inArray(
+          nilai.nim,
+          members.map((m) => m.nim),
+        ),
+      ),
+    );
+  const per = new Map<string, number>();
+  for (const r of rows) per.set(r.nim, (per.get(r.nim) ?? 0) + 1);
+  const kurang = members.reduce(
+    (a, m) => a + Math.max(0, NILAI_KOMPONEN.length - (per.get(m.nim) ?? 0)),
+    0,
+  );
+  if (kurang > 0) {
+    res.status(200).json({ ok: false, kode: "belum_lengkap", kurang });
+    return;
+  }
+  await db
+    .insert(nilaiKirim)
+    .values({ sesiId, kelompokNomor: g.nomor, dikirimOleh: session.nim })
+    .onConflictDoNothing();
+  await writeAudit(session.nim, "nilai_kirim", { sesiId, kelompok: g.nomor });
+  res.status(200).json({ ok: true });
+}
+
+/** Which groups of a session have their scores sent, by group number. */
+async function daftarKirim(
+  db: ReturnType<typeof getDb>,
+  sesiId: number,
+): Promise<Record<number, { pada: string; oleh: string }>> {
+  const rows = await db.select().from(nilaiKirim).where(eq(nilaiKirim.sesiId, sesiId));
+  return Object.fromEntries(
+    rows.map((r) => [r.kelompokNomor, { pada: r.dikirimPada.toISOString(), oleh: r.dikirimOleh }]),
+  );
 }
 
 /** Sama Rata writes a group at once; 40 is far above any group's size. */
@@ -1231,7 +1327,7 @@ async function handleLanjutkan(req: ApiRequest, res: ApiResponse, session: Sessi
         durasiDetik: sql`extract(epoch from now() - coalesce(${sesi.mulaiPada}, ${sesi.dibuatPada}))::int`,
       })
       .where(eq(sesi.status, "berjalan"))
-      .returning({ butuhAp: sesi.butuhAp });
+      .returning({ id: sesi.id, modul: sesi.modul });
     const habis = Date.now() - startedAt.getTime() >= durasiSesi(row) * 60_000;
     await tx
       .update(sesi)
@@ -1249,11 +1345,9 @@ async function handleLanjutkan(req: ApiRequest, res: ApiResponse, session: Sessi
   await kembalikanPindahan(sesiId, "ulang");
   await writeAudit(session.nim, "sesi_lanjutkan", { sesiId });
 
-  if (row.butuhAp) {
-    await queueSoloServerCommand("ap.nyala", session.nim);
-  } else if (demoted?.butuhAp) {
-    await queueSoloServerCommand("ap.mati", session.nim);
-  }
+  // The hotspot only comes back with Mulai Perburuan (2026-10-08); a session
+  // this one pushed aside closes its own hunt.
+  if (demoted) await tutupPerburuan(demoted.id, demoted.modul, session.nim);
   res.status(200).json({ ok: true });
 }
 
@@ -1367,6 +1461,12 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   // Phase 9: the Module 4 Perburuan step (the hunt on the Pi, as one group
   // sees it). An Asisten reads the group they view as.
   if (aksi === "perburuan") {
+    // 2026-10-08: the Asisten's Mulai/Selesai Perburuan
+    if (req.method === "POST") {
+      const session = requireRole(req, res, "asisten");
+      if (!session) return;
+      return handlePerburuanPost(req, res, session);
+    }
     if (!requireMethod(req, res, "GET")) return;
     const wakil = nomorWakil(req);
     const who = wakil

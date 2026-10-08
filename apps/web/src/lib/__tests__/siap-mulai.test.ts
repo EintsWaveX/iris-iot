@@ -61,10 +61,11 @@ describe("cekMulai", () => {
     expect(s.modul).toBe("ok");
   });
 
-  it("Module 4: hotspot off fails unless it is queued with the start", () => {
+  it("Module 4 starts with the hotspot off: no hotspot check", () => {
     const off = { ...dasar, modul: 4, pi: { ...piSehat, modeJaringan: "ethernet-router" } };
-    expect(status(off).hotspot).toBe("gagal");
-    const q = cekMulai({ ...off, butuhAp: true }).find((c) => c.id === "hotspot");
-    expect(q).toMatchObject({ status: "ok", diantre: true });
+    expect(status(off).hotspot).toBeUndefined();
+    expect(gagalMulai(cekMulai({ ...off, butuhAp: true })).lunak.map((c) => c.id)).not.toContain(
+      "hotspot",
+    );
   });
 });

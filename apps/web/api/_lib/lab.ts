@@ -1,9 +1,9 @@
 /**
  * GET /api/session/lab (Phase 9, Home concept A): "In the lab now". Public,
  * so the Home page shows it to guests too. Only counts and the module leave
- * this route: no names and no NIMs. Phase 10's lab sky adds each group's
- * blanks filled, by group number only (the group names are the fixed
- * constellation names, never people). With `?saya=1` an Asisten
+ * this route: no names and no NIMs. With `?saya=1` anyone signed in also
+ * gets each group's blanks filled for the lab sky, by group number only
+ * (signed-in users only, 2026-10-09). An Asisten
  * also gets the group numbers they hold, the session id and who holds each
  * group (Lihat Sebagai Praktikan); that URL is never cached by the CDN, so
  * the plain one stays one shared response for every visitor.
@@ -35,10 +35,10 @@ export interface LabSekarang {
   anggota: number;
   blank: number;
   pesan: number;
-  /** The module's blanks per group (the lab sky's full star). */
-  celah: number;
-  /** Blanks filled per group number, every group of the session listed. */
-  bintang: { nomor: number; terisi: number }[];
+  /** The module's blanks per group (the lab sky's full star); signed in only. */
+  celah?: number;
+  /** Blanks filled per group number, every group listed; signed in only. */
+  bintang?: { nomor: number; terisi: number }[];
 }
 
 export async function handleLab(req: ApiRequest, res: ApiResponse) {
@@ -116,9 +116,13 @@ export async function handleLab(req: ApiRequest, res: ApiResponse) {
     anggota: anggota?.n ?? 0,
     blank: blank?.n ?? 0,
     pesan: pesan?.n ?? 0,
-    celah: jumlahCelahModul(kode),
-    bintang,
   };
+  // Each group's progress is for signed-in users only (2026-10-09); their
+  // `?saya=1` answer is never cached by the CDN.
+  if (req.query.saya === "1" && who) {
+    out.celah = jumlahCelahModul(kode);
+    out.bintang = bintang;
+  }
   // The per-viewer answer must not be shared by the CDN.
   if (req.query.saya === "1") res.setHeader("Cache-Control", "private, no-store");
   else res.setHeader("Cache-Control", "public, max-age=0, s-maxage=10");

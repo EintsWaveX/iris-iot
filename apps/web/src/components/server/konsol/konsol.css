@@ -446,8 +446,147 @@
   height: 100%;
 }
 
-.pkpane:fullscreen .vnc__bar {
-  color: #e4ebf7;
+/* Full screen shows the Pi's own screen on black in either theme, so the
+   pane takes the dark palette whole: in the light theme its buttons, badges
+   and hint were dark ink on black (2026-10-09). The toolbar buttons also get
+   a surface and an edge of their own, so they stand out from the black. */
+:root[data-theme="light"] .pkpane:fullscreen {
+  color-scheme: dark;
+  --void: #05060b;
+  --bg: #0a0c14;
+  --bg-sunken: #04050a;
+  --bg-elevated: #181c2c;
+  --surface-1: #10131f;
+  --surface-2: #161a2b;
+  --surface-3: #1d2238;
+  --surface-4: #262c47;
+  --panel-bg: rgba(24, 28, 44, 0.55);
+  --panel-bg-solid: #181c2c;
+  --glass: rgba(12, 15, 26, 0.72);
+  --scrim: rgba(3, 4, 8, 0.72);
+  --scrim-text: rgba(5, 6, 11, 0.55);
+  --hairline-faint: rgba(205, 220, 255, 0.11);
+  --hairline: rgba(205, 220, 255, 0.22);
+  --hairline-strong: rgba(205, 220, 255, 0.38);
+  --control-border: rgba(205, 220, 255, 0.4);
+  --text: #eef1f6;
+  --text-muted: #b0b8c8;
+  --text-faint: #98a1b3;
+  --accent: #40b0ff;
+  --accent-bright: #8ed0ff;
+  --accent-soft: rgba(64, 176, 255, 0.16);
+  --accent-ink: #04121d;
+  --accent-glow: rgba(64, 176, 255, 0.42);
+  --focus-ring: #8ed0ff;
+  --invert-bg: #eef1f6;
+  --invert-ink: #05060b;
+  --sel-bg: #2f6fb0;
+  --sel-ink: #ffffff;
+  --gold: #e8b64d;
+  --gold-bright: #f7d488;
+  --gold-soft: rgba(232, 182, 77, 0.16);
+  --gold-ink: #1a1200;
+  --gold-glow: rgba(232, 182, 77, 0.45);
+  --silver: #c3ccd8;
+  --bronze: #cf9468;
+  --danger: #ff6b6b;
+  --danger-solid: #ff5a5a;
+  --danger-ink: #0b0000;
+  --danger-soft: rgba(255, 107, 107, 0.15);
+  --warn: #f5b544;
+  --warn-soft: rgba(245, 181, 68, 0.15);
+  --ok: #5eead4;
+  --ok-soft: rgba(94, 234, 212, 0.15);
+  --violet: #b9a2ff;
+  --violet-soft: rgba(185, 162, 255, 0.18);
+  --teal: #7ff0e0;
+  --teal-soft: rgba(127, 240, 224, 0.16);
+  --orange: #ff9d3c;
+  --orange-soft: rgba(255, 157, 60, 0.2);
+  --red: #ff5a5a;
+  --red-soft: rgba(255, 90, 90, 0.2);
+  --yellow: #ffe066;
+  --yellow-soft: rgba(255, 224, 102, 0.2);
+  --group-1: #5eead4;
+  --group-2: #a78bfa;
+  --group-3: #fb7185;
+  --group-4: #f59e6a;
+  --group-5: #7dd3fc;
+  --group-6: #a3e635;
+  --group-7: #f472b6;
+  --group-8: #fde047;
+  --group-9: #93a5ff;
+  --group-10: #e2a3ff;
+  --mod-1: #6cc4ff;
+  --mod-2: #a39cff;
+  --mod-3: #5fe0b0;
+  --mod-4: #ffad6b;
+  --mod-1-soft: rgba(108, 196, 255, 0.14);
+  --mod-2-soft: rgba(163, 156, 255, 0.14);
+  --mod-3-soft: rgba(95, 224, 176, 0.14);
+  --mod-4-soft: rgba(255, 173, 107, 0.14);
+  --heat-lost: rgba(255, 255, 255, 0.22);
+  --neb-indigo: #1b1f4a;
+  --neb-violet: #3a2a6b;
+  --neb-teal: #0f3f4a;
+  --neb-plum: #2a1338;
+  --shadow-color: 0 0 0;
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 18px 48px rgba(0, 0, 0, 0.5);
+  --shadow-lift: 0 24px 70px rgba(0, 0, 0, 0.6);
+  --nav-bg: rgba(10, 12, 20, 0.62);
+  --nav-bg-scrolled: rgba(10, 12, 20, 0.9);
+  --logo-filter: none;
+  --chart-1: #7dd3fc;
+  --chart-2: #c4b5fd;
+  --chart-3: #fca5a5;
+  --chart-4: #5eead4;
+  --chart-axis: #959da7;
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-tick: rgba(255, 255, 255, 0.1);
+}
+
+.pkpane:fullscreen {
+  color: var(--text);
+}
+
+.pkpane:fullscreen .vnc__bar,
+.pkpane:fullscreen .term__bar {
+  color: var(--text);
+}
+
+.pkpane:fullscreen .vnc__tools .iconbtn,
+.pkpane:fullscreen .term__tools .iconbtn {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  color: var(--text);
+}
+
+.pkpane:fullscreen .vnc__tools .iconbtn:hover:not(:disabled),
+.pkpane:fullscreen .vnc__tools .iconbtn:focus-visible,
+.pkpane:fullscreen .term__tools .iconbtn:hover:not(:disabled),
+.pkpane:fullscreen .term__tools .iconbtn:focus-visible {
+  background: var(--surface-3);
+  border-color: var(--accent);
+}
+
+.pkpane:fullscreen .vnc__tools .iconbtn[aria-expanded="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.pkpane:fullscreen .iconbtn:disabled {
+  opacity: 0.5;
+}
+
+.pkpane:fullscreen .vnc > .hint {
+  color: var(--text-muted);
+}
+
+/* The status layer (connecting, dropped) covers the screen only, from
+   under the toolbar (--pk-bar, measured in KonsolPi): the badges stay bright
+   and full screen can always be left with its own button. */
+.pkpane__over {
+  top: var(--pk-bar, 0);
 }
 
 .pkctl {

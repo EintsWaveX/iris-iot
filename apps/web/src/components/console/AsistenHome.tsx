@@ -40,7 +40,7 @@ import {
   WarningIcon,
   ArrowRightIcon,
 } from "@phosphor-icons/react";
-import { Checkbox, DateField, Stepper, Switch, TimeField } from "../ui/Controls";
+import { DateField, Stepper, Switch, TimeField } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
 import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
@@ -175,7 +175,6 @@ export default function AsistenHome({
   const [kelas, setKelas] = useState<Kelas>("reguler");
   const [durasi, setDurasi] = useState(SESI_CAP_MENIT);
   const [modul, setModul] = useState<number | null>(null);
-  const [butuhAp, setButuhAp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [resume, setResume] = useState<number | null>(null);
   const [belum, setBelum] = useState<BelumSiap | null>(null);
@@ -326,9 +325,8 @@ export default function AsistenHome({
     susulan && susTanggal !== hariIniWib() ? mulaiMenit : Math.max(mulaiMenit, menitNow);
   const selesai = jamDariMenit(dariMenit + durasi);
 
-  async function start(paksa?: string, apPaksa?: boolean) {
+  async function start(paksa?: string) {
     if (modul === null) return;
-    const ap = apPaksa ?? butuhAp;
     setBusy(true);
     try {
       const body = drafDipilih
@@ -349,7 +347,8 @@ export default function AsistenHome({
         modul,
         kelas,
         durasiMenit: durasi,
-        butuhAp: modul === 4 && ap,
+        // Every Module 4 session may run the hunt; the hotspot waits for Mulai Perburuan
+        butuhAp: modul === 4,
         paksa,
       });
       // The lab check found something: show it instead of a toast.
@@ -751,14 +750,6 @@ export default function AsistenHome({
                   </button>
                 </div>
               )}
-              {modul === 4 && (
-                <Checkbox
-                  checked={butuhAp}
-                  onChange={setButuhAp}
-                  label={t.apLabel}
-                  hint={t.apHint}
-                />
-              )}
             </>
           )}
 
@@ -877,10 +868,6 @@ export default function AsistenHome({
         onClose={() => setBelum(null)}
         onRecheck={() => void start()}
         onForce={(alasan) => void start(alasan)}
-        onApOn={() => {
-          setButuhAp(true);
-          void start(undefined, true);
-        }}
       />
 
       <Confirm

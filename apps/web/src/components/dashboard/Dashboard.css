@@ -827,3 +827,87 @@
 .bahan li .stack {
   min-width: 0;
 }
+
+/* Nilaiku (2026-10-09): their own scores per module, eight components and
+   the average; the components wrap under the module on narrow screens. */
+.nilaiku__rows {
+  display: grid;
+  gap: 8px;
+}
+
+.nilaiku__row {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--m);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 14px;
+}
+
+.nilaiku__mod {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nilaiku__comp {
+  display: grid;
+  gap: 6px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  order: 3;
+}
+
+.nilaiku__comp > span {
+  align-items: center;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  display: grid;
+  justify-items: center;
+  padding: 6px 2px;
+}
+
+.nilaiku__comp small {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+
+.nilaiku__comp [data-none="yes"] b {
+  color: var(--text-faint);
+}
+
+.nilaiku__avg {
+  display: grid;
+  justify-items: end;
+}
+
+.nilaiku__avg b {
+  font-size: 1.4rem;
+}
+
+.nilaiku__avg small {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+
+@media (min-width: 1024px) {
+  .nilaiku__row {
+    grid-template-columns: minmax(200px, 1fr) minmax(0, 2.4fr) auto;
+  }
+
+  .nilaiku__comp {
+    grid-column: auto;
+    order: 0;
+  }
+}
+
+@media (max-width: 479px) {
+  .nilaiku__comp {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

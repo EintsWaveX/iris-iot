@@ -40,8 +40,10 @@
  * The class type and the one-assistant-per-group prefill still come from
  * the schedule (api/_lib/phase8.ts's siapkanSesiDariJadwal). Starting a
  * session ends whichever one was running, stamping its real end time.
- * `butuhAp` (Module 4 only) queues the hotspot on, and a replaced session
- * that had it queues it off.
+ * `butuhAp` (Module 4 only) marks a session that runs the hunt; since
+ * 2026-10-08 the hotspot itself waits for the Asisten's Mulai Perburuan
+ * (api/_lib/perburuan-sesi.ts), and a replaced Module 4 session closes its
+ * hunt so the hotspot goes off.
  */
 import { diSlotMinggu, muatMinggu } from "../_lib/penugasan-api.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
@@ -62,7 +64,7 @@ import {
   menitSekarangWib,
 } from "../../src/lib/sesi-mulai.js";
 import { bolehPenuh } from "../../src/lib/hak.js";
-import { queueSoloServerCommand } from "../../src/lib/server-lib.js";
+import { tutupPerburuan } from "../_lib/perburuan-sesi.js";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { writeAudit } from "../../src/lib/auth.js";
 import { cekSiapMulai } from "../_lib/siap-mulai.js";
@@ -202,7 +204,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
           durasiDetik: sql`extract(epoch from now() - coalesce(${sesi.mulaiPada}, ${sesi.dibuatPada}))::int`,
         })
         .where(eq(sesi.status, "berjalan"))
-        .returning({ butuhAp: sesi.butuhAp });
+        .returning({ id: sesi.id, modul: sesi.modul });
       const nilai = {
         modul,
         butuhAp,
@@ -267,28 +269,16 @@ async function handler(req: ApiRequest, res: ApiResponse) {
       ...(dipaksa ? { dipaksa } : {}),
     });
 
-    // Best-effort: a session that needs the hotspot should not also need an
-    // assistant to separately visit /servers and click "AP nyala" by hand.
-    // Never blocks session creation -- see queueSoloServerCommand's own doc
-    // for why this silently no-ops rather than guessing when it can't be
-    // sure which Pi to command. Reported back so the console can say so
-    // when it could not be queued.
-    let apDiantre: boolean | null = null;
-    if (butuhAp) {
-      apDiantre = await queueSoloServerCommand("ap.nyala", session.nim);
-    } else if (demoted?.butuhAp) {
-      // The session this one just replaced had the hotspot on -- turn it
-      // back off rather than leaving the Pi stuck off campus Wi-Fi for the
-      // rest of the day.
-      await queueSoloServerCommand("ap.mati", session.nim);
-    }
+    // 2026-10-08: starting a session never touches the network; the hotspot
+    // comes with the Asisten's Mulai Perburuan. A Module 4 session this one
+    // replaced closes its hunt so its hotspot doesn't outlive it.
+    if (demoted) await tutupPerburuan(demoted.id, demoted.modul, session.nim);
 
     res.status(200).json({
       ok: true,
       sesi: { ...created, kelas: persiapan.kelas },
       ditugaskan: persiapan.ditugaskan,
       disalin,
-      apDiantre,
     });
   } catch (err) {
     // Postgres unique_violation on (tanggal, modul, mulai) -- the same

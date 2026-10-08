@@ -142,11 +142,19 @@ export default function ServerDetail({
   const hb = data.denyutTerakhir;
   const st = !s.terdaftar ? "wait" : isOnline(hb, data.batasLuringDetik) ? "on" : "off";
 
+  // Location, LAN address and last heartbeat in one row; the notes, often
+  // long, on their own row below (2026-10-09).
   const loc = [
-    { ic: MapPinIcon, l: t.location, v: s.lokasi, mono: false },
-    { ic: NoteIcon, l: t.notes, v: s.catatan, mono: false },
-    { ic: PlugsConnectedIcon, l: t.lan, v: s.alamatLan, mono: true },
-    { ic: HeartbeatIcon, l: t.lastBeat, v: hb ? sejak(hb.pada, lang, now) : null, mono: false },
+    { k: "lokasi", ic: MapPinIcon, l: t.location, v: s.lokasi, mono: false },
+    { k: "lan", ic: PlugsConnectedIcon, l: t.lan, v: s.alamatLan, mono: true },
+    {
+      k: "denyut",
+      ic: HeartbeatIcon,
+      l: t.lastBeat,
+      v: hb ? sejak(hb.pada, lang, now) : null,
+      mono: false,
+    },
+    { k: "catatan", ic: NoteIcon, l: t.notes, v: s.catatan, mono: false },
   ];
 
   const sw = (
@@ -219,7 +227,7 @@ export default function ServerDetail({
         </div>
         <div className="locstrip">
           {loc.map((x) => (
-            <span key={x.l} className="locstrip__i">
+            <span key={x.k} className="locstrip__i" data-k={x.k}>
               <x.ic size={20} aria-hidden="true" />
               <span>
                 <small>{x.l}</small>

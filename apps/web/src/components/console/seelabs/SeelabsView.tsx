@@ -28,10 +28,11 @@ import { kirimSeelabs, salinTeks, useSeelabs, useTitipan, type KelompokSeelabs }
 import { SL, pesanSl, type SeelabsStrings } from "./strings";
 import { SavedButton, SeelabsBody, StatusPill, tandaiSimpan } from "./SeelabsSheet";
 import BookmarkletPill from "./BookmarkletPill";
+import Panduan from "./Panduan";
 import "../../ui/Tabs.css";
 import "./seelabs.css";
 
-export type SeelabsTab = "salin" | "pasang" | "cara" | "tidak" | "titipan";
+export type SeelabsTab = "panduan" | "salin" | "pasang" | "cara" | "tidak" | "titipan";
 
 export default function SeelabsView({
   lang,
@@ -41,6 +42,7 @@ export default function SeelabsView({
   nomor,
   onBack,
   backLabel,
+  onTable,
 }: {
   lang: Lang;
   sesiId: number | null;
@@ -50,12 +52,19 @@ export default function SeelabsView({
   nomor?: number | null;
   onBack: () => void;
   backLabel?: string;
+  /** The guide's "Open the Score Table": leaves for the table. */
+  onTable?: () => void;
 }) {
   const t = SL[lang];
+  // The guide comes first and is always there (2026-10-09); a session
+  // adds Salin. Opening without a chosen tab lands on Salin when there is
+  // one, else on the guide.
   const tabs: SeelabsTab[] = sesiId
-    ? ["salin", "pasang", "cara", "tidak", "titipan"]
-    : ["pasang", "cara", "tidak", "titipan"];
-  const [tab, setTab] = useState<SeelabsTab>(tab0 && tabs.includes(tab0) ? tab0 : tabs[0]);
+    ? ["panduan", "salin", "pasang", "cara", "tidak", "titipan"]
+    : ["panduan", "pasang", "cara", "tidak", "titipan"];
+  const [tab, setTab] = useState<SeelabsTab>(
+    tab0 && tabs.includes(tab0) ? tab0 : sesiId ? "salin" : "panduan",
+  );
   const sl = useSeelabs(sesiId);
   const dir = useDirektori();
   const kode = (nim: string | null) =>
@@ -76,7 +85,18 @@ export default function SeelabsView({
       : t.eyebrowSlot(tanggalPanjang(data.sesi.tanggal, lang), data.sesi.slot);
 
   let body;
-  if (tab === "salin") {
+  if (tab === "panduan") {
+    body = (
+      <Panduan
+        lang={lang}
+        bisaSalin={!!sesiId}
+        onGo={(ke) => {
+          if (ke === "tabel") (onTable ?? onBack)();
+          else if (ke !== "seelabs" && ke !== "akun") setTab(ke);
+        }}
+      />
+    );
+  } else if (tab === "salin") {
     body = !data ? (
       <section className="panel">
         {sl.kode ? (
