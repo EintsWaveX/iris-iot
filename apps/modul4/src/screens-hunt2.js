@@ -41,6 +41,8 @@
     const radio = (f && f.radio) || {};
     const jit = H.jitter(g);
     const rows = H.packets(g);
+    /* phones get four columns: the send and receive times stack */
+    const narrow = H.useStore().width < 560;
     const csv = () => {
       const lines = ["seq,waktu_kirim_beacon,waktu_terima_pi,delay_ms,rssi,snr"];
       H.packets(g).slice().reverse().forEach((r) => lines.push(r.lost ? `${r.seq},,,,,` : `${r.seq},${r.tx || ""},${r.rx || ""},${r.delay == null ? "" : r.delay},${r.rssi == null ? "" : r.rssi},${r.snr == null ? "" : r.snr}`));
@@ -68,8 +70,11 @@
             <section class="card">
               <div class="card__head"><h2 class="card__title">${H.T("Paket terakhir", "Latest packets")}</h2><${Badge} tone="ok"><${Icon} n="link" sm />${L("dipasangkan lewat nomor paket", "paired by packet number")}</${Badge}></div>
               <p class="card__sub">${L("Beacon menaruh waktu kirimnya di payload LoRa (kelompok, nomor paket, waktu kirim). Hunter meneruskannya ke Pi, jadi Waktu Kirim di sini dipasangkan dengan baris serial hunter lewat nomor paket. Sketsa tidak perlu diubah.", "The beacon puts its send time in the LoRa payload (group, packet number, send time). The hunter forwards it to the Pi, so Send Time here is paired with the hunter's serial line by packet number. No sketch change.")}</p>
-              <div class="scrollx"><table class="table table--tight"><thead><tr><th>#</th><th>${L("Waktu kirim (beacon)", "Send time (beacon)")}</th><th>${L("Waktu terima (Pi)", "Receive time (Pi)")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI</th><th class="num">SNR</th></tr></thead>
-                <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td><td class="mono">${r.lost ? "·" : r.tx || "·"}</td><td class="mono hint">${r.lost ? "·" : r.rx || "·"}</td><td class="num">${r.lost ? html`<span style="color:var(--danger)">${L("hilang", "lost")}</span>` : r.delay == null ? "·" : r.delay + " ms"}</td><td class="num">${r.lost || r.rssi == null ? "·" : r.rssi}</td><td class="num">${r.lost || r.snr == null ? "·" : H.fmt(r.snr, 1)}</td></tr>`)}</tbody></table></div>
+              ${narrow
+                ? html`<table class="table table--tight hpk"><thead><tr><th>#</th><th>${L("Kirim / terima", "Sent / received")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI · SNR</th></tr></thead>
+                  <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td>${r.lost ? html`<td class="mono hint">·</td><td class="num"><span style="color:var(--danger)">${L("hilang", "lost")}</span></td><td class="num">·</td>` : html`<td class="mono hpk__t"><span>${r.tx || "·"}</span><span class="hint">${r.rx || "·"}</span></td><td class="num">${r.delay == null ? "·" : r.delay + " ms"}</td><td class="num hpk__t"><span>${r.rssi == null ? "·" : r.rssi}</span><span class="hint">${r.snr == null ? "·" : H.fmt(r.snr, 1)}</span></td>`}</tr>`)}</tbody></table>`
+                : html`<div class="scrollx"><table class="table table--tight"><thead><tr><th>#</th><th>${L("Waktu kirim (beacon)", "Send time (beacon)")}</th><th>${L("Waktu terima (Pi)", "Receive time (Pi)")}</th><th class="num">${L("Delay", "Delay")}</th><th class="num">RSSI</th><th class="num">SNR</th></tr></thead>
+                <tbody>${rows.map((r) => html`<tr><td class="mono">${r.seq}</td><td class="mono">${r.lost ? "·" : r.tx || "·"}</td><td class="mono hint">${r.lost ? "·" : r.rx || "·"}</td><td class="num">${r.lost ? html`<span style="color:var(--danger)">${L("hilang", "lost")}</span>` : r.delay == null ? "·" : r.delay + " ms"}</td><td class="num">${r.lost || r.rssi == null ? "·" : r.rssi}</td><td class="num">${r.lost || r.snr == null ? "·" : H.fmt(r.snr, 1)}</td></tr>`)}</tbody></table></div>`}
               <div class="r5act"><${Btn} sm icon="download-simple" onClick=${csv}>${L("Unduh CSV", "Download CSV")}</${Btn}></div>
             </section>`}
         <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Pengaturan radio", "Radio settings")}</h2></div>
@@ -165,9 +170,9 @@
         <section class="card">${aw.podium.length ? html`<${Podium} podium=${aw.podium} />` : html`<p class="hint" style="text-align:center">${L("Podium terisi begitu asisten mengonfirmasi beacon pertama.", "The podium fills once an assistant confirms the first beacon.")}</p>`}</section>
         <div class="hgrid hgrid--3">${AW.map((a) => {
           const v = aw[a.k];
-          return html`<section class="card haward" style=${v ? `--g:var(--group-${v.grup})` : ""}><span class="haward__ic"><${Icon} n=${a.i} lg /></span><b class="h3">${L(...a.l)}</b><span>${v ? H.gname(v.grup) : L("Belum ada", "Nobody yet")}</span><span class="hint">${v ? a.v(v) : L("butuh 200 paket", "needs 200 packets")}</span></section>`;
+          return html`<section class="card haward" style=${v ? `--g:var(--group-${v.grup})` : ""}><span class="haward__ic"><${Icon} n=${a.i} lg /></span><span class="row" style="gap:8px"><b class="h3">${L(...a.l)}</b>${v && !aw.beku && html`<${Badge}>${L("sementara", "provisional")}</${Badge}>`}</span><span>${v ? H.gname(v.grup) : L("Belum ada", "Nobody yet")}</span><span class="hint">${v ? a.v(v) : L("butuh 200 paket", "needs 200 packets")}</span></section>`;
         })}</div>
-        <span class="hint">${L("Penghargaan selain podium butuh paling sedikit 200 paket.", "Awards other than the podium need at least 200 packets.")}</span>
+        <span class="hint">${aw.beku ? L("Penghargaan selain podium butuh paling sedikit 200 paket.", "Awards other than the podium need at least 200 packets.") : L("Masih sementara: penghargaan bisa berpindah sampai ronde selesai. Selain podium, butuh paling sedikit 200 paket.", "Still provisional: awards can change hands until the round ends. Other than the podium, they need at least 200 packets.")}</span>
         <section class="card"><div class="card__head"><h2 class="card__title">${H.T("Putar ulang", "Replay")}</h2><a class="btn btn--sm" href="jejak.csv" download><${Icon} n="download-simple" />${H.title(L("Unduh jejak CSV", "Download the track CSV"))}</a></div>
           ${jejak && Object.keys(jejak.grup || {}).length ? html`<${Replay} jejak=${jejak} />` : html`<p class="hint">${L("Jejak muncul setelah perburuan berjalan beberapa detik.", "The track appears once the hunt has run for a few seconds.")}</p>`}
           ${moments.length > 0 && html`<div class="tabstops tabstops--3">${moments.map((e) => html`<div class="tabstops__row"><span class="mono hint">${H.ms(e.t)}</span><span class="row" style="gap:8px;flex-wrap:nowrap"><${Icon} n=${EVICON[e.kind]} sm />${H.eventText(e)}</span><span></span></div>`)}</div>`}
@@ -343,32 +348,62 @@
   };
 
   /* ------------------------------------------------ the projector */
+  /* The room's screen. Lanes fill the height and slide when the order
+     changes; overtakes and finds take the banner above them for a few
+     seconds, and otherwise the banner holds the round's numbers. */
+  const MOMENT_MS = 4500;
   H.Stage = () => {
     const N = H.useNet();
     const st = H.useStore();
     const [count, setCount] = useState(null);
     const [ticker, setTicker] = useState([]);
+    const [flash, setFlash] = useState({});
+    const [moment, setMoment] = useState(null);
     useEffect(
       () =>
         H.onEvents((evs) => {
           for (const ev of evs) {
             if (ev.kind === "aba-aba") setCount(10);
-            const t = H.eventText(ev);
+            const ann = H.net.frame && H.net.frame.pengumuman;
+            const t = ev.kind === "pengumuman" ? (ann ? L(`Asisten: ${ann.teks}`, `Assistants: ${ann.teks}`) : null) : H.eventText(ev);
             if (t && ev.kind !== "bergabung" && ev.kind !== "mulai") setTicker((l) => [...l, { t, k: ev.kind, id: Math.random() }].slice(-6));
+            if ((ev.kind === "salip" || ev.kind === "ditemukan") && ev.grup != null) {
+              const g = ev.grup;
+              setFlash((m) => ({ ...m, [g]: ev.kind }));
+              setTimeout(() => setFlash((m) => { const n = { ...m }; delete n[g]; return n; }), 3000);
+              setMoment({ kind: ev.kind, grup: g, lawan: ev.lawan, durasi: ev.durasi, id: Math.random() });
+            }
           }
         }),
       [],
     );
+    useEffect(() => {
+      if (!moment) return undefined;
+      const t = setTimeout(() => setMoment(null), MOMENT_MS);
+      return () => clearTimeout(t);
+    }, [moment]);
     H.useInterval(() => setCount((c) => (c == null ? null : c <= 0 ? null : c - 1)), count == null ? null : 1000);
     H.useTick(1000);
     const f = N.frame || {};
-    const rows = (f.grup || []).slice().sort((a, b) => (b.status === "menang") - (a.status === "menang") || (a.status === "menang" ? (a.durasi || 0) - (b.durasi || 0) : (b.kemajuan || 0) - (a.kemajuan || 0)));
+    const rows = f.grup || [];
+    const order = H.standings(rows);
+    const rank = new Map(order.map((r, i) => [r.grup, i]));
+    const found = rows.filter((r) => r.status === "menang").length;
     const finale = f.penghargaan && f.penghargaan.beku && f.penghargaan.podium && f.penghargaan.podium.length;
     const d = new Date();
     /* before anything new happens, the ticker shows the latest moments the
-       frame already carries */
-    const recent = (f.peristiwa || []).filter((e) => e.kind !== "bergabung" && e.kind !== "mulai").map((e) => ({ t: H.eventText(e), id: e.at + e.kind })).filter((x) => x.t).slice(-6);
+       frame already carries (an announcement is already in the header) */
+    const recent = (f.peristiwa || []).filter((e) => e.kind !== "bergabung" && e.kind !== "mulai" && e.kind !== "pengumuman").map((e) => ({ t: H.eventText(e), id: e.at + e.kind })).filter((x) => x.t).slice(-6);
     const items = ticker.length ? ticker : recent.length ? recent : [{ t: f.sesi ? L("Perburuan berjalan", "The hunt is running") : L("Menunggu sesi dimulai", "Waiting for a session to start"), id: 0 }];
+    const banner = moment
+      ? html`<div class="smoment" key=${moment.id} data-k=${moment.kind} style=${`--g:var(--group-${moment.grup})`}>
+          <span class="smoment__ic"><${Icon} n=${moment.kind === "salip" ? "arrows-left-right" : "flag-checkered"} lg /></span>
+          <b>${moment.kind === "salip" ? L(`${H.gname(moment.grup)} menyalip ${H.gname(moment.lawan)}!`, `${H.gname(moment.grup)} overtakes ${H.gname(moment.lawan)}!`) : L(`${H.gname(moment.grup)} menemukan beaconnya!`, `${H.gname(moment.grup)} found its beacon!`)}</b>
+          ${moment.kind === "ditemukan" && moment.durasi != null && html`<span class="mono">${H.ms(moment.durasi)}</span>`}</div>`
+      : html`<div class="smeta">
+          <span><small>${L("Sisa waktu", "Time left")}</small><b class="mono">${f.sesi_sisa != null ? H.hms(f.sesi_sisa) : "·"}</b></span>
+          <span><small>${L("Sudah ketemu", "Found")}</small><b class="num">${found}<em>/${rows.length || 5}</em></b></span>
+          <span><small>${L("Memimpin", "Leading")}</small><b style=${order[0] ? `color:var(--group-${order[0].grup})` : ""}>${order[0] && (order[0].status === "menang" || H.closedOf(order[0]) > 0) ? H.gname(order[0].grup) : "·"}</b></span></div>`;
     let body;
     if (count != null)
       body = html`<div class="hstage__count"><span class="hint">${L("Perburuan dimulai dalam", "The hunt starts in")}</span><b key=${count} class="num">${count > 0 ? count : L("Mulai!", "Go!")}</b></div>`;
@@ -376,10 +411,17 @@
       body = html`<div class="hstage__finale">${!st.reduce && html`<div class="confetti">${Array.from({ length: 36 }, (_, i) => html`<i style=${`--x:${(i * 37) % 100}%;--d:${(i % 7) * 0.35}s;--g:var(--group-${(i % 5) + 1})`}></i>`)}</div>`}
         <h1 class="h-display">${H.T("Selamat!", "Well done!")}</h1><${H.Podium} podium=${f.penghargaan.podium} stage /></div>`;
     else
-      body = html`<div class="hstage__lanes">${rows.length ? rows.map((r, i) => html`<div class="slane" style=${`--g:var(--group-${r.grup})`}>
-          <span class="slane__rank num">${i + 1}</span><span class="slane__n"><b>${H.gname(r.grup)}</b><span>${H.kelompok(r.grup)}</span></span>
-          <span class="slane__bar"><i style=${`width:${H.closedOf(r)}%`}></i></span>
-          <b class="slane__v num">${r.status === "menang" ? H.ms(r.durasi) : H.closedOf(r) + "%"}</b><${H.HeatChip} k=${H.heatOf(r)} lg /></div>`) : html`<p class="lede" style="text-align:center;margin-inline:auto">${L("Belum ada hunter yang mengirim data.", "No hunter is sending data yet.")}</p>`}</div>
+      body = html`${banner}
+        ${rows.length
+          ? html`<div class="hstage__lanes" style=${`--n:${rows.length}`}>${rows.map((r) => {
+              const i = rank.get(r.grup);
+              const won = r.status === "menang";
+              return html`<div key=${r.grup} class="slane" data-flash=${flash[r.grup] || "no"} data-won=${won ? "yes" : "no"} style=${`--g:var(--group-${r.grup});--i:${i}`}>
+                <span class="slane__rank num">${i === 0 && (won || H.closedOf(r) > 0) ? html`<${Icon} n="crown" />` : i + 1}</span><span class="slane__n"><b>${H.gname(r.grup)}</b><span>${H.kelompok(r.grup)}</span></span>
+                <span class="slane__bar" data-h=${H.heatOf(r)}><i style=${`width:${won ? 100 : H.closedOf(r)}%`}><em></em></i></span>
+                <b class="slane__v num">${won ? H.ms(r.durasi) : H.closedOf(r) + "%"}</b><${H.HeatChip} k=${H.heatOf(r)} lg /></div>`;
+            })}</div>`
+          : html`<p class="lede hstage__empty">${L("Belum ada hunter yang mengirim data.", "No hunter is sending data yet.")}</p>`}
         <div class="ticker"><div class="ticker__in">${(st.reduce ? items : items.concat(items)).map((x, i) => html`<span aria-hidden=${i >= items.length ? "true" : undefined}><${Icon} n="sparkle" sm />${x.t}</span>`)}</div></div>`;
     return html`<div class="hstage" data-sun=${st.sun ? "yes" : "no"}>
       <header class="hstage__top"><img src=${H.LOGO} alt="IRIS" /><b>${H.T("Perburuan LoRa", "LoRa Hunt")} · ${H.modul(4)}</b><span class="grow"></span>

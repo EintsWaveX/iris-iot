@@ -119,9 +119,26 @@
 
   /* ------------------------------------------------ pieces */
   H.HeatChip = ({ k, lg }) => html`<span class=${"heat" + (lg ? " heat--lg" : "")} data-h=${k}><i></i>${H.heatLabel(k)}</span>`;
-  const Sonar = ({ heat, closed, live = true }) => {
+  /* RSSI gives a distance, never a direction: the beacon sits somewhere on
+     the dashed ring. Only a sweep from the last 3 minutes adds a bearing,
+     on the sweep's own clock (12 is where the sweeper started facing). */
+  H.SWEEP_FRESH_SEC = 180;
+  H.sweepAge = (sw) => {
+    const now = H.net.frame && H.net.frame.berjalan;
+    return sw && sw.t != null && now != null ? Math.max(0, now - sw.t) : null;
+  };
+  const Sonar = ({ heat, closed, live = true, sw }) => {
     const r = 18 + (100 - closed) * 0.62;
-    return html`<div class="sonar" data-h=${heat} data-live=${live ? "yes" : "no"} role="img" aria-label=${L(`Sonar: ${H.heatLabel(heat)}, ${closed}% jarak tertutup`, `Sonar: ${H.heatLabel(heat)}, ${closed}% of the distance closed`)}>
+    const age = H.sweepAge(sw);
+    const a = sw && age != null && age <= H.SWEEP_FRESH_SEC ? (sw.terkuat * Math.PI) / 4 - Math.PI / 2 : null;
+    const at = (rr, ang) => [100 + Math.cos(ang) * rr, 100 + Math.sin(ang) * rr];
+    const arc = () => {
+      const [x1, y1] = at(r, a - Math.PI / 8);
+      const [x2, y2] = at(r, a + Math.PI / 8);
+      return `M${x1.toFixed(1)} ${y1.toFixed(1)} A${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+    };
+    const blip = a == null ? null : at(r, a);
+    return html`<div class="sonar" data-h=${heat} data-live=${live ? "yes" : "no"} role="img" aria-label=${a == null ? L(`Sonar: ${H.heatLabel(heat)}, ${closed}% jarak tertutup, arah belum diketahui`, `Sonar: ${H.heatLabel(heat)}, ${closed}% of the distance closed, direction unknown`) : L(`Sonar: ${H.heatLabel(heat)}, ${closed}% jarak tertutup, terkuat di arah jam ${clockText(sw.terkuat)}`, `Sonar: ${H.heatLabel(heat)}, ${closed}% of the distance closed, strongest at ${clockText(sw.terkuat)} o'clock`)}>
       <svg viewBox="0 0 200 200">
         <defs><radialGradient id="sonarbg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--heat)" stop-opacity=".28" /><stop offset="100%" stop-color="var(--heat)" stop-opacity="0" /></radialGradient>
           <linearGradient id="sweepg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="var(--heat)" stop-opacity="0" /><stop offset="100%" stop-color="var(--heat)" stop-opacity=".55" /></linearGradient></defs>
@@ -129,7 +146,9 @@
         ${[24, 48, 72, 96].map((rr) => html`<circle cx="100" cy="100" r=${rr} class="sonar__ring" />`)}
         <line x1="4" y1="100" x2="196" y2="100" class="sonar__ax" /><line x1="100" y1="4" x2="100" y2="196" class="sonar__ax" />
         <g class="sonar__sweep"><path d="M100 100 L196 100 A96 96 0 0 0 167.9 32.1 Z" fill="url(#sweepg)" /></g>
-        ${live && html`<circle cx=${100 + r * 0.7} cy=${100 - r * 0.7} r="6" class="sonar__blip" /><circle cx=${100 + r * 0.7} cy=${100 - r * 0.7} r="6" class="sonar__ping" />`}
+        ${live && html`<circle cx="100" cy="100" r=${r.toFixed(1)} class="sonar__band" />`}
+        ${live && blip && html`<path d=${arc()} class="sonar__arc" /><circle cx=${blip[0]} cy=${blip[1]} r="6" class="sonar__blip" /><circle cx=${blip[0]} cy=${blip[1]} r="6" class="sonar__ping" />`}
+        ${live && blip && html`<text x="100" y="15" class="sonar__clock">12</text>`}
         <circle cx="100" cy="100" r="5" class="sonar__me" />
       </svg>
     </div>`;
@@ -203,14 +222,36 @@
     return html`<div class="pings">${PINGS.map((p) => html`<button type="button" class="ping" disabled=${cool} onClick=${() => fire(p)}><${Icon} n=${p.i} /><span>${H.title(L(...p.l))}</span></button>`)}</div>
       <span class="hint">${cool ? L("Tunggu 3 detik sebelum sinyal berikutnya.", "Wait 3 seconds before the next ping.") : L("Hanya timmu dan asisten yang melihat sinyal ini.", "Only your team and the assistants see these.")}</span>`;
   };
-  const Rivals = ({ g }) => {
-    const rows = ((H.net.frame && H.net.frame.grup) || []).filter((r) => r.grup !== g);
-    if (!rows.length) return html`<span class="hint">${L("Belum ada kelompok lain yang mengirim data.", "No other group is sending data yet.")}</span>`;
-    return html`<div class="rivals">${rows.map((r) => html`<div class="rival" style=${`--g:var(--group-${r.grup})`}>
-      <span class="rival__n"><i></i>${H.gname(r.grup)}</span>
-      <span class="rival__bar"><i style=${`width:${H.closedOf(r)}%`}></i></span>
-      <b class="num">${r.status === "menang" ? H.ms(r.durasi) : H.closedOf(r) + "%"}</b></div>`)}</div>
-    <span class="hint">${L("Tiap kelompok memburu beaconnya sendiri. Yang dibandingkan hanya jarak yang sudah tertutup atau waktu ketemu, bukan RSSI.", "Each group hunts its own beacon. Only the share of distance closed or the finish time is compared, never RSSI.")}</span>`;
+  /* the standings the projector uses too: found groups first by finish
+     time, then the rest by the whole percent of their own distance closed,
+     ties by group number, so lanes don't swap on noise */
+  H.standings = (rows) =>
+    rows.slice().sort((a, b) => (b.status === "menang") - (a.status === "menang") || (a.status === "menang" ? (a.durasi || 0) - (b.durasi || 0) : H.closedOf(b) - H.closedOf(a)) || a.grup - b.grup);
+  /* The race at a glance, at the top of Buru: every group on one track,
+     yours drawn larger, and who is just ahead or behind. */
+  const Race = ({ g }) => {
+    const rows = (H.net.frame && H.net.frame.grup) || [];
+    const me = rows.find((r) => r.grup === g);
+    if (!me || rows.length < 2) return null;
+    const order = H.standings(rows);
+    const place = order.indexOf(me) + 1;
+    const ahead = place > 1 ? order[place - 2] : null;
+    const behind = order[place] || null;
+    const gap = (a, b) => Math.max(0, H.closedOf(a) - H.closedOf(b));
+    const line =
+      me.status === "menang" ? L(`Beacon ketemu, urutan ${place}`, `Beacon found, place ${place}`)
+      : ahead && ahead.status === "menang" ? L(`${H.gname(ahead.grup)} sudah menemukan beaconnya`, `${H.gname(ahead.grup)} has found its beacon`)
+      : ahead && gap(ahead, me) === 0 ? L(`Sejajar dengan ${H.gname(ahead.grup)}`, `Level with ${H.gname(ahead.grup)}`)
+      : ahead ? L(`${H.gname(ahead.grup)} di depan ${gap(ahead, me)}%`, `${H.gname(ahead.grup)} is ${gap(ahead, me)}% ahead`)
+      : behind ? L(`Kalian memimpin, ${H.gname(behind.grup)} ${gap(me, behind)}% di belakang`, `You're leading, ${H.gname(behind.grup)} is ${gap(me, behind)}% behind`)
+      : L("Kalian memimpin", "You're leading");
+    return html`<section class="card hrace" style=${`--g:var(--group-${g})`}>
+      <div class="hrace__top"><span class="hrace__place num" data-lead=${place === 1 ? "yes" : "no"}>#${place}<small>/${rows.length}</small></span><b class="grow">${line}</b></div>
+      <div class="hrace__track" role="img" tabindex="0" data-tip=${L("Tiap kelompok memburu beaconnya sendiri, jadi yang dibandingkan jarak tertutup, bukan RSSI.", "Each group hunts its own beacon, so the distance closed is compared, never RSSI.")} aria-label=${order.map((r) => `${H.gname(r.grup)} ${H.closedOf(r)}%`).join(", ")}>
+        ${rows.map((r) => html`<span key=${r.grup} class=${"hrace__dot" + (r.grup === g ? " is-me" : "")} style=${`--g:var(--group-${r.grup});left:${H.closedOf(r)}%`}></span>`)}
+        <span class="hrace__end"><${Icon} n="flag-checkered" sm /></span></div>
+      <div class="hrace__legend">${order.map((r) => html`<span class=${r.grup === g ? "is-me" : ""} style=${`--g:var(--group-${r.grup})`}><i></i>${H.gname(r.grup)} <b class="num">${r.status === "menang" ? H.ms(r.durasi) : H.closedOf(r) + "%"}</b></span>`)}</div>
+    </section>`;
   };
 
   /* ------------------------------------------------ joining */
@@ -449,13 +490,16 @@
     const band = row.jarak_dekat != null ? [metres(row.jarak_dekat), metres(row.jarak_jauh)] : null;
     const trend = H.trend10(g);
     const sw = f && f.sapuan ? f.sapuan[String(g)] : null;
+    const swAge = H.sweepAge(sw);
+    const fresh = swAge != null && swAge <= H.SWEEP_FRESH_SEC;
+    const sweepAgo = swAge == null ? "" : swAge < 60 ? L("barusan", "just now") : L(`${Math.floor(swAge / 60)} menit lalu`, `${Math.floor(swAge / 60)} min ago`);
     const rejected = row.status === "ditolak" && seenReject !== row.klaim_ke;
     const place = row.status === "menang" ? row.rank : null;
     const avgDelay = H.avgDelay(g);
     const cards = {
       sonar: html`<section class="card hsonar" data-h=${heat}>
         <div class="hsonar__grid">
-          <${Sonar} heat=${heat} closed=${closed} live=${heat !== "hilang"} />
+          <${Sonar} heat=${heat} closed=${closed} live=${heat !== "hilang"} sw=${sw} />
           <div class="stack hsonar__read">
             <${H.HeatChip} k=${heat} lg />
             ${heat !== "hilang" && band
@@ -463,6 +507,7 @@
               : html`<b class="hdist">${L("Tidak ada paket", "No packets")}</b><span class="hint">${L("3 detik tanpa paket. Kembali ke tempat terakhir sinyalnya kuat.", "3 seconds without a packet. Go back to where the signal was last strong.")}</span>`}
             <div class="hclosed"><div class="row row--between"><span class="label">${L("Jarak tertutup", "Distance closed")}</span><b class="num">${closed}%</b></div><${H.Bar} p=${closed} g=${g} /></div>
             ${heat !== "hilang" && heat !== "menang" && html`<span class="htrend" data-t=${trend}><${Icon} n=${trend === "naik" ? "arrow-up" : trend === "turun" ? "arrow-down" : "minus"} sm />${trend === "naik" ? L("Mendekat dalam 10 detik terakhir", "Getting closer over the last 10 seconds") : trend === "turun" ? L("Menjauh dalam 10 detik terakhir", "Moving away over the last 10 seconds") : L("Stabil dalam 10 detik terakhir", "Steady over the last 10 seconds")}</span>`}
+            ${heat !== "hilang" && heat !== "menang" && html`<span class="hint hsonar__dir">${fresh ? L(`Arah dari sapuan ${sweepAgo}: terkuat di jam ${clockText(sw.terkuat)}.`, `Direction from the sweep ${sweepAgo}: strongest at ${clockText(sw.terkuat)} o'clock.`) : L("Cincin putus-putus menunjukkan jaraknya, belum arahnya. Sapu 8 arah untuk tahu arahnya.", "The dashed ring shows the distance, not yet the direction. Sweep 8 facings to find it.")}</span>`}
           </div>
         </div>
         <${Ladder} heat=${heat} />
@@ -488,9 +533,9 @@
         <div class="hsweep__row"><${H.Rose} vals=${sw ? sw.arah : [null, null, null, null, null, null, null, null]} best=${sw ? sw.terkuat : null} /><div class="stack stack--sm"><b>${sw ? L(`Terkuat di arah jam ${clockText(sw.terkuat)}`, `Strongest at ${clockText(sw.terkuat)} o'clock`) : L("Belum ada sapuan", "No sweep yet")}</b><span class="hint">${L("Tubuhmu jadi antena: hadap satu arah, diam 4 detik, putar 45 derajat.", "Your body is the antenna: face one way, stand still 4 seconds, turn 45 degrees.")}</span>
           ${member && html`<${Btn} sm icon="compass" onClick=${() => setSheet("sweep")}>${L("Sapu 8 Arah", "Sweep 8 Facings")}</${Btn}>`}</div></div></section>`,
       pings: member ? html`<section class="card"><div class="card__head"><h2 class="card__title">${H.T("Sinyal tim", "Team pings")}</h2></div><${PingBar} g=${g} /></section>` : null,
-      rivals: html`<section class="card"><div class="card__head"><h2 class="card__title">${H.T("Kelompok lain", "Other groups")}</h2></div><${Rivals} g=${g} /></section>`,
+      race: f && f.grup && f.grup.length > 1 ? html`<${Race} g=${g} />` : null,
     };
-    const ORDER = { pemandu: ["sonar", "claim", "sweep", "pings", "link", "rivals"], pengintai: ["claim", "sonar", "pings", "sweep", "rivals", "link"], operator: ["sonar", "link", "claim", "pings", "sweep", "rivals"] }[role];
+    const ORDER = { pemandu: ["race", "sonar", "claim", "sweep", "pings", "link"], pengintai: ["race", "claim", "sonar", "pings", "sweep", "link"], operator: ["race", "sonar", "link", "claim", "pings", "sweep"] }[role];
     return html`<${H.HuntApp} tab="hunt">
       <div class="hpage__in">${head}
         <div class="hgrid">${ORDER.filter((k) => cards[k]).map((k) => html`<div class=${"hcell hcell--" + k} key=${k}>${cards[k]}</div>`)}</div>

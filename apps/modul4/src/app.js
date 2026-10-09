@@ -21,7 +21,11 @@
     const s = document.querySelector(".huntapp__scroll");
     if (s) s.scrollTop = 0;
   };
-  window.addEventListener("hashchange", () => H.set({ route: fromHash() }));
+  window.addEventListener("hashchange", () => {
+    H.set({ route: fromHash() });
+    const s = document.querySelector(".huntapp__scroll");
+    if (s) s.scrollTop = 0;
+  });
 
   /* the group a screen shows: your own, or the one an assistant picked */
   H.viewGroup = () => {
@@ -41,6 +45,8 @@
   /* Toasts for what matters to this phone: its own group's moments, any
      announcement, and for assistants every claim and call. */
   H.onEvents((evs) => {
+    /* the projector shows moments in its own banner */
+    if (STAGE) return;
     const N = H.net;
     const mine = N.grup;
     const asisten = N.role === "asisten";
@@ -53,6 +59,11 @@
       if (ev.kind === "pengumuman" && N.frame && N.frame.pengumuman) {
         H.toast(N.frame.pengumuman.teks, { icon: "megaphone", ms: 8000 });
         if (navigator.vibrate && H.state.vib) navigator.vibrate([60, 40, 60]);
+        continue;
+      }
+      /* rivalry: being overtaken is news too, not only overtaking */
+      if (ev.kind === "salip" && mine !== null && ev.lawan === mine) {
+        H.toast(L(`${H.gname(ev.grup)} menyalip kalian. Kejar!`, `${H.gname(ev.grup)} just overtook you. Catch up!`), { tone: "warn", icon: "arrows-left-right" });
         continue;
       }
       const own = mine !== null && ev.grup === mine;

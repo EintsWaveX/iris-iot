@@ -809,7 +809,7 @@ svg.ic--lg { width: 28px; height: 28px; }
 .hwin { overflow: hidden; border-color: var(--g); text-align: left; }
 .hwin__burst { position: absolute; inset: -40% -20% auto auto; width: 70%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--g) 45%, transparent), transparent 70%); pointer-events: none; }
 .hwin > * { position: relative; }
-/* ---- sweep, pings, rivals */
+/* ---- sweep, pings */
 .hsweep__row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .hsweep__row > .stack { flex: 1 1 180px; }
 .rose { width: 120px; height: 120px; flex: none; }
@@ -821,13 +821,6 @@ svg.ic--lg { width: 28px; height: 28px; }
 .ping { display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 64px; border-radius: 14px; border: 1px solid var(--hairline); background: var(--surface-2); color: var(--text); font: 600 0.92rem var(--font-body); cursor: pointer; }
 .ping:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (hover: hover) { .ping:not(:disabled):hover { border-color: var(--accent); } }
-.rivals { display: grid; gap: 10px; }
-.rival { display: grid; grid-template-columns: 96px minmax(0, 1fr) 56px; gap: 10px; align-items: center; min-height: 32px; }
-.rival__n { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; min-width: 0; }
-.rival__n i { width: 9px; height: 9px; border-radius: 50%; background: var(--g); flex: none; }
-.rival__bar { height: 10px; border-radius: 99px; background: var(--surface-3, var(--surface-2)); overflow: hidden; }
-.rival__bar i { display: block; height: 100%; border-radius: inherit; background: var(--g); }
-.rival > b { text-align: right; }
 .hdcards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @container huntapp (max-width: 459px) { .hdcards { grid-template-columns: minmax(0, 1fr); } }
 /* ---- join, roles, team */
