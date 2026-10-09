@@ -95,3 +95,11 @@
 .login-welcome .btn--block {
   justify-content: center;
 }
+
+/* The Asisten code: three letter boxes (2026-10-09), the session code's look. */
+.login-kode {
+  grid-template-columns: repeat(3, minmax(0, 76px));
+}
+.login-kode .kodesesi__box {
+  text-transform: uppercase;
+}

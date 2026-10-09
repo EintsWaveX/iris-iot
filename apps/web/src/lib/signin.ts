@@ -1,7 +1,7 @@
 /**
  * Sign-in is its own page, /login (Phase 9 mockup p-login). Every "Masuk"
  * button comes here: it goes to the page with ?next= set to where the
- * person was, or, already on the page, puts the cursor in the NIM field.
+ * person was, or, already on the page, puts the cursor in the first field.
  */
 import { langOfPath, pathForLang } from "./kelas";
 
@@ -20,7 +20,9 @@ export function signInHref(next?: string): string {
  *  "join" button), so the page skips asking why and goes to the code. */
 export function openSignIn(next?: string, opts: { ikut?: boolean } = {}): void {
   if (isSignInPath()) {
-    const nim = document.getElementById("login-nim") as HTMLInputElement | null;
+    // The NIM field, or the Asisten code's first box (2026-10-09).
+    const nim = (document.getElementById("login-nim") ??
+      document.getElementById("login-kode-0")) as HTMLInputElement | null;
     nim?.focus();
     nim?.select();
     return;

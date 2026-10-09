@@ -346,23 +346,32 @@ export interface BundelTerbit {
   dibangun: string;
 }
 
-/** How the last install or apt upgrade went, from the agent's infoSistem. */
+/** How the last install or apt upgrade went, from the agent's infoSistem.
+ *  "terhenti": still "berjalan" long after it started, so the run was cut
+ *  off (a reboot, a kill) before it could write its end (2026-10-09). */
 export interface HasilPembaruan {
-  status: "berjalan" | "selesai" | "gagal";
+  status: "berjalan" | "selesai" | "gagal" | "terhenti";
   pesan: string;
   pada: number | null;
 }
 
+/** Longer than any real run: three 45 minute download limits plus installs. */
+export const PEMBARUAN_BASI_DETIK = 4 * 3600;
+
 export function bacaHasilPembaruan(
   info: Record<string, unknown> | null | undefined,
   mode: "bundel" | "apt",
+  nowMs: number = Date.now(),
 ): HasilPembaruan | null {
   const o = obj(obj(info?.pembaruan)?.[mode]);
   if (!o || !["berjalan", "selesai", "gagal"].includes(o.status as string)) return null;
+  const pada = num(o.pada);
+  const basi =
+    o.status === "berjalan" && pada !== null && nowMs / 1000 - pada > PEMBARUAN_BASI_DETIK;
   return {
-    status: o.status as HasilPembaruan["status"],
+    status: basi ? "terhenti" : (o.status as HasilPembaruan["status"]),
     pesan: str(o.pesan).slice(0, 1500),
-    pada: num(o.pada),
+    pada,
   };
 }
 

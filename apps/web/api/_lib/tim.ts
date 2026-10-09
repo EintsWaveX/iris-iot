@@ -250,7 +250,8 @@ async function tambah(res: ApiResponse, body: Record<string, unknown>, oleh: str
       divisiId: div ? `Anggota Divisi ${div}` : "Inti",
       divisiEn: div ? `Member of ${div} Division` : "Core",
       badges: div === "ASO" || div === "ARM" ? ["dev"] : [],
-      seelabsAkun: seelabs || null,
+      // The SeeLabs username is the NIM unless one is given (2026-10-09).
+      seelabsAkun: seelabs || nim,
     });
     if (jabatan && !holder) await pasangJabatan(tx, nim, jabatan, oleh);
     if (jabatan && holder) {

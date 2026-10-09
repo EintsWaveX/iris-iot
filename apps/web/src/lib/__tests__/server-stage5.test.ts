@@ -184,6 +184,13 @@ describe("Updates card", () => {
     expect(bacaHasilPembaruan(null, "bundel")).toBeNull();
   });
 
+  it("calls a run still berjalan after four hours terhenti, so its button frees up", () => {
+    const pada = 1_791_400_000;
+    const info = { pembaruan: { apt: { status: "berjalan", pesan: "dimulai", pada } } };
+    expect(bacaHasilPembaruan(info, "apt", (pada + 600) * 1000)?.status).toBe("berjalan");
+    expect(bacaHasilPembaruan(info, "apt", (pada + 4 * 3600 + 1) * 1000)?.status).toBe("terhenti");
+  });
+
   it("keeps the Konsol screen and the site-measured clock in kondisi", () => {
     expect(bacaKondisi({ layar: "siap", selisihDetik: -3120 })).toMatchObject({
       layar: "siap",

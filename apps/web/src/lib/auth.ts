@@ -30,7 +30,7 @@
  * their own session ended.
  */
 import { createHmac, timingSafeEqual, randomBytes, scryptSync } from "node:crypto";
-import { eq, and, gte, gt, count, desc, inArray } from "drizzle-orm";
+import { eq, and, gte, gt, count, desc, inArray, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { asisten, percobaanMasuk, audit } from "./schema.js";
 import { resolvePraktikan, resolvePraktikanTanpaSesi, currentSesi } from "./sesi.js";
@@ -483,6 +483,20 @@ export async function verifyAsistenLogin(
 
   if (!matched) return { ok: false, kode: "tidak_cocok" };
   return { ok: true, nim: row!.nim, nama: row!.nama, perluAturSandi: !row!.passwordHash };
+}
+
+/** The NIM behind a three-letter Asisten code, which is what the sign-in
+ *  form asks for (2026-10-09). Null for an unknown or ambiguous code; the
+ *  caller still runs verifyAsistenLogin on a placeholder so the attempt is
+ *  counted and timed like any other miss. */
+export async function nimForKode(kode: string): Promise<string | null> {
+  const db = getDb();
+  const rows = await db
+    .select({ nim: asisten.nim })
+    .from(asisten)
+    .where(sql`upper(${asisten.kode}) = ${kode.toUpperCase()}`)
+    .limit(2);
+  return rows.length === 1 ? rows[0].nim : null;
 }
 
 /** Sets (or replaces) an assistant's real password, ending their eligibility

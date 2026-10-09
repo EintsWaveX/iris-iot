@@ -3,7 +3,8 @@
  * any page until then).
  *
  * - One card, two roles: a praktikan types only the NIM (shown in big
- *   monospace digits), an assistant adds a password. While a session runs
+ *   monospace digits), an assistant types their three-letter code in three
+ *   boxes (2026-10-09) and a password. While a session runs
  *   the server first asks a praktikan why (perlu_tujuan): joining goes on
  *   to the 4-digit code dialog (perlu_kode) and the other-session gate;
  *   looking around signs in at once, with no attendance (2026-10-07).
@@ -26,6 +27,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRightIcon, BookOpenTextIcon } from "@phosphor-icons/react";
 import SegmentedControl from "./ui/SegmentedControl";
 import KodeSesiDialog from "./KodeSesiDialog";
+import KodeAsistenField from "./KodeAsistenField";
 import TujuanMasukDialog from "./TujuanMasukDialog";
 import PasswordField from "./ui/PasswordField";
 import {
@@ -56,7 +58,11 @@ const T = dict({
     asisten: "Asisten",
     nim: "NIM",
     nimPh: "2311102001",
-    nimPhA: "NIM asisten",
+    kodeA: "Kode asisten",
+    kodeAHint: "Tiga huruf kodemu, misalnya NUE.",
+    huruf: (i: number) => `Huruf ke-${i}`,
+    needKode: "Isi tiga huruf kode asistenmu dulu.",
+    salahA: "Kode asisten atau kata sandi tidak cocok.",
     pwLabel: "Kata sandi",
     submit: "Masuk",
     needNim: "Isi NIM dulu.",
@@ -130,7 +136,11 @@ const T = dict({
     asisten: "Assistant",
     nim: "NIM",
     nimPh: "2311102001",
-    nimPhA: "Assistant NIM",
+    kodeA: "Assistant code",
+    kodeAHint: "Your three-letter code, for example NUE.",
+    huruf: (i: number) => `Letter ${i}`,
+    needKode: "Enter your three-letter assistant code first.",
+    salahA: "The assistant code or password does not match.",
     pwLabel: "Password",
     submit: "Sign in",
     needNim: "Enter your NIM first.",
@@ -204,7 +214,11 @@ const T = dict({
     asisten: "助教",
     nim: "NIM",
     nimPh: "2311102001",
-    nimPhA: "助教 NIM",
+    kodeA: "助教代码",
+    kodeAHint: "你的三个字母代码，例如 NUE。",
+    huruf: (i: number) => `第 ${i} 个字母`,
+    needKode: "先填你的三个字母助教代码。",
+    salahA: "助教代码或密码不对。",
     pwLabel: "密码",
     submit: "登录",
     needNim: "先填 NIM。",
@@ -284,6 +298,7 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
   const [stage, setStage] = useState<Stage>("login");
   const [role, setRole] = useState<Role>("praktikan");
   const [nim, setNim] = useState("");
+  const [kodeA, setKodeA] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<{
     field: "nim" | "pw" | "kode" | "form";
@@ -365,7 +380,9 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
     if (loading) return;
     const mau = pilih ?? tujuan;
     const n = nim.trim();
-    if (!n) return setErr({ field: "nim", msg: t.needNim });
+    if (role === "praktikan" && !n) return setErr({ field: "nim", msg: t.needNim });
+    if (role === "asisten" && !/^[A-Z]{3}$/.test(kodeA))
+      return setErr({ field: "kode", msg: t.needKode });
     if (role === "asisten" && !password) return setErr({ field: "pw", msg: t.needPw });
     setErr(null);
     setLoading(true);
@@ -381,12 +398,12 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
         sisaDetik?: number;
         sesiBerikutnya?: { tanggal: string; buka: string; bukaPada: string };
         lihat?: boolean;
-      }>(role === "praktikan" ? "/api/auth/student" : "/api/auth/assistant", {
-        nim: n,
-        ...(role === "asisten"
-          ? { password }
-          : { ...(mau ? { tujuan: mau } : {}), ...(kodeSesi ? { kodeSesi } : {}) }),
-      });
+      }>(
+        role === "praktikan" ? "/api/auth/student" : "/api/auth/assistant",
+        role === "asisten"
+          ? { kode: kodeA, password }
+          : { nim: n, ...(mau ? { tujuan: mau } : {}), ...(kodeSesi ? { kodeSesi } : {}) },
+      );
       if (!data.ok) {
         const msg = t.codes[data.kode ?? ""] ?? t.fallback;
         if (data.kode === "perlu_tujuan") {
@@ -414,7 +431,13 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
           setErr({ field: "nim", msg: t.bukanSesimu(tanggalPanjang(nb.tanggal, lang), nb.buka) });
           return;
         }
-        setErr({ field: data.kode === "tidak_cocok" && role === "asisten" ? "pw" : "nim", msg });
+        if (role === "asisten")
+          setErr({
+            field:
+              data.kode === "tidak_cocok" ? "pw" : data.kode === "format_salah" ? "kode" : "form",
+            msg: data.kode === "tidak_cocok" ? t.salahA : msg,
+          });
+        else setErr({ field: "nim", msg });
         return;
       }
       if (role === "asisten") {
@@ -505,30 +528,45 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
             aria-label={t.role}
           />
 
-          <div className="field" data-invalid={err?.field === "nim" ? "yes" : undefined}>
-            <label className="field__label" htmlFor="login-nim">
-              {t.nim}
-            </label>
-            <input
-              id="login-nim"
-              className="field__input login-form__nim"
-              value={nim}
-              onChange={(ev) => setNim(ev.target.value.replace(/\s/g, ""))}
-              placeholder={role === "praktikan" ? t.nimPh : t.nimPhA}
-              autoComplete="username"
-              inputMode={role === "praktikan" ? "numeric" : "text"}
-              autoFocus
-              aria-invalid={err?.field === "nim" || undefined}
-              aria-describedby="login-nim-msg"
+          {role === "asisten" ? (
+            <KodeAsistenField
+              value={kodeA}
+              onChange={(v) => {
+                setKodeA(v);
+                if (err?.field === "kode") setErr(null);
+              }}
+              onEnter={() => void masuk()}
+              label={t.kodeA}
+              letter={t.huruf}
+              hint={t.kodeAHint}
+              error={err?.field === "kode" ? err.msg : undefined}
             />
-            <p
-              id="login-nim-msg"
-              className={err?.field === "nim" ? "field__error" : "field__hint"}
-              role={err?.field === "nim" ? "alert" : undefined}
-            >
-              {err?.field === "nim" ? err.msg : ""}
-            </p>
-          </div>
+          ) : (
+            <div className="field" data-invalid={err?.field === "nim" ? "yes" : undefined}>
+              <label className="field__label" htmlFor="login-nim">
+                {t.nim}
+              </label>
+              <input
+                id="login-nim"
+                className="field__input login-form__nim"
+                value={nim}
+                onChange={(ev) => setNim(ev.target.value.replace(/\s/g, ""))}
+                placeholder={t.nimPh}
+                autoComplete="username"
+                inputMode="numeric"
+                autoFocus
+                aria-invalid={err?.field === "nim" || undefined}
+                aria-describedby="login-nim-msg"
+              />
+              <p
+                id="login-nim-msg"
+                className={err?.field === "nim" ? "field__error" : "field__hint"}
+                role={err?.field === "nim" ? "alert" : undefined}
+              >
+                {err?.field === "nim" ? err.msg : ""}
+              </p>
+            </div>
+          )}
 
           {role === "praktikan" && (
             <TujuanMasukDialog

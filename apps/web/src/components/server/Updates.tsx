@@ -50,8 +50,8 @@ export default function Updates({
   const rows = barisPembaruan(s.infoSistem, s.agenVersi, data.situsIot, terbit);
   const checking = sedangBerjalan(data, "info.segarkan");
   const hasil = {
-    "pembaruan.bundel": bacaHasilPembaruan(s.infoSistem, "bundel"),
-    "pembaruan.apt": bacaHasilPembaruan(s.infoSistem, "apt"),
+    "pembaruan.bundel": bacaHasilPembaruan(s.infoSistem, "bundel", now),
+    "pembaruan.apt": bacaHasilPembaruan(s.infoSistem, "apt", now),
   };
   // Sent and not yet picked up, or picked up and still installing.
   const jalan = (a: BarisPembaruan["aksi"]) =>

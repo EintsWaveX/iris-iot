@@ -9,7 +9,7 @@
  * GET  /api/auth/me            — who is signed in, if anyone. P8: an assistant also gets `kode` and `perluAturSandi`.
  * POST /api/auth/student       { nim, tujuan?, kodeSesi? } — no password; while a session runs, why
  *                              ("praktikum" | "lihat"), and to join it, its 4-digit code.
- * POST /api/auth/assistant     { nim, password }
+ * POST /api/auth/assistant     { kode, password } — the three-letter Asisten code (2026-10-09); { nim, password } still works.
  * POST /api/auth/logout        (no body)
  * POST /api/auth/set-password  { password }         — assistant-only, first-login flow.
  * POST /api/auth/change-password { lama, baru }      — assistant-only, any time (P8 /account). Rate-limited like a login.
@@ -23,6 +23,7 @@ import { currentSession, requireRole } from "../_lib/session.js";
 import {
   verifyPraktikanLogin,
   verifyAsistenLogin,
+  nimForKode,
   createSessionCookie,
   sessionCookieHeader,
   clearSessionCookieHeader,
@@ -164,15 +165,19 @@ async function handleAssistant(req: ApiRequest, res: ApiResponse) {
   if (!requireMethod(req, res, "POST")) return;
 
   const body = jsonBody(req);
-  const nim = typeof body.nim === "string" ? body.nim.trim() : "";
+  const kode = typeof body.kode === "string" ? body.kode.trim().toUpperCase() : "";
+  const nimRaw = typeof body.nim === "string" ? body.nim.trim() : "";
   const password = typeof body.password === "string" ? body.password : "";
 
-  if (!nim || !password) {
+  if ((kode ? !/^[A-Z]{3}$/.test(kode) : !nimRaw) || !password) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
 
   try {
+    // An unknown code still goes through the check (and its lockout) under
+    // a placeholder that matches no row.
+    const nim = kode ? ((await nimForKode(kode)) ?? `kode:${kode}`) : nimRaw;
     const result = await verifyAsistenLogin(nim, password, clientIp(req));
 
     if (!result.ok) {
