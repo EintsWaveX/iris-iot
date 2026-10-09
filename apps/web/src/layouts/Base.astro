@@ -102,17 +102,13 @@ const {
     >
       {tri(lang, "Lewati ke isi", "Skip to content", "跳到正文")}
     </a>
-    {
-      langFromUrl && (
-        <script is:inline>
-          (function () {
-            var a = document.querySelector(".skip-link[data-from-url]");
-            var m = location.pathname.match(/^\/(en|zh)(\/|$)/);
-            if (a && m) a.textContent = a.getAttribute("data-skip-" + m[1]);
-          })();
-        </script>
-      )
-    }
+    {langFromUrl && <script is:inline>
+      (function () {
+        var a = document.querySelector(".skip-link[data-from-url]");
+        var m = location.pathname.match(/^\/(en|zh)(\/|$)/);
+        if (a && m) a.textContent = a.getAttribute("data-skip-" + m[1]);
+      })();
+    </script>}
     {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />}
     <Toast client:load />
     <SegFit client:load />
