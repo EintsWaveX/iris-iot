@@ -14,7 +14,7 @@ export const zh: ModuleStrings = {
   langSwitchHref: (modul?: number) => (modul ? `/modules/${modul}` : "/modules"),
   backToIndex: "所有模块",
   jurnal: {
-    title: (m: number) => `模块 ${m} 的日志还没对你开放`,
+    title: (m: number) => `模块 ${m} 的实验报告还没对你开放`,
     body: "参加这个模块的实验课后，准备、代码和实时视图就会打开。在那之前，可以先在第一步读模块。",
     masuk: "登录",
     baca: "读模块",
@@ -22,13 +22,13 @@ export const zh: ModuleStrings = {
   modulDoc: (m: number) => `模块 ${m} · IRIS IoT`,
   stepLabels: {
     modul: "模块",
-    brief: "简介",
+    brief: "概要",
     setup: "准备",
     code: "代码",
     live: "Live",
   },
   brief: {
-    heading: "简介",
+    heading: "概要",
     gameHeading: "游戏怎么玩",
   },
   setup: {

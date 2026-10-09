@@ -53,7 +53,7 @@ export default function ServerDrawer({
       description={t.drawerSub}
       storeKey="console-server"
       closeLabel={t.close}
-      resizeLabel={tri(lang, "Ubah lebar laci", "Resize the drawer", "调整抽屉宽度")}
+      resizeLabel={tri(lang, "Ubah lebar laci", "Resize the drawer", "调整侧栏宽度")}
     >
       {list.length === 0 ? (
         <p className="empty-note">{t.drawerNone}</p>

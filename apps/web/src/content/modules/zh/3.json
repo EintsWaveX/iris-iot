@@ -25,7 +25,7 @@
       "jumlah": "1 个，当 Mosquitto broker"
     },
     {
-      "nama": "10 kOhm 电位器",
+      "nama": "10 kΩ 电位器",
       "jumlah": "1 个"
     },
     {
@@ -91,7 +91,7 @@
     },
     {
       "nama": "数据链路层",
-      "nilai": "WiFi 802.11"
+      "nilai": "Wi-Fi 802.11"
     },
     {
       "nama": "物理层",

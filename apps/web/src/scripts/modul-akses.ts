@@ -180,7 +180,7 @@ export async function applyLockScreen(
     : {
         id: `Jurnal Modul ${modul} belum terbuka untukmu`,
         en: `The Module ${modul} journal is not open for you yet`,
-        zh: `模块 ${modul} 的日志还没对你开放`,
+        zh: `模块 ${modul} 的实验报告还没对你开放`,
       }[lang];
   const p = document.createElement("p");
   p.textContent = message;

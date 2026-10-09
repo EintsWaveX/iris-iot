@@ -254,8 +254,8 @@ export const H = dict({
     susRoster: "名单",
     susNew: "新补课",
     susDraft: (tgl: string, jam: string, m: number, n: number) =>
-      `${tgl} · ${jam} · 模块 ${m} · ${n} 名学员`,
-    susDraftInfo: (n: number, k: number) => `名单来自这个草稿：${k} 个小组共 ${n} 名学员。`,
+      `${tgl} · ${jam} · 模块 ${m} · ${n} 名学生`,
+    susDraftInfo: (n: number, k: number) => `名单来自这个草稿：${k} 个小组共 ${n} 名学生。`,
     susEdit: "在准备里修改",
     susEmpty:
       "补课需要先有名单。点“建立并填写名单”：补课会被保存，名单随即打开。保存后回到这里开始上课。",
@@ -281,7 +281,7 @@ export const H = dict({
     closedPick: (m: string) => `${m} 还没开放，所以还不能开始。`,
     openAccess: "打开模块权限",
     goFix: "处理",
-    start: (m: string) => `开始${m}课程`,
+    start: (m: string) => `开始${m}的课`,
     outsideTip: "不在这个时段的开课时间窗内",
     pastTitle: (n: number) => `时段 ${n} 已经过了`,
     pastBody: (end: string, open: string) =>

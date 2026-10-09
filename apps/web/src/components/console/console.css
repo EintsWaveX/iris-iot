@@ -356,21 +356,13 @@
 /* ------------------------------------------------------------- modes */
 
 .console__modes {
-  align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-5);
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.console__modes > .seg {
-  flex: 1 1 auto;
-  width: auto;
-}
-
-.seg--views button {
-  min-height: 48px;
-  padding: 0 var(--space-5);
+.console__modes > .console__me {
+  align-self: flex-end;
 }
 
 /* ------------------------------------------------------------- board */
@@ -2407,9 +2399,6 @@ button.lib__name:hover {
 }
 
 @media (max-width: 480px) {
-  .seg--views button {
-    padding: 0 var(--space-2);
-  }
   .gcard {
     gap: var(--space-3);
   }

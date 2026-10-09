@@ -264,7 +264,7 @@ export const K = dict({
     berkas: "文件",
     bahasa: "文件语言",
     mode: "视图",
-    modes: { celah: "填空", berkas: "完整文件", pratinjau: "学员预览" },
+    modes: { celah: "填空", berkas: "完整文件", pratinjau: "学生预览" },
     terbit: (n: number | null) => (n === null ? "未发布" : `已发布：第 ${n} 版`),
     olehPada: (oleh: string, pada: string) => `${pada}，${oleh}`,
     drafAda: (oleh: string, pada: string) => `有草稿，最后由 ${oleh} 于 ${pada} 保存`,
@@ -331,7 +331,7 @@ export const K = dict({
       hilang
         ? `文件已替换。有 ${hilang} 个填空找不到所在行，请重新标记。`
         : `文件已替换。${pindah} 个填空保持原位。`,
-    pratinjauHint: "发布后学员看到的样子。",
+    pratinjauHint: "发布后学生看到的样子。",
     masalahJudul: "需要处理",
     peringatan: "备注",
     masalah: {
@@ -353,7 +353,7 @@ export const K = dict({
       identitas: "小组标识行（GROUP_ID）缺失或重复。",
     } as Record<KodeMasalah, string>,
     terbitTitle: (m: string) => `发布 ${m} 的代码？`,
-    terbitBody: "学员会立即看到这个版本。已填写的答案按填空编号保留。",
+    terbitBody: "学生会立即看到这个版本。已填写的答案按填空编号保留。",
     catatan: "版本说明",
     catatanPh: "例如：替换了填空 (3)",
     terbitOk: (n: number) => `第 ${n} 版已发布。`,

@@ -49,6 +49,7 @@ import { useSeelabs } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
 import type { AsistenRef, SesiRunning, View } from "./types";
 import "./console.css";
+import "../ui/Tabs.css";
 import { openSignIn } from "../../lib/signin";
 
 const DONE_KEY = "iris-console-done";
@@ -89,6 +90,8 @@ function readHash(): {
   if (c) return { cmd: c[1] };
   return {};
 }
+
+const VIEWS = ["prep", "board", "table"] as const;
 
 export default function Console({ lang }: { lang: Lang }) {
   const t = S[lang];
@@ -574,29 +577,46 @@ export default function Console({ lang }: { lang: Lang }) {
         setAnnounceOpen={setAnnounce}
       />
 
+      {/* The views as the Server page's underline tabs, sharing the full
+          width with the rainbow line under the open one (2026-10-09). */}
       <div className="console__modes">
-        <div className="seg seg--views" role="tablist" aria-label={t.viewLabel}>
-          {(["prep", "board", "table"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              role="tab"
-              aria-selected={view === v}
-              aria-pressed={view === v}
-              onClick={() => go(v)}
-            >
-              {t.views[v]}
-              {v === "board" && Object.keys(tangan).length > 0 && (
-                <span className="pill pill--warn console__hands">{Object.keys(tangan).length}</span>
-              )}
-            </button>
-          ))}
-        </div>
         <span className="console__me">
           <span className="hint">{t.youLabel}:</span>
           <b>{namaOf(me!.nim)}</b>
           {me?.tier && <TierBadge tier={me.tier} lang={lang} />}
         </span>
+        <div className="tabs-scroll">
+          <nav className="tabs" role="tablist" aria-label={t.viewLabel}>
+            {VIEWS.map((v, i) => (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                className="tabs__tab"
+                aria-selected={view === v}
+                tabIndex={view === v ? 0 : -1}
+                onClick={() => go(v)}
+                onKeyDown={(e) => {
+                  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                  const n =
+                    VIEWS[(i + (e.key === "ArrowRight" ? 1 : VIEWS.length - 1)) % VIEWS.length];
+                  go(n);
+                  const list = e.currentTarget.parentElement;
+                  requestAnimationFrame(() =>
+                    (list?.querySelector('[aria-selected="true"]') as HTMLElement | null)?.focus(),
+                  );
+                }}
+              >
+                {t.views[v]}
+                {v === "board" && Object.keys(tangan).length > 0 && (
+                  <span className="pill pill--warn console__hands">
+                    {Object.keys(tangan).length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
 
       <Fade k={view} className="console__view">

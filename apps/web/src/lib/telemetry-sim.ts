@@ -175,7 +175,7 @@ export function describeLayers(reading: Reading, lang: Lang = "id"): string[] {
     delayMs !== null
       ? `${delayMs} ${satuan}`
       : pick("lihat output serial", "see the serial output", "看串口输出");
-  const sinyal = rssi !== null ? `${rssi} dBm` : pick("sinyal WiFi", "WiFi signal", "WiFi 信号");
+  const sinyal = rssi !== null ? `${rssi} dBm` : pick("sinyal WiFi", "WiFi signal", "Wi-Fi 信号");
   switch (modul) {
     case 1:
       return pick(
@@ -221,7 +221,7 @@ export function describeLayers(reading: Reading, lang: Lang = "id"): string[] {
           `JSON 数据，数据包 #${seq}${lost ? "（没送到）" : ""}`,
           lost ? "TCP 连接断了" : `通过 TCP 发送，${delayText("ms")}`,
           "一跳 IP 到 Orange Pi",
-          "通过 WiFi 802.11 连接",
+          "通过 Wi-Fi 802.11 连接",
           `2.4 GHz，${sinyal}`,
         ],
       );
@@ -245,7 +245,7 @@ export function describeLayers(reading: Reading, lang: Lang = "id"): string[] {
           `topic modul3，QoS 0，数据包 #${seq}${lost ? "（丢失）" : ""}`,
           lost ? "broker 没有转发" : `broker 已转发，${delayText("ms")}`,
           "IP 经过 Mosquitto broker",
-          "通过 WiFi 802.11 连接",
+          "通过 Wi-Fi 802.11 连接",
           `2.4 GHz，${sinyal}`,
         ],
       );

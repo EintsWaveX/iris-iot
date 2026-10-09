@@ -36,7 +36,9 @@ const back = lang === "zh" ? "全部模块" : t.backToIndex;
 const berkasSource = m.berkas.map((b) => ({
   ...b,
   slug: b.path.replace(/\.(ino|py)$/, ""),
-  segments: parseBlanks(getSketchSource(bahasaKonten(lang), b.path)),
+  // Mandarin shows the English code with Mandarin comments and hints
+  // (content/sketches/zh, 2026-10-09); downloads stay English.
+  segments: parseBlanks(getSketchSource(lang === "zh" ? "zh" : bahasaKonten(lang), b.path)),
 }));
 const mcu = m.fakta[0] ?? "ESP32";
 const arrowLeft =

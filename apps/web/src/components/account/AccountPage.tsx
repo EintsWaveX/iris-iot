@@ -119,7 +119,7 @@ const T = dict({
     kGroups: (g: number[]) => `第 ${g.join("、")} 组`,
     inter: "国际班",
     fbH: "我的反馈",
-    fbSub: "只有你能看到。没有学员姓名或 NIM。",
+    fbSub: "只有你能看到。没有学生姓名或 NIM。",
     fbEmpty: "还没有反馈。",
     fbCount: (n: number) => `${n} 条回应`,
     needLogin: "登录后查看你的账号。",

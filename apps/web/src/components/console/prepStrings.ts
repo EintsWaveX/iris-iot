@@ -334,7 +334,7 @@ export const P = dict({
       tot: "TOT 模式",
       slides: "幻灯片",
       skema: "接线图",
-      brief: "模块简介",
+      brief: "模块概要",
       kode: "实验报告代码",
     },
     inRoster: (n: number) => `名单里有 ${n} 名学生`,

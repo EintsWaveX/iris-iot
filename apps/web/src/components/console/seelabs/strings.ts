@@ -408,7 +408,7 @@ export const SL = dict({
     viewOnly: "只能查看",
     holdTitle: (n: number) => `你这节课带 ${n} 个组`,
     holdBody: (g: string) =>
-      `SeeLabs 每节课只给一个账号付一次钱。${g}的分数通过一位这个时段不上课的助教的 SeeLabs 账号提交。报酬还是你的：财务把总额转给你，你再把团队基金转回。这些都记在报告里。`,
+      `SeeLabs 每节课只给一个账号付一次钱。${g}的分数通过一位这个时段不上课的助教的 SeeLabs 账号提交。报酬还是你的：财务把总额转给你，你再把公共经费转回。这些都记在报告里。`,
     accountFor: (g: string) => `${g}用的 SeeLabs 账号`,
     pickLender: "选一位这个时段不上课的助教",
     lenderLogged: (me: string, who: string, g: string) =>
@@ -457,7 +457,7 @@ export const SL = dict({
     heldJaga: (hari: string, shift: number, klp: string) =>
       `先在 SeeLabs 的 Input Jaga 里勾上${hari} Shift ${shift}，或者用口令。不然 KLP ${klp} 不会出现在你的账号里。`,
     heldPay: (kode: string) =>
-      `这个组的报酬还是给 ${kode}：财务把总额转给 ${kode}，再由 ${kode} 把团队基金转回。你只是借出账号，钱不经过你。`,
+      `这个组的报酬还是给 ${kode}：财务把总额转给 ${kode}，再由 ${kode} 把公共经费转回。你只是借出账号，钱不经过你。`,
     heldCard: (n: number) => `有 ${n} 份 SeeLabs 分数要用你的账号提交`,
     heldCardBody: "有助教用了你的 SeeLabs 账号。用你的账号提交分数，然后标记一下。",
     open: "打开",

@@ -979,7 +979,7 @@ export const S = dict({
     restartAll: "重启所有服务",
     restartAllHint: "模块 2、3 和 4",
     restartAllAsk: "重启所有服务？",
-    restartAllBody: "正在上课。已连接的学员会断开几秒钟。",
+    restartAllBody: "正在上课。已连接的学生会断开几秒钟。",
     restartAllSent: "所有服务会在下一次心跳时重启。",
     hotspot: "IRIS-IOT 热点",
     hotspotOn: "开",
@@ -1015,7 +1015,7 @@ export const S = dict({
     turnOff: "关闭",
     viewLog: "看日志",
     offAsk: (n: string) => `关闭 ${n}？`,
-    offBody: "正在用这个服务的学员会被断开。",
+    offBody: "正在用这个服务的学生会被断开。",
     restartSent: (n: string) => `已向 ${n} 发送重启。`,
     startSent: (n: string) => `已向 ${n} 发送开启。`,
     logTitle: (u: string) => `journalctl -u ${u}`,
@@ -1154,7 +1154,7 @@ export const S = dict({
     updRow: {
       agen: "iris-agent",
       bundel: "Pi 安装包（IRIS ASO）",
-      modul4: "模块 4 服务器和寻宝（iris-iot）",
+      modul4: "模块 4 服务器和寻踪（iris-iot）",
       apt: "系统软件包（apt）",
     },
     updSt: {
@@ -1198,7 +1198,7 @@ export const S = dict({
     name: "名称",
     locHint: "显示在服务器卡片和这个页面的标题上。",
     locPh: "IRIS 实验室，助教桌",
-    fromAgent: "来自 Agent",
+    fromAgent: "由 agent 填写",
     lanHint:
       "实验室网络上的板子和电脑用来访问这台 Pi 的地址（比如 WS_HOST 和 MQTT_HOST）。由 agent 自动填写。",
     notesHint: "显示在服务器名称下面。",

@@ -12,7 +12,7 @@ import "./SessionMiniBar.css";
 const T = dict({
   id: { k: "Kode Masuk", tip: "Praktikan mengetik kode ini bersama NIM saat masuk." },
   en: { k: "Sign-in Code", tip: "Praktikan type this code with their NIM to sign in." },
-  zh: { k: "登录代码", tip: "学员登录时与 NIM 一起输入这个代码。" },
+  zh: { k: "签到码", tip: "学生登录时和 NIM 一起输入这个签到码。" },
 });
 
 export default function KodeMasuk({

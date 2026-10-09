@@ -12,7 +12,8 @@ import identitas from "../../content/sketches/identitas.json";
 // expects ever disappears or starts matching more than once.
 
 const SKETCHES_DIR = fileURLToPath(new URL("../../content/sketches/", import.meta.url));
-const LANGUAGES = ["id", "en"] as const;
+// zh: the Mandarin twin of en, comments only (scripts/sketch_zh.py, 2026-10-09).
+const LANGUAGES = ["id", "en", "zh"] as const;
 const GROUPS = Array.from({ length: 10 }, (_, i) => i + 1);
 
 function readSketch(bahasa: string, berkas: string): string {
@@ -86,7 +87,12 @@ describe("personalize()", () => {
     // and must not be mistaken for that group's own identity.
     for (const bahasa of LANGUAGES) {
       const source = readSketch(bahasa, "modul4_beacon");
-      const marker = bahasa === "id" ? "Kelompok 1 memancar" : "Group 1 transmits";
+      const marker =
+        bahasa === "id"
+          ? "Kelompok 1 memancar"
+          : bahasa === "zh"
+            ? "第 1 组在每个周期开头发射"
+            : "Group 1 transmits";
       for (const n of GROUPS) {
         const out = personalize("modul4_beacon", source, n);
         expect(out).toContain(marker);
@@ -114,7 +120,7 @@ describe("Module 4 sync words", () => {
 });
 
 describe("src/content/sketches directory has no extra languages", () => {
-  it("only id/ and en/ exist", () => {
+  it("only id/, en/ and zh/ exist", () => {
     const dirs = readdirSync(SKETCHES_DIR, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)

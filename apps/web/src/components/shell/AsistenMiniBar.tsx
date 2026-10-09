@@ -31,7 +31,7 @@ const T = dict({
   zh: {
     region: "你的课正在进行",
     name: "你的课正在进行",
-    open: "打开课程",
+    open: "打开这节课",
     hands: (n: number) => `${n} 个小组请求帮助`,
   },
 });

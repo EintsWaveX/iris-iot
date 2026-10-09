@@ -153,7 +153,7 @@ const T = dict({
     display: "显示",
     shortcuts: "键盘快捷键",
     palette: "搜索命令",
-    praktikan: "学员",
+    praktikan: "学生",
     asisten: "助教",
     proyektorKeluar: "退出投影",
     group: (n: number) => kelompokLabel(n, "zh"),

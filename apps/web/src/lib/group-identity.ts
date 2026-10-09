@@ -87,6 +87,10 @@ const REWRITES: Record<string, Rewrite[]> = {
           pattern: /Role: HUNTER \(Group \d+\)/,
           replacement: (n) => `Role: HUNTER (Group ${n})`,
         },
+        {
+          pattern: /角色：HUNTER（第 \d+ 组）/,
+          replacement: (n) => `角色：HUNTER（第 ${n} 组）`,
+        },
       ],
     },
   ],
@@ -105,6 +109,10 @@ const REWRITES: Record<string, Rewrite[]> = {
         {
           pattern: /Role: BEACON \(Group \d+,/,
           replacement: (n) => `Role: BEACON (Group ${n},`,
+        },
+        {
+          pattern: /角色：BEACON（第 \d+ 组，/,
+          replacement: (n) => `角色：BEACON（第 ${n} 组，`,
         },
       ],
     },

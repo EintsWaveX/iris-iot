@@ -149,7 +149,7 @@ export const OPS_T = dict({
   },
   zh: {
     hotspot: "IRIS-IOT 热点",
-    hotspotOn: "已开：学员连到 Orange Pi",
+    hotspotOn: "已开：学生连到 Orange Pi",
     hotspotOff: "已关：Orange Pi 使用校园 Wi-Fi",
     pending: "等待下一次心跳…",
     services: "实验服务",

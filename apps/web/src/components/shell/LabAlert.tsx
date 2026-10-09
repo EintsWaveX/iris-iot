@@ -74,7 +74,7 @@ const T = dict({
   },
   zh: {
     piH: "Pi 停止发送心跳",
-    piP: (m: string) => `课程正在进行，但 Pi 自${m}起没有动静。检查 Pi 的电源和 Wi-Fi。`,
+    piP: (m: string) => `正在上课，但 Pi 从${m}起就没有动静了。检查一下 Pi 的电源和 Wi-Fi。`,
     piNever: "从未",
     piGo: "打开服务器",
     errH: (n: number, m: number) => `最近 ${m} 分钟内有 ${n} 个服务器错误`,

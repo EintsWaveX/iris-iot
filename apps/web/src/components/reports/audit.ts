@@ -170,6 +170,8 @@ const W = {
     sandiAtur: "mengatur kata sandinya",
     sandiGanti: "mengganti kata sandinya",
     konsol: "memakai Konsol Pi",
+    perburuan: (mulai: boolean) =>
+      mulai ? "memulai perburuan Modul 4" : "menyelesaikan perburuan Modul 4",
     konsolTarget: (t: unknown) =>
       t === "terminal" ? "terminal (SSH)" : t === ":0" ? "layar Pi (HDMI)" : "desktop virtual",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
@@ -280,6 +282,8 @@ const W = {
     sandiAtur: "set their password",
     sandiGanti: "changed their password",
     konsol: "used the Pi Console",
+    perburuan: (mulai: boolean) =>
+      mulai ? "started the Module 4 hunt" : "ended the Module 4 hunt",
     konsolTarget: (t: unknown) =>
       t === "terminal" ? "terminal (SSH)" : t === ":0" ? "Pi screen (HDMI)" : "virtual desktop",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
@@ -325,9 +329,9 @@ const W = {
       `把${j === "balik" ? `${who} 的转回` : `给 ${who} 的总额转账`} ${rp}（${p}）标为已付`,
     transferBatal: (who: string) => `撤销了 ${who} 的转账标记`,
     tarifUnit: (r: string, i: string) => `设定每组费率：普通班 ${r}，国际班 ${i}`,
-    kasTarif: (p: unknown, mulai: string) => `从 ${mulai} 起把团队基金设为 ${p}%`,
-    kasExc: (who: string, p: unknown) => `给 ${who} 设了团队基金例外 ${p}%`,
-    kasExcHapus: (who: string) => `删除了 ${who} 的团队基金例外`,
+    kasTarif: (p: unknown, mulai: string) => `从 ${mulai} 起把公共经费设为 ${p}%`,
+    kasExc: (who: string, p: unknown) => `给 ${who} 设了公共经费例外 ${p}%`,
+    kasExcHapus: (who: string) => `删除了 ${who} 的公共经费例外`,
     timTambah: (who: string) => `把 ${who} 加进团队`,
     timUbah: (who: string) => `修改了 ${who} 的资料`,
     hak: (who: string) => `修改了 ${who} 的权限（管理员例外）`,
@@ -348,23 +352,23 @@ const W = {
     jadwalImpor: (n: unknown) => `导入了课表（${n} 个时段）`,
     jadwalPengaturan: "修改了课表的开课窗口设置",
     jadwalJendela: (s: string, m: unknown) => `把 ${s} 的开课窗口设为 ${m} 分钟`,
-    rosterSlot: (s: string, n: unknown) => `保存了 ${s} 的名单（${n} 位学员）`,
-    rosterSusulan: (n: unknown) => `保存了补课名单（${n} 位学员）`,
+    rosterSlot: (s: string, n: unknown) => `保存了 ${s} 的名单（${n} 位学生）`,
+    rosterSusulan: (n: unknown) => `保存了补课名单（${n} 位学生）`,
     rosterSet: "替换了旧名单",
-    praktikanTambah: (n: unknown) => `添加了 ${n} 位学员`,
-    praktikanTambahSesi: (nim: unknown, k: unknown) => `把 ${nim} 加入正在进行的课程的第 ${k} 组`,
+    praktikanTambah: (n: unknown) => `添加了 ${n} 位学生`,
+    praktikanTambahSesi: (nim: unknown, k: unknown) => `把 ${nim} 加入正在上的课的第 ${k} 组`,
     praktikumFinal: "结束了本学期的实验课（四个模块的记录都已开放）",
     praktikumFinalBatal: "撤销了实验课的结束",
     susulanDraf: (t: string) => `为 ${t} 建了补课草稿`,
     modulAkses: (m: string) => (m ? `开放了${m}` : "关闭了所有模块"),
-    totNyala: "开启了 TOT 模式，真实名单已保存",
+    totNyala: "开启了 TOT 模式，正式名单已保存",
     totHapus: (n: unknown) => `清除了 TOT 记录（${n} 节课）`,
-    totMati: "关闭了 TOT 模式，真实名单已恢复",
+    totMati: "关闭了 TOT 模式，正式名单已恢复",
     tot: "（TOT）",
-    paksa: (a: string) => `，实验室未就绪仍照样开始。原因：${a}`,
+    paksa: (a: string) => `，实验室未就绪但仍然开始。原因：${a}`,
     galatServer: (r: string, p: string) => `记录了服务器错误${r ? `（${r}）` : ""}：${p}`,
     galatKlien: (h: string, p: string) => `记录了页面 ${h || "?"} 的错误：${p}`,
-    brief: (m: string, b: string) => `修改了${m}的简介（${b}）`,
+    brief: (m: string, b: string) => `修改了${m}的概要（${b}）`,
     presentasi: "修改了演示幻灯片",
     skema: (m: string) => `修改了${m}的接线图`,
     serverDaftar: (s: string) => `登记了服务器 ${s}`,
@@ -388,11 +392,12 @@ const W = {
     sandiAtur: "设置了密码",
     sandiGanti: "修改了密码",
     konsol: "使用了 Pi 控制台",
+    perburuan: (mulai: boolean) => (mulai ? "开始了模块 4 的寻踪" : "结束了模块 4 的寻踪"),
     konsolTarget: (t: unknown) =>
       t === "terminal" ? "终端（SSH）" : t === ":0" ? "Pi 屏幕（HDMI）" : "虚拟桌面",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
       `${langsung ? "无需批准直接打开了" : "申请了"} ${srv} 的 Pi 控制台${x}（${pk}）：${why}`,
-    konsolPaksa: (pk: string, why: unknown) => `在课程进行中强制打开了 ${pk}：${why}`,
+    konsolPaksa: (pk: string, why: unknown) => `上课期间强制打开了 ${pk}：${why}`,
     konsolSetujui: (pk: string) => `批准了 ${pk}`,
     konsolTolak: (pk: string, why: string) => `拒绝了 ${pk}${why ? `：${why}` : ""}`,
     konsolBatal: (pk: string) => `取消了申请 ${pk}`,
@@ -557,6 +562,9 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(PencilSimpleIcon, w.nilai(d.nim, d.komponen, b.sesi(d.sesiId)));
     case "nilai_absen":
       return k(PencilSimpleIcon, w.absen(d.nim, d.absen === true, b.sesi(d.sesiId)));
+    case "perburuan_mulai":
+    case "perburuan_selesai":
+      return k(BroadcastIcon, w.perburuan(row.aksi === "perburuan_mulai"));
     case "seelabs_akun":
       return k(HandCoinsIcon, w.seelabsAkun(b.grup(d), d.akun ? b.who(d.akun) : ""));
     case "seelabs_simpan":

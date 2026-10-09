@@ -3,7 +3,7 @@
   "bahasa": "zh",
   "judul": "LoRa",
   "topik": "远距离通信（LoRa 点对点）",
-  "tagline": "ESP32 板之间的 LoRa P2P 寻信号游戏。",
+  "tagline": "ESP32 板之间的 LoRa P2P 寻踪游戏。",
   "fakta": ["ESP32", "LoRa P2P", "Pi 热点"],
   "ringkasan": [
     "这个模块完全不用外接传感器或执行器。要测的就是无线电波本身：信号强度和距离之间的关系。",
@@ -78,12 +78,12 @@
   "berkas": [
     {
       "path": "modul4_hunter.ino",
-      "judul": "Hunter：LoRa 寻信号（Cosmic LoRa Aurora V2）",
+      "judul": "Hunter：LoRa 寻踪（Cosmic LoRa Aurora V2）",
       "bahasaKode": "cpp"
     },
     {
       "path": "modul4_beacon.ino",
-      "judul": "Beacon：LoRa 寻信号（Cosmic LoRa Aurora V2）",
+      "judul": "Beacon：LoRa 寻踪（Cosmic LoRa Aurora V2）",
       "bahasaKode": "cpp"
     }
   ],
