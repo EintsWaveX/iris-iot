@@ -501,8 +501,6 @@ export const jawaban = pgTable(
     isi: text("isi").notNull().default(""),
     benar: boolean("benar").notNull().default(false),
     percobaan: integer("percobaan").notNull().default(0),
-    /** Wrong checks only; two open the blank's hint (SALAH_UNTUK_BANTUAN). */
-    salah: integer("salah").notNull().default(0),
     versi: integer("versi").notNull().default(0),
     diubahOleh: text("diubah_oleh"), // NIM, matching audit.aktorNim's shape
     diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
@@ -513,35 +511,6 @@ export const jawaban = pgTable(
       .on(t.kelompokId, t.soalKode)
       .where(sql`${t.sesiId} is null`),
     index("jawaban_sesi_idx").on(t.sesiId),
-  ],
-);
-
-/**
- * Hints an Asisten writes for one group's blank: either a reply to the
- * group's Minta Petunjuk (dimintaOleh set) or sent unasked from the Konsol
- * (dimintaOleh null). The written hint after two wrong tries lives in the
- * code version itself (Celah.bantuan), not here.
- */
-export const petunjukMinta = pgTable(
-  "petunjuk_minta",
-  {
-    id: serial("id").primaryKey(),
-    sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
-    kelompokId: integer("kelompok_id")
-      .notNull()
-      .references(() => kelompok.id, { onDelete: "cascade" }),
-    soalKode: text("soal_kode").notNull(),
-    catatan: text("catatan").notNull().default(""),
-    dimintaOleh: text("diminta_oleh"), // NIM of the Praktikan who asked
-    dimintaPada: timestamp("diminta_pada", { withTimezone: true }).notNull().defaultNow(),
-    teks: text("teks"), // the Asisten's hint, null while waiting
-    dijawabOleh: text("dijawab_oleh"), // Asisten NIM
-    dijawabPada: timestamp("dijawab_pada", { withTimezone: true }),
-    batal: boolean("batal").notNull().default(false),
-  },
-  (t) => [
-    index("petunjuk_minta_sesi_idx").on(t.sesiId),
-    index("petunjuk_minta_kelompok_soal_idx").on(t.kelompokId, t.soalKode),
   ],
 );
 
