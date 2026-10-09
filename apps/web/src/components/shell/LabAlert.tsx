@@ -4,7 +4,9 @@
  * - the Pi stops sending heartbeats while a session that needs it runs
  *   (every Asisten sees this one);
  * - a burst of server errors (AMBANG_GALAT in api/_lib/galat.ts), for
- *   those with the Server right, who can act on it.
+ *   those with the Server right, who can act on it;
+ * - Panggil DEV (2026-10-10): a call from the lab, for the DEVs, with
+ *   Saya Datang; and, for the caller, who is on the way.
  *
  * Checked every 30 s while a session runs, every 2 min otherwise. When the
  * tab is in the background and the browser allows it, a system
@@ -14,11 +16,14 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowRightIcon,
   BellRingingIcon,
+  ChatCircleTextIcon,
+  PersonSimpleRunIcon,
   PlugsIcon,
   WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { dict, getJson, href, type Me } from "../../lib/app";
+import { dict, getJson, href, postJson, type Me } from "../../lib/app";
+import { modulLabel } from "../../lib/labels";
 import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 
@@ -32,6 +37,20 @@ interface Waspada {
   };
   pi: { luring: boolean; umurDetik: number | null; serverId?: number | null } | null;
   sesi: { id: number; modul: number } | null;
+  panggilan?: {
+    bisaJawab: boolean;
+    untukku: Panggilan[];
+    milikku: Panggilan | null;
+  };
+}
+
+interface Panggilan {
+  id: number;
+  pada: string;
+  oleh: { nim: string; nama: string; kode: string | null };
+  catatan: string;
+  sesi: { id: number; modul: number } | null;
+  datang: { nama: string; kode: string | null; pada: string } | null;
 }
 
 const T = dict({
@@ -52,6 +71,15 @@ const T = dict({
           : `${Math.round(m / 60)} jam lalu`,
     nPi: "IRIS: Pi tidak mengirim detak",
     nErr: "IRIS: galat server bertambah",
+    callH: (who: string, m: string) => `${who} memanggil DEV${m ? ` dari sesi ${m}` : ""}`,
+    callMore: (n: number) => `dan ${n} panggilan lain`,
+    callGo: "Saya Datang",
+    callOpen: "Buka Konsol",
+    callTaken: "Tercatat. Yang memanggil melihat kamu sedang menuju lab.",
+    comingH: (who: string) => `${who} sedang menuju lab`,
+    comingP: "Panggilan DEV-mu dijawab.",
+    nCall: "IRIS: ada yang memanggil DEV",
+    fail: "Tidak bisa sekarang. Coba lagi.",
   },
   en: {
     piH: "The Pi stopped sending heartbeats",
@@ -71,6 +99,16 @@ const T = dict({
           : `${Math.round(m / 60)} hours ago`,
     nPi: "IRIS: the Pi stopped sending heartbeats",
     nErr: "IRIS: server errors are piling up",
+    callH: (who: string, m: string) =>
+      `${who} is calling the DEVs${m ? ` from a ${m} session` : ""}`,
+    callMore: (n: number) => `and ${n} more ${n === 1 ? "call" : "calls"}`,
+    callGo: "I'm Coming",
+    callOpen: "Open the Console",
+    callTaken: "Noted. The caller sees you're on the way.",
+    comingH: (who: string) => `${who} is on the way to the lab`,
+    comingP: "Your call to the DEVs was answered.",
+    nCall: "IRIS: someone is calling the DEVs",
+    fail: "Not possible right now. Try again.",
   },
   zh: {
     piH: "Pi 停止发送心跳",
@@ -85,6 +123,15 @@ const T = dict({
       m < 1 ? "不到一分钟前" : m < 90 ? `${m} 分钟前` : `${Math.round(m / 60)} 小时前`,
     nPi: "IRIS：Pi 停止发送心跳",
     nErr: "IRIS：服务器错误在增加",
+    callH: (who: string, m: string) => `${who}${m ? `从${m}的课上` : ""}呼叫 DEV`,
+    callMore: (n: number) => `还有 ${n} 个呼叫`,
+    callGo: "我马上来",
+    callOpen: "打开控制台",
+    callTaken: "已记录。呼叫的人会看到你正在赶来。",
+    comingH: (who: string) => `${who} 正在赶往实验室`,
+    comingP: "你的 DEV 呼叫有人回应了。",
+    nCall: "IRIS：有人呼叫 DEV",
+    fail: "现在不行。再试一次。",
   },
 });
 
@@ -119,12 +166,14 @@ export default function LabAlert({
 }) {
   const t = T[lang];
   const bisaServer = me.hak?.server === true;
-  const w = usePoll(
+  const poll = usePoll(
     () => getJson<Waspada>("/api/session/waspada"),
     sesiBerjalan ? 30_000 : 120_000,
     true,
     ["sesi", "server"],
-  ).data;
+  );
+  const w = poll.data;
+  const [tutupDatang, setTutupDatang] = useState(0);
   const [sembunyi, setSembunyi] = useState(0);
   const [izin, setIzin] = useState<NotificationPermission | "none">("none");
   useEffect(() => {
@@ -150,7 +199,31 @@ export default function LabAlert({
     }
   }, [lonjakan, g?.terakhir?.id]);
 
-  if (!piLuring && !lonjakan) return null;
+  const panggil = w?.ok ? (w.panggilan?.untukku ?? []) : [];
+  const call = panggil[0] ?? null;
+  const mine = w?.ok ? (w.panggilan?.milikku ?? null) : null;
+  const datang = mine?.datang && mine.id !== tutupDatang ? mine : null;
+  const sudahCall = useRef(0);
+  useEffect(() => {
+    if (call && call.id > sudahCall.current) {
+      beriTahu(
+        t.nCall,
+        `${call.oleh.nama}${call.catatan ? `: ${call.catatan}` : ""}`,
+        "iris-panggil",
+      );
+      sudahCall.current = call.id;
+    }
+  }, [call?.id]);
+
+  async function jawab(id: number) {
+    const r = await postJson<{ ok: boolean }>("/api/session/panggil", { aksi: "datang", id }).catch(
+      () => ({ ok: false }),
+    );
+    window.Toast?.show(r.ok ? t.callTaken : t.fail, r.ok ? "ok" : "danger");
+    poll.refresh();
+  }
+
+  if (!piLuring && !lonjakan && !call && !datang) return null;
 
   const tombolIzin =
     izin === "default" ? (
@@ -169,8 +242,45 @@ export default function LabAlert({
     ) : null;
 
   const umur = w?.pi?.umurDetik;
+  const siapa = (o: { nama: string; kode: string | null }) =>
+    o.kode ? `${o.nama} (${o.kode})` : o.nama;
   return (
     <>
+      {call && (
+        <div className="offline banner banner--warn" role="alert">
+          <ChatCircleTextIcon size={20} aria-hidden="true" />
+          <b>{t.callH(siapa(call.oleh), call.sesi ? modulLabel(call.sesi.modul, lang) : "")}</b>
+          <span className="hint truncate">
+            {call.catatan}
+            {panggil.length > 1
+              ? `${call.catatan ? " · " : ""}${t.callMore(panggil.length - 1)}`
+              : ""}
+          </span>
+          {tombolIzin}
+          <a className="btn btn--ghost btn--sm" href={href(lang, "/session")}>
+            {t.callOpen}
+          </a>
+          <button type="button" className="btn btn--sm" onClick={() => void jawab(call.id)}>
+            <PersonSimpleRunIcon size={14} aria-hidden="true" />
+            {t.callGo}
+          </button>
+        </div>
+      )}
+      {datang?.datang && (
+        <div className="offline banner banner--ok" role="status">
+          <PersonSimpleRunIcon size={20} aria-hidden="true" />
+          <b>{t.comingH(siapa(datang.datang))}</b>
+          <span className="hint">{t.comingP}</span>
+          <button
+            type="button"
+            className="iconbtn"
+            aria-label={t.hide}
+            onClick={() => setTutupDatang(datang.id)}
+          >
+            <XIcon size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
       {piLuring && (
         <div className="offline banner banner--danger" role="alert">
           <PlugsIcon size={20} aria-hidden="true" />
@@ -178,7 +288,7 @@ export default function LabAlert({
           <span className="hint">
             {t.piP(umur == null ? t.piNever : t.ago(Math.floor(umur / 60)))}
           </span>
-          {tombolIzin}
+          {!call && tombolIzin}
           <a
             className="btn btn--ghost btn--sm"
             href={
@@ -197,7 +307,7 @@ export default function LabAlert({
           <WarningIcon size={20} aria-hidden="true" />
           <b>{t.errH(g.jumlah, g.menit)}</b>
           <span className="hint truncate">{g.terakhir?.pesan}</span>
-          {!piLuring && tombolIzin}
+          {!piLuring && !call && tombolIzin}
           <a
             className="btn btn--ghost btn--sm"
             href={`${href(lang, "/reports")}?audit=galat#audit`}

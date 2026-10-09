@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowsClockwiseIcon,
   BookOpenTextIcon,
+  ChatCircleTextIcon,
   CaretDownIcon,
   CaretUpIcon,
   CheckSquareIcon,
@@ -28,7 +29,9 @@ import {
   MegaphoneIcon,
   PulseIcon,
   TerminalWindowIcon,
+  SwapIcon,
   TimerIcon,
+  TranslateIcon,
   UserPlusIcon,
   UserSwitchIcon,
   WifiSlashIcon,
@@ -43,6 +46,7 @@ import { useSiaranStatus } from "../../lib/siaran";
 import { sendCommand, svcTone } from "../server/ops";
 import { jamLab } from "../shared/Instruments";
 import TambahPraktikan from "./TambahPraktikan";
+import UbahSesi from "./UbahSesi";
 import type { ServerState } from "./data";
 import { isOnline, type GroupRow, type SesiRunning } from "./types";
 import "./help-drawer.css";
@@ -147,6 +151,19 @@ const HD = dict({
     hideKeys: "Sembunyikan Semua Kunci",
     done: "Dikerjakan.",
     stuck: "Belum Ketemu?",
+    modulT: "Salah modul atau jenis kelas",
+    modulFound: (benar: number) =>
+      benar
+        ? `Sudah ada ${benar} blank benar, jadi modul tidak bisa diganti lagi; buat sesi baru. Jenis kelas masih bisa diubah sebelum nilai dikirim.`
+        : "Bisa diganti selama belum ada blank benar; isian yang salah ikut terhapus. Jenis kelas bisa diubah sebelum nilai dikirim.",
+    gantiModul: "Ganti Modul",
+    ubahKelas: "Ubah Jenis Kelas",
+    callDev: "Panggil DEV",
+    callSent: "DEV dipanggil. Mereka melihatnya di halaman mana pun di situs.",
+    callWait: (jam: string) => `Menunggu DEV sejak ${jam}.`,
+    callComing: (nama: string) => `${nama} sedang menuju lab.`,
+    callCancel: "Batalkan Panggilan",
+    callNote: "Isi catatan di bawah dulu kalau perlu, catatannya ikut terkirim.",
     note: "Catat kejadian di riwayat sesi",
     notePh: "Contoh: router lab mati 5 menit, sesi diperpanjang",
     noteGo: "Catat",
@@ -251,6 +268,19 @@ const HD = dict({
     hideKeys: "Hide Every Key",
     done: "Done.",
     stuck: "Still Stuck?",
+    modulT: "Wrong module or class type",
+    modulFound: (benar: number) =>
+      benar
+        ? `${benar} ${benar === 1 ? "blank is" : "blanks are"} already right, so the module can't change anymore; start a new session. The class type can still change before scores are sent.`
+        : "Can change while no blank is right yet; wrong answers go with it. The class type can change before scores are sent.",
+    gantiModul: "Change the Module",
+    ubahKelas: "Change the Class Type",
+    callDev: "Call the DEVs",
+    callSent: "The DEVs were called. They see it on any page of the site.",
+    callWait: (jam: string) => `Waiting for a DEV since ${jam}.`,
+    callComing: (nama: string) => `${nama} is on the way to the lab.`,
+    callCancel: "Cancel the Call",
+    callNote: "Fill in the note below first if you like; it goes with the call.",
     note: "Note it in the session history",
     notePh: "For example: lab router down 5 minutes, session extended",
     noteGo: "Note It",
@@ -350,6 +380,19 @@ const HD = dict({
     hideKeys: "隐藏所有答案",
     done: "已完成。",
     stuck: "还没解决？",
+    modulT: "模块或班级类型选错了",
+    modulFound: (benar: number) =>
+      benar
+        ? `已经有 ${benar} 个填空答对了，模块不能再换；开一节新课。发送成绩前仍可修改班级类型。`
+        : "还没有填空答对时可以换；错误的答案会一起删除。发送成绩前可以修改班级类型。",
+    gantiModul: "更换模块",
+    ubahKelas: "修改班级类型",
+    callDev: "呼叫 DEV",
+    callSent: "已呼叫 DEV。他们在网站任何页面都能看到。",
+    callWait: (jam: string) => `从 ${jam} 起等待 DEV。`,
+    callComing: (nama: string) => `${nama} 正在赶往实验室。`,
+    callCancel: "取消呼叫",
+    callNote: "需要的话先填好下面的备注，会一起发送。",
     note: "记到这节课的记录里",
     notePh: "例如：实验室路由器断了 5 分钟，课已延长",
     noteGo: "记录",
@@ -362,6 +405,13 @@ const HD = dict({
 interface Waspada {
   galat: { jumlah: number; menit: number; ambang: number };
   gagalMasuk?: { nim: string; jenis: string; pada: string }[];
+  panggilan?: {
+    milikku: {
+      id: number;
+      pada: string;
+      datang: { nama: string; kode: string | null } | null;
+    } | null;
+  };
 }
 
 interface Act {
@@ -421,6 +471,8 @@ export default function HelpDrawer({
   const [buka, setBuka] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [add, setAdd] = useState(false);
+  const [ubah, setUbah] = useState(false);
+  const [busyCall, setBusyCall] = useState(false);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -448,6 +500,9 @@ export default function HelpDrawer({
   const sunyi = aktif.filter((g) => (g.telemetri?.count ?? 0) === 0);
   const absen = aktif.reduce((a, g) => a + Math.max(0, g.anggotaTotal - g.hadir), 0);
   const gagal = w?.gagalMasuk ?? [];
+  const benar = groups.reduce((a, g) => a + g.benar, 0);
+  const salah = groups.reduce((a, g) => a + (g.blankRinci ?? []).filter((b) => !b.benar).length, 0);
+  const panggil = w?.panggilan?.milikku ?? null;
   // Three groups by name, then how many more.
   const daftarG = (xs: GroupRow[]) =>
     xs
@@ -642,6 +697,22 @@ export default function HelpDrawer({
             : [],
       },
       {
+        id: "modul",
+        cat: "sesi",
+        icon: SwapIcon,
+        title: h.modulT,
+        found: h.modulFound(benar),
+        acts:
+          sesi.kendali !== false
+            ? [
+                ...(benar === 0
+                  ? [{ label: h.gantiModul, icon: SwapIcon, run: () => setUbah(true) }]
+                  : []),
+                { label: h.ubahKelas, icon: TranslateIcon, run: () => setUbah(true) },
+              ]
+            : [],
+      },
+      {
         id: "asisten",
         cat: "sesi",
         icon: HandshakeIcon,
@@ -716,6 +787,20 @@ export default function HelpDrawer({
       r.ok ? h.unlocked(nim) : r.kode === "tidak_terkunci" ? h.notLocked : h.fail,
       r.ok ? "ok" : "danger",
     );
+  }
+
+  async function panggilDev(batal?: number) {
+    setBusyCall(true);
+    const r = await postJson<{ ok: boolean }>(
+      "/api/session/panggil",
+      batal ? { aksi: "batal", id: batal } : { aksi: "panggil", catatan: note.trim() },
+    ).catch(() => ({ ok: false }));
+    setBusyCall(false);
+    if (!r.ok) return window.Toast?.show(h.fail, "danger");
+    if (!batal) window.Toast?.show(h.callSent, "ok");
+    void getJson<{ ok: boolean } & Waspada>("/api/session/waspada")
+      .then((d) => d.ok && setW(d))
+      .catch(() => {});
   }
 
   async function catat() {
@@ -829,14 +914,45 @@ export default function HelpDrawer({
         ))}
         <section className="panel hdrawer__stuck">
           <h3 className="panel__title">{h.stuck}</h3>
-          {d && (
-            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            {!panggil || panggil.datang ? (
+              <button
+                type="button"
+                className="btn"
+                disabled={busyCall}
+                onClick={() => void panggilDev()}
+              >
+                <ChatCircleTextIcon size={18} aria-hidden="true" />
+                {h.callDev}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={busyCall}
+                onClick={() => void panggilDev(panggil.id)}
+              >
+                {h.callCancel}
+              </button>
+            )}
+            {d && (
               <a className="btn" href={href(lang, `/servers?id=${d.server.id}`)}>
                 <TerminalWindowIcon size={18} aria-hidden="true" />
                 {h.konsol}
               </a>
-            </div>
-          )}
+            )}
+          </div>
+          <span className="hint" aria-live="polite">
+            {panggil
+              ? panggil.datang
+                ? h.callComing(
+                    panggil.datang.kode
+                      ? `${panggil.datang.nama} (${panggil.datang.kode})`
+                      : panggil.datang.nama,
+                  )
+                : h.callWait(jamLab(panggil.pada))
+              : h.callNote}
+          </span>
           <div className="field">
             <span className="field__label">{h.note}</span>
             <div className="row" style={{ gap: 8 }}>
@@ -859,6 +975,15 @@ export default function HelpDrawer({
           </div>
         </section>
       </div>
+      <UbahSesi
+        lang={lang}
+        open={ubah}
+        onOpenChange={setUbah}
+        sesi={sesi}
+        benar={benar}
+        salah={salah}
+        onDone={onRefresh}
+      />
       <TambahPraktikan
         lang={lang}
         open={add}

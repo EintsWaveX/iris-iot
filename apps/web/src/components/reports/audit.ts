@@ -134,6 +134,12 @@ const W = {
     rosterSusulan: (n: unknown) => `menyimpan roster susulan (${n} praktikan)`,
     rosterSet: "mengganti roster lama",
     praktikanTambah: (n: unknown) => `menambahkan ${n} praktikan`,
+    sesiModul: (a: unknown, b: unknown) =>
+      `Mengganti modul sesi berjalan dari Modul ${a} ke Modul ${b}`,
+    sesiKelas: (a: unknown, b: unknown) => `Mengubah jenis kelas sesi berjalan dari ${a} ke ${b}`,
+    panggilDev: (c: unknown) => `Memanggil DEV${c ? `: ${c}` : ""}`,
+    panggilDevDatang: "Menjawab panggilan DEV: datang",
+    panggilDevBatal: "Membatalkan panggilan DEV",
     kodeBuka: (nim: unknown) => `Membuka kunci kode sesi ${nim}`,
     praktikanTambahSesi: (nim: unknown, k: unknown) =>
       `memasukkan ${nim} ke Kelompok ${k} di sesi berjalan`,
@@ -247,6 +253,13 @@ const W = {
     rosterSusulan: (n: unknown) => `saved a makeup roster (${n} students)`,
     rosterSet: "replaced the old roster",
     praktikanTambah: (n: unknown) => `added ${n} students`,
+    sesiModul: (a: unknown, b: unknown) =>
+      `Changed the running session from Module ${a} to Module ${b}`,
+    sesiKelas: (a: unknown, b: unknown) =>
+      `Changed the running session's class type from ${a} to ${b}`,
+    panggilDev: (c: unknown) => `Called the DEVs${c ? `: ${c}` : ""}`,
+    panggilDevDatang: "Answered a DEV call: on the way",
+    panggilDevBatal: "Cancelled a DEV call",
     kodeBuka: (nim: unknown) => `Unlocked the session code for ${nim}`,
     praktikanTambahSesi: (nim: unknown, k: unknown) =>
       `put ${nim} in Group ${k} of the running session`,
@@ -359,6 +372,11 @@ const W = {
     rosterSusulan: (n: unknown) => `保存了补课名单（${n} 位学生）`,
     rosterSet: "替换了旧名单",
     praktikanTambah: (n: unknown) => `添加了 ${n} 位学生`,
+    sesiModul: (a: unknown, b: unknown) => `把正在上的课从模块 ${a} 改成模块 ${b}`,
+    sesiKelas: (a: unknown, b: unknown) => `把正在上的课的班级类型从 ${a} 改成 ${b}`,
+    panggilDev: (c: unknown) => `呼叫 DEV${c ? `：${c}` : ""}`,
+    panggilDevDatang: "回应 DEV 呼叫：马上来",
+    panggilDevBatal: "取消 DEV 呼叫",
     kodeBuka: (nim: unknown) => `解除 ${nim} 的签到码锁定`,
     praktikanTambahSesi: (nim: unknown, k: unknown) => `把 ${nim} 加入正在上的课的第 ${k} 组`,
     praktikumFinal: "结束了本学期的实验课（四个模块的记录都已开放）",
@@ -642,6 +660,16 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(FlagCheckeredIcon, w.praktikumFinal);
     case "praktikum_final_batal":
       return k(FlagCheckeredIcon, w.praktikumFinalBatal);
+    case "sesi_modul":
+      return k(SlidersHorizontalIcon, w.sesiModul(d.dari, d.ke));
+    case "sesi_kelas":
+      return k(SlidersHorizontalIcon, w.sesiKelas(d.dari, d.ke));
+    case "panggil_dev":
+      return k(BroadcastIcon, w.panggilDev(d.catatan));
+    case "panggil_dev_datang":
+      return k(BroadcastIcon, w.panggilDevDatang);
+    case "panggil_dev_batal":
+      return k(BroadcastIcon, w.panggilDevBatal);
     case "kode_buka":
       return k(LockKeyOpenIcon, w.kodeBuka(d.nim));
     case "praktikan_tambah_sesi":

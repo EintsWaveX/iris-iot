@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { getJson, postJson, tanggalPanjang } from "../../lib/app";
 import { unduhCsv } from "../../lib/csv";
 import { slotToMulai } from "../../lib/jadwal";
-import { kelompokLabel, menitLabel } from "../../lib/labels";
+import { kelasLabel, kelompokLabel, menitLabel, modulLabel } from "../../lib/labels";
 import type { Kejadian, SesiLaporan } from "../../lib/laporan";
-import type { Lang } from "../../lib/kelas";
+import { isKelas, type Lang } from "../../lib/kelas";
 import { unduhPdf, type BagianPdf } from "../../lib/pdf";
 import { unduhXlsx } from "../../lib/xlsx";
 import { useSiaran } from "../../lib/siaran";
@@ -63,6 +63,8 @@ const KJ = {
     batal: (who: string) => `Sesi dibatalkan oleh ${who}.`,
     lanjutkan: (who: string) => `Sesi dilanjutkan oleh ${who}.`,
     durasi: (who: string, a: string, b: string) => `${who} mengubah lama sesi dari ${a} jadi ${b}.`,
+    modul: (who: string, a: string, b: string) => `${who} mengganti modul sesi dari ${a} ke ${b}.`,
+    kelas: (who: string, a: string, b: string) => `${who} mengubah jenis kelas dari ${a} ke ${b}.`,
     siarkan: (who: string, p: string) => `Pengumuman dikirim oleh ${who}: "${p}"`,
     pasangan: (ke: string, g: string, awal: string, al: string) =>
       `${ke} melakukan penilaian ke ${g}${awal ? ` (berubah dari pemasangan awal: ${awal} dengan ${g})` : ""}.${al ? ` Alasan: ${al}` : ""}`,
@@ -84,6 +86,10 @@ const KJ = {
     lanjutkan: (who: string) => `Session resumed by ${who}.`,
     durasi: (who: string, a: string, b: string) =>
       `${who} changed the session length from ${a} to ${b}.`,
+    modul: (who: string, a: string, b: string) =>
+      `${who} changed the session's module from ${a} to ${b}.`,
+    kelas: (who: string, a: string, b: string) =>
+      `${who} changed the class type from ${a} to ${b}.`,
     siarkan: (who: string, p: string) => `Announcement sent by ${who}: "${p}"`,
     pasangan: (ke: string, g: string, awal: string, al: string) =>
       `${ke} scores ${g}${awal ? ` (changed from the original pairing: ${awal} with ${g})` : ""}.${al ? ` Reason: ${al}` : ""}`,
@@ -104,6 +110,8 @@ const KJ = {
     batal: (who: string) => `${who} 取消了这节课。`,
     lanjutkan: (who: string) => `${who} 继续了这节课。`,
     durasi: (who: string, a: string, b: string) => `${who} 把课时从 ${a} 改成 ${b}。`,
+    modul: (who: string, a: string, b: string) => `${who} 把这节课的模块从${a}改成${b}。`,
+    kelas: (who: string, a: string, b: string) => `${who} 把班级类型从${a}改成${b}。`,
     siarkan: (who: string, p: string) => `${who} 发了公告：“${p}”`,
     pasangan: (ke: string, g: string, awal: string, al: string) =>
       `${ke} 给${g}打分${awal ? `（原来的配对：${awal} 带${g}）` : ""}。${al ? `原因：${al}` : ""}`,
@@ -153,6 +161,20 @@ export function kalimatKejadian(
       };
     case "siarkan":
       return { tag: "sistem", teks: w.siarkan(by, String(d.pesan ?? "")) };
+    case "modul":
+      return {
+        tag: "sistem",
+        teks: w.modul(by, modulLabel(Number(d.dari), lang), modulLabel(Number(d.ke), lang)),
+      };
+    case "kelas":
+      return {
+        tag: "sistem",
+        teks: w.kelas(
+          by,
+          isKelas(d.dari) ? kelasLabel(d.dari, lang) : String(d.dari ?? ""),
+          isKelas(d.ke) ? kelasLabel(d.ke, lang) : String(d.ke ?? ""),
+        ),
+      };
     case "pasangan": {
       const al = typeof d.alasan === "string" ? d.alasan : "";
       if (!d.ke) return { tag: "pasangan", teks: w.lepas(g, al) };

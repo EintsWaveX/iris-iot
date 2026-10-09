@@ -39,6 +39,8 @@
  * rosterslot, praktikan and susulan (api/_lib/persiapan.ts), brief (api/_lib/brief.ts),
  * lab (api/_lib/lab.ts, public).
  */
+import { handleUbahSesi } from "../_lib/sesi-ubah.js";
+import { bisaJawab, handlePanggil, panggilanTerbuka } from "../_lib/panggil.js";
 import { handlePerburuan } from "../_lib/perburuan-api.js";
 import { bacaPerburuanSesi, handlePerburuanPost, tutupPerburuan } from "../_lib/perburuan-sesi.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
@@ -414,8 +416,10 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
  * Phase 10: also the running session's failed sign-ins of the last 10
  * minutes, for the Konsol's Ada Masalah? ("A student can't sign in").
  */
-async function handleWaspada(_req: ApiRequest, res: ApiResponse) {
+async function handleWaspada(_req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const db = getDb();
+  // Panggil DEV (2026-10-10): open calls, for the DEVs and for the caller.
+  const [panggil, dev] = await Promise.all([panggilanTerbuka(), bisaJawab(session.nim)]);
   const sejak = new Date(Date.now() - AMBANG_GALAT.menit * 60_000);
   const [[n], [terakhir], running] = await Promise.all([
     db
@@ -474,6 +478,11 @@ async function handleWaspada(_req: ApiRequest, res: ApiResponse) {
     pi,
     sesi: running ? { id: running.id, modul: running.modul } : null,
     gagalMasuk: gagalMasuk.map((x) => ({ nim: x.nim, jenis: x.jenis, pada: x.pada.toISOString() })),
+    panggilan: {
+      bisaJawab: dev,
+      untukku: dev ? panggil.filter((c) => c.oleh.nim !== session.nim && !c.datang) : [],
+      milikku: panggil.find((c) => c.oleh.nim === session.nim) ?? null,
+    },
   });
 }
 
@@ -1438,8 +1447,8 @@ async function handleAsistenDirectory(res: ApiResponse) {
 }
 
 /** Session controls behind cekKendaliSesi; the first three act on the running one. */
-const KENDALI = new Set(["end", "durasi", "siarkan", "catatan", "cancel", "lanjutkan"]);
-const KENDALI_BERJALAN = new Set(["end", "durasi", "siarkan"]);
+const KENDALI = new Set(["end", "durasi", "siarkan", "catatan", "cancel", "lanjutkan", "ubah"]);
+const KENDALI_BERJALAN = new Set(["end", "durasi", "siarkan", "ubah"]);
 
 async function handler(req: ApiRequest, res: ApiResponse) {
   noStore(res);
@@ -1710,7 +1719,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "waspada") {
     if (!requireMethod(req, res, "GET")) return;
-    return handleWaspada(req, res);
+    return handleWaspada(req, res, session);
   }
   if (aksi === "end") {
     if (!requireMethod(req, res, "POST")) return;
@@ -1761,6 +1770,14 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "durasi") {
     if (!requireMethod(req, res, "POST")) return;
     return handleDurasi(req, res, session);
+  }
+  if (aksi === "panggil") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handlePanggil(req, res, session);
+  }
+  if (aksi === "ubah") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleUbahSesi(req, res, session);
   }
   if (aksi === "kit") {
     if (!requireMethod(req, res, "POST")) return;
