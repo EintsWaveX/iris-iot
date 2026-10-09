@@ -16,6 +16,8 @@ import {
   buatTemplat,
   cocokCelah,
   kanonikCelah,
+  normalJawaban,
+  teksUntuk,
   urutkanCelah,
   type BahasaKode,
   type Celah,
@@ -70,7 +72,8 @@ export function berkasV1(modul: number, path: string): KodeBerkas {
         juga: kunci.juga ?? [],
         perKelompok: kunci.perKelompok ?? null,
         petunjuk: { id: "", en: "" },
-        kenapa: { id: kunci.kenapa, en: "" },
+        kenapa: { ...kunci.kenapa },
+        bantuan: { ...kunci.bantuan },
       };
       c.posisi[bahasa] = r;
       c.petunjuk[bahasa] = m[6].trim();
@@ -105,9 +108,26 @@ export interface KodeAktif {
   berkas: Map<string, BerkasAktif>;
 }
 
-function aktifDari(modul: number, versi: number | null, berkas: KodeBerkas[]): KodeAktif {
+/** A version saved before hints existed: each blank whose answer is still
+ *  version 1's takes version 1's hint, and its Mandarin explanation, where
+ *  it has none of its own. */
+export function lengkapiDariV1(modul: number, b: KodeBerkas): KodeBerkas {
+  const celah = b.celah.map((c) => {
+    const v1 = KUNCI_V1[`m${modul}.${b.slug}.${c.nomor}`];
+    if (!v1 || normalJawaban(v1.jawaban) !== normalJawaban(c.jawaban)) return c;
+    const bantuan = teksUntuk(c.bantuan, "id") ? c.bantuan : { ...v1.bantuan };
+    const kenapa =
+      c.kenapa.zh || c.kenapa.id.trim() !== v1.kenapa.id
+        ? c.kenapa
+        : { ...c.kenapa, zh: v1.kenapa.zh };
+    return { ...c, bantuan, kenapa };
+  });
+  return { ...b, celah };
+}
+
+function aktifDari(modul: number, versi: number | null, simpan: KodeBerkas[]): KodeAktif {
   const map = new Map<string, BerkasAktif>();
-  for (const b of berkas) {
+  for (const b of simpan.map((x) => lengkapiDariV1(modul, x))) {
     map.set(b.slug, {
       berkas: b,
       urut: urutkanCelah(b.celah),
@@ -178,19 +198,32 @@ export function celahKe(k: KodeAktif, slug: string, nomor: number): Celah | unde
   return k.berkas.get(slug)?.urut[nomor - 1];
 }
 
+/** The UI languages a blank's help text is served in. */
+export type BahasaUi = BahasaKode | "zh";
+
 export function cekCelah(
   k: KodeAktif,
   slug: string,
   nomor: number,
   jawaban: string,
   nomorKelompok: number,
-  bahasa: BahasaKode,
+  lang: BahasaUi,
 ): { ditemukan: true; benar: boolean; kenapa?: string } | { ditemukan: false } {
   const c = celahKe(k, slug, nomor);
   if (!c) return { ditemukan: false };
   const benar = cocokCelah(c, jawaban, nomorKelompok);
-  const kenapa = (c.kenapa[bahasa] || c.kenapa.id).trim();
+  const kenapa = teksUntuk(c.kenapa, lang);
   return { ditemukan: true, benar, kenapa: benar && kenapa ? kenapa : undefined };
+}
+
+/** A blank's explanation, for a group that has it right. */
+export function kenapaCelah(k: KodeAktif, slug: string, nomor: number, lang: BahasaUi): string {
+  return teksUntuk(celahKe(k, slug, nomor)?.kenapa, lang);
+}
+
+/** A blank's written hint, for a group past SALAH_UNTUK_BANTUAN wrong tries. */
+export function bantuanCelah(k: KodeAktif, slug: string, nomor: number, lang: BahasaUi): string {
+  return teksUntuk(celahKe(k, slug, nomor)?.bantuan, lang);
 }
 
 export function kanonik(

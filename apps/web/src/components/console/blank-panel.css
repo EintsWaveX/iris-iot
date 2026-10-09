@@ -1,0 +1,155 @@
+/* The group inspector's Blank tab (BlankPanel.tsx, mockup c12-run). */
+
+.bpanel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.bpanel__keys {
+  align-items: center;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.bpanel__file {
+  display: grid;
+  gap: 8px;
+}
+
+.bpanel__path {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  margin: 4px 0 0;
+}
+
+.bpanel__list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.brow {
+  align-items: start;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 10px 12px;
+}
+
+.brow[data-st="bad"] {
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+}
+
+.brow[data-ask="yes"] {
+  border-color: var(--violet);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--violet) 40%, transparent);
+}
+
+.brow__n {
+  color: var(--text-muted);
+  font-weight: 700;
+  padding-top: 2px;
+}
+
+.brow__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.brow__code {
+  background: var(--bg-sunken);
+  border-radius: 6px;
+  display: block;
+  font-size: 0.844rem;
+  overflow-x: auto;
+  padding: 4px 8px;
+  white-space: pre;
+}
+
+.brow__code mark {
+  background: var(--surface-3);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: 4px;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+
+.brow__code mark[data-st="ok"] {
+  background: var(--ok-soft);
+  border: 1px solid var(--ok);
+  color: var(--ok);
+}
+
+.brow__code mark[data-st="bad"] {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.brow__code mark[data-st="key"] {
+  background: var(--violet-soft);
+  border: 1px dashed var(--violet);
+  color: var(--violet);
+}
+
+.brow__meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.brow__ask,
+.brow__sent {
+  align-items: flex-start;
+  display: flex;
+  font-size: var(--fs-small);
+  gap: 6px;
+  margin: 0;
+}
+
+.brow__ask > svg {
+  color: var(--violet);
+  flex: none;
+  margin-top: 2px;
+}
+
+.brow__sent > svg {
+  color: var(--accent);
+  flex: none;
+  margin-top: 2px;
+}
+
+.brow__acts {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.inspector__tabs {
+  margin-top: 4px;
+}
+
+@media (max-width: 639px) {
+  .brow {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .brow__acts {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
+.inspector__ask {
+  margin-left: 6px;
+}

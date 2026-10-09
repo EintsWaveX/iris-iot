@@ -19,7 +19,7 @@ import { and, desc, eq, inArray, isNotNull, max, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, pgErrorCode } from "./http.js";
 import { cekHak } from "./hak.js";
-import { BERKAS_MODUL, kodeV1, lupakanKode } from "./kode-aktif.js";
+import { BERKAS_MODUL, kodeV1, lengkapiDariV1, lupakanKode } from "./kode-aktif.js";
 import { getDb } from "../../src/lib/db.js";
 import { asisten, kodeVersi } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
@@ -35,6 +35,7 @@ import {
   type KodeBerkas,
   type Masalah,
   type Rentang,
+  type TeksKode,
 } from "../../src/lib/kode-jurnal.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 
@@ -68,6 +69,15 @@ function duaBahasa(v: unknown, maks: number): Record<"id" | "en", string> | null
   return id === null || en === null ? null : { id, en };
 }
 
+/** Help text: id and en, plus the Mandarin a version carries over. */
+function teksBantu(v: unknown, maks: number): TeksKode | null {
+  const dua = duaBahasa(v, maks);
+  if (!dua) return null;
+  const zh = teks((v as Record<string, unknown>).zh ?? "", maks);
+  if (zh === null) return null;
+  return zh ? { ...dua, zh } : dua;
+}
+
 /** The editor's files, checked for shape only (publishing checks content). */
 export function bacaBerkas(modul: number, v: unknown): KodeBerkas[] | null {
   const paths = BERKAS_MODUL[modul] ?? [];
@@ -89,7 +99,9 @@ export function bacaBerkas(modul: number, v: unknown): KodeBerkas[] | null {
       const pid = rentang(p.id ?? null, sumber.id.length);
       const pen = rentang(p.en ?? null, sumber.en.length);
       const petunjuk = duaBahasa(c.petunjuk, MAKS_TEKS);
-      const kenapa = duaBahasa(c.kenapa, MAKS_TEKS);
+      const kenapa = teksBantu(c.kenapa, MAKS_TEKS);
+      const bantuan =
+        c.bantuan === undefined ? { id: "", en: "" } : teksBantu(c.bantuan, MAKS_TEKS);
       const juga = Array.isArray(c.juga) ? c.juga : null;
       const perKelompok =
         c.perKelompok === null || c.perKelompok === undefined
@@ -103,6 +115,7 @@ export function bacaBerkas(modul: number, v: unknown): KodeBerkas[] | null {
         pen === undefined ||
         !petunjuk ||
         !kenapa ||
+        !bantuan ||
         !juga ||
         juga.length > 10 ||
         !juga.every((j) => teks(j, MAKS_JAWABAN) !== null) ||
@@ -118,6 +131,7 @@ export function bacaBerkas(modul: number, v: unknown): KodeBerkas[] | null {
         perKelompok,
         petunjuk,
         kenapa,
+        bantuan,
       });
     }
     out.push({ slug: paths[i].replace(/\.(ino|py)$/, ""), path: paths[i], sumber, celah });
@@ -208,6 +222,7 @@ export async function handleKodeEdit(req: ApiRequest, res: ApiResponse, session:
   const nama = await namaPer(rows.flatMap((r) => [r.diubahOleh, r.terbitOleh ?? ""]));
   const terbit = rows.find((r) => r.status === "terbit") ?? null;
   const draf = rows.find((r) => r.status === "draf") ?? null;
+  const lengkap = (b: KodeBerkas) => lengkapiDariV1(modul, b);
   const ringkas = (r: (typeof rows)[number]) => ({
     id: r.id,
     nomor: r.nomor,
@@ -221,8 +236,9 @@ export async function handleKodeEdit(req: ApiRequest, res: ApiResponse, session:
   res.status(200).json({
     ok: true,
     modul,
-    terbit: terbit ? { ...ringkas(terbit), berkas: terbit.berkas } : null,
-    draf: draf ? { ...ringkas(draf), berkas: draf.berkas } : null,
+    // Versions saved before hints existed show version 1's hints, as served.
+    terbit: terbit ? { ...ringkas(terbit), berkas: terbit.berkas.map(lengkap) } : null,
+    draf: draf ? { ...ringkas(draf), berkas: draf.berkas.map(lengkap) } : null,
     riwayat: rows.filter((r) => r.status !== "draf").map(ringkas),
     terkunci: await sesiModulBerjalan(modul),
   });

@@ -9,6 +9,8 @@
  * - Four live cards (G2), each opening its detail: correct blanks and the
  *   average delay and lost messages (per-group charts), then the module's
  *   own value (LED, temperature, position, distance) over the live rows.
+ * - Nilai | Blank: the scores, or every blank of the group (BlankPanel:
+ *   answers, tries, hint requests, Petunjuk, Open in Code).
  * - Nilai: one student at a time, TP to L2 in one row; Enter walks on. Sama
  *   Rata enters one row for every present member instead, and each
  *   Praktikan has a Tidak Hadir switch (all fields 0, left out of Sama Rata).
@@ -54,6 +56,8 @@ import ChangeAssistant, { usePasangan } from "./ChangeAssistant";
 import { useCaraNilai } from "./caraNilai";
 import { useTandaAbsen } from "./TandaAbsen";
 import GroupBarsModal, { type BarKind } from "./GroupBarsModal";
+import BlankPanel, { type BlankRingkas } from "./BlankPanel";
+import { BL } from "./blankStrings";
 import { pesan, type Strings } from "./strings";
 import type { NilaiLive } from "./data";
 import type { AsistenRef, GroupRow, Stuck } from "./types";
@@ -95,6 +99,10 @@ export default function GroupInspector(p: InspectorProps) {
   const riwayat = mineEv.filter((x) => x.dari !== null);
   const nama = (nim: string | null) => (nim ? namaAsisten(asisten.get(nim), nim) : "?");
   const [busy, setBusy] = useState(false);
+  const [bagian, setBagian] = useState<"nilai" | "blank">("nilai");
+  const [ringkas, setRingkas] = useState<BlankRingkas | null>(null);
+  useEffect(() => setRingkas(null), [g.id]);
+  const tb = BL[lang];
 
   async function claim() {
     setBusy(true);
@@ -190,16 +198,44 @@ export default function GroupInspector(p: InspectorProps) {
 
       <InspectorCards {...p} />
 
-      <h3 className="inspector__h">{t.scores}</h3>
-      <ScoreEditor
-        t={t}
-        lang={lang}
-        g={g}
-        nilai={nilai}
-        canEdit={mine || !ownerNim}
-        ownerKode={owner?.kode ?? null}
-        ownerName={ownerName}
-      />
+      <div className="inspector__tabs">
+        <SegmentedControl
+          fill
+          value={bagian}
+          onValueChange={(v) => setBagian(v === "blank" ? "blank" : "nilai")}
+          aria-label={t.groupFull(g.nomor)}
+          options={[
+            { value: "nilai", label: tb.tabScores },
+            {
+              value: "blank",
+              label: (
+                <>
+                  {tb.tabBlank(ringkas?.benar ?? g.benar, ringkas?.total ?? g.total)}
+                  {ringkas && ringkas.minta > 0 && (
+                    <Pill tone="violet" className="inspector__ask">
+                      {ringkas.minta}
+                    </Pill>
+                  )}
+                </>
+              ),
+            },
+          ]}
+        />
+      </div>
+      <div hidden={bagian !== "nilai"}>
+        <ScoreEditor
+          t={t}
+          lang={lang}
+          g={g}
+          nilai={nilai}
+          canEdit={mine || !ownerNim}
+          ownerKode={owner?.kode ?? null}
+          ownerName={ownerName}
+        />
+      </div>
+      <div hidden={bagian !== "blank"}>
+        <BlankPanel lang={lang} kelompok={g.id} nomor={g.nomor} onRingkas={setRingkas} />
+      </div>
 
       <div className="inspector__foot">
         <span className="hint">{ownerNim ? t.enteredBy(ownerName) : ""}</span>

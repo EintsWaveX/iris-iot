@@ -1320,6 +1320,21 @@ function CelahForm({
                 {b === "en" && <span className="field__hint">{t.kenapaHint}</span>}
               </label>
             ))}
+            {BAHASA_KODE.map((b) => (
+              <label key={`h-${b}`} className="field">
+                <span className="field__label">{t.bantuan(LABEL_BAHASA[b])}</span>
+                <textarea
+                  className="field__input field__textarea"
+                  rows={2}
+                  maxLength={400}
+                  value={c.bantuan?.[b] ?? ""}
+                  onChange={(e) =>
+                    onChange({ bantuan: { id: "", en: "", ...c.bantuan, [b]: e.target.value } })
+                  }
+                />
+                {b === "en" && <span className="field__hint">{t.bantuanHint}</span>}
+              </label>
+            ))}
           </div>
         </div>
       </div>

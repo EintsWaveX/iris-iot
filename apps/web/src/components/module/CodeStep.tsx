@@ -3,7 +3,9 @@
  * One sketch at a time behind the file switch; both stay mounted so a
  * blank being typed in survives switching files. The pins and schematic
  * sit beside the code from 1280 wide (toggle remembered), and open as a
- * bottom sheet below that. An Asisten gets Show Answers on top.
+ * bottom sheet below that. An Asisten gets Show Answers on top, and picks
+ * whose file to read: each group's file carries its own identity lines
+ * (GROUP_ID, Module 4's sync word) and per-group answers.
  *
  * Mounted client:only (through ModuleSteps), so the first render already
  * knows the width and the saved dock state.
@@ -16,6 +18,7 @@ import { useEffect, useState } from "react";
 import { EyeIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { Switch } from "../ui/Controls";
+import SegmentedControl from "../ui/SegmentedControl";
 import PinSchematic, { type PinData } from "./PinSchematic";
 import BlankFile, { type BerkasEntry, type CodeMode } from "./BlankFile";
 import { useMinWidth } from "../../lib/hooks";
@@ -27,6 +30,16 @@ import { C } from "./codeStrings";
 import "./code.css";
 
 const DOCK_KEY = "iris-code-dock";
+
+/** `?blank=<file slug>.<n>` (the Konsol's Open in Code): that file, that blank. */
+function blankDariUrl(): { slug: string; nomor: number } | null {
+  try {
+    const m = /^([a-z0-9_]+)\.(\d+)$/.exec(new URLSearchParams(location.search).get("blank") ?? "");
+    return m ? { slug: m[1], nomor: Number(m[2]) } : null;
+  } catch {
+    return null;
+  }
+}
 
 export interface CodeProps {
   modul: number;
@@ -76,8 +89,14 @@ export default function CodeStep({ lang, mode, pin, mcu, skema, code: baked, wak
   const berkas = useBerkasTerbit(baked);
   const code = { ...baked, berkas };
   const wide = useMinWidth(1280, true);
-  const [active, setActive] = useState(code.berkas[0]?.slug ?? "");
+  const [awal] = useState(blankDariUrl);
+  const [active, setActive] = useState(
+    awal && code.berkas.some((f) => f.slug === awal.slug)
+      ? awal.slug
+      : (code.berkas[0]?.slug ?? ""),
+  );
   const [showKeys, setShowKeys] = useState(false);
+  const [grupLihat, setGrupLihat] = useState(1);
   const [open, setOpen] = useState(() => {
     try {
       return localStorage.getItem(DOCK_KEY) !== "0";
@@ -120,6 +139,19 @@ export default function CodeStep({ lang, mode, pin, mcu, skema, code: baked, wak
           <Switch on={showKeys} onChange={setShowKeys} label={t.showKeys} />
           <b>{t.showKeys}</b>
           <span className="hint codestep__keys-hint">{t.keysOnly}</span>
+          <span className="grow" />
+          <span className="codestep__grup">
+            <span className="field__label">{t.groupPick}</span>
+            <SegmentedControl
+              value={String(grupLihat)}
+              onValueChange={(v) => setGrupLihat(Number(v))}
+              aria-label={t.groupPick}
+              options={[1, 2, 3, 4, 5].map((n) => ({
+                value: String(n),
+                label: <span title={t.groupN(n)}>{n}</span>,
+              }))}
+            />
+          </span>
         </div>
       )}
       {wakil && !wakil.own && (
@@ -144,6 +176,8 @@ export default function CodeStep({ lang, mode, pin, mcu, skema, code: baked, wak
             wide={wide}
             side={f.slug === active ? side : undefined}
             wakil={wakil}
+            grupLihat={grupLihat}
+            awal={awal?.slug === f.slug ? awal.nomor : undefined}
           />
         </div>
       ))}

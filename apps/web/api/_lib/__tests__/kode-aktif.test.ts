@@ -2,7 +2,16 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { BERKAS_MODUL, cekCelah, kanonik, kodeBawaan, kodeV1 } from "../kode-aktif";
+import {
+  BERKAS_MODUL,
+  bantuanCelah,
+  cekCelah,
+  kanonik,
+  kenapaCelah,
+  kodeBawaan,
+  kodeV1,
+  lengkapiDariV1,
+} from "../kode-aktif";
 import {
   buatTemplat,
   cariPadanan,
@@ -70,7 +79,7 @@ describe("checking against version 1", () => {
 
   it("gives the why line only when correct, and nothing for an unknown blank", () => {
     expect(cekCelah(m1, "modul1_ble_central", 2, "digitalRead", 1, "en")).toMatchObject({
-      kenapa: expect.stringMatching(/digitalRead/),
+      kenapa: expect.stringMatching(/pressed/),
     });
     expect(cekCelah(m1, "modul1_ble_central", 2, "x", 1, "id")).toEqual({
       ditemukan: true,
@@ -78,6 +87,49 @@ describe("checking against version 1", () => {
       kenapa: undefined,
     });
     expect(cekCelah(m1, "modul1_ble_central", 99, "x", 1, "id")).toEqual({ ditemukan: false });
+  });
+});
+
+describe("explanations and hints", () => {
+  it("every version 1 blank has both, in id, en and zh, and no hint gives the answer", () => {
+    for (const modul of [1, 2, 3, 4]) {
+      const k = kodeBawaan(modul);
+      for (const [slug, b] of k.berkas) {
+        for (const c of b.urut) {
+          for (const lang of ["id", "en", "zh"] as const) {
+            expect(kenapaCelah(k, slug, c.nomor, lang), `${slug} (${c.nomor}) ${lang}`).not.toBe(
+              "",
+            );
+            const hint = bantuanCelah(k, slug, c.nomor, lang);
+            expect(hint, `${slug} (${c.nomor}) ${lang}`).not.toBe("");
+            const sebut = hint.split(/[^\w./{}"]+/).includes(c.jawaban);
+            expect(sebut, `${slug} (${c.nomor}) ${lang} hint names the answer`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it("no dashes in the copy", () => {
+    for (const modul of [1, 2, 3, 4])
+      for (const b of kodeBawaan(modul).berkas.values())
+        for (const c of b.urut) expect(JSON.stringify([c.kenapa, c.bantuan])).not.toMatch(/[–—]/);
+  });
+
+  it("a version saved before hints existed takes version 1's hint while the answer is the same", () => {
+    const [b] = kodeV1(3);
+    const lama: KodeBerkas = {
+      ...b,
+      celah: b.celah.map(({ bantuan: _, ...c }, i) =>
+        i === 1
+          ? { ...c, jawaban: "lain" }
+          : { ...c, kenapa: { id: c.kenapa.id, en: c.kenapa.en } },
+      ),
+    };
+    const baru = lengkapiDariV1(3, lama);
+    expect(baru.celah[0].bantuan?.id).toBe(b.celah[0].bantuan?.id);
+    expect(baru.celah[0].kenapa.zh).toBe(b.celah[0].kenapa.zh);
+    expect(baru.celah[1].bantuan).toBeUndefined();
   });
 });
 

@@ -31,6 +31,8 @@ export const TOPIK = [
   "tangkapan",
   // A Pi's Module 4 hunt summary changed (api/agent).
   "buru",
+  // A group asked for a hint on a blank, or an Asisten sent one.
+  "petunjuk",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -88,7 +90,12 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "auth:set-password": [],
   "auth:change-password": [],
   "auth:galat": [],
-  "modul:cek": ["jawaban"],
+  "modul:cek": ["jawaban", "petunjuk"],
+  "modul:minta": ["petunjuk"],
+  "modul:minta-batal": ["petunjuk"],
+  "modul:petunjuk": ["petunjuk"],
+  // The Konsol's Blank tab reads one group's blanks (GET).
+  "modul:blank": [],
   "modul:kode-simpan": ["kode"],
   "modul:kode-buang": ["kode"],
   "modul:kode-pulihkan": ["kode"],

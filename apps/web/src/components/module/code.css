@@ -175,18 +175,24 @@
    floor) sets it and the code scrolls inside. */
 .codegrid {
   --code-h: 560px;
+  scroll-margin-top: calc(var(--nav-size, 64px) + var(--minibar-h, 0px) + 12px);
 }
 
+/* Beside the blank card, the hints and Pin dan Skema, the code card stays
+   in view while that column scrolls: as tall as the screen under the bars
+   (never under 360px), so a blank's line is always on screen. */
 @media (min-width: 1280px) {
   .codegrid--side {
-    align-items: stretch;
+    align-items: start;
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    --code-top: calc(var(--nav-size, 64px) + var(--minibar-h, 0px) + 16px);
   }
   .codegrid--side > .codecard {
-    contain: size;
     display: flex;
     flex-direction: column;
-    min-height: var(--code-h);
+    height: max(360px, calc(100vh - var(--code-top) - 24px));
+    position: sticky;
+    top: var(--code-top);
   }
   .codegrid--side > .codecard > .code {
     flex: 1 1 0;
@@ -522,5 +528,302 @@
   }
   .code {
     font-size: 0.844rem;
+  }
+}
+
+/* ------------------------------------------- status badges and chip icons */
+
+.blankcount {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.blankcount__b {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 10px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 650;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 12px;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.blankcount__b:hover:not(:disabled) {
+  border-color: var(--text-muted);
+}
+
+.blankcount__b:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.blankcount__b:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.blankcount__b b {
+  font-variant-numeric: tabular-nums;
+}
+
+.blankcount__dot {
+  border: 2px solid var(--text-muted);
+  border-radius: 50%;
+  height: 10px;
+  width: 10px;
+}
+
+.blankcount__b[data-k="right"] .blankcount__dot {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+.blankcount__b[data-k="wrong"] .blankcount__dot {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+.blankcount__b[data-k="hint"] {
+  color: var(--violet);
+}
+.blankcount__b[data-k="hint"] span,
+.blankcount__b[data-k="hint"] b {
+  color: var(--text);
+}
+
+.blankchip__ic {
+  color: var(--violet);
+  flex: none;
+}
+
+/* ------------------------------------------------ notes under a line */
+
+.code {
+  position: relative;
+}
+
+/* Hints and the explanation sit under their blank's line, held to the
+   box's visible width (--code-vw) while the code scrolls sideways. */
+.clnotes {
+  display: grid;
+  gap: 4px;
+  left: 0;
+  padding: 2px 12px 6px 46px;
+  position: sticky;
+  width: var(--code-vw, 100%);
+}
+
+.clnote {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--n-c) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--n-c) 40%, transparent);
+  border-radius: 8px;
+  display: flex;
+  font: var(--fs-small) / 1.45 var(--font-body);
+  gap: 8px;
+  padding: 6px 10px;
+  white-space: normal;
+}
+
+.clnote b {
+  color: var(--n-c);
+}
+
+.clnote__ic {
+  color: var(--n-c);
+  display: grid;
+  flex: none;
+  padding-top: 2px;
+}
+
+.clnote[data-tone="hint"],
+.pblank__box[data-tone="hint"],
+.hintlog__row[data-tone="hint"] {
+  --n-c: var(--violet);
+}
+.clnote[data-tone="ok"],
+.pblank__box[data-tone="ok"] {
+  --n-c: var(--ok);
+}
+.clnote[data-tone="asisten"],
+.pblank__box[data-tone="asisten"],
+.hintlog__row[data-tone="asisten"] {
+  --n-c: var(--accent);
+}
+.hintlog__row[data-tone="wait"] {
+  --n-c: var(--warn);
+}
+
+/* ------------------------------------- the blank card and the hint log */
+
+.codeside {
+  gap: 14px;
+  min-width: 0;
+}
+
+.codeside > .codestep__pins {
+  max-height: none;
+  position: static;
+}
+
+.codebelow {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 760px) {
+  .codebelow {
+    align-items: start;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pblank,
+.hintlog {
+  gap: 10px;
+}
+
+.pblank__head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.pblank p {
+  margin: 0;
+}
+
+.pblank__txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pblank__box,
+.pblank__key {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--n-c, var(--violet)) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--n-c, var(--violet)) 35%, transparent);
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.pblank__key {
+  --n-c: var(--key-c);
+}
+
+.pblank__key > svg,
+.pblank__ic {
+  color: var(--n-c, var(--violet));
+  display: grid;
+  flex: none;
+  padding-top: 2px;
+}
+
+.pblank__box b,
+.pblank__key b {
+  color: var(--n-c, var(--violet));
+}
+
+.pblank__key code {
+  color: var(--key-c);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.pblank__wait {
+  align-items: center;
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.pblank__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pblank__acts {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pblank__ask {
+  width: 100%;
+}
+
+.hintlog__list {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hintlog__row {
+  align-items: baseline;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 8px;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  padding: 6px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.hintlog__row:hover {
+  background: var(--surface-2);
+}
+
+.hintlog__row:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.hintlog__tag {
+  color: var(--n-c, var(--accent));
+  font-weight: 700;
+}
+
+.hintlog__text {
+  font-size: var(--fs-small);
+}
+
+.codestep__grup {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+@media (max-width: 639px) {
+  .blankcount {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .codestep__grup {
+    width: 100%;
+  }
+  .codestep__grup > .seg {
+    flex: 1;
   }
 }

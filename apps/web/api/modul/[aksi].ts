@@ -12,6 +12,12 @@
  *      (Show Answers on the module page), or the complete file.
  * GET  /api/modul/kode?modul=             — anyone: the module's Praktikan files as published
  *      (blanks only, never answers), so the Code step shows a version newer than the build.
+ * POST /api/modul/minta  { modul, berkas, nomor, catatan } — a group asks its Asisten for a hint.
+ * POST /api/modul/minta-batal { id }       — the group takes a waiting request back.
+ * GET  /api/modul/blank?kelompok=          — Asisten only: one group's every blank in the
+ *      running session (answer, tries, who, key, hint, requests), for the Konsol's Blank tab.
+ * POST /api/modul/petunjuk { kelompok, soal, teks, minta? } — Asisten only: answer a
+ *      request, or send a group a hint unasked.
  * kode-edit, kode-simpan, kode-terbit, kode-buang, kode-pulihkan — the ASO code editor
  *      (_lib/kode-editor.ts), for the `kode` right.
  * Blanks and answers come from the module's published version (_lib/kode-aktif.ts).
@@ -41,12 +47,30 @@ import {
   jawaban,
   kelompok,
   percobaanMasuk,
+  petunjukMinta,
   sesiAnggota,
 } from "../../src/lib/schema.js";
 import { isNimTot } from "../../src/lib/tot.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
-import { cekCelah, jumlahCelah, kanonik, kodeModul, type KodeAktif } from "../_lib/kode-aktif.js";
+import {
+  bantuanCelah,
+  cekCelah,
+  jumlahCelah,
+  kanonik,
+  kenapaCelah,
+  kodeModul,
+  type BahasaUi,
+  type KodeAktif,
+} from "../_lib/kode-aktif.js";
+import { SALAH_UNTUK_BANTUAN } from "../../src/lib/kode-jurnal.js";
+import {
+  daftarMinta,
+  handleBlank,
+  handleMinta,
+  handleMintaBatal,
+  handlePetunjuk,
+} from "../_lib/petunjuk.js";
 import {
   handleKodeBuang,
   handleKodeEdit,
@@ -61,6 +85,12 @@ import { and, asc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 
 const MAX_JAWABAN_LEN = 200;
+
+/** The UI language a reply's help text is written in. */
+function bahasaUi(v: unknown): BahasaUi {
+  const x = Array.isArray(v) ? v[0] : v;
+  return x === "en" || x === "zh" ? x : "id";
+}
 
 async function parseModulBerkas(
   query: Record<string, string | string[] | undefined>,
@@ -184,7 +214,10 @@ async function handleDraft(
       soalKode: jawaban.soalKode,
       isi: jawaban.isi,
       benar: jawaban.benar,
+      salah: jawaban.salah,
       oleh: jawaban.diubahOleh,
+      pada: jawaban.diubahPada,
+      sesiId: jawaban.sesiId,
     })
     .from(jawaban)
     .where(await jawabanScope(sesiIni, kelompokId, prefix, session.nim))
@@ -216,13 +249,31 @@ async function handleDraft(
       asistenNama.set(a.nim, a.kode ? `${a.nama} (${a.kode.toUpperCase()})` : a.nama);
   }
 
+  // The explanation once a blank is right, the written hint once it went
+  // wrong twice: neither is the answer, both follow the group's state.
+  const lang = bahasaUi(req.query.lang);
   const out: Record<
     string,
-    { isi: string; benar: boolean; saya: boolean; oleh: string | null; asisten?: boolean }
+    {
+      isi: string;
+      benar: boolean;
+      saya: boolean;
+      oleh: string | null;
+      asisten?: boolean;
+      salah: number;
+      pada: string;
+      kenapa?: string;
+      bantuan?: string;
+    }
   > = {};
   for (const row of rows) {
     const nomor = row.soalKode.slice(prefix.length);
     const olehAsisten = !!row.oleh && asistenNama.has(row.oleh);
+    const kenapa = row.benar ? kenapaCelah(parsed.kode, parsed.berkas, Number(nomor), lang) : "";
+    const bantuan =
+      !row.benar && row.salah >= SALAH_UNTUK_BANTUAN
+        ? bantuanCelah(parsed.kode, parsed.berkas, Number(nomor), lang)
+        : "";
     out[nomor] = {
       isi: row.isi,
       benar: row.benar,
@@ -231,13 +282,26 @@ async function handleDraft(
         ? (nama.get(row.oleh) ?? (wakil ? (asistenNama.get(row.oleh) ?? null) : null))
         : null,
       ...(olehAsisten ? { asisten: true } : {}),
+      salah: row.salah,
+      pada: row.pada.toISOString(),
+      ...(kenapa ? { kenapa } : {}),
+      ...(bantuan ? { bantuan } : {}),
     };
   }
+  const sesiIds = [
+    ...new Set([sesiIni?.id, ...rows.map((r) => r.sesiId)].filter((x): x is number => !!x)),
+  ];
+  const minta = await daftarMinta(kelompokId, sesiIds, prefix);
   // Not a secret -- a group already knows its own number, and this is the
   // signal the editor's Code step uses to show the sketch's identity line
   // (GROUP_ID, LORA_SYNC_WORD) as THIS group's own value rather than the
   // generic template's, matching what the gated download already produces.
-  res.status(200).json({ ok: true, jawaban: out, nomorKelompok: session.kelompokNomor ?? null });
+  res.status(200).json({
+    ok: true,
+    jawaban: out,
+    minta,
+    nomorKelompok: session.kelompokNomor ?? null,
+  });
 }
 
 async function handleCek(
@@ -276,16 +340,10 @@ async function handleCek(
     return;
   }
 
-  const kode = soalKode(modul, berkas, nomor);
-  const bahasa = body.bahasa === "en" ? "en" : "id";
-  const result = cekCelah(
-    await kodeModul(modul),
-    berkas,
-    nomor,
-    jawabanTeks,
-    nomorKelompok,
-    bahasa,
-  );
+  const soal = soalKode(modul, berkas, nomor);
+  const lang = bahasaUi(body.lang ?? body.bahasa);
+  const kode = await kodeModul(modul);
+  const result = cekCelah(kode, berkas, nomor, jawabanTeks, nomorKelompok, lang);
   if (!result.ditemukan) {
     res.status(200).json({ ok: false, kode: "soal_tidak_ada" });
     return;
@@ -312,7 +370,7 @@ async function handleCek(
   const target = and(
     running ? eq(jawaban.sesiId, running.id) : isNull(jawaban.sesiId),
     eq(jawaban.kelompokId, kelompokId),
-    eq(jawaban.soalKode, kode),
+    eq(jawaban.soalKode, soal),
   );
 
   // Incremented in SQL rather than read-then-written, so two groupmates
@@ -324,35 +382,64 @@ async function handleCek(
         isi: jawabanTeks,
         benar: result.benar,
         percobaan: sql`${jawaban.percobaan} + 1`,
+        salah: result.benar ? sql`${jawaban.salah}` : sql`${jawaban.salah} + 1`,
         versi: 1,
         diubahOleh: session.nim,
         diubahPada: new Date(),
       })
       .where(target)
-      .returning({ id: jawaban.id });
+      .returning({ id: jawaban.id, salah: jawaban.salah });
 
-  const [updated] = await perbarui();
-  if (!updated) {
+  let [baris] = await perbarui();
+  if (!baris) {
     try {
-      await db.insert(jawaban).values({
-        sesiId: running?.id ?? null,
-        kelompokId,
-        soalKode: kode,
-        isi: jawabanTeks,
-        benar: result.benar,
-        percobaan: 1,
-        diubahOleh: session.nim,
-      });
+      [baris] = await db
+        .insert(jawaban)
+        .values({
+          sesiId: running?.id ?? null,
+          kelompokId,
+          soalKode: soal,
+          isi: jawabanTeks,
+          benar: result.benar,
+          percobaan: 1,
+          salah: result.benar ? 0 : 1,
+          diubahOleh: session.nim,
+        })
+        .returning({ id: jawaban.id, salah: jawaban.salah });
     } catch (err) {
       // A groupmate inserted this same row between our update and insert
       // (the editor is shared by the whole group). Their row exists now, so
       // record this attempt on it instead of failing the request.
       if (pgErrorCode(err) !== "23505") throw err;
-      await perbarui();
+      [baris] = await perbarui();
     }
   }
 
-  res.status(200).json({ ok: true, benar: result.benar, kenapa: result.kenapa });
+  // A blank that is right needs no hint any more: its waiting requests close.
+  if (result.benar && running) {
+    await db
+      .update(petunjukMinta)
+      .set({ batal: true })
+      .where(
+        and(
+          eq(petunjukMinta.sesiId, running.id),
+          eq(petunjukMinta.kelompokId, kelompokId),
+          eq(petunjukMinta.soalKode, soal),
+          isNull(petunjukMinta.teks),
+        ),
+      );
+  }
+
+  const salah = baris?.salah ?? 0;
+  const bantuan =
+    !result.benar && salah >= SALAH_UNTUK_BANTUAN ? bantuanCelah(kode, berkas, nomor, lang) : "";
+  res.status(200).json({
+    ok: true,
+    benar: result.benar,
+    kenapa: result.kenapa,
+    salah,
+    ...(bantuan ? { bantuan } : {}),
+  });
 }
 
 async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -447,7 +534,17 @@ async function handleKunci(req: ApiRequest, res: ApiResponse) {
     if (v !== undefined) kunci[n] = v;
   }
   if (req.query.unduh !== "1") {
-    res.status(200).json({ ok: true, kunci });
+    // What the Praktikan get around each blank, so the Asisten knows it too.
+    const lang = bahasaUi(req.query.lang);
+    const bantu: Record<string, { kenapa: string; bantuan: string; juga: string[] }> = {};
+    for (let n = 1; n <= total; n++) {
+      bantu[n] = {
+        kenapa: kenapaCelah(parsed.kode, parsed.berkas, n, lang),
+        bantuan: bantuanCelah(parsed.kode, parsed.berkas, n, lang),
+        juga: parsed.kode.berkas.get(parsed.berkas)?.urut[n - 1]?.juga ?? [],
+      };
+    }
+    res.status(200).json({ ok: true, kunci, bantu });
     return;
   }
   const bahasa = req.query.bahasa === "en" ? "en" : "id";
@@ -519,6 +616,17 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireRole(req, res, "asisten")) return;
     return handleKunci(req, res);
   }
+  if (req.query.aksi === "blank") {
+    if (!requireMethod(req, res, "GET")) return;
+    if (!requireRole(req, res, "asisten")) return;
+    return handleBlank(req, res);
+  }
+  if (req.query.aksi === "petunjuk") {
+    if (!requireMethod(req, res, "POST")) return;
+    const s = requireRole(req, res, "asisten");
+    if (!s) return;
+    return handlePetunjuk(req, res, s);
+  }
 
   const aksi = req.query.aksi;
 
@@ -560,6 +668,14 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "unduh") {
     if (!requireMethod(req, res, "GET")) return;
     return handleUnduh(req, res, session);
+  }
+  if (aksi === "minta") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleMinta(req, res, session);
+  }
+  if (aksi === "minta-batal") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleMintaBatal(req, res, session);
   }
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });

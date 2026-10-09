@@ -18,6 +18,13 @@
 export type BahasaKode = "id" | "en";
 export const BAHASA_KODE: readonly BahasaKode[] = ["id", "en"];
 
+/** Help text for a blank in the two code languages; Mandarin (the UI's
+ *  third language) is optional and falls back to English. */
+export type TeksKode = Record<BahasaKode, string> & { zh?: string };
+
+/** Wrong tries a group needs on one blank before its hint opens. */
+export const SALAH_UNTUK_BANTUAN = 2;
+
 /** Character offsets into one language's complete file, [awal, akhir). */
 export interface Rentang {
   awal: number;
@@ -39,7 +46,10 @@ export interface Celah {
   perKelompok: string | null;
   petunjuk: Record<BahasaKode, string>;
   /** Shown once the blank is correct. en may be empty (id is used). */
-  kenapa: Record<BahasaKode, string>;
+  kenapa: TeksKode;
+  /** Opens after SALAH_UNTUK_BANTUAN wrong tries: a nudge, never the
+   *  answer. Missing on versions saved before it existed. */
+  bantuan?: TeksKode;
 }
 
 export interface KodeBerkas {
@@ -223,6 +233,7 @@ export type KodeMasalah =
   | "kelompok_tanpa_n"
   | "nomor_salah"
   | "petunjuk_kosong"
+  | "bantuan_kosong"
   | "sumber_kosong"
   | "sumber_panjang"
   | "identitas";
@@ -235,7 +246,7 @@ export interface Masalah {
   bahasa?: BahasaKode;
 }
 
-const RINGAN: ReadonlySet<KodeMasalah> = new Set(["petunjuk_kosong"]);
+const RINGAN: ReadonlySet<KodeMasalah> = new Set(["petunjuk_kosong", "bantuan_kosong"]);
 
 /** Everything wrong with one file, before it may be published. The group
  *  identity check (personalize) is the caller's: it needs group-identity.ts. */
@@ -256,6 +267,7 @@ export function periksaBerkas(berkas: KodeBerkas): Masalah[] {
     if (c.jawaban.length > MAKS_JAWABAN) add("jawaban_panjang", { celah: c.id });
     if (c.perKelompok !== null && !c.perKelompok.includes("{n}"))
       add("kelompok_tanpa_n", { celah: c.id });
+    if (!teksUntuk(c.bantuan, "id")) add("bantuan_kosong", { celah: c.id });
     for (const b of BAHASA_KODE) {
       const r = c.posisi[b];
       if (!r) {
@@ -292,6 +304,14 @@ export function periksaBerkas(berkas: KodeBerkas): Masalah[] {
   return out;
 }
 
+/** One help text in a UI language: zh falls back to en, and en and id to
+ *  each other. */
+export function teksUntuk(t: TeksKode | undefined, lang: "id" | "en" | "zh"): string {
+  if (!t) return "";
+  const v = lang === "zh" ? t.zh || t.en || t.id : lang === "en" ? t.en || t.id : t.id || t.en;
+  return (v ?? "").trim();
+}
+
 /** Trim, case-fold and drop whitespace: how a Praktikan's answer is compared. */
 export function normalJawaban(v: string): string {
   return v.trim().toLowerCase().replace(/\s+/g, "");
@@ -326,6 +346,7 @@ export function celahBaru(berkas: KodeBerkas, bahasa: BahasaKode, r: Rentang): C
       [lain]: padan ? petunjukBaris(berkas.sumber[lain], padan, berkas.path) : "",
     } as Record<BahasaKode, string>,
     kenapa: { id: "", en: "" },
+    bantuan: { id: "", en: "" },
     ...(angka && /grup|group|kelompok/i.test(teks)
       ? { perKelompok: teks.slice(0, angka.index) + "{n}" }
       : {}),
