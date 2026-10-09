@@ -256,7 +256,14 @@ export default function AppNav({
   // comes from the address after hydration.
   const [lang, setLang] = useState<Lang>(built);
   useEffect(() => {
-    if (langFromUrl) setLang(langOfPath(location.pathname));
+    if (!langFromUrl) return;
+    const l = langOfPath(location.pathname);
+    setLang(l);
+    // The 404 page is one file for every language: its skip link follows
+    // the URL too (no inline script, the CSP would block it).
+    const skip = document.querySelector<HTMLElement>(".skip-link[data-from-url]");
+    const text = l !== "id" ? skip?.getAttribute(`data-skip-${l}`) : null;
+    if (skip && text) skip.textContent = text;
   }, [langFromUrl]);
   // Older links (?login=1, once the sign-in dialog) go to the /login page.
   useEffect(() => {
