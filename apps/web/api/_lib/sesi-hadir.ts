@@ -50,7 +50,7 @@ import {
   sesiKelompok,
 } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
-import { writeAudit } from "../../src/lib/auth.js";
+import { KODE_PERCOBAAN, statusKode, writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 
@@ -360,6 +360,23 @@ export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session
   const db = getDb();
 
   if (aksi === "tambah") return tambahPraktikan(res, session, running, nim, body);
+
+  // Buka Kunci (Ada Masalah?, 2026-10-09): lift a NIM's session code lock
+  // so it can try again at once.
+  if (aksi === "bukakunci") {
+    const st = await statusKode(nim, running.id);
+    if (st.sisaDetik <= 0 && st.sisaPercobaan === KODE_PERCOBAAN)
+      return tolak(res, "tidak_terkunci");
+    await db.insert(percobaanMasuk).values({
+      nim,
+      ip: `asisten:${session.nim}`,
+      jenis: "buka",
+      berhasil: true,
+      sesiId: running.id,
+    });
+    await writeAudit(session.nim, "kode_buka", { sesiId: running.id, nim });
+    return res.status(200).json({ ok: true });
+  }
 
   if (aksi === "asisten") {
     const [o] = await db

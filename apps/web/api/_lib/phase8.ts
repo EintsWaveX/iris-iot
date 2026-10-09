@@ -38,7 +38,7 @@ import {
 import { jumlahCelahModul, kodeModul } from "./kode-aktif.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
-import { validasiUmpanBalik, ringkas } from "../../src/lib/umpan-balik.js";
+import { validasiUmpanBalik, ringkas, sejakBulanLalu } from "../../src/lib/umpan-balik.js";
 import type { Kelas } from "../../src/lib/kelas.js";
 import { muatMinggu } from "./penugasan-api.js";
 import { and, eq, asc, desc, inArray, isNotNull, isNull, sql } from "drizzle-orm";
@@ -630,20 +630,22 @@ export async function handleFeedbackGet(
       komentarLab: umpanBalik.komentarLab,
       chipsLab: umpanBalik.chipsLab,
       pada: umpanBalik.dibuatPada,
+      modul: sesi.modul,
     })
     .from(umpanBalik)
+    .leftJoin(sesi, eq(sesi.id, umpanBalik.sesiId))
     .where(kondisi.length ? and(...kondisi) : undefined);
   // Never select nim; Lab scope never exposes the Asisten half.
+  const milik = rows.map((r) => ({
+    rating: r.ratingAsisten,
+    komentar: r.komentarAsisten,
+    chips: r.chipsAsisten,
+    pada: r.pada,
+    modul: r.modul,
+  }));
   const ringkasan =
     scope === "mine"
-      ? ringkas(
-          rows.map((r) => ({
-            rating: r.ratingAsisten,
-            komentar: r.komentarAsisten,
-            chips: r.chipsAsisten,
-            pada: r.pada,
-          })),
-        )
+      ? { ...ringkas(milik), sejakBulanLalu: sejakBulanLalu(milik) }
       : ringkas(
           rows.map((r) => ({
             rating: r.ratingLab,
@@ -723,6 +725,7 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
         and(
           eq(percobaanMasuk.sesiId, s.id),
           eq(percobaanMasuk.nim, session.nim),
+          eq(percobaanMasuk.jenis, "praktikan"),
           eq(percobaanMasuk.berhasil, true),
         ),
       )

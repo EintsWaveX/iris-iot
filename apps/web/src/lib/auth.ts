@@ -303,8 +303,8 @@ const KODE_KUNCI_MAKS_DETIK = 30 * 60;
 /**
  * Where a NIM stands with this session's code: wrong codes since its last
  * sign-in to the session, two to a round. After a full round of wrong ones
- * it waits 30 s, then 60, 120... (capped at 30 min). A new session or a
- * successful sign-in starts over.
+ * it waits 30 s, then 60, 120... (capped at 30 min). A new session, a
+ * successful sign-in or an Asisten's Buka Kunci starts over.
  */
 export async function statusKode(
   nim: string,
@@ -317,7 +317,7 @@ export async function statusKode(
     .where(
       and(
         eq(percobaanMasuk.nim, nim),
-        eq(percobaanMasuk.jenis, "praktikan"),
+        inArray(percobaanMasuk.jenis, ["praktikan", "buka"]),
         eq(percobaanMasuk.berhasil, true),
         eq(percobaanMasuk.sesiId, sesiId),
       ),

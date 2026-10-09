@@ -23,6 +23,7 @@ import {
   HandCoinsIcon,
   HandshakeIcon,
   HardDrivesIcon,
+  LockKeyOpenIcon,
   MagnifyingGlassIcon,
   MegaphoneIcon,
   PulseIcon,
@@ -90,6 +91,9 @@ const HD = dict({
     kodeSalah: "kode salah",
     bukanRoster: "tidak di roster",
     addRoster: "Tambah ke Roster",
+    unlock: (nim: string) => `Buka Kunci ${nim}`,
+    unlocked: (nim: string) => `Kunci ${nim} dibuka. Minta dia memasukkan kode lagi.`,
+    notLocked: "NIM ini sudah tidak terkunci.",
     pindah: "Praktikan di kelompok yang salah",
     pindahFound:
       "Pindahkan di Persiapan Langsung; alasannya dicatat dan roster mingguan tidak berubah.",
@@ -193,6 +197,9 @@ const HD = dict({
     kodeSalah: "wrong code",
     bukanRoster: "not on the roster",
     addRoster: "Add to the Roster",
+    unlock: (nim: string) => `Unlock ${nim}`,
+    unlocked: (nim: string) => `${nim} is unlocked. Ask them to enter the code again.`,
+    notLocked: "This NIM isn't locked anymore.",
     pindah: "A student is in the wrong group",
     pindahFound:
       "Move them in Live Preparation; the reason is recorded and the weekly roster stays.",
@@ -294,6 +301,9 @@ const HD = dict({
     kodeSalah: "签到码错误",
     bukanRoster: "不在名单上",
     addRoster: "加入名单",
+    unlock: (nim: string) => `解锁 ${nim}`,
+    unlocked: (nim: string) => `${nim} 已解锁。请他再输入一次签到码。`,
+    notLocked: "这个 NIM 已经没有锁定了。",
     pindah: "学生分错组了",
     pindahFound: "在实时准备里换组；原因会被记录，每周名单不变。",
     openPrep: "实时准备",
@@ -510,6 +520,14 @@ export default function HelpDrawer({
             primary: gagal.length > 0,
             run: () => setAdd(true),
           },
+          // A wrong code twice locks that NIM; lift it here.
+          ...[...new Set(gagal.filter((x) => x.jenis === "kode").map((x) => x.nim))]
+            .slice(0, 3)
+            .map((nim) => ({
+              label: h.unlock(nim),
+              icon: LockKeyOpenIcon,
+              run: () => void bukaKunci(nim),
+            })),
         ],
       },
       {
@@ -688,6 +706,17 @@ export default function HelpDrawer({
   const cari = q.trim().toLowerCase();
   const shown = issues.filter((i) => !cari || `${i.title} ${i.found}`.toLowerCase().includes(cari));
   const cats = [...new Set(shown.map((i) => i.cat))];
+
+  async function bukaKunci(nim: string) {
+    const r = await postJson<{ ok: boolean; kode?: string }>("/api/session/hadir", {
+      aksi: "bukakunci",
+      nim,
+    }).catch(() => ({ ok: false, kode: "gagal" }));
+    window.Toast?.show(
+      r.ok ? h.unlocked(nim) : r.kode === "tidak_terkunci" ? h.notLocked : h.fail,
+      r.ok ? "ok" : "danger",
+    );
+  }
 
   async function catat() {
     const r = await postJson<{ ok: boolean }>("/api/session/kejadian", {

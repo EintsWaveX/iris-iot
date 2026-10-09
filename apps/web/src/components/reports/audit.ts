@@ -34,6 +34,7 @@ import {
   StopIcon,
   TerminalWindowIcon,
   TrashIcon,
+  LockKeyOpenIcon,
   UserPlusIcon,
   UserSwitchIcon,
   UsersThreeIcon,
@@ -133,6 +134,7 @@ const W = {
     rosterSusulan: (n: unknown) => `menyimpan roster susulan (${n} praktikan)`,
     rosterSet: "mengganti roster lama",
     praktikanTambah: (n: unknown) => `menambahkan ${n} praktikan`,
+    kodeBuka: (nim: unknown) => `Membuka kunci kode sesi ${nim}`,
     praktikanTambahSesi: (nim: unknown, k: unknown) =>
       `memasukkan ${nim} ke Kelompok ${k} di sesi berjalan`,
     praktikumFinal: "menyelesaikan praktikum semester ini (riwayat keempat modul terbuka)",
@@ -245,6 +247,7 @@ const W = {
     rosterSusulan: (n: unknown) => `saved a makeup roster (${n} students)`,
     rosterSet: "replaced the old roster",
     praktikanTambah: (n: unknown) => `added ${n} students`,
+    kodeBuka: (nim: unknown) => `Unlocked the session code for ${nim}`,
     praktikanTambahSesi: (nim: unknown, k: unknown) =>
       `put ${nim} in Group ${k} of the running session`,
     praktikumFinal: "finished this semester's practicum (all four histories open)",
@@ -356,6 +359,7 @@ const W = {
     rosterSusulan: (n: unknown) => `保存了补课名单（${n} 位学生）`,
     rosterSet: "替换了旧名单",
     praktikanTambah: (n: unknown) => `添加了 ${n} 位学生`,
+    kodeBuka: (nim: unknown) => `解除 ${nim} 的签到码锁定`,
     praktikanTambahSesi: (nim: unknown, k: unknown) => `把 ${nim} 加入正在上的课的第 ${k} 组`,
     praktikumFinal: "结束了本学期的实验课（四个模块的记录都已开放）",
     praktikumFinalBatal: "撤销了实验课的结束",
@@ -638,6 +642,8 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(FlagCheckeredIcon, w.praktikumFinal);
     case "praktikum_final_batal":
       return k(FlagCheckeredIcon, w.praktikumFinalBatal);
+    case "kode_buka":
+      return k(LockKeyOpenIcon, w.kodeBuka(d.nim));
     case "praktikan_tambah_sesi":
       return k(UserPlusIcon, w.praktikanTambahSesi(d.nim, d.ke));
     case "susulan_draf":

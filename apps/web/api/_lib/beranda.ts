@@ -25,12 +25,14 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
 import { getDb } from "../../src/lib/db.js";
+import { skemaBawaan } from "../../src/lib/skema-bawaan.js";
 import {
   denyut,
   jadwal,
   pengaturan,
   perintah,
   presentasi,
+  skema,
   rosterSlot,
   server,
   sesi,
@@ -65,7 +67,7 @@ export async function handleBerandaGet(
   const saya = await muatOrang(session.nim);
   const kode = (saya?.kode ?? "").toUpperCase();
 
-  const [minggu, [jendelaRow], terbuka, slides, srv, rosterHitung] = await Promise.all([
+  const [minggu, [jendelaRow], terbuka, slides, srv, rosterHitung, skemaRows] = await Promise.all([
     db
       .select()
       .from(jadwal)
@@ -94,6 +96,7 @@ export async function handleBerandaGet(
       .from(rosterSlot)
       .where(and(eq(rosterSlot.semester, semester), eq(rosterSlot.hari, hari)))
       .groupBy(rosterSlot.slot),
+    db.select({ modul: skema.modul, jenis: skema.jenis }).from(skema).where(eq(skema.aktif, true)),
   ]);
 
   // The server's last heartbeat and its last finished Ready check.
@@ -356,6 +359,19 @@ export async function handleBerandaGet(
       })),
     terbuka,
     presentasiAktif: slide ? { nama: slide.nama, jenis: slide.jenis } : null,
+    // The latest open module's schematic: an uploaded image, else the
+    // built-in one (Module 4 has none), and whether a link is active.
+    skemaAktif: modulKini
+      ? {
+          modul: modulKini,
+          gambar: skemaRows.some((r) => r.modul === modulKini && r.jenis === "berkas")
+            ? "unggahan"
+            : skemaBawaan(modulKini)
+              ? "bawaan"
+              : null,
+          tautan: skemaRows.some((r) => r.modul === modulKini && r.jenis === "tautan"),
+        }
+      : null,
     server: serverInfo,
     perluNilai,
     jalan,

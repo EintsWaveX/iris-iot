@@ -375,7 +375,11 @@ export default function PrepView({
       sub: cekOf("slides")?.text ?? "",
       tone: cekOf("slides")?.ok === false ? "warn" : beranda ? "ok" : undefined,
     },
-    skema: { icon: CircuitryIcon, sub: pn.skemaSub },
+    skema: {
+      icon: CircuitryIcon,
+      sub: cekOf("skema")?.text ?? pn.skemaSub,
+      tone: cekOf("skema")?.ok === false ? "warn" : cekOf("skema") ? "ok" : undefined,
+    },
     server: {
       icon: HardDrivesIcon,
       sub: cekOf("server")?.text ?? "",

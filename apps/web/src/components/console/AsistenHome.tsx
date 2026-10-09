@@ -123,6 +123,11 @@ export interface Beranda {
   mingguSaya: { hari: number; slot: number; kelas: Kelas; kelompok: number[] }[];
   terbuka: number[];
   presentasiAktif: { nama: string; jenis: string } | null;
+  skemaAktif?: {
+    modul: number;
+    gambar: "unggahan" | "bawaan" | null;
+    tautan: boolean;
+  } | null;
   server: {
     id: number;
     nama: string;
@@ -1245,7 +1250,7 @@ function Lights({ items, d, onGo }: { items: Cek[]; d: Dx; onGo: (to: PrepTab | 
 
 export interface Cek {
   ok: boolean;
-  key: "roster" | "akses" | "slides" | "server";
+  key: "roster" | "akses" | "slides" | "skema" | "server";
   text: string;
   /** A Preparation tab, or a page path. */
   to: PrepTab | string;
@@ -1292,6 +1297,20 @@ export function cekSiap(data: Beranda, slot: number, susulan: boolean, h: Hx, la
       ? { ok: true, key: "slides", text: h.chkSlides(data.presentasiAktif.nama), to: "slides" }
       : { ok: false, key: "slides", text: h.chkSlidesNone, to: "slides" },
   );
+  const sk = data.skemaAktif;
+  if (sk) {
+    const m = modulLabel(sk.modul, lang);
+    items.push(
+      sk.gambar || sk.tautan
+        ? {
+            ok: true,
+            key: "skema",
+            text: h.chkSkema(m, sk.gambar === "unggahan", sk.gambar === "bawaan", sk.tautan),
+            to: "skema",
+          }
+        : { ok: false, key: "skema", text: h.chkSkemaNone(m), to: "skema" },
+    );
+  }
   const srvHref = data.server
     ? `${href(lang, "/servers")}?id=${data.server.id}&dari=persiapan#siap`
     : `${href(lang, "/servers")}?dari=persiapan`;
@@ -1600,10 +1619,28 @@ function DayFoot({ lang, nim, fb }: { lang: Lang; nim: string; fb: Ringkasan | n
             <span className="hint">{d.fbNone}</span>
           ) : (
             <>
-              <b className="mono dtfoot__big">
-                {avg.toLocaleString(localeOf(lang))}
-                <small>/5</small>
-              </b>
+              <span className="row" style={{ gap: 8, alignItems: "baseline" }}>
+                <b className="mono dtfoot__big">
+                  {avg.toLocaleString(localeOf(lang))}
+                  <small>/5</small>
+                </b>
+                {!!fb.sejakBulanLalu && (
+                  <Tooltip label={d.fbVs(bulanNama(lalu, lang))}>
+                    <span
+                      className="dtfoot__up"
+                      tabIndex={0}
+                      data-down={fb.sejakBulanLalu < 0 ? "yes" : undefined}
+                    >
+                      {fb.sejakBulanLalu > 0 ? (
+                        <ArrowUpIcon size={12} aria-hidden="true" />
+                      ) : (
+                        <ArrowDownIcon size={12} aria-hidden="true" />
+                      )}
+                      {Math.abs(fb.sejakBulanLalu).toLocaleString(localeOf(lang))}
+                    </span>
+                  </Tooltip>
+                )}
+              </span>
               <span className="dtfoot__stars" aria-hidden="true">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <i
@@ -1640,7 +1677,16 @@ function DayFoot({ lang, nim, fb }: { lang: Lang; nim: string; fb: Ringkasan | n
                 className="dtfoot__q"
                 onClick={() => setQ((q + 1) % quotes.length)}
               >
-                <time className="mono">{tanggalPanjang(quotes[q % quotes.length].pada, lang)}</time>
+                <span className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                  {quotes[q % quotes.length].modul && (
+                    <Pill modul={quotes[q % quotes.length].modul}>
+                      {modulLabel(quotes[q % quotes.length].modul!, lang)}
+                    </Pill>
+                  )}
+                  <time className="mono">
+                    {tanggalPanjang(quotes[q % quotes.length].pada, lang)}
+                  </time>
+                </span>
                 <q>{quotes[q % quotes.length].teks}</q>
               </button>
             </Tooltip>

@@ -131,8 +131,11 @@ export interface Ringkasan {
   sebaran: [number, number, number, number, number];
   /** Most frequent first. */
   chips: { chip: string; n: number }[];
-  /** Newest first, never with an author. */
-  komentar: { teks: string; pada: string }[];
+  /** Newest first, never with an author; the session's module when known. */
+  komentar: { teks: string; pada: string; modul?: number }[];
+  /** The average now against the average before this month (WIB), when
+   *  this month has ratings and earlier months do too. Own scope only. */
+  sejakBulanLalu?: number | null;
 }
 
 export interface BarisRingkas {
@@ -140,6 +143,7 @@ export interface BarisRingkas {
   komentar: string | null;
   chips: readonly string[];
   pada: Date;
+  modul?: number | null;
 }
 
 export function ringkas(rows: readonly BarisRingkas[]): Ringkasan {
@@ -155,7 +159,11 @@ export function ringkas(rows: readonly BarisRingkas[]): Ringkasan {
     .filter((r) => r.komentar)
     .slice()
     .sort((a, b) => b.pada.getTime() - a.pada.getTime())
-    .map((r) => ({ teks: r.komentar as string, pada: r.pada.toISOString() }));
+    .map((r) => ({
+      teks: r.komentar as string,
+      pada: r.pada.toISOString(),
+      ...(r.modul ? { modul: r.modul } : {}),
+    }));
   return {
     jumlah: rows.length,
     rataRata: rows.length ? Math.round((total / rows.length) * 10) / 10 : null,
@@ -165,4 +173,23 @@ export function ringkas(rows: readonly BarisRingkas[]): Ringkasan {
       .map(([chip, n]) => ({ chip, n })),
     komentar,
   };
+}
+
+/** The average of every rating now minus the average of those before this
+ *  month began (WIB), one decimal; null without ratings on both sides. */
+export function sejakBulanLalu(
+  rows: readonly { rating: number; pada: Date }[],
+  kini: Date = new Date(),
+): number | null {
+  const ym = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+  }).format(kini);
+  const awal = new Date(`${ym}-01T00:00:00+07:00`).getTime();
+  const lama = rows.filter((r) => r.pada.getTime() < awal);
+  if (!lama.length || lama.length === rows.length) return null;
+  const rata = (xs: readonly { rating: number }[]) =>
+    xs.reduce((a, r) => a + r.rating, 0) / xs.length;
+  return Math.round((rata(rows) - rata(lama)) * 10) / 10;
 }

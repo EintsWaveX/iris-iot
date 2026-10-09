@@ -300,162 +300,164 @@ export default function Settings({
   const jalan = sedangBerjalan(data, diag);
 
   return (
-    <div className="srv">
-      <div className="srv-g2">
-        <form className={`panel${ro ? " srv-ro" : ""}`} onSubmit={save} noValidate>
-          <h2 className="panel__title">{t.identity}</h2>
-          {ro && (
-            <div className="banner banner--lock">
-              <LockSimpleIcon size={18} aria-hidden="true" />
-              <span>{t.readOnly}</span>
-            </div>
-          )}
-          <div className="field">
-            <label className="field__label" htmlFor="srv-nama">
-              {t.name}
-            </label>
-            <input
-              id="srv-nama"
-              className="field__input"
-              value={form.nama}
-              readOnly={ro}
-              onChange={(e) => setForm({ ...form, nama: e.target.value })}
-            />
+    <div className="s12grid">
+      <form className={`panel s12span6${ro ? " srv-ro" : ""}`} onSubmit={save} noValidate>
+        <h2 className="panel__title">{t.identity}</h2>
+        {ro && (
+          <div className="banner banner--lock">
+            <LockSimpleIcon size={18} aria-hidden="true" />
+            <span>{t.readOnly}</span>
           </div>
-          <div className="field">
-            <label className="field__label" htmlFor="srv-lok">
-              {t.location}
-            </label>
-            <input
-              id="srv-lok"
-              className="field__input"
-              value={form.lokasi}
-              readOnly={ro}
-              placeholder={t.locPh}
-              onChange={(e) => setForm({ ...form, lokasi: e.target.value })}
-            />
-            <p className="field__hint">{t.locHint}</p>
+        )}
+        <div className="field">
+          <label className="field__label" htmlFor="srv-nama">
+            {t.name}
+          </label>
+          <input
+            id="srv-nama"
+            className="field__input"
+            value={form.nama}
+            readOnly={ro}
+            onChange={(e) => setForm({ ...form, nama: e.target.value })}
+          />
+        </div>
+        <div className="field">
+          <label className="field__label" htmlFor="srv-lok">
+            {t.location}
+          </label>
+          <input
+            id="srv-lok"
+            className="field__input"
+            value={form.lokasi}
+            readOnly={ro}
+            placeholder={t.locPh}
+            onChange={(e) => setForm({ ...form, lokasi: e.target.value })}
+          />
+          <p className="field__hint">{t.locHint}</p>
+        </div>
+        <div className="field">
+          <label className="field__label" htmlFor="srv-lan">
+            {t.lan} <span className="pill pill--accent">{t.fromAgent}</span>
+          </label>
+          <input
+            id="srv-lan"
+            className="field__input mono"
+            value={s.alamatLan ?? ""}
+            readOnly
+            placeholder="·"
+          />
+          <p className="field__hint">{t.lanHint}</p>
+        </div>
+        <div className="field">
+          <label className="field__label" htmlFor="srv-cat">
+            {t.notes}
+          </label>
+          <textarea
+            id="srv-cat"
+            className="field__input"
+            rows={3}
+            value={form.catatan}
+            readOnly={ro}
+            onChange={(e) => setForm({ ...form, catatan: e.target.value })}
+          />
+          <p className="field__hint">{t.notesHint}</p>
+        </div>
+        {!ro && (
+          <div className="row row--end panel__actions">
+            <button type="submit" className="btn btn--primary" disabled={busy || !form.nama.trim()}>
+              <FloppyDiskIcon size={18} aria-hidden="true" />
+              {t.save}
+            </button>
           </div>
-          <div className="field">
-            <label className="field__label" htmlFor="srv-lan">
-              {t.lan} <span className="pill pill--accent">{t.fromAgent}</span>
-            </label>
-            <input
-              id="srv-lan"
-              className="field__input mono"
-              value={s.alamatLan ?? ""}
-              readOnly
-              placeholder="·"
-            />
-            <p className="field__hint">{t.lanHint}</p>
-          </div>
-          <div className="field">
-            <label className="field__label" htmlFor="srv-cat">
-              {t.notes}
-            </label>
-            <textarea
-              id="srv-cat"
-              className="field__input"
-              rows={3}
-              value={form.catatan}
-              readOnly={ro}
-              onChange={(e) => setForm({ ...form, catatan: e.target.value })}
-            />
-            <p className="field__hint">{t.notesHint}</p>
-          </div>
-          {!ro && (
-            <div className="row row--end panel__actions">
-              <button
-                type="submit"
-                className="btn btn--primary"
-                disabled={busy || !form.nama.trim()}
-              >
-                <FloppyDiskIcon size={18} aria-hidden="true" />
-                {t.save}
-              </button>
-            </div>
-          )}
-        </form>
+        )}
+      </form>
 
-        <section className="panel">
-          <div className="stack stack--sm">
-            <h2 className="panel__title">{t.agentDiag}</h2>
-            <p className="panel__sub">{t.diagSub}</p>
+      <section className="panel s12span6">
+        <div className="stack stack--sm">
+          <h2 className="panel__title">{t.agentDiag}</h2>
+          <p className="panel__sub">{t.diagSub}</p>
+        </div>
+        <div className="srv-stats" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+          <div className="srv-stat">
+            <b>{protokol}</b>
+            <span>{t.sAgent}</span>
           </div>
-          <div className="srv-stats" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-            <div className="srv-stat">
-              <b>{protokol}</b>
-              <span>{t.sAgent}</span>
-            </div>
-            <div className="srv-stat">
-              <b className="srv-stat__sm">{up ? durasiLabel(Math.floor(up / 60), lang) : "·"}</b>
-              <span>{t.sUp}</span>
-            </div>
-            <div className="srv-stat">
-              <b className="srv-stat__sm">{typeof info.os === "string" ? info.os : "·"}</b>
-              <span>{t.sSystem}</span>
-            </div>
-            <div className="srv-stat">
-              <b className="srv-stat__sm">{typeof info.kernel === "string" ? info.kernel : "·"}</b>
-              <span>{t.sKernel}</span>
-            </div>
+          <div className="srv-stat">
+            <b className="srv-stat__sm">{up ? durasiLabel(Math.floor(up / 60), lang) : "·"}</b>
+            <span>{t.sUp}</span>
           </div>
-          <div className="srv-diagbtns">
-            {DIAGS.map(([a, k, Icon]) => (
-              <button
-                key={a}
-                type="button"
-                className="btn btn--sm"
-                aria-pressed={diag === a}
-                onClick={() => setDiag(a)}
-              >
-                <Icon size={16} aria-hidden="true" />
-                {t[k]}
-              </button>
-            ))}
+          <div className="srv-stat">
+            <b className="srv-stat__sm">{typeof info.os === "string" ? info.os : "·"}</b>
+            <span>{t.sSystem}</span>
           </div>
-          <div className="row row--between">
-            <span className="hint" aria-live="polite">
-              {jalan
-                ? t.logWait
-                : hasil
-                  ? t.logAt(sejak(hasil.selesaiPada ?? hasil.dimintaPada, lang, now))
-                  : t.neverRun}
-            </span>
-            {bisa.server && (
-              <button
-                type="button"
-                className="btn btn--sm"
-                disabled={jalan}
-                onClick={() => void kirim(id, diag, {}, lang, false).then(refresh)}
-              >
-                {jalan ? (
-                  <CircleNotchIcon size={16} className="ctl-spin" aria-hidden="true" />
-                ) : (
-                  <PlayIcon size={16} aria-hidden="true" />
-                )}
-                {t.run}
-              </button>
-            )}
+          <div className="srv-stat">
+            <b className="srv-stat__sm">{typeof info.kernel === "string" ? info.kernel : "·"}</b>
+            <span>{t.sKernel}</span>
           </div>
-          {hasil?.keluaran != null && <pre className="srv-log">{hasil.keluaran}</pre>}
-        </section>
-      </div>
+        </div>
+        <div className="srv-diagbtns">
+          {DIAGS.map(([a, k, Icon]) => (
+            <button
+              key={a}
+              type="button"
+              className="btn btn--sm"
+              aria-pressed={diag === a}
+              onClick={() => setDiag(a)}
+            >
+              <Icon size={16} aria-hidden="true" />
+              {t[k]}
+            </button>
+          ))}
+        </div>
+        <div className="row row--between">
+          <span className="hint" aria-live="polite">
+            {jalan
+              ? t.logWait
+              : hasil
+                ? t.logAt(sejak(hasil.selesaiPada ?? hasil.dimintaPada, lang, now))
+                : t.neverRun}
+          </span>
+          {bisa.server && (
+            <button
+              type="button"
+              className="btn btn--sm"
+              disabled={jalan}
+              onClick={() => void kirim(id, diag, {}, lang, false).then(refresh)}
+            >
+              {jalan ? (
+                <CircleNotchIcon size={16} className="ctl-spin" aria-hidden="true" />
+              ) : (
+                <PlayIcon size={16} aria-hidden="true" />
+              )}
+              {t.run}
+            </button>
+          )}
+        </div>
+        {hasil?.keluaran != null && <pre className="srv-log">{hasil.keluaran}</pre>}
+      </section>
 
       {full && (
         <>
-          <div className="seplabel">
+          <div className="seplabel s12span12">
             <span>{t.full}</span>
           </div>
-          <div className="srv-g2">
+          <div className="s12span6">
             <Journal lang={lang} id={id} data={data} refresh={refresh} />
+          </div>
+          <div className="s12span6">
             <NetConf lang={lang} data={data} onCommands={onCommands} />
           </div>
         </>
       )}
 
       {bisa.full && (
-        <section className="panel">
+        <div className="s12span6">
+          <HotspotSource lang={lang} id={id} data={data} refresh={refresh} />
+        </div>
+      )}
+
+      {bisa.full && (
+        <section className="panel s12span6">
           <div className="panel__head">
             <div className="stack stack--sm">
               <h2 className="panel__title">{t.setupTitle}</h2>
@@ -470,10 +472,8 @@ export default function Settings({
         </section>
       )}
 
-      {bisa.full && <HotspotSource lang={lang} id={id} data={data} refresh={refresh} />}
-
       {bisa.full && (
-        <section className="panel dangerzone">
+        <section className="panel dangerzone s12span12">
           <div className="panel__head">
             <div className="stack stack--sm">
               <h2 className="panel__title">{t.danger}</h2>

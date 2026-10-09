@@ -13,6 +13,11 @@
  * without a group can be dragged out of the list; a group that doesn't run
  * takes nobody. Nothing is saved until Save; switching rosters or leaving
  * with changes asks first (the parent holds that guard).
+ *
+ * Phase 10 (mockup c12-prep): a slot's Praktikan without a group are
+ * called out above the groups with Place Them, Shuffle the Rest deals them
+ * into the empty seats at random, and the foot says the roster repeats
+ * every week until changed.
  */
 import {
   forwardRef,
@@ -52,8 +57,10 @@ import {
   LinkSimpleIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  ShuffleIcon,
   SparkleIcon,
   UserPlusIcon,
+  WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
@@ -479,8 +486,15 @@ const RosterEditor = forwardRef<
     window.Toast?.show(p.movedTo(x.nama, namaGrup(g.nomor, lang)), "ok");
   }
 
+  /** Empty seats in the groups that run. */
+  const seats = (groups ?? []).reduce(
+    (a, g) => a + (g.aktif ? Math.max(0, per - g.members.length) : 0),
+    0,
+  );
+
   function autoFill() {
     if (!groups) return;
+    if (!seats) return window.Toast?.show(p.noSeat, "danger");
     // Same class as the slot first, then the rest, by name.
     const want = target.jenis === "slot" ? target.kelas : null;
     let rest = [...free].sort(
@@ -499,6 +513,29 @@ const RosterEditor = forwardRef<
     );
     setDirty(true);
     window.Toast?.show(p.autoFilled, "ok");
+  }
+
+  /** The free Praktikan dealt one by one, at random, to whichever running
+   *  group has the fewest people (same class as the slot first). */
+  function shuffleRest() {
+    if (!groups) return;
+    if (!seats) return window.Toast?.show(p.noSeat, "danger");
+    const want = target.jenis === "slot" ? target.kelas : null;
+    const rest = free
+      .map((x) => ({ x, r: Math.random() }))
+      .sort((a, b) => Number(b.x.kelas === want) - Number(a.x.kelas === want) || a.r - b.r)
+      .map((o) => o.x);
+    const next = groups.map((g) => ({ ...g, members: [...g.members] }));
+    for (const x of rest) {
+      const open = next.filter((g) => g.aktif && g.members.length < per);
+      if (!open.length) break;
+      const fewest = Math.min(...open.map((g) => g.members.length));
+      const pick = open.filter((g) => g.members.length === fewest);
+      pick[Math.floor(Math.random() * pick.length)].members.push({ nim: x.nim, nama: x.nama });
+    }
+    setGroups(next);
+    setDirty(true);
+    window.Toast?.show(p.shuffled, "ok");
   }
 
   const urlSlot =
@@ -599,6 +636,15 @@ const RosterEditor = forwardRef<
           <SparkleIcon size={18} aria-hidden="true" />
           {p.autoFill}
         </button>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={shuffleRest}
+          disabled={!free.length}
+        >
+          <ShuffleIcon size={18} aria-hidden="true" />
+          {p.shuffleRest}
+        </button>
         <button type="button" className="btn" onClick={() => setMatching(true)}>
           <LinkSimpleIcon size={18} aria-hidden="true" />
           {SL[lang].matchBtn}
@@ -621,6 +667,24 @@ const RosterEditor = forwardRef<
           setDirty(true);
         }}
       />
+      {target.jenis === "slot" && free.length > 0 && (
+        <div className="banner banner--warn" role="status">
+          <WarningIcon size={20} aria-hidden="true" />
+          <span className="grow">
+            {p.unplaced(
+              free.length,
+              [...free]
+                .sort((a, b) => Number(b.kelas === target.kelas) - Number(a.kelas === target.kelas))
+                .slice(0, 3)
+                .map((x) => x.nama)
+                .join(", ") + (free.length > 3 ? `, ${p.unplacedMore(free.length - 3)}` : ""),
+            )}
+          </span>
+          <button type="button" className="btn btn--sm" onClick={autoFill} disabled={!seats}>
+            {p.placeThem}
+          </button>
+        </div>
+      )}
       <div className="rgrid">
         {groups.map((g) => (
           <GroupCard
@@ -637,6 +701,9 @@ const RosterEditor = forwardRef<
           />
         ))}
       </div>
+      {target.jenis === "slot" && (
+        <span className="hint">{p.usedWeekly(hariLabel(target.hari, lang), target.slot)}</span>
+      )}
     </div>
   );
 

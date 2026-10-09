@@ -106,6 +106,11 @@ export default function DayCard({
     n += 3;
     if (data.terbuka.length) ok++;
     if (data.presentasiAktif) ok++;
+    const sk = data.skemaAktif;
+    if (sk) {
+      n++;
+      if (sk.gambar || sk.tautan) ok++;
+    }
     const siap = data.server?.siap;
     if (
       siap?.lulus &&

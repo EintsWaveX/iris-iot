@@ -720,7 +720,9 @@ export const percobaanMasuk = pgTable(
     ip: text("ip").notNull(),
     // "kode": a wrong session code (2026-10-07), kept apart so the code's
     // own two-tries lock counts only those (plain text column, no migration).
-    jenis: text("jenis", { enum: ["asisten", "praktikan", "kode"] }).notNull(),
+    // "buka": an Asisten lifted that lock (2026-10-09); the count starts over
+    // from it like from a sign-in. Never a sign-in itself.
+    jenis: text("jenis", { enum: ["asisten", "praktikan", "kode", "buka"] }).notNull(),
     berhasil: boolean("berhasil").notNull(),
     // P6.2 (0006, fixes B9): the session running at the moment of this
     // attempt, null when none was. This is what makes attendance for a

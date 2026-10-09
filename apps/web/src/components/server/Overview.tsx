@@ -1,18 +1,20 @@
 /**
- * The Overview tab (Phase 9 Stage 5, mockup v-over): the Pi right now,
- * quick actions, then two rows of equal height, [Chart | Services] and
- * [History | Commands], with the Full view's cards between them. Every
- * command says it runs on the next heartbeat; nothing pretends it already
- * happened.
+ * The Overview tab (Phase 9 Stage 5; Phase 10 grid, mockup s12-server):
+ * the Pi right now, then rows of equal height on one 12 column grid:
+ * [Chart 8 | Ready 4], [Services 8 | Quick actions 4], the Full view's
+ * cards, and [History and commands 8 | Updates 4]. Every command says it
+ * runs on the next heartbeat; nothing pretends it already happened.
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import {
   ArrowClockwiseIcon,
+  ArrowRightIcon,
   ArrowsCounterClockwiseIcon,
   CaretRightIcon,
   CircleNotchIcon,
   ClockIcon,
   ListBulletsIcon,
+  ListChecksIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
   PlayIcon,
@@ -24,13 +26,20 @@ import {
 import Confirm from "../ui/Confirm";
 import IconButton from "../ui/IconButton";
 import { Switch } from "../ui/Controls";
-import { getJson, sejak, useTick } from "../../lib/app";
+import { getJson, postJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
-import { bacaKondisi, hotspotMenyala, LAYANAN_URUT, urutkanLayanan } from "../../lib/server-shared";
-import { durasiLabel } from "../../lib/labels";
+import {
+  bacaHasilSiap,
+  bacaKondisi,
+  hotspotMenyala,
+  LAYANAN_URUT,
+  urutkanLayanan,
+} from "../../lib/server-shared";
+import { durasiLabel, modulLabel } from "../../lib/labels";
 import type { Perintah } from "../console/types";
 import Gauges from "./Gauges";
 import PiFull from "./PiFull";
+import Updates from "./Updates";
 import ZoomChart, { useZoom } from "./ZoomChart";
 import {
   CommandsDialog,
@@ -53,6 +62,7 @@ import {
   type Riwayat,
 } from "./data";
 import { S } from "./strings";
+import { S12 } from "./server12Strings";
 
 interface Props {
   lang: Lang;
@@ -65,6 +75,7 @@ interface Props {
   autoCmd?: boolean;
   onAutoCmd?: () => void;
   onJournal: () => void;
+  onTab: (t: "siap") => void;
 }
 
 const MODUL_HUE: Record<string, string> = { "modul2-ws": "2", mosquitto: "3", modul4: "4" };
@@ -138,7 +149,7 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
   };
 
   return (
-    <section className="panel">
+    <section className="panel s12span4">
       <div className="panel__head">
         <h2 className="panel__title">{t.quick}</h2>
         {tip && <span className="hint">{tip}</span>}
@@ -262,7 +273,7 @@ function ChartCard({ lang, id }: { lang: Lang; id: number }) {
   const now = h?.seri.at(-1);
 
   return (
-    <section className="panel srv-chartcard">
+    <section className="panel srv-chartcard s12span8">
       <div className="srv-charthead">
         <h2 className="panel__title">{t.chart}</h2>
         <div className="srv-charthead__r">
@@ -359,7 +370,7 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
   }
 
   return (
-    <section className="panel">
+    <section className="panel s12span8">
       <div className="panel__head">
         <h2 className="panel__title">{t.services}</h2>
         <span className="hint">{t.servicesHint}</span>
@@ -477,11 +488,109 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
   );
 }
 
-function HistoryCard({ lang, id, data, refresh, bisa }: Props) {
+/** Each module's last Ready check (mockup ReadySnap): Module 1 needs no
+ *  Pi; 2 to 4 read their newest run, or the newest run of every module. */
+function ReadySnap({ lang, id, data, refresh, bisa, siapa, onTab }: Props) {
   const t = S[lang];
+  const w = S12[lang];
+  const now = useTick(1_000);
+  const runs = data.siapRiwayat;
+  const last = runs[0] ?? null;
+  const jalan = sedangBerjalan(data, "diag.siap");
+  const run = (modul: string) =>
+    void kirim(id, "diag.siap", modul ? { modul } : {}, lang, t.readyWait).then(refresh);
+  const rows = (["1", "2", "3", "4"] as const).map((m) => {
+    if (m === "1") return { m, tone: "idle" as const, sub: w.noPi };
+    const r = runs.find((x) => (x.argumen?.modul ?? "") === m || !x.argumen?.modul);
+    if (!r) return { m, tone: "warn" as const, sub: w.notChecked };
+    const h = bacaHasilSiap(r.keluaran);
+    if (!h) return { m, tone: "warn" as const, sub: w.unreadable };
+    const lolos = h.cek.filter((c) => c.status === "ok").length;
+    return h.gagal
+      ? { m, tone: "warn" as const, sub: w.toFix(h.gagal) }
+      : { m, tone: "ok" as const, sub: w.passed(lolos) };
+  });
+  return (
+    <section className="panel s12span4">
+      <div className="panel__head">
+        <div className="stack stack--sm">
+          <h2 className="panel__title">{w.readyTitle}</h2>
+          <span className="hint">
+            {last
+              ? t.readyLast(
+                  sejak(last.selesaiPada ?? last.dimintaPada, lang, now),
+                  siapa(last.dimintaOleh),
+                )
+              : t.readyNever}
+          </span>
+        </div>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => onTab("siap")}>
+          {w.details}
+          <ArrowRightIcon size={16} aria-hidden="true" />
+        </button>
+      </div>
+      <div className="stack stack--sm">
+        {rows.map((x) => (
+          <div
+            key={x.m}
+            className="s12mod"
+            data-t={x.tone}
+            style={{ "--m": `var(--mod-${x.m})` } as CSSProperties}
+          >
+            <span className="s12lamp" aria-hidden="true" />
+            <span className="stack" style={{ gap: 0, minWidth: 0 }}>
+              <b>{modulLabel(Number(x.m), lang)}</b>
+              <span className="hint">{x.sub}</span>
+            </span>
+            {x.m === "1" ? (
+              <span />
+            ) : (
+              <IconButton
+                icon={jalan ? CircleNotchIcon : ArrowClockwiseIcon}
+                label={w.checkMod(modulLabel(Number(x.m), lang))}
+                sm
+                tip={bisa.server ? undefined : t.needRight}
+                disabled={!bisa.server || jalan}
+                onClick={() => run(x.m)}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="panel__actions" style={{ marginTop: "auto" }}>
+        <button
+          type="button"
+          className="btn btn--block"
+          disabled={!bisa.server || jalan}
+          onClick={() => run("")}
+        >
+          {jalan ? (
+            <CircleNotchIcon size={18} className="ctl-spin" aria-hidden="true" />
+          ) : (
+            <ListChecksIcon size={18} aria-hidden="true" />
+          )}
+          {w.checkAll}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+type Baris =
+  | { k: "ev"; pada: string; teks: string; tone: "ok" | "warn" | "danger" }
+  | { k: "cmd"; pada: string; p: Perintah };
+
+/** Events on the Pi and commands from the site in one list (mockup
+ *  Activity), filtered All, Commands or Events, with Retry and Cancel
+ *  where a command allows it and both full lists one press away. */
+function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd }: Props) {
+  const t = S[lang];
+  const w = S12[lang];
   const now = useTick(1_000);
   const [h, setH] = useState<Riwayat | null>(null);
-  const [open, setOpen] = useState(false);
+  const [f, setF] = useState<"all" | "cmd" | "ev">("all");
+  const [hist, setHist] = useState(false);
+  const [cmds, setCmds] = useState(false);
   const sejakKosong = data.server.riwayatSejak;
   useEffect(() => {
     let alive = true;
@@ -496,85 +605,125 @@ function HistoryCard({ lang, id, data, refresh, bisa }: Props) {
       clearInterval(timer);
     };
   }, [id, sejakKosong]);
-  const rows = kejadianDari(h, lang).slice(0, 4);
+  useEffect(() => {
+    if (autoCmd) {
+      setCmds(true);
+      onAutoCmd?.();
+    }
+  }, [autoCmd, onAutoCmd]);
+
+  async function ulang(p: Perintah, tipe: "perintah_ulang" | "perintah_batal") {
+    try {
+      const r = await postJson<{ ok: boolean; kode?: string }>("/api/action", { tipe, id: p.id });
+      if (!r.ok) window.Toast?.show(t.fail, "danger");
+      else if (tipe === "perintah_ulang") window.Toast?.show(t.cmdRetried, "ok");
+      refresh();
+    } catch {
+      window.Toast?.show(t.fail, "danger");
+    }
+  }
+
+  const semua: Baris[] = [
+    ...kejadianDari(h, lang).map((e) => ({ k: "ev" as const, ...e })),
+    ...data.perintah.map((p) => ({ k: "cmd" as const, pada: p.selesaiPada ?? p.dimintaPada, p })),
+  ].sort((a, b) => (a.pada < b.pada ? 1 : -1));
+  const rows = semua.filter((r) => f === "all" || r.k === f).slice(0, 6);
+
   return (
-    <section className="panel">
+    <section className="panel s12span8">
       <div className="panel__head">
-        <h2 className="panel__title">{t.history}</h2>
-        <button type="button" className="btn btn--sm" onClick={() => setOpen(true)}>
-          <ListBulletsIcon size={16} aria-hidden="true" />
-          {t.fullHistory}
-        </button>
-      </div>
-      {h === null ? (
-        <span className="skeleton" style={{ height: 120, display: "block" }} />
-      ) : rows.length === 0 ? (
-        <p className="hint">{t.noHistory}</p>
-      ) : (
-        <div className="logrows">
-          {rows.map((r, i) => (
-            <div key={i} className="logrow">
-              <span className={`dot dot--${r.tone}`} aria-hidden="true" />
-              <span>{r.teks}</span>
-              <span className="hint num">{sejak(r.pada, lang, now)}</span>
-            </div>
+        <div className="stack stack--sm">
+          <h2 className="panel__title">{w.actTitle}</h2>
+          <span className="hint">{w.actSub}</span>
+        </div>
+        <div className="seg" role="group" aria-label={w.actTitle}>
+          {(
+            [
+              ["all", w.fAll],
+              ["cmd", w.fCmd],
+              ["ev", w.fEv],
+            ] as const
+          ).map(([v, l]) => (
+            <button key={v} type="button" aria-pressed={f === v} onClick={() => setF(v)}>
+              {l}
+            </button>
           ))}
         </div>
+      </div>
+      {h === null && f !== "cmd" ? (
+        <span className="skeleton" style={{ height: 160, display: "block" }} />
+      ) : rows.length === 0 ? (
+        <p className="hint">{f === "ev" ? t.noHistory : f === "cmd" ? t.noCommands : w.actEmpty}</p>
+      ) : (
+        <ol className="s12act">
+          {rows.map((r, i) => (
+            <li key={r.k === "cmd" ? `c${r.p.id}` : `e${i}`}>
+              <time className="num">{sejak(r.pada, lang, now)}</time>
+              {r.k === "cmd" ? (
+                <StatusPill t={t} p={r.p} />
+              ) : (
+                <span className="s12act__tag" data-tone={r.tone}>
+                  {w.evTag}
+                </span>
+              )}
+              {r.k === "cmd" ? (
+                <span className="stack" style={{ gap: 0, minWidth: 0 }}>
+                  <b>{labelPerintah(t, r.p)}</b>
+                  {r.p.dimintaOleh && <span className="hint">{siapa(r.p.dimintaOleh)}</span>}
+                </span>
+              ) : (
+                <span>{r.teks}</span>
+              )}
+              {r.k === "cmd" && bisa.server && r.p.status === "menunggu" ? (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => void ulang(r.p, "perintah_batal")}
+                >
+                  {t.cancelCmd}
+                </button>
+              ) : r.k === "cmd" &&
+                bisa.server &&
+                (r.p.status === "gagal" || r.p.status === "kedaluwarsa") ? (
+                <button
+                  type="button"
+                  className="btn btn--sm"
+                  onClick={() => void ulang(r.p, "perintah_ulang")}
+                >
+                  <ArrowClockwiseIcon size={16} aria-hidden="true" />
+                  {t.retryCmd}
+                </button>
+              ) : (
+                <span />
+              )}
+            </li>
+          ))}
+        </ol>
       )}
-      {open && (
+      <div className="s12pair">
+        <button type="button" className="btn" onClick={() => setHist(true)}>
+          <ListBulletsIcon size={18} aria-hidden="true" />
+          {t.fullHistory}
+        </button>
+        <button type="button" className="btn" onClick={() => setCmds(true)}>
+          <ListBulletsIcon size={18} aria-hidden="true" />
+          {t.allCommands}
+        </button>
+      </div>
+      {hist && (
         <HistoryDialog
           lang={lang}
           serverId={id}
           nama={data.server.nama}
           bisaHapus={bisa.full}
-          onClose={() => setOpen(false)}
+          onClose={() => setHist(false)}
           refresh={() => {
             refresh();
             setH((x) => (x ? { ...x, reboot: [], gap: [], timelineLayanan: [] } : x));
           }}
         />
       )}
-    </section>
-  );
-}
-
-function CommandsCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd }: Props) {
-  const t = S[lang];
-  const now = useTick(1_000);
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (autoCmd) {
-      setOpen(true);
-      onAutoCmd?.();
-    }
-  }, [autoCmd, onAutoCmd]);
-  const rows: Perintah[] = data.perintah.slice(0, 4);
-  return (
-    <section className="panel">
-      <div className="panel__head">
-        <h2 className="panel__title">{t.commands}</h2>
-        <button type="button" className="btn btn--sm" onClick={() => setOpen(true)}>
-          <ListBulletsIcon size={16} aria-hidden="true" />
-          {t.allCommands}
-        </button>
-      </div>
-      {rows.length === 0 ? (
-        <p className="hint">{t.noCommands}</p>
-      ) : (
-        <div className="logrows">
-          {rows.map((p) => (
-            <div key={p.id} className="logrow">
-              <StatusPill t={t} p={p} />
-              <span className="stack" style={{ gap: 0 }}>
-                <b>{labelPerintah(t, p)}</b>
-                <span className="hint">{siapa(p.dimintaOleh) || "·"}</span>
-              </span>
-              <span className="hint num">{sejak(p.selesaiPada ?? p.dimintaPada, lang, now)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      {open && (
+      {cmds && (
         <CommandsDialog
           lang={lang}
           serverId={id}
@@ -583,7 +732,7 @@ function CommandsCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
           bisaHapus={bisa.full}
           bisaKendali={bisa.server}
           siapa={siapa}
-          onClose={() => setOpen(false)}
+          onClose={() => setCmds(false)}
           refresh={refresh}
         />
       )}
@@ -594,15 +743,16 @@ function CommandsCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
 export default function Overview(p: Props) {
   const t = S[p.lang];
   return (
-    <div className="srv">
-      <Gauges lang={p.lang} data={p.data} />
-      <QuickActions {...p} />
-      <div className="srv-g2">
-        <ChartCard lang={p.lang} id={p.id} />
-        <Services {...p} />
+    <div className="s12grid">
+      <div className="s12span12">
+        <Gauges lang={p.lang} data={p.data} />
       </div>
+      <ChartCard lang={p.lang} id={p.id} />
+      <ReadySnap {...p} />
+      <Services {...p} />
+      <QuickActions {...p} />
       {p.full && (
-        <>
+        <div className="s12span12 srv">
           <div className="seplabel">
             <span>{t.fullSep}</span>
           </div>
@@ -613,11 +763,11 @@ export default function Overview(p: Props) {
             refresh={p.refresh}
             onJournal={p.onJournal}
           />
-        </>
+        </div>
       )}
-      <div className="srv-g2">
-        <HistoryCard {...p} />
-        <CommandsCard {...p} />
+      <ActivityCard {...p} />
+      <div className="s12span4">
+        <Updates lang={p.lang} id={p.id} data={p.data} refresh={p.refresh} bisa={p.bisa} />
       </div>
     </div>
   );

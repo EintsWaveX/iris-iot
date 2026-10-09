@@ -496,6 +496,7 @@ export default function ServerDetail({
             autoCmd={autoCmd}
             onAutoCmd={() => setAutoCmd(false)}
             onJournal={() => go("pengaturan")}
+            onTab={go}
           />
         )}
         {tab === "siap" && (

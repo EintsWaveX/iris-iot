@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { langForKelas, resolveLang, pathForLang, isKelas } from "../kelas";
 import { bagiKelompok, bolehIsiNilai, jumlahPegangan } from "../penugasan";
 import { buildJadwal, parseGrid, hariDariTanggal, semesterDariTanggal } from "../jadwal-parser";
-import { validasiUmpanBalik, ringkas } from "../umpan-balik";
+import { validasiUmpanBalik, ringkas, sejakBulanLalu } from "../umpan-balik";
 import { langkahBerikutnya } from "../langkah";
 import { SESI_CAP_MENIT } from "../jadwal";
 
@@ -239,6 +239,35 @@ describe("feedback", () => {
     expect(r.komentar.map((k) => k.teks)).toEqual(["Lambat", "Mantap"]);
     expect(JSON.stringify(r)).not.toMatch(/nim/i);
     expect(ringkas([]).rataRata).toBeNull();
+  });
+});
+
+describe("sejakBulanLalu (feedback change since last month)", () => {
+  const d = (x: string) => new Date(x);
+  const kini = d("2026-10-09T05:00:00Z");
+  it("compares every rating with the ones before this month (WIB)", () => {
+    const rows = [
+      { rating: 4, pada: d("2026-09-20T03:00:00Z") },
+      { rating: 4, pada: d("2026-09-30T16:30:00Z") }, // 1 Oct 23:30 WIB: this month
+      { rating: 5, pada: d("2026-10-02T03:00:00Z") },
+    ];
+    // Before October (WIB): only the first, avg 4; now (4+4+5)/3 = 4.33.
+    expect(sejakBulanLalu(rows, kini)).toBe(0.3);
+  });
+  it("is null with nothing this month or nothing before it", () => {
+    expect(sejakBulanLalu([{ rating: 5, pada: d("2026-09-01T03:00:00Z") }], kini)).toBeNull();
+    expect(sejakBulanLalu([{ rating: 5, pada: d("2026-10-01T03:00:00Z") }], kini)).toBeNull();
+    expect(sejakBulanLalu([], kini)).toBeNull();
+  });
+  it("keeps a quote's module when it is known", () => {
+    const r = ringkas([
+      { rating: 5, komentar: "Jelas", chips: [], pada: d("2026-10-01T03:00:00Z"), modul: 3 },
+      { rating: 4, komentar: "Oke", chips: [], pada: d("2026-10-02T03:00:00Z"), modul: null },
+    ]);
+    expect(r.komentar).toEqual([
+      { teks: "Oke", pada: "2026-10-02T03:00:00.000Z" },
+      { teks: "Jelas", pada: "2026-10-01T03:00:00.000Z", modul: 3 },
+    ]);
   });
 });
 

@@ -158,3 +158,286 @@
     width: 100%;
   }
 }
+
+/* Phase 10 Server body (mockup s12-server): every tab is one 12 column
+   grid of equal height rows, 12, 8+4, 6+6 and 3+3+3+3. Below 1100px the
+   8+4 rows stack, 6+6 stays a pair from 720px and 3s go 2 by 2. */
+.s12grid {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.s12grid > * {
+  min-width: 0;
+}
+
+.s12grid > .panel {
+  height: 100%;
+}
+
+@media (min-width: 720px) {
+  .s12grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .s12span12,
+  .s12span8,
+  .s12span4 {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1100px) {
+  .s12grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .s12span12 {
+    grid-column: span 12;
+  }
+
+  .s12span8 {
+    grid-column: span 8;
+  }
+
+  .s12span6 {
+    grid-column: span 6;
+  }
+
+  .s12span4 {
+    grid-column: span 4;
+  }
+
+  .s12span3 {
+    grid-column: span 3;
+  }
+}
+
+/* A card that holds a stack of cards (Konsol Pi's side column). */
+.s12col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* Quick actions in a 4 wide column: one tile per row. */
+.s12grid .qa {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.s12grid .qa__b {
+  min-height: 64px;
+  padding: 12px 14px;
+}
+
+/* Ready snapshot and Updates rows: lamp, words, one action. */
+.s12mod {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--m, var(--hairline));
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 52px;
+  padding: 8px 10px;
+}
+
+.s12mod b {
+  overflow-wrap: anywhere;
+}
+
+.s12lamp {
+  background: var(--text-faint, var(--hairline));
+  border-radius: 50%;
+  height: 10px;
+  width: 10px;
+}
+
+.s12mod[data-t="ok"] .s12lamp {
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+
+.s12mod[data-t="warn"] .s12lamp {
+  background: var(--warn);
+  box-shadow: 0 0 8px var(--warn);
+}
+
+.s12mod[data-t="bad"] .s12lamp {
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+}
+
+/* History and commands in one list: time, tag, words, action. */
+.s12act {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.s12act li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 112px auto minmax(0, 1fr) auto;
+  min-height: 44px;
+  padding: 4px 0;
+}
+
+.s12act li:last-child {
+  border-bottom: 0;
+}
+
+.s12act time {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.s12act__tag {
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+}
+
+.s12act__tag[data-tone="ok"] {
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--hairline));
+  color: var(--ok);
+}
+
+.s12act__tag[data-tone="warn"] {
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--hairline));
+  color: var(--warn);
+}
+
+.s12act__tag[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--hairline));
+  color: var(--danger);
+}
+
+@media (max-width: 519px) {
+  .s12act li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .s12act time {
+    grid-column: 1 / -1;
+  }
+
+  .s12act li > :last-child:not(:nth-child(3)) {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+/* Two buttons sharing a card's foot equally. */
+.s12pair {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: auto;
+}
+
+.s12pair > .btn {
+  justify-content: center;
+}
+
+/* Ready Check: one card per module under the head. */
+.s12readymod {
+  border-top: 3px solid var(--m);
+}
+
+.s12checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Konsol Pi: the body beside the people and recent consoles. */
+.s12pk .pkhead,
+.s12pk .pksec,
+.s12pk > .banner {
+  grid-column: 1 / -1;
+}
+
+.s12grid > div > .panel:only-child {
+  height: 100%;
+}
+
+.s12pk > .panel,
+.s12pk > section {
+  grid-column: 1 / -1;
+}
+
+.s12col > .panel {
+  min-width: 0;
+}
+
+/* Updates in Ringkasan's 4 column slot: the status over the name and its
+   version, Perbarui to the right, so nothing squeezes into a sliver. */
+@media (min-width: 1100px) {
+  .s12span4 .srv-upd .tabstops__row {
+    align-items: center;
+    column-gap: 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 4px;
+  }
+
+  .s12span4 .srv-upd .tabstops__row > .pill {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  .s12span4 .srv-upd .tabstops__row > .stack {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+  }
+
+  .s12span4 .srv-upd .tabstops__row > :last-child {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+}
+
+/* Konsol Pi's body fills its column, the same height as the side. */
+.s12pk > .s12span8 > *,
+.s12pk > .s12span8 > * > .panel--solo {
+  height: 100%;
+}
+
+.s12pk .panel--solo {
+  margin-inline: 0;
+  max-width: none;
+}
+
+/* In a module card a fix button takes its own line under the check. */
+.s12checks .checkrow {
+  flex-wrap: wrap;
+}
+
+.s12checks .checkrow > .grow {
+  flex: 1 1 120px;
+}
+
+.s12checks .checkrow > .btn {
+  flex: 1 1 100%;
+  justify-content: center;
+}

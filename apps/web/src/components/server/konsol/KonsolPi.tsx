@@ -12,6 +12,10 @@
  *
  * The data comes from ServerDetail's poll of GET ?aksi=konsol, so the head's
  * banner and this tab read the same state.
+ *
+ * Phase 10 (mockup s12-server): the tab sits on the page's 12 column grid.
+ * Before a console opens the body takes 8 columns beside who gets told and
+ * the recent consoles; an open terminal or screen keeps the full width.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
@@ -65,6 +69,8 @@ import {
   type Ruang,
 } from "./data";
 import { K, pesanK, type KStrings } from "./strings";
+import { S12 } from "../server12Strings";
+import { waktuPendek } from "../data";
 import "./konsol.css";
 
 const TARGET_IKON = { terminal: TerminalWindowIcon, ":0": MonitorIcon, ":1": DesktopIcon };
@@ -227,8 +233,10 @@ export default function KonsolPi({
     );
   }
 
+  const lebar = kunci === "open" || kunci === "ikut";
+
   return (
-    <div className="stack stack--lg pk">
+    <div className="s12grid s12pk pk">
       {untuk.map((r) =>
         r.status === "diminta" ? (
           <Approve key={r.id} t={t} lang={lang} row={r} serverNama={serverNama} refresh={refresh} />
@@ -239,7 +247,7 @@ export default function KonsolPi({
       {gabung.map((p) => (
         <JoinApprove key={`g${p.id}`} t={t} lang={lang} p={p} refresh={refresh} />
       ))}
-      <div className="pkhead">
+      <div className="pkhead s12span12">
         {sendiri && (
           <ol className="pksteps" aria-label={t.stepsLabel}>
             {steps.map((s, i) => (
@@ -280,7 +288,10 @@ export default function KonsolPi({
           <span>{t.notReady}</span>
         </div>
       )}
-      <Fade k={kunci}>{body}</Fade>
+      <div className={lebar ? "s12span12" : "s12span8"}>
+        <Fade k={kunci}>{body}</Fade>
+      </div>
+      {!lebar && <KonsolSide t={t} lang={lang} data={data} />}
       <Disclose className="panel pksec" head={<b>{t.safeTitle}</b>}>
         <ul className="helplist">
           {t.safe.map((s) => (
@@ -1481,6 +1492,78 @@ function Done({
         </button>
       </div>
     </section>
+  );
+}
+
+/* --------------------------------------------------------------- side */
+
+/** Beside the body before a console opens: who is told when one opens,
+ *  and the last consoles closed on this Pi (mine only for the rest). */
+function KonsolSide({ t, lang, data }: { t: KStrings; lang: Lang; data: KonsolData }) {
+  const w = S12[lang];
+  const orang = data.pemeriksa ?? [];
+  const lalu = (data.riwayat ?? []).slice(0, 4);
+  return (
+    <div className="s12span4 s12col">
+      <section className="panel">
+        <div className="stack stack--sm">
+          <h2 className="panel__title">{w.people}</h2>
+          <span className="hint">{w.peopleSub}</span>
+        </div>
+        {orang.length ? (
+          <div className="stack stack--sm">
+            {orang.map((o) => (
+              <div key={o.nama} className="s12mod" data-t="ok">
+                <span className="acode">{o.kode ?? "?"}</span>
+                <b>{o.nama}</b>
+                <span />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="hint">{w.peopleNone}</p>
+        )}
+      </section>
+      <section className="panel" style={{ flex: 1 }}>
+        <h2 className="panel__title">{w.recent}</h2>
+        {lalu.length ? (
+          <div className="stack stack--sm">
+            {lalu.map((r) => {
+              const lama =
+                r.mulai && r.selesai
+                  ? Math.max(1, Math.round((Date.parse(r.selesai) - Date.parse(r.mulai)) / 60_000))
+                  : null;
+              return (
+                <div key={r.id} className="s12mod" data-t={r.status === "selesai" ? "ok" : "warn"}>
+                  <span className="s12lamp" aria-hidden="true" />
+                  <span className="stack" style={{ gap: 0, minWidth: 0 }}>
+                    <b>
+                      {targetLabel(t, r.target)}
+                      {lama !== null ? ` · ${menitLabel(lama, lang)}` : ""}
+                    </b>
+                    <span className="hint">
+                      {r.olehNama} · {waktuPendek(r.mulai ?? r.dimintaPada, lang)}
+                    </span>
+                  </span>
+                  <span className="pill mono">{nomorKonsol(r.id)}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="hint">{w.recentNone}</p>
+        )}
+        <div className="panel__actions" style={{ marginTop: "auto" }}>
+          <a
+            className="btn btn--ghost btn--sm"
+            href={`${href(lang, "/reports")}?audit=konsol#audit`}
+          >
+            <FileTextIcon size={16} aria-hidden="true" />
+            {w.toAudit}
+          </a>
+        </div>
+      </section>
+    </div>
   );
 }
 

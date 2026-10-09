@@ -27,6 +27,9 @@ export const H = dict({
     chkAccessNone: "Akses: belum ada modul yang terbuka",
     chkSlides: (n: string) => `Presentasi aktif: ${n}`,
     chkSlidesNone: "Belum ada presentasi aktif",
+    chkSkema: (m: string, unggah: boolean, bawaan: boolean, tautan: boolean) =>
+      `Skema ${m}: ${[unggah ? "gambar unggahan" : bawaan ? "gambar bawaan" : "", tautan ? "tautan" : ""].filter(Boolean).join(" dan ")}`,
+    chkSkemaNone: (m: string) => `${m} belum punya skema`,
     chkServer: (jam: string) => `Server siap, dicek ${jam}`,
     chkServerFail: (n: number) => `Server: ${n} pemeriksaan gagal`,
     chkServerNone: "Server belum dicek hari ini",
@@ -134,6 +137,9 @@ export const H = dict({
     chkAccessNone: "Access: no module is open yet",
     chkSlides: (n: string) => `Active slides: ${n}`,
     chkSlidesNone: "No active slides yet",
+    chkSkema: (m: string, unggah: boolean, bawaan: boolean, tautan: boolean) =>
+      `${m} schematic: ${[unggah ? "uploaded image" : bawaan ? "built-in image" : "", tautan ? "link" : ""].filter(Boolean).join(" and ")}`,
+    chkSkemaNone: (m: string) => `${m} has no schematic yet`,
     chkServer: (jam: string) => `Server ready, checked ${jam}`,
     chkServerFail: (n: number) => `Server: ${n} ${n === 1 ? "check" : "checks"} failed`,
     chkServerNone: "Server not checked today",
@@ -242,6 +248,9 @@ export const H = dict({
     chkAccessNone: "权限：还没有开放的模块",
     chkSlides: (n: string) => `当前幻灯片：${n}`,
     chkSlidesNone: "还没有当前幻灯片",
+    chkSkema: (m: string, unggah: boolean, bawaan: boolean, tautan: boolean) =>
+      `${m}电路图：${[unggah ? "上传的图片" : bawaan ? "内置图片" : "", tautan ? "链接" : ""].filter(Boolean).join("和")}`,
+    chkSkemaNone: (m: string) => `${m}还没有电路图`,
     chkServer: (jam: string) => `服务器就绪，${jam} 检查`,
     chkServerFail: (n: number) => `服务器：${n} 项检查未通过`,
     chkServerNone: "今天还没检查服务器",
