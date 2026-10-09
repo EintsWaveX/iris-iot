@@ -23,7 +23,24 @@ import { shortcutsOn } from "../../lib/prefs";
 import { ShieldWarningIcon, SignInIcon, WarningIcon } from "@phosphor-icons/react";
 import { OfflineBanner, StateView } from "../ui/Display";
 import { isTypingTarget } from "../ui/ShortcutSheet";
-import { getJson, href, useMe } from "../../lib/app";
+import { getJson, href, menitBerjalan, useMe, useTick } from "../../lib/app";
+import { durasiSesi } from "../../lib/jadwal";
+import {
+  blankMacet,
+  Counters,
+  Feed,
+  feedRows,
+  kolomDari,
+  Matrix,
+  Rail,
+  SessionTrack,
+  useMatriks,
+  type GoTo,
+  type WorkTab,
+} from "./RunBoard";
+import HelpDrawer, { adaMasalah } from "./HelpDrawer";
+import { R } from "./runStrings";
+import "./run.css";
 import { masukProyektor } from "../../lib/proyektor";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
@@ -32,7 +49,6 @@ import { CONSOLE_EVENT, type ConsoleCommand } from "../shell/AsistenCommands";
 import { S } from "./strings";
 import { useAssignment, useCurrent, useLaporan, useNilaiLive, useServers } from "./data";
 import SessionBar from "./SessionBar";
-import GroupBoard from "./GroupBoard";
 import ViewAsDialog from "./ViewAsDialog";
 import TierBadge from "../ui/TierBadge";
 import GroupInspector from "./GroupInspector";
@@ -41,7 +57,7 @@ import PrepView, { type PrepTab } from "./PrepView";
 import LivePrep from "./LivePrep";
 import ServerDrawer from "./ServerDrawer";
 import EndFlow from "./EndFlow";
-import DoneView from "./DoneView";
+import EndPage from "./EndPage";
 import NextView from "./NextView";
 import AsistenHome from "./AsistenHome";
 import SeelabsView, { type SeelabsTab } from "./seelabs/SeelabsView";
@@ -75,11 +91,11 @@ function readHash(): {
   const h = location.hash.replace(/^#/, "");
   // #persiapan (or #persiapan=akses): Preparation, from a page outside the
   // console (the Server page's way back, 2026-10-06).
-  const pr = /^persiapan(?:=(roster|akses|brief|kode|slides|skema))?$/.exec(h);
+  const pr = /^persiapan(?:=(roster|akses|brief|kode|slides|skema|server))?$/.exec(h);
   if (pr) return { prep: (pr[1] as PrepTab | undefined) ?? "roster" };
   // #tot: Preparation's Mode TOT tab (the TOT banner links here).
   if (h === "tot") return { tot: true };
-  if (h === "prep" || h === "board" || h === "table") return { view: h };
+  if (h === "prep" || h === "board" || h === "table" || h === "matrix") return { view: h };
   if (h === "seelabs") return { seelabs: true };
   // #seelabs=pasang (the Account page's "Cara Pakai") opens one tab.
   const st = /^seelabs=(panduan|salin|pasang|cara|tidak|titipan)$/.exec(h);
@@ -91,7 +107,8 @@ function readHash(): {
   return {};
 }
 
-const VIEWS = ["prep", "board", "table"] as const;
+// Phase 10 (c12-run): Papan, Matriks Blank, Tabel Nilai, Persiapan.
+const VIEWS = ["board", "matrix", "table", "prep"] as const;
 
 export default function Console({ lang }: { lang: Lang }) {
   const t = S[lang];
@@ -118,13 +135,26 @@ export default function Console({ lang }: { lang: Lang }) {
   const [asP, setAsP] = useState<number | null>(null);
   const wide = useMinWidth(1024);
   const [doneTable, setDoneTable] = useState(false);
+  // Phase 10 (c11-home): an ended session's Score Table or Kirim ke SeeLabs,
+  // opened from the Konsol home's launch panel or inbox.
+  const [lalu, setLalu] = useState<{ id: number; view: "table" | "seelabs" } | null>(null);
   // Kirim ke SeeLabs, over whatever view is open (Phase 9 Stage 3g).
   const [see, setSee] = useState<{ tab?: SeelabsTab; nomor?: number | null } | null>(null);
+  // Phase 10 (c12-run): the workspace tab, a blank to bring into view, the
+  // shared Show the Keys switch, Ada Masalah? and the class matrix.
+  const [tab, setTab] = useState<WorkTab>("ringkasan");
+  const [fokus, setFokus] = useState<string | null>(null);
+  const [kunci, setKunci] = useState(false);
+  const [help, setHelp] = useState(false);
+  const rs = R[lang];
+  const now = useTick(15_000);
 
   const lap = useLaporan(!!sesi);
-  const assign = useAssignment(sesi?.id ?? done?.id ?? null);
+  const assign = useAssignment(sesi?.id ?? lalu?.id ?? done?.id ?? null);
   const seelabs = useSeelabs(sesi?.id ?? done?.id ?? null);
-  const servers = useServers(!!sesi, drawer);
+  const servers = useServers(!!sesi, drawer || help);
+  const mtx = useMatriks(!!sesi, lang);
+  const kolom = useMemo(() => kolomDari(mtx.data ?? null), [mtx.data]);
   const asisten = useMemo(
     () => new Map<string, AsistenRef>((assign.data?.asisten ?? []).map((a) => [a.nim, a])),
     [assign.data],
@@ -134,7 +164,11 @@ export default function Console({ lang }: { lang: Lang }) {
     [asisten],
   );
 
-  const nilai = useNilaiLive(sesi?.id ?? (doneTable ? (done?.id ?? null) : null), me?.nim);
+  const nilai = useNilaiLive(
+    sesi?.id ?? (lalu?.view === "table" ? lalu.id : null) ?? done?.id ?? null,
+    me?.nim,
+  );
+  const seelabsLalu = useSeelabs(lalu?.view === "seelabs" ? lalu.id : null);
 
   // Restore the done screen after a reload.
   useEffect(() => setDone(readDone()), []);
@@ -234,6 +268,25 @@ export default function Console({ lang }: { lang: Lang }) {
       history.replaceState(null, "", `#k${id}`);
     } else history.replaceState(null, "", "#board");
   }, []);
+
+  // Where a counter, the feed or the matrix leads: a view, a group, its
+  // tab and one blank.
+  const goTo = useCallback(
+    (o: GoTo) => {
+      if (o.g !== undefined) pick(o.g);
+      if (o.view && o.view !== "board") go(o.view);
+      else if (o.g === undefined) go("board");
+      if (o.tab) setTab(o.tab);
+      setFokus(o.b ?? null);
+      if (o.g !== undefined)
+        requestAnimationFrame(() =>
+          document
+            .querySelector(".kboard .work")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        );
+    },
+    [go, pick],
+  );
 
   // Palette commands.
   useEffect(() => {
@@ -369,6 +422,46 @@ export default function Console({ lang }: { lang: Lang }) {
 
   // No running session.
   if (!sesi) {
+    if (lalu) {
+      const tutupLalu = () => {
+        setLalu(null);
+        history.replaceState(null, "", location.pathname + location.search);
+      };
+      return (
+        <div className="console">
+          {offline}
+          {lalu.view === "seelabs" ? (
+            <SeelabsView
+              lang={lang}
+              sesiId={lalu.id}
+              meNim={me!.nim}
+              tab="salin"
+              onBack={tutupLalu}
+              backLabel={SL[lang].backHome}
+              onTable={() => setLalu({ id: lalu.id, view: "table" })}
+            />
+          ) : (
+            <>
+              <div className="console__modes">
+                <BackButton lang={lang} label={SL[lang].backHome} onClick={tutupLalu} />
+              </div>
+              <NilaiTable
+                t={t}
+                lang={lang}
+                sesiId={lalu.id}
+                nilai={nilai}
+                groups={[]}
+                asisten={asisten}
+                meNim={me!.nim}
+                seelabs={seelabsLalu.data}
+                onSeelabs={() => setLalu({ id: lalu.id, view: "seelabs" })}
+                onSeelabsChanged={seelabsLalu.refresh}
+              />
+            </>
+          )}
+        </div>
+      );
+    }
     if (see) {
       return (
         <div className="console">
@@ -449,13 +542,16 @@ export default function Console({ lang }: { lang: Lang }) {
       return (
         <div className="console">
           {offline}
-          <DoneView
+          <EndPage
             t={t}
             lang={lang}
             sesi={done}
             hadir={done.hadir}
             seelabs={seelabs.data}
-            onSeelabs={() => openSeelabs("salin")}
+            nilai={nilai}
+            asisten={asisten}
+            meNim={me!.nim}
+            onSeelabs={(tab) => openSeelabs(tab ?? "salin")}
             onScores={() => setDoneTable(true)}
             onNext={() => setNextOpen(true)}
             onResumed={() => {
@@ -512,6 +608,14 @@ export default function Console({ lang }: { lang: Lang }) {
             setPrepOnly(true);
           }}
           onHeld={() => openSeelabs("titipan")}
+          onTable={(id) => {
+            setLalu({ id, view: "table" });
+            window.scrollTo({ top: 0 });
+          }}
+          onSeelabsSesi={(id) => {
+            setLalu({ id, view: "seelabs" });
+            window.scrollTo({ top: 0 });
+          }}
         />
       </div>
     );
@@ -522,7 +626,7 @@ export default function Console({ lang }: { lang: Lang }) {
   const stuck = L?.stuck ?? [];
   const tangan = L?.tangan ?? {};
   const pemilik = L?.pemilik ?? {};
-  // The inspector always shows a group (mockup c-run): the picked one, else
+  // The workspace always shows a group (mockup c-run): the picked one, else
   // the first group I hold, else the first group.
   // Projector mode shows the first group I hold (ruled 2026-10-04).
   const milikku = groups.find((g) => pemilik[g.id] === me?.nim) ?? null;
@@ -531,6 +635,17 @@ export default function Console({ lang }: { lang: Lang }) {
     groups.find((g) => pemilik[g.id] === me?.nim) ??
     groups[0] ??
     null;
+  const durasi = durasiSesi(sesi);
+  const sisa = Math.max(0, durasi - menitBerjalan(sesi.mulaiPada, now));
+  const kode = [
+    ...new Set(
+      Object.values(pemilik)
+        .map((nim) => asisten.get(nim)?.kode?.toUpperCase())
+        .filter((x): x is string => !!x),
+    ),
+  ];
+  const meKode = (me?.kode ?? "").toUpperCase();
+  const announceOk = sesi.kendali !== false;
 
   if (see) {
     return (
@@ -553,7 +668,10 @@ export default function Console({ lang }: { lang: Lang }) {
   }
 
   return (
-    <div className="console" style={{ "--mod-hue": `var(--mod-${sesi.modul})` } as CSSProperties}>
+    <div
+      className="console krun"
+      style={{ "--mod-hue": `var(--mod-${sesi.modul})` } as CSSProperties}
+    >
       {offline}
       <SessionBar
         t={t}
@@ -573,8 +691,44 @@ export default function Console({ lang }: { lang: Lang }) {
               }
             : undefined
         }
-        announceOpen={announce && sesi.kendali !== false}
+        announceOpen={announce && announceOk}
         setAnnounceOpen={setAnnounce}
+        track={
+          <SessionTrack
+            sesi={sesi}
+            durasi={durasi}
+            groups={groups}
+            tangan={tangan}
+            mtx={mtx.data}
+            now={now}
+            lang={lang}
+          />
+        }
+        codes={
+          kode.length > 0 && (
+            <span className="day__codes" style={{ display: "inline-flex", gap: 4 }}>
+              {kode.map((k) => (
+                <span key={k} className={`acode${k === meKode ? " acode--me" : ""}`}>
+                  {k}
+                </span>
+              ))}
+            </span>
+          )
+        }
+        onSeelabs={() => openSeelabs()}
+        onHelp={() => setHelp(true)}
+        helpWarn={adaMasalah(servers.data, groups)}
+      />
+
+      <Counters
+        groups={groups}
+        stuck={stuck}
+        tangan={tangan}
+        mtx={mtx.data}
+        kolom={kolom}
+        nilai={nilai}
+        go={goTo}
+        lang={lang}
       />
 
       {/* The views as the Server page's underline tabs, sharing the full
@@ -607,7 +761,7 @@ export default function Console({ lang }: { lang: Lang }) {
                   );
                 }}
               >
-                {t.views[v]}
+                {rs.views[v]}
                 {v === "board" && Object.keys(tangan).length > 0 && (
                   <span className="pill pill--warn console__hands">
                     {Object.keys(tangan).length}
@@ -664,6 +818,19 @@ export default function Console({ lang }: { lang: Lang }) {
           />
         )}
 
+        {view === "matrix" && (
+          <Matrix
+            groups={groups}
+            mtx={mtx.data}
+            kolom={kolom}
+            showKey={kunci}
+            setShowKey={setKunci}
+            onAnnounce={announceOk ? () => setAnnounce(true) : undefined}
+            go={goTo}
+            lang={lang}
+          />
+        )}
+
         {/* A session with nobody in it (a susulan started before its roster
             was filled): nobody can sign in, so say so and how to recover. */}
         {view === "board" && lap.data && groups.length === 0 && (
@@ -678,27 +845,31 @@ export default function Console({ lang }: { lang: Lang }) {
           </div>
         )}
         {view === "board" && (
-          <div className="boardgrid">
-            <GroupBoard
-              t={t}
+          <div className="kboard">
+            <Rail
               groups={groups}
               stuck={stuck}
               tangan={tangan}
               pemilik={pemilik}
               asisten={asisten}
               meNim={me!.nim}
+              mtx={mtx.data}
+              kolom={kolom}
+              terkirim={nilai.data?.terkirim ?? {}}
               sel={selGroup?.id ?? null}
-              onSelect={(id) => {
+              onPick={(id) => {
                 pick(id);
+                setFokus(null);
                 if (!wide)
                   requestAnimationFrame(() =>
                     document
-                      .querySelector(".boardgrid .inspector")
+                      .querySelector(".kboard .work")
                       ?.scrollIntoView({ behavior: "smooth", block: "start" }),
                   );
               }}
+              lang={lang}
             />
-            {selGroup && (
+            {selGroup ? (
               <GroupInspector
                 key={selGroup.id}
                 t={t}
@@ -719,8 +890,28 @@ export default function Console({ lang }: { lang: Lang }) {
                 seelabs={seelabs.data}
                 onSeelabs={openSeelabs}
                 onSeelabsChanged={seelabs.refresh}
+                tab={tab}
+                onTab={(x) => {
+                  setTab(x);
+                  setFokus(null);
+                }}
+                mtx={mtx.data}
+                kolom={kolom}
+                kunci={kunci}
+                onKunci={setKunci}
+                fokus={fokus}
+                onPrep={() => go("prep")}
               />
+            ) : (
+              <span />
             )}
+            <Feed
+              rows={feedRows(groups, tangan, mtx.data, kolom, rs)}
+              macet={blankMacet(mtx.data, kolom)}
+              onAnnounce={announceOk ? () => setAnnounce(true) : undefined}
+              go={goTo}
+              lang={lang}
+            />
           </div>
         )}
       </Fade>
@@ -747,6 +938,24 @@ export default function Console({ lang }: { lang: Lang }) {
         servers={servers.data}
         refresh={servers.refresh}
         asisten={asisten}
+      />
+
+      <HelpDrawer
+        lang={lang}
+        open={help}
+        onOpenChange={setHelp}
+        sesi={sesi}
+        sisa={sisa}
+        groups={groups}
+        servers={servers.data}
+        kunci={kunci}
+        onKunci={setKunci}
+        onView={go}
+        onGroup={(id) => goTo({ g: id, tab: "ringkasan" })}
+        onAnnounce={() => setAnnounce(true)}
+        onServer={() => setDrawer(true)}
+        onSeelabs={(tab) => openSeelabs(tab)}
+        onRefresh={refreshAll}
       />
 
       <EndFlow

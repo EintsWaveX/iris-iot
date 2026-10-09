@@ -1,19 +1,129 @@
 /**
- * One server (Phase 9 Stage 5, mockup v-over/v-ready/v-settings head): the
- * back link, the name with its status chip, the Compact/Full switch (Full
- * only with the full right, remembered in this browser), the location strip
- * and the tab line. The detail is polled every 6 s and handed to the tab.
+ * One server (Phase 9 Stage 5; Phase 10 head, mockup s12-server): the back
+ * link, then one hero card: a status ring (up, off or new with the
+ * heartbeat's age), the status, server number and session badges, the name
+ * with its agent protocol and bundle, the Compact/Full switch (Full only
+ * with the full right, remembered in this browser), the location, LAN,
+ * heartbeat, uptime and notes, and a glance row (services, the last Ready
+ * check, site updates, the Pi clock) with Run the Ready Check and Pi
+ * Console. The tab line follows. The detail is polled every 6 s and handed
+ * to the tab.
  */
 import { useEffect, useMemo, useState } from "react";
 import {
+  ClockIcon,
   HeartbeatIcon,
   ListBulletsIcon,
+  ListChecksIcon,
   LockSimpleIcon,
   MapPinIcon,
   NoteIcon,
   PlugsConnectedIcon,
   TerminalWindowIcon,
 } from "@phosphor-icons/react";
+import Pill from "../ui/Pill";
+import { dict } from "../../lib/app";
+import { durasiLabel, modulLabel } from "../../lib/labels";
+import { svcTone } from "./ops";
+import { bacaBundel, bacaHasilSiap, bacaKondisi, barisPembaruan } from "../../lib/server-shared";
+import "./server12.css";
+
+/* Phase 10 (s12-server): the hero's words. */
+const SH = dict({
+  id: {
+    up: "HIDUP",
+    off: "MATI",
+    neu: "BARU",
+    num: (n: number) => `Server #${n}`,
+    inUse: (m: string) => `Dipakai sesi ${m}`,
+    sub: (p: string, b: string) => `agen protokol ${p} · bundel ${b}`,
+    subWait: "Belum pernah mengirim denyut. Lanjutkan pemasangannya dari server ini.",
+    upSince: "Menyala sejak",
+    svcOk: (n: number) => `${n} layanan sehat`,
+    svcNone: "Layanan belum dilaporkan",
+    svcBad: (n: number) => `${n} layanan gagal`,
+    readyOk: (m: string) => `Siap untuk ${m}`,
+    readyAll: "Lulus cek siap",
+    readyFail: (n: number) => `${n} cek perlu dibereskan`,
+    readyNone: "Belum dicek",
+    upd: (n: number) => (n ? `${n} pembaruan` : "Semua terbaru"),
+    clockOk: (ms: string) => `Jam selisih ${ms}`,
+    clockBad: (ms: string) => `Jam selisih ${ms}`,
+    runReady: "Cek Siap Praktikum",
+    konsol: "Konsol Pi",
+    s: "detik",
+    m: "menit",
+    h: "jam",
+  },
+  en: {
+    up: "UP",
+    off: "OFF",
+    neu: "NEW",
+    num: (n: number) => `Server #${n}`,
+    inUse: (m: string) => `In use by a ${m} session`,
+    sub: (p: string, b: string) => `agent protocol ${p} · bundle ${b}`,
+    subWait: "Hasn't sent a heartbeat yet. Continue its setup from this server.",
+    upSince: "Up for",
+    svcOk: (n: number) => `${n} services healthy`,
+    svcNone: "Services not reported yet",
+    svcBad: (n: number) => `${n} services failed`,
+    readyOk: (m: string) => `Ready for ${m}`,
+    readyAll: "Ready check passed",
+    readyFail: (n: number) => `${n} checks to fix`,
+    readyNone: "Not checked yet",
+    upd: (n: number) => (n ? `${n} updates` : "All up to date"),
+    clockOk: (ms: string) => `Clock ${ms} apart`,
+    clockBad: (ms: string) => `Clock ${ms} apart`,
+    runReady: "Run the Ready Check",
+    konsol: "Pi Console",
+    s: "seconds",
+    m: "minutes",
+    h: "hours",
+  },
+  zh: {
+    up: "运行",
+    off: "离线",
+    neu: "新",
+    num: (n: number) => `服务器 #${n}`,
+    inUse: (m: string) => `${m}的课正在使用`,
+    sub: (p: string, b: string) => `代理协议 ${p} · 程序包 ${b}`,
+    subWait: "还没发送过心跳。从这台服务器继续安装。",
+    upSince: "已运行",
+    svcOk: (n: number) => `${n} 个服务正常`,
+    svcNone: "还没报告服务",
+    svcBad: (n: number) => `${n} 个服务失败`,
+    readyOk: (m: string) => `${m}已就绪`,
+    readyAll: "就绪检查通过",
+    readyFail: (n: number) => `${n} 项要处理`,
+    readyNone: "还没检查",
+    upd: (n: number) => (n ? `${n} 个更新` : "都是最新"),
+    clockOk: (ms: string) => `时钟相差 ${ms}`,
+    clockBad: (ms: string) => `时钟相差 ${ms}`,
+    runReady: "上课就绪检查",
+    konsol: "Pi 控制台",
+    s: "秒",
+    m: "分",
+    h: "小时",
+  },
+});
+
+/** "8 dtk", "14 mnt", "46 jam": a heartbeat's age, short. */
+function umurPendek(iso: string | null | undefined, now: number, h: (typeof SH)["id"]): string {
+  if (!iso) return "·";
+  const d = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
+  if (d < 120) return `${d} ${h.s}`;
+  if (d < 7200) return `${Math.round(d / 60)} ${h.m}`;
+  return `${Math.round(d / 3600)} ${h.h}`;
+}
+
+/** "40 ms", "2,1 s", "2 min" for the Pi clock's offset. */
+function selisih(ms: number, lang: Lang): string {
+  const a = Math.abs(ms);
+  if (a < 1000) return `${Math.round(a)} ms`;
+  if (a < 120_000)
+    return `${(a / 1000).toLocaleString(lang === "en" ? "en-GB" : "id-ID", { maximumFractionDigits: 1 })} s`;
+  return durasiLabel(Math.round(a / 60_000), lang);
+}
 import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import "../ui/SegmentedControl.css";
 import "../ui/Tabs.css";
@@ -142,8 +252,45 @@ export default function ServerDetail({
   const hb = data.denyutTerakhir;
   const st = !s.terdaftar ? "wait" : isOnline(hb, data.batasLuringDetik) ? "on" : "off";
 
-  // Location, LAN address and last heartbeat in one row; the notes, often
-  // long, on their own row below (2026-10-09).
+  const sh = SH[lang];
+  const protokol =
+    typeof s.infoSistem?.protokol === "number" ? String(s.infoSistem.protokol) : null;
+  const bundel = bacaBundel(s.agenVersi).aso?.slice(0, 7) ?? null;
+  // The glance row: services, the last Ready check, site updates, the clock.
+  const layanan = Object.values(hb?.layanan ?? {});
+  const svcGagal = layanan.filter((x) => svcTone(x) === "bad").length;
+  const svcSehat = layanan.filter((x) => svcTone(x) === "ok").length;
+  const siap = bacaHasilSiap(data.siapRiwayat[0]?.keluaran);
+  const perlu = barisPembaruan(s.infoSistem, s.agenVersi, data.situsIot, data.bundelTerbit).filter(
+    (b) => b.status === "perlu",
+  ).length;
+  const jam = bacaKondisi(s.kondisi)?.jamSelisihMs ?? null;
+  const glance: ["ok" | "warn" | "bad", string][] = [
+    svcGagal
+      ? ["bad", sh.svcBad(svcGagal)]
+      : layanan.length
+        ? ["ok", sh.svcOk(svcSehat)]
+        : ["warn", sh.svcNone],
+    !siap
+      ? ["warn", sh.readyNone]
+      : siap.lulus
+        ? ["ok", data.sesiModul ? sh.readyOk(modulLabel(data.sesiModul, lang)) : sh.readyAll]
+        : ["warn", sh.readyFail(siap.gagal)],
+    [perlu ? "warn" : "ok", sh.upd(perlu)],
+    ...(jam !== null || hb
+      ? [
+          (hb?.jamSelaras === false || (jam !== null && Math.abs(jam) >= 60_000)
+            ? ["warn", sh.clockBad(selisih(jam ?? 0, lang))]
+            : ["ok", sh.clockOk(jam !== null ? selisih(jam, lang) : "< 1 s")]) as [
+            "ok" | "warn",
+            string,
+          ],
+        ]
+      : []),
+  ];
+
+  // Location, LAN address, last heartbeat and uptime in one row; the notes,
+  // often long, on their own row below (2026-10-09).
   const loc = [
     { k: "lokasi", ic: MapPinIcon, l: t.location, v: s.lokasi, mono: false },
     { k: "lan", ic: PlugsConnectedIcon, l: t.lan, v: s.alamatLan, mono: true },
@@ -152,6 +299,13 @@ export default function ServerDetail({
       ic: HeartbeatIcon,
       l: t.lastBeat,
       v: hb ? sejak(hb.pada, lang, now) : null,
+      mono: false,
+    },
+    {
+      k: "uptime",
+      ic: ClockIcon,
+      l: sh.upSince,
+      v: hb?.uptimeSec ? durasiLabel(Math.floor(hb.uptimeSec / 60), lang) : null,
       mono: false,
     },
     { k: "catatan", ic: NoteIcon, l: t.notes, v: s.catatan, mono: false },
@@ -204,40 +358,83 @@ export default function ServerDetail({
           />
         )}
         <BackButton lang={lang} label={t.back} href={href(lang, "/servers")} onClick={onBack} />
-        <div className="srv-head__row">
-          <div className="srv-head__name">
-            <h1 className="page-header__title">{s.nama}</h1>
-            <span className="stchip" data-st={st}>
-              <span
-                className={`dot ${st === "on" ? "dot--ok dot--pulse" : st === "off" ? "dot--danger" : "dot--warn"}`}
-                aria-hidden="true"
-              />
-              {st === "on" ? t.online : st === "off" ? t.offline : t.waiting}
-            </span>
+        <section className="panel panel--key panel--raised s12hero">
+          <div className="s12hero__top">
+            <div className="srv12ring" data-off={st === "on" ? "no" : "yes"} aria-hidden="true">
+              <span className="srv12ring__dot" />
+              <b className="mono">{st === "on" ? sh.up : st === "off" ? sh.off : sh.neu}</b>
+              <span className="hint">{st === "wait" ? "·" : umurPendek(hb?.pada, now, sh)}</span>
+            </div>
+            <div className="s12hero__id">
+              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                <span className="stchip" data-st={st}>
+                  <span
+                    className={`dot ${st === "on" ? "dot--ok dot--pulse" : st === "off" ? "dot--danger" : "dot--warn"}`}
+                    aria-hidden="true"
+                  />
+                  {st === "on" ? t.online : st === "off" ? t.offline : t.waiting}
+                </span>
+                <Pill>{sh.num(s.id)}</Pill>
+                {st === "on" && data.sesiModul && (
+                  <Pill tone="accent">{sh.inUse(modulLabel(data.sesiModul, lang))}</Pill>
+                )}
+              </div>
+              <h1 className="page-header__title s12hero__name">{s.nama}</h1>
+              {(st === "wait" || protokol || bundel) && (
+                <span className="hint">
+                  {st === "wait" ? sh.subWait : sh.sub(protokol ?? "·", bundel ?? "·")}
+                </span>
+              )}
+            </div>
+            <div className="detailsw s12hero__side">
+              {bisa.full ? (
+                sw
+              ) : (
+                <Tooltip label={t.fullLocked}>
+                  <span tabIndex={0}>{sw}</span>
+                </Tooltip>
+              )}
+              {!bisa.full && <span className="hint">{t.fullLocked}</span>}
+            </div>
           </div>
-          <div className="detailsw">
-            {bisa.full ? (
-              sw
-            ) : (
-              <Tooltip label={t.fullLocked}>
-                <span tabIndex={0}>{sw}</span>
-              </Tooltip>
-            )}
-          </div>
-        </div>
-        <div className="locstrip">
-          {loc.map((x) => (
-            <span key={x.k} className="locstrip__i" data-k={x.k}>
-              <x.ic size={20} aria-hidden="true" />
-              <span>
-                <small>{x.l}</small>
-                <b className={`${x.mono ? "mono" : ""}${x.v ? "" : " is-empty"}`}>
-                  {x.v || t.none}
-                </b>
+          <div className="locstrip s12facts">
+            {loc.map((x) => (
+              <span key={x.k} className="locstrip__i" data-k={x.k}>
+                <x.ic size={20} aria-hidden="true" />
+                <span>
+                  <small>{x.l}</small>
+                  <b className={`${x.mono ? "mono" : ""}${x.v ? "" : " is-empty"}`}>
+                    {x.v || t.none}
+                  </b>
+                </span>
               </span>
-            </span>
-          ))}
-        </div>
+            ))}
+          </div>
+          {st !== "wait" && (
+            <div className="s12glance">
+              {glance.map(([tone, text]) => (
+                <span key={text} className="s12glance__i" data-t={tone}>
+                  <span
+                    className={`dot dot--${tone === "ok" ? "ok" : tone === "bad" ? "danger" : "warn"}`}
+                    aria-hidden="true"
+                  />
+                  {text}
+                </span>
+              ))}
+              <span className="grow" />
+              <button type="button" className="btn btn--primary" onClick={() => go("siap")}>
+                <ListChecksIcon size={18} aria-hidden="true" />
+                {sh.runReady}
+              </button>
+              {bisa.konsol && (
+                <button type="button" className="btn" onClick={() => go("konsol")}>
+                  <TerminalWindowIcon size={18} aria-hidden="true" />
+                  {sh.konsol}
+                </button>
+              )}
+            </div>
+          )}
+        </section>
         {st === "wait" && bisa.full && (
           <div className="banner banner--warn srv-setupban">
             <PlugsConnectedIcon size={20} aria-hidden="true" />

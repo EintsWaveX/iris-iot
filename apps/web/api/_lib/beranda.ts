@@ -8,6 +8,10 @@
  *   this week; the open modules; the active slides; the server's last Ready
  *   check; and the ended sessions where one of this Asisten's groups still
  *   has a Praktikan with no score.
+ *   Phase 10 (c11-home): `jalan`, what each of today's slots ran (module,
+ *   end, groups, attendance, scores sent of groups), and `belumKirim`, the
+ *   groups this Asisten holds whose every Praktikan has scores but that
+ *   were never sent with Kirim Nilai.
  *
  * POST /api/session/jendela { hari, slot, menit | null }
  *   a slot's own start window (5 to 30 minutes; null goes back to the
@@ -16,7 +20,7 @@
  */
 import { diSlotMinggu, muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
 import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
-import { and, asc, desc, eq, gte, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
@@ -34,6 +38,8 @@ import {
   sesiAsisten,
   kelompok,
   nilai,
+  nilaiKirim,
+  percobaanMasuk,
 } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
@@ -145,6 +151,7 @@ export async function handleBerandaGet(
       slot: sesi.slot,
       mulai: sesi.mulai,
       nomor: sesiAnggota.kelompokNomor,
+      kelompokId: sesiAsisten.kelompokId,
       tanpaNilai: sql<number>`count(*) filter (where not exists (
         select 1 from ${nilai} n where n.sesi_id = ${sesi.id} and n.nim = ${sesiAnggota.nim}))::int`,
     })
@@ -163,7 +170,15 @@ export async function handleBerandaGet(
         gte(sesi.dibuatPada, sejak),
       ),
     )
-    .groupBy(sesi.id, sesi.modul, sesi.tanggal, sesi.slot, sesi.mulai, sesiAnggota.kelompokNomor)
+    .groupBy(
+      sesi.id,
+      sesi.modul,
+      sesi.tanggal,
+      sesi.slot,
+      sesi.mulai,
+      sesiAnggota.kelompokNomor,
+      sesiAsisten.kelompokId,
+    )
     .orderBy(desc(sesi.tanggal), asc(sesiAnggota.kelompokNomor));
   const perluNilai: {
     sesiId: number;
@@ -188,6 +203,109 @@ export async function handleBerandaGet(
       perluNilai.push(s);
     }
     s.kelompok.push({ nomor: r.nomor, tanpaNilai: r.tanpaNilai });
+  }
+
+  // Today's sessions per slot (Phase 10 c11-home): what ran and how it went.
+  const hariIniSesi = await db
+    .select({
+      id: sesi.id,
+      slot: sesi.slot,
+      modul: sesi.modul,
+      status: sesi.status,
+      selesaiPada: sesi.selesaiPada,
+      jumlahKelompok: sesi.jumlahKelompok,
+    })
+    .from(sesi)
+    .where(and(eq(sesi.tanggal, tanggal), ne(sesi.jenis, "tot"), ne(sesi.status, "batal")))
+    .orderBy(asc(sesi.id));
+  const idsHariIni = hariIniSesi.map((x) => x.id);
+  const [isiHariIni, hadirHariIni, kirimHariIni] = idsHariIni.length
+    ? await Promise.all([
+        db
+          .select({
+            sesiId: sesiAnggota.sesiId,
+            kelompok: sql<number>`count(distinct ${sesiAnggota.kelompokNomor})::int`,
+            orang: sql<number>`count(*)::int`,
+          })
+          .from(sesiAnggota)
+          .where(inArray(sesiAnggota.sesiId, idsHariIni))
+          .groupBy(sesiAnggota.sesiId),
+        db
+          .select({
+            sesiId: percobaanMasuk.sesiId,
+            n: sql<number>`count(distinct ${percobaanMasuk.nim})::int`,
+          })
+          .from(percobaanMasuk)
+          .where(
+            and(
+              inArray(percobaanMasuk.sesiId, idsHariIni),
+              eq(percobaanMasuk.jenis, "praktikan"),
+              eq(percobaanMasuk.berhasil, true),
+            ),
+          )
+          .groupBy(percobaanMasuk.sesiId),
+        db
+          .select({ sesiId: nilaiKirim.sesiId, n: sql<number>`count(*)::int` })
+          .from(nilaiKirim)
+          .where(inArray(nilaiKirim.sesiId, idsHariIni))
+          .groupBy(nilaiKirim.sesiId),
+      ])
+    : [[], [], []];
+  const jalan: Record<
+    number,
+    {
+      sesiId: number;
+      modul: number;
+      status: string;
+      selesaiPada: string | null;
+      kelompok: number;
+      hadir: number;
+      orang: number;
+      kirim: number;
+    }
+  > = {};
+  for (const x of hariIniSesi) {
+    if (x.slot === null || (x.status !== "berjalan" && x.status !== "selesai")) continue;
+    const isi = isiHariIni.find((r) => r.sesiId === x.id);
+    jalan[x.slot] = {
+      sesiId: x.id,
+      modul: x.modul,
+      status: x.status,
+      selesaiPada: x.selesaiPada?.toISOString() ?? null,
+      kelompok: isi?.kelompok ?? x.jumlahKelompok,
+      hadir: hadirHariIni.find((r) => r.sesiId === x.id)?.n ?? 0,
+      orang: isi?.orang ?? 0,
+      kirim: kirimHariIni.find((r) => r.sesiId === x.id)?.n ?? 0,
+    };
+  }
+
+  // My groups with every Praktikan scored but never sent (Kirim Nilai).
+  const kurangSet = new Set(
+    kurang.filter((r) => r.tanpaNilai > 0).map((r) => `${r.sesiId}.${r.nomor}`),
+  );
+  const terkirim = await db
+    .select({ sesiId: nilaiKirim.sesiId, nomor: nilaiKirim.kelompokNomor })
+    .from(nilaiKirim)
+    .innerJoin(sesi, eq(sesi.id, nilaiKirim.sesiId))
+    .where(gte(sesi.dibuatPada, sejak));
+  const kirimSet = new Set(terkirim.map((r) => `${r.sesiId}.${r.nomor}`));
+  const belumKirim: {
+    sesiId: number;
+    modul: number;
+    tanggal: string;
+    slot: number | null;
+    kelompok: { nomor: number; id: number }[];
+  }[] = [];
+  for (const r of kurang) {
+    const k = `${r.sesiId}.${r.nomor}`;
+    if (kurangSet.has(k) || kirimSet.has(k)) continue;
+    let s = belumKirim.find((x) => x.sesiId === r.sesiId);
+    if (!s) {
+      s = { sesiId: r.sesiId, modul: r.modul, tanggal: r.tanggal, slot: r.slot, kelompok: [] };
+      belumKirim.push(s);
+    }
+    if (!s.kelompok.some((g) => g.nomor === r.nomor))
+      s.kelompok.push({ nomor: r.nomor, id: r.kelompokId });
   }
 
   const roster = Object.fromEntries(rosterHitung.map((r) => [r.slot, r]));
@@ -240,6 +358,8 @@ export async function handleBerandaGet(
     presentasiAktif: slide ? { nama: slide.nama, jenis: slide.jenis } : null,
     server: serverInfo,
     perluNilai,
+    jalan,
+    belumKirim,
   });
 }
 

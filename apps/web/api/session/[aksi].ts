@@ -148,7 +148,20 @@ import {
   cekKendaliSesi,
   hakKendaliSesi,
 } from "../_lib/phase8.js";
-import { eq, and, or, gte, like, sql, notInArray, inArray, isNull, desc, asc } from "drizzle-orm";
+import {
+  eq,
+  and,
+  or,
+  gte,
+  like,
+  sql,
+  notInArray,
+  inArray,
+  isNull,
+  desc,
+  asc,
+  ne,
+} from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 import { tandaiAktif } from "../_lib/kehadiran.js";
 
@@ -398,6 +411,8 @@ async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionP
  * every Asisten page watches (shell/LabAlert.tsx): server errors in the
  * last AMBANG_GALAT.menit minutes (api/_lib/galat.ts saves them), and,
  * while a session that needs the Pi runs, whether the Pi went silent.
+ * Phase 10: also the running session's failed sign-ins of the last 10
+ * minutes, for the Konsol's Ada Masalah? ("A student can't sign in").
  */
 async function handleWaspada(_req: ApiRequest, res: ApiResponse) {
   const db = getDb();
@@ -425,6 +440,21 @@ async function handleWaspada(_req: ApiRequest, res: ApiResponse) {
       serverId: f?.id ?? null,
     };
   }
+  const gagalMasuk = running
+    ? await db
+        .select({ nim: percobaanMasuk.nim, jenis: percobaanMasuk.jenis, pada: percobaanMasuk.pada })
+        .from(percobaanMasuk)
+        .where(
+          and(
+            eq(percobaanMasuk.sesiId, running.id),
+            eq(percobaanMasuk.berhasil, false),
+            ne(percobaanMasuk.jenis, "asisten"),
+            gte(percobaanMasuk.pada, new Date(Date.now() - 10 * 60_000)),
+          ),
+        )
+        .orderBy(desc(percobaanMasuk.pada))
+        .limit(20)
+    : [];
   let pesan = "";
   try {
     pesan = String((JSON.parse(terakhir?.detail ?? "{}") as { pesan?: unknown }).pesan ?? "");
@@ -443,6 +473,7 @@ async function handleWaspada(_req: ApiRequest, res: ApiResponse) {
     },
     pi,
     sesi: running ? { id: running.id, modul: running.modul } : null,
+    gagalMasuk: gagalMasuk.map((x) => ({ nim: x.nim, jenis: x.jenis, pada: x.pada.toISOString() })),
   });
 }
 

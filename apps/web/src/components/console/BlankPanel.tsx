@@ -75,19 +75,40 @@ export default function BlankPanel({
   kelompok,
   nomor,
   onRingkas,
+  kunciOn,
+  onKunci,
+  fokus,
 }: {
   lang: Lang;
   kelompok: number;
   nomor: number;
   onRingkas?: (r: BlankRingkas) => void;
+  /** Phase 10: Show the Keys shared with the Blank Matrix and Ada Masalah?. */
+  kunciOn?: boolean;
+  onKunci?: (v: boolean) => void;
+  /** Phase 10: one blank to bring into view ("m3.slug.4"), from the
+   *  matrix, the feed or the counters. */
+  fokus?: string | null;
 }) {
   const t = BL[lang];
   const [data, setData] = useState<Data | null>(null);
   const [gagal, setGagal] = useState(false);
-  const [kunci, setKunci] = useState(false);
+  const [kunciSendiri, setKunciSendiri] = useState(false);
+  const kunci = kunciOn ?? kunciSendiri;
+  const setKunci = onKunci ?? setKunciSendiri;
   const [saring, setSaring] = useState<Saring>("semua");
   const [tulis, setTulis] = useState<{ slug: string; b: Blank; minta?: Minta } | null>(null);
   const hidup = useRef(true);
+  // A blank picked elsewhere: show every blank, then bring it into view.
+  useEffect(() => {
+    if (!fokus || !data) return;
+    setSaring("semua");
+    requestAnimationFrame(() =>
+      document
+        .querySelector(`.brow[data-soal="${fokus}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
+  }, [fokus, !!data]);
 
   async function muat() {
     try {
@@ -196,8 +217,16 @@ export default function BlankPanel({
                 const st = b.benar ? "ok" : b.salah > 0 ? "bad" : b.isi ? "bad" : "empty";
                 const isi = kunci ? b.kunci : b.isi || "____";
                 const [pre, post] = b.kode.split(TOKEN);
+                const soal = `m${data.modul}.${f.slug}.${b.nomor}`;
                 return (
-                  <li key={b.nomor} className="brow" data-st={st} data-ask={w ? "yes" : undefined}>
+                  <li
+                    key={b.nomor}
+                    className="brow"
+                    data-st={st}
+                    data-ask={w ? "yes" : undefined}
+                    data-focus={fokus === soal ? "yes" : undefined}
+                    data-soal={soal}
+                  >
                     <span className="brow__n mono">({b.nomor})</span>
                     <div className="brow__body">
                       <code className="brow__code mono">

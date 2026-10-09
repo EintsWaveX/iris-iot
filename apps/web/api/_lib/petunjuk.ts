@@ -373,3 +373,124 @@ export async function handlePetunjuk(req: ApiRequest, res: ApiResponse, session:
     .returning({ id: petunjukMinta.id });
   res.status(200).json({ ok: true, id: row.id });
 }
+
+/* ------------------------------------------ every group, every blank */
+
+/** One cell of the Blank Matrix: a group's answer to one blank. */
+export interface SelMatriks {
+  isi: string;
+  benar: boolean;
+  percobaan: number;
+  salah: number;
+  oleh: string | null;
+  /** Who filled it, by NIM (first names can repeat in a group). */
+  olehNim: string | null;
+  pada: string | null;
+  /** This group's key (Module 4 files differ per group). */
+  kunci: string;
+}
+
+/**
+ * GET /api/modul/matriks (Phase 10, mockup c12-run): the running session's
+ * every group against every blank, with the open hint requests, for the
+ * Konsol's Blank Matrix, its group rail and its room feed. Asisten only,
+ * like `blank`: keys are in it, the page shows them behind a switch.
+ */
+export async function handleMatriks(req: ApiRequest, res: ApiResponse) {
+  const running = await currentSesi();
+  if (!running) {
+    res.status(200).json({ ok: false, kode: "tidak_ada_sesi" });
+    return;
+  }
+  const l = lang(req.query.lang);
+  const bahasa = l === "id" ? "id" : "en";
+  const db = getDb();
+  const kode = await kodeModul(running.modul);
+  const rows = await db
+    .select({
+      kelompokId: jawaban.kelompokId,
+      soalKode: jawaban.soalKode,
+      isi: jawaban.isi,
+      benar: jawaban.benar,
+      percobaan: jawaban.percobaan,
+      salah: jawaban.salah,
+      oleh: jawaban.diubahOleh,
+      pada: jawaban.diubahPada,
+    })
+    .from(jawaban)
+    .where(and(eq(jawaban.sesiId, running.id), like(jawaban.soalKode, `m${running.modul}.%`)));
+  const ids = [...new Set(rows.map((r) => r.kelompokId))];
+  const grup = ids.length
+    ? await db
+        .select({ id: kelompok.id, nomor: kelompok.nomor })
+        .from(kelompok)
+        .where(inArray(kelompok.id, ids))
+    : [];
+  const nomorOf = new Map(grup.map((g) => [g.id, g.nomor]));
+  const nama = await namaPendek([
+    ...new Set(rows.map((r) => r.oleh).filter((x): x is string => !!x)),
+  ]);
+
+  const berkas = [...kode.berkas.values()].map((b) => {
+    const letak = letakBlank(b.templat[bahasa]);
+    return {
+      slug: b.berkas.slug,
+      path: b.berkas.path,
+      blank: b.urut.map((c) => ({
+        nomor: c.nomor,
+        soal: soalKode(running.modul, b.berkas.slug, c.nomor),
+        baris: letak.get(c.nomor)?.baris ?? 0,
+        kode: letak.get(c.nomor)?.kode ?? "",
+      })),
+    };
+  });
+
+  const sel: Record<string, Record<string, SelMatriks>> = {};
+  for (const r of rows) {
+    const m = SOAL.exec(r.soalKode);
+    const nomor = nomorOf.get(r.kelompokId) ?? 0;
+    const b = m ? kode.berkas.get(m[2]) : undefined;
+    const c = b?.urut.find((x) => x.nomor === Number(m?.[3]));
+    (sel[r.kelompokId] ??= {})[r.soalKode] = {
+      isi: r.isi,
+      benar: r.benar,
+      percobaan: r.percobaan,
+      salah: r.salah ?? 0,
+      oleh: r.oleh ? (nama.get(r.oleh) ?? null) : null,
+      olehNim: r.oleh,
+      pada: r.pada.toISOString(),
+      kunci: (m && kanonik(kode, m[2], Number(m[3]), nomor)) ?? c?.jawaban ?? "",
+    };
+  }
+
+  // Waiting requests (not answered, not withdrawn), oldest first.
+  const minta = await db
+    .select({
+      kelompokId: petunjukMinta.kelompokId,
+      soal: petunjukMinta.soalKode,
+      catatan: petunjukMinta.catatan,
+      pada: petunjukMinta.dimintaPada,
+    })
+    .from(petunjukMinta)
+    .where(
+      and(
+        eq(petunjukMinta.sesiId, running.id),
+        eq(petunjukMinta.batal, false),
+        isNull(petunjukMinta.dijawabPada),
+      ),
+    )
+    .orderBy(asc(petunjukMinta.dimintaPada));
+
+  res.status(200).json({
+    ok: true,
+    modul: running.modul,
+    berkas,
+    sel,
+    minta: minta.map((x) => ({
+      kelompokId: x.kelompokId,
+      soal: x.soal,
+      catatan: x.catatan,
+      pada: x.pada.toISOString(),
+    })),
+  });
+}

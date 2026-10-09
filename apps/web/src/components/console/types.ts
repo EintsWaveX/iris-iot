@@ -179,7 +179,7 @@ export interface NilaiData {
   terkirim: Record<string, { pada: string; oleh: string }>;
 }
 
-export type View = "prep" | "board" | "table";
+export type View = "prep" | "board" | "table" | "matrix";
 
 export interface FeedItem {
   id: string;

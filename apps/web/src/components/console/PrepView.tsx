@@ -18,8 +18,18 @@ import {
   CaretDownIcon,
   ChalkboardTeacherIcon,
   CheckIcon,
+  CircuitryIcon,
+  CodeIcon,
+  HardDrivesIcon,
+  ListChecksIcon,
   LockSimpleIcon,
+  LockSimpleOpenIcon,
   MagnifyingGlassIcon,
+  NotebookIcon,
+  PlayIcon,
+  PresentationChartIcon,
+  UsersThreeIcon,
+  type Icon as PhIcon,
 } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import Dialog from "../ui/Dialog";
@@ -27,7 +37,18 @@ import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
 import { useDialogHost } from "../ui/dialogHost";
 import { DateField, Stepper, TimeField } from "../ui/Controls";
-import { getJson, namaKelompok, postJson, tanggalPanjang, useMe } from "../../lib/app";
+import {
+  dict,
+  getJson,
+  href,
+  jamMenit,
+  namaKelompok,
+  postJson,
+  sejak,
+  tanggalPanjang,
+  useMe,
+} from "../../lib/app";
+import { sendCommand } from "../server/ops";
 import { hariIniWib, KELOMPOK_MAKS, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { menitDariJam, menitSekarangWib } from "../../lib/sesi-mulai";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
@@ -44,9 +65,11 @@ import CodeEditor from "./prep/CodeEditor";
 import TotPanel from "./prep/TotPanel";
 import RiwayatPanel from "./RiwayatPanel";
 import { P, type Px } from "./prepStrings";
-import { PrepChecks, type Beranda } from "./AsistenHome";
+import { cekSiap, type Beranda } from "./AsistenHome";
 import { H } from "./homeStrings";
 import "../ui/Tabs.css";
+import "./day.css";
+import "./run.css";
 import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
 import { useSiaran } from "../../lib/siaran";
 import { useBelumSimpan } from "../../lib/belum-simpan";
@@ -69,7 +92,68 @@ interface Draf {
 
 // Mode TOT sits last, set apart with its own icon: it changes who can sign
 // in at all, unlike the preparation tabs before it.
-const TABS = ["roster", "akses", "brief", "kode", "slides", "skema", "tot"] as const;
+const TABS = ["roster", "akses", "brief", "kode", "slides", "skema", "server", "tot"] as const;
+
+/* Phase 10 (c12-prep): each section's line in the checklist on the left. */
+const PN = dict({
+  id: {
+    nav: "Bagian persiapan",
+    ready: (a: number, b: number) => `${a}/${b} siap`,
+    server: "Server",
+    rosterNone: "Belum ada roster dipilih",
+    briefSub: "Ringkasan per modul",
+    kodeSub: "Kode jurnal dan kuncinya",
+    skemaSub: "Bawaan dan tautan Wokwi",
+    totSub: "Latihan dengan praktikan dummy",
+    srvNone: "Belum ada server terdaftar",
+    srvBeat: (x: string) => `denyut ${x}`,
+    srvNoBeat: "belum ada denyut",
+    pi: "Pi",
+    check: "Cek Siap Praktikum",
+    runCheck: "Jalankan Cek Sekarang",
+    openServer: "Buka Server",
+    sent: "Cek dijalankan di Pi. Hasilnya muncul di sini dalam beberapa detik.",
+    backStart: "Kembali dan Mulai",
+  },
+  en: {
+    nav: "Preparation sections",
+    ready: (a: number, b: number) => `${a}/${b} ready`,
+    server: "Server",
+    rosterNone: "No roster picked yet",
+    briefSub: "A brief per module",
+    kodeSub: "Journal code and its keys",
+    skemaSub: "Built in and Wokwi links",
+    totSub: "Practice with dummy students",
+    srvNone: "No server registered yet",
+    srvBeat: (x: string) => `beat ${x}`,
+    srvNoBeat: "no heartbeat yet",
+    pi: "Pi",
+    check: "Ready check",
+    runCheck: "Run the Check Now",
+    openServer: "Open the Server",
+    sent: "The check is running on the Pi. Its result shows here in a few seconds.",
+    backStart: "Back and Start",
+  },
+  zh: {
+    nav: "准备的部分",
+    ready: (a: number, b: number) => `${a}/${b} 就绪`,
+    server: "服务器",
+    rosterNone: "还没选名单",
+    briefSub: "每个模块的概要",
+    kodeSub: "实验报告代码和答案",
+    skemaSub: "内置和 Wokwi 链接",
+    totSub: "用虚拟学生练习",
+    srvNone: "还没有注册服务器",
+    srvBeat: (x: string) => `心跳 ${x}`,
+    srvNoBeat: "还没有心跳",
+    pi: "Pi",
+    check: "上课就绪检查",
+    runCheck: "现在检查",
+    openServer: "打开服务器",
+    sent: "检查正在 Pi 上运行，几秒后结果显示在这里。",
+    backStart: "返回并开始",
+  },
+});
 
 /** The slot the clock is in ("2-3"): today's first slot that hasn't ended
  *  (start plus the session cap), else the next day's first slot, Sunday
@@ -269,26 +353,86 @@ export default function PrepView({
     setSel(v);
   }
 
+  // Each section's light and one line (c12-prep): yellow means look at it.
+  const pn = PN[lang];
+  const cek = beranda ? cekSiap(beranda, 1, true, H[lang], lang) : [];
+  const cekOf = (k: string) => cek.find((c) => c.key === k);
+  const nav: Record<Tab, { icon: PhIcon; sub: string; tone?: "ok" | "warn" }> = {
+    roster: {
+      icon: UsersThreeIcon,
+      sub: sel ? labelOf(sel) || pn.rosterNone : pn.rosterNone,
+      tone: kosong ? "warn" : sel ? "ok" : undefined,
+    },
+    akses: {
+      icon: LockSimpleOpenIcon,
+      sub: cekOf("akses")?.text ?? "",
+      tone: cekOf("akses")?.ok === false ? "warn" : beranda ? "ok" : undefined,
+    },
+    brief: { icon: NotebookIcon, sub: pn.briefSub },
+    kode: { icon: CodeIcon, sub: pn.kodeSub },
+    slides: {
+      icon: PresentationChartIcon,
+      sub: cekOf("slides")?.text ?? "",
+      tone: cekOf("slides")?.ok === false ? "warn" : beranda ? "ok" : undefined,
+    },
+    skema: { icon: CircuitryIcon, sub: pn.skemaSub },
+    server: {
+      icon: HardDrivesIcon,
+      sub: cekOf("server")?.text ?? "",
+      tone: cekOf("server")?.ok === false ? "warn" : beranda ? "ok" : undefined,
+    },
+    tot: { icon: ChalkboardTeacherIcon, sub: pn.totSub },
+  };
+  const lit = tabs.filter((id) => nav[id].tone);
+  const siapN = lit.filter((id) => nav[id].tone === "ok").length;
+
   const tablist = (
-    <div className="tabs-scroll">
-      <nav className="tabs" role="tablist" aria-label={p.title}>
-        {tabs.map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            tabIndex={tab === id ? 0 : -1}
-            className="tabs__tab"
-            data-unik={id === "tot" ? "yes" : undefined}
-            onClick={() => setTab(id)}
-          >
-            {id === "tot" && <ChalkboardTeacherIcon size={19} aria-hidden="true" />}
-            {p.tabs[id]}
+    <nav className="panel prep12__nav" aria-label={pn.nav}>
+      <div role="tablist" aria-orientation="vertical" className="prep12__list">
+        {tabs.map((id) => {
+          const n = nav[id];
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              aria-current={tab === id}
+              tabIndex={tab === id ? 0 : -1}
+              className="grow-row prep12__item"
+              data-unik={id === "tot" ? "yes" : undefined}
+              onClick={() => setTab(id)}
+              onKeyDown={(e) => {
+                if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+                e.preventDefault();
+                const k = tabs.indexOf(id);
+                const nx = tabs[(k + (e.key === "ArrowDown" ? 1 : tabs.length - 1)) % tabs.length];
+                setTab(nx);
+                const list = e.currentTarget.parentElement;
+                requestAnimationFrame(() =>
+                  (list?.querySelector('[aria-selected="true"]') as HTMLElement | null)?.focus(),
+                );
+              }}
+            >
+              <span className="lights__lamp" data-tone={n.tone ?? "none"} aria-hidden="true" />
+              <n.icon size={20} aria-hidden="true" />
+              <span className="stack" style={{ gap: 0, minWidth: 0 }}>
+                <b>{id === "server" ? pn.server : p.tabs[id as Exclude<Tab, "server">]}</b>
+                <span className="hint">{n.sub}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {onBack && (
+        <div className="panel__actions">
+          <button type="button" className="btn btn--primary btn--block" onClick={onBack}>
+            <PlayIcon size={18} weight="fill" aria-hidden="true" />
+            {pn.backStart}
           </button>
-        ))}
-      </nav>
-    </div>
+        </div>
+      )}
+    </nav>
   );
 
   return (
@@ -328,103 +472,103 @@ export default function PrepView({
         </div>
       </div>
 
-      {beranda && (
-        <div className="prep__ready">
-          <span className="label-caps">{p.readyLabel}</span>
-          <div className="checks">
-            <PrepChecks
-              data={beranda}
-              slot={1}
-              susulan
-              h={H[lang]}
-              lang={lang}
-              onGo={(x) => setTab(x)}
-            />
-          </div>
+      {beranda && lit.length > 0 && (
+        <div className="row prep12__ready">
+          <span className={`pill${siapN < lit.length ? " pill--warn" : " pill--ok"}`}>
+            {pn.ready(siapN, lit.length)}
+          </span>
+          <span className="hint">{p.readyLabel}</span>
         </div>
       )}
 
-      {tablist}
+      <div className="prep12__grid">
+        {tablist}
 
-      <Fade k={tab}>
-        {tab === "roster" && (
-          <div className="stack">
-            {sesi && (
-              <AssignmentPanel
-                t={t}
-                lang={lang}
-                sesi={sesi}
-                roster={roster}
-                assign={assign}
-                meNim={meNim}
-                onChanged={onChanged}
-              />
-            )}
-            {target ? (
-              <>
-                {rosterRo && (
-                  <div className="banner banner--lock" role="note">
-                    <LockSimpleIcon size={20} aria-hidden="true" />
-                    <span>{rosterRo}</span>
-                  </div>
-                )}
-                <div inert={!!rosterRo} className={rosterRo ? "prep__ro" : undefined}>
-                  <RosterEditor
-                    key={sel ?? ""}
-                    ref={editor}
-                    target={target}
-                    label={labelOf(sel)}
-                    p={p}
+        <div className="prep12__body">
+          <Fade k={tab}>
+            {tab === "roster" && (
+              <div className="stack">
+                {sesi && (
+                  <AssignmentPanel
+                    t={t}
                     lang={lang}
-                    onDirty={setDirty}
+                    sesi={sesi}
+                    roster={roster}
+                    assign={assign}
+                    meNim={meNim}
+                    onChanged={onChanged}
                   />
-                </div>
-              </>
-            ) : kosong && sel ? (
-              <section className="panel panel--solo prep__kosong">
-                <div className="panel__head">
-                  <h2 className="panel__title">{labelOf(sel)}</h2>
-                  <span className={`pill${kosong.segera ? " pill--warn" : ""}`}>
-                    {kosong.segera ? p.segeraTag : p.kosongTag}
-                  </span>
-                </div>
-                <p>{kosong.segera ? p.segeraBody : p.kosongBody}</p>
-                <p className="hint">{p.kosongHint}</p>
-                {kosong.lanjut && (
-                  <div className="row">
-                    <button
-                      type="button"
-                      className="btn btn--primary"
-                      onClick={() => choose(kosong.lanjut!)}
-                    >
-                      {p.bukaSlot(labelOf(kosong.lanjut))}
-                      <ArrowRightIcon aria-hidden="true" />
-                    </button>
-                  </div>
                 )}
-              </section>
-            ) : (
-              jadwal !== null && <p className="hint">{p.noSlots}</p>
-            )}
-          </div>
-        )}
-        {tab === "akses" && (
-          <div className="stack">
-            <section className="panel panel--solo">
-              <div className="panel__head">
-                <h2 className="panel__title">{t.accTitle}</h2>
+                {target ? (
+                  <>
+                    {rosterRo && (
+                      <div className="banner banner--lock" role="note">
+                        <LockSimpleIcon size={20} aria-hidden="true" />
+                        <span>{rosterRo}</span>
+                      </div>
+                    )}
+                    <div inert={!!rosterRo} className={rosterRo ? "prep__ro" : undefined}>
+                      <RosterEditor
+                        key={sel ?? ""}
+                        ref={editor}
+                        target={target}
+                        label={labelOf(sel)}
+                        p={p}
+                        lang={lang}
+                        onDirty={setDirty}
+                      />
+                    </div>
+                  </>
+                ) : kosong && sel ? (
+                  <section className="panel panel--solo prep__kosong">
+                    <div className="panel__head">
+                      <h2 className="panel__title">{labelOf(sel)}</h2>
+                      <span className={`pill${kosong.segera ? " pill--warn" : ""}`}>
+                        {kosong.segera ? p.segeraTag : p.kosongTag}
+                      </span>
+                    </div>
+                    <p>{kosong.segera ? p.segeraBody : p.kosongBody}</p>
+                    <p className="hint">{p.kosongHint}</p>
+                    {kosong.lanjut && (
+                      <div className="row">
+                        <button
+                          type="button"
+                          className="btn btn--primary"
+                          onClick={() => choose(kosong.lanjut!)}
+                        >
+                          {p.bukaSlot(labelOf(kosong.lanjut))}
+                          <ArrowRightIcon aria-hidden="true" />
+                        </button>
+                      </div>
+                    )}
+                  </section>
+                ) : (
+                  jadwal !== null && <p className="hint">{p.noSlots}</p>
+                )}
               </div>
-              <AccessForm t={t} lang={lang} bare />
-            </section>
-            <RiwayatPanel lang={lang} />
-          </div>
-        )}
-        {tab === "tot" && <TotPanel t={t} lang={lang} sesi={sesi} onChanged={onChanged} />}
-        {tab === "slides" && <SlidesEditor lang={lang} />}
-        {tab === "skema" && <SchematicEditor lang={lang} />}
-        {tab === "brief" && <BriefEditor lang={lang} />}
-        {tab === "kode" && bolehKode && <CodeEditor lang={lang} />}
-      </Fade>
+            )}
+            {tab === "akses" && (
+              <div className="stack">
+                <section className="panel panel--solo">
+                  <div className="panel__head">
+                    <h2 className="panel__title">{t.accTitle}</h2>
+                  </div>
+                  <AccessForm t={t} lang={lang} bare />
+                </section>
+                <RiwayatPanel lang={lang} />
+              </div>
+            )}
+            {tab === "tot" && <TotPanel t={t} lang={lang} sesi={sesi} onChanged={onChanged} />}
+            {tab === "slides" && <SlidesEditor lang={lang} />}
+            {tab === "skema" && <SchematicEditor lang={lang} />}
+            {tab === "brief" && <BriefEditor lang={lang} />}
+            {tab === "kode" && bolehKode && <CodeEditor lang={lang} />}
+            {tab === "server" && (
+              <ServerSection lang={lang} beranda={beranda} onSent={muatBeranda} />
+            )}
+          </Fade>
+        </div>
+      </div>
 
       <Dialog
         open={ask !== null}
@@ -852,5 +996,89 @@ export function AssistantPicker({
         </RadixPopover.Content>
       </RadixPopover.Portal>
     </RadixPopover.Root>
+  );
+}
+
+/* ------------------------------------------------------------- server */
+
+/** Preparation's Server section (c12-prep): the Pi's heartbeat and the
+ *  last Ready check as lights, Run the Check Now and Open the Server. */
+function ServerSection({
+  lang,
+  beranda,
+  onSent,
+}: {
+  lang: Lang;
+  beranda: Beranda | null;
+  onSent: () => void;
+}) {
+  const pn = PN[lang];
+  const [busy, setBusy] = useState(false);
+  const srv = beranda?.server ?? null;
+  const cek = beranda
+    ? cekSiap(beranda, 1, true, H[lang], lang).find((c) => c.key === "server")
+    : null;
+  if (!beranda) return <span className="skeleton" style={{ height: 160 }} />;
+  if (!srv)
+    return (
+      <section className="panel panel--solo">
+        <p>{pn.srvNone}</p>
+        <div className="row">
+          <a className="btn" href={href(lang, "/servers?dari=persiapan")}>
+            <HardDrivesIcon size={18} aria-hidden="true" />
+            {pn.openServer}
+          </a>
+        </div>
+      </section>
+    );
+  const beatOk = !!srv.denyutPada && Date.now() - Date.parse(srv.denyutPada) < 5 * 60_000;
+  return (
+    <section className="panel panel--solo stack">
+      <div className="panel__head">
+        <h2 className="panel__title">{srv.nama}</h2>
+      </div>
+      <ul className="lights">
+        <li className="lights__i" data-ok={beatOk ? "yes" : "no"}>
+          <span className="lights__lamp" aria-hidden="true" />
+          <span className="lights__txt">
+            <b>{pn.pi}</b>
+            <span className="hint">
+              {srv.denyutPada ? pn.srvBeat(sejak(srv.denyutPada, lang, Date.now())) : pn.srvNoBeat}
+            </span>
+          </span>
+        </li>
+        <li className="lights__i" data-ok={cek?.ok ? "yes" : "no"}>
+          <span className="lights__lamp" aria-hidden="true" />
+          <span className="lights__txt">
+            <b>{pn.check}</b>
+            <span className="hint">
+              {cek?.text}
+              {srv.siap?.waktu ? ` · ${jamMenit(srv.siap.waktu, lang)}` : ""}
+            </span>
+          </span>
+        </li>
+      </ul>
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="btn btn--primary"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const ok = await sendCommand(srv.id, "diag.siap", {}, lang, true);
+            setBusy(false);
+            if (ok) window.Toast?.show(pn.sent, "ok");
+            onSent();
+          }}
+        >
+          <ListChecksIcon size={18} aria-hidden="true" />
+          {pn.runCheck}
+        </button>
+        <a className="btn" href={href(lang, `/servers?id=${srv.id}&dari=persiapan#siap`)}>
+          <HardDrivesIcon size={18} aria-hidden="true" />
+          {pn.openServer}
+        </a>
+      </div>
+    </section>
   );
 }

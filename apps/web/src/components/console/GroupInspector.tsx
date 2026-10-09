@@ -1,5 +1,7 @@
 /**
- * The group inspector (Phase 9, mockup c-run): one group beside the board.
+ * The group inspector (Phase 9, mockup c-run), since Phase 10 the group
+ * workspace of the running board (mockup c12-run): Ringkasan (the live
+ * cards and what happened), Blank, Nilai and Anggota.
  *
  * - Head: the group badge and name, its Asisten as "Full Name (CODE)", and
  *   Ganti Asisten (with a reason) or, for a free group, Pegang.
@@ -27,11 +29,14 @@ import {
   type KeyboardEvent,
 } from "react";
 import {
+  ArrowRightIcon,
+  CheckIcon,
   CopyIcon,
   EyeIcon,
   HandCoinsIcon,
   HandIcon,
   LockSimpleIcon,
+  UserPlusIcon,
   UserSwitchIcon,
 } from "@phosphor-icons/react";
 import Dropdown from "../ui/Dropdown";
@@ -41,7 +46,12 @@ import SegmentedControl from "../ui/SegmentedControl";
 import { ProgressRing } from "../ui/Display";
 import { kelompokLabel } from "../../lib/labels";
 import { namaAsisten, useDirektori } from "../../lib/people";
-import { namaKelompok, postJson, sejak, useTick } from "../../lib/app";
+import { getJson, namaKelompok, postJson, sejak, useTick } from "../../lib/app";
+import { useSiaran } from "../../lib/siaran";
+import { jamLab } from "../shared/Instruments";
+import TambahPraktikan from "./TambahPraktikan";
+import { cellOf, type Kolom, type Matriks, type SelMatriks, type WorkTab } from "./RunBoard";
+import { R } from "./runStrings";
 import type { Lang } from "../../lib/kelas";
 import { LiveRecords, recordStats } from "../../lib/live-records";
 import { useTelemetry } from "../live/useTelemetry";
@@ -57,7 +67,6 @@ import { useCaraNilai } from "./caraNilai";
 import { useTandaAbsen } from "./TandaAbsen";
 import GroupBarsModal, { type BarKind } from "./GroupBarsModal";
 import BlankPanel, { type BlankRingkas } from "./BlankPanel";
-import { BL } from "./blankStrings";
 import { pesan, type Strings } from "./strings";
 import type { NilaiLive } from "./data";
 import type { AsistenRef, GroupRow, Stuck } from "./types";
@@ -82,10 +91,21 @@ export interface InspectorProps {
   seelabs: SeelabsData | null;
   onSeelabs: (tab?: SeelabsTab, nomor?: number | null) => void;
   onSeelabsChanged: () => void;
+  /** Phase 10 (c12-run): the workspace tab, the class matrix, the shared
+   *  Show the Keys switch, a blank to bring into view, and Preparation. */
+  tab?: WorkTab;
+  onTab?: (t: WorkTab) => void;
+  mtx?: Matriks | null;
+  kolom?: Kolom[];
+  kunci?: boolean;
+  onKunci?: (v: boolean) => void;
+  fokus?: string | null;
+  onPrep?: () => void;
 }
 
 export default function GroupInspector(p: InspectorProps) {
   const { t, lang, sesiId, g, hand, ownerNim, asisten, meNim, nilai } = p;
+  const r = R[lang];
   const now = useTick(15_000);
   const owner = ownerNim ? (asisten.get(ownerNim) ?? null) : null;
   const ownerName = owner ? namaAsisten(owner) : (ownerNim ?? t.noAssistant);
@@ -99,27 +119,30 @@ export default function GroupInspector(p: InspectorProps) {
   const riwayat = mineEv.filter((x) => x.dari !== null);
   const nama = (nim: string | null) => (nim ? namaAsisten(asisten.get(nim), nim) : "?");
   const [busy, setBusy] = useState(false);
-  const [bagian, setBagian] = useState<"nilai" | "blank">("nilai");
+  const [tabSendiri, setTabSendiri] = useState<WorkTab>("ringkasan");
+  const tab = p.tab ?? tabSendiri;
+  const setTab = p.onTab ?? setTabSendiri;
   const [ringkas, setRingkas] = useState<BlankRingkas | null>(null);
   useEffect(() => setRingkas(null), [g.id]);
-  const tb = BL[lang];
+  const benar = ringkas?.benar ?? g.benar;
+  const total = ringkas?.total ?? g.total;
 
   async function claim() {
     setBusy(true);
     try {
-      const r = await postJson<{ ok: boolean; kode?: string; pemilik?: string }>(
+      const res = await postJson<{ ok: boolean; kode?: string; pemilik?: string }>(
         "/api/session/assignment",
         { sesiId, kelompokId: g.id, alasan: "klaim" },
       );
-      if (r.ok) {
+      if (res.ok) {
         window.Toast?.show(t.claimed, "ok");
         p.onChanged();
         nilai.reload();
         return;
       }
-      if (r.kode === "sudah_dipegang" && r.pemilik)
-        window.Toast?.show(t.ownedBy(namaAsisten(asisten.get(r.pemilik), r.pemilik)), "warn");
-      else window.Toast?.show(pesan(t, r.kode), "danger");
+      if (res.kode === "sudah_dipegang" && res.pemilik)
+        window.Toast?.show(t.ownedBy(namaAsisten(asisten.get(res.pemilik), res.pemilik)), "warn");
+      else window.Toast?.show(pesan(t, res.kode), "danger");
     } catch {
       window.Toast?.show(t.fail, "danger");
     } finally {
@@ -129,8 +152,11 @@ export default function GroupInspector(p: InspectorProps) {
 
   async function resolveHand() {
     try {
-      const r = await postJson<{ ok: boolean }>("/api/session/help", { sesiId, kelompokId: g.id });
-      if (!r.ok) throw new Error();
+      const res = await postJson<{ ok: boolean }>("/api/session/help", {
+        sesiId,
+        kelompokId: g.id,
+      });
+      if (!res.ok) throw new Error();
       window.Toast?.show(t.resolved, "ok");
       p.onChanged();
     } catch {
@@ -138,21 +164,47 @@ export default function GroupInspector(p: InspectorProps) {
     }
   }
 
+  const cells = p.mtx?.sel[g.id] ?? {};
+  const kolom = p.kolom ?? [];
+
   return (
     <article
-      className="inspector"
+      className="panel inspector work"
       style={{ "--g": `var(--group-${g.nomor})` } as CSSProperties}
       aria-label={t.groupFull(g.nomor)}
+      data-area="work"
     >
-      <header className="inspector__head">
-        <span className="inspector__name">
-          <Pill group={g.nomor} lg>
-            {t.group(g.nomor)}
-          </Pill>
-          <h2 className="inspector__title">{namaKelompok(g.nomor, g.nama)}</h2>
+      <header className="work__head">
+        <span
+          className="gstar gstar--lg"
+          style={{ "--p": total ? benar / total : 0 } as CSSProperties}
+          aria-hidden="true"
+        >
+          <i />
         </span>
-        <span className="inspector__who">
-          <span className="hint">{t.assistantOf(ownerName)}</span>
+        <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+          <h2>
+            {t.group(g.nomor)} · {namaKelompok(g.nomor, g.nama)}
+          </h2>
+          <span className="hint">
+            {r.workSub(ownerName, g.hadir, g.anggotaTotal, benar, total)}
+          </span>
+        </div>
+        <div className="work__acts">
+          {hand && (
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              onClick={() => void resolveHand()}
+            >
+              <CheckIcon size={16} aria-hidden="true" />
+              {r.markDone}
+            </button>
+          )}
+          <button type="button" className="btn btn--sm" onClick={() => p.onAsPraktikan(g.id)}>
+            <EyeIcon size={16} aria-hidden="true" />
+            {r.viewGroup}
+          </button>
           {!ownerNim ? (
             <button
               type="button"
@@ -165,64 +217,105 @@ export default function GroupInspector(p: InspectorProps) {
           ) : (
             p.bolehPasang && (
               <button type="button" className="btn btn--sm" onClick={() => setChg(true)}>
-                <UserSwitchIcon size={18} aria-hidden="true" />
+                <UserSwitchIcon size={16} aria-hidden="true" />
                 {t.chg}
               </button>
             )
           )}
-        </span>
+        </div>
       </header>
 
       {hand && (
         <div className="banner banner--warn">
           <HandIcon size={20} aria-hidden="true" />
           <span className="grow">{t.handUp(sejak(hand, lang, now))}</span>
-          <button
-            type="button"
-            className="btn btn--primary btn--sm"
-            onClick={() => void resolveHand()}
-          >
-            {t.resolve}
-          </button>
         </div>
       )}
 
-      <LenderBanner {...p} />
+      <SegmentedControl
+        fill
+        value={tab}
+        onValueChange={(v) => setTab(v as WorkTab)}
+        aria-label={t.groupFull(g.nomor)}
+        options={[
+          { value: "ringkasan", label: r.tabs.ringkasan },
+          {
+            value: "blank",
+            label: (
+              <>
+                {r.tabs.blank(benar, total)}
+                {ringkas && ringkas.minta > 0 && (
+                  <Pill tone="violet" className="inspector__ask">
+                    {ringkas.minta}
+                  </Pill>
+                )}
+              </>
+            ),
+          },
+          { value: "nilai", label: r.tabs.nilai },
+          { value: "anggota", label: r.tabs.anggota },
+        ]}
+      />
 
-      {ownerNim && !mine && (
-        <div className="banner banner--lock">
-          <LockSimpleIcon size={20} aria-hidden="true" />
-          <span>{t.lockedScores(ownerName)}</span>
+      <div hidden={tab !== "ringkasan"}>
+        <div className="work__over">
+          <div className="stack" style={{ gap: 8 }}>
+            <span className="label-caps">{r.liveData}</span>
+            <InspectorCards {...p} />
+          </div>
+          <section className="stack" style={{ gap: 8 }}>
+            <span className="label-caps">{r.happened}</span>
+            <GroupLog
+              lang={lang}
+              hand={hand}
+              cells={cells}
+              kolom={kolom}
+              minta={(p.mtx?.minta ?? []).filter((x) => x.kelompokId === g.id)}
+            />
+            <button
+              type="button"
+              className="work__jump sweep-hover"
+              onClick={() => setTab("blank")}
+            >
+              <span className="cells__row" style={{ "--c": "var(--g)" } as CSSProperties}>
+                {(kolom.length ? kolom : Array.from({ length: total }, () => null)).map((k, i) => {
+                  const s = k ? cellOf(cells[k.soal]) : i < benar ? "b" : "e";
+                  return (
+                    <i
+                      key={k?.soal ?? i}
+                      data-on={s === "b" ? "yes" : "no"}
+                      data-w={s === "w" ? "yes" : undefined}
+                    />
+                  );
+                })}
+              </span>
+              <span className="hint">{r.seeBlanks}</span>
+              <ArrowRightIcon size={14} aria-hidden="true" />
+            </button>
+          </section>
         </div>
-      )}
+      </div>
 
-      <InspectorCards {...p} />
-
-      <div className="inspector__tabs">
-        <SegmentedControl
-          fill
-          value={bagian}
-          onValueChange={(v) => setBagian(v === "blank" ? "blank" : "nilai")}
-          aria-label={t.groupFull(g.nomor)}
-          options={[
-            { value: "nilai", label: tb.tabScores },
-            {
-              value: "blank",
-              label: (
-                <>
-                  {tb.tabBlank(ringkas?.benar ?? g.benar, ringkas?.total ?? g.total)}
-                  {ringkas && ringkas.minta > 0 && (
-                    <Pill tone="violet" className="inspector__ask">
-                      {ringkas.minta}
-                    </Pill>
-                  )}
-                </>
-              ),
-            },
-          ]}
+      <div hidden={tab !== "blank"}>
+        <BlankPanel
+          lang={lang}
+          kelompok={g.id}
+          nomor={g.nomor}
+          onRingkas={setRingkas}
+          kunciOn={p.kunci}
+          onKunci={p.onKunci}
+          fokus={tab === "blank" ? p.fokus : null}
         />
       </div>
-      <div hidden={bagian !== "nilai"}>
+
+      <div hidden={tab !== "nilai"} className="stack">
+        <LenderBanner {...p} />
+        {ownerNim && !mine && (
+          <div className="banner banner--lock">
+            <LockSimpleIcon size={20} aria-hidden="true" />
+            <span>{t.lockedScores(ownerName)}</span>
+          </div>
+        )}
         <ScoreEditor
           t={t}
           lang={lang}
@@ -232,32 +325,34 @@ export default function GroupInspector(p: InspectorProps) {
           ownerKode={owner?.kode ?? null}
           ownerName={ownerName}
         />
-      </div>
-      <div hidden={bagian !== "blank"}>
-        <BlankPanel lang={lang} kelompok={g.id} nomor={g.nomor} onRingkas={setRingkas} />
-      </div>
-
-      <div className="inspector__foot">
-        <span className="hint">{ownerNim ? t.enteredBy(ownerName) : ""}</span>
-        <span className="inspector__acts">
-          <button type="button" className="btn btn--sm" onClick={() => p.onAsPraktikan(g.id)}>
-            <EyeIcon size={18} aria-hidden="true" />
-            {t.viewAs}
-          </button>
-          <SeelabsChip {...p} />
-        </span>
-      </div>
-
-      {riwayat.length > 0 && (
-        <div className="auditline">
-          <span className="field__label">{t.chgHistory}</span>
-          {riwayat.map((x, i) => (
-            <p key={i}>
-              {t.chgLine(nama(x.ke), g.nomor, nama(x.awal ?? x.dari))}
-              {x.alasan ? ` ${t.chgReason(x.alasan)}` : ""}
-            </p>
-          ))}
+        <div className="inspector__foot">
+          <span className="hint">{ownerNim ? t.enteredBy(ownerName) : ""}</span>
+          <span className="inspector__acts">
+            <SeelabsChip {...p} />
+          </span>
         </div>
+        {riwayat.length > 0 && (
+          <div className="auditline">
+            <span className="field__label">{t.chgHistory}</span>
+            {riwayat.map((x, i) => (
+              <p key={i}>
+                {t.chgLine(nama(x.ke), g.nomor, nama(x.awal ?? x.dari))}
+                {x.alasan ? ` ${t.chgReason(x.alasan)}` : ""}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {tab === "anggota" && (
+        <Members
+          lang={lang}
+          g={g}
+          groups={p.groups}
+          cells={cells}
+          onChanged={p.onChanged}
+          onPrep={p.onPrep}
+        />
       )}
 
       <ChangeAssistant
@@ -279,6 +374,187 @@ export default function GroupInspector(p: InspectorProps) {
         }}
       />
     </article>
+  );
+}
+
+/* ------------------------------------------------------- what happened */
+
+/** One group's moments, newest first: a hand, hint requests, blanks right
+ *  and blanks checked wrong. */
+function GroupLog({
+  lang,
+  hand,
+  cells,
+  kolom,
+  minta,
+}: {
+  lang: Lang;
+  hand: string | null;
+  cells: Record<string, SelMatriks>;
+  kolom: Kolom[];
+  minta: { soal: string; catatan: string; pada: string }[];
+}) {
+  const r = R[lang];
+  const lbl = (soal: string) => kolom.find((k) => k.soal === soal)?.label ?? soal;
+  const items: { t: string; k: "bantu" | "minta" | "blank" | "salah"; text: string }[] = [];
+  if (hand) items.push({ t: hand, k: "bantu", text: r.ev.hand });
+  for (const x of minta)
+    items.push({ t: x.pada, k: "minta", text: r.ev.ask(lbl(x.soal), x.catatan) });
+  for (const [soal, c] of Object.entries(cells)) {
+    if (!c.pada) continue;
+    if (c.benar) items.push({ t: c.pada, k: "blank", text: r.ev.right(lbl(soal), c.oleh ?? "") });
+    else if (c.salah > 0 || c.percobaan > 0)
+      items.push({ t: c.pada, k: "salah", text: r.ev.wrong(lbl(soal), c.salah || c.percobaan) });
+  }
+  items.sort((a, b) => b.t.localeCompare(a.t));
+  const tone = { bantu: "warn", minta: "violet", blank: "ok", salah: "warn" } as const;
+  if (!items.length) return <p className="hint">{r.nothingYet}</p>;
+  return (
+    <ol className="elog">
+      {items.slice(0, 6).map((x, i) => (
+        <li key={`${x.t}${i}`} className="elog__row">
+          <time className="mono" dateTime={x.t}>
+            {jamLab(x.t)}
+          </time>
+          <span className="elog__tag mono" data-tone={tone[x.k]}>
+            {x.k === "blank"
+              ? r.tag.blank
+              : x.k === "salah"
+                ? r.tag.salah
+                : x.k === "minta"
+                  ? r.tag.minta
+                  : r.tag.bantu}
+          </span>
+          <span className="elog__text">{x.text}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/* --------------------------------------------------------------- members */
+
+interface HadirKelompok {
+  id: number;
+  nomor: number;
+  aktif: boolean;
+  anggota: { nim: string; nama: string; masukPada: string | null; manual: boolean }[];
+}
+
+/** Who is in the group: signed in when (or marked by hand), the blanks each
+ *  one filled, Mark Present, Add a Student and Move Group. */
+function Members({
+  lang,
+  g,
+  groups,
+  cells,
+  onChanged,
+  onPrep,
+}: {
+  lang: Lang;
+  g: GroupRow;
+  groups: GroupRow[];
+  cells: Record<string, SelMatriks>;
+  onChanged: () => void;
+  onPrep?: () => void;
+}) {
+  const r = R[lang];
+  const [list, setList] = useState<HadirKelompok[] | null>(null);
+  const [add, setAdd] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const muat = () =>
+    getJson<{ ok: boolean; kelompok: HadirKelompok[] }>("/api/session/hadir")
+      .then((d) => d.ok && setList(d.kelompok))
+      .catch(() => setList([]));
+  useSiaran(["sesi", "roster"], muat);
+  useEffect(() => {
+    void muat();
+  }, [g.id]);
+  const row = list?.find((x) => x.id === g.id || x.nomor === g.nomor);
+  const anggota =
+    row?.anggota ??
+    g.anggota.map((m) => ({ nim: m.nim, nama: m.nama, masukPada: null, manual: false }));
+  const hadirOf = (nim: string) =>
+    row
+      ? !!row.anggota.find((m) => m.nim === nim)?.masukPada
+      : !!g.anggota.find((m) => m.nim === nim)?.hadir;
+  const filled = (nim: string) =>
+    Object.values(cells).filter((c) => c.olehNim === nim && (c.isi || c.benar)).length;
+  async function tandai(nim: string, nama: string) {
+    setBusy(nim);
+    const res = await postJson<{ ok: boolean }>("/api/session/hadir", {
+      aksi: "praktikan",
+      nim,
+    }).catch(() => ({ ok: false }));
+    setBusy(null);
+    if (!res.ok) return window.Toast?.show(r.markPresent, "danger");
+    window.Toast?.show(r.marked(nama), "ok");
+    void muat();
+    onChanged();
+  }
+  return (
+    <div className="stack">
+      {!list ? (
+        <span className="skeleton" style={{ height: 160 }} />
+      ) : (
+        <ul className="mem">
+          {anggota.map((m) => {
+            const on = hadirOf(m.nim);
+            return (
+              <li key={m.nim} className="mem__row" data-hadir={on ? "yes" : "no"}>
+                <span className={`dot${on ? " dot--ok" : ""}`} aria-hidden="true" />
+                <span className="mem__txt">
+                  <b>{m.nama}</b>
+                  <span className="hint mono">
+                    {m.nim}
+                    {m.masukPada
+                      ? m.manual
+                        ? r.byHand
+                        : r.signedIn(jamLab(m.masukPada))
+                      : on
+                        ? ""
+                        : r.notIn}
+                  </span>
+                </span>
+                <span className="num hint">{r.filled(filled(m.nim))}</span>
+                {!on && (
+                  <button
+                    type="button"
+                    className="btn btn--sm"
+                    disabled={busy === m.nim}
+                    onClick={() => void tandai(m.nim, m.nama)}
+                  >
+                    {r.markPresent}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        <button type="button" className="btn btn--sm" onClick={() => setAdd(true)}>
+          <UserPlusIcon size={16} aria-hidden="true" />
+          {r.addStudent}
+        </button>
+        {onPrep && (
+          <button type="button" className="btn btn--ghost btn--sm" onClick={onPrep}>
+            <UserSwitchIcon size={16} aria-hidden="true" />
+            {r.moveGroup}
+          </button>
+        )}
+      </div>
+      <TambahPraktikan
+        lang={lang}
+        open={add}
+        onOpenChange={setAdd}
+        groups={groups.map((x) => ({ nomor: x.nomor, aktif: x.sesiAktif }))}
+        onAdded={() => {
+          void muat();
+          onChanged();
+        }}
+      />
+    </div>
   );
 }
 

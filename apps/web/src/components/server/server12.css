@@ -1,0 +1,160 @@
+/* Phase 10 Server detail head (mockup s12-server): the hero card. */
+
+.s12hero {
+  gap: 16px;
+}
+
+.s12hero__top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.s12hero__id {
+  display: flex;
+  flex: 1 1 280px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.s12hero__name {
+  margin: 0;
+}
+
+.s12hero__side {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.srv12ring {
+  align-content: center;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--ok) 18%, transparent),
+    transparent 70%
+  );
+  border: 3px solid var(--ok);
+  border-radius: 50%;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--ok) 45%, transparent);
+  display: grid;
+  flex: none;
+  gap: 0;
+  height: 96px;
+  justify-items: center;
+  width: 96px;
+}
+
+.srv12ring b {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.srv12ring[data-off="yes"] {
+  background: radial-gradient(circle, var(--warn-soft), transparent 70%);
+  border-color: var(--warn);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--warn) 45%, transparent);
+}
+
+.srv12ring__dot {
+  background: var(--ok);
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+}
+
+:root:not([data-motion-tier="0"]) .srv12ring[data-off="no"] .srv12ring__dot {
+  animation: srv12-beat 1.6s ease-in-out infinite;
+}
+
+.srv12ring[data-off="yes"] .srv12ring__dot {
+  background: var(--warn);
+}
+
+@keyframes srv12-beat {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(1.8);
+  }
+}
+
+/* The facts share the card's width in equal cells; notes take a row. */
+.s12facts.locstrip {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 1100px) {
+  .s12facts.locstrip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.s12facts .locstrip__i {
+  box-shadow: none;
+  min-width: 0;
+}
+
+.s12facts .locstrip__i b {
+  overflow-wrap: anywhere;
+}
+
+.s12facts .locstrip__i[data-k="catatan"] {
+  grid-column: 1 / -1;
+}
+
+.s12glance {
+  align-items: center;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+.s12glance > .grow {
+  flex: 1 1 auto;
+}
+
+.s12glance__i {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.86rem;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.s12glance__i[data-t="warn"] {
+  border-color: color-mix(in srgb, var(--warn) 50%, var(--hairline));
+}
+
+.s12glance__i[data-t="bad"] {
+  border-color: color-mix(in srgb, var(--danger) 50%, var(--hairline));
+}
+
+@media (max-width: 639px) {
+  .s12glance > .btn {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+
+  .s12hero__side {
+    align-items: stretch;
+    margin-left: 0;
+    width: 100%;
+  }
+}

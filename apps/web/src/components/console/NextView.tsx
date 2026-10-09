@@ -44,7 +44,7 @@ import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import { useDirektori } from "../../lib/people";
 import { pesan, type Strings } from "./strings";
-import { kapanSesi } from "./DoneView";
+import { kapanSesi } from "./EndPage";
 import { belumSelesai, useRingkasSesi } from "./ringkasSesi";
 import type { SesiRunning } from "./types";
 import { useSegar } from "../../lib/siaran";

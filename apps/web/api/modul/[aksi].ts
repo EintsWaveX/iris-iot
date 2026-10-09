@@ -14,6 +14,8 @@
  *      (blanks only, never answers), so the Code step shows a version newer than the build.
  * POST /api/modul/minta  { modul, berkas, nomor, catatan } — a group asks its Asisten for a hint.
  * POST /api/modul/minta-batal { id }       — the group takes a waiting request back.
+ * GET  /api/modul/matriks                 — Asisten only: every group against every blank of
+ *        the running session, with waiting hint requests (Phase 10 Blank Matrix).
  * GET  /api/modul/blank?kelompok=          — Asisten only: one group's every blank in the
  *      running session (answer, tries, who, key, hint, requests), for the Konsol's Blank tab.
  * POST /api/modul/petunjuk { kelompok, soal, teks, minta? } — Asisten only: answer a
@@ -67,6 +69,7 @@ import { SALAH_UNTUK_BANTUAN } from "../../src/lib/kode-jurnal.js";
 import {
   daftarMinta,
   handleBlank,
+  handleMatriks,
   handleMinta,
   handleMintaBatal,
   handlePetunjuk,
@@ -620,6 +623,11 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireMethod(req, res, "GET")) return;
     if (!requireRole(req, res, "asisten")) return;
     return handleBlank(req, res);
+  }
+  if (req.query.aksi === "matriks") {
+    if (!requireMethod(req, res, "GET")) return;
+    if (!requireRole(req, res, "asisten")) return;
+    return handleMatriks(req, res);
   }
   if (req.query.aksi === "petunjuk") {
     if (!requireMethod(req, res, "POST")) return;

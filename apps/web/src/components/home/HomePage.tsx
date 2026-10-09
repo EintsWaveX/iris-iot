@@ -41,6 +41,7 @@ import "../ui/Display.css";
 import "./home.css";
 import { openSignIn } from "../../lib/signin";
 import { useSegar } from "../../lib/siaran";
+import DayCard from "../console/DayCard";
 
 interface Lab {
   modul: number;
@@ -236,75 +237,60 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
     : next === null
       ? null
       : undefined;
-  return (
-    <div className="panel panel--key bridge">
-      {lab ? (
-        <div className="bridge__top">
-          <MissionClock
-            mulaiPada={lab.mulaiPada}
-            durasiMenit={lab.durasiMenit}
-            size={104}
-            lang={lang}
-          />
-          <div className="stack stack--sm">
-            <div className="row">
-              <Pill tone="ok">{t.running}</Pill>
-              <Pill>{kelasLabel(lab.kelas, lang)}</Pill>
-            </div>
-            <h2 className="home__h2">
-              {modulLabel(lab.modul, lang)} · {MODUL_NAMA[lab.modul]}
-            </h2>
-            <span className="hint">
-              {pegang.length ? t.hold(daftarKelompok(pegang, lang)) : t.holdNone}
-              {nextText ? ` ${t.nextSlot(nextText)}` : ""}
-            </span>
-          </div>
+  // Phase 10 (h11-home): the Konsol's day strip in small, then the running
+  // session, my open start window, or my next slot.
+  const liveNode = lab ? (
+    <div className="bridge__top">
+      <MissionClock mulaiPada={lab.mulaiPada} durasiMenit={lab.durasiMenit} size={92} lang={lang} />
+      <div className="stack stack--sm">
+        <div className="row">
+          <Pill tone="ok">{t.running}</Pill>
+          <Pill>{kelasLabel(lab.kelas, lang)}</Pill>
         </div>
-      ) : (
-        <>
-          <span className="label-caps">{t.nextTitle}</span>
-          {next === undefined ? (
-            <span className="skeleton" style={{ height: 48 }} />
-          ) : next ? (
-            <>
-              <h2 className="home__h2">
-                {hariLabel(next.hari, lang)} · {SLOT_MULAI[next.slot]}
-              </h2>
-              <div className="row">
-                <Pill tone="accent">
-                  {next.sedangBerjalan
-                    ? t.nowRunning
-                    : next.hariLagi === 0
-                      ? t.today
-                      : next.hariLagi === 1
-                        ? t.tomorrow
-                        : t.inDays(next.hariLagi)}
-                </Pill>
-                <Pill tone={next.kelas === "internasional" ? "violet" : undefined}>
-                  {kelasLabel(next.kelas, lang)}
-                </Pill>
-                {next.kelompok.length > 0 && <Pill>{daftarKelompok(next.kelompok, lang)}</Pill>}
-              </div>
-            </>
-          ) : (
-            <p className="panel__sub">{t.noSlot}</p>
-          )}
-        </>
-      )}
-      <div className="panel__actions">
-        <a className="btn btn--inverse btn--lg" href={href(lang, "/session")}>
-          {t.konsol}
-          <ArrowRightIcon aria-hidden="true" />
-        </a>
-        <a className="btn btn--lg" href={href(lang, "/schedule")}>
-          {t.jadwal}
-        </a>
+        <h2 className="home__h2">
+          {modulLabel(lab.modul, lang)} · {MODUL_NAMA[lab.modul]}
+        </h2>
+        <span className="hint">
+          {pegang.length ? t.hold(daftarKelompok(pegang, lang)) : t.holdNone}
+          {nextText ? ` ${t.nextSlot(nextText)}` : ""}
+        </span>
       </div>
     </div>
+  ) : null;
+  const nextNode = (
+    <div className="stack stack--sm">
+      <span className="label-caps">{t.nextTitle}</span>
+      {next === undefined ? (
+        <span className="skeleton" style={{ height: 48 }} />
+      ) : next ? (
+        <>
+          <h2 className="home__h2">
+            {hariLabel(next.hari, lang)} · {SLOT_MULAI[next.slot]}
+          </h2>
+          <div className="row">
+            <Pill tone="accent">
+              {next.sedangBerjalan
+                ? t.nowRunning
+                : next.hariLagi === 0
+                  ? t.today
+                  : next.hariLagi === 1
+                    ? t.tomorrow
+                    : t.inDays(next.hariLagi)}
+            </Pill>
+            <Pill tone={next.kelas === "internasional" ? "violet" : undefined}>
+              {kelasLabel(next.kelas, lang)}
+            </Pill>
+            {next.kelompok.length > 0 && <Pill>{daftarKelompok(next.kelompok, lang)}</Pill>}
+          </div>
+        </>
+      ) : (
+        <p className="panel__sub">{t.noSlot}</p>
+      )}
+    </div>
   );
+  return <DayCard lang={lang} me={me} live={liveNode} next={nextNode} />;
 }
 
-/** The lab sky: the module's devices faint behind, the groups in front. */
 function LabSky({
   lang,
   lab,

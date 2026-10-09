@@ -1,0 +1,91 @@
+/* Ada Masalah? (Phase 10, mockup c12-run help center). */
+
+.sysrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sysrow__i {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.84rem;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.sysrow__i[data-t="warn"] {
+  border-color: color-mix(in srgb, var(--warn) 50%, var(--hairline));
+}
+
+.hdrawer__search {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.hdrawer__search .input {
+  flex: 1;
+}
+
+.trbl {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.trbl[data-tone="warn"] {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--hairline));
+}
+
+.trbl__h {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  padding: 12px 14px;
+  text-align: start;
+  width: 100%;
+}
+
+.trbl__h:hover,
+.trbl__h:focus-visible {
+  background: var(--surface-2);
+}
+
+.trbl__body {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.trbl__found {
+  align-items: baseline;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.92rem;
+  gap: 8px;
+  margin: 0;
+}
+
+.trbl__found svg {
+  flex: none;
+}
+
+.trbl__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hdrawer__stuck {
+  gap: 12px;
+}

@@ -1,5 +1,5 @@
 /**
- * "Butuh Bantuan Hari Ini" on the Console home (Phase 9 Stage 4, mockup
+ * "Butuh Bantuan Hari Ini", since Phase 10 rows of the Konsol inbox (Phase 9 Stage 4, mockup
  * c-home HelpCard), from GET /api/session/penugasan:
  *
  * - today's slots with an excused Asisten or an open group: Saya Bantu
@@ -19,9 +19,9 @@ import {
   HandHeartIcon,
   PaperPlaneTiltIcon,
   XCircleIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
-import Pill from "../ui/Pill";
 import { dict, getJson, postJson, tanggalPanjang } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import { SLOT_MULAI } from "../../lib/jadwal";
@@ -154,28 +154,45 @@ interface Penugasan {
   milikku: (TugasInfo & Konteks)[];
 }
 
-export default function HelpCard({
-  lang,
-  nama,
-  onChanged,
-}: {
-  lang: Lang;
-  /** "Full Name (CODE)" for a NIM. */
-  nama: (nim: string | null) => string;
-  onChanged: () => void;
-}) {
-  const t = B[lang];
-  const poll = usePoll(
+/** The offers and requests, polled once for the whole Konsol home. */
+export function useBantuan() {
+  return usePoll(
     () =>
       getJson<{ ok: boolean } & Penugasan>("/api/session/penugasan").then((d) => (d.ok ? d : null)),
     60_000,
     true,
     ["jadwal", "tim"],
   );
+}
+
+export function jumlahBantuan(d: Penugasan | null | undefined): number {
+  return d ? d.bantu.length + d.permintaan.length + d.tawaran.length : 0;
+}
+
+/**
+ * Phase 10 (c11-home): the same help as rows of the Konsol inbox,
+ * "Menunggumu": requests to me, offers to confirm, then slots short of an
+ * Asisten. Each keeps its own buttons and the ask dialog.
+ */
+export default function HelpRows({
+  lang,
+  nama,
+  poll,
+  onChanged,
+  tags,
+}: {
+  lang: Lang;
+  /** "Full Name (CODE)" for a NIM. */
+  nama: (nim: string | null) => string;
+  poll: ReturnType<typeof useBantuan>;
+  onChanged: () => void;
+  tags: { bantu: string; minta: string; tawar: string };
+}) {
+  const t = B[lang];
   const [ask, setAsk] = useState<SlotBantu | null>(null);
   const [busy, setBusy] = useState(false);
   const d = poll.data;
-  if (!d || d.bantu.length + d.permintaan.length + d.tawaran.length === 0) return null;
+  if (!d || jumlahBantuan(d) === 0) return null;
   const when = (x: Konteks) =>
     `${tanggalPanjang(x.tanggal, lang)} · ${slotLabel(x.slot, lang)} · ${SLOT_MULAI[x.slot]}`;
 
@@ -197,15 +214,7 @@ export default function HelpCard({
   }
 
   const answer = (aksi: "jawab" | "konfirmasi", id: number) => (
-    <span className="row helprow__act">
-      <button
-        type="button"
-        className="btn btn--ghost btn--sm"
-        disabled={busy}
-        onClick={() => void kirim({ aksi, id, terima: false }, t.declinedToast)}
-      >
-        {t.decline}
-      </button>
+    <span className="todo10__acts">
       <button
         type="button"
         className="btn btn--primary btn--sm"
@@ -215,94 +224,93 @@ export default function HelpCard({
         <CheckIcon size={16} aria-hidden="true" />
         {t.accept}
       </button>
+      <button
+        type="button"
+        className="btn btn--sm"
+        disabled={busy}
+        onClick={() => void kirim({ aksi, id, terima: false }, t.declinedToast)}
+      >
+        <XIcon size={16} aria-hidden="true" />
+        {t.decline}
+      </button>
     </span>
   );
 
   return (
-    <section className="panel helpcard">
-      <div className="panel__head">
-        <h2 className="panel__title">{t.title}</h2>
-        <Pill tone="violet">
-          <HandHeartIcon size={14} aria-hidden="true" />
-          {t.volunteer}
-        </Pill>
-      </div>
-      <div className="helplist">
-        {d.permintaan.map((x) => (
-          <div key={`p${x.id}`} className="helprow">
-            <Pill tone="accent">{SLOT_MULAI[x.slot]}</Pill>
-            <span className="stack helprow__text">
-              <b>{t.reqTitle}</b>
-              <span className="hint">
-                {t.reqLine(nama(x.dimintaOleh), kelompokLabel(x.kelompokNomor ?? 1, lang), when(x))}
-              </span>
+    <>
+      {d.permintaan.map((x) => (
+        <li key={`p${x.id}`} className="elog__row todo10__row">
+          <span className="elog__tag mono" data-tone="violet">
+            {tags.minta}
+          </span>
+          <span className="elog__text">
+            {t.reqLine(nama(x.dimintaOleh), kelompokLabel(x.kelompokNomor ?? 1, lang), when(x))}
+          </span>
+          {answer("jawab", x.id)}
+        </li>
+      ))}
+      {d.tawaran.map((x) => (
+        <li key={`t${x.id}`} className="elog__row todo10__row">
+          <span className="elog__tag mono" data-tone="violet">
+            {tags.tawar}
+          </span>
+          <span className="elog__text">
+            {t.offerLine(nama(x.nim))} · {when(x)}
+          </span>
+          {answer("konfirmasi", x.id)}
+        </li>
+      ))}
+      {d.bantu.map((r) => {
+        const mine = d.milikku.find((m) => m.jadwalId === r.jadwalId);
+        return (
+          <li key={`b${r.jadwalId}`} className="elog__row todo10__row">
+            <span className="elog__tag mono" data-tone="violet">
+              {tags.bantu}
             </span>
-            {answer("jawab", x.id)}
-          </div>
-        ))}
-        {d.tawaran.map((x) => (
-          <div key={`t${x.id}`} className="helprow">
-            <Pill tone="violet">{SLOT_MULAI[x.slot]}</Pill>
-            <span className="stack helprow__text">
-              <b>{t.offerLine(nama(x.nim))}</b>
-              <span className="hint">{when(x)}</span>
-            </span>
-            {answer("konfirmasi", x.id)}
-          </div>
-        ))}
-        {d.bantu.map((r) => {
-          const mine = d.milikku.find((m) => m.jadwalId === r.jadwalId);
-          return (
-            <div key={`b${r.jadwalId}`} className="helprow">
-              <Pill tone={r.izin.length ? "danger" : "warn"}>{SLOT_MULAI[r.slot]}</Pill>
-              <span className="stack helprow__text">
-                <b>{t.slotLine(hariLabel(r.hari, lang), r.slot, kelasLabel(r.kelas, lang))}</b>
-                <span className="hint">
-                  {r.izin.length
-                    ? t.izin(r.izin.map((x) => nama(x.nim)).join(", "))
-                    : t.short(r.kosong.length)}
+            <span className="elog__text">
+              {t.slotLine(hariLabel(r.hari, lang), r.slot, kelasLabel(r.kelas, lang))} ·{" "}
+              {SLOT_MULAI[r.slot]}.{" "}
+              {r.izin.length
+                ? t.izin(r.izin.map((x) => nama(x.nim)).join(", "))
+                : t.short(r.kosong.length)}
+              {r.saya === "diminta" && <span className="todo10__st">{t.pending}</span>}
+              {r.saya === "diterima" && (
+                <span className="todo10__st">
+                  <CheckCircleIcon size={14} aria-hidden="true" /> {t.accepted(r.slot)}
                 </span>
-                {r.saya === "diminta" && (
-                  <span className="helprow__st">
-                    <span className="dot dot--warn" aria-hidden="true" />
-                    {t.pending}
-                  </span>
-                )}
-                {r.saya === "diterima" && (
-                  <span className="helprow__st" data-tone="ok">
-                    <CheckCircleIcon size={16} aria-hidden="true" />
-                    {t.accepted(r.slot)}
-                  </span>
-                )}
-                {r.saya === "ditolak" && (
-                  <span className="helprow__st" data-tone="danger">
-                    <XCircleIcon size={16} aria-hidden="true" />
-                    {t.declined(nama(r.oleh))}
-                  </span>
-                )}
-              </span>
-              {r.saya === "diminta" && mine ? (
+              )}
+              {r.saya === "ditolak" && (
+                <span className="todo10__st" style={{ color: "var(--danger)" }}>
+                  <XCircleIcon size={14} aria-hidden="true" /> {t.declined(nama(r.oleh))}
+                </span>
+              )}
+            </span>
+            {r.saya === "diminta" && mine ? (
+              <span className="todo10__acts">
                 <button
                   type="button"
-                  className="btn btn--ghost btn--sm"
+                  className="btn btn--sm"
                   disabled={busy}
                   onClick={() => void kirim({ aksi: "batal", id: mine.id }, t.withdrawn)}
                 >
                   {t.withdraw}
                 </button>
-              ) : r.saya === null ? (
-                <button type="button" className="btn btn--sm" onClick={() => setAsk(r)}>
+              </span>
+            ) : r.saya === null ? (
+              <span className="todo10__acts">
+                <button
+                  type="button"
+                  className="btn btn--primary btn--sm"
+                  onClick={() => setAsk(r)}
+                >
                   <HandHeartIcon size={16} aria-hidden="true" />
                   {t.help}
                 </button>
-              ) : (
-                <span />
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <span className="hint">{t.hint}</span>
+              </span>
+            ) : null}
+          </li>
+        );
+      })}
       <Dialog
         open={!!ask}
         onOpenChange={(o) => !o && setAsk(null)}
@@ -342,6 +350,6 @@ export default function HelpCard({
           </ul>
         )}
       </Dialog>
-    </section>
+    </>
   );
 }

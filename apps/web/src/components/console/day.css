@@ -1,0 +1,1045 @@
+/* Phase 10 Konsol (mockups c11-home and h11-home): the Asisten's day as a
+   timeline, the launch panel, the inbox and the earnings and feedback strip.
+   The small copy of the strip sits on Home. */
+
+.day .mono,
+.lp .mono,
+.dtfoot .mono,
+.seq .mono {
+  font-family: var(--font-mono);
+}
+
+/* ------------------------------------------------------------- the strip */
+.day {
+  --rail-h: 150px;
+}
+
+.day__rail {
+  height: calc(var(--rail-h) + 26px);
+  margin: 22px 0 0;
+  position: relative;
+}
+
+/* Hours: a faint line down the rail, its label under the rail. */
+.day__tick {
+  background: var(--hairline);
+  bottom: 0;
+  left: var(--x);
+  position: absolute;
+  top: 0;
+  width: 1px;
+}
+
+.day__tick b {
+  bottom: 0;
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  font-weight: 600;
+  left: 0;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.day__tick--a b {
+  transform: none;
+}
+
+.day__tick--z b {
+  transform: translateX(-100%);
+}
+
+/* The start window: a hatched lead in right before the block. */
+.day__lead {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--text-faint) 26%, transparent) 0 2px,
+    transparent 2px 7px
+  );
+  border-radius: 8px 0 0 8px;
+  height: calc(var(--rail-h) - 16px);
+  left: var(--x);
+  opacity: 0.7;
+  position: absolute;
+  top: 8px;
+  width: var(--w);
+}
+
+.day__lead[data-state="now"] {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ok) 55%, transparent) 0 2px,
+    transparent 2px 7px
+  );
+  opacity: 1;
+}
+
+.day__lead[data-state="done"] {
+  opacity: 0.3;
+}
+
+/* A slot: the kit's .slot button, placed on the time axis. Its look is
+   repeated here so the strip draws the same on Home, where console.css
+   isn't loaded. */
+.day__blk.slot {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.day__blk.slot[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+  border: 2px solid var(--accent);
+}
+
+.day__blk.slot {
+  align-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: var(--rail-h);
+  left: var(--x);
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px 11px;
+  position: absolute;
+  text-align: start;
+  top: 0;
+  width: var(--w);
+}
+
+.day__blk.slot[aria-pressed="true"] {
+  padding: 9px 10px;
+}
+
+.day__blk.slot:hover {
+  transform: none;
+}
+
+.day__blk[data-state="done"] {
+  opacity: 0.72;
+}
+
+.day__blk[data-state="done"][aria-pressed="true"] {
+  opacity: 1;
+}
+
+.day__blk[data-state="live"] {
+  background:
+    linear-gradient(90deg, var(--ok-soft) calc(var(--fill) * 100%), transparent 0), var(--surface-2);
+}
+
+.day__top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.day__t {
+  font-size: 1.02rem;
+  white-space: nowrap;
+}
+
+.day__end {
+  color: var(--text-faint);
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+.day__mid {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.day__codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.day__codes--one {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.day__more {
+  color: var(--text-faint);
+}
+
+.day__ran {
+  font-size: 0.78rem;
+  margin-top: auto;
+}
+
+/* Now: one line down the whole strip with its time on top. */
+.day__now {
+  background: var(--ok);
+  box-shadow: 0 0 10px var(--ok);
+  height: calc(var(--rail-h) + 14px);
+  left: var(--now);
+  margin-left: -1px;
+  pointer-events: none;
+  position: absolute;
+  top: -14px;
+  width: 2px;
+  z-index: 2;
+}
+
+.day__now b {
+  background: var(--ok);
+  border-radius: 6px;
+  color: #04130b;
+  font-size: 0.72rem;
+  left: 50%;
+  padding: 1px 6px;
+  position: absolute;
+  top: -8px;
+  transform: translate(-50%, -50%);
+}
+
+.day__nowword {
+  display: none;
+}
+
+/* Narrower: the blocks are too thin for the end time. */
+@media (max-width: 1279px) {
+  .day {
+    --rail-h: 168px;
+  }
+
+  .day__end,
+  .day__ran {
+    display: none;
+  }
+
+  .day__blk.slot {
+    padding: 9px;
+  }
+
+  .day__t {
+    font-size: 0.95rem;
+  }
+}
+
+/* Phones: the strip stands up. Slots stack in time order, now is its own
+   row between them, the hour ticks and window lead ins go. */
+@media (max-width: 759px) {
+  .day__rail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: auto;
+    margin: 4px 0 0;
+    padding-left: 16px;
+  }
+
+  .day__rail::before {
+    background: var(--hairline-strong);
+    border-radius: 2px;
+    bottom: 6px;
+    content: "";
+    left: 4px;
+    position: absolute;
+    top: 6px;
+    width: 2px;
+  }
+
+  .day__tick,
+  .day__lead {
+    display: none;
+  }
+
+  .day__blk.slot {
+    height: auto;
+    left: auto;
+    order: var(--o);
+    overflow: visible;
+    position: relative;
+    width: auto;
+  }
+
+  .day__blk.slot::before {
+    background: var(--surface-3);
+    border: 2px solid var(--hairline-strong);
+    border-radius: 50%;
+    content: "";
+    height: 10px;
+    left: -17px;
+    position: absolute;
+    top: 16px;
+    width: 10px;
+  }
+
+  .day__blk[data-state="now"]::before,
+  .day__blk[data-state="live"]::before {
+    background: var(--ok);
+    border-color: var(--ok);
+  }
+
+  .day__blk[data-state="done"]::before {
+    background: var(--text-faint);
+    border-color: var(--text-faint);
+  }
+
+  .day__blk[data-state="next"]::before {
+    border-color: var(--accent);
+  }
+
+  .day__end,
+  .day__ran {
+    display: inline;
+  }
+
+  .day__now {
+    align-items: center;
+    background: none;
+    box-shadow: none;
+    color: var(--ok);
+    display: flex;
+    font-size: 0.8rem;
+    font-weight: 600;
+    gap: 8px;
+    height: auto;
+    left: auto;
+    margin: 0 0 0 -16px;
+    order: var(--o);
+    position: relative;
+    top: auto;
+    width: auto;
+  }
+
+  .day__now::after {
+    background: var(--ok);
+    border-radius: 2px;
+    box-shadow: 0 0 8px var(--ok);
+    content: "";
+    flex: 1;
+    height: 2px;
+  }
+
+  .day__now b {
+    position: static;
+    transform: none;
+  }
+
+  .day__nowword {
+    display: inline;
+  }
+}
+
+/* The small strip on Home: short blocks, no codes, no hours. */
+.day.day--sm {
+  --rail-h: 64px;
+}
+
+.day--sm .day__rail {
+  height: var(--rail-h);
+  margin-top: 18px;
+}
+
+.day--sm .day__blk.slot {
+  gap: 4px;
+  padding: 7px 8px;
+}
+
+.day--sm .day__t {
+  font-size: 0.86rem;
+}
+
+.day--sm .day__end,
+.day--sm .day__top .pill,
+.day--sm .day__mid .hint,
+.day--sm .day__intl {
+  display: none;
+}
+
+.day--sm .day__lead {
+  height: calc(var(--rail-h) - 8px);
+  top: 4px;
+}
+
+.day--sm .day__now {
+  height: calc(var(--rail-h) + 10px);
+  top: -10px;
+}
+
+@media (max-width: 759px) {
+  .day--sm .day__rail {
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    height: auto;
+    margin-top: 2px;
+    padding-left: 0;
+  }
+
+  .day--sm .day__rail::before,
+  .day--sm .day__blk.slot::before {
+    display: none;
+  }
+
+  .day--sm .day__now {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  .day--sm .day__top .pill {
+    display: inline-flex;
+  }
+}
+
+/* ------------------------------------------------------------ the page */
+.dt {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.dtday {
+  gap: 14px;
+}
+
+.dt__grid {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dt__grid > .panel {
+  height: 100%;
+}
+
+.dt__grid > .dtfoot {
+  height: auto;
+}
+
+@media (min-width: 760px) {
+  .dt__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .dtfoot {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1280px) {
+  .dt__grid {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 5fr) minmax(0, 4fr);
+  }
+
+  .dt__grid > .lp {
+    grid-column: span 2;
+  }
+}
+
+/* ---------------------------------------------------------- launch panel */
+.lp {
+  gap: 16px;
+}
+
+.lp__eyebrow {
+  color: var(--text-faint);
+}
+
+.lp__sus-sw {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.seq {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.seq__st {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.seq__node {
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 50%;
+  color: var(--text-muted);
+  display: grid;
+  flex: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  height: 26px;
+  place-items: center;
+  width: 26px;
+}
+
+.seq__st[data-state="ok"] .seq__node {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #04130b;
+}
+
+.seq__st[data-state="warn"] .seq__node {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.seq__st[data-state="go"] .seq__node {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.seq__st[data-state="go"] {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--hairline));
+}
+
+.seq__st b {
+  font-size: 0.9rem;
+}
+
+.seq__st .hint {
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 459px), (min-width: 760px) and (max-width: 1279px) {
+  .seq {
+    gap: 4px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lp__body {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1280px) {
+  .lp__body {
+    gap: 22px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.lp__left,
+.lp__right {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.lp__left > .btn {
+  align-self: stretch;
+  justify-content: center;
+}
+
+.lp__clockrow {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.lp__clockrow > .stack {
+  min-width: 0;
+}
+
+.lp__wait {
+  align-items: flex-start;
+  background: var(--surface-2);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+}
+
+.lp__wait b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.lp__win {
+  display: grid;
+  gap: 8px;
+}
+
+.lp__sus {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .lp__sus {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .lp__wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.lp__ran {
+  display: grid;
+  gap: 10px;
+}
+
+.lp__nums {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lp__nums > div {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+}
+
+.lp__nums b {
+  font-size: 1.3rem;
+}
+
+.lp__nums span {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+}
+
+.lp__nums > div[data-tone="warn"] {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--hairline));
+}
+
+.lp__nums > div[data-tone="warn"] b {
+  color: var(--warn);
+}
+
+.lp__nums > div[data-tone="ok"] b {
+  color: var(--ok);
+}
+
+.lp .panel__actions > .btn {
+  flex: 1 1 180px;
+  justify-content: center;
+}
+
+/* Readiness as lights: a lamp, the check, and Fix on any that isn't. */
+.lights {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lights__i {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 10px;
+  min-height: 46px;
+  padding: 6px 10px;
+}
+
+.lights__lamp {
+  background: var(--ok);
+  border-radius: 50%;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ok) 70%, transparent);
+  flex: none;
+  height: 10px;
+  width: 10px;
+}
+
+.lights__i[data-ok="no"] .lights__lamp {
+  background: var(--warn);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--warn) 70%, transparent);
+}
+
+.lights__i[data-ok="no"] {
+  border-color: color-mix(in srgb, var(--warn) 35%, var(--hairline));
+}
+
+.lights__txt {
+  display: grid;
+  flex: 1;
+  gap: 0;
+  min-width: 0;
+}
+
+.lights__txt b {
+  font-size: 0.9rem;
+}
+
+.lights__word {
+  color: var(--ok);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ----------------------------------------------------------------- inbox */
+.inbox {
+  gap: 10px;
+}
+
+.inbox__k {
+  margin-top: 4px;
+}
+
+.todo10__row {
+  align-items: start;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.todo10__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.todo10__acts > .btn {
+  flex: 1 1 120px;
+  justify-content: center;
+}
+
+.todo10__row[data-done="yes"] {
+  opacity: 0.6;
+}
+
+.todo10__st {
+  color: var(--ok);
+  display: block;
+  font-size: 0.82rem;
+  margin-top: 4px;
+}
+
+.todo10__empty {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 24px 8px;
+  text-align: center;
+}
+
+.state10__ic {
+  background: var(--accent-soft);
+  border-radius: 50%;
+  color: var(--accent-bright);
+  display: grid;
+  height: 64px;
+  place-items: center;
+  width: 64px;
+}
+
+/* -------------------------------------------------------- the slim strip */
+.dtfoot {
+  display: grid;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0;
+}
+
+.dtfoot__c {
+  align-items: center;
+  display: grid;
+  gap: 14px 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding: 16px 18px;
+}
+
+.dtfoot__side {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+}
+
+.dtfoot__side .hint {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.dtfoot__c + .dtfoot__c {
+  border-top: 1px solid var(--hairline);
+}
+
+@media (min-width: 760px) {
+  .dtfoot {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .dtfoot__c + .dtfoot__c {
+    border-left: 1px solid var(--hairline);
+    border-top: 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  .dtfoot__c {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, 200px);
+  }
+
+  .dtfoot__side {
+    align-items: flex-end;
+    flex-direction: column;
+    grid-column: auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 459px) {
+  .dtfoot__c {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dtfoot__k {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dtfoot__big {
+  font-size: 1.35rem;
+}
+
+.dtfoot__big small {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.dtfoot__up {
+  align-items: center;
+  color: var(--ok);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 600;
+  gap: 2px;
+}
+
+.dtfoot__up[data-down="yes"] {
+  color: var(--warn);
+}
+
+.dtfoot__chart {
+  align-items: end;
+  display: grid;
+  gap: 6px;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  height: 84px;
+}
+
+.dtfoot__wk {
+  display: grid;
+  gap: 4px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+  justify-items: center;
+}
+
+.dtfoot__wk i {
+  align-self: end;
+  background: linear-gradient(180deg, var(--ok), color-mix(in srgb, var(--ok) 35%, transparent));
+  border-radius: 5px 5px 2px 2px;
+  height: var(--h);
+  max-width: 28px;
+  width: 100%;
+}
+
+.dtfoot__wk i[data-zero="yes"] {
+  background: var(--surface-3);
+}
+
+.dtfoot__wk small {
+  color: var(--text-faint);
+  font-size: 0.66rem;
+}
+
+.dtfoot__stars {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.dtfoot__stars i {
+  background: linear-gradient(90deg, var(--warn) var(--f), var(--surface-3) var(--f));
+  clip-path: polygon(
+    50% 0,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  height: 14px;
+  width: 14px;
+}
+
+.dtfoot__dist {
+  display: grid;
+  gap: 4px;
+}
+
+.dtfoot__dr {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 12px minmax(0, 1fr) 20px;
+}
+
+.dtfoot__dr small {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+}
+
+.dtfoot__db {
+  background: var(--surface-3);
+  border-radius: 4px;
+  height: 7px;
+  overflow: hidden;
+}
+
+.dtfoot__db i {
+  background: var(--accent);
+  border-radius: 4px;
+  display: block;
+  height: 100%;
+}
+
+.dtfoot__q {
+  align-items: flex-start;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  flex: 1 1 200px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-style: italic;
+  gap: 8px;
+  padding: 8px 10px;
+  text-align: start;
+}
+
+.dtfoot__q time {
+  flex: none;
+  font-size: 0.74rem;
+  font-style: normal;
+}
+
+/* ------------------------------------------------------------ Home card */
+.h11card {
+  gap: 12px;
+}
+
+.h11card__top {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+}
+
+.h11inbox {
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+/* The start window clock: the mission clock's ring, toned by the window. */
+.wclock[data-tone="ok"] .mclock__arc {
+  filter: drop-shadow(0 0 3px var(--ok));
+  stroke: var(--ok);
+}
+
+.wclock[data-tone="idle"] .mclock__track {
+  stroke-dasharray: 3 5;
+}
+
+.wclock[data-tone="past"] .mclock__arc {
+  filter: none;
+  stroke: var(--text-faint);
+}
+
+.wclock .mclock__left {
+  font-size: 0.68rem;
+  line-height: 1.2;
+  max-width: 84px;
+}
+
+.wclock .mclock__t {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 400px) {
+  .lp__clockrow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.dt__pw {
+  color: inherit;
+  text-decoration: none;
+  width: 100%;
+}
+
+/* The start form in the launch panel's narrower right column: the length
+   stepper on its own row, the four quick lengths sharing the next. */
+.lp .startcard__len {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.lp .startcard__len > .ctl-stepper {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.lp .modpick__top {
+  flex-wrap: wrap;
+}
+
+.h11card .wclock .mclock__left {
+  font-size: 0.6rem;
+  max-width: 62px;
+}

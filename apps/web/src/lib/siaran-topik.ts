@@ -96,6 +96,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "modul:petunjuk": ["petunjuk"],
   // The Konsol's Blank tab reads one group's blanks (GET).
   "modul:blank": [],
+  "modul:matriks": [],
   "modul:kode-simpan": ["kode"],
   "modul:kode-buang": ["kode"],
   "modul:kode-pulihkan": ["kode"],

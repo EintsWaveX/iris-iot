@@ -1,53 +1,57 @@
 /**
- * Console home (Phase 9 Stage 3, mockup c-home): what /session shows while
- * no session runs.
+ * Konsol home (Phase 10, mockup c11-home): what /session shows while no
+ * session runs, as the Asisten's day.
  *
- * - Today: the four slots (Done, Now, Next) with their assistants, and the
- *   Asisten's own week as a strip under them. Picking a slot fills Start.
- * - Session Preparation: what is ready for the picked slot (roster, open
- *   modules, active slides, the server's last Ready check), and the way in.
- * - Start a Session: the picked slot inside its start window, or a
- *   Praktikum Susulan with its own date and time (Pengelola and Admin).
- *   Outside the window the form becomes an info block that says why and
- *   when, and the slot's own Asisten can change its window (5 to 30
- *   minutes). Class type, length (30 to 150) and module (closed ones are
- *   off) come next; Start is pinned to the card bottom.
- * - Still Needs Scores, Earnings This Month (Stage 6) and Feedback for You
- *   on the right.
+ * - Today: one strip from 06:00 to 18:30 with the four slots to scale
+ *   (DayStrip), their start windows, the now line and My Week under it.
+ *   Picking a slot fills the launch panel.
+ * - The launch panel reads as a launch: 1 Readiness (Preparation's checks
+ *   as lights, each with Fix), 2 Window (a clock counting to the window,
+ *   then how long it stays open; outside it the slot's own Asisten sets it,
+ *   5 to 30 minutes), 3 Start (class type, length, module; Start pinned at
+ *   the bottom). A slot that already ran shows what happened and what is
+ *   left to send instead. The Makeup switch opens the Praktikum Susulan form
+ *   (Pengelola and Admin).
+ * - Waiting on You: one ranked inbox (help requests and offers, groups
+ *   scored but not sent, groups still missing scores, SeeLabs holds).
+ * - Earnings and feedback as one slim strip at the foot.
  *
  * The server enforces every rule shown here (api/session/index.ts and
  * src/lib/sesi-mulai.ts); this page only explains them ahead of time.
  */
-import HelpCard from "./HelpCard";
+import HelpRows, { jumlahBantuan, useBantuan } from "./HelpCard";
 import StartCheck, { type BelumSiap } from "./StartCheck";
-import { EarningsMini } from "../bayar/Earnings";
+import DayStrip, { dayStates, SlotCodes, WinClock, type DaySlot } from "./DayStrip";
 import { useTitipan } from "./seelabs/data";
-import { SL } from "./seelabs/strings";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
+  ArrowDownIcon,
+  ArrowRightIcon,
+  ArrowUpIcon,
   CalendarBlankIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
+  CalendarPlusIcon,
   CheckCircleIcon,
+  CheckIcon,
   ClockCountdownIcon,
-  HourglassHighIcon,
   ListChecksIcon,
   LockSimpleIcon,
+  MoonStarsIcon,
+  PaperPlaneTiltIcon,
   PencilSimpleIcon,
+  PiggyBankIcon,
   PlayIcon,
   ProhibitIcon,
+  TableIcon,
   UsersThreeIcon,
   WarningIcon,
-  ArrowRightIcon,
 } from "@phosphor-icons/react";
 import { DateField, Stepper, Switch, TimeField } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
 import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
-import IconButton from "../ui/IconButton";
 import Pill from "../ui/Pill";
-import Popover from "../ui/Popover";
 import SegmentedControl from "../ui/SegmentedControl";
+import TierBadge from "../ui/TierBadge";
 import Tooltip from "../ui/Tooltip";
 import {
   getJson,
@@ -60,14 +64,7 @@ import {
 } from "../../lib/app";
 import { hariIniWib, SESI_CAP_MENIT, SESI_MIN_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
-import {
-  durasiLabel,
-  hariLabel,
-  kelasLabel,
-  kelompokLabel,
-  menitLabel,
-  modulLabel,
-} from "../../lib/labels";
+import { hariLabel, kelasLabel, kelompokLabel, menitLabel, modulLabel } from "../../lib/labels";
 import { useDirektori } from "../../lib/people";
 import {
   jamDariMenit,
@@ -79,10 +76,15 @@ import {
 } from "../../lib/sesi-mulai";
 import type { Kelas, Lang } from "../../lib/kelas";
 import type { Ringkasan } from "../../lib/umpan-balik";
+import { jumlahkan, rupiah } from "../../lib/bayar";
+import { periodeKini, useBayar } from "../bayar/data";
 import { pesan, type Strings } from "./strings";
 import { H, type Hx } from "./homeStrings";
+import { D, type Dx } from "./dayStrings";
 import type { PrepTab } from "./PrepView";
 import { useSiaran } from "../../lib/siaran";
+import "../shared/instruments.css";
+import "./day.css";
 
 interface SlotHariIni {
   slot: number;
@@ -99,6 +101,18 @@ interface SlotHariIni {
   jendelaMulaiMenit: number | null;
   jendelaDiaturOleh: string | null;
   roster: { kelompok: number; praktikan: number };
+}
+
+/** What a slot ran today (Phase 10). */
+export interface Jalan {
+  sesiId: number;
+  modul: number;
+  status: string;
+  selesaiPada: string | null;
+  kelompok: number;
+  hadir: number;
+  orang: number;
+  kirim: number;
 }
 
 export interface Beranda {
@@ -123,9 +137,15 @@ export interface Beranda {
     mulai: string;
     kelompok: { nomor: number; tanpaNilai: number }[];
   }[];
+  jalan?: Record<string, Jalan>;
+  belumKirim?: {
+    sesiId: number;
+    modul: number;
+    tanggal: string;
+    slot: number | null;
+    kelompok: { nomor: number; id: number }[];
+  }[];
 }
-
-type SlotState = "done" | "now" | "next" | "later";
 
 const DURASI_CEPAT = [60, 90, 120, 150];
 
@@ -151,6 +171,8 @@ export default function AsistenHome({
   onStarted,
   onPrep,
   onHeld,
+  onTable,
+  onSeelabsSesi,
 }: {
   t: Strings;
   lang: Lang;
@@ -161,11 +183,17 @@ export default function AsistenHome({
   onPrep: (pilih: string | null, tab?: PrepTab) => void;
   /** Opens Kirim ke SeeLabs on "Titipan" (scores held for my account). */
   onHeld: () => void;
+  /** An ended session's Score Table (Kirim Nilai lives there). */
+  onTable: (sesiId: number) => void;
+  /** An ended session's Kirim ke SeeLabs. */
+  onSeelabsSesi: (sesiId: number) => void;
 }) {
   const h = H[lang];
+  const d = D[lang];
   const held = useTitipan();
   const heldN = held.data?.titipan.length ?? 0;
   const dir = useDirektori();
+  const bantuan = useBantuan();
   const [data, setData] = useState<Beranda | null>(null);
   const [mine, setMine] = useState<Ringkasan | null>(null);
   const [slot, setSlot] = useState<number | null>(null);
@@ -188,14 +216,14 @@ export default function AsistenHome({
 
   const load = () =>
     getJson<{ ok: boolean } & Beranda>("/api/session/beranda")
-      .then((d) => d.ok && setData(d))
+      .then((x) => x.ok && setData(x))
       .catch(() => {});
   // presentasi: the readiness card's "Presentasi aktif" line (2026-10-07: it
   // kept naming a deck turned off elsewhere until it was clicked).
-  useSiaran(["sesi", "jadwal", "tim", "akses", "server", "roster", "presentasi"], load);
+  useSiaran(["sesi", "jadwal", "tim", "akses", "server", "roster", "presentasi", "nilai"], load);
   const muatUmpan = () =>
     getJson<{ ok: boolean; ringkasan: Ringkasan }>("/api/session/feedback?scope=mine")
-      .then((d) => d.ok && setMine(d.ringkasan))
+      .then((x) => x.ok && setMine(x.ringkasan))
       .catch(() => {});
   useSiaran(["umpan"], muatUmpan);
 
@@ -210,12 +238,12 @@ export default function AsistenHome({
 
   const muatDraf = (pilihUlang: boolean) =>
     getJson<{ ok: boolean; draf: Draf[] }>("/api/session/susulan")
-      .then((d) => {
-        if (!d.ok) return;
-        setDrafts(d.draf);
+      .then((x) => {
+        if (!x.ok) return;
+        setDrafts(x.draf);
         if (!pilihUlang) return;
         // The first draft with people in it, else a new one.
-        const pilih = d.draf.find((x) => x.praktikan > 0) ?? null;
+        const pilih = x.draf.find((y) => y.praktikan > 0) ?? null;
         setDraf(pilih ? pilih.id : "baru");
         if (pilih) setModul(pilih.modul);
       })
@@ -265,30 +293,50 @@ export default function AsistenHome({
     const r = row(s);
     return !!r && r.status === "aktif" && kodeSlot(r).length > 0;
   };
+  const jalanOf = (s: number): Jalan | null => data?.jalan?.[String(s)] ?? null;
+  const mineSlot = (s: number) => {
+    const r = row(s);
+    return (
+      !!r &&
+      (kodeSlot(r).includes(myCode) || r.pengganti.some((p) => p.kode.toUpperCase() === myCode))
+    );
+  };
 
-  // Done, Now (inside its start window), Next (the first upcoming slot with
-  // a practicum, else the first upcoming one), Later.
-  const states = useMemo(() => {
-    const out: Record<number, SlotState> = {};
-    const upcoming: number[] = [];
-    for (const s of [1, 2, 3, 4]) {
-      const p = jendelaSlot(SLOT_MULAI[s], jendelaOf(s), menitNow).posisi;
-      out[s] = p === "lewat" ? "done" : p === "buka" ? "now" : "later";
-      if (p === "belum") upcoming.push(s);
-    }
-    const next = upcoming.find(ada) ?? upcoming[0];
-    if (next) out[next] = "next";
-    return out;
-  }, [data, menitNow]);
+  const states = useMemo(
+    () =>
+      dayStates(
+        [1, 2, 3, 4].map((s) => {
+          const j = jalanOf(s);
+          return {
+            slot: s,
+            win: jendelaOf(s),
+            kosong: !ada(s),
+            jalan:
+              j?.status === "berjalan" ? "berjalan" : j?.status === "selesai" ? "selesai" : null,
+          };
+        }),
+        menitNow,
+      ),
+    [data, menitNow],
+  );
 
-  // Once the data arrives: the slot running now, else the next one, and
-  // the newest open module.
+  // Once the data arrives: the slot running or open now, else my next slot,
+  // else a slot of mine still unsent, else the next one.
   useEffect(() => {
     if (!data || slot !== null) return;
+    const order = [1, 2, 3, 4];
+    const up = (s: number) => states[s] === "next" || states[s] === "later";
+    const unsent = (s: number) => {
+      const j = jalanOf(s);
+      return states[s] === "done" && !!j && j.kirim < j.kelompok;
+    };
     const s =
-      [1, 2, 3, 4].find((n) => states[n] === "now" && ada(n)) ??
-      [1, 2, 3, 4].find((n) => states[n] === "next") ??
-      [1, 2, 3, 4].find((n) => states[n] === "now") ??
+      order.find((n) => (states[n] === "now" || states[n] === "live") && ada(n)) ??
+      order.find((n) => up(n) && mineSlot(n)) ??
+      [...order].reverse().find((n) => mineSlot(n) && unsent(n)) ??
+      order.find(up) ??
+      order.find((n) => states[n] === "now") ??
+      [...order].reverse().find((n) => states[n] === "done" && mineSlot(n)) ??
       4;
     pick(s);
     if (modul === null && data.terbuka.length) setModul(Math.max(...data.terbuka));
@@ -302,9 +350,7 @@ export default function AsistenHome({
 
   const sel = slot ?? 1;
   const r = row(sel);
-  const diSlot =
-    !!r &&
-    (kodeSlot(r).includes(myCode) || r.pengganti.some((p) => p.kode.toUpperCase() === myCode));
+  const diSlot = mineSlot(sel);
   const win = jendelaSlot(SLOT_MULAI[sel], jendelaOf(sel), menitNow);
   const blok: "past" | "future" | "notMine" | "empty" | null = susulan
     ? null
@@ -334,7 +380,7 @@ export default function AsistenHome({
         : susulan
           ? { jenis: "susulan", tanggal: susTanggal, mulai: susJam }
           : { tanggal: data?.tanggal ?? hariIniWib(), slot: sel };
-      const d = await postJson<{
+      const x = await postJson<{
         ok: boolean;
         kode?: string;
         ditugaskan?: number;
@@ -352,23 +398,23 @@ export default function AsistenHome({
         paksa,
       });
       // The lab check found something: show it instead of a toast.
-      if (d.kode === "belum_siap" && d.cek) {
-        setBelum({ cek: d.cek, serverId: d.serverId ?? null });
+      if (x.kode === "belum_siap" && x.cek) {
+        setBelum({ cek: x.cek, serverId: x.serverId ?? null });
         return;
       }
       setBelum(null);
-      if (d.ok) {
-        window.Toast?.show(d.ditugaskan ? t.startedAssign(d.ditugaskan) : t.started, "ok");
-        if (d.apDiantre === false) window.Toast?.show(t.apNotQueued, "warn", { duration: 12_000 });
+      if (x.ok) {
+        window.Toast?.show(x.ditugaskan ? t.startedAssign(x.ditugaskan) : t.started, "ok");
+        if (x.apDiantre === false) window.Toast?.show(t.apNotQueued, "warn", { duration: 12_000 });
         onStarted();
         return;
       }
-      if (d.kode === "sudah_ada" && d.sesiLama?.status === "berjalan") {
+      if (x.kode === "sudah_ada" && x.sesiLama?.status === "berjalan") {
         window.Toast?.show(t.alreadyRunning, "info");
         onStarted();
-      } else if (d.kode === "sudah_ada" && d.sesiLama?.bisaDilanjutkan) {
-        setResume(d.sesiLama.id);
-      } else window.Toast?.show(pesan(t, d.kode), "danger");
+      } else if (x.kode === "sudah_ada" && x.sesiLama?.bisaDilanjutkan) {
+        setResume(x.sesiLama.id);
+      } else window.Toast?.show(pesan(t, x.kode), "danger");
     } catch {
       window.Toast?.show(t.fail, "danger");
     } finally {
@@ -380,16 +426,586 @@ export default function AsistenHome({
   // practicum, else Preparation's own pick (my next slot, 2026-10-06).
   const pilihPrep = susulan || !ada(sel) ? null : `${hariDariTanggal(hariIniWib())}-${sel}`;
   const hariNama = data ? hariLabel(data.hari, lang) : "";
-  const whoMe = me.kode ? `${me.nama} (${me.kode})` : me.nama;
+  const nameOfKode = (k: string) => {
+    const a = [...dir.byNim.values()].find((x) => x.kode?.toUpperCase() === k);
+    return a ? `${a.nama} (${k})` : k;
+  };
+
+  const slots: DaySlot[] = [1, 2, 3, 4].map((s) => {
+    const rs = row(s);
+    const j = jalanOf(s);
+    return {
+      slot: s,
+      state: states[s] ?? "later",
+      mine: mineSlot(s),
+      kelas: rs?.kelas ?? "reguler",
+      codes: rs ? kodeSlot(rs) : [],
+      kosong: !ada(s),
+      ran: j
+        ? { modul: j.modul, selesai: j.selesaiPada ? jamMenit(j.selesaiPada, lang) : null }
+        : null,
+      win: jendelaOf(s),
+    };
+  });
+
+  // The day is over: no slot left open or to come.
+  const lastEnd = menitDariJam(SLOT_MULAI[4]) + SESI_CAP_MENIT;
+  const dayOver = !!data && menitNow >= lastEnd;
+  const nextMine = useMemo(() => {
+    if (!data) return null;
+    const list = [...data.mingguSaya].sort((a, b) => a.hari - b.hari || a.slot - b.slot);
+    return list.find((w) => w.hari > data.hari) ?? list[0] ?? null;
+  }, [data]);
+
+  const cek = data ? cekSiap(data, sel, false, h, lang) : [];
+  const siapN = cek.filter((c) => c.ok).length;
+  const goCek = (to: PrepTab | string) =>
+    to.startsWith("/") ? location.assign(to) : onPrep(pilihPrep, to as PrepTab);
+
+  /* -------------------------------------------------------- launch */
+  const susSwitch = (
+    <Tooltip label={penuh ? h.susulan : d.makeupLocked}>
+      <label className="lp__sus-sw">
+        <span className="hint">{d.makeup}</span>
+        <Switch
+          on={susulan}
+          onChange={(v) => {
+            if (!penuh) {
+              window.Toast?.show(d.makeupLocked, "warn");
+              return;
+            }
+            setSusulan(v);
+          }}
+          label={d.makeup}
+        />
+      </label>
+    </Tooltip>
+  );
+  const head = (
+    <div className="panel__head">
+      <div className="stack" style={{ gap: 2, minWidth: 0 }}>
+        <span className="eyebrow lp__eyebrow">
+          {susulan ? d.makeupEyebrow : `${hariNama} · Slot ${sel} · ${SLOT_MULAI[sel]}`}
+        </span>
+        <h2 className="panel__title">{d.startTitle}</h2>
+      </div>
+      {susSwitch}
+    </div>
+  );
+
+  const startButton = (
+    <div className="panel__actions">
+      {can && perluRoster ? (
+        <button
+          type="button"
+          className="btn btn--primary btn--lg btn--block"
+          disabled={busy}
+          data-loading={busy ? "yes" : undefined}
+          onClick={() => void buatRoster()}
+        >
+          <UsersThreeIcon size={20} aria-hidden="true" />
+          <span className="btn__label">{drafDipilih ? h.susFill : h.susCreate}</span>
+          <span className="btn__spinner" aria-hidden="true" />
+        </button>
+      ) : can ? (
+        <button
+          type="button"
+          className="btn btn--primary btn--lg btn--block"
+          disabled={busy}
+          data-loading={busy ? "yes" : undefined}
+          onClick={() => void start()}
+        >
+          <PlayIcon size={20} weight="fill" aria-hidden="true" />
+          <span className="btn__label">{h.start(modulLabel(modul ?? 1, lang))}</span>
+          <span className="btn__spinner" aria-hidden="true" />
+        </button>
+      ) : (
+        <Tooltip
+          label={
+            blok === "future"
+              ? d.seqFrom(win.buka)
+              : blok
+                ? h.outsideTip
+                : modul === null
+                  ? h.module
+                  : h.closedTip
+          }
+        >
+          <button
+            type="button"
+            className="btn btn--primary btn--lg btn--block"
+            aria-disabled="true"
+          >
+            <PlayIcon size={20} weight="fill" aria-hidden="true" />
+            {h.start(modulLabel(modul ?? 1, lang))}
+          </button>
+        </Tooltip>
+      )}
+    </div>
+  );
+
+  const startForm = (
+    <>
+      <div className="field">
+        <span className="field__label">{h.classType}</span>
+        <SegmentedControl
+          aria-label={h.classType}
+          value={kelas}
+          onValueChange={(v) => setKelas(v as Kelas)}
+          options={[
+            { value: "reguler", label: kelasLabel("reguler", lang) },
+            { value: "internasional", label: kelasLabel("internasional", lang) },
+          ]}
+        />
+        <span className="field__hint">{h.classHint[kelas]}</span>
+      </div>
+      <div className="field">
+        <span className="field__label">{h.length}</span>
+        <div className="startcard__len">
+          <Stepper
+            value={durasi}
+            onChange={setDurasi}
+            min={SESI_MIN_MENIT}
+            max={SESI_CAP_MENIT}
+            step={15}
+            label={h.length}
+            fmt={(v) => menitLabel(v, lang)}
+            lessLabel={h.shorter}
+            moreLabel={h.longer}
+          />
+          {DURASI_CEPAT.map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="chipbtn"
+              aria-pressed={durasi === v}
+              aria-label={menitLabel(v, lang)}
+              onClick={() => setDurasi(v)}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+        <span className="field__hint">{h.lengthHint(selesai)}</span>
+      </div>
+      <div className="field">
+        <span className="field__label">{h.module}</span>
+        <div className="modpick" role="radiogroup" aria-label={h.module}>
+          {[1, 2, 3, 4].map((m) => {
+            const off = !data?.terbuka.includes(m);
+            const b = (
+              <button
+                key={m}
+                type="button"
+                role="radio"
+                aria-checked={modul === m}
+                aria-disabled={off || undefined}
+                className="modpick__b"
+                style={{ "--m": `var(--mod-${m})` } as CSSProperties}
+                onClick={() => (off ? setTutup(m) : (setModul(m), setTutup(null)))}
+              >
+                <span className="modpick__top">
+                  <Pill modul={m}>{modulLabel(m, lang)}</Pill>
+                  {off && (
+                    <Pill>
+                      <LockSimpleIcon size={12} aria-hidden="true" />
+                      {h.closed}
+                    </Pill>
+                  )}
+                </span>
+                <b>{t.modulNama(m)}</b>
+              </button>
+            );
+            return off ? (
+              <Tooltip key={m} label={h.closedTip}>
+                {b}
+              </Tooltip>
+            ) : (
+              b
+            );
+          })}
+        </div>
+      </div>
+      {tutup !== null && (
+        <div className="banner banner--warn" role="status">
+          <LockSimpleIcon size={20} aria-hidden="true" />
+          <span className="grow">{h.closedPick(modulLabel(tutup, lang))}</span>
+          <button type="button" className="btn btn--sm" onClick={() => onPrep(null, "akses")}>
+            {h.openAccess}
+            <ArrowRightIcon size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  let launch: ReactNode;
+  const st = states[sel];
+  const j = jalanOf(sel);
+  if (susulan) {
+    launch = (
+      <section className="panel panel--key panel--raised lp" data-area="launch">
+        {head}
+        <Fade k="sus">
+          <div className="lp__sus">
+            <div className="lp__wide">
+              <Dropdown
+                id="sus-roster"
+                label={h.susRoster}
+                value={String(draf)}
+                onChange={(v) => {
+                  const id = v === "baru" ? "baru" : Number(v);
+                  setDraf(id);
+                  const x = drafts?.find((y) => y.id === id);
+                  if (x) setModul(x.modul);
+                }}
+                options={[
+                  ...(drafts ?? []).map((x) => ({
+                    value: String(x.id),
+                    label: h.susDraft(
+                      tanggalPanjang(x.tanggal, lang),
+                      x.mulai,
+                      x.modul,
+                      x.praktikan,
+                    ),
+                  })),
+                  { value: "baru", label: h.susNew },
+                ]}
+              />
+            </div>
+            {drafDipilih ? (
+              <span className="lp__wide row" style={{ alignItems: "center", gap: 8 }}>
+                <span className="hint grow">
+                  {drafDipilih.praktikan
+                    ? h.susDraftInfo(drafDipilih.praktikan, drafDipilih.jumlahKelompok)
+                    : h.susDraftEmpty}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => onPrep(`d${drafDipilih.id}`)}
+                >
+                  {h.susEdit}
+                </button>
+              </span>
+            ) : (
+              <>
+                <div className="field">
+                  <span className="field__label" id="sus-date-l">
+                    {h.date}
+                  </span>
+                  <DateField
+                    value={susTanggal}
+                    onChange={setSusTanggal}
+                    label={h.date}
+                    labelledBy="sus-date-l"
+                    lang={lang}
+                    min={hariIniWib()}
+                  />
+                </div>
+                <div className="field">
+                  <span className="field__label" id="sus-time-l">
+                    {h.startTime}
+                  </span>
+                  <TimeField
+                    value={susJam}
+                    onChange={setSusJam}
+                    label={h.startTime}
+                    labelledBy="sus-time-l"
+                    lang={lang}
+                    from={6}
+                  />
+                </div>
+                <span className="hint lp__wide">{h.susEmpty}</span>
+              </>
+            )}
+            <span className="hint lp__wide">{h.susulanHint}</span>
+          </div>
+        </Fade>
+        <div className="lp__body">
+          <div className="lp__left">{!drafDipilih && startForm}</div>
+        </div>
+        {startButton}
+      </section>
+    );
+  } else if (st === "done" || st === "live" || (blok === "past" && !j)) {
+    // A slot that already ran (or is running): what happened, what is left.
+    const a = menitDariJam(SLOT_MULAI[sel]);
+    const ranM = j ? modulLabel(j.modul, lang) : "";
+    const sentLeft = j ? Math.max(0, j.kelompok - j.kirim) : 0;
+    launch = (
+      <section className="panel lp" data-area="launch" data-state={st}>
+        {head}
+        <Seq
+          steps={[
+            ["ok", d.seqReady, d.seqChecked],
+            ["ok", d.seqWindow, d.seqClosed(jamDariMenit(a + SESI_CAP_MENIT))],
+            [
+              "ok",
+              d.seqSession,
+              j?.status === "berjalan"
+                ? d.seqRunning
+                : j?.selesaiPada
+                  ? d.seqEnded(jamMenit(j.selesaiPada, lang))
+                  : d.seqNotStarted,
+            ],
+          ]}
+        />
+        {j ? (
+          <div className="lp__ran">
+            <div className="lp__nums">
+              <div>
+                <b className="mono">{j.kelompok}</b>
+                <span>{d.ranNums.groups}</span>
+              </div>
+              <div>
+                <b className="mono">
+                  {j.hadir}/{j.orang}
+                </b>
+                <span>{d.ranNums.here}</span>
+              </div>
+              <div data-tone={sentLeft > 0 ? "warn" : "ok"}>
+                <b className="mono">
+                  {j.kirim}/{j.kelompok}
+                </b>
+                <span>{d.ranNums.sent}</span>
+              </div>
+            </div>
+            <span className="hint">
+              {j.status === "berjalan"
+                ? d.ranLive(ranM)
+                : diSlot
+                  ? sentLeft > 0
+                    ? d.ranUnsent(ranM, sentLeft)
+                    : d.ranAllSent(ranM)
+                  : d.ranHeld(ranM, r ? kodeSlot(r).join(", ") : "")}
+            </span>
+          </div>
+        ) : (
+          <span className="hint">{d.ranNone}</span>
+        )}
+        <div className="panel__actions">
+          {j?.status === "berjalan" && (
+            <button type="button" className="btn btn--primary" onClick={onStarted}>
+              <ArrowRightIcon size={18} aria-hidden="true" />
+              {d.openBoard}
+            </button>
+          )}
+          {j && j.status === "selesai" && (
+            <>
+              <button
+                type="button"
+                className={`btn${sentLeft > 0 && diSlot ? " btn--primary" : ""}`}
+                onClick={() => onTable(j.sesiId)}
+              >
+                <TableIcon size={18} aria-hidden="true" />
+                {d.scoreTable}
+              </button>
+              <button type="button" className="btn" onClick={() => onSeelabsSesi(j.sesiId)}>
+                <PaperPlaneTiltIcon size={18} aria-hidden="true" />
+                {d.toSeelabs}
+              </button>
+            </>
+          )}
+          {penuh && (
+            <button type="button" className="btn" onClick={() => setSusulan(true)}>
+              <CalendarPlusIcon size={18} aria-hidden="true" />
+              {d.makeMakeup}
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  } else {
+    const open = win.posisi === "buka";
+    launch = (
+      <section className="panel panel--key panel--raised lp" data-area="launch" data-state={st}>
+        {head}
+        <Seq
+          steps={[
+            [siapN === cek.length ? "ok" : "warn", d.seqReady, d.seqReadyN(siapN, cek.length)],
+            [
+              open ? "ok" : "wait",
+              d.seqWindow,
+              open ? d.seqOpenUntil(win.tutup) : d.seqOpens(win.buka),
+            ],
+            [open && !blok ? "go" : "lock", d.seqStart, open ? d.seqPress : d.seqFrom(win.buka)],
+          ]}
+        />
+        <div className="lp__body">
+          <div className="lp__left">
+            <div className="lp__clockrow">
+              <WinClock now={menitNow} slot={sel} win={jendelaOf(sel)} lang={lang} />
+              <div className="stack stack--sm">
+                <b>{d.slotRange(sel, SLOT_MULAI[sel], win.tutup)}</b>
+                {ada(sel) ? (
+                  <SlotCodes codes={r ? kodeSlot(r) : []} me={myCode} nameOf={nameOfKode} />
+                ) : (
+                  <span className="hint">
+                    {r?.status === "segera"
+                      ? h.soon
+                      : r?.status === "libur"
+                        ? h.holiday
+                        : h.noPracticum}
+                  </span>
+                )}
+                {ada(sel) && !diSlot && <span className="hint">{d.notYourSlot}</span>}
+              </div>
+            </div>
+            <Lights items={cek} d={d} onGo={goCek} />
+            <button type="button" className="btn btn--ghost" onClick={() => onPrep(pilihPrep)}>
+              <ListChecksIcon size={18} aria-hidden="true" />
+              {h.prepOpen}
+            </button>
+          </div>
+          <div className="lp__right">
+            {blok === "future" ? (
+              <>
+                <WinInline
+                  slot={sel}
+                  hari={data?.hari ?? 0}
+                  cur={jendelaOf(sel)}
+                  own={r?.jendelaMulaiMenit ?? null}
+                  canEdit={(diSlot || bisaJadwal) && !!r}
+                  mineHint={diSlot}
+                  d={d}
+                  h={h}
+                  lang={lang}
+                  onSaved={load}
+                />
+                <div className="lp__wait">
+                  <ClockCountdownIcon size={26} aria-hidden="true" />
+                  <span className="stack" style={{ gap: 2 }}>
+                    <b>{d.waitBig(win.buka)}</b>
+                    <span className="hint">{d.waitSmall}</span>
+                  </span>
+                </div>
+              </>
+            ) : blok === "notMine" || blok === "empty" ? (
+              <WindowInfo
+                kind={blok}
+                slot={sel}
+                h={h}
+                canSusulan={penuh}
+                onSusulan={() => setSusulan(true)}
+              />
+            ) : (
+              startForm
+            )}
+          </div>
+        </div>
+        {startButton}
+      </section>
+    );
+  }
+
+  /* ---------------------------------------------------------- inbox */
+  const today = data?.tanggal ?? hariIniWib();
+  const bk = data?.belumKirim ?? [];
+  const pn = data?.perluNilai ?? [];
+  const whenOf = (x: { tanggal: string; slot: number | null }) =>
+    x.tanggal === today
+      ? `${d.todayWord}${x.slot ? ` · Slot ${x.slot}` : ""}`
+      : `${tanggalPanjang(x.tanggal, lang)}${x.slot ? ` · Slot ${x.slot}` : ""}`;
+  const groupsOf = (ns: number[]) =>
+    daftar(
+      ns.map((n) => kelompokLabel(n, lang)),
+      h.and,
+    );
+  const [sending, setSending] = useState<number | null>(null);
+  async function kirimSemua(x: (typeof bk)[number]) {
+    setSending(x.sesiId);
+    let ok = 0;
+    let gagal = 0;
+    for (const g of x.kelompok) {
+      const res = await postJson<{ ok: boolean }>("/api/session/nilai", {
+        sesiId: x.sesiId,
+        kelompokId: g.id,
+        kirim: true,
+      }).catch(() => ({ ok: false }));
+      if (res.ok) ok++;
+      else gagal++;
+    }
+    setSending(null);
+    if (ok) window.Toast?.show(d.kirimOk(groupsOf(x.kelompok.map((g) => g.nomor))), "ok");
+    if (gagal)
+      window.Toast?.show(d.kirimSome, "warn", {
+        action: { label: d.scoreTable, onClick: () => onTable(x.sesiId) },
+      });
+    void load();
+  }
+  const kirimRow = (x: (typeof bk)[number]) => (
+    <li key={`k${x.sesiId}`} className="elog__row todo10__row">
+      <span className="elog__tag mono" data-tone="ok">
+        {d.tag.kirim}
+      </span>
+      <span className="elog__text">
+        {d.kirimLine(
+          modulLabel(x.modul, lang),
+          whenOf(x),
+          groupsOf(x.kelompok.map((g) => g.nomor)),
+        )}
+      </span>
+      <span className="todo10__acts">
+        <button
+          type="button"
+          className="btn btn--primary btn--sm"
+          disabled={sending !== null}
+          data-loading={sending === x.sesiId ? "yes" : undefined}
+          onClick={() => void kirimSemua(x)}
+        >
+          <PaperPlaneTiltIcon size={16} aria-hidden="true" />
+          <span className="btn__label">{d.sendScores}</span>
+          <span className="btn__spinner" aria-hidden="true" />
+        </button>
+        <button type="button" className="btn btn--sm" onClick={() => onTable(x.sesiId)}>
+          <TableIcon size={16} aria-hidden="true" />
+          {d.scoreTable}
+        </button>
+      </span>
+    </li>
+  );
+  const nilaiRow = (p: (typeof pn)[number]) => (
+    <li key={`n${p.sesiId}`} className="elog__row todo10__row">
+      <span className="elog__tag mono" data-tone="warn">
+        {d.tag.nilai}
+      </span>
+      <span className="elog__text">
+        {d.nilaiLine(
+          modulLabel(p.modul, lang),
+          whenOf(p),
+          groupsOf(p.kelompok.map((k) => k.nomor)),
+          p.kelompok.reduce((a, k) => a + k.tanpaNilai, 0),
+        )}
+      </span>
+      <span className="todo10__acts">
+        <button type="button" className="btn btn--sm" onClick={() => onTable(p.sesiId)}>
+          <PencilSimpleIcon size={16} aria-hidden="true" />
+          {d.enterScores}
+        </button>
+      </span>
+    </li>
+  );
+  const helpN = jumlahBantuan(bantuan.data);
+  const todayK = bk.filter((x) => x.tanggal === today);
+  const todayN = pn.filter((x) => x.tanggal === today);
+  const oldK = bk.filter((x) => x.tanggal !== today);
+  const oldN = pn.filter((x) => x.tanggal !== today);
+  const inboxN = helpN + bk.length + pn.length + (heldN > 0 ? 1 : 0);
+  const earlierN = oldK.length + oldN.length + (heldN > 0 ? 1 : 0);
 
   return (
-    <div className="home">
+    <div className="dt">
       <header className="page-header home__head">
         <div className="page-header__heading">
           <span className="page-header__eyebrow">
             {h.eyebrow(tanggalPanjang(data?.tanggal ?? hariIniWib(), lang))}
           </span>
-          <h1 className="page-header__title">{h.greet(whoMe)}</h1>
+          <h1 className="page-header__title">{h.greet(me.nama.split(" ")[0])}</h1>
+          <span className="row" style={{ gap: 8 }}>
+            <span className="hint">{me.kode ? `${me.nama} (${me.kode})` : me.nama}</span>
+            {me.tier && <TierBadge tier={me.tier} lang={lang} />}
+          </span>
         </div>
       </header>
 
@@ -397,70 +1013,46 @@ export default function AsistenHome({
         <a className="home__pw" href={`${href(lang, "/account")}#sandi`}>
           <WarningIcon size={20} aria-hidden="true" />
           <span className="grow stack" style={{ gap: 2 }}>
-            <b>{t.pwReminder}</b>
-            <span className="hint">{t.pwReminderBody}</span>
+            <b>{d.pwTitle}</b>
+            <span className="hint">{d.pwBody}</span>
           </span>
-          <span className="btn btn--secondary btn--sm">{t.pwGo}</span>
+          <span className="btn btn--secondary btn--sm">{d.pwGo}</span>
         </a>
       )}
 
-      <section className="panel home__today" aria-label={h.today(hariNama)}>
+      <section className="panel panel--raised dtday" aria-label={d.todayEyebrow(hariNama)}>
         <div className="panel__head">
-          <h2 className="panel__title">{h.today(hariNama)}</h2>
+          <span className="eyebrow lp__eyebrow">{d.todayEyebrow(hariNama)}</span>
           <a className="btn btn--ghost btn--sm" href={href(lang, "/schedule")}>
             {h.mySchedule}
             <ArrowRightIcon size={16} aria-hidden="true" />
           </a>
         </div>
-        <div className="slots">
-          {[1, 2, 3, 4].map((s) => {
-            const rs = row(s);
-            const st = states[s];
-            const label = { done: h.done, now: h.now, next: h.next, later: "" }[st];
-            return (
-              <button
-                key={s}
-                type="button"
-                className="slot sweep-hover"
-                data-state={st}
-                aria-pressed={!susulan && sel === s}
-                onClick={() => pick(s)}
-              >
-                <span className="slot__top">
-                  <b className="slot__time num">{SLOT_MULAI[s]}</b>
-                  {label && (
-                    <Pill tone={st === "now" ? "ok" : st === "next" ? "accent" : undefined}>
-                      {label}
-                    </Pill>
-                  )}
-                </span>
-                <span className="slot__label">
-                  <span className="hint">{h.slot(s)}</span>
-                  {rs?.kelas === "internasional" && (
-                    <Pill tone="violet">{kelasLabel("internasional", lang)}</Pill>
-                  )}
-                </span>
-                {ada(s) ? (
-                  <span className="slot__codes">
-                    {kodeSlot(rs!).map((k) => (
-                      <span key={k} className={`acode${k === myCode ? " acode--me" : ""}`}>
-                        {k}
-                      </span>
-                    ))}
-                  </span>
-                ) : (
-                  <span className="hint">
-                    {rs?.status === "segera"
-                      ? h.soon
-                      : rs?.status === "libur"
-                        ? h.holiday
-                        : h.noPracticum}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {data ? (
+          <DayStrip
+            slots={slots}
+            now={menitNow}
+            sel={susulan ? null : sel}
+            onPick={pick}
+            me={myCode}
+            nameOf={nameOfKode}
+            lang={lang}
+          />
+        ) : (
+          <span className="skeleton" style={{ height: 176 }} />
+        )}
+        {dayOver && (
+          <div className="banner">
+            <MoonStarsIcon size={20} aria-hidden="true" />
+            <span className="grow">
+              {nextMine
+                ? d.dayOver(
+                    `${tanggalPanjang(tanggalBerikut(data!.tanggal, data!.hari, nextMine.hari), lang)} · ${SLOT_MULAI[nextMine.slot]}`,
+                  )
+                : d.dayOverNone}
+            </span>
+          </div>
+        )}
         <div className="weekstrip">
           <span className="weekstrip__k">{h.myWeek}</span>
           {data && data.mingguSaya.length === 0 && <span className="hint">{h.myWeekEmpty}</span>}
@@ -485,378 +1077,71 @@ export default function AsistenHome({
         </div>
       </section>
 
-      <HelpCard lang={lang} nama={dir.nama} onChanged={load} />
+      <div className="dt__grid">
+        {data ? launch : <span className="skeleton lp" style={{ height: 420 }} />}
 
-      <section className="panel panel--key panel--raised prepcard">
-        <div className="prepcard__text">
-          <h2 className="prepcard__title">{h.prepTitle}</h2>
-          <span className="hint">{h.prepHint}</span>
-          <div className="checks">
-            {data ? (
-              <PrepChecks
-                data={data}
-                slot={sel}
-                susulan={susulan}
-                h={h}
-                lang={lang}
-                onGo={(tab) => onPrep(pilihPrep, tab)}
-              />
-            ) : (
-              <span className="skeleton" style={{ height: 24, width: 320 }} />
-            )}
-          </div>
-        </div>
-        <button
-          type="button"
-          className="btn btn--inverse btn--lg"
-          onClick={() => onPrep(pilihPrep)}
-        >
-          <ListChecksIcon size={20} aria-hidden="true" />
-          {h.prepOpen}
-        </button>
-      </section>
-
-      <div className="homecols">
-        <section className="panel panel--raised startcard">
+        <section className="panel inbox" data-area="inbox">
           <div className="panel__head">
-            <h2 className="panel__title">{h.startTitle}</h2>
-            <label className="startcard__sus">
-              <span className="hint">{h.susulan}</span>
-              <Switch
-                on={susulan}
-                onChange={(v) => setSusulan(v)}
-                label={h.susulan}
-                disabled={!penuh}
-              />
-            </label>
+            <h2 className="panel__title">{d.inboxTitle}</h2>
+            {inboxN > 0 && <Pill tone="warn">{inboxN}</Pill>}
           </div>
-          {!penuh && susulan === false && blok === "past" && (
-            <span className="hint">{h.susulanLocked}</span>
-          )}
-
-          <Fade k={`${susulan}-${sel}`}>
-            {susulan ? (
-              <div className="startcard__sus-fields">
-                <div className="startcard__wide">
-                  <Dropdown
-                    id="sus-roster"
-                    label={h.susRoster}
-                    value={String(draf)}
-                    onChange={(v) => {
-                      const id = v === "baru" ? "baru" : Number(v);
-                      setDraf(id);
-                      const d = drafts?.find((x) => x.id === id);
-                      if (d) setModul(d.modul);
-                    }}
-                    options={[
-                      ...(drafts ?? []).map((d) => ({
-                        value: String(d.id),
-                        label: h.susDraft(
-                          tanggalPanjang(d.tanggal, lang),
-                          d.mulai,
-                          d.modul,
-                          d.praktikan,
-                        ),
-                      })),
-                      { value: "baru", label: h.susNew },
-                    ]}
-                  />
-                </div>
-                {drafDipilih ? (
-                  <span className="startcard__wide row" style={{ alignItems: "center", gap: 8 }}>
-                    <span className="hint grow">
-                      {drafDipilih.praktikan
-                        ? h.susDraftInfo(drafDipilih.praktikan, drafDipilih.jumlahKelompok)
-                        : h.susDraftEmpty}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      onClick={() => onPrep(`d${drafDipilih.id}`)}
-                    >
-                      {h.susEdit}
-                    </button>
-                  </span>
-                ) : (
-                  <>
-                    <div className="field">
-                      <span className="field__label" id="sus-date-l">
-                        {h.date}
-                      </span>
-                      <DateField
-                        value={susTanggal}
-                        onChange={setSusTanggal}
-                        label={h.date}
-                        labelledBy="sus-date-l"
-                        lang={lang}
-                        min={hariIniWib()}
-                      />
-                    </div>
-                    <div className="field">
-                      <span className="field__label" id="sus-time-l">
-                        {h.startTime}
-                      </span>
-                      <TimeField
-                        value={susJam}
-                        onChange={setSusJam}
-                        label={h.startTime}
-                        labelledBy="sus-time-l"
-                        lang={lang}
-                        from={6}
-                      />
-                    </div>
-                    <span className="hint startcard__wide">{h.susEmpty}</span>
-                  </>
-                )}
-                <span className="hint startcard__wide">{h.susulanHint}</span>
-              </div>
-            ) : (
-              <div className="banner">
-                <CalendarBlankIcon size={20} aria-hidden="true" />
-                <b>
-                  {hariNama} · {h.slot(sel)} · {SLOT_MULAI[sel]}
-                </b>
-                {ada(sel) ? (
-                  <span className="row" style={{ gap: 4 }}>
-                    {kodeSlot(r!).map((k) => {
-                      const a = [...dir.byNim.values()].find((x) => x.kode?.toUpperCase() === k);
-                      return (
-                        <Tooltip key={k} label={a ? `${a.nama} (${k})` : k}>
-                          <span className={`acode${k === myCode ? " acode--me" : ""}`} tabIndex={0}>
-                            {k}
-                          </span>
-                        </Tooltip>
-                      );
-                    })}
-                  </span>
-                ) : (
-                  <span className="hint">{h.noAssistants}</span>
-                )}
-              </div>
-            )}
-          </Fade>
-
-          {blok ? (
-            <WindowInfo
-              kind={blok}
-              slot={sel}
-              open={win.buka}
-              end={win.tutup}
-              minutesToOpen={menitDariJam(win.buka) - menitNow}
-              row={r}
-              def={data?.jendelaDefault ?? 15}
-              canEdit={diSlot || bisaJadwal}
-              canSusulan={penuh}
-              onSusulan={() => setSusulan(true)}
-              onSaved={load}
-              h={h}
-              lang={lang}
-              nameOf={(nim) => dir.nama(nim)}
-              hari={data?.hari ?? 0}
-            />
+          {!data ? (
+            <span className="skeleton" style={{ height: 120 }} />
+          ) : inboxN === 0 ? (
+            <div className="todo10__empty">
+              <span className="state10__ic">
+                <CheckCircleIcon size={30} aria-hidden="true" />
+              </span>
+              <b>{d.inboxEmpty}</b>
+              <span className="hint">{d.inboxEmptyBody}</span>
+            </div>
           ) : (
             <>
-              <div className="field">
-                <span className="field__label">{h.classType}</span>
-                <SegmentedControl
-                  aria-label={h.classType}
-                  value={kelas}
-                  onValueChange={(v) => setKelas(v as Kelas)}
-                  options={[
-                    { value: "reguler", label: kelasLabel("reguler", lang) },
-                    { value: "internasional", label: kelasLabel("internasional", lang) },
-                  ]}
-                />
-                <span className="field__hint">{h.classHint[kelas]}</span>
-              </div>
-              <div className="field">
-                <span className="field__label">{h.length}</span>
-                <div className="startcard__len">
-                  <Stepper
-                    value={durasi}
-                    onChange={setDurasi}
-                    min={SESI_MIN_MENIT}
-                    max={SESI_CAP_MENIT}
-                    step={15}
-                    label={h.length}
-                    fmt={(v) => menitLabel(v, lang)}
-                    lessLabel={h.shorter}
-                    moreLabel={h.longer}
-                  />
-                  {DURASI_CEPAT.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className="chipbtn"
-                      aria-pressed={durasi === v}
-                      aria-label={menitLabel(v, lang)}
-                      onClick={() => setDurasi(v)}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-                <span className="field__hint">{h.lengthHint(selesai)}</span>
-              </div>
-              <div className="field">
-                <span className="field__label">{h.module}</span>
-                <div className="modpick" role="radiogroup" aria-label={h.module}>
-                  {[1, 2, 3, 4].map((m) => {
-                    const off = !data?.terbuka.includes(m);
-                    const b = (
-                      <button
-                        key={m}
-                        type="button"
-                        role="radio"
-                        aria-checked={modul === m}
-                        aria-disabled={off || undefined}
-                        className="modpick__b"
-                        style={{ "--m": `var(--mod-${m})` } as CSSProperties}
-                        onClick={() => (off ? setTutup(m) : (setModul(m), setTutup(null)))}
-                      >
-                        <span className="modpick__top">
-                          <Pill modul={m}>{modulLabel(m, lang)}</Pill>
-                          {off && (
-                            <Pill>
-                              <LockSimpleIcon size={12} aria-hidden="true" />
-                              {h.closed}
-                            </Pill>
-                          )}
-                        </span>
-                        <b>{t.modulNama(m)}</b>
-                      </button>
-                    );
-                    return off ? (
-                      <Tooltip key={m} label={h.closedTip}>
-                        {b}
-                      </Tooltip>
-                    ) : (
-                      b
-                    );
-                  })}
-                </div>
-              </div>
-              {tutup !== null && (
-                <div className="banner banner--warn" role="status">
-                  <LockSimpleIcon size={20} aria-hidden="true" />
-                  <span className="grow">{h.closedPick(modulLabel(tutup, lang))}</span>
-                  <button
-                    type="button"
-                    className="btn btn--sm"
-                    onClick={() => onPrep(null, "akses")}
-                  >
-                    {h.openAccess}
-                    <ArrowRightIcon size={16} aria-hidden="true" />
-                  </button>
-                </div>
+              {helpN + todayK.length + todayN.length > 0 && (
+                <>
+                  <span className="label-caps inbox__k">{d.inboxToday}</span>
+                  <ol className="elog todo10">
+                    <HelpRows
+                      lang={lang}
+                      nama={dir.nama}
+                      poll={bantuan}
+                      onChanged={load}
+                      tags={d.tag}
+                    />
+                    {todayK.map(kirimRow)}
+                    {todayN.map(nilaiRow)}
+                  </ol>
+                </>
               )}
+              {earlierN > 0 && (
+                <>
+                  <span className="label-caps inbox__k">{d.inboxEarlier}</span>
+                  <ol className="elog todo10">
+                    {heldN > 0 && (
+                      <li className="elog__row todo10__row">
+                        <span className="elog__tag mono" data-tone="accent">
+                          {d.tag.seelabs}
+                        </span>
+                        <span className="elog__text">{d.heldLine(heldN)}</span>
+                        <span className="todo10__acts">
+                          <button type="button" className="btn btn--sm" onClick={onHeld}>
+                            <ArrowRightIcon size={16} aria-hidden="true" />
+                            {d.open}
+                          </button>
+                        </span>
+                      </li>
+                    )}
+                    {oldK.map(kirimRow)}
+                    {oldN.map(nilaiRow)}
+                  </ol>
+                </>
+              )}
+              <span className="hint">{d.inboxHint}</span>
             </>
           )}
-
-          <div className="panel__actions">
-            {can && perluRoster ? (
-              <button
-                type="button"
-                className="btn btn--primary btn--lg btn--block"
-                disabled={busy}
-                data-loading={busy ? "yes" : undefined}
-                onClick={() => void buatRoster()}
-              >
-                <UsersThreeIcon size={20} aria-hidden="true" />
-                <span className="btn__label">{drafDipilih ? h.susFill : h.susCreate}</span>
-                <span className="btn__spinner" aria-hidden="true" />
-              </button>
-            ) : can ? (
-              <button
-                type="button"
-                className="btn btn--primary btn--lg btn--block"
-                disabled={busy}
-                data-loading={busy ? "yes" : undefined}
-                onClick={() => void start()}
-              >
-                <PlayIcon size={20} weight="fill" aria-hidden="true" />
-                <span className="btn__label">{h.start(modulLabel(modul ?? 1, lang))}</span>
-                <span className="btn__spinner" aria-hidden="true" />
-              </button>
-            ) : (
-              <Tooltip label={blok ? h.outsideTip : h.closedTip}>
-                <button
-                  type="button"
-                  className="btn btn--primary btn--lg btn--block"
-                  aria-disabled="true"
-                >
-                  <PlayIcon size={20} weight="fill" aria-hidden="true" />
-                  {h.start(modulLabel(modul ?? 1, lang))}
-                </button>
-              </Tooltip>
-            )}
-          </div>
         </section>
 
-        <div className="homecols__side">
-          {heldN > 0 && (
-            <section className="panel panel--key">
-              <div className="panel__head">
-                <h2 className="panel__title">{SL[lang].heldCard(heldN)}</h2>
-                <Pill tone="warn">{heldN}</Pill>
-              </div>
-              <span className="hint">{SL[lang].heldCardBody}</span>
-              <div className="panel__actions">
-                <button type="button" className="btn btn--primary btn--sm" onClick={onHeld}>
-                  {SL[lang].open}
-                  <ArrowRightIcon size={16} aria-hidden="true" />
-                </button>
-              </div>
-            </section>
-          )}
-          <section className="panel">
-            <div className="panel__head">
-              <h2 className="panel__title">{h.needScores}</h2>
-              {data && data.perluNilai.length > 0 && (
-                <Pill tone="warn">{data.perluNilai.length}</Pill>
-              )}
-            </div>
-            {!data ? (
-              <span className="skeleton" style={{ height: 60 }} />
-            ) : data.perluNilai.length === 0 ? (
-              <span className="hint">{h.needScoresNone}</span>
-            ) : (
-              <div className="needrows">
-                {data.perluNilai.map((p) => (
-                  <div key={p.sesiId} className="needrow">
-                    <Pill modul={p.modul}>{modulLabel(p.modul, lang)}</Pill>
-                    <span className="needrow__text">
-                      <b>
-                        {tanggalPanjang(p.tanggal, lang)}
-                        {p.slot ? ` · ${h.slot(p.slot)}` : ""}
-                      </b>
-                      <span className="hint">
-                        {h.needScoresLine(
-                          daftar(
-                            p.kelompok.map((k) => kelompokLabel(k.nomor, lang)),
-                            h.and,
-                          ),
-                          p.kelompok.reduce((a, k) => a + k.tanpaNilai, 0),
-                        )}
-                      </span>
-                    </span>
-                    <a
-                      className="btn btn--sm"
-                      href={`${href(lang, "/reports")}?sesi=${p.sesiId}#nilai`}
-                    >
-                      <PencilSimpleIcon size={16} aria-hidden="true" />
-                      {h.enterScores}
-                    </a>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <EarningsMini lang={lang} nim={me.nim} />
-
-          <FeedbackCard data={mine} h={h} lang={lang} />
-        </div>
+        <DayFoot lang={lang} nim={me.nim} fb={mine} />
       </div>
 
       <StartCheck
@@ -894,7 +1179,137 @@ export default function AsistenHome({
   );
 }
 
+/** The date of the next given weekday after `tanggal` (a week on when it
+ *  is the same day), as an ISO date. */
+function tanggalBerikut(tanggal: string, hari: number, ke: number): string {
+  const maju = (ke - hari + 7) % 7 || 7;
+  const d = new Date(`${tanggal}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + maju);
+  return d.toISOString().slice(0, 10);
+}
+
+/* ------------------------------------------------------- the launch */
+
+type SeqState = "ok" | "warn" | "wait" | "go" | "lock";
+
+/** The three stops of a launch: ready, window, start. */
+function Seq({ steps }: { steps: [SeqState, string, string][] }) {
+  return (
+    <ol className="seq">
+      {steps.map(([state, title, sub], i) => (
+        <li key={title} className="seq__st" data-state={state}>
+          <span className="seq__node mono" aria-hidden="true">
+            {state === "ok" ? (
+              <CheckIcon size={14} weight="bold" />
+            ) : state === "lock" ? (
+              <LockSimpleIcon size={14} />
+            ) : (
+              i + 1
+            )}
+          </span>
+          <span className="stack" style={{ gap: 0, minWidth: 0 }}>
+            <b>{title}</b>
+            <span className="hint">{sub}</span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Readiness as lights, each one leading to where it is fixed. */
+function Lights({ items, d, onGo }: { items: Cek[]; d: Dx; onGo: (to: PrepTab | string) => void }) {
+  return (
+    <ul className="lights">
+      {items.map((c) => (
+        <li key={c.key} className="lights__i" data-ok={c.ok ? "yes" : "no"}>
+          <span className="lights__lamp" aria-hidden="true" />
+          <span className="lights__txt">
+            <b>{d.chk[c.key]}</b>
+            <span className="hint">{c.text}</span>
+          </span>
+          {c.ok ? (
+            <span className="lights__word">{d.ready}</span>
+          ) : (
+            <button type="button" className="btn btn--sm" onClick={() => onGo(c.to)}>
+              {d.fix}
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /* ------------------------------------------------------- prep checks */
+
+export interface Cek {
+  ok: boolean;
+  key: "roster" | "akses" | "slides" | "server";
+  text: string;
+  /** A Preparation tab, or a page path. */
+  to: PrepTab | string;
+}
+
+/** What is ready for a slot: its roster, the open modules, the active
+ *  slides and the server's Ready check, each with where it is fixed. */
+export function cekSiap(data: Beranda, slot: number, susulan: boolean, h: Hx, lang: Lang): Cek[] {
+  const r = data.hariIni.find((x) => x.slot === slot);
+  const hari = hariLabel(data.hari, lang);
+  const items: Cek[] = [];
+  // A slot without a practicum today needs no roster: no warning for it.
+  const adaPraktikum =
+    !!r && r.status === "aktif" && [...r.asisten, ...(r.bantu ?? [])].some(Boolean);
+  if (!susulan && adaPraktikum) {
+    items.push(
+      r && r.roster.praktikan > 0
+        ? {
+            ok: true,
+            key: "roster",
+            text: h.chkRoster(hari, slot, r.roster.kelompok, r.roster.praktikan),
+            to: "roster",
+          }
+        : { ok: false, key: "roster", text: h.chkRosterNone(hari, slot), to: "roster" },
+    );
+  }
+  items.push(
+    data.terbuka.length
+      ? {
+          ok: true,
+          key: "akses",
+          text: h.chkAccess(
+            daftar(
+              data.terbuka.map((m) => modulLabel(m, lang)),
+              h.and,
+            ),
+          ),
+          to: "akses",
+        }
+      : { ok: false, key: "akses", text: h.chkAccessNone, to: "akses" },
+  );
+  items.push(
+    data.presentasiAktif
+      ? { ok: true, key: "slides", text: h.chkSlides(data.presentasiAktif.nama), to: "slides" }
+      : { ok: false, key: "slides", text: h.chkSlidesNone, to: "slides" },
+  );
+  const srvHref = data.server
+    ? `${href(lang, "/servers")}?id=${data.server.id}&dari=persiapan#siap`
+    : `${href(lang, "/servers")}?dari=persiapan`;
+  const siap = data.server?.siap;
+  const hariIni =
+    !!siap?.waktu &&
+    new Date(siap.waktu).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) === hariIniWib();
+  items.push(
+    !data.server
+      ? { ok: false, key: "server", text: h.chkServerAbsent, to: srvHref }
+      : siap && hariIni
+        ? siap.lulus
+          ? { ok: true, key: "server", text: h.chkServer(jamMenit(siap.waktu!, lang)), to: srvHref }
+          : { ok: false, key: "server", text: h.chkServerFail(siap.gagal), to: srvHref }
+        : { ok: false, key: "server", text: h.chkServerNone, to: srvHref },
+  );
+  return items;
+}
 
 export function PrepChecks({
   data,
@@ -912,60 +1327,11 @@ export function PrepChecks({
   /** Opens Preparation on the tab that fixes a check. */
   onGo: (tab: PrepTab) => void;
 }) {
-  const r = data.hariIni.find((x) => x.slot === slot);
-  const hari = hariLabel(data.hari, lang);
   // Each check leads to where it is fixed (2026-10-06: they were plain
   // text, and the server check needed the Server tab found by hand).
-  type Item = [boolean, string, PrepTab | string];
-  const items: Item[] = [];
-  // A slot without a practicum today needs no roster: no warning for it.
-  const adaPraktikum =
-    !!r && r.status === "aktif" && [...r.asisten, ...(r.bantu ?? [])].some(Boolean);
-  if (!susulan && adaPraktikum) {
-    items.push(
-      r && r.roster.praktikan > 0
-        ? [true, h.chkRoster(hari, slot, r.roster.kelompok, r.roster.praktikan), "roster"]
-        : [false, h.chkRosterNone(hari, slot), "roster"],
-    );
-  }
-  items.push(
-    data.terbuka.length
-      ? [
-          true,
-          h.chkAccess(
-            daftar(
-              data.terbuka.map((m) => modulLabel(m, lang)),
-              h.and,
-            ),
-          ),
-          "akses",
-        ]
-      : [false, h.chkAccessNone, "akses"],
-  );
-  items.push(
-    data.presentasiAktif
-      ? [true, h.chkSlides(data.presentasiAktif.nama), "slides"]
-      : [false, h.chkSlidesNone, "slides"],
-  );
-  const srvHref = data.server
-    ? `${href(lang, "/servers")}?id=${data.server.id}&dari=persiapan#siap`
-    : `${href(lang, "/servers")}?dari=persiapan`;
-  const siap = data.server?.siap;
-  const hariIni =
-    !!siap?.waktu &&
-    new Date(siap.waktu).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) === hariIniWib();
-  items.push(
-    !data.server
-      ? [false, h.chkServerAbsent, srvHref]
-      : siap && hariIni
-        ? siap.lulus
-          ? [true, h.chkServer(jamMenit(siap.waktu!, lang)), srvHref]
-          : [false, h.chkServerFail(siap.gagal), srvHref]
-        : [false, h.chkServerNone, srvHref],
-  );
   return (
     <>
-      {items.map(([ok, text, to]) => {
+      {cekSiap(data, slot, susulan, h, lang).map(({ ok, text, to }) => {
         const isi = (
           <>
             {ok ? (
@@ -1000,94 +1366,51 @@ export function PrepChecks({
 
 /* ------------------------------------------------------- window info */
 
+/** Inside the window but not this Asisten's to start, or nothing to start. */
 function WindowInfo({
   kind,
   slot,
-  open,
-  end,
-  minutesToOpen,
-  row,
-  def,
-  canEdit,
+  h,
   canSusulan,
   onSusulan,
-  onSaved,
-  h,
-  lang,
-  nameOf,
-  hari,
 }: {
-  kind: "past" | "future" | "notMine" | "empty";
+  kind: "notMine" | "empty";
   slot: number;
-  open: string;
-  end: string;
-  minutesToOpen: number;
-  row: SlotHariIni | null;
-  def: number;
-  canEdit: boolean;
+  h: Hx;
   canSusulan: boolean;
   onSusulan: () => void;
-  onSaved: () => void;
-  h: Hx;
-  lang: Lang;
-  nameOf: (nim: string) => string;
-  hari: number;
 }) {
-  if (kind === "past" || kind === "notMine" || kind === "empty") {
-    const title =
-      kind === "past" ? h.pastTitle(slot) : kind === "empty" ? h.emptyTitle(slot) : h.notMineTitle;
-    const body =
-      kind === "past" ? h.pastBody(end, open) : kind === "empty" ? h.emptyBody : h.notMineBody;
-    return (
-      <div className="wininfo" data-tone="past">
-        <span className="wininfo__ic" aria-hidden="true">
-          {kind === "past" ? <ClockCountdownIcon size={26} /> : <ProhibitIcon size={26} />}
-        </span>
-        <div className="wininfo__text">
-          <b className="wininfo__title">{title}</b>
-          <span>{body}</span>
-          {kind === "past" && <span className="hint">{h.pastHint}</span>}
-          {canSusulan && (
-            <div className="row">
-              <button type="button" className="btn btn--sm" onClick={onSusulan}>
-                <CalendarBlankIcon size={16} aria-hidden="true" />
-                {h.useSusulan}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-  const own = row?.jendelaMulaiMenit ?? null;
   return (
-    <div className="wininfo" data-tone="future">
+    <div className="wininfo" data-tone="past">
       <span className="wininfo__ic" aria-hidden="true">
-        <HourglassHighIcon size={26} />
+        <ProhibitIcon size={26} />
       </span>
       <div className="wininfo__text">
-        <b className="wininfo__title">{h.futureTitle(slot)}</b>
-        <span>{h.futureBody(open, end)}</span>
-        <span className="hint">
-          {own !== null && row?.jendelaDiaturOleh
-            ? h.winOwn(own, nameOf(row.jendelaDiaturOleh))
-            : h.winDefault(def)}
-        </span>
-        <div className="row row--between">
-          <span className="hint num">{h.opensIn(durasiLabel(minutesToOpen, lang))}</span>
-          {canEdit && row && (
-            <WinEdit slot={slot} hari={hari} cur={own ?? def} h={h} lang={lang} onSaved={onSaved} />
-          )}
-        </div>
+        <b className="wininfo__title">{kind === "empty" ? h.emptyTitle(slot) : h.notMineTitle}</b>
+        <span>{kind === "empty" ? h.emptyBody : h.notMineBody}</span>
+        {canSusulan && (
+          <div className="row">
+            <button type="button" className="btn btn--sm" onClick={onSusulan}>
+              <CalendarBlankIcon size={16} aria-hidden="true" />
+              {h.useSusulan}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function WinEdit({
+/** A slot's own start window, set in place by its Asisten (or the Jadwal
+ *  right): 5 to 30 minutes, or back to the default. */
+function WinInline({
   slot,
   hari,
   cur,
+  own,
+  canEdit,
+  mineHint,
+  d,
   h,
   lang,
   onSaved,
@@ -1095,142 +1418,238 @@ function WinEdit({
   slot: number;
   hari: number;
   cur: number;
+  own: number | null;
+  canEdit: boolean;
+  mineHint: boolean;
+  d: Dx;
   h: Hx;
   lang: Lang;
   onSaved: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [v, setV] = useState(cur);
-  useEffect(() => setV(cur), [cur, open]);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setV(cur), [cur, slot]);
   const save = async (menit: number | null) => {
+    setBusy(true);
     const r = await postJson<{ ok: boolean }>("/api/session/jendela", { hari, slot, menit }).catch(
       () => ({ ok: false }),
     );
+    setBusy(false);
     if (!r.ok) return window.Toast?.show(h.winSaveFail, "danger");
     window.Toast?.show(menit === null ? h.winReset(slot) : h.winSaved(slot, menit), "ok");
-    setOpen(false);
     onSaved();
   };
   return (
-    <Popover
-      open={open}
-      onOpenChange={setOpen}
-      align="end"
-      trigger={
-        <button type="button" className="btn btn--ghost btn--sm">
-          <HourglassHighIcon size={16} aria-hidden="true" />
-          {h.winChange}
-        </button>
-      }
-    >
-      <div className="winedit">
-        <b className="winedit__title">{h.winTitle(slot)}</b>
-        <Stepper
-          value={v}
-          onChange={setV}
-          min={JENDELA_MIN}
-          max={JENDELA_MAX}
-          step={5}
-          label={h.winTitle(slot)}
-          fmt={(x) => menitLabel(x, lang)}
-          lessLabel={h.shorter}
-          moreLabel={h.longer}
-        />
-        <span className="hint">{h.winHint}</span>
-        <div className="winedit__act">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => void save(null)}>
-            {h.winUseDefault}
-          </button>
-          <button type="button" className="btn btn--primary btn--sm" onClick={() => void save(v)}>
-            {h.winSave}
-          </button>
+    <div className="field lp__win">
+      <span className="field__label">{d.winLabel}</span>
+      {canEdit ? (
+        <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <Stepper
+            value={v}
+            onChange={setV}
+            min={JENDELA_MIN}
+            max={JENDELA_MAX}
+            step={5}
+            label={h.winTitle(slot)}
+            fmt={(x) => menitLabel(x, lang)}
+            lessLabel={h.shorter}
+            moreLabel={h.longer}
+          />
+          {v !== cur && (
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              disabled={busy}
+              onClick={() => void save(v)}
+            >
+              {d.winSave}
+            </button>
+          )}
+          {own !== null && (
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              disabled={busy}
+              onClick={() => void save(null)}
+            >
+              {d.winDefault}
+            </button>
+          )}
         </div>
-      </div>
-    </Popover>
+      ) : (
+        <b className="num">{menitLabel(cur, lang)}</b>
+      )}
+      <span className="field__hint">{mineHint ? d.winMine : d.winOthers}</span>
+    </div>
   );
 }
 
-/* ---------------------------------------------------------- feedback */
+/* --------------------------------------------- earnings and feedback */
 
-function FeedbackCard({ data, h, lang }: { data: Ringkasan | null; h: Hx; lang: Lang }) {
-  const [i, setI] = useState(0);
-  const q = data?.komentar ?? [];
-  const n = data?.jumlah ?? 0;
+/** "Oktober" for "2026-10". */
+function bulanNama(periode: string, lang: Lang): string {
+  const [y, m] = periode.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(localeOf(lang), {
+    month: "long",
+    timeZone: "UTC",
+  });
+}
+
+function periodeSebelum(periode: string): string {
+  const [y, m] = periode.split("-").map(Number);
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, "0")}`;
+}
+
+/** One strip at the foot: this month's pay by week with the change from
+ *  last month, the class split and the cash fund; the feedback average with
+ *  its stars, spread and a quote. Private to the person. */
+function DayFoot({ lang, nim, fb }: { lang: Lang; nim: string; fb: Ringkasan | null }) {
+  const d = D[lang];
+  const { data } = useBayar();
+  const [q, setQ] = useState(0);
+  const periode = periodeKini();
+  const lalu = periodeSebelum(periode);
+  const mine = (data?.units ?? []).filter((u) => u.nimPenilai === nim);
+  const bulan = mine.filter((u) => u.tanggal.startsWith(periode));
+  const sebelum = mine.filter((u) => u.tanggal.startsWith(lalu));
+  const r = jumlahkan(bulan);
+  const rLalu = jumlahkan(sebelum);
+  const delta = r.bersih - rLalu.bersih;
+  const weeks = [1, 2, 3, 4, 5].map((w) => {
+    const us = bulan.filter((u) => Math.ceil(Number(u.tanggal.slice(8, 10)) / 7) === w);
+    return { w, n: us.length, rp: us.reduce((a, u) => a + u.bersih, 0) };
+  });
+  const max = Math.max(1, ...weeks.map((w) => w.rp));
+  const kasPct =
+    [...new Set(bulan.map((u) => `${u.kasPersen}%`))].join(", ") ||
+    `${data?.kas.persenSaya ?? 10}%`;
+  const n = fb?.jumlah ?? 0;
+  const quotes = fb?.komentar ?? [];
+  const avg = fb?.rataRata ?? 0;
   return (
-    <section className="panel fbcard">
-      <div className="panel__head">
-        <h2 className="panel__title">{h.feedbackTitle}</h2>
-        <Tooltip label={h.privateTip}>
-          <span tabIndex={0}>
-            <Pill>
-              <LockSimpleIcon size={12} aria-hidden="true" />
-              {h.private}
-            </Pill>
-          </span>
-        </Tooltip>
-      </div>
-      {!data ? (
-        <span className="skeleton" style={{ height: 90 }} />
-      ) : n === 0 ? (
-        <span className="hint">{h.noFeedback}</span>
-      ) : (
-        <>
-          <div className="fbcard__top">
-            <div className="fbcard__avgbox">
-              <b className="fbcard__avg num">{data.rataRata?.toLocaleString(localeOf(lang))}</b>
-              <span className="hint">{h.ofFive(n)}</span>
-            </div>
-            <div className="fbdist">
-              {[5, 4, 3, 2, 1].map((s) => {
-                const c = data.sebaran[s - 1];
-                return (
-                  <div key={s} className="fbdist__r">
-                    <span className="num hint">{s}</span>
-                    <span className="fbdist__t">
-                      <i style={{ width: `${n ? (c / n) * 100 : 0}%` }} />
-                    </span>
-                    <span className="num hint">{c}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          {q.length > 0 && (
-            <div className="quotes">
-              <Fade k={String(i)}>
-                <blockquote className="quote">
-                  <p>{q[i % q.length].teks}</p>
-                  <span className="hint">{tanggalPanjang(q[i % q.length].pada, lang)}</span>
-                </blockquote>
-              </Fade>
-              {q.length > 1 && (
-                <div className="row" style={{ gap: 6 }}>
-                  <IconButton
-                    icon={CaretLeftIcon}
-                    label={h.prevQuote}
-                    sm
-                    onClick={() => setI((i + q.length - 1) % q.length)}
-                  />
-                  <span className="hint num">
-                    {(i % q.length) + 1}/{q.length}
+    <section className="panel dtfoot" data-area="foot">
+      <div className="dtfoot__c">
+        <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+          <span className="dtfoot__k">{d.earnLabel(bulanNama(periode, lang))}</span>
+          {!data ? (
+            <span className="skeleton" style={{ height: 28, width: 140 }} />
+          ) : (
+            <>
+              <span className="row" style={{ gap: 8, alignItems: "baseline" }}>
+                <b className="mono dtfoot__big">{rupiah(r.bersih).replace(/,00$/, "")}</b>
+                {delta !== 0 && (
+                  <span className="dtfoot__up" data-down={delta < 0 ? "yes" : undefined}>
+                    {delta > 0 ? (
+                      <ArrowUpIcon size={12} aria-hidden="true" />
+                    ) : (
+                      <ArrowDownIcon size={12} aria-hidden="true" />
+                    )}
+                    {rupiah(Math.abs(delta)).replace(/,00$/, "")}
                   </span>
-                  <IconButton
-                    icon={CaretRightIcon}
-                    label={h.nextQuote}
-                    sm
-                    onClick={() => setI((i + 1) % q.length)}
-                  />
-                </div>
-              )}
-            </div>
+                )}
+              </span>
+              <span className="hint">{d.earnVs(bulanNama(lalu, lang))}</span>
+              <span className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                <Pill tone="accent">
+                  {r.reguler} {d.regular}
+                </Pill>
+                <Pill tone="violet">
+                  {r.internasional} {d.intl}
+                </Pill>
+              </span>
+            </>
           )}
-        </>
-      )}
-      <div className="panel__actions">
-        <a className="btn btn--ghost btn--sm" href={href(lang, "/reports")}>
-          {h.allFeedback}
-          <ArrowRightIcon size={16} aria-hidden="true" />
-        </a>
+        </div>
+        <div className="dtfoot__chart" role="img" aria-label={d.earnWeeks}>
+          {weeks.map((w) => (
+            <Tooltip key={w.w} label={d.weekTip(w.w, w.n, rupiah(w.rp).replace(/,00$/, ""))}>
+              <span className="dtfoot__wk" tabIndex={0}>
+                <i
+                  style={
+                    { "--h": `${w.rp ? Math.max(8, (w.rp / max) * 100) : 4}%` } as CSSProperties
+                  }
+                  data-zero={w.rp ? undefined : "yes"}
+                />
+                <small className="mono">
+                  {lang === "zh" ? `${w.w}周` : `${lang === "en" ? "W" : "M"}${w.w}`}
+                </small>
+              </span>
+            </Tooltip>
+          ))}
+        </div>
+        <div className="dtfoot__side">
+          <span className="hint">
+            <PiggyBankIcon size={14} aria-hidden="true" />{" "}
+            {d.kas(kasPct, rupiah(r.kas).replace(/,00$/, ""))}
+          </span>
+          <span className="hint">
+            <CalendarBlankIcon size={14} aria-hidden="true" /> {d.paidEnd}
+          </span>
+          <a className="btn btn--ghost btn--sm" href={href(lang, "/account")}>
+            {d.details}
+            <ArrowRightIcon size={16} aria-hidden="true" />
+          </a>
+        </div>
+      </div>
+      <div className="dtfoot__c">
+        <div className="stack" style={{ gap: 4, minWidth: 0 }}>
+          <span className="dtfoot__k">{d.fbLabel}</span>
+          {!fb ? (
+            <span className="skeleton" style={{ height: 28, width: 120 }} />
+          ) : n === 0 ? (
+            <span className="hint">{d.fbNone}</span>
+          ) : (
+            <>
+              <b className="mono dtfoot__big">
+                {avg.toLocaleString(localeOf(lang))}
+                <small>/5</small>
+              </b>
+              <span className="dtfoot__stars" aria-hidden="true">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <i
+                    key={i}
+                    style={
+                      { "--f": `${Math.max(0, Math.min(1, avg - i + 1)) * 100}%` } as CSSProperties
+                    }
+                  />
+                ))}
+              </span>
+              <span className="hint">{d.fbResponses(n)}</span>
+            </>
+          )}
+        </div>
+        <div className="dtfoot__dist" role="img" aria-label={d.fbSpread}>
+          {[5, 4, 3, 2, 1].map((s) => {
+            const c = fb?.sebaran[s - 1] ?? 0;
+            return (
+              <span key={s} className="dtfoot__dr">
+                <small className="mono">{s}</small>
+                <span className="dtfoot__db">
+                  <i style={{ width: `${n ? (c / n) * 100 : 0}%` }} />
+                </span>
+                <small className="mono">{c}</small>
+              </span>
+            );
+          })}
+        </div>
+        <div className="dtfoot__side">
+          {quotes.length > 0 && (
+            <Tooltip label={d.fbNext}>
+              <button
+                type="button"
+                className="dtfoot__q"
+                onClick={() => setQ((q + 1) % quotes.length)}
+              >
+                <time className="mono">{tanggalPanjang(quotes[q % quotes.length].pada, lang)}</time>
+                <q>{quotes[q % quotes.length].teks}</q>
+              </button>
+            </Tooltip>
+          )}
+          <a className="btn btn--ghost btn--sm" href={href(lang, "/reports")}>
+            {d.all}
+            <ArrowRightIcon size={16} aria-hidden="true" />
+          </a>
+        </div>
       </div>
     </section>
   );
