@@ -1190,7 +1190,7 @@ export const S = dict({
       berjalan: "进行中",
       selesai: "成功",
       gagal: "失败",
-      terhenti: "中途停止，没有结果，可以再运行",
+      terhenti: "已停止，没有结果，可以再运行",
     },
     copy: "复制",
     copied: "已复制。",
