@@ -10,6 +10,7 @@ import { ArrowsOutSimpleIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Nil from "../ui/Nil";
 import { getJson, localeOf, titikDua } from "../../lib/app";
+import { useSegar } from "../../lib/siaran";
 import { unduhCsv } from "../../lib/csv";
 import { durasiLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
@@ -53,12 +54,17 @@ function DataDialog({
   const t = S[lang];
   const [rentang, setRentang] = useState("24h");
   const [h, setH] = useState<Riwayat | null>(null);
+  const segar = useSegar(["server"]);
+  useEffect(() => setH(null), [id, rentang]);
   useEffect(() => {
-    setH(null);
+    let alive = true;
     getJson<{ ok: boolean } & Riwayat>(`/api/server/${id}?aksi=riwayat&rentang=${rentang}`)
-      .then((d) => d.ok && setH(d))
-      .catch(() => window.Toast?.show(t.fail, "danger"));
-  }, [id, rentang, t.fail]);
+      .then((d) => alive && d.ok && setH(d))
+      .catch(() => alive && !segar && window.Toast?.show(t.fail, "danger"));
+    return () => {
+      alive = false;
+    };
+  }, [id, rentang, segar, t.fail]);
   const k = META[m];
   const seri = (h?.seri ?? []).map((d: Denyut) => ({
     t: new Date(d.pada).getTime(),

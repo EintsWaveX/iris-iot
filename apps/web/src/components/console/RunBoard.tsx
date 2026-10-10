@@ -66,7 +66,7 @@ export function useMatriks(on: boolean, lang: Lang) {
       getJson<{ ok: boolean } & Matriks>(`/api/modul/matriks?lang=${lang}`).then((d) =>
         d.ok ? d : null,
       ),
-    8_000,
+    60_000,
     on,
     ["jawaban", "petunjuk", "sesi"],
   );

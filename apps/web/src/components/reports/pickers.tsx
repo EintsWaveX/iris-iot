@@ -27,6 +27,7 @@ import {
 } from "@phosphor-icons/react";
 import { upload } from "@vercel/blob/client";
 import { getJson, namaKelompok, tanggalPanjang } from "../../lib/app";
+import { useSegar } from "../../lib/siaran";
 import { namaPeriode, rupiah } from "../../lib/bayar";
 import { hariLabel, kelasLabel, kelompokLabel, modulLabel, slotLabel } from "../../lib/labels";
 import {
@@ -208,20 +209,27 @@ export function DataPicker({
   const sesiLabel = s ? `${labelSesi(s, lang)} · ${modulLabel(s.modul, lang)}` : "";
 
   useEffect(() => {
+    setRekap(null);
+    setKej(null);
+  }, [sesiId, kind]);
+  const segar = useSegar(["sesi", "nilai", "laporan", "roster"], open && !!sesiId);
+  useEffect(() => {
     if (!sesiId || !kind) return;
+    let alive = true;
     if (["kelompok", "praktikan", "nilai", "serial"].includes(kind)) {
-      setRekap(null);
       void getJson<{ ok: boolean } & Rekap>(`/api/session/rekap?sesiId=${sesiId}`)
-        .then((d) => d.ok && setRekap(d))
-        .catch(() => window.Toast?.show(t.err, "danger"));
+        .then((d) => alive && d.ok && setRekap(d))
+        .catch(() => alive && !segar && window.Toast?.show(t.err, "danger"));
     }
     if (kind === "kejadian") {
-      setKej(null);
       void getJson<{ ok: boolean; kejadian: Kejadian[] }>(`/api/session/kejadian?sesiId=${sesiId}`)
-        .then((d) => setKej(d.ok ? d.kejadian : []))
-        .catch(() => setKej([]));
+        .then((d) => alive && setKej(d.ok ? d.kejadian : []))
+        .catch(() => alive && setKej((k) => k ?? []));
     }
-  }, [sesiId, kind, t]);
+    return () => {
+      alive = false;
+    };
+  }, [sesiId, kind, t, segar]);
 
   const ambilSesi = (r: SesiLaporan) => {
     if (kind === "sesi") {
@@ -467,15 +475,16 @@ function ChartPick({ t, lang, onDone }: { t: Tx; lang: Lang; onDone: (v: unknown
   const [ukuran, setUkuran] = useState<"cpu" | "suhu" | "mem">("suhu");
   const [rentang, setRentang] = useState<"1h" | "24h" | "7d">("1h");
   const [busy, setBusy] = useState(false);
+  const segarSrv = useSegar(["server"]);
   useEffect(() => {
     void getJson<{ ok: boolean; server: ServerRow[] }>("/api/server")
       .then((d) => {
         const list = d.ok ? d.server : [];
         setSrv(list);
-        if (list[0]) setId(String(list[0].id));
+        setId((cur) => cur || (list[0] ? String(list[0].id) : ""));
       })
-      .catch(() => setSrv([]));
-  }, []);
+      .catch(() => setSrv((s) => s ?? []));
+  }, [segarSrv]);
   const ambil = async () => {
     setBusy(true);
     try {
@@ -581,6 +590,7 @@ function SlotPick({
   const [rows, setRows] = useState<JadwalRow[] | null>(null);
   const [slot, setSlot] = useState("");
   const [ke, setKe] = useState("");
+  const segarJadwal = useSegar(["jadwal", "tim"]);
   useEffect(() => {
     const sem = semesterDariTanggal(hariIniWib());
     void getJson<{ ok: boolean; jadwal: JadwalRow[] }>(`/api/session/schedule?semester=${sem}`)
@@ -589,10 +599,10 @@ function SlotPick({
         setRows(list);
         const mine = dir.byNim.get(me)?.kode;
         const pertama = list.find((j) => mine && j.asisten.includes(mine)) ?? list[0];
-        if (pertama) setSlot(String(pertama.id));
+        setSlot((cur) => cur || (pertama ? String(pertama.id) : ""));
       })
-      .catch(() => setRows([]));
-  }, [dir, me]);
+      .catch(() => setRows((r) => r ?? []));
+  }, [dir, me, segarJadwal]);
   const orang = [...dir.byNim.values()]
     .filter((o) => o.nim !== me)
     .sort((a, b) => a.nama.localeCompare(b.nama));

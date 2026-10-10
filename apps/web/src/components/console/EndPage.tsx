@@ -190,21 +190,17 @@ export default function EndPage({
   const [step, setStep] = useState<Step>("rekap");
   const [n, setN] = useState(0);
   const sum = useRingkasSesi(sesi.id);
-  // Each new feedback counts up at once (umpan); the poll is a backstop.
+  // Each new feedback counts up at once (umpan, and the 60 s safety net).
   const segarUmpan = useSegar(["umpan"]);
   useEffect(() => {
     let alive = true;
-    const load = () =>
-      getJson<{ ok: boolean; ringkasan: { jumlah: number } }>(
-        `/api/session/feedback?scope=lab&sesiId=${sesi.id}`,
-      )
-        .then((d) => alive && d.ok && setN(d.ringkasan.jumlah))
-        .catch(() => {});
-    void load();
-    const id = setInterval(load, 60_000);
+    getJson<{ ok: boolean; ringkasan: { jumlah: number } }>(
+      `/api/session/feedback?scope=lab&sesiId=${sesi.id}`,
+    )
+      .then((d) => alive && d.ok && setN(d.ringkasan.jumlah))
+      .catch(() => {});
     return () => {
       alive = false;
-      clearInterval(id);
     };
   }, [sesi.id, segarUmpan]);
 

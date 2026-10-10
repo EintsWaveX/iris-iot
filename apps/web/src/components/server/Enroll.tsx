@@ -109,7 +109,7 @@ export default function Enroll({
       if (!d.ok) throw new Error("gone");
       return d as Detail;
     },
-    5_000,
+    60_000,
     !!ada,
     ["server"],
   );

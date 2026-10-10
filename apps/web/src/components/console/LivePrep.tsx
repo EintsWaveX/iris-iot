@@ -112,7 +112,7 @@ export default function LivePrep({
   onOpen: (tab: "akses" | "slides") => void;
 }) {
   const l = t.lp;
-  const poll = usePoll(() => getJson<Hadir>("/api/session/hadir"), 30_000, true, [
+  const poll = usePoll(() => getJson<Hadir>("/api/session/hadir"), 60_000, true, [
     "sesi",
     "roster",
   ]);

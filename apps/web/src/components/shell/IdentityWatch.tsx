@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowsCounterClockwiseIcon, SignInIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { dengarAkunLain, dict, getJson, meChanged, type Me, type SesiNow } from "../../lib/app";
-import { startPolling } from "../../scripts/polling";
+import { dengar } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
 import { isSignInPath, openSignIn } from "../../lib/signin";
 
@@ -118,12 +118,15 @@ export default function IdentityWatch({
             : { jenis: "gone" },
       );
     };
-    const henti = startPolling(cek, 20_000);
-    // A sign-in or sign-out in another tab: check now.
+    void cek();
+    // A sign-in or sign-out in another tab: check now. Mode TOT signing
+    // Praktikan out: check now. A cookie that simply ran out shows on the
+    // 60 s safety net or the next return to the tab (lib/siaran.ts).
     const lepas = dengarAkunLain(() => void cek());
+    const lepasTot = dengar(["tot"], () => void cek());
     return () => {
-      henti();
       lepas();
+      lepasTot();
     };
   }, [nim]);
 

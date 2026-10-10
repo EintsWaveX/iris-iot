@@ -29,7 +29,7 @@ export function useSeelabs(sesiId: number | null) {
       sesiId === null
         ? Promise.resolve(null)
         : getJson<JawabSeelabs>(`/api/session/seelabs?sesiId=${sesiId}`),
-    20_000,
+    60_000,
     sesiId !== null,
     ["sesi", "bayar", "nilai"],
   );

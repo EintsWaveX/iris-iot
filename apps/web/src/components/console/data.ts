@@ -58,7 +58,7 @@ export function useAssignment(sesiId: number | null) {
       getJson<{ ok: boolean } & Penugasan>(`/api/session/assignment?sesiId=${sesiId}`).then((d) =>
         d.ok ? d : null,
       ),
-    15_000,
+    60_000,
     sesiId !== null,
     ["jadwal", "tim", "sesi"],
   );
@@ -75,7 +75,7 @@ export interface ServerState {
   detail: ServerDetail | null;
 }
 
-export function useServers(enabled: boolean, fast: boolean) {
+export function useServers(enabled: boolean) {
   return usePoll<ServerState>(
     async () => {
       const d = await getJson<{ ok: boolean; server: ServerRow[] }>("/api/server");
@@ -87,7 +87,7 @@ export function useServers(enabled: boolean, fast: boolean) {
       }
       return { list, detail };
     },
-    fast ? 4_000 : 12_000,
+    60_000,
     enabled,
     ["server"],
   );
@@ -182,10 +182,9 @@ export function useNilaiLive(
     void load();
   }, [load]);
 
-  // Deltas every 5 s while visible.
+  // Deltas whenever a score changes anywhere (and on the 60 s safety net).
   useEffect(() => {
     if (sesiId === null) return;
-    let timer: ReturnType<typeof setInterval> | null = null;
     const tick = async () => {
       if (!serverTs.current) return;
       try {
@@ -264,23 +263,8 @@ export function useNilaiLive(
         setErrors((e) => e + 1);
       }
     };
-    const start = () => {
-      if (timer === null) timer = setInterval(() => void tick(), 5_000);
-    };
-    const stop = () => {
-      if (timer !== null) clearInterval(timer);
-      timer = null;
-    };
-    const onVis = () => (document.visibilityState === "visible" ? start() : stop());
-    if (document.visibilityState === "visible") start();
-    document.addEventListener("visibilitychange", onVis);
-    // Another Asisten's score lands at once rather than on the next tick.
-    const lepas = dengar(["nilai"], () => void tick());
-    return () => {
-      stop();
-      lepas();
-      document.removeEventListener("visibilitychange", onVis);
-    };
+    // Another Asisten's score lands at once.
+    return dengar(["nilai"], () => void tick());
   }, [sesiId, meNim]);
 
   /** Changes some students locally; `ubah` gets a copy of each one's fields. */

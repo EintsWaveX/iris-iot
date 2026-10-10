@@ -39,10 +39,10 @@ import {
 } from "@phosphor-icons/react";
 import Drawer from "../ui/Drawer";
 import Pill from "../ui/Pill";
-import { dict, getJson, href, postJson } from "../../lib/app";
+import { dict, getJson, href, postJson, useTick } from "../../lib/app";
 import { kelompokLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
-import { useSiaranStatus } from "../../lib/siaran";
+import { useSiaran, useSiaranStatus } from "../../lib/siaran";
 import { sendCommand, svcTone } from "../server/ops";
 import { jamLab } from "../shared/Instruments";
 import TambahPraktikan from "./TambahPraktikan";
@@ -473,21 +473,17 @@ export default function HelpDrawer({
   const [add, setAdd] = useState(false);
   const [ubah, setUbah] = useState(false);
   const [busyCall, setBusyCall] = useState(false);
-  const [tick, setTick] = useState(0);
-
+  // The checks read ages (the last beat, the clock): they tick here, and the
+  // data behind them comes back whenever it changes.
+  const tick = useTick(5_000);
+  const muatW = () =>
+    getJson<{ ok: boolean } & Waspada>("/api/session/waspada")
+      .then((d) => d.ok && setW(d))
+      .catch(() => {});
   useEffect(() => {
-    if (!open) return;
-    const load = () =>
-      getJson<{ ok: boolean } & Waspada>("/api/session/waspada")
-        .then((d) => d.ok && setW(d))
-        .catch(() => {});
-    void load();
-    const id = setInterval(() => {
-      void load();
-      setTick((x) => x + 1);
-    }, 10_000);
-    return () => clearInterval(id);
+    if (open) void muatW();
   }, [open]);
+  useSiaran(["sesi", "server", "online"], () => void muatW(), open);
 
   const d = piDari(servers);
   const hb = d?.denyutTerakhir ?? null;
@@ -766,7 +762,7 @@ export default function HelpDrawer({
       },
     ];
     return list;
-    // tick re-runs the checks every 10 seconds while open.
+    // tick re-runs the checks every 5 seconds while open.
   }, [lang, w, servers, groups, relay, kunci, sisa, tick, sesi]);
 
   // The first problem that was spotted opens by itself.

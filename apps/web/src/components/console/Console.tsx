@@ -152,7 +152,7 @@ export default function Console({ lang }: { lang: Lang }) {
   const lap = useLaporan(!!sesi);
   const assign = useAssignment(sesi?.id ?? lalu?.id ?? done?.id ?? null);
   const seelabs = useSeelabs(sesi?.id ?? done?.id ?? null);
-  const servers = useServers(!!sesi, drawer || help);
+  const servers = useServers(!!sesi);
   const mtx = useMatriks(!!sesi, lang);
   const kolom = useMemo(() => kolomDari(mtx.data ?? null), [mtx.data]);
   const asisten = useMemo(

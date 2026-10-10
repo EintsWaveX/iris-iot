@@ -57,7 +57,6 @@ import {
 import type { BlankSegment, Segment } from "../../lib/blanks";
 import { BLANK_MARK, detectLang, tokenize, type Token } from "../../lib/highlight";
 import { needsPersonalization, personalizeSegments } from "../../lib/group-identity";
-import { startPolling } from "../../scripts/polling";
 import IconButton from "../ui/IconButton";
 import Pill from "../ui/Pill";
 import { ProgressRing } from "../ui/Display";
@@ -132,8 +131,6 @@ type Hitung = "right" | "wrong" | "empty" | "hint";
 
 type Item = { t: "tok"; tok: Token; text: string } | { t: "blank"; seg: BlankSegment };
 
-// A safety net only: groupmates' answers and hints arrive live.
-const POLL_MS = 60_000;
 const SALAH_UNTUK_BANTUAN = 2;
 
 interface Props {
@@ -361,20 +358,8 @@ export default function BlankFile(p: Props) {
 
   useEffect(() => {
     if (mode !== "now" || !loaded || locked) return;
-    let first = true;
-    const stop = startPolling(async () => {
-      if (first) {
-        first = false;
-        return;
-      }
-      await muatUlang();
-    }, POLL_MS);
     // A groupmate's answer and an Asisten's hint show at once.
-    const lepas = dengar(["jurnal", "jawaban", "petunjuk"], () => void muatUlang());
-    return () => {
-      stop();
-      lepas();
-    };
+    return dengar(["jurnal", "jawaban", "petunjuk"], () => void muatUlang());
   }, [mode, loaded, locked, modul, berkas]);
 
   // An Asisten reads any group's file: its identity lines follow the pick.

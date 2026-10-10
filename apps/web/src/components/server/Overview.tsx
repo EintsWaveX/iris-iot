@@ -27,6 +27,7 @@ import Confirm from "../ui/Confirm";
 import IconButton from "../ui/IconButton";
 import { Switch } from "../ui/Controls";
 import { getJson, jamMenit, postJson, sejak, tanggalPanjang, useTick } from "../../lib/app";
+import { useSegar } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
 import {
   bacaHasilSiap,
@@ -252,20 +253,17 @@ function ChartCard({ lang, id }: { lang: Lang; id: number }) {
   const t = S[lang];
   const [rentang, setRentang] = useState("24h");
   const [h, setH] = useState<Riwayat | null>(null);
+  const segar = useSegar(["server"]);
+  useEffect(() => setH(null), [id, rentang]);
   useEffect(() => {
-    setH(null);
     let alive = true;
-    const load = () =>
-      getJson<{ ok: boolean } & Riwayat>(`/api/server/${id}?aksi=riwayat&rentang=${rentang}`)
-        .then((d) => alive && d.ok && setH(d))
-        .catch(() => {});
-    void load();
-    const timer = setInterval(load, 60_000);
+    getJson<{ ok: boolean } & Riwayat>(`/api/server/${id}?aksi=riwayat&rentang=${rentang}`)
+      .then((d) => alive && d.ok && setH(d))
+      .catch(() => {});
     return () => {
       alive = false;
-      clearInterval(timer);
     };
-  }, [id, rentang]);
+  }, [id, rentang, segar]);
   const seri = (h?.seri ?? []).map((d) => ({
     t: new Date(d.pada).getTime(),
     v: { cpu: d.cpu ?? null, suhu: d.suhu ?? null },
@@ -593,19 +591,16 @@ function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
   const [hist, setHist] = useState(false);
   const [cmds, setCmds] = useState(false);
   const sejakKosong = data.server.riwayatSejak;
+  const segar = useSegar(["server"]);
   useEffect(() => {
     let alive = true;
-    const load = () =>
-      getJson<{ ok: boolean } & Riwayat>(`/api/server/${id}?aksi=riwayat&rentang=7d`)
-        .then((d) => alive && d.ok && setH(d))
-        .catch(() => {});
-    void load();
-    const timer = setInterval(load, 60_000);
+    getJson<{ ok: boolean } & Riwayat>(`/api/server/${id}?aksi=riwayat&rentang=7d`)
+      .then((d) => alive && d.ok && setH(d))
+      .catch(() => {});
     return () => {
       alive = false;
-      clearInterval(timer);
     };
-  }, [id, sejakKosong]);
+  }, [id, sejakKosong, segar]);
   useEffect(() => {
     if (autoCmd) {
       setCmds(true);

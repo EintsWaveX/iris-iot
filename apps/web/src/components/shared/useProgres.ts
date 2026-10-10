@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { getJson } from "../../lib/app";
+import { useSegar } from "../../lib/siaran";
 
 export interface ModulBerkas {
   modul: number;
@@ -17,6 +18,8 @@ export type Progres = Record<number, { benar: number; total: number } | null>;
 
 export function useProgres(modules: readonly ModulBerkas[], terbuka: number[] | null): Progres {
   const [p, setP] = useState<Progres>({});
+  // A new code version, or a session's start or end, changes the drafts.
+  const segar = useSegar(["jurnal", "sesi"]);
   useEffect(() => {
     if (!terbuka) return;
     let alive = true;
@@ -51,6 +54,6 @@ export function useProgres(modules: readonly ModulBerkas[], terbuka: number[] | 
     return () => {
       alive = false;
     };
-  }, [modules, terbuka]);
+  }, [modules, terbuka, segar]);
   return p;
 }

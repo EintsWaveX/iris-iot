@@ -43,6 +43,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { getJson, tanggalPanjang } from "../../lib/app";
+import { useSiaran } from "../../lib/siaran";
 import {
   blokValid,
   langkahDokumen,
@@ -602,6 +603,7 @@ export default function Builder({
   const [ctxPick, setCtxPick] = useState(false);
   const [wide, setWide] = useState(() => window.innerWidth >= 1100);
   const dirty = useRef(false);
+  const doneOnce = useRef(false);
   const tmr = useRef<number | undefined>(undefined);
   const state = useRef({ judul, jenis, blok, sesiId, sebut });
   state.current = { judul, jenis, blok, sesiId, sebut };
@@ -624,6 +626,10 @@ export default function Builder({
       const l = d.laporan;
       setDoc(l);
       setKomentar(d.komentar);
+      // Someone else's change arrives live; my own open draft keeps what is
+      // on screen (its caret, its unsaved typing).
+      if (dirty.current || (doneOnce.current && l.status === "draf" && l.penulisNim === me)) return;
+      doneOnce.current = true;
       setJudul(l.judul);
       setJenis(l.jenis);
       setBlok((l.blok ?? []).filter(blokValid));
@@ -634,10 +640,13 @@ export default function Builder({
     } catch {
       setErr("fail");
     }
-  }, [id]);
+  }, [id, me]);
   useEffect(() => {
+    doneOnce.current = false;
     void load();
   }, [load]);
+  // A comment, a review or another tab's save (session:dokumen).
+  useSiaran(["laporan"], () => void load());
 
   const ro = !doc || doc.status !== "draf" || doc.penulisNim !== me;
 

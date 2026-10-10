@@ -62,7 +62,6 @@ interface Data {
 type Saring = "semua" | "belum" | "macet" | "minta";
 
 const TOKEN = /_{4,}/;
-const POLL_MS = 30_000;
 
 export interface BlankRingkas {
   benar: number;
@@ -125,11 +124,9 @@ export default function BlankPanel({
     hidup.current = true;
     setData(null);
     void muat();
-    const id = window.setInterval(() => void muat(), POLL_MS);
     const lepas = dengar(["jawaban", "petunjuk", "kode"], () => void muat());
     return () => {
       hidup.current = false;
-      window.clearInterval(id);
       lepas();
     };
   }, [kelompok, lang]);

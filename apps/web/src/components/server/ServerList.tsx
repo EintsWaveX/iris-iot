@@ -68,7 +68,7 @@ export default function ServerList({
       );
       return { list, hist };
     },
-    15_000,
+    60_000,
     true,
     ["server"],
   );

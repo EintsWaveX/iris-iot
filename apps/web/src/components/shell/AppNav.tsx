@@ -296,7 +296,7 @@ export default function AppNav({
       getJson<{ ok: boolean; menunggu?: number }>("/api/server/konsol").then(
         (d) => d.menunggu ?? 0,
       ),
-    30_000,
+    60_000,
     dev,
     ["server"],
   );

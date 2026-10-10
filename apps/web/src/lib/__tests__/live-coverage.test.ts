@@ -24,6 +24,8 @@ const SEKALI: Record<string, string> = {
   "components/shell/IdentityWatch.tsx": "asks who is signed in on focus and after a refusal",
   "components/KodeSesiDialog.tsx": "the session code check, typed by the person",
   "components/console/StartCheck.tsx": "the readiness check runs when Start is pressed",
+  "components/console/Console.tsx": "asks once how a session ended, when the live data loses it",
+  "components/shell/AsistenCommands.tsx": "reads just before the write a command makes",
   "components/console/EndFlow.tsx": "the wrap up reads once per step it opens",
   "components/console/prep/StudentDialogs.tsx": "dialogs that only write",
   "components/console/ringkasSesi.ts": "builds a summary file on demand",

@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { dict, getJson, MODUL_NAMA, postJson } from "../../lib/app";
+import { useSegar } from "../../lib/siaran";
 import { kelasLabel, modulLabel } from "../../lib/labels";
 import { KELAS, type Kelas, type Lang } from "../../lib/kelas";
 import type { SesiRunning } from "./types";
@@ -120,10 +121,19 @@ export default function UbahSesi({
     setModul(sesi.modul);
     setKelas(sesi.kelas ?? "reguler");
     setErr(null);
-    getJson<{ ok: boolean; terbuka: number[] }>("/api/session/akses?segar=1")
-      .then((d) => setTerbuka(d.ok ? d.terbuka : []))
-      .catch(() => setTerbuka([]));
   }, [open, sesi.modul, sesi.kelas]);
+  // Which modules are open follows Module Access while the dialog is up.
+  const segarAkses = useSegar(["akses"], open);
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    getJson<{ ok: boolean; terbuka: number[] }>("/api/session/akses?segar=1")
+      .then((d) => alive && setTerbuka(d.ok ? d.terbuka : []))
+      .catch(() => alive && setTerbuka([]));
+    return () => {
+      alive = false;
+    };
+  }, [open, segarAkses]);
 
   const gantiModul = modul !== sesi.modul;
   const gantiKelas = kelas !== (sesi.kelas ?? "reguler");

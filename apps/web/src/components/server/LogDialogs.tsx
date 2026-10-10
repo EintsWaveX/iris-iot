@@ -17,6 +17,7 @@ import {
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
 import { getJson, localeOf, postJson, sejak, useTick } from "../../lib/app";
+import { useSegar } from "../../lib/siaran";
 import { unduhCsv } from "../../lib/csv";
 import type { Lang } from "../../lib/kelas";
 import type { Perintah } from "../console/types";
@@ -300,11 +301,16 @@ export function HistoryDialog({
   const now = useTick(1_000);
   const [h, setH] = useState<Riwayat | null>(null);
   const [ask, setAsk] = useState(false);
+  const segar = useSegar(["server"]);
   useEffect(() => {
+    let alive = true;
     getJson<{ ok: boolean } & Riwayat>(`/api/server/${serverId}?aksi=riwayat&rentang=7d`)
-      .then((d) => d.ok && setH(d))
-      .catch(() => window.Toast?.show(t.fail, "danger"));
-  }, [serverId, t.fail]);
+      .then((d) => alive && d.ok && setH(d))
+      .catch(() => alive && !segar && window.Toast?.show(t.fail, "danger"));
+    return () => {
+      alive = false;
+    };
+  }, [serverId, segar, t.fail]);
   const rows = kejadianDari(h, lang);
 
   return (
