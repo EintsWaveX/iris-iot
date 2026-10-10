@@ -56,6 +56,7 @@ import {
   detectGaps,
   hitungKetersediaan,
   bangunTimelineLayanan,
+  sweepPerintahKedaluwarsa,
 } from "../../src/lib/server-lib.js";
 import { currentSesi } from "../../src/lib/sesi.js";
 import { desc, asc, and, eq, gte, inArray, lt, sql } from "drizzle-orm";
@@ -77,6 +78,9 @@ const PERINTAH_PER_HALAMAN = 20;
 
 async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
   const db = getDb();
+  // A silent Pi runs no sweep of its own: the page that asks at a
+  // command's expiry (Phase 12) sees it expired.
+  await sweepPerintahKedaluwarsa();
   const [row] = await db.select().from(server).where(eq(server.id, id)).limit(1);
   if (!row) {
     res.status(200).json({ ok: false, kode: "tidak_ditemukan" });

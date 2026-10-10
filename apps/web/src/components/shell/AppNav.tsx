@@ -286,7 +286,7 @@ export default function AppNav({
   }, []);
   const t = T[lang];
   const me = useMe();
-  const now = useSessionNow(30_000, me !== undefined && me !== null);
+  const now = useSessionNow(me !== undefined && me !== null);
   // Konsol Pi: a dot on Server while something waits for this Asisten (a
   // request to answer, a console opened without approval, someone asking to
   // join theirs), and a toast when a new one comes in.

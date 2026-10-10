@@ -29,6 +29,16 @@ export const KELOMPOK_MAKS = 10;
 export const KELOMPOK_DEFAULT = 5;
 
 /** A session's own length in minutes, kept inside the bounds. */
+/** When a running session's time is up (ms), or null before it started */
+export function akhirSesiPada(row: {
+  mulaiPada?: string | Date | null;
+  durasiMenit?: number | null;
+}): number | null {
+  if (!row.mulaiPada) return null;
+  const t = new Date(row.mulaiPada).getTime();
+  return Number.isNaN(t) ? null : t + durasiSesi(row) * 60_000;
+}
+
 export function durasiSesi(row: { durasiMenit?: number | null }): number {
   const d = row.durasiMenit ?? SESI_CAP_MENIT;
   return Math.min(SESI_CAP_MENIT, Math.max(SESI_MIN_MENIT, d));

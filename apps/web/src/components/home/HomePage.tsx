@@ -111,7 +111,7 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
   // Projector mode draws the Asisten as a Praktikan of the projected group.
   const me = useTampil(useMe());
   const praktikan = me?.role === "praktikan";
-  const now = useSessionNow(30_000, praktikan);
+  const now = useSessionNow(praktikan);
   useTick(30_000);
   const [next, setNext] = useState<SlotBerikutnya | null | undefined>(undefined);
   // A cover or a schedule change moves the next slot (live updates).

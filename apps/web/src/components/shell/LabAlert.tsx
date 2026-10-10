@@ -25,6 +25,7 @@ import {
 import { dict, getJson, href, postJson, type Me } from "../../lib/app";
 import { modulLabel } from "../../lib/labels";
 import { usePoll } from "../../lib/hooks";
+import { useBatas } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
 
 interface Waspada {
@@ -35,7 +36,12 @@ interface Waspada {
     ambang: number;
     terakhir: { id: number; pada: string; pesan: string } | null;
   };
-  pi: { luring: boolean; umurDetik: number | null; serverId?: number | null } | null;
+  pi: {
+    luring: boolean;
+    umurDetik: number | null;
+    luringPada?: string | null;
+    serverId?: number | null;
+  } | null;
   sesi: { id: number; modul: number } | null;
   panggilan?: {
     bisaJawab: boolean;
@@ -168,11 +174,13 @@ export default function LabAlert({
   const bisaServer = me.hak?.server === true;
   const poll = usePoll(
     () => getJson<Waspada>("/api/session/waspada"),
-    sesiBerjalan ? 30_000 : 120_000,
+    sesiBerjalan ? 60_000 : 120_000,
     true,
     ["sesi", "server"],
   );
   const w = poll.data;
+  // A Pi that stops beating writes nothing: the banner comes up on time.
+  useBatas(w?.ok && w.pi && !w.pi.luring ? w.pi.luringPada : null, ["server"]);
   const [tutupDatang, setTutupDatang] = useState(0);
   const [sembunyi, setSembunyi] = useState(0);
   const [izin, setIzin] = useState<NotificationPermission | "none">("none");

@@ -944,7 +944,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
   const sendiri = me?.role === "praktikan";
   const praktikan = sendiri || pro !== null;
   const [view, go] = useView();
-  const now = useSessionNow(15_000, praktikan);
+  const now = useSessionNow(praktikan);
   const sesi = now.data && now.data.milikSaya !== false ? now.data : null;
   const hasilPoll = usePoll(
     () => getJson<Hasil>(`/api/session/results${pro ? `?kelompok=${pro}` : ""}`),

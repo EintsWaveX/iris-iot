@@ -9,7 +9,8 @@ import type { HakKey, HakNilai, Tier } from "./hak.js";
 import { useEffect, useState } from "react";
 import type { Kelas, Lang } from "./kelas.js";
 import { usePoll } from "./hooks.js";
-import { dengar } from "./siaran.js";
+import { dengar, useBatas } from "./siaran.js";
+import { akhirSesiPada } from "./jadwal.js";
 import { adaBelumSimpan, saatBersih } from "./belum-simpan.js";
 
 /* ------------------------------------------------------------ fetching */
@@ -248,13 +249,16 @@ export interface SesiNow {
   tangan?: number;
 }
 
-export function useSessionNow(ms = 20_000, enabled = true) {
-  return usePoll(
+export function useSessionNow(enabled = true) {
+  const poll = usePoll(
     () => getJson<{ ok: boolean; sesi: SesiNow | null }>("/api/session/now").then((d) => d.sesi),
-    ms,
+    60_000,
     enabled,
     ["sesi"],
   );
+  // The session's time runs out without a write: every view hears it then.
+  useBatas(poll.data ? akhirSesiPada(poll.data) : null, ["sesi", "jadwal", "laporan"]);
+  return poll;
 }
 
 /* --------------------------------------------------------------- i18n */

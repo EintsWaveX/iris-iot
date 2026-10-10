@@ -4,7 +4,8 @@
  * their app is open, faint when not. Hover says when they were last active.
  */
 import { dict, sejak, useTick } from "../../lib/app";
-import { sedangOnline } from "../../lib/kehadiran";
+import { ONLINE_MS, sedangOnline } from "../../lib/kehadiran";
+import { useLewat } from "../../lib/jam";
 import type { Lang } from "../../lib/kelas";
 
 const T = dict({
@@ -28,7 +29,9 @@ export default function AsistenKode({
   const now = useTick(30_000);
   const t = T[lang];
   const ada = terakhirAktif !== undefined;
-  const on = ada && sedangOnline(terakhirAktif, now);
+  // Goes offline at the very moment, not on the next tick.
+  const habis = useLewat(terakhirAktif ? Date.parse(terakhirAktif) + ONLINE_MS : null);
+  const on = ada && !habis && sedangOnline(terakhirAktif, now);
   const judul = !ada
     ? undefined
     : on

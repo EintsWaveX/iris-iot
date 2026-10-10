@@ -181,7 +181,7 @@ export default function ModuleSteps(p: Props) {
   const { lang, modul } = p;
   const t = M[lang];
   const me = useMe();
-  const now = useSessionNow(30_000, me?.role === "praktikan");
+  const now = useSessionNow(me?.role === "praktikan");
   const [akses, setAkses] = useState<AksesState | null>(null);
   const [mine, setMine] = useState<Praktikum[] | null>(null);
 

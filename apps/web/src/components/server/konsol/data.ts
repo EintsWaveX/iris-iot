@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { postJson } from "../../../lib/app";
-import type { KonsolStatus, KonsolTarget } from "../../../lib/konsol";
+import { MINTA_MENIT, type KonsolStatus, type KonsolTarget } from "../../../lib/konsol";
 import type { LayarKonsol } from "../../../lib/server-shared";
 
 export interface KonsolRow {
@@ -237,4 +237,13 @@ export function sisaMenit(row: KonsolRow | null | undefined, dibaca: number, now
   if (!row || row.sisaDetik === null) return null;
   const s = row.sisaDetik - (now - dibaca) / 1000;
   return Math.max(0, Math.ceil(s / 60));
+}
+
+/** When the open Konsol request runs out or the open console reaches its
+ *  end (ms), from data fetched at `pada`; null when nothing is open */
+export function konsolBerakhirPada(d: KonsolData | null, pada: number | null): number | null {
+  const a = d?.aktif;
+  if (!a || pada === null) return null;
+  if (a.status === "diminta") return Date.parse(a.dimintaPada) + MINTA_MENIT * 60_000;
+  return a.sisaDetik === null ? null : pada + a.sisaDetik * 1000;
 }

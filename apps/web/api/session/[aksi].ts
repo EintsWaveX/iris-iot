@@ -435,12 +435,23 @@ async function handleWaspada(_req: ApiRequest, res: ApiResponse, session: Sessio
       .limit(1),
     currentSesi(),
   ]);
-  let pi: { luring: boolean; umurDetik: number | null; serverId: number | null } | null = null;
+  let pi: {
+    luring: boolean;
+    umurDetik: number | null;
+    luringPada: string | null;
+    serverId: number | null;
+  } | null = null;
   if (running && running.modul in LAYANAN_MODUL) {
     const f = await faktaPi();
     pi = {
       luring: !f || f.umurDetik === null || f.umurDetik > f.batasLuringDetik,
       umurDetik: f?.umurDetik ?? null,
+      // When the Pi counts as silent unless it beats again, for the page's
+      // own timer (Phase 12).
+      luringPada:
+        f && f.umurDetik !== null
+          ? new Date(Date.now() + (f.batasLuringDetik - f.umurDetik) * 1000).toISOString()
+          : null,
       // The banner opens this Pi, not the server list (ledger W5).
       serverId: f?.id ?? null,
     };

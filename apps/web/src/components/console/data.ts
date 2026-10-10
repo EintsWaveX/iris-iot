@@ -23,19 +23,23 @@ import type {
   SesiRunning,
 } from "./types";
 import type { SaveState } from "../ui/Controls";
-import { dengar } from "../../lib/siaran";
+import { dengar, useBatas } from "../../lib/siaran";
+import { akhirSesiPada } from "../../lib/jadwal";
 
 /** Off until the viewer is known to be an Asisten (a guest sees the gate). */
 export function useCurrent(enabled = true) {
-  return usePoll(
+  const poll = usePoll(
     () =>
       getJson<{ ok: boolean; sesi: SesiRunning | null; roster: RosterGroup[] }>(
         "/api/session/current",
       ),
-    20_000,
+    60_000,
     enabled,
     ["sesi", "roster", "jadwal"],
   );
+  const s = poll.data?.sesi;
+  useBatas(s ? akhirSesiPada(s) : null, ["sesi", "jadwal", "laporan"]);
+  return poll;
 }
 
 export function useLaporan(enabled: boolean) {

@@ -19,7 +19,11 @@ import { and, eq, gt, lt, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
 import { server, denyut, perintah, telemetriTerkini, telemetriLog } from "./schema.js";
 import { safeEqual } from "./auth.js";
-import { LAYANAN_URUT } from "./server-shared.js";
+import {
+  LAYANAN_URUT,
+  PERINTAH_MENUNGGU_KEDALUWARSA_MENIT,
+  PERINTAH_TERKIRIM_KEDALUWARSA_MENIT,
+} from "./server-shared.js";
 import { KELOMPOK_MAKS } from "./jadwal.js";
 
 export { modulSiapValid, urutkanLayanan, hotspotMenyala } from "./server-shared.js";
@@ -403,9 +407,6 @@ export async function pruneOldTelemetryOccasionally(): Promise<void> {
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60_000);
   await db.delete(telemetriLog).where(lt(telemetriLog.dicatatPada, cutoff));
 }
-
-const PERINTAH_TERKIRIM_KEDALUWARSA_MENIT = 5;
-const PERINTAH_MENUNGGU_KEDALUWARSA_MENIT = 30;
 
 /**
  * P6.2/B7: atomically claims every `menunggu` command queued for this

@@ -138,6 +138,8 @@ import Tooltip from "../ui/Tooltip";
 import { OfflineBanner } from "../ui/Display";
 import { usePoll } from "../../lib/hooks";
 import { getJson, href, localeOf, useTick } from "../../lib/app";
+import { useBatas } from "../../lib/siaran";
+import { perintahHabisPada } from "../../lib/server-shared";
 import type { Lang } from "../../lib/kelas";
 import { useDirektori } from "../../lib/people";
 import { isOnline, type Bisa, type Detail } from "./data";
@@ -146,7 +148,7 @@ import Ready from "./Ready";
 import Settings from "./Settings";
 import Enroll from "./Enroll";
 import KonsolPi, { KonsolBanner } from "./konsol/KonsolPi";
-import type { KonsolData } from "./konsol/data";
+import { konsolBerakhirPada, type KonsolData } from "./konsol/data";
 import { S } from "./strings";
 import { S12 } from "./server12Strings";
 
@@ -203,11 +205,18 @@ export default function ServerDetail({
       if (!d.ok) throw new Error("gone");
       return d as Detail;
     },
-    6_000,
+    60_000,
     true,
     ["server"],
   );
   const data = poll.data;
+  // The next open command to run out, and the Konsol request or console
+  // to end: each is a moment the page asks again by itself.
+  const habis = useMemo(() => {
+    const t = (data?.perintah ?? []).map(perintahHabisPada).filter((x): x is number => x !== null);
+    return t.length ? Math.min(...t) : null;
+  }, [data?.perintah]);
+  useBatas(habis, ["server"]);
   // Phase 9 Stage 9: Konsol Pi's state, for the tab and the banner.
   const konsol = usePoll(
     async () => {
@@ -215,11 +224,12 @@ export default function ServerDetail({
       if (!d.ok) throw new Error("konsol");
       return { d: d as KonsolData, pada: Date.now() };
     },
-    4_000,
+    60_000,
     true,
     ["server"],
   );
   const kd = konsol.data?.d ?? null;
+  useBatas(konsolBerakhirPada(kd, konsol.data?.pada ?? null), ["server"]);
   const dir = useDirektori();
   const siapa = (n: string | null) => (n ? dir.nama(n) : "");
 

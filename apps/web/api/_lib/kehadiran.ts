@@ -1,6 +1,6 @@
 /**
  * Stamps an Asisten as active (lib/kehadiran.ts): one conditional UPDATE,
- * so at most one write a minute per person however often they poll. When
+ * so at most one write every 45 s per person however often they poll. When
  * they were offline before, every open Team page hears it ("online").
  */
 import { sql } from "drizzle-orm";
@@ -14,7 +14,7 @@ export async function tandaiAktif(nim: string): Promise<void> {
       UPDATE asisten a SET terakhir_aktif = now()
       FROM (SELECT terakhir_aktif AS lama FROM asisten WHERE nim = ${nim}) s
       WHERE a.nim = ${nim}
-        AND (a.terakhir_aktif IS NULL OR a.terakhir_aktif < now() - interval '60 seconds')
+        AND (a.terakhir_aktif IS NULL OR a.terakhir_aktif < now() - interval '45 seconds')
       RETURNING s.lama
     `);
     const list = hasil.rows as { lama: string | Date | null }[];

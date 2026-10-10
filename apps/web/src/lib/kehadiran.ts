@@ -1,9 +1,9 @@
 /**
- * Online or not, for an Asisten (Team page): their signed-in page polls
- * /api/session/now every 30 s while it is in view, and that poll stamps
- * asisten.terakhir_aktif at most once a minute (api/_lib/kehadiran.ts).
- * So someone with the app open is never more than ~90 s old; 150 s leaves
- * room for a slow poll. A hidden tab stops polling and goes offline.
+ * Online or not, for an Asisten (Team page): their signed-in page asks
+ * /api/session/now at least every 60 s while it is in view, and that call
+ * stamps asisten.terakhir_aktif at most every 45 s (api/_lib/kehadiran.ts).
+ * So someone with the app open is never more than ~65 s old; 150 s leaves
+ * room for a slow call. A hidden tab stops asking and goes offline.
  */
 export const ONLINE_MS = 150_000;
 

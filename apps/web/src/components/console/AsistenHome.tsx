@@ -66,11 +66,11 @@ import { hariIniWib, SESI_CAP_MENIT, SESI_MIN_MENIT, SLOT_MULAI } from "../../li
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { hariLabel, kelasLabel, kelompokLabel, menitLabel, modulLabel } from "../../lib/labels";
 import { useDirektori } from "../../lib/people";
+import { useMenitWib } from "../../lib/jam";
 import {
   jamDariMenit,
   jendelaSlot,
   menitDariJam,
-  menitSekarangWib,
   JENDELA_MAX,
   JENDELA_MIN,
 } from "../../lib/sesi-mulai";
@@ -215,7 +215,7 @@ export default function AsistenHome({
   // brings its roster. Before this Home could only start an empty susulan.
   const [drafts, setDrafts] = useState<Draf[] | null>(null);
   const [draf, setDraf] = useState<number | "baru">("baru");
-  const [menitNow, setMenitNow] = useState(() => menitSekarangWib());
+  const menitNow = useMenitWib();
   // A closed module picked in Start: say so and offer Module Access.
   const [tutup, setTutup] = useState<number | null>(null);
 
@@ -235,8 +235,6 @@ export default function AsistenHome({
   useEffect(() => {
     void load();
     void muatUmpan();
-    const id = setInterval(() => setMenitNow(menitSekarangWib()), 30_000);
-    return () => clearInterval(id);
   }, []);
 
   const penuh = me.hak?.pair === true;

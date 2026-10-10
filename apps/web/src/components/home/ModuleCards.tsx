@@ -218,7 +218,7 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
   const me = useTampil(asli);
   const pro = me !== asli;
   const signedIn = Boolean(me);
-  const now = useSessionNow(30_000, signedIn);
+  const now = useSessionNow(signedIn);
   const [terbuka, setTerbuka] = useState<number[] | null>(null);
   const [asisten, setAsisten] = useState(false);
   const [jurnal, setJurnal] = useState<number[]>([]);

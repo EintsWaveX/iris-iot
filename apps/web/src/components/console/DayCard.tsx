@@ -11,7 +11,7 @@ import Pill from "../ui/Pill";
 import { getJson, href, type Me } from "../../lib/app";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { hariLabel, kelasLabel } from "../../lib/labels";
-import { menitSekarangWib } from "../../lib/sesi-mulai";
+import { useMenitWib } from "../../lib/jam";
 import type { Lang } from "../../lib/kelas";
 import { useSiaran } from "../../lib/siaran";
 import { useTitipan } from "./seelabs/data";
@@ -37,7 +37,7 @@ export default function DayCard({
 }) {
   const d = D[lang];
   const [data, setData] = useState<Beranda | null>(null);
-  const [now, setNow] = useState(() => menitSekarangWib());
+  const now = useMenitWib();
   const held = useTitipan();
   const bantuan = useBantuan();
   const load = () =>
@@ -47,8 +47,6 @@ export default function DayCard({
   useSiaran(["sesi", "jadwal", "tim", "nilai", "roster", "server", "akses", "presentasi"], load);
   useEffect(() => {
     void load();
-    const id = setInterval(() => setNow(menitSekarangWib()), 30_000);
-    return () => clearInterval(id);
   }, []);
 
   const myCode = (me.kode ?? "").toUpperCase();

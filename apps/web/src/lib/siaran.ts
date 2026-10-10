@@ -19,6 +19,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 
+import { catatJam, keMs, pada, periksaBatas } from "./jam";
 import type { Topik } from "./siaran-topik";
 
 export type { Topik };
@@ -216,6 +217,7 @@ function putus() {
 /** Catch up now and make sure a live socket exists: reconnect at once if
  *  there is none, and test the one there is. */
 function bangun() {
+  periksaBatas();
   if (!subs.size) return;
   jadwalkan("semua");
   coba = 0;
@@ -277,7 +279,10 @@ if (typeof window !== "undefined" && typeof window.fetch === "function") {
   }
   const asli = window.fetch.bind(window);
   window.fetch = async (...args: Parameters<typeof fetch>) => {
+    const kirim = Date.now();
     const r = await asli(...args);
+    // Every same-site answer tells the server's time (lib/jam.ts).
+    if (r.url.startsWith(location.origin)) catatJam(r.headers.get("date"), kirim, Date.now());
     const h = r.headers.get("x-siaran");
     if (h) {
       const t = h.split(",").filter((x) => /^[a-z]{2,16}$/.test(x));
@@ -339,6 +344,34 @@ export function useSegar(topik: readonly Topik[], enabled = true): number {
   const [n, setN] = useState(0);
   useSiaran(topik, () => setN((x) => x + 1), enabled);
   return n;
+}
+
+/* ------------------------------------------------------------ deadlines */
+
+/* What turns over at a known moment rather than on a write (a session's
+ * end, a Pi's silence limit, a request's expiry) is announced on the page
+ * itself at that moment, as if the relay had said it (Phase 12). A second
+ * of grace lets the server agree when the views ask again. */
+const BATAS_TENGGANG_MS = 1000;
+
+/** Runs the subscribers of `topik` at server time `at`. Returns a cancel. */
+export function batasPada(at: string | number | Date, topik: readonly Topik[]): () => void {
+  const ms = keMs(at);
+  if (!Number.isFinite(ms) || !topik.length) return () => {};
+  return pada(ms + BATAS_TENGGANG_MS, () => jadwalkan([...topik]));
+}
+
+/** React: refetch the views of `topik` when server time reaches `at`. */
+export function useBatas(
+  at: string | number | Date | null | undefined,
+  topik: readonly Topik[],
+): void {
+  const ms = keMs(at);
+  const key = topik.join(",");
+  useEffect(() => {
+    if (!Number.isFinite(ms) || !key) return;
+    return batasPada(ms, key.split(",") as Topik[]);
+  }, [ms, key]);
 }
 
 /** React: whether this page's live updates are working right now. */

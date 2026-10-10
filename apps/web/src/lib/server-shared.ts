@@ -508,3 +508,21 @@ export function posisiPasang(
   const langkah = { mulai: 1, bundel: 1, pasang: 2, daftar: 3 }[p.tahap];
   return { langkah: p.ulang && langkah < 3 ? 3 : langkah, lewati: p.ulang, gagal: p.gagal };
 }
+
+/** A command sent to the Pi with no report back expires after this long */
+export const PERINTAH_TERKIRIM_KEDALUWARSA_MENIT = 5;
+/** A command the agent never picked up expires after this long */
+export const PERINTAH_MENUNGGU_KEDALUWARSA_MENIT = 30;
+
+/** When a still open command expires (ms), or null once it is settled */
+export function perintahHabisPada(p: {
+  status: string;
+  dimintaPada: string;
+  terkirimPada: string | null;
+}): number | null {
+  if (p.status === "terkirim" && p.terkirimPada)
+    return Date.parse(p.terkirimPada) + PERINTAH_TERKIRIM_KEDALUWARSA_MENIT * 60_000;
+  if (p.status === "menunggu")
+    return Date.parse(p.dimintaPada) + PERINTAH_MENUNGGU_KEDALUWARSA_MENIT * 60_000;
+  return null;
+}
