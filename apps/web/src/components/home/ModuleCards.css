@@ -57,8 +57,10 @@
     transform var(--dur-fast);
 }
 
-.modcard:hover {
-  border-color: color-mix(in srgb, var(--m) 60%, var(--hairline));
+@media (hover: hover) and (pointer: fine) {
+  .modcard:hover {
+    border-color: color-mix(in srgb, var(--m) 60%, var(--hairline));
+  }
 }
 
 .modcard::after {
@@ -108,8 +110,47 @@
 }
 
 .modcard__facts {
+  align-content: start;
   flex: 1 1 auto;
   gap: 6px;
+}
+
+/* Side by side, every card shares one set of rows, so the titles, the
+   chips and the footers line up whatever wraps (Phase 11). */
+@media (min-width: 720px) {
+  .modgrid {
+    row-gap: 14px;
+  }
+
+  .modgrid > .modcard {
+    display: grid;
+    grid-row: span 6;
+    grid-template-rows: subgrid;
+  }
+
+  .modgrid > .modcard > .pill {
+    justify-self: start;
+  }
+
+  .modgrid > .modcard:nth-child(n + 3) {
+    margin-top: 10px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .modgrid > .modcard:nth-child(n + 3) {
+    margin-top: 0;
+  }
+}
+
+.modcard__fact {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.modcard__end {
+  gap: 14px;
+  margin-left: auto;
 }
 
 .modcard__foot {
@@ -127,19 +168,24 @@
 
 .modcard__cta {
   align-items: center;
+  border: 1px solid color-mix(in srgb, var(--m) 50%, var(--hairline));
+  border-radius: 999px;
   color: var(--m);
-  display: inline-flex;
-  font-weight: 700;
-  gap: 8px;
+  display: inline-grid;
+  height: 40px;
+  justify-items: center;
   text-decoration: none;
+  width: 40px;
 }
 
 .modcard__cta svg {
   transition: transform var(--dur-fast);
 }
 
-.modcard:hover .modcard__cta svg {
-  transform: translateX(3px);
+@media (hover: hover) and (pointer: fine) {
+  .modcard:hover .modcard__cta svg {
+    transform: translateX(3px);
+  }
 }
 
 .modcard__access {

@@ -39,9 +39,11 @@
     transform var(--dur-fast) var(--ease-out-expo);
 }
 
-.control-hover:hover:not(:disabled):not([aria-disabled="true"]) {
-  box-shadow: var(--shadow-lift);
-  transform: var(--lift-control);
+@media (hover: hover) and (pointer: fine) {
+  .control-hover:hover:not(:disabled):not([aria-disabled="true"]) {
+    box-shadow: var(--shadow-lift);
+    transform: var(--lift-control);
+  }
 }
 
 .control-hover:active:not(:disabled):not([aria-disabled="true"]) {
@@ -72,15 +74,24 @@
    affordance that something is focused/hovered) with no infinite loop
    underneath it. Same idiom BlankEditor.css already uses for its own
    tier-gated pulse. */
-:root:not([data-motion-tier="0"])
-  .control-hover:hover:not(:disabled):not([aria-disabled="true"])::after,
 :root:not([data-motion-tier="0"]) .control-hover:focus-visible:not([aria-disabled="true"])::after {
   animation: aurora-sweep 2.2s linear infinite;
 }
+@media (hover: hover) and (pointer: fine) {
+  :root:not([data-motion-tier="0"])
+    .control-hover:hover:not(:disabled):not([aria-disabled="true"])::after {
+    animation: aurora-sweep 2.2s linear infinite;
+  }
+}
 
-.control-hover:hover:not(:disabled):not([aria-disabled="true"])::after,
 .control-hover:focus-visible:not([aria-disabled="true"])::after {
   opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .control-hover:hover:not(:disabled):not([aria-disabled="true"])::after {
+    opacity: 1;
+  }
 }
 
 /* -----------------------------------------------------------------------
@@ -134,8 +145,10 @@
   display: none;
 }
 
-.btn:hover:not(:disabled):not([aria-disabled="true"]) {
-  transform: var(--lift-control);
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled):not([aria-disabled="true"]) {
+    transform: var(--lift-control);
+  }
 }
 
 .btn:active:not(:disabled):not([aria-disabled="true"]) {
@@ -174,9 +187,14 @@
   transition: opacity var(--dur-mid) var(--ease-reveal);
 }
 
-.btn:hover:not(:disabled):not([aria-disabled="true"])::after,
 .btn:focus-visible:not([aria-disabled="true"])::after {
   opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled):not([aria-disabled="true"])::after {
+    opacity: 1;
+  }
 }
 
 /* The sweep keeps running in every detail level, as in the mockup; only the
@@ -226,13 +244,20 @@
   z-index: -1;
 }
 
-.btn--primary:hover:not(:disabled):not([aria-disabled="true"])::before,
 .btn--primary:focus-visible:not([aria-disabled="true"])::before {
   opacity: 1;
 }
 
-.btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
-  box-shadow: 0 10px 30px var(--accent-glow);
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover:not(:disabled):not([aria-disabled="true"])::before {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover:not(:disabled):not([aria-disabled="true"]) {
+    box-shadow: 0 10px 30px var(--accent-glow);
+  }
 }
 
 .btn--primary .btn__label,
@@ -248,12 +273,19 @@
   color: var(--text);
 }
 
-.btn--inverse:hover:not(:disabled):not([aria-disabled="true"]),
 .btn--inverse:active:not(:disabled):not([aria-disabled="true"]),
 .btn--inverse[aria-pressed="true"] {
   background: var(--invert-bg);
   box-shadow: 0 10px 30px var(--accent-glow);
   color: var(--invert-ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn--inverse:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--invert-bg);
+    box-shadow: 0 10px 30px var(--accent-glow);
+    color: var(--invert-ink);
+  }
 }
 
 /* -- ghost -- */
@@ -263,9 +295,11 @@
   color: var(--text-muted);
 }
 
-.btn--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--hairline-faint);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .btn--ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
 }
 
 /* -- danger -- */
@@ -275,9 +309,11 @@
   color: var(--danger-ink);
 }
 
-.btn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: color-mix(in srgb, var(--danger-solid) 82%, #fff);
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--danger-solid) 40%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .btn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--danger-solid) 40%, transparent);
+  }
 }
 
 .btn--danger-soft {
@@ -286,8 +322,10 @@
   color: var(--danger);
 }
 
-.btn--danger-soft:hover:not(:disabled):not([aria-disabled="true"]) {
-  border-color: var(--danger);
+@media (hover: hover) and (pointer: fine) {
+  .btn--danger-soft:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--danger);
+  }
 }
 
 /* -- quiet: the old bordered icon-only control -- */
@@ -358,10 +396,12 @@
   width: 46px;
 }
 
-.iconbtn:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: var(--surface-4);
-  border-color: var(--text-muted);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .iconbtn:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--surface-4);
+    border-color: var(--text-muted);
+    transform: translateY(-1px);
+  }
 }
 
 .iconbtn:focus-visible {
@@ -386,9 +426,11 @@
   color: var(--danger-ink);
 }
 
-.iconbtn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
-  background: color-mix(in srgb, var(--danger-solid) 82%, #fff);
-  border-color: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+@media (hover: hover) and (pointer: fine) {
+  .iconbtn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+    border-color: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+  }
 }
 
 .iconbtn--sm {
@@ -427,9 +469,11 @@
     transform var(--dur-fast) var(--ease-out-expo);
 }
 
-.back:hover {
-  background: var(--surface-4);
-  transform: translateX(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .back:hover {
+    background: var(--surface-4);
+    transform: translateX(-2px);
+  }
 }
 
 .back:focus-visible {

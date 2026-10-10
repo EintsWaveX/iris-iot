@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { localeOf } from "../../lib/app";
 import "./ZoomChart.css";
 import type { Lang } from "../../lib/kelas";
+import Nil from "../ui/Nil";
 
 export interface Titik {
   t: number;
@@ -253,9 +254,11 @@ export default function ZoomChart({
               return (
                 <span key={p.k} className="legend" style={{ "--c": p.c } as CSSProperties}>
                   {p.label}{" "}
-                  {v === null || v === undefined
-                    ? "·"
-                    : `${v.toLocaleString(loc, { maximumFractionDigits: p.dp ?? 0, minimumFractionDigits: p.dp ?? 0 })} ${p.unit}`}
+                  {v === null || v === undefined ? (
+                    <Nil dot />
+                  ) : (
+                    `${v.toLocaleString(loc, { maximumFractionDigits: p.dp ?? 0, minimumFractionDigits: p.dp ?? 0 })} ${p.unit}`
+                  )}
                 </span>
               );
             })}

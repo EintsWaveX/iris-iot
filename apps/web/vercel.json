@@ -6,6 +6,16 @@
       "permanent": false
     },
     {
+      "source": "/privasi",
+      "destination": "/privacy",
+      "permanent": true
+    },
+    {
+      "source": "/ketentuan",
+      "destination": "/terms",
+      "permanent": true
+    },
+    {
       "source": "/dashboard/server",
       "destination": "/servers",
       "permanent": true

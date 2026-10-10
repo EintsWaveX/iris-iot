@@ -108,9 +108,11 @@
   padding: 0 var(--space-3);
 }
 
-.toast__action:hover {
-  background: var(--accent);
-  color: var(--accent-ink);
+@media (hover: hover) and (pointer: fine) {
+  .toast__action:hover {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
 }
 
 .toast__close {
@@ -127,9 +129,11 @@
   width: 40px;
 }
 
-.toast__close:hover {
-  background: var(--hairline-faint);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .toast__close:hover {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
 }
 
 .toast__timer {
@@ -149,9 +153,14 @@
   animation-fill-mode: forwards;
 }
 
-.toast:hover .toast__timer,
 .toast:focus-within .toast__timer {
   animation-play-state: paused;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toast:hover .toast__timer {
+    animation-play-state: paused;
+  }
 }
 
 @keyframes toast-timer {

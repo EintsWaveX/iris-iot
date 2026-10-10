@@ -115,8 +115,10 @@
   padding: 9px 10px;
 }
 
-.day__blk.slot:hover {
-  transform: none;
+@media (hover: hover) and (pointer: fine) {
+  .day__blk.slot:hover {
+    transform: none;
+  }
 }
 
 .day__blk[data-state="done"] {

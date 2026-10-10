@@ -18,7 +18,8 @@ import {
 } from "@phosphor-icons/react";
 import { Switch } from "../ui/Controls";
 import Pill from "../ui/Pill";
-import { dict, href, MODUL_NAMA, useMe, useSessionNow } from "../../lib/app";
+import { dict, getJson, href, MODUL_NAMA, useMe, useSessionNow } from "../../lib/app";
+import { usePoll } from "../../lib/hooks";
 import { useTampil } from "../../lib/proyektor";
 import { getAksesState } from "../../scripts/modul-akses";
 import { setModulAkses } from "../shell/AsistenCommands";
@@ -51,7 +52,8 @@ const T = dict({
     open: "Terbuka",
     locked: "Terkunci",
     done: "Selesai",
-    cta: "Klik untuk membuka modul",
+    fact: (s: number, b: number) => `${s} sketch, ${b} blank kode`,
+    go: (n: number) => `Buka Modul ${n}`,
     access: "Akses",
     accessOf: (n: number) => `Akses Modul ${n}`,
     tagline: null as string[] | null,
@@ -72,7 +74,9 @@ const T = dict({
     open: "Open",
     locked: "Locked",
     done: "Done",
-    cta: "Click to open the module",
+    fact: (s: number, b: number) =>
+      `${s} ${s === 1 ? "sketch" : "sketches"}, ${b} code ${b === 1 ? "blank" : "blanks"}`,
+    go: (n: number) => `Open Module ${n}`,
     access: "Access",
     accessOf: (n: number) => `Module ${n} access`,
     tagline: null as string[] | null,
@@ -91,7 +95,8 @@ const T = dict({
     open: "开放",
     locked: "已锁定",
     done: "完成",
-    cta: "点击打开模块",
+    fact: (s: number, b: number) => `${s} 个 sketch，${b} 个代码填空`,
+    go: (n: number) => `打开模块 ${n}`,
     access: "权限",
     accessOf: (n: number) => `模块 ${n} 权限`,
     // The handbook has no Mandarin, so the cards carry their own line.
@@ -147,6 +152,7 @@ function Card({
 }) {
   const t = T[lang];
   const url = href(lang, `/modules/${m.modul}`);
+  const blanks = m.berkas.reduce((a, b) => a + b.blanks, 0);
   return (
     <article
       className="panel modcard"
@@ -185,18 +191,20 @@ function Card({
           ))}
       </div>
       <div className="modcard__foot">
-        <a className="modcard__cta" href={url}>
-          {t.cta}
-          <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
-        </a>
-        {asisten && bolehUbah && open !== null && (
-          <span className="modcard__access">
-            <span className="hint" aria-hidden="true">
-              {t.access}
+        <span className="modcard__fact">{t.fact(m.berkas.length, blanks)}</span>
+        <span className="row modcard__end">
+          {asisten && bolehUbah && open !== null && (
+            <span className="modcard__access">
+              <span className="hint" aria-hidden="true">
+                {t.access}
+              </span>
+              <Switch on={open} onChange={onAccess} label={t.accessOf(m.modul)} />
             </span>
-            <Switch on={open} onChange={onAccess} label={t.accessOf(m.modul)} />
-          </span>
-        )}
+          )}
+          <a className="modcard__cta" href={url} aria-label={t.go(m.modul)}>
+            <ArrowRightIcon size={18} weight="bold" aria-hidden="true" />
+          </a>
+        </span>
       </div>
     </article>
   );
@@ -234,8 +242,16 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
     };
   }, [asli]);
 
+  // A guest has no session of their own, but the public lab summary still
+  // says which module the lab is running now (Phase 11).
+  const lab = usePoll(
+    () => getJson<{ ok: boolean; sesi: { modul: number } | null }>("/api/session/lab"),
+    60_000,
+    me === null,
+    ["sesi"],
+  );
   const sesi = now.data;
-  const running = signedIn ? (sesi?.modul ?? null) : null;
+  const running = signedIn ? (sesi?.modul ?? null) : (lab.data?.sesi?.modul ?? null);
 
   // A Praktikan in their running session: one card, straight to it.
   if (me?.role === "praktikan" && sesi && sesi.milikSaya !== false) {

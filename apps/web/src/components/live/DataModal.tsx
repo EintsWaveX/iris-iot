@@ -5,13 +5,14 @@
  * (ZoomChart, one panel per measure, never two scales on one plot) and the
  * newest readings, with a CSV of the same rows.
  */
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import Dialog from "../ui/Dialog";
 import ZoomChart, { useZoom, type Panel, type Titik } from "../server/ZoomChart";
 import { localeOf } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { jamMs, type LiveRecord } from "../../lib/live-records";
 import { LV } from "./liveStrings";
+import Nil from "../ui/Nil";
 
 export type DataKind = "oneway" | "rtt" | "suhu" | "lembap" | "posisi" | "rssi" | "snr" | "jarak";
 
@@ -78,10 +79,12 @@ export default function DataModal({
 }) {
   const t = LV[lang];
   const loc = localeOf(lang);
-  const fmt = (v: number | null, dp: number) =>
-    v === null
-      ? "-"
-      : v.toLocaleString(loc, { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  const fmt = (v: number | null, dp: number): ReactNode =>
+    v === null ? (
+      <Nil lang={lang} />
+    ) : (
+      v.toLocaleString(loc, { minimumFractionDigits: dp, maximumFractionDigits: dp })
+    );
 
   const M: Record<string, Measure> = {
     oneway: {
@@ -265,7 +268,7 @@ export default function DataModal({
                   {b.items.map(([l, v]) => (
                     <div key={l} className="stat">
                       <b className="num">
-                        {fmt(v, b.m.dp)} <small className="hint">{b.m.unit}</small>
+                        {fmt(v, b.m.dp)} {v !== null && <small className="hint">{b.m.unit}</small>}
                       </b>
                       <span>{l}</span>
                     </div>
@@ -318,7 +321,7 @@ export default function DataModal({
               <tbody>
                 {terbaru.map((r) => (
                   <tr key={r.seq}>
-                    <td className="mono">{r.rx ?? r.tx ?? "-"}</td>
+                    <td className="mono">{r.rx ?? r.tx ?? <Nil dot />}</td>
                     <td className="num">{r.seq}</td>
                     {ukur.map((m) => (
                       <td key={m.k} className="num">

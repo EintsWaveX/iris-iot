@@ -59,6 +59,13 @@
   width: 3.4em;
 }
 
+/* A finger-sized box, level with the bar's buttons on a touch screen. */
+@media (pointer: coarse) {
+  .pdfv__pagebox {
+    height: var(--tap, 44px);
+  }
+}
+
 .pdfv__pagebox:focus-visible,
 .pdfv__findbox:focus-visible {
   border-color: var(--accent);
@@ -77,8 +84,10 @@
   padding: 5px 6px;
 }
 
-.pdfv__zoom:hover:not(:disabled) {
-  background: rgb(255 255 255 / 0.1);
+@media (hover: hover) and (pointer: fine) {
+  .pdfv__zoom:hover:not(:disabled) {
+    background: rgb(255 255 255 / 0.1);
+  }
 }
 
 .pdfv__zoom:disabled {
@@ -123,9 +132,11 @@
   color: #eef1f6;
 }
 
-.pdfv__bar .iconbtn:hover:not([aria-disabled="true"]) {
-  background: rgb(255 255 255 / 0.1);
-  border-color: transparent;
+@media (hover: hover) and (pointer: fine) {
+  .pdfv__bar .iconbtn:hover:not([aria-disabled="true"]) {
+    background: rgb(255 255 255 / 0.1);
+    border-color: transparent;
+  }
 }
 
 .pdfv__bar .iconbtn[aria-pressed="true"] {
@@ -193,9 +204,14 @@
   padding-left: 32px;
 }
 
-.pdfv__tocitem:hover,
 .pdfv__tocitem[aria-current="true"] {
   background: rgb(255 255 255 / 0.1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pdfv__tocitem:hover {
+    background: rgb(255 255 255 / 0.1);
+  }
 }
 
 .pdfv__tocitem .num {
@@ -247,7 +263,7 @@
 .pdfv[data-fs="yes"] {
   border: 0;
   border-radius: 0;
-  height: 100vh;
+  height: 100dvh;
   min-height: 0;
   position: relative;
   background: #1d1e22;
@@ -478,8 +494,10 @@
   width: 100%;
 }
 
-.pdfv__thumb:hover .pdfv__thumbpage {
-  outline-color: rgb(255 255 255 / 0.35);
+@media (hover: hover) and (pointer: fine) {
+  .pdfv__thumb:hover .pdfv__thumbpage {
+    outline-color: rgb(255 255 255 / 0.35);
+  }
 }
 
 .pdfv__thumb[aria-current="true"] {
@@ -544,10 +562,16 @@
   text-decoration: none;
 }
 
-.pdfv__mi:hover:not(:disabled),
 .pdfv__mi:focus-visible {
   background: var(--surface-3, rgb(127 127 127 / 0.14));
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pdfv__mi:hover:not(:disabled) {
+    background: var(--surface-3, rgb(127 127 127 / 0.14));
+    outline: none;
+  }
 }
 
 .pdfv__mi:disabled {

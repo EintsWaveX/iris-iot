@@ -678,11 +678,16 @@ export default function Console({ lang }: { lang: Lang }) {
         lang={lang}
         sesi={sesi}
         servers={servers.data}
-        onDrawer={() => setDrawer(true)}
+        onDrawer={() => {
+          // One lab Pi and no session server picked: go straight to it.
+          const list = servers.data?.list ?? [];
+          if (!servers.data?.detail && list.length === 1)
+            location.assign(href(lang, `/servers?id=${list[0].id}`));
+          else setDrawer(true);
+        }}
         onEnd={() => setEndOpen(true)}
         onView={go}
         onChanged={refreshAll}
-        onAsPraktikan={() => setAsP(selGroup?.id ?? groups[0]?.id ?? 0)}
         onProjector={
           milikku
             ? () => {
@@ -970,6 +975,18 @@ export default function Console({ lang }: { lang: Lang }) {
         nilai={nilai.data}
         onJumpGroup={(id) => pick(id)}
         onJumpTable={() => go("table")}
+        onMarkAbsent={async (nims) => {
+          let ok = 0;
+          let gagal = 0;
+          for (let i = 0; i < nims.length; i += 4) {
+            const hasil = await Promise.all(
+              nims.slice(i, i + 4).map((n) => nilai.setAbsen(n, true)),
+            );
+            ok += hasil.filter((x) => x === "ok").length;
+            gagal += hasil.filter((x) => x !== "ok").length;
+          }
+          window.Toast?.show(t.markedAbsent(ok, gagal), gagal ? "danger" : "ok");
+        }}
         onEnded={(kind) => {
           if (kind === "end") {
             const hadir = groups.reduce((a, g) => a + g.hadir, 0);

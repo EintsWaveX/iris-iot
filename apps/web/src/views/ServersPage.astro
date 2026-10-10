@@ -11,7 +11,7 @@ const { lang } = Astro.props;
 const title = lang === "en" ? "Servers" : lang === "zh" ? "服务器" : "Server";
 ---
 
-<Base title={`${title} · IRIS IoT`} lang={lang} cosmosScene="teknis">
+<Base noindex title={`${title} · IRIS IoT`} lang={lang} cosmosScene="teknis">
   <main id="main" class="page-wide page-main">
     <ServerCenter client:load lang={lang} />
   </main>

@@ -85,9 +85,14 @@
   width: 100%;
 }
 
-.rp-fchip:hover,
 .rp-fchip[aria-expanded="true"] {
   border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-fchip:hover {
+    border-color: var(--accent);
+  }
 }
 
 .rp-fchip > span {
@@ -154,10 +159,16 @@
   width: 100%;
 }
 
-.rp-menu__i:hover,
 .rp-menu__i:focus-visible {
   background: var(--hairline-faint);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-menu__i:hover {
+    background: var(--hairline-faint);
+    outline: none;
+  }
 }
 
 .rp-menu__i[aria-pressed="true"] {
@@ -235,10 +246,16 @@
   transition: background var(--dur-fast) var(--ease-reveal);
 }
 
-.rp-table tbody tr.is-link:hover,
 .rp-table tbody tr.is-link:focus-visible {
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-table tbody tr.is-link:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    outline: none;
+  }
 }
 
 .rp-table tbody tr.is-link:focus-visible {
@@ -264,8 +281,10 @@
   text-transform: inherit;
 }
 
-.rp-thsort:hover {
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .rp-thsort:hover {
+    color: var(--text);
+  }
 }
 
 .rp-thsort[aria-sort="none"] svg {
@@ -389,9 +408,14 @@ button.rp-stat {
   text-align: left;
 }
 
-button.rp-stat:hover,
 button.rp-stat:focus-visible {
   border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button.rp-stat:hover {
+    border-color: var(--accent);
+  }
 }
 
 .rp-cmprow {
@@ -490,10 +514,16 @@ button.rp-stat:focus-visible {
   border-radius: 8px;
 }
 
-.rp-stops--doc .rp-stops__row:hover,
 .rp-stops--doc .rp-stops__row:focus-visible {
   background: var(--hairline-faint);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-stops--doc .rp-stops__row:hover {
+    background: var(--hairline-faint);
+    outline: none;
+  }
 }
 
 .rp-incact {
@@ -610,6 +640,31 @@ button.rp-stat:focus-visible {
 
 .rp-g2 > * {
   height: 100%;
+}
+
+.rp-latest__list {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 12px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.rp-latest > .empty-note {
+  align-content: center;
+  display: grid;
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+@media (min-width: 820px) {
+  /* The comments take the summary's height and scroll, so neither card
+     leaves a hole under its last line (Phase 11). */
+  .rp-latest {
+    contain: size;
+    min-height: 18rem;
+  }
 }
 
 .rp-kastot {
@@ -790,10 +845,16 @@ button.rp-stat:focus-visible {
     border-color var(--dur-mid, 240ms);
 }
 
-.rp-newdoc__b:hover,
 .rp-newdoc__b:focus-visible {
   border-color: var(--accent);
   transform: translateY(-2px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-newdoc__b:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
 }
 
 .rp-newdoc__ic {
@@ -932,10 +993,16 @@ button.rp-stat:focus-visible {
   position: relative;
 }
 
-.rp-block:hover,
 .rp-block:focus-within {
   background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-1));
   border-color: var(--hairline-faint);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-block:hover {
+    background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-1));
+    border-color: var(--hairline-faint);
+  }
 }
 
 .rp-block--ro {
@@ -962,15 +1029,22 @@ button.rp-stat:focus-visible {
   border: 0;
 }
 
-.rp-block:hover .rp-block__grip,
 .rp-block:focus-within .rp-block__grip,
 .rp-block__grip:focus-visible {
   opacity: 1;
 }
 
-.rp-block__grip:hover {
-  background: var(--hairline-faint);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .rp-block:hover .rp-block__grip {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-block__grip:hover {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
 }
 
 .rp-block__body {
@@ -998,9 +1072,14 @@ button.rp-stat:focus-visible {
   z-index: 2;
 }
 
-.rp-block:hover .rp-block__add,
 .rp-block__add:focus-visible {
   opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-block:hover .rp-block__add {
+    opacity: 1;
+  }
 }
 
 @media (hover: none) {
@@ -1196,10 +1275,16 @@ button.rp-stat:focus-visible {
   padding: 0 16px;
 }
 
-.rp-doc__addend:hover,
 .rp-doc__addend:focus-visible {
   background: var(--accent-soft);
   border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-doc__addend:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
 }
 
 .rp-doc__foot {
@@ -1247,11 +1332,18 @@ button.rp-stat:focus-visible {
   text-align: left;
 }
 
-.rp-insb:hover,
 .rp-insb:focus-visible {
   background: var(--accent-soft);
   border-color: var(--accent);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-insb:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    outline: none;
+  }
 }
 
 .rp-insb__ic {
@@ -1358,9 +1450,11 @@ button.rp-stat:focus-visible {
   width: 24px;
 }
 
-.rp-chipp button:hover {
-  background: var(--hairline-faint);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .rp-chipp button:hover {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
 }
 
 .rp-comment {
@@ -1395,12 +1489,19 @@ button.rp-stat:focus-visible {
   text-align: left;
 }
 
-.rp-pick__i:hover,
 .rp-pick__i:focus-visible,
 .rp-pick__i[aria-pressed="true"] {
   background: var(--accent-soft);
   border-color: var(--accent);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rp-pick__i:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    outline: none;
+  }
 }
 
 /* SesiPick: the date, then one card per session that day, equal widths */
@@ -1443,8 +1544,10 @@ button.rp-stat:focus-visible {
     background var(--dur-fast) var(--ease-reveal);
 }
 
-.rp-sesicard:hover {
-  border-color: var(--text-muted);
+@media (hover: hover) and (pointer: fine) {
+  .rp-sesicard:hover {
+    border-color: var(--text-muted);
+  }
 }
 
 .rp-sesicard:focus-visible {

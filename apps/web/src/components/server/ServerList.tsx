@@ -14,6 +14,7 @@ import { urutkanLayanan } from "../../lib/server-shared";
 import Enroll from "./Enroll";
 import { isOnline, svcTone, TONE_PILL, type Bisa, type Riwayat, type ServerRow } from "./data";
 import { S } from "./strings";
+import Nil from "../ui/Nil";
 
 function Spark({ vals, c }: { vals: number[]; c: string }) {
   if (vals.length < 2) return <span className="spark" aria-hidden="true" />;
@@ -188,7 +189,7 @@ export default function ServerList({
                       style={{ "--c": "var(--accent)" } as CSSProperties}
                     >
                       <span>
-                        {t.cpu} {d?.cpu != null ? `${Math.round(d.cpu)}%` : "·"}
+                        {t.cpu} {d?.cpu != null ? `${Math.round(d.cpu)}%` : <Nil dot />}
                       </span>
                       <Spark
                         vals={seri.map((x) => x.cpu).filter((v): v is number => v != null)}
@@ -197,7 +198,7 @@ export default function ServerList({
                     </span>
                     <span className="srvcard__spark">
                       <span>
-                        {t.temp} {d?.suhu != null ? `${Math.round(d.suhu)} °C` : "·"}
+                        {t.temp} {d?.suhu != null ? `${Math.round(d.suhu)} °C` : <Nil dot />}
                       </span>
                       <Spark
                         vals={seri.map((x) => x.suhu).filter((v): v is number => v != null)}

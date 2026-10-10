@@ -24,11 +24,13 @@
   width: 100%;
 }
 
+/* A label that can't fit wraps inside its option; it is never cut. */
 .segmented--fill .segmented__item {
   flex: 1;
+  line-height: 1.2;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .segmented__item {
@@ -50,9 +52,11 @@
   white-space: nowrap;
 }
 
-.segmented__item:hover {
-  background: var(--hairline-faint);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .segmented__item:hover {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
 }
 
 .segmented__item[data-state="on"] {
@@ -102,12 +106,22 @@
   transition: opacity var(--dur-fast) var(--ease-reveal);
 }
 
-.segmented__item:hover::after,
 .segmented__item:focus-visible::after {
   opacity: 1;
 }
 
-:root:not([data-motion-tier="0"]) .segmented__item:hover::after,
+@media (hover: hover) and (pointer: fine) {
+  .segmented__item:hover::after {
+    opacity: 1;
+  }
+}
+
 :root:not([data-motion-tier="0"]) .segmented__item:focus-visible::after {
   animation: aurora-sweep 2.2s linear infinite;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root:not([data-motion-tier="0"]) .segmented__item:hover::after {
+    animation: aurora-sweep 2.2s linear infinite;
+  }
 }

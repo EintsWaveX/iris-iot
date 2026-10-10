@@ -12,7 +12,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ClockIcon,
-  HeartbeatIcon,
   ListBulletsIcon,
   ListChecksIcon,
   LockSimpleIcon,
@@ -23,7 +22,8 @@ import {
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { dict } from "../../lib/app";
-import { durasiLabel, modulLabel } from "../../lib/labels";
+import { durasiLabel, modulLabel, nil } from "../../lib/labels";
+import Nil from "../ui/Nil";
 import { svcTone } from "./ops";
 import { bacaBundel, bacaHasilSiap, bacaKondisi, barisPembaruan } from "../../lib/server-shared";
 import "./server12.css";
@@ -108,6 +108,11 @@ const SH = dict({
 });
 
 /** "8 dtk", "14 mnt", "46 jam": a heartbeat's age, short. */
+/** "Lokasi, Alamat LAN dan Catatan" in the page language */
+function daftar(items: string[], lang: Lang): string {
+  return new Intl.ListFormat(localeOf(lang), { type: "conjunction" }).format(items);
+}
+
 function umurPendek(iso: string | null | undefined, now: number, h: (typeof SH)["id"]): string {
   if (!iso) return "·";
   const d = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
@@ -132,7 +137,7 @@ import Fade from "../ui/Fade";
 import Tooltip from "../ui/Tooltip";
 import { OfflineBanner } from "../ui/Display";
 import { usePoll } from "../../lib/hooks";
-import { getJson, href, sejak, useTick } from "../../lib/app";
+import { getJson, href, localeOf, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { useDirektori } from "../../lib/people";
 import { isOnline, type Bisa, type Detail } from "./data";
@@ -143,6 +148,7 @@ import Enroll from "./Enroll";
 import KonsolPi, { KonsolBanner } from "./konsol/KonsolPi";
 import type { KonsolData } from "./konsol/data";
 import { S } from "./strings";
+import { S12 } from "./server12Strings";
 
 export type Tab = "ringkasan" | "siap" | "pengaturan" | "konsol";
 const KUNCI_DETAIL = "iris-srv-detail";
@@ -295,13 +301,6 @@ export default function ServerDetail({
     { k: "lokasi", ic: MapPinIcon, l: t.location, v: s.lokasi, mono: false },
     { k: "lan", ic: PlugsConnectedIcon, l: t.lan, v: s.alamatLan, mono: true },
     {
-      k: "denyut",
-      ic: HeartbeatIcon,
-      l: t.lastBeat,
-      v: hb ? sejak(hb.pada, lang, now) : null,
-      mono: false,
-    },
-    {
       k: "uptime",
       ic: ClockIcon,
       l: sh.upSince,
@@ -310,6 +309,10 @@ export default function ServerDetail({
     },
     { k: "catatan", ic: NoteIcon, l: t.notes, v: s.catatan, mono: false },
   ];
+  // Filled facts show; the empty ones are named once, with where to fill them.
+  const isi = loc.filter((x) => x.v);
+  const kosong = loc.filter((x) => !x.v && x.k !== "uptime");
+  const s12 = S12[lang];
 
   const sw = (
     <ToggleGroup.Root
@@ -363,7 +366,9 @@ export default function ServerDetail({
             <div className="srv12ring" data-off={st === "on" ? "no" : "yes"} aria-hidden="true">
               <span className="srv12ring__dot" />
               <b className="mono">{st === "on" ? sh.up : st === "off" ? sh.off : sh.neu}</b>
-              <span className="hint">{st === "wait" ? "·" : umurPendek(hb?.pada, now, sh)}</span>
+              <span className="hint">
+                {st === "wait" ? <Nil dot /> : umurPendek(hb?.pada, now, sh)}
+              </span>
             </div>
             <div className="s12hero__id">
               <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
@@ -382,7 +387,7 @@ export default function ServerDetail({
               <h1 className="page-header__title s12hero__name">{s.nama}</h1>
               {(st === "wait" || protokol || bundel) && (
                 <span className="hint">
-                  {st === "wait" ? sh.subWait : sh.sub(protokol ?? "·", bundel ?? "·")}
+                  {st === "wait" ? sh.subWait : sh.sub(protokol ?? nil(lang), bundel ?? nil(lang))}
                 </span>
               )}
             </div>
@@ -398,17 +403,37 @@ export default function ServerDetail({
             </div>
           </div>
           <div className="locstrip s12facts">
-            {loc.map((x) => (
+            {isi.map((x) => (
               <span key={x.k} className="locstrip__i" data-k={x.k}>
                 <x.ic size={20} aria-hidden="true" />
                 <span>
                   <small>{x.l}</small>
-                  <b className={`${x.mono ? "mono" : ""}${x.v ? "" : " is-empty"}`}>
-                    {x.v || t.none}
-                  </b>
+                  <b className={x.mono ? "mono" : undefined}>{x.v}</b>
                 </span>
               </span>
             ))}
+            {kosong.length > 0 && (
+              <span className="locstrip__i s12facts__empty">
+                <NoteIcon size={20} aria-hidden="true" />
+                <span className="hint">
+                  {s12.factsEmpty(
+                    daftar(
+                      kosong.map((x) => x.l),
+                      lang,
+                    ),
+                  )}
+                </span>
+                {bisa.full && (
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--ghost"
+                    onClick={() => go("pengaturan")}
+                  >
+                    {s12.factsFill}
+                  </button>
+                )}
+              </span>
+            )}
           </div>
           {st !== "wait" && (
             <div className="s12glance">

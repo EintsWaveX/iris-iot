@@ -300,6 +300,21 @@
   }
 }
 
+/* Two columns: the group rail takes the workspace's height and scrolls
+   inside, so the pair ends on one line (Phase 11). */
+@media (min-width: 760px) and (max-width: 1279px) {
+  .kboard {
+    align-items: stretch;
+  }
+
+  .kboard > .rail {
+    contain: size;
+    min-height: 26rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 @media (min-width: 1280px) {
   .kboard {
     grid-template-columns: minmax(0, 4fr) minmax(0, 8fr) minmax(0, 4fr);
@@ -308,6 +323,49 @@
   .kboard > .feed {
     grid-column: auto;
   }
+
+  /* One screen-high board: the rail, the workspace and the room feed end
+     on the same line and each scrolls inside, like a console, so no column
+     stops short of its neighbours or runs on past them (Phase 11). */
+  .kboard {
+    align-items: stretch;
+    grid-template-rows: min(calc(100dvh - var(--nav-size) - var(--minibar-h, 0px) - 36px), 52rem);
+  }
+
+  .kboard > * {
+    min-height: 0;
+  }
+
+  .kboard > .rail,
+  .kboard > .work {
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .kboard > .feed {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .kboard > .feed .feed__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .kboard > .feed .feed__empty {
+    align-content: center;
+    display: grid;
+    flex: 1;
+    text-align: center;
+  }
+}
+
+.feed__scroll {
+  align-content: start;
+  display: grid;
+  gap: 8px;
 }
 
 .rail {
@@ -542,6 +600,12 @@
   text-align: start;
 }
 
+/* The group names take only the room they need; the cells share the rest. */
+.mtx__t tr > :first-child {
+  white-space: nowrap;
+  width: 1%;
+}
+
 .mtx__file {
   color: var(--text-faint);
   font-family: var(--font-mono);
@@ -597,8 +661,8 @@
   color: var(--warn);
   cursor: pointer;
   font: 700 0.78rem var(--font-mono);
-  height: 30px;
-  min-width: 28px;
+  height: 36px;
+  min-width: 32px;
   width: 100%;
 }
 
@@ -616,10 +680,16 @@
   border-width: 2px;
 }
 
-.mtx__c:hover,
 .mtx__c:focus-visible {
   outline: 2px solid var(--text-muted);
   outline-offset: 1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mtx__c:hover {
+    outline: 2px solid var(--text-muted);
+    outline-offset: 1px;
+  }
 }
 
 .mtx__t td.num {
@@ -870,4 +940,33 @@
   flex: 1 1 180px;
   justify-content: center;
   white-space: normal;
+}
+
+/* A silent board: the blank tile, then one note across the rest of the row
+   instead of three empty tiles. */
+.inspector__cards[data-silent="yes"] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+
+.vcard--note {
+  align-content: center;
+  display: grid;
+}
+
+.vcard--note .vcard__s {
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* The rail's one line for a state every group shares. */
+.rail__note {
+  align-items: center;
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  display: flex;
+  font-size: 0.86rem;
+  gap: 8px;
+  padding: 6px 10px;
 }

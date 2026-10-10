@@ -77,6 +77,7 @@ import { DS, type DashT } from "./dashStrings";
 import SlidesDialog, { useSlides } from "../shell/SlidesDialog";
 import "../ui/Display.css";
 import "./Dashboard.css";
+import Nil from "../ui/Nil";
 
 export interface ModulInfo {
   modul: number;
@@ -189,28 +190,12 @@ async function unduhSketsa(info: ModulInfo, lang: Lang) {
 
 /* ------------------------------------------------------------ cards */
 
-function GroupCard({
-  t,
-  lang,
-  hasil,
-  me,
-}: {
-  t: DashT;
-  lang: Lang;
-  hasil: Hasil | null;
-  me: string;
-}) {
+function GroupCard({ t, hasil, me }: { t: DashT; hasil: Hasil | null; me: string }) {
   const k = hasil?.kelompok;
   return (
     <section className="panel dash__card">
       <div className="panel__head">
         <h2 className="panel__title">{t.groupH}</h2>
-        {k && (
-          <Pill group={k.nomor}>
-            {kelompokLabel(k.nomor, lang)}
-            {KELOMPOK_NAMA[k.nomor] ? ` · ${KELOMPOK_NAMA[k.nomor]}` : ""}
-          </Pill>
-        )}
       </div>
       {k ? (
         <>
@@ -372,7 +357,13 @@ function Running({
     <div className="gs">
       <section className="panel panel--key panel--raised dash__card dash__next kokpit">
         <div className="kokpit__top">
-          <MissionClock mulaiPada={sesi.mulaiPada} durasiMenit={durasi} size={128} lang={lang} />
+          <MissionClock
+            mulaiPada={sesi.mulaiPada}
+            durasiMenit={durasi}
+            size={128}
+            lang={lang}
+            noLeft
+          />
           <div className="stack stack--sm">
             <span className="eyebrow">{t.nextEyebrow}</span>
             <p className="kokpit__next">{nextLine(t, langkah, terkunci, lang)}</p>
@@ -414,7 +405,7 @@ function Running({
         </div>
         <SessionLog items={hasil?.linimasa ?? []} lang={lang} />
       </section>
-      <GroupCard t={t} lang={lang} hasil={hasil} me={me.nama} />
+      <GroupCard t={t} hasil={hasil} me={me.nama} />
       <MaterialsCard t={t} lang={lang} modul={modul} />
     </div>
   );
@@ -501,7 +492,7 @@ function Scores({ hasil, t }: { hasil: Hasil; t: DashT }) {
         {NILAI_KOMPONEN.map((k) => (
           <span key={k}>
             <small className="mono">{k}</small>
-            <b className="num">{hasil.skor?.[k] ?? "-"}</b>
+            <b className="num">{hasil.skor?.[k] ?? <Nil dot />}</b>
           </span>
         ))}
       </span>
@@ -606,12 +597,12 @@ function Nilaiku({ t, lang, list }: { t: DashT; lang: Lang; list: Praktikum[] })
               {NILAI_KOMPONEN.map((k) => (
                 <span key={k} data-none={p.skor?.[k] == null ? "yes" : "no"}>
                   <small className="mono">{k}</small>
-                  <b className="num">{p.skor?.[k] ?? "-"}</b>
+                  <b className="num">{p.skor?.[k] ?? <Nil dot />}</b>
                 </span>
               ))}
             </span>
             <span className="nilaiku__avg">
-              <b className="num">{p.rataRata ?? "-"}</b>
+              <b className="num">{p.rataRata ?? <Nil dot />}</b>
               <small>{t.rataSingkat}</small>
             </span>
           </div>
@@ -664,7 +655,7 @@ function Waiting({
           )}
         </div>
       </section>
-      {hasil?.kelompok ? <GroupCard t={t} lang={lang} hasil={hasil} me={me} /> : null}
+      {hasil?.kelompok ? <GroupCard t={t} hasil={hasil} me={me} /> : null}
     </div>
   );
 }
@@ -813,7 +804,7 @@ function Summary({
                       <span className="comp10__bar">
                         <i style={{ height: `${v ?? 0}%` }} />
                       </span>
-                      <b className="mono">{v ?? "-"}</b>
+                      <b className="mono">{v ?? <Nil dot />}</b>
                     </div>
                   );
                 })}

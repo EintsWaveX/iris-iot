@@ -58,10 +58,15 @@
   width: 6px;
 }
 
-.panes__handle:hover::before,
 .panes__handle:focus-visible::before,
 .panes__handle[data-separator="active"]::before {
   background: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .panes__handle:hover::before {
+    background: var(--accent);
+  }
 }
 
 .panes__handle:focus-visible {

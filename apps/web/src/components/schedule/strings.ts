@@ -69,6 +69,9 @@ export const J = dict({
     merah: "Merah",
     offHidden:
       "Kelompok, asisten dan pengganti disembunyikan selama slot ini Tidak Ada Praktikum. Pilih status lain untuk mengisinya lagi; isian sebelumnya tetap tersimpan.",
+    kept: "Yang Tersimpan untuk Slot Ini",
+    keptNobody: "Belum ada asisten",
+    keptNone: (n: number) => `${n} kelompok, belum ada asisten yang dipasangkan.`,
     window: "Jendela mulai",
     windowDefault: (m: number) => `Ikut Default (${m} Menit)`,
     windowOwn: "Atur Sendiri",
@@ -259,6 +262,9 @@ export const J = dict({
     merah: "Red",
     offHidden:
       "Groups, assistants and substitutes are hidden while this slot has No Practicum. Pick another status to fill them again; what was there is kept.",
+    kept: "Kept for This Slot",
+    keptNobody: "No assistant yet",
+    keptNone: (n: number) => `${n} groups, no assistant paired yet.`,
     window: "Start window",
     windowDefault: (m: number) => `Use Default (${m} Minutes)`,
     windowOwn: "Set Here",
@@ -446,6 +452,9 @@ export const J = dict({
     merah: "红色",
     offHidden:
       "时段设为“无实验课”时，小组、助教和代课人都会隐藏。选别的状态就能再填；之前的内容会保留。",
+    kept: "本时段保留的内容",
+    keptNobody: "还没有助教",
+    keptNone: (n: number) => `${n} 个小组，还没有配对助教。`,
     window: "开始时间窗",
     windowDefault: (m: number) => `用默认值（${m} 分钟）`,
     windowOwn: "在这里设置",

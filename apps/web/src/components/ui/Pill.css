@@ -127,9 +127,11 @@
   text-transform: none;
 }
 
-.pill--button:hover {
-  border-color: var(--hairline-strong);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .pill--button:hover {
+    border-color: var(--hairline-strong);
+    color: var(--text);
+  }
 }
 
 .pill--button[aria-pressed="true"] {

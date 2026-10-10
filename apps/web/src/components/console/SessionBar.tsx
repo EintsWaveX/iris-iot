@@ -19,13 +19,10 @@ import {
   ArrowSquareOutIcon,
   CrosshairIcon,
   DotsThreeIcon,
-  EyeIcon,
   HandCoinsIcon,
   ProjectorScreenIcon,
   QuestionIcon,
   StopCircleIcon,
-  TableIcon,
-  UsersThreeIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
   MegaphoneIcon,
@@ -102,7 +99,6 @@ export default function SessionBar({
   onEnd,
   onView,
   onChanged,
-  onAsPraktikan,
   onProjector,
   announceOpen,
   setAnnounceOpen,
@@ -120,7 +116,6 @@ export default function SessionBar({
   onEnd: () => void;
   onView: (v: View) => void;
   onChanged: () => void;
-  onAsPraktikan: () => void;
   /** Projector mode on the group I hold; undefined when I hold none. */
   onProjector?: () => void;
   announceOpen: boolean;
@@ -194,33 +189,6 @@ export default function SessionBar({
   }[] = [
     { k: "acc", icon: LockSimpleOpenIcon, t: r.tool.acc, act: () => setMenu("acc") },
     { k: "deck", icon: PresentationChartIcon, t: r.tool.deck, act: () => setMenu("deck") },
-    {
-      k: "see",
-      icon: EyeIcon,
-      t: r.tool.see,
-      act: () => {
-        closeMore();
-        onAsPraktikan();
-      },
-    },
-    {
-      k: "prep",
-      icon: UsersThreeIcon,
-      t: r.tool.prep,
-      act: () => {
-        closeMore();
-        onView("prep");
-      },
-    },
-    {
-      k: "table",
-      icon: TableIcon,
-      t: r.tool.table,
-      act: () => {
-        closeMore();
-        onView("table");
-      },
-    },
     {
       k: "seelabs",
       icon: HandCoinsIcon,

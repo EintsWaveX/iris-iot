@@ -46,7 +46,7 @@
 }
 
 .dialog__panel[data-state="closed"] {
-  animation: dialog-pop-out 180ms ease-in both;
+  animation: dialog-pop-out 150ms var(--ease-out-expo) both;
   pointer-events: none;
 }
 
@@ -137,7 +137,7 @@
 }
 
 .dialog__panel--sheet[data-state="closed"] {
-  animation: dialog-sink 200ms ease-in both;
+  animation: dialog-sink 180ms var(--ease-out-expo) both;
 }
 
 .dialog__panel--sheet::before {

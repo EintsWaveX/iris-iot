@@ -416,11 +416,14 @@ export function MissionClock({
   durasiMenit,
   size = 128,
   lang,
+  noLeft = false,
 }: {
   mulaiPada: string | null;
   durasiMenit: number;
   size?: number;
   lang: Lang;
+  /** Drop "sisa N menit" where the session bar already shows the time left */
+  noLeft?: boolean;
 }) {
   const now = useTick(1000);
   const t0 = mulaiPada ? new Date(mulaiPada).getTime() : now;
@@ -462,7 +465,7 @@ export function MissionClock({
       </svg>
       <span className="mclock__in">
         <span className="mclock__t mono">T+{hms(sec)}</span>
-        <span className="mclock__left">{IN[lang].sisa(left)}</span>
+        {!noLeft && <span className="mclock__left">{IN[lang].sisa(left)}</span>}
       </span>
     </div>
   );

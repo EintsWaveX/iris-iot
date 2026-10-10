@@ -56,6 +56,7 @@ export default function EndFlow({
   onJumpGroup,
   onJumpTable,
   onEnded,
+  onMarkAbsent,
 }: {
   t: Strings;
   lang: Lang;
@@ -69,12 +70,20 @@ export default function EndFlow({
   onJumpGroup: (id: number) => void;
   onJumpTable: () => void;
   onEnded: (kind: "end" | "cancel") => void;
+  /** Marks these NIMs Tidak Hadir; resolves when every request settled */
+  onMarkAbsent: (nims: string[]) => Promise<void>;
 }) {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [marking, setMarking] = useState(false);
 
+  // Who signed in this session; the rest never came, and only need marking.
+  const hadir = new Set(groups.flatMap((g) => g.anggota.filter((a) => a.hadir).map((a) => a.nim)));
+  const absentees = (nilai?.kelompok ?? []).flatMap((k) =>
+    k.anggota.filter((a) => !hadir.has(a.nim) && !a.absen && !a.lengkap).map((a) => a.nim),
+  );
   const missing = (nilai?.kelompok ?? [])
-    .map((k) => ({ k, n: k.anggota.filter((a) => !a.lengkap).length }))
+    .map((k) => ({ k, n: k.anggota.filter((a) => !a.lengkap && hadir.has(a.nim)).length }))
     .filter((x) => x.n > 0);
   const missingTotal = missing.reduce((a, x) => a + x.n, 0);
   const noNotes = groups.filter((g) => g.sesiAktif && !g.catatan?.trim());
@@ -175,6 +184,29 @@ export default function EndFlow({
               </>
             )}
           </Item>
+          {absentees.length > 0 && (
+            <Item ok={false} title={t.chkAbsent(absentees.length)}>
+              <span className="row">
+                <button
+                  type="button"
+                  className="btn btn--sm"
+                  disabled={marking}
+                  data-loading={marking ? "yes" : "no"}
+                  onClick={async () => {
+                    setMarking(true);
+                    try {
+                      await onMarkAbsent(absentees);
+                    } finally {
+                      setMarking(false);
+                    }
+                  }}
+                >
+                  <span className="btn__label">{t.markAbsent(absentees.length)}</span>
+                  <span className="btn__spinner" aria-hidden="true" />
+                </button>
+              </span>
+            </Item>
+          )}
           <Item ok={noNotes.length === 0} title={noNotes.length ? t.chkNotes : t.chkNotesOk}>
             {noNotes.length > 0 && chips(noNotes.map((g) => g.id))}
           </Item>

@@ -32,6 +32,7 @@ import {
   FileXlsIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
+import Disclose from "../ui/Disclose";
 import Drawer from "../ui/Drawer";
 import Dropdown, { type DropdownOption } from "../ui/Dropdown";
 import ErrorView from "../ui/ErrorView";
@@ -436,6 +437,12 @@ function Holders({
   const pending = data.serahTerima.filter((s) => s.status === "menunggu");
   const [busy, setBusy] = useState<number | null>(null);
   const saya = data.saya?.nim ?? "";
+  // Filled posts (or ones being handed over) as rows; the empty ones fold
+  // into a single "N jabatan kosong" line instead of a row each.
+  const diisi = (k: string) =>
+    data.pemegang.some((p) => p.kategori === k) || pending.some((s) => s.kategori === k);
+  const terisi = KATEGORI.filter(diisi);
+  const kosong = KATEGORI.filter((k) => !diisi(k));
 
   const act = async (s: Serah, aksi: "serah_putus" | "serah_batal", terima?: boolean) => {
     setBusy(s.id);
@@ -463,7 +470,7 @@ function Holders({
         </span>
       </div>
       <div className="holdgrid">
-        {KATEGORI.map((k) => {
+        {terisi.map((k) => {
           const h = data.pemegang.find((p) => p.kategori === k);
           const pend = pending.find((s) => s.kategori === k);
           return (
@@ -489,6 +496,15 @@ function Holders({
           );
         })}
       </div>
+      {kosong.length > 0 && (
+        <Disclose className="holdvacant" head={t.vacantN(kosong.length)}>
+          <span className="row holdvacant__list">
+            {kosong.map((k) => (
+              <Pill key={k}>{kategoriLabel(k, lang)}</Pill>
+            ))}
+          </span>
+        </Disclose>
+      )}
       {pending.map((s) => {
         const kat = isKategori(s.kategori) ? kategoriLabel(s.kategori, lang) : s.kategori;
         const canDecide = admin || s.dariNim === saya;

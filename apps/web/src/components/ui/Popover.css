@@ -25,7 +25,7 @@
 }
 
 .popover__panel[data-state="closed"] {
-  animation: popover-out 160ms ease-in both;
+  animation: popover-out 140ms var(--ease-out-expo) both;
   pointer-events: none;
 }
 

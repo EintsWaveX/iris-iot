@@ -47,7 +47,15 @@ import Cosmos from "../components/Cosmos.astro";
 import AppNav from "../components/shell/AppNav";
 import Toast from "../components/ui/Toast";
 import SegFit from "../components/shell/SegFit";
+import SiteFooter from "../components/SiteFooter.astro";
 import { langTag, type Lang } from "../lib/kelas";
+import { SITE_URL } from "../lib/lab";
+// The two faces the first screen paints (body text and the display title),
+// fetched with the HTML instead of after the CSS that names them: on a slow
+// phone they used to start 1.6 s in (Phase 11 LCP). Vite gives these the
+// same hashed files the @font-face rules point at.
+import fontBody from "@fontsource/inter/files/inter-latin-400-normal.woff2?url";
+import fontDisplay from "@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff2?url";
 
 interface Props {
   title: string;
@@ -66,6 +74,12 @@ interface Props {
   /** The 404 page: Vercel serves one built file for every missing path, so
    *  the nav reads the language from the address after hydration. */
   langFromUrl?: boolean;
+  /** Signed in pages keep out of search results */
+  noindex?: boolean;
+  /** Link preview card in public/og: "home" or "modul-N" */
+  card?: string;
+  /** The site footer (lab, privacy, terms); full screen views turn it off */
+  footer?: boolean;
 }
 
 const {
@@ -75,20 +89,70 @@ const {
   cosmosScene = "beranda",
   nav = true,
   langFromUrl = false,
+  noindex = false,
+  card = "home",
+  footer = true,
 } = Astro.props;
+
+// ---------- Search and Link Previews ----------
+const path = Astro.url.pathname;
+const bare = path.replace(/^\/(en|zh)(?=\/|$)/, "") || "/";
+const alt = {
+  id: bare,
+  en: bare === "/" ? "/en/" : `/en${bare}`,
+  zh: bare === "/" ? "/zh/" : `/zh${bare}`,
+};
+const summary =
+  description ||
+  tri(
+    lang,
+    "Praktikum IoT Laboratorium IRIS, Telkom University. Empat modul: Bluetooth, WebSocket, MQTT dan LoRa.",
+    "The IRIS Laboratory IoT practicum at Telkom University. Four modules: Bluetooth, WebSocket, MQTT and LoRa.",
+    "Telkom University IRIS 实验室物联网实验。四个模块：蓝牙、WebSocket、MQTT 与 LoRa。",
+  );
+const cardUrl = `${SITE_URL}/og/${lang === "id" ? "id" : "en"}-${card}.png`;
+const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
 ---
 
 <!doctype html>
 <html lang={langTag(lang)} data-cosmos-scene={cosmosScene}>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- theme-init.js sets this to the nav colour of the chosen theme. -->
+    <meta name="theme-color" content="#0a0c14" />
+    <meta name="color-scheme" content="dark light" />
     <!-- Theme, detail level and Mandarin heading weight before first paint. -->
     <script is:inline src="/theme-init.js"></script>
+    <link rel="preload" href={fontBody} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={fontDisplay} as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="generator" content={Astro.generator} />
-    {description && <meta name="description" content={description} />}
     <title>{title}</title>
+    <meta name="description" content={summary} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {!noindex && !langFromUrl && (
+      <>
+        <link rel="canonical" href={SITE_URL + path} />
+        <link rel="alternate" hreflang="id" href={SITE_URL + alt.id} />
+        <link rel="alternate" hreflang="en" href={SITE_URL + alt.en} />
+        <link rel="alternate" hreflang="zh-Hans" href={SITE_URL + alt.zh} />
+        <link rel="alternate" hreflang="x-default" href={SITE_URL + alt.id} />
+      </>
+    )}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="IRIS IoT" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={summary} />
+    <meta property="og:url" content={SITE_URL + path} />
+    <meta property="og:image" content={cardUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content={locale} />
+    <meta name="twitter:card" content="summary_large_image" />
     <ClientRouter />
   </head>
   <body>
@@ -106,6 +170,7 @@ const {
     <Toast client:load />
     <SegFit client:load />
     <slot />
+    {footer && <SiteFooter lang={lang} />}
   </body>
 </html>
 

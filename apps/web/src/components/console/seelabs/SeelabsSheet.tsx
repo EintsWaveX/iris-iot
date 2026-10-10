@@ -33,6 +33,7 @@ import {
 import { kirimSeelabs, salinTeks, type KelompokSeelabs, type SeelabsData } from "./data";
 import { pesanSl, type SeelabsStrings } from "./strings";
 import "./seelabs.css";
+import Nil from "../../ui/Nil";
 
 const TONE: Record<StatusSeelabs, string> = {
   terkirim: "ok",
@@ -149,7 +150,7 @@ export function SeelabsBody({
                 <td>{b.nama}</td>
                 {SEELABS_KOLOM.map((c) => (
                   <td key={c} className="num" data-empty={b.skor[c] == null ? "yes" : undefined}>
-                    {b.skor[c] ?? "·"}
+                    {b.skor[c] ?? <Nil dot />}
                   </td>
                 ))}
               </tr>

@@ -17,6 +17,11 @@ export function tri(lang: Lang, id: string, en: string, zh: string): string {
   return lang === "zh" ? zh : lang === "en" ? en : id;
 }
 
+/** The word every empty value shows (ui/Nil.tsx draws it muted). */
+export function nil(lang: Lang): string {
+  return tri(lang, "Belum ada", "None yet", "暂无");
+}
+
 /** "Slot 2", "Slot 2", "时段 2" */
 export function slotLabel(n: number, lang: Lang): string {
   return lang === "zh" ? `时段 ${n}` : `Slot ${n}`;

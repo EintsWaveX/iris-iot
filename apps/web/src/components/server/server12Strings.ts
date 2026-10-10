@@ -31,6 +31,22 @@ export const S12 = dict({
     minutes: (n: number) => `${n} menit`,
     terminal: "Terminal",
     screen: "Layar Pi",
+    offTitle: "Pi Tidak Terhubung",
+    offSince: (when: string, ago: string) =>
+      `Denyut terakhir ${when}, ${ago}. Kondisi dan grafik muncul lagi begitu Pi tersambung.`,
+    offNever:
+      "Pi ini belum pernah mengirim denyut. Kondisi dan grafik muncul begitu Pi tersambung.",
+    offLast: "Angka Terakhir yang Terkirim",
+    offChecks: "Cek Berurutan",
+    offSteps: [
+      "Pastikan Pi menyala dan kabel dayanya terpasang.",
+      "Pastikan Pi tersambung ke jaringan lab, lewat Wi-Fi kampus atau kabel LAN dari router.",
+      "Begitu tersambung lagi, halaman ini terisi sendiri tanpa dimuat ulang.",
+    ],
+    offSettings: "Buka Pengaturan",
+    factsEmpty: (list: string) => `${list} belum diisi.`,
+    factsFill: "Lengkapi",
+    and: "dan",
   },
   en: {
     readyTitle: "Ready Check",
@@ -61,6 +77,22 @@ export const S12 = dict({
     minutes: (n: number) => `${n} minutes`,
     terminal: "Terminal",
     screen: "Pi Screen",
+    offTitle: "Pi Not Connected",
+    offSince: (when: string, ago: string) =>
+      `Last heartbeat ${when}, ${ago}. Conditions and the chart come back as soon as the Pi connects.`,
+    offNever:
+      "This Pi has never sent a heartbeat. Conditions and the chart appear once it connects.",
+    offLast: "Last Values Sent",
+    offChecks: "Check in Order",
+    offSteps: [
+      "Make sure the Pi is on and its power cable is in.",
+      "Make sure the Pi is on the lab network, over campus Wi-Fi or a LAN cable from the router.",
+      "Once it reconnects, this page fills itself in without a reload.",
+    ],
+    offSettings: "Open Settings",
+    factsEmpty: (list: string) => `${list} not filled in yet.`,
+    factsFill: "Fill In",
+    and: "and",
   },
   zh: {
     readyTitle: "上课就绪",
@@ -91,5 +123,20 @@ export const S12 = dict({
     minutes: (n: number) => `${n} 分钟`,
     terminal: "终端",
     screen: "Pi 屏幕",
+    offTitle: "Pi 未连接",
+    offSince: (when: string, ago: string) =>
+      `最后一次心跳：${when}，${ago}。Pi 连上后，状态和图表会重新出现。`,
+    offNever: "这台 Pi 从未发送过心跳。Pi 连上后，状态和图表会出现。",
+    offLast: "最后发送的数值",
+    offChecks: "依次检查",
+    offSteps: [
+      "确认 Pi 已开机，电源线已插好。",
+      "确认 Pi 已接入实验室网络：校园 Wi-Fi 或路由器的网线。",
+      "重新连上后，本页会自动更新，无需刷新。",
+    ],
+    offSettings: "打开设置",
+    factsEmpty: (list: string) => `${list}尚未填写。`,
+    factsFill: "去填写",
+    and: "和",
   },
 });

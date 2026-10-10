@@ -14,7 +14,17 @@ interface Props {
 const { lang } = Astro.props;
 ---
 
-<Base title={`${tri(lang, "Masuk", "Sign in", "登录")} · IRIS IoT`} lang={lang} cosmosScene="masuk">
+<Base
+  title={`${tri(lang, "Masuk", "Sign in", "登录")} · IRIS IoT`}
+  description={tri(
+    lang,
+    "Masuk ke jurnal praktikum IoT Laboratorium IRIS dengan NIM, atau dengan kode asisten.",
+    "Sign in to the IRIS Laboratory IoT practicum journal with your NIM, or with your assistant code.",
+    "用学号登录 IRIS 实验室物联网实验报告，助教用助教代码登录。",
+  )}
+  lang={lang}
+  cosmosScene="masuk"
+>
   <main id="main" class="page-narrow page-main signin-page">
     <SignInPage client:load lang={lang} />
   </main>

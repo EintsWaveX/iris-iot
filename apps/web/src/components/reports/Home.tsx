@@ -5,7 +5,7 @@
  * Sessions, Overview, Assistant Workload, Incidents, Lab Feedback, Audit and
  * Payments.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowsDownUpIcon,
   CalendarDotsIcon,
@@ -48,6 +48,7 @@ import Dropdown from "../ui/Dropdown";
 import { DateField, Switch } from "../ui/Controls";
 import Popover from "../ui/Popover";
 import IconButton from "../ui/IconButton";
+import Nil from "../ui/Nil";
 import Pill from "../ui/Pill";
 import Fade from "../ui/Fade";
 import TabLine from "../ui/TabLine";
@@ -101,8 +102,8 @@ interface Ctx {
 
 const fmt1 = (n: number, lang: Lang) =>
   n.toLocaleString(localeOf(lang), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const pct = (n: number | null, lang: Lang) =>
-  n == null ? "·" : `${Math.round(n * 100).toLocaleString(localeOf(lang))}%`;
+const pct = (n: number | null, lang: Lang): ReactNode =>
+  n == null ? <Nil lang={lang} /> : `${Math.round(n * 100).toLocaleString(localeOf(lang))}%`;
 
 /* ------------------------------------------------------------ date range */
 
@@ -195,21 +196,54 @@ function DateRange({ f, setF, c }: { f: Filter; setF: (f: Filter) => void; c: Ct
   );
 }
 
+/* ----------------------------------------------------------- export menu */
+
+/** "Export This View" as XLSX, CSV or PDF; it sits in the page head beside
+ *  Laporan Tertulis rather than on a row of its own under the filters. */
+function ExportMenu({ t, onExport }: { t: Ctx["t"]; onExport: (fmt: Format) => void }) {
+  const [ex, setEx] = useState(false);
+  return (
+    <Popover
+      open={ex}
+      onOpenChange={setEx}
+      align="end"
+      trigger={
+        <button type="button" className="btn" aria-expanded={ex}>
+          <ExportIcon size={18} aria-hidden="true" />
+          {t.exportView}
+        </button>
+      }
+    >
+      <div className="rp-range__presets" role="group" aria-label={t.exportPick}>
+        {(
+          [
+            ["xlsx", FileXlsIcon, "XLSX"],
+            ["csv", FileCsvIcon, "CSV"],
+            ["pdf", FilePdfIcon, "PDF"],
+          ] as const
+        ).map(([k, Ic, l]) => (
+          <button
+            key={k}
+            type="button"
+            className="rp-menu__i"
+            onClick={() => {
+              setEx(false);
+              onExport(k);
+            }}
+          >
+            <Ic size={20} aria-hidden="true" />
+            {l}
+          </button>
+        ))}
+      </div>
+    </Popover>
+  );
+}
+
 /* ------------------------------------------------------------ filter bar */
 
-function FilterBar({
-  f,
-  setF,
-  c,
-  onExport,
-}: {
-  f: Filter;
-  setF: (f: Filter) => void;
-  c: Ctx;
-  onExport: (fmt: Format) => void;
-}) {
+function FilterBar({ f, setF, c }: { f: Filter; setF: (f: Filter) => void; c: Ctx }) {
   const { t, lang, dir, me } = c;
-  const [ex, setEx] = useState(false);
   const aktif = jumlahSaringan(f);
   const orang = [...dir.byNim.values()].sort((a, b) => a.nama.localeCompare(b.nama));
   return (
@@ -303,40 +337,6 @@ function FilterBar({
           { value: "saya", label: t.view.saya },
         ]}
       />
-      <Popover
-        open={ex}
-        onOpenChange={setEx}
-        align="end"
-        trigger={
-          <button type="button" className="btn btn--inverse" aria-expanded={ex}>
-            <ExportIcon size={18} aria-hidden="true" />
-            {t.exportView}
-          </button>
-        }
-      >
-        <div className="rp-range__presets" role="group" aria-label={t.exportPick}>
-          {(
-            [
-              ["xlsx", FileXlsIcon, "XLSX"],
-              ["csv", FileCsvIcon, "CSV"],
-              ["pdf", FilePdfIcon, "PDF"],
-            ] as const
-          ).map(([k, Ic, l]) => (
-            <button
-              key={k}
-              type="button"
-              className="rp-menu__i"
-              onClick={() => {
-                setEx(false);
-                onExport(k);
-              }}
-            >
-              <Ic size={20} aria-hidden="true" />
-              {l}
-            </button>
-          ))}
-        </div>
-      </Popover>
       {aktif > 0 && (
         <span className="rp-fbar__clear">
           <IconButton
@@ -432,15 +432,18 @@ function SessionsTab({
           <span className="rp-date">
             <b>{tanggalPanjang(s.tanggal, lang)}</b>
             <span className="hint">
-              {s.jenis === "tot"
-                ? t.tot
-                : s.jenis === "susulan"
-                  ? t.susulan
-                  : s.slot
-                    ? slotLabel(s.slot, lang)
-                    : ""}
-              {" · "}
-              {jamSlot(s.slot, s.mulai)}
+              {[
+                s.jenis === "tot"
+                  ? t.tot
+                  : s.jenis === "susulan"
+                    ? t.susulan
+                    : s.slot
+                      ? slotLabel(s.slot, lang)
+                      : "",
+                jamSlot(s.slot, s.mulai),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </span>
           </span>
         );
@@ -465,7 +468,7 @@ function SessionsTab({
             ))}
           </span>
         ) : (
-          <span className="hint">·</span>
+          <Nil lang={lang} />
         );
       }
       case "hadir":
@@ -480,7 +483,7 @@ function SessionsTab({
         return s.lab.n ? (
           <span className="num">{fmt1(s.lab.jumlah / s.lab.n, lang)}</span>
         ) : (
-          <span className="hint">·</span>
+          <Nil lang={lang} />
         );
     }
   };
@@ -615,7 +618,7 @@ function OverviewTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
           <span>{t.ovHadir}</span>
         </div>
         <div className="rp-stat">
-          <b>{o.skorRata == null ? "·" : fmt1(o.skorRata, lang)}</b>
+          <b>{o.skorRata == null ? <Nil lang={lang} /> : fmt1(o.skorRata, lang)}</b>
           <span>{t.ovSkor}</span>
         </div>
         <div className="rp-stat">
@@ -623,7 +626,7 @@ function OverviewTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
           <span>{t.ovBlank}</span>
         </div>
         <div className="rp-stat">
-          <b>{o.labRata == null ? "·" : fmt1(o.labRata, lang)}</b>
+          <b>{o.labRata == null ? <Nil lang={lang} /> : fmt1(o.labRata, lang)}</b>
           <span>{t.ovLab}</span>
         </div>
       </div>
@@ -654,7 +657,7 @@ function OverviewTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
                           } as CSSProperties
                         }
                       />
-                      <b className="num">{v == null ? "·" : Math.round(v)}</b>
+                      <b className="num">{v == null ? <Nil lang={lang} /> : Math.round(v)}</b>
                     </div>
                   );
                 })}
@@ -719,16 +722,10 @@ function LoadTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
                         </span>
                       </Tooltip>
                     ) : (
-                      <span className="hint">·</span>
+                      <Nil dot />
                     )}
                   </td>
-                  <td>
-                    {b.ganti ? (
-                      <Pill tone="accent">{b.ganti}×</Pill>
-                    ) : (
-                      <span className="hint">·</span>
-                    )}
-                  </td>
+                  <td>{b.ganti ? <Pill tone="accent">{b.ganti}×</Pill> : <Nil dot />}</td>
                 </tr>
               );
             })}
@@ -771,7 +768,9 @@ function LabTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
       <section className="panel">
         <h2 className="panel__title">{t.labTitle}</h2>
         <div className="row">
-          <b className="rp-big">{data.rataRata == null ? "·" : fmt1(data.rataRata, lang)}</b>
+          <b className="rp-big">
+            {data.rataRata == null ? <Nil lang={lang} /> : fmt1(data.rataRata, lang)}
+          </b>
           <span className="hint">{t.labOf(data.jumlah)}</span>
         </div>
         <div className="rp-spread" role="list" aria-label={t.labTitle}>
@@ -798,18 +797,21 @@ function LabTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
           ))}
         </div>
       </section>
-      <section className="panel">
+      <section className="panel rp-latest">
         <h2 className="panel__title">{t.latest}</h2>
         {data.komentar.length === 0 ? (
-          <p className="hint">{t.noFeedback}</p>
+          <p className="empty-note">{t.noFeedback}</p>
         ) : (
-          // Two Praktikan can send the same words at the same minute.
-          data.komentar.slice(0, 4).map((k, i) => (
-            <blockquote key={`${i}-${k.pada}`} className="rp-quote">
-              <p>{k.teks}</p>
-              <span className="hint">{tanggalPanjang(tanggalWib(k.pada), lang)}</span>
-            </blockquote>
-          ))
+          // As tall as the summary beside it; more comments scroll inside.
+          <div className="rp-latest__list">
+            {data.komentar.slice(0, 20).map((k, i) => (
+              // Two Praktikan can send the same words at the same minute.
+              <blockquote key={`${i}-${k.pada}`} className="rp-quote">
+                <p>{k.teks}</p>
+                <span className="hint">{tanggalPanjang(tanggalWib(k.pada), lang)}</span>
+              </blockquote>
+            ))}
+          </div>
         )}
       </section>
     </div>
@@ -1271,6 +1273,7 @@ export default function Home({
             <h1 className="page-header__title">{t.title}</h1>
           </div>
           <div className="page-header__actions">
+            <ExportMenu t={t} onExport={exportView} />
             <button type="button" className="btn btn--inverse" onClick={onDocs}>
               <NotePencilIcon size={18} aria-hidden="true" />
               {t.written}
@@ -1278,7 +1281,7 @@ export default function Home({
           </div>
         </div>
       </header>
-      <FilterBar f={f} setF={setF} c={c} onExport={exportView} />
+      <FilterBar f={f} setF={setF} c={c} />
       <TabLine
         label={t.tabsLabel}
         value={tab}

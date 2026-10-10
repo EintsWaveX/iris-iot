@@ -52,7 +52,7 @@ import { StateView } from "../../ui/Display";
 import { href, tanggalPanjang, useTick } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { DIAM_MENIT, KONSOL_BUKA, type KonsolTarget } from "../../../lib/konsol";
-import { hariLabel, menitLabel, modulLabel, slotLabel } from "../../../lib/labels";
+import { hariLabel, menitLabel, modulLabel, nil, slotLabel } from "../../../lib/labels";
 import { jamWib, tanggalWib } from "../../reports/data";
 import Layar, { type LayarApi } from "./Layar";
 import { useFullscreenEl } from "../../ui/fullscreen";
@@ -484,7 +484,7 @@ function JoinApprove({
         rows={[
           [t.who, p.nama],
           [t.what, `${targetLabel(t, p.target)} · ${p.pemilikNama}`],
-          [t.reason, p.alasan ?? "-"],
+          [t.reason, p.alasan ?? nil(lang)],
           [
             t.asked,
             `${tanggalPanjang(tanggalWib(p.dimintaPada), lang)} · ${jamWib(p.dimintaPada)}`,

@@ -80,11 +80,11 @@ export default function SessionStrip({
       aria-label={t.label}
       style={hue ? ({ "--meter-hue": hue } as CSSProperties) : undefined}
     >
-      <span className="strip__i">
+      <span className="strip__i strip__jam">
         <small>{t.jam}</small>
         <b className="mono">{jamJakarta(now)}</b>
       </span>
-      <span className="strip__dot" aria-hidden="true">
+      <span className="strip__dot strip__jam-dot" aria-hidden="true">
         ·
       </span>
       <span className="strip__i strip__left" data-low={left < 30 * 60 ? "yes" : undefined}>

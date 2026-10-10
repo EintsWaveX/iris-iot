@@ -519,9 +519,11 @@
     transform 160ms;
 }
 
-.vcard--btn:hover {
-  border-color: var(--hairline-strong);
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .vcard--btn:hover {
+    border-color: var(--hairline-strong);
+    transform: translateY(-2px);
+  }
 }
 
 .vcard--btn:focus-visible {
@@ -536,8 +538,10 @@
   top: 10px;
 }
 
-.vcard--btn:hover .vcard__more {
-  color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .vcard--btn:hover .vcard__more {
+    color: var(--accent);
+  }
 }
 
 .vcard--btn .vcard__l {
@@ -545,8 +549,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vcard--btn:hover {
-    transform: none;
+  @media (hover: hover) and (pointer: fine) {
+    .vcard--btn:hover {
+      transform: none;
+    }
   }
 }
 

@@ -1,0 +1,32 @@
+# IRIS IoT practicum. Modules, the handbook and the legal pages are public;
+# everything behind a sign in stays out of search.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /session
+Disallow: /schedule
+Disallow: /servers
+Disallow: /reports
+Disallow: /team
+Disallow: /account
+Disallow: /groups/
+Disallow: /rig-test/
+Disallow: /en/dashboard
+Disallow: /en/session
+Disallow: /en/schedule
+Disallow: /en/servers
+Disallow: /en/reports
+Disallow: /en/team
+Disallow: /en/account
+Disallow: /en/groups/
+Disallow: /zh/dashboard
+Disallow: /zh/session
+Disallow: /zh/schedule
+Disallow: /zh/servers
+Disallow: /zh/reports
+Disallow: /zh/team
+Disallow: /zh/account
+Disallow: /zh/groups/
+
+Sitemap: https://iris-praktikum-jurnal.vercel.app/sitemap.xml

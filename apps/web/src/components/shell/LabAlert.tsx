@@ -181,7 +181,9 @@ export default function LabAlert({
     setIzin(typeof Notification === "undefined" ? "none" : Notification.permission);
   }, []);
 
-  const piLuring = !!w?.ok && !!w.pi?.luring;
+  // The Server pages show the Pi's state themselves; the banner would repeat it.
+  const diServer = typeof location !== "undefined" && /\/servers\/?$/.test(location.pathname);
+  const piLuring = !!w?.ok && !!w.pi?.luring && !diServer;
   const g = w?.ok ? w.galat : null;
   const lonjakan =
     bisaServer && !!g && g.jumlah >= g.ambang && !!g.terakhir && g.terakhir.id > sembunyi;

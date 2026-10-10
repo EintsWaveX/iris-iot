@@ -176,8 +176,10 @@
     border-color var(--dur-fast);
 }
 
-.srvcard:hover {
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .srvcard:hover {
+    transform: translateY(-2px);
+  }
 }
 
 .srvcard[data-st="on"] {
@@ -269,8 +271,10 @@
   border-color: transparent;
 }
 
-.enroll:hover {
-  background: var(--accent-soft);
+@media (hover: hover) and (pointer: fine) {
+  .enroll:hover {
+    background: var(--accent-soft);
+  }
 }
 
 .enroll > svg {
@@ -435,9 +439,11 @@
     border-color var(--dur-mid);
 }
 
-.dcard:hover {
-  border-color: var(--accent);
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .dcard:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
 }
 
 .dcard[data-warn="yes"] {
@@ -476,18 +482,22 @@
   top: 10px;
 }
 
-.dcard:hover .dcard__more {
-  color: var(--accent-bright);
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .dcard:hover .dcard__more {
+    color: var(--accent-bright);
+    opacity: 1;
+  }
 }
 
 .dcard--static {
   cursor: default;
 }
 
-.dcard--static:hover {
-  border-color: var(--hairline);
-  transform: none;
+@media (hover: hover) and (pointer: fine) {
+  .dcard--static:hover {
+    border-color: var(--hairline);
+    transform: none;
+  }
 }
 
 /* ------------------------------------------------------ quick actions */
@@ -551,10 +561,12 @@ button.qa__b {
   cursor: pointer;
 }
 
-button.qa__b:hover:not([aria-disabled="true"]) {
-  background: var(--surface-4);
-  border-color: var(--accent);
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  button.qa__b:hover:not([aria-disabled="true"]) {
+    background: var(--surface-4);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
 }
 
 button.qa__b:active {

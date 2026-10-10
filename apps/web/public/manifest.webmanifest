@@ -1,0 +1,21 @@
+{
+  "name": "IRIS IoT Praktikum",
+  "short_name": "IRIS IoT",
+  "description": "Praktikum IoT Laboratorium IRIS, Telkom University: modul, jurnal dan data papan secara langsung.",
+  "lang": "id",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0c14",
+  "theme_color": "#0a0c14",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

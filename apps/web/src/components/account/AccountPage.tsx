@@ -15,20 +15,19 @@ import SeelabsAccount from "../console/seelabs/SeelabsAccount";
 import PraktikanAccount from "./PraktikanAccount";
 import { EarningsCard } from "../bayar/Earnings";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { CheckIcon, UserIcon } from "@phosphor-icons/react";
+import { CheckIcon, SlidersHorizontalIcon, UserIcon } from "@phosphor-icons/react";
 import PasswordField, { kekuatanSandi } from "../ui/PasswordField";
 import { StateView } from "../ui/Display";
 import FeedbackSummary from "../shared/FeedbackSummary";
 import { getJson, href, meChanged, postJson, useMe, dict } from "../../lib/app";
-import { saveLangPref } from "../../lib/hooks";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { semesterDariTanggal } from "../../lib/jadwal-parser";
-import { pathForLang, type Lang } from "../../lib/kelas";
+import type { Lang } from "../../lib/kelas";
 import { divisiLabel } from "../../lib/labels";
 import type { BarisJadwal } from "../../lib/jadwal-next";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import "./AccountPage.css";
-import DisplayPanel from "../shell/DisplayPanel";
+import { BUKA_TAMPILAN, DisplaySummary } from "../shell/DisplayPanel";
 import PersonBadges from "../ui/PersonBadges";
 import TierBadge from "../ui/TierBadge";
 import { openSignIn } from "../../lib/signin";
@@ -38,9 +37,11 @@ const T = dict({
   id: {
     title: "Akun",
     display: "Tampilan",
+    displaySub: "Tema, detail latar, bahasa dan jam di navigasi diatur dari panel Tampilan.",
+    displayGo: "Buka Tampilan",
     pwH: "Ganti Kata Sandi",
     pwSub: "Minimal 8 karakter. Setelah diganti, sandi awal tidak berlaku lagi.",
-    pwFirst: "Kamu masih memakai sandi awal. Buat sandi sendiri sekarang.",
+    pwFirst: "Kamu masih memakai sandi awal. Sandi sendiri lebih aman, tapi tidak wajib.",
     lama: "Sandi sekarang",
     baru: "Sandi baru",
     ulang: "Ulangi sandi baru",
@@ -68,9 +69,12 @@ const T = dict({
   en: {
     title: "Account",
     display: "Display",
+    displaySub:
+      "Theme, background detail, language and the nav clock are set in the Display panel.",
+    displayGo: "Open Display",
     pwH: "Change Password",
     pwSub: "At least 8 characters. Once changed, the starting password stops working.",
-    pwFirst: "You are still on the starting password. Set your own now.",
+    pwFirst: "You are still on the starting password. Your own is safer, but it isn't required.",
     lama: "Current password",
     baru: "New password",
     ulang: "Repeat the new password",
@@ -98,9 +102,11 @@ const T = dict({
   zh: {
     title: "账号",
     display: "显示",
+    displaySub: "主题、背景细节、语言和导航栏时钟都在“显示”面板里设置。",
+    displayGo: "打开显示设置",
     pwH: "修改密码",
     pwSub: "至少 8 个字符。修改后初始密码就会失效。",
-    pwFirst: "你还在用初始密码。现在设置你自己的。",
+    pwFirst: "你还在用初始密码。设置自己的密码更安全，但不是必须的。",
     lama: "当前密码",
     baru: "新密码",
     ulang: "再输一次新密码",
@@ -252,12 +258,6 @@ export default function AccountPage({ lang }: { lang: Lang }) {
     [jadwal, kode],
   );
 
-  function pilihBahasa(to: Lang) {
-    if (to === lang) return;
-    saveLangPref(to);
-    location.assign(pathForLang(location.pathname + location.search + location.hash, to));
-  }
-
   if (me === undefined) return <span className="skeleton" style={{ height: 360 }} />;
   if (me === null) {
     return (
@@ -303,7 +303,16 @@ export default function AccountPage({ lang }: { lang: Lang }) {
         </section>
         <section className="panel acctpage__display">
           <h2 className="panel__title">{t.display}</h2>
-          <DisplayPanel lang={lang} onLang={pilihBahasa} />
+          <p className="hint">{t.displaySub}</p>
+          <DisplaySummary lang={lang} />
+          <button
+            type="button"
+            className="btn"
+            onClick={() => window.dispatchEvent(new Event(BUKA_TAMPILAN))}
+          >
+            <SlidersHorizontalIcon size={18} aria-hidden="true" />
+            {t.displayGo}
+          </button>
         </section>
         <section className="panel acctpage__mine">
           <div className="panel__head">

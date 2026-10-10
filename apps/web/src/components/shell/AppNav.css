@@ -62,8 +62,10 @@
   width: auto;
 }
 
-.appnav__brand:hover img {
-  filter: var(--logo-filter) drop-shadow(0 0 14px var(--accent-glow));
+@media (hover: hover) and (pointer: fine) {
+  .appnav__brand:hover img {
+    filter: var(--logo-filter) drop-shadow(0 0 14px var(--accent-glow));
+  }
 }
 
 /* Phase 9 (G2): the links start right after the logo, one size bigger */
@@ -94,9 +96,11 @@
   white-space: nowrap;
 }
 
-.appnav__link:hover {
-  background: var(--hairline-faint);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .appnav__link:hover {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
 }
 
 .appnav__link[aria-current="page"] {
@@ -249,10 +253,16 @@
   width: 100%;
 }
 
-.disp__opt:hover,
 .disp__opt[aria-checked="true"] {
   background: var(--accent-soft);
   color: var(--accent-bright);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .disp__opt:hover {
+    background: var(--accent-soft);
+    color: var(--accent-bright);
+  }
 }
 
 .disp__opt:focus-visible {
@@ -305,9 +315,14 @@
     background var(--dur-fast) var(--ease-reveal);
 }
 
-.appnav__me:hover,
 .appnav__me[data-state="open"] {
   border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .appnav__me:hover {
+    border-color: var(--accent);
+  }
 }
 
 .appnav__me--mobile {
@@ -358,11 +373,12 @@
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lift);
-  max-height: var(--radix-popover-content-available-height, calc(100vh - 24px));
+  max-height: var(--radix-popover-content-available-height, calc(100dvh - 24px));
   overflow: hidden auto;
   padding: var(--space-3);
   width: min(22rem, calc(100vw - 24px));
   z-index: 150;
+  transform-origin: var(--radix-popover-content-transform-origin);
   animation: popover-in var(--dur-fast) var(--ease-out-expo);
 }
 
@@ -420,8 +436,10 @@
   flex: 1;
 }
 
-.acct__row:hover {
-  background: var(--hairline-faint);
+@media (hover: hover) and (pointer: fine) {
+  .acct__row:hover {
+    background: var(--hairline-faint);
+  }
 }
 
 .acct__row svg {
@@ -434,6 +452,25 @@
 
 .acct__row--danger svg {
   color: var(--danger);
+}
+
+.acct__row--danger {
+  border-top: 1px solid var(--hairline);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  margin-top: var(--space-1);
+}
+
+.acct__row--danger[data-sure="yes"] {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  font-weight: 700;
+}
+
+.acct__warn {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: 0 var(--space-3);
 }
 
 .acct__group {
@@ -641,6 +678,80 @@
   }
 }
 
+/* AlertRail.tsx: every page alert in one sticky rail under the nav (and
+   the mini bar). The first alert shows, the rest wait behind one chip. */
+.alertrail {
+  position: sticky;
+  top: calc(var(--nav-size) + var(--minibar-h, 0px));
+  z-index: 48;
+}
+
+.alertrail:not([hidden]) {
+  display: grid;
+}
+
+.alertrail > .offline {
+  position: static;
+}
+
+.alertrail[data-open="no"] > .banner ~ .banner {
+  display: none;
+}
+
+.alertrail__more {
+  align-items: center;
+  background: color-mix(in srgb, var(--warn) 10%, var(--bg-elevated));
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  min-height: 32px;
+  padding: 4px var(--gutter);
+}
+
+.alertrail__more svg {
+  transition: transform var(--dur-fast) var(--ease-out-expo);
+}
+
+.alertrail[data-open="yes"] .alertrail__more svg {
+  transform: rotate(180deg);
+}
+
+/* A phone gets one tight row per alert: icon, title, actions, then at most
+   two lines of detail under them. */
+@media (max-width: 639px) {
+  .alertrail .banner {
+    gap: 4px 10px;
+    padding-block: 8px;
+  }
+
+  .alertrail .banner > b {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .alertrail .banner > .hint {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    flex-basis: 100%;
+    font-size: 0.8rem;
+    order: 3;
+    overflow: hidden;
+  }
+
+  .alertrail .banner .btn--sm {
+    min-height: 32px;
+    padding-inline: 10px;
+  }
+}
+
 /* OfflineNotice.tsx: under the nav (and the mini bar), sticky with them. */
 .offline {
   background: color-mix(in srgb, var(--warn) 16%, var(--bg-elevated));
@@ -654,4 +765,62 @@
 
 :root:not([data-motion-tier="0"]) .appnav__live-dot--warn {
   animation: none;
+}
+
+/* The Akun pages' summary of the Tampilan choices (DisplaySummary). */
+.dispsum {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.dispsum__row {
+  align-items: baseline;
+  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 9px 0;
+}
+
+.dispsum__row:last-child {
+  border-bottom: 0;
+}
+
+.dispsum dt {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.dispsum dd {
+  font-weight: 600;
+  margin: 0;
+  text-align: right;
+}
+
+/* Side by side on a wide card: the label over its value, four across. */
+@media (min-width: 640px) {
+  .dispsum--wide {
+    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .dispsum--wide .dispsum__row {
+    align-items: flex-start;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    flex-direction: column;
+    gap: 4px;
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+
+  .dispsum--wide .dispsum__row:last-child {
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .dispsum--wide dd {
+    text-align: left;
+  }
 }

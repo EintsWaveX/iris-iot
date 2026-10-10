@@ -4,11 +4,13 @@ import { tri, kelompokLabel } from "../lib/labels";
  * /groups/[n] and /en/groups/[n] (Phase 8): the group page merged into the
  * live workspace, so these only forward there with the group preselected,
  * on the running session's module (Module 1 when none is running). Old
- * links and bookmarks keep working.
+ * links and bookmarks keep working. A guest is asked to sign in first and
+ * comes back here after, instead of landing on a closed module (Phase 11).
  */
 import Base from "../layouts/Base.astro";
 import type { Lang } from "../lib/kelas";
 import { href } from "../lib/app";
+import "../components/ui/Display.css";
 
 interface Props {
   lang: Lang;
@@ -17,9 +19,12 @@ interface Props {
 const { lang, group } = Astro.props;
 const base = href(lang, "/modules");
 const fallback = `${base}/1/live?kelompok=${group}`;
+const here = href(lang, `/groups/${group}`);
+const login = `${href(lang, "/login")}?next=${encodeURIComponent(here)}`;
+const label = kelompokLabel(group, lang);
 ---
 
-<Base title={`${kelompokLabel(group, lang)} · IRIS IoT`} lang={lang} cosmosScene="kerja">
+<Base noindex title={`${label} · IRIS IoT`} lang={lang} cosmosScene="kerja">
   <main id="main" class="page-regular page-main">
     <div
       class="state-view state-view--accent"
@@ -34,6 +39,27 @@ const fallback = `${base}/1/live?kelompok=${group}`;
         <a href={fallback}>{tri(lang, "Buka sekarang", "Open it now", "现在打开")}</a>
       </p>
     </div>
+    <div class="state-view state-view--accent" data-group-guest hidden>
+      <h1 class="state-view__title">
+        {tri(lang, `Masuk untuk Melihat ${label}`, `Sign In to See ${label}`, `登录后查看${label}`)}
+      </h1>
+      <p class="state-view__body">
+        {tri(
+          lang,
+          "Ruang kelompok hanya untuk Praktikan dan asisten yang sudah masuk. Setelah masuk, kamu kembali ke sini.",
+          "The group room is for signed in Praktikan and assistants. After signing in you come straight back here.",
+          "小组空间只对已登录的实验学生和助教开放。登录后会直接回到这里。",
+        )}
+      </p>
+      <div class="state-view__actions">
+        <a class="btn btn--primary" href={login}>
+          {tri(lang, "Masuk", "Sign In", "登录")}
+        </a>
+        <a class="btn btn--ghost" href={base}>
+          {tri(lang, "Baca Modul", "Read the Modules", "阅读模块")}
+        </a>
+      </div>
+    </div>
   </main>
 </Base>
 
@@ -43,15 +69,23 @@ const fallback = `${base}/1/live?kelompok=${group}`;
   async function forward() {
     const el = document.querySelector<HTMLElement>("[data-group-redirect]");
     if (!el) return;
-    let modul = 1;
-    try {
-      // The public lab summary: /now needs a sign-in, and a guest opening
-      // an old group link would only get a 401 in the console.
-      const d = await fetch("/api/session/lab").then((r) => r.json());
-      if (d?.ok && d.sesi?.modul) modul = Number(d.sesi.modul);
-    } catch {
-      /* no session info: Module 1 */
+    // /api/auth/me answers a guest with ok: false (no 401), so it is safe to
+    // ask first; the live workspace itself needs a sign in.
+    const [me, lab] = await Promise.all([
+      fetch("/api/auth/me")
+        .then((r) => r.json())
+        .catch(() => null),
+      fetch("/api/session/lab")
+        .then((r) => r.json())
+        .catch(() => null),
+    ]);
+    if (!me?.ok) {
+      el.hidden = true;
+      const guest = document.querySelector<HTMLElement>("[data-group-guest]");
+      if (guest) guest.hidden = false;
+      return;
     }
+    const modul = lab?.ok && lab.sesi?.modul ? Number(lab.sesi.modul) : 1;
     location.replace(`${el.dataset.base}/${modul}/live?kelompok=${el.dataset.group}`);
   }
   sekaliPerHalaman("GrupAlihkan", forward);

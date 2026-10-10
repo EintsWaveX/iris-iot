@@ -349,12 +349,16 @@ async function printPages(doc: PDFDocumentProxy, rot: number): Promise<void> {
 export default function PdfViewer({
   url,
   name,
+  title,
   lang,
   shape = "slides",
   className,
 }: {
   url: string;
+  /** The file name, for downloads. */
   name: string;
+  /** What the bar shows instead of the file name ("Presentasi Modul 3"). */
+  title?: string;
   lang: Lang;
   /** "slides" opens fitting a whole page; "page" (documents) opens fitting the width. */
   shape?: "slides" | "page";
@@ -820,8 +824,8 @@ export default function PdfViewer({
             </div>
           ) : (
             !compact && (
-              <b className="pdfv__name" title={name}>
-                {name}
+              <b className="pdfv__name" title={title ?? name}>
+                {title ?? name}
               </b>
             )
           )}

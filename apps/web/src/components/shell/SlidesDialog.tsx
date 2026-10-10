@@ -87,11 +87,12 @@ export default function SlidesDialog({
   const t = T[lang];
   const [idx, setIdx] = useState(0);
   const p = list[Math.min(idx, list.length - 1)] ?? null;
+  const judul = modul ? t.judul(modulLabel(modul, lang)) : t.polos;
   return (
     <Dialog
       open={open && Boolean(p)}
       onOpenChange={onOpenChange}
-      title={modul ? t.judul(modulLabel(modul, lang)) : t.polos}
+      title={judul}
       size="wide"
       lang={lang}
     >
@@ -111,16 +112,16 @@ export default function SlidesDialog({
         {p &&
           (p.jenis === "tautan" ? (
             <div className="slides-frame">
-              <iframe
-                src={p.url}
-                title={p.namaBerkas}
-                loading="lazy"
-                allow="fullscreen"
-                allowFullScreen
-              />
+              <iframe src={p.url} title={judul} loading="lazy" allow="fullscreen" allowFullScreen />
             </div>
           ) : (
-            <PdfViewer url={p.url} name={p.namaBerkas} lang={lang} className="slides-pdf" />
+            <PdfViewer
+              url={p.url}
+              name={p.namaBerkas}
+              title={judul}
+              lang={lang}
+              className="slides-pdf"
+            />
           ))}
       </div>
     </Dialog>

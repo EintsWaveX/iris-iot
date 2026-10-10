@@ -48,7 +48,7 @@ import Dialog from "../ui/Dialog";
 import IconButton from "../ui/IconButton";
 import KeyHint from "../ui/KeyHint";
 import { Kbd } from "../ui/Controls";
-import DisplayPanel from "./DisplayPanel";
+import DisplayPanel, { BUKA_TAMPILAN } from "./DisplayPanel";
 import NavClock from "./NavClock";
 import {
   dict,
@@ -71,6 +71,7 @@ import IdentityWatch from "./IdentityWatch";
 import TotNotice from "./TotNotice";
 import LiveNotice from "./LiveNotice";
 import LabAlert from "./LabAlert";
+import AlertRail from "./AlertRail";
 import AsistenCommands from "./AsistenCommands";
 import "./AppNav.css";
 import { openSignIn } from "../../lib/signin";
@@ -96,6 +97,9 @@ const T = dict({
     team: "Tim",
     signIn: "Masuk",
     signOut: "Keluar",
+    signOutSure: "Ya, Keluar",
+    signOutHint:
+      "Sesimu masih berjalan. Jawabanmu tetap tersimpan, dan kamu bisa masuk lagi dengan kode sesi.",
     account: "Akun",
     myAccount: "Halaman Akun",
     display: "Tampilan",
@@ -122,6 +126,9 @@ const T = dict({
     team: "Team",
     signIn: "Sign In",
     signOut: "Sign Out",
+    signOutSure: "Yes, Sign Out",
+    signOutHint:
+      "Your session is still running. Your answers stay saved, and you can sign in again with the session code.",
     account: "Account",
     myAccount: "Account Page",
     display: "Display",
@@ -148,6 +155,8 @@ const T = dict({
     team: "团队",
     signIn: "登录",
     signOut: "退出登录",
+    signOutSure: "确定退出",
+    signOutHint: "你的实验课还在进行。答案会保留，你可以用课堂代码重新登录。",
     account: "账号",
     myAccount: "账号页面",
     display: "显示",
@@ -298,6 +307,8 @@ export default function AppNav({
     sebelum.current = menunggu;
   }, [menunggu, t.konsolBaru]);
   const current = barePath(path);
+  // The sign in page is the form itself; a second Masuk button there is noise.
+  const onSignIn = current === "/login";
   // Projector mode: the Asisten is drawn as a Praktikan of the group they
   // hold, so nothing Asisten-only reaches the projector (ruled 2026-10-04).
   const pro = useProyektor(me);
@@ -315,6 +326,14 @@ export default function AppNav({
   );
   const [sheet, setSheet] = useState(false);
   const [dispSheet, setDispSheet] = useState(false);
+  const [dispPop, setDispPop] = useState(false);
+  // Any page can open Tampilan (the Akun page links here instead of a copy).
+  useEffect(() => {
+    const open = () =>
+      window.matchMedia("(max-width: 759px)").matches ? setDispSheet(true) : setDispPop(true);
+    window.addEventListener(BUKA_TAMPILAN, open);
+    return () => window.removeEventListener(BUKA_TAMPILAN, open);
+  }, []);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -389,7 +408,7 @@ export default function AppNav({
     <>
       <header className="appnav" data-scrolled={scrolled ? "yes" : "no"}>
         <a className="appnav__brand" href={href(lang, "/")} aria-label="IRIS">
-          <img src="/brand/iris-logo-mark.png" alt="" width="397" height="180" />
+          <img src="/brand/iris-logo-mark.png" alt="" width="198" height="90" />
         </a>
 
         <nav className="appnav__links" aria-label={t.main}>
@@ -435,7 +454,7 @@ export default function AppNav({
             </span>
           )}
           <NavClock lang={lang} inSession={sesiBar} />
-          <RadixPopover.Root>
+          <RadixPopover.Root open={dispPop} onOpenChange={setDispPop}>
             <RadixPopover.Trigger asChild>
               <IconButton icon={SlidersHorizontalIcon} label={t.display} tipSide="bottom" />
             </RadixPopover.Trigger>
@@ -458,7 +477,7 @@ export default function AppNav({
             </RadixPopover.Portal>
           </RadixPopover.Root>
 
-          {me === null && (
+          {me === null && !onSignIn && (
             <button
               type="button"
               className="btn btn--primary appnav__signin"
@@ -495,6 +514,7 @@ export default function AppNav({
                     t={t}
                     me={me}
                     lang={lang}
+                    busy={Boolean(now.data)}
                     onShortcuts={() => setShortcutsOpen(true)}
                     onSignOut={() => void signOut()}
                   />
@@ -512,14 +532,16 @@ export default function AppNav({
           onClick={() => setDispSheet(true)}
         />
         {me === null ? (
-          <button
-            type="button"
-            className="btn btn--primary appnav__signin appnav__signin--mobile"
-            onClick={() => openSignIn()}
-          >
-            <DoorOpenIcon size={20} aria-hidden="true" />
-            <span className="btn__label">{t.signIn}</span>
-          </button>
+          onSignIn ? null : (
+            <button
+              type="button"
+              className="btn btn--primary appnav__signin appnav__signin--mobile"
+              onClick={() => openSignIn()}
+            >
+              <DoorOpenIcon size={20} aria-hidden="true" />
+              <span className="btn__label">{t.signIn}</span>
+            </button>
+          )
         ) : me && pro ? (
           <IconButton
             icon={ProjectorScreenIcon}
@@ -543,10 +565,14 @@ export default function AppNav({
 
       {tampil?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} proyektor={!!pro} />}
       {asistenBar && now.data && <AsistenMiniBar lang={lang} s={now.data} />}
-      <OfflineNotice lang={lang} />
-      {!pro && <LiveNotice lang={lang} />}
-      {me?.role === "asisten" && !pro && <TotNotice lang={lang} />}
-      {me?.role === "asisten" && !pro && <LabAlert lang={lang} me={me} sesiBerjalan={!!now.data} />}
+      <AlertRail lang={lang}>
+        <OfflineNotice lang={lang} />
+        {me?.role === "asisten" && !pro && (
+          <LabAlert lang={lang} me={me} sesiBerjalan={!!now.data} />
+        )}
+        {!pro && <LiveNotice lang={lang} />}
+        {me?.role === "asisten" && !pro && <TotNotice lang={lang} />}
+      </AlertRail>
       <IdentityWatch lang={lang} me={me} now={now.data} />
 
       <nav className="appbar" aria-label={t.main}>
@@ -587,6 +613,7 @@ export default function AppNav({
             t={t}
             me={me}
             lang={lang}
+            busy={Boolean(now.data)}
             onShortcuts={() => {
               setSheet(false);
               setShortcutsOpen(true);
@@ -616,15 +643,19 @@ function AccountMenu({
   t,
   me,
   lang,
+  busy,
   onShortcuts,
   onSignOut,
 }: {
   t: (typeof T)["id"];
   me: Me;
   lang: Lang;
+  busy: boolean;
   onShortcuts: () => void;
   onSignOut: () => void;
 }) {
+  // While a session runs, the first tap only asks; the second signs out.
+  const [sure, setSure] = useState(false);
   return (
     <div className="acct">
       <div className="acct__who">
@@ -639,11 +670,9 @@ function AccountMenu({
         </span>
       </div>
 
-      {me.role === "asisten" && (
-        <a className="acct__row" href={href(lang, "/account")}>
-          <span>{t.myAccount}</span>
-        </a>
-      )}
+      <a className="acct__row" href={href(lang, "/account")}>
+        <span>{t.myAccount}</span>
+      </a>
 
       {me.role === "asisten" && (
         <button type="button" className="acct__row" onClick={onShortcuts}>
@@ -652,9 +681,15 @@ function AccountMenu({
         </button>
       )}
 
-      <button type="button" className="btn btn--danger btn--block" onClick={onSignOut}>
+      {sure && <p className="acct__warn">{t.signOutHint}</p>}
+      <button
+        type="button"
+        className="acct__row acct__row--danger"
+        data-sure={sure ? "yes" : "no"}
+        onClick={() => (busy && !sure ? setSure(true) : onSignOut())}
+      >
+        <span>{sure ? t.signOutSure : t.signOut}</span>
         <SignOutIcon size={20} aria-hidden="true" />
-        {t.signOut}
       </button>
     </div>
   );

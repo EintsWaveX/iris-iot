@@ -38,9 +38,11 @@
   width: 100%;
 }
 
-.dropdown__trigger:hover:not(:disabled) {
-  border-color: var(--hairline-strong);
-  box-shadow: var(--shadow-lift);
+@media (hover: hover) and (pointer: fine) {
+  .dropdown__trigger:hover:not(:disabled) {
+    border-color: var(--hairline-strong);
+    box-shadow: var(--shadow-lift);
+  }
 }
 
 .dropdown__trigger:focus-visible,
@@ -74,14 +76,24 @@
   transition: opacity var(--dur-fast) var(--ease-reveal);
 }
 
-.dropdown__trigger:hover:not(:disabled)::after,
 .dropdown__trigger:focus-visible::after {
   opacity: 1;
 }
 
-:root:not([data-motion-tier="0"]) .dropdown__trigger:hover:not(:disabled)::after,
+@media (hover: hover) and (pointer: fine) {
+  .dropdown__trigger:hover:not(:disabled)::after {
+    opacity: 1;
+  }
+}
+
 :root:not([data-motion-tier="0"]) .dropdown__trigger:focus-visible::after {
   animation: aurora-sweep 2.2s linear infinite;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root:not([data-motion-tier="0"]) .dropdown__trigger:hover:not(:disabled)::after {
+    animation: aurora-sweep 2.2s linear infinite;
+  }
 }
 
 /* Mockup .dd__txt: names wrap, never shortened (G9). */

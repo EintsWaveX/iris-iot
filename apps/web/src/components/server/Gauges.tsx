@@ -5,9 +5,10 @@
  * the limit band, now/lowest/highest/average, the latest readings and a
  * CSV); uptime has no series, so it is a plain card.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowsOutSimpleIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
+import Nil from "../ui/Nil";
 import { getJson, localeOf, titikDua } from "../../lib/app";
 import { unduhCsv } from "../../lib/csv";
 import { durasiLabel } from "../../lib/labels";
@@ -67,11 +68,13 @@ function DataDialog({
   const vals = seri.map((s) => s.v[m]).filter((v): v is number => v !== null);
   const atas =
     m === "jaringan" ? Math.max(k.hi, Math.ceil((Math.max(0, ...vals) * 1.2) / 16) * 16) : k.hi;
-  const f = (v: number | undefined) =>
-    v === undefined
-      ? "·"
-      : `${angka(v, lang, m === "suhu" || (m === "jaringan" && v < 10) ? 1 : 0)} ${k.unit}`;
-  const stats: [string, string][] = [
+  const f = (v: number | undefined): ReactNode =>
+    v === undefined ? (
+      <Nil lang={lang} />
+    ) : (
+      `${angka(v, lang, m === "suhu" || (m === "jaringan" && v < 10) ? 1 : 0)} ${k.unit}`
+    );
+  const stats: [string, ReactNode][] = [
     [t.dNow, f(vals.at(-1))],
     [t.dLow, f(vals.length ? Math.min(...vals) : undefined)],
     [t.dHigh, f(vals.length ? Math.max(...vals) : undefined)],
@@ -216,7 +219,7 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
   const hb = data.denyutTerakhir;
   const k = bacaKondisi(data.server.kondisi);
   const nol = (n: number | null | undefined) =>
-    n === null || n === undefined ? "·" : String(Math.round(n));
+    n === null || n === undefined ? null : String(Math.round(n));
   const label: Record<Metrik, string> = {
     cpu: t.cpu,
     memori: t.mem,
@@ -226,7 +229,9 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
   };
   const beban = k?.beban?.map((v) => angka(v, lang, 2)).join(" · ");
 
-  const cards: { m: Metrik; v: string; unit: string; sub: string; warn?: boolean }[] = [
+  // v is null while the Pi has not reported it: the card says Belum ada once
+  // (no unit after it, no "no data" line under it).
+  const cards: { m: Metrik; v: string | null; unit: string; sub: string; warn?: boolean }[] = [
     {
       m: "cpu",
       v: nol(hb?.cpu),
@@ -259,7 +264,7 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
   const lajuNet = net ? laju(net.masuk + net.keluar, lang).split(" ") : null;
   cards.push({
     m: "jaringan",
-    v: lajuNet?.[0] ?? "·",
+    v: lajuNet?.[0] ?? null,
     unit: lajuNet?.[1] ?? "",
     sub: net ? t.netIo(net.antarmuka, laju(net.masuk, lang), laju(net.keluar, lang)) : t.noData,
   });
@@ -284,10 +289,16 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
           >
             <span className="dcard__l">{label[c.m]}</span>
             <span className="dcard__v">
-              <b>{c.v}</b>
-              <small>{c.unit}</small>
+              {c.v === null ? (
+                <Nil lang={lang} />
+              ) : (
+                <>
+                  <b>{c.v}</b>
+                  <small>{c.unit}</small>
+                </>
+              )}
             </span>
-            <span className="hint">{c.sub}</span>
+            {!(c.v === null && c.sub === t.noData) && <span className="hint">{c.sub}</span>}
             <span className="dcard__more" aria-hidden="true">
               <ArrowsOutSimpleIcon size={16} />
             </span>
@@ -296,13 +307,17 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
         <div className="dcard dcard--static">
           <span className="dcard__l">{t.upFor}</span>
           <span className="dcard__v">
-            <b>{up ? durasiLabel(Math.floor(up / 60), lang) : "·"}</b>
+            {up ? <b>{durasiLabel(Math.floor(up / 60), lang)}</b> : <Nil lang={lang} />}
           </span>
           <span className="hint">
-            {up ? t.bootAt(bootLabel(up, lang)) : t.noData}
-            {ms !== null && ms !== undefined
-              ? ` · ${t.clockOff(`${ms >= 0 ? "+" : ""}${angka(ms, lang, 1)}`)}`
-              : ""}
+            {[
+              up ? t.bootAt(bootLabel(up, lang)) : "",
+              ms !== null && ms !== undefined
+                ? t.clockOff(`${ms >= 0 ? "+" : ""}${angka(ms, lang, 1)}`)
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         </div>
       </div>

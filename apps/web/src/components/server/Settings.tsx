@@ -24,7 +24,7 @@ import Confirm from "../ui/Confirm";
 import Dropdown from "../ui/Dropdown";
 import Tooltip from "../ui/Tooltip";
 import { sejak, useTick } from "../../lib/app";
-import { durasiLabel } from "../../lib/labels";
+import { durasiLabel, nil } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import {
   AP_SUMBER,
@@ -136,7 +136,7 @@ function Journal({
           ? last?.keluaran?.trim() && last.keluaran !== "(tidak ada keluaran)"
             ? last.keluaran
             : t.journalNone
-          : "·"}
+          : nil(lang)}
       </pre>
     </section>
   );
@@ -267,7 +267,7 @@ export default function Settings({
   const [setup, setSetup] = useState(false);
   const ro = !bisa.full;
   const info = s.infoSistem ?? {};
-  const protokol = typeof info.protokol === "number" ? String(info.protokol) : "·";
+  const protokol = typeof info.protokol === "number" ? String(info.protokol) : nil(lang);
   const up = data.denyutTerakhir?.uptimeSec;
 
   async function save(e: FormEvent) {
@@ -344,7 +344,7 @@ export default function Settings({
             className="field__input mono"
             value={s.alamatLan ?? ""}
             readOnly
-            placeholder="·"
+            placeholder={nil(lang)}
           />
           <p className="field__hint">{t.lanHint}</p>
         </div>
@@ -372,7 +372,7 @@ export default function Settings({
         )}
       </form>
 
-      <section className="panel s12span6">
+      <section className="panel s12span6 s12fill s12gap">
         <div className="stack stack--sm">
           <h2 className="panel__title">{t.agentDiag}</h2>
           <p className="panel__sub">{t.diagSub}</p>
@@ -383,15 +383,19 @@ export default function Settings({
             <span>{t.sAgent}</span>
           </div>
           <div className="srv-stat">
-            <b className="srv-stat__sm">{up ? durasiLabel(Math.floor(up / 60), lang) : "·"}</b>
+            <b className="srv-stat__sm">
+              {up ? durasiLabel(Math.floor(up / 60), lang) : nil(lang)}
+            </b>
             <span>{t.sUp}</span>
           </div>
           <div className="srv-stat">
-            <b className="srv-stat__sm">{typeof info.os === "string" ? info.os : "·"}</b>
+            <b className="srv-stat__sm">{typeof info.os === "string" ? info.os : nil(lang)}</b>
             <span>{t.sSystem}</span>
           </div>
           <div className="srv-stat">
-            <b className="srv-stat__sm">{typeof info.kernel === "string" ? info.kernel : "·"}</b>
+            <b className="srv-stat__sm">
+              {typeof info.kernel === "string" ? info.kernel : nil(lang)}
+            </b>
             <span>{t.sKernel}</span>
           </div>
         </div>
@@ -415,7 +419,7 @@ export default function Settings({
               ? t.logWait
               : hasil
                 ? t.logAt(sejak(hasil.selesaiPada ?? hasil.dimintaPada, lang, now))
-                : t.neverRun}
+                : ""}
           </span>
           {bisa.server && (
             <button
@@ -433,7 +437,11 @@ export default function Settings({
             </button>
           )}
         </div>
-        {hasil?.keluaran != null && <pre className="srv-log">{hasil.keluaran}</pre>}
+        {hasil?.keluaran != null ? (
+          <pre className="srv-log s12grow">{hasil.keluaran}</pre>
+        ) : (
+          <div className="srv-log srv-log--empty s12grow">{jalan ? t.logWait : t.neverRun}</div>
+        )}
       </section>
 
       {full && (

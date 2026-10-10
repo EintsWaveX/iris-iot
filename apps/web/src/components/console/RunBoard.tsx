@@ -379,6 +379,9 @@ export function Rail({
       attentionOf(a, tangan, minta, stuckBy) - attentionOf(b, tangan, minta, stuckBy) ||
       a.nomor - b.nomor,
   );
+  // When every running group is silent, say it once instead of on each card.
+  const aktif = groups.filter((g) => g.sesiAktif);
+  const semuaDiam = aktif.length > 0 && aktif.every((g) => (g.telemetri?.count ?? 0) === 0);
   if (f === "mine") gs = gs.filter((g) => pemilik[g.id] === meNim);
   if (f === "help") gs = gs.filter((g) => attentionOf(g, tangan, minta, stuckBy) < 3);
   return (
@@ -387,6 +390,12 @@ export function Rail({
         <h2 className="panel__title">{r.groups}</h2>
         <span className="hint">{r.neediest}</span>
       </div>
+      {semuaDiam && (
+        <span className="rail__note">
+          <WifiSlashIcon size={14} aria-hidden="true" />
+          {r.noDataAll}
+        </span>
+      )}
       <SegmentedControl
         fill
         value={f}
@@ -404,7 +413,8 @@ export function Rail({
           const kode = owner ? (asisten.get(owner)?.kode ?? "?").toUpperCase() : "";
           const cells = mtx?.sel[g.id] ?? {};
           const nStuck = stuckBy.get(g.id) ?? 0;
-          const quiet = g.sesiAktif && (g.telemetri?.count ?? 0) === 0;
+          const quiet = !semuaDiam && g.sesiAktif && (g.telemetri?.count ?? 0) === 0;
+          const hadir = g.anggota.filter((m) => m.hadir).length;
           return (
             <button
               key={g.id}
@@ -460,6 +470,7 @@ export function Rail({
                       <i key={m.nim} data-on={m.hadir ? "yes" : "no"} title={m.nama} />
                     ))}
                   </span>
+                  <span className="num hint">{r.hereOf(hadir, g.anggota.length)}</span>
                   <span className="grow" />
                   <span className="num hint">{r.blankOf(g.benar, g.total)}</span>
                 </span>
@@ -579,6 +590,36 @@ export function Feed({
 }) {
   const r = R[lang];
   const tone = { minta: "violet", salah: "warn", bantu: "warn", blank: "ok" } as const;
+  // Raised hands and hint requests wait on an Asisten: they come first.
+  const need = rows.filter((i) => i.k === "minta" || i.k === "bantu");
+  const rest = rows.filter((i) => i.k !== "minta" && i.k !== "bantu").slice(0, 40);
+  const list = (items: FeedRow[]) => (
+    <ol className="elog">
+      {items.map((i, n) => (
+        <li
+          key={`${i.k}${i.t}${n}`}
+          className="elog__row feed__row"
+          style={{ "--g": `var(--group-${i.g.nomor})` } as CSSProperties}
+        >
+          <time className="mono" dateTime={i.t}>
+            {jamLab(i.t)}
+          </time>
+          <span className="elog__tag mono" data-tone={tone[i.k]}>
+            {r.tag[i.k]}
+          </span>
+          <span className="elog__text">
+            <b className="feed__g">{kelompokLabel(i.g.nomor, lang)}</b> {i.text}
+          </span>
+          <IconButton
+            icon={ArrowRightIcon}
+            sm
+            label={`${i.label}: ${kelompokLabel(i.g.nomor, lang)}`}
+            onClick={() => go(i.to)}
+          />
+        </li>
+      ))}
+    </ol>
+  );
   return (
     <section className="panel feed" data-area="feed">
       <div className="panel__head">
@@ -586,33 +627,22 @@ export function Feed({
         <span className="dot dot--ok dot--pulse" aria-hidden="true" />
       </div>
       {rows.length === 0 ? (
-        <p className="hint">{r.roomEmpty}</p>
+        <p className="hint feed__empty">{r.roomEmpty}</p>
       ) : (
-        <ol className="elog">
-          {rows.slice(0, 9).map((i, n) => (
-            <li
-              key={`${i.k}${i.t}${n}`}
-              className="elog__row feed__row"
-              style={{ "--g": `var(--group-${i.g.nomor})` } as CSSProperties}
-            >
-              <time className="mono" dateTime={i.t}>
-                {jamLab(i.t)}
-              </time>
-              <span className="elog__tag mono" data-tone={tone[i.k]}>
-                {r.tag[i.k]}
-              </span>
-              <span className="elog__text">
-                <b className="feed__g">{kelompokLabel(i.g.nomor, lang)}</b> {i.text}
-              </span>
-              <IconButton
-                icon={ArrowRightIcon}
-                sm
-                label={`${i.label}: ${kelompokLabel(i.g.nomor, lang)}`}
-                onClick={() => go(i.to)}
-              />
-            </li>
-          ))}
-        </ol>
+        <div className="feed__scroll">
+          {need.length > 0 && (
+            <>
+              <span className="label-caps">{r.needYou}</span>
+              {list(need)}
+            </>
+          )}
+          {rest.length > 0 && (
+            <>
+              {need.length > 0 && <span className="label-caps">{r.roomRest}</span>}
+              {list(rest)}
+            </>
+          )}
+        </div>
       )}
       {macet && (
         <div className="feed__note">

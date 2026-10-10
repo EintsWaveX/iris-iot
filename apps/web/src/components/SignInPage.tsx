@@ -33,6 +33,7 @@ import PasswordField from "./ui/PasswordField";
 import {
   dict,
   getJson,
+  href,
   KELOMPOK_NAMA,
   meChanged,
   postJson,
@@ -52,6 +53,8 @@ type Stage = "login" | "set-password" | "welcome";
 const T = dict({
   id: {
     title: "Masuk",
+    consent: "Dengan masuk, kehadiran dan pekerjaan praktikummu dicatat untuk penilaian. Baca",
+    consentLink: "Kebijakan Privasi",
     setTitle: "Setel kata sandi asli",
     role: "Peran",
     praktikan: "Praktikan",
@@ -130,6 +133,8 @@ const T = dict({
   },
   en: {
     title: "Sign in",
+    consent: "Signing in records your attendance and practicum work for scoring. Read the",
+    consentLink: "Privacy Notice",
     setTitle: "Set your own password",
     role: "Role",
     praktikan: "Student",
@@ -208,6 +213,8 @@ const T = dict({
   },
   zh: {
     title: "登录",
+    consent: "登录后，你的出勤和实验作业会被记录用于评分。请阅读",
+    consentLink: "隐私声明",
     setTitle: "设置你自己的密码",
     role: "角色",
     praktikan: "学生",
@@ -642,6 +649,9 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
             <span className="btn__label">{t.submit}</span>
             <span className="btn__spinner" aria-hidden="true" />
           </button>
+          <p className="login-form__consent">
+            {t.consent} <a href={href(lang, "/privacy")}>{t.consentLink}</a>.
+          </p>
         </form>
       )}
 

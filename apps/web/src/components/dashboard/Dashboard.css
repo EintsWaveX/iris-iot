@@ -313,9 +313,11 @@
     border-color var(--dur-fast) var(--ease-reveal);
 }
 
-.fbform__chip:hover {
-  border-color: var(--accent);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .fbform__chip:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
 }
 
 .fbform__chip[aria-pressed="true"],
@@ -378,8 +380,13 @@
   box-shadow:
     0 0 0 9999px color-mix(in srgb, var(--bg) 55%, transparent),
     0 0 24px color-mix(in srgb, var(--accent) 60%, transparent);
+  left: 0;
   position: fixed;
-  transition: all var(--dur-mid) var(--ease-out-expo);
+  top: 0;
+  transition:
+    transform var(--dur-mid) var(--ease-out-expo),
+    width var(--dur-mid) var(--ease-out-expo),
+    height var(--dur-mid) var(--ease-out-expo);
 }
 
 .coach__bubble {
@@ -559,19 +566,48 @@
   height: 100%;
 }
 
+/* Two equal rows: the next step beside the live instrument, then the
+   group, the materials and the session log side by side. The log scrolls
+   inside its card, so it never makes a row taller than its neighbours. */
+.gs__log {
+  display: flex;
+  flex-direction: column;
+}
+
+.gs__log > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 @media (min-width: 760px) {
   .gs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .gs__log {
-    grid-row: span 2;
+  .gs > .gs__log {
+    contain: size;
+    grid-column: 1 / -1;
+    min-height: 16rem;
+    order: 9;
   }
 }
 
 @media (min-width: 1240px) {
   .gs {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 5fr) minmax(0, 4fr);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .gs > :nth-child(1),
+  .gs > :nth-child(4),
+  .gs > :nth-child(5),
+  .gs > .gs__log {
+    grid-column: span 4;
+  }
+
+  .gs > :nth-child(2) {
+    grid-column: span 8;
   }
 }
 
@@ -801,6 +837,18 @@
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+/* The materials share the card's height, so a taller neighbour never
+   leaves a blank strip under them. */
+.dash__card:has(> .bahan) {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash__card > .bahan {
+  flex: 1;
+  grid-auto-rows: 1fr;
 }
 
 .bahan li {

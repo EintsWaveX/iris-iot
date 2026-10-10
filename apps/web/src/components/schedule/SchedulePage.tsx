@@ -515,6 +515,12 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
     );
   };
 
+  // A slot with no practicum this week (phones fold these into one line).
+  const kosongAt = (h: number, s: number) => {
+    const r = rowAt(h, s);
+    return !r || (mingguOf(r)?.status ?? r.status) === "kosong";
+  };
+
   const selRow = sel ? rowAt(sel.hari, sel.slot) : undefined;
   const selM = mingguOf(selRow);
   const onSelSlot =
@@ -638,7 +644,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
                   title={hariLabel(h, lang)}
                   today={h === today ? t.today : null}
                 >
-                  {SLOTS.map((s) => (
+                  {SLOTS.filter((s) => !kosongAt(h, s)).map((s) => (
                     <div key={s} className="jdays__slot">
                       <span className="hint">
                         {slotName(s, lang)} · {SLOT_MULAI[s]}
@@ -646,6 +652,24 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
                       {cell(h, s)}
                     </div>
                   ))}
+                  {SLOTS.some((s) => kosongAt(h, s)) && (
+                    <div className="jdays__off">
+                      <span className="hint">{t.none}</span>
+                      <span className="row">
+                        {SLOTS.filter((s) => kosongAt(h, s)).map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            className="pill pill--button"
+                            aria-label={slotLabel(h, s)}
+                            onClick={() => coba({ hari: h, slot: s })}
+                          >
+                            {slotName(s, lang)} · {SLOT_MULAI[s]}
+                          </button>
+                        ))}
+                      </span>
+                    </div>
+                  )}
                 </DayCard>
               ))}
             </div>

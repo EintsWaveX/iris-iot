@@ -40,6 +40,7 @@ import {
   UserSwitchIcon,
 } from "@phosphor-icons/react";
 import Dropdown from "../ui/Dropdown";
+import Nil from "../ui/Nil";
 import Pill from "../ui/Pill";
 import { ScoreInput, Switch } from "../ui/Controls";
 import SegmentedControl from "../ui/SegmentedControl";
@@ -186,9 +187,7 @@ export default function GroupInspector(p: InspectorProps) {
           <h2>
             {t.group(g.nomor)} · {namaKelompok(g.nomor, g.nama)}
           </h2>
-          <span className="hint">
-            {r.workSub(ownerName, g.hadir, g.anggotaTotal, benar, total)}
-          </span>
+          <span className="hint">{r.workSub(ownerName, g.hadir, g.anggotaTotal)}</span>
         </div>
         <div className="work__acts">
           {hand && (
@@ -243,7 +242,7 @@ export default function GroupInspector(p: InspectorProps) {
             value: "blank",
             label: (
               <>
-                {r.tabs.blank(benar, total)}
+                {r.tabs.blank}
                 {ringkas && ringkas.minta > 0 && (
                   <Pill tone="violet" className="inspector__ask">
                     {ringkas.minta}
@@ -578,7 +577,8 @@ function InspectorCards(p: InspectorProps) {
   const n = (k: string) => last?.nilai[k] ?? null;
   const series = (f: (r: (typeof ok)[number]) => number | null | undefined) =>
     ok.map(f).filter((x): x is number => typeof x === "number");
-  const dash = (v: number | string | null | undefined) => (v === null || v === undefined ? "·" : v);
+  const dash = (v: number | string | null | undefined) =>
+    v === null || v === undefined ? <Nil lang={lang} /> : v;
   const delay = s.oneway ?? g.telemetri?.delayRataMs ?? null;
   const lost = rows.length ? s.lost : (g.telemetri?.hilangPct ?? null);
   const open = (k: BarKind, label: string) => ({
@@ -592,7 +592,7 @@ function InspectorCards(p: InspectorProps) {
     own = (
       <VCard
         label={t.cardLed}
-        v={led === null ? "·" : led ? t.ledOn : t.ledOff}
+        v={led === null ? <Nil lang={lang} /> : led ? t.ledOn : t.ledOff}
         tone={led ? "ok" : undefined}
       />
     );
@@ -613,21 +613,33 @@ function InspectorCards(p: InspectorProps) {
     );
   }
 
+  // A board that never sent anything: one line instead of three empty tiles.
+  const silent = rows.length === 0 && delay === null && lost === null;
+
   return (
     <>
-      <div className="vcards inspector__cards">
+      <div className="vcards inspector__cards" data-silent={silent ? "yes" : undefined}>
         <VCard label={t.cardBlank} v={`${g.benar}/${g.total}`} {...open("blank", t.cardBlank)} />
-        <VCard label={t.cardDelay} v={dash(delay)} unit="ms" {...open("delay", t.cardDelay)}>
-          <Spark vals={series((r) => r.oneway)} />
-        </VCard>
-        <VCard
-          label={t.cardLost}
-          v={dash(lost)}
-          unit="%"
-          tone={lost !== null && lost > 5 ? "warn" : undefined}
-          {...open("lost", t.cardLost)}
-        />
-        {own}
+        {silent && (
+          <div className="vcard vcard--note">
+            <span className="vcard__s">{R[lang].noBoard}</span>
+          </div>
+        )}
+        {!silent && (
+          <>
+            <VCard label={t.cardDelay} v={dash(delay)} unit="ms" {...open("delay", t.cardDelay)}>
+              <Spark vals={series((r) => r.oneway)} />
+            </VCard>
+            <VCard
+              label={t.cardLost}
+              v={dash(lost)}
+              unit="%"
+              tone={lost !== null && lost > 5 ? "warn" : undefined}
+              {...open("lost", t.cardLost)}
+            />
+            {own}
+          </>
+        )}
       </div>
       {bars && (
         <GroupBarsModal
@@ -992,7 +1004,7 @@ function SeelabsChip(p: InspectorProps) {
     <>
       <span className="seechip">
         <span className="hint">{t.seelabsLabel}</span>
-        <b className="mono">{sg.akun ? kode(sg.akun) : "·"}</b>
+        {sg.akun ? <b className="mono">{kode(sg.akun)}</b> : <Nil lang={lang} />}
         <StatusPill t={t} status={sg.status} />
       </span>
       <button

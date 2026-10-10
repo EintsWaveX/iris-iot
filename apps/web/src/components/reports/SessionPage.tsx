@@ -5,7 +5,15 @@
  * Incidents, Scores (editable for the groups you held, every change in the
  * log), the session's Written Report (saves as you type) and Feedback.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   FileCsvIcon,
   FilePdfIcon,
@@ -27,6 +35,7 @@ import { unduhPdf, type BagianPdf } from "../../lib/pdf";
 import BackButton from "../ui/BackButton";
 import Dialog from "../ui/Dialog";
 import Fade from "../ui/Fade";
+import Nil from "../ui/Nil";
 import Pill from "../ui/Pill";
 import TabLine from "../ui/TabLine";
 import ErrorView from "../ui/ErrorView";
@@ -283,7 +292,13 @@ export default function SessionPage({
           <span>{t.stBlank}</span>
         </button>
         <button type="button" className="rp-stat" onClick={() => setChart("delay")}>
-          <b>{delayRata == null ? "·" : `${delayRata.toLocaleString(localeOf(lang))} ms`}</b>
+          <b>
+            {delayRata == null ? (
+              <Nil lang={lang} />
+            ) : (
+              `${delayRata.toLocaleString(localeOf(lang))} ms`
+            )}
+          </b>
           <span>{t.stDelay}</span>
         </button>
       </div>
@@ -301,7 +316,7 @@ export default function SessionPage({
             <span className="rp-seelabs">
               <span className="hint">SeeLabs</span>
               <b className="mono">
-                {g.akunSeelabs ? (dir.byNim.get(g.akunSeelabs)?.kode ?? "?") : "·"}
+                {g.akunSeelabs ? (dir.byNim.get(g.akunSeelabs)?.kode ?? "?") : <Nil lang={lang} />}
               </b>
               {g.statusSeelabs && (
                 <Pill tone={SEELABS_TONE[g.statusSeelabs]}>{t.seelabsSt[g.statusSeelabs]}</Pill>
@@ -371,11 +386,15 @@ export default function SessionPage({
                     }
                   />
                   <b className="num" style={{ minWidth: "7ch" }}>
-                    {chart === "delay"
-                      ? g.delay.median == null
-                        ? "·"
-                        : `${g.delay.median} ms`
-                      : `${g.blank[0]}/${g.blank[1]}`}
+                    {chart === "delay" ? (
+                      g.delay.median == null ? (
+                        <Nil lang={lang} />
+                      ) : (
+                        `${g.delay.median} ms`
+                      )
+                    ) : (
+                      `${g.blank[0]}/${g.blank[1]}`
+                    )}
                   </b>
                 </div>
               );
@@ -596,12 +615,12 @@ function ScoresCard({
                     }
                     return (
                       <td key={k} className="num">
-                        {v == null ? <span className="hint">·</span> : v}
+                        {v == null ? <Nil dot /> : v}
                       </td>
                     );
                   })}
                   <td className="num">
-                    <b>{total(a.skor) ?? "·"}</b>
+                    <b>{total(a.skor) ?? <Nil lang={lang} />}</b>
                   </td>
                 </tr>
               )),
@@ -701,10 +720,12 @@ function WrittenCard({
 }
 
 function FeedbackCard({ data, t, lang }: { data: Rekap; t: Tx; lang: Lang }) {
-  const fmt = (n: number | null) =>
-    n == null
-      ? "·"
-      : n.toLocaleString(localeOf(lang), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const fmt = (n: number | null): ReactNode =>
+    n == null ? (
+      <Nil lang={lang} />
+    ) : (
+      n.toLocaleString(localeOf(lang), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    );
   const ringkas = (r: Ringkasan) => (
     <>
       <div className="row">

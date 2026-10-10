@@ -49,8 +49,14 @@
     return old === "penuh" || old === "0" ? "hd" : "ldm";
   }
 
+  // Phone status bar and browser chrome follow the nav colour of the theme.
+  var BAR = { dark: "#0a0c14", light: "#f6faff" };
+
   function apply(root) {
-    root.setAttribute("data-theme", theme());
+    var t = theme();
+    root.setAttribute("data-theme", t);
+    var bar = root.querySelector('meta[name="theme-color"]');
+    if (bar) bar.setAttribute("content", BAR[t]);
     root.setAttribute("data-detail", detail());
     if (get("iris-zh-weight") === "500") root.setAttribute("data-zh-weight", "500");
     else root.removeAttribute("data-zh-weight");

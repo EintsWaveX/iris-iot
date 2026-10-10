@@ -109,7 +109,7 @@ export default function BriefStep({
 
   return (
     <div className="modbrief">
-      <section className="panel">
+      <section className={langkah.length > 0 ? "panel" : "panel modbrief__wide"}>
         <div className="panel__head">
           <h2 className="panel__title">{t.summary}</h2>
           {/* Only once the module's practicum is done (2026-10-08), so a
@@ -121,13 +121,37 @@ export default function BriefStep({
             </button>
           )}
         </div>
-        {sum.map((p) => (
-          <p key={p} className="modbrief__p">
-            {p}
-          </p>
-        ))}
+        <div className={langkah.length > 0 ? undefined : "modbrief__cols"}>
+          <div className="stack">
+            {sum.map((p) => (
+              <p key={p} className="modbrief__p">
+                {p}
+              </p>
+            ))}
+          </div>
+          {/* No list of steps yet: the at a glance facts sit beside the
+              summary in the same card instead of a half empty one. */}
+          {langkah.length === 0 && (
+            <aside className="modbrief__glance">
+              <h3 className="label-caps">{t.atAGlance}</h3>
+              <div className="row">
+                {fakta.map((f) => (
+                  <Pill key={f}>{f}</Pill>
+                ))}
+              </div>
+              <ul className="modpage__kv">
+                {toolchain.map((tc) => (
+                  <li key={tc.label}>
+                    <span className="hint">{tc.label}</span>
+                    <b>{tc.alat}</b>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          )}
+        </div>
       </section>
-      {langkah.length > 0 ? (
+      {langkah.length > 0 && (
         <section className="panel">
           <h2 className="panel__title">{t.whatYouDo}</h2>
           <ul className="modticks">
@@ -135,23 +159,6 @@ export default function BriefStep({
               <li key={x}>
                 <CheckIcon size={16} weight="bold" aria-hidden="true" />
                 {x}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : (
-        <section className="panel">
-          <h2 className="panel__title">{t.atAGlance}</h2>
-          <div className="row">
-            {fakta.map((f) => (
-              <Pill key={f}>{f}</Pill>
-            ))}
-          </div>
-          <ul className="modpage__kv">
-            {toolchain.map((tc) => (
-              <li key={tc.label}>
-                <span className="hint">{tc.label}</span>
-                <b>{tc.alat}</b>
               </li>
             ))}
           </ul>
@@ -169,26 +176,28 @@ export default function BriefStep({
       )}
       {/* Where this brief comes from: the handbook, or the Asisten's own
           version (2026-10-07: "Teks dari modul." alone said too little). */}
-      <div className="panel modbrief__wide modbrief__foot">
-        <span className="hint modbrief__src">
-          <InfoIcon size={18} aria-hidden="true" />
-          <span>
-            {row
-              ? t.lastBy(
-                  row.diubahOlehNama ?? dir.nama(row.diubahOleh),
-                  sejak(row.diubahPada, lang),
-                )
-              : t.fromHandbook}
-            {canEdit && <> {t.editHint}</>}
+      {me?.role === "asisten" && (
+        <div className="panel modbrief__wide modbrief__foot">
+          <span className="hint modbrief__src">
+            <InfoIcon size={18} aria-hidden="true" />
+            <span>
+              {row
+                ? t.lastBy(
+                    row.diubahOlehNama ?? dir.nama(row.diubahOleh),
+                    sejak(row.diubahPada, lang),
+                  )
+                : t.fromHandbook}
+              {canEdit && <> {t.editHint}</>}
+            </span>
           </span>
-        </span>
-        {canEdit && (
-          <button type="button" className="btn btn--sm" onClick={() => setEdit(true)}>
-            <PencilSimpleIcon aria-hidden="true" />
-            {t.editBrief}
-          </button>
-        )}
-      </div>
+          {canEdit && (
+            <button type="button" className="btn btn--sm" onClick={() => setEdit(true)}>
+              <PencilSimpleIcon aria-hidden="true" />
+              {t.editBrief}
+            </button>
+          )}
+        </div>
+      )}
       <SlidesDialog
         open={slidesOpen}
         onOpenChange={setSlidesOpen}

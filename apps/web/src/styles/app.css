@@ -54,12 +54,83 @@ html {
   content: none;
 }
 
-/* iOS Safari zooms into any field under 16px; fields there stay at 16px. */
-@supports (-webkit-touch-callout: none) {
-  input,
-  textarea {
-    font-size: max(1rem, 16px);
+/* ---------- Phone layer ----------
+   A tap leaves no grey flash, fires at once (no double tap zoom wait) and
+   never selects a control's label; content text stays selectable. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+summary,
+[role="button"],
+[role="tab"],
+[role="switch"],
+[role="option"],
+[role="menuitem"] {
+  touch-action: manipulation;
+}
+
+button,
+summary,
+[role="button"],
+[role="tab"],
+[role="switch"],
+[role="menuitem"] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Safari zooms into any field under 16px and stays zoomed, so every field
+   on a touch screen is at least 16px, whatever its component sets. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: max(1rem, 16px) !important;
   }
+}
+
+/* Small controls keep their look on a touch screen but get a finger sized
+   hit area around them (an invisible ring, at least 44px across). */
+@media (pointer: coarse), (max-width: 759px) {
+  .journey__star,
+  .blankchip,
+  .mtx__c,
+  .mtx__g,
+  .rp-thsort,
+  .h11inbox {
+    position: relative;
+  }
+
+  .journey__star::after,
+  .blankchip::after,
+  .mtx__c::after,
+  .mtx__g::after,
+  .rp-thsort::after,
+  .h11inbox::after {
+    content: "";
+    inset: -8px;
+    position: absolute;
+  }
+
+  /* Sort headers are text height: the ring reaches the row above and below. */
+  .rp-thsort::after {
+    inset: -14px -6px;
+  }
+}
+
+/* Scroll inside a sheet, drawer or panel never drags the page behind it. */
+.dialog__body,
+.drawer,
+.drawer__body,
+.popover__panel,
+.console-pop,
+.minibar__pop,
+.appnav__menu {
+  overscroll-behavior: contain;
 }
 
 .skip-link {
@@ -642,9 +713,11 @@ html {
   white-space: nowrap;
 }
 
-.seg button:hover:not(:disabled) {
-  background: var(--hairline-faint);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .seg button:hover:not(:disabled) {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
 }
 
 /* Every tab and toggle gets the swept ring on hover and focus, like the
@@ -671,14 +744,24 @@ html {
   inset: 0;
 }
 
-.seg button:hover:not(:disabled)::after,
 .seg button:focus-visible::after {
   opacity: 1;
 }
 
-:root:not([data-motion-tier="0"]) .seg button:hover:not(:disabled)::after,
+@media (hover: hover) and (pointer: fine) {
+  .seg button:hover:not(:disabled)::after {
+    opacity: 1;
+  }
+}
+
 :root:not([data-motion-tier="0"]) .seg button:focus-visible::after {
   animation: aurora-sweep 2.2s linear infinite;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root:not([data-motion-tier="0"]) .seg button:hover:not(:disabled)::after {
+    animation: aurora-sweep 2.2s linear infinite;
+  }
 }
 
 .seg button:disabled {
@@ -797,9 +880,11 @@ html {
     color var(--dur-fast) var(--ease-reveal);
 }
 
-.board__filter:hover:not(:disabled) {
-  border-color: var(--hairline-strong);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .board__filter:hover:not(:disabled) {
+    border-color: var(--hairline-strong);
+    color: var(--text);
+  }
 }
 
 .board__filter:disabled {
@@ -1042,4 +1127,37 @@ html[data-keyhints="on"] .keyhint--corner {
   right: -2px;
   top: -4px;
   z-index: 1;
+}
+
+/* The one empty value (ui/Nil.tsx): muted, never louder than a real one. */
+.nil {
+  color: var(--text-faint);
+  font-size: 0.92em;
+  font-variant-numeric: normal;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nil--auto::before {
+  content: "Belum ada";
+}
+
+:lang(en) .nil--auto::before {
+  content: "None yet";
+}
+
+:lang(zh) .nil--auto::before {
+  content: "暂无";
+}
+
+.nil--dot.nil--auto::before {
+  content: "·" / "Belum ada";
+}
+
+:lang(en) .nil--dot.nil--auto::before {
+  content: "·" / "None yet";
+}
+
+:lang(zh) .nil--dot.nil--auto::before {
+  content: "·" / "暂无";
 }

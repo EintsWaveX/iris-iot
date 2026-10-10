@@ -253,9 +253,14 @@
   outline: none;
 }
 
-.pintable tbody tr:hover td,
 .pintable tbody tr[data-on] td {
   background: var(--accent-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pintable tbody tr:hover td {
+    background: var(--accent-soft);
+  }
 }
 
 .pintable tbody tr:focus-visible td {

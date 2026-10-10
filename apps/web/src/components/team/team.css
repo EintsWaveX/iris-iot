@@ -206,10 +206,16 @@
   transition: background var(--dur-fast) var(--ease-reveal);
 }
 
-.tim-table tbody tr:hover,
 .tim-table tbody tr:focus-visible {
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tim-table tbody tr:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    outline: none;
+  }
 }
 
 .tim-table tbody tr:focus-visible {
@@ -494,7 +500,7 @@
   }
 
   .tpool {
-    max-height: calc(100vh - 120px);
+    max-height: calc(100dvh - 120px);
     position: sticky;
     top: 84px;
   }
@@ -553,15 +559,11 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* auto-fit: two slot cards share the row instead of leaving a third
+   column empty beside them (Phase 11). */
 @media (min-width: 640px) {
   .tslots {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1440px) {
-  .tslots {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   }
 }
 
@@ -572,7 +574,6 @@
   border-radius: var(--radius-md);
   display: grid;
   gap: 8px;
-  min-height: 140px;
   padding: 12px;
   transition:
     border-color var(--dur-fast, 0.15s),
@@ -713,4 +714,9 @@
 .tim-impor__who {
   font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+.holdvacant__list {
+  flex-wrap: wrap;
+  gap: 6px;
 }

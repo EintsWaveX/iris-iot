@@ -304,7 +304,24 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
       </fieldset>
 
       {off ? (
-        <p className="hint slotstat__off">{t.offHidden}</p>
+        <div className="slotkept">
+          <p className="hint slotstat__off">{t.offHidden}</p>
+          <span className="field__label">{t.kept}</span>
+          {d.who.some(Boolean) ? (
+            <ul className="slotkept__list">
+              {d.who.map((kode, i) => (
+                <li key={i}>
+                  <Pill group={i + 1}>{kelompokLabel(i + 1, lang)}</Pill>
+                  <span className={kode ? "acode" : "hint"}>
+                    {kode ? kode.toUpperCase() : t.keptNobody}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span className="hint">{t.keptNone(d.n)}</span>
+          )}
+        </div>
       ) : (
         <>
           <fieldset className="jedit__set" disabled={!bolehWin}>

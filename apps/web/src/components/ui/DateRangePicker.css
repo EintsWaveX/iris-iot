@@ -48,16 +48,20 @@
   font-size: var(--fs-small);
 }
 
-.daterange__panel .rdp-day_button:hover:not([disabled]) {
-  background: var(--hairline-faint);
+@media (hover: hover) and (pointer: fine) {
+  .daterange__panel .rdp-day_button:hover:not([disabled]) {
+    background: var(--hairline-faint);
+  }
 }
 
 .daterange__panel .rdp-nav button {
   color: var(--text-muted);
 }
 
-.daterange__panel .rdp-nav button:hover {
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .daterange__panel .rdp-nav button:hover {
+    color: var(--text);
+  }
 }
 
 .daterange__panel .rdp-month_caption {

@@ -124,8 +124,10 @@
     box-shadow var(--dur-fast) var(--ease);
 }
 
-.blankchip:hover {
-  border-color: var(--text-muted);
+@media (hover: hover) and (pointer: fine) {
+  .blankchip:hover {
+    border-color: var(--text-muted);
+  }
 }
 
 .blankchip:focus-visible {
@@ -190,7 +192,7 @@
   .codegrid--side > .codecard {
     display: flex;
     flex-direction: column;
-    height: max(360px, calc(100vh - var(--code-top) - 24px));
+    height: max(360px, calc(100dvh - var(--code-top) - 24px));
     position: sticky;
     top: var(--code-top);
   }
@@ -412,7 +414,7 @@
 }
 
 :root:not([data-motion-tier="0"]) .blank__tick {
-  animation: code-tick 420ms var(--ease-out-expo) both;
+  animation: code-tick 240ms var(--ease-out-expo) both;
 }
 
 :root:not([data-motion-tier="0"]) .blank[data-flash="yes"] input {
@@ -431,11 +433,11 @@
 @keyframes code-tick {
   0% {
     opacity: 0;
-    transform: scale(0.2) rotate(-30deg);
+    transform: scale(0.6) rotate(-12deg);
   }
   60% {
     opacity: 1;
-    transform: scale(1.3);
+    transform: scale(1.12);
   }
   100% {
     transform: scale(1);
@@ -493,7 +495,7 @@
 }
 
 .codestep__pins {
-  max-height: calc(100vh - var(--nav-size, 64px) - 40px);
+  max-height: calc(100dvh - var(--nav-size, 64px) - 40px);
   overflow: auto;
   position: sticky;
   top: calc(var(--nav-size, 64px) + 20px);
@@ -556,8 +558,10 @@
   transition: border-color var(--dur-fast) var(--ease);
 }
 
-.blankcount__b:hover:not(:disabled) {
-  border-color: var(--text-muted);
+@media (hover: hover) and (pointer: fine) {
+  .blankcount__b:hover:not(:disabled) {
+    border-color: var(--text-muted);
+  }
 }
 
 .blankcount__b:focus-visible {
@@ -680,8 +684,21 @@
 
 @media (min-width: 760px) {
   .codebelow {
-    align-items: start;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Both cards share the row's height: the hint log takes the blank card's
+     and scrolls inside when it grows longer (Phase 11). */
+  .codebelow > .hintlog {
+    contain: size;
+    min-height: 12rem;
+  }
+
+  .codebelow > .hintlog > .hintlog__list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
   }
 }
 
@@ -792,8 +809,10 @@
   width: 100%;
 }
 
-.hintlog__row:hover {
-  background: var(--surface-2);
+@media (hover: hover) and (pointer: fine) {
+  .hintlog__row:hover {
+    background: var(--surface-2);
+  }
 }
 
 .hintlog__row:focus-visible {

@@ -56,6 +56,7 @@ import type { AsistenRef, SesiRunning } from "./types";
 import "./run.css";
 import "./day.css";
 import "../shared/instruments.css";
+import Nil from "../ui/Nil";
 
 export function kapanSesi(t: Strings, sesi: SesiRunning): string {
   const hari = t.hari[hariDariTanggal(sesi.tanggal)];
@@ -325,19 +326,17 @@ export default function EndPage({
                   <span>{t.statFeedback}</span>
                 </div>
                 <div>
-                  <b className="mono">
-                    {sum ? sum.lengkap : "·"}/{sum ? sum.siswa : "·"}
-                  </b>
+                  <b className="mono">{sum ? `${sum.lengkap}/${sum.siswa}` : <Nil dot />}</b>
                   <span>{t.statScores}</span>
                 </div>
                 <div>
-                  <b className="mono">
-                    {sum ? sum.benar : "·"}/{sum ? sum.total : "·"}
-                  </b>
+                  <b className="mono">{sum ? `${sum.benar}/${sum.total}` : <Nil dot />}</b>
                   <span>{t.statBlanks}</span>
                 </div>
                 <div>
-                  <b className="mono">{sum?.delay != null ? `${sum.delay} ms` : "·"}</b>
+                  <b className="mono">
+                    {sum?.delay != null ? `${sum.delay} ms` : <Nil lang={lang} />}
+                  </b>
                   <span>{t.statDelay}</span>
                 </div>
               </div>

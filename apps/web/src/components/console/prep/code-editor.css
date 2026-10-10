@@ -60,7 +60,7 @@
    2026-10-05): the code scrolls inside, the blank list fills what the Add
    card leaves. The blank's details get the full width below. */
 .kodeed {
-  --kode-h: clamp(480px, calc(100vh - 170px), 760px);
+  --kode-h: clamp(480px, calc(100dvh - 170px), 760px);
 }
 
 .kodeed__grid {
@@ -297,8 +297,10 @@
   padding: 1px 0;
 }
 
-.kodeed__mark:hover {
-  background: color-mix(in srgb, var(--key-c, var(--accent)) 32%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .kodeed__mark:hover {
+    background: color-mix(in srgb, var(--key-c, var(--accent)) 32%, transparent);
+  }
 }
 
 .kodeed__mark[aria-current="true"] {
@@ -351,8 +353,10 @@
   width: 100%;
 }
 
-.kodeed__row:hover {
-  background: var(--surface-2);
+@media (hover: hover) and (pointer: fine) {
+  .kodeed__row:hover {
+    background: var(--surface-2);
+  }
 }
 
 .kodeed__row:focus-visible {

@@ -1,0 +1,138 @@
+---
+/**
+ * The site footer: who runs the practicum, where the lab is, and the
+ * privacy and terms pages. Static, no script.
+ */
+import { LAB_CONTACT, LAB_FULL, instagramUrl, labPlace } from "../lib/lab";
+import { href } from "../lib/app";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const place = labPlace(lang);
+const insta = instagramUrl();
+const year = new Date().getFullYear();
+---
+
+<footer class="sitefoot" aria-label={tri(lang, "Tentang situs ini", "About this site", "关于本站")}>
+  <div class="sitefoot__in page-wide">
+    <div class="sitefoot__who">
+      <b class="sitefoot__lab">{LAB_FULL}</b>
+      <span>{place.unit}</span>
+      <span>{place.room}</span>
+      {(LAB_CONTACT.email || insta) && (
+        <span class="sitefoot__contact">
+          {LAB_CONTACT.email && <a href={`mailto:${LAB_CONTACT.email}`}>{LAB_CONTACT.email}</a>}
+          {insta && (
+            <a href={insta} rel="noopener" target="_blank">
+              Instagram {LAB_CONTACT.instagram}
+            </a>
+          )}
+        </span>
+      )}
+    </div>
+    <nav class="sitefoot__links" aria-label={tri(lang, "Tautan situs", "Site links", "站点链接")}>
+      <a href={href(lang, "/modules")}>{tri(lang, "Modul", "Modules", "模块")}</a>
+      <a href={href(lang, "/privacy")}>
+        {tri(lang, "Kebijakan Privasi", "Privacy Notice", "隐私声明")}
+      </a>
+      <a href={href(lang, "/terms")}>
+        {tri(lang, "Ketentuan Penggunaan", "Terms of Use", "使用条款")}
+      </a>
+    </nav>
+    <p class="sitefoot__fine">
+      © {year} IRIS Laboratory, Telkom University.{" "}
+      {tri(
+        lang,
+        "Ikon Phosphor (MIT). Huruf Inter, Plus Jakarta Sans, JetBrains Mono dan Noto Sans SC (SIL Open Font License).",
+        "Phosphor icons (MIT). Inter, Plus Jakarta Sans, JetBrains Mono and Noto Sans SC typefaces (SIL Open Font License).",
+        "Phosphor 图标（MIT）。Inter、Plus Jakarta Sans、JetBrains Mono 与 Noto Sans SC 字体（SIL Open Font License）。",
+      )}
+    </p>
+  </div>
+</footer>
+
+<style>
+  .sitefoot {
+    border-top: 1px solid var(--hairline);
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    margin-top: var(--space-7);
+    padding-block: var(--space-6) var(--space-7);
+    position: relative;
+  }
+
+  .sitefoot__in {
+    display: grid;
+    gap: var(--space-4) var(--space-7);
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .sitefoot__who {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .sitefoot__lab {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .sitefoot__contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin-top: var(--space-1);
+  }
+
+  .sitefoot__links {
+    align-content: start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+  }
+
+  .sitefoot a {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-decoration-color: var(--hairline-strong);
+    text-underline-offset: 3px;
+  }
+
+  .sitefoot__fine {
+    font-size: 0.78rem;
+    grid-column: 1 / -1;
+    margin: 0;
+    max-width: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .sitefoot a:hover {
+      color: var(--text);
+    }
+  }
+
+  @media (max-width: 759px) {
+    .sitefoot__in {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* A finger needs a 44 px row; the links keep their look, the row grows. */
+  @media (pointer: coarse) {
+    .sitefoot__links {
+      row-gap: 0;
+    }
+
+    .sitefoot__links a {
+      align-items: center;
+      display: inline-flex;
+      min-height: var(--tap, 44px);
+    }
+  }
+</style>

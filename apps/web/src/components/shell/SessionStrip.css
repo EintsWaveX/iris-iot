@@ -108,3 +108,12 @@
     display: none;
   }
 }
+
+/* A phone shows its own clock in the status bar; the bar keeps the time
+   left, which must never run under the buttons beside it. */
+@media (max-width: 479px) {
+  .strip--compact .strip__jam,
+  .strip--compact .strip__jam-dot {
+    display: none;
+  }
+}

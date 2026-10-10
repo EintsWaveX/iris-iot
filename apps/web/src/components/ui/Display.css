@@ -1,4 +1,8 @@
 /* StateView */
+.state-view[hidden] {
+  display: none;
+}
+
 .state-view {
   align-content: center;
   background: var(--surface-1);
@@ -146,8 +150,10 @@
   :root:not([data-motion-tier="0"]) .rating__face {
     transition: transform var(--dur-fast, 160ms) ease-out;
   }
-  :root:not([data-motion-tier="0"]) .rating__face:hover {
-    transform: translateY(-3px);
+  @media (hover: hover) and (pointer: fine) {
+    :root:not([data-motion-tier="0"]) .rating__face:hover {
+      transform: translateY(-3px);
+    }
   }
   :root:not([data-motion-tier="0"]) .rating__face[aria-checked="true"] {
     transform: scale(1.04);

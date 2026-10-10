@@ -52,6 +52,20 @@
   opacity: 0.6;
 }
 
+.login-form__consent {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0;
+  text-align: center;
+}
+
+.login-form__consent a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .login-form__submit,
 .login-form__lihat {
   width: 100%;

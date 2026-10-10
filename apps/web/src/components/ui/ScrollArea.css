@@ -42,8 +42,10 @@
   transition: background var(--dur-fast) var(--ease-reveal);
 }
 
-.scroll-area__thumb:hover {
-  background: var(--text-faint);
+@media (hover: hover) and (pointer: fine) {
+  .scroll-area__thumb:hover {
+    background: var(--text-faint);
+  }
 }
 
 .scroll-area__corner {

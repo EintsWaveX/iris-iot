@@ -14,7 +14,12 @@ interface Props {
 const { lang } = Astro.props;
 ---
 
-<Base title={`${tri(lang, "Akun", "Account", "账号")} · IRIS IoT`} lang={lang} cosmosScene="kerja">
+<Base
+  noindex
+  title={`${tri(lang, "Akun", "Account", "账号")} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+>
   <main id="main" class="page-regular page-main">
     <AccountPage client:load lang={lang} />
   </main>

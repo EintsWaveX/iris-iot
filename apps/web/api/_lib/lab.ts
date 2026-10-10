@@ -37,8 +37,12 @@ export interface LabSekarang {
   pesan: number;
   /** The module's blanks per group (the lab sky's full star); signed in only. */
   celah?: number;
-  /** Blanks filled per group number, every group listed; signed in only. */
-  bintang?: { nomor: number; terisi: number }[];
+  /** Blanks answered right in the whole session (the same count the Konsol
+   *  and the Dasbor show) */
+  benar: number;
+  /** Blanks filled and blanks right per group number, every group listed;
+   *  signed in only. */
+  bintang?: { nomor: number; terisi: number; benar: number }[];
 }
 
 export async function handleLab(req: ApiRequest, res: ApiResponse) {
@@ -63,12 +67,16 @@ export async function handleLab(req: ApiRequest, res: ApiResponse) {
       ),
     db.select({ n }).from(sesiAnggota).where(eq(sesiAnggota.sesiId, s.id)),
     db
-      .select({ n })
+      .select({ n, benar: sql<number>`count(*) filter (where ${jawaban.benar})::int` })
       .from(jawaban)
       .where(and(eq(jawaban.sesiId, s.id), ne(jawaban.isi, ""))),
     db.select({ n }).from(telemetriLog).where(eq(telemetriLog.sesiId, s.id)),
     db
-      .select({ nomor: kelompok.nomor, n })
+      .select({
+        nomor: kelompok.nomor,
+        n,
+        benar: sql<number>`count(*) filter (where ${jawaban.benar})::int`,
+      })
       .from(jawaban)
       .innerJoin(kelompok, eq(kelompok.id, jawaban.kelompokId))
       .where(and(eq(jawaban.sesiId, s.id), ne(jawaban.isi, "")))
@@ -77,9 +85,11 @@ export async function handleLab(req: ApiRequest, res: ApiResponse) {
   ]);
   const jumlah = s.jumlahKelompok ?? 5;
   const terisi = new Map(perKelompok.map((r) => [r.nomor, r.n]));
+  const benarDi = new Map(perKelompok.map((r) => [r.nomor, r.benar]));
   const bintang = Array.from({ length: jumlah }, (_, i) => ({
     nomor: i + 1,
     terisi: terisi.get(i + 1) ?? 0,
+    benar: benarDi.get(i + 1) ?? 0,
   }));
 
   const who = currentSession(req);
@@ -115,6 +125,7 @@ export async function handleLab(req: ApiRequest, res: ApiResponse) {
     hadir: hadir?.n ?? 0,
     anggota: anggota?.n ?? 0,
     blank: blank?.n ?? 0,
+    benar: blank?.benar ?? 0,
     pesan: pesan?.n ?? 0,
   };
   // Each group's progress is for signed-in users only (2026-10-09); their

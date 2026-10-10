@@ -53,8 +53,9 @@ interface Lab {
   anggota: number;
   blank: number;
   pesan: number;
+  benar?: number;
   celah?: number;
-  bintang?: { nomor: number; terisi: number }[];
+  bintang?: { nomor: number; terisi: number; benar?: number }[];
 }
 
 interface Praktikum {
@@ -189,7 +190,7 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
       );
     }
     const b = hasil.data?.ok ? hasil.data.blank : undefined;
-    const sisa = b ? Math.max(0, b.total - b.benar) : null;
+
     return (
       <div
         className="panel panel--key bridge"
@@ -201,6 +202,7 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
             durasiMenit={s.durasiMenit ?? 120}
             size={104}
             lang={lang}
+            noLeft
           />
           <div className="stack stack--sm">
             <div className="row">
@@ -214,9 +216,7 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
             <h2 className="home__h2">
               {modulLabel(s.modul, lang)} · {MODUL_NAMA[s.modul]}
             </h2>
-            {sisa !== null && (
-              <span className="hint">{sisa > 0 ? t.nextBlank(sisa) : t.nextLive}</span>
-            )}
+            {b && <span className="hint">{t.progLine(b.benar, b.total)}</span>}
           </div>
         </div>
         <div className="panel__actions">
@@ -335,7 +335,12 @@ function LabSky({
   const stats: [string, string][] = [
     [String(lab.kelompok), t.groups],
     [lab.anggota ? `${lab.hadir}/${lab.anggota}` : String(lab.hadir), t.here],
-    [celah ? t.blankOf(lab.blank, celah * lab.kelompok) : String(lab.blank), t.blanks],
+    [
+      celah
+        ? t.blankOf(lab.benar ?? lab.blank, celah * lab.kelompok)
+        : String(lab.benar ?? lab.blank),
+      t.blanks,
+    ],
     [String(lab.pesan), t.pesan(lab.modul)],
   ];
   return (
@@ -378,7 +383,8 @@ function LabSky({
           ))}
           {bintang.map((g, i) => {
             const [x, y] = spots[i];
-            const p = celah ? Math.min(1, g.terisi / celah) : 0;
+            const right = g.benar ?? g.terisi;
+            const p = celah ? Math.min(1, right / celah) : 0;
             const me = mine.includes(g.nomor);
             const r = 1.6 + p * 2.2;
             return (
@@ -400,7 +406,7 @@ function LabSky({
                     : String(g.nomor)}
                 </text>
                 <text className="gstar__p" x={x} y={y + 13.5} textAnchor="middle">
-                  {p === 1 ? t.starDone : t.starP(g.terisi, celah)}
+                  {p === 1 ? t.starDone : t.starP(right, celah)}
                 </text>
               </g>
             );
@@ -463,8 +469,14 @@ export default function HomePage({ lang }: { lang: Lang }) {
       <div className="home10__top">
         <div className="stack stack--lg">
           <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
-          <h1 className="home__display">{t.title}</h1>
-          <p className="home__lede">{t.lede}</p>
+          {me ? (
+            <h1 className="home__display home__display--hello">{t.hello(me.nama)}</h1>
+          ) : (
+            <>
+              <h1 className="home__display">{t.title}</h1>
+              <p className="home__lede">{t.lede}</p>
+            </>
+          )}
           <RoleCard lang={lang} lab={labData ?? null} pegang={pegang} />
         </div>
         <LabSky lang={lang} lab={labData} mine={mine} holder={holder} />
@@ -475,7 +487,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
           <span className="eyebrow">{t.rasiEyebrow}</span>
           <h2 className="home__h1">{t.rasiTitle}</h2>
         </div>
-        <div className="home10__rasi">
+        <div className="home10__rasi" data-slim={me ? "yes" : undefined}>
           {LANES.map((l) => (
             <article
               className="panel rasi"
@@ -488,9 +500,9 @@ export default function HomePage({ lang }: { lang: Lang }) {
                   {l.a} · {l.via}
                 </span>
               </div>
-              <ModConstellation m={l.m} h={150} lang={lang} />
+              {!me && <ModConstellation m={l.m} h={150} lang={lang} />}
               <h3 className="home__h2">{MODUL_NAMA[l.m]}</h3>
-              <p className="panel__sub">{t.lanes[l.m]}</p>
+              {!me && <p className="panel__sub">{t.lanes[l.m]}</p>}
               <div className="panel__actions">
                 <a className="btn" href={href(lang, `/modules/${l.m}`)}>
                   <BookOpenTextIcon size={18} aria-hidden="true" />
@@ -502,30 +514,32 @@ export default function HomePage({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      <section className="stack">
-        <div className="home10__head">
-          <span className="eyebrow">{t.flowEyebrow}</span>
-          <h2 className="home__h1">{t.flowTitle}</h2>
-        </div>
-        <ol className="orbitpath">
-          {steps.map((s) => (
-            <li className="orbitpath__stop" key={s.title}>
-              <span className="orbitpath__node" aria-hidden="true">
-                {s.icon}
-              </span>
-              <h3 className="home__h2">{s.title}</h3>
-              <ul className="orbitpath__list">
-                {s.list.map((x) => (
-                  <li key={x}>
-                    <CheckIcon size={16} weight="bold" aria-hidden="true" />
-                    {x}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ol>
-      </section>
+      {!me && (
+        <section className="stack">
+          <div className="home10__head">
+            <span className="eyebrow">{t.flowEyebrow}</span>
+            <h2 className="home__h1">{t.flowTitle}</h2>
+          </div>
+          <ol className="orbitpath">
+            {steps.map((s) => (
+              <li className="orbitpath__stop" key={s.title}>
+                <span className="orbitpath__node" aria-hidden="true">
+                  {s.icon}
+                </span>
+                <h3 className="home__h2">{s.title}</h3>
+                <ul className="orbitpath__list">
+                  {s.list.map((x) => (
+                    <li key={x}>
+                      <CheckIcon size={16} weight="bold" aria-hidden="true" />
+                      {x}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </div>
   );
 }

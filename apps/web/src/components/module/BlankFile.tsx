@@ -832,12 +832,16 @@ export default function BlankFile(p: Props) {
           </b>
         )}
         <span className="codehead__tools">
-          <ProgressRing
-            value={shownRight}
-            max={nb}
-            color="var(--ok)"
-            label={`${shownRight}/${nb}`}
-          />
+          {/* Praktikan read progress from the Benar count below (Phase 11:
+              one place, not three); the Asisten have no counts row. */}
+          {mode === "asisten" && (
+            <ProgressRing
+              value={shownRight}
+              max={nb}
+              color="var(--ok)"
+              label={`${shownRight}/${nb}`}
+            />
+          )}
           <IconButton
             icon={SidebarSimpleIcon}
             label={p.wide ? (p.pinsOpen ? t.pinsHide : t.pinsShow) : t.pins}
@@ -879,7 +883,7 @@ export default function BlankFile(p: Props) {
                 <span className="blankcount__dot" aria-hidden="true" />
               )}
               <span>{label}</span>
-              <b className="num">{per[k].length}</b>
+              <b className="num">{k === "right" ? `${per.right.length}/${nb}` : per[k].length}</b>
             </button>
           ))}
         </div>
@@ -961,6 +965,11 @@ export default function BlankFile(p: Props) {
               );
             })}
           </div>
+          {mode === "now" && !locked && !complete && (
+            <div className="codefoot codefoot--keys">
+              <span className="hint">{t.keysHint}</span>
+            </div>
+          )}
           {mode === "now" && lastPeer && (
             <div className="codefoot">
               <span className="codefoot__peer">{t.peer}</span>
@@ -1000,8 +1009,6 @@ export default function BlankFile(p: Props) {
             {t.download}
           </button>
         </div>
-      ) : mode === "now" && !locked ? (
-        <span className="hint">{t.keysHint}</span>
       ) : null}
       <span className="visually-hidden" role="status">
         {t.progress(shownRight, nb)}

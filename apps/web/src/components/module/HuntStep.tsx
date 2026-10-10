@@ -27,6 +27,7 @@ import Pill from "../ui/Pill";
 import SegmentedControl from "../ui/SegmentedControl";
 import { H } from "./huntStrings";
 import "./hunt.css";
+import Nil from "../ui/Nil";
 
 export interface PerburuanData {
   ok: boolean;
@@ -140,13 +141,23 @@ export default function HuntStep({
       <div className="stack hunt-done">
         <div className="hunt-stats">
           <div className="stat">
-            <span className="stat__value">{k.durasi != null ? menitDetik(k.durasi) : "·"}</span>
+            <span className="stat__value">
+              {k.durasi != null ? menitDetik(k.durasi) : <Nil lang={lang} />}
+            </span>
             <span className="stat__label">{t.statTime}</span>
           </div>
           <div className="stat">
             <span className="stat__value">
-              {found && k.rank ? k.rank : "·"}
-              <span className="faint"> / {data.jumlahKelompok || "·"}</span>
+              {found && k.rank ? (
+                <>
+                  {k.rank}
+                  {Boolean(data.jumlahKelompok) && (
+                    <span className="faint"> / {data.jumlahKelompok}</span>
+                  )}
+                </>
+              ) : (
+                <Nil lang={lang} />
+              )}
             </span>
             <span className="stat__label">{t.statRank}</span>
           </div>

@@ -10,7 +10,8 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { ArrowClockwiseIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { sejak, useTick } from "../../lib/app";
-import { durasiLabel } from "../../lib/labels";
+import { durasiLabel, nil } from "../../lib/labels";
+import Nil from "../ui/Nil";
 import type { Lang } from "../../lib/kelas";
 import { bacaBundel, bacaRinci } from "../../lib/server-shared";
 import {
@@ -121,11 +122,11 @@ export default function PiFull({
   const bundel = bacaBundel(data.server.agenVersi);
   const protokol = data.server.infoSistem?.protokol;
   const versi: [string, string][] = [
-    [r.paket.os ?? "·", t.vSystem],
-    [r.paket.kernel ?? "·", t.vKernel],
-    [typeof protokol === "number" ? String(protokol) : "·", t.vAgent],
-    [bundel.aso ?? "·", t.vBundle],
-    [r.paket.python ?? "·", t.vPython],
+    [r.paket.os ?? nil(lang), t.vSystem],
+    [r.paket.kernel ?? nil(lang), t.vKernel],
+    [typeof protokol === "number" ? String(protokol) : nil(lang), t.vAgent],
+    [bundel.aso ?? nil(lang), t.vBundle],
+    [r.paket.python ?? nil(lang), t.vPython],
   ];
 
   return (
@@ -136,7 +137,12 @@ export default function PiFull({
           <h2 className="panel__title">{t.cpuMemDisk}</h2>
           <div className="stack" style={{ gap: 8 }}>
             {r.inti.map((v, i) => (
-              <Meter key={i} l={`${t.core} ${i}`} p={v ?? 0} txt={v === null ? "·" : `${v}%`} />
+              <Meter
+                key={i}
+                l={`${t.core} ${i}`}
+                p={v ?? 0}
+                txt={v === null ? nil(lang) : `${v}%`}
+              />
             ))}
             {r.beban && (
               <span className="hint">
@@ -195,7 +201,9 @@ export default function PiFull({
                 {r.antarmuka.map((a) => (
                   <tr key={a.nama}>
                     <td className="mono">{a.nama}</td>
-                    <td className="mono">{a.alamat.find((x) => !x.includes(":")) ?? "·"}</td>
+                    <td className="mono">
+                      {a.alamat.find((x) => !x.includes(":")) ?? <Nil dot />}
+                    </td>
                     <td className="num">{laju(a.masuk, lang)}</td>
                     <td className="num">{laju(a.keluar, lang)}</td>
                     <td>
@@ -267,12 +275,14 @@ export default function PiFull({
                         <span className={`pill ${TONE_PILL[tone]}`}>{t.st[tone]}</span>
                       </td>
                       <td className="num nowrap">
-                        {tone === "ok" && Number.isFinite(sejakMs)
-                          ? durasiLabel(Math.floor((now - sejakMs) / 60_000), lang)
-                          : "·"}
+                        {tone === "ok" && Number.isFinite(sejakMs) ? (
+                          durasiLabel(Math.floor((now - sejakMs) / 60_000), lang)
+                        ) : (
+                          <Nil dot />
+                        )}
                       </td>
-                      <td className="num">{x.mulaiUlang ?? "·"}</td>
-                      <td className="num">{x.memori ? ukuran(x.memori, lang) : "·"}</td>
+                      <td className="num">{x.mulaiUlang ?? <Nil dot />}</td>
+                      <td className="num">{x.memori ? ukuran(x.memori, lang) : <Nil dot />}</td>
                     </tr>
                   );
                 })}

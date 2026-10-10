@@ -86,7 +86,6 @@
   transition: opacity var(--dur-fast) var(--ease-reveal);
 }
 
-.sweep-hover:hover::after,
 .sweep-hover:focus-visible::after,
 .sweep-hover:focus-within::after,
 .sweep-hover[aria-current="true"]::after,
@@ -94,15 +93,28 @@
   opacity: 1;
 }
 
-:root:not([data-motion-tier="0"]) .sweep-hover:hover::after,
+@media (hover: hover) and (pointer: fine) {
+  .sweep-hover:hover::after {
+    opacity: 1;
+  }
+}
+
 :root:not([data-motion-tier="0"]) .sweep-hover:focus-visible::after,
 :root:not([data-motion-tier="0"]) .sweep-hover[aria-current="true"]::after,
 :root:not([data-motion-tier="0"]) .sweep-hover[data-state="open"]::after {
   animation: aurora-sweep 2.4s linear infinite;
 }
 
-.sweep-hover:hover {
-  box-shadow: var(--shadow-lift);
+@media (hover: hover) and (pointer: fine) {
+  :root:not([data-motion-tier="0"]) .sweep-hover:hover::after {
+    animation: aurora-sweep 2.4s linear infinite;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sweep-hover:hover {
+    box-shadow: var(--shadow-lift);
+  }
 }
 
 /* A slow, always-on ring for the one thing on a page that should draw the
@@ -159,9 +171,11 @@ html {
   background-clip: padding-box;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
-  background-clip: padding-box;
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+    background-clip: padding-box;
+  }
 }
 
 /* ::selection lives in theme.css, per theme. */

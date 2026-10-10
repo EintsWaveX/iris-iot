@@ -12,6 +12,7 @@ import { namaKelompok, localeOf } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import type { Strings } from "./strings";
 import type { GroupRow, Stuck } from "./types";
+import Nil from "../ui/Nil";
 
 export type BarKind = "blank" | "delay" | "lost";
 
@@ -107,7 +108,9 @@ export default function GroupBarsModal({
                   style={{ "--w": `${v === null ? 0 : (v / max) * 100}%` } as CSSProperties}
                 />
               </span>
-              <span className="gbars__v num">{v === null ? "·" : `${fmt.format(v)}${unit}`}</span>
+              <span className="gbars__v num">
+                {v === null ? <Nil dot /> : `${fmt.format(v)}${unit}`}
+              </span>
             </div>
           );
         })}

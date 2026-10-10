@@ -19,7 +19,7 @@ import {
   WarningIcon,
 } from "@phosphor-icons/react";
 import { href, MODUL_NAMA, sejak, useTick } from "../../lib/app";
-import { modulLabel } from "../../lib/labels";
+import { modulLabel, nil } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import { bacaHasilSiap, MODUL_SIAP, type CekSiap } from "../../lib/server-shared";
 import Updates from "./Updates";
@@ -195,7 +195,7 @@ export default function Ready({
         {last && !hasil && (
           <div className="stack stack--sm">
             <span className="hint">{t.readyBad}</span>
-            <pre className="srv-log">{last.keluaran ?? "·"}</pre>
+            <pre className="srv-log">{last.keluaran ?? nil(lang)}</pre>
           </div>
         )}
       </section>

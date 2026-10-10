@@ -40,6 +40,7 @@ import { useCaraNilai } from "./caraNilai";
 import { useTandaAbsen } from "./TandaAbsen";
 import KirimNilai from "./KirimNilai";
 import { PD } from "./seelabs/panduanStrings";
+import Nil from "../ui/Nil";
 
 export default function NilaiTable({
   t,
@@ -79,6 +80,7 @@ export default function NilaiTable({
     return namaAsisten(asisten.get((k && data?.pemilik[k.id]) ?? ""));
   };
   const absen = useTandaAbsen(t, lang, nilai, (a) => holderOf(a.nim));
+  const [menandai, setMenandai] = useState<number | null>(null);
 
   if (!data) {
     return (
@@ -89,6 +91,42 @@ export default function NilaiTable({
   }
 
   const canEdit = (kid: number) => !data.pemilik[kid] || data.pemilik[kid] === meNim;
+
+  // Members who never signed in this session and still have empty fields.
+  const belumMasuk = (kid: number) => {
+    const lk = groups.find((g) => g.id === kid);
+    const k = data.kelompok.find((x) => x.id === kid);
+    return (k?.anggota ?? [])
+      .filter(
+        (a) =>
+          !a.absen && !a.lengkap && !(lk?.anggota.find((x) => x.nim === a.nim)?.hadir ?? false),
+      )
+      .map((a) => a.nim);
+  };
+  async function tandaiSemua(kid: number) {
+    const nims = belumMasuk(kid);
+    setMenandai(kid);
+    let ok = 0;
+    for (const n of nims) if ((await nilai.setAbsen(n, true)) === "ok") ok++;
+    setMenandai(null);
+    window.Toast?.show(t.markedAbsent(ok, nims.length - ok), ok === nims.length ? "ok" : "danger");
+  }
+  const tombolAbsen = (kid: number) => {
+    const n = belumMasuk(kid).length;
+    if (!n || !canEdit(kid)) return null;
+    return (
+      <button
+        type="button"
+        className="btn btn--sm btn--ghost"
+        disabled={menandai !== null}
+        data-loading={menandai === kid ? "yes" : "no"}
+        onClick={() => void tandaiSemua(kid)}
+      >
+        <span className="btn__label">{t.markAbsent(n)}</span>
+        <span className="btn__spinner" aria-hidden="true" />
+      </button>
+    );
+  };
 
   async function commit(nim: string, k: string, kid: number) {
     const key = `${nim}.${k}`;
@@ -182,7 +220,7 @@ export default function NilaiTable({
       <span className="row ntable__see">
         <span className="seechip">
           <span className="hint">{sl.seelabsLabel}</span>
-          <b className="mono">{sg.akun ? kode(sg.akun) : "·"}</b>
+          {sg.akun ? <b className="mono">{kode(sg.akun)}</b> : <Nil />}
           <StatusPill t={sl} status={sg.status} />
         </span>
         <button
@@ -318,6 +356,7 @@ export default function NilaiTable({
                             </Pill>
                           )}
                           {seelabsBits(k.nomor, k.id)}
+                          {tombolAbsen(k.id)}
                           <KirimNilai
                             t={t}
                             nilai={nilai}
@@ -364,6 +403,7 @@ export default function NilaiTable({
                 {t.groupFull(k.nomor)}
               </h3>
               {seelabsBits(k.nomor, k.id)}
+              {tombolAbsen(k.id)}
               <KirimNilai t={t} nilai={nilai} kelompokId={k.id} canEdit={canEdit(k.id)} compact />
               {k.anggota.map((a) => (
                 <div key={a.nim} className="ncard" data-absen={a.absen ? "yes" : undefined}>

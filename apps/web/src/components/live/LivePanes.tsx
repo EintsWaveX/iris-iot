@@ -13,6 +13,7 @@ import {
   UsbIcon,
 } from "@phosphor-icons/react";
 import IconButton from "../ui/IconButton";
+import Nil from "../ui/Nil";
 import Popover from "../ui/Popover";
 import TabLine from "../ui/TabLine";
 import type { Lang } from "../../lib/kelas";
@@ -21,7 +22,12 @@ import type { LogLine } from "./useSerialBoard";
 import { LV } from "./liveStrings";
 import DataModal, { type DataKind } from "./DataModal";
 
-const dash = (v: number | string | null | undefined) => (v === null || v === undefined ? "·" : v);
+/** A card's value, or the muted Belum ada (ui/Nil.tsx). */
+const dash = (v: number | string | null | undefined): ReactNode =>
+  v === null || v === undefined ? <Nil /> : v;
+/** The same for a dense row or a small pair: a muted dot read as Belum ada. */
+const dot = (v: number | string | null | undefined): ReactNode =>
+  v === null || v === undefined ? <Nil dot /> : v;
 
 /* ------------------------------------------------------------ visuals */
 
@@ -78,7 +84,7 @@ export function VCard({
       <span className="vcard__l">{label}</span>
       <span className="vcard__v num">
         {v}
-        {unit && v !== "·" && <small>{unit}</small>}
+        {unit && (typeof v === "string" || typeof v === "number") && <small>{unit}</small>}
       </span>
       {children}
       {sub && <span className="vcard__s">{sub}</span>}
@@ -112,12 +118,12 @@ function TimeCard({ label, r, a, b }: { label: string; r?: LiveRecord; a: string
       <span className="vtimes">
         <span>
           <small>{a}</small>
-          <b className="mono">{dash(r?.tx)}</b>
+          <b className="mono">{dot(r?.tx)}</b>
         </span>
         <ArrowRightIcon size={16} aria-hidden="true" />
         <span>
           <small>{b}</small>
-          <b className="mono">{dash(r?.rx)}</b>
+          <b className="mono">{dot(r?.rx)}</b>
         </span>
       </span>
     </div>
@@ -201,14 +207,14 @@ export function ValueCards({
       <div className="vcards">
         <VCard
           label={t.ledState}
-          v={led === null ? "·" : led ? t.on : t.off}
+          v={led === null ? <Nil /> : led ? t.on : t.off}
           unit={led === null ? undefined : `(${led})`}
           tone={led ? "ok" : undefined}
           sub={t.fromPeripheral}
         />
         <VCard
           label={t.button}
-          v={tombol === null ? "·" : tombol ? t.pressed : t.released}
+          v={tombol === null ? <Nil /> : tombol ? t.pressed : t.released}
           sub={t.onCentral}
         />
         <TimeCard label={t.times} r={last} a="Central" b="Peripheral" />
@@ -243,7 +249,7 @@ export function ValueCards({
         <VCard label={t.position} v={dash(pos)} unit="%" {...buka("posisi", t.position)}>
           {pos !== null && <Dial p={pos} />}
         </VCard>
-        <VCard label={t.sampleNo} v={last ? `#${last.seq}` : "·"} sub={t.sampleSub} />
+        <VCard label={t.sampleNo} v={last ? `#${last.seq}` : <Nil />} sub={t.sampleSub} />
         <TimeCard label={t.times} r={last} a="Publisher" b="Subscriber" />
         {delay}
         {quality}
@@ -448,7 +454,7 @@ export function FlowPane({ lang, records }: { lang: Lang; records: LiveRecord[] 
                 }}
               />
             </span>
-            <b className="num">{r.lost ? t.lost : d === null ? "·" : `${d} ms`}</b>
+            <b className="num">{r.lost ? t.lost : d === null ? <Nil dot /> : `${d} ms`}</b>
           </div>
         );
       })}
@@ -537,16 +543,16 @@ export function ReadingsPane({
                 <td className="mono">{r.seq}</td>
                 {cols.map(([h, f]) => (
                   <td key={h} className="num">
-                    {dash(f(r))}
+                    {dot(f(r))}
                   </td>
                 ))}
-                <td className="mono hint">{dash(r.tx)}</td>
-                <td className="mono hint">{r.lost ? "·" : dash(r.rx)}</td>
+                <td className="mono hint">{dot(r.tx)}</td>
+                <td className="mono hint">{r.lost ? <Nil dot /> : dot(r.rx)}</td>
                 <td className="num">
                   {r.lost ? (
                     <span className="readings__lost">{t.lost}</span>
                   ) : (
-                    dash(r.oneway ?? r.rtt)
+                    dot(r.oneway ?? r.rtt)
                   )}
                 </td>
               </tr>

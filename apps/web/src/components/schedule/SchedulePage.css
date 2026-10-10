@@ -139,6 +139,24 @@
   grid-template-columns: minmax(0, 1fr) 400px;
 }
 
+/* The teaching load rides along beside the grid instead of ending early. */
+.jlayout[data-wide="yes"] > :last-child {
+  position: sticky;
+  top: calc(var(--nav-size) + var(--minibar-h, 0px) + 18px);
+}
+
+/* A phone's day card: the empty slots in one line, each still editable. */
+.jdays__off {
+  display: grid;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.jdays__off .row {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .jgrid-scroll {
   overflow-x: auto;
   padding-bottom: 4px;
@@ -206,9 +224,11 @@
     opacity var(--dur-mid, 0.25s);
 }
 
-.jcell:hover {
-  border-color: var(--text-muted);
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .jcell:hover {
+    border-color: var(--text-muted);
+    transform: translateY(-2px);
+  }
 }
 
 .jcell:focus-visible {
@@ -248,27 +268,37 @@
   place-items: center;
 }
 
+/* No practicum: the sheet's orange or red stays as a hint, but quiet, so
+   the slots that do run are what the eye finds first. */
 .jcell--off[data-c="oranye"] {
   background:
-    repeating-linear-gradient(135deg, var(--orange-soft) 0 10px, transparent 10px 20px),
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--orange-soft) 45%, transparent) 0 6px,
+      transparent 6px 14px
+    ),
     var(--surface-1);
-  border: 2px solid var(--orange);
-  color: var(--orange);
+  border: 1px dashed color-mix(in srgb, var(--orange) 45%, var(--hairline));
+  color: color-mix(in srgb, var(--orange) 70%, var(--text-muted));
 }
 
 .jcell--off[data-c="merah"] {
   background:
-    repeating-linear-gradient(135deg, var(--red-soft) 0 10px, transparent 10px 20px),
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--red-soft) 45%, transparent) 0 6px,
+      transparent 6px 14px
+    ),
     var(--surface-1);
-  border: 2px solid var(--red);
-  color: var(--red);
+  border: 1px dashed color-mix(in srgb, var(--red) 45%, var(--hairline));
+  color: color-mix(in srgb, var(--red) 70%, var(--text-muted));
 }
 
 .jcell__off {
   background: var(--surface-1);
   border-radius: 6px;
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: 0.74rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   line-height: 1.3;
   padding: 4px 8px;
@@ -295,10 +325,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .jcell,
-  .jcell:hover {
+  .jcell {
     transform: none;
     transition: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .jcell:hover {
+      transform: none;
+      transition: none;
+    }
   }
 }
 
@@ -485,8 +520,10 @@
   text-align: left;
 }
 
-.slotstat__o:hover:not(:disabled) {
-  border-color: var(--text-muted);
+@media (hover: hover) and (pointer: fine) {
+  .slotstat__o:hover:not(:disabled) {
+    border-color: var(--text-muted);
+  }
 }
 
 .slotstat__o[aria-checked="true"] {
@@ -550,6 +587,11 @@
 @container (min-width: 820px) {
   .asggrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Five groups: the last one takes the whole row, not half of it. */
+  .asggrid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }
 
@@ -679,7 +721,7 @@
   }
 
   .jpool {
-    max-height: calc(100vh - 120px);
+    max-height: calc(100dvh - 120px);
     position: sticky;
     top: 84px;
   }
@@ -780,4 +822,29 @@
 .impchip--lifted {
   box-shadow: 0 10px 28px -10px rgba(0, 0, 0, 0.55);
   cursor: grabbing;
+}
+
+/* SlotEditor with No Practicum: what the slot keeps, so the drawer shows
+   the saved pairs instead of a blank middle. */
+.slotkept {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.slotkept__list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  opacity: 0.8;
+  padding: 0;
+}
+
+.slotkept__list li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 6px 0;
 }

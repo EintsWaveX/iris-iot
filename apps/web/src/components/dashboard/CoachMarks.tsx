@@ -101,8 +101,7 @@ export default function CoachMarks({ lang }: { lang: Lang }) {
       <span
         className="coach__ring"
         style={{
-          left: rect.left - 6,
-          top: rect.top - 6,
+          transform: `translate(${rect.left - 6}px, ${rect.top - 6}px)`,
           width: rect.width + 12,
           height: rect.height + 12,
         }}

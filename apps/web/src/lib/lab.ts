@@ -1,0 +1,50 @@
+/**
+ * Who runs the site: the lab's identity for the footer, the privacy notice
+ * and link previews. Contact channels are shown only when filled in.
+ */
+import type { Lang } from "./kelas.js";
+
+// ---------- Identity ----------
+// ---------- Identity ----------
+// ---------- Identity ----------
+
+export const SITE_URL = "https://iris-praktikum-jurnal.vercel.app";
+export const LAB_SHORT = "IRIS Laboratory";
+export const LAB_FULL = "IoT Runtime and Integration System (IRIS) Laboratory";
+
+/** Official channels; an empty value keeps that line off the page */
+export const LAB_CONTACT = {
+  email: "",
+  instagram: "",
+};
+
+/** How long practicum records stay after the semester ends, in months */
+export const RETENTION_MONTHS = 12;
+
+const PLACE: Record<Lang, { unit: string; room: string }> = {
+  id: {
+    unit: "Divisi ASIC, S1 Teknik Elektro, Fakultas Teknik Elektro, Telkom University",
+    room: "P304, Gedung Deli, Telkom University, Bandung",
+  },
+  en: {
+    unit: "ASIC Division, Electrical Engineering, School of Electrical Engineering, Telkom University",
+    room: "P304, Deli Building, Telkom University, Bandung",
+  },
+  zh: {
+    unit: "Telkom University 电气工程学院 电气工程专业 ASIC 部门",
+    room: "Telkom University Deli 楼 P304，万隆",
+  },
+};
+
+// ---------- Identity ----------
+// ---------- Identity ----------
+// ---------- Identity ----------
+
+export function labPlace(lang: Lang): { unit: string; room: string } {
+  return PLACE[lang];
+}
+
+export function instagramUrl(): string {
+  const handle = LAB_CONTACT.instagram.replace(/^@/, "");
+  return handle ? `https://www.instagram.com/${handle}/` : "";
+}

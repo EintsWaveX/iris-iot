@@ -21,6 +21,9 @@ import {
 
 import BetaBadge from "../ui/BetaBadge";
 
+/** Fired to open the nav's Tampilan panel from anywhere on the page */
+export const BUKA_TAMPILAN = "iris:tampilan";
+
 const T = dict({
   id: {
     theme: "Tema",
@@ -233,5 +236,32 @@ export default function DisplayPanel({ lang, onLang }: { lang: Lang; onLang: (to
         <span className="hint">{t.clockHint[p.clock]}</span>
       </div>
     </div>
+  );
+}
+
+/** The current Tampilan choices as a short list, for the Akun pages: what
+ *  is set now sits beside the button that changes it (Phase 11). */
+export function DisplaySummary({ lang, wide = false }: { lang: Lang; wide?: boolean }) {
+  const t = T[lang];
+  const p = usePrefs();
+  const theme = { dark: t.dark, light: t.light, system: t.system }[p.theme];
+  const detail = { ldm: "Low Detail", normal: "Normal", hd: "High Detail" }[p.detail];
+  const clock = { auto: t.auto, on: t.on, off: t.off }[p.clock];
+  const bahasa = LANGS.find((l) => l.v === lang)?.l ?? lang;
+  const rows: [string, string][] = [
+    [t.theme, theme],
+    [t.detail, detail],
+    [t.language, bahasa],
+    [t.clock, clock],
+  ];
+  return (
+    <dl className={wide ? "dispsum dispsum--wide" : "dispsum"}>
+      {rows.map(([k, v]) => (
+        <div key={k} className="dispsum__row">
+          <dt>{k}</dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

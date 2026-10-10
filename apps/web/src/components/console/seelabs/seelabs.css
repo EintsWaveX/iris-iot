@@ -117,8 +117,10 @@
   text-align: left;
 }
 
-.seepick:hover {
-  border-color: var(--hairline-strong);
+@media (hover: hover) and (pointer: fine) {
+  .seepick:hover {
+    border-color: var(--hairline-strong);
+  }
 }
 
 .seepick.is-on {
@@ -566,9 +568,11 @@
   width: 100%;
 }
 
-.panduan__pick:hover {
-  background: var(--surface-2);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .panduan__pick:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
 }
 
 .panduan__pick[aria-current="step"] {

@@ -22,6 +22,7 @@ import { NILAI_KOMPONEN, type NilaiKomponen } from "../../lib/nilai-komponen";
 import Pill from "../ui/Pill";
 import { jamSlot, jamWib, tanggalWib } from "./data";
 import type { Tx } from "./strings";
+import Nil from "../ui/Nil";
 
 /* ------------------------------------------------------- snapshot shapes */
 
@@ -477,7 +478,7 @@ export function BlokIsi({
                     <td>{r.nama}</td>
                     {NILAI_KOMPONEN.map((k) => (
                       <td key={k} className="num">
-                        {r.skor[k] ?? <span className="hint">·</span>}
+                        {r.skor[k] ?? <Nil dot />}
                       </td>
                     ))}
                   </tr>

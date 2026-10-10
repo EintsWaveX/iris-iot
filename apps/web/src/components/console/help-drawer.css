@@ -56,9 +56,14 @@
   width: 100%;
 }
 
-.trbl__h:hover,
 .trbl__h:focus-visible {
   background: var(--surface-2);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .trbl__h:hover {
+    background: var(--surface-2);
+  }
 }
 
 .trbl__body {

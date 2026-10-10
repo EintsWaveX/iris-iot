@@ -33,8 +33,10 @@
   width: 100%;
 }
 
-.ctl-check:hover:not(:disabled) {
-  background: var(--hairline-faint);
+@media (hover: hover) and (pointer: fine) {
+  .ctl-check:hover:not(:disabled) {
+    background: var(--hairline-faint);
+  }
 }
 
 .ctl-check:focus-visible {
@@ -65,10 +67,10 @@
 
 .ctl-check__box svg {
   opacity: 0;
-  transform: scale(0.4);
+  transform: scale(0.8);
   transition:
     opacity var(--dur-fast) var(--ease-reveal),
-    transform var(--dur-mid) var(--ease-out-expo);
+    transform var(--dur-fast) var(--ease-out-expo);
 }
 
 .ctl-check[aria-checked="true"] .ctl-check__box {
@@ -200,9 +202,14 @@
   overflow-wrap: break-word;
 }
 
-.ctl-date__trigger:hover,
 .ctl-date__trigger[data-state="open"] {
   border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ctl-date__trigger:hover {
+    border-color: var(--accent);
+  }
 }
 
 .ctl-date__trigger:focus-visible {
@@ -242,8 +249,10 @@
   font-size: var(--fs-small);
 }
 
-.ctl-date__panel .rdp-day_button:hover:not([disabled]) {
-  background: var(--hairline-faint);
+@media (hover: hover) and (pointer: fine) {
+  .ctl-date__panel .rdp-day_button:hover:not([disabled]) {
+    background: var(--hairline-faint);
+  }
 }
 
 .ctl-date__panel .rdp-month_caption {
@@ -275,9 +284,14 @@
   cursor: pointer;
 }
 
-.ctl-clock:hover,
 .ctl-clock[data-state="open"] {
   border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ctl-clock:hover {
+    border-color: var(--accent);
+  }
 }
 
 .ctl-clock:focus-within {
@@ -332,9 +346,11 @@
   width: 40px;
 }
 
-.ctl-clock__open:hover {
-  background: var(--hairline-faint);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .ctl-clock__open:hover {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
 }
 
 .ctl-clock__open:focus-visible {
@@ -672,8 +688,10 @@ html[data-tarik-jam="yes"] * {
   width: 50px;
 }
 
-.ctl-stepper button:hover:not(:disabled) {
-  background: var(--hairline-faint);
+@media (hover: hover) and (pointer: fine) {
+  .ctl-stepper button:hover:not(:disabled) {
+    background: var(--hairline-faint);
+  }
 }
 
 .ctl-stepper button:focus-visible {

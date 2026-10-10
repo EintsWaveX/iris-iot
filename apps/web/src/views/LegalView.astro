@@ -1,0 +1,177 @@
+---
+/**
+ * The privacy notice or the terms of use, one language at a time. Static
+ * text with a contents list; no script.
+ */
+import Base from "../layouts/Base.astro";
+import { privacy, terms } from "../lib/legal";
+import { href } from "../lib/app";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+  doc: "privacy" | "terms";
+}
+
+const { lang, doc } = Astro.props;
+const page = doc === "privacy" ? privacy(lang) : terms(lang);
+const other =
+  doc === "privacy"
+    ? { path: "/terms", label: tri(lang, "Ketentuan Penggunaan", "Terms of Use", "使用条款") }
+    : { path: "/privacy", label: tri(lang, "Kebijakan Privasi", "Privacy Notice", "隐私声明") };
+const slug = (i: number) => `bagian-${i + 1}`;
+---
+
+<Base title={`${page.title} · IRIS IoT`} description={page.lede} lang={lang} cosmosScene="teknis">
+  <main id="main" class="page-regular page-main legal">
+    <header class="legal__head">
+      <p class="eyebrow">{tri(lang, "Laboratorium IRIS", "IRIS Laboratory", "IRIS 实验室")}</p>
+      <h1>{page.title}</h1>
+      <p class="legal__lede">{page.lede}</p>
+      <p class="legal__since">{page.since}</p>
+    </header>
+
+    <div class="legal__grid">
+      <nav
+        class="legal__toc panel"
+        aria-label={tri(lang, "Isi halaman", "On this page", "本页内容")}
+      >
+        <b>{tri(lang, "Isi Halaman", "On This Page", "本页内容")}</b>
+        <ol>
+          {page.sections.map((s, i) => (
+            <li>
+              <a href={`#${slug(i)}`}>{s.title}</a>
+            </li>
+          ))}
+        </ol>
+        <a class="legal__other" href={href(lang, other.path)}>
+          {other.label}
+        </a>
+      </nav>
+
+      <article class="legal__body">
+        {page.sections.map((s, i) => (
+          <section id={slug(i)}>
+            <h2>{s.title}</h2>
+            {s.body.map((p) => (
+              <p>{p}</p>
+            ))}
+            {s.list && (
+              <ul>
+                {s.list.map((li) => (
+                  <li>{li}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))}
+      </article>
+    </div>
+  </main>
+</Base>
+
+<style>
+  .legal__head {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-page-top);
+    max-width: 72ch;
+  }
+
+  .legal__head h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 1.4rem + 2vw, 3rem);
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .legal__lede {
+    color: var(--text-muted);
+    font-size: 1.06rem;
+    margin: 0;
+  }
+
+  .legal__since {
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    margin: 0;
+  }
+
+  .legal__grid {
+    align-items: start;
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+    margin-top: var(--space-6);
+  }
+
+  .legal__toc {
+    display: grid;
+    gap: var(--space-3);
+    position: sticky;
+    top: calc(var(--nav-size) + var(--space-4));
+  }
+
+  .legal__toc ol {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding-left: 1.2em;
+  }
+
+  .legal__toc a {
+    color: var(--text-muted);
+  }
+
+  .legal__other {
+    border-top: 1px solid var(--hairline);
+    font-weight: 600;
+    padding-top: var(--space-3);
+  }
+
+  .legal__body {
+    display: grid;
+    gap: var(--space-6);
+    max-width: 70ch;
+    min-width: 0;
+  }
+
+  .legal__body section {
+    scroll-margin-top: calc(var(--nav-size) + var(--space-4));
+  }
+
+  .legal__body h2 {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    margin: 0 0 var(--space-2);
+  }
+
+  .legal__body p,
+  .legal__body li {
+    line-height: 1.65;
+  }
+
+  .legal__body p {
+    margin: 0 0 var(--space-3);
+  }
+
+  .legal__body ul {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding-left: 1.2em;
+  }
+
+  @media (max-width: 899px) {
+    .legal__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .legal__toc {
+      position: static;
+    }
+  }
+</style>

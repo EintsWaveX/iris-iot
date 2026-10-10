@@ -561,12 +561,18 @@
   color: var(--text);
 }
 
-.pkpane:fullscreen .vnc__tools .iconbtn:hover:not(:disabled),
 .pkpane:fullscreen .vnc__tools .iconbtn:focus-visible,
-.pkpane:fullscreen .term__tools .iconbtn:hover:not(:disabled),
 .pkpane:fullscreen .term__tools .iconbtn:focus-visible {
   background: var(--surface-3);
   border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pkpane:fullscreen .vnc__tools .iconbtn:hover:not(:disabled),
+  .pkpane:fullscreen .term__tools .iconbtn:hover:not(:disabled) {
+    background: var(--surface-3);
+    border-color: var(--accent);
+  }
 }
 
 .pkpane:fullscreen .vnc__tools .iconbtn[aria-expanded="true"] {
@@ -674,9 +680,16 @@
   text-align: left;
 }
 
-.vnc__key:hover,
 .vnc__key:focus-visible {
   background: var(--accent-soft);
   border-color: var(--accent);
   outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vnc__key:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    outline: none;
+  }
 }

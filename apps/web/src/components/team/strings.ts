@@ -33,6 +33,7 @@ export const T = dict({
     holdersHow: "Untuk mengisi jabatan, buka orangnya di daftar di bawah, lalu pilih Jabatan.",
     since: (d: string) => `sejak ${d}`,
     vacant: "Kosong",
+    vacantN: (n: number) => `${n} Jabatan Kosong`,
     toWhom: (k: string) => `ke ${k}`,
     handover: "Permintaan Serah Terima",
     handoverBody: (oleh: string, kat: string, dari: string, ke: string) =>
@@ -179,6 +180,7 @@ export const T = dict({
     holdersHow: "To fill a role, open the person in the list below, then pick their Position.",
     since: (d: string) => `since ${d}`,
     vacant: "Vacant",
+    vacantN: (n: number) => `${n} Vacant ${n === 1 ? "Role" : "Roles"}`,
     toWhom: (k: string) => `to ${k}`,
     handover: "Handover Request",
     handoverBody: (oleh: string, kat: string, dari: string, ke: string) =>
@@ -321,6 +323,7 @@ export const T = dict({
     holdersHow: "要指定负责人，在下面的名单里打开那个人，然后选择职位。",
     since: (d: string) => `自 ${d}`,
     vacant: "空缺",
+    vacantN: (n: number) => `${n} 个职位空缺`,
     toWhom: (k: string) => `交给 ${k}`,
     handover: "交接申请",
     handoverBody: (oleh: string, kat: string, dari: string, ke: string) =>

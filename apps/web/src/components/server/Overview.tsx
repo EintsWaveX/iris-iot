@@ -26,7 +26,7 @@ import {
 import Confirm from "../ui/Confirm";
 import IconButton from "../ui/IconButton";
 import { Switch } from "../ui/Controls";
-import { getJson, postJson, sejak, useTick } from "../../lib/app";
+import { getJson, jamMenit, postJson, sejak, tanggalPanjang, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import {
   bacaHasilSiap,
@@ -49,6 +49,7 @@ import {
   labelPerintah,
 } from "./LogDialogs";
 import {
+  isOnline,
   kejadianDari,
   kirim,
   sedangBerjalan,
@@ -75,7 +76,7 @@ interface Props {
   autoCmd?: boolean;
   onAutoCmd?: () => void;
   onJournal: () => void;
-  onTab: (t: "siap") => void;
+  onTab: (t: "siap" | "konsol" | "pengaturan") => void;
 }
 
 const MODUL_HUE: Record<string, string> = { "modul2-ws": "2", mosquitto: "3", modul4: "4" };
@@ -370,12 +371,12 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
   }
 
   return (
-    <section className="panel s12span8">
+    <section className="panel s12span8 s12fill">
       <div className="panel__head">
         <h2 className="panel__title">{t.services}</h2>
         <span className="hint">{t.servicesHint}</span>
       </div>
-      <div>
+      <div className="svclist">
         {rows.map(([k, st]) => {
           const tone = st ? svcTone(st) : null;
           const running = tone === "ok";
@@ -740,14 +741,89 @@ function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
   );
 }
 
+/** A silent Pi: one card with when it was last heard, the last values it
+ *  sent and what to check, in place of empty gauges and an empty chart. */
+function OfflineCard({ lang, data, bisa, onTab }: Props) {
+  const t = S[lang];
+  const s12 = S12[lang];
+  const now = useTick(30_000);
+  const hb = data.denyutTerakhir;
+  const last: [string, string][] = hb
+    ? (
+        [
+          [t.cpu, hb.cpu, "%"],
+          [t.mem, hb.memori, "%"],
+          [t.temp, hb.suhu, "°C"],
+          [t.disk, hb.disk, "%"],
+        ] as [string, number | null | undefined, string][]
+      )
+        .filter(([, v]) => v !== null && v !== undefined)
+        .map(([l, v, u]) => [l, `${Math.round(v as number)} ${u}`])
+    : [];
+
+  return (
+    <section className="panel s12span8 s12off">
+      <div className="panel__head">
+        <h2 className="panel__title">{s12.offTitle}</h2>
+        <span className="pill pill--danger">{t.offline}</span>
+      </div>
+      <p className="s12off__lede">
+        {hb
+          ? s12.offSince(
+              `${tanggalPanjang(hb.pada, lang)} ${jamMenit(hb.pada, lang)}`,
+              sejak(hb.pada, lang, now),
+            )
+          : s12.offNever}
+      </p>
+      <div className="s12off__cols">
+        {last.length > 0 && (
+          <div className="s12off__last">
+            <b className="s12off__k">{s12.offLast}</b>
+            <dl>
+              {last.map(([l, v]) => (
+                <div key={l}>
+                  <dt>{l}</dt>
+                  <dd className="mono">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+        <div className="s12off__steps">
+          <b className="s12off__k">{s12.offChecks}</b>
+          <ol>
+            {s12.offSteps.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ol>
+        </div>
+      </div>
+      <div className="card__actions s12off__acts">
+        {bisa.konsol && (
+          <button type="button" className="btn" onClick={() => onTab("konsol")}>
+            <TerminalWindowIcon size={18} aria-hidden="true" />
+            {t.tabs.konsol}
+          </button>
+        )}
+        <button type="button" className="btn btn--ghost" onClick={() => onTab("pengaturan")}>
+          {s12.offSettings}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export default function Overview(p: Props) {
   const t = S[p.lang];
+  const online = isOnline(p.data.denyutTerakhir, p.data.batasLuringDetik);
   return (
     <div className="s12grid">
-      <div className="s12span12">
-        <Gauges lang={p.lang} data={p.data} />
-      </div>
-      <ChartCard lang={p.lang} id={p.id} />
+      {online && (
+        <div className="s12span12">
+          <Gauges lang={p.lang} data={p.data} />
+        </div>
+      )}
+      {online ? <ChartCard lang={p.lang} id={p.id} /> : <OfflineCard {...p} />}
       <ReadySnap {...p} />
       <Services {...p} />
       <QuickActions {...p} />

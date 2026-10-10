@@ -96,21 +96,34 @@ const { title, eyebrow, interactive = false, class: className, id, hidden, ...re
     transition: opacity var(--dur-fast) var(--ease-reveal);
   }
 
-  .card--interactive:hover,
   .card--interactive:focus-within {
     border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline));
     box-shadow: var(--shadow-lift);
     transform: var(--lift-card);
   }
 
-  .card--interactive:hover::after,
   .card--interactive:focus-within::after {
     opacity: 1;
   }
 
-  :root:not([data-motion-tier="0"]) .card--interactive:hover::after,
   :root:not([data-motion-tier="0"]) .card--interactive:focus-within::after {
     animation: aurora-sweep 2.2s linear infinite;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .card--interactive:hover {
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--hairline));
+      box-shadow: var(--shadow-lift);
+      transform: var(--lift-card);
+    }
+
+    .card--interactive:hover::after {
+      opacity: 1;
+    }
+
+    :root:not([data-motion-tier="0"]) .card--interactive:hover::after {
+      animation: aurora-sweep 2.2s linear infinite;
+    }
   }
 
   .card__head {
