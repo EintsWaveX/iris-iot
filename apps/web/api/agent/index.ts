@@ -162,22 +162,37 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
 
     // Phase 9: the network rate (in + out) gets a series like CPU and memory.
     const net = bacaKondisi(body.kondisi)?.jaringan;
-    const [beat] = await db.insert(denyut).values({
-      serverId,
-      jaringan: net ? Math.round(net.masuk + net.keluar) : null,
-      cpu: numOrNull(body.cpu),
-      memori: numOrNull(body.memori),
-      disk: numOrNull(body.disk),
-      suhu: numOrNull(body.suhu),
-      uptimeSec: numOrNull(body.uptimeSec),
-      jamSelaras: body.jamSelaras === true,
-      modeJaringan: typeof body.modeJaringan === "string" ? body.modeJaringan : null,
-      layanan: isPlainObject(body.layanan) ? body.layanan : null,
-    }).returning();
+    const [beat] = await db
+      .insert(denyut)
+      .values({
+        serverId,
+        jaringan: net ? Math.round(net.masuk + net.keluar) : null,
+        cpu: numOrNull(body.cpu),
+        memori: numOrNull(body.memori),
+        disk: numOrNull(body.disk),
+        suhu: numOrNull(body.suhu),
+        uptimeSec: numOrNull(body.uptimeSec),
+        jamSelaras: body.jamSelaras === true,
+        modeJaringan: typeof body.modeJaringan === "string" ? body.modeJaringan : null,
+        layanan: isPlainObject(body.layanan) ? body.layanan : null,
+      })
+      .returning();
 
     // What this beat changed that a page shows, broadcast once it is
     // answered (2026-10-07). A beat that changes nothing sends nothing.
     const berubah = new Set<Topik>();
+
+    // Phase 12: the readings first, and into the session's Live rooms at
+    // once, before the rest of the beat's work (commands, sweeps, state).
+    const sesiAktif = await currentSesi();
+    const bacaan = await rekamTelemetri(serverId, sesiAktif?.id ?? null, body.telemetri);
+    const perGrup = new Map<number, typeof bacaan>();
+    for (const r of bacaan)
+      perGrup.set(r.kelompokNomor, [...(perGrup.get(r.kelompokNomor) ?? []), r]);
+    const terbitTel = terbitkanSesi(
+      sesiAktif?.id,
+      [...perGrup].map(([g, rows]): PesanAliran => ({ j: "tel", g, d: rows })),
+    );
     // Silent past the idle cadence's grace: the Pi was offline until now.
     const terakhir = row.kondisiPada?.getTime() ?? 0;
     if (Date.now() - terakhir > batasLuringDetik(null, null) * 1000) berubah.add("server");
@@ -256,7 +271,6 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
 
     await pruneOldHeartbeatsOccasionally();
 
-    const sesiAktif = await currentSesi();
     // Fastest applicable pace wins: a command in flight beats the session/idle
     // cadence, so the result comes back (and the next press is claimed) fast.
     const siaga =
@@ -269,7 +283,6 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
           ? INTERVAL_AKTIF_SEC
           : INTERVAL_IDLE_SEC;
 
-    const bacaan = await rekamTelemetri(serverId, sesiAktif?.id ?? null, body.telemetri);
     await pruneOldTelemetryOccasionally();
 
     // Only computed when today actually has a Module 4 slot (jadwalModul4Hari
@@ -289,9 +302,6 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     });
     // Phase 12: the beat itself to the Server pages, the readings to the
     // session's Live rooms, both with their data; the topics as before.
-    const perGrup = new Map<number, typeof bacaan>();
-    for (const r of bacaan) perGrup.set(r.kelompokNomor, [...(perGrup.get(r.kelompokNomor) ?? []), r]);
-    const tel: PesanAliran[] = [...perGrup].map(([g, rows]) => ({ j: "tel", g, d: rows }));
     await Promise.all([
       siarkan([...berubah]),
       terbitkanAliran("pi", [
@@ -305,7 +315,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
           },
         },
       ]),
-      terbitkanSesi(sesiAktif?.id, tel),
+      terbitTel,
     ]);
   } catch (err) {
     console.error("[api/agent denyut] unexpected error:", err);
