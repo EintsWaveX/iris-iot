@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { dict, tanggalPanjang } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { usePrefs } from "../../lib/prefs";
+import { jamServer } from "../../lib/jam";
 
 const T = dict({ id: "Jam sekarang", en: "Current time", zh: "当前时间" });
 
@@ -28,8 +29,9 @@ export default function NavClock({
   const { clock } = usePrefs();
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    setNow(new Date());
-    const id = window.setInterval(() => setNow(new Date()), 1000);
+    // The site's time, so a laptop with a wrong clock still shows the lab's.
+    setNow(new Date(jamServer()));
+    const id = window.setInterval(() => setNow(new Date(jamServer())), 1000);
     return () => window.clearInterval(id);
   }, []);
   if (!now || clock === "off" || (clock === "auto" && inSession)) return null;

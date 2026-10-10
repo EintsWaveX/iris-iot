@@ -28,6 +28,7 @@ import IconButton from "../ui/IconButton";
 import { Switch } from "../ui/Controls";
 import { getJson, jamMenit, postJson, sejak, tanggalPanjang, useTick } from "../../lib/app";
 import { useSegar } from "../../lib/siaran";
+import { AngkaGulir } from "../ui/Sorot";
 import type { Lang } from "../../lib/kelas";
 import {
   bacaHasilSiap,
@@ -255,10 +256,13 @@ function ChartCard({ lang, id }: { lang: Lang; id: number }) {
   const [rentang, setRentang] = useState("24h");
   const [h, setH] = useState<Riwayat | null>(null);
   const segar = useSegar(["server"]);
-  // The last hour grows with each beat (longer ranges are sampled down).
-  useDenyutLangsung(rentang === "1h", (d) => {
+  // Each beat joins the chart as it lands, so its latest reading is the Pi's
+  // now: the last hour slides, a longer (sampled down) range just grows.
+  useDenyutLangsung(true, (d) => {
     if (d.serverId !== id) return;
-    setH((x) => (x ? { ...x, seri: [...x.seri.slice(1), d.denyut] } : x));
+    setH((x) =>
+      x ? { ...x, seri: [...x.seri.slice(rentang === "1h" ? 1 : 0), d.denyut].slice(-600) } : x,
+    );
   });
   useEffect(() => setH(null), [id, rentang]);
   useEffect(() => {
@@ -346,10 +350,10 @@ function ChartCard({ lang, id }: { lang: Lang; id: number }) {
       <div className="row row--between panel__actions">
         <span className="row" style={{ gap: 14 }}>
           <span className="legend" style={{ "--c": "var(--accent)" } as CSSProperties}>
-            {t.cpu} {now?.cpu != null ? `${Math.round(now.cpu)}%` : ""}
+            {t.cpu} <AngkaGulir value={now?.cpu ?? null} format={(v) => `${Math.round(v)}%`} />
           </span>
           <span className="legend" style={{ "--c": "var(--warn)" } as CSSProperties}>
-            {t.temp} {now?.suhu != null ? `${Math.round(now.suhu)} °C` : ""}
+            {t.temp} <AngkaGulir value={now?.suhu ?? null} format={(v) => `${Math.round(v)} °C`} />
           </span>
         </span>
         <span className="hint">{zoom.zoomed ? t.zoomed : t.zoomHint}</span>

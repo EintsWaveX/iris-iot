@@ -64,3 +64,27 @@ export default function LiveNotice({ lang }: { lang: Lang }) {
     </div>
   );
 }
+
+const L = dict({
+  id: { live: "Langsung", putus: "Menyambung Ulang" },
+  en: { live: "Live", putus: "Reconnecting" },
+  zh: { live: "实时", putus: "正在重新连接" },
+});
+
+/** The nav's small live status (Phase 12): a steady dot while live, the
+ *  warning dot while reconnecting, nothing on a page that listens to nothing */
+export function LiveStatus({ lang }: { lang: Lang }) {
+  const t = L[lang];
+  const status = useSiaranStatus();
+  if (status === "diam") return null;
+  const live = status === "live";
+  return (
+    <span className="appnav__langsung" role="status" data-live={live ? "yes" : "no"}>
+      <span
+        className={live ? "appnav__live-dot" : "appnav__live-dot appnav__live-dot--warn"}
+        aria-hidden="true"
+      />
+      <span className="appnav__langsung-teks">{live ? t.live : t.putus}</span>
+    </span>
+  );
+}

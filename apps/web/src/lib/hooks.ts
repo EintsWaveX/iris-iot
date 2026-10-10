@@ -235,10 +235,16 @@ export function usePollBersama<T>(
   enabled = true,
   topik: readonly Topik[] = [],
 ): PollState<T> {
+  // Empty on the first render, as on the server (an island hydrating after
+  // another one fetched would otherwise not match the server's HTML); the
+  // effect below hands it what the others already have.
   const b = BERSAMA.get(kunci) as Bersama<T> | undefined;
-  const [keadaan, setKeadaan] = useState<KeadaanPoll<T>>(
-    () => b?.keadaan ?? { data: null, errors: 0, updatedAt: null, ditolak: false },
-  );
+  const [keadaan, setKeadaan] = useState<KeadaanPoll<T>>({
+    data: null,
+    errors: 0,
+    updatedAt: null,
+    ditolak: false,
+  });
   if (b) b.fn = fn;
   const topikKey = topik.join(",");
 

@@ -1161,3 +1161,56 @@ html[data-keyhints="on"] .keyhint--corner {
 :lang(zh) .nil--dot.nil--auto::before {
   content: "·" / "暂无";
 }
+
+/* ---------------------------------------------------------- live data */
+
+/* Phase 12: a value that changed live washes with the accent for about a
+   second (the score flash's colour, ctl-flash), a ticking number keeps its
+   width, and a row that arrived after the first load slides in like the
+   room feed's. Two names restart the wash on each change. Nothing moves
+   at motion tier 0 or under reduced motion; the wash is colour only. */
+.sorot {
+  border-radius: 4px;
+}
+
+.angka {
+  font-variant-numeric: tabular-nums;
+}
+
+:root:not([data-motion-tier="0"]) [data-sorot="a"] {
+  animation: p12-sorot-a 1000ms var(--ease-out-expo);
+}
+
+:root:not([data-motion-tier="0"]) [data-sorot="b"] {
+  animation: p12-sorot-b 1000ms var(--ease-out-expo);
+}
+
+@keyframes p12-sorot-a {
+  from {
+    background-color: var(--accent-soft);
+  }
+}
+
+@keyframes p12-sorot-b {
+  from {
+    background-color: var(--accent-soft);
+  }
+}
+
+:root:not([data-motion-tier="0"]) [data-baru="yes"] {
+  animation: p12-baris-masuk 200ms var(--ease-out-expo) both;
+}
+
+@keyframes p12-baris-masuk {
+  from {
+    background-color: var(--accent-soft);
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-baru="yes"] {
+    animation: none;
+  }
+}

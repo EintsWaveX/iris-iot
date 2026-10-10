@@ -824,3 +824,27 @@
     text-align: left;
   }
 }
+
+/* Phase 12: the live status beside the clock; the dot alone on phones. */
+.appnav__langsung {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  flex: none;
+  font-size: 0.78rem;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* Steady: a dot that pulses on every page all day reads as an alarm. */
+.appnav__langsung .appnav__live-dot,
+:root:not([data-motion-tier="0"]) .appnav__langsung .appnav__live-dot {
+  animation: none;
+  position: static;
+}
+
+@media (max-width: 899px) {
+  .appnav__langsung-teks {
+    display: none;
+  }
+}

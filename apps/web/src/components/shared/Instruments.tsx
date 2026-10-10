@@ -5,6 +5,7 @@
  * module. Motion runs at motion tier 1 and up (Normal or HD background
  * detail, no reduced motion); tier 0 draws the same things still.
  */
+import { AngkaGulir } from "../ui/Sorot";
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { CheckIcon, LockSimpleIcon, PulseIcon, TrophyIcon } from "@phosphor-icons/react";
 import { href, useTick } from "../../lib/app";
@@ -676,7 +677,7 @@ export function Cells({
         ))}
       </span>
       <b className="mono">
-        {a}/{b}
+        <AngkaGulir value={a} />/{b}
       </b>
     </div>
   );

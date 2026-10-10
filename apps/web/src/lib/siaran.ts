@@ -395,7 +395,10 @@ export function useBatas(
 
 /** React: whether this page's live updates are working right now. */
 export function useSiaranStatus(): StatusSiaran {
-  const [s, setS] = useState<StatusSiaran>(status);
+  // "diam" on the first render, as on the server; the effect brings the
+  // real status (a page hydrating after the socket opened would otherwise
+  // not match the server's HTML).
+  const [s, setS] = useState<StatusSiaran>("diam");
   useEffect(() => {
     setS(status);
     pemantau.add(setS);

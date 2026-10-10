@@ -2,6 +2,7 @@
  * The Live room's panes (Phase 9 Stage 7e): the value cards, the Serial
  * Monitor with source tabs, the message flow and the readings table.
  */
+import { useBaru } from "../ui/Sorot";
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowDownIcon,
@@ -490,6 +491,8 @@ export function ReadingsPane({
   const t = LV[lang];
   const rows = records.slice(-30);
   const cols = VALS(t)[modul] ?? [];
+  // A reading that lands while the table is open slides in at the top.
+  const baru = useBaru(rows.map((r) => r.seq));
   const head = ["#", ...cols.map(([h]) => h), t.sent, t.received, `${t.delay} (ms)`];
   const tsv = () =>
     [
@@ -539,7 +542,7 @@ export function ReadingsPane({
           </thead>
           <tbody>
             {[...rows].reverse().map((r) => (
-              <tr key={r.seq}>
+              <tr key={r.seq} data-baru={baru.has(String(r.seq)) ? "yes" : undefined}>
                 <td className="mono">{r.seq}</td>
                 {cols.map(([h, f]) => (
                   <td key={h} className="num">

@@ -29,6 +29,7 @@ import SegmentedControl from "../ui/SegmentedControl";
 import { Switch } from "../ui/Controls";
 import { getJson, namaKelompok } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
+import { AngkaGulir, Sorot } from "../ui/Sorot";
 import { useAliran } from "../../lib/aliran-ruang";
 import { useSiaran } from "../../lib/siaran";
 import { kelompokLabel } from "../../lib/labels";
@@ -300,6 +301,8 @@ export function Counters({
     l: string;
     sub: string;
     tone?: "warn";
+    /** A plain count ticks to its new value */
+    n?: number;
     act: () => void;
   }[] = [
     {
@@ -321,6 +324,7 @@ export function Counters({
     {
       key: "hand",
       v: String(hands.length),
+      n: hands.length,
       l: k.hand,
       sub:
         handG && hands[0]
@@ -332,6 +336,7 @@ export function Counters({
     {
       key: "stuck",
       v: String(stuck.length),
+      n: stuck.length,
       l: k.stuck,
       sub: macet
         ? k.stuckSub(macet.k.label, macet.w)
@@ -344,6 +349,7 @@ export function Counters({
     {
       key: "data",
       v: pesan.toLocaleString("id-ID"),
+      n: pesan,
       l: k.data,
       sub: k.dataSub(sunyi.length),
       tone: sunyi.length && pesan > 0 ? "warn" : undefined,
@@ -367,7 +373,13 @@ export function Counters({
           data-tone={x.tone}
           onClick={x.act}
         >
-          <b className="mono">{x.v}</b>
+          <b className="mono">
+            {x.n !== undefined ? (
+              <AngkaGulir value={x.n} format={(v) => Math.round(v).toLocaleString("id-ID")} />
+            ) : (
+              <Sorot value={x.v}>{x.v}</Sorot>
+            )}
+          </b>
           <span className="kpi__l">{x.l}</span>
           <span className="kpi__sub">{x.sub}</span>
           <span className="kpi__go" aria-hidden="true">
@@ -524,9 +536,13 @@ export function Rail({
                       <i key={m.nim} data-on={m.hadir ? "yes" : "no"} title={m.nama} />
                     ))}
                   </span>
-                  <span className="num hint">{r.hereOf(hadir, g.anggota.length)}</span>
+                  <Sorot value={hadir} className="num hint">
+                    {r.hereOf(hadir, g.anggota.length)}
+                  </Sorot>
                   <span className="grow" />
-                  <span className="num hint">{r.blankOf(g.benar, g.total)}</span>
+                  <Sorot value={g.benar} className="num hint">
+                    {r.blankOf(g.benar, g.total)}
+                  </Sorot>
                 </span>
                 <span className="cells__row" style={{ "--c": "var(--g)" } as CSSProperties}>
                   {(kolom.length ? kolom : Array.from({ length: g.total }, () => null)).map(

@@ -69,7 +69,7 @@ import AsistenMiniBar from "./AsistenMiniBar";
 import OfflineNotice from "./OfflineNotice";
 import IdentityWatch from "./IdentityWatch";
 import TotNotice from "./TotNotice";
-import LiveNotice from "./LiveNotice";
+import LiveNotice, { LiveStatus } from "./LiveNotice";
 import LabAlert from "./LabAlert";
 import AlertRail from "./AlertRail";
 import AsistenCommands from "./AsistenCommands";
@@ -453,6 +453,7 @@ export default function AppNav({
               />
             </span>
           )}
+          {!pro && <LiveStatus lang={lang} />}
           <NavClock lang={lang} inSession={sesiBar} />
           <RadixPopover.Root open={dispPop} onOpenChange={setDispPop}>
             <RadixPopover.Trigger asChild>
