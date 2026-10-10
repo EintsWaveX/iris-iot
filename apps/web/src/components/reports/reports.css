@@ -1629,3 +1629,24 @@ button.rp-stat:focus-visible {
 .rp-sesi-tabs {
   scroll-margin-top: 84px;
 }
+
+/* Data Semester (DataSemester.tsx): one row per semester still stored. */
+.datasem {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.datasem__row {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 12px;
+}

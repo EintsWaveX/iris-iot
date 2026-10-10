@@ -353,6 +353,13 @@
   padding: 0 8px;
 }
 
+/* A finger-sized blank on a touch screen; the code line grows a little. */
+@media (pointer: coarse) {
+  .blank input {
+    height: 36px;
+  }
+}
+
 .blank input::placeholder {
   color: color-mix(in srgb, var(--accent-bright) 60%, transparent);
 }
@@ -682,25 +689,9 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 760px) {
-  .codebelow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  /* Both cards share the row's height: the hint log takes the blank card's
-     and scrolls inside when it grows longer (Phase 11). */
-  .codebelow > .hintlog {
-    contain: size;
-    min-height: 12rem;
-  }
-
-  .codebelow > .hintlog > .hintlog__list {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
-    overscroll-behavior: contain;
-  }
-}
+/* Below the editor (under 1280 px) the blank card and the hint log stack,
+   each as tall as its content: side by side, one always left the other
+   half empty (Phase 11). */
 
 .pblank,
 .hintlog {

@@ -3,7 +3,7 @@
  * words, one idea per paragraph; the view renders sections in order.
  */
 import type { Lang } from "./kelas.js";
-import { LAB_CONTACT, RETENTION_MONTHS } from "./lab.js";
+import { BACKUP_DAYS, LAB_CONTACT, RETENTION_MONTHS } from "./lab.js";
 
 export type LegalSection = { title: string; body: string[]; list?: string[] };
 export type LegalDoc = { title: string; lede: string; since: string; sections: LegalSection[] };
@@ -21,7 +21,7 @@ const SINCE: Record<Lang, string> = {
 function reach(lang: Lang): string {
   const mail = LAB_CONTACT.email;
   const insta = LAB_CONTACT.instagram;
-  const extra = [mail, insta && `Instagram ${insta}`].filter(Boolean).join(", ");
+  const extra = [mail, insta && `Instagram @${insta}`].filter(Boolean).join(", ");
   if (lang === "en")
     return `Tell the Assistant Coordinator at P304, Deli Building, or any assistant during your session${extra ? `, or write to ${extra}` : ""}.`;
   if (lang === "zh")
@@ -89,14 +89,15 @@ export function privacy(lang: Lang): LegalDoc {
         {
           title: "How Long",
           body: [
-            `Records stay for the semester and ${RETENTION_MONTHS} months after it ends, for score appeals, then they are deleted. Scores already sent to SeeLabs follow Telkom University's own rules.`,
+            `Records are kept for one semester, ${RETENTION_MONTHS} months. Odd semesters run August to January and even ones February to July. On the first day of each new semester, everything from the previous one is deleted automatically: sessions, attendance, sign in records, answers, captures, scores, feedback, pay records, written reports, the schedule and the logs. A lab admin may delete a finished semester earlier.`,
+            `The encrypted nightly backups keep a copy for at most ${BACKUP_DAYS} more days, then they expire on their own. Scores already entered into SeeLabs follow Telkom University's own rules.`,
           ],
         },
         {
           title: "Your Rights",
           body: [
             "You can ask for a copy of your data, ask us to correct it, ask us to delete it (except what must stay to keep a score valid), and withdraw consent for anything optional.",
-            `${reach("en")} We answer within three working days.`,
+            `${reach("en")} We answer within 3 × 24 hours of your request, as the Personal Data Protection Law requires.`,
           ],
         },
         {
@@ -159,14 +160,15 @@ export function privacy(lang: Lang): LegalDoc {
         {
           title: "保存多久",
           body: [
-            `记录保存到本学期结束后 ${RETENTION_MONTHS} 个月，以便处理成绩申诉，之后删除。已录入 SeeLabs 的成绩遵循 Telkom University 自己的规定。`,
+            `记录只保存一个学期，即 ${RETENTION_MONTHS} 个月。第一学期为 8 月至次年 1 月，第二学期为 2 月至 7 月。每个新学期的第一天，上一学期的所有数据都会自动删除：课堂、出勤、登录记录、答案、采集数据、成绩、反馈、报酬记录、书面报告、课表和日志。实验室管理员也可以提前删除已结束的学期。`,
+            `加密的每晚备份最多再保留 ${BACKUP_DAYS} 天，之后自动过期。已录入 SeeLabs 的成绩遵循 Telkom University 自己的规定。`,
           ],
         },
         {
           title: "你的权利",
           body: [
             "你可以申请数据副本、要求更正、要求删除（为保证成绩有效而必须保留的除外），也可以撤回对可选项目的同意。",
-            `${reach("zh")}我们会在三个工作日内答复。`,
+            `${reach("zh")}按照《个人数据保护法》的要求，我们会在收到请求后 3 × 24 小时内答复。`,
           ],
         },
         { title: "变更", body: ["本声明变更时，顶部的日期会随之更新，重要变更会在实验课上通知。"] },
@@ -223,14 +225,15 @@ export function privacy(lang: Lang): LegalDoc {
       {
         title: "Berapa Lama Disimpan",
         body: [
-          `Catatan disimpan selama semester berjalan dan ${RETENTION_MONTHS} bulan setelahnya untuk keperluan banding nilai, lalu dihapus. Nilai yang sudah masuk SeeLabs mengikuti aturan Telkom University.`,
+          `Catatan disimpan satu semester, yaitu ${RETENTION_MONTHS} bulan. Semester ganjil berjalan Agustus sampai Januari dan semester genap Februari sampai Juli. Pada hari pertama semester baru, semua data semester sebelumnya terhapus otomatis: sesi, kehadiran, catatan masuk, jawaban, data tangkapan, nilai, umpan balik, catatan honor, laporan tertulis, jadwal dan log. Admin lab boleh menghapus semester yang sudah selesai lebih awal.`,
+          `Cadangan malam yang terenkripsi menyimpan salinan paling lama ${BACKUP_DAYS} hari lagi, lalu kedaluwarsa sendiri. Nilai yang sudah masuk SeeLabs mengikuti aturan Telkom University.`,
         ],
       },
       {
         title: "Hakmu",
         body: [
           "Kamu boleh meminta salinan datamu, meminta perbaikan, meminta penghapusan (kecuali yang wajib disimpan supaya nilaimu tetap sah), dan menarik persetujuan untuk hal yang tidak wajib.",
-          `${reach("id")} Kami jawab paling lambat tiga hari kerja.`,
+          `${reach("id")} Kami jawab paling lambat 3 × 24 jam sejak permintaanmu diterima, sesuai UU Pelindungan Data Pribadi.`,
         ],
       },
       {

@@ -56,6 +56,16 @@ export interface HasilSiap {
   cek: CekSiap[];
 }
 
+/** The module a check belongs to, from its id (opi_preflight.sh: the text
+ *  before the first ":"); null for the checks every module shares, venv
+ *  included (Modul 2 and 4 both run on it). */
+export function modulCek(id: string): "2" | "3" | "4" | null {
+  if (id.startsWith("iris-modul2-ws")) return "2";
+  if (id.startsWith("mosquitto")) return "3";
+  if (id.startsWith("modul4") || id.startsWith("Modul-4")) return "4";
+  return null;
+}
+
 /** Reads the JSON `iris-diag siap` prints (opi_preflight.sh --json) out of
  *  a command's output. Returns null when the output is not that document,
  *  e.g. an agent error message. Anything it cannot trust is dropped rather

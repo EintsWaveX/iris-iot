@@ -15,11 +15,14 @@ export const LAB_FULL = "IoT Runtime and Integration System (IRIS) Laboratory";
 /** Official channels; an empty value keeps that line off the page */
 export const LAB_CONTACT = {
   email: "",
-  instagram: "",
+  instagram: "iris__laboratory",
 };
 
-/** How long practicum records stay after the semester ends, in months */
-export const RETENTION_MONTHS = 12;
+/** How long practicum records are kept: one semester (src/lib/retensi.ts) */
+export const RETENTION_MONTHS = 6;
+
+/** How long the encrypted nightly backups keep a copy (.github/workflows/backup.yml) */
+export const BACKUP_DAYS = 30;
 
 const PLACE: Record<Lang, { unit: string; room: string }> = {
   id: {

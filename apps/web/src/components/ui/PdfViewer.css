@@ -240,6 +240,9 @@
   box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
   flex: none;
   max-width: none;
+  /* A text layer mid-render (a rotated page) never reaches past its page
+     to sit over the step buttons below the viewer. */
+  overflow: clip;
   position: relative;
 }
 

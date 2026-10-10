@@ -66,6 +66,7 @@ import {
   tolakPraktikanTot,
 } from "../_lib/session.js";
 import { handleTotGet, handleTotPost } from "../_lib/tot.js";
+import { handleRetensiGet, handleRetensiPost } from "../_lib/retensi.js";
 import { AMBANG_GALAT } from "../_lib/galat.js";
 import { faktaPi } from "../_lib/siap-mulai.js";
 import { LAYANAN_MODUL } from "../../src/lib/siap-mulai.js";
@@ -1665,6 +1666,13 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     }
     if (!requireMethod(req, res, "GET")) return;
     return handleTotGet(req, res);
+  }
+  // Data retention (2026-10-10): every Asisten sees the rule and what is
+  // held; deleting by hand is for the Admin tier (checked inside).
+  if (aksi === "retensi") {
+    if (req.method === "POST") return handleRetensiPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleRetensiGet(req, res, session);
   }
   if (aksi === "susulan") {
     if (req.method === "POST") return handleSusulanPost(req, res, session);

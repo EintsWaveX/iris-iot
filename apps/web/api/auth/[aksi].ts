@@ -41,9 +41,13 @@ import { denganSiaran } from "../_lib/siaran.js";
 import { catatGalat } from "../_lib/galat.js";
 import { totAktif } from "../../src/lib/mode-tot.js";
 import { praktikanBolehMasuk } from "../../src/lib/tot.js";
+import { jalankanOtomatis } from "../_lib/retensi.js";
 
 async function handleMe(req: ApiRequest, res: ApiResponse) {
   if (!requireMethod(req, res, "GET")) return;
+  // Every page asks this first, so a new semester's deletion of the last
+  // one happens on its first visit (once; cheap afterwards).
+  await jalankanOtomatis();
 
   const session = currentSession(req);
   if (!session) {

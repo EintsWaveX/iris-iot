@@ -300,9 +300,10 @@
   }
 }
 
-/* Two columns: the group rail takes the workspace's height and scrolls
-   inside, so the pair ends on one line (Phase 11). */
-@media (min-width: 760px) and (max-width: 1279px) {
+/* The group rail takes the workspace's height and scrolls inside, so the
+   pair always ends on one line; the room feed runs full width under them at
+   its own height, so a quiet room leaves no empty column (Phase 11). */
+@media (min-width: 760px) {
   .kboard {
     align-items: stretch;
   }
@@ -317,48 +318,21 @@
 
 @media (min-width: 1280px) {
   .kboard {
-    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr) minmax(0, 4fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   }
 
-  .kboard > .feed {
-    grid-column: auto;
-  }
-
-  /* One screen-high board: the rail, the workspace and the room feed end
-     on the same line and each scrolls inside, like a console, so no column
-     stops short of its neighbours or runs on past them (Phase 11). */
-  .kboard {
-    align-items: stretch;
-    grid-template-rows: min(calc(100dvh - var(--nav-size) - var(--minibar-h, 0px) - 36px), 52rem);
-  }
-
-  .kboard > * {
-    min-height: 0;
-  }
-
-  .kboard > .rail,
-  .kboard > .work {
-    overflow: auto;
-    overscroll-behavior: contain;
-  }
-
-  .kboard > .feed {
-    display: flex;
-    flex-direction: column;
-  }
-
+  /* A busy room scrolls inside; a quiet one is as short as its events. */
   .kboard > .feed .feed__scroll {
-    flex: 1 1 auto;
-    min-height: 0;
+    max-height: 28rem;
     overflow: auto;
     overscroll-behavior: contain;
   }
 
-  .kboard > .feed .feed__empty {
-    align-content: center;
+  /* Wide enough for the room's events in two columns. */
+  .kboard > .feed .feed__scroll > ol {
+    column-gap: 18px;
     display: grid;
-    flex: 1;
-    text-align: center;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -566,16 +540,6 @@
 .feed__note .stack {
   color: var(--text);
   flex: 1 1 160px;
-}
-
-@media (min-width: 1280px) {
-  .feed__row.elog__row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-
-  .feed__row .elog__tag {
-    display: none;
-  }
 }
 
 /* ----------------------------------------------------------- matrix */

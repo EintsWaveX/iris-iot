@@ -21,7 +21,7 @@ import {
 import { href, MODUL_NAMA, sejak, useTick } from "../../lib/app";
 import { modulLabel, nil } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
-import { bacaHasilSiap, MODUL_SIAP, type CekSiap } from "../../lib/server-shared";
+import { bacaHasilSiap, modulCek, MODUL_SIAP, type CekSiap } from "../../lib/server-shared";
 import Updates from "./Updates";
 import { kirim, sedangBerjalan, waktuPendek, type Bisa, type Detail } from "./data";
 import { S } from "./strings";
@@ -117,6 +117,43 @@ export default function Ready({
     const r = runs.find((x) => (x.argumen?.modul ?? "") === m || !x.argumen?.modul) ?? null;
     return { m, r, h: bacaHasilSiap(r?.keluaran) };
   });
+  const umum = hasil ? hasil.cek.filter((c) => modulCek(c.id) === null) : [];
+  const umumGagal = umum.filter((c) => c.status === "gagal").length;
+
+  /** The check history: beside the Pi's checks, or alone before any run. */
+  const riwayat = (cls: string) => (
+    <section className={`panel ${cls}`}>
+      <h2 className="panel__title">{t.readyHist}</h2>
+      {runs.length <= 1 ? (
+        <p className="hint">{t.readyHistNone}</p>
+      ) : (
+        runs.slice(1, 9).map((p) => {
+          const h = bacaHasilSiap(p.keluaran);
+          const lulus = h ? h.cek.filter((c) => c.status === "ok").length : 0;
+          return (
+            <div key={p.id} className="histrow">
+              <span className="stack grow" style={{ gap: 0 }}>
+                <b>{waktuPendek(p.selesaiPada ?? p.dimintaPada, lang)}</b>
+                <span className="hint">
+                  {p.argumen?.modul ? t.readyMod(p.argumen.modul) : t.readyAll}
+                  {p.dimintaOleh ? ` · ${siapa(p.dimintaOleh)}` : ""}
+                </span>
+              </span>
+              {h ? (
+                <>
+                  <span className="pill pill--ok">{t.readyPassed(lulus)}</span>
+                  {h.gagal > 0 && <span className="pill pill--warn">{t.readyWarn(h.gagal)}</span>}
+                </>
+              ) : (
+                <span className="pill pill--danger">{t.status.gagal}</span>
+              )}
+            </div>
+          );
+        })
+      )}
+      <span className="hint panel__actions">{t.readyPrep}</span>
+    </section>
+  );
 
   return (
     <div className="s12grid">
@@ -164,6 +201,7 @@ export default function Ready({
               </button>
             ))}
           </div>
+          <span className="hint">{w.m1Note}</span>
         </div>
 
         {pending && (
@@ -201,98 +239,82 @@ export default function Ready({
       </section>
 
       {!!last && (
-        <section
-          className="panel s12span3 s12readymod"
-          style={{ "--m": "var(--mod-1)" } as CSSProperties}
-        >
-          <div className="panel__head">
-            <Pill modul={1}>{modulLabel(1, lang)}</Pill>
-            <span className="pill">{w.noPi}</span>
-          </div>
-          <b>{MODUL_NAMA[1]}</b>
-          <div className="s12checks">
-            <div className="checkrow" data-st="info">
-              <span className="checkrow__ic">
-                <InfoIcon size={22} aria-hidden="true" />
-              </span>
-              <span className="stack stack--sm grow">
-                <b>{w.noPi}</b>
-              </span>
-            </div>
-          </div>
-        </section>
-      )}
-      {!!last &&
-        perModul.map(({ m, r, h }) => {
-          const cek = h ? h.cek.filter((c) => c.status !== "info") : [];
-          return (
-            <section
-              key={m}
-              className="panel s12span3 s12readymod"
-              style={{ "--m": `var(--mod-${m})` } as CSSProperties}
-            >
+        <>
+          {/* The checks every module shares, once, from the newest run. */}
+          <div className="s12span6 s12col s12readyleft">
+            <section className="panel s12readypi">
               <div className="panel__head">
-                <Pill modul={Number(m)}>{modulLabel(Number(m), lang)}</Pill>
-                <span className={`pill ${!h ? "" : h.gagal ? "pill--warn" : "pill--ok"}`}>
-                  {!r ? w.notChecked : !h ? w.unreadable : h.gagal ? w.toFix(h.gagal) : w.ready}
-                </span>
-              </div>
-              <b>{MODUL_NAMA[Number(m)]}</b>
-              {r && (
-                <span className="hint">
-                  {w.lastRun(sejak(r.selesaiPada ?? r.dimintaPada, lang, now))}
-                </span>
-              )}
-              <div className="s12checks">{h ? (cek.length ? cek : h.cek).map(baris) : null}</div>
-              <div className="panel__actions" style={{ marginTop: "auto" }}>
-                <button
-                  type="button"
-                  className="btn btn--sm btn--block"
-                  disabled={pending}
-                  onClick={() => {
-                    setModul(m);
-                    run(m);
-                  }}
-                >
-                  <ArrowClockwiseIcon size={16} aria-hidden="true" />
-                  {w.checkThis}
-                </button>
-              </div>
-            </section>
-          );
-        })}
-
-      <section className="panel s12span12">
-        <h2 className="panel__title">{t.readyHist}</h2>
-        {runs.length <= 1 ? (
-          <p className="hint">{t.readyHistNone}</p>
-        ) : (
-          runs.slice(1, 9).map((p) => {
-            const h = bacaHasilSiap(p.keluaran);
-            const lulus = h ? h.cek.filter((c) => c.status === "ok").length : 0;
-            return (
-              <div key={p.id} className="histrow">
-                <span className="stack grow" style={{ gap: 0 }}>
-                  <b>{waktuPendek(p.selesaiPada ?? p.dimintaPada, lang)}</b>
-                  <span className="hint">
-                    {p.argumen?.modul ? t.readyMod(p.argumen.modul) : t.readyAll}
-                    {p.dimintaOleh ? ` · ${siapa(p.dimintaOleh)}` : ""}
+                <div className="stack stack--sm">
+                  <h2 className="panel__title">{w.piTitle}</h2>
+                  <span className="hint">{w.piSub}</span>
+                </div>
+                {hasil && (
+                  <span className={`pill ${umumGagal ? "pill--warn" : "pill--ok"}`}>
+                    {umumGagal ? w.toFix(umumGagal) : w.ready}
                   </span>
-                </span>
-                {h ? (
-                  <>
-                    <span className="pill pill--ok">{t.readyPassed(lulus)}</span>
-                    {h.gagal > 0 && <span className="pill pill--warn">{t.readyWarn(h.gagal)}</span>}
-                  </>
-                ) : (
-                  <span className="pill pill--danger">{t.status.gagal}</span>
                 )}
               </div>
-            );
-          })
-        )}
-        <span className="hint panel__actions">{t.readyPrep}</span>
-      </section>
+              <div className="s12checks">{umum.map(baris)}</div>
+            </section>
+            {riwayat("s12readyhist")}
+          </div>
+          {/* Each module keeps only its own checks, from its own newest run. */}
+          <div className="s12span6 s12col s12readymods">
+            {perModul.map(({ m, r, h }) => {
+              const milik = h ? h.cek.filter((c) => modulCek(c.id) === m) : [];
+              const penting = milik.filter((c) => c.status !== "info");
+              const gagal = milik.filter((c) => c.status === "gagal").length;
+              return (
+                <section
+                  key={m}
+                  className="panel s12readymod"
+                  style={{ "--m": `var(--mod-${m})` } as CSSProperties}
+                >
+                  <div className="panel__head">
+                    <span className="row" style={{ gap: 8 }}>
+                      <Pill modul={Number(m)}>{modulLabel(Number(m), lang)}</Pill>
+                      <b>{MODUL_NAMA[Number(m)]}</b>
+                    </span>
+                    <span className={`pill ${!h ? "" : gagal ? "pill--warn" : "pill--ok"}`}>
+                      {!r ? w.notChecked : !h ? w.unreadable : gagal ? w.toFix(gagal) : w.ready}
+                    </span>
+                  </div>
+                  {h && (
+                    <div className="s12checks">
+                      {milik.length ? (
+                        (penting.length ? penting : milik).map(baris)
+                      ) : (
+                        <span className="hint">{w.modNone}</span>
+                      )}
+                    </div>
+                  )}
+                  <div className="row s12readymod__foot">
+                    {r && (
+                      <span className="hint grow">
+                        {w.lastRun(sejak(r.selesaiPada ?? r.dimintaPada, lang, now))}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn--sm"
+                      disabled={pending}
+                      onClick={() => {
+                        setModul(m);
+                        run(m);
+                      }}
+                    >
+                      <ArrowClockwiseIcon size={16} aria-hidden="true" />
+                      {w.checkThis}
+                    </button>
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {!last && riwayat("s12span12")}
+
       <div ref={upd} className="s12span12" style={{ scrollMarginTop: 90 }}>
         <Updates lang={lang} id={id} data={data} refresh={refresh} bisa={bisa} />
       </div>

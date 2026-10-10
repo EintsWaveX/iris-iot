@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bacaHasilSiap,
+  modulCek,
   hotspotMenyala,
   LAYANAN_URUT,
   modulSiapValid,
@@ -173,5 +174,21 @@ describe("posisiPasang", () => {
   it("rejects a malformed record", () => {
     expect(bacaPasang({ tahap: "x", mulai: "a", pada: "b" })).toBeNull();
     expect(bacaPasang(null)).toBeNull();
+  });
+});
+
+describe("modulCek", () => {
+  it("puts each module's own checks on its card", () => {
+    expect(modulCek("iris-modul2-ws.service")).toBe("2");
+    expect(modulCek("mosquitto")).toBe("3");
+    expect(modulCek("modul4.service")).toBe("4");
+    expect(modulCek("Modul-4")).toBe("4");
+  });
+
+  it("keeps the checks every module shares together", () => {
+    for (const id of ["disk", "suhu", "chrony", "agen", "versi-agen", "bundel", "venv", "Uplink"])
+      expect(modulCek(id)).toBeNull();
+    expect(modulCek("Hotspot-IRIS-IOT")).toBeNull();
+    expect(modulCek("dnsmasq")).toBeNull();
   });
 });

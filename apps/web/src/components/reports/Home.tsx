@@ -56,6 +56,7 @@ import Tooltip from "../ui/Tooltip";
 import { EarningsCard } from "../bayar/Earnings";
 import { useBayar } from "../bayar/data";
 import { IncidentsTab } from "./Incidents";
+import DataSemester, { DataSemesterBanner, DataSemesterButton } from "./DataSemester";
 import { bantuAudit, kalimatAudit, type AuditKonteks, type AuditRow } from "./audit";
 import { type Format, ekspor, jamSlot, jamWib, tanggalWib } from "./data";
 import type { Tx } from "./strings";
@@ -1227,6 +1228,7 @@ export default function Home({
 }) {
   const { t, lang, dir } = c;
   const shown = useMemo(() => rows.filter(cocok(f)), [rows, f]);
+  const [dataSem, setDataSem] = useState(false);
   const exportView = (fmt: Format) => {
     const kepala = [
       t.col.tanggal,
@@ -1273,6 +1275,7 @@ export default function Home({
             <h1 className="page-header__title">{t.title}</h1>
           </div>
           <div className="page-header__actions">
+            <DataSemesterButton lang={lang} onOpen={() => setDataSem(true)} />
             <ExportMenu t={t} onExport={exportView} />
             <button type="button" className="btn btn--inverse" onClick={onDocs}>
               <NotePencilIcon size={18} aria-hidden="true" />
@@ -1281,6 +1284,8 @@ export default function Home({
           </div>
         </div>
       </header>
+      <DataSemesterBanner lang={lang} onOpen={() => setDataSem(true)} />
+      <DataSemester lang={lang} open={dataSem} onOpenChange={setDataSem} />
       <FilterBar f={f} setF={setF} c={c} />
       <TabLine
         label={t.tabsLabel}

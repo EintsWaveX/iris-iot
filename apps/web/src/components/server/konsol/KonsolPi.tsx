@@ -1452,7 +1452,7 @@ function Done({
         ? t.because.kedaluwarsa
         : (t.because[row.alasanSelesai ?? ""] ?? row.alasanSelesai ?? "");
   return (
-    <section className="panel panel--solo">
+    <section className="panel panel--solo pkdone">
       <div className="panel__head">
         <h2 className="panel__title">{t.doneTitle}</h2>
         <span className="pill pill--ok mono">{nomorKonsol(row.id)}</span>

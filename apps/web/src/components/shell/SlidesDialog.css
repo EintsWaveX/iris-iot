@@ -15,14 +15,15 @@
   min-height: 300px;
 }
 
-/* A Canva design at 16:9, as wide as the height allows. */
+/* A Canva design in the same box as the PDF, so switching between the two
+   never resizes the dialog; Canva's player letterboxes the slide itself. */
 .slides-frame {
-  aspect-ratio: 16 / 9;
   background: var(--surface-2);
   border-radius: var(--radius-md);
-  margin-inline: auto;
+  height: min(calc(100dvh - var(--slides-chrome)), calc(var(--slides-w) * 0.5625 + 92px));
+  min-height: 300px;
   overflow: hidden;
-  width: min(100%, calc((100dvh - var(--slides-chrome)) * 16 / 9));
+  width: 100%;
 }
 
 .slides-frame iframe {

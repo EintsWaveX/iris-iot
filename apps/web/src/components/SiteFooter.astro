@@ -29,7 +29,7 @@ const year = new Date().getFullYear();
           {LAB_CONTACT.email && <a href={`mailto:${LAB_CONTACT.email}`}>{LAB_CONTACT.email}</a>}
           {insta && (
             <a href={insta} rel="noopener" target="_blank">
-              Instagram {LAB_CONTACT.instagram}
+              Instagram @{LAB_CONTACT.instagram}
             </a>
           )}
         </span>
@@ -129,7 +129,8 @@ const year = new Date().getFullYear();
       row-gap: 0;
     }
 
-    .sitefoot__links a {
+    .sitefoot__links a,
+    .sitefoot__contact a {
       align-items: center;
       display: inline-flex;
       min-height: var(--tap, 44px);
