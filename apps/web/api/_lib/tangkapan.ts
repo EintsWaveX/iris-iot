@@ -15,6 +15,7 @@ import { anggota, jurnalTangkapan, kelompok, serialCermin } from "../../src/lib/
 import { currentSesi } from "../../src/lib/sesi.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { sesiDiikuti } from "./phase8.js";
+import { terbitkanSesi } from "./aliran.js";
 import { statusRiwayat } from "../../src/lib/akses.js";
 
 const BARIS_MAKS = { paket: 5, jarak: 3 } as const;
@@ -196,6 +197,23 @@ export async function handleCerminPost(req: ApiRequest, res: ApiResponse, who: S
   }
   const db = getDb();
   const inserted = await db.insert(serialCermin).values(rows).returning({ id: serialCermin.id });
+  // While the laptop's room socket is down it says so (Phase 12): the
+  // Asisten's Live room still hears the lines at once.
+  const siar =
+    jsonBody(req).siar !== true
+      ? null
+      : terbitkanSesi(running.id, [
+          {
+            j: "serial",
+            g: who.kelompokNomor!,
+            d: rows.map((r, i) => ({
+              id: inserted[i]?.id,
+              sumber: r.sumber,
+              teks: r.teks,
+              t: r.t,
+            })),
+          },
+        ]);
   // Keep each group's newest lines only; trimmed now and then, not every call.
   if (Math.random() < 0.15) {
     const batas = inserted[inserted.length - 1].id - CERMIN_SIMPAN;
@@ -210,6 +228,7 @@ export async function handleCerminPost(req: ApiRequest, res: ApiResponse, who: S
       );
   }
   res.status(200).json({ ok: true, diterima: rows.length });
+  await siar;
 }
 
 export async function handleCerminGet(req: ApiRequest, res: ApiResponse) {

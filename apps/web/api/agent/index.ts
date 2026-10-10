@@ -57,6 +57,8 @@ import { ambilBundel, bundelUntukPasang, terbitkan } from "../_lib/bundel.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
+import { terbitkan as terbitkanAliran, terbitkanSesi } from "../_lib/aliran.js";
+import type { PesanAliran } from "../../src/lib/aliran.js";
 import { catatKabar } from "../_lib/pasang.js";
 import type { Topik } from "../../src/lib/siaran-topik.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
@@ -160,7 +162,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
 
     // Phase 9: the network rate (in + out) gets a series like CPU and memory.
     const net = bacaKondisi(body.kondisi)?.jaringan;
-    await db.insert(denyut).values({
+    const [beat] = await db.insert(denyut).values({
       serverId,
       jaringan: net ? Math.round(net.masuk + net.keluar) : null,
       cpu: numOrNull(body.cpu),
@@ -171,7 +173,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       jamSelaras: body.jamSelaras === true,
       modeJaringan: typeof body.modeJaringan === "string" ? body.modeJaringan : null,
       layanan: isPlainObject(body.layanan) ? body.layanan : null,
-    });
+    }).returning();
 
     // What this beat changed that a page shows, broadcast once it is
     // answered (2026-10-07). A beat that changes nothing sends nothing.
@@ -267,7 +269,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
           ? INTERVAL_AKTIF_SEC
           : INTERVAL_IDLE_SEC;
 
-    await rekamTelemetri(serverId, sesiAktif?.id ?? null, body.telemetri);
+    const bacaan = await rekamTelemetri(serverId, sesiAktif?.id ?? null, body.telemetri);
     await pruneOldTelemetryOccasionally();
 
     // Only computed when today actually has a Module 4 slot (jadwalModul4Hari
@@ -285,7 +287,26 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       waktu: Date.now() / 1000,
       ...(jadwal ? { jadwal } : {}),
     });
-    await siarkan([...berubah]);
+    // Phase 12: the beat itself to the Server pages, the readings to the
+    // session's Live rooms, both with their data; the topics as before.
+    const perGrup = new Map<number, typeof bacaan>();
+    for (const r of bacaan) perGrup.set(r.kelompokNomor, [...(perGrup.get(r.kelompokNomor) ?? []), r]);
+    const tel: PesanAliran[] = [...perGrup].map(([g, rows]) => ({ j: "tel", g, d: rows }));
+    await Promise.all([
+      siarkan([...berubah]),
+      terbitkanAliran("pi", [
+        {
+          j: "denyut",
+          g: null,
+          d: {
+            serverId,
+            denyut: beat,
+            ...(kondisi ? { kondisi, kondisiPada: new Date() } : {}),
+          },
+        },
+      ]),
+      terbitkanSesi(sesiAktif?.id, tel),
+    ]);
   } catch (err) {
     console.error("[api/agent denyut] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });

@@ -22,7 +22,16 @@ function chain(): unknown {
 }
 
 vi.mock("../../src/lib/db", () => ({
-  getDb: () => ({ select: () => chain(), selectDistinctOn: () => chain(), insert: () => chain() }),
+  getDb: () => ({
+    select: () => chain(),
+    selectDistinctOn: () => chain(),
+    insert: () => chain(),
+  }),
+}));
+// The read sweeps expired commands first (Phase 12); its own tests cover it.
+vi.mock("../../src/lib/server-lib", async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  sweepPerintahKedaluwarsa: async () => {},
 }));
 vi.mock("../_lib/session", () => ({
   requireRole: () => ({ nim: "1010", role: "asisten" }),

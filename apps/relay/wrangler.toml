@@ -24,3 +24,12 @@ class_name = "Siaran"
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["Siaran"]
+
+# Session streams (Phase 12): one room per running session, plus "pi".
+[[durable_objects.bindings]]
+name = "ALIRAN"
+class_name = "Aliran"
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Aliran"]

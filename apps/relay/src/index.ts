@@ -38,17 +38,41 @@
  * page costs nothing) and passes each signed message to all of them. A
  * message only names what changed, never the data, so a page that hears
  * one asks the API again with its own sign-in.
+ *
+ * Session streams (Phase 12) carry data, so they have rooms of their own:
+ *
+ *   GET  /aliran/<ruang>?tiket=...   a page in a running session (WebSocket)
+ *   POST /aliran/<ruang>/kirim       the IRIS API, signed: {"m": [...]}
+ *
+ * <ruang> is "sesi-<id>" or "pi" (the Server pages). The ticket names the
+ * room, the role and the Praktikan's group; the room passes each message
+ * only to the sockets allowed to see it (src/lib/aliran.ts in apps/web).
  */
 import { cekTiket, DIAM_MENIT } from "../../web/src/lib/konsol.ts";
+import {
+  ALIRAN_RUANG_RE,
+  ALIRAN_TIKET_DETIK,
+  bolehTerima,
+  cekTiketAliran,
+  saringKiriman,
+  saringNaik,
+  type PesanAliran,
+  type TiketAliran,
+} from "../../web/src/lib/aliran.ts";
 
 export interface Env {
   RUANG: DurableObjectNamespace;
   SIARAN: DurableObjectNamespace;
+  ALIRAN: DurableObjectNamespace;
   KONSOL_RELAY_SECRET: string;
+  /** "1" in .dev.vars only: count requests for the load test */
+  HITUNG?: string;
 }
 
 const TOPIK_RE = /^[a-z]{2,16}$/;
 const SIARAN_MAKS = 1024;
+/** The API's batch for a session room */
+const ALIRAN_KIRIM_MAKS = 64 * 1024;
 
 const KANAL_RE = /^[A-Za-z0-9_-]{16,64}$/;
 const KONTROL = "\u0000relay:";
@@ -119,9 +143,12 @@ function samaPersis(a: string, b: string): boolean {
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
-    const [, ujung, kanal] = url.pathname.split("/");
+    const [, ujung, kanal, sub] = url.pathname.split("/");
+    hitung(env, "pekerja");
     if (!ujung) return teks(200, "IRIS Konsol relay");
     if (ujung === "siaran") return siaran(req, env, kanal);
+    if (ujung === "aliran") return aliran(req, env, kanal, sub);
+    if (ujung === "hitung" && env.HITUNG === "1") return bacaHitung(env, url);
     if (!kanal || !KANAL_RE.test(kanal)) return teks(404, "tidak ditemukan");
     if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
       return teks(503, "relay belum diatur");
@@ -260,6 +287,7 @@ export class Siaran {
   }
 
   async fetch(req: Request): Promise<Response> {
+    hitung(this.env, "do_siaran");
     if (new URL(req.url).pathname === "/kirim") {
       const pesan = await req.text();
       let n = 0;
@@ -621,4 +649,238 @@ export class Ruang {
     }
     await this.ctx.storage.setAlarm(now + 30_000);
   }
+}
+
+/* ------------------------------------------------------ session streams */
+
+/** A request count while `HITUNG=1` (.dev.vars only): the load test reads
+ *  it at /hitung to weigh a day against the free plan. */
+const HITUNG: Record<string, number> = {};
+function hitung(env: Env, k: string, n = 1) {
+  if (env.HITUNG === "1") HITUNG[k] = (HITUNG[k] ?? 0) + n;
+}
+
+/** /aliran/<ruang> (a page's socket) and /aliran/<ruang>/kirim (the API) */
+async function aliran(
+  req: Request,
+  env: Env,
+  ruang: string | undefined,
+  sub: string | undefined,
+): Promise<Response> {
+  if (!ruang || !ALIRAN_RUANG_RE.test(ruang))
+    return teks(404, "tidak ditemukan");
+  if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
+    return teks(503, "relay belum diatur");
+  // Everyone in a session room is in Indonesia, like the Konsol rooms.
+  const kamar = env.ALIRAN.get(env.ALIRAN.idFromName(ruang), {
+    locationHint: "apac",
+  });
+
+  if (sub === "kirim" && req.method === "POST") {
+    const body = await req.text();
+    if (body.length > ALIRAN_KIRIM_MAKS) return teks(413, "terlalu besar");
+    const ts = Number(req.headers.get("x-aliran-ts"));
+    const tanda = req.headers.get("x-aliran-tanda") ?? "";
+    if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 60)
+      return teks(403, "kedaluwarsa");
+    const sah = samaPersis(
+      tanda,
+      await hmacHex(env.KONSOL_RELAY_SECRET, `aliran|${ruang}|${body}|${ts}`),
+    );
+    if (!sah) return teks(403, "tanda salah");
+    let m: PesanAliran[] | null = null;
+    try {
+      m = saringKiriman(JSON.parse(body));
+    } catch {
+      /* not JSON */
+    }
+    if (!m) return teks(400, "format");
+    hitung(env, "do_kirim");
+    return kamar.fetch("https://aliran/kirim", {
+      method: "POST",
+      body: JSON.stringify(m),
+    });
+  }
+
+  if (sub || req.headers.get("Upgrade") !== "websocket")
+    return teks(404, "tidak ditemukan");
+  const cek = await cekTiketAliran(
+    new URL(req.url).searchParams.get("tiket") ?? "",
+    env.KONSOL_RELAY_SECRET,
+    ruang,
+  );
+  if (!cek.ok) return teks(403, `tiket ${cek.kode}`);
+  const h = new Headers(req.headers);
+  h.set("x-tiket", JSON.stringify(cek.tiket));
+  hitung(env, "do_sambung");
+  return kamar.fetch(new Request("https://aliran/sambung", { headers: h }));
+}
+
+/** What a socket in a session room carries through hibernation */
+interface Lampiran {
+  peran: TiketAliran["peran"];
+  g: number | null;
+  u: string;
+  /** The group this page is looking at (Live, the inspector) */
+  lihat: number | null;
+  /** Others looking at this socket's own group, and how many of them are
+   *  Asisten, as last told ("n,a") */
+  penonton: string;
+}
+
+/**
+ * One running session's streams (or the Server pages' `pi` room). Sockets
+ * hibernate, so a quiet room costs nothing; "ping" is answered without
+ * waking it. Each message reaches only the sockets allowed to see it
+ * (bolehTerima, src/lib/aliran.ts). Nothing is stored but the nonces of
+ * tickets already used, until they expire.
+ */
+export class Aliran {
+  constructor(
+    private ctx: DurableObjectState,
+    private env: Env,
+  ) {
+    this.ctx.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair("ping", "pong"),
+    );
+  }
+
+  async fetch(req: Request): Promise<Response> {
+    const path = new URL(req.url).pathname;
+    if (path === "/kirim") {
+      const m = JSON.parse(await req.text()) as PesanAliran[];
+      return teks(200, String(this.sebar(m, null)));
+    }
+    let t: TiketAliran;
+    try {
+      t = JSON.parse(req.headers.get("x-tiket") ?? "") as TiketAliran;
+    } catch {
+      return teks(400, "tiket");
+    }
+    // A ticket's nonce works once, kept until the ticket is long expired.
+    const kunci = `n:${t.n}`;
+    if (await this.ctx.storage.get(kunci))
+      return teks(403, "tiket sudah dipakai");
+    await this.ctx.storage.put(kunci, t.exp);
+    if ((await this.ctx.storage.getAlarm()) === null)
+      await this.ctx.storage.setAlarm(
+        Date.now() + 2 * ALIRAN_TIKET_DETIK * 1000,
+      );
+
+    const pair = new WebSocketPair();
+    this.ctx.acceptWebSocket(pair[1]);
+    const att: Lampiran = {
+      peran: t.peran,
+      g: t.g,
+      u: t.u,
+      lihat: null,
+      penonton: "",
+    };
+    pair[1].serializeAttachment(att);
+    this.kabariPenonton();
+    return new Response(null, { status: 101, webSocket: pair[0] });
+  }
+
+  async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer) {
+    hitung(this.env, "ws_masuk");
+    if (typeof data !== "string") return;
+    const att = ws.deserializeAttachment() as Lampiran;
+    if (data.startsWith('{"j":"lihat"')) {
+      let g: unknown = null;
+      try {
+        g = (JSON.parse(data) as { g?: unknown }).g ?? null;
+      } catch {
+        return;
+      }
+      att.lihat =
+        Number.isInteger(g) && (g as number) >= 1 && (g as number) <= 99
+          ? (g as number)
+          : null;
+      ws.serializeAttachment(att);
+      this.kabariPenonton();
+      return;
+    }
+    const m = saringNaik(data, att);
+    if (m) this.sebar([m], ws);
+  }
+
+  async webSocketClose(ws: WebSocket, code: number) {
+    try {
+      ws.close(code === 1005 ? 1000 : code, "tutup");
+    } catch {
+      /* already closed */
+    }
+    this.kabariPenonton(ws);
+  }
+
+  async webSocketError(ws: WebSocket) {
+    this.kabariPenonton(ws);
+  }
+
+  /** Each socket gets the messages it may see, in one frame. */
+  private sebar(m: PesanAliran[], dari: WebSocket | null): number {
+    let n = 0;
+    for (const ws of this.ctx.getWebSockets()) {
+      if (ws === dari) continue;
+      const att = ws.deserializeAttachment() as Lampiran | null;
+      if (!att) continue;
+      const boleh = m.filter((x) => bolehTerima(att, x));
+      if (!boleh.length) continue;
+      try {
+        ws.send(JSON.stringify({ m: boleh }));
+        n++;
+      } catch {
+        /* closing */
+      }
+    }
+    return n;
+  }
+
+  /** Tells each group's sockets how many others look at their group, so a
+   *  laptop sends its board lines only while someone watches. */
+  private kabariPenonton(pergi: WebSocket | null = null) {
+    const semua = this.ctx.getWebSockets().filter((ws) => ws !== pergi);
+    const atts = semua.map(
+      (ws) => ws.deserializeAttachment() as Lampiran | null,
+    );
+    semua.forEach((ws, i) => {
+      const att = atts[i];
+      if (!att || att.g === null) return;
+      const lain = atts.filter((o, k) => k !== i && o?.lihat === att.g);
+      const n = lain.length;
+      const a = lain.filter((o) => o?.peran === "asisten").length;
+      if (`${n},${a}` === att.penonton) return;
+      att.penonton = `${n},${a}`;
+      ws.serializeAttachment(att);
+      try {
+        ws.send(JSON.stringify({ penonton: n, asisten: a }));
+      } catch {
+        /* closing */
+      }
+    });
+  }
+
+  /** Forgets nonces whose tickets have run out. */
+  async alarm() {
+    hitung(this.env, "alarm");
+    const kini = Date.now() / 1000;
+    const semua = await this.ctx.storage.list<number>({ prefix: "n:" });
+    const basi = [...semua]
+      .filter(([, exp]) => exp < kini - 60)
+      .map(([k]) => k);
+    if (basi.length) await this.ctx.storage.delete(basi);
+    if (semua.size > basi.length)
+      await this.ctx.storage.setAlarm(
+        Date.now() + 2 * ALIRAN_TIKET_DETIK * 1000,
+      );
+  }
+}
+
+/** The counts so far (HITUNG=1 only); ?nol=1 starts them over */
+async function bacaHitung(env: Env, url: URL): Promise<Response> {
+  if (url.searchParams.get("nol") === "1")
+    for (const k of Object.keys(HITUNG)) delete HITUNG[k];
+  return new Response(JSON.stringify(HITUNG), {
+    headers: { "content-type": "application/json" },
+  });
 }

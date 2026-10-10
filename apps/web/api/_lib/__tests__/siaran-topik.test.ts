@@ -14,6 +14,7 @@ const WEB = resolve(__dirname, "..", "..", "..");
 /** Read-only actions: they answer GET only and never broadcast. */
 const BACA: Record<string, string[]> = {
   session: [
+    "aliran",
     "asisten",
     "audit",
     "beranda",

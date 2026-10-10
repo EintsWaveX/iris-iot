@@ -18,6 +18,7 @@ import { soalKode } from "../../src/lib/blanks.js";
 import { teksUntuk } from "../../src/lib/kode-jurnal.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { celahKe, kanonik, kodeModul } from "./kode-aktif.js";
+import { nomorDariId, terbitkanSesi } from "./aliran.js";
 
 const MAKS_CATATAN = 160;
 const MAKS_PETUNJUK = 400;
@@ -167,6 +168,13 @@ export async function handleMinta(req: ApiRequest, res: ApiResponse, session: Se
     .values({ sesiId: running.id, kelompokId, soalKode: soal, catatan, dimintaOleh: session.nim })
     .returning({ id: petunjukMinta.id });
   res.status(200).json({ ok: true, id: row.id });
+  await terbitkanSesi(running.id, [
+    {
+      j: "petunjuk",
+      g: session.kelompokNomor ?? null,
+      d: { id: row.id, kelompokId, soal, catatan, status: "minta", oleh: session.nim },
+    },
+  ]);
 }
 
 export async function handleMintaBatal(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -186,6 +194,13 @@ export async function handleMintaBatal(req: ApiRequest, res: ApiResponse, sessio
       ),
     );
   res.status(200).json({ ok: true });
+  await terbitkanSesi(session.sesiId, [
+    {
+      j: "petunjuk",
+      g: session.kelompokNomor ?? null,
+      d: { id, kelompokId: session.kelompokId, status: "batal" },
+    },
+  ]);
 }
 
 /* ------------------------------------------------- the Konsol's Blank tab */
@@ -357,6 +372,7 @@ export async function handlePetunjuk(req: ApiRequest, res: ApiResponse, session:
       .returning({ id: petunjukMinta.id });
     if (row) {
       res.status(200).json({ ok: true, id: row.id });
+      await kabarPetunjuk(running.id, kelompokId, row.id, soal, teks);
       return;
     }
   }
@@ -372,6 +388,22 @@ export async function handlePetunjuk(req: ApiRequest, res: ApiResponse, session:
     })
     .returning({ id: petunjukMinta.id });
   res.status(200).json({ ok: true, id: row.id });
+  await kabarPetunjuk(running.id, kelompokId, row.id, soal, teks);
+}
+
+/** An Asisten's hint, to the group it is for (and the other Asisten) */
+async function kabarPetunjuk(
+  sesiId: number,
+  kelompokId: number,
+  id: number,
+  soal: string,
+  teks: string,
+): Promise<void> {
+  const g = await nomorDariId(kelompokId);
+  if (g === null) return;
+  await terbitkanSesi(sesiId, [
+    { j: "petunjuk", g, d: { id, kelompokId, soal, teks, status: "jawab" } },
+  ]);
 }
 
 /* ------------------------------------------ every group, every blank */

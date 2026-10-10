@@ -71,6 +71,7 @@ import type { Lang } from "../../lib/kelas";
 import { M } from "./moduleStrings";
 import { openSignIn } from "../../lib/signin";
 import { dengar, useSegar } from "../../lib/siaran";
+import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 
 type Mode = "browse" | "now" | "done" | "asisten";
 type Step = "modul" | "brief" | "praktikum" | "setup" | "code" | "live" | "hunt";
@@ -198,13 +199,23 @@ export default function ModuleSteps(p: Props) {
     };
   }, [me]);
 
-  const segarMine = useSegar(["sesi", "nilai", "jawaban"], me?.role === "praktikan");
+  const segarMine = useSegar(["sesi", "nilai"], me?.role === "praktikan");
+  // My group's blank results come through the session room (other groups'
+  // checks no longer refetch this page); the topic stands in when it's down.
+  const [segarJawab, setSegarJawab] = useState(0);
+  useAliranAtauTopik(
+    { ruang: "sesi", sesiId: now.data?.id ?? null },
+    ["jawaban"],
+    ["jawaban"],
+    () => setSegarJawab((n) => n + 1),
+    me?.role === "praktikan",
+  );
   useEffect(() => {
     if (me?.role !== "praktikan") return;
     getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine")
       .then((d) => setMine(d.ok ? d.praktikum : []))
       .catch(() => setMine([]));
-  }, [me, segarMine]);
+  }, [me, segarMine, segarJawab]);
 
   const pro = useProyektor(me);
   const wakil = useWakil(modul, me?.role === "asisten", pro);

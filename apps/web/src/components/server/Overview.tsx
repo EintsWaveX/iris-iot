@@ -62,6 +62,7 @@ import {
   type Bisa,
   type Detail,
   type Riwayat,
+  useDenyutLangsung,
 } from "./data";
 import { S } from "./strings";
 import { S12 } from "./server12Strings";
@@ -254,6 +255,11 @@ function ChartCard({ lang, id }: { lang: Lang; id: number }) {
   const [rentang, setRentang] = useState("24h");
   const [h, setH] = useState<Riwayat | null>(null);
   const segar = useSegar(["server"]);
+  // The last hour grows with each beat (longer ranges are sampled down).
+  useDenyutLangsung(rentang === "1h", (d) => {
+    if (d.serverId !== id) return;
+    setH((x) => (x ? { ...x, seri: [...x.seri.slice(1), d.denyut] } : x));
+  });
   useEffect(() => setH(null), [id, rentang]);
   useEffect(() => {
     let alive = true;

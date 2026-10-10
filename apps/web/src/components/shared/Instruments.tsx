@@ -853,6 +853,7 @@ export function Instrument({
   title,
   nim,
   extra,
+  sesiId = null,
 }: {
   m: number;
   kelompok: number;
@@ -860,9 +861,11 @@ export function Instrument({
   title: string;
   nim: string;
   extra?: ReactNode;
+  /** The running session, for its stream room */
+  sesiId?: number | null;
 }) {
   const t = IN[lang];
-  const tel = useTelemetry(m, kelompok, false, 2000);
+  const tel = useTelemetry(m, kelompok, false, 2000, null, true, sesiId);
   const r = readings(m, tel.history.slice(-60), lang);
   return (
     <section className="panel instr" style={{ "--m": `var(--mod-${m})` } as CSSProperties}>

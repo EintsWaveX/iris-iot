@@ -12,7 +12,16 @@ import { getJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { urutkanLayanan } from "../../lib/server-shared";
 import Enroll from "./Enroll";
-import { isOnline, svcTone, TONE_PILL, type Bisa, type Riwayat, type ServerRow } from "./data";
+import {
+  isOnline,
+  svcTone,
+  TONE_PILL,
+  type Bisa,
+  type Riwayat,
+  type ServerRow,
+  denganDenyut,
+  useDenyutLangsung,
+} from "./data";
 import { S } from "./strings";
 import Nil from "../ui/Nil";
 
@@ -71,6 +80,9 @@ export default function ServerList({
     60_000,
     true,
     ["server"],
+  );
+  useDenyutLangsung(true, (d) =>
+    poll.ubah((x) => ({ ...x, list: x.list.map((s) => denganDenyut(s, d)) })),
   );
   // Online servers first, then by name (mockup v-list).
   const list = [...(poll.data?.list ?? [])].sort(

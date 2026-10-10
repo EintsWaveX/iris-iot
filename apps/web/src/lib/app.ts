@@ -8,7 +8,7 @@ import { laluLabel } from "./labels.js";
 import type { HakKey, HakNilai, Tier } from "./hak.js";
 import { useEffect, useState } from "react";
 import type { Kelas, Lang } from "./kelas.js";
-import { usePoll } from "./hooks.js";
+import { usePollBersama } from "./hooks.js";
 import { dengar, useBatas } from "./siaran.js";
 import { akhirSesiPada } from "./jadwal.js";
 import { adaBelumSimpan, saatBersih } from "./belum-simpan.js";
@@ -217,6 +217,8 @@ export function useMe(): Me | null | undefined {
 /* --------------------------------------------------------- session now */
 
 export interface SesiNow {
+  /** The session's id (its stream room); absent from older answers */
+  id?: number;
   modul: number;
   tanggal: string;
   mulai: string;
@@ -250,7 +252,9 @@ export interface SesiNow {
 }
 
 export function useSessionNow(enabled = true) {
-  const poll = usePoll(
+  // Every view on a page shares this one (AppNav, the module steps, Live).
+  const poll = usePollBersama(
+    "sesi-now",
     () => getJson<{ ok: boolean; sesi: SesiNow | null }>("/api/session/now").then((d) => d.sesi),
     60_000,
     enabled,

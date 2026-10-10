@@ -44,6 +44,7 @@ import {
   useTick,
   type SesiNow,
 } from "../../lib/app";
+import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import { usePoll } from "../../lib/hooks";
 import { openSignIn } from "../../lib/signin";
 import { bacaProyektor, useProyektor } from "../../lib/proyektor";
@@ -390,6 +391,7 @@ function Running({
       {hasil?.kelompok ? (
         <Instrument
           m={modul}
+          sesiId={sesi.id ?? null}
           kelompok={hasil.kelompok.nomor}
           lang={lang}
           title={t.liveH}
@@ -950,7 +952,16 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     () => getJson<Hasil>(`/api/session/results${pro ? `?kelompok=${pro}` : ""}`),
     60_000,
     praktikan,
-    ["sesi", "nilai", "jurnal", "jawaban", "tangkapan", "buru"],
+    ["sesi", "nilai", "jurnal", "tangkapan", "buru"],
+  );
+  // This group's blank results through the session room, not every group's.
+  useAliranAtauTopik(
+    { ruang: "sesi", sesiId: now.data?.id ?? null },
+    ["jawaban"],
+    ["jawaban"],
+    hasilPoll.refresh,
+    praktikan,
+    pro ?? me?.kelompok ?? null,
   );
   const minePoll = usePoll(
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),

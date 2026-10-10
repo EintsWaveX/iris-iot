@@ -167,6 +167,7 @@ import {
 } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 import { tandaiAktif } from "../_lib/kehadiran.js";
+import { handleAliranGet, terbitkanSesi } from "../_lib/aliran.js";
 
 const PESAN_MAX_LEN = 200;
 const CATATAN_MAX_LEN = 300;
@@ -220,6 +221,8 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
   res.status(200).json({
     ok: true,
     sesi: {
+      // Phase 12: names the session's stream room.
+      id: running.id,
       modul: running.modul,
       tanggal: running.tanggal,
       mulai: running.mulai,
@@ -369,8 +372,28 @@ async function handleTelemetryModul1(req: ApiRequest, res: ApiResponse, who: Ses
       diukurPada: new Date(),
     });
   }
-  if (rows.length) await getDb().insert(telemetriLog).values(rows);
+  const disimpan = rows.length
+    ? await getDb()
+        .insert(telemetriLog)
+        .values(rows)
+        .returning({
+          id: telemetriLog.id,
+          tx: telemetriLog.tx,
+          rx: telemetriLog.rx,
+          delayMs: telemetriLog.delayMs,
+          nilai: telemetriLog.nilai,
+        })
+    : [];
   res.status(200).json({ ok: true, diterima: rows.length });
+  // The laptop says when its room socket is down: the room hears it here.
+  if (body.siar === true && disimpan.length)
+    await terbitkanSesi(running.id, [
+      {
+        j: "tel",
+        g: who.kelompokNomor,
+        d: disimpan.map((r) => ({ ...r, seq: r.id, rssi: null, snr: null })),
+      },
+    ]);
 }
 
 async function handleCancel(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -1494,6 +1517,11 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireMethod(req, res, "GET")) return;
     if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
     return handleNow(req, res);
+  }
+  // Phase 12: a ticket for the session's stream room (or the Server pages').
+  if (aksi === "aliran") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleAliranGet(req, res);
   }
   if (aksi === "telemetry") {
     if (req.method === "POST") {

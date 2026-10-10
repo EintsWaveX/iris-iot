@@ -20,8 +20,10 @@ import {
   dict,
   tanggalPanjang,
   type Me,
+  useSessionNow,
 } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
+import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel, slotLabel } from "../../lib/labels";
 
@@ -113,7 +115,14 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
     120_000,
     true,
-    ["sesi", "nilai", "jurnal", "jawaban", "tangkapan"],
+    ["sesi", "nilai", "jurnal", "tangkapan"],
+  );
+  const sesiNow = useSessionNow();
+  useAliranAtauTopik(
+    { ruang: "sesi", sesiId: sesiNow.data?.id ?? null },
+    ["jawaban"],
+    ["jawaban"],
+    poll.refresh,
   );
   const list = poll.data?.ok ? poll.data.praktikum : null;
   const k = me.kelompok ?? 0;

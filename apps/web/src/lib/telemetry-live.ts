@@ -76,6 +76,7 @@ export async function fetchLiveReadings(
     readings: fresh.map((r) => ({
       modul,
       group,
+      ...(r.id !== undefined ? { id: r.id } : {}),
       seq: r.seq,
       tx: r.tx,
       rx: r.rx,

@@ -86,6 +86,7 @@ import { statusRiwayat } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { and, asc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
+import { terbitkanSesi } from "../_lib/aliran.js";
 
 const MAX_JAWABAN_LEN = 200;
 
@@ -391,7 +392,7 @@ async function handleCek(
         diubahPada: new Date(),
       })
       .where(target)
-      .returning({ id: jawaban.id, salah: jawaban.salah });
+      .returning({ id: jawaban.id, salah: jawaban.salah, percobaan: jawaban.percobaan });
 
   let [baris] = await perbarui();
   if (!baris) {
@@ -408,7 +409,7 @@ async function handleCek(
           salah: result.benar ? 0 : 1,
           diubahOleh: session.nim,
         })
-        .returning({ id: jawaban.id, salah: jawaban.salah });
+        .returning({ id: jawaban.id, salah: jawaban.salah, percobaan: jawaban.percobaan });
     } catch (err) {
       // A groupmate inserted this same row between our update and insert
       // (the editor is shared by the whole group). Their row exists now, so
@@ -443,6 +444,25 @@ async function handleCek(
     salah,
     ...(bantuan ? { bantuan } : {}),
   });
+  // Phase 12: the group's own answer to its groupmates and the Asisten (the
+  // room keeps it from other groups); never the key or the explanation.
+  if (running)
+    await terbitkanSesi(running.id, [
+      {
+        j: "jawaban",
+        g: nomorKelompok,
+        d: {
+          kelompokId,
+          soal,
+          isi: jawabanTeks,
+          benar: result.benar,
+          salah,
+          percobaan: baris?.percobaan ?? 1,
+          oleh: session.nim,
+          pada: new Date().toISOString(),
+        },
+      },
+    ]);
 }
 
 async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPayload) {

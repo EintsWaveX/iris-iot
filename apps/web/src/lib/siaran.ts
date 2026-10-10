@@ -327,15 +327,34 @@ export function dengar(topik: readonly Topik[], fn: Fn): () => void {
   };
 }
 
-/** React: refetch on the given topics. `fn` may change every render. */
-export function useSiaran(topik: readonly Topik[], fn: Fn, enabled = true): void {
+/** React: refetch on the given topics. `fn` may change every render.
+ *  `jarak`: at most one call per this many ms, the last change kept. */
+export function useSiaran(topik: readonly Topik[], fn: Fn, enabled = true, jarak = 0): void {
   const ref = useRef(fn);
   ref.current = fn;
   const key = topik.join(",");
   useEffect(() => {
     if (!enabled || !key) return;
-    return dengar(key.split(",") as Topik[], () => ref.current());
-  }, [key, enabled]);
+    let terakhir = 0;
+    let tunda: ReturnType<typeof setTimeout> | null = null;
+    const panggil = () => {
+      terakhir = Date.now();
+      ref.current();
+    };
+    const lepas = dengar(key.split(",") as Topik[], () => {
+      const sisa = terakhir + jarak - Date.now();
+      if (sisa <= 0) return panggil();
+      if (!tunda)
+        tunda = setTimeout(() => {
+          tunda = null;
+          panggil();
+        }, sisa);
+    });
+    return () => {
+      lepas();
+      if (tunda) clearTimeout(tunda);
+    };
+  }, [key, enabled, jarak]);
 }
 
 /** React: a number that goes up whenever one of `topik` changes. Put it in

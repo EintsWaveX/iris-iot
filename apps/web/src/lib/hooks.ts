@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LANG_PREF_KEY, isLang, resolveLang, type Kelas, type Lang } from "./kelas.js";
-import { useSiaran, type Topik } from "./siaran.js";
+import { dengar, useSiaran, type Topik } from "./siaran.js";
 
 /* ------------------------------------------------------------- usePoll */
 
@@ -20,6 +20,8 @@ export interface PollState<T> {
    *  those, so "connection lost" banners stay quiet (2026-10-07). */
   ditolak: boolean;
   refresh: () => void;
+  /** Changes the data in place, from a stream message (Phase 12) */
+  ubah: (f: (d: T) => T) => void;
 }
 
 /**
@@ -33,12 +35,15 @@ export interface PollState<T> {
  *
  * `topik`: also fetch at once when another device changes that data
  * (live updates, lib/siaran.ts), instead of waiting for the next tick.
+ * `jarak`: at most one such fetch per this many ms (a public view that
+ * listens to a busy topic), the last change always fetched.
  */
 export function usePoll<T>(
   fn: () => Promise<T>,
   ms: number,
   enabled = true,
   topik: readonly Topik[] = [],
+  jarak = 0,
 ): PollState<T> {
   const [data, setData] = useState<T | null>(null);
   const [errors, setErrors] = useState(0);
@@ -119,9 +124,176 @@ export function usePoll<T>(
     };
   }, [ms, enabled, run]);
 
-  useSiaran(topik, () => void run(), enabled);
+  useSiaran(topik, () => void run(), enabled, jarak);
 
-  return { data, errors, updatedAt, ditolak, refresh: () => void run() };
+  return {
+    data,
+    errors,
+    updatedAt,
+    ditolak,
+    refresh: () => void run(),
+    ubah: (f) => setData((d) => (d === null ? d : f(d))),
+  };
+}
+
+/* ------------------------------------------------------- usePollBersama */
+
+interface KeadaanPoll<T> {
+  data: T | null;
+  errors: number;
+  updatedAt: number | null;
+  ditolak: boolean;
+}
+
+interface Bersama<T> {
+  keadaan: KeadaanPoll<T>;
+  fn: () => Promise<T>;
+  /** Each mounted view's listener, and whether it wants the data now */
+  pendengar: Map<(k: KeadaanPoll<T>) => void, boolean>;
+  timer: ReturnType<typeof setInterval> | null;
+  retry: ReturnType<typeof setTimeout> | null;
+  inFlight: boolean;
+  again: boolean;
+  failures: number;
+  lepasTopik: (() => void) | null;
+  ms: number;
+}
+
+const BERSAMA = new Map<string, Bersama<unknown>>();
+
+function siarkanKeadaan<T>(b: Bersama<T>) {
+  for (const f of b.pendengar.keys()) f(b.keadaan);
+}
+
+function adaYangMau<T>(b: Bersama<T>): boolean {
+  for (const mau of b.pendengar.values()) if (mau) return true;
+  return false;
+}
+
+async function jalankanBersama<T>(b: Bersama<T>): Promise<void> {
+  if (b.inFlight) {
+    b.again = true;
+    return;
+  }
+  if (!adaYangMau(b)) return;
+  b.inFlight = true;
+  b.again = false;
+  if (b.retry !== null) clearTimeout(b.retry);
+  b.retry = null;
+  try {
+    const d = await b.fn();
+    b.failures = 0;
+    b.keadaan = { data: d, errors: 0, updatedAt: Date.now(), ditolak: false };
+    siarkanKeadaan(b);
+  } catch (e) {
+    b.failures += 1;
+    b.keadaan = {
+      ...b.keadaan,
+      errors: b.keadaan.errors + 1,
+      ditolak: e instanceof Error && (e.message === "401" || e.message === "403"),
+    };
+    siarkanKeadaan(b);
+    if (document.visibilityState === "visible") {
+      const wait = Math.min(b.ms, 2000 * 2 ** (b.failures - 1));
+      b.retry = setTimeout(() => void jalankanBersama(b), wait);
+    }
+  } finally {
+    b.inFlight = false;
+    if (b.again && b.pendengar.size) void jalankanBersama(b);
+  }
+}
+
+/** The loop runs while a view wants the data and the tab is visible */
+function aturLoop<T>(b: Bersama<T>) {
+  const jalan = adaYangMau(b) && document.visibilityState === "visible";
+  if (jalan && b.timer === null) b.timer = setInterval(() => void jalankanBersama(b), b.ms);
+  if (!jalan && b.timer !== null) {
+    clearInterval(b.timer);
+    b.timer = null;
+  }
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    for (const b of BERSAMA.values()) {
+      aturLoop(b);
+      if (document.visibilityState === "visible") void jalankanBersama(b);
+    }
+  });
+}
+
+/**
+ * usePoll for data many views on one page show (who is signed in where,
+ * the running session): every view with the same `kunci` shares one fetch,
+ * one timer and one topic subscription, so a change costs one request per
+ * page, not one per view.
+ */
+export function usePollBersama<T>(
+  kunci: string,
+  fn: () => Promise<T>,
+  ms: number,
+  enabled = true,
+  topik: readonly Topik[] = [],
+): PollState<T> {
+  const b = BERSAMA.get(kunci) as Bersama<T> | undefined;
+  const [keadaan, setKeadaan] = useState<KeadaanPoll<T>>(
+    () => b?.keadaan ?? { data: null, errors: 0, updatedAt: null, ditolak: false },
+  );
+  if (b) b.fn = fn;
+  const topikKey = topik.join(",");
+
+  useEffect(() => {
+    let x = BERSAMA.get(kunci) as Bersama<T> | undefined;
+    if (!x) {
+      x = {
+        keadaan: { data: null, errors: 0, updatedAt: null, ditolak: false },
+        fn,
+        pendengar: new Map(),
+        timer: null,
+        retry: null,
+        inFlight: false,
+        again: false,
+        failures: 0,
+        lepasTopik: null,
+        ms,
+      };
+      BERSAMA.set(kunci, x as Bersama<unknown>);
+    }
+    const sb = x;
+    const baru = !adaYangMau(sb);
+    sb.pendengar.set(setKeadaan, enabled);
+    setKeadaan(sb.keadaan);
+    if (!sb.lepasTopik && topikKey)
+      sb.lepasTopik = dengar(topikKey.split(",") as Topik[], () => void jalankanBersama(sb));
+    aturLoop(sb);
+    // The first view to want it fetches; the others get what it has.
+    if (enabled && (baru || sb.keadaan.updatedAt === null)) void jalankanBersama(sb);
+    return () => {
+      sb.pendengar.delete(setKeadaan);
+      aturLoop(sb);
+      if (!sb.pendengar.size) {
+        sb.lepasTopik?.();
+        if (sb.retry !== null) clearTimeout(sb.retry);
+        BERSAMA.delete(kunci);
+      }
+    };
+  }, [kunci, enabled, topikKey, ms]);
+
+  // A view that doesn't want it sees nothing, as with usePoll.
+  const kosong = { data: null, errors: 0, updatedAt: null, ditolak: false };
+  return {
+    ...(enabled ? keadaan : kosong),
+    refresh: () => {
+      const x = BERSAMA.get(kunci);
+      if (x) void jalankanBersama(x);
+    },
+    ubah: (f) => {
+      const x = BERSAMA.get(kunci) as Bersama<T> | undefined;
+      if (!x || x.keadaan.data === null) return;
+      x.keadaan = { ...x.keadaan, data: f(x.keadaan.data) };
+      siarkanKeadaan(x);
+    },
+  };
 }
 
 /** "diperbarui 4 detik lalu" style age in whole seconds, re-rendering each second. */

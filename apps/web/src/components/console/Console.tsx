@@ -149,11 +149,11 @@ export default function Console({ lang }: { lang: Lang }) {
   const rs = R[lang];
   const now = useTick(15_000);
 
-  const lap = useLaporan(!!sesi);
+  const lap = useLaporan(!!sesi, sesi?.id ?? null);
   const assign = useAssignment(sesi?.id ?? lalu?.id ?? done?.id ?? null);
   const seelabs = useSeelabs(sesi?.id ?? done?.id ?? null);
   const servers = useServers(!!sesi);
-  const mtx = useMatriks(!!sesi, lang);
+  const mtx = useMatriks(!!sesi, lang, sesi?.id ?? null);
   const kolom = useMemo(() => kolomDari(mtx.data ?? null), [mtx.data]);
   const asisten = useMemo(
     () => new Map<string, AsistenRef>((assign.data?.asisten ?? []).map((a) => [a.nim, a])),

@@ -315,6 +315,110 @@ try {
   cek("nothing else arrived", p2.msgs.length === 1, p2.msgs.map(teks).join(","));
   p1.ws.close();
   p2.ws.close();
+
+  // Session streams: a ticket per room, role and group; each message only
+  // reaches those allowed to see it (Phase 12).
+  const tiketAliran = (o) => {
+    const t = { v: 1, p: "aliran", r: "sesi-7", peran: "praktikan", g: 2, u: "x", exp: now() + 60, n: id(), ...o };
+    const body = b64(JSON.stringify(t));
+    return `${body}.${b64(createHmac("sha256", secret).update(body).digest())}`;
+  };
+  const masuk = (ruang, o) => buka(`/aliran/${ruang}?tiket=${encodeURIComponent(tiketAliran({ r: ruang, ...o }))}`);
+  const kirimAliran = (ruang, m, o = {}) => {
+    const body = JSON.stringify({ m });
+    const ts = o.ts ?? now();
+    const tanda = o.tanda ?? createHmac("sha256", secret).update(`aliran|${ruang}|${body}|${ts}`).digest("hex");
+    return fetch(`${BASE}/aliran/${ruang}/kirim`, {
+      method: "POST",
+      headers: { "x-aliran-ts": String(ts), "x-aliran-tanda": tanda },
+      body,
+    });
+  };
+  const pesan = (s) =>
+    s.msgs
+      .map(teks)
+      .filter((x) => x !== "pong")
+      .map((x) => JSON.parse(x))
+      .filter((x) => x.m)
+      .flatMap((x) => x.m);
+
+  const asisten = await masuk("sesi-7", { peran: "asisten", g: null });
+  const g2 = await masuk("sesi-7", { g: 2 });
+  const g2b = await masuk("sesi-7", { g: 2 });
+  const g3 = await masuk("sesi-7", { g: 3 });
+  cek("a room takes Asisten and Praktikan with their tickets", ![asisten, g2, g2b, g3].some((s) => s.refused));
+
+  const salahRuang = await masuk("sesi-8", { r: "sesi-7" });
+  cek("a ticket for another room is refused", salahRuang.refused === true);
+  const basi = await masuk("sesi-7", { exp: now() - 1 });
+  cek("an expired ticket is refused", basi.refused === true);
+  const ulangT = tiketAliran({});
+  const pertama = await buka(`/aliran/sesi-7?tiket=${encodeURIComponent(ulangT)}`);
+  const kedua = await buka(`/aliran/sesi-7?tiket=${encodeURIComponent(ulangT)}`);
+  cek("a ticket works once", !pertama.refused && kedua.refused === true);
+  if (!pertama.refused) pertama.ws.close();
+  const piPraktikan = await masuk("pi", { peran: "praktikan", g: 2 });
+  cek("the pi room refuses a Praktikan", piPraktikan.refused === true);
+  const palsu = await buka(`/aliran/sesi-7?tiket=${encodeURIComponent(tiketAliran({}).replace(/.$/, "A"))}`);
+  cek("a forged ticket is refused", palsu.refused === true);
+
+  r = await kirimAliran("sesi-7", [
+    { j: "jawaban", g: 3, d: { soal: "m1-a-1", benar: true } },
+    { j: "tel", g: 3, d: [{ seq: 1, tx: "10:00:00:000", rx: "10:00:00:050" }] },
+    { j: "tangan", g: 2, d: { naik: true } },
+  ]);
+  await sampai(() => pesan(asisten).length >= 3 && pesan(g2).length >= 2 && pesan(g3).length >= 2);
+  await tunggu(200);
+  const jenis = (s) => pesan(s).map((x) => `${x.j}${x.g}`).sort().join(",");
+  cek("the API's batch is signed and answered", r.ok, String(r.status));
+  cek("an Asisten sees every group", jenis(asisten) === "jawaban3,tangan2,tel3", jenis(asisten));
+  cek(
+    "a Praktikan never gets another group's blank results or hands",
+    jenis(g2) === "tangan2,tel3" && jenis(g3) === "jawaban3,tel3",
+    `${jenis(g2)} | ${jenis(g3)}`,
+  );
+  r = await kirimAliran("sesi-7", [{ j: "tel", g: 1, d: [] }], { tanda: "0".repeat(64) });
+  cek("a wrong signature is refused (room)", r.status === 403);
+  r = await kirimAliran("sesi-7", [{ j: "rahasia", g: 1, d: {} }]);
+  cek("an unknown kind is refused", r.status === 400);
+
+  // Watching: group 2's laptops hear how many others look at their group.
+  asisten.ws.send(JSON.stringify({ j: "lihat", g: 2 }));
+  const penonton = (s) =>
+    s.msgs.map(teks).filter((x) => x.includes('"penonton"')).map((x) => JSON.parse(x).penonton);
+  await sampai(() => penonton(g2).at(-1) === 1);
+  cek("a group's laptop hears that someone watches it", penonton(g2).at(-1) === 1, penonton(g2).join(","));
+  const asistenLihat = g2.msgs.map(teks).filter((x) => x.includes('"asisten"')).map((x) => JSON.parse(x).asisten);
+  cek("and that the watcher is an Asisten", asistenLihat.at(-1) === 1, asistenLihat.join(","));
+
+  // A laptop sends its lines up; its group comes from the ticket.
+  const n2b = pesan(g2b).length;
+  const n3 = pesan(g3).length;
+  const nA = pesan(asisten).length;
+  g2.ws.send(
+    JSON.stringify({ j: "serial", g: 3, d: [{ sumber: "b0", teks: "hello", t: 1000 }] }),
+  );
+  await sampai(() => pesan(asisten).length > nA && pesan(g2b).length > n2b);
+  await tunggu(200);
+  const naik = pesan(asisten).at(-1);
+  cek(
+    "a laptop's lines go to the Asisten and its groupmates, stamped with its own group",
+    naik?.j === "serial" && naik.g === 2 && pesan(g2b).at(-1)?.g === 2,
+    JSON.stringify(naik),
+  );
+  cek("other groups never get a group's serial lines", pesan(g3).length === n3);
+  cek("the sender doesn't get its own lines back", !pesan(g2).some((x) => x.j === "serial"));
+  const nA2 = pesan(asisten).length;
+  g2.ws.send(JSON.stringify({ j: "serial", d: [{ sumber: "b0", teks: "x".repeat(20_000), t: 1 }] }));
+  asisten.ws.send(JSON.stringify({ j: "serial", d: [{ sumber: "b0", teks: "from asisten", t: 1 }] }));
+  g2.ws.send(JSON.stringify({ j: "jawaban", d: [{ soal: "m1-a-1", benar: true }] }));
+  await tunggu(400);
+  cek(
+    "oversize, groupless and API-only kinds from a page are dropped",
+    pesan(asisten).length === nA2 && pesan(g3).length === n3,
+    `${pesan(asisten).length - nA2}`,
+  );
+  for (const s of [asisten, g2, g2b, g3]) s.ws.close();
 } finally {
   if (process.env.DEBUG_RELAY) {
     const q = await fetch(`${BASE}/cdn-cgi/local/explorer/api/local/observability/query`, {

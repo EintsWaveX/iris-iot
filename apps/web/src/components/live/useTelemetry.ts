@@ -3,14 +3,17 @@
  * The flow, the readings table, the stats strip and the layer panel all read
  * this instead of each polling on its own, so a hidden panel costs nothing.
  *
- * Same source rules as before: every module polls the real relay first
- * (telemetry-live.ts) and uses the simulator only until the first real
- * reading arrives. That first real batch replaces the simulated history,
+ * Same source rules as before: real readings first, the simulator only
+ * until the first real reading arrives. Since Phase 12 the readings come
+ * through the session's stream room as they land (the Pi's after each
+ * heartbeat, a group laptop's as its board prints them); the API's copy
+ * fills in on open and after a reconnect, and is polled only while the
+ * room is down. That first real batch replaces the simulated history,
  * so the two never share a table. A board connected to this very PC
  * (`local`, Module 1's Web Serial link) wins over both.
  */
-import { useEffect, useState } from "react";
-import { startPolling } from "../../scripts/polling";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAliran, useCadangan, useLihat } from "../../lib/aliran-ruang";
 import { fetchLiveReadings } from "../../lib/telemetry-live";
 import { nextReading, type Reading } from "../../lib/telemetry-sim";
 
@@ -30,48 +33,118 @@ export function useTelemetry(
   local: Telemetry | null = null,
   /** False keeps the simulator out (the console inspector shows only real rows). */
   sim = true,
+  /** The running session: its stream room brings readings as they land */
+  sesiId: number | null = null,
 ): Telemetry {
   const [state, setState] = useState<Telemetry>({ history: [], live: false, updatedAt: null });
+  const seen = useRef(new Set<string>());
+  const cursor = useRef(-1);
+  const real = useRef(false);
+  const grupRef = useRef(`${modul}:${group}`);
+  grupRef.current = `${modul}:${group}`;
 
   useEffect(() => {
     setState({ history: [], live: false, updatedAt: null });
+    seen.current = new Set();
+    cursor.current = -1;
+    real.current = false;
   }, [modul, group]);
 
-  const polling = !paused && local === null;
-  useEffect(() => {
-    if (!polling) return;
-    let live = false;
-    let cursor = -1;
-    // A poll still in flight when the group or module changes must not
-    // land in the new group's history.
-    let cancelled = false;
-    const push = (rows: Reading[], isLive: boolean) => {
-      if (cancelled || !rows.length) return;
+  const aktif = !paused && local === null;
+
+  /** Adds readings not seen before; the first real batch replaces the simulated history */
+  const push = useCallback(
+    (rows: Reading[], isLive: boolean) => {
+      const baru = isLive
+        ? rows.filter((r) => {
+            const k = kunciBacaan(modul, r);
+            if (seen.current.has(k)) return false;
+            seen.current.add(k);
+            return true;
+          })
+        : rows;
+      // Remember a few hundred keys only (the history keeps 80 rows).
+      if (seen.current.size > 800) seen.current = new Set([...seen.current].slice(-400));
+      if (!baru.length) return;
+      if (isLive) real.current = true;
       setState((prev) => ({
-        history: [...(isLive && !prev.live ? [] : prev.history), ...rows].slice(-HISTORY_MAX),
+        history: [...(isLive && !prev.live ? [] : prev.history), ...baru].slice(-HISTORY_MAX),
         live: prev.live || isLive,
         updatedAt: Date.now(),
       }));
-    };
-    const stop = startPolling(async () => {
-      const batch = await fetchLiveReadings(modul, group, cursor);
-      if (cancelled) return;
-      cursor = batch.lastId;
-      if (batch.readings.length) {
-        live = true;
-        push(batch.readings, true);
-        return;
-      }
-      if (live || !sim) return; // real data has started; a quiet poll just means nothing new yet
-      push([nextReading(modul, group)], false);
+    },
+    [modul],
+  );
+
+  // What the API kept: on open, after a reconnect, and while the room is down.
+  const ambil = useCallback(async () => {
+    const g = `${modul}:${group}`;
+    const batch = await fetchLiveReadings(modul, group, cursor.current);
+    // A fetch from before a switch of group or module lands nowhere.
+    if (g !== grupRef.current) return;
+    cursor.current = batch.lastId;
+    push(batch.readings, true);
+  }, [modul, group, push]);
+
+  const opsi = { ruang: "sesi" as const, sesiId, aktif: aktif && sesiId !== null };
+  const status = useAliran(
+    opsi,
+    ["tel"],
+    (m) => {
+      if (m.g !== group || !Array.isArray(m.d)) return;
+      push(
+        (m.d as BarisTelemetri[]).map((r) => ({
+          modul,
+          group,
+          ...(r.id !== undefined ? { id: r.id } : {}),
+          seq: r.seq ?? r.id ?? 0,
+          tx: r.tx ?? null,
+          rx: r.rx ?? null,
+          delayMs: r.delayMs ?? null,
+          rssi: r.rssi ?? null,
+          snr: r.snr ?? null,
+          nilai: r.nilai ?? null,
+        })),
+        true,
+      );
+    },
+    () => void ambil(),
+  );
+  useLihat(opsi, group);
+
+  useEffect(() => {
+    if (aktif) void ambil();
+  }, [aktif, ambil]);
+  useCadangan(() => void ambil(), ms, aktif && status !== "live");
+
+  // The simulator stands in until the first real reading (no fetch).
+  useEffect(() => {
+    if (!aktif || !sim) return;
+    const id = setInterval(() => {
+      if (!real.current && !document.hidden) push([nextReading(modul, group)], false);
     }, ms);
-    return () => {
-      cancelled = true;
-      stop();
-    };
-  }, [modul, group, polling, ms, sim]);
+    return () => clearInterval(id);
+  }, [aktif, sim, modul, group, ms, push]);
 
   return local ?? state;
+}
+
+/** A Pi's reading by its log id; a Module 1 reading (a laptop's, stored
+ *  or not) by its own times, which both copies share */
+function kunciBacaan(modul: number, r: Reading): string {
+  if (modul !== 1 && r.id !== undefined) return `i${r.id}`;
+  return `t${r.tx ?? ""}|${r.rx ?? ""}|${r.delayMs ?? ""}`;
+}
+
+interface BarisTelemetri {
+  id?: number;
+  seq?: number;
+  tx?: string | null;
+  rx?: string | null;
+  delayMs?: number | null;
+  rssi?: number | null;
+  snr?: number | null;
+  nilai?: Record<string, number> | null;
 }
 
 export interface FlowStats {

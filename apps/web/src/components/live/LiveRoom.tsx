@@ -41,6 +41,7 @@ import Fade from "../ui/Fade";
 import TabLine from "../ui/TabLine";
 import LiveSandbox from "../LiveSandbox";
 import { useMe, useSessionNow, useTick } from "../../lib/app";
+import { kirimNaik, useAliran, useCadangan, usePenonton } from "../../lib/aliran-ruang";
 import { useProyektor } from "../../lib/proyektor";
 import { KELOMPOK_DEFAULT } from "../../lib/jadwal";
 import { useMinWidth } from "../../lib/hooks";
@@ -66,6 +67,20 @@ const EVENTS_MAX = 600;
 /** The laptop mirror: at most this many lines per POST, one POST per tick. */
 const MIRROR_BATCH = 60;
 const MIRROR_TICK = 2000;
+/** While the room carries the stream, the reports' copy is stored this often */
+const SIMPAN_TICK = 10_000;
+/** A burst of board lines goes up the room as one message after this */
+const NAIK_JEDA = 150;
+
+interface BarisCermin {
+  id?: number;
+  sumber: string;
+  teks: string;
+  t: number;
+}
+
+/** Ids for mirror lines that came through the room (the API's are positive) */
+let idCermin = -1;
 
 interface MirrorLine {
   sumber: string;
@@ -237,22 +252,69 @@ export default function LiveRoom({
     pairer.current = new Modul1Pairer(ownGroup ?? 1);
   }, [ownGroup]);
 
+  const anyOpen = Object.values(slotState).some((s) => s.status === "open");
+
+  // Phase 12: this laptop's socket in the session's stream room. Its board
+  // lines go up it while an Asisten looks at the group, its Module 1
+  // readings while anyone does; the API keeps a slower copy for the
+  // reports, and takes over at the old pace while the room is down.
+  const sesiId = sesiNow.data?.id ?? null;
+  const ruangLaptop = {
+    ruang: "sesi" as const,
+    sesiId,
+    kelompok: acting && wakil ? wakil.nomor : null,
+    aktif: canPorts && anyOpen && sesiId !== null,
+  };
+  const ruangLaptopRef = useRef(ruangLaptop);
+  ruangLaptopRef.current = ruangLaptop;
+  const ruangStatus = useAliran(ruangLaptop, [], () => {});
+  const penonton = usePenonton(ruangLaptop);
+  const naik = useRef({ live: false, semua: 0, asisten: 0 });
+  naik.current = { live: ruangStatus === "live", ...penonton };
+  const naikQ = useRef<{ tel: Reading[]; serial: MirrorLine[] }>({ tel: [], serial: [] });
+  const naikTimer = useRef<number | null>(null);
+  const kirimNaikSekarang = useCallback(() => {
+    naikTimer.current = null;
+    const q = naikQ.current;
+    naikQ.current = { tel: [], serial: [] };
+    const n = naik.current;
+    if (!n.live) return;
+    if (n.asisten > 0) kirimNaik(ruangLaptopRef.current, "serial", q.serial.slice(-MIRROR_BATCH));
+    if (n.semua > 0)
+      kirimNaik(
+        ruangLaptopRef.current,
+        "tel",
+        q.tel.slice(-50).map((x) => ({ tx: x.tx, rx: x.rx, delayMs: x.delayMs, nilai: x.nilai })),
+      );
+  }, []);
+  useEffect(
+    () => () => {
+      if (naikTimer.current !== null) window.clearTimeout(naikTimer.current);
+    },
+    [],
+  );
+
   const onLine = useCallback(
     (slot: number, line: LogLine, ev: SerialEvent) => {
       setLastBoard(Date.now());
       setBoardLines((m) => ({ ...m, [slot]: [...(m[slot] ?? []), line].slice(-300) }));
-      mirrorQ.current = [
-        ...mirrorQ.current,
-        { sumber: `b${slot}`, teks: line.text.slice(0, 300), t: Math.floor(line.t) },
-      ].slice(-200);
+      const baris = { sumber: `b${slot}`, teks: line.text.slice(0, 300), t: Math.floor(line.t) };
+      mirrorQ.current = [...mirrorQ.current, baris].slice(-200);
+      naikQ.current.serial.push(baris);
       if (ev && (ev.k === "send" || ev.k === "recv" || ev.k === "echo"))
         setEvents((e) => [...e, ev].slice(-EVENTS_MAX));
       if (modul === 1) {
         const r = pairer.current.push(parseModul1Line(line.text));
-        if (r.length) queue.current = [...queue.current, ...r].slice(-200);
+        if (r.length) {
+          queue.current = [...queue.current, ...r].slice(-200);
+          naikQ.current.tel.push(...r);
+        }
       }
+      // A burst of lines goes up as one message, 150 ms after the first.
+      if (naikTimer.current === null)
+        naikTimer.current = window.setTimeout(kirimNaikSekarang, NAIK_JEDA);
     },
-    [modul],
+    [modul, kirimNaikSekarang],
   );
   const onState = useCallback((slot: number, s: SlotState) => {
     setSlotState((m) => {
@@ -263,108 +325,136 @@ export default function LiveRoom({
     });
   }, []);
 
-  const anyOpen = Object.values(slotState).some((s) => s.status === "open");
+  const roomLive = ruangStatus === "live";
 
-  // Module 1: the Central's readings go up so the Asisten and groupmates see them.
+  // Module 1: the Central's readings are stored for the reports, and while
+  // the room is down they reach the Asisten and groupmates this way too.
   useEffect(() => {
     if (modul !== 1 || !canPorts || !anyOpen) return;
-    const id = window.setInterval(async () => {
-      const batch = queue.current.slice(0, 50);
-      if (!batch.length) return;
-      try {
-        const r = await fetch("/api/session/telemetry", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            readings: batch.map((x) => ({
-              tx: x.tx,
-              rx: x.rx,
-              delayMs: x.delayMs,
-              nilai: x.nilai,
-            })),
-            ...wakilBody,
-          }),
-        });
-        const d = (await r.json()) as { ok: boolean; kode?: string };
-        if (d.ok) {
-          queue.current = queue.current.slice(batch.length);
-          sentN.current += batch.length;
-          setUpload({ kind: "sent", n: sentN.current });
-        } else if (d.kode === "tidak_ada_sesi") {
-          queue.current = [];
-          setUpload({ kind: "noSession" });
-        } else setUpload({ kind: "offline" });
-      } catch {
-        setUpload({ kind: "offline" });
-      }
-    }, 1500);
+    const id = window.setInterval(
+      async () => {
+        const batch = queue.current.slice(0, 50);
+        if (!batch.length) return;
+        try {
+          const r = await fetch("/api/session/telemetry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              readings: batch.map((x) => ({
+                tx: x.tx,
+                rx: x.rx,
+                delayMs: x.delayMs,
+                nilai: x.nilai,
+              })),
+              siar: !naik.current.live,
+              ...wakilBody,
+            }),
+          });
+          const d = (await r.json()) as { ok: boolean; kode?: string };
+          if (d.ok) {
+            queue.current = queue.current.slice(batch.length);
+            sentN.current += batch.length;
+            setUpload({ kind: "sent", n: sentN.current });
+          } else if (d.kode === "tidak_ada_sesi") {
+            queue.current = [];
+            setUpload({ kind: "noSession" });
+          } else setUpload({ kind: "offline" });
+        } catch {
+          setUpload({ kind: "offline" });
+        }
+      },
+      roomLive ? SIMPAN_TICK : 1500,
+    );
     return () => window.clearInterval(id);
-  }, [modul, canPorts, anyOpen, acting]);
+  }, [modul, canPorts, anyOpen, acting, roomLive]);
 
-  // The laptop mirror: this laptop's raw board lines go up for the Asisten.
+  // The laptop mirror: this laptop's newest raw lines are kept for the
+  // reports, and while the room is down they reach the Asisten this way.
   useEffect(() => {
     if (!canPorts || !anyOpen) return;
     let stop = false;
-    const id = window.setInterval(async () => {
-      if (stop) return;
-      const batch = mirrorQ.current.slice(-MIRROR_BATCH);
-      if (!batch.length) return;
-      mirrorQ.current = [];
-      try {
-        const r = await fetch("/api/session/cermin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ baris: batch, ...wakilBody }),
-        });
-        const d = (await r.json()) as { ok: boolean; kode?: string };
-        // No running session: nobody can read the mirror, so stop sending.
-        if (!d.ok && d.kode === "tidak_ada_sesi") stop = true;
-      } catch {
-        /* the next tick sends newer lines; the mirror is best effort */
-      }
-    }, MIRROR_TICK);
+    const id = window.setInterval(
+      async () => {
+        if (stop) return;
+        const batch = mirrorQ.current.slice(-MIRROR_BATCH);
+        if (!batch.length) return;
+        mirrorQ.current = [];
+        try {
+          const r = await fetch("/api/session/cermin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ baris: batch, siar: !naik.current.live, ...wakilBody }),
+          });
+          const d = (await r.json()) as { ok: boolean; kode?: string };
+          // No running session: nobody can read the mirror, so stop sending.
+          if (!d.ok && d.kode === "tidak_ada_sesi") stop = true;
+        } catch {
+          /* the next tick sends newer lines; the mirror is best effort */
+        }
+      },
+      roomLive ? SIMPAN_TICK : MIRROR_TICK,
+    );
     return () => window.clearInterval(id);
-  }, [canPorts, anyOpen, acting]);
+  }, [canPorts, anyOpen, acting, roomLive]);
 
   // The Asisten reads a group's mirror while Live is on screen.
   const asisten = me?.role === "asisten";
   const [mirror, setMirror] = useState<{ g: number; lines: LogLine[] }>({ g: 0, lines: [] });
+  const mirrorOn = asisten && mode === "live" && !paused;
+  const mirrorLast = useRef(0);
+  const mirrorSeen = useRef(new Set<string>());
+  const mirrorGroup = useRef(group);
+  mirrorGroup.current = group;
+  /** Lines from the room or the API's copy, each once */
+  const tambahMirror = useCallback((g: number, rows: BarisCermin[]) => {
+    if (g !== mirrorGroup.current) return;
+    const add: LogLine[] = [];
+    for (const x of rows) {
+      const k = `${x.sumber}|${x.t}|${x.teks}`;
+      if (mirrorSeen.current.has(k)) continue;
+      mirrorSeen.current.add(k);
+      add.push({
+        id: x.id ?? idCermin--,
+        text: `${Number(x.sumber.slice(1)) + 1} │ ${x.teks}`,
+        t: x.t,
+      });
+    }
+    if (mirrorSeen.current.size > 1200)
+      mirrorSeen.current = new Set([...mirrorSeen.current].slice(-600));
+    if (!add.length) return;
+    setMirror((m) => ({ g, lines: [...(m.g === g ? m.lines : []), ...add].slice(-300) }));
+  }, []);
+  /** What the API kept: on open, after a reconnect, and while the room is down */
+  const tarikMirror = useCallback(async () => {
+    const g = group;
+    try {
+      const r = await fetch(`/api/session/cermin?kelompok=${g}&sesudah=${mirrorLast.current}`);
+      const d = (await r.json()) as { ok: boolean; baris?: BarisCermin[] };
+      if (!d.ok || !d.baris?.length || g !== mirrorGroup.current) return;
+      mirrorLast.current = d.baris[d.baris.length - 1].id ?? mirrorLast.current;
+      tambahMirror(g, d.baris);
+    } catch {
+      /* the room or the next stand in call brings them */
+    }
+  }, [group, tambahMirror]);
   useEffect(() => {
-    if (!asisten || mode !== "live" || paused) return;
-    let alive = true;
-    let last = 0;
+    if (!mirrorOn) return;
+    mirrorLast.current = 0;
+    mirrorSeen.current = new Set();
     setMirror({ g: group, lines: [] });
-    const pull = async () => {
-      try {
-        const r = await fetch(`/api/session/cermin?kelompok=${group}&sesudah=${last}`);
-        const d = (await r.json()) as {
-          ok: boolean;
-          baris?: { id: number; sumber: string; teks: string; t: number }[];
-        };
-        if (!alive || !d.ok || !d.baris?.length) return;
-        last = d.baris[d.baris.length - 1].id;
-        const add = d.baris.map((x) => ({
-          id: x.id,
-          text: `${Number(x.sumber.slice(1)) + 1} │ ${x.teks}`,
-          t: x.t,
-        }));
-        setMirror((m) => ({
-          g: group,
-          lines: [...(m.g === group ? m.lines : []), ...add].slice(-300),
-        }));
-      } catch {
-        /* try again next tick */
-      }
-    };
-    void pull();
-    const id = window.setInterval(() => void pull(), MIRROR_TICK);
-    return () => {
-      alive = false;
-      window.clearInterval(id);
-    };
-  }, [asisten, mode, paused, group]);
+    void tarikMirror();
+  }, [mirrorOn, group]);
+  const mirrorStatus = useAliran(
+    { ruang: "sesi", sesiId, aktif: mirrorOn && sesiId !== null },
+    ["serial"],
+    (m) => {
+      if (Array.isArray(m.d) && m.g !== null) tambahMirror(m.g, m.d as BarisCermin[]);
+    },
+    () => void tarikMirror(),
+  );
+  useCadangan(() => void tarikMirror(), MIRROR_TICK, mirrorOn && mirrorStatus !== "live");
 
-  const tel = useTelemetry(modul, group, paused || mode !== "live", 1000, null);
+  const tel = useTelemetry(modul, group, paused || mode !== "live", 1000, null, true, sesiId);
   const localEvents = canPorts ? events : [];
   const live = tel.live || localEvents.length > 0;
 

@@ -29,6 +29,8 @@ import SegmentedControl from "../ui/SegmentedControl";
 import { Switch } from "../ui/Controls";
 import { getJson, namaKelompok } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
+import { useAliran } from "../../lib/aliran-ruang";
+import { useSiaran } from "../../lib/siaran";
 import { kelompokLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import { jamLab } from "../shared/Instruments";
@@ -60,16 +62,68 @@ export interface Matriks {
   minta: { kelompokId: number; soal: string; catatan: string; pada: string }[];
 }
 
-export function useMatriks(on: boolean, lang: Lang) {
-  return usePoll(
+export function useMatriks(on: boolean, lang: Lang, sesiId: number | null = null) {
+  const poll = usePoll(
     () =>
       getJson<{ ok: boolean } & Matriks>(`/api/modul/matriks?lang=${lang}`).then((d) =>
         d.ok ? d : null,
       ),
     60_000,
     on,
-    ["jawaban", "petunjuk", "sesi"],
+    ["sesi"],
   );
+  // Phase 12: a checked blank lands in its cell straight from the session
+  // room; a first try (no cell yet, so no key on screen) or a hint asks again.
+  const status = useAliran(
+    { ruang: "sesi", sesiId, aktif: on && sesiId !== null },
+    ["jawaban", "petunjuk"],
+    (m) => {
+      const d = m.d as Partial<JawabanAliran> | null;
+      const cur = poll.data;
+      const lama = d?.kelompokId && d.soal ? cur?.sel[d.kelompokId]?.[d.soal] : undefined;
+      if (m.j !== "jawaban" || !d || !lama || lama.olehNim !== d.oleh) return poll.refresh();
+      poll.ubah((x) =>
+        x
+          ? {
+              ...x,
+              sel: {
+                ...x.sel,
+                [d.kelompokId!]: {
+                  ...x.sel[d.kelompokId!],
+                  [d.soal!]: {
+                    ...lama,
+                    isi: d.isi ?? lama.isi,
+                    benar: !!d.benar,
+                    salah: d.salah ?? lama.salah,
+                    percobaan: d.percobaan ?? lama.percobaan,
+                    pada: d.pada ?? lama.pada,
+                  },
+                },
+              },
+              // A right answer closes that blank's waiting hint requests.
+              minta: d.benar
+                ? x.minta.filter((r) => !(r.kelompokId === d.kelompokId && r.soal === d.soal))
+                : x.minta,
+            }
+          : x,
+      );
+    },
+    () => poll.refresh(),
+  );
+  useSiaran(["jawaban", "petunjuk"], poll.refresh, on && status !== "live");
+  return poll;
+}
+
+/** A blank result from the session room (api/modul cek) */
+interface JawabanAliran {
+  kelompokId: number;
+  soal: string;
+  isi: string;
+  benar: boolean;
+  salah: number;
+  percobaan: number;
+  oleh: string;
+  pada: string;
 }
 
 /** One blank as a column: its question code and a short label, "P3" for

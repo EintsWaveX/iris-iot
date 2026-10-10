@@ -14,6 +14,8 @@ export interface Reading {
   modul: number;
   group: number;
   seq: number;
+  /** The stored row's id (telemetri_log), when it came from the API */
+  id?: number;
   /** HH:MM:SS:MS, the sending side's clock -- null for real Module 2/3
    *  telemetry, since the Pi only ever observes the arrival side (see
    *  telemetry-live.ts). Always set for simulated readings and for real

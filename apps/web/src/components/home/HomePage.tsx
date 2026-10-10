@@ -41,6 +41,7 @@ import "../ui/Display.css";
 import "./home.css";
 import { openSignIn } from "../../lib/signin";
 import { useSegar } from "../../lib/siaran";
+import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import DayCard from "../console/DayCard";
 
 interface Lab {
@@ -123,7 +124,14 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
       getJson<{ ok: boolean; blank?: { benar: number; total: number } }>("/api/session/results"),
     60_000,
     praktikan && mine,
-    ["jawaban", "sesi"],
+    ["sesi"],
+  );
+  useAliranAtauTopik(
+    { ruang: "sesi", sesiId: s?.id ?? null },
+    ["jawaban"],
+    ["jawaban"],
+    hasil.refresh,
+    praktikan && mine,
   );
   const riwayat = usePoll(
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
@@ -445,6 +453,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
     60_000,
     me !== undefined,
     ["sesi", "jadwal", "jawaban"],
+    15_000,
   );
   const labData = lab.data ? lab.data.sesi : lab.errors > 0 ? null : undefined;
   const pegang = lab.data?.pegang ?? [];

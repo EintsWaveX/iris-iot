@@ -24,6 +24,8 @@ import type {
 } from "./types";
 import type { SaveState } from "../ui/Controls";
 import { dengar, useBatas } from "../../lib/siaran";
+import { useAliran, useCadangan } from "../../lib/aliran-ruang";
+import { denganDenyut, useDenyutLangsung } from "../server/data";
 import { akhirSesiPada } from "../../lib/jadwal";
 
 /** Off until the viewer is known to be an Asisten (a guest sees the gate). */
@@ -42,15 +44,46 @@ export function useCurrent(enabled = true) {
   return poll;
 }
 
-export function useLaporan(enabled: boolean) {
-  return usePoll(() => getJson<Laporan>("/api/session/laporan"), 6_000, enabled, [
+export function useLaporan(enabled: boolean, sesiId: number | null = null) {
+  const poll = usePoll(() => getJson<Laporan>("/api/session/laporan"), 60_000, enabled, [
     "sesi",
     "nilai",
     "roster",
     "jawaban",
     "tangkapan",
   ]);
+  // The telemetry counts follow the readings in the session room, asked
+  // again at most every 15 s while they flow (each ask reads the session's
+  // whole telemetry log), and every 15 s while the room is down.
+  const terakhir = useRef(0);
+  const tunda = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshRef = useRef(poll.refresh);
+  refreshRef.current = poll.refresh;
+  const status = useAliran(
+    { ruang: "sesi", sesiId, aktif: enabled && sesiId !== null },
+    ["tel"],
+    () => {
+      if (tunda.current) return;
+      const sisa = Math.max(0, terakhir.current + TEL_JARAK - Date.now());
+      tunda.current = setTimeout(() => {
+        tunda.current = null;
+        terakhir.current = Date.now();
+        refreshRef.current();
+      }, sisa);
+    },
+  );
+  useEffect(
+    () => () => {
+      if (tunda.current) clearTimeout(tunda.current);
+    },
+    [],
+  );
+  useCadangan(poll.refresh, TEL_JARAK, enabled && sesiId !== null && status !== "live");
+  return poll;
 }
+
+/** The run report's telemetry counts are asked again at most this often */
+const TEL_JARAK = 15_000;
 
 export function useAssignment(sesiId: number | null) {
   const poll = usePoll(
@@ -76,7 +109,7 @@ export interface ServerState {
 }
 
 export function useServers(enabled: boolean) {
-  return usePoll<ServerState>(
+  const poll = usePoll<ServerState>(
     async () => {
       const d = await getJson<{ ok: boolean; server: ServerRow[] }>("/api/server");
       const list = d.ok ? d.server : [];
@@ -91,6 +124,17 @@ export function useServers(enabled: boolean) {
     enabled,
     ["server"],
   );
+  // The beats land as they come (Ada Masalah?, the Pi drawer), Phase 12.
+  useDenyutLangsung(enabled, (d) =>
+    poll.ubah((x) => ({
+      list: x.list.map((r) => denganDenyut(r, d)),
+      detail:
+        x.detail && x.detail.server.id === d.serverId
+          ? { ...x.detail, denyutTerakhir: d.denyut, server: denganDenyut(x.detail.server, d) }
+          : x.detail,
+    })),
+  );
+  return poll;
 }
 
 /* ------------------------------------------------------------ live scores */

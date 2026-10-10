@@ -18,6 +18,10 @@
  *   and the hard end of the console.
  */
 
+import { acakId, bacaTanda, tandaiJson } from "./tanda.js";
+
+export { acakId };
+
 export const KONSOL_TARGET = ["terminal", ":0", ":1"] as const;
 export type KonsolTarget = (typeof KONSOL_TARGET)[number];
 /** What a new console may open: the terminal and the Pi's own screen (what
@@ -132,37 +136,8 @@ export interface Tiket {
   n: string;
 }
 
-const enc = new TextEncoder();
-
-function b64url(bytes: Uint8Array): string {
-  let s = "";
-  for (const b of bytes) s += String.fromCharCode(b);
-  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function unb64url(s: string): Uint8Array<ArrayBuffer> {
-  const p = s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4);
-  const bin = atob(p);
-  const out = new Uint8Array(new ArrayBuffer(bin.length));
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-async function kunci(secret: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign", "verify"],
-  );
-}
-
 export async function tandaTiket(t: Tiket, secret: string): Promise<string> {
-  if (secret.length < 32) throw new Error("KONSOL_RELAY_SECRET too short");
-  const body = b64url(enc.encode(JSON.stringify(t)));
-  const sig = await crypto.subtle.sign("HMAC", await kunci(secret), enc.encode(body));
-  return `${body}.${b64url(new Uint8Array(sig))}`;
+  return tandaiJson(t, secret);
 }
 
 export type CekTiket =
@@ -176,22 +151,9 @@ export async function cekTiket(
   peran: Tiket["p"],
   nowSec = Math.floor(Date.now() / 1000),
 ): Promise<CekTiket> {
-  const [body, sig, extra] = token.split(".");
-  if (!body || !sig || extra !== undefined || token.length > 2048)
-    return { ok: false, kode: "format" };
-  let good = false;
-  try {
-    good = await crypto.subtle.verify("HMAC", await kunci(secret), unb64url(sig), enc.encode(body));
-  } catch {
-    return { ok: false, kode: "format" };
-  }
-  if (!good) return { ok: false, kode: "tanda" };
-  let t: Tiket;
-  try {
-    t = JSON.parse(new TextDecoder().decode(unb64url(body))) as Tiket;
-  } catch {
-    return { ok: false, kode: "format" };
-  }
+  const baca = await bacaTanda(token, secret);
+  if (!baca.ok) return baca;
+  const t = baca.isi as Tiket;
   if (
     t?.v !== 1 ||
     typeof t.k !== "string" ||
@@ -206,11 +168,4 @@ export async function cekTiket(
   if (t.p !== peran) return { ok: false, kode: "peran" };
   if (nowSec > t.exp || nowSec > t.end) return { ok: false, kode: "kedaluwarsa" };
   return { ok: true, tiket: t };
-}
-
-/** A random id for a room or a nonce (base64url, 24 bytes). */
-export function acakId(): string {
-  const b = new Uint8Array(24);
-  crypto.getRandomValues(b);
-  return b64url(b);
 }

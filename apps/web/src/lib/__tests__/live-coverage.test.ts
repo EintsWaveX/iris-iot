@@ -38,7 +38,7 @@ const SEKALI: Record<string, string> = {
   "components/server/konsol/data.ts": "Konsol Pi has its own relay room",
   "lib/telemetry-live.ts": "the backlog read behind the session room",
   "lib/siaran.ts": "the live updates themselves",
-  "lib/aliran.ts": "the session room itself",
+  "lib/aliran-ruang.ts": "the session room itself (its ticket)",
   "lib/app.ts": "getJson itself; useSessionNow polls with topics",
   "lib/auth.ts": "sign in and out",
   "lib/seelabs-helper.ts": "runs in the SeeLabs tab",
@@ -54,6 +54,7 @@ const TIMER_BOLEH: Record<string, string> = {
   "lib/siaran.ts": "the 60 s safety net and the 30 s net while the socket is down",
   "lib/hooks.ts": "usePoll's own interval, held to 60 s by the test below",
   "scripts/polling.ts": "startPolling itself",
+  "lib/aliran-ruang.ts": "useCadangan, the poll that stands in only while a room is down",
 };
 
 /** usePoll intervals under 60 s */
@@ -183,22 +184,27 @@ describe("every view is live", () => {
   });
 
   it("no timer fetches outside the safety net", () => {
-    const FETCH_RE =
-      /\b(getJson|fetch\w*|load\w*|muat\w*|pull|tick|run|refresh\w*)\s*\(|\b(load|pull|tick)\b/;
+    // A timer that reads; one whose fetches all write (an upload) is fine
+    const BACA_RE =
+      /\b(getJson|fetch[A-Z]\w*|load\w*|muat\w*|pull|tick|run|refresh\w*)\s*\(|\b(load|pull|tick)\b/;
+    const membaca = (a: string) =>
+      BACA_RE.test(a) || argumen(a, "fetch").some((f) => !/\bmethod\s*:/.test(f));
     const timer = BERKAS.flatMap((b) => {
       if (b.rel in TIMER_BOLEH) return [];
-      // startPolling always fetches; setInterval when its body does
+      // startPolling always fetches; setInterval when its body reads
       if (argumen(b.src, "startPolling").length) return [b.rel];
-      return argumen(b.src, "setInterval").some((a) => FETCH_RE.test(a)) ? [b.rel] : [];
+      return argumen(b.src, "setInterval").some(membaca) ? [b.rel] : [];
     });
     expect(timer, "move these timers onto topics or the session room").toEqual([]);
   });
 
   it("the allow lists name files that still exist", () => {
     const ada = new Set(BERKAS.map((b) => b.rel));
-    const basi = [...Object.keys(SEKALI), ...Object.keys(TIMER_BOLEH), ...Object.keys(CEPAT_BOLEH)]
-      .filter((r) => !ada.has(r))
-      .filter((r) => r !== "lib/aliran.ts");
+    const basi = [
+      ...Object.keys(SEKALI),
+      ...Object.keys(TIMER_BOLEH),
+      ...Object.keys(CEPAT_BOLEH),
+    ].filter((r) => !ada.has(r));
     expect(basi).toEqual([]);
   });
 });

@@ -379,25 +379,64 @@ export async function rekamTelemetri(
   serverId: number,
   sesiId: number | null,
   masuk: unknown,
-): Promise<void> {
+): Promise<TelemetriTersimpan[]> {
   const rows = telemetriBaris(masuk);
-  if (!rows.length) return;
+  if (!rows.length) return [];
   const db = getDb();
 
-  await db.insert(telemetriLog).values(rows.map((r) => ({ sesiId, serverId, ...r })));
+  const disimpan = await db
+    .insert(telemetriLog)
+    .values(rows.map((r) => ({ sesiId, serverId, ...r })))
+    .returning({
+      id: telemetriLog.id,
+      modul: telemetriLog.modul,
+      kelompokNomor: telemetriLog.kelompokNomor,
+      seq: telemetriLog.seq,
+      tx: telemetriLog.tx,
+      rx: telemetriLog.rx,
+      delayMs: telemetriLog.delayMs,
+      rssi: telemetriLog.rssi,
+      snr: telemetriLog.snr,
+      nilai: telemetriLog.nilai,
+      diperbaruiPada: telemetriLog.dicatatPada,
+    });
 
   // The queue arrives oldest first, so the last row per group is its newest.
+  // One statement for every group (each conflict target appears once).
   const terbaru = new Map<string, (typeof rows)[number]>();
   for (const r of rows) terbaru.set(`${r.modul}:${r.kelompokNomor}`, r);
-  for (const { diukurPada: _, ...row } of terbaru.values()) {
-    await db
-      .insert(telemetriTerkini)
-      .values({ serverId, ...row })
-      .onConflictDoUpdate({
-        target: [telemetriTerkini.serverId, telemetriTerkini.modul, telemetriTerkini.kelompokNomor],
-        set: { ...row, diperbaruiPada: sql`now()` },
-      });
-  }
+  await db
+    .insert(telemetriTerkini)
+    .values([...terbaru.values()].map(({ diukurPada: _, ...row }) => ({ serverId, ...row })))
+    .onConflictDoUpdate({
+      target: [telemetriTerkini.serverId, telemetriTerkini.modul, telemetriTerkini.kelompokNomor],
+      set: {
+        seq: sql`excluded.seq`,
+        tx: sql`excluded.tx`,
+        rx: sql`excluded.rx`,
+        delayMs: sql`excluded.delay_ms`,
+        rssi: sql`excluded.rssi`,
+        snr: sql`excluded.snr`,
+        nilai: sql`excluded.nilai`,
+        diperbaruiPada: sql`now()`,
+      },
+    });
+  return disimpan;
+}
+
+/** A stored reading, as the Live room reads it (GET /api/session/telemetry) */
+export interface TelemetriTersimpan {
+  id: number;
+  modul: number;
+  kelompokNomor: number;
+  seq: number;
+  tx: string | null;
+  rx: string | null;
+  delayMs: number | null;
+  rssi: number | null;
+  snr: number | null;
+  nilai: Record<string, number> | null;
+  diperbaruiPada: Date;
 }
 
 /** Same probabilistic-prune pattern as pruneOldHeartbeatsOccasionally(). */

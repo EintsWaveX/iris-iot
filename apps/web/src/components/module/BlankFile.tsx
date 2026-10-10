@@ -64,7 +64,8 @@ import type { Lang } from "../../lib/kelas";
 import { C } from "./codeStrings";
 import { openSignIn } from "../../lib/signin";
 import { dengar } from "../../lib/siaran";
-import { jamMenit, postJson } from "../../lib/app";
+import { jamMenit, postJson, useSessionNow } from "../../lib/app";
+import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 
 export type CodeMode = "now" | "done" | "asisten";
 
@@ -358,9 +359,20 @@ export default function BlankFile(p: Props) {
 
   useEffect(() => {
     if (mode !== "now" || !loaded || locked) return;
-    // A groupmate's answer and an Asisten's hint show at once.
-    return dengar(["jurnal", "jawaban", "petunjuk"], () => void muatUlang());
+    // A new code version shows at once.
+    return dengar(["jurnal"], () => void muatUlang());
   }, [mode, loaded, locked, modul, berkas]);
+
+  // A groupmate's answer and an Asisten's hint: from the session room, which
+  // brings only this group's (the topics stand in while it is down).
+  const sesiNow = useSessionNow(mode === "now");
+  useAliranAtauTopik(
+    { ruang: "sesi", sesiId: sesiNow.data?.id ?? null },
+    ["jawaban", "petunjuk"],
+    ["jawaban", "petunjuk"],
+    () => void muatUlang(),
+    mode === "now" && loaded && !locked,
+  );
 
   // An Asisten reads any group's file: its identity lines follow the pick.
   const lihat = mode === "asisten" ? (p.grupLihat ?? 1) : null;

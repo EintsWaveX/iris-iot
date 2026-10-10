@@ -6,12 +6,42 @@ import type { Lang } from "../../lib/kelas";
 import type { Heartbeat, Perintah } from "../console/types";
 import { S, pesan } from "./strings";
 import type { BundelTerbit, Pasang } from "../../lib/server-shared";
+import { useAliran, type StatusAliran } from "../../lib/aliran-ruang";
 
 export interface Denyut extends Heartbeat {
   memori: number | null;
   disk: number | null;
   /** Network in + out, bytes per second (Phase 9, 0021). */
   jaringan?: number | null;
+}
+
+/** A Pi heartbeat as the `pi` room carries it (api/agent, Phase 12) */
+export interface DenyutAliran {
+  serverId: number;
+  denyut: Denyut & { pada: string };
+  kondisi?: Record<string, unknown> | null;
+  kondisiPada?: string | null;
+}
+
+/** Hears every Pi's heartbeat as it lands, for the Server pages */
+export function useDenyutLangsung(on: boolean, fn: (d: DenyutAliran) => void): StatusAliran {
+  return useAliran({ ruang: "pi", aktif: on }, ["denyut"], (m) => {
+    const d = m.d as DenyutAliran | null;
+    if (d && typeof d.serverId === "number" && d.denyut) fn(d);
+  });
+}
+
+/** A server row with this beat (and its "Pi right now" numbers) in it */
+export function denganDenyut<T extends { id: number; denyutTerakhir?: unknown }>(
+  row: T,
+  d: DenyutAliran,
+): T {
+  if (row.id !== d.serverId) return row;
+  return {
+    ...row,
+    denyutTerakhir: d.denyut,
+    ...(d.kondisi ? { kondisi: d.kondisi, kondisiPada: d.kondisiPada ?? null } : {}),
+  };
 }
 
 export interface ServerRow {

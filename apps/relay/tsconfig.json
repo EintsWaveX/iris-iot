@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "../web/src/lib/konsol.ts"]
+  "include": ["src", "../web/src/lib/konsol.ts", "../web/src/lib/aliran.ts", "../web/src/lib/tanda.ts"]
 }

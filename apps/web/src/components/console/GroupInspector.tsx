@@ -564,7 +564,7 @@ function InspectorCards(p: InspectorProps) {
   const [bars, setBars] = useState<BarKind | null>(null);
   const [dm, setDm] = useState<DataKind | null>(null);
   // Real rows only: a teaching console never shows simulated numbers.
-  const tel = useTelemetry(modul, g.nomor, false, 2000, null, false);
+  const tel = useTelemetry(modul, g.nomor, false, 2000, null, false, p.sesiId);
   const records = useMemo(() => {
     const s = new LiveRecords(modul);
     for (const r of tel.history) s.pi(r);

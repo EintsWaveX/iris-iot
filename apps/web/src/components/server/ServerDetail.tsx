@@ -142,7 +142,7 @@ import { useBatas } from "../../lib/siaran";
 import { perintahHabisPada } from "../../lib/server-shared";
 import type { Lang } from "../../lib/kelas";
 import { useDirektori } from "../../lib/people";
-import { isOnline, type Bisa, type Detail } from "./data";
+import { isOnline, useDenyutLangsung, type Bisa, type Detail } from "./data";
 import Overview from "./Overview";
 import Ready from "./Ready";
 import Settings from "./Settings";
@@ -210,6 +210,17 @@ export default function ServerDetail({
     ["server"],
   );
   const data = poll.data;
+  // Each beat lands as it comes (the gauges, services, the age), Phase 12.
+  useDenyutLangsung(true, (d) => {
+    if (d.serverId !== id) return;
+    poll.ubah((x) => ({
+      ...x,
+      denyutTerakhir: d.denyut,
+      server: d.kondisi
+        ? { ...x.server, kondisi: d.kondisi, kondisiPada: d.kondisiPada ?? null }
+        : x.server,
+    }));
+  });
   // The next open command to run out, and the Konsol request or console
   // to end: each is a moment the page asks again by itself.
   const habis = useMemo(() => {

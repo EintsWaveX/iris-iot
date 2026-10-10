@@ -41,6 +41,7 @@ import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parse
 import { validasiUmpanBalik, ringkas, sejakBulanLalu } from "../../src/lib/umpan-balik.js";
 import type { Kelas } from "../../src/lib/kelas.js";
 import { muatMinggu } from "./penugasan-api.js";
+import { nomorDariId, terbitkanSesi } from "./aliran.js";
 import { and, eq, asc, desc, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { ALASAN_MIN, catatKejadian, catatPasangan, cekPasangan } from "./berjalan.js";
 
@@ -399,7 +400,11 @@ export async function handleHelpPraktikan(
         and(eq(sesiKelompok.sesiId, running.id), eq(sesiKelompok.kelompokId, session.kelompokId)),
       )
       .limit(1);
-    res.status(200).json({ ok: true, mintaBantuanPada: kini?.pada?.toISOString() ?? null });
+    const pada = kini?.pada?.toISOString() ?? null;
+    res.status(200).json({ ok: true, mintaBantuanPada: pada });
+    await terbitkanSesi(running.id, [
+      { j: "tangan", g: session.kelompokNomor ?? null, d: { kelompokId: session.kelompokId, pada } },
+    ]);
     return;
   }
   await db
@@ -410,6 +415,9 @@ export async function handleHelpPraktikan(
       set: { mintaBantuanPada: null },
     });
   res.status(200).json({ ok: true, mintaBantuanPada: null });
+  await terbitkanSesi(running.id, [
+    { j: "tangan", g: session.kelompokNomor ?? null, d: { kelompokId: session.kelompokId, pada: null } },
+  ]);
 }
 
 export async function handleHelpAsisten(
@@ -445,6 +453,8 @@ export async function handleHelpAsisten(
     .where(and(eq(sesiKelompok.sesiId, sesiId), eq(sesiKelompok.kelompokId, kelompokId)));
   await writeAudit(session.nim, "bantuan_selesai", { sesiId, kelompokId });
   res.status(200).json({ ok: true });
+  const g = naik?.nomor ?? (await nomorDariId(kelompokId));
+  await terbitkanSesi(sesiId, [{ j: "tangan", g, d: { kelompokId, pada: null } }]);
 }
 
 /* ------------------------------------------------------------ feedback */
