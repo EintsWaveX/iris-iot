@@ -394,19 +394,10 @@
   overflow-wrap: anywhere;
 }
 
-/* Signed in: the four modules as a slim row of links, no diagrams. */
-.home10__rasi[data-slim="yes"] .rasi {
-  gap: 8px;
-}
-
-.home10__rasi[data-slim="yes"] .rasi .panel__actions {
-  margin-top: auto;
-}
-
-/* A guest on a phone swipes through the four modules instead of scrolling
-   past four tall cards. */
+/* On a phone everyone swipes through the four constellations instead of
+   scrolling past four tall cards. */
 @media (max-width: 639px) {
-  .home10__rasi:not([data-slim]) {
+  .home10__rasi {
     grid-auto-columns: 84%;
     grid-auto-flow: column;
     grid-template-columns: none;
@@ -416,7 +407,7 @@
     scroll-snap-type: x mandatory;
   }
 
-  .home10__rasi:not([data-slim]) > .rasi {
+  .home10__rasi > .rasi {
     scroll-snap-align: start;
   }
 }

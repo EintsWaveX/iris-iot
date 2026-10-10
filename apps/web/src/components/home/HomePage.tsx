@@ -487,7 +487,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
           <span className="eyebrow">{t.rasiEyebrow}</span>
           <h2 className="home__h1">{t.rasiTitle}</h2>
         </div>
-        <div className="home10__rasi" data-slim={me ? "yes" : undefined}>
+        <div className="home10__rasi">
           {LANES.map((l) => (
             <article
               className="panel rasi"
@@ -500,9 +500,9 @@ export default function HomePage({ lang }: { lang: Lang }) {
                   {l.a} · {l.via}
                 </span>
               </div>
-              {!me && <ModConstellation m={l.m} h={150} lang={lang} />}
+              <ModConstellation m={l.m} h={150} lang={lang} />
               <h3 className="home__h2">{MODUL_NAMA[l.m]}</h3>
-              {!me && <p className="panel__sub">{t.lanes[l.m]}</p>}
+              <p className="panel__sub">{t.lanes[l.m]}</p>
               <div className="panel__actions">
                 <a className="btn" href={href(lang, `/modules/${l.m}`)}>
                   <BookOpenTextIcon size={18} aria-hidden="true" />
