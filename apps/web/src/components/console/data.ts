@@ -108,7 +108,10 @@ export interface ServerState {
   detail: ServerDetail | null;
 }
 
-export function useServers(enabled: boolean) {
+/** `langsung`: also take each beat as it lands (Ada Masalah? or the Pi
+ *  drawer open); otherwise the 60 s refetch keeps the Pi's state, inside its
+ *  75 s silence limit, so a quiet Konsol costs the relay nothing per beat */
+export function useServers(enabled: boolean, langsung = false) {
   const poll = usePoll<ServerState>(
     async () => {
       const d = await getJson<{ ok: boolean; server: ServerRow[] }>("/api/server");
@@ -126,7 +129,7 @@ export function useServers(enabled: boolean) {
   );
   // The beats land as they come (Ada Masalah?, the Pi drawer), Phase 12.
   useDenyutLangsung(
-    enabled,
+    enabled && langsung,
     (d) =>
       poll.ubah((x) => ({
         list: x.list.map((r) => denganDenyut(r, d)),

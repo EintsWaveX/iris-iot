@@ -418,6 +418,32 @@ try {
     pesan(asisten).length === nA2 && pesan(g3).length === n3,
     `${pesan(asisten).length - nA2}`,
   );
+
+  // One request for a write's topics and room messages (POST /kirim).
+  const kirimGabung = (obj, o = {}) => {
+    const body = JSON.stringify(obj);
+    const ts = o.ts ?? now();
+    const tanda = o.tanda ?? createHmac("sha256", secret).update(`kirim|${body}|${ts}`).digest("hex");
+    return fetch(`${BASE}/kirim`, { method: "POST", headers: { "x-kirim-ts": String(ts), "x-kirim-tanda": tanda }, body });
+  };
+  const halaman = await buka("/siaran");
+  const nAsisten = pesan(asisten).length;
+  r = await kirimGabung({ t: ["jawaban"], r: { "sesi-7": [{ j: "jawaban", g: 3, d: { soal: "m1-a-2", benar: false } }], "sesi-9": [{ j: "tangan", g: 1, d: {} }] } });
+  const dengar = r.ok ? await r.json() : {};
+  await sampai(() => halaman.msgs.length >= 1 && pesan(asisten).length > nAsisten);
+  cek(
+    "one signed request carries the topics and the room messages",
+    r.ok && teks(halaman.msgs[0]) === '{"t":["jawaban"]}' && pesan(asisten).at(-1)?.soal === undefined && pesan(asisten).at(-1)?.j === "jawaban",
+    `${r.status} ${halaman.msgs.map(teks)}`,
+  );
+  cek("it answers how many sockets each room reached", dengar["sesi-7"] >= 1 && dengar["sesi-9"] === 0, JSON.stringify(dengar));
+  r = await kirimGabung({ t: ["jawaban"] }, { tanda: "0".repeat(64) });
+  cek("a wrong signature is refused (combined)", r.status === 403);
+  r = await kirimGabung({ r: { "konsol-1": [{ j: "tel", g: 1, d: [] }] } });
+  cek("a room name that isn't a session or pi is refused", r.status === 400);
+  r = await kirimGabung({ r: { "sesi-7": [{ j: "kunci", g: 1, d: {} }] } });
+  cek("an unknown kind is refused (combined)", r.status === 400);
+  halaman.ws.close();
   for (const s of [asisten, g2, g2b, g3]) s.ws.close();
 } finally {
   if (process.env.DEBUG_RELAY) {

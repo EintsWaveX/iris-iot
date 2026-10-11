@@ -18,7 +18,7 @@ import { soalKode } from "../../src/lib/blanks.js";
 import { teksUntuk } from "../../src/lib/kode-jurnal.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { celahKe, kanonik, kodeModul } from "./kode-aktif.js";
-import { nomorDariId, terbitkanSesi } from "./aliran.js";
+import { antreSesi, nomorDariId } from "./aliran.js";
 
 const MAKS_CATATAN = 160;
 const MAKS_PETUNJUK = 400;
@@ -168,7 +168,7 @@ export async function handleMinta(req: ApiRequest, res: ApiResponse, session: Se
     .values({ sesiId: running.id, kelompokId, soalKode: soal, catatan, dimintaOleh: session.nim })
     .returning({ id: petunjukMinta.id });
   res.status(200).json({ ok: true, id: row.id });
-  await terbitkanSesi(running.id, [
+  antreSesi(res, running.id, [
     {
       j: "petunjuk",
       g: session.kelompokNomor ?? null,
@@ -194,7 +194,7 @@ export async function handleMintaBatal(req: ApiRequest, res: ApiResponse, sessio
       ),
     );
   res.status(200).json({ ok: true });
-  await terbitkanSesi(session.sesiId, [
+  antreSesi(res, session.sesiId, [
     {
       j: "petunjuk",
       g: session.kelompokNomor ?? null,
@@ -372,7 +372,7 @@ export async function handlePetunjuk(req: ApiRequest, res: ApiResponse, session:
       .returning({ id: petunjukMinta.id });
     if (row) {
       res.status(200).json({ ok: true, id: row.id });
-      await kabarPetunjuk(running.id, kelompokId, row.id, soal, teks);
+      await kabarPetunjuk(res, running.id, kelompokId, row.id, soal, teks);
       return;
     }
   }
@@ -388,11 +388,12 @@ export async function handlePetunjuk(req: ApiRequest, res: ApiResponse, session:
     })
     .returning({ id: petunjukMinta.id });
   res.status(200).json({ ok: true, id: row.id });
-  await kabarPetunjuk(running.id, kelompokId, row.id, soal, teks);
+  await kabarPetunjuk(res, running.id, kelompokId, row.id, soal, teks);
 }
 
 /** An Asisten's hint, to the group it is for (and the other Asisten) */
 async function kabarPetunjuk(
+  res: ApiResponse,
   sesiId: number,
   kelompokId: number,
   id: number,
@@ -401,7 +402,7 @@ async function kabarPetunjuk(
 ): Promise<void> {
   const g = await nomorDariId(kelompokId);
   if (g === null) return;
-  await terbitkanSesi(sesiId, [
+  antreSesi(res, sesiId, [
     { j: "petunjuk", g, d: { id, kelompokId, soal, teks, status: "jawab" } },
   ]);
 }

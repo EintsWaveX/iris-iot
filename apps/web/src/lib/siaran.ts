@@ -45,6 +45,9 @@ let tertunda = new Set<string>();
 let semua = false;
 let jeda: ReturnType<typeof setTimeout> | null = null;
 let pernahTerhubung = false;
+/** Closing waits a moment when the last view leaves (a navigation) */
+let tutupNanti: ReturnType<typeof setTimeout> | null = null;
+const TUTUP_TUNDA_MS = 4000;
 
 /* ------------------------------------------------------------ status */
 
@@ -319,11 +322,19 @@ if (typeof document !== "undefined") {
 /** Calls `fn` whenever one of `topik` changes anywhere. Returns a stop. */
 export function dengar(topik: readonly Topik[], fn: Fn): () => void {
   subs.set(fn, new Set(topik));
+  if (tutupNanti) clearTimeout(tutupNanti);
+  tutupNanti = null;
   sambung();
   hitungStatus();
   return () => {
     subs.delete(fn);
-    if (!subs.size) putus();
+    if (subs.size || tutupNanti) return;
+    // A navigation unmounts every view a moment before the next page
+    // mounts its own: the socket waits for them instead of reconnecting.
+    tutupNanti = setTimeout(() => {
+      tutupNanti = null;
+      if (!subs.size) putus();
+    }, TUTUP_TUNDA_MS);
   };
 }
 

@@ -47,6 +47,12 @@
  * <ruang> is "sesi-<id>" or "pi" (the Server pages). The ticket names the
  * room, the role and the Praktikan's group; the room passes each message
  * only to the sockets allowed to see it (src/lib/aliran.ts in apps/web).
+ *
+ *   POST /kirim    the IRIS API, signed: {"t": [topics], "r": {ruang: [...]}}
+ *
+ * One request for a write's topics and its room messages together, so a
+ * blank check or a heartbeat costs one Worker request, not two or three
+ * (the free plan's 100k a day).
  */
 import { cekTiket, DIAM_MENIT } from "../../web/src/lib/konsol.ts";
 import {
@@ -148,6 +154,8 @@ export default {
     if (!ujung) return teks(200, "IRIS Konsol relay");
     if (ujung === "siaran") return siaran(req, env, kanal);
     if (ujung === "aliran") return aliran(req, env, kanal, sub);
+    if (ujung === "kirim" && req.method === "POST")
+      return kirimGabung(req, env);
     if (ujung === "hitung" && env.HITUNG === "1") return bacaHitung(env, url);
     if (!kanal || !KANAL_RE.test(kanal)) return teks(404, "tidak ditemukan");
     if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
@@ -881,6 +889,80 @@ async function bacaHitung(env: Env, url: URL): Promise<Response> {
   if (url.searchParams.get("nol") === "1")
     for (const k of Object.keys(HITUNG)) delete HITUNG[k];
   return new Response(JSON.stringify(HITUNG), {
+    headers: { "content-type": "application/json" },
+  });
+}
+
+/** /kirim: a write's topics and room messages in one signed request. The
+ *  answer gives each room's socket count, for the API to skip empty rooms. */
+async function kirimGabung(req: Request, env: Env): Promise<Response> {
+  if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
+    return teks(503, "relay belum diatur");
+  const body = await req.text();
+  if (body.length > ALIRAN_KIRIM_MAKS) return teks(413, "terlalu besar");
+  const ts = Number(req.headers.get("x-kirim-ts"));
+  const tanda = req.headers.get("x-kirim-tanda") ?? "";
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 60)
+    return teks(403, "kedaluwarsa");
+  if (
+    !samaPersis(
+      tanda,
+      await hmacHex(env.KONSOL_RELAY_SECRET, `kirim|${body}|${ts}`),
+    )
+  )
+    return teks(403, "tanda salah");
+  let x: { t?: unknown; r?: unknown };
+  try {
+    x = JSON.parse(body);
+  } catch {
+    return teks(400, "format");
+  }
+  const t = x.t ?? [];
+  if (
+    !Array.isArray(t) ||
+    !t.every((v) => typeof v === "string" && TOPIK_RE.test(v))
+  )
+    return teks(400, "format");
+  const r = (x.r ?? {}) as Record<string, unknown>;
+  if (typeof r !== "object" || Array.isArray(r)) return teks(400, "format");
+  const kamar: [string, PesanAliran[]][] = [];
+  for (const [ruang, m] of Object.entries(r)) {
+    const saring = saringKiriman({ m });
+    if (!ALIRAN_RUANG_RE.test(ruang) || !saring) return teks(400, "format");
+    kamar.push([ruang, saring]);
+  }
+  const jawab: Record<string, number> = {};
+  const kerja: Promise<void>[] = [];
+  if (t.length) {
+    hitung(env, "do_siaran");
+    const pusat = env.SIARAN.get(env.SIARAN.idFromName("semua"));
+    kerja.push(
+      pusat
+        .fetch("https://siaran/kirim", {
+          method: "POST",
+          body: JSON.stringify({ t }),
+        })
+        .then(() => undefined),
+    );
+  }
+  for (const [ruang, m] of kamar) {
+    hitung(env, "do_kirim");
+    const stub = env.ALIRAN.get(env.ALIRAN.idFromName(ruang), {
+      locationHint: "apac",
+    });
+    kerja.push(
+      stub
+        .fetch("https://aliran/kirim", {
+          method: "POST",
+          body: JSON.stringify(m),
+        })
+        .then(async (res) => {
+          jawab[ruang] = Number(await res.text()) || 0;
+        }),
+    );
+  }
+  await Promise.all(kerja);
+  return new Response(JSON.stringify(jawab), {
     headers: { "content-type": "application/json" },
   });
 }

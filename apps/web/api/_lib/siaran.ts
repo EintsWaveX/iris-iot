@@ -14,9 +14,8 @@
  *
  * Pi heartbeats (api/agent) send only when something a page shows changed.
  */
-import { createHmac } from "node:crypto";
 import type { ApiHandler, ApiRequest, ApiResponse } from "./http.js";
-import { konsolEnv } from "./konsol.js";
+import { ambilAntre, kirimRelay } from "./aliran.js";
 import { denganGalat } from "./galat.js";
 import { topikUntuk, type Topik } from "../../src/lib/siaran-topik.js";
 
@@ -24,21 +23,7 @@ import { topikUntuk, type Topik } from "../../src/lib/siaran-topik.js";
  *  not set up or doesn't answer within 1.5 s (pages also refetch when they
  *  come back into view, so a lost message only delays an update). */
 export async function siarkan(topik: readonly Topik[]): Promise<void> {
-  const env = konsolEnv();
-  if (!env || !topik.length) return;
-  const body = JSON.stringify({ t: [...new Set(topik)] });
-  const ts = Math.floor(Date.now() / 1000);
-  const tanda = createHmac("sha256", env.secret).update(`siaran|${body}|${ts}`).digest("hex");
-  try {
-    await fetch(`${env.relay.replace(/^ws/, "http")}/siaran/kirim`, {
-      method: "POST",
-      headers: { "x-siaran-ts": String(ts), "x-siaran-tanda": tanda },
-      body,
-      signal: AbortSignal.timeout(1500),
-    });
-  } catch {
-    /* the pages catch up on their next refetch */
-  }
+  if (topik.length) await kirimRelay(topik);
 }
 
 /**
@@ -64,12 +49,15 @@ export function denganSiaran(rute: string, handler: ApiHandler): ApiHandler {
       json(body);
     };
     await handler(req, res);
+    // Room messages the write queued (Phase 12) go in the same request.
+    const antre = ambilAntre(res);
     if (!(berhasil ?? res.statusCode < 300)) return;
     if (topikUntuk(rute, aksi) === null) {
       // A write missing from siaran-topik.ts: reported, so it gets listed.
       console.error(`[siaran] ${rute}:${String(aksi ?? "")} has no topics`);
+      await kirimRelay([], antre);
       return;
     }
-    await siarkan(topik);
+    await kirimRelay(topik, antre);
   });
 }

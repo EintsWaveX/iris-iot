@@ -58,6 +58,8 @@ interface Koneksi {
   lihatTerkirim: number | null | undefined;
   penonton: Penonton;
   pemantau: Set<() => void>;
+  /** Closing waits a moment: the next page of a navigation reuses it */
+  tutupNanti: ReturnType<typeof setTimeout> | null;
   lepasSesi: (() => void) | null;
 }
 
@@ -278,6 +280,7 @@ function ambil(o: OpsiAliran): Koneksi | null {
       penonton: TANPA_PENONTON,
       pemantau: new Set(),
       lepasSesi: null,
+      tutupNanti: null,
     };
     koneksi.set(kunci, k);
   }
@@ -289,8 +292,16 @@ function lepas(o: OpsiAliran, sub: Langganan) {
   const k = kunci ? koneksi.get(kunci) : undefined;
   if (!kunci || !k) return;
   k.subs.delete(sub);
-  if (!k.subs.size) tutup(kunci, k);
+  if (k.subs.size || k.tutupNanti) return;
+  // A navigation unmounts the views a moment before the next page's mount:
+  // the socket waits for them instead of closing and opening again.
+  k.tutupNanti = setTimeout(() => {
+    k.tutupNanti = null;
+    if (!k.subs.size) tutup(kunci, k);
+  }, TUTUP_TUNDA_MS);
 }
+
+const TUTUP_TUNDA_MS = 4000;
 
 // ---------- React ----------
 // ---------- React ----------
@@ -328,6 +339,8 @@ export function useAliran(
     };
     const ikut = () => setS(k.status);
     k.subs.add(sub);
+    if (k.tutupNanti) clearTimeout(k.tutupNanti);
+    k.tutupNanti = null;
     k.pemantau.add(ikut);
     ikut();
     void sambung(k);

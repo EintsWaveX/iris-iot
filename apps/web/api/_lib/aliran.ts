@@ -33,40 +33,81 @@ const KOSONG_MS = 15_000;
 /** Streams skipped while a room is empty; events always go */
 const ALIRAN_DERAS = new Set(["tel", "denyut"]);
 
-/** Sends messages into a room; quietly does nothing when the relay is not
- *  set up or slow (the topic signal and the 60 s safety net catch up) */
-export async function terbitkan(ruang: string, m: PesanAliran[]): Promise<void> {
+/**
+ * A write's topics and its room messages, to the relay in one signed
+ * request (POST /kirim): one Worker request per write on the free plan.
+ * Quietly does nothing when the relay is not set up or slow (the pages
+ * catch up on their next refetch and the 60 s safety net).
+ */
+export async function kirimRelay(
+  topik: readonly string[],
+  ruang: Readonly<Record<string, PesanAliran[]>> = {},
+): Promise<void> {
   const env = konsolEnv();
-  if (!env || !m.length) return;
-  const sepi = (kosong.get(ruang) ?? 0) > Date.now();
-  const kirim = sepi ? m.filter((x) => !ALIRAN_DERAS.has(x.j)) : m;
-  if (!kirim.length) return;
-  const body = JSON.stringify({ m: kirim });
-  const ts = Math.floor(Date.now() / 1000);
-  const tanda = createHmac("sha256", env.secret)
-    .update(`aliran|${ruang}|${body}|${ts}`)
-    .digest("hex");
+  if (!env) return;
+  const kini = Date.now();
+  const r: Record<string, PesanAliran[]> = {};
+  for (const [k, m] of Object.entries(ruang)) {
+    const sepi = (kosong.get(k) ?? 0) > kini;
+    const kirim = sepi ? m.filter((x) => !ALIRAN_DERAS.has(x.j)) : m;
+    if (kirim.length) r[k] = kirim;
+  }
+  const t = [...new Set(topik)];
+  if (!t.length && !Object.keys(r).length) return;
+  const body = JSON.stringify({
+    ...(t.length ? { t } : {}),
+    ...(Object.keys(r).length ? { r } : {}),
+  });
+  const ts = Math.floor(kini / 1000);
+  const tanda = createHmac("sha256", env.secret).update(`kirim|${body}|${ts}`).digest("hex");
   try {
-    const r = await fetch(`${env.relay.replace(/^ws/, "http")}/aliran/${ruang}/kirim`, {
+    const res = await fetch(`${env.relay.replace(/^ws/, "http")}/kirim`, {
       method: "POST",
-      headers: { "x-aliran-ts": String(ts), "x-aliran-tanda": tanda },
+      headers: { "x-kirim-ts": String(ts), "x-kirim-tanda": tanda },
       body,
       signal: AbortSignal.timeout(1500),
     });
-    // The room answers with how many sockets heard it.
-    if (r.ok && (await r.text()) === "0") kosong.set(ruang, Date.now() + KOSONG_MS);
-    else kosong.delete(ruang);
+    if (!res.ok) return;
+    // Each room answers with how many sockets heard it.
+    const dengar = (await res.json()) as Record<string, number>;
+    for (const k of Object.keys(r)) {
+      if (dengar[k] === 0) kosong.set(k, kini + KOSONG_MS);
+      else kosong.delete(k);
+    }
   } catch {
-    /* the pages catch up on the topic signal */
+    /* the pages catch up on their next refetch */
   }
 }
 
-/** Into a running session's room */
-export async function terbitkanSesi(
+/** Into one room, on its own (outside a route's write) */
+export async function terbitkan(ruang: string, m: PesanAliran[]): Promise<void> {
+  if (m.length) await kirimRelay([], { [ruang]: m });
+}
+
+/** Messages a route's write puts in a room, sent with its topics once the
+ *  answer is out (denganSiaran, siaran.ts) */
+const ANTRE = Symbol("aliran");
+
+export function antreAliran(res: ApiResponse, ruang: string, m: PesanAliran[]): void {
+  const q = ((res as unknown as Record<symbol, Record<string, PesanAliran[]>>)[ANTRE] ??= {});
+  (q[ruang] ??= []).push(...m);
+}
+
+/** Into a running session's room, with the write's topics */
+export function antreSesi(
+  res: ApiResponse,
   sesiId: number | null | undefined,
   m: PesanAliran[],
-): Promise<void> {
-  if (sesiId) await terbitkan(ruangSesi(sesiId), m);
+): void {
+  if (sesiId && m.length) antreAliran(res, ruangSesi(sesiId), m);
+}
+
+/** What a route queued (and forgets it) */
+export function ambilAntre(res: ApiResponse): Record<string, PesanAliran[]> {
+  const o = res as unknown as Record<symbol, Record<string, PesanAliran[]> | undefined>;
+  const q = o[ANTRE] ?? {};
+  o[ANTRE] = undefined;
+  return q;
 }
 
 /** A group's number from its id (rooms filter by number) */

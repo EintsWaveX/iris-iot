@@ -57,7 +57,8 @@ import { ambilBundel, bundelUntukPasang, terbitkan } from "../_lib/bundel.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
-import { terbitkan as terbitkanAliran, terbitkanSesi } from "../_lib/aliran.js";
+import { kirimRelay } from "../_lib/aliran.js";
+import { ruangSesi } from "../../src/lib/aliran.js";
 import type { PesanAliran } from "../../src/lib/aliran.js";
 import { catatKabar } from "../_lib/pasang.js";
 import type { Topik } from "../../src/lib/siaran-topik.js";
@@ -182,17 +183,33 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // answered (2026-10-07). A beat that changes nothing sends nothing.
     const berubah = new Set<Topik>();
 
-    // Phase 12: the readings first, and into the session's Live rooms at
-    // once, before the rest of the beat's work (commands, sweeps, state).
+    // The Pi's clock against the site's, measured here on every beat.
+    const jamPi = typeof body.jamPi === "number" && Number.isFinite(body.jamPi) ? body.jamPi : null;
+    const kondisi = saringKondisi({
+      ...(isPlainObject(body.kondisi) ? body.kondisi : {}),
+      selisihDetik: jamPi === null ? null : Math.round(jamPi - Date.now() / 1000),
+    });
+
+    // Phase 12: the readings first, then the beat and the readings go to the
+    // Server pages and the session's Live rooms at once, in one request,
+    // before the rest of the beat's work (commands, sweeps, state).
     const sesiAktif = await currentSesi();
     const bacaan = await rekamTelemetri(serverId, sesiAktif?.id ?? null, body.telemetri);
     const perGrup = new Map<number, typeof bacaan>();
     for (const r of bacaan)
       perGrup.set(r.kelompokNomor, [...(perGrup.get(r.kelompokNomor) ?? []), r]);
-    const terbitTel = terbitkanSesi(
-      sesiAktif?.id,
-      [...perGrup].map(([g, rows]): PesanAliran => ({ j: "tel", g, d: rows })),
-    );
+    const kamar: Record<string, PesanAliran[]> = {
+      pi: [
+        {
+          j: "denyut",
+          g: null,
+          d: { serverId, denyut: beat, ...(kondisi ? { kondisi, kondisiPada: new Date() } : {}) },
+        },
+      ],
+    };
+    if (sesiAktif && perGrup.size)
+      kamar[ruangSesi(sesiAktif.id)] = [...perGrup].map(([g, rows]) => ({ j: "tel", g, d: rows }));
+    const terbitAwal = kirimRelay([], kamar);
     // Silent past the idle cadence's grace: the Pi was offline until now.
     const terakhir = row.kondisiPada?.getTime() ?? 0;
     if (Date.now() - terakhir > batasLuringDetik(null, null) * 1000) berubah.add("server");
@@ -228,12 +245,6 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       typeof body.alamatLan === "string" && ALAMAT_LAN_RE.test(body.alamatLan)
         ? body.alamatLan
         : null;
-    // The Pi's clock against the site's, measured here on every beat.
-    const jamPi = typeof body.jamPi === "number" && Number.isFinite(body.jamPi) ? body.jamPi : null;
-    const kondisi = saringKondisi({
-      ...(isPlainObject(body.kondisi) ? body.kondisi : {}),
-      selisihDetik: jamPi === null ? null : Math.round(jamPi - Date.now() / 1000),
-    });
     // Phase 9: the Module 4 hunt's summary and the Pi's hotspot, for the
     // Praktikan's Perburuan step. Only the newest of each is kept.
     const perburuanMasuk = saringPerburuan(body.perburuan);
@@ -300,23 +311,8 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       waktu: Date.now() / 1000,
       ...(jadwal ? { jadwal } : {}),
     });
-    // Phase 12: the beat itself to the Server pages, the readings to the
-    // session's Live rooms, both with their data; the topics as before.
-    await Promise.all([
-      siarkan([...berubah]),
-      terbitkanAliran("pi", [
-        {
-          j: "denyut",
-          g: null,
-          d: {
-            serverId,
-            denyut: beat,
-            ...(kondisi ? { kondisi, kondisiPada: new Date() } : {}),
-          },
-        },
-      ]),
-      terbitTel,
-    ]);
+    // The topics this beat changed, as before (most beats change none).
+    await Promise.all([siarkan([...berubah]), terbitAwal]);
   } catch (err) {
     console.error("[api/agent denyut] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });

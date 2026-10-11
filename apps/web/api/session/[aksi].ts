@@ -167,7 +167,7 @@ import {
 } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 import { tandaiAktif } from "../_lib/kehadiran.js";
-import { handleAliranGet, terbitkanSesi } from "../_lib/aliran.js";
+import { antreSesi, handleAliranGet } from "../_lib/aliran.js";
 
 const PESAN_MAX_LEN = 200;
 const CATATAN_MAX_LEN = 300;
@@ -373,21 +373,18 @@ async function handleTelemetryModul1(req: ApiRequest, res: ApiResponse, who: Ses
     });
   }
   const disimpan = rows.length
-    ? await getDb()
-        .insert(telemetriLog)
-        .values(rows)
-        .returning({
-          id: telemetriLog.id,
-          tx: telemetriLog.tx,
-          rx: telemetriLog.rx,
-          delayMs: telemetriLog.delayMs,
-          nilai: telemetriLog.nilai,
-        })
+    ? await getDb().insert(telemetriLog).values(rows).returning({
+        id: telemetriLog.id,
+        tx: telemetriLog.tx,
+        rx: telemetriLog.rx,
+        delayMs: telemetriLog.delayMs,
+        nilai: telemetriLog.nilai,
+      })
     : [];
   res.status(200).json({ ok: true, diterima: rows.length });
   // The laptop says when its room socket is down: the room hears it here.
   if (body.siar === true && disimpan.length)
-    await terbitkanSesi(running.id, [
+    antreSesi(res, running.id, [
       {
         j: "tel",
         g: who.kelompokNomor,

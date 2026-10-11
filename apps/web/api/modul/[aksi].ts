@@ -86,7 +86,7 @@ import { statusRiwayat } from "../../src/lib/akses.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { and, asc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
-import { terbitkanSesi } from "../_lib/aliran.js";
+import { antreSesi } from "../_lib/aliran.js";
 
 const MAX_JAWABAN_LEN = 200;
 
@@ -447,7 +447,7 @@ async function handleCek(
   // Phase 12: the group's own answer to its groupmates and the Asisten (the
   // room keeps it from other groups); never the key or the explanation.
   if (running)
-    await terbitkanSesi(running.id, [
+    antreSesi(res, running.id, [
       {
         j: "jawaban",
         g: nomorKelompok,
