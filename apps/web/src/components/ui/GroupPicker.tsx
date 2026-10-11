@@ -3,9 +3,7 @@
  * each carrying that group's own hue (`--group-1..5`) as a left accent
  * bar, exactly one selected at a time. Replaces four independent,
  * byte-for-byte copies of the same `*__picker-btn` pattern that had
- * accumulated across Ladder.tsx (now live/FlowDiagram.tsx), LayerXray.tsx,
- * LiveSandbox.tsx and GroupLive.tsx (finding F11) -- P7.4 adopted this
- * component in all four call sites.
+ * accumulated across the live views (finding F11).
  *
  * Built on @radix-ui/react-toggle-group (single-select), the same
  * mechanism as SegmentedControl, but keeps its own chip shape and
@@ -34,6 +32,8 @@ interface Props {
   /** Phase 8: the viewer's own group gets a small star and this label. */
   mark?: number;
   markLabel?: string;
+  /** Bigger chips that share the row equally (the Live room). */
+  size?: "lg";
 }
 
 export default function GroupPicker({
@@ -43,11 +43,12 @@ export default function GroupPicker({
   label = "Kelompok",
   mark,
   markLabel,
+  size,
   ...rest
 }: Props) {
   return (
     <RadixToggleGroup.Root
-      className="group-picker"
+      className={size === "lg" ? "group-picker group-picker--lg" : "group-picker"}
       type="single"
       value={String(value)}
       onValueChange={(next) => {

@@ -28,6 +28,29 @@
     border-color var(--dur-fast) var(--ease-reveal);
 }
 
+/* The Live room's picker: bigger chips that share the row equally. */
+.group-picker--lg {
+  flex: 1 1 32rem;
+}
+
+.group-picker--lg .group-picker__item {
+  flex: 1 1 7.5rem;
+  font-size: var(--fs-body, 1rem);
+  font-weight: 600;
+  min-height: 48px;
+  padding-inline: var(--space-4);
+  white-space: nowrap;
+}
+
+/* Phones: three to a row, then two, each label on one line. */
+@media (max-width: 519px) {
+  .group-picker--lg .group-picker__item {
+    flex-basis: calc((100% - 2 * var(--space-2)) / 3);
+    font-size: var(--fs-small);
+    padding-inline: var(--space-2);
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .group-picker__item:hover {
     color: var(--text);

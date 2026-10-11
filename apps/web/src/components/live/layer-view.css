@@ -1,0 +1,198 @@
+/* The Live room's Lapisan view (LayerView.tsx): the message list beside
+   the picked message's path and layers; stacked below 1024 px. */
+
+.lapis__grid {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .lapis__grid {
+    align-items: start;
+    grid-template-columns: minmax(260px, 4fr) minmax(0, 8fr);
+  }
+}
+
+.lapis__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.lapis__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  max-height: 28rem;
+  overflow: auto;
+  padding: 0;
+}
+
+@media (max-width: 1023px) {
+  .lapis__list {
+    max-height: 14rem;
+  }
+}
+
+.lapis__msg {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 44px;
+  padding: 8px 12px;
+  text-align: left;
+  transition:
+    border-color var(--dur-fast),
+    background var(--dur-fast);
+  width: 100%;
+}
+
+.lapis__msg .hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lapis__msg:hover {
+    border-color: var(--hairline-strong);
+  }
+}
+
+.lapis__msg[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--tile-hue) 9%, var(--surface-1));
+  border-color: var(--tile-hue);
+}
+
+.lapis__msg[data-lost="yes"] .lapis__delay {
+  color: var(--danger);
+}
+
+.lapis__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.lapis__rails {
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  height: 8rem;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Inset from both edges so the last rail's label is never clipped. */
+.lapis__rail {
+  border-top: 1px dashed var(--hairline-strong);
+  left: var(--space-4);
+  position: absolute;
+  right: var(--space-4);
+  top: calc(1.2em + var(--rail-index) / max(var(--rail-count), 1) * (100% - 2.4em));
+}
+
+.lapis__rail-label {
+  background: var(--bg-elevated);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  padding-inline: var(--space-2);
+  position: relative;
+  top: -0.7em;
+}
+
+/* One arrow drawn from the top rail down for each message shown. */
+.lapis__arrow {
+  background: var(--tile-hue);
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  transform-origin: top;
+  width: 3px;
+}
+
+:root:not([data-motion-tier="0"]) .lapis__arrow {
+  animation: lapis-arrow-draw 0.5s var(--ease-out-expo) both;
+}
+
+@keyframes lapis-arrow-draw {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.lapis__arrow[data-lost="yes"] {
+  background: var(--danger);
+  bottom: 35%;
+  opacity: 0.7;
+}
+
+.lapis__readout {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  margin: 0;
+}
+
+.lapis__layers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lapis__layer {
+  background: var(--bg-elevated);
+  border-left: 3px solid var(--tile-hue);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+}
+
+.lapis__layer-head {
+  align-items: center;
+  color: var(--text-faint);
+  display: flex;
+  font-size: var(--fs-small);
+  gap: var(--space-3);
+  text-transform: uppercase;
+}
+
+.lapis__layer-index {
+  align-items: center;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 50%;
+  display: inline-flex;
+  height: 1.6em;
+  justify-content: center;
+  width: 1.6em;
+}
+
+.lapis__layer-value {
+  color: var(--text);
+  font-size: var(--fs-body);
+  margin: var(--space-2) 0 0;
+}
+
+.lapis__layer-caption {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  margin: var(--space-1) 0 0;
+}

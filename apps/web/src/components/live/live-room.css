@@ -13,7 +13,7 @@
   min-width: 0;
 }
 
-/* Live / Try It keeps its own width beside the group picker. */
+/* Langsung / Lapisan keeps its own width beside the group picker. */
 .liveroom__top > .segmented {
   flex: 0 0 auto;
   width: auto;
@@ -457,10 +457,6 @@
   border-top: 1px solid var(--hairline-faint);
   padding: 7px 10px;
   white-space: nowrap;
-}
-
-.liveroom__try {
-  gap: 12px;
 }
 
 /* Long tab lines and logs scroll inside their card, never widen the page. */

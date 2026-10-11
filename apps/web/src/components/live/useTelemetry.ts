@@ -10,7 +10,8 @@
  * fills in on open and after a reconnect, and is polled only while the
  * room is down. That first real batch replaces the simulated history,
  * so the two never share a table. A board connected to this very PC
- * (`local`, Module 1's Web Serial link) wins over both.
+ * (`local`, Module 1's Web Serial link) wins over both. Moving to another
+ * group keeps this one's rows for the rest of the page's life.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAliran, useCadangan, useLihat } from "../../lib/aliran-ruang";
@@ -18,6 +19,19 @@ import { fetchLiveReadings } from "../../lib/telemetry-live";
 import { nextReading, type Reading } from "../../lib/telemetry-sim";
 
 const HISTORY_MAX = 80;
+
+/** What a (module, group) stream had when the view moved to another group */
+interface Kept {
+  state: Telemetry;
+  seen: Set<string>;
+  cursor: number;
+  real: boolean;
+}
+
+// Per page: switching groups and back picks up where the stream left off,
+// and the next fetch brings only what arrived in between.
+const KEPT = new Map<string, Kept>();
+const EMPTY: Telemetry = { history: [], live: false, updatedAt: null };
 
 export interface Telemetry {
   history: Reading[];
@@ -36,18 +50,31 @@ export function useTelemetry(
   /** The running session: its stream room brings readings as they land */
   sesiId: number | null = null,
 ): Telemetry {
-  const [state, setState] = useState<Telemetry>({ history: [], live: false, updatedAt: null });
+  const [state, setState] = useState<Telemetry>(EMPTY);
   const seen = useRef(new Set<string>());
   const cursor = useRef(-1);
   const real = useRef(false);
   const grupRef = useRef(`${modul}:${group}`);
   grupRef.current = `${modul}:${group}`;
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
+  // Restore this group's stream, and keep it when the view moves on.
   useEffect(() => {
-    setState({ history: [], live: false, updatedAt: null });
-    seen.current = new Set();
-    cursor.current = -1;
-    real.current = false;
+    const key = `${modul}:${group}`;
+    const kept = KEPT.get(key);
+    setState(kept?.state ?? EMPTY);
+    seen.current = kept?.seen ?? new Set();
+    cursor.current = kept?.cursor ?? -1;
+    real.current = kept?.real ?? false;
+    return () => {
+      KEPT.set(key, {
+        state: stateRef.current,
+        seen: seen.current,
+        cursor: cursor.current,
+        real: real.current,
+      });
+    };
   }, [modul, group]);
 
   const aktif = !paused && local === null;

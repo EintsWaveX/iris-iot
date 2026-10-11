@@ -11,7 +11,7 @@ export const LV = dict({
     viewOnly: "Hanya melihat",
     mode: "Mode tampilan",
     modeLive: "Langsung",
-    modeTry: "Coba Sendiri",
+    modeLayers: "Lapisan",
     real: "Data Asli",
     sim: "Simulasi",
     stale: "Tidak Ada Data Baru",
@@ -117,8 +117,6 @@ export const LV = dict({
     copied: "Tabel tersalin.",
     copyFail: "Tidak bisa menyalin ke papan klip.",
     waitingMsg: "Menunggu pesan pertama…",
-    tryHint:
-      "Tekan tombol untuk mengirim satu pesan uji dan lihat pesan itu melewati setiap lapisan.",
     // Data modal (mockup G2)
     openData: (l: string) => `Buka data ${l}`,
     dmTempHum: "Suhu dan Kelembapan",
@@ -146,7 +144,7 @@ export const LV = dict({
     viewOnly: "View only",
     mode: "View mode",
     modeLive: "Live",
-    modeTry: "Try It",
+    modeLayers: "Layers",
     real: "Real Data",
     sim: "Simulated",
     stale: "No New Data",
@@ -247,7 +245,6 @@ export const LV = dict({
     copied: "Table copied.",
     copyFail: "Could not copy to the clipboard.",
     waitingMsg: "Waiting for the first message…",
-    tryHint: "Press the button to send one test message and watch it cross every layer.",
     // Data modal (mockup G2)
     openData: (l: string) => `Open the ${l} data`,
     dmTempHum: "Temperature and Humidity",
@@ -273,7 +270,7 @@ export const LV = dict({
     viewOnly: "只能查看",
     mode: "显示模式",
     modeLive: "实时",
-    modeTry: "自己试试",
+    modeLayers: "分层",
     real: "真实数据",
     sim: "模拟",
     stale: "没有新数据",
@@ -373,7 +370,6 @@ export const LV = dict({
     copied: "表格已复制。",
     copyFail: "无法复制到剪贴板。",
     waitingMsg: "等待第一条消息…",
-    tryHint: "按下按钮发送一条测试消息，看它穿过每一层。",
     // Data modal (mockup G2)
     openData: (l: string) => `打开${l}数据`,
     dmTempHum: "温度和湿度",

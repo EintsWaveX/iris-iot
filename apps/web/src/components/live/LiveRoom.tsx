@@ -2,7 +2,8 @@
  * The Live room (Phase 9 Stage 7e, mockup p-live), the same frame for all
  * four modules, inside the module page's Live step and on /modules/N/live.
  *
- * - Top row: the group picker (own group marked) and Live / Try It.
+ * - Top row: the group picker (own group marked) and Langsung / Lapisan
+ *   (the same messages, each opened layer by layer).
  * - A status line: real, simulated or no new data, updated N seconds ago,
  *   Pause.
  * - Connect Your Boards (a Praktikan on their own group): every board the
@@ -39,7 +40,7 @@ import SegmentedControl from "../ui/SegmentedControl";
 import IconButton from "../ui/IconButton";
 import Fade from "../ui/Fade";
 import TabLine from "../ui/TabLine";
-import LiveSandbox from "../LiveSandbox";
+import LayerView from "./LayerView";
 import { useMe, useSessionNow, useTick } from "../../lib/app";
 import { kirimNaik, useAliran, useCadangan, usePenonton } from "../../lib/aliran-ruang";
 import { useProyektor } from "../../lib/proyektor";
@@ -81,6 +82,9 @@ interface BarisCermin {
 
 /** Ids for mirror lines that came through the room (the API's are positive) */
 let idCermin = -1;
+
+/** A group's mirror when the view moved to another group, kept per page */
+const MIRROR_KEPT = new Map<number, { lines: LogLine[]; last: number; seen: Set<string> }>();
 
 interface MirrorLine {
   sumber: string;
@@ -191,7 +195,7 @@ export default function LiveRoom({
   modul: number;
   layers: Layer[];
   /** Inside the module page: a Praktikan sees only their own group, live
-   * (mockup p-module Live has no group picker and no Try It). */
+   * (mockup p-module Live has no group picker and no Lapisan). */
   embed?: boolean;
   /** Lihat Sebagai Praktikan: the group an Asisten views the room as. */
   wakil?: { nomor: number; own: boolean; sesiId: number };
@@ -211,7 +215,7 @@ export default function LiveRoom({
   const GROUPS = useMemo(() => Array.from({ length: jumlah }, (_, i) => i + 1), [jumlah]);
   const [group, setGroup] = useState(1);
   const [picked, setPicked] = useState(false);
-  const [mode, setMode] = useState<"live" | "try">("live");
+  const [mode, setMode] = useState<"live" | "lapis">("live");
   const [paused, setPaused] = useState(false);
   const [pane, setPane] = useState<"serial" | "flow" | "read">("serial");
   const wide = useMinWidth(1600);
@@ -437,12 +441,23 @@ export default function LiveRoom({
       /* the room or the next stand in call brings them */
     }
   }, [group, tambahMirror]);
+  const mirrorRef = useRef(mirror);
+  mirrorRef.current = mirror;
   useEffect(() => {
     if (!mirrorOn) return;
-    mirrorLast.current = 0;
-    mirrorSeen.current = new Set();
-    setMirror({ g: group, lines: [] });
+    const kept = MIRROR_KEPT.get(group);
+    mirrorLast.current = kept?.last ?? 0;
+    mirrorSeen.current = kept?.seen ?? new Set();
+    setMirror({ g: group, lines: kept?.lines ?? [] });
     void tarikMirror();
+    return () => {
+      const m = mirrorRef.current;
+      MIRROR_KEPT.set(group, {
+        lines: m.g === group ? m.lines : [],
+        last: mirrorLast.current,
+        seen: mirrorSeen.current,
+      });
+    };
   }, [mirrorOn, group]);
   const mirrorStatus = useAliran(
     { ruang: "sesi", sesiId, aktif: mirrorOn && sesiId !== null },
@@ -454,7 +469,7 @@ export default function LiveRoom({
   );
   useCadangan(() => void tarikMirror(), MIRROR_TICK, mirrorOn && mirrorStatus !== "live");
 
-  const tel = useTelemetry(modul, group, paused || mode !== "live", 1000, null, true, sesiId);
+  const tel = useTelemetry(modul, group, paused, 1000, null, true, sesiId);
   const localEvents = canPorts ? events : [];
   const live = tel.live || localEvents.length > 0;
 
@@ -578,69 +593,68 @@ export default function LiveRoom({
               aria-label={t.pickGroup}
               mark={ownGroup ?? undefined}
               markLabel={t.mine}
+              size="lg"
             />
           )}
           <SegmentedControl
             value={mode}
-            onValueChange={(v) => setMode(v as "live" | "try")}
+            onValueChange={(v) => setMode(v as "live" | "lapis")}
             aria-label={t.mode}
             options={[
               { value: "live", label: t.modeLive },
-              { value: "try", label: t.modeTry },
+              { value: "lapis", label: t.modeLayers },
             ]}
           />
         </div>
       )}
 
-      {mode === "live" && (
-        <div className="livebar">
+      <div className="livebar">
+        <span
+          className={`pill ${paused ? "pill--mono" : live ? (stale ? "pill--warn" : "pill--ok") : "pill--mono"}`}
+        >
           <span
-            className={`pill ${paused ? "pill--mono" : live ? (stale ? "pill--warn" : "pill--ok") : "pill--mono"}`}
-          >
-            <span
-              className={`dot ${paused ? "dot--off" : live ? (stale ? "dot--warn" : "dot--ok dot--pulse") : "dot--off"}`}
-              aria-hidden="true"
-            />
-            {paused ? t.paused : live ? (stale ? t.stale : t.real) : t.sim}
-          </span>
-          {ago !== null && <span className="hint">{t.updated(ago)}</span>}
-          <IconButton
-            sm
-            icon={paused ? PlayIcon : PauseIcon}
-            label={paused ? t.resume : t.pause}
-            pressed={paused}
-            onClick={() => setPaused((p) => !p)}
+            className={`dot ${paused ? "dot--off" : live ? (stale ? "dot--warn" : "dot--ok dot--pulse") : "dot--off"}`}
+            aria-hidden="true"
           />
-          {wakil && !wakil.own && (
-            <span className="pill livebar__cap">
-              <EyeIcon aria-hidden="true" />
-              {t.viewOnly}
-            </span>
-          )}
-          {canPorts && (
-            <span className="livebar__cap row">
-              {saved.rows !== null && (
-                <span className="hint">
-                  {/* One Module 4 save writes both tables: count saves, not rows. */}
-                  {tc.savedCount(
-                    Math.max(
-                      saved.rows.filter((x) => x.jenis === "paket").length,
-                      saved.rows.filter((x) => x.jenis === "jarak").length,
-                    ),
-                  )}
-                </span>
-              )}
-              <button type="button" className="btn btn--primary" onClick={() => setCapOpen(true)}>
-                <CameraIcon aria-hidden="true" />
-                <span className="livebar__capl">{tc.capture}</span>
-                <span className="livebar__caps">{tc.captureShort}</span>
-              </button>
-            </span>
-          )}
-        </div>
-      )}
+          {paused ? t.paused : live ? (stale ? t.stale : t.real) : t.sim}
+        </span>
+        {ago !== null && <span className="hint">{t.updated(ago)}</span>}
+        <IconButton
+          sm
+          icon={paused ? PlayIcon : PauseIcon}
+          label={paused ? t.resume : t.pause}
+          pressed={paused}
+          onClick={() => setPaused((p) => !p)}
+        />
+        {wakil && !wakil.own && (
+          <span className="pill livebar__cap">
+            <EyeIcon aria-hidden="true" />
+            {t.viewOnly}
+          </span>
+        )}
+        {canPorts && (
+          <span className="livebar__cap row">
+            {saved.rows !== null && (
+              <span className="hint">
+                {/* One Module 4 save writes both tables: count saves, not rows. */}
+                {tc.savedCount(
+                  Math.max(
+                    saved.rows.filter((x) => x.jenis === "paket").length,
+                    saved.rows.filter((x) => x.jenis === "jarak").length,
+                  ),
+                )}
+              </span>
+            )}
+            <button type="button" className="btn btn--primary" onClick={() => setCapOpen(true)}>
+              <CameraIcon aria-hidden="true" />
+              <span className="livebar__capl">{tc.capture}</span>
+              <span className="livebar__caps">{tc.captureShort}</span>
+            </button>
+          </span>
+        )}
+      </div>
 
-      {/* Kept mounted in Try It so an open port is not dropped. */}
+      {/* Kept mounted in Lapisan so an open port is not dropped. */}
       {canPorts && (
         <section className="panel ports" data-ok={missing ? "no" : "yes"} hidden={mode !== "live"}>
           <div className="panel__head">
@@ -694,11 +708,14 @@ export default function LiveRoom({
       )}
 
       <Fade k={`${mode}-${group}`}>
-        {mode === "try" ? (
-          <section className="panel liveroom__try">
-            <p className="hint">{t.tryHint}</p>
-            <LiveSandbox modul={modul} groups={[group]} layers={layers} lang={lang} />
-          </section>
+        {mode === "lapis" ? (
+          <LayerView
+            lang={lang}
+            modul={modul}
+            group={group}
+            history={tel.history}
+            layers={layers}
+          />
         ) : (
           <div className="stack stack--lg">
             {!live && !paused && (
