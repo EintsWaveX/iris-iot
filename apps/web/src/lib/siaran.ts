@@ -29,7 +29,11 @@ type Fn = () => void;
 const PING_MS = 20_000;
 const PONG_MS = 8_000;
 const FALLBACK_MS = 30_000;
-const SAFETY_MS = 60_000;
+/** While live, a slow net for a message lost on the way. Every open tab
+ *  refetches all its views on it, so at a class's scale it costs Vercel
+ *  edge requests (2026-10-11: 5 min, was 60 s); the socket proves itself
+ *  with ping and pong every 20 s, and catches up after any reconnect. */
+const SAFETY_MS = 300_000;
 /** A gap this long between 5 s ticks means the tab or laptop slept. */
 const TIDUR_MS = 20_000;
 

@@ -287,6 +287,19 @@ export default function AppNav({
   const t = T[lang];
   const me = useMe();
   const now = useSessionNow(me !== undefined && me !== null);
+  // An Asisten's presence (the Team page's online dot) is stamped by this
+  // call, at most every 45 s; with the safety net at 5 minutes it gets its
+  // own minute here, only while the tab is in view.
+  const asistenHadir = me?.role === "asisten";
+  const nowRef = useRef(now);
+  nowRef.current = now;
+  useEffect(() => {
+    if (!asistenHadir) return;
+    const id = setInterval(() => {
+      if (!document.hidden) nowRef.current.refresh();
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [asistenHadir]);
   // Konsol Pi: a dot on Server while something waits for this Asisten (a
   // request to answer, a console opened without approval, someone asking to
   // join theirs), and a toast when a new one comes in.
