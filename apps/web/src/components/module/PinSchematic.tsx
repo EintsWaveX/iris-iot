@@ -19,7 +19,7 @@
  * `variant="full"` is the Persiapan step's layout; `variant="dock"` is the
  * narrow panel docked beside the code.
  */
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useId, useMemo, useState, type CSSProperties } from "react";
 import { ArrowSquareOutIcon, ArrowsOutSimpleIcon } from "@phosphor-icons/react";
 import SchematicViewer from "../ui/SchematicViewer";
 import SegmentedControl from "../ui/SegmentedControl";
@@ -28,6 +28,8 @@ import { getJson, dict } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import "./PinSchematic.css";
 import { dengar } from "../../lib/siaran";
+import { gabungPin } from "../../lib/pin-kode";
+import { usePin } from "./usePin";
 
 export interface PinData {
   judul: string;
@@ -250,6 +252,8 @@ function Diagram({
   compact?: boolean;
 }) {
   const ukur = useUkur();
+  // Each drawing owns its glow (a shared id could point at another copy's).
+  const glow = `glow-${useId().replace(/[^\w-]/g, "")}`;
   const pins = [...new Set(board.wires.map((w) => w.pin))];
   const parts = [...new Set(board.wires.map((w) => w.part))];
   const partSignals = parts.map((p) => board.wires.filter((w) => w.part === p));
@@ -300,7 +304,9 @@ function Diagram({
       style={{ "--mod-hue": `var(--mod-${modul})` } as CSSProperties}
     >
       <defs>
-        <filter id={`glow-${modul}`} x="-20%" y="-20%" width="140%" height="140%">
+        {/* Sized in the drawing's own units: a straight, level wire has a
+            box zero high, and a region in percent of it draws nothing. */}
+        <filter id={glow} filterUnits="userSpaceOnUse" x={0} y={0} width={W} height={h}>
           <feGaussianBlur stdDeviation="3" result="b" />
           <feMerge>
             <feMergeNode in="b" />
@@ -394,7 +400,7 @@ function Diagram({
             onMouseLeave={() => setActive(null)}
           >
             <path d={d} className="wiring__hit" />
-            <path d={d} className="wiring__line" filter={on ? `url(#glow-${modul})` : undefined} />
+            <path d={d} className="wiring__line" filter={on ? `url(#${glow})` : undefined} />
             {w.kind === "sig" && <path d={d} className="wiring__pulse" />}
           </g>
         );
@@ -408,7 +414,7 @@ function Diagram({
 export default function PinSchematic({
   lang,
   modul,
-  pin,
+  pin: pinBawaan,
   mcu,
   skema,
   variant = "full",
@@ -421,6 +427,12 @@ export default function PinSchematic({
   variant?: "full" | "dock";
 }) {
   const t = T[lang];
+  // The pins as set in Persiapan over this language's table (names stay)
+  const simpan = usePin()?.pin[String(modul)] ?? null;
+  const pin = useMemo(
+    () => (simpan ? { ...pinBawaan, baris: gabungPin(pinBawaan.baris, simpan) } : pinBawaan),
+    [pinBawaan, simpan],
+  );
   const boards = useMemo(() => boardsFrom(pin, mcu), [pin, mcu]);
   const [active, setActive] = useState<number | null>(null);
   const [view, setView] = useState(false);

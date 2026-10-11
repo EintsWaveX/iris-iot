@@ -157,6 +157,8 @@ const W = {
     brief: (m: string, b: string) => `mengubah Ringkasan ${m} (${b})`,
     presentasi: "mengubah slide presentasi",
     skema: (m: string) => `mengubah skema rangkaian ${m}`,
+    pin: (m: string) => `mengubah tabel pin ${m}`,
+    pinReset: (m: string) => `mengembalikan tabel pin ${m} ke bawaan`,
     serverDaftar: (s: string) => `mendaftarkan server ${s}`,
     serverUbah: (s: string) => `mengubah pengaturan ${s}`,
     serverHapus: (s: string) => `menghapus server ${s}`,
@@ -277,6 +279,8 @@ const W = {
     brief: (m: string, b: string) => `changed the ${m} Brief (${b})`,
     presentasi: "changed the presentation slides",
     skema: (m: string) => `changed the ${m} wiring schematic`,
+    pin: (m: string) => `changed the ${m} pin table`,
+    pinReset: (m: string) => `restored the ${m} pin table`,
     serverDaftar: (s: string) => `registered the server ${s}`,
     serverUbah: (s: string) => `changed ${s}'s settings`,
     serverHapus: (s: string) => `removed the server ${s}`,
@@ -393,6 +397,8 @@ const W = {
     brief: (m: string, b: string) => `修改了${m}的概要（${b}）`,
     presentasi: "修改了演示幻灯片",
     skema: (m: string) => `修改了${m}的接线图`,
+    pin: (m: string) => `修改了${m}的引脚表`,
+    pinReset: (m: string) => `把${m}的引脚表恢复为默认`,
     serverDaftar: (s: string) => `登记了服务器 ${s}`,
     serverUbah: (s: string) => `修改了 ${s} 的设置`,
     serverHapus: (s: string) => `删除了服务器 ${s}`,
@@ -707,6 +713,11 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
     case "skema_bawaan":
     case "skema_hapus":
       return k(FileTextIcon, w.skema(modulLabel(Number(d.modul), b.lang)));
+    case "pin_modul":
+      return k(
+        FileTextIcon,
+        (d.baris === null ? w.pinReset : w.pin)(modulLabel(Number(d.modul), b.lang)),
+      );
     case "server_daftar":
       return k(HardDrivesIcon, w.serverDaftar(b.server(d.serverId)));
     case "server_ubah":

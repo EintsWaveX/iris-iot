@@ -8,10 +8,14 @@
  * Version 1 is the bundled Praktikan files (src/content/sketches) with each
  * blank's answer from answer-keys.ts spliced back in, so its generated
  * Praktikan files are byte for byte the bundled ones (kode-aktif.test.ts).
+ *
+ * A module whose pin table was changed in Persiapan › Skema serves its code
+ * with those pins (src/lib/pin-kode.ts); `pin` says so.
  */
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
-import { kodeVersi } from "../../src/lib/schema.js";
+import { kodeVersi, pengaturan } from "../../src/lib/schema.js";
+import { gabungPin, KUNCI_PIN, terapkanPin, type BarisPin } from "../../src/lib/pin-kode.js";
 import {
   buatTemplat,
   cocokCelah,
@@ -34,6 +38,27 @@ import m4 from "../../src/content/modules/id/4.json" with { type: "json" };
 export const BERKAS_MODUL: Record<number, string[]> = Object.fromEntries(
   [m1, m2, m3, m4].map((m) => [m.modul, m.berkas.map((b) => b.path)]),
 );
+
+/** Each module's bundled pin table rows */
+export const PIN_BAWAAN: Record<number, BarisPin> = Object.fromEntries(
+  [m1, m2, m3, m4].map((m) => [m.modul, (m as { pin: { baris: string[][] } }).pin.baris]),
+);
+
+/** The saved pin rows per module (absent = the bundled table) */
+export async function bacaPinSemua(): Promise<Record<number, BarisPin>> {
+  const rows = await getDb()
+    .select({ kunci: pengaturan.kunci, nilai: pengaturan.nilai })
+    .from(pengaturan)
+    .where(inArray(pengaturan.kunci, [1, 2, 3, 4].map(KUNCI_PIN)));
+  const out: Record<number, BarisPin> = {};
+  for (const r of rows) {
+    const modul = Number(r.kunci.replace("pin_modul_", ""));
+    const baris = (r.nilai as { baris?: unknown }).baris;
+    if (Array.isArray(baris) && PIN_BAWAAN[modul])
+      out[modul] = gabungPin(PIN_BAWAAN[modul], baris as BarisPin);
+  }
+  return out;
+}
 
 export function slugDari(path: string): string {
   return path.replace(/\.(ino|py)$/, "");
@@ -106,6 +131,8 @@ export interface KodeAktif {
   /** The published version number; null = version 1 from the bundle. */
   versi: number | null;
   berkas: Map<string, BerkasAktif>;
+  /** Served with a pin table changed in Persiapan */
+  pin: boolean;
 }
 
 /** A version saved before hints existed: each blank whose answer is still
@@ -125,16 +152,22 @@ export function lengkapiDariV1(modul: number, b: KodeBerkas): KodeBerkas {
   return { ...b, celah };
 }
 
-function aktifDari(modul: number, versi: number | null, simpan: KodeBerkas[]): KodeAktif {
+function aktifDari(
+  modul: number,
+  versi: number | null,
+  simpan: KodeBerkas[],
+  pin: BarisPin | null = null,
+): KodeAktif {
   const map = new Map<string, BerkasAktif>();
-  for (const b of simpan.map((x) => lengkapiDariV1(modul, x))) {
+  const bawaan = PIN_BAWAAN[modul] ?? [];
+  for (const b of simpan.map((x) => lengkapiDariV1(modul, terapkanPin(modul, x, bawaan, pin)))) {
     map.set(b.slug, {
       berkas: b,
       urut: urutkanCelah(b.celah),
       templat: { id: buatTemplat(b, "id"), en: buatTemplat(b, "en") },
     });
   }
-  return { modul, versi, berkas: map };
+  return { modul, versi, berkas: map, pin: pin !== null };
 }
 
 const SIMPAN_MS = 10_000;
@@ -158,12 +191,20 @@ export async function kodeModul(modul: number): Promise<KodeAktif> {
   if (ada && Date.now() - ada.pada < SIMPAN_MS) return ada.nilai;
   let nilai: KodeAktif;
   try {
-    const [row] = await getDb()
-      .select({ nomor: kodeVersi.nomor, berkas: kodeVersi.berkas })
-      .from(kodeVersi)
-      .where(and(eq(kodeVersi.modul, modul), eq(kodeVersi.status, "terbit")))
-      .limit(1);
-    nilai = row ? aktifDari(modul, row.nomor, row.berkas) : kodeBawaan(modul);
+    const [[row], pins] = await Promise.all([
+      getDb()
+        .select({ nomor: kodeVersi.nomor, berkas: kodeVersi.berkas })
+        .from(kodeVersi)
+        .where(and(eq(kodeVersi.modul, modul), eq(kodeVersi.status, "terbit")))
+        .limit(1),
+      bacaPinSemua(),
+    ]);
+    const pin = pins[modul] ?? null;
+    nilai = row
+      ? aktifDari(modul, row.nomor, row.berkas, pin)
+      : pin
+        ? aktifDari(modul, null, kodeV1(modul), pin)
+        : kodeBawaan(modul);
   } catch (err) {
     // Before migration 0024 reaches a database, serve version 1.
     console.error("[kode-aktif] falling back to the bundled code:", err);

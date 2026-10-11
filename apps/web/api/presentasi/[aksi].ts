@@ -57,6 +57,11 @@
  * POST /api/presentasi/schematic-default  { modul } — asisten. Back to the
  *                                            bundled schematic.
  * POST /api/presentasi/schematic-delete   { id } — asisten.
+ *
+ * GET  /api/presentasi/pin                — anyone. Each module's pin table
+ *                                            as set (_lib/pin.ts).
+ * POST /api/presentasi/pin-simpan         { modul, baris | null } —
+ *                                            asisten. The code follows.
  */
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { cekHak } from "../_lib/hak.js";
@@ -81,6 +86,7 @@ import {
   TAUTAN_SLIDES,
 } from "../../src/lib/tautan.js";
 import { denganSiaran } from "../_lib/siaran.js";
+import { handlePinGet, handlePinSimpan } from "../_lib/pin.js";
 
 // Comfortably above a slide deck; well under what Blob itself allows.
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -530,6 +536,7 @@ const POST: Record<string, Post> = {
   "schematic-activate": handleSchematicActivate,
   "schematic-default": handleSchematicDefault,
   "schematic-delete": handleSchematicDelete,
+  "pin-simpan": handlePinSimpan,
 };
 
 async function handler(req: ApiRequest, res: ApiResponse) {
@@ -537,6 +544,12 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (await tolakPraktikanTot(req, res)) return;
 
   const aksi = req.query.aksi;
+
+  // The pins are in the public handbook too: anyone may read them.
+  if (aksi === "pin") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handlePinGet(req, res);
+  }
 
   // The two viewer lists either role reads, before the asisten-only guard;
   // each filters to the modules the caller may see.

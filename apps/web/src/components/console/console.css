@@ -2480,6 +2480,90 @@ button.lib__name {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
 }
 
+/* Persiapan › Skema › Tabel Pin (prep/PinEditor.tsx): one card per module,
+   two per row from 900 px, actions pinned to each card's bottom. */
+.pinedit__grid {
+  align-items: stretch;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .pinedit__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pinedit__card {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--mod-hue);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.pinedit__table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.pinedit__table th {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.pinedit__table td {
+  border-top: 1px solid var(--hairline-faint);
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.pinedit__table td:first-child {
+  min-width: 8rem;
+}
+
+.pinedit__table td:last-child {
+  white-space: nowrap;
+}
+
+.pinedit__in {
+  min-height: 40px;
+  width: 100%;
+}
+
+.pinedit__in[data-invalid="yes"] {
+  border-color: var(--danger);
+}
+
+.pinedit__actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: auto;
+}
+
+@media (max-width: 479px) {
+  .pinedit__actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pinedit__actions > .btn--primary {
+    order: -1;
+  }
+
+  .pinedit__table td:first-child {
+    min-width: 0;
+  }
+}
+
 .schem-card {
   background: var(--surface-1);
   border: 1px solid var(--hairline);

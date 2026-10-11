@@ -595,6 +595,7 @@ async function handleKode(req: ApiRequest, res: ApiResponse) {
   res.status(200).json({
     ok: true,
     versi: k.versi,
+    pin: k.pin,
     berkas: [...k.berkas.values()].map((b) => ({
       slug: b.berkas.slug,
       path: b.berkas.path,

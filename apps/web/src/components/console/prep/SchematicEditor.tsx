@@ -7,7 +7,8 @@
  * linking replaces the card's source of that kind; deleting goes back to the
  * bundled one. An image and a link may both be active (the Praktikan then
  * switches between them on the module page).
- * Module 4 bundles none, so its card starts empty.
+ * Module 4 bundles none, so its card starts empty. Under the cards, each
+ * module's pin table (PinEditor.tsx).
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import { upload } from "@vercel/blob/client";
@@ -25,6 +26,7 @@ import { modulLabel } from "../../../lib/labels";
 import { bacaTautan, namaLayanan, TAUTAN_SKEMA, tautanBingkai } from "../../../lib/tautan";
 import type { Lang } from "../../../lib/kelas";
 import TanpaHak, { useBolehJadwal } from "./TanpaHak";
+import PinEditor from "./PinEditor";
 import { useSiaran } from "../../../lib/siaran";
 
 const T = dict({
@@ -199,6 +201,7 @@ export default function SchematicEditor({ lang }: { lang: Lang }) {
       <p className="hint" style={{ textAlign: "center" }}>
         {t.accepted}
       </p>
+      <PinEditor lang={lang} boleh={boleh} />
 
       <SchematicViewer
         open={!!view && !view.frame}

@@ -131,6 +131,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "presentasi:schematic-activate": ["presentasi"],
   "presentasi:schematic-default": ["presentasi"],
   "presentasi:schematic-delete": ["presentasi"],
+  // A pin table changes every Pin dan Skema card and the served code.
+  "presentasi:pin-simpan": ["presentasi"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

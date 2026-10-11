@@ -19,7 +19,15 @@ import { and, desc, eq, inArray, isNotNull, max, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, pgErrorCode } from "./http.js";
 import { cekHak } from "./hak.js";
-import { BERKAS_MODUL, kodeV1, lengkapiDariV1, lupakanKode } from "./kode-aktif.js";
+import {
+  bacaPinSemua,
+  BERKAS_MODUL,
+  kodeV1,
+  lengkapiDariV1,
+  lupakanKode,
+  PIN_BAWAAN,
+} from "./kode-aktif.js";
+import { terapkanPin } from "../../src/lib/pin-kode.js";
 import { getDb } from "../../src/lib/db.js";
 import { asisten, kodeVersi } from "../../src/lib/schema.js";
 import { currentSesi } from "../../src/lib/sesi.js";
@@ -222,7 +230,10 @@ export async function handleKodeEdit(req: ApiRequest, res: ApiResponse, session:
   const nama = await namaPer(rows.flatMap((r) => [r.diubahOleh, r.terbitOleh ?? ""]));
   const terbit = rows.find((r) => r.status === "terbit") ?? null;
   const draf = rows.find((r) => r.status === "draf") ?? null;
-  const lengkap = (b: KodeBerkas) => lengkapiDariV1(modul, b);
+  // The editor shows the pins the Persiapan table set, as the code is served.
+  const pin = (await bacaPinSemua())[modul] ?? null;
+  const lengkap = (b: KodeBerkas) =>
+    lengkapiDariV1(modul, terapkanPin(modul, b, PIN_BAWAAN[modul] ?? [], pin));
   const ringkas = (r: (typeof rows)[number]) => ({
     id: r.id,
     nomor: r.nomor,

@@ -61,6 +61,8 @@ interface Props {
 interface KodeTerbit {
   ok: boolean;
   versi: number | null;
+  /** A pin table changed in Persiapan: the served files carry its pins */
+  pin?: boolean;
   berkas: { slug: string; templat: Record<"id" | "en", string> }[];
 }
 
@@ -70,7 +72,7 @@ function useBerkasTerbit(code: CodeProps): BerkasEntry[] {
   const muat = () =>
     getJson<KodeTerbit>(`/api/modul/kode?modul=${code.modul}`)
       .then((d) => {
-        if (!d.ok || d.versi === null) return;
+        if (!d.ok || (d.versi === null && !d.pin)) return;
         setBerkas(
           code.berkas.map((f) => {
             const t = d.berkas.find((b) => b.slug === f.slug)?.templat[code.bahasa];
@@ -80,7 +82,7 @@ function useBerkasTerbit(code: CodeProps): BerkasEntry[] {
       })
       .catch(() => {});
   useEffect(() => void muat(), [code.modul, code.bahasa]);
-  useSiaran(["kode"], muat);
+  useSiaran(["kode", "presentasi"], muat);
   return berkas;
 }
 
