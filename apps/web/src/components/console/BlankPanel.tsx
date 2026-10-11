@@ -16,8 +16,9 @@ import Dialog from "../ui/Dialog";
 import Pill from "../ui/Pill";
 import SegmentedControl from "../ui/SegmentedControl";
 import { Switch } from "../ui/Controls";
-import { getJson, href, jamMenit, postJson } from "../../lib/app";
+import { getJson, href, jamMenit, postJson, useSessionNow } from "../../lib/app";
 import { dengar } from "../../lib/siaran";
+import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import type { Lang } from "../../lib/kelas";
 import { BL } from "./blankStrings";
 import "./blank-panel.css";
@@ -124,12 +125,23 @@ export default function BlankPanel({
     hidup.current = true;
     setData(null);
     void muat();
-    const lepas = dengar(["jawaban", "petunjuk", "kode"], () => void muat());
+    // A new code version from Kode Jurnal; the group's checks and hints
+    // come through the session room below.
+    const lepas = dengar(["kode"], () => void muat());
     return () => {
       hidup.current = false;
       lepas();
     };
   }, [kelompok, lang]);
+  const sesiNow = useSessionNow();
+  useAliranAtauTopik(
+    { ruang: "sesi", sesiId: sesiNow.data?.id ?? null },
+    ["jawaban", "petunjuk"],
+    ["jawaban", "petunjuk"],
+    () => void muat(),
+    true,
+    kelompok,
+  );
 
   const semua = useMemo(
     () => (data?.ok ? data.berkas.flatMap((f) => f.blank.map((b) => ({ f, b }))) : []),

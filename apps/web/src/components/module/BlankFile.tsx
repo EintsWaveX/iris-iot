@@ -66,6 +66,7 @@ import { openSignIn } from "../../lib/signin";
 import { dengar } from "../../lib/siaran";
 import { jamMenit, postJson, useSessionNow } from "../../lib/app";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
+import { soalKodePrefix } from "../../lib/blanks";
 
 export type CodeMode = "now" | "done" | "asisten";
 
@@ -372,6 +373,12 @@ export default function BlankFile(p: Props) {
     ["jawaban", "petunjuk"],
     () => void muatUlang(),
     mode === "now" && loaded && !locked,
+    null,
+    // A check or a hint on another file of the module changes nothing here.
+    (m) => {
+      const soal = (m.d as { soal?: unknown } | null)?.soal;
+      return typeof soal !== "string" || soal.startsWith(soalKodePrefix(modul, berkas));
+    },
   );
 
   // An Asisten reads any group's file: its identity lines follow the pick.

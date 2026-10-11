@@ -431,14 +431,20 @@ export function useAliranAtauTopik(
   enabled = true,
   /** Only this group's messages (an Asisten's socket hears every group) */
   kelompok: number | null = null,
+  /** Only messages this view shows (say, one file's blanks) */
+  saring?: (m: PesanAliran) => boolean,
 ): void {
+  const saringRef = useRef(saring);
+  saringRef.current = saring;
   const ref = useRef(fn);
   ref.current = fn;
   const status = useAliran(
     { ...opsi, aktif: enabled && opsi.aktif !== false },
     jenis,
     (m) => {
-      if (kelompok === null || m.g === kelompok) ref.current();
+      if (kelompok !== null && m.g !== kelompok) return;
+      if (saringRef.current && !saringRef.current(m)) return;
+      ref.current();
     },
     () => ref.current(),
   );

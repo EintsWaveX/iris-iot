@@ -23,7 +23,7 @@ import type {
   SesiRunning,
 } from "./types";
 import type { SaveState } from "../ui/Controls";
-import { dengar, useBatas } from "../../lib/siaran";
+import { dengar, useBatas, useSiaran } from "../../lib/siaran";
 import { useAliran, useCadangan } from "../../lib/aliran-ruang";
 import { denganDenyut, useDenyutLangsung } from "../server/data";
 import { akhirSesiPada } from "../../lib/jadwal";
@@ -49,7 +49,6 @@ export function useLaporan(enabled: boolean, sesiId: number | null = null) {
     "sesi",
     "nilai",
     "roster",
-    "jawaban",
     "tangkapan",
   ]);
   // The telemetry counts follow the readings in the session room, asked
@@ -61,8 +60,11 @@ export function useLaporan(enabled: boolean, sesiId: number | null = null) {
   refreshRef.current = poll.refresh;
   const status = useAliran(
     { ruang: "sesi", sesiId, aktif: enabled && sesiId !== null },
-    ["tel"],
-    () => {
+    ["tel", "jawaban"],
+    (m) => {
+      // A checked blank lands in its group's row; asking again would read the
+      // session's whole telemetry log for one cell.
+      if (m.j === "jawaban") return poll.ubah((x) => denganJawaban(x, m.d));
       if (tunda.current) return;
       const sisa = Math.max(0, terakhir.current + TEL_JARAK - Date.now());
       tunda.current = setTimeout(() => {
@@ -79,7 +81,37 @@ export function useLaporan(enabled: boolean, sesiId: number | null = null) {
     [],
   );
   useCadangan(poll.refresh, TEL_JARAK, enabled && sesiId !== null && status !== "live");
+  useSiaran(["jawaban"], poll.refresh, enabled && status !== "live");
   return poll;
+}
+
+/** A run report with one checked blank applied to its group's row */
+function denganJawaban(x: Laporan, d: unknown): Laporan {
+  const j = d as {
+    kelompokId?: number;
+    soal?: string;
+    benar?: boolean;
+    percobaan?: number;
+    pada?: string;
+  } | null;
+  if (!j?.kelompokId || !j.soal) return x;
+  return {
+    ...x,
+    kelompok: x.kelompok.map((g) => {
+      if (g.id !== j.kelompokId) return g;
+      const rinci = [...(g.blankRinci ?? [])];
+      const i = rinci.findIndex((r) => r.soalKode === j.soal);
+      const baru = {
+        soalKode: j.soal!,
+        benar: !!j.benar,
+        percobaan: j.percobaan ?? (i >= 0 ? rinci[i].percobaan + 1 : 1),
+        diubahPada: j.pada ?? new Date().toISOString(),
+      };
+      if (i >= 0) rinci[i] = baru;
+      else rinci.push(baru);
+      return { ...g, blankRinci: rinci, benar: rinci.filter((r) => r.benar).length };
+    }),
+  };
 }
 
 /** The run report's telemetry counts are asked again at most this often */

@@ -101,28 +101,35 @@ export function usePoll<T>(
     }
   }, [ms]);
 
+  // With topics, lib/siaran.ts's 60 s safety net and its catch-up after a
+  // return to the tab already ask again (Phase 12): a timer of its own here
+  // only doubled every view's background refetches.
+  const timerSendiri = topik.length === 0;
   useEffect(() => {
     if (!enabled) return;
     let timer: ReturnType<typeof setInterval> | null = null;
-    const start = () => {
-      if (timer !== null) return;
-      void run();
-      timer = setInterval(() => void run(), ms);
+    let jalan = false;
+    const start = (awal: boolean) => {
+      if (jalan) return;
+      jalan = true;
+      if (awal || timerSendiri) void run();
+      if (timerSendiri) timer = setInterval(() => void run(), ms);
     };
     const stop = () => {
+      jalan = false;
       if (timer !== null) clearInterval(timer);
       timer = null;
       if (retry.current !== null) clearTimeout(retry.current);
       retry.current = null;
     };
-    const onVis = () => (document.visibilityState === "visible" ? start() : stop());
-    if (document.visibilityState === "visible") start();
+    const onVis = () => (document.visibilityState === "visible" ? start(false) : stop());
+    if (document.visibilityState === "visible") start(true);
     document.addEventListener("visibilitychange", onVis);
     return () => {
       stop();
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [ms, enabled, run]);
+  }, [ms, enabled, run, timerSendiri]);
 
   useSiaran(topik, () => void run(), enabled, jarak);
 
@@ -205,7 +212,8 @@ async function jalankanBersama<T>(b: Bersama<T>): Promise<void> {
 
 /** The loop runs while a view wants the data and the tab is visible */
 function aturLoop<T>(b: Bersama<T>) {
-  const jalan = adaYangMau(b) && document.visibilityState === "visible";
+  // With topics the safety net asks again; no timer of its own (as usePoll).
+  const jalan = adaYangMau(b) && document.visibilityState === "visible" && !b.lepasTopik;
   if (jalan && b.timer === null) b.timer = setInterval(() => void jalankanBersama(b), b.ms);
   if (!jalan && b.timer !== null) {
     clearInterval(b.timer);
