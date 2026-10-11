@@ -125,14 +125,17 @@ export function useServers(enabled: boolean) {
     ["server"],
   );
   // The beats land as they come (Ada Masalah?, the Pi drawer), Phase 12.
-  useDenyutLangsung(enabled, (d) =>
-    poll.ubah((x) => ({
-      list: x.list.map((r) => denganDenyut(r, d)),
-      detail:
-        x.detail && x.detail.server.id === d.serverId
-          ? { ...x.detail, denyutTerakhir: d.denyut, server: denganDenyut(x.detail.server, d) }
-          : x.detail,
-    })),
+  useDenyutLangsung(
+    enabled,
+    (d) =>
+      poll.ubah((x) => ({
+        list: x.list.map((r) => denganDenyut(r, d)),
+        detail:
+          x.detail && x.detail.server.id === d.serverId
+            ? { ...x.detail, denyutTerakhir: d.denyut, server: denganDenyut(x.detail.server, d) }
+            : x.detail,
+      })),
+    poll.refresh,
   );
   return poll;
 }

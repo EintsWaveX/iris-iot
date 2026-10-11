@@ -6,7 +6,7 @@ import type { Lang } from "../../lib/kelas";
 import type { Heartbeat, Perintah } from "../console/types";
 import { S, pesan } from "./strings";
 import type { BundelTerbit, Pasang } from "../../lib/server-shared";
-import { useAliran, type StatusAliran } from "../../lib/aliran-ruang";
+import { useAliran, useCadangan, type StatusAliran } from "../../lib/aliran-ruang";
 
 export interface Denyut extends Heartbeat {
   memori: number | null;
@@ -23,12 +23,19 @@ export interface DenyutAliran {
   kondisiPada?: string | null;
 }
 
-/** Hears every Pi's heartbeat as it lands, for the Server pages */
-export function useDenyutLangsung(on: boolean, fn: (d: DenyutAliran) => void): StatusAliran {
-  return useAliran({ ruang: "pi", aktif: on }, ["denyut"], (m) => {
+/** Hears every Pi's heartbeat as it lands, for the Server pages; while the
+ *  room is down, `cadangan` (the page's refetch) stands in every 10 s */
+export function useDenyutLangsung(
+  on: boolean,
+  fn: (d: DenyutAliran) => void,
+  cadangan?: () => void,
+): StatusAliran {
+  const status = useAliran({ ruang: "pi", aktif: on }, ["denyut"], (m) => {
     const d = m.d as DenyutAliran | null;
     if (d && typeof d.serverId === "number" && d.denyut) fn(d);
   });
+  useCadangan(() => cadangan?.(), 10_000, on && !!cadangan && status !== "live");
+  return status;
 }
 
 /** A server row with this beat (and its "Pi right now" numbers) in it */

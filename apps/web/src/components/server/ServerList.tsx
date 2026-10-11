@@ -81,8 +81,10 @@ export default function ServerList({
     true,
     ["server"],
   );
-  useDenyutLangsung(true, (d) =>
-    poll.ubah((x) => ({ ...x, list: x.list.map((s) => denganDenyut(s, d)) })),
+  useDenyutLangsung(
+    true,
+    (d) => poll.ubah((x) => ({ ...x, list: x.list.map((s) => denganDenyut(s, d)) })),
+    poll.refresh,
   );
   // Online servers first, then by name (mockup v-list).
   const list = [...(poll.data?.list ?? [])].sort(

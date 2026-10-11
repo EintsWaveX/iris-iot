@@ -211,16 +211,20 @@ export default function ServerDetail({
   );
   const data = poll.data;
   // Each beat lands as it comes (the gauges, services, the age), Phase 12.
-  useDenyutLangsung(true, (d) => {
-    if (d.serverId !== id) return;
-    poll.ubah((x) => ({
-      ...x,
-      denyutTerakhir: d.denyut,
-      server: d.kondisi
-        ? { ...x.server, kondisi: d.kondisi, kondisiPada: d.kondisiPada ?? null }
-        : x.server,
-    }));
-  });
+  useDenyutLangsung(
+    true,
+    (d) => {
+      if (d.serverId !== id) return;
+      poll.ubah((x) => ({
+        ...x,
+        denyutTerakhir: d.denyut,
+        server: d.kondisi
+          ? { ...x.server, kondisi: d.kondisi, kondisiPada: d.kondisiPada ?? null }
+          : x.server,
+      }));
+    },
+    poll.refresh,
+  );
   // The next open command to run out, and the Konsol request or console
   // to end: each is a moment the page asks again by itself.
   const habis = useMemo(() => {
