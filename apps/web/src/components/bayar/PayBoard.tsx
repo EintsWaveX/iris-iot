@@ -2,8 +2,8 @@
  * Tim › Pembayaran (Phase 9 Stage 6, mockup t-pay), for the Bendahara and
  * Admins. Transfers still to make (each month's kotor from the Bendahara to
  * each Asisten, then each Asisten's uang kas back to the Kas IRIS) with
- * "Mark as Transferred" and Undo, the unit rates, the Uang Kas card, and
- * the semester ledger with an XLSX export.
+ * "Mark as Transferred" and Undo across the full width, the Uang Kas card
+ * beside the unit rates, and the semester ledger with an XLSX export.
  */
 import { useMemo, useState, type ReactNode } from "react";
 import { CheckIcon, FileXlsIcon, FloppyDiskIcon } from "@phosphor-icons/react";
@@ -126,78 +126,86 @@ export default function PayBoard({
 
   return (
     <div className="bayar">
-      <div className="bayar-side">
-        <section className="panel">
-          <div className="panel__head">
-            <h2 className="panel__title">{t.toPay}</h2>
-            <span className={`pill ${data.sisa.length ? "pill--warn" : "pill--ok"}`}>
-              {t.pending(data.sisa.length)}
-            </span>
-          </div>
-          <p className="panel__sub">{t.toPayHint}</p>
-          {data.sisa.length === 0 ? (
-            <p className="hint">{t.nothingDue}</p>
-          ) : (
-            <div className="tabstops txstops">
-              {data.sisa.map((s) => {
-                const us = unitsOf(s.nim, s.periode);
-                const j = jumlahkan(us);
-                const persen = [...new Set(us.map((u) => `${u.kasPersen}%`))].join(", ");
-                const p = namaPeriode(s.periode, lang);
-                return (
-                  <div key={`${s.periode}${s.jenis}${s.nim}`} className="tabstops__row">
-                    <span className="pill pill--warn">{t.waiting}</span>
-                    <span className="stack" style={{ gap: 0 }}>
-                      <b>
-                        {s.jenis === "kotor"
-                          ? `${bendahara} → ${nama(s.nim)}`
-                          : `${nama(s.nim)} → ${t.kasIris}`}
-                      </b>
-                      <span className="hint">
-                        {s.jenis === "kotor"
-                          ? t.kotorCtx(p, j.reguler, j.internasional)
-                          : t.balikCtx(p, persen)}
-                        {s.jumlah < s.total ? ` · ${t.sisaDari(rupiah(s.total))}` : ""}
-                      </span>
-                    </span>
-                    <b className="num">{rupiah(s.jumlah)}</b>
-                    <button type="button" className="btn btn--sm" onClick={() => void tandai(s)}>
-                      <CheckIcon size={16} aria-hidden="true" />
-                      {t.mark}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {data.transfer.length > 0 && (
-            <>
-              <h3 className="panel__title" style={{ fontSize: "1rem" }}>
-                {t.paidList}
-              </h3>
-              <div className="tabstops txstops">
-                {data.transfer.slice(0, 12).map((x) => (
-                  <div key={x.id} className="tabstops__row">
-                    <span className="pill pill--ok">{t.paid}</span>
-                    <span className="stack" style={{ gap: 0 }}>
-                      <b>
-                        {x.jenis === "kotor"
-                          ? `${bendahara} → ${nama(x.nim)}`
-                          : `${nama(x.nim)} → ${t.kasIris}`}
-                      </b>
-                      <span className="hint">{namaPeriode(x.periode, lang)}</span>
-                    </span>
-                    <b className="num">{rupiah(x.jumlah)}</b>
+      <section className="panel bayar-due">
+        <div className="panel__head">
+          <h2 className="panel__title">{t.toPay}</h2>
+          <span className={`pill ${data.sisa.length ? "pill--warn" : "pill--ok"}`}>
+            {t.pending(data.sisa.length)}
+          </span>
+        </div>
+        <p className="panel__sub">{t.toPayHint}</p>
+        {data.sisa.length === 0 ? (
+          <p className="hint bayar-due__none">{t.nothingDue}</p>
+        ) : (
+          <div className="tabstops txstops">
+            {data.sisa.map((s) => {
+              const us = unitsOf(s.nim, s.periode);
+              const j = jumlahkan(us);
+              const persen = [...new Set(us.map((u) => `${u.kasPersen}%`))].join(", ");
+              const p = namaPeriode(s.periode, lang);
+              return (
+                <div key={`${s.periode}${s.jenis}${s.nim}`} className="tabstops__row">
+                  <span className="pill pill--warn">{t.waiting}</span>
+                  <span className="stack" style={{ gap: 0 }}>
+                    <b>
+                      {s.jenis === "kotor"
+                        ? `${bendahara} → ${nama(s.nim)}`
+                        : `${nama(s.nim)} → ${t.kasIris}`}
+                    </b>
                     <span className="hint">
-                      {t.paidBy(nama(x.oleh), tanggalPanjang(x.pada.slice(0, 10), lang))}
+                      {s.jenis === "kotor"
+                        ? t.kotorCtx(p, j.reguler, j.internasional)
+                        : t.balikCtx(p, persen)}
+                      {s.jumlah < s.total ? ` · ${t.sisaDari(rupiah(s.total))}` : ""}
                     </span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </section>
+                  </span>
+                  <b className="num">{rupiah(s.jumlah)}</b>
+                  <button type="button" className="btn btn--sm" onClick={() => void tandai(s)}>
+                    <CheckIcon size={16} aria-hidden="true" />
+                    {t.mark}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {data.transfer.length > 0 && (
+          <>
+            <h3 className="panel__title" style={{ fontSize: "1rem" }}>
+              {t.paidList}
+            </h3>
+            <div className="tabstops txstops">
+              {data.transfer.slice(0, 12).map((x) => (
+                <div key={x.id} className="tabstops__row">
+                  <span className="pill pill--ok">{t.paid}</span>
+                  <span className="stack" style={{ gap: 0 }}>
+                    <b>
+                      {x.jenis === "kotor"
+                        ? `${bendahara} → ${nama(x.nim)}`
+                        : `${nama(x.nim)} → ${t.kasIris}`}
+                    </b>
+                    <span className="hint">{namaPeriode(x.periode, lang)}</span>
+                  </span>
+                  <b className="num">{rupiah(x.jumlah)}</b>
+                  <span className="hint">
+                    {t.paidBy(nama(x.oleh), tanggalPanjang(x.pada.slice(0, 10), lang))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
 
+      <div className="bayar-side">
+        <KasCard
+          lang={lang}
+          data={data}
+          bisa={data.admin}
+          nama={nama}
+          orang={orang}
+          reload={reload}
+        />
         <section className="panel">
           <h2 className="panel__title">{t.rates}</h2>
           {(["reguler", "internasional"] as const).map((k) => (
@@ -221,10 +229,10 @@ export default function PayBoard({
             </div>
           ))}
           <span className="hint">{t.ratesHint}</span>
-          <div className="row row--end panel__actions">
+          <div className="panel__actions" style={{ marginTop: "auto" }}>
             <button
               type="button"
-              className="btn btn--primary"
+              className="btn btn--primary btn--block"
               disabled={!Number(rate.reguler) || !Number(rate.internasional)}
               onClick={async () => {
                 const r = await kirimBayar({
@@ -242,15 +250,6 @@ export default function PayBoard({
           </div>
         </section>
       </div>
-
-      <KasCard
-        lang={lang}
-        data={data}
-        bisa={data.admin}
-        nama={nama}
-        orang={orang}
-        reload={reload}
-      />
 
       <section className="panel panel--flush">
         <div className="panel__head" style={{ padding: "16px 20px 0" }}>

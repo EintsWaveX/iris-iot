@@ -4,19 +4,21 @@
  *
  * - Permintaan: open izin (with whether someone covers) and Sukarela offers
  *   waiting for an answer, with Terima and Tolak.
- * - The Asisten list on the left: drag someone into a slot and they join it
- *   that date as a Pengganti (without a group; the slot seats them). People
- *   on leave or inactive can't be dragged.
+ * - The Asisten list on the left: drag someone (their whole row lifts) into
+ *   a slot and they join it that date as a Pengganti (without a group; the
+ *   slot seats them). People on leave or inactive can't be dragged. A cover
+ *   dragged back onto the list leaves its slot; onto another slot, it moves.
  * - Each slot: its status (tap to cycle Aktif, Segera, Libur, Tidak Ada
  *   Praktikum) and its people. Tap a badge to switch Tetap and Izin, or
  *   Pengganti and Sukarela; a cover can be removed. "Ada yang izin" turns
  *   the slot amber until every group has someone.
  *
- * Save writes the same data the Schedule shows (POST /api/session/schedule
+ * Batalkan Perubahan drops every unsaved move. Save writes the same data
+ * the Schedule shows (POST /api/session/schedule
  * with the date's seats), so both pages always agree. Without the Schedule
  * right the board is read only.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -32,6 +34,7 @@ import {
 } from "@dnd-kit/core";
 import DragLayer from "../ui/DragLayer";
 import {
+  ArrowCounterClockwiseIcon,
   CheckIcon,
   DotsSixVerticalIcon,
   FloppyDiskIcon,
@@ -71,7 +74,8 @@ export const A = dict({
     accepted: "Diterima.",
     declined: "Ditolak.",
     poolTitle: "Asisten",
-    poolHint: "Seret ke slot. Yang cuti atau nonaktif tidak bisa diseret.",
+    poolHint:
+      "Seret ke slot. Seret pengganti dari slot kembali ke sini untuk mengeluarkannya. Yang cuti atau nonaktif tidak bisa diseret.",
     slotsNone: "Belum ada slot yang berjalan di semester ini.",
     statusTip: "Ketuk untuk mengganti status slot",
     status: { aktif: "Aktif", segera: "Segera", libur: "Libur", kosong: "Tidak Ada Praktikum" },
@@ -81,6 +85,9 @@ export const A = dict({
     need: "Ada yang izin, butuh pengganti",
     already: (k: string) => `${k} sudah ada di slot ini.`,
     added: (k: string, when: string) => `${k} masuk ${when}.`,
+    removed: (k: string) => `${k} dikeluarkan dari slot.`,
+    moved: (k: string, when: string) => `${k} pindah ke ${when}.`,
+    discard: "Batalkan Perubahan",
     srHint: "Tekan Spasi untuk mengangkat, panah untuk memilih slot, Spasi lagi untuk menaruh.",
   },
   en: {
@@ -104,7 +111,8 @@ export const A = dict({
     accepted: "Accepted.",
     declined: "Declined.",
     poolTitle: "Assistants",
-    poolHint: "Drag into a slot. People on leave or inactive can't be dragged.",
+    poolHint:
+      "Drag into a slot. Drag a cover from a slot back here to take them out. People on leave or inactive can't be dragged.",
     slotsNone: "No running slots in this semester yet.",
     statusTip: "Tap to change the slot status",
     status: { aktif: "Active", segera: "Soon", libur: "Holiday", kosong: "No Practicum" },
@@ -114,6 +122,9 @@ export const A = dict({
     need: "Someone is excused, needs cover",
     already: (k: string) => `${k} is already in this slot.`,
     added: (k: string, when: string) => `${k} added to ${when}.`,
+    removed: (k: string) => `${k} taken out of the slot.`,
+    moved: (k: string, when: string) => `${k} moved to ${when}.`,
+    discard: "Discard Changes",
     srHint: "Press Space to pick up, arrow keys to choose a slot, Space again to drop.",
   },
   zh: {
@@ -136,7 +147,7 @@ export const A = dict({
     accepted: "已接受。",
     declined: "已拒绝。",
     poolTitle: "助教",
-    poolHint: "拖到时段里。请假或停用的人不能拖。",
+    poolHint: "拖到时段里。把代课的人从时段拖回这里即可移出。请假或停用的人不能拖。",
     slotsNone: "这个学期还没有上课的时段。",
     statusTip: "点一下切换时段状态",
     status: { aktif: "进行中", segera: "即将开始", libur: "放假", kosong: "无实验课" },
@@ -146,6 +157,9 @@ export const A = dict({
     need: "有人请假，需要代课",
     already: (k: string) => `${k} 已经在这个时段了。`,
     added: (k: string, when: string) => `${k} 已加入${when}。`,
+    removed: (k: string) => `${k} 已移出时段。`,
+    moved: (k: string, when: string) => `${k} 已移到${when}。`,
+    discard: "放弃更改",
     srHint: "按空格键拿起，方向键选时段，再按空格放下。",
   },
 });
@@ -161,6 +175,15 @@ interface Chip {
 interface SlotState {
   status: Status;
   chips: Chip[];
+}
+
+/** What a drag carries: a row from the list, or a cover from a slot (`from`) */
+interface DragData {
+  kode: string;
+  nama?: string;
+  n?: number;
+  from?: number;
+  kind?: Kind;
 }
 
 const STATUS_URUT: Status[] = ["aktif", "segera", "libur", "kosong"];
@@ -243,7 +266,7 @@ export default function AssignBoard({
     })[];
   } | null>(null);
   const [edit, setEdit] = useState<Record<number, SlotState>>({});
-  const [drag, setDrag] = useState<string | null>(null);
+  const [drag, setDrag] = useState<DragData | null>(null);
   const [busy, setBusy] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -290,15 +313,38 @@ export default function AssignBoard({
 
   function onEnd(e: DragEndEvent) {
     setDrag(null);
-    const kode = (e.active.data.current as { kode?: string } | undefined)?.kode;
+    const d = e.active.data.current as DragData | undefined;
     const to = e.over?.id;
-    if (!kode || typeof to !== "string" || !to.startsWith("slot:")) return;
+    if (!d || typeof to !== "string") return;
+
+    // A cover taken from a slot: back onto the list takes them out
+    const from = d.from;
+    if (from !== undefined) {
+      const asal = now(from);
+      const tanpa = { ...asal, chips: asal.chips.filter((c) => c.kode !== d.kode) };
+      if (to === "pool") {
+        set(from, tanpa);
+        return window.Toast?.show(t.removed(d.kode), "ok");
+      }
+      if (!to.startsWith("slot:") || Number(to.slice(5)) === from) return;
+      const j = rows.find((x) => x.id === Number(to.slice(5)));
+      if (!j) return;
+      const s = now(j.id);
+      if (s.chips.some((c) => c.kode === d.kode))
+        return window.Toast?.show(t.already(d.kode), "warn");
+      const masuk: Chip = { kode: d.kode, kind: d.kind ?? "pengganti", nomor: null };
+      setEdit((x) => ({ ...x, [from]: tanpa, [j.id]: { ...s, chips: [...s.chips, masuk] } }));
+      return window.Toast?.show(t.moved(d.kode, when(j)), "ok");
+    }
+
+    if (!to.startsWith("slot:")) return;
     const j = rows.find((x) => x.id === Number(to.slice(5)));
     if (!j) return;
     const s = now(j.id);
-    if (s.chips.some((c) => c.kode === kode)) return window.Toast?.show(t.already(kode), "warn");
-    set(j.id, { ...s, chips: [...s.chips, { kode, kind: "pengganti", nomor: null }] });
-    window.Toast?.show(t.added(kode, when(j)), "ok");
+    if (s.chips.some((c) => c.kode === d.kode))
+      return window.Toast?.show(t.already(d.kode), "warn");
+    set(j.id, { ...s, chips: [...s.chips, { kode: d.kode, kind: "pengganti", nomor: null }] });
+    window.Toast?.show(t.added(d.kode, when(j)), "ok");
   }
 
   async function simpan() {
@@ -350,15 +396,28 @@ export default function AssignBoard({
           <h2 className="panel__title">{t.reqTitle}</h2>
           {reqCount > 0 && <Pill tone="warn">{reqCount}</Pill>}
           {bolehJadwal && (
-            <button
-              type="button"
-              className="btn btn--primary reqlane__save"
-              disabled={busy || changed.length === 0}
-              onClick={() => void simpan()}
-            >
-              <FloppyDiskIcon size={18} aria-hidden="true" />
-              {t.save}
-            </button>
+            <span className="row reqlane__save">
+              {changed.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  disabled={busy}
+                  onClick={() => setEdit({})}
+                >
+                  <ArrowCounterClockwiseIcon size={18} aria-hidden="true" />
+                  {t.discard}
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={busy || changed.length === 0}
+                onClick={() => void simpan()}
+              >
+                <FloppyDiskIcon size={18} aria-hidden="true" />
+                {t.save}
+              </button>
+            </span>
           )}
         </div>
         {reqCount === 0 ? (
@@ -416,13 +475,13 @@ export default function AssignBoard({
       <DndContext
         sensors={sensors}
         collisionDetection={slotUnder}
-        onDragStart={(e) => setDrag((e.active.data.current as { kode: string }).kode)}
+        onDragStart={(e) => setDrag(e.active.data.current as DragData)}
         onDragEnd={onEnd}
         onDragCancel={() => setDrag(null)}
         accessibility={{ screenReaderInstructions: { draggable: t.srHint } }}
       >
         <div className="tassign">
-          <section className="panel tpool">
+          <PoolDrop disabled={!bolehJadwal}>
             <h2 className="panel__title">{t.poolTitle}</h2>
             <span className="hint">{t.poolHint}</span>
             <div className="tpool__list">
@@ -438,7 +497,7 @@ export default function AssignBoard({
                 />
               ))}
             </div>
-          </section>
+          </PoolDrop>
           {rows.length === 0 ? (
             <p className="hint">{t.slotsNone}</p>
           ) : (
@@ -458,7 +517,22 @@ export default function AssignBoard({
             </div>
           )}
         </div>
-        <DragLayer>{drag && <span className="acode impchip--lifted">{drag}</span>}</DragLayer>
+        <DragLayer>
+          {drag &&
+            (drag.from === undefined ? (
+              <div className="tpool__row tpool__row--lifted impchip--lifted">
+                <DotsSixVerticalIcon size={16} aria-hidden="true" />
+                <span className="acode">{drag.kode}</span>
+                <span className="grow">{drag.nama}</span>
+                <Pill tone={(drag.n ?? 0) >= 3 ? "warn" : undefined}>{drag.n ?? 0}</Pill>
+              </div>
+            ) : (
+              <span className="tchip impchip--lifted" data-kind={drag.kind}>
+                <span className="acode">{drag.kode}</span>
+                {drag.kind && <Pill tone={TONE[drag.kind]}>{t.kinds[drag.kind]}</Pill>}
+              </span>
+            ))}
+        </DragLayer>
       </DndContext>
     </div>
   );
@@ -481,7 +555,7 @@ function PoolRow({
 }) {
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
     id: `p:${kode}`,
-    data: { kode },
+    data: { kode, nama, n } satisfies DragData,
     disabled: disabled || !!off,
   });
   return (
@@ -567,7 +641,7 @@ function SlotBox({
       )}
       <div className="tslot__list">
         {s.chips.map((c) => (
-          <span key={c.kode} className="tchip" data-kind={c.kind}>
+          <SlotChip key={c.kode} jadwalId={j.id} c={c} ro={ro}>
             <span
               className={`acode${c.kode === meKode ? " acode--me" : ""}${c.kind === "izin" ? " acode--izin" : ""}`}
             >
@@ -596,9 +670,51 @@ function SlotBox({
                 onClick={() => onChange({ ...s, chips: s.chips.filter((x) => x.kode !== c.kode) })}
               />
             )}
-          </span>
+          </SlotChip>
         ))}
       </div>
     </div>
+  );
+}
+
+/** The Asisten list, also where a cover dragged out of a slot is dropped */
+function PoolDrop({ disabled, children }: { disabled: boolean; children: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: "pool", disabled });
+  return (
+    <section ref={setNodeRef} className="panel tpool" data-over={isOver ? "yes" : undefined}>
+      {children}
+    </section>
+  );
+}
+
+/** A slot's chip; a Pengganti or Sukarela can be dragged out or across */
+function SlotChip({
+  jadwalId,
+  c,
+  ro,
+  children,
+}: {
+  jadwalId: number;
+  c: Chip;
+  ro: boolean;
+  children: ReactNode;
+}) {
+  const cover = c.kind === "pengganti" || c.kind === "sukarela";
+  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
+    id: `c:${jadwalId}:${c.kode}`,
+    data: { kode: c.kode, from: jadwalId, kind: c.kind } satisfies DragData,
+    disabled: ro || !cover,
+  });
+  return (
+    <span
+      ref={setNodeRef}
+      className="tchip"
+      data-kind={c.kind}
+      data-drag={!ro && cover ? "yes" : undefined}
+      data-dragging={isDragging ? "yes" : undefined}
+      {...(!ro && cover ? { ...attributes, ...listeners } : {})}
+    >
+      {children}
+    </span>
   );
 }

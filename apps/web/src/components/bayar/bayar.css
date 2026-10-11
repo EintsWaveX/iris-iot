@@ -16,6 +16,25 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Uang Kas and the rates share a row at equal height. */
+.bayar-side {
+  align-items: stretch;
+}
+
+/* Transfers to make: the full width, a steady height while nothing is due,
+   then as tall as the list. */
+.bayar-due {
+  min-height: 220px;
+}
+
+.bayar-due__none {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+}
+
 .bayar-g2 {
   gap: 12px;
 }

@@ -580,9 +580,34 @@
     background var(--dur-fast, 0.15s);
 }
 
-.tslot[data-over="yes"] {
+.tslot[data-over="yes"],
+.tpool[data-over="yes"] {
   background: var(--accent-soft);
   border-color: var(--accent);
+}
+
+/* A cover in a slot can be picked up again (out to the list or across). */
+.tchip[data-drag="yes"] {
+  cursor: grab;
+  touch-action: none;
+}
+
+.tchip[data-dragging="yes"] {
+  opacity: 0.4;
+}
+
+/* The whole Asisten row while it is carried. */
+.tpool__row--lifted {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  min-width: 260px;
+}
+
+@media (max-width: 639px) {
+  .reqlane__save {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }
 
 .tslot[data-need="yes"] {
