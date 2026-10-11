@@ -4,10 +4,11 @@
  *
  * The head row names whose roster is open ("Roster for": every weekly slot
  * with a practicum, the makeup drafts, and a new makeup session) and the
- * server's Ready state. The tabs follow: Roster (the two-pane editor; while
+ * server's Ready state. One tab line follows, each tab with its status lamp
+ * and the open one's status line under it: Roster (the two-pane editor; while
  * a session runs, the group assistants come first), Module Access, Module
  * Brief, Kode Jurnal (the ASO division and Admins only, prep/CodeEditor.tsx),
- * Slides, Wiring Schematics and, last and marked with its own icon, Mode TOT
+ * Slides, Wiring Schematics and, last, Mode TOT
  * (prep/TotPanel.tsx). Switching rosters with unsaved
  * changes asks first: Save and Move, Discard, or Stay.
  */
@@ -16,22 +17,15 @@ import * as RadixPopover from "@radix-ui/react-popover";
 import {
   ArrowRightIcon,
   CaretDownIcon,
-  ChalkboardTeacherIcon,
   CheckIcon,
-  CircuitryIcon,
-  CodeIcon,
   HardDrivesIcon,
   ListChecksIcon,
   LockSimpleIcon,
-  LockSimpleOpenIcon,
   MagnifyingGlassIcon,
-  NotebookIcon,
   PlayIcon,
-  PresentationChartIcon,
-  UsersThreeIcon,
-  type Icon as PhIcon,
 } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
+import TabLine from "../ui/TabLine";
 import Dialog from "../ui/Dialog";
 import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
@@ -90,11 +84,11 @@ interface Draf {
   jumlahKelompok: number;
 }
 
-// Mode TOT sits last, set apart with its own icon: it changes who can sign
+// Mode TOT sits last: it changes who can sign
 // in at all, unlike the preparation tabs before it.
 const TABS = ["roster", "akses", "brief", "kode", "slides", "skema", "server", "tot"] as const;
 
-/* Phase 10 (c12-prep): each section's line in the checklist on the left. */
+/* Each section's status line, shown under the tabs while it is open. */
 const PN = dict({
   id: {
     nav: "Bagian persiapan",
@@ -357,86 +351,56 @@ export default function PrepView({
   const pn = PN[lang];
   const cek = beranda ? cekSiap(beranda, 1, true, H[lang], lang) : [];
   const cekOf = (k: string) => cek.find((c) => c.key === k);
-  const nav: Record<Tab, { icon: PhIcon; sub: string; tone?: "ok" | "warn" }> = {
+  const nav: Record<Tab, { sub: string; tone?: "ok" | "warn" }> = {
     roster: {
-      icon: UsersThreeIcon,
       sub: sel ? labelOf(sel) || pn.rosterNone : pn.rosterNone,
       tone: kosong ? "warn" : sel ? "ok" : undefined,
     },
     akses: {
-      icon: LockSimpleOpenIcon,
       sub: cekOf("akses")?.text ?? "",
       tone: cekOf("akses")?.ok === false ? "warn" : beranda ? "ok" : undefined,
     },
-    brief: { icon: NotebookIcon, sub: pn.briefSub },
-    kode: { icon: CodeIcon, sub: pn.kodeSub },
+    brief: { sub: pn.briefSub },
+    kode: { sub: pn.kodeSub },
     slides: {
-      icon: PresentationChartIcon,
       sub: cekOf("slides")?.text ?? "",
       tone: cekOf("slides")?.ok === false ? "warn" : beranda ? "ok" : undefined,
     },
     skema: {
-      icon: CircuitryIcon,
       sub: cekOf("skema")?.text ?? pn.skemaSub,
       tone: cekOf("skema")?.ok === false ? "warn" : cekOf("skema") ? "ok" : undefined,
     },
     server: {
-      icon: HardDrivesIcon,
       sub: cekOf("server")?.text ?? "",
       tone: cekOf("server")?.ok === false ? "warn" : beranda ? "ok" : undefined,
     },
-    tot: { icon: ChalkboardTeacherIcon, sub: pn.totSub },
+    tot: { sub: pn.totSub },
   };
   const lit = tabs.filter((id) => nav[id].tone);
   const siapN = lit.filter((id) => nav[id].tone === "ok").length;
 
   const tablist = (
-    <nav className="panel prep12__nav" aria-label={pn.nav}>
-      <div role="tablist" aria-orientation="vertical" className="prep12__list">
-        {tabs.map((id) => {
-          const n = nav[id];
-          return (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              aria-current={tab === id}
-              tabIndex={tab === id ? 0 : -1}
-              className="grow-row prep12__item"
-              data-unik={id === "tot" ? "yes" : undefined}
-              onClick={() => setTab(id)}
-              onKeyDown={(e) => {
-                if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-                e.preventDefault();
-                const k = tabs.indexOf(id);
-                const nx = tabs[(k + (e.key === "ArrowDown" ? 1 : tabs.length - 1)) % tabs.length];
-                setTab(nx);
-                const list = e.currentTarget.parentElement;
-                requestAnimationFrame(() =>
-                  (list?.querySelector('[aria-selected="true"]') as HTMLElement | null)?.focus(),
-                );
-              }}
-            >
-              <span className="lights__lamp" data-tone={n.tone ?? "none"} aria-hidden="true" />
-              <n.icon size={20} aria-hidden="true" />
-              <span className="stack" style={{ gap: 0, minWidth: 0 }}>
-                <b>{id === "server" ? pn.server : p.tabs[id as Exclude<Tab, "server">]}</b>
-                <span className="hint">{n.sub}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {onBack && (
-        <div className="panel__actions">
-          <button type="button" className="btn btn--primary btn--block" onClick={onBack}>
-            <PlayIcon size={18} weight="fill" aria-hidden="true" />
-            {pn.backStart}
-          </button>
-        </div>
-      )}
-    </nav>
+    <div className="prep12__tabs">
+      <TabLine
+        label={pn.nav}
+        value={tab}
+        onChange={setTab}
+        tabs={tabs.map((id) => ({
+          v: id,
+          label: (
+            <span className="prep12__tab">
+              <span
+                className="lights__lamp"
+                data-tone={nav[id].tone ?? "none"}
+                aria-hidden="true"
+              />
+              {id === "server" ? pn.server : p.tabs[id as Exclude<Tab, "server">]}
+            </span>
+          ),
+        }))}
+      />
+      {nav[tab].sub && <span className="hint prep12__sub">{nav[tab].sub}</span>}
+    </div>
   );
 
   return (
@@ -450,6 +414,12 @@ export default function PrepView({
           </div>
         )}
         <div className="prep__tools">
+          {onBack && (
+            <button type="button" className="btn btn--primary" onClick={onBack}>
+              <PlayIcon size={18} weight="fill" aria-hidden="true" />
+              {pn.backStart}
+            </button>
+          )}
           {tab === "roster" && (
             <div className="prep__for">
               {options.length > 1 ? (

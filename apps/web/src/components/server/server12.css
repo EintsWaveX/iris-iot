@@ -408,6 +408,17 @@
   grid-column: 1 / -1;
 }
 
+/* Konsol Terakhir beside Yang Dikabari, at one height, from 1100 px. */
+@media (min-width: 1100px) {
+  .s12pk > .panel.s12span8 {
+    grid-column: span 8;
+  }
+
+  .s12pk > .panel.s12span4 {
+    grid-column: span 4;
+  }
+}
+
 .s12col > .panel {
   min-width: 0;
 }
@@ -442,14 +453,14 @@
 }
 
 /* Konsol Pi's body fills its column, the same height as the side. */
-.s12pk > .s12span8 > *,
-.s12pk > .s12span8 > * > .panel--solo {
+.s12pk > div.s12span8 > *,
+.s12pk > div.s12span8 > * > .panel--solo {
   height: 100%;
 }
 
 /* The user's ruling (2026-10-11): the closed console's summary keeps its
    own height, not the side column's. */
-.s12pk > .s12span8 > * > .panel--solo.pkdone {
+.s12pk > div.s12span8 > * > .panel--solo.pkdone {
   align-self: start;
   height: auto;
 }

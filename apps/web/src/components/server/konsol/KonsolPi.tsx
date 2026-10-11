@@ -282,23 +282,23 @@ export default function KonsolPi({
           </span>
         )}
       </div>
-      {!data.siap && (
-        <div className="banner banner--warn" role="status">
-          <WarningIcon size={20} aria-hidden="true" />
-          <span>{t.notReady}</span>
-        </div>
-      )}
-      <div className={lebar ? "s12span12" : "s12span8"}>
-        <Fade k={kunci}>{body}</Fade>
-      </div>
-      {!lebar && <KonsolSide t={t} lang={lang} data={data} />}
-      <Disclose className="panel pksec" head={<b>{t.safeTitle}</b>}>
+      <Disclose className="panel pksec s12span12" head={<b>{t.safeTitle}</b>}>
         <ul className="helplist">
           {t.safe.map((s) => (
             <li key={s}>{s}</li>
           ))}
         </ul>
       </Disclose>
+      {!data.siap && (
+        <div className="banner banner--warn s12span12" role="status">
+          <WarningIcon size={20} aria-hidden="true" />
+          <span>{t.notReady}</span>
+        </div>
+      )}
+      <div className="s12span12">
+        <Fade k={kunci}>{body}</Fade>
+      </div>
+      {!lebar && <KonsolSide t={t} lang={lang} data={data} />}
     </div>
   );
 }
@@ -1497,34 +1497,16 @@ function Done({
 
 /* --------------------------------------------------------------- side */
 
-/** Beside the body before a console opens: who is told when one opens,
- *  and the last consoles closed on this Pi (mine only for the rest). */
+/** Under the body before a console opens, one row of equal height: the
+ *  last five consoles closed on this Pi (mine only for the rest; Audit has
+ *  them all), and who is told when one opens. */
 function KonsolSide({ t, lang, data }: { t: KStrings; lang: Lang; data: KonsolData }) {
   const w = S12[lang];
   const orang = data.pemeriksa ?? [];
-  const lalu = (data.riwayat ?? []).slice(0, 4);
+  const lalu = (data.riwayat ?? []).slice(0, 5);
   return (
-    <div className="s12span4 s12col">
-      <section className="panel">
-        <div className="stack stack--sm">
-          <h2 className="panel__title">{w.people}</h2>
-          <span className="hint">{w.peopleSub}</span>
-        </div>
-        {orang.length ? (
-          <div className="stack stack--sm">
-            {orang.map((o) => (
-              <div key={o.nama} className="s12mod" data-t="ok">
-                <span className="acode">{o.kode ?? "?"}</span>
-                <b>{o.nama}</b>
-                <span />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="hint">{w.peopleNone}</p>
-        )}
-      </section>
-      <section className="panel" style={{ flex: 1 }}>
+    <>
+      <section className="panel s12span8">
         <h2 className="panel__title">{w.recent}</h2>
         {lalu.length ? (
           <div className="stack stack--sm">
@@ -1563,7 +1545,26 @@ function KonsolSide({ t, lang, data }: { t: KStrings; lang: Lang; data: KonsolDa
           </a>
         </div>
       </section>
-    </div>
+      <section className="panel s12span4">
+        <div className="stack stack--sm">
+          <h2 className="panel__title">{w.people}</h2>
+          <span className="hint">{w.peopleSub}</span>
+        </div>
+        {orang.length ? (
+          <div className="stack stack--sm">
+            {orang.map((o) => (
+              <div key={o.nama} className="s12mod" data-t="ok">
+                <span className="acode">{o.kode ?? "?"}</span>
+                <b>{o.nama}</b>
+                <span />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="hint">{w.peopleNone}</p>
+        )}
+      </section>
+    </>
   );
 }
 

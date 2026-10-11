@@ -557,6 +557,100 @@
   justify-content: center;
 }
 
+.lp__span {
+  grid-column: 1 / -1;
+}
+
+/* Susulan's right half (SusulanSide.tsx) */
+.sside {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sside__groups,
+.sside__drafts,
+.sside__steps {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .lp__span .sside__groups {
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  }
+}
+
+.sside__group {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  border-left: 3px solid var(--g, var(--hairline));
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+}
+
+.sside__names {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.sside__draft {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-faint);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 8px 12px;
+  text-align: left;
+  transition: border-color var(--dur-fast);
+  width: 100%;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sside__draft:hover {
+    border-color: var(--hairline-strong);
+  }
+}
+
+.sside__pick {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.sside__steps li {
+  align-items: baseline;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+}
+
+.sside__steps .num {
+  align-items: center;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 50%;
+  display: inline-flex;
+  font-size: var(--fs-small);
+  height: 1.6rem;
+  justify-content: center;
+  width: 1.6rem;
+}
+
 .lp__clockrow {
   align-items: center;
   display: flex;

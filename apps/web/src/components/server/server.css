@@ -789,6 +789,15 @@ button.qa__b[aria-disabled="true"] {
   max-height: 420px;
 }
 
+/* Fills the rest of its card: the row's height comes from the card beside
+   it, never from the log, which scrolls inside. */
+.srv-log--fill {
+  flex: 1 1 0;
+  height: 0;
+  max-height: none;
+  min-height: 320px;
+}
+
 .dot--accent {
   background: var(--accent);
 }

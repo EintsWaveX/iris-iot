@@ -19,6 +19,7 @@
  * The server enforces every rule shown here (api/session/index.ts and
  * src/lib/sesi-mulai.ts); this page only explains them ahead of time.
  */
+import SusulanSide from "./SusulanSide";
 import HelpRows, { jumlahBantuan, useBantuan } from "./HelpCard";
 import StartCheck, { type BelumSiap } from "./StartCheck";
 import DayStrip, { dayStates, SlotCodes, WinClock, type DaySlot } from "./DayStrip";
@@ -726,7 +727,19 @@ export default function AsistenHome({
           </div>
         </Fade>
         <div className="lp__body">
-          <div className="lp__left">{!drafDipilih && startForm}</div>
+          {!drafDipilih && <div className="lp__left">{startForm}</div>}
+          <div className={drafDipilih ? "lp__right lp__span" : "lp__right"}>
+            <SusulanSide
+              lang={lang}
+              draf={drafDipilih ?? null}
+              drafts={drafts ?? []}
+              onPick={(id) => {
+                setDraf(id);
+                const x = drafts?.find((y) => y.id === id);
+                if (x) setModul(x.modul);
+              }}
+            />
+          </div>
         </div>
         {startButton}
       </section>
@@ -856,7 +869,11 @@ export default function AsistenHome({
               </div>
             </div>
             <Lights items={cek} d={d} onGo={goCek} />
-            <button type="button" className="btn btn--ghost" onClick={() => onPrep(pilihPrep)}>
+            <button
+              type="button"
+              className="btn btn--inverse btn--block"
+              onClick={() => onPrep(pilihPrep)}
+            >
               <ListChecksIcon size={18} aria-hidden="true" />
               {h.prepOpen}
             </button>

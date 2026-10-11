@@ -193,7 +193,7 @@ export const K = dict({
     cutDesc: "Konsol langsung ditutup di Pi. Alasanmu terlihat oleh yang membuka dan masuk Audit.",
     cutWhy: "Alasan",
     // safety
-    safeTitle: "Cara Amannya",
+    safeTitle: "Bagaimana Konsol Ini Dijaga",
     safe: [
       "Pi tidak membuka port. Agen di Pi menelepon keluar ke relay (Cloudflare Worker) lewat WSS, hanya setelah konsol disetujui.",
       "Browser masuk ke ruang yang sama dengan tiket 60 detik dari server IRIS. Tiketnya sekali pakai dan terikat ke orang, server dan ruangnya.",
@@ -432,7 +432,7 @@ export const K = dict({
     cutDesc:
       "The console closes on the Pi at once. Its opener sees your reason, and it goes into Audit.",
     cutWhy: "Reason",
-    safeTitle: "How It Stays Safe",
+    safeTitle: "How This Console Is Protected",
     safe: [
       "The Pi opens no ports. The agent on the Pi dials out to a relay (Cloudflare Worker) over WSS, only once the console is approved.",
       "The browser joins the same room with a 60-second ticket from the IRIS server. The ticket is single use and tied to the person, the server and the room.",
@@ -665,7 +665,7 @@ export const K = dict({
     cutTitle: "断开 Pi 控制台？",
     cutDesc: "控制台会在 Pi 上立即关闭。打开者会看到你的原因，并记录在审计中。",
     cutWhy: "原因",
-    safeTitle: "如何保证安全",
+    safeTitle: "这个控制台如何受保护",
     safe: [
       "Pi 不开放任何端口。只有在控制台获批后，Pi 上的代理才会通过 WSS 主动连接中继（Cloudflare Worker）。",
       "浏览器用 IRIS 服务器发的 60 秒票据加入同一个房间。票据只能用一次，并绑定到人、服务器和房间。",

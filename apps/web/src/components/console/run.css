@@ -811,62 +811,43 @@
 }
 
 /* -------------------------------------------- Persiapan (c12-prep) */
+/* One column: the tab line on top (scrolling sideways when it can't fit),
+   the open section below at the full width. */
 .prep12__grid {
-  align-items: start;
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 900px) {
-  .prep12__grid {
-    grid-template-columns: minmax(260px, 4fr) minmax(0, 9fr);
-  }
-
-  .prep12__nav {
-    position: sticky;
-    top: calc(var(--nav-size, 64px) + 12px);
-  }
-}
-
-.prep12__nav {
-  gap: 10px;
-  padding: 12px;
-}
-
-.prep12__list {
-  display: grid;
+.prep12__tabs {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
-.prep12__item.grow-row {
+.prep12__tab {
   align-items: center;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: auto auto minmax(0, 1fr);
-  padding: 10px;
-}
-
-.prep12__item .hint {
-  font-size: 0.78rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline-flex;
+  gap: 8px;
   white-space: nowrap;
 }
 
-.prep12__item[data-unik="yes"] {
-  margin-top: 6px;
-}
-
-.prep12__item .lights__lamp[data-tone="none"] {
+.prep12__tab .lights__lamp[data-tone="none"] {
   background: transparent;
   border: 1.5px solid var(--hairline-strong);
   box-shadow: none;
 }
 
-.prep12__item .lights__lamp[data-tone="warn"] {
+.prep12__tab .lights__lamp[data-tone="warn"] {
   background: var(--warn);
   box-shadow: 0 0 10px var(--warn);
+}
+
+.prep12__sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .prep12__body {
@@ -876,16 +857,6 @@
 .prep12__ready {
   align-items: center;
   gap: 8px;
-}
-
-/* Below 900px the checklist scrolls sideways above the section. */
-@media (max-width: 899px) {
-  .prep12__list {
-    grid-auto-columns: minmax(200px, 1fr);
-    grid-auto-flow: column;
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
 }
 
 /* The rail's three filters stay on one row. */

@@ -161,6 +161,18 @@ summary,
   padding-bottom: var(--space-9);
 }
 
+/* A short page (a gate card, a locked step) keeps the footer at the
+   screen's bottom instead of leaving an empty band under it. */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+body > .page-main {
+  flex: 1 0 auto;
+}
+
 /* A page that is only a gate card (a guest on the Console, Schedule, Tim,
    an error) gets the same top space as a page header. */
 .page-main > astro-island:first-child > :is(.state-view, .errview):first-child {

@@ -76,7 +76,7 @@ function Journal({
   const ambil = () =>
     void kirim(id, "diag.journal", { unit, tingkat: lvl }, lang, false).then(refresh);
   return (
-    <section className="panel">
+    <section className="panel" style={{ flex: 1 }}>
       <div className="panel__head">
         <h2 className="panel__title">{t.journal}</h2>
         <button
@@ -131,7 +131,7 @@ function Journal({
             ? t.logAt(sejak(last.selesaiPada ?? last.dimintaPada, lang, now))
             : t.neverRun}
       </span>
-      <pre className="srv-log srv-log--tall">
+      <pre className="srv-log srv-log--fill">
         {sama
           ? last?.keluaran?.trim() && last.keluaran !== "(tidak ada keluaran)"
             ? last.keluaran
@@ -449,7 +449,7 @@ export default function Settings({
           <div className="seplabel s12span12">
             <span>{t.full}</span>
           </div>
-          <div className="s12span6">
+          <div className="s12span6 s12col">
             <Journal lang={lang} id={id} data={data} refresh={refresh} />
           </div>
           <div className="s12span6">
