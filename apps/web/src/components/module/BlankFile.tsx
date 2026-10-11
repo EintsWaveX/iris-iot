@@ -365,13 +365,43 @@ export default function BlankFile(p: Props) {
   }, [mode, loaded, locked, modul, berkas]);
 
   // A groupmate's answer and an Asisten's hint: from the session room, which
-  // brings only this group's (the topics stand in while it is down).
+  // brings only this group's (the topics stand in while it is down). A wrong
+  // try lands in place from the message; a right one, or the try that opens
+  // the written hint, asks for the draft, which carries the explanation and
+  // the hint the room never does (each ask is a Vercel request per groupmate).
   const sesiNow = useSessionNow(mode === "now");
   useAliranAtauTopik(
     { ruang: "sesi", sesiId: sesiNow.data?.id ?? null },
     ["jawaban", "petunjuk"],
     ["jawaban", "petunjuk"],
-    () => void muatUlang(),
+    (m) => {
+      const d =
+        m?.j === "jawaban"
+          ? (m.d as {
+              soal?: string;
+              isi?: string;
+              benar?: boolean;
+              salah?: number;
+              olehNama?: string;
+              pada?: string;
+            } | null)
+          : null;
+      const nomor = Number(d?.soal?.split(".").pop());
+      if (!d || d.benar || (d.salah ?? 0) >= SALAH_UNTUK_BANTUAN || !Number.isInteger(nomor))
+        return void muatUlang();
+      terapkanDraft(
+        {
+          [nomor]: {
+            isi: d.isi ?? "",
+            benar: false,
+            oleh: d.olehNama ?? null,
+            salah: d.salah,
+            pada: d.pada,
+          },
+        },
+        true,
+      );
+    },
     mode === "now" && loaded && !locked,
     null,
     // A check or a hint on another file of the module changes nothing here.

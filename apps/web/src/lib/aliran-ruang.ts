@@ -427,7 +427,8 @@ export function useAliranAtauTopik(
   opsi: OpsiAliran & { aktif?: boolean },
   jenis: readonly JenisAliran[],
   cadangan: readonly Topik[],
-  fn: () => void,
+  /** The room's message, or nothing for a topic or a catch-up */
+  fn: (m?: PesanAliran) => void,
   enabled = true,
   /** Only this group's messages (an Asisten's socket hears every group) */
   kelompok: number | null = null,
@@ -444,7 +445,7 @@ export function useAliranAtauTopik(
     (m) => {
       if (kelompok !== null && m.g !== kelompok) return;
       if (saringRef.current && !saringRef.current(m)) return;
-      ref.current();
+      ref.current(m);
     },
     () => ref.current(),
   );

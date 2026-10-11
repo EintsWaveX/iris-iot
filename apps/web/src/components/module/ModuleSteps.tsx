@@ -29,6 +29,7 @@
  */
 import {
   useEffect,
+  useRef,
   useState,
   type ComponentProps,
   type CSSProperties,
@@ -202,13 +203,31 @@ export default function ModuleSteps(p: Props) {
   const segarMine = useSegar(["sesi", "nilai"], me?.role === "praktikan");
   // My group's blank results come through the session room (other groups'
   // checks no longer refetch this page); the topic stands in when it's down.
+  // At most every 30 s: a group checking blanks would otherwise refetch the
+  // whole practicum list once per try, on every groupmate's page.
   const [segarJawab, setSegarJawab] = useState(0);
+  const jawabTerakhir = useRef(0);
+  const jawabTunda = useRef<ReturnType<typeof setTimeout> | null>(null);
   useAliranAtauTopik(
     { ruang: "sesi", sesiId: now.data?.id ?? null },
     ["jawaban"],
     ["jawaban"],
-    () => setSegarJawab((n) => n + 1),
+    () => {
+      if (jawabTunda.current) return;
+      const sisa = Math.max(0, jawabTerakhir.current + 30_000 - Date.now());
+      jawabTunda.current = setTimeout(() => {
+        jawabTunda.current = null;
+        jawabTerakhir.current = Date.now();
+        setSegarJawab((n) => n + 1);
+      }, sisa);
+    },
     me?.role === "praktikan",
+  );
+  useEffect(
+    () => () => {
+      if (jawabTunda.current) clearTimeout(jawabTunda.current);
+    },
+    [],
   );
   useEffect(() => {
     if (me?.role !== "praktikan") return;

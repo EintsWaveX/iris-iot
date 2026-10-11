@@ -459,6 +459,7 @@ async function handleCek(
           salah,
           percobaan: baris?.percobaan ?? 1,
           oleh: session.nim,
+          olehNama: session.nama,
           pada: new Date().toISOString(),
         },
       },
