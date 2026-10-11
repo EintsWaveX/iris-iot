@@ -30,8 +30,10 @@ import {
 /** Rooms that had nobody in them, until when (ms), on this warm instance */
 const kosong = new Map<string, number>();
 const KOSONG_MS = 15_000;
-/** Streams skipped while a room is empty; events always go */
-const ALIRAN_DERAS = new Set(["tel", "denyut"]);
+/** Streams skipped while a room is empty; events always go. Only the Pi
+ *  room's beats: a session room is rarely empty, and skipping its readings
+ *  left the first Live viewer after a quiet spell without them for 15 s. */
+const ALIRAN_DERAS = new Set(["denyut"]);
 
 /**
  * A write's topics and its room messages, to the relay in one signed
