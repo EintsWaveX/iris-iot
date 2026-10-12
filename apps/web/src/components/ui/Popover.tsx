@@ -25,9 +25,18 @@ interface Props {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   align?: "start" | "center" | "end";
+  /** Added to the panel's class (e.g. popover__panel--menu, a short list) */
+  className?: string;
 }
 
-export default function Popover({ trigger, children, open, onOpenChange, align = "start" }: Props) {
+export default function Popover({
+  trigger,
+  children,
+  open,
+  onOpenChange,
+  align = "start",
+  className,
+}: Props) {
   const dialogHost = useDialogHost();
   return (
     <RadixPopover.Root open={open} onOpenChange={onOpenChange}>
@@ -35,7 +44,7 @@ export default function Popover({ trigger, children, open, onOpenChange, align =
       {dialogHost.marker}
       <RadixPopover.Portal container={dialogHost.host}>
         <RadixPopover.Content
-          className="popover__panel"
+          className={className ? `popover__panel ${className}` : "popover__panel"}
           // Enter presses the button marked data-enter (a small form's Save).
           onKeyDown={(e) => enterPressesMain(e, e.currentTarget, "[data-enter-foot]")}
           align={align}

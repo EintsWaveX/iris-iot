@@ -95,13 +95,53 @@ export function tanggalBerikut(hari: number, hariIni: string): string {
   return t.toISOString().slice(0, 10);
 }
 
+/** How many weeks past its next date Tim › Penugasan Slot can plan a slot. */
+export const GESER_MAKS = 16;
+
+/** The slot's date `geser` weeks after its next one. */
+export function tanggalMinggu(hari: number, hariIni: string, geser = 0): string {
+  const [y, m, d] = tanggalBerikut(hari, hariIni).split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 7 * geser)).toISOString().slice(0, 10);
+}
+
+/** Which week past its next date `tanggal` is for a slot on `hari`, or
+ *  null when it is before the next date or not on that day. */
+export function geserDari(hari: number, hariIni: string, tanggal: string): number | null {
+  const hari0 = Date.parse(`${tanggalBerikut(hari, hariIni)}T00:00:00Z`);
+  const beda = (Date.parse(`${tanggal}T00:00:00Z`) - hari0) / 86_400_000;
+  return beda >= 0 && beda % 7 === 0 ? beda / 7 : null;
+}
+
+/** A slot's holiday dates. `jadwal.libur_tanggal` holds them comma
+ *  separated (2026-10-12: weeks ahead can each have one); a single date,
+ *  as before, reads the same. */
+export function daftarLibur(v: string | null): string[] {
+  return (v ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x));
+}
+
+/** The holiday list with `tanggal` on or off; dates already past drop. */
+export function aturLibur(
+  v: string | null,
+  tanggal: string,
+  libur: boolean,
+  hariIni: string,
+): string | null {
+  const s = new Set(daftarLibur(v).filter((x) => x >= hariIni));
+  if (libur) s.add(tanggal);
+  else s.delete(tanggal);
+  return s.size ? [...s].sort().join(",") : null;
+}
+
 /** A slot's status on a date: a holiday that date wins over the semester. */
 export function statusSlotTanggal(
   j: { status: "aktif" | "segera" | "kosong"; liburTanggal: string | null },
   tanggal: string,
 ): StatusSlot {
   if (j.status === "kosong") return "kosong";
-  if (j.liburTanggal === tanggal) return "libur";
+  if (daftarLibur(j.liburTanggal).includes(tanggal)) return "libur";
   return j.status;
 }
 

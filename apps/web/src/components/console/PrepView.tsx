@@ -24,6 +24,7 @@ import {
   LockSimpleIcon,
   MagnifyingGlassIcon,
   PlayIcon,
+  XCircleIcon,
 } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import TabLine from "../ui/TabLine";
@@ -59,6 +60,7 @@ import SlidesEditor from "./prep/SlidesEditor";
 import CodeEditor from "./prep/CodeEditor";
 import RiwayatPanel from "./RiwayatPanel";
 import { P, type Px } from "./prepStrings";
+import { batalSusulan, BS } from "./batalSusulan";
 import { cekSiap, type Beranda } from "./AsistenHome";
 import { H } from "./homeStrings";
 import "../ui/Tabs.css";
@@ -484,6 +486,23 @@ export default function PrepView({
                     onChange={choose}
                     options={options}
                   />
+                  {target?.jenis === "susulan" && me?.hak?.pair === true && (
+                    <button
+                      type="button"
+                      className="btn btn--danger btn--sm"
+                      onClick={() => {
+                        const id = target.sesiId;
+                        void batalSusulan(id, labelOf(sel), lang, (pulih) => {
+                          setDirty(false);
+                          setSel(pulih ? `d${id}` : null);
+                          void loadDraf();
+                        });
+                      }}
+                    >
+                      <XCircleIcon size={16} aria-hidden="true" />
+                      {BS[lang].cancel}
+                    </button>
+                  )}
                 </>
               ) : (
                 <span className="hint">{p.noSlots}</span>

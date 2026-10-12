@@ -33,6 +33,7 @@ import {
   type BahasaKode,
   type Celah,
   type KodeBerkas,
+  type TeksKode,
 } from "../../src/lib/kode-jurnal.js";
 import { KUNCI_V1 } from "./answer-keys.js";
 import { getSketchSourceForApi } from "./sketch-sources.js";
@@ -156,19 +157,21 @@ export interface KodeAktif {
   pin: boolean;
 }
 
-/** A version saved before hints existed: each blank whose answer is still
- *  version 1's takes version 1's hint, and its Mandarin explanation, where
- *  it has none of its own. */
+/** A version saved before hints (or Mandarin) existed: each blank whose
+ *  answer is still version 1's takes version 1's hint where it has none,
+ *  and a text that still reads as version 1's Indonesian takes the English
+ *  and Mandarin it is missing. */
 export function lengkapiDariV1(modul: number, b: KodeBerkas): KodeBerkas {
+  const terjemah = (x: TeksKode, v: TeksKode): TeksKode =>
+    x.id.trim() !== v.id
+      ? x
+      : { ...x, en: x.en?.trim() ? x.en : v.en, zh: x.zh?.trim() ? x.zh : v.zh };
   const celah = b.celah.map((c) => {
     const v1 = KUNCI_V1[`m${modul}.${b.slug}.${c.nomor}`];
     if (!v1 || normalJawaban(v1.jawaban) !== normalJawaban(c.jawaban)) return c;
-    const bantuan = teksUntuk(c.bantuan, "id") ? c.bantuan : { ...v1.bantuan };
-    const kenapa =
-      c.kenapa.zh || c.kenapa.id.trim() !== v1.kenapa.id
-        ? c.kenapa
-        : { ...c.kenapa, zh: v1.kenapa.zh };
-    return { ...c, bantuan, kenapa };
+    const bantuan =
+      c.bantuan && teksUntuk(c.bantuan, "id") ? terjemah(c.bantuan, v1.bantuan) : { ...v1.bantuan };
+    return { ...c, bantuan, kenapa: terjemah(c.kenapa, v1.kenapa) };
   });
   return { ...b, celah };
 }

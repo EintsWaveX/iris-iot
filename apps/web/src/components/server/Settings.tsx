@@ -457,9 +457,11 @@ export default function Settings({
           )}
         </div>
         {hasil?.keluaran != null ? (
-          <pre className="srv-log s12grow">{hasil.keluaran}</pre>
+          <pre className="srv-log srv-log--fill">{hasil.keluaran}</pre>
         ) : (
-          <div className="srv-log srv-log--empty s12grow">{jalan ? t.logWait : t.neverRun}</div>
+          <div className="srv-log srv-log--empty srv-log--fill">
+            {jalan ? t.logWait : t.neverRun}
+          </div>
         )}
       </section>
 

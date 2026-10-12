@@ -13,6 +13,12 @@
  *   Pengganti and Sukarela; a cover can be removed. "Ada yang izin" turns
  *   the slot amber until every group has someone.
  *
+ * - The week picker (2026-10-12): the next meeting, or any of the weeks
+ *   after it, so an izin or a cover can be set ahead.
+ * - Tambah Slot and each slot's Ubah Slot (SlotDialog.tsx): the slots come
+ *   from the sheet's import, and these add one, move one to another day
+ *   and session, or change its groups' Asisten later.
+ *
  * Batalkan Perubahan drops every unsaved move. Save writes the same data
  * the Schedule shows (POST /api/session/schedule
  * with the date's seats), so both pages always agree. Without the Schedule
@@ -38,18 +44,27 @@ import {
   CheckIcon,
   DotsSixVerticalIcon,
   FloppyDiskIcon,
+  PencilSimpleIcon,
+  PlusIcon,
   WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import Dropdown from "../ui/Dropdown";
 import IconButton from "../ui/IconButton";
 import Pill from "../ui/Pill";
-import { dict, getJson, postJson, tanggalPanjang } from "../../lib/app";
+import { dict, getJson, localeOf, postJson, tanggalPanjang } from "../../lib/app";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { semesterDariTanggal } from "../../lib/jadwal-parser";
 import { hariLabel, statusOrangLabel, slotLabel } from "../../lib/labels";
-import { pasanganSemester, type MingguSlot, type TugasInfo } from "../../lib/penugasan-minggu";
+import {
+  pasanganSemester,
+  tanggalMinggu,
+  type MingguSlot,
+  type TugasInfo,
+} from "../../lib/penugasan-minggu";
 import type { Lang } from "../../lib/kelas";
-import type { DataJadwal, JadwalRow } from "../schedule/types";
+import { HARI, type DataJadwal, type JadwalRow } from "../schedule/types";
+import SlotDialog from "./SlotDialog";
 import { useSiaran } from "../../lib/siaran";
 import { useBelumSimpan } from "../../lib/belum-simpan";
 
@@ -89,6 +104,27 @@ export const A = dict({
     moved: (k: string, when: string) => `${k} pindah ke ${when}.`,
     discard: "Batalkan Perubahan",
     srHint: "Tekan Spasi untuk mengangkat, panah untuk memilih slot, Spasi lagi untuk menaruh.",
+    week: "Minggu",
+    weekNext: "Pertemuan berikutnya",
+    until: "s.d.",
+    weekLock: "Simpan atau batalkan perubahan dulu sebelum pindah minggu.",
+    addSlot: "Tambah Slot",
+    addSlotDesc: "Pilih hari dan sesinya, lalu isi status dan asisten tiap kelompok.",
+    editSlot: "Ubah Slot",
+    editSlotDesc: "Ganti hari, sesi, status, atau asisten tiap kelompok.",
+    editOf: (k: string) => `Ubah slot ${k}`,
+    day: "Hari",
+    session: "Sesi",
+    taken: "Sudah ada slot",
+    dayFull: "Semua sesinya sudah terisi",
+    tetapHint:
+      "Asisten Tetap berlaku mulai sekarang untuk semester ini. Sesi yang sudah lewat tetap mencatat siapa yang mengajar. Pengganti, Sukarela dan Izin hanya untuk tanggal di bawah.",
+    moveHint:
+      "Slot ini pindah ke hari dan sesi baru, bersama roster, libur, izin dan penggantinya yang akan datang. Sesi yang sudah lewat tetap tercatat.",
+    cancel: "Batal",
+    slotAdded: (k: string) => `Slot ${k} ditambahkan. Jadwal ikut berubah.`,
+    slotSaved: "Slot disimpan. Jadwal ikut berubah.",
+    slotMoved: (k: string) => `Slot pindah ke ${k}. Jadwal ikut berubah.`,
   },
   en: {
     tabs: { orang: "People", penugasan: "Slot Assignment" },
@@ -126,6 +162,27 @@ export const A = dict({
     moved: (k: string, when: string) => `${k} moved to ${when}.`,
     discard: "Discard Changes",
     srHint: "Press Space to pick up, arrow keys to choose a slot, Space again to drop.",
+    week: "Week",
+    weekNext: "Next meeting",
+    until: "to",
+    weekLock: "Save or discard your changes before switching weeks.",
+    addSlot: "Add a Slot",
+    addSlotDesc: "Pick its day and session, then set its status and each group's assistant.",
+    editSlot: "Edit the Slot",
+    editSlotDesc: "Change its day, session, status or each group's assistant.",
+    editOf: (k: string) => `Edit the ${k} slot`,
+    day: "Day",
+    session: "Session",
+    taken: "Already has a slot",
+    dayFull: "Every session is taken",
+    tetapHint:
+      "A Regular assistant applies from now on for this semester. Sessions already held keep who taught them. Substitute, Volunteer and Excused are for the date below only.",
+    moveHint:
+      "This slot moves to the new day and session, with its roster and its holidays, excusals and covers still to come. Sessions already held stay on record.",
+    cancel: "Cancel",
+    slotAdded: (k: string) => `The ${k} slot is added. The Schedule follows.`,
+    slotSaved: "The slot is saved. The Schedule follows.",
+    slotMoved: (k: string) => `The slot moved to ${k}. The Schedule follows.`,
   },
   zh: {
     tabs: { orang: "成员", penugasan: "时段安排" },
@@ -161,6 +218,27 @@ export const A = dict({
     moved: (k: string, when: string) => `${k} 已移到${when}。`,
     discard: "放弃更改",
     srHint: "按空格键拿起，方向键选时段，再按空格放下。",
+    week: "周",
+    weekNext: "下一次上课",
+    until: "至",
+    weekLock: "换周之前，请先保存或放弃更改。",
+    addSlot: "添加时段",
+    addSlotDesc: "选好星期和节次，再设置状态和每组的助教。",
+    editSlot: "修改时段",
+    editSlotDesc: "修改星期、节次、状态或每组的助教。",
+    editOf: (k: string) => `修改时段 ${k}`,
+    day: "星期",
+    session: "节次",
+    taken: "已经有时段",
+    dayFull: "每个节次都有了",
+    tetapHint:
+      "固定助教从现在起对本学期有效。已经上过的课仍记录当时的授课人。代课、志愿和请假只用于下面的日期。",
+    moveHint:
+      "这个时段会移到新的星期和节次，名单以及之后的放假、请假和代课一起移过去。已经上过的课仍有记录。",
+    cancel: "取消",
+    slotAdded: (k: string) => `已添加时段 ${k}。课表跟着更新。`,
+    slotSaved: "时段已保存。课表跟着更新。",
+    slotMoved: (k: string) => `时段已移到 ${k}。课表跟着更新。`,
   },
 });
 
@@ -240,20 +318,39 @@ const slotUnder: CollisionDetection = (args) =>
 
 type Konteks = { jadwalId: number; hari: number; slot: number; tanggal: string };
 
+/** Weeks past the next meeting the week picker offers. */
+const MINGGU_PILIH = 8;
+
+/** A week's dates, short: "12 Okt s.d. 17 Okt". */
+function rentangMinggu(g: number, lang: Lang, until: string): string {
+  const hariIni = hariIniWib();
+  const tgl = HARI.map((h) => tanggalMinggu(h, hariIni, g)).sort();
+  const f = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString(localeOf(lang), {
+      day: "numeric",
+      month: "short",
+    });
+  return `${f(tgl[0])} ${until} ${f(tgl[tgl.length - 1])}`;
+}
+
 export default function AssignBoard({
   lang,
   bolehJadwal,
   nama,
   meKode,
+  meNim,
 }: {
   lang: Lang;
   bolehJadwal: boolean;
   /** "Full Name (CODE)" for a NIM. */
   nama: (nim: string | null) => string;
   meKode: string;
+  meNim: string;
 }) {
   const t = A[lang];
   const semester = semesterDariTanggal(hariIniWib());
+  const [geser, setGeser] = useState(0);
+  const [dialog, setDialog] = useState<{ hari: number; slot: number } | "baru" | null>(null);
   const [data, setData] = useState<DataJadwal | null>(null);
   const [req, setReq] = useState<{
     tawaran: (TugasInfo & Konteks)[];
@@ -273,9 +370,11 @@ export default function AssignBoard({
     useSensor(KeyboardSensor),
   );
 
-  async function load() {
+  async function load(g = geser) {
     const [d, p] = await Promise.all([
-      getJson<{ ok: boolean } & DataJadwal>(`/api/session/schedule?semester=${semester}`),
+      getJson<{ ok: boolean } & DataJadwal>(
+        `/api/session/schedule?semester=${semester}&geser=${g}`,
+      ),
       getJson<{ ok: boolean; tawaran: never[]; izin: never[] }>("/api/session/penugasan"),
     ]);
     if (d.ok) setData(d);
@@ -283,8 +382,8 @@ export default function AssignBoard({
     setEdit({});
   }
   useEffect(() => {
-    void load().catch(() => window.Toast?.show(t.fail, "danger"));
-  }, []);
+    void load(geser).catch(() => window.Toast?.show(t.fail, "danger"));
+  }, [geser]);
   // Someone else's change shows at once, unless this board has unsaved moves.
   const adaUbah = useRef(false);
   useSiaran(["jadwal", "tim"], () => {
@@ -356,6 +455,7 @@ export default function AssignBoard({
           semester,
           hari: j.hari,
           slot: j.slot,
+          geser,
           ubah: ubahDari(j, now(j.id)),
         });
         if (!r.ok) throw new Error();
@@ -498,24 +598,62 @@ export default function AssignBoard({
               ))}
             </div>
           </PoolDrop>
-          {rows.length === 0 ? (
-            <p className="hint">{t.slotsNone}</p>
-          ) : (
-            <div className="tslots">
-              {rows.map((j) => (
-                <SlotBox
-                  key={j.id}
-                  j={j}
-                  s={now(j.id)}
-                  lang={lang}
-                  label={`${hariLabel(j.hari, lang)} · ${SLOT_MULAI[j.slot]}`}
-                  meKode={meKode}
-                  ro={!bolehJadwal}
-                  onChange={(s) => set(j.id, s)}
+          <div className="tassign__main">
+            <div className="row tassign__bar">
+              <div className="tassign__week">
+                <Dropdown
+                  id="tassign-week"
+                  label={t.week}
+                  hideLabel
+                  value={String(geser)}
+                  options={Array.from({ length: MINGGU_PILIH + 1 }, (_, g) => ({
+                    value: String(g),
+                    label:
+                      g === 0
+                        ? `${t.weekNext} · ${rentangMinggu(g, lang, t.until)}`
+                        : rentangMinggu(g, lang, t.until),
+                  }))}
+                  onChange={(v) => {
+                    if (Number(v) === geser) return;
+                    if (changed.length > 0) return window.Toast?.show(t.weekLock, "warn");
+                    setGeser(Number(v));
+                  }}
                 />
-              ))}
+              </div>
+              {bolehJadwal && (
+                <button type="button" className="btn" onClick={() => setDialog("baru")}>
+                  <PlusIcon size={18} aria-hidden="true" />
+                  {t.addSlot}
+                </button>
+              )}
             </div>
-          )}
+            {rows.length === 0 ? (
+              <p className="hint">{t.slotsNone}</p>
+            ) : (
+              <div className="tslots">
+                {rows.map((j) => {
+                  const tgl = data.minggu[String(j.id)]?.tanggal;
+                  return (
+                    <SlotBox
+                      key={j.id}
+                      j={j}
+                      s={now(j.id)}
+                      lang={lang}
+                      label={`${hariLabel(j.hari, lang)} · ${SLOT_MULAI[j.slot]}`}
+                      date={tgl ? tanggalPanjang(tgl, lang) : null}
+                      meKode={meKode}
+                      ro={!bolehJadwal}
+                      onChange={(s) => set(j.id, s)}
+                      onEdit={() => {
+                        if (changed.length > 0) return window.Toast?.show(t.weekLock, "warn");
+                        setDialog({ hari: j.hari, slot: j.slot });
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
         <DragLayer>
           {drag &&
@@ -534,6 +672,21 @@ export default function AssignBoard({
             ))}
         </DragLayer>
       </DndContext>
+      {dialog && (
+        <SlotDialog
+          lang={lang}
+          open
+          onOpenChange={(o) => !o && setDialog(null)}
+          semester={semester}
+          kini
+          data={data}
+          awal={dialog === "baru" ? null : dialog}
+          geser={geser}
+          meKode={meKode}
+          meNim={meNim}
+          onSaved={() => void load().catch(() => {})}
+        />
+      )}
     </div>
   );
 }
@@ -581,17 +734,22 @@ function SlotBox({
   s,
   lang,
   label,
+  date,
   meKode,
   ro,
   onChange,
+  onEdit,
 }: {
   j: JadwalRow;
   s: SlotState;
   lang: Lang;
   label: string;
+  /** The date this board shows for the slot */
+  date: string | null;
   meKode: string;
   ro: boolean;
   onChange: (s: SlotState) => void;
+  onEdit: () => void;
 }) {
   const t = A[lang];
   const { setNodeRef, isOver } = useDroppable({ id: `slot:${j.id}`, disabled: ro });
@@ -617,7 +775,19 @@ function SlotBox({
       data-over={isOver ? "yes" : undefined}
     >
       <div className="row row--between tslot__head">
-        <b>{label}</b>
+        <span className="stack tslot__name">
+          <b>{label}</b>
+          {date && <span className="hint">{date}</span>}
+        </span>
+        {!ro && (
+          <IconButton
+            icon={PencilSimpleIcon}
+            label={t.editOf(label)}
+            kind="ghost"
+            sm
+            onClick={onEdit}
+          />
+        )}
         <button
           type="button"
           className="tslot__st"

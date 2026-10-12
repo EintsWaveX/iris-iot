@@ -20,6 +20,7 @@
  * src/lib/sesi-mulai.ts); this page only explains them ahead of time.
  */
 import SusulanSide from "./SusulanSide";
+import { batalSusulan, BS } from "./batalSusulan";
 import HelpRows, { jumlahBantuan, useBantuan } from "./HelpCard";
 import StartCheck, { type BelumSiap } from "./StartCheck";
 import DayStrip, { dayStates, SlotCodes, WinClock, type DaySlot } from "./DayStrip";
@@ -45,6 +46,7 @@ import {
   TableIcon,
   UsersThreeIcon,
   WarningIcon,
+  XCircleIcon,
 } from "@phosphor-icons/react";
 import { DateField, Stepper, Switch, TimeField } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
@@ -691,6 +693,25 @@ export default function AsistenHome({
                 </span>
                 <button
                   type="button"
+                  className="btn btn--danger"
+                  onClick={() => {
+                    const id = drafDipilih.id;
+                    void batalSusulan(
+                      id,
+                      `${tanggalPanjang(drafDipilih.tanggal, lang)} · ${drafDipilih.mulai}`,
+                      lang,
+                      (pulih) => {
+                        setDraf(pulih ? id : "baru");
+                        void muatDraf(false);
+                      },
+                    );
+                  }}
+                >
+                  <XCircleIcon size={18} aria-hidden="true" />
+                  {BS[lang].cancel}
+                </button>
+                <button
+                  type="button"
                   className="btn btn--inverse"
                   onClick={() => onPrep(`d${drafDipilih.id}`)}
                 >
@@ -1064,7 +1085,7 @@ export default function AsistenHome({
       <section className="panel panel--raised dtday" aria-label={d.todayEyebrow(hariNama)}>
         <div className="panel__head">
           <span className="eyebrow lp__eyebrow">{d.todayEyebrow(hariNama)}</span>
-          <a className="btn btn--ghost btn--sm" href={href(lang, "/schedule")}>
+          <a className="btn btn--ghost btn--sm" href={href(lang, "/schedule?sorot=1")}>
             {h.mySchedule}
             <ArrowRightIcon size={16} aria-hidden="true" />
           </a>
@@ -1098,13 +1119,13 @@ export default function AsistenHome({
           <span className="weekstrip__k">{h.myWeek}</span>
           {data && data.mingguSaya.length === 0 && <span className="hint">{h.myWeekEmpty}</span>}
           {data?.mingguSaya.map((w) => (
-            // Each of my slots opens its roster in Persiapan (2026-10-06).
-            <button
-              type="button"
+            // Each of my slots opens the Jadwal with Sorot Kode Saya on and
+            // that slot flashed (2026-10-12; its roster stays in Persiapan).
+            <a
               key={`${w.hari}-${w.slot}`}
               className="weekchip"
               data-now={w.hari === data.hari && states[w.slot] === "now" ? "yes" : undefined}
-              onClick={() => onPrep(`${w.hari}-${w.slot}`, "roster")}
+              href={href(lang, `/schedule?sorot=1&slot=${w.hari}-${w.slot}`)}
             >
               <b>
                 {hariLabel(w.hari, lang)} · {SLOT_MULAI[w.slot]}
@@ -1113,7 +1134,7 @@ export default function AsistenHome({
               {w.kelas === "internasional" && (
                 <Pill tone="violet">{kelasLabel("internasional", lang)}</Pill>
               )}
-            </button>
+            </a>
           ))}
         </div>
       </section>

@@ -208,6 +208,7 @@ function ExportMenu({ t, onExport }: { t: Ctx["t"]; onExport: (fmt: Format) => v
       open={ex}
       onOpenChange={setEx}
       align="end"
+      className="popover__panel--menu"
       trigger={
         <button type="button" className="btn" aria-expanded={ex}>
           <ExportIcon size={18} aria-hidden="true" />
@@ -233,7 +234,7 @@ function ExportMenu({ t, onExport }: { t: Ctx["t"]; onExport: (fmt: Format) => v
             }}
           >
             <Ic size={20} aria-hidden="true" />
-            {l}
+            <span>{l}</span>
           </button>
         ))}
       </div>

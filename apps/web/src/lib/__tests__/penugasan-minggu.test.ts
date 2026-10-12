@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  aturLibur,
+  daftarLibur,
+  geserDari,
   orangTanggal,
   pasanganSemester,
   pasanganTanggal,
   statusSlotTanggal,
   tanggalBerikut,
+  tanggalMinggu,
 } from "../penugasan-minggu";
 
 describe("pasanganSemester", () => {
@@ -83,4 +87,39 @@ describe("statusSlotTanggal", () => {
     expect(statusSlotTanggal({ status: "kosong", liburTanggal: "2026-10-03" }, "2026-10-03")).toBe(
       "kosong",
     ));
+});
+
+describe("weeks ahead (Penugasan Slot's week picker)", () => {
+  it("tanggalMinggu steps whole weeks from the next date", () => {
+    expect(tanggalMinggu(3, "2026-10-12", 0)).toBe("2026-10-14");
+    expect(tanggalMinggu(3, "2026-10-12", 2)).toBe("2026-10-28");
+    expect(tanggalMinggu(1, "2026-10-26", 1)).toBe("2026-11-02");
+  });
+  it("geserDari finds the week back, or null off the day or in the past", () => {
+    expect(geserDari(3, "2026-10-12", "2026-10-28")).toBe(2);
+    expect(geserDari(3, "2026-10-12", "2026-10-14")).toBe(0);
+    expect(geserDari(3, "2026-10-12", "2026-10-15")).toBeNull();
+    expect(geserDari(3, "2026-10-12", "2026-10-07")).toBeNull();
+  });
+});
+
+describe("several holidays per slot", () => {
+  it("reads a single date as before, and a list", () => {
+    expect(daftarLibur(null)).toEqual([]);
+    expect(daftarLibur("2026-10-14")).toEqual(["2026-10-14"]);
+    expect(daftarLibur("2026-10-14,2026-10-28")).toEqual(["2026-10-14", "2026-10-28"]);
+  });
+  it("adds and drops a date, and lets past ones go", () => {
+    const a = aturLibur("2026-10-07", "2026-10-28", true, "2026-10-12");
+    expect(a).toBe("2026-10-28");
+    const b = aturLibur(a, "2026-10-14", true, "2026-10-12");
+    expect(b).toBe("2026-10-14,2026-10-28");
+    expect(aturLibur(b, "2026-10-28", false, "2026-10-12")).toBe("2026-10-14");
+    expect(aturLibur("2026-10-14", "2026-10-14", false, "2026-10-12")).toBeNull();
+  });
+  it("each listed date is a holiday", () => {
+    const j = { status: "aktif" as const, liburTanggal: "2026-10-14,2026-10-28" };
+    expect(statusSlotTanggal(j, "2026-10-28")).toBe("libur");
+    expect(statusSlotTanggal(j, "2026-10-21")).toBe("aktif");
+  });
 });

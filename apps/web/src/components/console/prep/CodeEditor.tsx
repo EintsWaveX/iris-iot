@@ -84,6 +84,10 @@ type Mode = "celah" | "berkas" | "pratinjau";
 type MasalahBerkas = Masalah & { berkas: string };
 
 const LABEL_BAHASA: Record<BahasaKode, string> = { id: "ID", en: "EN" };
+/** Penjelasan and Petunjuk also come in Mandarin, the UI's third language
+ *  (2026-10-12); an empty ZH falls back to EN. */
+const BAHASA_TEKS = ["id", "en", "zh"] as const;
+const LABEL_TEKS: Record<(typeof BAHASA_TEKS)[number], string> = { ...LABEL_BAHASA, zh: "ZH" };
 
 /** Files a slot takes: Python for a .py sketch; .ino or .cpp for an
  *  Arduino sketch. */
@@ -1308,36 +1312,38 @@ function CelahForm({
             ))}
           </div>
           <div className="kodeed__detail-pair">
-            {BAHASA_KODE.map((b) => (
+            {BAHASA_TEKS.map((b) => (
               <label key={`k-${b}`} className="field">
-                <span className="field__label">{t.kenapa(LABEL_BAHASA[b])}</span>
+                <span className="field__label">{t.kenapa(LABEL_TEKS[b])}</span>
                 <textarea
                   className="field__input field__textarea"
-                  rows={2}
+                  rows={3}
                   maxLength={400}
-                  value={c.kenapa[b]}
+                  lang={b === "zh" ? "zh-CN" : b}
+                  value={c.kenapa[b] ?? ""}
                   onChange={(e) => onChange({ kenapa: { ...c.kenapa, [b]: e.target.value } })}
                 />
-                {b === "en" && <span className="field__hint">{t.kenapaHint}</span>}
               </label>
             ))}
+            <span className="field__hint kodeed__pair-hint">{t.kenapaHint}</span>
           </div>
           <div className="kodeed__detail-pair">
-            {BAHASA_KODE.map((b) => (
+            {BAHASA_TEKS.map((b) => (
               <label key={`h-${b}`} className="field">
-                <span className="field__label">{t.bantuan(LABEL_BAHASA[b])}</span>
+                <span className="field__label">{t.bantuan(LABEL_TEKS[b])}</span>
                 <textarea
                   className="field__input field__textarea"
-                  rows={2}
+                  rows={3}
                   maxLength={400}
+                  lang={b === "zh" ? "zh-CN" : b}
                   value={c.bantuan?.[b] ?? ""}
                   onChange={(e) =>
                     onChange({ bantuan: { id: "", en: "", ...c.bantuan, [b]: e.target.value } })
                   }
                 />
-                {b === "en" && <span className="field__hint">{t.bantuanHint}</span>}
               </label>
             ))}
+            <span className="field__hint kodeed__pair-hint">{t.bantuanHint}</span>
           </div>
         </div>
       </div>

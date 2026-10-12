@@ -2,16 +2,22 @@
  * The Schedule and who teaches each slot (Phase 9 Stage 4, mockups s-week,
  * s-slot, t-assign and the Console home's Saya Bantu).
  *
- * GET  /api/session/schedule?semester=   the week grid, the people, and for
- *      the current semester each slot's next date: its status that date,
- *      each group's seat (penugasan-minggu.ts), helpers, requests and izin.
- *      Plus the start-window settings.
+ * GET  /api/session/schedule?semester=[&geser=]   the week grid, the
+ *      people, and for the current semester each slot's next date (or the
+ *      date `geser` weeks after it, Tim › Penugasan Slot's week picker): its
+ *      status that date, each group's seat (penugasan-minggu.ts), helpers,
+ *      requests and izin. Plus the start-window settings.
  * POST /api/session/schedule (the "jadwal" right, checked by the caller)
- *      { semester, hari, slot, ubah }      one slot: class, status (aktif,
- *          segera, kosong with warnaKosong, or libur for its next date
- *          only), group count, the semester's Asisten per group, ranked
- *          substitutes, start window, and `minggu`: each group's kind on
- *          the next date (tetap, pengganti, sukarela, izin) and who covers.
+ *      { semester, hari, slot, ubah, geser? }  one slot (made when it isn't
+ *          there yet): class, status (aktif, segera, kosong with
+ *          warnaKosong, or libur for that date only), group count, the
+ *          semester's Asisten per group (from now on: sessions already
+ *          held keep who taught them), ranked substitutes, start window,
+ *          and `minggu`: each group's kind on that date (tetap, pengganti,
+ *          sukarela, izin) and who covers.
+ *      { semester, pindah: { dari: {hari, slot}, ke: {hari, slot} } }
+ *          moves a slot to a free day and session (2026-10-12): its roster,
+ *          and its holidays, covers and izin still to come, go along.
  *      { semester, teksDefault, ... }      the paste import (unchanged).
  *
  * GET  /api/session/penugasan             my side of it: today's slots that
@@ -32,12 +38,21 @@
  * Every change writes `audit`. Accepting a cover fills the izin and seats
  * the person in the open group.
  */
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
 import { getDb } from "../../src/lib/db.js";
-import { asisten, izin, jadwal, pengaturan, penugasanSlot } from "../../src/lib/schema.js";
+import {
+  asisten,
+  izin,
+  jadwal,
+  pengaturan,
+  penugasanSlot,
+  rosterKelompok,
+  rosterSlot,
+  sesi,
+} from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { boleh } from "../../src/lib/hak.js";
@@ -46,14 +61,19 @@ import { hariIniWib } from "../../src/lib/jadwal.js";
 import { KELOMPOK_MAKS } from "../../src/lib/jadwal.js";
 import {
   buildJadwal,
+  hariDariTanggal,
   semesterDariTanggal,
   type TagPengganti,
 } from "../../src/lib/jadwal-parser.js";
 import {
+  aturLibur,
+  daftarLibur,
+  GESER_MAKS,
+  geserDari,
   orangTanggal,
   pasanganTanggal,
   statusSlotTanggal,
-  tanggalBerikut,
+  tanggalMinggu,
   type IzinInfo,
   type MingguSlot,
   type TugasInfo,
@@ -79,6 +99,12 @@ const posInt = (v: unknown) => {
   return Number.isInteger(n) && n > 0 ? n : null;
 };
 
+/** Weeks past the next date (0 = the next date), or null when out of range */
+const bacaGeser = (v: unknown) => {
+  const n = v === undefined || v === "" ? 0 : Number(Array.isArray(v) ? v[0] : v);
+  return Number.isInteger(n) && n >= 0 && n <= GESER_MAKS ? n : null;
+};
+
 /* -------------------------------------------------------------- settings */
 
 export interface PengaturanJendela {
@@ -102,15 +128,17 @@ export async function muatPengaturanJendela(db: Db): Promise<PengaturanJendela> 
 
 /* ------------------------------------------------------------ the week */
 
-/** For each slot row: its next date and who teaches it then. */
+/** For each slot row: its next date (or the one `geser` weeks after it)
+ *  and who teaches it then. */
 export async function muatMinggu(
   db: Db,
   rows: JadwalRow[],
   hariIni = hariIniWib(),
+  geser = 0,
 ): Promise<Map<number, MingguSlot>> {
   const out = new Map<number, MingguSlot>();
   if (rows.length === 0) return out;
-  const tanggalOf = new Map(rows.map((j) => [j.id, tanggalBerikut(j.hari, hariIni)]));
+  const tanggalOf = new Map(rows.map((j) => [j.id, tanggalMinggu(j.hari, hariIni, geser)]));
   const ids = rows.map((j) => j.id);
   const orang = await db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten);
   const kodeOf = new Map(orang.map((o) => [o.nim, o.kode.toUpperCase()]));
@@ -173,6 +201,8 @@ export function diSlotMinggu(j: JadwalRow, m: MingguSlot | undefined, kode: stri
 
 export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
   const semester = typeof req.query.semester === "string" ? req.query.semester : "";
+  const geser = bacaGeser(req.query.geser);
+  if (geser === null) return tolak(res, "format_salah", 400);
   const db = getDb();
   const rows = await db
     .select()
@@ -190,6 +220,8 @@ export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
           await muatMinggu(
             db,
             rows.filter((r) => r.semester === kini),
+            hariIniWib(),
+            geser,
           ),
         )
       : {};
@@ -242,6 +274,9 @@ export async function handleSchedulePost(
   if (body.ubah && typeof body.ubah === "object") {
     return ubahSlot(res, db, session, semester, body);
   }
+  if (body.pindah && typeof body.pindah === "object") {
+    return pindahSlot(res, db, session, semester, body.pindah as Record<string, unknown>);
+  }
 
   // Paste import (preview, or replace the whole semester when simpan).
   const teksDefault = typeof body.teksDefault === "string" ? body.teksDefault : "";
@@ -277,14 +312,16 @@ async function ubahSlot(
 ) {
   const hari = posInt(body.hari);
   const slot = posInt(body.slot);
+  const geser = bacaGeser(body.geser);
   const ubah = body.ubah as Record<string, unknown>;
-  if (!hari || hari > 6 || !slot || slot > 4) return tolak(res, "format_salah", 400);
+  if (!hari || hari > 6 || !slot || slot > 4 || geser === null)
+    return tolak(res, "format_salah", 400);
   const patch: Partial<typeof jadwal.$inferInsert> = {
     diubahPada: new Date(),
     diubahOleh: session.nim,
   };
   const kini = semesterDariTanggal(hariIniWib());
-  const tanggal = tanggalBerikut(hari, hariIniWib());
+  const tanggal = tanggalMinggu(hari, hariIniWib(), geser);
 
   if (ubah.kelas !== undefined) {
     if (!isKelas(ubah.kelas)) return tolak(res, "format_salah", 400);
@@ -360,9 +397,9 @@ async function ubahSlot(
     .onConflictDoUpdate({ target: [jadwal.semester, jadwal.hari, jadwal.slot], set: patch })
     .returning();
 
-  // The holiday, for the slot's next date only.
+  // The holiday, for that date only (each week can have its own).
   if (libur !== null) {
-    const liburTanggal = libur ? tanggal : row.liburTanggal === tanggal ? null : row.liburTanggal;
+    const liburTanggal = aturLibur(row.liburTanggal, tanggal, libur, hariIniWib());
     // A holiday on a No Practicum slot makes it a running slot again.
     const status = libur && row.status === "kosong" ? "aktif" : row.status;
     if (liburTanggal !== row.liburTanggal || status !== row.status)
@@ -393,11 +430,132 @@ async function ubahSlot(
       if (!o) return tolak(res, "kode_tidak_dikenal");
       if (o.status !== "aktif") return tolak(res, "orang_tidak_aktif");
     }
-    await simpanMinggu(db, session.nim, row, tanggal, kursi, byKode, bantu);
+    await simpanMinggu(db, session.nim, row, geser, kursi, byKode, bantu);
   }
 
-  await writeAudit(session.nim, "jadwal_ubah", { semester, hari, slot, ubah });
-  res.status(200).json({ ok: true, tanggal });
+  await writeAudit(session.nim, "jadwal_ubah", { semester, hari, slot, ubah, tanggal });
+  res.status(200).json({ ok: true, tanggal, id: row.id });
+}
+
+/** Moves a slot to a free day and session of the same semester. A target
+ *  holding a No Practicum row with no roster gives way; one that runs, or
+ *  a slot whose session is running now, refuses. */
+async function pindahSlot(
+  res: ApiResponse,
+  db: Db,
+  session: SessionPayload,
+  semester: string,
+  pindah: Record<string, unknown>,
+) {
+  const sel = (v: unknown) => {
+    const x = (v ?? {}) as { hari?: unknown; slot?: unknown };
+    const hari = posInt(x.hari);
+    const slot = posInt(x.slot);
+    return hari && hari <= 6 && slot && slot <= 4 ? { hari, slot } : null;
+  };
+  const dari = sel(pindah.dari);
+  const ke = sel(pindah.ke);
+  if (!dari || !ke) return tolak(res, "format_salah", 400);
+  if (dari.hari === ke.hari && dari.slot === ke.slot) return tolak(res, "format_salah", 400);
+  const di = (h: number, s: number) =>
+    and(eq(jadwal.semester, semester), eq(jadwal.hari, h), eq(jadwal.slot, s));
+  const [asal] = await db.select().from(jadwal).where(di(dari.hari, dari.slot)).limit(1);
+  if (!asal) return tolak(res, "slot_tidak_ada");
+  const [tuju] = await db.select().from(jadwal).where(di(ke.hari, ke.slot)).limit(1);
+  const rosterDi = (h: number, s: number) =>
+    db
+      .select({ id: rosterSlot.id })
+      .from(rosterSlot)
+      .where(and(eq(rosterSlot.semester, semester), eq(rosterSlot.hari, h), eq(rosterSlot.slot, s)))
+      .limit(1);
+  if (tuju && (tuju.status !== "kosong" || (await rosterDi(ke.hari, ke.slot)).length))
+    return tolak(res, "slot_terisi");
+  const hariIni = hariIniWib();
+  const kini = semesterDariTanggal(hariIni);
+  if (semester === kini) {
+    const jalan = await db
+      .select({ tanggal: sesi.tanggal })
+      .from(sesi)
+      .where(and(eq(sesi.status, "berjalan"), eq(sesi.slot, dari.slot)));
+    if (jalan.some((x) => hariDariTanggal(x.tanggal) === dari.hari))
+      return tolak(res, "sesi_berjalan");
+  }
+
+  // A date still to come keeps its week: the next date's covers go to the
+  // new day's next date, and so on.
+  const geserKe = (tgl: string) => {
+    const g = geserDari(dari.hari, hariIni, tgl);
+    return g === null ? null : tanggalMinggu(ke.hari, hariIni, g);
+  };
+  await db.transaction(async (tx) => {
+    if (tuju) {
+      await tx.delete(jadwal).where(eq(jadwal.id, tuju.id));
+      await tx
+        .delete(rosterKelompok)
+        .where(
+          and(
+            eq(rosterKelompok.semester, semester),
+            eq(rosterKelompok.hari, ke.hari),
+            eq(rosterKelompok.slot, ke.slot),
+          ),
+        );
+    }
+    const libur = daftarLibur(asal.liburTanggal)
+      .map(geserKe)
+      .filter((x): x is string => !!x);
+    await tx
+      .update(jadwal)
+      .set({
+        hari: ke.hari,
+        slot: ke.slot,
+        liburTanggal: libur.length ? libur.sort().join(",") : null,
+        diubahPada: new Date(),
+        diubahOleh: session.nim,
+      })
+      .where(eq(jadwal.id, asal.id));
+    await tx
+      .update(rosterSlot)
+      .set({ hari: ke.hari, slot: ke.slot })
+      .where(
+        and(
+          eq(rosterSlot.semester, semester),
+          eq(rosterSlot.hari, dari.hari),
+          eq(rosterSlot.slot, dari.slot),
+        ),
+      );
+    await tx
+      .update(rosterKelompok)
+      .set({ hari: ke.hari, slot: ke.slot })
+      .where(
+        and(
+          eq(rosterKelompok.semester, semester),
+          eq(rosterKelompok.hari, dari.hari),
+          eq(rosterKelompok.slot, dari.slot),
+        ),
+      );
+    // Covers and izin still to come follow the slot; the past stays.
+    const tugas = await tx
+      .select({ id: penugasanSlot.id, tanggal: penugasanSlot.tanggal })
+      .from(penugasanSlot)
+      .where(and(eq(penugasanSlot.jadwalId, asal.id), gte(penugasanSlot.tanggal, hariIni)));
+    for (const x of tugas) {
+      const baru = geserKe(x.tanggal);
+      if (baru)
+        await tx.update(penugasanSlot).set({ tanggal: baru }).where(eq(penugasanSlot.id, x.id));
+      else await tx.delete(penugasanSlot).where(eq(penugasanSlot.id, x.id));
+    }
+    const iz = await tx
+      .select({ id: izin.id, tanggal: izin.tanggal })
+      .from(izin)
+      .where(and(eq(izin.jadwalId, asal.id), gte(izin.tanggal, hariIni)));
+    for (const x of iz) {
+      const baru = geserKe(x.tanggal);
+      if (baru) await tx.update(izin).set({ tanggal: baru }).where(eq(izin.id, x.id));
+      else await tx.delete(izin).where(eq(izin.id, x.id));
+    }
+  });
+  await writeAudit(session.nim, "jadwal_pindah", { semester, dari, ke });
+  res.status(200).json({ ok: true, id: asal.id });
 }
 
 /** Writes one date's seats: izin rows for excused Asisten, accepted cover
@@ -407,12 +565,13 @@ async function simpanMinggu(
   db: Db,
   oleh: string,
   j: JadwalRow,
-  tanggal: string,
+  geser: number,
   kursi: KursiBaru[],
   byKode: Map<string, { nim: string; kode: string; status: string }>,
   bantu: { kode: string; jenis: "pengganti" | "sukarela" }[] | null = null,
 ) {
-  const m = (await muatMinggu(db, [j])).get(j.id)!;
+  const m = (await muatMinggu(db, [j], hariIniWib(), geser)).get(j.id)!;
+  const tanggal = m.tanggal;
   const tetapOf = new Map(m.kursi.map((k) => [k.nomor, k.tetap]));
   const izinKode = new Set<string>();
   const duduk = new Map<string, { nomor: number; jenis: "pengganti" | "sukarela" }>();

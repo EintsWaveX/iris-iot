@@ -127,6 +127,7 @@ const W = {
     penugasanBatal: "membatalkan permintaan atau tawaran penugasan",
     izin: (who: string, s: string) => `mengumumkan izin ${who} di ${s} dan mencari pengganti`,
     jadwalUbah: (s: string) => `mengubah slot ${s} di Jadwal`,
+    jadwalPindah: (a: string, b: string) => `memindahkan slot ${a} ke ${b}`,
     jadwalImpor: (n: unknown) => `mengimpor jadwal (${n} slot)`,
     jadwalPengaturan: "mengubah pengaturan jendela mulai di Jadwal",
     jadwalJendela: (s: string, m: unknown) => `mengatur jendela mulai ${s} jadi ${m} menit`,
@@ -146,6 +147,8 @@ const W = {
     praktikumFinal: "menyelesaikan praktikum semester ini (riwayat keempat modul terbuka)",
     praktikumFinalBatal: "membatalkan penyelesaian praktikum",
     susulanDraf: (t: string) => `membuat draf susulan ${t}`,
+    susulanBatal: (s: string) => `membatalkan draf susulan ${s}`,
+    susulanPulih: (s: string) => `mengurungkan pembatalan draf susulan ${s}`,
     modulAkses: (m: string) => (m ? `membuka akses ${m}` : "menutup semua akses modul"),
     totNyala: "menyalakan Mode TOT; roster asli disimpan",
     totHapus: (n: unknown) => `menghapus riwayat TOT (${n} sesi)`,
@@ -252,6 +255,7 @@ const W = {
     penugasanBatal: "withdrew an assignment request or offer",
     izin: (who: string, s: string) => `announced ${who} is excused on ${s} and asked for a cover`,
     jadwalUbah: (s: string) => `changed the ${s} slot in the Schedule`,
+    jadwalPindah: (a: string, b: string) => `moved the ${a} slot to ${b}`,
     jadwalImpor: (n: unknown) => `imported the schedule (${n} slots)`,
     jadwalPengaturan: "changed the start window settings in the Schedule",
     jadwalJendela: (s: string, m: unknown) => `set the ${s} start window to ${m} minutes`,
@@ -272,6 +276,8 @@ const W = {
     praktikumFinal: "finished this semester's practicum (all four histories open)",
     praktikumFinalBatal: "undid the practicum finish",
     susulanDraf: (t: string) => `made a makeup draft for ${t}`,
+    susulanBatal: (s: string) => `cancelled the makeup draft ${s}`,
+    susulanPulih: (s: string) => `undid cancelling the makeup draft ${s}`,
     modulAkses: (m: string) => (m ? `opened ${m}` : "closed every module"),
     totNyala: "switched TOT Mode on; the real roster was saved",
     totHapus: (n: unknown) => `cleared the TOT history (${n} sessions)`,
@@ -377,6 +383,7 @@ const W = {
     penugasanBatal: "撤回了一个安排请求或帮忙",
     izin: (who: string, s: string) => `公布 ${who} 在 ${s} 请假并找人代课`,
     jadwalUbah: (s: string) => `修改了课表里的 ${s}`,
+    jadwalPindah: (a: string, b: string) => `把 ${a} 移到了 ${b}`,
     jadwalImpor: (n: unknown) => `导入了课表（${n} 个时段）`,
     jadwalPengaturan: "修改了课表的开课窗口设置",
     jadwalJendela: (s: string, m: unknown) => `把 ${s} 的开课窗口设为 ${m} 分钟`,
@@ -394,6 +401,8 @@ const W = {
     praktikumFinal: "结束了本学期的实验课（四个模块的记录都已开放）",
     praktikumFinalBatal: "撤销了实验课的结束",
     susulanDraf: (t: string) => `为 ${t} 建了补课草稿`,
+    susulanBatal: (s: string) => `取消了补课草稿 ${s}`,
+    susulanPulih: (s: string) => `撤销了取消补课草稿 ${s}`,
     modulAkses: (m: string) => (m ? `开放了${m}` : "关闭了所有模块"),
     totNyala: "开启了 TOT 模式，正式名单已保存",
     totHapus: (n: unknown) => `清除了 TOT 记录（${n} 节课）`,
@@ -660,6 +669,16 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(XCircleIcon, w.izin(b.who(d.nim), b.slot(d.jadwalId, d.tanggal)));
     case "jadwal_ubah":
       return k(CalendarDotsIcon, w.jadwalUbah(slotHari(d.hari, d.slot)));
+    case "jadwal_pindah": {
+      const x = (v: unknown) => (v ?? {}) as { hari?: unknown; slot?: unknown };
+      return k(
+        CalendarDotsIcon,
+        w.jadwalPindah(
+          slotHari(x(d.dari).hari, x(d.dari).slot),
+          slotHari(x(d.ke).hari, x(d.ke).slot),
+        ),
+      );
+    }
     case "jadwal_impor":
       return k(CalendarDotsIcon, w.jadwalImpor(d.slot));
     case "jadwal_pengaturan":
@@ -697,6 +716,10 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
         CalendarBlankIcon,
         w.susulanDraf(typeof d.tanggal === "string" ? tanggalPanjang(d.tanggal, b.lang) : "?"),
       );
+    case "susulan_batal":
+      return k(XCircleIcon, w.susulanBatal(b.sesi(d.sesiId)));
+    case "susulan_pulih":
+      return k(ArrowsClockwiseIcon, w.susulanPulih(b.sesi(d.sesiId)));
     case "tot_nyala":
       return k(ChalkboardTeacherIcon, w.totNyala);
     case "tot_hapus_riwayat":

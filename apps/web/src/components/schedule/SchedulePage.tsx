@@ -384,6 +384,32 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   const grid = useMinWidth(640);
   const narrow = !useMinWidth(820);
   const wide = useMinWidth(1440);
+  // Konsol's Jadwal Saya Minggu Ini (2026-10-12): ?sorot=1 turns Sorot Kode
+  // Saya on, and &slot=hari-slot flashes that slot once the week is drawn.
+  const [fokus, setFokus] = useState<{ hari: number; slot: number } | null>(null);
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    if (q.get("sorot") === "1") setHighlight(true);
+    const [h, s] = (q.get("slot") ?? "").split("-").map(Number);
+    if ((HARI as readonly number[]).includes(h) && (SLOTS as readonly number[]).includes(s))
+      setFokus({ hari: h, slot: s });
+  }, []);
+
+  useEffect(() => {
+    if (!fokus || !data) return;
+    const label = `${hariLabel(fokus.hari, lang)} · ${slotName(fokus.slot, lang)} · ${SLOT_MULAI[fokus.slot]}`;
+    const id = requestAnimationFrame(() => {
+      const el = [...document.querySelectorAll<HTMLElement>(".jpage [aria-label]")].find(
+        (x) => x.getAttribute("aria-label") === label,
+      );
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.dataset.fokus = "yes";
+      window.setTimeout(() => delete el.dataset.fokus, 3200);
+      setFokus(null);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [fokus, data]);
 
   function load() {
     setErr(false);
@@ -640,7 +666,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
               {HARI.map((h) => (
                 <DayCard
                   key={h}
-                  open0={h === today || (today < 1 && h === 1)}
+                  open0={h === today || h === fokus?.hari || (today < 1 && h === 1)}
                   title={hariLabel(h, lang)}
                   today={h === today ? t.today : null}
                 >

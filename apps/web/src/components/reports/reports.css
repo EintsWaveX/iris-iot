@@ -175,7 +175,8 @@
   color: var(--accent-bright, var(--accent));
 }
 
-.rp-menu__i > svg:last-child {
+/* A trailing tick sits right; a leading icon (the only svg) stays left. */
+.rp-menu__i > svg:last-child:not(:first-child) {
   margin-left: auto;
 }
 
@@ -1649,4 +1650,9 @@ button.rp-stat:focus-visible {
   gap: 10px;
   min-height: 52px;
   padding: 8px 12px;
+}
+
+/* The semester's name keeps room; on a phone its pill and Hapus wrap below. */
+.datasem__row > .grow {
+  min-width: 10rem;
 }

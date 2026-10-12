@@ -52,6 +52,7 @@ export const J = dict({
     editH: "Ubah Slot",
     readOnly: "Hanya Pengelola dan Admin yang bisa mengubah jadwal. Kamu bisa melihat isinya.",
     nextDate: (tgl: string) => `Minggu ini: ${tgl}`,
+    forDate: (tgl: string) => `Untuk tanggal: ${tgl}`,
     kelas: "Jenis kelas",
     reguler: "Reguler",
     internasional: "Internasional",
@@ -60,7 +61,8 @@ export const J = dict({
     statusHint: {
       aktif: "Praktikum berjalan seperti biasa.",
       segera: "Slotnya ada, asistennya belum.",
-      libur: "Tidak ada sesi minggu ini saja. Roster dan asisten tetap untuk minggu depan.",
+      libur:
+        "Tidak ada sesi pada tanggal ini saja. Roster dan asisten tetap untuk minggu berikutnya.",
       kosong:
         "Tidak ada praktikum di slot ini sepanjang semester. Oranye dan merah mengikuti warna di sheet JADWAL, artinya sama.",
     } as Record<string, string>,
@@ -122,6 +124,9 @@ export const J = dict({
     fail: "Gagal menyimpan. Coba lagi.",
     codes: {
       kode_tidak_dikenal: "Ada kode asisten yang tidak dikenal.",
+      slot_terisi: "Hari dan sesi itu sudah punya slot yang berjalan. Pilih yang kosong.",
+      slot_tidak_ada: "Slot ini sudah tidak ada. Muat ulang halaman.",
+      sesi_berjalan: "Sesi slot ini sedang berjalan. Pindahkan setelah sesinya selesai.",
       orang_tidak_aktif: "Asisten yang cuti atau nonaktif tidak bisa dipilih.",
       di_luar_batas: "Di luar batas dari Pengaturan Jadwal.",
       sudah_di_slot: "Asisten itu sudah ada di slot ini.",
@@ -245,6 +250,7 @@ export const J = dict({
     editH: "Edit Slot",
     readOnly: "Only Managers and Admins can change the schedule. You can look at it.",
     nextDate: (tgl: string) => `This week: ${tgl}`,
+    forDate: (tgl: string) => `For the date: ${tgl}`,
     kelas: "Class type",
     reguler: "Regular",
     internasional: "International",
@@ -253,7 +259,7 @@ export const J = dict({
     statusHint: {
       aktif: "The practicum runs as usual.",
       segera: "The slot exists, the assistants don't yet.",
-      libur: "No session this week only. The roster and assistants stay for next week.",
+      libur: "No session on this date only. The roster and assistants stay for the weeks after.",
       kosong:
         "No practicum in this slot for the whole semester. Orange and red follow the JADWAL sheet's colours and mean the same.",
     } as Record<string, string>,
@@ -316,6 +322,9 @@ export const J = dict({
     fail: "Couldn't save. Try again.",
     codes: {
       kode_tidak_dikenal: "There's an assistant code nobody has.",
+      slot_terisi: "That day and session already has a running slot. Pick a free one.",
+      slot_tidak_ada: "This slot is gone. Reload the page.",
+      sesi_berjalan: "This slot's session is running. Move it once the session ends.",
       orang_tidak_aktif: "Assistants on leave or inactive can't be picked.",
       di_luar_batas: "Outside the bounds in Schedule Settings.",
       sudah_di_slot: "That assistant is already on this slot.",
@@ -436,6 +445,7 @@ export const J = dict({
     editH: "编辑时段",
     readOnly: "只有主管和管理员能改课表。你可以查看。",
     nextDate: (tgl: string) => `本周：${tgl}`,
+    forDate: (tgl: string) => `日期：${tgl}`,
     kelas: "班级类型",
     reguler: "普通班",
     internasional: "国际班",
@@ -444,7 +454,7 @@ export const J = dict({
     statusHint: {
       aktif: "实验照常进行。",
       segera: "时段有了，助教还没有。",
-      libur: "只是这周没课。名单和助教下周照旧。",
+      libur: "只是这一天没课。名单和助教之后照旧。",
       kosong: "本学期这个时段没有实验课。橙色和红色沿用 JADWAL 表格的颜色，意思一样。",
     } as Record<string, string>,
     warna: "标记颜色",
@@ -503,6 +513,9 @@ export const J = dict({
     fail: "保存失败。再试一次。",
     codes: {
       kode_tidak_dikenal: "有一个没人用的助教代码。",
+      slot_terisi: "那一天的那个时段已经有在上课的时段了。请选一个空的。",
+      slot_tidak_ada: "这个时段已经不在了。请刷新页面。",
+      sesi_berjalan: "这个时段的课正在进行。课结束后再移动。",
       orang_tidak_aktif: "请假或停用的助教不能选。",
       di_luar_batas: "超出了课表设置里的范围。",
       sudah_di_slot: "那位助教已经在这个时段了。",

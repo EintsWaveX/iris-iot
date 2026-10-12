@@ -47,6 +47,8 @@ import type { TagPengganti } from "../../lib/jadwal-parser";
 import type { Kelas, Lang } from "../../lib/kelas";
 import { pesanJ, type Jx } from "./strings";
 import type { JadwalRow, OrangJadwal, PengaturanJendela } from "./types";
+// Its styles live with the Schedule; Tim › Penugasan Slot opens it too.
+import "./SchedulePage.css";
 
 type StatusDraft = "aktif" | "segera" | "libur" | "kosong";
 type Kind = "tetap" | "pengganti" | "sukarela" | "izin";
@@ -63,7 +65,7 @@ interface Draft {
   win: number | null;
 }
 
-function awal(row: JadwalRow | undefined, m: MingguSlot | undefined): Draft {
+function awal(row: JadwalRow | undefined, m: MingguSlot | undefined, baru = false): Draft {
   const n = row?.jumlahKelompok ?? KELOMPOK_DEFAULT;
   const who = pasanganSemester(row?.asisten ?? [], n).map((k) => k ?? "");
   const kursi = m?.kursi ?? [];
@@ -79,7 +81,7 @@ function awal(row: JadwalRow | undefined, m: MingguSlot | undefined): Draft {
   });
   return {
     kelas: row?.kelas ?? "reguler",
-    status: m?.status ?? row?.status ?? "kosong",
+    status: m?.status ?? row?.status ?? (baru ? "aktif" : "kosong"),
     warna: row?.warnaKosong ?? "oranye",
     n,
     who,
@@ -111,11 +113,17 @@ interface Props {
   bolehJadwal: boolean;
   onDirty: (d: boolean) => void;
   onSaved: () => void;
+  /** Tim › Penugasan Slot's week: the date this many weeks past the next */
+  geser?: number;
+  /** A slot being added (Penugasan Slot's Tambah Slot): starts Aktif */
+  baru?: boolean;
+  /** Toasts its own saved message (Penugasan Slot says one of its own) */
+  diam?: boolean;
 }
 
 const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, ref) {
   const { t, lang, row, minggu: m } = p;
-  const base = useMemo(() => awal(row, m), [row, m]);
+  const base = useMemo(() => awal(row, m, p.baru), [row, m, p.baru]);
   const [d, setD] = useState<Draft>(base);
   const [find, setFind] = useState<number | null>(null);
   const dirty = JSON.stringify(d) !== JSON.stringify(base);
@@ -193,6 +201,7 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
         semester: p.semester,
         hari: p.hari,
         slot: p.slot,
+        ...(p.geser ? { geser: p.geser } : {}),
         ubah: {
           kelas: d.kelas,
           status: d.status,
@@ -218,7 +227,7 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
         window.Toast?.show(pesanJ(t, r.kode), "danger");
         return false;
       }
-      window.Toast?.show(t.saved, "ok");
+      if (!p.diam) window.Toast?.show(t.saved, "ok");
       p.onSaved();
       return true;
     } catch {
@@ -235,7 +244,9 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
 
   return (
     <div className="jedit">
-      {p.kini && m && <p className="jedit__when hint">{t.nextDate(tglLabel)}</p>}
+      {p.kini && m && (
+        <p className="jedit__when hint">{p.geser ? t.forDate(tglLabel) : t.nextDate(tglLabel)}</p>
+      )}
       {ro && (
         <div className="banner banner--lock">
           <LockSimpleIcon size={20} aria-hidden="true" />

@@ -361,11 +361,12 @@ const RIBBONS: Ribbon[] = [
 /** Three colourful, waving aurora curtains: each a band whose top edge
  *  rides two sine waves, lit from a bright edge fading down, its hues and
  *  glow drifting on its own clock. The night adds its light to the sky;
- *  the day paints soft pastels. */
+ *  the day tints the pale dawn with it (multiply), like watercolour, so
+ *  the curtains still read on a light sky instead of washing out. */
 function aurora(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, light: boolean) {
   const step = Math.max(14, Math.round(w / 90));
   ctx.save();
-  ctx.globalCompositeOperation = light ? "source-over" : "lighter";
+  ctx.globalCompositeOperation = light ? "multiply" : "lighter";
   for (const r of RIBBONS) {
     const top: number[] = [];
     const bot: number[] = [];
@@ -382,13 +383,13 @@ function aurora(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, 
     const y0 = h * r.y - r.amp[0] - r.amp[1];
     const y1 = h * (r.y + r.thick * 1.1) + r.amp[0] + r.amp[1];
     const g = ctx.createLinearGradient(0, y0, 0, y1);
-    const a = light ? 0.22 : 0.19;
+    const a = light ? 0.5 : 0.19;
     const shift = Math.sin((t / r.huePeriod) * TAU + r.phase) * HUE_DRIFT;
     const h0 = r.hue - HUE_SPAN + shift;
     const h1 = r.hue + HUE_SPAN + shift;
     // The brightest band slides down the curtain and back on its own beat.
     const glow = 0.18 + 0.1 * Math.sin((t / r.glowPeriod) * TAU + r.phase);
-    const l = light ? 72 : 62;
+    const l = light ? 70 : 62;
     g.addColorStop(0, `hsla(${h0},95%,${l}%,0)`);
     g.addColorStop(glow, `hsla(${h0},95%,${l + 6}%,${a})`);
     g.addColorStop(0.55, `hsla(${r.hue + shift},90%,${l}%,${a * 0.6})`);
@@ -405,7 +406,7 @@ function aurora(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, 
     // A thin bright rim along the top edge.
     ctx.beginPath();
     top.forEach((y, i) => (i ? ctx.lineTo(i * step, y) : ctx.moveTo(0, y)));
-    ctx.strokeStyle = `hsla(${h0},100%,${light ? 70 : 74}%,${light ? 0.22 : 0.2})`;
+    ctx.strokeStyle = `hsla(${h0},100%,${light ? 58 : 74}%,${light ? 0.3 : 0.2})`;
     ctx.lineWidth = 2;
     ctx.stroke();
   }

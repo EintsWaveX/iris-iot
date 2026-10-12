@@ -20,6 +20,13 @@
   z-index: 150;
 }
 
+/* A short menu (Ekspor Tampilan Ini): as wide as its trigger, not 320px. */
+.popover__panel--menu {
+  gap: 2px;
+  min-width: var(--radix-popover-trigger-width);
+  padding: 6px;
+}
+
 .popover__panel:focus {
   outline: none;
 }

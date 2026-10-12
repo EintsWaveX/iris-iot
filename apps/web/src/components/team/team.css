@@ -745,3 +745,52 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* The week picker and Tambah Slot above the slots (2026-10-12). */
+.tassign__main {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.tassign__bar {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.tassign__week {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.tslot__head {
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.tslot__name {
+  flex: 1;
+  gap: 0;
+  min-width: 0;
+}
+
+/* Tambah Slot / Ubah Slot: Hari and Sesi side by side, the editor below. */
+.slotdlg {
+  display: grid;
+  gap: 14px;
+}
+
+.slotdlg__where {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 479px) {
+  .slotdlg__where {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

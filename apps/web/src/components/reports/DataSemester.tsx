@@ -331,7 +331,7 @@ export default function DataSemester({
                   {s.boleh && (
                     <button
                       type="button"
-                      className="btn btn--sm btn--ghost"
+                      className="btn btn--sm btn--danger"
                       onClick={() => setPilih(k)}
                     >
                       <TrashIcon size={16} aria-hidden="true" />

@@ -611,11 +611,6 @@
   gap: var(--space-4);
 }
 
-.s12grow {
-  flex: 1;
-  min-height: 7rem;
-}
-
 .srv-log--empty {
   align-items: center;
   color: var(--text-muted);

@@ -172,10 +172,29 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* ID, EN and ZH side by side from 960px; ID and EN with ZH across the row
+   below it between 640 and 960; one a row on a phone. The hint spans. */
 @media (min-width: 640px) {
   .kodeed__detail-pair {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .kodeed__detail-pair > .field:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 960px) {
+  .kodeed__detail-pair {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .kodeed__detail-pair > .field:nth-child(3) {
+    grid-column: auto;
+  }
+}
+
+.kodeed__pair-hint {
+  grid-column: 1 / -1;
+  margin-top: -10px;
 }
 
 @media (min-width: 820px) {

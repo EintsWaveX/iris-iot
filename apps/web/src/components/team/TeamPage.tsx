@@ -340,6 +340,7 @@ export default function TeamPage({ lang }: { lang: Lang }) {
             bolehJadwal={data.saya?.hak.jadwal !== false && !!data.saya}
             nama={nama}
             meKode={(me.kode ?? "").toUpperCase()}
+            meNim={me.nim ?? ""}
           />
         ) : bayar.data ? (
           <PayBoard

@@ -268,30 +268,21 @@
   place-items: center;
 }
 
-/* No practicum: the sheet's orange or red stays as a hint, but quiet, so
-   the slots that do run are what the eye finds first. */
+/* No practicum: the sheet's orange or red, as pastel stripes. */
 .jcell--off[data-c="oranye"] {
   background:
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--orange-soft) 45%, transparent) 0 6px,
-      transparent 6px 14px
-    ),
+    repeating-linear-gradient(135deg, var(--orange-soft) 0 10px, transparent 10px 20px),
     var(--surface-1);
-  border: 1px dashed color-mix(in srgb, var(--orange) 45%, var(--hairline));
-  color: color-mix(in srgb, var(--orange) 70%, var(--text-muted));
+  border: 2px solid var(--orange);
+  color: var(--orange);
 }
 
 .jcell--off[data-c="merah"] {
   background:
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--red-soft) 45%, transparent) 0 6px,
-      transparent 6px 14px
-    ),
+    repeating-linear-gradient(135deg, var(--red-soft) 0 10px, transparent 10px 20px),
     var(--surface-1);
-  border: 1px dashed color-mix(in srgb, var(--red) 45%, var(--hairline));
-  color: color-mix(in srgb, var(--red) 70%, var(--text-muted));
+  border: 2px solid var(--red);
+  color: var(--red);
 }
 
 .jcell__off {
@@ -847,4 +838,22 @@
   gap: 10px;
   justify-content: space-between;
   padding: 6px 0;
+}
+
+/* The slot Konsol's Jadwal Saya Minggu Ini opened (?slot=), for a moment. */
+.jpage [data-fokus="yes"] {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .jpage [data-fokus="yes"] {
+    animation: jadwal-fokus-kedip 0.8s ease-in-out 3;
+  }
+}
+
+@keyframes jadwal-fokus-kedip {
+  50% {
+    outline-color: transparent;
+  }
 }

@@ -1982,7 +1982,8 @@ button.lib__name {
   min-height: 40px;
   padding: 4px 12px;
   white-space: nowrap;
-  /* A button since 2026-10-06: opens the slot's roster. */
+  /* A link: opens the Jadwal on that slot with Sorot Kode Saya on. */
+  text-decoration: none;
   color: inherit;
   cursor: pointer;
   font: inherit;

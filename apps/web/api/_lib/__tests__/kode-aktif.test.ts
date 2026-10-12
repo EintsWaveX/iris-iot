@@ -131,6 +131,24 @@ describe("explanations and hints", () => {
     expect(baru.celah[0].kenapa.zh).toBe(b.celah[0].kenapa.zh);
     expect(baru.celah[1].bantuan).toBeUndefined();
   });
+
+  it("an Indonesian text still version 1's takes the English and Mandarin it is missing", () => {
+    const [b] = kodeV1(3);
+    const lama: KodeBerkas = {
+      ...b,
+      celah: b.celah.map((c, i) => ({
+        ...c,
+        kenapa: { id: i === 1 ? "ditulis sendiri" : c.kenapa.id, en: "" },
+        bantuan: { id: c.bantuan?.id ?? "", en: i === 2 ? "my own" : "" },
+      })),
+    };
+    const baru = lengkapiDariV1(3, lama);
+    expect(baru.celah[0].kenapa.en).toBe(b.celah[0].kenapa.en);
+    expect(baru.celah[0].kenapa.zh).toBe(b.celah[0].kenapa.zh);
+    expect(baru.celah[0].bantuan?.zh).toBe(b.celah[0].bantuan?.zh);
+    expect(baru.celah[1].kenapa).toEqual({ id: "ditulis sendiri", en: "" });
+    expect(baru.celah[2].bantuan?.en).toBe("my own");
+  });
 });
 
 function contoh(): KodeBerkas {

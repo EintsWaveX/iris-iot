@@ -27,15 +27,15 @@ export const BACKUP_DAYS = 30;
 const PLACE: Record<Lang, { unit: string; room: string }> = {
   id: {
     unit: "Divisi ASIC, S1 Teknik Elektro, Fakultas Teknik Elektro, Telkom University",
-    room: "P304, Gedung Deli, Telkom University, Bandung",
+    room: "Ruang Praktikum di P313, Ruang Asisten di P303, Gedung P (Deli), Telkom University, Bandung",
   },
   en: {
     unit: "ASIC Division, Electrical Engineering, School of Electrical Engineering, Telkom University",
-    room: "P304, Deli Building, Telkom University, Bandung",
+    room: "Practicum Room at P313, Assistant Room at P303, Building P (Deli), Telkom University, Bandung",
   },
   zh: {
     unit: "Telkom University 电气工程学院 电气工程专业 ASIC 部门",
-    room: "Telkom University Deli 楼 P304，万隆",
+    room: "实验室在 P313，助教室在 P303，Telkom University P 楼（Deli），万隆",
   },
 };
 

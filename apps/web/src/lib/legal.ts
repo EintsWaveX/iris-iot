@@ -23,10 +23,10 @@ function reach(lang: Lang): string {
   const insta = LAB_CONTACT.instagram;
   const extra = [mail, insta && `Instagram @${insta}`].filter(Boolean).join(", ");
   if (lang === "en")
-    return `Tell the Assistant Coordinator at P304, Deli Building, or any assistant during your session${extra ? `, or write to ${extra}` : ""}.`;
+    return `Tell the Assistant Coordinator at the Assistant Room, P303, Building P (Deli), or any assistant during your session${extra ? `, or write to ${extra}` : ""}.`;
   if (lang === "zh")
-    return `请到 Deli 楼 P304 告诉助教协调员，或在实验课上告诉任何一位助教${extra ? `，也可以联系 ${extra}` : ""}。`;
-  return `Sampaikan ke Koordinator Asisten di P304 Gedung Deli, atau ke asisten mana pun saat sesimu${extra ? `, atau lewat ${extra}` : ""}.`;
+    return `请到 P 楼（Deli）P303 助教室告诉助教协调员，或在实验课上告诉任何一位助教${extra ? `，也可以联系 ${extra}` : ""}。`;
+  return `Sampaikan ke Koordinator Asisten di Ruang Asisten P303, Gedung P (Deli), atau ke asisten mana pun saat sesimu${extra ? `, atau lewat ${extra}` : ""}.`;
 }
 
 // ---------- Shared Facts ----------
@@ -47,7 +47,7 @@ export function privacy(lang: Lang): LegalDoc {
         {
           title: "Who Runs It",
           body: [
-            "IRIS Laboratory, ASIC Division, Electrical Engineering, School of Electrical Engineering, Telkom University, P304, Deli Building. The Assistant Coordinator answers for the practicum data.",
+            "IRIS Laboratory, ASIC Division, Electrical Engineering, School of Electrical Engineering, Telkom University, Practicum Room P313 and Assistant Room P303, Building P (Deli). The Assistant Coordinator answers for the practicum data.",
           ],
         },
         {
@@ -118,7 +118,7 @@ export function privacy(lang: Lang): LegalDoc {
         {
           title: "管理方",
           body: [
-            "Telkom University 电气工程学院 电气工程专业 ASIC 部门 IRIS 实验室，Deli 楼 P304。助教协调员负责实验数据。",
+            "Telkom University 电气工程学院 电气工程专业 ASIC 部门 IRIS 实验室，P 楼（Deli）P313 实验室与 P303 助教室。助教协调员负责实验数据。",
           ],
         },
         {
@@ -183,7 +183,7 @@ export function privacy(lang: Lang): LegalDoc {
       {
         title: "Siapa Pengelolanya",
         body: [
-          "Laboratorium IRIS, Divisi ASIC, S1 Teknik Elektro, Fakultas Teknik Elektro, Telkom University, P304 Gedung Deli. Koordinator Asisten bertanggung jawab atas data praktikum.",
+          "Laboratorium IRIS, Divisi ASIC, S1 Teknik Elektro, Fakultas Teknik Elektro, Telkom University, Ruang Praktikum P313 dan Ruang Asisten P303, Gedung P (Deli). Koordinator Asisten bertanggung jawab atas data praktikum.",
         ],
       },
       {

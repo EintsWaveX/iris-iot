@@ -23,6 +23,12 @@
  *                                 that didn't finish carry on: their
  *                                 members, numbered from 1 in the order
  *                                 given, and the module of that session
+ * POST susulan { aksi: "batal", id }
+ *                                 cancels a draft at once (status batal),
+ *                                 never one that has started
+ * POST susulan { aksi: "pulihkan", id }
+ *                                 the toast's Urungkan: a cancelled draft
+ *                                 that never started is a draft again
  *
  * Rosters belong to the slot and are reused every week; a Praktikan sits in
  * one slot per semester. Editing a slot's roster takes the Jadwal right or
@@ -492,12 +498,52 @@ export async function handleSusulanGet(_req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true, draf: rows });
 }
 
+/** Cancelling a draft (picked the wrong date or module) and its undo. */
+async function susulanBatal(
+  res: ApiResponse,
+  session: SessionPayload,
+  aksi: "batal" | "pulihkan",
+  id: number,
+) {
+  if (!Number.isInteger(id) || id <= 0) return tolak(res, "format_salah");
+  const orang = await muatOrang(session.nim);
+  if (!orang || !bolehPenuh(orang, "pair")) {
+    return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "pair" });
+  }
+  const db = getDb();
+  const [row] = await db
+    .select({ status: sesi.status, jenis: sesi.jenis, mulaiPada: sesi.mulaiPada })
+    .from(sesi)
+    .where(eq(sesi.id, id))
+    .limit(1);
+  const dari = aksi === "batal" ? "terjadwal" : "batal";
+  if (!row || row.jenis !== "susulan" || row.mulaiPada !== null) {
+    return tolak(res, "sesi_tidak_ada");
+  }
+  if (row.status !== dari) return tolak(res, "sudah_berubah");
+  try {
+    await db
+      .update(sesi)
+      .set({ status: aksi === "batal" ? "batal" : "terjadwal" })
+      .where(and(eq(sesi.id, id), eq(sesi.status, dari)));
+  } catch {
+    return tolak(res, "sudah_ada");
+  }
+  await writeAudit(session.nim, aksi === "batal" ? "susulan_batal" : "susulan_pulih", {
+    sesiId: id,
+  });
+  res.status(200).json({ ok: true });
+}
+
 export async function handleSusulanPost(
   req: ApiRequest,
   res: ApiResponse,
   session: SessionPayload,
 ) {
   const body = jsonBody(req);
+  if (body.aksi === "batal" || body.aksi === "pulihkan") {
+    return susulanBatal(res, session, body.aksi, Number(body.id));
+  }
   const tanggal = typeof body.tanggal === "string" ? body.tanggal : "";
   const mulai = typeof body.mulai === "string" ? body.mulai : "";
   // Carrying groups over from an ended session (c-next).
