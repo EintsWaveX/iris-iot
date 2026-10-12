@@ -963,3 +963,17 @@
   background: var(--hairline-faint);
   font-weight: 650;
 }
+
+/* Phase 13: how many TP files in my groups wait on Penilaian. */
+.appnav__n {
+  background: var(--accent);
+  border-radius: 99px;
+  color: var(--accent-ink);
+  display: inline-grid;
+  font: 800 0.72rem var(--font-body);
+  height: 20px;
+  margin-left: 2px;
+  min-width: 20px;
+  padding: 0 6px;
+  place-items: center;
+}

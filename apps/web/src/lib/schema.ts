@@ -30,6 +30,7 @@ import {
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
 import { KELAS } from "./kelas.js";
 import type { StatusOrang, Tier } from "./hak.js";
+import type { BahasaTp, VarianTp } from "./tp.js";
 import type { KodeBerkas } from "./kode-jurnal.js";
 export { NILAI_KOMPONEN } from "./nilai-komponen.js";
 export type { NilaiKomponen } from "./nilai-komponen.js";
@@ -1557,3 +1558,132 @@ export const konsolKeberatan = pgTable(
     check("konsol_keberatan_jenis", sql`${t.jenis} in ('oke', 'tanya', 'tolak')`),
   ],
 );
+
+/* --------------------------------- Phase 13: Tugas Pendahuluan (TP) */
+
+/** One file entry of a TP submission, as the LMS lists it (no bytes). */
+export interface BerkasTp {
+  nama: string;
+  ukuran: number;
+  mime: string;
+  /** The LMS file address without a token (webservice/pluginfile.php/...). */
+  url: string;
+}
+
+/**
+ * A Praktikan's TP for one module, as IRIS last saw it in the LMS: pointers
+ * only, the file streams from the LMS on view. A row with no LMS fields is
+ * an Asisten's mark (tanda "kosong": no submission, scored 0).
+ */
+export const tpKiriman = pgTable(
+  "tp_kiriman",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    modul: integer("modul").notNull(),
+    nim: text("nim").notNull(),
+    lmsKursus: integer("lms_kursus"),
+    lmsTugas: integer("lms_tugas"),
+    lmsKiriman: integer("lms_kiriman"),
+    statusLms: text("status_lms"),
+    berkas: jsonb("berkas").$type<BerkasTp[]>().notNull().default([]),
+    dikirimPada: timestamp("dikirim_pada", { withTimezone: true }),
+    diambilPada: timestamp("diambil_pada", { withTimezone: true }),
+    sinkronPada: timestamp("sinkron_pada", { withTimezone: true }),
+    /** A late file the group's Asisten accepted (null: not decided). */
+    terimaTelat: boolean("terima_telat"),
+    tanda: text("tanda", { enum: ["kosong"] }),
+    ditandaiOleh: text("ditandai_oleh"),
+  },
+  (t) => [
+    unique("tp_kiriman_unik").on(t.semester, t.modul, t.nim),
+    index("tp_kiriman_modul_idx").on(t.semester, t.modul),
+  ],
+);
+
+/** One question's score for one Praktikan's TP (0 to 10 each). */
+export const tpNilai = pgTable(
+  "tp_nilai",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    modul: integer("modul").notNull(),
+    nim: text("nim").notNull(),
+    nomor: integer("nomor").notNull(),
+    skor: real("skor").notNull(),
+    catatan: text("catatan"),
+    diubahOleh: text("diubah_oleh").notNull(),
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("tp_nilai_unik").on(t.semester, t.modul, t.nim, t.nomor),
+    index("tp_nilai_modul_idx").on(t.semester, t.modul),
+  ],
+);
+
+/** Jawab di IRIS: a Praktikan's typed answer, saved as a draft until they
+ *  build their PDF and upload it to the LMS. */
+export const tpJawaban = pgTable(
+  "tp_jawaban",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    modul: integer("modul").notNull(),
+    nim: text("nim").notNull(),
+    nomor: integer("nomor").notNull(),
+    isi: text("isi").notNull(),
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("tp_jawaban_unik").on(t.semester, t.modul, t.nim, t.nomor)],
+);
+
+/** Every LMS sync, so a broken token or a missing assignment shows. */
+export const tpSinkronLog = pgTable(
+  "tp_sinkron_log",
+  {
+    id: serial("id").primaryKey(),
+    mulai: timestamp("mulai", { withTimezone: true }).notNull().defaultNow(),
+    oleh: text("oleh").notNull(),
+    hasil: text("hasil", { enum: ["ok", "gagal"] }).notNull(),
+    baru: integer("baru").notNull().default(0),
+    diperbarui: integer("diperbarui").notNull().default(0),
+    durasiMs: integer("durasi_ms").notNull().default(0),
+    galat: text("galat"),
+  },
+  (t) => [index("tp_sinkron_log_mulai_idx").on(t.mulai)],
+);
+
+/** Who is who in the LMS: each Praktikan's LMS user and class course. */
+export const lmsPeserta = pgTable(
+  "lms_peserta",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    nim: text("nim").notNull(),
+    lmsUser: integer("lms_user").notNull(),
+    lmsKursus: integer("lms_kursus").notNull(),
+    kursus: text("kursus").notNull(),
+    diperbarui: timestamp("diperbarui", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("lms_peserta_unik").on(t.semester, t.nim),
+    index("lms_peserta_user_idx").on(t.lmsUser),
+  ],
+);
+
+/**
+ * A module's TP bank as Asisten edited it in Penilaian › Soal TP: its
+ * variants (each ten questions in id, en and zh with their keys), which
+ * variant each number of the final set comes from, and the PDF's
+ * instructions. No row: the default bank (api/_lib/tp-bawaan.ts). Not
+ * personal data, so it outlives the semester's deletion.
+ */
+export const tpPaket = pgTable("tp_paket", {
+  modul: integer("modul").primaryKey(),
+  varian: jsonb("varian").$type<VarianTp[]>().notNull(),
+  pilih: jsonb("pilih").$type<number[]>().notNull(),
+  petunjuk: jsonb("petunjuk").$type<Record<BahasaTp, string>>().notNull(),
+  versi: integer("versi").notNull().default(1),
+  diubahOleh: text("diubah_oleh"),
+  diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+});

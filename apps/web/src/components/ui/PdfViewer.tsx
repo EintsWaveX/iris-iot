@@ -353,6 +353,9 @@ export default function PdfViewer({
   lang,
   shape = "slides",
   className,
+  lompat,
+  onTeks,
+  data,
 }: {
   url: string;
   /** The file name, for downloads. */
@@ -363,6 +366,14 @@ export default function PdfViewer({
   /** "slides" opens fitting a whole page; "page" (documents) opens fitting the width. */
   shape?: "slides" | "page";
   className?: string;
+  /** Phase 13 (the TP grader): go to page `n`; a new `kali` goes again. */
+  lompat?: { n: number; kali: number };
+  /** Phase 13: each page's text, with its line breaks, once loaded. */
+  onTeks?: (halaman: string[]) => void;
+  /** Phase 13 (Soal TP's preview): the file's bytes, read instead of
+   *  fetching `url` (a blob: address is not fetchable under the CSP; it
+   *  still serves the download links). */
+  data?: Uint8Array;
 }) {
   const t = T[lang];
   const [lib, setLib] = useState<Pdfjs | null>(null);
@@ -409,7 +420,8 @@ export default function PdfViewer({
       .then((l) => {
         if (dead) return null;
         setLib(l);
-        task = l.getDocument({ url });
+        // pdf.js takes the buffer over, so it gets a copy.
+        task = l.getDocument(data ? { data: data.slice() } : { url });
         return task.promise;
       })
       .then(async (d) => {
@@ -432,7 +444,7 @@ export default function PdfViewer({
       dead = true;
       void task?.destroy();
     };
-  }, [url]);
+  }, [url, data]);
 
   // The frame's inner size: 100 % fits it (the whole page, or its width).
   useEffect(() => {
@@ -548,6 +560,27 @@ export default function PdfViewer({
 
   const pages = doc?.numPages ?? 0;
 
+  // Phase 13: the text layer, per page with its lines, for the TP grader.
+  const onTeksRef = useRef(onTeks);
+  onTeksRef.current = onTeks;
+  useEffect(() => {
+    if (!doc || !onTeksRef.current) return;
+    let dead = false;
+    void (async () => {
+      const all: string[] = [];
+      for (let i = 1; i <= doc.numPages; i++) {
+        const tc = await (await doc.getPage(i)).getTextContent();
+        all.push(
+          tc.items.map((it) => ("str" in it ? it.str + (it.hasEOL ? "\n" : "") : "")).join(""),
+        );
+      }
+      if (!dead) onTeksRef.current?.(all);
+    })().catch(() => !dead && onTeksRef.current?.([]));
+    return () => {
+      dead = true;
+    };
+  }, [doc]);
+
   /** Brings page n into view: centred when a whole page fits, else its top. */
   const goTo = useCallback((n: number, smooth = true) => {
     const el = pageEls.current[n - 1];
@@ -564,6 +597,14 @@ export default function PdfViewer({
     if (window.matchMedia("(max-width: 719px)").matches) setTocOpen(false);
   }, []);
   const step = (d: number) => goTo(Math.min(pages, Math.max(1, page + d)));
+
+  // Phase 13: a jump asked for from outside (the grader's Per Soal), once
+  // the pages have their places.
+  useEffect(() => {
+    if (!lompat || !doc) return;
+    const n = Math.min(doc.numPages, Math.max(1, lompat.n));
+    requestAnimationFrame(() => requestAnimationFrame(() => goTo(n)));
+  }, [lompat?.kali, lompat?.n, doc, goTo]);
 
   // Keep the same page in view across a zoom, a fit change or a turn.
   const keep = (f: () => void) => {

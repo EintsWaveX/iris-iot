@@ -1,0 +1,26 @@
+---
+/**
+ * /grading, /en/grading and /zh/grading (Phase 13): Penilaian, one island
+ * (grading/GradingPage.tsx).
+ */
+import Base from "../layouts/Base.astro";
+import GradingPage from "../components/grading/GradingPage";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  noindex
+  title={`${tri(lang, "Penilaian", "Grading", "评分")} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+>
+  <main id="main" class="page-wide page-main">
+    <GradingPage client:load lang={lang} />
+  </main>
+</Base>

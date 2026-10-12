@@ -98,6 +98,30 @@
     grid-auto-flow: row;
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  /* Seven with TP (Phase 13): four over three. */
+  .modsteps__tabs--seven {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Phase 13: Tugas Pendahuluan reads TP where the row is tight. */
+.modsteps__short {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .modsteps__long {
+    display: none;
+  }
+  .modsteps__short {
+    display: inline;
+  }
+}
+@media (min-width: 1024px) {
+  .modsteps__tabs--seven button,
+  .modsteps__tabs--six button {
+    padding-inline: 12px;
+  }
 }
 
 /* -------------------------------------------------------------- brief */

@@ -43,6 +43,10 @@ const SEKALI: Record<string, string> = {
   "lib/auth.ts": "sign in and out",
   "lib/seelabs-helper.ts": "runs in the SeeLabs tab",
   "lib/pdf.ts": "fetches fonts for a PDF",
+  "lib/tp-pdf.ts": "fetches the font and the IRIS mark for a TP paper",
+  "components/grading/SoalTab.tsx":
+    "the LMS attachment check runs when asked; the bank is usePaket, live on topic tp",
+  "components/grading/TpTab.tsx": "downloads a group's files when asked; its data is GradingPage's",
   "lib/xlsx.ts": "builds a file on demand",
   "lib/laporan.ts": "builds a file on demand",
   "scripts/lapor-galat.ts": "reports an error",

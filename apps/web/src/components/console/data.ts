@@ -248,6 +248,7 @@ export function useNilaiLive(
         kelompok: d.kelompok,
         pemilik: d.pemilik ?? {},
         terkirim: d.terkirim ?? {},
+        tpDari: d.tpDari ?? [],
       });
       setUpdatedAt(Date.now());
       setErrors(0);

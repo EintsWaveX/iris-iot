@@ -32,6 +32,17 @@ const BACA: Record<string, string[]> = {
   modul: ["draft", "kode", "kode-edit", "kunci", "unduh"],
   presentasi: ["pin", "schematic-list", "schematics", "slides", "slides-list"],
   auth: ["me"],
+  tp: [
+    "berkas",
+    "hitung",
+    "kelompok",
+    "lampiran",
+    "lms-info",
+    "modul",
+    "praktikan",
+    "praktikum",
+    "saya",
+  ],
 };
 
 const RUTE: Record<string, string> = {
@@ -39,6 +50,7 @@ const RUTE: Record<string, string> = {
   modul: "api/modul/[aksi].ts",
   presentasi: "api/presentasi/[aksi].ts",
   auth: "api/auth/[aksi].ts",
+  tp: "api/tp/[aksi].ts",
 };
 
 /** Every action name a route dispatches on: `aksi === "x"` comparisons and

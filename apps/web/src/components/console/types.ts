@@ -177,6 +177,8 @@ export interface NilaiData {
   pemilik: Record<string, string>;
   /** Groups whose scores were sent (Kirim Nilai), by group number. */
   terkirim: Record<string, { pada: string; oleh: string }>;
+  /** Phase 13: NIMs whose TP comes from TP grading (read only here). */
+  tpDari?: string[];
 }
 
 export type View = "prep" | "board" | "table" | "matrix";

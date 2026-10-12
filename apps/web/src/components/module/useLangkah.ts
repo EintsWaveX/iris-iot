@@ -11,6 +11,8 @@
  *   so a group never gets locked out mid-session.
  * - Each tab's tint: green while finished, yellow when visited and left
  *   unfinished, none when not touched yet.
+ * - TP (Phase 13) is the week before's work: never locked, never a lock,
+ *   never tinted.
  *
  * What was visited and left with Next is kept per session in localStorage.
  */
@@ -20,7 +22,7 @@ import { useSiaran } from "../../lib/siaran";
 import { readSetup, SETUP_BERUBAH } from "./SetupChecklist";
 import { KODE_PROGRES } from "./BlankFile";
 
-export type StepId = "modul" | "brief" | "praktikum" | "setup" | "code" | "live" | "hunt";
+export type StepId = "modul" | "brief" | "tp" | "praktikum" | "setup" | "code" | "live" | "hunt";
 export type Nada = "ok" | "warn";
 
 interface Catatan {
@@ -190,17 +192,25 @@ export function useLangkah({
     if (!aktif) return null;
     const pernah = (s: StepId) => cat.selesai.includes(s) || sekarang(s);
     // The hunt keeps its own lock (it opens when the Asisten starts it).
+    const bebas = (x: StepId) => x === "hunt" || x === "tp";
     const penghalang = (s: StepId): StepId | null => {
-      if (s === "hunt") return null;
+      if (bebas(s)) return null;
       const i = steps.indexOf(s);
-      return steps.slice(0, Math.max(0, i)).find((x) => x !== "hunt" && !pernah(x)) ?? null;
+      return steps.slice(0, Math.max(0, i)).find((x) => !bebas(x) && !pernah(x)) ?? null;
     };
     return {
       selesai: sekarang,
       terbuka: (s) => penghalang(s) === null,
       penghalang,
-      nada: (s) => (sekarang(s) ? "ok" : cat.lihat.includes(s) && s !== step ? "warn" : undefined),
-      awal: steps.find((s) => s !== "hunt" && !pernah(s)) ?? steps[steps.length - 1],
+      nada: (s) =>
+        s === "tp"
+          ? undefined
+          : sekarang(s)
+            ? "ok"
+            : cat.lihat.includes(s) && s !== step
+              ? "warn"
+              : undefined,
+      awal: steps.find((s) => !bebas(s) && !pernah(s)) ?? steps[steps.length - 1],
       siap: catSiap && kodeSiap && tangkapan !== null,
       lanjut: (s) => {
         if ((s === "modul" || s === "brief") && !cat.selesai.includes(s))

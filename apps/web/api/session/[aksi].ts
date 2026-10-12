@@ -107,6 +107,7 @@ import {
   kembalikanPindahan,
 } from "../_lib/sesi-hadir.js";
 import { nilaiOrNull } from "../../src/lib/server-lib.js";
+import { tpDariPenilaian } from "../_lib/tp.js";
 import {
   handleCerminGet,
   handleCerminPost,
@@ -1003,10 +1004,24 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
     return;
   }
 
-  const groups = await db.select().from(kelompok).where(eq(kelompok.aktif, true));
-  const members = await db
-    .select({ kelompokId: anggota.kelompokId, nim: anggota.nim, nama: anggota.nama })
-    .from(anggota);
+  // The session's own roster when it has one (Phase 13: Penilaian opens
+  // any past session, whose groups the live roster no longer holds).
+  const snap = await db
+    .select({ nomor: sesiAnggota.kelompokNomor, nim: sesiAnggota.nim, nama: sesiAnggota.nama })
+    .from(sesiAnggota)
+    .where(eq(sesiAnggota.sesiId, sesiId));
+  const semuaGrup = await db.select().from(kelompok);
+  const groups = snap.length
+    ? semuaGrup.filter((g) => snap.some((x) => x.nomor === g.nomor))
+    : semuaGrup.filter((g) => g.aktif);
+  const idOf = new Map(semuaGrup.map((g) => [g.nomor, g.id]));
+  const members = snap.length
+    ? snap
+        .filter((x) => idOf.has(x.nomor))
+        .map((x) => ({ kelompokId: idOf.get(x.nomor)!, nim: x.nim, nama: x.nama }))
+    : await db
+        .select({ kelompokId: anggota.kelompokId, nim: anggota.nim, nama: anggota.nama })
+        .from(anggota);
   const nilaiRows = await db.select().from(nilai).where(eq(nilai.sesiId, sesiId));
   const nilaiByNim = new Map<string, Partial<Record<NilaiKomponen, number>>>();
   for (const r of nilaiRows) {
@@ -1047,6 +1062,8 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
     kelompok: daftarKelompok,
     pemilik,
     terkirim: await daftarKirim(db, sesiId),
+    // Phase 13: whose TP comes from TP grading (read only here).
+    tpDari: await tpDariPenilaian(db, sesiId),
     server: new Date().toISOString(),
   });
 }

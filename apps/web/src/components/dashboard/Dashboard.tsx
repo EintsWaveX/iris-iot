@@ -17,6 +17,7 @@
 import { isNimTot } from "../../lib/tot";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
+  CaretDownIcon,
   ArrowRightIcon,
   ArrowClockwiseIcon,
   BookOpenTextIcon,
@@ -79,6 +80,9 @@ import SlidesDialog, { useSlides } from "../shell/SlidesDialog";
 import "../ui/Display.css";
 import "./Dashboard.css";
 import Nil from "../ui/Nil";
+import { useTpSaya, type TpSaya } from "../tp/shared";
+import { TpKartu, TpRincian } from "../tp/TpDash";
+import { TPS } from "../tp/tpStrings";
 
 export interface ModulInfo {
   modul: number;
@@ -575,9 +579,22 @@ function Practicums({
 
 /** Nilaiku (2026-10-09): their own scores per module, once their group's
  *  Asisten sent them; never a groupmate's. */
-function Nilaiku({ t, lang, list }: { t: DashT; lang: Lang; list: Praktikum[] }) {
+function Nilaiku({
+  t,
+  lang,
+  list,
+  tp = null,
+}: {
+  t: DashT;
+  lang: Lang;
+  list: Praktikum[];
+  tp?: TpSaya | null;
+}) {
   const rows = list.filter((p) => p.terkirim && p.skor).sort((a, b) => a.modul - b.modul);
+  // Phase 13: the TP score opens each question's mark.
+  const [rinci, setRinci] = useState<number | null>(null);
   if (!rows.length) return null;
+  const adaRinci = (m: number) => !!tp?.modul.find((x) => x.modul === m)?.skor;
   return (
     <section className="panel nilaiku">
       <div className="panel__head">
@@ -599,7 +616,20 @@ function Nilaiku({ t, lang, list }: { t: DashT; lang: Lang; list: Praktikum[] })
               {NILAI_KOMPONEN.map((k) => (
                 <span key={k} data-none={p.skor?.[k] == null ? "yes" : "no"}>
                   <small className="mono">{k}</small>
-                  <b className="num">{p.skor?.[k] ?? <Nil dot />}</b>
+                  {k === "TP" && p.skor?.[k] != null && adaRinci(p.modul) ? (
+                    <button
+                      type="button"
+                      className="tpchip num"
+                      aria-expanded={rinci === p.modul}
+                      title={TPS[lang].tekanTp}
+                      onClick={() => setRinci(rinci === p.modul ? null : p.modul)}
+                    >
+                      {p.skor?.[k]}
+                      <CaretDownIcon size={12} aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <b className="num">{p.skor?.[k] ?? <Nil dot />}</b>
+                  )}
                 </span>
               ))}
             </span>
@@ -607,6 +637,11 @@ function Nilaiku({ t, lang, list }: { t: DashT; lang: Lang; list: Praktikum[] })
               <b className="num">{p.rataRata ?? <Nil dot />}</b>
               <small>{t.rataSingkat}</small>
             </span>
+            {rinci === p.modul && (
+              <span className="nilaiku__tp">
+                <TpRincian lang={lang} d={tp} modul={p.modul} />
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -970,6 +1005,8 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     ["sesi", "nilai"],
   );
   const hasil = hasilPoll.data;
+  // Phase 13: the TP card and Nilaiku's TP marks.
+  const tp = useTpSaya(sendiri);
 
   useEffect(() => {
     if (me === null) location.assign(href(lang, "/login?next=/dashboard"));
@@ -1077,7 +1114,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     body = (
       <>
         <Waiting t={t} lang={lang} hasil={hasil ?? null} me={me.nama} ikut />
-        <Nilaiku t={t} lang={lang} list={list} />
+        <Nilaiku t={t} lang={lang} list={list} tp={tp.data} />
         {list.length > 0 && <Practicums t={t} lang={lang} list={list} go={go} />}
       </>
     );
@@ -1092,21 +1129,21 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
           modules={modules}
           me={me}
         />
-        <Nilaiku t={t} lang={lang} list={list} />
+        <Nilaiku t={t} lang={lang} list={list} tp={tp.data} />
       </>
     );
   } else if (endedToday) {
     body = (
       <>
         <Ended t={t} lang={lang} hasil={endedToday} go={go} />
-        <Nilaiku t={t} lang={lang} list={list} />
+        <Nilaiku t={t} lang={lang} list={list} tp={tp.data} />
         {list.length > 0 && <Practicums t={t} lang={lang} list={list} go={go} />}
       </>
     );
   } else if (list.length > 0) {
     body = (
       <>
-        <Nilaiku t={t} lang={lang} list={list} />
+        <Nilaiku t={t} lang={lang} list={list} tp={tp.data} />
         <Practicums t={t} lang={lang} list={list} go={go} />
       </>
     );
@@ -1150,6 +1187,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
           />
         </div>
       </div>
+      {sendiri && <TpKartu lang={lang} d={tp.data} />}
       {body}
       {sesi && !pro && <CoachMarks lang={lang} />}
     </div>

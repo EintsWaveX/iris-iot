@@ -1,0 +1,1107 @@
+/**
+ * /api/tp/:aksi — Tugas Pendahuluan from the LMS (Phase 13). The tenth
+ * serverless function (the Hobby cap is 12). Settings, the sync and the
+ * group data live in api/_lib/tp.ts, the LMS calls in api/_lib/lms.ts.
+ *
+ * Praktikan:
+ * GET  /api/tp/saya[?modul=]        my TP per module: window, my file as IRIS
+ *      sees it, my class course in the LMS, and my scores once my group's
+ *      scores were sent (Kirim Nilai). With ?modul= also the final set's
+ *      questions in my class's language (and Mandarin), the PDF's
+ *      instructions and my typed answers.
+ * POST /api/tp/jawab { modul, nomor, isi }   Jawab di IRIS: one answer's draft,
+ *      only while the window is open (read only from its close on).
+ * GET  /api/tp/berkas?id=&i=[&unduh=1]       my own file, streamed from the LMS.
+ *
+ * Asisten:
+ * GET  /api/tp/modul?modul=          the module's TP tab: window, counts per
+ *      class, the LMS state.
+ * GET  /api/tp/kelompok?modul=       Penilaian › TP: every slot's groups that
+ *      module's week, each member's status and total.
+ * GET  /api/tp/praktikan?modul=&nim= the grader: one Praktikan's files,
+ *      scores, notes and typed answers, and whether I may score them.
+ * GET  /api/tp/paket?modul=          the module's question bank with its keys
+ *      (never to a Praktikan), the final set's pick, who may edit it, and
+ *      the LMS assignments it goes to.
+ * GET  /api/tp/lampiran?modul=       what each class's TP assignment holds as
+ *      attached files right now (asked of the LMS live).
+ * GET  /api/tp/praktikum             Penilaian › Praktikum: every session this
+ *      semester where I hold a group, with each group's score state.
+ * GET  /api/tp/hitung                the navbar badge: my groups' files to grade.
+ * GET  /api/tp/berkas?id=&i=         any Praktikan's file.
+ * POST /api/tp/nilai  { modul, nim, nomor, skor|null, catatan? }
+ * POST /api/tp/tanda  { modul, nim, kosong }      Tidak Mengumpulkan (all 0)
+ * POST /api/tp/telat  { modul, nim, terima }      a late file: accept, or 0
+ * POST /api/tp/sinkron { modul? }                 Sinkron Sekarang
+ * POST /api/tp/jendela { modul, buka, tutup } | { modul, hapus } (jadwal right)
+ *                      | { pola } (Pencipta and Admin)
+ * POST /api/tp/paket { modul, versi, varian, pilih, petunjuk }  save the bank
+ * POST /api/tp/pilih { modul, versi, pilih }      a new draw or a hand pick
+ * POST /api/tp/bawaan { modul }                   back to the default bank
+ *      (the three: the jadwal or kode right; versi is the one loaded, and a
+ *      newer save refuses it with the latest)
+ * GET  /api/tp/lms-info                           Sumber LMS (Pencipta and Admin)
+ * POST /api/tp/lms { aksi: sambung, tempel } | { aksi: uji } | { aksi: putus }
+ *
+ * Only the group's holder that week scores its TP (anyone while nobody
+ * holds it), the same rule as the session's score table. Every write is
+ * audited; a complete TP's total goes into the session's TP component.
+ */
+import { Readable } from "node:stream";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import type { ApiRequest, ApiResponse } from "../_lib/http.js";
+import { jsonBody, noStore, requireMethod } from "../_lib/http.js";
+import { currentSession, requireRole } from "../_lib/session.js";
+import { muatOrang } from "../_lib/hak.js";
+import { denganSiaran } from "../_lib/siaran.js";
+import { getDb } from "../../src/lib/db.js";
+import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
+import { boleh, hakPenuh, type Orang } from "../../src/lib/hak.js";
+import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
+import {
+  asisten,
+  lmsPeserta,
+  nilai,
+  nilaiAbsen,
+  nilaiKirim,
+  praktikan,
+  sesi,
+  sesiAnggota,
+  sesiAsisten,
+  kelompok,
+  tpJawaban,
+  tpKiriman,
+  tpNilai,
+} from "../../src/lib/schema.js";
+import { NILAI_KOMPONEN } from "../../src/lib/nilai-komponen.js";
+import {
+  JAM_RE,
+  POLA_BAWAAN,
+  TANGGAL_RE,
+  TP_POIN,
+  bahasaKelas,
+  isoWib,
+  keadaanJendela,
+  kelasTp,
+  nomorBeda,
+  nomorUntuk,
+  statusTp,
+  telatMenit,
+  totalTp,
+  tpLengkap,
+  type PolaJendela,
+} from "../../src/lib/tp.js";
+import {
+  LMS_URL,
+  LmsGalat,
+  alamatMasuk,
+  ambilBerkas,
+  bacaTempelan,
+  bukaToken,
+  infoSitus,
+  kursusPraktikum,
+  sandikanToken,
+  tugasKursus,
+} from "../_lib/lms.js";
+import {
+  KUNCI_TP,
+  bacaSet,
+  hapusPaket,
+  hapusSet,
+  jendelaUntuk,
+  kelompokTp,
+  muatPaket,
+  pemegangTp,
+  periksaPetunjuk,
+  periksaPilih,
+  periksaVarian,
+  riwayatSinkron,
+  sinkronBilaPerlu,
+  simpanPaket,
+  sinkronTp,
+  skorModul,
+  soalPaket,
+  tulisSet,
+  tulisTotal,
+  type SetTp,
+  type TokenSet,
+} from "../_lib/tp.js";
+
+type Db = ReturnType<typeof getDb>;
+
+const tolak = (res: ApiResponse, kode: string, status = 200) =>
+  res.status(status).json({ ok: false, kode });
+
+const modulDari = (v: unknown) => {
+  const n = Number(Array.isArray(v) ? v[0] : v);
+  return Number.isInteger(n) && n >= 1 && n <= 4 ? n : null;
+};
+
+/** A page opening a TP view syncs when the last run is 2 minutes old. */
+const JEDA_HALAMAN = 2 * 60_000;
+
+function ringkasJendela(set: SetTp, m: number) {
+  const j = jendelaUntuk(set, m);
+  return { jendela: j, keadaan: keadaanJendela(j) };
+}
+
+function infoSinkron(set: SetTp) {
+  return {
+    tersambung: !!set.token,
+    terakhir: set.status.terakhir,
+    hasil: set.status.hasil,
+    galat: set.status.galat,
+    galatSejak: set.status.galatSejak,
+  };
+}
+
+/** The courses that have no "TP Modul m" assignment. */
+function tugasHilang(set: SetTp, m: number) {
+  return (set.kelas?.kursus ?? [])
+    .filter((k) => !k.tugas[String(m)])
+    .map((k) => ({ label: k.label, peserta: k.peserta }));
+}
+
+/* ============================================================= Praktikan */
+
+async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  await sinkronBilaPerlu(db, "halaman", JEDA_HALAMAN);
+  const set = await bacaSet(db);
+  const satu = modulDari(req.query.modul);
+  const modul = satu ? [satu] : [1, 2, 3, 4];
+  const [p] = await db
+    .select({ kelas: praktikan.kelas })
+    .from(praktikan)
+    .where(and(eq(praktikan.nim, s.nim), eq(praktikan.semester, set.semester)))
+    .limit(1);
+  const [kursus] = await db
+    .select()
+    .from(lmsPeserta)
+    .where(and(eq(lmsPeserta.semester, set.semester), eq(lmsPeserta.nim, s.nim)))
+    .limit(1);
+  const kiriman = await db
+    .select()
+    .from(tpKiriman)
+    .where(
+      and(
+        eq(tpKiriman.semester, set.semester),
+        eq(tpKiriman.nim, s.nim),
+        inArray(tpKiriman.modul, modul),
+      ),
+    );
+  // Sent: the group's scores of that module's session went out (Kirim Nilai).
+  const kirim = await db
+    .select({ modul: sesi.modul })
+    .from(sesiAnggota)
+    .innerJoin(sesi, eq(sesi.id, sesiAnggota.sesiId))
+    .innerJoin(
+      nilaiKirim,
+      and(
+        eq(nilaiKirim.sesiId, sesiAnggota.sesiId),
+        eq(nilaiKirim.kelompokNomor, sesiAnggota.kelompokNomor),
+      ),
+    )
+    .where(and(eq(sesiAnggota.nim, s.nim), ne(sesi.jenis, "tot")));
+  const terkirim = new Set(kirim.map((k) => k.modul));
+  const skorRows = await db
+    .select()
+    .from(tpNilai)
+    .where(
+      and(
+        eq(tpNilai.semester, set.semester),
+        eq(tpNilai.nim, s.nim),
+        inArray(tpNilai.modul, modul),
+      ),
+    );
+  const kodeRows = await db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten);
+  const kodeOf = new Map(kodeRows.map((a) => [a.nim, a.kode.toUpperCase()]));
+  const nomor = nomorUntuk(s.nim);
+  const kelas = kelasTp(p?.kelas);
+  const out = modul.map((m) => {
+    const { jendela, keadaan } = ringkasJendela(set, m);
+    const k = kiriman.find((x) => x.modul === m);
+    const sk = skorRows.filter((r) => r.modul === m);
+    const per = Object.fromEntries(sk.map((r) => [r.nomor, r.skor]));
+    const lengkap = tpLengkap(per, nomor);
+    const telat = telatMenit(k?.dikirimPada?.toISOString() ?? null, jendela);
+    const kirimDone = terkirim.has(m);
+    const tugas = kursus
+      ? set.kelas?.kursus.find((c) => c.id === kursus.lmsKursus)?.tugas[String(m)]
+      : undefined;
+    const oleh = sk.sort((a, b) => b.diubahPada.getTime() - a.diubahPada.getTime())[0]?.diubahOleh;
+    return {
+      modul: m,
+      jendela,
+      keadaan,
+      status: statusTp({
+        adaBerkas: !!k?.berkas.length,
+        tanda: k?.tanda ?? null,
+        telat: telat !== null,
+        lengkap: lengkap && kirimDone,
+      }),
+      berkas: k?.berkas.map((b, i) => ({ i, nama: b.nama, ukuran: b.ukuran, mime: b.mime })) ?? [],
+      kirimanId: k?.id ?? null,
+      dikirimPada: k?.dikirimPada?.toISOString() ?? null,
+      diambilPada: k?.diambilPada?.toISOString() ?? null,
+      telatMenit: telat,
+      terkirim: kirimDone,
+      // Scores only after the group's Kirim Nilai (2026-10-09 rule).
+      skor: kirimDone
+        ? Object.fromEntries(sk.map((r) => [r.nomor, { skor: r.skor, catatan: r.catatan }]))
+        : null,
+      total: kirimDone && lengkap ? totalTp(per, nomor) : null,
+      dinilaiOleh: kirimDone && oleh ? (kodeOf.get(oleh) ?? null) : null,
+      tugasUrl: tugas ? `${LMS_URL}/mod/assign/view.php?id=${tugas.cmid}` : null,
+    };
+  });
+  const jawaban = satu
+    ? Object.fromEntries(
+        (
+          await db
+            .select({ nomor: tpJawaban.nomor, isi: tpJawaban.isi, pada: tpJawaban.diubahPada })
+            .from(tpJawaban)
+            .where(
+              and(
+                eq(tpJawaban.semester, set.semester),
+                eq(tpJawaban.modul, satu),
+                eq(tpJawaban.nim, s.nim),
+              ),
+            )
+        ).map((r) => [r.nomor, { isi: r.isi, pada: r.pada.toISOString() }]),
+      )
+    : undefined;
+  // One module: its final set, shown once the window opens.
+  const paket =
+    satu && keadaanJendela(jendelaUntuk(set, satu)) !== "belum" ? await muatPaket(db, satu) : null;
+  res.status(200).json({
+    ok: true,
+    semester: set.semester,
+    kelas,
+    nomor,
+    soal: paket ? soalPaket(paket, bahasaKelas(kelas)) : undefined,
+    soalZh: paket ? soalPaket(paket, "zh") : undefined,
+    petunjuk: paket
+      ? { [bahasaKelas(kelas)]: paket.petunjuk[bahasaKelas(kelas)], zh: paket.petunjuk.zh }
+      : undefined,
+    kursus: kursus
+      ? { label: kursus.kursus, url: `${LMS_URL}/course/view.php?id=${kursus.lmsKursus}` }
+      : null,
+    sinkron: { terakhir: set.status.terakhir, tersambung: !!set.token },
+    modul: out,
+    jawaban,
+  });
+}
+
+const ISI_MAKS = 6000;
+
+async function handleJawab(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const modul = modulDari(b.modul);
+  const nomor = Number(b.nomor);
+  const isi = typeof b.isi === "string" ? b.isi : null;
+  if (!modul || isi === null || isi.length > ISI_MAKS || !nomorUntuk(s.nim).includes(nomor))
+    return tolak(res, "format_salah");
+  const db = getDb();
+  const set = await bacaSet(db);
+  // Typing happens only while the window is open; from the close on (the
+  // practicum week, the session itself) the TP is read only.
+  const k = keadaanJendela(jendelaUntuk(set, modul));
+  if (k !== "buka") return tolak(res, k === "tutup" ? "sudah_tutup" : "belum_dibuka");
+  if (!isi.trim()) {
+    await db
+      .delete(tpJawaban)
+      .where(
+        and(
+          eq(tpJawaban.semester, set.semester),
+          eq(tpJawaban.modul, modul),
+          eq(tpJawaban.nim, s.nim),
+          eq(tpJawaban.nomor, nomor),
+        ),
+      );
+  } else {
+    await db
+      .insert(tpJawaban)
+      .values({ semester: set.semester, modul, nim: s.nim, nomor, isi })
+      .onConflictDoUpdate({
+        target: [tpJawaban.semester, tpJawaban.modul, tpJawaban.nim, tpJawaban.nomor],
+        set: { isi, diubahPada: new Date() },
+      });
+  }
+  res.status(200).json({ ok: true, pada: new Date().toISOString() });
+}
+
+/* ============================================================== the files */
+
+async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const id = Number(req.query.id);
+  const i = Number(req.query.i ?? 0);
+  if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(i) || i < 0)
+    return tolak(res, "format_salah");
+  const db = getDb();
+  const [k] = await db.select().from(tpKiriman).where(eq(tpKiriman.id, id)).limit(1);
+  if (!k || (s.role === "praktikan" && k.nim !== s.nim)) return tolak(res, "tidak_ada", 404);
+  const b = k.berkas[i];
+  if (!b) return tolak(res, "tidak_ada", 404);
+  const set = await bacaSet(db);
+  const token = set.token ? bukaToken(set.token) : null;
+  if (!token) return tolak(res, "lms_terputus", 503);
+  const range = typeof req.headers.range === "string" ? req.headers.range : undefined;
+  let r: Response;
+  try {
+    r = await ambilBerkas(token, b.url, range);
+  } catch (e) {
+    return tolak(res, e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau", 502);
+  }
+  const jenis = r.headers.get("content-type") ?? "";
+  // An expired token answers with an HTML or JSON error page, not the file.
+  if (!r.ok || !r.body || /json|html/i.test(jenis))
+    return tolak(res, r.status === 404 ? "berkas_hilang" : "lms_menolak", 502);
+  res.statusCode = r.status;
+  res.setHeader("Content-Type", b.mime || jenis || "application/octet-stream");
+  for (const h of ["content-length", "content-range", "accept-ranges", "last-modified", "etag"]) {
+    const v = r.headers.get(h);
+    if (v) res.setHeader(h, v);
+  }
+  if (!r.headers.get("accept-ranges")) res.setHeader("Accept-Ranges", "bytes");
+  res.setHeader("Cache-Control", "private, no-store");
+  const nama = b.nama.replace(/["\\\r\n]/g, "_");
+  res.setHeader(
+    "Content-Disposition",
+    `${req.query.unduh === "1" ? "attachment" : "inline"}; filename="${nama}"; filename*=UTF-8''${encodeURIComponent(b.nama)}`,
+  );
+  await new Promise<void>((ok, gagal) => {
+    const src = Readable.fromWeb(r.body as import("node:stream/web").ReadableStream);
+    src.on("error", gagal);
+    res.on("close", () => ok());
+    src.pipe(res);
+  }).catch(() => res.destroy());
+}
+
+/* ================================================================ Asisten */
+
+async function handleModul(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const m = modulDari(req.query.modul);
+  if (!m) return tolak(res, "format_salah");
+  const db = getDb();
+  await sinkronBilaPerlu(db, "halaman", JEDA_HALAMAN);
+  const set = await bacaSet(db);
+  const orang = await muatOrang(s.nim);
+  const kiriman = await db
+    .select({ nim: tpKiriman.nim, berkas: tpKiriman.berkas, kursus: tpKiriman.lmsKursus })
+    .from(tpKiriman)
+    .where(and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m)));
+  const { per } = await skorModul(db, set.semester, m);
+  const dinilai = [...per].filter(([nim, sk]) => tpLengkap(sk, nomorUntuk(nim))).length;
+  const perKursus = (set.kelas?.kursus ?? []).map((k) => ({
+    label: k.label,
+    peserta: k.peserta,
+    masuk: kiriman.filter((x) => x.kursus === k.id && x.berkas.length).length,
+    ada: !!k.tugas[String(m)],
+  }));
+  res.status(200).json({
+    ok: true,
+    ...ringkasJendela(set, m),
+    pola: set.jendela.pola,
+    masuk: kiriman.filter((x) => x.berkas.length).length,
+    peserta: (set.kelas?.kursus ?? []).reduce((a, k) => a + (k.label === "ADD" ? 0 : k.peserta), 0),
+    dinilai,
+    perKursus,
+    hilang: tugasHilang(set, m),
+    sinkron: infoSinkron(set),
+    bolehUbah: !!orang && boleh(orang, "jadwal"),
+    bolehLms: !!orang && hakPenuh(orang),
+  });
+}
+
+async function handleKelompok(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const m = modulDari(req.query.modul);
+  if (!m) return tolak(res, "format_salah");
+  const db = getDb();
+  await sinkronBilaPerlu(db, "halaman", JEDA_HALAMAN);
+  const set = await bacaSet(db);
+  const data = await kelompokTp(db, set, m, s.nim);
+  // Each module's state for the module picker.
+  const modul = [1, 2, 3, 4].map((x) => ({ modul: x, ...ringkasJendela(set, x) }));
+  const orang = await muatOrang(s.nim);
+  res.status(200).json({
+    ok: true,
+    ...ringkasJendela(set, m),
+    modul,
+    ...data,
+    sinkron: infoSinkron(set),
+    hilang: tugasHilang(set, m),
+    bolehLms: !!orang && hakPenuh(orang),
+  });
+}
+
+/** Whether `me` may score `nim`'s TP for `modul`, and who holds them. */
+async function hakNilai(db: Db, set: SetTp, modul: number, nim: string, me: string) {
+  const p = await pemegangTp(db, set, modul, nim);
+  const holder = p?.nim ?? null;
+  return { boleh: holder === null || holder === me, pemegang: holder };
+}
+
+async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const m = modulDari(req.query.modul);
+  const nim = typeof req.query.nim === "string" ? req.query.nim.trim() : "";
+  if (!m || !nim) return tolak(res, "format_salah");
+  const db = getDb();
+  const set = await bacaSet(db);
+  const [k] = await db
+    .select()
+    .from(tpKiriman)
+    .where(
+      and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m), eq(tpKiriman.nim, nim)),
+    )
+    .limit(1);
+  const sk = await db
+    .select()
+    .from(tpNilai)
+    .where(and(eq(tpNilai.semester, set.semester), eq(tpNilai.modul, m), eq(tpNilai.nim, nim)));
+  const jaw = await db
+    .select({ nomor: tpJawaban.nomor, isi: tpJawaban.isi })
+    .from(tpJawaban)
+    .where(
+      and(eq(tpJawaban.semester, set.semester), eq(tpJawaban.modul, m), eq(tpJawaban.nim, nim)),
+    );
+  const [p] = await db
+    .select({ kelas: praktikan.kelas, nama: praktikan.nama })
+    .from(praktikan)
+    .where(and(eq(praktikan.nim, nim), eq(praktikan.semester, set.semester)))
+    .limit(1);
+  const hak = await hakNilai(db, set, m, nim, s.nim);
+  const { jendela, keadaan } = ringkasJendela(set, m);
+  res.status(200).json({
+    ok: true,
+    nim,
+    nama: p?.nama ?? nim,
+    kelas: kelasTp(p?.kelas),
+    nomor: nomorUntuk(nim),
+    keadaan,
+    kiriman: k
+      ? {
+          id: k.id,
+          berkas: k.berkas.map((b, i) => ({ i, nama: b.nama, ukuran: b.ukuran, mime: b.mime })),
+          dikirimPada: k.dikirimPada?.toISOString() ?? null,
+          telatMenit: telatMenit(k.dikirimPada?.toISOString() ?? null, jendela),
+          terimaTelat: k.terimaTelat,
+          tanda: k.tanda,
+        }
+      : null,
+    skor: Object.fromEntries(
+      sk.map((r) => [r.nomor, { skor: r.skor, catatan: r.catatan, oleh: r.diubahOleh }]),
+    ),
+    jawabanIris: Object.fromEntries(jaw.map((r) => [r.nomor, r.isi])),
+    ...hak,
+  });
+}
+
+/* ------------------------------------------------------- the question bank */
+
+/** Who may edit a TP bank: the jadwal right (module content) or kode
+ *  (the ASO division's journal code). */
+const bolehSoal = (o: Orang | null) => !!o && (boleh(o, "jadwal") || boleh(o, "kode"));
+
+/** The LMS assignments a module's PDF goes to, one per class course. */
+function tujuanLms(set: SetTp, m: number) {
+  return (set.kelas?.kursus ?? []).map((k) => {
+    const t = k.tugas[String(m)];
+    return {
+      id: k.id,
+      label: k.label,
+      kelas: k.kelas,
+      cmid: t?.cmid ?? null,
+      lihat: t ? `${LMS_URL}/mod/assign/view.php?id=${t.cmid}` : null,
+      ubah: t ? `${LMS_URL}/course/modedit.php?update=${t.cmid}` : null,
+    };
+  });
+}
+
+async function handlePaket(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const m = modulDari(req.query.modul);
+  if (!m) return tolak(res, "format_salah");
+  const db = getDb();
+  const [set, paket, orang] = await Promise.all([bacaSet(db), muatPaket(db, m), muatOrang(s.nim)]);
+  const [oleh] = paket.diubahOleh
+    ? await db
+        .select({ kode: asisten.kode, nama: asisten.nama })
+        .from(asisten)
+        .where(eq(asisten.nim, paket.diubahOleh))
+        .limit(1)
+    : [];
+  res.status(200).json({
+    ok: true,
+    paket: {
+      ...paket,
+      diubahOleh: oleh ? { kode: oleh.kode.toUpperCase(), nama: oleh.nama } : null,
+    },
+    beda: nomorBeda(paket.varian),
+    ...ringkasJendela(set, m),
+    semester: set.semester,
+    bolehUbah: bolehSoal(orang),
+    lms: { tersambung: !!set.token, url: LMS_URL, tujuan: tujuanLms(set, m) },
+  });
+}
+
+/** What each class's TP assignment holds as attachments, asked live. */
+async function handleLampiran(req: ApiRequest, res: ApiResponse) {
+  const m = modulDari(req.query.modul);
+  if (!m) return tolak(res, "format_salah");
+  const db = getDb();
+  const set = await bacaSet(db);
+  const token = set.token ? bukaToken(set.token) : null;
+  if (!token) return tolak(res, "belum_tersambung");
+  const tujuan = tujuanLms(set, m);
+  let tugas;
+  try {
+    tugas = await tugasKursus(
+      token,
+      tujuan.map((t) => t.id),
+    );
+  } catch (e) {
+    return tolak(res, e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau");
+  }
+  res.status(200).json({
+    ok: true,
+    pada: new Date().toISOString(),
+    kelas: tujuan.map((t) => ({
+      ...t,
+      lampiran: tugas.find((a) => a.cmid === t.cmid)?.lampiran ?? [],
+    })),
+  });
+}
+
+/** The edit right and the module, or the refusal already sent. */
+async function bolehUbahSoal(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const m = modulDari(b.modul);
+  if (!m) {
+    tolak(res, "format_salah");
+    return null;
+  }
+  if (!bolehSoal(await muatOrang(s.nim))) {
+    tolak(res, "tidak_berhak", 403);
+    return null;
+  }
+  const versi = Number(b.versi);
+  return { b, m, versi: Number.isInteger(versi) && versi >= 0 ? versi : -1 };
+}
+
+async function handleSimpanPaket(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const x = await bolehUbahSoal(req, res, s);
+  if (!x) return;
+  const varian = periksaVarian(x.b.varian);
+  const pilih = varian && periksaPilih(x.b.pilih, varian.length);
+  const petunjuk = periksaPetunjuk(x.b.petunjuk);
+  if (!varian || !pilih || !petunjuk || x.versi < 0) return tolak(res, "format_salah");
+  const db = getDb();
+  const r = await simpanPaket(db, x.m, { varian, pilih, petunjuk }, x.versi, s.nim);
+  if (!r.ok) return res.status(200).json({ ok: false, kode: "versi_berubah", terbaru: r.terbaru });
+  await writeAudit(s.nim, "tp_paket", { modul: x.m, varian: varian.length, versi: r.versi });
+  res.status(200).json({ ok: true, versi: r.versi });
+}
+
+async function handlePilih(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const x = await bolehUbahSoal(req, res, s);
+  if (!x) return;
+  const db = getDb();
+  const paket = await muatPaket(db, x.m);
+  const pilih = periksaPilih(x.b.pilih, paket.varian.length);
+  if (!pilih || x.versi < 0) return tolak(res, "format_salah");
+  if (x.versi !== paket.versi)
+    return res.status(200).json({ ok: false, kode: "versi_berubah", terbaru: paket });
+  const r = await simpanPaket(
+    db,
+    x.m,
+    { varian: paket.varian, pilih, petunjuk: paket.petunjuk },
+    x.versi,
+    s.nim,
+  );
+  if (!r.ok) return res.status(200).json({ ok: false, kode: "versi_berubah", terbaru: r.terbaru });
+  await writeAudit(s.nim, "tp_pilih", { modul: x.m, pilih });
+  res.status(200).json({ ok: true, versi: r.versi });
+}
+
+async function handleBawaan(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const x = await bolehUbahSoal(req, res, s);
+  if (!x) return;
+  await hapusPaket(getDb(), x.m);
+  await writeAudit(s.nim, "tp_bawaan", { modul: x.m });
+  res.status(200).json({ ok: true, versi: 0 });
+}
+
+/** Penilaian › Praktikum: every session this semester where I hold a group. */
+async function handlePraktikum(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const set = await bacaSet(db);
+  const mine = await db
+    .select({
+      sesiId: sesi.id,
+      tanggal: sesi.tanggal,
+      slot: sesi.slot,
+      mulai: sesi.mulai,
+      modul: sesi.modul,
+      kelas: sesi.kelas,
+      status: sesi.status,
+      jenis: sesi.jenis,
+      nomor: kelompok.nomor,
+    })
+    .from(sesiAsisten)
+    .innerJoin(sesi, eq(sesi.id, sesiAsisten.sesiId))
+    .innerJoin(kelompok, eq(kelompok.id, sesiAsisten.kelompokId))
+    .where(
+      and(
+        eq(sesiAsisten.asistenNim, s.nim),
+        ne(sesi.jenis, "tot"),
+        inArray(sesi.status, ["berjalan", "selesai"]),
+      ),
+    )
+    .orderBy(desc(sesi.tanggal), desc(sesi.slot), asc(kelompok.nomor));
+  const rows = mine.filter((r) => semesterDariTanggal(r.tanggal) === set.semester);
+  const ids = [...new Set(rows.map((r) => r.sesiId))];
+  const [anggota, skor, absen, kirim] = ids.length
+    ? await Promise.all([
+        db
+          .select({
+            sesiId: sesiAnggota.sesiId,
+            nomor: sesiAnggota.kelompokNomor,
+            nim: sesiAnggota.nim,
+          })
+          .from(sesiAnggota)
+          .where(inArray(sesiAnggota.sesiId, ids)),
+        db
+          .select({ sesiId: nilai.sesiId, nim: nilai.nim, komponen: nilai.komponen })
+          .from(nilai)
+          .where(inArray(nilai.sesiId, ids)),
+        db
+          .select({ sesiId: nilaiAbsen.sesiId, nim: nilaiAbsen.nim })
+          .from(nilaiAbsen)
+          .where(inArray(nilaiAbsen.sesiId, ids)),
+        db
+          .select({ sesiId: nilaiKirim.sesiId, nomor: nilaiKirim.kelompokNomor })
+          .from(nilaiKirim)
+          .where(inArray(nilaiKirim.sesiId, ids)),
+      ])
+    : [[], [], [], []];
+  const diisi = new Map<string, number>();
+  for (const r of skor)
+    diisi.set(`${r.sesiId}|${r.nim}`, (diisi.get(`${r.sesiId}|${r.nim}`) ?? 0) + 1);
+  const absenSet = new Set(absen.map((a) => `${a.sesiId}|${a.nim}`));
+  const kirimSet = new Set(kirim.map((k) => `${k.sesiId}|${k.nomor}`));
+  const sesiList = ids.map((id) => {
+    const r0 = rows.find((r) => r.sesiId === id)!;
+    const grup = rows
+      .filter((r) => r.sesiId === id)
+      .map((r) => {
+        const ms = anggota.filter((a) => a.sesiId === id && a.nomor === r.nomor);
+        const lengkap = ms.filter(
+          (a) =>
+            absenSet.has(`${id}|${a.nim}`) ||
+            (diisi.get(`${id}|${a.nim}`) ?? 0) >= NILAI_KOMPONEN.length,
+        ).length;
+        const state = kirimSet.has(`${id}|${r.nomor}`)
+          ? "sent"
+          : ms.length && lengkap === ms.length
+            ? "ready"
+            : "todo";
+        return { nomor: r.nomor, anggota: ms.length, lengkap, status: state };
+      });
+    return {
+      sesiId: id,
+      tanggal: r0.tanggal,
+      slot: r0.slot,
+      mulai: r0.mulai,
+      modul: r0.modul,
+      kelas: r0.kelas,
+      jenis: r0.jenis,
+      berjalan: r0.status === "berjalan",
+      kelompok: grup,
+    };
+  });
+  res.status(200).json({ ok: true, semester: set.semester, sesi: sesiList });
+}
+
+async function handleHitung(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const set = await bacaSet(db);
+  let n = 0;
+  for (const m of [1, 2, 3, 4]) {
+    const k = keadaanJendela(jendelaUntuk(set, m));
+    if (!k || k === "belum") continue;
+    const d = await kelompokTp(db, set, m, s.nim);
+    n += d.hitung.perluNilaiku;
+  }
+  res.setHeader("Cache-Control", "private, max-age=60");
+  res.status(200).json({ ok: true, perluNilai: n });
+}
+
+/* ------------------------------------------------------------- scoring */
+
+async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const m = modulDari(b.modul);
+  const nim = typeof b.nim === "string" ? b.nim.trim() : "";
+  const nomor = Number(b.nomor);
+  const skor = b.skor === null ? null : Number(b.skor);
+  const catatan =
+    typeof b.catatan === "string" ? b.catatan.trim().slice(0, 500) || null : undefined;
+  if (
+    !m ||
+    !nim ||
+    !nomorUntuk(nim).includes(nomor) ||
+    (skor !== null && (!Number.isFinite(skor) || skor < 0 || skor > TP_POIN))
+  )
+    return tolak(res, "format_salah");
+  const db = getDb();
+  const set = await bacaSet(db);
+  const hak = await hakNilai(db, set, m, nim, s.nim);
+  if (!hak.boleh)
+    return res.status(200).json({ ok: false, kode: "bukan_pemegang", pemegang: hak.pemegang });
+  const [k] = await db
+    .select()
+    .from(tpKiriman)
+    .where(
+      and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m), eq(tpKiriman.nim, nim)),
+    )
+    .limit(1);
+  const j = jendelaUntuk(set, m);
+  if (k && telatMenit(k.dikirimPada?.toISOString() ?? null, j) !== null && k.terimaTelat !== true)
+    return tolak(res, "telat_belum_diterima");
+  const kunci = and(
+    eq(tpNilai.semester, set.semester),
+    eq(tpNilai.modul, m),
+    eq(tpNilai.nim, nim),
+    eq(tpNilai.nomor, nomor),
+  );
+  if (skor === null) {
+    await db.delete(tpNilai).where(kunci);
+  } else {
+    const v = Math.round(skor * 10) / 10;
+    await db
+      .insert(tpNilai)
+      .values({
+        semester: set.semester,
+        modul: m,
+        nim,
+        nomor,
+        skor: v,
+        catatan: catatan ?? null,
+        diubahOleh: s.nim,
+      })
+      .onConflictDoUpdate({
+        target: [tpNilai.semester, tpNilai.modul, tpNilai.nim, tpNilai.nomor],
+        set: {
+          skor: v,
+          ...(catatan !== undefined ? { catatan } : {}),
+          diubahOleh: s.nim,
+          diubahPada: new Date(),
+        },
+      });
+  }
+  const total = await tulisTotal(db, set.semester, m, nim, s.nim);
+  await writeAudit(s.nim, "tp_nilai_set", { modul: m, nim, nomor, skor });
+  res.status(200).json({ ok: true, total });
+}
+
+/** Every question this NIM answers set to 0 (or the zeros taken off). */
+async function nolSemua(db: Db, set: SetTp, m: number, nim: string, oleh: string, nol: boolean) {
+  const nomor = nomorUntuk(nim);
+  if (nol) {
+    await db
+      .insert(tpNilai)
+      .values(
+        nomor.map((no) => ({
+          semester: set.semester,
+          modul: m,
+          nim,
+          nomor: no,
+          skor: 0,
+          diubahOleh: oleh,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [tpNilai.semester, tpNilai.modul, tpNilai.nim, tpNilai.nomor],
+        set: { skor: 0, diubahOleh: oleh, diubahPada: new Date() },
+      });
+  } else {
+    await db
+      .delete(tpNilai)
+      .where(
+        and(
+          eq(tpNilai.semester, set.semester),
+          eq(tpNilai.modul, m),
+          eq(tpNilai.nim, nim),
+          eq(tpNilai.skor, 0),
+        ),
+      );
+  }
+  await tulisTotal(db, set.semester, m, nim, oleh);
+}
+
+async function handleTanda(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const m = modulDari(b.modul);
+  const nim = typeof b.nim === "string" ? b.nim.trim() : "";
+  if (!m || !nim || typeof b.kosong !== "boolean") return tolak(res, "format_salah");
+  const db = getDb();
+  const set = await bacaSet(db);
+  if (b.kosong && keadaanJendela(jendelaUntuk(set, m)) !== "tutup")
+    return tolak(res, "belum_tutup");
+  const hak = await hakNilai(db, set, m, nim, s.nim);
+  if (!hak.boleh)
+    return res.status(200).json({ ok: false, kode: "bukan_pemegang", pemegang: hak.pemegang });
+  await db
+    .insert(tpKiriman)
+    .values({
+      semester: set.semester,
+      modul: m,
+      nim,
+      tanda: b.kosong ? "kosong" : null,
+      ditandaiOleh: s.nim,
+    })
+    .onConflictDoUpdate({
+      target: [tpKiriman.semester, tpKiriman.modul, tpKiriman.nim],
+      set: { tanda: b.kosong ? "kosong" : null, ditandaiOleh: s.nim },
+    });
+  await nolSemua(db, set, m, nim, s.nim, b.kosong);
+  await writeAudit(s.nim, "tp_tanda", { modul: m, nim, kosong: b.kosong });
+  res.status(200).json({ ok: true });
+}
+
+async function handleTelat(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const m = modulDari(b.modul);
+  const nim = typeof b.nim === "string" ? b.nim.trim() : "";
+  if (!m || !nim || typeof b.terima !== "boolean") return tolak(res, "format_salah");
+  const db = getDb();
+  const set = await bacaSet(db);
+  const hak = await hakNilai(db, set, m, nim, s.nim);
+  if (!hak.boleh)
+    return res.status(200).json({ ok: false, kode: "bukan_pemegang", pemegang: hak.pemegang });
+  const upd = await db
+    .update(tpKiriman)
+    .set({ terimaTelat: b.terima })
+    .where(
+      and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m), eq(tpKiriman.nim, nim)),
+    )
+    .returning({ id: tpKiriman.id });
+  if (!upd.length) return tolak(res, "tidak_ada");
+  // Refused: the TP scores 0 and the file stays as a record.
+  await nolSemua(db, set, m, nim, s.nim, !b.terima);
+  await writeAudit(s.nim, "tp_telat", { modul: m, nim, terima: b.terima });
+  res.status(200).json({ ok: true });
+}
+
+async function handleSinkron(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const m = modulDari(b.modul);
+  const db = getDb();
+  const r = await sinkronTp(db, `manual:${s.nim}`, {
+    ...(m ? { modul: [m] } : {}),
+    paksa: b.paksa === true,
+  });
+  if (r.ok)
+    await writeAudit(s.nim, "tp_sinkron", { modul: m, baru: r.baru, diperbarui: r.diperbarui });
+  res.status(200).json(r);
+}
+
+/* ------------------------------------------------------------ settings */
+
+async function handleJendela(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const orang = await muatOrang(s.nim);
+  if (!orang) return tolak(res, "tidak_berhak", 403);
+  const db = getDb();
+  const set = await bacaSet(db);
+  if (b.pola !== undefined) {
+    if (!hakPenuh(orang)) return tolak(res, "tidak_berhak", 403);
+    const p = b.pola as Partial<PolaJendela>;
+    const hari = (v: unknown) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 7;
+    if (
+      !p ||
+      !hari(p.hariBuka) ||
+      !hari(p.hariTutup) ||
+      !JAM_RE.test(String(p.jamBuka)) ||
+      !JAM_RE.test(String(p.jamTutup))
+    )
+      return tolak(res, "format_salah");
+    const pola: PolaJendela = {
+      hariBuka: p.hariBuka!,
+      jamBuka: p.jamBuka!,
+      hariTutup: p.hariTutup!,
+      jamTutup: p.jamTutup!,
+    };
+    await tulisSet(db, KUNCI_TP.jendela, { ...set.jendela, pola }, s.nim);
+    await writeAudit(s.nim, "tp_jendela", { pola });
+    return res.status(200).json({ ok: true });
+  }
+  if (!boleh(orang, "jadwal")) return tolak(res, "tidak_berhak", 403);
+  const m = modulDari(b.modul);
+  if (!m) return tolak(res, "format_salah");
+  const modul = { ...set.jendela.modul };
+  if (b.hapus === true) delete modul[String(m)];
+  else {
+    const bagian = (v: unknown) => {
+      const o = v as { tanggal?: unknown; jam?: unknown } | undefined;
+      return o && TANGGAL_RE.test(String(o.tanggal)) && JAM_RE.test(String(o.jam))
+        ? isoWib(String(o.tanggal), String(o.jam))
+        : null;
+    };
+    const buka = bagian(b.buka);
+    const tutup = bagian(b.tutup);
+    if (!buka || !tutup || Date.parse(tutup) <= Date.parse(buka)) return tolak(res, "format_salah");
+    modul[String(m)] = { buka, tutup };
+  }
+  await tulisSet(db, KUNCI_TP.jendela, { ...set.jendela, modul }, s.nim);
+  await writeAudit(s.nim, "tp_jendela", { modul: m, ...modul[String(m)] });
+  res.status(200).json({ ok: true });
+}
+
+async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const orang = await muatOrang(s.nim);
+  if (!orang || !hakPenuh(orang)) return tolak(res, "tidak_berhak", 403);
+  const db = getDb();
+  const set = await bacaSet(db);
+  const [oleh] = set.token
+    ? await db
+        .select({ kode: asisten.kode, nama: asisten.nama })
+        .from(asisten)
+        .where(eq(asisten.nim, set.token.oleh))
+        .limit(1)
+    : [];
+  const log = await riwayatSinkron(db, 15);
+  res.status(200).json({
+    ok: true,
+    token: set.token
+      ? {
+          akhir: set.token.akhir,
+          akun: set.token.akun,
+          pada: set.token.pada,
+          oleh: oleh ? { kode: oleh.kode.toUpperCase(), nama: oleh.nama } : null,
+        }
+      : null,
+    kursus: set.kelas?.kursus ?? [],
+    kelasPada: set.kelas?.pada ?? null,
+    pola: set.jendela.pola ?? POLA_BAWAAN,
+    sinkron: infoSinkron(set),
+    log: log.map((r) => ({
+      id: r.id,
+      mulai: r.mulai.toISOString(),
+      oleh: r.oleh,
+      hasil: r.hasil,
+      baru: r.baru,
+      diperbarui: r.diperbarui,
+      durasiMs: r.durasiMs,
+      galat: r.galat,
+    })),
+    alamatMasuk: alamatMasuk(),
+    lmsUrl: LMS_URL,
+  });
+}
+
+async function handleLms(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const orang = await muatOrang(s.nim);
+  if (!orang || !hakPenuh(orang)) return tolak(res, "tidak_berhak", 403);
+  const b = jsonBody(req);
+  const db = getDb();
+  // The body's step (not the route's aksi): sambung, uji or putus.
+  const langkah = b.aksi;
+  if (langkah === "putus") {
+    for (const k of [KUNCI_TP.token, KUNCI_TP.kelas, KUNCI_TP.status]) await hapusSet(db, k);
+    await writeAudit(s.nim, "tp_lms", { aksi: "putus" });
+    return res.status(200).json({ ok: true });
+  }
+  if (langkah === "uji") {
+    const set = await bacaSet(db);
+    const token = set.token ? bukaToken(set.token) : null;
+    if (!token) return tolak(res, "belum_tersambung");
+    const t0 = Date.now();
+    try {
+      const info = await infoSitus(token);
+      const kursus = await kursusPraktikum(token, info.userid);
+      return res.status(200).json({ ok: true, ms: Date.now() - t0, kursus: kursus.length });
+    } catch (e) {
+      return tolak(res, e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau");
+    }
+  }
+  if (langkah !== "sambung" || typeof b.tempel !== "string") return tolak(res, "format_salah");
+  const token = bacaTempelan(b.tempel);
+  if (!token) return tolak(res, "tempelan_salah");
+  let info;
+  let kursus;
+  try {
+    info = await infoSitus(token);
+    kursus = await kursusPraktikum(token, info.userid);
+  } catch (e) {
+    return tolak(res, e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau");
+  }
+  const simpan: TokenSet = {
+    ...sandikanToken(token),
+    akun: { userid: info.userid, nama: info.fullname, username: info.username },
+    pada: new Date().toISOString(),
+    oleh: s.nim,
+  };
+  await tulisSet(db, KUNCI_TP.token, simpan, s.nim);
+  // A new account: the old one's courses and errors go.
+  await hapusSet(db, KUNCI_TP.kelas);
+  await hapusSet(db, KUNCI_TP.status);
+  await writeAudit(s.nim, "tp_lms", {
+    aksi: "sambung",
+    akun: info.username,
+    kursus: kursus.length,
+  });
+  const sinkron = await sinkronTp(db, `manual:${s.nim}`, { paksa: true });
+  res.status(200).json({ ok: true, akun: simpan.akun, kursus: kursus.length, sinkron });
+}
+
+/* ================================================================ route */
+
+async function handler(req: ApiRequest, res: ApiResponse) {
+  noStore(res);
+  const aksi = req.query.aksi;
+  const sesiku = currentSession(req);
+
+  if (aksi === "berkas") {
+    if (!requireMethod(req, res, "GET")) return;
+    if (!sesiku) return tolak(res, "belum_masuk", 401);
+    return handleBerkas(req, res, sesiku);
+  }
+  if (aksi === "saya") {
+    if (!requireMethod(req, res, "GET")) return;
+    const s = requireRole(req, res, "praktikan");
+    return s ? handleSaya(req, res, s) : undefined;
+  }
+  if (aksi === "jawab") {
+    if (!requireMethod(req, res, "POST")) return;
+    const s = requireRole(req, res, "praktikan");
+    return s ? handleJawab(req, res, s) : undefined;
+  }
+
+  const s = requireRole(req, res, "asisten");
+  if (!s) return;
+  if (req.method === "GET") {
+    if (aksi === "modul") return handleModul(req, res, s);
+    if (aksi === "kelompok") return handleKelompok(req, res, s);
+    if (aksi === "praktikan") return handlePraktikan(req, res, s);
+    if (aksi === "paket") return handlePaket(req, res, s);
+    if (aksi === "lampiran") return handleLampiran(req, res);
+    if (aksi === "praktikum") return handlePraktikum(req, res, s);
+    if (aksi === "hitung") return handleHitung(req, res, s);
+    if (aksi === "lms-info") return handleLmsInfo(req, res, s);
+    return tolak(res, "aksi_tidak_dikenal", 404);
+  }
+  if (!requireMethod(req, res, "POST")) return;
+  if (aksi === "nilai") return handleNilai(req, res, s);
+  if (aksi === "tanda") return handleTanda(req, res, s);
+  if (aksi === "telat") return handleTelat(req, res, s);
+  if (aksi === "sinkron") return handleSinkron(req, res, s);
+  if (aksi === "jendela") return handleJendela(req, res, s);
+  if (aksi === "paket") return handleSimpanPaket(req, res, s);
+  if (aksi === "pilih") return handlePilih(req, res, s);
+  if (aksi === "bawaan") return handleBawaan(req, res, s);
+  if (aksi === "lms") return handleLms(req, res, s);
+  return tolak(res, "aksi_tidak_dikenal", 404);
+}
+
+export default denganSiaran("tp", handler);

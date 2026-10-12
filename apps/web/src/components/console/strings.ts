@@ -205,6 +205,7 @@ export const S = dict({
     scores: "Nilai",
     openTable: "Buka tabel",
     readOnly: (k: string) => `Hanya baca. Diisi oleh ${k}, diperbarui langsung.`,
+    tpDariPenilaian: "Dari Penilaian TP. Ubah nilainya di sana.",
     readOnlyNone:
       "Kelompok ini belum dipegang siapa pun. Pegang dulu supaya hanya kamu yang mengisi nilainya.",
     scoreFor: (k: string, n: string) => `${k} untuk ${n}`,
@@ -793,6 +794,7 @@ export const S = dict({
     scores: "Scores",
     openTable: "Open table",
     readOnly: (k: string) => `Read only. Entered by ${k}, updated live.`,
+    tpDariPenilaian: "From TP grading. Change the score there.",
     readOnlyNone: "Nobody holds this group yet. Take it first so only you enter its scores.",
     scoreFor: (k: string, n: string) => `${k} for ${n}`,
     scoreRange: "Scores must be whole numbers from 0 to 100.",
@@ -1369,6 +1371,7 @@ export const S = dict({
     scores: "分数",
     openTable: "打开表格",
     readOnly: (k: string) => `只读。由 ${k} 填写，实时更新。`,
+    tpDariPenilaian: "来自预习作业评分，要改请去那里。",
     readOnlyNone: "这个组还没人负责。先接下它，这样只有你能填分。",
     scoreFor: (k: string, n: string) => `${n} 的 ${k}`,
     scoreRange: "分数必须是 0 到 100 的整数。",

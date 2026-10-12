@@ -73,6 +73,7 @@ import { isKelas } from "../../src/lib/kelas.js";
 import { jadwalUntuk, siapkanSesiDariJadwal } from "../_lib/phase8.js";
 import { catatKejadian } from "../_lib/berjalan.js";
 import { denganSiaran } from "../_lib/siaran.js";
+import { isiTpSesi } from "../_lib/tp.js";
 
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
 const JAM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -249,6 +250,9 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     } catch (err) {
       console.error("[api/session] schedule prefill failed:", err);
     }
+
+    // Phase 13: TP totals graded before the session go into its table.
+    await isiTpSesi(db, created.id);
 
     await catatKejadian(
       created.id,

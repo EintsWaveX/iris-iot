@@ -249,7 +249,9 @@ export default function NilaiTable({
 
   const cell = (nim: string, nama: string, k: string, kid: number, stored: number | undefined) => {
     const key = `${nim}.${k}`;
-    const ro = !canEdit(kid);
+    // Phase 13: a TP graded per question in Penilaian is read only here.
+    const dariTp = k === "TP" && !!data.tpDari?.includes(nim);
+    const ro = !canEdit(kid) || dariTp;
     const holder = namaAsisten(asisten.get(data.pemilik[kid] ?? ""));
     return (
       <ScoreInput
@@ -257,7 +259,7 @@ export default function NilaiTable({
         value={draft[key] ?? (stored != null ? String(stored) : "")}
         state={nilai.states[key] ?? "idle"}
         flash={nilai.flash[key]}
-        readOnlyReason={ro ? t.readOnly(holder) : undefined}
+        readOnlyReason={dariTp ? t.tpDariPenilaian : ro ? t.readOnly(holder) : undefined}
         aria-label={t.scoreFor(k, nama)}
         onValue={(x) => setDraft((d) => ({ ...d, [key]: x }))}
         onBlur={() => void commit(nim, k, kid)}

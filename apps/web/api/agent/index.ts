@@ -57,6 +57,7 @@ import { ambilBundel, bundelUntukPasang, terbitkan } from "../_lib/bundel.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
+import { sinkronBilaPerlu } from "../_lib/tp.js";
 import { kirimRelay } from "../_lib/aliran.js";
 import { ruangSesi } from "../../src/lib/aliran.js";
 import type { PesanAliran } from "../../src/lib/aliran.js";
@@ -313,6 +314,10 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     });
     // The topics this beat changed, as before (most beats change none).
     await Promise.all([siarkan([...berubah]), terbitAwal]);
+    // Phase 13: the Pi's beat is the TP sync's clock while a window is open
+    // (every 5 minutes at most) and once after it closes. The Pi never sees
+    // the LMS token; this runs here, after the beat is answered.
+    await sinkronBilaPerlu(db, "pi", 5 * 60_000);
   } catch (err) {
     console.error("[api/agent denyut] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });

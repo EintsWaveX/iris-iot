@@ -94,6 +94,22 @@ const W = {
       `memasangkan ${ke} dengan ${g}${dari ? ` (sebelumnya ${dari})` : ""}${al ? `. Alasan: ${al}` : ""}`,
     ambilAlih: (g: string) => `mengambil alih ${g}`,
     bantuan: (g: string) => `menjawab angkat tangan ${g}`,
+    tpNilai: (n: unknown, m: unknown, no: unknown) =>
+      `menilai TP Modul ${m} nomor ${no} untuk ${n}`,
+    tpTanda: (n: unknown, m: unknown, on: boolean) =>
+      on
+        ? `menandai ${n} tidak mengumpulkan TP Modul ${m}`
+        : `membatalkan tanda tidak mengumpulkan TP Modul ${m} untuk ${n}`,
+    tpTelat: (n: unknown, m: unknown, on: boolean) =>
+      on
+        ? `menerima TP Modul ${m} ${n} yang terlambat`
+        : `menolak TP Modul ${m} ${n} yang terlambat`,
+    tpJendela: (m: unknown) => `mengubah jendela TP Modul ${m}`,
+    tpPaket: (m: unknown) => `menyimpan soal TP Modul ${m}`,
+    tpPilih: (m: unknown) => `mengacak ulang soal akhir TP Modul ${m}`,
+    tpBawaan: (m: unknown) => `mengembalikan soal TP Modul ${m} ke bawaan`,
+    tpLms: (a: unknown) => (a === "putus" ? "memutuskan LMS" : "menyambungkan LMS"),
+    tpSinkron: "menyinkronkan TP dari LMS",
     nilai: (n: unknown, k: unknown, s: string) => `mengisi nilai ${k} untuk ${n} di ${s}`,
     absen: (n: unknown, on: boolean, s: string) =>
       on ? `menandai ${n} Tidak Hadir di ${s}` : `membatalkan Tidak Hadir ${n} di ${s}`,
@@ -224,6 +240,19 @@ const W = {
       `paired ${ke} with ${g}${dari ? ` (was ${dari})` : ""}${al ? `. Reason: ${al}` : ""}`,
     ambilAlih: (g: string) => `took over ${g}`,
     bantuan: (g: string) => `answered ${g}'s raised hand`,
+    tpNilai: (n: unknown, m: unknown, no: unknown) => `scored TP Module ${m} number ${no} for ${n}`,
+    tpTanda: (n: unknown, m: unknown, on: boolean) =>
+      on
+        ? `marked ${n} as not submitting TP Module ${m}`
+        : `took back the no submission mark on TP Module ${m} for ${n}`,
+    tpTelat: (n: unknown, m: unknown, on: boolean) =>
+      on ? `accepted ${n}'s late TP Module ${m}` : `refused ${n}'s late TP Module ${m}`,
+    tpJendela: (m: unknown) => `changed the TP Module ${m} window`,
+    tpPaket: (m: unknown) => `saved the TP Module ${m} questions`,
+    tpPilih: (m: unknown) => `drew a new final set for TP Module ${m}`,
+    tpBawaan: (m: unknown) => `reset the TP Module ${m} questions to the default`,
+    tpLms: (a: unknown) => (a === "putus" ? "disconnected the LMS" : "connected the LMS"),
+    tpSinkron: "synced TP from the LMS",
     nilai: (n: unknown, k: unknown, s: string) => `entered the ${k} score for ${n} in ${s}`,
     absen: (n: unknown, on: boolean, s: string) =>
       on ? `marked ${n} Absent in ${s}` : `took the Absent mark off ${n} in ${s}`,
@@ -352,6 +381,17 @@ const W = {
       `让 ${ke} 带${g}${dari ? `（原来是 ${dari}）` : ""}${al ? `。原因：${al}` : ""}`,
     ambilAlih: (g: string) => `接手了${g}`,
     bantuan: (g: string) => `回应了${g}的举手`,
+    tpNilai: (n: unknown, m: unknown, no: unknown) => `为 ${n} 评了模块 ${m} 预习作业第 ${no} 题`,
+    tpTanda: (n: unknown, m: unknown, on: boolean) =>
+      on ? `标记 ${n} 未交模块 ${m} 预习作业` : `撤销 ${n} 模块 ${m} 预习作业的未交标记`,
+    tpTelat: (n: unknown, m: unknown, on: boolean) =>
+      on ? `接受 ${n} 迟交的模块 ${m} 预习作业` : `拒绝 ${n} 迟交的模块 ${m} 预习作业`,
+    tpJendela: (m: unknown) => `修改了模块 ${m} 预习作业的提交时段`,
+    tpPaket: (m: unknown) => `保存了模块 ${m} 预习作业的题目`,
+    tpPilih: (m: unknown) => `重新抽取了模块 ${m} 预习作业的最终题目`,
+    tpBawaan: (m: unknown) => `把模块 ${m} 预习作业的题目恢复为默认`,
+    tpLms: (a: unknown) => (a === "putus" ? "断开了 LMS" : "连接了 LMS"),
+    tpSinkron: "从 LMS 同步了预习作业",
     nilai: (n: unknown, k: unknown, s: string) => `在 ${s} 给 ${n} 填了 ${k} 分数`,
     absen: (n: unknown, on: boolean, s: string) =>
       on ? `在 ${s} 把 ${n} 标为缺席` : `在 ${s} 取消了 ${n} 的缺席标记`,
@@ -609,6 +649,24 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(HandHeartIcon, w.bantuan(b.grup(d)));
     case "nilai_set":
       return k(PencilSimpleIcon, w.nilai(d.nim, d.komponen, b.sesi(d.sesiId)));
+    case "tp_nilai_set":
+      return k(PencilSimpleIcon, w.tpNilai(b.who(d.nim), d.modul, d.nomor));
+    case "tp_tanda":
+      return k(PencilSimpleIcon, w.tpTanda(b.who(d.nim), d.modul, d.kosong === true));
+    case "tp_telat":
+      return k(PencilSimpleIcon, w.tpTelat(b.who(d.nim), d.modul, d.terima === true));
+    case "tp_jendela":
+      return k(PencilSimpleIcon, w.tpJendela(d.modul ?? "-"));
+    case "tp_paket":
+      return k(PencilSimpleIcon, w.tpPaket(d.modul));
+    case "tp_pilih":
+      return k(PencilSimpleIcon, w.tpPilih(d.modul));
+    case "tp_bawaan":
+      return k(PencilSimpleIcon, w.tpBawaan(d.modul));
+    case "tp_lms":
+      return k(BroadcastIcon, w.tpLms(d.aksi));
+    case "tp_sinkron":
+      return k(BroadcastIcon, w.tpSinkron);
     case "nilai_absen":
       return k(PencilSimpleIcon, w.absen(d.nim, d.absen === true, b.sesi(d.sesiId)));
     case "perburuan_mulai":

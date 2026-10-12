@@ -51,7 +51,10 @@ export async function unduhPdf(nama: string, bagian: BagianPdf[], lang: Lang): P
   if (lang === "zh") {
     const [{ default: fontkit }, f] = await Promise.all([import("@pdf-lib/fontkit"), fontSc()]);
     doc.registerFontkit(fontkit);
-    font = await doc.embedFont(f.bytes, { subset: true });
+    // Whole, not subset: pdf-lib's subsetting drops glyphs of this font
+    // (blank characters; seen 2026-10-12), so every Mandarin PDF carries
+    // the ~1 MB subset font as it is.
+    font = await doc.embedFont(f.bytes, { subset: false });
     tebal = font;
     const latin = (c: string) => {
       const n = c.codePointAt(0)!;

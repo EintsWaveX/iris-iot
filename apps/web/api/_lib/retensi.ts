@@ -15,7 +15,8 @@
  * sign-in attempts, the schedule and its rosters, the Praktikan list,
  * uang kas rates, transfers, written reports with their files, the audit
  * log, closed role history, Konsol Pi records, Pi commands, heartbeats and
- * devices. What stays: the Asisten accounts, the groups' names, module
+ * devices, and Phase 13's TP records (pointers, scores, typed answers, the
+ * LMS roster, the sync log). What stays: the Asisten accounts, the groups' names, module
  * content and settings. The newest uang kas rate is carried into the next
  * semester so pay keeps its rate.
  */
@@ -62,6 +63,11 @@ import {
   sesiAnggota,
   telemetriLog,
   telemetriTerkini,
+  lmsPeserta,
+  tpJawaban,
+  tpKiriman,
+  tpNilai,
+  tpSinkronLog,
   transfer,
 } from "../../src/lib/schema.js";
 
@@ -167,6 +173,14 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
           .where(inArray(rosterKelompok.semester, lama))
           .returning({ id: rosterKelompok.id }),
       );
+      // Phase 13: TP pointers, scores, typed answers and the LMS roster.
+      for (const [nama, t] of [
+        ["tpKiriman", tpKiriman],
+        ["tpNilai", tpNilai],
+        ["tpJawaban", tpJawaban],
+        ["lmsPeserta", lmsPeserta],
+      ] as const)
+        await kena(nama, tx.delete(t).where(inArray(t.semester, lama)).returning({ id: t.id }));
       await kena(
         "praktikan",
         tx
@@ -270,6 +284,13 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
           ),
         )
         .returning({ id: perintah.id }),
+    );
+    await kena(
+      "tpSinkronLog",
+      tx
+        .delete(tpSinkronLog)
+        .where(lt(tpSinkronLog.mulai, waktu))
+        .returning({ id: tpSinkronLog.id }),
     );
     await kena(
       "denyut",

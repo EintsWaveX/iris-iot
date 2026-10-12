@@ -35,6 +35,8 @@ export const TOPIK = [
   "petunjuk",
   // A group rewired its own pins in the running session (presentasi:pin-grup).
   "pingrup",
+  // Phase 13: a TP file came in from the LMS, a TP score, window or setting.
+  "tp",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -137,6 +139,18 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "presentasi:pin-simpan": ["presentasi"],
   // Only that group's cards and code follow; the module's pins stay.
   "presentasi:pin-grup": ["pingrup"],
+  // Phase 13 (api/tp/[aksi].ts). A TP score also moves the session's TP
+  // column; a Praktikan's typed answers are their own.
+  "tp:nilai": ["tp", "nilai"],
+  "tp:tanda": ["tp", "nilai"],
+  "tp:telat": ["tp", "nilai"],
+  "tp:sinkron": ["tp"],
+  "tp:jendela": ["tp"],
+  "tp:paket": ["tp"],
+  "tp:pilih": ["tp"],
+  "tp:bawaan": ["tp"],
+  "tp:lms": ["tp"],
+  "tp:jawab": [],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

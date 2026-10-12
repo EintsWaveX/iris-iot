@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-The font Mandarin PDF exports draw with (Reports › Export PDF).
+The font Mandarin PDF exports draw with (Reports › Export PDF, the TP
+papers of Penilaian › Soal TP).
 
 pdf-lib needs a TrueType font that holds every glyph a PDF uses; the full
 Noto Sans SC is 17 MB. This keeps Latin (ASCII, Latin-1, Latin Extended-A,
-general punctuation) and only the CJK characters the app's own source
-says, at weight 400, and writes:
+general punctuation) and only the CJK characters the app's own source and
+the default TP bank say, plus the 3755 most used ones (GB2312 level 1) for
+TP questions Asisten write, at weight 400, and writes:
 
     public/fonts/pdf-sc.ttf        the subset, loaded only on a Mandarin export
     public/fonts/pdf-sc.chars.txt  the CJK characters it covers
@@ -32,11 +34,26 @@ OUT = WEB / "public" / "fonts"
 CJK = re.compile(r"[　-〿㐀-䶿一-鿿＀-￯]")
 
 
+def umum() -> set[str]:
+    """GB2312 level 1, the 3755 most used characters: Mandarin TP questions
+    an Asisten writes (Penilaian › Soal TP) print without gaps."""
+    out: set[str] = set()
+    for hi in range(0xB0, 0xD8):
+        for lo in range(0xA1, 0xFF):
+            try:
+                out.add(bytes([hi, lo]).decode("gb2312"))
+            except UnicodeDecodeError:
+                pass
+    return out
+
+
 def cjk_chars() -> str:
-    found: set[str] = set()
+    found: set[str] = umum()
     for p in (WEB / "src").rglob("*"):
         if p.suffix in {".ts", ".tsx", ".astro"} and p.is_file():
             found.update(CJK.findall(p.read_text(encoding="utf-8")))
+    # the default TP bank's Mandarin (server only, so outside src)
+    found.update(CJK.findall((WEB / "api" / "_lib" / "tp-bawaan.ts").read_text(encoding="utf-8")))
     return "".join(sorted(found))
 
 

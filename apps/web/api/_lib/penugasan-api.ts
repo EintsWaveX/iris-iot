@@ -136,9 +136,21 @@ export async function muatMinggu(
   hariIni = hariIniWib(),
   geser = 0,
 ): Promise<Map<number, MingguSlot>> {
+  return muatTanggal(
+    db,
+    rows,
+    new Map(rows.map((j) => [j.id, tanggalMinggu(j.hari, hariIni, geser)])),
+  );
+}
+
+/** The same for any date per slot (Phase 13: a TP's practicum week). */
+export async function muatTanggal(
+  db: Db,
+  rows: JadwalRow[],
+  tanggalOf: ReadonlyMap<number, string>,
+): Promise<Map<number, MingguSlot>> {
   const out = new Map<number, MingguSlot>();
   if (rows.length === 0) return out;
-  const tanggalOf = new Map(rows.map((j) => [j.id, tanggalMinggu(j.hari, hariIni, geser)]));
   const ids = rows.map((j) => j.id);
   const orang = await db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten);
   const kodeOf = new Map(orang.map((o) => [o.nim, o.kode.toUpperCase()]));

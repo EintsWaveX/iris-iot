@@ -134,7 +134,16 @@ export default function Console({ lang }: { lang: Lang }) {
   const [doneTable, setDoneTable] = useState(false);
   // Phase 10 (c11-home): an ended session's Score Table or Kirim ke SeeLabs,
   // opened from the Konsol home's launch panel or inbox.
-  const [lalu, setLalu] = useState<{ id: number; view: "table" | "seelabs" } | null>(null);
+  // Phase 13: Penilaian opens a past session's table or SeeLabs page here
+  // with ?tabel=ID or ?seelabs=ID.
+  const [lalu, setLalu] = useState<{ id: number; view: "table" | "seelabs" } | null>(() => {
+    if (typeof location === "undefined") return null;
+    const q = new URLSearchParams(location.search);
+    const id = Number(q.get("tabel") ?? q.get("seelabs"));
+    return Number.isInteger(id) && id > 0
+      ? { id, view: q.has("seelabs") ? "seelabs" : "table" }
+      : null;
+  });
   // Kirim ke SeeLabs, over whatever view is open (Phase 9 Stage 3g).
   const [see, setSee] = useState<{ tab?: SeelabsTab; nomor?: number | null } | null>(null);
   // Phase 10 (c12-run): the workspace tab, a blank to bring into view, the
@@ -410,7 +419,10 @@ export default function Console({ lang }: { lang: Lang }) {
     if (lalu) {
       const tutupLalu = () => {
         setLalu(null);
-        history.replaceState(null, "", location.pathname + location.search);
+        const q = new URLSearchParams(location.search);
+        q.delete("tabel");
+        q.delete("seelabs");
+        history.replaceState(null, "", location.pathname + (q.size ? `?${q}` : ""));
       };
       return (
         <div className="console">

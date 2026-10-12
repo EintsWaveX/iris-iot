@@ -17,6 +17,9 @@
  *   holds N fills blanks, connects ports and captures for it; any other
  *   Asisten only looks.
  *
+ * Phase 13 adds Tugas Pendahuluan after Ringkasan for anyone signed in
+ * (TpStep.tsx): the week before's work, so it never locks and never waits.
+ *
  * Module 4 adds a sixth step in a running session, Perburuan (ruled
  * 2026-10-04): the hand-off from the laptop to the phones for the LoRa
  * hunt, locked until the Asisten starts a session in the hunt's control
@@ -48,6 +51,7 @@ import {
   CheckIcon,
   CircuitryIcon,
   DoorOpenIcon,
+  ExamIcon,
   EyeIcon,
   FlagCheckeredIcon,
   LockSimpleIcon,
@@ -70,6 +74,8 @@ import { CV } from "../live/captureStrings";
 import BriefStep from "./BriefStep";
 import HuntStep, { usePerburuan } from "./HuntStep";
 import { H } from "./huntStrings";
+import TpStep from "../tp/TpStep";
+import { TPS } from "../tp/tpStrings";
 import { getJson, href, tanggalPanjang, useMe, useSessionNow } from "../../lib/app";
 import { getAksesState, type AksesState } from "../../scripts/modul-akses";
 import { useProyektor } from "../../lib/proyektor";
@@ -115,6 +121,7 @@ interface Props {
 const ICON: Partial<Record<Step, ReactNode>> = {
   modul: <BookOpenTextIcon aria-hidden="true" />,
   brief: <NoteIcon aria-hidden="true" />,
+  tp: <ExamIcon aria-hidden="true" />,
   praktikum: <CircuitryIcon aria-hidden="true" />,
 };
 
@@ -272,12 +279,16 @@ export default function ModuleSteps(p: Props) {
           : "browse";
 
   const berburu = modul === 4 && mode === "now";
+  // Phase 13: TP between Ringkasan and the practicum, for anyone signed in
+  // (not the projector's Praktikan view, nor Lihat Sebagai Praktikan).
+  const adaTp = !!me && !pro && !wakil;
+  const tp: Step[] = adaTp ? ["tp"] : [];
   const steps: Step[] =
     mode === "browse"
-      ? ["modul", "brief", "praktikum"]
+      ? ["modul", "brief", ...tp, "praktikum"]
       : berburu
-        ? ["modul", "brief", "setup", "code", "live", "hunt"]
-        : ["modul", "brief", "setup", "code", "live"];
+        ? ["modul", "brief", ...tp, "setup", "code", "live", "hunt"]
+        : ["modul", "brief", ...tp, "setup", "code", "live"];
   const hunt = usePerburuan(berburu && !loading, wakil?.nomor);
   const keadaan = hunt.data?.aktif ? (hunt.data.keadaan ?? "tunggu") : "tunggu";
 
@@ -285,6 +296,7 @@ export default function ModuleSteps(p: Props) {
   const label: Record<Step, string> = {
     modul: t.modul,
     brief: t.brief,
+    tp: TPS[lang].tp,
     praktikum: t.praktikum,
     setup: t.setup,
     code: t.code,
@@ -441,7 +453,7 @@ export default function ModuleSteps(p: Props) {
       )}
 
       <div
-        className={`seg seg--big modsteps__tabs${mode === "browse" ? "" : " modsteps__tabs--plain"}${steps.length === 6 ? " modsteps__tabs--six" : ""}`}
+        className={`seg seg--big modsteps__tabs${mode === "browse" ? "" : " modsteps__tabs--plain"}${steps.length === 6 ? " modsteps__tabs--six" : steps.length === 7 ? " modsteps__tabs--seven" : ""}`}
         role="tablist"
         aria-label={t.steps}
         data-segfit="off"
@@ -490,7 +502,15 @@ export default function ModuleSteps(p: Props) {
             {/* Browse numbers the three steps and gives them icons (mockup
                 m-browse); the five session steps are plain text (p-module). */}
             <span className="modsteps__label">
-              {mode === "browse" ? `${i + 1} ${label[s]}` : label[s]}
+              {mode === "browse" && `${i + 1} `}
+              {s === "tp" ? (
+                <>
+                  <span className="modsteps__long">{label[s]}</span>
+                  <span className="modsteps__short">{TPS[lang].tpShort}</span>
+                </>
+              ) : (
+                label[s]
+              )}
             </span>
           </button>
         ))}
@@ -500,6 +520,8 @@ export default function ModuleSteps(p: Props) {
         <Fade k={`${step}-${mode}`}>
           {step === "modul" ? (
             <PdfViewer url={p.pdfUrl} name={p.pdfName} lang={lang} shape="page" />
+          ) : step === "tp" ? (
+            <TpStep lang={lang} modul={modul} />
           ) : step === "brief" ? (
             <BriefStep
               lang={lang}

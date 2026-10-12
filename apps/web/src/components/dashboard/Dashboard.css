@@ -959,3 +959,11 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* Phase 13: a TP score opens each question's mark below the row. */
+.nilaiku__tp {
+  grid-column: 1 / -1;
+}
+.dash10 > .tpdash {
+  margin-bottom: 4px;
+}

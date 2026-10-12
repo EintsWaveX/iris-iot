@@ -34,6 +34,7 @@ import {
   CalendarBlankIcon,
   ChalkboardTeacherIcon,
   ClipboardTextIcon,
+  ExamIcon,
   DotsThreeIcon,
   ChartBarIcon,
   HardDrivesIcon,
@@ -95,6 +96,8 @@ const T = dict({
     dashboard: "Dasbor",
     modules: "Modul",
     console: "Konsol",
+    grading: "Penilaian",
+    tpDot: (n: number) => `${n} TP menunggu dinilai`,
     prep: "Persiapan",
     tot: "TOT",
     totOn: "Mode TOT aktif. Buka halamannya.",
@@ -130,6 +133,8 @@ const T = dict({
     dashboard: "Dashboard",
     modules: "Modules",
     console: "Console",
+    grading: "Grading",
+    tpDot: (n: number) => `${n} TP waiting to be graded`,
     prep: "Preparation",
     tot: "TOT",
     totOn: "TOT Mode is on. Open its page.",
@@ -165,6 +170,8 @@ const T = dict({
     dashboard: "仪表盘",
     modules: "模块",
     console: "控制台",
+    grading: "评分",
+    tpDot: (n: number) => `${n} 份预习作业等待评分`,
     prep: "课前准备",
     tot: "TOT",
     totOn: "TOT 模式已开启，打开它的页面。",
@@ -200,6 +207,7 @@ const T = dict({
 const NAV_KEY: Record<string, string> = {
   "/": "G B",
   "/session": "G K",
+  "/grading": "G N",
   "/preparation": "G P",
   "/schedule": "G J",
   "/servers": "G S",
@@ -213,6 +221,7 @@ function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
     return [
       { path: "/", label: t.home, icon: HouseIcon },
       { path: "/session", label: t.console, icon: UsersThreeIcon },
+      { path: "/grading", label: t.grading, icon: ExamIcon },
       { path: "/preparation", label: t.prep, icon: ClipboardTextIcon },
       { path: "/schedule", label: t.schedule, icon: CalendarBlankIcon },
       { path: "/servers", label: t.server, icon: HardDrivesIcon },
@@ -338,6 +347,17 @@ export default function AppNav({
     ["server"],
   );
   const menunggu = konsol.data ?? 0;
+  // Phase 13: TP files in my groups waiting to be graded, on Penilaian.
+  const tpPoll = usePoll(
+    () =>
+      getJson<{ ok: boolean; perluNilai?: number }>("/api/tp/hitung").then(
+        (d) => d.perluNilai ?? 0,
+      ),
+    300_000,
+    dev,
+    ["tp"],
+  );
+  const tpPerlu = tpPoll.data ?? 0;
   const sebelum = useRef(0);
   useEffect(() => {
     if (menunggu > sebelum.current) window.Toast?.show(t.konsolBaru, "warn");
@@ -507,6 +527,11 @@ export default function AppNav({
                     className="appnav__live-dot appnav__live-dot--warn"
                     aria-label={t.konsolDot}
                   />
+                )}
+                {l.path === "/grading" && tpPerlu > 0 && (
+                  <span className="appnav__n" aria-label={t.tpDot(tpPerlu)}>
+                    {tpPerlu}
+                  </span>
                 )}
               </a>
             );
@@ -728,6 +753,9 @@ export default function AppNav({
                     className="appnav__live-dot appnav__live-dot--warn"
                     aria-label={t.konsolDot}
                   />
+                )}
+                {l.path === "/grading" && tpPerlu > 0 && (
+                  <span className="appnav__live-dot" aria-label={t.tpDot(tpPerlu)} />
                 )}
               </span>
               <span className="appbar__label">{l.label}</span>
