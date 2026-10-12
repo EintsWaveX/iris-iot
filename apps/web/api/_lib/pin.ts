@@ -128,8 +128,11 @@ export async function handlePinGrupGet(req: ApiRequest, res: ApiResponse, sessio
     .from(pengaturan)
     .where(eq(pengaturan.kunci, KUNCI_PIN_GRUP(g.sesiId, g.kelompokId, g.modul)))
     .limit(1);
-  const baris = (row?.nilai as { baris?: unknown } | undefined)?.baris;
-  res.status(200).json({ ok: true, baris: Array.isArray(baris) ? baris : null });
+  const isi = row?.nilai as { baris?: unknown; terpasang?: unknown } | undefined;
+  const baris = Array.isArray(isi?.baris) ? isi.baris : null;
+  // Wiring saved before the plugged list counts as every wire plugged in.
+  const terpasang = Array.isArray(isi?.terpasang) ? isi.terpasang : null;
+  res.status(200).json({ ok: true, baris, terpasang: baris ? terpasang : [] });
 }
 
 export async function handlePinGrupPost(
@@ -152,21 +155,25 @@ export async function handlePinGrupPost(
       ),
     );
   const body = jsonBody(req);
-  if (body.baris === null) {
+  // The pin cells plugged into the board so far, "row:column".
+  const terpasang = body.terpasang ?? [];
+  if (
+    !Array.isArray(terpasang) ||
+    terpasang.length > 64 ||
+    terpasang.some((x) => typeof x !== "string" || !/^\d{1,2}:\d{1,2}$/.test(x))
+  )
+    return res.status(200).json({ ok: false, kode: "format_salah" });
+  // Nothing plugged in: the board is empty and the module's pins stand.
+  if (body.baris === null || terpasang.length === 0) {
     await db.delete(pengaturan).where(eq(pengaturan.kunci, kunci));
     return res.status(200).json({ ok: true });
   }
   if (!Array.isArray(body.baris)) return res.status(200).json({ ok: false, kode: "format_salah" });
-  const [pin, papan] = await Promise.all([bacaPinSemua(), bacaPapanSemua()]);
+  const papan = await bacaPapanSemua();
   const baris = gabungPin(bawaan, body.baris as BarisPin);
   const salah = cekBarisPin(g.modul, bawaan, baris, papan[g.modul] ?? papanModul(g.modul));
   if (salah.length) return res.status(200).json({ ok: false, kode: "pin_salah", salah });
-  // The same as the module's own: nothing of the group's to keep.
-  if (JSON.stringify(baris) === JSON.stringify(pin[g.modul] ?? bawaan)) {
-    await db.delete(pengaturan).where(eq(pengaturan.kunci, kunci));
-    return res.status(200).json({ ok: true });
-  }
-  const nilai = { baris };
+  const nilai = { baris, terpasang: [...new Set(terpasang as string[])] };
   await db
     .insert(pengaturan)
     .values({ kunci, nilai, diubahOleh: session.nim })

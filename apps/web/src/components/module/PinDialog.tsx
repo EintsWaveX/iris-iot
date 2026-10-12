@@ -60,13 +60,17 @@ export function kindOf(pin: string): "pwr" | "gnd" | "sig" {
   return "sig";
 }
 
-/** Each board's jumpers from a table (names from `nama`, pins from `baris`) */
+/** Each board's jumpers from a table (names from `nama`, pins from `baris`).
+ *  With `terpasang`, a wire it leaves out waits unplugged (label ""), and
+ *  `rumah` gives each wire the module's own pin to ring while it is held. */
 export function jumpersDari(
   modul: number,
   bawaan: BarisPin,
   nama: BarisPin,
   baris: BarisPin,
   pasang: number,
+  terpasang?: (row: number, kolom: number) => boolean,
+  rumah?: BarisPin,
 ): Jumper[] {
   const k = pasang * 2 + 1;
   const out: Jumper[] = [];
@@ -79,7 +83,8 @@ export function jumpersDari(
       row: r,
       part,
       signal: sig.split(/[,，]/)[0].trim() || part,
-      label: pin,
+      label: !terpasang || terpasang(r, k) ? pin : "",
+      bawaan: rumah?.[r]?.[k],
       arah: arahSel(modul, bawaan, r, k),
       kind: kindOf(pin),
     });

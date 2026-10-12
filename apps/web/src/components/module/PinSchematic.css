@@ -140,6 +140,7 @@
 .wiring__line {
   fill: none;
   stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-width: 3;
   transition:
     opacity var(--dur-fast) var(--ease-reveal),
@@ -463,6 +464,24 @@
   outline: none;
 }
 
+/* The held wire's own pin in the module, a dashed ring round its pad. */
+.jumper__home {
+  fill: none;
+  pointer-events: none;
+  stroke: var(--text-muted);
+  stroke-dasharray: 3 3;
+  stroke-width: 1.5;
+}
+
+/* A wire not plugged in yet: a short dashed lead above its part. */
+.wiring__wire[data-parked] .wiring__line {
+  stroke-dasharray: 4 4;
+}
+
+.jumper__plug[data-parked] {
+  fill: var(--surface-2);
+}
+
 .jumper__target:focus-visible .jumper__pad {
   stroke: var(--accent);
   stroke-width: 5;
@@ -494,6 +513,14 @@
   display: grid;
   gap: var(--space-3);
   padding: var(--space-4);
+}
+
+/* Six boards don't fit one row on a phone: three a row there. */
+@media (max-width: 559px) {
+  .pindlg__board .segmented--fill {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .pindlg__table {
@@ -544,17 +571,58 @@
   flex: 1 1 200px;
 }
 
-/* On a phone the board keeps a readable size and scrolls sideways; a
-   jumper's plug still drags (touch-action none on the plugs only). */
+/* The board zooms and pans inside its frame (a phone opens it zoomed in),
+   the zoom buttons on a row of their own above it, at the right. */
 .jumper-wrap {
-  overflow-x: auto;
-  scrollbar-width: thin;
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
-@media (max-width: 639px) {
-  .jumper {
-    min-width: 600px;
+.jumper[data-zoom="yes"] {
+  cursor: grab;
+}
+
+.jumper[data-zoom="yes"]:active {
+  cursor: grabbing;
+}
+
+.jumper-zoom {
+  align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 2px;
+  margin: 0 0 6px auto;
+  padding: 3px;
+  width: max-content;
+}
+
+.jumper-zoom .iconbtn {
+  background: transparent;
+  border-color: transparent;
+}
+
+.jumper-zoom__pct {
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  min-height: 38px;
+  min-width: 52px;
+  padding: 0 6px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .jumper-zoom__pct:hover {
+    color: var(--text);
   }
+}
+
+.jumper-zoom__pct:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
 }
 
 .pins__mine > .hint {

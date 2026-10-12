@@ -21,8 +21,10 @@
  *
  * 2026-10-12: the wiring has two views. Diagram is the drawing above;
  * Papan is the real board's two headers with draggable jumpers
- * (BoardJumper.tsx). A Praktikan in the running session rewires it for
- * their group only: the table and the group's Kode step follow, the
+ * (BoardJumper.tsx). It starts empty: every wire waits above its part
+ * until it is plugged in, and a wire not plugged in keeps the module's pin
+ * in the table and the code. A Praktikan in the running session wires it
+ * for their group only: the table and the group's Kode step follow, the
  * module's own pins stay (lib/pin-grup.ts). Anyone else can try it out
  * unsaved. An Asisten with the Jadwal right also gets Atur Pin, the pin
  * settings dialog that sets the module's pins for everyone (PinDialog.tsx).
@@ -32,6 +34,7 @@ import {
   ArrowCounterClockwiseIcon,
   ArrowSquareOutIcon,
   ArrowsOutSimpleIcon,
+  PlugsConnectedIcon,
   SlidersHorizontalIcon,
 } from "@phosphor-icons/react";
 import SchematicViewer from "../ui/SchematicViewer";
@@ -41,8 +44,8 @@ import { getJson, dict, useMe } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import "./PinSchematic.css";
 import { dengar } from "../../lib/siaran";
-import { gabungPin, papanModul, type BarisPin } from "../../lib/pin-kode";
-import { labelPad, PAPAN } from "../../lib/papan";
+import { arahSel, gabungPin, papanModul, type BarisPin } from "../../lib/pin-kode";
+import { cekPad, labelPad, padDariLabel, PAPAN, type Pad, type Papan } from "../../lib/papan";
 import { usePinGrup } from "../../lib/pin-grup";
 import { usePin } from "./usePin";
 import BoardJumper from "./BoardJumper";
@@ -431,6 +434,42 @@ function Diagram({
 
 /* --------------------------------------------------------------- the panel */
 
+/** The wires not plugged in keep the module's pins, unless one just plugged
+ *  in took such a pin: that wire moves to the board's first free pin that
+ *  suits it, so the table stays one the board can take. */
+function geserTerhalang(
+  modul: number,
+  bawaan: BarisPin,
+  baris: BarisPin,
+  k: number,
+  papan: Papan,
+  dicolok: Set<string>,
+): BarisPin {
+  const out = baris.map((r) => [...r]);
+  const gpio = (q: number) => {
+    const x = padDariLabel(papan, out[q]?.[k] ?? "");
+    return typeof x === "number" ? x : null;
+  };
+  out.forEach((_, q) => {
+    if (dicolok.has(`${q}:${k}`)) return;
+    const mine = gpio(q);
+    if (mine === null) return;
+    const bentrok = out.some((__, r) => r !== q && dicolok.has(`${r}:${k}`) && gpio(r) === mine);
+    if (!bentrok) return;
+    const dipakai = new Set<number>();
+    out.forEach((__, r) => {
+      const g = r === q ? null : gpio(r);
+      if (g !== null) dipakai.add(g);
+    });
+    const arah = arahSel(modul, bawaan, q, k);
+    const lain = [...papan.kiri, ...papan.kanan].find(
+      (p): p is number => typeof p === "number" && cekPad(papan, p, arah, dipakai) === null,
+    );
+    if (lain !== undefined) out[q][k] = labelPad(papan, lain);
+  });
+  return out;
+}
+
 export default function PinSchematic({
   lang,
   modul,
@@ -476,18 +515,40 @@ export default function PinSchematic({
   const [atur, setAtur] = useState(false);
   const bolehAtur = me?.role === "asisten" && me.hak?.jadwal === true;
   const diubah = (r: number, k: number) => efektif[r]?.[k] !== dasar[r]?.[k];
+  const bawaanId = data?.bawaan[String(modul)] ?? null;
+  const dasarId: BarisPin = bawaanId ? gabungPin(bawaanId, simpan) : dasar;
 
-  /** Moves one wire for the group (or as a try out) */
-  async function pindah(p: number, row: number, pad: Parameters<typeof labelPad>[1]) {
+  // Every wire's pin cell ("row:column") on the boards, and those plugged in.
+  const semuaSel = useMemo(() => {
+    const out: string[] = [];
+    papanIds.forEach((_, p) => {
+      const k = p * 2 + 1;
+      pinBawaan.baris.forEach((row, r) => {
+        if (row[k - 1] && efektif[r]?.[k]) out.push(`${r}:${k}`);
+      });
+    });
+    return out;
+  }, [papanIds.join(), pinBawaan, efektif]);
+  const dicolok = semuaSel.filter((c) => {
+    const [r, k] = c.split(":").map(Number);
+    return grup.terpasang(r, k);
+  });
+
+  /** Plugs one wire in (or moves it) for the group, or as a try out */
+  async function pindah(p: number, row: number, pad: Pad) {
     const b = PAPAN[papanIds[p]];
-    const dasarId: BarisPin = data?.bawaan[String(modul)]
-      ? gabungPin(data.bawaan[String(modul)], simpan)
-      : dasar;
+    const k = p * 2 + 1;
     const lama = grup.baris ?? dasarId;
-    const baru = lama.map((r, i) =>
-      i === row ? r.map((c, j) => (j === p * 2 + 1 ? labelPad(b, pad) : c)) : r,
+    const colok = new Set([...dicolok, `${row}:${k}`]);
+    const baru = geserTerhalang(
+      modul,
+      bawaanId ?? dasarId,
+      lama.map((r, i) => (i === row ? r.map((c, j) => (j === k ? labelPad(b, pad) : c)) : r)),
+      k,
+      b,
+      colok,
     );
-    const ok = await grup.simpan(baru);
+    const ok = await grup.simpan(baru, [...colok]);
     const comp = pinBawaan.baris[row]?.[p * 2] ?? "";
     if (ok) window.Toast?.show(pj.moved(comp, labelPad(b, pad)), "ok");
     else window.Toast?.show(pj.fail, "danger");
@@ -630,7 +691,15 @@ export default function PinSchematic({
                   judul={
                     papanIds.length > 1 && kepala ? `${PAPAN[id].nama} · ${kepala}` : PAPAN[id].nama
                   }
-                  jumpers={jumpersDari(modul, pinBawaan.baris, pinBawaan.baris, efektif, p)}
+                  jumpers={jumpersDari(
+                    modul,
+                    pinBawaan.baris,
+                    pinBawaan.baris,
+                    efektif,
+                    p,
+                    grup.terpasang,
+                    dasar,
+                  )}
                   modul={modul}
                   active={active}
                   setActive={setActive}
@@ -647,6 +716,19 @@ export default function PinSchematic({
             <span className="hint grow">
               {!grup.boleh ? pj.readHint : grup.grup ? pj.yoursHint : pj.tryHint}
             </span>
+            {grup.boleh && dicolok.length < semuaSel.length && (
+              <button
+                type="button"
+                className="btn btn--sm btn--ghost"
+                onClick={async () => {
+                  if (await grup.simpan(grup.baris ?? dasarId, semuaSel))
+                    window.Toast?.show(pj.plugAllDone, "ok");
+                }}
+              >
+                <PlugsConnectedIcon size={16} aria-hidden="true" />
+                {pj.plugAll}
+              </button>
+            )}
             {grup.baris && grup.boleh && (
               <button
                 type="button"
