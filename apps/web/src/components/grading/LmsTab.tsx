@@ -381,19 +381,17 @@ function SambungDialog({
   const [busy, setBusy] = useState(false);
   const kirim = async () => {
     setBusy(true);
-    const r = await postJson<{ ok: boolean; kode?: string; kursus?: number }>("/api/tp/lms", {
+    type Jawab = { ok: boolean; kode?: string; rinci?: string; kursus?: number };
+    const r = await postJson<Jawab>("/api/tp/lms", {
       aksi: "sambung",
       tempel,
-    }).catch(
-      () =>
-        ({ ok: false, kode: "lms_tak_terjangkau" }) as {
-          ok: boolean;
-          kode?: string;
-          kursus?: number;
-        },
-    );
+    }).catch((): Jawab => ({ ok: false, kode: "lms_tak_terjangkau" }));
     setBusy(false);
-    if (!r.ok) return window.Toast?.show(t.hasilGagal(r.kode ?? ""), "warn");
+    if (!r.ok)
+      return window.Toast?.show(
+        `${t.hasilGagal(r.kode ?? "")}${r.rinci ? ` (${r.rinci})` : ""}`,
+        "warn",
+      );
     window.Toast?.show(t.tersambungOk(r.kursus ?? 0), "ok");
     setTempel("");
     onOpenChange(false);

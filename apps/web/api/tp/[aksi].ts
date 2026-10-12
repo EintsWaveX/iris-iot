@@ -987,7 +987,12 @@ async function handleLms(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
     info = await infoSitus(token);
     kursus = await kursusPraktikum(token, info.userid);
   } catch (e) {
-    return tolak(res, e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau");
+    // The reason goes back to the Pencipta or Admin connecting (never the token).
+    return res.status(200).json({
+      ok: false,
+      kode: e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau",
+      rinci: e instanceof Error ? e.message.slice(0, 200) : String(e),
+    });
   }
   const simpan: TokenSet = {
     ...sandikanToken(token),

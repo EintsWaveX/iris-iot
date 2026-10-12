@@ -189,7 +189,13 @@ export async function panggil<T>(
   } catch (e) {
     throw new LmsGalat("lms_tak_terjangkau", e instanceof Error ? e.message : String(e));
   }
-  if (!r.ok) throw new LmsGalat("lms_http", `HTTP ${r.status}`);
+  if (!r.ok) {
+    // Where it failed, for Sumber LMS: the relay's own refusal is plain text,
+    // the LMS's (or Cloudflare's) a page; neither carries the token.
+    const teks = (await r.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 120);
+    const jalur = relayLms() ? "relay" : "langsung";
+    throw new LmsGalat("lms_http", `HTTP ${r.status} ${jalur}: ${teks}`);
+  }
   const d = (await r.json().catch(() => null)) as
     (T & { exception?: string; errorcode?: string; message?: string }) | null;
   if (d === null) throw new LmsGalat("lms_bukan_json", "the LMS answered without JSON");
