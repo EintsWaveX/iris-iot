@@ -54,6 +54,8 @@ import {
 } from "../../src/lib/schema.js";
 import { isNimTot } from "../../src/lib/tot.js";
 import { currentSesi } from "../../src/lib/sesi.js";
+import { pinGrupUntuk } from "../_lib/pin.js";
+import { gantiPinTeks } from "../../src/lib/pin-kode.js";
 import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
 import {
   bantuanCelah,
@@ -521,7 +523,18 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
   const filename = aktif.berkas.path;
   const template = aktif.templat[bahasa];
 
-  const segments = parseBlanks(template);
+  // A group that rewired its pins in the running session (the Pin dan
+  // Skema card) downloads its own pins; the module's stay for the rest.
+  const running = await currentSesi();
+  const grup =
+    running && running.id === session.sesiId && running.modul === parsed.modul
+      ? await pinGrupUntuk(running.id, kelompokId, parsed.modul)
+      : null;
+  const segments = parseBlanks(template).map((s) =>
+    grup && s.kind === "text"
+      ? { ...s, text: gantiPinTeks(parsed.modul, parsed.berkas, s.text, grup.dari, grup.ke) }
+      : s,
+  );
   const reconstructedGeneric = segments
     .map((s) => (s.kind === "text" ? s.text : (answers.get(s.nomor) ?? "")))
     .join("");

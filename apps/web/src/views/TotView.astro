@@ -1,0 +1,20 @@
+---
+/**
+ * /tot, /en/tot and /zh/tot (2026-10-12): Mode TOT with full control, one
+ * island (tot/TotPage.tsx). Every Asisten reads it; Pengelola and Admin act.
+ */
+import Base from "../layouts/Base.astro";
+import TotPage from "../components/tot/TotPage";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base noindex title="Mode TOT · IRIS IoT" lang={lang} cosmosScene="kerja">
+  <main id="main" class="page-full page-main">
+    <TotPage client:load lang={lang} />
+  </main>
+</Base>

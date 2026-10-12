@@ -5,10 +5,14 @@ import {
   angkaPin,
   cekBarisPin,
   gabungPin,
+  gantiPinTeks,
+  papanModul,
+  pindahPapan,
   PIN_KODE,
   terapkanPin,
   type BarisPin,
 } from "../../../src/lib/pin-kode";
+import { cekPad, PAPAN, padBoleh, PAPAN_ID } from "../../../src/lib/papan";
 
 /** The bundled table with one cell changed */
 function dengan(modul: number, r: number, k: number, v: string): BarisPin {
@@ -106,5 +110,54 @@ describe("pin tables and the code", () => {
       expect(out.sumber.id).toMatch(/#define LORA_DIO0\s+15\b/);
       celahUtuh(out);
     }
+  });
+});
+
+describe("boards and their pins", () => {
+  it("the bundled tables fit their own boards", () => {
+    for (const m of [1, 2, 3, 4])
+      expect(cekBarisPin(m, PIN_BAWAAN[m], PIN_BAWAAN[m], papanModul(m))).toEqual([]);
+  });
+
+  it("refuses flash pins, input only pins for an output, ADC2 and a pin used twice", () => {
+    expect(cekBarisPin(2, PIN_BAWAAN[2], dengan(2, 1, 1, "GPIO6"), ["esp32"])).toEqual(["1:1"]);
+    expect(cekBarisPin(2, PIN_BAWAAN[2], dengan(2, 1, 1, "GPIO34"), ["esp32"])).toEqual(["1:1"]);
+    // PB_PIN only reads, so an input only pin is fine for it
+    expect(cekBarisPin(1, PIN_BAWAAN[1], dengan(1, 1, 1, "GPIO34"), ["esp32", "esp32"])).toEqual(
+      [],
+    );
+    expect(cekBarisPin(3, PIN_BAWAAN[3], dengan(3, 1, 1, "GP15"), ["picow"])).toEqual(["1:1"]);
+    expect(cekBarisPin(3, PIN_BAWAAN[3], dengan(3, 1, 1, "GP27 (ADC1)"), ["picow"])).toEqual([]);
+    expect(cekBarisPin(4, PIN_BAWAAN[4], dengan(4, 1, 1, "GPIO15"), ["esp32"])).toEqual([
+      "0:1",
+      "1:1",
+    ]);
+  });
+
+  it("every board offers pins for every need", () => {
+    for (const id of PAPAN_ID)
+      for (const arah of ["in", "io", "adc", "3v3", "gnd"] as const)
+        expect(padBoleh(PAPAN[id], arah).length).toBeGreaterThan(0);
+    expect(cekPad(PAPAN.esp32, 25, "adc", new Set())).toBe("adc");
+    expect(cekPad(PAPAN.esp32c3, 18, "io", new Set())).toBe("usb");
+  });
+
+  it("moving a table to another board keeps what fits and renames power", () => {
+    const keS3 = pindahPapan(2, PIN_BAWAAN[2], PIN_BAWAAN[2], ["esp32s3"]);
+    expect(keS3[1][1]).toBe("GPIO16");
+    expect(cekBarisPin(2, PIN_BAWAAN[2], keS3, ["esp32s3"])).toEqual([]);
+    const kePico = pindahPapan(2, PIN_BAWAAN[2], PIN_BAWAAN[2], ["picow"]);
+    expect(kePico[0][1]).toBe("3V3(OUT)");
+    expect(kePico[1][1]).toBe("GP16");
+    const m4 = pindahPapan(4, PIN_BAWAAN[4], PIN_BAWAAN[4], ["esp32c3"]);
+    expect(cekBarisPin(4, PIN_BAWAAN[4], m4, ["esp32c3"])).toEqual([]);
+  });
+
+  it("rewrites code text in the browser the same way", () => {
+    const teks = "// DHT DATA on GPIO16\nconst int DHT_PIN = 16;\n";
+    expect(
+      gantiPinTeks(2, "modul2_websocket_esp32", teks, PIN_BAWAAN[2], dengan(2, 1, 1, "GPIO4")),
+    ).toBe("// DHT DATA on GPIO4\nconst int DHT_PIN = 4;\n");
+    expect(gantiPinTeks(2, "lain", teks, PIN_BAWAAN[2], dengan(2, 1, 1, "GPIO4"))).toBe(teks);
   });
 });

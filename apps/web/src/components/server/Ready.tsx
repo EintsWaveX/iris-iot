@@ -215,7 +215,7 @@ export default function Ready({
           <div className="banner banner--ok" role="status">
             <CheckCircleIcon size={20} aria-hidden="true" />
             <span>{t.readyBackBody}</span>
-            <a className="btn btn--sm btn--primary" href={`${href(lang, "/session")}#persiapan`}>
+            <a className="btn btn--inverse" href={href(lang, "/preparation#server")}>
               <ArrowLeftIcon size={16} aria-hidden="true" />
               {t.backPrep}
             </a>

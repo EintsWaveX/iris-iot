@@ -18,18 +18,38 @@
  *
  * `variant="full"` is the Persiapan step's layout; `variant="dock"` is the
  * narrow panel docked beside the code.
+ *
+ * 2026-10-12: the wiring has two views. Diagram is the drawing above;
+ * Papan is the real board's two headers with draggable jumpers
+ * (BoardJumper.tsx). A Praktikan in the running session rewires it for
+ * their group only: the table and the group's Kode step follow, the
+ * module's own pins stay (lib/pin-grup.ts). Anyone else can try it out
+ * unsaved. An Asisten with the Jadwal right also gets Atur Pin, the pin
+ * settings dialog that sets the module's pins for everyone (PinDialog.tsx).
  */
 import { useEffect, useId, useMemo, useState, type CSSProperties } from "react";
-import { ArrowSquareOutIcon, ArrowsOutSimpleIcon } from "@phosphor-icons/react";
+import {
+  ArrowCounterClockwiseIcon,
+  ArrowSquareOutIcon,
+  ArrowsOutSimpleIcon,
+  SlidersHorizontalIcon,
+} from "@phosphor-icons/react";
 import SchematicViewer from "../ui/SchematicViewer";
 import SegmentedControl from "../ui/SegmentedControl";
 import { namaLayanan } from "../../lib/tautan";
-import { getJson, dict } from "../../lib/app";
+import { getJson, dict, useMe } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import "./PinSchematic.css";
 import { dengar } from "../../lib/siaran";
-import { gabungPin } from "../../lib/pin-kode";
+import { gabungPin, papanModul, type BarisPin } from "../../lib/pin-kode";
+import { labelPad, PAPAN } from "../../lib/papan";
+import { usePinGrup } from "../../lib/pin-grup";
 import { usePin } from "./usePin";
+import BoardJumper from "./BoardJumper";
+import PinDialog, { jumpersDari } from "./PinDialog";
+import { PJ } from "./pinStrings";
+
+const VIEW_KEY = "iris-pin-view";
 
 export interface PinData {
   judul: string;
@@ -427,14 +447,51 @@ export default function PinSchematic({
   variant?: "full" | "dock";
 }) {
   const t = T[lang];
-  // The pins as set in Persiapan over this language's table (names stay)
-  const simpan = usePin()?.pin[String(modul)] ?? null;
-  const pin = useMemo(
-    () => (simpan ? { ...pinBawaan, baris: gabungPin(pinBawaan.baris, simpan) } : pinBawaan),
-    [pinBawaan, simpan],
+  const pj = PJ[lang];
+  const me = useMe();
+  // The module's pins as set by the Asisten over this language's table
+  // (names stay), then the group's own wiring over those.
+  const data = usePin();
+  const simpan = data?.pin[String(modul)] ?? null;
+  const papanIds = data?.papan[String(modul)] ?? papanModul(modul);
+  const grup = usePinGrup(modul);
+  const dasar = useMemo(() => gabungPin(pinBawaan.baris, simpan), [pinBawaan, simpan]);
+  const efektif = useMemo(
+    () => (grup.baris ? gabungPin(pinBawaan.baris, grup.baris) : dasar),
+    [pinBawaan, grup.baris, dasar],
   );
-  const boards = useMemo(() => boardsFrom(pin, mcu), [pin, mcu]);
+  const pin = useMemo(() => ({ ...pinBawaan, baris: efektif }), [pinBawaan, efektif]);
+  const boards = useMemo(
+    () => boardsFrom(pin, PAPAN[papanIds[0]]?.nama ?? mcu),
+    [pin, mcu, papanIds.join()],
+  );
   const [active, setActive] = useState<number | null>(null);
+  const [lihat, setLihat] = useState<"diagram" | "papan">(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === "diagram" ? "diagram" : "papan";
+    } catch {
+      return "papan";
+    }
+  });
+  const [atur, setAtur] = useState(false);
+  const bolehAtur = me?.role === "asisten" && me.hak?.jadwal === true;
+  const diubah = (r: number, k: number) => efektif[r]?.[k] !== dasar[r]?.[k];
+
+  /** Moves one wire for the group (or as a try out) */
+  async function pindah(p: number, row: number, pad: Parameters<typeof labelPad>[1]) {
+    const b = PAPAN[papanIds[p]];
+    const dasarId: BarisPin = data?.bawaan[String(modul)]
+      ? gabungPin(data.bawaan[String(modul)], simpan)
+      : dasar;
+    const lama = grup.baris ?? dasarId;
+    const baru = lama.map((r, i) =>
+      i === row ? r.map((c, j) => (j === p * 2 + 1 ? labelPad(b, pad) : c)) : r,
+    );
+    const ok = await grup.simpan(baru);
+    const comp = pinBawaan.baris[row]?.[p * 2] ?? "";
+    if (ok) window.Toast?.show(pj.moved(comp, labelPad(b, pad)), "ok");
+    else window.Toast?.show(pj.fail, "danger");
+  }
   const [view, setView] = useState(false);
   const sch = useSchematic(modul, skema);
 
@@ -464,7 +521,12 @@ export default function PinSchematic({
             {row.map((c, i) => (
               <td key={i} className={i % 2 ? "mono" : undefined}>
                 {i % 2 ? (
-                  <span className="pintable__pin" data-kind={kindOf(c)}>
+                  <span
+                    className="pintable__pin"
+                    data-kind={kindOf(c)}
+                    data-changed={diubah(r, i) ? "yes" : undefined}
+                    title={diubah(r, i) ? `${dasar[r][i]} → ${c}` : undefined}
+                  >
                     {c}
                   </span>
                 ) : (
@@ -522,17 +584,84 @@ export default function PinSchematic({
           </span>
           {legend}
         </div>
-        {boards.map((b) => (
-          <Diagram
-            key={b.label}
-            board={b}
-            active={active}
-            setActive={setActive}
-            modul={modul}
-            compact={variant === "dock"}
+        <div className="pins__tools">
+          <SegmentedControl
+            fill
+            aria-label={pj.viewLabel}
+            value={lihat}
+            onValueChange={(v) => {
+              const x = v === "diagram" ? "diagram" : "papan";
+              setLihat(x);
+              try {
+                localStorage.setItem(VIEW_KEY, x);
+              } catch {
+                /* private mode: this visit keeps it */
+              }
+            }}
+            options={[
+              { value: "papan", label: pj.papan },
+              { value: "diagram", label: pj.diagram },
+            ]}
           />
-        ))}
-        {variant === "full" && <p className="hint">{t.hint}</p>}
+          {bolehAtur && (
+            <button type="button" className="btn btn--inverse" onClick={() => setAtur(true)}>
+              <SlidersHorizontalIcon size={18} aria-hidden="true" />
+              {pj.open}
+            </button>
+          )}
+        </div>
+        {lihat === "diagram"
+          ? boards.map((b) => (
+              <Diagram
+                key={b.label}
+                board={b}
+                active={active}
+                setActive={setActive}
+                modul={modul}
+                compact={variant === "dock"}
+              />
+            ))
+          : papanIds.map((id, p) => {
+              const kepala = /[(（](.*)[)）]/.exec(pin.kolom[p * 2] ?? "")?.[1];
+              return (
+                <BoardJumper
+                  key={`${id}-${p}`}
+                  papan={PAPAN[id]}
+                  judul={
+                    papanIds.length > 1 && kepala ? `${PAPAN[id].nama} · ${kepala}` : PAPAN[id].nama
+                  }
+                  jumpers={jumpersDari(modul, pinBawaan.baris, pinBawaan.baris, efektif, p)}
+                  modul={modul}
+                  active={active}
+                  setActive={setActive}
+                  t={pj}
+                  onMove={grup.boleh ? (row, pad) => void pindah(p, row, pad) : undefined}
+                />
+              );
+            })}
+        {lihat === "papan" && (
+          <div className="pins__mine">
+            {grup.baris && (
+              <span className="pill pill--warn">{grup.grup ? pj.yours : pj.yoursTry}</span>
+            )}
+            <span className="hint grow">
+              {!grup.boleh ? pj.readHint : grup.grup ? pj.yoursHint : pj.tryHint}
+            </span>
+            {grup.baris && grup.boleh && (
+              <button
+                type="button"
+                className="btn btn--sm btn--ghost"
+                onClick={async () => {
+                  if (await grup.simpan(null)) window.Toast?.show(pj.resetDone, "ok");
+                }}
+              >
+                <ArrowCounterClockwiseIcon size={16} aria-hidden="true" />
+                {pj.reset}
+              </button>
+            )}
+          </div>
+        )}
+        {variant === "full" && lihat === "diagram" && <p className="hint">{t.hint}</p>}
       </div>
       <div className="pins__table">{table}</div>
       {schematic && (
@@ -558,6 +687,16 @@ export default function PinSchematic({
             <li key={i}>{c}</li>
           ))}
         </ul>
+      )}
+      {bolehAtur && (
+        <PinDialog
+          lang={lang}
+          modul={modul}
+          open={atur}
+          onOpenChange={setAtur}
+          nama={pinBawaan.baris}
+          kolom={pinBawaan.kolom}
+        />
       )}
       {schematic && (
         <SchematicViewer

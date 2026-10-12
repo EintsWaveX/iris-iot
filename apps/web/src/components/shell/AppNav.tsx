@@ -21,6 +21,7 @@
  */
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -31,6 +32,9 @@ import * as RadixPopover from "@radix-ui/react-popover";
 import {
   BookOpenTextIcon,
   CalendarBlankIcon,
+  ChalkboardTeacherIcon,
+  ClipboardTextIcon,
+  DotsThreeIcon,
   ChartBarIcon,
   HardDrivesIcon,
   HouseIcon,
@@ -68,7 +72,7 @@ import { keluarProyektor, sebagaiTampil, useProyektor } from "../../lib/proyekto
 import AsistenMiniBar from "./AsistenMiniBar";
 import OfflineNotice from "./OfflineNotice";
 import IdentityWatch from "./IdentityWatch";
-import TotNotice from "./TotNotice";
+import TotNotice, { useTotAktif } from "./TotNotice";
 import LiveNotice, { LiveStatus } from "./LiveNotice";
 import LabAlert from "./LabAlert";
 import AlertRail from "./AlertRail";
@@ -91,6 +95,12 @@ const T = dict({
     dashboard: "Dasbor",
     modules: "Modul",
     console: "Konsol",
+    prep: "Persiapan",
+    tot: "TOT",
+    totOn: "Mode TOT aktif. Buka halamannya.",
+    totOff: "Mode TOT mati. Buka halamannya.",
+    totRow: "Mode TOT",
+    more: "Lainnya",
     schedule: "Jadwal",
     server: "Server",
     reports: "Laporan",
@@ -120,6 +130,12 @@ const T = dict({
     dashboard: "Dashboard",
     modules: "Modules",
     console: "Console",
+    prep: "Preparation",
+    tot: "TOT",
+    totOn: "TOT Mode is on. Open its page.",
+    totOff: "TOT Mode is off. Open its page.",
+    totRow: "TOT Mode",
+    more: "More",
     schedule: "Schedule",
     server: "Server",
     reports: "Reports",
@@ -149,6 +165,12 @@ const T = dict({
     dashboard: "仪表盘",
     modules: "模块",
     console: "控制台",
+    prep: "课前准备",
+    tot: "TOT",
+    totOn: "TOT 模式已开启，打开它的页面。",
+    totOff: "TOT 模式已关闭，打开它的页面。",
+    totRow: "TOT 模式",
+    more: "更多",
     schedule: "课表",
     server: "服务器",
     reports: "报告",
@@ -178,6 +200,7 @@ const T = dict({
 const NAV_KEY: Record<string, string> = {
   "/": "G B",
   "/session": "G K",
+  "/preparation": "G P",
   "/schedule": "G J",
   "/servers": "G S",
   "/reports": "G L",
@@ -190,6 +213,7 @@ function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
     return [
       { path: "/", label: t.home, icon: HouseIcon },
       { path: "/session", label: t.console, icon: UsersThreeIcon },
+      { path: "/preparation", label: t.prep, icon: ClipboardTextIcon },
       { path: "/schedule", label: t.schedule, icon: CalendarBlankIcon },
       { path: "/servers", label: t.server, icon: HardDrivesIcon },
       { path: "/reports", label: t.reports, icon: ChartBarIcon },
@@ -320,6 +344,9 @@ export default function AppNav({
     sebelum.current = menunggu;
   }, [menunggu, t.konsolBaru]);
   const current = barePath(path);
+  // Mode TOT sits apart from the page links (2026-10-12): its own chip at
+  // the bar's right with a lamp that is lit while TOT is on.
+  const totOn = useTotAktif(me?.role === "asisten");
   // The sign in page is the form itself; a second Masuk button there is noise.
   const onSignIn = current === "/login";
   // Projector mode: the Asisten is drawn as a Praktikan of the group they
@@ -349,6 +376,37 @@ export default function AppNav({
   }, []);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // The links that fit (2026-10-12): with Persiapan the Asisten has eight,
+  // and on a narrower screen the last ones fold into Lainnya instead of
+  // running under the clock. Each link's width is measured while it shows.
+  const linksEl = useRef<HTMLElement | null>(null);
+  const lebarLink = useRef<number[]>([]);
+  const [muat, setMuat] = useState(99);
+  const [lainBuka, setLainBuka] = useState(false);
+  useLayoutEffect(() => {
+    const el = linksEl.current;
+    if (!el) return;
+    const ukur = () => {
+      const a = [...el.querySelectorAll<HTMLElement>("[data-navlink]")];
+      a.forEach((x, i) => {
+        if (x.offsetWidth) lebarLink.current[i] = x.offsetWidth;
+      });
+      const ada = el.clientWidth;
+      const w = a.map((_, i) => (lebarLink.current[i] ?? 110) + 2);
+      const semua = w.reduce((x, y) => x + y, 0);
+      if (semua <= ada) return setMuat(a.length);
+      const lain = 120;
+      let k = 0;
+      let jumlah = 0;
+      while (k < a.length && jumlah + w[k] + lain <= ada) jumlah += w[k++];
+      setMuat(Math.max(1, k));
+    };
+    ukur();
+    const ro = new ResizeObserver(ukur);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [links.length, lang]);
   const [scrolled, setScrolled] = useState(false);
 
   // Scroll hairline (was nav-scroll.ts for Nav.astro).
@@ -424,8 +482,8 @@ export default function AppNav({
           <img src="/brand/iris-logo-mark.png" alt="" width="198" height="90" />
         </a>
 
-        <nav className="appnav__links" aria-label={t.main}>
-          {links.map((l) => {
+        <nav className="appnav__links" aria-label={t.main} ref={linksEl}>
+          {links.map((l, i) => {
             const active = isActive(l.path, current);
             return (
               <a
@@ -433,6 +491,8 @@ export default function AppNav({
                 className="appnav__link"
                 href={linkHref(l)}
                 aria-current={active ? "page" : undefined}
+                data-navlink=""
+                hidden={i >= muat || undefined}
               >
                 {tampil?.role === "asisten" && NAV_KEY[l.path] && (
                   <KeyHint k={NAV_KEY[l.path]} corner />
@@ -451,9 +511,65 @@ export default function AppNav({
               </a>
             );
           })}
+          {muat < links.length && (
+            <RadixPopover.Root open={lainBuka} onOpenChange={setLainBuka}>
+              <RadixPopover.Trigger asChild>
+                <button
+                  type="button"
+                  className="appnav__link appnav__more"
+                  aria-current={
+                    links.slice(muat).some((l) => isActive(l.path, current)) ? "page" : undefined
+                  }
+                >
+                  <span>{t.more}</span>
+                  <DotsThreeIcon size={18} weight="bold" aria-hidden="true" />
+                </button>
+              </RadixPopover.Trigger>
+              <RadixPopover.Portal>
+                <RadixPopover.Content
+                  className="appnav__menu sweep-edge"
+                  align="start"
+                  sideOffset={10}
+                  collisionPadding={12}
+                >
+                  <div className="acct">
+                    {links.slice(muat).map((l) => (
+                      <a
+                        key={l.path}
+                        className="acct__row"
+                        href={linkHref(l)}
+                        aria-current={isActive(l.path, current) ? "page" : undefined}
+                      >
+                        <l.icon size={20} aria-hidden="true" />
+                        <span>{l.label}</span>
+                        {tampil?.role === "asisten" && NAV_KEY[l.path] && (
+                          <Kbd>{NAV_KEY[l.path]}</Kbd>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                </RadixPopover.Content>
+              </RadixPopover.Portal>
+            </RadixPopover.Root>
+          )}
         </nav>
 
         <div className="appnav__side">
+          {tampil?.role === "asisten" && (
+            <a
+              className="appnav__tot"
+              href={href(lang, "/tot")}
+              data-on={totOn ? "yes" : "no"}
+              aria-current={current === "/tot" ? "page" : undefined}
+              title={totOn ? t.totOn : t.totOff}
+            >
+              <KeyHint k="G O" corner />
+              <span className="appnav__tot-lamp" aria-hidden="true" />
+              <ChalkboardTeacherIcon size={18} aria-hidden="true" />
+              <span>{t.tot}</span>
+              <span className="visually-hidden">{totOn ? t.totOn : t.totOff}</span>
+            </a>
+          )}
           {tampil?.role === "asisten" && (
             <span className="appnav__palette">
               <KeyHint k="Ctrl K" corner />
@@ -528,6 +644,7 @@ export default function AppNav({
                     t={t}
                     me={me}
                     lang={lang}
+                    totOn={totOn}
                     busy={Boolean(now.data)}
                     onShortcuts={() => setShortcutsOpen(true)}
                     onSignOut={() => void signOut()}
@@ -585,7 +702,9 @@ export default function AppNav({
           <LabAlert lang={lang} me={me} sesiBerjalan={!!now.data} />
         )}
         {!pro && <LiveNotice lang={lang} />}
-        {me?.role === "asisten" && !pro && <TotNotice lang={lang} />}
+        {me?.role === "asisten" && !pro && current !== "/tot" && (
+          <TotNotice lang={lang} on={!!totOn} />
+        )}
       </AlertRail>
       <IdentityWatch lang={lang} me={me} now={now.data} />
 
@@ -627,6 +746,7 @@ export default function AppNav({
             t={t}
             me={me}
             lang={lang}
+            totOn={totOn}
             busy={Boolean(now.data)}
             onShortcuts={() => {
               setSheet(false);
@@ -657,6 +777,7 @@ function AccountMenu({
   t,
   me,
   lang,
+  totOn,
   busy,
   onShortcuts,
   onSignOut,
@@ -664,6 +785,7 @@ function AccountMenu({
   t: (typeof T)["id"];
   me: Me;
   lang: Lang;
+  totOn: boolean | null;
   busy: boolean;
   onShortcuts: () => void;
   onSignOut: () => void;
@@ -687,6 +809,13 @@ function AccountMenu({
       <a className="acct__row" href={href(lang, "/account")}>
         <span>{t.myAccount}</span>
       </a>
+
+      {me.role === "asisten" && (
+        <a className="acct__row" href={href(lang, "/tot")}>
+          <span>{t.totRow}</span>
+          <span className="appnav__tot-lamp" data-on={totOn ? "yes" : "no"} aria-hidden="true" />
+        </a>
+      )}
 
       {me.role === "asisten" && (
         <button type="button" className="acct__row" onClick={onShortcuts}>

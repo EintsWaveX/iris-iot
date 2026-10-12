@@ -1,0 +1,26 @@
+---
+/**
+ * /preparation, /en/preparation and /zh/preparation (2026-10-12):
+ * Persiapan as its own page, one island (console/PreparationPage.tsx).
+ */
+import Base from "../layouts/Base.astro";
+import PreparationPage from "../components/console/PreparationPage";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  noindex
+  title={`${tri(lang, "Persiapan", "Preparation", "课前准备")} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+>
+  <main id="main" class="page-full page-main">
+    <PreparationPage client:load lang={lang} />
+  </main>
+</Base>

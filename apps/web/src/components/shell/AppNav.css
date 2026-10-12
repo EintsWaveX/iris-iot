@@ -171,6 +171,84 @@
   position: relative;
 }
 
+/* Mode TOT's own place in the bar (2026-10-12): a pill like the clock,
+   apart from the page links, its lamp lit while TOT is on. */
+.appnav__tot {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill, 999px);
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.95rem;
+  font-weight: 650;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 14px 0 12px;
+  position: relative;
+  text-decoration: none;
+  transition:
+    color var(--dur-fast) var(--ease-reveal),
+    background var(--dur-fast) var(--ease-reveal);
+  white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .appnav__tot:hover {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
+}
+
+.appnav__tot[data-on="yes"] {
+  background: var(--warn-soft);
+  color: var(--text);
+}
+
+.appnav__tot[aria-current="page"] {
+  color: var(--text);
+}
+
+.appnav__tot[aria-current="page"]::after {
+  background-image: var(--sweep-ring);
+  background-size: 200% auto;
+  border-radius: 2px;
+  bottom: -7px;
+  content: "";
+  height: 2px;
+  left: 12px;
+  position: absolute;
+  right: 12px;
+}
+
+:root:not([data-motion-tier="0"]) .appnav__tot[aria-current="page"]::after {
+  animation: aurora-sweep 5s linear infinite;
+}
+
+.appnav__tot-lamp {
+  border: 1.5px solid var(--hairline-strong);
+  border-radius: 50%;
+  flex: none;
+  height: 10px;
+  width: 10px;
+}
+
+.appnav__tot[data-on="yes"] .appnav__tot-lamp,
+.appnav__tot-lamp[data-on="yes"] {
+  background: var(--warn);
+  border-color: var(--warn);
+  box-shadow: 0 0 8px var(--warn);
+}
+
+@media (max-width: 899px) {
+  .appnav__tot svg {
+    display: none;
+  }
+  .appnav__tot {
+    padding: 0 10px;
+  }
+}
+
 .appnav__signin {
   min-height: 44px;
 }
@@ -559,9 +637,10 @@
 
 /* ------------------------------------------------------------ widths */
 
-/* 1280 to 1439: the full date sits above the time, so long English links
-   still fit beside it; below 1280 the time stands alone (mockup G6). */
-@media (min-width: 1280px) and (max-width: 1439px) {
+/* 1280 to 1599: the full date sits above the time, so the eight Asisten
+   links and the TOT chip still fit beside it; below 1280 the time stands
+   alone (mockup G6). */
+@media (min-width: 1280px) and (max-width: 1599px) {
   .navclock {
     align-items: flex-end;
     flex-direction: column;
@@ -608,6 +687,20 @@
   .appnav__link {
     font-size: 1.08rem;
     padding: 0 15px;
+  }
+}
+
+/* Eight Asisten links (Persiapan joined, 2026-10-12): tighter until 1600. */
+@media (min-width: 1100px) and (max-width: 1599px) {
+  .appnav__link {
+    font-size: 1.02rem;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 1599px) {
+  .appnav__tot svg {
+    display: none;
   }
 }
 
@@ -847,4 +940,26 @@
   .appnav__langsung-teks {
     display: none;
   }
+}
+
+/* Lainnya: the links that don't fit (AppNav measures them, 2026-10-12) */
+.appnav__link[hidden] {
+  display: none;
+}
+
+.appnav__more {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* Desktop links hide their icons; Lainnya keeps its dots. */
+.appnav__links .appnav__more svg {
+  display: inline-block;
+}
+
+.acct__row[aria-current="page"] {
+  background: var(--hairline-faint);
+  font-weight: 650;
 }

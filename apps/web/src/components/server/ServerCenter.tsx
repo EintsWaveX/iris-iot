@@ -103,7 +103,7 @@ export default function ServerCenter({ lang }: { lang: Lang }) {
       <div className="banner banner--accent srv-from" role="status">
         <ListChecksIcon size={20} aria-hidden="true" />
         <span className="grow">{id ? t.fromPrep : t.fromPrepList}</span>
-        <a className="btn btn--sm btn--primary" href={`${href(lang, "/session")}#persiapan`}>
+        <a className="btn btn--inverse" href={href(lang, "/preparation#server")}>
           <ArrowLeftIcon size={16} aria-hidden="true" />
           {t.backPrep}
         </a>

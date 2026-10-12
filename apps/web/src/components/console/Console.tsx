@@ -54,6 +54,7 @@ import TierBadge from "../ui/TierBadge";
 import GroupInspector from "./GroupInspector";
 import NilaiTable from "./NilaiTable";
 import PrepView, { type PrepTab } from "./PrepView";
+import { prepHref } from "./PreparationPage";
 import LivePrep from "./LivePrep";
 import ServerDrawer from "./ServerDrawer";
 import EndFlow from "./EndFlow";
@@ -89,11 +90,10 @@ function readHash(): {
   prep?: PrepTab;
 } {
   const h = location.hash.replace(/^#/, "");
-  // #persiapan (or #persiapan=akses): Preparation, from a page outside the
-  // console (the Server page's way back, 2026-10-06).
+  // #persiapan (or #persiapan=akses) and #tot: older links to Preparation
+  // and Mode TOT, which have their own pages since 2026-10-12.
   const pr = /^persiapan(?:=(roster|akses|brief|kode|slides|skema|server))?$/.exec(h);
   if (pr) return { prep: (pr[1] as PrepTab | undefined) ?? "roster" };
-  // #tot: Preparation's Mode TOT tab (the TOT banner links here).
   if (h === "tot") return { tot: true };
   if (h === "prep" || h === "board" || h === "table" || h === "matrix") return { view: h };
   if (h === "seelabs") return { seelabs: true };
@@ -118,16 +118,13 @@ export default function Console({ lang }: { lang: Lang }) {
   const sesi = isAsisten ? (current.data?.sesi ?? null) : null;
   const roster = current.data?.roster ?? [];
   const [view, setView] = useState<View>("board");
-  const [prepOnly, setPrepOnly] = useState(false);
   // In a running session Preparation is the live view; its Module Access
   // and Slides buttons open the full tabs, with a way back.
   const [prepFull, setPrepFull] = useState<PrepTab | null>(null);
-  const [prepTab, setPrepTab] = useState<PrepTab | undefined>(undefined);
   const [done, setDone] = useState<(SesiRunning & { hadir: number; selesaiPada?: string }) | null>(
     null,
   );
   const [nextOpen, setNextOpen] = useState(false);
-  const [prepPilih, setPrepPilih] = useState<string | null>(null);
   const [sel, setSel] = useState<number | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
@@ -218,20 +215,8 @@ export default function Console({ lang }: { lang: Lang }) {
       if (h.cmd === "drawer") setDrawer(true);
       if (h.cmd === "end") setEndOpen(true);
       if (h.seelabs) setSee(h.seelabsTab ? { tab: h.seelabsTab } : {});
-      if (h.prep) {
-        setView("prep");
-        setPrepTab(h.prep);
-        setPrepFull(h.prep === "roster" ? null : h.prep);
-        setPrepOnly(true);
-        // The hash stays: PrepView keeps it on the open tab, so a reload or a
-        // language switch comes back to it (2026-10-07).
-      }
-      if (h.tot) {
-        setView("prep");
-        setPrepFull("tot");
-        setPrepTab("tot");
-        setPrepOnly(true);
-      }
+      if (h.prep) location.replace(prepHref(lang, null, h.prep));
+      if (h.tot) location.replace(href(lang, "/tot"));
     };
     apply();
     // A link to this page's own #... (the Mode TOT banner, the readiness
@@ -524,10 +509,7 @@ export default function Console({ lang }: { lang: Lang }) {
             onBack={() => setNextOpen(false)}
             onPrep={(pilih) => {
               sessionStorage.removeItem(DONE_KEY);
-              setNextOpen(false);
-              setDone(null);
-              setPrepPilih(pilih);
-              setPrepOnly(true);
+              location.assign(prepHref(lang, pilih));
             }}
             onHome={() => {
               sessionStorage.removeItem(DONE_KEY);
@@ -567,33 +549,6 @@ export default function Console({ lang }: { lang: Lang }) {
         </div>
       );
     }
-    if (prepOnly) {
-      return (
-        <div className="console">
-          {offline}
-          <PrepView
-            key={prepTab ?? "roster"}
-            t={t}
-            lang={lang}
-            sesi={null}
-            roster={roster}
-            assign={null}
-            meNim={me!.nim}
-            meKode={(me!.kode ?? "").toUpperCase()}
-            onChanged={refreshAll}
-            onBack={() => {
-              setPrepOnly(false);
-              setPrepPilih(null);
-              setPrepTab(undefined);
-              if (location.hash === "#tot" || location.hash.startsWith("#persiapan"))
-                history.replaceState(null, "", location.pathname);
-            }}
-            pilih={prepPilih}
-            tab0={prepTab}
-          />
-        </div>
-      );
-    }
     return (
       <div className="console">
         {offline}
@@ -602,11 +557,7 @@ export default function Console({ lang }: { lang: Lang }) {
           lang={lang}
           me={me!}
           onStarted={refreshAll}
-          onPrep={(pilih, tab) => {
-            setPrepPilih(pilih);
-            setPrepTab(tab);
-            setPrepOnly(true);
-          }}
+          onPrep={(pilih, tab) => location.assign(prepHref(lang, pilih, tab))}
           onHeld={() => openSeelabs("titipan")}
           onTable={(id) => {
             setLalu({ id, view: "table" });
@@ -844,7 +795,7 @@ export default function Console({ lang }: { lang: Lang }) {
             <span>
               <b>{t.emptyRosterH}</b> {t.emptyRosterP}
             </span>
-            <button type="button" className="btn btn--sm" onClick={() => go("prep")}>
+            <button type="button" className="btn btn--inverse" onClick={() => go("prep")}>
               {t.emptyRosterGo}
             </button>
           </div>

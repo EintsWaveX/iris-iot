@@ -228,7 +228,7 @@ export default function NextView({
                   <span className="grow">{made.text}</span>
                   <button
                     type="button"
-                    className="btn btn--secondary btn--sm"
+                    className="btn btn--inverse"
                     onClick={() => onPrep(`d${made.id}`)}
                   >
                     {t.draftOpen}
@@ -382,7 +382,7 @@ export default function NextView({
       <div className="nextv__act">
         <button
           type="button"
-          className="btn btn--primary btn--lg"
+          className={`btn ${next ? "btn--inverse" : "btn--primary"} btn--lg`}
           onClick={() =>
             next ? onPrep(`${hariDariTanggal(sesi.tanggal)}-${next.slot}`) : onHome()
           }

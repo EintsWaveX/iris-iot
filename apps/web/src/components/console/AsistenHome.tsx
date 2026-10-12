@@ -634,7 +634,11 @@ export default function AsistenHome({
         <div className="banner banner--warn" role="status">
           <LockSimpleIcon size={20} aria-hidden="true" />
           <span className="grow">{h.closedPick(modulLabel(tutup, lang))}</span>
-          <button type="button" className="btn btn--sm" onClick={() => onPrep(null, "akses")}>
+          <button
+            type="button"
+            className="btn btn--inverse btn--sm"
+            onClick={() => onPrep(null, "akses")}
+          >
             {h.openAccess}
             <ArrowRightIcon size={16} aria-hidden="true" />
           </button>
@@ -686,7 +690,7 @@ export default function AsistenHome({
                 </span>
                 <button
                   type="button"
-                  className="btn btn--ghost btn--sm"
+                  className="btn btn--inverse"
                   onClick={() => onPrep(`d${drafDipilih.id}`)}
                 >
                   {h.susEdit}
@@ -727,7 +731,19 @@ export default function AsistenHome({
           </div>
         </Fade>
         <div className="lp__body">
-          {!drafDipilih && <div className="lp__left">{startForm}</div>}
+          {!drafDipilih && (
+            <div className="lp__left">
+              {startForm}
+              <button
+                type="button"
+                className="btn btn--inverse btn--lg btn--block"
+                onClick={() => onPrep(null)}
+              >
+                <ListChecksIcon size={18} aria-hidden="true" />
+                {h.prepOpen}
+              </button>
+            </div>
+          )}
           <div className={drafDipilih ? "lp__right lp__span" : "lp__right"}>
             <SusulanSide
               lang={lang}
@@ -829,6 +845,10 @@ export default function AsistenHome({
               {d.makeMakeup}
             </button>
           )}
+          <button type="button" className="btn btn--inverse btn--lg" onClick={() => onPrep(null)}>
+            <ListChecksIcon size={18} aria-hidden="true" />
+            {h.prepOpen}
+          </button>
         </div>
       </section>
     );
@@ -871,7 +891,7 @@ export default function AsistenHome({
             <Lights items={cek} d={d} onGo={goCek} />
             <button
               type="button"
-              className="btn btn--inverse btn--block"
+              className="btn btn--inverse btn--lg btn--block"
               onClick={() => onPrep(pilihPrep)}
             >
               <ListChecksIcon size={18} aria-hidden="true" />

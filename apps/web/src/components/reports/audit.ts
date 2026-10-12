@@ -150,6 +150,10 @@ const W = {
     totNyala: "menyalakan Mode TOT; roster asli disimpan",
     totHapus: (n: unknown) => `menghapus riwayat TOT (${n} sesi)`,
     totMati: "mematikan Mode TOT; roster asli dikembalikan",
+    totAtur: (d: unknown, n: unknown) => `mengatur peserta TOT: ${d}, ${n} per kelompok`,
+    totKeluar: (nim: unknown) =>
+      nim === "semua" ? "mengeluarkan semua akun TOT" : `mengeluarkan akun TOT ${nim}`,
+    totReset: (n: unknown) => `mengosongkan jawaban Kelompok ${n} di sesi TOT`,
     tot: " (TOT)",
     paksa: (a: string) => `, dimulai tetap walau lab belum siap. Alasan: ${a}`,
     galatServer: (r: string, p: string) => `mencatat galat server${r ? ` di ${r}` : ""}: ${p}`,
@@ -272,6 +276,10 @@ const W = {
     totNyala: "switched TOT Mode on; the real roster was saved",
     totHapus: (n: unknown) => `cleared the TOT history (${n} sessions)`,
     totMati: "switched TOT Mode off; the real roster was put back",
+    totAtur: (d: unknown, n: unknown) => `set the TOT participants: ${d}, ${n} per group`,
+    totKeluar: (nim: unknown) =>
+      nim === "semua" ? "signed out every TOT account" : `signed out TOT account ${nim}`,
+    totReset: (n: unknown) => `cleared Group ${n}'s answers in the TOT session`,
     tot: " (TOT)",
     paksa: (a: string) => `, started anyway with the lab not ready. Reason: ${a}`,
     galatServer: (r: string, p: string) => `logged a server error${r ? ` in ${r}` : ""}: ${p}`,
@@ -390,6 +398,10 @@ const W = {
     totNyala: "开启了 TOT 模式，正式名单已保存",
     totHapus: (n: unknown) => `清除了 TOT 记录（${n} 节课）`,
     totMati: "关闭了 TOT 模式，正式名单已恢复",
+    totAtur: (d: unknown, n: unknown) => `设置了 TOT 参与者：${d}，每组 ${n} 人`,
+    totKeluar: (nim: unknown) =>
+      nim === "semua" ? "让所有 TOT 账号退出登录" : `让 TOT 账号 ${nim} 退出登录`,
+    totReset: (n: unknown) => `清空了 TOT 课中第 ${n} 组的答案`,
     tot: "（TOT）",
     paksa: (a: string) => `，实验室未就绪但仍然开始。原因：${a}`,
     galatServer: (r: string, p: string) => `记录了服务器错误${r ? `（${r}）` : ""}：${p}`,
@@ -691,6 +703,15 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(TrashIcon, w.totHapus(d.sesi));
     case "tot_mati":
       return k(ChalkboardTeacherIcon, w.totMati);
+    case "tot_atur":
+      return k(
+        ChalkboardTeacherIcon,
+        w.totAtur(Array.isArray(d.divisi) ? d.divisi.join(", ") : "?", d.perKelompok),
+      );
+    case "tot_keluarkan":
+      return k(ChalkboardTeacherIcon, w.totKeluar(d.nim));
+    case "tot_reset_kelompok":
+      return k(TrashIcon, w.totReset(d.kelompok));
     case "modul_akses_ubah": {
       const t = Array.isArray(d.terbuka) ? (d.terbuka as number[]) : [];
       return k(LockKeyIcon, w.modulAkses(t.map((m) => modulLabel(m, b.lang)).join(", ")));

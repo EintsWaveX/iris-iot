@@ -1,0 +1,259 @@
+/* The Mode TOT page (TotPage.tsx, 2026-10-12): the switch and the session
+   side by side at one height from 1024, then Participants, the accounts
+   and the history across the full width. */
+.totp {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  padding-top: var(--space-6, 24px);
+}
+
+.totp__head .page-header__title {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.totp__top {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .totp__top {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  }
+}
+
+.totp__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.totp__card > .panel__actions {
+  margin-top: auto;
+}
+
+/* The switch: a big state line with the switch at its end. */
+.totp__switch {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.totp__switch > svg {
+  color: var(--text-muted);
+  flex: none;
+}
+
+.totp__card[data-on="yes"] .totp__switch {
+  background: var(--warn-soft);
+}
+
+.totp__card[data-on="yes"] .totp__switch > svg {
+  color: var(--warn);
+}
+
+.totp__state {
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+/* The running session */
+.totp__run {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.totp__groups,
+.totp__plan,
+.totp__lalu {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.totp__groups li,
+.totp__plan li,
+.totp__lalu li {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 12px;
+}
+
+.totp__plan {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.totp__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.totp__acts > * {
+  flex: 1 1 0;
+}
+
+@media (max-width: 639px) {
+  .totp__acts {
+    flex-direction: column;
+  }
+}
+
+/* Participants: the division chips carry their group number */
+.totp__atur {
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .totp__atur {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+.totp__div {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+@media (max-width: 639px) {
+  .totp__div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.totp__divb {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 650;
+  gap: 8px;
+  justify-content: center;
+  min-height: 46px;
+}
+
+.totp__divn {
+  align-items: center;
+  background: var(--text);
+  border-radius: 50%;
+  color: var(--bg, #000);
+  display: inline-flex;
+  font-size: 0.78rem;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+.totp__divn--off {
+  background: transparent;
+  border: 1.5px solid var(--hairline-strong);
+}
+
+/* Accounts: one column per division */
+.totp__akun {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.totp__grp {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+}
+
+.totp__grph {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  padding: 2px 4px 6px;
+}
+
+.totp__grp ul {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.totp__acc {
+  align-items: center;
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 10px;
+  min-height: 48px;
+  padding: 4px 6px;
+}
+
+.totp__acc[data-in="yes"] {
+  background: var(--ok-soft);
+}
+
+.totp__acc .lights__lamp[data-tone="none"] {
+  background: transparent;
+  border: 1.5px solid var(--hairline-strong);
+  box-shadow: none;
+}
+
+.totp__nim {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.95rem;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 6px;
+}
+
+.totp__nim svg {
+  color: var(--text-muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .totp__nim:hover {
+    background: var(--hairline-faint);
+  }
+}
+
+.totp__lalu li b {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 639px) {
+  .totp__lalu li {
+    flex-wrap: wrap;
+  }
+}

@@ -353,3 +353,211 @@
   color: inherit;
   display: inline-flex;
 }
+
+/* ------------------------------------------------- the jumper board */
+/* BoardJumper.tsx (2026-10-12): the board's two headers, the parts below,
+   one draggable jumper per connection. */
+.jumper {
+  display: block;
+  height: auto;
+  user-select: none;
+  width: 100%;
+}
+
+.jumper__usb {
+  fill: var(--surface-4);
+  stroke: var(--hairline-strong);
+}
+
+.jumper__chip {
+  fill: color-mix(in srgb, var(--mod-hue) 18%, var(--surface-3, var(--surface-2)));
+  stroke: color-mix(in srgb, var(--mod-hue) 40%, transparent);
+}
+
+.jumper__pad {
+  fill: var(--surface-1);
+  stroke: var(--hairline-strong);
+  stroke-width: 1.5;
+  transition:
+    opacity var(--dur-fast) var(--ease-reveal),
+    stroke var(--dur-fast) var(--ease-reveal),
+    stroke-width var(--dur-fast) var(--ease-reveal);
+}
+
+.jumper__pad[data-power="yes"] {
+  fill: var(--surface-4);
+}
+
+.jumper__pad[data-used="yes"] {
+  stroke: color-mix(in srgb, var(--mod-hue) 70%, var(--text));
+  stroke-width: 2.5;
+}
+
+.jumper__pad[data-ok="yes"] {
+  fill: var(--ok-soft);
+  stroke: var(--ok);
+  stroke-width: 2.5;
+}
+
+:root:not([data-motion-tier="0"]) .jumper__pad[data-ok="yes"] {
+  animation: jumper-boleh 1.4s ease-in-out infinite;
+}
+
+@keyframes jumper-boleh {
+  50% {
+    stroke-opacity: 0.35;
+  }
+}
+
+.jumper__pad[data-ok="no"] {
+  opacity: 0.3;
+}
+
+.jumper__pad[data-hover="yes"][data-ok="yes"] {
+  stroke-width: 4.5;
+}
+
+.jumper__lbl {
+  dominant-baseline: middle;
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  transition: opacity var(--dur-fast) var(--ease-reveal);
+}
+
+.jumper__lbl[data-dim="yes"] {
+  opacity: 0.3;
+}
+
+.jumper__plug {
+  fill: var(--invert-bg);
+  stroke: var(--mod-hue, var(--accent));
+  stroke-width: 3;
+  touch-action: none;
+}
+
+.jumper__plug[data-kind="pwr"] {
+  stroke: var(--danger);
+}
+
+.jumper__plug[data-kind="gnd"] {
+  stroke: var(--text-faint);
+}
+
+.jumper__plug[data-edit="yes"] {
+  cursor: grab;
+}
+
+.jumper[data-holding="yes"] .jumper__plug[data-edit="yes"] {
+  cursor: grabbing;
+}
+
+.jumper__plug[data-on="yes"],
+.jumper__plug:focus-visible {
+  outline: none;
+  stroke-width: 5;
+}
+
+.jumper__target {
+  cursor: pointer;
+  outline: none;
+}
+
+.jumper__target:focus-visible .jumper__pad {
+  stroke: var(--accent);
+  stroke-width: 5;
+}
+
+/* The card's own wiring: what changed, and the way back. */
+.pins__mine {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.pintable__pin[data-changed="yes"] {
+  outline: 2px solid var(--warn);
+  outline-offset: 1px;
+}
+
+/* PinDialog.tsx: the boards, then the connections */
+.pindlg {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pindlg__board {
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.pindlg__table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.pindlg__table th {
+  color: var(--text-faint);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.pindlg__table td {
+  border-top: 1px solid var(--hairline-faint);
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.pindlg__table caption {
+  padding-bottom: var(--space-2);
+  text-align: left;
+}
+
+.pindlg__table tr[data-on="yes"] td {
+  background: var(--hairline-faint);
+}
+
+.pindlg__bad {
+  color: var(--danger);
+}
+
+.pindlg__badline {
+  color: var(--danger);
+}
+
+/* The view switch and Atur Pin above the wiring */
+.pins__tools {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.pins__tools > .segmented {
+  flex: 1 1 200px;
+}
+
+/* On a phone the board keeps a readable size and scrolls sideways; a
+   jumper's plug still drags (touch-action none on the plugs only). */
+.jumper-wrap {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 639px) {
+  .jumper {
+    min-width: 600px;
+  }
+}
+
+.pins__mine > .hint {
+  flex: 1 1 14rem;
+  min-width: 0;
+}

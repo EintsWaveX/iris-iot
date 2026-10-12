@@ -8,9 +8,10 @@
  * and the open one's status line under it: Roster (the two-pane editor; while
  * a session runs, the group assistants come first), Module Access, Module
  * Brief, Kode Jurnal (the ASO division and Admins only, prep/CodeEditor.tsx),
- * Slides, Wiring Schematics and, last, Mode TOT
- * (prep/TotPanel.tsx). Switching rosters with unsaved
- * changes asks first: Save and Move, Discard, or Stay.
+ * Slides, Wiring Schematics and Server. Each tab is tinted by its state:
+ * green when all is set, yellow when it needs a look, red when something
+ * went wrong. Mode TOT has its own page (/tot, tot/TotPage.tsx). Switching
+ * rosters with unsaved changes asks first: Save and Move, Discard, or Stay.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
@@ -56,7 +57,6 @@ import BriefEditor from "./prep/BriefEditor";
 import SchematicEditor from "./prep/SchematicEditor";
 import SlidesEditor from "./prep/SlidesEditor";
 import CodeEditor from "./prep/CodeEditor";
-import TotPanel from "./prep/TotPanel";
 import RiwayatPanel from "./RiwayatPanel";
 import { P, type Px } from "./prepStrings";
 import { cekSiap, type Beranda } from "./AsistenHome";
@@ -84,9 +84,11 @@ interface Draf {
   jumlahKelompok: number;
 }
 
-// Mode TOT sits last: it changes who can sign
-// in at all, unlike the preparation tabs before it.
-const TABS = ["roster", "akses", "brief", "kode", "slides", "skema", "server", "tot"] as const;
+const TABS = ["roster", "akses", "brief", "kode", "slides", "skema", "server"] as const;
+export const PREP_TABS = TABS;
+
+/** A tab's state: all set, needs a look, or something went wrong. */
+type Tone = "ok" | "warn" | "bad";
 
 /* Each section's status line, shown under the tabs while it is open. */
 const PN = dict({
@@ -98,7 +100,10 @@ const PN = dict({
     briefSub: "Ringkasan per modul",
     kodeSub: "Kode jurnal dan kuncinya",
     skemaSub: "Bawaan dan tautan Wokwi",
-    totSub: "Latihan dengan praktikan dummy",
+    loadFail: "Status belum bisa dimuat. Coba muat ulang halaman.",
+    rosterFail: "Jadwal belum bisa dimuat",
+    srvOffline: (x: string) => `Pi tidak berdenyut sejak ${x}`,
+    backKonsol: "Kembali ke Konsol",
     srvNone: "Belum ada server terdaftar",
     srvBeat: (x: string) => `denyut ${x}`,
     srvNoBeat: "belum ada denyut",
@@ -117,7 +122,10 @@ const PN = dict({
     briefSub: "A brief per module",
     kodeSub: "Journal code and its keys",
     skemaSub: "Built in and Wokwi links",
-    totSub: "Practice with dummy students",
+    loadFail: "The status couldn't load. Try reloading the page.",
+    rosterFail: "The schedule couldn't load",
+    srvOffline: (x: string) => `No Pi heartbeat since ${x}`,
+    backKonsol: "Back to the Console",
     srvNone: "No server registered yet",
     srvBeat: (x: string) => `beat ${x}`,
     srvNoBeat: "no heartbeat yet",
@@ -136,7 +144,10 @@ const PN = dict({
     briefSub: "每个模块的概要",
     kodeSub: "实验报告代码和答案",
     skemaSub: "内置和 Wokwi 链接",
-    totSub: "用虚拟学生练习",
+    loadFail: "状态无法加载，请刷新页面。",
+    rosterFail: "课表无法加载",
+    srvOffline: (x: string) => `Pi 自 ${x} 起没有心跳`,
+    backKonsol: "返回控制台",
     srvNone: "还没有注册服务器",
     srvBeat: (x: string) => `心跳 ${x}`,
     srvNoBeat: "还没有心跳",
@@ -196,13 +207,13 @@ export default function PrepView({
   const bolehJadwal = me?.hak?.jadwal === true;
   const tabs = TABS.filter((id) => id !== "kode" || bolehKode);
   const [tab, setTab] = useState<Tab>(tab0);
-  // Standalone Persiapan keeps its tab in the address (Console readHash), so
-  // a reload or a language switch opens the same tab (2026-10-07: it went
-  // back to the default view).
-  const standalone = !!onBack && !sesi;
+  // The Persiapan page keeps its tab in the address, so a reload or a
+  // language switch opens the same tab (2026-10-07: it went back to the
+  // default view).
+  const standalone = !!onBack;
   useEffect(() => {
     if (!standalone) return;
-    const want = tab === "roster" ? "#persiapan" : tab === "tot" ? "#tot" : `#persiapan=${tab}`;
+    const want = tab === "roster" ? "" : `#${tab}`;
     if (location.hash !== want)
       history.replaceState(null, "", location.pathname + location.search + want);
   }, [tab, standalone]);
@@ -216,10 +227,15 @@ export default function PrepView({
   // The readiness checks (2026-10-06): the same ones as Home, each a way
   // to its fix; before, only a small chip linked to the server list.
   const [beranda, setBeranda] = useState<Beranda | null>(null);
+  const [berandaGagal, setBerandaGagal] = useState(false);
+  const [jadwalGagal, setJadwalGagal] = useState(false);
   const muatBeranda = () =>
     getJson<{ ok: boolean } & Beranda>("/api/session/beranda")
-      .then((d) => d.ok && setBeranda(d))
-      .catch(() => {});
+      .then((d) => {
+        setBerandaGagal(!d.ok);
+        if (d.ok) setBeranda(d);
+      })
+      .catch(() => setBerandaGagal(true));
   useSiaran(["akses", "server", "presentasi", "roster", "jadwal"], muatBeranda);
   const editor = useRef<RosterHandle>(null);
 
@@ -241,8 +257,14 @@ export default function PrepView({
     getJson<{ ok: boolean; jadwal: JadwalRow[] }>(
       `/api/session/schedule?semester=${semesterDariTanggal(today)}`,
     )
-      .then((d) => setJadwal(d.ok ? d.jadwal : []))
-      .catch(() => setJadwal([]));
+      .then((d) => {
+        setJadwalGagal(!d.ok);
+        setJadwal(d.ok ? d.jadwal : []);
+      })
+      .catch(() => {
+        setJadwalGagal(true);
+        setJadwal([]);
+      });
     void loadDraf();
     void muatBeranda();
   }, []);
@@ -347,37 +369,61 @@ export default function PrepView({
     setSel(v);
   }
 
-  // Each section's light and one line (c12-prep): yellow means look at it.
+  // Each tab's colour and one line (2026-10-12): green all set, yellow look
+  // at it, red something went wrong (a status that can't load, a silent Pi,
+  // a failed Ready check).
   const pn = PN[lang];
   const cek = beranda ? cekSiap(beranda, 1, true, H[lang], lang) : [];
   const cekOf = (k: string) => cek.find((c) => c.key === k);
-  const nav: Record<Tab, { sub: string; tone?: "ok" | "warn" }> = {
-    roster: {
-      sub: sel ? labelOf(sel) || pn.rosterNone : pn.rosterNone,
-      tone: kosong ? "warn" : sel ? "ok" : undefined,
+  const dariCek = (k: string, ganti?: string): { sub: string; tone?: Tone } =>
+    berandaGagal && !beranda
+      ? { sub: pn.loadFail, tone: "bad" }
+      : {
+          sub: cekOf(k)?.text ?? ganti ?? "",
+          tone: !beranda ? undefined : cekOf(k)?.ok === false ? "warn" : "ok",
+        };
+  const srv = beranda?.server ?? null;
+  const pingLama =
+    !!srv && (!srv.denyutPada || Date.now() - Date.parse(srv.denyutPada) > 5 * 60_000);
+  const nav: Record<Tab, { sub: string; tone?: Tone }> = {
+    roster: jadwalGagal
+      ? { sub: pn.rosterFail, tone: "bad" }
+      : {
+          sub: sel ? labelOf(sel) || pn.rosterNone : pn.rosterNone,
+          tone: jadwal === null ? undefined : kosong || !target ? "warn" : "ok",
+        },
+    akses: dariCek("akses"),
+    brief: {
+      sub: pn.briefSub,
+      tone: berandaGagal && !beranda ? "bad" : beranda ? "ok" : undefined,
     },
-    akses: {
-      sub: cekOf("akses")?.text ?? "",
-      tone: cekOf("akses")?.ok === false ? "warn" : beranda ? "ok" : undefined,
-    },
-    brief: { sub: pn.briefSub },
-    kode: { sub: pn.kodeSub },
-    slides: {
-      sub: cekOf("slides")?.text ?? "",
-      tone: cekOf("slides")?.ok === false ? "warn" : beranda ? "ok" : undefined,
-    },
-    skema: {
-      sub: cekOf("skema")?.text ?? pn.skemaSub,
-      tone: cekOf("skema")?.ok === false ? "warn" : cekOf("skema") ? "ok" : undefined,
-    },
-    server: {
-      sub: cekOf("server")?.text ?? "",
-      tone: cekOf("server")?.ok === false ? "warn" : beranda ? "ok" : undefined,
-    },
-    tot: { sub: pn.totSub },
+    kode: { sub: pn.kodeSub, tone: berandaGagal && !beranda ? "bad" : beranda ? "ok" : undefined },
+    slides: dariCek("slides"),
+    skema: dariCek("skema", pn.skemaSub),
+    server: (() => {
+      const d = dariCek("server");
+      if (!beranda) return d;
+      // No Pi at all, a Pi gone quiet, or a Ready check that failed today.
+      if (!srv) return { sub: d.sub, tone: "bad" as const };
+      if (pingLama)
+        return {
+          sub: srv.denyutPada
+            ? pn.srvOffline(sejak(srv.denyutPada, lang, Date.now()))
+            : pn.srvNoBeat,
+          tone: "bad" as const,
+        };
+      const gagalHariIni =
+        !!srv.siap?.waktu &&
+        !srv.siap.lulus &&
+        new Date(srv.siap.waktu).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }) ===
+          hariIniWib();
+      if (gagalHariIni) return { sub: d.sub, tone: "bad" as const };
+      return d;
+    })(),
   };
   const lit = tabs.filter((id) => nav[id].tone);
   const siapN = lit.filter((id) => nav[id].tone === "ok").length;
+  const burukN = lit.filter((id) => nav[id].tone === "bad").length;
 
   const tablist = (
     <div className="prep12__tabs">
@@ -387,6 +433,7 @@ export default function PrepView({
         onChange={setTab}
         tabs={tabs.map((id) => ({
           v: id,
+          tone: nav[id].tone,
           label: (
             <span className="prep12__tab">
               <span
@@ -394,7 +441,7 @@ export default function PrepView({
                 data-tone={nav[id].tone ?? "none"}
                 aria-hidden="true"
               />
-              {id === "server" ? pn.server : p.tabs[id as Exclude<Tab, "server">]}
+              {id === "server" ? pn.server : p.tabs[id]}
             </span>
           ),
         }))}
@@ -417,7 +464,7 @@ export default function PrepView({
           {onBack && (
             <button type="button" className="btn btn--primary" onClick={onBack}>
               <PlayIcon size={18} weight="fill" aria-hidden="true" />
-              {pn.backStart}
+              {sesi ? pn.backKonsol : pn.backStart}
             </button>
           )}
           {tab === "roster" && (
@@ -448,7 +495,9 @@ export default function PrepView({
 
       {beranda && lit.length > 0 && (
         <div className="row prep12__ready">
-          <span className={`pill${siapN < lit.length ? " pill--warn" : " pill--ok"}`}>
+          <span
+            className={`pill${burukN ? " pill--danger" : siapN < lit.length ? " pill--warn" : " pill--ok"}`}
+          >
             {pn.ready(siapN, lit.length)}
           </span>
           <span className="hint">{p.readyLabel}</span>
@@ -532,7 +581,6 @@ export default function PrepView({
                 <RiwayatPanel lang={lang} />
               </div>
             )}
-            {tab === "tot" && <TotPanel t={t} lang={lang} sesi={sesi} onChanged={onChanged} />}
             {tab === "slides" && <SlidesEditor lang={lang} />}
             {tab === "skema" && <SchematicEditor lang={lang} />}
             {tab === "brief" && <BriefEditor lang={lang} />}

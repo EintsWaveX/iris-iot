@@ -35,10 +35,11 @@ import { getDb } from "./db.js";
 import { asisten, percobaanMasuk, audit } from "./schema.js";
 import { resolvePraktikan, resolvePraktikanTanpaSesi, currentSesi } from "./sesi.js";
 import { totAktif } from "./mode-tot.js";
+import { SESSION_TTL_SEC } from "./sesi-umur.js";
 import { praktikanBolehMasuk } from "./tot.js";
 import { sesiBerikutnya, type SesiBerikutnya } from "./sesi-gerbang.js";
 
-const SESSION_TTL_SEC = 3 * 60 * 60; // 3 hours, > SESI_CAP_MENIT (150 min)
+export { SESSION_TTL_SEC };
 const ASSISTANT_PASSWORD_SUFFIX = "1715";
 
 // Rate limiting thresholds. Named after, and set to the same values as,

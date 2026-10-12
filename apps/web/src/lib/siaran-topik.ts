@@ -33,6 +33,8 @@ export const TOPIK = [
   "buru",
   // A group asked for a hint on a blank, or an Asisten sent one.
   "petunjuk",
+  // A group rewired its own pins in the running session (presentasi:pin-grup).
+  "pingrup",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -55,7 +57,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:rosterslot": ["roster"],
   "session:praktikan": ["roster"],
   "session:susulan": ["roster", "sesi", "jadwal"],
-  "session:tot": ["tot", "roster", "sesi"],
+  "session:tot": ["tot", "roster", "sesi", "jawaban", "tangkapan", "petunjuk"],
   "session:hadir": ["sesi", "roster"],
   "session:group": ["sesi", "roster"],
   // Pegang Kelompok, Ganti Asisten: who holds a group decides who scores it
@@ -133,6 +135,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "presentasi:schematic-delete": ["presentasi"],
   // A pin table changes every Pin dan Skema card and the served code.
   "presentasi:pin-simpan": ["presentasi"],
+  // Only that group's cards and code follow; the module's pins stay.
+  "presentasi:pin-grup": ["pingrup"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

@@ -13,6 +13,8 @@ export interface TabItem<V extends string> {
   label: ReactNode;
   /** A count shown after the label. */
   n?: number;
+  /** Tints the tab by its state: all set, needs a look, something wrong. */
+  tone?: "ok" | "warn" | "bad";
 }
 
 interface Props<V extends string> {
@@ -93,6 +95,7 @@ export default function TabLine<V extends string>({
       type="button"
       role="tab"
       data-tab={t.v}
+      data-tone={t.tone}
       aria-selected={value === t.v}
       tabIndex={value === t.v ? 0 : -1}
       className={seg ? undefined : "tabs__tab"}

@@ -5,11 +5,11 @@
  * apps/games keeps those.
  *
  *   Low Detail (ldm)  one painted frame, nothing moves (the default)
- *   Normal            stars twinkle, the nebula drifts, a meteor now and
- *                     then; drawn at 30 fps
+ *   Normal            stars twinkle, the nebula drifts, the aurora
+ *                     curtains wave, a meteor now and then; 30 fps
  *   High Detail (hd)  adds the ringed planet, banded gas giant, cratered
  *                     moon, an orbiting satellite, a spiral galaxy,
- *                     asteroids, comet showers and aurora ribbons
+ *                     asteroids and comet showers
  *
  * The light theme ("Daylight sky") repaints the same layers: a dawn
  * gradient, sun glow, drifting clouds, pastel planets and a contrail.
@@ -298,23 +298,117 @@ function galaxy(
   ctx.restore();
 }
 
+/** One aurora curtain: its hue pair (top, bottom), height in the sky, and
+ *  the two waves its edge rides on. */
+interface Ribbon {
+  hue: [number, number];
+  y: number;
+  thick: number;
+  amp: [number, number];
+  len: [number, number];
+  speed: [number, number];
+}
+
+const RIBBONS: Ribbon[] = [
+  {
+    hue: [160, 190],
+    y: 0.16,
+    thick: 0.22,
+    amp: [46, 22],
+    len: [260, 120],
+    speed: [0.00032, 0.00051],
+  },
+  {
+    hue: [285, 320],
+    y: 0.24,
+    thick: 0.18,
+    amp: [38, 26],
+    len: [340, 150],
+    speed: [0.00025, 0.00062],
+  },
+  {
+    hue: [195, 230],
+    y: 0.34,
+    thick: 0.2,
+    amp: [52, 18],
+    len: [300, 110],
+    speed: [0.00041, 0.00037],
+  },
+  {
+    hue: [330, 20],
+    y: 0.46,
+    thick: 0.15,
+    amp: [34, 24],
+    len: [380, 170],
+    speed: [0.00022, 0.00055],
+  },
+  {
+    hue: [120, 165],
+    y: 0.58,
+    thick: 0.17,
+    amp: [44, 20],
+    len: [280, 130],
+    speed: [0.00036, 0.00044],
+  },
+  {
+    hue: [40, 300],
+    y: 0.7,
+    thick: 0.16,
+    amp: [30, 26],
+    len: [420, 140],
+    speed: [0.00028, 0.00059],
+  },
+];
+
+/** Colourful, waving aurora curtains: each a band whose top edge rides two
+ *  sine waves, lit from a bright edge fading down, the hues drifting slowly.
+ *  The night adds its light to the sky; the day paints soft pastels. */
 function aurora(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, light: boolean) {
-  const cols = light
-    ? ["rgba(140,200,255,0.18)", "rgba(200,170,255,0.16)", "rgba(255,190,200,0.14)"]
-    : ["rgba(64,176,255,0.12)", "rgba(167,139,250,0.11)", "rgba(94,234,212,0.1)"];
-  cols.forEach((c, i) => {
-    ctx.beginPath();
-    for (let x = 0; x <= w; x += 20) {
-      const y = h * (0.72 + i * 0.06) + Math.sin(x / (180 + i * 40) + t * 0.0004 * (i + 1)) * 34;
-      if (x === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+  const step = Math.max(14, Math.round(w / 90));
+  const shift = Math.sin(t * 0.00005) * 24;
+  ctx.save();
+  ctx.globalCompositeOperation = light ? "source-over" : "lighter";
+  for (const r of RIBBONS) {
+    const top: number[] = [];
+    const bot: number[] = [];
+    for (let x = 0; x <= w + step; x += step) {
+      const wave =
+        Math.sin(x / r.len[0] + t * r.speed[0]) * r.amp[0] +
+        Math.sin(x / r.len[1] - t * r.speed[1]) * r.amp[1];
+      const y = h * r.y + wave;
+      // The curtain hangs longer where its edge dips, like a fold.
+      const drop = h * r.thick * (0.75 + 0.35 * Math.sin(x / (r.len[0] * 0.7) + t * r.speed[1]));
+      top.push(y);
+      bot.push(y + drop);
     }
-    ctx.lineTo(w, h);
-    ctx.lineTo(0, h);
+    const y0 = h * r.y - r.amp[0] - r.amp[1];
+    const y1 = h * (r.y + r.thick * 1.1) + r.amp[0] + r.amp[1];
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    const a = light ? 0.2 : 0.17;
+    const h0 = r.hue[0] + shift;
+    const h1 = r.hue[1] + shift;
+    const l = light ? 72 : 62;
+    g.addColorStop(0, `hsla(${h0},95%,${l}%,0)`);
+    g.addColorStop(0.18, `hsla(${h0},95%,${l + 6}%,${a})`);
+    g.addColorStop(0.5, `hsla(${(h0 + h1) / 2},90%,${l}%,${a * 0.6})`);
+    g.addColorStop(1, `hsla(${h1},90%,${l - 4}%,0)`);
+    // Each curtain slowly brightens and dims on its own beat.
+    const p = (Math.sin(t * r.speed[0] * 0.6 + r.y * 9) + 1) / 2;
+    ctx.beginPath();
+    top.forEach((y, i) => (i ? ctx.lineTo(i * step, y) : ctx.moveTo(0, y)));
+    for (let i = bot.length - 1; i >= 0; i--) ctx.lineTo(i * step, bot[i]);
     ctx.closePath();
-    ctx.fillStyle = c;
+    ctx.fillStyle = g;
+    ctx.globalAlpha = 0.55 + p * 0.45;
     ctx.fill();
-  });
+    // A thin bright rim along the top edge.
+    ctx.beginPath();
+    top.forEach((y, i) => (i ? ctx.lineTo(i * step, y) : ctx.moveTo(0, y)));
+    ctx.strokeStyle = `hsla(${h0},100%,${light ? 70 : 74}%,${light ? 0.22 : 0.2})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /* ---------------------------------------------------------- the ground */
@@ -422,9 +516,11 @@ function draw(
     ctx.globalAlpha = 1;
   }
 
+  // The aurora shows at every level; Low Detail paints it still.
+  aurora(ctx, w, h, t, light);
+
   if (detail === "hd") {
     const m = Math.min(w, h);
-    aurora(ctx, w, h, t, light);
     galaxy(ctx, w * 0.36, h * 0.16, m * 0.09, t, light);
     gasGiant(ctx, w * 0.06, h * 0.98, m * 0.34, light, t);
     ringedPlanet(ctx, w * 0.86, h * 0.2, m * 0.075, light);

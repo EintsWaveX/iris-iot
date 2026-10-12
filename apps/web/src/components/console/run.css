@@ -844,6 +844,11 @@
   box-shadow: 0 0 10px var(--warn);
 }
 
+.prep12__tab .lights__lamp[data-tone="bad"] {
+  background: var(--danger);
+  box-shadow: 0 0 10px var(--danger);
+}
+
 .prep12__sub {
   overflow: hidden;
   text-overflow: ellipsis;

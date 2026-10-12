@@ -18,6 +18,9 @@ const T = dict({
 
 export const setupKey = (modul: number) => `iris-setup-m${modul}`;
 
+/** Fired on every tick, so the module's steps follow the checklist. */
+export const SETUP_BERUBAH = "iris:setup";
+
 export function readSetup(modul: number): number[] {
   try {
     const v = JSON.parse(localStorage.getItem(setupKey(modul)) || "[]");
@@ -50,6 +53,7 @@ export default function SetupChecklist({
     } catch {
       /* ignore */
     }
+    window.dispatchEvent(new CustomEvent(SETUP_BERUBAH, { detail: { modul, n: next.length } }));
   }
 
   const n = items.filter((_, i) => done.includes(i)).length;

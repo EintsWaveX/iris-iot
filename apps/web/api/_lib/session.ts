@@ -11,8 +11,7 @@ import { currentSesi, resolvePraktikan } from "../../src/lib/sesi.js";
 import { getDb } from "../../src/lib/db.js";
 import { anggota, kelompok } from "../../src/lib/schema.js";
 import { eq } from "drizzle-orm";
-import { totAktif } from "../../src/lib/mode-tot.js";
-import { praktikanBolehMasuk } from "../../src/lib/tot.js";
+import { praktikanSahTot } from "../../src/lib/mode-tot.js";
 
 export function currentSession(req: ApiRequest): SessionPayload | null {
   const cookies = parseCookies(req);
@@ -120,7 +119,7 @@ export async function requirePraktikanBaca(
 export async function tolakPraktikanTot(req: ApiRequest, res: ApiResponse): Promise<boolean> {
   const session = currentSession(req);
   if (!session || session.role !== "praktikan") return false;
-  if (praktikanBolehMasuk(session.nim, await totAktif())) return false;
+  if (await praktikanSahTot(session.nim, session.exp)) return false;
   res.status(401).json({ ok: false, kode: "sesi_berganti", alasan: "mode_tot" });
   return true;
 }

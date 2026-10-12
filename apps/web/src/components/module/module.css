@@ -393,6 +393,25 @@
   justify-content: space-between;
 }
 
+/* Next, with what is still missing beside it (2026-10-12). */
+.modsteps__next {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3, 12px);
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.modsteps__next .btn[aria-disabled="true"] {
+  opacity: 0.55;
+}
+
+/* A step that opens once the ones before it are finished. */
+.modsteps__tabs button[data-locked="yes"] {
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
 @media (max-width: 520px) {
   .modsteps__pager {
     flex-direction: column-reverse;
@@ -400,6 +419,11 @@
   }
   .modsteps__pager > span:empty {
     display: none;
+  }
+  .modsteps__next {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    text-align: left;
   }
 }
 

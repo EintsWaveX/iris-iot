@@ -22,6 +22,11 @@
  * hunt, locked until the Asisten starts a session in the hunt's control
  * room, then the group's result.
  *
+ * A Praktikan in the running session goes through the steps in order
+ * (2026-10-12, useLangkah.ts): a step opens once the ones before it are
+ * finished; a finished step is tinted green, one visited and left
+ * unfinished yellow, one not touched yet stays plain.
+ *
  * The step is mirrored into ?step= so a step is bookmarkable, and
  * `iris:go-step` (detail: a step id) moves to it from anywhere on the page.
  * Each move is a history entry, so the browser's Back goes to the previous
@@ -59,6 +64,8 @@ import PinSchematic, { type PinData } from "./PinSchematic";
 import SetupChecklist from "./SetupChecklist";
 import LiveRoom from "../live/LiveRoom";
 import { CaptureList, useTangkapan } from "../live/Capture";
+import { useLangkah, type StepId } from "./useLangkah";
+import "../ui/Tabs.css";
 import { CV } from "../live/captureStrings";
 import BriefStep from "./BriefStep";
 import HuntStep, { usePerburuan } from "./HuntStep";
@@ -75,7 +82,7 @@ import { dengar, useSegar } from "../../lib/siaran";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 
 type Mode = "browse" | "now" | "done" | "asisten";
-type Step = "modul" | "brief" | "praktikum" | "setup" | "code" | "live" | "hunt";
+type Step = StepId;
 
 interface Praktikum {
   sesiId: number;
@@ -275,17 +282,51 @@ export default function ModuleSteps(p: Props) {
   const keadaan = hunt.data?.aktif ? (hunt.data.keadaan ?? "tunggu") : "tunggu";
 
   const [step, setStep] = useState<Step>("modul");
-  const awal: Step = mode === "now" ? "code" : "modul";
+  const label: Record<Step, string> = {
+    modul: t.modul,
+    brief: t.brief,
+    praktikum: t.praktikum,
+    setup: t.setup,
+    code: t.code,
+    live: mode === "done" ? t.captures : t.live,
+    hunt: H[lang].step,
+  };
+  // A Praktikan in this module's session goes through the steps in order.
+  const urut = mode === "now" && me?.role === "praktikan" && !wakil;
+  const tangkapanSaya = useTangkapan(modul, urut && !loading);
+  const langkah = useLangkah({
+    aktif: urut && !loading,
+    sesiId: sesi?.id ?? null,
+    modul,
+    steps,
+    step,
+    persiapan: p.persiapan.length,
+    berkas: p.code.berkas.map((f) => ({
+      slug: f.slug,
+      blanks: f.segments.filter((x) => x.kind === "blank").length,
+    })),
+    tangkapan: tangkapanSaya.rows ? tangkapanSaya.rows.length : null,
+    huntSelesai: keadaan === "selesai",
+  });
+  const boleh = (s: Step) => !langkah || langkah.terbuka(s);
+  const awal: Step = langkah ? langkah.awal : mode === "now" ? "code" : "modul";
   const [picked, setPicked] = useState(false);
-  // The first step to show: the URL's, else Code in a running session,
-  // else the module itself.
+  // The first step to show: the URL's (when it is open), else the first
+  // unfinished one for a Praktikan in the session (Code for anyone else in
+  // it), else the module itself.
   useEffect(() => {
-    if (loading || picked) return;
+    if (loading || picked || (urut && !langkah?.siap)) return;
     setPicked(true);
-    setStep(stepFromUrl(steps) ?? awal);
-  }, [loading, picked, mode]);
+    const dariUrl = stepFromUrl(steps);
+    setStep(dariUrl && boleh(dariUrl) ? dariUrl : awal);
+  }, [loading, picked, mode, langkah?.siap]);
 
-  const go = (s: Step) => {
+  const go = (s: Step, paksa = false) => {
+    if (!paksa && !boleh(s)) {
+      const h = langkah?.penghalang(s);
+      if (h) window.Toast?.show(t.stepNeed[h] ?? t.stepLocked(label[h]), "warn");
+      return;
+    }
     setStep(s);
     const url = new URL(location.href);
     if (url.searchParams.get("step") === s) return;
@@ -296,7 +337,10 @@ export default function ModuleSteps(p: Props) {
   // Back and Forward: the step the address now names, or the first step.
   useEffect(() => {
     if (loading) return;
-    const on = () => setStep(stepFromUrl(steps) ?? awal);
+    const on = () => {
+      const s = stepFromUrl(steps);
+      setStep(s && boleh(s) ? s : awal);
+    };
     window.addEventListener("popstate", on);
     return () => window.removeEventListener("popstate", on);
   }, [loading, steps.join(), awal]);
@@ -322,15 +366,6 @@ export default function ModuleSteps(p: Props) {
     );
   }
 
-  const label: Record<Step, string> = {
-    modul: t.modul,
-    brief: t.brief,
-    praktikum: t.praktikum,
-    setup: t.setup,
-    code: t.code,
-    live: mode === "done" ? t.captures : t.live,
-    hunt: H[lang].step,
-  };
   const done = mode === "done" ? mine?.find((x) => x.modul === modul) : undefined;
   const open = akses?.terbuka.includes(modul) ?? false;
   const canEdit = mode === "asisten" && me?.hak?.jadwal === true;
@@ -419,6 +454,14 @@ export default function ModuleSteps(p: Props) {
             id={`step-${s}`}
             aria-selected={step === s}
             aria-controls="modsteps-panel"
+            aria-disabled={!boleh(s) || undefined}
+            data-tone={mode === "done" ? "ok" : langkah?.nada(s)}
+            data-locked={!boleh(s) ? "yes" : undefined}
+            title={
+              !boleh(s) && langkah?.penghalang(s)
+                ? t.stepLocked(label[langkah.penghalang(s)!])
+                : undefined
+            }
             tabIndex={step === s ? 0 : -1}
             onClick={() => go(s)}
             onKeyDown={(e) => {
@@ -441,7 +484,7 @@ export default function ModuleSteps(p: Props) {
             }}
           >
             {mode === "browse" && ICON[s]}
-            {s === "hunt" && (keadaan === "tunggu" || keadaan === "belum") && (
+            {((s === "hunt" && (keadaan === "tunggu" || keadaan === "belum")) || !boleh(s)) && (
               <LockSimpleIcon aria-hidden="true" />
             )}
             {/* Browse numbers the three steps and gives them icons (mockup
@@ -521,7 +564,12 @@ export default function ModuleSteps(p: Props) {
         const next = i >= 0 && i < steps.length - 1 ? steps[i + 1] : null;
         if (!prev && !next) return null;
         const pindah = (s: Step) => {
-          go(s);
+          // Next from Modul or Ringkasan finishes it and opens the next step.
+          const bebas =
+            (step === "modul" || step === "brief") && s === next && langkah?.penghalang(s) === step;
+          if (s === next) langkah?.lanjut(step);
+          go(s, bebas);
+          if (!bebas && !boleh(s)) return;
           document.querySelector(".modsteps__tabs")?.scrollIntoView({ block: "start" });
           requestAnimationFrame(() => document.getElementById(`step-${s}`)?.focus());
         };
@@ -536,10 +584,28 @@ export default function ModuleSteps(p: Props) {
               <span />
             )}
             {next && (
-              <button type="button" className="btn btn--secondary" onClick={() => pindah(next)}>
-                {t.nextStep(label[next])}
-                <ArrowRightIcon size={18} aria-hidden="true" />
-              </button>
+              <span className="modsteps__next">
+                {langkah && !langkah.selesai(step) && t.stepNeed[step] && (
+                  <span className="hint">{t.stepNeed[step]}</span>
+                )}
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  aria-disabled={
+                    (langkah &&
+                      langkah.penghalang(next) !== null &&
+                      !(
+                        (step === "modul" || step === "brief") &&
+                        langkah.penghalang(next) === step
+                      )) ||
+                    undefined
+                  }
+                  onClick={() => pindah(next)}
+                >
+                  {t.nextStep(label[next])}
+                  <ArrowRightIcon size={18} aria-hidden="true" />
+                </button>
+              </span>
             )}
           </nav>
         );

@@ -1,7 +1,8 @@
 /**
  * Mode TOT banner (2026-10-05): under the nav on every Asisten page while
  * TOT is on, so nobody forgets that real Praktikan are locked out. Links to
- * Preparation's Mode TOT tab. Refreshes on the `tot` live update.
+ * the Mode TOT page (/tot). useTotAktif keeps the state for the nav's TOT
+ * chip and this banner, refreshed on the `tot` live update.
  */
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRightIcon, ChalkboardTeacherIcon } from "@phosphor-icons/react";
@@ -30,27 +31,33 @@ const T = dict({
   },
 });
 
-export default function TotNotice({ lang }: { lang: Lang }) {
-  const t = T[lang];
-  const [on, setOn] = useState(false);
+/** Whether Mode TOT is on; null until known */
+export function useTotAktif(enabled: boolean): boolean | null {
+  const [on, setOn] = useState<boolean | null>(null);
   const load = useCallback(() => {
+    if (!enabled) return;
     getJson<{ ok: boolean; aktif?: boolean }>("/api/session/tot")
-      .then((d) => setOn(!!d.ok && !!d.aktif))
+      .then((d) => d.ok && setOn(!!d.aktif))
       .catch(() => {});
-  }, []);
+  }, [enabled]);
   useEffect(() => {
     load();
     window.addEventListener(TOT_BERUBAH, load);
     return () => window.removeEventListener(TOT_BERUBAH, load);
   }, [load]);
-  useSiaran(["tot"], load);
+  useSiaran(["tot"], load, enabled);
+  return on;
+}
+
+export default function TotNotice({ lang, on }: { lang: Lang; on: boolean }) {
+  const t = T[lang];
   if (!on) return null;
   return (
     <div className="offline banner banner--warn" role="status">
       <ChalkboardTeacherIcon size={20} aria-hidden="true" />
       <b>{t.h}</b>
       <span className="hint">{t.p}</span>
-      <a className="btn btn--ghost btn--sm" href={`${href(lang, "/session")}#tot`}>
+      <a className="btn btn--ghost btn--sm" href={href(lang, "/tot")}>
         {t.go}
         <ArrowRightIcon size={14} aria-hidden="true" />
       </a>

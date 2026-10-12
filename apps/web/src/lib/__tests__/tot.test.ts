@@ -8,6 +8,10 @@ import {
   isNimTot,
   praktikanBolehMasuk,
   rosterTot,
+  ATUR_TOT_BAWAAN,
+  bacaAturTot,
+  dikeluarkanTot,
+  pesertaTot,
 } from "../tot";
 import { NIM_PATTERN } from "../auth";
 
@@ -72,9 +76,46 @@ describe("Mode TOT roster", () => {
         anggota: [{ id: 9, kelompokId: 3, nim: "1301220001", nama: "Budi" }],
       },
     };
-    expect(bacaNilaiTot(JSON.parse(JSON.stringify(nilai)))).toEqual(nilai);
+    expect(bacaNilaiTot(JSON.parse(JSON.stringify(nilai)))).toEqual({
+      ...nilai,
+      atur: ATUR_TOT_BAWAAN,
+      keluar: {},
+    });
     expect(bacaNilaiTot(undefined)).toEqual(MODE_TOT_MATI);
     expect(bacaNilaiTot("on")).toEqual(MODE_TOT_MATI);
     expect(bacaNilaiTot({ aktif: "yes" }).aktif).toBe(false);
+  });
+
+  it("builds the roster from the chosen divisions, in their order", () => {
+    const atur = { divisi: ["ARM", "ASO"] as const, perKelompok: 3 };
+    const r = rosterTot([{ nomor: 1 }, { nomor: 4 }], { ...atur, divisi: [...atur.divisi] });
+    expect(r.kelompok.map((k) => k.nomor)).toEqual([1, 2]);
+    expect(r.matikan).toEqual([4]);
+    expect(r.anggota).toHaveLength(6);
+    expect(r.anggota.filter((a) => a.kelompokNomor === 1).map((a) => a.nim)).toEqual([
+      "600000",
+      "600001",
+      "600002",
+    ]);
+    expect(pesertaTot({ divisi: ["ADS"], perKelompok: 10 })).toHaveLength(10);
+  });
+
+  it("cleans a sent setting and refuses one it can't use", () => {
+    expect(bacaAturTot({ divisi: ["ASO", "ASO", "XYZ"], perKelompok: 4 })).toEqual({
+      divisi: ["ASO"],
+      perKelompok: 4,
+    });
+    expect(bacaAturTot({ divisi: [], perKelompok: 4 })).toBeNull();
+    expect(bacaAturTot({ divisi: ["ASO"], perKelompok: 11 })).toBeNull();
+  });
+
+  it("signs a dummy out only for cookies made before the sign out", () => {
+    const mode = {
+      ...bacaNilaiTot({ aktif: true }),
+      keluar: { "100000": "2026-10-12T01:00:00.000Z" },
+    };
+    expect(dikeluarkanTot(mode, "100000", Date.parse("2026-10-12T00:59:00Z"))).toBe(true);
+    expect(dikeluarkanTot(mode, "100000", Date.parse("2026-10-12T01:01:00Z"))).toBe(false);
+    expect(dikeluarkanTot(mode, "100001", 0)).toBe(false);
   });
 });

@@ -177,3 +177,49 @@
   min-width: 22px;
   padding: 0 7px;
 }
+
+/* A tab tinted by its state (2026-10-12): Persiapan's sections and the
+   module's steps. A soft wash of green (all set or finished), yellow
+   (needs a look, or left unfinished) or red (something went wrong) behind
+   the label; the open tab keeps its own look on top. */
+.tabs__tab[data-tone],
+.seg button[data-tone] {
+  transition:
+    background var(--dur-mid) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal);
+}
+
+.tabs__tab[data-tone] {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.tabs__tab[data-tone="ok"],
+.seg button[data-tone="ok"] {
+  background: var(--ok-soft);
+}
+
+.tabs__tab[data-tone="warn"],
+.seg button[data-tone="warn"] {
+  background: var(--warn-soft);
+}
+
+.tabs__tab[data-tone="bad"],
+.seg button[data-tone="bad"] {
+  background: var(--danger-soft);
+}
+
+.seg button[data-tone="ok"][aria-selected="true"] {
+  background: color-mix(in srgb, var(--ok) 26%, var(--surface-4));
+}
+
+.seg button[data-tone="warn"][aria-selected="true"] {
+  background: color-mix(in srgb, var(--warn) 26%, var(--surface-4));
+}
+
+:root[data-theme="light"] .seg button[data-tone="ok"][aria-selected="true"] {
+  background: color-mix(in srgb, var(--ok) 16%, #fff);
+}
+
+:root[data-theme="light"] .seg button[data-tone="warn"][aria-selected="true"] {
+  background: color-mix(in srgb, var(--warn) 16%, #fff);
+}

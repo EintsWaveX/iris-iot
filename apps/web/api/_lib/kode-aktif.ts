@@ -15,7 +15,14 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
 import { kodeVersi, pengaturan } from "../../src/lib/schema.js";
-import { gabungPin, KUNCI_PIN, terapkanPin, type BarisPin } from "../../src/lib/pin-kode.js";
+import {
+  gabungPin,
+  KUNCI_PIN,
+  papanModul,
+  terapkanPin,
+  type BarisPin,
+} from "../../src/lib/pin-kode.js";
+import type { PapanId } from "../../src/lib/papan.js";
 import {
   buatTemplat,
   cocokCelah,
@@ -43,6 +50,20 @@ export const BERKAS_MODUL: Record<number, string[]> = Object.fromEntries(
 export const PIN_BAWAAN: Record<number, BarisPin> = Object.fromEntries(
   [m1, m2, m3, m4].map((m) => [m.modul, (m as { pin: { baris: string[][] } }).pin.baris]),
 );
+
+/** The boards each module's pins are set for (absent = the bundled ones) */
+export async function bacaPapanSemua(): Promise<Record<number, PapanId[]>> {
+  const rows = await getDb()
+    .select({ kunci: pengaturan.kunci, nilai: pengaturan.nilai })
+    .from(pengaturan)
+    .where(inArray(pengaturan.kunci, [1, 2, 3, 4].map(KUNCI_PIN)));
+  const out: Record<number, PapanId[]> = {};
+  for (const r of rows) {
+    const modul = Number(r.kunci.replace("pin_modul_", ""));
+    out[modul] = papanModul(modul, (r.nilai as { papan?: unknown }).papan);
+  }
+  return out;
+}
 
 /** The saved pin rows per module (absent = the bundled table) */
 export async function bacaPinSemua(): Promise<Record<number, BarisPin>> {

@@ -86,7 +86,7 @@ import {
   TAUTAN_SLIDES,
 } from "../../src/lib/tautan.js";
 import { denganSiaran } from "../_lib/siaran.js";
-import { handlePinGet, handlePinSimpan } from "../_lib/pin.js";
+import { handlePinGet, handlePinGrupGet, handlePinGrupPost, handlePinSimpan } from "../_lib/pin.js";
 
 // Comfortably above a slide deck; well under what Blob itself allows.
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -549,6 +549,19 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "pin") {
     if (!requireMethod(req, res, "GET")) return;
     return handlePinGet(req, res);
+  }
+
+  // A group's own wiring in the running session: its Praktikan rewire it,
+  // an Asisten reads any group's (handlePinGrup*).
+  if (aksi === "pin-grup") {
+    const session = requireAnyRole(req, res, ["asisten", "praktikan"]);
+    if (!session) return;
+    if (req.method === "POST") {
+      if (session.role !== "praktikan") return res.status(403).json({ ok: false, kode: "ditolak" });
+      return handlePinGrupPost(req, res, session);
+    }
+    if (!requireMethod(req, res, "GET")) return;
+    return handlePinGrupGet(req, res, session);
   }
 
   // The two viewer lists either role reads, before the asisten-only guard;

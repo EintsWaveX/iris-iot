@@ -13,8 +13,12 @@
  * The files come baked into the page (version 1); once ASO publish a newer
  * version, the published Praktikan files replace them (GET /api/modul/kode,
  * again whenever a version is published).
+ *
+ * A group that rewired its pins in a Pin dan Skema card (lib/pin-grup.ts)
+ * reads its own pins in the code; the blanks and their answers stay the
+ * same, since a pin line never holds a blank.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EyeIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { Switch } from "../ui/Controls";
@@ -25,6 +29,9 @@ import { useMinWidth } from "../../lib/hooks";
 import { getJson } from "../../lib/app";
 import { parseBlanks } from "../../lib/blanks";
 import { useSiaran } from "../../lib/siaran";
+import { gabungPin, gantiPinTeks } from "../../lib/pin-kode";
+import { usePinGrup } from "../../lib/pin-grup";
+import { usePin } from "./usePin";
 import type { Lang } from "../../lib/kelas";
 import { C } from "./codeStrings";
 import "./code.css";
@@ -88,7 +95,23 @@ function useBerkasTerbit(code: CodeProps): BerkasEntry[] {
 
 export default function CodeStep({ lang, mode, pin, mcu, skema, code: baked, wakil }: Props) {
   const t = C[lang];
-  const berkas = useBerkasTerbit(baked);
+  const terbit = useBerkasTerbit(baked);
+  // The group's own wiring over the module's pins
+  const pinData = usePin();
+  const grup = usePinGrup(baked.modul);
+  const berkas = useMemo(() => {
+    const bawaan = pinData?.bawaan[String(baked.modul)];
+    if (!grup.baris || !bawaan) return terbit;
+    const dari = gabungPin(bawaan, pinData?.pin[String(baked.modul)] ?? null);
+    return terbit.map((f) => ({
+      ...f,
+      segments: f.segments.map((s) =>
+        s.kind === "text"
+          ? { ...s, text: gantiPinTeks(baked.modul, f.slug, s.text, dari, grup.baris!) }
+          : s,
+      ),
+    }));
+  }, [terbit, grup.baris, pinData, baked.modul]);
   const code = { ...baked, berkas };
   const wide = useMinWidth(1280, true);
   const [awal] = useState(blankDariUrl);

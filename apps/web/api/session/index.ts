@@ -53,7 +53,7 @@ import { muatOrang } from "../_lib/hak.js";
 import { salinRosterKeSesi, type SumberRoster } from "../_lib/roster.js";
 import { getDb } from "../../src/lib/db.js";
 import { pengaturan, sesi } from "../../src/lib/schema.js";
-import { TOT_JUMLAH_KELOMPOK } from "../../src/lib/tot.js";
+import { bacaModeTot } from "../../src/lib/mode-tot.js";
 import { hariIniWib, slotToMulai, SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
 import { semesterDariTanggal, hariDariTanggal } from "../../src/lib/jadwal-parser.js";
 import {
@@ -187,8 +187,9 @@ async function handler(req: ApiRequest, res: ApiResponse) {
       return tolak(res, "belum_siap", { cek, serverId });
     const dipaksa = lunak.length ? { alasan: paksa, gagal: lunak.map((c) => c.id) } : null;
 
+    // A TOT session has one group per division taking part (the /tot page).
     const jumlahKelompok = tot
-      ? TOT_JUMLAH_KELOMPOK
+      ? (await bacaModeTot()).atur.divisi.length
       : bacaJumlahKelompok(
           body.jumlahKelompok,
           draft?.jumlahKelompok ?? slotRow?.jumlahKelompok ?? undefined,

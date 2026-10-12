@@ -537,7 +537,7 @@ function Members({
           {r.addStudent}
         </button>
         {onPrep && (
-          <button type="button" className="btn btn--ghost btn--sm" onClick={onPrep}>
+          <button type="button" className="btn btn--inverse btn--sm" onClick={onPrep}>
             <UserSwitchIcon size={16} aria-hidden="true" />
             {r.moveGroup}
           </button>

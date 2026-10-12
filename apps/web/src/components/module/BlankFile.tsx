@@ -135,6 +135,9 @@ type Item = { t: "tok"; tok: Token; text: string } | { t: "blank"; seg: BlankSeg
 
 const SALAH_UNTUK_BANTUAN = 2;
 
+/** Each file's blanks right of its total, for the module's steps. */
+export const KODE_PROGRES = "iris:kode-progres";
+
 interface Props {
   lang: Lang;
   mode: CodeMode;
@@ -411,6 +414,24 @@ export default function BlankFile(p: Props) {
     },
   );
 
+  // A Praktikan's file follows new text once loaded: a newly published
+  // version, or the group's own pins (2026-10-12), with its group's lines.
+  const awalSeg = useRef(file.segments);
+  const awalGrup = useRef<number | null>(null);
+  useEffect(() => {
+    if (mode === "asisten") return;
+    if (awalSeg.current === file.segments && awalGrup.current === grup) return;
+    awalSeg.current = file.segments;
+    awalGrup.current = grup;
+    if (grup === null || !needsPersonalization(berkas)) return setSegments(file.segments);
+    try {
+      setSegments(personalizeSegments(berkas, file.segments, grup));
+    } catch (err) {
+      console.error(err);
+      setSegments(file.segments);
+    }
+  }, [file.segments, grup, mode, berkas]);
+
   // An Asisten reads any group's file: its identity lines follow the pick.
   const lihat = mode === "asisten" ? (p.grupLihat ?? 1) : null;
   useEffect(() => {
@@ -542,6 +563,15 @@ export default function BlankFile(p: Props) {
   const right = nomors.filter((n) => state[n]?.benar).length;
   const shownRight = mode === "asisten" ? (keys ? total : 0) : right;
   const complete = loaded && total > 0 && (mode === "asisten" ? keys : right === total);
+
+  // The module's steps follow each file's count (ModuleSteps: Kode turns
+  // green once every blank of every file is right).
+  useEffect(() => {
+    if (!loaded || mode === "asisten") return;
+    window.dispatchEvent(
+      new CustomEvent(KODE_PROGRES, { detail: { slug: file.slug, benar: right, total } }),
+    );
+  }, [loaded, right, total, mode, file.slug]);
 
   // Back online: send every answer typed while the network was gone (the
   // state keeps them; a failed send left them unchecked).

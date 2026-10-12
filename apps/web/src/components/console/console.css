@@ -3281,3 +3281,25 @@ button.lib__name {
     width: 100% !important;
   }
 }
+
+/* Pin Modul (prep/PinEditor.tsx, 2026-10-12): each connection on one line */
+.pinedit__list {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pinedit__list li {
+  align-items: center;
+  border-top: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  min-height: 40px;
+}
+
+.pinedit__actions--one {
+  grid-template-columns: minmax(0, 1fr);
+}

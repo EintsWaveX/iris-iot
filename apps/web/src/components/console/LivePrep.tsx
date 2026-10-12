@@ -295,11 +295,11 @@ export default function LivePrep({
           <UserPlusIcon aria-hidden="true" />
           {l.addStudent}
         </button>
-        <button type="button" className="btn btn--sm" onClick={() => onOpen("akses")}>
+        <button type="button" className="btn btn--inverse btn--sm" onClick={() => onOpen("akses")}>
           <LockSimpleOpenIcon aria-hidden="true" />
           {l.access}
         </button>
-        <button type="button" className="btn btn--sm" onClick={() => onOpen("slides")}>
+        <button type="button" className="btn btn--inverse btn--sm" onClick={() => onOpen("slides")}>
           <PresentationChartIcon aria-hidden="true" />
           {l.slides}
         </button>
