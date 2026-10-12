@@ -98,9 +98,28 @@
   color: var(--text);
 }
 
+/* Segera and Libur wear the same pastel stripes as No Practicum
+   (2026-10-12): Segera in teal, Libur in periwinkle. Aktif stays plain. */
+.jpage,
+.jedit {
+  --libur: var(--group-9);
+  --libur-soft: color-mix(in srgb, var(--group-9) 20%, transparent);
+}
+
+.jswatch[data-c="segera"] {
+  background:
+    repeating-linear-gradient(135deg, var(--teal-soft) 0 10px, transparent 10px 20px),
+    var(--surface-1);
+  border: 2px solid var(--teal);
+  color: var(--teal);
+}
+
 .jswatch[data-c="libur"] {
-  background: repeating-linear-gradient(135deg, var(--hairline-faint) 0 6px, transparent 6px 12px);
-  border: 2px dashed var(--hairline-strong);
+  background:
+    repeating-linear-gradient(135deg, var(--libur-soft) 0 10px, transparent 10px 20px),
+    var(--surface-1);
+  border: 2px solid var(--libur);
+  color: var(--libur);
 }
 
 /* ---- the codes */
@@ -253,14 +272,35 @@
   text-align: center;
 }
 
+.jcell--soon[data-st="segera"] {
+  background:
+    repeating-linear-gradient(135deg, var(--teal-soft) 0 10px, transparent 10px 20px),
+    var(--surface-1);
+  border: 2px solid var(--teal);
+}
+
 .jcell--libur {
   align-content: center;
   background:
-    repeating-linear-gradient(135deg, var(--hairline-faint) 0 8px, transparent 8px 16px),
+    repeating-linear-gradient(135deg, var(--libur-soft) 0 10px, transparent 10px 20px),
     var(--surface-1);
-  border: 2px dashed var(--hairline-strong);
+  border: 2px solid var(--libur);
+  color: var(--libur);
   justify-items: center;
   text-align: center;
+}
+
+.jcell--libur .pill {
+  background: var(--surface-1);
+  border-color: var(--libur);
+  color: var(--libur);
+}
+
+.jcell--libur .hint,
+.jcell--soon[data-st="segera"] .hint {
+  background: var(--surface-1);
+  border-radius: 6px;
+  padding: 1px 6px;
 }
 
 .jcell--off {
@@ -537,11 +577,6 @@
 .jswatch.slotstat__sw[data-c="aktif"] {
   background: var(--accent-soft);
   border: 2px solid var(--accent);
-}
-
-.jswatch.slotstat__sw[data-c="segera"] {
-  background: var(--teal-soft);
-  border: 2px dashed var(--teal);
 }
 
 .slotstat__warna {

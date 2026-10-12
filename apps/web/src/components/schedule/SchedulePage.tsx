@@ -118,7 +118,13 @@ function Cell({ t, lang, row, minggu: m, meKode, dim, known, label, onOpen }: Ce
   const filled = kursi.filter((k) => k.kode || k.tetap).length;
   if (status === "segera" || filled === 0)
     return (
-      <button type="button" className="jcell jcell--soon" aria-label={label} onClick={onOpen}>
+      <button
+        type="button"
+        className="jcell jcell--soon"
+        data-st={status}
+        aria-label={label}
+        onClick={onOpen}
+      >
         <Pill tone="teal" lg>
           {status === "segera" ? t.soon : t.active}
         </Pill>
@@ -602,7 +608,9 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
           </Pill>
         ))}
         <Pill tone="violet">{t.inter}</Pill>
-        <Pill tone="teal">{t.soon}</Pill>
+        <span className="pill jswatch" data-c="segera">
+          {t.soon}
+        </span>
         {/* One chip for both colours (2026-10-06): two identical labels
             read as two different states. */}
         <Tooltip label={t.statusHint.kosong}>
