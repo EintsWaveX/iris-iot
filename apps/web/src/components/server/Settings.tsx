@@ -259,7 +259,12 @@ export default function Settings({
   const t = S[lang];
   const now = useTick(1_000);
   const s = data.server;
-  const saved = { nama: s.nama, lokasi: s.lokasi ?? "", catatan: s.catatan ?? "" };
+  const saved = {
+    nama: s.nama,
+    lokasi: s.lokasi ?? "",
+    penanggungJawab: s.penanggungJawab ?? "",
+    catatan: s.catatan ?? "",
+  };
   const [form, setForm] = useState(saved);
   const [busy, setBusy] = useState(false);
   const [diag, setDiag] = useState<(typeof DIAGS)[number][0]>("diag.ringkas");
@@ -334,6 +339,20 @@ export default function Settings({
             onChange={(e) => setForm({ ...form, lokasi: e.target.value })}
           />
           <p className="field__hint">{t.locHint}</p>
+        </div>
+        <div className="field">
+          <label className="field__label" htmlFor="srv-pj">
+            {t.pic}
+          </label>
+          <input
+            id="srv-pj"
+            className="field__input"
+            value={form.penanggungJawab}
+            readOnly={ro}
+            placeholder={t.picPh}
+            onChange={(e) => setForm({ ...form, penanggungJawab: e.target.value })}
+          />
+          <p className="field__hint">{t.picHint}</p>
         </div>
         <div className="field">
           <label className="field__label" htmlFor="srv-lan">

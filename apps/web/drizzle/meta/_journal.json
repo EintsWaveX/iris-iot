@@ -225,6 +225,13 @@
       "when": 1791530629206,
       "tag": "0031_petunjuk",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791782656026,
+      "tag": "0032_server_penanggung_jawab",
+      "breakpoints": true
     }
   ]
 }

@@ -132,7 +132,17 @@
 
 .kodeed__detail-head {
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+/* The Posisi badges (ID, EN) sit right beside Hapus Celah. */
+.kodeed__detail-act {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .kodeed__detail-head .panel__title code {
@@ -147,17 +157,32 @@
   min-height: 0;
 }
 
+/* Three columns of fields, then Penjelasan and Petunjuk Setelah each a row
+   across the whole card, ID beside EN. */
 .kodeed__detail-grid {
   display: grid;
   gap: 18px 24px;
   grid-template-columns: minmax(0, 1fr);
 }
 
+.kodeed__detail-pair {
+  display: grid;
+  gap: 18px 24px;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .kodeed__detail-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (min-width: 820px) {
   .kodeed__detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .kodeed__detail-grid > :last-child {
+  .kodeed__detail-grid > .stack:nth-child(3) {
     grid-column: 1 / -1;
   }
 }
@@ -166,19 +191,8 @@
   .kodeed__detail-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .kodeed__detail-grid > :last-child {
+  .kodeed__detail-grid > .stack:nth-child(3) {
     grid-column: auto;
-  }
-}
-
-@media (min-width: 1100px) {
-  .kodeed__detail {
-    height: 460px;
-  }
-  .kodeed__detail-body {
-    flex: 1 1 0;
-    overflow: auto;
-    padding-right: 4px;
   }
 }
 

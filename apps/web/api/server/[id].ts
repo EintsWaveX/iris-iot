@@ -140,6 +140,7 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
       alamatLan: row.alamatLan,
       lokasi: row.lokasi,
       catatan: row.catatan,
+      penanggungJawab: row.penanggungJawab,
       agenVersi: row.agenVersi,
       infoSistem: row.infoSistem,
       infoSistemPada: row.infoSistemPada,
@@ -244,13 +245,14 @@ async function handleRiwayat(_req: ApiRequest, res: ApiResponse, id: number, ren
 }
 
 /** P6.7: PATCH /api/server/:id -- the server centre's Pengaturan tab. Any
- *  subset of the four editable fields may be present; an absent field is
+ *  subset of the five editable fields may be present; an absent field is
  *  left alone (not cleared), a present one with an empty string clears it
- *  (catatan/lokasi/alamatLan are all nullable). */
+ *  (catatan/lokasi/penanggungJawab/alamatLan are all nullable). */
 interface ServerPatch {
   nama?: string;
   lokasi?: string | null;
   catatan?: string | null;
+  penanggungJawab?: string | null;
   alamatLan?: string | null;
 }
 
@@ -284,7 +286,7 @@ async function handlePatch(req: ApiRequest, res: ApiResponse, id: number, aktorN
   }
   if (nama !== undefined) patch.nama = nama;
 
-  for (const field of ["lokasi", "catatan", "alamatLan"] as const) {
+  for (const field of ["lokasi", "catatan", "penanggungJawab", "alamatLan"] as const) {
     const value = readField(body, field);
     if (value === FORMAT_SALAH) {
       res.status(200).json({ ok: false, kode: "format_salah" });

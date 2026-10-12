@@ -1191,10 +1191,22 @@ function CelahForm({
         <h3 className="panel__title">
           {t.detailJudul} ({c.nomor}) <code>{c.jawaban}</code>
         </h3>
-        <button type="button" className="btn btn--danger-soft btn--sm" onClick={onHapus}>
-          <TrashIcon aria-hidden="true" />
-          {t.hapus}
-        </button>
+        <div className="kodeed__detail-act">
+          <span className="kodeed__posisi" aria-label={t.posisi}>
+            {BAHASA_KODE.map((b) => {
+              const n = barisKe(b);
+              return (
+                <Pill key={b} tone={n ? "ok" : "warn"}>
+                  {n ? t.diBaris(LABEL_BAHASA[b], n) : t.belumDi(LABEL_BAHASA[b])}
+                </Pill>
+              );
+            })}
+          </span>
+          <button type="button" className="btn btn--danger-soft btn--sm" onClick={onHapus}>
+            <TrashIcon aria-hidden="true" />
+            {t.hapus}
+          </button>
+        </div>
       </div>
       <div className="kodeed__detail-body">
         {masalah.length > 0 && (
@@ -1225,19 +1237,6 @@ function CelahForm({
                 moreLabel={t.nomorLebih}
                 onChange={onNomor}
               />
-            </div>
-            <div className="field">
-              <span className="field__label">{t.posisi}</span>
-              <span className="kodeed__posisi">
-                {BAHASA_KODE.map((b) => {
-                  const n = barisKe(b);
-                  return (
-                    <Pill key={b} tone={n ? "ok" : "warn"}>
-                      {n ? t.diBaris(LABEL_BAHASA[b], n) : t.belumDi(LABEL_BAHASA[b])}
-                    </Pill>
-                  );
-                })}
-              </span>
             </div>
           </div>
           <div className="stack">
@@ -1307,6 +1306,8 @@ function CelahForm({
                 {b === "en" && <span className="field__hint">{t.petunjukHint}</span>}
               </label>
             ))}
+          </div>
+          <div className="kodeed__detail-pair">
             {BAHASA_KODE.map((b) => (
               <label key={`k-${b}`} className="field">
                 <span className="field__label">{t.kenapa(LABEL_BAHASA[b])}</span>
@@ -1320,6 +1321,8 @@ function CelahForm({
                 {b === "en" && <span className="field__hint">{t.kenapaHint}</span>}
               </label>
             ))}
+          </div>
+          <div className="kodeed__detail-pair">
             {BAHASA_KODE.map((b) => (
               <label key={`h-${b}`} className="field">
                 <span className="field__label">{t.bantuan(LABEL_BAHASA[b])}</span>

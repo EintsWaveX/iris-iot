@@ -499,6 +499,7 @@ export default function AsistenHome({
 
   const startButton = (
     <div className="panel__actions">
+      <hr className="lp__rule" />
       {can && perluRoster ? (
         <button
           type="button"

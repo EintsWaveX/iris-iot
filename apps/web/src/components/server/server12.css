@@ -88,16 +88,36 @@
   }
 }
 
-/* The facts share the card's width in equal cells; notes take a row. */
+/* The short facts (up to four) share the card's width in equal cells: one
+   row wide, two by two below 1100px (Lokasi alone on top when the count is
+   odd), one a row on a phone; the notes take a row. */
 .s12facts.locstrip {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.s12facts .locstrip__i[data-k="lokasi"] {
+  grid-column: auto;
+}
+
+.s12facts[data-ganjil="yes"] .locstrip__i[data-k="lokasi"] {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 479px) {
+  .s12facts.locstrip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (min-width: 1100px) {
   .s12facts.locstrip {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr));
+  }
+
+  .s12facts[data-ganjil="yes"] .locstrip__i[data-k="lokasi"] {
+    grid-column: auto;
   }
 }
 

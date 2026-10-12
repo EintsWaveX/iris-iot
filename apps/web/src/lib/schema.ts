@@ -784,6 +784,9 @@ export const server = pgTable("server", {
   // agent reports.
   catatan: text("catatan"),
   lokasi: text("lokasi"),
+  // 0032: who looks after this Pi (a name, division or contact), set in the
+  // Pengaturan tab and shown beside Lokasi on the server's card.
+  penanggungJawab: text("penanggung_jawab"),
   // The bundle SHA pair the agent reads from its own BUNDLE.txt (see
   // orangepi/build_bundle.py and agent.py's _agen_versi()) and reports on
   // every heartbeat, so "is this Pi actually running what I just shipped"

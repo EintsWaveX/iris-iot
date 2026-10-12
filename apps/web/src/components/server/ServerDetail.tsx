@@ -9,9 +9,10 @@
  * Console. The tab line follows. The detail is polled every 6 s and handed
  * to the tab.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   ClockIcon,
+  IdentificationBadgeIcon,
   ListBulletsIcon,
   ListChecksIcon,
   LockSimpleIcon,
@@ -320,8 +321,8 @@ export default function ServerDetail({
       : []),
   ];
 
-  // Location, LAN address, last heartbeat and uptime in one row; the notes,
-  // often long, on their own row below (2026-10-09).
+  // Location, LAN address, uptime and the person in charge in one row; the
+  // notes, often long, on their own row below (2026-10-09, 2026-10-12).
   const loc = [
     { k: "lokasi", ic: MapPinIcon, l: t.location, v: s.lokasi, mono: false },
     { k: "lan", ic: PlugsConnectedIcon, l: t.lan, v: s.alamatLan, mono: true },
@@ -332,11 +333,14 @@ export default function ServerDetail({
       v: hb?.uptimeSec ? durasiLabel(Math.floor(hb.uptimeSec / 60), lang) : null,
       mono: false,
     },
+    { k: "pj", ic: IdentificationBadgeIcon, l: t.pic, v: s.penanggungJawab, mono: false },
     { k: "catatan", ic: NoteIcon, l: t.notes, v: s.catatan, mono: false },
   ];
   // Filled facts show; the empty ones are named once, with where to fill them.
   const isi = loc.filter((x) => x.v);
   const kosong = loc.filter((x) => !x.v && x.k !== "uptime");
+  // The short facts (all but the notes) share one row on a wide screen.
+  const pendek = isi.filter((x) => x.k !== "catatan").length;
   const s12 = S12[lang];
 
   const sw = (
@@ -427,7 +431,11 @@ export default function ServerDetail({
               {!bisa.full && <span className="hint">{t.fullLocked}</span>}
             </div>
           </div>
-          <div className="locstrip s12facts">
+          <div
+            className="locstrip s12facts"
+            data-ganjil={pendek % 2 ? "yes" : undefined}
+            style={{ "--n": Math.max(1, pendek) } as CSSProperties}
+          >
             {isi.map((x) => (
               <span key={x.k} className="locstrip__i" data-k={x.k}>
                 <x.ic size={20} aria-hidden="true" />

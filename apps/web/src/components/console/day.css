@@ -744,6 +744,14 @@
   justify-content: center;
 }
 
+/* A hairline right above Mulai Sesi Modul, as wide as the button. */
+.lp__rule {
+  border: 0;
+  border-top: 1px solid var(--hairline);
+  flex: 1 0 100%;
+  margin: 0 0 var(--space-2);
+}
+
 /* Readiness as lights: a lamp, the check, and Fix on any that isn't. */
 .lights {
   display: grid;

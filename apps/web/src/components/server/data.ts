@@ -58,6 +58,7 @@ export interface ServerRow {
   alamatLan: string | null;
   lokasi?: string | null;
   catatan?: string | null;
+  penanggungJawab?: string | null;
   agenVersi?: string | null;
   infoSistem?: Record<string, unknown> | null;
   infoSistemPada?: string | null;
