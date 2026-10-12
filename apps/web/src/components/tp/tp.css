@@ -1444,7 +1444,7 @@
   padding: 0;
 }
 .tpakhir__l > li {
-  align-items: center;
+  align-items: start;
   background: var(--surface-2);
   border-radius: var(--radius-md);
   display: grid;
@@ -1457,9 +1457,15 @@
 }
 .tpakhir__t {
   color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding-top: 5px;
+}
+.tpakhir__t > p {
+  margin: 0;
+}
+.tpakhir__t > .tpsoal__parts {
+  margin: 4px 0 0;
 }
 .tpakhir__pick {
   display: inline-flex;

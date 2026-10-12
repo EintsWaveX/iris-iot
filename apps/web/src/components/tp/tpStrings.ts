@@ -430,7 +430,7 @@ const id = {
   sambung1:
     "Buka LMS dan masuk dengan SSO Telkom seperti biasa. IRIS tidak pernah melihat kata sandimu.",
   sambung2:
-    "LMS memberi token aplikasi, sama seperti aplikasi CeLOE di ponsel. Salin alamat moodlemobile://token=… yang muncul (atau token dari Preferensi › Kunci Keamanan) lalu tempel di bawah.",
+    "LMS menampilkan tautan Click here if the app does not open automatically. Klik kanan tautan itu, pilih Salin Alamat Tautan (alamatnya moodlemobile://token=…), lalu tempel di bawah. Tidak perlu diklik.",
   sambung3: "IRIS menyimpannya terenkripsi dan mulai mengambil TP.",
   sambungSaran:
     "Disarankan akun lab dengan peran Teacher hanya di 11 kelas praktikum, bukan akun pribadi.",
@@ -886,7 +886,7 @@ const en: TpT = {
   sambungJudul: "Connect the LMS",
   sambung1: "Open the LMS and sign in with Telkom SSO as usual. IRIS never sees your password.",
   sambung2:
-    "The LMS hands out an app token, just like the CeLOE phone app. Copy the moodlemobile://token=… address it shows (or the token from Preferences › Security keys) and paste it below.",
+    "The LMS shows a link, Click here if the app does not open automatically. Right click it, choose Copy Link Address (it reads moodlemobile://token=…), and paste it below. No need to click it.",
   sambung3: "IRIS stores it encrypted and starts fetching TP.",
   sambungSaran:
     "Best done with a lab account that is Teacher only in the 11 practicum classes, not a personal account.",
@@ -1280,7 +1280,7 @@ const zh: TpT = {
   sambungJudul: "连接 LMS",
   sambung1: "打开 LMS，像平常一样用 Telkom SSO 登录。IRIS 永远看不到你的密码。",
   sambung2:
-    "LMS 会给出一个应用令牌，就像手机上的 CeLOE 应用一样。复制出现的 moodlemobile://token=… 地址（或偏好设置里安全密钥中的令牌），贴在下面。",
+    "LMS 会显示一个链接 Click here if the app does not open automatically。右键点击它，选择复制链接地址（形如 moodlemobile://token=…），贴在下面。不用点开它。",
   sambung3: "IRIS 把它加密保存，然后开始取回预习作业。",
   sambungSaran: "最好用一个只在 11 个实验班里当 Teacher 的实验室账号，不要用个人账号。",
   bukaLms: "打开 LMS",

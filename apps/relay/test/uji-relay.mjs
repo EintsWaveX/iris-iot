@@ -445,6 +445,30 @@ try {
   cek("an unknown kind is refused (combined)", r.status === 400);
   halaman.ws.close();
   for (const s of [asisten, g2, g2b, g3]) s.ws.close();
+
+  // LMS calls: only signed, fresh, to the web service paths. (A signed call
+  // to an allowed path would reach the real LMS, so none is made here.)
+  const lms = (tujuan, o = {}) => {
+    const ts = o.ts ?? now();
+    const metode = o.metode ?? "POST";
+    const isi = o.isi ?? "wsfunction=core_webservice_get_site_info";
+    const tanda = o.tanda ?? createHmac("sha256", secret).update(`lms|${ts}|${metode}|${tujuan}|${isi}`).digest("hex");
+    return fetch(`${BASE}/lms`, {
+      method: o.cara ?? "POST",
+      headers: { "x-lms-ts": String(ts), "x-lms-tanda": tanda, "x-lms-metode": metode, "x-lms-tujuan": tujuan },
+      body: o.cara === "GET" ? undefined : isi,
+    });
+  };
+  r = await lms("/webservice/rest/server.php", { tanda: "0".repeat(64) });
+  cek("an LMS call with a wrong signature is refused", r.status === 403 && (await r.text()) === "tanda salah");
+  r = await lms("/webservice/rest/server.php", { ts: now() - 120 });
+  cek("an old LMS call is refused", r.status === 403 && (await r.text()) === "kedaluwarsa");
+  r = await lms("/login/index.php");
+  cek("an LMS page outside the web service is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  r = await lms("https://example.com/webservice/rest/server.php");
+  cek("another host is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  r = await lms("/webservice/rest/server.php", { cara: "GET" });
+  cek("the LMS route takes POST only", r.status === 405);
 } finally {
   if (process.env.DEBUG_RELAY) {
     const q = await fetch(`${BASE}/cdn-cgi/local/explorer/api/local/observability/query`, {

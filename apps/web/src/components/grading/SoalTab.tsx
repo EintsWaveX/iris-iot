@@ -835,10 +835,21 @@ function KartuSoal({
   );
 }
 
-/** A question in one line: a lead that only introduces its parts gives
- *  way to its first part. */
-const ringkas = (q: { teks: string; bagian?: string[] }) =>
-  q.bagian?.length && q.teks.trim().endsWith(":") ? `a. ${q.bagian[0]}` : q.teks;
+/** A question whole: its lead, then every part. */
+function SoalUtuh({ q }: { q: { teks: string; bagian?: string[] } }) {
+  return (
+    <div className="tpakhir__t">
+      <p>{q.teks}</p>
+      {!!q.bagian?.length && (
+        <ol className="tpsoal__parts" type="a">
+          {q.bagian.map((p, i) => (
+            <li key={i}>{p}</li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
 
 function Akhir({
   lang,
@@ -897,7 +908,7 @@ function Akhir({
           return (
             <li key={no} data-beda={b ? "yes" : "no"}>
               <span className="tpsoal__no">{no}</span>
-              <span className="tpakhir__t">{ringkas(tampilSoal(s, bahasa))}</span>
+              <SoalUtuh q={tampilSoal(s, bahasa)} />
               {banyak &&
                 (b && boleh ? (
                   <span className="tpakhir__pick" role="radiogroup" aria-label={t.pilihVarian(no)}>

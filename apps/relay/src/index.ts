@@ -53,6 +53,14 @@
  * One request for a write's topics and its room messages together, so a
  * blank check or a heartbeat costs one Worker request, not two or three
  * (the free plan's 100k a day).
+ *
+ * LMS calls (Phase 13) pass through too:
+ *
+ *   POST /lms      the IRIS API, signed: one call to the Telkom LMS
+ *
+ * Cloudflare in front of the LMS turns away Vercel's datacenter addresses
+ * but lets a Worker through (2026-10-13). Only the LMS's two web service
+ * paths pass, only to the LMS, and nothing is kept.
  */
 import { cekTiket, DIAM_MENIT } from "../../web/src/lib/konsol.ts";
 import {
@@ -156,6 +164,7 @@ export default {
     if (ujung === "aliran") return aliran(req, env, kanal, sub);
     if (ujung === "kirim" && req.method === "POST")
       return kirimGabung(req, env);
+    if (ujung === "lms" && !kanal) return lms(req, env);
     if (ujung === "hitung" && env.HITUNG === "1") return bacaHitung(env, url);
     if (!kanal || !KANAL_RE.test(kanal)) return teks(404, "tidak ditemukan");
     if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
@@ -660,6 +669,73 @@ export class Ruang {
 }
 
 /* ------------------------------------------------------ session streams */
+
+/* ------------------------------------------------------------ LMS calls */
+
+const LMS_ASAL = "https://lms.telkomuniversity.ac.id";
+const LMS_JALAN_RE = /^\/webservice\/(rest\/server\.php$|pluginfile\.php\/)/;
+/** A web service call's form body (the course list asks for the most) */
+const LMS_ISI_MAKS = 16 * 1024;
+const LMS_TERUS = [
+  "content-type",
+  "content-length",
+  "content-range",
+  "accept-ranges",
+  "last-modified",
+  "etag",
+];
+
+/**
+ * One LMS call for the IRIS API. Signed over the time, method, path with
+ * its query and the body, 60 seconds; the answer streams back as it came
+ * (a submitted PDF too), with its status.
+ */
+async function lms(req: Request, env: Env): Promise<Response> {
+  if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
+    return teks(503, "relay belum diatur");
+  if (req.method !== "POST") return teks(405, "POST saja");
+  const ts = Number(req.headers.get("x-lms-ts"));
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 60)
+    return teks(403, "kedaluwarsa");
+  const metode = req.headers.get("x-lms-metode") === "GET" ? "GET" : "POST";
+  const tujuan = req.headers.get("x-lms-tujuan") ?? "";
+  const isi = await req.text();
+  if (isi.length > LMS_ISI_MAKS) return teks(413, "terlalu besar");
+  const ok = samaPersis(
+    req.headers.get("x-lms-tanda") ?? "",
+    await hmacHex(
+      env.KONSOL_RELAY_SECRET,
+      `lms|${ts}|${metode}|${tujuan}|${isi}`,
+    ),
+  );
+  if (!ok) return teks(403, "tanda salah");
+  let u: URL;
+  try {
+    u = new URL(tujuan, LMS_ASAL);
+  } catch {
+    return teks(403, "tujuan ditolak");
+  }
+  if (u.origin !== LMS_ASAL || !LMS_JALAN_RE.test(u.pathname))
+    return teks(403, "tujuan ditolak");
+  const h = new Headers();
+  if (metode === "POST")
+    h.set("content-type", "application/x-www-form-urlencoded");
+  const range = req.headers.get("x-lms-range");
+  if (range) h.set("range", range);
+  hitung(env, "lms");
+  const r = await fetch(u.toString(), {
+    method: metode,
+    headers: h,
+    body: metode === "POST" ? isi : undefined,
+    redirect: "manual",
+  });
+  const out = new Headers({ "cache-control": "no-store" });
+  for (const k of LMS_TERUS) {
+    const v = r.headers.get(k);
+    if (v) out.set(k, v);
+  }
+  return new Response(r.body, { status: r.status, headers: out });
+}
 
 /** A request count while `HITUNG=1` (.dev.vars only): the load test reads
  *  it at /hitung to weigh a day against the free plan. */
