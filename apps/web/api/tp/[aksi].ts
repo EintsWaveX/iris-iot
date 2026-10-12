@@ -333,6 +333,15 @@ async function handleJawab(req: ApiRequest, res: ApiResponse, s: SessionPayload)
 
 /* ============================================================== the files */
 
+/** The file types a TP file may be shown as, on this origin. */
+const TIPE_INLINE = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+]);
+
 async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const id = Number(req.query.id);
   const i = Number(req.query.i ?? 0);
@@ -358,7 +367,16 @@ async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!r.ok || !r.body || /json|html/i.test(jenis))
     return tolak(res, r.status === 404 ? "berkas_hilang" : "lms_menolak", 502);
   res.statusCode = r.status;
-  res.setHeader("Content-Type", b.mime || jenis || "application/octet-stream");
+  // A Praktikan's upload is untrusted: only a PDF or a plain image is shown
+  // inline; anything else (an HTML or SVG file) only downloads, typed as
+  // bytes, and the response may never run script on this origin.
+  const tipe = (b.mime || jenis).split(";")[0].trim().toLowerCase();
+  const aman = TIPE_INLINE.has(tipe);
+  res.setHeader("Content-Type", aman ? tipe : "application/octet-stream");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  // (Chrome won't show a PDF under a sandbox, and a PDF or image can't run
+  // script here anyway; everything else gets one.)
+  if (!aman) res.setHeader("Content-Security-Policy", "sandbox; default-src 'none'");
   for (const h of ["content-length", "content-range", "accept-ranges", "last-modified", "etag"]) {
     const v = r.headers.get(h);
     if (v) res.setHeader(h, v);
@@ -368,7 +386,7 @@ async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload
   const nama = b.nama.replace(/["\\\r\n]/g, "_");
   res.setHeader(
     "Content-Disposition",
-    `${req.query.unduh === "1" ? "attachment" : "inline"}; filename="${nama}"; filename*=UTF-8''${encodeURIComponent(b.nama)}`,
+    `${req.query.unduh === "1" || !aman ? "attachment" : "inline"}; filename="${nama}"; filename*=UTF-8''${encodeURIComponent(b.nama)}`,
   );
   await new Promise<void>((ok, gagal) => {
     const src = Readable.fromWeb(r.body as import("node:stream/web").ReadableStream);
