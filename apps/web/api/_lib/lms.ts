@@ -226,6 +226,19 @@ export interface KursusLms {
   fullname: string;
 }
 
+/** Moodle sends names HTML-escaped ("Otomatisasi, &amp; IoT"). */
+export function teksLms(s: string): string {
+  return s
+    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&");
+}
+
 /** The account's practicum courses (Praktikum Sinyal Diskret, Otomatisasi, & IoT). */
 export async function kursusPraktikum(token: string, userid: number): Promise<KursusLms[]> {
   const all = await panggil<KursusLms[]>(token, "core_enrol_get_users_courses", { userid });
@@ -234,7 +247,7 @@ export async function kursusPraktikum(token: string, userid: number): Promise<Ku
     : /SINYAL\s+DISKRET/i;
   return all
     .filter((c) => pola.test(c.fullname) || pola.test(c.shortname))
-    .map((c) => ({ id: c.id, shortname: c.shortname, fullname: c.fullname }));
+    .map((c) => ({ id: c.id, shortname: teksLms(c.shortname), fullname: teksLms(c.fullname) }));
 }
 
 export interface TugasLms {
@@ -267,7 +280,7 @@ export async function tugasKursus(token: string, kursus: number[]): Promise<Tuga
       id: a.id,
       cmid: a.cmid,
       course: c.id,
-      name: a.name,
+      name: teksLms(a.name),
       allowsubmissionsfromdate: a.allowsubmissionsfromdate ?? 0,
       duedate: a.duedate ?? 0,
       lampiran: (a.introattachments ?? []).map((f) => ({
