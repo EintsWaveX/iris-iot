@@ -57,7 +57,7 @@ export interface PerburuanData {
  *  hunt summary changes (buru, 2026-10-07), with a slow poll behind it. */
 export function usePerburuan(enabled: boolean, wakilNomor?: number) {
   const url = `/api/session/perburuan${wakilNomor ? `?kelompok=${wakilNomor}` : ""}`;
-  return usePoll(() => getJson<PerburuanData>(url), 60_000, enabled, ["sesi", "buru"]);
+  return usePoll(() => getJson<PerburuanData>(url), 60_000, enabled, ["sesi", "buru"], 0, url);
 }
 
 function Qr({ text, label, size = 220 }: { text: string; label: string; size?: number }) {

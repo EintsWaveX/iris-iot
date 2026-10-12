@@ -72,6 +72,8 @@ export default function GradingPage({ lang }: { lang: Lang }) {
     120_000,
     asisten && modul !== null && tab === "tp",
     ["tp", "jadwal", "roster"],
+    0,
+    modul,
   );
   // No module in the address: the open one, else the latest that opened,
   // else Module 1.
@@ -88,9 +90,6 @@ export default function GradingPage({ lang }: { lang: Lang }) {
       })
       .catch(() => setModul0(1));
   }, [asisten, modul, pilihAwal]);
-  useEffect(() => {
-    if (modul !== null) poll.refresh();
-  }, [modul]);
 
   // The grader is a history entry: Back closes it.
   const buka = useCallback((g: GrupDinilai, i: number) => {

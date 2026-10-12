@@ -22,7 +22,7 @@ import Pill from "../ui/Pill";
 import TabLine from "../ui/TabLine";
 import IconButton from "../ui/IconButton";
 import { ProgressRing, StateView } from "../ui/Display";
-import { postJson, tanggalPanjang } from "../../lib/app";
+import { MODUL_NAMA, postJson, tanggalPanjang } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
 import { buatZip, simpanBlob } from "../../lib/zip";
@@ -114,6 +114,8 @@ export default function TpTab({
           );
         })}
       </div>
+
+      <ModulHead lang={lang} modul={modul} data={data} />
 
       <SyncStrip lang={lang} modul={modul} data={data} refresh={refresh} onLms={onLms} />
 
@@ -221,6 +223,46 @@ export default function TpTab({
         </div>
       )}
     </div>
+  );
+}
+
+/** The picked module itself: its window and its counts, so a switch shows. */
+function ModulHead({ lang, modul, data }: { lang: Lang; modul: number; data: DataKelompok }) {
+  const t = TPS[lang];
+  const x = data.modul.find((m) => m.modul === modul);
+  const h = data.hitung;
+  return (
+    <section className="panel tpmodhead" style={modulStyle(modul)} aria-live="polite">
+      <div className="stack stack--sm grow">
+        <span className="row">
+          <Pill modul={modul}>{modulLabel(modul, lang)}</Pill>
+          <span className="hint">{x?.keadaan ? t.keadaan[x.keadaan] : t.tanpaJendela}</span>
+        </span>
+        <h2 className="panel__title">
+          {t.tpModul(modul)} · {MODUL_NAMA[modul]}
+        </h2>
+        <span className="hint">
+          {t.jendela}:{" "}
+          {x?.jendela
+            ? t.sampai(waktuPanjang(x.jendela.buka, lang), waktuPanjang(x.jendela.tutup, lang))
+            : t.tanpaJendela}
+        </span>
+      </div>
+      <dl className="tpmodhead__n">
+        <div>
+          <dt>{t.peserta}</dt>
+          <dd className="mono">{h.peserta}</dd>
+        </div>
+        <div>
+          <dt>{t.status.masuk}</dt>
+          <dd className="mono">{h.masuk}</dd>
+        </div>
+        <div>
+          <dt>{t.status.nilai}</dt>
+          <dd className="mono">{h.dinilai}</dd>
+        </div>
+      </dl>
+    </section>
   );
 }
 

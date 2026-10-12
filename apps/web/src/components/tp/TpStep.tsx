@@ -497,6 +497,8 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
     120_000,
     true,
     ["tp"],
+    0,
+    modul,
   );
   const d = poll.data;
   const pk = usePaket(modul);

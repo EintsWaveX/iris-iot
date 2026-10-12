@@ -78,11 +78,10 @@ export default function Grader({
     60_000,
     !!m,
     ["tp"],
+    0,
+    `${modul}:${m?.nim}`,
   );
   const d = poll.data && poll.data.nim === m?.nim ? poll.data : null;
-  useEffect(() => {
-    poll.refresh();
-  }, [m?.nim]);
 
   const go = (step: number) => {
     const n = grup.anggota.length;

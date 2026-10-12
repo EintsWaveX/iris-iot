@@ -209,6 +209,8 @@ export default function ServerDetail({
     60_000,
     true,
     ["server"],
+    0,
+    id,
   );
   const data = poll.data;
   // Each beat lands as it comes (the gauges, services, the age), Phase 12.
@@ -243,6 +245,8 @@ export default function ServerDetail({
     60_000,
     true,
     ["server"],
+    0,
+    id,
   );
   const kd = konsol.data?.d ?? null;
   useBatas(konsolBerakhirPada(kd, konsol.data?.pada ?? null), ["server"]);

@@ -111,6 +111,8 @@ export function usePaket(modul: number, enabled = true) {
     300_000,
     enabled,
     ["tp"],
+    0,
+    modul,
   );
 }
 
@@ -139,6 +141,8 @@ export function useTpSaya(enabled: boolean, modul?: number) {
     120_000,
     enabled,
     ["tp", "nilai"],
+    0,
+    modul ?? 0,
   );
 }
 

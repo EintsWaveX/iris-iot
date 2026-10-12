@@ -988,6 +988,8 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     60_000,
     praktikan,
     ["sesi", "nilai", "jurnal", "tangkapan", "buru"],
+    0,
+    pro,
   );
   // This group's blank results through the session room, not every group's.
   useAliranAtauTopik(

@@ -37,6 +37,9 @@ export interface PollState<T> {
  * (live updates, lib/siaran.ts), instead of waiting for the next tick.
  * `jarak`: at most one such fetch per this many ms (a public view that
  * listens to a busy topic), the last change always fetched.
+ * `kunci`: what `fn` asks for (a module, say). When it changes the old
+ * data goes, the new is fetched at once, and an answer still on its way
+ * for the old one is dropped.
  */
 export function usePoll<T>(
   fn: () => Promise<T>,
@@ -44,6 +47,7 @@ export function usePoll<T>(
   enabled = true,
   topik: readonly Topik[] = [],
   jarak = 0,
+  kunci?: string | number | null,
 ): PollState<T> {
   const [data, setData] = useState<T | null>(null);
   const [errors, setErrors] = useState(0);
@@ -51,6 +55,8 @@ export function usePoll<T>(
   const [ditolak, setDitolak] = useState(false);
   const fnRef = useRef(fn);
   fnRef.current = fn;
+  const kunciRef = useRef(kunci);
+  kunciRef.current = kunci;
   const inFlight = useRef(false);
   const failures = useRef(0);
   const retry = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,9 +83,15 @@ export function usePoll<T>(
     again.current = false;
     if (retry.current !== null) clearTimeout(retry.current);
     retry.current = null;
+    const untuk = kunciRef.current;
     try {
       const d = await fnRef.current();
       if (!alive.current) return;
+      // Asked for something else meanwhile: the key's change asks again.
+      if (untuk !== kunciRef.current) {
+        again.current = true;
+        return;
+      }
       failures.current = 0;
       setData(d);
       setErrors(0);
@@ -130,6 +142,15 @@ export function usePoll<T>(
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [ms, enabled, run, timerSendiri]);
+
+  const kunciAwal = useRef(kunci);
+  useEffect(() => {
+    if (kunciAwal.current === kunci) return;
+    kunciAwal.current = kunci;
+    setData(null);
+    setUpdatedAt(null);
+    if (enabled) void run();
+  }, [kunci]);
 
   useSiaran(topik, () => void run(), enabled, jarak);
 

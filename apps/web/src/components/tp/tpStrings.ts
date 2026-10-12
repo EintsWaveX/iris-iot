@@ -28,6 +28,7 @@ const id = {
   sampai: (a: string, b: string) => `${a} sampai ${b}`,
   sekarang: "Sekarang",
   jendela: "Jendela pengumpulan",
+  peserta: "Peserta",
   poin: "poin",
   pukul: (hari: string, jam: string) => `${hari} pukul ${jam}`,
 
@@ -502,6 +503,7 @@ const en: TpT = {
   sampai: (a, b) => `${a} to ${b}`,
   sekarang: "Now",
   jendela: "Submission window",
+  peserta: "Participants",
   poin: "points",
   pukul: (hari, jam) => `${hari} at ${jam}`,
   heroBuka: (w) => `Submit before ${w}`,
@@ -918,6 +920,7 @@ const zh: TpT = {
   sampai: (a, b) => `${a} 至 ${b}`,
   sekarang: "现在",
   jendela: "提交时段",
+  peserta: "学生",
   poin: "分",
   pukul: (hari, jam) => `${hari} ${jam}`,
   heroBuka: (w) => `请在${w}前提交`,

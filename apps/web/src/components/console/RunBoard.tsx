@@ -72,6 +72,8 @@ export function useMatriks(on: boolean, lang: Lang, sesiId: number | null = null
     60_000,
     on,
     ["sesi"],
+    0,
+    lang,
   );
   // Phase 12: a checked blank lands in its cell straight from the session
   // room; a first try (no cell yet, so no key on screen) or a hint asks again.

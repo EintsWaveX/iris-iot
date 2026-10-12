@@ -454,6 +454,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
     me !== undefined,
     ["sesi", "jadwal", "jawaban"],
     15_000,
+    saya ? 1 : 0,
   );
   const labData = lab.data ? lab.data.sesi : lab.errors > 0 ? null : undefined;
   const pegang = lab.data?.pegang ?? [];

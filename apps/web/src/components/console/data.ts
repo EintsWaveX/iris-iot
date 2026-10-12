@@ -126,12 +126,9 @@ export function useAssignment(sesiId: number | null) {
     60_000,
     sesiId !== null,
     ["jadwal", "tim", "sesi"],
+    0,
+    sesiId,
   );
-  const { refresh } = poll;
-  useEffect(() => {
-    if (sesiId !== null) refresh();
-    // Re-run only when the session changes (refresh is stable).
-  }, [sesiId]);
   return poll;
 }
 
