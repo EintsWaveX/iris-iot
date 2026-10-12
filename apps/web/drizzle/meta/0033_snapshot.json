@@ -1,5 +1,5 @@
 {
-  "id": "ac36b1f4-5df7-41bc-81b8-72f4423b75e7",
+  "id": "ee1568a4-8708-4b31-8d01-93cf12858022",
   "prevId": "7b494382-5941-4dad-854b-19b87f2f547b",
   "version": "7",
   "dialect": "postgresql",
@@ -4945,73 +4945,6 @@
             "server_id",
             "modul",
             "kelompok_nomor"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.tp_jawaban": {
-      "name": "tp_jawaban",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "semester": {
-          "name": "semester",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "modul": {
-          "name": "modul",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nim": {
-          "name": "nim",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nomor": {
-          "name": "nomor",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "isi": {
-          "name": "isi",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "diubah_pada": {
-          "name": "diubah_pada",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "tp_jawaban_unik": {
-          "name": "tp_jawaban_unik",
-          "nullsNotDistinct": false,
-          "columns": [
-            "semester",
-            "modul",
-            "nim",
-            "nomor"
           ]
         }
       },

@@ -79,7 +79,6 @@ export interface DetailPraktikan {
     tanda: "kosong" | null;
   } | null;
   skor: Record<string, { skor: number; catatan: string | null; oleh: string }>;
-  jawabanIris: Record<string, string>;
   boleh: boolean;
   pemegang: string | null;
 }

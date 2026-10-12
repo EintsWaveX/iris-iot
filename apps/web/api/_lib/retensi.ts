@@ -64,7 +64,6 @@ import {
   telemetriLog,
   telemetriTerkini,
   lmsPeserta,
-  tpJawaban,
   tpKiriman,
   tpNilai,
   tpSinkronLog,
@@ -177,7 +176,6 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
       for (const [nama, t] of [
         ["tpKiriman", tpKiriman],
         ["tpNilai", tpNilai],
-        ["tpJawaban", tpJawaban],
         ["lmsPeserta", lmsPeserta],
       ] as const)
         await kena(nama, tx.delete(t).where(inArray(t.semester, lama)).returning({ id: t.id }));

@@ -71,7 +71,6 @@ export interface TpSaya {
   kursus: { label: string; url: string } | null;
   sinkron: { terakhir: string | null; tersambung: boolean };
   modul: TpSayaModul[];
-  jawaban?: Record<string, { isi: string; pada: string }>;
 }
 
 /** A module's question bank as an Asisten loads it (GET /api/tp/paket). */

@@ -1621,22 +1621,6 @@ export const tpNilai = pgTable(
   ],
 );
 
-/** Jawab di IRIS: a Praktikan's typed answer, saved as a draft until they
- *  build their PDF and upload it to the LMS. */
-export const tpJawaban = pgTable(
-  "tp_jawaban",
-  {
-    id: serial("id").primaryKey(),
-    semester: text("semester").notNull(),
-    modul: integer("modul").notNull(),
-    nim: text("nim").notNull(),
-    nomor: integer("nomor").notNull(),
-    isi: text("isi").notNull(),
-    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [unique("tp_jawaban_unik").on(t.semester, t.modul, t.nim, t.nomor)],
-);
-
 /** Every LMS sync, so a broken token or a missing assignment shows. */
 export const tpSinkronLog = pgTable(
   "tp_sinkron_log",

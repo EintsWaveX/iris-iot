@@ -7,10 +7,8 @@
  * GET  /api/tp/saya[?modul=]        my TP per module: window, my file as IRIS
  *      sees it, my class course in the LMS, and my scores once my group's
  *      scores were sent (Kirim Nilai). With ?modul= also the final set's
- *      questions in my class's language (and Mandarin), the PDF's
- *      instructions and my typed answers.
- * POST /api/tp/jawab { modul, nomor, isi }   Jawab di IRIS: one answer's draft,
- *      only while the window is open (read only from its close on).
+ *      questions in my class's language (and Mandarin) and the PDF's
+ *      instructions. All read only: TP is written by hand on paper.
  * GET  /api/tp/berkas?id=&i=[&unduh=1]       my own file, streamed from the LMS.
  *
  * Asisten:
@@ -69,7 +67,6 @@ import {
   sesiAnggota,
   sesiAsisten,
   kelompok,
-  tpJawaban,
   tpKiriman,
   tpNilai,
 } from "../../src/lib/schema.js";
@@ -255,22 +252,6 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       tugasUrl: tugas ? `${LMS_URL}/mod/assign/view.php?id=${tugas.cmid}` : null,
     };
   });
-  const jawaban = satu
-    ? Object.fromEntries(
-        (
-          await db
-            .select({ nomor: tpJawaban.nomor, isi: tpJawaban.isi, pada: tpJawaban.diubahPada })
-            .from(tpJawaban)
-            .where(
-              and(
-                eq(tpJawaban.semester, set.semester),
-                eq(tpJawaban.modul, satu),
-                eq(tpJawaban.nim, s.nim),
-              ),
-            )
-        ).map((r) => [r.nomor, { isi: r.isi, pada: r.pada.toISOString() }]),
-      )
-    : undefined;
   // One module: its final set, shown once the window opens.
   const paket =
     satu && keadaanJendela(jendelaUntuk(set, satu)) !== "belum" ? await muatPaket(db, satu) : null;
@@ -289,46 +270,7 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       : null,
     sinkron: { terakhir: set.status.terakhir, tersambung: !!set.token },
     modul: out,
-    jawaban,
   });
-}
-
-const ISI_MAKS = 6000;
-
-async function handleJawab(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  const b = jsonBody(req);
-  const modul = modulDari(b.modul);
-  const nomor = Number(b.nomor);
-  const isi = typeof b.isi === "string" ? b.isi : null;
-  if (!modul || isi === null || isi.length > ISI_MAKS || !nomorUntuk(s.nim).includes(nomor))
-    return tolak(res, "format_salah");
-  const db = getDb();
-  const set = await bacaSet(db);
-  // Typing happens only while the window is open; from the close on (the
-  // practicum week, the session itself) the TP is read only.
-  const k = keadaanJendela(jendelaUntuk(set, modul));
-  if (k !== "buka") return tolak(res, k === "tutup" ? "sudah_tutup" : "belum_dibuka");
-  if (!isi.trim()) {
-    await db
-      .delete(tpJawaban)
-      .where(
-        and(
-          eq(tpJawaban.semester, set.semester),
-          eq(tpJawaban.modul, modul),
-          eq(tpJawaban.nim, s.nim),
-          eq(tpJawaban.nomor, nomor),
-        ),
-      );
-  } else {
-    await db
-      .insert(tpJawaban)
-      .values({ semester: set.semester, modul, nim: s.nim, nomor, isi })
-      .onConflictDoUpdate({
-        target: [tpJawaban.semester, tpJawaban.modul, tpJawaban.nim, tpJawaban.nomor],
-        set: { isi, diubahPada: new Date() },
-      });
-  }
-  res.status(200).json({ ok: true, pada: new Date().toISOString() });
 }
 
 /* ============================================================== the files */
@@ -477,12 +419,6 @@ async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayl
     .select()
     .from(tpNilai)
     .where(and(eq(tpNilai.semester, set.semester), eq(tpNilai.modul, m), eq(tpNilai.nim, nim)));
-  const jaw = await db
-    .select({ nomor: tpJawaban.nomor, isi: tpJawaban.isi })
-    .from(tpJawaban)
-    .where(
-      and(eq(tpJawaban.semester, set.semester), eq(tpJawaban.modul, m), eq(tpJawaban.nim, nim)),
-    );
   const [p] = await db
     .select({ kelas: praktikan.kelas, nama: praktikan.nama })
     .from(praktikan)
@@ -510,7 +446,6 @@ async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayl
     skor: Object.fromEntries(
       sk.map((r) => [r.nomor, { skor: r.skor, catatan: r.catatan, oleh: r.diubahOleh }]),
     ),
-    jawabanIris: Object.fromEntries(jaw.map((r) => [r.nomor, r.isi])),
     ...hak,
   });
 }
@@ -1089,11 +1024,6 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireMethod(req, res, "GET")) return;
     const s = requireRole(req, res, "praktikan");
     return s ? handleSaya(req, res, s) : undefined;
-  }
-  if (aksi === "jawab") {
-    if (!requireMethod(req, res, "POST")) return;
-    const s = requireRole(req, res, "praktikan");
-    return s ? handleJawab(req, res, s) : undefined;
   }
 
   const s = requireRole(req, res, "asisten");

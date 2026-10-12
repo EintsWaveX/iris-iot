@@ -9,17 +9,6 @@ CREATE TABLE "lms_peserta" (
 	CONSTRAINT "lms_peserta_unik" UNIQUE("semester","nim")
 );
 --> statement-breakpoint
-CREATE TABLE "tp_jawaban" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"semester" text NOT NULL,
-	"modul" integer NOT NULL,
-	"nim" text NOT NULL,
-	"nomor" integer NOT NULL,
-	"isi" text NOT NULL,
-	"diubah_pada" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "tp_jawaban_unik" UNIQUE("semester","modul","nim","nomor")
-);
---> statement-breakpoint
 CREATE TABLE "tp_kiriman" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"semester" text NOT NULL,

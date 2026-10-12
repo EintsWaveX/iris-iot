@@ -448,7 +448,6 @@ function Isi({
     const q = soal[no - 1];
     const open = fokus === no;
     const v = skor[no]?.skor ?? null;
-    const dariIris = d.jawabanIris[no];
     const dariPdf = jawabanPdf[no];
     return (
       <div
@@ -476,12 +475,7 @@ function Isi({
                 ))}
               </ol>
             )}
-            {dariIris ? (
-              <div className="tpans">
-                <span className="label-caps">{t.jawabanIris}</span>
-                <p>{dariIris}</p>
-              </div>
-            ) : dariPdf?.teks ? (
+            {dariPdf?.teks ? (
               <div className="tpans">
                 <div className="row row--between">
                   <span className="label-caps">{t.jawabanPdf}</span>
