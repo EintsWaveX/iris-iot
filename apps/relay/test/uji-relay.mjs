@@ -359,7 +359,12 @@ try {
   if (!pertama.refused) pertama.ws.close();
   const piPraktikan = await masuk("pi", { peran: "praktikan", g: 2 });
   cek("the pi room refuses a Praktikan", piPraktikan.refused === true);
-  const palsu = await buka(`/aliran/sesi-7?tiket=${encodeURIComponent(tiketAliran({}).replace(/.$/, "A"))}`);
+  // The signature's first character changes: its last one carries only 4
+  // bits, so A to D there decode alike and a forgery passed 1 run in 16.
+  const asli = tiketAliran({});
+  const di = asli.lastIndexOf(".") + 1;
+  const ditempa = asli.slice(0, di) + (asli[di] === "A" ? "B" : "A") + asli.slice(di + 1);
+  const palsu = await buka(`/aliran/sesi-7?tiket=${encodeURIComponent(ditempa)}`);
   cek("a forged ticket is refused", palsu.refused === true);
 
   r = await kirimAliran("sesi-7", [
