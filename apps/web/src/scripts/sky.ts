@@ -298,74 +298,72 @@ function galaxy(
   ctx.restore();
 }
 
-/** One aurora curtain: its hue pair (top, bottom), height in the sky, and
- *  the two waves its edge rides on. */
+/** One aurora curtain: the centre of its own hue sector, height in the sky,
+ *  the two waves its edge rides on, and its own gradient clock (how long
+ *  the hues take to drift across the sector, and the glow to slide down
+ *  the curtain and back). */
 interface Ribbon {
-  hue: [number, number];
+  hue: number;
   y: number;
   thick: number;
   amp: [number, number];
   len: [number, number];
   speed: [number, number];
+  huePeriod: number;
+  glowPeriod: number;
+  phase: number;
 }
+
+/* The three curtains sit on a triad, 120° apart: oxygen green (150),
+   nitrogen violet (270) and ember red-amber (30). Each paints an analogous
+   pair inside its own sector (centre ± HUE_SPAN), and its drift (±
+   HUE_DRIFT) keeps it there, so no two curtains ever share a colour: the
+   sectors keep a 30° gap even at the widest swing. */
+const HUE_SPAN = 25;
+const HUE_DRIFT = 20;
 
 const RIBBONS: Ribbon[] = [
   {
-    hue: [160, 190],
-    y: 0.16,
+    hue: 150,
+    y: 0.18,
     thick: 0.22,
     amp: [46, 22],
     len: [260, 120],
     speed: [0.00032, 0.00051],
+    huePeriod: 41000,
+    glowPeriod: 13000,
+    phase: 0,
   },
   {
-    hue: [285, 320],
-    y: 0.24,
-    thick: 0.18,
+    hue: 270,
+    y: 0.36,
+    thick: 0.19,
     amp: [38, 26],
     len: [340, 150],
     speed: [0.00025, 0.00062],
+    huePeriod: 29000,
+    glowPeriod: 17000,
+    phase: 2.1,
   },
   {
-    hue: [195, 230],
-    y: 0.34,
-    thick: 0.2,
-    amp: [52, 18],
-    len: [300, 110],
-    speed: [0.00041, 0.00037],
-  },
-  {
-    hue: [330, 20],
-    y: 0.46,
-    thick: 0.15,
+    hue: 30,
+    y: 0.54,
+    thick: 0.17,
     amp: [34, 24],
     len: [380, 170],
     speed: [0.00022, 0.00055],
-  },
-  {
-    hue: [120, 165],
-    y: 0.58,
-    thick: 0.17,
-    amp: [44, 20],
-    len: [280, 130],
-    speed: [0.00036, 0.00044],
-  },
-  {
-    hue: [40, 300],
-    y: 0.7,
-    thick: 0.16,
-    amp: [30, 26],
-    len: [420, 140],
-    speed: [0.00028, 0.00059],
+    huePeriod: 53000,
+    glowPeriod: 11000,
+    phase: 4.2,
   },
 ];
 
-/** Colourful, waving aurora curtains: each a band whose top edge rides two
- *  sine waves, lit from a bright edge fading down, the hues drifting slowly.
- *  The night adds its light to the sky; the day paints soft pastels. */
+/** Three colourful, waving aurora curtains: each a band whose top edge
+ *  rides two sine waves, lit from a bright edge fading down, its hues and
+ *  glow drifting on its own clock. The night adds its light to the sky;
+ *  the day paints soft pastels. */
 function aurora(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, light: boolean) {
   const step = Math.max(14, Math.round(w / 90));
-  const shift = Math.sin(t * 0.00005) * 24;
   ctx.save();
   ctx.globalCompositeOperation = light ? "source-over" : "lighter";
   for (const r of RIBBONS) {
@@ -384,16 +382,19 @@ function aurora(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, 
     const y0 = h * r.y - r.amp[0] - r.amp[1];
     const y1 = h * (r.y + r.thick * 1.1) + r.amp[0] + r.amp[1];
     const g = ctx.createLinearGradient(0, y0, 0, y1);
-    const a = light ? 0.2 : 0.17;
-    const h0 = r.hue[0] + shift;
-    const h1 = r.hue[1] + shift;
+    const a = light ? 0.22 : 0.19;
+    const shift = Math.sin((t / r.huePeriod) * TAU + r.phase) * HUE_DRIFT;
+    const h0 = r.hue - HUE_SPAN + shift;
+    const h1 = r.hue + HUE_SPAN + shift;
+    // The brightest band slides down the curtain and back on its own beat.
+    const glow = 0.18 + 0.1 * Math.sin((t / r.glowPeriod) * TAU + r.phase);
     const l = light ? 72 : 62;
     g.addColorStop(0, `hsla(${h0},95%,${l}%,0)`);
-    g.addColorStop(0.18, `hsla(${h0},95%,${l + 6}%,${a})`);
-    g.addColorStop(0.5, `hsla(${(h0 + h1) / 2},90%,${l}%,${a * 0.6})`);
+    g.addColorStop(glow, `hsla(${h0},95%,${l + 6}%,${a})`);
+    g.addColorStop(0.55, `hsla(${r.hue + shift},90%,${l}%,${a * 0.6})`);
     g.addColorStop(1, `hsla(${h1},90%,${l - 4}%,0)`);
     // Each curtain slowly brightens and dims on its own beat.
-    const p = (Math.sin(t * r.speed[0] * 0.6 + r.y * 9) + 1) / 2;
+    const p = (Math.sin(t * r.speed[0] * 0.6 + r.phase) + 1) / 2;
     ctx.beginPath();
     top.forEach((y, i) => (i ? ctx.lineTo(i * step, y) : ctx.moveTo(0, y)));
     for (let i = bot.length - 1; i >= 0; i--) ctx.lineTo(i * step, bot[i]);
