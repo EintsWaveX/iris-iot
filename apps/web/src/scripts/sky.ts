@@ -325,7 +325,7 @@ const HUE_DRIFT = 20;
 const RIBBONS: Ribbon[] = [
   {
     hue: 150,
-    y: 0.18,
+    y: 0.6,
     thick: 0.22,
     amp: [46, 22],
     len: [260, 120],
@@ -336,7 +336,7 @@ const RIBBONS: Ribbon[] = [
   },
   {
     hue: 270,
-    y: 0.36,
+    y: 0.71,
     thick: 0.19,
     amp: [38, 26],
     len: [340, 150],
@@ -347,7 +347,7 @@ const RIBBONS: Ribbon[] = [
   },
   {
     hue: 30,
-    y: 0.54,
+    y: 0.82,
     thick: 0.17,
     amp: [34, 24],
     len: [380, 170],
