@@ -78,6 +78,7 @@ export interface Env {
   RUANG: DurableObjectNamespace;
   SIARAN: DurableObjectNamespace;
   ALIRAN: DurableObjectNamespace;
+  LMS: DurableObjectNamespace;
   KONSOL_RELAY_SECRET: string;
   /** "1" in .dev.vars only: count requests for the load test */
   HITUNG?: string;
@@ -676,6 +677,8 @@ const LMS_ASAL = "https://lms.telkomuniversity.ac.id";
 const LMS_JALAN_RE = /^\/webservice\/(rest\/server\.php$|pluginfile\.php\/)/;
 /** A web service call's form body (the course list asks for the most) */
 const LMS_ISI_MAKS = 16 * 1024;
+/** Tries per call while Cloudflare answers with its challenge */
+const LMS_COBA = 5;
 const LMS_TERUS = [
   "content-type",
   "content-length",
@@ -717,24 +720,64 @@ async function lms(req: Request, env: Env): Promise<Response> {
   }
   if (u.origin !== LMS_ASAL || !LMS_JALAN_RE.test(u.pathname))
     return teks(403, "tujuan ditolak");
-  const h = new Headers();
-  if (metode === "POST")
-    h.set("content-type", "application/x-www-form-urlencoded");
-  const range = req.headers.get("x-lms-range");
-  if (range) h.set("range", range);
   hitung(env, "lms");
-  const r = await fetch(u.toString(), {
-    method: metode,
+  // The call itself is the Durable Object's: made straight from the Worker,
+  // it carried the IRIS API's datacenter address and met Cloudflare's
+  // challenge page (2026-10-13), though the same call from a Worker that a
+  // home connection reached went through.
+  const h = new Headers({ "x-lms-url": u.toString(), "x-lms-metode": metode });
+  const range = req.headers.get("x-lms-range");
+  if (range) h.set("x-lms-range", range);
+  const lmsDo = env.LMS.get(env.LMS.idFromName("lms"), {
+    locationHint: "apac",
+  });
+  return lmsDo.fetch("https://lms/panggil", {
+    method: "POST",
     headers: h,
     body: metode === "POST" ? isi : undefined,
-    redirect: "manual",
   });
-  const out = new Headers({ "cache-control": "no-store" });
-  for (const k of LMS_TERUS) {
-    const v = r.headers.get(k);
-    if (v) out.set(k, v);
+}
+
+/** Cloudflare's challenge page, by its header or its shape. */
+const tantangan = (r: Response) =>
+  r.headers.get("cf-mitigated") === "challenge" ||
+  (r.status === 403 && /html/i.test(r.headers.get("content-type") ?? ""));
+
+/** Makes one LMS call, already checked by the Worker; keeps nothing. */
+export class Lms {
+  constructor(_state: DurableObjectState, _env: Env) {}
+
+  async fetch(req: Request): Promise<Response> {
+    const url = req.headers.get("x-lms-url") ?? "";
+    const metode = req.headers.get("x-lms-metode") === "GET" ? "GET" : "POST";
+    if (!url.startsWith(`${LMS_ASAL}/`)) return teks(403, "tujuan ditolak");
+    const h = new Headers();
+    if (metode === "POST")
+      h.set("content-type", "application/x-www-form-urlencoded");
+    const range = req.headers.get("x-lms-range");
+    if (range) h.set("range", range);
+    const isi = metode === "POST" ? await req.text() : undefined;
+    // Cloudflare still answers some calls with its challenge page, at random
+    // (2026-10-13: 2 in 8); the next try usually goes through.
+    let r: Response;
+    for (let coba = 1; ; coba++) {
+      r = await fetch(url, {
+        method: metode,
+        headers: h,
+        body: isi,
+        redirect: "manual",
+      });
+      if (!tantangan(r) || coba >= LMS_COBA) break;
+      await r.body?.cancel();
+      await new Promise((ok) => setTimeout(ok, 250 * coba));
+    }
+    const out = new Headers({ "cache-control": "no-store" });
+    for (const k of LMS_TERUS) {
+      const v = r.headers.get(k);
+      if (v) out.set(k, v);
+    }
+    return new Response(r.body, { status: r.status, headers: out });
   }
-  return new Response(r.body, { status: r.status, headers: out });
 }
 
 /** A request count while `HITUNG=1` (.dev.vars only): the load test reads

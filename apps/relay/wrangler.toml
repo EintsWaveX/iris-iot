@@ -33,3 +33,14 @@ class_name = "Aliran"
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["Aliran"]
+
+# LMS calls (Phase 13): made from a Durable Object, not the Worker that the
+# IRIS API reached, so Cloudflare in front of the LMS does not see them as
+# coming from Vercel's datacenter.
+[[durable_objects.bindings]]
+name = "LMS"
+class_name = "Lms"
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["Lms"]
