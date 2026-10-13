@@ -37,6 +37,8 @@ export const TOPIK = [
   "pingrup",
   // Phase 13: a TP file came in from the LMS, a TP score, window or setting.
   "tp",
+  // Phase 14: a SeeLabs robot job moved, an account connected, the robot's settings.
+  "seelabs",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -85,6 +87,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   // Every 1.5 s per laptop; the Live page polls.
   "session:telemetry": [],
   "session:seelabs": ["sesi", "bayar"],
+  // Phase 14: connect, test, retry, token, Kelompok and Jaga pulls, the robot's switches.
+  "session:robot": ["seelabs"],
   "session:kejadian": ["laporan"],
   "session:dokumen": ["laporan"],
   "session:feedback": ["umpan", "laporan"],

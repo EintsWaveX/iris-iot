@@ -4,7 +4,7 @@
  *                    uptimeSec, jamSelaras, modeJaringan, layanan,
  *                    telemetri, hasilPerintah,
  *                    agenVersi?, infoSistem?, alamatLan?,
- *                    perburuan?, hotspot?, jamPi? }              (heartbeat)
+ *                    perburuan?, hotspot?, jamPi?, hasilSeelabs? } (heartbeat)
  *                | { serverId, agenKunci, bundel: sha256 }       (fetch, 2026-10-07)
  *                | { tipe: "bundel_pasang", kode, token, ringkas? } (one-line install)
  *                | { tipe: "pasang_kabar", kode, token, tahap, ulang?, gagal? }
@@ -58,6 +58,7 @@ import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
 import { sinkronBilaPerlu } from "../_lib/tp.js";
+import { adaTugasRobot, ambilTugas, harianBilaPerlu, terimaHasil } from "../_lib/seelabs-robot.js";
 import { kirimRelay } from "../_lib/aliran.js";
 import { ruangSesi } from "../../src/lib/aliran.js";
 import type { PesanAliran } from "../../src/lib/aliran.js";
@@ -234,9 +235,14 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     await terimaLaporanKonsol(serverId, body.konsol);
     if (Array.isArray(body.konsol) && body.konsol.length) berubah.add("server");
 
+    // Phase 14: the SeeLabs robot's results, then its next jobs (only for
+    // the approved robot Pi; every other server gets none).
+    await terimaHasil(db, serverId, body.hasilSeelabs);
+
     // A single atomic claim (P6.2/B7) -- see claimPerintahMenunggu's own
     // comment for the race this replaces.
     const pending = await claimPerintahMenunggu(serverId);
+    const tugasSeelabs = await ambilTugas(db, serverId);
 
     await sweepPerintahKedaluwarsa();
 
@@ -286,7 +292,11 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // Fastest applicable pace wins: a command in flight beats the session/idle
     // cadence, so the result comes back (and the next press is claimed) fast.
     const siaga =
-      pending.length > 0 || (await adaPerintahBaru(serverId)) || (await konsolSiaga(serverId));
+      pending.length > 0 ||
+      tugasSeelabs.length > 0 ||
+      (await adaPerintahBaru(serverId)) ||
+      (await konsolSiaga(serverId)) ||
+      (await adaTugasRobot(db, serverId));
     const intervalDetik = siaga
       ? INTERVAL_SIAGA_SEC
       : sesiAktif && MODUL_TELEMETRI_PI.has(sesiAktif.modul)
@@ -311,6 +321,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       intervalDetik,
       waktu: Date.now() / 1000,
       ...(jadwal ? { jadwal } : {}),
+      ...(tugasSeelabs.length ? { seelabs: tugasSeelabs } : {}),
     });
     // The topics this beat changed, as before (most beats change none).
     await Promise.all([siarkan([...berubah]), terbitAwal]);
@@ -318,6 +329,8 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     // (every 5 minutes at most) and once after it closes. The Pi never sees
     // the LMS token; this runs here, after the beat is answered.
     await sinkronBilaPerlu(db, "pi", 5 * 60_000);
+    // Phase 14: the robot's daily KLP pull and Input Jaga check.
+    await harianBilaPerlu(db);
   } catch (err) {
     console.error("[api/agent denyut] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });

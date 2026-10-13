@@ -239,6 +239,13 @@
       "when": 1791819196391,
       "tag": "0033_tp",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791875752530,
+      "tag": "0034_seelabs_robot",
+      "breakpoints": true
     }
   ]
 }

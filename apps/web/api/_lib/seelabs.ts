@@ -163,6 +163,7 @@ export async function muatSeelabs(db: Db, sesiId: number): Promise<SesiSeelabs |
       nim: o.nim,
       nama: o.nama,
       skor: skor.get(o.nim) ?? {},
+      klp: klpNim.get(o.nim) ?? klpLive.get(nomor) ?? null,
     }));
     const klp = [
       ...new Set(anggotaGrup.map((o) => klpNim.get(o.nim) ?? null).filter((x): x is string => !!x)),

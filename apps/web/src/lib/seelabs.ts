@@ -35,6 +35,8 @@ export interface BarisSeelabs {
   nim: string;
   nama: string;
   skor: Partial<Record<NilaiKomponen, number>>;
+  /** Phase 14: this student's own SeeLabs KLP, when known. */
+  klp?: string | null;
 }
 
 export interface PayloadSeelabs {

@@ -29,6 +29,7 @@
  * hours, which signed every student and assistant out 45 minutes before
  * their own session ended.
  */
+import * as nodeCrypto from "node:crypto";
 import { createHmac, timingSafeEqual, randomBytes, scryptSync } from "node:crypto";
 import { eq, and, gte, gt, count, desc, inArray, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
@@ -67,22 +68,88 @@ function getSessionSecret(): string {
   return secret;
 }
 
-// scrypt's own key-derivation cost is the actual defence here (a plain
-// salted hash with a fast digest would make offline guessing cheap); the
-// built-in node:crypto implementation is used rather than a dependency
-// like bcrypt for the same reason http.ts avoids @vercel/node -- one
-// primitive doesn't justify a package and its own advisories.
+// Passwords are hashed, never encrypted: nothing, not even this site, can
+// turn a stored value back into the password. 2026-10-13 (Phase 14, the user
+// asked for the strongest method): new hashes are Argon2id (RFC 9106, OWASP's
+// first choice) through node:crypto's own argon2 (Node 24.7+), 64 MiB, 3
+// passes. A runtime without it gets scrypt at OWASP's cost (N=2^17). Both
+// come from node:crypto, so no package and its advisories.
+//
+// Stored forms, all hex:
+//   a2id$m$t$p$salt$hash    Argon2id, m KiB, t passes, p lanes
+//   s2$N$salt$hash          scrypt N, r=8, p=1
+//   salt:hash               the first scrypt (Node's default N=16384), until
+//                           its owner next signs in and it is hashed again
 const SCRYPT_KEYLEN = 64;
+const ARGON2 = { memory: 65536, passes: 3, parallelism: 1, tagLength: 32 } as const;
+const SCRYPT_N = 1 << 17;
 export const MIN_PASSWORD_LEN = 8;
 
-/** Salted scrypt hash, stored as `salt:hash` (both hex). */
-export function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(password, salt, SCRYPT_KEYLEN).toString("hex");
-  return `${salt}:${hash}`;
+type Argon2Sync = (
+  algorithm: "argon2id",
+  params: {
+    message: string;
+    nonce: Buffer;
+    memory: number;
+    passes: number;
+    parallelism: number;
+    tagLength: number;
+  },
+) => Buffer;
+const argon2Sync = (nodeCrypto as unknown as { argon2Sync?: Argon2Sync }).argon2Sync;
+
+function scryptKuat(password: string, salt: string, n: number): string {
+  return scryptSync(password, salt, SCRYPT_KEYLEN, {
+    N: n,
+    r: 8,
+    p: 1,
+    maxmem: 256 * n * 8,
+  }).toString("hex");
 }
 
-function verifyPasswordHash(password: string, stored: string): boolean {
+/** A new hash: Argon2id where the runtime has it, scrypt N=2^17 otherwise. */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16);
+  if (argon2Sync) {
+    const { memory, passes, parallelism, tagLength } = ARGON2;
+    const hash = argon2Sync("argon2id", {
+      message: password,
+      nonce: salt,
+      memory,
+      passes,
+      parallelism,
+      tagLength,
+    });
+    return `a2id$${memory}$${passes}$${parallelism}$${salt.toString("hex")}$${hash.toString("hex")}`;
+  }
+  return `s2$${SCRYPT_N}$${salt.toString("hex")}$${scryptKuat(password, salt.toString("hex"), SCRYPT_N)}`;
+}
+
+/** True when a stored hash is weaker than what hashPassword makes now. */
+export function perluHashUlang(stored: string): boolean {
+  if (stored.startsWith("a2id$")) return false;
+  return !!argon2Sync || !stored.startsWith(`s2$${SCRYPT_N}$`);
+}
+
+export function verifyPasswordHash(password: string, stored: string): boolean {
+  if (stored.startsWith("a2id$")) {
+    const [, m, t, p, salt, hash] = stored.split("$");
+    if (!argon2Sync || !salt || !hash) return false;
+    const candidate = argon2Sync("argon2id", {
+      message: password,
+      nonce: Buffer.from(salt, "hex"),
+      memory: Number(m),
+      passes: Number(t),
+      parallelism: Number(p),
+      tagLength: hash.length / 2,
+    }).toString("hex");
+    return safeEqual(candidate, hash);
+  }
+  if (stored.startsWith("s2$")) {
+    const [, n, salt, hash] = stored.split("$");
+    if (!salt || !hash) return false;
+    return safeEqual(scryptKuat(password, salt, Number(n)), hash);
+  }
   const [salt, hash] = stored.split(":");
   if (!salt || !hash) return false;
   const candidate = scryptSync(password, salt, SCRYPT_KEYLEN).toString("hex");
@@ -483,6 +550,12 @@ export async function verifyAsistenLogin(
   await recordAttempt(nim, ip, "asisten", matched);
 
   if (!matched) return { ok: false, kode: "tidak_cocok" };
+  // A hash from before Argon2id is made again now, while the password is at hand.
+  if (row!.passwordHash && perluHashUlang(row!.passwordHash))
+    await db
+      .update(asisten)
+      .set({ passwordHash: hashPassword(password) })
+      .where(eq(asisten.nim, row!.nim));
   return { ok: true, nim: row!.nim, nama: row!.nama, perluAturSandi: !row!.passwordHash };
 }
 

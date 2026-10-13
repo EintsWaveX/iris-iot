@@ -131,6 +131,8 @@ import {
 import { handleDokumenGet, handleDokumenPost } from "../_lib/dokumen.js";
 import { handleBayarGet, handleBayarPost } from "../_lib/bayar.js";
 import { handleSeelabsGet, handleSeelabsPost } from "../_lib/seelabs.js";
+import { antreNilai, handleRobotGet, handleRobotPost } from "../_lib/seelabs-robot.js";
+import { JEDA_SUNTING_DETIK } from "../../src/lib/seelabs-robot.js";
 import {
   handlePenugasanGet,
   handlePenugasanPost,
@@ -1152,6 +1154,7 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     }
     await writeAudit(session.nim, "nilai_absen", { sesiId, nim, absen });
     res.status(200).json({ ok: true });
+    await simpanUlangSeelabs(db, sesiId, [nim], session.nim);
     return;
   }
 
@@ -1168,6 +1171,37 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     await writeAudit(session.nim, "nilai_set", { sesiId, nim, komponen, skor });
   }
   res.status(200).json({ ok: true });
+  await simpanUlangSeelabs(db, sesiId, unik, session.nim);
+}
+
+/**
+ * Phase 14: a score edit in a group already sent saves to SeeLabs again,
+ * a minute later so a run of edits makes one save (the waiting job is
+ * replaced each time). Runs after the answer; a failure here only logs.
+ */
+async function simpanUlangSeelabs(
+  db: ReturnType<typeof getDb>,
+  sesiId: number,
+  nims: string[],
+  oleh: string,
+) {
+  try {
+    const terkirim = await daftarKirim(db, sesiId);
+    const nomor = new Set<number>();
+    for (const nim of nims) {
+      const kid = await kelompokNilai(db, sesiId, nim);
+      if (kid === null) continue;
+      const [g] = await db
+        .select({ nomor: kelompok.nomor })
+        .from(kelompok)
+        .where(eq(kelompok.id, kid))
+        .limit(1);
+      if (g && terkirim[g.nomor]) nomor.add(g.nomor);
+    }
+    for (const n of nomor) await antreNilai(db, sesiId, n, oleh, JEDA_SUNTING_DETIK);
+  } catch (err) {
+    console.error("[api/session nilai] SeeLabs robot re-save failed:", err);
+  }
 }
 
 /**
@@ -1237,7 +1271,14 @@ async function kirimNilai(
     .values({ sesiId, kelompokNomor: g.nomor, dikirimOleh: session.nim })
     .onConflictDoNothing();
   await writeAudit(session.nim, "nilai_kirim", { sesiId, kelompok: g.nomor });
-  res.status(200).json({ ok: true });
+  // Phase 14: Kirim Nilai is the go-ahead for the SeeLabs robot's save.
+  let seelabs: Awaited<ReturnType<typeof antreNilai>> | null = null;
+  try {
+    seelabs = await antreNilai(db, sesiId, g.nomor, session.nim);
+  } catch (err) {
+    console.error("[api/session kirim] SeeLabs robot queue failed:", err);
+  }
+  res.status(200).json({ ok: true, seelabs });
 }
 
 /** Which groups of a session have their scores sent, by group number. */
@@ -1857,6 +1898,11 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === "POST") return handleSeelabsPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
     return handleSeelabsGet(req, res, session);
+  }
+  if (aksi === "robot") {
+    if (req.method === "POST") return handleRobotPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleRobotGet(req, res, session);
   }
   if (aksi === "bayar") {
     if (req.method === "POST") return handleBayarPost(req, res, session);

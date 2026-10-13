@@ -1248,8 +1248,92 @@ export const seelabsEkspor = pgTable(
     payloadHash: text("payload_hash").notNull(),
     disalinPada: timestamp("disalin_pada", { withTimezone: true }).notNull().defaultNow(),
     disimpanPada: timestamp("disimpan_pada", { withTimezone: true }),
+    /** Phase 14: how it reached SeeLabs, "robot" (the Pi saved and read it
+     *  back) or "tangan" (marked by hand after the bookmarklet). */
+    cara: text("cara", { enum: ["robot", "tangan"] }),
   },
   (t) => [index("seelabs_ekspor_sesi_idx").on(t.sesiId)],
+);
+
+/* --------------------------------------------- Phase 14: SeeLabs robot */
+
+/**
+ * An Asisten's SeeLabs password, sealed in their browser to the robot Pi's
+ * RSA key (RSA-OAEP-256 over {nim, sandi}). The site can't open it; only
+ * that Pi can, for one job at a time. A new Pi key turns every row into
+ * kunci_lain until its owner connects again.
+ */
+export const seelabsAkses = pgTable("seelabs_akses", {
+  nim: text("nim")
+    .primaryKey()
+    .references(() => asisten.nim, { onDelete: "cascade" }),
+  segel: text("segel").notNull(),
+  sidikKunci: text("sidik_kunci").notNull(),
+  /** menunggu_uji until the first sign-in worked, then aktif; ditolak when
+   *  SeeLabs refused the password; kunci_lain when the Pi key changed. */
+  status: text("status", { enum: ["menunggu_uji", "aktif", "ditolak", "kunci_lain"] })
+    .notNull()
+    .default("menunggu_uji"),
+  /** Laboran's default (NIM+1715) or the Asisten's own; never the value. */
+  bawaan: boolean("bawaan").notNull().default(true),
+  galat: text("galat"),
+  /** The Input Jaga slots last sent, so the daily check only signs in on a change. */
+  jagaSidik: text("jaga_sidik"),
+  dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+  diujiPada: timestamp("diuji_pada", { withTimezone: true }),
+  berhasilPada: timestamp("berhasil_pada", { withTimezone: true }),
+});
+
+/**
+ * The robot's queue. `isi` holds only what SeeLabs needs and nothing secret
+ * (class, KLP, module, rows, slots); the seal is joined in when the Pi claims
+ * the job. A failure that a retry can fix (tak_terjangkau, seelabs_galat)
+ * goes back to antre with a later `jalanPada`; anything else stays gagal.
+ */
+export const seelabsTugas = pgTable(
+  "seelabs_tugas",
+  {
+    id: serial("id").primaryKey(),
+    jenis: text("jenis", { enum: ["uji", "nilai", "jaga", "kelompok"] }).notNull(),
+    sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokNomor: integer("kelompok_nomor"),
+    klp: text("klp"),
+    akunNim: text("akun_nim")
+      .notNull()
+      .references(() => asisten.nim, { onDelete: "cascade" }),
+    isi: jsonb("isi").$type<Record<string, unknown>>().notNull().default({}),
+    /** sidikPayload of the scores sent (nilai only), to mark seelabs_ekspor. */
+    sidik: text("sidik"),
+    /** Token Khusus typed by the Asisten for this job; cleared once it ends. */
+    token: text("token"),
+    status: text("status", { enum: ["antre", "diambil", "selesai", "gagal", "batal"] })
+      .notNull()
+      .default("antre"),
+    percobaan: integer("percobaan").notNull().default(0),
+    galatKode: text("galat_kode"),
+    galatRinci: text("galat_rinci"),
+    bukti: jsonb("bukti").$type<Record<string, unknown>>(),
+    oleh: text("oleh").notNull(),
+    serverId: integer("server_id"),
+    dibuat: timestamp("dibuat", { withTimezone: true }).notNull().defaultNow(),
+    jalanPada: timestamp("jalan_pada", { withTimezone: true }).notNull().defaultNow(),
+    diambil: timestamp("diambil", { withTimezone: true }),
+    selesai: timestamp("selesai", { withTimezone: true }),
+  },
+  (t) => [
+    index("seelabs_tugas_status_idx").on(t.status, t.jalanPada),
+    index("seelabs_tugas_sesi_idx").on(t.sesiId, t.kelompokNomor),
+    // One waiting job per thing: a newer send replaces the waiting one.
+    uniqueIndex("seelabs_tugas_satu_antre")
+      .on(
+        t.jenis,
+        t.akunNim,
+        sql`coalesce(${t.sesiId}, 0)`,
+        sql`coalesce(${t.kelompokNomor}, 0)`,
+        sql`coalesce(${t.klp}, '')`,
+      )
+      .where(sql`${t.status} = 'antre'`),
+  ],
 );
 
 /* ------------------------------------ Phase 9 Stage 6: payments, reports */
