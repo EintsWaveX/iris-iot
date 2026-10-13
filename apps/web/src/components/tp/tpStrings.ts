@@ -24,6 +24,7 @@ const id = {
   sasaran: { semua: "Semua", genap: "NIM Genap", ganjil: "NIM Ganjil" } as Record<Sasaran, string>,
   tutupDalam: "Tutup dalam",
   bukaDalam: "Dibuka dalam",
+  satuan: ["Hari", "Jam", "Menit", "Detik"] as [string, string, string, string],
   dur: (d: number, h: number, m: number) => (d > 0 ? `${d} hari ${h} jam` : `${h} jam ${m} menit`),
   sampai: (a: string, b: string) => `${a} sampai ${b}`,
   sekarang: "Sekarang",
@@ -496,6 +497,7 @@ const en: TpT = {
   sasaran: { semua: "Everyone", genap: "Even NIM", ganjil: "Odd NIM" },
   tutupDalam: "Closes in",
   bukaDalam: "Opens in",
+  satuan: ["Days", "Hrs", "Min", "Sec"],
   dur: (d, h, m) =>
     d > 0
       ? `${d} day${d > 1 ? "s" : ""} ${h} hour${h === 1 ? "" : "s"}`
@@ -916,6 +918,7 @@ const zh: TpT = {
   sasaran: { semua: "所有人", genap: "NIM 偶数", ganjil: "NIM 奇数" },
   tutupDalam: "距离截止",
   bukaDalam: "距离开放",
+  satuan: ["天", "时", "分", "秒"],
   dur: (d, h, m) => (d > 0 ? `${d} 天 ${h} 小时` : `${h} 小时 ${m} 分钟`),
   sampai: (a, b) => `${a} 至 ${b}`,
   sekarang: "现在",

@@ -67,22 +67,71 @@
   font-size: 1.2rem;
 }
 .tphero__left {
-  align-items: baseline;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-bottom: 8px;
 }
-.tphero__left b {
-  font-size: 1.9rem;
+/* The countdown: each digit in its own tile, a unit under each group */
+.cdown__in {
+  align-items: flex-start;
+  display: flex;
+  gap: 6px;
+}
+.cdown__g {
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+}
+.cdown__g--hari {
+  margin-right: 10px;
+}
+.cdown__d {
+  display: flex;
+  gap: 3px;
+}
+.cdown__d b {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  font: 700 1.75rem/1 var(--font-mono);
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  height: 52px;
+  place-items: center;
+  width: 38px;
+}
+.cdown__g--hari b {
+  color: var(--m, var(--accent));
+}
+.cdown__g small {
+  color: var(--text-faint);
+  font: 600 0.68rem var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cdown__sep {
+  color: var(--text-faint);
+  font: 700 1.4rem/52px var(--font-mono);
 }
 @media (max-width: 519px) {
   .tphero__h {
     font-size: 1.25rem;
   }
-  .tphero__left b {
-    font-size: 1.5rem;
+  .cdown__in {
+    gap: 4px;
+  }
+  .cdown__g--hari {
+    margin-right: 6px;
+  }
+  .cdown__d b {
+    font-size: 1.2rem;
+    height: 38px;
+    width: 27px;
+  }
+  .cdown__sep {
+    font-size: 1.1rem;
+    line-height: 38px;
   }
 }
 .wtrack {
@@ -134,6 +183,24 @@
   text-transform: uppercase;
   transform: translateX(-50%);
   white-space: nowrap;
+}
+.wtrack__now[data-end="a"] span {
+  left: -3px;
+  transform: none;
+}
+.wtrack__now[data-end="b"] span {
+  left: auto;
+  right: -3px;
+  transform: none;
+}
+/* midnight ticks */
+.wtrack__bar > u {
+  background: var(--hairline-strong);
+  height: 16px;
+  margin-left: -0.5px;
+  position: absolute;
+  top: -4px;
+  width: 1px;
 }
 .wtrack--sm .wtrack__now span {
   display: none;
@@ -380,6 +447,14 @@
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.tpstat {
+  gap: 6px;
+}
+.tpstat .stat__value small {
+  color: var(--text-faint);
+  font-size: 0.6em;
+  font-weight: 600;
 }
 .tpbtns {
   display: flex;

@@ -3,7 +3,7 @@
  * and countdown, the question list and its keys (light markup with code,
  * tables and diagrams), the data hooks and the date words.
  */
-import { type CSSProperties, type ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import {
   CheckIcon,
   ClockIcon,
@@ -243,21 +243,38 @@ export function durasi(sec: number, lang: Lang): string {
   return TPS[lang].dur(d, h, m);
 }
 
-const hms = (s: number) =>
-  [Math.floor(s / 3600), Math.floor((s % 3600) / 60), Math.floor(s % 60)]
-    .map((n) => String(n).padStart(2, "0"))
-    .join(":");
+const dua = (n: number) => String(n).padStart(2, "0");
 
-/** A countdown to an instant: days and hours, then a ticking HH:MM:SS. */
+/** A countdown to an instant as digit tiles, each digit in its own cell:
+ *  the days while a day or more is left, then HH:MM:SS. */
 export function Countdown({ to, lang }: { to: string; lang: Lang }) {
   useTick(1000);
-  const s = Math.max(0, (Date.parse(to) - Date.now()) / 1000);
-  return s > 86400 ? (
-    <b className="mono">{durasi(s, lang)}</b>
-  ) : (
-    <b className="mono" role="timer">
-      {hms(s)}
-    </b>
+  const t = TPS[lang];
+  const s = Math.max(0, Math.floor((Date.parse(to) - Date.now()) / 1000));
+  const d = Math.floor(s / 86400);
+  const jms = [Math.floor((s % 86400) / 3600), Math.floor((s % 3600) / 60), s % 60];
+  const kelompok = (v: string, l: string, cls = "") => (
+    <span className={`cdown__g${cls}`}>
+      <span className="cdown__d">
+        {[...v].map((c, i) => (
+          <b key={i}>{c}</b>
+        ))}
+      </span>
+      <small>{l}</small>
+    </span>
+  );
+  return (
+    <span className="cdown" role="timer" aria-label={durasi(s, lang)}>
+      <span className="cdown__in" aria-hidden="true">
+        {d > 0 && kelompok(String(d), t.satuan[0], " cdown__g--hari")}
+        {jms.map((n, i) => (
+          <Fragment key={i}>
+            {i > 0 && <span className="cdown__sep">:</span>}
+            {kelompok(dua(n), t.satuan[i + 1])}
+          </Fragment>
+        ))}
+      </span>
+    </span>
   );
 }
 
@@ -291,6 +308,10 @@ export function WinTrack({ j, lang, compact }: { j: JendelaTp; lang: Lang; compa
     });
   }
   tanda.push({ p: 100, l: hariJamPendek(j.tutup, lang), ujung: "b" });
+  // Midnight ticks, so the uneven first and last days read as such.
+  const garis: number[] = [];
+  for (let d = hari.getTime() - 7 * 3_600_000 + 86_400_000; d < b; d += 86_400_000)
+    garis.push(((d - a) / (b - a)) * 100);
   return (
     <div
       className={`wtrack${compact ? " wtrack--sm" : ""}`}
@@ -300,8 +321,13 @@ export function WinTrack({ j, lang, compact }: { j: JendelaTp; lang: Lang; compa
     >
       <div className="wtrack__bar">
         <i style={{ width: `${ws === "belum" ? 0 : p}%` }} />
+        {!compact && garis.map((x) => <u key={x} style={{ left: `${x}%` }} aria-hidden="true" />)}
         {ws === "buka" && (
-          <b className="wtrack__now" style={{ left: `${p}%` }}>
+          <b
+            className="wtrack__now"
+            style={{ left: `${p}%` }}
+            data-end={p < 12 ? "a" : p > 88 ? "b" : undefined}
+          >
             <span>{t.sekarang}</span>
           </b>
         )}

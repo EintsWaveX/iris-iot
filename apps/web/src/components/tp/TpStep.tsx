@@ -601,14 +601,28 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
       <div className="tpgrid__hero">
         <Hero lang={lang} modul={modul} j={d.jendela} k={d.keadaan}>
           <div className="tpstats">
-            <div className="stat">
-              <span className="stat__value num">{d.masuk}</span>
-              <span className="stat__label">{t.terkumpulDari(d.peserta || d.masuk)}</span>
-            </div>
-            <div className="stat">
-              <span className="stat__value num">{d.dinilai}</span>
-              <span className="stat__label">{t.dinilai}</span>
-            </div>
+            {[
+              { l: t.status.masuk, n: d.masuk, dari: d.peserta || d.masuk },
+              { l: t.status.nilai, n: d.dinilai, dari: d.masuk },
+            ].map((x) => (
+              <div key={x.l} className="stat tpstat">
+                <span className="label-caps">{x.l}</span>
+                <span className="stat__value num">
+                  {x.n}
+                  <small> / {x.dari}</small>
+                </span>
+                <span
+                  className="meter"
+                  role="img"
+                  aria-label={`${x.n}/${x.dari}`}
+                  style={
+                    {
+                      "--meter": x.dari ? Math.round((x.n / x.dari) * 100) : 0,
+                    } as CSSProperties
+                  }
+                />
+              </div>
+            ))}
           </div>
           <div className="tpbtns">
             <a className="btn btn--primary" href={href(lang, `/grading?modul=${modul}`)}>
