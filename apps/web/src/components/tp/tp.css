@@ -1432,33 +1432,32 @@ button.tpcheck:focus-visible,
 /* ----------------------------------------------------- Silang Data */
 .tpsilang__tiles {
   display: grid;
-  gap: 10px;
+  gap: 8px 18px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 .tpsilang__tile {
-  background: var(--bg-sunken);
-  border-radius: 10px;
   display: grid;
   gap: 0;
-  padding: 8px 10px;
 }
 .tpsilang__tile dt {
   color: var(--text-faint);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 650;
 }
 .tpsilang__tile dd {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
 }
 .tpsilang__tile .hint {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
 }
 .tpsilang__isi {
+  border-top: 1px solid var(--hairline-faint);
   display: grid;
   gap: 10px;
+  padding-top: 8px;
 }
 .tpsilang__h {
   font-size: 0.95rem;
@@ -1498,7 +1497,7 @@ button.tpcheck:focus-visible,
   .tpsilang {
     display: flex;
     flex-direction: column;
-    min-height: 320px;
+    min-height: 300px;
   }
   .tpsilang__isi {
     align-content: start;
