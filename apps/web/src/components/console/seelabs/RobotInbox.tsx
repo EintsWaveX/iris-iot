@@ -18,6 +18,7 @@ interface Tugas {
   klp: string | null;
   status: string;
   galat: string | null;
+  rinci?: string | null;
   dibuat: string;
 }
 
@@ -85,6 +86,7 @@ export default function RobotInbox({
             </span>
             <span className="elog__text">
               <b>{apa}</b> {t.err[j.galat ?? "bentuk_berubah"] ?? t.failed}
+              {j.galat === "seelabs_menolak" && j.rinci ? ` "${j.rinci}"` : ""}
             </span>
             <span className="todo10__acts">
               {akun ? (

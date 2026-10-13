@@ -17,6 +17,7 @@ export interface TugasRobot {
   status: "antre" | "diambil" | "selesai" | "gagal" | "batal";
   percobaan: number;
   galat: string | null;
+  rinci?: string | null;
   jalanPada: string;
 }
 
@@ -116,7 +117,10 @@ export default function SeelabsStrip({ sesiId, nomor }: { sesiId: number; nomor:
         <>
           <div className="banner banner--danger slr-note">
             <WarningIcon size={20} aria-hidden="true" />
-            <span>{r.err[gagal.galat ?? "bentuk_berubah"] ?? r.failed}</span>
+            <span>
+              {r.err[gagal.galat ?? "bentuk_berubah"] ?? r.failed}
+              {gagal.galat === "seelabs_menolak" && gagal.rinci ? ` "${gagal.rinci}"` : ""}
+            </span>
           </div>
           {gagal.galat === "butuh_token" || gagal.galat === "token_salah" ? (
             <form

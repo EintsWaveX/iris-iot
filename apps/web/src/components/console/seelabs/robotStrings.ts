@@ -120,6 +120,8 @@ export const RB = dict({
         "Kelompok ini tidak ada di daftar jaga hari ini. Masukkan Token Khusus dari SeeLabs.",
       token_salah: "Token Khusus itu tidak membuka kelompok ini. Cek lagi tokennya.",
       anggota_beda: "Anggota KLP di SeeLabs berbeda dengan IRIS. Cocokkan KLP dulu di Persiapan.",
+      seelabs_menolak:
+        "SeeLabs menolak simpanan ini. Biasanya kelompok ini sudah diinput hari ini lewat akun lain. Kata SeeLabs:",
       tak_terverifikasi:
         "Sudah disimpan, tapi waktu dibaca ulang nilainya belum sama. Cek di SeeLabs.",
       segel_rusak:
@@ -319,6 +321,8 @@ export const RB = dict({
       token_salah: "That Token Khusus didn't open this group. Check the token.",
       anggota_beda:
         "The KLP's members in SeeLabs differ from IRIS. Match the KLP in Preparation first.",
+      seelabs_menolak:
+        "SeeLabs refused this save, usually because another account put this group in today. SeeLabs said:",
       tak_terverifikasi: "Saved, but the read-back didn't show the same scores. Check in SeeLabs.",
       segel_rusak:
         "The Orange Pi's key changed, so the old password can't be opened. Connect your account again.",
@@ -504,6 +508,8 @@ export const RB = dict({
       butuh_token: "这个小组不在今天的值班名单里。请输入 SeeLabs 的 Token Khusus。",
       token_salah: "这个 Token Khusus 打不开该小组。请检查令牌。",
       anggota_beda: "SeeLabs 中该 KLP 的成员与 IRIS 不同。请先在 准备 中核对 KLP。",
+      seelabs_menolak:
+        "SeeLabs 拒绝了这次保存，通常是因为今天已有其他账号录入了该小组。SeeLabs 的原话：",
       tak_terverifikasi: "已保存，但回读时成绩不一致。请在 SeeLabs 中检查。",
       segel_rusak: "Orange Pi 的密钥已变，旧密码无法解开。请重新连接你的账号。",
       pi_diam: "Orange Pi 没有回应。机器人会自己再试。",

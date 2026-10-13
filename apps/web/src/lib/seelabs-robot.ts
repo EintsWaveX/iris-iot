@@ -36,6 +36,7 @@ export const GALAT_ROBOT = [
   "butuh_token", // the group isn't on today's list: needs a Token Khusus
   "token_salah", // the Token Khusus didn't open it
   "anggota_beda", // the KLP's NIMs in SeeLabs differ from IRIS
+  "seelabs_menolak", // SeeLabs said no in its own words (rinci), e.g. put in already today
   "tak_terverifikasi", // saved, but Lihat Nilai didn't show the same scores
   "segel_rusak", // the seal couldn't be opened with the Pi's key
   "pi_diam", // the Pi took the job and never answered (the site's own code)
