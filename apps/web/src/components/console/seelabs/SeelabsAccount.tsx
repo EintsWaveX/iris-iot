@@ -3,7 +3,7 @@
  *  in to SeeLabs. The username is saved through the Tim API, which lets
  *  anyone set their own. */
 import { useEffect, useRef, useState } from "react";
-import { ArrowRightIcon, LockSimpleIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, HandIcon } from "@phosphor-icons/react";
 import { getJson, href, postJson } from "../../../lib/app";
 import { useSegar } from "../../../lib/siaran";
 import type { Lang } from "../../../lib/kelas";
@@ -62,7 +62,7 @@ export default function SeelabsAccount({ lang, nim }: { lang: Lang; nim: string 
       <div className="panel__head">
         <h2 className="panel__title">{t.acctTitle}</h2>
         <span className="pill">
-          <LockSimpleIcon size={14} aria-hidden="true" />
+          <HandIcon size={14} aria-hidden="true" />
           {t.acctNoPw}
         </span>
       </div>

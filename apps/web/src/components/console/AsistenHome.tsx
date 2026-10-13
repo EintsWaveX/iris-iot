@@ -20,6 +20,7 @@
  * src/lib/sesi-mulai.ts); this page only explains them ahead of time.
  */
 import SusulanSide from "./SusulanSide";
+import RobotInbox from "./seelabs/RobotInbox";
 import { batalSusulan, BS } from "./batalSusulan";
 import HelpRows, { jumlahBantuan, useBantuan } from "./HelpCard";
 import StartCheck, { type BelumSiap } from "./StartCheck";
@@ -1147,6 +1148,8 @@ export default function AsistenHome({
             <h2 className="panel__title">{d.inboxTitle}</h2>
             {inboxN > 0 && <Pill tone="warn">{inboxN}</Pill>}
           </div>
+          {/* Phase 14: SeeLabs robot jobs of mine that stopped */}
+          <RobotInbox lang={lang} tag={d.tag.seelabs} onTable={onTable} />
           {!data ? (
             <span className="skeleton" style={{ height: 120 }} />
           ) : inboxN === 0 ? (

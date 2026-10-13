@@ -20,7 +20,7 @@
  * The seal arrives RSA-OAEP-3072 to the Pi's key and is kept wrapped again
  * with AES-256-GCM (rahasia.ts); it is unwrapped only into the Pi's job.
  */
-import { and, asc, desc, eq, inArray, lte, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lte, ne, or, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
@@ -39,7 +39,7 @@ import {
   seelabsTugas,
   server,
 } from "../../src/lib/schema.js";
-import { bolehPenuh } from "../../src/lib/hak.js";
+import { bolehPenuh, hakPenuh } from "../../src/lib/hak.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
@@ -609,7 +609,7 @@ const posInt = (v: unknown) => {
 
 async function pengelolaRobot(nim: string): Promise<boolean> {
   const o = await muatOrang(nim);
-  return !!o && (bolehPenuh(o, "full") || o.badges.includes("pencipta"));
+  return !!o && (hakPenuh(o) || bolehPenuh(o, "full"));
 }
 
 function ringkasTugas(t: typeof seelabsTugas.$inferSelect) {
@@ -644,6 +644,18 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
           ? { ok: true, spki: aturan.kunci.spki, sidik: aturan.kunci.sidik }
           : { ok: false, kode: "kunci_belum_disetujui" },
       );
+    return;
+  }
+
+  if (req.query.kelompok) {
+    // The last KLP pull, for Cocokkan KLP (names and NIMs only).
+    const tarik = await bacaKunci<{ pada?: string; kelompok?: Record<string, KelompokTarik[]> }>(
+      db,
+      KUNCI_ROBOT.kelompok,
+    );
+    res
+      .status(200)
+      .json({ ok: true, pada: tarik?.pada ?? null, kelompok: tarik?.kelompok ?? null });
     return;
   }
 
@@ -726,16 +738,22 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
   }
 
   const akses = await aksesDari(db, session.nim);
+  const [orang] = await db
+    .select({ akun: asisten.seelabsAkun })
+    .from(asisten)
+    .where(eq(asisten.nim, session.nim))
+    .limit(1);
   const tugas = await db
     .select()
     .from(seelabsTugas)
-    .where(eq(seelabsTugas.akunNim, session.nim))
+    .where(or(eq(seelabsTugas.akunNim, session.nim), eq(seelabsTugas.oleh, session.nim)))
     .orderBy(desc(seelabsTugas.id))
     .limit(20);
   res.status(200).json({
     ok: true,
     nyala: aturan.nyala,
-    kunci: aturan.kunci ? { sidik: aturan.kunci.sidik } : null,
+    kunci: aturan.kunci ? { sidik: aturan.kunci.sidik, serverId: aturan.kunci.serverId } : null,
+    pengguna: orang?.akun || session.nim,
     akses: akses
       ? {
           status: akses.status,

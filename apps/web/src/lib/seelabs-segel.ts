@@ -12,9 +12,9 @@
 /** The Laboran's default SeeLabs password: the NIM followed by 1715. */
 export const sandiBawaanSeelabs = (nim: string) => nim + "1715";
 
-function dariBase64(b64: string): Uint8Array {
+function dariBase64(b64: string): Uint8Array<ArrayBuffer> {
   const biner = atob(b64);
-  const out = new Uint8Array(biner.length);
+  const out = new Uint8Array(new ArrayBuffer(biner.length));
   for (let i = 0; i < biner.length; i++) out[i] = biner.charCodeAt(i);
   return out;
 }

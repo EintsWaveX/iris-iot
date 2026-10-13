@@ -8,6 +8,9 @@
 import { useState } from "react";
 import { CheckCircleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
+import { pageLang } from "../../lib/app";
+import SeelabsStrip from "./seelabs/SeelabsStrip";
+import { RB } from "./seelabs/robotStrings";
 import type { Strings } from "./strings";
 import type { NilaiLive } from "./data";
 
@@ -44,13 +47,19 @@ export default function KirimNilai({
 
   if (sent) {
     return (
-      <span className="kirim" data-sent="yes">
-        <Pill tone="ok">
-          <CheckCircleIcon size={14} aria-hidden="true" />
-          {t.kirimSent(jam(sent.pada))}
-        </Pill>
-        {!compact && <span className="hint">{t.kirimAfter}</span>}
-      </span>
+      <>
+        <span className="kirim" data-sent="yes">
+          <Pill tone="ok">
+            <CheckCircleIcon size={14} aria-hidden="true" />
+            {t.kirimSent(jam(sent.pada))}
+          </Pill>
+          {!compact && <span className="hint">{t.kirimAfter}</span>}
+        </span>
+        {/* Phase 14: where the robot's SeeLabs save stands */}
+        {!compact && nilai.sesiId !== null && (
+          <SeelabsStrip sesiId={nilai.sesiId} nomor={g.nomor} />
+        )}
+      </>
     );
   }
 
@@ -58,8 +67,22 @@ export default function KirimNilai({
     setBusy(true);
     const r = await nilai.kirim(kelompokId);
     setBusy(false);
-    if (r.r === "ok") window.Toast?.show(t.kirimOk, "ok");
-    else if (r.r === "incomplete") window.Toast?.show(t.kirimLeft(r.kurang ?? kurang), "danger");
+    if (r.r === "ok") {
+      // Phase 14: say whether SeeLabs follows by robot or by hand.
+      const rb = RB[pageLang()];
+      const alasan = r.seelabs?.alasan;
+      window.Toast?.show(
+        r.seelabs?.antre
+          ? rb.sentFollows
+          : alasan &&
+              alasan !== "robot_mati" &&
+              alasan !== "sesi_tot" &&
+              alasan !== "sudah_tersimpan"
+            ? `${rb.sentHand} ${rb.why[alasan] ?? ""}`.trim()
+            : t.kirimOk,
+        "ok",
+      );
+    } else if (r.r === "incomplete") window.Toast?.show(t.kirimLeft(r.kurang ?? kurang), "danger");
     else if (r.r === "owner") window.Toast?.show(t.kirimOwner, "danger");
     else window.Toast?.show(t.fail, "danger");
   }

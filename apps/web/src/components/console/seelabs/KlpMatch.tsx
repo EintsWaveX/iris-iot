@@ -6,7 +6,11 @@
  * the roster's own Save keeps it.
  */
 import { useMemo, useState } from "react";
-import { ClipboardTextIcon } from "@phosphor-icons/react";
+import { ClipboardTextIcon, RobotIcon } from "@phosphor-icons/react";
+import { getJson } from "../../../lib/app";
+import { KLP_AWALAN } from "../../../lib/seelabs";
+import { RB } from "./robotStrings";
+import { kapanRobot } from "./SeelabsRobotCard";
 import Dialog from "../../ui/Dialog";
 import Pill from "../../ui/Pill";
 import { kelompokLabel } from "../../../lib/labels";
@@ -40,6 +44,25 @@ export default function KlpMatch({
     [groups, daftar],
   );
   const cocok = hasil.filter((h) => h.klp);
+
+  // Phase 14: the robot's last Kelompok pull, as the bookmarklet's list mode.
+  async function fromRobot() {
+    const rb = RB[lang];
+    const d = await getJson<{
+      ok: boolean;
+      pada: string | null;
+      kelompok: Record<string, { klp: number; anggota: { nim: string }[] }[]> | null;
+    }>("/api/session/robot?kelompok=1").catch(() => null);
+    if (!d?.ok || !d.kelompok || !d.pada) {
+      window.Toast?.show(rb.klpRobotNone, "warn");
+      return;
+    }
+    const kelompok = Object.values(d.kelompok)
+      .flat()
+      .map((g) => ({ klp: String(g.klp), nim: g.anggota.map((a) => a.nim) }));
+    setText(KLP_AWALAN + JSON.stringify({ kelompok }));
+    window.Toast?.show(rb.klpRobotAt(kapanRobot(d.pada, lang)), "ok");
+  }
 
   async function fromClipboard() {
     try {
@@ -95,10 +118,16 @@ export default function KlpMatch({
         </label>
         <div className="row row--between">
           <span className="hint">{daftar.length ? t.matchRead(daftar.length) : t.matchNone}</span>
-          <button type="button" className="btn btn--sm" onClick={() => void fromClipboard()}>
-            <ClipboardTextIcon size={16} aria-hidden="true" />
-            {t.matchFromClip}
-          </button>
+          <span className="row" style={{ gap: 8 }}>
+            <button type="button" className="btn btn--sm" onClick={() => void fromRobot()}>
+              <RobotIcon size={16} aria-hidden="true" />
+              {RB[lang].klpFromRobot}
+            </button>
+            <button type="button" className="btn btn--sm" onClick={() => void fromClipboard()}>
+              <ClipboardTextIcon size={16} aria-hidden="true" />
+              {t.matchFromClip}
+            </button>
+          </span>
         </div>
         {daftar.length > 0 && (
           <ul className="klpmatch">

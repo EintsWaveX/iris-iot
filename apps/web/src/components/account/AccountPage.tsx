@@ -12,6 +12,7 @@
  * - A praktikan gets PraktikanAccount. Signing out is in the account menu.
  */
 import SeelabsAccount from "../console/seelabs/SeelabsAccount";
+import SeelabsRobotCard from "../console/seelabs/SeelabsRobotCard";
 import PraktikanAccount from "./PraktikanAccount";
 import { EarningsCard } from "../bayar/Earnings";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -291,6 +292,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
       </header>
 
       <EarningsCard lang={lang} nim={me.nim} />
+      <SeelabsRobotCard lang={lang} nim={me.nim} />
       <SeelabsAccount lang={lang} nim={me.nim} />
 
       {/* Wide screens: Ganti Kata Sandi above Jadwalku on the left, Tampilan

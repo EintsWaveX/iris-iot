@@ -9,6 +9,7 @@
  * - Titipan: groups that go through MY account as a lender.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import RobotGuide from "./RobotGuide";
 import {
   CheckCircleIcon,
   CursorClickIcon,
@@ -87,14 +88,17 @@ export default function SeelabsView({
   let body;
   if (tab === "panduan") {
     body = (
-      <Panduan
-        lang={lang}
-        bisaSalin={!!sesiId}
-        onGo={(ke) => {
-          if (ke === "tabel") (onTable ?? onBack)();
-          else if (ke !== "seelabs" && ke !== "akun") setTab(ke);
-        }}
-      />
+      <>
+        <RobotGuide lang={lang} />
+        <Panduan
+          lang={lang}
+          bisaSalin={!!sesiId}
+          onGo={(ke) => {
+            if (ke === "tabel") (onTable ?? onBack)();
+            else if (ke !== "seelabs" && ke !== "akun") setTab(ke);
+          }}
+        />
+      </>
     );
   } else if (tab === "salin") {
     body = !data ? (

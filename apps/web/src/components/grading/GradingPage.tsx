@@ -21,14 +21,16 @@ import Grader from "./Grader";
 import PraktikumTab from "./PraktikumTab";
 import SoalTab from "./SoalTab";
 import LmsTab from "./LmsTab";
+import SumberSeelabs from "../console/seelabs/SumberSeelabs";
+import { RB } from "../console/seelabs/robotStrings";
 import type { DataKelompok, GrupDinilai } from "./types";
 import "../tp/tp.css";
 
-type Tab = "tp" | "soal" | "praktikum" | "lms";
+type Tab = "tp" | "soal" | "praktikum" | "lms" | "seelabs";
 
 function tabDariHash(): Tab {
   const h = typeof location === "undefined" ? "" : location.hash.replace(/^#/, "");
-  return h === "soal" || h === "praktikum" || h === "lms" ? h : "tp";
+  return h === "soal" || h === "praktikum" || h === "lms" || h === "seelabs" ? h : "tp";
 }
 
 function modulDariUrl(): number | null {
@@ -113,6 +115,8 @@ export default function GradingPage({ lang }: { lang: Lang }) {
     { v: "praktikum", label: t.tabPraktikum },
   ];
   if (bolehLms) tabs.push({ v: "lms", label: sm ? t.tabLmsSm : t.tabLms });
+  // Phase 14: the SeeLabs robot's own source tab, for the same people.
+  if (bolehLms) tabs.push({ v: "seelabs", label: sm ? "SeeLabs" : RB[lang].srcTitle });
   const shown: Tab = tabs.some((x) => x.v === tab) ? tab : "tp";
 
   if (grader && modul !== null && poll.data) {
@@ -165,8 +169,10 @@ export default function GradingPage({ lang }: { lang: Lang }) {
           <SoalTab lang={lang} modul={modul ?? 1} setModul={setModul} />
         ) : shown === "praktikum" ? (
           <PraktikumTab lang={lang} />
-        ) : (
+        ) : shown === "lms" ? (
           <LmsTab lang={lang} />
+        ) : (
+          <SumberSeelabs lang={lang} />
         )}
       </Fade>
     </div>

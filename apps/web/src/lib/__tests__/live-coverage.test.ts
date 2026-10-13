@@ -28,6 +28,7 @@ const SEKALI: Record<string, string> = {
   "components/shell/AsistenCommands.tsx": "reads just before the write a command makes",
   "components/console/EndFlow.tsx": "the wrap up reads once per step it opens",
   "components/console/prep/StudentDialogs.tsx": "dialogs that only write",
+  "components/console/seelabs/KlpMatch.tsx": "the robot's KLP pull, read once when the button is pressed",
   "components/console/ringkasSesi.ts": "builds a summary file on demand",
   "components/dashboard/FeedbackForm.tsx": "the form only writes",
   "components/schedule/ImportView.tsx": "reads the file the person drops in",
@@ -149,10 +150,13 @@ function membaca(src: string): boolean {
 
 const LIVE_RE = /\b(useSiaran|useSegar|dengar|useAliran|useBatas|useSessionNow)\s*[<(]/;
 
-/** Hears changes: a live hook, or a usePoll with topics */
+/** Hears changes: a live hook, or a usePoll (or usePollBersama) with topics */
 function hidup(src: string): boolean {
   if (LIVE_RE.test(src)) return true;
-  return argumen(src, "usePoll").some((a) => pisahArgumen(a).length >= 4);
+  return (
+    argumen(src, "usePoll").some((a) => pisahArgumen(a).length >= 4) ||
+    argumen(src, "usePollBersama").some((a) => pisahArgumen(a).length >= 5)
+  );
 }
 
 // ---------- Rules ----------
