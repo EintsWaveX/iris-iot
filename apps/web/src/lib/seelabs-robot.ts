@@ -65,6 +65,13 @@ export const PROTOKOL_ROBOT = 6;
 export const ALAMAT_SEELABS = ["kampus", "athena"] as const;
 export type AlamatSeelabs = (typeof ALAMAT_SEELABS)[number];
 
+/** What follows the NIM in the Laboran's default SeeLabs password, unless changed. */
+export const SUFIKS_BAWAAN = "1715";
+
+/** A suffix the Laboran could set: 1 to 16 letters or digits. */
+export const sufiksSah = (s: unknown): s is string =>
+  typeof s === "string" && /^[A-Za-z0-9]{1,16}$/.test(s);
+
 /** The `pengaturan` keys the robot keeps. */
 export const KUNCI_ROBOT = {
   /** { nyala: boolean }: the kill switch, Pencipta and Admin only. */
@@ -73,6 +80,9 @@ export const KUNCI_ROBOT = {
   kunci: "seelabs_kunci",
   /** AlamatSeelabs: which address the Pi uses. */
   alamat: "seelabs_alamat",
+  /** { sufiks }: what follows the NIM in the Laboran's default password (an
+   *  object, since a bare "2026" would come back from jsonb as a number). */
+  sufiks: "seelabs_sufiks",
   /** { pada, oleh, kelompok: { "237": [...], "238": [...] } }: the last pull. */
   kelompok: "seelabs_kelompok",
   /** "YYYY-MM-DD" (WIB): the day the daily jaga check last ran. */

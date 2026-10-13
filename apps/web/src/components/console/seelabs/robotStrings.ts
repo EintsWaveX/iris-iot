@@ -54,7 +54,7 @@ export const RB = dict({
     dlgAccount: "Akun SeeLabs",
     dlgAccountHint:
       "Nama akunmu di SeeLabs, biasanya NIM. Ubah di kartu SeeLabs di bawah kalau berbeda.",
-    useDefault: "Pakai sandi bawaan Laboran (NIM diikuti 1715)",
+    useDefault: (s: string) => `Pakai sandi bawaan Laboran (NIM diikuti ${s})`,
     useDefaultHint: "Matikan kalau kamu sudah mengganti kata sandi SeeLabs.",
     dlgPw: "Kata sandi SeeLabs",
     dlgPwHint: "Kata sandi akun SeeLabs kamu, bukan kata sandi IRIS.",
@@ -152,6 +152,12 @@ export const RB = dict({
     srcSwitch: "Robot Nyala",
     srcSwitchHint:
       "Mematikan robot menghentikan semua tugas baru. Salin untuk SeeLabs tetap jalan.",
+    srcSuffix: "Akhiran Sandi Laboran",
+    srcSuffixHint: (s: string) =>
+      `Sandi bawaan SeeLabs adalah NIM diikuti ${s}. Akun yang sudah terhubung tetap memakai sandi yang dikunci dulu; minta mereka hubungkan ulang kalau Laboran mengganti akhirannya.`,
+    srcSuffixBad: "Hanya huruf dan angka, 1 sampai 16.",
+    srcSuffixSaved: "Akhiran disimpan",
+    srcSuffixSave: "Simpan",
     srcAddr: "Alamat SeeLabs",
     addr: { kampus: "Kampus (TelU-Connect)", athena: "athena.ptrkr.moe (gerbang tim)" } as Record<
       string,
@@ -252,7 +258,7 @@ export const RB = dict({
     dlgAccount: "SeeLabs account",
     dlgAccountHint:
       "Your SeeLabs account name, usually your NIM. Change it on the SeeLabs card below if it differs.",
-    useDefault: "Use the Laboran default password (NIM followed by 1715)",
+    useDefault: (s: string) => `Use the Laboran default password (NIM followed by ${s})`,
     useDefaultHint: "Turn it off if you changed your SeeLabs password.",
     dlgPw: "SeeLabs password",
     dlgPwHint: "Your SeeLabs account password, not your IRIS one.",
@@ -341,6 +347,12 @@ export const RB = dict({
       "The robot on the campus Orange Pi that saves scores, registers Input Jaga and pulls the groups.",
     srcSwitch: "Robot On",
     srcSwitchHint: "Switching the robot off stops every new job. Copy for SeeLabs keeps working.",
+    srcSuffix: "Laboran Password Suffix",
+    srcSuffixHint: (s: string) =>
+      `The SeeLabs default password is the NIM followed by ${s}. Accounts already connected keep the password they sealed; ask them to connect again when the Laboran changes the suffix.`,
+    srcSuffixBad: "Letters and digits only, 1 to 16.",
+    srcSuffixSaved: "Suffix saved",
+    srcSuffixSave: "Save",
     srcAddr: "SeeLabs address",
     addr: { kampus: "Campus (TelU-Connect)", athena: "athena.ptrkr.moe (team gate)" } as Record<
       string,
@@ -434,7 +446,7 @@ export const RB = dict({
     dlgTitleAgain: "重新输入 SeeLabs 密码",
     dlgAccount: "SeeLabs 账号",
     dlgAccountHint: "你在 SeeLabs 的账号名，通常是 NIM。如有不同，请在下方 SeeLabs 卡片中修改。",
-    useDefault: "使用 Laboran 默认密码（NIM 后接 1715）",
+    useDefault: (s: string) => `使用 Laboran 默认密码（NIM 后接 ${s}）`,
     useDefaultHint: "如果你改过 SeeLabs 密码，请关闭此项。",
     dlgPw: "SeeLabs 密码",
     dlgPwHint: "你的 SeeLabs 账号密码，不是 IRIS 密码。",
@@ -518,6 +530,12 @@ export const RB = dict({
     srcDesc: "校园 Orange Pi 上的机器人，负责保存成绩、登记 Input Jaga 和拉取小组。",
     srcSwitch: "机器人开启",
     srcSwitchHint: "关闭机器人会停止所有新任务。复制到 SeeLabs 仍可使用。",
+    srcSuffix: "Laboran 密码后缀",
+    srcSuffixHint: (s: string) =>
+      `SeeLabs 默认密码是 NIM 后接 ${s}。已连接的账号仍使用当初加锁的密码；Laboran 更改后缀时，请他们重新连接。`,
+    srcSuffixBad: "只能是字母和数字，1 到 16 位。",
+    srcSuffixSaved: "后缀已保存",
+    srcSuffixSave: "保存",
     srcAddr: "SeeLabs 地址",
     addr: { kampus: "校园（TelU-Connect）", athena: "athena.ptrkr.moe（团队网关）" } as Record<
       string,

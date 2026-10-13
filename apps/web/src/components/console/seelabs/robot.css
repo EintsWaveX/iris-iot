@@ -164,6 +164,25 @@
   color: var(--text);
   letter-spacing: 0.04em;
 }
+/* Sumber SeeLabs: the Laboran suffix field, input and Simpan on one line */
+.slr-suffix {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.slr-suffix .field {
+  flex: 1 1 180px;
+}
+.slr-suffix .hint {
+  flex-basis: 100%;
+}
+/* The connect dialog's done state: icon, title and text all centred */
+.slr-done {
+  align-items: center;
+  justify-items: center;
+  text-align: center;
+}
 /* A robot banner keeps its icon beside the text, however narrow */
 .slr-note {
   flex-wrap: nowrap;

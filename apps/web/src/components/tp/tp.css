@@ -1115,6 +1115,10 @@
   font-size: 1.3rem;
   margin: 0;
 }
+/* Room between the plug icon and the two lines beside it */
+.tpcon > .row {
+  gap: 16px;
+}
 .tpcon > .row > svg,
 .tpcon > .stack > svg {
   color: var(--ok);

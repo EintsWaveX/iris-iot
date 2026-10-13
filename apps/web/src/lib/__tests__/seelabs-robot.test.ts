@@ -10,6 +10,8 @@ import {
   statusAksesSetelah,
   JEDA_ULANG_DETIK,
   PERCOBAAN_MAKS,
+  SUFIKS_BAWAAN,
+  sufiksSah,
   type KelompokTarik,
 } from "../seelabs-robot.js";
 import { sandiBawaanSeelabs, segelSandi, sidikKunci } from "../seelabs-segel.js";
@@ -150,5 +152,20 @@ describe("the Pi's key and the browser seal", () => {
     await expect(
       segelSandi(spki, "0000:0000:0000:0000:0000:0000:0000:0000", "1", "x"),
     ).rejects.toThrow("kunci_berubah");
+  });
+});
+
+describe("the Laboran default password's suffix", () => {
+  it("is 1715 unless Sumber SeeLabs changed it", () => {
+    expect(SUFIKS_BAWAAN).toBe("1715");
+    expect(sandiBawaanSeelabs("101022300172")).toBe("1010223001721715");
+    expect(sandiBawaanSeelabs("101022300172", "2026")).toBe("1010223001722026");
+  });
+
+  it("takes 1 to 16 letters or digits only", () => {
+    for (const ok of ["1715", "A", "abc123XYZ", "1234567890123456"])
+      expect(sufiksSah(ok)).toBe(true);
+    for (const bad of ["", " 1715", "17-15", "1234567890123456x", "sandi!", 1715, null])
+      expect(sufiksSah(bad)).toBe(false);
   });
 });

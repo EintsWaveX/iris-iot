@@ -17,6 +17,7 @@ import type { Lang } from "../../../lib/kelas";
 import Confirm from "../../ui/Confirm";
 import { Switch } from "../../ui/Controls";
 import { kapanRobot } from "./SeelabsRobotCard";
+import { sufiksSah } from "../../../lib/seelabs-robot";
 import Sidik from "./Sidik";
 import { RB } from "./robotStrings";
 import "./robot.css";
@@ -25,6 +26,7 @@ interface Sumber {
   ok: boolean;
   nyala: boolean;
   alamat: "kampus" | "athena";
+  sufiks: string;
   kunci: { serverId: number; sidik: string; oleh: string; pada: string } | null;
   kunciPi: {
     serverId: number;
@@ -79,6 +81,7 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
   );
   const [setujui, setSetujui] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sufiks, setSufiks] = useState<string | null>(null);
   if (!data) return <span className="skeleton" style={{ height: 420 }} />;
   if (!data.ok) return null;
 
@@ -94,6 +97,8 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
   }
 
   const kodeDari = new Map(data.akun.map((a) => [a.nim, a.kode]));
+  // The suffix field shows the saved value until someone types.
+  const nilaiSufiks = sufiks ?? data.sufiks;
   const piRobot = data.kunci
     ? data.kunciPi.find((k) => k.serverId === data.kunci!.serverId)
     : undefined;
@@ -214,6 +219,39 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
             ))}
           </div>
         </div>
+        <form
+          className="slr-suffix"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (sufiksSah(nilaiSufiks) && nilaiSufiks !== data.sufiks)
+              void kirim({ aksi: "sufiks", sufiks: nilaiSufiks }, t.srcSuffixSaved).then(
+                (ok) => ok && setSufiks(null),
+              );
+          }}
+        >
+          <label className="field">
+            <span className="field__label">{t.srcSuffix}</span>
+            <input
+              className="field__input mono"
+              value={nilaiSufiks}
+              maxLength={16}
+              autoComplete="off"
+              spellCheck={false}
+              aria-invalid={!sufiksSah(nilaiSufiks) || undefined}
+              onChange={(e) => setSufiks(e.target.value.trim())}
+            />
+          </label>
+          <button
+            type="submit"
+            className="btn btn--secondary"
+            disabled={busy || !sufiksSah(nilaiSufiks) || nilaiSufiks === data.sufiks}
+          >
+            {t.srcSuffixSave}
+          </button>
+          <span className="hint">
+            {sufiksSah(nilaiSufiks) ? t.srcSuffixHint(nilaiSufiks) : t.srcSuffixBad}
+          </span>
+        </form>
         <div className="slr-acts">
           <button
             type="button"

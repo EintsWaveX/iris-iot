@@ -23,6 +23,7 @@ import { getJson, jamMenit, postJson, tanggalPanjang } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
 import Sidik from "./Sidik";
 import { sandiBawaanSeelabs, segelSandi, sidikKunci } from "../../../lib/seelabs-segel";
+import { SUFIKS_BAWAAN } from "../../../lib/seelabs-robot";
 import type { Lang } from "../../../lib/kelas";
 import Dialog from "../../ui/Dialog";
 import Confirm from "../../ui/Confirm";
@@ -126,7 +127,12 @@ function ConnectDialog({
   const [bawaan, setBawaan] = useState(true);
   const [pw, setPw] = useState("");
   const [agree, setAgree] = useState(false);
-  const [kunci, setKunci] = useState<{ spki: string; sidik: string; lokal: string } | null>(null);
+  const [kunci, setKunci] = useState<{
+    spki: string;
+    sidik: string;
+    lokal: string;
+    sufiks: string;
+  } | null>(null);
   const [tahap, setTahap] = useState<"form" | "kunci" | "tunggu" | "selesai" | "gagal">("form");
   const [tugasId, setTugasId] = useState<number | null>(null);
   const [galat, setGalat] = useState<string | null>(null);
@@ -134,12 +140,17 @@ function ConnectDialog({
   // The approved key, and its fingerprint worked out here from the key itself.
   useEffect(() => {
     let hidup = true;
-    void getJson<{ ok: boolean; spki?: string; sidik?: string }>("/api/session/robot?kunci=1").then(
-      async (d) => {
-        if (!hidup || !d.ok || !d.spki || !d.sidik) return;
-        setKunci({ spki: d.spki, sidik: d.sidik, lokal: await sidikKunci(d.spki) });
-      },
-    );
+    void getJson<{ ok: boolean; spki?: string; sidik?: string; sufiks?: string }>(
+      "/api/session/robot?kunci=1",
+    ).then(async (d) => {
+      if (!hidup || !d.ok || !d.spki || !d.sidik) return;
+      setKunci({
+        spki: d.spki,
+        sidik: d.sidik,
+        lokal: await sidikKunci(d.spki),
+        sufiks: d.sufiks ?? SUFIKS_BAWAAN,
+      });
+    });
     return () => {
       hidup = false;
     };
@@ -159,7 +170,8 @@ function ConnectDialog({
     }
   }, [poll.data, tugasId]);
 
-  const sandi = bawaan ? sandiBawaanSeelabs(nim) : pw;
+  const sufiks = kunci?.sufiks ?? SUFIKS_BAWAAN;
+  const sandi = bawaan ? sandiBawaanSeelabs(nim, sufiks) : pw;
   const sibuk = tahap === "kunci" || tahap === "tunggu";
   const kunciBeda = !!kunci && kunci.lokal !== kunci.sidik;
 
@@ -223,7 +235,7 @@ function ConnectDialog({
       }
     >
       {selesai ? (
-        <div className="stack" style={{ justifyItems: "center", textAlign: "center" }}>
+        <div className="stack slr-done">
           <CheckCircleIcon size={48} weight="duotone" color="var(--ok)" aria-hidden="true" />
           <h3 className="panel__title">{t.doneTitle}</h3>
           <p className="lede">{t.doneBody}</p>
@@ -242,10 +254,15 @@ function ConnectDialog({
           </label>
           <div className="slr-agree">
             <span className="stack stack--sm">
-              <span>{t.useDefault}</span>
+              <span>{t.useDefault(sufiks)}</span>
               <span className="hint">{t.useDefaultHint}</span>
             </span>
-            <Switch on={bawaan} onChange={setBawaan} label={t.useDefault} disabled={sibuk} />
+            <Switch
+              on={bawaan}
+              onChange={setBawaan}
+              label={t.useDefault(sufiks)}
+              disabled={sibuk}
+            />
           </div>
           {!bawaan && (
             <PasswordField

@@ -8,9 +8,11 @@
  * the site, so the dialog shows what the browser really sealed to; it must
  * match the one Sumber SeeLabs approved.
  */
+import { SUFIKS_BAWAAN } from "./seelabs-robot.js";
 
-/** The Laboran's default SeeLabs password: the NIM followed by 1715. */
-export const sandiBawaanSeelabs = (nim: string) => nim + "1715";
+/** The Laboran's default SeeLabs password: the NIM followed by the suffix
+ *  set in Sumber SeeLabs (1715 unless changed). */
+export const sandiBawaanSeelabs = (nim: string, sufiks = SUFIKS_BAWAAN) => nim + sufiks;
 
 function dariBase64(b64: string): Uint8Array<ArrayBuffer> {
   const biner = atob(b64);

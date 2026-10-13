@@ -16,6 +16,7 @@
  * POST { aksi: "robot", nyala }                    the kill switch       (Pencipta, Admin)
  * POST { aksi: "kunci", setujui: sidik }           approve the Pi's key  (Pencipta, Admin)
  * POST { aksi: "alamat", alamat }                  kampus or athena      (Pencipta, Admin)
+ * POST { aksi: "sufiks", sufiks }                  the Laboran default's suffix (Pencipta, Admin)
  *
  * The seal arrives RSA-OAEP-3072 to the Pi's key and is kept wrapped again
  * with AES-256-GCM (rahasia.ts); it is unwrapped only into the Pi's job.
@@ -51,12 +52,14 @@ import {
   KUNCI_ROBOT,
   PRAKTIKUM_SEELABS,
   PROTOKOL_ROBOT,
+  SUFIKS_BAWAAN,
   barisPerKlp,
   bacaInfoSeelabs,
   setelahGagal,
   sidikJaga,
   slotJaga,
   statusAksesSetelah,
+  sufiksSah,
   type AlamatSeelabs,
   type KelompokTarik,
   type KunciRobot,
@@ -80,16 +83,18 @@ async function bacaKunci<T>(db: Db, kunci: string): Promise<T | null> {
 }
 
 export async function aturanRobot(db: Db) {
-  const [robot, kunci, alamat] = await Promise.all([
+  const [robot, kunci, alamat, sufiks] = await Promise.all([
     bacaKunci<{ nyala?: boolean }>(db, KUNCI_ROBOT.robot),
     bacaKunci<KunciRobot>(db, KUNCI_ROBOT.kunci),
     bacaKunci<AlamatSeelabs>(db, KUNCI_ROBOT.alamat),
+    bacaKunci<{ sufiks?: string }>(db, KUNCI_ROBOT.sufiks),
   ]);
   return {
     // On unless switched off; nothing runs anyway before a key is approved.
     nyala: robot?.nyala !== false,
     kunci,
     alamat: alamat && ALAMAT_SEELABS.includes(alamat) ? alamat : ("kampus" as AlamatSeelabs),
+    sufiks: sufiksSah(sufiks?.sufiks) ? sufiks.sufiks : SUFIKS_BAWAAN,
   };
 }
 
@@ -641,7 +646,7 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
       .status(200)
       .json(
         aturan.kunci
-          ? { ok: true, spki: aturan.kunci.spki, sidik: aturan.kunci.sidik }
+          ? { ok: true, spki: aturan.kunci.spki, sidik: aturan.kunci.sidik, sufiks: aturan.sufiks }
           : { ok: false, kode: "kunci_belum_disetujui" },
       );
     return;
@@ -714,6 +719,7 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
       ok: true,
       nyala: aturan.nyala,
       alamat: aturan.alamat,
+      sufiks: aturan.sufiks,
       kunci: aturan.kunci
         ? {
             serverId: aturan.kunci.serverId,
@@ -882,7 +888,7 @@ export async function handleRobotPost(req: ApiRequest, res: ApiResponse, session
     return;
   }
 
-  if (aksi === "robot" || aksi === "kunci" || aksi === "alamat") {
+  if (aksi === "robot" || aksi === "kunci" || aksi === "alamat" || aksi === "sufiks") {
     if (!(await pengelolaRobot(session.nim))) {
       res.status(403).json({ ok: false, kode: "bukan_pengelola" });
       return;
@@ -896,6 +902,11 @@ export async function handleRobotPost(req: ApiRequest, res: ApiResponse, session
         return jawab({ ok: false, kode: "format_salah" });
       await tulisSet(db, KUNCI_ROBOT.alamat, body.alamat, session.nim);
       await writeAudit(session.nim, "seelabs_robot", { alamat: body.alamat });
+    } else if (aksi === "sufiks") {
+      // Only the suffix's shape is checked; connected accounts keep their seal.
+      if (!sufiksSah(body.sufiks)) return jawab({ ok: false, kode: "format_salah" });
+      await tulisSet(db, KUNCI_ROBOT.sufiks, { sufiks: body.sufiks }, session.nim);
+      await writeAudit(session.nim, "seelabs_robot", { sufiks: true });
     } else {
       // Approving a key: the Pi that reports exactly this fingerprint.
       const sidik = typeof body.setujui === "string" ? body.setujui : "";
