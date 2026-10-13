@@ -1606,8 +1606,16 @@ button.tpcheck:focus-visible,
   grid-template-columns: minmax(0, 1fr);
 }
 @media (min-width: 1100px) {
+  /* Both columns end on one line: the final set stretches, and so does the
+     last card beside it */
   .tpbank__hasil {
+    align-items: stretch;
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+  .tpbank__hasil > .panel,
+  .tpbank__hasil > .stack > :last-child {
+    align-content: start;
+    flex: 1 1 auto;
   }
 }
 .tpbank__ed {
@@ -1831,9 +1839,12 @@ button.tpcheck:focus-visible,
   display: grid;
   gap: 12px;
 }
+/* The eleven classes in as many columns as fit (two beside Soal Akhir on
+   a wide screen, one on a phone), so the card ends near the final set */
 .tpunggah__l {
   display: grid;
   gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 232px), 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1848,7 +1859,38 @@ button.tpcheck:focus-visible,
   padding: 8px 10px;
 }
 .tpunggah__k {
+  gap: 2px;
   min-width: 0;
+}
+.tpunggah__k > b {
+  white-space: nowrap;
+}
+/* Narrow columns: the class and the LMS link on top, the state and the
+   file under them, so two columns fit beside Soal Akhir */
+.tpunggah__l {
+  container-type: inline-size;
+}
+@container (max-width: 599px) {
+  .tpunggah__l > li {
+    grid-template-areas: "b b a" "s h a";
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    row-gap: 4px;
+  }
+  .tpunggah__l .tpunggah__k {
+    display: contents;
+  }
+  .tpunggah__k > b {
+    grid-area: b;
+  }
+  .tpunggah__k > .hint {
+    grid-area: h;
+  }
+  .tpunggah__l .tpunggah__st {
+    grid-area: s;
+  }
+  .tpunggah__l > li > a {
+    grid-area: a;
+  }
 }
 .tpunggah__k .hint {
   overflow: hidden;

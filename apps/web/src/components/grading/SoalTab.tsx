@@ -1208,13 +1208,13 @@ function Unggah({
                 <li key={k.id}>
                   <span className="stack tpunggah__k">
                     <b className="mono">{k.label}</b>
-                    <span className="hint">
+                    <span className="hint" title={k.lampiran?.[0]?.nama}>
                       {k.kelas === "inter" ? t.internasional : t.reguler}
                       {k.lampiran?.[0] ? ` · ${k.lampiran[0].nama}` : ""}
                     </span>
                   </span>
                   {st && (
-                    <span title={ks?.s === "gagal" ? ks.rinci : undefined}>
+                    <span className="tpunggah__st" title={ks?.s === "gagal" ? ks.rinci : undefined}>
                       <Pill tone={st.tone}>{st.l}</Pill>
                     </span>
                   )}
