@@ -286,7 +286,8 @@ function SyncStrip({
     setBusy(true);
     const r = await postJson<{ ok: boolean; kode?: string; baru: number; diperbarui: number }>(
       "/api/tp/sinkron",
-      { modul },
+      // a press reads the courses again, so a TP assignment made a minute ago is found
+      { modul, paksa: true },
     ).catch(() => ({ ok: false, kode: "", baru: 0, diperbarui: 0 }));
     setBusy(false);
     window.Toast?.show(r.ok ? t.sinkronHasil(r.baru, r.diperbarui) : t.gagal, r.ok ? "ok" : "warn");
