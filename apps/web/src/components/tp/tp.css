@@ -26,7 +26,12 @@
     grid-column: 2;
     grid-row: 1 / span 2;
   }
-  /* The Asisten's tab: questions on the left, window and LMS on the right */
+  /* The Asisten's tab: questions on the left, window and LMS on the right.
+     The tall questions span both rows, so the second row takes their spare
+     height and the LMS cards sit right under the window card. */
+  .tpgrid--a {
+    grid-template-rows: auto 1fr;
+  }
   .tpgrid--a .tpgrid__main {
     grid-column: 1;
     grid-row: 1 / span 2;
