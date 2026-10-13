@@ -112,7 +112,11 @@ const id = {
   sAsisten: "Praktikan yang juga Asisten",
   sSeelabsPada: (t: string, klp: number) => `Tarikan KLP ${t} · ${klp} KLP`,
   sSeelabsBelum: "Belum ada tarikan KLP dari SeeLabs (Sumber SeeLabs › Tarik Kelompok).",
-  kLuar: "Hanya LMS",
+  kLuar: "Hanya di LMS",
+  kolomPraktikan:
+    "Mahasiswa kelas LMS itu yang juga terdaftar praktikum di IRIS. Hanya mereka yang dihitung di TP.",
+  kolomLuar:
+    "Mahasiswa kelas LMS itu yang tidak terdaftar praktikum di IRIS (belum mendaftar, salah kelas, atau mengulang). Tidak dihitung dan kirimannya tidak diambil. Namanya ada di Peserta TP › Hanya di LMS.",
   asistenH: "Praktikan yang Juga Asisten",
   asistenHint:
     "Teacher di semua kelas LMS dan mahasiswa di kelasnya sendiri. Dihitung sekali, di kelasnya.",
@@ -243,7 +247,11 @@ const en: LmsKelolaT = {
   sAsisten: "Praktikan who are also Asisten",
   sSeelabsPada: (t, klp) => `KLP pull ${t} · ${klp} KLP`,
   sSeelabsBelum: "No KLP pull from SeeLabs yet (SeeLabs Source › Pull Groups).",
-  kLuar: "LMS only",
+  kLuar: "Only in LMS",
+  kolomPraktikan:
+    "Students of that LMS class who are also registered for the practicum in IRIS. Only they count in TP.",
+  kolomLuar:
+    "Students of that LMS class who aren't registered for the practicum in IRIS (not signed up, wrong class, or repeating). Not counted, and their files aren't fetched. Their names are under TP Participants › Only in the LMS.",
   asistenH: "Praktikan Who Are Also Asisten",
   asistenHint:
     "Teachers in every LMS class and students in their own. Counted once, in their class.",
@@ -368,6 +376,9 @@ const zh: LmsKelolaT = {
   sSeelabsPada: (t, klp) => `KLP 拉取 ${t} · ${klp} 个 KLP`,
   sSeelabsBelum: "还没有从 SeeLabs 拉取 KLP（SeeLabs 来源 › 拉取小组）。",
   kLuar: "只在 LMS",
+  kolomPraktikan: "该 LMS 班级中同时在 IRIS 登记了实验课的学生。只有他们计入预习作业。",
+  kolomLuar:
+    "该 LMS 班级中没有在 IRIS 登记实验课的学生（未报名、班级不对或重修）。不计入，也不取回他们的文件。名单在预习作业参与者 › 只在 LMS。",
   asistenH: "同时是助教的学生",
   asistenHint: "在所有 LMS 班级里是 Teacher，在自己的班级里是学生。只在自己的班级计一次。",
   kelasIris: { reguler: "普通班", internasional: "国际班" },

@@ -329,6 +329,18 @@ export default function LmsTab({
             ) : (
               <p className="hint">{t.belumAdaKelas}</p>
             )}
+            <dl className="tpkolom">
+              <div>
+                <dt className="mono">{t.praktikan}</dt>
+                <dd>{tk.kolomPraktikan}</dd>
+              </div>
+              <div>
+                <dt className="mono tpluar" data-ada="ya">
+                  {tk.kLuar}
+                </dt>
+                <dd>{tk.kolomLuar}</dd>
+              </div>
+            </dl>
             <p className="hint">{t.kelasLmsFoot}</p>
           </section>
         </div>

@@ -1464,6 +1464,32 @@ button.tpcheck:focus-visible,
   font-size: 0.95rem;
   margin: 6px 0 0;
 }
+/* Under Kelas di LMS: what Praktikan and Hanya di LMS count */
+.tpkolom {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 0;
+}
+.tpkolom > div {
+  display: grid;
+  gap: 2px 12px;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+}
+@media (max-width: 519px) {
+  .tpkolom > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.tpkolom dt {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.tpkolom dd {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  margin: 0;
+}
+.tpkolom .tpluar[data-ada],
 .tptable .tpluar[data-ada] {
   color: var(--warn);
   font-weight: 700;
