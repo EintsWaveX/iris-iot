@@ -91,8 +91,12 @@ export interface PaketData {
   keadaan: KeadaanJendela | null;
   semester: string;
   bolehUbah: boolean;
+  /** may make the LMS assignments and put the PDF on them */
+  bolehKelola: boolean;
   lms: {
     tersambung: boolean;
+    /** the token carries the manager key */
+    siap: boolean;
     url: string;
     tujuan: {
       id: number;

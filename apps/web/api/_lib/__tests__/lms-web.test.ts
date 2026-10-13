@@ -1,7 +1,7 @@
 /**
  * IRIS's LMS web session (lms-web.ts): the Moodle form read from the real
  * pages recorded on 2026-10-13, and the whole flow (autologin, a lapsed
- * session, make, change, delete) against a small fake LMS.
+ * session, make, change, attach the PDF, delete) against a small fake LMS.
  */
 import { readFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
@@ -11,6 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const fx = (n: string) => readFileSync(join(__dirname, "fixtures", n), "utf8");
 
 let web: typeof import("../lms-web");
+let lms: typeof import("../lms");
 
 /* ------------------------------------------------------------ fake LMS */
 
@@ -27,6 +28,8 @@ const dunia = {
   cmid: 900,
   /** the recorded forms name cmid 842415: the one last opened stands in */
   dibuka: 0,
+  /** draft item id -> the uploaded file's name and size */
+  draf: new Map<number, { nama: string; ukuran: number; jenis: string }>(),
 };
 const ADD = fx("lms-modedit-add.html");
 const UPDATE = fx("lms-modedit-update.html");
@@ -42,10 +45,26 @@ function sesiDari(cookie: string | undefined): string | null {
 beforeAll(async () => {
   server = createServer((req, res) => {
     const u = new URL(req.url ?? "/", "http://x");
-    let body = "";
-    req.on("data", (c) => (body += c));
-    req.on("end", () => {
+    const potong: Buffer[] = [];
+    req.on("data", (c: Buffer) => potong.push(c));
+    req.on("end", async () => {
+      const mentah = Buffer.concat(potong);
+      const body = mentah.toString("utf8");
       const f = new URLSearchParams(body);
+      if (u.pathname === "/webservice/upload.php") {
+        res.setHeader("content-type", "application/json");
+        const fd = await new Response(mentah, {
+          headers: { "content-type": req.headers["content-type"] ?? "" },
+        }).formData();
+        if (fd.get("token") !== "t".repeat(32))
+          return res.end(JSON.stringify({ error: "Invalid token", errorcode: "invalidtoken" }));
+        const file = fd.get("file_1") as File;
+        const itemid = 7000 + dunia.draf.size;
+        dunia.draf.set(itemid, { nama: file.name, ukuran: file.size, jenis: file.type });
+        return res.end(
+          JSON.stringify([{ filearea: fd.get("filearea"), filename: file.name, itemid }]),
+        );
+      }
       const kirim = (status: number, isi: string, h: Record<string, string | string[]> = {}) => {
         res.writeHead(status, { "content-type": "text/html", ...h });
         res.end(isi);
@@ -126,6 +145,7 @@ beforeAll(async () => {
   const a = server.address();
   process.env.LMS_URL = `http://127.0.0.1:${typeof a === "object" && a ? a.port : 0}`;
   web = await import("../lms-web");
+  lms = await import("../lms");
 });
 
 afterAll(() => server?.close());
@@ -293,6 +313,35 @@ describe("the web session against a fake LMS", () => {
       kode: "lms_form_ditolak",
       message: "Required",
     });
+  });
+
+  it("uploads the PDF to a draft area and names it in the form", async () => {
+    const pdf = new TextEncoder().encode("%PDF-1.7 tp");
+    const itemid = await lms.unggahDraf("t".repeat(32), "TP_Modul-1_Reguler.pdf", pdf);
+    expect(dunia.draf.get(itemid)).toEqual({
+      nama: "TP_Modul-1_Reguler.pdf",
+      ukuran: pdf.length,
+      jenis: "application/pdf",
+    });
+    await expect(lms.unggahDraf("x".repeat(32), "a.pdf", pdf)).rejects.toMatchObject({
+      kode: "token_ditolak",
+    });
+
+    const w = new web.WebLms("t".repeat(32), "p".repeat(64), 74004, penyimpan().simpan);
+    const cmid = (await web.buatTugas(w, 1, { ...RENCANA, lampiran: itemid }))!;
+    expect(dunia.tugas.get(cmid)!.isi.get("introattachments")).toBe(String(itemid));
+    // left out, the form's own draft stays (the recorded add form's)
+    const tanpa = (await web.buatTugas(w, 1, RENCANA))!;
+    expect(dunia.tugas.get(tanpa)!.isi.get("introattachments")).not.toBe(String(itemid));
+
+    // lampir changes only the attachments and sends no notification; the
+    // rest is the recorded update form's own
+    await web.lampirTugas(w, cmid, itemid + 1);
+    const isi = dunia.tugas.get(cmid)!.isi;
+    expect(isi.get("introattachments")).toBe(String(itemid + 1));
+    expect(isi.has("coursecontentnotification")).toBe(false);
+    expect(isi.get("name")).toBe("TP Modul 1");
+    expect(isi.get("introeditor[text]")).toMatch(/^<p>Tugas Pendahuluan Modul 1\./);
   });
 
   it("a deleted assignment's form answers lms_tidak_ada", async () => {

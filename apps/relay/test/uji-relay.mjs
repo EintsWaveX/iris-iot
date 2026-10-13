@@ -474,6 +474,12 @@ try {
   cek("another host is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
   r = await lms("/webservice/rest/server.php", { cara: "GET" });
   cek("the LMS route takes POST only", r.status === 405);
+  r = await lms("/webservice/rest/server.php", { isi: "x".repeat(20 * 1024) });
+  cek("a web service call over 16 KB is refused", r.status === 413);
+  r = await lms("/webservice/upload.php", { isi: "x".repeat(5 * 1024 * 1024) });
+  cek("a draft upload over its limit is refused", r.status === 413);
+  r = await lms("/webservice/upload.php", { isi: "x".repeat(20 * 1024), tanda: "0".repeat(64) });
+  cek("a draft upload past 16 KB is let through to the signature check", r.status === 403 && (await r.text()) === "tanda salah");
   // Web session calls: signed over the cookie; only the four TP pages.
   const lmsWeb = (tujuan, o = {}) => {
     const ts = o.ts ?? now();

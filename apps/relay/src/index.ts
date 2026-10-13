@@ -679,7 +679,10 @@ export class Ruang {
 /* ------------------------------------------------------------ LMS calls */
 
 const LMS_ASAL = "https://lms.telkomuniversity.ac.id";
-const LMS_JALAN_RE = /^\/webservice\/(rest\/server\.php$|pluginfile\.php\/)/;
+const LMS_JALAN_RE =
+  /^\/webservice\/(rest\/server\.php$|upload\.php$|pluginfile\.php\/)/;
+/** The draft upload: its form body carries the file base64 (see Lms). */
+const LMS_UNGGAH = "/webservice/upload.php";
 /** The LMS pages a TP assignment is made, changed and deleted on */
 const LMS_HALAMAN_RE =
   /^\/(admin\/tool\/mobile\/autologin\.php|course\/modedit\.php|course\/mod\.php|course\/view\.php)$/;
@@ -687,6 +690,8 @@ const LMS_HALAMAN_RE =
 const LMS_ISI_MAKS = 16 * 1024;
 /** An assignment form's body (its description included) */
 const LMS_HALAMAN_ISI_MAKS = 128 * 1024;
+/** The TP's PDF, base64, with the token (IRIS takes up to 3 MB) */
+const LMS_UNGGAH_MAKS = 4.5 * 1024 * 1024;
 /** Only the app may ask for an autologin key; the LMS checks the agent. */
 const UA_APP = "Mozilla/5.0 (Linux; Android 14) MoodleMobile 4.5.0 (45001)";
 const UA_WEB = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IRIS-Penilaian";
@@ -720,8 +725,12 @@ async function lms(req: Request, env: Env): Promise<Response> {
   const kue = req.headers.get("x-lms-kue");
   const web = kue !== null;
   const isi = await req.text();
-  if (isi.length > (web ? LMS_HALAMAN_ISI_MAKS : LMS_ISI_MAKS))
-    return teks(413, "terlalu besar");
+  const maks = web
+    ? LMS_HALAMAN_ISI_MAKS
+    : tujuan === LMS_UNGGAH
+      ? LMS_UNGGAH_MAKS
+      : LMS_ISI_MAKS;
+  if (isi.length > maks) return teks(413, "terlalu besar");
   const ok = samaPersis(
     req.headers.get("x-lms-tanda") ?? "",
     await hmacHex(
@@ -762,6 +771,25 @@ async function lms(req: Request, env: Env): Promise<Response> {
   });
 }
 
+/** webservice/upload.php's form from IRIS's: token, area, item, path and
+ *  the file (nama, berkas base64). */
+function formUnggah(isi: string): FormData {
+  const p = new URLSearchParams(isi);
+  const f = new FormData();
+  for (const k of ["token", "filearea", "itemid", "filepath"])
+    f.set(k, p.get(k) ?? "");
+  const bin = atob(p.get("berkas") ?? "");
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  f.set(
+    "file_1",
+    new File([bytes], p.get("nama") || "berkas.pdf", {
+      type: "application/pdf",
+    }),
+  );
+  return f;
+}
+
 /** Cloudflare's challenge page, by its header or its shape. */
 const tantangan = (r: Response) =>
   r.headers.get("cf-mitigated") === "challenge" ||
@@ -776,11 +804,14 @@ export class Lms {
     const metode = req.headers.get("x-lms-metode") === "GET" ? "GET" : "POST";
     if (!url.startsWith(`${LMS_ASAL}/`)) return teks(403, "tujuan ditolak");
     const h = new Headers();
-    if (metode === "POST")
+    const unggah = new URL(url).pathname === LMS_UNGGAH;
+    if (metode === "POST" && !unggah)
       h.set("content-type", "application/x-www-form-urlencoded");
     const range = req.headers.get("x-lms-range");
     if (range) h.set("range", range);
     const isi = metode === "POST" ? await req.text() : undefined;
+    // The upload goes on as the multipart form the LMS takes.
+    const badan = unggah && isi !== undefined ? formUnggah(isi) : isi;
     const kue = req.headers.get("x-lms-kue");
     // "-" is a web session call before the first cookie
     if (kue && kue !== "-") h.set("cookie", kue);
@@ -798,7 +829,7 @@ export class Lms {
       r = await fetch(url, {
         method: metode,
         headers: h,
-        body: isi,
+        body: badan,
         redirect: "manual",
       });
       if (!tantangan(r) || coba >= LMS_COBA) break;

@@ -35,9 +35,12 @@ import {
   PlusIcon,
   ShuffleIcon,
   TrashIcon,
+  UploadSimpleIcon,
   WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import { LK } from "./lmsKelolaStrings";
+import { pembuatPdfLms } from "../tp/pdfLms";
 import Pill from "../ui/Pill";
 import TabLine from "../ui/TabLine";
 import Fade from "../ui/Fade";
@@ -489,7 +492,7 @@ export default function SoalTab({
   const pdf = (
     <div className="stack stack--lg">
       <Ekspor lang={lang} modul={modul} kotor={kotor} isiPdf={isiPdf} />
-      <Unggah lang={lang} modul={modul} data={data} />
+      <Unggah lang={lang} modul={modul} data={data} kotor={kotor} />
     </div>
   );
   const hasil = (
@@ -1050,10 +1053,74 @@ interface Lampiran {
   })[];
 }
 
-function Unggah({ lang, modul, data }: { lang: Lang; modul: number; data: PaketData }) {
+type Kirim = { s: "jalan" } | { s: "ok" } | { s: "gagal"; kode: string; rinci?: string };
+
+function Unggah({
+  lang,
+  modul,
+  data,
+  kotor,
+}: {
+  lang: Lang;
+  modul: number;
+  data: PaketData;
+  kotor: boolean;
+}) {
   const t = TPS[lang];
+  const tk = LK[lang];
   const [hasil, setHasil] = useState<Lampiran | null>(null);
   const [jalan, setJalan] = useState(false);
+  const [kirim, setKirim] = useState<Record<number, Kirim>>({});
+  const [sibuk, setSibuk] = useState(false);
+  const bisaUnggah = data.bolehKelola && data.lms.tersambung && data.lms.siap;
+  const target = data.lms.tujuan.filter((k) => k.cmid);
+  // The saved set's PDF on each class's assignment, one class per call.
+  const unggah = async () => {
+    setSibuk(true);
+    const pdfUntuk = pembuatPdfLms(data);
+    let ok = 0;
+    let gagal = 0;
+    for (const k of target) {
+      setKirim((x) => ({ ...x, [k.id]: { s: "jalan" } }));
+      type Jawab = { ok: boolean; kode?: string; rinci?: string; cocok?: boolean };
+      let r: Jawab;
+      try {
+        const pdf = await pdfUntuk(k.kelas);
+        r = await postJson<Jawab>("/api/tp/lms-tugas", {
+          modul,
+          kursus: k.id,
+          langkah: "lampir",
+          pdf,
+        }).catch((): Jawab => ({ ok: false, kode: "lms_tak_terjangkau" }));
+      } catch {
+        r = { ok: false, kode: "pdf", rinci: tk.pdfGagal };
+      }
+      if (r.ok && r.cocok) {
+        ok++;
+        setKirim((x) => ({ ...x, [k.id]: { s: "ok" } }));
+      } else {
+        gagal++;
+        const kode = r.ok ? "lms_unggah_gagal" : (r.kode ?? "");
+        setKirim((x) => ({ ...x, [k.id]: { s: "gagal", kode, rinci: r.rinci } }));
+        if (
+          [
+            "pdf",
+            "perlu_kunci_privat",
+            "lms_invalidprivatetoken",
+            "lms_autologinkeygenerationlockout",
+            "lms_masuk_gagal",
+            "tidak_berhak",
+            "belum_tersambung",
+            "token_ditolak",
+          ].includes(kode)
+        )
+          break;
+      }
+    }
+    setSibuk(false);
+    window.Toast?.show(t.unggahSelesai(ok, gagal), gagal ? "warn" : "ok");
+    void periksa();
+  };
   const periksa = async () => {
     setJalan(true);
     const r = await getJson<Lampiran>(`/api/tp/lampiran?modul=${modul}`).catch(() => null);
@@ -1083,14 +1150,34 @@ function Unggah({ lang, modul, data }: { lang: Lang; modul: number; data: PaketD
           </button>
         )}
       </div>
-      <ol className="tpsteps">
-        {t.unggahLangkah.map((l, i) => (
-          <li key={i}>
-            <span>{i + 1}</span>
-            <p>{l}</p>
-          </li>
-        ))}
-      </ol>
+      {bisaUnggah ? (
+        <>
+          <p className="hint">{t.unggahHint}</p>
+          <button
+            type="button"
+            className="btn btn--primary tpunggah__btn"
+            disabled={sibuk || kotor || !target.length}
+            onClick={() => void unggah()}
+          >
+            <UploadSimpleIcon size={18} aria-hidden="true" />
+            {sibuk ? t.unggahJalan : t.unggahPdf(target.length)}
+          </button>
+          {kotor && <p className="hint">{t.unggahSimpanDulu}</p>}
+        </>
+      ) : (
+        <>
+          {data.bolehKelola && data.lms.tersambung && <p className="hint">{t.unggahPerluKunci}</p>}
+          {!data.bolehKelola && <p className="hint">{t.unggahTidakBoleh}</p>}
+          <ol className="tpsteps">
+            {t.unggahLangkah.map((l, i) => (
+              <li key={i}>
+                <span>{i + 1}</span>
+                <p>{l}</p>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
       {!data.lms.tersambung ? (
         <a className="hint tplink" href={href(lang, "/grading#lms")}>
           {t.lmsPutus}
@@ -1103,15 +1190,20 @@ function Unggah({ lang, modul, data }: { lang: Lang; modul: number; data: PaketD
               const terbaru = k.lampiran
                 ?.map((f) => (f.waktu ? Date.parse(f.waktu) : 0))
                 .sort((a, b) => b - a)[0];
+              const ks = kirim[k.id];
               const st = !k.cmid
                 ? { tone: "warn" as const, l: t.tanpaTugas }
-                : !k.lampiran
-                  ? null
-                  : !k.lampiran.length
-                    ? { tone: "warn" as const, l: t.tanpaLampiran }
-                    : terbaru !== undefined && terbaru < diubah
-                      ? { tone: "warn" as const, l: t.lampiranLama }
-                      : { tone: "ok" as const, l: t.lampiranOk };
+                : ks?.s === "jalan"
+                  ? { tone: "accent" as const, l: t.unggahJalan }
+                  : ks?.s === "gagal"
+                    ? { tone: "danger" as const, l: tk.gagalDengan(ks.kode, tk.galat) }
+                    : !k.lampiran
+                      ? null
+                      : !k.lampiran.length
+                        ? { tone: "warn" as const, l: t.tanpaLampiran }
+                        : terbaru !== undefined && terbaru < diubah
+                          ? { tone: "warn" as const, l: t.lampiranLama }
+                          : { tone: "ok" as const, l: t.lampiranOk };
               return (
                 <li key={k.id}>
                   <span className="stack tpunggah__k">
@@ -1121,7 +1213,11 @@ function Unggah({ lang, modul, data }: { lang: Lang; modul: number; data: PaketD
                       {k.lampiran?.[0] ? ` · ${k.lampiran[0].nama}` : ""}
                     </span>
                   </span>
-                  {st && <Pill tone={st.tone}>{st.l}</Pill>}
+                  {st && (
+                    <span title={ks?.s === "gagal" ? ks.rinci : undefined}>
+                      <Pill tone={st.tone}>{st.l}</Pill>
+                    </span>
+                  )}
                   {k.ubah && (
                     <a
                       className="btn btn--ghost btn--sm"

@@ -1,6 +1,7 @@
 /**
  * Sumber LMS, 2026-10-13: the "TP Modul N" assignments IRIS makes, matches
- * and deletes in every class course itself (KelolaDialog), and who counts
+ * and deletes in every class course itself (KelolaDialog; since 2026-10-14
+ * Buat and Samakan attach the saved set's PDF too), and who counts
  * in TP (PesertaPanel): IRIS's registered Praktikan only, with the
  * students the LMS alone has, the registered ones in no class course, and
  * a hand-kept exclusion list. Changing either is for the Pencipta, the
@@ -24,10 +25,11 @@ import Confirm from "../ui/Confirm";
 import Disclose from "../ui/Disclose";
 import IconButton from "../ui/IconButton";
 import { Switch } from "../ui/Controls";
-import { postJson } from "../../lib/app";
+import { getJson, postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { tanggalSama, teksTugasLms, type JendelaTp } from "../../lib/tp";
-import { waktuPanjang } from "../tp/shared";
+import { waktuPanjang, type PaketData } from "../tp/shared";
+import { pembuatPdfLms, type PdfLms } from "../tp/pdfLms";
 import { LK } from "./lmsKelolaStrings";
 
 export interface TugasInfo {
@@ -90,6 +92,7 @@ export function KelolaDialog({
   const t = LK[lang];
   const j = kelola.jendela[String(modul)] ?? null;
   const [tampil, setTampil] = useState(true);
+  const [lampir, setLampir] = useState(true);
   const [teksReg, setTeksReg] = useState("");
   const [teksInt, setTeksInt] = useState("");
   const [jalan, setJalan] = useState<Record<number, Jalan>>({});
@@ -107,6 +110,7 @@ export function KelolaDialog({
   useEffect(() => {
     if (!open) return;
     setTampil(true);
+    setLampir(true);
     setTeksReg(tutupJendela ? teksTugasLms(modul, tutupJendela, "id") : "");
     setTeksInt(tutupJendela ? teksTugasLms(modul, tutupJendela, "en") : "");
     setJalan({});
@@ -117,15 +121,35 @@ export function KelolaDialog({
     let ok = 0;
     let gagal = 0;
     let belumSama = false;
+    // The saved set's PDF, made once per class kind for the batch.
+    let pdfUntuk: ((kelas: string) => Promise<PdfLms>) | null = null;
+    if (lampir && langkah !== "hapus") {
+      const d = await getJson<PaketData>(`/api/tp/paket?modul=${modul}`).catch(() => null);
+      if (d?.ok) pdfUntuk = pembuatPdfLms(d);
+      else {
+        setSibuk(false);
+        window.Toast?.show(t.pdfGagal, "warn");
+        return;
+      }
+    }
     for (const k of daftar) {
       setJalan((x) => ({ ...x, [k.id]: { s: "jalan" } }));
       type Jawab = { ok: boolean; kode?: string; rinci?: string; cocok?: boolean };
+      let pdf: PdfLms | undefined;
+      try {
+        pdf = pdfUntuk ? await pdfUntuk(k.kelas) : undefined;
+      } catch {
+        setJalan((x) => ({ ...x, [k.id]: { s: "gagal", kode: "pdf" } }));
+        window.Toast?.show(t.pdfGagal, "warn");
+        break;
+      }
       const r = await postJson<Jawab>("/api/tp/lms-tugas", {
         modul,
         kursus: k.id,
         langkah,
         tampil,
         teks: k.kelas === "inter" ? teksInt : teksReg,
+        ...(pdf ? { pdf } : {}),
       }).catch((): Jawab => ({ ok: false, kode: "lms_tak_terjangkau" }));
       if (r.ok) {
         ok++;
@@ -360,6 +384,10 @@ export function KelolaDialog({
           <div className="row tpkel__tampil">
             <Switch on={tampil} onChange={setTampil} label={t.tampil} showLabel disabled={sibuk} />
             <span className="hint">{t.tampilHint}</span>
+          </div>
+          <div className="row tpkel__tampil">
+            <Switch on={lampir} onChange={setLampir} label={t.lampir} showLabel disabled={sibuk} />
+            <span className="hint">{t.lampirHint}</span>
           </div>
           <label className="field">
             <span className="field__label">{t.teksReg}</span>

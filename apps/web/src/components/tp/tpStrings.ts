@@ -114,7 +114,7 @@ const id = {
   tabSoalSm: "Soal",
   soalTpH: (m: number) => `Soal TP Modul ${m}`,
   bankLede:
-    "Tulis soal dan kuncinya, acak soal akhirnya, lalu unduh PDF resmi untuk diunggah ke LMS.",
+    "Tulis soal dan kuncinya, acak soal akhirnya, lalu pasang PDF resminya di tugas TP tiap kelas LMS.",
   varian: "Varian",
   varianNama: (k: string, n: string) => (n ? `${k} · ${n}` : `Varian ${k}`),
   tambahVarian: "Tambah Varian",
@@ -198,6 +198,17 @@ const id = {
     "Tekan Periksa LMS. IRIS membaca lampiran tiap kelas dan menandai yang belum diperbarui.",
   ],
   periksaLms: "Periksa LMS",
+  unggahPdf: (n: number) => `Unggah PDF ke ${n} Kelas`,
+  unggahHint:
+    "IRIS membuat PDF dari Soal Akhir yang tersimpan (Reguler dalam Bahasa Indonesia, Internasional dalam English) dan memasangnya di tugas TP tiap kelas, menggantikan yang lama.",
+  unggahSimpanDulu: "Simpan perubahan soal dulu, baru unggah.",
+  unggahPerluKunci:
+    "Mengunggah dari IRIS butuh kunci pengelola LMS. Sambungkan ulang di Sumber LMS.",
+  unggahTidakBoleh:
+    "Hanya Pencipta, Admin, dan divisi ASO yang mengunggah dari IRIS. Cara manualnya:",
+  unggahJalan: "Mengunggah…",
+  unggahSelesai: (ok: number, gagal: number) =>
+    gagal ? `${ok} kelas terpasang, ${gagal} gagal.` : `PDF terpasang di ${ok} kelas.`,
   memeriksa: "Memeriksa…",
   diperiksa: (w: string) => `Diperiksa ${w}`,
   bukaDiLms: "Buka di LMS",
@@ -590,7 +601,7 @@ const en: TpT = {
   tabSoalSm: "Questions",
   soalTpH: (m) => `TP Module ${m} Questions`,
   bankLede:
-    "Write the questions and their keys, draw the final set, then download the official PDF to upload to the LMS.",
+    "Write the questions and their keys, draw the final set, then put the official PDF on each LMS class's TP assignment.",
   varian: "Variant",
   varianNama: (k, n) => (n ? `${k} · ${n}` : `Variant ${k}`),
   tambahVarian: "Add Variant",
@@ -672,6 +683,15 @@ const en: TpT = {
     "Press Check LMS. IRIS reads every class's attachment and marks the ones not yet updated.",
   ],
   periksaLms: "Check LMS",
+  unggahPdf: (n) => `Upload the PDF to ${n} ${n === 1 ? "Class" : "Classes"}`,
+  unggahHint:
+    "IRIS makes the PDF from the saved Final Set (Regular in Bahasa Indonesia, International in English) and puts it on each class's TP assignment, replacing the old one.",
+  unggahSimpanDulu: "Save your question changes first, then upload.",
+  unggahPerluKunci: "Uploading from IRIS needs the LMS manager key. Reconnect in LMS Source.",
+  unggahTidakBoleh: "Only the Pencipta, Admins and the ASO division upload from IRIS. By hand:",
+  unggahJalan: "Uploading…",
+  unggahSelesai: (ok, gagal) =>
+    gagal ? `${ok} classes done, ${gagal} failed.` : `PDF attached in ${ok} classes.`,
   memeriksa: "Checking…",
   diperiksa: (w) => `Checked ${w}`,
   bukaDiLms: "Open in LMS",
@@ -1001,7 +1021,7 @@ const zh: TpT = {
   tabSoal: "预习题目",
   tabSoalSm: "题目",
   soalTpH: (m) => `模块 ${m} 预习作业题目`,
-  bankLede: "编写题目和参考答案，抽取最终题目，再下载正式 PDF 上传到 LMS。",
+  bankLede: "编写题目和参考答案，抽取最终题目，再把正式 PDF 放到每个 LMS 班级的预习作业里。",
   varian: "版本",
   varianNama: (k, n) => (n ? `${k} · ${n}` : `版本 ${k}`),
   tambahVarian: "新增版本",
@@ -1080,6 +1100,15 @@ const zh: TpT = {
     "点击检查 LMS。IRIS 会读取每个班级的附件，并标出还没更新的班级。",
   ],
   periksaLms: "检查 LMS",
+  unggahPdf: (n) => `把 PDF 上传到 ${n} 个班级`,
+  unggahHint:
+    "IRIS 用已保存的最终题目生成 PDF（普通班用印尼语，国际班用英语），并放到每个班级的预习作业里，替换旧的。",
+  unggahSimpanDulu: "请先保存题目的修改，再上传。",
+  unggahPerluKunci: "从 IRIS 上传需要 LMS 管理密钥。请在 LMS 来源中重新连接。",
+  unggahTidakBoleh: "只有创建者、管理员和 ASO 部门可以从 IRIS 上传。手动方法：",
+  unggahJalan: "上传中…",
+  unggahSelesai: (ok, gagal) =>
+    gagal ? `${ok} 个班级完成，${gagal} 个失败。` : `PDF 已放到 ${ok} 个班级。`,
   memeriksa: "正在检查…",
   diperiksa: (w) => `检查于 ${w}`,
   bukaDiLms: "在 LMS 中打开",

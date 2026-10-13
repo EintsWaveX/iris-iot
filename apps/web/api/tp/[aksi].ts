@@ -101,7 +101,7 @@ import {
   tpLengkap,
   type PolaJendela,
 } from "../../src/lib/tp.js";
-import { buatTugas, hapusTugas, ubahTugas } from "../_lib/lms-web.js";
+import { buatTugas, hapusTugas, lampirTugas, ubahTugas } from "../_lib/lms-web.js";
 import {
   LMS_URL,
   LmsGalat,
@@ -113,6 +113,7 @@ import {
   kursusPraktikum,
   sandikanToken,
   tugasKursus,
+  unggahDraf,
 } from "../_lib/lms.js";
 import {
   KUNCI_TP,
@@ -529,7 +530,13 @@ async function handlePaket(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     ...ringkasJendela(set, m),
     semester: set.semester,
     bolehUbah: bolehSoal(orang),
-    lms: { tersambung: !!set.token, url: LMS_URL, tujuan: tujuanLms(set, m) },
+    bolehKelola: !!orang && bolehKelolaLms(orang),
+    lms: {
+      tersambung: !!set.token,
+      siap: !!set.token?.privat,
+      url: LMS_URL,
+      tujuan: tujuanLms(set, m),
+    },
   });
 }
 
@@ -1203,7 +1210,9 @@ async function handleLms(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
 
 /**
  * One class course's TP assignment, in the LMS itself: made (buat), set to
- * IRIS's window (ubah) or deleted (hapus). One course per call, so the
+ * IRIS's window (ubah), given the TP's PDF (lampir) or deleted (hapus).
+ * Buat and ubah attach the PDF too when the page sends one (`pdf`, built in
+ * the browser from the saved set). One course per call, so the
  * page shows each class as it goes and no call nears the time limit. The
  * LMS is asked again before and after, so a stale copy never makes a
  * second assignment, and the answer says whether the dates read back.
@@ -1215,8 +1224,14 @@ async function handleLmsTugas(req: ApiRequest, res: ApiResponse, s: SessionPaylo
   const m = modulDari(b.modul);
   const langkah = b.langkah;
   const kursusId = Number(b.kursus);
-  if (!m || !Number.isInteger(kursusId) || !["buat", "ubah", "hapus"].includes(String(langkah)))
+  if (
+    !m ||
+    !Number.isInteger(kursusId) ||
+    !["buat", "ubah", "lampir", "hapus"].includes(String(langkah))
+  )
     return tolak(res, "format_salah");
+  const pdf = pdfDari(b.pdf);
+  if (pdf === false || (langkah === "lampir" && !pdf)) return tolak(res, "format_salah");
   const teks = typeof b.teks === "string" ? b.teks.slice(0, 4000) : "";
   const db = getDb();
   const set = await bacaSet(db);
@@ -1227,11 +1242,13 @@ async function handleLmsTugas(req: ApiRequest, res: ApiResponse, s: SessionPaylo
   const j = jendelaUntuk(set, m);
   if (langkah !== "hapus" && !j) return tolak(res, "jendela_belum_ada");
 
+  let lampiran: { nama: string; ukuran: number; waktu: string | null }[] = [];
   const tugasNya = async (): Promise<TugasTp | null> => {
     const a = (await tugasKursus(token, [kursusId])).find(
       (t) => t.course === kursusId && modulTugas(t.name) === m,
     );
     const iso = (d: number) => (d > 0 ? new Date(d * 1000).toISOString() : null);
+    lampiran = a?.lampiran ?? [];
     return a
       ? {
           id: a.id,
@@ -1255,15 +1272,18 @@ async function handleLmsTugas(req: ApiRequest, res: ApiResponse, s: SessionPaylo
       ),
       tampil: b.tampil !== false,
     };
+    if (langkah === "buat" && ada) return tolak(res, "sudah_ada");
+    if (langkah !== "buat" && !ada) return tolak(res, "tidak_ada_di_lms");
+    // The PDF goes to a draft area first; the form then names it.
+    const draf = pdf && langkah !== "hapus" ? await unggahDraf(token, pdf.nama, pdf.isi) : 0;
     if (langkah === "buat") {
-      if (ada) return tolak(res, "sudah_ada");
-      await buatTugas(web, kursusId, rencana!);
-    } else if (!ada) {
-      return tolak(res, "tidak_ada_di_lms");
+      await buatTugas(web, kursusId, { ...rencana!, lampiran: draf || undefined });
     } else if (langkah === "ubah") {
-      await ubahTugas(web, ada.cmid, rencana!);
+      await ubahTugas(web, ada!.cmid, { ...rencana!, lampiran: draf || undefined });
+    } else if (langkah === "lampir") {
+      await lampirTugas(web, ada!.cmid, draf);
     } else {
-      await hapusTugas(web, ada.cmid);
+      await hapusTugas(web, ada!.cmid);
     }
     sesudah = await tugasNya();
   } catch (e) {
@@ -1288,10 +1308,36 @@ async function handleLmsTugas(req: ApiRequest, res: ApiResponse, s: SessionPaylo
     kursus: k.label,
     langkah,
     cmid: sesudah?.cmid ?? null,
+    ...(pdf ? { pdf: pdf.nama } : {}),
   });
-  const cocok = langkah === "hapus" ? !sesudah : !!sesudah && !!j && tanggalSama(sesudah, j);
-  res.status(200).json({ ok: true, cocok, tugas: sesudah });
+  // Read back: the dates, and the PDF when one was sent.
+  const adaPdf = !pdf || lampiran.some((f) => f.nama === pdf.nama);
+  const cocok =
+    langkah === "hapus"
+      ? !sesudah
+      : !!sesudah && adaPdf && (langkah === "lampir" || (!!j && tanggalSama(sesudah, j)));
+  res.status(200).json({ ok: true, cocok, tugas: sesudah, lampiran });
 }
+
+/** The TP's PDF the page sends: a .pdf name and its bytes, base64. Absent
+ *  is null; malformed is false. */
+function pdfDari(v: unknown): { nama: string; isi: Uint8Array } | null | false {
+  if (v === undefined || v === null) return null;
+  const o = v as { nama?: unknown; isi?: unknown };
+  if (typeof o.nama !== "string" || !/^[\w.-]{1,96}\.pdf$/.test(o.nama)) return false;
+  if (typeof o.isi !== "string" || o.isi.length > PDF_MAKS * 1.4) return false;
+  const isi = new Uint8Array(Buffer.from(o.isi, "base64"));
+  if (
+    isi.length < 8 ||
+    isi.length > PDF_MAKS ||
+    Buffer.from(isi.subarray(0, 5)).toString() !== "%PDF-"
+  )
+    return false;
+  return { nama: o.nama, isi };
+}
+
+/** Under Vercel's 4.5 MB request body once base64 */
+const PDF_MAKS = 3 * 1024 * 1024;
 
 /** Leave a registered Praktikan out of TP, or take them back. */
 async function handleKecuali(req: ApiRequest, res: ApiResponse, s: SessionPayload) {

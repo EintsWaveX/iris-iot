@@ -51,6 +51,8 @@ const SEKALI: Record<string, string> = {
   "components/grading/TpTab.tsx": "downloads a group's files when asked; its data is GradingPage's",
   "components/grading/LmsRingkas.tsx":
     "the whole sync history, read when its dialog opens; the card's last 10 are LmsTab's, live on topic tp",
+  "components/grading/LmsKelola.tsx":
+    "reads the saved TP set once when Buat or Samakan attaches its PDF; the table is LmsTab's, live on topic tp",
   "lib/xlsx.ts": "builds a file on demand",
   "lib/laporan.ts": "builds a file on demand",
   "scripts/lapor-galat.ts": "reports an error",

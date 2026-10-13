@@ -354,6 +354,9 @@ export interface RencanaTugas {
   /** the description, HTML */
   deskripsi: string;
   tampil: boolean;
+  /** A draft item id holding the TP's PDF (unggahDraf): it replaces the
+   *  description's attachments. Left out, they stay as they are. */
+  lampiran?: number;
 }
 
 function isianTugas(r: RencanaTugas): Record<string, string | boolean> {
@@ -372,6 +375,7 @@ function isianTugas(r: RencanaTugas): Record<string, string | boolean> {
     visible: r.tampil ? "1" : "0",
     // No "content changed" mail to every student for IRIS's edits.
     coursecontentnotification: false,
+    ...(r.lampiran ? { introattachments: String(r.lampiran) } : {}),
   };
 }
 
@@ -409,6 +413,18 @@ export async function ubahTugas(web: WebLms, cmid: number, r: RencanaTugas): Pro
     /modedit\.php/,
     "/course/modedit.php",
     isianTugas(r),
+    "submitbutton2",
+  );
+  hasilSimpan(jawab);
+}
+
+/** Only the description's attachments: the draft area's files replace them. */
+export async function lampirTugas(web: WebLms, cmid: number, lampiran: number): Promise<void> {
+  const jawab = await web.kirimForm(
+    `/course/modedit.php?update=${cmid}`,
+    /modedit\.php/,
+    "/course/modedit.php",
+    { introattachments: String(lampiran), coursecontentnotification: false },
     "submitbutton2",
   );
   hasilSimpan(jawab);

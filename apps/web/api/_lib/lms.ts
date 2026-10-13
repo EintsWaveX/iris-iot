@@ -464,6 +464,65 @@ export function nimDari(u: PesertaLms): string | null {
   return null;
 }
 
+/**
+ * Puts one file in the token owner's draft area, as the app does before it
+ * submits; its draft item id, which a form then names (lms-web.ts). Through
+ * the relay the file travels base64 in a form body and the relay sends it
+ * on as the multipart upload the LMS takes.
+ */
+export async function unggahDraf(token: string, nama: string, berkas: Uint8Array): Promise<number> {
+  const jalan = "/webservice/upload.php";
+  let r: Response;
+  try {
+    if (!relayLms()) {
+      const f = new FormData();
+      f.set("token", token);
+      f.set("filearea", "draft");
+      f.set("itemid", "0");
+      f.set("filepath", "/");
+      f.set(
+        "file_1",
+        new Blob([berkas as Uint8Array<ArrayBuffer>], { type: "application/pdf" }),
+        nama,
+      );
+      r = await fetch(`${LMS_URL}${jalan}`, {
+        method: "POST",
+        body: f,
+        signal: AbortSignal.timeout(60_000),
+      });
+    } else {
+      const isi = new URLSearchParams({
+        token,
+        filearea: "draft",
+        itemid: "0",
+        filepath: "/",
+        nama,
+        berkas: Buffer.from(berkas).toString("base64"),
+      });
+      r = await keLms(jalan, { metode: "POST", isi: isi.toString(), batasMs: 60_000 });
+    }
+  } catch (e) {
+    throw new LmsGalat("lms_tak_terjangkau", e instanceof Error ? e.message : String(e));
+  }
+  const teks = await r.text().catch(() => "");
+  if (!r.ok) throw new LmsGalat("lms_unggah_gagal", `HTTP ${r.status} ${teks.slice(0, 120)}`);
+  let d: unknown;
+  try {
+    d = JSON.parse(teks);
+  } catch {
+    throw new LmsGalat("lms_unggah_gagal", teks.replace(/\s+/g, " ").slice(0, 120));
+  }
+  const satu = Array.isArray(d) ? (d[0] as { itemid?: number } | undefined) : undefined;
+  if (!satu || !Number.isInteger(satu.itemid)) {
+    const g = d as { error?: string; errorcode?: string };
+    throw new LmsGalat(
+      g?.errorcode === "invalidtoken" ? "token_ditolak" : "lms_unggah_gagal",
+      g?.error ?? g?.errorcode ?? "no draft item id",
+    );
+  }
+  return satu.itemid!;
+}
+
 /** Streams one submitted file from the LMS. */
 export async function ambilBerkas(token: string, url: string, range?: string): Promise<Response> {
   const u = new URL(url);
