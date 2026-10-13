@@ -474,6 +474,27 @@ try {
   cek("another host is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
   r = await lms("/webservice/rest/server.php", { cara: "GET" });
   cek("the LMS route takes POST only", r.status === 405);
+  // Web session calls: signed over the cookie; only the four TP pages.
+  const lmsWeb = (tujuan, o = {}) => {
+    const ts = o.ts ?? now();
+    const metode = o.metode ?? "GET";
+    const isi = o.isi ?? "";
+    const kue = o.kue ?? "MoodleSession=x";
+    const tanda = o.tanda ?? createHmac("sha256", secret).update(`lmsweb|${ts}|${metode}|${tujuan}|${o.kueTanda ?? kue}|${isi}`).digest("hex");
+    return fetch(`${BASE}/lms`, {
+      method: "POST",
+      headers: { "x-lms-ts": String(ts), "x-lms-tanda": tanda, "x-lms-metode": metode, "x-lms-tujuan": tujuan, "x-lms-kue": kue },
+      body: isi,
+    });
+  };
+  r = await lmsWeb("/course/modedit.php?update=1", { kueTanda: "MoodleSession=lain" });
+  cek("a web call whose cookie isn't the signed one is refused", r.status === 403 && (await r.text()) === "tanda salah");
+  r = await lmsWeb("/login/index.php");
+  cek("a web call to a page outside the four is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  r = await lmsWeb("/user/profile.php?id=1");
+  cek("a web call to the profile is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  r = await lms("/course/modedit.php?update=1", { metode: "GET", isi: "" });
+  cek("a TP page without a web session header is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
 } finally {
   if (process.env.DEBUG_RELAY) {
     const q = await fetch(`${BASE}/cdn-cgi/local/explorer/api/local/observability/query`, {

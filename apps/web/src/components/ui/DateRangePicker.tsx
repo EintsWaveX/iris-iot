@@ -18,6 +18,7 @@ import type { DateRange } from "react-day-picker";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { id as localeId } from "date-fns/locale";
+import { id as dpId } from "react-day-picker/locale";
 import { format, startOfDay, subDays } from "date-fns";
 import Popover from "./Popover";
 import "./DateRangePicker.css";
@@ -95,7 +96,7 @@ export default function DateRangePicker({ value, onChange }: Props) {
           mode="range"
           selected={value}
           onSelect={onChange}
-          locale={localeId}
+          locale={dpId}
           weekStartsOn={1}
           showOutsideDays
         />

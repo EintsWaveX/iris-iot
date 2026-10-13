@@ -17,6 +17,12 @@
  * Files stream from webservice/pluginfile.php with the token; their bytes
  * are never stored.
  *
+ * The app token can't make or change an activity. The LMS's own sign-in
+ * link also carries the token's private key when it follows a fresh sign
+ * in; with it IRIS asks for an autologin key (tool_mobile_get_autologin_key)
+ * and opens a web session of its own, which fills the assignment form the
+ * way a Teacher does (lms-web.ts).
+ *
  * Cloudflare in front of the LMS turns away Vercel's datacenter addresses
  * (2026-10-13, the first Sambungkan answered lms_http) but lets a Worker
  * through, so in production every call goes via the Konsol relay's signed
@@ -87,17 +93,22 @@ export function bukaToken(t: TokenTersimpan): string | null {
 /**
  * What the person pasted: a bare token (32 hex), or the address the LMS
  * hands the app after sign in, moodlemobile://token=BASE64, whose payload
- * is "signature:::token[:::privatetoken]".
+ * is "signature:::token[:::privatetoken]". The private key comes only
+ * right after a sign in; without it IRIS reads but can't make assignments.
  */
-export function bacaTempelan(teks: string): string | null {
+export function bacaTempelan(teks: string): { token: string; privat: string | null } | null {
   const s = teks.trim();
-  if (/^[0-9a-f]{32}$/i.test(s)) return s.toLowerCase();
+  if (/^[0-9a-f]{32}$/i.test(s)) return { token: s.toLowerCase(), privat: null };
   const m = s.match(/token=([A-Za-z0-9+/=_-]+)/);
   if (!m) return null;
   try {
     const isi = Buffer.from(m[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-    const tok = isi.split(":::")[1];
-    return tok && /^[0-9a-f]{32}$/i.test(tok) ? tok.toLowerCase() : null;
+    const [, tok, privat] = isi.split(":::");
+    if (!tok || !/^[0-9a-f]{32}$/i.test(tok)) return null;
+    return {
+      token: tok.toLowerCase(),
+      privat: privat && /^[A-Za-z0-9]{32,128}$/.test(privat) ? privat : null,
+    };
   } catch {
     return null;
   }
@@ -124,6 +135,10 @@ function relayLms(): { url: string; secret: string } | null {
   return { url: `${relay.replace(/^ws/, "http").replace(/\/+$/, "")}/lms`, secret };
 }
 
+/** The LMS gives an autologin key only to its app; it checks the agent. */
+const UA_APP = "Mozilla/5.0 (Linux; Android 14) MoodleMobile 4.5.0 (45001)";
+const UA_WEB = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IRIS-Penilaian";
+
 /** One request to the LMS: `jalan` is the path with its query. */
 async function keLms(
   jalan: string,
@@ -135,6 +150,7 @@ async function keLms(
     const headers: Record<string, string> = {};
     if (o.metode === "POST") headers["content-type"] = "application/x-www-form-urlencoded";
     if (o.range) headers.range = o.range;
+    if (o.isi?.includes("wsfunction=tool_mobile_get_autologin_key")) headers["user-agent"] = UA_APP;
     return fetch(`${LMS_URL}${jalan}`, { method: o.metode, headers, body: o.isi, signal });
   }
   const ts = String(Math.floor(Date.now() / 1000));
@@ -150,6 +166,87 @@ async function keLms(
   };
   if (o.range) headers["x-lms-range"] = o.range;
   return fetch(relay.url, { method: "POST", headers, body: isi, signal });
+}
+
+/** What an LMS page answered: its status, redirect, new cookies and body. */
+export interface JawabHalaman {
+  status: number;
+  lokasi: string | null;
+  kueBaru: string[];
+  teks: string;
+}
+
+/**
+ * One LMS page in IRIS's web session (lms-web.ts): `kue` is the Cookie
+ * header, "" before the first. Redirects are not followed, so the session
+ * cookie the autologin sets is seen. Through the relay it is signed over
+ * the cookie as well.
+ */
+export async function keHalaman(
+  jalan: string,
+  o: { metode: "GET" | "POST"; isi?: string; kue: string; batasMs?: number },
+): Promise<JawabHalaman> {
+  const signal = AbortSignal.timeout(o.batasMs ?? 30_000);
+  const relay = relayLms();
+  let r: Response;
+  try {
+    if (!relay) {
+      const headers: Record<string, string> = { "user-agent": UA_WEB };
+      if (o.metode === "POST") headers["content-type"] = "application/x-www-form-urlencoded";
+      if (o.kue) headers.cookie = o.kue;
+      r = await fetch(`${LMS_URL}${jalan}`, {
+        method: o.metode,
+        headers,
+        body: o.isi,
+        redirect: "manual",
+        signal,
+      });
+      return {
+        status: r.status,
+        lokasi: r.headers.get("location"),
+        kueBaru: r.headers.getSetCookie(),
+        teks: await r.text(),
+      };
+    }
+    const ts = String(Math.floor(Date.now() / 1000));
+    const isi = o.isi ?? "";
+    const kue = o.kue || "-";
+    const tanda = createHmac("sha256", relay.secret)
+      .update(`lmsweb|${ts}|${o.metode}|${jalan}|${kue}|${isi}`)
+      .digest("hex");
+    r = await fetch(relay.url, {
+      method: "POST",
+      headers: {
+        "x-lms-ts": ts,
+        "x-lms-tanda": tanda,
+        "x-lms-metode": o.metode,
+        "x-lms-tujuan": jalan,
+        "x-lms-kue": kue,
+      },
+      body: isi,
+      signal,
+    });
+  } catch (e) {
+    throw new LmsGalat("lms_tak_terjangkau", e instanceof Error ? e.message : String(e));
+  }
+  const kueBaru = r.headers.get("x-lms-kue-baru");
+  if (kueBaru === null) {
+    // The relay refused it itself (plain text), before the LMS.
+    const teks = (await r.text().catch(() => "")).slice(0, 120);
+    throw new LmsGalat("lms_http", `HTTP ${r.status} relay: ${teks}`);
+  }
+  let baru: string[] = [];
+  try {
+    baru = JSON.parse(kueBaru) as string[];
+  } catch {
+    baru = [];
+  }
+  return {
+    status: r.status,
+    lokasi: r.headers.get("x-lms-lokasi"),
+    kueBaru: baru,
+    teks: await r.text(),
+  };
 }
 
 export class LmsGalat extends Error {
@@ -335,6 +432,7 @@ export interface PesertaLms {
   idnumber?: string;
   username?: string;
   email?: string;
+  roles?: { shortname: string }[];
 }
 
 export function pesertaKursus(token: string, kursus: number) {
@@ -342,9 +440,18 @@ export function pesertaKursus(token: string, kursus: number) {
     courseid: kursus,
     options: [
       { name: "onlyactive", value: 1 },
-      { name: "userfields", value: "id,fullname,idnumber,username,email" },
+      { name: "userfields", value: "id,fullname,idnumber,username,email,roles" },
     ],
   });
+}
+
+/**
+ * Enrolled as a student. The Asisten are Teachers in every class course,
+ * and five of them are registered Praktikan too (2026-10-13): counted by
+ * NIM alone they showed up in all eleven classes.
+ */
+export function pelajar(u: PesertaLms): boolean {
+  return !u.roles || u.roles.some((r) => r.shortname === "student");
 }
 
 /** A NIM from an LMS user: idnumber first, then a long digit run in the

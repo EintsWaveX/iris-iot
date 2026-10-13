@@ -33,7 +33,7 @@ import {
 } from "react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
-import { id as localeId, enGB, zhCN } from "date-fns/locale";
+import { id as dpId, enGB as dpEnGB, zhCN as dpZhCN } from "react-day-picker/locale";
 import { format, parseISO, isValid } from "date-fns";
 import {
   CalendarBlankIcon,
@@ -160,7 +160,9 @@ const DP_TEXT = dict({
   },
 });
 
-const DP_LOCALE = { id: localeId, en: enGB, zh: zhCN } as const;
+// The day picker's own locales: date-fns's plus its screen reader labels
+// ("Hari ini, …", "Ke bulan sebelumnya"), which date-fns's alone left English.
+const DP_LOCALE = { id: dpId, en: dpEnGB, zh: dpZhCN } as const;
 
 interface DateFieldProps {
   value: string;

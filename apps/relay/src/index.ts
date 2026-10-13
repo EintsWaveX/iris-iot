@@ -61,6 +61,11 @@
  * Cloudflare in front of the LMS turns away Vercel's datacenter addresses
  * but lets a Worker through (2026-10-13). Only the LMS's two web service
  * paths pass, only to the LMS, and nothing is kept.
+ *
+ * A call with x-lms-kue (the IRIS API's LMS web session, "-" before it
+ * has one) may also reach the four pages that make, change and delete a
+ * TP assignment (autologin, modedit, mod, view); it is signed over the
+ * cookie too, and its answer carries the LMS's new cookies and redirect.
  */
 import { cekTiket, DIAM_MENIT } from "../../web/src/lib/konsol.ts";
 import {
@@ -675,8 +680,16 @@ export class Ruang {
 
 const LMS_ASAL = "https://lms.telkomuniversity.ac.id";
 const LMS_JALAN_RE = /^\/webservice\/(rest\/server\.php$|pluginfile\.php\/)/;
+/** The LMS pages a TP assignment is made, changed and deleted on */
+const LMS_HALAMAN_RE =
+  /^\/(admin\/tool\/mobile\/autologin\.php|course\/modedit\.php|course\/mod\.php|course\/view\.php)$/;
 /** A web service call's form body (the course list asks for the most) */
 const LMS_ISI_MAKS = 16 * 1024;
+/** An assignment form's body (its description included) */
+const LMS_HALAMAN_ISI_MAKS = 128 * 1024;
+/** Only the app may ask for an autologin key; the LMS checks the agent. */
+const UA_APP = "Mozilla/5.0 (Linux; Android 14) MoodleMobile 4.5.0 (45001)";
+const UA_WEB = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IRIS-Penilaian";
 /** Tries per call while Cloudflare answers with its challenge */
 const LMS_COBA = 5;
 const LMS_TERUS = [
@@ -702,13 +715,20 @@ async function lms(req: Request, env: Env): Promise<Response> {
     return teks(403, "kedaluwarsa");
   const metode = req.headers.get("x-lms-metode") === "GET" ? "GET" : "POST";
   const tujuan = req.headers.get("x-lms-tujuan") ?? "";
+  // A web session call (x-lms-kue, the cookie, or "-" before there is one)
+  // is signed over it too.
+  const kue = req.headers.get("x-lms-kue");
+  const web = kue !== null;
   const isi = await req.text();
-  if (isi.length > LMS_ISI_MAKS) return teks(413, "terlalu besar");
+  if (isi.length > (web ? LMS_HALAMAN_ISI_MAKS : LMS_ISI_MAKS))
+    return teks(413, "terlalu besar");
   const ok = samaPersis(
     req.headers.get("x-lms-tanda") ?? "",
     await hmacHex(
       env.KONSOL_RELAY_SECRET,
-      `lms|${ts}|${metode}|${tujuan}|${isi}`,
+      web
+        ? `lmsweb|${ts}|${metode}|${tujuan}|${kue}|${isi}`
+        : `lms|${ts}|${metode}|${tujuan}|${isi}`,
     ),
   );
   if (!ok) return teks(403, "tanda salah");
@@ -718,7 +738,10 @@ async function lms(req: Request, env: Env): Promise<Response> {
   } catch {
     return teks(403, "tujuan ditolak");
   }
-  if (u.origin !== LMS_ASAL || !LMS_JALAN_RE.test(u.pathname))
+  if (
+    u.origin !== LMS_ASAL ||
+    !(LMS_JALAN_RE.test(u.pathname) || (web && LMS_HALAMAN_RE.test(u.pathname)))
+  )
     return teks(403, "tujuan ditolak");
   hitung(env, "lms");
   // The call itself is the Durable Object's: made straight from the Worker,
@@ -728,6 +751,7 @@ async function lms(req: Request, env: Env): Promise<Response> {
   const h = new Headers({ "x-lms-url": u.toString(), "x-lms-metode": metode });
   const range = req.headers.get("x-lms-range");
   if (range) h.set("x-lms-range", range);
+  if (web) h.set("x-lms-kue", kue);
   const lmsDo = env.LMS.get(env.LMS.idFromName("lms"), {
     locationHint: "apac",
   });
@@ -757,6 +781,16 @@ export class Lms {
     const range = req.headers.get("x-lms-range");
     if (range) h.set("range", range);
     const isi = metode === "POST" ? await req.text() : undefined;
+    const kue = req.headers.get("x-lms-kue");
+    // "-" is a web session call before the first cookie
+    if (kue && kue !== "-") h.set("cookie", kue);
+    // The LMS gives an autologin key only to its app.
+    h.set(
+      "user-agent",
+      isi?.includes("wsfunction=tool_mobile_get_autologin_key")
+        ? UA_APP
+        : UA_WEB,
+    );
     // Cloudflare still answers some calls with its challenge page, at random
     // (2026-10-13: 2 in 8); the next try usually goes through.
     let r: Response;
@@ -775,6 +809,12 @@ export class Lms {
     for (const k of LMS_TERUS) {
       const v = r.headers.get(k);
       if (v) out.set(k, v);
+    }
+    if (kue !== null) {
+      // The web session's new cookies and where the page sends it next.
+      out.set("x-lms-kue-baru", JSON.stringify(r.headers.getSetCookie()));
+      const lokasi = r.headers.get("location");
+      if (lokasi) out.set("x-lms-lokasi", lokasi);
     }
     return new Response(r.body, { status: r.status, headers: out });
   }

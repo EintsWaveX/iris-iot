@@ -5,3 +5,4 @@ drizzle/
 src/data/asisten.json
 .impeccable/
 .remember/
+api/_lib/__tests__/fixtures/

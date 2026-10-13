@@ -343,6 +343,84 @@ export function modulTugas(nama: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/* ------------------------------------------- the assignment in the LMS */
+
+/** The name IRIS gives a module's assignment in every class course. */
+export const namaTugasLms = (m: number) => `TP Modul ${m}`;
+
+const HARI_TP = {
+  id: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+};
+const BULAN_TP = {
+  id: [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ],
+  en: [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ],
+};
+
+/** "Sabtu, 17 Oktober 2026 pukul 18.00" / "Saturday, 17 October 2026 at 18:00", in WIB. */
+export function waktuTugasLms(iso: string, b: "id" | "en"): string {
+  const d = new Date(Date.parse(iso) + 7 * 3_600_000);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  const tgl = `${HARI_TP[b][d.getUTCDay()]}, ${d.getUTCDate()} ${BULAN_TP[b][d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return b === "id" ? `${tgl} pukul ${hh}.${mm}` : `${tgl} at ${hh}:${mm}`;
+}
+
+/** The assignment's default description, plain text, in the class's language. */
+export function teksTugasLms(m: number, tutup: string, b: "id" | "en"): string {
+  return b === "id"
+    ? `Tugas Pendahuluan Modul ${m}. Soal ada di IRIS (Modul ${m}, langkah Tugas Pendahuluan). Kerjakan di kertas, pindai menjadi satu PDF, lalu unggah di sini sebelum ${waktuTugasLms(tutup, "id")}.`
+    : `Preliminary Task for Module ${m}. The questions are in IRIS (Module ${m}, the Preliminary Task step). Write your answers on paper, scan them into one PDF, and upload it here before ${waktuTugasLms(tutup, "en")}.`;
+}
+
+/** Plain text to the LMS's HTML: a paragraph per blank-line block, escaped. */
+export function htmlTugasLms(teks: string): string {
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return teks
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
+/** An LMS assignment's dates are the window's, to the minute. */
+export function tanggalSama(
+  t: { buka: string | null; tutup: string | null },
+  j: JendelaTp,
+): boolean {
+  const sama = (a: string | null, b: string) =>
+    !!a && Math.abs(Date.parse(a) - Date.parse(b)) < 60_000;
+  return sama(t.buka, j.buka) && sama(t.tutup, j.tutup);
+}
+
 /* ------------------------------------------------------ answers in a PDF */
 
 /**

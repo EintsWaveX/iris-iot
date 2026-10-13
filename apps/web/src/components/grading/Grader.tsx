@@ -526,7 +526,10 @@ function Isi({
                 <Pill
                   key={l}
                   pressed={v === x}
-                  onClick={kunciNilai ? undefined : () => void tulis(no, { skor: x })}
+                  // Pressing the chip that is on again takes the score back (empty).
+                  onClick={
+                    kunciNilai ? undefined : () => void tulis(no, { skor: v === x ? null : x })
+                  }
                 >
                   {l}
                 </Pill>

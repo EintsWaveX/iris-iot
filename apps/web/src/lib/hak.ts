@@ -102,6 +102,15 @@ export function hakPenuh(o: Pick<Orang, "tier" | "badges">): boolean {
   return isPencipta(o) || o.tier === "admin" || o.badges.includes("dev");
 }
 
+/**
+ * Makes, changes and deletes the TP assignments in the LMS and keeps the TP
+ * exclusions: the Pencipta, the Admins and the ASO division (user,
+ * 2026-10-13). DEV alone (ARM) reads Sumber LMS but doesn't change the LMS.
+ */
+export function bolehKelolaLms(o: Pick<Orang, "tier" | "badges" | "divisi">): boolean {
+  return isPencipta(o) || o.tier === "admin" || o.divisi === DIVISI_KODE;
+}
+
 /** What the tier and badges give, before any override. */
 export function hakDasar(o: Pick<Orang, "tier" | "badges" | "divisi">, key: HakKey): HakNilai {
   if (hakPenuh(o)) return true;

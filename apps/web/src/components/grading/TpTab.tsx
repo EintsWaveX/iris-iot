@@ -15,6 +15,7 @@ import {
   EyeIcon,
   PlugsIcon,
   PlugsConnectedIcon,
+  PlusIcon,
   UsersThreeIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
@@ -37,6 +38,7 @@ import {
   waktuPanjang,
 } from "../tp/shared";
 import type { AnggotaTp, DataKelompok, GrupDinilai, KelompokTp } from "./types";
+import { LK } from "./lmsKelolaStrings";
 
 type Saring = "all" | "todo" | "telat" | "belum";
 
@@ -55,7 +57,8 @@ export default function TpTab({
   data: DataKelompok | null;
   refresh: () => void;
   onOpen: (g: GrupDinilai, i: number) => void;
-  onLms: () => void;
+  /** Sumber LMS; with a module, its assignments' dialog open. */
+  onLms: (modul?: number) => void;
 }) {
   const t = TPS[lang];
   const [who, setWho] = useState<"mine" | "all">("mine");
@@ -277,7 +280,7 @@ function SyncStrip({
   modul: number;
   data: DataKelompok;
   refresh: () => void;
-  onLms: () => void;
+  onLms: (modul?: number) => void;
 }) {
   const t = TPS[lang];
   const [busy, setBusy] = useState(false);
@@ -302,7 +305,7 @@ function SyncStrip({
           <span className="hint">{t.sinkronBelumHint}</span>
         </div>
         {data.bolehLms && (
-          <button type="button" className="btn btn--primary" onClick={onLms}>
+          <button type="button" className="btn btn--primary" onClick={() => onLms()}>
             <PlugsConnectedIcon size={18} aria-hidden="true" />
             {t.sambungLms}
           </button>
@@ -320,7 +323,7 @@ function SyncStrip({
           </span>
         </div>
         {data.bolehLms ? (
-          <button type="button" className="btn btn--danger" onClick={onLms}>
+          <button type="button" className="btn btn--danger" onClick={() => onLms()}>
             <PlugsConnectedIcon size={18} aria-hidden="true" />
             {t.sambungUlang}
           </button>
@@ -348,11 +351,18 @@ function SyncStrip({
               )}
             </span>
           </div>
-          {data.bolehLms && (
-            <button type="button" className="btn" onClick={onLms}>
-              <PlugsConnectedIcon size={18} aria-hidden="true" />
-              {t.lihatLms}
+          {data.bolehKelola ? (
+            <button type="button" className="btn btn--primary" onClick={() => onLms(modul)}>
+              <PlusIcon size={18} aria-hidden="true" />
+              {LK[lang].buat(data.hilang.length)}
             </button>
+          ) : (
+            data.bolehLms && (
+              <button type="button" className="btn" onClick={() => onLms()}>
+                <PlugsConnectedIcon size={18} aria-hidden="true" />
+                {t.lihatLms}
+              </button>
+            )
           )}
         </section>
       )}
@@ -471,6 +481,7 @@ function GroupCard({
                   </span>
                 </span>
                 <span className="tpmem__st">
+                  {a.kecuali && <Pill>{LK[lang].pill}</Pill>}
                   <StatusPill s={a.status} lang={lang} />
                   {a.status === "nilai" && a.total != null ? (
                     <b className="mono tpmem__t">{a.total}</b>

@@ -47,6 +47,9 @@ export default function GradingPage({ lang }: { lang: Lang }) {
   const [tab, setTab0] = useState<Tab>(tabDariHash);
   const [modul, setModul0] = useState<number | null>(modulDariUrl);
   const [grader, setGrader] = useState<{ g: GrupDinilai; i: number } | null>(null);
+  // A module's LMS assignments to open on Sumber LMS (the TP tab's banner).
+  const [kelolaAwal, setKelolaAwal] = useState<number | null>(null);
+  const kelolaDibuka = useCallback(() => setKelolaAwal(null), []);
 
   useEffect(() => {
     const on = () => setTab0(tabDariHash());
@@ -163,14 +166,17 @@ export default function GradingPage({ lang }: { lang: Lang }) {
             data={modul === null ? null : poll.data}
             refresh={poll.refresh}
             onOpen={buka}
-            onLms={() => setTab("lms")}
+            onLms={(m) => {
+              setKelolaAwal(m ?? null);
+              setTab("lms");
+            }}
           />
         ) : shown === "soal" ? (
           <SoalTab lang={lang} modul={modul ?? 1} setModul={setModul} />
         ) : shown === "praktikum" ? (
           <PraktikumTab lang={lang} />
         ) : shown === "lms" ? (
-          <LmsTab lang={lang} />
+          <LmsTab lang={lang} kelolaAwal={kelolaAwal} onKelolaDibuka={kelolaDibuka} />
         ) : (
           <SumberSeelabs lang={lang} />
         )}

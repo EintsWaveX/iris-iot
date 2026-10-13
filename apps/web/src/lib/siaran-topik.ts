@@ -154,6 +154,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "tp:pilih": ["tp"],
   "tp:bawaan": ["tp"],
   "tp:lms": ["tp"],
+  "tp:lms-tugas": ["tp"],
+  "tp:kecuali": ["tp"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

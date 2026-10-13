@@ -4,14 +4,17 @@
  * something breaks. The connection (an app token, kept encrypted, shown by
  * its last four characters only), the practicum classes and which TP
  * assignments IRIS found by name, the semester's default window, and the
- * sync history.
+ * sync history. Since 2026-10-13 IRIS also makes, matches and deletes the
+ * TP assignments there itself (a TP column's header opens KelolaDialog),
+ * and Peserta TP says who counts.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowSquareOutIcon,
   CheckCircleIcon,
   CheckIcon,
   CloudSlashIcon,
+  KeyIcon,
   PencilSimpleIcon,
   PlugsConnectedIcon,
   PlugsIcon,
@@ -31,15 +34,17 @@ import type { PolaJendela } from "../../lib/tp";
 import { TPS } from "../tp/tpStrings";
 import { jam, waktuPanjang } from "../tp/shared";
 import type { InfoSinkron } from "./types";
+import {
+  KelolaDialog,
+  PesertaPanel,
+  keadaanTugas,
+  type KelolaInfo,
+  type KursusKelola,
+  type PesertaInfo,
+} from "./LmsKelola";
+import { LK } from "./lmsKelolaStrings";
 
-interface KursusInfo {
-  id: number;
-  nama: string;
-  label: string;
-  kelas: string;
-  peserta: number;
-  tugas: Record<string, { id: number; cmid: number; nama: string } | null>;
-}
+type KursusInfo = KursusKelola;
 interface LmsInfo {
   ok: boolean;
   kode?: string;
@@ -65,10 +70,23 @@ interface LmsInfo {
   }[];
   alamatMasuk: string;
   lmsUrl: string;
+  kelola: KelolaInfo;
+  peserta: PesertaInfo;
 }
 
-export default function LmsTab({ lang }: { lang: Lang }) {
+export default function LmsTab({
+  lang,
+  kelolaAwal,
+  onKelolaDibuka,
+}: {
+  lang: Lang;
+  /** A module whose assignments to open straight away (from the TP tab). */
+  kelolaAwal?: number | null;
+  onKelolaDibuka?: () => void;
+}) {
   const t = TPS[lang];
+  const tk = LK[lang];
+  const [kelola, setKelola] = useState<number | null>(null);
   const poll = usePoll(
     () => getJson<LmsInfo>("/api/tp/lms-info").then((d) => (d.ok ? d : null)),
     120_000,
@@ -76,6 +94,11 @@ export default function LmsTab({ lang }: { lang: Lang }) {
     ["tp"],
   );
   const d = poll.data;
+  useEffect(() => {
+    if (!d || !kelolaAwal) return;
+    setKelola(kelolaAwal);
+    onKelolaDibuka?.();
+  }, [d, kelolaAwal, onKelolaDibuka]);
   const [sambung, setSambung] = useState(false);
   const [putus, setPutus] = useState(false);
   const [bawaan, setBawaan] = useState(false);
@@ -170,6 +193,13 @@ export default function LmsTab({ lang }: { lang: Lang }) {
             {waktuPanjang(d.token.pada, lang)}
           </dd>
         </div>
+        <div>
+          <dt>{tk.pengelola}</dt>
+          <dd className="row row--nowrap" style={{ gap: 6 }}>
+            <KeyIcon size={16} aria-hidden="true" />
+            {d.kelola.siap ? tk.kelolaTersambung : tk.kelolaBelum}
+          </dd>
+        </div>
       </dl>
       <div className="tpbtns">
         {ditolak ? (
@@ -224,7 +254,15 @@ export default function LmsTab({ lang }: { lang: Lang }) {
                     <th className="num">{t.praktikan}</th>
                     {[1, 2, 3, 4].map((m) => (
                       <th key={m} className="num">
-                        TP {m}
+                        <button
+                          type="button"
+                          className="tpkel__th"
+                          title={tk.kelolaBuka(m)}
+                          aria-label={tk.kelolaBuka(m)}
+                          onClick={() => setKelola(m)}
+                        >
+                          TP {m}
+                        </button>
                       </th>
                     ))}
                   </tr>
@@ -245,19 +283,35 @@ export default function LmsTab({ lang }: { lang: Lang }) {
                       <td className="num mono">{k.peserta}</td>
                       {[1, 2, 3, 4].map((m) => {
                         const ada = k.tugas[String(m)];
+                        const st = keadaanTugas(ada, d.kelola.jendela[String(m)] ?? null);
+                        // Found, but its dates aren't the IRIS window's: a softer mark.
+                        const label = !ada
+                          ? t.tidakDitemukan
+                          : st === "beda" && d.kelola.jendela[String(m)]
+                            ? `${t.ditemukan}: ${ada.nama} · ${tk.st.beda}`
+                            : `${t.ditemukan}: ${ada.nama}`;
                         return (
                           <td key={m} className="num">
-                            <span
+                            <button
+                              type="button"
                               className="tpcheck"
-                              data-s={ada ? "ok" : "miss"}
-                              title={ada ? `${t.ditemukan}: ${ada.nama}` : t.tidakDitemukan}
+                              data-s={
+                                !ada
+                                  ? "miss"
+                                  : st === "beda" && d.kelola.jendela[String(m)]
+                                    ? "beda"
+                                    : "ok"
+                              }
+                              title={label}
+                              aria-label={`${k.label}, TP ${m}: ${label}`}
+                              onClick={() => setKelola(m)}
                             >
                               {ada ? (
-                                <CheckIcon size={14} aria-label={t.ditemukan} />
+                                <CheckIcon size={14} aria-hidden="true" />
                               ) : (
-                                <WarningIcon size={14} aria-label={t.tidakDitemukan} />
+                                <WarningIcon size={14} aria-hidden="true" />
                               )}
-                            </span>
+                            </button>
                           </td>
                         );
                       })}
@@ -273,6 +327,12 @@ export default function LmsTab({ lang }: { lang: Lang }) {
         </section>
       </div>
       <div className="stack stack--lg">
+        <PesertaPanel
+          lang={lang}
+          peserta={d.peserta}
+          boleh={d.kelola.boleh}
+          onDone={poll.refresh}
+        />
         <section className="panel">
           <h2 className="panel__title">{t.jadwalAmbil}</h2>
           <dl className="tpdl tpdl--one">
@@ -352,6 +412,15 @@ export default function LmsTab({ lang }: { lang: Lang }) {
           poll.refresh();
         }}
       />
+      <KelolaDialog
+        open={kelola !== null}
+        onOpenChange={(v) => !v && setKelola(null)}
+        lang={lang}
+        modul={kelola ?? 1}
+        kursus={d.kursus}
+        kelola={d.kelola}
+        onDone={poll.refresh}
+      />
       <BawaanDialog
         open={bawaan}
         onOpenChange={setBawaan}
@@ -426,6 +495,7 @@ function SambungDialog({
             <span>1</span>
             <div className="stack stack--sm">
               <p>{t.sambung1}</p>
+              <p className="hint">{LK[lang].sambungKunci}</p>
               <a className="btn" href={alamat} target="_blank" rel="noopener noreferrer">
                 {t.bukaLms}
                 <ArrowSquareOutIcon size={18} aria-hidden="true" />

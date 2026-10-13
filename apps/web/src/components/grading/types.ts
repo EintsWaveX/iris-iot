@@ -14,6 +14,7 @@ export interface AnggotaTp {
   terimaTelat: boolean | null;
   berkas: number;
   kirimanId: number | null;
+  kecuali?: boolean;
 }
 
 export interface KelompokTp {
@@ -52,6 +53,7 @@ export interface DataKelompok {
   sinkron: InfoSinkron;
   hilang: { label: string; peserta: number }[];
   bolehLms: boolean;
+  bolehKelola?: boolean;
 }
 
 /** One group opened in the grader, with where it came from. */

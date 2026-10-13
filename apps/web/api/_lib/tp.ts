@@ -17,7 +17,7 @@
  * variants and the final set's pick; with no row a module uses the default
  * bank in tp-bawaan.ts.
  */
-import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, ne, notInArray, sql } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
@@ -78,10 +78,14 @@ import {
   kirimanTugas,
   kursusPraktikum,
   nimDari,
+  pelajar,
   pesertaKursus,
+  sandikanToken,
+  teksLms,
   tugasKursus,
   type TokenTersimpan,
 } from "./lms.js";
+import { WebLms, type SimpanKue } from "./lms-web.js";
 import { muatTanggal } from "./penugasan-api.js";
 import { siarkan } from "./siaran.js";
 
@@ -92,12 +96,32 @@ export const KUNCI_TP = {
   kelas: "lms_kelas",
   status: "lms_status",
   jendela: "tp_jendela",
+  kecuali: "tp_kecuali",
 } as const;
+
+/** IRIS's LMS web session cookie (lms-web.ts), encrypted like the token. */
+export const KUNCI_WEB = "lms_web";
 
 export interface TokenSet extends TokenTersimpan {
   akun: { userid: number; nama: string; username: string };
   pada: string;
   oleh: string;
+  /** The token's private key, from a link made right after a sign in: it
+   *  lets IRIS make, change and delete the TP assignments. */
+  privat?: TokenTersimpan | null;
+}
+
+/** A registered Praktikan left out of TP (counts, expected files). */
+export interface Kecuali {
+  nim: string;
+  alasan: string;
+  oleh: string;
+  pada: string;
+}
+
+export interface KecualiSet {
+  semester: string;
+  daftar: Kecuali[];
 }
 
 export interface TugasTp {
@@ -113,14 +137,26 @@ export interface KursusTp {
   nama: string;
   label: string;
   kelas: KelasTp;
+  /** Registered Praktikan enrolled here as students. */
   peserta: number;
+  /** Their NIMs (since 2026-10-13; older copies lack it). */
+  nim?: string[];
   tugas: Record<string, TugasTp | null>;
+}
+
+/** A student in a class course who is not a registered Praktikan. */
+export interface LuarLms {
+  nim: string | null;
+  nama: string;
+  kursus: string;
 }
 
 export interface KelasSet {
   pada: string;
   pesertaPada: string | null;
   kursus: KursusTp[];
+  /** Students the LMS has that IRIS doesn't: never counted. */
+  luar?: LuarLms[];
 }
 
 export interface StatusSet {
@@ -144,6 +180,7 @@ export interface SetTp {
   kelas: KelasSet | null;
   status: StatusSet;
   jendela: JendelaSet;
+  kecuali: Kecuali[];
 }
 
 export function semesterIni(): string {
@@ -159,6 +196,7 @@ export async function bacaSet(db: Db): Promise<SetTp> {
   const v = (k: string) => rows.find((r) => r.kunci === k)?.nilai as unknown;
   const j = v(KUNCI_TP.jendela) as Partial<JendelaSet> | undefined;
   const st = (v(KUNCI_TP.status) as Partial<StatusSet> | undefined) ?? {};
+  const kec = v(KUNCI_TP.kecuali) as KecualiSet | undefined;
   return {
     semester,
     token: (v(KUNCI_TP.token) as TokenSet | undefined) ?? null,
@@ -175,7 +213,43 @@ export async function bacaSet(db: Db): Promise<SetTp> {
       j && j.semester === semester
         ? { semester, pola: j.pola ?? POLA_BAWAAN, modul: j.modul ?? {} }
         : { semester, pola: j?.pola ?? POLA_BAWAAN, modul: {} },
+    kecuali: kec && kec.semester === semester ? (kec.daftar ?? []) : [],
   };
+}
+
+/** The NIMs left out of TP this semester. */
+export const nimKecuali = (set: SetTp) => new Set(set.kecuali.map((k) => k.nim));
+
+/** A course's registered Praktikan, without the excluded. */
+export function pesertaKursusTp(k: KursusTp, kecuali: Set<string>): number {
+  return k.nim ? k.nim.filter((n) => !kecuali.has(n)).length : k.peserta;
+}
+
+/** Where WebLms keeps its cookie: pengaturan, encrypted. */
+export function simpanKueLms(db: Db): SimpanKue {
+  return {
+    async baca() {
+      const [r] = await db
+        .select({ nilai: pengaturan.nilai })
+        .from(pengaturan)
+        .where(eq(pengaturan.kunci, KUNCI_WEB))
+        .limit(1);
+      return r ? bukaToken(r.nilai as TokenTersimpan) : null;
+    },
+    async tulis(kue) {
+      if (kue) await tulisSet(db, KUNCI_WEB, sandikanToken(kue), null);
+      else await hapusSet(db, KUNCI_WEB);
+    },
+  };
+}
+
+/** IRIS's LMS web session, or why there can't be one. */
+export function webLms(db: Db, set: SetTp): WebLms {
+  const token = set.token ? bukaToken(set.token) : null;
+  if (!set.token || !token) throw new LmsGalat("belum_tersambung", "no LMS token");
+  const privat = set.token.privat ? bukaToken(set.token.privat) : null;
+  if (!privat) throw new LmsGalat("perlu_kunci_privat", "the token has no private key");
+  return new WebLms(token, privat, set.token.akun.userid, simpanKueLms(db));
 }
 
 export async function tulisSet(db: Db, kunci: string, nilaiBaru: unknown, oleh: string | null) {
@@ -245,10 +319,11 @@ async function segarkanKelas(token: string, set: SetTp): Promise<KelasSet> {
     token,
     kursus.map((k) => k.id),
   );
-  const lama = new Map((set.kelas?.kursus ?? []).map((k) => [k.id, k.peserta]));
+  const lama = new Map((set.kelas?.kursus ?? []).map((k) => [k.id, k]));
   return {
     pada: new Date().toISOString(),
     pesertaPada: set.kelas?.pesertaPada ?? null,
+    luar: set.kelas?.luar,
     kursus: kursus
       .map((k) => {
         const per: Record<string, TugasTp | null> = { "1": null, "2": null, "3": null, "4": null };
@@ -268,7 +343,8 @@ async function segarkanKelas(token: string, set: SetTp): Promise<KelasSet> {
           nama: k.fullname,
           label: labelKursus(`${k.shortname} ${k.fullname}`),
           kelas: kelasKursus(`${k.shortname} ${k.fullname}`),
-          peserta: lama.get(k.id) ?? 0,
+          peserta: lama.get(k.id)?.peserta ?? 0,
+          nim: lama.get(k.id)?.nim,
           tugas: per,
         };
       })
@@ -289,6 +365,7 @@ async function segarkanPeserta(db: Db, token: string, set: SetTp, kelas: KelasSe
     .from(praktikan)
     .where(eq(praktikan.semester, set.semester));
   const nimAda = new Set(daftar.map((p) => p.nim));
+  const luar: LuarLms[] = [];
   // A name that two Praktikan share is never used to match.
   const perNama = new Map<string, string | null>();
   for (const p of daftar) {
@@ -298,18 +375,25 @@ async function segarkanPeserta(db: Db, token: string, set: SetTp, kelas: KelasSe
   const baris = new Map<string, { lmsUser: number; lmsKursus: number; kursus: string }>();
   for (const k of kelas.kursus) {
     const orang = await pesertaKursus(token, k.id);
-    let n = 0;
+    const nims: string[] = [];
     for (const u of orang) {
+      // Teachers (the Asisten, some of them Praktikan too) are not counted.
+      if (!pelajar(u)) continue;
       const nim = nimDari(u) ?? perNama.get(sederhana(u.fullname)) ?? null;
-      if (!nim || !nimAda.has(nim)) continue;
-      n++;
+      if (!nim || !nimAda.has(nim)) {
+        luar.push({ nim, nama: teksLms(u.fullname), kursus: k.label });
+        continue;
+      }
+      nims.push(nim);
       // A class course wins over ADD (which may hold everyone).
       const ada = baris.get(nim);
       if (ada && k.label === "ADD") continue;
       baris.set(nim, { lmsUser: u.id, lmsKursus: k.id, kursus: k.label });
     }
-    k.peserta = n;
+    k.peserta = nims.length;
+    k.nim = nims;
   }
+  kelas.luar = luar;
   const now = new Date();
   const rows = [...baris].map(([nim, b]) => ({
     semester: set.semester,
@@ -330,6 +414,17 @@ async function segarkanPeserta(db: Db, token: string, set: SetTp, kelas: KelasSe
           diperbarui: now,
         },
       });
+  // Who left every class course since: not theirs any more.
+  if (rows.length)
+    await db.delete(lmsPeserta).where(
+      and(
+        eq(lmsPeserta.semester, set.semester),
+        notInArray(
+          lmsPeserta.nim,
+          rows.map((r) => r.nim),
+        ),
+      ),
+    );
   kelas.pesertaPada = now.toISOString();
 }
 
@@ -542,6 +637,8 @@ export interface AnggotaTp {
   terimaTelat: boolean | null;
   berkas: number;
   kirimanId: number | null;
+  /** Left out of TP (Sumber LMS › Peserta TP): shown, never counted. */
+  kecuali: boolean;
 }
 
 export interface KelompokTp {
@@ -743,6 +840,7 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
   const orang = new Map(kodeRows.map((a) => [a.nim, a]));
   const kirOf = new Map(kiriman.map((k) => [k.nim, k]));
   const dipakai = new Set<string>();
+  const kec = nimKecuali(set);
   const satu = (a: { nim: string; nama: string }): AnggotaTp => {
     dipakai.add(a.nim);
     const k = kirOf.get(a.nim);
@@ -766,6 +864,7 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
       terimaTelat: k?.terimaTelat ?? null,
       berkas: k?.berkas.length ?? 0,
       kirimanId: k?.id ?? null,
+      kecuali: kec.has(a.nim),
     };
   };
   const slot: SlotTp[] = kursi.map((k) => ({
@@ -797,7 +896,9 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
   const tanpa = kiriman
     .filter((k) => !dipakai.has(k.nim))
     .map((k) => satu({ nim: k.nim, nama: namaOf.get(k.nim) ?? k.nim }));
-  const semua = [...slot.flatMap((s) => s.kelompok.flatMap((g) => g.anggota)), ...tanpa];
+  const semua = [...slot.flatMap((s) => s.kelompok.flatMap((g) => g.anggota)), ...tanpa].filter(
+    (a) => !a.kecuali,
+  );
   return {
     slot,
     tanpaKelompok: tanpa,
@@ -808,7 +909,7 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
       perluNilaiku: slot
         .flatMap((s) => s.kelompok.filter((g) => g.milikku))
         .flatMap((g) => g.anggota)
-        .filter((a) => a.status === "masuk" || a.status === "telat").length,
+        .filter((a) => !a.kecuali && (a.status === "masuk" || a.status === "telat")).length,
     },
   };
 }

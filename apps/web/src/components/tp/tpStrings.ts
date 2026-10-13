@@ -345,7 +345,8 @@ const id = {
   semuaSudah: "Semua soal sudah dinilai",
   semuaKunci: "Tampilkan semua kunci",
   hanyaLihat: (k: string) => `Kelompok ini dipegang ${k}. Kamu hanya bisa melihat.`,
-  graderFoot: "Tersimpan otomatis. Totalnya masuk ke kolom TP di tabel nilai sesi modul ini.",
+  graderFoot:
+    "Tersimpan otomatis. Tekan lagi pilihan yang menyala untuk mengosongkannya. Totalnya masuk ke kolom TP di tabel nilai sesi modul ini.",
   sebelumnya: "Sebelumnya",
   simpanLanjut: "Simpan dan Lanjut",
   tersimpanNama: (n: string) => `Nilai ${n} tersimpan.`,
@@ -403,7 +404,7 @@ const id = {
   ditemukan: "Ditemukan",
   tidakDitemukan: "Tidak ditemukan",
   kelasLmsFoot:
-    "Buat keempat tugas sekali di awal semester, misalnya lewat Impor dari kelas lain di LMS. Setelah itu tidak perlu membuka LMS lagi.",
+    "Tekan TP 1 sampai TP 4 di atas untuk membuat, menyamakan tanggal, atau menghapus tugasnya di semua kelas sekaligus, tanpa membuka LMS.",
   jadwalAmbil: "Jadwal Ambil",
   jendelaBawaan: "Jendela bawaan",
   polaTeks: (a: string, ja: string, b: string, jb: string) => `${a} ${ja} sampai ${b} ${jb}`,
@@ -808,7 +809,7 @@ const en: TpT = {
   semuaKunci: "Show every key",
   hanyaLihat: (k) => `${k} holds this group. You can only look.`,
   graderFoot:
-    "Saved as you go. The total goes into the TP column of this module's session score table.",
+    "Saved as you go. Press a lit choice again to empty it. The total goes into the TP column of this module's session score table.",
   sebelumnya: "Previous",
   simpanLanjut: "Save and Next",
   tersimpanNama: (n) => `${n}'s scores saved.`,
@@ -862,7 +863,7 @@ const en: TpT = {
   ditemukan: "Found",
   tidakDitemukan: "Not found",
   kelasLmsFoot:
-    "Make the four assignments once at the start of the semester, for example with Import from another class in the LMS. After that nobody needs to open the LMS.",
+    "Press TP 1 to TP 4 above to make, match the dates of, or delete the assignment in every class at once, without opening the LMS.",
   jadwalAmbil: "Fetch Schedule",
   jendelaBawaan: "Default window",
   polaTeks: (a, ja, b, jb) => `${a} ${ja} to ${b} ${jb}`,
@@ -1206,7 +1207,8 @@ const zh: TpT = {
   semuaSudah: "所有题都已评分",
   semuaKunci: "显示全部参考答案",
   hanyaLihat: (k) => `这一组由 ${k} 负责。你只能查看。`,
-  graderFoot: "边评边自动保存。总分会写进本模块课程成绩表的 TP 一栏。",
+  graderFoot:
+    "边评边自动保存。再点一次已选中的分数即可清空。总分会写进本模块课程成绩表的 TP 一栏。",
   sebelumnya: "上一个",
   simpanLanjut: "保存并下一个",
   tersimpanNama: (n) => `${n} 的成绩已保存。`,
@@ -1259,7 +1261,7 @@ const zh: TpT = {
   ditemukan: "找到了",
   tidakDitemukan: "找不到",
   kelasLmsFoot:
-    "学期开始时建一次这四个作业就好，比如用 LMS 的从其他班级导入。之后就没人需要再打开 LMS。",
+    "点上面的 TP 1 到 TP 4，即可在所有班级一次性创建作业、同步日期或删除作业，无需打开 LMS。",
   jadwalAmbil: "取回时间表",
   jendelaBawaan: "默认提交时段",
   polaTeks: (a, ja, b, jb) => `${a} ${ja} 至 ${b} ${jb}`,

@@ -1271,6 +1271,127 @@
   background: var(--warn-soft);
   color: var(--warn);
 }
+/* Found, but its dates aren't the IRIS window's */
+.tpcheck[data-s="beda"] {
+  background: var(--ok-soft);
+  box-shadow: inset 0 0 0 2px var(--warn);
+  color: var(--ok);
+}
+button.tpcheck {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+button.tpcheck:focus-visible,
+.tpkel__th:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* A TP column's header opens its assignments */
+.tpkel__th {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 2px 6px;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tpkel__th:hover {
+    background: var(--sel-bg);
+  }
+}
+
+/* ------------------------------------- the TP assignments in the LMS */
+.tpkel__table td {
+  vertical-align: middle;
+}
+.tpkel__cell {
+  display: grid;
+  gap: 2px;
+  white-space: normal;
+}
+.tpkel__st {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 650;
+  gap: 6px;
+}
+.tpkel__st[data-s="sesuai"] {
+  color: var(--ok);
+}
+.tpkel__st[data-s="beda"],
+.tpkel__st[data-s="belum"] {
+  color: var(--warn);
+}
+.tpkel__st[data-s="gagal"] {
+  color: var(--danger);
+  white-space: normal;
+}
+.tpkel__st[data-s="jalan"] {
+  color: var(--text-faint);
+}
+.tpkel__aksi {
+  gap: 4px;
+  justify-content: flex-end;
+}
+.tpkel__tampil {
+  align-items: center;
+  gap: 12px;
+}
+
+/* ----------------------------------------------------- Peserta TP */
+.tppeserta__n {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 8px;
+}
+@media (max-width: 519px) {
+  .tppeserta__n {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.tppeserta__n dd {
+  font-size: 1.25rem;
+}
+.tppeserta__list {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 8px 0 0;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0;
+}
+.tppeserta__list li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: flex;
+  gap: 12px;
+  padding: 8px 2px;
+}
+.tppeserta__list li > .grow {
+  min-width: 0;
+}
+/* Sits in the narrow side column: the two fields, the button under them */
+.tppeserta__form {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  margin-top: 12px;
+}
+.tppeserta__form > .btn {
+  grid-column: 1 / -1;
+}
+@media (max-width: 519px) {
+  .tppeserta__form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .tplog {
   display: grid;
   gap: 2px;
