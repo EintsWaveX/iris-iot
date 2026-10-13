@@ -69,7 +69,7 @@
 .tphero__left {
   display: grid;
   gap: 8px;
-  justify-items: start;
+  justify-items: center;
   margin-bottom: 8px;
 }
 /* The countdown: each digit in its own tile, a unit under each group */
