@@ -45,6 +45,8 @@ const id = {
   perluKunciBody:
     "Token yang tersimpan hanya bisa membaca. Keluar dulu dari LMS (atau buka jendela InPrivate), lalu Sambungkan Ulang lewat Buka LMS. Tautan yang dibuat tepat setelah masuk membawa kunci yang dipakai IRIS untuk mengisi LMS.",
   tidakBoleh: "Hanya Pencipta, Admin, dan divisi ASO yang bisa mengubah tugas di LMS.",
+  satuSesi:
+    "LMS hanya mengizinkan satu sesi web per akun: mengubah tugas lewat IRIS mengeluarkan akun ini dari LMS di browser, dan masuk lagi di browser membuat IRIS perlu masuk ulang (paling cepat 6 menit sekali).",
   sambungKunci:
     "Agar IRIS juga bisa membuat tugas TP di LMS, keluar dulu dari LMS (atau pakai jendela InPrivate) sebelum menekan Buka LMS.",
   kelolaTersambung: "Bisa mengelola tugas di LMS",
@@ -101,6 +103,39 @@ const id = {
   kosong: "Tidak ada.",
   oleh: (k: string, t: string) => `oleh ${k} · ${t}`,
   pill: "Dikecualikan",
+
+  silangH: "Silang Data",
+  silangLede: "Siapa terdaftar di mana: IRIS, SeeLabs, dan kelas LMS (ADD termasuk).",
+  sIris: "Terdaftar di IRIS",
+  sSeelabs: "Terdaftar di SeeLabs",
+  sLms: "Mahasiswa di LMS",
+  sAsisten: "Praktikan yang juga Asisten",
+  sSeelabsPada: (t: string, klp: number) => `Tarikan KLP ${t} · ${klp} KLP`,
+  sSeelabsBelum: "Belum ada tarikan KLP dari SeeLabs (Sumber SeeLabs › Tarik Kelompok).",
+  perKelasH: "Per Kelas LMS",
+  kMahasiswa: "Mahasiswa",
+  kTerdaftar: "Terdaftar",
+  kLuar: "Hanya LMS",
+  total: "Jumlah",
+  asistenH: "Praktikan yang Juga Asisten",
+  asistenHint:
+    "Teacher di semua kelas LMS dan mahasiswa di kelasnya sendiri. Dihitung sekali, di kelasnya.",
+  kKelasLms: "Kelas LMS",
+  kKelasIris: "Kelas IRIS",
+  kelasIris: { reguler: "Reguler", internasional: "Internasional" } as Record<string, string>,
+  tanpaKelasLms: "belum di kelas LMS",
+  bukanIrisH: (n: number) => `Di SeeLabs, tidak di IRIS (${n})`,
+  tanpaSeelabsH: (n: number) => `Di IRIS, tidak di SeeLabs (${n})`,
+
+  riwayatH: "Riwayat Sinkron",
+  riwayatLede: (n: number, total: number) => `${n} terakhir dari ${total}.`,
+  lihatSemua: "Lihat Semua",
+  riwayatJudul: "Semua Riwayat Sinkron",
+  riwayatSemuaLede: (total: number) => `${total} sinkron, yang terbaru di atas.`,
+  muatLagi: "Muat yang Lebih Lama",
+  memuat: "Memuat…",
+  hasilSemua: "Semua",
+  hasilGagalSaja: "Gagal saja",
 };
 
 export type LmsKelolaT = typeof id;
@@ -148,6 +183,8 @@ const en: LmsKelolaT = {
   perluKunciBody:
     "The stored token can only read. Sign out of the LMS first (or open an InPrivate window), then Reconnect through Open LMS. A link made right after a sign in carries the key IRIS uses to fill the LMS.",
   tidakBoleh: "Only the Pencipta, Admins and the ASO division can change assignments in the LMS.",
+  satuSesi:
+    "The LMS allows one web session per account: changing assignments through IRIS signs this account out of the LMS in the browser, and signing in again there makes IRIS sign in anew (at most once every 6 minutes).",
   sambungKunci:
     "For IRIS to make TP assignments in the LMS too, sign out of the LMS first (or use an InPrivate window) before pressing Open LMS.",
   kelolaTersambung: "Can manage assignments in the LMS",
@@ -203,6 +240,39 @@ const en: LmsKelolaT = {
   kosong: "None.",
   oleh: (k, t) => `by ${k} · ${t}`,
   pill: "Excluded",
+
+  silangH: "Cross-check",
+  silangLede: "Who is registered where: IRIS, SeeLabs and the LMS classes (ADD included).",
+  sIris: "Registered in IRIS",
+  sSeelabs: "Registered in SeeLabs",
+  sLms: "Students in the LMS",
+  sAsisten: "Praktikan who are also Asisten",
+  sSeelabsPada: (t, klp) => `KLP pull ${t} · ${klp} KLP`,
+  sSeelabsBelum: "No KLP pull from SeeLabs yet (SeeLabs Source › Pull Groups).",
+  perKelasH: "Per LMS Class",
+  kMahasiswa: "Students",
+  kTerdaftar: "Registered",
+  kLuar: "LMS only",
+  total: "Total",
+  asistenH: "Praktikan Who Are Also Asisten",
+  asistenHint:
+    "Teachers in every LMS class and students in their own. Counted once, in their class.",
+  kKelasLms: "LMS class",
+  kKelasIris: "IRIS class",
+  kelasIris: { reguler: "Regular", internasional: "International" },
+  tanpaKelasLms: "in no LMS class yet",
+  bukanIrisH: (n) => `In SeeLabs, not in IRIS (${n})`,
+  tanpaSeelabsH: (n) => `In IRIS, not in SeeLabs (${n})`,
+
+  riwayatH: "Sync History",
+  riwayatLede: (n, total) => `The last ${n} of ${total}.`,
+  lihatSemua: "See All",
+  riwayatJudul: "Whole Sync History",
+  riwayatSemuaLede: (total) => `${total} syncs, newest first.`,
+  muatLagi: "Load Older",
+  memuat: "Loading…",
+  hasilSemua: "All",
+  hasilGagalSaja: "Failed only",
 };
 
 const zh: LmsKelolaT = {
@@ -246,6 +316,8 @@ const zh: LmsKelolaT = {
   perluKunciBody:
     "已存的令牌只能读取。请先退出 LMS（或打开 InPrivate 窗口），再通过「打开 LMS」重新连接。登录后立刻生成的链接带有 IRIS 填写 LMS 所需的密钥。",
   tidakBoleh: "只有创建者、管理员和 ASO 部门可以修改 LMS 中的作业。",
+  satuSesi:
+    "LMS 每个账号只允许一个网页会话：通过 IRIS 修改作业会让该账号在浏览器中的 LMS 登出；在浏览器重新登录后，IRIS 需要重新登录（最快每 6 分钟一次）。",
   sambungKunci:
     "如果也要让 IRIS 在 LMS 中创建预习作业，请在点「打开 LMS」之前先退出 LMS（或使用 InPrivate 窗口）。",
   kelolaTersambung: "可以管理 LMS 中的作业",
@@ -298,6 +370,38 @@ const zh: LmsKelolaT = {
   kosong: "没有。",
   oleh: (k, t) => `${k} · ${t}`,
   pill: "已排除",
+
+  silangH: "交叉核对",
+  silangLede: "谁在哪里登记：IRIS、SeeLabs 和 LMS 班级（包括 ADD）。",
+  sIris: "IRIS 已登记",
+  sSeelabs: "SeeLabs 已登记",
+  sLms: "LMS 中的学生",
+  sAsisten: "同时是助教的学生",
+  sSeelabsPada: (t, klp) => `KLP 拉取 ${t} · ${klp} 个 KLP`,
+  sSeelabsBelum: "还没有从 SeeLabs 拉取 KLP（SeeLabs 来源 › 拉取小组）。",
+  perKelasH: "按 LMS 班级",
+  kMahasiswa: "学生",
+  kTerdaftar: "已登记",
+  kLuar: "只在 LMS",
+  total: "合计",
+  asistenH: "同时是助教的学生",
+  asistenHint: "在所有 LMS 班级里是 Teacher，在自己的班级里是学生。只在自己的班级计一次。",
+  kKelasLms: "LMS 班级",
+  kKelasIris: "IRIS 班级",
+  kelasIris: { reguler: "普通班", internasional: "国际班" },
+  tanpaKelasLms: "还不在 LMS 班级中",
+  bukanIrisH: (n) => `在 SeeLabs、不在 IRIS（${n}）`,
+  tanpaSeelabsH: (n) => `在 IRIS、不在 SeeLabs（${n}）`,
+
+  riwayatH: "同步记录",
+  riwayatLede: (n, total) => `共 ${total} 条中的最近 ${n} 条。`,
+  lihatSemua: "查看全部",
+  riwayatJudul: "全部同步记录",
+  riwayatSemuaLede: (total) => `共 ${total} 次同步，最新的在上面。`,
+  muatLagi: "加载更早的",
+  memuat: "加载中…",
+  hasilSemua: "全部",
+  hasilGagalSaja: "只看失败",
 };
 
 export const LK: Record<"id" | "en" | "zh", LmsKelolaT> = { id, en, zh };

@@ -210,6 +210,17 @@ export function KelolaDialog({
     </button>
   );
 
+  const hapusSemua = (
+    <button
+      type="button"
+      className="btn btn--danger-soft"
+      disabled={!bisa || sibuk}
+      onClick={() => setHapus(ada)}
+    >
+      <TrashIcon size={18} aria-hidden="true" />
+      {t.hapusSemua}
+    </button>
+  );
   const tutup = (
     <button
       type="button"
@@ -232,25 +243,11 @@ export function KelolaDialog({
         description={t.kelolaLede}
         size="lg"
         lang={lang}
-        foot={belum.length && ada.length ? "12" : "row"}
-        alt={
-          ada.length ? (
-            <button
-              type="button"
-              className="btn btn--danger-soft"
-              disabled={!bisa || sibuk}
-              onClick={() => setHapus(ada)}
-            >
-              <TrashIcon size={18} aria-hidden="true" />
-              {t.hapusSemua}
-            </button>
-          ) : undefined
-        }
+        foot={belum.length && ada.length ? "22" : ada.length ? "12" : "row"}
         actions={
           belum.length > 0 && ada.length > 0 ? (
-            // "12": the main action first, across the top
+            // "22": Samakan | Buat, then Hapus | Tutup
             <>
-              {utama}
               <button
                 type="button"
                 className="btn"
@@ -260,6 +257,15 @@ export function KelolaDialog({
                 <ArrowsClockwiseIcon size={18} aria-hidden="true" />
                 {t.samakan(ada.length)}
               </button>
+              {utama}
+              {hapusSemua}
+              {tutup}
+            </>
+          ) : ada.length > 0 ? (
+            // "12": Samakan across the top, then Hapus | Tutup
+            <>
+              {utama}
+              {hapusSemua}
               {tutup}
             </>
           ) : (
@@ -284,7 +290,9 @@ export function KelolaDialog({
                 <span>{t.perluKunciBody}</span>
               </span>
             </div>
-          ) : null}
+          ) : (
+            <p className="hint">{t.satuSesi}</p>
+          )}
           <dl className="tpdl tpdl--one">
             <div>
               <dt>{t.jendela}</dt>

@@ -17,7 +17,7 @@
  * variants and the final set's pick; with no row a module uses the default
  * bank in tp-bawaan.ts.
  */
-import { and, asc, desc, eq, gte, inArray, ne, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, ne, notInArray, sql } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
@@ -1000,8 +1000,19 @@ export async function tpDariPenilaian(db: Db, sesiId: number): Promise<string[]>
 
 /* ================================================ the latest sync history */
 
-export async function riwayatSinkron(db: Db, n = 20) {
-  return db.select().from(tpSinkronLog).orderBy(desc(tpSinkronLog.mulai)).limit(n);
+/** The newest `n` syncs, or the `n` before the row `sebelum` (a page further back). */
+export async function riwayatSinkron(db: Db, n = 20, sebelum?: number) {
+  return db
+    .select()
+    .from(tpSinkronLog)
+    .where(sebelum ? lt(tpSinkronLog.id, sebelum) : undefined)
+    .orderBy(desc(tpSinkronLog.id))
+    .limit(n);
+}
+
+export async function jumlahSinkron(db: Db): Promise<number> {
+  const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(tpSinkronLog);
+  return r?.n ?? 0;
 }
 
 /** For the badge: kiriman rows touched in the last two weeks exist. */

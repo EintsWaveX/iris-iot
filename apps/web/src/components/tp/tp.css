@@ -1414,6 +1414,101 @@ button.tpcheck:focus-visible,
 .tplog li[data-tone="danger"] b {
   color: var(--danger);
 }
+/* The page's last 10, across the whole width: two columns, read row by row */
+@media (min-width: 900px) {
+  .tplog--lebar {
+    column-gap: 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.tpriwayat__head {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+/* ----------------------------------------------------- Silang Data */
+.tpsilang__tiles {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0 0 12px;
+}
+.tpsilang__tile {
+  background: var(--bg-sunken);
+  border-radius: 10px;
+  display: grid;
+  gap: 0;
+  padding: 8px 10px;
+}
+.tpsilang__tile dt {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.tpsilang__tile dd {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+.tpsilang__tile .hint {
+  font-size: 0.76rem;
+}
+.tpsilang__isi {
+  display: grid;
+  gap: 10px;
+}
+.tpsilang__h {
+  font-size: 0.95rem;
+  margin: 6px 0 0;
+}
+.tpsilang__table td,
+.tpsilang__table th {
+  padding: 6px 8px;
+}
+.tpsilang__table tfoot td {
+  border-bottom: 0;
+  font-weight: 700;
+}
+.tpsilang__table td[data-ada] {
+  color: var(--warn);
+  font-weight: 700;
+}
+.tpsilang__list {
+  max-height: none;
+}
+.tpsilang__kelas {
+  align-items: end;
+  gap: 0;
+  text-align: right;
+}
+
+/* Desktop: both columns end together. The left column's last card and
+   Silang Data take the room left; Silang Data scrolls inside instead of
+   making the row taller (contain: size gives it no height of its own). */
+@media (min-width: 1100px) {
+  .tplms__grid {
+    align-items: stretch;
+  }
+  .tplms__grid > .stack > .panel:last-child {
+    flex: 1 1 auto;
+  }
+  .tpsilang {
+    display: flex;
+    flex-direction: column;
+    min-height: 320px;
+  }
+  .tpsilang__isi {
+    align-content: start;
+    contain: size;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+}
 .tpdone {
   background: var(--ok-soft);
   border-radius: 50%;

@@ -39,6 +39,7 @@
  *      (the three: the jadwal or kode right; versi is the one loaded, and a
  *      newer save refuses it with the latest)
  * GET  /api/tp/lms-info                           Sumber LMS (Pencipta and Admin)
+ * GET  /api/tp/riwayat[?sebelum=id]               the whole sync history, 100 a page
  * POST /api/tp/lms { aksi: sambung, tempel } | { aksi: uji } | { aksi: putus }
  * POST /api/tp/lms-tugas { modul, kursus, langkah: buat|ubah|hapus, tampil?, teks? }
  *      one class course's "TP Modul N" made, set to the window or deleted
@@ -60,6 +61,7 @@ import { denganSiaran } from "../_lib/siaran.js";
 import { getDb } from "../../src/lib/db.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { boleh, bolehKelolaLms, hakPenuh, type Orang } from "../../src/lib/hak.js";
+import { KUNCI_ROBOT } from "../../src/lib/seelabs-robot.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import {
   asisten,
@@ -127,6 +129,7 @@ import {
   periksaPetunjuk,
   periksaPilih,
   periksaVarian,
+  jumlahSinkron,
   riwayatSinkron,
   sinkronBilaPerlu,
   simpanPaket,
@@ -944,6 +947,114 @@ async function handleJendela(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   res.status(200).json({ ok: true });
 }
 
+/** A sync row for the page: who ran it by Asisten code, not NIM. */
+function barisRiwayat(
+  r: Awaited<ReturnType<typeof riwayatSinkron>>[number],
+  kodeOf: Map<string, string>,
+) {
+  const nim = r.oleh.startsWith("manual:") ? r.oleh.slice(7) : null;
+  return {
+    id: r.id,
+    mulai: r.mulai.toISOString(),
+    oleh: nim ? `manual:${kodeOf.get(nim) ?? nim}` : r.oleh,
+    hasil: r.hasil,
+    baru: r.baru,
+    diperbarui: r.diperbarui,
+    durasiMs: r.durasiMs,
+    galat: r.galat,
+  };
+}
+
+async function petaKode(db: Db): Promise<Map<string, string>> {
+  const rows = await db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten);
+  return new Map(rows.map((a) => [a.nim, a.kode.toUpperCase()]));
+}
+
+/** The whole sync history, newest first, 100 a page (?sebelum= the last id seen). */
+async function handleRiwayat(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const orang = await muatOrang(s.nim);
+  if (!orang || !(hakPenuh(orang) || bolehKelolaLms(orang))) return tolak(res, "tidak_berhak", 403);
+  const sebelum = Number(req.query.sebelum);
+  const db = getDb();
+  const [rows, total, kodeOf] = await Promise.all([
+    riwayatSinkron(db, 101, Number.isInteger(sebelum) && sebelum > 0 ? sebelum : undefined),
+    jumlahSinkron(db),
+    petaKode(db),
+  ]);
+  res.status(200).json({
+    ok: true,
+    total,
+    lagi: rows.length > 100,
+    log: rows.slice(0, 100).map((r) => barisRiwayat(r, kodeOf)),
+  });
+}
+
+/**
+ * Silang Data on Sumber LMS: who is registered where. SeeLabs from the
+ * robot's last KLP pull, the LMS's students per class (ADD too), and the
+ * registered Praktikan who are Asisten as well (Teachers in every class,
+ * students in their own; five of them on 2026-10-13).
+ */
+async function silangData(db: Db, set: SetTp, kodeOf: Map<string, string>) {
+  const terdaftar = await db
+    .select({ nim: praktikan.nim, nama: praktikan.nama, kelas: praktikan.kelas })
+    .from(praktikan)
+    .where(eq(praktikan.semester, set.semester));
+  const iris = new Set(terdaftar.map((p) => p.nim));
+  const [klp] = await db
+    .select({ nilai: pengaturan.nilai })
+    .from(pengaturan)
+    .where(eq(pengaturan.kunci, KUNCI_ROBOT.kelompok))
+    .limit(1);
+  const tarik = klp?.nilai as
+    | { pada: string; kelompok: Record<string, { anggota?: { nim: string; nama: string }[] }[]> }
+    | undefined;
+  let seelabs = null;
+  if (tarik?.kelompok) {
+    const orang = new Map<string, string>();
+    for (const daftar of Object.values(tarik.kelompok))
+      for (const g of daftar) for (const a of g.anggota ?? []) orang.set(a.nim, a.nama);
+    seelabs = {
+      pada: tarik.pada,
+      total: orang.size,
+      klp: Object.values(tarik.kelompok).reduce((n, d) => n + d.length, 0),
+      bukanIris: [...orang].filter(([nim]) => !iris.has(nim)).map(([nim, nama]) => ({ nim, nama })),
+      tanpaSeelabs: terdaftar
+        .filter((p) => !orang.has(p.nim))
+        .map((p) => ({ nim: p.nim, nama: p.nama, kelas: p.kelas })),
+    };
+  }
+  const kursus = set.kelas?.kursus ?? [];
+  const luar = set.kelas?.luar ?? [];
+  const perKelas = kursus.map((k) => {
+    const lain = luar.filter((x) => x.kursus === k.label).length;
+    return {
+      label: k.label,
+      iris: k.nim?.length ?? k.peserta,
+      luar: lain,
+      lms: (k.nim?.length ?? k.peserta) + lain,
+    };
+  });
+  const asistenNim = new Set(kodeOf.keys());
+  const juga = terdaftar
+    .filter((p) => asistenNim.has(p.nim))
+    .map((p) => ({
+      nim: p.nim,
+      nama: p.nama,
+      kode: kodeOf.get(p.nim)!,
+      kelas: p.kelas,
+      kursus: kursus.filter((k) => k.nim?.includes(p.nim)).map((k) => k.label),
+    }));
+  return {
+    iris: terdaftar.length,
+    lms: perKelas.reduce((n, k) => n + k.lms, 0),
+    adaData: kursus.some((k) => k.nim),
+    perKelas,
+    seelabs,
+    asisten: juga,
+  };
+}
+
 async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const orang = await muatOrang(s.nim);
   if (!orang || !hakPenuh(orang)) return tolak(res, "tidak_berhak", 403);
@@ -956,19 +1067,14 @@ async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
         .where(eq(asisten.nim, set.token.oleh))
         .limit(1)
     : [];
-  const log = await riwayatSinkron(db, 15);
+  const [log, logTotal] = await Promise.all([riwayatSinkron(db, 10), jumlahSinkron(db)]);
   // Registered Praktikan in no class course, and the exclusions with names.
   const terdaftar = await db
     .select({ nim: praktikan.nim, nama: praktikan.nama, kelas: praktikan.kelas })
     .from(praktikan)
     .where(eq(praktikan.semester, set.semester));
   const namaOf = new Map(terdaftar.map((p) => [p.nim, p]));
-  const kodeOf = new Map(
-    (await db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten)).map((a) => [
-      a.nim,
-      a.kode.toUpperCase(),
-    ]),
-  );
+  const kodeOf = await petaKode(db);
   const diLms = new Set((set.kelas?.kursus ?? []).flatMap((k) => k.nim ?? []));
   const adaDaftar = (set.kelas?.kursus ?? []).some((k) => k.nim);
   const [web] = await db
@@ -1011,16 +1117,9 @@ async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
     kelasPada: set.kelas?.pada ?? null,
     pola: set.jendela.pola ?? POLA_BAWAAN,
     sinkron: infoSinkron(set),
-    log: log.map((r) => ({
-      id: r.id,
-      mulai: r.mulai.toISOString(),
-      oleh: r.oleh,
-      hasil: r.hasil,
-      baru: r.baru,
-      diperbarui: r.diperbarui,
-      durasiMs: r.durasiMs,
-      galat: r.galat,
-    })),
+    log: log.map((r) => barisRiwayat(r, kodeOf)),
+    logTotal,
+    silang: await silangData(db, set, kodeOf),
     alamatMasuk: alamatMasuk(),
     lmsUrl: LMS_URL,
   });
@@ -1249,6 +1348,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "praktikum") return handlePraktikum(req, res, s);
     if (aksi === "hitung") return handleHitung(req, res, s);
     if (aksi === "lms-info") return handleLmsInfo(req, res, s);
+    if (aksi === "riwayat") return handleRiwayat(req, res, s);
     return tolak(res, "aksi_tidak_dikenal", 404);
   }
   if (!requireMethod(req, res, "POST")) return;

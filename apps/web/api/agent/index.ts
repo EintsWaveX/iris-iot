@@ -57,6 +57,7 @@ import { ambilBundel, bundelUntukPasang, terbitkan } from "../_lib/bundel.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
+import { waitUntil } from "@vercel/functions";
 import { sinkronBilaPerlu } from "../_lib/tp.js";
 import { adaTugasRobot, ambilTugas, harianBilaPerlu, terimaHasil } from "../_lib/seelabs-robot.js";
 import { kirimRelay } from "../_lib/aliran.js";
@@ -323,14 +324,21 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       ...(jadwal ? { jadwal } : {}),
       ...(tugasSeelabs.length ? { seelabs: tugasSeelabs } : {}),
     });
-    // The topics this beat changed, as before (most beats change none).
-    await Promise.all([siarkan([...berubah]), terbitAwal]);
-    // Phase 13: the Pi's beat is the TP sync's clock while a window is open
-    // (every 5 minutes at most) and once after it closes. The Pi never sees
-    // the LMS token; this runs here, after the beat is answered.
-    await sinkronBilaPerlu(db, "pi", 5 * 60_000);
-    // Phase 14: the robot's daily KLP pull and Input Jaga check.
-    await harianBilaPerlu(db);
+    // After the answer, kept alive with waitUntil: awaited after the response
+    // alone, the instance froze and the TP sync's LMS calls only timed out at
+    // the next beat (2026-10-13: every Pi sync from 19:27 "failed" after 60 s).
+    waitUntil(
+      (async () => {
+        // The topics this beat changed, as before (most beats change none).
+        await Promise.all([siarkan([...berubah]), terbitAwal]);
+        // Phase 13: the Pi's beat is the TP sync's clock while a window is
+        // open (every 5 minutes at most) and once after it closes. The Pi
+        // never sees the LMS token; this runs here, after the beat is answered.
+        await sinkronBilaPerlu(db, "pi", 5 * 60_000);
+        // Phase 14: the robot's daily KLP pull and Input Jaga check.
+        await harianBilaPerlu(db);
+      })().catch((err) => console.error("[api/agent denyut] after the beat:", err)),
+    );
   } catch (err) {
     console.error("[api/agent denyut] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });

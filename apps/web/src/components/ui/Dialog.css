@@ -253,6 +253,17 @@
   min-height: 48px;
 }
 
+/* Four: two equal rows of two, the main action top right. */
+.dialog__actions--22 {
+  align-items: stretch;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialog__actions--22 > .btn {
+  width: 100%;
+}
+
 @media (max-width: 519px) {
   .dialog__actions {
     align-items: stretch;
@@ -263,9 +274,14 @@
     width: 100%;
   }
 
-  .dialog__actions--12 {
+  .dialog__actions--12,
+  .dialog__actions--22 {
     display: flex;
     flex-direction: column;
+  }
+
+  .dialog__actions--22 > .btn:nth-child(2) {
+    order: -1;
   }
 
   .dialog__alt {

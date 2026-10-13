@@ -32,7 +32,7 @@ import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import type { PolaJendela } from "../../lib/tp";
 import { TPS } from "../tp/tpStrings";
-import { jam, waktuPanjang } from "../tp/shared";
+import { waktuPanjang } from "../tp/shared";
 import type { InfoSinkron } from "./types";
 import {
   KelolaDialog,
@@ -43,6 +43,7 @@ import {
   type PesertaInfo,
 } from "./LmsKelola";
 import { LK } from "./lmsKelolaStrings";
+import { RiwayatPanel, SilangPanel, type SilangInfo } from "./LmsRingkas";
 
 type KursusInfo = KursusKelola;
 interface LmsInfo {
@@ -72,6 +73,8 @@ interface LmsInfo {
   lmsUrl: string;
   kelola: KelolaInfo;
   peserta: PesertaInfo;
+  logTotal: number;
+  silang: SilangInfo;
 }
 
 export default function LmsTab({
@@ -227,168 +230,138 @@ export default function LmsTab({
     </section>
   );
 
-  const oleh = (o: string) =>
-    o === "pi"
-      ? t.olehPi
-      : o === "halaman"
-        ? t.olehHalaman
-        : o.startsWith("manual:")
-          ? t.olehManual(o.slice(7))
-          : o;
-
   return (
-    <div className="tplms__grid">
-      <div className="stack stack--lg">
-        {con}
-        <section className="panel">
-          <div className="panel__head">
-            <h2 className="panel__title">{t.kelasLms}</h2>
-            <span className="hint">{t.kelasLmsHint}</span>
-          </div>
-          {d.kursus.length ? (
-            <div className="tpscroll">
-              <table className="tptable">
-                <thead>
-                  <tr>
-                    <th>{t.kelas}</th>
-                    <th className="num">{t.praktikan}</th>
-                    {[1, 2, 3, 4].map((m) => (
-                      <th key={m} className="num">
-                        <button
-                          type="button"
-                          className="tpkel__th"
-                          title={tk.kelolaBuka(m)}
-                          aria-label={tk.kelolaBuka(m)}
-                          onClick={() => setKelola(m)}
-                        >
-                          TP {m}
-                        </button>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.kursus.map((k) => (
-                    <tr key={k.id}>
-                      <td>
-                        <a
-                          href={`${d.lmsUrl}/course/view.php?id=${k.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={k.nama}
-                        >
-                          <b className="mono">{k.label}</b>
-                        </a>
-                      </td>
-                      <td className="num mono">{k.peserta}</td>
-                      {[1, 2, 3, 4].map((m) => {
-                        const ada = k.tugas[String(m)];
-                        const st = keadaanTugas(ada, d.kelola.jendela[String(m)] ?? null);
-                        // Found, but its dates aren't the IRIS window's: a softer mark.
-                        const label = !ada
-                          ? t.tidakDitemukan
-                          : st === "beda" && d.kelola.jendela[String(m)]
-                            ? `${t.ditemukan}: ${ada.nama} · ${tk.st.beda}`
-                            : `${t.ditemukan}: ${ada.nama}`;
-                        return (
-                          <td key={m} className="num">
-                            <button
-                              type="button"
-                              className="tpcheck"
-                              data-s={
-                                !ada
-                                  ? "miss"
-                                  : st === "beda" && d.kelola.jendela[String(m)]
-                                    ? "beda"
-                                    : "ok"
-                              }
-                              title={label}
-                              aria-label={`${k.label}, TP ${m}: ${label}`}
-                              onClick={() => setKelola(m)}
-                            >
-                              {ada ? (
-                                <CheckIcon size={14} aria-hidden="true" />
-                              ) : (
-                                <WarningIcon size={14} aria-hidden="true" />
-                              )}
-                            </button>
-                          </td>
-                        );
-                      })}
+    <div className="stack stack--lg">
+      <div className="tplms__grid">
+        <div className="stack stack--lg">
+          {con}
+          <section className="panel">
+            <div className="panel__head">
+              <h2 className="panel__title">{t.kelasLms}</h2>
+              <span className="hint">{t.kelasLmsHint}</span>
+            </div>
+            {d.kursus.length ? (
+              <div className="tpscroll">
+                <table className="tptable">
+                  <thead>
+                    <tr>
+                      <th>{t.kelas}</th>
+                      <th className="num">{t.praktikan}</th>
+                      {[1, 2, 3, 4].map((m) => (
+                        <th key={m} className="num">
+                          <button
+                            type="button"
+                            className="tpkel__th"
+                            title={tk.kelolaBuka(m)}
+                            aria-label={tk.kelolaBuka(m)}
+                            onClick={() => setKelola(m)}
+                          >
+                            TP {m}
+                          </button>
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {d.kursus.map((k) => (
+                      <tr key={k.id}>
+                        <td>
+                          <a
+                            href={`${d.lmsUrl}/course/view.php?id=${k.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={k.nama}
+                          >
+                            <b className="mono">{k.label}</b>
+                          </a>
+                        </td>
+                        <td className="num mono">{k.peserta}</td>
+                        {[1, 2, 3, 4].map((m) => {
+                          const ada = k.tugas[String(m)];
+                          const st = keadaanTugas(ada, d.kelola.jendela[String(m)] ?? null);
+                          // Found, but its dates aren't the IRIS window's: a softer mark.
+                          const label = !ada
+                            ? t.tidakDitemukan
+                            : st === "beda" && d.kelola.jendela[String(m)]
+                              ? `${t.ditemukan}: ${ada.nama} · ${tk.st.beda}`
+                              : `${t.ditemukan}: ${ada.nama}`;
+                          return (
+                            <td key={m} className="num">
+                              <button
+                                type="button"
+                                className="tpcheck"
+                                data-s={
+                                  !ada
+                                    ? "miss"
+                                    : st === "beda" && d.kelola.jendela[String(m)]
+                                      ? "beda"
+                                      : "ok"
+                                }
+                                title={label}
+                                aria-label={`${k.label}, TP ${m}: ${label}`}
+                                onClick={() => setKelola(m)}
+                              >
+                                {ada ? (
+                                  <CheckIcon size={14} aria-hidden="true" />
+                                ) : (
+                                  <WarningIcon size={14} aria-hidden="true" />
+                                )}
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="hint">{t.belumAdaKelas}</p>
+            )}
+            <p className="hint">{t.kelasLmsFoot}</p>
+          </section>
+        </div>
+        <div className="stack stack--lg tplms__kanan">
+          <PesertaPanel
+            lang={lang}
+            peserta={d.peserta}
+            boleh={d.kelola.boleh}
+            onDone={poll.refresh}
+          />
+          <section className="panel">
+            <h2 className="panel__title">{t.jadwalAmbil}</h2>
+            <dl className="tpdl tpdl--one">
+              <div>
+                <dt>{t.jendelaBawaan}</dt>
+                <dd>
+                  {t.polaTeks(
+                    t.hari[d.pola.hariBuka],
+                    d.pola.jamBuka,
+                    t.hari[d.pola.hariTutup],
+                    d.pola.jamTutup,
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>{t.selamaJendela}</dt>
+                <dd>{t.selamaJendelaIsi}</dd>
+              </div>
+              <div>
+                <dt>{t.sapuanAkhir}</dt>
+                <dd>{t.sapuanAkhirIsi}</dd>
+              </div>
+            </dl>
+            <div className="panel__actions">
+              <button type="button" className="btn" onClick={() => setBawaan(true)}>
+                <PencilSimpleIcon size={18} aria-hidden="true" />
+                {t.ubahBawaan}
+              </button>
             </div>
-          ) : (
-            <p className="hint">{t.belumAdaKelas}</p>
-          )}
-          <p className="hint">{t.kelasLmsFoot}</p>
-        </section>
+          </section>
+          <SilangPanel lang={lang} silang={d.silang} />
+        </div>
       </div>
-      <div className="stack stack--lg">
-        <PesertaPanel
-          lang={lang}
-          peserta={d.peserta}
-          boleh={d.kelola.boleh}
-          onDone={poll.refresh}
-        />
-        <section className="panel">
-          <h2 className="panel__title">{t.jadwalAmbil}</h2>
-          <dl className="tpdl tpdl--one">
-            <div>
-              <dt>{t.jendelaBawaan}</dt>
-              <dd>
-                {t.polaTeks(
-                  t.hari[d.pola.hariBuka],
-                  d.pola.jamBuka,
-                  t.hari[d.pola.hariTutup],
-                  d.pola.jamTutup,
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>{t.selamaJendela}</dt>
-              <dd>{t.selamaJendelaIsi}</dd>
-            </div>
-            <div>
-              <dt>{t.sapuanAkhir}</dt>
-              <dd>{t.sapuanAkhirIsi}</dd>
-            </div>
-          </dl>
-          <div className="panel__actions">
-            <button type="button" className="btn" onClick={() => setBawaan(true)}>
-              <PencilSimpleIcon size={18} aria-hidden="true" />
-              {t.ubahBawaan}
-            </button>
-          </div>
-        </section>
-        <section className="panel">
-          <h2 className="panel__title">{t.riwayat}</h2>
-          {d.log.length ? (
-            <ul className="tplog">
-              {d.log.map((r) => (
-                <li key={r.id} data-tone={r.hasil === "gagal" ? "danger" : "ok"}>
-                  <span className="mono">{jam(r.mulai)}</span>
-                  <span className="grow stack" style={{ gap: 0 }}>
-                    <b>
-                      {r.hasil === "gagal"
-                        ? t.hasilGagal(r.galat ?? "")
-                        : t.hasilBerkas(r.baru, r.diperbarui)}
-                    </b>
-                    <span className="hint">
-                      {oleh(r.oleh)} · {(r.durasiMs / 1000).toFixed(1)} s ·{" "}
-                      {waktuPanjang(r.mulai, lang).split(" · ")[0]}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="hint">{t.riwayatKosong}</p>
-          )}
-        </section>
-      </div>
+      <RiwayatPanel lang={lang} log={d.log} total={d.logTotal} />
       <SambungDialog
         open={sambung}
         onOpenChange={setSambung}

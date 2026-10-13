@@ -19,8 +19,9 @@
  * sit right, Cancel then the main action. An alternative action goes in
  * `alt`, on the left. `foot="12"` is the three-button form: the main action
  * across the top row, the other two sharing the row below; pass the main
- * action first. Under 520px wide the buttons stack full width with the
- * main action on top.
+ * action first. `foot="22"` is four equal buttons in two rows: pass them
+ * row by row, the main action second (top right). Under 520px wide the
+ * buttons stack full width with the main action on top.
  *
  * `sheet` renders a bottom sheet (the phone Akun menu and login dialog).
  *
@@ -64,8 +65,9 @@ interface Props {
   actions?: ReactNode;
   /** An alternative action, on the left of the footer. */
   alt?: ReactNode;
-  /** "12": three buttons, the main one (first) across the top. */
-  foot?: "row" | "12";
+  /** "12": three buttons, the main one (first) across the top. "22": four
+   *  equal buttons in two rows, the main one second. */
+  foot?: "row" | "12" | "22";
   /** Must be answered: Esc and outside clicks shake it instead. */
   blocking?: boolean;
   /** No way out but its own actions: no close button, Esc and outside
@@ -148,7 +150,9 @@ export default function Dialog({
           {children != null && <div className="dialog__body">{children}</div>}
           {(actions || alt) && (
             <footer
-              className={foot === "12" ? "dialog__actions dialog__actions--12" : "dialog__actions"}
+              className={
+                foot === "row" ? "dialog__actions" : `dialog__actions dialog__actions--${foot}`
+              }
             >
               {alt != null && <span className="dialog__alt">{alt}</span>}
               {actions}
