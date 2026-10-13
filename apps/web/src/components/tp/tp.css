@@ -1598,24 +1598,17 @@ button.tpcheck:focus-visible,
 }
 
 /* ------------------------------------------ Penilaian › Soal TP (bank) */
-.tpbank__grid {
+/* The second tab: the final set beside the PDF and the LMS checklist */
+.tpbank__hasil {
   align-items: start;
   display: grid;
   gap: 20px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  grid-template-columns: minmax(0, 1fr);
 }
-@media (min-width: 1440px) {
-  .tpbank__grid {
-    grid-template-columns: minmax(0, 1fr) 440px;
+@media (min-width: 1100px) {
+  .tpbank__hasil {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   }
-}
-/* the final set, PDF and LMS stay in view beside the long editor */
-.tpbank__side {
-  max-height: calc(100dvh - 96px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  position: sticky;
-  top: 84px;
 }
 .tpbank__ed {
   display: grid;

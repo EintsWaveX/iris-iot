@@ -11,10 +11,18 @@
  * number drawn at random from the variants (Acak Ulang draws again, a
  * number can be picked by hand), the formal PDF in any of the three
  * languages with a preview, and the LMS upload checklist, which reads each
- * class's TP assignment live to show whether its PDF is the latest. On a
- * phone the three are tabs.
+ * class's TP assignment live to show whether its PDF is the latest.
+ * Two tabs at every width (2026-10-14): Editor Soal, and the rest (Soal
+ * Akhir beside the PDF and the LMS checklist where there's room).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+/** Mandarin's name with the Beta badge, for a language switch. */
+const zhBeta = (nama: string): ReactNode => (
+  <>
+    {nama} <BetaBadge />
+  </>
+);
 import {
   ArrowCounterClockwiseIcon,
   ArrowSquareOutIcon,
@@ -32,6 +40,9 @@ import {
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import TabLine from "../ui/TabLine";
+import Fade from "../ui/Fade";
+import { useMinWidth } from "../../lib/hooks";
+import BetaBadge from "../ui/BetaBadge";
 import IconButton from "../ui/IconButton";
 import Confirm from "../ui/Confirm";
 import Dialog from "../ui/Dialog";
@@ -39,7 +50,6 @@ import Drawer from "../ui/Drawer";
 import PdfViewer from "../ui/PdfViewer";
 import { FileDrop, Switch } from "../ui/Controls";
 import { getJson, href, MODUL_NAMA, postJson } from "../../lib/app";
-import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import {
@@ -108,7 +118,6 @@ export default function SoalTab({
   const t = TPS[lang];
   const pk = usePaket(modul);
   const data = pk.data && pk.data.paket.modul === modul ? pk.data : null;
-  const lebar = useMinWidth(1100);
   const [draf, setDraf] = useState<Draf | null>(null);
   const [dasar, setDasar] = useState<{ modul: number; versi: number; json: string } | null>(null);
   const [vi, setVi] = useState(0);
@@ -116,7 +125,8 @@ export default function SoalTab({
     lang === "en" ? "en" : lang === "zh" ? "zh" : "id",
   );
   const [kunciOn, setKunciOn] = useState(true);
-  const [mtab, setMtab] = useState<"ubah" | "akhir" | "pdf">("ubah");
+  const sm = !useMinWidth(520);
+  const [mtab, setMtab] = useState<"ubah" | "hasil">("ubah");
   const [sibuk, setSibuk] = useState(false);
   const [tanya, setTanya] = useState<null | {
     judul: string;
@@ -415,7 +425,7 @@ export default function SoalTab({
           label={t.bahasa}
           tabs={BAHASA_TP.map((b) => ({
             v: b,
-            label: b === "zh" ? `${t.bahasaNama.zh} ${t.beta}` : t.bahasaNama[b],
+            label: b === "zh" ? zhBeta(t.bahasaNama.zh) : t.bahasaNama[b],
             n: kosongDi(b) || undefined,
           }))}
         />
@@ -482,6 +492,12 @@ export default function SoalTab({
       <Unggah lang={lang} modul={modul} data={data} />
     </div>
   );
+  const hasil = (
+    <div className="tpbank__hasil">
+      {akhir}
+      {pdf}
+    </div>
+  );
 
   return (
     <div className="stack stack--lg tpbank" style={modulStyle(modul)}>
@@ -491,43 +507,29 @@ export default function SoalTab({
         pilih={(m) => (m === modul ? undefined : kotor ? setPindah(m) : setModul(m))}
       />
       <p className="hint">{t.bankLede}</p>
-      {lebar ? (
-        <div className="tpbank__grid">
-          {editor}
-          <aside className="stack stack--lg tpbank__side">
-            {akhir}
-            {pdf}
-          </aside>
+      <TabLine
+        value={mtab}
+        onChange={setMtab}
+        label={t.bagian}
+        tabs={[
+          { v: "ubah", label: sm ? t.tabEditorSm : t.tabEditor },
+          { v: "hasil", label: sm ? t.tabHasilSm : t.tabHasil },
+        ]}
+      />
+      <Fade k={mtab}>{mtab === "ubah" ? editor : hasil}</Fade>
+      {kotor && boleh && mtab !== "ubah" && (
+        <div className="tpbank__float">
+          <span className="hint grow">{t.belumDisimpan}</span>
+          <button
+            type="button"
+            className="btn btn--primary btn--sm"
+            disabled={sibuk}
+            onClick={simpan}
+          >
+            <FloppyDiskIcon size={16} aria-hidden="true" />
+            {t.simpan}
+          </button>
         </div>
-      ) : (
-        <>
-          <TabLine
-            seg
-            value={mtab}
-            onChange={setMtab}
-            label={t.bagian}
-            tabs={[
-              { v: "ubah", label: t.tabUbah },
-              { v: "akhir", label: t.akhirH },
-              { v: "pdf", label: t.tabPdfLms },
-            ]}
-          />
-          {mtab === "ubah" ? editor : mtab === "akhir" ? akhir : pdf}
-          {kotor && boleh && mtab !== "ubah" && (
-            <div className="tpbank__float">
-              <span className="hint grow">{t.belumDisimpan}</span>
-              <button
-                type="button"
-                className="btn btn--primary btn--sm"
-                disabled={sibuk}
-                onClick={simpan}
-              >
-                <FloppyDiskIcon size={16} aria-hidden="true" />
-                {t.simpan}
-              </button>
-            </div>
-          )}
-        </>
       )}
 
       {tanya && (
@@ -992,7 +994,7 @@ function Ekspor({
         label={t.bahasaPdf}
         tabs={BAHASA_TP.map((x) => ({
           v: x,
-          label: x === "zh" ? `${t.bahasaNama.zh} ${t.beta}` : t.bahasaNama[x],
+          label: x === "zh" ? zhBeta(t.bahasaNama.zh) : t.bahasaNama[x],
         }))}
       />
       {kotor && <p className="hint">{t.pdfBerubah}</p>}

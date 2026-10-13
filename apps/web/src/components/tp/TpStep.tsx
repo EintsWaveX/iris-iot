@@ -38,6 +38,7 @@ import Drawer from "../ui/Drawer";
 import PdfViewer from "../ui/PdfViewer";
 import Pill from "../ui/Pill";
 import TabLine from "../ui/TabLine";
+import BetaBadge from "../ui/BetaBadge";
 import { ProgressRing, StateView } from "../ui/Display";
 import { DateField, Switch, TimeField } from "../ui/Controls";
 import { getJson, href, postJson, useMe } from "../../lib/app";
@@ -300,7 +301,9 @@ function SoalPraktikan({
           <DownloadSimpleIcon size={16} aria-hidden="true" />
           {pdfJalan ? t.membuatPdf : t.unduhSoal}
         </button>
-        {adaZh && <Switch on={zh} onChange={setZh} label={t.lihatZh} showLabel />}
+        {adaZh && (
+          <Switch on={zh} onChange={setZh} label={t.lihatZh} showLabel badge={<BetaBadge />} />
+        )}
       </div>
       <SoalList
         soal={tampil}
@@ -548,7 +551,18 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
                 tabs={[
                   { v: "id" as const, label: t.reguler },
                   { v: "en" as const, label: t.internasional },
-                  ...(lang === "zh" ? [{ v: "zh" as const, label: `中文 ${t.beta}` }] : []),
+                  ...(lang === "zh"
+                    ? [
+                        {
+                          v: "zh" as const,
+                          label: (
+                            <>
+                              中文 <BetaBadge />
+                            </>
+                          ),
+                        },
+                      ]
+                    : []),
                 ]}
               />
               <Switch on={kunciOn} onChange={setKunciOn} label={t.tampilkanKunci} showLabel />

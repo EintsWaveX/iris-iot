@@ -97,6 +97,7 @@ export function Switch({
   showLabel = false,
   disabled,
   busy,
+  badge,
 }: {
   on: boolean;
   onChange: (v: boolean) => void;
@@ -104,6 +105,8 @@ export function Switch({
   showLabel?: boolean;
   disabled?: boolean;
   busy?: boolean;
+  /** Shown after the visible label, e.g. <BetaBadge />. */
+  badge?: ReactNode;
 }) {
   return (
     <button
@@ -119,7 +122,12 @@ export function Switch({
       <span className="ctl-switch__track" aria-hidden="true">
         <span className="ctl-switch__thumb" />
       </span>
-      {showLabel && <span className="ctl-switch__label">{label}</span>}
+      {showLabel && (
+        <span className="ctl-switch__label">
+          {label}
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
