@@ -68,28 +68,31 @@ export function SilangPanel({ lang, silang }: { lang: Lang; silang: SilangInfo }
         {s ? t.sSeelabsPada(waktuPanjang(s.pada, lang).split(" · ")[0], s.klp) : t.sSeelabsBelum}
       </p>
       <div className="tpsilang__isi">
-        <h3 className="tpsilang__h">{t.asistenH}</h3>
-        <p className="hint">{t.asistenHint}</p>
-        {silang.asisten.length ? (
-          <ul className="tppeserta__list tpsilang__list">
-            {silang.asisten.map((a) => (
-              <li key={a.nim}>
-                <span className="grow stack" style={{ gap: 0 }}>
-                  <b>{a.nama}</b>
-                  <span className="hint mono">
-                    {a.nim} · {a.kode}
+        <Disclose head={`${t.asistenH} (${silang.asisten.length})`}>
+          <p className="hint">{t.asistenHint}</p>
+          {silang.asisten.length ? (
+            <ul className="tppeserta__list tpsilang__list">
+              {silang.asisten.map((a) => (
+                <li key={a.nim}>
+                  <span className="grow stack" style={{ gap: 0 }}>
+                    <b>{a.nama}</b>
+                    <span className="hint mono">
+                      {a.nim} · {a.kode}
+                    </span>
                   </span>
-                </span>
-                <span className="stack tpsilang__kelas">
-                  <b className="mono">{a.kursus.length ? a.kursus.join(", ") : t.tanpaKelasLms}</b>
-                  <span className="hint">{t.kelasIris[a.kelas] ?? a.kelas}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="hint">{t.kosong}</p>
-        )}
+                  <span className="stack tpsilang__kelas">
+                    <b className="mono">
+                      {a.kursus.length ? a.kursus.join(", ") : t.tanpaKelasLms}
+                    </b>
+                    <span className="hint">{t.kelasIris[a.kelas] ?? a.kelas}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="hint">{t.kosong}</p>
+          )}
+        </Disclose>
         {s && (
           <>
             <Disclose head={t.bukanIrisH(s.bukanIris.length)}>

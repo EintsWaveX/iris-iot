@@ -1458,10 +1458,7 @@ button.tpcheck:focus-visible,
   font-size: 0.74rem;
 }
 .tpsilang__isi {
-  border-top: 1px solid var(--hairline-faint);
   display: grid;
-  gap: 10px;
-  padding-top: 8px;
 }
 .tpsilang__h {
   font-size: 0.95rem;
@@ -1480,28 +1477,14 @@ button.tpcheck:focus-visible,
   text-align: right;
 }
 
-/* Desktop: both columns end together. The left column's last card and
-   Silang Data take the room left; Silang Data scrolls inside instead of
-   making the row taller (contain: size gives it no height of its own). */
+/* Desktop: both columns end together; the left column's last card and
+   Silang Data take the room left. */
 @media (min-width: 1100px) {
   .tplms__grid {
     align-items: stretch;
   }
   .tplms__grid > .stack > .panel:last-child {
     flex: 1 1 auto;
-  }
-  .tpsilang {
-    display: flex;
-    flex-direction: column;
-    min-height: 300px;
-  }
-  .tpsilang__isi {
-    align-content: start;
-    contain: size;
-    flex: 1 1 0;
-    min-height: 0;
-    overflow-y: auto;
-    padding-right: 4px;
   }
 }
 .tpdone {
