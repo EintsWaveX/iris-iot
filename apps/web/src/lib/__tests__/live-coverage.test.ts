@@ -28,7 +28,8 @@ const SEKALI: Record<string, string> = {
   "components/shell/AsistenCommands.tsx": "reads just before the write a command makes",
   "components/console/EndFlow.tsx": "the wrap up reads once per step it opens",
   "components/console/prep/StudentDialogs.tsx": "dialogs that only write",
-  "components/console/seelabs/KlpMatch.tsx": "the robot's KLP pull, read once when the button is pressed",
+  "components/console/seelabs/KlpMatch.tsx":
+    "the robot's KLP pull, read once when the button is pressed",
   "components/console/ringkasSesi.ts": "builds a summary file on demand",
   "components/dashboard/FeedbackForm.tsx": "the form only writes",
   "components/schedule/ImportView.tsx": "reads the file the person drops in",

@@ -263,7 +263,10 @@ function ConnectDialog({
               <span>{t.seal}</span>
               {kunci && (
                 <span className="hint">
-                  {t.sealFp(`#${pi}`)} <b><Sidik nilai={kunci.lokal} /></b>
+                  {t.sealFp(`#${pi}`)}{" "}
+                  <b>
+                    <Sidik nilai={kunci.lokal} />
+                  </b>
                 </span>
               )}
             </span>
