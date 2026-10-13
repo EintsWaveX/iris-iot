@@ -164,6 +164,7 @@ export const RB = dict({
     srcKeyApproveBody:
       "Setelah disetujui, browser Asisten mengunci kata sandi SeeLabs untuk kunci ini. Kalau kunci lama sudah dipakai, semua akun harus dihubungkan lagi.",
     srcKeyApproved: (oleh: string) => `Disetujui oleh ${oleh}`,
+    srcKeyApprovedNone: "Disetujui",
     srcReach: "Jangkauan",
     reachOk: (ms: number) => `Terjangkau, ${ms} ms`,
     reachNo: "Tidak terjangkau",
@@ -352,6 +353,7 @@ export const RB = dict({
     srcKeyApproveBody:
       "Once approved, Asisten browsers lock SeeLabs passwords to this key. If an older key was in use, every account has to connect again.",
     srcKeyApproved: (oleh: string) => `Approved by ${oleh}`,
+    srcKeyApprovedNone: "Approved",
     srcReach: "Reach",
     reachOk: (ms: number) => `Reachable, ${ms} ms`,
     reachNo: "Not reachable",
@@ -528,6 +530,7 @@ export const RB = dict({
     srcKeyApproveBody:
       "批准后，助教的浏览器会用这个密钥给 SeeLabs 密码加锁。如果之前用的是别的密钥，所有账号都需要重新连接。",
     srcKeyApproved: (oleh: string) => `由 ${oleh} 批准`,
+    srcKeyApprovedNone: "批准",
     srcReach: "可达性",
     reachOk: (ms: number) => `可连接，${ms} ms`,
     reachNo: "无法连接",

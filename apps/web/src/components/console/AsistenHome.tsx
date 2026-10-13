@@ -976,6 +976,7 @@ export default function AsistenHome({
       h.and,
     );
   const [sending, setSending] = useState<number | null>(null);
+  const [robotN, setRobotN] = useState(0);
   async function kirimSemua(x: (typeof bk)[number]) {
     setSending(x.sesiId);
     let ok = 0;
@@ -1055,6 +1056,7 @@ export default function AsistenHome({
   const oldK = bk.filter((x) => x.tanggal !== today);
   const oldN = pn.filter((x) => x.tanggal !== today);
   const inboxN = helpN + bk.length + pn.length + (heldN > 0 ? 1 : 0);
+  const semuaN = inboxN + robotN;
   const earlierN = oldK.length + oldN.length + (heldN > 0 ? 1 : 0);
 
   return (
@@ -1146,13 +1148,13 @@ export default function AsistenHome({
         <section className="panel inbox" data-area="inbox">
           <div className="panel__head">
             <h2 className="panel__title">{d.inboxTitle}</h2>
-            {inboxN > 0 && <Pill tone="warn">{inboxN}</Pill>}
+            {semuaN > 0 && <Pill tone="warn">{semuaN}</Pill>}
           </div>
           {/* Phase 14: SeeLabs robot jobs of mine that stopped */}
-          <RobotInbox lang={lang} tag={d.tag.seelabs} onTable={onTable} />
+          <RobotInbox lang={lang} tag={d.tag.seelabs} onTable={onTable} onCount={setRobotN} />
           {!data ? (
             <span className="skeleton" style={{ height: 120 }} />
-          ) : inboxN === 0 ? (
+          ) : semuaN === 0 ? (
             <div className="todo10__empty">
               <span className="state10__ic">
                 <CheckCircleIcon size={30} aria-hidden="true" />

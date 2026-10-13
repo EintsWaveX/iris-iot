@@ -114,7 +114,7 @@ export default function SeelabsStrip({ sesiId, nomor }: { sesiId: number; nomor:
       )}
       {gagal && (
         <>
-          <div className="banner banner--danger">
+          <div className="banner banner--danger slr-note">
             <WarningIcon size={20} aria-hidden="true" />
             <span>{r.err[gagal.galat ?? "bentuk_berubah"] ?? r.failed}</span>
           </div>

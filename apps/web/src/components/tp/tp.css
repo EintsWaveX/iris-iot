@@ -513,6 +513,7 @@
 .grading {
   display: grid;
   gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
 }
 .tpmodpick {
   grid-template-columns: repeat(2, minmax(0, 1fr));

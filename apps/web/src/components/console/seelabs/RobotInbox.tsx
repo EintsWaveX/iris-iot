@@ -2,7 +2,7 @@
  *  jobs that stopped and that nothing newer replaced, each with its way on:
  *  the Account page for a refused password or a changed Pi key, the score
  *  table for a Token Khusus, Coba Lagi for the rest. Nothing when all is well. */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowClockwiseIcon, ArrowRightIcon } from "@phosphor-icons/react";
 import { getJson, href, postJson } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
@@ -41,10 +41,13 @@ export default function RobotInbox({
   lang,
   tag,
   onTable,
+  onCount,
 }: {
   lang: Lang;
   tag: string;
   onTable: (sesiId: number) => void;
+  /** How many rows show, so Home's count and empty state include them. */
+  onCount?: (n: number) => void;
 }) {
   const t = RB[lang];
   const { data, refresh } = usePoll(
@@ -55,6 +58,7 @@ export default function RobotInbox({
   );
   const [busy, setBusy] = useState<number | null>(null);
   const macet = data?.ok ? tugasMacet(data.tugas) : [];
+  useEffect(() => onCount?.(macet.length), [macet.length, onCount]);
   if (!macet.length) return null;
 
   async function ulang(id: number) {

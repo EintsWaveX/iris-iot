@@ -21,6 +21,7 @@ import {
 } from "@phosphor-icons/react";
 import { getJson, jamMenit, postJson, tanggalPanjang } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
+import Sidik from "./Sidik";
 import { sandiBawaanSeelabs, segelSandi, sidikKunci } from "../../../lib/seelabs-segel";
 import type { Lang } from "../../../lib/kelas";
 import Dialog from "../../ui/Dialog";
@@ -228,7 +229,7 @@ function ConnectDialog({
           <p className="lede">{t.doneBody}</p>
         </div>
       ) : tahap === "gagal" ? (
-        <div className="banner banner--danger" role="alert">
+        <div className="banner banner--danger slr-note" role="alert">
           <LockKeyIcon size={20} aria-hidden="true" />
           <span>{t.err[galat ?? "bentuk_berubah"] ?? t.failed}</span>
         </div>
@@ -256,19 +257,19 @@ function ConnectDialog({
               lang={lang}
             />
           )}
-          <div className="banner slr-seal">
+          <div className="banner slr-note slr-seal">
             <ShieldCheckIcon size={20} aria-hidden="true" />
             <span className="stack stack--sm">
               <span>{t.seal}</span>
               {kunci && (
                 <span className="hint">
-                  {t.sealFp(`#${pi}`)} <b className="mono">{kunci.lokal}</b>
+                  {t.sealFp(`#${pi}`)} <b><Sidik nilai={kunci.lokal} /></b>
                 </span>
               )}
             </span>
           </div>
           {kunciBeda && (
-            <div className="banner banner--danger" role="alert">
+            <div className="banner banner--danger slr-note" role="alert">
               <KeyIcon size={20} aria-hidden="true" />
               <span>{t.keyMismatch}</span>
             </div>
@@ -397,7 +398,7 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
       />
     );
     body = (
-      <div className="banner banner--warn">
+      <div className="banner banner--warn slr-note">
         <CellSignalSlashIcon size={20} aria-hidden="true" />
         <span>{t.untilBack}</span>
       </div>
@@ -480,7 +481,7 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
     >
       {head}
       {!data.nyala && (
-        <div className="banner banner--warn">
+        <div className="banner banner--warn slr-note">
           <ProhibitIcon size={20} aria-hidden="true" />
           <span>{t.robotOff}</span>
         </div>

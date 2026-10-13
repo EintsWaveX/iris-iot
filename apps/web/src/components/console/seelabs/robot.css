@@ -164,6 +164,18 @@
   color: var(--text);
   letter-spacing: 0.04em;
 }
+/* A robot banner keeps its icon beside the text, however narrow */
+.slr-note {
+  flex-wrap: nowrap;
+}
+.slr-note > span {
+  flex: 1 1 0;
+}
+/* A key fingerprint breaks only after a colon (Sidik.tsx) */
+.slr-fp {
+  overflow-wrap: normal;
+  word-break: normal;
+}
 .slr-wait {
   align-items: center;
   display: flex;
@@ -286,7 +298,8 @@
 
 /* Sumber SeeLabs */
 .slr-sumber {
-  align-items: start;
+  align-items: stretch;
+  align-content: start;
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr);

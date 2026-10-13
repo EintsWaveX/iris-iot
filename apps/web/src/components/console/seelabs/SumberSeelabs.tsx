@@ -17,6 +17,7 @@ import type { Lang } from "../../../lib/kelas";
 import Confirm from "../../ui/Confirm";
 import { Switch } from "../../ui/Controls";
 import { kapanRobot } from "./SeelabsRobotCard";
+import Sidik from "./Sidik";
 import { RB } from "./robotStrings";
 import "./robot.css";
 
@@ -131,7 +132,7 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
         <dl className="slr-facts">
           <div>
             <dt>{t.srcKey}</dt>
-            <dd className="mono">{data.kunci ? data.kunci.sidik : t.srcKeyNone}</dd>
+            <dd>{data.kunci ? <Sidik nilai={data.kunci.sidik} /> : t.srcKeyNone}</dd>
           </div>
           <div>
             <dt>Orange Pi</dt>
@@ -161,13 +162,13 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
             <dt>
               {data.kunci
                 ? t.srcKeyApproved(kodeDari.get(data.kunci.oleh) ?? data.kunci.oleh)
-                : t.srcKey}
+                : t.srcKeyApprovedNone}
             </dt>
             <dd>{data.kunci ? kapanRobot(data.kunci.pada, lang) : t.never}</dd>
           </div>
         </dl>
         {jangkau && !jangkau.ok && (
-          <div className="banner banner--warn">
+          <div className="banner banner--warn slr-note">
             <CellSignalSlashIcon size={20} aria-hidden="true" />
             <span>{t.err.tak_terjangkau}</span>
           </div>
@@ -179,7 +180,7 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
             </span>
             <span className="slr-item__t">
               <b>{t.srcKeyNew(`#${k.serverId} ${k.nama}`)}</b>
-              <span className="hint mono">{k.sidik}</span>
+              <Sidik nilai={k.sidik} className="hint" />
             </span>
             <span className="slr-item__end">
               <button
