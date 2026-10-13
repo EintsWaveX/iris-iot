@@ -46,11 +46,10 @@ export interface BarisLog {
 export function SilangPanel({ lang, silang }: { lang: Lang; silang: SilangInfo }) {
   const t = LK[lang];
   const s = silang.seelabs;
-  const tile = (label: string, n: number | string, sub?: string) => (
+  const tile = (label: string, n: number | string) => (
     <div className="tpsilang__tile">
       <dt>{label}</dt>
       <dd className="mono">{n}</dd>
-      {sub && <span className="hint">{sub}</span>}
     </div>
   );
   return (
@@ -61,53 +60,14 @@ export function SilangPanel({ lang, silang }: { lang: Lang; silang: SilangInfo }
       </div>
       <dl className="tpsilang__tiles">
         {tile(t.sIris, silang.iris)}
-        {tile(
-          t.sSeelabs,
-          s ? s.total : "…",
-          s ? t.sSeelabsPada(waktuPanjang(s.pada, lang).split(" · ")[0], s.klp) : undefined,
-        )}
+        {tile(t.sSeelabs, s ? s.total : "…")}
         {tile(t.sLms, silang.adaData ? silang.lms : "…")}
         {tile(t.sAsisten, silang.asisten.length)}
       </dl>
+      <p className="hint tpsilang__pada">
+        {s ? t.sSeelabsPada(waktuPanjang(s.pada, lang).split(" · ")[0], s.klp) : t.sSeelabsBelum}
+      </p>
       <div className="tpsilang__isi">
-        {!s && <p className="hint">{t.sSeelabsBelum}</p>}
-        {silang.adaData ? (
-          <>
-            <h3 className="tpsilang__h">{t.perKelasH}</h3>
-            <table className="tptable tpsilang__table">
-              <thead>
-                <tr>
-                  <th>{t.kelas}</th>
-                  <th className="num">{t.kMahasiswa}</th>
-                  <th className="num">{t.kTerdaftar}</th>
-                  <th className="num">{t.kLuar}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {silang.perKelas.map((k) => (
-                  <tr key={k.label}>
-                    <td className="mono">{k.label}</td>
-                    <td className="num mono">{k.lms}</td>
-                    <td className="num mono">{k.iris}</td>
-                    <td className="num mono" data-ada={k.luar ? "ya" : undefined}>
-                      {k.luar}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td>{t.total}</td>
-                  <td className="num mono">{silang.lms}</td>
-                  <td className="num mono">{silang.perKelas.reduce((n, k) => n + k.iris, 0)}</td>
-                  <td className="num mono">{silang.perKelas.reduce((n, k) => n + k.luar, 0)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </>
-        ) : (
-          <p className="hint">{t.belumData}</p>
-        )}
         <h3 className="tpsilang__h">{t.asistenH}</h3>
         <p className="hint">{t.asistenHint}</p>
         {silang.asisten.length ? (

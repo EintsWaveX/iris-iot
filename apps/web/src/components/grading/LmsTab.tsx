@@ -108,6 +108,8 @@ export default function LmsTab({
   const [uji, setUji] = useState(false);
   if (!d) return <span className="skeleton" style={{ height: 420 }} />;
 
+  // Per class: the LMS's students who aren't registered Praktikan.
+  const luarOf = new Map(d.silang.perKelas.map((k) => [k.label, k.luar]));
   const ditolak =
     d.sinkron.hasil === "gagal" &&
     (d.sinkron.galat === "token_ditolak" || d.sinkron.galat === "token_rusak");
@@ -247,6 +249,9 @@ export default function LmsTab({
                     <tr>
                       <th>{t.kelas}</th>
                       <th className="num">{t.praktikan}</th>
+                      <th className="num" title={tk.luarHint}>
+                        {tk.kLuar}
+                      </th>
                       {[1, 2, 3, 4].map((m) => (
                         <th key={m} className="num">
                           <button
@@ -276,6 +281,12 @@ export default function LmsTab({
                           </a>
                         </td>
                         <td className="num mono">{k.peserta}</td>
+                        <td
+                          className="num mono tpluar"
+                          data-ada={luarOf.get(k.label) ? "ya" : undefined}
+                        >
+                          {d.silang.adaData ? (luarOf.get(k.label) ?? 0) : "…"}
+                        </td>
                         {[1, 2, 3, 4].map((m) => {
                           const ada = k.tugas[String(m)];
                           const st = keadaanTugas(ada, d.kelola.jendela[String(m)] ?? null);

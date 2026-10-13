@@ -1430,11 +1430,15 @@ button.tpcheck:focus-visible,
 }
 
 /* ----------------------------------------------------- Silang Data */
+/* One row of four where it fits, two of two where it doesn't */
 .tpsilang__tiles {
   display: grid;
-  gap: 8px 18px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0 0 10px;
+  gap: 8px 14px;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  margin: 0;
+}
+.tpsilang__pada {
+  margin: 4px 0 8px;
 }
 .tpsilang__tile {
   display: grid;
@@ -1463,15 +1467,7 @@ button.tpcheck:focus-visible,
   font-size: 0.95rem;
   margin: 6px 0 0;
 }
-.tpsilang__table td,
-.tpsilang__table th {
-  padding: 6px 8px;
-}
-.tpsilang__table tfoot td {
-  border-bottom: 0;
-  font-weight: 700;
-}
-.tpsilang__table td[data-ada] {
+.tptable .tpluar[data-ada] {
   color: var(--warn);
   font-weight: 700;
 }
