@@ -683,9 +683,10 @@ const LMS_JALAN_RE =
   /^\/webservice\/(rest\/server\.php$|upload\.php$|pluginfile\.php\/)/;
 /** The draft upload: its form body carries the file base64 (see Lms). */
 const LMS_UNGGAH = "/webservice/upload.php";
-/** The LMS pages a TP assignment is made, changed and deleted on */
+/** The LMS pages IRIS fills as the Teacher: assignments and links
+ *  (modedit, mod), a section's name, and the class's groups (Phase 15) */
 const LMS_HALAMAN_RE =
-  /^\/(admin\/tool\/mobile\/autologin\.php|course\/modedit\.php|course\/mod\.php|course\/view\.php)$/;
+  /^\/(admin\/tool\/mobile\/autologin\.php|course\/(modedit|mod|view|editsection)\.php|group\/(group|members|index)\.php)$/;
 /** A web service call's form body (the course list asks for the most) */
 const LMS_ISI_MAKS = 16 * 1024;
 /** An assignment form's body (its description included) */

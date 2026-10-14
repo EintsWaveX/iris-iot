@@ -480,7 +480,7 @@ try {
   cek("a draft upload over its limit is refused", r.status === 413);
   r = await lms("/webservice/upload.php", { isi: "x".repeat(20 * 1024), tanda: "0".repeat(64) });
   cek("a draft upload past 16 KB is let through to the signature check", r.status === 403 && (await r.text()) === "tanda salah");
-  // Web session calls: signed over the cookie; only the four TP pages.
+  // Web session calls: signed over the cookie; only the Teacher pages IRIS fills.
   const lmsWeb = (tujuan, o = {}) => {
     const ts = o.ts ?? now();
     const metode = o.metode ?? "GET";
@@ -496,7 +496,9 @@ try {
   r = await lmsWeb("/course/modedit.php?update=1", { kueTanda: "MoodleSession=lain" });
   cek("a web call whose cookie isn't the signed one is refused", r.status === 403 && (await r.text()) === "tanda salah");
   r = await lmsWeb("/login/index.php");
-  cek("a web call to a page outside the four is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  cek("a web call to a page outside the Teacher pages is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  r = await lmsWeb("/group/overview.php?id=1");
+  cek("another group page is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
   r = await lmsWeb("/user/profile.php?id=1");
   cek("a web call to the profile is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
   r = await lms("/course/modedit.php?update=1", { metode: "GET", isi: "" });
