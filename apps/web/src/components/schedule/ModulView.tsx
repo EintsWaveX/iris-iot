@@ -22,7 +22,13 @@ import { postJson } from "../../lib/app";
 import { useMinWidth } from "../../lib/hooks";
 import { useBelumSimpan } from "../../lib/belum-simpan";
 import { SLOT_MULAI } from "../../lib/jadwal";
-import { hariLabel, kelompokLabel, modulLabel, slotLabel as slotName } from "../../lib/labels";
+import {
+  hariLabel,
+  kelompokLabel,
+  klpLabel,
+  modulLabel,
+  slotLabel as slotName,
+} from "../../lib/labels";
 import { pasanganSemester } from "../../lib/penugasan-minggu";
 import { MODUL_PASANGAN, acakModul, kolam, putar, ulang } from "../../lib/penugasan-modul";
 import type { Lang } from "../../lib/kelas";
@@ -161,6 +167,9 @@ export default function ModulView({
     }
   }
 
+  const klpOf = (j: JadwalRow, nomor: number) =>
+    data.klp?.[`${j.hari}-${j.slot}`]?.[String(nomor)] ?? null;
+  const adaKlp = (j: JadwalRow) => Object.keys(data.klp?.[`${j.hari}-${j.slot}`] ?? {}).length > 0;
   const slotJudul = (j: JadwalRow) =>
     `${hariLabel(j.hari, lang)} · ${slotName(j.slot, lang)} · ${SLOT_MULAI[j.slot]}`;
   const minggu = data.modulMinggu ?? {};
@@ -186,6 +195,9 @@ export default function ModulView({
           {list.map((k, g) => (
             <li key={g} className="pmseat">
               <span className="pmseat__g hint num">{g + 1}</span>
+              {adaKlp(j) && (
+                <span className="pmseat__klp hint mono">{klpLabel(klpOf(j, g + 1)) ?? ""}</span>
+              )}
               {k ? (
                 <span className={`acode${k === meKode ? " acode--me" : ""}`}>{k}</span>
               ) : (
@@ -375,6 +387,7 @@ export default function ModulView({
           judul={slotJudul(sedang)}
           awal={draf[sedang.id]}
           diajar={diajar[String(sedang.id)] ?? []}
+          klp={data.klp?.[`${sedang.hari}-${sedang.slot}`]}
           isi={(cara, d) => isiSlot(sedang, cara, { ...draf, [sedang.id]: d })}
           onClose={() => setUbah(null)}
           onApply={(d) => {
@@ -408,6 +421,7 @@ function SlotDialog({
   judul,
   awal,
   diajar,
+  klp,
   isi,
   onClose,
   onApply,
@@ -417,6 +431,7 @@ function SlotDialog({
   judul: string;
   awal: Daftar;
   diajar: number[];
+  klp?: Record<string, string>;
   isi: (cara: "acak" | "putar" | "bawaan", d: Daftar) => Daftar;
   onClose: () => void;
   onApply: (d: Daftar) => void;
@@ -488,7 +503,12 @@ function SlotDialog({
           ))}
           {bawaan.map((_, g) => (
             <div key={g} className="pmdlg__row">
-              <Pill group={g + 1}>{kelompokLabel(g + 1, lang)}</Pill>
+              <span className="pmdlg__g">
+                <Pill group={g + 1}>{kelompokLabel(g + 1, lang)}</Pill>
+                {klp?.[String(g + 1)] && (
+                  <span className="hint mono">{klpLabel(klp[String(g + 1)])}</span>
+                )}
+              </span>
               {modul.map((m) => (
                 <div key={m} className="pmdlg__cell" data-repeat={lagi[m]?.[g] ? "yes" : undefined}>
                   <Dropdown

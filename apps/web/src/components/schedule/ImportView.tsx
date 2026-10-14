@@ -35,7 +35,7 @@ import Pill from "../ui/Pill";
 import SegmentedControl from "../ui/SegmentedControl";
 import { postJson } from "../../lib/app";
 import { SLOT_MULAI } from "../../lib/jadwal";
-import { hariLabel, kelompokLabel, statusOrangLabel } from "../../lib/labels";
+import { hariLabel, kelompokLabel, klpLabel, statusOrangLabel } from "../../lib/labels";
 import { pasanganSemester } from "../../lib/penugasan-minggu";
 import type { Lang } from "../../lib/kelas";
 import { J } from "./strings";
@@ -428,6 +428,7 @@ function Arrange({
                 key={j.id}
                 j={j}
                 seats={seats[j.id]}
+                klp={data.klp?.[`${j.hari}-${j.slot}`]}
                 lang={lang}
                 meKode={meKode}
                 drag={drag}
@@ -481,12 +482,14 @@ function PoolRow({
 function SlotCard({
   j,
   seats,
+  klp,
   lang,
   meKode,
   drag,
 }: {
   j: JadwalRow;
   seats: string[];
+  klp?: Record<string, string>;
   lang: Lang;
   meKode: string;
   drag: { kode: string } | null;
@@ -497,7 +500,16 @@ function SlotCard({
         {hariLabel(j.hari, lang)} · {SLOT_MULAI[j.slot]}
       </b>
       {seats.map((k, i) => (
-        <Seat key={i} jid={j.id} gi={i} kode={k} lang={lang} meKode={meKode} drag={drag} />
+        <Seat
+          key={i}
+          jid={j.id}
+          gi={i}
+          kode={k}
+          klp={klp?.[String(i + 1)] ?? null}
+          lang={lang}
+          meKode={meKode}
+          drag={drag}
+        />
       ))}
     </div>
   );
@@ -507,6 +519,7 @@ function Seat({
   jid,
   gi,
   kode,
+  klp,
   lang,
   meKode,
   drag,
@@ -514,6 +527,7 @@ function Seat({
   jid: number;
   gi: number;
   kode: string;
+  klp: string | null;
   lang: Lang;
   meKode: string;
   drag: { kode: string } | null;
@@ -528,6 +542,7 @@ function Seat({
   return (
     <div ref={dropRef} className="impdrop" data-over={isOver ? "yes" : undefined}>
       <Pill group={gi + 1}>{kelompokLabel(gi + 1, lang)}</Pill>
+      {klp && <span className="hint mono">{klpLabel(klp)}</span>}
       {kode ? (
         <span
           ref={chip.setNodeRef}

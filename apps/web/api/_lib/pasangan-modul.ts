@@ -8,7 +8,7 @@
  */
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
-import { jadwal, pengaturan, sesi } from "../../src/lib/schema.js";
+import { jadwal, pengaturan, rosterKelompok, sesi } from "../../src/lib/schema.js";
 import { getModulTerbuka } from "../../src/lib/akses.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
@@ -161,6 +161,29 @@ export async function modulDiajar(
     const list = out.get(j.id) ?? [];
     if (!list.includes(s.modul)) list.push(s.modul);
     out.set(j.id, list.sort());
+  }
+  return out;
+}
+
+/** Each slot's SeeLabs KLP per group ("hari-slot" -> nomor -> KLP), so a
+ *  group reads as "1 · KLP 6" wherever its Asisten is shown. */
+export async function klpSlot(
+  db: Db,
+  semester: string,
+): Promise<Record<string, Record<string, string>>> {
+  const rows = await db
+    .select({
+      hari: rosterKelompok.hari,
+      slot: rosterKelompok.slot,
+      nomor: rosterKelompok.nomor,
+      klp: rosterKelompok.klpSeelabs,
+    })
+    .from(rosterKelompok)
+    .where(eq(rosterKelompok.semester, semester));
+  const out: Record<string, Record<string, string>> = {};
+  for (const r of rows) {
+    if (!r.klp) continue;
+    (out[`${r.hari}-${r.slot}`] ??= {})[String(r.nomor)] = r.klp;
   }
   return out;
 }

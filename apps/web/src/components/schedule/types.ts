@@ -46,6 +46,8 @@ export interface DataJadwal {
   bergilir?: boolean;
   modulMinggu?: Record<string, { senin: string; sabtu: string } | null>;
   diajar?: Record<string, number[]>;
+  /** Each slot's SeeLabs KLP per group: "hari-slot" -> group -> KLP. */
+  klp?: Record<string, Record<string, string>>;
 }
 
 export const HARI = [1, 2, 3, 4, 5, 6] as const;

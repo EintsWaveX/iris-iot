@@ -784,6 +784,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             jendela={data.jendela}
             meKode={meKode}
             meNim={me.nim}
+            klp={data.klp?.[`${sel.hari}-${sel.slot}`]}
             bolehJadwal={bolehJadwal}
             onDirty={setDirty}
             onSaved={load}

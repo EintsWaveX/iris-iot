@@ -20,6 +20,7 @@
  */
 import { diSlotMinggu, muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
 import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
+import { klpSlot } from "./pasangan-modul.js";
 import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -319,7 +320,10 @@ export async function handleBerandaGet(
   // Each slot's next date this week (today's for today's slots): the
   // pairing (its module's while the semester pairs per module) with that
   // date's izin, covers and volunteers.
-  const kursiMinggu = await muatMinggu(db, minggu, tanggal);
+  const [kursiMinggu, klpOf] = await Promise.all([
+    muatMinggu(db, minggu, tanggal),
+    klpSlot(db, semester),
+  ]);
   res.status(200).json({
     ok: true,
     tanggal,
@@ -357,6 +361,10 @@ export async function handleBerandaGet(
         kelompok: (kursiMinggu.get(j.id)?.kursi ?? [])
           .filter((k) => k.tetap === kode)
           .map((k) => k.nomor),
+        // Each of those groups' SeeLabs KLP (null when not matched yet).
+        klp: (kursiMinggu.get(j.id)?.kursi ?? [])
+          .filter((k) => k.tetap === kode)
+          .map((k) => klpOf[`${j.hari}-${j.slot}`]?.[String(k.nomor)] ?? null),
       })),
     terbuka,
     presentasiAktif: slide ? { nama: slide.nama, jenis: slide.jenis } : null,

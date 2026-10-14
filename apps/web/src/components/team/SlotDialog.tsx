@@ -182,6 +182,7 @@ export default function SlotDialog({
           jendela={data.jendela}
           meKode={meKode}
           meNim={meNim}
+          klp={data.klp?.[`${hari}-${slot}`]}
           bolehJadwal
           geser={geser}
           baru={!awal}

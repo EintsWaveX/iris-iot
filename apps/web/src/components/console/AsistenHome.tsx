@@ -63,7 +63,14 @@ import {
 } from "../../lib/app";
 import { hariIniWib, SESI_CAP_MENIT, SESI_MIN_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
-import { hariLabel, kelasLabel, kelompokLabel, menitLabel, modulLabel } from "../../lib/labels";
+import {
+  nomorKlp,
+  hariLabel,
+  kelasLabel,
+  kelompokLabel,
+  menitLabel,
+  modulLabel,
+} from "../../lib/labels";
 import { useDirektori } from "../../lib/people";
 import { useMenitWib } from "../../lib/jam";
 import {
@@ -119,7 +126,14 @@ export interface Beranda {
   hari: number;
   jendelaDefault: number;
   hariIni: SlotHariIni[];
-  mingguSaya: { hari: number; slot: number; kelas: Kelas; kelompok: number[] }[];
+  mingguSaya: {
+    hari: number;
+    slot: number;
+    kelas: Kelas;
+    kelompok: number[];
+    /** Each group's SeeLabs KLP, aligned with kelompok. */
+    klp?: (string | null)[];
+  }[];
   terbuka: number[];
   presentasiAktif: { nama: string; jenis: string } | null;
   skemaAktif?: {
@@ -1117,7 +1131,14 @@ export default function AsistenHome({
               <b>
                 {hariLabel(w.hari, lang)} · {SLOT_MULAI[w.slot]}
               </b>
-              <span className="hint">{h.groups(daftar(w.kelompok.map(String), h.and))}</span>
+              <span className="hint">
+                {h.groups(
+                  daftar(
+                    w.kelompok.map((n, i) => nomorKlp(n, w.klp?.[i])),
+                    h.and,
+                  ),
+                )}
+              </span>
               {w.kelas === "internasional" && (
                 <Pill tone="violet">{kelasLabel("internasional", lang)}</Pill>
               )}

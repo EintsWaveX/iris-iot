@@ -24,7 +24,7 @@ import { getJson, href, meChanged, postJson, useMe, dict } from "../../lib/app";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { semesterDariTanggal } from "../../lib/jadwal-parser";
 import type { Lang } from "../../lib/kelas";
-import { divisiLabel } from "../../lib/labels";
+import { divisiLabel, nomorKlp } from "../../lib/labels";
 import type { BarisJadwal } from "../../lib/jadwal-next";
 import { pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
 import type { Ringkasan } from "../../lib/umpan-balik";
@@ -62,7 +62,7 @@ const T = dict({
     jadwalNone: "Tidak ada slot mengajar di semester ini.",
     lihatJadwal: "Buka Jadwal",
     hari: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
-    kGroups: (g: number[]) => `Kelompok ${g.join(", ")}`,
+    kGroups: (g: string[]) => `Kelompok ${g.join(", ")}`,
     inter: "Internasional",
     fbH: "Umpan Balik Saya",
     fbSub: "Hanya kamu yang melihat ini. Tanpa nama atau NIM praktikan.",
@@ -95,7 +95,7 @@ const T = dict({
     jadwalNone: "No teaching slots this semester.",
     lihatJadwal: "Open Schedule",
     hari: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-    kGroups: (g: number[]) => `Group ${g.join(", ")}`,
+    kGroups: (g: string[]) => `Group ${g.join(", ")}`,
     inter: "International",
     fbH: "My Feedback",
     fbSub: "Only you see this. No student names or IDs.",
@@ -127,7 +127,7 @@ const T = dict({
     jadwalNone: "本学期没有带课的时段。",
     lihatJadwal: "打开课表",
     hari: ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"],
-    kGroups: (g: number[]) => `第 ${g.join("、")} 组`,
+    kGroups: (g: string[]) => `第 ${g.join("、")} 组`,
     inter: "国际班",
     fbH: "我的反馈",
     fbSub: "只有你能看到。没有学生姓名或 NIM。",
@@ -229,16 +229,21 @@ export default function AccountPage({ lang }: { lang: Lang }) {
   const me = useMe();
   const [jadwal, setJadwal] = useState<BarisSlot[] | null>(null);
   const [minggu, setMinggu] = useState<Record<string, MingguSlot>>({});
+  const [klp, setKlp] = useState<Record<string, Record<string, string>>>({});
   const [fb, setFb] = useState<Ringkasan | null>(null);
 
   const muat = () => {
     if (me?.role !== "asisten") return;
-    getJson<{ ok: boolean; jadwal: BarisSlot[]; minggu?: Record<string, MingguSlot> }>(
-      `/api/session/schedule?semester=${semesterDariTanggal(hariIniWib())}`,
-    )
+    getJson<{
+      ok: boolean;
+      jadwal: BarisSlot[];
+      minggu?: Record<string, MingguSlot>;
+      klp?: Record<string, Record<string, string>>;
+    }>(`/api/session/schedule?semester=${semesterDariTanggal(hariIniWib())}`)
       .then((d) => {
         setJadwal(d.ok ? d.jadwal : []);
         setMinggu(d.ok ? (d.minggu ?? {}) : {});
+        setKlp(d.ok ? (d.klp ?? {}) : {});
       })
       .catch(() => setJadwal([]));
     getJson<{ ok: boolean; ringkasan: Ringkasan }>("/api/session/feedback?scope=mine")
@@ -350,7 +355,11 @@ export default function AccountPage({ lang }: { lang: Lang }) {
                   <li key={`${j.hari}-${j.slot}`}>
                     <b>{t.hari[j.hari]}</b>
                     <span className="mono">{SLOT_MULAI[j.slot]}</span>
-                    <span className="hint">{t.kGroups(groups)}</span>
+                    <span className="hint">
+                      {t.kGroups(
+                        groups.map((n) => nomorKlp(n, klp[`${j.hari}-${j.slot}`]?.[String(n)])),
+                      )}
+                    </span>
                     {j.kelas === "internasional" && (
                       <span className="pill pill--gold">{t.inter}</span>
                     )}

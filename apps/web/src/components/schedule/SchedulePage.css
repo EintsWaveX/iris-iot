@@ -1086,3 +1086,19 @@
   color: var(--warn);
   font-size: 0.75rem;
 }
+
+.pmseat__klp {
+  font-size: 0.72rem;
+  min-width: 4.4em;
+}
+
+.pmdlg__g {
+  align-items: flex-start;
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+}
+
+.asgrow__g {
+  gap: 6px;
+}

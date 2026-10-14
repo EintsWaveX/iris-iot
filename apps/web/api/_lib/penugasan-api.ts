@@ -92,6 +92,7 @@ import {
 } from "../../src/lib/penugasan-modul.js";
 import {
   aturBergilir,
+  klpSlot,
   konteksModul,
   mingguModul,
   modulDiajar,
@@ -286,6 +287,7 @@ export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
     bergilir: konteks.aktif,
     modulMinggu: mingguModul(konteks),
     diajar,
+    klp: await klpSlot(db, sem),
   });
 }
 

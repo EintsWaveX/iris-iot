@@ -32,6 +32,19 @@ export function kelompokLabel(n: number, lang: Lang): string {
   return lang === "en" ? `Group ${n}` : lang === "zh" ? `第 ${n} 组` : `Kelompok ${n}`;
 }
 
+/** A group's SeeLabs KLP, "KLP 6" (null when not matched yet). A value
+ *  already written "KLP-07" reads "KLP 07", never "KLP KLP-07". */
+export function klpLabel(klp: string | null | undefined): string | null {
+  const v = (klp ?? "").trim().replace(/^klp[\s\-_:]*/i, "");
+  return v ? `KLP ${v}` : null;
+}
+
+/** A group number with its KLP for lists: "1 (KLP 6)", or "1". */
+export function nomorKlp(n: number, klp: string | null | undefined): string {
+  const l = klpLabel(klp);
+  return l ? `${n} (${l})` : String(n);
+}
+
 /** "Reguler", "Regular", "普通班"; "Internasional", "International", "国际班" */
 export function kelasLabel(k: Kelas, lang: Lang): string {
   if (k === "internasional") {

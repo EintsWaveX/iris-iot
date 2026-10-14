@@ -4,6 +4,8 @@ import {
   durasiLabel,
   kelasLabel,
   kelompokLabel,
+  klpLabel,
+  nomorKlp,
   laluLabel,
   menitLabel,
   detikLabel,
@@ -81,5 +83,19 @@ describe("divisiLabel", () => {
   });
   it("falls back to English for a name it does not know", () => {
     expect(divisiLabel({ id: "Lainnya", en: "Something Else" }, "zh")).toBe("Something Else");
+  });
+});
+
+describe("klpLabel and nomorKlp", () => {
+  it("names a group's SeeLabs KLP", () => {
+    expect(klpLabel("6")).toBe("KLP 6");
+    expect(klpLabel("KLP-07")).toBe("KLP 07");
+    expect(klpLabel(" klp 12 ")).toBe("KLP 12");
+    expect(klpLabel(null)).toBeNull();
+    expect(klpLabel("")).toBeNull();
+  });
+  it("adds it to a group number when known", () => {
+    expect(nomorKlp(1, "6")).toBe("1 (KLP 6)");
+    expect(nomorKlp(2, null)).toBe("2");
   });
 });

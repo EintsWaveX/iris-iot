@@ -37,7 +37,7 @@ import SegmentedControl from "../ui/SegmentedControl";
 import Tooltip from "../ui/Tooltip";
 import { Stepper } from "../ui/Controls";
 import { postJson, tanggalPanjang } from "../../lib/app";
-import { kelompokLabel, statusOrangLabel, slotLabel as slotName } from "../../lib/labels";
+import { klpLabel, kelompokLabel, statusOrangLabel, slotLabel as slotName } from "../../lib/labels";
 import { KELOMPOK_DEFAULT, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
 import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
 import { orangTanggal, pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
@@ -117,6 +117,8 @@ interface Props {
   baru?: boolean;
   /** Toasts its own saved message (Penugasan Slot says one of its own) */
   diam?: boolean;
+  /** The slot's SeeLabs KLP per group number */
+  klp?: Record<string, string>;
 }
 
 const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, ref) {
@@ -330,6 +332,9 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
               {d.who.map((kode, i) => (
                 <li key={i}>
                   <Pill group={i + 1}>{kelompokLabel(i + 1, lang)}</Pill>
+                  {klpLabel(p.klp?.[String(i + 1)]) && (
+                    <Pill mono>{klpLabel(p.klp?.[String(i + 1)])}</Pill>
+                  )}
                   <span className={kode ? "acode" : "hint"}>
                     {kode ? kode.toUpperCase() : t.keptNobody}
                   </span>
@@ -437,7 +442,12 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
                       style={{ "--g": `var(--group-${i + 1})` } as CSSProperties}
                     >
                       <div className="row row--between asgrow__head">
-                        <Pill group={i + 1}>{kelompokLabel(i + 1, lang)}</Pill>
+                        <span className="row asgrow__g">
+                          <Pill group={i + 1}>{kelompokLabel(i + 1, lang)}</Pill>
+                          {klpLabel(p.klp?.[String(i + 1)]) && (
+                            <Pill mono>{klpLabel(p.klp?.[String(i + 1)])}</Pill>
+                          )}
+                        </span>
                         {holds > 1 && (
                           <Tooltip label={t.holdsTip}>
                             <span tabIndex={0}>
