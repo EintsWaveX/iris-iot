@@ -268,7 +268,8 @@ export function bagiWib(iso: string): { tanggal: string; jam: string } {
   return { tanggal: d.toISOString().slice(0, 10), jam: d.toISOString().slice(11, 16) };
 }
 
-function tambahHari(tanggal: string, n: number): string {
+/** A date `n` days after `tanggal` (both "YYYY-MM-DD"). */
+export function tambahHari(tanggal: string, n: number): string {
   const [y, m, d] = tanggal.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
