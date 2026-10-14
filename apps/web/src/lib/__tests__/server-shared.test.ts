@@ -13,6 +13,7 @@ import {
   catatanBatal,
   CATATAN_BATAL,
   tanpaKeluaran,
+  bacaPulih,
 } from "../server-shared";
 import { aksiValid, LAYANAN_DIKENAL } from "../server-lib";
 
@@ -218,5 +219,20 @@ describe("agent reports in English (2026-10-14)", () => {
     expect(tanpaKeluaran("  ")).toBe(true);
     expect(tanpaKeluaran(null)).toBe(true);
     expect(tanpaKeluaran("-- Journal begins --")).toBe(false);
+  });
+});
+
+describe("bacaPulih", () => {
+  it("reads the self-repair report and drops what it cannot trust", () => {
+    const info = {
+      pulih: { pada: 1760000000, diperbaiki: ["chronyd.service started", 7], gagal: "x" },
+    };
+    expect(bacaPulih(info)).toEqual({
+      pada: 1760000000,
+      diperbaiki: ["chronyd.service started"],
+      gagal: [],
+    });
+    expect(bacaPulih({})).toBeNull();
+    expect(bacaPulih(null)).toBeNull();
   });
 });

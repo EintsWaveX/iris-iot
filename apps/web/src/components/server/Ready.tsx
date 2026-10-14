@@ -17,7 +17,13 @@ import {
 import { href, MODUL_NAMA } from "../../lib/app";
 import { modulLabel, nil } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
-import { bacaHasilSiap, modulCek, MODUL_SIAP, type CekSiap } from "../../lib/server-shared";
+import {
+  bacaHasilSiap,
+  bacaPulih,
+  modulCek,
+  MODUL_SIAP,
+  type CekSiap,
+} from "../../lib/server-shared";
 import Updates from "./Updates";
 import { kirim, sedangBerjalan, waktuPendek, type Bisa, type Detail } from "./data";
 import { S } from "./strings";
@@ -66,6 +72,8 @@ export default function Ready({
   });
 
   const w = S12[lang];
+  // What the server's self-repair last fixed or could not fix (agent infoSistem.pulih)
+  const pulih = bacaPulih(data.server.infoSistem);
 
   function run(m = modul) {
     void kirim(id, "diag.siap", m ? { modul: m } : {}, lang, t.readyWait).then(refresh);
@@ -251,6 +259,45 @@ export default function Ready({
                 )}
               </div>
               <div className="s12checks">{umum.map(baris)}</div>
+              {pulih && (
+                <div className="stack stack--sm s12repair">
+                  <span className="stack" style={{ gap: 0 }}>
+                    <b>{w.repairTitle}</b>
+                    <span className="hint">
+                      {pulih.pada ? (
+                        <Lalu
+                          iso={new Date(pulih.pada * 1000).toISOString()}
+                          lang={lang}
+                          fmt={w.repairAt}
+                        />
+                      ) : (
+                        w.repairSub
+                      )}
+                    </span>
+                  </span>
+                  <div className="s12checks">
+                    {pulih.gagal.map((l, i) => (
+                      <div key={`g${i}`} className="checkrow" data-st="gagal">
+                        <span className="checkrow__ic">
+                          <WarningIcon size={22} aria-hidden="true" />
+                        </span>
+                        <span className="grow">{l}</span>
+                      </div>
+                    ))}
+                    {pulih.diperbaiki.map((l, i) => (
+                      <div key={`d${i}`} className="checkrow" data-st="ok">
+                        <span className="checkrow__ic">
+                          <CheckCircleIcon size={22} aria-hidden="true" />
+                        </span>
+                        <span className="grow">{l}</span>
+                      </div>
+                    ))}
+                    {!pulih.gagal.length && !pulih.diperbaiki.length && (
+                      <span className="hint">{w.repairClean}</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </section>
             {riwayat("s12readyhist")}
           </div>

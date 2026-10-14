@@ -373,6 +373,28 @@ export function pengelolaPaket(info: Record<string, unknown> | null | undefined)
   return ["apt", "dnf", "yum", "pacman", "zypper"].includes(p) ? p : "apt";
 }
 
+/** The server's self-repair (iris-pulih, 2026-10-14): what it last fixed and
+ *  what it could not, English like every agent report. The agent sends it
+ *  in infoSistem.pulih only once there was news. */
+export interface HasilPulih {
+  pada: number | null;
+  diperbaiki: string[];
+  gagal: string[];
+}
+
+export function bacaPulih(info: Record<string, unknown> | null | undefined): HasilPulih | null {
+  const o = obj(info?.pulih);
+  if (!o) return null;
+  const baris = (v: unknown) =>
+    Array.isArray(v)
+      ? v
+          .filter((x): x is string => typeof x === "string")
+          .map((x) => x.slice(0, 300))
+          .slice(0, 20)
+      : [];
+  return { pada: num(o.pada), diperbaiki: baris(o.diperbaiki), gagal: baris(o.gagal) };
+}
+
 /** The site's own notes in a command's output, English like everything the
  *  agent reports (2026-10-14); rows written before keep their Indonesian
  *  note, so both are recognised. */
