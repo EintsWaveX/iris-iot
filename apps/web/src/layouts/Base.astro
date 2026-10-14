@@ -47,6 +47,7 @@ import Cosmos from "../components/Cosmos.astro";
 import AppNav from "../components/shell/AppNav";
 import Toast from "../components/ui/Toast";
 import SegFit from "../components/shell/SegFit";
+import TipLayer from "../components/shell/TipLayer";
 import SiteFooter from "../components/SiteFooter.astro";
 import { langTag, type Lang } from "../lib/kelas";
 import { SITE_URL } from "../lib/lab";
@@ -169,6 +170,7 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
     {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />}
     <Toast client:load />
     <SegFit client:load />
+    <TipLayer client:load />
     <slot />
     {footer && <SiteFooter lang={lang} />}
   </body>

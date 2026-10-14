@@ -270,12 +270,12 @@ function Tally({
   gauge?: ReactNode;
   children?: ReactNode;
 }) {
-  void lang;
   return (
     <button
       type="button"
       className="panel panel--tight sweep-hover tptally__c"
       aria-pressed={pressed}
+      data-tip={TPS[lang].tallyTip(label)}
       style={{ "--t": `var(${tone})` } as CSSProperties}
       onClick={onClick}
     >

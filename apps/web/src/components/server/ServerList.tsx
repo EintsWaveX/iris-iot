@@ -173,6 +173,7 @@ export default function ServerList({
                 type="button"
                 className="panel srvcard"
                 data-st={st}
+                data-tip={t.cardTip}
                 onClick={() => onOpen(s.id)}
               >
                 <span className="row row--between" style={{ flexWrap: "nowrap" }}>

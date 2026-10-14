@@ -83,6 +83,8 @@ function TanpaState({
   }
   return cloneElement(el, {
     ...gabung,
+    // TipLayer leaves a control with its own tooltip alone.
+    "data-tip-own": "",
     ref: (node: HTMLElement | null) => {
       for (const r of [ref, own]) {
         if (typeof r === "function") r(node);

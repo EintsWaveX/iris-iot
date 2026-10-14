@@ -38,3 +38,14 @@
     animation-duration: 1ms;
   }
 }
+
+/* TipLayer.tsx's one panel for the whole page (2026-10-14) */
+.tiplayer {
+  left: 0;
+  position: fixed;
+  top: 0;
+  z-index: 2147483000;
+}
+.tiplayer[hidden] {
+  display: none;
+}

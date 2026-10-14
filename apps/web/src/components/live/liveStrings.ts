@@ -92,7 +92,7 @@ export const LV = dict({
     panes: "Panel",
     source: "Sumber",
     combined: "Gabungan",
-    piServer: "Server PC Server",
+    piServer: "PC Server",
     board: (role: BoardRole) => ROLE_ID[role],
     noLines: "Tidak Ada Baris?",
     emptyTitle: "Kalau Serial Monitor kosong",
