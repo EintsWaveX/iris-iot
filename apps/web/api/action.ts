@@ -42,7 +42,7 @@ import {
   RENTANG_DETIK,
   unitDiagValid,
 } from "../src/lib/server-lib.js";
-import { apSumberValid, journalArgValid } from "../src/lib/server-shared.js";
+import { apSumberValid, CATATAN_BATAL, journalArgValid } from "../src/lib/server-shared.js";
 import { handleKonsolAksi } from "./_lib/konsol.js";
 import { bundelTerbaru } from "./_lib/bundel.js";
 import { currentSesi } from "../src/lib/sesi.js";
@@ -200,7 +200,7 @@ async function handlePerintahBatal(req: ApiRequest, res: ApiResponse, session: S
   const db = getDb();
   const result = await db
     .update(perintah)
-    .set({ status: "gagal", selesaiPada: new Date(), keluaran: "dibatalkan oleh asisten" })
+    .set({ status: "gagal", selesaiPada: new Date(), keluaran: CATATAN_BATAL })
     .where(and(eq(perintah.id, id), eq(perintah.status, "menunggu")))
     .returning({ id: perintah.id });
 

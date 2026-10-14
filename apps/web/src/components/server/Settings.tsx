@@ -31,6 +31,7 @@ import {
   JOURNAL_UNIT,
   LANGKAH_PASANG,
   posisiPasang,
+  tanpaKeluaran,
   type ApSumber,
 } from "../../lib/server-shared";
 import Enroll, { bacaPerintah } from "./Enroll";
@@ -130,11 +131,7 @@ function Journal({
         )}
       </span>
       <pre className="srv-log srv-log--fill">
-        {sama
-          ? last?.keluaran?.trim() && last.keluaran !== "(tidak ada keluaran)"
-            ? last.keluaran
-            : t.journalNone
-          : nil(lang)}
+        {sama ? (last && !tanpaKeluaran(last.keluaran) ? last.keluaran : t.journalNone) : nil(lang)}
       </pre>
     </section>
   );

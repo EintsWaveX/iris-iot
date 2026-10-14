@@ -284,8 +284,9 @@ export const S = dict({
       agen: "Agen iris-agent",
       bundel: "Bundel Pi (IRIS ASO)",
       modul4: "Server Modul 4 dan hunt (iris-iot)",
-      apt: "Paket sistem (apt)",
     },
+    /** pm: the Pi's package manager (apt, dnf, pacman, zypper), from the agent. */
+    updPkg: (pm: string) => `Paket sistem (${pm})`,
     updSt: {
       terbaru: "Terbaru",
       perlu: "Perlu Diperbarui",
@@ -317,13 +318,14 @@ export const S = dict({
     updAskApt: "Perbarui Paket Sistem?",
     updBundleBody: (aso: string, iot: string) =>
       `Pi mengunduh bundel IRIS ASO ${aso} dan iris-iot ${iot}, mengecek tanda tangannya, lalu memasangnya. Agen, skrip dan server Modul 4 diperbarui sekaligus. Layanan berhenti sekitar satu menit.`,
-    updAptBody:
-      "Pi menjalankan apt upgrade untuk semua paket sistem. Ini bisa makan beberapa menit, dan paket kernel serta layar dari Orange Pi ikut diperbarui.",
+    updAptBody: (pm: string) =>
+      `Pi memperbarui semua paket sistem lewat ${pm}. Ini bisa makan beberapa menit.`,
     updCancel: "Batal",
     updSent: "Pi mulai memperbarui pada denyut berikutnya.",
     updInSession: "Tunggu sesi selesai dulu.",
     updNoBundle: "CI belum menerbitkan bundel.",
-    updLast: { bundel: "Pemasangan bundel terakhir", apt: "apt upgrade terakhir" },
+    updLast: { bundel: "Pemasangan bundel terakhir" },
+    updLastPkg: (pm: string) => `${pm} upgrade terakhir`,
     updHasilSt: {
       berjalan: "sedang berjalan",
       selesai: "berhasil",
@@ -729,8 +731,8 @@ export const S = dict({
       agen: "iris-agent",
       bundel: "Pi bundle (IRIS ASO)",
       modul4: "Module 4 server and hunt (iris-iot)",
-      apt: "System packages (apt)",
     },
+    updPkg: (pm: string) => `System packages (${pm})`,
     updSt: {
       terbaru: "Up to Date",
       perlu: "Needs Update",
@@ -758,13 +760,14 @@ export const S = dict({
     updAskApt: "Update System Packages?",
     updBundleBody: (aso: string, iot: string) =>
       `The Pi downloads bundle IRIS ASO ${aso} with iris-iot ${iot}, checks its signature, then installs it. The agent, the scripts and the Module 4 server update together. Services stop for about a minute.`,
-    updAptBody:
-      "The Pi runs apt upgrade for every system package. It can take a few minutes, and Orange Pi's kernel and display packages update too.",
+    updAptBody: (pm: string) =>
+      `The Pi updates every system package through ${pm}. It can take a few minutes.`,
     updCancel: "Cancel",
     updSent: "The Pi starts updating on its next heartbeat.",
     updInSession: "Wait until the session ends.",
     updNoBundle: "CI hasn't published a bundle yet.",
-    updLast: { bundel: "Last bundle install", apt: "Last apt upgrade" },
+    updLast: { bundel: "Last bundle install" },
+    updLastPkg: (pm: string) => `Last ${pm} upgrade`,
     updHasilSt: {
       berjalan: "running",
       selesai: "done",
@@ -1162,8 +1165,8 @@ export const S = dict({
       agen: "iris-agent",
       bundel: "Pi 安装包（IRIS ASO）",
       modul4: "模块 4 服务器和寻踪（iris-iot）",
-      apt: "系统软件包（apt）",
     },
+    updPkg: (pm: string) => `系统软件包（${pm}）`,
     updSt: {
       terbaru: "已是最新",
       perlu: "需要更新",
@@ -1186,13 +1189,13 @@ export const S = dict({
     updAskApt: "更新系统软件包？",
     updBundleBody: (aso: string, iot: string) =>
       `Pi 会下载安装包 IRIS ASO ${aso} 和 iris-iot ${iot}，检查签名后再安装。agent、脚本和模块 4 服务器一起更新。服务会停大约一分钟。`,
-    updAptBody:
-      "Pi 会对所有系统软件包运行 apt upgrade。可能需要几分钟，Orange Pi 的内核和显示软件包也会一起更新。",
+    updAptBody: (pm: string) => `Pi 会通过 ${pm} 更新所有系统软件包。可能需要几分钟。`,
     updCancel: "取消",
     updSent: "Pi 会在下一次心跳时开始更新。",
     updInSession: "等这节课结束再更新。",
     updNoBundle: "CI 还没发布安装包。",
-    updLast: { bundel: "上次安装包安装", apt: "上次 apt upgrade" },
+    updLast: { bundel: "上次安装包安装" },
+    updLastPkg: (pm: string) => `上次 ${pm} upgrade`,
     updHasilSt: {
       berjalan: "进行中",
       selesai: "成功",

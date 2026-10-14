@@ -9,6 +9,10 @@ import {
   bacaPasang,
   LANGKAH_PASANG,
   posisiPasang,
+  pengelolaPaket,
+  catatanBatal,
+  CATATAN_BATAL,
+  tanpaKeluaran,
 } from "../server-shared";
 import { aksiValid, LAYANAN_DIKENAL } from "../server-lib";
 
@@ -190,5 +194,29 @@ describe("modulCek", () => {
       expect(modulCek(id)).toBeNull();
     expect(modulCek("Hotspot-IRIS-IOT")).toBeNull();
     expect(modulCek("dnsmasq")).toBeNull();
+  });
+});
+
+describe("agent reports in English (2026-10-14)", () => {
+  it("names the Pi's own package manager, apt for agents that predate infoSistem.distro", () => {
+    expect(pengelolaPaket({ distro: { keluarga: "redhat", pengelola: "dnf" } })).toBe("dnf");
+    expect(pengelolaPaket({ distro: { keluarga: "arch", pengelola: "pacman" } })).toBe("pacman");
+    expect(pengelolaPaket({})).toBe("apt");
+    expect(pengelolaPaket(null)).toBe("apt");
+    expect(pengelolaPaket({ distro: { pengelola: "rm -rf" } })).toBe("apt");
+  });
+
+  it("reads a cancelled command by the new English note and by the old Indonesian one", () => {
+    expect(catatanBatal(CATATAN_BATAL)).toBe(true);
+    expect(catatanBatal("dibatalkan oleh asisten")).toBe(true);
+    expect(catatanBatal("Exited with code 1")).toBe(false);
+  });
+
+  it("treats the agent's placeholder as an empty output in either language", () => {
+    expect(tanpaKeluaran("(no output)")).toBe(true);
+    expect(tanpaKeluaran("(tidak ada keluaran)")).toBe(true);
+    expect(tanpaKeluaran("  ")).toBe(true);
+    expect(tanpaKeluaran(null)).toBe(true);
+    expect(tanpaKeluaran("-- Journal begins --")).toBe(false);
   });
 });

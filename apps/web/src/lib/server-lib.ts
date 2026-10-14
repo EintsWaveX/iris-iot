@@ -20,6 +20,8 @@ import { getDb } from "./db.js";
 import { server, denyut, perintah, telemetriTerkini, telemetriLog } from "./schema.js";
 import { safeEqual } from "./auth.js";
 import {
+  CATATAN_AGEN_DIAM,
+  CATATAN_TIDAK_DIAMBIL,
   LAYANAN_URUT,
   PERINTAH_MENUNGGU_KEDALUWARSA_MENIT,
   PERINTAH_TERKIRIM_KEDALUWARSA_MENIT,
@@ -504,7 +506,7 @@ export async function sweepPerintahKedaluwarsa(): Promise<void> {
 
   await db
     .update(perintah)
-    .set({ status: "kedaluwarsa", keluaran: "agen tidak melapor" })
+    .set({ status: "kedaluwarsa", keluaran: CATATAN_AGEN_DIAM })
     .where(
       and(
         eq(perintah.status, "terkirim"),
@@ -514,7 +516,7 @@ export async function sweepPerintahKedaluwarsa(): Promise<void> {
     );
   await db
     .update(perintah)
-    .set({ status: "kedaluwarsa", keluaran: "tidak pernah diambil agen" })
+    .set({ status: "kedaluwarsa", keluaran: CATATAN_TIDAK_DIAMBIL })
     .where(and(eq(perintah.status, "menunggu"), lt(perintah.dimintaPada, menungguCutoff)));
 }
 

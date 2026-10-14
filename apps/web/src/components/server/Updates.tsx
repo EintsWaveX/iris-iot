@@ -12,7 +12,12 @@ import { ArrowsClockwiseIcon, CircleNotchIcon, DownloadSimpleIcon } from "@phosp
 import Confirm from "../ui/Confirm";
 import { useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
-import { bacaHasilPembaruan, barisPembaruan, type BarisPembaruan } from "../../lib/server-shared";
+import {
+  bacaHasilPembaruan,
+  barisPembaruan,
+  pengelolaPaket,
+  type BarisPembaruan,
+} from "../../lib/server-shared";
 import { kirim, sedangBerjalan, type Bisa, type Detail } from "./data";
 import { S, type SStrings } from "./strings";
 import Lalu from "../ui/Lalu";
@@ -49,6 +54,8 @@ export default function Updates({
   const s = data.server;
   const terbit = data.bundelTerbit;
   const rows = barisPembaruan(s.infoSistem, s.agenVersi, data.situsIot, terbit);
+  // apt, dnf, pacman or zypper: whatever the Pi's Linux uses (agent infoSistem.distro)
+  const pm = pengelolaPaket(s.infoSistem);
   const checking = sedangBerjalan(data, "info.segarkan");
   const hasil = {
     "pembaruan.bundel": bacaHasilPembaruan(s.infoSistem, "bundel", now),
@@ -98,7 +105,7 @@ export default function Updates({
             <div key={b.k} className="tabstops__row">
               <span className={`pill ${TONE[b.status]}`}>{t.updSt[b.status]}</span>
               <span className="stack" style={{ gap: 0 }}>
-                <b>{t.updRow[b.k]}</b>
+                <b>{b.k === "apt" ? t.updPkg(pm) : t.updRow[b.k]}</b>
                 <span className="hint mono">
                   <Baris t={t} b={b} />
                 </span>
@@ -130,7 +137,8 @@ export default function Updates({
         if (!h) return null;
         return (
           <p key={a} className="hint">
-            {t.updLast[a === "pembaruan.bundel" ? "bundel" : "apt"]}: {t.updHasilSt[h.status]}
+            {a === "pembaruan.bundel" ? t.updLast.bundel : t.updLastPkg(pm)}:{" "}
+            {t.updHasilSt[h.status]}
             {h.pada ? (
               <Lalu
                 iso={new Date(h.pada * 1000).toISOString()}
@@ -156,7 +164,7 @@ export default function Updates({
         title={ask === "pembaruan.apt" ? t.updAskApt : t.updAskBundle}
         body={
           ask === "pembaruan.apt"
-            ? t.updAptBody
+            ? t.updAptBody(pm)
             : t.updBundleBody(terbit?.aso ?? "", terbit?.iot ?? "")
         }
         confirmLabel={t.updDo}

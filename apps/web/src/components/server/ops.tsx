@@ -26,7 +26,7 @@ import {
 import { Switch } from "../ui/Controls";
 import { dict, jamMenit, postJson, sejak, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
-import { hotspotMenyala, urutkanLayanan } from "../../lib/server-shared";
+import { catatanBatal, hotspotMenyala, urutkanLayanan } from "../../lib/server-shared";
 import type { Heartbeat, Perintah } from "../console/types";
 import "./ops.css";
 import Lalu from "../ui/Lalu";
@@ -397,11 +397,10 @@ export function ServiceList({
 
 /* -------------------------------------------------------------- timeline */
 
-/** The API records a cancelled command as "gagal" with this note (the
- *  status enum has no separate value); show it as cancelled, not failed. */
-export const CATATAN_BATAL = "dibatalkan oleh asisten";
+/** The API records a cancelled command as "gagal" with a note (the status
+ *  enum has no separate value); show it as cancelled, not failed. */
 export function statusTampil(p: Pick<Perintah, "status" | "keluaran">): string {
-  return p.status === "gagal" && p.keluaran === CATATAN_BATAL ? "batal" : p.status;
+  return p.status === "gagal" && catatanBatal(p.keluaran) ? "batal" : p.status;
 }
 
 const STEP_OF: Record<string, number> = {

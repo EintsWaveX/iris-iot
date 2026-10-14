@@ -365,6 +365,32 @@ export interface HasilPembaruan {
   pada: number | null;
 }
 
+/** The package manager behind the Updates card's system packages row:
+ *  agent protocol 6 builds since 2026-10-14 send infoSistem.distro
+ *  ({ keluarga, pengelola }); before that every Pi ran apt. */
+export function pengelolaPaket(info: Record<string, unknown> | null | undefined): string {
+  const p = str(obj(info?.distro)?.pengelola);
+  return ["apt", "dnf", "yum", "pacman", "zypper"].includes(p) ? p : "apt";
+}
+
+/** The site's own notes in a command's output, English like everything the
+ *  agent reports (2026-10-14); rows written before keep their Indonesian
+ *  note, so both are recognised. */
+export const CATATAN_BATAL = "Cancelled by an Asisten";
+const CATATAN_BATAL_LAMA = "dibatalkan oleh asisten";
+export const CATATAN_AGEN_DIAM = "The agent never reported back";
+export const CATATAN_TIDAK_DIAMBIL = "The agent never picked it up";
+const TANPA_KELUARAN = ["(no output)", "(tidak ada keluaran)"];
+
+export function catatanBatal(keluaran: string | null | undefined): boolean {
+  return keluaran === CATATAN_BATAL || keluaran === CATATAN_BATAL_LAMA;
+}
+
+/** True when a command ran but printed nothing (the agent's own placeholder). */
+export function tanpaKeluaran(keluaran: string | null | undefined): boolean {
+  return !keluaran?.trim() || TANPA_KELUARAN.includes(keluaran);
+}
+
 /** Longer than any real run: three 45 minute download limits plus installs. */
 export const PEMBARUAN_BASI_DETIK = 4 * 3600;
 
