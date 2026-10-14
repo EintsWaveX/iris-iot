@@ -288,6 +288,38 @@
   }
 }
 
+/* -- inverse, green: a choice that is in use. At rest a green-edged
+   outline, tinted on hover; chosen, solid green with near-black words. -- */
+.btn--inverse-ok {
+  --pick: #34d399;
+  --pick-hover: #6ee7b7;
+  --pick-ink: #03140c;
+  background: var(--surface-3);
+  border: 1.5px solid color-mix(in srgb, var(--pick) 45%, transparent);
+  color: var(--text);
+}
+:root[data-theme="light"] .btn--inverse-ok {
+  --pick: #22c55e;
+  --pick-hover: #16a34a;
+}
+.btn--inverse-ok[aria-checked="true"],
+.btn--inverse-ok[aria-pressed="true"] {
+  background: var(--pick);
+  border-color: var(--pick);
+  color: var(--pick-ink);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn--inverse-ok:hover:not(:disabled):not([aria-checked="true"]):not([aria-pressed="true"]) {
+    background: color-mix(in srgb, var(--pick) 16%, var(--surface-3));
+    border-color: var(--pick);
+  }
+  .btn--inverse-ok:is([aria-checked="true"], [aria-pressed="true"]):hover:not(:disabled) {
+    background: var(--pick-hover);
+    border-color: var(--pick-hover);
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--pick) 35%, transparent);
+  }
+}
+
 /* -- ghost -- */
 .btn--ghost {
   background: transparent;

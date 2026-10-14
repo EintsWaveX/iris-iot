@@ -161,6 +161,7 @@ export const RB = dict({
     srcSuffixSaved: "Akhiran disimpan",
     srcSuffixSave: "Simpan",
     srcAddr: "Alamat SeeLabs",
+    srcAddrNow: "Sedang dipakai robot",
     addr: { kampus: "Kampus (TelU-Connect)", athena: "athena.ptrkr.moe (gerbang tim)" } as Record<
       string,
       string
@@ -358,6 +359,7 @@ export const RB = dict({
     srcSuffixSaved: "Suffix saved",
     srcSuffixSave: "Save",
     srcAddr: "SeeLabs address",
+    srcAddrNow: "In use by the robot",
     addr: { kampus: "Campus (TelU-Connect)", athena: "athena.ptrkr.moe (team gate)" } as Record<
       string,
       string
@@ -543,6 +545,7 @@ export const RB = dict({
     srcSuffixSaved: "后缀已保存",
     srcSuffixSave: "保存",
     srcAddr: "SeeLabs 地址",
+    srcAddrNow: "机器人正在使用",
     addr: { kampus: "校园（TelU-Connect）", athena: "athena.ptrkr.moe（团队网关）" } as Record<
       string,
       string

@@ -698,7 +698,7 @@ export default function CodeEditor({ lang }: { lang: Lang }) {
               setPilih(null);
               setSel(null);
             }}
-            options={kerja.map((b, i) => ({ value: String(i), label: <code>{b.path}</code> }))}
+            options={kerja.map((b, i) => ({ value: String(i), label: b.path }))}
           />
           <span className="codehead__tools kodeed__tools">
             <Seg

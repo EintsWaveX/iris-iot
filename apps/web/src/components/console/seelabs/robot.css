@@ -405,3 +405,66 @@
     justify-content: center;
   }
 }
+
+/* The suffix with its Simpan, then Tarik Kelompok and Daftarkan Input Jaga,
+   on one row from 900 (the hint under it); two columns below that. */
+.slr-tools {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(180px, 1.1fr) auto minmax(0, 1fr) minmax(0, 1fr);
+}
+.slr-tools > .slr-suffix,
+.slr-tools > .slr-acts {
+  display: contents;
+}
+.slr-tools .field {
+  min-width: 0;
+}
+.slr-tools .btn {
+  width: 100%;
+}
+.slr-tools .hint {
+  grid-column: 1 / -1;
+  order: 1;
+}
+@media (max-width: 899px) {
+  .slr-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Alamat SeeLabs: each choice with, under the one in use, a short note
+   (the other keeps the note's room so the buttons stay level) */
+.slr-pick__opt {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  min-width: 0;
+}
+.slr-pick__opt > .btn {
+  justify-content: center;
+  width: 100%;
+}
+.slr-pick__now {
+  align-items: center;
+  color: var(--ok);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 650;
+  gap: 5px;
+  visibility: hidden;
+}
+.slr-pick__now[data-on] {
+  visibility: visible;
+}
+@media (max-width: 519px) {
+  /* stacked, the note's room is only kept where it shows */
+  .slr-pick__now:not([data-on]) {
+    display: none;
+  }
+  .slr-tools .btn {
+    padding-inline: 10px;
+    white-space: normal;
+  }
+}

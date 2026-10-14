@@ -1912,3 +1912,17 @@ button.tpcheck:focus-visible,
     grid-column: 2;
   }
 }
+
+/* Penilaian › Praktikum: the filter at its own width, its note under it */
+.tpfilter {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.tpfilter > .seg--fit {
+  grid-auto-columns: auto;
+  width: auto;
+}
+.tpfilter > .seg--fit > button {
+  padding-inline: 20px;
+}

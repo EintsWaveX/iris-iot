@@ -3,7 +3,12 @@
  *  Pi key Asisten seal their passwords to (a new one waits for approval),
  *  who is connected, the KLP pull and Input Jaga, and the job log. */
 import { useState } from "react";
-import { CellSignalHighIcon, CellSignalSlashIcon, KeyIcon } from "@phosphor-icons/react";
+import {
+  CellSignalHighIcon,
+  CellSignalSlashIcon,
+  CheckCircleIcon,
+  KeyIcon,
+} from "@phosphor-icons/react";
 import { getJson, postJson } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
@@ -191,74 +196,86 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
         ))}
         <div className="field">
           <span className="field__label">{t.srcAddr}</span>
-          <div className="slr-seg" role="radiogroup" aria-label={t.srcAddr}>
-            {(["kampus", "athena"] as const).map((a) => (
-              <button
-                key={a}
-                type="button"
-                role="radio"
-                aria-checked={data.alamat === a}
-                className={`btn ${data.alamat === a ? "btn--primary" : "btn--secondary"}`}
-                disabled={busy}
-                onClick={() =>
-                  data.alamat !== a && void kirim({ aksi: "alamat", alamat: a }, t.addr[a])
-                }
-              >
-                {t.addr[a]}
-              </button>
-            ))}
+          <div className="slr-seg slr-pick" role="radiogroup" aria-label={t.srcAddr}>
+            {(["kampus", "athena"] as const).map((a) => {
+              const on = data.alamat === a;
+              return (
+                <div key={a} className="slr-pick__opt">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    className="btn btn--inverse-ok"
+                    disabled={busy}
+                    onClick={() => !on && void kirim({ aksi: "alamat", alamat: a }, t.addr[a])}
+                  >
+                    {t.addr[a]}
+                  </button>
+                  <span
+                    className="slr-pick__now"
+                    data-on={on ? "yes" : undefined}
+                    aria-hidden={!on}
+                  >
+                    <CheckCircleIcon size={15} weight="fill" aria-hidden="true" />
+                    {t.srcAddrNow}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
-        <form
-          className="slr-suffix"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (sufiksSah(nilaiSufiks) && nilaiSufiks !== data.sufiks)
-              void kirim({ aksi: "sufiks", sufiks: nilaiSufiks }, t.srcSuffixSaved).then(
-                (ok) => ok && setSufiks(null),
-              );
-          }}
-        >
-          <label className="field">
-            <span className="field__label">{t.srcSuffix}</span>
-            <input
-              className="field__input mono"
-              value={nilaiSufiks}
-              maxLength={16}
-              autoComplete="off"
-              spellCheck={false}
-              aria-invalid={!sufiksSah(nilaiSufiks) || undefined}
-              onChange={(e) => setSufiks(e.target.value.trim())}
-            />
-          </label>
-          <button
-            type="submit"
-            className="btn btn--secondary"
-            disabled={busy || !sufiksSah(nilaiSufiks) || nilaiSufiks === data.sufiks}
+        <div className="slr-tools">
+          <form
+            className="slr-suffix"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (sufiksSah(nilaiSufiks) && nilaiSufiks !== data.sufiks)
+                void kirim({ aksi: "sufiks", sufiks: nilaiSufiks }, t.srcSuffixSaved).then(
+                  (ok) => ok && setSufiks(null),
+                );
+            }}
           >
-            {t.srcSuffixSave}
-          </button>
-          <span className="hint">
-            {sufiksSah(nilaiSufiks) ? t.srcSuffixHint(nilaiSufiks) : t.srcSuffixBad}
-          </span>
-        </form>
-        <div className="slr-acts">
-          <button
-            type="button"
-            className="btn btn--secondary"
-            disabled={busy || !data.kunci}
-            onClick={() => void kirim({ aksi: "kelompok" })}
-          >
-            {t.srcPull}
-          </button>
-          <button
-            type="button"
-            className="btn btn--secondary"
-            disabled={busy || !data.kunci}
-            onClick={() => void kirim({ aksi: "jaga" })}
-          >
-            {t.srcJaga}
-          </button>
+            <label className="field">
+              <span className="field__label">{t.srcSuffix}</span>
+              <input
+                className="field__input mono"
+                value={nilaiSufiks}
+                maxLength={16}
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={!sufiksSah(nilaiSufiks) || undefined}
+                onChange={(e) => setSufiks(e.target.value.trim())}
+              />
+            </label>
+            <button
+              type="submit"
+              className="btn btn--secondary"
+              disabled={busy || !sufiksSah(nilaiSufiks) || nilaiSufiks === data.sufiks}
+            >
+              {t.srcSuffixSave}
+            </button>
+            <span className="hint">
+              {sufiksSah(nilaiSufiks) ? t.srcSuffixHint(nilaiSufiks) : t.srcSuffixBad}
+            </span>
+          </form>
+          <div className="slr-acts">
+            <button
+              type="button"
+              className="btn btn--secondary"
+              disabled={busy || !data.kunci}
+              onClick={() => void kirim({ aksi: "kelompok" })}
+            >
+              {t.srcPull}
+            </button>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              disabled={busy || !data.kunci}
+              onClick={() => void kirim({ aksi: "jaga" })}
+            >
+              {t.srcJaga}
+            </button>
+          </div>
         </div>
         {data.tarik?.pada && (
           <span className="hint">

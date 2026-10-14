@@ -1,6 +1,6 @@
 /**
  * /grading (Phase 13): Penilaian, reachable any time from the Asisten
- * navbar. Tabs: Tugas Pendahuluan (the groups and the grader), Soal TP
+ * navbar. Tabs: Nilai TP (the groups and the grader), Buat Soal TP
  * (each module's question bank, its final set and the LMS paper),
  * Praktikum (every session's score table this semester) and Sumber
  * SeeLabs. Sumber LMS moved to the LMS menu's Sambungan (Phase 15); an old

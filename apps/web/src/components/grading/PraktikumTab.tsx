@@ -162,8 +162,8 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
         </Tally>
       </div>
 
-      <div className="row row--between">
-        <div className="seg" role="tablist" aria-label={t.saring} style={{ width: "auto" }}>
+      <div className="tpfilter">
+        <div className="seg seg--fit" role="tablist" aria-label={t.saring} data-segfit="off">
           {(
             [
               ["act", t.perluTindakan],
@@ -181,7 +181,7 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
             </button>
           ))}
         </div>
-        <span className="hint">{t.praktikumHint}</span>
+        {f === "all" && <span className="hint">{t.praktikumHint}</span>}
       </div>
 
       {list.length === 0 ? (

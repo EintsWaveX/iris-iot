@@ -16,7 +16,7 @@ const id = {
   lampir: "Lampirkan PDF Soal TP",
   lampirHint:
     "Dari Soal Akhir yang tersimpan: Reguler dalam Bahasa Indonesia, Internasional dalam English. Menggantikan lampiran yang lama.",
-  pdfGagal: "PDF soal belum bisa dibuat. Buka Soal TP lalu coba lagi.",
+  pdfGagal: "PDF soal belum bisa dibuat. Buka tab Buat Soal TP lalu coba lagi.",
   teksReg: "Deskripsi Kelas Reguler",
   teksInt: "Deskripsi Kelas Internasional",
   teksHint: "Dipakai saat Buat dan Samakan. Kosongkan untuk teks bawaan.",
@@ -157,7 +157,7 @@ const en: LmsKelolaT = {
   lampir: "Attach the TP Questions PDF",
   lampirHint:
     "From the saved Final Set: Regular in Bahasa Indonesia, International in English. Replaces the old attachment.",
-  pdfGagal: "The questions PDF couldn't be made. Open TP Questions and try again.",
+  pdfGagal: "The questions PDF couldn't be made. Open the Make TP Questions tab and try again.",
   teksReg: "Regular Class Description",
   teksInt: "International Class Description",
   teksHint: "Used by Make and Match. Leave empty for the default text.",
@@ -293,7 +293,7 @@ const zh: LmsKelolaT = {
   tampilHint: "关闭时作业对学生隐藏。",
   lampir: "附上预习题目 PDF",
   lampirHint: "取自已保存的最终题目：普通班用印尼语，国际班用英语。替换旧的附件。",
-  pdfGagal: "题目 PDF 暂时无法生成。请打开预习题目后再试。",
+  pdfGagal: "题目 PDF 暂时无法生成。请打开编写预习题目后再试。",
   teksReg: "普通班说明",
   teksInt: "国际班说明",
   teksHint: "创建和同步时使用。留空则用默认文字。",
