@@ -144,9 +144,11 @@ function Baris({ lang, r }: { lang: Lang; r: BarisLog }) {
       ? t.olehPi
       : r.oleh === "halaman"
         ? t.olehHalaman
-        : r.oleh.startsWith("manual:")
-          ? t.olehManual(r.oleh.slice(7))
-          : r.oleh;
+        : r.oleh === "relay"
+          ? t.olehRelay
+          : r.oleh.startsWith("manual:")
+            ? t.olehManual(r.oleh.slice(7))
+            : r.oleh;
   return (
     <li data-tone={r.hasil === "gagal" ? "danger" : "ok"}>
       <span className="mono">{jam(r.mulai)}</span>

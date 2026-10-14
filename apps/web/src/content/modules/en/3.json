@@ -6,7 +6,7 @@
   "tagline": "Two boards exchange data through an Eclipse Mosquitto broker.",
   "fakta": ["Pi Pico W", "Mosquitto"],
   "ringkasan": [
-    "Two Raspberry Pi Pico W boards exchange data through an Eclipse Mosquitto broker running on an Orange Pi: one board publishes a potentiometer's position, and the other subscribes to the same topic and records every value that arrives.",
+    "Two Raspberry Pi Pico W boards exchange data through an Eclipse Mosquitto broker running on an PC Server: one board publishes a potentiometer's position, and the other subscribes to the same topic and records every value that arrives.",
     "Every group uses its own topic and mqtt_client_id, so many groups can share one broker without disturbing each other."
   ],
   "toolchain": [
@@ -21,7 +21,7 @@
       "jumlah": "2x"
     },
     {
-      "nama": "Orange Pi 4 PRO",
+      "nama": "PC Server",
       "jumlah": "1x, as the Mosquitto broker"
     },
     {
@@ -49,13 +49,13 @@
     "catatan": [
       "The Pico W's ADC input only tolerates up to 3.3 V, so the potentiometer's top leg must be fed from 3V3(OUT) (physical pin 36), not from the 5 V VBUS.",
       "Its middle leg (the wiper) must land on one of the ADC pins, that is GP26, GP27 or GP28.",
-      "The Eclipse Mosquitto broker runs on the Orange Pi 4 PRO and needs no additional circuit. The Subscriber only records the values that arrive, so the second Pico W just needs to be on the same Wi-Fi network as the Publisher."
+      "The Eclipse Mosquitto broker runs on the PC Server and needs no additional circuit. The Subscriber only records the values that arrive, so the second Pico W just needs to be on the same Wi-Fi network as the Publisher."
     ]
   },
   "persiapan": [
-    "Installing the mosquitto and mosquitto-clients packages on the Orange Pi (sudo apt install)",
+    "Installing the mosquitto and mosquitto-clients packages on the PC Server (sudo apt install)",
     "Enabling broker autostart: sudo systemctl enable mosquitto.service",
-    "Noting the Orange Pi's IP address with hostname -I",
+    "Noting the PC Server's IP address with hostname -I",
     "Editing /etc/mosquitto/mosquitto.conf, adding listener 1883 and allow_anonymous true",
     "Restarting the service: sudo systemctl restart mosquitto.service",
     "Installing the micropython-umqtt.simple library on both Pico W boards through Thonny",

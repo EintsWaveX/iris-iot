@@ -226,7 +226,7 @@ export function ValueCards({
         <VCard label={t.hum} v={dash(n("lembap"))} unit="%" {...buka("lembap", t.hum)}>
           <Spark vals={series((r) => r.nilai.lembap)} />
         </VCard>
-        <TimeCard label={t.times} r={last} a="ESP32" b="Orange Pi" />
+        <TimeCard label={t.times} r={last} a="ESP32" b="PC Server" />
         {delay}
         {rtt}
         {quality}
@@ -371,7 +371,7 @@ export function SerialMonitor({
     ...sources.map((s) => ({ v: s.k, label: s.label })),
   ];
   const tag = (k: string) =>
-    k === "pi" ? "Pi" : k === "mir" ? "PC" : String(Number(k.slice(1)) + 1);
+    k === "pi" ? "PC Server" : k === "mir" ? "PC" : String(Number(k.slice(1)) + 1);
   const boardEmpty = role === "own" && cur && cur.k !== "pi" && cur.lines.length === 0;
 
   return (

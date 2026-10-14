@@ -358,10 +358,11 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       (async () => {
         // The topics this beat changed, as before (most beats change none).
         await Promise.all([siarkan([...berubah]), terbitAwal]);
-        // Phase 13: the Pi's beat is the TP sync's clock while a window is
-        // open (every 5 minutes at most) and once after it closes. The Pi
-        // never sees the LMS token; this runs here, after the beat is answered.
-        await sinkronBilaPerlu(db, "pi", 5 * 60_000);
+        // Phase 13: the server's beat is one of the TP sync's clocks while a
+        // window is open (every minute at most, with the relay's timer) and
+        // once after it closes. The server never sees the LMS token; this
+        // runs here, after the beat is answered.
+        await sinkronBilaPerlu(db, "pi", 60_000);
         // TP uploaded in IRIS whose copy to the LMS failed: tried again.
         await kirimTertunda(db);
         // Phase 14: the robot's daily KLP pull and Input Jaga check.

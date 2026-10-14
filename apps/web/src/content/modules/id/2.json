@@ -4,9 +4,9 @@
   "judul": "WebSocket",
   "topik": "Komunikasi WebSocket dengan Server Lokal",
   "tagline": "ESP32 mengirim data sensor ke server Python lewat Wi-Fi lokal.",
-  "fakta": ["ESP32", "DHT22", "Orange Pi"],
+  "fakta": ["ESP32", "DHT22", "PC Server"],
   "ringkasan": [
-    "ESP32 membaca sensor DHT22 dan mengirim hasilnya ke server WebSocket yang berjalan di Orange Pi lewat jaringan Wi-Fi lokal yang sama.",
+    "ESP32 membaca sensor DHT22 dan mengirim hasilnya ke server WebSocket yang berjalan di PC Server lewat jaringan Wi-Fi lokal yang sama.",
     "Server membedakan tiap kelompok dari path koneksinya, sehingga beberapa kelompok dapat memakai satu server yang sama tanpa saling mengganggu."
   ],
   "toolchain": [
@@ -15,7 +15,7 @@
       "alat": "Arduino IDE"
     },
     {
-      "label": "Server pada Orange Pi",
+      "label": "Server pada PC Server",
       "alat": "Python (CPython), lewat editor teks dan virtual environment"
     }
   ],
@@ -25,7 +25,7 @@
       "jumlah": "1x"
     },
     {
-      "nama": "Orange Pi 4 PRO",
+      "nama": "PC Server",
       "jumlah": "1x, sebagai server lokal"
     },
     {
@@ -51,22 +51,22 @@
       ["DHT (GND)", "GND"]
     ],
     "catatan": [
-      "Orange Pi tidak memerlukan rangkaian tambahan apa pun. Server WebSocket berjalan sepenuhnya sebagai perangkat lunak, sehingga Orange Pi cukup terhubung ke jaringan Wi-Fi yang sama dengan ESP32.",
+      "PC Server tidak memerlukan rangkaian tambahan apa pun. Server WebSocket berjalan sepenuhnya sebagai perangkat lunak, sehingga PC Server cukup terhubung ke jaringan Wi-Fi yang sama dengan ESP32.",
       "DHT22 tidak boleh dibaca lebih cepat dari sekali tiap 2 detik. Interval yang lebih rapat mengembalikan NAN."
     ]
   },
   "persiapan": [
     "Memasang pustaka DHT sensor library dan Adafruit Unified Sensor melalui Library Manager Arduino IDE",
     "Memasang pustaka WebSockets karya Markus Sattler melalui Library Manager Arduino IDE",
-    "Menyiapkan virtual environment websockets pada Orange Pi (python3 -m venv, lalu pip install \"websockets>=13\")",
-    "Mencatat alamat IP Orange Pi dengan hostname -I",
+    "Menyiapkan virtual environment websockets pada PC Server (python3 -m venv, lalu pip install \"websockets>=13\")",
+    "Mencatat alamat IP PC Server dengan hostname -I",
     "Memakai path milik kelompok sendiri pada WS_PATH",
     "Menyamakan nilai port dan path pada kedua berkas program"
   ],
   "berkas": [
     {
       "path": "modul2_websocket_server.py",
-      "judul": "Server: WebSocket (Python, Orange Pi)",
+      "judul": "Server: WebSocket (Python, PC Server)",
       "bahasaKode": "python"
     },
     {

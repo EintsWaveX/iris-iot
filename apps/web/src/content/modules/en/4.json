@@ -4,7 +4,7 @@
   "judul": "LoRa",
   "topik": "Long Range Communication (LoRa Peer to Peer)",
   "tagline": "A LoRa P2P signal hunt between ESP32 boards.",
-  "fakta": ["ESP32", "LoRa P2P", "Pi hotspot"],
+  "fakta": ["ESP32", "LoRa P2P", "PC Server hotspot"],
   "ringkasan": [
     "This module uses no external sensor or actuator at all. What is being measured is the radio wave itself: the relationship between signal strength and distance.",
     "Because peer to peer LoRa has no built in channel protocol, every network rule, including the sync word and the transmit interval, is one the participants build themselves."
@@ -37,7 +37,7 @@
       "jumlah": "1x per board"
     },
     {
-      "nama": "Orange Pi 4 PRO",
+      "nama": "PC Server",
       "jumlah": "1x per class, hotspot and scoreboard"
     },
     {
@@ -69,7 +69,7 @@
     "Installing the LoRa library by Sandeep Mistry through the Arduino IDE Library Manager",
     "Installing the WebSockets library by Markus Sattler through the Arduino IDE Library Manager",
     "Selecting the ESP32 Dev Module board in the Arduino IDE",
-    "Checking that the Orange Pi has its IRIS-IOT hotspot and its scoreboard running",
+    "Checking that the PC Server has its IRIS-IOT hotspot and its scoreboard running",
     "Copying your group's folder, then uploading hunter.ino without editing anything",
     "Checking that the Serial Monitor prints an IP address and a synchronised clock",
     "Opening the scoreboard, entering your student ID, and confirming your own group appears",

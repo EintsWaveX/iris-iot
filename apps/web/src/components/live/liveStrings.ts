@@ -53,7 +53,7 @@ export const LV = dict({
     } as Record<string, string>,
     portsHint: "Pakai Chrome atau Edge. Kalau kabel tercabut, tekan Hubungkan lagi.",
     unsupported:
-      "Menyambungkan papan butuh Chrome atau Edge di laptop. Halaman ini tetap menampilkan data kelompokmu dari Orange Pi.",
+      "Menyambungkan papan butuh Chrome atau Edge di laptop. Halaman ini tetap menampilkan data kelompokmu dari PC Server.",
     uploadSent: (n: number) => `${n} bacaan terkirim ke asisten`,
     uploadNoSession: "Belum terkirim: tidak ada sesi Modul 1 berjalan yang kamu ikuti.",
     uploadOffline: "Belum terkirim, mencoba lagi…",
@@ -92,7 +92,7 @@ export const LV = dict({
     panes: "Panel",
     source: "Sumber",
     combined: "Gabungan",
-    piServer: "Server Pi",
+    piServer: "Server PC Server",
     board: (role: BoardRole) => ROLE_ID[role],
     noLines: "Tidak Ada Baris?",
     emptyTitle: "Kalau Serial Monitor kosong",
@@ -105,8 +105,8 @@ export const LV = dict({
     ownOnly: "Serial hanya untuk papan kelompokmu",
     ownOnlyBody: "Pilih kelompokmu untuk melihatnya.",
     piOnlyAsisten:
-      "Baris dari papan hanya tampil di laptop kelompok. Di sini tampil baris server Pi.",
-    noPiLines: "Modul ini tidak punya log server Pi. Baris papan tampil di laptop kelompok.",
+      "Baris dari papan hanya tampil di laptop kelompok. Di sini tampil baris server PC Server.",
+    noPiLines: "Modul ini tidak punya log server PC Server. Baris papan tampil di laptop kelompok.",
     waiting: "Menunggu baris pertama…",
     follow: "Ikuti Baris Terbaru",
     lost: "hilang",
@@ -185,7 +185,7 @@ export const LV = dict({
     } as Record<string, string>,
     portsHint: "Use Chrome or Edge. If the cable slips out, press Connect again.",
     unsupported:
-      "Connecting a board needs Chrome or Edge on a laptop. This page still shows your group's data from the Orange Pi.",
+      "Connecting a board needs Chrome or Edge on a laptop. This page still shows your group's data from the PC Server.",
     uploadSent: (n: number) => `${n} readings sent to your assistant`,
     uploadNoSession: "Not sent: there is no running Module 1 session you joined.",
     uploadOffline: "Not sent yet, retrying…",
@@ -221,7 +221,7 @@ export const LV = dict({
     panes: "Panel",
     source: "Source",
     combined: "Combined",
-    piServer: "Pi Server",
+    piServer: "PC Server",
     board: (role: BoardRole) => ROLE_EN[role],
     noLines: "No Lines?",
     emptyTitle: "If the Serial Monitor stays empty",
@@ -233,8 +233,8 @@ export const LV = dict({
         : "Press Connect on the Connect Your Boards card, then pick the board's port.",
     ownOnly: "Serial only shows your own group's boards",
     ownOnlyBody: "Pick your own group to see it.",
-    piOnlyAsisten: "Board lines show on the group's laptop only. The Pi server's lines show here.",
-    noPiLines: "This module has no Pi server log. Board lines show on the group's laptop.",
+    piOnlyAsisten: "Board lines show on the group's laptop only. The PC Server's lines show here.",
+    noPiLines: "This module has no PC Server log. Board lines show on the group's laptop.",
     waiting: "Waiting for the first line…",
     follow: "Follow the Newest Line",
     lost: "lost",
@@ -310,7 +310,7 @@ export const LV = dict({
     } as Record<string, string>,
     portsHint: "请使用 Chrome 或 Edge。如果数据线松了，再按一次“连接”。",
     unsupported:
-      "连接板子需要在笔记本电脑上使用 Chrome 或 Edge。这个页面仍会显示来自 Orange Pi 的小组数据。",
+      "连接板子需要在笔记本电脑上使用 Chrome 或 Edge。这个页面仍会显示来自 PC 服务器的小组数据。",
     uploadSent: (n: number) => `已向助教发送 ${n} 条读数`,
     uploadNoSession: "未发送：没有你参加的正在进行的模块 1 实验课。",
     uploadOffline: "还未发送，正在重试…",
@@ -346,7 +346,7 @@ export const LV = dict({
     panes: "面板",
     source: "来源",
     combined: "合并",
-    piServer: "Pi 服务器",
+    piServer: "PC 服务器",
     board: (role: BoardRole) => ROLE_ZH[role],
     noLines: "没有输出？",
     emptyTitle: "如果 Serial Monitor 一直是空的",
@@ -358,8 +358,8 @@ export const LV = dict({
         : "在“连接板子”卡片上按“连接”，然后选择板子的端口。",
     ownOnly: "Serial 只显示你自己小组的板子",
     ownOnlyBody: "选择你的小组就能看到。",
-    piOnlyAsisten: "板子的输出只显示在小组的笔记本电脑上。这里显示 Pi 服务器的输出。",
-    noPiLines: "这个模块没有 Pi 服务器日志。板子的输出显示在小组的笔记本电脑上。",
+    piOnlyAsisten: "板子的输出只显示在小组的笔记本电脑上。这里显示 PC 服务器的输出。",
+    noPiLines: "这个模块没有 PC 服务器日志。板子的输出显示在小组的笔记本电脑上。",
     waiting: "等待第一行…",
     follow: "跟随最新一行",
     lost: "丢失",
@@ -443,7 +443,7 @@ const HELP_ID: Record<number, string[]> = {
   ],
   4: [
     "Cukup Hunter yang dicolok. Beacon boleh dicolok juga untuk memastikan waktu kirim.",
-    "Waktu kirim diambil dari isi paket LoRa yang diteruskan Hunter ke Pi, dipasangkan lewat nomor paket.",
+    "Waktu kirim diambil dari isi paket LoRa yang diteruskan Hunter ke PC Server, dipasangkan lewat nomor paket.",
     "ESP32-S3 lewat port USB bawaan butuh USB CDC On Boot › Enabled.",
   ],
 };
@@ -457,7 +457,7 @@ const HELP_EN: Record<number, string[]> = {
   ],
   4: [
     "The Hunter is enough. Plug the Beacon in too if you want to confirm the send time.",
-    "The send time comes from the LoRa packet the Hunter forwards to the Pi, matched by packet number.",
+    "The send time comes from the LoRa packet the Hunter forwards to the PC Server, matched by packet number.",
     "ESP32-S3 on its native USB port needs USB CDC On Boot › Enabled.",
   ],
 };
@@ -471,7 +471,7 @@ const HELP_ZH: Record<number, string[]> = {
   ],
   4: [
     "只插 Hunter 就够了。也可以插上 Beacon 来确认发送时间。",
-    "发送时间来自 Hunter 转发给 Pi 的 LoRa 数据包内容，按包编号配对。",
+    "发送时间来自 Hunter 转发给 PC 服务器的 LoRa 数据包内容，按包编号配对。",
     "ESP32-S3 使用自带 USB 口时需要 USB CDC On Boot › Enabled。",
   ],
 };

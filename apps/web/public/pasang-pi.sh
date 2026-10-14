@@ -79,7 +79,7 @@ SITUS="${SITUS%/}"
 # The user whose home holds the code: whoever ran sudo, else iris.
 PENGGUNA="${SUDO_USER:-}"
 [ -z "$PENGGUNA" ] || [ "$PENGGUNA" = root ] && PENGGUNA=iris
-[ "$(id -u "$PENGGUNA" 2>/dev/null || echo 0)" -ge 1000 ] || gagal "User $PENGGUNA does not exist. Run this line from the Pi's desktop user's terminal (orangepi or iris), not as root"
+[ "$(id -u "$PENGGUNA" 2>/dev/null || echo 0)" -ge 1000 ] || gagal "User $PENGGUNA does not exist. Run this line from the PC Server's desktop user's terminal, not as root"
 REPO_ROOT="/home/$PENGGUNA/IRIS-ASO"
 
 KERJA=$(mktemp -d)
@@ -170,21 +170,21 @@ if [ -f "$CONFIG" ]; then
   LAMA_ID=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('serverId', ''))" "$CONFIG" 2>/dev/null || echo "")
   LAMA_SITUS=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('server', ''))" "$CONFIG" 2>/dev/null || echo "")
   if [ "$LAMA_ID" = "$SERVER_BARU" ] && [ "${LAMA_SITUS%/}" = "$SITUS" ]; then
-    echo "[INFO] This Pi is already server \"$KODE\" (#$SERVER_BARU); a new token, enrolled again"
+    echo "[INFO] This PC Server is already server \"$KODE\" (#$SERVER_BARU); a new token, enrolled again"
   else
-    echo "[INFO] This Pi now reports to server #${LAMA_ID:-?} at ${LAMA_SITUS:-?}."
+    echo "[INFO] This PC Server now reports to server #${LAMA_ID:-?} at ${LAMA_SITUS:-?}."
     echo "       Once moved, it reports to \"$KODE\" (#$SERVER_BARU), and the old server on"
-    echo "       the site stops getting heartbeats from this Pi."
+    echo "       the site stops getting heartbeats from this PC Server."
     if [ "$YA" -ne 1 ]; then
       JAWAB=""
       # Piped from curl, stdin is the script: ask on the terminal, if any.
       if (: < /dev/tty) 2>/dev/null; then
-        printf 'Move this Pi to "%s"? Type yes to go on: ' "$KODE" > /dev/tty
+        printf 'Move this PC Server to "%s"? Type yes to go on: ' "$KODE" > /dev/tty
         read -r JAWAB < /dev/tty || JAWAB=""
       fi
       case "$JAWAB" in
         yes | ya) ;;
-        *) gagal "Cancelled; this Pi keeps reporting to server #${LAMA_ID:-?}. Add --ya to skip this question" ;;
+        *) gagal "Cancelled; this PC Server keeps reporting to server #${LAMA_ID:-?}. Add --ya to skip this question" ;;
       esac
     fi
   fi
@@ -198,7 +198,7 @@ if [ -f "$AGEN_DIR/agent.py" ] && [ "$ULANG" -ne 1 ]; then
   langkah "5/5 Enrol with the site"
   kabar daftar
   daftar
-  printf '\n[INFO] Done. This Pi is now server "%s" and sends heartbeats; see the Server page on the site.\n' "$KODE"
+  printf '\n[INFO] Done. This PC Server is now server "%s" and sends heartbeats; see the Server page on the site.\n' "$KODE"
   exit 0
 fi
 
@@ -237,7 +237,7 @@ SELISIH=$(( ${WAKTU:-0} - $(date +%s) ))
 [ "$SELISIH" -lt 0 ] && SELISIH=$((0 - SELISIH))
 if [ "${WAKTU:-0}" -gt 0 ] && [ "$SELISIH" -gt 30 ] && [ -z "$UJI" ]; then
   if [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || echo no)" != yes ]; then
-    date -s "@$WAKTU" >/dev/null && echo "[INFO] The Pi's clock was ${SELISIH} s off, set from the site"
+    date -s "@$WAKTU" >/dev/null && echo "[INFO] The PC Server's clock was ${SELISIH} s off, set from the site"
   fi
 fi
 
@@ -257,7 +257,7 @@ else
   export KONSOL_RELAY IRIS_FROM_SITE
   if ! sh "$REPO_ROOT/scripts/opi_provision.sh" --repo-root "$REPO_ROOT"; then
     TERAKHIR=$(grep '^== ' /var/log/iris-provision.log 2>/dev/null | tail -1 | sed 's/^== //; s/ ==$//')
-    gagal "Provisioning stopped at \"${TERAKHIR:-?}\"; the full log is on the Pi: /var/log/iris-provision.log"
+    gagal "Provisioning stopped at \"${TERAKHIR:-?}\"; the full log is on the PC Server: /var/log/iris-provision.log"
   fi
 fi
 

@@ -135,7 +135,7 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
             <dd>{data.kunci ? <Sidik nilai={data.kunci.sidik} /> : t.srcKeyNone}</dd>
           </div>
           <div>
-            <dt>Orange Pi</dt>
+            <dt>PC Server</dt>
             <dd>{piRobot ? `#${piRobot.serverId} ${piRobot.nama}` : t.never}</dd>
           </div>
           <div>

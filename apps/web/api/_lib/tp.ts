@@ -8,10 +8,12 @@
  * - lms_status  the last sync's result, and which windows had their sweep
  * - tp_jendela  the semester's default window and each module's own
  *
- * The sync runs with nobody clicking: on the Orange Pi's heartbeat while a
- * window is open (every 5 minutes at most), once more after it closes (the
- * sweep), and when a TP page opens (every 2 minutes at most). It writes
- * pointers only (tp_kiriman); files stream from the LMS on view.
+ * The sync runs with nobody clicking, every minute at most while a window
+ * is open and once more after it closes (the sweep): on the relay's minute
+ * timer (POST /api/tp/detak, so it doesn't wait for the server PC), on the
+ * server PC's heartbeat, and when a TP page opens (2026-10-14: was 5 and 2
+ * minutes, and a new or removed LMS file showed late). It writes pointers
+ * only (tp_kiriman); files stream from the LMS on view.
  *
  * The question bank (tp_paket, Penilaian › Soal TP) holds each module's
  * variants and the final set's pick; with no row a module uses the default
@@ -302,7 +304,7 @@ const JAM12 = 12 * 3_600_000;
 const HARI3 = 3 * 86_400_000;
 
 /** Modules whose window is open, or closed under three days ago. */
-function modulAktif(set: SetTp, now = Date.now()): number[] {
+export function modulAktif(set: SetTp, now = Date.now()): number[] {
   return [1, 2, 3, 4].filter((m) => {
     const j = jendelaUntuk(set, m);
     if (!j) return false;
@@ -659,6 +661,27 @@ export async function sinkronBilaPerlu(db: Db, oleh: string, jedaMs: number): Pr
   } catch (e) {
     console.error("[api/tp] background sync failed:", e);
   }
+}
+
+/**
+ * How long the relay's minute timer may sleep: a minute while a window is
+ * open or its sweep is due, else until the next window opens (at most 6
+ * hours, so a window set later is still caught).
+ */
+export function tidurDetik(set: SetTp, adaTertunda: boolean, now = Date.now()): number {
+  const MENIT = 60;
+  if (adaTertunda) return MENIT;
+  for (const m of modulAktif(set, now)) {
+    const j = jendelaUntuk(set, m)!;
+    if (keadaanJendela(j, now) === "buka") return MENIT;
+    if (set.status.sapuan[String(m)] !== j.tutup) return MENIT;
+  }
+  const berikut = [1, 2, 3, 4]
+    .map((m) => jendelaUntuk(set, m))
+    .filter((j): j is NonNullable<typeof j> => !!j && Date.parse(j.buka) > now)
+    .map((j) => Date.parse(j.buka));
+  const sampai = berikut.length ? Math.min(...berikut) : now + 6 * 3600_000;
+  return Math.max(MENIT, Math.min(6 * 3600, Math.round((sampai - now) / 1000)));
 }
 
 /* ===================================================== groups and holders */

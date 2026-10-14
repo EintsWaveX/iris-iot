@@ -72,8 +72,8 @@ const T = dict({
     locked: (n: number) => `Modul ${n} ditutup.`,
     undo: "Urungkan",
     fail: "Tidak dapat menghubungi server.",
-    apSent: "Perintah dikirim. Berlaku pada denyut berikutnya dari Orange Pi.",
-    apNone: "Tidak ada satu Orange Pi tunggal untuk dikirimi perintah. Buka halaman Server.",
+    apSent: "Perintah dikirim. Berlaku pada denyut berikutnya dari PC Server.",
+    apNone: "Tidak ada satu PC Server tunggal untuk dikirimi perintah. Buka halaman Server.",
     shortcuts: "Pintasan Keyboard",
     groups: {
       anywhere: "Di Mana Saja",
@@ -136,8 +136,8 @@ const T = dict({
     locked: (n: number) => `Module ${n} locked.`,
     undo: "Undo",
     fail: "Could not reach the server.",
-    apSent: "Command sent. It applies on the Orange Pi's next heartbeat.",
-    apNone: "There is no single Orange Pi to send this to. Open the Server page.",
+    apSent: "Command sent. It applies on the PC Server's next heartbeat.",
+    apNone: "There is no single PC Server to send this to. Open the Server page.",
     shortcuts: "Keyboard Shortcuts",
     groups: {
       anywhere: "Anywhere",
@@ -200,8 +200,8 @@ const T = dict({
     locked: (n: number) => `模块 ${n} 已锁定。`,
     undo: "撤销",
     fail: "连不上服务器。",
-    apSent: "命令已发送。会在 Orange Pi 下一次心跳时生效。",
-    apNone: "没有唯一的一台 Orange Pi 可以发送。请打开服务器页面。",
+    apSent: "命令已发送。会在 PC 服务器下一次心跳时生效。",
+    apNone: "没有唯一的一台 PC 服务器可以发送。请打开服务器页面。",
     shortcuts: "键盘快捷键",
     groups: {
       anywhere: "任何地方",

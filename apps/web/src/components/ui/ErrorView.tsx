@@ -123,7 +123,7 @@ const T = dict({
       },
       503: {
         title: "Server Lab Sedang Tidak Tersedia",
-        why: "Orange Pi lab tidak mengirim denyut, atau sedang diperbarui.",
+        why: "PC Server lab tidak mengirim denyut, atau sedang diperbarui.",
         todo: "Data Live berhenti sementara. Halaman lain tetap jalan.",
       },
     } as Record<ErrorCode, Copy>,
@@ -213,7 +213,7 @@ const T = dict({
       },
       503: {
         title: "The Lab Server Is Unavailable",
-        why: "The lab's Orange Pi isn't sending heartbeats, or it is being updated.",
+        why: "The lab's PC Server isn't sending heartbeats, or it is being updated.",
         todo: "Live data is paused. The rest of the site keeps working.",
       },
     } as Record<ErrorCode, Copy>,
@@ -303,7 +303,7 @@ const T = dict({
       },
       503: {
         title: "实验室服务器暂时不可用",
-        why: "实验室的 Orange Pi 没有发心跳，或者正在更新。",
+        why: "实验室的 PC 服务器没有发心跳，或者正在更新。",
         todo: "实时数据暂停了。网站其他部分照常运行。",
       },
     } as Record<ErrorCode, Copy>,

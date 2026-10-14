@@ -60,15 +60,16 @@ interface Panggilan {
 
 const T = dict({
   id: {
-    piH: "Pi tidak mengirim detak",
-    piP: (m: string) => `Sesi sedang berjalan, tapi Pi diam sejak ${m}. Cek daya dan Wi-Fi Pi.`,
+    piH: "PC Server tidak mengirim detak",
+    piP: (m: string) =>
+      `Sesi sedang berjalan, tapi PC Server diam sejak ${m}. Cek daya dan Wi-Fi PC Server.`,
     piNever: "belum pernah",
     piGo: "Buka Server",
     errH: (n: number, m: number) => `${n} galat server dalam ${m} menit terakhir`,
     errGo: "Lihat Galat",
     notif: "Beri Tahu Saya",
     hide: "Sembunyikan",
-    nPi: "IRIS: Pi tidak mengirim detak",
+    nPi: "IRIS: PC Server tidak mengirim detak",
     nErr: "IRIS: galat server bertambah",
     callH: (who: string, m: string) => `${who} memanggil DEV${m ? ` dari sesi ${m}` : ""}`,
     callMore: (n: number) => `dan ${n} panggilan lain`,
@@ -81,16 +82,16 @@ const T = dict({
     fail: "Tidak bisa sekarang. Coba lagi.",
   },
   en: {
-    piH: "The Pi stopped sending heartbeats",
+    piH: "The PC Server stopped sending heartbeats",
     piP: (m: string) =>
-      `A session is running, but the Pi has been silent since ${m}. Check its power and Wi-Fi.`,
+      `A session is running, but the PC Server has been silent since ${m}. Check its power and Wi-Fi.`,
     piNever: "never",
     piGo: "Open Server",
     errH: (n: number, m: number) => `${n} server errors in the last ${m} minutes`,
     errGo: "See Errors",
     notif: "Notify Me",
     hide: "Hide",
-    nPi: "IRIS: the Pi stopped sending heartbeats",
+    nPi: "IRIS: the PC Server stopped sending heartbeats",
     nErr: "IRIS: server errors are piling up",
     callH: (who: string, m: string) =>
       `${who} is calling the DEVs${m ? ` from a ${m} session` : ""}`,
@@ -104,15 +105,16 @@ const T = dict({
     fail: "Not possible right now. Try again.",
   },
   zh: {
-    piH: "Pi 停止发送心跳",
-    piP: (m: string) => `正在上课，但 Pi 从${m}起就没有动静了。检查一下 Pi 的电源和 Wi-Fi。`,
+    piH: "PC 服务器停止发送心跳",
+    piP: (m: string) =>
+      `正在上课，但 PC 服务器从${m}起就没有动静了。检查一下 PC 服务器的电源和 Wi-Fi。`,
     piNever: "从未",
     piGo: "打开服务器",
     errH: (n: number, m: number) => `最近 ${m} 分钟内有 ${n} 个服务器错误`,
     errGo: "查看错误",
     notif: "通知我",
     hide: "隐藏",
-    nPi: "IRIS：Pi 停止发送心跳",
+    nPi: "IRIS：PC 服务器停止发送心跳",
     nErr: "IRIS：服务器错误在增加",
     callH: (who: string, m: string) => `${who}${m ? `从${m}的课上` : ""}呼叫 DEV`,
     callMore: (n: number) => `还有 ${n} 个呼叫`,

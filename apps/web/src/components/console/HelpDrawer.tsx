@@ -37,7 +37,7 @@ const HD = dict({
       relay: "Siaran langsung",
       relayOk: "terhubung",
       relayBad: "terputus, data diambil berkala",
-      pi: "Pi",
+      pi: "PC Server",
       piOk: (s: number) => `denyut ${laluLabel(s, "id")}`,
       piBad: "tidak ada denyut",
       piNone: "belum ada server",
@@ -47,7 +47,7 @@ const HD = dict({
       data: "Data kelompok",
       dataOk: "semua mengirim",
       dataBad: (x: string) => `${x} belum mengirim`,
-      clock: "Jam Pi",
+      clock: "Jam PC Server",
       clockOk: "selaras",
       clockBad: "tidak selaras",
     },
@@ -86,18 +86,18 @@ const HD = dict({
     delay: "Delay di jurnal aneh",
     delayFound: (ok: boolean) =>
       ok
-        ? "Jam Pi selaras dengan situs. Papan memakai jam Pi lewat NTP."
-        : "Jam Pi tidak selaras dengan situs. Selaraskan dulu, lalu minta kelompok mengulang pengukuran.",
-    sync: "Sinkronkan Jam Pi",
+        ? "Jam PC Server selaras dengan situs. Papan memakai jam PC Server lewat NTP."
+        : "Jam PC Server tidak selaras dengan situs. Selaraskan dulu, lalu minta kelompok mengulang pengukuran.",
+    sync: "Sinkronkan Jam PC Server",
     layanan: "Broker atau layanan modul mati",
     layananFound: (x: string) => x,
     openServer: "Buka Laci Server",
-    pi: "Pi tidak merespons",
+    pi: "PC Server tidak merespons",
     piFound: (ok: boolean) =>
       ok
         ? "Denyut normal. Kalau berhenti lebih dari 2 menit, banner merah muncul di atas papan."
-        : "Pi tidak mengirim denyut. Cek daya dan jaringan Pi, lalu lihat Konsol Pi.",
-    konsol: "Konsol Pi",
+        : "PC Server tidak mengirim denyut. Cek daya dan jaringan PC Server, lalu lihat Konsol PC Server.",
+    konsol: "Konsol PC Server",
     net: "Diagnosis Jaringan",
     waktu: "Waktu kurang",
     waktuFound: (n: number) => `Sisa ${n} menit. Perpanjang tetap sebelum slot berikutnya.`,
@@ -156,7 +156,7 @@ const HD = dict({
       relay: "Live relay",
       relayOk: "connected",
       relayBad: "down, data polled instead",
-      pi: "Pi",
+      pi: "PC Server",
       piOk: (s: number) => `beat ${laluLabel(s, "en")}`,
       piBad: "no heartbeat",
       piNone: "no server yet",
@@ -166,7 +166,7 @@ const HD = dict({
       data: "Group data",
       dataOk: "all sending",
       dataBad: (x: string) => `${x} sent nothing yet`,
-      clock: "Pi clock",
+      clock: "PC Server clock",
       clockOk: "in sync",
       clockBad: "out of sync",
     },
@@ -205,18 +205,18 @@ const HD = dict({
     delay: "The journal's delays look wrong",
     delayFound: (ok: boolean) =>
       ok
-        ? "The Pi clock is in sync with the site. Boards take the Pi's time over NTP."
-        : "The Pi clock is out of sync with the site. Sync it, then have the groups measure again.",
-    sync: "Sync the Pi Clock",
+        ? "The PC Server clock is in sync with the site. Boards take the PC Server's time over NTP."
+        : "The PC Server clock is out of sync with the site. Sync it, then have the groups measure again.",
+    sync: "Sync the PC Server Clock",
     layanan: "The broker or a module service is down",
     layananFound: (x: string) => x,
     openServer: "Open the Server Drawer",
-    pi: "The Pi doesn't respond",
+    pi: "The PC Server doesn't respond",
     piFound: (ok: boolean) =>
       ok
         ? "Heartbeat normal. If it stops for over 2 minutes, a red banner shows above the board."
-        : "The Pi sends no heartbeat. Check its power and network, then the Pi Console.",
-    konsol: "Pi Console",
+        : "The PC Server sends no heartbeat. Check its power and network, then the PC Server Console.",
+    konsol: "PC Server Console",
     net: "Network Check",
     waktu: "Running out of time",
     waktuFound: (n: number) => `${n} minutes left. Extend, still before the next slot.`,
@@ -273,7 +273,7 @@ const HD = dict({
       relay: "实时推送",
       relayOk: "已连接",
       relayBad: "已断开，改为定时拉取",
-      pi: "Pi",
+      pi: "PC 服务器",
       piOk: (s: number) => `${laluLabel(s, "zh")}有心跳`,
       piBad: "没有心跳",
       piNone: "还没有服务器",
@@ -283,7 +283,7 @@ const HD = dict({
       data: "小组数据",
       dataOk: "都在发送",
       dataBad: (x: string) => `${x} 还没发送`,
-      clock: "Pi 时钟",
+      clock: "PC 服务器时钟",
       clockOk: "已同步",
       clockBad: "没同步",
     },
@@ -320,18 +320,18 @@ const HD = dict({
     delay: "实验报告里的延迟不对",
     delayFound: (ok: boolean) =>
       ok
-        ? "Pi 时钟和网站同步。开发板通过 NTP 用 Pi 的时间。"
-        : "Pi 时钟和网站不同步。先同步，再让小组重新测量。",
-    sync: "同步 Pi 时钟",
+        ? "PC 服务器时钟和网站同步。开发板通过 NTP 用 PC 服务器的时间。"
+        : "PC 服务器时钟和网站不同步。先同步，再让小组重新测量。",
+    sync: "同步 PC 服务器时钟",
     layanan: "Broker 或模块服务停了",
     layananFound: (x: string) => x,
     openServer: "打开服务器侧栏",
-    pi: "Pi 没有响应",
+    pi: "PC 服务器没有响应",
     piFound: (ok: boolean) =>
       ok
         ? "心跳正常。停止超过 2 分钟时，看板上方会出现红色横幅。"
-        : "Pi 没有心跳。检查电源和网络，再看 Pi 控制台。",
-    konsol: "Pi 控制台",
+        : "PC 服务器没有心跳。检查电源和网络，再看 PC 服务器控制台。",
+    konsol: "PC 服务器控制台",
     net: "网络诊断",
     waktu: "时间不够",
     waktuFound: (n: number) => `还剩 ${n} 分钟。延长，但要在下一个时段之前。`,

@@ -6,8 +6,8 @@ export const H = dict({
     step: "Perburuan",
     waitTitle: "Perburuan Belum Dimulai",
     waitBody:
-      "Langkah ini terbuka sendiri begitu sesi perburuan berjalan di Orange Pi, tidak perlu memuat ulang. Sambil menunggu, pastikan Hunter kelompokmu lolos cek di Live.",
-    waitNoPi: "Server perburuan di Orange Pi belum melapor. Tanyakan ke asistenmu.",
+      "Langkah ini terbuka sendiri begitu sesi perburuan berjalan di PC Server, tidak perlu memuat ulang. Sambil menunggu, pastikan Hunter kelompokmu lolos cek di Live.",
+    waitNoPi: "Server perburuan di PC Server belum melapor. Tanyakan ke asistenmu.",
     waitAsisten:
       "Asistenmu belum menekan Mulai Perburuan. Langkah ini terbuka sendiri begitu perburuan dimulai, tidak perlu memuat ulang. Sambil menunggu, pastikan Hunter kelompokmu lolos cek di Live.",
     toLive: "Cek Hunter di Live",
@@ -29,9 +29,9 @@ export const H = dict({
     wifiHintOpen: (ssid: string) =>
       `Pindai dengan kamera. Kalau tidak bisa, pilih ${ssid} di pengaturan Wi-Fi.`,
     wifiNoNet: "Wi-Fi ini tanpa internet. Biarkan HP tetap tersambung.",
-    wifiUnknown: "Sambung ke hotspot Orange Pi lab. Nama dan sandinya ada pada asistenmu.",
+    wifiUnknown: "Sambung ke hotspot PC Server lab. Nama dan sandinya ada pada asistenmu.",
     lanTitle: "Pakai Wi-Fi Lab",
-    lanHint: "Orange Pi tersambung ke jaringan lab. Biarkan HP di Wi-Fi lab seperti biasa.",
+    lanHint: "PC Server tersambung ke jaringan lab. Biarkan HP di Wi-Fi lab seperti biasa.",
     huntTitle: "Buka Perburuan",
     huntQr: "QR halaman perburuan",
     huntHint: "Di HP, ketik NIM-mu sendiri. Server menemukan kelompokmu.",
@@ -87,8 +87,8 @@ export const H = dict({
     step: "Hunt",
     waitTitle: "The Hunt Hasn't Started",
     waitBody:
-      "This step opens by itself as soon as the hunt session runs on the Orange Pi, no reload needed. Meanwhile, make sure your group's Hunter passes the check in Live.",
-    waitNoPi: "The hunt server on the Orange Pi hasn't reported yet. Ask your assistant.",
+      "This step opens by itself as soon as the hunt session runs on the PC Server, no reload needed. Meanwhile, make sure your group's Hunter passes the check in Live.",
+    waitNoPi: "The hunt server on the PC Server hasn't reported yet. Ask your assistant.",
     waitAsisten:
       "Your assistant hasn't pressed Start the Hunt yet. This step opens by itself once the hunt starts, no reload needed. Meanwhile, make sure your group's Hunter passes the check in Live.",
     toLive: "Check the Hunter in Live",
@@ -110,9 +110,9 @@ export const H = dict({
     wifiHintOpen: (ssid: string) =>
       `Scan with the camera. If that fails, pick ${ssid} in your Wi-Fi settings.`,
     wifiNoNet: "This Wi-Fi has no internet. Stay connected anyway.",
-    wifiUnknown: "Join the lab Orange Pi's hotspot. Your assistant has its name and password.",
+    wifiUnknown: "Join the lab PC Server's hotspot. Your assistant has its name and password.",
     lanTitle: "Use the Lab Wi-Fi",
-    lanHint: "The Orange Pi is on the lab network. Keep your phone on the lab Wi-Fi as usual.",
+    lanHint: "The PC Server is on the lab network. Keep your phone on the lab Wi-Fi as usual.",
     huntTitle: "Open the Hunt",
     huntQr: "Hunt page QR",
     huntHint: "On the phone, type your own NIM. The server finds your group.",
@@ -168,8 +168,8 @@ export const H = dict({
     step: "寻踪",
     waitTitle: "寻踪还没开始",
     waitBody:
-      "Orange Pi 上的寻踪一开始，这一步就会自己打开，不用刷新。等待时，先确认你们组的 Hunter 在实时页通过检查。",
-    waitNoPi: "Orange Pi 上的寻踪服务器还没报告。问问你的助教。",
+      "PC 服务器上的寻踪一开始，这一步就会自己打开，不用刷新。等待时，先确认你们组的 Hunter 在实时页通过检查。",
+    waitNoPi: "PC 服务器上的寻踪服务器还没报告。问问你的助教。",
     waitAsisten:
       "助教还没按开始寻踪。寻踪一开始，这一步就会自己打开，不用刷新。等待时，先确认你们组的 Hunter 在实时页通过检查。",
     toLive: "在实时页检查 Hunter",
@@ -189,9 +189,9 @@ export const H = dict({
     wifiHint: (ssid: string) => `用相机扫描。扫不了就在 Wi-Fi 设置里选 ${ssid}，密码`,
     wifiHintOpen: (ssid: string) => `用相机扫描。扫不了就在 Wi-Fi 设置里选 ${ssid}。`,
     wifiNoNet: "这个 Wi-Fi 没有网络，也请保持连接。",
-    wifiUnknown: "连接实验室 Orange Pi 的热点。名称和密码问你的助教。",
+    wifiUnknown: "连接实验室 PC 服务器的热点。名称和密码问你的助教。",
     lanTitle: "使用实验室 Wi-Fi",
-    lanHint: "Orange Pi 连在实验室网络上。手机照常连实验室 Wi-Fi 就行。",
+    lanHint: "PC 服务器连在实验室网络上。手机照常连实验室 Wi-Fi 就行。",
     huntTitle: "打开寻踪",
     huntQr: "寻踪页面二维码",
     huntHint: "在手机上输入你自己的 NIM，服务器会找到你的组。",

@@ -202,13 +202,17 @@ const W = {
     laporanStatus: (j: unknown, st: string) => `menandai laporan "${j}" ${st}`,
     sandiAtur: "mengatur kata sandinya",
     sandiGanti: "mengganti kata sandinya",
-    konsol: "memakai Konsol Pi",
+    konsol: "memakai Konsol PC Server",
     perburuan: (mulai: boolean) =>
       mulai ? "memulai perburuan Modul 4" : "menyelesaikan perburuan Modul 4",
     konsolTarget: (t: unknown) =>
-      t === "terminal" ? "terminal (SSH)" : t === ":0" ? "layar Pi (HDMI)" : "desktop virtual",
+      t === "terminal"
+        ? "terminal (SSH)"
+        : t === ":0"
+          ? "layar PC Server (HDMI)"
+          : "desktop virtual",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
-      `${langsung ? "membuka tanpa persetujuan" : "meminta"} Konsol Pi ${x} di ${srv} (${pk}): ${why}`,
+      `${langsung ? "membuka tanpa persetujuan" : "meminta"} Konsol PC Server ${x} di ${srv} (${pk}): ${why}`,
     konsolPaksa: (pk: string, why: unknown) => `memaksa ${pk} saat sesi berjalan: ${why}`,
     konsolSetujui: (pk: string) => `menyetujui ${pk}`,
     konsolTolak: (pk: string, why: string) => `menolak ${pk}${why ? `: ${why}` : ""}`,
@@ -344,13 +348,17 @@ const W = {
     laporanStatus: (j: unknown, st: string) => `marked the report "${j}" ${st}`,
     sandiAtur: "set their password",
     sandiGanti: "changed their password",
-    konsol: "used the Pi Console",
+    konsol: "used the PC Server Console",
     perburuan: (mulai: boolean) =>
       mulai ? "started the Module 4 hunt" : "ended the Module 4 hunt",
     konsolTarget: (t: unknown) =>
-      t === "terminal" ? "terminal (SSH)" : t === ":0" ? "Pi screen (HDMI)" : "virtual desktop",
+      t === "terminal"
+        ? "terminal (SSH)"
+        : t === ":0"
+          ? "PC Server screen (HDMI)"
+          : "virtual desktop",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
-      `${langsung ? "opened without approval" : "asked for"} the Pi Console ${x} on ${srv} (${pk}): ${why}`,
+      `${langsung ? "opened without approval" : "asked for"} the PC Server Console ${x} on ${srv} (${pk}): ${why}`,
     konsolPaksa: (pk: string, why: unknown) => `forced ${pk} during a session: ${why}`,
     konsolSetujui: (pk: string) => `approved ${pk}`,
     konsolTolak: (pk: string, why: string) => `rejected ${pk}${why ? `: ${why}` : ""}`,
@@ -480,12 +488,12 @@ const W = {
     laporanStatus: (j: unknown, st: string) => `把报告“${j}”标为${st}`,
     sandiAtur: "设置了密码",
     sandiGanti: "修改了密码",
-    konsol: "使用了 Pi 控制台",
+    konsol: "使用了 PC 服务器控制台",
     perburuan: (mulai: boolean) => (mulai ? "开始了模块 4 的寻踪" : "结束了模块 4 的寻踪"),
     konsolTarget: (t: unknown) =>
-      t === "terminal" ? "终端（SSH）" : t === ":0" ? "Pi 屏幕（HDMI）" : "虚拟桌面",
+      t === "terminal" ? "终端（SSH）" : t === ":0" ? "PC 服务器屏幕（HDMI）" : "虚拟桌面",
     konsolMinta: (x: string, srv: string, pk: string, why: unknown, langsung: boolean) =>
-      `${langsung ? "无需批准直接打开了" : "申请了"} ${srv} 的 Pi 控制台${x}（${pk}）：${why}`,
+      `${langsung ? "无需批准直接打开了" : "申请了"} ${srv} 的 PC 服务器控制台${x}（${pk}）：${why}`,
     konsolPaksa: (pk: string, why: unknown) => `上课期间强制打开了 ${pk}：${why}`,
     konsolSetujui: (pk: string) => `批准了 ${pk}`,
     konsolTolak: (pk: string, why: string) => `拒绝了 ${pk}${why ? `：${why}` : ""}`,

@@ -4,7 +4,7 @@
  * server PC's folders read as the lab names things.
  */
 import { describe, expect, it } from "vitest";
-import { lmsMenang } from "../tp";
+import { lmsMenang, tidurDetik } from "../tp";
 import { UNGGAH_MAKS, namaUnggah, pdfUnggah } from "../tp-unggah";
 import {
   folderSemester,
@@ -97,5 +97,41 @@ describe("the server PC's folders", () => {
     expect(jalanCermin({ ...dasar, asli: "a.pdf", i: 0, jumlah: 1, tempat: null })).toBe(
       "2026-2027 Ganjil/Modul 1/Tanpa Kelompok/1032231301 Raka Pradipta.pdf",
     );
+  });
+});
+
+describe("how long the relay's minute timer may sleep", () => {
+  const now = Date.parse("2026-10-14T12:00:00Z");
+  const set = (modul: Record<string, { buka: string; tutup: string }>, sapuan = {}) =>
+    ({
+      semester: "2026-ganjil",
+      token: null,
+      kelas: null,
+      kecuali: [],
+      status: { terakhir: null, hasil: null, galat: null, galatSejak: null, sapuan },
+      jendela: { semester: "2026-ganjil", pola: {} as never, modul },
+    }) as unknown as Parameters<typeof tidurDetik>[0];
+
+  it("a minute while a window is open, or an LMS copy is owed", () => {
+    expect(
+      tidurDetik(
+        set({ "1": { buka: "2026-10-14T11:00:00Z", tutup: "2026-10-17T11:00:00Z" } }),
+        false,
+        now,
+      ),
+    ).toBe(60);
+    expect(tidurDetik(set({}), true, now)).toBe(60);
+  });
+
+  it("a minute until a closed window's sweep ran", () => {
+    const j = { buka: "2026-10-10T11:00:00Z", tutup: "2026-10-13T11:00:00Z" };
+    expect(tidurDetik(set({ "1": j }), false, now)).toBe(60);
+    expect(tidurDetik(set({ "1": j }, { "1": j.tutup }), false, now)).toBe(6 * 3600);
+  });
+
+  it("until the next window opens, at most six hours", () => {
+    const j = { buka: "2026-10-14T13:00:00Z", tutup: "2026-10-17T11:00:00Z" };
+    expect(tidurDetik(set({ "2": j }), false, now)).toBe(3600);
+    expect(tidurDetik(set({}), false, now)).toBe(6 * 3600);
   });
 });

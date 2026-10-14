@@ -11,35 +11,35 @@ export const RB = dict({
       "Hubungkan sekali. Setelah itu Kirim Nilai di IRIS sudah cukup: nilai masuk SeeLabs lewat akunmu dan dibaca ulang.",
     optional:
       "Tidak wajib. Tanpa ini, Salin untuk SeeLabs dan bookmarklet tetap jalan seperti biasa.",
-    waitTitle: "Menunggu Orange Pi Menguji",
+    waitTitle: "Menunggu PC Server Menguji",
     waitDesc:
-      "Kata sandi sudah terkunci dan tersimpan. Orange Pi mencoba masuk pada denyut berikutnya, biasanya kurang dari semenit.",
+      "Kata sandi sudah terkunci dan tersimpan. PC Server mencoba masuk pada denyut berikutnya, biasanya kurang dari semenit.",
     okTitle: "Robot SeeLabs Terhubung",
     okDesc: "Kirim Nilai menyimpan ke SeeLabs lewat akunmu, lalu membaca ulang.",
     deniedTitle: "SeeLabs Menolak Kata Sandinya",
     deniedDesc:
       "Robot berhenti memakai akunmu supaya tidak terkunci. Kalau kata sandi SeeLabs kamu sudah diganti, masukkan yang baru.",
-    keyTitle: "Kunci Orange Pi Berganti",
+    keyTitle: "Kunci PC Server Berganti",
     keyDesc:
-      "Admin menyetujui kunci baru Orange Pi, misalnya setelah Pi dipasang ulang. Kata sandi lama tidak bisa dibuka lagi, jadi masukkan sekali lagi.",
-    reachTitle: "Orange Pi Belum Bisa Menjangkau SeeLabs",
+      "Admin menyetujui kunci baru PC Server, misalnya setelah PC Server dipasang ulang. Kata sandi lama tidak bisa dibuka lagi, jadi masukkan sekali lagi.",
+    reachTitle: "PC Server Belum Bisa Menjangkau SeeLabs",
     reachDesc:
-      "Biasanya karena Pi sedang tidak tersambung ke TelU-Connect. Akunmu tidak bermasalah; robot mencoba lagi sendiri.",
+      "Biasanya karena PC Server sedang tidak tersambung ke TelU-Connect. Akunmu tidak bermasalah; robot mencoba lagi sendiri.",
     untilBack: "Sampai terhubung lagi, nilaimu di SeeLabs diisi sendiri lewat Salin untuk SeeLabs.",
     noKey:
-      "Robot belum siap: Admin belum menyetujui kunci Orange Pi di Penilaian › Sumber SeeLabs.",
+      "Robot belum siap: Admin belum menyetujui kunci PC Server di Penilaian › Sumber SeeLabs.",
     robotOff: "Robot SeeLabs sedang dimatikan oleh Admin. Salin untuk SeeLabs tetap jalan.",
     st: {
       menunggu_uji: "Menunggu Uji",
       aktif: "Terhubung",
       ditolak: "Ditolak",
-      kunci_lain: "Kunci Pi Berubah",
+      kunci_lain: "Kunci PC Server Berubah",
       none: "Belum Terhubung",
     } as Record<string, string>,
     fAccount: "Akun",
     fPassword: "Kata sandi",
-    fPwDefault: "Bawaan Laboran, terkunci untuk Orange Pi",
-    fPwOwn: "Milikmu sendiri, terkunci untuk Orange Pi",
+    fPwDefault: "Bawaan Laboran, terkunci untuk PC Server",
+    fPwOwn: "Milikmu sendiri, terkunci untuk PC Server",
     fTested: "Diuji",
     fLast: "Terakhir berhasil",
     never: "Belum pernah",
@@ -58,8 +58,8 @@ export const RB = dict({
     useDefaultHint: "Matikan kalau kamu sudah mengganti kata sandi SeeLabs.",
     dlgPw: "Kata sandi SeeLabs",
     dlgPwHint: "Kata sandi akun SeeLabs kamu, bukan kata sandi IRIS.",
-    seal: "Kata sandi dikunci di browser ini dengan kunci milik Orange Pi di lab, sebelum dikirim. Server IRIS hanya menyimpan versi terkunci dan tidak bisa membukanya.",
-    sealFp: (n: string) => `Sidik kunci Orange Pi ${n}`,
+    seal: "Kata sandi dikunci di browser ini dengan kunci milik PC Server di lab, sebelum dikirim. Server IRIS hanya menyimpan versi terkunci dan tidak bisa membukanya.",
+    sealFp: (n: string) => `Sidik kunci PC Server ${n}`,
     rightsHead: "Yang dilakukan robot dengan akunmu",
     rights: [
       [true, "Menekan Simpan Penilaian hanya setelah kamu menekan Kirim Nilai di IRIS."],
@@ -78,10 +78,10 @@ export const RB = dict({
     allow: "Izinkan",
     lockConnect: "Kunci dan Hubungkan",
     locking: "Mengunci di browser ini…",
-    waiting: "Menunggu Orange Pi mencoba masuk ke SeeLabs. Biasanya kurang dari semenit.",
+    waiting: "Menunggu PC Server mencoba masuk ke SeeLabs. Biasanya kurang dari semenit.",
     doneTitle: "Terhubung",
     doneBody:
-      "Orange Pi berhasil masuk ke SeeLabs sebagai akunmu, lalu keluar lagi. Mulai sekarang Kirim Nilai juga menyimpan ke SeeLabs.",
+      "PC Server berhasil masuk ke SeeLabs sebagai akunmu, lalu keluar lagi. Mulai sekarang Kirim Nilai juga menyimpan ke SeeLabs.",
     done: "Selesai",
     cancel: "Batal",
     close: "Tutup",
@@ -89,10 +89,10 @@ export const RB = dict({
     cutBody:
       "Kata sandi yang terkunci langsung dihapus. Nilai yang sudah tersimpan di SeeLabs tetap ada. Setelah ini Kirim Nilai tidak lagi menyimpan ke SeeLabs.",
     cutDone: "Robot SeeLabs diputus. Kata sandinya sudah dihapus.",
-    queued: "Diantre. Orange Pi mencoba masuk pada denyut berikutnya.",
+    queued: "Diantre. PC Server mencoba masuk pada denyut berikutnya.",
     failed: "Belum berhasil. Coba lagi sebentar lagi.",
     keyMismatch:
-      "Kunci Orange Pi tidak sama dengan yang disetujui. Kata sandi tidak dikirim. Kabari Admin.",
+      "Kunci PC Server tidak sama dengan yang disetujui. Kata sandi tidak dikirim. Kabari Admin.",
     // Job states and kinds
     job: {
       antre: "Antre",
@@ -112,7 +112,7 @@ export const RB = dict({
       ditolak:
         "SeeLabs menolak NIM atau kata sandimu. Masukkan lagi kata sandi SeeLabs yang benar di Akun.",
       tak_terjangkau:
-        "Orange Pi tidak bisa menjangkau SeeLabs, biasanya karena Pi tidak tersambung ke TelU-Connect. Akunmu tidak bermasalah; robot mencoba lagi sendiri.",
+        "PC Server tidak bisa menjangkau SeeLabs, biasanya karena PC Server tidak tersambung ke TelU-Connect. Akunmu tidak bermasalah; robot mencoba lagi sendiri.",
       seelabs_galat: "SeeLabs sedang bermasalah. Robot mencoba lagi sendiri.",
       bentuk_berubah:
         "Halaman SeeLabs terlihat berbeda dari biasanya, jadi robot tidak menyimpan apa pun. Simpan lewat bookmarklet dulu dan kabari DEV.",
@@ -125,8 +125,8 @@ export const RB = dict({
       tak_terverifikasi:
         "Sudah disimpan, tapi waktu dibaca ulang nilainya belum sama. Cek di SeeLabs.",
       segel_rusak:
-        "Kunci Orange Pi berubah, jadi kata sandi lama tidak bisa dibuka. Hubungkan lagi akunmu.",
-      pi_diam: "Orange Pi tidak menjawab. Robot mencoba lagi sendiri.",
+        "Kunci PC Server berubah, jadi kata sandi lama tidak bisa dibuka. Hubungkan lagi akunmu.",
+      pi_diam: "PC Server tidak menjawab. Robot mencoba lagi sendiri.",
     } as Record<string, string>,
     retryAt: (jam: string) => `Dicoba lagi pukul ${jam}`,
     tryAgain: "Coba Lagi",
@@ -135,7 +135,7 @@ export const RB = dict({
     tokenSend: "Kirim Token",
     details: "Rincian",
     // Kirim Nilai
-    sentFollows: "Nilai dikirim. SeeLabs menyusul lewat Orange Pi.",
+    sentFollows: "Nilai dikirim. SeeLabs menyusul lewat PC Server.",
     sentHand: "Nilai dikirim. SeeLabs diisi sendiri lewat Salin untuk SeeLabs.",
     why: {
       robot_mati: "Robot SeeLabs sedang mati.",
@@ -150,7 +150,7 @@ export const RB = dict({
     // Sumber SeeLabs
     srcTitle: "Sumber SeeLabs",
     srcDesc:
-      "Robot di Orange Pi kampus yang menyimpan nilai, mendaftarkan Input Jaga dan menarik kelompok.",
+      "Robot di PC Server kampus yang menyimpan nilai, mendaftarkan Input Jaga dan menarik kelompok.",
     srcSwitch: "Robot Nyala",
     srcSwitchHint:
       "Mematikan robot menghentikan semua tugas baru. Salin untuk SeeLabs tetap jalan.",
@@ -166,7 +166,7 @@ export const RB = dict({
       string,
       string
     >,
-    srcKey: "Kunci Orange Pi",
+    srcKey: "Kunci PC Server",
     srcKeyNone: "Belum ada kunci yang disetujui.",
     srcKeyNew: (nama: string) => `${nama} melaporkan kunci baru`,
     srcKeyApprove: "Setujui Kunci",
@@ -217,36 +217,36 @@ export const RB = dict({
     noneDesc:
       "Connect once. After that Kirim Nilai in IRIS is enough: scores go into SeeLabs through your account and get read back.",
     optional: "Optional. Without it, Copy for SeeLabs and the bookmarklet keep working as before.",
-    waitTitle: "Waiting for the Orange Pi to Test",
+    waitTitle: "Waiting for the PC Server to Test",
     waitDesc:
-      "The password is locked and stored. The Orange Pi tries to sign in on its next beat, usually within a minute.",
+      "The password is locked and stored. The PC Server tries to sign in on its next beat, usually within a minute.",
     okTitle: "SeeLabs Robot Connected",
     okDesc: "Kirim Nilai saves to SeeLabs through your account, then reads it back.",
     deniedTitle: "SeeLabs Refused the Password",
     deniedDesc:
       "The robot stopped using your account so it doesn't get locked. If you changed your SeeLabs password, enter the new one.",
-    keyTitle: "The Orange Pi's Key Changed",
+    keyTitle: "The PC Server's Key Changed",
     keyDesc:
-      "An Admin approved a new Orange Pi key, for example after the Pi was reinstalled. The old password can't be opened any more, so enter it once more.",
-    reachTitle: "The Orange Pi Can't Reach SeeLabs Yet",
+      "An Admin approved a new PC Server key, for example after the PC Server was reinstalled. The old password can't be opened any more, so enter it once more.",
+    reachTitle: "The PC Server Can't Reach SeeLabs Yet",
     reachDesc:
-      "Usually the Pi isn't on TelU-Connect. Your account is fine; the robot tries again by itself.",
+      "Usually the PC Server isn't on TelU-Connect. Your account is fine; the robot tries again by itself.",
     untilBack:
       "Until you reconnect, your SeeLabs scores are typed by hand through Copy for SeeLabs.",
     noKey:
-      "The robot isn't ready: an Admin hasn't approved the Orange Pi's key in Grading › SeeLabs Source.",
+      "The robot isn't ready: an Admin hasn't approved the PC Server's key in Grading › SeeLabs Source.",
     robotOff: "An Admin switched the SeeLabs robot off. Copy for SeeLabs still works.",
     st: {
       menunggu_uji: "Waiting to Test",
       aktif: "Connected",
       ditolak: "Refused",
-      kunci_lain: "Pi Key Changed",
+      kunci_lain: "PC Server Key Changed",
       none: "Not Connected",
     } as Record<string, string>,
     fAccount: "Account",
     fPassword: "Password",
-    fPwDefault: "Laboran default, locked for the Orange Pi",
-    fPwOwn: "Your own, locked for the Orange Pi",
+    fPwDefault: "Laboran default, locked for the PC Server",
+    fPwOwn: "Your own, locked for the PC Server",
     fTested: "Tested",
     fLast: "Last success",
     never: "Never",
@@ -265,8 +265,8 @@ export const RB = dict({
     useDefaultHint: "Turn it off if you changed your SeeLabs password.",
     dlgPw: "SeeLabs password",
     dlgPwHint: "Your SeeLabs account password, not your IRIS one.",
-    seal: "Your password is locked in this browser with the lab Orange Pi's key before it leaves. The IRIS server only keeps the locked copy and can't open it.",
-    sealFp: (n: string) => `Orange Pi ${n} key fingerprint`,
+    seal: "Your password is locked in this browser with the lab PC Server's key before it leaves. The IRIS server only keeps the locked copy and can't open it.",
+    sealFp: (n: string) => `PC Server ${n} key fingerprint`,
     rightsHead: "What the robot does with your account",
     rights: [
       [true, "Presses Simpan Penilaian only after you press Kirim Nilai in IRIS."],
@@ -281,10 +281,10 @@ export const RB = dict({
     allow: "Allow",
     lockConnect: "Lock and Connect",
     locking: "Locking in this browser…",
-    waiting: "Waiting for the Orange Pi to try signing in to SeeLabs. Usually under a minute.",
+    waiting: "Waiting for the PC Server to try signing in to SeeLabs. Usually under a minute.",
     doneTitle: "Connected",
     doneBody:
-      "The Orange Pi signed in to SeeLabs as you, then signed out. From now on Kirim Nilai also saves to SeeLabs.",
+      "The PC Server signed in to SeeLabs as you, then signed out. From now on Kirim Nilai also saves to SeeLabs.",
     done: "Done",
     cancel: "Cancel",
     close: "Close",
@@ -292,10 +292,10 @@ export const RB = dict({
     cutBody:
       "The locked password is deleted right away. Scores already in SeeLabs stay. After this Kirim Nilai no longer saves to SeeLabs.",
     cutDone: "SeeLabs robot disconnected. The password is deleted.",
-    queued: "Queued. The Orange Pi tries to sign in on its next beat.",
+    queued: "Queued. The PC Server tries to sign in on its next beat.",
     failed: "That didn't work. Try again in a moment.",
     keyMismatch:
-      "The Orange Pi's key isn't the approved one. The password wasn't sent. Tell an Admin.",
+      "The PC Server's key isn't the approved one. The password wasn't sent. Tell an Admin.",
     job: {
       antre: "Queued",
       diambil: "Working",
@@ -314,7 +314,7 @@ export const RB = dict({
       ditolak:
         "SeeLabs refused your username or password. Enter the right SeeLabs password again on Account.",
       tak_terjangkau:
-        "The Orange Pi can't reach SeeLabs, usually because the Pi isn't on TelU-Connect. Your account is fine; the robot tries again by itself.",
+        "The PC Server can't reach SeeLabs, usually because the PC Server isn't on TelU-Connect. Your account is fine; the robot tries again by itself.",
       seelabs_galat: "SeeLabs is having trouble. The robot tries again by itself.",
       bentuk_berubah:
         "A SeeLabs page looked different from usual, so the robot saved nothing. Save through the bookmarklet for now and tell DEV.",
@@ -326,8 +326,8 @@ export const RB = dict({
         "SeeLabs refused this save, usually because another account put this group in today. SeeLabs said:",
       tak_terverifikasi: "Saved, but the read-back didn't show the same scores. Check in SeeLabs.",
       segel_rusak:
-        "The Orange Pi's key changed, so the old password can't be opened. Connect your account again.",
-      pi_diam: "The Orange Pi didn't answer. The robot tries again by itself.",
+        "The PC Server's key changed, so the old password can't be opened. Connect your account again.",
+      pi_diam: "The PC Server didn't answer. The robot tries again by itself.",
     } as Record<string, string>,
     retryAt: (jam: string) => `Tried again at ${jam}`,
     tryAgain: "Try Again",
@@ -335,7 +335,7 @@ export const RB = dict({
     tokenPh: "Token from SeeLabs",
     tokenSend: "Send Token",
     details: "Details",
-    sentFollows: "Scores sent. SeeLabs follows through the Orange Pi.",
+    sentFollows: "Scores sent. SeeLabs follows through the PC Server.",
     sentHand: "Scores sent. Fill SeeLabs by hand through Copy for SeeLabs.",
     why: {
       robot_mati: "The SeeLabs robot is off.",
@@ -349,7 +349,7 @@ export const RB = dict({
     manualFold: "Fill by Hand (Fallback)",
     srcTitle: "SeeLabs Source",
     srcDesc:
-      "The robot on the campus Orange Pi that saves scores, registers Input Jaga and pulls the groups.",
+      "The robot on the campus PC Server that saves scores, registers Input Jaga and pulls the groups.",
     srcSwitch: "Robot On",
     srcSwitchHint: "Switching the robot off stops every new job. Copy for SeeLabs keeps working.",
     srcSuffix: "Laboran Password Suffix",
@@ -364,7 +364,7 @@ export const RB = dict({
       string,
       string
     >,
-    srcKey: "Orange Pi key",
+    srcKey: "PC Server key",
     srcKeyNone: "No key approved yet.",
     srcKeyNew: (nama: string) => `${nama} reports a new key`,
     srcKeyApprove: "Approve Key",
@@ -415,30 +415,30 @@ export const RB = dict({
     noneDesc:
       "只需连接一次。之后在 IRIS 按 Kirim Nilai 就够了：成绩通过你的账号存入 SeeLabs 并回读核对。",
     optional: "不是必须的。不连接时，复制到 SeeLabs 和书签小工具照常可用。",
-    waitTitle: "等待 Orange Pi 测试",
-    waitDesc: "密码已加锁并保存。Orange Pi 会在下一次心跳时尝试登录，通常不到一分钟。",
+    waitTitle: "等待 PC 服务器测试",
+    waitDesc: "密码已加锁并保存。PC 服务器会在下一次心跳时尝试登录，通常不到一分钟。",
     okTitle: "SeeLabs 机器人已连接",
     okDesc: "Kirim Nilai 会通过你的账号保存到 SeeLabs，然后回读核对。",
     deniedTitle: "SeeLabs 拒绝了这个密码",
     deniedDesc: "机器人已停止使用你的账号，以免被锁。如果你改过 SeeLabs 密码，请输入新密码。",
-    keyTitle: "Orange Pi 的密钥已更换",
-    keyDesc: "管理员批准了 Orange Pi 的新密钥，例如重装之后。旧密码已无法解开，请再输入一次。",
-    reachTitle: "Orange Pi 暂时连不上 SeeLabs",
-    reachDesc: "通常是 Pi 没有连上 TelU-Connect。你的账号没有问题，机器人会自己再试。",
+    keyTitle: "PC 服务器的密钥已更换",
+    keyDesc: "管理员批准了 PC 服务器的新密钥，例如重装之后。旧密码已无法解开，请再输入一次。",
+    reachTitle: "PC 服务器暂时连不上 SeeLabs",
+    reachDesc: "通常是 PC 服务器没有连上 TelU-Connect。你的账号没有问题，机器人会自己再试。",
     untilBack: "重新连接之前，你在 SeeLabs 的成绩请通过复制到 SeeLabs 手动填写。",
-    noKey: "机器人尚未就绪：管理员还没在 评分 › SeeLabs 来源 批准 Orange Pi 的密钥。",
+    noKey: "机器人尚未就绪：管理员还没在 评分 › SeeLabs 来源 批准 PC 服务器的密钥。",
     robotOff: "管理员已关闭 SeeLabs 机器人。复制到 SeeLabs 仍可使用。",
     st: {
       menunggu_uji: "等待测试",
       aktif: "已连接",
       ditolak: "被拒绝",
-      kunci_lain: "Pi 密钥已变",
+      kunci_lain: "PC 服务器密钥已变",
       none: "未连接",
     } as Record<string, string>,
     fAccount: "账号",
     fPassword: "密码",
-    fPwDefault: "Laboran 默认密码，已为 Orange Pi 加锁",
-    fPwOwn: "你自己的密码，已为 Orange Pi 加锁",
+    fPwDefault: "Laboran 默认密码，已为 PC 服务器加锁",
+    fPwOwn: "你自己的密码，已为 PC 服务器加锁",
     fTested: "测试时间",
     fLast: "最近成功",
     never: "从未",
@@ -456,8 +456,8 @@ export const RB = dict({
     useDefaultHint: "如果你改过 SeeLabs 密码，请关闭此项。",
     dlgPw: "SeeLabs 密码",
     dlgPwHint: "你的 SeeLabs 账号密码，不是 IRIS 密码。",
-    seal: "密码在发送前就在这个浏览器里用实验室 Orange Pi 的密钥加锁。IRIS 服务器只保存加锁后的副本，自己无法解开。",
-    sealFp: (n: string) => `Orange Pi ${n} 密钥指纹`,
+    seal: "密码在发送前就在这个浏览器里用实验室 PC 服务器的密钥加锁。IRIS 服务器只保存加锁后的副本，自己无法解开。",
+    sealFp: (n: string) => `PC 服务器 ${n} 密钥指纹`,
     rightsHead: "机器人会用你的账号做什么",
     rights: [
       [true, "只在你于 IRIS 按下 Kirim Nilai 之后才按 Simpan Penilaian。"],
@@ -472,10 +472,10 @@ export const RB = dict({
     allow: "允许",
     lockConnect: "加锁并连接",
     locking: "正在这个浏览器里加锁…",
-    waiting: "等待 Orange Pi 尝试登录 SeeLabs，通常不到一分钟。",
+    waiting: "等待 PC 服务器尝试登录 SeeLabs，通常不到一分钟。",
     doneTitle: "已连接",
     doneBody:
-      "Orange Pi 已以你的身份登录 SeeLabs 并退出。从现在起，Kirim Nilai 也会保存到 SeeLabs。",
+      "PC 服务器已以你的身份登录 SeeLabs 并退出。从现在起，Kirim Nilai 也会保存到 SeeLabs。",
     done: "完成",
     cancel: "取消",
     close: "关闭",
@@ -483,9 +483,9 @@ export const RB = dict({
     cutBody:
       "加锁的密码会立刻删除。已存入 SeeLabs 的成绩保留。之后 Kirim Nilai 不再保存到 SeeLabs。",
     cutDone: "SeeLabs 机器人已断开，密码已删除。",
-    queued: "已排队。Orange Pi 会在下一次心跳时尝试登录。",
+    queued: "已排队。PC 服务器会在下一次心跳时尝试登录。",
     failed: "没有成功，请稍后再试。",
-    keyMismatch: "Orange Pi 的密钥与已批准的不一致，密码没有发送。请告知管理员。",
+    keyMismatch: "PC 服务器的密钥与已批准的不一致，密码没有发送。请告知管理员。",
     job: {
       antre: "排队中",
       diambil: "处理中",
@@ -503,7 +503,7 @@ export const RB = dict({
     err: {
       ditolak: "SeeLabs 拒绝了你的账号或密码。请在 账号 页重新输入正确的 SeeLabs 密码。",
       tak_terjangkau:
-        "Orange Pi 连不上 SeeLabs，通常是 Pi 没有连上 TelU-Connect。你的账号没有问题，机器人会自己再试。",
+        "PC 服务器连不上 SeeLabs，通常是 PC 服务器没有连上 TelU-Connect。你的账号没有问题，机器人会自己再试。",
       seelabs_galat: "SeeLabs 出了问题。机器人会自己再试。",
       bentuk_berubah:
         "SeeLabs 页面看起来和平常不同，所以机器人什么都没保存。请先用书签小工具保存，并告知 DEV。",
@@ -513,8 +513,8 @@ export const RB = dict({
       seelabs_menolak:
         "SeeLabs 拒绝了这次保存，通常是因为今天已有其他账号录入了该小组。SeeLabs 的原话：",
       tak_terverifikasi: "已保存，但回读时成绩不一致。请在 SeeLabs 中检查。",
-      segel_rusak: "Orange Pi 的密钥已变，旧密码无法解开。请重新连接你的账号。",
-      pi_diam: "Orange Pi 没有回应。机器人会自己再试。",
+      segel_rusak: "PC 服务器的密钥已变，旧密码无法解开。请重新连接你的账号。",
+      pi_diam: "PC 服务器没有回应。机器人会自己再试。",
     } as Record<string, string>,
     retryAt: (jam: string) => `将于 ${jam} 重试`,
     tryAgain: "重试",
@@ -522,7 +522,7 @@ export const RB = dict({
     tokenPh: "SeeLabs 的令牌",
     tokenSend: "发送令牌",
     details: "详情",
-    sentFollows: "成绩已发送。SeeLabs 将通过 Orange Pi 随后保存。",
+    sentFollows: "成绩已发送。SeeLabs 将通过 PC 服务器随后保存。",
     sentHand: "成绩已发送。请通过复制到 SeeLabs 手动填写 SeeLabs。",
     why: {
       robot_mati: "SeeLabs 机器人已关闭。",
@@ -535,7 +535,7 @@ export const RB = dict({
     strip: "SeeLabs",
     manualFold: "手动填写（备用）",
     srcTitle: "SeeLabs 来源",
-    srcDesc: "校园 Orange Pi 上的机器人，负责保存成绩、登记 Input Jaga 和拉取小组。",
+    srcDesc: "校园 PC 服务器上的机器人，负责保存成绩、登记 Input Jaga 和拉取小组。",
     srcSwitch: "机器人开启",
     srcSwitchHint: "关闭机器人会停止所有新任务。复制到 SeeLabs 仍可使用。",
     srcSuffix: "Laboran 密码后缀",
@@ -550,7 +550,7 @@ export const RB = dict({
       string,
       string
     >,
-    srcKey: "Orange Pi 密钥",
+    srcKey: "PC 服务器密钥",
     srcKeyNone: "还没有已批准的密钥。",
     srcKeyNew: (nama: string) => `${nama} 报告了新密钥`,
     srcKeyApprove: "批准密钥",

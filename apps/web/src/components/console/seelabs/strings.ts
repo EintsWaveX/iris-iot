@@ -142,7 +142,7 @@ export const SL = dict({
     acctBm: "Cadangan: bookmarklet pengisi nilai",
     howTo: "Cara Pakai",
     acctNever:
-      "Bookmarklet hanya mengisi form di tab SeeLabs milikmu sendiri, dan kamu yang menekan Simpan Penilaian. Pakai saat robot tidak bisa, misalnya Orange Pi mati.",
+      "Bookmarklet hanya mengisi form di tab SeeLabs milikmu sendiri, dan kamu yang menekan Simpan Penilaian. Pakai saat robot tidak bisa, misalnya PC Server mati.",
     acctSaved: "Akun SeeLabs disimpan.",
     save: "Simpan",
     // KLP match in Preparation
@@ -309,7 +309,7 @@ export const SL = dict({
     acctBm: "Fallback: score fill bookmarklet",
     howTo: "How to Use It",
     acctNever:
-      "The bookmarklet only fills the form in your own SeeLabs tab, and you press Simpan Penilaian. Use it when the robot can't, for example when the Orange Pi is off.",
+      "The bookmarklet only fills the form in your own SeeLabs tab, and you press Simpan Penilaian. Use it when the robot can't, for example when the PC Server is off.",
     acctSaved: "SeeLabs account saved.",
     save: "Save",
     matchBtn: "Match KLP",
@@ -471,7 +471,7 @@ export const SL = dict({
     acctBm: "备用：填分数的书签小工具",
     howTo: "使用方法",
     acctNever:
-      "书签小工具只在你自己的 SeeLabs 标签页里填表，由你自己按 Simpan Penilaian。机器人无法使用时（例如 Orange Pi 关机）再用它。",
+      "书签小工具只在你自己的 SeeLabs 标签页里填表，由你自己按 Simpan Penilaian。机器人无法使用时（例如 PC 服务器关机）再用它。",
     acctSaved: "SeeLabs 账号已保存。",
     save: "保存",
     matchBtn: "匹配 KLP",

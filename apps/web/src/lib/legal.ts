@@ -84,7 +84,7 @@ export function privacy(lang: Lang): LegalDoc {
         {
           title: "Services We Use",
           body: [
-            "Vercel hosts the site and stored files, Neon hosts the database, and Cloudflare carries the live console between the lab's Orange Pi and the site. Pages that show a presentation or a circuit simulation embed Canva, Wokwi or Tinkercad, which may set their own cookies when you open them.",
+            "Vercel hosts the site and stored files, Neon hosts the database, and Cloudflare carries the live console between the lab's PC Server and the site. Pages that show a presentation or a circuit simulation embed Canva, Wokwi or Tinkercad, which may set their own cookies when you open them.",
           ],
         },
         {
@@ -156,7 +156,7 @@ export function privacy(lang: Lang): LegalDoc {
         {
           title: "使用的服务",
           body: [
-            "Vercel 托管网站和文件，Neon 托管数据库，Cloudflare 在实验室的 Orange Pi 与本站之间传输实时控制台。显示演示文稿或电路仿真的页面会嵌入 Canva、Wokwi 或 Tinkercad，打开时它们可能设置自己的 cookie。",
+            "Vercel 托管网站和文件，Neon 托管数据库，Cloudflare 在实验室的 PC 服务器与本站之间传输实时控制台。显示演示文稿或电路仿真的页面会嵌入 Canva、Wokwi 或 Tinkercad，打开时它们可能设置自己的 cookie。",
           ],
         },
         {
@@ -222,7 +222,7 @@ export function privacy(lang: Lang): LegalDoc {
       {
         title: "Layanan yang Kami Pakai",
         body: [
-          "Vercel menyimpan situs dan berkas, Neon menyimpan basis data, dan Cloudflare meneruskan konsol langsung antara Orange Pi lab dan situs. Halaman yang menampilkan presentasi atau simulasi rangkaian memuat Canva, Wokwi atau Tinkercad, yang bisa memasang cookie sendiri saat kamu membukanya.",
+          "Vercel menyimpan situs dan berkas, Neon menyimpan basis data, dan Cloudflare meneruskan konsol langsung antara PC Server lab dan situs. Halaman yang menampilkan presentasi atau simulasi rangkaian memuat Canva, Wokwi atau Tinkercad, yang bisa memasang cookie sendiri saat kamu membukanya.",
         ],
       },
       {
@@ -285,7 +285,7 @@ export function terms(lang: Lang): LegalDoc {
         {
           title: "Lab Equipment",
           body: [
-            "Use the Orange Pi, the routers and the boards as the assistants direct. Report damage or a fault to the assistant on duty right away.",
+            "Use the PC Server, the routers and the boards as the assistants direct. Report damage or a fault to the assistant on duty right away.",
           ],
         },
         {
@@ -337,7 +337,7 @@ export function terms(lang: Lang): LegalDoc {
         {
           title: "实验室设备",
           body: [
-            "按照助教的指示使用 Orange Pi、路由器和开发板。设备损坏或故障请立即告诉值班助教。",
+            "按照助教的指示使用 PC 服务器、路由器和开发板。设备损坏或故障请立即告诉值班助教。",
           ],
         },
         {
@@ -388,7 +388,7 @@ export function terms(lang: Lang): LegalDoc {
       {
         title: "Perangkat Lab",
         body: [
-          "Pakai Orange Pi, router dan papan sesuai arahan asisten. Laporkan kerusakan atau gangguan ke asisten yang bertugas saat itu juga.",
+          "Pakai PC Server, router dan papan sesuai arahan asisten. Laporkan kerusakan atau gangguan ke asisten yang bertugas saat itu juga.",
         ],
       },
       {

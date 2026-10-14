@@ -30,7 +30,7 @@ const U = dict({
     cancel: "Batal",
     save: "Simpan",
     saved: "Sesi diperbarui.",
-    warn: (x: string) => `Sesi diperbarui. Cek layanan di Pi: ${x}.`,
+    warn: (x: string) => `Sesi diperbarui. Cek layanan di PC Server: ${x}.`,
     errors: {
       ada_benar: "Sudah ada blank benar. Modul tidak bisa diganti lagi.",
       modul_tertutup: "Modul itu masih tertutup. Buka dulu di Persiapan.",
@@ -55,7 +55,7 @@ const U = dict({
     cancel: "Cancel",
     save: "Save",
     saved: "Session updated.",
-    warn: (x: string) => `Session updated. Check the Pi's services: ${x}.`,
+    warn: (x: string) => `Session updated. Check the PC Server's services: ${x}.`,
     errors: {
       ada_benar: "A blank is already right. The module can't change anymore.",
       modul_tertutup: "That module is still closed. Open it in Preparation first.",
@@ -78,7 +78,7 @@ const U = dict({
     cancel: "取消",
     save: "保存",
     saved: "课程已更新。",
-    warn: (x: string) => `课程已更新。检查一下 Pi 上的服务：${x}。`,
+    warn: (x: string) => `课程已更新。检查一下 PC 服务器上的服务：${x}。`,
     errors: {
       ada_benar: "已经有填空答对了，模块不能再换。",
       modul_tertutup: "这个模块还没开放。先在准备里开放。",

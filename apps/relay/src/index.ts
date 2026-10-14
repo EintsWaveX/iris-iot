@@ -85,6 +85,9 @@ export interface Env {
   ALIRAN: DurableObjectNamespace;
   LMS: DurableObjectNamespace;
   KONSOL_RELAY_SECRET: string;
+  /** The IRIS site the minute timer wakes (wrangler.toml [vars]); the
+   *  timer only fires once deployed, never under wrangler dev. */
+  IRIS_SITUS?: string;
   /** "1" in .dev.vars only: count requests for the load test */
   HITUNG?: string;
 }
@@ -161,6 +164,12 @@ function samaPersis(a: string, b: string): boolean {
 }
 
 export default {
+  /** The minute timer (2026-10-14): the TP sync no longer waits for the
+   *  server PC's heartbeat or a page being opened. */
+  async scheduled(_c: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(detak(env));
+  },
+
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     const [, ujung, kanal, sub] = url.pathname.split("/");
@@ -796,11 +805,71 @@ const tantangan = (r: Response) =>
   r.headers.get("cf-mitigated") === "challenge" ||
   (r.status === 403 && /html/i.test(r.headers.get("content-type") ?? ""));
 
-/** Makes one LMS call, already checked by the Worker; keeps nothing. */
+/**
+ * Wakes the IRIS site's TP sync (POST /api/tp/detak, signed `detak|ts`)
+ * unless the site said it may sleep: it answers how long until anything is
+ * due (a minute while a TP window is open, else until the next one opens),
+ * so a quiet week never wakes the database.
+ */
+async function detak(env: Env): Promise<void> {
+  const situs = env.IRIS_SITUS?.replace(/\/+$/, "");
+  if (!situs || !env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
+    return;
+  const jam = env.LMS.get(env.LMS.idFromName("detak"), {
+    locationHint: "apac",
+  });
+  const tidurSampai =
+    Number(await (await jam.fetch("https://lms/detak")).text()) || 0;
+  if (Date.now() < tidurSampai) return;
+  const ts = String(Math.floor(Date.now() / 1000));
+  let jeda = 60;
+  try {
+    const r = await fetch(`${situs}/api/tp/detak`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-detak-ts": ts,
+        "x-detak-tanda": await hmacHex(env.KONSOL_RELAY_SECRET, `detak|${ts}`),
+      },
+      body: "{}",
+    });
+    const d = (await r.json().catch(() => null)) as {
+      tidurDetik?: unknown;
+    } | null;
+    if (typeof d?.tidurDetik === "number" && Number.isFinite(d.tidurDetik))
+      jeda = Math.min(6 * 3600, Math.max(60, d.tidurDetik));
+  } catch {
+    // The site unreachable: try again next minute.
+  }
+  // A few seconds early, so the next minute's tick is not skipped.
+  await jam.fetch("https://lms/detak", {
+    method: "POST",
+    body: String(Date.now() + jeda * 1000 - 5000),
+  });
+}
+
+/** Makes one LMS call, already checked by the Worker; keeps nothing. The
+ *  instance named "detak" also keeps when the minute timer may sleep until. */
 export class Lms {
-  constructor(_state: DurableObjectState, _env: Env) {}
+  constructor(
+    private state: DurableObjectState,
+    _env: Env,
+  ) {}
 
   async fetch(req: Request): Promise<Response> {
+    if (new URL(req.url).pathname === "/detak") {
+      if (req.method === "POST") {
+        await this.state.storage.put(
+          "tidurSampai",
+          Number(await req.text()) || 0,
+        );
+        return teks(200, "ok");
+      }
+      return teks(
+        200,
+        String((await this.state.storage.get<number>("tidurSampai")) ?? 0),
+      );
+    }
     const url = req.headers.get("x-lms-url") ?? "";
     const metode = req.headers.get("x-lms-metode") === "GET" ? "GET" : "POST";
     if (!url.startsWith(`${LMS_ASAL}/`)) return teks(403, "tujuan ditolak");

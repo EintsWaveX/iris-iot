@@ -4,9 +4,9 @@
   "judul": "WebSocket",
   "topik": "通过本地服务器进行 WebSocket 通信",
   "tagline": "ESP32 通过本地 Wi-Fi 把传感器数据发给 Python 服务器。",
-  "fakta": ["ESP32", "DHT22", "Orange Pi"],
+  "fakta": ["ESP32", "DHT22", "PC 服务器"],
   "ringkasan": [
-    "ESP32 读取 DHT22 传感器，再通过同一个本地 Wi-Fi 把读数发给运行在 Orange Pi 上的 WebSocket 服务器。",
+    "ESP32 读取 DHT22 传感器，再通过同一个本地 Wi-Fi 把读数发给运行在 PC 服务器上的 WebSocket 服务器。",
     "服务器按连接路径区分每个组的板子，所以好几个组可以共用一台服务器，互不干扰。"
   ],
   "toolchain": [
@@ -15,7 +15,7 @@
       "alat": "Arduino IDE"
     },
     {
-      "label": "Orange Pi 上的服务器",
+      "label": "PC 服务器上的服务器",
       "alat": "Python（CPython），用文本编辑器和虚拟环境"
     }
   ],
@@ -25,7 +25,7 @@
       "jumlah": "1 个"
     },
     {
-      "nama": "Orange Pi 4 PRO",
+      "nama": "PC 服务器",
       "jumlah": "1 个，当本地服务器"
     },
     {
@@ -51,22 +51,22 @@
       ["DHT（GND）", "GND"]
     ],
     "catatan": [
-      "Orange Pi 不需要接任何额外电路。WebSocket 服务器完全是软件，所以 Orange Pi 只要和 ESP32 在同一个 Wi-Fi 网络里就行。",
+      "PC 服务器不需要接任何额外电路。WebSocket 服务器完全是软件，所以 PC 服务器只要和 ESP32 在同一个 Wi-Fi 网络里就行。",
       "DHT22 每 2 秒最多读一次。读得更频繁会返回 NAN。"
     ]
   },
   "persiapan": [
     "在 Arduino IDE 的库管理器里安装 DHT sensor library 和 Adafruit Unified Sensor",
     "在 Arduino IDE 的库管理器里安装 Markus Sattler 的 WebSockets 库",
-    "在 Orange Pi 上准备 websockets 虚拟环境（python3 -m venv，然后 pip install \"websockets>=13\"）",
-    "用 hostname -I 记下 Orange Pi 的 IP 地址",
+    "在 PC 服务器上准备 websockets 虚拟环境（python3 -m venv，然后 pip install \"websockets>=13\"）",
+    "用 hostname -I 记下 PC 服务器的 IP 地址",
     "WS_PATH 用你们组自己的路径",
     "两个程序文件里的端口和路径要一致"
   ],
   "berkas": [
     {
       "path": "modul2_websocket_server.py",
-      "judul": "服务器：WebSocket（Python，Orange Pi）",
+      "judul": "服务器：WebSocket（Python，PC 服务器）",
       "bahasaKode": "python"
     },
     {

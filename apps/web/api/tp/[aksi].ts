@@ -10,6 +10,10 @@
  *      questions in my class's language (and Mandarin) and the PDF's
  *      instructions. All read only: TP is written by hand on paper.
  * GET  /api/tp/berkas?id=&i=[&unduh=1]       my own file, streamed from the LMS.
+ * Relay (no session; signed `detak|ts` with KONSOL_RELAY_SECRET):
+ * POST /api/tp/detak   the minute timer: the TP sync when due and LMS copies
+ *      still owed; answers how long the timer may sleep (tidurDetik).
+ *
  * POST /api/tp/unggah { modul, isi }   my TP as one PDF (base64, 3 MB at most)
  *      while the window is open (2026-10-14: the LMS can refuse a student's
  *      upload until the iGracias survey is filled). The newer of this and
@@ -57,9 +61,10 @@
  * holds it), the same rule as the session's score table. Every write is
  * audited; a complete TP's total goes into the session's TP component.
  */
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { Readable } from "node:stream";
 import { waitUntil } from "@vercel/functions";
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
@@ -144,6 +149,7 @@ import {
   simpanPaket,
   sinkronTp,
   skorModul,
+  tidurDetik,
   soalPaket,
   tulisSet,
   tulisTotal,
@@ -155,6 +161,7 @@ import {
 } from "../_lib/tp.js";
 import {
   ambilIsiTp,
+  kirimTertunda,
   kirimUnggahKeLms,
   pdfUnggah,
   terimaUnggah,
@@ -172,8 +179,8 @@ const modulDari = (v: unknown) => {
   return Number.isInteger(n) && n >= 1 && n <= 4 ? n : null;
 };
 
-/** A page opening a TP view syncs when the last run is 2 minutes old. */
-const JEDA_HALAMAN = 2 * 60_000;
+/** A page opening a TP view syncs when the last run is a minute old. */
+const JEDA_HALAMAN = 60_000;
 
 function ringkasJendela(set: SetTp, m: number) {
   const j = jendelaUntuk(set, m);
@@ -1452,6 +1459,32 @@ async function handleKecuali(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   res.status(200).json({ ok: true, jumlah: daftar.length });
 }
 
+/* ============================================== the relay's minute timer */
+
+/** The relay's signature over `detak|ts`, at most two minutes old. */
+function detakSah(req: ApiRequest): boolean {
+  const rahasia = process.env.KONSOL_RELAY_SECRET?.trim();
+  const ts = String(req.headers["x-detak-ts"] ?? "");
+  const tanda = String(req.headers["x-detak-tanda"] ?? "");
+  if (!rahasia || rahasia.length < 32 || !/^\d{9,11}$/.test(ts) || !/^[0-9a-f]{64}$/.test(tanda))
+    return false;
+  if (Math.abs(Date.now() / 1000 - Number(ts)) > 120) return false;
+  const harus = createHmac("sha256", rahasia).update(`detak|${ts}`).digest();
+  return timingSafeEqual(harus, Buffer.from(tanda, "hex"));
+}
+
+async function handleDetak(req: ApiRequest, res: ApiResponse) {
+  if (!detakSah(req)) return tolak(res, "tanda_salah", 403);
+  const db = getDb();
+  await sinkronBilaPerlu(db, "relay", 60_000);
+  await kirimTertunda(db);
+  const [t] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(tpUnggah)
+    .where(inArray(tpUnggah.lmsStatus, ["menunggu", "gagal"]));
+  res.status(200).json({ ok: true, tidurDetik: tidurDetik(await bacaSet(db), (t?.n ?? 0) > 0) });
+}
+
 /* ================================================================ route */
 
 async function handler(req: ApiRequest, res: ApiResponse) {
@@ -1459,6 +1492,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   const aksi = req.query.aksi;
   const sesiku = currentSession(req);
 
+  if (aksi === "detak") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleDetak(req, res);
+  }
   if (aksi === "berkas") {
     if (!requireMethod(req, res, "GET")) return;
     if (!sesiku) return tolak(res, "belum_masuk", 401);

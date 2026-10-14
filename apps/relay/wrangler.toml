@@ -8,6 +8,14 @@ name = "iris-konsol"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
+# The TP sync's minute timer (2026-10-14): wakes the site's /api/tp/detak,
+# which says how long it may sleep. Not run by `wrangler dev`.
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+IRIS_SITUS = "https://iris-praktikum-jurnal.vercel.app"
+
 [[durable_objects.bindings]]
 name = "RUANG"
 class_name = "Ruang"

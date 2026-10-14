@@ -103,7 +103,13 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
       pada: l.pada,
       apa: l.hasil === "ok" ? t.logSinkron(l.baru) : t.logSinkronGagal(l.galat ?? "?"),
       siapa:
-        l.oleh === "pi" ? TPS[lang].olehPi : l.oleh === "halaman" ? TPS[lang].olehHalaman : l.oleh,
+        l.oleh === "pi"
+          ? TPS[lang].olehPi
+          : l.oleh === "halaman"
+            ? TPS[lang].olehHalaman
+            : l.oleh === "relay"
+              ? TPS[lang].olehRelay
+              : l.oleh,
       di: "",
       tone: l.hasil === "ok" ? "ok" : "warn",
     })),

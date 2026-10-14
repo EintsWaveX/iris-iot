@@ -4,9 +4,9 @@
   "judul": "WebSocket",
   "topik": "WebSocket Communication with a Local Server",
   "tagline": "An ESP32 sends sensor data to a Python server over local Wi-Fi.",
-  "fakta": ["ESP32", "DHT22", "Orange Pi"],
+  "fakta": ["ESP32", "DHT22", "PC Server"],
   "ringkasan": [
-    "An ESP32 reads a DHT22 sensor and sends its reading to a WebSocket server running on an Orange Pi, over the same local Wi-Fi network.",
+    "An ESP32 reads a DHT22 sensor and sends its reading to a WebSocket server running on an PC Server, over the same local Wi-Fi network.",
     "The server tells each group's board apart by its connection path, so several groups can share one server without disturbing each other."
   ],
   "toolchain": [
@@ -15,7 +15,7 @@
       "alat": "Arduino IDE"
     },
     {
-      "label": "Server on the Orange Pi",
+      "label": "Server on the PC Server",
       "alat": "Python (CPython), via a text editor and a virtual environment"
     }
   ],
@@ -25,7 +25,7 @@
       "jumlah": "1x"
     },
     {
-      "nama": "Orange Pi 4 PRO",
+      "nama": "PC Server",
       "jumlah": "1x, as the local server"
     },
     {
@@ -51,22 +51,22 @@
       ["DHT (GND)", "GND"]
     ],
     "catatan": [
-      "The Orange Pi needs no additional circuit at all. The WebSocket server runs entirely in software, so the Orange Pi only needs to be on the same Wi-Fi network as the ESP32.",
+      "The PC Server needs no additional circuit at all. The WebSocket server runs entirely in software, so the PC Server only needs to be on the same Wi-Fi network as the ESP32.",
       "A DHT22 must not be read more often than once every 2 seconds. A tighter interval returns NAN."
     ]
   },
   "persiapan": [
     "Installing the DHT sensor library and Adafruit Unified Sensor libraries through the Arduino IDE Library Manager",
     "Installing the WebSockets library by Markus Sattler through the Arduino IDE Library Manager",
-    "Preparing a websockets virtual environment on the Orange Pi (python3 -m venv, then pip install \"websockets>=13\")",
-    "Noting the Orange Pi's IP address with hostname -I",
+    "Preparing a websockets virtual environment on the PC Server (python3 -m venv, then pip install \"websockets>=13\")",
+    "Noting the PC Server's IP address with hostname -I",
     "Using your own group's path for WS_PATH",
     "Matching the port and path values across both program files"
   ],
   "berkas": [
     {
       "path": "modul2_websocket_server.py",
-      "judul": "Server: WebSocket (Python, Orange Pi)",
+      "judul": "Server: WebSocket (Python, PC Server)",
       "bahasaKode": "python"
     },
     {

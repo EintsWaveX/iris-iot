@@ -221,7 +221,7 @@ export const H = dict({
 /** Who talks to whom in each module (the lane diagram). */
 export const LANES: { m: number; a: string; b: string; via: string }[] = [
   { m: 1, a: "ESP32", b: "ESP32", via: "GATT" },
-  { m: 2, a: "ESP32", b: "Orange Pi", via: "WebSocket" },
+  { m: 2, a: "ESP32", b: "PC Server", via: "WebSocket" },
   { m: 3, a: "Pico W", b: "Pico W", via: "Mosquitto" },
   { m: 4, a: "ESP32", b: "ESP32", via: "LoRa P2P" },
 ];

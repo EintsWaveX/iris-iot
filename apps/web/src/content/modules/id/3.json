@@ -6,7 +6,7 @@
   "tagline": "Dua papan bertukar data lewat broker Eclipse Mosquitto.",
   "fakta": ["Pi Pico W", "Mosquitto"],
   "ringkasan": [
-    "Dua papan Raspberry Pi Pico W bertukar data lewat broker Eclipse Mosquitto yang berjalan di Orange Pi: satu papan mempublikasikan posisi potensiometer, satu lagi berlangganan topic yang sama dan mencatat setiap nilai yang masuk.",
+    "Dua papan Raspberry Pi Pico W bertukar data lewat broker Eclipse Mosquitto yang berjalan di PC Server: satu papan mempublikasikan posisi potensiometer, satu lagi berlangganan topic yang sama dan mencatat setiap nilai yang masuk.",
     "Setiap kelompok memakai topic dan mqtt_client_id sendiri, sehingga banyak kelompok dapat berbagi satu broker tanpa saling mengganggu."
   ],
   "toolchain": [
@@ -21,7 +21,7 @@
       "jumlah": "2x"
     },
     {
-      "nama": "Orange Pi 4 PRO",
+      "nama": "PC Server",
       "jumlah": "1x, sebagai broker Mosquitto"
     },
     {
@@ -49,13 +49,13 @@
     "catatan": [
       "Masukan ADC Pico W hanya tahan sampai 3,3 V, sehingga kaki atas potensiometer harus dicatu dari 3V3(OUT) (pin fisik 36), bukan dari VBUS yang bertegangan 5 V.",
       "Kaki tengah (wiper) wajib mendarat pada salah satu pin ADC, yaitu GP26, GP27, atau GP28.",
-      "Broker Eclipse Mosquitto berjalan pada Orange Pi 4 PRO dan tidak memerlukan rangkaian tambahan. Subscriber hanya mencatat nilai yang masuk, sehingga Pico W kedua cukup terhubung ke jaringan Wi-Fi yang sama dengan Publisher."
+      "Broker Eclipse Mosquitto berjalan pada PC Server dan tidak memerlukan rangkaian tambahan. Subscriber hanya mencatat nilai yang masuk, sehingga Pico W kedua cukup terhubung ke jaringan Wi-Fi yang sama dengan Publisher."
     ]
   },
   "persiapan": [
-    "Memasang paket mosquitto dan mosquitto-clients pada Orange Pi (sudo apt install)",
+    "Memasang paket mosquitto dan mosquitto-clients pada PC Server (sudo apt install)",
     "Mengaktifkan autostart broker: sudo systemctl enable mosquitto.service",
-    "Mencatat alamat IP Orange Pi dengan hostname -I",
+    "Mencatat alamat IP PC Server dengan hostname -I",
     "Menyunting /etc/mosquitto/mosquitto.conf, menambahkan listener 1883 dan allow_anonymous true",
     "Memulai ulang service: sudo systemctl restart mosquitto.service",
     "Memasang pustaka micropython-umqtt.simple pada kedua Pico W melalui Thonny",

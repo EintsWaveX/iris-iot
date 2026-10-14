@@ -6,7 +6,7 @@
   "tagline": "两块板子通过 Eclipse Mosquitto broker 交换数据。",
   "fakta": ["Pi Pico W", "Mosquitto"],
   "ringkasan": [
-    "两块 Raspberry Pi Pico W 通过运行在 Orange Pi 上的 Eclipse Mosquitto broker 交换数据：一块发布电位器的位置，另一块订阅同一个 topic，记录收到的每个值。",
+    "两块 Raspberry Pi Pico W 通过运行在 PC 服务器上的 Eclipse Mosquitto broker 交换数据：一块发布电位器的位置，另一块订阅同一个 topic，记录收到的每个值。",
     "每个组用自己的 topic 和 mqtt_client_id，所以很多组可以共用一个 broker，互不干扰。"
   ],
   "toolchain": [
@@ -21,7 +21,7 @@
       "jumlah": "2 个"
     },
     {
-      "nama": "Orange Pi 4 PRO",
+      "nama": "PC 服务器",
       "jumlah": "1 个，当 Mosquitto broker"
     },
     {
@@ -49,13 +49,13 @@
     "catatan": [
       "Pico W 的 ADC 输入最多只能承受 3.3 V，所以电位器上端要接 3V3(OUT)（物理引脚 36），不能接 5 V 的 VBUS。",
       "中间的脚（滑动端）必须接到 ADC 引脚之一，也就是 GP26、GP27 或 GP28。",
-      "Eclipse Mosquitto broker 运行在 Orange Pi 4 PRO 上，不需要额外电路。Subscriber 只记录收到的值，所以第二块 Pico W 只要和 Publisher 在同一个 Wi-Fi 网络里就行。"
+      "Eclipse Mosquitto broker 运行在 PC 服务器上，不需要额外电路。Subscriber 只记录收到的值，所以第二块 Pico W 只要和 Publisher 在同一个 Wi-Fi 网络里就行。"
     ]
   },
   "persiapan": [
-    "在 Orange Pi 上安装 mosquitto 和 mosquitto-clients 软件包（sudo apt install）",
+    "在 PC 服务器上安装 mosquitto 和 mosquitto-clients 软件包（sudo apt install）",
     "开启 broker 开机自启：sudo systemctl enable mosquitto.service",
-    "用 hostname -I 记下 Orange Pi 的 IP 地址",
+    "用 hostname -I 记下 PC 服务器的 IP 地址",
     "编辑 /etc/mosquitto/mosquitto.conf，加上 listener 1883 和 allow_anonymous true",
     "重启服务：sudo systemctl restart mosquitto.service",
     "通过 Thonny 在两块 Pico W 上安装 micropython-umqtt.simple 库",

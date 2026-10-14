@@ -195,7 +195,7 @@ const TOPO: Record<
     nodes: [
       { x: 16, y: 34, label: "ESP32 + DHT22" },
       { x: 50, y: 20, r: 1.6, kind: "via", label: "Wi-Fi" },
-      { x: 84, y: 34, r: 3.4, kind: "hub", label: "Orange Pi" },
+      { x: 84, y: 34, r: 3.4, kind: "hub", label: "PC Server" },
     ],
     links: [
       [0, 1, { flow: true, dur: 1.6 }],

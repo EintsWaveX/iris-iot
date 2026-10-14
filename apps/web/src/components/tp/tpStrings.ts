@@ -67,7 +67,7 @@ const id = {
   belumBisa: "Belum bisa dikumpulkan",
   belumBody: (t: string | null) =>
     t
-      ? `IRIS memeriksa LMS tiap 5 menit. Terakhir ${t}.`
+      ? `IRIS memeriksa LMS tiap menit. Terakhir ${t}.`
       : "IRIS mulai memeriksa LMS saat jendela dibuka.",
   masukH: "Berkasmu sudah diterima",
   masukBody:
@@ -340,7 +340,7 @@ const id = {
   belumAdaKiriman: "Belum ada kiriman",
   sinkronOk: "Tersinkron dengan LMS",
   sinkronOkHint: (t: string) =>
-    `Terakhir ${t} · tiap 5 menit lewat Orange Pi selama jendela dibuka, sapuan akhir saat tutup`,
+    `Terakhir ${t} · tiap menit selama jendela dibuka, sapuan akhir saat tutup`,
   sinkronBelum: "LMS belum tersambung",
   sinkronBelumHint: "Pencipta atau Admin menyambungkannya sekali di Sumber LMS.",
   sinkronGagal: (k: string): string =>
@@ -483,9 +483,10 @@ const id = {
   jendelaBawaan: "Jendela bawaan",
   polaTeks: (a: string, ja: string, b: string, jb: string) => `${a} ${ja} sampai ${b} ${jb}`,
   selamaJendela: "Selama jendela",
-  selamaJendelaIsi: "Tiap 5 menit lewat Orange Pi, juga saat halaman TP dibuka",
+  selamaJendelaIsi:
+    "Tiap menit lewat pengatur waktu IRIS dan PC Server, juga saat halaman TP dibuka",
   sapuanAkhir: "Sapuan akhir",
-  sapuanAkhirIsi: "Sekali setelah jendela tutup, saat Pi atau halaman TP menyala lagi",
+  sapuanAkhirIsi: "Sekali setelah jendela tutup, saat PC Server atau halaman TP menyala lagi",
   ubahBawaan: "Ubah Jendela Bawaan",
   bawaanJudul: "Jendela bawaan semester",
   bawaanHint:
@@ -495,8 +496,9 @@ const id = {
   bawaanDisimpan: "Jendela bawaan disimpan.",
   riwayat: "Riwayat Sinkron",
   riwayatKosong: "Belum ada sinkron.",
-  olehPi: "Orange Pi",
+  olehPi: "PC Server",
   olehHalaman: "Halaman TP dibuka",
+  olehRelay: "Pengatur waktu IRIS",
   olehManual: (k: string) => `${k} menekan Sinkron Sekarang`,
   hasilBerkas: (b: number, u: number) =>
     b + u === 0
@@ -616,7 +618,7 @@ const en: TpT = {
   belumBisa: "Not open for submission yet",
   belumBody: (t) =>
     t
-      ? `IRIS checks the LMS every 5 minutes. Last checked ${t}.`
+      ? `IRIS checks the LMS every minute. Last checked ${t}.`
       : "IRIS starts checking the LMS when the window opens.",
   masukH: "We have your file",
   masukBody:
@@ -877,7 +879,7 @@ const en: TpT = {
   belumAdaKiriman: "Nothing submitted yet",
   sinkronOk: "In sync with the LMS",
   sinkronOkHint: (t) =>
-    `Last ${t} · every 5 minutes through the Orange Pi while a window is open, a final sweep when it closes`,
+    `Last ${t} · every minute while a window is open, a final sweep when it closes`,
   sinkronBelum: "The LMS isn't connected",
   sinkronBelumHint: "The Pencipta or an Admin connects it once in LMS Source.",
   sinkronGagal: (k) =>
@@ -1012,9 +1014,10 @@ const en: TpT = {
   jendelaBawaan: "Default window",
   polaTeks: (a, ja, b, jb) => `${a} ${ja} to ${b} ${jb}`,
   selamaJendela: "While open",
-  selamaJendelaIsi: "Every 5 minutes through the Orange Pi, and when a TP page opens",
+  selamaJendelaIsi:
+    "Every minute through the IRIS timer and the PC Server, and when a TP page opens",
   sapuanAkhir: "Final sweep",
-  sapuanAkhirIsi: "Once after the window closes, when the Pi or a TP page is next on",
+  sapuanAkhirIsi: "Once after the window closes, when the PC Server or a TP page is next on",
   ubahBawaan: "Change Default Window",
   bawaanJudul: "Semester default window",
   bawaanHint:
@@ -1024,8 +1027,9 @@ const en: TpT = {
   bawaanDisimpan: "Default window saved.",
   riwayat: "Sync History",
   riwayatKosong: "No syncs yet.",
-  olehPi: "Orange Pi",
+  olehPi: "PC Server",
   olehHalaman: "A TP page opened",
+  olehRelay: "The IRIS timer",
   olehManual: (k) => `${k} pressed Sync Now`,
   hasilBerkas: (b, u) =>
     b + u === 0
@@ -1100,7 +1104,7 @@ const zh: TpT = {
   belumH: "还没有你的文件",
   belumBisa: "还不能提交",
   belumBody: (t) =>
-    t ? `IRIS 每 5 分钟检查一次 LMS。上次检查：${t}。` : "提交时段开放后，IRIS 才开始检查 LMS。",
+    t ? `IRIS 每分钟检查一次 LMS。上次检查：${t}。` : "提交时段开放后，IRIS 才开始检查 LMS。",
   masukH: "你的文件已收到",
   masukBody: "想换文件？截止前在这里或 LMS 重新上传就行。IRIS 总是用最新的那份。",
   telatH: "截止后才提交",
@@ -1347,7 +1351,7 @@ const zh: TpT = {
   belumDibukaPada: (w) => `${w}开放`,
   belumAdaKiriman: "还没有人提交",
   sinkronOk: "已与 LMS 同步",
-  sinkronOkHint: (t) => `上次 ${t} · 开放期间每 5 分钟经由 Orange Pi 一次，截止时最后一轮`,
+  sinkronOkHint: (t) => `上次 ${t} · 开放期间每分钟一次，截止时最后一轮`,
   sinkronBelum: "LMS 还没连接",
   sinkronBelumHint: "创建者或管理员在 LMS 来源里连接一次即可。",
   sinkronGagal: (k) =>
@@ -1478,9 +1482,9 @@ const zh: TpT = {
   jendelaBawaan: "默认提交时段",
   polaTeks: (a, ja, b, jb) => `${a} ${ja} 至 ${b} ${jb}`,
   selamaJendela: "开放期间",
-  selamaJendelaIsi: "每 5 分钟经由 Orange Pi 一次，打开预习作业页面时也会",
+  selamaJendelaIsi: "每分钟经由 IRIS 定时器和 PC 服务器一次，打开预习作业页面时也会",
   sapuanAkhir: "最后一轮",
-  sapuanAkhirIsi: "截止后一次，在 Pi 或预习作业页面下次运行时",
+  sapuanAkhirIsi: "截止后一次，在 PC 服务器或预习作业页面下次运行时",
   ubahBawaan: "修改默认提交时段",
   bawaanJudul: "学期默认提交时段",
   bawaanHint: "主管安排某个模块的提交时段时会用到。单独某一周仍可在模块页的预习作业标签里调整。",
@@ -1489,8 +1493,9 @@ const zh: TpT = {
   bawaanDisimpan: "默认提交时段已保存。",
   riwayat: "同步记录",
   riwayatKosong: "还没有同步记录。",
-  olehPi: "Orange Pi",
+  olehPi: "PC 服务器",
   olehHalaman: "打开了预习作业页面",
+  olehRelay: "IRIS 定时器",
   olehManual: (k) => `${k} 点了立即同步`,
   hasilBerkas: (b, u) =>
     b + u === 0

@@ -60,7 +60,7 @@ export const IN = dict({
     servoAria: (p: number) => `Servo di ${p} persen`,
     radarAria: (r: number) => `Sinyal beacon ${r} dBm`,
     huntHint:
-      "Dekati beacon sampai RSSI naik di atas -70 dBm. Papan skor berjalan di Orange Pi lab, jadi sambungkan HP ke IRIS-IOT dulu.",
+      "Dekati beacon sampai RSSI naik di atas -70 dBm. Papan skor berjalan di PC Server lab, jadi sambungkan HP ke IRIS-IOT dulu.",
   },
   en: {
     journey: "Your module journey",
@@ -119,7 +119,7 @@ export const IN = dict({
     servoAria: (p: number) => `Servo at ${p} percent`,
     radarAria: (r: number) => `Beacon signal ${r} dBm`,
     huntHint:
-      "Get closer until RSSI rises above -70 dBm. The scoreboard runs on the lab's Orange Pi, so join IRIS-IOT on your phone first.",
+      "Get closer until RSSI rises above -70 dBm. The scoreboard runs on the lab's PC Server, so join IRIS-IOT on your phone first.",
   },
   zh: {
     journey: "你的模块进度",
@@ -178,6 +178,6 @@ export const IN = dict({
     servoAria: (p: number) => `舵机在 ${p}%`,
     radarAria: (r: number) => `信标信号 ${r} dBm`,
     huntHint:
-      "靠近信标，直到 RSSI 高于 -70 dBm。记分板在实验室的 Orange Pi 上运行，先让手机连上 IRIS-IOT。",
+      "靠近信标，直到 RSSI 高于 -70 dBm。记分板在实验室的 PC 服务器上运行，先让手机连上 IRIS-IOT。",
   },
 });

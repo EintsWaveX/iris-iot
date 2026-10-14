@@ -4,7 +4,7 @@
   "judul": "LoRa",
   "topik": "Komunikasi Long Range (LoRa Peer to Peer)",
   "tagline": "Perburuan sinyal LoRa P2P antar papan ESP32.",
-  "fakta": ["ESP32", "LoRa P2P", "Hotspot Pi"],
+  "fakta": ["ESP32", "LoRa P2P", "Hotspot PC Server"],
   "ringkasan": [
     "Modul ini tidak memakai satu pun sensor maupun aktuator luar. Yang diukur adalah gelombang radionya sendiri: hubungan antara kekuatan sinyal dan jarak.",
     "Karena LoRa peer to peer tidak memiliki protokol kanal bawaan, seluruh aturan jaringannya, termasuk sync word dan jeda pancar, disusun sendiri oleh peserta."
@@ -37,7 +37,7 @@
       "jumlah": "1x per papan"
     },
     {
-      "nama": "Orange Pi 4 PRO",
+      "nama": "PC Server",
       "jumlah": "1x sekelas, hotspot dan papan skor"
     },
     {
@@ -69,7 +69,7 @@
     "Memasang pustaka LoRa karya Sandeep Mistry melalui Library Manager Arduino IDE",
     "Memasang pustaka WebSockets karya Markus Sattler melalui Library Manager Arduino IDE",
     "Memilih board ESP32 Dev Module pada Arduino IDE",
-    "Memastikan Orange Pi sudah menyalakan hotspot IRIS-IOT dan papan skornya",
+    "Memastikan PC Server sudah menyalakan hotspot IRIS-IOT dan papan skornya",
     "Menyalin folder milik kelompok sendiri, lalu mengunggah hunter.ino tanpa menyunting apa pun",
     "Memastikan Serial Monitor mencetak alamat IP dan jam hasil sinkronisasi",
     "Membuka papan skor, memasukkan NIM, dan memastikan nama kelompok yang muncul benar",

@@ -554,9 +554,9 @@ export const KUNCI_V1: Record<string, KunciV1> = {
   "m4.modul4_hunter.2": {
     jawaban: "WIFI_PASSWORD",
     kenapa: t(
-      "Argumen kedua WiFi.begin(). Ini kata sandi hotspot Orange Pi, bukan Wi-Fi kampus.",
-      "The second argument of WiFi.begin(). It's the Orange Pi hotspot's password, not the campus Wi-Fi.",
-      "WiFi.begin() 的第二个参数，是 Orange Pi 热点的密码，不是校园 Wi-Fi。",
+      "Argumen kedua WiFi.begin(). Ini kata sandi hotspot PC Server, bukan Wi-Fi kampus.",
+      "The second argument of WiFi.begin(). It's the PC Server hotspot's password, not the campus Wi-Fi.",
+      "WiFi.begin() 的第二个参数，是 PC 服务器热点的密码，不是校园 Wi-Fi。",
     ),
     bantuan: t(
       "Argumen pertama WIFI_SSID. Pakai konstanta pasangannya yang didefinisikan di bagian atas berkas, huruf besar semua.",
@@ -616,9 +616,9 @@ export const KUNCI_V1: Record<string, KunciV1> = {
   "m4.modul4_beacon.2": {
     jawaban: "NTP_SERVER",
     kenapa: t(
-      "Alamat Orange Pi itu sendiri (192.168.4.1). Hotspot tidak punya jalur ke Internet, jadi pool.ntp.org tidak akan pernah menjawab.",
-      "The Orange Pi's own address (192.168.4.1). The hotspot has no route to the Internet, so pool.ntp.org would never answer.",
-      "就是 Orange Pi 自己的地址（192.168.4.1）。热点不通互联网，所以 pool.ntp.org 永远不会回应。",
+      "Alamat PC Server itu sendiri (192.168.4.1). Hotspot tidak punya jalur ke Internet, jadi pool.ntp.org tidak akan pernah menjawab.",
+      "The PC Server's own address (192.168.4.1). The hotspot has no route to the Internet, so pool.ntp.org would never answer.",
+      "就是 PC 服务器自己的地址（192.168.4.1）。热点不通互联网，所以 pool.ntp.org 永远不会回应。",
     ),
     bantuan: t(
       "Jangan tulis alamatnya langsung. Pakai konstanta alamat server waktu yang didefinisikan di bagian atas berkas.",

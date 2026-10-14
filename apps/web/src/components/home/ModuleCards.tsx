@@ -107,7 +107,7 @@ const T = dict({
       "两块板子通过 Eclipse Mosquitto broker 交换数据。",
       "ESP32 板子之间的 LoRa P2P 信号寻踪。",
     ] as string[] | null,
-    fakta: { "No IP network": "不用 IP 网络", "Pi hotspot": "Pi 热点" } as Record<
+    fakta: { "No IP network": "不用 IP 网络", "Pi hotspot": "PC 服务器热点" } as Record<
       string,
       string
     > | null,
