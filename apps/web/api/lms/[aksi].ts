@@ -72,7 +72,6 @@ import {
   buatTugas,
   hapusTugas,
   isiGrup,
-  namaiBagian,
   ubahTugas,
 } from "../_lib/lms-web.js";
 import {
@@ -1110,14 +1109,20 @@ async function handleMateriTulis(req: ApiRequest, res: ApiResponse, s: SessionPa
   try {
     const token = tokenDari(set);
     const web = webLms(db, set);
-    const cari = async () => (await isiKursus(token, k.id)).find((x) => x.section === m) ?? null;
+    // The module's own section, found by its name: the classes keep other
+    // sections (all 11 open with the campus K3 course in sections 0 to 6,
+    // seen live 2026-10-15), so section number m is never assumed to be
+    // Module m and IRIS renames no section it didn't make.
+    const nama = namaBagian(m, inter);
+    const cari = async () =>
+      (await isiKursus(token, k.id)).find(
+        (x) => x.name === nama || x.name === namaBagian(m, !inter),
+      ) ?? null;
     let bagian = await cari();
     if (!bagian) return tolak(res, "bagian_tidak_ada");
-    const nama = namaBagian(m, inter);
-    if (bagian.name !== nama) await namaiBagian(web, bagian.id, nama);
     const tNama = namaTautan(m, inter);
     if (!bagian.modules.some((x) => x.modname === "url" && x.name === tNama))
-      await buatTautan(web, k.id, m, {
+      await buatTautan(web, k.id, bagian.section, {
         nama: tNama,
         url: urlModul(m, inter),
         teks: htmlTeks(
@@ -1128,7 +1133,7 @@ async function handleMateriTulis(req: ApiRequest, res: ApiResponse, s: SessionPa
       });
     bagian = await cari();
     const tautan = bagian?.modules.find((x) => x.modname === "url" && x.name === tNama) ?? null;
-    const cocok = !!bagian && bagian.name === nama && !!tautan;
+    const cocok = !!bagian && !!tautan;
     const catatan = await bacaCatatan<Record<string, Record<string, MateriIris>>>(
       db,
       KUNCI_LMS.materi,

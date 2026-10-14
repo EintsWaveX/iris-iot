@@ -67,7 +67,8 @@ const id = {
     sudah_ada: "Sudah ada di LMS dengan nama itu.",
     nama_tp: "TP Modul N dibuat dari Penilaian, mengikuti jendela TP.",
     tanggal_salah: "Tanggal tutup harus setelah tanggal buka.",
-    bagian_tidak_ada: "Kelas ini belum punya bagian untuk modul itu.",
+    bagian_tidak_ada:
+      "Kelas ini belum punya bagian bernama modul itu. IRIS tidak mengganti nama bagian lain.",
     lms_tanpa_forum: "Kelas ini tidak punya forum Pengumuman.",
     lms_pesan_ditolak: "LMS menolak pesannya (mungkin pesan dari luar kontak dimatikan).",
     lms_tak_terjangkau: "LMS tidak menjawab.",
@@ -518,7 +519,8 @@ const en: S = {
     sudah_ada: "The LMS already has one with that name.",
     nama_tp: "TP Modul N is made from Grading, following the TP window.",
     tanggal_salah: "The closing date must be after the opening date.",
-    bagian_tidak_ada: "This class has no section for that module yet.",
+    bagian_tidak_ada:
+      "This class has no section named for that module yet. IRIS doesn't rename other sections.",
     lms_tanpa_forum: "This class has no Announcements forum.",
     lms_pesan_ditolak: "The LMS refused the message (messages from non-contacts may be off).",
     lms_tak_terjangkau: "The LMS didn't answer.",
@@ -861,7 +863,7 @@ const zh: S = {
     sudah_ada: "LMS 里已有同名作业。",
     nama_tp: "TP Modul N 从评分页面创建，跟随预习作业时间窗。",
     tanggal_salah: "截止日期必须晚于开始日期。",
-    bagian_tidak_ada: "这个班还没有该模块的章节。",
+    bagian_tidak_ada: "这个班还没有以该模块命名的章节。IRIS 不会改其他章节的名字。",
     lms_tanpa_forum: "这个班没有公告论坛。",
     lms_pesan_ditolak: "LMS 拒绝了这条消息（对方可能关闭了非联系人消息）。",
     lms_tak_terjangkau: "LMS 没有回应。",
