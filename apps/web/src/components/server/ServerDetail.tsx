@@ -25,7 +25,13 @@ import { dict } from "../../lib/app";
 import { durasiLabel, modulLabel, nil } from "../../lib/labels";
 import Nil from "../ui/Nil";
 import { svcTone } from "./ops";
-import { bacaBundel, bacaHasilSiap, bacaKondisi, barisPembaruan } from "../../lib/server-shared";
+import {
+  bacaBundel,
+  bacaHasilSiap,
+  bacaKondisi,
+  barisPembaruan,
+  jamServer,
+} from "../../lib/server-shared";
 import "./server12.css";
 
 /* Phase 10 (s12-server): the hero's words. */
@@ -49,6 +55,7 @@ const SH = dict({
     upd: (n: number) => (n ? `${n} pembaruan` : "Semua terbaru"),
     clockOk: (ms: string) => `Jam selisih ${ms}`,
     clockBad: (ms: string) => `Jam selisih ${ms}`,
+    clockUnsynced: "Jam belum selaras",
     runReady: "Cek Siap Praktikum",
     konsol: "Konsol PC Server",
   },
@@ -71,6 +78,7 @@ const SH = dict({
     upd: (n: number) => (n ? `${n} updates` : "All up to date"),
     clockOk: (ms: string) => `Clock ${ms} apart`,
     clockBad: (ms: string) => `Clock ${ms} apart`,
+    clockUnsynced: "Clock not synced",
     runReady: "Run the Ready Check",
     konsol: "PC Server Console",
   },
@@ -93,6 +101,7 @@ const SH = dict({
     upd: (n: number) => (n ? `${n} 个更新` : "都是最新"),
     clockOk: (ms: string) => `时钟相差 ${ms}`,
     clockBad: (ms: string) => `时钟相差 ${ms}`,
+    clockUnsynced: "时钟未同步",
     runReady: "上课就绪检查",
     konsol: "PC 服务器控制台",
   },
@@ -281,7 +290,7 @@ export default function ServerDetail({
   const perlu = barisPembaruan(s.infoSistem, s.agenVersi, data.situsIot, data.bundelTerbit).filter(
     (b) => b.status === "perlu",
   ).length;
-  const jam = bacaKondisi(s.kondisi)?.jamSelisihMs ?? null;
+  const jam = jamServer(bacaKondisi(s.kondisi));
   const glance: ["ok" | "warn" | "bad", string][] = [
     svcGagal
       ? ["bad", sh.svcBad(svcGagal)]
@@ -294,11 +303,13 @@ export default function ServerDetail({
         ? ["ok", data.sesiModul ? sh.readyOk(modulLabel(data.sesiModul, lang)) : sh.readyAll]
         : ["warn", sh.readyFail(siap.gagal)],
     [perlu ? "warn" : "ok", sh.upd(perlu)],
-    ...(jam !== null || hb
+    ...(jam.ms !== null || hb
       ? [
-          (hb?.jamSelaras === false || (jam !== null && Math.abs(jam) >= 60_000)
-            ? ["warn", sh.clockBad(selisih(jam ?? 0, lang))]
-            : ["ok", sh.clockOk(jam !== null ? selisih(jam, lang) : "< 1 s")]) as [
+          (jam.meleset
+            ? ["warn", sh.clockBad(selisih(jam.ms ?? 0, lang))]
+            : jam.ms === null && hb?.jamSelaras === false
+              ? ["warn", sh.clockUnsynced]
+              : ["ok", sh.clockOk(jam.ms !== null ? selisih(jam.ms, lang) : "< 1 s")]) as [
             "ok" | "warn",
             string,
           ],

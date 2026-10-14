@@ -6,6 +6,7 @@ import {
   kelompokLabel,
   laluLabel,
   menitLabel,
+  detikLabel,
   modulLabel,
 } from "../labels";
 import { namaAsisten } from "../people";
@@ -26,6 +27,10 @@ describe("labels", () => {
   it("writes minutes and durations in full", () => {
     expect(menitLabel(1, "en")).toBe("1 minute");
     expect(menitLabel(150, "id")).toBe("150 menit");
+    expect(detikLabel(1, "en")).toBe("1 second");
+    expect(detikLabel(58, "en")).toBe("58 seconds");
+    expect(detikLabel(58, "id")).toBe("58 detik");
+    expect(detikLabel(58, "zh")).toBe("58 秒");
     expect(durasiLabel(125, "id")).toBe("2 jam 5 menit");
     expect(durasiLabel(120, "en")).toBe("2 hours");
     expect(durasiLabel(61, "en")).toBe("1 hour 1 minute");

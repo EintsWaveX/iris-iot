@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   bacaHasilSiap,
+  bacaKondisi,
+  jamServer,
+  JAM_TOLERANSI_DETIK,
   modulCek,
   hotspotMenyala,
   LAYANAN_URUT,
@@ -234,5 +237,31 @@ describe("bacaPulih", () => {
     });
     expect(bacaPulih({})).toBeNull();
     expect(bacaPulih(null)).toBeNull();
+  });
+});
+
+describe("jamServer", () => {
+  const k = (o: Record<string, unknown>) => bacaKondisi(o);
+
+  it("trusts the site's measure over chrony serving its own clock (seen live: 58 s, 0 ms)", () => {
+    expect(jamServer(k({ jamSelisihMs: 0, selisihDetik: 58 }))).toEqual({
+      ms: 58_000,
+      meleset: true,
+    });
+    expect(jamServer(k({ jamSelisihMs: 0, selisihDetik: -7 }))).toEqual({
+      ms: -7_000,
+      meleset: true,
+    });
+  });
+
+  it("lets a heartbeat's trip pass", () => {
+    expect(jamServer(k({ selisihDetik: JAM_TOLERANSI_DETIK - 1 })).meleset).toBe(false);
+    expect(jamServer(k({ selisihDetik: JAM_TOLERANSI_DETIK })).meleset).toBe(true);
+  });
+
+  it("falls back to chrony's offset, off only from a minute", () => {
+    expect(jamServer(k({ jamSelisihMs: -3.1 }))).toEqual({ ms: -3.1, meleset: false });
+    expect(jamServer(k({ jamSelisihMs: 61_000 })).meleset).toBe(true);
+    expect(jamServer(null)).toEqual({ ms: null, meleset: false });
   });
 });

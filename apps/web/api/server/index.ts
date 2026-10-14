@@ -81,6 +81,8 @@ async function handleGet(req: ApiRequest, res: ApiResponse) {
       lokasi: server.lokasi,
       terdaftarPada: server.terdaftarPada,
       dibuatPada: server.dibuatPada,
+      // the clock's distance from the site, for the Console's Ada Masalah?
+      kondisi: server.kondisi,
     })
     .from(server)
     .orderBy(server.dibuatPada);

@@ -316,6 +316,8 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
 
   const a = data.akses;
   const uji = data.tugas.find((x) => x.jenis === "uji");
+  // A test queued or running: the button says so until the PC Server answers.
+  const ujiJalan = !!uji && (uji.status === "antre" || uji.status === "diambil");
   const takJangkau = !!a && a.status === "menunggu_uji" && uji?.galat === "tak_terjangkau";
   const kunciLain = !!a && (a.status === "kunci_lain" || (!!data.kunci && !a.kunciSama));
   const v = !a
@@ -429,6 +431,8 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
         <button
           type="button"
           className="btn btn--secondary"
+          disabled={ujiJalan}
+          aria-busy={ujiJalan || undefined}
           onClick={async () => {
             const r = await postJson<{ ok: boolean }>("/api/session/robot", { aksi: "uji" }).catch(
               () => ({ ok: false }),
@@ -437,7 +441,7 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
             refresh();
           }}
         >
-          {t.testAgain}
+          {ujiJalan ? t.testing : t.testAgain}
         </button>
         <button type="button" className="btn btn--secondary" onClick={() => setDlg("ulang")}>
           {t.changePw}

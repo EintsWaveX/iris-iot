@@ -131,6 +131,8 @@ export interface ServerRow {
   kode: string;
   /** The Pi's own LAN address, reported by the agent. */
   alamatLan?: string | null;
+  /** The heartbeat's kondisi block (read with bacaKondisi). */
+  kondisi?: unknown;
   denyutTerakhir: Heartbeat | null;
   batasLuringDetik: number;
 }

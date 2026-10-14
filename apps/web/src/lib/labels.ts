@@ -46,6 +46,12 @@ export function menitLabel(n: number, lang: Lang): string {
   return lang === "zh" ? `${n} 分钟` : `${n} menit`;
 }
 
+/** "58 detik", "58 seconds" (one: "1 second"), "58 秒" */
+export function detikLabel(n: number, lang: Lang): string {
+  if (lang === "en") return n === 1 ? "1 second" : `${n} seconds`;
+  return lang === "zh" ? `${n} 秒` : `${n} detik`;
+}
+
 function en(n: number, unit: string): string {
   return `${n} ${unit}${n === 1 ? "" : "s"}`;
 }

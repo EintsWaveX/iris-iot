@@ -174,6 +174,21 @@ export interface Kondisi {
   selisihDetik: number | null;
 }
 
+/** How far the PC Server's clock may be from the site's before it shows
+ *  (the heartbeat's trip is in the measure, so a little more than the Ready
+ *  check's 3 s). Every journal's delay column is board time minus PC time. */
+export const JAM_TOLERANSI_DETIK = 5;
+
+/** The clock's distance from the site in ms, and whether it is off: the
+ *  site's own measure first, since chrony serving its own clock (no time
+ *  server reachable) reports 0 ms while it drifts (seen live: 58 s). */
+export function jamServer(k: Kondisi | null): { ms: number | null; meleset: boolean } {
+  const situs = k?.selisihDetik ?? null;
+  const chrony = k?.jamSelisihMs ?? null;
+  if (situs !== null) return { ms: situs * 1000, meleset: Math.abs(situs) >= JAM_TOLERANSI_DETIK };
+  return { ms: chrony, meleset: chrony !== null && Math.abs(chrony) >= 60_000 };
+}
+
 export const LAYAR_KONSOL = ["siap", "x11vnc_tidak_ada", "layar_tidak_ada"] as const;
 export type LayarKonsol = (typeof LAYAR_KONSOL)[number];
 

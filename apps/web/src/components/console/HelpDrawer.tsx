@@ -22,6 +22,7 @@ import TambahPraktikan from "./TambahPraktikan";
 import UbahSesi from "./UbahSesi";
 import type { ServerState } from "./data";
 import { isOnline, type GroupRow, type SesiRunning } from "./types";
+import { bacaKondisi, jamServer } from "../../lib/server-shared";
 import "./help-drawer.css";
 
 const HD = dict({
@@ -458,6 +459,7 @@ export default function HelpDrawer({
 
   const d = piDari(servers);
   const hb = d?.denyutTerakhir ?? null;
+  const jamOff = jamMeleset(d);
   const piOn = d ? isOnline(hb, d.batasLuringDetik) : false;
   const umur = hb ? Math.max(0, Math.round((Date.now() - Date.parse(hb.pada)) / 1000)) : null;
   const svc = Object.entries(hb?.layanan ?? {});
@@ -497,11 +499,7 @@ export default function HelpDrawer({
       svcBad.length ? h.sys.svcBad(svcBad.map(([k]) => k).join(", ")) : h.sys.svcOk(svcUp),
     ],
     [sunyi.length === 0, h.sys.data, sunyi.length ? h.sys.dataBad(daftarG(sunyi)) : h.sys.dataOk],
-    [
-      hb?.jamSelaras !== false,
-      h.sys.clock,
-      hb?.jamSelaras === false ? h.sys.clockBad : h.sys.clockOk,
-    ],
+    [!jamOff, h.sys.clock, jamOff ? h.sys.clockBad : h.sys.clockOk],
   ];
 
   async function extend(by: number) {
@@ -584,13 +582,13 @@ export default function HelpDrawer({
         id: "delay",
         cat: "data",
         title: h.delay,
-        warn: hb?.jamSelaras === false,
-        found: h.delayFound(hb?.jamSelaras !== false),
+        warn: jamOff,
+        found: h.delayFound(!jamOff),
         acts: d
           ? [
               {
                 label: h.sync,
-                primary: hb?.jamSelaras === false,
+                primary: jamOff,
                 run: () => void sendCommand(d.server.id, "jam.selaraskan", {}, lang),
               },
             ]
@@ -935,6 +933,15 @@ export default function HelpDrawer({
 
 /** The lab Pi: the one server's detail, else the first listed server (a
  *  rig or a lab with a spare Pi lists more than one). */
+/** The clock off by the site's own measure; the heartbeat's flag only
+ *  when there is none (chrony serving its own clock says "not synced" while
+ *  the time can still be right). */
+function jamMeleset(d: ReturnType<typeof piDari>): boolean {
+  const k = bacaKondisi(d?.server.kondisi);
+  if (k && (k.selisihDetik !== null || k.jamSelisihMs !== null)) return jamServer(k).meleset;
+  return d?.denyutTerakhir?.jamSelaras === false;
+}
+
 function piDari(servers: ServerState | null) {
   if (servers?.detail) return servers.detail;
   const s = servers?.list[0];
@@ -950,7 +957,7 @@ export function adaMasalah(servers: ServerState | null, groups: GroupRow[]): boo
   const hb = d?.denyutTerakhir ?? null;
   if (d && !isOnline(hb, d.batasLuringDetik)) return true;
   if (Object.values(hb?.layanan ?? {}).some((st) => svcTone(st) === "bad")) return true;
-  if (hb && hb.jamSelaras === false) return true;
+  if (jamMeleset(d)) return true;
   const aktif = groups.filter((g) => g.sesiAktif);
   const sunyi = aktif.filter((g) => (g.telemetri?.count ?? 0) === 0).length;
   return sunyi > 0 && sunyi < aktif.length;

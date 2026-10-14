@@ -4,6 +4,7 @@ import {
   bacaHariShift,
   bacaInfoSeelabs,
   barisPerKlp,
+  ringkasBukti,
   setelahGagal,
   sidikJaga,
   slotJaga,
@@ -167,5 +168,28 @@ describe("the Laboran default password's suffix", () => {
       expect(sufiksSah(ok)).toBe(true);
     for (const bad of ["", " 1715", "17-15", "1234567890123456x", "sandi!", 1715, null])
       expect(sufiksSah(bad)).toBe(false);
+  });
+});
+
+describe("ringkasBukti", () => {
+  it("sends a group pull's group counts, not every member", () => {
+    const anggota = [{ nim: "101022400042", uid: 3979, nama: "ZIETA KHANIA PUTRI" }];
+    const b = ringkasBukti({
+      kelompok: {
+        "237": [
+          { klp: 1, anggota },
+          { klp: 2, anggota },
+        ],
+        "238": [],
+      },
+    });
+    expect(b).toEqual({ kelompok: { "237": 2, "238": 0 } });
+    expect(JSON.stringify(b)).not.toContain("ZIETA");
+  });
+
+  it("keeps other proofs as they are, and drops what isn't an object", () => {
+    expect(ringkasBukti({ nama: "Immanuel" })).toEqual({ nama: "Immanuel" });
+    expect(ringkasBukti(null)).toBeNull();
+    expect(ringkasBukti([1, 2])).toBeNull();
   });
 });

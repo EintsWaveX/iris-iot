@@ -283,3 +283,22 @@ export function statusAksesSetelah(kode: string | null, sekarang: StatusAkses): 
   if (kode === "segel_rusak") return "kunci_lain";
   return sekarang; // unreachable or a page problem says nothing about the password
 }
+
+/** A job's proof for the screens. A group pull's proof is every group with
+ *  its members' names and NIMs (about 100 KB, seen live): the screens get
+ *  how many groups per practicum instead, the full list stays in the job. */
+export function ringkasBukti(bukti: unknown): Record<string, unknown> | null {
+  if (typeof bukti !== "object" || bukti === null || Array.isArray(bukti)) return null;
+  const b = bukti as Record<string, unknown>;
+  const k = b.kelompok;
+  if (typeof k !== "object" || k === null || Array.isArray(k)) return b;
+  return {
+    ...b,
+    kelompok: Object.fromEntries(
+      Object.entries(k as Record<string, unknown>).map(([p, v]) => [
+        p,
+        Array.isArray(v) ? v.length : 0,
+      ]),
+    ),
+  };
+}

@@ -29,11 +29,12 @@ import type { Lang } from "../../lib/kelas";
 import {
   bacaHasilSiap,
   bacaKondisi,
+  jamServer,
   hotspotMenyala,
   LAYANAN_URUT,
   urutkanLayanan,
 } from "../../lib/server-shared";
-import { durasiLabel, modulLabel } from "../../lib/labels";
+import { detikLabel, durasiLabel, modulLabel } from "../../lib/labels";
 import type { Perintah } from "../console/types";
 import Gauges from "./Gauges";
 import PiFull from "./PiFull";
@@ -130,8 +131,9 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
   const syncRun = sedangBerjalan(data, "jam.selaraskan");
   // The Pi's clock against the site's (measured on each heartbeat): a
   // minute or more apart is shown, whatever chrony thinks.
-  const selisih = bacaKondisi(data.server.kondisi)?.selisihDetik ?? 0;
-  const jauh = Math.abs(selisih) >= 60;
+  const jam = jamServer(bacaKondisi(data.server.kondisi));
+  const jauh = jam.meleset;
+  const detik = Math.round(Math.abs(jam.ms ?? 0) / 1000);
   const tip = bisa.server ? undefined : t.needRight;
 
   const restartAll = async () => {
@@ -154,7 +156,9 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
           warn={jauh}
           hint={
             jauh
-              ? t.clockApart(durasiLabel(Math.max(1, Math.round(Math.abs(selisih) / 60)), lang))
+              ? t.clockApart(
+                  detik < 120 ? detikLabel(detik, lang) : durasiLabel(Math.round(detik / 60), lang),
+                )
               : hb?.jamSelaras
                 ? t.syncOk
                 : t.syncHint
