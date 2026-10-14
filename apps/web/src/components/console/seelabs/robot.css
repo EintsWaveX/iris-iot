@@ -159,6 +159,14 @@
   grid-template-columns: minmax(0, 1fr) auto;
   padding: 12px 14px;
 }
+/* A consent is a checkbox, never a switch: the whole row ticks it. */
+.slr-agree--check {
+  display: block;
+  padding: 4px;
+}
+.slr-agree--check .ctl-check {
+  width: 100%;
+}
 .slr-seal .hint b {
   color: var(--text);
   letter-spacing: 0.04em;

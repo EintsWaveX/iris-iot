@@ -75,7 +75,6 @@ export const RB = dict({
     ] as [boolean, string][],
     agree:
       "Saya izinkan IRIS memakai akun SeeLabs saya untuk hal di atas. Bisa diputus kapan saja.",
-    allow: "Izinkan",
     lockConnect: "Kunci dan Hubungkan",
     locking: "Mengunci di browser ini…",
     waiting: "Menunggu PC Server mencoba masuk ke SeeLabs. Biasanya kurang dari semenit.",
@@ -278,7 +277,6 @@ export const RB = dict({
       [false, "Never shows your password to anyone, Admins included."],
     ] as [boolean, string][],
     agree: "I allow IRIS to use my SeeLabs account for the above. I can disconnect any time.",
-    allow: "Allow",
     lockConnect: "Lock and Connect",
     locking: "Locking in this browser…",
     waiting: "Waiting for the PC Server to try signing in to SeeLabs. Usually under a minute.",
@@ -469,7 +467,6 @@ export const RB = dict({
       [false, "从不向任何人显示你的密码，包括管理员。"],
     ] as [boolean, string][],
     agree: "我允许 IRIS 用我的 SeeLabs 账号做以上事情。随时可以断开。",
-    allow: "允许",
     lockConnect: "加锁并连接",
     locking: "正在这个浏览器里加锁…",
     waiting: "等待 PC 服务器尝试登录 SeeLabs，通常不到一分钟。",

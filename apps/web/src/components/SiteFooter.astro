@@ -62,32 +62,35 @@ const year = new Date().getFullYear();
     color: var(--text-muted);
     font-size: 0.86rem;
     margin-top: var(--space-7);
-    padding-block: var(--space-6) var(--space-7);
+    padding-block: var(--space-8);
     position: relative;
   }
 
   .sitefoot__in {
     display: grid;
-    gap: var(--space-4) var(--space-7);
+    gap: var(--space-6) var(--space-7);
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .sitefoot__who {
     display: grid;
-    gap: 2px;
+    gap: var(--space-2);
+    line-height: 1.5;
     min-width: 0;
   }
 
   .sitefoot__lab {
     color: var(--text);
+    font-size: 0.95rem;
     font-weight: 600;
+    margin-bottom: var(--space-1);
   }
 
   .sitefoot__contact {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-2) var(--space-4);
-    margin-top: var(--space-1);
+    gap: var(--space-2) var(--space-5);
+    margin-top: var(--space-2);
   }
 
   .sitefoot__links {
@@ -104,11 +107,15 @@ const year = new Date().getFullYear();
     text-underline-offset: 3px;
   }
 
+  /* The fine print sits apart, under its own rule. */
   .sitefoot__fine {
+    border-top: 1px solid var(--hairline-faint);
     font-size: 0.78rem;
     grid-column: 1 / -1;
+    line-height: 1.6;
     margin: 0;
     max-width: none;
+    padding-top: var(--space-5);
   }
 
   @media (hover: hover) and (pointer: fine) {

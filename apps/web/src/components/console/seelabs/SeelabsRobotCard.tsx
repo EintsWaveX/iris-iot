@@ -23,7 +23,7 @@ import Dialog from "../../ui/Dialog";
 import Confirm from "../../ui/Confirm";
 import Disclose from "../../ui/Disclose";
 import PasswordField from "../../ui/PasswordField";
-import { Switch } from "../../ui/Controls";
+import { Checkbox, Switch } from "../../ui/Controls";
 import { RB, type RobotStrings } from "./robotStrings";
 import "./robot.css";
 
@@ -286,9 +286,8 @@ function ConnectDialog({
           <Disclose head={t.rightsHead}>
             <Rights t={t} />
           </Disclose>
-          <div className="slr-agree">
-            <span>{t.agree}</span>
-            <Switch on={agree} onChange={setAgree} label={t.allow} disabled={sibuk} />
+          <div className="slr-agree slr-agree--check">
+            <Checkbox checked={agree} onChange={setAgree} label={t.agree} disabled={sibuk} />
           </div>
           {sibuk && (
             <p className="hint slr-wait" role="status">
