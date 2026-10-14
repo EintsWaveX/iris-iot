@@ -296,13 +296,14 @@ export default function AsistenHome({
     return !!r && r.status === "aktif" && kodeSlot(r).length > 0;
   };
   const jalanOf = (s: number): Jalan | null => data?.jalan?.[String(s)] ?? null;
+  // Mine: I teach or help in it today. The sheet's ranked substitutes are
+  // only who may cover, so being listed lets me start it but isn't "Yours".
   const mineSlot = (s: number) => {
     const r = row(s);
-    return (
-      !!r &&
-      (kodeSlot(r).includes(myCode) || r.pengganti.some((p) => p.kode.toUpperCase() === myCode))
-    );
+    return !!r && kodeSlot(r).includes(myCode);
   };
+  const bolehSlot = (s: number) =>
+    mineSlot(s) || !!row(s)?.pengganti.some((p) => p.kode.toUpperCase() === myCode);
 
   const states = useMemo(
     () =>
@@ -352,7 +353,7 @@ export default function AsistenHome({
 
   const sel = slot ?? 1;
   const r = row(sel);
-  const diSlot = mineSlot(sel);
+  const diSlot = bolehSlot(sel);
   const win = jendelaSlot(SLOT_MULAI[sel], jendelaOf(sel), menitNow);
   const blok: "past" | "future" | "notMine" | "empty" | null = susulan
     ? null

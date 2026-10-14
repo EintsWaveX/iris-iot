@@ -58,8 +58,8 @@ export default function DayCard({
   };
   const ada = (s: number) => row(s)?.status === "aktif" && codes(s).length > 0;
   const winOf = (s: number) => row(s)?.jendelaMulaiMenit ?? data?.jendelaDefault ?? 15;
-  const mine = (s: number) =>
-    codes(s).includes(myCode) || !!row(s)?.pengganti.some((p) => p.kode.toUpperCase() === myCode);
+  // Slots I teach or help in today; a listed substitute isn't one of them.
+  const mine = (s: number) => codes(s).includes(myCode);
   const st = dayStates(
     [1, 2, 3, 4].map((s) => {
       const j = data?.jalan?.[String(s)];
