@@ -3,7 +3,7 @@
  *  it stopped, with Coba Lagi and the Token Khusus field. Every group of the
  *  page shares one poll of the session's robot jobs. */
 import { useState } from "react";
-import { ArrowClockwiseIcon, KeyIcon, WarningIcon } from "@phosphor-icons/react";
+import { WarningIcon } from "@phosphor-icons/react";
 import { getJson, jamMenit, pageLang, postJson } from "../../../lib/app";
 import { usePollBersama } from "../../../lib/hooks";
 import { RB } from "./robotStrings";
@@ -146,7 +146,6 @@ export default function SeelabsStrip({ sesiId, nomor }: { sesiId: number; nomor:
                 className="btn btn--primary"
                 disabled={busy || token.trim().length < 3}
               >
-                <KeyIcon size={18} aria-hidden="true" />
                 {r.tokenSend}
               </button>
             </form>
@@ -158,7 +157,6 @@ export default function SeelabsStrip({ sesiId, nomor }: { sesiId: number; nomor:
                 disabled={busy}
                 onClick={() => void kirim("ulang", gagal.id)}
               >
-                <ArrowClockwiseIcon size={18} aria-hidden="true" />
                 {r.tryAgain}
               </button>
             </div>

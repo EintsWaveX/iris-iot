@@ -19,28 +19,22 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowClockwiseIcon,
-  ChatCircleTextIcon,
-  CheckIcon,
   CircleNotchIcon,
   ClockCountdownIcon,
   DesktopIcon,
-  FileTextIcon,
+  EyeIcon,
+  HandIcon,
   HourglassHighIcon,
   LockKeyIcon,
   MonitorIcon,
   PaperPlaneTiltIcon,
   PowerIcon,
-  EyeIcon,
-  HandIcon,
   ShieldCheckIcon,
   SignInIcon,
-  SignOutIcon,
   StarFourIcon,
   TerminalWindowIcon,
   UsersIcon,
   WarningIcon,
-  XIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import Disclose from "../../ui/Disclose";
@@ -276,7 +270,6 @@ export default function KonsolPi({
               className="btn btn--sm btn--ghost"
               onClick={() => setKeluar(ikut.id)}
             >
-              <SignOutIcon size={16} aria-hidden="true" />
               {t.leave}
             </button>
           </span>
@@ -506,7 +499,6 @@ function JoinApprove({
           disabled={busy}
           onClick={() => void jawab(true)}
         >
-          <CheckIcon size={18} aria-hidden="true" />
           {t.approve}
         </button>
       </div>
@@ -580,7 +572,6 @@ function Ask({
             disabled={paksa.trim().length < 5}
             onClick={() => setPaksaOk(true)}
           >
-            <WarningIcon size={18} aria-hidden="true" />
             {t.openAnyway}
           </button>
         </div>
@@ -833,7 +824,6 @@ function Approve({
           disabled={busy}
           onClick={() => void jawab(true)}
         >
-          <CheckIcon size={18} aria-hidden="true" />
           {t.approve}
         </button>
       </div>
@@ -874,10 +864,7 @@ function Notice({
     <section className="panel panel--solo panel--key pkreq">
       <div className="panel__head">
         <h2 className="panel__title">{t.noticeTitle}</h2>
-        <span className="pill pill--violet">
-          <StarFourIcon size={14} aria-hidden="true" />
-          {t.noNeed}
-        </span>
+        <span className="pill pill--violet">{t.noNeed}</span>
       </div>
       <p className="hint">{t.noticeBody}</p>
       <KV
@@ -898,11 +885,9 @@ function Notice({
           disabled={busy}
           onClick={() => setDlg("tolak")}
         >
-          <XIcon size={18} aria-hidden="true" />
           {t.reject}
         </button>
         <button type="button" className="btn" disabled={busy} onClick={() => setDlg("tanya")}>
-          <ChatCircleTextIcon size={18} aria-hidden="true" />
           {t.ask}
         </button>
         <button
@@ -911,7 +896,6 @@ function Notice({
           disabled={busy}
           onClick={() => void kirim("oke")}
         >
-          <CheckIcon size={18} aria-hidden="true" />
           {t.okay}
         </button>
       </div>
@@ -982,7 +966,6 @@ function EndButton({
         <b className="num">{t.left(sisa)}</b>
       </span>
       <button type="button" className="btn btn--sm btn--danger-soft" onClick={() => setAsk(true)}>
-        <PowerIcon size={16} aria-hidden="true" />
         {t.end}
       </button>
       <Dialog
@@ -1010,7 +993,6 @@ function EndButton({
                 refresh();
               }}
             >
-              <PowerIcon size={18} aria-hidden="true" />
               {t.end}
             </button>
           </>
@@ -1206,7 +1188,6 @@ function Open({
           action={
             lambat ? (
               <button type="button" className="btn btn--sm" onClick={() => void sambung(true)}>
-                <ArrowClockwiseIcon size={16} aria-hidden="true" />
                 {t.callPi}
               </button>
             ) : null
@@ -1221,7 +1202,6 @@ function Open({
           text={t.galat[keadaan.kode] ?? (t.codes[keadaan.kode] || t.galatLain)}
           action={
             <button type="button" className="btn btn--sm" onClick={() => void sambung(false)}>
-              <ArrowClockwiseIcon size={16} aria-hidden="true" />
               {t.reconnect}
             </button>
           }
@@ -1238,7 +1218,6 @@ function Open({
             className="btn btn--sm"
             onClick={() => void sambung(keadaan.kode === 4001)}
           >
-            <ArrowClockwiseIcon size={16} aria-hidden="true" />
             {keadaan.kode === 4001 ? t.callPi : t.reconnect}
           </button>
         }
@@ -1342,7 +1321,6 @@ function Open({
                 className="btn btn--sm btn--primary"
                 onClick={() => beri(peminta)}
               >
-                <HandIcon size={16} aria-hidden="true" />
                 {t.give}
               </button>
             </span>
@@ -1401,12 +1379,10 @@ function RuangBar({
           <span className="pill pill--ok">{t.controls}</span>
         ) : sayaMinta ? (
           <button type="button" className="btn btn--sm btn--ghost" onClick={onBatal}>
-            <XIcon size={16} aria-hidden="true" />
             {t.cancelAsk}
           </button>
         ) : (
           <button type="button" className="btn btn--sm" onClick={onMinta}>
-            <HandIcon size={16} aria-hidden="true" />
             {t.askControl}
           </button>
         )}
@@ -1483,11 +1459,9 @@ function Done({
       />
       <div className="panel__actions pkact">
         <a className="btn" href={`${href(lang, "/reports")}?audit=konsol#audit`}>
-          <FileTextIcon size={18} aria-hidden="true" />
           {t.seeAudit}
         </a>
         <button type="button" className="btn btn--primary" onClick={onAgain}>
-          <ArrowClockwiseIcon size={18} aria-hidden="true" />
           {t.again}
         </button>
       </div>
@@ -1540,7 +1514,6 @@ function KonsolSide({ t, lang, data }: { t: KStrings; lang: Lang; data: KonsolDa
             className="btn btn--ghost btn--sm"
             href={`${href(lang, "/reports")}?audit=konsol#audit`}
           >
-            <FileTextIcon size={16} aria-hidden="true" />
             {w.toAudit}
           </a>
         </div>
@@ -1600,13 +1573,11 @@ export function KonsolBanner({
       <span className="grow">{t.banner(row.olehNama, by, m, row.peserta?.length ?? 0)}</span>
       {onJoin && (
         <button type="button" className="btn btn--sm" onClick={onJoin}>
-          <SignInIcon size={16} aria-hidden="true" />
           {t.joinLink}
         </button>
       )}
       {bisaPutus && (
         <button type="button" className="btn btn--sm btn--danger-soft" onClick={() => setAsk(true)}>
-          <PowerIcon size={16} aria-hidden="true" />
           {t.cutOff}
         </button>
       )}
@@ -1635,7 +1606,6 @@ export function KonsolBanner({
                 refresh();
               }}
             >
-              <PowerIcon size={18} aria-hidden="true" />
               {t.cutOff}
             </button>
           </>

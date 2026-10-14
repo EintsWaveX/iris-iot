@@ -4,7 +4,7 @@
  * name on the left and its value on the right, plus a CSV of the same rows.
  * The blank view also lists the open group's stuck blanks.
  */
-import { DownloadSimpleIcon, WarningIcon } from "@phosphor-icons/react";
+import { WarningIcon } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 import Dialog from "../ui/Dialog";
 import Pill from "../ui/Pill";
@@ -80,7 +80,6 @@ export default function GroupBarsModal({
       actions={
         <>
           <button type="button" className="btn" onClick={csv}>
-            <DownloadSimpleIcon size={18} aria-hidden="true" />
             {t.csv}
           </button>
           <button type="button" className="btn btn--primary" onClick={() => onOpenChange(false)}>

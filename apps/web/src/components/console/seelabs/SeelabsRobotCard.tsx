@@ -8,16 +8,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   CellSignalSlashIcon,
   CheckCircleIcon,
-  CheckIcon,
-  HourglassMediumIcon,
   KeyIcon,
   LockKeyIcon,
-  PasswordIcon,
-  PlugsConnectedIcon,
   ProhibitIcon,
-  RobotIcon,
   ShieldCheckIcon,
-  XIcon,
 } from "@phosphor-icons/react";
 import { getJson, jamMenit, postJson, tanggalPanjang } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
@@ -67,13 +61,11 @@ export function kapanRobot(iso: string, lang: Lang): string {
 }
 
 function Head({
-  icon,
   tone,
   title,
   desc,
   aside,
 }: {
-  icon: ReactNode;
   tone?: Tone;
   title: string;
   desc?: string;
@@ -81,7 +73,6 @@ function Head({
 }) {
   return (
     <div className="slr-head" data-tone={tone}>
-      <span className="slr-head__ic">{icon}</span>
       <div className="slr-head__t">
         <h2 className="panel__title">{title}</h2>
         {desc && <span className="hint">{desc}</span>}
@@ -213,7 +204,6 @@ function ConnectDialog({
       actions={
         selesai || tahap === "gagal" ? (
           <button type="button" className="btn btn--primary" onClick={onClose}>
-            <CheckIcon size={18} aria-hidden="true" />
             {selesai ? t.done : t.close}
           </button>
         ) : (
@@ -227,7 +217,6 @@ function ConnectDialog({
               disabled={sibuk || !agree || !sandi || !kunci || kunciBeda}
               onClick={() => void hubungkan()}
             >
-              <LockKeyIcon size={18} aria-hidden="true" />
               {t.lockConnect}
             </button>
           </>
@@ -344,7 +333,6 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
 
   const tombolPutus = (
     <button type="button" className="btn btn--danger-soft" onClick={() => setPutus(true)}>
-      <XIcon size={18} aria-hidden="true" />
       {v === "wait" ? t.cancelTest : t.disconnect}
     </button>
   );
@@ -357,14 +345,7 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
   let acts: ReactNode;
   let tone: Tone;
   if (v === "none") {
-    head = (
-      <Head
-        icon={<RobotIcon size={22} aria-hidden="true" />}
-        title={t.noneTitle}
-        desc={t.noneDesc}
-        aside={badge("", t.st.none)}
-      />
-    );
+    head = <Head title={t.noneTitle} desc={t.noneDesc} aside={badge("", t.st.none)} />;
     body = (
       <>
         <Rights t={t} rows={t.rights.slice(0, 4)} />
@@ -378,7 +359,6 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
         disabled={!data.kunci || !data.nyala}
         onClick={() => setDlg("baru")}
       >
-        <PlugsConnectedIcon size={20} aria-hidden="true" />
         {t.connect}
       </button>
     );
@@ -386,13 +366,6 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
     tone = v === "reach" ? "warn" : "accent";
     head = (
       <Head
-        icon={
-          v === "reach" ? (
-            <CellSignalSlashIcon size={22} aria-hidden="true" />
-          ) : (
-            <HourglassMediumIcon size={22} aria-hidden="true" />
-          )
-        }
         tone={tone}
         title={v === "reach" ? t.reachTitle : t.waitTitle}
         desc={v === "reach" ? t.reachDesc : t.waitDesc}
@@ -404,13 +377,6 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
     tone = v === "denied" ? "danger" : "warn";
     head = (
       <Head
-        icon={
-          v === "denied" ? (
-            <LockKeyIcon size={22} aria-hidden="true" />
-          ) : (
-            <KeyIcon size={22} aria-hidden="true" />
-          )
-        }
         tone={tone}
         title={v === "denied" ? t.deniedTitle : t.keyTitle}
         desc={v === "denied" ? t.deniedDesc : t.keyDesc}
@@ -431,7 +397,6 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
           onClick={() => setDlg("ulang")}
           disabled={!data.kunci}
         >
-          <PlugsConnectedIcon size={18} aria-hidden="true" />
           {t.enterAgain}
         </button>
         {tombolPutus}
@@ -439,15 +404,7 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
     );
   } else {
     tone = "ok";
-    head = (
-      <Head
-        icon={<PlugsConnectedIcon size={22} aria-hidden="true" />}
-        tone="ok"
-        title={t.okTitle}
-        desc={t.okDesc}
-        aside={badge("ok", t.st.aktif)}
-      />
-    );
+    head = <Head tone="ok" title={t.okTitle} desc={t.okDesc} aside={badge("ok", t.st.aktif)} />;
     body = (
       <dl className="slr-facts">
         <div>
@@ -481,11 +438,9 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
             refresh();
           }}
         >
-          <CheckCircleIcon size={18} aria-hidden="true" />
           {t.testAgain}
         </button>
         <button type="button" className="btn btn--secondary" onClick={() => setDlg("ulang")}>
-          <PasswordIcon size={18} aria-hidden="true" />
           {t.changePw}
         </button>
         {tombolPutus}

@@ -12,27 +12,18 @@
  */
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import {
-  ArrowClockwiseIcon,
   ArrowsClockwiseIcon,
-  ArrowsLeftRightIcon,
-  DoorOpenIcon,
-  HardDrivesIcon,
-  HouseIcon,
-  LinkIcon,
-  NotePencilIcon,
-  SquaresFourIcon,
-  UsersFourIcon,
   BugIcon,
   CloudXIcon,
   CompassIcon,
   CopySimpleIcon,
   FileArrowUpIcon,
   HourglassHighIcon,
+  type IconProps,
   LockKeyIcon,
   ProhibitIcon,
   WarningIcon,
   WifiXIcon,
-  type IconProps,
 } from "@phosphor-icons/react";
 import IconButton from "./IconButton";
 import { dict, href, type ErrorCode } from "../../lib/app";
@@ -421,26 +412,26 @@ export default function ErrorView({
     : {
         400: (
           <>
-            <Btn primary icon={ArrowClockwiseIcon} onClick={reload}>
+            <Btn primary onClick={reload}>
               {a.reload}
             </Btn>
-            <Btn icon={HouseIcon} ghost onClick={go("/")}>
+            <Btn ghost onClick={go("/")}>
               {a.home}
             </Btn>
           </>
         ),
         401: (
-          <Btn primary icon={DoorOpenIcon} onClick={() => openSignIn()}>
+          <Btn primary onClick={() => openSignIn()}>
             {a.signIn}
           </Btn>
         ),
         403: prak ? (
-          <Btn primary icon={SquaresFourIcon} onClick={go("/dashboard")}>
+          <Btn primary onClick={go("/dashboard")}>
             {a.dash}
           </Btn>
         ) : (
           <>
-            <Btn primary icon={UsersFourIcon} onClick={go("/team")}>
+            <Btn primary onClick={go("/team")}>
               {a.admins}
             </Btn>
             <Btn ghost onClick={go("/session")}>
@@ -449,23 +440,23 @@ export default function ErrorView({
           </>
         ),
         404: (
-          <Btn primary icon={HouseIcon} onClick={go("/")}>
+          <Btn primary onClick={go("/")}>
             {a.home}
           </Btn>
         ),
         408: onRetry ? null : (
-          <Btn primary icon={ArrowClockwiseIcon} onClick={reload}>
+          <Btn primary onClick={reload}>
             {a.reload}
           </Btn>
         ),
         409: (
           <>
             {onCompare && (
-              <Btn primary icon={ArrowsLeftRightIcon} onClick={onCompare}>
+              <Btn primary onClick={onCompare}>
                 {a.compare}
               </Btn>
             )}
-            <Btn primary={!onCompare} icon={ArrowClockwiseIcon} onClick={onRetry ?? reload}>
+            <Btn primary={!onCompare} onClick={onRetry ?? reload}>
               {a.reload}
             </Btn>
           </>
@@ -473,7 +464,7 @@ export default function ErrorView({
         413: (
           <>
             {onUseLink && (
-              <Btn primary icon={LinkIcon} onClick={onUseLink}>
+              <Btn primary onClick={onUseLink}>
                 {a.link}
               </Btn>
             )}
@@ -485,17 +476,13 @@ export default function ErrorView({
           </>
         ),
         429: null,
-        500: prak ? null : (
-          <Btn icon={NotePencilIcon} onClick={go("/reports?dokumen&baru=1")}>
-            {a.report}
-          </Btn>
-        ),
+        500: prak ? null : <Btn onClick={go("/reports?dokumen&baru=1")}>{a.report}</Btn>,
         503: prak ? (
-          <Btn primary icon={SquaresFourIcon} onClick={go("/dashboard")}>
+          <Btn primary onClick={go("/dashboard")}>
             {a.dash}
           </Btn>
         ) : (
-          <Btn primary icon={HardDrivesIcon} onClick={go("/servers")}>
+          <Btn primary onClick={go("/servers")}>
             {a.server}
           </Btn>
         ),
@@ -550,7 +537,6 @@ export default function ErrorView({
                 onRetry();
               }}
             >
-              <ArrowClockwiseIcon size={20} aria-hidden="true" />
               {left > 0 && code === 429 ? t.retryIn(left) : t.retry}
             </button>
           )}

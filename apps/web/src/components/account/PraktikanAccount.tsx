@@ -6,7 +6,6 @@
  * repeating it. No password: Praktikan sign in with their NIM only.
  */
 import type { CSSProperties } from "react";
-import { ArrowRightIcon, SignOutIcon, SlidersHorizontalIcon } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import Pill from "../ui/Pill";
 import { BUKA_TAMPILAN, DisplaySummary } from "../shell/DisplayPanel";
@@ -168,7 +167,6 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
               title={t.outSub}
               onClick={() => void keluar()}
             >
-              <SignOutIcon size={18} aria-hidden="true" />
               {t.out}
             </button>
           </div>
@@ -200,7 +198,6 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
                     <span className="pacct__acts">
                       <a className="btn btn--sm btn--ghost" href={href(lang, `/modules/${m}`)}>
                         {t.read}
-                        <ArrowRightIcon size={14} aria-hidden="true" />
                       </a>
                     </span>
                   </article>
@@ -240,7 +237,6 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
                     </a>
                     <a className="btn btn--sm btn--ghost" href={href(lang, `/modules/${m}`)}>
                       {t.journal}
-                      <ArrowRightIcon size={14} aria-hidden="true" />
                     </a>
                   </span>
                 </article>
@@ -261,7 +257,6 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
           className="btn"
           onClick={() => window.dispatchEvent(new Event(BUKA_TAMPILAN))}
         >
-          <SlidersHorizontalIcon size={18} aria-hidden="true" />
           {t.displayGo}
         </button>
       </section>

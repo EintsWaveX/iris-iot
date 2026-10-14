@@ -5,7 +5,6 @@
  * when there are none.
  */
 import { useEffect, useState, type CSSProperties } from "react";
-import { ArrowRightIcon } from "@phosphor-icons/react";
 import Nil from "../ui/Nil";
 import { dict, getJson, namaKelompok, tanggalPanjang } from "../../lib/app";
 import { modulLabel } from "../../lib/labels";
@@ -156,10 +155,7 @@ export default function SusulanSide({
                     {modulLabel(x.modul, lang)} · {t.rosterSub(x.praktikan, x.jumlahKelompok)}
                   </span>
                 </span>
-                <span className="sside__pick">
-                  {t.pick}
-                  <ArrowRightIcon size={16} aria-hidden="true" />
-                </span>
+                <span className="sside__pick">{t.pick}</span>
               </button>
             </li>
           ))}

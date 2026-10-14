@@ -6,7 +6,6 @@
  * A Waiting on You count opens the Konsol inbox.
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowRightIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { getJson, href, type Me } from "../../lib/app";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
@@ -170,7 +169,6 @@ export default function DayCard({
       <div className="panel__actions">
         <a className="btn btn--inverse btn--lg" href={konsol}>
           {live ? d.openBoard : d.openConsole}
-          <ArrowRightIcon aria-hidden="true" />
         </a>
         <a className="btn btn--lg" href={href(lang, "/schedule")}>
           {d.schedule}

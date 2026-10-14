@@ -12,7 +12,7 @@
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import { upload } from "@vercel/blob/client";
-import { ArrowSquareOutIcon, CircuitryIcon, EyeIcon, TrashIcon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, CircuitryIcon, TrashIcon } from "@phosphor-icons/react";
 import { FileDrop } from "../../ui/Controls";
 import Confirm from "../../ui/Confirm";
 import Dialog from "../../ui/Dialog";
@@ -429,9 +429,7 @@ function SchemCard({
           onClick={() => onView({ src, title, frame: false })}
         >
           <img src={src} alt="" loading="lazy" onError={() => setBroken(true)} />
-          <span className="schem-cur__zoom">
-            <EyeIcon size={16} aria-hidden="true" /> {t.view}
-          </span>
+          <span className="schem-cur__zoom">{t.view}</span>
         </button>
       )}
       <span className="hint mono truncate" title={source}>

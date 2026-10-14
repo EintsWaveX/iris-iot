@@ -4,14 +4,7 @@
  * tables and diagrams), the data hooks and the date words.
  */
 import { Fragment, type CSSProperties, type ReactNode } from "react";
-import {
-  CheckIcon,
-  ClockIcon,
-  CloudCheckIcon,
-  HourglassIcon,
-  KeyIcon,
-  XIcon,
-} from "@phosphor-icons/react";
+import { CheckIcon, ClockIcon, CloudCheckIcon, HourglassIcon, XIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { getJson, localeOf, useTick } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
@@ -93,6 +86,8 @@ export interface PaketData {
   bolehUbah: boolean;
   /** may make the LMS assignments and put the PDF on them */
   bolehKelola: boolean;
+  /** LMS › Ringkasan's "attach the PDF when the Final Set is saved" */
+  otomatisPdf?: boolean;
   lms: {
     tersambung: boolean;
     /** the token carries the manager key */
@@ -427,10 +422,7 @@ export function KunciBox({ k, lang }: { k: KunciTp | null; lang: Lang }) {
   const t = TPS[lang];
   return (
     <div className="tpkey">
-      <span className="label-caps">
-        <KeyIcon size={14} aria-hidden="true" />
-        {t.kunci}
-      </span>
+      <span className="label-caps">{t.kunci}</span>
       {k?.teks.trim() ? (
         <TeksTp md={k.teks} gambar={k.gambar} lang={lang} />
       ) : (

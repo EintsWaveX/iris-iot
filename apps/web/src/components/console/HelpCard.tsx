@@ -13,14 +13,7 @@
  * Nothing shows when there is nothing to do.
  */
 import { useState } from "react";
-import {
-  CheckCircleIcon,
-  CheckIcon,
-  HandHeartIcon,
-  PaperPlaneTiltIcon,
-  XCircleIcon,
-  XIcon,
-} from "@phosphor-icons/react";
+import { CheckCircleIcon, XCircleIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { dict, getJson, postJson, tanggalPanjang } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
@@ -221,7 +214,6 @@ export default function HelpRows({
         disabled={busy}
         onClick={() => void kirim({ aksi, id, terima: true }, t.acceptedToast)}
       >
-        <CheckIcon size={16} aria-hidden="true" />
         {t.accept}
       </button>
       <button
@@ -230,7 +222,6 @@ export default function HelpRows({
         disabled={busy}
         onClick={() => void kirim({ aksi, id, terima: false }, t.declinedToast)}
       >
-        <XIcon size={16} aria-hidden="true" />
         {t.decline}
       </button>
     </span>
@@ -303,7 +294,6 @@ export default function HelpRows({
                   className="btn btn--primary btn--sm"
                   onClick={() => setAsk(r)}
                 >
-                  <HandHeartIcon size={16} aria-hidden="true" />
                   {t.help}
                 </button>
               </span>
@@ -336,7 +326,6 @@ export default function HelpRows({
                   setAsk(null);
               }}
             >
-              <PaperPlaneTiltIcon size={18} aria-hidden="true" />
               {t.send}
             </button>
           </>

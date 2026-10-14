@@ -1,7 +1,6 @@
 /** "Kelompok 4 dan 5 belum disimpan di SeeLabs · Buka" (Phase 9 Stage 3g,
  *  mockup c-next), for the after-session screens. Groups without scores
  *  don't count; every group saved reads as done. */
-import { ArrowRightIcon } from "@phosphor-icons/react";
 import Pill from "../../ui/Pill";
 import { kelompokLabel } from "../../../lib/labels";
 import type { Lang } from "../../../lib/kelas";
@@ -52,7 +51,6 @@ export default function SeelabsLine({
       </span>
       <button type="button" className="btn btn--secondary btn--sm" onClick={onOpen}>
         {t.open}
-        <ArrowRightIcon size={16} aria-hidden="true" />
       </button>
     </Tag>
   );

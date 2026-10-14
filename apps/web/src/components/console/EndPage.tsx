@@ -14,20 +14,7 @@
  *   Dashboard; To the Console or Get the Next Session Ready (NextView).
  */
 import { useEffect, useState, type CSSProperties } from "react";
-import {
-  ArrowClockwiseIcon,
-  ArrowRightIcon,
-  BookOpenTextIcon,
-  CalendarDotsIcon,
-  ChartBarIcon,
-  CheckCircleIcon,
-  CheckIcon,
-  CopyIcon,
-  HouseIcon,
-  LockSimpleIcon,
-  PencilSimpleIcon,
-  TableIcon,
-} from "@phosphor-icons/react";
+import { CheckCircleIcon, CheckIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import { CountUp } from "../ui/Display";
 import Fade from "../ui/Fade";
 import Pill from "../ui/Pill";
@@ -375,7 +362,6 @@ export default function EndPage({
               )}
               <div className="panel__actions">
                 <a className="btn" href={href(lang, `/reports?sesi=${sesi.id}`)}>
-                  <ChartBarIcon size={18} aria-hidden="true" />
                   {t.doneReport}
                 </a>
               </div>
@@ -410,18 +396,15 @@ export default function EndPage({
               <div className="panel__actions">
                 {capped ? (
                   <button type="button" className="btn" onClick={onNext}>
-                    <CalendarDotsIcon size={18} aria-hidden="true" />
                     {t.afterNextReady}
                   </button>
                 ) : (
                   <button type="button" className="btn btn--ghost" onClick={() => void resume()}>
-                    <ArrowClockwiseIcon size={18} aria-hidden="true" />
                     {t.afterResume}
                   </button>
                 )}
                 <button type="button" className="btn btn--primary" onClick={() => setStep("nilai")}>
                   {e.toScores}
-                  <ArrowRightIcon size={18} aria-hidden="true" />
                 </button>
               </div>
               {capped ? (
@@ -467,7 +450,6 @@ export default function EndPage({
                         compact
                       />
                       <button type="button" className="btn btn--sm" onClick={onScores}>
-                        <PencilSimpleIcon size={16} aria-hidden="true" />
                         {e.fill}
                       </button>
                     </div>
@@ -477,12 +459,10 @@ export default function EndPage({
             )}
             <div className="panel__actions">
               <button type="button" className="btn" onClick={onScores}>
-                <TableIcon size={18} aria-hidden="true" />
                 {e.fullTable}
               </button>
               <button type="button" className="btn btn--primary" onClick={() => setStep("seelabs")}>
                 {e.toSeelabs}
-                <ArrowRightIcon size={18} aria-hidden="true" />
               </button>
             </div>
           </section>
@@ -495,7 +475,6 @@ export default function EndPage({
                 className="btn btn--ghost btn--sm"
                 onClick={() => onSeelabs("panduan")}
               >
-                <BookOpenTextIcon size={16} aria-hidden="true" />
                 {e.guide}
               </button>
             </div>
@@ -503,12 +482,10 @@ export default function EndPage({
             <SeelabsLine lang={lang} data={seelabs} onOpen={() => onSeelabs("salin")} as="div" />
             <div className="panel__actions">
               <button type="button" className="btn" onClick={() => onSeelabs("salin")}>
-                <CopyIcon size={18} aria-hidden="true" />
                 {e.copy}
               </button>
               <button type="button" className="btn btn--primary" onClick={() => setStep("selesai")}>
                 {e.finish}
-                <ArrowRightIcon size={18} aria-hidden="true" />
               </button>
             </div>
           </section>
@@ -523,11 +500,9 @@ export default function EndPage({
             </div>
             <div className="panel__actions">
               <button type="button" className="btn" onClick={onNew}>
-                <HouseIcon size={18} aria-hidden="true" />
                 {t.doneNew}
               </button>
               <button type="button" className="btn btn--primary" onClick={onNext}>
-                <CalendarDotsIcon size={18} aria-hidden="true" />
                 {t.afterNextReady}
               </button>
             </div>

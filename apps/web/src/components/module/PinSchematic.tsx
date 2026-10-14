@@ -30,13 +30,7 @@
  * settings dialog that sets the module's pins for everyone (PinDialog.tsx).
  */
 import { useEffect, useId, useMemo, useState, type CSSProperties } from "react";
-import {
-  ArrowCounterClockwiseIcon,
-  ArrowSquareOutIcon,
-  ArrowsOutSimpleIcon,
-  PlugsConnectedIcon,
-  SlidersHorizontalIcon,
-} from "@phosphor-icons/react";
+import { ArrowsOutSimpleIcon, ArrowSquareOutIcon } from "@phosphor-icons/react";
 import SchematicViewer from "../ui/SchematicViewer";
 import SegmentedControl from "../ui/SegmentedControl";
 import { namaLayanan } from "../../lib/tautan";
@@ -666,7 +660,6 @@ export default function PinSchematic({
           />
           {bolehAtur && (
             <button type="button" className="btn btn--inverse" onClick={() => setAtur(true)}>
-              <SlidersHorizontalIcon size={18} aria-hidden="true" />
               {pj.open}
             </button>
           )}
@@ -725,7 +718,6 @@ export default function PinSchematic({
                     window.Toast?.show(pj.plugAllDone, "ok");
                 }}
               >
-                <PlugsConnectedIcon size={16} aria-hidden="true" />
                 {pj.plugAll}
               </button>
             )}
@@ -737,7 +729,6 @@ export default function PinSchematic({
                   if (await grup.simpan(null)) window.Toast?.show(pj.resetDone, "ok");
                 }}
               >
-                <ArrowCounterClockwiseIcon size={16} aria-hidden="true" />
                 {pj.reset}
               </button>
             )}

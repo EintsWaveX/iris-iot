@@ -5,7 +5,7 @@
  * else's (view only), then open the module page as that group.
  */
 import { useState } from "react";
-import { ArrowRightIcon, CheckCircleIcon, EyeIcon, WarningIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, EyeIcon, WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Dropdown from "../ui/Dropdown";
 import { href, namaKelompok } from "../../lib/app";
@@ -55,7 +55,6 @@ export default function ViewAsDialog({
             </button>
             <a className="btn btn--primary" href={href(lang, `/modules/${modul}`)}>
               {t.viewAsModule}
-              <ArrowRightIcon size={18} aria-hidden="true" />
             </a>
           </>
         }
@@ -82,7 +81,6 @@ export default function ViewAsDialog({
           </button>
           <a className="btn btn--primary" href={href(lang, `/modules/${modul}?lihat=${g.nomor}`)}>
             {t.open}
-            <ArrowRightIcon size={18} aria-hidden="true" />
           </a>
         </>
       }

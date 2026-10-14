@@ -8,7 +8,7 @@
  * Each way previews the rows with OK or the reason it is skipped.
  */
 import { useMemo, useState } from "react";
-import { ListDashesIcon, UploadSimpleIcon, UserPlusIcon, WarningIcon } from "@phosphor-icons/react";
+import { WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import Dropdown from "../../ui/Dropdown";
 import Pill from "../../ui/Pill";
@@ -193,7 +193,6 @@ export function AddStudentDialog({
             disabled={busy || (mode === "one" ? !okOne : good.length === 0)}
             onClick={() => void add()}
           >
-            <UserPlusIcon size={18} aria-hidden="true" />
             {mode === "one" ? p.addOne : p.addMany(good.length)}
           </button>
         </>
@@ -270,9 +269,7 @@ export function AddStudentDialog({
         ) : (
           <div className="stack">
             <label className="field">
-              <span className="field__label">
-                <ListDashesIcon size={14} aria-hidden="true" /> {p.pasteLabel}
-              </span>
+              <span className="field__label">{p.pasteLabel}</span>
               <textarea
                 className="field__input field__textarea mono"
                 rows={6}
@@ -406,7 +403,6 @@ export function ImportXlsxDialog({
             disabled={busy || good.length === 0}
             onClick={() => void run()}
           >
-            <UploadSimpleIcon size={18} aria-hidden="true" />
             {p.impDo(good.length)}
           </button>
         </>

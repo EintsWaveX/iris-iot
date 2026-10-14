@@ -10,14 +10,7 @@
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import RobotGuide from "./RobotGuide";
-import {
-  CheckCircleIcon,
-  CursorClickIcon,
-  HandCoinsIcon,
-  InfoIcon,
-  ProhibitIcon,
-  WarningIcon,
-} from "@phosphor-icons/react";
+import { CheckCircleIcon, HandCoinsIcon, ProhibitIcon, WarningIcon } from "@phosphor-icons/react";
 import BackButton from "../../ui/BackButton";
 import Fade from "../../ui/Fade";
 import { localeOf, tanggalPanjang, titikDua } from "../../../lib/app";
@@ -326,10 +319,7 @@ function FormIllo({
   const filled = (i: number) => !bad && n > 2 + i;
   return (
     <div className="illo">
-      <div className="illo__cap">
-        <InfoIcon size={16} aria-hidden="true" />
-        {t.illoCap}
-      </div>
+      <div className="illo__cap">{t.illoCap}</div>
       <div className="illo__form" aria-hidden="true">
         <div className="illo__head">
           <span>
@@ -371,10 +361,7 @@ function FormIllo({
         <div className="illo__save">Simpan Penilaian</div>
       </div>
       <div className={`bmpanel${bad ? " bmpanel--bad" : ""}`} role="status">
-        <b>
-          <CursorClickIcon size={16} aria-hidden="true" />
-          IRIS · Isi SeeLabs
-        </b>
+        <b>IRIS · Isi SeeLabs</b>
         {bad ? (
           <>
             <span>{t.illoBad(lain, klp)}</span>
@@ -468,7 +455,6 @@ function Held({
                     if (!r.ok) window.Toast?.show(pesanSl(t, r.kode), "warn");
                   }}
                 >
-                  <CursorClickIcon size={16} aria-hidden="true" />
                   {t.copyBm}
                 </button>
                 <button
@@ -481,7 +467,6 @@ function Held({
                     }
                   }}
                 >
-                  <CheckCircleIcon size={16} aria-hidden="true" />
                   {t.heldMark}
                 </button>
               </span>

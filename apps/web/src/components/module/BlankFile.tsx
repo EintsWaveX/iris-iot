@@ -42,15 +42,11 @@ import {
   type ReactNode,
 } from "react";
 import {
-  ChalkboardTeacherIcon,
-  CheckCircleIcon,
   CheckIcon,
   DownloadSimpleIcon,
   HourglassMediumIcon,
   KeyIcon,
-  PaperPlaneTiltIcon,
   SidebarSimpleIcon,
-  SignInIcon,
   SparkleIcon,
   StarIcon,
 } from "@phosphor-icons/react";
@@ -779,33 +775,21 @@ export default function BlankFile(p: Props) {
     if (mode === "asisten") {
       if (n !== target) return out;
       const b = bantu[n];
-      if (b?.bantuan)
-        out.push(
-          <Note key="h" tone="hint" icon={<SparkleIcon />} label={t.hintModule} text={b.bantuan} />,
-        );
-      if (keys && b?.kenapa)
-        out.push(
-          <Note key="k" tone="ok" icon={<CheckCircleIcon />} label={t.explain} text={b.kenapa} />,
-        );
+      if (b?.bantuan) out.push(<Note key="h" tone="hint" label={t.hintModule} text={b.bantuan} />);
+      if (keys && b?.kenapa) out.push(<Note key="k" tone="ok" label={t.explain} text={b.kenapa} />);
       return out;
     }
     if (e?.benar) {
       if (n === target && e.kenapa)
-        out.push(
-          <Note key="k" tone="ok" icon={<CheckCircleIcon />} label={t.explain} text={e.kenapa} />,
-        );
+        out.push(<Note key="k" tone="ok" label={t.explain} text={e.kenapa} />);
       return out;
     }
-    if (e?.bantuan)
-      out.push(
-        <Note key="h" tone="hint" icon={<SparkleIcon />} label={t.hintModule} text={e.bantuan} />,
-      );
+    if (e?.bantuan) out.push(<Note key="h" tone="hint" label={t.hintModule} text={e.bantuan} />);
     for (const m of dariAsisten(n))
       out.push(
         <Note
           key={`m${m.id}`}
           tone="asisten"
-          icon={<ChalkboardTeacherIcon />}
           label={`${m.dari ?? ""} · ${m.dijawab ? jamMenit(m.dijawab) : ""}`}
           text={m.teks ?? ""}
         />,
@@ -830,7 +814,6 @@ export default function BlankFile(p: Props) {
           className="btn btn--sm"
           onClick={() => openSignIn(undefined, { ikut: lockedReason === "sesiBerubah" })}
         >
-          <SignInIcon size={16} aria-hidden="true" />
           {t.signInBtn}
         </button>
       )}
@@ -1069,7 +1052,6 @@ export default function BlankFile(p: Props) {
           <b>{t.allRight}</b>
           <span className="grow" />
           <button type="button" className="btn btn--primary" onClick={() => void download()}>
-            <DownloadSimpleIcon aria-hidden="true" />
             {t.download}
           </button>
         </div>
@@ -1089,20 +1071,15 @@ function toast(msg: string, tone: "ok" | "warn" | "danger") {
 
 function Note({
   tone,
-  icon,
   label,
   text,
 }: {
   tone: "hint" | "ok" | "asisten";
-  icon: ReactNode;
   label: string;
   text: string;
 }) {
   return (
     <div className="clnote" data-tone={tone}>
-      <span className="clnote__ic" aria-hidden="true">
-        {icon}
-      </span>
       <span>
         <b>{label}</b> {text}
       </span>
@@ -1175,11 +1152,9 @@ function BlankCard(p: {
             <p className="hint">{t.keysOff}</p>
           )}
           {p.kunci !== null && p.bantu?.kenapa && (
-            <Box tone="ok" icon={<CheckCircleIcon />} label={t.explain} text={p.bantu.kenapa} />
+            <Box tone="ok" label={t.explain} text={p.bantu.kenapa} />
           )}
-          {p.bantu?.bantuan && (
-            <Box tone="hint" icon={<SparkleIcon />} label={t.hintStudents} text={p.bantu.bantuan} />
-          )}
+          {p.bantu?.bantuan && <Box tone="hint" label={t.hintStudents} text={p.bantu.bantuan} />}
         </>
       ) : (
         <>
@@ -1192,13 +1167,11 @@ function BlankCard(p: {
             <p className="hint">{t.filledBy(e.oleh, jamMenit(e.pada))}</p>
           )}
           {e?.benar ? (
-            e.kenapa && (
-              <Box tone="ok" icon={<CheckCircleIcon />} label={t.explain} text={e.kenapa} />
-            )
+            e.kenapa && <Box tone="ok" label={t.explain} text={e.kenapa} />
           ) : (
             <>
               {e?.bantuan ? (
-                <Box tone="hint" icon={<SparkleIcon />} label={t.hintModule} text={e.bantuan} />
+                <Box tone="hint" label={t.hintModule} text={e.bantuan} />
               ) : (
                 p.mode === "now" && (
                   <p className="hint">
@@ -1210,7 +1183,6 @@ function BlankCard(p: {
                 <Box
                   key={m.id}
                   tone="asisten"
-                  icon={<ChalkboardTeacherIcon />}
                   label={`${m.dari ?? ""} · ${m.dijawab ? jamMenit(m.dijawab) : ""}`}
                   text={m.teks ?? ""}
                 />
@@ -1226,20 +1198,15 @@ function BlankCard(p: {
 
 function Box({
   tone,
-  icon,
   label,
   text,
 }: {
   tone: "hint" | "ok" | "asisten";
-  icon: ReactNode;
   label: string;
   text: string;
 }) {
   return (
     <div className="pblank__box" data-tone={tone}>
-      <span className="pblank__ic" aria-hidden="true">
-        {icon}
-      </span>
       <span className="pblank__txt">
         <b>{label}</b>
         <span>{text}</span>
@@ -1306,7 +1273,6 @@ function Ask(p: {
             disabled={p.kirim}
             onClick={() => p.onMinta("")}
           >
-            <PaperPlaneTiltIcon size={16} aria-hidden="true" />
             {t.askNoNote}
           </button>
         </div>
@@ -1319,7 +1285,6 @@ function Ask(p: {
         className="btn btn--primary pblank__ask"
         onClick={() => p.onTanya(true)}
       >
-        <SparkleIcon size={18} aria-hidden="true" />
         {p.dariAsisten.length ? t.askAnother : t.askHint}
       </button>
       <span className="hint">{t.askNote}</span>

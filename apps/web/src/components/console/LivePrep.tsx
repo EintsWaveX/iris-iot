@@ -27,15 +27,11 @@ import {
 } from "@dnd-kit/core";
 import DragLayer from "../ui/DragLayer";
 import {
-  CheckIcon,
   DotsSixVerticalIcon,
   HandHeartIcon,
-  LockSimpleOpenIcon,
-  PresentationChartIcon,
   UserIcon,
   UserSwitchIcon,
   XCircleIcon,
-  UserPlusIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import Dialog from "../ui/Dialog";
@@ -256,7 +252,6 @@ export default function LivePrep({
                           className="btn btn--sm btn--primary"
                           onClick={() => void jawab(m, true)}
                         >
-                          <CheckIcon aria-hidden="true" />
                           {l.accept}
                         </button>
                       </span>
@@ -292,15 +287,12 @@ export default function LivePrep({
         <span className="pill pill--ok">{l.count(hadir, semua.length)}</span>
         <span className="hint grow">{l.countHint}</span>
         <button type="button" className="btn btn--sm" onClick={() => setTambah(true)}>
-          <UserPlusIcon aria-hidden="true" />
           {l.addStudent}
         </button>
         <button type="button" className="btn btn--inverse btn--sm" onClick={() => onOpen("akses")}>
-          <LockSimpleOpenIcon aria-hidden="true" />
           {l.access}
         </button>
         <button type="button" className="btn btn--inverse btn--sm" onClick={() => onOpen("slides")}>
-          <PresentationChartIcon aria-hidden="true" />
           {l.slides}
         </button>
       </div>

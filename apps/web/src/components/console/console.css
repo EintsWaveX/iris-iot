@@ -2827,11 +2827,6 @@ button.lib__name {
   border-bottom: 0;
 }
 
-.cmdlist svg {
-  color: var(--text-muted);
-  flex: none;
-}
-
 .nextv__act {
   display: flex;
   justify-content: flex-end;

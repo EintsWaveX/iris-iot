@@ -6,7 +6,7 @@
  * CSV); uptime has no series, so it is a plain card.
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowsOutSimpleIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
+import { ArrowsOutSimpleIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Nil from "../ui/Nil";
 import { getJson, localeOf, titikDua } from "../../lib/app";
@@ -121,7 +121,6 @@ function DataDialog({
               )
             }
           >
-            <DownloadSimpleIcon size={18} aria-hidden="true" />
             {t.csv}
           </button>
         </>

@@ -20,16 +20,15 @@ import { namaAsisten } from "../../lib/people";
 import Fade from "../ui/Fade";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
+  ArrowsLeftRightIcon,
   CheckCircleIcon,
   EyeIcon,
+  FileXlsIcon,
   HandshakeIcon,
   InfoIcon,
   MagnifyingGlassIcon,
   ProhibitIcon,
-  UserPlusIcon,
   WarningIcon,
-  ArrowsLeftRightIcon,
-  FileXlsIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Disclose from "../ui/Disclose";
@@ -279,7 +278,6 @@ export default function TeamPage({ lang }: { lang: Lang }) {
               <>
                 <ImportButton t={t} lang={lang} reload={load} />
                 <button type="button" className="btn btn--primary" onClick={() => setAdding(true)}>
-                  <UserPlusIcon size={18} aria-hidden="true" />
                   {t.add}
                 </button>
               </>
@@ -544,7 +542,6 @@ function Holders({
                     disabled={busy === s.id}
                     onClick={() => void act(s, "serah_putus", true)}
                   >
-                    <CheckCircleIcon size={18} aria-hidden="true" />
                     {t.accept}
                   </button>
                 </>
@@ -884,7 +881,6 @@ function PersonDrawer({
         disabled={busy}
         onClick={() => void askHandover()}
       >
-        <HandshakeIcon size={18} aria-hidden="true" />
         {t.ask}
       </button>
       <button type="button" className="btn" onClick={() => setJab("anggota")}>
@@ -1374,7 +1370,6 @@ function AddDialog({
               disabled={busy || !valid || taken}
               onClick={() => void send(true)}
             >
-              <HandshakeIcon size={18} aria-hidden="true" />
               {t.ask}
             </button>
             <button type="button" className="btn" onClick={() => setJab("anggota")}>
@@ -1395,7 +1390,6 @@ function AddDialog({
               disabled={busy || !valid || taken}
               onClick={() => void send(false)}
             >
-              <UserPlusIcon size={18} aria-hidden="true" />
               {t.addBtn}
             </button>
           </>

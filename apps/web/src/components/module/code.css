@@ -646,13 +646,6 @@
   color: var(--n-c);
 }
 
-.clnote__ic {
-  color: var(--n-c);
-  display: grid;
-  flex: none;
-  padding-top: 2px;
-}
-
 .clnote[data-tone="hint"],
 .pblank__box[data-tone="hint"],
 .hintlog__row[data-tone="hint"] {
@@ -731,8 +724,7 @@
   --n-c: var(--key-c);
 }
 
-.pblank__key > svg,
-.pblank__ic {
+.pblank__key > svg {
   color: var(--n-c, var(--violet));
   display: grid;
   flex: none;

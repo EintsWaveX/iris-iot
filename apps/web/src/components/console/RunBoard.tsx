@@ -18,7 +18,6 @@ import {
   ArrowRightIcon,
   HandIcon,
   KeyIcon,
-  MegaphoneIcon,
   SparkleIcon,
   WifiSlashIcon,
 } from "@phosphor-icons/react";
@@ -718,14 +717,12 @@ export function Feed({
       )}
       {macet && (
         <div className="feed__note">
-          <SparkleIcon size={20} aria-hidden="true" />
           <span className="stack" style={{ gap: 2 }}>
             <b>{r.classNote(macet.k.label, macet.w)}</b>
             <span className="hint">{r.classNoteSub}</span>
           </span>
           {onAnnounce && (
             <button type="button" className="btn btn--sm" onClick={onAnnounce}>
-              <MegaphoneIcon size={16} aria-hidden="true" />
               {r.announce}
             </button>
           )}
@@ -904,14 +901,12 @@ export function Matrix({
       </div>
       {macet && (
         <div className="feed__note">
-          <SparkleIcon size={20} aria-hidden="true" />
           <span className="stack" style={{ gap: 2 }}>
             <b>{r.mtxNote(macet.k.label, macet.a, macet.n, macet.w)}</b>
             <span className="hint">{r.mtxNoteSub}</span>
           </span>
           {onAnnounce && (
             <button type="button" className="btn btn--sm" onClick={onAnnounce}>
-              <MegaphoneIcon size={16} aria-hidden="true" />
               {r.announceHint}
             </button>
           )}

@@ -52,14 +52,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   DotsSixVerticalIcon,
-  FileXlsIcon,
-  FloppyDiskIcon,
-  LinkSimpleIcon,
   MagnifyingGlassIcon,
   PlusIcon,
-  ShuffleIcon,
-  SparkleIcon,
-  UserPlusIcon,
   WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -633,7 +627,6 @@ const RosterEditor = forwardRef<
           />
         </div>
         <button type="button" className="btn" onClick={autoFill}>
-          <SparkleIcon size={18} aria-hidden="true" />
           {p.autoFill}
         </button>
         <button
@@ -642,11 +635,9 @@ const RosterEditor = forwardRef<
           onClick={shuffleRest}
           disabled={!free.length}
         >
-          <ShuffleIcon size={18} aria-hidden="true" />
           {p.shuffleRest}
         </button>
         <button type="button" className="btn" onClick={() => setMatching(true)}>
-          <LinkSimpleIcon size={18} aria-hidden="true" />
           {SL[lang].matchBtn}
         </button>
       </div>
@@ -713,7 +704,6 @@ const RosterEditor = forwardRef<
         <h3 className="panel__title">{p.poolTitle}</h3>
         <span className="row" style={{ gap: 8 }}>
           <button type="button" className="btn btn--sm" onClick={() => setImporting(true)}>
-            <FileXlsIcon size={16} aria-hidden="true" />
             {p.importXlsx}
           </button>
           <button
@@ -721,7 +711,6 @@ const RosterEditor = forwardRef<
             className="btn btn--primary btn--sm"
             onClick={() => setAdding(true)}
           >
-            <UserPlusIcon size={16} aria-hidden="true" />
             {p.add}
           </button>
         </span>
@@ -778,7 +767,6 @@ const RosterEditor = forwardRef<
           disabled={busy || !dirty}
           onClick={() => void save()}
         >
-          <FloppyDiskIcon size={18} aria-hidden="true" />
           {target.jenis === "slot" ? p.saveSlot(label) : p.saveDraft}
         </button>
       </div>
@@ -823,7 +811,6 @@ const RosterEditor = forwardRef<
                 disabled={busy}
                 onClick={() => void save(true)}
               >
-                <FloppyDiskIcon size={18} aria-hidden="true" />
                 {p.keepMine}
               </button>
             </>

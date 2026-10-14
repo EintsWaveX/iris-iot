@@ -26,8 +26,6 @@ import {
   CaretUpIcon,
   CheckIcon,
   LockSimpleIcon,
-  MagnifyingGlassIcon,
-  MegaphoneIcon,
   WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -493,7 +491,6 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
                                 title={!izinTersimpan || dirty ? t.saveFirst : undefined}
                                 onClick={() => setFind(i)}
                               >
-                                <MagnifyingGlassIcon size={16} aria-hidden="true" />
                                 {t.findCover}
                               </button>
                               {(!izinTersimpan || dirty) && (
@@ -702,7 +699,6 @@ function FindCover({
               onClose();
             }}
           >
-            <MegaphoneIcon size={18} aria-hidden="true" />
             {t.tellAll}
           </button>
         </>

@@ -19,19 +19,14 @@
  */
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
-  ArrowRightIcon,
   ChalkboardTeacherIcon,
   CheckIcon,
   CopyIcon,
   EraserIcon,
-  FileTextIcon,
   LockSimpleIcon,
   PlayIcon,
-  PlusIcon,
   ShieldWarningIcon,
-  SignInIcon,
   SignOutIcon,
-  StopIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
 import Confirm from "../ui/Confirm";
@@ -175,7 +170,7 @@ export default function TotPage({ lang }: { lang: Lang }) {
         actions={
           me === null ? (
             <button type="button" className="btn btn--primary" onClick={() => openSignIn()}>
-              <SignInIcon size={18} aria-hidden="true" /> {t.signIn}
+              {t.signIn}
             </button>
           ) : undefined
         }
@@ -391,7 +386,6 @@ function SesiTot({
         <div className="panel__actions totp__acts">
           <a className="btn btn--inverse btn--lg" href={href(lang, "/session")}>
             {k.openKonsol}
-            <ArrowRightIcon size={18} aria-hidden="true" />
           </a>
           {boleh && (
             <button
@@ -400,13 +394,11 @@ function SesiTot({
               disabled={b.durasiMenit >= SESI_CAP_MENIT}
               onClick={() => void tambah()}
             >
-              <PlusIcon size={18} aria-hidden="true" />
               {k.extend}
             </button>
           )}
           {boleh && (
             <button type="button" className="btn btn--danger-soft" onClick={() => setAkhiri(true)}>
-              <StopIcon size={18} aria-hidden="true" />
               {k.end}
             </button>
           )}
@@ -662,7 +654,6 @@ function Peserta({
               setBusy(false);
             }}
           >
-            <CheckIcon size={18} aria-hidden="true" />
             {k.saveAtur}
           </button>
         </div>
@@ -722,7 +713,6 @@ function AkunTot({
             disabled={!nMasuk}
             onClick={() => setSemua(true)}
           >
-            <SignOutIcon size={18} aria-hidden="true" />
             {k.keluarkanAll}
           </button>
         )}
@@ -838,7 +828,6 @@ function Riwayat({
         <h2 className="panel__title">{k.lalTitle}</h2>
         {boleh && d.lalu.length > 0 && (
           <button type="button" className="btn btn--danger-soft" onClick={() => setHapus("semua")}>
-            <TrashIcon size={18} aria-hidden="true" />
             {k.hapusAll}
           </button>
         )}
@@ -860,7 +849,6 @@ function Riwayat({
                 </span>
               </span>
               <a className="btn btn--sm" href={`${href(lang, "/reports")}?sesi=${x.id}`}>
-                <FileTextIcon size={16} aria-hidden="true" />
                 {k.report}
               </a>
               {boleh && (

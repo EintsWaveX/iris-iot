@@ -20,7 +20,6 @@ import {
   CalendarBlankIcon,
   CaretDownIcon,
   CaretUpIcon,
-  FloppyDiskIcon,
   GearSixIcon,
   LockSimpleIcon,
   UploadSimpleIcon,
@@ -310,7 +309,6 @@ function Settings({
               onClose();
             }}
           >
-            <FloppyDiskIcon size={18} aria-hidden="true" />
             {t.save}
           </button>
         </>
@@ -591,7 +589,6 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
               />
             ) : (
               <button type="button" className="btn" onClick={() => setView("import")}>
-                <UploadSimpleIcon size={18} aria-hidden="true" />
                 {t.import}
               </button>
             ))}
@@ -744,7 +741,6 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
                     }
                   }}
                 >
-                  <FloppyDiskIcon size={18} aria-hidden="true" />
                   {t.save}
                 </button>
               )}

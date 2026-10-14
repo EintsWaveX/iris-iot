@@ -27,17 +27,11 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  CalendarBlankIcon,
-  CheckIcon,
   CopySimpleIcon,
   DotsSixVerticalIcon,
   DotsThreeVerticalIcon,
-  FilePdfIcon,
-  FloppyDiskIcon,
   LockSimpleIcon,
-  PaperPlaneTiltIcon,
   PlusIcon,
-  SidebarSimpleIcon,
   TrashIcon,
   UsersFourIcon,
   XIcon,
@@ -467,7 +461,6 @@ function SidePanel({
                     setBusy(false);
                   }}
                 >
-                  <CheckIcon size={16} aria-hidden="true" />
                   {t.markSelesai}
                 </button>
               </div>
@@ -557,7 +550,6 @@ function SidePanel({
               setBusy(false);
             }}
           >
-            <PaperPlaneTiltIcon size={16} aria-hidden="true" />
             {t.sendComment}
           </button>
         </section>
@@ -901,7 +893,6 @@ export default function Builder({
               )}
               {sesiKonteks && (
                 <span className="rp-chipp">
-                  <CalendarBlankIcon size={16} aria-hidden="true" />
                   <span>
                     {labelSesi(sesiKonteks, lang)} · {modulLabel(sesiKonteks.modul, lang)}
                   </span>
@@ -927,7 +918,6 @@ export default function Builder({
                   className="btn btn--ghost btn--sm"
                   onClick={() => setCtxPick(true)}
                 >
-                  <PlusIcon size={16} aria-hidden="true" />
                   {t.ctx}
                 </button>
               )}
@@ -1005,7 +995,6 @@ export default function Builder({
               className="rp-doc__addend"
               onClick={() => setIns({ at: blok.length })}
             >
-              <PlusIcon size={20} aria-hidden="true" />
               {t.addBlock}
               <span className="hint">{t.orSlash}</span>
             </button>
@@ -1014,19 +1003,16 @@ export default function Builder({
           <div className="rp-doc__foot">
             {!wide && (
               <button type="button" className="btn" onClick={() => setSide(true)}>
-                <SidebarSimpleIcon size={18} aria-hidden="true" />
                 {t.details}
               </button>
             )}
             {!ro && (
               <button type="button" className="btn btn--danger-soft" onClick={() => setDel(true)}>
-                <TrashIcon size={18} aria-hidden="true" />
                 {t.delDraft}
               </button>
             )}
             <span className="grow" />
             <button type="button" className="btn btn--ghost" onClick={pdf}>
-              <FilePdfIcon size={18} aria-hidden="true" />
               {t.exportPdf}
             </button>
             {!ro && (
@@ -1038,11 +1024,9 @@ export default function Builder({
                     void simpan().then((ok) => ok && window.Toast?.show(t.draftSavedToast, "ok"))
                   }
                 >
-                  <FloppyDiskIcon size={18} aria-hidden="true" />
                   {t.saveDraft}
                 </button>
                 <button type="button" className="btn btn--primary" onClick={() => setSend(true)}>
-                  <PaperPlaneTiltIcon size={18} aria-hidden="true" />
                   {t.send}
                 </button>
               </>
@@ -1098,7 +1082,6 @@ export default function Builder({
               {t.cancel}
             </button>
             <button type="button" className="btn btn--primary" onClick={() => void kirimLaporan()}>
-              <PaperPlaneTiltIcon size={18} aria-hidden="true" />
               {t.send}
             </button>
           </>
@@ -1119,7 +1102,6 @@ export default function Builder({
               {t.cancel}
             </button>
             <button type="button" className="btn btn--danger" onClick={() => void hapusDraf()}>
-              <TrashIcon size={18} aria-hidden="true" />
               {t.delDraft}
             </button>
           </>

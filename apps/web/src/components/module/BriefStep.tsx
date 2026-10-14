@@ -7,13 +7,7 @@
  * Full Name (CODE) and time.
  */
 import { useEffect, useMemo, useState } from "react";
-import {
-  CheckIcon,
-  FloppyDiskIcon,
-  InfoIcon,
-  PencilSimpleIcon,
-  PresentationChartIcon,
-} from "@phosphor-icons/react";
+import { CheckIcon, InfoIcon } from "@phosphor-icons/react";
 import Drawer from "../ui/Drawer";
 import SegmentedControl from "../ui/SegmentedControl";
 import Fade from "../ui/Fade";
@@ -116,7 +110,6 @@ export default function BriefStep({
               guest and a Praktikan who hasn't attended it get nothing. */}
           {slides.list.length > 0 && (
             <button type="button" className="btn btn--sm" onClick={() => setSlidesOpen(true)}>
-              <PresentationChartIcon aria-hidden="true" />
               {t.viewSlides}
             </button>
           )}
@@ -192,7 +185,6 @@ export default function BriefStep({
           </span>
           {canEdit && (
             <button type="button" className="btn btn--sm" onClick={() => setEdit(true)}>
-              <PencilSimpleIcon aria-hidden="true" />
               {t.editBrief}
             </button>
           )}
@@ -294,7 +286,6 @@ function BriefDrawer({
             disabled={busy || dirty.length === 0}
             onClick={() => void save()}
           >
-            <FloppyDiskIcon aria-hidden="true" />
             {t.save}
           </button>
         </>

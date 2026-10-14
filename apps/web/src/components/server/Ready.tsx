@@ -7,15 +7,11 @@
  */
 import { useRef, useState, type CSSProperties } from "react";
 import {
-  ArrowClockwiseIcon,
-  ArrowDownIcon,
-  ArrowLeftIcon,
   CheckCircleIcon,
   CircleNotchIcon,
   ClockIcon,
   InfoIcon,
   ListChecksIcon,
-  PlayIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
 import { href, MODUL_NAMA, sejak, useTick } from "../../lib/app";
@@ -94,7 +90,6 @@ export default function Ready({
             className="btn btn--sm"
             onClick={() => upd.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
           >
-            <ArrowDownIcon size={16} aria-hidden="true" />
             {t.fixUpd}
           </button>
         ) : fix && (bisa.server || fix.aksi === "jam.selaraskan") ? (
@@ -104,7 +99,6 @@ export default function Ready({
             disabled={sedangBerjalan(data, fix.aksi, fix.argumen.layanan)}
             onClick={() => void kirim(id, fix.aksi, fix.argumen, lang).then(refresh)}
           >
-            <PlayIcon size={16} aria-hidden="true" />
             {fix.aksi === "jam.selaraskan" ? t.fixSync : t.fixOn}
           </button>
         ) : null}
@@ -216,7 +210,6 @@ export default function Ready({
             <CheckCircleIcon size={20} aria-hidden="true" />
             <span>{t.readyBackBody}</span>
             <a className="btn btn--inverse" href={href(lang, "/preparation#server")}>
-              <ArrowLeftIcon size={16} aria-hidden="true" />
               {t.backPrep}
             </a>
           </div>
@@ -303,7 +296,6 @@ export default function Ready({
                         run(m);
                       }}
                     >
-                      <ArrowClockwiseIcon size={16} aria-hidden="true" />
                       {w.checkThis}
                     </button>
                   </div>

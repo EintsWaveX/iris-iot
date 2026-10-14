@@ -6,7 +6,7 @@
  * it shows when it was sent, and later edits show to the Praktikan at once.
  */
 import { useState } from "react";
-import { CheckCircleIcon, PaperPlaneTiltIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { pageLang } from "../../lib/app";
 import SeelabsStrip from "./seelabs/SeelabsStrip";
@@ -96,7 +96,6 @@ export default function KirimNilai({
         title={kurang > 0 ? t.kirimLeft(kurang) : undefined}
         onClick={() => void kirim()}
       >
-        <PaperPlaneTiltIcon size={16} aria-hidden="true" />
         {t.kirimBtn}
       </button>
       <span className="hint">{kurang > 0 ? t.kirimLeft(kurang) : compact ? "" : t.kirimHint}</span>

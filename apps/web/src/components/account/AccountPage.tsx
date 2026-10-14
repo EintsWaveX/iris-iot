@@ -16,7 +16,7 @@ import SeelabsRobotCard from "../console/seelabs/SeelabsRobotCard";
 import PraktikanAccount from "./PraktikanAccount";
 import { EarningsCard } from "../bayar/Earnings";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { CheckIcon, SlidersHorizontalIcon, UserIcon } from "@phosphor-icons/react";
+import { CheckIcon, UserIcon } from "@phosphor-icons/react";
 import PasswordField, { kekuatanSandi } from "../ui/PasswordField";
 import { StateView } from "../ui/Display";
 import FeedbackSummary from "../shared/FeedbackSummary";
@@ -312,7 +312,6 @@ export default function AccountPage({ lang }: { lang: Lang }) {
             className="btn"
             onClick={() => window.dispatchEvent(new Event(BUKA_TAMPILAN))}
           >
-            <SlidersHorizontalIcon size={18} aria-hidden="true" />
             {t.displayGo}
           </button>
         </section>

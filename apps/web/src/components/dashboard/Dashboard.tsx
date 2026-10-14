@@ -17,17 +17,14 @@
 import { isNimTot } from "../../lib/tot";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
-  CaretDownIcon,
   ArrowRightIcon,
-  ArrowClockwiseIcon,
   BookOpenTextIcon,
+  CaretDownIcon,
   ChatCircleTextIcon,
   CheckCircleIcon,
   CheckIcon,
   CircuitryIcon,
-  DownloadSimpleIcon,
   PresentationChartIcon,
-  SignInIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
 import { StateView } from "../ui/Display";
@@ -388,7 +385,6 @@ function Running({
         <div className="panel__actions">
           <a className="btn btn--inverse btn--lg dash__cta" href={nextHref(langkah, lang, modul)}>
             {t.lanjut}
-            <ArrowRightIcon size={18} aria-hidden="true" />
           </a>
         </div>
       </section>
@@ -456,12 +452,10 @@ function Ended({
               className="btn btn--inverse"
               onClick={() => go({ v: "feedback", sesi: id })}
             >
-              <ChatCircleTextIcon size={18} aria-hidden="true" />
               {t.beriUmpan}
             </button>
           )}
           <button type="button" className="btn" onClick={() => go({ v: "summary", sesi: id })}>
-            <BookOpenTextIcon size={18} aria-hidden="true" />
             {t.lihatRingkasan}
           </button>
         </div>
@@ -558,7 +552,6 @@ function Practicums({
                   className="btn btn--sm"
                   onClick={() => go({ v: "feedback", sesi: p.sesiId })}
                 >
-                  <ChatCircleTextIcon size={16} aria-hidden="true" />
                   {t.beriUmpan}
                 </button>
               ))}
@@ -681,12 +674,10 @@ function Waiting({
               className="btn btn--primary btn--lg"
               onClick={() => openSignIn(undefined, { ikut: true })}
             >
-              <SignInIcon size={18} aria-hidden="true" />
               {t.ikutBtn}
             </button>
           ) : (
             <a className="btn" href={href(lang, "/modules")}>
-              <BookOpenTextIcon size={18} aria-hidden="true" />
               {t.bacaDulu}
             </a>
           )}
@@ -785,7 +776,6 @@ function Summary({
         <div className="row dash__sumtools">
           {info && bolehUnduh && (
             <button type="button" className="btn" onClick={() => void unduhSketsa(info, lang)}>
-              <DownloadSimpleIcon size={18} aria-hidden="true" />
               {t.unduhSketsa}
             </button>
           )}
@@ -800,7 +790,6 @@ function Summary({
               className="btn btn--primary"
               onClick={() => go({ v: "feedback", sesi })}
             >
-              <ChatCircleTextIcon size={18} aria-hidden="true" />
               {t.beriUmpan}
             </button>
           )}
@@ -1066,7 +1055,6 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
         body={t.gagalP}
         actions={
           <button type="button" className="btn btn--primary" onClick={hasilPoll.refresh}>
-            <ArrowClockwiseIcon size={18} aria-hidden="true" />
             {t.coba}
           </button>
         }

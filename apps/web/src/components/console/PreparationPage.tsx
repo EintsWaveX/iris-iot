@@ -5,7 +5,7 @@
  * group. `?pilih=4-3` (a slot) or `?pilih=d12` (a draft) opens that roster,
  * and the address hash names the open tab (#akses, #skema, ...).
  */
-import { ShieldWarningIcon, SignInIcon } from "@phosphor-icons/react";
+import { ShieldWarningIcon } from "@phosphor-icons/react";
 import { StateView } from "../ui/Display";
 import { href, useMe } from "../../lib/app";
 import { openSignIn } from "../../lib/signin";
@@ -48,7 +48,7 @@ export default function PreparationPage({ lang }: { lang: Lang }) {
         actions={
           me === null ? (
             <button type="button" className="btn btn--primary" onClick={() => openSignIn()}>
-              <SignInIcon size={18} aria-hidden="true" /> {t.signIn}
+              {t.signIn}
             </button>
           ) : undefined
         }

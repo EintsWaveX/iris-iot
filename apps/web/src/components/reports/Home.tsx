@@ -12,13 +12,9 @@ import {
   CaretDownIcon,
   CaretUpIcon,
   CheckIcon,
-  ColumnsIcon,
-  ExportIcon,
   FileCsvIcon,
-  FileTextIcon,
   FilePdfIcon,
   FileXlsIcon,
-  NotePencilIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { getJson, localeOf, tanggalPanjang } from "../../lib/app";
@@ -211,7 +207,6 @@ function ExportMenu({ t, onExport }: { t: Ctx["t"]; onExport: (fmt: Format) => v
       className="popover__panel--menu"
       trigger={
         <button type="button" className="btn" aria-expanded={ex}>
-          <ExportIcon size={18} aria-hidden="true" />
           {t.exportView}
         </button>
       }
@@ -514,7 +509,6 @@ function SessionsTab({
             align="end"
             trigger={
               <button type="button" className="btn btn--sm" aria-pressed={colOpen}>
-                <ColumnsIcon size={18} aria-hidden="true" />
                 {t.columns}
               </button>
             }
@@ -975,7 +969,6 @@ function AuditTab({ f, c }: { f: Filter; c: Ctx }) {
                       className="btn btn--sm"
                       onClick={() => setRekam(k.transkrip ?? null)}
                     >
-                      <FileTextIcon size={16} aria-hidden="true" />
                       {t.transkrip}
                     </button>
                   ) : (
@@ -1193,7 +1186,6 @@ function KasTotals({
       </div>
       <div className="panel__actions row--end">
         <button type="button" className="btn btn--sm" onClick={xlsx}>
-          <FileXlsIcon size={18} aria-hidden="true" />
           {t.exportView}
         </button>
         <button type="button" className="btn btn--inverse btn--sm" onClick={onOpenPay}>
@@ -1279,7 +1271,6 @@ export default function Home({
             <DataSemesterButton lang={lang} onOpen={() => setDataSem(true)} />
             <ExportMenu t={t} onExport={exportView} />
             <button type="button" className="btn btn--inverse" onClick={onDocs}>
-              <NotePencilIcon size={18} aria-hidden="true" />
               {t.written}
             </button>
           </div>

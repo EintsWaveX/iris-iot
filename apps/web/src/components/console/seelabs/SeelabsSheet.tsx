@@ -12,14 +12,7 @@
  * exactly what the status fingerprint describes.
  */
 import { type ReactNode } from "react";
-import {
-  CheckCircleIcon,
-  CopyIcon,
-  CursorClickIcon,
-  QuestionIcon,
-  UserSwitchIcon,
-  WarningIcon,
-} from "@phosphor-icons/react";
+import { UserSwitchIcon, WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import { kelompokLabel } from "../../../lib/labels";
 import type { Lang } from "../../../lib/kelas";
@@ -166,7 +159,6 @@ export function SeelabsBody({
           disabled={!bisa}
           onClick={() => void copy(teksSeelabs(g.baris), t.copiedText)}
         >
-          <CopyIcon size={18} aria-hidden="true" />
           {t.copyText}
         </button>
         <button
@@ -187,7 +179,6 @@ export function SeelabsBody({
             )
           }
         >
-          <CursorClickIcon size={18} aria-hidden="true" />
           {t.copyBm}
         </button>
         {main}
@@ -257,7 +248,6 @@ export function SavedButton({
         }
       }}
     >
-      <CheckCircleIcon size={18} aria-hidden="true" />
       {t.saved}
     </button>
   );
@@ -303,7 +293,6 @@ export default function SeelabsSheet({
                 }
               }}
             >
-              <CheckCircleIcon size={18} aria-hidden="true" />
               {t.saved}
             </button>
           )}
@@ -316,7 +305,6 @@ export default function SeelabsSheet({
                 onHow();
               }}
             >
-              <QuestionIcon size={18} aria-hidden="true" />
               {t.howItWorks}
             </button>
           )}

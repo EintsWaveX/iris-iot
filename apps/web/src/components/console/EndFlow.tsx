@@ -6,7 +6,7 @@
  * sesi" lives here too, behind its own confirm.
  */
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { CheckCircleIcon, WarningIcon, XCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
 import { postJson } from "../../lib/app";
@@ -153,7 +153,7 @@ export default function EndFlow({
               className="btn btn--ghost endchk__cancel"
               onClick={() => setConfirmCancel(true)}
             >
-              <XCircleIcon size={17} aria-hidden="true" /> {t.cancelSesi}
+              {t.cancelSesi}
             </button>
             <button
               type="button"

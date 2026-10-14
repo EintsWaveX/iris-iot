@@ -17,12 +17,7 @@
  */
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { namaAsisten, useDirektori } from "../../lib/people";
-import {
-  BookOpenTextIcon,
-  CopyIcon,
-  DownloadSimpleIcon,
-  LockSimpleIcon,
-} from "@phosphor-icons/react";
+import { LockSimpleIcon } from "@phosphor-icons/react";
 import { ScoreInput, Switch } from "../ui/Controls";
 import SegmentedControl from "../ui/SegmentedControl";
 import Pill from "../ui/Pill";
@@ -230,7 +225,6 @@ export default function NilaiTable({
           title={!sg.akun ? sl.pickAccountFirst : undefined}
           onClick={() => setSheet(nomor)}
         >
-          <CopyIcon size={16} aria-hidden="true" />
           {sl.copyFor}
         </button>
       </span>
@@ -285,11 +279,9 @@ export default function NilaiTable({
             ]}
           />
           <button type="button" className="btn" onClick={() => onSeelabs("panduan")}>
-            <BookOpenTextIcon size={18} aria-hidden="true" />
             {PD[lang].btn}
           </button>
           <button type="button" className="btn" onClick={xlsx}>
-            <DownloadSimpleIcon size={18} aria-hidden="true" />
             {t.xlsx}
           </button>
         </span>

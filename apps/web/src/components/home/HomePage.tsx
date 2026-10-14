@@ -11,12 +11,10 @@
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import {
-  ArrowRightIcon,
   BookOpenTextIcon,
   ChatCircleTextIcon,
   CheckIcon,
   CircuitryIcon,
-  DoorOpenIcon,
 } from "@phosphor-icons/react";
 import {
   getJson,
@@ -160,7 +158,6 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
     return (
       <div className="row home__cta">
         <button type="button" className="btn btn--primary btn--lg" onClick={() => openSignIn()}>
-          <DoorOpenIcon aria-hidden="true" />
           {t.masuk}
         </button>
         <a className="btn btn--lg" href={href(lang, "/modules")}>
@@ -191,7 +188,6 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
           <div className="panel__actions">
             <a className="btn btn--inverse btn--lg" href={href(lang, "/dashboard")}>
               {t.dasbor}
-              <ArrowRightIcon aria-hidden="true" />
             </a>
           </div>
         </div>
@@ -230,7 +226,6 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
         <div className="panel__actions">
           <a className="btn btn--inverse btn--lg" href={href(lang, `/modules/${s.modul}`)}>
             {t.lanjut(s.modul)}
-            <ArrowRightIcon aria-hidden="true" />
           </a>
           <a className="btn btn--lg" href={href(lang, "/dashboard")}>
             {t.dasbor}
@@ -515,7 +510,6 @@ export default function HomePage({ lang }: { lang: Lang }) {
               <p className="panel__sub">{t.lanes[l.m]}</p>
               <div className="panel__actions">
                 <a className="btn" href={href(lang, `/modules/${l.m}`)}>
-                  <BookOpenTextIcon size={18} aria-hidden="true" />
                   {t.read}
                 </a>
               </div>

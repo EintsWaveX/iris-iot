@@ -3,14 +3,7 @@
  *  Pi key Asisten seal their passwords to (a new one waits for approval),
  *  who is connected, the KLP pull and Input Jaga, and the job log. */
 import { useState } from "react";
-import {
-  CellSignalHighIcon,
-  CellSignalSlashIcon,
-  KeyIcon,
-  ListChecksIcon,
-  RobotIcon,
-  UsersThreeIcon,
-} from "@phosphor-icons/react";
+import { CellSignalHighIcon, CellSignalSlashIcon, KeyIcon } from "@phosphor-icons/react";
 import { getJson, postJson } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
@@ -112,9 +105,6 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
     <div className="slr-sumber">
       <section className="panel slr-card slr-wide">
         <div className="slr-head" data-tone={data.nyala ? "ok" : "warn"}>
-          <span className="slr-head__ic">
-            <RobotIcon size={22} aria-hidden="true" />
-          </span>
           <div className="slr-head__t">
             <h2 className="panel__title">{t.srcTitle}</h2>
             <span className="hint">{t.srcDesc}</span>
@@ -259,7 +249,6 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
             disabled={busy || !data.kunci}
             onClick={() => void kirim({ aksi: "kelompok" })}
           >
-            <UsersThreeIcon size={18} aria-hidden="true" />
             {t.srcPull}
           </button>
           <button
@@ -268,7 +257,6 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
             disabled={busy || !data.kunci}
             onClick={() => void kirim({ aksi: "jaga" })}
           >
-            <ListChecksIcon size={18} aria-hidden="true" />
             {t.srcJaga}
           </button>
         </div>

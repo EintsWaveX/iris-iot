@@ -44,13 +44,10 @@ import {
   type ReactNode,
 } from "react";
 import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
   BookOpenTextIcon,
   CheckCircleIcon,
   CheckIcon,
   CircuitryIcon,
-  DoorOpenIcon,
   ExamIcon,
   EyeIcon,
   FlagCheckeredIcon,
@@ -392,7 +389,6 @@ export default function ModuleSteps(p: Props) {
             {wakil.own ? t.viewedOwnHint : t.viewedOtherHint(wakil.pemegang)}
           </span>
           <a className="btn btn--sm btn--ghost" href={href(lang, "/session")}>
-            <ArrowLeftIcon aria-hidden="true" />
             {t.backToSession}
           </a>
         </div>
@@ -447,7 +443,6 @@ export default function ModuleSteps(p: Props) {
           <span className="grow" />
           <button type="button" className="btn btn--sm btn--primary" onClick={() => go("hunt")}>
             {H[lang].toHunt}
-            <ArrowRightIcon aria-hidden="true" />
           </button>
         </div>
       )}
@@ -599,7 +594,6 @@ export default function ModuleSteps(p: Props) {
           <nav className="modsteps__pager" aria-label={t.steps}>
             {prev ? (
               <button type="button" className="btn btn--ghost" onClick={() => pindah(prev)}>
-                <ArrowLeftIcon size={18} aria-hidden="true" />
                 {t.prevStep(label[prev])}
               </button>
             ) : (
@@ -625,7 +619,6 @@ export default function ModuleSteps(p: Props) {
                   onClick={() => pindah(next)}
                 >
                   {t.nextStep(label[next])}
-                  <ArrowRightIcon size={18} aria-hidden="true" />
                 </button>
               </span>
             )}
@@ -724,7 +717,6 @@ function Hands({
             href={href(lang, `/modules/${sesiModul}?step=code`)}
           >
             {t.goPracticum}
-            <ArrowRightIcon aria-hidden="true" />
           </a>
         </div>
       </div>
@@ -751,7 +743,6 @@ function Hands({
         actions={
           guest ? (
             <button type="button" className="btn btn--primary" onClick={() => openSignIn()}>
-              <DoorOpenIcon aria-hidden="true" />
               {t.signIn}
             </button>
           ) : (
@@ -763,7 +754,6 @@ function Hands({
                   window.dispatchEvent(new CustomEvent("iris:go-step", { detail: "modul" }))
                 }
               >
-                <BookOpenTextIcon aria-hidden="true" />
                 {t.readModule}
               </button>
               {bisaIkut && (
@@ -772,7 +762,6 @@ function Hands({
                   className="btn btn--primary"
                   onClick={() => openSignIn(undefined, { ikut: true })}
                 >
-                  <DoorOpenIcon aria-hidden="true" />
                   {t.joinSession}
                 </button>
               )}

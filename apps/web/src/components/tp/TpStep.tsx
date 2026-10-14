@@ -19,19 +19,14 @@
  */
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
-  ArrowRightIcon,
   ArrowSquareOutIcon,
-  CalendarBlankIcon,
-  DownloadSimpleIcon,
-  EyeIcon,
+  CaretRightIcon,
   FilePdfIcon,
   InfoIcon,
   LockSimpleIcon,
-  PencilSimpleIcon,
   PlugsConnectedIcon,
   QuestionIcon,
   WarningIcon,
-  CaretRightIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Drawer from "../ui/Drawer";
@@ -298,7 +293,6 @@ function SoalPraktikan({
           disabled={pdfJalan || !soal.length}
           onClick={() => void unduhSoal()}
         >
-          <DownloadSimpleIcon size={16} aria-hidden="true" />
           {pdfJalan ? t.membuatPdf : t.unduhSoal}
         </button>
         {adaZh && (
@@ -345,7 +339,6 @@ function Milikku({
         </span>
       </div>
       <button type="button" className="btn btn--sm" onClick={onLihat}>
-        <EyeIcon size={16} aria-hidden="true" />
         {t.lihat}
       </button>
     </div>
@@ -592,7 +585,6 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
           )}
           <div className="row tpsoalbar">
             <a className="btn btn--sm" href={href(lang, `/grading?modul=${modul}#soal`)}>
-              <PencilSimpleIcon size={16} aria-hidden="true" />
               {t.ubahSoal}
             </a>
             <button
@@ -601,7 +593,6 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
               disabled={pdfJalan || !paket}
               onClick={() => void unduh()}
             >
-              <DownloadSimpleIcon size={16} aria-hidden="true" />
               {pdfJalan ? t.membuatPdf : t.unduhPdf}
             </button>
           </div>
@@ -641,11 +632,9 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
           <div className="tpbtns">
             <a className="btn btn--primary" href={href(lang, `/grading?modul=${modul}`)}>
               {t.nilaiTp}
-              <ArrowRightIcon size={18} aria-hidden="true" />
             </a>
             {d.bolehUbah && (
               <button type="button" className="btn" onClick={() => setUbah(true)}>
-                <CalendarBlankIcon size={18} aria-hidden="true" />
                 {d.jendela?.sumber === "iris" ? t.ubahJendela : t.aturJendela}
               </button>
             )}

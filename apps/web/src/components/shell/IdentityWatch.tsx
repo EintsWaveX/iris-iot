@@ -13,7 +13,6 @@
  * around, and not a student of another slot (2026-10-07).
  */
 import { useEffect, useRef, useState } from "react";
-import { ArrowsCounterClockwiseIcon, SignInIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { dengarAkunLain, dict, getJson, meChanged, type Me, type SesiNow } from "../../lib/app";
 import { dengar } from "../../lib/siaran";
@@ -189,7 +188,6 @@ export default function IdentityWatch({
           )}
           {k.jenis === "swap" || k.jenis === "tot" ? (
             <button type="button" className="btn btn--primary" onClick={() => location.reload()}>
-              <ArrowsCounterClockwiseIcon size={17} aria-hidden="true" />
               {t.muat}
             </button>
           ) : (
@@ -202,7 +200,6 @@ export default function IdentityWatch({
                 openSignIn(undefined, { ikut: k.jenis === "baru" || k.jenis === "pindah" });
               }}
             >
-              <SignInIcon size={17} aria-hidden="true" />
               {k.jenis === "baru" ? t.ikut : t.masuk}
             </button>
           )}

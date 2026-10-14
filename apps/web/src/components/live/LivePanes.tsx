@@ -4,15 +4,7 @@
  */
 import { useBaru } from "../ui/Sorot";
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  ArrowDownIcon,
-  ArrowRightIcon,
-  ArrowsOutSimpleIcon,
-  CopySimpleIcon,
-  FileCsvIcon,
-  QuestionIcon,
-  UsbIcon,
-} from "@phosphor-icons/react";
+import { ArrowRightIcon, CopySimpleIcon, FileCsvIcon, UsbIcon } from "@phosphor-icons/react";
 import IconButton from "../ui/IconButton";
 import Nil from "../ui/Nil";
 import Popover from "../ui/Popover";
@@ -107,7 +99,6 @@ export function VCard({
       aria-label={openLabel}
     >
       {inner}
-      <ArrowsOutSimpleIcon className="vcard__more" size={16} aria-hidden="true" />
     </button>
   );
 }
@@ -308,7 +299,6 @@ function Help({ lang, modul }: { lang: Lang; modul: number }) {
       align="end"
       trigger={
         <button type="button" className="btn btn--ghost btn--sm">
-          <QuestionIcon aria-hidden="true" />
           {t.noLines}
         </button>
       }
@@ -426,7 +416,6 @@ export function SerialMonitor({
       )}
       {!follow && (
         <button type="button" className="serial__follow" onClick={() => setFollow(true)}>
-          <ArrowDownIcon size={14} aria-hidden="true" />
           {t.follow}
         </button>
       )}

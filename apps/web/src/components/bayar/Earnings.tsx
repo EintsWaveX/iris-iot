@@ -4,7 +4,7 @@
  * this month's two transfers) and the Console home's "Pendapatan Bulan
  * Ini". Private: only the person and the Admins see these numbers.
  */
-import { ArrowRightIcon, LockSimpleIcon } from "@phosphor-icons/react";
+import { LockSimpleIcon } from "@phosphor-icons/react";
 import Tooltip from "../ui/Tooltip";
 import { href } from "../../lib/app";
 import { jumlahkan, namaPeriode, rupiah, type Ringkasan } from "../../lib/bayar";
@@ -175,7 +175,6 @@ export function EarningsMini({ lang, nim }: { lang: Lang; nim: string }) {
         </span>
         <a className="btn btn--ghost btn--sm" href={href(lang, "/account")}>
           {t.details}
-          <ArrowRightIcon size={16} aria-hidden="true" />
         </a>
       </div>
       <span className="hint num">

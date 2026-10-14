@@ -7,14 +7,7 @@
  * Used by Home's Start card and Preparation's Mode TOT start.
  */
 import { useEffect, useState, type ReactNode } from "react";
-import {
-  ArrowRightIcon,
-  ArrowsClockwiseIcon,
-  CheckCircleIcon,
-  MinusCircleIcon,
-  PlayIcon,
-  WarningIcon,
-} from "@phosphor-icons/react";
+import { CheckCircleIcon, MinusCircleIcon, WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { dict, href, postJson } from "../../lib/app";
 import { ALASAN_PAKSA_MIN, type CekMulai } from "../../lib/siap-mulai";
@@ -207,7 +200,6 @@ export default function StartCheck({
               }
             >
               {t.server}
-              <ArrowRightIcon size={14} aria-hidden="true" />
             </a>
           ) : undefined,
       });
@@ -225,7 +217,6 @@ export default function StartCheck({
               disabled={kirim}
               onClick={() => void nyalakan(u)}
             >
-              <PlayIcon size={14} aria-hidden="true" />
               {t.start}
             </button>
           ) : undefined,
@@ -245,7 +236,6 @@ export default function StartCheck({
       lang={lang}
       alt={
         <button type="button" className="btn btn--ghost" disabled={busy} onClick={onRecheck}>
-          <ArrowsClockwiseIcon size={16} aria-hidden="true" />
           {t.recheck}
         </button>
       }
@@ -261,12 +251,10 @@ export default function StartCheck({
               disabled={busy || !bolehPaksa}
               onClick={() => onForce(alasan.trim())}
             >
-              <WarningIcon size={16} aria-hidden="true" />
               {t.force}
             </button>
           ) : (
             <button type="button" className="btn btn--primary" disabled={busy} onClick={onRecheck}>
-              <PlayIcon size={16} aria-hidden="true" />
               {t.go}
             </button>
           )}

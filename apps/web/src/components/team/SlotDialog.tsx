@@ -12,7 +12,6 @@
  *   them) with that date's Pengganti, Sukarela or Izin.
  */
 import { useMemo, useRef, useState } from "react";
-import { FloppyDiskIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Dropdown from "../ui/Dropdown";
 import { postJson } from "../../lib/app";
@@ -139,7 +138,6 @@ export default function SlotDialog({
             disabled={busy || !bisa || (!!awal && !pindah && !dirty)}
             onClick={() => void simpan()}
           >
-            <FloppyDiskIcon size={18} aria-hidden="true" />
             {awal ? t.save : t.addSlot}
           </button>
         </>

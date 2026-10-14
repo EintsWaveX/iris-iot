@@ -24,7 +24,6 @@
  * - Someone already signed in who opens /login goes straight on.
  */
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRightIcon, BookOpenTextIcon } from "@phosphor-icons/react";
 import SegmentedControl from "./ui/SegmentedControl";
 import KodeSesiDialog from "./KodeSesiDialog";
 import KodeAsistenField from "./KodeAsistenField";
@@ -635,7 +634,6 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
                 void masuk(undefined, "lihat");
               }}
             >
-              <BookOpenTextIcon size={18} aria-hidden="true" />
               {t.lihatSaja}
             </button>
           )}
@@ -745,7 +743,6 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
             }
           >
             {welcome.sesi ? t.go : t.goDash}
-            <ArrowRightIcon size={18} aria-hidden="true" />
           </button>
         </div>
       )}

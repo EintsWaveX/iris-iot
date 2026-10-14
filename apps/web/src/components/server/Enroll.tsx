@@ -12,11 +12,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowArcRightIcon,
-  ArrowLeftIcon,
-  ArrowRightIcon,
   CheckCircleIcon,
-  CheckIcon,
   CircleNotchIcon,
   CopyIcon,
   TerminalWindowIcon,
@@ -177,7 +173,6 @@ export default function Enroll({
       alt={
         step > 0 ? (
           <button type="button" className="btn btn--ghost" onClick={() => setStep(0)}>
-            <ArrowLeftIcon size={18} aria-hidden="true" />
             {t.wizBack}
           </button>
         ) : undefined
@@ -205,7 +200,6 @@ export default function Enroll({
           {step === 0 && cmd && (
             <button type="button" className="btn btn--primary" onClick={() => setStep(1)}>
               {t.wizNext}
-              <ArrowRightIcon size={18} aria-hidden="true" />
             </button>
           )}
           {step === 1 && (
@@ -219,7 +213,6 @@ export default function Enroll({
                 else onClose();
               }}
             >
-              <CheckIcon size={18} aria-hidden="true" />
               {t.wizFinish}
             </button>
           )}
@@ -299,7 +292,6 @@ export default function Enroll({
                     disabled={busy}
                     onClick={() => void buatPerintah()}
                   >
-                    <ArrowArcRightIcon size={16} aria-hidden="true" />
                     {t.wizRemake}
                   </button>
                 </div>

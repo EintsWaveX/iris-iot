@@ -5,13 +5,7 @@
  * else reads it. A new rate counts from its start date only.
  */
 import { useState } from "react";
-import {
-  FloppyDiskIcon,
-  LockSimpleIcon,
-  PencilSimpleIcon,
-  TrashIcon,
-  UserPlusIcon,
-} from "@phosphor-icons/react";
+import { LockSimpleIcon, PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Disclose from "../ui/Disclose";
 import Dropdown from "../ui/Dropdown";
@@ -124,7 +118,6 @@ export default function KasCard({
             {t.cancel}
           </button>
           <button type="button" className="btn btn--primary" onClick={() => setAsk(true)}>
-            <FloppyDiskIcon size={18} aria-hidden="true" />
             {t.kasSaveNew}
           </button>
         </div>
@@ -171,7 +164,6 @@ export default function KasCard({
         {bisa && (
           <div className="row row--end">
             <button type="button" className="btn btn--sm" onClick={() => setExc(true)}>
-              <UserPlusIcon size={16} aria-hidden="true" />
               {t.excAdd}
             </button>
           </div>
@@ -208,7 +200,6 @@ export default function KasCard({
               {t.cancel}
             </button>
             <button type="button" className="btn btn--primary" onClick={() => void simpanKas()}>
-              <FloppyDiskIcon size={18} aria-hidden="true" />
               {t.save}
             </button>
           </>
@@ -261,7 +252,6 @@ export default function KasCard({
                 reload();
               }}
             >
-              <UserPlusIcon size={18} aria-hidden="true" />
               {t.save}
             </button>
           </>

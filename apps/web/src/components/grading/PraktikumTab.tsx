@@ -8,14 +8,7 @@
  * table in a drawer, where TP cells graded in Penilaian are read only.
  */
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import {
-  CalendarCheckIcon,
-  ListChecksIcon,
-  PaperPlaneTiltIcon,
-  PencilSimpleLineIcon,
-  RocketLaunchIcon,
-  ArrowSquareOutIcon,
-} from "@phosphor-icons/react";
+import { ListChecksIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import Drawer from "../ui/Drawer";
 import { CountUp, StateView } from "../ui/Display";
@@ -99,7 +92,6 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
         <Tally
           lang={lang}
           tone="--accent"
-          icon={<CalendarCheckIcon size={22} />}
           n={hitung.sesi}
           label={t.kSesi}
           sub={t.kSesiSub(hitung.modul)}
@@ -117,7 +109,6 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
         <Tally
           lang={lang}
           tone="--ok"
-          icon={<PaperPlaneTiltIcon size={22} />}
           n={hitung.sent}
           label={t.kTerkirim}
           sub={t.kTerkirimSub(hitung.sent, hitung.grup)}
@@ -145,7 +136,6 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
         <Tally
           lang={lang}
           tone="--accent"
-          icon={<RocketLaunchIcon size={22} />}
           n={hitung.ready}
           label={t.kSiap}
           sub={t.kSiapSub}
@@ -162,7 +152,6 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
         <Tally
           lang={lang}
           tone="--warn"
-          icon={<PencilSimpleLineIcon size={22} />}
           n={hitung.todo}
           label={t.kBelum}
           sub={t.kBelumSub(hitung.kosong)}
@@ -244,7 +233,6 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
                   className={`btn${aksi ? " btn--primary" : ""}`}
                   onClick={() => setBuka(s)}
                 >
-                  <ListChecksIcon size={18} aria-hidden="true" />
                   {t.bukaTabel}
                 </button>
               </section>
@@ -264,7 +252,6 @@ const pct = (a: number, b: number) => (b ? (a / b) * 100 : 0);
 function Tally({
   lang,
   tone,
-  icon,
   n,
   label,
   sub,
@@ -275,7 +262,6 @@ function Tally({
 }: {
   lang: Lang;
   tone: string;
-  icon: ReactNode;
   n: number;
   label: string;
   sub: string;
@@ -300,11 +286,7 @@ function Tally({
           </span>
           <span className="tptally__l">{label}</span>
         </span>
-        {gauge ? (
-          <span style={{ width: 84 }}>{gauge}</span>
-        ) : (
-          <span className="tptally__ic">{icon}</span>
-        )}
+        {gauge && <span style={{ width: 84 }}>{gauge}</span>}
       </span>
       <span className="tptally__vis">{children}</span>
       <span className="hint">{sub}</span>
@@ -366,7 +348,6 @@ function TabelDrawer({
           />
         )}
         <a className="btn btn--ghost" href={href(lang, `/session?tabel=${s.sesiId}`)}>
-          <ArrowSquareOutIcon size={18} aria-hidden="true" />
           {ct.tableTitle}
         </a>
       </div>

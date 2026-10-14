@@ -8,7 +8,6 @@
  * history and for each group's first pairing.
  */
 import { useCallback, useEffect, useState } from "react";
-import { UserSwitchIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Dropdown from "../ui/Dropdown";
 import { getJson, postJson } from "../../lib/app";
@@ -148,7 +147,6 @@ export default function ChangeAssistant({
             disabled={busy || !ok}
             onClick={() => void go()}
           >
-            <UserSwitchIcon size={18} aria-hidden="true" />
             {t.chg}
           </button>
         </>

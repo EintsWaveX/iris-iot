@@ -1045,7 +1045,6 @@ export default function PdfViewer({
                     className="pdfv__mi"
                     onClick={() => keep(() => setRot((r) => (r + 270) % 360))}
                   >
-                    <ArrowCounterClockwiseIcon size={18} aria-hidden="true" />
                     {t.rotate}
                   </button>
                   <a
@@ -1055,7 +1054,6 @@ export default function PdfViewer({
                     download={name}
                     onClick={() => setMoreOpen(false)}
                   >
-                    <DownloadSimpleIcon size={18} aria-hidden="true" />
                     {t.download}
                   </a>
                   <button
@@ -1068,7 +1066,6 @@ export default function PdfViewer({
                       void doPrint();
                     }}
                   >
-                    <PrinterIcon size={18} aria-hidden="true" />
                     {printing ? t.printing : t.print}
                   </button>
                 </div>
@@ -1150,7 +1147,6 @@ export default function PdfViewer({
               <WarningIcon size={22} aria-hidden="true" />
               <span>{t.fail}</span>
               <a className="btn btn--sm" href={url} download={name}>
-                <DownloadSimpleIcon size={16} aria-hidden="true" />
                 {t.download}
               </a>
             </div>

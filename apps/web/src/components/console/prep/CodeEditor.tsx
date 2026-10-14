@@ -12,12 +12,10 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowCounterClockwiseIcon,
   CheckCircleIcon,
   ClockCounterClockwiseIcon,
   LockSimpleIcon,
   PlusIcon,
-  TrashIcon,
   WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -953,7 +951,6 @@ export default function CodeEditor({ lang }: { lang: Lang }) {
             <WarningIcon aria-hidden="true" />
             <span className="grow">{t.berubah(berubah.oleh)}</span>
             <button type="button" className="btn btn--sm" onClick={() => void muat()}>
-              <ArrowCounterClockwiseIcon aria-hidden="true" />
               {t.muatUlang}
             </button>
           </div>
@@ -1207,7 +1204,6 @@ function CelahForm({
             })}
           </span>
           <button type="button" className="btn btn--danger-soft btn--sm" onClick={onHapus}>
-            <TrashIcon aria-hidden="true" />
             {t.hapus}
           </button>
         </div>

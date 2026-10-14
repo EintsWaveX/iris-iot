@@ -20,9 +20,7 @@ import {
   FileXlsIcon,
   FloppyDiskIcon,
   LockSimpleIcon,
-  NotePencilIcon,
   PencilSimpleIcon,
-  PlusIcon,
 } from "@phosphor-icons/react";
 import { getJson, localeOf, namaKelompok, tanggalPanjang } from "../../lib/app";
 import { NILAI_KOMPONEN, type NilaiKomponen } from "../../lib/nilai-komponen";
@@ -425,7 +423,6 @@ function IncidentsCard({
       <div className="panel__head">
         <h2 className="panel__title">{t.whatHappened}</h2>
         <button type="button" className="btn" onClick={() => setAdd(true)}>
-          <PlusIcon size={18} aria-hidden="true" />
           {t.addInc}
         </button>
       </div>
@@ -710,7 +707,6 @@ function WrittenCard({
       />
       <div className="row">
         <button type="button" className="btn btn--sm" onClick={() => onBlockReport(txt, data.sesi)}>
-          <NotePencilIcon size={18} aria-hidden="true" />
           {t.toBlock}
         </button>
         <span className="hint">{t.toBlockHint}</span>

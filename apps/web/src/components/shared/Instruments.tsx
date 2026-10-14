@@ -7,7 +7,7 @@
  */
 import { AngkaGulir } from "../ui/Sorot";
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { CheckIcon, LockSimpleIcon, PulseIcon, TrophyIcon } from "@phosphor-icons/react";
+import { CheckIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import { href, useTick } from "../../lib/app";
 import { useMotionTier } from "../../lib/hooks";
 import { modulLabel } from "../../lib/labels";
@@ -893,7 +893,6 @@ export function Instrument({
       {extra}
       <div className="panel__actions">
         <a className="btn dash__live-cta" href={href(lang, `/modules/${m}?step=live`)}>
-          <PulseIcon size={18} aria-hidden="true" />
           {t.bukaLive}
         </a>
         {m === 4 && (
@@ -903,7 +902,6 @@ export function Instrument({
             target="_blank"
             rel="noopener noreferrer"
           >
-            <TrophyIcon size={18} aria-hidden="true" />
             {t.papanSkor}
           </a>
         )}

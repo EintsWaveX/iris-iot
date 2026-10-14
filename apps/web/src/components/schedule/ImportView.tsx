@@ -27,13 +27,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import DragLayer from "../ui/DragLayer";
-import {
-  ArrowUUpLeftIcon,
-  DotsSixVerticalIcon,
-  FloppyDiskIcon,
-  UploadSimpleIcon,
-  WarningIcon,
-} from "@phosphor-icons/react";
+import { DotsSixVerticalIcon, WarningIcon } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import Confirm from "../ui/Confirm";
 import Fade from "../ui/Fade";
@@ -237,7 +231,6 @@ function Paste({
               disabled={busy || pre.slot.length === 0}
               onClick={() => setConfirm(true)}
             >
-              <UploadSimpleIcon size={18} aria-hidden="true" />
               {t.imp.replace(semesterLabel)}
             </button>
             <span className="hint">{t.imp.replaceHint}</span>
@@ -414,7 +407,6 @@ function Arrange({
                     setHist(h);
                   }}
                 >
-                  <ArrowUUpLeftIcon size={16} aria-hidden="true" />
                   {t.imp.undo}
                 </button>
               </>
@@ -426,7 +418,6 @@ function Arrange({
               disabled={busy || changed.length === 0}
               onClick={() => void simpan()}
             >
-              <FloppyDiskIcon size={18} aria-hidden="true" />
               {t.imp.saveAll}
             </button>
           </div>

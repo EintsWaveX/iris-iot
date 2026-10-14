@@ -552,11 +552,6 @@
   color: var(--warn);
 }
 
-.qa__b > svg:last-child {
-  color: var(--text-faint);
-  flex: none;
-}
-
 button.qa__b {
   cursor: pointer;
 }

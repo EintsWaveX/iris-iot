@@ -20,7 +20,7 @@ import { namaAsisten } from "../../lib/people";
 import BackButton from "../ui/BackButton";
 import Fade from "../ui/Fade";
 import { shortcutsOn } from "../../lib/prefs";
-import { ShieldWarningIcon, SignInIcon, WarningIcon } from "@phosphor-icons/react";
+import { ShieldWarningIcon, WarningIcon } from "@phosphor-icons/react";
 import { OfflineBanner, StateView } from "../ui/Display";
 import { isTypingTarget } from "../ui/ShortcutSheet";
 import { getJson, href, menitBerjalan, useMe, useTick } from "../../lib/app";
@@ -397,7 +397,7 @@ export default function Console({ lang }: { lang: Lang }) {
         actions={
           me === null ? (
             <button type="button" className="btn btn--primary" onClick={() => openSignIn()}>
-              <SignInIcon size={18} aria-hidden="true" /> {t.signIn}
+              {t.signIn}
             </button>
           ) : undefined
         }

@@ -13,8 +13,6 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   ClockIcon,
   IdentificationBadgeIcon,
-  ListBulletsIcon,
-  ListChecksIcon,
   LockSimpleIcon,
   MapPinIcon,
   NoteIcon,
@@ -356,7 +354,6 @@ export default function ServerDetail({
       aria-label={t.detail}
     >
       <ToggleGroup.Item className="segmented__item" value="min">
-        <ListBulletsIcon size={17} aria-hidden="true" />
         {t.compact}
       </ToggleGroup.Item>
       <ToggleGroup.Item
@@ -451,7 +448,6 @@ export default function ServerDetail({
             ))}
             {kosong.length > 0 && (
               <span className="locstrip__i s12facts__empty">
-                <NoteIcon size={20} aria-hidden="true" />
                 <span className="hint">
                   {s12.factsEmpty(
                     daftar(
@@ -485,12 +481,10 @@ export default function ServerDetail({
               ))}
               <span className="grow" />
               <button type="button" className="btn btn--primary" onClick={() => go("siap")}>
-                <ListChecksIcon size={18} aria-hidden="true" />
                 {sh.runReady}
               </button>
               {bisa.konsol && (
                 <button type="button" className="btn" onClick={() => go("konsol")}>
-                  <TerminalWindowIcon size={18} aria-hidden="true" />
                   {sh.konsol}
                 </button>
               )}

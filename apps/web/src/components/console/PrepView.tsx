@@ -16,15 +16,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
-  ArrowRightIcon,
   CaretDownIcon,
   CheckIcon,
-  HardDrivesIcon,
-  ListChecksIcon,
   LockSimpleIcon,
   MagnifyingGlassIcon,
-  PlayIcon,
-  XCircleIcon,
 } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import TabLine from "../ui/TabLine";
@@ -465,7 +460,6 @@ export default function PrepView({
         <div className="prep__tools">
           {onBack && (
             <button type="button" className="btn btn--primary" onClick={onBack}>
-              <PlayIcon size={18} weight="fill" aria-hidden="true" />
               {sesi ? pn.backKonsol : pn.backStart}
             </button>
           )}
@@ -499,7 +493,6 @@ export default function PrepView({
                         });
                       }}
                     >
-                      <XCircleIcon size={16} aria-hidden="true" />
                       {BS[lang].cancel}
                     </button>
                   )}
@@ -579,7 +572,6 @@ export default function PrepView({
                           onClick={() => choose(kosong.lanjut!)}
                         >
                           {p.bukaSlot(labelOf(kosong.lanjut))}
-                          <ArrowRightIcon aria-hidden="true" />
                         </button>
                       </div>
                     )}
@@ -1066,7 +1058,6 @@ function ServerSection({
         <p>{pn.srvNone}</p>
         <div className="row">
           <a className="btn" href={href(lang, "/servers?dari=persiapan")}>
-            <HardDrivesIcon size={18} aria-hidden="true" />
             {pn.openServer}
           </a>
         </div>
@@ -1112,11 +1103,9 @@ function ServerSection({
             onSent();
           }}
         >
-          <ListChecksIcon size={18} aria-hidden="true" />
           {pn.runCheck}
         </button>
         <a className="btn" href={href(lang, `/servers?id=${srv.id}&dari=persiapan#siap`)}>
-          <HardDrivesIcon size={18} aria-hidden="true" />
           {pn.openServer}
         </a>
       </div>

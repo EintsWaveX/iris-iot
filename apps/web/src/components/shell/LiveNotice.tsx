@@ -6,7 +6,7 @@
  * A short grace period keeps it from flashing on every page load.
  */
 import { useEffect, useState } from "react";
-import { ArrowsClockwiseIcon, CloudSlashIcon } from "@phosphor-icons/react";
+import { CloudSlashIcon } from "@phosphor-icons/react";
 import { dict } from "../../lib/app";
 import { segarkanSemua, useSiaranStatus } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
@@ -58,7 +58,6 @@ export default function LiveNotice({ lang }: { lang: Lang }) {
       <b>{t.h}</b>
       <span className="hint">{t.p}</span>
       <button type="button" className="btn btn--ghost btn--sm" onClick={segarkanSemua}>
-        <ArrowsClockwiseIcon size={14} aria-hidden="true" />
         {t.go}
       </button>
     </div>

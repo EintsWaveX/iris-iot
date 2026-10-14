@@ -6,7 +6,6 @@
  * brings the handbook's text back.
  */
 import { useEffect, useRef, useState } from "react";
-import { FloppyDiskIcon } from "@phosphor-icons/react";
 import SegmentedControl from "../../ui/SegmentedControl";
 import Fade from "../../ui/Fade";
 import { dict, getJson, postJson, sejak } from "../../../lib/app";
@@ -219,7 +218,6 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
                   disabled={busy}
                   onClick={() => void save()}
                 >
-                  <FloppyDiskIcon size={18} aria-hidden="true" />
                   {t.save}
                 </button>
               </div>

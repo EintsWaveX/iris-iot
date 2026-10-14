@@ -3,7 +3,6 @@
  *  the Account page for a refused password or a changed Pi key, the score
  *  table for a Token Khusus, Coba Lagi for the rest. Nothing when all is well. */
 import { useEffect, useState } from "react";
-import { ArrowClockwiseIcon, ArrowRightIcon } from "@phosphor-icons/react";
 import { getJson, href, postJson } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
@@ -91,12 +90,10 @@ export default function RobotInbox({
             <span className="todo10__acts">
               {akun ? (
                 <a className="btn btn--sm" href={href(lang, "/account")}>
-                  <ArrowRightIcon size={16} aria-hidden="true" />
                   {t.enterAgain}
                 </a>
               ) : token && j.sesiId !== null ? (
                 <button type="button" className="btn btn--sm" onClick={() => onTable(j.sesiId!)}>
-                  <ArrowRightIcon size={16} aria-hidden="true" />
                   {t.tokenSend}
                 </button>
               ) : (
@@ -107,7 +104,6 @@ export default function RobotInbox({
                   data-loading={busy === j.id ? "yes" : undefined}
                   onClick={() => void ulang(j.id)}
                 >
-                  <ArrowClockwiseIcon size={16} aria-hidden="true" />
                   {t.tryAgain}
                 </button>
               )}

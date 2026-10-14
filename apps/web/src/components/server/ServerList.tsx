@@ -119,7 +119,6 @@ export default function ServerList({
           {bisa.full && (
             <div className="page-header__actions">
               <button type="button" className="btn btn--primary" onClick={open}>
-                <PlusIcon size={18} aria-hidden="true" />
                 {t.register}
               </button>
             </div>

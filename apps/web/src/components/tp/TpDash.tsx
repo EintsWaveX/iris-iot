@@ -5,7 +5,6 @@
  * Nilaiku's TP score opens each question's mark (TpRincian), still only
  * after the group's scores are sent.
  */
-import { ArrowRightIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { href } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -79,7 +78,6 @@ export function TpKartu({ lang, d }: { lang: Lang; d: TpSaya | null }) {
         <div className="row">
           <a className="btn btn--inverse" href={href(lang, `/modules/${m.modul}?step=tp`)}>
             {t.bukaTp}
-            <ArrowRightIcon size={18} aria-hidden="true" />
           </a>
         </div>
       </section>

@@ -9,34 +9,7 @@
  * - Still stuck: the Pi Console, and a note into the session's history.
  */
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  ArrowsClockwiseIcon,
-  BookOpenTextIcon,
-  ChatCircleTextIcon,
-  CaretDownIcon,
-  CaretUpIcon,
-  CheckSquareIcon,
-  ClockIcon,
-  CpuIcon,
-  DoorOpenIcon,
-  EyeSlashIcon,
-  GlobeSimpleIcon,
-  HandCoinsIcon,
-  HandshakeIcon,
-  HardDrivesIcon,
-  LockKeyOpenIcon,
-  MagnifyingGlassIcon,
-  MegaphoneIcon,
-  PulseIcon,
-  TerminalWindowIcon,
-  SwapIcon,
-  TimerIcon,
-  TranslateIcon,
-  UserPlusIcon,
-  UserSwitchIcon,
-  WifiSlashIcon,
-  type Icon as PhIcon,
-} from "@phosphor-icons/react";
+import { CaretDownIcon, CaretUpIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import Drawer from "../ui/Drawer";
 import Pill from "../ui/Pill";
 import { dict, getJson, href, postJson, useTick } from "../../lib/app";
@@ -416,7 +389,6 @@ interface Waspada {
 
 interface Act {
   label: string;
-  icon: PhIcon;
   primary?: boolean;
   run?: () => void | Promise<void>;
   href?: string;
@@ -424,7 +396,6 @@ interface Act {
 interface Issue {
   id: string;
   cat: keyof (typeof HD)["id"]["cat"];
-  icon: PhIcon;
   title: string;
   found: string;
   warn?: boolean;
@@ -549,7 +520,6 @@ export default function HelpDrawer({
       {
         id: "masuk",
         cat: "orang",
-        icon: DoorOpenIcon,
         title: h.masuk,
         warn: gagal.length > 0,
         found:
@@ -567,7 +537,6 @@ export default function HelpDrawer({
         acts: [
           {
             label: h.addRoster,
-            icon: UserPlusIcon,
             primary: gagal.length > 0,
             run: () => setAdd(true),
           },
@@ -576,7 +545,6 @@ export default function HelpDrawer({
             .slice(0, 3)
             .map((nim) => ({
               label: h.unlock(nim),
-              icon: LockKeyOpenIcon,
               run: () => void bukaKunci(nim),
             })),
         ],
@@ -584,42 +552,37 @@ export default function HelpDrawer({
       {
         id: "pindah",
         cat: "orang",
-        icon: UserSwitchIcon,
         title: h.pindah,
         found: h.pindahFound,
-        acts: [{ label: h.openPrep, icon: UserSwitchIcon, run: () => (close(), onView("prep")) }],
+        acts: [{ label: h.openPrep, run: () => (close(), onView("prep")) }],
       },
       {
         id: "hadir",
         cat: "orang",
-        icon: CheckSquareIcon,
         title: h.hadir,
         found: h.hadirFound(absen),
-        acts: [{ label: h.openPrep, icon: CheckSquareIcon, run: () => (close(), onView("prep")) }],
+        acts: [{ label: h.openPrep, run: () => (close(), onView("prep")) }],
       },
       {
         id: "diam",
         cat: "data",
-        icon: WifiSlashIcon,
         title: h.diam,
         warn: sunyi.length > 0 && aktif.length > sunyi.length,
         found: sunyi.length ? h.diamFound(daftarG(sunyi)) : h.diamNone,
         acts: [
           ...sunyi.slice(0, 2).map((g, i) => ({
             label: h.openGroup(kelompokLabel(g.nomor, lang)),
-            icon: PulseIcon,
             primary: i === 0,
             run: () => (close(), onGroup(g.id)),
           })),
           ...(sesi.kendali !== false
-            ? [{ label: h.announce, icon: MegaphoneIcon, run: () => (close(), onAnnounce()) }]
+            ? [{ label: h.announce, run: () => (close(), onAnnounce()) }]
             : []),
         ],
       },
       {
         id: "delay",
         cat: "data",
-        icon: ClockIcon,
         title: h.delay,
         warn: hb?.jamSelaras === false,
         found: h.delayFound(hb?.jamSelaras !== false),
@@ -627,7 +590,6 @@ export default function HelpDrawer({
           ? [
               {
                 label: h.sync,
-                icon: ArrowsClockwiseIcon,
                 primary: hb?.jamSelaras === false,
                 run: () => void sendCommand(d.server.id, "jam.selaraskan", {}, lang),
               },
@@ -637,7 +599,6 @@ export default function HelpDrawer({
       {
         id: "layanan",
         cat: "server",
-        icon: HardDrivesIcon,
         title: h.layanan,
         warn: svcBad.length > 0,
         found: h.layananFound(
@@ -646,7 +607,6 @@ export default function HelpDrawer({
         acts: [
           {
             label: h.openServer,
-            icon: HardDrivesIcon,
             primary: svcBad.length > 0,
             run: () => (close(), onServer()),
           },
@@ -655,7 +615,6 @@ export default function HelpDrawer({
       {
         id: "pi",
         cat: "server",
-        icon: CpuIcon,
         title: h.pi,
         warn: !!d && !piOn,
         found: h.piFound(piOn),
@@ -664,80 +623,70 @@ export default function HelpDrawer({
             ? [
                 {
                   label: h.konsol,
-                  icon: TerminalWindowIcon,
                   href: href(lang, `/servers?id=${d.server.id}`),
                 },
                 {
                   label: h.net,
-                  icon: GlobeSimpleIcon,
                   run: () => void sendCommand(d.server.id, "diag.jaringan", {}, lang),
                 },
               ]
             : []),
-          { label: h.openServer, icon: HardDrivesIcon, run: () => (close(), onServer()) },
+          { label: h.openServer, run: () => (close(), onServer()) },
         ],
       },
       {
         id: "waktu",
         cat: "sesi",
-        icon: TimerIcon,
         title: h.waktu,
         warn: sisa <= 15,
         found: h.waktuFound(sisa),
         acts:
           sesi.kendali !== false
             ? [
-                { label: h.plus(15), icon: TimerIcon, run: () => extend(15) },
-                { label: h.plus(30), icon: TimerIcon, run: () => extend(30) },
+                { label: h.plus(15), run: () => extend(15) },
+                { label: h.plus(30), run: () => extend(30) },
               ]
             : [],
       },
       {
         id: "modul",
         cat: "sesi",
-        icon: SwapIcon,
         title: h.modulT,
         found: h.modulFound(benar),
         acts:
           sesi.kendali !== false
             ? [
-                ...(benar === 0
-                  ? [{ label: h.gantiModul, icon: SwapIcon, run: () => setUbah(true) }]
-                  : []),
-                { label: h.ubahKelas, icon: TranslateIcon, run: () => setUbah(true) },
+                ...(benar === 0 ? [{ label: h.gantiModul, run: () => setUbah(true) }] : []),
+                { label: h.ubahKelas, run: () => setUbah(true) },
               ]
             : [],
       },
       {
         id: "asisten",
         cat: "sesi",
-        icon: HandshakeIcon,
         title: h.asisten,
         found: h.asistenFound,
-        acts: [{ label: h.openPrep, icon: UserSwitchIcon, run: () => (close(), onView("prep")) }],
+        acts: [{ label: h.openPrep, run: () => (close(), onView("prep")) }],
       },
       {
         id: "seelabs",
         cat: "nilai",
-        icon: HandCoinsIcon,
         title: h.seelabs,
         found: h.seelabsFound,
         acts: [
-          { label: h.guide, icon: BookOpenTextIcon, run: () => (close(), onSeelabs("panduan")) },
-          { label: h.hold, icon: HandCoinsIcon, run: () => (close(), onSeelabs("titipan")) },
+          { label: h.guide, run: () => (close(), onSeelabs("panduan")) },
+          { label: h.hold, run: () => (close(), onSeelabs("titipan")) },
         ],
       },
       {
         id: "segar",
         cat: "situs",
-        icon: ArrowsClockwiseIcon,
         title: h.segar,
         warn: relay === "putus",
         found: h.segarFound(relay === "live"),
         acts: [
           {
             label: h.reload,
-            icon: ArrowsClockwiseIcon,
             run: () => (onRefresh(), window.Toast?.show(h.done, "ok")),
           },
         ],
@@ -745,7 +694,6 @@ export default function HelpDrawer({
       {
         id: "kunci",
         cat: "situs",
-        icon: EyeSlashIcon,
         title: h.kunci,
         warn: kunci,
         found: h.kunciFound(kunci),
@@ -753,7 +701,6 @@ export default function HelpDrawer({
           ? [
               {
                 label: h.hideKeys,
-                icon: EyeSlashIcon,
                 primary: true,
                 run: () => (onKunci(false), window.Toast?.show(h.done, "ok")),
               },
@@ -813,7 +760,6 @@ export default function HelpDrawer({
   const actBtn = (a: Act): ReactNode =>
     a.href ? (
       <a key={a.label} className="btn btn--sm" href={a.href}>
-        <a.icon size={16} aria-hidden="true" />
         {a.label}
       </a>
     ) : (
@@ -823,7 +769,6 @@ export default function HelpDrawer({
         className={`btn btn--sm${a.primary ? " btn--primary" : ""}`}
         onClick={() => void a.run?.()}
       >
-        <a.icon size={16} aria-hidden="true" />
         {a.label}
       </button>
     );
@@ -883,7 +828,6 @@ export default function HelpDrawer({
                       aria-expanded={isOpen}
                       onClick={() => setBuka(isOpen ? null : i.id)}
                     >
-                      <i.icon size={20} aria-hidden="true" />
                       <b className="grow">{i.title}</b>
                       {i.warn && <Pill tone="warn">{h.spotted}</Pill>}
                       {isOpen ? (
@@ -918,7 +862,6 @@ export default function HelpDrawer({
                 disabled={busyCall}
                 onClick={() => void panggilDev()}
               >
-                <ChatCircleTextIcon size={18} aria-hidden="true" />
                 {h.callDev}
               </button>
             ) : (
@@ -933,7 +876,6 @@ export default function HelpDrawer({
             )}
             {d && (
               <a className="btn" href={href(lang, `/servers?id=${d.server.id}`)}>
-                <TerminalWindowIcon size={18} aria-hidden="true" />
                 {h.konsol}
               </a>
             )}

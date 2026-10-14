@@ -6,13 +6,7 @@
  * timeline. It polls every 4 s while open. (Phase 9 dropped the ESP32 list
  * with the Devices tab.)
  */
-import {
-  ArrowRightIcon,
-  ClockIcon,
-  CpuIcon,
-  ThermometerSimpleIcon,
-  TimerIcon,
-} from "@phosphor-icons/react";
+import { ClockIcon, CpuIcon, ThermometerSimpleIcon, TimerIcon } from "@phosphor-icons/react";
 import Drawer from "../ui/Drawer";
 import { CommandTimeline, HotspotCard, Sejak, ServiceList } from "../server/ops";
 import { href } from "../../lib/app";
@@ -124,10 +118,7 @@ export default function ServerDrawer({
                     </>
                   )}
                 </span>
-                <span className="srvpick__go">
-                  {t.drawerOpenFull}
-                  <ArrowRightIcon size={14} aria-hidden="true" />
-                </span>
+                <span className="srvpick__go">{t.drawerOpenFull}</span>
               </a>
             );
           })}

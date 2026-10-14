@@ -24,16 +24,16 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
+  ArrowClockwiseIcon,
+  CameraIcon,
   CheckIcon,
+  ClockIcon,
+  EyeIcon,
   PauseIcon,
   PlayIcon,
   PlugsConnectedIcon,
   PlugsIcon,
   UsbIcon,
-  ArrowClockwiseIcon,
-  ClockIcon,
-  CameraIcon,
-  EyeIcon,
 } from "@phosphor-icons/react";
 import GroupPicker from "../ui/GroupPicker";
 import SegmentedControl from "../ui/SegmentedControl";
@@ -172,7 +172,6 @@ function PortRow({
             className={`btn btn--sm ${optional ? "btn--secondary" : "btn--primary"}`}
             onClick={() => void b.connect()}
           >
-            <UsbIcon aria-hidden="true" />
             {t.connect}
           </button>
         )}

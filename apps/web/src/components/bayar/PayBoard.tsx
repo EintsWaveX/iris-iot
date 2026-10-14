@@ -6,7 +6,6 @@
  * beside the unit rates, and the semester ledger with an XLSX export.
  */
 import { useMemo, useState, type ReactNode } from "react";
-import { CheckIcon, FileXlsIcon, FloppyDiskIcon } from "@phosphor-icons/react";
 import { tanggalPanjang } from "../../lib/app";
 import { jumlahkan, namaPeriode, rupiah } from "../../lib/bayar";
 import type { Lang } from "../../lib/kelas";
@@ -64,7 +63,6 @@ export function XlsxButton({
     ).then(() => window.Toast?.show(t.xlsxDone, "ok"));
   return (
     <button type="button" className="btn" onClick={xlsx}>
-      <FileXlsIcon size={18} aria-hidden="true" />
       {t.xlsx}
     </button>
   );
@@ -161,7 +159,6 @@ export default function PayBoard({
                   </span>
                   <b className="num">{rupiah(s.jumlah)}</b>
                   <button type="button" className="btn btn--sm" onClick={() => void tandai(s)}>
-                    <CheckIcon size={16} aria-hidden="true" />
                     {t.mark}
                   </button>
                 </div>
@@ -244,7 +241,6 @@ export default function PayBoard({
                 reload();
               }}
             >
-              <FloppyDiskIcon size={18} aria-hidden="true" />
               {t.ratesSave}
             </button>
           </div>

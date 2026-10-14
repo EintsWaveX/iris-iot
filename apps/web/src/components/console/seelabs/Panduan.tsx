@@ -5,13 +5,7 @@
  * it talks about. The last step seen is kept on this device.
  */
 import { useEffect, useState } from "react";
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  ArrowSquareOutIcon,
-  CaretRightIcon,
-  CheckIcon,
-} from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, CaretRightIcon, CheckIcon } from "@phosphor-icons/react";
 import type { Lang } from "../../../lib/kelas";
 import { PANDUAN_SEELABS_URL, PD, type LangkahPanduan } from "./panduanStrings";
 
@@ -119,7 +113,6 @@ export default function Panduan({
             ) : (
               <button type="button" className="btn panduan__aksi" onClick={() => onGo(aksi.ke)}>
                 {aksi.label}
-                <ArrowRightIcon size={18} aria-hidden="true" />
               </button>
             ))}
           {i === total - 1 && <p className="hint">{t.finished}</p>}
@@ -130,13 +123,11 @@ export default function Panduan({
               disabled={i === 0}
               onClick={() => setI((x) => Math.max(0, x - 1))}
             >
-              <ArrowLeftIcon size={18} aria-hidden="true" />
               {t.prev}
             </button>
             {i < total - 1 ? (
               <button type="button" className="btn btn--primary" onClick={() => setI(i + 1)}>
                 {t.next}
-                <ArrowRightIcon size={18} aria-hidden="true" />
               </button>
             ) : (
               <button type="button" className="btn btn--primary" onClick={() => setI(0)}>

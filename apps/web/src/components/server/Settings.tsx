@@ -9,15 +9,11 @@
 import { useState, type FormEvent } from "react";
 import {
   CircleNotchIcon,
-  DownloadSimpleIcon,
-  FloppyDiskIcon,
-  ListBulletsIcon,
   LockSimpleIcon,
   PlayIcon,
   PlugsConnectedIcon,
   PulseIcon,
   TerminalWindowIcon,
-  TrashIcon,
   WifiHighIcon,
 } from "@phosphor-icons/react";
 import Confirm from "../ui/Confirm";
@@ -85,7 +81,6 @@ function Journal({
           disabled={!sama || !last?.keluaran}
           onClick={() => unduhTeks(`journal-${data.server.nama}-24jam.txt`, last?.keluaran ?? "")}
         >
-          <DownloadSimpleIcon size={16} aria-hidden="true" />
           {t.journal24}
         </button>
       </div>
@@ -225,11 +220,9 @@ function NetConf({ lang, data, onCommands }: { lang: Lang; data: Detail; onComma
       )}
       <div className="row panel__actions">
         <button type="button" className="btn" onClick={paket}>
-          <DownloadSimpleIcon size={18} aria-hidden="true" />
           {t.bundleDl}
         </button>
         <button type="button" className="btn btn--ghost" onClick={onCommands}>
-          <ListBulletsIcon size={18} aria-hidden="true" />
           {t.cmdHistory}
         </button>
       </div>
@@ -384,7 +377,6 @@ export default function Settings({
         {!ro && (
           <div className="row row--end panel__actions">
             <button type="submit" className="btn btn--primary" disabled={busy || !form.nama.trim()}>
-              <FloppyDiskIcon size={18} aria-hidden="true" />
               {t.save}
             </button>
           </div>
@@ -493,7 +485,6 @@ export default function Settings({
               <span className="hint">{t.setupSub}</span>
             </div>
             <button type="button" className="btn" onClick={() => setSetup(true)}>
-              <PlugsConnectedIcon size={18} aria-hidden="true" />
               {s.terdaftar ? t.setupOpen : t.setupContinue}
             </button>
           </div>
@@ -509,7 +500,6 @@ export default function Settings({
               <span className="hint">{t.dangerHint}</span>
             </div>
             <button type="button" className="btn btn--danger" onClick={() => setAsk("hapus")}>
-              <TrashIcon size={18} aria-hidden="true" />
               {t.delServer}
             </button>
           </div>

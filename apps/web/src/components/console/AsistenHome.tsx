@@ -31,23 +31,16 @@ import {
   ArrowDownIcon,
   ArrowRightIcon,
   ArrowUpIcon,
-  CalendarBlankIcon,
-  CalendarPlusIcon,
   CheckCircleIcon,
   CheckIcon,
   ClockCountdownIcon,
-  ListChecksIcon,
   LockSimpleIcon,
   MoonStarsIcon,
   PaperPlaneTiltIcon,
-  PencilSimpleIcon,
-  PiggyBankIcon,
   PlayIcon,
   ProhibitIcon,
-  TableIcon,
   UsersThreeIcon,
   WarningIcon,
-  XCircleIcon,
 } from "@phosphor-icons/react";
 import { DateField, Stepper, Switch, TimeField } from "../ui/Controls";
 import Confirm from "../ui/Confirm";
@@ -544,7 +537,6 @@ export default function AsistenHome({
             className="btn btn--primary btn--lg btn--block"
             aria-disabled="true"
           >
-            <PlayIcon size={20} weight="fill" aria-hidden="true" />
             {h.start(modulLabel(modul ?? 1, lang))}
           </button>
         </Tooltip>
@@ -644,7 +636,6 @@ export default function AsistenHome({
             onClick={() => onPrep(null, "akses")}
           >
             {h.openAccess}
-            <ArrowRightIcon size={16} aria-hidden="true" />
           </button>
         </div>
       )}
@@ -708,7 +699,6 @@ export default function AsistenHome({
                     );
                   }}
                 >
-                  <XCircleIcon size={18} aria-hidden="true" />
                   {BS[lang].cancel}
                 </button>
                 <button
@@ -762,7 +752,6 @@ export default function AsistenHome({
                 className="btn btn--inverse btn--lg btn--block"
                 onClick={() => onPrep(null)}
               >
-                <ListChecksIcon size={18} aria-hidden="true" />
                 {h.prepOpen}
               </button>
             </div>
@@ -842,7 +831,6 @@ export default function AsistenHome({
         <div className="panel__actions">
           {j?.status === "berjalan" && (
             <button type="button" className="btn btn--primary" onClick={onStarted}>
-              <ArrowRightIcon size={18} aria-hidden="true" />
               {d.openBoard}
             </button>
           )}
@@ -853,23 +841,19 @@ export default function AsistenHome({
                 className={`btn${sentLeft > 0 && diSlot ? " btn--primary" : ""}`}
                 onClick={() => onTable(j.sesiId)}
               >
-                <TableIcon size={18} aria-hidden="true" />
                 {d.scoreTable}
               </button>
               <button type="button" className="btn" onClick={() => onSeelabsSesi(j.sesiId)}>
-                <PaperPlaneTiltIcon size={18} aria-hidden="true" />
                 {d.toSeelabs}
               </button>
             </>
           )}
           {penuh && (
             <button type="button" className="btn" onClick={() => setSusulan(true)}>
-              <CalendarPlusIcon size={18} aria-hidden="true" />
               {d.makeMakeup}
             </button>
           )}
           <button type="button" className="btn btn--inverse btn--lg" onClick={() => onPrep(null)}>
-            <ListChecksIcon size={18} aria-hidden="true" />
             {h.prepOpen}
           </button>
         </div>
@@ -917,7 +901,6 @@ export default function AsistenHome({
               className="btn btn--inverse btn--lg btn--block"
               onClick={() => onPrep(pilihPrep)}
             >
-              <ListChecksIcon size={18} aria-hidden="true" />
               {h.prepOpen}
             </button>
           </div>
@@ -1023,7 +1006,6 @@ export default function AsistenHome({
           <span className="btn__spinner" aria-hidden="true" />
         </button>
         <button type="button" className="btn btn--sm" onClick={() => onTable(x.sesiId)}>
-          <TableIcon size={16} aria-hidden="true" />
           {d.scoreTable}
         </button>
       </span>
@@ -1044,7 +1026,6 @@ export default function AsistenHome({
       </span>
       <span className="todo10__acts">
         <button type="button" className="btn btn--sm" onClick={() => onTable(p.sesiId)}>
-          <PencilSimpleIcon size={16} aria-hidden="true" />
           {d.enterScores}
         </button>
       </span>
@@ -1090,7 +1071,6 @@ export default function AsistenHome({
           <span className="eyebrow lp__eyebrow">{d.todayEyebrow(hariNama)}</span>
           <a className="btn btn--ghost btn--sm" href={href(lang, "/schedule?sorot=1")}>
             {h.mySchedule}
-            <ArrowRightIcon size={16} aria-hidden="true" />
           </a>
         </div>
         {data ? (
@@ -1192,7 +1172,6 @@ export default function AsistenHome({
                         <span className="elog__text">{d.heldLine(heldN)}</span>
                         <span className="todo10__acts">
                           <button type="button" className="btn btn--sm" onClick={onHeld}>
-                            <ArrowRightIcon size={16} aria-hidden="true" />
                             {d.open}
                           </button>
                         </span>
@@ -1472,7 +1451,6 @@ function WindowInfo({
         {canSusulan && (
           <div className="row">
             <button type="button" className="btn btn--sm" onClick={onSusulan}>
-              <CalendarBlankIcon size={16} aria-hidden="true" />
               {h.useSusulan}
             </button>
           </div>
@@ -1659,16 +1637,10 @@ function DayFoot({ lang, nim, fb }: { lang: Lang; nim: string; fb: Ringkasan | n
           ))}
         </div>
         <div className="dtfoot__side">
-          <span className="hint">
-            <PiggyBankIcon size={14} aria-hidden="true" />{" "}
-            {d.kas(kasPct, rupiah(r.kas).replace(/,00$/, ""))}
-          </span>
-          <span className="hint">
-            <CalendarBlankIcon size={14} aria-hidden="true" /> {d.paidEnd}
-          </span>
+          <span className="hint">{d.kas(kasPct, rupiah(r.kas).replace(/,00$/, ""))}</span>
+          <span className="hint">{d.paidEnd}</span>
           <a className="btn btn--ghost btn--sm" href={href(lang, "/account")}>
             {d.details}
-            <ArrowRightIcon size={16} aria-hidden="true" />
           </a>
         </div>
       </div>
@@ -1755,7 +1727,6 @@ function DayFoot({ lang, nim, fb }: { lang: Lang; nim: string; fb: Ringkasan | n
           )}
           <a className="btn btn--ghost btn--sm" href={href(lang, "/reports")}>
             {d.all}
-            <ArrowRightIcon size={16} aria-hidden="true" />
           </a>
         </div>
       </div>

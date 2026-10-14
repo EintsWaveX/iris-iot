@@ -28,17 +28,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
 } from "react";
-import {
-  ArrowRightIcon,
-  CheckIcon,
-  CopyIcon,
-  EyeIcon,
-  HandCoinsIcon,
-  HandIcon,
-  LockSimpleIcon,
-  UserPlusIcon,
-  UserSwitchIcon,
-} from "@phosphor-icons/react";
+import { ArrowRightIcon, HandCoinsIcon, HandIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import Dropdown from "../ui/Dropdown";
 import Nil from "../ui/Nil";
 import Pill from "../ui/Pill";
@@ -196,12 +186,10 @@ export default function GroupInspector(p: InspectorProps) {
               className="btn btn--primary btn--sm"
               onClick={() => void resolveHand()}
             >
-              <CheckIcon size={16} aria-hidden="true" />
               {r.markDone}
             </button>
           )}
           <button type="button" className="btn btn--sm" onClick={() => p.onAsPraktikan(g.id)}>
-            <EyeIcon size={16} aria-hidden="true" />
             {r.viewGroup}
           </button>
           {!ownerNim ? (
@@ -216,7 +204,6 @@ export default function GroupInspector(p: InspectorProps) {
           ) : (
             p.bolehPasang && (
               <button type="button" className="btn btn--sm" onClick={() => setChg(true)}>
-                <UserSwitchIcon size={16} aria-hidden="true" />
                 {t.chg}
               </button>
             )
@@ -533,12 +520,10 @@ function Members({
       )}
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
         <button type="button" className="btn btn--sm" onClick={() => setAdd(true)}>
-          <UserPlusIcon size={16} aria-hidden="true" />
           {r.addStudent}
         </button>
         {onPrep && (
           <button type="button" className="btn btn--inverse btn--sm" onClick={onPrep}>
-            <UserSwitchIcon size={16} aria-hidden="true" />
             {r.moveGroup}
           </button>
         )}
@@ -1014,7 +999,6 @@ function SeelabsChip(p: InspectorProps) {
         title={!sg.akun ? t.pickAccountFirst : undefined}
         onClick={() => setOpen(true)}
       >
-        <CopyIcon size={16} aria-hidden="true" />
         {t.copyFor}
       </button>
       {open && (

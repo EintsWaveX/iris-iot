@@ -14,8 +14,6 @@
  */
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowRightIcon,
-  BellRingingIcon,
   ChatCircleTextIcon,
   PersonSimpleRunIcon,
   PlugsIcon,
@@ -246,7 +244,6 @@ export default function LabAlert({
             .catch(() => {})
         }
       >
-        <BellRingingIcon size={14} aria-hidden="true" />
         {t.notif}
       </button>
     ) : null;
@@ -271,7 +268,6 @@ export default function LabAlert({
             {t.callOpen}
           </a>
           <button type="button" className="btn btn--sm" onClick={() => void jawab(call.id)}>
-            <PersonSimpleRunIcon size={14} aria-hidden="true" />
             {t.callGo}
           </button>
         </div>
@@ -308,7 +304,6 @@ export default function LabAlert({
             }
           >
             {t.piGo}
-            <ArrowRightIcon size={14} aria-hidden="true" />
           </a>
         </div>
       )}
@@ -323,7 +318,6 @@ export default function LabAlert({
             href={`${href(lang, "/reports")}?audit=galat#audit`}
           >
             {t.errGo}
-            <ArrowRightIcon size={14} aria-hidden="true" />
           </a>
           <button
             type="button"

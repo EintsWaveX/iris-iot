@@ -7,7 +7,7 @@
  * weeks before an automatic deletion, so exports happen in time.
  */
 import { useEffect, useState } from "react";
-import { DatabaseIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
+import { WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Pill from "../ui/Pill";
 import { dict, getJson, jamMenit, postJson, tanggalPanjang } from "../../lib/app";
@@ -267,7 +267,6 @@ export default function DataSemester({
               disabled={!cocok || busy}
               onClick={() => void hapus()}
             >
-              <TrashIcon size={18} aria-hidden="true" />
               {t.confirm}
             </button>
           </>
@@ -323,7 +322,6 @@ export default function DataSemester({
             <ul className="datasem">
               {[...s.semester].reverse().map((k) => (
                 <li key={k} className="datasem__row">
-                  <DatabaseIcon size={20} aria-hidden="true" />
                   <b className="grow">{label(k, lang)}</b>
                   <Pill tone={k === s.sekarang ? "accent" : "warn"}>
                     {k === s.sekarang ? t.now : t.held}
@@ -334,7 +332,6 @@ export default function DataSemester({
                       className="btn btn--sm btn--danger"
                       onClick={() => setPilih(k)}
                     >
-                      <TrashIcon size={16} aria-hidden="true" />
                       {t.remove}
                     </button>
                   )}
@@ -353,7 +350,6 @@ export default function DataSemester({
 export function DataSemesterButton({ lang, onOpen }: { lang: Lang; onOpen: () => void }) {
   return (
     <button type="button" className="btn" onClick={onOpen}>
-      <DatabaseIcon size={18} aria-hidden="true" />
       {T[lang].open}
     </button>
   );

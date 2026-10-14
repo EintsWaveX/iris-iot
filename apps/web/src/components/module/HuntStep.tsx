@@ -8,13 +8,7 @@
  */
 import { useMemo, useState } from "react";
 import qrcode from "qrcode-generator";
-import {
-  ArrowRightIcon,
-  CopyIcon,
-  FlagCheckeredIcon,
-  PulseIcon,
-  WarningIcon,
-} from "@phosphor-icons/react";
+import { CopyIcon, FlagCheckeredIcon, WarningIcon } from "@phosphor-icons/react";
 import { getJson, KELOMPOK_NAMA } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { usePoll } from "../../lib/hooks";
@@ -126,7 +120,6 @@ export default function HuntStep({
                 window.dispatchEvent(new CustomEvent("iris:go-step", { detail: "live" }))
               }
             >
-              <PulseIcon size={18} aria-hidden="true" />
               {t.toLive}
             </button>
           }
@@ -300,7 +293,6 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
           )}
           <button type="button" className="btn btn--primary" onClick={() => setStep("2")}>
             {t.next}
-            <ArrowRightIcon aria-hidden="true" />
           </button>
         </div>
       ) : (

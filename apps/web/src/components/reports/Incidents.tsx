@@ -6,7 +6,7 @@
  * system lines show their edit buttons disabled.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PencilSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
 import { getJson, tanggalPanjang } from "../../lib/app";
 import { hariIniWib } from "../../lib/jadwal";
 import { modulLabel } from "../../lib/labels";
@@ -204,7 +204,6 @@ export function IncidentList({
               disabled={busy}
               onClick={() => void hapus()}
             >
-              <TrashIcon size={18} aria-hidden="true" />
               {t.del}
             </button>
           </>
@@ -280,7 +279,6 @@ export function AddIncident({
             disabled={busy || !pilih || txt.trim().length < 4}
             onClick={() => void tambah()}
           >
-            <PlusIcon size={18} aria-hidden="true" />
             {t.add}
           </button>
         </>
@@ -371,7 +369,6 @@ export function IncidentsTab({
           ))}
         </div>
         <button type="button" className="btn" disabled={!sesi.length} onClick={() => setAdd(true)}>
-          <PlusIcon size={18} aria-hidden="true" />
           {t.addInc}
         </button>
       </div>

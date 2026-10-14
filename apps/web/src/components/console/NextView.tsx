@@ -22,16 +22,7 @@
 import SeelabsLine from "./seelabs/SeelabsLine";
 import type { SeelabsData } from "./seelabs/data";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import {
-  ArrowRightIcon,
-  ArrowsClockwiseIcon,
-  BroadcastIcon,
-  BroomIcon,
-  CalendarPlusIcon,
-  CheckCircleIcon,
-  WifiHighIcon,
-  WrenchIcon,
-} from "@phosphor-icons/react";
+import { CheckCircleIcon } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import Dialog from "../ui/Dialog";
 import Pill from "../ui/Pill";
@@ -241,7 +232,6 @@ export default function NextView({
                   disabled={lanjut.length === 0}
                   onClick={() => setDlg(true)}
                 >
-                  <CalendarPlusIcon size={20} aria-hidden="true" />
                   {t.makeDraft}
                 </button>
               )}
@@ -274,7 +264,6 @@ export default function NextView({
           </div>
           <ul className="cmdlist">
             <li>
-              <ArrowsClockwiseIcon size={20} aria-hidden="true" />
               <span className="grow">
                 {layanan ? t.cmdRestart(mName) : t.cmdNoService(mName)}
                 {layanan && <span className="hint mono"> {layanan}</span>}
@@ -293,7 +282,6 @@ export default function NextView({
               )}
             </li>
             <li>
-              <WifiHighIcon size={20} aria-hidden="true" />
               <span className="grow">{hotspot === "off" ? t.cmdHotOff : t.cmdHotSkip(mName)}</span>
               {hotspot ? (
                 <button
@@ -309,7 +297,6 @@ export default function NextView({
               )}
             </li>
             <li>
-              <BroomIcon size={20} aria-hidden="true" />
               <span className="grow stack" style={{ gap: 2 }}>
                 <span>{t.cmdSerial}</span>
                 <span className="hint">{t.cmdSerialSub}</span>
@@ -317,7 +304,6 @@ export default function NextView({
               <Pill tone="ok">{t.cmdAuto}</Pill>
             </li>
             <li>
-              <BroadcastIcon size={20} aria-hidden="true" />
               <span className="grow stack" style={{ gap: 2 }}>
                 <span>{t.cmdHunt}</span>
                 <span className="hint">{m === 4 ? t.cmdHuntSub : t.cmdHuntSkip}</span>
@@ -357,7 +343,6 @@ export default function NextView({
                 className="btn btn--ghost btn--sm"
                 href={href(lang, `/reports?dokumen&baru=kerusakan&konteks=${sesi.id}`)}
               >
-                <WrenchIcon size={18} aria-hidden="true" />
                 {t.kitReport}
               </a>
             </div>
@@ -372,7 +357,6 @@ export default function NextView({
                 href={href(lang, `/reports?sesi=${sesi.id}`)}
               >
                 {t.open}
-                <ArrowRightIcon size={16} aria-hidden="true" />
               </a>
             </li>
           </ul>
@@ -388,7 +372,6 @@ export default function NextView({
           }
         >
           {next ? t.nextDoneSlot : t.nextDoneLab}
-          <ArrowRightIcon size={18} aria-hidden="true" />
         </button>
       </div>
 

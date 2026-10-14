@@ -4,7 +4,6 @@
  * back is role-aware once /me answers. Phase 9: the shared ErrorView.
  */
 import { useEffect, useState } from "react";
-import { BookOpenTextIcon, HouseIcon } from "@phosphor-icons/react";
 import ErrorView from "../ui/ErrorView";
 import { href, useMe, dict } from "../../lib/app";
 import { useTampil } from "../../lib/proyektor";
@@ -40,7 +39,6 @@ export default function NotFound() {
         actions={
           <>
             <a className="btn btn--primary" href={href(lang, "/")}>
-              <HouseIcon size={20} aria-hidden="true" />
               {t.home}
             </a>
             {me?.role === "praktikan" && (
@@ -54,7 +52,6 @@ export default function NotFound() {
               </a>
             )}
             <a className="btn btn--ghost" href={href(lang, "/modules")}>
-              <BookOpenTextIcon size={20} aria-hidden="true" />
               {t.modules}
             </a>
           </>

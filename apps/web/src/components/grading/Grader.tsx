@@ -12,12 +12,9 @@ import {
   CaretLeftIcon,
   CaretRightIcon,
   ClockIcon,
-  DownloadSimpleIcon,
   FileIcon,
   HourglassIcon,
-  KeyIcon,
   LockSimpleIcon,
-  ScanIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
@@ -362,7 +359,6 @@ function Isi({
                   className="btn btn--danger"
                   onClick={() => void aksi("/api/tp/tanda", { kosong: true }, t.ditandaiKosong)}
                 >
-                  <XIcon size={18} aria-hidden="true" />
                   {t.tandaiKosong}
                 </button>
               )
@@ -406,7 +402,6 @@ function Isi({
             <div className="row grader__files" role="group" aria-label={t.pilihBerkas}>
               {k.berkas.map((b) => (
                 <Pill key={b.i} pressed={b.i === berkasI} onClick={() => setBerkasI(b.i)}>
-                  <FileIcon size={14} aria-hidden="true" />
                   {b.nama}
                 </Pill>
               ))}
@@ -430,7 +425,6 @@ function Isi({
                 body={t.bukanPdfBody}
                 actions={
                   <a className="btn" href={`/api/tp/berkas?id=${k.id}&i=${berkasI}&unduh=1`}>
-                    <DownloadSimpleIcon size={18} aria-hidden="true" />
                     {t.unduh}
                   </a>
                 }
@@ -497,7 +491,6 @@ function Isi({
                     className="btn btn--sm"
                     onClick={() => setLompat({ n: dariPdf.halaman, kali: Date.now() })}
                   >
-                    <ScanIcon size={16} aria-hidden="true" />
                     {t.lihatHalaman(dariPdf.halaman)}
                   </button>
                 )}
@@ -511,7 +504,6 @@ function Isi({
                 className="tplink"
                 onClick={() => setIntip({ ...intip, [no]: true })}
               >
-                <KeyIcon size={16} aria-hidden="true" />
                 {t.intipKunci}
               </button>
             )}
@@ -591,7 +583,6 @@ function Isi({
         <span className="hint">{t.graderFoot}</span>
         <div className="grader__btns">
           <button type="button" className="btn btn--ghost" onClick={() => go(-1)}>
-            <CaretLeftIcon size={18} aria-hidden="true" />
             {t.sebelumnya}
           </button>
           <button
@@ -603,7 +594,6 @@ function Isi({
             }}
           >
             {t.simpanLanjut}
-            <CaretRightIcon size={18} aria-hidden="true" />
           </button>
         </div>
       </div>

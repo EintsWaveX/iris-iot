@@ -15,21 +15,11 @@
 import KodeMasuk from "../shell/KodeMasuk";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
-  ArrowLeftIcon,
   ArrowSquareOutIcon,
   CrosshairIcon,
-  DotsThreeIcon,
-  HandCoinsIcon,
-  ProjectorScreenIcon,
-  QuestionIcon,
-  StopCircleIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
-  MegaphoneIcon,
-  PresentationChartIcon,
-  TimerIcon,
-  TrophyIcon,
-  type Icon as PhIcon,
+  StopCircleIcon,
 } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import { Stepper, Switch } from "../ui/Controls";
@@ -182,25 +172,21 @@ export default function SessionBar({
   };
   const tools: {
     k: string;
-    icon: PhIcon;
     t: readonly string[];
     act: () => void;
     href?: string;
   }[] = [
-    { k: "acc", icon: LockSimpleOpenIcon, t: r.tool.acc, act: () => setMenu("acc") },
-    { k: "deck", icon: PresentationChartIcon, t: r.tool.deck, act: () => setMenu("deck") },
+    { k: "acc", t: r.tool.acc, act: () => setMenu("acc") },
+    { k: "deck", t: r.tool.deck, act: () => setMenu("deck") },
     {
       k: "seelabs",
-      icon: HandCoinsIcon,
       t: r.tool.seelabs,
       act: () => {
         closeMore();
         onSeelabs();
       },
     },
-    ...(sesi.modul === 4
-      ? [{ k: "skor", icon: TrophyIcon, t: r.tool.skor, act: closeMore, href: papanSkor }]
-      : []),
+    ...(sesi.modul === 4 ? [{ k: "skor", t: r.tool.skor, act: closeMore, href: papanSkor }] : []),
   ];
 
   return (
@@ -255,7 +241,6 @@ export default function SessionBar({
             trigger={
               <RadixPopover.Trigger asChild>
                 <button type="button" className="btn" aria-pressed={announceOpen}>
-                  <MegaphoneIcon size={18} aria-hidden="true" />
                   {r.announce}
                 </button>
               </RadixPopover.Trigger>
@@ -273,7 +258,6 @@ export default function SessionBar({
               onProjector ? onProjector() : window.Toast?.show(t.projectorNone, "warn")
             }
           >
-            <ProjectorScreenIcon size={18} aria-hidden="true" />
             {r.projector}
           </button>
         </Tooltip>
@@ -298,7 +282,6 @@ export default function SessionBar({
           trigger={
             <RadixPopover.Trigger asChild>
               <button type="button" className="btn" aria-pressed={pop === "more"}>
-                <DotsThreeIcon size={18} aria-hidden="true" />
                 {r.more}
               </button>
             </RadixPopover.Trigger>
@@ -311,7 +294,6 @@ export default function SessionBar({
                 className="btn btn--ghost btn--sm sbar__back"
                 onClick={() => setMenu(null)}
               >
-                <ArrowLeftIcon size={16} aria-hidden="true" />
                 {t.back}
               </button>
               {menu === "acc" ? (
@@ -343,7 +325,6 @@ export default function SessionBar({
                       rel="noopener noreferrer"
                       onClick={x.act}
                     >
-                      <x.icon size={20} aria-hidden="true" />
                       <b>
                         {x.t[0]} <ArrowSquareOutIcon size={12} aria-hidden="true" />
                       </b>
@@ -357,7 +338,6 @@ export default function SessionBar({
                       className="moregrid__b sweep-hover"
                       onClick={x.act}
                     >
-                      <x.icon size={20} aria-hidden="true" />
                       <b>{x.t[0]}</b>
                       <span className="hint">{x.t[1]}</span>
                     </button>
@@ -368,7 +348,6 @@ export default function SessionBar({
           )}
         </Pop>
         <button type="button" className="btn" onClick={onHelp}>
-          <QuestionIcon size={18} aria-hidden="true" />
           <span className={`dot ${helpWarn ? "dot--warn" : "dot--ok"}`} aria-hidden="true" />
           {r.help}
         </button>
@@ -382,7 +361,6 @@ export default function SessionBar({
               <Tooltip label={`${t.extend} · E`}>
                 <RadixPopover.Trigger asChild>
                   <button type="button" className="btn" aria-pressed={pop === "ext"}>
-                    <TimerIcon size={18} aria-hidden="true" />
                     {r.extend}
                     <KeyHint k="E" />
                   </button>
@@ -404,7 +382,6 @@ export default function SessionBar({
         )}
         {kendali && (
           <button type="button" className="btn btn--danger" onClick={onEnd}>
-            <StopCircleIcon size={18} aria-hidden="true" />
             {r.end}
           </button>
         )}

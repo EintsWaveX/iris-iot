@@ -8,12 +8,7 @@
  * download.
  */
 import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowClockwiseIcon,
-  CircleNotchIcon,
-  DownloadSimpleIcon,
-  TrashIcon,
-} from "@phosphor-icons/react";
+import { ArrowClockwiseIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
 import { getJson, localeOf, postJson, sejak, useTick } from "../../lib/app";
@@ -157,7 +152,6 @@ export function CommandsDialog({
       alt={
         bisaHapus ? (
           <button type="button" className="btn btn--danger" onClick={() => setAsk(true)}>
-            <TrashIcon size={18} aria-hidden="true" />
             {t.clearLog}
           </button>
         ) : undefined
@@ -168,7 +162,6 @@ export function CommandsDialog({
             {t.close}
           </button>
           <button type="button" className="btn btn--primary" disabled={!shown.length} onClick={csv}>
-            <DownloadSimpleIcon size={18} aria-hidden="true" />
             {t.saveCsv}
           </button>
         </>
@@ -329,7 +322,6 @@ export function HistoryDialog({
             disabled={!rows.length}
             onClick={() => setAsk(true)}
           >
-            <TrashIcon size={18} aria-hidden="true" />
             {t.clearLog}
           </button>
         ) : undefined
@@ -352,7 +344,6 @@ export function HistoryDialog({
               window.Toast?.show(t.csvSaved, "ok");
             }}
           >
-            <DownloadSimpleIcon size={18} aria-hidden="true" />
             {t.saveCsv}
           </button>
         </>
@@ -474,7 +465,6 @@ export function OutputDialog({
             disabled={!teks}
             onClick={() => unduhTeks(file, teks)}
           >
-            <DownloadSimpleIcon size={18} aria-hidden="true" />
             {t.downloadLog}
           </button>
         </>

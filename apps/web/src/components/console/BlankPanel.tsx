@@ -281,7 +281,6 @@ export default function BlankPanel({
                           className={w ? "btn btn--sm btn--primary" : "btn btn--sm"}
                           onClick={() => setTulis({ slug: f.slug, b, minta: w })}
                         >
-                          <SparkleIcon size={16} aria-hidden="true" />
                           {w ? t.answer : t.hint}
                         </button>
                       )}
@@ -365,7 +364,6 @@ function HintDialog({
             disabled={sibuk || !teks.trim() || bocor}
             onClick={() => void kirim()}
           >
-            <SparkleIcon size={18} aria-hidden="true" />
             {t.send}
           </button>
         </>

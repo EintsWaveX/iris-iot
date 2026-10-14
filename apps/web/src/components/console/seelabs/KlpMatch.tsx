@@ -6,7 +6,6 @@
  * the roster's own Save keeps it.
  */
 import { useMemo, useState } from "react";
-import { ClipboardTextIcon, RobotIcon } from "@phosphor-icons/react";
 import { getJson } from "../../../lib/app";
 import { KLP_AWALAN } from "../../../lib/seelabs";
 import { RB } from "./robotStrings";
@@ -120,11 +119,9 @@ export default function KlpMatch({
           <span className="hint">{daftar.length ? t.matchRead(daftar.length) : t.matchNone}</span>
           <span className="row" style={{ gap: 8 }}>
             <button type="button" className="btn btn--sm" onClick={() => void fromRobot()}>
-              <RobotIcon size={16} aria-hidden="true" />
               {RB[lang].klpFromRobot}
             </button>
             <button type="button" className="btn btn--sm" onClick={() => void fromClipboard()}>
-              <ClipboardTextIcon size={16} aria-hidden="true" />
               {t.matchFromClip}
             </button>
           </span>

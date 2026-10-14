@@ -6,7 +6,6 @@
  * Pin dan Skema card and the code (src/lib/pin-kode.ts).
  */
 import { useState, type CSSProperties } from "react";
-import { SlidersHorizontalIcon } from "@phosphor-icons/react";
 import Pill from "../../ui/Pill";
 import { dict, MODUL_NAMA } from "../../../lib/app";
 import { modulLabel } from "../../../lib/labels";
@@ -129,7 +128,6 @@ function PinCard({
       </ul>
       <div className="pinedit__actions pinedit__actions--one">
         <button type="button" className={`btn ${boleh ? "btn--inverse" : ""}`} onClick={onOpen}>
-          <SlidersHorizontalIcon size={18} aria-hidden="true" />
           {boleh ? t.open : t.view}
         </button>
       </div>

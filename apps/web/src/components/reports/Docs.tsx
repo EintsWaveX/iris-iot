@@ -10,7 +10,6 @@ import {
   ChatCircleTextIcon,
   NoteIcon,
   PaperPlaneTiltIcon,
-  PlusIcon,
   WarningOctagonIcon,
 } from "@phosphor-icons/react";
 import { getJson, kodeGalat, tanggalPanjang, type ErrorCode } from "../../lib/app";
@@ -189,7 +188,6 @@ export default function Docs({
           </div>
           <div className="page-header__actions">
             <button type="button" className="btn btn--primary" onClick={() => setNeu(true)}>
-              <PlusIcon size={18} aria-hidden="true" />
               {t.newDoc}
             </button>
           </div>

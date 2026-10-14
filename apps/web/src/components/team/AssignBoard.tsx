@@ -39,16 +39,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import DragLayer from "../ui/DragLayer";
-import {
-  ArrowCounterClockwiseIcon,
-  CheckIcon,
-  DotsSixVerticalIcon,
-  FloppyDiskIcon,
-  PencilSimpleIcon,
-  PlusIcon,
-  WarningIcon,
-  XIcon,
-} from "@phosphor-icons/react";
+import { DotsSixVerticalIcon, PencilSimpleIcon, WarningIcon, XIcon } from "@phosphor-icons/react";
 import Dropdown from "../ui/Dropdown";
 import IconButton from "../ui/IconButton";
 import Pill from "../ui/Pill";
@@ -504,7 +495,6 @@ export default function AssignBoard({
                   disabled={busy}
                   onClick={() => setEdit({})}
                 >
-                  <ArrowCounterClockwiseIcon size={18} aria-hidden="true" />
                   {t.discard}
                 </button>
               )}
@@ -514,7 +504,6 @@ export default function AssignBoard({
                 disabled={busy || changed.length === 0}
                 onClick={() => void simpan()}
               >
-                <FloppyDiskIcon size={18} aria-hidden="true" />
                 {t.save}
               </button>
             </span>
@@ -562,7 +551,6 @@ export default function AssignBoard({
                     className="btn btn--primary btn--sm"
                     onClick={() => void jawab(x.id, true)}
                   >
-                    <CheckIcon size={16} aria-hidden="true" />
                     {t.accept}
                   </button>
                 </span>
@@ -622,7 +610,6 @@ export default function AssignBoard({
               </div>
               {bolehJadwal && (
                 <button type="button" className="btn" onClick={() => setDialog("baru")}>
-                  <PlusIcon size={18} aria-hidden="true" />
                   {t.addSlot}
                 </button>
               )}

@@ -8,18 +8,13 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import {
   ArrowClockwiseIcon,
-  ArrowRightIcon,
   ArrowsCounterClockwiseIcon,
-  CaretRightIcon,
   CircleNotchIcon,
-  ClockIcon,
-  ListBulletsIcon,
   ListChecksIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
   PlayIcon,
   PowerIcon,
-  PulseIcon,
   TerminalWindowIcon,
   WifiHighIcon,
 } from "@phosphor-icons/react";
@@ -85,7 +80,6 @@ interface Props {
 const MODUL_HUE: Record<string, string> = { "modul2-ws": "2", mosquitto: "3", modul4: "4" };
 
 function Tile({
-  icon: Icon,
   title,
   hint,
   onClick,
@@ -93,7 +87,6 @@ function Tile({
   disabled,
   warn,
 }: {
-  icon: typeof ClockIcon;
   title: string;
   hint: string;
   onClick: () => void;
@@ -109,16 +102,11 @@ function Tile({
       aria-disabled={disabled || busy || undefined}
       onClick={() => !disabled && !busy && onClick()}
     >
-      {busy ? (
-        <CircleNotchIcon size={26} className="ctl-spin" aria-hidden="true" />
-      ) : (
-        <Icon size={26} aria-hidden="true" />
-      )}
+      {busy && <CircleNotchIcon size={26} className="ctl-spin" aria-hidden="true" />}
       <span className="stack stack--sm">
         <b>{title}</b>
         <span className="hint">{hint}</span>
       </span>
-      <CaretRightIcon size={18} aria-hidden="true" />
     </button>
   );
 }
@@ -160,7 +148,6 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
       </div>
       <div className="qa">
         <Tile
-          icon={ClockIcon}
           title={t.sync}
           warn={jauh}
           hint={
@@ -174,7 +161,6 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
           onClick={() => void kirim(id, "jam.selaraskan", {}, lang, t.syncSent).then(refresh)}
         />
         <Tile
-          icon={PulseIcon}
           title={t.netDiag}
           hint={
             netRun
@@ -191,7 +177,6 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
           }}
         />
         <Tile
-          icon={ArrowClockwiseIcon}
           title={t.restartAll}
           hint={t.restartAllHint}
           disabled={!bisa.server}
@@ -535,7 +520,6 @@ function ReadySnap({ lang, id, data, refresh, bisa, siapa, onTab }: Props) {
         </div>
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => onTab("siap")}>
           {w.details}
-          <ArrowRightIcon size={16} aria-hidden="true" />
         </button>
       </div>
       <div className="stack stack--sm">
@@ -696,7 +680,6 @@ function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
                   className="btn btn--sm"
                   onClick={() => void ulang(r.p, "perintah_ulang")}
                 >
-                  <ArrowClockwiseIcon size={16} aria-hidden="true" />
                   {t.retryCmd}
                 </button>
               ) : (
@@ -708,11 +691,9 @@ function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
       )}
       <div className="s12pair">
         <button type="button" className="btn" onClick={() => setHist(true)}>
-          <ListBulletsIcon size={18} aria-hidden="true" />
           {t.fullHistory}
         </button>
         <button type="button" className="btn" onClick={() => setCmds(true)}>
-          <ListBulletsIcon size={18} aria-hidden="true" />
           {t.allCommands}
         </button>
       </div>
@@ -806,7 +787,6 @@ function OfflineCard({ lang, data, bisa, onTab }: Props) {
       <div className="card__actions s12off__acts">
         {bisa.konsol && (
           <button type="button" className="btn" onClick={() => onTab("konsol")}>
-            <TerminalWindowIcon size={18} aria-hidden="true" />
             {t.tabs.konsol}
           </button>
         )}

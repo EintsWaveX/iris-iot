@@ -10,13 +10,7 @@
  * - useTangkapan / CaptureList: the saved captures, read only.
  */
 import { useCallback, useEffect, useState } from "react";
-import {
-  CameraIcon,
-  CopySimpleIcon,
-  FileCsvIcon,
-  FloppyDiskIcon,
-  MapPinIcon,
-} from "@phosphor-icons/react";
+import { CopySimpleIcon, FileCsvIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import IconButton from "../ui/IconButton";
 import TabLine from "../ui/TabLine";
@@ -335,7 +329,6 @@ export function CaptureDialog({
                     setMarks(marks.map((x, k) => (k === i ? { ...x, halus, est } : x)))
                   }
                 >
-                  <MapPinIcon aria-hidden="true" />
                   {t.mark(p)}
                 </button>
               ))}
@@ -367,7 +360,6 @@ export function CaptureDialog({
             window.Toast?.show(t.againDone);
           }}
         >
-          <CameraIcon aria-hidden="true" />
           {t.again}
         </button>
       }
@@ -382,7 +374,6 @@ export function CaptureDialog({
             disabled={!canSave || busy}
             onClick={() => void simpan()}
           >
-            <FloppyDiskIcon aria-hidden="true" />
             {busy ? t.saving : t.save}
           </button>
         </>

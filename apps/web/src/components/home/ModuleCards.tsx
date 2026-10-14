@@ -283,7 +283,6 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
             <div className="row">
               <a className="btn btn--inverse btn--lg" href={href(lang, `/modules/${sesi.modul}`)}>
                 {t.cont}
-                <ArrowRightIcon aria-hidden="true" />
               </a>
             </div>
           </div>

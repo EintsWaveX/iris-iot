@@ -14,7 +14,7 @@
  */
 import { istimewaKonsol } from "../../lib/konsol";
 import { useEffect, useState } from "react";
-import { ArrowLeftIcon, ListChecksIcon, ShieldWarningIcon } from "@phosphor-icons/react";
+import { ListChecksIcon, ShieldWarningIcon } from "@phosphor-icons/react";
 import { StateView } from "../ui/Display";
 import { href, useMe } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -104,7 +104,6 @@ export default function ServerCenter({ lang }: { lang: Lang }) {
         <ListChecksIcon size={20} aria-hidden="true" />
         <span className="grow">{id ? t.fromPrep : t.fromPrepList}</span>
         <a className="btn btn--inverse" href={href(lang, "/preparation#server")}>
-          <ArrowLeftIcon size={16} aria-hidden="true" />
           {t.backPrep}
         </a>
       </div>
