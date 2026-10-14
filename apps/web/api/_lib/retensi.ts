@@ -30,6 +30,7 @@ import { getDb } from "../../src/lib/db.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { PRAKTIKAN_TOT } from "../../src/lib/tot.js";
+import { KUNCI_LMS_PRIBADI } from "./lms-menu.js";
 import {
   retensiPada,
   semesterSebelum,
@@ -179,6 +180,20 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
         ["lmsPeserta", lmsPeserta],
       ] as const)
         await kena(nama, tx.delete(t).where(inArray(t.semester, lama)).returning({ id: t.id }));
+      // Phase 15: the LMS menu's records that name Praktikan (grades sent to
+      // the LMS gradebook, per Praktikan extensions), kept per semester.
+      await kena(
+        "lmsCatatan",
+        tx
+          .delete(pengaturan)
+          .where(
+            and(
+              inArray(pengaturan.kunci, [...KUNCI_LMS_PRIBADI]),
+              inArray(sql<string>`${pengaturan.nilai}->>'semester'`, lama),
+            ),
+          )
+          .returning({ id: pengaturan.kunci }),
+      );
       await kena(
         "praktikan",
         tx

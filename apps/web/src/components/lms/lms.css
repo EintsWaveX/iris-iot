@@ -1,0 +1,788 @@
+/* Phase 15: the LMS menu (Beta). Built on the Phase 14 card parts
+   (slr-card, slr-facts, slr-acts in robot.css) and the TP tables (tp.css).
+   Phones under 640, tablets 640 to 1099, desktops from 1100. */
+
+.lms {
+  display: grid;
+  gap: 20px;
+}
+.lms__title {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.lms__title > .beta-badge {
+  font-size: 0.8rem;
+}
+.lms__beta {
+  align-items: flex-start;
+}
+
+/* Eight tabs over the whole width; four by two on phones */
+.lms-tabs .tabs {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(max-content, 1fr));
+  overflow: visible;
+}
+.lms-tabs .tabs__tab {
+  justify-content: center;
+  min-width: 0;
+  padding-inline: 6px;
+  text-align: center;
+  white-space: nowrap;
+}
+@media (max-width: 1099px) {
+  .lms-tabs .tabs__tab {
+    font-size: 0.9rem;
+    padding-inline: 2px;
+  }
+}
+@media (max-width: 767px) {
+  .lms-tabs .tabs {
+    grid-template-columns: repeat(4, minmax(max-content, 1fr));
+    row-gap: 2px;
+  }
+  .lms-tabs .tabs__tab {
+    font-size: 0.88rem;
+    min-height: 44px;
+  }
+}
+@media (max-width: 419px) {
+  .lms-tabs .tabs__tab {
+    font-size: 0.8rem;
+    padding-inline: 1px;
+  }
+}
+
+/* A card header without an icon tile */
+.lms-head {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.lms-head__t {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.lms-head__t > .panel__title {
+  margin: 0;
+}
+.lms-head__t > .hint {
+  max-width: 82ch;
+}
+.lms-head__aside {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+.lms-head__aside > .pill {
+  white-space: nowrap;
+}
+@media (max-width: 519px) {
+  .lms-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Two columns that end on one line */
+.lms-two {
+  align-items: stretch;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.lms-two > .stack {
+  display: flex;
+  flex-direction: column;
+}
+.lms-two > .stack > :last-child {
+  flex: 1 1 auto;
+}
+@media (min-width: 1100px) {
+  .lms-two {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+  .lms-two--cal {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  }
+}
+
+/* Plain lists of rows */
+.lms-auto,
+.lms-cek,
+.lms-ext,
+.lms-people,
+.lms-batch,
+.lms-mat,
+.lms-tgs,
+.lms-pick {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lms-auto > li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 0;
+}
+.lms-auto > li:last-child {
+  border-bottom: 0;
+}
+.lms-cek > li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
+  column-gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 0;
+  row-gap: 2px;
+}
+.lms-cek > li:last-child {
+  border-bottom: 0;
+}
+.lms-cek > li > .hint {
+  grid-column: 1;
+}
+.lms-cek > li > .btn {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+/* Rows of two facts and an action */
+.lms-ext > li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  padding: 10px 0;
+}
+.lms-ext > li:last-child {
+  border-bottom: 0;
+}
+.lms-ext > li > .pill {
+  justify-self: start;
+}
+@media (max-width: 639px) {
+  .lms-ext > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .lms-ext > li > :nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .lms-ext > li > :nth-child(3) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+/* The class table */
+.lms-kls tr[aria-selected="true"] td {
+  background: var(--accent-soft);
+}
+.lms td[data-warn] {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+/* People in a class */
+.lms-search {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--text-faint);
+  display: flex;
+  gap: 10px;
+  padding: 0 12px;
+}
+.lms-search > .field__input {
+  background: transparent;
+  border: 0;
+  flex: 1;
+  min-width: 0;
+  padding-left: 0;
+}
+.lms-search > .field__input:focus {
+  box-shadow: none;
+}
+.lms-search:focus-within {
+  border-color: var(--accent);
+}
+.lms-people > li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  padding: 10px 0;
+}
+.lms-people > li:last-child {
+  border-bottom: 0;
+}
+.lms-people__mid > .pill {
+  justify-self: start;
+}
+@media (max-width: 639px) {
+  .lms-people > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .lms-people > li > .lms-people__mid {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .lms-people > li > :last-child {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+/* A class's sections and activities */
+.lms-sec {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+.lms-sec ul {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lms-sec li {
+  align-items: center;
+  border-top: 1px solid var(--hairline-faint, var(--hairline));
+  display: flex;
+  gap: 12px;
+  min-height: 44px;
+}
+
+/* Assignments across classes */
+.lms-tgs > li {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 12px;
+}
+.lms-tgs > li + li {
+  margin-top: 6px;
+}
+.lms-tgs > li[aria-selected="true"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.lms-tgs .pill {
+  white-space: nowrap;
+}
+@media (max-width: 639px) {
+  .lms-tgs > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .lms-tgs > li > .pill {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  .lms-tgs > li > :last-child {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+/* A date and its time on one row; the time field keeps its width */
+.lms-datetime {
+  align-items: stretch;
+  display: flex;
+  gap: 8px;
+}
+.lms-datetime > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.lms-datetime > :last-child {
+  flex: 0 0 132px;
+}
+.lms-datetime .ctl-date__trigger {
+  justify-content: space-between;
+  white-space: nowrap;
+  width: 100%;
+}
+.lms-opts {
+  display: grid;
+  gap: 4px;
+}
+.lms-pair {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 639px) {
+  .lms-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Picking one Praktikan */
+.lms-pick {
+  gap: 4px;
+  margin-top: 6px;
+}
+.lms-pick button {
+  align-items: baseline;
+  background: none;
+  border: 1px solid var(--hairline-faint, var(--hairline));
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 10px 12px;
+  text-align: left;
+  transition:
+    transform 160ms var(--ease-out-lms),
+    background-color 150ms ease;
+  width: 100%;
+}
+.lms-pick button:active {
+  transform: scale(0.98);
+}
+@media (hover: hover) and (pointer: fine) {
+  .lms-pick button:hover {
+    background: var(--hairline-faint, var(--surface-2));
+  }
+}
+.lms-picked {
+  align-items: center;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+/* A batch over the classes */
+.lms-batch {
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.lms-batch > li {
+  align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 8px 12px;
+}
+.lms-batch > li > .hint {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lms-batch > li[data-s="ok"] {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+.lms-batch > li[data-s="ok"] .hint {
+  color: var(--ok);
+}
+.lms-batch > li[data-s="beda"],
+.lms-batch > li[data-s="gagal"] {
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+}
+.lms-batch > li[data-s="gagal"] .hint {
+  color: var(--warn);
+}
+.lms-batch > li[data-s="jalan"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+@media (max-width: 519px) {
+  .lms-batch {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* What the Praktikan sees in the LMS */
+.lms-fb {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+}
+.lms-fb pre {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* The month in the LMS calendar */
+.lms-cal {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.lms-cal__h {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding-bottom: 4px;
+  text-align: center;
+}
+.lms-cal__d {
+  align-content: start;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-faint, var(--hairline));
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 3px;
+  min-height: 76px;
+  min-width: 0;
+  padding: 6px;
+}
+.lms-cal__d > b {
+  font-size: 0.82rem;
+}
+.lms-cal__d[data-today] {
+  border-color: var(--accent);
+}
+.lms-cal__d > i,
+.lms-legend i {
+  border-radius: 4px;
+  display: block;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 650;
+  line-height: 16px;
+  min-height: 16px;
+  overflow: hidden;
+  padding: 0 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lms-cal__d > i[data-k="tp"],
+.lms-legend i[data-k="tp"] {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--text);
+}
+.lms-cal__d > i[data-k="modul"],
+.lms-legend i[data-k="modul"] {
+  background: color-mix(in srgb, var(--ok) 26%, transparent);
+  color: var(--text);
+}
+.lms-legend {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  gap: 18px;
+}
+.lms-legend > span {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+.lms-legend i {
+  width: 22px;
+}
+@media (max-width: 639px) {
+  .lms-cal__d {
+    min-height: 54px;
+    padding: 4px;
+  }
+  .lms-cal__d > i {
+    font-size: 0;
+    min-height: 6px;
+  }
+}
+
+/* Module materials */
+.lms-mods {
+  align-items: stretch;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+}
+.lms-mods > .panel {
+  align-content: space-between;
+}
+.lms-mat > li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-height: 40px;
+  padding: 6px 0;
+}
+.lms-mat > li:last-child {
+  border-bottom: 0;
+}
+.lms-mat__url {
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------- the live overview */
+:root {
+  --ease-out-lms: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.lms-now {
+  align-items: start;
+  display: grid;
+  gap: 20px 28px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+.lms-now[data-fase="buka"] {
+  border-color: color-mix(in srgb, var(--ok) 35%, var(--hairline));
+}
+.lms-now__main {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.lms-now__lbl {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+.lms-now__big {
+  font-size: 1.9rem;
+  line-height: 1.15;
+}
+.lms-now__side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.lms-now__feed {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+.lms-now__feed--acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.lms-now .cdown {
+  justify-content: flex-start;
+}
+@media (max-width: 899px) {
+  .lms-now {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lms-meter {
+  display: grid;
+  gap: 8px;
+}
+.lms-meter .num {
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+.lms-bar {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-faint, var(--hairline));
+  border-radius: 999px;
+  display: block;
+  height: 10px;
+  overflow: hidden;
+}
+.lms-bar > i {
+  background: linear-gradient(90deg, var(--accent), var(--ok));
+  display: block;
+  height: 100%;
+  transform: scaleX(var(--p, 0));
+  transform-origin: left;
+  transition: transform 250ms var(--ease-out-lms);
+}
+.lms-bar--sm {
+  height: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lms-bar > i {
+    transition: none;
+  }
+}
+
+.lms-mini {
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+.lms-mini > div {
+  display: grid;
+  gap: 2px;
+}
+.lms-mini dt {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.lms-mini dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Files arriving: each new row eases in from just above */
+.lms-arr {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lms-arr > li {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-faint, var(--hairline));
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  transition:
+    opacity 200ms var(--ease-out-lms),
+    transform 200ms var(--ease-out-lms);
+}
+.lms-arr > li:first-child {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+@starting-style {
+  .lms-arr > li {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lms-arr > li {
+    transition: none;
+  }
+}
+.lms-arr b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 899px) {
+  .lms-arr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Every class's progress; flex, so the last row grows to the edge */
+.lms-heat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lms-heat > li {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-faint, var(--hairline));
+  border-radius: var(--radius-md);
+  display: grid;
+  flex: 1 1 150px;
+  gap: 6px 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 10px 12px;
+}
+.lms-heat b {
+  white-space: nowrap;
+}
+.lms-heat > li > .lms-bar {
+  grid-column: 1 / -1;
+}
+.lms-heat > li[data-full] {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+.lms-heat .num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+/* The wide Buat Tugas form: two columns from 900 */
+.lms-form {
+  display: grid;
+  gap: 18px 28px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.lms-form__col {
+  align-content: start;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .lms-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  /* the right column's two instructions share its height with the left */
+  .lms-form__col--grow {
+    grid-template-rows: 1fr 1fr auto;
+  }
+  .lms-form__col--grow > .field {
+    grid-template-rows: auto 1fr;
+  }
+  .lms-form__col--grow textarea {
+    height: 100%;
+    min-height: 96px;
+    resize: vertical;
+  }
+}
+.lms-prev {
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+/* Pressable things answer the press */
+.lms .btn {
+  transition:
+    transform 160ms var(--ease-out-lms),
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+.lms .btn:active:not(:disabled),
+.lms-tabs .tabs__tab:active {
+  transform: scale(0.97);
+}
+
+/* The class picker's three choices stay on one line where they fit */
+@media (min-width: 640px) {
+  .lms-kelaspick .segmented__item {
+    padding-inline: 8px;
+    white-space: nowrap;
+  }
+}

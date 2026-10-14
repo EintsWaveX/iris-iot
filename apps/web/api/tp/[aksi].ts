@@ -38,7 +38,8 @@
  * POST /api/tp/bawaan { modul }                   back to the default bank
  *      (the three: the jadwal or kode right; versi is the one loaded, and a
  *      newer save refuses it with the latest)
- * GET  /api/tp/lms-info                           Sumber LMS (Pencipta and Admin)
+ * GET  /api/tp/lms-info                           LMS › Sambungan (every Asisten
+ *      reads; connecting and the default window stay Pencipta and Admin)
  * GET  /api/tp/riwayat[?sebelum=id]               the whole sync history, 100 a page
  * POST /api/tp/lms { aksi: sambung, tempel } | { aksi: uji } | { aksi: putus }
  * POST /api/tp/lms-tugas { modul, kursus, langkah: buat|ubah|hapus, tampil?, teks? }
@@ -102,6 +103,7 @@ import {
   type PolaJendela,
 } from "../../src/lib/tp.js";
 import { buatTugas, hapusTugas, lampirTugas, ubahTugas } from "../_lib/lms-web.js";
+import { otomatisNyala } from "../_lib/lms-menu.js";
 import {
   LMS_URL,
   LmsGalat,
@@ -531,6 +533,8 @@ async function handlePaket(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     semester: set.semester,
     bolehUbah: bolehSoal(orang),
     bolehKelola: !!orang && bolehKelolaLms(orang),
+    // Phase 15: Soal TP attaches the PDF itself after a save when on.
+    otomatisPdf: await otomatisNyala(db, "pdf"),
     lms: {
       tersambung: !!set.token,
       siap: !!set.token?.privat,
@@ -980,7 +984,7 @@ async function petaKode(db: Db): Promise<Map<string, string>> {
 /** The whole sync history, newest first, 100 a page (?sebelum= the last id seen). */
 async function handleRiwayat(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const orang = await muatOrang(s.nim);
-  if (!orang || !(hakPenuh(orang) || bolehKelolaLms(orang))) return tolak(res, "tidak_berhak", 403);
+  if (!orang) return tolak(res, "tidak_berhak", 403);
   const sebelum = Number(req.query.sebelum);
   const db = getDb();
   const [rows, total, kodeOf] = await Promise.all([
@@ -1064,7 +1068,7 @@ async function silangData(db: Db, set: SetTp, kodeOf: Map<string, string>) {
 
 async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const orang = await muatOrang(s.nim);
-  if (!orang || !hakPenuh(orang)) return tolak(res, "tidak_berhak", 403);
+  if (!orang) return tolak(res, "tidak_berhak", 403);
   const db = getDb();
   const set = await bacaSet(db);
   const [oleh] = set.token
@@ -1091,6 +1095,7 @@ async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
     .limit(1);
   res.status(200).json({
     ok: true,
+    bolehSambung: hakPenuh(orang),
     kelola: {
       boleh: bolehKelolaLms(orang),
       siap: !!set.token?.privat,

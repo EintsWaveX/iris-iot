@@ -124,9 +124,71 @@
   animation: aurora-sweep 5s linear infinite;
 }
 
-/* Desktop links are words only; the icons belong to the phone tab bar. */
+/* Desktop links are words only; the icons belong to the phone tab bar.
+   The Lab menu's caret is the one mark: it says the word opens a menu. */
 .appnav__link svg {
   display: none;
+}
+.appnav__more svg {
+  display: inline-block;
+  opacity: 0.7;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.appnav__more[data-state="open"] svg {
+  transform: rotate(180deg);
+}
+
+/* LMS wears the Beta badge in the bar and in the menu */
+.appnav__beta {
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  border-radius: 999px;
+  color: var(--warn);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 17px;
+  margin-left: 2px;
+  padding: 0 6px;
+}
+
+/* The Lab menu: the page and what it is for, no icons */
+.appnav__menu--lab {
+  min-width: 300px;
+}
+.labmenu__h {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 8px 12px 4px;
+  text-transform: uppercase;
+}
+.labmenu__h:not(:first-child) {
+  border-top: 1px solid var(--hairline-faint);
+  margin-top: 6px;
+  padding-top: 12px;
+}
+.labmenu__o {
+  min-height: 56px;
+  padding-block: 8px;
+  text-decoration: none;
+}
+.labmenu__o[aria-current="page"] {
+  background: var(--accent-soft);
+}
+.labmenu__t {
+  display: grid;
+  gap: 2px;
+}
+.labmenu__t .hint {
+  font-size: 0.84rem;
+}
+.labmenu__dot {
+  position: static;
+}
+.labmenu__o:active {
+  transform: scale(0.98);
 }
 
 .appnav__live-dot {
@@ -637,33 +699,18 @@
 
 /* ------------------------------------------------------------ widths */
 
-/* 1280 to 1599: the full date sits above the time, so the eight Asisten
-   links and the TOT chip still fit beside it; below 1280 the time stands
-   alone (mockup G6). */
-@media (min-width: 1280px) and (max-width: 1599px) {
-  .navclock {
-    align-items: flex-end;
-    flex-direction: column;
-    gap: 0;
-    justify-content: center;
-    line-height: 1.15;
-    padding: 2px 12px;
-  }
-  .navclock__sep {
-    display: none;
-  }
-  .navclock__date {
-    font-size: 0.72rem;
-  }
-  .navclock__time {
-    font-size: 0.94rem;
-  }
-}
-
-@media (max-width: 1279px) {
+/* The tidy nav (Phase 15): under 1600 the clock is the time alone and the
+   account the avatar alone, so the words never run under them. */
+@media (max-width: 1599px) {
   .navclock__date,
   .navclock__sep {
     display: none;
+  }
+  .appnav__badge {
+    display: none;
+  }
+  .appnav__me {
+    padding: 3px;
   }
 }
 
@@ -695,12 +742,6 @@
   .appnav__link {
     font-size: 1.02rem;
     padding: 0 10px;
-  }
-}
-
-@media (max-width: 1599px) {
-  .appnav__tot svg {
-    display: none;
   }
 }
 

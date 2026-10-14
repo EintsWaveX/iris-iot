@@ -1,7 +1,9 @@
 /**
- * Penilaian › Sumber LMS (mockup a13-lms), for the Pencipta and Admins:
- * everything about the LMS lives here, so nobody opens the LMS unless
- * something breaks. The connection (an app token, kept encrypted, shown by
+ * LMS › Sambungan (Phase 15; Penilaian's Sumber LMS until then, mockup
+ * a13-lms): everything about the connection lives here, so nobody opens
+ * the LMS unless something breaks. Every Asisten reads it; connecting,
+ * testing, disconnecting and the default window are the Pencipta's and
+ * Admins'. The connection (an app token, kept encrypted, shown by
  * its last four characters only), the practicum classes and which TP
  * assignments IRIS found by name, the semester's default window, and the
  * sync history. Since 2026-10-13 IRIS also makes, matches and deletes the
@@ -11,16 +13,12 @@
 import { useEffect, useState } from "react";
 import {
   ArrowSquareOutIcon,
-  CheckCircleIcon,
   CheckIcon,
   CloudSlashIcon,
-  KeyIcon,
-  PencilSimpleIcon,
   PlugsConnectedIcon,
   PlugsIcon,
   ShieldCheckIcon,
   WarningIcon,
-  XIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
@@ -44,11 +42,13 @@ import {
 } from "./LmsKelola";
 import { LK } from "./lmsKelolaStrings";
 import { RiwayatPanel, SilangPanel, type SilangInfo } from "./LmsRingkas";
+import { BacaSaja } from "../lms/LmsPage";
 
 type KursusInfo = KursusKelola;
 interface LmsInfo {
   ok: boolean;
   kode?: string;
+  bolehSambung: boolean;
   token: {
     akhir: string;
     akun: { userid: number; nama: string; username: string };
@@ -150,14 +150,15 @@ export default function LmsTab({
         title={t.lmsBelumH}
         body={t.lmsBelumBody}
         actions={
-          <button
-            type="button"
-            className="btn btn--primary btn--lg"
-            onClick={() => setSambung(true)}
-          >
-            <PlugsConnectedIcon size={20} aria-hidden="true" />
-            {t.sambungLms}
-          </button>
+          d.bolehSambung ? (
+            <button
+              type="button"
+              className="btn btn--primary btn--lg"
+              onClick={() => setSambung(true)}
+            >
+              {t.sambungLms}
+            </button>
+          ) : undefined
         }
       />
     </section>
@@ -200,30 +201,23 @@ export default function LmsTab({
         </div>
         <div>
           <dt>{tk.pengelola}</dt>
-          <dd className="row row--nowrap" style={{ gap: 6 }}>
-            <KeyIcon size={16} aria-hidden="true" />
-            {d.kelola.siap ? tk.kelolaTersambung : tk.kelolaBelum}
-          </dd>
+          <dd>{d.kelola.siap ? tk.kelolaTersambung : tk.kelolaBelum}</dd>
         </div>
       </dl>
-      <div className="tpbtns">
+      <div className="tpbtns" hidden={!d.bolehSambung || undefined}>
         {ditolak ? (
           <button type="button" className="btn btn--danger" onClick={() => setSambung(true)}>
-            <PlugsConnectedIcon size={18} aria-hidden="true" />
             {t.sambungUlang}
           </button>
         ) : (
           <>
             <button type="button" className="btn" disabled={uji} onClick={() => void ujiKoneksi()}>
-              <CheckCircleIcon size={18} aria-hidden="true" />
               {t.ujiKoneksi}
             </button>
             <button type="button" className="btn" onClick={() => setSambung(true)}>
-              <PlugsConnectedIcon size={18} aria-hidden="true" />
               {t.sambungUlang}
             </button>
             <button type="button" className="btn btn--danger-soft" onClick={() => setPutus(true)}>
-              <XIcon size={18} aria-hidden="true" />
               {t.putuskan}
             </button>
           </>
@@ -234,6 +228,7 @@ export default function LmsTab({
 
   return (
     <div className="stack stack--lg">
+      <BacaSaja lang={lang} boleh={d.kelola.boleh} />
       <div className="tplms__grid">
         <div className="stack stack--lg">
           {con}
@@ -374,12 +369,13 @@ export default function LmsTab({
                 <dd>{t.sapuanAkhirIsi}</dd>
               </div>
             </dl>
-            <div className="panel__actions">
-              <button type="button" className="btn" onClick={() => setBawaan(true)}>
-                <PencilSimpleIcon size={18} aria-hidden="true" />
-                {t.ubahBawaan}
-              </button>
-            </div>
+            {d.bolehSambung && (
+              <div className="panel__actions">
+                <button type="button" className="btn" onClick={() => setBawaan(true)}>
+                  {t.ubahBawaan}
+                </button>
+              </div>
+            )}
           </section>
           <SilangPanel lang={lang} silang={d.silang} />
         </div>
@@ -479,7 +475,6 @@ function SambungDialog({
             disabled={busy || !tempel.trim()}
             onClick={() => void kirim()}
           >
-            <PlugsConnectedIcon size={18} aria-hidden="true" />
             {busy ? t.menyambung : t.sambungkan}
           </button>
         </>

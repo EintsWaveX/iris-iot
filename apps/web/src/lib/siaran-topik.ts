@@ -39,6 +39,8 @@ export const TOPIK = [
   "tp",
   // Phase 14: a SeeLabs robot job moved, an account connected, the robot's settings.
   "seelabs",
+  // Phase 15: IRIS changed something in the LMS from the LMS menu.
+  "lms",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -156,6 +158,21 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "tp:lms": ["tp"],
   "tp:lms-tugas": ["tp"],
   "tp:kecuali": ["tp"],
+  // Phase 15 (api/lms/[aksi].ts): the LMS menu's writes. Grades also move
+  // Penilaian's LMS marks; the rest only the LMS menu shows.
+  "lms:otomatis": ["lms"],
+  "lms:pesan": [],
+  "lms:perpanjang": ["lms"],
+  "lms:kunci": ["lms"],
+  "lms:kirim-ulang": ["lms", "tp"],
+  "lms:nilai": ["lms"],
+  "lms:umum": ["lms"],
+  "lms:umum-tarik": ["lms"],
+  "lms:kalender": ["lms"],
+  "lms:tampil": ["lms"],
+  "lms:tugas": ["lms"],
+  "lms:materi": ["lms"],
+  "lms:grup": ["lms"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

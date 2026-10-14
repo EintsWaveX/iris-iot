@@ -13,10 +13,7 @@ import {
   CheckIcon,
   CircleNotchIcon,
   KeyIcon,
-  PlusIcon,
   TrashIcon,
-  UserMinusIcon,
-  UserPlusIcon,
   WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -219,7 +216,6 @@ export function KelolaDialog({
       disabled={!bisa || !j || sibuk}
       onClick={() => void jalankan(belum, "buat")}
     >
-      <PlusIcon size={18} aria-hidden="true" />
       {t.buat(belum.length)}
     </button>
   ) : (
@@ -229,7 +225,6 @@ export function KelolaDialog({
       disabled={!bisa || !j || sibuk || !ada.length}
       onClick={() => void jalankan(ada, "ubah")}
     >
-      <ArrowsClockwiseIcon size={18} aria-hidden="true" />
       {beda.length || ada.length ? t.samakan(ada.length) : t.semuaSesuai}
     </button>
   );
@@ -241,7 +236,6 @@ export function KelolaDialog({
       disabled={!bisa || sibuk}
       onClick={() => setHapus(ada)}
     >
-      <TrashIcon size={18} aria-hidden="true" />
       {t.hapusSemua}
     </button>
   );
@@ -278,7 +272,6 @@ export function KelolaDialog({
                 disabled={!bisa || !j || sibuk}
                 onClick={() => void jalankan(ada, "ubah")}
               >
-                <ArrowsClockwiseIcon size={18} aria-hidden="true" />
                 {t.samakan(ada.length)}
               </button>
               {utama}
@@ -531,7 +524,6 @@ export function PesertaPanel({
                       disabled={sibuk !== null}
                       onClick={() => void kirim(p.nim, false)}
                     >
-                      <UserMinusIcon size={16} aria-hidden="true" />
                       {t.kecualikan}
                     </button>
                   ))}
@@ -584,7 +576,6 @@ export function PesertaPanel({
                     disabled={sibuk !== null}
                     onClick={() => void kirim(k.nim, true)}
                   >
-                    <UserPlusIcon size={16} aria-hidden="true" />
                     {t.ikutkan}
                   </button>
                 )}
@@ -622,7 +613,6 @@ export function PesertaPanel({
               />
             </label>
             <button type="submit" className="btn" disabled={!nim.trim() || sibuk !== null}>
-              <UserMinusIcon size={18} aria-hidden="true" />
               {t.kecualikan}
             </button>
           </form>

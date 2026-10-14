@@ -6,16 +6,11 @@
  */
 import { useState, type CSSProperties } from "react";
 import {
-  ArrowRightIcon,
-  ArrowsClockwiseIcon,
   CaretRightIcon,
   CloudCheckIcon,
   CloudSlashIcon,
   DownloadSimpleIcon,
-  EyeIcon,
   PlugsIcon,
-  PlugsConnectedIcon,
-  PlusIcon,
   UsersThreeIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
@@ -306,7 +301,6 @@ function SyncStrip({
         </div>
         {data.bolehLms && (
           <button type="button" className="btn btn--primary" onClick={() => onLms()}>
-            <PlugsConnectedIcon size={18} aria-hidden="true" />
             {t.sambungLms}
           </button>
         )}
@@ -324,12 +318,10 @@ function SyncStrip({
         </div>
         {data.bolehLms ? (
           <button type="button" className="btn btn--danger" onClick={() => onLms()}>
-            <PlugsConnectedIcon size={18} aria-hidden="true" />
             {t.sambungUlang}
           </button>
         ) : (
           <button type="button" className="btn" disabled={busy} onClick={() => void run()}>
-            <ArrowsClockwiseIcon size={18} aria-hidden="true" />
             {busy ? t.menyinkron : t.sinkronSekarang}
           </button>
         )}
@@ -353,13 +345,11 @@ function SyncStrip({
           </div>
           {data.bolehKelola ? (
             <button type="button" className="btn btn--primary" onClick={() => onLms(modul)}>
-              <PlusIcon size={18} aria-hidden="true" />
               {LK[lang].buat(data.hilang.length)}
             </button>
           ) : (
             data.bolehLms && (
               <button type="button" className="btn" onClick={() => onLms()}>
-                <PlugsConnectedIcon size={18} aria-hidden="true" />
                 {t.lihatLms}
               </button>
             )
@@ -382,7 +372,6 @@ function SyncStrip({
           <span className="hint">{t.praktikanTerkumpul}</span>
         </div>
         <button type="button" className="btn" disabled={busy} onClick={() => void run()}>
-          <ArrowsClockwiseIcon size={18} aria-hidden="true" />
           {busy ? t.menyinkron : t.sinkronSekarang}
         </button>
       </section>
@@ -502,7 +491,6 @@ function GroupCard({
           <>
             <button type="button" className="btn btn--primary" onClick={() => buka(pertama)}>
               {t.nilaiKelompok}
-              <ArrowRightIcon size={18} aria-hidden="true" />
             </button>
             <IconButton
               icon={DownloadSimpleIcon}
@@ -518,7 +506,6 @@ function GroupCard({
               {t.dipegang} <Pill mono>{g.pemegang.kode}</Pill>
             </span>
             <button type="button" className="btn btn--ghost" onClick={() => buka(0)}>
-              <EyeIcon size={18} aria-hidden="true" />
               {t.lihat}
             </button>
           </>

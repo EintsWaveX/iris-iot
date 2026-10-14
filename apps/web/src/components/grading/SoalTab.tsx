@@ -15,7 +15,7 @@
  * Two tabs at every width (2026-10-14): Editor Soal, and the rest (Soal
  * Akhir beside the PDF and the LMS checklist where there's room).
  */
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 /** Mandarin's name with the Beta badge, for a language switch. */
 const zhBeta = (nama: string): ReactNode => (
@@ -23,22 +23,7 @@ const zhBeta = (nama: string): ReactNode => (
     {nama} <BetaBadge />
   </>
 );
-import {
-  ArrowCounterClockwiseIcon,
-  ArrowSquareOutIcon,
-  ArrowsClockwiseIcon,
-  DownloadSimpleIcon,
-  EyeIcon,
-  FloppyDiskIcon,
-  InfoIcon,
-  KeyIcon,
-  PlusIcon,
-  ShuffleIcon,
-  TrashIcon,
-  UploadSimpleIcon,
-  WarningIcon,
-  XIcon,
-} from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, InfoIcon, WarningIcon, XIcon } from "@phosphor-icons/react";
 import { LK } from "./lmsKelolaStrings";
 import { pembuatPdfLms } from "../tp/pdfLms";
 import Pill from "../ui/Pill";
@@ -123,6 +108,8 @@ export default function SoalTab({
   const data = pk.data && pk.data.paket.modul === modul ? pk.data : null;
   const [draf, setDraf] = useState<Draf | null>(null);
   const [dasar, setDasar] = useState<{ modul: number; versi: number; json: string } | null>(null);
+  // Phase 15: a save whose PDF the LMS automation attaches by itself.
+  const [otoVersi, setOtoVersi] = useState<number | null>(null);
   const [vi, setVi] = useState(0);
   const [bahasa, setBahasa] = useState<BahasaTp>(
     lang === "en" ? "en" : lang === "zh" ? "zh" : "id",
@@ -228,6 +215,7 @@ export default function SoalTab({
     setSibuk(false);
     if (r.ok && r.versi !== undefined) {
       setDasar({ modul, versi: r.versi, json: jsonDraf(draf) });
+      if (data.otomatisPdf) setOtoVersi(r.versi);
       window.Toast?.show(t.disimpan, "ok");
       pk.refresh();
       return;
@@ -319,7 +307,6 @@ export default function SoalTab({
               className="btn btn--ghost btn--sm"
               onClick={() => setKembali(true)}
             >
-              <ArrowCounterClockwiseIcon size={16} aria-hidden="true" />
               {t.kembalikan}
             </button>
           )}
@@ -334,7 +321,6 @@ export default function SoalTab({
             disabled={!kotor || sibuk}
             onClick={simpan}
           >
-            <FloppyDiskIcon size={16} aria-hidden="true" />
             {t.simpan}
           </button>
         </div>
@@ -387,7 +373,6 @@ export default function SoalTab({
             }
             onClick={tambahVarian}
           >
-            <PlusIcon size={16} aria-hidden="true" />
             {t.tambahVarian}
           </button>
         )}
@@ -413,7 +398,6 @@ export default function SoalTab({
           </label>
           {draf.varian.length > 1 && (
             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setHapusV(vi)}>
-              <TrashIcon size={16} aria-hidden="true" />
               {t.hapusVarian}
             </button>
           )}
@@ -492,7 +476,7 @@ export default function SoalTab({
   const pdf = (
     <div className="stack stack--lg">
       <Ekspor lang={lang} modul={modul} kotor={kotor} isiPdf={isiPdf} />
-      <Unggah lang={lang} modul={modul} data={data} kotor={kotor} />
+      <Unggah lang={lang} modul={modul} data={data} kotor={kotor} otoVersi={otoVersi} />
     </div>
   );
   const hasil = (
@@ -529,7 +513,6 @@ export default function SoalTab({
             disabled={sibuk}
             onClick={simpan}
           >
-            <FloppyDiskIcon size={16} aria-hidden="true" />
             {t.simpan}
           </button>
         </div>
@@ -747,7 +730,6 @@ function KartuSoal({
                 className="btn btn--ghost btn--sm"
                 onClick={() => ubahIsi({ bagian: [...bagian, ""] })}
               >
-                <PlusIcon size={16} aria-hidden="true" />
                 {t.tambahBagian}
               </button>
             </li>
@@ -757,10 +739,7 @@ function KartuSoal({
       {kunciOn && (
         <div className="tpbq__key">
           <div className="row row--between">
-            <span className="label-caps">
-              <KeyIcon size={14} aria-hidden="true" />
-              {t.kunciSoal}
-            </span>
+            <span className="label-caps">{t.kunciSoal}</span>
             {boleh && (
               <TabLine
                 seg
@@ -890,7 +869,6 @@ function Akhir({
             disabled={!beda.length}
             onClick={onAcak}
           >
-            <ShuffleIcon size={16} aria-hidden="true" />
             {t.acakUlang}
           </button>
         )}
@@ -1008,11 +986,9 @@ function Ekspor({
           disabled={!!jalan}
           onClick={() => void unduh(false)}
         >
-          <DownloadSimpleIcon size={18} aria-hidden="true" />
           {jalan === "soal" ? t.membuatPdf : t.pdfSoal}
         </button>
         <button type="button" className="btn" disabled={!!jalan} onClick={() => void pratinjau()}>
-          <EyeIcon size={18} aria-hidden="true" />
           {jalan === "lihat" ? t.membuatPdf : t.lihatPdf}
         </button>
         <button
@@ -1021,7 +997,6 @@ function Ekspor({
           disabled={!!jalan}
           onClick={() => void unduh(true)}
         >
-          <KeyIcon size={18} aria-hidden="true" />
           {jalan === "kunci" ? t.membuatPdf : t.pdfKunci}
         </button>
       </div>
@@ -1060,11 +1035,15 @@ function Unggah({
   modul,
   data,
   kotor,
+  otoVersi,
 }: {
   lang: Lang;
   modul: number;
   data: PaketData;
   kotor: boolean;
+  /** A save to attach the PDF for by itself (LMS automation on), once the
+   *  saved version has come back. */
+  otoVersi?: number | null;
 }) {
   const t = TPS[lang];
   const tk = LK[lang];
@@ -1121,6 +1100,14 @@ function Unggah({
     window.Toast?.show(t.unggahSelesai(ok, gagal), gagal ? "warn" : "ok");
     void periksa();
   };
+  // LMS › Ringkasan's automation: the saved set goes on by itself.
+  const otoSudah = useRef<number | null>(null);
+  useEffect(() => {
+    if (!otoVersi || otoSudah.current === otoVersi || sibuk || kotor || !bisaUnggah) return;
+    if (data.paket.versi !== otoVersi || !target.length) return;
+    otoSudah.current = otoVersi;
+    void unggah();
+  });
   const periksa = async () => {
     setJalan(true);
     const r = await getJson<Lampiran>(`/api/tp/lampiran?modul=${modul}`).catch(() => null);
@@ -1145,7 +1132,6 @@ function Unggah({
             disabled={jalan}
             onClick={() => void periksa()}
           >
-            <ArrowsClockwiseIcon size={16} aria-hidden="true" />
             {jalan ? t.memeriksa : t.periksaLms}
           </button>
         )}
@@ -1159,7 +1145,6 @@ function Unggah({
             disabled={sibuk || kotor || !target.length}
             onClick={() => void unggah()}
           >
-            <UploadSimpleIcon size={18} aria-hidden="true" />
             {sibuk ? t.unggahJalan : t.unggahPdf(target.length)}
           </button>
           {kotor && <p className="hint">{t.unggahSimpanDulu}</p>}

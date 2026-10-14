@@ -357,6 +357,9 @@ export interface RencanaTugas {
   /** A draft item id holding the TP's PDF (unggahDraf): it replaces the
    *  description's attachments. Left out, they stay as they are. */
   lampiran?: number;
+  /** One file of these types and size per student (an assignment from the
+   *  LMS menu's Buat Tugas); left out, the LMS's defaults stay. */
+  berkas?: { jenis: string; maksByte: number };
 }
 
 function isianTugas(r: RencanaTugas): Record<string, string | boolean> {
@@ -376,6 +379,13 @@ function isianTugas(r: RencanaTugas): Record<string, string | boolean> {
     // No "content changed" mail to every student for IRIS's edits.
     coursecontentnotification: false,
     ...(r.lampiran ? { introattachments: String(r.lampiran) } : {}),
+    ...(r.berkas
+      ? {
+          assignsubmission_file_maxfiles: "1",
+          assignsubmission_file_maxsizebytes: String(r.berkas.maksByte),
+          "assignsubmission_file_filetypes[filetypes]": r.berkas.jenis,
+        }
+      : {}),
   };
 }
 
@@ -440,4 +450,118 @@ export async function hapusTugas(web: WebLms, cmid: number): Promise<void> {
   );
   if (!(jawab.status >= 300 && jawab.status < 400) || /mod\.php\?delete/.test(jawab.lokasi ?? ""))
     throw new LmsGalat("lms_hapus_gagal", `HTTP ${jawab.status} ${jawab.lokasi ?? ""}`.trim());
+}
+
+/* ============================================== the LMS menu (Phase 15) */
+
+/** After a course page form: back on the course (or the group list). */
+function kembaliKeKursus(r: JawabHalaman, kode: string): void {
+  if (
+    r.status >= 300 &&
+    r.status < 400 &&
+    r.lokasi &&
+    /course\/view\.php|group\/index\.php/.test(r.lokasi)
+  )
+    return;
+  const galat = r.status === 200 ? galatForm(r.teks) : [];
+  throw new LmsGalat(
+    kode,
+    galat.length ? galat.join("; ").slice(0, 300) : `HTTP ${r.status} ${r.lokasi ?? ""}`.trim(),
+  );
+}
+
+/** A course section's own name (Modul 1 · Bluetooth Low Energy). Both the
+ *  4.x field and the older name[customize]/name[value] pair are set; the
+ *  form keeps the one it has. */
+export async function namaiBagian(web: WebLms, bagian: number, nama: string): Promise<void> {
+  const jawab = await web.kirimForm(
+    `/course/editsection.php?id=${bagian}&sr=0`,
+    /editsection\.php/,
+    "/course/editsection.php",
+    { name: nama, usedefaultname: false, "name[customize]": true, "name[value]": nama },
+    "submitbutton",
+  );
+  kembaliKeKursus(jawab, "lms_bagian_ditolak");
+}
+
+/** A URL activity in a section (a link to an IRIS page). The caller reads
+ *  the course again for its cmid. */
+export async function buatTautan(
+  web: WebLms,
+  kursus: number,
+  bagian: number,
+  t: { nama: string; url: string; teks: string },
+): Promise<void> {
+  const jawab = await web.kirimForm(
+    `/course/modedit.php?add=url&type=&course=${kursus}&section=${bagian}&return=0&sr=0`,
+    /modedit\.php/,
+    "/course/modedit.php",
+    {
+      name: t.nama,
+      externalurl: t.url,
+      "introeditor[text]": t.teks,
+      "introeditor[format]": "1",
+      visible: "1",
+      coursecontentnotification: false,
+    },
+    "submitbutton2",
+  );
+  hasilSimpan(jawab);
+}
+
+/** A new group in a course (group/group.php). */
+export async function buatGrup(web: WebLms, kursus: number, nama: string): Promise<void> {
+  const jawab = await web.kirimForm(
+    `/group/group.php?courseid=${kursus}`,
+    /group\/group\.php/,
+    "/group/group.php",
+    { name: nama },
+    "submitbutton",
+  );
+  kembaliKeKursus(jawab, "lms_grup_ditolak");
+}
+
+/** Adds people to a group through group/members.php's own form. */
+export async function isiGrup(web: WebLms, grup: number, userids: number[]): Promise<void> {
+  if (!userids.length) return;
+  const jalan = `/group/members.php?group=${grup}`;
+  for (let coba = 0; ; coba++) {
+    const r = await web.halaman(jalan);
+    if (r.status !== 200) throw new LmsGalat("lms_halaman", `HTTP ${r.status} ${jalan}`);
+    const kunci = r.teks.match(/name="sesskey"\s+value="([A-Za-z0-9]+)"/)?.[1] ?? kunciSesi(r.teks);
+    if (!kunci) throw new LmsGalat("lms_bentuk_berubah", "no sesskey on group/members.php");
+    const b = new URLSearchParams();
+    b.set("sesskey", kunci);
+    for (const u of userids) b.append("addselect[]", String(u));
+    b.set("add", "add");
+    try {
+      const j = await web.halaman(jalan, "POST", b.toString());
+      if (j.status >= 400) throw new LmsGalat("lms_grup_ditolak", `HTTP ${j.status}`);
+      return;
+    } catch (e) {
+      if (e instanceof SesiBaru && coba === 0) continue;
+      throw e;
+    }
+  }
+}
+
+/** Only an assignment's dates (the description and files stay). */
+export async function tanggalTugas(
+  web: WebLms,
+  cmid: number,
+  buka: string,
+  tutup: string,
+): Promise<void> {
+  const jawab = await web.kirimForm(
+    `/course/modedit.php?update=${cmid}`,
+    /modedit\.php/,
+    "/course/modedit.php",
+    {
+      ...tanggalForm("allowsubmissionsfromdate", buka),
+      ...tanggalForm("duedate", tutup),
+      coursecontentnotification: false,
+    },
+    "submitbutton2",
+  );
+  hasilSimpan(jawab);
 }

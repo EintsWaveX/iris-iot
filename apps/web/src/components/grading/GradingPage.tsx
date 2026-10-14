@@ -1,17 +1,18 @@
 /**
  * /grading (Phase 13): Penilaian, reachable any time from the Asisten
- * navbar. Four tabs: Tugas Pendahuluan (the groups and the grader), Soal
- * TP (each module's question bank, its final set and the LMS paper),
- * Praktikum (every session's score table this semester) and Sumber LMS
- * (the connection, for the Pencipta and Admins). The tab is in the hash
- * (#soal, #praktikum, #lms); ?modul= picks the TP module for both TP tabs;
- * the grader is a history entry, so Back returns to the groups.
+ * navbar. Tabs: Tugas Pendahuluan (the groups and the grader), Soal TP
+ * (each module's question bank, its final set and the LMS paper),
+ * Praktikum (every session's score table this semester) and Sumber
+ * SeeLabs. Sumber LMS moved to the LMS menu's Sambungan (Phase 15); an old
+ * #lms link goes there. The tab is in the hash (#soal, #praktikum,
+ * #seelabs); ?modul= picks the TP module for both TP tabs; the grader is a
+ * history entry, so Back returns to the groups.
  */
 import { useCallback, useEffect, useState } from "react";
 import Fade from "../ui/Fade";
 import TabLine from "../ui/TabLine";
 import ErrorView from "../ui/ErrorView";
-import { getJson, useMe } from "../../lib/app";
+import { getJson, href, useMe } from "../../lib/app";
 import { useMinWidth, usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { hakPenuh } from "../../lib/hak";
@@ -20,18 +21,21 @@ import TpTab from "./TpTab";
 import Grader from "./Grader";
 import PraktikumTab from "./PraktikumTab";
 import SoalTab from "./SoalTab";
-import LmsTab from "./LmsTab";
 import SumberSeelabs from "../console/seelabs/SumberSeelabs";
 import { RB } from "../console/seelabs/robotStrings";
 import type { DataKelompok, GrupDinilai } from "./types";
 import "../tp/tp.css";
 
-type Tab = "tp" | "soal" | "praktikum" | "lms" | "seelabs";
+type Tab = "tp" | "soal" | "praktikum" | "seelabs";
 
 function tabDariHash(): Tab {
   const h = typeof location === "undefined" ? "" : location.hash.replace(/^#/, "");
-  return h === "soal" || h === "praktikum" || h === "lms" || h === "seelabs" ? h : "tp";
+  return h === "soal" || h === "praktikum" || h === "seelabs" ? h : "tp";
 }
+
+/** Sumber LMS lives in the LMS menu now (Phase 15). */
+const keSambungan = (lang: Lang, m?: number | null) =>
+  href(lang, `/lms${m ? `?kelola=${m}` : ""}#sambung`);
 
 function modulDariUrl(): number | null {
   if (typeof location === "undefined") return null;
@@ -47,15 +51,17 @@ export default function GradingPage({ lang }: { lang: Lang }) {
   const [tab, setTab0] = useState<Tab>(tabDariHash);
   const [modul, setModul0] = useState<number | null>(modulDariUrl);
   const [grader, setGrader] = useState<{ g: GrupDinilai; i: number } | null>(null);
-  // A module's LMS assignments to open on Sumber LMS (the TP tab's banner).
-  const [kelolaAwal, setKelolaAwal] = useState<number | null>(null);
-  const kelolaDibuka = useCallback(() => setKelolaAwal(null), []);
 
+  // An old Penilaian › Sumber LMS link (#lms), on load or followed in the page.
   useEffect(() => {
-    const on = () => setTab0(tabDariHash());
+    const on = () => {
+      if (location.hash === "#lms") location.replace(keSambungan(lang));
+      else setTab0(tabDariHash());
+    };
+    on();
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
-  }, []);
+  }, [lang]);
   const setTab = (v: Tab) => {
     setTab0(v);
     history.replaceState(
@@ -117,7 +123,6 @@ export default function GradingPage({ lang }: { lang: Lang }) {
     { v: "soal", label: sm ? t.tabSoalSm : t.tabSoal },
     { v: "praktikum", label: t.tabPraktikum },
   ];
-  if (bolehLms) tabs.push({ v: "lms", label: sm ? t.tabLmsSm : t.tabLms });
   // Phase 14: the SeeLabs robot's own source tab, for the same people.
   if (bolehLms) tabs.push({ v: "seelabs", label: sm ? "SeeLabs" : RB[lang].srcTitle });
   const shown: Tab = tabs.some((x) => x.v === tab) ? tab : "tp";
@@ -166,17 +171,12 @@ export default function GradingPage({ lang }: { lang: Lang }) {
             data={modul === null ? null : poll.data}
             refresh={poll.refresh}
             onOpen={buka}
-            onLms={(m) => {
-              setKelolaAwal(m ?? null);
-              setTab("lms");
-            }}
+            onLms={(m) => location.assign(keSambungan(lang, m))}
           />
         ) : shown === "soal" ? (
           <SoalTab lang={lang} modul={modul ?? 1} setModul={setModul} />
         ) : shown === "praktikum" ? (
           <PraktikumTab lang={lang} />
-        ) : shown === "lms" ? (
-          <LmsTab lang={lang} kelolaAwal={kelolaAwal} onKelolaDibuka={kelolaDibuka} />
         ) : (
           <SumberSeelabs lang={lang} />
         )}

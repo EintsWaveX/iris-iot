@@ -5,7 +5,6 @@
  * own dialog, 100 a page).
  */
 import { useEffect, useState } from "react";
-import { ArrowsOutSimpleIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Disclose from "../ui/Disclose";
 import TabLine from "../ui/TabLine";
@@ -177,7 +176,6 @@ export function RiwayatPanel({ lang, log, total }: { lang: Lang; log: BarisLog[]
         </div>
         {total > 0 && (
           <button type="button" className="btn" onClick={() => setBuka(true)}>
-            <ArrowsOutSimpleIcon size={18} aria-hidden="true" />
             {t.lihatSemua}
           </button>
         )}
@@ -277,7 +275,6 @@ function RiwayatDialog({
             disabled={sibuk}
             onClick={() => void muat(rows[rows.length - 1]?.id)}
           >
-            <ClockCounterClockwiseIcon size={18} aria-hidden="true" />
             {sibuk ? t.memuat : t.muatLagi}
           </button>
         )}

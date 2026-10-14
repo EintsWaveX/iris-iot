@@ -59,6 +59,7 @@ import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
 import { waitUntil } from "@vercel/functions";
 import { sinkronBilaPerlu } from "../_lib/tp.js";
+import { otomatisLmsBilaPerlu } from "../_lib/lms-otomatis.js";
 import { adaTugasRobot, ambilTugas, harianBilaPerlu, terimaHasil } from "../_lib/seelabs-robot.js";
 import { kirimRelay } from "../_lib/aliran.js";
 import { ruangSesi } from "../../src/lib/aliran.js";
@@ -337,6 +338,9 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         await sinkronBilaPerlu(db, "pi", 5 * 60_000);
         // Phase 14: the robot's daily KLP pull and Input Jaga check.
         await harianBilaPerlu(db);
+        // Phase 15: scheduled announcements and the LMS automations that
+        // are switched on (LMS › Ringkasan), every 5 minutes at most.
+        await otomatisLmsBilaPerlu(db);
       })().catch((err) => console.error("[api/agent denyut] after the beat:", err)),
     );
   } catch (err) {

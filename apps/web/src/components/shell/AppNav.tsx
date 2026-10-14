@@ -3,8 +3,11 @@
  * every page, replacing Nav.astro + AkunSheet.tsx.
  *
  * - Links follow the role: signed out (Beranda, Modul), praktikan (Beranda,
- *   Dasbor, Modul; Live lives in the module page since Phase 9) and asisten (Beranda, Konsol, Jadwal, Server,
- *   Laporan, Modul).
+ *   Dasbor, Modul; Live lives in the module page since Phase 9) and asisten.
+ *   Phase 15 (2026-10-14, the tidy nav): the Asisten's daily places as
+ *   words (Beranda, Konsol, Persiapan, Penilaian, LMS Beta, Jadwal), then
+ *   one Lab menu whose rows say what each page is for (Server, Laporan,
+ *   Tim, Modul). Under 1280 Persiapan and Jadwal join the menu under Sesi.
  * - Phase 9: the Tampilan button (theme, background detail, language,
  *   the Mandarin heading weight, the nav clock) is on every page, signed
  *   out too; a popover at 640px and up, a bottom sheet below. A language
@@ -32,14 +35,14 @@ import * as RadixPopover from "@radix-ui/react-popover";
 import {
   BookOpenTextIcon,
   CalendarBlankIcon,
-  ChalkboardTeacherIcon,
+  CaretDownIcon,
+  ChartBarIcon,
   ClipboardTextIcon,
   ExamIcon,
-  DotsThreeIcon,
-  ChartBarIcon,
+  GraduationCapIcon,
   HardDrivesIcon,
   HouseIcon,
-  DoorOpenIcon,
+  type IconProps,
   MagnifyingGlassIcon,
   ProjectorScreenIcon,
   SignOutIcon,
@@ -47,7 +50,6 @@ import {
   SquaresFourIcon,
   UsersFourIcon,
   UsersThreeIcon,
-  type IconProps,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import IconButton from "../ui/IconButton";
@@ -66,7 +68,7 @@ import {
   type Me,
 } from "../../lib/app";
 import { langForKelas, langOfPath, pathForLang, type Lang } from "../../lib/kelas";
-import { readLangPref, saveLangPref, usePoll } from "../../lib/hooks";
+import { readLangPref, saveLangPref, useMinWidth, usePoll } from "../../lib/hooks";
 import { kelompokLabel } from "../../lib/labels";
 import SessionMiniBar from "./SessionMiniBar";
 import { keluarProyektor, sebagaiTampil, useProyektor } from "../../lib/proyektor";
@@ -86,7 +88,13 @@ type Icon = ComponentType<IconProps>;
 interface Link {
   path: string;
   label: string;
+  /** For the phone tab bar only: desktop links are words. */
   icon: Icon;
+  /** Under 1280 it moves into the Lab menu under Sesi. */
+  wide?: boolean;
+  beta?: boolean;
+  /** What the page is for (a Lab menu row). */
+  desc?: string;
 }
 
 const T = dict({
@@ -104,6 +112,13 @@ const T = dict({
     totOff: "Mode TOT mati. Buka halamannya.",
     totRow: "Mode TOT",
     more: "Lainnya",
+    lab: "Lab",
+    sesi: "Sesi",
+    lms: "LMS",
+    serverDesc: "Orange Pi dan perangkat di lab",
+    reportsDesc: "Rekap sesi, kehadiran, dan bayaran",
+    teamDesc: "Asisten, divisi, dan penugasan",
+    modulesDesc: "Handbook, slide, dan kode jurnal",
     schedule: "Jadwal",
     server: "Server",
     reports: "Laporan",
@@ -141,6 +156,13 @@ const T = dict({
     totOff: "TOT Mode is off. Open its page.",
     totRow: "TOT Mode",
     more: "More",
+    lab: "Lab",
+    sesi: "Sessions",
+    lms: "LMS",
+    serverDesc: "The Orange Pi and lab devices",
+    reportsDesc: "Session recaps, attendance and pay",
+    teamDesc: "Asisten, divisions and assignments",
+    modulesDesc: "Handbook, slides and journal code",
     schedule: "Schedule",
     server: "Server",
     reports: "Reports",
@@ -178,6 +200,13 @@ const T = dict({
     totOff: "TOT 模式已关闭，打开它的页面。",
     totRow: "TOT 模式",
     more: "更多",
+    lab: "实验室",
+    sesi: "课",
+    lms: "LMS",
+    serverDesc: "Orange Pi 和实验室设备",
+    reportsDesc: "课后汇总、出勤和报酬",
+    teamDesc: "助教、部门和排班",
+    modulesDesc: "手册、幻灯片和实验报告代码",
     schedule: "课表",
     server: "服务器",
     reports: "报告",
@@ -208,6 +237,7 @@ const NAV_KEY: Record<string, string> = {
   "/": "G B",
   "/session": "G K",
   "/grading": "G N",
+  "/lms": "G E",
   "/preparation": "G P",
   "/schedule": "G J",
   "/servers": "G S",
@@ -221,13 +251,10 @@ function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
     return [
       { path: "/", label: t.home, icon: HouseIcon },
       { path: "/session", label: t.console, icon: UsersThreeIcon },
+      { path: "/preparation", label: t.prep, icon: ClipboardTextIcon, wide: true },
       { path: "/grading", label: t.grading, icon: ExamIcon },
-      { path: "/preparation", label: t.prep, icon: ClipboardTextIcon },
-      { path: "/schedule", label: t.schedule, icon: CalendarBlankIcon },
-      { path: "/servers", label: t.server, icon: HardDrivesIcon },
-      { path: "/reports", label: t.reports, icon: ChartBarIcon },
-      { path: "/team", label: t.team, icon: UsersFourIcon },
-      { path: "/modules", label: t.modules, icon: BookOpenTextIcon },
+      { path: "/lms", label: t.lms, icon: GraduationCapIcon, beta: true },
+      { path: "/schedule", label: t.schedule, icon: CalendarBlankIcon, wide: true },
     ];
   }
   if (me?.role === "praktikan") {
@@ -240,6 +267,17 @@ function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
   return [
     { path: "/", label: t.home, icon: HouseIcon },
     { path: "/modules", label: t.modules, icon: BookOpenTextIcon },
+  ];
+}
+
+/** The Asisten's Lab menu: the pages used now and then, each row saying
+ *  what it is for. */
+function labFor(t: (typeof T)["id"]): Link[] {
+  return [
+    { path: "/servers", label: t.server, icon: HardDrivesIcon, desc: t.serverDesc },
+    { path: "/reports", label: t.reports, icon: ChartBarIcon, desc: t.reportsDesc },
+    { path: "/team", label: t.team, icon: UsersFourIcon, desc: t.teamDesc },
+    { path: "/modules", label: t.modules, icon: BookOpenTextIcon, desc: t.modulesDesc },
   ];
 }
 
@@ -374,15 +412,17 @@ export default function AppNav({
   const pro = useProyektor(me);
   const tampil = useMemo(() => sebagaiTampil(me, pro), [me, pro]);
   const links = useMemo(() => linksFor(tampil, t), [tampil?.role, me, t]);
-  // The phone bar holds five: an Asisten reaches Home from the logo and
-  // Modules from Home, so both stay in the top bar only (mockup rule).
+  const asistenNav = tampil?.role === "asisten";
+  const lab = useMemo(() => (asistenNav ? labFor(t) : []), [asistenNav, t]);
+  // Persiapan and Jadwal stand in the bar from 1280; under it they join
+  // the Lab menu under Sesi.
+  const lebar = useMinWidth(1280);
+  const utama = useMemo(() => links.filter((l) => lebar || !l.wide), [links, lebar]);
+  // The phone bar holds five: an Asisten reaches Home from the logo, so it
+  // holds Konsol, Persiapan, Penilaian, LMS and Jadwal (2026-10-14).
   const barLinks = useMemo(
-    () =>
-      (tampil?.role === "asisten"
-        ? links.filter((l) => l.path !== "/" && l.path !== "/modules")
-        : links
-      ).slice(0, 5),
-    [links, tampil?.role],
+    () => (asistenNav ? links.filter((l) => l.path !== "/") : links).slice(0, 5),
+    [links, asistenNav],
   );
   const [sheet, setSheet] = useState(false);
   const [dispSheet, setDispSheet] = useState(false);
@@ -397,9 +437,9 @@ export default function AppNav({
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  // The links that fit (2026-10-12): with Persiapan the Asisten has eight,
-  // and on a narrower screen the last ones fold into Lainnya instead of
-  // running under the clock. Each link's width is measured while it shows.
+  // The links that fit (2026-10-12): if the words still run under the
+  // clock on a narrow screen, the last ones fold into the menu (Lab for an
+  // Asisten, Lainnya otherwise). Each link's width is measured while it shows.
   const linksEl = useRef<HTMLElement | null>(null);
   const lebarLink = useRef<number[]>([]);
   const [muat, setMuat] = useState(99);
@@ -426,8 +466,34 @@ export default function AppNav({
     const ro = new ResizeObserver(ukur);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [links.length, lang]);
+  }, [utama.length, lang]);
   const [scrolled, setScrolled] = useState(false);
+  // The menu's Sesi part: the daily links that don't stand in the bar.
+  const sesiLab = useMemo(
+    () => [...links.filter((l) => !utama.includes(l)), ...utama.slice(muat)],
+    [links, utama, muat],
+  );
+  const labRow = (l: Link, asisten: boolean, dot?: string) => (
+    <a
+      key={l.path}
+      className="acct__row labmenu__o"
+      href={linkHref(l)}
+      aria-current={isActive(l.path, current) ? "page" : undefined}
+      onClick={() => setLainBuka(false)}
+    >
+      <span className="labmenu__t">
+        <b>
+          {l.label}
+          {l.beta && <span className="appnav__beta">Beta</span>}
+        </b>
+        {l.desc && <span className="hint">{l.desc}</span>}
+      </span>
+      {dot && (
+        <span className="appnav__live-dot appnav__live-dot--warn labmenu__dot" aria-label={dot} />
+      )}
+      {asisten && NAV_KEY[l.path] && <Kbd>{NAV_KEY[l.path]}</Kbd>}
+    </a>
+  );
 
   // Scroll hairline (was nav-scroll.ts for Nav.astro).
   useEffect(() => {
@@ -503,7 +569,7 @@ export default function AppNav({
         </a>
 
         <nav className="appnav__links" aria-label={t.main} ref={linksEl}>
-          {links.map((l, i) => {
+          {utama.map((l, i) => {
             const active = isActive(l.path, current);
             return (
               <a
@@ -517,8 +583,8 @@ export default function AppNav({
                 {tampil?.role === "asisten" && NAV_KEY[l.path] && (
                   <KeyHint k={NAV_KEY[l.path]} corner />
                 )}
-                <l.icon size={17} aria-hidden="true" />
                 <span>{l.label}</span>
+                {l.beta && <span className="appnav__beta">Beta</span>}
                 {l.path === "/session" && now.data && (
                   <span className="appnav__live-dot" aria-hidden="true" />
                 )}
@@ -536,42 +602,46 @@ export default function AppNav({
               </a>
             );
           })}
-          {muat < links.length && (
+          {(asistenNav || muat < utama.length) && (
             <RadixPopover.Root open={lainBuka} onOpenChange={setLainBuka}>
               <RadixPopover.Trigger asChild>
                 <button
                   type="button"
                   className="appnav__link appnav__more"
                   aria-current={
-                    links.slice(muat).some((l) => isActive(l.path, current)) ? "page" : undefined
+                    [...sesiLab, ...lab].some((l) => isActive(l.path, current)) ? "page" : undefined
                   }
                 >
-                  <span>{t.more}</span>
-                  <DotsThreeIcon size={18} weight="bold" aria-hidden="true" />
+                  <span>{asistenNav ? t.lab : t.more}</span>
+                  <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
+                  {menunggu > 0 && (
+                    <span
+                      className="appnav__live-dot appnav__live-dot--warn"
+                      aria-label={t.konsolDot}
+                    />
+                  )}
                 </button>
               </RadixPopover.Trigger>
               <RadixPopover.Portal>
                 <RadixPopover.Content
-                  className="appnav__menu sweep-edge"
+                  className="appnav__menu appnav__menu--lab sweep-edge"
                   align="start"
                   sideOffset={10}
                   collisionPadding={12}
                 >
-                  <div className="acct">
-                    {links.slice(muat).map((l) => (
-                      <a
-                        key={l.path}
-                        className="acct__row"
-                        href={linkHref(l)}
-                        aria-current={isActive(l.path, current) ? "page" : undefined}
-                      >
-                        <l.icon size={20} aria-hidden="true" />
-                        <span>{l.label}</span>
-                        {tampil?.role === "asisten" && NAV_KEY[l.path] && (
-                          <Kbd>{NAV_KEY[l.path]}</Kbd>
-                        )}
-                      </a>
-                    ))}
+                  <div className="acct labmenu">
+                    {sesiLab.length > 0 && asistenNav && (
+                      <span className="labmenu__h">{t.sesi}</span>
+                    )}
+                    {sesiLab.map((l) => labRow(l, asistenNav))}
+                    {lab.length > 0 && <span className="labmenu__h">{t.lab}</span>}
+                    {lab.map((l) =>
+                      labRow(
+                        l,
+                        true,
+                        l.path === "/servers" && menunggu > 0 ? t.konsolDot : undefined,
+                      ),
+                    )}
                   </div>
                 </RadixPopover.Content>
               </RadixPopover.Portal>
@@ -590,7 +660,6 @@ export default function AppNav({
             >
               <KeyHint k="G O" corner />
               <span className="appnav__tot-lamp" aria-hidden="true" />
-              <ChalkboardTeacherIcon size={18} aria-hidden="true" />
               <span>{t.tot}</span>
               <span className="visually-hidden">{totOn ? t.totOn : t.totOff}</span>
             </a>
@@ -638,14 +707,12 @@ export default function AppNav({
               className="btn btn--primary appnav__signin"
               onClick={() => openSignIn()}
             >
-              <DoorOpenIcon size={20} aria-hidden="true" />
               <span className="btn__label">{t.signIn}</span>
             </button>
           )}
 
           {me && pro && (
             <button type="button" className="btn btn--sm appnav__leave" onClick={leaveProjector}>
-              <ProjectorScreenIcon size={18} aria-hidden="true" />
               <span className="btn__label">{t.proyektorKeluar}</span>
             </button>
           )}
@@ -694,7 +761,6 @@ export default function AppNav({
               className="btn btn--primary appnav__signin appnav__signin--mobile"
               onClick={() => openSignIn()}
             >
-              <DoorOpenIcon size={20} aria-hidden="true" />
               <span className="btn__label">{t.signIn}</span>
             </button>
           )
