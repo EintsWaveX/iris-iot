@@ -42,6 +42,8 @@ import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
 import type { Lang } from "../../lib/kelas";
 import SlotEditor, { type SlotEditorHandle } from "./SlotEditor";
 import ImportView from "./ImportView";
+import ModulView from "./ModulView";
+import { hakPenuh } from "../../lib/hak";
 import { J, pesanJ, type Jx } from "./strings";
 import { HARI, SLOTS, type DataJadwal, type JadwalRow, type PengaturanJendela } from "./types";
 import "./SchedulePage.css";
@@ -379,7 +381,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   const [err, setErr] = useState(false);
   const [sel, setSel] = useState<{ hari: number; slot: number } | null>(null);
   const [highlight, setHighlight] = useState(false);
-  const [view, setView] = useState<"week" | "import">("week");
+  const [view, setView] = useState<"week" | "import" | "modul">("week");
   const [setting, setSetting] = useState(false);
   const [dirty, setDirty] = useState(false);
   useBelumSimpan(dirty);
@@ -484,6 +486,21 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
     );
   }
 
+  if (view === "modul" && data) {
+    return (
+      <ModulView
+        key={semester}
+        lang={lang}
+        semester={semester}
+        data={data}
+        meKode={meKode}
+        boleh={hakPenuh({ tier: me.tier ?? "asisten", badges: me.badges ?? [] })}
+        onBack={() => setView("week")}
+        onSaved={load}
+      />
+    );
+  }
+
   if (view === "import" && data) {
     return (
       <ImportView
@@ -580,6 +597,9 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             <Switch on={highlight} onChange={setHighlight} label={t.mine} />
             <span>{t.mine}</span>
           </label>
+          <button type="button" className="btn" onClick={() => setView("modul")}>
+            {t.pm.open}
+          </button>
           {bolehJadwal &&
             (narrow ? (
               <IconButton

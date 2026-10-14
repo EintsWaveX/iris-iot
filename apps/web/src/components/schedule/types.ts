@@ -14,6 +14,8 @@ export interface JadwalRow {
   warnaKosong: "oranye" | "merah" | null;
   liburTanggal: string | null;
   asisten: string[];
+  /** Per Modul's lists, keyed "1" to "4" (penugasan-modul.ts). */
+  asistenModul?: Partial<Record<string, string[]>>;
   pengganti: { kode: string; tag: TagPengganti }[];
   jumlahKelompok: number;
   jendelaMulaiMenit: number | null;
@@ -39,6 +41,11 @@ export interface DataJadwal {
   asisten: OrangJadwal[];
   minggu: Record<string, MingguSlot>;
   jendela: PengaturanJendela;
+  /** Per Modul: the semester's switch, each module's practicum week and
+   *  the modules each slot (by id) already taught. */
+  bergilir?: boolean;
+  modulMinggu?: Record<string, { senin: string; sabtu: string } | null>;
+  diajar?: Record<string, number[]>;
 }
 
 export const HARI = [1, 2, 3, 4, 5, 6] as const;

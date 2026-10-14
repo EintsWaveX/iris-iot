@@ -281,9 +281,17 @@ function dariMinggu(j: JadwalRow, m: MingguSlot | undefined): SlotState {
   return { status: m?.status ?? j.status, chips };
 }
 
+/** Each group's holder on the board's date: that week's seats (its
+ *  module's list while the semester pairs per module), else the default. */
+function semDari(j: JadwalRow, m: MingguSlot | undefined): (string | null)[] {
+  return m?.kursi.length
+    ? m.kursi.map((k) => k.tetap)
+    : pasanganSemester(j.asisten, j.jumlahKelompok);
+}
+
 /** The schedule POST body for one slot's edited state. */
-function ubahDari(j: JadwalRow, s: SlotState) {
-  const sem = pasanganSemester(j.asisten, j.jumlahKelompok);
+function ubahDari(j: JadwalRow, s: SlotState, m: MingguSlot | undefined) {
+  const sem = semDari(j, m);
   const izin = new Set(s.chips.filter((c) => c.kind === "izin").map((c) => c.kode));
   const kursi = sem.map((k, i) => {
     const nomor = i + 1;
@@ -447,7 +455,7 @@ export default function AssignBoard({
           hari: j.hari,
           slot: j.slot,
           geser,
-          ubah: ubahDari(j, now(j.id)),
+          ubah: ubahDari(j, now(j.id), data?.minggu[String(j.id)]),
         });
         if (!r.ok) throw new Error();
         n++;
@@ -624,6 +632,7 @@ export default function AssignBoard({
                     <SlotBox
                       key={j.id}
                       j={j}
+                      m={data.minggu[String(j.id)]}
                       s={now(j.id)}
                       lang={lang}
                       label={`${hariLabel(j.hari, lang)} · ${SLOT_MULAI[j.slot]}`}
@@ -718,6 +727,7 @@ function PoolRow({
 
 function SlotBox({
   j,
+  m,
   s,
   lang,
   label,
@@ -728,6 +738,7 @@ function SlotBox({
   onEdit,
 }: {
   j: JadwalRow;
+  m: MingguSlot | undefined;
   s: SlotState;
   lang: Lang;
   label: string;
@@ -740,7 +751,7 @@ function SlotBox({
 }) {
   const t = A[lang];
   const { setNodeRef, isOver } = useDroppable({ id: `slot:${j.id}`, disabled: ro });
-  const sem = pasanganSemester(j.asisten, j.jumlahKelompok);
+  const sem = semDari(j, m);
   const izinKode = new Set(s.chips.filter((c) => c.kind === "izin").map((c) => c.kode));
   const covered = (n: number) =>
     s.chips.some((c) => c.nomor === n && c.kind !== "izin" && c.kind !== "tetap");

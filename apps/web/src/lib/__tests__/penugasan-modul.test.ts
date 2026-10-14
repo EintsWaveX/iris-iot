@@ -114,6 +114,17 @@ describe("modulTanggal", () => {
   });
 });
 
+describe("ulang", () => {
+  it("marks a group meeting someone again", () => {
+    expect(ulang({ 1: ["A", "B"], 2: ["A", "A"] })[2]).toEqual([true, false]);
+  });
+  it("with the pool, only where someone new was left", () => {
+    expect(ulang({ 1: ["A", "B"], 2: ["A", "A"] }, ["A", "B"])[2]).toEqual([true, false]);
+    expect(ulang({ 1: ["A"], 2: ["A"] }, ["A"])[2]).toEqual([false]);
+    expect(ulang({ 1: ["A"], 2: ["B"], 3: ["A"] }, ["A", "B"])[3]).toEqual([false]);
+  });
+});
+
 describe("blok", () => {
   it("one group each with enough people", () => {
     expect(blok(5, 5)).toEqual([[0], [1], [2], [3], [4]]);

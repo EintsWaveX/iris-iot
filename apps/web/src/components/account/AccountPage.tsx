@@ -26,6 +26,7 @@ import { semesterDariTanggal } from "../../lib/jadwal-parser";
 import type { Lang } from "../../lib/kelas";
 import { divisiLabel } from "../../lib/labels";
 import type { BarisJadwal } from "../../lib/jadwal-next";
+import { pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import "./AccountPage.css";
 import { BUKA_TAMPILAN, DisplaySummary } from "../shell/DisplayPanel";
@@ -33,6 +34,9 @@ import PersonBadges from "../ui/PersonBadges";
 import TierBadge from "../ui/TierBadge";
 import { openSignIn } from "../../lib/signin";
 import { useSiaran } from "../../lib/siaran";
+
+/** A schedule row as the Schedule API sends it. */
+type BarisSlot = BarisJadwal & { id: number; jumlahKelompok: number };
 
 const T = dict({
   id: {
@@ -223,15 +227,19 @@ function PasswordForm({ t, lang, first }: { t: Tx; lang: Lang; first: boolean })
 export default function AccountPage({ lang }: { lang: Lang }) {
   const t = T[lang];
   const me = useMe();
-  const [jadwal, setJadwal] = useState<BarisJadwal[] | null>(null);
+  const [jadwal, setJadwal] = useState<BarisSlot[] | null>(null);
+  const [minggu, setMinggu] = useState<Record<string, MingguSlot>>({});
   const [fb, setFb] = useState<Ringkasan | null>(null);
 
   const muat = () => {
     if (me?.role !== "asisten") return;
-    getJson<{ ok: boolean; jadwal: BarisJadwal[] }>(
+    getJson<{ ok: boolean; jadwal: BarisSlot[]; minggu?: Record<string, MingguSlot> }>(
       `/api/session/schedule?semester=${semesterDariTanggal(hariIniWib())}`,
     )
-      .then((d) => setJadwal(d.ok ? d.jadwal : []))
+      .then((d) => {
+        setJadwal(d.ok ? d.jadwal : []);
+        setMinggu(d.ok ? (d.minggu ?? {}) : {});
+      })
       .catch(() => setJadwal([]));
     getJson<{ ok: boolean; ringkasan: Ringkasan }>("/api/session/feedback?scope=mine")
       .then((d) => d.ok && setFb(d.ringkasan))
@@ -330,9 +338,14 @@ export default function AccountPage({ lang }: { lang: Lang }) {
           ) : (
             <ul className="acctpage__slots">
               {mine.map((j) => {
-                const groups = j.asisten
-                  .map((a, i) => (a.toUpperCase() === kode ? i + 1 : 0))
-                  .filter(Boolean);
+                // This week's seats (its module's list while the semester
+                // pairs per module), else the default list.
+                const kursi = minggu[String(j.id)]?.kursi;
+                const groups = kursi
+                  ? kursi.filter((k) => k.tetap === kode).map((k) => k.nomor)
+                  : pasanganSemester(j.asisten, j.jumlahKelompok)
+                      .map((a, i) => (a === kode ? i + 1 : 0))
+                      .filter(Boolean);
                 return (
                   <li key={`${j.hari}-${j.slot}`}>
                     <b>{t.hari[j.hari]}</b>

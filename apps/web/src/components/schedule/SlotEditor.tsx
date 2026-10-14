@@ -157,15 +157,19 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
       disabled: o.status !== "aktif",
     })),
   ];
+  // Pairing per Module: that date's holder of a group is its module's,
+  // while the list here stays the slot's default.
+  const perModul = m?.modul != null;
+  const pemegang = (i: number) => (perModul ? (m?.kursi[i]?.tetap ?? d.who[i]) : d.who[i]) ?? "";
   const coverOpts = (i: number) => {
     const subs = d.subs.map((s) => s.kode.toUpperCase());
     const rest = p.orang
       .map((o) => o.kode.toUpperCase())
-      .filter((k) => !subs.includes(k) && k !== d.who[i]);
+      .filter((k) => !subs.includes(k) && k !== pemegang(i));
     return [
       { value: "", label: t.pickCover },
       ...[...subs, ...rest]
-        .filter((k) => k !== d.who[i])
+        .filter((k) => k !== pemegang(i))
         .map((k) => {
           const o = byKode.get(k);
           const tag = d.subs.find((s) => s.kode.toUpperCase() === k)?.tag;
@@ -244,6 +248,11 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
     <div className="jedit">
       {p.kini && m && (
         <p className="jedit__when hint">{p.geser ? t.forDate(tglLabel) : t.nextDate(tglLabel)}</p>
+      )}
+      {perModul && (
+        <div className="banner">
+          <span>{t.pm.editorNote}</span>
+        </div>
       )}
       {ro && (
         <div className="banner banner--lock">
@@ -446,6 +455,11 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
                         onChange={(v) => setAt("who", i, v)}
                         disabled={ro}
                       />
+                      {perModul && pemegang(i) !== k && (
+                        <span className="hint">
+                          {t.pm.dateHolder(m!.modul!, pemegang(i) || t.pm.open0)}
+                        </span>
+                      )}
                       {p.kini && (
                         <div className="asgrow__st">
                           <SegmentedControl
@@ -610,7 +624,7 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
           row={row}
           minggu={m}
           nomor={find + 1}
-          excused={d.who[find]}
+          excused={pemegang(find)}
           orang={p.orang}
           onClose={() => setFind(null)}
           onDone={p.onSaved}

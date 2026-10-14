@@ -68,14 +68,23 @@ export function saringModul(
   return { tetap, dibuang };
 }
 
-/** For each module, which groups hold an Asisten they had in an earlier one. */
-export function ulang(lists: Record<number, readonly string[]>): Record<number, boolean[]> {
+/** For each module, which groups hold an Asisten they had in an earlier
+ *  one. With `pool`, only where it could be helped: someone in the pool
+ *  the group hasn't met yet. */
+export function ulang(
+  lists: Record<number, readonly string[]>,
+  pool?: readonly string[],
+): Record<number, boolean[]> {
   const out: Record<number, boolean[]> = {};
   const lalu = new Map<number, Set<string>>();
   for (const m of MODUL_PASANGAN) {
     const list = lists[m];
     if (!list) continue;
-    out[m] = list.map((k, g) => !!k && !!lalu.get(g)?.has(k));
+    out[m] = list.map((k, g) => {
+      const met = lalu.get(g);
+      if (!k || !met?.has(k)) return false;
+      return !pool || pool.some((x) => !met.has(x));
+    });
     list.forEach((k, g) => {
       if (!k) return;
       if (!lalu.has(g)) lalu.set(g, new Set());
