@@ -57,10 +57,15 @@ export interface KonteksModul {
   terbuka: number[];
 }
 
-/** What a date's module is judged by. Only read while the switch is on. */
-export async function konteksModul(db: Db, semester: string): Promise<KonteksModul> {
+/** What a date's module is judged by. Only read while the switch is on,
+ *  unless `selalu` (Per Modul shows each module's week either way). */
+export async function konteksModul(
+  db: Db,
+  semester: string,
+  selalu = false,
+): Promise<KonteksModul> {
   const aktif = await bacaBergilir(db, semester);
-  if (!aktif) return { aktif, jendela: {}, terbuka: [] };
+  if (!aktif && !selalu) return { aktif, jendela: {}, terbuka: [] };
   const [set, terbuka] = await Promise.all([bacaSet(db), getModulTerbuka()]);
   const jendela: KonteksModul["jendela"] = {};
   if (set.semester === semester)

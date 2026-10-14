@@ -275,7 +275,7 @@ export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
   // already taught.
   const sem = semester || kini;
   const semRows = rows.filter((r) => r.semester === sem);
-  const konteks = await konteksModul(db, sem);
+  const konteks = await konteksModul(db, sem, true);
   const diajar = Object.fromEntries(await modulDiajar(db, semRows));
   res.status(200).json({
     ok: true,
@@ -284,7 +284,7 @@ export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
     minggu,
     jendela: await muatPengaturanJendela(db),
     bergilir: konteks.aktif,
-    modulMinggu: konteks.aktif ? mingguModul(konteks) : {},
+    modulMinggu: mingguModul(konteks),
     diajar,
   });
 }
