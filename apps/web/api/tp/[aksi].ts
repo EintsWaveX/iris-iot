@@ -1476,7 +1476,9 @@ function detakSah(req: ApiRequest): boolean {
 async function handleDetak(req: ApiRequest, res: ApiResponse) {
   if (!detakSah(req)) return tolak(res, "tanda_salah", 403);
   const db = getDb();
-  await sinkronBilaPerlu(db, "relay", 60_000);
+  // 50 s, not 60: the timer fires once a minute with a little drift, and a
+  // run 59.9 s ago would otherwise skip a whole minute.
+  await sinkronBilaPerlu(db, "relay", 50_000);
   await kirimTertunda(db);
   const [t] = await db
     .select({ n: sql<number>`count(*)::int` })
