@@ -80,8 +80,8 @@ import {
   infoSitus,
   kirimanTugas,
   kursusPraktikum,
+  anggotaKelas,
   nimDari,
-  pelajar,
   pesertaKursus,
   sandikanToken,
   teksLms,
@@ -368,6 +368,9 @@ async function segarkanPeserta(db: Db, token: string, set: SetTp, kelas: KelasSe
     .from(praktikan)
     .where(eq(praktikan.semester, set.semester));
   const nimAda = new Set(daftar.map((p) => p.nim));
+  const nimAsisten = new Set(
+    (await db.select({ nim: asisten.nim }).from(asisten)).map((a) => a.nim),
+  );
   const luar: LuarLms[] = [];
   // A name that two Praktikan share is never used to match.
   const perNama = new Map<string, string | null>();
@@ -380,8 +383,9 @@ async function segarkanPeserta(db: Db, token: string, set: SetTp, kelas: KelasSe
     const orang = await pesertaKursus(token, k.id);
     const nims: string[] = [];
     for (const u of orang) {
-      // Teachers (the Asisten, some of them Praktikan too) are not counted.
-      if (!pelajar(u)) continue;
+      // Students only: Teachers are not counted, nor an Asisten enrolled as a
+      // student unless they are also a registered Praktikan.
+      if (!anggotaKelas(u, nimAsisten, nimAda)) continue;
       const nim = nimDari(u) ?? perNama.get(sederhana(u.fullname)) ?? null;
       if (!nim || !nimAda.has(nim)) {
         luar.push({ nim, nama: teksLms(u.fullname), kursus: k.label });

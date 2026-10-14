@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { lmsMenang, tidurDetik } from "../tp";
 import { UNGGAH_MAKS, namaUnggah, pdfUnggah } from "../tp-unggah";
+import { anggotaKelas } from "../lms";
 import {
   folderSemester,
   folderSesi,
@@ -133,5 +134,28 @@ describe("how long the relay's minute timer may sleep", () => {
     const j = { buka: "2026-10-14T13:00:00Z", tutup: "2026-10-17T11:00:00Z" };
     expect(tidurDetik(set({ "2": j }), false, now)).toBe(3600);
     expect(tidurDetik(set({}), false, now)).toBe(6 * 3600);
+  });
+});
+
+describe("who counts as a member of an LMS class", () => {
+  const asisten = new Set(["101022400093", "101022400999"]);
+  const praktikan = new Set(["101022400093", "1032231301"]);
+  const u = (nim: string, ...roles: string[]) => ({
+    id: 1,
+    fullname: "x",
+    idnumber: nim,
+    roles: roles.map((shortname) => ({ shortname })),
+  });
+
+  it("students only, never a Teacher", () => {
+    expect(anggotaKelas(u("1032231301", "student"), asisten, praktikan)).toBe(true);
+    expect(anggotaKelas(u("1032231301", "editingteacher"), asisten, praktikan)).toBe(false);
+    expect(anggotaKelas(u("1102202612", "student"), asisten, praktikan)).toBe(true);
+  });
+
+  it("an Asisten only when also a registered Praktikan", () => {
+    expect(anggotaKelas(u("101022400093", "student"), asisten, praktikan)).toBe(true);
+    expect(anggotaKelas(u("101022400093", "editingteacher"), asisten, praktikan)).toBe(false);
+    expect(anggotaKelas(u("101022400999", "student"), asisten, praktikan)).toBe(false);
   });
 });

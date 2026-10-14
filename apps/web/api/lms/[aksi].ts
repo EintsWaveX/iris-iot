@@ -55,12 +55,13 @@ import {
   rosterSlot,
   tpKiriman,
 } from "../../src/lib/schema.js";
-import { keadaanJendela, modulTugas, tanggalSama } from "../../src/lib/tp.js";
+import { JEDA_SINKRON_MS, keadaanJendela, modulTugas, tanggalSama } from "../../src/lib/tp.js";
 import {
   LmsGalat,
   berkasDari,
   kirimanTugas,
   nimDari,
+  anggotaKelas,
   pelajar,
   teksLms,
   tugasKursus,
@@ -144,7 +145,6 @@ const iso = (detik: number) => (detik > 0 ? new Date(detik * 1000).toISOString()
 const detik = (s: string) => Math.floor(Date.parse(s) / 1000);
 
 /** The Orange Pi syncs every five minutes while a window is open. */
-const JEDA_SINKRON_MS = 5 * 60_000;
 /** Group and activity counts are read again after this. */
 const INFO_SEGAR_MS = 12 * 3_600_000;
 
@@ -496,10 +496,13 @@ async function handleKelasIsi(req: ApiRequest, res: ApiResponse) {
     }
     return res.status(200).json({
       ok: true,
+      // Students only (2026-10-14): Teachers are not the class's members,
+      // and an Asisten counts only when they are also a registered
+      // Praktikan, in the class where they are a student.
       orang: orang
+        .filter((u) => anggotaKelas(u, kodeOf, daftar))
         .map((u) => {
           const nim = nimDari(u);
-          const guru = !pelajar(u);
           const kode = nim ? kodeOf.get(nim) : undefined;
           const terdaftarIni = !!nim && daftar.has(nim);
           const r = nim ? grupOf.get(nim) : undefined;
@@ -507,15 +510,7 @@ async function handleKelasIsi(req: ApiRequest, res: ApiResponse) {
             id: u.id,
             nama: teksLms(u.fullname),
             nim,
-            status: guru
-              ? kode && terdaftarIni
-                ? "keduanya"
-                : kode
-                  ? "asisten"
-                  : "pengajar"
-              : terdaftarIni
-                ? "terdaftar"
-                : "luar",
+            status: kode ? "keduanya" : terdaftarIni ? "terdaftar" : "luar",
             kode: kode ?? null,
             kelompok: r ? { hari: r.hari, slot: r.slot, nomor: r.nomor } : null,
             akses: iso(u.lastcourseaccess ?? 0),

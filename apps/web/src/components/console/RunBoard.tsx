@@ -13,6 +13,7 @@
  *   blank stuck in several groups called out with Announce.
  * - Matrix: groups against blanks, a count per blank and per group.
  */
+import { sejak } from "../../lib/app";
 import { useMemo, useState, type CSSProperties } from "react";
 import {
   ArrowRightIcon,
@@ -164,8 +165,6 @@ export interface GoTo {
   b?: string;
 }
 export type WorkTab = "ringkasan" | "blank" | "nilai" | "anggota";
-
-const menitSejak = (iso: string) => Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
 
 /** A blank stuck in the most groups (wrong and not right), if 2 or more. */
 export function blankMacet(
@@ -329,7 +328,7 @@ export function Counters({
       l: k.hand,
       sub:
         handG && hands[0]
-          ? k.handSub(kelompokLabel(handG.nomor, lang), menitSejak(hands[0][1]))
+          ? k.handSub(kelompokLabel(handG.nomor, lang), sejak(hands[0][1], lang))
           : k.handNone,
       tone: hands.length ? "warn" : undefined,
       act: () => (handG ? go({ g: handG.id, tab: "ringkasan" }) : go({ view: "board" })),

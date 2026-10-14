@@ -6,6 +6,7 @@
  * what IRIS does in the LMS by itself (each can be turned off), what to
  * check, the connection and what IRIS did there lately.
  */
+import SinkronBar from "../tp/SinkronBar";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { CheckCircleIcon } from "@phosphor-icons/react";
@@ -321,15 +322,6 @@ function Kini({ lang, d, onFlip }: { lang: Lang; d: Ringkas; onFlip: () => void 
   });
   const persen = d.peserta ? Math.round((d.masuk / d.peserta) * 100) : 0;
   const belum = Math.max(0, d.peserta - d.masuk);
-  // The next Orange Pi sync: five minutes after the last one, while open.
-  const berikut = d.sinkron.terakhir ? Date.parse(d.sinkron.terakhir) + d.sinkron.jedaMs : null;
-  const sisa = berikut ? Math.max(0, Math.round((berikut - Date.now()) / 1000)) : null;
-  const sinkronTeks =
-    k !== "buka" || sisa === null
-      ? "·"
-      : sisa === 0
-        ? t.sinkronSegera
-        : `${Math.floor(sisa / 60)}:${String(sisa % 60).padStart(2, "0")}`;
   return (
     <section className="panel lms-now" data-fase={k ?? "kosong"}>
       <div className="lms-now__main">
@@ -391,7 +383,13 @@ function Kini({ lang, d, onFlip }: { lang: Lang; d: Ringkas; onFlip: () => void 
         <dl className="lms-mini">
           <div>
             <dt>{t.sinkronBerikut}</dt>
-            <dd className="mono">{sinkronTeks}</dd>
+            <dd>
+              {k === "buka" && d.sinkron.terakhir ? (
+                <SinkronBar terakhir={d.sinkron.terakhir} lang={lang} ringkas />
+              ) : (
+                "·"
+              )}
+            </dd>
           </div>
           <div>
             <dt>{t.kelasSiap}</dt>

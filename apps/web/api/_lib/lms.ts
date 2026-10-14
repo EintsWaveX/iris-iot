@@ -462,6 +462,22 @@ export function pelajar(u: PesertaLms): boolean {
   return !u.roles || u.roles.some((r) => r.shortname === "student");
 }
 
+/**
+ * A member of a class as IRIS counts them (2026-10-14): enrolled as a
+ * student, and not an Asisten unless that Asisten is also a registered
+ * Praktikan (from SeeLabs). An Asisten enrolled as a student in some
+ * class is otherwise not that class's Praktikan.
+ */
+export function anggotaKelas(
+  u: PesertaLms,
+  asisten: { has(nim: string): boolean },
+  praktikan: { has(nim: string): boolean },
+): boolean {
+  if (!pelajar(u)) return false;
+  const nim = nimDari(u);
+  return !nim || !asisten.has(nim) || praktikan.has(nim);
+}
+
 /** A NIM from an LMS user: idnumber first, then a long digit run in the
  *  username or the email. */
 export function nimDari(u: PesertaLms): string | null {

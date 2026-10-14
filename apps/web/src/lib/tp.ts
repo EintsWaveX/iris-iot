@@ -466,3 +466,7 @@ export function pisahJawaban(
   });
   return out;
 }
+
+/** How often IRIS reads the LMS while a TP window is open (2026-10-14: the
+ *  relay's minute timer, the server's heartbeat and opened pages). */
+export const JEDA_SINKRON_MS = 60_000;

@@ -51,9 +51,6 @@ const SH = dict({
     clockBad: (ms: string) => `Jam selisih ${ms}`,
     runReady: "Cek Siap Praktikum",
     konsol: "Konsol PC Server",
-    s: "detik",
-    m: "menit",
-    h: "jam",
   },
   en: {
     up: "UP",
@@ -76,9 +73,6 @@ const SH = dict({
     clockBad: (ms: string) => `Clock ${ms} apart`,
     runReady: "Run the Ready Check",
     konsol: "PC Server Console",
-    s: "seconds",
-    m: "minutes",
-    h: "hours",
   },
   zh: {
     up: "运行",
@@ -101,24 +95,12 @@ const SH = dict({
     clockBad: (ms: string) => `时钟相差 ${ms}`,
     runReady: "上课就绪检查",
     konsol: "PC 服务器控制台",
-    s: "秒",
-    m: "分",
-    h: "小时",
   },
 });
 
-/** "8 dtk", "14 mnt", "46 jam": a heartbeat's age, short. */
 /** "Lokasi, Alamat LAN dan Catatan" in the page language */
 function daftar(items: string[], lang: Lang): string {
   return new Intl.ListFormat(localeOf(lang), { type: "conjunction" }).format(items);
-}
-
-function umurPendek(iso: string | null | undefined, now: number, h: (typeof SH)["id"]): string {
-  if (!iso) return "·";
-  const d = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
-  if (d < 120) return `${d} ${h.s}`;
-  if (d < 7200) return `${Math.round(d / 60)} ${h.m}`;
-  return `${Math.round(d / 3600)} ${h.h}`;
 }
 
 /** "40 ms", "2,1 s", "2 min" for the Pi clock's offset. */
@@ -137,7 +119,7 @@ import Fade from "../ui/Fade";
 import Tooltip from "../ui/Tooltip";
 import { OfflineBanner } from "../ui/Display";
 import { usePoll } from "../../lib/hooks";
-import { getJson, href, localeOf, useTick } from "../../lib/app";
+import { getJson, href, localeOf, sejak, useTick } from "../../lib/app";
 import { useBatas } from "../../lib/siaran";
 import { perintahHabisPada } from "../../lib/server-shared";
 import type { Lang } from "../../lib/kelas";
@@ -398,7 +380,7 @@ export default function ServerDetail({
               <span className="srv12ring__dot" />
               <b className="mono">{st === "on" ? sh.up : st === "off" ? sh.off : sh.neu}</b>
               <span className="hint">
-                {st === "wait" ? <Nil dot /> : umurPendek(hb?.pada, now, sh)}
+                {st === "wait" || !hb?.pada ? <Nil dot /> : sejak(hb.pada, lang, now)}
               </span>
             </div>
             <div className="s12hero__id">

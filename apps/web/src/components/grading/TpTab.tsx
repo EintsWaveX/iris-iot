@@ -23,6 +23,8 @@ import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
 import { buatZip, simpanBlob } from "../../lib/zip";
 import { TPS } from "../tp/tpStrings";
+import SinkronBar from "../tp/SinkronBar";
+import Lalu from "../ui/Lalu";
 import {
   StatusPill,
   grupStyle,
@@ -361,8 +363,13 @@ function SyncStrip({
         <div className="stack stack--sm grow">
           <b>{t.sinkronOk}</b>
           <span className="hint">
-            {t.sinkronOkHint(s.terakhir ? waktuPanjang(s.terakhir, lang) : t.belumSinkron)}
+            {s.terakhir ? (
+              <Lalu iso={s.terakhir} lang={lang} fmt={t.sinkronOkHint} />
+            ) : (
+              t.sinkronOkHint(t.belumSinkron)
+            )}
           </span>
+          {data.keadaan === "buka" && <SinkronBar terakhir={s.terakhir} lang={lang} ringkas />}
         </div>
         <div className="tpsync__count">
           <b className="mono">
