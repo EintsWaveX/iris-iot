@@ -35,6 +35,7 @@
  * Each move is a history entry, so the browser's Back goes to the previous
  * step before it leaves the module (2026-10-07, user).
  */
+import { hariJam, useTpSaya } from "../tp/shared";
 import {
   useEffect,
   useRef,
@@ -318,7 +319,16 @@ export default function ModuleSteps(p: Props) {
     tangkapan: tangkapanSaya.rows ? tangkapanSaya.rows.length : null,
     huntSelesai: keadaan === "selesai",
   });
-  const boleh = (s: Step) => !langkah || langkah.terbuka(s);
+  // A Praktikan's TP opens with its window (2026-10-14): before that, and
+  // while no window is set, the step is locked.
+  const tpSaya = useTpSaya(adaTp && me?.role === "praktikan", modul);
+  const tpM = tpSaya.data?.modul[0];
+  const tpKunci =
+    me?.role === "praktikan" && !!tpM && tpM.keadaan !== "buka" && tpM.keadaan !== "tutup";
+  const tpAlasan = tpKunci
+    ? TPS[lang].kunciTp(tpM?.jendela ? hariJam(tpM.jendela.buka, lang) : null)
+    : null;
+  const boleh = (s: Step) => (s === "tp" ? !tpKunci : !langkah || langkah.terbuka(s));
   const awal: Step = langkah ? langkah.awal : mode === "now" ? "code" : "modul";
   const [picked, setPicked] = useState(false);
   // The first step to show: the URL's (when it is open), else the first
@@ -333,6 +343,7 @@ export default function ModuleSteps(p: Props) {
 
   const go = (s: Step, paksa = false) => {
     if (!paksa && !boleh(s)) {
+      if (s === "tp" && tpAlasan) return window.Toast?.show(tpAlasan, "info");
       const h = langkah?.penghalang(s);
       if (h) window.Toast?.show(t.stepNeed[h] ?? t.stepLocked(label[h]), "warn");
       return;
@@ -467,9 +478,11 @@ export default function ModuleSteps(p: Props) {
             data-tone={mode === "done" ? "ok" : langkah?.nada(s)}
             data-locked={!boleh(s) ? "yes" : undefined}
             title={
-              !boleh(s) && langkah?.penghalang(s)
-                ? t.stepLocked(label[langkah.penghalang(s)!])
-                : undefined
+              s === "tp" && tpAlasan
+                ? tpAlasan
+                : !boleh(s) && langkah?.penghalang(s)
+                  ? t.stepLocked(label[langkah.penghalang(s)!])
+                  : undefined
             }
             tabIndex={step === s ? 0 : -1}
             onClick={() => go(s)}

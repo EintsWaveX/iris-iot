@@ -119,12 +119,14 @@ function TpPraktikan({ lang, modul, nim }: { lang: Lang; modul: number; nim: str
         <Hero lang={lang} modul={modul} j={m.jendela} k={m.keadaan} />
       </div>
       <div className="stack stack--lg tpgrid__main">
-        {m.keadaan === "belum" ? (
+        {m.keadaan !== "buka" && m.keadaan !== "tutup" ? (
           <section className="panel">
             <StateView
               icon={<LockSimpleIcon size={28} />}
               title={t.soalTersembunyi}
-              body={t.soalTersembunyiBody(hariJam(m.jendela!.buka, lang))}
+              body={
+                m.jendela ? t.soalTersembunyiBody(hariJam(m.jendela.buka, lang)) : t.heroNoneBodyP
+              }
             />
           </section>
         ) : (

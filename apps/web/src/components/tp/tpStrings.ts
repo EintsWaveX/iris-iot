@@ -46,6 +46,10 @@ const id = {
   catatanNim: (akhir: string, genap: boolean, n: number) =>
     `NIM-mu berakhiran ${akhir}, jadi kamu mengerjakan nomor ${genap ? "genap 2, 4, 6 dan 8" : "ganjil 3, 5, 7 dan 9"}, ditambah nomor 1 dan 10. Totalnya ${n} soal.`,
   bukanUntukmu: "Bukan untukmu",
+  heroNoneBodyP:
+    "Soal TP modul ini muncul saat jendelanya dibuka. Asistenmu yang mengatur jadwalnya.",
+  kunciTp: (w: string | null) =>
+    w ? `TP modul ini dibuka ${w}.` : "TP modul ini belum dijadwalkan.",
   soalTersembunyi: "Soal muncul saat jendela dibuka",
   soalTersembunyiBody: (w: string) =>
     `IRIS membuka TP ini sendiri ${w}. Dasbor-mu akan memberi tahu.`,
@@ -601,6 +605,9 @@ const en: TpT = {
   catatanNim: (akhir, genap, n) =>
     `Your NIM ends in ${akhir}, so you answer the ${genap ? "even numbers 2, 4, 6 and 8" : "odd numbers 3, 5, 7 and 9"}, plus 1 and 10. That makes ${n} questions.`,
   bukanUntukmu: "Not yours",
+  heroNoneBodyP:
+    "This module's TP questions appear when its window opens. Your assistants set the schedule.",
+  kunciTp: (w) => (w ? `This module's TP opens ${w}.` : "This module's TP isn't scheduled yet."),
   soalTersembunyi: "The questions appear when the window opens",
   soalTersembunyiBody: (w) =>
     `IRIS opens this TP by itself ${w}. Your Dashboard will let you know.`,
@@ -1095,6 +1102,8 @@ const zh: TpT = {
   catatanNim: (akhir, genap, n) =>
     `你的 NIM 尾数是 ${akhir}，所以你做${genap ? "偶数题 2、4、6、8" : "奇数题 3、5、7、9"}，再加上第 1 题和第 10 题，一共 ${n} 题。`,
   bukanUntukmu: "不是你的题",
+  heroNoneBodyP: "本模块的预习作业题目会在提交时段开放时出现，时间由助教安排。",
+  kunciTp: (w) => (w ? `本模块的预习作业${w}开放。` : "本模块的预习作业还没有安排时间。"),
   soalTersembunyi: "提交时段开放后才会显示题目",
   soalTersembunyiBody: (w) => `IRIS 会在${w}自动开放这份预习作业，仪表盘会通知你。`,
   caraH: "怎么提交",

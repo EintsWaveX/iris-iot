@@ -332,9 +332,10 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       bolehUnggah: !!p && keadaan === "buka",
     };
   });
-  // One module: its final set, shown once the window opens.
-  const paket =
-    satu && keadaanJendela(jendelaUntuk(set, satu)) !== "belum" ? await muatPaket(db, satu) : null;
+  // One module: its final set, only once its window has opened (open or
+  // closed); a module whose window is still ahead or not set yet shows none.
+  const kSatu = satu ? keadaanJendela(jendelaUntuk(set, satu)) : null;
+  const paket = satu && (kSatu === "buka" || kSatu === "tutup") ? await muatPaket(db, satu) : null;
   res.status(200).json({
     ok: true,
     semester: set.semester,
