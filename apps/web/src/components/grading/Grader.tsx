@@ -398,6 +398,12 @@ function Isi({
               )}
             </div>
           )}
+          {k.sumber === "iris" && (
+            <p className="hint grader__src">
+              <b>{t.sumber.iris}</b>
+              {k.salinanLms && t.salinanA[k.salinanLms] ? ` · ${t.salinanA[k.salinanLms]}` : ""}
+            </p>
+          )}
           {k.berkas.length > 1 && (
             <div className="row grader__files" role="group" aria-label={t.pilihBerkas}>
               {k.berkas.map((b) => (

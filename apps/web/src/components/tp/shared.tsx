@@ -49,6 +49,11 @@ export interface TpSayaModul {
   total: number | null;
   dinilaiOleh: string | null;
   tugasUrl: string | null;
+  /** Where the current file came from (2026-10-14), null with no file. */
+  sumber: "lms" | "iris" | null;
+  /** An upload in IRIS: its copy in the LMS (menunggu, terkirim, gagal, tanpa_lms). */
+  salinanLms: string | null;
+  bolehUnggah: boolean;
 }
 
 export interface TpSaya {

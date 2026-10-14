@@ -36,6 +36,7 @@ import {
   tpNilai,
   tpPaket,
   tpSinkronLog,
+  tpUnggah,
   type BerkasTp,
 } from "../../src/lib/schema.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
@@ -496,6 +497,7 @@ async function jalankan(
             nim: tpKiriman.nim,
             dikirimPada: tpKiriman.dikirimPada,
             berkas: tpKiriman.berkas,
+            sumber: tpKiriman.sumber,
           })
           .from(tpKiriman)
           .where(and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m)));
@@ -519,6 +521,10 @@ async function jalankan(
             }));
             const dikirim = new Date(s.timemodified * 1000);
             const r = lama.get(nim);
+            // The newer file wins: an upload in IRIS stays until the LMS
+            // has a later submission (2026-10-14).
+            if (!lmsMenang(r, dikirim)) continue;
+            if (r?.sumber === "iris") await batalkanUnggah(db, set.semester, m, nim);
             if (!r || !r.berkas.length) baru++;
             else if (r.dikirimPada?.getTime() !== dikirim.getTime()) diperbarui++;
             else continue;
@@ -530,6 +536,8 @@ async function jalankan(
               berkas,
               dikirimPada: dikirim,
               sinkronPada: new Date(),
+              sumber: "lms" as const,
+              unggahId: null,
             };
             await db
               .insert(tpKiriman)
@@ -549,8 +557,11 @@ async function jalankan(
               });
           }
         }
-        // A file taken back in the LMS: the pointer goes, the scores stay.
-        const hilang = ada.filter((r) => r.berkas.length && !dilihat.has(r.nim)).map((r) => r.nim);
+        // A file taken back in the LMS: the pointer goes, the scores stay
+        // (an upload in IRIS is not the LMS's to take back).
+        const hilang = ada
+          .filter((r) => r.sumber === "lms" && r.berkas.length && !dilihat.has(r.nim))
+          .map((r) => r.nim);
         if (hilang.length) {
           diperbarui += hilang.length;
           await db
@@ -594,6 +605,33 @@ async function jalankan(
     await siarkan(["tp"]);
     return { ok: false, kode, baru, diperbarui, tanpaNim, durasiMs };
   }
+}
+
+/** Whether an LMS submission made at `dikirim` replaces what IRIS holds:
+ *  nothing yet, an older LMS file, or an older upload in IRIS. */
+export function lmsMenang(
+  r: { sumber: "lms" | "iris"; dikirimPada: Date | null; berkas: unknown[] } | undefined,
+  dikirim: Date,
+): boolean {
+  if (!r || !r.berkas.length) return true;
+  const lama = r.dikirimPada?.getTime() ?? 0;
+  return r.sumber === "iris" ? dikirim.getTime() > lama : dikirim.getTime() !== lama;
+}
+
+/** A newer LMS file replaced an upload in IRIS: a copy not yet in the LMS
+ *  is no longer sent there. */
+async function batalkanUnggah(db: Db, semester: string, modul: number, nim: string) {
+  await db
+    .update(tpUnggah)
+    .set({ lmsStatus: "batal", isi: null })
+    .where(
+      and(
+        eq(tpUnggah.semester, semester),
+        eq(tpUnggah.modul, modul),
+        eq(tpUnggah.nim, nim),
+        inArray(tpUnggah.lmsStatus, ["menunggu", "gagal"]),
+      ),
+    );
 }
 
 /**
@@ -658,7 +696,7 @@ export interface SlotTp {
   kelompok: KelompokTp[];
 }
 
-interface Kursi {
+export interface Kursi {
   hari: number;
   slot: number;
   kelas: string;
@@ -672,7 +710,7 @@ interface Kursi {
 }
 
 /** Each slot's groups and holders for a module's practicum week. */
-async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kursi[]> {
+export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kursi[]> {
   const j = jendelaUntuk(set, modul);
   const hariIni = hariIniWib();
   const rows = await db

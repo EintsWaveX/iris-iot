@@ -66,6 +66,7 @@ import {
   telemetriTerkini,
   lmsPeserta,
   tpKiriman,
+  tpUnggah,
   tpNilai,
   tpSinkronLog,
   transfer,
@@ -173,11 +174,14 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
           .where(inArray(rosterKelompok.semester, lama))
           .returning({ id: rosterKelompok.id }),
       );
-      // Phase 13: TP pointers, scores, typed answers and the LMS roster.
+      // Phase 13: TP pointers, scores, typed answers and the LMS roster; TP
+      // uploaded in IRIS (2026-10-14; the server PC drops its copies when
+      // the semester is gone from its list).
       for (const [nama, t] of [
         ["tpKiriman", tpKiriman],
         ["tpNilai", tpNilai],
         ["lmsPeserta", lmsPeserta],
+        ["tpUnggah", tpUnggah],
       ] as const)
         await kena(nama, tx.delete(t).where(inArray(t.semester, lama)).returning({ id: t.id }));
       // Phase 15: the LMS menu's records that name Praktikan (grades sent to

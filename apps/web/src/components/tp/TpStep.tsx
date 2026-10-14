@@ -5,9 +5,10 @@
  *
  * Praktikan: the window as a track with its countdown, the questions they
  * answer by NIM parity (1 and 10 for everyone, 2 to 9 by parity), how to
- * submit in the LMS, and what IRIS sees of their file; once their group's
- * scores are sent, each question's mark. All read only: TP is answered by
- * hand on paper (the lab's rule) and uploaded to the LMS as one PDF.
+ * submit, and what IRIS sees of their file; once their group's scores are
+ * sent, each question's mark. TP is answered by hand on paper (the lab's
+ * rule) and sent as one PDF: uploaded here (2026-10-14, UnggahTp; the LMS
+ * can refuse a student until the iGracias survey is filled) or in the LMS.
  *
  * Asisten: the final set's questions with who answers them, the keys behind
  * a switch (off by default, warns about the projector), which variants the
@@ -58,6 +59,7 @@ import {
 } from "../../lib/tp";
 import { hariIniWib } from "../../lib/jadwal";
 import { TPS } from "./tpStrings";
+import UnggahTp from "./UnggahTp";
 import {
   Countdown,
   KeadaanPill,
@@ -148,7 +150,7 @@ function TpPraktikan({ lang, modul, nim }: { lang: Lang; modul: number; nim: str
           terakhir={d.sinkron.terakhir}
           onLihat={() => setLihat(true)}
         />
-        <Cara lang={lang} modul={modul} m={m} kursus={d.kursus} />
+        <Cara lang={lang} modul={modul} m={m} kursus={d.kursus} onUnggah={poll.refresh} />
         <div className="panel panel--tight tphelp">
           <QuestionIcon size={20} aria-hidden="true" />
           <p className="hint">{t.bantuan}</p>
@@ -159,7 +161,7 @@ function TpPraktikan({ lang, modul, nim }: { lang: Lang; modul: number; nim: str
           open={lihat}
           onOpenChange={setLihat}
           title={t.berkasmu}
-          description={t.dariLms}
+          description={m.sumber === "iris" ? t.dariIris : t.dariLms}
           storeKey="tp-berkas"
           minWidth={420}
           closeLabel={t.tutup}
@@ -333,16 +335,23 @@ function Milikku({
         <b className="tpfile__n">{berkas.nama}</b>
         <span className="hint">
           {ukuran(berkas.ukuran, lang)}
-          {m.dikirimPada &&
-            m.diambilPada &&
-            ` · ${t.dikirimDiambil(hariJamPendek(m.dikirimPada, lang), jam(m.diambilPada))}`}
+          {m.sumber === "iris"
+            ? m.dikirimPada && ` · ${hariJamPendek(m.dikirimPada, lang)}`
+            : m.dikirimPada &&
+              m.diambilPada &&
+              ` · ${t.dikirimDiambil(hariJamPendek(m.dikirimPada, lang), jam(m.diambilPada))}`}
         </span>
+        {m.sumber && <span className="tpfile__src">{t.sumber[m.sumber]}</span>}
       </div>
       <button type="button" className="btn btn--sm" onClick={onLihat}>
         {t.lihat}
       </button>
     </div>
   );
+  const salinan =
+    m.sumber === "iris" && m.salinanLms && t.salinan[m.salinanLms] ? (
+      <p className="hint">{t.salinan[m.salinanLms]}</p>
+    ) : null;
   let body: ReactNode;
   if (st === "nilai" && m.skor) {
     const per = Object.fromEntries(Object.entries(m.skor).map(([k, v]) => [Number(k), v.skor]));
@@ -383,6 +392,7 @@ function Milikku({
         />
         <h3 className="tpstate__h">{st === "telat" ? t.telatH : t.masukH}</h3>
         {fileRow}
+        {salinan}
         <p className="hint">{st === "telat" ? t.telatBody : t.masukBody}</p>
       </>
     );
@@ -413,11 +423,13 @@ function Cara({
   modul,
   m,
   kursus,
+  onUnggah,
 }: {
   lang: Lang;
   modul: number;
   m: TpSayaModul;
   kursus: { label: string; url: string } | null;
+  onUnggah: () => void;
 }) {
   const t = TPS[lang];
   const buka = m.keadaan === "buka" || m.keadaan === null;
@@ -439,17 +451,25 @@ function Cara({
         <li>
           <span>2</span>
           <div className="stack stack--sm">
-            <p>{kursus ? t.cara2(modul) : t.cara2Tanpa(modul)}</p>
+            <p>{t.cara2Iris}</p>
+            {m.bolehUnggah && (
+              <UnggahTp
+                lang={lang}
+                modul={modul}
+                adaBerkas={m.berkas.length > 0}
+                onSelesai={onUnggah}
+              />
+            )}
             {kursus && <span className="hint tpcourse">{kursus.label}</span>}
             {link && buka ? (
-              <a className="btn btn--primary" href={link} target="_blank" rel="noopener noreferrer">
+              <a className="btn btn--ghost" href={link} target="_blank" rel="noopener noreferrer">
                 {t.kumpulLms}
-                <ArrowSquareOutIcon size={18} aria-hidden="true" />
+                <ArrowSquareOutIcon size={16} aria-hidden="true" className="btn__go" />
               </a>
             ) : (
-              <button type="button" className="btn btn--primary" aria-disabled="true" title={tip}>
+              <button type="button" className="btn btn--ghost" aria-disabled="true" title={tip}>
                 {t.kumpulLms}
-                <ArrowSquareOutIcon size={18} aria-hidden="true" />
+                <ArrowSquareOutIcon size={16} aria-hidden="true" className="btn__go" />
               </button>
             )}
             {tip && <span className="hint">{tip}</span>}
@@ -457,7 +477,7 @@ function Cara({
         </li>
         <li>
           <span>3</span>
-          <p>{t.cara3}</p>
+          <p>{t.cara3Iris}</p>
         </li>
       </ol>
     </section>
@@ -484,6 +504,18 @@ interface ModulTp {
   };
   bolehUbah: boolean;
   bolehLms: boolean;
+  /** Uploads made in IRIS and their LMS copies (2026-10-14). */
+  iris: { jumlah: number; diLms: number; tertunda: number; tanpaLms: number };
+  /** Each server PC's copy of the TP files, as its agent last reported. */
+  cermin: {
+    serverId: number;
+    akar: string;
+    berkas: number;
+    ukuran: number;
+    pada: string | null;
+    galat: string | null;
+    dilihat: string;
+  }[];
 }
 
 function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
@@ -659,6 +691,7 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
           </span>
           <CaretRightIcon size={18} aria-hidden="true" />
         </a>
+        <SalinanBerkas lang={lang} d={d} />
         <section className="panel">
           <h2 className="panel__title">{t.terkumpulPerKelas}</h2>
           {d.perKursus.length ? (
@@ -701,6 +734,48 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
         onSaved={poll.refresh}
       />
     </div>
+  );
+}
+
+/** Where the files are besides the LMS: uploads made in IRIS with their
+ *  LMS copies, and the server PC's own copy (2026-10-14). */
+function SalinanBerkas({ lang, d }: { lang: Lang; d: ModulTp }) {
+  const t = TPS[lang];
+  const baris = [
+    { l: t.diunggahIris, n: d.iris.jumlah },
+    { l: t.salinanLms, n: d.iris.diLms },
+    ...(d.iris.tertunda ? [{ l: t.lmsTertunda, n: d.iris.tertunda }] : []),
+    ...(d.iris.tanpaLms ? [{ l: t.tanpaKelasLms, n: d.iris.tanpaLms }] : []),
+  ];
+  return (
+    <section className="panel">
+      <h2 className="panel__title">{t.salinanH}</h2>
+      <dl className="tpcopy">
+        {baris.map((b) => (
+          <div key={b.l}>
+            <dt>{b.l}</dt>
+            <dd className="mono">{b.n}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="tpcopy__pc">
+        <span className="label-caps">{t.serverPc}</span>
+        {d.cermin.length ? (
+          d.cermin.map((c) => (
+            <div key={c.serverId} className="stack stack--sm">
+              <b>{t.cerminBerkas(c.berkas, ukuran(c.ukuran, lang))}</b>
+              <span className="hint mono tpcourse">{c.akar}</span>
+              {c.pada && (
+                <span className="hint">{t.cerminTerakhir(waktuPanjang(c.pada, lang))}</span>
+              )}
+              {c.galat && <span className="hint tpcopy__err">{t.cerminGalat(c.galat)}</span>}
+            </div>
+          ))
+        ) : (
+          <p className="hint">{t.cerminBelum}</p>
+        )}
+      </div>
+    </section>
   );
 }
 

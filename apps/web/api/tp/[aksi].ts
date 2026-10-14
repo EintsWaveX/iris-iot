@@ -10,10 +10,15 @@
  *      questions in my class's language (and Mandarin) and the PDF's
  *      instructions. All read only: TP is written by hand on paper.
  * GET  /api/tp/berkas?id=&i=[&unduh=1]       my own file, streamed from the LMS.
+ * POST /api/tp/unggah { modul, isi }   my TP as one PDF (base64, 3 MB at most)
+ *      while the window is open (2026-10-14: the LMS can refuse a student's
+ *      upload until the iGracias survey is filled). The newer of this and
+ *      the LMS submission counts; IRIS puts a copy in the LMS as a feedback
+ *      file (_lib/tp-unggah.ts) and the server PC keeps one too.
  *
  * Asisten:
  * GET  /api/tp/modul?modul=          the module's TP tab: window, counts per
- *      class, the LMS state.
+ *      class, the LMS state, uploads made in IRIS and the server PC's copy.
  * GET  /api/tp/kelompok?modul=       Penilaian › TP: every slot's groups that
  *      module's week, each member's status and total.
  * GET  /api/tp/praktikan?modul=&nim= the grader: one Praktikan's files,
@@ -53,6 +58,7 @@
  * audited; a complete TP's total goes into the session's TP component.
  */
 import { Readable } from "node:stream";
+import { waitUntil } from "@vercel/functions";
 import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, requireMethod } from "../_lib/http.js";
@@ -78,6 +84,7 @@ import {
   kelompok,
   tpKiriman,
   tpNilai,
+  tpUnggah,
 } from "../../src/lib/schema.js";
 import { NILAI_KOMPONEN } from "../../src/lib/nilai-komponen.js";
 import {
@@ -108,7 +115,6 @@ import {
   LMS_URL,
   LmsGalat,
   alamatMasuk,
-  ambilBerkas,
   bacaTempelan,
   bukaToken,
   infoSitus,
@@ -147,6 +153,14 @@ import {
   type TokenSet,
   type TugasTp,
 } from "../_lib/tp.js";
+import {
+  ambilIsiTp,
+  kirimUnggahKeLms,
+  pdfUnggah,
+  terimaUnggah,
+  unggahTerakhir,
+} from "../_lib/tp-unggah.js";
+import { bacaStatusCermin } from "../_lib/tp-cermin.js";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -236,6 +250,22 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
     )
     .where(and(eq(sesiAnggota.nim, s.nim), ne(sesi.jenis, "tot")));
   const terkirim = new Set(kirim.map((k) => k.modul));
+  const unggahan = await db
+    .select({
+      id: tpUnggah.id,
+      modul: tpUnggah.modul,
+      lmsStatus: tpUnggah.lmsStatus,
+      lmsPada: tpUnggah.lmsPada,
+    })
+    .from(tpUnggah)
+    .where(
+      and(
+        eq(tpUnggah.semester, set.semester),
+        eq(tpUnggah.nim, s.nim),
+        inArray(tpUnggah.modul, modul),
+      ),
+    )
+    .orderBy(desc(tpUnggah.id));
   const skorRows = await db
     .select()
     .from(tpNilai)
@@ -285,6 +315,14 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       total: kirimDone && lengkap ? totalTp(per, nomor) : null,
       dinilaiOleh: kirimDone && oleh ? (kodeOf.get(oleh) ?? null) : null,
       tugasUrl: tugas ? `${LMS_URL}/mod/assign/view.php?id=${tugas.cmid}` : null,
+      sumber: k?.berkas.length ? k.sumber : null,
+      // The copy in the LMS of the file uploaded here (feedback file).
+      salinanLms:
+        k?.sumber === "iris"
+          ? (unggahan.find((u) => u.id === k.unggahId)?.lmsStatus ?? null)
+          : null,
+      // Registered and the window is open: the upload card takes a file.
+      bolehUnggah: !!p && keadaan === "buka",
     };
   });
   // One module: its final set, shown once the window opens.
@@ -330,19 +368,17 @@ async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload
   const b = k.berkas[i];
   if (!b) return tolak(res, "tidak_ada", 404);
   const set = await bacaSet(db);
-  const token = set.token ? bukaToken(set.token) : null;
-  if (!token) return tolak(res, "lms_terputus", 503);
   const range = typeof req.headers.range === "string" ? req.headers.range : undefined;
-  let r: Response;
-  try {
-    r = await ambilBerkas(token, b.url, range);
-  } catch (e) {
-    return tolak(res, e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau", 502);
-  }
+  const isi = await ambilIsiTp(db, set, b, range);
+  if (!isi.ok) return tolak(res, isi.kode, isi.status);
+  // An upload in IRIS not yet in the LMS: its bytes, whole.
+  const r =
+    isi.jenis === "lms"
+      ? isi.res
+      : new Response(new Uint8Array(isi.isi), {
+          headers: { "content-type": "application/pdf", "content-length": String(isi.isi.length) },
+        });
   const jenis = r.headers.get("content-type") ?? "";
-  // An expired token answers with an HTML or JSON error page, not the file.
-  if (!r.ok || !r.body || /json|html/i.test(jenis))
-    return tolak(res, r.status === 404 ? "berkas_hilang" : "lms_menolak", 502);
   res.statusCode = r.status;
   // A Praktikan's upload is untrusted: only a PDF or a plain image is shown
   // inline; anything else (an HTML or SVG file) only downloads, typed as
@@ -373,6 +409,22 @@ async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload
   }).catch(() => res.destroy());
 }
 
+/** A Praktikan's TP uploaded here, then its copy to the LMS (after the answer). */
+async function handleUnggah(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const m = modulDari(b.modul);
+  if (!m) return tolak(res, "format_salah");
+  const isi = pdfUnggah(b.isi);
+  if (!isi) return tolak(res, "bukan_pdf");
+  const db = getDb();
+  const set = await bacaSet(db);
+  const r = await terimaUnggah(db, set, s.nim, m, isi);
+  if (!r.ok) return tolak(res, r.kode);
+  if (!r.sama) await writeAudit(s.nim, "tp_unggah", { modul: m, ukuran: isi.length, id: r.id });
+  res.status(200).json({ ok: true, sama: r.sama });
+  if (!r.sama) waitUntil(kirimUnggahKeLms(db, r.id));
+}
+
 /* ================================================================ Asisten */
 
 async function handleModul(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
@@ -383,9 +435,26 @@ async function handleModul(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const set = await bacaSet(db);
   const orang = await muatOrang(s.nim);
   const kiriman = await db
-    .select({ nim: tpKiriman.nim, berkas: tpKiriman.berkas, kursus: tpKiriman.lmsKursus })
+    .select({
+      nim: tpKiriman.nim,
+      berkas: tpKiriman.berkas,
+      kursus: tpKiriman.lmsKursus,
+      sumber: tpKiriman.sumber,
+      unggahId: tpKiriman.unggahId,
+    })
     .from(tpKiriman)
     .where(and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m)));
+  const idIris = kiriman.filter((x) => x.sumber === "iris" && x.unggahId).map((x) => x.unggahId!);
+  const salinan = idIris.length
+    ? await db
+        .select({ status: tpUnggah.lmsStatus })
+        .from(tpUnggah)
+        .where(inArray(tpUnggah.id, idIris))
+    : [];
+  const cermin = Object.entries(await bacaStatusCermin(db)).map(([serverId, c]) => ({
+    serverId: Number(serverId),
+    ...c,
+  }));
   const { per } = await skorModul(db, set.semester, m);
   const dinilai = [...per].filter(([nim, sk]) => tpLengkap(sk, nomorUntuk(nim))).length;
   const kec = nimKecuali(set);
@@ -406,6 +475,14 @@ async function handleModul(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     perKursus,
     hilang: tugasHilang(set, m),
     sinkron: infoSinkron(set),
+    // Files uploaded in IRIS, and how many of their LMS copies are still owed.
+    iris: {
+      jumlah: idIris.length,
+      diLms: salinan.filter((x) => x.status === "terkirim").length,
+      tertunda: salinan.filter((x) => x.status === "menunggu" || x.status === "gagal").length,
+      tanpaLms: salinan.filter((x) => x.status === "tanpa_lms").length,
+    },
+    cermin,
     bolehUbah: !!orang && boleh(orang, "jadwal"),
     bolehLms: !!orang && hakPenuh(orang),
     bolehKelola: !!orang && bolehKelolaLms(orang),
@@ -480,6 +557,11 @@ async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayl
           telatMenit: telatMenit(k.dikirimPada?.toISOString() ?? null, jendela),
           terimaTelat: k.terimaTelat,
           tanda: k.tanda,
+          sumber: k.sumber,
+          salinanLms:
+            k.sumber === "iris"
+              ? ((await unggahTerakhir(db, set.semester, m, nim))?.lmsStatus ?? null)
+              : null,
         }
       : null,
     skor: Object.fromEntries(
@@ -1386,6 +1468,11 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireMethod(req, res, "GET")) return;
     const s = requireRole(req, res, "praktikan");
     return s ? handleSaya(req, res, s) : undefined;
+  }
+  if (aksi === "unggah") {
+    if (!requireMethod(req, res, "POST")) return;
+    const s = requireRole(req, res, "praktikan");
+    return s ? handleUnggah(req, res, s) : undefined;
   }
 
   const s = requireRole(req, res, "asisten");

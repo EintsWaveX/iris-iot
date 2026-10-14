@@ -375,6 +375,8 @@ function isianTugas(r: RencanaTugas): Record<string, string | boolean> {
     alwaysshowdescription: true,
     assignsubmission_file_enabled: true,
     assignsubmission_onlinetext_enabled: false,
+    // A TP uploaded in IRIS goes in as a feedback file (2026-10-14).
+    assignfeedback_file_enabled: true,
     visible: r.tampil ? "1" : "0",
     // No "content changed" mail to every student for IRIS's edits.
     coursecontentnotification: false,
@@ -435,6 +437,18 @@ export async function lampirTugas(web: WebLms, cmid: number, lampiran: number): 
     /modedit\.php/,
     "/course/modedit.php",
     { introattachments: String(lampiran), coursecontentnotification: false },
+    "submitbutton2",
+  );
+  hasilSimpan(jawab);
+}
+
+/** Turns feedback files on, where IRIS puts a TP uploaded in IRIS. */
+export async function nyalakanUmpanBerkas(web: WebLms, cmid: number): Promise<void> {
+  const jawab = await web.kirimForm(
+    `/course/modedit.php?update=${cmid}`,
+    /modedit\.php/,
+    "/course/modedit.php",
+    { assignfeedback_file_enabled: true, coursecontentnotification: false },
     "submitbutton2",
   );
   hasilSimpan(jawab);

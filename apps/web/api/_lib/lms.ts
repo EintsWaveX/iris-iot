@@ -293,8 +293,16 @@ export async function panggil<T>(
     const jalur = relayLms() ? "relay" : "langsung";
     throw new LmsGalat("lms_http", `HTTP ${r.status} ${jalur}: ${teks}`);
   }
-  const d = (await r.json().catch(() => null)) as
-    (T & { exception?: string; errorcode?: string; message?: string }) | null;
+  // A save (mod_assign_save_grade, _grades) answers a bare JSON null.
+  const teks = await r.text().catch(() => "");
+  if (teks.trim() === "null") return null as T;
+  type Jawab = T & { exception?: string; errorcode?: string; message?: string };
+  let d: Jawab | null;
+  try {
+    d = JSON.parse(teks) as Jawab | null;
+  } catch {
+    d = null;
+  }
   if (d === null) throw new LmsGalat("lms_bukan_json", "the LMS answered without JSON");
   if (d && typeof d === "object" && "exception" in d && d.exception) {
     const kode =
@@ -531,4 +539,85 @@ export async function ambilBerkas(token: string, url: string, range?: string): P
   u.pathname = u.pathname.replace(/^\/pluginfile\.php/, "/webservice/pluginfile.php");
   u.searchParams.set("token", token);
   return keLms(u.pathname + u.search, { metode: "GET", range, batasMs: 60_000 });
+}
+
+/* ------------------------------------------- TP uploaded in IRIS (2026-10-14) */
+
+/** Whether an assignment takes feedback files (assignfeedback_file). */
+export async function umpanBerkasNyala(
+  token: string,
+  kursus: number,
+  tugas: number,
+): Promise<boolean> {
+  const d = await panggil<{
+    courses: {
+      assignments: {
+        id: number;
+        configs?: { plugin: string; subtype: string; name: string; value: string }[];
+      }[];
+    }[];
+  }>(token, "mod_assign_get_assignments", { courseids: [kursus] });
+  const a = (d.courses ?? []).flatMap((c) => c.assignments ?? []).find((x) => x.id === tugas);
+  return !!a?.configs?.some(
+    (c) =>
+      c.plugin === "file" &&
+      c.subtype === "assignfeedback" &&
+      c.name === "enabled" &&
+      c.value === "1",
+  );
+}
+
+/** One student's grade in an assignment, -1 when there is none. */
+export async function nilaiSatu(token: string, tugas: number, userid: number): Promise<number> {
+  const d = await panggil<{
+    assignments?: { assignmentid: number; grades?: { userid: number; grade: string }[] }[];
+  }>(token, "mod_assign_get_grades", { assignmentids: [tugas] });
+  const g = d.assignments
+    ?.find((a) => a.assignmentid === tugas)
+    ?.grades?.find((x) => x.userid === userid);
+  const v = Number(g?.grade);
+  return Number.isFinite(v) && v >= 0 ? v : -1;
+}
+
+/**
+ * Puts the draft area's files as a student's feedback files. A Teacher may
+ * not edit another student's submission on Telkom's LMS (no role holds
+ * mod/assign:editothersubmission, checked 2026-10-14), so an IRIS upload
+ * lives here. save_grade always writes the grade too: the current one goes
+ * back unchanged (-1: none).
+ */
+export async function simpanUmpanBerkas(
+  token: string,
+  tugas: number,
+  userid: number,
+  draf: number,
+  nilai: number,
+): Promise<void> {
+  await panggil<null>(token, "mod_assign_save_grade", {
+    assignmentid: tugas,
+    userid,
+    grade: nilai,
+    attemptnumber: -1,
+    addattempt: 0,
+    workflowstate: "",
+    applytoall: 0,
+    plugindata: { files_filemanager: draf },
+  });
+}
+
+/** The student's feedback files as the LMS lists them now. */
+export async function umpanBerkas(
+  token: string,
+  tugas: number,
+  userid: number,
+): Promise<BerkasLms[]> {
+  const d = await panggil<{
+    feedback?: {
+      plugins?: { type: string; fileareas?: { area: string; files?: BerkasLms[] }[] }[];
+    };
+  }>(token, "mod_assign_get_submission_status", { assignid: tugas, userid });
+  return (d.feedback?.plugins ?? [])
+    .filter((p) => p.type === "file")
+    .flatMap((p) => p.fileareas ?? [])
+    .flatMap((a) => a.files ?? []);
 }

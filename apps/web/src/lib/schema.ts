@@ -1650,14 +1650,17 @@ export interface BerkasTp {
   nama: string;
   ukuran: number;
   mime: string;
-  /** The LMS file address without a token (webservice/pluginfile.php/...). */
+  /** The LMS file address without a token (webservice/pluginfile.php/...),
+   *  or "iris:<tp_unggah id>" for a file uploaded in IRIS (2026-10-14). */
   url: string;
 }
 
 /**
- * A Praktikan's TP for one module, as IRIS last saw it in the LMS: pointers
- * only, the file streams from the LMS on view. A row with no LMS fields is
- * an Asisten's mark (tanda "kosong": no submission, scored 0).
+ * A Praktikan's TP for one module, as IRIS last saw it: the newest of their
+ * LMS submission and their IRIS upload (`sumber`). Pointers only, the file
+ * streams from the LMS on view (an IRIS upload from tp_unggah until the
+ * LMS holds its copy). A row with no LMS fields is an Asisten's mark (tanda
+ * "kosong": no submission, scored 0).
  */
 export const tpKiriman = pgTable(
   "tp_kiriman",
@@ -1678,10 +1681,56 @@ export const tpKiriman = pgTable(
     terimaTelat: boolean("terima_telat"),
     tanda: text("tanda", { enum: ["kosong"] }),
     ditandaiOleh: text("ditandai_oleh"),
+    /** Where the newest file came from: the LMS's own submission, or an
+     *  upload in IRIS (tp_unggah, `unggahId`). The newer one wins. */
+    sumber: text("sumber", { enum: ["lms", "iris"] })
+      .notNull()
+      .default("lms"),
+    unggahId: integer("unggah_id"),
   },
   (t) => [
     unique("tp_kiriman_unik").on(t.semester, t.modul, t.nim),
     index("tp_kiriman_modul_idx").on(t.semester, t.modul),
+  ],
+);
+
+/**
+ * A TP file a Praktikan uploaded in IRIS (2026-10-14: the LMS can refuse a
+ * student's upload until they fill the iGracias survey). IRIS puts a copy
+ * in the LMS as a feedback file under that student's grade (no role may
+ * edit another student's submission there). The bytes (base64) stay here
+ * only until the LMS holds that copy; the server PC mirrors every TP file.
+ */
+export const tpUnggah = pgTable(
+  "tp_unggah",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    modul: integer("modul").notNull(),
+    nim: text("nim").notNull(),
+    nama: text("nama").notNull(),
+    ukuran: integer("ukuran").notNull(),
+    sha256: text("sha256").notNull(),
+    /** The PDF, base64; null once the LMS holds the copy. */
+    isi: text("isi"),
+    dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
+    /** menunggu: not in the LMS yet; terkirim: there as a feedback file;
+     *  gagal: the last try failed (tried again); tanpa_lms: the Praktikan is
+     *  in no LMS class; batal: a newer file replaced it first. */
+    lmsStatus: text("lms_status", {
+      enum: ["menunggu", "terkirim", "gagal", "tanpa_lms", "batal"],
+    })
+      .notNull()
+      .default("menunggu"),
+    lmsGalat: text("lms_galat"),
+    lmsCoba: integer("lms_coba").notNull().default(0),
+    lmsPada: timestamp("lms_pada", { withTimezone: true }),
+    /** The feedback file's LMS address (no token), once it is there. */
+    lmsUrl: text("lms_url"),
+  },
+  (t) => [
+    index("tp_unggah_nim_idx").on(t.semester, t.modul, t.nim),
+    index("tp_unggah_lms_idx").on(t.lmsStatus),
   ],
 );
 

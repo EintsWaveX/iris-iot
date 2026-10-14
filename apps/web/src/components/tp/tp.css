@@ -1926,3 +1926,108 @@ button.tpcheck:focus-visible,
 .tpfilter > .seg--fit > button {
   padding-inline: 20px;
 }
+
+/* ---------------------------------------- TP uploaded in IRIS (2026-10-14) */
+.tpfile__src {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.tpup {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.tpup > p {
+  margin: 0;
+}
+.tpup__list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tpup__item {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  padding: 6px 8px 6px 6px;
+}
+.tpup__thumb {
+  background: var(--surface-3);
+  border-radius: var(--radius-sm, 6px);
+  height: 56px;
+  object-fit: cover;
+  width: 44px;
+}
+.tpup__thumb--pdf {
+  color: var(--danger);
+  display: grid;
+  place-items: center;
+}
+.tpup__txt {
+  gap: 0;
+  min-width: 0;
+}
+.tpup__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tpup__act {
+  display: flex;
+  gap: 2px;
+}
+.tpup > .tpup__err {
+  color: var(--danger);
+  font-size: 0.875rem;
+  margin: 0;
+}
+.tpup__foot {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 2fr;
+}
+.tpup__foot .btn {
+  justify-self: stretch;
+}
+.tpcopy {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.tpcopy > div {
+  align-items: baseline;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 6px;
+}
+.tpcopy dt {
+  color: var(--text-muted);
+}
+.tpcopy dd {
+  font-weight: 700;
+  margin: 0;
+}
+.tpcopy__pc {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.tpcopy__pc > p {
+  margin: 0;
+}
+.tpcopy__err {
+  color: var(--danger);
+}
+
+.grader__src {
+  margin: 0;
+}

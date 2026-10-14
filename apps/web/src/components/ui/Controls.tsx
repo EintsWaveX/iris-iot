@@ -801,11 +801,18 @@ export function FileDrop({
   compact,
   onTooBig,
   pick,
+  onFiles,
+  dropLabel,
 }: {
   /** MIME types, e.g. ["application/pdf"], or extensions (".ino"). */
   accept: string[];
   maxBytes: number;
-  onFile: (f: File) => void;
+  onFile?: (f: File) => void;
+  /** Takes several files at once (each checked like one); then onFile is
+   *  not called. */
+  onFiles?: (f: File[]) => void;
+  /** The drop area's own words in place of "Drag a file here". */
+  dropLabel?: string;
   /** Hands an oversized file to the caller (the 413 view) instead of the
    *  inline error. */
   onTooBig?: (f: File) => void;
@@ -826,23 +833,38 @@ export function FileDrop({
     if (pick) inputRef.current?.click();
   }, [pick]);
 
-  function take(f: File | undefined) {
-    if (!f) return;
+  function salah(f: File): string | null {
     const cocok = (x: string) =>
       x.startsWith(".") ? f.name.toLowerCase().endsWith(x) : x === f.type;
-    if (!accept.some(cocok)) return setErr(t.type);
-    if (f.size > maxBytes) {
-      if (onTooBig) return onTooBig(f);
-      return setErr(t.size(mb));
-    }
+    if (!accept.some(cocok)) return t.type;
+    if (f.size > maxBytes) return t.size(mb);
+    return null;
+  }
+
+  function take(f: File | undefined) {
+    if (!f) return;
+    const e = salah(f);
+    if (e === t.size(mb) && onTooBig) return onTooBig(f);
+    if (e) return setErr(e);
     setErr(null);
-    onFile(f);
+    onFile?.(f);
+  }
+
+  function takeAll(list: FileList | null | undefined) {
+    const fs = [...(list ?? [])];
+    if (!fs.length) return;
+    const e = fs.map(salah).find((x) => x);
+    if (e) return setErr(e);
+    setErr(null);
+    onFiles!(fs);
   }
 
   function onDrop(e: DragEvent) {
     e.preventDefault();
     setOver(false);
-    if (!busy) take(e.dataTransfer.files?.[0]);
+    if (busy) return;
+    if (onFiles) takeAll(e.dataTransfer.files);
+    else take(e.dataTransfer.files?.[0]);
   }
 
   return (
@@ -862,18 +884,20 @@ export function FileDrop({
         ref={inputRef}
         type="file"
         accept={accept.join(",")}
+        multiple={!!onFiles}
         className="visually-hidden"
         tabIndex={-1}
         aria-hidden="true"
         onChange={(e) => {
-          take(e.target.files?.[0]);
+          if (onFiles) takeAll(e.target.files);
+          else take(e.target.files?.[0]);
           e.target.value = "";
         }}
       />
       <span className="ctl-drop__icon" aria-hidden="true">
         {busy ? <CircleNotchIcon className="ctl-spin" size={22} /> : <UploadSimpleIcon size={22} />}
       </span>
-      {!compact && <span className="ctl-drop__title">{busy ? t.busy : t.drop}</span>}
+      {!compact && <span className="ctl-drop__title">{busy ? t.busy : (dropLabel ?? t.drop)}</span>}
       <button
         type="button"
         className="btn btn--secondary"

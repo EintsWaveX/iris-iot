@@ -6,6 +6,8 @@
  *                    agenVersi?, infoSistem?, alamatLan?,
  *                    perburuan?, hotspot?, jamPi?, hasilSeelabs? } (heartbeat)
  *                | { serverId, agenKunci, bundel: sha256 }       (fetch, 2026-10-07)
+ *                | { serverId, agenKunci, tpDaftar: true }       (TP mirror list)
+ *                | { serverId, agenKunci, tpUnduh: { id, i } }   (one TP file, bytes)
  *                | { tipe: "bundel_pasang", kode, token, ringkas? } (one-line install)
  *                | { tipe: "pasang_kabar", kode, token, tahap, ulang?, gagal? }
  *                  (the install's progress, for the wizard)
@@ -48,6 +50,11 @@
  * Pi's) becomes kondisi.selisihDetik, so a Pi with a wrong clock is shown
  * as such and its Konsol still gets the full time.
  *
+ * The TP mirror (2026-10-14): an agent that sends `tpCermin` (its folder,
+ * counts and the stamp it last saw) gets `tpCermin.segarkan` when a TP file
+ * changed since, then asks for the list (`tpDaftar`) and fetches each new
+ * file (`tpUnduh`, the raw bytes). See _lib/tp-cermin.ts.
+ *
  * The Updates card (2026-10-07): CI publishes the signed bundle here, and
  * the agent fetches it here when someone presses Update (see
  * _lib/bundel.ts). Both ride this route for the same 12-function cap.
@@ -58,7 +65,15 @@ import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
 import { waitUntil } from "@vercel/functions";
-import { sinkronBilaPerlu } from "../_lib/tp.js";
+import { Readable } from "node:stream";
+import { bacaSet, sinkronBilaPerlu } from "../_lib/tp.js";
+import { ambilIsiTp, kirimTertunda } from "../_lib/tp-unggah.js";
+import {
+  daftarCermin,
+  saringCermin,
+  simpanStatusCermin,
+  stempelCermin,
+} from "../_lib/tp-cermin.js";
 import { otomatisLmsBilaPerlu } from "../_lib/lms-otomatis.js";
 import { adaTugasRobot, ambilTugas, harianBilaPerlu, terimaHasil } from "../_lib/seelabs-robot.js";
 import { kirimRelay } from "../_lib/aliran.js";
@@ -68,7 +83,7 @@ import { catatKabar } from "../_lib/pasang.js";
 import type { Topik } from "../../src/lib/siaran-topik.js";
 import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { getDb } from "../../src/lib/db.js";
-import { server, denyut, perintah } from "../../src/lib/schema.js";
+import { server, denyut, perintah, tpKiriman } from "../../src/lib/schema.js";
 import {
   consumeEnrollToken,
   generateAgentKey,
@@ -237,6 +252,16 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
     await terimaLaporanKonsol(serverId, body.konsol);
     if (Array.isArray(body.konsol) && body.konsol.length) berubah.add("server");
 
+    // The TP mirror's report, and whether a TP file changed since its stamp.
+    const cermin = saringCermin(body.tpCermin);
+    let cerminSegarkan = false;
+    if (cermin) {
+      if (await simpanStatusCermin(db, serverId, cermin)) berubah.add("tp");
+      const stempelPc = (body.tpCermin as { stempel?: unknown }).stempel;
+      cerminSegarkan =
+        (await stempelCermin(db)) !== (typeof stempelPc === "string" ? stempelPc : null);
+    }
+
     // Phase 14: the SeeLabs robot's results, then its next jobs (only for
     // the approved robot Pi; every other server gets none).
     await terimaHasil(db, serverId, body.hasilSeelabs);
@@ -324,6 +349,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       waktu: Date.now() / 1000,
       ...(jadwal ? { jadwal } : {}),
       ...(tugasSeelabs.length ? { seelabs: tugasSeelabs } : {}),
+      ...(cermin ? { tpCermin: { segarkan: cerminSegarkan } } : {}),
     });
     // After the answer, kept alive with waitUntil: awaited after the response
     // alone, the instance froze and the TP sync's LMS calls only timed out at
@@ -336,6 +362,8 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         // open (every 5 minutes at most) and once after it closes. The Pi
         // never sees the LMS token; this runs here, after the beat is answered.
         await sinkronBilaPerlu(db, "pi", 5 * 60_000);
+        // TP uploaded in IRIS whose copy to the LMS failed: tried again.
+        await kirimTertunda(db);
         // Phase 14: the robot's daily KLP pull and Input Jaga check.
         await harianBilaPerlu(db);
         // Phase 15: scheduled announcements and the LMS automations that
@@ -370,6 +398,8 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (typeof body.token === "string") return handleDaftar(req, res);
   if (typeof body.bundel === "string") return handleUnduh(res, body);
+  if (body.tpDaftar === true) return handleCerminDaftar(res, body);
+  if (isPlainObject(body.tpUnduh)) return handleCerminUnduh(res, body);
   return handleDenyut(req, res);
 }
 
@@ -397,6 +427,67 @@ async function handleUnduh(res: ApiResponse, body: Record<string, unknown>) {
   const r = await ambilBundel(String(body.bundel));
   if (typeof r === "string") res.status(200).json({ ok: false, kode: r });
   else res.status(200).json({ ok: true, ...r });
+}
+
+/** An agent's own key, or the refusal already sent. */
+async function agenSah(res: ApiResponse, body: Record<string, unknown>): Promise<boolean> {
+  const serverId = Number(body.serverId);
+  const agenKunci = typeof body.agenKunci === "string" ? body.agenKunci : "";
+  if (!Number.isInteger(serverId) || serverId <= 0 || !agenKunci) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return false;
+  }
+  if (!(await verifyAgentKey(serverId, agenKunci))) {
+    res.status(401).json({ ok: false, kode: "kunci_tidak_sah" });
+    return false;
+  }
+  return true;
+}
+
+/** The TP mirror's list (2026-10-14). */
+async function handleCerminDaftar(res: ApiResponse, body: Record<string, unknown>) {
+  if (!(await agenSah(res, body))) return;
+  res.status(200).json({ ok: true, ...(await daftarCermin(getDb())) });
+}
+
+/** One TP file's bytes for the mirror: JSON only when it can't be had. */
+async function handleCerminUnduh(res: ApiResponse, body: Record<string, unknown>) {
+  if (!(await agenSah(res, body))) return;
+  const q = body.tpUnduh as Record<string, unknown>;
+  const id = Number(q.id);
+  const i = Number(q.i ?? 0);
+  if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(i) || i < 0) {
+    res.status(200).json({ ok: false, kode: "format_salah" });
+    return;
+  }
+  const db = getDb();
+  const [k] = await db.select().from(tpKiriman).where(eq(tpKiriman.id, id)).limit(1);
+  const b = k?.berkas[i];
+  if (!b) {
+    res.status(404).json({ ok: false, kode: "tidak_ada" });
+    return;
+  }
+  const isi = await ambilIsiTp(db, await bacaSet(db), b);
+  if (!isi.ok) {
+    res.status(isi.status).json({ ok: false, kode: isi.kode });
+    return;
+  }
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader("Cache-Control", "no-store");
+  if (isi.jenis === "iris") {
+    res.setHeader("Content-Length", String(isi.isi.length));
+    res.status(200).end(isi.isi);
+    return;
+  }
+  const panjang = isi.res.headers.get("content-length");
+  if (panjang) res.setHeader("Content-Length", panjang);
+  res.statusCode = 200;
+  await new Promise<void>((ok, gagal) => {
+    const src = Readable.fromWeb(isi.res.body as import("node:stream/web").ReadableStream);
+    src.on("error", gagal);
+    res.on("close", () => ok());
+    src.pipe(res);
+  }).catch(() => res.destroy());
 }
 
 function numOrNull(value: unknown): number | null {

@@ -158,6 +158,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "tp:lms": ["tp"],
   "tp:lms-tugas": ["tp"],
   "tp:kecuali": ["tp"],
+  "tp:unggah": ["tp"],
   // Phase 15 (api/lms/[aksi].ts): the LMS menu's writes. Grades also move
   // Penilaian's LMS marks; the rest only the LMS menu shows.
   "lms:otomatis": ["lms"],

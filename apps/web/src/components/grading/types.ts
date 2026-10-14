@@ -79,6 +79,9 @@ export interface DetailPraktikan {
     telatMenit: number | null;
     terimaTelat: boolean | null;
     tanda: "kosong" | null;
+    /** Uploaded in IRIS or from the LMS (2026-10-14), and the IRIS file's LMS copy. */
+    sumber: "lms" | "iris";
+    salinanLms: string | null;
   } | null;
   skor: Record<string, { skor: number; catatan: string | null; oleh: string }>;
   boleh: boolean;

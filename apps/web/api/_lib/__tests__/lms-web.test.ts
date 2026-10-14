@@ -30,6 +30,11 @@ const dunia = {
   dibuka: 0,
   /** draft item id -> the uploaded file's name and size */
   draf: new Map<number, { nama: string; ukuran: number; jenis: string }>(),
+  /** TP uploaded in IRIS: assignment 101169's feedback files and grades */
+  umpanNyala: false,
+  nilai: new Map<number, number>(),
+  umpan: new Map<number, number>(),
+  simpanNilai: [] as URLSearchParams[],
 };
 const ADD = fx("lms-modedit-add.html");
 const UPDATE = fx("lms-modedit-update.html");
@@ -87,6 +92,77 @@ beforeAll(async () => {
             JSON.stringify({
               key,
               autologinurl: "https://lms.example/admin/tool/mobile/autologin.php",
+            }),
+          );
+        }
+        const fn = f.get("wsfunction");
+        if (fn === "mod_assign_get_assignments")
+          return res.end(
+            JSON.stringify({
+              courses: [
+                {
+                  id: 9614,
+                  assignments: [
+                    {
+                      id: 101169,
+                      configs: [
+                        {
+                          plugin: "file",
+                          subtype: "assignfeedback",
+                          name: "enabled",
+                          value: dunia.umpanNyala ? "1" : "0",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            }),
+          );
+        if (fn === "mod_assign_get_grades")
+          return res.end(
+            JSON.stringify({
+              assignments: [
+                {
+                  assignmentid: 101169,
+                  grades: [...dunia.nilai].map(([userid, g]) => ({ userid, grade: g.toFixed(5) })),
+                },
+              ],
+            }),
+          );
+        if (fn === "mod_assign_save_grade") {
+          dunia.simpanNilai.push(f);
+          const u = Number(f.get("userid"));
+          dunia.nilai.set(u, Number(f.get("grade")));
+          if (dunia.umpanNyala && f.get("plugindata[files_filemanager]"))
+            dunia.umpan.set(u, Number(f.get("plugindata[files_filemanager]")));
+          return res.end("null");
+        }
+        if (fn === "mod_assign_get_submission_status") {
+          const d = dunia.draf.get(dunia.umpan.get(Number(f.get("userid"))) ?? -1);
+          return res.end(
+            JSON.stringify({
+              feedback: {
+                plugins: [
+                  {
+                    type: "file",
+                    fileareas: [
+                      {
+                        area: "feedback_files",
+                        files: d
+                          ? [
+                              {
+                                filename: d.nama,
+                                filesize: d.ukuran,
+                                fileurl: `https://lms.example/webservice/pluginfile.php/1/assignfeedback_file/feedback_files/5/${d.nama}?token=x`,
+                              },
+                            ]
+                          : [],
+                      },
+                    ],
+                  },
+                ],
+              },
             }),
           );
         }
@@ -281,6 +357,8 @@ describe("the web session against a fake LMS", () => {
     expect(t.isi.get("duedate[day]")).toBe("17");
     expect(t.isi.has("cutoffdate[enabled]")).toBe(false);
     expect(t.isi.get("assignsubmission_file_enabled")).toBe("1");
+    // where a TP uploaded in IRIS goes (2026-10-14)
+    expect(t.isi.get("assignfeedback_file_enabled")).toBe("1");
 
     await web.ubahTugas(w, cmid!, { ...RENCANA, tutup: "2026-10-18T11:00:00.000Z", tampil: false });
     expect(dunia.tugas.get(cmid!)!.isi.get("duedate[day]")).toBe("18");
@@ -342,6 +420,41 @@ describe("the web session against a fake LMS", () => {
     expect(isi.has("coursecontentnotification")).toBe(false);
     expect(isi.get("name")).toBe("TP Modul 1");
     expect(isi.get("introeditor[text]")).toMatch(/^<p>Tugas Pendahuluan Modul 1\./);
+  });
+
+  it("puts a TP uploaded in IRIS in as the student's feedback file", async () => {
+    const tok = "t".repeat(32);
+    // An assignment made before 2026-10-14: feedback files off, then on
+    dunia.umpanNyala = false;
+    expect(await lms.umpanBerkasNyala(tok, 9614, 101169)).toBe(false);
+    const w = new web.WebLms(tok, "p".repeat(64), 74004, penyimpan().simpan);
+    const cmid = (await web.buatTugas(w, 1, RENCANA))!;
+    await web.nyalakanUmpanBerkas(w, cmid);
+    const isi = dunia.tugas.get(cmid)!.isi;
+    expect(isi.getAll("assignfeedback_file_enabled").at(-1)).toBe("1");
+    expect(isi.has("coursecontentnotification")).toBe(false);
+    dunia.umpanNyala = true;
+    expect(await lms.umpanBerkasNyala(tok, 9614, 101169)).toBe(true);
+
+    // No grade yet: -1 goes back, so save_grade leaves it ungraded
+    expect(await lms.nilaiSatu(tok, 101169, 9003)).toBe(-1);
+    const draf = await lms.unggahDraf(
+      tok,
+      "TP_Modul_1_1032231301.pdf",
+      new TextEncoder().encode("%PDF-x"),
+    );
+    // save_grade answers a bare null: not an error
+    await lms.simpanUmpanBerkas(tok, 101169, 9003, draf, -1);
+    const kirim = dunia.simpanNilai.at(-1)!;
+    expect(kirim.get("grade")).toBe("-1");
+    expect(kirim.get("plugindata[files_filemanager]")).toBe(String(draf));
+    expect((await lms.umpanBerkas(tok, 101169, 9003)).map((x) => x.filename)).toEqual([
+      "TP_Modul_1_1032231301.pdf",
+    ]);
+
+    // A grade already given goes back unchanged
+    dunia.nilai.set(9003, 85);
+    expect(await lms.nilaiSatu(tok, 101169, 9003)).toBe(85);
   });
 
   it("a deleted assignment's form answers lms_tidak_ada", async () => {
