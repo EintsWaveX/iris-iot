@@ -286,7 +286,7 @@
   border-radius: var(--radius-md);
   column-gap: 14px;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) minmax(150px, max-content);
+  grid-template-columns: minmax(40px, max-content) minmax(0, 1fr) minmax(150px, max-content);
   padding: 12px 14px;
   row-gap: 10px;
 }
@@ -393,7 +393,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .slr-item {
-    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-columns: minmax(36px, max-content) minmax(0, 1fr);
     padding: 12px;
   }
   .slr-item__end {

@@ -10,6 +10,8 @@
   display: inline-flex;
   font: 700 0.76rem/1 var(--font-body);
   gap: 6px;
+  /* centred even when a narrow column holds it to less than its words */
+  justify-content: center;
   letter-spacing: 0.07em;
   max-width: 100%;
   min-height: 26px;
@@ -29,7 +31,7 @@
   font-family: var(--font-mono);
   font-weight: 600;
   letter-spacing: 0.02em;
-  padding-inline: 12px;
+  padding-inline: 9px;
   text-transform: none;
 }
 

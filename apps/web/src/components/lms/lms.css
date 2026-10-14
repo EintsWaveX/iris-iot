@@ -849,9 +849,9 @@
 /* Every class's progress: one row each (class, bar, count, share, what is
    left), two columns where they fit; a hairline between rows. */
 .lms-prog {
-  column-gap: 36px;
+  column-gap: 48px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   list-style: none;
   margin: 0;
   overflow: hidden;
@@ -915,6 +915,13 @@
 }
 .lms-prog > li[data-tanpa] .lms-prog__note {
   color: var(--warn);
+}
+/* Two columns from 900, a hairline down the middle of the gap between them */
+@media (min-width: 900px) {
+  .lms-prog {
+    background: linear-gradient(var(--hairline), var(--hairline)) center / 1px 100% no-repeat;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 519px) {
   .lms-prog > li {
