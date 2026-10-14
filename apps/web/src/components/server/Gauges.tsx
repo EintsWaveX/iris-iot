@@ -14,7 +14,7 @@ import { useSegar } from "../../lib/siaran";
 import { unduhCsv } from "../../lib/csv";
 import { durasiLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
-import { bacaKondisi } from "../../lib/server-shared";
+import { bacaKondisi, jamServer } from "../../lib/server-shared";
 import ZoomChart, { useZoom } from "./ZoomChart";
 import { angka, laju, WARN_CPU, WARN_TEMP, type Denyut, type Detail, type Riwayat } from "./data";
 import { S } from "./strings";
@@ -274,7 +274,8 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
     sub: net ? t.netIo(net.antarmuka, laju(net.masuk, lang), laju(net.keluar, lang)) : t.noData,
   });
   const up = hb?.uptimeSec ?? null;
-  const ms = k?.jamSelisihMs;
+  // The site's own measure first (chrony serving its own clock reads 0 ms)
+  const ms = jamServer(k).ms;
 
   return (
     <section className="panel">
@@ -317,8 +318,14 @@ export default function Gauges({ lang, data }: { lang: Lang; data: Detail }) {
           <span className="hint">
             {[
               up ? t.bootAt(bootLabel(up, lang)) : "",
-              ms !== null && ms !== undefined
-                ? t.clockOff(`${ms >= 0 ? "+" : ""}${angka(ms, lang, 1)}`)
+              ms !== null
+                ? t.clockOff(
+                    `${ms >= 0 ? "+" : "-"}${
+                      Math.abs(ms) >= 1000
+                        ? `${Math.round(Math.abs(ms) / 1000)} s`
+                        : `${angka(Math.abs(ms), lang, 1)} ms`
+                    }`,
+                  )
                 : "",
             ]
               .filter(Boolean)
