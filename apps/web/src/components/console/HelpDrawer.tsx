@@ -13,7 +13,7 @@ import { CaretDownIcon, CaretUpIcon, MagnifyingGlassIcon } from "@phosphor-icons
 import Drawer from "../ui/Drawer";
 import Pill from "../ui/Pill";
 import { dict, getJson, href, postJson, useTick } from "../../lib/app";
-import { kelompokLabel } from "../../lib/labels";
+import { kelompokLabel, laluLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import { useSiaran, useSiaranStatus } from "../../lib/siaran";
 import { sendCommand, svcTone } from "../server/ops";
@@ -38,7 +38,7 @@ const HD = dict({
       relayOk: "terhubung",
       relayBad: "terputus, data diambil berkala",
       pi: "Pi",
-      piOk: (s: number) => `denyut ${s} detik lalu`,
+      piOk: (s: number) => `denyut ${laluLabel(s, "id")}`,
       piBad: "tidak ada denyut",
       piNone: "belum ada server",
       svc: "Layanan",
@@ -157,7 +157,7 @@ const HD = dict({
       relayOk: "connected",
       relayBad: "down, data polled instead",
       pi: "Pi",
-      piOk: (s: number) => `beat ${s} seconds ago`,
+      piOk: (s: number) => `beat ${laluLabel(s, "en")}`,
       piBad: "no heartbeat",
       piNone: "no server yet",
       svc: "Services",
@@ -274,7 +274,7 @@ const HD = dict({
       relayOk: "已连接",
       relayBad: "已断开，改为定时拉取",
       pi: "Pi",
-      piOk: (s: number) => `${s} 秒前有心跳`,
+      piOk: (s: number) => `${laluLabel(s, "zh")}有心跳`,
       piBad: "没有心跳",
       piNone: "还没有服务器",
       svc: "服务",

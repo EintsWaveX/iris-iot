@@ -5,6 +5,7 @@
  * (ZoomChart, one panel per measure, never two scales on one plot) and the
  * newest readings, with a CSV of the same rows.
  */
+import { DownloadSimpleIcon } from "@phosphor-icons/react";
 import { useMemo, type ReactNode } from "react";
 import Dialog from "../ui/Dialog";
 import ZoomChart, { useZoom, type Panel, type Titik } from "../server/ZoomChart";
@@ -248,6 +249,7 @@ export default function DataModal({
       lang={lang}
       alt={
         <button type="button" className="btn btn--ghost" onClick={unduh} disabled={!baris.length}>
+          <DownloadSimpleIcon size={16} weight="bold" aria-hidden="true" />
           {t.csv}
         </button>
       }

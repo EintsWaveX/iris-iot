@@ -161,8 +161,16 @@
   border-bottom: 1px solid var(--hairline-faint, var(--hairline));
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  padding: 10px 0;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 12px 0;
+}
+/* An event: its name and state on top, the two cells under */
+.lms-ext--when > li {
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 8px;
+}
+.lms-ext--when > li > .lms-when {
+  grid-column: 1 / -1;
 }
 .lms-ext > li:last-child {
   border-bottom: 0;
@@ -171,14 +179,14 @@
   justify-self: start;
 }
 @media (max-width: 639px) {
-  .lms-ext > li {
+  .lms-ext:not(.lms-ext--when) > li {
     grid-template-columns: minmax(0, 1fr) auto;
   }
-  .lms-ext > li > :nth-child(2) {
+  .lms-ext:not(.lms-ext--when) > li > :nth-child(2) {
     grid-column: 1;
     grid-row: 2;
   }
-  .lms-ext > li > :nth-child(3) {
+  .lms-ext:not(.lms-ext--when) > li > :nth-child(3) {
     grid-column: 2;
     grid-row: 1 / span 2;
   }
@@ -268,39 +276,113 @@
   min-height: 44px;
 }
 
-/* Assignments across classes */
+/* Assignments across classes: the name, when it opens and closes, its
+   state and Rincian, a hairline between rows */
 .lms-tgs > li {
   align-items: center;
-  border: 1px solid transparent;
+  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
   border-radius: var(--radius-md);
+  column-gap: 20px;
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  padding: 12px;
+  grid-template-areas: "name when pill btn";
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto auto;
+  padding: 14px 12px;
+  row-gap: 10px;
 }
-.lms-tgs > li + li {
-  margin-top: 6px;
+.lms-tgs > li:last-child {
+  border-bottom: 0;
 }
 .lms-tgs > li[aria-selected="true"] {
   background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  border-bottom-color: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
-.lms-tgs .pill {
-  white-space: nowrap;
+.lms-tgs__name {
+  display: grid;
+  gap: 4px;
+  grid-area: name;
+  min-width: 0;
 }
-@media (max-width: 639px) {
+.lms-tgs__name > b {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lms-tgs > li > .lms-when,
+.lms-tgs > li > .hint {
+  grid-area: when;
+}
+.lms-tgs > li > .pill {
+  grid-area: pill;
+}
+.lms-tgs > li > .btn {
+  grid-area: btn;
+}
+@media (max-width: 899px) {
   .lms-tgs > li {
+    grid-template-areas:
+      "name pill btn"
+      "when when when";
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+}
+@media (max-width: 519px) {
+  .lms-tgs > li {
+    grid-template-areas:
+      "name btn"
+      "when when"
+      "pill pill";
     grid-template-columns: minmax(0, 1fr) auto;
   }
-  .lms-tgs > li > .pill {
-    grid-column: 1;
-    grid-row: 2;
-    justify-self: start;
-  }
-  .lms-tgs > li > :last-child {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
+}
+
+/* When something starts and ends: two labelled cells, a hairline between */
+.lms-when {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+.lms-when > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.lms-when > div + div {
+  border-left: 1px solid var(--hairline);
+  padding-left: 14px;
+}
+.lms-when > div:first-child {
+  padding-right: 14px;
+}
+.lms-when dt {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.lms-when dd {
+  color: var(--text-muted);
+  display: grid;
+  font-size: 0.86rem;
+  margin: 0;
+}
+.lms-when dd > b {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A line of facts: words, then a code chip */
+.lms-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.lms-meta .pill {
+  min-height: 22px;
 }
 
 /* A date and its time on one row; the time field keeps its width */
@@ -525,19 +607,33 @@
 .lms-mods > .panel {
   align-content: space-between;
 }
-.lms-mat > li {
-  align-items: center;
+/* A module's two facts: a small label over each value */
+.lms-mat > div {
   border-bottom: 1px solid var(--hairline-faint, var(--hairline));
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  min-height: 40px;
-  padding: 6px 0;
+  display: grid;
+  gap: 3px;
+  padding: 10px 0;
 }
-.lms-mat > li:last-child {
+.lms-mat > div:last-child {
   border-bottom: 0;
 }
+.lms-mat dt {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.lms-mat dd {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
 .lms-mat__url {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+  justify-self: start;
   overflow-wrap: anywhere;
 }
 
@@ -556,10 +652,13 @@
   border-color: color-mix(in srgb, var(--ok) 35%, var(--hairline));
 }
 .lms-now__main {
-  align-content: start;
+  align-content: center;
+  align-self: stretch;
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  justify-items: center;
   min-width: 0;
+  text-align: center;
 }
 .lms-now__lbl {
   align-items: center;
@@ -586,7 +685,60 @@
   gap: 10px;
 }
 .lms-now .cdown {
-  justify-content: flex-start;
+  justify-content: center;
+}
+/* Bigger tiles, the digits in the kit's moving rainbow (each group a step
+   further along it); under three hours to the close they turn warning. */
+.lms-now__count .cdown__d b {
+  background-clip: text, padding-box;
+  background-image: var(--sweep), linear-gradient(var(--surface-2), var(--surface-2));
+  background-size:
+    300% 100%,
+    auto;
+  -webkit-background-clip: text, padding-box;
+  color: transparent;
+  font-size: 2.5rem;
+  height: 72px;
+  width: 52px;
+}
+.lms-now__count .cdown__sep {
+  font-size: 1.9rem;
+  line-height: 72px;
+}
+:root:not([data-motion-tier="0"]) .lms-now__count .cdown__d b {
+  animation: kit-sweep 9s linear infinite;
+}
+.lms-now__count .cdown__g:nth-child(3) b {
+  animation-delay: -1.5s;
+}
+.lms-now__count .cdown__g:nth-child(5) b {
+  animation-delay: -3s;
+}
+.lms-now__count .cdown__g:nth-child(7) b {
+  animation-delay: -4.5s;
+}
+.lms-now__count[data-mepet] .cdown__d b {
+  animation: none;
+  background-image: none;
+  background-color: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+  color: var(--warn);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lms-now__count .cdown__d b {
+    animation: none;
+  }
+}
+@media (max-width: 519px) {
+  .lms-now__count .cdown__d b {
+    font-size: 1.8rem;
+    height: 56px;
+    width: 40px;
+  }
+  .lms-now__count .cdown__sep {
+    font-size: 1.4rem;
+    line-height: 56px;
+  }
 }
 @media (max-width: 899px) {
   .lms-now {
@@ -673,7 +825,7 @@
   border-color: color-mix(in srgb, var(--ok) 45%, transparent);
 }
 @starting-style {
-  .lms-arr > li {
+  .lms-arr > li[data-baru] {
     opacity: 0;
     transform: translateY(-6px);
   }
@@ -694,39 +846,84 @@
   }
 }
 
-/* Every class's progress; flex, so the last row grows to the edge */
-.lms-heat {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+/* Every class's progress: one row each (class, bar, count, share, what is
+   left), two columns where they fit; a hairline between rows. */
+.lms-prog {
+  column-gap: 36px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
   list-style: none;
   margin: 0;
+  overflow: hidden;
   padding: 0;
 }
-.lms-heat > li {
+.lms-prog > li {
   align-items: center;
-  background: var(--surface-1);
-  border: 1px solid var(--hairline-faint, var(--hairline));
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
+  column-gap: 14px;
   display: grid;
-  flex: 1 1 150px;
-  gap: 6px 8px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-width: 0;
-  padding: 10px 12px;
+  grid-template-areas:
+    "k bar n p"
+    ". note note note";
+  grid-template-columns: 11ch minmax(0, 1fr) 5.5rem 3.2rem;
+  margin-bottom: -1px;
+  padding: 12px 2px;
+  row-gap: 4px;
 }
-.lms-heat b {
-  white-space: nowrap;
+.lms-prog__k {
+  grid-area: k;
+  overflow-wrap: anywhere;
 }
-.lms-heat > li > .lms-bar {
-  grid-column: 1 / -1;
+.lms-prog > li > .lms-bar {
+  grid-area: bar;
+  height: 8px;
 }
-.lms-heat > li[data-full] {
-  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
-}
-.lms-heat .num {
+.lms-prog__n {
   font-variant-numeric: tabular-nums;
-  font-weight: 650;
+  font-weight: 700;
+  grid-area: n;
+  text-align: right;
+}
+.lms-prog__n small {
+  color: var(--text-faint);
+  font-size: 0.85em;
+  font-weight: 600;
+}
+.lms-prog__p {
+  display: flex;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  grid-area: p;
+  justify-content: flex-end;
+}
+.lms-prog__note {
+  color: var(--text-faint);
+  font-size: 0.82rem;
+  grid-area: note;
+}
+.lms-prog > li[data-full] .lms-prog__k,
+.lms-prog > li[data-full] .lms-prog__p {
+  color: var(--ok);
+}
+.lms-prog > li[data-full] .lms-bar > i {
+  background: var(--ok);
+}
+.lms-prog > li[data-kosong] .lms-bar {
+  background: transparent;
+  border-style: dashed;
+}
+.lms-prog > li[data-tanpa] .lms-prog__note {
+  color: var(--warn);
+}
+@media (max-width: 519px) {
+  .lms-prog > li {
+    grid-template-areas:
+      "k n p"
+      "bar bar bar"
+      "note note note";
+    grid-template-columns: minmax(0, 1fr) auto 3.2rem;
+  }
 }
 
 /* The wide Buat Tugas form: two columns from 900 */
@@ -785,4 +982,24 @@
     padding-inline: 8px;
     white-space: nowrap;
   }
+}
+
+/* A sample, dimmed, until the real thing exists */
+.lms-fb[data-contoh] {
+  opacity: 0.55;
+}
+/* A closing note on a card's bottom edge */
+.panel > .lms-foot:last-child {
+  border-top: 1px solid var(--hairline-faint, var(--hairline));
+  margin: auto 0 0;
+  padding-top: 12px;
+}
+
+/* A module card's two badges share the top row; the title has the width */
+.lms-mod__top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
 }

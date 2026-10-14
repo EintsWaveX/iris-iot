@@ -1,5 +1,6 @@
 /** The Live room's words (Phase 9 Stage 7e, mockup p-live). */
 import { dict } from "../../lib/app";
+import { laluLabel } from "../../lib/labels";
 import type { BoardRole } from "../../lib/serial-lines";
 
 export const LV = dict({
@@ -16,7 +17,7 @@ export const LV = dict({
     sim: "Simulasi",
     stale: "Tidak Ada Data Baru",
     paused: "Dijeda",
-    updated: (s: number) => (s < 3 ? "Diperbarui barusan" : `Diperbarui ${s} detik lalu`),
+    updated: (s: number) => `Diperbarui ${laluLabel(s, "id")}`,
     pause: "Jeda",
     resume: "Lanjutkan",
     simNote: (g: number) =>
@@ -149,7 +150,7 @@ export const LV = dict({
     sim: "Simulated",
     stale: "No New Data",
     paused: "Paused",
-    updated: (s: number) => (s < 3 ? "Updated just now" : `Updated ${s} seconds ago`),
+    updated: (s: number) => `Updated ${laluLabel(s, "en")}`,
     pause: "Pause",
     resume: "Resume",
     simNote: (g: number) =>
@@ -275,7 +276,7 @@ export const LV = dict({
     sim: "模拟",
     stale: "没有新数据",
     paused: "已暂停",
-    updated: (s: number) => (s < 3 ? "刚刚更新" : `${s} 秒前更新`),
+    updated: (s: number) => `${laluLabel(s, "zh")}更新`,
     pause: "暂停",
     resume: "继续",
     simNote: (g: number) =>

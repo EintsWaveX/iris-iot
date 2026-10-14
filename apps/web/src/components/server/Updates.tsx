@@ -10,11 +10,12 @@
 import { useState } from "react";
 import { ArrowsClockwiseIcon, CircleNotchIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import Confirm from "../ui/Confirm";
-import { sejak, useTick } from "../../lib/app";
+import { useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { bacaHasilPembaruan, barisPembaruan, type BarisPembaruan } from "../../lib/server-shared";
 import { kirim, sedangBerjalan, type Bisa, type Detail } from "./data";
 import { S, type SStrings } from "./strings";
+import Lalu from "../ui/Lalu";
 
 const TONE = {
   terbaru: "pill--ok",
@@ -64,7 +65,11 @@ export default function Updates({
         <div className="stack stack--sm">
           <h2 className="panel__title">{t.upd}</h2>
           <span className="hint">
-            {s.infoSistemPada ? t.updHint(sejak(s.infoSistemPada, lang, now)) : t.updNever}
+            {s.infoSistemPada ? (
+              <Lalu iso={s.infoSistemPada} lang={lang} fmt={t.updHint} />
+            ) : (
+              t.updNever
+            )}
           </span>
         </div>
         {bisa.server && (
@@ -126,7 +131,15 @@ export default function Updates({
         return (
           <p key={a} className="hint">
             {t.updLast[a === "pembaruan.bundel" ? "bundel" : "apt"]}: {t.updHasilSt[h.status]}
-            {h.pada ? ` · ${sejak(new Date(h.pada * 1000).toISOString(), lang, now)}` : ""}
+            {h.pada ? (
+              <Lalu
+                iso={new Date(h.pada * 1000).toISOString()}
+                lang={lang}
+                fmt={(s) => ` · ${s}`}
+              />
+            ) : (
+              ""
+            )}
             {h.status === "gagal" && h.pesan ? (
               <>
                 <br />

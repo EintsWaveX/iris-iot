@@ -10,6 +10,7 @@ import {
   CalendarBlankIcon,
   CalendarDotsIcon,
   CameraIcon,
+  CaretLeftIcon,
   ChartLineUpIcon,
   CheckSquareIcon,
   HandCoinsIcon,
@@ -286,6 +287,7 @@ export function DataPicker({
   const backToSesi =
     perluSesi && step !== "sesi" ? (
       <button type="button" className="btn btn--ghost" onClick={() => setStep("sesi")}>
+        <CaretLeftIcon size={16} weight="bold" className="btn__back" aria-hidden="true" />
         {t.pickSesi}
       </button>
     ) : null;

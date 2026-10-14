@@ -9,6 +9,7 @@ import SegmentedControl from "../ui/SegmentedControl";
 import { postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { LS } from "./lmsStrings";
+import { waktuPanjang } from "../tp/shared";
 
 export interface KursusRingan {
   id: number;
@@ -99,15 +100,39 @@ export function ClassPick({
   );
 }
 
-/** "baru saja", "4 menit lalu", "kemarin"-ish, from an ISO instant. */
-export function lalu(iso: string | null, lang: Lang): string {
-  const t = LS[lang];
-  if (!iso) return t.belumPernah;
-  const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
-  if (s < 90) return t.baruSaja;
-  if (s < 3600) return t.menitLalu(Math.round(s / 60));
-  if (s < 86400) return t.jamLalu(Math.round(s / 3600));
-  return t.hariLalu(Math.round(s / 86400));
+/** When something starts and ends: two labelled cells, the date on one
+ *  line and the time under it, instead of one run-on sentence. */
+export function Rentang({
+  a,
+  b,
+  la,
+  lb,
+  lang,
+}: {
+  a: string;
+  b: string;
+  la: string;
+  lb: string;
+  lang: Lang;
+}) {
+  const sel = (label: string, iso: string) => {
+    const [tgl, jam] = waktuPanjang(iso, lang).split(" · ");
+    return (
+      <div>
+        <dt>{label}</dt>
+        <dd>
+          {tgl}
+          <b className="mono">{jam}</b>
+        </dd>
+      </div>
+    );
+  };
+  return (
+    <dl className="lms-when">
+      {sel(la, a)}
+      {sel(lb, b)}
+    </dl>
+  );
 }
 
 export function galatTeks(kode: string | undefined, lang: Lang): string {

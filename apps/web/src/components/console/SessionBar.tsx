@@ -16,6 +16,8 @@ import KodeMasuk from "../shell/KodeMasuk";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowSquareOutIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
   CrosshairIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
@@ -294,6 +296,7 @@ export default function SessionBar({
                 className="btn btn--ghost btn--sm sbar__back"
                 onClick={() => setMenu(null)}
               >
+                <CaretLeftIcon size={16} weight="bold" className="btn__back" aria-hidden="true" />
                 {t.back}
               </button>
               {menu === "acc" ? (
@@ -714,6 +717,7 @@ function DeckForm({
       )}
       <button type="button" className="btn btn--ghost" onClick={onManage}>
         {t.slidesManage}
+        <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
       </button>
       <SlidesDialog open={open} onOpenChange={setOpen} list={list} modul={modul} lang={lang} />
     </div>

@@ -51,6 +51,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ArrowClockwiseIcon,
   DotsSixVerticalIcon,
   MagnifyingGlassIcon,
   PlusIcon,
@@ -803,6 +804,7 @@ const RosterEditor = forwardRef<
                 className="btn btn--ghost"
                 onClick={() => pakaiTerbaru(bentrok.terbaru)}
               >
+                <ArrowClockwiseIcon size={16} weight="bold" aria-hidden="true" />
                 {p.takeLatest}
               </button>
               <button

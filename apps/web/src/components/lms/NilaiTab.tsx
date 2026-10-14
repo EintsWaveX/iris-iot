@@ -146,25 +146,31 @@ export default function NilaiTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
           )}
         </section>
         <section className="panel slr-card">
-          <Head title={t.dilihatH} />
-          {d.contoh ? (
-            <div className="lms-fb">
-              <div className="row row--between">
-                <b>TP Modul {d.modul}</b>
-                <b className="num">
-                  {fmt(d.contoh.total)} / {fmt(100)}
-                </b>
+          <Head title={t.dilihatH} aside={d.contoh ? undefined : <Pill>{t.contohLabel}</Pill>} />
+          {(() => {
+            // Before any score has gone out, a sample shows the shape.
+            const c = d.contoh ?? {
+              total: 86,
+              baris: [9, 8, 10, 7, 9].map((skor, i) => ({ nomor: i + 1, skor })),
+            };
+            return (
+              <div className="lms-fb" data-contoh={d.contoh ? undefined : "yes"}>
+                <div className="row row--between">
+                  <b>TP Modul {d.modul}</b>
+                  <b className="num">
+                    {fmt(c.total)} / {fmt(100)}
+                  </b>
+                </div>
+                <span className="hint">{t.umpanBalik}</span>
+                <pre className="mono">
+                  {c.baris.map((x) => `${x.nomor}. ${x.skor}/10`).join("\n")}
+                  {`\n${t.dinilaiIris}`}
+                </pre>
               </div>
-              <span className="hint">{t.umpanBalik}</span>
-              <pre className="mono">
-                {d.contoh.baris.map((b) => `${b.nomor}. ${b.skor}/10`).join("\n")}
-                {`\n${t.dinilaiIris}`}
-              </pre>
-            </div>
-          ) : (
-            <p className="hint">{t.contohKosong}</p>
-          )}
-          <span className="hint">{t.seelabsTetap}</span>
+            );
+          })()}
+          {!d.contoh && <p className="hint">{t.contohKosong}</p>}
+          <p className="hint lms-foot">{t.seelabsTetap}</p>
         </section>
       </div>
       <section className="panel slr-card">

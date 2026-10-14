@@ -19,6 +19,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
+  CaretRightIcon,
   CircleNotchIcon,
   ClockCountdownIcon,
   DesktopIcon,
@@ -1515,6 +1516,7 @@ function KonsolSide({ t, lang, data }: { t: KStrings; lang: Lang; data: KonsolDa
             href={`${href(lang, "/reports")}?audit=konsol#audit`}
           >
             {w.toAudit}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
           </a>
         </div>
       </section>

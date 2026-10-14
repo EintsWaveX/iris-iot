@@ -8,6 +8,7 @@
  */
 import { useState, type FormEvent } from "react";
 import {
+  CaretRightIcon,
   CircleNotchIcon,
   LockSimpleIcon,
   PlayIcon,
@@ -19,7 +20,7 @@ import {
 import Confirm from "../ui/Confirm";
 import Dropdown from "../ui/Dropdown";
 import Tooltip from "../ui/Tooltip";
-import { sejak, useTick } from "../../lib/app";
+import { useTick } from "../../lib/app";
 import { durasiLabel, nil } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import {
@@ -43,6 +44,7 @@ import {
   type Detail,
 } from "./data";
 import { S, pesan } from "./strings";
+import Lalu from "../ui/Lalu";
 
 const DIAGS = [
   ["diag.ringkas", "dQuick", PulseIcon],
@@ -62,7 +64,6 @@ function Journal({
   refresh: () => void;
 }) {
   const t = S[lang];
-  const now = useTick(1_000);
   const [unit, setUnit] = useState("semua");
   const [lvl, setLvl] = useState("semua");
   const last = terakhirDari(data, "diag.journal");
@@ -120,11 +121,13 @@ function Journal({
         </button>
       </div>
       <span className="hint" aria-live="polite">
-        {jalan
-          ? t.journalWait
-          : sama && last
-            ? t.logAt(sejak(last.selesaiPada ?? last.dimintaPada, lang, now))
-            : t.neverRun}
+        {jalan ? (
+          t.journalWait
+        ) : sama && last ? (
+          <Lalu iso={last.selesaiPada ?? last.dimintaPada} lang={lang} fmt={t.logAt} />
+        ) : (
+          t.neverRun
+        )}
       </span>
       <pre className="srv-log srv-log--fill">
         {sama
@@ -224,6 +227,7 @@ function NetConf({ lang, data, onCommands }: { lang: Lang; data: Detail; onComma
         </button>
         <button type="button" className="btn btn--ghost" onClick={onCommands}>
           {t.cmdHistory}
+          <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
         </button>
       </div>
     </section>
@@ -426,11 +430,13 @@ export default function Settings({
         </div>
         <div className="row row--between">
           <span className="hint" aria-live="polite">
-            {jalan
-              ? t.logWait
-              : hasil
-                ? t.logAt(sejak(hasil.selesaiPada ?? hasil.dimintaPada, lang, now))
-                : ""}
+            {jalan ? (
+              t.logWait
+            ) : hasil ? (
+              <Lalu iso={hasil.selesaiPada ?? hasil.dimintaPada} lang={lang} fmt={t.logAt} />
+            ) : (
+              ""
+            )}
           </span>
           {bisa.server && (
             <button
@@ -607,17 +613,7 @@ function HotspotSource({
 }
 
 /** One line on how this server's install stands. */
-function SetupState({
-  lang,
-  id,
-  data,
-  now,
-}: {
-  lang: Lang;
-  id: number;
-  data: Detail;
-  now: number;
-}) {
+function SetupState({ lang, id, data }: { lang: Lang; id: number; data: Detail; now: number }) {
   const t = S[lang];
   const s = data.server;
   const pos = posisiPasang(
@@ -629,13 +625,13 @@ function SetupState({
   const [teks, st] = pos.gagal
     ? [t.setupFail, "danger"]
     : pos.langkah === LANGKAH_PASANG
-      ? [t.setupDone(sejak(s.terdaftarPada ?? null, lang, now)), "ok"]
+      ? [<Lalu iso={s.terdaftarPada ?? null} lang={lang} fmt={t.setupDone} />, "ok"]
       : pos.langkah === 4
         ? [t.setupBeat, "warn"]
         : data.pasang
           ? [t.setupRun(t.wizRows[pos.langkah]), "warn"]
           : s.terdaftar
-            ? [t.setupDone(sejak(s.terdaftarPada ?? null, lang, now)), "ok"]
+            ? [<Lalu iso={s.terdaftarPada ?? null} lang={lang} fmt={t.setupDone} />, "ok"]
             : [t.setupNone, "warn"];
   return (
     <p className="srv-wait" aria-live="polite">

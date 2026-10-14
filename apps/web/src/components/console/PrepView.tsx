@@ -64,6 +64,7 @@ import "./run.css";
 import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
 import { useSiaran } from "../../lib/siaran";
 import { useBelumSimpan } from "../../lib/belum-simpan";
+import Lalu from "../ui/Lalu";
 
 interface JadwalRow {
   hari: number;
@@ -1075,7 +1076,11 @@ function ServerSection({
           <span className="lights__txt">
             <b>{pn.pi}</b>
             <span className="hint">
-              {srv.denyutPada ? pn.srvBeat(sejak(srv.denyutPada, lang, Date.now())) : pn.srvNoBeat}
+              {srv.denyutPada ? (
+                <Lalu iso={srv.denyutPada} lang={lang} fmt={pn.srvBeat} />
+              ) : (
+                pn.srvNoBeat
+              )}
             </span>
           </span>
         </li>

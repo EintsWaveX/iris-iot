@@ -12,6 +12,8 @@
  */
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowClockwiseIcon,
+  CaretLeftIcon,
   CheckCircleIcon,
   CircleNotchIcon,
   CopyIcon,
@@ -21,12 +23,13 @@ import {
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import IconButton from "../ui/IconButton";
-import { getJson, postJson, sejak, useTick } from "../../lib/app";
+import { getJson, postJson } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { LANGKAH_PASANG, posisiPasang } from "../../lib/server-shared";
 import type { Detail } from "./data";
 import { S, pesan } from "./strings";
+import Lalu from "../ui/Lalu";
 
 const KODE_RE = /^[a-z0-9][a-z0-9-]{1,39}$/;
 const UMUR_TOKEN_MS = 30 * 60 * 1000;
@@ -91,7 +94,6 @@ export default function Enroll({
   server?: ServerAda;
 }) {
   const t = S[lang];
-  const now = useTick(10_000);
   const [step, setStep] = useState(0);
   const [nama, setNama] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -173,6 +175,7 @@ export default function Enroll({
       alt={
         step > 0 ? (
           <button type="button" className="btn btn--ghost" onClick={() => setStep(0)}>
+            <CaretLeftIcon size={16} weight="bold" className="btn__back" aria-hidden="true" />
             {t.wizBack}
           </button>
         ) : undefined
@@ -284,7 +287,13 @@ export default function Enroll({
                 </div>
                 <div className="row row--between">
                   <span className="hint">
-                    {t.wizCmdAge(sejak(new Date(cmd.dibuat).toISOString(), lang, now))}
+                    {
+                      <Lalu
+                        iso={new Date(cmd.dibuat).toISOString()}
+                        lang={lang}
+                        fmt={t.wizCmdAge}
+                      />
+                    }
                   </span>
                   <button
                     type="button"
@@ -292,6 +301,7 @@ export default function Enroll({
                     disabled={busy}
                     onClick={() => void buatPerintah()}
                   >
+                    <ArrowClockwiseIcon size={16} weight="bold" aria-hidden="true" />
                     {t.wizRemake}
                   </button>
                 </div>
@@ -357,11 +367,13 @@ export default function Enroll({
               </div>
             ) : (
               <p className="hint">
-                {pos?.langkah === 4
-                  ? t.wizWait(label)
-                  : pos && pos.langkah > 0 && d?.pasang
-                    ? t.wizLast(sejak(d.pasang.pada, lang, now))
-                    : t.wizWaitPi}
+                {pos?.langkah === 4 ? (
+                  t.wizWait(label)
+                ) : pos && pos.langkah > 0 && d?.pasang ? (
+                  <Lalu iso={d.pasang.pada} lang={lang} fmt={t.wizLast} />
+                ) : (
+                  t.wizWaitPi
+                )}
               </p>
             )}
             {!selesai && <p className="hint">{t.wizLater}</p>}

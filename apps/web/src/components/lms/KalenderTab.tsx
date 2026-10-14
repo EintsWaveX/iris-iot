@@ -11,9 +11,8 @@ import { Switch } from "../ui/Controls";
 import { getJson, localeOf, postJson } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
-import { waktuPanjang } from "../tp/shared";
 import { LS } from "./lmsStrings";
-import { BatchDialog, Head, galatTeks, langkah } from "./lmsShared";
+import { BatchDialog, Head, Rentang, galatTeks, langkah } from "./lmsShared";
 import { BacaSaja, type TabLms } from "./LmsPage";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 
@@ -155,19 +154,20 @@ export default function KalenderTab({ lang }: { lang: Lang; ke: (v: TabLms) => v
         <section className="panel slr-card">
           <Head title={t.acaraH} desc={t.acaraHint} />
           {d.acara.length ? (
-            <ul className="lms-ext">
+            <ul className="lms-ext lms-ext--when">
               {d.acara.map((a) => (
                 <li key={a.kunci}>
-                  <span className="stack stack--sm">
-                    <b>{nama(a)}</b>
-                    <span className="hint">
-                      {t.sampai(waktuPanjang(a.mulai, lang), waktuPanjang(a.selesai, lang))}
-                    </span>
-                  </span>
+                  <b>{nama(a)}</b>
                   <Pill tone={a.di === d.kelasJumlah ? "ok" : a.lama ? "warn" : undefined}>
                     {a.di ? t.diKelas(a.di, d.kelasJumlah) : a.lama ? t.acaraLama : t.belum}
                   </Pill>
-                  <span />
+                  <Rentang
+                    a={a.mulai}
+                    b={a.selesai}
+                    la={t.acaraMulai}
+                    lb={t.acaraSelesai}
+                    lang={lang}
+                  />
                 </li>
               ))}
             </ul>

@@ -14,7 +14,7 @@
  *   Dashboard; To the Console or Get the Next Session Ready (NextView).
  */
 import { useEffect, useState, type CSSProperties } from "react";
-import { CheckCircleIcon, CheckIcon, LockSimpleIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, CheckCircleIcon, CheckIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import { CountUp } from "../ui/Display";
 import Fade from "../ui/Fade";
 import Pill from "../ui/Pill";
@@ -476,6 +476,7 @@ export default function EndPage({
                 onClick={() => onSeelabs("panduan")}
               >
                 {e.guide}
+                <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
               </button>
             </div>
             <span className="hint">{e.seelabsSub}</span>

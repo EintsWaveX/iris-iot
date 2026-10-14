@@ -11,6 +11,7 @@
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
+  CaretRightIcon,
   ClockIcon,
   IdentificationBadgeIcon,
   LockSimpleIcon,
@@ -463,6 +464,12 @@ export default function ServerDetail({
                     onClick={() => go("pengaturan")}
                   >
                     {s12.factsFill}
+                    <CaretRightIcon
+                      size={16}
+                      weight="bold"
+                      className="btn__go"
+                      aria-hidden="true"
+                    />
                   </button>
                 )}
               </span>

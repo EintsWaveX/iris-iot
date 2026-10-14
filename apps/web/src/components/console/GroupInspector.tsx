@@ -37,7 +37,7 @@ import SegmentedControl from "../ui/SegmentedControl";
 import { ProgressRing } from "../ui/Display";
 import { kelompokLabel } from "../../lib/labels";
 import { namaAsisten, useDirektori } from "../../lib/people";
-import { getJson, namaKelompok, postJson, sejak, useTick } from "../../lib/app";
+import { getJson, namaKelompok, postJson } from "../../lib/app";
 import { useSiaran } from "../../lib/siaran";
 import { jamLab } from "../shared/Instruments";
 import TambahPraktikan from "./TambahPraktikan";
@@ -61,6 +61,7 @@ import BlankPanel, { type BlankRingkas } from "./BlankPanel";
 import { pesan, type Strings } from "./strings";
 import type { NilaiLive } from "./data";
 import type { AsistenRef, GroupRow, Stuck } from "./types";
+import Lalu from "../ui/Lalu";
 
 export interface InspectorProps {
   t: Strings;
@@ -97,7 +98,6 @@ export interface InspectorProps {
 export default function GroupInspector(p: InspectorProps) {
   const { t, lang, sesiId, g, hand, ownerNim, asisten, meNim, nilai } = p;
   const r = R[lang];
-  const now = useTick(15_000);
   const owner = ownerNim ? (asisten.get(ownerNim) ?? null) : null;
   const ownerName = owner ? namaAsisten(owner) : (ownerNim ?? t.noAssistant);
   const mine = ownerNim === meNim;
@@ -214,7 +214,9 @@ export default function GroupInspector(p: InspectorProps) {
       {hand && (
         <div className="banner banner--warn">
           <HandIcon size={20} aria-hidden="true" />
-          <span className="grow">{t.handUp(sejak(hand, lang, now))}</span>
+          <span className="grow">
+            <Lalu iso={hand} lang={lang} fmt={t.handUp} />
+          </span>
         </div>
       )}
 

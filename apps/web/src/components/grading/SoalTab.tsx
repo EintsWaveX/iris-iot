@@ -23,7 +23,16 @@ const zhBeta = (nama: string): ReactNode => (
     {nama} <BetaBadge />
   </>
 );
-import { ArrowSquareOutIcon, InfoIcon, WarningIcon, XIcon } from "@phosphor-icons/react";
+import {
+  ArrowClockwiseIcon,
+  ArrowCounterClockwiseIcon,
+  ArrowSquareOutIcon,
+  DownloadSimpleIcon,
+  InfoIcon,
+  PlusIcon,
+  WarningIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import { LK } from "./lmsKelolaStrings";
 import { pembuatPdfLms } from "../tp/pdfLms";
 import Pill from "../ui/Pill";
@@ -307,6 +316,7 @@ export default function SoalTab({
               className="btn btn--ghost btn--sm"
               onClick={() => setKembali(true)}
             >
+              <ArrowCounterClockwiseIcon size={16} weight="bold" aria-hidden="true" />
               {t.kembalikan}
             </button>
           )}
@@ -373,6 +383,7 @@ export default function SoalTab({
             }
             onClick={tambahVarian}
           >
+            <PlusIcon size={16} weight="bold" aria-hidden="true" />
             {t.tambahVarian}
           </button>
         )}
@@ -590,6 +601,7 @@ export default function SoalTab({
                 setBentrok(null);
               }}
             >
+              <ArrowClockwiseIcon size={16} weight="bold" aria-hidden="true" />
               {t.muatTerbaru}
             </button>
             <button
@@ -730,6 +742,7 @@ function KartuSoal({
                 className="btn btn--ghost btn--sm"
                 onClick={() => ubahIsi({ bagian: [...bagian, ""] })}
               >
+                <PlusIcon size={16} weight="bold" aria-hidden="true" />
                 {t.tambahBagian}
               </button>
             </li>
@@ -997,6 +1010,7 @@ function Ekspor({
           disabled={!!jalan}
           onClick={() => void unduh(true)}
         >
+          <DownloadSimpleIcon size={16} weight="bold" aria-hidden="true" />
           {jalan === "kunci" ? t.membuatPdf : t.pdfKunci}
         </button>
       </div>

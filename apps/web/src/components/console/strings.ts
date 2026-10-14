@@ -1,6 +1,7 @@
 /** Every string the console shows, in both languages (Phase 8). No dashes in copy. */
 import { SESI_CAP_MENIT } from "../../lib/jadwal";
 import { KELOMPOK_NAMA, MODUL_NAMA, dict } from "../../lib/app";
+import { laluLabel } from "../../lib/labels";
 
 const HARI_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const HARI_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -23,7 +24,7 @@ export const S = dict({
     signIn: "Masuk",
     offline: "Koneksi ke server terputus. Mencoba lagi otomatis.",
     retry: "Coba sekarang",
-    updated: (s: number) => (s < 5 ? "baru saja diperbarui" : `diperbarui ${s} detik lalu`),
+    updated: (s: number) => `diperbarui ${laluLabel(s, "id")}`,
     fail: "Tidak dapat menghubungi server.",
     undo: "Urungkan",
     save: "Simpan",
@@ -622,7 +623,7 @@ export const S = dict({
     signIn: "Sign in",
     offline: "Lost connection to the server. Retrying automatically.",
     retry: "Retry now",
-    updated: (s: number) => (s < 5 ? "just updated" : `updated ${s} seconds ago`),
+    updated: (s: number) => `updated ${laluLabel(s, "en")}`,
     fail: "Could not reach the server.",
     undo: "Undo",
     save: "Save",
@@ -1205,7 +1206,7 @@ export const S = dict({
     signIn: "登录",
     offline: "和服务器断开了。正在自动重试。",
     retry: "现在重试",
-    updated: (s: number) => (s < 5 ? "刚刚更新" : `${s} 秒前更新`),
+    updated: (s: number) => `${laluLabel(s, "zh")}更新`,
     fail: "连不上服务器。",
     undo: "撤销",
     save: "保存",

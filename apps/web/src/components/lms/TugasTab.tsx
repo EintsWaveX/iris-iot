@@ -20,6 +20,7 @@ import {
   BatchDialog,
   ClassPick,
   Head,
+  Rentang,
   galatTeks,
   langkah,
   sasaranKursus,
@@ -27,7 +28,7 @@ import {
   type Sasaran,
 } from "./lmsShared";
 import { BacaSaja, type TabLms } from "./LmsPage";
-import { MagnifyingGlassIcon, TrashIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, MagnifyingGlassIcon, TrashIcon } from "@phosphor-icons/react";
 
 interface KelasTugas {
   kursus: number;
@@ -97,29 +98,29 @@ export default function TugasTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
           <ul className="lms-tgs">
             {d.tugas.map((x) => (
               <li key={x.nama} aria-selected={pilih === x.nama}>
-                <span className="stack stack--sm grow">
+                <span className="lms-tgs__name">
                   <b>
-                    {x.nama} {x.tp && <Pill tone="accent">TP</Pill>}
+                    {x.nama}
+                    {x.tp && <Pill tone="accent">TP</Pill>}
                   </b>
-                  <span className="hint">
-                    {x.buka && x.tutup
-                      ? t.tugasDi(
-                          x.kelas.length,
-                          waktuPanjang(x.buka, lang),
-                          waktuPanjang(x.tutup, lang),
-                        )
-                      : t.tugasDiTanpa(x.kelas.length)}
-                  </span>
+                  <span className="hint">{t.kelasN(x.kelas.length)}</span>
                 </span>
+                {x.buka && x.tutup ? (
+                  <Rentang a={x.buka} b={x.tutup} la={t.dibuka} lb={t.ditutup} lang={lang} />
+                ) : (
+                  <span className="hint">{t.tanpaTanggal}</span>
+                )}
                 <Pill tone={x.sama && x.kelas.length === d.kelasJumlah ? "ok" : "warn"}>
                   {!x.sama ? t.bedaTanggal : t.samaDi(x.kelas.length)}
                 </Pill>
                 <button
                   type="button"
                   className="btn btn--ghost btn--sm"
+                  aria-expanded={pilih === x.nama}
                   onClick={() => setPilih(pilih === x.nama ? null : x.nama)}
                 >
-                  {t.buka}
+                  {t.rincian}
+                  <CaretDownIcon size={16} weight="bold" className="btn__turn" aria-hidden="true" />
                 </button>
               </li>
             ))}

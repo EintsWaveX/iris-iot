@@ -7,7 +7,13 @@
  * Used by Home's Start card and Preparation's Mode TOT start.
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { CheckCircleIcon, MinusCircleIcon, WarningIcon } from "@phosphor-icons/react";
+import {
+  ArrowClockwiseIcon,
+  CaretRightIcon,
+  CheckCircleIcon,
+  MinusCircleIcon,
+  WarningIcon,
+} from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { dict, href, postJson } from "../../lib/app";
 import { ALASAN_PAKSA_MIN, type CekMulai } from "../../lib/siap-mulai";
@@ -200,6 +206,7 @@ export default function StartCheck({
               }
             >
               {t.server}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
             </a>
           ) : undefined,
       });
@@ -236,6 +243,7 @@ export default function StartCheck({
       lang={lang}
       alt={
         <button type="button" className="btn btn--ghost" disabled={busy} onClick={onRecheck}>
+          <ArrowClockwiseIcon size={16} weight="bold" aria-hidden="true" />
           {t.recheck}
         </button>
       }

@@ -583,6 +583,7 @@ function Isi({
         <span className="hint">{t.graderFoot}</span>
         <div className="grader__btns">
           <button type="button" className="btn btn--ghost" onClick={() => go(-1)}>
+            <CaretLeftIcon size={16} weight="bold" className="btn__back" aria-hidden="true" />
             {t.sebelumnya}
           </button>
           <button

@@ -29,6 +29,7 @@ import type { Lang } from "../../lib/kelas";
 import { hotspotMenyala, urutkanLayanan } from "../../lib/server-shared";
 import type { Heartbeat, Perintah } from "../console/types";
 import "./ops.css";
+import Lalu from "../ui/Lalu";
 
 export const OPS_T = dict({
   id: {
@@ -425,7 +426,6 @@ export function CommandTimeline({
   kode?: (nim: string | null) => string;
 }) {
   const t = OPS_T[lang];
-  const now = useTick(1_000);
   const rows = perintah.slice(0, limit);
   if (rows.length === 0) return <p className="hint">{t.noCommands}</p>;
   return (
@@ -472,7 +472,7 @@ export function CommandTimeline({
                 ))}
               </span>
               <span className="hint">
-                {sejak(p.selesaiPada ?? p.terkirimPada ?? p.dimintaPada, lang, now)}
+                <Lalu iso={p.selesaiPada ?? p.terkirimPada ?? p.dimintaPada} lang={lang} />
                 {kode && p.dimintaOleh ? ` · ${t.by(kode(p.dimintaOleh))}` : ""}
               </span>
             </span>

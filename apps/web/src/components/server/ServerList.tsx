@@ -8,7 +8,7 @@ import { useState, type CSSProperties } from "react";
 import { MapPinIcon, PlusIcon, WifiXIcon } from "@phosphor-icons/react";
 import { OfflineBanner } from "../ui/Display";
 import { usePoll } from "../../lib/hooks";
-import { getJson, sejak, useTick } from "../../lib/app";
+import { getJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { urutkanLayanan } from "../../lib/server-shared";
 import Enroll from "./Enroll";
@@ -24,6 +24,7 @@ import {
 } from "./data";
 import { S } from "./strings";
 import Nil from "../ui/Nil";
+import Lalu from "../ui/Lalu";
 
 function Spark({ vals, c }: { vals: number[]; c: string }) {
   if (vals.length < 2) return <span className="spark" aria-hidden="true" />;
@@ -59,7 +60,6 @@ export default function ServerList({
 }) {
   const t = S[lang];
   const [enroll, setEnroll] = useState(false);
-  const now = useTick(1_000);
   const poll = usePoll(
     async () => {
       const d = await getJson<{ ok: boolean; server: ServerRow[] }>("/api/server");
@@ -147,7 +147,7 @@ export default function ServerList({
             </span>
           </div>
           <div className="srv-stat">
-            <b className="srv-stat__sm">{last ? sejak(last, lang, now) : t.never}</b>
+            <b className="srv-stat__sm">{last ? <Lalu iso={last} lang={lang} /> : t.never}</b>
             <span>{t.lastReport}</span>
           </div>
         </div>
@@ -222,7 +222,9 @@ export default function ServerList({
                 ) : (
                   <span className="banner srv-banner-off">
                     <WifiXIcon size={20} aria-hidden="true" />
-                    <span>{d ? t.offlineSince(sejak(d.pada, lang, now)) : t.neverBeat}</span>
+                    <span>
+                      {d ? <Lalu iso={d.pada} lang={lang} fmt={t.offlineSince} /> : t.neverBeat}
+                    </span>
                   </span>
                 )}
                 <span className="srvcard__svc">

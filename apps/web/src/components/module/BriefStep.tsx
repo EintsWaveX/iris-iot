@@ -13,7 +13,7 @@ import SegmentedControl from "../ui/SegmentedControl";
 import Fade from "../ui/Fade";
 import Pill from "../ui/Pill";
 import BetaBadge from "../ui/BetaBadge";
-import { getJson, postJson, sejak, useMe } from "../../lib/app";
+import { getJson, postJson, useMe } from "../../lib/app";
 import SlidesDialog, { useSlides } from "../shell/SlidesDialog";
 import { useDirektori } from "../../lib/people";
 import type { Lang } from "../../lib/kelas";
@@ -31,6 +31,7 @@ import zh2 from "../../content/modules/zh/2.json";
 import zh3 from "../../content/modules/zh/3.json";
 import zh4 from "../../content/modules/zh/4.json";
 import { useSiaran } from "../../lib/siaran";
+import Lalu from "../ui/Lalu";
 
 const BAWAAN: Record<"id" | "en" | "zh", Record<number, { ringkasan: string[] }>> = {
   id: { 1: id1, 2: id2, 3: id3, 4: id4 },
@@ -174,12 +175,15 @@ export default function BriefStep({
           <span className="hint modbrief__src">
             <InfoIcon size={18} aria-hidden="true" />
             <span>
-              {row
-                ? t.lastBy(
-                    row.diubahOlehNama ?? dir.nama(row.diubahOleh),
-                    sejak(row.diubahPada, lang),
-                  )
-                : t.fromHandbook}
+              {row ? (
+                <Lalu
+                  iso={row.diubahPada}
+                  lang={lang}
+                  fmt={(s) => t.lastBy(row.diubahOlehNama ?? dir.nama(row.diubahOleh), s)}
+                />
+              ) : (
+                t.fromHandbook
+              )}
               {canEdit && <> {t.editHint}</>}
             </span>
           </span>

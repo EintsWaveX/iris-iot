@@ -22,7 +22,7 @@
 import SeelabsLine from "./seelabs/SeelabsLine";
 import type { SeelabsData } from "./seelabs/data";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { CheckCircleIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, CheckCircleIcon } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import Dialog from "../ui/Dialog";
 import Pill from "../ui/Pill";
@@ -344,6 +344,7 @@ export default function NextView({
                 href={href(lang, `/reports?dokumen&baru=kerusakan&konteks=${sesi.id}`)}
               >
                 {t.kitReport}
+                <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
               </a>
             </div>
           </div>

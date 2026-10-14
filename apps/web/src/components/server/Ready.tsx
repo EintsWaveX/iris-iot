@@ -14,7 +14,7 @@ import {
   ListChecksIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
-import { href, MODUL_NAMA, sejak, useTick } from "../../lib/app";
+import { href, MODUL_NAMA } from "../../lib/app";
 import { modulLabel, nil } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import { bacaHasilSiap, modulCek, MODUL_SIAP, type CekSiap } from "../../lib/server-shared";
@@ -23,6 +23,7 @@ import { kirim, sedangBerjalan, waktuPendek, type Bisa, type Detail } from "./da
 import { S } from "./strings";
 import { S12 } from "./server12Strings";
 import Pill from "../ui/Pill";
+import Lalu from "../ui/Lalu";
 
 /** A failed check the site can fix with one command. */
 function perbaikan(id: string): { aksi: string; argumen: Record<string, string> } | "upd" | null {
@@ -53,7 +54,6 @@ export default function Ready({
   dari?: string | null;
 }) {
   const t = S[lang];
-  const now = useTick(1_000);
   const upd = useRef<HTMLDivElement | null>(null);
   const runs = data.siapRiwayat;
   const pending = sedangBerjalan(data, "diag.siap");
@@ -158,12 +158,15 @@ export default function Ready({
               {t.readyTitle}
             </h2>
             <span className="hint">
-              {last
-                ? t.readyLast(
-                    sejak(last.selesaiPada ?? last.dimintaPada, lang, now),
-                    siapa(last.dimintaOleh),
-                  )
-                : t.readyNever}
+              {last ? (
+                <Lalu
+                  iso={last.selesaiPada ?? last.dimintaPada}
+                  lang={lang}
+                  fmt={(s) => t.readyLast(s, siapa(last.dimintaOleh))}
+                />
+              ) : (
+                t.readyNever
+              )}
             </span>
           </div>
           <button
@@ -284,7 +287,7 @@ export default function Ready({
                   <div className="row s12readymod__foot">
                     {r && (
                       <span className="hint grow">
-                        {w.lastRun(sejak(r.selesaiPada ?? r.dimintaPada, lang, now))}
+                        <Lalu iso={r.selesaiPada ?? r.dimintaPada} lang={lang} fmt={w.lastRun} />
                       </span>
                     )}
                     <button

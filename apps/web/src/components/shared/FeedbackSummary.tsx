@@ -8,9 +8,9 @@
 import type { CSSProperties } from "react";
 import { StarIcon } from "@phosphor-icons/react";
 import { LABEL_CHIP, type Ringkasan } from "../../lib/umpan-balik";
-import { sejak } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import "./FeedbackSummary.css";
+import Lalu from "../ui/Lalu";
 
 export default function FeedbackSummary({
   data,
@@ -73,7 +73,9 @@ export default function FeedbackSummary({
           {data.komentar.slice(0, maxComments).map((k, i) => (
             <li key={i}>
               <span className="grow">{k.teks}</span>
-              <span className="hint faint">{sejak(k.pada, lang)}</span>
+              <span className="hint faint">
+                <Lalu iso={k.pada} lang={lang} />
+              </span>
             </li>
           ))}
         </ul>

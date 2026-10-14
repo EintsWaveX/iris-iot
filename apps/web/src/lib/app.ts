@@ -6,7 +6,7 @@
  */
 import { laluLabel } from "./labels.js";
 import type { HakKey, HakNilai, Tier } from "./hak.js";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Kelas, Lang } from "./kelas.js";
 import { usePollBersama } from "./hooks.js";
 import { dengar, useBatas } from "./siaran.js";
@@ -367,6 +367,28 @@ export function jamMenit(iso: string | Date, _lang?: Lang): string {
 export function sejak(iso: string | null, lang: Lang, now = Date.now()): string {
   if (!iso) return "";
   return laluLabel((now - new Date(iso).getTime()) / 1000, lang);
+}
+
+/* One shared second for every "ago" label on the page (one timer, not one
+   per label); the snapshot is the whole second, so it is stable. */
+const detikPendengar = new Set<() => void>();
+let detikTimer: ReturnType<typeof setInterval> | undefined;
+function ikutDetik(cb: () => void) {
+  detikPendengar.add(cb);
+  detikTimer ??= setInterval(() => detikPendengar.forEach((f) => f()), 1000);
+  return () => {
+    detikPendengar.delete(cb);
+    if (!detikPendengar.size && detikTimer) {
+      clearInterval(detikTimer);
+      detikTimer = undefined;
+    }
+  };
+}
+const detikKini = () => Math.floor(Date.now() / 1000) * 1000;
+
+/** Now, to the second, re-rendering each second with every other user. */
+export function useDetik(): number {
+  return useSyncExternalStore(ikutDetik, detikKini, detikKini);
 }
 
 /** Re-render every `ms` (for clocks and "N s ago" labels). */

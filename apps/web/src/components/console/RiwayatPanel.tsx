@@ -7,7 +7,12 @@
  * finalizes the semester's practicum, which opens all four. It can be undone.
  */
 import { useEffect, useState } from "react";
-import { CheckCircleIcon, ClockCountdownIcon, FlagCheckeredIcon } from "@phosphor-icons/react";
+import {
+  ArrowCounterClockwiseIcon,
+  CheckCircleIcon,
+  ClockCountdownIcon,
+  FlagCheckeredIcon,
+} from "@phosphor-icons/react";
 import Confirm from "../ui/Confirm";
 import { dict, getJson, postJson, tanggalPanjang } from "../../lib/app";
 import { modulLabel } from "../../lib/labels";
@@ -171,6 +176,7 @@ export default function RiwayatPanel({ lang }: { lang: Lang }) {
             {boleh &&
               (data.final ? (
                 <button type="button" className="btn btn--ghost" onClick={() => setAsk("batal")}>
+                  <ArrowCounterClockwiseIcon size={16} weight="bold" aria-hidden="true" />
                   {t.undo}
                 </button>
               ) : (

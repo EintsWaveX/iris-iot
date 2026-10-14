@@ -302,6 +302,36 @@
   }
 }
 
+.btn--ghost:has(> svg) {
+  gap: 6px;
+}
+.btn--ghost > svg {
+  flex: none;
+}
+.btn__go,
+.btn__back,
+.btn__turn {
+  transition: transform 160ms var(--ease-out-expo);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled) > .btn__go {
+    transform: translateX(2px);
+  }
+  .btn:hover:not(:disabled) > .btn__back {
+    transform: translateX(-2px);
+  }
+}
+.btn[aria-expanded="true"] > .btn__turn {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn__go,
+  .btn__back,
+  .btn__turn {
+    transition: none;
+  }
+}
+
 /* -- danger -- */
 .btn--danger {
   background: var(--danger-solid);

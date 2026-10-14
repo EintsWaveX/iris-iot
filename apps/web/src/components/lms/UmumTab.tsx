@@ -234,11 +234,13 @@ export default function UmumTab({ lang }: { lang: Lang; ke: (v: TabLms) => void 
                   <li key={u.id}>
                     <span className="stack stack--sm">
                       <b>{lang === "en" ? u.judulEn || u.judul : u.judul}</b>
-                      <span className="hint">
-                        {u.jadwal && !u.terkirim
-                          ? t.dijadwalkan(waktuPanjang(u.jadwal, lang))
-                          : waktuPanjang(u.pada, lang)}{" "}
-                        · {u.oleh}
+                      <span className="lms-meta">
+                        <span className="hint">
+                          {u.jadwal && !u.terkirim
+                            ? t.dijadwalkan(waktuPanjang(u.jadwal, lang))
+                            : waktuPanjang(u.pada, lang)}
+                        </span>
+                        <span className="pill pill--mono">{u.oleh}</span>
                       </span>
                     </span>
                     <Pill tone={u.terkirim === u.tujuan ? "ok" : undefined}>

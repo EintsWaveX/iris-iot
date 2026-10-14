@@ -19,6 +19,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
+  ArrowCounterClockwiseIcon,
   ChalkboardTeacherIcon,
   CheckIcon,
   CopyIcon,
@@ -639,6 +640,7 @@ function Peserta({
               setPer(d.atur.perKelompok);
             }}
           >
+            <ArrowCounterClockwiseIcon size={16} weight="bold" aria-hidden="true" />
             {k.resetAtur}
           </button>
           <button

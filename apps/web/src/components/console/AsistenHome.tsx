@@ -28,9 +28,11 @@ import DayStrip, { dayStates, SlotCodes, WinClock, type DaySlot } from "./DayStr
 import { useTitipan } from "./seelabs/data";
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
+  ArrowCounterClockwiseIcon,
   ArrowDownIcon,
   ArrowRightIcon,
   ArrowUpIcon,
+  CaretRightIcon,
   CheckCircleIcon,
   CheckIcon,
   ClockCountdownIcon,
@@ -1071,6 +1073,7 @@ export default function AsistenHome({
           <span className="eyebrow lp__eyebrow">{d.todayEyebrow(hariNama)}</span>
           <a className="btn btn--ghost btn--sm" href={href(lang, "/schedule?sorot=1")}>
             {h.mySchedule}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
           </a>
         </div>
         {data ? (
@@ -1531,6 +1534,7 @@ function WinInline({
               disabled={busy}
               onClick={() => void save(null)}
             >
+              <ArrowCounterClockwiseIcon size={16} weight="bold" aria-hidden="true" />
               {d.winDefault}
             </button>
           )}
@@ -1641,6 +1645,7 @@ function DayFoot({ lang, nim, fb }: { lang: Lang; nim: string; fb: Ringkasan | n
           <span className="hint">{d.paidEnd}</span>
           <a className="btn btn--ghost btn--sm" href={href(lang, "/account")}>
             {d.details}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
           </a>
         </div>
       </div>
@@ -1727,6 +1732,7 @@ function DayFoot({ lang, nim, fb }: { lang: Lang; nim: string; fb: Ringkasan | n
           )}
           <a className="btn btn--ghost btn--sm" href={href(lang, "/reports")}>
             {d.all}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
           </a>
         </div>
       </div>

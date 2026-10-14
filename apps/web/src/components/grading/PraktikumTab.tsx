@@ -8,7 +8,7 @@
  * table in a drawer, where TP cells graded in Penilaian are read only.
  */
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { ListChecksIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, ListChecksIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import Drawer from "../ui/Drawer";
 import { CountUp, StateView } from "../ui/Display";
@@ -349,6 +349,7 @@ function TabelDrawer({
         )}
         <a className="btn btn--ghost" href={href(lang, `/session?tabel=${s.sesiId}`)}>
           {ct.tableTitle}
+          <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
         </a>
       </div>
     </Drawer>

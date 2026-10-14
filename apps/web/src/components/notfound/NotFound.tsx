@@ -3,6 +3,7 @@
  * language comes from the URL (/en/ is English, /zh/ Mandarin) and the way
  * back is role-aware once /me answers. Phase 9: the shared ErrorView.
  */
+import { CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import ErrorView from "../ui/ErrorView";
 import { href, useMe, dict } from "../../lib/app";
@@ -53,6 +54,7 @@ export default function NotFound() {
             )}
             <a className="btn btn--ghost" href={href(lang, "/modules")}>
               {t.modules}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
             </a>
           </>
         }

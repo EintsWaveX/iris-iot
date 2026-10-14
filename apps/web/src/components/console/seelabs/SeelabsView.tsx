@@ -10,7 +10,13 @@
  */
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import RobotGuide from "./RobotGuide";
-import { CheckCircleIcon, HandCoinsIcon, ProhibitIcon, WarningIcon } from "@phosphor-icons/react";
+import {
+  ArrowClockwiseIcon,
+  CheckCircleIcon,
+  HandCoinsIcon,
+  ProhibitIcon,
+  WarningIcon,
+} from "@phosphor-icons/react";
 import BackButton from "../../ui/BackButton";
 import Fade from "../../ui/Fade";
 import { localeOf, tanggalPanjang, titikDua } from "../../../lib/app";
@@ -382,6 +388,7 @@ function FormIllo({
           className="btn btn--ghost illo__again"
           onClick={() => setRound((r) => r + 1)}
         >
+          <ArrowClockwiseIcon size={16} weight="bold" aria-hidden="true" />
           {t.illoReplay}
         </button>
       )}

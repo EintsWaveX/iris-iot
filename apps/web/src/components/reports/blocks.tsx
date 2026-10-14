@@ -10,6 +10,7 @@ import {
   CheckIcon,
   FileTextIcon,
   InfoIcon,
+  PlusIcon,
 } from "@phosphor-icons/react";
 import { localeOf, namaKelompok, tanggalPanjang, titikDua } from "../../lib/app";
 import { rupiah } from "../../lib/bayar";
@@ -219,6 +220,7 @@ function Checklist({
             fokus(v.length);
           }}
         >
+          <PlusIcon size={16} weight="bold" aria-hidden="true" />
           {t.addCheck}
         </button>
       )}

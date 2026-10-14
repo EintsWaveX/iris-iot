@@ -25,13 +25,14 @@ import IconButton from "../../ui/IconButton";
 import Pill from "../../ui/Pill";
 import SegmentedControl from "../../ui/SegmentedControl";
 import SlidesDialog, { type Deck as Tampil } from "../../shell/SlidesDialog";
-import { dict, getJson, MODUL_NAMA, postJson, sejak } from "../../../lib/app";
+import { dict, getJson, MODUL_NAMA, postJson } from "../../../lib/app";
 import { useDirektori } from "../../../lib/people";
 import { modulLabel } from "../../../lib/labels";
 import { bacaTautan, TAUTAN_SLIDES } from "../../../lib/tautan";
 import type { Lang } from "../../../lib/kelas";
 import TanpaHak, { useBolehJadwal } from "./TanpaHak";
 import { useSiaran } from "../../../lib/siaran";
+import Lalu from "../../ui/Lalu";
 
 const T = dict({
   id: {
@@ -266,7 +267,11 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
                     </button>
                     <span className="hint truncate">
                       {d.jenis === "tautan" ? `${pendek(d.url)} · ` : ""}
-                      {t.by(dir.nama(d.diunggahOleh), sejak(d.diunggahPada, lang))}
+                      <Lalu
+                        iso={d.diunggahPada}
+                        lang={lang}
+                        fmt={(s) => t.by(dir.nama(d.diunggahOleh), s)}
+                      />
                     </span>
                   </span>
                   {boleh && (

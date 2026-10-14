@@ -9,6 +9,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import {
   ArrowClockwiseIcon,
   ArrowsCounterClockwiseIcon,
+  CaretRightIcon,
   CircleNotchIcon,
   ListChecksIcon,
   MagnifyingGlassMinusIcon,
@@ -62,6 +63,7 @@ import {
 } from "./data";
 import { S } from "./strings";
 import { S12 } from "./server12Strings";
+import Lalu from "../ui/Lalu";
 
 interface Props {
   lang: Lang;
@@ -487,7 +489,6 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
 function ReadySnap({ lang, id, data, refresh, bisa, siapa, onTab }: Props) {
   const t = S[lang];
   const w = S12[lang];
-  const now = useTick(1_000);
   const runs = data.siapRiwayat;
   const last = runs[0] ?? null;
   const jalan = sedangBerjalan(data, "diag.siap");
@@ -510,16 +511,20 @@ function ReadySnap({ lang, id, data, refresh, bisa, siapa, onTab }: Props) {
         <div className="stack stack--sm">
           <h2 className="panel__title">{w.readyTitle}</h2>
           <span className="hint">
-            {last
-              ? t.readyLast(
-                  sejak(last.selesaiPada ?? last.dimintaPada, lang, now),
-                  siapa(last.dimintaOleh),
-                )
-              : t.readyNever}
+            {last ? (
+              <Lalu
+                iso={last.selesaiPada ?? last.dimintaPada}
+                lang={lang}
+                fmt={(s) => t.readyLast(s, siapa(last.dimintaOleh))}
+              />
+            ) : (
+              t.readyNever
+            )}
           </span>
         </div>
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => onTab("siap")}>
           {w.details}
+          <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
         </button>
       </div>
       <div className="stack stack--sm">
@@ -579,7 +584,6 @@ type Baris =
 function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd }: Props) {
   const t = S[lang];
   const w = S12[lang];
-  const now = useTick(1_000);
   const [h, setH] = useState<Riwayat | null>(null);
   const [f, setF] = useState<"all" | "cmd" | "ev">("all");
   const [hist, setHist] = useState(false);
@@ -648,7 +652,9 @@ function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
         <ol className="s12act">
           {rows.map((r, i) => (
             <li key={r.k === "cmd" ? `c${r.p.id}` : `e${i}`}>
-              <time className="num">{sejak(r.pada, lang, now)}</time>
+              <time className="num">
+                <Lalu iso={r.pada} lang={lang} />
+              </time>
               {r.k === "cmd" ? (
                 <StatusPill t={t} p={r.p} />
               ) : (
@@ -732,7 +738,6 @@ function ActivityCard({ lang, id, data, refresh, bisa, siapa, autoCmd, onAutoCmd
 function OfflineCard({ lang, data, bisa, onTab }: Props) {
   const t = S[lang];
   const s12 = S12[lang];
-  const now = useTick(30_000);
   const hb = data.denyutTerakhir;
   const last: [string, string][] = hb
     ? (
@@ -754,12 +759,17 @@ function OfflineCard({ lang, data, bisa, onTab }: Props) {
         <span className="pill pill--danger">{t.offline}</span>
       </div>
       <p className="s12off__lede">
-        {hb
-          ? s12.offSince(
-              `${tanggalPanjang(hb.pada, lang)} ${jamMenit(hb.pada, lang)}`,
-              sejak(hb.pada, lang, now),
-            )
-          : s12.offNever}
+        {hb ? (
+          <Lalu
+            iso={hb.pada}
+            lang={lang}
+            fmt={(s) =>
+              s12.offSince(`${tanggalPanjang(hb.pada, lang)} ${jamMenit(hb.pada, lang)}`, s)
+            }
+          />
+        ) : (
+          s12.offNever
+        )}
       </p>
       <div className="s12off__cols">
         {last.length > 0 && (
@@ -792,6 +802,7 @@ function OfflineCard({ lang, data, bisa, onTab }: Props) {
         )}
         <button type="button" className="btn btn--ghost" onClick={() => onTab("pengaturan")}>
           {s12.offSettings}
+          <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
         </button>
       </div>
     </section>

@@ -507,6 +507,7 @@ function GroupCard({
             </span>
             <button type="button" className="btn btn--ghost" onClick={() => buka(0)}>
               {t.lihat}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
             </button>
           </>
         )}

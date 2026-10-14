@@ -16,7 +16,7 @@ import SeelabsRobotCard from "../console/seelabs/SeelabsRobotCard";
 import PraktikanAccount from "./PraktikanAccount";
 import { EarningsCard } from "../bayar/Earnings";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { CheckIcon, UserIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, CheckIcon, UserIcon } from "@phosphor-icons/react";
 import PasswordField, { kekuatanSandi } from "../ui/PasswordField";
 import { StateView } from "../ui/Display";
 import FeedbackSummary from "../shared/FeedbackSummary";
@@ -320,6 +320,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
             <h2 className="panel__title">{t.jadwalH}</h2>
             <a className="btn btn--ghost btn--sm" href={href(lang, "/schedule")}>
               {t.lihatJadwal}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
             </a>
           </div>
           {jadwal === null ? (

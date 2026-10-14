@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowClockwiseIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
-import { getJson, localeOf, postJson, sejak, useTick } from "../../lib/app";
+import { getJson, localeOf, postJson } from "../../lib/app";
 import { useSegar } from "../../lib/siaran";
 import { unduhCsv } from "../../lib/csv";
 import type { Lang } from "../../lib/kelas";
@@ -19,6 +19,7 @@ import type { Perintah } from "../console/types";
 import { statusTampil } from "./ops";
 import { BERJALAN, kejadianDari, unduhTeks, type Riwayat } from "./data";
 import { S, pesan, type SStrings } from "./strings";
+import Lalu from "../ui/Lalu";
 
 type Filter = "all" | "selesai" | "gagal" | "kedaluwarsa" | "menunggu";
 
@@ -69,7 +70,6 @@ export function CommandsDialog({
   refresh: () => void;
 }) {
   const t = S[lang];
-  const now = useTick(1_000);
   const [f, setF] = useState<Filter>("all");
   const [older, setOlder] = useState<Perintah[]>([]);
   const [lagi, setLagi] = useState(awal.length >= 20);
@@ -202,7 +202,7 @@ export function CommandsDialog({
                     <StatusPill t={t} p={p} />
                   </td>
                   <td className="hint" style={{ whiteSpace: "nowrap" }}>
-                    {sejak(p.selesaiPada ?? p.dimintaPada, lang, now)}
+                    <Lalu iso={p.selesaiPada ?? p.dimintaPada} lang={lang} />
                   </td>
                   {bisaKendali && (
                     <td>
@@ -291,7 +291,6 @@ export function HistoryDialog({
   refresh: () => void;
 }) {
   const t = S[lang];
-  const now = useTick(1_000);
   const [h, setH] = useState<Riwayat | null>(null);
   const [ask, setAsk] = useState(false);
   const segar = useSegar(["server"]);
@@ -377,7 +376,7 @@ export function HistoryDialog({
                     </span>
                   </td>
                   <td className="hint" style={{ whiteSpace: "nowrap" }}>
-                    {sejak(r.pada, lang, now)}
+                    <Lalu iso={r.pada} lang={lang} />
                   </td>
                 </tr>
               ))}
@@ -432,7 +431,6 @@ export function OutputDialog({
   onClose: () => void;
 }) {
   const t = S[lang];
-  const now = useTick(1_000);
   const teks = hasil?.keluaran ?? "";
   return (
     <Dialog
@@ -472,11 +470,13 @@ export function OutputDialog({
     >
       <div className="stack stack--sm">
         <span className="hint" aria-live="polite">
-          {jalan
-            ? t.logWait
-            : hasil
-              ? t.logAt(sejak(hasil.selesaiPada ?? hasil.dimintaPada, lang, now))
-              : t.neverRun}
+          {jalan ? (
+            t.logWait
+          ) : hasil ? (
+            <Lalu iso={hasil.selesaiPada ?? hasil.dimintaPada} lang={lang} fmt={t.logAt} />
+          ) : (
+            t.neverRun
+          )}
         </span>
         <pre className="srv-log srv-log--tall">{teks || "·"}</pre>
       </div>

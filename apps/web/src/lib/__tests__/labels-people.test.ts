@@ -33,11 +33,19 @@ describe("labels", () => {
     expect(durasiLabel(45, "zh")).toBe("45 分钟");
   });
 
-  it("says how long ago in words", () => {
-    expect(laluLabel(12, "id")).toBe("12 detik lalu");
-    expect(laluLabel(1, "en")).toBe("1 second ago");
-    expect(laluLabel(180, "en")).toBe("3 minutes ago");
-    expect(laluLabel(7200, "zh")).toBe("2 小时前");
+  it("says how long ago as days (HH:MM:SS), past 30 days in words", () => {
+    expect(laluLabel(12, "id")).toBe("00:00:12 lalu");
+    expect(laluLabel(1, "en")).toBe("00:00:01 ago");
+    expect(laluLabel(180, "en")).toBe("00:03:00 ago");
+    expect(laluLabel(7200, "zh")).toBe("02:00:00 前");
+    expect(laluLabel(2 * 86400 + 3 * 3600 + 14 * 60 + 7, "id")).toBe("2 hari (03:14:07) lalu");
+    expect(laluLabel(86400 + 59.9, "en")).toBe("1 day (00:00:59) ago");
+    expect(laluLabel(5 * 86400 + 1, "zh")).toBe("5 天（00:00:01）前");
+    expect(laluLabel(30 * 86400, "en")).toBe("30 days (00:00:00) ago");
+    expect(laluLabel(30 * 86400 + 1, "id")).toBe("lebih dari 30 hari lalu");
+    expect(laluLabel(90 * 86400, "en")).toBe("more than 30 days ago");
+    expect(laluLabel(40 * 86400, "zh")).toBe("超过 30 天前");
+    expect(laluLabel(-5, "id")).toBe("00:00:00 lalu");
   });
 });
 

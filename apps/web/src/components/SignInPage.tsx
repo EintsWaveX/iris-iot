@@ -23,6 +23,7 @@
  *   language choice of their own lands on the English pages.
  * - Someone already signed in who opens /login goes straight on.
  */
+import { CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useState, type FormEvent } from "react";
 import SegmentedControl from "./ui/SegmentedControl";
 import KodeSesiDialog from "./KodeSesiDialog";
@@ -635,6 +636,7 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
               }}
             >
               {t.lihatSaja}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
             </button>
           )}
 

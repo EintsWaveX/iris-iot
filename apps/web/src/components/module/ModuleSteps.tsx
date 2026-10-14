@@ -45,6 +45,7 @@ import {
 } from "react";
 import {
   BookOpenTextIcon,
+  CaretLeftIcon,
   CheckCircleIcon,
   CheckIcon,
   CircuitryIcon,
@@ -389,6 +390,7 @@ export default function ModuleSteps(p: Props) {
             {wakil.own ? t.viewedOwnHint : t.viewedOtherHint(wakil.pemegang)}
           </span>
           <a className="btn btn--sm btn--ghost" href={href(lang, "/session")}>
+            <CaretLeftIcon size={16} weight="bold" className="btn__back" aria-hidden="true" />
             {t.backToSession}
           </a>
         </div>
@@ -594,6 +596,7 @@ export default function ModuleSteps(p: Props) {
           <nav className="modsteps__pager" aria-label={t.steps}>
             {prev ? (
               <button type="button" className="btn btn--ghost" onClick={() => pindah(prev)}>
+                <CaretLeftIcon size={16} weight="bold" className="btn__back" aria-hidden="true" />
                 {t.prevStep(label[prev])}
               </button>
             ) : (

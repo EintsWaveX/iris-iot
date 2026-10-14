@@ -5,6 +5,7 @@
  * live in the nav's Tampilan panel; this page links there instead of
  * repeating it. No password: Praktikan sign in with their NIM only.
  */
+import { CaretRightIcon, SignOutIcon } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 import BackButton from "../ui/BackButton";
 import Pill from "../ui/Pill";
@@ -167,6 +168,7 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
               title={t.outSub}
               onClick={() => void keluar()}
             >
+              <SignOutIcon size={16} weight="bold" aria-hidden="true" />
               {t.out}
             </button>
           </div>
@@ -198,6 +200,12 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
                     <span className="pacct__acts">
                       <a className="btn btn--sm btn--ghost" href={href(lang, `/modules/${m}`)}>
                         {t.read}
+                        <CaretRightIcon
+                          size={16}
+                          weight="bold"
+                          className="btn__go"
+                          aria-hidden="true"
+                        />
                       </a>
                     </span>
                   </article>
@@ -237,6 +245,12 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
                     </a>
                     <a className="btn btn--sm btn--ghost" href={href(lang, `/modules/${m}`)}>
                       {t.journal}
+                      <CaretRightIcon
+                        size={16}
+                        weight="bold"
+                        className="btn__go"
+                        aria-hidden="true"
+                      />
                     </a>
                   </span>
                 </article>

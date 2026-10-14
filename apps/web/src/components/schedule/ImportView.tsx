@@ -27,7 +27,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import DragLayer from "../ui/DragLayer";
-import { DotsSixVerticalIcon, WarningIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, DotsSixVerticalIcon, WarningIcon } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import Confirm from "../ui/Confirm";
 import Fade from "../ui/Fade";
@@ -407,6 +407,7 @@ function Arrange({
                     setHist(h);
                   }}
                 >
+                  <ArrowCounterClockwiseIcon size={16} weight="bold" aria-hidden="true" />
                   {t.imp.undo}
                 </button>
               </>

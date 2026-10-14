@@ -4,6 +4,7 @@
  * so IRIS's access rules keep working and there's one copy to update.
  */
 import { useState, type CSSProperties } from "react";
+import { ArrowUpRightIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { getJson } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
@@ -51,33 +52,34 @@ export default function MateriTab({ lang }: { lang: Lang; ke: (v: TabLms) => voi
               className="panel slr-card"
               style={{ "--m": `var(--mod-${m.modul})` } as CSSProperties}
             >
-              <Head
-                title={
-                  <span className="stack stack--sm">
-                    <Pill modul={m.modul}>{t.modul(m.modul)}</Pill>
-                    <span>{m.nama}</span>
-                  </span>
-                }
-                aside={
-                  <Pill tone={semua ? "ok" : undefined}>
-                    {m.di ? t.diKelas(m.di, d.kelasJumlah) : t.belum}
-                  </Pill>
-                }
-              />
-              <ul className="lms-mat">
-                <li>{t.namaBagian(m.bagian)}</li>
-                <li>
-                  {t.tautan(m.tautan)}
-                  <a
-                    className="hint mono lms-mat__url"
-                    href={m.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {m.url.replace(/^https:\/\//, "")}
-                  </a>
-                </li>
-              </ul>
+              <div className="lms-mod__top">
+                <Pill modul={m.modul}>{t.modul(m.modul)}</Pill>
+                <Pill tone={semua ? "ok" : undefined}>
+                  {m.di ? t.diKelas(m.di, d.kelasJumlah) : t.belum}
+                </Pill>
+              </div>
+              <Head title={m.nama} />
+              <dl className="lms-mat">
+                <div>
+                  <dt>{t.namaBagian}</dt>
+                  <dd>{m.bagian}</dd>
+                </div>
+                <div>
+                  <dt>{t.tautan}</dt>
+                  <dd>
+                    {m.tautan}
+                    <a
+                      className="hint mono lms-mat__url"
+                      href={m.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {m.url.replace(/^https:\/\//, "")}
+                      <ArrowUpRightIcon size={13} weight="bold" aria-hidden="true" />
+                    </a>
+                  </dd>
+                </div>
+              </dl>
               {d.boleh && d.kelola && (
                 <div className="slr-acts">
                   <button

@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import SegmentedControl from "../../ui/SegmentedControl";
 import Fade from "../../ui/Fade";
-import { dict, getJson, postJson, sejak } from "../../../lib/app";
+import { dict, getJson, postJson } from "../../../lib/app";
 import { modulLabel } from "../../../lib/labels";
 import { useDirektori } from "../../../lib/people";
 import type { Lang } from "../../../lib/kelas";
@@ -28,6 +28,7 @@ import BetaBadge from "../../ui/BetaBadge";
 import { useSiaran } from "../../../lib/siaran";
 import TanpaHak, { useBolehJadwal } from "./TanpaHak";
 import { useBelumSimpan } from "../../../lib/belum-simpan";
+import Lalu from "../../ui/Lalu";
 
 const BAWAAN: Record<"id" | "en" | "zh", Record<number, { ringkasan: string[] }>> = {
   id: { 1: id1, 2: id2, 3: id3, 4: id4 },
@@ -140,7 +141,15 @@ export default function BriefEditor({ lang }: { lang: Lang }) {
       <div className="panel__head">
         <h3 className="panel__title">{t.title}</h3>
         <span className="hint">
-          {row ? t.lastBy(dir.nama(row.diubahOleh), sejak(row.diubahPada, lang)) : t.fromHandbook}
+          {row ? (
+            <Lalu
+              iso={row.diubahPada}
+              lang={lang}
+              fmt={(s) => t.lastBy(dir.nama(row.diubahOleh), s)}
+            />
+          ) : (
+            t.fromHandbook
+          )}
         </span>
       </div>
       <div className="briefbar">

@@ -237,6 +237,15 @@ body > .page-main {
   width: 100%;
 }
 
+/* A card ending in its buttons: they sit on the bottom edge. */
+.panel > :last-child:is(.slr-acts, .panel__actions, .btn) {
+  margin-top: auto;
+}
+.panel.slr-card:has(> :last-child:is(.slr-acts, .panel__actions, .btn)) {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Card actions sit on the card's bottom edge, so buttons in neighbouring
    equal-height cards line up. */
 .panel__actions {

@@ -15,9 +15,15 @@ import { getJson } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { LS } from "./lmsStrings";
-import { BatchDialog, Head, galatTeks, lalu, langkah } from "./lmsShared";
+import { BatchDialog, Head, galatTeks, langkah } from "./lmsShared";
 import { BacaSaja, type TabLms } from "./LmsPage";
-import { ChatCircleTextIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import {
+  ArrowClockwiseIcon,
+  CaretRightIcon,
+  ChatCircleTextIcon,
+  MagnifyingGlassIcon,
+} from "@phosphor-icons/react";
+import Lalu from "../ui/Lalu";
 
 interface KursusKelas {
   id: number;
@@ -75,6 +81,7 @@ export default function KelasTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
               className="btn btn--ghost btn--sm"
               onClick={() => setSegar((x) => x + 1)}
             >
+              <ArrowClockwiseIcon size={16} weight="bold" aria-hidden="true" />
               {t.segarkan}
             </button>
           }
@@ -114,6 +121,12 @@ export default function KelasTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
                       onClick={() => setPilih(k)}
                     >
                       {t.buka}
+                      <CaretRightIcon
+                        size={16}
+                        weight="bold"
+                        className="btn__go"
+                        aria-hidden="true"
+                      />
                     </button>
                   </td>
                 </tr>
@@ -121,7 +134,11 @@ export default function KelasTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
             </tbody>
           </table>
         </div>
-        {d.infoPada && <span className="hint">{t.dibaca(lalu(d.infoPada, lang))}</span>}
+        {d.infoPada && (
+          <span className="hint">
+            <Lalu iso={d.infoPada} lang={lang} fmt={t.dibaca} />
+          </span>
+        )}
       </section>
       {pilih && (
         <KelasDrawer
@@ -267,7 +284,7 @@ function KelasDrawer({
                         : (t.st[o.status] ?? o.status)}
                     </Pill>
                     <span className="hint">
-                      {t.terakhirLms} {lalu(o.akses, lang)}
+                      {t.terakhirLms} <Lalu iso={o.akses} lang={lang} />
                     </span>
                   </span>
                   {boleh ? (

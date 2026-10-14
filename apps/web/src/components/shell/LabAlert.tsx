@@ -14,6 +14,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import {
+  CaretRightIcon,
   ChatCircleTextIcon,
   PersonSimpleRunIcon,
   PlugsIcon,
@@ -21,7 +22,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { dict, getJson, href, postJson, type Me } from "../../lib/app";
-import { modulLabel } from "../../lib/labels";
+import { laluLabel, modulLabel } from "../../lib/labels";
 import { usePoll } from "../../lib/hooks";
 import { useBatas } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
@@ -67,12 +68,6 @@ const T = dict({
     errGo: "Lihat Galat",
     notif: "Beri Tahu Saya",
     hide: "Sembunyikan",
-    ago: (m: number) =>
-      m < 1
-        ? "kurang dari semenit lalu"
-        : m < 90
-          ? `${m} menit lalu`
-          : `${Math.round(m / 60)} jam lalu`,
     nPi: "IRIS: Pi tidak mengirim detak",
     nErr: "IRIS: galat server bertambah",
     callH: (who: string, m: string) => `${who} memanggil DEV${m ? ` dari sesi ${m}` : ""}`,
@@ -95,12 +90,6 @@ const T = dict({
     errGo: "See Errors",
     notif: "Notify Me",
     hide: "Hide",
-    ago: (m: number) =>
-      m < 1
-        ? "under a minute ago"
-        : m < 90
-          ? `${m} minutes ago`
-          : `${Math.round(m / 60)} hours ago`,
     nPi: "IRIS: the Pi stopped sending heartbeats",
     nErr: "IRIS: server errors are piling up",
     callH: (who: string, m: string) =>
@@ -123,8 +112,6 @@ const T = dict({
     errGo: "查看错误",
     notif: "通知我",
     hide: "隐藏",
-    ago: (m: number) =>
-      m < 1 ? "不到一分钟前" : m < 90 ? `${m} 分钟前` : `${Math.round(m / 60)} 小时前`,
     nPi: "IRIS：Pi 停止发送心跳",
     nErr: "IRIS：服务器错误在增加",
     callH: (who: string, m: string) => `${who}${m ? `从${m}的课上` : ""}呼叫 DEV`,
@@ -266,6 +253,7 @@ export default function LabAlert({
           {tombolIzin}
           <a className="btn btn--ghost btn--sm" href={href(lang, "/session")}>
             {t.callOpen}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
           </a>
           <button type="button" className="btn btn--sm" onClick={() => void jawab(call.id)}>
             {t.callGo}
@@ -291,9 +279,7 @@ export default function LabAlert({
         <div className="offline banner banner--danger" role="alert">
           <PlugsIcon size={20} aria-hidden="true" />
           <b>{t.piH}</b>
-          <span className="hint">
-            {t.piP(umur == null ? t.piNever : t.ago(Math.floor(umur / 60)))}
-          </span>
+          <span className="hint">{t.piP(umur == null ? t.piNever : laluLabel(umur, lang))}</span>
           {!call && tombolIzin}
           <a
             className="btn btn--ghost btn--sm"
@@ -304,6 +290,7 @@ export default function LabAlert({
             }
           >
             {t.piGo}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
           </a>
         </div>
       )}
@@ -318,6 +305,7 @@ export default function LabAlert({
             href={`${href(lang, "/reports")}?audit=galat#audit`}
           >
             {t.errGo}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
           </a>
           <button
             type="button"

@@ -27,9 +27,11 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  CaretRightIcon,
   CopySimpleIcon,
   DotsSixVerticalIcon,
   DotsThreeVerticalIcon,
+  DownloadSimpleIcon,
   LockSimpleIcon,
   PlusIcon,
   TrashIcon,
@@ -919,6 +921,7 @@ export default function Builder({
                   onClick={() => setCtxPick(true)}
                 >
                   {t.ctx}
+                  <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
                 </button>
               )}
               <span className="rp-savestate" data-st={ro ? "saved" : st} role="status">
@@ -1013,6 +1016,7 @@ export default function Builder({
             )}
             <span className="grow" />
             <button type="button" className="btn btn--ghost" onClick={pdf}>
+              <DownloadSimpleIcon size={16} weight="bold" aria-hidden="true" />
               {t.exportPdf}
             </button>
             {!ro && (

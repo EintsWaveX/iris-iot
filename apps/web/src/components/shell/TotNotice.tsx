@@ -5,7 +5,7 @@
  * chip and this banner, refreshed on the `tot` live update.
  */
 import { useCallback, useEffect, useState } from "react";
-import { ChalkboardTeacherIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, ChalkboardTeacherIcon } from "@phosphor-icons/react";
 import { dict, getJson, href } from "../../lib/app";
 import { useSiaran } from "../../lib/siaran";
 import type { Lang } from "../../lib/kelas";
@@ -59,6 +59,7 @@ export default function TotNotice({ lang, on }: { lang: Lang; on: boolean }) {
       <span className="hint">{t.p}</span>
       <a className="btn btn--ghost btn--sm" href={href(lang, "/tot")}>
         {t.go}
+        <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
       </a>
     </div>
   );

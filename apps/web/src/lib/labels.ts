@@ -71,21 +71,24 @@ export function durasiLabel(totalMenit: number, lang: Lang): string {
   return menitLabel(mm, lang);
 }
 
-/** "12 detik lalu", "3 minutes ago", "2 小时前": how long ago, in words. */
+/** How long ago, the one way IRIS writes history: "00:04:12 lalu",
+ *  "2 hari (03:14:07) lalu", and past 30 days "lebih dari 30 hari lalu". */
 export function laluLabel(detik: number, lang: Lang): string {
-  const s = Math.max(0, Math.round(detik));
-  if (s < 60) {
-    if (lang === "en") return `${en(s, "second")} ago`;
-    return lang === "zh" ? `${s} 秒前` : `${s} detik lalu`;
+  const s = Math.max(0, Math.floor(detik));
+  if (s > 30 * 86400) {
+    if (lang === "en") return "more than 30 days ago";
+    return lang === "zh" ? "超过 30 天前" : "lebih dari 30 hari lalu";
   }
-  const m = Math.round(s / 60);
-  if (m < 60) {
-    if (lang === "en") return `${en(m, "minute")} ago`;
-    return lang === "zh" ? `${m} 分钟前` : `${m} menit lalu`;
+  const d = Math.floor(s / 86400);
+  const jms = [Math.floor((s % 86400) / 3600), Math.floor((s % 3600) / 60), s % 60]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
+  if (!d) {
+    if (lang === "en") return `${jms} ago`;
+    return lang === "zh" ? `${jms} 前` : `${jms} lalu`;
   }
-  const h = Math.round(m / 60);
-  if (lang === "en") return `${en(h, "hour")} ago`;
-  return lang === "zh" ? `${h} 小时前` : `${h} jam lalu`;
+  if (lang === "en") return `${en(d, "day")} (${jms}) ago`;
+  return lang === "zh" ? `${d} 天（${jms}）前` : `${d} hari (${jms}) lalu`;
 }
 
 /** "Senin", "Monday", "星期一" (1 = Senin ... 6 = Sabtu, 0 = Minggu) */

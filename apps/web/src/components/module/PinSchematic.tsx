@@ -30,7 +30,11 @@
  * settings dialog that sets the module's pins for everyone (PinDialog.tsx).
  */
 import { useEffect, useId, useMemo, useState, type CSSProperties } from "react";
-import { ArrowsOutSimpleIcon, ArrowSquareOutIcon } from "@phosphor-icons/react";
+import {
+  ArrowCounterClockwiseIcon,
+  ArrowSquareOutIcon,
+  ArrowsOutSimpleIcon,
+} from "@phosphor-icons/react";
 import SchematicViewer from "../ui/SchematicViewer";
 import SegmentedControl from "../ui/SegmentedControl";
 import { namaLayanan } from "../../lib/tautan";
@@ -729,6 +733,7 @@ export default function PinSchematic({
                   if (await grup.simpan(null)) window.Toast?.show(pj.resetDone, "ok");
                 }}
               >
+                <ArrowCounterClockwiseIcon size={16} weight="bold" aria-hidden="true" />
                 {pj.reset}
               </button>
             )}

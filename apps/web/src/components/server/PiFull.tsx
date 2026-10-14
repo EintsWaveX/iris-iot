@@ -8,8 +8,8 @@
  * the report does, so the services table keeps up with History.
  */
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
-import { ArrowClockwiseIcon, CircleNotchIcon } from "@phosphor-icons/react";
-import { sejak, useTick } from "../../lib/app";
+import { ArrowClockwiseIcon, CaretRightIcon, CircleNotchIcon } from "@phosphor-icons/react";
+import { useTick } from "../../lib/app";
 import { durasiLabel, nil } from "../../lib/labels";
 import Nil from "../ui/Nil";
 import type { Lang } from "../../lib/kelas";
@@ -27,6 +27,7 @@ import {
   type Detail,
 } from "./data";
 import { S } from "./strings";
+import Lalu from "../ui/Lalu";
 
 const SEGAR_MS = 5 * 60_000;
 
@@ -91,13 +92,15 @@ export default function PiFull({
   const head = (
     <div className="row row--between">
       <span className="hint" aria-live="polite">
-        {jalan
-          ? t.fullWait
-          : last && !r && last.status === "gagal"
-            ? t.fullOld
-            : last
-              ? t.fullAt(sejak(last.selesaiPada ?? last.dimintaPada, lang, now))
-              : t.fullWait}
+        {jalan ? (
+          t.fullWait
+        ) : last && !r && last.status === "gagal" ? (
+          t.fullOld
+        ) : last ? (
+          <Lalu iso={last.selesaiPada ?? last.dimintaPada} lang={lang} fmt={t.fullAt} />
+        ) : (
+          t.fullWait
+        )}
       </span>
       <button type="button" className="btn btn--sm" disabled={jalan} onClick={minta}>
         {jalan ? (
@@ -333,6 +336,7 @@ export default function PiFull({
                 <span>{t.journalErr}</span>
                 <button type="button" className="btn btn--ghost btn--sm" onClick={onJournal}>
                   {t.view}
+                  <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
                 </button>
               </div>
             )}
