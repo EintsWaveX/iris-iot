@@ -125,6 +125,7 @@ import {
   umumkanKursus,
 } from "../_lib/lms-kerja.js";
 import { tulisSet } from "../_lib/tp.js";
+import { gabungLog, type BarisLog } from "../_lib/lms-log.js";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -161,17 +162,6 @@ function gagal(res: ApiResponse, e: unknown, tempat: string) {
 
 /* ========================================================== the overview */
 
-interface BarisLog {
-  pada: string;
-  oleh: string;
-  aksi: string;
-  langkah: string | null;
-  modul: number | null;
-  judul: string | null;
-  kelas: number;
-  gagal: number;
-}
-
 /** What IRIS did in the LMS, the audit's rows grouped: one batch over the
  *  classes is one line ("Buat TP Modul 1 · 11 kelas"). */
 async function logLms(db: Db, n: number, sebelum?: Date): Promise<BarisLog[]> {
@@ -186,44 +176,7 @@ async function logLms(db: Db, n: number, sebelum?: Date): Promise<BarisLog[]> {
     )
     .orderBy(desc(audit.pada))
     .limit(n * 12);
-  const kodeOf = await petaKode(db);
-  const out: (BarisLog & { kunci: string; akhir: number })[] = [];
-  for (const r of rows) {
-    let d: Record<string, unknown> = {};
-    try {
-      d = r.detail ? (JSON.parse(r.detail) as Record<string, unknown>) : {};
-    } catch {
-      d = {};
-    }
-    const langkah =
-      typeof d.langkah === "string" ? d.langkah : typeof d.aksi === "string" ? d.aksi : null;
-    const modul = typeof d.modul === "number" ? d.modul : null;
-    const judul =
-      typeof d.judul === "string" ? d.judul : typeof d.nama === "string" ? d.nama : null;
-    const kunci = `${r.nim}|${r.aksi}|${langkah}|${modul}|${judul}`;
-    const t = r.pada.getTime();
-    const prev = out[out.length - 1];
-    if (prev && prev.kunci === kunci && prev.akhir - t < 15 * 60_000) {
-      prev.kelas += 1;
-      if (d.gagal) prev.gagal += 1;
-      prev.akhir = t;
-      continue;
-    }
-    if (out.length >= n) break;
-    out.push({
-      kunci,
-      akhir: t,
-      pada: r.pada.toISOString(),
-      oleh: r.nim === "pi" || r.nim === "otomatis" ? r.nim : (kodeOf.get(r.nim) ?? r.nim),
-      aksi: r.aksi,
-      langkah,
-      modul,
-      judul,
-      kelas: 1,
-      gagal: d.gagal ? 1 : 0,
-    });
-  }
-  return out.map(({ kunci: _k, akhir: _a, ...b }) => b);
+  return gabungLog(rows, await petaKode(db), n);
 }
 
 async function handleRingkas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
@@ -260,8 +213,22 @@ async function handleRingkas(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   const peserta = terdaftar.filter((p) => !kec.has(p.nim)).length;
   const luar = set.kelas?.luar?.length ?? null;
   const diKelas = kursus.reduce((n, k) => n + (k.nim?.length ?? k.peserta), 0);
-  const cek: { k: string; n?: number; kelas?: string[]; galat?: string | null }[] = [];
+  const cek: {
+    k: string;
+    n?: number;
+    kelas?: string[];
+    nama?: string[];
+    galat?: string | null;
+  }[] = [];
   if (luar) cek.push({ k: "luar", n: luar });
+  // Registered in IRIS but in no LMS class: they can't hand in on the LMS
+  // and the per-class bars leave them out (seen live: 288 against 284).
+  if (kursus.length && kursus.every((k) => k.nim)) {
+    const diLms = new Set(kursus.flatMap((k) => k.nim ?? []));
+    const tanpa = terdaftar.filter((p) => !kec.has(p.nim) && !diLms.has(p.nim));
+    if (tanpa.length)
+      cek.push({ k: "tanpa", n: tanpa.length, nama: tanpa.map((p) => `${p.nama} (${p.nim})`) });
+  }
   if (info) {
     const tanpa = kursus.filter((k) => info.per[String(k.id)]?.grup === 0).map((k) => k.label);
     if (tanpa.length) cek.push({ k: "grup", kelas: tanpa });

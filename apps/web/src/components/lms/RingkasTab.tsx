@@ -36,7 +36,7 @@ interface Ringkas {
   kelasJumlah: number;
   mahasiswaLms: number | null;
   luar: number | null;
-  cek: { k: string; n?: number; kelas?: string[]; galat?: string | null }[];
+  cek: { k: string; n?: number; kelas?: string[]; nama?: string[]; galat?: string | null }[];
   otomatis: {
     nyala: Record<string, boolean | undefined>;
     ubah: Record<string, { oleh: string; pada: string } | undefined>;
@@ -97,8 +97,8 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
       pada: l.pada,
       apa: t.logAksi(l.aksi, l.langkah, l.modul, l.judul),
       siapa: l.oleh === "pi" ? TPS[lang].olehPi : l.oleh === "otomatis" ? t.olehOtomatis : l.oleh,
-      di: l.kelas > 1 ? t.kelasN(l.kelas) : "",
-      tone: l.gagal ? "warn" : "ok",
+      di: l.gagal ? t.gagalDi(l.gagal, l.kelas) : l.kelas > 1 ? t.kelasN(l.kelas) : "",
+      tone: l.gagal ? "danger" : "ok",
     })),
     ...d.sinkronLog.map((l) => ({
       pada: l.pada,
@@ -112,7 +112,7 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
               ? TPS[lang].olehRelay
               : l.oleh,
       di: "",
-      tone: l.hasil === "ok" ? "ok" : "warn",
+      tone: l.hasil === "ok" ? "ok" : "danger",
     })),
   ]
     .sort((a, b) => b.pada.localeCompare(a.pada))
@@ -446,6 +446,11 @@ function Kini({ lang, d, onFlip }: { lang: Lang; d: Ringkas; onFlip: () => void 
   );
 }
 
+/** The first six names, then how many more ("…, +4"). */
+function singkatNama(nama: string[]): string {
+  return nama.length > 6 ? `${nama.slice(0, 6).join(", ")}, +${nama.length - 6}` : nama.join(", ");
+}
+
 function Cek({
   lang,
   c,
@@ -461,15 +466,22 @@ function Cek({
   const [judul, hint, tombol, tujuan] =
     c.k === "luar"
       ? [t.cek.luar(c.n ?? 0), t.cek.luarHint, t.lihat, "sambung" as TabLms]
-      : c.k === "grup"
-        ? [t.cek.grup((c.kelas ?? []).join(", ")), t.cek.grupHint, t.buat, "kelas" as TabLms]
-        : c.k === "tanggal"
-          ? [t.cek.tanggal(c.n ?? 0, modul), t.cek.tanggalHint, t.samakan, "sambung" as TabLms]
-          : c.k === "hilang"
-            ? [t.cek.hilang(c.n ?? 0, modul), t.cek.hilangHint, t.buat, "sambung" as TabLms]
-            : c.k === "kunci"
-              ? [t.cek.kunci, t.cek.kunciHint, t.lihat, "sambung" as TabLms]
-              : [t.cek.sinkron, c.galat ?? "", t.lihat, "sambung" as TabLms];
+      : c.k === "tanpa"
+        ? [
+            t.cek.tanpa(c.n ?? 0),
+            t.cek.tanpaHint(singkatNama(c.nama ?? [])),
+            t.lihat,
+            "kelas" as TabLms,
+          ]
+        : c.k === "grup"
+          ? [t.cek.grup((c.kelas ?? []).join(", ")), t.cek.grupHint, t.buat, "kelas" as TabLms]
+          : c.k === "tanggal"
+            ? [t.cek.tanggal(c.n ?? 0, modul), t.cek.tanggalHint, t.samakan, "sambung" as TabLms]
+            : c.k === "hilang"
+              ? [t.cek.hilang(c.n ?? 0, modul), t.cek.hilangHint, t.buat, "sambung" as TabLms]
+              : c.k === "kunci"
+                ? [t.cek.kunci, t.cek.kunciHint, t.lihat, "sambung" as TabLms]
+                : [t.cek.sinkron, c.galat ?? "", t.lihat, "sambung" as TabLms];
   return (
     <li>
       <b>{judul}</b>

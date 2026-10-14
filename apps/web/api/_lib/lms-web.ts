@@ -134,10 +134,15 @@ export function bacaForm(html: string, aksi: RegExp): Isian[] | null {
  */
 export function ubahForm(isian: Isian[], ubah: Record<string, string | boolean>): Isian[] {
   const out = isian.map((f) => ({ ...f }));
+  // name and name[value] are one key to PHP: the later one wins and can
+  // turn a text field into an array, so a field the form lacks is only
+  // added when no field of the form shares its base name.
+  const dasar = (n: string) => n.replace(/\[.*$/, "");
+  const adaDasar = new Set(isian.map((f) => dasar(f.nama)));
   for (const [nama, v] of Object.entries(ubah)) {
     const kena = out.filter((f) => f.nama === nama && f.jenis !== "submit");
     if (!kena.length) {
-      if (typeof v === "string")
+      if (typeof v === "string" && !adaDasar.has(dasar(nama)))
         out.push({ nama, nilai: v, jenis: "hidden", centang: false, mati: false });
       continue;
     }
@@ -468,13 +473,14 @@ export async function hapusTugas(web: WebLms, cmid: number): Promise<void> {
 
 /* ============================================== the LMS menu (Phase 15) */
 
-/** After a course page form: back on the course (or the group list). */
+/** After a course page form: back on the course, its section page (Moodle
+ *  4.5 with sr) or the group list. */
 function kembaliKeKursus(r: JawabHalaman, kode: string): void {
   if (
     r.status >= 300 &&
     r.status < 400 &&
     r.lokasi &&
-    /course\/view\.php|group\/index\.php/.test(r.lokasi)
+    /course\/(view|section)\.php|group\/index\.php/.test(r.lokasi)
   )
     return;
   const galat = r.status === 200 ? galatForm(r.teks) : [];

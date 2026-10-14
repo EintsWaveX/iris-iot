@@ -911,7 +911,9 @@ const en: TpT = {
   sinkronSekarang: "Sync Now",
   menyinkron: "Syncing…",
   sinkronHasil: (baru, ubah) =>
-    baru + ubah === 0 ? "No new files." : `${baru} new files, ${ubah} updated.`,
+    baru + ubah === 0
+      ? "No new files."
+      : `${baru} new ${baru === 1 ? "file" : "files"}, ${ubah} updated.`,
   kelompokLabel: "Groups",
   kelompokku: "My Groups",
   semuaKelompok: "All Groups",

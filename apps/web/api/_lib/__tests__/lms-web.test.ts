@@ -298,6 +298,56 @@ describe("the recorded assignment form", () => {
     expect(body.get("_qf__mod_assign_mod_form")).toBe("1");
   });
 
+  // Moodle 4.5's section form has a plain name field; PHP lets a later
+  // name[value] turn $_POST['name'] into an array, and the save fails
+  // (seen live 2026-10-14: all 33 "Put Module 1 materials" refused).
+  it("never adds a field whose base name the form already has", () => {
+    const isi = (nama: string, jenis = "text", nilai = "") => ({
+      nama,
+      nilai,
+      jenis,
+      centang: false,
+      mati: false,
+    });
+    const ubah = {
+      name: "Modul 1 · Bluetooth Low Energy",
+      usedefaultname: false,
+      "name[customize]": true,
+      "name[value]": "Modul 1 · Bluetooth Low Energy",
+    };
+    const baru = new URLSearchParams(
+      web.bentukForm(web.ubahForm([isi("id", "hidden", "5"), isi("name")], ubah), "submitbutton"),
+    );
+    expect(baru.getAll("name")).toEqual(["Modul 1 · Bluetooth Low Energy"]);
+    expect(baru.has("name[value]")).toBe(false);
+    const lama = new URLSearchParams(
+      web.bentukForm(
+        web.ubahForm(
+          [isi("id", "hidden", "5"), isi("name[customize]", "checkbox", "1"), isi("name[value]")],
+          ubah,
+        ),
+        "submitbutton",
+      ),
+    );
+    expect(lama.has("name")).toBe(false);
+    expect(lama.get("name[value]")).toBe("Modul 1 · Bluetooth Low Energy");
+    expect(lama.get("name[customize]")).toBe("1");
+  });
+
+  it("takes a section saved back to course/section.php as done", async () => {
+    const pada = (lokasi: string) =>
+      ({ kirimForm: async () => ({ status: 303, lokasi, teks: "" }) }) as never;
+    await expect(
+      web.namaiBagian(pada("https://lms.example/course/section.php?id=77"), 77, "Modul 1"),
+    ).resolves.toBeUndefined();
+    await expect(
+      web.namaiBagian(pada("https://lms.example/course/view.php?id=4#section-1"), 77, "Modul 1"),
+    ).resolves.toBeUndefined();
+    await expect(
+      web.namaiBagian(pada("https://lms.example/login/index.php"), 77, "Modul 1"),
+    ).rejects.toMatchObject({ kode: "lms_bagian_ditolak" });
+  });
+
   it("reads the update form's saved values", () => {
     const f = web.bacaForm(UPDATE, /modedit\.php/)!;
     const v = (n: string) => f.find((x) => x.nama === n && x.jenis !== "hidden")?.nilai;

@@ -33,6 +33,8 @@ const id = {
   segarkan: "Baca Ulang dari LMS",
   dibaca: (w: string) => `Dibaca dari LMS ${w}`,
   kelasN: (n: number) => `${n} kelas`,
+  gagalDi: (n: number, t: number) =>
+    t > 1 ? (n === t ? `gagal di ${n} kelas` : `gagal di ${n} dari ${t} kelas`) : "gagal",
   diKelas: (n: number, t: number) => (n === t ? `Di ${n} kelas` : `Di ${n} dari ${t} kelas`),
   belum: "Belum",
   batal: "Batal",
@@ -123,6 +125,9 @@ const id = {
   cek: {
     luar: (n: number) => `${n} mahasiswa hanya di LMS`,
     luarHint: "Belum terdaftar praktikum di IRIS. Tidak dihitung di TP.",
+    tanpa: (n: number) => `${n} praktikan tidak ada di kelas LMS mana pun`,
+    tanpaHint: (nama: string) =>
+      `${nama}. Mereka tetap bisa mengumpulkan TP di IRIS; minta dosen menambahkan mereka ke kelas LMS-nya.`,
     grup: (k: string) => `${k} belum punya grup LMS`,
     grupHint: "Grup bisa dibuat dari kelompok IRIS.",
     tanggal: (n: number, m: number) => `Tanggal TP Modul ${m} beda di ${n} kelas`,
@@ -479,6 +484,8 @@ const en: S = {
   segarkan: "Read the LMS Again",
   dibaca: (w) => `Read from the LMS ${w}`,
   kelasN: (n) => `${n} ${cls(n)}`,
+  gagalDi: (n, t) =>
+    t > 1 ? (n === t ? `failed in ${n} ${cls(n)}` : `failed in ${n} of ${t} ${cls(t)}`) : "failed",
   diKelas: (n, t) => (n === t ? `In ${n} ${cls(n)}` : `In ${n} of ${t} ${cls(t)}`),
   belum: "Not Yet",
   batal: "Cancel",
@@ -567,7 +574,10 @@ const en: S = {
   cek: {
     luar: (n) => `${n} ${n === 1 ? "student" : "students"} only in the LMS`,
     luarHint: "Not registered for the practicum in IRIS. Not counted in TP.",
-    grup: (k) => `${k} has no LMS groups`,
+    tanpa: (n) => `${n} Praktikan ${n === 1 ? "isn't" : "aren't"} in any LMS class`,
+    tanpaHint: (nama) =>
+      `${nama}. They can still hand in their TP in IRIS; ask the lecturer to add them to their LMS class.`,
+    grup: (k) => `${k} ${k.includes(",") ? "have" : "has"} no LMS groups`,
     grupHint: "Groups can be made from the IRIS groups.",
     tanggal: (n, m) => `TP Modul ${m} dates differ in ${n} ${cls(n)}`,
     tanggalHint: "Match them so the LMS dates are the IRIS window's.",
@@ -588,7 +598,8 @@ const en: S = {
   logH: "What IRIS Did in the LMS",
   olehOtomatis: "IRIS, automatically",
   logKosong: "Nothing done from IRIS yet.",
-  logSinkron: (n) => (n ? `TP sync: ${n} new files` : "TP sync: nothing new"),
+  logSinkron: (n) =>
+    n ? `TP sync: ${n} new ${n === 1 ? "file" : "files"}` : "TP sync: nothing new",
   logSinkronGagal: (g) => `TP sync failed: ${g}`,
   logAksi: (aksi, langkah, modul, judul) => logTeks("en", aksi, langkah, modul, judul),
   kelasH: "Classes in the LMS",
@@ -817,6 +828,7 @@ const zh: S = {
   segarkan: "重新读取 LMS",
   dibaca: (w) => `${w}从 LMS 读取`,
   kelasN: (n) => `${n} 个班`,
+  gagalDi: (n, t) => (t > 1 ? (n === t ? `${n} 个班失败` : `${t} 个班中 ${n} 个失败`) : "失败"),
   diKelas: (n, t) => (n === t ? `已在 ${n} 个班` : `已在 ${t} 个班中的 ${n} 个`),
   belum: "未完成",
   batal: "取消",
@@ -903,6 +915,8 @@ const zh: S = {
   cek: {
     luar: (n) => `${n} 名学生仅在 LMS`,
     luarHint: "未在 IRIS 注册实验课。不计入预习作业。",
+    tanpa: (n) => `${n} 名学生不在任何 LMS 班级`,
+    tanpaHint: (nama) => `${nama}。他们仍可在 IRIS 提交预习作业；请讲师把他们加入 LMS 班级。`,
     grup: (k) => `${k} 还没有 LMS 分组`,
     grupHint: "可以根据 IRIS 小组创建分组。",
     tanggal: (n, m) => `TP Modul ${m} 在 ${n} 个班的日期不同`,
