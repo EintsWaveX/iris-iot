@@ -132,16 +132,18 @@ export async function hakKendaliSesi(
  */
 export async function siapkanSesiDariJadwal(
   db: Db,
-  created: { id: number; tanggal: string; slot: number | null },
+  created: { id: number; tanggal: string; slot: number | null; modul?: number },
   kelasDiminta: Kelas | null,
 ): Promise<{ kelas: Kelas; ditugaskan: number }> {
   const slotRow = await jadwalUntuk(db, created.tanggal, created.slot);
   const kelas: Kelas = kelasDiminta ?? (slotRow?.kelas as Kelas | undefined) ?? "reguler";
   await db.update(sesi).set({ kelas }).where(eq(sesi.id, created.id));
   if (!slotRow) return { kelas, ditugaskan: 0 };
-  // That date's seats: the semester pairing with its izin and covers
-  // (Phase 9), group by group; groups past the slot's count stay open.
-  const m = (await muatMinggu(db, [slotRow], created.tanggal)).get(slotRow.id);
+  // That date's seats: the pairing (the started module's own while the
+  // semester pairs per module) with its izin and covers, group by group;
+  // groups past the slot's count stay open.
+  const paksa = created.modul ? new Map([[slotRow.id, created.modul]]) : undefined;
+  const m = (await muatMinggu(db, [slotRow], created.tanggal, 0, paksa)).get(slotRow.id);
   if (!m || m.status !== "aktif") return { kelas, ditugaskan: 0 };
   const groups = await db
     .select({ id: kelompok.id, nomor: kelompok.nomor })
@@ -177,6 +179,67 @@ export async function siapkanSesiDariJadwal(
     )
     .onConflictDoNothing();
   return { kelas, ditugaskan: peta.size };
+}
+
+/**
+ * After a running session changes module (Ganti Modul): while the semester
+ * pairs per module, each group still held by the old module's Asisten
+ * moves to the new module's. A group changed by hand stays as it is.
+ */
+export async function pindahKursiModul(
+  db: Db,
+  s: { id: number; tanggal: string; slot: number | null },
+  dari: number,
+  ke: number,
+  aktorNim: string,
+): Promise<number> {
+  const slotRow = await jadwalUntuk(db, s.tanggal, s.slot);
+  if (!slotRow) return 0;
+  const kursiDi = async (m: number) =>
+    (await muatMinggu(db, [slotRow], s.tanggal, 0, new Map([[slotRow.id, m]]))).get(slotRow.id)
+      ?.kursi ?? [];
+  const [lama, baru] = await Promise.all([kursiDi(dari), kursiDi(ke)]);
+  if (lama.every((k, i) => k.kode === baru[i]?.kode)) return 0;
+  const [groups, orang, pegang] = await Promise.all([
+    db
+      .select({ id: kelompok.id, nomor: kelompok.nomor })
+      .from(kelompok)
+      .where(eq(kelompok.aktif, true)),
+    db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten),
+    pemilikKelompok(db, s.id),
+  ]);
+  const nimOf = new Map(orang.map((o) => [o.kode.toUpperCase(), o.nim]));
+  let pindah = 0;
+  for (const g of groups) {
+    const a = lama[g.nomor - 1]?.kode;
+    const b = baru[g.nomor - 1]?.kode;
+    const sekarang = pegang.get(g.id) ?? null;
+    const nimA = a ? (nimOf.get(a) ?? null) : null;
+    const nimB = b ? (nimOf.get(b) ?? null) : null;
+    if (sekarang !== nimA || nimA === nimB) continue;
+    if (nimB)
+      await db
+        .insert(sesiAsisten)
+        .values({ sesiId: s.id, kelompokId: g.id, asistenNim: nimB })
+        .onConflictDoUpdate({
+          target: [sesiAsisten.sesiId, sesiAsisten.kelompokId],
+          set: { asistenNim: nimB, diubahPada: new Date() },
+        });
+    else
+      await db
+        .delete(sesiAsisten)
+        .where(and(eq(sesiAsisten.sesiId, s.id), eq(sesiAsisten.kelompokId, g.id)));
+    await catatPasangan(db, {
+      sesiId: s.id,
+      kelompokId: g.id,
+      dari: nimA,
+      ke: nimB,
+      alasan: "ganti_modul",
+      aktorNim,
+    });
+    pindah++;
+  }
+  return pindah;
 }
 
 /* ---------------------------------------------------------- assignment */

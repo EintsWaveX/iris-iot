@@ -174,4 +174,8 @@ export interface MingguSlot {
   kursi: KursiKelompok[];
   tugas: TugasInfo[];
   izin: IzinInfo[];
+  /** The module that date teaches while the semester pairs per module
+   *  (penugasan-modul.ts), else null. */
+  modul?: number | null;
+  modulSumber?: "sesi" | "tp" | "terbuka" | null;
 }

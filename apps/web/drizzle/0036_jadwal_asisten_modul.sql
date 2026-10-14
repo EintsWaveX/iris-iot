@@ -1,0 +1,1 @@
+ALTER TABLE "jadwal" ADD COLUMN "asisten_modul" jsonb DEFAULT '{}'::jsonb NOT NULL;

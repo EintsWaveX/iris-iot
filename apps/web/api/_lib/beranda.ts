@@ -316,9 +316,10 @@ export async function handleBerandaGet(
   // open module's.
   const modulKini = terbuka.length ? Math.max(...terbuka) : null;
   const slide = slides.find((d) => d.modul === modulKini);
-  // Today's seats: the pairing with today's izin, covers and volunteers.
-  const hariIniRows = minggu.filter((j) => j.hari === hari);
-  const kursiHariIni = await muatMinggu(db, hariIniRows, tanggal);
+  // Each slot's next date this week (today's for today's slots): the
+  // pairing (its module's while the semester pairs per module) with that
+  // date's izin, covers and volunteers.
+  const kursiMinggu = await muatMinggu(db, minggu, tanggal);
   res.status(200).json({
     ok: true,
     tanggal,
@@ -328,7 +329,7 @@ export async function handleBerandaGet(
     hariIni: minggu
       .filter((j) => j.hari === hari)
       .map((j) => {
-        const m = kursiHariIni.get(j.id)!;
+        const m = kursiMinggu.get(j.id)!;
         const bantu = [...orangTanggal(m.kursi, m.tugas)].filter(
           (k) => !m.kursi.some((x) => x.kode === k),
         );
@@ -353,9 +354,9 @@ export async function handleBerandaGet(
         hari: j.hari,
         slot: j.slot,
         kelas: j.kelas,
-        kelompok: j.asisten
-          .map((k, i) => (k.toUpperCase() === kode ? i + 1 : 0))
-          .filter((n) => n > 0),
+        kelompok: (kursiMinggu.get(j.id)?.kursi ?? [])
+          .filter((k) => k.tetap === kode)
+          .map((k) => k.nomor),
       })),
     terbuka,
     presentasiAktif: slide ? { nama: slide.nama, jenis: slide.jenis } : null,

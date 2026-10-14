@@ -32,6 +32,7 @@ import { isKelas } from "../../src/lib/kelas.js";
 import { gagalMulai } from "../../src/lib/siap-mulai.js";
 import { cekSiapMulai } from "./siap-mulai.js";
 import { tutupPerburuan } from "./perburuan-sesi.js";
+import { pindahKursiModul } from "./phase8.js";
 
 function tolak(res: ApiResponse, kode: string, extra: Record<string, unknown> = {}) {
   res.status(200).json({ ok: false, kode, ...extra });
@@ -82,10 +83,13 @@ export async function handleUbahSesi(req: ApiRequest, res: ApiResponse, session:
       if (pgErrorCode(err) === "23505") return tolak(res, "sudah_ada");
       throw err;
     }
+    // A semester paired per module: the groups follow the new module's list.
+    const pindah = tot ? 0 : await pindahKursiModul(db, running, running.modul, modul, session.nim);
     await writeAudit(session.nim, "sesi_modul", {
       sesiId: running.id,
       dari: running.modul,
       ke: modul,
+      ...(pindah ? { kursiPindah: pindah } : {}),
     });
   }
 

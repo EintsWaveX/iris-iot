@@ -787,7 +787,7 @@ export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kur
           .where(inArray(sesiAsisten.sesiId, sesiIds))
       : Promise.resolve([]),
     db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten),
-    muatTanggal(db, rows, tanggalOf),
+    muatTanggal(db, rows, tanggalOf, new Map(rows.map((r) => [r.id, modul]))),
     db
       .select({
         hari: rosterSlot.hari,

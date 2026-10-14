@@ -382,6 +382,14 @@ export const jadwal = pgTable(
     warnaKosong: text("warna_kosong", { enum: ["oranye", "merah"] }),
     liburTanggal: text("libur_tanggal"),
     asisten: jsonb("asisten").$type<string[]>().notNull().default([]),
+    // Jadwal › Per Modul: a module's own pairing, keyed "1" to "4", one code
+    // per group like `asisten`. Used only while the semester's switch
+    // (pengaturan "pasangan_modul") is on; a module without one uses the
+    // default above.
+    asistenModul: jsonb("asisten_modul")
+      .$type<Partial<Record<string, string[]>>>()
+      .notNull()
+      .default({}),
     pengganti: jsonb("pengganti")
       .$type<{ kode: string; tag: "fit" | "a24" | null }[]>()
       .notNull()

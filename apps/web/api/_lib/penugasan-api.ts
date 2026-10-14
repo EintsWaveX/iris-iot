@@ -18,7 +18,12 @@
  *      { semester, pindah: { dari: {hari, slot}, ke: {hari, slot} } }
  *          moves a slot to a free day and session (2026-10-12): its roster,
  *          and its holidays, covers and izin still to come, go along.
- *      { semester, teksDefault, ... }      the paste import (unchanged).
+ *      { semester, teksDefault, ... }      the paste import (unchanged); a
+ *          slot keeps the module lists that still fit it.
+ *      { semester, bergilir }              Per Modul's switch (Admins and
+ *          above, hakPenuh).
+ *      { semester, pasanganModul: [{ hari, slot, modul }] }  Per Modul's
+ *          lists, each slot's replaced whole (hakPenuh).
  *
  * GET  /api/session/penugasan             my side of it: today's slots that
  *      need help (Saya Bantu), requests to me, offers waiting for me to
@@ -55,10 +60,10 @@ import {
 } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { boleh } from "../../src/lib/hak.js";
+import { boleh, hakPenuh } from "../../src/lib/hak.js";
 import { isKelas } from "../../src/lib/kelas.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
-import { KELOMPOK_MAKS } from "../../src/lib/jadwal.js";
+import { KELOMPOK_DEFAULT, KELOMPOK_MAKS } from "../../src/lib/jadwal.js";
 import {
   buildJadwal,
   hariDariTanggal,
@@ -78,6 +83,20 @@ import {
   type MingguSlot,
   type TugasInfo,
 } from "../../src/lib/penugasan-minggu.js";
+import {
+  asistenModul,
+  kolam,
+  listSah,
+  saringModul,
+  type AsistenModul,
+} from "../../src/lib/penugasan-modul.js";
+import {
+  aturBergilir,
+  konteksModul,
+  mingguModul,
+  modulDiajar,
+  modulPerSlot,
+} from "./pasangan-modul.js";
 import {
   JENDELA_DEFAULT,
   JENDELA_MAX,
@@ -135,23 +154,30 @@ export async function muatMinggu(
   rows: JadwalRow[],
   hariIni = hariIniWib(),
   geser = 0,
+  paksa?: ReadonlyMap<number, number>,
 ): Promise<Map<number, MingguSlot>> {
   return muatTanggal(
     db,
     rows,
     new Map(rows.map((j) => [j.id, tanggalMinggu(j.hari, hariIni, geser)])),
+    paksa,
   );
 }
 
-/** The same for any date per slot (Phase 13: a TP's practicum week). */
+/** The same for any date per slot (Phase 13: a TP's practicum week).
+ *  While the semester pairs per module, each date's seats come from its
+ *  module's list; `paksa` names the module where the caller knows it. */
 export async function muatTanggal(
   db: Db,
   rows: JadwalRow[],
   tanggalOf: ReadonlyMap<number, string>,
+  paksa?: ReadonlyMap<number, number>,
 ): Promise<Map<number, MingguSlot>> {
   const out = new Map<number, MingguSlot>();
   if (rows.length === 0) return out;
   const ids = rows.map((j) => j.id);
+  const konteks = await konteksModul(db, rows[0].semester);
+  const modulOf = await modulPerSlot(db, rows, tanggalOf, konteks, paksa);
   const orang = await db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten);
   const kodeOf = new Map(orang.map((o) => [o.nim, o.kode.toUpperCase()]));
   const tugasRows = await db
@@ -189,12 +215,20 @@ export async function muatTanggal(
         alasan: x.alasan,
         penggantiNim: x.penggantiNim,
       }));
+    const mod = modulOf.get(j.id) ?? { modul: null, sumber: null };
     out.set(j.id, {
       tanggal,
       status: statusSlotTanggal(j, tanggal),
-      kursi: pasanganTanggal(j.asisten, j.jumlahKelompok, tugas, iz),
+      kursi: pasanganTanggal(
+        asistenModul(j, mod.modul, konteks.aktif),
+        j.jumlahKelompok,
+        tugas,
+        iz,
+      ),
       tugas,
       izin: iz,
+      modul: mod.modul,
+      modulSumber: mod.sumber,
     });
   }
   return out;
@@ -237,12 +271,21 @@ export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
           ),
         )
       : {};
+  // Jadwal › Per Modul: the switch, each module's week and what each slot
+  // already taught.
+  const sem = semester || kini;
+  const semRows = rows.filter((r) => r.semester === sem);
+  const konteks = await konteksModul(db, sem);
+  const diajar = Object.fromEntries(await modulDiajar(db, semRows));
   res.status(200).json({
     ok: true,
     jadwal: rows,
     asisten: daftarAsisten,
     minggu,
     jendela: await muatPengaturanJendela(db),
+    bergilir: konteks.aktif,
+    modulMinggu: konteks.aktif ? mingguModul(konteks) : {},
+    diajar,
   });
 }
 
@@ -283,6 +326,9 @@ export async function handleSchedulePost(
   if (!SEMESTER_RE.test(semester)) return tolak(res, "format_salah", 400);
   const db = getDb();
 
+  if (typeof body.bergilir === "boolean" || body.pasanganModul !== undefined) {
+    return aturPasangan(res, db, session, semester, body);
+  }
   if (body.ubah && typeof body.ubah === "object") {
     return ubahSlot(res, db, session, semester, body);
   }
@@ -305,14 +351,29 @@ export async function handleSchedulePost(
     res.status(200).json({ ok: false, kode: "jadwal_kosong", pratinjau: hasil });
     return;
   }
+  // A slot keeps the module lists that still fit it: its own default
+  // Asisten, and the group count a new row starts with.
+  const lama = await db.select().from(jadwal).where(eq(jadwal.semester, semester));
+  const nBaru = KELOMPOK_DEFAULT;
+  let pasanganDibuang = 0;
+  const baru = hasil.slot.map((x) => {
+    const l = lama.find((r) => r.hari === x.hari && r.slot === x.slot);
+    const r = saringModul(l?.asistenModul, nBaru, x.asisten);
+    pasanganDibuang += r.dibuang;
+    return { semester, ...x, asistenModul: r.tetap, diubahOleh: session.nim };
+  });
   await db.transaction(async (tx) => {
     await tx.delete(jadwal).where(eq(jadwal.semester, semester));
-    await tx
-      .insert(jadwal)
-      .values(hasil.slot.map((s) => ({ semester, ...s, diubahOleh: session.nim })));
+    await tx.insert(jadwal).values(baru);
   });
-  await writeAudit(session.nim, "jadwal_impor", { semester, slot: hasil.slot.length });
-  res.status(200).json({ ok: true, disimpan: hasil.slot.length, pratinjau: hasil });
+  await writeAudit(session.nim, "jadwal_impor", {
+    semester,
+    slot: hasil.slot.length,
+    pasanganDibuang,
+  });
+  res
+    .status(200)
+    .json({ ok: true, disimpan: hasil.slot.length, pratinjau: hasil, pasanganDibuang });
 }
 
 async function ubahSlot(
@@ -409,6 +470,16 @@ async function ubahSlot(
     .onConflictDoUpdate({ target: [jadwal.semester, jadwal.hari, jadwal.slot], set: patch })
     .returning();
 
+  // New default people or group count: module lists that no longer fit
+  // go back to the default.
+  let pasanganDibuang = 0;
+  if (patch.asisten !== undefined || patch.jumlahKelompok !== undefined) {
+    const r = saringModul(row.asistenModul, row.jumlahKelompok, row.asisten);
+    pasanganDibuang = r.dibuang;
+    if (r.dibuang)
+      await db.update(jadwal).set({ asistenModul: r.tetap }).where(eq(jadwal.id, row.id));
+  }
+
   // The holiday, for that date only (each week can have its own).
   if (libur !== null) {
     const liburTanggal = aturLibur(row.liburTanggal, tanggal, libur, hariIniWib());
@@ -445,8 +516,73 @@ async function ubahSlot(
     await simpanMinggu(db, session.nim, row, geser, kursi, byKode, bantu);
   }
 
-  await writeAudit(session.nim, "jadwal_ubah", { semester, hari, slot, ubah, tanggal });
-  res.status(200).json({ ok: true, tanggal, id: row.id });
+  await writeAudit(session.nim, "jadwal_ubah", {
+    semester,
+    hari,
+    slot,
+    ubah,
+    tanggal,
+    ...(pasanganDibuang ? { pasanganDibuang } : {}),
+  });
+  res.status(200).json({ ok: true, tanggal, id: row.id, pasanganDibuang });
+}
+
+/**
+ * Jadwal › Per Modul (Admins and above): the semester's switch, or the
+ * module lists of some slots. Each slot's `modul` replaces its lists whole
+ * ("1" to "4"; a module left out or null goes back to the default), and
+ * every code must be one of the slot's own default Asisten.
+ */
+async function aturPasangan(
+  res: ApiResponse,
+  db: Db,
+  session: SessionPayload,
+  semester: string,
+  body: Record<string, unknown>,
+) {
+  const o = await muatOrang(session.nim);
+  if (!o || !hakPenuh(o)) return tolak(res, "tidak_berhak", 403);
+  if (typeof body.bergilir === "boolean") {
+    await aturBergilir(db, semester, body.bergilir, session.nim);
+    await writeAudit(session.nim, "jadwal_pasangan_modul", { semester, bergilir: body.bergilir });
+    res.status(200).json({ ok: true, bergilir: body.bergilir });
+    return;
+  }
+  const daftar = body.pasanganModul;
+  if (!Array.isArray(daftar) || !daftar.length || daftar.length > 24)
+    return tolak(res, "format_salah", 400);
+  const rows = await db.select().from(jadwal).where(eq(jadwal.semester, semester));
+  const simpan: { id: number; hari: number; slot: number; am: AsistenModul }[] = [];
+  for (const x of daftar as Record<string, unknown>[]) {
+    const hari = posInt(x?.hari);
+    const slot = posInt(x?.slot);
+    const row = rows.find((r) => r.hari === hari && r.slot === slot);
+    if (!hari || !slot || !row) return tolak(res, "slot_tidak_ada");
+    const modul = x.modul;
+    if (!modul || typeof modul !== "object" || Array.isArray(modul))
+      return tolak(res, "format_salah", 400);
+    const pool = kolam(row.asisten);
+    const am: AsistenModul = {};
+    for (const [m, list] of Object.entries(modul as Record<string, unknown>)) {
+      if (!["1", "2", "3", "4"].includes(m)) return tolak(res, "format_salah", 400);
+      if (list === null) continue;
+      if (!listSah(list, row.jumlahKelompok, pool)) return tolak(res, "kode_di_luar_slot");
+      am[m] = list.map((k) => k.toUpperCase());
+    }
+    simpan.push({ id: row.id, hari: row.hari, slot: row.slot, am });
+  }
+  await db.transaction(async (tx) => {
+    for (const x of simpan)
+      await tx
+        .update(jadwal)
+        .set({ asistenModul: x.am, diubahPada: new Date(), diubahOleh: session.nim })
+        .where(eq(jadwal.id, x.id));
+  });
+  await writeAudit(session.nim, "jadwal_pasangan_modul", {
+    semester,
+    slot: simpan.map((x) => ({ hari: x.hari, slot: x.slot, modul: x.am })),
+  });
+  res.status(200).json({ ok: true, disimpan: simpan.length });
 }
 
 /** Moves a slot to a free day and session of the same semester. A target
