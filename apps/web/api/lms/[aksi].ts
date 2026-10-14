@@ -1205,6 +1205,9 @@ async function handleTampil(req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!k || !cmid || typeof b.tampil !== "boolean") return tolak(res, "format_salah");
   try {
     const token = tokenDari(set);
+    // Only an activity of this class: the token's account may teach others.
+    const ada = (await isiKursus(token, k.id)).flatMap((g) => g.modules).some((y) => y.id === cmid);
+    if (!ada) return tolak(res, "modul_tidak_ada");
     await tampilModul(token, cmid, b.tampil);
     const isi = await isiKursus(token, k.id);
     const x = isi.flatMap((g) => g.modules).find((y) => y.id === cmid);
