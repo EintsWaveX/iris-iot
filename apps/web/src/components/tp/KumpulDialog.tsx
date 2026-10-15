@@ -6,6 +6,7 @@
  * every count on those pages.
  */
 import { useMemo, useState } from "react";
+import { CaretRightIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Dropdown from "../ui/Dropdown";
 import Pill from "../ui/Pill";
@@ -13,7 +14,7 @@ import SegmentedControl from "../ui/SegmentedControl";
 import { dict, getJson } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
-import { waktuPanjang } from "./shared";
+import { jam, tanggalPanjang, waktuPanjang } from "./shared";
 
 interface BarisKumpul {
   nim: string;
@@ -67,6 +68,7 @@ const T = dict({
     telat: "Telat",
     diIris: "Diunggah di IRIS",
     riwayat: "Riwayat",
+    riwayatTip: "Membuka riwayat pengumpulan Praktikan ini.",
     tutup: "Tutup",
     jejakJudul: (m: number) => `Riwayat Pengumpulan TP Modul ${m}`,
     jejakDesc:
@@ -100,6 +102,7 @@ const T = dict({
     telat: "Late",
     diIris: "Uploaded in IRIS",
     riwayat: "History",
+    riwayatTip: "Opens this Praktikan's submission history.",
     tutup: "Close",
     jejakJudul: (m) => `TP Modul ${m} Submission History`,
     jejakDesc:
@@ -133,6 +136,7 @@ const T = dict({
     telat: "迟交",
     diIris: "在 IRIS 上传",
     riwayat: "记录",
+    riwayatTip: "打开此学生的提交记录。",
     tutup: "关闭",
     jejakJudul: (m) => `模块 ${m} 预习作业提交记录`,
     jejakDesc: "每个新文件、替换的文件、在 LMS 撤回的文件以及在 IRIS 的上传，按时间从新到旧。",
@@ -268,22 +272,31 @@ export function KumpulDialog({
                     <span className="kumpul-list__st">
                       {b.status === "sudah" ? (
                         <>
-                          <span className="hint">{b.pada ? waktuPanjang(b.pada, lang) : ""}</span>
                           {b.telat && <Pill tone="warn">{t.telat}</Pill>}
                           {b.sumber === "iris" && <Pill tone="accent">{t.diIris}</Pill>}
+                          <span className="hint num">
+                            {b.pada ? waktuPanjang(b.pada, lang) : ""}
+                          </span>
                         </>
+                      ) : b.status === "kosong" ? (
+                        <Pill tone="danger">{t.ditandai}</Pill>
                       ) : (
-                        <Pill tone={b.status === "kosong" ? "danger" : undefined}>
-                          {b.status === "kosong" ? t.ditandai : t.belumKumpul}
-                        </Pill>
+                        tampil === "semua" && <Pill>{t.belumKumpul}</Pill>
                       )}
                     </span>
                     <button
                       type="button"
                       className="btn btn--ghost btn--sm"
+                      data-tip={t.riwayatTip}
                       onClick={() => setRiwayat({ nim: b.nim, nama: b.nama })}
                     >
                       {t.riwayat}
+                      <CaretRightIcon
+                        size={16}
+                        weight="bold"
+                        className="btn__go"
+                        aria-hidden="true"
+                      />
                     </button>
                   </li>
                 ))}
@@ -384,7 +397,10 @@ export function JejakDialog({
             <ol className="jejak-list">
               {rows.map((j) => (
                 <li key={j.id} data-jenis={j.jenis}>
-                  <span className="mono jejak-list__t">{waktuPanjang(j.dicatatPada, lang)}</span>
+                  <span className="jejak-list__t">
+                    <span>{tanggalPanjang(j.dicatatPada, lang)}</span>
+                    <span className="mono">{jam(j.dicatatPada)}</span>
+                  </span>
                   <span className="jejak-list__what">
                     <b>{nim ? t.jenis[j.jenis] : `${j.nama} · ${t.jenis[j.jenis]}`}</b>
                     <span className="hint">
@@ -392,7 +408,12 @@ export function JejakDialog({
                         !nim ? `${j.nim}${j.kursus ? ` · ${j.kursus}` : ""}` : j.kursus,
                         j.berkas.map((b) => b.nama).join(", "),
                         j.dikirimPada && j.dikirimPada.slice(0, 16) !== j.dicatatPada.slice(0, 16)
-                          ? t.dikirim(waktuPanjang(j.dikirimPada, lang))
+                          ? t.dikirim(
+                              tanggalPanjang(j.dikirimPada, lang) ===
+                                tanggalPanjang(j.dicatatPada, lang)
+                                ? jam(j.dikirimPada)
+                                : waktuPanjang(j.dikirimPada, lang),
+                            )
                           : "",
                       ]
                         .filter(Boolean)

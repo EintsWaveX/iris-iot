@@ -61,10 +61,13 @@ export default function TipLayer() {
       target = null;
     };
 
-    const taruh = (el: HTMLElement, teks: string) => {
+    const taruh = (el: HTMLElement, teks: string, segera = false) => {
       const host = document.fullscreenElement ?? document.body;
       if (panel.parentElement !== host) host.appendChild(panel);
       panel.textContent = teks;
+      // The next tip after one just shown skips the entrance too.
+      if (segera) panel.dataset.instant = "";
+      else delete panel.dataset.instant;
       panel.hidden = false;
       panel.style.left = "0px";
       panel.style.top = "0px";
@@ -86,13 +89,15 @@ export default function TipLayer() {
     const mulai = (el: HTMLElement, tunda: number) => {
       const teks = teksTip(el);
       if (!teks) return sembunyi();
-      if (el === target && !panel.hidden) return;
+      // Already shown, or already waiting: moving over its icon or words
+      // must not start the wait again.
+      if (el === target) return;
       sembunyi();
       target = el;
       // Moving from one tip straight to the next skips the wait.
       const segera = Date.now() - lastHide < 400;
       timer = setTimeout(
-        () => target === el && el.isConnected && taruh(el, teks),
+        () => target === el && el.isConnected && taruh(el, teks, segera),
         segera ? 0 : tunda,
       );
     };

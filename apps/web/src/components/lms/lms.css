@@ -991,30 +991,43 @@
 /* ============================================ Isi Kelas (Phase 16) */
 
 /* The bar: which classes, then the page's actions */
+/* The buttons sit level with the picker itself; its hint runs under both */
 .isi-bar {
   align-items: end;
   display: grid;
-  gap: 16px;
+  gap: 8px 16px;
+  grid-template-areas: "pick acts" "hint hint";
   grid-template-columns: minmax(0, 1fr) auto;
 }
 .isi-bar__pick {
   display: grid;
   gap: 6px;
+  grid-area: pick;
   max-width: 520px;
   min-width: 0;
+}
+.isi-bar__hint {
+  grid-area: hint;
+  max-width: 72ch;
 }
 .isi-bar__acts {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  grid-area: acts;
   justify-content: flex-end;
 }
 @media (max-width: 899px) {
   .isi-bar {
+    gap: 8px;
+    grid-template-areas: "pick" "hint" "acts";
     grid-template-columns: minmax(0, 1fr);
   }
   .isi-bar__pick {
     max-width: none;
+  }
+  .isi-bar__acts {
+    margin-top: 8px;
   }
   .isi-bar__acts > .btn {
     flex: 1 1 0;
@@ -1093,9 +1106,11 @@
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
+/* body digits: the mono zero's inner dot read as an 8 at this size */
 .isi-no {
   color: var(--text-faint);
   font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
@@ -1176,6 +1191,10 @@
   gap: 12px;
   grid-template-columns: 108px minmax(0, 1fr) 52px auto 150px;
   padding: 10px 0;
+}
+/* the card's own padding closes it, so the bottom matches the top */
+.isi-items > li:last-child {
+  padding-bottom: 0;
 }
 .isi-items > li[data-atur] {
   grid-template-columns: 76px 108px minmax(0, 1fr) 52px;

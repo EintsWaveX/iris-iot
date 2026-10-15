@@ -990,9 +990,20 @@
   gap: 6px;
 }
 
+/* Ubah's words start on the slot title's edge, not its padding's */
+.pmslot > .btn--ghost {
+  margin-left: -14px;
+}
+
 .pmseats {
   display: grid;
   gap: 6px;
+}
+
+/* the taught mark's empty twin in the row's other modules */
+.pmseats__flag {
+  display: block;
+  height: 26px;
 }
 
 .pmseats__list {

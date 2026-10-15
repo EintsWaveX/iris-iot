@@ -183,14 +183,20 @@ export default function ModulView({
     );
   };
 
-  /** One module's seats of a slot, group by group. */
-  const kursi = (j: JadwalRow, m: number) => {
+  /** One module's seats of a slot, group by group. `rata`: another module
+   *  of the row carries the taught mark, so this one keeps its line empty
+   *  and the groups stay level across the row. */
+  const kursi = (j: JadwalRow, m: number, rata = false) => {
     const list = efektif(j, m);
     const lagi = ulang(semua(j), kolam(j.asisten))[m] ?? [];
     const sudah = (diajar[String(j.id)] ?? []).includes(m);
     return (
       <div className="pmseats" data-taught={sudah ? "yes" : undefined}>
-        {sudah && <Pill tone="teal">{p.taught}</Pill>}
+        {sudah ? (
+          <Pill tone="teal">{p.taught}</Pill>
+        ) : (
+          rata && <span className="pmseats__flag" aria-hidden="true" />
+        )}
         <ul className="pmseats__list">
           {list.map((k, g) => (
             <li key={g} className="pmseat">
@@ -343,7 +349,7 @@ export default function ModulView({
               </div>
               {MODUL_PASANGAN.map((m) => (
                 <div key={m} role="cell">
-                  {kursi(j, m)}
+                  {kursi(j, m, (diajar[String(j.id)] ?? []).length > 0)}
                 </div>
               ))}
             </div>

@@ -156,15 +156,18 @@ const WIB = "Asia/Jakarta";
 
 /** "Rabu, 14 Oktober 2026 · 18:00" */
 export function waktuPanjang(iso: string, lang: Lang): string {
-  const d = new Date(iso);
-  const tgl = d.toLocaleDateString(localeOf(lang), {
+  return `${tanggalPanjang(iso, lang)} · ${jam(iso)}`;
+}
+
+/** "Kamis, 15 Oktober 2026" in WIB, for a date set over its time */
+export function tanggalPanjang(iso: string, lang: Lang): string {
+  return new Date(iso).toLocaleDateString(localeOf(lang), {
     timeZone: WIB,
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-  return `${tgl} · ${jam(iso)}`;
 }
 
 /** "18:00" in WIB */

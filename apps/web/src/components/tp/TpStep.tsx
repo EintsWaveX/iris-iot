@@ -462,18 +462,20 @@ function Cara({
                 onSelesai={onUnggah}
               />
             )}
-            {kursus && <span className="hint tpcourse">{kursus.label}</span>}
-            {link && buka ? (
-              <a className="btn btn--ghost" href={link} target="_blank" rel="noopener noreferrer">
-                {t.kumpulLms}
-                <ArrowSquareOutIcon size={16} aria-hidden="true" className="btn__go" />
-              </a>
-            ) : (
-              <button type="button" className="btn btn--ghost" aria-disabled="true" title={tip}>
-                {t.kumpulLms}
-                <ArrowSquareOutIcon size={16} aria-hidden="true" className="btn__go" />
-              </button>
-            )}
+            <div className="tplms">
+              {link && buka ? (
+                <a className="btn btn--ghost" href={link} target="_blank" rel="noopener noreferrer">
+                  {t.kumpulLms}
+                  <ArrowSquareOutIcon size={16} aria-hidden="true" className="btn__go" />
+                </a>
+              ) : (
+                <button type="button" className="btn btn--ghost" aria-disabled="true" title={tip}>
+                  {t.kumpulLms}
+                  <ArrowSquareOutIcon size={16} aria-hidden="true" className="btn__go" />
+                </button>
+              )}
+              {kursus && <Pill>{kursus.label}</Pill>}
+            </div>
             {tip && <span className="hint">{tip}</span>}
           </div>
         </li>

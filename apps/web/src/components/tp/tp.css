@@ -434,8 +434,22 @@
   display: flex;
   gap: 10px;
 }
+.panel.tphelp {
+  flex-direction: row;
+}
 .tphelp p {
   margin: 0;
+}
+/* Step 2's LMS way: the link at the text's edge, the class code beside it */
+.tplms {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  justify-content: space-between;
+}
+.tplms > .btn--ghost {
+  margin-left: -20px;
 }
 .tphelp > svg {
   color: var(--accent-bright);
@@ -1990,6 +2004,9 @@ button.tpcheck:focus-visible,
   gap: 0;
   min-width: 0;
 }
+.tpup__txt > b {
+  white-space: nowrap;
+}
 .tpup__name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2075,6 +2092,9 @@ button.tpcheck:focus-visible,
   transform: scaleX(var(--sisa, 0));
   transform-origin: left center;
   transition: transform 1s linear;
+}
+.sinkbar__track > i[data-isi] {
+  transition: transform 280ms var(--ease-out-expo);
 }
 .sinkbar__n {
   font-size: 0.8rem;
@@ -2165,6 +2185,7 @@ button.tpcheck:focus-visible,
 
 /* KumpulDialog: who handed in, and every change to the files */
 .kumpul-bar {
+  align-items: end;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -2203,16 +2224,24 @@ button.tpcheck:focus-visible,
   justify-content: flex-end;
 }
 .jejak-list > li {
-  align-items: baseline;
+  align-items: start;
   border-top: 1px solid var(--hairline-faint);
   display: grid;
   gap: 4px 14px;
-  grid-template-columns: 190px minmax(0, 1fr);
+  grid-template-columns: 180px minmax(0, 1fr);
   padding: 10px 0;
 }
+/* the date over the time, as on the LMS rows */
 .jejak-list__t {
   color: var(--text-muted);
+  display: grid;
   font-size: 0.82rem;
+  gap: 2px;
+  line-height: 1.35;
+}
+.jejak-list__t > .mono {
+  color: var(--text);
+  font-size: 0.9rem;
 }
 .jejak-list > li[data-jenis="tarik"] .jejak-list__what b {
   color: var(--warn);
@@ -2234,5 +2263,11 @@ button.tpcheck:focus-visible,
   }
   .jejak-list > li {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .jejak-list__t {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 8px;
   }
 }

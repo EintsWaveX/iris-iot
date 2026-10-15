@@ -6,6 +6,7 @@
  */
 export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
   id: {
+    "Baca Ulang": "Membaca ulang isi kelas langsung dari LMS.",
     "Atur Urutan":
       "Menampilkan panah untuk menaikkan atau menurunkan isi di bagian yang tidak terkunci.",
     "Selesai Mengatur": "Menyembunyikan panah urutan lagi.",
@@ -638,6 +639,7 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     kernel: "Menampilkan versi kernel.",
   },
   en: {
+    "Read Again": "Reads the class contents again straight from the LMS.",
     Arrange: "Shows arrows to move items up or down in sections that aren't locked.",
     "Done Arranging": "Hides the arrange arrows again.",
     "Make Module Sections":
@@ -1286,6 +1288,7 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     kernel: "Shows the kernel version.",
   },
   zh: {
+    重新读取: "直接从 LMS 重新读取班级内容。",
     班级内容: "在 IRIS 中编辑 LMS 的班级页面：模块章节、手册 PDF 以及 TP 所在的位置。",
     调整顺序: "显示箭头，用于在未锁定的章节中上移或下移内容。",
     完成调整: "再次隐藏调整顺序的箭头。",

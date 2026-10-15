@@ -211,14 +211,14 @@ export default function IsiTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) => vo
               }
             }}
           />
-          <span className="hint">
-            {sasaran === "semua"
-              ? t.semuaHint
-              : n === 1
-                ? t.satuHint(d.kelas[0].label)
-                : t.kelompokHint(n)}
-          </span>
         </div>
+        <span className="hint isi-bar__hint">
+          {sasaran === "semua"
+            ? t.semuaHint
+            : n === 1
+              ? t.satuHint(d.kelas[0].label)
+              : t.kelompokHint(n)}
+        </span>
         <div className="isi-bar__acts">
           <button type="button" className="btn btn--ghost" onClick={poll.refresh}>
             {t.bacaUlang}
@@ -293,7 +293,7 @@ export default function IsiTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) => vo
                       ?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                 >
-                  <span className="mono isi-no">{b.nomor}</span>
+                  <span className="isi-no">{b.nomor}</span>
                   <span className="isi-peta__n">{nama(b.nama)}</span>
                   <span className="hint">{b.isi.length}</span>
                 </a>

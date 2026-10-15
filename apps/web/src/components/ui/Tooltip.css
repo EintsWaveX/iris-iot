@@ -49,3 +49,7 @@
 .tiplayer[hidden] {
   display: none;
 }
+/* Sliding along a toolbar: once one tip is up, the next appears at once */
+.tiplayer[data-instant] {
+  animation: none;
+}

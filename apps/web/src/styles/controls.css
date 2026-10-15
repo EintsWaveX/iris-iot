@@ -488,10 +488,19 @@
   color: var(--danger-ink);
 }
 
+/* A row's quiet remove: red mark, filled only under the pointer, so a list
+   of rows doesn't read as a column of alarms */
+.iconbtn--ghost.iconbtn--danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--danger);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .iconbtn--danger:hover:not(:disabled):not([aria-disabled="true"]) {
     background: color-mix(in srgb, var(--danger-solid) 82%, #fff);
     border-color: color-mix(in srgb, var(--danger-solid) 82%, #fff);
+    color: var(--danger-ink);
   }
 }
 

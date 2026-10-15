@@ -5,7 +5,7 @@
  * Ringkasan and Penilaian › TP while a window is open; the relay's timer
  * wakes the sync every minute, so at zero it is "any moment".
  */
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import { sejak, useDetik } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { JEDA_SINKRON_MS } from "../../lib/tp";
@@ -28,6 +28,10 @@ export default function SinkronBar({
   const sisa = lalu === null ? 0 : Math.max(0, Math.ceil((lalu + JEDA_SINKRON_MS - now) / 1000));
   const total = JEDA_SINKRON_MS / 1000;
   const teks = sisa === 0 ? t.sinkronSegera : t.sinkronDetik(sisa);
+  // A fresh read refills the bar quickly; only the draining is linear.
+  const sebelum = useRef(sisa);
+  const isi = sisa > sebelum.current;
+  sebelum.current = sisa;
   return (
     <div className="sinkbar" data-ringkas={ringkas ? "yes" : undefined}>
       {!ringkas && <span className="label-caps">{t.sinkronBerikut}</span>}
@@ -41,7 +45,10 @@ export default function SinkronBar({
           aria-valuenow={sisa}
           aria-valuetext={teks}
         >
-          <i style={{ "--sisa": sisa / total } as CSSProperties} />
+          <i
+            data-isi={isi ? "yes" : undefined}
+            style={{ "--sisa": sisa / total } as CSSProperties}
+          />
         </span>
         <b className="mono sinkbar__n">{teks}</b>
       </span>
