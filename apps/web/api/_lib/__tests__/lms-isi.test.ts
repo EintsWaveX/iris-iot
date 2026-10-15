@@ -38,6 +38,9 @@ const dunia = {
   ajax: [] as { jenis: string; metode: string; args: Record<string, unknown> }[],
   /** the sesskey the session's pages hand out (changed to test a stale one) */
   kunci: "SESSKEY0",
+  /** how a refused sesskey comes back: in the list, or as one object (what
+   *  service.php answers when it fails before reading the calls) */
+  galatObjek: false,
 };
 const RESOURCE = fx("lms-modedit-resource.html");
 const HAPUS = fx("lms-editsection-delete.html");
@@ -61,6 +64,7 @@ function kursusBaru() {
   dunia.bagian[0].cms.push({ id: 842415, name: "TP Modul 1", modname: "assign", visible: 1 });
   dunia.ajax = [];
   dunia.kunci = "SESSKEY0";
+  dunia.galatObjek = false;
 }
 
 const cariCm = (id: number) => {
@@ -162,7 +166,11 @@ beforeAll(async () => {
           args: c.args,
         });
         if (u.searchParams.get("sesskey") !== dunia.kunci)
-          return json([{ error: true, exception: { errorcode: "invalidsesskey", message: "x" } }]);
+          return json(
+            dunia.galatObjek
+              ? { error: "Your session has most likely timed out.", errorcode: "invalidsesskey" }
+              : [{ error: true, exception: { errorcode: "invalidsesskey", message: "x" } }],
+          );
         const a = c.args;
         const ids = (a.ids as number[]) ?? [];
         if (c.methodname === "core_update_inplace_editable") {
@@ -282,6 +290,15 @@ describe("the class page's sections against a fake LMS", () => {
     expect(dunia.bagian[7].visible).toBe(0);
     await web.tambahBagian(w, 9614);
     expect(dunia.bagian.length).toBe(9);
+  });
+
+  it("reads the sesskey again when Moodle refuses it as one object", async () => {
+    const w = sesi();
+    await isi.pastikanBagianModul(w, TOKEN, 9614, 1, false);
+    dunia.kunci = "SESSKEY9";
+    dunia.galatObjek = true;
+    await web.tampilBagian(w, 9614, dunia.bagian[7].id, false);
+    expect(dunia.bagian[7].visible).toBe(0);
   });
 
   it("puts a File in a section from a draft area, opening in the browser", async () => {

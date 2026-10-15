@@ -380,18 +380,27 @@ export class WebLms {
         if (e instanceof SesiBaru && coba === 0) continue;
         throw e;
       }
-      let d: { error?: unknown; data?: T; exception?: { errorcode?: string; message?: string } }[];
+      type Jawab = {
+        error?: unknown;
+        errorcode?: string;
+        data?: T;
+        exception?: { errorcode?: string; message?: string };
+      };
+      let d: Jawab[] | Jawab;
       try {
         d = JSON.parse(r.teks);
       } catch {
         throw new LmsGalat("lms_halaman", `HTTP ${r.status} lib/ajax/service.php`);
       }
-      const satu = Array.isArray(d) ? d[0] : (d as (typeof d)[number]);
+      // A refusal before the calls are read (a stale sesskey) comes as one
+      // object, {error: "<text>", errorcode}, not inside the list.
+      const satu = Array.isArray(d) ? d[0] : d;
       if (!satu?.error) return satu?.data as T;
-      const kode = satu.exception?.errorcode ?? "";
+      const kode = satu.exception?.errorcode ?? satu.errorcode ?? "";
       if (coba === 0 && /servicerequireslogin|invalidsesskey|requireloginerror/.test(kode))
         continue;
-      throw new LmsGalat("lms_ajax_ditolak", `${metode}: ${satu.exception?.message ?? kode}`);
+      const pesan = satu.exception?.message ?? (typeof satu.error === "string" ? satu.error : kode);
+      throw new LmsGalat("lms_ajax_ditolak", `${metode}: ${pesan}`);
     }
   }
 }
