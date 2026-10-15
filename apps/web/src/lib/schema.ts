@@ -597,7 +597,7 @@ export const presentasi = pgTable(
  * `presentasi` above, except that the rule is per module: the partial unique
  * index is on `modul` filtered to `aktif = true`. A module with no active
  * upload falls back to the schematic bundled with the site
- * (`public/schematics/Module N.png`), so an empty table is a valid state.
+ * (`bundled/schematics/Module N.png`, served by GET /api/presentasi/skema-bawaan), so an empty table is a valid state.
  */
 export const skema = pgTable(
   "skema",

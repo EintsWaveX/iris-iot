@@ -52,7 +52,6 @@ import {
   KUNCI_ROBOT,
   PRAKTIKUM_SEELABS,
   PROTOKOL_ROBOT,
-  SUFIKS_BAWAAN,
   barisPerKlp,
   bacaInfoSeelabs,
   ringkasBukti,
@@ -68,6 +67,11 @@ import {
 } from "../../src/lib/seelabs-robot.js";
 
 type Db = ReturnType<typeof getDb>;
+
+/** What follows the NIM in the Laboran's default SeeLabs password, unless
+ *  changed. Server only: no browser bundle may carry it (2026-10-15, the
+ *  site goes in front of every student through the LMS). */
+export const SUFIKS_BAWAAN = "1715";
 
 const LABEL_SEGEL = "seelabs-segel";
 const KLAIM_PER_DENYUT = 5;

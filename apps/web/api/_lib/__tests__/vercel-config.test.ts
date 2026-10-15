@@ -29,4 +29,11 @@ describe("vercel.json function bundling", () => {
       expect(include, fn).toContain("src/content/sketches/**");
     }
   });
+
+  it("ships the bundled schematics with the presentasi function", () => {
+    // They left public/ on 2026-10-15 (signed-in only), so the function
+    // reads them from bundled/schematics through a path it builds.
+    const include: string = vercel.functions?.["api/presentasi/[aksi].ts"]?.includeFiles ?? "";
+    expect(include).toContain("bundled/schematics/**");
+  });
 });

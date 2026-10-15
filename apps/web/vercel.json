@@ -128,6 +128,9 @@
     },
     "api/lms/[aksi].ts": {
       "maxDuration": 60
+    },
+    "api/presentasi/[aksi].ts": {
+      "includeFiles": "bundled/schematics/**"
     }
   }
 }

@@ -17,7 +17,6 @@ import { getJson, jamMenit, postJson, tanggalPanjang } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
 import Sidik from "./Sidik";
 import { sandiBawaanSeelabs, segelSandi, sidikKunci } from "../../../lib/seelabs-segel";
-import { SUFIKS_BAWAAN } from "../../../lib/seelabs-robot";
 import type { Lang } from "../../../lib/kelas";
 import Dialog from "../../ui/Dialog";
 import Confirm from "../../ui/Confirm";
@@ -139,7 +138,7 @@ function ConnectDialog({
         spki: d.spki,
         sidik: d.sidik,
         lokal: await sidikKunci(d.spki),
-        sufiks: d.sufiks ?? SUFIKS_BAWAAN,
+        sufiks: d.sufiks ?? "",
       });
     });
     return () => {
@@ -161,7 +160,7 @@ function ConnectDialog({
     }
   }, [poll.data, tugasId]);
 
-  const sufiks = kunci?.sufiks ?? SUFIKS_BAWAAN;
+  const sufiks = kunci?.sufiks ?? "";
   const sandi = bawaan ? sandiBawaanSeelabs(nim, sufiks) : pw;
   const sibuk = tahap === "kunci" || tahap === "tunggu";
   const kunciBeda = !!kunci && kunci.lokal !== kunci.sidik;

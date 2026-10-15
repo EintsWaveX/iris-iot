@@ -131,6 +131,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "modul:kode-terbit": ["kode", "jurnal"],
   "presentasi:slides-token": [],
   "presentasi:lampiran-token": [],
+  "presentasi:skema-bawaan": [],
   "presentasi:slides-save": ["presentasi"],
   "presentasi:slides-link": ["presentasi"],
   "presentasi:slides-assign": ["presentasi"],

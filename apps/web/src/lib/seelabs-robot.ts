@@ -66,9 +66,6 @@ export const PROTOKOL_ROBOT = 6;
 export const ALAMAT_SEELABS = ["kampus", "athena"] as const;
 export type AlamatSeelabs = (typeof ALAMAT_SEELABS)[number];
 
-/** What follows the NIM in the Laboran's default SeeLabs password, unless changed. */
-export const SUFIKS_BAWAAN = "1715";
-
 /** A suffix the Laboran could set: 1 to 16 letters or digits. */
 export const sufiksSah = (s: unknown): s is string =>
   typeof s === "string" && /^[A-Za-z0-9]{1,16}$/.test(s);

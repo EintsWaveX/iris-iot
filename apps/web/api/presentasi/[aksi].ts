@@ -44,6 +44,8 @@
  * GET  /api/presentasi/schematics         — signed in, as slides above; a
  *                                            missing module means "use the
  *                                            bundled schematic".
+ * GET  /api/presentasi/skema-bawaan?modul= — signed in, as schematics: the
+ *                                            bundled PNG (Modules 1 to 3).
  * GET  /api/presentasi/schematic-list     — asisten. Every upload.
  * POST /api/presentasi/schematic-token    — asisten. Upload handshake,
  *                                            PNG/JPEG/WebP only.
@@ -86,6 +88,7 @@ import {
   TAUTAN_SLIDES,
 } from "../../src/lib/tautan.js";
 import { denganSiaran } from "../_lib/siaran.js";
+import { bacaSkemaBawaan } from "../_lib/skema-bawaan.js";
 import { handlePinGet, handlePinGrupGet, handlePinGrupPost, handlePinSimpan } from "../_lib/pin.js";
 
 // Comfortably above a slide deck; well under what Blob itself allows.
@@ -132,6 +135,19 @@ async function hapusBlob(list: { url: string; jenis: Jenis }[], asal: string) {
  *  for an Asisten, the ones a Praktikan did a practicum of. */
 async function modulBoleh(session: SessionPayload): Promise<Set<number>> {
   return new Set(session.role === "asisten" ? [1, 2, 3, 4] : await modulDiikuti(session.nim));
+}
+
+/** A bundled schematic's PNG, for a module the caller may see. */
+async function handleSkemaBawaan(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+  const modul = Number(req.query.modul);
+  if (!(await modulBoleh(session)).has(modul))
+    return res.status(403).json({ ok: false, kode: "ditolak" });
+  const png = bacaSkemaBawaan(modul);
+  if (!png) return res.status(404).json({ ok: false, kode: "tidak_ditemukan" });
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "private, max-age=600");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.status(200).end(png);
 }
 
 /** Active rows per module, the file first, then `pilihan` with every active
@@ -562,6 +578,14 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     }
     if (!requireMethod(req, res, "GET")) return;
     return handlePinGrupGet(req, res, session);
+  }
+
+  // The bundled schematic, under the same rule as an uploaded one.
+  if (aksi === "skema-bawaan") {
+    if (!requireMethod(req, res, "GET")) return;
+    const session = requireAnyRole(req, res, ["asisten", "praktikan"]);
+    if (!session) return;
+    return handleSkemaBawaan(req, res, session);
   }
 
   // The two viewer lists either role reads, before the asisten-only guard;

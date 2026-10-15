@@ -11,11 +11,11 @@ import {
   statusAksesSetelah,
   JEDA_ULANG_DETIK,
   PERCOBAAN_MAKS,
-  SUFIKS_BAWAAN,
   sufiksSah,
   type KelompokTarik,
 } from "../seelabs-robot.js";
 import { sandiBawaanSeelabs, segelSandi, sidikKunci } from "../seelabs-segel.js";
+import { SUFIKS_BAWAAN } from "../../../api/_lib/seelabs-sufiks.js";
 
 const kelompokDi = (klp: number, hari: string, shift: string): KelompokTarik => ({
   klp,
@@ -140,7 +140,12 @@ describe("the Pi's key and the browser seal", () => {
   it("seals {nim, sandi} so only the private key opens it", async () => {
     const sidik = await sidikKunci(spki);
     expect(sidik).toMatch(/^([0-9A-F]{4}:){7}[0-9A-F]{4}$/);
-    const { segel } = await segelSandi(spki, sidik, "1101200001", sandiBawaanSeelabs("1101200001"));
+    const { segel } = await segelSandi(
+      spki,
+      sidik,
+      "1101200001",
+      sandiBawaanSeelabs("1101200001", SUFIKS_BAWAAN),
+    );
     expect(Buffer.from(segel, "base64")).toHaveLength(384);
     const isi = privateDecrypt(
       { key: privateKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" },
@@ -159,7 +164,7 @@ describe("the Pi's key and the browser seal", () => {
 describe("the Laboran default password's suffix", () => {
   it("is 1715 unless Sumber SeeLabs changed it", () => {
     expect(SUFIKS_BAWAAN).toBe("1715");
-    expect(sandiBawaanSeelabs("101022300172")).toBe("1010223001721715");
+    expect(sandiBawaanSeelabs("101022300172", SUFIKS_BAWAAN)).toBe("1010223001721715");
     expect(sandiBawaanSeelabs("101022300172", "2026")).toBe("1010223001722026");
   });
 
