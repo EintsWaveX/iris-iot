@@ -28,7 +28,7 @@ import {
   unggahDraf,
 } from "./lms.js";
 import { nyalakanUmpanBerkas } from "./lms-web.js";
-import { bacaSet, jendelaUntuk, webLms, type SetTp } from "./tp.js";
+import { bacaSet, catatJejak, jendelaUntuk, webLms, type SetTp } from "./tp.js";
 import { siarkan } from "./siaran.js";
 
 type Db = ReturnType<typeof getDb>;
@@ -174,6 +174,18 @@ export async function terimaUnggah(
       target: [tpKiriman.semester, tpKiriman.modul, tpKiriman.nim],
       set: baris,
     });
+  await catatJejak(db, [
+    {
+      semester: set.semester,
+      modul,
+      nim,
+      jenis: "unggah",
+      sumber: "iris",
+      lmsKursus: pes?.lmsKursus ?? null,
+      berkas,
+      dikirimPada: now,
+    },
+  ]);
   await siarkan(["tp"]);
   return { ok: true, id: row.id, sama: false };
 }

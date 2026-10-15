@@ -13,7 +13,6 @@ type Props = {
   label: string;
   letter: (i: number) => string;
   error?: string;
-  hint: string;
   disabled?: boolean;
 };
 
@@ -100,17 +99,15 @@ export default function KodeAsistenField(p: Props) {
             disabled={p.disabled}
             aria-label={p.letter(i + 1)}
             aria-invalid={p.error ? true : undefined}
-            aria-describedby="login-kode-msg"
+            aria-describedby={p.error ? "login-kode-msg" : undefined}
           />
         ))}
       </div>
-      <p
-        id="login-kode-msg"
-        className={p.error ? "field__error" : "field__hint"}
-        role={p.error ? "alert" : undefined}
-      >
-        {p.error ?? p.hint}
-      </p>
+      {p.error && (
+        <p id="login-kode-msg" className="field__error" role="alert">
+          {p.error}
+        </p>
+      )}
     </div>
   );
 }

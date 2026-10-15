@@ -21,6 +21,7 @@ import { LS } from "./lmsStrings";
 import { Head, galatTeks } from "./lmsShared";
 import { BacaSaja, type TabLms } from "./LmsPage";
 import Lalu from "../ui/Lalu";
+import { JejakDialog, KumpulDialog } from "../tp/KumpulDialog";
 
 interface Ringkas {
   ok: boolean;
@@ -65,6 +66,9 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
   const d = poll.data;
   const [ubah, setUbah] = useState<Record<string, boolean>>({});
   const [sibuk, setSibuk] = useState<Record<string, boolean>>({});
+  // Who handed in (all, or one class) and the files' whole history.
+  const [kumpul, setKumpul] = useState<{ kursus: number | null } | null>(null);
+  const [jejak, setJejak] = useState(false);
   if (!d) return <span className="skeleton" style={{ height: 520 }} />;
   if (!d.ok) return <p className="banner banner--warn">{galatTeks(d.kode, lang)}</p>;
 
@@ -132,7 +136,13 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
           </button>
         </div>
       )}
-      <Kini lang={lang} d={d} onFlip={poll.refresh} />
+      <Kini
+        lang={lang}
+        d={d}
+        onFlip={poll.refresh}
+        onKumpul={() => setKumpul({ kursus: null })}
+        onJejak={() => setJejak(true)}
+      />
       <section className="panel slr-card">
         <Head
           title={t.perKelas}
@@ -161,7 +171,14 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
                 data-kosong={k.peserta === 0 ? "yes" : undefined}
                 data-tanpa={!k.ada ? "yes" : undefined}
               >
-                <b className="mono lms-prog__k">{k.label}</b>
+                <button
+                  type="button"
+                  className="mono lms-prog__k lms-prog__btn"
+                  title={t.lihatKelas(k.label)}
+                  onClick={() => setKumpul({ kursus: k.id })}
+                >
+                  {k.label}
+                </button>
                 <span className="lms-bar" style={{ "--p": p } as CSSProperties}>
                   <i />
                 </span>
@@ -283,12 +300,35 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
           <p className="hint">{t.logKosong}</p>
         )}
       </section>
+      {kumpul && (
+        <KumpulDialog
+          open
+          onOpenChange={(v) => !v && setKumpul(null)}
+          lang={lang}
+          modul={d.modul}
+          kursus={kumpul.kursus}
+          tampil={d.keadaan === "belum" ? "semua" : "belum"}
+        />
+      )}
+      {jejak && <JejakDialog open onOpenChange={setJejak} lang={lang} modul={d.modul} />}
     </div>
   );
 }
 
 /** The live card at the top. */
-function Kini({ lang, d, onFlip }: { lang: Lang; d: Ringkas; onFlip: () => void }) {
+function Kini({
+  lang,
+  d,
+  onFlip,
+  onKumpul,
+  onJejak,
+}: {
+  lang: Lang;
+  d: Ringkas;
+  onFlip: () => void;
+  onKumpul: () => void;
+  onJejak: () => void;
+}) {
   const t = LS[lang];
   useTick(1000);
   const j = d.jendela;
@@ -379,6 +419,16 @@ function Kini({ lang, d, onFlip }: { lang: Lang; d: Ringkas; onFlip: () => void 
           <span className="hint">
             {k === "belum" || !k ? t.mulaiDihitung : t.dariTerdaftar(persen)}
           </span>
+          <span className="lms-meter__acts">
+            <button type="button" className="btn btn--ghost btn--sm" onClick={onKumpul}>
+              {t.siapaSaja}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+            </button>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={onJejak}>
+              {t.riwayatKumpul}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+            </button>
+          </span>
         </div>
         <dl className="lms-mini">
           <div>
@@ -409,7 +459,13 @@ function Kini({ lang, d, onFlip }: { lang: Lang; d: Ringkas; onFlip: () => void 
       </div>
       {k === "buka" && (
         <div className="lms-now__feed">
-          <span className="field__label">{t.baruMasuk}</span>
+          <span className="row row--between">
+            <span className="field__label">{t.baruMasuk}</span>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={onJejak}>
+              {t.lihatRiwayat}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+            </button>
+          </span>
           {d.baru.length ? (
             <ul className="lms-arr">
               {d.baru.slice(0, 4).map((b) => (

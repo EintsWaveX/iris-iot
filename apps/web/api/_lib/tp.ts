@@ -34,6 +34,7 @@ import {
   sesi,
   sesiAnggota,
   sesiAsisten,
+  tpJejak,
   tpKiriman,
   tpNilai,
   tpPaket,
@@ -247,6 +248,33 @@ export function simpanKueLms(db: Db): SimpanKue {
 }
 
 /** IRIS's LMS web session, or why there can't be one. */
+/** A row of a TP file's history (tp_jejak): names and sizes, no links. */
+export interface Jejak {
+  semester: string;
+  modul: number;
+  nim: string;
+  jenis: "baru" | "ganti" | "tarik" | "unggah";
+  sumber: "lms" | "iris";
+  lmsKursus: number | null;
+  berkas: { nama: string; ukuran: number }[];
+  dikirimPada: Date | null;
+}
+
+/** Writes history rows; a failure here never stops the sync or the upload. */
+export async function catatJejak(db: Db, rows: Jejak[]): Promise<void> {
+  if (!rows.length) return;
+  try {
+    await db.insert(tpJejak).values(
+      rows.map((r) => ({
+        ...r,
+        berkas: r.berkas.map((b) => ({ nama: b.nama, ukuran: b.ukuran })),
+      })),
+    );
+  } catch (e) {
+    console.error("[tp] history row not written:", e);
+  }
+}
+
 export function webLms(db: Db, set: SetTp): WebLms {
   const token = set.token ? bukaToken(set.token) : null;
   if (!set.token || !token) throw new LmsGalat("belum_tersambung", "no LMS token");
@@ -531,9 +559,22 @@ async function jalankan(
             // has a later submission (2026-10-14).
             if (!lmsMenang(r, dikirim)) continue;
             if (r?.sumber === "iris") await batalkanUnggah(db, set.semester, m, nim);
-            if (!r || !r.berkas.length) baru++;
+            const pertama = !r || !r.berkas.length;
+            if (pertama) baru++;
             else if (r.dikirimPada?.getTime() !== dikirim.getTime()) diperbarui++;
             else continue;
+            await catatJejak(db, [
+              {
+                semester: set.semester,
+                modul: m,
+                nim,
+                jenis: pertama ? "baru" : "ganti",
+                sumber: "lms",
+                lmsKursus: kursusOf.get(a.assignmentid) ?? null,
+                berkas,
+                dikirimPada: dikirim,
+              },
+            ]);
             const nilaiBaris = {
               lmsKursus: kursusOf.get(a.assignmentid) ?? null,
               lmsTugas: a.assignmentid,
@@ -570,6 +611,19 @@ async function jalankan(
           .map((r) => r.nim);
         if (hilang.length) {
           diperbarui += hilang.length;
+          await catatJejak(
+            db,
+            hilang.map((nim) => ({
+              semester: set.semester,
+              modul: m,
+              nim,
+              jenis: "tarik" as const,
+              sumber: "lms" as const,
+              lmsKursus: null,
+              berkas: [],
+              dikirimPada: null,
+            })),
+          );
           await db
             .update(tpKiriman)
             .set({ berkas: [], sinkronPada: new Date() })

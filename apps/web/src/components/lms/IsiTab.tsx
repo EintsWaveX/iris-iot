@@ -671,7 +671,7 @@ function NamaDua({
     <label className="field">
       <span className="field__label">{teks}</span>
       <input
-        className="input"
+        className="field__input"
         value={nilai[kunci] ?? ""}
         maxLength={255}
         onChange={(e) => onChange({ ...nilai, [kunci]: e.target.value })}

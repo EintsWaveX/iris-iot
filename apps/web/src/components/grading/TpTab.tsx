@@ -15,6 +15,8 @@ import {
   WarningIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
+import Dropdown from "../ui/Dropdown";
+import { JejakDialog, KumpulDialog } from "../tp/KumpulDialog";
 import TabLine from "../ui/TabLine";
 import IconButton from "../ui/IconButton";
 import { ProgressRing, StateView } from "../ui/Display";
@@ -60,14 +62,37 @@ export default function TpTab({
   const t = TPS[lang];
   const [who, setWho] = useState<"mine" | "all">("mine");
   const [f, setF] = useState<Saring>("all");
+  // All groups narrowed to a day, then one of its sessions (2026-10-15),
+  // and a name or NIM.
+  const [hari, setHari] = useState("semua");
+  const [sesi, setSesi] = useState("semua");
+  const [cari, setCari] = useState("");
+  const [kumpul, setKumpul] = useState(false);
+  const [jejak, setJejak] = useState(false);
   if (!data) return <span className="skeleton" style={{ height: 420 }} />;
 
   const mine = data.slot.flatMap((s) => s.kelompok.filter((g) => g.milikku).map((g) => ({ s, g })));
+  const q = cari.trim().toLowerCase();
   const cocok = (a: AnggotaTp) =>
-    f === "all" ||
-    (f === "todo" && (a.status === "masuk" || a.status === "telat")) ||
-    (f === "telat" && a.status === "telat") ||
-    (f === "belum" && (a.status === "belum" || a.status === "kosong"));
+    (!q || a.nama.toLowerCase().includes(q) || a.nim.includes(q)) &&
+    (f === "all" ||
+      (f === "todo" && (a.status === "masuk" || a.status === "telat")) ||
+      (f === "telat" && a.status === "telat") ||
+      (f === "belum" && (a.status === "belum" || a.status === "kosong")));
+  // A filter or a search on: a group with nobody left in it goes.
+  const menyaring = f !== "all" || !!q;
+  const tampilGrup = (g: { anggota: AnggotaTp[] }) => !menyaring || g.anggota.some(cocok);
+  const hariAda = [...new Set(data.slot.map((s) => s.hari))].sort((a, b) => a - b);
+  const slotHari = data.slot.filter((s) => hari === "semua" || String(s.hari) === hari);
+  const slotTampil = slotHari
+    .filter((s) => sesi === "semua" || `${s.hari}-${s.slot}` === sesi)
+    .map((s) => ({ s, gs: s.kelompok.filter(tampilGrup) }))
+    .filter((x) => x.gs.length > 0);
+  const mineTampil = mine.filter(({ g }) => tampilGrup(g));
+  const tanpaTampil =
+    data.tanpaKelompok.length > 0 &&
+    hari === "semua" &&
+    (!menyaring || data.tanpaKelompok.some(cocok));
   const slotInfo = (s: DataKelompok["slot"][number]) =>
     t.slotInfo(t.hari[s.hari] ?? "", s.slot, tanggalPanjang(s.tanggal, lang));
 
@@ -119,7 +144,7 @@ export default function TpTab({
 
       <SyncStrip lang={lang} modul={modul} data={data} refresh={refresh} onLms={onLms} />
 
-      <div className="tpfilter">
+      <div className="tpfilter tpfilter--tp">
         <TabLine
           seg
           value={who}
@@ -130,6 +155,46 @@ export default function TpTab({
             { v: "all", label: t.semuaKelompok },
           ]}
         />
+        {who === "all" && (
+          <div className="tpfilter__pick">
+            <Dropdown
+              id="tp-hari"
+              label={t.saringHari}
+              value={hari}
+              onChange={(v) => {
+                setHari(v);
+                setSesi("semua");
+              }}
+              options={[
+                { value: "semua", label: t.semuaHari },
+                ...hariAda.map((h) => ({ value: String(h), label: t.hari[h] ?? String(h) })),
+              ]}
+            />
+            <Dropdown
+              id="tp-sesi"
+              label={t.saringSesi}
+              value={sesi}
+              onChange={setSesi}
+              options={[
+                { value: "semua", label: t.semuaSesiTp },
+                ...slotHari.map((s) => ({
+                  value: `${s.hari}-${s.slot}`,
+                  label: t.sesiPilihan(t.hari[s.hari] ?? "", s.slot),
+                  note: tanggalPanjang(s.tanggal, lang),
+                })),
+              ]}
+            />
+          </div>
+        )}
+        <label className="field tpfilter__cari">
+          <span className="field__label">{t.cariPraktikan}</span>
+          <input
+            className="field__input"
+            value={cari}
+            inputMode="search"
+            onChange={(e) => setCari(e.target.value)}
+          />
+        </label>
         <div className="row tpfilter__chips" role="group" aria-label={t.saring}>
           {(
             [
@@ -144,16 +209,28 @@ export default function TpTab({
             </Pill>
           ))}
         </div>
+        <div className="row tpfilter__acts">
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setKumpul(true)}>
+            {t.siapaSaja}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+          </button>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setJejak(true)}>
+            {t.riwayatKumpul}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+          </button>
+        </div>
       </div>
+      {kumpul && <KumpulDialog open onOpenChange={setKumpul} lang={lang} modul={modul} />}
+      {jejak && <JejakDialog open onOpenChange={setJejak} lang={lang} modul={modul} />}
 
       {data.slot.length === 0 && data.tanpaKelompok.length === 0 ? (
         <section className="panel">
           <StateView icon={<UsersThreeIcon size={28} />} title={t.kosongRoster} />
         </section>
       ) : who === "mine" ? (
-        mine.length ? (
+        mineTampil.length ? (
           <div className="tpgroups">
-            {mine.map(({ s, g }) => (
+            {mineTampil.map(({ s, g }) => (
               <GroupCard
                 key={`${s.hari}-${s.slot}-${g.nomor}`}
                 lang={lang}
@@ -180,11 +257,16 @@ export default function TpTab({
         )
       ) : (
         <div className="stack stack--lg">
-          {data.slot.map((s) => (
+          {slotTampil.length === 0 && !tanpaTampil && (
+            <section className="panel">
+              <StateView icon={<UsersThreeIcon size={28} />} title={t.tidakAdaCocok} />
+            </section>
+          )}
+          {slotTampil.map(({ s, gs }) => (
             <section key={`${s.hari}-${s.slot}`} className="tpslot">
               <h3 className="tpslot__h">{slotInfo(s)}</h3>
               <div className="tpgroups">
-                {s.kelompok.map((g) => (
+                {gs.map((g) => (
                   <GroupCard
                     key={g.nomor}
                     lang={lang}
@@ -198,7 +280,7 @@ export default function TpTab({
               </div>
             </section>
           ))}
-          {data.tanpaKelompok.length > 0 && (
+          {tanpaTampil && (
             <section className="tpslot">
               <h3 className="tpslot__h">{t.tanpaKelompokH}</h3>
               <p className="hint">{t.tanpaKelompokHint}</p>

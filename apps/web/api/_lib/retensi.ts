@@ -66,6 +66,7 @@ import {
   telemetriTerkini,
   lmsPeserta,
   tpKiriman,
+  tpJejak,
   tpUnggah,
   tpNilai,
   tpSinkronLog,
@@ -179,6 +180,7 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
       // the semester is gone from its list).
       for (const [nama, t] of [
         ["tpKiriman", tpKiriman],
+        ["tpJejak", tpJejak],
         ["tpNilai", tpNilai],
         ["lmsPeserta", lmsPeserta],
         ["tpUnggah", tpUnggah],

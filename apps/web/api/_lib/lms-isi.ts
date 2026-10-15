@@ -246,6 +246,11 @@ export function gabungIsi(
   return { bagian, modul };
 }
 
+/** Moodle's name for a section nobody named yet ("New section", or the
+ *  older "Topic 7" / "Topik 7" / "Section 7"). */
+export const namaBawaan = (nama: string) =>
+  /^(new section|bagian baru|(topic|topik|section|bagian) \d+)$/i.test(nama.trim());
+
 /* ============================================================ the section */
 
 /**
@@ -262,6 +267,16 @@ export async function pastikanBagianModul(
   const sebelum = await isiKursus(token, kursus);
   const ada = sebelum.find((b) => modulBagian(b.name) === m);
   if (ada) return ada;
+  // A section added on an earlier try whose name never came (live
+  // 2026-10-15: a call cut off after "Add section" left an empty "New
+  // section" in one class, and the retry added another): the last section,
+  // empty and still on Moodle's default name, is taken instead.
+  const akhir = sebelum.at(-1);
+  if (akhir && akhir.section > 0 && !akhir.modules.length && namaBawaan(akhir.name)) {
+    const nama = namaBagianModul(m, inter);
+    await namaiBagian(web, kursus, akhir.id, nama);
+    return { ...akhir, name: nama };
+  }
   await tambahBagian(web, kursus);
   const lama = new Set(sebelum.map((b) => b.id));
   const baru = (await isiKursus(token, kursus)).filter((b) => !lama.has(b.id));

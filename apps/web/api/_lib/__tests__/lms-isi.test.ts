@@ -325,6 +325,26 @@ describe("the class page's sections against a fake LMS", () => {
     expect(dunia.bagian.length).toBe(8);
   });
 
+  it("names an empty unnamed section left by a cut-off try instead of adding one", async () => {
+    // live 2026-10-15: "Add section" went through, the reply never came
+    dunia.bagian.push({ id: ++dunia.idBagian, name: "New section", visible: 1, cms: [] });
+    const b = await isi.pastikanBagianModul(sesi(), TOKEN, 9614, 1, false);
+    expect(dunia.bagian.length).toBe(8);
+    expect(b.id).toBe(dunia.idBagian);
+    expect(nama().at(-1)).toBe(isi.namaBagianModul(1, false));
+    // a campus section, or one that holds something, is never taken
+    expect(isi.namaBawaan("Topik 7")).toBe(true);
+    expect(isi.namaBawaan("FINISH")).toBe(false);
+    dunia.bagian.push({
+      id: ++dunia.idBagian,
+      name: "New section",
+      visible: 1,
+      cms: [{ id: 1, name: "x", modname: "label", visible: 1 }],
+    });
+    await isi.pastikanBagianModul(sesi(), TOKEN, 9614, 2, false);
+    expect(dunia.bagian.length).toBe(10);
+  });
+
   it("says what Moodle refused", async () => {
     await expect(
       sesi().ajax(9614, "core_courseformat_update_course", { action: "nope", ids: [] }),

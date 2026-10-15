@@ -1762,6 +1762,32 @@ export const tpNilai = pgTable(
   ],
 );
 
+/**
+ * Every change to a Praktikan's TP file, oldest kept (2026-10-15: the user
+ * wants Baru Masuk's whole history, while tp_kiriman holds only the newest
+ * file). baru: a first file; ganti: a newer one replaced it; tarik: taken
+ * back in the LMS; unggah: uploaded in IRIS. File names and sizes only, no
+ * links. Rows before 0037 were backfilled from tp_kiriman as one each.
+ */
+export const tpJejak = pgTable(
+  "tp_jejak",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    modul: integer("modul").notNull(),
+    nim: text("nim").notNull(),
+    jenis: text("jenis", { enum: ["baru", "ganti", "tarik", "unggah"] }).notNull(),
+    sumber: text("sumber", { enum: ["lms", "iris"] }).notNull(),
+    lmsKursus: integer("lms_kursus"),
+    berkas: jsonb("berkas").$type<{ nama: string; ukuran: number }[]>().notNull().default([]),
+    /** When the student handed it in (the LMS's time, or the upload's). */
+    dikirimPada: timestamp("dikirim_pada", { withTimezone: true }),
+    /** When IRIS saw the change. */
+    dicatatPada: timestamp("dicatat_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("tp_jejak_modul_idx").on(t.semester, t.modul, t.dicatatPada)],
+);
+
 /** Every LMS sync, so a broken token or a missing assignment shows. */
 export const tpSinkronLog = pgTable(
   "tp_sinkron_log",

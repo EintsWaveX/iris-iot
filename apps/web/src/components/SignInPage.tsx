@@ -62,7 +62,6 @@ const T = dict({
     nim: "NIM",
     nimPh: "2311102001",
     kodeA: "Kode asisten",
-    kodeAHint: "Tiga huruf kodemu, misalnya NUE.",
     huruf: (i: number) => `Huruf ke-${i}`,
     needKode: "Isi tiga huruf kode asistenmu dulu.",
     salahA: "Kode asisten atau kata sandi tidak cocok.",
@@ -142,7 +141,6 @@ const T = dict({
     nim: "NIM",
     nimPh: "2311102001",
     kodeA: "Assistant code",
-    kodeAHint: "Your three-letter code, for example NUE.",
     huruf: (i: number) => `Letter ${i}`,
     needKode: "Enter your three-letter assistant code first.",
     salahA: "The assistant code or password does not match.",
@@ -222,7 +220,6 @@ const T = dict({
     nim: "NIM",
     nimPh: "2311102001",
     kodeA: "助教代码",
-    kodeAHint: "你的三个字母代码，例如 NUE。",
     huruf: (i: number) => `第 ${i} 个字母`,
     needKode: "先填你的三个字母助教代码。",
     salahA: "助教代码或密码不对。",
@@ -545,7 +542,6 @@ export default function SignInPage({ lang = "id" }: { lang?: Lang }) {
               onEnter={() => void masuk()}
               label={t.kodeA}
               letter={t.huruf}
-              hint={t.kodeAHint}
               error={err?.field === "kode" ? err.msg : undefined}
             />
           ) : (

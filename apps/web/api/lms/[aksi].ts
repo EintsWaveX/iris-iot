@@ -19,6 +19,9 @@
  * GET  /api/lms/isi[?sasaran=semua|reguler|inter|<kursus>]   the class
  *      page, every class merged: sections, items, X/11, module checks
  * GET  /api/lms/log[?sebelum=]     what IRIS did in the LMS, 60 a page
+ * GET  /api/lms/kumpul?modul=      every registered Praktikan (not the LMS-only
+ *      students): handed in or not, when, from where, which class
+ * GET  /api/lms/jejak?modul=[&nim=]  every change to the TP files, newest first
  *
  * POST /api/lms/otomatis { kunci, nyala }
  * POST /api/lms/pesan { userid, kursus, teks }
@@ -54,6 +57,7 @@ import {
   lmsPeserta,
   praktikan,
   rosterSlot,
+  tpJejak,
   tpKiriman,
 } from "../../src/lib/schema.js";
 import { JEDA_SINKRON_MS, keadaanJendela, modulTugas, tanggalSama } from "../../src/lib/tp.js";
@@ -322,6 +326,112 @@ async function handleRingkas(req: ApiRequest, res: ApiResponse, s: SessionPayloa
       galat: r.galat,
     })),
     boleh: !!orang && bolehKelolaLms(orang),
+  });
+}
+
+/**
+ * Who handed in this module's TP, among the Praktikan registered in IRIS
+ * (the excluded and the LMS-only students are left out): their class from
+ * the LMS roster, the newest file's time and source, and whether it came
+ * after the window closed.
+ */
+async function handleKumpul(req: ApiRequest, res: ApiResponse) {
+  const db = getDb();
+  const set = await bacaSet(db);
+  const m = modulDari(req.query.modul) ?? modulPilihan(set);
+  const j = jendelaUntuk(set, m);
+  const kec = nimKecuali(set);
+  const [kiriman, terdaftar] = await Promise.all([
+    db
+      .select({
+        nim: tpKiriman.nim,
+        berkas: tpKiriman.berkas,
+        pada: tpKiriman.dikirimPada,
+        sumber: tpKiriman.sumber,
+        tanda: tpKiriman.tanda,
+      })
+      .from(tpKiriman)
+      .where(and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m))),
+    db
+      .select({ nim: praktikan.nim, nama: praktikan.nama })
+      .from(praktikan)
+      .where(eq(praktikan.semester, set.semester)),
+  ]);
+  const kursus = set.kelas?.kursus ?? [];
+  const kelasOf = new Map<string, number>();
+  for (const k of kursus) for (const n of k.nim ?? []) kelasOf.set(n, k.id);
+  const kirOf = new Map(kiriman.map((x) => [x.nim, x]));
+  const tutup = j ? Date.parse(j.tutup) : null;
+  const baris = terdaftar
+    .filter((p) => !kec.has(p.nim))
+    .map((p) => {
+      const x = kirOf.get(p.nim);
+      const ada = !!x && x.berkas.length > 0;
+      return {
+        nim: p.nim,
+        nama: p.nama,
+        kursus: kelasOf.get(p.nim) ?? null,
+        status: ada ? "sudah" : x?.tanda === "kosong" ? "kosong" : "belum",
+        pada: ada ? (x.pada?.toISOString() ?? null) : null,
+        sumber: ada ? x.sumber : null,
+        telat: ada && tutup !== null && !!x.pada && x.pada.getTime() > tutup,
+      };
+    })
+    .sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+  res.status(200).json({
+    ok: true,
+    modul: m,
+    jendela: j,
+    kelas: kursus.map((k) => ({ id: k.id, label: k.label, kelas: k.kelas })),
+    baris,
+  });
+}
+
+/** Every change to this module's TP files, newest first (tp_jejak). */
+async function handleJejak(req: ApiRequest, res: ApiResponse) {
+  const db = getDb();
+  const set = await bacaSet(db);
+  const m = modulDari(req.query.modul) ?? modulPilihan(set);
+  const nim = typeof req.query.nim === "string" ? req.query.nim.slice(0, 20) : null;
+  const kec = nimKecuali(set);
+  const [rows, terdaftar] = await Promise.all([
+    db
+      .select()
+      .from(tpJejak)
+      .where(
+        and(
+          eq(tpJejak.semester, set.semester),
+          eq(tpJejak.modul, m),
+          ...(nim ? [eq(tpJejak.nim, nim)] : []),
+        ),
+      )
+      .orderBy(desc(tpJejak.dicatatPada), desc(tpJejak.id))
+      .limit(500),
+    db
+      .select({ nim: praktikan.nim, nama: praktikan.nama })
+      .from(praktikan)
+      .where(eq(praktikan.semester, set.semester)),
+  ]);
+  const namaOf = new Map(terdaftar.map((p) => [p.nim, p.nama]));
+  const labelOf = new Map((set.kelas?.kursus ?? []).map((k) => [k.id, k.label]));
+  res.status(200).json({
+    ok: true,
+    modul: m,
+    jejak: rows
+      // Only Praktikan registered in IRIS, as the counts.
+      .filter((r) => namaOf.has(r.nim) && !kec.has(r.nim))
+      .map((r) => ({
+        id: r.id,
+        nim: r.nim,
+        nama: namaOf.get(r.nim)!,
+        kursus: (r.lmsKursus && labelOf.get(r.lmsKursus)) || null,
+        jenis: r.jenis,
+        sumber: r.sumber,
+        berkas: r.berkas,
+        dikirimPada: r.dikirimPada?.toISOString() ?? null,
+        dicatatPada: r.dicatatPada.toISOString(),
+      })),
+    batas: rows.length === 500,
   });
 }
 
@@ -1529,6 +1639,8 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "kalender") return handleKalenderBaca(req, res, s);
     if (aksi === "isi") return handleIsiBaca(req, res, s);
     if (aksi === "log") return handleLog(req, res);
+    if (aksi === "kumpul") return handleKumpul(req, res);
+    if (aksi === "jejak") return handleJejak(req, res);
     return tolak(res, "aksi_tidak_dikenal", 404);
   }
   if (!requireMethod(req, res, "POST")) return;

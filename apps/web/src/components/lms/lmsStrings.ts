@@ -4,6 +4,10 @@
 import { dict } from "../../lib/app";
 
 const id = {
+  siapaSaja: "Siapa Sudah dan Belum",
+  riwayatKumpul: "Riwayat Pengumpulan",
+  lihatRiwayat: "Riwayat Lengkap",
+  lihatKelas: (k: string) => `Lihat siapa saja di ${k} yang sudah dan belum mengumpulkan`,
   judul: "LMS",
   lede: "Kelas LMS Telkom, dijalankan dari IRIS.",
   eyebrow: (n: number) => `${n} kelas praktikum`,
@@ -471,6 +475,10 @@ function logTeks(
 const cls = (n: number) => (n === 1 ? "class" : "classes");
 
 const en: S = {
+  siapaSaja: "Who Has and Hasn't",
+  riwayatKumpul: "Submission History",
+  lihatRiwayat: "Full History",
+  lihatKelas: (k) => `See who in ${k} has and hasn't handed in`,
   judul: "LMS",
   lede: "The Telkom LMS classes, run from IRIS.",
   eyebrow: (n) => `${n} practicum classes`,
@@ -811,6 +819,10 @@ const en: S = {
 };
 
 const zh: S = {
+  siapaSaja: "谁已交谁未交",
+  riwayatKumpul: "提交记录",
+  lihatRiwayat: "完整记录",
+  lihatKelas: (k) => `查看 ${k} 中谁已提交、谁未提交`,
   judul: "LMS",
   lede: "在 IRIS 里管理 Telkom LMS 的课程班。",
   eyebrow: (n) => `${n} 个实验班`,

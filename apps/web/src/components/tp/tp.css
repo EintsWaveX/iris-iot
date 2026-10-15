@@ -2070,3 +2070,121 @@ button.tpcheck:focus-visible,
     transition: none;
   }
 }
+
+/* -------------------- Penilaian › TP's filters and who handed in (2026-10-15) */
+.tpfilter.tpfilter--tp {
+  align-items: end;
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-items: stretch;
+}
+.tpfilter--tp > .seg {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+.tpfilter__pick {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+}
+.tpfilter__cari {
+  justify-self: end;
+  width: min(100%, 320px);
+}
+.tpfilter--tp > .tpfilter__chips {
+  justify-self: start;
+}
+.tpfilter__acts {
+  gap: 8px;
+  justify-content: flex-end;
+}
+@media (max-width: 767px) {
+  .tpfilter.tpfilter--tp {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tpfilter__pick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tpfilter__cari {
+    justify-self: stretch;
+    width: 100%;
+  }
+  .tpfilter__acts {
+    justify-content: flex-start;
+  }
+}
+
+/* KumpulDialog: who handed in, and every change to the files */
+.kumpul-bar {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.kumpul-list,
+.jejak-list {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.kumpul-list > li {
+  align-items: center;
+  border-top: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 4px 12px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 10px 0;
+}
+.kumpul-list__who,
+.jejak-list__what {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.kumpul-list__who b,
+.jejak-list__what b {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.kumpul-list__st {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.jejak-list > li {
+  align-items: baseline;
+  border-top: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 4px 14px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  padding: 10px 0;
+}
+.jejak-list__t {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+.jejak-list > li[data-jenis="tarik"] .jejak-list__what b {
+  color: var(--warn);
+}
+@media (max-width: 639px) {
+  .kumpul-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kumpul-list > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .kumpul-list__st {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .kumpul-list > li > .btn {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .jejak-list > li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
