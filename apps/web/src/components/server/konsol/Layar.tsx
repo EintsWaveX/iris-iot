@@ -17,6 +17,7 @@ import { buatSaluranGuac, type GuacLib } from "../../../lib/guac-saluran";
 import {
   ArrowsInIcon,
   ArrowsOutIcon,
+  CircleNotchIcon,
   ClipboardTextIcon,
   EyeIcon,
   HandIcon,
@@ -156,6 +157,9 @@ export default function Layar({
   const [klip, setKlip] = useState(false);
   const [teksKlip, setTeksKlip] = useState("");
   const [menu, setMenu] = useState(false);
+  // No picture yet on this connection: a waking monitor (KDE) or a slow
+  // first frame shows a quiet wait instead of a black box.
+  const [gambar, setGambar] = useState(false);
   const guac = protokol === "guac";
 
   /** Presses the keys in order, then lets them go in reverse. */
@@ -182,6 +186,7 @@ export default function Layar({
   useEffect(() => {
     if (guac || !ws || !sandi || !box.current) return;
     let mati = false;
+    setGambar(false);
     const sal = new Saluran(kirim);
     const antre: ArrayBuffer[] = tunda.current.splice(0);
     apiRef.current = { terima: (d) => (sal.onmessage ? sal.terima(d) : antre.push(d)) };
@@ -196,6 +201,7 @@ export default function Layar({
       r.viewOnly = !pegangRef.current;
       r.addEventListener("credentialsrequired", () => r.sendCredentials({ password: sandi }));
       r.addEventListener("clipboard", (e) => setTeksKlip(String(e.detail?.text ?? "")));
+      r.addEventListener("connect", () => !mati && setGambar(true));
       rfb.current = r;
       kemudi.current = {
         tekan: (keysym, code, turun) => r.sendKey(keysym, code, turun),
@@ -222,6 +228,7 @@ export default function Layar({
     const el = box.current;
     if (!guac || !ws || !el) return;
     let mati = false;
+    setGambar(false);
     let terima: ((d: ArrayBuffer) => void) | null = null;
     const antre: ArrayBuffer[] = tunda.current.splice(0);
     apiRef.current = { terima: (d) => (terima ? terima(d) : antre.push(d)) };
@@ -239,6 +246,7 @@ export default function Layar({
       const pas = () => {
         const w = display.getWidth();
         const h = display.getHeight();
+        if (w > 0 && h > 0 && !mati) setGambar(true);
         if (w > 0 && h > 0 && el.clientWidth > 0 && el.clientHeight > 0)
           display.scale(Math.min(el.clientWidth / w, el.clientHeight / h));
       };
@@ -380,7 +388,14 @@ export default function Layar({
           tabIndex={guac && pegang ? 0 : undefined}
           onPointerDown={guac && pegang ? (e) => e.currentTarget.focus() : undefined}
         />
-        {!pegang && (
+        {!gambar && (
+          <span className="vnc__wait" role="status">
+            <CircleNotchIcon size={22} weight="bold" aria-hidden="true" />
+            <b>{t.waitPicture}</b>
+            <span>{guac ? t.waitPictureKde : t.waitPictureHint}</span>
+          </span>
+        )}
+        {!pegang && gambar && (
           <span className="vnc__ro">
             <EyeIcon size={16} aria-hidden="true" />
             {t.viewOnly}

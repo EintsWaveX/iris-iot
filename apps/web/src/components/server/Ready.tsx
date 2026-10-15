@@ -261,20 +261,29 @@ export default function Ready({
               <div className="s12checks">{umum.map(baris)}</div>
               {pulih && (
                 <div className="stack stack--sm s12repair">
-                  <span className="stack" style={{ gap: 0 }}>
-                    <b>{w.repairTitle}</b>
-                    <span className="hint">
-                      {pulih.pada ? (
-                        <Lalu
-                          iso={new Date(pulih.pada * 1000).toISOString()}
-                          lang={lang}
-                          fmt={w.repairAt}
-                        />
-                      ) : (
-                        w.repairSub
-                      )}
+                  <div className="row row--between s12repair__head">
+                    <span className="stack" style={{ gap: 0 }}>
+                      <b>{w.repairTitle}</b>
+                      <span className="hint">
+                        {pulih.pada ? (
+                          <Lalu
+                            iso={new Date(pulih.pada * 1000).toISOString()}
+                            lang={lang}
+                            fmt={w.repairAt}
+                          />
+                        ) : (
+                          w.repairSub
+                        )}
+                      </span>
                     </span>
-                  </span>
+                    <span className={`pill ${pulih.gagal.length ? "pill--warn" : "pill--ok"}`}>
+                      {pulih.gagal.length
+                        ? w.toFix(pulih.gagal.length)
+                        : pulih.diperbaiki.length
+                          ? w.repairFixed(pulih.diperbaiki.length)
+                          : w.repairOk}
+                    </span>
+                  </div>
                   <div className="s12checks">
                     {pulih.gagal.map((l, i) => (
                       <div key={`g${i}`} className="checkrow" data-st="gagal">

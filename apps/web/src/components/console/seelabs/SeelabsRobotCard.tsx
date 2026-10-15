@@ -8,6 +8,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   CellSignalSlashIcon,
   CheckCircleIcon,
+  CircleNotchIcon,
   KeyIcon,
   LockKeyIcon,
   ProhibitIcon,
@@ -440,6 +441,9 @@ export default function SeelabsRobotCard({ lang, nim }: { lang: Lang; nim: strin
             refresh();
           }}
         >
+          {ujiJalan && (
+            <CircleNotchIcon size={16} weight="bold" className="ctl-spin" aria-hidden="true" />
+          )}
           {ujiJalan ? t.testing : t.testAgain}
         </button>
         <button type="button" className="btn btn--secondary" onClick={() => setDlg("ulang")}>

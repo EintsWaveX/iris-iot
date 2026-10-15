@@ -380,6 +380,50 @@
   outline-offset: -2px;
 }
 
+/* Before the first picture: a quiet wait over the black frame. It fades in
+   only after 400 ms, so a fast connection never flashes it. */
+.vnc__wait {
+  align-content: center;
+  animation: vnc-tunggu-masuk 200ms var(--ease-out-expo) 400ms both;
+  color: rgb(255 255 255 / 0.85);
+  display: grid;
+  font-size: 0.85rem;
+  gap: 6px;
+  inset: 10px;
+  justify-items: center;
+  padding: 16px;
+  pointer-events: none;
+  position: absolute;
+  text-align: center;
+}
+
+.vnc__wait > span {
+  color: rgb(255 255 255 / 0.6);
+  max-width: 36ch;
+}
+
+.vnc__wait > svg {
+  animation: vnc-tunggu-putar 0.8s linear infinite;
+}
+
+@keyframes vnc-tunggu-masuk {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes vnc-tunggu-putar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vnc__wait > svg {
+    animation-duration: 1.6s;
+  }
+}
+
 .vnc__ro {
   align-items: center;
   background: rgb(0 0 0 / 0.7);

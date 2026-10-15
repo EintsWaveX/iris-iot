@@ -54,6 +54,16 @@
   font-size: 0.9rem;
 }
 
+/* "8 hari (04:48:08) lalu" spilled past the circle: it wraps, centred,
+   inside the ring's own width */
+.srv12ring .hint {
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  max-width: 68px;
+  text-align: center;
+}
+
 .srv12ring[data-off="yes"] {
   background: radial-gradient(circle, var(--warn-soft), transparent 70%);
   border-color: var(--warn);
@@ -408,6 +418,16 @@
   border-top: 1px solid var(--hairline);
   margin-top: 4px;
   padding-top: 14px;
+}
+
+/* its state on the right, like the card's own head */
+.s12repair__head {
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 12px;
+}
+.s12repair__head > .pill {
+  flex: none;
 }
 
 .s12checks {
