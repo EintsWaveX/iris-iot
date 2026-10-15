@@ -4,6 +4,7 @@
 import { dict } from "../../lib/app";
 
 const id = {
+  ubahDiIsi: "Ubah di Isi Kelas",
   siapaSaja: "Siapa Sudah dan Belum",
   riwayatKumpul: "Riwayat Pengumpulan",
   lihatRiwayat: "Riwayat Lengkap",
@@ -475,6 +476,7 @@ function logTeks(
 const cls = (n: number) => (n === 1 ? "class" : "classes");
 
 const en: S = {
+  ubahDiIsi: "Edit in Contents",
   siapaSaja: "Who Has and Hasn't",
   riwayatKumpul: "Submission History",
   lihatRiwayat: "Full History",
@@ -819,6 +821,7 @@ const en: S = {
 };
 
 const zh: S = {
+  ubahDiIsi: "在班级内容中编辑",
   siapaSaja: "谁已交谁未交",
   riwayatKumpul: "提交记录",
   lihatRiwayat: "完整记录",

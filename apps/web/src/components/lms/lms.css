@@ -699,6 +699,24 @@
     line-height: 56px;
   }
 }
+/* 360 to 389: seven digits, three gaps and the day's margin fit the card. */
+@media (max-width: 389px) {
+  .lms-now__count .cdown__d b {
+    font-size: 1.5rem;
+    height: 48px;
+    width: 33px;
+  }
+  .lms-now__count .cdown__sep {
+    font-size: 1.2rem;
+    line-height: 48px;
+  }
+  .lms-now__count .cdown__in {
+    gap: 3px;
+  }
+  .lms-now__count .cdown__g--hari {
+    margin-right: 4px;
+  }
+}
 @media (max-width: 899px) {
   .lms-now {
     grid-template-columns: minmax(0, 1fr);
@@ -1320,4 +1338,13 @@
   border-radius: 4px;
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+.lms-isi-ke {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.lms-isi-ke > .hint {
+  flex: 1 1 220px;
+  margin: 0;
 }

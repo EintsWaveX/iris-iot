@@ -92,7 +92,12 @@ const MODUL_LANGKAH = ["bagian", "tautan", "pdf", "tp"] as const;
 export default function IsiTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) => void }) {
   const t = IS[lang];
   const tl = LS[lang];
-  const [sasaran, setSasaran] = useState("semua");
+  // A class opened from Kelas's drawer (?kelas=), else all of them.
+  const [sasaran, setSasaran] = useState(() => {
+    if (typeof location === "undefined") return "semua";
+    const k = new URLSearchParams(location.search).get("kelas");
+    return k && /^\d+$/.test(k) ? k : "semua";
+  });
   const poll = usePoll(
     () => getJson<DataIsi>(`/api/lms/isi?sasaran=${encodeURIComponent(sasaran)}`),
     300_000,
@@ -199,6 +204,11 @@ export default function IsiTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) => vo
             onChange={(v) => {
               setSasaran(v);
               setAtur(false);
+              const u = new URL(location.href);
+              if (u.searchParams.has("kelas")) {
+                u.searchParams.delete("kelas");
+                history.replaceState(history.state, "", u.pathname + u.search + u.hash);
+              }
             }}
           />
           <span className="hint">

@@ -52,7 +52,7 @@ const HARI: Record<Lang, string[]> = {
   zh: ["", "周一", "周二", "周三", "周四", "周五", "周六"],
 };
 
-export default function KelasTab({ lang }: { lang: Lang; ke: (v: TabLms) => void }) {
+export default function KelasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) => void }) {
   const t = LS[lang];
   const [segar, setSegar] = useState(0);
   const poll = usePoll(
@@ -147,6 +147,14 @@ export default function KelasTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
           boleh={d.boleh}
           onClose={() => setPilih(null)}
           onChanged={poll.refresh}
+          onUbah={() => {
+            // Isi Kelas opens on this class (?kelas=, read once by IsiTab).
+            const u = new URL(location.href);
+            u.searchParams.set("kelas", String(pilih.id));
+            history.replaceState(history.state, "", u.pathname + u.search + u.hash);
+            setPilih(null);
+            ke("isi");
+          }}
         />
       )}
     </div>
@@ -183,12 +191,15 @@ function KelasDrawer({
   boleh,
   onClose,
   onChanged,
+  onUbah,
 }: {
   lang: Lang;
   k: KursusKelas;
   boleh: boolean;
   onClose: () => void;
   onChanged: () => void;
+  /** Isi Kelas on this class, where the page is edited */
+  onUbah: () => void;
 }) {
   const t = LS[lang];
   const [sub, setSub] = useState<"orang" | "isi" | "grup">("orang");
@@ -302,7 +313,13 @@ function KelasDrawer({
           </div>
         ) : sub === "isi" ? (
           <div className="stack">
-            <p className="hint">{t.isiHint}</p>
+            <div className="row row--between lms-isi-ke">
+              <p className="hint">{t.isiHint}</p>
+              <button type="button" className="btn btn--ghost btn--sm" onClick={onUbah}>
+                {t.ubahDiIsi}
+                <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+              </button>
+            </div>
             {(d.bagian ?? []).map((b) => (
               <div className="lms-sec" key={b.id}>
                 <b>{b.nama || `#${b.nomor}`}</b>
