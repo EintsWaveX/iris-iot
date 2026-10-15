@@ -1111,9 +1111,22 @@
 .tptally__vis .cells__l {
   display: none;
 }
+/* Equal badges that never break inside ("Module 1 · 0" wrapped in each,
+   2026-10-15): one under another in a narrow card, two by two with room */
+.tptally__c:has(> * .tptally__mods, > .tptally__mods) {
+  container: tally / inline-size;
+}
 .tptally__mods {
-  display: flex;
+  display: grid;
   gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
+  justify-self: stretch;
+  width: 100%;
+}
+@container tally (min-width: 250px) {
+  .tptally__mods {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .tptally__mods span {
   align-items: center;
@@ -1123,8 +1136,10 @@
   display: inline-flex;
   font: 700 0.8rem var(--font-mono);
   gap: 4px;
+  justify-content: center;
   min-height: 28px;
   padding: 0 8px;
+  white-space: nowrap;
 }
 .tptally__mods span[data-n="0"] {
   opacity: 0.4;
@@ -2072,46 +2087,79 @@ button.tpcheck:focus-visible,
 }
 
 /* -------------------- Penilaian › TP's filters and who handed in (2026-10-15) */
+/* One card, two rows that line up (user's screenshot, 2026-10-15): the
+   switch with Who Has and Hasn't and the history on top, the filters under
+   it with the search taking what is left and the chips level with it. */
 .tpfilter.tpfilter--tp {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: flex-start;
+}
+.tpfilter__top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+}
+.tpfilter__top > .seg {
+  width: auto;
+}
+.tpfilter__acts {
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.tpfilter__row {
   align-items: end;
   display: grid;
   gap: 12px 16px;
   grid-template-columns: minmax(0, 1fr) auto;
-  justify-items: stretch;
 }
-.tpfilter--tp > .seg {
-  grid-column: 1 / -1;
-  justify-self: start;
+.tpfilter__row:has(> .tpfilter__pick) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 .tpfilter__pick {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 220px));
+  grid-template-columns: repeat(2, minmax(160px, 220px));
 }
 .tpfilter__cari {
-  justify-self: end;
-  width: min(100%, 320px);
+  min-width: 0;
 }
-.tpfilter--tp > .tpfilter__chips {
-  justify-self: start;
+.tpfilter__row > .tpfilter__chips {
+  align-items: center;
+  min-height: max(var(--tap), 44px);
 }
-.tpfilter__acts {
-  gap: 8px;
-  justify-content: flex-end;
+@media (max-width: 1099px) {
+  .tpfilter__row:has(> .tpfilter__pick) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .tpfilter__pick {
+    grid-column: 1 / -1;
+  }
 }
 @media (max-width: 767px) {
-  .tpfilter.tpfilter--tp {
+  .tpfilter__top > .seg {
+    width: 100%;
+  }
+  .tpfilter__acts {
+    justify-content: flex-start;
+  }
+  .tpfilter__row,
+  .tpfilter__row:has(> .tpfilter__pick) {
     grid-template-columns: minmax(0, 1fr);
   }
   .tpfilter__pick {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .tpfilter__cari {
-    justify-self: stretch;
-    width: 100%;
+  .tpfilter__row > .tpfilter__chips {
+    min-height: 0;
   }
-  .tpfilter__acts {
-    justify-content: flex-start;
+  .tpfilter__chips .pill {
+    width: 100%;
   }
 }
 

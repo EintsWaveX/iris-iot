@@ -144,80 +144,88 @@ export default function TpTab({
 
       <SyncStrip lang={lang} modul={modul} data={data} refresh={refresh} onLms={onLms} />
 
-      <div className="tpfilter tpfilter--tp">
-        <TabLine
-          seg
-          value={who}
-          onChange={setWho}
-          label={t.kelompokLabel}
-          tabs={[
-            { v: "mine", label: t.kelompokku, n: mine.length || undefined },
-            { v: "all", label: t.semuaKelompok },
-          ]}
-        />
-        {who === "all" && (
-          <div className="tpfilter__pick">
-            <Dropdown
-              id="tp-hari"
-              label={t.saringHari}
-              value={hari}
-              onChange={(v) => {
-                setHari(v);
-                setSesi("semua");
-              }}
-              options={[
-                { value: "semua", label: t.semuaHari },
-                ...hariAda.map((h) => ({ value: String(h), label: t.hari[h] ?? String(h) })),
-              ]}
-            />
-            <Dropdown
-              id="tp-sesi"
-              label={t.saringSesi}
-              value={sesi}
-              onChange={setSesi}
-              options={[
-                { value: "semua", label: t.semuaSesiTp },
-                ...slotHari.map((s) => ({
-                  value: `${s.hari}-${s.slot}`,
-                  label: t.sesiPilihan(t.hari[s.hari] ?? "", s.slot),
-                  note: tanggalPanjang(s.tanggal, lang),
-                })),
-              ]}
-            />
-          </div>
-        )}
-        <label className="field tpfilter__cari">
-          <span className="field__label">{t.cariPraktikan}</span>
-          <input
-            className="field__input"
-            value={cari}
-            inputMode="search"
-            onChange={(e) => setCari(e.target.value)}
+      <div className="panel tpfilter tpfilter--tp">
+        <div className="tpfilter__top">
+          <TabLine
+            seg
+            value={who}
+            onChange={setWho}
+            label={t.kelompokLabel}
+            tabs={[
+              { v: "mine", label: t.kelompokku, n: mine.length || undefined },
+              { v: "all", label: t.semuaKelompok },
+            ]}
           />
-        </label>
-        <div className="row tpfilter__chips" role="group" aria-label={t.saring}>
-          {(
-            [
-              ["all", t.fSemua],
-              ["todo", t.fPerlu],
-              ["telat", t.fTelat],
-              ["belum", t.fBelum],
-            ] as const
-          ).map(([v, l]) => (
-            <Pill key={v} pressed={f === v} onClick={() => setF(v)}>
-              {l}
-            </Pill>
-          ))}
+          <div className="row tpfilter__acts">
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => setKumpul(true)}
+            >
+              {t.siapaSaja}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+            </button>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setJejak(true)}>
+              {t.riwayatKumpul}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+            </button>
+          </div>
         </div>
-        <div className="row tpfilter__acts">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setKumpul(true)}>
-            {t.siapaSaja}
-            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
-          </button>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => setJejak(true)}>
-            {t.riwayatKumpul}
-            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
-          </button>
+        <div className="tpfilter__row">
+          {who === "all" && (
+            <div className="tpfilter__pick">
+              <Dropdown
+                id="tp-hari"
+                label={t.saringHari}
+                value={hari}
+                onChange={(v) => {
+                  setHari(v);
+                  setSesi("semua");
+                }}
+                options={[
+                  { value: "semua", label: t.semuaHari },
+                  ...hariAda.map((h) => ({ value: String(h), label: t.hari[h] ?? String(h) })),
+                ]}
+              />
+              <Dropdown
+                id="tp-sesi"
+                label={t.saringSesi}
+                value={sesi}
+                onChange={setSesi}
+                options={[
+                  { value: "semua", label: t.semuaSesiTp },
+                  ...slotHari.map((s) => ({
+                    value: `${s.hari}-${s.slot}`,
+                    label: t.sesiPilihan(t.hari[s.hari] ?? "", s.slot),
+                    note: tanggalPanjang(s.tanggal, lang),
+                  })),
+                ]}
+              />
+            </div>
+          )}
+          <label className="field tpfilter__cari">
+            <span className="field__label">{t.cariPraktikan}</span>
+            <input
+              className="field__input"
+              value={cari}
+              inputMode="search"
+              onChange={(e) => setCari(e.target.value)}
+            />
+          </label>
+          <div className="row tpfilter__chips" role="group" aria-label={t.saring}>
+            {(
+              [
+                ["all", t.fSemua],
+                ["todo", t.fPerlu],
+                ["telat", t.fTelat],
+                ["belum", t.fBelum],
+              ] as const
+            ).map(([v, l]) => (
+              <Pill key={v} pressed={f === v} onClick={() => setF(v)}>
+                {l}
+              </Pill>
+            ))}
+          </div>
         </div>
       </div>
       {kumpul && <KumpulDialog open onOpenChange={setKumpul} lang={lang} modul={modul} />}
