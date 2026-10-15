@@ -189,7 +189,14 @@ export function jamServer(k: Kondisi | null): { ms: number | null; meleset: bool
   return { ms: chrony, meleset: chrony !== null && Math.abs(chrony) >= 60_000 };
 }
 
-export const LAYAR_KONSOL = ["siap", "x11vnc_tidak_ada", "layar_tidak_ada"] as const;
+export const LAYAR_KONSOL = [
+  "siap",
+  "x11vnc_tidak_ada",
+  "layar_tidak_ada",
+  "krdp_tidak_ada",
+  "guacd_tidak_ada",
+  "guacd_mati",
+] as const;
 export type LayarKonsol = (typeof LAYAR_KONSOL)[number];
 
 export function bacaKondisi(raw: unknown): Kondisi | null {

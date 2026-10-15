@@ -197,6 +197,9 @@ describe("Updates card", () => {
       selisihDetik: -3120,
     });
     expect(bacaKondisi({ layar: "lain" })?.layar).toBeNull();
+    // KDE on Wayland (2026-10-15): the screen goes through KRDP and guacd
+    expect(bacaKondisi({ layar: "guacd_mati" })?.layar).toBe("guacd_mati");
+    expect(bacaKondisi({ layar: "krdp_tidak_ada" })?.layar).toBe("krdp_tidak_ada");
     expect(saringKondisi({ selisihDetik: 4 })).toEqual({ selisihDetik: 4 });
   });
 

@@ -6,8 +6,14 @@
  * the bridge gives everyone else a view-only password, so that holds on the
  * Pi too. The VNC password comes in the bridge's ready frame, and a new one
  * comes whenever control moves, which logs noVNC in again.
+ *
+ * Under KDE on Wayland (protokol "guac", 2026-10-15) the frames are guacd's
+ * Guacamole protocol instead, drawn by guacamole-common-js. There is no
+ * password here at all; guacd itself keeps everyone but the controller read
+ * only, and each ready frame is a new connection, drawn by a new client.
  */
 import { useEffect, useRef, useState } from "react";
+import { buatSaluranGuac, type GuacLib } from "../../../lib/guac-saluran";
 import {
   ArrowsInIcon,
   ArrowsOutIcon,
@@ -96,11 +102,19 @@ export interface LayarApi {
   terima: (d: ArrayBuffer) => void;
 }
 
+/** What the toolbar does to the screen, whichever protocol draws it. */
+interface Kemudi {
+  tekan: (keysym: number, code: string, turun: boolean) => void;
+  tempel: (teks: string) => void;
+}
+
 export default function Layar({
   t,
   lang,
   target,
   ws,
+  protokol,
+  sesi,
   sandi,
   kendali,
   kirim,
@@ -115,6 +129,10 @@ export default function Layar({
   lang: Lang;
   target: KonsolTarget;
   ws: WebSocket | null;
+  /** "rfb" (x11vnc) or "guac" (KRDP through guacd), from the ready frame. */
+  protokol: "rfb" | "guac";
+  /** Counts ready frames: a guac screen gets a new client for each. */
+  sesi: number;
   sandi: string | undefined;
   /** I control the room (my ready frame carried the full password). */
   kendali: boolean;
@@ -133,18 +151,20 @@ export default function Layar({
 }) {
   const box = useRef<HTMLDivElement | null>(null);
   const rfb = useRef<RfbLike | null>(null);
+  const kemudi = useRef<Kemudi | null>(null);
   const [hp, setHp] = useState(false);
   const [klip, setKlip] = useState(false);
   const [teksKlip, setTeksKlip] = useState("");
   const [menu, setMenu] = useState(false);
+  const guac = protokol === "guac";
 
   /** Presses the keys in order, then lets them go in reverse. */
   function kirimPintas(p: (typeof PINTAS)[number]) {
-    const r = rfb.current;
+    const k = kemudi.current;
     setMenu(false);
-    if (!r) return;
-    for (const k of p.keys) r.sendKey(XK[k][0], XK[k][1], true);
-    for (const k of [...p.keys].reverse()) r.sendKey(XK[k][0], XK[k][1], false);
+    if (!k) return;
+    for (const x of p.keys) k.tekan(XK[x][0], XK[x][1], true);
+    for (const x of [...p.keys].reverse()) k.tekan(XK[x][0], XK[x][1], false);
     onGerak();
     onKabar(t.keySent(t.keyNames[p.id].split(" · ")[0]));
   }
@@ -160,7 +180,7 @@ export default function Layar({
   // One RFB per ready frame: the bridge opens a fresh x11vnc connection
   // each time the page joins or control moves, with the password to use.
   useEffect(() => {
-    if (!ws || !sandi || !box.current) return;
+    if (guac || !ws || !sandi || !box.current) return;
     let mati = false;
     const sal = new Saluran(kirim);
     const antre: ArrayBuffer[] = tunda.current.splice(0);
@@ -177,11 +197,16 @@ export default function Layar({
       r.addEventListener("credentialsrequired", () => r.sendCredentials({ password: sandi }));
       r.addEventListener("clipboard", (e) => setTeksKlip(String(e.detail?.text ?? "")));
       rfb.current = r;
+      kemudi.current = {
+        tekan: (keysym, code, turun) => r.sendKey(keysym, code, turun),
+        tempel: (teks) => r.clipboardPasteFrom(teks),
+      };
       for (const d of antre.splice(0)) sal.terima(d);
     });
     return () => {
       mati = true;
       apiRef.current = null;
+      kemudi.current = null;
       try {
         rfb.current?.disconnect();
       } catch {
@@ -189,7 +214,98 @@ export default function Layar({
       }
       rfb.current = null;
     };
-  }, [ws, sandi, kirim, apiRef, tunda]);
+  }, [guac, ws, sandi, kirim, apiRef, tunda]);
+
+  // KDE on Wayland: one Guacamole client per ready frame. The mouse and the
+  // keyboard only go out while I control; guacd would drop them anyway.
+  useEffect(() => {
+    const el = box.current;
+    if (!guac || !ws || !el) return;
+    let mati = false;
+    let terima: ((d: ArrayBuffer) => void) | null = null;
+    const antre: ArrayBuffer[] = tunda.current.splice(0);
+    apiRef.current = { terima: (d) => (terima ? terima(d) : antre.push(d)) };
+    let tutup = () => {};
+
+    void import("guacamole-common-js").then(({ default: mod }) => {
+      if (mati) return;
+      const G = mod as unknown as GuacLib;
+      const sal = buatSaluranGuac(G, kirim);
+      const client = new G.Client(sal.tunnel);
+      const display = client.getDisplay();
+      const layar = display.getElement();
+      el.replaceChildren(layar);
+
+      const pas = () => {
+        const w = display.getWidth();
+        const h = display.getHeight();
+        if (w > 0 && h > 0 && el.clientWidth > 0 && el.clientHeight > 0)
+          display.scale(Math.min(el.clientWidth / w, el.clientHeight / h));
+      };
+      display.onresize = pas;
+      const ro = new ResizeObserver(pas);
+      ro.observe(el);
+
+      const mouse = new G.Mouse(layar);
+      mouse.onEach(["mousedown", "mousemove", "mouseup"], (e) => {
+        if (!pegangRef.current) return;
+        client.sendMouseState(
+          (e as unknown as { state: Parameters<typeof client.sendMouseState>[0] }).state,
+          true,
+        );
+      });
+      const keyboard = new G.Keyboard(el);
+      keyboard.onkeydown = (keysym) => {
+        if (!pegangRef.current) return true;
+        client.sendKeyEvent(1, keysym);
+        return false;
+      };
+      keyboard.onkeyup = (keysym) => {
+        if (pegangRef.current) client.sendKeyEvent(0, keysym);
+      };
+
+      client.onclipboard = (stream, mimetype) => {
+        if (!String(mimetype).startsWith("text/")) return;
+        const reader = new G.StringReader(stream);
+        let teks = "";
+        reader.ontext = (s) => (teks += s);
+        reader.onend = () => setTeksKlip(teks);
+      };
+      client.onerror = (status) => onKabar(status.message || t.galatLain);
+
+      kemudi.current = {
+        tekan: (keysym, _code, turun) => client.sendKeyEvent(turun ? 1 : 0, keysym),
+        tempel: (teks) => {
+          const writer = new G.StringWriter(client.createClipboardStream("text/plain"));
+          writer.sendText(teks);
+          writer.sendEnd();
+        },
+      };
+
+      client.connect("");
+      terima = sal.terima;
+      for (const d of antre.splice(0)) sal.terima(d);
+
+      tutup = () => {
+        ro.disconnect();
+        keyboard.onkeydown = null;
+        keyboard.onkeyup = null;
+        keyboard.reset();
+        // Closed first: the old client's "disconnect" must not reach the
+        // connection the bridge opened in its place
+        sal.tutup();
+        client.disconnect();
+        layar.remove();
+      };
+    });
+
+    return () => {
+      mati = true;
+      apiRef.current = null;
+      kemudi.current = null;
+      tutup();
+    };
+  }, [guac, sesi, ws, kirim, apiRef, tunda]);
 
   const pegang = kendali && !hp;
   const pegangRef = useRef(pegang);
@@ -258,7 +374,12 @@ export default function Layar({
         onKeyDown={onGerak}
         onWheel={onGerak}
       >
-        <div className="vnc__screen" ref={box} />
+        <div
+          className={`vnc__screen${guac ? " vnc__screen--guac" : ""}`}
+          ref={box}
+          tabIndex={guac && pegang ? 0 : undefined}
+          onPointerDown={guac && pegang ? (e) => e.currentTarget.focus() : undefined}
+        />
         {!pegang && (
           <span className="vnc__ro">
             <EyeIcon size={16} aria-hidden="true" />
@@ -284,7 +405,7 @@ export default function Layar({
               className="btn btn--primary"
               disabled={!teksKlip || !pegang}
               onClick={() => {
-                rfb.current?.clipboardPasteFrom(teksKlip);
+                kemudi.current?.tempel(teksKlip);
                 setKlip(false);
                 onKabar(t.clipSent);
               }}

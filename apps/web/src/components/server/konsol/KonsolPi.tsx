@@ -1034,6 +1034,8 @@ function Open({
   const tundaLayar = useRef<ArrayBuffer[]>([]);
   const siapLayar = useRef(false);
   const [sandi, setSandi] = useState<string | undefined>();
+  const [protokol, setProtokol] = useState<"rfb" | "guac">("rfb");
+  const [sesiLayar, setSesiLayar] = useState(0);
   const [kendaliLayar, setKendaliLayar] = useState(false);
   // A short note shown inside the pane, so it is seen in full screen too.
   const [kabar, setKabar] = useState<{ teks: string; sampai: number } | null>(null);
@@ -1059,11 +1061,13 @@ function Open({
         term.current?.ukur();
         term.current?.fokus();
       } else {
-        // A new x11vnc connection: its bytes wait for the new noVNC, never
-        // for the one being replaced.
+        // A new x11vnc or guacd connection: its bytes wait for the new
+        // viewer, never for the one being replaced.
         layar.current = null;
         tundaLayar.current = [];
         siapLayar.current = true;
+        setProtokol(o.protokol === "guac" ? "guac" : "rfb");
+        setSesiLayar((n) => n + 1);
         setSandi(typeof o.sandi === "string" ? o.sandi : undefined);
         setKendaliLayar(o.kendali === true);
       }
@@ -1293,6 +1297,8 @@ function Open({
             lang={lang}
             target={row.target}
             ws={keadaan.k === "siap" ? ws.current : null}
+            protokol={protokol}
+            sesi={sesiLayar}
             sandi={sandi}
             kendali={kendaliLayar && pegang}
             kirim={kirim}
