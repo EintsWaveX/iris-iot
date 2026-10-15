@@ -20,7 +20,7 @@ const id = {
     nilai: "Nilai",
     umum: "Pengumuman",
     kalender: "Kalender",
-    materi: "Materi",
+    isi: "Isi Kelas",
     sambung: "Sambungan",
   },
   belumTersambung: "IRIS belum tersambung ke LMS.",
@@ -358,15 +358,6 @@ const id = {
   samakanSekarang: "Samakan Sekarang",
   kalJalan: "Menyamakan kalender",
   kalOk: "Kalender kelas sama dengan jadwal IRIS.",
-
-  /* Materi */
-  materiNote:
-    "Yang dipasang di LMS adalah tautan ke halaman modul di IRIS, bukan berkasnya. Aturan IRIS tetap berlaku: handbook terbuka untuk semua, slide dan jurnal hanya setelah hadir.",
-  namaBagian: "Nama bagian",
-  tautan: "Tautan",
-  pasangDi: (n: number) => `Pasang di ${n} Kelas`,
-  materiJalan: (m: number) => `Memasang materi Modul ${m}`,
-  materiOk: "Bagian dan tautan ada di kelas LMS.",
 };
 
 type S = typeof id;
@@ -438,6 +429,30 @@ function logTeks(
         `Put Module ${modul ?? ""} materials`,
         `放置模块 ${modul ?? ""} 材料`,
       );
+    case "lms_isi":
+      return langkah === "ganti-pdf"
+        ? L(
+            `Ganti PDF Modul ${modul ?? ""}`,
+            `Replace the Module ${modul ?? ""} PDF`,
+            `替换模块 ${modul ?? ""} 的 PDF`,
+          )
+        : ["bagian", "tautan", "pdf", "tp"].includes(langkah ?? "")
+          ? L(
+              `Lengkapi bagian Modul ${modul ?? ""}`,
+              `Complete the Module ${modul ?? ""} section`,
+              `补全模块 ${modul ?? ""} 章节`,
+            )
+          : langkah === "nama"
+            ? L(`Ganti nama ${judul ?? ""}`, `Rename ${judul ?? ""}`, `重命名 ${judul ?? ""}`)
+            : langkah === "pindah"
+              ? L(`Pindahkan ${judul ?? ""}`, `Move ${judul ?? ""}`, `移动 ${judul ?? ""}`)
+              : langkah === "tampil"
+                ? L(
+                    `Atur tampil ${judul ?? ""}`,
+                    `Show or hide ${judul ?? ""}`,
+                    `显示或隐藏 ${judul ?? ""}`,
+                  )
+                : L(`Hapus ${judul ?? ""}`, `Delete ${judul ?? ""}`, `删除 ${judul ?? ""}`);
     case "lms_tampil":
       return langkah === "tampil"
         ? L(`Tampilkan ${judul ?? ""}`, `Show ${judul ?? ""}`, `显示 ${judul ?? ""}`)
@@ -472,7 +487,7 @@ const en: S = {
     nilai: "Grades",
     umum: "Announcements",
     kalender: "Calendar",
-    materi: "Materials",
+    isi: "Contents",
     sambung: "Connection",
   },
   belumTersambung: "IRIS isn't connected to the LMS yet.",
@@ -793,13 +808,6 @@ const en: S = {
   samakanSekarang: "Match Now",
   kalJalan: "Matching calendars",
   kalOk: "Class calendars match the IRIS schedule.",
-  materiNote:
-    "What goes in the LMS is a link to the module page in IRIS, not the file. IRIS's rules still apply: the handbook is open to all, slides and journals only after attending.",
-  namaBagian: "Section name",
-  tautan: "Link",
-  pasangDi: (n) => `Put in ${n} Classes`,
-  materiJalan: (m) => `Putting Module ${m} materials`,
-  materiOk: "The section and link are in the LMS classes.",
 };
 
 const zh: S = {
@@ -818,7 +826,7 @@ const zh: S = {
     nilai: "成绩",
     umum: "公告",
     kalender: "日历",
-    materi: "材料",
+    isi: "班级内容",
     sambung: "连接",
   },
   belumTersambung: "IRIS 还没有连接 LMS。",
@@ -1128,13 +1136,6 @@ const zh: S = {
   samakanSekarang: "立即同步",
   kalJalan: "正在同步日历",
   kalOk: "各班日历已与 IRIS 课表一致。",
-  materiNote:
-    "放进 LMS 的是指向 IRIS 模块页面的链接，而不是文件本身。IRIS 的规则依然有效：手册对所有人开放，幻灯片和实验报告只在出勤后开放。",
-  namaBagian: "章节名称",
-  tautan: "链接",
-  pasangDi: (n) => `放到 ${n} 个班`,
-  materiJalan: (m) => `正在放置模块 ${m} 的材料`,
-  materiOk: "章节和链接已在 LMS 班级中。",
 };
 
 export const LS = dict({ id, en, zh });

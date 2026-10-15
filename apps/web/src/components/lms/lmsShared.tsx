@@ -9,6 +9,7 @@ import SegmentedControl from "../ui/SegmentedControl";
 import { postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { LS } from "./lmsStrings";
+import { IS } from "./isiStrings";
 import { waktuPanjang } from "../tp/shared";
 
 export interface KursusRingan {
@@ -137,7 +138,7 @@ export function Rentang({
 
 export function galatTeks(kode: string | undefined, lang: Lang): string {
   const t = LS[lang];
-  return (kode && t.galat[kode]) || t.muatGagal(kode ?? "?");
+  return (kode && (t.galat[kode] ?? IS[lang].galat[kode])) || t.muatGagal(kode ?? "?");
 }
 
 export interface JawabLangkah {

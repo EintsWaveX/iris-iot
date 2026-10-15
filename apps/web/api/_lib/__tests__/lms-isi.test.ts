@@ -331,3 +331,115 @@ describe("the class page's sections against a fake LMS", () => {
     ).rejects.toMatchObject({ kode: "lms_ajax_ditolak" });
   });
 });
+
+describe("merging the classes into one page", () => {
+  const kelas = [
+    { id: 1, label: "REG-01", kelas: "reguler" as const },
+    { id: 2, label: "REG-09", kelas: "reguler" as const },
+    { id: 3, label: "REG-01-INT", kelas: "inter" as const },
+  ];
+  const cm = (id: number, name: string, modname: string, visible = 1) => ({
+    id,
+    name,
+    modname,
+    visible,
+  });
+  const k3 = (tp: boolean) => ({
+    id: 10,
+    section: 0,
+    name: "KESELAMATAN, KESEHATAN, KERJA / [K3] di LABORATORIUM",
+    modules: [
+      cm(1, "Evaluasi Materi 1", "quiz"),
+      cm(2, "Announcements", "forum"),
+      ...(tp ? [cm(3, "TP Modul 1", "assign")] : []),
+    ],
+  });
+  const m1 = (inter: boolean, isi: ReturnType<typeof cm>[]) => ({
+    id: 20,
+    section: 7,
+    name: inter ? "Module 1 · Bluetooth Low Energy" : "Modul 1 · Bluetooth Low Energy",
+    visible: 1,
+    modules: isi,
+  });
+
+  it("marks what a class lacks, by role in both languages", () => {
+    const bacaan = new Map([
+      [
+        1,
+        [
+          k3(false),
+          m1(false, [
+            cm(4, "Modul 1 di IRIS (handbook, slide, jurnal)", "url"),
+            cm(5, "Handbook Modul 1 (PDF)", "resource"),
+            cm(3, "TP Modul 1", "assign"),
+          ]),
+        ],
+      ],
+      [2, [k3(true), m1(false, [cm(4, "Modul 1 di IRIS (handbook, slide, jurnal)", "url", 0)])]],
+      [
+        3,
+        [
+          k3(false),
+          m1(true, [
+            cm(4, "Module 1 in IRIS (handbook, slides, journal)", "url"),
+            cm(5, "Module 1 handbook (PDF)", "resource"),
+            cm(3, "TP Modul 1", "assign"),
+          ]),
+        ],
+      ],
+    ]);
+    const g = isi.gabungIsi(kelas, bacaan);
+    expect(g.bagian.map((b) => b.kunci)).toEqual([
+      "k:keselamatan, kesehatan, kerja / [k3] di laboratorium",
+      "m1",
+    ]);
+    const [kampus, mod] = g.bagian;
+    expect(kampus.asal).toBe("kampus");
+    expect(kampus.isi.find((x) => x.kunci === "assign:tp modul 1")).toMatchObject({
+      ada: 1,
+      kurang: ["REG-01", "REG-01-INT"],
+    });
+    expect(mod).toMatchObject({ asal: "iris", modul: 1, ada: 3, kurang: [] });
+    expect(mod.nama).toEqual({
+      id: "Modul 1 · Bluetooth Low Energy",
+      en: "Module 1 · Bluetooth Low Energy",
+    });
+    expect(mod.isi.map((x) => [x.kunci, x.ada, x.sembunyi])).toEqual([
+      ["tautan", 3, 1],
+      ["pdf", 2, 0],
+      ["tp", 2, 0],
+    ]);
+    expect(mod.isi.find((x) => x.kunci === "pdf")!.kurang).toEqual(["REG-09"]);
+    expect(g.modul[0]).toEqual({ modul: 1, bagian: 3, tautan: 3, pdf: 2, tp: 2, tpLuar: 1 });
+    expect(g.modul[1]).toMatchObject({ bagian: 0, tp: 0, tpLuar: 0 });
+  });
+
+  it("keeps a class's own extra section in its place and counts unread classes out", () => {
+    const ekstra = { id: 30, section: 1, name: "Tujuan", modules: [] };
+    const bacaan = new Map([
+      [1, [k3(false), m1(false, [])]],
+      [2, [k3(false), ekstra, m1(false, [])]],
+    ]);
+    const g = isi.gabungIsi(kelas, bacaan);
+    expect(g.bagian.map((b) => b.kunci)).toEqual([
+      "k:keselamatan, kesehatan, kerja / [k3] di laboratorium",
+      "k:tujuan",
+      "m1",
+    ]);
+    // REG-01-INT was not read: it is in no count
+    expect(g.bagian[1].kurang).toEqual(["REG-01"]);
+    expect(g.bagian[2].ada).toBe(2);
+  });
+
+  it("gives a second item alike its own key and finds it again", () => {
+    const b = {
+      id: 1,
+      section: 0,
+      name: "Tujuan",
+      modules: [cm(1, "Catatan", "label"), cm(2, " catatan ", "label")],
+    };
+    expect(isi.kunciIsiBagian(b)).toEqual(["label:catatan", "label:catatan#2"]);
+    expect(isi.cariIsi(b, "label:catatan#2")?.id).toBe(2);
+    expect(isi.cariTp([b], 1)).toBeNull();
+  });
+});

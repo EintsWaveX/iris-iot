@@ -6,6 +6,16 @@
  */
 export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
   id: {
+    "Atur Urutan":
+      "Menampilkan panah untuk menaikkan atau menurunkan isi di bagian yang tidak terkunci.",
+    "Selesai Mengatur": "Menyembunyikan panah urutan lagi.",
+    "Buat Bagian Modul":
+      "Membuat bagian Modul 1 sampai 4 di akhir halaman kelas, lengkap dengan tautan IRIS, PDF handbook, dan TP-nya.",
+    "Kunci Lagi":
+      "Mengunci lagi bagian keselamatan kerja kampus supaya tidak berubah tanpa sengaja.",
+    "Ganti PDF": "Mengunggah PDF handbook terbaru menggantikan yang lama di kelas LMS.",
+    "Ubah Bagian": "Mengubah nama atau tampilnya bagian ini, atau menghapusnya kalau kosong.",
+    "Di Tugas": "Membuka tab Tugas, tempat tugas ini diubah.",
     "1 Sambung Wi-Fi":
       "Langkah pertama: sambungkan HP ke Wi-Fi IRIS-IOT supaya bisa membuka papan skor.",
     "100%": "Mengembalikan zoom ke 100%.",
@@ -628,6 +638,14 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     kernel: "Menampilkan versi kernel.",
   },
   en: {
+    Arrange: "Shows arrows to move items up or down in sections that aren't locked.",
+    "Done Arranging": "Hides the arrange arrows again.",
+    "Make Module Sections":
+      "Makes the Module 1 to 4 sections at the end of the class page, with the IRIS link, the handbook PDF and the TP.",
+    "Lock Again": "Locks the campus safety sections again so nothing there changes by accident.",
+    "Replace PDF": "Uploads the newest handbook PDF in place of the old one in the LMS classes.",
+    "Edit Section": "Changes this section's name or visibility, or deletes it when it's empty.",
+    "In Assignments": "Opens the Assignments tab, where this assignment is changed.",
     "1 Join the Wi-Fi": "Step one: join your phone to the IRIS-IOT Wi-Fi so the scoreboard opens.",
     "100%": "Sets the zoom back to 100%.",
     "2 Open the Hunt": "Step two: open the Hunt page on the PC Server over that Wi-Fi.",
@@ -1268,6 +1286,15 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     kernel: "Shows the kernel version.",
   },
   zh: {
+    班级内容: "在 IRIS 中编辑 LMS 的班级页面：模块章节、手册 PDF 以及 TP 所在的位置。",
+    调整顺序: "显示箭头，用于在未锁定的章节中上移或下移内容。",
+    完成调整: "再次隐藏调整顺序的箭头。",
+    创建模块章节: "在班级页面末尾创建模块 1 到 4 的章节，包含 IRIS 链接、手册 PDF 和 TP。",
+    重新锁定: "重新锁定学校的安全章节，以免误改。",
+    补全: "补上此模块章节缺少的内容：章节、IRIS 链接、手册 PDF 和 TP。",
+    "替换 PDF": "上传最新的手册 PDF，替换 LMS 班级中的旧版本。",
+    编辑章节: "修改此章节的名称或可见性，或在为空时删除它。",
+    在作业中: "打开“作业”标签，在那里修改此作业。",
     "1 连接 Wi-Fi": "第一步：手机连上 IRIS-IOT Wi-Fi，才能打开记分板。",
     "100%": "把缩放恢复到 100%。",
     "2 打开寻踪": "第二步：通过这个 Wi-Fi 打开 PC 服务器上的寻踪页面。",

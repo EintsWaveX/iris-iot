@@ -1,7 +1,7 @@
 /**
  * /lms (Phase 15, Beta): IRIS runs the Telkom LMS's practicum classes from
  * one menu. Eight tabs across the whole width (four by two on phones):
- * Ringkasan, Kelas, Tugas, Nilai, Pengumuman, Kalender, Materi and
+ * Ringkasan, Kelas, Tugas, Nilai, Pengumuman, Kalender, Isi Kelas and
  * Sambungan, which is Penilaian's old Sumber LMS. The tab is in the hash
  * (#kelas … #sambung). Every Asisten reads; the Pencipta, Admins and the
  * ASO division change things (the API refuses anyone else).
@@ -20,7 +20,7 @@ import TugasTab from "./TugasTab";
 import NilaiTab from "./NilaiTab";
 import UmumTab from "./UmumTab";
 import KalenderTab from "./KalenderTab";
-import MateriTab from "./MateriTab";
+import IsiTab from "./IsiTab";
 import LmsTab from "../grading/LmsTab";
 import "../tp/tp.css";
 import "../console/seelabs/robot.css";
@@ -28,20 +28,13 @@ import "./lms.css";
 import { EyeIcon } from "@phosphor-icons/react";
 
 export type TabLms =
-  "ringkas" | "kelas" | "tugas" | "nilai" | "umum" | "kalender" | "materi" | "sambung";
-const TABS: TabLms[] = [
-  "ringkas",
-  "kelas",
-  "tugas",
-  "nilai",
-  "umum",
-  "kalender",
-  "materi",
-  "sambung",
-];
+  "ringkas" | "kelas" | "tugas" | "nilai" | "umum" | "kalender" | "isi" | "sambung";
+const TABS: TabLms[] = ["ringkas", "kelas", "tugas", "nilai", "umum", "kalender", "isi", "sambung"];
 
 function tabDariHash(): TabLms {
-  const h = typeof location === "undefined" ? "" : location.hash.replace(/^#/, "");
+  const h0 = typeof location === "undefined" ? "" : location.hash.replace(/^#/, "");
+  // Materials became Isi Kelas (Phase 16): old links still land there.
+  const h = h0 === "materi" ? "isi" : h0;
   return (TABS as string[]).includes(h) ? (h as TabLms) : "ringkas";
 }
 
@@ -127,8 +120,8 @@ export default function LmsPage({ lang }: { lang: Lang }) {
           <UmumTab lang={lang} ke={ke} />
         ) : tab === "kalender" ? (
           <KalenderTab lang={lang} ke={ke} />
-        ) : tab === "materi" ? (
-          <MateriTab lang={lang} ke={ke} />
+        ) : tab === "isi" ? (
+          <IsiTab lang={lang} ke={ke} />
         ) : (
           <LmsTab lang={lang} kelolaAwal={kelolaAwal} onKelolaDibuka={() => setKelolaAwal(null)} />
         )}

@@ -116,7 +116,6 @@
 .lms-ext,
 .lms-people,
 .lms-batch,
-.lms-mat,
 .lms-tgs,
 .lms-pick {
   display: grid;
@@ -597,46 +596,6 @@
   }
 }
 
-/* Module materials */
-.lms-mods {
-  align-items: stretch;
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-}
-.lms-mods > .panel {
-  align-content: space-between;
-}
-/* A module's two facts: a small label over each value */
-.lms-mat > div {
-  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
-  display: grid;
-  gap: 3px;
-  padding: 10px 0;
-}
-.lms-mat > div:last-child {
-  border-bottom: 0;
-}
-.lms-mat dt {
-  color: var(--text-faint);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.lms-mat dd {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-}
-.lms-mat__url {
-  align-items: center;
-  display: inline-flex;
-  gap: 4px;
-  justify-self: start;
-  overflow-wrap: anywhere;
-}
-
 /* ------------------------------------------------- the live overview */
 :root {
   --ease-out-lms: cubic-bezier(0.23, 1, 0.32, 1);
@@ -1009,4 +968,329 @@
   flex-wrap: wrap;
   gap: 8px;
   justify-content: space-between;
+}
+
+/* ============================================ Isi Kelas (Phase 16) */
+
+/* The bar: which classes, then the page's actions */
+.isi-bar {
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.isi-bar__pick {
+  display: grid;
+  gap: 6px;
+  max-width: 520px;
+  min-width: 0;
+}
+.isi-bar__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+@media (max-width: 899px) {
+  .isi-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .isi-bar__pick {
+    max-width: none;
+  }
+  .isi-bar__acts > .btn {
+    flex: 1 1 0;
+  }
+}
+
+/* The two notices: a suggestion, and the K3 lock */
+.isi-saran,
+.isi-kunci {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.isi-kunci[data-open] {
+  background: var(--warn-soft);
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+}
+@media (max-width: 639px) {
+  .isi-saran,
+  .isi-kunci {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The outline beside the sections on desktops */
+.isi-main {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.isi-peta {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .isi-main {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+  .isi-peta {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    position: sticky;
+    top: 84px;
+  }
+}
+.isi-peta ol {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.isi-peta a {
+  align-items: baseline;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  padding: 7px 8px;
+  text-decoration: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .isi-peta a:hover {
+    background: var(--hairline-faint);
+    color: var(--text);
+  }
+}
+.isi-peta li[data-asal="iris"] a {
+  color: var(--text);
+}
+.isi-peta__n {
+  font-size: 0.88rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.isi-no {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+/* A section */
+.isi-bag {
+  display: grid;
+  gap: 12px;
+  scroll-margin-top: 84px;
+}
+.isi-bag__head {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.isi-bag__t {
+  font-size: 1.08rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.isi-bag__acts {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+@media (max-width: 639px) {
+  .isi-bag__head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .isi-bag__acts {
+    justify-content: flex-start;
+  }
+}
+.isi-kosong {
+  margin: 0;
+  padding: 12px 0 4px;
+}
+
+/* A module section's checks: link, PDF, TP */
+.isi-cek {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.isi-cek__acts {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+@media (max-width: 639px) {
+  .isi-cek__acts {
+    margin-left: 0;
+    width: 100%;
+  }
+  .isi-cek__acts > .btn {
+    flex: 1 1 0;
+  }
+}
+
+/* What a section holds: kind, name, count, show, edit. Fixed columns, so
+   switches and edits line up across sections. */
+.isi-items {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.isi-items > li {
+  align-items: center;
+  border-top: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 108px minmax(0, 1fr) 52px auto 150px;
+  padding: 10px 0;
+}
+.isi-items > li[data-atur] {
+  grid-template-columns: 76px 108px minmax(0, 1fr) 52px;
+}
+.isi-items > li[data-tampil="no"] .isi-items__n b {
+  color: var(--text-faint);
+}
+.isi-items__n {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.isi-items__n b {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.isi-items__n .mono,
+.isi-url {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.isi-ubah {
+  display: flex;
+  justify-content: flex-end;
+}
+.isi-urut {
+  display: inline-flex;
+  gap: 4px;
+}
+.isi-ada {
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.isi-ada--beda {
+  background: var(--warn-soft);
+  border-radius: 999px;
+  color: var(--warn);
+  font-weight: 700;
+  padding: 1px 8px;
+}
+@media (max-width: 639px) {
+  .isi-items > li {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    row-gap: 6px;
+  }
+  .isi-items > li > .isi-jenis {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .isi-items > li > .isi-ubah {
+    grid-column: 1 / -1;
+  }
+  .isi-items > li > .isi-ubah:empty {
+    display: none;
+  }
+  .isi-items > li[data-atur] {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .isi-items > li[data-atur] > .isi-jenis {
+    grid-column: 2 / -1;
+  }
+}
+
+/* The kind, as a quiet chip: a word, no icon */
+.isi-jenis {
+  background: var(--hairline-faint);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  justify-self: start;
+  letter-spacing: 0.04em;
+  padding: 2px 9px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.isi-jenis[data-j="url"],
+.isi-jenis[data-j="resource"],
+.isi-jenis[data-j="page"],
+.isi-jenis[data-j="label"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent-bright);
+}
+.isi-jenis[data-j="assign"] {
+  background: var(--ok-soft);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+  color: var(--ok);
+}
+
+/* Dialogs */
+.isi-dua {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.isi-dua[data-dua] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.isi-switch {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 14px;
+}
+.isi-mods {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.isi-mods__i {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+.isi-mods__i[data-ada] {
+  opacity: 0.75;
+}
+.isi-mods__i > .pill {
+  justify-self: start;
+}
+@media (max-width: 639px) {
+  .isi-dua[data-dua],
+  .isi-mods {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

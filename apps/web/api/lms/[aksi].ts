@@ -16,7 +16,8 @@
  * GET  /api/lms/nilai?modul=       IRIS's TP scores against the gradebook
  * GET  /api/lms/umum               the announcements IRIS posted
  * GET  /api/lms/kalender           IRIS's events and where they are
- * GET  /api/lms/materi             the module sections and links
+ * GET  /api/lms/isi[?sasaran=semua|reguler|inter|<kursus>]   the class
+ *      page, every class merged: sections, items, X/11, module checks
  * GET  /api/lms/log[?sebelum=]     what IRIS did in the LMS, 60 a page
  *
  * POST /api/lms/otomatis { kunci, nyala }
@@ -30,7 +31,7 @@
  * POST /api/lms/kalender { kursus }
  * POST /api/lms/tampil { kursus, cmid, tampil }
  * POST /api/lms/tugas { langkah: buat|ubah|hapus, kursus, nama, ... }
- * POST /api/lms/materi { modul, kursus }
+ * POST /api/lms/isi { langkah, kursus, modul? | bagian, isi?, ... }
  * POST /api/lms/grup { kursus }
  *
  * The batch writes take one class course per call, so the page shows each
@@ -65,15 +66,37 @@ import {
   pelajar,
   teksLms,
   tugasKursus,
+  unggahDraf,
 } from "../_lib/lms.js";
 import {
+  buatBerkas,
   buatGrup,
   buatTautan,
   buatTugas,
+  gantiBerkas,
+  hapusBagian,
+  hapusIsi,
   hapusTugas,
   isiGrup,
+  namaiBagian,
+  namaiIsi,
+  pindahIsi,
+  tampilBagian,
   ubahTugas,
 } from "../_lib/lms-web.js";
+import {
+  cariBagian,
+  cariIsi,
+  cariTp,
+  gabungIsi,
+  jalanHandbook,
+  modulBagian,
+  namaBerkasModul,
+  namaTautanModul,
+  pastikanBagianModul,
+  peranIsi,
+  type KelasIsi,
+} from "../_lib/lms-isi.js";
 import {
   bacaSet,
   jendelaUntuk,
@@ -104,6 +127,7 @@ import {
   tampilModul,
   tulisCatatan,
   type AcaraIris,
+  type BagianLms,
   type MateriIris,
   type Otomatis,
   type OtomatisSet,
@@ -1058,108 +1082,293 @@ async function handleKalenderTulis(req: ApiRequest, res: ApiResponse, s: Session
   }
 }
 
-/* ============================================================ materials */
+/* =============================================== the class page (Phase 16) */
 
 const urlModul = (m: number, inter: boolean) => `${SITE_URL}${inter ? "/en" : ""}/modules/${m}`;
-const namaBagian = (m: number, inter: boolean) =>
-  `${inter ? "Module" : "Modul"} ${m} · ${NAMA_MODUL[m]}`;
-const namaTautan = (m: number, inter: boolean) =>
-  inter
-    ? `Module ${m} in IRIS (handbook, slides, journal)`
-    : `Modul ${m} di IRIS (handbook, slide, jurnal)`;
+const teksTautan = (inter: boolean) =>
+  htmlTeks(
+    inter
+      ? "Open to everyone: the handbook. After attending: the slides and your journal."
+      : "Terbuka untuk semua: handbook. Setelah hadir: slide dan jurnalmu.",
+  );
+const teksBerkas = (m: number, inter: boolean) =>
+  htmlTeks(
+    inter
+      ? `Module ${m} of the IRIS handbook as a PDF. The newest version is always in IRIS.`
+      : `Bab Modul ${m} dari handbook IRIS dalam PDF. Versi terbaru selalu ada di IRIS.`,
+  );
 
-async function handleMateriBaca(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+type CatatanMateri = Record<string, Record<string, MateriIris>>;
+
+/** Each handbook chapter's current stamp (its ETag, else its size), to tell
+ *  a PDF in the LMS that a handbook rebuild left behind. */
+async function capHandbook(): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  await Promise.all(
+    [1, 2, 3, 4].flatMap((m) =>
+      [false, true].map(async (inter) => {
+        const jalan = jalanHandbook(m, inter);
+        try {
+          const r = await fetch(`${SITE_URL}${jalan}`, {
+            method: "HEAD",
+            signal: AbortSignal.timeout(5_000),
+          });
+          const cap = r.ok ? (r.headers.get("etag") ?? r.headers.get("content-length")) : null;
+          if (cap) out.set(jalan, cap);
+        } catch {
+          // Unknown: the PDF is not marked stale.
+        }
+      }),
+    ),
+  );
+  return out;
+}
+
+/** The chapter's bytes and stamp, from the site itself. */
+async function ambilHandbook(m: number, inter: boolean) {
+  const jalan = jalanHandbook(m, inter);
+  const r = await fetch(`${SITE_URL}${jalan}`, { signal: AbortSignal.timeout(20_000) });
+  if (!r.ok) throw new LmsGalat("handbook_tidak_ada", `HTTP ${r.status} ${jalan}`);
+  const isi = new Uint8Array(await r.arrayBuffer());
+  return {
+    isi,
+    nama: `IRIS_${inter ? "Module" : "Modul"}_${m}_${inter ? "en" : "id"}.pdf`,
+    cap: r.headers.get("etag") ?? String(isi.length),
+  };
+}
+
+async function handleIsiBaca(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const db = getDb();
   const set = await bacaSet(db);
   const orang = await muatOrang(s.nim);
-  const catatan = await bacaCatatan<Record<string, Record<string, MateriIris>>>(
-    db,
-    KUNCI_LMS.materi,
-    set.semester,
-    {},
-  );
-  const kursus = set.kelas?.kursus ?? [];
-  res.status(200).json({
-    ok: true,
-    modul: [1, 2, 3, 4].map((m) => ({
-      modul: m,
-      nama: NAMA_MODUL[m],
-      bagian: namaBagian(m, false),
-      tautan: namaTautan(m, false),
-      url: urlModul(m, false),
-      di: kursus.filter((k) => {
-        const c = catatan[String(m)]?.[String(k.id)];
-        return !!c && !!c.url.modul;
-      }).length,
-    })),
-    kelasJumlah: kursus.length,
-    boleh: !!orang && bolehKelolaLms(orang),
-    kelola: !!set.token?.privat,
-  });
+  const semua: KelasIsi[] = (set.kelas?.kursus ?? []).map((k) => ({
+    id: k.id,
+    label: k.label,
+    kelas: k.kelas,
+  }));
+  const q = String(req.query.sasaran ?? "semua");
+  const kelas =
+    q === "semua"
+      ? semua
+      : q === "reguler" || q === "inter"
+        ? semua.filter((k) => k.kelas === q)
+        : semua.filter((k) => String(k.id) === q);
+  if (!kelas.length) return tolak(res, "format_salah");
+  try {
+    const token = tokenDari(set);
+    const bacaan = new Map<number, BagianLms[]>();
+    const gagalBaca: string[] = [];
+    await sebagian(kelas, 4, async (k) => {
+      try {
+        bacaan.set(k.id, await isiKursus(token, k.id));
+      } catch (e) {
+        if (!(e instanceof LmsGalat)) throw e;
+        gagalBaca.push(k.label);
+      }
+    });
+    if (!bacaan.size) throw new LmsGalat("lms_tak_terjangkau", gagalBaca.join(", "));
+    const { bagian, modul } = gabungIsi(kelas, bacaan);
+    const catatan = await bacaCatatan<CatatanMateri>(db, KUNCI_LMS.materi, set.semester, {});
+    const adaBerkas = Object.values(catatan).some((c) => Object.values(c).some((x) => x.berkas));
+    const cap = adaBerkas ? await capHandbook() : new Map<string, string>();
+    res.status(200).json({
+      ok: true,
+      kelas,
+      semuaKelas: semua,
+      gagalBaca,
+      bagian,
+      modul: modul.map((r) => ({
+        ...r,
+        nama: NAMA_MODUL[r.modul],
+        pdfBasi: kelas.filter((k) => {
+          const b = catatan[String(r.modul)]?.[String(k.id)]?.berkas;
+          const kini = cap.get(jalanHandbook(r.modul, k.kelas === "inter"));
+          return !!b && !!kini && b.cap !== kini;
+        }).length,
+      })),
+      boleh: !!orang && bolehKelolaLms(orang),
+      kelola: !!set.token?.privat,
+    });
+  } catch (e) {
+    return gagal(res, e, "isi");
+  }
 }
 
-async function handleMateriTulis(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+const LANGKAH_ISI = [
+  "bagian",
+  "tautan",
+  "pdf",
+  "ganti-pdf",
+  "tp",
+  "nama",
+  "pindah",
+  "tampil",
+  "hapus",
+] as const;
+type LangkahIsi = (typeof LANGKAH_ISI)[number];
+
+/**
+ * One step in one class (the page runs the classes in turn). Sections and
+ * items are named by their keys from GET, so each class finds its own;
+ * one a class doesn't have is passed over. The campus sections change only
+ * with bukaKunci (show and hide always may).
+ */
+async function handleIsiTulis(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const b = jsonBody(req);
-  const m = modulDari(b.modul);
+  const langkah = b.langkah as LangkahIsi;
+  if (!LANGKAH_ISI.includes(langkah)) return tolak(res, "format_salah");
   const db = getDb();
   const set = await bacaSet(db);
   const k = kursusDari(set, b.kursus);
-  if (!m || !k) return tolak(res, "format_salah");
+  if (!k) return tolak(res, "format_salah");
   const inter = k.kelas === "inter";
+  const m = modulDari(b.modul);
+  const kunciB = typeof b.bagian === "string" ? b.bagian : null;
+  const kunciI = typeof b.isi === "string" ? b.isi : null;
+  const buka = b.bukaKunci === true;
+  const modulan = ["bagian", "tautan", "pdf", "ganti-pdf", "tp"].includes(langkah);
+  if (modulan ? !m : !kunciB) return tolak(res, "format_salah");
+  let namaAudit = modulan ? `Modul ${m}` : (kunciI ?? kunciB ?? "");
   try {
     const token = tokenDari(set);
     const web = webLms(db, set);
-    // The module's own section, found by its name: the classes keep other
-    // sections (all 11 open with the campus K3 course in sections 0 to 6,
-    // seen live 2026-10-15), so section number m is never assumed to be
-    // Module m and IRIS renames no section it didn't make.
-    const nama = namaBagian(m, inter);
-    const cari = async () =>
-      (await isiKursus(token, k.id)).find(
-        (x) => x.name === nama || x.name === namaBagian(m, !inter),
-      ) ?? null;
-    let bagian = await cari();
-    if (!bagian) return tolak(res, "bagian_tidak_ada");
-    const tNama = namaTautan(m, inter);
-    if (!bagian.modules.some((x) => x.modname === "url" && x.name === tNama))
-      await buatTautan(web, k.id, bagian.section, {
-        nama: tNama,
-        url: urlModul(m, inter),
-        teks: htmlTeks(
-          inter
-            ? "Open to everyone: the handbook. After attending: the slides and your journal."
-            : "Terbuka untuk semua: handbook. Setelah hadir: slide dan jurnalmu.",
-        ),
-      });
-    bagian = await cari();
-    const tautan = bagian?.modules.find((x) => x.modname === "url" && x.name === tNama) ?? null;
-    const cocok = !!bagian && !!tautan;
-    const catatan = await bacaCatatan<Record<string, Record<string, MateriIris>>>(
-      db,
-      KUNCI_LMS.materi,
-      set.semester,
-      {},
-    );
-    catatan[String(m)] = {
-      ...(catatan[String(m)] ?? {}),
-      [String(k.id)]: {
-        bagian: bagian?.id ?? null,
-        nama: bagian?.name ?? null,
-        url: tautan ? { modul: tautan.id } : {},
-        pada: new Date().toISOString(),
-      },
-    };
-    await tulisCatatan(db, KUNCI_LMS.materi, set.semester, catatan, s.nim);
-    await writeAudit(s.nim, "lms_materi", { langkah: "pasang", modul: m, kursus: k.label });
+    const baca = () => isiKursus(token, k.id);
+    const bacaan = await baca();
+    const lewat = () => res.status(200).json({ ok: true, cocok: true, lewat: true });
+    const terkunci = (bg: BagianLms | null) => !!bg && modulBagian(bg.name) === null && !buka;
+    let cocok = true;
+
+    if (modulan) {
+      const mm = m!;
+      const kunciM = `m${mm}`;
+      if (langkah === "bagian") {
+        await pastikanBagianModul(web, token, k.id, mm, inter);
+        cocok = !!cariBagian(await baca(), kunciM);
+      } else {
+        const bg = cariBagian(bacaan, kunciM);
+        if (!bg) return tolak(res, "bagian_tidak_ada");
+        const punya = (bs: BagianLms[], p: string) =>
+          !!cariBagian(bs, kunciM)?.modules.some((x) => peranIsi(mm, x) === p);
+        if (langkah === "tautan") {
+          if (!punya(bacaan, "tautan"))
+            await buatTautan(web, k.id, bg.section, {
+              nama: namaTautanModul(mm, inter),
+              url: urlModul(mm, inter),
+              teks: teksTautan(inter),
+            });
+          cocok = punya(await baca(), "tautan");
+        } else if (langkah === "pdf" || langkah === "ganti-pdf") {
+          const ada = bg.modules.find((x) => peranIsi(mm, x) === "pdf") ?? null;
+          if (langkah === "ganti-pdf" && !ada) return tolak(res, "tidak_ada_di_lms");
+          let cmid = ada?.id ?? null;
+          let cap: { cap: string; ukuran: number } | null = null;
+          if (langkah === "ganti-pdf" || !ada) {
+            const h = await ambilHandbook(mm, inter);
+            const draf = await unggahDraf(token, h.nama, h.isi);
+            if (ada) await gantiBerkas(web, ada.id, draf);
+            else
+              cmid = await buatBerkas(web, k.id, bg.section, {
+                nama: namaBerkasModul(mm, inter),
+                draf,
+                teks: teksBerkas(mm, inter),
+              });
+            cap = { cap: h.cap, ukuran: h.isi.length };
+          }
+          const sesudah = await baca();
+          cocok = punya(sesudah, "pdf");
+          if (cap && cocok) {
+            const catatan = await bacaCatatan<CatatanMateri>(
+              db,
+              KUNCI_LMS.materi,
+              set.semester,
+              {},
+            );
+            const lama = catatan[String(mm)]?.[String(k.id)];
+            catatan[String(mm)] = {
+              ...(catatan[String(mm)] ?? {}),
+              [String(k.id)]: {
+                bagian: bg.id,
+                nama: bg.name,
+                url: lama?.url ?? {},
+                berkas: {
+                  cmid:
+                    cmid ??
+                    cariBagian(sesudah, kunciM)!.modules.find((x) => peranIsi(mm, x) === "pdf")!.id,
+                  ...cap,
+                },
+                pada: new Date().toISOString(),
+              },
+            };
+            await tulisCatatan(db, KUNCI_LMS.materi, set.semester, catatan, s.nim);
+          }
+        } else {
+          // TP Modul m always lives in Module m's section (ruling 4).
+          const tp = cariTp(bacaan, mm);
+          if (!tp) return lewat();
+          if (tp.bagian.id !== bg.id) await pindahIsi(web, k.id, [tp.isi.id], bg.id);
+          cocok = cariTp(await baca(), mm)?.bagian.id === bg.id;
+        }
+      }
+    } else {
+      const bg = cariBagian(bacaan, kunciB!);
+      if (!bg) return lewat();
+      const x = kunciI ? cariIsi(bg, kunciI) : null;
+      if (kunciI && !x) return lewat();
+      namaAudit = x?.name ?? bg.name;
+      if (langkah === "tampil") {
+        if (typeof b.tampil !== "boolean") return tolak(res, "format_salah");
+        if (x) await tampilModul(token, x.id, b.tampil);
+        else await tampilBagian(web, k.id, bg.id, b.tampil);
+        const s2 = cariBagian(await baca(), kunciB!);
+        const y = x ? s2?.modules.find((z) => z.id === x.id) : s2;
+        cocok = !!y && (y.visible !== 0) === b.tampil;
+      } else {
+        if (terkunci(bg)) return tolak(res, "bagian_terkunci");
+        // An assignment is the Tugas tab's: its dates and files live there.
+        if (x?.modname === "assign" && langkah !== "pindah")
+          return tolak(res, "tugas_di_tab_tugas");
+        if (langkah === "nama") {
+          const n = (b.nama ?? {}) as { id?: unknown; en?: unknown };
+          const pilih = inter ? (n.en ?? n.id) : (n.id ?? n.en);
+          const nama = typeof pilih === "string" ? pilih.trim().slice(0, 255) : "";
+          if (!nama) return tolak(res, "format_salah");
+          // IRIS's module sections keep the names IRIS gave them.
+          if (!x && modulBagian(bg.name)) return tolak(res, "bagian_iris");
+          if (x) await namaiIsi(web, k.id, x.id, nama);
+          else await namaiBagian(web, k.id, bg.id, nama);
+          const s2 = await baca();
+          cocok = x
+            ? s2.some((g) => g.modules.some((z) => z.id === x.id && z.name === nama))
+            : s2.some((g) => g.id === bg.id && g.name === nama);
+        } else if (langkah === "pindah") {
+          const ke = typeof b.ke === "string" ? cariBagian(bacaan, b.ke) : null;
+          if (!x || !ke) return lewat();
+          if (terkunci(ke)) return tolak(res, "bagian_terkunci");
+          const sebelum = typeof b.sebelum === "string" ? cariIsi(ke, b.sebelum) : null;
+          await pindahIsi(web, k.id, [x.id], ke.id, sebelum?.id);
+          cocok = !!(await baca()).find((g) => g.id === ke.id)?.modules.some((z) => z.id === x.id);
+        } else if (x) {
+          await hapusIsi(web, x.id);
+          cocok = !(await baca()).some((g) => g.modules.some((z) => z.id === x.id));
+        } else {
+          // Moodle deletes what a section holds with it: empty ones only.
+          if (bg.modules.length) return tolak(res, "bagian_tidak_kosong");
+          await hapusBagian(web, bg.id);
+          cocok = !(await baca()).some((g) => g.id === bg.id);
+        }
+      }
+    }
+    await writeAudit(s.nim, "lms_isi", { langkah, modul: m, kursus: k.label, nama: namaAudit });
     res.status(200).json({ ok: true, cocok });
   } catch (e) {
-    await writeAudit(s.nim, "lms_materi", {
-      langkah: "pasang",
+    await writeAudit(s.nim, "lms_isi", {
+      langkah,
       modul: m,
       kursus: k.label,
+      nama: namaAudit,
       gagal: e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau",
     });
-    return gagal(res, e, "materi");
+    return gagal(res, e, "isi");
   }
 }
 
@@ -1318,7 +1527,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "nilai") return handleNilaiBaca(req, res, s);
     if (aksi === "umum") return handleUmumBaca(req, res, s);
     if (aksi === "kalender") return handleKalenderBaca(req, res, s);
-    if (aksi === "materi") return handleMateriBaca(req, res, s);
+    if (aksi === "isi") return handleIsiBaca(req, res, s);
     if (aksi === "log") return handleLog(req, res);
     return tolak(res, "aksi_tidak_dikenal", 404);
   }
@@ -1337,7 +1546,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "kalender") return handleKalenderTulis(req, res, s);
   if (aksi === "tampil") return handleTampil(req, res, s);
   if (aksi === "tugas") return handleTugasTulis(req, res, s);
-  if (aksi === "materi") return handleMateriTulis(req, res, s);
+  if (aksi === "isi") return handleIsiTulis(req, res, s);
   if (aksi === "grup") return handleGrup(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);
 }

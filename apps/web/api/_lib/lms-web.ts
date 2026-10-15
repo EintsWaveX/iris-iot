@@ -760,3 +760,15 @@ export async function hapusBagian(web: WebLms, bagian: number): Promise<void> {
   );
   kembaliKeKursus(jawab, "lms_hapus_gagal");
 }
+
+/** A File activity's file replaced by a draft area's (a rebuilt handbook). */
+export async function gantiBerkas(web: WebLms, cmid: number, draf: number): Promise<void> {
+  const jawab = await web.kirimForm(
+    `/course/modedit.php?update=${cmid}`,
+    /modedit\.php/,
+    "/course/modedit.php",
+    { files: String(draf), coursecontentnotification: false },
+    "submitbutton2",
+  );
+  hasilSimpan(jawab);
+}

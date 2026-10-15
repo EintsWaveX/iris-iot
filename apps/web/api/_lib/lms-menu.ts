@@ -71,6 +71,8 @@ export interface MateriIris {
   bagian: number | null;
   nama: string | null;
   url: Record<string, number>;
+  /** the handbook chapter's File and the stamp it was uploaded at */
+  berkas?: { cmid: number; cap: string; ukuran: number };
   pada: string;
 }
 
