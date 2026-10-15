@@ -14,7 +14,9 @@
  *          semester's Asisten per group (from now on: sessions already
  *          held keep who taught them), ranked substitutes, start window,
  *          and `minggu`: each group's kind on that date (tetap, pengganti,
- *          sukarela, izin) and who covers.
+ *          sukarela, izin) and who covers. With Pasangan per Modul on,
+ *          `modulDaftar: { modul, list }` is that date's module list from
+ *          the drawer (hakPenuh, Per Modul's rules, never a taught module).
  *      { semester, pindah: { dari: {hari, slot}, ke: {hari, slot} } }
  *          moves a slot to a free day and session (2026-10-12): its roster,
  *          and its holidays, covers and izin still to come, go along.
@@ -23,7 +25,8 @@
  *      { semester, bergilir }              Per Modul's switch (Admins and
  *          above, hakPenuh).
  *      { semester, pasanganModul: [{ hari, slot, modul }] }  Per Modul's
- *          lists, each slot's replaced whole (hakPenuh).
+ *          lists, each slot's replaced whole (hakPenuh); a module the slot
+ *          already taught keeps its list.
  *
  * GET  /api/session/penugasan             my side of it: today's slots that
  *      need help (Saya Bantu), requests to me, offers waiting for me to
@@ -76,6 +79,7 @@ import {
   GESER_MAKS,
   geserDari,
   orangTanggal,
+  pasanganSemester,
   pasanganTanggal,
   statusSlotTanggal,
   tanggalMinggu,
@@ -455,6 +459,32 @@ async function ubahSlot(
     }
   }
 
+  // The date's module list from the drawer (Pasangan per Modul on): Per
+  // Modul's rules, checked against the slot as this save leaves it.
+  let modulBaru: { modul: number; list: string[] } | null = null;
+  if (ubah.modulDaftar !== undefined) {
+    const x = (ubah.modulDaftar ?? {}) as { modul?: unknown; list?: unknown };
+    const modul = posInt(x.modul);
+    if (!modul || modul > 4 || !Array.isArray(x.list)) return tolak(res, "format_salah", 400);
+    const o = await muatOrang(session.nim);
+    if (!o || !hakPenuh(o)) return tolak(res, "tanpa_hak", 403);
+    if (!(await konteksModul(db, semester)).aktif) return tolak(res, "pasangan_mati");
+    const [lama] = await db
+      .select()
+      .from(jadwal)
+      .where(and(eq(jadwal.semester, semester), eq(jadwal.hari, hari), eq(jadwal.slot, slot)));
+    if (!lama) return tolak(res, "slot_tidak_ada");
+    if (((await modulDiajar(db, [lama])).get(lama.id) ?? []).includes(modul))
+      return tolak(res, "modul_sudah_berjalan");
+    const list = (x.list as unknown[]).map((k) =>
+      typeof k === "string" ? k.trim().toUpperCase() : k,
+    );
+    const n = patch.jumlahKelompok ?? lama.jumlahKelompok;
+    if (!listSah(list, n, kolam(patch.asisten ?? lama.asisten)))
+      return tolak(res, "kode_di_luar_slot");
+    modulBaru = { modul, list };
+  }
+
   // Codes must be known people, and none of them on leave or inactive.
   const orang = await db
     .select({ nim: asisten.nim, kode: asisten.kode, status: asisten.status })
@@ -475,11 +505,21 @@ async function ubahSlot(
   // New default people or group count: module lists that no longer fit
   // go back to the default.
   let pasanganDibuang = 0;
+  let am: AsistenModul = row.asistenModul ?? {};
   if (patch.asisten !== undefined || patch.jumlahKelompok !== undefined) {
     const r = saringModul(row.asistenModul, row.jumlahKelompok, row.asisten);
     pasanganDibuang = r.dibuang;
-    if (r.dibuang)
-      await db.update(jadwal).set({ asistenModul: r.tetap }).where(eq(jadwal.id, row.id));
+    am = r.tetap;
+    if (r.dibuang && !modulBaru)
+      await db.update(jadwal).set({ asistenModul: am }).where(eq(jadwal.id, row.id));
+  }
+  // Then the date's module: a list equal to the default is the default.
+  if (modulBaru) {
+    const bawaan = pasanganSemester(row.asisten, row.jumlahKelompok).map((k) => k ?? "");
+    am = { ...am };
+    if (modulBaru.list.join(",") === bawaan.join(",")) delete am[String(modulBaru.modul)];
+    else am[String(modulBaru.modul)] = modulBaru.list;
+    await db.update(jadwal).set({ asistenModul: am }).where(eq(jadwal.id, row.id));
   }
 
   // The holiday, for that date only (each week can have its own).
@@ -554,6 +594,7 @@ async function aturPasangan(
   if (!Array.isArray(daftar) || !daftar.length || daftar.length > 24)
     return tolak(res, "format_salah", 400);
   const rows = await db.select().from(jadwal).where(eq(jadwal.semester, semester));
+  const diajar = await modulDiajar(db, rows);
   const simpan: { id: number; hari: number; slot: number; am: AsistenModul }[] = [];
   for (const x of daftar as Record<string, unknown>[]) {
     const hari = posInt(x?.hari);
@@ -570,6 +611,11 @@ async function aturPasangan(
       if (list === null) continue;
       if (!listSah(list, row.jumlahKelompok, pool)) return tolak(res, "kode_di_luar_slot");
       am[m] = list.map((k) => k.toUpperCase());
+    }
+    for (const m of diajar.get(row.id) ?? []) {
+      const sebelum = row.asistenModul?.[String(m)] ?? null;
+      if (JSON.stringify(am[String(m)] ?? null) !== JSON.stringify(sebelum))
+        return tolak(res, "modul_sudah_berjalan");
     }
     simpan.push({ id: row.id, hari: row.hari, slot: row.slot, am });
   }

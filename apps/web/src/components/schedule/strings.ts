@@ -132,6 +132,10 @@ export const J = dict({
       sudah_di_slot: "Asisten itu sudah ada di slot ini.",
       izin_tidak_ada: "Izinnya belum tersimpan.",
       tanpa_hak: "Kamu tidak punya hak untuk ini.",
+      modul_sudah_berjalan:
+        "Modul itu sudah berjalan di slot ini, jadi pasangannya tidak diubah lagi.",
+      kode_di_luar_slot: "Ada kode di luar asisten bawaan slot. Muat ulang lalu coba lagi.",
+      pasangan_mati: "Pasangan per Modul sedang mati. Muat ulang halaman.",
     } as Record<string, string>,
     // unsaved
     unsavedTitle: "Perubahan Belum Disimpan",
@@ -210,6 +214,20 @@ export const J = dict({
       dateHolder: (m: number, k: string) => `Tanggal ini Modul ${m}: ${k}`,
       leaveBody: "Perubahan pasangan per modul hilang kalau kamu kembali sekarang.",
       dropped: (n: number) => `${n} daftar per modul tidak cocok lagi dan kembali ke bawaan.`,
+      modulNote: (m: number) =>
+        `Pasangan per Modul menyala. Kursi tanggal ini mengikuti daftar Modul ${m} slot ini, dan yang kamu ubah di sini ikut tersimpan di Per Modul.`,
+      pairModul: (m: number) => `Asisten per Kelompok di Modul ${m}`,
+      modulTaught: (m: number) =>
+        `Modul ${m} sudah berjalan di slot ini, jadi pasangannya tidak diubah lagi.`,
+      modulAdmin:
+        "Hanya Admin, DEV dan Pencipta yang mengubah pasangan per modul. Pengganti, sukarela dan izin tetap bisa kamu atur.",
+      defTitle: "Asisten Bawaan Slot",
+      defHint:
+        "Orang-orang slot ini dan pasangan bawaannya. Daftar per modul hanya memilih dari mereka.",
+      dropWarn: (n: number) =>
+        `Setelah disimpan, ${n} daftar per modul tidak cocok lagi dan kembali ke bawaan.`,
+      seatLost: (k: string) => `${k} bukan lagi asisten bawaan slot ini, jadi kursinya kosong.`,
+      lihatJadwal: "Lihat di Jadwal",
     },
     imp: {
       title: "Impor Jadwal",
@@ -382,6 +400,9 @@ export const J = dict({
       sudah_di_slot: "That assistant is already on this slot.",
       izin_tidak_ada: "The izin isn't saved yet.",
       tanpa_hak: "You don't have the right for this.",
+      modul_sudah_berjalan: "That module already ran in this slot, so its pairing stays as it is.",
+      kode_di_luar_slot: "A code isn't one of the slot's default Asisten. Reload and try again.",
+      pasangan_mati: "Pairing per Module is off. Reload the page.",
     } as Record<string, string>,
     unsavedTitle: "Unsaved Changes",
     unsavedBody: (label: string) => `Your changes to ${label} are lost if you move on now.`,
@@ -458,6 +479,21 @@ export const J = dict({
       leaveBody: "Your changes to the pairing per module are lost if you go back now.",
       dropped: (n: number) =>
         `${n} module ${n === 1 ? "list no longer fits and is" : "lists no longer fit and are"} back on the default.`,
+      modulNote: (m: number) =>
+        `Pairing per Module is on. This date's seats follow this slot's Module ${m} list, and what you change here is saved in Per Module too.`,
+      pairModul: (m: number) => `Assistant per Group in Module ${m}`,
+      modulTaught: (m: number) =>
+        `Module ${m} already ran in this slot, so its pairing stays as it is.`,
+      modulAdmin:
+        "Only Admins, DEV and the Pencipta change the pairing per module. You can still set covers, volunteers and izin.",
+      defTitle: "Slot's Default Assistants",
+      defHint:
+        "This slot's people and their default pairing. The module lists only pick from them.",
+      dropWarn: (n: number) =>
+        `Once saved, ${n} module ${n === 1 ? "list no longer fits and goes" : "lists no longer fit and go"} back to the default.`,
+      seatLost: (k: string) =>
+        `${k} is no longer one of this slot's default Asisten, so the seat is open.`,
+      lihatJadwal: "View in Schedule",
     },
     imp: {
       title: "Import the Schedule",
@@ -626,6 +662,9 @@ export const J = dict({
       sudah_di_slot: "那位助教已经在这个时段了。",
       izin_tidak_ada: "请假还没保存。",
       tanpa_hak: "你没有这个权限。",
+      modul_sudah_berjalan: "这个模块已在此时段上过，配对不再修改。",
+      kode_di_luar_slot: "有代码不属于这个时段的默认助教。请刷新后再试。",
+      pasangan_mati: "按模块配对已关闭。请刷新页面。",
     } as Record<string, string>,
     unsavedTitle: "有未保存的修改",
     unsavedBody: (label: string) => `现在离开的话，${label}的修改会丢失。`,
@@ -691,6 +730,16 @@ export const J = dict({
       dateHolder: (m: number, k: string) => `这个日期是模块 ${m}：${k}`,
       leaveBody: "现在返回的话，按模块配对的改动会丢失。",
       dropped: (n: number) => `${n} 个模块名单不再适用，已回到默认。`,
+      modulNote: (m: number) =>
+        `按模块配对已开启。这个日期的座位按此时段的模块 ${m} 名单，你在这里的修改也会保存到按模块。`,
+      pairModul: (m: number) => `模块 ${m} 的每组助教`,
+      modulTaught: (m: number) => `模块 ${m} 已在此时段上过，配对不再修改。`,
+      modulAdmin: "只有管理员、DEV 和 Pencipta 可以修改按模块配对。代课、志愿和请假你仍可设置。",
+      defTitle: "时段默认助教",
+      defHint: "这个时段的人员和默认配对。模块名单只从他们之中选。",
+      dropWarn: (n: number) => `保存后，${n} 个模块名单不再适用，会回到默认。`,
+      seatLost: (k: string) => `${k} 不再是这个时段的默认助教，所以这个座位空出。`,
+      lihatJadwal: "在课表中查看",
     },
     imp: {
       title: "导入课表",

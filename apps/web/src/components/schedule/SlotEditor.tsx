@@ -9,6 +9,11 @@
  *   kind: Pengganti or Sukarela (who teaches that date instead) or Izin
  *   (who covers; Cari Pengganti asks one person or tells everyone).
  * - The ranked substitutes with their FIT and Angkatan 24 marks.
+ * - With Pasangan per Modul on (2026-10-15): the group cards show and edit
+ *   that date's module list, the one Per Modul shows (Admins and above, and
+ *   never a module the slot already taught); the slot's default Asisten get
+ *   their own section, with a warning when a change sends module lists back
+ *   to the default; Buka Per Modul opens that slot there.
  *
  * Without the Schedule right everything is read only, except the start
  * window for the slot's own Asisten (POST /api/session/jendela).
@@ -23,6 +28,7 @@ import {
 } from "react";
 import {
   CaretDownIcon,
+  CaretRightIcon,
   CaretUpIcon,
   CheckIcon,
   LockSimpleIcon,
@@ -41,6 +47,7 @@ import { klpLabel, kelompokLabel, statusOrangLabel, slotLabel as slotName } from
 import { KELOMPOK_DEFAULT, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
 import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
 import { orangTanggal, pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
+import { kolam, saringModul } from "../../lib/penugasan-modul";
 import type { TagPengganti } from "../../lib/jadwal-parser";
 import type { Kelas, Lang } from "../../lib/kelas";
 import { pesanJ, type Jx } from "./strings";
@@ -59,6 +66,8 @@ interface Draft {
   who: string[];
   kind: Kind[];
   cover: string[];
+  /** That date's module list (Pasangan per Modul on), else empty. */
+  mod: string[];
   subs: { kode: string; tag: TagPengganti }[];
   win: number | null;
 }
@@ -77,6 +86,9 @@ function awal(row: JadwalRow | undefined, m: MingguSlot | undefined, baru = fals
     const k = kursi[i];
     return k && (k.izin || k.jenis !== "tetap") ? (k.kode ?? "") : "";
   });
+  const modul = m?.modul;
+  const mod =
+    modul != null ? [...(row?.asistenModul?.[String(modul)] ?? who)].map((k) => k ?? "") : [];
   return {
     kelas: row?.kelas ?? "reguler",
     status: m?.status ?? row?.status ?? (baru ? "aktif" : "kosong"),
@@ -85,6 +97,7 @@ function awal(row: JadwalRow | undefined, m: MingguSlot | undefined, baru = fals
     who,
     kind,
     cover,
+    mod,
     subs: row?.pengganti ?? [],
     win: row?.jendelaMulaiMenit ?? null,
   };
@@ -119,6 +132,12 @@ interface Props {
   diam?: boolean;
   /** The slot's SeeLabs KLP per group number */
   klp?: Record<string, string>;
+  /** May change the pairing per module (hakPenuh) */
+  bolehModul?: boolean;
+  /** The modules this slot already taught (their lists stay) */
+  diajar?: readonly number[];
+  /** Opens this slot in Jadwal › Per Modul */
+  onPerModul?: () => void;
 }
 
 const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, ref) {
@@ -142,7 +161,11 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
   const ro = !p.bolehJadwal;
   const tglLabel = m ? tanggalPanjang(m.tanggal, lang) : "";
   const set = (patch: Partial<Draft>) => setD((x) => ({ ...x, ...patch }));
-  const setAt = <K extends "who" | "kind" | "cover">(key: K, i: number, v: Draft[K][number]) =>
+  const setAt = <K extends "who" | "kind" | "cover" | "mod">(
+    key: K,
+    i: number,
+    v: Draft[K][number],
+  ) =>
     setD((x) => {
       const a = [...x[key]] as Draft[K];
       a[i] = v;
@@ -159,10 +182,29 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
       disabled: o.status !== "aktif",
     })),
   ];
-  // Pairing per Module: that date's holder of a group is its module's,
-  // while the list here stays the slot's default.
-  const perModul = m?.modul != null;
-  const pemegang = (i: number) => (perModul ? (m?.kursi[i]?.tetap ?? d.who[i]) : d.who[i]) ?? "";
+  // Pairing per Module: that date's holder of a group is its module's. The
+  // cards edit that list; the default list has its own section below.
+  const modul = m?.modul ?? null;
+  const perModul = modul != null;
+  const pool = kolam(d.who);
+  /** The module list as it would be saved: codes that left the slot open up. */
+  const modSah = d.mod.map((k) => (k && pool.includes(k) ? k : ""));
+  const diajarIni = perModul && (p.diajar ?? []).includes(modul);
+  const ubahModul = perModul && !ro && !!p.bolehModul && !diajarIni;
+  const pemegang = (i: number) => (perModul ? modSah[i] : d.who[i]) ?? "";
+  // Module lists a change to the default people or group count would send
+  // back to the default (this date's own list is saved with the change).
+  const lainModul = Object.fromEntries(
+    Object.entries(row?.asistenModul ?? {}).filter(([k]) => !perModul || k !== String(modul)),
+  );
+  const akanDibuang =
+    d.n !== base.n || JSON.stringify(d.who) !== JSON.stringify(base.who)
+      ? saringModul(lainModul, d.n, d.who).dibuang
+      : 0;
+  const modOpts = [
+    { value: "", label: t.pm.open0 },
+    ...pool.map((k) => ({ value: k, label: byKode.get(k)?.nama ?? k, chip: k })),
+  ];
   const coverOpts = (i: number) => {
     const subs = d.subs.map((s) => s.kode.toUpperCase());
     const rest = p.orang
@@ -201,37 +243,46 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
         p.onSaved();
         return true;
       }
-      const r = await postJson<{ ok: boolean; kode?: string }>("/api/session/schedule", {
-        semester: p.semester,
-        hari: p.hari,
-        slot: p.slot,
-        ...(p.geser ? { geser: p.geser } : {}),
-        ubah: {
-          kelas: d.kelas,
-          status: d.status,
-          ...(d.status === "kosong" ? { warnaKosong: d.warna } : {}),
-          jumlahKelompok: d.n,
-          asisten: d.who,
-          pengganti: d.subs,
-          jendela: d.win,
-          ...(p.kini && d.status !== "kosong"
-            ? {
-                minggu: {
-                  kursi: d.kind.map((k, i) => ({
-                    nomor: i + 1,
-                    jenis: k,
-                    kode: k === "tetap" ? "" : d.cover[i],
-                  })),
-                },
-              }
-            : {}),
+      const kirimModul =
+        ubahModul && JSON.stringify(modSah) !== JSON.stringify(base.mod)
+          ? { modulDaftar: { modul, list: modSah } }
+          : {};
+      const r = await postJson<{ ok: boolean; kode?: string; pasanganDibuang?: number }>(
+        "/api/session/schedule",
+        {
+          semester: p.semester,
+          hari: p.hari,
+          slot: p.slot,
+          ...(p.geser ? { geser: p.geser } : {}),
+          ubah: {
+            kelas: d.kelas,
+            status: d.status,
+            ...(d.status === "kosong" ? { warnaKosong: d.warna } : {}),
+            jumlahKelompok: d.n,
+            asisten: d.who,
+            pengganti: d.subs,
+            jendela: d.win,
+            ...kirimModul,
+            ...(p.kini && d.status !== "kosong"
+              ? {
+                  minggu: {
+                    kursi: d.kind.map((k, i) => ({
+                      nomor: i + 1,
+                      jenis: k,
+                      kode: k === "tetap" ? "" : d.cover[i],
+                    })),
+                  },
+                }
+              : {}),
+          },
         },
-      });
+      );
       if (!r.ok) {
         window.Toast?.show(pesanJ(t, r.kode), "danger");
         return false;
       }
       if (!p.diam) window.Toast?.show(t.saved, "ok");
+      if (r.pasanganDibuang) window.Toast?.show(t.pm.dropped(r.pasanganDibuang), "warn");
       p.onSaved();
       return true;
     } catch {
@@ -252,8 +303,14 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
         <p className="jedit__when hint">{p.geser ? t.forDate(tglLabel) : t.nextDate(tglLabel)}</p>
       )}
       {perModul && (
-        <div className="banner">
-          <span>{t.pm.editorNote}</span>
+        <div className="banner jedit__pm">
+          <span>{t.pm.modulNote(modul)}</span>
+          {p.onPerModul && (
+            <button type="button" className="btn btn--ghost btn--sm" onClick={p.onPerModul}>
+              {t.pm.editorLink}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+            </button>
+          )}
         </div>
       )}
       {ro && (
@@ -412,6 +469,7 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
                     who: Array.from({ length: v }, (_, i) => x.who[i] ?? ""),
                     kind: Array.from({ length: v }, (_, i) => x.kind[i] ?? "tetap"),
                     cover: Array.from({ length: v }, (_, i) => x.cover[i] ?? ""),
+                    mod: perModul ? Array.from({ length: v }, (_, i) => x.mod[i] ?? "") : x.mod,
                   }))
                 }
                 min={1}
@@ -424,13 +482,19 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
 
             <div className="stack">
               <div className="row row--between">
-                <h3 className="jedit__h">{t.pairTitle}</h3>
+                <h3 className="jedit__h">{perModul ? t.pm.pairModul(modul) : t.pairTitle}</h3>
                 <span className="hint">{t.pairHint}</span>
               </div>
+              {perModul && !ro && !ubahModul && (
+                <p className="hint">{diajarIni ? t.pm.modulTaught(modul) : t.pm.modulAdmin}</p>
+              )}
               <div className="asggrid">
-                {d.who.map((k, i) => {
-                  const holds = k ? d.who.filter((x) => x === k).length : 0;
+                {d.who.map((bawaan, i) => {
+                  const k = pemegang(i);
+                  const daftar = perModul ? modSah : d.who;
+                  const holds = k ? daftar.filter((x) => x === k).length : 0;
                   const kind = d.kind[i];
+                  const keluar = perModul && !!d.mod[i] && !pool.includes(d.mod[i]);
                   const izinTersimpan =
                     kind === "izin" &&
                     !!m?.izin.find((x) => x.kode === k && x.status !== "dibatalkan");
@@ -456,20 +520,28 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
                           </Tooltip>
                         )}
                       </div>
-                      <Dropdown
-                        id={`jedit-g${i + 1}`}
-                        label={kelompokLabel(i + 1, lang)}
-                        hideLabel
-                        value={k}
-                        options={pickOpts}
-                        onChange={(v) => setAt("who", i, v)}
-                        disabled={ro}
-                      />
-                      {perModul && pemegang(i) !== k && (
-                        <span className="hint">
-                          {t.pm.dateHolder(m!.modul!, pemegang(i) || t.pm.open0)}
-                        </span>
+                      {perModul ? (
+                        <Dropdown
+                          id={`jedit-m${i + 1}`}
+                          label={`${kelompokLabel(i + 1, lang)}, ${t.pm.pairModul(modul)}`}
+                          hideLabel
+                          value={k}
+                          options={modOpts}
+                          onChange={(v) => setAt("mod", i, v)}
+                          disabled={!ubahModul}
+                        />
+                      ) : (
+                        <Dropdown
+                          id={`jedit-g${i + 1}`}
+                          label={kelompokLabel(i + 1, lang)}
+                          hideLabel
+                          value={bawaan}
+                          options={pickOpts}
+                          onChange={(v) => setAt("who", i, v)}
+                          disabled={ro}
+                        />
                       )}
+                      {keluar && <span className="hint">{t.pm.seatLost(d.mod[i])}</span>}
                       {p.kini && (
                         <div className="asgrow__st">
                           <SegmentedControl
@@ -530,6 +602,34 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
                 })}
               </div>
             </div>
+
+            {perModul && (
+              <div className="stack">
+                <div className="stack stack--sm">
+                  <h3 className="jedit__h">{t.pm.defTitle}</h3>
+                  <span className="hint">{t.pm.defHint}</span>
+                </div>
+                {akanDibuang > 0 && (
+                  <p className="banner banner--warn">{t.pm.dropWarn(akanDibuang)}</p>
+                )}
+                <div className="jedit__bawaan">
+                  {d.who.map((k, i) => (
+                    <div key={i} className="jedit__bawaan-row">
+                      <Pill group={i + 1}>{kelompokLabel(i + 1, lang)}</Pill>
+                      <Dropdown
+                        id={`jedit-g${i + 1}`}
+                        label={`${kelompokLabel(i + 1, lang)}, ${t.pm.defTitle}`}
+                        hideLabel
+                        value={k}
+                        options={pickOpts}
+                        onChange={(v) => setAt("who", i, v)}
+                        disabled={ro}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="stack">
               <div className="row row--between">

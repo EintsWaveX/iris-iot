@@ -14,6 +14,9 @@
  * - The gear (the Schedule right): Schedule Settings, the start window's
  *   default and the bounds for slot Asisten.
  * - Impor dari Sheet opens the two-pane import (ImportView).
+ * - Per Modul (ModulView) and the drawer are one (2026-10-15): the drawer's
+ *   Buka Per Modul opens that slot there, its Lihat di Jadwal opens the
+ *   slot's drawer here.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -370,7 +373,11 @@ function Settings({
 
 /* --------------------------------------------------------------- page */
 
-type Tujuan = { hari: number; slot: number } | { semester: string } | "tutup";
+type Tujuan =
+  | { hari: number; slot: number }
+  | { semester: string }
+  | { perModul: { hari: number; slot: number } }
+  | "tutup";
 
 export default function SchedulePage({ lang }: { lang: Lang }) {
   const t = J[lang];
@@ -382,6 +389,8 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   const [sel, setSel] = useState<{ hari: number; slot: number } | null>(null);
   const [highlight, setHighlight] = useState(false);
   const [view, setView] = useState<"week" | "import" | "modul">("week");
+  // The slot the drawer's Buka Per Modul came from, flashed there
+  const [sorotModul, setSorotModul] = useState<{ hari: number; slot: number } | null>(null);
   const [setting, setSetting] = useState(false);
   const [dirty, setDirty] = useState(false);
   useBelumSimpan(dirty);
@@ -447,6 +456,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
 
   const meKode = (me?.kode ?? "").toUpperCase();
   const bolehJadwal = me?.hak?.jadwal !== false && !!me?.hak;
+  const bolehModul = !!me && hakPenuh({ tier: me.tier ?? "asisten", badges: me.badges ?? [] });
   const known = useMemo(
     () => new Set((data?.asisten ?? []).map((a) => a.kode.toUpperCase())),
     [data],
@@ -494,9 +504,18 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
         semester={semester}
         data={data}
         meKode={meKode}
-        boleh={hakPenuh({ tier: me.tier ?? "asisten", badges: me.badges ?? [] })}
-        onBack={() => setView("week")}
+        boleh={bolehModul}
+        onBack={() => {
+          setSorotModul(null);
+          setView("week");
+        }}
         onSaved={load}
+        sorot={sorotModul}
+        onJadwal={(hari, slot) => {
+          setSorotModul(null);
+          setView("week");
+          setSel({ hari, slot });
+        }}
       />
     );
   }
@@ -539,6 +558,10 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
       setSel(null);
       setSemester(to.semester);
       setData(null);
+    } else if ("perModul" in to) {
+      setSel(null);
+      setSorotModul(to.perModul);
+      setView("modul");
     } else setSel(to);
   }
   const coba = (to: Tujuan) => (dirty ? setAsk(to) : pergi(to));
@@ -786,6 +809,9 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             meNim={me.nim}
             klp={data.klp?.[`${sel.hari}-${sel.slot}`]}
             bolehJadwal={bolehJadwal}
+            bolehModul={bolehModul}
+            diajar={selRow ? data.diajar?.[String(selRow.id)] : undefined}
+            onPerModul={() => coba({ perModul: { hari: sel.hari, slot: sel.slot } })}
             onDirty={setDirty}
             onSaved={load}
           />

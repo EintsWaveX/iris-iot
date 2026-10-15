@@ -651,6 +651,17 @@
   padding: 0 6px;
 }
 
+/* A phone's card is too narrow for "Pengganti" at that size: it broke
+   inside the word */
+@media (max-width: 479px) {
+  .asgrow__st .segmented__item,
+  .asgrow__st button {
+    font-size: 0.8rem;
+    padding: 0 2px;
+    white-space: nowrap;
+  }
+}
+
 .asgrow__cover {
   display: grid;
   gap: 6px;
@@ -990,9 +1001,38 @@
   gap: 6px;
 }
 
-/* Ubah's words start on the slot title's edge, not its padding's */
-.pmslot > .btn--ghost {
+/* Ubah and Lihat di Jadwal: the words start on the slot title's edge */
+.pmslot__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2px;
   margin-left: -14px;
+}
+
+/* The drawer with Pasangan per Modul on: the note and its way to Per Modul */
+.banner.jedit__pm {
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.jedit__pm > .btn {
+  flex: none;
+  margin-right: -8px;
+}
+
+/* The slot's default Asisten, one picker per group */
+.jedit__bawaan {
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+}
+
+.jedit__bawaan-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
 .pmseats {

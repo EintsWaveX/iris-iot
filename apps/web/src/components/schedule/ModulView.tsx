@@ -6,9 +6,14 @@
  * Admins, DEV and the Pencipta (hakPenuh) edit; everyone else reads. Edits
  * are a draft until Simpan: a slot's dialog picks per group and module from
  * its own default Asisten, and Acak / Putar fill a slot (or all of them)
- * while the modules a slot already taught stay as they are.
+ * while the modules a slot already taught stay as they are (their lists
+ * can't be picked by hand either).
+ *
+ * Synced with the Schedule's drawer (2026-10-15): the drawer edits a date's
+ * module list, the same data; Lihat di Jadwal opens a slot's drawer, and the
+ * drawer's Buka Per Modul comes back here with that slot flashed.
  */
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CaretRightIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import Confirm from "../ui/Confirm";
@@ -71,6 +76,8 @@ export default function ModulView({
   boleh,
   onBack,
   onSaved,
+  sorot,
+  onJadwal,
 }: {
   lang: Lang;
   semester: string;
@@ -79,6 +86,10 @@ export default function ModulView({
   boleh: boolean;
   onBack: () => void;
   onSaved: () => void;
+  /** A slot to flash once drawn (from the drawer's Buka Per Modul) */
+  sorot?: { hari: number; slot: number } | null;
+  /** Opens a slot's drawer in the Schedule */
+  onJadwal?: (hari: number, slot: number) => void;
 }) {
   const t = J[lang];
   const p = t.pm;
@@ -95,11 +106,28 @@ export default function ModulView({
   const [bergilir, setBergilir] = useState(!!data.bergilir);
   const [tab, setTab] = useState("1");
   const [ubah, setUbah] = useState<number | null>(null);
-  const [tanya, setTanya] = useState(false);
+  // Leaving with unsaved changes asks first: back, or to a slot's drawer.
+  const [tanya, setTanya] = useState<null | (() => void)>(null);
   const [busy, setBusy] = useState(false);
   const diajar = data.diajar ?? {};
   const berubah = rows.filter((j) => JSON.stringify(draf[j.id]) !== JSON.stringify(awal[j.id]));
   useBelumSimpan(berubah.length > 0);
+  const pergi = (fn: () => void) => (berubah.length ? setTanya(() => fn) : fn());
+
+  // The drawer's Buka Per Modul: that slot, flashed like the Schedule's ?slot=
+  useEffect(() => {
+    if (!sorot) return;
+    const id = requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(
+        `.pmview [data-slot="${sorot.hari}-${sorot.slot}"]`,
+      );
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.dataset.fokus = "yes";
+      window.setTimeout(() => delete el.dataset.fokus, 3200);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [sorot]);
 
   const efektif = (j: JadwalRow, m: number, d: Draf = draf) => d[j.id]?.[m] ?? bawaanDari(j);
   const semua = (j: JadwalRow, d: Draf = draf) =>
@@ -238,16 +266,23 @@ export default function ModulView({
         <CaretRightIcon size={14} weight="bold" aria-hidden="true" className="btn__go" />
       </button>
     );
+  const tombolJadwal = (j: JadwalRow) =>
+    onJadwal && (
+      <button
+        type="button"
+        className="btn btn--ghost btn--sm"
+        onClick={() => pergi(() => onJadwal(j.hari, j.slot))}
+      >
+        {p.lihatJadwal}
+        <CaretRightIcon size={14} weight="bold" aria-hidden="true" className="btn__go" />
+      </button>
+    );
 
   const sedang = rows.find((j) => j.id === ubah) ?? null;
 
   return (
     <div className="jpage pmview">
-      <BackButton
-        lang={lang}
-        label={p.back}
-        onClick={() => (berubah.length ? setTanya(true) : onBack())}
-      />
+      <BackButton lang={lang} label={p.back} onClick={() => pergi(onBack)} />
       <div className="jpage__head">
         <div className="page-header__heading">
           <span className="page-header__eyebrow">{t.eyebrow}</span>
@@ -340,12 +375,16 @@ export default function ModulView({
               key={j.id}
               className="pmtable__row"
               role="row"
+              data-slot={`${j.hari}-${j.slot}`}
               data-intl={j.kelas === "internasional" ? "yes" : undefined}
             >
               <div role="rowheader" className="pmslot">
                 <b>{slotJudul(j)}</b>
                 {tanda(j)}
-                {tombolUbah(j)}
+                <span className="pmslot__acts">
+                  {tombolUbah(j)}
+                  {tombolJadwal(j)}
+                </span>
               </div>
               {MODUL_PASANGAN.map((m) => (
                 <div key={m} role="cell">
@@ -371,6 +410,7 @@ export default function ModulView({
               <section
                 key={j.id}
                 className="panel pmcard"
+                data-slot={`${j.hari}-${j.slot}`}
                 data-intl={j.kelas === "internasional" ? "yes" : undefined}
               >
                 <div className="pmslot">
@@ -378,7 +418,12 @@ export default function ModulView({
                   {tanda(j)}
                 </div>
                 {kursi(j, Number(tab))}
-                {boleh && <div className="pmcard__acts">{tombolUbah(j)}</div>}
+                {(boleh || onJadwal) && (
+                  <div className="pmcard__acts">
+                    {tombolJadwal(j)}
+                    {tombolUbah(j)}
+                  </div>
+                )}
               </section>
             ))}
           </div>
@@ -404,16 +449,18 @@ export default function ModulView({
       )}
 
       <Confirm
-        open={tanya}
-        onOpenChange={setTanya}
+        open={tanya !== null}
+        onOpenChange={(o) => !o && setTanya(null)}
         title={t.unsavedTitle}
         body={p.leaveBody}
         confirmLabel={t.discard}
         cancelLabel={t.stay}
         lang={lang}
         onConfirm={() => {
+          const lanjut = tanya;
+          setTanya(null);
           setDraf(awal);
-          onBack();
+          lanjut?.();
         }}
       />
     </div>
@@ -524,6 +571,7 @@ function SlotDialog({
                     options={opsi}
                     value={list(m)[g] ?? ""}
                     onChange={(v) => pasang(m, g, v)}
+                    disabled={diajar.includes(m)}
                   />
                   {lagi[m]?.[g] && <span className="hint pmdlg__lagi">{p.repeat}</span>}
                 </div>
