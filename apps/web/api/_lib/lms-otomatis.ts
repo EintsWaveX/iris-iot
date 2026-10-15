@@ -27,6 +27,7 @@ import {
 } from "../../src/lib/tp.js";
 import { LmsGalat, tugasKursus } from "./lms.js";
 import { buatTugas, tanggalTugas } from "./lms-web.js";
+import { pastikanBagianModul } from "./lms-isi.js";
 import {
   KUNCI_TP,
   bacaSet,
@@ -203,14 +204,22 @@ async function tugasOtomatis(
         const ok = await langkah(
           "tp_lms_tugas",
           { modul: m, kursus: k.label, langkah: "buat" },
-          () =>
-            buatTugas(web, k.id, {
-              nama: namaTugasLms(m),
-              buka: j.buka,
-              tutup: j.tutup,
-              deskripsi: htmlTugasLms(teksTugasLms(m, j.tutup, k.kelas === "inter" ? "en" : "id")),
-              tampil: true,
-            }),
+          async () => {
+            const inter = k.kelas === "inter";
+            const bagian = await pastikanBagianModul(web, token, k.id, m, inter);
+            return buatTugas(
+              web,
+              k.id,
+              {
+                nama: namaTugasLms(m),
+                buka: j.buka,
+                tutup: j.tutup,
+                deskripsi: htmlTugasLms(teksTugasLms(m, j.tutup, inter ? "en" : "id")),
+                tampil: true,
+              },
+              bagian.section,
+            );
+          },
         );
         if (ok) await catatTugas(db, token, k.id, m);
       } else if (ada && tanggal && !tanggalSama(ada, j)) {

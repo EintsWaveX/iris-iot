@@ -334,18 +334,18 @@ describe("the recorded assignment form", () => {
     expect(lama.get("name[customize]")).toBe("1");
   });
 
-  it("takes a section saved back to course/section.php as done", async () => {
+  it("takes a section form sent back to course/section.php as done", async () => {
     const pada = (lokasi: string) =>
       ({ kirimForm: async () => ({ status: 303, lokasi, teks: "" }) }) as never;
     await expect(
-      web.namaiBagian(pada("https://lms.example/course/section.php?id=77"), 77, "Modul 1"),
+      web.hapusBagian(pada("https://lms.example/course/section.php?id=77"), 77),
     ).resolves.toBeUndefined();
     await expect(
-      web.namaiBagian(pada("https://lms.example/course/view.php?id=4#section-1"), 77, "Modul 1"),
+      web.hapusBagian(pada("https://lms.example/course/view.php?id=4#section-1"), 77),
     ).resolves.toBeUndefined();
     await expect(
-      web.namaiBagian(pada("https://lms.example/login/index.php"), 77, "Modul 1"),
-    ).rejects.toMatchObject({ kode: "lms_bagian_ditolak" });
+      web.hapusBagian(pada("https://lms.example/login/index.php"), 77),
+    ).rejects.toMatchObject({ kode: "lms_hapus_gagal" });
   });
 
   it("reads the update form's saved values", () => {

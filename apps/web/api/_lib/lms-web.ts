@@ -266,6 +266,8 @@ const keMasuk = (r: JawabHalaman) =>
 export class WebLms {
   private jar: Map<string, string> | null = null;
   private segar = false;
+  /** the session's sesskey, read once from a course page */
+  private kunci: string | null = null;
 
   constructor(
     private token: string,
@@ -292,6 +294,7 @@ export class WebLms {
       throw new LmsGalat("lms_masuk_gagal", `autologin: HTTP ${r.status} ${r.lokasi ?? ""}`.trim());
     this.jar = jar;
     this.segar = true;
+    this.kunci = null;
     await this.simpan.tulis(header(jar));
   }
 
@@ -344,6 +347,51 @@ export class WebLms {
         if (e instanceof SesiBaru && coba === 0) continue;
         throw e;
       }
+    }
+  }
+
+  /** The session's sesskey, from the course page (which also starts a
+   *  new session when the stored one lapsed). */
+  async kunciSesi(kursus: number, baru = false): Promise<string> {
+    if (this.kunci && !baru) return this.kunci;
+    const r = await this.halaman(`/course/view.php?id=${kursus}`);
+    const k = r.status === 200 ? kunciSesi(r.teks) : null;
+    if (!k) throw new LmsGalat("lms_halaman", `no sesskey on course/view.php (HTTP ${r.status})`);
+    this.kunci = k;
+    return k;
+  }
+
+  /**
+   * One call to Moodle's own AJAX service (lib/ajax/service.php), the way
+   * the course page makes it. A lapsed session or sesskey answers JSON
+   * rather than a sign in redirect, so the key is read again once.
+   */
+  async ajax<T>(kursus: number, metode: string, args: Record<string, unknown>): Promise<T> {
+    for (let coba = 0; ; coba++) {
+      const kunci = await this.kunciSesi(kursus, coba > 0);
+      let r: JawabHalaman;
+      try {
+        r = await this.halaman(
+          `/lib/ajax/service.php?sesskey=${kunci}&info=${metode}`,
+          "POST",
+          JSON.stringify([{ index: 0, methodname: metode, args }]),
+        );
+      } catch (e) {
+        if (e instanceof SesiBaru && coba === 0) continue;
+        throw e;
+      }
+      let d: { error?: unknown; data?: T; exception?: { errorcode?: string; message?: string } }[];
+      try {
+        d = JSON.parse(r.teks);
+      } catch {
+        throw new LmsGalat("lms_halaman", `HTTP ${r.status} lib/ajax/service.php`);
+      }
+      const satu = Array.isArray(d) ? d[0] : (d as (typeof d)[number]);
+      if (!satu?.error) return satu?.data as T;
+      const kode = satu.exception?.errorcode ?? "";
+      if (coba === 0 && /servicerequireslogin|invalidsesskey|requireloginerror/.test(kode))
+        continue;
+      throw new LmsGalat("lms_ajax_ditolak", `${metode}: ${satu.exception?.message ?? kode}`);
     }
   }
 }
@@ -406,14 +454,16 @@ function hasilSimpan(r: JawabHalaman): void {
   );
 }
 
-/** A new assignment at the top of the course; its cmid. */
+/** A new assignment in a section (its number; 0 is the top of the
+ *  course); its cmid. */
 export async function buatTugas(
   web: WebLms,
   kursus: number,
   r: RencanaTugas,
+  bagian = 0,
 ): Promise<number | null> {
   const jawab = await web.kirimForm(
-    `/course/modedit.php?add=assign&type=&course=${kursus}&section=0&return=0&sr=0`,
+    `/course/modedit.php?add=assign&type=&course=${kursus}&section=${bagian}&return=0&sr=0`,
     /modedit\.php/,
     "/course/modedit.php",
     isianTugas(r),
@@ -459,8 +509,9 @@ export async function nyalakanUmpanBerkas(web: WebLms, cmid: number): Promise<vo
   hasilSimpan(jawab);
 }
 
-/** Through course/mod.php's own confirmation (Moodle may keep it in the recycle bin). */
-export async function hapusTugas(web: WebLms, cmid: number): Promise<void> {
+/** Any activity, through course/mod.php's own confirmation (Moodle may
+ *  keep it in the recycle bin). */
+export async function hapusIsi(web: WebLms, cmid: number): Promise<void> {
   const jawab = await web.kirimForm(
     `/course/mod.php?delete=${cmid}&sr=0`,
     /\/course\/mod\.php/,
@@ -470,6 +521,8 @@ export async function hapusTugas(web: WebLms, cmid: number): Promise<void> {
   if (!(jawab.status >= 300 && jawab.status < 400) || /mod\.php\?delete/.test(jawab.lokasi ?? ""))
     throw new LmsGalat("lms_hapus_gagal", `HTTP ${jawab.status} ${jawab.lokasi ?? ""}`.trim());
 }
+
+export const hapusTugas = hapusIsi;
 
 /* ============================================== the LMS menu (Phase 15) */
 
@@ -490,18 +543,35 @@ function kembaliKeKursus(r: JawabHalaman, kode: string): void {
   );
 }
 
-/** A course section's own name (Modul 1 · Bluetooth Low Energy). Both the
- *  4.x field and the older name[customize]/name[value] pair are set; the
- *  form keeps the one it has. */
-export async function namaiBagian(web: WebLms, bagian: number, nama: string): Promise<void> {
-  const jawab = await web.kirimForm(
-    `/course/editsection.php?id=${bagian}&sr=0`,
-    /editsection\.php/,
-    "/course/editsection.php",
-    { name: nama, usedefaultname: false, "name[customize]": true, "name[value]": nama },
-    "submitbutton",
-  );
-  kembaliKeKursus(jawab, "lms_bagian_ditolak");
+/** A course section's own name (Modul 1 · Bluetooth Low Energy), the way
+ *  the course page renames it in place. */
+export async function namaiBagian(
+  web: WebLms,
+  kursus: number,
+  bagian: number,
+  nama: string,
+): Promise<void> {
+  await web.ajax(kursus, "core_update_inplace_editable", {
+    component: "format_topics",
+    itemtype: "sectionname",
+    itemid: String(bagian),
+    value: nama,
+  });
+}
+
+/** An activity's name only, renamed in place like the course page does. */
+export async function namaiIsi(
+  web: WebLms,
+  kursus: number,
+  cmid: number,
+  nama: string,
+): Promise<void> {
+  await web.ajax(kursus, "core_update_inplace_editable", {
+    component: "core_course",
+    itemtype: "activityname",
+    itemid: String(cmid),
+    value: nama,
+  });
 }
 
 /** A URL activity in a section (a link to an IRIS page). The caller reads
@@ -584,4 +654,109 @@ export async function tanggalTugas(
     "submitbutton2",
   );
   hasilSimpan(jawab);
+}
+
+/* ================================= the course's sections (Phase 16) */
+
+/**
+ * Adds one section at the end of the course (the course page's own "Add
+ * section" link, insertsection=0). The caller reads the course again for
+ * its id.
+ */
+export async function tambahBagian(web: WebLms, kursus: number): Promise<void> {
+  for (let coba = 0; ; coba++) {
+    const kunci = await web.kunciSesi(kursus, coba > 0);
+    const r = await web.halaman(
+      `/course/changenumsections.php?courseid=${kursus}&insertsection=0&sesskey=${kunci}`,
+    );
+    // A stale sesskey answers an error page: read the key again once.
+    if (r.status === 200 && coba === 0) continue;
+    kembaliKeKursus(r, "lms_bagian_ditolak");
+    return;
+  }
+}
+
+/** A File activity in a section (its number) from a draft area holding one
+ *  file (unggahDraf); its cmid. It opens straight in the browser. */
+export async function buatBerkas(
+  web: WebLms,
+  kursus: number,
+  bagian: number,
+  b: { nama: string; draf: number; teks: string },
+): Promise<number | null> {
+  const jawab = await web.kirimForm(
+    `/course/modedit.php?add=resource&type=&course=${kursus}&section=${bagian}&return=0&sr=0`,
+    /modedit\.php/,
+    "/course/modedit.php",
+    {
+      name: b.nama,
+      "introeditor[text]": b.teks,
+      "introeditor[format]": "1",
+      files: String(b.draf),
+      display: "5",
+      showsize: true,
+      showtype: true,
+      visible: "1",
+      coursecontentnotification: false,
+    },
+    "submitbutton",
+  );
+  hasilSimpan(jawab);
+  const id = jawab.lokasi?.match(/mod\/resource\/view\.php\?id=(\d+)/)?.[1];
+  return id ? Number(id) : null;
+}
+
+/** The course editor's own state change (core_courseformat_update_course). */
+function ubahKursus(
+  web: WebLms,
+  kursus: number,
+  action: string,
+  ids: number[],
+  tujuan: { targetsectionid?: number; targetcmid?: number } = {},
+) {
+  return web.ajax<string>(kursus, "core_courseformat_update_course", {
+    action,
+    courseid: kursus,
+    ids,
+    ...tujuan,
+  });
+}
+
+/** Moves activities into a section (its id), at its end or before `sebelum`. */
+export function pindahIsi(
+  web: WebLms,
+  kursus: number,
+  cmids: number[],
+  bagian: number,
+  sebelum?: number,
+) {
+  return ubahKursus(web, kursus, "cm_move", cmids, {
+    targetsectionid: bagian,
+    ...(sebelum ? { targetcmid: sebelum } : {}),
+  });
+}
+
+/** Moves a section (its id) to just after another. */
+export function pindahBagian(web: WebLms, kursus: number, bagian: number, setelah: number) {
+  return ubahKursus(web, kursus, "section_move_after", [bagian], { targetsectionid: setelah });
+}
+
+/** Shows or hides a section (its id) for the students. */
+export function tampilBagian(web: WebLms, kursus: number, bagian: number, tampil: boolean) {
+  return ubahKursus(web, kursus, tampil ? "section_show" : "section_hide", [bagian]);
+}
+
+/**
+ * Deletes a section (its id) through editsection.php's own confirmation.
+ * Moodle deletes what the section holds too, so the caller checks that it
+ * is empty first.
+ */
+export async function hapusBagian(web: WebLms, bagian: number): Promise<void> {
+  const jawab = await web.kirimForm(
+    `/course/editsection.php?id=${bagian}&sr=0&delete=1`,
+    /editsection\.php/,
+    "/course/editsection.php",
+    {},
+  );
+  kembaliKeKursus(jawab, "lms_hapus_gagal");
 }

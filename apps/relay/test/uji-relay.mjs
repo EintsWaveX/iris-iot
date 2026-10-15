@@ -476,8 +476,11 @@ try {
   cek("the LMS route takes POST only", r.status === 405);
   r = await lms("/webservice/rest/server.php", { isi: "x".repeat(20 * 1024) });
   cek("a web service call over 16 KB is refused", r.status === 413);
-  r = await lms("/webservice/upload.php", { isi: "x".repeat(5 * 1024 * 1024) });
+  r = await lms("/webservice/upload.php", { isi: "x".repeat(9 * 1024 * 1024) });
   cek("a draft upload over its limit is refused", r.status === 413);
+  // Module 4's handbook chapter is 6.2 MB as base64 (Phase 16)
+  r = await lms("/webservice/upload.php", { isi: "x".repeat(6.5 * 1024 * 1024), tanda: "0".repeat(64) });
+  cek("a handbook chapter's upload is let through to the signature check", r.status === 403 && (await r.text()) === "tanda salah");
   r = await lms("/webservice/upload.php", { isi: "x".repeat(20 * 1024), tanda: "0".repeat(64) });
   cek("a draft upload past 16 KB is let through to the signature check", r.status === 403 && (await r.text()) === "tanda salah");
   // Web session calls: signed over the cookie; only the Teacher pages IRIS fills.
@@ -503,6 +506,12 @@ try {
   cek("a web call to the profile is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
   r = await lms("/course/modedit.php?update=1", { metode: "GET", isi: "" });
   cek("a TP page without a web session header is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  r = await lmsWeb("/lib/ajax/upload.php", { metode: "POST", isi: "[]" });
+  cek("another AJAX script is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  r = await lms("/lib/ajax/service.php?sesskey=x", { isi: "[]" });
+  cek("the AJAX service without a web session header is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  r = await lms("/course/changenumsections.php?courseid=1", { metode: "GET", isi: "" });
+  cek("adding a section without a web session header is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
 } finally {
   if (process.env.DEBUG_RELAY) {
     const q = await fetch(`${BASE}/cdn-cgi/local/explorer/api/local/observability/query`, {

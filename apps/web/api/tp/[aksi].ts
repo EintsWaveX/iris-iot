@@ -115,6 +115,7 @@ import {
   type PolaJendela,
 } from "../../src/lib/tp.js";
 import { buatTugas, hapusTugas, lampirTugas, ubahTugas } from "../_lib/lms-web.js";
+import { pastikanBagianModul } from "../_lib/lms-isi.js";
 import { otomatisNyala } from "../_lib/lms-menu.js";
 import {
   LMS_URL,
@@ -1372,7 +1373,9 @@ async function handleLmsTugas(req: ApiRequest, res: ApiResponse, s: SessionPaylo
     // The PDF goes to a draft area first; the form then names it.
     const draf = pdf && langkah !== "hapus" ? await unggahDraf(token, pdf.nama, pdf.isi) : 0;
     if (langkah === "buat") {
-      await buatTugas(web, kursusId, { ...rencana!, lampiran: draf || undefined });
+      // TP Modul m lives in Module m's section, made first when missing.
+      const bagian = await pastikanBagianModul(web, token, kursusId, m, k.kelas === "inter");
+      await buatTugas(web, kursusId, { ...rencana!, lampiran: draf || undefined }, bagian.section);
     } else if (langkah === "ubah") {
       await ubahTugas(web, ada!.cmid, { ...rencana!, lampiran: draf || undefined });
     } else if (langkah === "lampir") {

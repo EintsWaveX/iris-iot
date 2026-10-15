@@ -693,15 +693,19 @@ const LMS_JALAN_RE =
 /** The draft upload: its form body carries the file base64 (see Lms). */
 const LMS_UNGGAH = "/webservice/upload.php";
 /** The LMS pages IRIS fills as the Teacher: assignments and links
- *  (modedit, mod), a section's name, and the class's groups (Phase 15) */
+ *  (modedit, mod), a section's name, and the class's groups (Phase 15);
+ *  adding sections and the course editor's own AJAX calls (Phase 16) */
 const LMS_HALAMAN_RE =
-  /^\/(admin\/tool\/mobile\/autologin\.php|course\/(modedit|mod|view|editsection)\.php|group\/(group|members|index)\.php)$/;
+  /^\/(admin\/tool\/mobile\/autologin\.php|course\/(modedit|mod|view|editsection|changenumsections)\.php|group\/(group|members|index)\.php|lib\/ajax\/service\.php)$/;
+/** Moodle's AJAX service, which takes JSON */
+const LMS_AJAX = "/lib/ajax/service.php";
 /** A web service call's form body (the course list asks for the most) */
 const LMS_ISI_MAKS = 16 * 1024;
 /** An assignment form's body (its description included) */
 const LMS_HALAMAN_ISI_MAKS = 128 * 1024;
-/** The TP's PDF, base64, with the token (IRIS takes up to 3 MB) */
-const LMS_UNGGAH_MAKS = 4.5 * 1024 * 1024;
+/** A PDF, base64, with the token: the TP (up to 3 MB) or a module's
+ *  handbook chapter (Module 4 is 4.67 MB; the LMS takes 10 MB) */
+const LMS_UNGGAH_MAKS = 8 * 1024 * 1024;
 /** Only the app may ask for an autologin key; the LMS checks the agent. */
 const UA_APP = "Mozilla/5.0 (Linux; Android 14) MoodleMobile 4.5.0 (45001)";
 const UA_WEB = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IRIS-Penilaian";
@@ -874,9 +878,15 @@ export class Lms {
     const metode = req.headers.get("x-lms-metode") === "GET" ? "GET" : "POST";
     if (!url.startsWith(`${LMS_ASAL}/`)) return teks(403, "tujuan ditolak");
     const h = new Headers();
-    const unggah = new URL(url).pathname === LMS_UNGGAH;
+    const jalan = new URL(url).pathname;
+    const unggah = jalan === LMS_UNGGAH;
     if (metode === "POST" && !unggah)
-      h.set("content-type", "application/x-www-form-urlencoded");
+      h.set(
+        "content-type",
+        jalan === LMS_AJAX
+          ? "application/json"
+          : "application/x-www-form-urlencoded",
+      );
     const range = req.headers.get("x-lms-range");
     if (range) h.set("range", range);
     const isi = metode === "POST" ? await req.text() : undefined;

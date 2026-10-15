@@ -192,7 +192,11 @@ export async function keHalaman(
   try {
     if (!relay) {
       const headers: Record<string, string> = { "user-agent": UA_WEB };
-      if (o.metode === "POST") headers["content-type"] = "application/x-www-form-urlencoded";
+      // Moodle's AJAX service takes JSON, the pages a form.
+      if (o.metode === "POST")
+        headers["content-type"] = jalan.startsWith("/lib/ajax/")
+          ? "application/json"
+          : "application/x-www-form-urlencoded";
       if (o.kue) headers.cookie = o.kue;
       r = await fetch(`${LMS_URL}${jalan}`, {
         method: o.metode,
