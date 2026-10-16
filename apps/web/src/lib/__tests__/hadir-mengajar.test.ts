@@ -126,6 +126,7 @@ describe("bacaPotongan", () => {
   it("falls back on bad values and keeps good ones", () => {
     expect(bacaPotongan({ perMenit: -1 })).toEqual(POTONGAN_AWAL);
     expect(bacaPotongan(null)).toEqual(POTONGAN_AWAL);
+    expect(bacaPotongan({ perMenit: 2000, maks: 0.5 })).toEqual({ perMenit: 2000, maks: 10 });
     expect(bacaPotongan({ perMenit: 2500, maks: 15 })).toEqual({ perMenit: 2500, maks: 15 });
   });
 });

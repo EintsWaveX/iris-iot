@@ -5,9 +5,9 @@
  * minutes), and never checking in is Mangkir; Izin is never cut.
  * Browser safe: pure functions, no database, no clock of its own.
  */
-import { SESI_CAP_MENIT, SESI_MIN_MENIT, SLOT_MULAI } from "./jadwal";
-import { hariDariTanggal } from "./jadwal-parser";
-import { jamDariMenit, menitDariJam } from "./sesi-mulai";
+import { SESI_CAP_MENIT, SESI_MIN_MENIT, SLOT_MULAI } from "./jadwal.js";
+import { hariDariTanggal } from "./jadwal-parser.js";
+import { jamDariMenit, menitDariJam } from "./sesi-mulai.js";
 
 /** Minutes counted for a Mangkir Mengajar check-in and the latest a Telat can be. */
 export const TELAT_MAKS = 10;
@@ -23,9 +23,11 @@ export type StatusLive = StatusHadir | "belum" | "berjalan" | "lewat" | "lepas";
 export function bacaPotongan(v: unknown): Potongan {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
   const ok = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n > 0;
+  // The cap is whole minutes: floor first, then check it is still above zero.
+  const maks = typeof o.maks === "number" ? Math.floor(o.maks) : NaN;
   return {
     perMenit: ok(o.perMenit) ? o.perMenit : POTONGAN_AWAL.perMenit,
-    maks: ok(o.maks) ? Math.floor(o.maks) : POTONGAN_AWAL.maks,
+    maks: ok(maks) ? maks : POTONGAN_AWAL.maks,
   };
 }
 
