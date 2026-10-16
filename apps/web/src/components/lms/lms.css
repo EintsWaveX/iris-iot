@@ -759,7 +759,7 @@
 .lms-mini {
   display: grid;
   gap: 10px 16px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
 }
 .lms-mini > div {
@@ -775,6 +775,24 @@
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   margin: 0;
+}
+/* The sync row spans the card: its timer, then Sinkron Sekarang at the
+   right edge; the three counts share the row under it. */
+.lms-mini__sinkron {
+  grid-column: 1 / -1;
+}
+.lms-mini__sinkron dd {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-height: 32px;
+}
+.lms-mini__sinkron .sinkbar {
+  flex: 1;
+}
+.lms-mini__sinkron .btn {
+  flex: none;
+  margin-left: auto;
 }
 
 /* Files arriving: each new row eases in from just above */

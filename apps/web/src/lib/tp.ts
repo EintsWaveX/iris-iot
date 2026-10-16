@@ -471,3 +471,21 @@ export function pisahJawaban(
 /** How often IRIS reads the LMS while a TP window is open (2026-10-14: the
  *  relay's minute timer, the server's heartbeat and opened pages). */
 export const JEDA_SINKRON_MS = 60_000;
+/**
+ * The relay's timer fires on each whole minute and syncs once in each clock
+ * minute (2026-10-16): the gap it passes skips only a run that already
+ * ended in this minute, so a press at :57 still leaves the run at :00.
+ */
+export function jedaRelay(now = Date.now()): number {
+  return now % 60_000;
+}
+
+/**
+ * When the relay's timer next reads the LMS: the whole minute after the
+ * last run (the first whole minute 30 minutes on while it fails), so "next
+ * sync" turns with a countdown to a whole minute.
+ */
+export function sinkronBerikut(terakhir: number, gagal = false): number {
+  if (gagal) return Math.ceil((terakhir + 30 * 60_000) / 60_000) * 60_000;
+  return Math.floor(terakhir / 60_000) * 60_000 + 60_000;
+}

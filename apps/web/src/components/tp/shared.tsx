@@ -6,7 +6,7 @@
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { CheckIcon, ClockIcon, CloudCheckIcon, HourglassIcon, XIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
-import { getJson, localeOf, useTick } from "../../lib/app";
+import { getJson, localeOf, useDetik, useTick } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import {
@@ -255,9 +255,11 @@ const dua = (n: number) => String(n).padStart(2, "0");
 /** A countdown to an instant as digit tiles, each digit in its own cell:
  *  the days while a day or more is left, then HH:MM:SS. */
 export function Countdown({ to, lang }: { to: string; lang: Lang }) {
-  useTick(1000);
+  // The page's shared second, so it turns on the clock's own second and
+  // together with the sync timer beside it.
+  const now = useDetik();
   const t = TPS[lang];
-  const s = Math.max(0, Math.floor((Date.parse(to) - Date.now()) / 1000));
+  const s = Math.max(0, Math.ceil((Date.parse(to) - now) / 1000));
   const d = Math.floor(s / 86400);
   const jms = [Math.floor((s % 86400) / 3600), Math.floor((s % 3600) / 60), s % 60];
   const kelompok = (v: string, l: string, cls = "") => (

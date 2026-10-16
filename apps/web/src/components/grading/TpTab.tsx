@@ -459,7 +459,9 @@ function SyncStrip({
               t.sinkronOkHint(t.belumSinkron)
             )}
           </span>
-          {data.keadaan === "buka" && <SinkronBar terakhir={s.terakhir} lang={lang} ringkas />}
+          {data.keadaan === "buka" && (
+            <SinkronBar terakhir={s.terakhir} lang={lang} ringkas onLewat={refresh} />
+          )}
         </div>
         <div className="tpsync__count">
           <b className="mono">

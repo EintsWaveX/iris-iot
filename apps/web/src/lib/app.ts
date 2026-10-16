@@ -370,16 +370,27 @@ export function sejak(iso: string | null, lang: Lang, now = Date.now()): string 
 }
 
 /* One shared second for every "ago" label on the page (one timer, not one
-   per label); the snapshot is the whole second, so it is stable. */
+   per label); the snapshot is the whole second, so it is stable. It fires
+   just past each whole second of the clock, so every countdown on the page
+   turns together and on the second itself. */
 const detikPendengar = new Set<() => void>();
-let detikTimer: ReturnType<typeof setInterval> | undefined;
+let detikTimer: ReturnType<typeof setTimeout> | undefined;
+function detikBerikut() {
+  detikTimer = setTimeout(
+    () => {
+      detikPendengar.forEach((f) => f());
+      detikBerikut();
+    },
+    1000 - (Date.now() % 1000) + 5,
+  );
+}
 function ikutDetik(cb: () => void) {
   detikPendengar.add(cb);
-  detikTimer ??= setInterval(() => detikPendengar.forEach((f) => f()), 1000);
+  if (!detikTimer) detikBerikut();
   return () => {
     detikPendengar.delete(cb);
     if (!detikPendengar.size && detikTimer) {
-      clearInterval(detikTimer);
+      clearTimeout(detikTimer);
       detikTimer = undefined;
     }
   };

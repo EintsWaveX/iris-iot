@@ -12,7 +12,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { CheckCircleIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { Switch } from "../ui/Controls";
-import { getJson, href, postJson, useTick } from "../../lib/app";
+import { getJson, href, postJson, useDetik } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import { TPS } from "../tp/tpStrings";
 import type { Lang } from "../../lib/kelas";
@@ -330,11 +330,10 @@ function Kini({
   onJejak: () => void;
 }) {
   const t = LS[lang];
-  useTick(1000);
   const j = d.jendela;
   // The phase from the clock, so the card turns the second the window
   // opens or closes instead of on the next read; then it reads anew.
-  const now = Date.now();
+  const now = useDetik();
   const k: Ringkas["keadaan"] = !j
     ? d.keadaan
     : now < Date.parse(j.buka)
@@ -362,6 +361,23 @@ function Kini({
   });
   const persen = d.peserta ? Math.round((d.masuk / d.peserta) * 100) : 0;
   const belum = Math.max(0, d.peserta - d.masuk);
+  // Sinkron Sekarang, as on Penilaian › TP: reads the courses again too, so
+  // a TP assignment made a minute ago is found.
+  const tp = TPS[lang];
+  const [menyinkron, setMenyinkron] = useState(false);
+  const sinkron = async () => {
+    setMenyinkron(true);
+    const r = await postJson<{ ok: boolean; baru: number; diperbarui: number }>("/api/tp/sinkron", {
+      modul: d.modul,
+      paksa: true,
+    }).catch(() => ({ ok: false, baru: 0, diperbarui: 0 }));
+    setMenyinkron(false);
+    window.Toast?.show(
+      r.ok ? tp.sinkronHasil(r.baru, r.diperbarui) : tp.gagal,
+      r.ok ? "ok" : "warn",
+    );
+    onFlip();
+  };
   return (
     <section className="panel lms-now" data-fase={k ?? "kosong"}>
       <div className="lms-now__main">
@@ -431,13 +447,23 @@ function Kini({
           </span>
         </div>
         <dl className="lms-mini">
-          <div>
+          <div className="lms-mini__sinkron">
             <dt>{t.sinkronBerikut}</dt>
             <dd>
-              {k === "buka" && d.sinkron.terakhir ? (
-                <SinkronBar terakhir={d.sinkron.terakhir} lang={lang} ringkas />
+              {k === "buka" && d.sinkron.terakhir && d.sinkron.hasil !== "gagal" ? (
+                <SinkronBar terakhir={d.sinkron.terakhir} lang={lang} ringkas onLewat={onFlip} />
               ) : (
                 "·"
+              )}
+              {d.sambungan.ada && (
+                <button
+                  type="button"
+                  className="btn btn--sm"
+                  disabled={menyinkron}
+                  onClick={() => void sinkron()}
+                >
+                  {menyinkron ? tp.menyinkron : tp.sinkronSekarang}
+                </button>
               )}
             </dd>
           </div>
