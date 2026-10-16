@@ -1,0 +1,189 @@
+/*
+ * HadirNotice.tsx (Phase 18): the attendance banner in the alert rail. It
+ * rides the shared .offline.banner look (sticky under the nav) and adds the
+ * big line, the countdown, the ten late cells and the How It Counts rows.
+ * Motion: the banner fades in and rises 6px in 220ms; the countdown, the
+ * cells and the amounts change every second and never animate. Reduced
+ * motion keeps only the fade.
+ */
+.hadir {
+  --tone: var(--accent);
+  box-shadow: inset 3px 0 0 var(--tone);
+  justify-content: space-between;
+  animation: hadir-ban-in 220ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.hadir.banner--warn {
+  --tone: var(--warn);
+}
+
+.hadir.banner--danger {
+  --tone: var(--danger);
+}
+
+.hadir.banner--ok {
+  --tone: var(--ok);
+}
+
+.hadir--violet {
+  --tone: var(--violet);
+  background: var(--violet-soft);
+  border-color: color-mix(in srgb, var(--violet) 55%, transparent);
+}
+
+@keyframes hadir-ban-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hadir {
+    animation-name: hadir-ban-fade;
+  }
+
+  @keyframes hadir-ban-fade {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+.hadir__text {
+  display: grid;
+  flex: 1 1 420px;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hadir__big {
+  font: 600 1.12rem/1.25 var(--font-display, var(--font-body));
+}
+
+.hadir__big b {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.hadir__facts {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.hadir__acts {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.hadir__count {
+  color: var(--tone);
+  font: 700 1.6rem/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  min-width: 5.2ch;
+}
+
+.hadir__meter {
+  display: inline-grid;
+  gap: 3px;
+  grid-template-columns: repeat(10, 10px);
+}
+
+.hadir__meter i {
+  background: var(--hairline);
+  border-radius: 3px;
+  height: 14px;
+}
+
+.hadir__meter i[data-on] {
+  background: var(--warn);
+}
+
+.hadir.banner--danger .hadir__meter i[data-on] {
+  background: var(--danger);
+}
+
+.hadir__pay {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.hadir__pay[data-tone="warn"] {
+  color: var(--warn);
+}
+
+.hadir__pay[data-tone="danger"] {
+  color: var(--danger);
+}
+
+.hadir__pay[data-tone="ok"] {
+  color: var(--ok);
+}
+
+/* A phone: the buttons take full rows under the text */
+@media (max-width: 639px) {
+  .hadir__acts {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .hadir__acts > .btn {
+    flex: 1 1 100%;
+  }
+
+  .hadir__acts > .btn--ghost {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .alertrail .hadir .hadir__big {
+    font-size: 1rem;
+  }
+}
+
+/* How It Counts */
+.hadir-rule__panel {
+  max-width: min(380px, calc(100vw - 32px));
+}
+
+.hadir-rule {
+  display: grid;
+  gap: 2px;
+  padding: 4px;
+}
+
+.hadir-rule__row {
+  align-items: baseline;
+  background: var(--surface-2);
+  border-left: 3px solid var(--ok);
+  border-radius: var(--radius-sm, 6px);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  padding: 8px 10px;
+}
+
+.hadir-rule__row[data-tone="warn"] {
+  border-left-color: var(--warn);
+}
+
+.hadir-rule__row[data-tone="danger"] {
+  border-left-color: var(--danger);
+}
+
+.hadir-rule__row[data-tone="violet"] {
+  border-left-color: var(--violet);
+}
+
+.hadir-rule__row span {
+  color: var(--text-muted);
+}
+
+.hadir-rule .hint {
+  padding: 6px 10px 2px;
+}

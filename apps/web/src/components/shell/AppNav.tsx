@@ -78,6 +78,7 @@ import IdentityWatch from "./IdentityWatch";
 import TotNotice, { useTotAktif } from "./TotNotice";
 import LiveNotice, { LiveStatus } from "./LiveNotice";
 import LabAlert from "./LabAlert";
+import HadirNotice from "./HadirNotice";
 import AlertRail from "./AlertRail";
 import AsistenCommands from "./AsistenCommands";
 import "./AppNav.css";
@@ -789,6 +790,7 @@ export default function AppNav({
       {asistenBar && now.data && <AsistenMiniBar lang={lang} s={now.data} />}
       <AlertRail lang={lang}>
         <OfflineNotice lang={lang} />
+        {me?.role === "asisten" && !pro && <HadirNotice lang={lang} me={me} />}
         {me?.role === "asisten" && !pro && (
           <LabAlert lang={lang} me={me} sesiBerjalan={!!now.data} />
         )}
