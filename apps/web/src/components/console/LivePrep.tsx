@@ -27,6 +27,7 @@ import {
 } from "@dnd-kit/core";
 import DragLayer from "../ui/DragLayer";
 import {
+  CaretRightIcon,
   DotsSixVerticalIcon,
   HandHeartIcon,
   UserIcon,
@@ -42,6 +43,8 @@ import { kelompokLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import { AssistantPicker, usePairing } from "./PrepView";
+import HadirTrack, { StatusPill, bayarBaris, type HadirSlot } from "./HadirTrack";
+import { GeserJam, UbahStatus } from "./HadirDialogs";
 import type { Penugasan, SesiRunning } from "./types";
 
 type Jenis = "tetap" | "pengganti" | "sukarela" | "izin";
@@ -80,6 +83,8 @@ interface Hadir {
   kode?: string;
   mengajar: Mengajar[];
   kelompok: Kelompok[];
+  /** Phase 18: each Asisten's standing against the slot's clock; null for TOT. */
+  hadir?: HadirSlot | null;
 }
 
 const KIND: Record<Jenis, { tone?: string; icon: typeof UserIcon }> = {
@@ -95,6 +100,7 @@ export default function LivePrep({
   sesi,
   assign,
   meNim,
+  hakPenuh,
   onChanged,
   onOpen,
 }: {
@@ -103,6 +109,8 @@ export default function LivePrep({
   sesi: SesiRunning;
   assign: Penugasan | null;
   meNim: string;
+  /** The full right: may change their own status when PJ. */
+  hakPenuh: boolean;
   onChanged: () => void;
   /** Opens one of the full Preparation tabs. */
   onOpen: (tab: "akses" | "slides") => void;
@@ -199,14 +207,61 @@ export default function LivePrep({
   }
 
   const mengajar = data?.mengajar ?? [];
+  const hd = data?.hadir ?? null;
+  const baris = new Map((hd?.baris ?? []).map((b) => [b.nim, b]));
+  const [geserBuka, setGeserBuka] = useState(false);
+  const [ubahRow, setUbahRow] = useState<string | null>(null);
+  const h = l.hd;
+
+  /** A PJ action on the slot; true when it was saved. */
+  async function pj(body: Record<string, unknown>, ok: string): Promise<boolean> {
+    try {
+      const r = await postJson<{ ok: boolean; kode?: string }>("/api/session/hadir", {
+        ...body,
+        kunci: hd?.kunci,
+      });
+      if (!r.ok) {
+        window.Toast?.show(pesan(t, r.kode), "danger");
+        return false;
+      }
+      window.Toast?.show(ok, "ok");
+      poll.refresh();
+      onChanged();
+      return true;
+    } catch {
+      window.Toast?.show(t.fail, "danger");
+      return false;
+    }
+  }
+  const kodeDari = (nim: string) => mengajar.find((m) => m.nim === nim)?.kode ?? nim;
+  const jamBase = hd ? jamMenit(hd.base) : "";
+  const jamNormal = hd?.geser?.dari ?? jamBase;
 
   return (
     <div className="stack liveprep">
       <section className="panel">
         <div className="panel__head">
-          <h2 className="panel__title">{l.teach}</h2>
-          <span className="hint">{l.teachHint}</span>
+          <div className="stack" style={{ gap: 2 }}>
+            <h2 className="panel__title">{l.teach}</h2>
+            <span className="hint">{l.teachHint}</span>
+          </div>
+          {hd && (
+            <span className="row teachhead">
+              {hd.pj && (
+                <span className="teachpj">
+                  <span className="field__label">{h.pj}</span>
+                  <b>{kodeDari(hd.pj)}</b>
+                </span>
+              )}
+              {hd.bolehPj && (
+                <button type="button" className="btn btn--sm" onClick={() => setGeserBuka(true)}>
+                  {hd.geser ? h.geserUbah : h.geser}
+                </button>
+              )}
+            </span>
+          )}
         </div>
+        {hd && <HadirTrack h={h} hadir={hd} />}
         {!data ? (
           <span className="skeleton" style={{ height: 120 }} />
         ) : mengajar.length === 0 ? (
@@ -217,6 +272,8 @@ export default function LivePrep({
               const k = KIND[m.jenis];
               const Ic = k.icon;
               const menunggu = m.jenis === "sukarela" && m.status === "diminta";
+              const b = baris.get(m.nim);
+              const bayar = b ? bayarBaris(h, b) : null;
               return (
                 <div key={m.nim} className="teachrow" data-wait={menunggu ? "yes" : undefined}>
                   <span className={`pill${k.tone ? ` pill--${k.tone}` : ""}`}>
@@ -239,7 +296,8 @@ export default function LivePrep({
                   </span>
                   {menunggu ? (
                     <>
-                      <span className="pill pill--warn">{l.pending}</span>
+                      <span />
+                      <span className="pill pill--warn teachrow__st">{l.pending}</span>
                       <span className="row teachrow__act">
                         <button
                           type="button"
@@ -259,11 +317,32 @@ export default function LivePrep({
                     </>
                   ) : (
                     <>
-                      <span className="hint num">
-                        {m.hadirPada ? l.here(jamMenit(m.hadirPada)) : l.absent}
+                      <span className="stack teachrow__time" style={{ gap: 0 }}>
+                        <span className="hint num">
+                          {m.hadirPada
+                            ? l.here(jamMenit(m.hadirPada))
+                            : !b
+                              ? l.absent
+                              : m.jenis === "izin" || b.status === "izin"
+                                ? ""
+                                : h.notYet}
+                        </span>
+                        {b?.ubah?.alasan && (
+                          <span className="hint">{h.changedBy(b.ubah.alasan)}</span>
+                        )}
                       </span>
+                      {b && b.status !== "lepas" ? (
+                        <span className="stack teachrow__st" style={{ gap: 2 }}>
+                          <StatusPill h={h} s={b.status} menit={b.menit} />
+                          <span className="hadirpay" data-tone={bayar?.tone || undefined}>
+                            {bayar?.tx}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="teachrow__st" />
+                      )}
                       <span className="row teachrow__act">
-                        {!m.hadirPada && m.jenis !== "izin" && (
+                        {hd?.bolehPj && !m.hadirPada && m.jenis !== "izin" && (
                           <button
                             type="button"
                             className="btn btn--sm btn--ghost"
@@ -274,6 +353,23 @@ export default function LivePrep({
                             {l.mark}
                           </button>
                         )}
+                        {hd?.bolehPj && b && (
+                          <button
+                            type="button"
+                            className="btn btn--sm btn--ghost"
+                            disabled={m.nim === meNim && !hakPenuh}
+                            title={m.nim === meNim && !hakPenuh ? h.ubahSendiri : undefined}
+                            onClick={() => setUbahRow(m.nim)}
+                          >
+                            {h.ubah}
+                            <CaretRightIcon
+                              size={16}
+                              weight="bold"
+                              className="btn__go"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        )}
                       </span>
                     </>
                   )}
@@ -282,7 +378,71 @@ export default function LivePrep({
             })}
           </div>
         )}
+        {hd?.ambilAlih.map((a) => {
+          const kode = kodeDari(a.nim);
+          return (
+            <div key={`${a.nim}:${a.kelompok ?? ""}`} className="banner banner--warn hadiraa">
+              <span className="stack grow" style={{ gap: 2 }}>
+                <b>{h.aaTitle(kode, a.kelompok, kodeDari(a.oleh))}</b>
+                <span>{h.aaBody(kode)}</span>
+              </span>
+              {hd.bolehPj ? (
+                <span className="row hadiraa__acts">
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--ghost"
+                    onClick={() => void pj({ aksi: "aa", nim: a.nim, izin: false }, h.aaKept(kode))}
+                  >
+                    {h.aaKeep}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--primary"
+                    onClick={() =>
+                      void pj({ aksi: "aa", nim: a.nim, izin: true }, h.aaMarked(kode))
+                    }
+                  >
+                    {h.aaIzin}
+                  </button>
+                </span>
+              ) : (
+                <span className="hint">{h.aaWait}</span>
+              )}
+            </div>
+          );
+        })}
       </section>
+
+      {hd && (
+        <>
+          <GeserJam
+            t={t}
+            lang={lang}
+            open={geserBuka}
+            onOpenChange={setGeserBuka}
+            normal={jamNormal}
+            sekarang={jamBase}
+            alasanAwal={hd.geser?.alasan ?? ""}
+            onSave={(jam, alasan) =>
+              pj({ aksi: "geser", jam, alasan }, jam ? h.gDone(jam) : h.gBackDone(jamNormal))
+            }
+          />
+          <UbahStatus
+            t={t}
+            lang={lang}
+            row={ubahRow ? (baris.get(ubahRow) ?? null) : null}
+            base={hd.base}
+            sesiLabel={sesi.slot ? h.uSesi(sesi.slot) : ""}
+            onOpenChange={(o) => !o && setUbahRow(null)}
+            onSave={(body) =>
+              pj(
+                { aksi: "status", nim: ubahRow, ...body },
+                h.uDone(baris.get(ubahRow ?? "")?.kode ?? ""),
+              )
+            }
+          />
+        </>
+      )}
 
       <div className="liveprep__bar">
         <span className="pill pill--ok">{l.count(hadir, semua.length)}</span>

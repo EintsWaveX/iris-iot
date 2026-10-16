@@ -74,7 +74,7 @@ const mmss = (ms: number) => {
 };
 
 /** The five rows of How It Counts, for one base clock */
-function Aturan({ lang, base, jumat }: { lang: Lang; base: number; jumat: boolean }) {
+export function Aturan({ lang, base, jumat }: { lang: Lang; base: number; jumat: boolean }) {
   const t = T[lang];
   const tarif = rp(POTONGAN_AWAL.perMenit);
   return (

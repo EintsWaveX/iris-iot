@@ -3299,3 +3299,276 @@ button.lib__name {
 .pinedit__actions--one {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* Phase 18: Yang Mengajar Slot Ini, statuses and the PJ's controls. */
+.teachhead {
+  align-items: center;
+  gap: 10px;
+}
+
+.teachpj {
+  align-items: baseline;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill, 999px);
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px 12px;
+}
+
+.teachrows {
+  grid-template-columns: max-content minmax(0, 1.6fr) minmax(0, 0.9fr) minmax(0, 1.3fr) max-content;
+}
+
+.teachrow__st {
+  justify-self: start;
+  min-width: 0;
+}
+
+.hadirst {
+  justify-self: start;
+}
+
+.hadirpay {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.hadirpay[data-tone="ok"] {
+  color: var(--ok);
+}
+
+.hadirpay[data-tone="warn"] {
+  color: var(--warn);
+}
+
+.hadirpay[data-tone="danger"] {
+  color: var(--danger);
+}
+
+.hadiraa {
+  align-items: center;
+  margin-top: var(--space-3);
+}
+
+.hadiraa__acts {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* The track: on time, ten paid minutes, past the limit */
+.hadirtrack {
+  display: grid;
+  gap: 6px;
+  margin: var(--space-3) 0;
+}
+
+.hadirtrack__bar {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  height: 34px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hadirtrack__z {
+  bottom: 0;
+  display: grid;
+  position: absolute;
+  top: 0;
+}
+
+.hadirtrack__z[data-z="tepat"] {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  left: 0;
+}
+
+.hadirtrack__z[data-z="telat"] {
+  gap: 2px;
+  grid-template-columns: repeat(10, 1fr);
+  padding: 0 1px;
+}
+
+.hadirtrack__z[data-z="telat"] b {
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+}
+
+.hadirtrack__z[data-z="telat"] b[data-on] {
+  background: color-mix(in srgb, var(--warn) 34%, transparent);
+}
+
+.hadirtrack__z[data-z="lewat"] {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+}
+
+.hadirtrack__dot {
+  background: var(--surface-4);
+  border: 1px solid var(--ok);
+  border-radius: 999px;
+  color: var(--text);
+  font: 700 0.68rem/1.2 var(--font-mono, monospace);
+  padding: 2px 6px;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.hadirtrack__dot[data-s="telat"] {
+  border-color: var(--warn);
+}
+
+.hadirtrack__dot[data-s="mm"] {
+  border-color: var(--danger);
+}
+
+/* One 2px line moved once a second */
+.hadirtrack__now {
+  background: var(--accent-bright, var(--accent));
+  bottom: 0;
+  box-shadow: 0 0 10px var(--accent-glow);
+  margin-left: -1px;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transition: left 1s linear;
+  width: 2px;
+}
+
+.hadirtrack__ticks {
+  height: 16px;
+  position: relative;
+}
+
+.hadirtrack__ticks span {
+  color: var(--text-faint);
+  font-size: 0.74rem;
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.hadirtrack__legend {
+  color: var(--text-faint);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  gap: 4px 16px;
+}
+
+.hadirtrack__legend span {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.hadirtrack__legend span::before {
+  background: color-mix(in srgb, var(--ok) 40%, transparent);
+  border-radius: 3px;
+  content: "";
+  height: 10px;
+  width: 10px;
+}
+
+.hadirtrack__legend span[data-z="telat"]::before {
+  background: color-mix(in srgb, var(--warn) 50%, transparent);
+}
+
+.hadirtrack__legend span[data-z="lewat"]::before {
+  background: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+/* Geser Jam Sesi and Ubah Status */
+.hadirdlg__two {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.hadirdlg__was {
+  align-items: center;
+  border: 1px dashed var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--text-faint);
+  display: flex;
+  min-height: 44px;
+  padding: 0 14px;
+  text-decoration: line-through;
+}
+
+.hadirdlg__line {
+  align-items: center;
+  border-top: 1px solid var(--hairline-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.hadiropts {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hadiropt {
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 12px;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hadiropt:hover {
+    border-color: var(--hairline-strong);
+  }
+}
+
+.hadiropt[aria-checked="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.hadiropt__dot {
+  border: 2px solid var(--hairline-strong);
+  border-radius: 50%;
+  flex: none;
+  height: 18px;
+  width: 18px;
+}
+
+.hadiropt[aria-checked="true"] .hadiropt__dot {
+  border-color: var(--accent);
+  box-shadow:
+    inset 0 0 0 4px var(--surface-2),
+    inset 0 0 0 9px var(--accent);
+}
+
+@media (max-width: 639px) {
+  .teachrows {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .teachrow > .teachrow__time,
+  .teachrow > .teachrow__st {
+    grid-column: 2;
+  }
+
+  .hadiropts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hadirtrack__now {
+    transition: none;
+  }
+}
