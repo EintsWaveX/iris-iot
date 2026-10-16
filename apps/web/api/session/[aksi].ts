@@ -44,7 +44,7 @@ import { bisaJawab, handlePanggil, panggilanTerbuka } from "../_lib/panggil.js";
 import { handlePerburuan } from "../_lib/perburuan-api.js";
 import { bacaPerburuanSesi, handlePerburuanPost, tutupPerburuan } from "../_lib/perburuan-sesi.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
-import { cekHak } from "../_lib/hak.js";
+import { cekHak, muatOrang } from "../_lib/hak.js";
 import { handleTimGet, handleTimJejak, handleTimPost } from "../_lib/tim.js";
 import { handleBerandaGet, handleJendelaPost } from "../_lib/beranda.js";
 import { handleBriefGet, handleBriefPost } from "../_lib/brief.js";
@@ -106,7 +106,14 @@ import {
   handleHadirPost,
   kembalikanPindahan,
 } from "../_lib/sesi-hadir.js";
-import { handleHadirkuGet, handleHadirkuPost } from "../_lib/hadir-mengajar.js";
+import {
+  bolehPj,
+  handleHadirkuGet,
+  handleHadirkuPost,
+  kunciDariSesi,
+  muatKonteks,
+  pjCtx,
+} from "../_lib/hadir-mengajar.js";
 import { nilaiOrNull } from "../../src/lib/server-lib.js";
 import { tpDariPenilaian } from "../_lib/tp.js";
 import {
@@ -946,6 +953,20 @@ const NILAI_KOMPONEN_SET: ReadonlySet<string> = new Set(NILAI_KOMPONEN);
 const SKOR_MIN = 0;
 const SKOR_MAX = 100;
 
+/** May this Asisten move an ended session's scoring (its PJ, or the full Pair right)? */
+async function bolehAlihkan(
+  db: ReturnType<typeof getDb>,
+  nim: string,
+  s: { id: number; tanggal: string; slot: number | null; jenis: string | null; status: string },
+): Promise<boolean> {
+  if (s.status !== "selesai" || s.jenis === "tot") return false;
+  const orang = await muatOrang(nim);
+  if (!orang) return false;
+  const kunci = await kunciDariSesi(db, s);
+  const c = kunci ? await muatKonteks(db, kunci) : null;
+  return c ? bolehPj(orang, pjCtx(c)) : bolehPj(orang, { pj: null });
+}
+
 /**
  * GET /api/session/nilai?sesiId= (Stage 12) — the grading tab's data source.
  * Keyed by sesiId (an explicit, given session), not "the currently running
@@ -955,7 +976,7 @@ const SKOR_MAX = 100;
  * against the way praktikan cookies need one -- the id in the query string
  * IS the whole address, nothing implicit to go stale.
  */
-async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
+async function handleNilaiGet(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const sesiId = Number(req.query.sesiId);
   if (!Number.isInteger(sesiId) || sesiId <= 0) {
     res.status(200).json({ ok: false, kode: "format_salah" });
@@ -1065,6 +1086,9 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse) {
     kelompok: daftarKelompok,
     pemilik,
     terkirim: await daftarKirim(db, sesiId),
+    // Phase 18: the PJ of an ended session may hand a group's scoring to
+    // another Asisten (Alihkan Penilaian), also with the full Pair right.
+    bolehAlih: await bolehAlihkan(db, session.nim, running),
     // Phase 13: whose TP comes from TP grading (read only here).
     tpDari: await tpDariPenilaian(db, sesiId),
     server: new Date().toISOString(),
@@ -1919,7 +1943,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "nilai") {
     if (req.method === "POST") return handleNilaiPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
-    return handleNilaiGet(req, res);
+    return handleNilaiGet(req, res, session);
   }
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });

@@ -28,6 +28,7 @@ import type { StatusLive } from "../../lib/hadir-mengajar";
 import type { Lang } from "../../lib/kelas";
 import Pill from "../ui/Pill";
 import Popover from "../ui/Popover";
+import NilaiBanner, { type NilaiData } from "./NilaiBanner";
 import { T } from "./hadirStrings";
 import "./HadirNotice.css";
 
@@ -61,11 +62,13 @@ interface SlotData {
 interface Hadirku {
   ok: boolean;
   slot: SlotData | null;
+  /** Lupa Input Nilai: the score reminder, shown when no attendance state is */
+  nilai?: NilaiData | null;
 }
 
 // Deliberately shorter than the server's 15 s window, so a press never lands on its edge
 const BATAL_DETIK = 10;
-const TOPIK = ["hadir", "sesi", "jadwal"] as const;
+const TOPIK = ["hadir", "sesi", "jadwal", "nilai", "seelabs"] as const;
 
 const rp = (n: number) => `Rp${Math.round(n).toLocaleString("id-ID")}`;
 const dua = (n: number) => String(n).padStart(2, "0");
@@ -155,6 +158,7 @@ function CaraHitung({
 export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
   const t = T[lang];
   const [data, setData] = useState<SlotData | null>(null);
+  const [nilai, setNilai] = useState<NilaiData | null>(null);
   const [now, setNow] = useState(() => Date.now());
   // The press made on this page: the receipt shows until it is closed
   const [baru, setBaru] = useState<{ kunci: string; pada: number } | null>(null);
@@ -167,7 +171,11 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
   const muat = useCallback(() => {
     if (!aktif) return;
     getJson<Hadirku>("/api/session/hadirku")
-      .then((d) => d.ok && setData(d.slot))
+      .then((d) => {
+        if (!d.ok) return;
+        setData(d.slot);
+        setNilai(d.nilai ?? null);
+      })
       .catch(() => {});
   }, [aktif]);
   useEffect(muat, [muat]);
@@ -179,6 +187,13 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
   useBatas(base, TOPIK);
   useBatas(base === null ? null : base + 60_000, TOPIK);
   useBatas(base === null ? null : base + 660_000, TOPIK);
+
+  // The score reminder flips at 20:00, 22:30, 23:00 and past the deadline
+  const akhirHari = nilai ? new Date(nilai.batas).getTime() + 1000 : null;
+  useBatas(akhirHari === null ? null : akhirHari - 4 * 3600_000, TOPIK);
+  useBatas(akhirHari === null ? null : akhirHari - 90 * 60_000, TOPIK);
+  useBatas(akhirHari === null ? null : akhirHari - 60 * 60_000, TOPIK);
+  useBatas(akhirHari, TOPIK);
 
   // One page clock for the countdown, the cells and the amounts
   useEffect(() => {
@@ -194,15 +209,18 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
     return () => clearTimeout(id);
   }, [undo]);
 
-  if (!aktif || !data || base === null || tutup === data.kunci) return null;
+  // The score reminder takes the place of an attendance state with nothing to show
+  const skor = nilai ? <NilaiBanner lang={lang} data={nilai} /> : null;
+  if (!aktif) return null;
+  if (!data || base === null || tutup === data.kunci) return skor;
   const s = data;
   const saya = s.saya;
   const pot = s.potongan ?? POTONGAN_AWAL;
-  if (!saya || !saya.diharapkan) return null;
+  if (!saya || !saya.diharapkan) return skor;
   const akhir = base + akhirSesiMaks(s.tanggal, s.slot, new Date(base)) * 60_000;
   const baruIni = baru?.kunci === s.kunci ? baru : null;
-  if (now >= akhir && !baruIni) return null;
-  if (s.sesi?.status === "selesai" && !baruIni) return null;
+  if (now >= akhir && !baruIni) return skor;
+  if (s.sesi?.status === "selesai" && !baruIni) return skor;
 
   const sesiNama = s.slot === null ? t.susulan : t.sesi(s.slot);
   const jumat = s.slot === 3 && new Date(`${s.tanggal}T00:00:00Z`).getUTCDay() === 5;
@@ -356,7 +374,7 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
   if (hadirMs !== null) {
     // Receipt: only for the press made on this page; a later page load has
     // nothing left to remind.
-    if (!baruIni) return null;
+    if (!baruIni) return skor;
     const h = saya.hadirPada
       ? { status: saya.status, menit: saya.menit }
       : { status: live.status, menit: live.menit };

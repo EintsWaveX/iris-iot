@@ -21,6 +21,8 @@
  */
 import SusulanSide from "./SusulanSide";
 import RobotInbox from "./seelabs/RobotInbox";
+import { N } from "../shell/nilaiStrings";
+import type { LupaSaya, NilaiSaya } from "../../lib/lupa-nilai";
 import { batalSusulan, BS } from "./batalSusulan";
 import HelpRows, { jumlahBantuan, useBantuan } from "./HelpCard";
 import StartCheck, { type BelumSiap } from "./StartCheck";
@@ -163,6 +165,11 @@ export interface Beranda {
     slot: number | null;
     kelompok: { nomor: number; id: number }[];
   }[];
+  /** Phase 18 Lupa Input Nilai: sent but not saved in SeeLabs, my missed
+   *  records, and the open groups of sessions I am PJ of today. */
+  belumSimpan?: NilaiSaya[];
+  lupa?: LupaSaya[];
+  pjBelum?: NilaiSaya[];
 }
 
 const DURASI_CEPAT = [60, 90, 120, 150];
@@ -1048,14 +1055,112 @@ export default function AsistenHome({
       </span>
     </li>
   );
+  // Lupa Input Nilai (Phase 18): groups sent but not in SeeLabs (a failed
+  // robot job shows in the robot rows above), missed records, and the PJ's
+  // view of other holders' groups. One row per session.
+  const n18 = N[lang];
+  const perSesi = <G extends { sesiId: number }>(rows: G[]) => {
+    const m = new Map<number, G[]>();
+    for (const r of rows) m.set(r.sesiId, [...(m.get(r.sesiId) ?? []), r]);
+    return [...m.values()];
+  };
+  const sebut = (nomor: number[]) =>
+    daftar(
+      [...new Set(nomor)].sort((a, b) => a - b).map((n) => kelompokLabel(n, lang)),
+      h.and,
+    );
+  const bs = perSesi((data?.belumSimpan ?? []).filter((g) => g.robot !== "gagal"));
+  const lupaRows = perSesi((data?.lupa ?? []).filter((g) => !g.menyusulPada));
+  const pjRows = perSesi(data?.pjBelum ?? []);
+  const simpanRow = (gs: NilaiSaya[]) => {
+    const x = gs[0];
+    const akun = gs.some((g) => g.butuhAkun);
+    const antre = gs.some((g) => g.robot === "antre");
+    return (
+      <li key={`ss${x.sesiId}`} className="elog__row todo10__row">
+        <span className="elog__tag mono" data-tone="warn">
+          {n18.tagSeelabs}
+        </span>
+        <span className="elog__text">
+          {n18.simpanLine(
+            modulLabel(x.modul, lang),
+            whenOf(x),
+            sebut(gs.map((g) => g.nomor)),
+            antre ? n18.robotAntre : "",
+          )}
+        </span>
+        <span className="todo10__acts">
+          {akun ? (
+            <button type="button" className="btn btn--sm" onClick={() => onSeelabsSesi(x.sesiId)}>
+              {n18.akun}
+            </button>
+          ) : (
+            <button type="button" className="btn btn--sm" onClick={() => onTable(x.sesiId)}>
+              {n18.tabel}
+            </button>
+          )}
+        </span>
+      </li>
+    );
+  };
+  const lupaRow = (gs: LupaSaya[]) => {
+    const x = gs[0];
+    const kurang = [...new Set(gs.flatMap((g) => g.kurang))].map((k) =>
+      k === "kirim" ? n18.kurangKirim : n18.kurangSeelabs,
+    );
+    return (
+      <li key={`lp${x.sesiId}`} className="elog__row todo10__row">
+        <span className="elog__tag mono" data-tone="danger">
+          {n18.tagLupa}
+        </span>
+        <span className="elog__text">
+          {n18.lupaLine(
+            modulLabel(x.modul, lang),
+            whenOf(x),
+            sebut(gs.map((g) => g.nomor)),
+            daftar(kurang, h.and),
+          )}
+        </span>
+        <span className="todo10__acts">
+          <button type="button" className="btn btn--sm" onClick={() => onSeelabsSesi(x.sesiId)}>
+            {n18.token}
+          </button>
+        </span>
+      </li>
+    );
+  };
+  const pjRow = (gs: NilaiSaya[]) => {
+    const x = gs[0];
+    return (
+      <li key={`pj${x.sesiId}`} className="elog__row todo10__row">
+        <span className="elog__tag mono" data-tone="warn">
+          {n18.tagPj}
+        </span>
+        <span className="elog__text">
+          {n18.pjLine(
+            modulLabel(x.modul, lang),
+            whenOf(x),
+            sebut(gs.map((g) => g.nomor)),
+            [...new Set(gs.map((g) => g.pemegangKode).filter(Boolean))].join(", "),
+          )}
+        </span>
+        <span className="todo10__acts">
+          <button type="button" className="btn btn--sm" onClick={() => onTable(x.sesiId)}>
+            {n18.tabel}
+          </button>
+        </span>
+      </li>
+    );
+  };
+  const nilaiN = bs.length + lupaRows.length + pjRows.length;
   const helpN = jumlahBantuan(bantuan.data);
   const todayK = bk.filter((x) => x.tanggal === today);
   const todayN = pn.filter((x) => x.tanggal === today);
   const oldK = bk.filter((x) => x.tanggal !== today);
   const oldN = pn.filter((x) => x.tanggal !== today);
-  const inboxN = helpN + bk.length + pn.length + (heldN > 0 ? 1 : 0);
+  const inboxN = helpN + bk.length + pn.length + nilaiN + (heldN > 0 ? 1 : 0);
   const semuaN = inboxN + robotN;
-  const earlierN = oldK.length + oldN.length + (heldN > 0 ? 1 : 0);
+  const earlierN = oldK.length + oldN.length + lupaRows.length + (heldN > 0 ? 1 : 0);
 
   return (
     <div className="dt">
@@ -1169,7 +1274,7 @@ export default function AsistenHome({
             </div>
           ) : (
             <>
-              {helpN + todayK.length + todayN.length > 0 && (
+              {helpN + todayK.length + todayN.length + bs.length + pjRows.length > 0 && (
                 <>
                   <span className="label-caps inbox__k">{d.inboxToday}</span>
                   <ol className="elog todo10">
@@ -1182,6 +1287,8 @@ export default function AsistenHome({
                     />
                     {todayK.map(kirimRow)}
                     {todayN.map(nilaiRow)}
+                    {bs.map(simpanRow)}
+                    {pjRows.map(pjRow)}
                   </ol>
                 </>
               )}
@@ -1204,6 +1311,7 @@ export default function AsistenHome({
                     )}
                     {oldK.map(kirimRow)}
                     {oldN.map(nilaiRow)}
+                    {lupaRows.map(lupaRow)}
                   </ol>
                 </>
               )}

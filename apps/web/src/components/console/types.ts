@@ -181,6 +181,8 @@ export interface NilaiData {
   terkirim: Record<string, { pada: string; oleh: string }>;
   /** Phase 13: NIMs whose TP comes from TP grading (read only here). */
   tpDari?: string[];
+  /** Phase 18: may I hand a group of this ended session to another Asisten? */
+  bolehAlih?: boolean;
 }
 
 export type View = "prep" | "board" | "table" | "matrix";

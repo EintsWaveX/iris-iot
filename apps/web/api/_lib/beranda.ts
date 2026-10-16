@@ -21,6 +21,7 @@
 import { diSlotMinggu, muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
 import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
 import { klpSlot } from "./pasangan-modul.js";
+import { muatNilaiBanner } from "./hadir-mengajar.js";
 import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -312,6 +313,11 @@ export async function handleBerandaGet(
       s.kelompok.push({ nomor: r.nomor, id: r.kelompokId });
   }
 
+  // Phase 18 Lupa Input Nilai: my groups sent but not saved in SeeLabs, my
+  // missed records, and the open groups of sessions I am PJ of today.
+  const tagih = await muatNilaiBanner(db, session.nim, new Date(), true);
+  const belumSimpan = (tagih?.saya ?? []).filter((g) => g.terkirim && !g.tersimpan);
+
   const roster = Object.fromEntries(rosterHitung.map((r) => [r.slot, r]));
   // Decks are per module (2026-10-08): the one that counts is the latest
   // open module's.
@@ -385,6 +391,10 @@ export async function handleBerandaGet(
     perluNilai,
     jalan,
     belumKirim,
+    belumSimpan,
+    lupa: tagih?.lupa ?? [],
+    pjBelum: tagih?.pj ?? [],
+    batasNilai: tagih?.batas ?? null,
   });
 }
 

@@ -251,6 +251,7 @@ export function useNilaiLive(
         pemilik: d.pemilik ?? {},
         terkirim: d.terkirim ?? {},
         tpDari: d.tpDari ?? [],
+        bolehAlih: d.bolehAlih ?? false,
       });
       setUpdatedAt(Date.now());
       setErrors(0);

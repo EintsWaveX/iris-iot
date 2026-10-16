@@ -87,6 +87,10 @@ export default function DayCard({
   const waiting =
     (data?.perluNilai.length ?? 0) +
     (data?.belumKirim?.length ?? 0) +
+    new Set((data?.belumSimpan ?? []).filter((g) => g.robot !== "gagal").map((g) => g.sesiId))
+      .size +
+    new Set((data?.lupa ?? []).filter((g) => !g.menyusulPada).map((g) => g.sesiId)).size +
+    new Set((data?.pjBelum ?? []).map((g) => g.sesiId)).size +
     jumlahBantuan(bantuan.data) +
     ((held.data?.titipan.length ?? 0) > 0 ? 1 : 0);
 

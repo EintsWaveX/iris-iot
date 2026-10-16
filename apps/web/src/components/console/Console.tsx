@@ -938,6 +938,7 @@ export default function Console({ lang }: { lang: Lang }) {
         stuck={stuck}
         tangan={tangan}
         nilai={nilai.data}
+        meNim={me?.nim ?? ""}
         onJumpGroup={(id) => pick(id)}
         onJumpTable={() => go("table")}
         onMarkAbsent={async (nims) => {

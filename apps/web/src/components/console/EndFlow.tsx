@@ -1,7 +1,7 @@
 /**
  * Ending a session (P8.6b): "Akhiri" opens a recap first, listing what is
  * still open (missing scores per group, groups without notes, stuck blanks,
- * raised hands, the Module 4 hotspot), each one a
+ * raised hands, my groups not yet sent with Kirim Nilai, the Module 4 hotspot), each one a
  * button that jumps straight to it. Only then the danger confirm. "Batalkan
  * sesi" lives here too, behind its own confirm.
  */
@@ -13,6 +13,7 @@ import { postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import type { NilaiData, GroupRow, SesiRunning, Stuck } from "./types";
+import { N } from "../shell/nilaiStrings";
 
 function Item({
   ok,
@@ -53,6 +54,7 @@ export default function EndFlow({
   stuck,
   tangan,
   nilai,
+  meNim,
   onJumpGroup,
   onJumpTable,
   onEnded,
@@ -67,6 +69,8 @@ export default function EndFlow({
   stuck: Stuck[];
   tangan: Record<string, string>;
   nilai: NilaiData | null;
+  /** The signed-in Asisten, whose unsent groups are listed (Lupa Input Nilai) */
+  meNim: string;
   onJumpGroup: (id: number) => void;
   onJumpTable: () => void;
   onEnded: (kind: "end" | "cancel") => void;
@@ -89,6 +93,12 @@ export default function EndFlow({
   const noNotes = groups.filter((g) => g.sesiAktif && !g.catatan?.trim());
   const stuckGroups = [...new Set(stuck.map((s) => s.kelompokId))];
   const hands = Object.keys(tangan).map(Number);
+  // My groups not sent with Kirim Nilai yet: ending is still allowed, the
+  // reminders take over (Lupa Input Nilai).
+  const belumKirim = (nilai?.kelompok ?? []).filter(
+    (k) => nilai?.pemilik[k.id] === meNim && !nilai?.terkirim[k.nomor],
+  );
+  const n18 = N[lang];
 
   function jump(id: number) {
     onOpenChange(false);
@@ -218,6 +228,21 @@ export default function EndFlow({
           </Item>
           <Item ok={hands.length === 0} title={hands.length ? t.chkHands : t.chkHandsOk}>
             {hands.length > 0 && chips(hands)}
+          </Item>
+          <Item
+            ok={belumKirim.length === 0}
+            title={belumKirim.length ? n18.akhiriJudul(belumKirim.length) : n18.akhiriOk}
+            onClick={() => {
+              onOpenChange(false);
+              onJumpTable();
+            }}
+          >
+            {belumKirim.length > 0 && (
+              <>
+                <span className="hint">{n18.akhiriBelum}</span>
+                {chips(belumKirim.map((k) => k.id))}
+              </>
+            )}
           </Item>
           {sesi.modul === 4 && sesi.butuhAp && <Item ok title={t.chkAp} />}
         </ul>

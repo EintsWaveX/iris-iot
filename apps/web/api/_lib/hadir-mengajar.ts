@@ -19,6 +19,7 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { ALASAN_MIN, catatKejadian } from "./berjalan.js";
 import { muatOrang, type OrangHak } from "./hak.js";
+import { muatLupaSaya, muatNilaiTerbuka } from "./lupa-nilai.js";
 import { muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
 import { konteksModul } from "./pasangan-modul.js";
 import { getDb } from "../../src/lib/db.js";
@@ -35,6 +36,13 @@ import {
   sesiKejadian,
 } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
+import {
+  batasNilai,
+  pengingatNilai,
+  type LupaSaya,
+  type NilaiSaya,
+  type TahapNilai,
+} from "../../src/lib/lupa-nilai.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { hakPenuh, bolehPenuh } from "../../src/lib/hak.js";
 import { slotToMulai } from "../../src/lib/jadwal.js";
@@ -730,6 +738,68 @@ export function pilihSlot(slots: SlotSaya[], now: Date): SlotSaya | null {
   return belumLewat ?? slots[slots.length - 1];
 }
 
+/** The score reminder for the banner and the home: what is still open. */
+export interface NilaiBanner {
+  tahap: TahapNilai;
+  /** The deadline, 23:59:59 WIB on the practicum day. */
+  batas: string;
+  saya: NilaiSaya[];
+  /** The session's other holders' open groups, for its PJ from 22:30. */
+  pj: NilaiSaya[];
+  lupa: LupaSaya[];
+}
+
+/**
+ * Today's groups that are not done: mine, the other holders' of a session
+ * I am PJ of, and my Lupa Input Nilai records not put in yet. Null when
+ * there is nothing to remind.
+ */
+export async function muatNilaiBanner(
+  db: Db,
+  nim: string,
+  now: Date,
+  semuaPj = false,
+): Promise<NilaiBanner | null> {
+  const hariIni = tanggalWib(now);
+  const hariRows = await db
+    .select({ id: sesi.id, tanggal: sesi.tanggal, slot: sesi.slot, jenis: sesi.jenis })
+    .from(sesi)
+    .where(and(eq(sesi.tanggal, hariIni), eq(sesi.status, "selesai")));
+  const terbuka = await muatNilaiTerbuka(
+    db,
+    hariRows.map((x) => x.id),
+  );
+  const saya = terbuka.filter((g) => g.pemegang === nim);
+  const tahap = pengingatNilai(hariIni, now);
+  let pj: NilaiSaya[] = [];
+  const lain = terbuka.filter((g) => g.pemegang !== nim);
+  if (lain.length && (semuaPj || tahap === "terakhir" || tahap === "robot")) {
+    const [akunku] = await db
+      .select({ kode: asisten.kode })
+      .from(asisten)
+      .where(eq(asisten.nim, nim))
+      .limit(1);
+    const kode = akunku?.kode.toUpperCase() ?? "";
+    for (const id of new Set(lain.map((g) => g.sesiId))) {
+      const x = hariRows.find((r) => r.id === id);
+      const kunci = x ? await kunciDariSesi(db, x) : null;
+      const c = kunci ? await muatKonteks(db, kunci) : null;
+      if (!c) continue;
+      if ((c.pj && c.pj.toUpperCase() === kode) || c.pembuat === nim)
+        pj = pj.concat(lain.filter((g) => g.sesiId === id));
+    }
+  }
+  const lupa = await muatLupaSaya(db, nim, now);
+  if (saya.length === 0 && pj.length === 0 && lupa.length === 0) return null;
+  return {
+    tahap: saya.length || pj.length ? tahap : "lewat",
+    batas: batasNilai(hariIni).toISOString(),
+    saya,
+    pj,
+    lupa,
+  };
+}
+
 export async function handleHadirkuGet(
   _req: ApiRequest,
   res: ApiResponse,
@@ -739,7 +809,8 @@ export async function handleHadirkuGet(
   const now = new Date();
   const slots = await slotHariIni(db, session.nim, now);
   const s = pilihSlot(slots, now);
-  if (!s) return res.status(200).json({ ok: true, slot: null, nilai: null });
+  const nilai = await muatNilaiBanner(db, session.nim, now);
+  if (!s) return res.status(200).json({ ok: true, slot: null, nilai });
   const c = await muatKonteks(db, s.kunci);
   const baris = await statusOrang(db, s.kunci, now, c);
   const saya = baris.find((b) => b.nim === session.nim) ?? null;
@@ -769,7 +840,7 @@ export async function handleHadirkuGet(
   res.status(200).json({
     ok: true,
     slot: { ...s, saya, modul, bolehMulai, otomatisTolak, potongan: await muatPotongan(db) },
-    nilai: null,
+    nilai,
   });
 }
 

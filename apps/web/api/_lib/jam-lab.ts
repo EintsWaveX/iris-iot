@@ -11,15 +11,28 @@
  * minute, and a start that loses a race meets `sesi_slot_unik` and starts
  * nothing (api/_lib/mulai-sesi.ts).
  */
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { mulaiSesi } from "./mulai-sesi.js";
 import { kunciSlot, kunciSusulan, modulHari, tanggalWib } from "./hadir-mengajar.js";
 import { siarkan } from "./siaran.js";
 import type { getDb } from "../../src/lib/db.js";
-import { audit, hadirJam, jadwal, pengaturan, sesi } from "../../src/lib/schema.js";
+import {
+  audit,
+  hadirJam,
+  jadwal,
+  kelompok,
+  lupaNilai,
+  nilaiKirim,
+  pengaturan,
+  seelabsEkspor,
+  sesi,
+  sesiAnggota,
+  sesiAsisten,
+} from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import { SESI_CAP_MENIT, SLOT_MULAI } from "../../src/lib/jadwal.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
+import { batasNilai, kurangCatat } from "../../src/lib/lupa-nilai.js";
 import { statusSlotTanggal } from "../../src/lib/penugasan-minggu.js";
 import { menitDariJam, menitSekarangWib } from "../../src/lib/sesi-mulai.js";
 import { baseSlot, baseSusulan, instanWib } from "../../src/lib/hadir-mengajar.js";
@@ -264,6 +277,101 @@ export async function mulaiOtomatis(
   return out;
 }
 
+/** Sessions this many days back are still looked at for a missed group. */
+const LUPA_NILAI_HARI = 3;
+
+/**
+ * Lupa Input Nilai: a group of a finished session whose day ended (23:59:59
+ * WIB) without being sent and saved in SeeLabs is recorded once, for the
+ * Asisten who held it, with what was missing. A recorded group that is done
+ * later keeps its record and gets `menyusulPada` (the time it was put in).
+ * Looks at the last three days; TOT sessions are exempt. Returns how many
+ * records it added.
+ */
+export async function catatLupaNilai(db: Db, now: Date): Promise<number> {
+  const sejak = tanggalWib(new Date(now.getTime() - LUPA_NILAI_HARI * 86_400_000));
+  const sesiRows = await db
+    .select({ id: sesi.id, tanggal: sesi.tanggal, jenis: sesi.jenis, status: sesi.status })
+    .from(sesi)
+    .where(gte(sesi.tanggal, sejak));
+  const layak = sesiRows.filter(
+    (s) => s.status === "selesai" && s.jenis !== "tot" && batasNilai(s.tanggal) <= now,
+  );
+  if (layak.length === 0) return 0;
+  const ids = layak.map((s) => s.id);
+  const [orang, pegang, grup, kirim, simpan, ada] = await Promise.all([
+    db
+      .select({ sesiId: sesiAnggota.sesiId, nomor: sesiAnggota.kelompokNomor })
+      .from(sesiAnggota)
+      .where(inArray(sesiAnggota.sesiId, ids)),
+    db
+      .select({
+        sesiId: sesiAsisten.sesiId,
+        kelompokId: sesiAsisten.kelompokId,
+        nim: sesiAsisten.asistenNim,
+      })
+      .from(sesiAsisten)
+      .where(inArray(sesiAsisten.sesiId, ids)),
+    db.select({ id: kelompok.id, nomor: kelompok.nomor }).from(kelompok),
+    db
+      .select({ sesiId: nilaiKirim.sesiId, nomor: nilaiKirim.kelompokNomor })
+      .from(nilaiKirim)
+      .where(inArray(nilaiKirim.sesiId, ids)),
+    db
+      .select({ sesiId: seelabsEkspor.sesiId, nomor: seelabsEkspor.kelompokNomor })
+      .from(seelabsEkspor)
+      .where(and(inArray(seelabsEkspor.sesiId, ids), isNotNull(seelabsEkspor.disimpanPada))),
+    db
+      .select({
+        sesiId: lupaNilai.sesiId,
+        nomor: lupaNilai.kelompokNomor,
+        menyusulPada: lupaNilai.menyusulPada,
+      })
+      .from(lupaNilai)
+      .where(inArray(lupaNilai.sesiId, ids)),
+  ]);
+  const nomorDariId = new Map(grup.map((g) => [g.id, g.nomor]));
+  const k = (sesiId: number, nomor: number) => `${sesiId}.${nomor}`;
+  const terkirim = new Set(kirim.map((x) => k(x.sesiId, x.nomor)));
+  const tersimpan = new Set(simpan.map((x) => k(x.sesiId, x.nomor)));
+  const dicatat = new Map(ada.map((x) => [k(x.sesiId, x.nomor), x.menyusulPada]));
+
+  let baru = 0;
+  const berubah = new Set<Topik>();
+  for (const s of layak) {
+    const nomorSesi = [...new Set(orang.filter((o) => o.sesiId === s.id).map((o) => o.nomor))];
+    for (const nomor of nomorSesi) {
+      const kunci = k(s.id, nomor);
+      const status = { terkirim: terkirim.has(kunci), tersimpan: tersimpan.has(kunci) };
+      const kurang = kurangCatat(status);
+      if (kurang.length === 0) {
+        // Put in after the deadline: the record stays, with the time.
+        if (dicatat.has(kunci) && dicatat.get(kunci) === null) {
+          await db
+            .update(lupaNilai)
+            .set({ menyusulPada: now })
+            .where(and(eq(lupaNilai.sesiId, s.id), eq(lupaNilai.kelompokNomor, nomor)));
+          berubah.add("hadir");
+        }
+        continue;
+      }
+      if (dicatat.has(kunci)) continue;
+      const pemegang = pegang.find(
+        (p) => p.sesiId === s.id && nomorDariId.get(p.kelompokId) === nomor,
+      );
+      if (!pemegang) continue;
+      await db
+        .insert(lupaNilai)
+        .values({ sesiId: s.id, kelompokNomor: nomor, nim: pemegang.nim, kurang, dicatatPada: now })
+        .onConflictDoNothing();
+      baru += 1;
+      berubah.add("hadir");
+    }
+  }
+  if (berubah.size) await siarkan([...berubah]);
+  return baru;
+}
+
 /** Everything the lab clock does in one minute. Never throws. */
 export async function jamLab(db: Db, now: Date): Promise<void> {
   try {
@@ -271,6 +379,12 @@ export async function jamLab(db: Db, now: Date): Promise<void> {
     if (r.mulai.length || r.tolak.length) console.warn("[INFO] jam-lab:", JSON.stringify(r));
   } catch (err) {
     console.error("[jam-lab] auto-start failed:", err);
+  }
+  try {
+    const n = await catatLupaNilai(db, now);
+    if (n) console.warn("[INFO] jam-lab: Lupa Input Nilai recorded:", n);
+  } catch (err) {
+    console.error("[jam-lab] Lupa Input Nilai failed:", err);
   }
 }
 

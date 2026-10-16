@@ -34,6 +34,8 @@ import type { AsistenRef, GroupRow, NilaiAnggota } from "./types";
 import { useCaraNilai } from "./caraNilai";
 import { useTandaAbsen } from "./TandaAbsen";
 import KirimNilai from "./KirimNilai";
+import ChangeAssistant from "./ChangeAssistant";
+import { N } from "../shell/nilaiStrings";
 import { PD } from "./seelabs/panduanStrings";
 import Nil from "../ui/Nil";
 
@@ -76,6 +78,8 @@ export default function NilaiTable({
   };
   const absen = useTandaAbsen(t, lang, nilai, (a) => holderOf(a.nim));
   const [menandai, setMenandai] = useState<number | null>(null);
+  // Alihkan Penilaian: the group whose scoring is being handed over
+  const [alih, setAlih] = useState<{ id: number; nomor: number } | null>(null);
 
   if (!data) {
     return (
@@ -122,6 +126,18 @@ export default function NilaiTable({
       </button>
     );
   };
+
+  // The PJ of an ended session can hand a group's scoring to another Asisten
+  const tombolAlih = (kid: number, nomor: number) =>
+    data.bolehAlih ? (
+      <button
+        type="button"
+        className="btn btn--sm btn--ghost"
+        onClick={() => setAlih({ id: kid, nomor })}
+      >
+        {N[lang].alihkan}
+      </button>
+    ) : null;
 
   async function commit(nim: string, k: string, kid: number) {
     const key = `${nim}.${k}`;
@@ -302,6 +318,23 @@ export default function NilaiTable({
         />
       )}
 
+      {data.bolehAlih && alih && (
+        <ChangeAssistant
+          t={t}
+          lang={lang}
+          open
+          onOpenChange={(o) => !o && setAlih(null)}
+          sesiId={sesiId}
+          kelompokId={alih.id}
+          nomor={alih.nomor}
+          cur={data.pemilik[alih.id] ?? null}
+          awal={null}
+          meNim={meNim}
+          asisten={asisten}
+          onDone={nilai.reload}
+        />
+      )}
+
       {wide ? (
         <div className="ntable__scroll">
           <table className="ntable__grid">
@@ -351,6 +384,7 @@ export default function NilaiTable({
                           )}
                           {seelabsBits(k.nomor, k.id)}
                           {tombolAbsen(k.id)}
+                          {tombolAlih(k.id, k.nomor)}
                           <KirimNilai
                             t={t}
                             nilai={nilai}
@@ -398,6 +432,7 @@ export default function NilaiTable({
               </h3>
               {seelabsBits(k.nomor, k.id)}
               {tombolAbsen(k.id)}
+              {tombolAlih(k.id, k.nomor)}
               <KirimNilai t={t} nilai={nilai} kelompokId={k.id} canEdit={canEdit(k.id)} compact />
               {k.anggota.map((a) => (
                 <div key={a.nim} className="ncard" data-absen={a.absen ? "yes" : undefined}>
