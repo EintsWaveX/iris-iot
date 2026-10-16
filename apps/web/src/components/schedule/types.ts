@@ -20,6 +20,8 @@ export interface JadwalRow {
   jumlahKelompok: number;
   jendelaMulaiMenit: number | null;
   jendelaDiaturOleh: string | null;
+  /** The slot's Person in Charge (one of `asisten`), or none. */
+  pj: string | null;
   diubahOleh: string | null;
 }
 

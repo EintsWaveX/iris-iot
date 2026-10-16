@@ -452,6 +452,28 @@ async function ubahSlot(
       return tolak(res, "format_salah", 400);
     patch.asisten = (ubah.asisten as string[]).map((k) => k.trim().toUpperCase());
   }
+  // The slot's Person in Charge: one of its own default people, or none.
+  // Judged after this save's asisten change, below.
+  let pjBaru: string | null | undefined;
+  if (ubah.pj !== undefined) {
+    if (ubah.pj === null || ubah.pj === "") pjBaru = null;
+    else if (typeof ubah.pj === "string" && ubah.pj.trim()) pjBaru = ubah.pj.trim().toUpperCase();
+    else return tolak(res, "format_salah", 400);
+  }
+  if (pjBaru !== undefined || patch.asisten !== undefined) {
+    const [ada] = await db
+      .select({ asisten: jadwal.asisten, pj: jadwal.pj })
+      .from(jadwal)
+      .where(and(eq(jadwal.semester, semester), eq(jadwal.hari, hari), eq(jadwal.slot, slot)))
+      .limit(1);
+    const pool = kolam(patch.asisten ?? ada?.asisten ?? []);
+    if (pjBaru) {
+      if (!pool.includes(pjBaru)) return tolak(res, "format_salah", 400);
+      patch.pj = pjBaru;
+    } else if (pjBaru === null) patch.pj = null;
+    // A PJ the new people list no longer holds goes back to none.
+    else if (ada?.pj && !pool.includes(ada.pj.toUpperCase())) patch.pj = null;
+  }
   if (ubah.pengganti !== undefined) {
     const p = ubah.pengganti;
     const tags: TagPengganti[] = ["fit", "a24", null];

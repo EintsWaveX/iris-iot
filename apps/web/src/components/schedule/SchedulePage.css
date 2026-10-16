@@ -510,6 +510,20 @@
   color: var(--violet);
 }
 
+.jedit__clock {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.jedit__clock > span {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
 .jedit__win {
   align-items: center;
   flex-wrap: wrap;

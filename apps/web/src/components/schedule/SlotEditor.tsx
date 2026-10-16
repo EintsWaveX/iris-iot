@@ -44,12 +44,16 @@ import Tooltip from "../ui/Tooltip";
 import { Stepper } from "../ui/Controls";
 import { postJson, tanggalPanjang } from "../../lib/app";
 import { klpLabel, kelompokLabel, statusOrangLabel, slotLabel as slotName } from "../../lib/labels";
+import { baseSlot, akhirSesiMaks, instanWib, TELAT_MAKS } from "../../lib/hadir-mengajar";
+import { jamDariMenit } from "../../lib/sesi-mulai";
+import { hariDariTanggal } from "../../lib/jadwal-parser";
 import { hariIniWib, KELOMPOK_DEFAULT, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
 import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
 import {
   mingguDepan,
   orangTanggal,
   pasanganSemester,
+  tanggalMinggu,
   type MingguSlot,
 } from "../../lib/penugasan-minggu";
 import { kolam, saringModul } from "../../lib/penugasan-modul";
@@ -75,6 +79,7 @@ interface Draft {
   mod: string[];
   subs: { kode: string; tag: TagPengganti }[];
   win: number | null;
+  pj: string;
 }
 
 function awal(row: JadwalRow | undefined, m: MingguSlot | undefined, baru = false): Draft {
@@ -105,6 +110,7 @@ function awal(row: JadwalRow | undefined, m: MingguSlot | undefined, baru = fals
     mod,
     subs: row?.pengganti ?? [],
     win: row?.jendelaMulaiMenit ?? null,
+    pj: row?.pj ?? "",
   };
 }
 
@@ -187,6 +193,22 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
       disabled: o.status !== "aktif",
     })),
   ];
+  // The PJ is picked from the slot's own default people; one the list no
+  // longer holds is saved as none, as the server does.
+  const pjPool = kolam(d.who);
+  const pjSah = pjPool.includes(d.pj) ? d.pj : "";
+  const pjOpts = [
+    { value: "", label: t.pjNone },
+    ...pjPool.map((k) => {
+      const o = p.orang.find((x) => x.kode.toUpperCase() === k);
+      return { value: k, label: o?.nama ?? k, chip: k };
+    }),
+  ];
+  // The slot's clock on its next date (Friday slot 3 differs).
+  const jamTgl = m?.tanggal ?? tanggalMinggu(p.hari, hariIniWib(), p.geser ?? 0);
+  const jamBase = baseSlot(jamTgl, p.slot);
+  const jamAkhir = jamBase + akhirSesiMaks(jamTgl, p.slot, instanWib(jamTgl, jamBase));
+  const jumat3 = hariDariTanggal(jamTgl) === 5 && p.slot === 3;
   // Pairing per Module: that date's holder of a group is its module's. The
   // cards edit that list; the default list has its own section below.
   const modul = m?.modul ?? null;
@@ -267,6 +289,7 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
             asisten: d.who,
             pengganti: d.subs,
             jendela: d.win,
+            pj: pjSah || null,
             ...kirimModul,
             ...(p.kini && d.status !== "kosong"
               ? {
@@ -387,7 +410,50 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
           )}
           <span className="field__hint">{t.statusHint[d.status]}</span>
         </div>
+
+        {!off && (
+          <div className="field">
+            <span className="field__label">{t.pj}</span>
+            <Dropdown
+              id="jedit-pj"
+              label={t.pjLabel}
+              hideLabel
+              value={pjSah}
+              options={pjOpts}
+              onChange={(v) => set({ pj: v })}
+              disabled={ro}
+            />
+            <span className="field__hint">{t.pjHint}</span>
+          </div>
+        )}
       </fieldset>
+
+      {!off && (
+        <div className="stack">
+          <h3 className="jedit__h">{t.clock}</h3>
+          <div className="jedit__clock">
+            <span>
+              <span className="field__label">{t.clockStart}</span>
+              <b className="mono">{jamDariMenit(jamBase)}</b>
+            </span>
+            <span>
+              <span className="field__label">{t.clockLate}</span>
+              <b className="mono">
+                {t.clockLateRange(jamDariMenit(jamBase + 1), jamDariMenit(jamBase + TELAT_MAKS))}
+              </b>
+            </span>
+            <span>
+              <span className="field__label">{t.clockMm}</span>
+              <b className="mono">{t.clockMmFrom(jamDariMenit(jamBase + TELAT_MAKS + 1))}</b>
+            </span>
+            <span>
+              <span className="field__label">{t.clockEnd}</span>
+              <b className="mono">{jamDariMenit(jamAkhir)}</b>
+            </span>
+          </div>
+          <span className="field__hint">{jumat3 ? t.clockHintFri : t.clockHint}</span>
+        </div>
+      )}
 
       {off ? (
         <div className="slotkept">
