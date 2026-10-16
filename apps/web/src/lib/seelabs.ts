@@ -9,10 +9,11 @@
  *   the "IRIS · Isi SeeLabs" bookmarklet (seelabs-helper.ts) reads in the
  *   SeeLabs tab. It fills the form and never presses Simpan Penilaian.
  *
- * SeeLabs pays one account once per session, so an Asisten holding two
- * groups sends the second through another Asisten's account (a lender who
- * isn't teaching the slot). `akunKelompok` works out whose account each
- * group goes through.
+ * SeeLabs pays one account once per session and takes at most two sessions
+ * a day from it, so an Asisten holding two groups sends the second through
+ * another Asisten's account (a lender who isn't teaching the slot), and one
+ * teaching a third session that day sends all of it through a lender.
+ * `akunKelompok` works out whose account each group goes through.
  */
 import { NILAI_KOMPONEN, type NilaiKomponen } from "./nilai-komponen.js";
 import type { Lang } from "./kelas.js";
@@ -181,27 +182,69 @@ export function cocokkanKlp(
 
 /* ---------------------------------------------------- whose account */
 
+/** The most sessions one SeeLabs account carries in a day. */
+export const AKUN_MAKS_SESI_HARI = 2;
+
 /**
  * Whose SeeLabs account each group goes through. An Asisten's lowest
  * numbered group uses their own account; every further group they hold
- * needs a lender (`pinjam`), and stays null until one is picked. A group
- * with no Asisten has no account.
+ * needs a lender (`pinjam`), and stays null until one is picked. A holder in
+ * `penuh` (their account already carries two sessions earlier that day)
+ * needs a lender for every group, the lowest included. A group with no
+ * Asisten has no account.
  */
 export function akunKelompok(
   pasangan: Map<number, string | null>,
   pinjam: Map<number, string>,
+  penuh: ReadonlySet<string> = new Set(),
 ): Map<number, string | null> {
   const hasil = new Map<number, string | null>();
   const sudah = new Set<string>();
   for (const nomor of [...pasangan.keys()].sort((a, b) => a - b)) {
     const nim = pasangan.get(nomor) ?? null;
     if (!nim) hasil.set(nomor, null);
-    else if (!sudah.has(nim)) {
+    else if (!penuh.has(nim) && !sudah.has(nim)) {
       sudah.add(nim);
       hasil.set(nomor, nim);
     } else hasil.set(nomor, pinjam.get(nomor) ?? null);
   }
   return hasil;
+}
+
+/** Why an Asisten can't lend their account to this session. */
+export type AlasanTolak = "pegang" | "dua_sesi" | "dipinjam";
+
+export interface PemberiTolak {
+  nim: string;
+  alasan: AlasanTolak;
+  /** For "dipinjam": the group of this session the account is already lent to. */
+  kelompok?: number;
+}
+
+/**
+ * Splits the active Asisten into who can lend and who can't (with the
+ * reason): holding a group here, two other sessions that day, or already
+ * lent to another group of this session. The first reason that applies wins.
+ */
+export function pilahPemberi(p: {
+  aktif: string[];
+  pegang: ReadonlySet<string>;
+  /** Sessions each account carries on the other sessions that day. */
+  sesiLain: ReadonlyMap<string, number>;
+  /** Account → the group of this session it is already lent to. */
+  dipinjam: ReadonlyMap<string, number>;
+}): { pemberi: string[]; tolak: PemberiTolak[] } {
+  const pemberi: string[] = [];
+  const tolak: PemberiTolak[] = [];
+  for (const nim of p.aktif) {
+    if (p.pegang.has(nim)) tolak.push({ nim, alasan: "pegang" });
+    else if ((p.sesiLain.get(nim) ?? 0) >= AKUN_MAKS_SESI_HARI)
+      tolak.push({ nim, alasan: "dua_sesi" });
+    else if (p.dipinjam.has(nim))
+      tolak.push({ nim, alasan: "dipinjam", kelompok: p.dipinjam.get(nim) });
+    else pemberi.push(nim);
+  }
+  return { pemberi, tolak };
 }
 
 export type StatusSeelabs = "terkirim" | "berubah" | "siap" | "butuh_akun" | "kosong";
@@ -234,6 +277,8 @@ export interface SesiSeelabs {
   kelompok: KelompokSeelabs[];
   /** SeeLabs usernames of the Asisten involved (never a password). */
   namaAkun: Record<string, string | null>;
+  /** Holders whose account already carries two earlier sessions today. */
+  penuh: string[];
 }
 
 /**

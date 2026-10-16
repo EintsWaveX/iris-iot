@@ -5,6 +5,7 @@ import {
   bacaPayload,
   buatPayload,
   cocokkanKlp,
+  pilahPemberi,
   sidikPayload,
   statusSeelabs,
   teksSeelabs,
@@ -116,6 +117,53 @@ describe("whose SeeLabs account", () => {
       ]),
     );
     expect(akunKelompok(pasangan, new Map([[5, "GAN"]])).get(5)).toBe("GAN");
+  });
+
+  it("sends every group of a holder at the daily cap through a lender", () => {
+    const pasangan = new Map<number, string | null>([
+      [1, "NUE"],
+      [2, "NUE"],
+      [3, "ADD"],
+    ]);
+    const penuh = new Set(["NUE"]);
+    expect(akunKelompok(pasangan, new Map(), penuh)).toEqual(
+      new Map([
+        [1, null],
+        [2, null],
+        [3, "ADD"],
+      ]),
+    );
+    expect(
+      akunKelompok(
+        pasangan,
+        new Map([
+          [1, "GAN"],
+          [2, "TWT"],
+        ]),
+        penuh,
+      ).get(1),
+    ).toBe("GAN");
+    // Without the cap, group 1 is NUE's own again.
+    expect(akunKelompok(pasangan, new Map()).get(1)).toBe("NUE");
+  });
+
+  it("tells who can lend and why the others can't", () => {
+    const r = pilahPemberi({
+      aktif: ["A", "B", "C", "D", "E"],
+      pegang: new Set(["A"]),
+      sesiLain: new Map([
+        ["B", 2],
+        ["C", 1],
+        ["A", 2],
+      ]),
+      dipinjam: new Map([["D", 2]]),
+    });
+    expect(r.pemberi).toEqual(["C", "E"]);
+    expect(r.tolak).toEqual([
+      { nim: "A", alasan: "pegang" },
+      { nim: "B", alasan: "dua_sesi" },
+      { nim: "D", alasan: "dipinjam", kelompok: 2 },
+    ]);
   });
 
   it("reads the status", () => {

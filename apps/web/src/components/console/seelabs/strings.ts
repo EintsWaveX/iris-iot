@@ -77,6 +77,12 @@ export const SL = dict({
       `SeeLabs hanya membayar satu akun per sesi. Nilai ${g} dikirim lewat akun SeeLabs asisten lain yang tidak mengajar di slot ini. Bayarannya tetap untukmu: Bendahara mentransfer kotornya ke kamu, lalu kamu transfer balik uang kasnya. Semua tercatat di Laporan.`,
     accountFor: (g: string) => `Akun SeeLabs untuk ${g}`,
     pickLender: "Pilih asisten yang tidak mengajar",
+    capTitle: "Sesi ketigamu hari ini: pinjam akun SeeLabs Asisten lain",
+    capBody:
+      "Satu akun SeeLabs hanya bisa dipakai di dua sesi sehari. Pilih akun sebelum Kirim Nilai; unitnya tetap milikmu dan Bendahara mencatat transfernya.",
+    lenderWhyHold: "Memegang kelompok di sesi ini",
+    lenderWhyCap: "Sudah 2 sesi hari ini",
+    lenderWhyLent: (g: string) => `Sudah dipakai untuk ${g} di sesi ini`,
     lenderLogged: (me: string, who: string, g: string) =>
       `Dicatat: ${me} memakai akun SeeLabs ${who} untuk ${g}.`,
     lenderCleared: (g: string) => `Akun pinjaman untuk ${g} dilepas.`,
@@ -167,7 +173,8 @@ export const SL = dict({
       bukan_penilai:
         "Hanya asisten penilai kelompok ini, atau pemilik akun pinjamannya, yang bisa.",
       tidak_perlu_pinjam: "Kelompok ini memakai akun asistennya sendiri.",
-      pemberi_salah: "Asisten itu sedang mengajar di slot ini atau tidak aktif.",
+      pemberi_salah:
+        "Asisten itu sedang mengajar di slot ini, sudah dua sesi hari ini, sudah dipakai kelompok lain, atau tidak aktif.",
       butuh_akun: "Pilih akun SeeLabs pinjaman dulu.",
       sesi_tot: "Ini sesi TOT. Nilai latihan tidak dikirim ke SeeLabs dan tidak masuk pendapatan.",
     } as Record<string, string>,
@@ -245,6 +252,12 @@ export const SL = dict({
       `SeeLabs pays one account only once per session. ${g}'s scores go through the SeeLabs account of an assistant who isn't teaching this slot. The pay is still yours: the Treasurer transfers the gross to you, then you transfer back the cash fund. All of it is logged in Reports.`,
     accountFor: (g: string) => `SeeLabs account for ${g}`,
     pickLender: "Pick an assistant who isn't teaching",
+    capTitle: "Your third session today: borrow another Asisten's SeeLabs account",
+    capBody:
+      "One SeeLabs account can only be used in two sessions a day. Pick an account before Kirim Nilai; the unit stays yours and the Treasurer records the transfer.",
+    lenderWhyHold: "Holds a group in this session",
+    lenderWhyCap: "Already 2 sessions today",
+    lenderWhyLent: (g: string) => `Already used for ${g} in this session`,
     lenderLogged: (me: string, who: string, g: string) =>
       `Logged: ${me} uses ${who}'s SeeLabs account for ${g}.`,
     lenderCleared: (g: string) => `The borrowed account for ${g} was let go.`,
@@ -333,7 +346,8 @@ export const SL = dict({
       bukan_penilai:
         "Only the group's scoring assistant, or the owner of the borrowed account, can do this.",
       tidak_perlu_pinjam: "This group uses its own assistant's account.",
-      pemberi_salah: "That assistant is teaching this slot or isn't active.",
+      pemberi_salah:
+        "That assistant is teaching this slot, already has two sessions today, is lent to another group, or isn't active.",
       butuh_akun: "Pick a borrowed SeeLabs account first.",
       sesi_tot: "This is a TOT session. Practice scores never go to SeeLabs or count toward pay.",
     } as Record<string, string>,
@@ -411,6 +425,12 @@ export const SL = dict({
       `SeeLabs 每节课只给一个账号付一次钱。${g}的分数通过一位这个时段不上课的助教的 SeeLabs 账号提交。报酬还是你的：财务把总额转给你，你再把公共经费转回。这些都记在报告里。`,
     accountFor: (g: string) => `${g}用的 SeeLabs 账号`,
     pickLender: "选一位这个时段不上课的助教",
+    capTitle: "今天你的第三节课：借用另一位助教的 SeeLabs 账号",
+    capBody:
+      "一个 SeeLabs 账号一天只能用于两节课。发送成绩前先选好账号；这个单位仍然是你的，财务会记录转账。",
+    lenderWhyHold: "这节课带了小组",
+    lenderWhyCap: "今天已经两节课了",
+    lenderWhyLent: (g: string) => `这节课已借给${g}用`,
     lenderLogged: (me: string, who: string, g: string) =>
       `已记录：${me} 用 ${who} 的 SeeLabs 账号提交${g}。`,
     lenderCleared: (g: string) => `${g}借用的账号已取消。`,
@@ -494,7 +514,7 @@ export const SL = dict({
       kelompok_tidak_ada: "这节课里没有这个组。",
       bukan_penilai: "只有给这个组打分的助教，或者借出账号的人，才能这样做。",
       tidak_perlu_pinjam: "这个组用的是自己助教的账号。",
-      pemberi_salah: "那位助教在这个时段上课，或者不是在职状态。",
+      pemberi_salah: "那位助教在这个时段上课、今天已有两节课、已借给别的组，或者不是在职状态。",
       butuh_akun: "先选一个借来的 SeeLabs 账号。",
       sesi_tot: "这是 TOT 培训课。练习分数不会发送到 SeeLabs，也不计入报酬。",
     } as Record<string, string>,

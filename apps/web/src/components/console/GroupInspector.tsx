@@ -915,17 +915,23 @@ function useSeelabsGroup(p: InspectorProps) {
     ? seelabs.kelompok.filter((x) => x.penilai === meNim).map((x) => x.nomor)
     : [];
   const kedua = !!sg && sg.penilai === meNim && punyaku.indexOf(g.nomor) > 0;
-  return { sg, mineSl, punyaku, kedua };
+  // My account already carries two earlier sessions today: every group of
+  // this one needs a lender, the lowest numbered included.
+  const penuh = !!sg && sg.penilai === meNim && !!seelabs?.penuh.includes(meNim);
+  return { sg, mineSl, punyaku, kedua, penuh };
 }
 
-/** A second group I hold needs a lender's SeeLabs account (mockup c-run). */
+/**
+ * A second group I hold, or any group of my third session today, needs a
+ * lender's SeeLabs account (mockups c-run and k18-nilai).
+ */
 function LenderBanner(p: InspectorProps) {
   const { lang, g, meNim, seelabs } = p;
   const t = SL[lang];
   const dir = useDirektori();
   const [busy, setBusy] = useState(false);
-  const { sg, punyaku, kedua } = useSeelabsGroup(p);
-  if (!seelabs || !sg || !kedua) return null;
+  const { sg, punyaku, kedua, penuh } = useSeelabsGroup(p);
+  if (!seelabs || !sg || !(kedua || penuh)) return null;
   const label = kelompokLabel(g.nomor, lang);
 
   async function pilih(v: string) {
@@ -959,8 +965,8 @@ function LenderBanner(p: InspectorProps) {
     <div className="banner banner--warn dmbanner">
       <HandCoinsIcon size={20} aria-hidden="true" />
       <div className="stack stack--sm grow">
-        <b>{t.holdTitle(punyaku.length)}</b>
-        <span>{t.holdBody(label)}</span>
+        <b>{penuh ? t.capTitle : t.holdTitle(punyaku.length)}</b>
+        <span>{penuh ? t.capBody : t.holdBody(label)}</span>
         <Dropdown
           id={`see-akun-${g.nomor}`}
           label={t.accountFor(label)}
@@ -969,7 +975,23 @@ function LenderBanner(p: InspectorProps) {
           onChange={(v) => void pilih(v)}
           options={[
             { value: "none", label: t.pickLender },
+            ...(sg.pinjam && sg.akun && !seelabs.pemberi.includes(sg.akun)
+              ? [{ value: sg.akun, label: dir.nama(sg.akun) }]
+              : []),
             ...seelabs.pemberi.map((nim) => ({ value: nim, label: dir.nama(nim) })),
+            ...seelabs.pemberiTolak
+              .filter((x) => !(x.alasan === "dipinjam" && x.kelompok === g.nomor))
+              .map((x) => ({
+                value: x.nim,
+                label: dir.nama(x.nim),
+                disabled: true,
+                note:
+                  x.alasan === "pegang"
+                    ? t.lenderWhyHold
+                    : x.alasan === "dua_sesi"
+                      ? t.lenderWhyCap
+                      : t.lenderWhyLent(kelompokLabel(x.kelompok ?? 0, lang)),
+              })),
           ]}
         />
       </div>

@@ -12,7 +12,8 @@
  * POST { aksi: "simpan" | "belum", sesiId, kelompok }
  *                    marks the group saved in SeeLabs, or takes that back
  * POST { aksi: "akun", sesiId, kelompok, akun }   picks (or clears, null)
- *                    the lender for an Asisten's second group, logged in
+ *                    the lender for an Asisten's second group (or any group
+ *                    at the two-sessions-a-day cap), logged in
  *                    sesi_kejadian as "akun_seelabs"
  *
  * Nothing here talks to SeeLabs (it has no API): the Asisten copies, runs
@@ -23,7 +24,7 @@
  * session mixing groups still lists every KLP its students sit in. The live
  * `kelompok.klp_seelabs` fills in when no roster knows them.
  */
-import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
@@ -39,6 +40,7 @@ import {
   seelabsEkspor,
   sesi,
   sesiAnggota,
+  sesiAsisten,
   sesiKejadian,
 } from "../../src/lib/schema.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
@@ -47,11 +49,14 @@ import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import type { NilaiKomponen } from "../../src/lib/nilai-komponen.js";
 import {
+  AKUN_MAKS_SESI_HARI,
   akunKelompok,
+  pilahPemberi,
   sidikPayload,
   statusSeelabs,
   type BarisSeelabs,
   type KelompokSeelabs,
+  type PemberiTolak,
   type SesiSeelabs,
 } from "../../src/lib/seelabs.js";
 
@@ -66,6 +71,81 @@ const posInt = (v: unknown) => {
 export async function sesiTot(db: Db, sesiId: number): Promise<boolean> {
   const [s] = await db.select({ jenis: sesi.jenis }).from(sesi).where(eq(sesi.id, sesiId)).limit(1);
   return s?.jenis === "tot";
+}
+
+/**
+ * Whose SeeLabs account the other sessions of a date went through (TOT and
+ * cancelled ones left out; `kecuali` is the session being looked at): each
+ * holder's own lowest numbered group, and the latest lender picked for each
+ * group. One entry per account per session, in `mulai` then id order.
+ */
+export async function pemakaianAkunHari(
+  db: Db,
+  tanggal: string,
+  kecuali: number,
+): Promise<Map<string, { sesiId: number; mulai: string }[]>> {
+  const hasil = new Map<string, { sesiId: number; mulai: string }[]>();
+  const lain = (
+    await db
+      .select({ id: sesi.id, mulai: sesi.mulai })
+      .from(sesi)
+      .where(
+        and(
+          eq(sesi.tanggal, tanggal),
+          ne(sesi.id, kecuali),
+          ne(sesi.status, "batal"),
+          ne(sesi.jenis, "tot"),
+        ),
+      )
+  ).sort((a, b) => a.mulai.localeCompare(b.mulai) || a.id - b.id);
+  if (lain.length === 0) return hasil;
+  const ids = lain.map((x) => x.id);
+
+  const idKeNomor = new Map(
+    (await db.select({ id: kelompok.id, nomor: kelompok.nomor }).from(kelompok)).map((g) => [
+      g.id,
+      g.nomor,
+    ]),
+  );
+  const pegang = await db
+    .select({
+      sesiId: sesiAsisten.sesiId,
+      kelompokId: sesiAsisten.kelompokId,
+      nim: sesiAsisten.asistenNim,
+    })
+    .from(sesiAsisten)
+    .where(inArray(sesiAsisten.sesiId, ids));
+  const kejadian = await db
+    .select({ sesiId: sesiKejadian.sesiId, detail: sesiKejadian.detail })
+    .from(sesiKejadian)
+    .where(and(inArray(sesiKejadian.sesiId, ids), eq(sesiKejadian.jenis, "akun_seelabs")))
+    .orderBy(asc(sesiKejadian.pada), asc(sesiKejadian.id));
+
+  for (const x of lain) {
+    const dipakai = new Set<string>();
+    // Each holder's lowest numbered group is on their own account.
+    const terendah = new Map<string, number>();
+    for (const r of pegang.filter((p) => p.sesiId === x.id)) {
+      const n = idKeNomor.get(r.kelompokId);
+      if (n !== undefined && n < (terendah.get(r.nim) ?? Infinity)) terendah.set(r.nim, n);
+    }
+    for (const nim of terendah.keys()) dipakai.add(nim);
+    // The latest lender per group wins; a cleared pick (null) removes it.
+    const pinjam = new Map<number, string>();
+    for (const k of kejadian.filter((e) => e.sesiId === x.id)) {
+      const d = k.detail as { nomor?: number; akun?: string | null };
+      if (typeof d.nomor !== "number") continue;
+      if (d.akun) pinjam.set(d.nomor, d.akun);
+      else pinjam.delete(d.nomor);
+    }
+    for (const nim of pinjam.values()) dipakai.add(nim);
+    for (const nim of dipakai) {
+      const daftar = hasil.get(nim) ?? [];
+      daftar.push({ sesiId: x.id, mulai: x.mulai });
+      hasil.set(nim, daftar);
+    }
+  }
+  return hasil;
 }
 
 /** Everything SeeLabs needs about one session, or null when it is unknown. */
@@ -146,7 +226,18 @@ export async function muatSeelabs(db: Db, sesiId: number): Promise<SesiSeelabs |
     if (d.akun) pinjam.set(d.nomor, d.akun);
     else pinjam.delete(d.nomor);
   }
-  const akun = akunKelompok(pasangan, pinjam);
+  // A holder whose account already carries two earlier sessions today needs
+  // a lender for every group of this one.
+  const pakaiHari = await pemakaianAkunHari(db, s.tanggal, s.id);
+  const penuh = new Set<string>();
+  for (const nim of new Set(pasangan.values())) {
+    if (!nim) continue;
+    const lebihAwal = (pakaiHari.get(nim) ?? []).filter(
+      (u) => u.mulai < s.mulai || (u.mulai === s.mulai && u.sesiId < s.id),
+    );
+    if (lebihAwal.length >= AKUN_MAKS_SESI_HARI) penuh.add(nim);
+  }
+  const akun = akunKelompok(pasangan, pinjam, penuh);
 
   // The latest copy of each group, and whether it was marked saved.
   const ekspor = new Map<number, typeof seelabsEkspor.$inferSelect>();
@@ -216,18 +307,36 @@ export async function muatSeelabs(db: Db, sesiId: number): Promise<SesiSeelabs |
     },
     kelompok: kelompokSeelabs,
     namaAkun,
+    penuh: [...penuh],
   };
 }
 
-/** Active Asisten who hold no group in this session: who can lend. */
-async function pemberiPinjam(db: Db, data: SesiSeelabs): Promise<string[]> {
-  const pegang = new Set(data.kelompok.map((g) => g.penilai).filter(Boolean));
+/**
+ * Active Asisten who can lend an account to this session: they hold no group
+ * in it, their account carries fewer than two other sessions that day, and
+ * it isn't already lent to another group here (`untukNomor` is the group
+ * being picked for, whose own lender doesn't count against it).
+ */
+async function pemberiPinjam(
+  db: Db,
+  data: SesiSeelabs,
+  untukNomor?: number,
+): Promise<{ pemberi: string[]; tolak: PemberiTolak[] }> {
   const rows = await db
     .select({ nim: asisten.nim })
     .from(asisten)
     .where(eq(asisten.status, "aktif"))
     .orderBy(asc(asisten.kode));
-  return rows.map((r) => r.nim).filter((n) => !pegang.has(n));
+  const pakai = await pemakaianAkunHari(db, data.sesi.tanggal, data.sesi.id);
+  const dipinjam = new Map<string, number>();
+  for (const g of data.kelompok)
+    if (g.pinjam && g.akun && g.nomor !== untukNomor) dipinjam.set(g.akun, g.nomor);
+  return pilahPemberi({
+    aktif: rows.map((r) => r.nim),
+    pegang: new Set(data.kelompok.map((g) => g.penilai).filter((n): n is string => !!n)),
+    sesiLain: new Map([...pakai].map(([nim, daftar]) => [nim, daftar.length])),
+    dipinjam,
+  });
 }
 
 export async function handleSeelabsGet(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
@@ -274,7 +383,8 @@ export async function handleSeelabsGet(req: ApiRequest, res: ApiResponse, sessio
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
     return;
   }
-  res.status(200).json({ ok: true, ...data, pemberi: await pemberiPinjam(db, data) });
+  const { pemberi, tolak } = await pemberiPinjam(db, data);
+  res.status(200).json({ ok: true, ...data, pemberi, pemberiTolak: tolak });
 }
 
 export async function handleSeelabsPost(
@@ -320,16 +430,15 @@ export async function handleSeelabsPost(
 
   if (aksi === "akun") {
     const akun = typeof body.akun === "string" && body.akun ? body.akun : null;
-    // Only a scorer's second (or later) group goes through a lender; their
-    // lowest numbered group always uses their own account.
-    const pertama = Math.min(
-      ...data.kelompok.filter((x) => x.penilai === g.penilai).map((x) => x.nomor),
-    );
-    if (!g.penilai || g.nomor === pertama) {
+    // A lender is only for a group that doesn't ride its scorer's own
+    // account: a later group, or any group of a scorer at the daily cap.
+    const pasangan = new Map(data.kelompok.map((x) => [x.nomor, x.penilai]));
+    const butuh = akunKelompok(pasangan, new Map(), new Set(data.penuh)).get(g.nomor) === null;
+    if (!g.penilai || !butuh) {
       res.status(200).json({ ok: false, kode: "tidak_perlu_pinjam" });
       return;
     }
-    if (akun && !(await pemberiPinjam(db, data)).includes(akun)) {
+    if (akun && !(await pemberiPinjam(db, data, nomor)).pemberi.includes(akun)) {
       res.status(200).json({ ok: false, kode: "pemberi_salah" });
       return;
     }

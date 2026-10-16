@@ -4,7 +4,7 @@
 import { useEffect } from "react";
 import { getJson, postJson } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
-import type { KelompokSeelabs, SesiSeelabs } from "../../../lib/seelabs";
+import type { KelompokSeelabs, PemberiTolak, SesiSeelabs } from "../../../lib/seelabs";
 
 export type { KelompokSeelabs };
 
@@ -13,6 +13,8 @@ export type SesiSeelabsInfo = SesiSeelabs["sesi"];
 export interface SeelabsData extends SesiSeelabs {
   /** Asisten free to lend their account (no group in this session). */
   pemberi: string[];
+  /** Asisten who can't lend, with why (shown dimmed in the picker). */
+  pemberiTolak: PemberiTolak[];
 }
 
 export interface Titipan extends SesiSeelabsInfo {
