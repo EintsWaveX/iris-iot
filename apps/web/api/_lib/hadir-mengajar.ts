@@ -14,12 +14,13 @@
  * POST /api/session/hadir { aksi: "status" | "geser" | "aa", ... } (PJ only,
  *        routed from sesi-hadir.ts; "asisten" there is Tandai Hadir)
  */
-import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { ALASAN_MIN, catatKejadian } from "./berjalan.js";
 import { muatOrang, type OrangHak } from "./hak.js";
 import { muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
+import { konteksModul } from "./pasangan-modul.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
@@ -40,6 +41,7 @@ import { slotToMulai } from "../../src/lib/jadwal.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { statusSlotTanggal } from "../../src/lib/penugasan-minggu.js";
 import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
+import { modulTanggal } from "../../src/lib/penugasan-modul.js";
 import {
   jamDariMenit,
   jendelaSlot,
@@ -478,6 +480,36 @@ function sudahSelesai(c: Konteks, now: Date): boolean {
   return now.getTime() >= instanWib(c.tanggal, c.baseMenit).getTime() + akhir * 60000;
 }
 
+/** A date's module when no session names it: its TP week's module, else the
+ *  highest open one (read even while the semester doesn't pair per module). */
+export async function modulHari(db: Db, tanggal: string): Promise<number | null> {
+  const k = await konteksModul(db, semesterDariTanggal(tanggal), true);
+  return modulTanggal({ tanggal, hariIni: tanggal, jendela: k.jendela, terbuka: k.terbuka }).modul;
+}
+
+/** The lab clock's refusal for a slot that never started (api/_lib/jam-lab.ts), if any. */
+async function tolakOtomatis(
+  db: Db,
+  kunci: string,
+  tanggal: string,
+): Promise<{ kode: string; pada: string } | null> {
+  const [r] = await db
+    .select({ detail: audit.detail, pada: audit.pada })
+    .from(audit)
+    .where(
+      and(
+        eq(audit.aksi, "sesi_otomatis_tolak"),
+        gte(audit.pada, instanWib(tanggal, 0)),
+        sql`${audit.detail}::jsonb ->> 'kunci' = ${kunci}`,
+      ),
+    )
+    .orderBy(desc(audit.id))
+    .limit(1);
+  if (!r?.detail) return null;
+  const kode = (JSON.parse(r.detail) as { kode?: unknown }).kode;
+  return typeof kode === "string" ? { kode, pada: r.pada.toISOString() } : null;
+}
+
 /** The cut setting (pengaturan `potongan_telat`), each field falling back by itself. */
 export async function muatPotongan(db: Db) {
   const [r] = await db
@@ -683,9 +715,13 @@ export async function handleHadirkuGet(
       bolehMulai = dalam && (penuh || s.diharapkan);
     }
   }
+  // Not started yet: the module the lab clock would start, and why it
+  // could not when it tried (the banner's alert).
+  const modul = c?.sesi?.modul ?? (await modulHari(db, s.tanggal));
+  const otomatisTolak = belumJalan ? await tolakOtomatis(db, s.kunci, s.tanggal) : null;
   res.status(200).json({
     ok: true,
-    slot: { ...s, saya, modul: c?.sesi?.modul ?? null, bolehMulai },
+    slot: { ...s, saya, modul, bolehMulai, otomatisTolak },
     nilai: null,
   });
 }

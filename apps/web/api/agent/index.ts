@@ -75,6 +75,7 @@ import {
   stempelCermin,
 } from "../_lib/tp-cermin.js";
 import { otomatisLmsBilaPerlu } from "../_lib/lms-otomatis.js";
+import { jamLabBilaPerlu } from "../_lib/jam-lab.js";
 import { adaTugasRobot, ambilTugas, harianBilaPerlu, terimaHasil } from "../_lib/seelabs-robot.js";
 import { kirimRelay } from "../_lib/aliran.js";
 import { ruangSesi } from "../../src/lib/aliran.js";
@@ -358,6 +359,9 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       (async () => {
         // The topics this beat changed, as before (most beats change none).
         await Promise.all([siarkan([...berubah]), terbitAwal]);
+        // Phase 18: the lab clock's backup when the relay's minute is
+        // late; once a minute at most across both (never throws).
+        await jamLabBilaPerlu(db);
         // Phase 13: the server's beat is one of the TP sync's clocks while a
         // window is open (every minute at most, with the relay's timer) and
         // once after it closes. The server never sees the LMS token; this

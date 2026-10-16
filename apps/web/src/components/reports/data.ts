@@ -59,6 +59,7 @@ export type TagKejadian = "sistem" | "asisten" | "pasangan" | "seelabs" | "tanga
 const KJ = {
   id: {
     mulai: (who: string) => `Sesi dimulai oleh ${who}.`,
+    mulaiOtomatis: "Sesi dimulai otomatis oleh IRIS.",
     akhiri: (who: string) => `Sesi diakhiri oleh ${who}.`,
     batal: (who: string) => `Sesi dibatalkan oleh ${who}.`,
     lanjutkan: (who: string) => `Sesi dilanjutkan oleh ${who}.`,
@@ -81,6 +82,7 @@ const KJ = {
   },
   en: {
     mulai: (who: string) => `Session started by ${who}.`,
+    mulaiOtomatis: "Session started by IRIS itself.",
     akhiri: (who: string) => `Session ended by ${who}.`,
     batal: (who: string) => `Session cancelled by ${who}.`,
     lanjutkan: (who: string) => `Session resumed by ${who}.`,
@@ -106,6 +108,7 @@ const KJ = {
   },
   zh: {
     mulai: (who: string) => `${who} 开始了这节课。`,
+    mulaiOtomatis: "IRIS 自动开始了这节课。",
     akhiri: (who: string) => `${who} 结束了这节课。`,
     batal: (who: string) => `${who} 取消了这节课。`,
     lanjutkan: (who: string) => `${who} 继续了这节课。`,
@@ -147,7 +150,7 @@ export function kalimatKejadian(
     case "catatan":
       return { tag: "asisten", teks: String(d.teks ?? "") };
     case "mulai":
-      return { tag: "sistem", teks: w.mulai(by) };
+      return { tag: "sistem", teks: d.otomatis ? w.mulaiOtomatis : w.mulai(by) };
     case "akhiri":
       return { tag: "sistem", teks: w.akhiri(by) };
     case "batal":

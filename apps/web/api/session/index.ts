@@ -32,10 +32,12 @@
  * - A closed module can't be started; modules are opened in Preparation.
  *   (Before Phase 9 a start opened its module and the ones below; that
  *   undid an Asisten who had closed one on purpose.)
- * - The session runs for durasiMenit (30 to 150, default 150) with
- *   jumlahKelompok groups (1 to 10; default the slot's own count).
+ * - The session runs for durasiMenit (30 to 150, default 150, and never
+ *   past the next slot's automatic start that day) with jumlahKelompok
+ *   groups (1 to 10; default the slot's own count).
  * - The slot's roster (or the draft's) becomes the live roster inside the
  *   start transaction and is snapshotted (api/_lib/roster.ts).
+ * - Phase 18: starting a slot you teach checks you in for it.
  *
  * The class type and the one-assistant-per-group prefill still come from
  * the schedule (api/_lib/phase8.ts's siapkanSesiDariJadwal). Starting a
@@ -43,52 +45,31 @@
  * `butuhAp` (Module 4 only) marks a session that runs the hunt; since
  * 2026-10-08 the hotspot itself waits for the Asisten's Mulai Perburuan
  * (api/_lib/perburuan-sesi.ts), and a replaced Module 4 session closes its
- * hunt so the hotspot goes off.
+ * hunt so the hotspot goes off. The start itself is api/_lib/mulai-sesi.ts,
+ * shared with the lab clock's automatic start.
  */
-import { diSlotMinggu, muatMinggu } from "../_lib/penugasan-api.js";
+import { diSlotMinggu } from "../_lib/penugasan-api.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
-import { requireMethod, jsonBody, noStore, pgErrorCode } from "../_lib/http.js";
+import { requireMethod, jsonBody, noStore } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { muatOrang } from "../_lib/hak.js";
-import { salinRosterKeSesi, type SumberRoster } from "../_lib/roster.js";
 import { getDb } from "../../src/lib/db.js";
-import { pengaturan, sesi } from "../../src/lib/schema.js";
-import { bacaModeTot } from "../../src/lib/mode-tot.js";
-import { hariIniWib, slotToMulai, SESI_CAP_DETIK } from "../../src/lib/jadwal.js";
-import { semesterDariTanggal, hariDariTanggal } from "../../src/lib/jadwal-parser.js";
-import {
-  bacaDurasi,
-  bacaJumlahKelompok,
-  jendelaSlot,
-  jendelaValid,
-  menitSekarangWib,
-} from "../../src/lib/sesi-mulai.js";
+import { sesi } from "../../src/lib/schema.js";
+import { hariIniWib, slotToMulai } from "../../src/lib/jadwal.js";
+import { bacaDurasi, menitSekarangWib } from "../../src/lib/sesi-mulai.js";
 import { bolehPenuh } from "../../src/lib/hak.js";
-import { tutupPerburuan } from "../_lib/perburuan-sesi.js";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { writeAudit } from "../../src/lib/auth.js";
-import { cekSiapMulai } from "../_lib/siap-mulai.js";
-import { ALASAN_PAKSA_MIN, gagalMulai } from "../../src/lib/siap-mulai.js";
 import { isKelas } from "../../src/lib/kelas.js";
-import { jadwalUntuk, siapkanSesiDariJadwal } from "../_lib/phase8.js";
-import { catatKejadian } from "../_lib/berjalan.js";
 import { denganSiaran } from "../_lib/siaran.js";
-import { isiTpSesi } from "../_lib/tp.js";
+import { mulaiSesi } from "../_lib/mulai-sesi.js";
+import { masuk } from "../_lib/hadir-mengajar.js";
 
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
 const JAM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 function tolak(res: ApiResponse, kode: string, extra: Record<string, unknown> = {}) {
   res.status(200).json({ ok: false, kode, ...extra });
-}
-
-async function jendelaDefault(db: ReturnType<typeof getDb>): Promise<number> {
-  const [row] = await db
-    .select({ nilai: pengaturan.nilai })
-    .from(pengaturan)
-    .where(eq(pengaturan.kunci, "jendela_mulai_default"))
-    .limit(1);
-  return jendelaValid(row?.nilai);
 }
 
 async function handler(req: ApiRequest, res: ApiResponse) {
@@ -147,183 +128,61 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     const orang = await muatOrang(session.nim);
     if (!orang) return tolak(res, "tanpa_hak");
     const penuh = bolehPenuh(orang, "pair");
+    if ((susulan || tot) && !penuh) {
+      return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "pair" });
+    }
 
-    const slotRow = await jadwalUntuk(db, tanggal, slot);
-    if (susulan || tot) {
-      if (!penuh) return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "pair" });
-    } else {
+    const r = await mulaiSesi(
+      db,
+      {
+        jenis: tot ? "tot" : susulan ? "susulan" : "reguler",
+        tanggal,
+        mulai,
+        modul,
+        slot,
+        draftId: draft?.id ?? null,
+        kelasDiminta,
+        durasiMenit,
+        jumlahKelompok: body.jumlahKelompok,
+        butuhAp,
+        paksa: typeof body.paksa === "string" ? body.paksa.trim().slice(0, 300) : "",
+      },
+      session.nim,
       // Anyone teaching the slot that date (its pairing, a cover or a
       // volunteer, or a listed substitute) may start it; the full "pair"
-      // right starts any. A holiday or No Practicum slot doesn't start.
-      const minggu = slotRow
-        ? (await muatMinggu(db, [slotRow], tanggal)).get(slotRow.id)
-        : undefined;
-      if (minggu?.status === "libur") return tolak(res, "slot_libur");
-      if (minggu?.status === "kosong") return tolak(res, "slot_kosong");
-      const diSlot = !!slotRow && diSlotMinggu(slotRow, minggu, orang.kode);
-      if (!penuh && !diSlot) {
-        return res.status(403).json({ ok: false, kode: "bukan_slotmu", hak: "pair" });
-      }
-      // The start window, on the lab's clock.
-      const jendela = slotRow?.jendelaMulaiMenit ?? (await jendelaDefault(db));
-      const hariIni = hariIniWib();
-      const j = jendelaSlot(mulai, jendela, menitSekarangWib());
-      const posisi = tanggal === hariIni ? j.posisi : tanggal < hariIni ? "lewat" : "belum";
-      if (posisi !== "buka") {
-        return tolak(res, "di_luar_jendela", { jendela: { ...j, posisi, menit: jendela } });
-      }
-    }
-
-    // The lab check (src/lib/siap-mulai.ts). Mode TOT's side and a closed
-    // module refuse outright, as before; an offline Pi, a stopped service
-    // or the Module 4 hotspot left off can be forced past with a reason.
-    const { cek, serverId } = await cekSiapMulai({ modul, tot, butuhAp });
-    const { keras, lunak } = gagalMulai(cek);
-    if (keras.length) {
-      const k = keras[0].id === "tot" ? (tot ? "tot_mati" : "mode_tot") : "modul_tertutup";
-      return tolak(res, k, { cek, serverId });
-    }
-    const paksa = typeof body.paksa === "string" ? body.paksa.trim().slice(0, 300) : "";
-    if (lunak.length && paksa.length < ALASAN_PAKSA_MIN)
-      return tolak(res, "belum_siap", { cek, serverId });
-    const dipaksa = lunak.length ? { alasan: paksa, gagal: lunak.map((c) => c.id) } : null;
-
-    // A TOT session has one group per division taking part (the /tot page).
-    const jumlahKelompok = tot
-      ? (await bacaModeTot()).atur.divisi.length
-      : bacaJumlahKelompok(
-          body.jumlahKelompok,
-          draft?.jumlahKelompok ?? slotRow?.jumlahKelompok ?? undefined,
-        );
-    if (jumlahKelompok === null) return tolak(res, "format_salah");
-
-    const { created, demoted, disalin } = await db.transaction(async (tx) => {
-      const demotedRows = await tx
-        .update(sesi)
-        .set({
-          status: "selesai",
-          selesaiPada: sql`now()`,
-          durasiDetik: sql`extract(epoch from now() - coalesce(${sesi.mulaiPada}, ${sesi.dibuatPada}))::int`,
-        })
-        .where(eq(sesi.status, "berjalan"))
-        .returning({ id: sesi.id, modul: sesi.modul });
-      const nilai = {
-        modul,
-        butuhAp,
-        status: "berjalan" as const,
-        mulaiPada: new Date(),
-        durasiMenit,
-        jumlahKelompok,
-        jenis: tot ? ("tot" as const) : susulan ? ("susulan" as const) : ("reguler" as const),
-      };
-      const [row] = draft
-        ? await tx.update(sesi).set(nilai).where(eq(sesi.id, draft.id)).returning()
-        : await tx
-            .insert(sesi)
-            .values({ ...nilai, tanggal, mulai, slot })
-            .returning();
-      // A TOT session (like a susulan with no roster of its own) copies
-      // nothing: the live roster is kept as it is and snapshotted.
-      const sumber: SumberRoster =
-        !susulan && !tot && slot !== null
-          ? {
-              jenis: "slot",
-              semester: semesterDariTanggal(tanggal),
-              hari: hariDariTanggal(tanggal),
-              slot,
-            }
-          : { jenis: "susulan", sesiId: row.id };
-      const salin = await salinRosterKeSesi(tx, row.id, sumber, jumlahKelompok);
-      return { created: row, demoted: demotedRows[0], disalin: salin.disalin };
-    });
-
-    // Phase 8: class type and one-assistant-per-group prefill from the
-    // schedule. Best effort -- a failure here must never undo a session
-    // that already started, so it is caught and logged on its own.
-    let persiapan: { kelas: string; ditugaskan: number } = { kelas: "reguler", ditugaskan: 0 };
-    try {
-      persiapan = await siapkanSesiDariJadwal(
-        db,
-        created,
-        isKelas(kelasDiminta) ? kelasDiminta : null,
-      );
-    } catch (err) {
-      console.error("[api/session] schedule prefill failed:", err);
-    }
-
-    // Phase 13: TP totals graded before the session go into its table.
-    await isiTpSesi(db, created.id);
-
-    await catatKejadian(
-      created.id,
-      "mulai",
-      { modul, slot, jenis: created.jenis, ...(dipaksa ? { dipaksa } : {}) },
-      session.nim,
+      // right starts any.
+      (slotRow, minggu) => penuh || (!!slotRow && diSlotMinggu(slotRow, minggu, orang.kode)),
     );
-    await writeAudit(session.nim, "sesi_mulai", {
-      tanggal,
-      mulai,
-      modul,
-      slot,
-      butuhAp,
-      jenis: created.jenis,
-      durasiMenit,
-      jumlahKelompok,
-      disalin,
-      ...persiapan,
-      ...(dipaksa ? { dipaksa } : {}),
-    });
+    if (!r.ok) {
+      const status = r.kode === "bukan_slotmu" ? 403 : 200;
+      return res.status(status).json({ ok: false, kode: r.kode, ...(r.extra ?? {}) });
+    }
 
-    // 2026-10-08: starting a session never touches the network; the hotspot
-    // comes with the Asisten's Mulai Perburuan. A Module 4 session this one
-    // replaced closes its hunt so its hotspot doesn't outlive it.
-    if (demoted) await tutupPerburuan(demoted.id, demoted.modul, session.nim);
+    // Phase 18: starting the slot you teach is arriving for it. Best
+    // effort: the session already started.
+    const h = r.hadir;
+    if (h && h.diharapkan.has(session.nim) && !h.izin.has(session.nim)) {
+      try {
+        const m = await masuk(db, session.nim, h.kunci);
+        if (m.ok) {
+          await writeAudit(session.nim, "hadir_masuk", {
+            kunci: h.kunci,
+            hadirPada: m.hadirPada,
+            via: "mulai",
+          });
+        }
+      } catch (err) {
+        console.error("[api/session] check-in on start failed:", err);
+      }
+    }
 
     res.status(200).json({
       ok: true,
-      sesi: { ...created, kelas: persiapan.kelas },
-      ditugaskan: persiapan.ditugaskan,
-      disalin,
+      sesi: { ...r.created, kelas: r.persiapan.kelas },
+      ditugaskan: r.persiapan.ditugaskan,
+      disalin: r.disalin,
     });
   } catch (err) {
-    // Postgres unique_violation on (tanggal, modul, mulai) -- the same
-    // slot was already scheduled today.
-    if (pgErrorCode(err) === "23505") {
-      // Say which session holds the slot, so the console can offer the
-      // right way out: show it if it is already running, or offer to
-      // reopen it if it was ended early and is still inside its cap.
-      const [lama] = await getDb()
-        .select({
-          id: sesi.id,
-          status: sesi.status,
-          mulaiPada: sesi.mulaiPada,
-          dibuatPada: sesi.dibuatPada,
-        })
-        .from(sesi)
-        .where(
-          and(
-            eq(sesi.tanggal, tanggal),
-            eq(sesi.modul, modul),
-            eq(sesi.mulai, mulai),
-            ne(sesi.status, "batal"),
-          ),
-        )
-        .limit(1);
-      const mulaiLama = lama ? (lama.mulaiPada ?? lama.dibuatPada).getTime() : 0;
-      res.status(200).json({
-        ok: false,
-        kode: "sudah_ada",
-        sesiLama: lama
-          ? {
-              id: lama.id,
-              status: lama.status,
-              bisaDilanjutkan:
-                lama.status === "selesai" && Date.now() - mulaiLama < SESI_CAP_DETIK * 1000,
-            }
-          : null,
-      });
-      return;
-    }
     console.error("[api/session] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
   }

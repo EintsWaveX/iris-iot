@@ -12,7 +12,9 @@
  * GET  /api/tp/berkas?id=&i=[&unduh=1]       my own file, streamed from the LMS.
  * Relay (no session; signed `detak|ts` with KONSOL_RELAY_SECRET):
  * POST /api/tp/detak   the minute timer: the TP sync when due and LMS copies
- *      still owed; answers how long the timer may sleep (tidurDetik).
+ *      still owed, and the lab clock's automatic starts (_lib/jam-lab.ts);
+ *      answers how long the timer may sleep (tidurDetik, a minute at most
+ *      from 05:50 to 00:15 WIB).
  *
  * POST /api/tp/unggah { modul, isi }   my TP as one PDF (base64, 3 MB at most)
  *      while the window is open (2026-10-14: the LMS can refuse a student's
@@ -170,6 +172,7 @@ import {
   unggahTerakhir,
 } from "../_lib/tp-unggah.js";
 import { bacaStatusCermin } from "../_lib/tp-cermin.js";
+import { batasTidurJamLab, jamLabBilaPerlu } from "../_lib/jam-lab.js";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -1487,13 +1490,17 @@ function detakSah(req: ApiRequest): boolean {
 async function handleDetak(req: ApiRequest, res: ApiResponse) {
   if (!detakSah(req)) return tolak(res, "tanda_salah", 403);
   const db = getDb();
+  // Phase 18: the lab clock's minute (automatic starts) rides the same
+  // beat, first, as it keeps time; it never throws, so the TP part runs.
+  await jamLabBilaPerlu(db);
   await sinkronBilaPerlu(db, "relay", jedaRelay());
   await kirimTertunda(db);
   const [t] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(tpUnggah)
     .where(inArray(tpUnggah.lmsStatus, ["menunggu", "gagal"]));
-  res.status(200).json({ ok: true, tidurDetik: tidurDetik(await bacaSet(db), (t?.n ?? 0) > 0) });
+  const tidur = tidurDetik(await bacaSet(db), (t?.n ?? 0) > 0);
+  res.status(200).json({ ok: true, tidurDetik: batasTidurJamLab(tidur) });
 }
 
 /* ================================================================ route */
