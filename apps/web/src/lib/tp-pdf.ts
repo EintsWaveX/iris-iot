@@ -17,7 +17,7 @@ import type { Lang } from "./kelas";
 import { MODUL_NAMA } from "./app";
 import {
   TP_NOMOR,
-  TP_POIN,
+  poinNomor,
   blokTeks,
   sasaranNomor,
   type JendelaTp,
@@ -48,7 +48,7 @@ const KATA = {
     pengumpulan: "Pengumpulan",
     pengumpulanIsi: (m: number) => `Satu file PDF di tugas "TP Modul ${m}" pada kelas LMS-mu`,
     bobot: "Penilaian",
-    bobotIsi: (p: number) => `${p} poin per nomor, dihitung ke skala 100`,
+    bobotIsi: "Nomor 1 dan 10 masing-masing 20 poin, nomor lainnya 15 poin, total 100",
     petunjuk: "Petunjuk Pengerjaan",
     soal: "Soal",
     soalKunci: "Soal dan Kunci Jawaban",
@@ -87,7 +87,7 @@ const KATA = {
     pengumpulanIsi: (m: number) =>
       `One PDF file in the "TP Modul ${m}" assignment of your LMS class`,
     bobot: "Scoring",
-    bobotIsi: (p: number) => `${p} points per number, scaled to 100`,
+    bobotIsi: "Numbers 1 and 10 are 20 points each, the others 15 points, 100 in all",
     petunjuk: "Instructions",
     soal: "Questions",
     soalKunci: "Questions and Answer Key",
@@ -125,7 +125,7 @@ const KATA = {
     pengumpulan: "提交方式",
     pengumpulanIsi: (m: number) => `在 LMS 班级的“TP Modul ${m}”作业中提交一个 PDF 文件`,
     bobot: "评分",
-    bobotIsi: (p: number) => `每题 ${p} 分，折算为百分制`,
+    bobotIsi: "第 1 题和第 10 题各 20 分，其余每题 15 分，共 100 分",
     petunjuk: "答题说明",
     soal: "题目",
     soalKunci: "题目与参考答案",
@@ -387,7 +387,7 @@ export async function buatPdfTp(isi: TpPdfIsi): Promise<Uint8Array> {
         ] as [string, string][])
       : ([[p.jadwal, p.jadwalLms]] as [string, string][])),
     [p.pengumpulan, p.pengumpulanIsi(isi.modul)],
-    [p.bobot, p.bobotIsi(TP_POIN)],
+    [p.bobot, p.bobotIsi],
   ];
   const kunciW = Math.max(...info.map(([k]) => tebal.widthOfTextAtSize(bersih(k), 9.5))) + 18;
   for (const [k, v] of info)
@@ -451,7 +451,7 @@ export async function buatPdfTp(isi: TpPdfIsi): Promise<Uint8Array> {
       font: tebal,
       color: rgb(1, 1, 1),
     });
-    const tag = `${p.sasaran[s]} · ${p.poin(TP_POIN)}`;
+    const tag = `${p.sasaran[s]} · ${p.poin(poinNomor(no))}`;
     paragraf(tag, { size: 8, x: TEPI + 32, w: s === "semua" ? mw : ABU, jarak: 1 });
     paragraf(q.teks, { x: TEPI + 32, jarak: 2 });
     for (const [j, b] of (q.bagian ?? []).entries())

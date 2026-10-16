@@ -11,7 +11,7 @@ import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import {
   TP_NOMOR,
-  TP_POIN,
+  poinNomor,
   blokTeks,
   isiSoal,
   sasaranNomor,
@@ -406,7 +406,7 @@ export function SoalList({
                 {!milik && <span className="hint">{t.bukanUntukmu}</span>}
                 {poin && (
                   <span className="hint">
-                    {TP_POIN} {t.poin}
+                    {poinNomor(no)} {t.poin}
                   </span>
                 )}
               </div>

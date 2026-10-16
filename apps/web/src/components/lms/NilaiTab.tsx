@@ -12,6 +12,7 @@ import { Switch } from "../ui/Controls";
 import { getJson, postJson } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
+import { poinNomor } from "../../lib/tp";
 import { LS } from "./lmsStrings";
 import { BatchDialog, Facts, Head, galatTeks, langkah } from "./lmsShared";
 import { BacaSaja, type TabLms } from "./LmsPage";
@@ -149,9 +150,17 @@ export default function NilaiTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
           <Head title={t.dilihatH} aside={d.contoh ? undefined : <Pill>{t.contohLabel}</Pill>} />
           {(() => {
             // Before any score has gone out, a sample shows the shape.
+            // An even NIM's six numbers.
             const c = d.contoh ?? {
-              total: 86,
-              baris: [9, 8, 10, 7, 9].map((skor, i) => ({ nomor: i + 1, skor })),
+              total: 89,
+              baris: [
+                [1, 18],
+                [2, 13],
+                [4, 15],
+                [6, 12],
+                [8, 14],
+                [10, 17],
+              ].map(([nomor, skor]) => ({ nomor, skor })),
             };
             return (
               <div className="lms-fb" data-contoh={d.contoh ? undefined : "yes"}>
@@ -163,7 +172,7 @@ export default function NilaiTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
                 </div>
                 <span className="hint">{t.umpanBalik}</span>
                 <pre className="mono">
-                  {c.baris.map((x) => `${x.nomor}. ${x.skor}/10`).join("\n")}
+                  {c.baris.map((x) => `${x.nomor}. ${x.skor}/${poinNomor(x.nomor)}`).join("\n")}
                   {`\n${t.dinilaiIris}`}
                 </pre>
               </div>

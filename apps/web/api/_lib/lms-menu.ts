@@ -12,7 +12,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
 import { pengaturan } from "../../src/lib/schema.js";
-import { TP_POIN } from "../../src/lib/tp.js";
+import { poinNomor } from "../../src/lib/tp.js";
 import { LmsGalat, panggil, teksLms } from "./lms.js";
 import { tulisSet } from "./tp.js";
 
@@ -508,7 +508,7 @@ export function umpanBalik(
   oleh: string | null,
   b: "id" | "en",
 ): string {
-  const baris = nomor.map((n) => `${n}. ${per[n] ?? 0}/${TP_POIN}`);
+  const baris = nomor.map((n) => `${n}. ${per[n] ?? 0}/${poinNomor(n)}`);
   const akhir = oleh
     ? b === "id"
       ? `Dinilai ${oleh} lewat IRIS.`

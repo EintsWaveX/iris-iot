@@ -29,7 +29,7 @@ import { getJson, postJson } from "../../lib/app";
 import { useMinWidth, usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
-import { TP_POIN, bahasaKelas, pisahJawaban, totalTp } from "../../lib/tp";
+import { bahasaKelas, pisahJawaban, poinNomor, totalTp } from "../../lib/tp";
 import { TPS } from "../tp/tpStrings";
 import {
   KunciBox,
@@ -463,7 +463,7 @@ function Isi({
         >
           <span className="tpsoal__no">{no}</span>
           <span className="tpq__t">{q?.teks}</span>
-          <span className="tpq__v mono">{v != null ? `${v}/${TP_POIN}` : "·"}</span>
+          <span className="tpq__v mono">{v != null ? `${v}/${poinNomor(no)}` : "·"}</span>
         </button>
         {open && (
           <div className="tpq__body">
@@ -517,8 +517,8 @@ function Isi({
               {(
                 [
                   [0, "0"],
-                  [TP_POIN / 2, t.setengah],
-                  [TP_POIN, t.penuh],
+                  [poinNomor(no) / 2, t.setengah],
+                  [poinNomor(no), t.penuh],
                 ] as const
               ).map(([x, l]) => (
                 <Pill
@@ -534,11 +534,12 @@ function Isi({
               ))}
               <NilaiBebas
                 nilai={v}
+                maks={poinNomor(no)}
                 off={kunciNilai}
                 label={t.nilaiBebas}
                 onSet={(x) => void tulis(no, { skor: x })}
               />
-              <span className="hint">/ {TP_POIN}</span>
+              <span className="hint">/ {poinNomor(no)}</span>
             </div>
             <CatatanField
               awal={skor[no]?.catatan ?? ""}
@@ -633,11 +634,13 @@ function Isi({
 
 function NilaiBebas({
   nilai,
+  maks,
   off,
   label,
   onSet,
 }: {
   nilai: number | null;
+  maks: number;
   off: boolean;
   label: string;
   onSet: (v: number | null) => void;
@@ -648,8 +651,7 @@ function NilaiBebas({
     const s = v.trim().replace(",", ".");
     if (s === "") return nilai != null && onSet(null);
     const n = Number(s);
-    if (!Number.isFinite(n) || n < 0 || n > TP_POIN)
-      return setV(nilai == null ? "" : String(nilai));
+    if (!Number.isFinite(n) || n < 0 || n > maks) return setV(nilai == null ? "" : String(nilai));
     if (n !== nilai) onSet(Math.round(n * 10) / 10);
   };
   return (

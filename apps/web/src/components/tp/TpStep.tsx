@@ -44,7 +44,7 @@ import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import {
   TP_NOMOR,
-  TP_POIN,
+  poinNomor,
   bagiWib,
   bahasaKelas,
   jendelaBerikut,
@@ -375,7 +375,7 @@ function Milikku({
                 {m.skor?.[no]?.catatan || <span className="hint">{t.tanpaCatatan}</span>}
               </span>
               <b className="mono">
-                {m.skor?.[no]?.skor ?? "-"}/{TP_POIN}
+                {m.skor?.[no]?.skor ?? "-"}/{poinNomor(no)}
               </b>
             </li>
           ))}

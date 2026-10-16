@@ -11,7 +11,9 @@ import {
   isiSoal,
   nomorBeda,
   nomorUntuk,
+  poinNomor,
   soalAkhir,
+  totalTp,
   type VarianTp,
 } from "../../../src/lib/tp.js";
 import { PETUNJUK_BAWAAN, TP_BAWAAN } from "../tp-bawaan.js";
@@ -97,6 +99,21 @@ describe("the final set", () => {
   it("still gives six numbers to every NIM", () => {
     expect(nomorUntuk("1102220001")).toEqual([1, 3, 5, 7, 9, 10]);
     expect(nomorUntuk("1102220002")).toEqual([1, 2, 4, 6, 8, 10]);
+  });
+
+  it("makes every NIM's six numbers worth 100 together", () => {
+    expect(poinNomor(1)).toBe(20);
+    expect(poinNomor(10)).toBe(20);
+    expect(poinNomor(2)).toBe(15);
+    expect(poinNomor(9)).toBe(15);
+    for (const nim of ["1102220001", "1102220002"]) {
+      const nomor = nomorUntuk(nim);
+      expect(nomor.reduce((a, no) => a + poinNomor(no), 0)).toBe(100);
+      const penuh = Object.fromEntries(nomor.map((no) => [no, poinNomor(no)]));
+      expect(totalTp(penuh, nomor)).toBe(100);
+    }
+    // Raw points are the score: 18 + 13 + 15 + 12 + 14 + 17.
+    expect(totalTp({ 1: 18, 2: 13, 4: 15, 6: 12, 8: 14, 10: 17 }, [1, 2, 4, 6, 8, 10])).toBe(89);
   });
 });
 

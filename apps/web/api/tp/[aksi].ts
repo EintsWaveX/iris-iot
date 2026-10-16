@@ -98,7 +98,7 @@ import {
   JAM_RE,
   POLA_BAWAAN,
   TANGGAL_RE,
-  TP_POIN,
+  poinNomor,
   bahasaKelas,
   htmlTugasLms,
   isoWib,
@@ -845,7 +845,7 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     !m ||
     !nim ||
     !nomorUntuk(nim).includes(nomor) ||
-    (skor !== null && (!Number.isFinite(skor) || skor < 0 || skor > TP_POIN))
+    (skor !== null && (!Number.isFinite(skor) || skor < 0 || skor > poinNomor(nomor)))
   )
     return tolak(res, "format_salah");
   const db = getDb();

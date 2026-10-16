@@ -9,7 +9,7 @@ import Pill from "../ui/Pill";
 import { href } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
-import { TP_POIN } from "../../lib/tp";
+import { poinNomor } from "../../lib/tp";
 import { TPS } from "./tpStrings";
 import {
   Countdown,
@@ -123,7 +123,7 @@ export function TpRincian({ lang, d, modul }: { lang: Lang; d: TpSaya | null; mo
             {t.no} {no}
           </small>
           <b className="mono">
-            {m.skor?.[no]?.skor ?? "-"}/{TP_POIN}
+            {m.skor?.[no]?.skor ?? "-"}/{poinNomor(no)}
           </b>
         </span>
       ))}

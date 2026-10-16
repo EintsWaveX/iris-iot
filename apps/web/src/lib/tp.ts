@@ -5,8 +5,9 @@
  *   parts a to d (the TP files' own layout). Everyone answers 1 and 10; an
  *   even NIM answers 2, 4, 6 and 8, an odd one 3, 5, 7 and 9 (user ruling
  *   2026-10-12). Six numbers each.
- * - Every question is worth 10 points; the TP score is the share of the
- *   points, out of 100, and goes into the session's TP component.
+ * - Numbers 1 and 10 are worth 20 points each, the other four 15 each, so
+ *   a NIM's six add up to 100 (user ruling 2026-10-17). The TP score goes
+ *   into the session's TP component.
  * - The window is IRIS's own (Wednesday 18:00 to Saturday 18:00 by
  *   default), the submission window for next week's practicum. A file that
  *   arrives after it closes is late.
@@ -14,7 +15,6 @@
 import type { Kelas } from "./kelas.js";
 
 export const TP_NOMOR = 10;
-export const TP_POIN = 10;
 
 export type KelasTp = "reguler" | "inter";
 export type Sasaran = "semua" | "genap" | "ganjil";
@@ -24,6 +24,11 @@ export type Paritas = "genap" | "ganjil";
 export function sasaranNomor(no: number): Sasaran {
   if (no === 1 || no === TP_NOMOR) return "semua";
   return no % 2 === 0 ? "genap" : "ganjil";
+}
+
+/** What question `no` is worth: 20 for the two everyone answers, else 15. */
+export function poinNomor(no: number): number {
+  return sasaranNomor(no) === "semua" ? 20 : 15;
 }
 
 export function paritas(nim: string): Paritas {
@@ -212,7 +217,8 @@ export function totalTp(
 ): number | null {
   if (!nomor.some((no) => skor[no] != null)) return null;
   const sum = nomor.reduce((a, no) => a + (skor[no] ?? 0), 0);
-  return Math.round((sum / (nomor.length * TP_POIN)) * 100);
+  const maks = nomor.reduce((a, no) => a + poinNomor(no), 0);
+  return Math.round((sum / maks) * 100);
 }
 
 export function tpLengkap(
