@@ -191,10 +191,44 @@ Everything around it, not only the report (user, 2026-10-16):
    type it in IRIS (the robot already takes a token per job), or use the
    bookmarklet and mark it by hand. Once saved, the record shows "Diinput
    Menyusul" with the time; the record itself stays.
-7. **Reports**: Laporan session block (each group's three steps with times
+7. **Edits after a save need no token** (user): Input Ulang works on any
+   later day because the group is already in SeeLabs, so the token path is
+   only for a first save after the day. Editing a sent group re-saves by
+   itself (60 s after the last edit), as today.
+8. **Reports**: Laporan session block (each group's three steps with times
    and who), the semester table (Lupa Input Nilai per person, menyusul or
    still open), the Tim drawer, and the person's own Akun list. Still no
    pay cut (user: report only).
+
+## SeeLabs account limits (user, 2026-10-16)
+
+SeeLabs pays one account once per session, and Input Jaga takes at most two
+shifts a day per account. So:
+
+- **One group per account per session** (already built, Phase 9): an
+  Asisten's lowest numbered group uses their own account, every further
+  group in that session goes through a lender.
+- **New: two sessions per account per day.** An account that already
+  carries groups in two sessions that day (its own or lent) can't take a
+  third. The Asisten teaching a third session that day is directed, before
+  Kirim Nilai, to pick a lender for it, exactly like a second group.
+- **Who can lend**: any active Asisten (in the session or not) who holds no
+  group in that session and whose account carries fewer than two sessions
+  that day. The picker says why anyone is missing ("sudah 2 sesi hari ini",
+  "memegang kelompok di sesi ini").
+- The robot saves through the lender's connected account, or the lender
+  uses the bookmarklet; the lender's Input Jaga for that shift is
+  registered by the robot as today.
+- **Pay goes to the one who taught**: the scorer earns the unit; Bayar's
+  Transfers to Pay lists lender to scorer with the reason (second group, or
+  third session that day). Laporan's Score Input names the account and the
+  reason.
+- The per-group checklist gets an Akun SeeLabs line before Kirim Nilai when
+  a lender is needed ("Butuh Akun: kamu sudah memakai akunmu di 2 sesi hari
+  ini"), with Pilih Akun.
+- **Tidak Hadir keeps TP** (user, "follow the designs"): marking a member
+  absent sets the seven session parts to 0 and leaves TP as it is (from TP
+  grading or typed), so an absent student's TP still reaches SeeLabs.
 
 ## Screens for the stage 0 mockup
 
