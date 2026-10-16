@@ -117,7 +117,7 @@ import {
 } from "../../src/lib/tp.js";
 import { buatTugas, hapusTugas, lampirTugas, ubahTugas } from "../_lib/lms-web.js";
 import { pastikanBagianModul } from "../_lib/lms-isi.js";
-import { otomatisNyala } from "../_lib/lms-menu.js";
+import { basikanInfoKelas, otomatisNyala } from "../_lib/lms-menu.js";
 import {
   LMS_URL,
   LmsGalat,
@@ -993,8 +993,14 @@ async function handleSinkron(req: ApiRequest, res: ApiResponse, s: SessionPayloa
     ...(m ? { modul: [m] } : {}),
     paksa: b.paksa === true,
   });
-  if (r.ok)
+  if (r.ok) {
     await writeAudit(s.nim, "tp_sinkron", { modul: m, baru: r.baru, diperbarui: r.diperbarui });
+    // A press brings the rest up to date too (2026-10-16): the Kelas tab's
+    // groups and contents read again on its next open, and the copies the
+    // LMS is still owed go now instead of on the relay's next beat.
+    if (b.paksa === true) await basikanInfoKelas(db, (await bacaSet(db)).semester);
+    waitUntil(kirimTertunda(db));
+  }
   res.status(200).json(r);
 }
 

@@ -127,6 +127,14 @@ export async function tulisCatatan<T>(
   await tulisSet(db, kunci, { semester, isi } satisfies Bertanda<T>, oleh);
 }
 
+/** Marks the Kelas tab's group and content counts as old, so its next read
+ *  asks the LMS again (Sinkron Sekarang, 2026-10-16). The old counts stay
+ *  on show if that read fails. */
+export async function basikanInfoKelas(db: Db, semester: string): Promise<void> {
+  const info = await bacaCatatan<{ pada: string } | null>(db, KUNCI_LMS.info, semester, null);
+  if (info) await tulisCatatan(db, KUNCI_LMS.info, semester, { ...info, basi: true }, null);
+}
+
 export async function bacaOtomatis(db: Db): Promise<OtomatisSet> {
   const [r] = await db
     .select({ nilai: pengaturan.nilai })

@@ -460,6 +460,8 @@ async function handleLog(req: ApiRequest, res: ApiResponse) {
 interface InfoKelas {
   pada: string;
   per: Record<string, { grup: number; aktivitas: number; bagian: number }>;
+  /** Sinkron Sekarang was pressed since: read again on the next open */
+  basi?: boolean;
 }
 
 async function handleKelas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
@@ -468,7 +470,7 @@ async function handleKelas(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const orang = await muatOrang(s.nim);
   const kursus = set.kelas?.kursus ?? [];
   let info = await bacaCatatan<InfoKelas | null>(db, KUNCI_LMS.info, set.semester, null);
-  const basi = !info || Date.now() - Date.parse(info.pada) > INFO_SEGAR_MS;
+  const basi = !info || !!info.basi || Date.now() - Date.parse(info.pada) > INFO_SEGAR_MS;
   let galat: string | null = null;
   if (set.token && kursus.length && (req.query.segar === "1" || basi)) {
     try {
