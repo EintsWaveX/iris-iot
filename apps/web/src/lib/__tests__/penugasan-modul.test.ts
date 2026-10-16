@@ -3,6 +3,8 @@ import {
   acakModul,
   asistenModul,
   benih,
+  daftarModul,
+  MODUL_MAKS,
   blok,
   kolam,
   listSah,
@@ -218,5 +220,23 @@ describe("acakModul", () => {
   });
   it("an empty slot leaves every seat open", () => {
     expect(acakModul([], 3, benih(1))[2]).toEqual(["", "", ""]);
+  });
+});
+
+describe("daftarModul", () => {
+  it("is 1 to 4 by default and follows the count", () => {
+    expect(daftarModul()).toEqual([1, 2, 3, 4]);
+    expect(daftarModul(6)).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+  it("holds the count between 1 and MODUL_MAKS", () => {
+    expect(daftarModul(0)).toEqual([1]);
+    expect(daftarModul(99)).toHaveLength(MODUL_MAKS);
+    expect(daftarModul(2.5)).toEqual([1, 2, 3, 4]);
+  });
+  it("putar and acakModul fill every module of the count", () => {
+    expect(Object.keys(putar(LIMA, 5, daftarModul(6)))).toHaveLength(6);
+    const r = acakModul(LIMA, 5, benih(3), {}, daftarModul(5));
+    expect(Object.keys(r)).toHaveLength(5);
+    expect(ulangan(r)).toBe(0);
   });
 });

@@ -44,6 +44,8 @@ export interface DataJadwal {
   /** Per Modul: the semester's switch, each module's practicum week and
    *  the modules each slot (by id) already taught. */
   bergilir?: boolean;
+  /** The semester's module count (Per Modul's Jumlah Modul, 4 when unset) */
+  jumlahModul?: number;
   modulMinggu?: Record<string, { senin: string; sabtu: string } | null>;
   diajar?: Record<string, number[]>;
   /** Each slot's SeeLabs KLP per group: "hari-slot" -> group -> KLP. */

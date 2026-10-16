@@ -40,7 +40,7 @@ import { useMinWidth } from "../../lib/hooks";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
 import { hariLabel, kelompokLabel, slotLabel as slotName } from "../../lib/labels";
-import { pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
+import { mingguDepan, pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
 import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
 import type { Lang } from "../../lib/kelas";
 import SlotEditor, { type SlotEditorHandle } from "./SlotEditor";
@@ -95,7 +95,7 @@ function Cell({ t, lang, row, minggu: m, meKode, dim, known, label, onOpen }: Ce
     return (
       <button type="button" className="jcell jcell--libur" aria-label={label} onClick={onOpen}>
         <Pill lg>{t.holiday}</Pill>
-        <span className="hint">{t.holidayHint}</span>
+        <span className="hint">{t.holidayHint(!!m && mingguDepan(m.tanggal, hariIniWib()))}</span>
       </button>
     );
   if (status === "kosong" || !row)

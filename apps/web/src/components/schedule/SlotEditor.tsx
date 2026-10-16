@@ -44,9 +44,14 @@ import Tooltip from "../ui/Tooltip";
 import { Stepper } from "../ui/Controls";
 import { postJson, tanggalPanjang } from "../../lib/app";
 import { klpLabel, kelompokLabel, statusOrangLabel, slotLabel as slotName } from "../../lib/labels";
-import { KELOMPOK_DEFAULT, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
+import { hariIniWib, KELOMPOK_DEFAULT, KELOMPOK_MAKS, SLOT_MULAI } from "../../lib/jadwal";
 import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
-import { orangTanggal, pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
+import {
+  mingguDepan,
+  orangTanggal,
+  pasanganSemester,
+  type MingguSlot,
+} from "../../lib/penugasan-minggu";
 import { kolam, saringModul } from "../../lib/penugasan-modul";
 import type { TagPengganti } from "../../lib/jadwal-parser";
 import type { Kelas, Lang } from "../../lib/kelas";
@@ -300,7 +305,11 @@ const SlotEditor = forwardRef<SlotEditorHandle, Props>(function SlotEditor(p, re
   return (
     <div className="jedit">
       {p.kini && m && (
-        <p className="jedit__when hint">{p.geser ? t.forDate(tglLabel) : t.nextDate(tglLabel)}</p>
+        <p className="jedit__when hint">
+          {p.geser
+            ? t.forDate(tglLabel)
+            : t.nextDate(tglLabel, mingguDepan(m.tanggal, hariIniWib()))}
+        </p>
       )}
       {perModul && (
         <div className="banner jedit__pm">

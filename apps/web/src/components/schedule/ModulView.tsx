@@ -13,8 +13,8 @@
  * module list, the same data; Lihat di Jadwal opens a slot's drawer, and the
  * drawer's Buka Per Modul comes back here with that slot flashed.
  */
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { CaretRightIcon, LockSimpleIcon } from "@phosphor-icons/react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { LockSimpleIcon } from "@phosphor-icons/react";
 import BackButton from "../ui/BackButton";
 import Confirm from "../ui/Confirm";
 import Dialog from "../ui/Dialog";
@@ -22,7 +22,7 @@ import Dropdown from "../ui/Dropdown";
 import Pill from "../ui/Pill";
 import TabLine from "../ui/TabLine";
 import Tooltip from "../ui/Tooltip";
-import { Switch } from "../ui/Controls";
+import { Stepper, Switch } from "../ui/Controls";
 import { postJson } from "../../lib/app";
 import { useMinWidth } from "../../lib/hooks";
 import { useBelumSimpan } from "../../lib/belum-simpan";
@@ -35,7 +35,15 @@ import {
   slotLabel as slotName,
 } from "../../lib/labels";
 import { pasanganSemester } from "../../lib/penugasan-minggu";
-import { MODUL_PASANGAN, acakModul, kolam, putar, ulang } from "../../lib/penugasan-modul";
+import {
+  acakModul,
+  daftarModul,
+  kolam,
+  MODUL_BAWAAN,
+  MODUL_MAKS,
+  putar,
+  ulang,
+} from "../../lib/penugasan-modul";
 import type { Lang } from "../../lib/kelas";
 import { J } from "./strings";
 import type { DataJadwal, JadwalRow } from "./types";
@@ -59,11 +67,11 @@ function rentang(lang: Lang, senin: string, sabtu: string): string {
 const bawaanDari = (j: JadwalRow) =>
   pasanganSemester(j.asisten, j.jumlahKelompok).map((k) => k ?? "");
 
-function drafAwal(rows: JadwalRow[]): Draf {
+function drafAwal(rows: JadwalRow[], modul: readonly number[]): Draf {
   const out: Draf = {};
   for (const j of rows) {
     out[j.id] = {};
-    for (const m of MODUL_PASANGAN) out[j.id][m] = j.asistenModul?.[String(m)] ?? null;
+    for (const m of modul) out[j.id][m] = j.asistenModul?.[String(m)] ?? null;
   }
   return out;
 }
@@ -101,8 +109,19 @@ export default function ModulView({
         .sort((a, b) => a.hari - b.hari || a.slot - b.slot),
     [data, semester],
   );
-  const awal = useMemo(() => drafAwal(rows), [rows]);
+  const [jumlah, setJumlah] = useState(data.jumlahModul ?? MODUL_BAWAAN);
+  useEffect(() => setJumlah(data.jumlahModul ?? MODUL_BAWAAN), [data.jumlahModul]);
+  const modulList = useMemo(() => daftarModul(jumlah), [jumlah]);
+  const awal = useMemo(() => drafAwal(rows, modulList), [rows, modulList]);
   const [draf, setDraf] = useState<Draf>(awal);
+  // A new saved state (a save, someone else's change, the module count)
+  // becomes the draft unless there are edits waiting.
+  const awalLalu = useRef(awal);
+  useEffect(() => {
+    const lalu = awalLalu.current;
+    awalLalu.current = awal;
+    setDraf((d) => (JSON.stringify(d) === JSON.stringify(lalu) ? awal : d));
+  }, [awal]);
   const [bergilir, setBergilir] = useState(!!data.bergilir);
   const [tab, setTab] = useState("1");
   const [ubah, setUbah] = useState<number | null>(null);
@@ -131,25 +150,22 @@ export default function ModulView({
 
   const efektif = (j: JadwalRow, m: number, d: Draf = draf) => d[j.id]?.[m] ?? bawaanDari(j);
   const semua = (j: JadwalRow, d: Draf = draf) =>
-    Object.fromEntries(MODUL_PASANGAN.map((m) => [m, efektif(j, m, d)])) as Record<
-      number,
-      string[]
-    >;
+    Object.fromEntries(modulList.map((m) => [m, efektif(j, m, d)])) as Record<number, string[]>;
   const tetapDi = (j: JadwalRow, d: Draf = draf) =>
     Object.fromEntries((diajar[String(j.id)] ?? []).map((m) => [m, efektif(j, m, d)]));
 
-  /** A slot's four lists after Acak, Putar or Bawaan; taught modules stay. */
+  /** A slot's lists after Acak, Putar or Bawaan; taught modules stay. */
   function isiSlot(j: JadwalRow, cara: "acak" | "putar" | "bawaan", d: Draf): Daftar {
     const n = j.jumlahKelompok;
     const tetap = tetapDi(j, d);
     const baru: Record<number, string[] | null> =
       cara === "acak"
-        ? acakModul(j.asisten, n, Math.random, tetap)
+        ? acakModul(j.asisten, n, Math.random, tetap, modulList)
         : cara === "putar"
-          ? putar(j.asisten, n)
-          : { 1: null, 2: null, 3: null, 4: null };
+          ? putar(j.asisten, n, modulList)
+          : Object.fromEntries(modulList.map((m) => [m, null]));
     const out: Daftar = {};
-    for (const m of MODUL_PASANGAN) out[m] = m in tetap ? (d[j.id]?.[m] ?? null) : baru[m];
+    for (const m of modulList) out[m] = m in tetap ? (d[j.id]?.[m] ?? null) : baru[m];
     return out;
   }
   const semuaSlot = (cara: "acak" | "putar") =>
@@ -168,6 +184,27 @@ export default function ModulView({
       onSaved();
     } catch {
       setBergilir(!v);
+      window.Toast?.show(t.fail, "danger");
+    }
+  }
+
+  /** Jumlah Modul: saved at once, like the switch; refused over a draft. */
+  async function aturJumlah(v: number) {
+    if (v === jumlah) return;
+    if (berubah.length) return window.Toast?.show(p.countLock, "warn");
+    const lama = jumlah;
+    setJumlah(v);
+    if (Number(tab) > v) setTab(String(v));
+    try {
+      const r = await postJson<{ ok: boolean }>("/api/session/schedule", {
+        semester,
+        jumlahModul: v,
+      });
+      if (!r.ok) throw new Error();
+      window.Toast?.show(p.countSaved(v), "ok");
+      onSaved();
+    } catch {
+      setJumlah(lama);
       window.Toast?.show(t.fail, "danger");
     }
   }
@@ -228,9 +265,13 @@ export default function ModulView({
         <ul className="pmseats__list">
           {list.map((k, g) => (
             <li key={g} className="pmseat">
-              <span className="pmseat__g hint num">{g + 1}</span>
+              <Pill group={g + 1} className="pmseat__g">
+                {g + 1}
+              </Pill>
               {adaKlp(j) && (
-                <span className="pmseat__klp hint mono">{klpLabel(klpOf(j, g + 1)) ?? ""}</span>
+                <span className="pmseat__klp">
+                  {klpLabel(klpOf(j, g + 1)) && <Pill mono>{klpLabel(klpOf(j, g + 1))}</Pill>}
+                </span>
               )}
               {k ? (
                 <span className={`acode${k === meKode ? " acode--me" : ""}`}>{k}</span>
@@ -254,28 +295,31 @@ export default function ModulView({
   const tanda = (j: JadwalRow) => (
     <span className="row pmslot__tags">
       {j.kelas === "internasional" && <Pill tone="violet">{t.inter}</Pill>}
-      <Pill tone={MODUL_PASANGAN.some((m) => draf[j.id]?.[m]) ? "accent" : undefined}>
-        {MODUL_PASANGAN.some((m) => draf[j.id]?.[m]) ? p.custom : p.asDefault}
+      <Pill tone={modulList.some((m) => draf[j.id]?.[m]) ? "accent" : undefined}>
+        {modulList.some((m) => draf[j.id]?.[m]) ? p.custom : p.asDefault}
       </Pill>
     </span>
   );
-  const tombolUbah = (j: JadwalRow) =>
-    boleh && (
-      <button type="button" className="btn btn--ghost btn--sm" onClick={() => setUbah(j.id)}>
-        {p.ubah}
-        <CaretRightIcon size={14} weight="bold" aria-hidden="true" className="btn__go" />
-      </button>
-    );
-  const tombolJadwal = (j: JadwalRow) =>
-    onJadwal && (
-      <button
-        type="button"
-        className="btn btn--ghost btn--sm"
-        onClick={() => pergi(() => onJadwal(j.hari, j.slot))}
-      >
-        {p.lihatJadwal}
-        <CaretRightIcon size={14} weight="bold" aria-hidden="true" className="btn__go" />
-      </button>
+  /** Lihat di Jadwal then Ubah (the main one on the right), pinned to the
+   *  slot's bottom and splitting its width. */
+  const tombol = (j: JadwalRow) =>
+    (boleh || onJadwal) && (
+      <div className="pmacts">
+        {onJadwal && (
+          <button
+            type="button"
+            className="btn btn--sm"
+            onClick={() => pergi(() => onJadwal(j.hari, j.slot))}
+          >
+            {p.lihatJadwal}
+          </button>
+        )}
+        {boleh && (
+          <button type="button" className="btn btn--sm btn--primary" onClick={() => setUbah(j.id)}>
+            {p.ubah}
+          </button>
+        )}
+      </div>
     );
 
   const sedang = rows.find((j) => j.id === ubah) ?? null;
@@ -316,13 +360,35 @@ export default function ModulView({
         <div className="pmmode__weeks">
           <span className="label">{p.weeks}</span>
           <ul className="pmweeks">
-            {MODUL_PASANGAN.map((m) => (
-              <li key={m} style={{ "--m": `var(--mod-${m})` } as CSSProperties}>
+            {modulList.map((m) => (
+              <li
+                key={m}
+                style={{ "--m": `var(--mod-${m}, var(--hairline-strong))` } as CSSProperties}
+              >
                 {kepala(m)}
               </li>
             ))}
           </ul>
           <span className="hint">{p.weekHint}</span>
+        </div>
+        <div className="row row--between pmmode__count">
+          <span className="stack stack--sm">
+            <b>{p.count}</b>
+            <span className="hint">{p.countHint}</span>
+          </span>
+          {boleh ? (
+            <Stepper
+              value={jumlah}
+              onChange={(v) => void aturJumlah(v)}
+              min={1}
+              max={MODUL_MAKS}
+              label={p.count}
+              lessLabel={t.fewer}
+              moreLabel={t.more}
+            />
+          ) : (
+            <b className="num">{jumlah}</b>
+          )}
         </div>
       </section>
 
@@ -356,15 +422,20 @@ export default function ModulView({
       {rows.length === 0 ? (
         <p className="hint">{p.noSlots}</p>
       ) : lebar ? (
-        <div className="pmtable" role="table" aria-label={p.title}>
+        <div
+          className="pmtable"
+          role="table"
+          aria-label={p.title}
+          style={{ "--n": modulList.length } as CSSProperties}
+        >
           <div className="pmtable__row pmtable__head" role="row">
             <span role="columnheader" />
-            {MODUL_PASANGAN.map((m) => (
+            {modulList.map((m) => (
               <span
                 key={m}
                 role="columnheader"
                 className="pmtable__mod"
-                style={{ "--m": `var(--mod-${m})` } as CSSProperties}
+                style={{ "--m": `var(--mod-${m}, var(--hairline-strong))` } as CSSProperties}
               >
                 {kepala(m)}
               </span>
@@ -381,12 +452,9 @@ export default function ModulView({
               <div role="rowheader" className="pmslot">
                 <b>{slotJudul(j)}</b>
                 {tanda(j)}
-                <span className="pmslot__acts">
-                  {tombolUbah(j)}
-                  {tombolJadwal(j)}
-                </span>
+                {tombol(j)}
               </div>
-              {MODUL_PASANGAN.map((m) => (
+              {modulList.map((m) => (
                 <div key={m} role="cell">
                   {kursi(j, m, (diajar[String(j.id)] ?? []).length > 0)}
                 </div>
@@ -400,7 +468,7 @@ export default function ModulView({
             label={p.modTabs}
             value={tab}
             onChange={setTab}
-            tabs={MODUL_PASANGAN.map((m) => ({ v: String(m), label: modulLabel(m, lang) }))}
+            tabs={modulList.map((m) => ({ v: String(m), label: modulLabel(m, lang) }))}
           />
           <p className="hint">
             {minggu[tab] ? rentang(lang, minggu[tab]!.senin, minggu[tab]!.sabtu) : p.weekNone}
@@ -418,12 +486,7 @@ export default function ModulView({
                   {tanda(j)}
                 </div>
                 {kursi(j, Number(tab))}
-                {(boleh || onJadwal) && (
-                  <div className="pmcard__acts">
-                    {tombolJadwal(j)}
-                    {tombolUbah(j)}
-                  </div>
-                )}
+                {tombol(j)}
               </section>
             ))}
           </div>
@@ -438,6 +501,7 @@ export default function ModulView({
           judul={slotJudul(sedang)}
           awal={draf[sedang.id]}
           diajar={diajar[String(sedang.id)] ?? []}
+          modulList={modulList}
           klp={data.klp?.[`${sedang.hari}-${sedang.slot}`]}
           isi={(cara, d) => isiSlot(sedang, cara, { ...draf, [sedang.id]: d })}
           onClose={() => setUbah(null)}
@@ -474,6 +538,7 @@ function SlotDialog({
   judul,
   awal,
   diajar,
+  modulList,
   klp,
   isi,
   onClose,
@@ -484,6 +549,7 @@ function SlotDialog({
   judul: string;
   awal: Daftar;
   diajar: number[];
+  modulList: readonly number[];
   klp?: Record<string, string>;
   isi: (cara: "acak" | "putar" | "bawaan", d: Daftar) => Daftar;
   onClose: () => void;
@@ -498,14 +564,14 @@ function SlotDialog({
   const pool = kolam(j.asisten);
   const opsi = [{ value: "", label: p.open0 }, ...pool.map((k) => ({ value: k, label: k }))];
   const list = (m: number) => d[m] ?? bawaan;
-  const lagi = ulang(Object.fromEntries(MODUL_PASANGAN.map((m) => [m, list(m)])), pool);
+  const lagi = ulang(Object.fromEntries(modulList.map((m) => [m, list(m)])), pool);
   const pasang = (m: number, g: number, k: string) =>
     setD((x) => {
       const l = [...(x[m] ?? bawaan)];
       l[g] = k;
       return { ...x, [m]: l };
     });
-  const modul = sempit ? [Number(tab)] : [...MODUL_PASANGAN];
+  const modul = sempit ? [Number(tab)] : [...modulList];
   return (
     <Dialog
       open
@@ -543,7 +609,7 @@ function SlotDialog({
             label={p.modTabs}
             value={tab}
             onChange={setTab}
-            tabs={MODUL_PASANGAN.map((m) => ({ v: String(m), label: modulLabel(m, lang) }))}
+            tabs={modulList.map((m) => ({ v: String(m), label: modulLabel(m, lang) }))}
           />
         )}
         <div className="pmdlg__grid" style={{ "--cols": modul.length } as CSSProperties}>
@@ -558,9 +624,7 @@ function SlotDialog({
             <div key={g} className="pmdlg__row">
               <span className="pmdlg__g">
                 <Pill group={g + 1}>{kelompokLabel(g + 1, lang)}</Pill>
-                {klp?.[String(g + 1)] && (
-                  <span className="hint mono">{klpLabel(klp[String(g + 1)])}</span>
-                )}
+                {klp?.[String(g + 1)] && <Pill mono>{klpLabel(klp[String(g + 1)])}</Pill>}
               </span>
               {modul.map((m) => (
                 <div key={m} className="pmdlg__cell" data-repeat={lagi[m]?.[g] ? "yes" : undefined}>

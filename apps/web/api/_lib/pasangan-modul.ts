@@ -3,8 +3,10 @@
  * module each slot's date teaches (src/lib/penugasan-modul.ts holds the
  * rules; this reads what they need from the database).
  *
- * pengaturan "pasangan_modul" = { [semester]: { aktif, oleh, pada } }. A
- * semester that isn't there runs the same pairing all semester.
+ * pengaturan "pasangan_modul" = { [semester]: { aktif, oleh, pada, jumlah? } }.
+ * A semester that isn't there runs the same pairing all semester. `jumlah`
+ * is its module count (Jumlah Modul, 4 when unset): Per Modul's columns and
+ * Tim › Penugasan Slot's weeks follow it; lists past it stay saved, unused.
  */
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
@@ -12,7 +14,13 @@ import { jadwal, pengaturan, rosterKelompok, sesi } from "../../src/lib/schema.j
 import { getModulTerbuka } from "../../src/lib/akses.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
-import { MODUL_PASANGAN, modulTanggal, type SumberModul } from "../../src/lib/penugasan-modul.js";
+import {
+  daftarModul,
+  MODUL_BAWAAN,
+  MODUL_MAKS,
+  modulTanggal,
+  type SumberModul,
+} from "../../src/lib/penugasan-modul.js";
 import { mingguPraktikum, type JendelaTp } from "../../src/lib/tp.js";
 import { bacaSet, jendelaUntuk } from "./tp.js";
 
@@ -21,7 +29,10 @@ type JadwalRow = typeof jadwal.$inferSelect;
 
 export const KUNCI_PASANGAN = "pasangan_modul";
 
-type NilaiPasangan = Record<string, { aktif: boolean; oleh: string | null; pada: string }>;
+type NilaiPasangan = Record<
+  string,
+  { aktif: boolean; oleh: string | null; pada: string; jumlah?: number }
+>;
 
 async function bacaNilai(db: Db): Promise<NilaiPasangan> {
   const [row] = await db
@@ -38,9 +49,32 @@ export async function bacaBergilir(db: Db, semester: string): Promise<boolean> {
   return (await bacaNilai(db))[semester]?.aktif === true;
 }
 
+/** The semester's module count, 4 when unset. */
+export function jumlahSah(v: unknown): number {
+  return typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= MODUL_MAKS
+    ? v
+    : MODUL_BAWAAN;
+}
+
 export async function aturBergilir(db: Db, semester: string, aktif: boolean, nim: string) {
   const nilai = await bacaNilai(db);
-  nilai[semester] = { aktif, oleh: nim, pada: new Date().toISOString() };
+  nilai[semester] = { ...nilai[semester], aktif, oleh: nim, pada: new Date().toISOString() };
+  await tulisNilai(db, nilai, nim);
+}
+
+export async function aturJumlah(db: Db, semester: string, jumlah: number, nim: string) {
+  const nilai = await bacaNilai(db);
+  const lama = nilai[semester];
+  nilai[semester] = {
+    aktif: lama?.aktif ?? false,
+    oleh: lama?.oleh ?? null,
+    pada: lama?.pada ?? new Date().toISOString(),
+    jumlah,
+  };
+  await tulisNilai(db, nilai, nim);
+}
+
+async function tulisNilai(db: Db, nilai: NilaiPasangan, nim: string) {
   await db
     .insert(pengaturan)
     .values({ kunci: KUNCI_PASANGAN, nilai, diubahOleh: nim, diubahPada: sql`now()` })
@@ -52,6 +86,8 @@ export async function aturBergilir(db: Db, semester: string, aktif: boolean, nim
 
 export interface KonteksModul {
   aktif: boolean;
+  /** The semester's module count (Jumlah Modul). */
+  jumlah: number;
   /** Each module's TP window (the current semester's only). */
   jendela: Partial<Record<number, JendelaTp | null>>;
   terbuka: number[];
@@ -64,24 +100,27 @@ export async function konteksModul(
   semester: string,
   selalu = false,
 ): Promise<KonteksModul> {
-  const aktif = await bacaBergilir(db, semester);
-  if (!aktif && !selalu) return { aktif, jendela: {}, terbuka: [] };
+  const v = (await bacaNilai(db))[semester];
+  const aktif = v?.aktif === true;
+  const jumlah = jumlahSah(v?.jumlah);
+  if (!aktif && !selalu) return { aktif, jumlah, jendela: {}, terbuka: [] };
   const [set, terbuka] = await Promise.all([bacaSet(db), getModulTerbuka()]);
   const jendela: KonteksModul["jendela"] = {};
   if (set.semester === semester)
-    for (const m of MODUL_PASANGAN) {
+    for (const m of daftarModul(jumlah)) {
       const j = jendelaUntuk(set, m);
       jendela[m] = j ? { buka: j.buka, tutup: j.tutup } : null;
     }
-  return { aktif, jendela, terbuka };
+  return { aktif, jumlah, jendela, terbuka };
 }
 
-/** Each module's practicum week, for the Per Modul view's hints. */
+/** Each module's practicum week, for Per Modul's hints and Tim › Penugasan
+ *  Slot's week picker. */
 export function mingguModul(
   k: KonteksModul,
 ): Record<number, { senin: string; sabtu: string } | null> {
   const out: Record<number, { senin: string; sabtu: string } | null> = {};
-  for (const m of MODUL_PASANGAN) {
+  for (const m of daftarModul(k.jumlah)) {
     const j = k.jendela[m];
     out[m] = j ? mingguPraktikum(j) : null;
   }

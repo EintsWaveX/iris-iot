@@ -542,7 +542,7 @@ function Seat({
   return (
     <div ref={dropRef} className="impdrop" data-over={isOver ? "yes" : undefined}>
       <Pill group={gi + 1}>{kelompokLabel(gi + 1, lang)}</Pill>
-      {klp && <span className="hint mono">{klpLabel(klp)}</span>}
+      {klp && <Pill mono>{klpLabel(klp)}</Pill>}
       {kode ? (
         <span
           ref={chip.setNodeRef}

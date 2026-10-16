@@ -930,6 +930,15 @@
   gap: 8px;
 }
 
+/* Jumlah Modul, under the switch and the weeks, across the panel */
+.pmmode__count {
+  border-top: 1px solid var(--hairline-faint);
+  flex-wrap: wrap;
+  gap: 12px;
+  grid-column: 1 / -1;
+  padding-top: 14px;
+}
+
 .pmweeks {
   display: grid;
   gap: 8px;
@@ -968,7 +977,7 @@
   align-items: start;
   display: grid;
   gap: 12px;
-  grid-template-columns: 220px repeat(4, minmax(0, 1fr));
+  grid-template-columns: 240px repeat(var(--n, 4), minmax(0, 1fr));
 }
 
 .pmtable__row:not(.pmtable__head) {
@@ -1001,12 +1010,30 @@
   gap: 6px;
 }
 
-/* Ubah and Lihat di Jadwal: the words start on the slot title's edge */
-.pmslot__acts {
+/* The table's slot column runs the row's height, so its buttons pin to the bottom */
+.pmtable .pmslot {
+  align-self: stretch;
+  grid-template-rows: auto auto 1fr;
+  justify-items: stretch;
+}
+
+.pmtable .pmslot > b,
+.pmtable .pmslot__tags {
+  justify-self: start;
+}
+
+/* Lihat di Jadwal and Ubah: pinned, splitting the width equally */
+.pmacts {
+  align-self: end;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0 2px;
-  margin-left: -14px;
+  gap: 8px;
+}
+
+.pmacts .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 10px;
+  white-space: nowrap;
 }
 
 /* The drawer with Pasangan per Modul on: the note and its way to Per Modul */
@@ -1062,9 +1089,11 @@
   min-height: 28px;
 }
 
-.pmseat__g {
-  min-width: 1.4em;
-  text-align: right;
+/* IRIS group number in its group's hue, the SeeLabs KLP as its own pill */
+.pmseat .pill.pmseat__g {
+  justify-content: center;
+  min-width: 26px;
+  padding-inline: 6px;
 }
 
 .pmseat .pill {
@@ -1088,11 +1117,6 @@
 
 .pmcard[data-intl="yes"] {
   border-color: var(--violet);
-}
-
-.pmcard__acts {
-  display: flex;
-  justify-content: flex-end;
 }
 
 .pmdlg__tools {
@@ -1139,8 +1163,8 @@
 }
 
 .pmseat__klp {
-  font-size: 0.72rem;
-  min-width: 4.4em;
+  display: inline-flex;
+  min-width: 62px;
 }
 
 .pmdlg__g {

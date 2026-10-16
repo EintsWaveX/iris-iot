@@ -3,9 +3,11 @@ import {
   aturLibur,
   daftarLibur,
   geserDari,
+  mingguDepan,
   orangTanggal,
   pasanganSemester,
   pasanganTanggal,
+  seninSah,
   statusSlotTanggal,
   tanggalBerikut,
   tanggalMinggu,
@@ -77,6 +79,22 @@ describe("tanggalBerikut", () => {
   it("crosses a month end", () => expect(tanggalBerikut(1, "2026-10-31")).toBe("2026-11-02"));
 });
 
+describe("mingguDepan", () => {
+  // 2026-10-16 is a Friday; its week runs Monday 10-12 to Sunday 10-18.
+  it("this week until Sunday", () => {
+    expect(mingguDepan("2026-10-16", "2026-10-16")).toBe(false);
+    expect(mingguDepan("2026-10-17", "2026-10-16")).toBe(false);
+    expect(mingguDepan("2026-10-18", "2026-10-16")).toBe(false);
+  });
+  it("next week from Monday on", () => {
+    expect(mingguDepan("2026-10-19", "2026-10-16")).toBe(true);
+    expect(mingguDepan(tanggalBerikut(4, "2026-10-16"), "2026-10-16")).toBe(true);
+  });
+  it("on a Sunday every slot is next week", () =>
+    expect(mingguDepan(tanggalBerikut(6, "2026-10-18"), "2026-10-18")).toBe(true));
+  it("across a month end", () => expect(mingguDepan("2026-11-02", "2026-10-31")).toBe(true));
+});
+
 describe("statusSlotTanggal", () => {
   it("a holiday holds for its date only", () => {
     const j = { status: "aktif" as const, liburTanggal: "2026-10-03" };
@@ -121,5 +139,14 @@ describe("several holidays per slot", () => {
     const j = { status: "aktif" as const, liburTanggal: "2026-10-14,2026-10-28" };
     expect(statusSlotTanggal(j, "2026-10-28")).toBe("libur");
     expect(statusSlotTanggal(j, "2026-10-21")).toBe("aktif");
+  });
+});
+
+describe("seninSah", () => {
+  it("takes a real Monday only", () => {
+    expect(seninSah("2026-10-19")).toBe(true);
+    expect(seninSah("2026-10-20")).toBe(false);
+    expect(seninSah("2026-02-30")).toBe(false);
+    expect(seninSah("19-10-2026")).toBe(false);
   });
 });

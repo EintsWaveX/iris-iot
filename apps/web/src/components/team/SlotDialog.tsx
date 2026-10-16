@@ -31,7 +31,7 @@ export default function SlotDialog({
   kini,
   data,
   awal,
-  geser,
+  geserUntuk,
   meKode,
   meNim,
   onSaved,
@@ -44,7 +44,8 @@ export default function SlotDialog({
   data: DataJadwal;
   /** The slot being edited; null adds one */
   awal: { hari: number; slot: number } | null;
-  geser: number;
+  /** Weeks past a day's next meeting, for the board's picked week */
+  geserUntuk: (hari: number) => number;
   meKode: string;
   meNim: string;
   onSaved: () => void;
@@ -184,7 +185,7 @@ export default function SlotDialog({
           meNim={meNim}
           klp={data.klp?.[`${hari}-${slot}`]}
           bolehJadwal
-          geser={geser}
+          geser={geserUntuk(hari)}
           baru={!awal}
           diam
           onDirty={setDirty}

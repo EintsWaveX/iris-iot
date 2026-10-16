@@ -104,6 +104,21 @@ export function tanggalMinggu(hari: number, hariIni: string, geser = 0): string 
   return new Date(Date.UTC(y, m - 1, d + 7 * geser)).toISOString().slice(0, 10);
 }
 
+/** Whether `v` is a real "YYYY-MM-DD" that falls on a Monday. */
+export function seninSah(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const t = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === v && t.getUTCDay() === 1;
+}
+
+/** Whether `tanggal` falls in a later Monday to Sunday week than `hariIni`
+ *  (a slot's next date can be next week: "Minggu depan", not "Minggu ini"). */
+export function mingguDepan(tanggal: string, hariIni: string): boolean {
+  const senin = (x: string) =>
+    Date.parse(`${x}T00:00:00Z`) / 86_400_000 - ((hariDariTanggal(x) + 6) % 7);
+  return senin(tanggal) > senin(hariIni);
+}
+
 /** Which week past its next date `tanggal` is for a slot on `hari`, or
  *  null when it is before the next date or not on that day. */
 export function geserDari(hari: number, hariIni: string, tanggal: string): number | null {

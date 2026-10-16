@@ -2,11 +2,12 @@
  * The Schedule and who teaches each slot (Phase 9 Stage 4, mockups s-week,
  * s-slot, t-assign and the Console home's Saya Bantu).
  *
- * GET  /api/session/schedule?semester=[&geser=]   the week grid, the
- *      people, and for the current semester each slot's next date (or the
- *      date `geser` weeks after it, Tim › Penugasan Slot's week picker): its
- *      status that date, each group's seat (penugasan-minggu.ts), helpers,
- *      requests and izin. Plus the start-window settings.
+ * GET  /api/session/schedule?semester=[&geser=|&senin=]   the week grid,
+ *      the people, and for the current semester each slot's next date (or
+ *      the date `geser` weeks after it, or its day in the week of Monday
+ *      `senin`, Tim › Penugasan Slot's module weeks): its status that date,
+ *      each group's seat (penugasan-minggu.ts), helpers, requests and izin.
+ *      Plus the start-window settings and the semester's module count.
  * POST /api/session/schedule (the "jadwal" right, checked by the caller)
  *      { semester, hari, slot, ubah, geser? }  one slot (made when it isn't
  *          there yet): class, status (aktif, segera, kosong with
@@ -27,6 +28,8 @@
  *      { semester, pasanganModul: [{ hari, slot, modul }] }  Per Modul's
  *          lists, each slot's replaced whole (hakPenuh); a module the slot
  *          already taught keeps its list.
+ *      { semester, jumlahModul }           Per Modul's module count, 1 to 8
+ *          (hakPenuh); lists past it stay saved, unused.
  *
  * GET  /api/session/penugasan             my side of it: today's slots that
  *      need help (Saya Bantu), requests to me, offers waiting for me to
@@ -81,6 +84,7 @@ import {
   orangTanggal,
   pasanganSemester,
   pasanganTanggal,
+  seninSah,
   statusSlotTanggal,
   tanggalMinggu,
   type IzinInfo,
@@ -89,13 +93,18 @@ import {
 } from "../../src/lib/penugasan-minggu.js";
 import {
   asistenModul,
+  daftarModul,
   kolam,
   listSah,
+  MODUL_MAKS,
   saringModul,
   type AsistenModul,
 } from "../../src/lib/penugasan-modul.js";
+import { tambahHari } from "../../src/lib/tp.js";
 import {
   aturBergilir,
+  aturJumlah,
+  jumlahSah,
   klpSlot,
   konteksModul,
   mingguModul,
@@ -221,15 +230,12 @@ export async function muatTanggal(
         penggantiNim: x.penggantiNim,
       }));
     const mod = modulOf.get(j.id) ?? { modul: null, sumber: null };
+    // A module past the semester's count has no list of its own.
+    const daftar = mod.modul && mod.modul <= konteks.jumlah ? mod.modul : null;
     out.set(j.id, {
       tanggal,
       status: statusSlotTanggal(j, tanggal),
-      kursi: pasanganTanggal(
-        asistenModul(j, mod.modul, konteks.aktif),
-        j.jumlahKelompok,
-        tugas,
-        iz,
-      ),
+      kursi: pasanganTanggal(asistenModul(j, daftar, konteks.aktif), j.jumlahKelompok, tugas, iz),
       tugas,
       izin: iz,
       modul: mod.modul,
@@ -254,6 +260,9 @@ export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
   const semester = typeof req.query.semester === "string" ? req.query.semester : "";
   const geser = bacaGeser(req.query.geser);
   if (geser === null) return tolak(res, "format_salah", 400);
+  // Tim › Penugasan Slot's module week: each slot's date in that Monday's week.
+  const senin = typeof req.query.senin === "string" ? req.query.senin : "";
+  if (senin && !seninSah(senin)) return tolak(res, "format_salah", 400);
   const db = getDb();
   const rows = await db
     .select()
@@ -265,15 +274,17 @@ export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
     .from(asisten)
     .orderBy(asc(asisten.kode));
   const kini = semesterDariTanggal(hariIniWib());
+  const rowsKini = rows.filter((r) => r.semester === kini);
   const minggu =
     !semester || semester === kini
       ? Object.fromEntries(
-          await muatMinggu(
-            db,
-            rows.filter((r) => r.semester === kini),
-            hariIniWib(),
-            geser,
-          ),
+          senin
+            ? await muatTanggal(
+                db,
+                rowsKini,
+                new Map(rowsKini.map((j) => [j.id, tambahHari(senin, j.hari - 1)])),
+              )
+            : await muatMinggu(db, rowsKini, hariIniWib(), geser),
         )
       : {};
   // Jadwal › Per Modul: the switch, each module's week and what each slot
@@ -289,6 +300,7 @@ export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
     minggu,
     jendela: await muatPengaturanJendela(db),
     bergilir: konteks.aktif,
+    jumlahModul: konteks.jumlah,
     modulMinggu: mingguModul(konteks),
     diajar,
     klp: await klpSlot(db, sem),
@@ -332,7 +344,11 @@ export async function handleSchedulePost(
   if (!SEMESTER_RE.test(semester)) return tolak(res, "format_salah", 400);
   const db = getDb();
 
-  if (typeof body.bergilir === "boolean" || body.pasanganModul !== undefined) {
+  if (
+    typeof body.bergilir === "boolean" ||
+    body.pasanganModul !== undefined ||
+    body.jumlahModul !== undefined
+  ) {
     return aturPasangan(res, db, session, semester, body);
   }
   if (body.ubah && typeof body.ubah === "object") {
@@ -465,10 +481,13 @@ async function ubahSlot(
   if (ubah.modulDaftar !== undefined) {
     const x = (ubah.modulDaftar ?? {}) as { modul?: unknown; list?: unknown };
     const modul = posInt(x.modul);
-    if (!modul || modul > 4 || !Array.isArray(x.list)) return tolak(res, "format_salah", 400);
+    if (!modul || modul > MODUL_MAKS || !Array.isArray(x.list))
+      return tolak(res, "format_salah", 400);
     const o = await muatOrang(session.nim);
     if (!o || !hakPenuh(o)) return tolak(res, "tanpa_hak", 403);
-    if (!(await konteksModul(db, semester)).aktif) return tolak(res, "pasangan_mati");
+    const konteks = await konteksModul(db, semester);
+    if (!konteks.aktif) return tolak(res, "pasangan_mati");
+    if (modul > konteks.jumlah) return tolak(res, "format_salah", 400);
     const [lama] = await db
       .select()
       .from(jadwal)
@@ -590,9 +609,18 @@ async function aturPasangan(
     res.status(200).json({ ok: true, bergilir: body.bergilir });
     return;
   }
+  if (body.jumlahModul !== undefined) {
+    const n = body.jumlahModul;
+    if (typeof n !== "number" || jumlahSah(n) !== n) return tolak(res, "format_salah", 400);
+    await aturJumlah(db, semester, n, session.nim);
+    await writeAudit(session.nim, "jadwal_jumlah_modul", { semester, jumlahModul: n });
+    res.status(200).json({ ok: true, jumlahModul: n });
+    return;
+  }
   const daftar = body.pasanganModul;
   if (!Array.isArray(daftar) || !daftar.length || daftar.length > 24)
     return tolak(res, "format_salah", 400);
+  const sah = daftarModul((await konteksModul(db, semester)).jumlah).map(String);
   const rows = await db.select().from(jadwal).where(eq(jadwal.semester, semester));
   const diajar = await modulDiajar(db, rows);
   const simpan: { id: number; hari: number; slot: number; am: AsistenModul }[] = [];
@@ -605,9 +633,12 @@ async function aturPasangan(
     if (!modul || typeof modul !== "object" || Array.isArray(modul))
       return tolak(res, "format_salah", 400);
     const pool = kolam(row.asisten);
-    const am: AsistenModul = {};
+    // Lists past the module count stay saved for when it grows again.
+    const am: AsistenModul = Object.fromEntries(
+      Object.entries(row.asistenModul ?? {}).filter(([m]) => !sah.includes(m)),
+    );
     for (const [m, list] of Object.entries(modul as Record<string, unknown>)) {
-      if (!["1", "2", "3", "4"].includes(m)) return tolak(res, "format_salah", 400);
+      if (!sah.includes(m)) return tolak(res, "format_salah", 400);
       if (list === null) continue;
       if (!listSah(list, row.jumlahKelompok, pool)) return tolak(res, "kode_di_luar_slot");
       am[m] = list.map((k) => k.toUpperCase());

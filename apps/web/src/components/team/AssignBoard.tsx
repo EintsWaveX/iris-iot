@@ -46,13 +46,17 @@ import Pill from "../ui/Pill";
 import { dict, getJson, localeOf, postJson, tanggalPanjang } from "../../lib/app";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { semesterDariTanggal } from "../../lib/jadwal-parser";
-import { hariLabel, statusOrangLabel, slotLabel } from "../../lib/labels";
+import { hariLabel, modulLabel, statusOrangLabel, slotLabel } from "../../lib/labels";
 import {
+  GESER_MAKS,
+  geserDari,
   pasanganSemester,
   tanggalMinggu,
   type MingguSlot,
   type TugasInfo,
 } from "../../lib/penugasan-minggu";
+import { daftarModul } from "../../lib/penugasan-modul";
+import { tambahHari } from "../../lib/tp";
 import type { Lang } from "../../lib/kelas";
 import { HARI, type DataJadwal, type JadwalRow } from "../schedule/types";
 import SlotDialog from "./SlotDialog";
@@ -99,6 +103,8 @@ export const A = dict({
     weekNext: "Pertemuan berikutnya",
     until: "s.d.",
     weekLock: "Simpan atau batalkan perubahan dulu sebelum pindah minggu.",
+    weekNone: "belum dijadwalkan",
+    past: "Sudah Lewat",
     addSlot: "Tambah Slot",
     addSlotDesc: "Pilih hari dan sesinya, lalu isi status dan asisten tiap kelompok.",
     editSlot: "Ubah Slot",
@@ -157,6 +163,8 @@ export const A = dict({
     weekNext: "Next meeting",
     until: "to",
     weekLock: "Save or discard your changes before switching weeks.",
+    weekNone: "not scheduled yet",
+    past: "Already Past",
     addSlot: "Add a Slot",
     addSlotDesc: "Pick its day and session, then set its status and each group's assistant.",
     editSlot: "Edit the Slot",
@@ -213,6 +221,8 @@ export const A = dict({
     weekNext: "下一次上课",
     until: "至",
     weekLock: "换周之前，请先保存或放弃更改。",
+    weekNone: "还没安排",
+    past: "已过去",
     addSlot: "添加时段",
     addSlotDesc: "选好星期和节次，再设置状态和每组的助教。",
     editSlot: "修改时段",
@@ -317,19 +327,34 @@ const slotUnder: CollisionDetection = (args) =>
 
 type Konteks = { jadwalId: number; hari: number; slot: number; tanggal: string };
 
-/** Weeks past the next meeting the week picker offers. */
-const MINGGU_PILIH = 8;
-
-/** A week's dates, short: "12 Okt s.d. 17 Okt". */
-function rentangMinggu(g: number, lang: Lang, until: string): string {
-  const hariIni = hariIniWib();
-  const tgl = HARI.map((h) => tanggalMinggu(h, hariIni, g)).sort();
+/** Two dates, short: "19 Okt s.d. 24 Okt". */
+function rentang(a: string, b: string, lang: Lang, until: string): string {
   const f = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString(localeOf(lang), {
       day: "numeric",
       month: "short",
     });
-  return `${f(tgl[0])} ${until} ${f(tgl[tgl.length - 1])}`;
+  return `${f(a)} ${until} ${f(b)}`;
+}
+
+/** The slots' next meetings, when no module week is ahead. */
+function rentangBerikut(lang: Lang, until: string): string {
+  const hariIni = hariIniWib();
+  const tgl = HARI.map((h) => tanggalMinggu(h, hariIni)).sort();
+  return rentang(tgl[0], tgl[tgl.length - 1], lang, until);
+}
+
+/** The week picker (2026-10-16): one entry per module, its practicum week
+ *  from the TP windows, up to the semester's module count. "next" (each
+ *  slot's next meeting) is offered only while no module week is ahead. */
+function pilihanMinggu(d: DataJadwal, hariIni: string) {
+  const modul = daftarModul(d.jumlahModul).map((m) => ({
+    v: `m${m}`,
+    m,
+    w: d.modulMinggu?.[String(m)] ?? null,
+  }));
+  const depan = modul.find((x) => x.w && x.w.sabtu >= hariIni);
+  return { modul, awal: depan?.v ?? "next" };
 }
 
 export default function AssignBoard({
@@ -348,7 +373,10 @@ export default function AssignBoard({
 }) {
   const t = A[lang];
   const semester = semesterDariTanggal(hariIniWib());
-  const [geser, setGeser] = useState(0);
+  const hariIni = hariIniWib();
+  // The picked entry ("m1".."mN" or "next") and its Monday (null: next meetings)
+  const [pilih, setPilih] = useState<string | null>(null);
+  const [senin, setSenin] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{ hari: number; slot: number } | "baru" | null>(null);
   const [data, setData] = useState<DataJadwal | null>(null);
   const [req, setReq] = useState<{
@@ -369,10 +397,10 @@ export default function AssignBoard({
     useSensor(KeyboardSensor),
   );
 
-  async function load(g = geser) {
+  async function load(s = senin) {
     const [d, p] = await Promise.all([
       getJson<{ ok: boolean } & DataJadwal>(
-        `/api/session/schedule?semester=${semester}&geser=${g}`,
+        `/api/session/schedule?semester=${semester}&${s ? `senin=${s}` : "geser=0"}`,
       ),
       getJson<{ ok: boolean; tawaran: never[]; izin: never[] }>("/api/session/penugasan"),
     ]);
@@ -381,8 +409,15 @@ export default function AssignBoard({
     setEdit({});
   }
   useEffect(() => {
-    void load(geser).catch(() => window.Toast?.show(t.fail, "danger"));
-  }, [geser]);
+    void load(senin).catch(() => window.Toast?.show(t.fail, "danger"));
+  }, [senin]);
+  // First load: the module week ahead, else the next meetings.
+  useEffect(() => {
+    if (!data || pilih !== null) return;
+    const { modul, awal } = pilihanMinggu(data, hariIni);
+    setPilih(awal);
+    setSenin(modul.find((x) => x.v === awal)?.w?.senin ?? null);
+  }, [data]);
   // Someone else's change shows at once, unless this board has unsaved moves.
   const adaUbah = useRef(false);
   useSiaran(["jadwal", "tim"], () => {
@@ -408,6 +443,13 @@ export default function AssignBoard({
   const when = (x: { hari: number; slot: number; tanggal?: string }) =>
     `${x.tanggal ? tanggalPanjang(x.tanggal, lang) : hariLabel(x.hari, lang)} · ${slotLabel(x.slot, lang)} · ${SLOT_MULAI[x.slot]}`;
   const set = (id: number, s: SlotState) => setEdit((e) => ({ ...e, [id]: s }));
+  /** Weeks past a day's next meeting for the picked week; null when that
+   *  day already passed (or lies past what the server plans). */
+  const geserUntuk = (hari: number): number | null => {
+    if (!senin) return 0;
+    const g = geserDari(hari, hariIni, tambahHari(senin, hari - 1));
+    return g !== null && g <= GESER_MAKS ? g : null;
+  };
 
   function onEnd(e: DragEndEvent) {
     setDrag(null);
@@ -450,11 +492,13 @@ export default function AssignBoard({
     let n = 0;
     try {
       for (const j of changed) {
+        const g = geserUntuk(j.hari);
+        if (g === null) continue;
         const r = await postJson<{ ok: boolean }>("/api/session/schedule", {
           semester,
           hari: j.hari,
           slot: j.slot,
-          geser,
+          geser: g,
           ubah: ubahDari(j, now(j.id), data?.minggu[String(j.id)]),
         });
         if (!r.ok) throw new Error();
@@ -481,6 +525,17 @@ export default function AssignBoard({
   }
 
   if (!data) return <span className="skeleton" style={{ height: 420 }} />;
+  const { modul: pilihan, awal: pilihAwal } = pilihanMinggu(data, hariIni);
+  const opsiMinggu = [
+    ...(pilihAwal === "next"
+      ? [{ value: "next", label: `${t.weekNext} · ${rentangBerikut(lang, t.until)}` }]
+      : []),
+    ...pilihan.map((x) => ({
+      value: x.v,
+      label: `${modulLabel(x.m, lang)} · ${x.w ? rentang(x.w.senin, x.w.sabtu, lang, t.until) : t.weekNone}`,
+      disabled: !x.w,
+    })),
+  ];
   const reqCount = (req?.tawaran.length ?? 0) + (req?.izin.length ?? 0);
 
   return (
@@ -601,18 +656,13 @@ export default function AssignBoard({
                   id="tassign-week"
                   label={t.week}
                   hideLabel
-                  value={String(geser)}
-                  options={Array.from({ length: MINGGU_PILIH + 1 }, (_, g) => ({
-                    value: String(g),
-                    label:
-                      g === 0
-                        ? `${t.weekNext} · ${rentangMinggu(g, lang, t.until)}`
-                        : rentangMinggu(g, lang, t.until),
-                  }))}
+                  value={pilih ?? pilihAwal}
+                  options={opsiMinggu}
                   onChange={(v) => {
-                    if (Number(v) === geser) return;
+                    if (v === pilih) return;
                     if (changed.length > 0) return window.Toast?.show(t.weekLock, "warn");
-                    setGeser(Number(v));
+                    setPilih(v);
+                    setSenin(pilihan.find((x) => x.v === v)?.w?.senin ?? null);
                   }}
                 />
               </div>
@@ -628,6 +678,7 @@ export default function AssignBoard({
               <div className="tslots">
                 {rows.map((j) => {
                   const tgl = data.minggu[String(j.id)]?.tanggal;
+                  const lewat = geserUntuk(j.hari) === null;
                   return (
                     <SlotBox
                       key={j.id}
@@ -637,8 +688,9 @@ export default function AssignBoard({
                       lang={lang}
                       label={`${hariLabel(j.hari, lang)} · ${SLOT_MULAI[j.slot]}`}
                       date={tgl ? tanggalPanjang(tgl, lang) : null}
+                      lewat={lewat}
                       meKode={meKode}
-                      ro={!bolehJadwal}
+                      ro={!bolehJadwal || lewat}
                       onChange={(s) => set(j.id, s)}
                       onEdit={() => {
                         if (changed.length > 0) return window.Toast?.show(t.weekLock, "warn");
@@ -677,7 +729,7 @@ export default function AssignBoard({
           kini
           data={data}
           awal={dialog === "baru" ? null : dialog}
-          geser={geser}
+          geserUntuk={(h) => geserUntuk(h) ?? 0}
           meKode={meKode}
           meNim={meNim}
           onSaved={() => void load().catch(() => {})}
@@ -732,6 +784,7 @@ function SlotBox({
   lang,
   label,
   date,
+  lewat,
   meKode,
   ro,
   onChange,
@@ -744,6 +797,8 @@ function SlotBox({
   label: string;
   /** The date this board shows for the slot */
   date: string | null;
+  /** The slot's day in the picked week already passed: shown, not changed */
+  lewat: boolean;
   meKode: string;
   ro: boolean;
   onChange: (s: SlotState) => void;
@@ -776,6 +831,7 @@ function SlotBox({
         <span className="stack tslot__name">
           <b>{label}</b>
           {date && <span className="hint">{date}</span>}
+          {lewat && <Pill>{t.past}</Pill>}
         </span>
         {!ro && (
           <IconButton

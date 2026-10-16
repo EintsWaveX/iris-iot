@@ -13,9 +13,18 @@
 import { bagiKelompok } from "./penugasan.js";
 import { hariKe, mingguPraktikum, tambahHari, type JendelaTp } from "./tp.js";
 
-export const MODUL_PASANGAN = [1, 2, 3, 4] as const;
+/** How many modules a semester pairs by default, and the most it may set
+ *  (Per Modul's Jumlah Modul; the handbook, journals and LMS stay at 4). */
+export const MODUL_BAWAAN = 4;
+export const MODUL_MAKS = 8;
 
-/** One list per module, keyed "1" to "4". */
+/** Modules 1 to `n`, `n` held between 1 and MODUL_MAKS. */
+export function daftarModul(n: number = MODUL_BAWAAN): number[] {
+  const k = Number.isInteger(n) ? Math.min(MODUL_MAKS, Math.max(1, n)) : MODUL_BAWAAN;
+  return Array.from({ length: k }, (_, i) => i + 1);
+}
+
+/** One list per module, keyed "1" to the semester's module count. */
 export type AsistenModul = Partial<Record<string, string[]>>;
 
 /* ============================================================ the lists */
@@ -77,7 +86,9 @@ export function ulang(
 ): Record<number, boolean[]> {
   const out: Record<number, boolean[]> = {};
   const lalu = new Map<number, Set<string>>();
-  for (const m of MODUL_PASANGAN) {
+  for (const m of Object.keys(lists)
+    .map(Number)
+    .sort((a, b) => a - b)) {
     const list = lists[m];
     if (!list) continue;
     out[m] = list.map((k, g) => {
@@ -115,7 +126,9 @@ export function modulTanggal(f: {
   // This week's Saturday; on a Sunday the slots ahead are next week's.
   const h = hariKe(f.hariIni);
   let akhir = tambahHari(f.hariIni, h === 7 ? 6 : 6 - h);
-  for (const m of MODUL_PASANGAN) {
+  for (const m of Object.keys(f.jendela)
+    .map(Number)
+    .sort((a, b) => a - b)) {
     const j = f.jendela[m];
     if (!j) continue;
     const w = mingguPraktikum(j);
@@ -152,11 +165,15 @@ function isiBlok(b: number[][], kode: readonly string[], n: number): string[] {
 /** Rotate: each module moves everyone one block on, so Module 1 is the
  *  slot's people in order and a group meets someone new each module for
  *  as long as there are people to meet. */
-export function putar(asisten: readonly string[], n: number): Record<number, string[]> {
+export function putar(
+  asisten: readonly string[],
+  n: number,
+  modul: readonly number[] = daftarModul(),
+): Record<number, string[]> {
   const pool = kolam(asisten);
   const b = blok(pool.length, n);
   const out: Record<number, string[]> = {};
-  for (const m of MODUL_PASANGAN)
+  for (const m of modul)
     out[m] = isiBlok(
       b,
       b.map((_, bi) => pool[(bi + m - 1) % pool.length]),
@@ -234,12 +251,13 @@ export function acakModul(
   n: number,
   acak: () => number = Math.random,
   tetap: Record<number, readonly string[]> = {},
+  modul: readonly number[] = daftarModul(),
 ): Record<number, string[]> {
   const pool = kolam(asisten);
   const b = blok(pool.length, n);
   const out: Record<number, string[]> = {};
   if (!b.length) {
-    for (const m of MODUL_PASANGAN) out[m] = tetap[m] ? [...tetap[m]] : Array(n).fill("");
+    for (const m of modul) out[m] = tetap[m] ? [...tetap[m]] : Array(n).fill("");
     return out;
   }
   const pernah = Array.from({ length: n }, () => new Map<string, number>());
@@ -253,8 +271,8 @@ export function acakModul(
     });
     for (const k of di) duduk.set(k, (duduk.get(k) ?? 0) + 1);
   };
-  for (const m of MODUL_PASANGAN) if (tetap[m]) catat(tetap[m]);
-  for (const m of MODUL_PASANGAN) {
+  for (const m of modul) if (tetap[m]) catat(tetap[m]);
+  for (const m of modul) {
     if (tetap[m]) {
       out[m] = [...tetap[m]];
       continue;
