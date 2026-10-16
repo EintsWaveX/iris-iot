@@ -103,6 +103,19 @@ export function hakPenuh(o: Pick<Orang, "tier" | "badges">): boolean {
 }
 
 /**
+ * Reset Sandi on the Tim page (2026-10-16): clears an Asisten's own password
+ * so they sign in with the starting one again. The Tim right only, never on
+ * oneself (the Akun page changes one's own), and never on the Pencipta.
+ */
+export function bolehResetSandi(
+  adminTim: boolean,
+  sendiri: boolean,
+  target: Pick<Orang, "badges">,
+): boolean {
+  return adminTim && !sendiri && !isPencipta(target);
+}
+
+/**
  * Makes, changes and deletes the TP assignments in the LMS and keeps the TP
  * exclusions: the Pencipta, the Admins and the ASO division (user,
  * 2026-10-13). DEV alone (ARM) reads Sumber LMS but doesn't change the LMS.

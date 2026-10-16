@@ -12,6 +12,8 @@
  *   serah_minta  ask to move a head role to someone (Tim right or holder)
  *   serah_putus  accept or decline a handover (the holder or Tim right)
  *   serah_batal  withdraw a handover (whoever asked, or Tim right)
+ *   sandi_reset  clear an Asisten's own password, so they sign in with the
+ *                starting one again (Tim right; not oneself, not the Pencipta)
  *   impor        match the table against the handbook roster (Tim right):
  *                without `terapkan` it only reports; with it, it adds the
  *                missing people and takes the handbook's names and codes
@@ -35,6 +37,7 @@ import {
   HAK,
   STATUS_ORANG,
   boleh,
+  bolehResetSandi,
   divisiKepala,
   isDivisi,
   isKategori,
@@ -72,6 +75,8 @@ export async function handleTimGet(_req: ApiRequest, res: ApiResponse, session: 
         seelabsAkun: asisten.seelabsAkun,
         hakOverride: asisten.hakOverride,
         terakhirAktif: asisten.terakhirAktif,
+        punyaSandi: sql<boolean>`${asisten.passwordHash} is not null`,
+        sandiSejak: asisten.passwordDiaturPada,
       })
       .from(asisten)
       .orderBy(asc(asisten.kode)),
@@ -121,9 +126,15 @@ export async function handleTimGet(_req: ApiRequest, res: ApiResponse, session: 
     list.sort((a, b) => a.hari - b.hari || a.slot - b.slot);
   }
 
+  // Whether someone set their own password is for the Tim right only.
+  const admin = saya ? boleh(saya, "tim") : false;
   res.status(200).json({
     ok: true,
-    orang: orang.map((o) => ({ ...o, hak: petaHak(o) })),
+    orang: orang.map(({ punyaSandi, sandiSejak, ...o }) => ({
+      ...o,
+      hak: petaHak(o),
+      ...(admin ? { punyaSandi, sandiSejak } : {}),
+    })),
     pemegang,
     serahTerima: serah,
     slotMinggu,
@@ -139,7 +150,15 @@ export async function handleTimJejak(req: ApiRequest, res: ApiResponse) {
   const rows = await getDb()
     .select()
     .from(audit)
-    .where(inArray(audit.aksi, ["tim_tambah", "tim_ubah", "tim_serah_terima", "tim_impor"]))
+    .where(
+      inArray(audit.aksi, [
+        "tim_tambah",
+        "tim_ubah",
+        "tim_serah_terima",
+        "tim_impor",
+        "sandi_direset",
+      ]),
+    )
     .orderBy(desc(audit.pada))
     .limit(300);
   const mine = rows.filter((r) => {
@@ -171,6 +190,7 @@ export async function handleTimPost(req: ApiRequest, res: ApiResponse, session: 
     return impor(res, body.terapkan === true, session.nim);
   }
   if (aksi === "ubah") return ubah(res, body, session.nim, admin);
+  if (aksi === "sandi_reset") return resetSandi(res, body, session.nim, admin);
   if (aksi === "serah_minta") return serahMinta(res, body, session.nim, admin);
   if (aksi === "serah_putus") return serahPutus(res, body, session.nim, admin);
   if (aksi === "serah_batal") return serahBatal(res, body, session.nim, admin);
@@ -462,6 +482,29 @@ async function ubah(res: ApiResponse, body: Record<string, unknown>, oleh: strin
     ...set,
     ...(jabatan !== undefined ? { jabatan: jabatan ?? "anggota" } : {}),
   });
+  res.status(200).json({ ok: true });
+}
+
+async function resetSandi(
+  res: ApiResponse,
+  body: Record<string, unknown>,
+  oleh: string,
+  admin: boolean,
+) {
+  const nim = typeof body.nim === "string" ? body.nim : "";
+  if (!NIM_RE.test(nim)) return tolak(res, "format_salah");
+  const target = await muatOrang(nim);
+  if (!target) return tolak(res, "tidak_ditemukan");
+  if (!bolehResetSandi(admin, nim === oleh, target)) {
+    return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "tim" });
+  }
+  const [row] = await getDb()
+    .update(asisten)
+    .set({ passwordHash: null, passwordDiaturPada: null })
+    .where(and(eq(asisten.nim, nim), sql`${asisten.passwordHash} is not null`))
+    .returning({ nim: asisten.nim });
+  if (!row) return tolak(res, "tanpa_sandi");
+  await writeAudit(oleh, "sandi_direset", { nim });
   res.status(200).json({ ok: true });
 }
 

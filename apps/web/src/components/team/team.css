@@ -369,6 +369,23 @@
   grid-column: 2 / -1;
 }
 
+/* Kata sandi in the drawer: the state, with Reset Sandi on the right. */
+.tim-sandi {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 44px;
+}
+
+.tim-sandi > span {
+  min-width: 0;
+}
+
+.tim-sandi > .btn {
+  flex: none;
+}
+
 .rightic {
   color: var(--text-faint);
   display: grid;

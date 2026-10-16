@@ -28,6 +28,7 @@ export const AKSI_PER_JENIS: Record<JenisAudit, readonly string[]> = {
     "tim_tambah",
     "tim_ubah",
     "tim_serah_terima",
+    "sandi_direset",
     "penugasan_bantu",
     "penugasan_minta",
     "penugasan_jawab",
