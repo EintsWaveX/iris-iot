@@ -325,6 +325,86 @@ export const sesiAsisten = pgTable(
 );
 
 /**
+ * Phase 18: one Asisten's teaching attendance for one slot on one date.
+ * `kunci` names the slot: "j:<jadwalId>:<tanggal>" for a scheduled slot,
+ * "s:<sesiId>" for a Susulan, so a row can exist before its session does
+ * (`sesiId` stays null until it starts). `diharapkan` is set when the person
+ * was seated that date, which is what makes them judged. The clock decides
+ * the result from `hadirPada`; `ubahStatus` / `ubahMenit` are a PJ's
+ * override (null = follow the clock). Written by the Asisten checking in,
+ * by the automatic start (actor "otomatis") and by the PJ.
+ */
+export const hadirMengajar = pgTable(
+  "hadir_mengajar",
+  {
+    id: serial("id").primaryKey(),
+    kunci: text("kunci").notNull(),
+    tanggal: text("tanggal").notNull(),
+    jadwalId: integer("jadwal_id").references(() => jadwal.id, { onDelete: "set null" }),
+    sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
+    nim: text("nim")
+      .notNull()
+      .references(() => asisten.nim, { onDelete: "cascade" }),
+    diharapkan: boolean("diharapkan").notNull().default(false),
+    hadirPada: timestamp("hadir_pada", { withTimezone: true }),
+    ubahStatus: text("ubah_status", { enum: ["tepat", "telat", "mm", "mangkir", "izin"] }),
+    ubahMenit: integer("ubah_menit"),
+    hitungMangkir: boolean("hitung_mangkir").notNull().default(true),
+    alasan: text("alasan"),
+    ambilAlihDijawab: boolean("ambil_alih_dijawab").notNull().default(false),
+    diubahOleh: text("diubah_oleh"),
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("hadir_mengajar_satu").on(t.kunci, t.nim),
+    index("hadir_mengajar_nim_idx").on(t.nim),
+    index("hadir_mengajar_tanggal_idx").on(t.tanggal),
+    index("hadir_mengajar_sesi_idx").on(t.sesiId),
+  ],
+);
+
+/**
+ * Phase 18: a PJ's shift of one slot's clock, keyed like `hadirMengajar.kunci`.
+ * `baseMenit` is the new base in minutes after 00:00 WIB, `dariMenit` the base
+ * it replaced, so the change can be shown and undone. Absent = the slot's
+ * normal time minus five minutes.
+ */
+export const hadirJam = pgTable("hadir_jam", {
+  kunci: text("kunci").primaryKey(),
+  baseMenit: integer("base_menit").notNull(),
+  dariMenit: integer("dari_menit").notNull(),
+  alasan: text("alasan").notNull(),
+  oleh: text("oleh").notNull(),
+  pada: timestamp("pada", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Phase 18: "Lupa Input Nilai", a group whose scores were not both sent
+ * (`kirim`) and saved to SeeLabs (`seelabs`) by 23:59:59 WIB on the session's
+ * date. One row per (session, group), written by the nightly check; `nim` is
+ * the holder at the deadline. `menyusulPada` is set when the gap is closed
+ * later. A report only, never a cut.
+ */
+export const lupaNilai = pgTable(
+  "lupa_nilai",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    nim: text("nim").notNull(),
+    kurang: jsonb("kurang").$type<("kirim" | "seelabs")[]>().notNull(),
+    dicatatPada: timestamp("dicatat_pada", { withTimezone: true }).notNull().defaultNow(),
+    menyusulPada: timestamp("menyusul_pada", { withTimezone: true }),
+  },
+  (t) => [
+    unique("lupa_nilai_satu").on(t.sesiId, t.kelompokNomor),
+    index("lupa_nilai_nim_idx").on(t.nim),
+  ],
+);
+
+/**
  * Phase 8: one praktikan's feedback for one session, in the journal's two
  * sections (Asisten and Lab). `nim` is stored only to enforce one row per
  * student per session; it is never returned to an assistant. The Asisten
@@ -401,6 +481,9 @@ export const jadwal = pgTable(
     anggotaPerKelompok: integer("anggota_per_kelompok").notNull().default(4),
     jendelaMulaiMenit: integer("jendela_mulai_menit"),
     jendelaDiaturOleh: text("jendela_diatur_oleh"),
+    // Phase 18: the slot's Penanggung Jawab for attendance (an Asisten code,
+    // null = none).
+    pj: text("pj"),
     diubahOleh: text("diubah_oleh"),
     diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
   },
