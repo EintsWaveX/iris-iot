@@ -32,7 +32,15 @@
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
-import { cekHak } from "./hak.js";
+import { cekHak, muatOrang } from "./hak.js";
+import {
+  bolehPj,
+  handleHadirPj,
+  hadirUntukKunci,
+  kunciDariSesi,
+  muatKonteks,
+  tandaiHadir,
+} from "./hadir-mengajar.js";
 import { ALASAN_MIN, catatKejadian } from "./berjalan.js";
 import { muatMinggu } from "./penugasan-api.js";
 import { getDb } from "../../src/lib/db.js";
@@ -93,7 +101,7 @@ function tolak(res: ApiResponse, kode: string, status = 200) {
   res.status(status).json({ ok: false, kode });
 }
 
-export async function handleHadirGet(_req: ApiRequest, res: ApiResponse) {
+export async function handleHadirGet(_req: ApiRequest, res: ApiResponse, session?: SessionPayload) {
   const running = await currentSesi();
   if (!running) return tolak(res, "tidak_ada_sesi");
   const db = getDb();
@@ -298,7 +306,14 @@ export async function handleHadirGet(_req: ApiRequest, res: ApiResponse) {
       a.kode.localeCompare(b.kode),
   );
 
-  res.status(200).json({ ok: true, sesiId: running.id, mengajar, kelompok: kelompokOut });
+  // Phase 18: each person's standing against the slot's clock, and who may
+  // change it (null for a TOT session, which is never judged).
+  const kunci = await kunciDariSesi(db, running);
+  const hadir = kunci
+    ? await hadirUntukKunci(db, kunci, session ? await muatOrang(session.nim) : null)
+    : null;
+
+  res.status(200).json({ ok: true, sesiId: running.id, mengajar, kelompok: kelompokOut, hadir });
 }
 
 /** Whether `nim` teaches the running session `running`: they hold a group
@@ -353,6 +368,10 @@ export async function asistenMengajar(
 export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
   const aksi = typeof body.aksi === "string" ? body.aksi : "";
+  // Phase 18: the PJ's status, clock shift and Ambil Alih answers name their
+  // slot by key and work before the session exists.
+  if (aksi === "status" || aksi === "geser" || aksi === "aa")
+    return handleHadirPj(req, res, session);
   const nim = typeof body.nim === "string" ? body.nim.trim().toUpperCase() : "";
   if (!nim) return tolak(res, "format_salah");
   const running = await currentSesi();
@@ -385,6 +404,15 @@ export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session
       .where(eq(asisten.nim, nim))
       .limit(1);
     if (!o) return tolak(res, "tidak_ada");
+    // Tandai Hadir is the PJ's: it stamps the arrival the clock judges.
+    const kunci = await kunciDariSesi(db, running);
+    if (kunci) {
+      const c = await muatKonteks(db, kunci);
+      const orang = await muatOrang(session.nim);
+      if (!orang || !c || !bolehPj(orang, { pj: c.pj, pembuat: c.pembuat }))
+        return tolak(res, "tanpa_hak", 403);
+      await tandaiHadir(db, { kunci, nim, oleh: session.nim });
+    }
     await writeAudit(session.nim, "asisten_hadir", { sesiId: running.id, nim });
     return res.status(200).json({ ok: true });
   }

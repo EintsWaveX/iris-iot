@@ -106,6 +106,7 @@ import {
   handleHadirPost,
   kembalikanPindahan,
 } from "../_lib/sesi-hadir.js";
+import { handleHadirkuGet, handleHadirkuPost } from "../_lib/hadir-mengajar.js";
 import { nilaiOrNull } from "../../src/lib/server-lib.js";
 import { tpDariPenilaian } from "../_lib/tp.js";
 import {
@@ -1795,7 +1796,13 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "hadir") {
     if (req.method === "POST") return handleHadirPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
-    return handleHadirGet(req, res);
+    return handleHadirGet(req, res, session);
+  }
+  // Phase 18: the Asisten's own teaching attendance (Masuk, Batal).
+  if (aksi === "hadirku") {
+    if (req.method === "POST") return handleHadirkuPost(req, res, session);
+    if (!requireMethod(req, res, "GET")) return;
+    return handleHadirkuGet(req, res, session);
   }
   if (aksi === "assignment") {
     if (req.method === "POST") return handleAssignmentPost(req, res, session);

@@ -111,6 +111,7 @@ export default function LivePrep({
   const poll = usePoll(() => getJson<Hadir>("/api/session/hadir"), 60_000, true, [
     "sesi",
     "roster",
+    "hadir",
   ]);
   const data = poll.data?.ok ? poll.data : null;
   const pair = usePairing({

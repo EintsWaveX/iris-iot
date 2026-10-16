@@ -41,6 +41,8 @@ export const TOPIK = [
   "seelabs",
   // Phase 15: IRIS changed something in the LMS from the LMS menu.
   "lms",
+  // Phase 18: someone checked in, or a PJ changed a status or the slot's clock.
+  "hadir",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -64,7 +66,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:praktikan": ["roster"],
   "session:susulan": ["roster", "sesi", "jadwal"],
   "session:tot": ["tot", "roster", "sesi", "jawaban", "tangkapan", "petunjuk"],
-  "session:hadir": ["sesi", "roster"],
+  "session:hadir": ["sesi", "roster", "hadir"],
+  "session:hadirku": ["hadir"],
   "session:group": ["sesi", "roster"],
   // Pegang Kelompok, Ganti Asisten: who holds a group decides who scores it
   // and what the projector and the group's Praktikan see.
