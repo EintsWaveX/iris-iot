@@ -47,6 +47,7 @@ import {
   STATUS_ORANG,
   TIER,
   divisiKepala,
+  bolehResetSandi,
   hakDasar,
   hakPenuh,
   isKategori,
@@ -88,6 +89,9 @@ interface OrangTim {
   hak: Record<HakKey, HakNilai>;
   /** Presence (lib/kehadiran.ts). */
   terakhirAktif: string | null;
+  /** Own password set, and since when; sent to the Tim right only. */
+  punyaSandi?: boolean;
+  sandiSejak?: string | null;
 }
 
 interface Pemegang {
@@ -809,6 +813,8 @@ function PersonDrawer({
   const [over, setOver] = useState<Partial<Record<string, boolean>>>(p.hakOverride ?? {});
   const [busy, setBusy] = useState(false);
   const [jejak, setJejak] = useState<Jejak[] | null>(null);
+  const [tanyaReset, setTanyaReset] = useState(false);
+  const bisaReset = !!p.punyaSandi && bolehResetSandi(admin, sendiri, p);
 
   useEffect(() => {
     let alive = true;
@@ -844,6 +850,16 @@ function PersonDrawer({
     toast(t.saved);
     await reload();
     onClose();
+  };
+
+  const resetSandi = async () => {
+    setBusy(true);
+    const err = await kirim({ aksi: "sandi_reset", nim: p.nim }, t);
+    setBusy(false);
+    if (err) return toast(err, "danger");
+    setTanyaReset(false);
+    toast(t.resetDone(w.who(p.nim)));
+    await reload();
   };
 
   const askHandover = async () => {
@@ -996,6 +1012,63 @@ function PersonDrawer({
           <span className="field__hint">{t.seelabsHint}</span>
         </label>
 
+        {admin && p.punyaSandi !== undefined && (
+          <div className="field">
+            <span className="field__label">{t.sandi}</span>
+            <div className="tim-sandi">
+              <span>
+                {!p.punyaSandi
+                  ? t.sandiAwal
+                  : p.sandiSejak
+                    ? t.sandiSendiri(tgl(p.sandiSejak, lang))
+                    : t.sandiSendiriLama}
+              </span>
+              {bisaReset && (
+                <button
+                  type="button"
+                  className="btn btn--danger-soft"
+                  onClick={() => setTanyaReset(true)}
+                >
+                  {t.resetSandi}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {tanyaReset && (
+          <Dialog
+            open
+            onOpenChange={(o) => !o && !busy && setTanyaReset(false)}
+            title={t.resetTitle}
+            size="sm"
+            lang={lang}
+            actions={
+              <>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  disabled={busy}
+                  onClick={() => setTanyaReset(false)}
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--danger"
+                  data-loading={busy ? "yes" : "no"}
+                  disabled={busy}
+                  onClick={() => void resetSandi()}
+                >
+                  <span className="btn__label">{t.resetSandi}</span>
+                  <span className="btn__spinner" aria-hidden="true" />
+                </button>
+              </>
+            }
+          >
+            <p>{t.resetBody(w.who(p.nim))}</p>
+          </Dialog>
+        )}
+
         <section className="tim-sec">
           <h3 className="tim-sec__title">{t.rights}</h3>
           <div className="rightsnote">
@@ -1097,6 +1170,7 @@ function kalimat(j: Jejak, t: Tx, lang: Lang, w: Who): string {
   const by = w.who(j.aktorNim);
   const katOf = (v: unknown) => (isKategori(v) ? kategoriLabel(v, lang) : String(v ?? ""));
   if (j.aksi === "tim_tambah") return t.j.added(by);
+  if (j.aksi === "sandi_direset") return t.j.by(t.j.sandiReset, by);
   if (j.aksi === "tim_impor") return d.baru ? t.j.imported : t.j.importUpd(by);
   if (j.aksi === "tim_serah_terima") {
     const what = t.j.serah(

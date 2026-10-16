@@ -202,6 +202,7 @@ const W = {
     laporanStatus: (j: unknown, st: string) => `menandai laporan "${j}" ${st}`,
     sandiAtur: "mengatur kata sandinya",
     sandiGanti: "mengganti kata sandinya",
+    sandiReset: (who: string) => `mereset kata sandi ${who}`,
     konsol: "memakai Konsol PC Server",
     perburuan: (mulai: boolean) =>
       mulai ? "memulai perburuan Modul 4" : "menyelesaikan perburuan Modul 4",
@@ -348,6 +349,7 @@ const W = {
     laporanStatus: (j: unknown, st: string) => `marked the report "${j}" ${st}`,
     sandiAtur: "set their password",
     sandiGanti: "changed their password",
+    sandiReset: (who: string) => `reset ${who}'s password`,
     konsol: "used the PC Server Console",
     perburuan: (mulai: boolean) =>
       mulai ? "started the Module 4 hunt" : "ended the Module 4 hunt",
@@ -488,6 +490,7 @@ const W = {
     laporanStatus: (j: unknown, st: string) => `把报告“${j}”标为${st}`,
     sandiAtur: "设置了密码",
     sandiGanti: "修改了密码",
+    sandiReset: (who: string) => `重置了 ${who} 的密码`,
     konsol: "使用了 PC 服务器控制台",
     perburuan: (mulai: boolean) => (mulai ? "开始了模块 4 的寻踪" : "结束了模块 4 的寻踪"),
     konsolTarget: (t: unknown) =>
@@ -871,6 +874,8 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(KeyIcon, w.sandiAtur);
     case "sandi_diganti":
       return k(KeyIcon, w.sandiGanti);
+    case "sandi_direset":
+      return k(KeyIcon, w.sandiReset(b.who(d.nim)));
     case "konsol_minta":
       return k(
         TerminalWindowIcon,

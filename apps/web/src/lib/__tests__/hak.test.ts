@@ -3,6 +3,7 @@ import {
   HAK,
   KATEGORI,
   boleh,
+  bolehResetSandi,
   bolehPenuh,
   divisiKepala,
   hakDari,
@@ -108,5 +109,15 @@ describe("the rights matrix", () => {
     }
     expect(hakPenuh(orang("pengelola"))).toBe(false);
     expect(hakPenuh(orang("asisten"))).toBe(false);
+  });
+});
+
+describe("Reset Sandi", () => {
+  it("is for the Tim right, never on oneself or the Pencipta", () => {
+    expect(bolehResetSandi(true, false, orang("asisten"))).toBe(true);
+    expect(bolehResetSandi(true, false, orang("admin"))).toBe(true);
+    expect(bolehResetSandi(false, false, orang("asisten"))).toBe(false);
+    expect(bolehResetSandi(true, true, orang("admin"))).toBe(false);
+    expect(bolehResetSandi(true, false, orang("admin", ["pencipta"]))).toBe(false);
   });
 });

@@ -76,6 +76,15 @@ export const T = dict({
     notSet: "Belum diisi",
     seelabsHint:
       "Dipakai saat dia mengirim nilai, atau saat akunnya dipinjam asisten yang memegang dua kelompok.",
+    sandi: "Kata sandi",
+    sandiSendiri: (d: string) => `Memakai sandi sendiri sejak ${d}.`,
+    sandiSendiriLama: "Memakai sandi sendiri.",
+    sandiAwal: "Masih memakai sandi awal.",
+    resetSandi: "Reset Sandi",
+    resetTitle: "Reset Sandi?",
+    resetBody: (who: string) =>
+      `Sandi buatan ${who} dihapus. Dia masuk lagi dengan sandi awal, lalu bisa membuat sandi baru. Reset ini tercatat di Audit.`,
+    resetDone: (who: string) => `Sandi ${who} direset. Dia bisa masuk dengan sandi awal sekarang.`,
     rights: "Hak Akses",
     rightsNote:
       "Hak ikut jabatan. Jabatan kepala hanya punya satu pemegang. Yang pertama memegang tetap memegang sampai serah terima.",
@@ -128,6 +137,7 @@ export const T = dict({
       sudah_berubah: "Jabatan ini sudah berpindah, jadi permintaan ini dibatalkan.",
       tidak_menunggu: "Permintaan ini sudah diputuskan.",
       jabatan_dipegang: "Jabatan ini sudah dipegang orang lain.",
+      tanpa_sandi: "Dia sudah memakai sandi awal, jadi tidak ada yang direset.",
       gagal: "Gagal menyimpan. Coba lagi.",
     } as Record<string, string>,
     j: {
@@ -140,6 +150,7 @@ export const T = dict({
       divisi: (d: string) => `Divisi jadi ${d}`,
       seelabs: "Akun SeeLabs diubah",
       hak: "Hak akses diubah",
+      sandiReset: "Sandi direset",
       serah: (kat: string, dari: string, ke: string, st: string) =>
         `Serah terima ${kat} dari ${dari} ke ${ke} ${st}`,
       st: {
@@ -222,6 +233,16 @@ export const T = dict({
     seelabsPh: "SeeLabs username",
     notSet: "Not set yet",
     seelabsHint: "Used when they send scores, or when an assistant holding two groups borrows it.",
+    sandi: "Password",
+    sandiSendiri: (d: string) => `Uses their own password since ${d}.`,
+    sandiSendiriLama: "Uses their own password.",
+    sandiAwal: "Still on the starting password.",
+    resetSandi: "Reset Password",
+    resetTitle: "Reset Password?",
+    resetBody: (who: string) =>
+      `The password ${who} set is removed. They sign in with the starting password again, then can set a new one. The reset is recorded in Audit.`,
+    resetDone: (who: string) =>
+      `${who}'s password was reset. They can sign in with the starting password now.`,
     rights: "Rights",
     rightsNote:
       "Rights follow the position. A head role has one holder. Whoever held it first keeps it until a handover.",
@@ -274,6 +295,7 @@ export const T = dict({
       sudah_berubah: "This role has already moved, so the request was cancelled.",
       tidak_menunggu: "This request has already been decided.",
       jabatan_dipegang: "Someone else already holds this role.",
+      tanpa_sandi: "They are already on the starting password, so there is nothing to reset.",
       gagal: "Couldn't save. Try again.",
     } as Record<string, string>,
     j: {
@@ -286,6 +308,7 @@ export const T = dict({
       divisi: (d: string) => `Division set to ${d}`,
       seelabs: "SeeLabs account changed",
       hak: "Rights changed",
+      sandiReset: "Password reset",
       serah: (kat: string, dari: string, ke: string, st: string) =>
         `Handover of ${kat} from ${dari} to ${ke} ${st}`,
       st: {
@@ -365,6 +388,15 @@ export const T = dict({
     seelabsPh: "SeeLabs 用户名",
     notSet: "还没填写",
     seelabsHint: "提交分数时用，或者带两个组的助教借用时用。",
+    sandi: "密码",
+    sandiSendiri: (d: string) => `自 ${d} 起使用自己的密码。`,
+    sandiSendiriLama: "使用自己的密码。",
+    sandiAwal: "还在用初始密码。",
+    resetSandi: "重置密码",
+    resetTitle: "重置密码？",
+    resetBody: (who: string) =>
+      `${who} 设置的密码会被删除。之后用初始密码登录，再设置新密码。这次重置会记录在审计里。`,
+    resetDone: (who: string) => `${who} 的密码已重置，现在可以用初始密码登录。`,
     rights: "权限",
     rightsNote: "权限跟着职位走。一个负责人职位只有一位担任人。先担任的人一直保留，直到交接。",
     right: {
@@ -415,6 +447,7 @@ export const T = dict({
       sudah_berubah: "这个职位已经换人了，所以申请已取消。",
       tidak_menunggu: "这个申请已经处理过了。",
       jabatan_dipegang: "这个职位已经有人担任。",
+      tanpa_sandi: "对方已经在用初始密码，不需要重置。",
       gagal: "保存失败，请再试一次。",
     } as Record<string, string>,
     j: {
@@ -427,6 +460,7 @@ export const T = dict({
       divisi: (d: string) => `部门改为 ${d}`,
       seelabs: "SeeLabs 账号已修改",
       hak: "权限已修改",
+      sandiReset: "密码已重置",
       serah: (kat: string, dari: string, ke: string, st: string) =>
         `${kat}从 ${dari} 交接给 ${ke}：${st}`,
       st: {
