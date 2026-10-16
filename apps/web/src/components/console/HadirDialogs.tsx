@@ -10,7 +10,7 @@ import { Stepper, Switch, TimeField } from "../ui/Controls";
 import { Aturan } from "../shell/HadirNotice";
 import type { Lang } from "../../lib/kelas";
 import { POTONGAN_AWAL, TELAT_MAKS, hitungHadir, potonganHadir } from "../../lib/hadir-mengajar";
-import type { StatusLive } from "../../lib/hadir-mengajar";
+import type { Potongan, StatusLive } from "../../lib/hadir-mengajar";
 import type { Strings } from "./strings";
 import { bayarBaris, labelStatus, rupiahSingkat, type BarisHadir } from "./HadirTrack";
 
@@ -169,11 +169,14 @@ export function UbahStatus({
   row,
   base,
   sesiLabel,
+  potongan = POTONGAN_AWAL,
   onOpenChange,
   onSave,
 }: {
   t: Strings;
   lang: Lang;
+  /** The cut setting in force. */
+  potongan?: Potongan;
   /** The row being changed; null keeps the dialog closed. */
   row: BarisHadir | null;
   /** The clock now in force (ISO). */
@@ -213,12 +216,12 @@ export function UbahStatus({
   });
   const hasil: { status: StatusLive; menit: number | null } =
     s === "ikut" ? ikut : { status: s, menit: s === "telat" ? m : s === "mm" ? TELAT_MAKS : null };
-  const pot = potonganHadir(hasil, hm, POTONGAN_AWAL);
-  const bayar = bayarBaris(h, { ...hasil, ...pot });
+  const pot = potonganHadir(hasil, hm, potongan);
+  const bayar = bayarBaris(h, { ...hasil, ...pot }, potongan);
   const ops: [Pilihan, string, string][] = [
     ["ikut", h.uFollow, labelStatus(h, ikut.status, ikut.menit)],
     ["tepat", h.sTepat, h.uTepatH],
-    ["telat", h.uTelat, h.uTelatH(rupiahSingkat(POTONGAN_AWAL.perMenit), POTONGAN_AWAL.maks)],
+    ["telat", h.uTelat, h.uTelatH(rupiahSingkat(potongan.perMenit), potongan.maks)],
     ["mm", h.sMm, h.uMmH],
     ["mangkir", h.sMangkir, h.uMangkirH],
     ["izin", h.sIzin, h.uIzinH],

@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import Pill from "../ui/Pill";
 import { jamMenit } from "../../lib/app";
-import { POTONGAN_AWAL } from "../../lib/hadir-mengajar";
+import { POTONGAN_AWAL, type Potongan } from "../../lib/hadir-mengajar";
 import type { StatusLive } from "../../lib/hadir-mengajar";
 import type { Strings } from "./strings";
 
@@ -40,6 +40,8 @@ export interface HadirSlot {
   pj: string | null;
   bolehPj: boolean;
   baris: BarisHadir[];
+  /** The cut setting in force; POTONGAN_AWAL only while this loads. */
+  potongan?: Potongan;
   ambilAlih: { nim: string; kelompok: number | null; oleh: string; pada: string }[];
 }
 
@@ -84,12 +86,13 @@ export function labelStatus(h: Hd, s: StatusLive, menit: number | null): string 
 export function bayarBaris(
   h: Hd,
   x: { status: StatusLive; menit: number | null; potong: number; nolkanUnit: boolean },
+  p: Potongan = POTONGAN_AWAL,
 ): { tx: string; tone: "ok" | "warn" | "danger" | "" } {
   if (x.nolkanUnit) return { tx: h.pNol, tone: "danger" };
   if (x.status === "izin") return { tx: h.pIzin, tone: "" };
   if (x.status === "tepat") return { tx: h.pTepat, tone: "ok" };
   if (x.status === "berjalan")
-    return { tx: h.pBerjalan(rp((x.menit ?? 0) * POTONGAN_AWAL.perMenit)), tone: "warn" };
+    return { tx: h.pBerjalan(rp((x.menit ?? 0) * p.perMenit)), tone: "warn" };
   if (x.status === "lewat") return { tx: h.pLewat, tone: "danger" };
   if (x.potong > 0) return { tx: h.pCut(rp(x.potong)), tone: "warn" };
   return { tx: "", tone: "" };
@@ -118,7 +121,7 @@ export default function HadirTrack({
   hadir,
 }: {
   h: Hd;
-  hadir: Pick<HadirSlot, "base" | "geser" | "baris">;
+  hadir: Pick<HadirSlot, "base" | "geser" | "baris" | "potongan">;
 }) {
   const now = useNowDetik();
   const base = new Date(hadir.base).getTime();
@@ -172,7 +175,7 @@ export default function HadirTrack({
       </div>
       <div className="hadirtrack__legend">
         <span data-z="tepat">{h.zTepat}</span>
-        <span data-z="telat">{h.zTelat(rp(POTONGAN_AWAL.perMenit))}</span>
+        <span data-z="telat">{h.zTelat(rp((hadir.potongan ?? POTONGAN_AWAL).perMenit))}</span>
         <span data-z="lewat">{h.zLewat}</span>
       </div>
       {hadir.geser && <p className="hint">{h.shifted(hadir.geser.dari, hadir.geser.alasan)}</p>}

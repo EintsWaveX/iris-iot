@@ -682,6 +682,7 @@ export async function hadirUntukKunci(
     pj: c.pj,
     bolehPj: !!orang && bolehPj(orang, pjCtx(c)),
     baris,
+    potongan: await muatPotongan(db),
     ambilAlih: await ambilAlihTertunda(db, c, baris),
   };
 }
@@ -767,7 +768,7 @@ export async function handleHadirkuGet(
   const otomatisTolak = belumJalan ? await tolakOtomatis(db, s.kunci, s.tanggal) : null;
   res.status(200).json({
     ok: true,
-    slot: { ...s, saya, modul, bolehMulai, otomatisTolak },
+    slot: { ...s, saya, modul, bolehMulai, otomatisTolak, potongan: await muatPotongan(db) },
     nilai: null,
   });
 }

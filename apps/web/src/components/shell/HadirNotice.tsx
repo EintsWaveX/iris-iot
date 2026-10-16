@@ -17,7 +17,13 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { CaretDownIcon } from "@phosphor-icons/react";
 import { getJson, href, postJson, tanggalPanjang, type Me } from "../../lib/app";
 import { useBatas, useSiaran } from "../../lib/siaran";
-import { akhirSesiMaks, hitungHadir, potonganHadir, POTONGAN_AWAL } from "../../lib/hadir-mengajar";
+import {
+  akhirSesiMaks,
+  hitungHadir,
+  potonganHadir,
+  POTONGAN_AWAL,
+  type Potongan,
+} from "../../lib/hadir-mengajar";
 import type { StatusLive } from "../../lib/hadir-mengajar";
 import type { Lang } from "../../lib/kelas";
 import Pill from "../ui/Pill";
@@ -48,6 +54,8 @@ interface SlotData {
   modul: number | null;
   bolehMulai: boolean;
   otomatisTolak: { kode: string } | null;
+  /** The cut setting in force (pengaturan potongan_telat) */
+  potongan?: Potongan;
 }
 
 interface Hadirku {
@@ -55,6 +63,7 @@ interface Hadirku {
   slot: SlotData | null;
 }
 
+// Deliberately shorter than the server's 15 s window, so a press never lands on its edge
 const BATAL_DETIK = 10;
 const TOPIK = ["hadir", "sesi", "jadwal"] as const;
 
@@ -74,9 +83,19 @@ const mmss = (ms: number) => {
 };
 
 /** The five rows of How It Counts, for one base clock */
-export function Aturan({ lang, base, jumat }: { lang: Lang; base: number; jumat: boolean }) {
+export function Aturan({
+  lang,
+  base,
+  jumat,
+  potongan = POTONGAN_AWAL,
+}: {
+  lang: Lang;
+  base: number;
+  jumat: boolean;
+  potongan?: Potongan;
+}) {
   const t = T[lang];
-  const tarif = rp(POTONGAN_AWAL.perMenit);
+  const tarif = rp(potongan.perMenit);
   return (
     <div className="hadir-rule">
       {jumat && <p className="hint">{t.jumat}</p>}
@@ -105,7 +124,17 @@ export function Aturan({ lang, base, jumat }: { lang: Lang; base: number; jumat:
   );
 }
 
-function CaraHitung({ lang, base, jumat }: { lang: Lang; base: number; jumat: boolean }) {
+function CaraHitung({
+  lang,
+  base,
+  jumat,
+  potongan,
+}: {
+  lang: Lang;
+  base: number;
+  jumat: boolean;
+  potongan: Potongan;
+}) {
   const t = T[lang];
   return (
     <Popover
@@ -118,7 +147,7 @@ function CaraHitung({ lang, base, jumat }: { lang: Lang; base: number; jumat: bo
         </button>
       }
     >
-      <Aturan lang={lang} base={base} jumat={jumat} />
+      <Aturan lang={lang} base={base} jumat={jumat} potongan={potongan} />
     </Popover>
   );
 }
@@ -129,7 +158,8 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
   const [now, setNow] = useState(() => Date.now());
   // The press made on this page: the receipt shows until it is closed
   const [baru, setBaru] = useState<{ kunci: string; pada: number } | null>(null);
-  const [tutup, setTutup] = useState(false);
+  // The kunci whose receipt was closed, so the next slot's banner is not hidden
+  const [tutup, setTutup] = useState<string | null>(null);
   const [undo, setUndo] = useState(0);
   const [sibuk, setSibuk] = useState(false);
   const aktif = me.role === "asisten";
@@ -164,9 +194,10 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
     return () => clearTimeout(id);
   }, [undo]);
 
-  if (!aktif || !data || base === null || tutup) return null;
+  if (!aktif || !data || base === null || tutup === data.kunci) return null;
   const s = data;
   const saya = s.saya;
+  const pot = s.potongan ?? POTONGAN_AWAL;
   if (!saya || !saya.diharapkan) return null;
   const akhir = base + akhirSesiMaks(s.tanggal, s.slot, new Date(base)) * 60_000;
   const baruIni = baru?.kunci === s.kunci ? baru : null;
@@ -296,7 +327,7 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
   const pay = (h: { status: StatusLive; menit: number | null }) => {
     if (h.status === "mm") return { tx: t.pMm, tone: "danger" };
     if (h.status === "telat") {
-      return { tx: t.pTelat(rp(potonganHadir(h, true, POTONGAN_AWAL).potong)), tone: "warn" };
+      return { tx: t.pTelat(rp(potonganHadir(h, true, pot).potong)), tone: "warn" };
     }
     if (h.status === "tepat") return { tx: t.pTepat, tone: "ok" };
     return { tx: "", tone: "" };
@@ -315,7 +346,7 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
     st === "tepat" ? "ok" : st === "telat" || st === "berjalan" ? "warn" : "danger";
 
   const sudahJalan = s.sesi?.status === "berjalan" || now >= base;
-  const cara = <CaraHitung lang={lang} base={base} jumat={jumat} />;
+  const cara = <CaraHitung lang={lang} base={base} jumat={jumat} potongan={pot} />;
 
   let tone: "ok" | "warn" | "danger" | "accent" | "violet";
   let main: ReactNode;
@@ -356,7 +387,7 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
     acts =
       undo > 0
         ? tombol(t.batal(undo), () => void batalkan(), "ghost")
-        : tombol(t.tutup, () => setTutup(true), "ghost");
+        : tombol(t.tutup, () => setTutup(s.kunci), "ghost");
   } else if (saya.izin) {
     tone = "violet";
     main = <span className="hadir__big">{t.izinH(sesiNama)}</span>;
@@ -375,7 +406,7 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
           {mmss(base - now)}
         </span>
         <span className="hint">
-          {t.autoHint(jamWib(base), jamWib(base + 60_000), rp(POTONGAN_AWAL.perMenit))}
+          {t.autoHint(jamWib(base), jamWib(base + 60_000), rp(pot.perMenit))}
         </span>
       </span>
     );
@@ -437,9 +468,9 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
             {lewat
               ? t.lewat(jamWib(base + 600_000))
               : t.potong(
-                  rp(m * POTONGAN_AWAL.perMenit),
-                  rp(POTONGAN_AWAL.perMenit),
-                  jamWib(base + 600_000),
+                  rp(Math.min(m, pot.maks) * pot.perMenit),
+                  rp(pot.perMenit),
+                  jamWib(base + pot.maks * 60_000),
                 )}
           </span>
         </span>

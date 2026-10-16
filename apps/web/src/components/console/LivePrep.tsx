@@ -273,7 +273,7 @@ export default function LivePrep({
               const Ic = k.icon;
               const menunggu = m.jenis === "sukarela" && m.status === "diminta";
               const b = baris.get(m.nim);
-              const bayar = b ? bayarBaris(h, b) : null;
+              const bayar = b ? bayarBaris(h, b, hd?.potongan) : null;
               return (
                 <div key={m.nim} className="teachrow" data-wait={menunggu ? "yes" : undefined}>
                   <span className={`pill${k.tone ? ` pill--${k.tone}` : ""}`}>
@@ -432,6 +432,7 @@ export default function LivePrep({
             lang={lang}
             row={ubahRow ? (baris.get(ubahRow) ?? null) : null}
             base={hd.base}
+            potongan={hd.potongan}
             sesiLabel={sesi.slot ? h.uSesi(sesi.slot) : ""}
             onOpenChange={(o) => !o && setUbahRow(null)}
             onSave={(body) =>
