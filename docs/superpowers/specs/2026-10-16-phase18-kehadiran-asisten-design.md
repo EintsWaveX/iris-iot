@@ -164,6 +164,38 @@ the save. So a group's scores must be in by the end of the practicum day.
   counts) and the Tim drawer.
 - TOT sessions are exempt; a Susulan follows its own date.
 
+Everything around it, not only the report (user, 2026-10-16):
+
+1. **One checklist per group** wherever scores live (Tabel Nilai, the
+   group's Nilai tab, the session end, the reminder): Nilai Lengkap (all 8
+   components for every present member, absent ones marked) › Kirim Nilai ›
+   Tersimpan di SeeLabs (Diverifikasi Robot, or Ditandai Tangan). Each step
+   says what is missing and has the button that does it.
+2. **The session end asks first**: Akhiri Sesi lists each of your groups
+   with the checklist; a group not sent yet is shown before the end is
+   confirmed (ending still works, the reminders take over).
+3. **Reminders until done**, to whoever holds the group: at the session
+   end, at 20:00 and at 22:30, on every page (banner) and on the Konsol home
+   ("Nilai Belum Selesai"). The PJ sees every open group of the session.
+4. **Robot trouble is caught early**: a robot job that fails (password
+   refused, SeeLabs unreachable, a read back that doesn't match) turns the
+   step red at once, says why, and offers Coba Lagi, Perbarui Kata Sandi
+   or the bookmarklet with Tandai Sudah Disimpan. A robot still queued at
+   23:00 warns that it may not make it.
+5. **Hand-off by the PJ**: when the holder can't finish (left, phone dead),
+   the PJ can move the group's scoring to another Asisten of the session
+   with a reason (Alihkan Penilaian). Pay follows whoever sends it, as
+   today; the record names both.
+6. **After 23:59** the group is recorded as Lupa Input Nilai and the
+   reminder changes to the late path: get a Token Khusus from the Laboran,
+   type it in IRIS (the robot already takes a token per job), or use the
+   bookmarklet and mark it by hand. Once saved, the record shows "Diinput
+   Menyusul" with the time; the record itself stays.
+7. **Reports**: Laporan session block (each group's three steps with times
+   and who), the semester table (Lupa Input Nilai per person, menyusul or
+   still open), the Tim drawer, and the person's own Akun list. Still no
+   pay cut (user: report only).
+
 ## Screens for the stage 0 mockup
 
 Designed with Emil Kowalski's principles, in the live app's kosmik style,
@@ -184,7 +216,9 @@ case headers and buttons.
 7. Bayar: the Potongan Telat and Mangkir lines in a month.
 8. The auto-start's line in the session's events, and the hard-refusal
    alert.
-9. Lupa Input Nilai: the session-end and 20:00 reminders, the record after
+9. Lupa Input Nilai: the per-group checklist, the session-end check, the
+   reminders, robot trouble, Alihkan Penilaian, the Token Khusus late path,
+   the record after
    23:59, and its rows in Laporan and Tim.
 
 ## Edge cases (my calls)
