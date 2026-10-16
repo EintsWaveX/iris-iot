@@ -300,11 +300,16 @@ export default function ModulView({
       </Pill>
     </span>
   );
-  /** Lihat di Jadwal then Ubah (the main one on the right), pinned to the
-   *  slot's bottom and splitting its width. */
+  /** Ubah over Lihat di Jadwal (2x1, the main one on top), pinned to the
+   *  slot's bottom at its full width. */
   const tombol = (j: JadwalRow) =>
     (boleh || onJadwal) && (
       <div className="pmacts">
+        {boleh && (
+          <button type="button" className="btn btn--sm btn--primary" onClick={() => setUbah(j.id)}>
+            {p.ubah}
+          </button>
+        )}
         {onJadwal && (
           <button
             type="button"
@@ -312,11 +317,6 @@ export default function ModulView({
             onClick={() => pergi(() => onJadwal(j.hari, j.slot))}
           >
             {p.lihatJadwal}
-          </button>
-        )}
-        {boleh && (
-          <button type="button" className="btn btn--sm btn--primary" onClick={() => setUbah(j.id)}>
-            {p.ubah}
           </button>
         )}
       </div>

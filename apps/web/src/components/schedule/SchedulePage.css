@@ -977,7 +977,7 @@
   align-items: start;
   display: grid;
   gap: 12px;
-  grid-template-columns: 240px repeat(var(--n, 4), minmax(0, 1fr));
+  grid-template-columns: 220px repeat(var(--n, 4), minmax(0, 1fr));
 }
 
 .pmtable__row:not(.pmtable__head) {
@@ -1022,18 +1022,16 @@
   justify-self: start;
 }
 
-/* Lihat di Jadwal and Ubah: pinned, splitting the width equally */
+/* Ubah over Lihat di Jadwal: pinned, one per row at the full width */
 .pmacts {
   align-self: end;
-  display: flex;
+  display: grid;
   gap: 8px;
 }
 
 .pmacts .btn {
-  flex: 1 1 0;
   min-width: 0;
-  padding-inline: 10px;
-  white-space: nowrap;
+  width: 100%;
 }
 
 /* The drawer with Pasangan per Modul on: the note and its way to Per Modul */
