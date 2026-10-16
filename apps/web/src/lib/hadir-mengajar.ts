@@ -19,16 +19,54 @@ export type StatusHadir = "tepat" | "telat" | "mm" | "mangkir" | "izin";
 /** `lepas` = not expected in this session, never judged. */
 export type StatusLive = StatusHadir | "belum" | "berjalan" | "lewat" | "lepas";
 
-/** Reads the `potongan_telat` setting; each field falls back on its own. */
+/** Reads one `potongan_telat` entry; each field falls back on its own. A rate of 0 switches the cut off. */
 export function bacaPotongan(v: unknown): Potongan {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
-  const ok = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n > 0;
+  const rate = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
   // The cap is whole minutes: floor first, then check it is still above zero.
   const maks = typeof o.maks === "number" ? Math.floor(o.maks) : NaN;
   return {
-    perMenit: ok(o.perMenit) ? o.perMenit : POTONGAN_AWAL.perMenit,
-    maks: ok(maks) ? maks : POTONGAN_AWAL.maks,
+    perMenit: rate(o.perMenit) ? o.perMenit : POTONGAN_AWAL.perMenit,
+    maks: maks > 0 && Number.isFinite(maks) ? maks : POTONGAN_AWAL.maks,
   };
+}
+
+export type RiwayatPotongan = Potongan & { berlakuMulai: string };
+const TANGGAL_POTONGAN = /^\d{4}-\d{2}-\d{2}$/;
+/** "In force from the start" for a value saved before the history existed. */
+export const POTONGAN_DARI_AWAL = "0000-01-01";
+
+/** The rate history in `potongan_telat`, oldest first; an old value is one entry from the start. */
+export function bacaRiwayatPotongan(v: unknown): RiwayatPotongan[] {
+  const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const lst = Array.isArray(o.riwayat) ? o.riwayat : [];
+  const rows = lst
+    .filter(
+      (x): x is Record<string, unknown> =>
+        !!x &&
+        typeof x === "object" &&
+        typeof (x as Record<string, unknown>).berlakuMulai === "string" &&
+        TANGGAL_POTONGAN.test((x as Record<string, string>).berlakuMulai),
+    )
+    .map((x) => ({ berlakuMulai: x.berlakuMulai as string, ...bacaPotongan(x) }))
+    .sort((a, b) =>
+      a.berlakuMulai < b.berlakuMulai ? -1 : a.berlakuMulai > b.berlakuMulai ? 1 : 0,
+    );
+  return rows.length ? rows : [{ berlakuMulai: POTONGAN_DARI_AWAL, ...bacaPotongan(v) }];
+}
+
+/** The rate in force on a date (the last entry that started on or before it); the newest with no date. */
+export function potonganPada(v: unknown, tanggal?: string): Potongan {
+  const r = bacaRiwayatPotongan(v);
+  const pilih = tanggal ? r.filter((x) => x.berlakuMulai <= tanggal).at(-1) : r.at(-1);
+  const { perMenit, maks } = pilih ?? r[0];
+  return { perMenit, maks };
+}
+
+/** The value to save when the rate changes on `tanggal`: a same-day entry is replaced. */
+export function riwayatBaru(v: unknown, tanggal: string, p: Potongan) {
+  const lama = bacaRiwayatPotongan(v).filter((x) => x.berlakuMulai !== tanggal);
+  return { ...p, riwayat: [...lama, { berlakuMulai: tanggal, ...p }] };
 }
 
 /** Base clock of a slot in minutes after 00:00: the start minus 5, Friday slot 3 at 13:00. */

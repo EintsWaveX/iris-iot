@@ -50,6 +50,9 @@ export interface PotonganRow {
   menit: number | null;
   status: StatusHadir;
   nolkan: boolean;
+  /** Groups that would have earned a unit, and their worth at the unit rate. */
+  unitHilang: number;
+  hilang: number;
 }
 
 /** The money cuts of a person (or everyone) as jumlahkan and sisaTransfer take them. */
@@ -101,7 +104,7 @@ export function useBayar(enabled = true) {
     if (enabled) void load();
   }, [enabled, load]);
   // Pay follows ended sessions, covers and rates (2026-10-07: it loaded once).
-  useSiaran(["bayar", "jadwal", "laporan", "tim", "hadir"], () => void load(), enabled);
+  useSiaran(["bayar", "jadwal", "laporan", "tim"], () => void load(), enabled);
   return { data, fail, load };
 }
 

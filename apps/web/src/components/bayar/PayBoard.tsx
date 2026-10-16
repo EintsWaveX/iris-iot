@@ -263,7 +263,7 @@ export default function PayBoard({
             <span className="field__label">{t.cutRate}</span>
             <Stepper
               value={potong.perMenit}
-              min={500}
+              min={0}
               max={10000}
               step={500}
               onChange={(v) => setPotong({ ...potong, perMenit: v })}

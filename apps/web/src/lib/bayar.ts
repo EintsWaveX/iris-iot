@@ -121,42 +121,40 @@ export interface PotonganBaris {
   nim?: string;
 }
 
-/** Cuts per month, each month's total capped at what that month holds. */
-function terapkanPotongan(
-  kotorBulan: Map<string, number>,
-  potongan: PotonganBaris[],
-): Map<string, number> {
+/** A month's late cuts added up (the lines keep their full amounts). */
+function potongPerBulan(potongan: PotonganBaris[]): Map<string, number> {
   const per = new Map<string, number>();
   for (const c of potongan) {
     const p = periodeDari(c.tanggal);
     per.set(p, (per.get(p) ?? 0) + c.jumlah);
   }
-  const out = new Map<string, number>();
-  for (const [p, c] of per) out.set(p, Math.min(c, kotorBulan.get(p) ?? 0));
-  return out;
+  return per;
 }
 
-/** Sums units; late cuts come off kotor and bersih (the kas stays what the
- *  units made), a month never going below zero. */
+/** Sums units; a month's late cuts come off kotor (never below zero), and
+ *  the kas can't exceed the kotor left, so bersih loses at most what it had
+ *  and nobody owes kas on money they did not receive. */
 export function jumlahkan(
   units: Pick<Unit, "kelas" | "kotor" | "kas" | "bersih" | "tanggal">[],
   potongan: PotonganBaris[] = [],
 ): Ringkasan {
   const r = { ...KOSONG };
-  const kotorBulan = new Map<string, number>();
-  const bersihBulan = new Map<string, number>();
+  const bulan = new Map<string, { kotor: number; kas: number }>();
   for (const u of units) {
     r[u.kelas] += 1;
-    r.kotor += u.kotor;
-    r.kas += u.kas;
-    r.bersih += u.bersih;
     const p = periodeDari(u.tanggal);
-    kotorBulan.set(p, (kotorBulan.get(p) ?? 0) + u.kotor);
-    bersihBulan.set(p, (bersihBulan.get(p) ?? 0) + u.bersih);
+    const b = bulan.get(p) ?? { kotor: 0, kas: 0 };
+    b.kotor += u.kotor;
+    b.kas += u.kas;
+    bulan.set(p, b);
   }
-  if (potongan.length) {
-    for (const v of terapkanPotongan(kotorBulan, potongan).values()) r.kotor -= v;
-    for (const v of terapkanPotongan(bersihBulan, potongan).values()) r.bersih -= v;
+  const potong = potongPerBulan(potongan);
+  for (const [p, b] of bulan) {
+    const kotor = Math.max(0, b.kotor - (potong.get(p) ?? 0));
+    const kas = Math.min(b.kas, kotor);
+    r.kotor += kotor;
+    r.kas += kas;
+    r.bersih += kotor - kas;
   }
   return r;
 }
@@ -193,7 +191,8 @@ export function sisaTransfer(
       (wajib.get(key(p, "balik", u.nimPenilai)) ?? 0) + u.kas,
     );
   }
-  // A late cut comes off that person's kotor of the month, never below zero.
+  // A late cut comes off that person's kotor of the month, never below zero,
+  // and the kas they send back can't be more than the kotor they received.
   const potong = new Map<string, number>();
   for (const c of potongan) {
     const k = key(periodeDari(c.tanggal), "kotor", c.nim ?? "");
@@ -201,7 +200,11 @@ export function sisaTransfer(
   }
   for (const [k, c] of potong) {
     const ada = wajib.get(k);
-    if (ada !== undefined) wajib.set(k, Math.max(0, ada - c));
+    if (ada === undefined) continue;
+    const sisa = Math.max(0, ada - c);
+    wajib.set(k, sisa);
+    const kb = k.replace("|kotor|", "|balik|");
+    wajib.set(kb, Math.min(wajib.get(kb) ?? 0, sisa));
   }
   const bayar = new Map<string, number>();
   for (const t of sudah)

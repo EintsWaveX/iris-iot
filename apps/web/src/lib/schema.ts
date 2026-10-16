@@ -354,6 +354,12 @@ export const hadirMengajar = pgTable(
     ambilAlihDijawab: boolean("ambil_alih_dijawab").notNull().default(false),
     diubahOleh: text("diubah_oleh"),
     diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+    // Written when Bayar rebuilds the session: what the status cost then,
+    // so a later rate change leaves a settled session alone.
+    potongTercatat: integer("potong_tercatat"),
+    nolkanTercatat: boolean("nolkan_tercatat"),
+    unitHilang: integer("unit_hilang"),
+    tarifTercatat: jsonb("tarif_tercatat").$type<{ perMenit: number; maks: number }>(),
   },
   (t) => [
     unique("hadir_mengajar_satu").on(t.kunci, t.nim),

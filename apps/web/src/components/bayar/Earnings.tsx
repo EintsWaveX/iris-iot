@@ -48,17 +48,18 @@ export function PotonganLines({ t, lang, rows }: { t: BStrings; lang: Lang; rows
             ? t.cutMm
             : t.cutTitle;
         const hint = nol
-          ? t.zeroLine(kapan, sesi)
+          ? t.zeroLine(kapan, sesi, c.unitHilang)
           : c.status === "mm"
             ? t.cutMmLine(kapan, sesi, c.menit)
             : t.cutLine(kapan, sesi, c.menit);
         return (
           <div key={`${c.sesiId}${c.nim}`} className="payline">
             <span className="stack stack--sm payline__t">
-              <b className={nol ? "cutline__strike" : undefined}>{judul}</b>
+              <b className={nol ? "cutline__zero" : undefined}>{judul}</b>
               <span className="hint">{hint}</span>
             </span>
             {!nol && <b className="num kasfig__cut">− {rupiah(c.jumlah)}</b>}
+            {nol && c.hilang > 0 && <b className="num cutline__strike">{rupiah(c.hilang)}</b>}
           </div>
         );
       })}
@@ -158,30 +159,34 @@ export function EarningsCard({ lang, nim }: { lang: Lang; nim: string }) {
               <p className="hint">{t.selfHeld}</p>
             ) : (
               <div className="paylines">
-                <div className="payline">
-                  <span className="payline__t">
-                    {t.kotorFrom(data.bendahara ? dir.nama(data.bendahara) : "", p)}
-                  </span>
-                  <span className="payline__v">
-                    <b className="num">{rupiah(bln.kotor)}</b>
-                    <span
-                      className={`pill ${bln.kotor > 0 && masuk >= bln.kotor ? "pill--ok" : "pill--warn"}`}
-                    >
-                      {bln.kotor > 0 && masuk >= bln.kotor ? t.arrived : t.notYet}
+                {bln.kotor > 0 && (
+                  <div className="payline">
+                    <span className="payline__t">
+                      {t.kotorFrom(data.bendahara ? dir.nama(data.bendahara) : "", p)}
                     </span>
-                  </span>
-                </div>
-                <div className="payline">
-                  <span className="payline__t">{t.balikTo(persen)}</span>
-                  <span className="payline__v">
-                    <b className="num">{rupiah(bln.kas)}</b>
-                    <span
-                      className={`pill ${bln.kas > 0 && balik >= bln.kas ? "pill--ok" : "pill--warn"}`}
-                    >
-                      {bln.kas > 0 && balik >= bln.kas ? t.lunas : t.notYet}
+                    <span className="payline__v">
+                      <b className="num">{rupiah(bln.kotor)}</b>
+                      <span
+                        className={`pill ${bln.kotor > 0 && masuk >= bln.kotor ? "pill--ok" : "pill--warn"}`}
+                      >
+                        {bln.kotor > 0 && masuk >= bln.kotor ? t.arrived : t.notYet}
+                      </span>
                     </span>
-                  </span>
-                </div>
+                  </div>
+                )}
+                {bln.kas > 0 && (
+                  <div className="payline">
+                    <span className="payline__t">{t.balikTo(persen)}</span>
+                    <span className="payline__v">
+                      <b className="num">{rupiah(bln.kas)}</b>
+                      <span
+                        className={`pill ${bln.kas > 0 && balik >= bln.kas ? "pill--ok" : "pill--warn"}`}
+                      >
+                        {bln.kas > 0 && balik >= bln.kas ? t.lunas : t.notYet}
+                      </span>
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>

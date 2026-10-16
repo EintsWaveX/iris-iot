@@ -1609,7 +1609,13 @@ function DayFoot({ lang, nim, fb }: { lang: Lang; nim: string; fb: Ringkasan | n
   const delta = r.bersih - rLalu.bersih;
   const weeks = [1, 2, 3, 4, 5].map((w) => {
     const us = bulan.filter((u) => Math.ceil(Number(u.tanggal.slice(8, 10)) / 7) === w);
-    return { w, n: us.length, rp: us.reduce((a, u) => a + u.bersih, 0) };
+    // The week's cuts come off its bar so the bars add up to the month.
+    const cut = potong
+      .filter(
+        (c) => c.tanggal.startsWith(periode) && Math.ceil(Number(c.tanggal.slice(8, 10)) / 7) === w,
+      )
+      .reduce((a, c) => a + c.jumlah, 0);
+    return { w, n: us.length, rp: Math.max(0, us.reduce((a, u) => a + u.bersih, 0) - cut) };
   });
   const max = Math.max(1, ...weeks.map((w) => w.rp));
   const kasPct =

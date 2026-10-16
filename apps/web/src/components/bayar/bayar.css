@@ -83,6 +83,10 @@
   color: var(--warn);
 }
 
+.cutline__zero {
+  color: var(--danger);
+}
+
 .cutline__strike {
   color: var(--text-muted);
   text-decoration: line-through;

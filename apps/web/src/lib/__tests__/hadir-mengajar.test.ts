@@ -3,6 +3,8 @@ import {
   POTONGAN_AWAL,
   akhirSesiMaks,
   bacaPotongan,
+  potonganPada,
+  riwayatBaru,
   baseSlot,
   baseSusulan,
   hitungHadir,
@@ -128,5 +130,37 @@ describe("bacaPotongan", () => {
     expect(bacaPotongan(null)).toEqual(POTONGAN_AWAL);
     expect(bacaPotongan({ perMenit: 2000, maks: 0.5 })).toEqual({ perMenit: 2000, maks: 10 });
     expect(bacaPotongan({ perMenit: 2500, maks: 15 })).toEqual({ perMenit: 2500, maks: 15 });
+  });
+});
+
+describe("potongan rate history", () => {
+  const nilai = {
+    perMenit: 3000,
+    maks: 8,
+    riwayat: [
+      { berlakuMulai: "2026-08-01", perMenit: 2000, maks: 10 },
+      { berlakuMulai: "2026-10-05", perMenit: 3000, maks: 8 },
+    ],
+  };
+  it("picks the entry in force on the session's date", () => {
+    expect(potonganPada(nilai, "2026-10-04")).toEqual({ perMenit: 2000, maks: 10 });
+    expect(potonganPada(nilai, "2026-10-05")).toEqual({ perMenit: 3000, maks: 8 });
+    expect(potonganPada(nilai, "2026-07-01")).toEqual({ perMenit: 2000, maks: 10 });
+    expect(potonganPada(nilai)).toEqual({ perMenit: 3000, maks: 8 });
+  });
+  it("reads a value saved before the history as in force from the start", () => {
+    expect(potonganPada({ perMenit: 2500, maks: 6 }, "2020-01-01")).toEqual({ perMenit: 2500, maks: 6 });
+    expect(potonganPada(null, "2026-10-01")).toEqual(POTONGAN_AWAL);
+  });
+  it("appends a change, replaces a same-day one, and allows a rate of 0", () => {
+    const a = riwayatBaru({ perMenit: 2000, maks: 10 }, "2026-10-17", { perMenit: 0, maks: 10 });
+    expect(a.riwayat).toHaveLength(2);
+    expect(potonganPada(a, "2026-10-16")).toEqual({ perMenit: 2000, maks: 10 });
+    expect(potonganPada(a, "2026-10-17")).toEqual({ perMenit: 0, maks: 10 });
+    const b = riwayatBaru(a, "2026-10-17", { perMenit: 1500, maks: 5 });
+    expect(b.riwayat).toHaveLength(2);
+    expect(potonganPada(b, "2026-10-17")).toEqual({ perMenit: 1500, maks: 5 });
+    // an older session keeps the rate it had
+    expect(potonganPada(b, "2026-10-01")).toEqual({ perMenit: 2000, maks: 10 });
   });
 });

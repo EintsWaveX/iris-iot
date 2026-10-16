@@ -148,10 +148,38 @@ describe("attendance cuts", () => {
   it("never takes a month below zero, and a cut never spills into another month", () => {
     const r = jumlahkan(A, [{ tanggal: "2026-10-05", jumlah: 99999 }]);
     expect(r.kotor).toBe(65000);
-    expect(r.bersih).toBe(58500 + 0);
+    expect(r.bersih).toBe(58500);
     const lone = jumlahkan([u("A", "2026-09-10")], [{ tanggal: "2026-09-12", jumlah: 99999 }]);
-    expect(lone.kotor).toBe(0);
-    expect(lone.bersih).toBe(0);
+    expect(lone).toMatchObject({ kotor: 0, kas: 0, bersih: 0 });
+  });
+
+  it("caps the kas at the kotor left, so no kas is owed on money not received", () => {
+    const one = [u("A", "2026-09-10")];
+    expect(jumlahkan(one, [{ tanggal: "2026-09-11", jumlah: 20000 }])).toMatchObject({
+      kotor: 12500,
+      kas: 3250,
+      bersih: 9250,
+    });
+    expect(jumlahkan(one, [{ tanggal: "2026-09-11", jumlah: 30000 }])).toMatchObject({
+      kotor: 2500,
+      kas: 2500,
+      bersih: 0,
+    });
+    expect(jumlahkan(one, [{ tanggal: "2026-09-11", jumlah: 40000 }])).toMatchObject({
+      kotor: 0,
+      kas: 0,
+      bersih: 0,
+    });
+  });
+
+  it("sisaTransfer owes back at most what was received", () => {
+    const one = [u("A", "2026-09-10")];
+    const dua = (jumlah: number) =>
+      sisaTransfer(one, [], null, [{ nim: "A", tanggal: "2026-09-11", jumlah }]);
+    const baris = (r: ReturnType<typeof dua>, j: string) => r.find((x) => x.jenis === j)?.jumlah;
+    expect(baris(dua(30000), "kotor")).toBe(2500);
+    expect(baris(dua(30000), "balik")).toBe(2500);
+    expect(dua(40000)).toEqual([]);
   });
 
   it("owes the kotor line minus that person's cuts of the month", () => {

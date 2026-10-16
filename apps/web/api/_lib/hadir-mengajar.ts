@@ -53,7 +53,7 @@ import {
   akhirSesiMaks,
   baseSlot,
   baseSusulan,
-  bacaPotongan,
+  potonganPada,
   hitungHadir,
   instanWib,
   potonganHadir,
@@ -557,13 +557,13 @@ async function tolakOtomatis(
 }
 
 /** The cut setting (pengaturan `potongan_telat`), each field falling back by itself. */
-export async function muatPotongan(db: Db) {
+export async function muatPotongan(db: Db, tanggal?: string) {
   const [r] = await db
     .select({ nilai: pengaturan.nilai })
     .from(pengaturan)
     .where(eq(pengaturan.kunci, "potongan_telat"))
     .limit(1);
-  return bacaPotongan(r?.nilai);
+  return potonganPada(r?.nilai, tanggal);
 }
 
 /** Everyone's standing in one slot, by the clock and the PJ's overrides. */
@@ -576,7 +576,7 @@ export async function statusOrang(
   const c = ctxAda ?? (await muatKonteks(db, kunci));
   if (!c) return [];
   const rows = await db.select().from(hadirMengajar).where(eq(hadirMengajar.kunci, kunci));
-  const potongan = await muatPotongan(db);
+  const potongan = await muatPotongan(db, c.tanggal);
   const selesai = sudahSelesai(c, now);
   const base = instanWib(c.tanggal, c.baseMenit);
   const rowOf = new Map(rows.map((r) => [r.nim, r]));
