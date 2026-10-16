@@ -122,9 +122,9 @@ the session's events:
 - **Mangkir**: that person's units for that session go to zero.
 - **Mangkir Mengajar** counted as Mangkir: units go to zero. Not counted
   (PJ switched it off): only the 20.000 Telat cut.
-- **Open question for the user**: when a Mangkir Mengajar is counted as
-  Mangkir, does the 20.000 Telat cut also apply on top of the zeroed units?
-  (Default in this draft: no, the zeroed session already covers it.)
+- When a Mangkir Mengajar is counted as Mangkir, the 20.000 Telat cut does
+  not come on top of the zeroed units (the draft's default, kept when the
+  user approved; can be revisited at the mockup review).
 - A month's total never goes below zero (my call); a cut larger than what
   is left shows in full but takes the total to zero.
 - Everything is rebuilt lazily with the units, like today: a status change
@@ -142,6 +142,27 @@ the session's events:
 - **Akun / Asisten home**: the person's own history this semester.
 - Every status is final when the session ends (locked in as the old build
   did); a PJ change after that still works and re-rebuilds pay.
+
+## Lupa Input Nilai (user, added 2026-10-16)
+
+SeeLabs lists only the groups an account is on duty for today; a later day
+needs a Token Khusus, and Rekap BAP attendance (and so SeeLabs pay) follows
+the save. So a group's scores must be in by the end of the practicum day.
+
+- A group counts as **done** once it was sent with Kirim Nilai **and** saved
+  in SeeLabs (`seelabs_ekspor.disimpan_pada`, by the robot or marked by hand
+  after the bookmarklet).
+- Deadline (user): **23:59 WIB on the practicum day**. Reminders to whoever
+  holds the group: when the session ends, and at 20:00 if still open.
+- Missed (user: **report only**, no cut; pay already waits for Kirim Nilai):
+  recorded as Lupa Input Nilai for the Asisten who held the group at the
+  session's end, naming the group and which part is missing (Kirim Nilai,
+  SeeLabs, or both). Saving later (with a Token Khusus) keeps the record
+  and adds "diinput menyusul" with the time.
+- Shown in the same places as Kehadiran: the person's own home and Akun,
+  the PJ's view of the session, Laporan (session block and semester
+  counts) and the Tim drawer.
+- TOT sessions are exempt; a Susulan follows its own date.
 
 ## Screens for the stage 0 mockup
 
@@ -163,6 +184,8 @@ case headers and buttons.
 7. Bayar: the Potongan Telat and Mangkir lines in a month.
 8. The auto-start's line in the session's events, and the hard-refusal
    alert.
+9. Lupa Input Nilai: the session-end and 20:00 reminders, the record after
+   23:59, and its rows in Laporan and Tim.
 
 ## Edge cases (my calls)
 
