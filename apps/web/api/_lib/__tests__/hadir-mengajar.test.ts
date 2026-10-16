@@ -10,6 +10,7 @@ const updReturn: unknown[][] = [];
 const ditulis: { tabel: unknown; v: unknown; jenis: "insert" | "update" | "delete" }[] = [];
 const kejadian: { sesiId: number; jenis: string; detail: unknown }[] = [];
 const audit: { aksi: string; detail: unknown }[] = [];
+const mingguIzin: { nim: string; status: string }[] = [];
 const orangMuat: { current: Record<string, unknown> | null } = { current: null };
 
 function chain(tabel?: unknown, jenis?: "insert" | "update" | "delete"): unknown {
@@ -81,7 +82,7 @@ vi.mock("../penugasan-api", () => ({
           status: "aktif",
           kursi: [{ nomor: 1, kode: "AAA", jenis: "tetap", tetap: "AAA", izin: false }],
           tugas: [],
-          izin: [],
+          izin: mingguIzin,
         },
       ]),
     ),
@@ -89,7 +90,7 @@ vi.mock("../penugasan-api", () => ({
 }));
 
 const { asisten, hadirJam, hadirMengajar, jadwal, sesi } = await import("../../../src/lib/schema");
-const { masuk, bolehPj, handleHadirPj, kunciSlot, kunciSusulan, uraiKunci } =
+const { masuk, batalMasuk, bolehPj, handleHadirPj, kunciSlot, kunciSusulan, uraiKunci } =
   await import("../hadir-mengajar");
 
 const NOW = new Date("2026-10-19T06:30:00+07:00");
@@ -156,6 +157,7 @@ async function pj(body: Record<string, unknown>, nim = "1010") {
 beforeEach(() => {
   data.clear();
   updReturn.length = 0;
+  mingguIzin.length = 0;
   ditulis.length = 0;
   kejadian.length = 0;
   audit.length = 0;
@@ -308,5 +310,67 @@ describe("clock shift", () => {
     const r = await pj({ aksi: "geser", kunci: KUNCI, jam: null, alasan: "kembali normal" });
     expect(r.body).toEqual({ ok: true, base: "06:25" });
     expect(ditulis.some((d) => d.tabel === hadirJam && d.jenis === "delete")).toBe(true);
+  });
+});
+
+describe("masuk window and Izin", () => {
+  it("lets a person on Izin check in", async () => {
+    isiSlot();
+    mingguIzin.push({ nim: "2020", status: "aktif" });
+    const { getDb } = await import("../../../src/lib/db");
+    updReturn.push([{ hadirPada: NOW }]);
+    expect(await masuk(getDb() as never, "2020", KUNCI, NOW)).toEqual({
+      ok: true,
+      hadirPada: NOW.toISOString(),
+    });
+  });
+
+  it("refuses before the start window opens", async () => {
+    isiSlot();
+    const { getDb } = await import("../../../src/lib/db");
+    const r = await masuk(getDb() as never, "2020", KUNCI, new Date("2026-10-19T05:00:00+07:00"));
+    expect(r).toEqual({ ok: false, kode: "belum_buka" });
+  });
+
+  it("refuses after the session is over", async () => {
+    isiSlot();
+    const { getDb } = await import("../../../src/lib/db");
+    const r = await masuk(getDb() as never, "2020", KUNCI, new Date("2026-10-19T10:00:00+07:00"));
+    expect(r).toEqual({ ok: false, kode: "sudah_selesai" });
+  });
+});
+
+describe("batalMasuk", () => {
+  const baris = (extra: Record<string, unknown> = {}) =>
+    data.set(hadirMengajar, [{ hadirPada: NOW, oleh: "2020", ubah: null, ...extra }]);
+  const panggil = async (nim = "2020", detik = 10) => {
+    const { getDb } = await import("../../../src/lib/db");
+    return batalMasuk(getDb() as never, nim, KUNCI, new Date(NOW.getTime() + detik * 1000));
+  };
+  it("takes the own stamp back within 15 s", async () => {
+    baris();
+    expect(await panggil()).toEqual({ ok: true });
+  });
+  it("refuses after 15 s", async () => {
+    baris();
+    expect(await panggil("2020", 16)).toEqual({ ok: false, kode: "terlalu_lama" });
+  });
+  it("refuses a stamp someone else made", async () => {
+    baris({ oleh: "1010" });
+    expect(await panggil()).toEqual({ ok: false, kode: "tidak_ada" });
+  });
+  it("refuses when a PJ override stands", async () => {
+    baris({ ubah: "telat" });
+    expect(await panggil()).toEqual({ ok: false, kode: "tidak_ada" });
+  });
+});
+
+describe("Susulan PJ", () => {
+  const dasar = { tier: "asisten", badges: [] as string[], kode: "XYZ", nim: "9", hakOverride: {} };
+  it("also allows the full Pair right", () => {
+    expect(bolehPj({ ...dasar, hakOverride: { pair: true } }, { pj: null, susulan: true })).toBe(
+      true,
+    );
+    expect(bolehPj(dasar, { pj: null, susulan: true })).toBe(false);
   });
 });

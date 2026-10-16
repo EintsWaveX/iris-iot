@@ -39,6 +39,7 @@ import {
   hadirUntukKunci,
   kunciDariSesi,
   muatKonteks,
+  pjCtx,
   tandaiHadir,
 } from "./hadir-mengajar.js";
 import { ALASAN_MIN, catatKejadian } from "./berjalan.js";
@@ -409,8 +410,7 @@ export async function handleHadirPost(req: ApiRequest, res: ApiResponse, session
     if (kunci) {
       const c = await muatKonteks(db, kunci);
       const orang = await muatOrang(session.nim);
-      if (!orang || !c || !bolehPj(orang, { pj: c.pj, pembuat: c.pembuat }))
-        return tolak(res, "tanpa_hak", 403);
+      if (!orang || !c || !bolehPj(orang, pjCtx(c))) return tolak(res, "tanpa_hak", 403);
       await tandaiHadir(db, { kunci, nim, oleh: session.nim });
     }
     await writeAudit(session.nim, "asisten_hadir", { sesiId: running.id, nim });

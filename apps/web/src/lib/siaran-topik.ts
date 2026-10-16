@@ -66,7 +66,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:praktikan": ["roster"],
   "session:susulan": ["roster", "sesi", "jadwal"],
   "session:tot": ["tot", "roster", "sesi", "jawaban", "tangkapan", "petunjuk"],
-  "session:hadir": ["sesi", "roster", "hadir"],
+  "session:hadir": ["sesi", "roster", "hadir", "jadwal"],
   "session:hadirku": ["hadir"],
   "session:group": ["sesi", "roster"],
   // Pegang Kelompok, Ganti Asisten: who holds a group decides who scores it

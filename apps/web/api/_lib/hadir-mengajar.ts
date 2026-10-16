@@ -133,13 +133,36 @@ export const tanggalWib = (now: Date) =>
  * Asisten who made a Susulan.
  */
 export function bolehPj(
-  orang: { tier: string; badges: readonly string[]; kode?: string; nim?: string },
-  ctx: { pj: string | null; pembuat?: string | null },
+  orang: {
+    tier: string;
+    badges: readonly string[];
+    kode?: string;
+    nim?: string;
+    hakOverride?: Readonly<Partial<Record<string, boolean>>>;
+  },
+  ctx: { pj: string | null; pembuat?: string | null; susulan?: boolean },
 ): boolean {
   if (hakPenuh(orang as Parameters<typeof hakPenuh>[0])) return true;
+  // A Susulan has no PJ code: the creator, or anyone with the full Pair right.
+  if (
+    ctx.susulan &&
+    bolehPenuh({ hakOverride: {}, ...orang } as Parameters<typeof bolehPenuh>[0], "pair")
+  )
+    return true;
   if (ctx.pj && orang.kode && orang.kode.toUpperCase() === ctx.pj.toUpperCase()) return true;
   return !!ctx.pembuat && !!orang.nim && orang.nim === ctx.pembuat;
 }
+
+/** The `bolehPj` context of a loaded slot. */
+export const pjCtx = (c: {
+  pj: string | null;
+  pembuat: string | null;
+  jadwalId: number | null;
+}) => ({
+  pj: c.pj,
+  pembuat: c.pembuat,
+  susulan: c.jadwalId === null,
+});
 
 /* ------------------------------------------------------------- context */
 
@@ -257,12 +280,21 @@ export async function muatKonteks(db: Db, kunci: string): Promise<Konteks | null
     )
     .orderBy(asc(audit.id))
     .limit(1);
+  // Without a draft row (a Susulan opened straight away), whoever started it made it.
+  const [pembuka] = dibuat
+    ? []
+    : await db
+        .select({ nim: sesiKejadian.aktorNim })
+        .from(sesiKejadian)
+        .where(and(eq(sesiKejadian.sesiId, s.id), eq(sesiKejadian.jenis, "mulai")))
+        .limit(1);
+  const pembuat = dibuat?.nim ?? pembuka?.nim ?? null;
   const pegang = await db
     .select({ nim: sesiAsisten.asistenNim })
     .from(sesiAsisten)
     .where(eq(sesiAsisten.sesiId, s.id));
   const diharapkan = new Set(pegang.map((p) => p.nim));
-  if (dibuat) diharapkan.add(dibuat.nim);
+  if (pembuat) diharapkan.add(pembuat);
   const normal = baseSusulan(s.mulai);
   return {
     kunci,
@@ -277,7 +309,7 @@ export async function muatKonteks(db: Db, kunci: string): Promise<Konteks | null
     baseMenit: geserOut ? geser.baseMenit : normal,
     geser: geserOut,
     pj: null,
-    pembuat: dibuat?.nim ?? null,
+    pembuat,
     diharapkan,
     izin: new Set(),
     orang,
@@ -413,9 +445,23 @@ export async function masuk(
   nim: string,
   kunci: string,
   now: Date = new Date(),
-): Promise<{ ok: true; hadirPada: string } | { ok: false; kode: "tidak_dijadwalkan" | "sudah" }> {
+): Promise<
+  | { ok: true; hadirPada: string }
+  | { ok: false; kode: "tidak_dijadwalkan" | "sudah" | "belum_buka" | "sudah_selesai" }
+> {
+  // An Asisten on Izin may still check in; the status stays Izin, never cut.
   const slot = (await slotHariIni(db, nim, now)).find((s) => s.kunci === kunci);
-  if (!slot || slot.izin) return { ok: false, kode: "tidak_dijadwalkan" };
+  if (!slot) return { ok: false, kode: "tidak_dijadwalkan" };
+  const c = await muatKonteks(db, kunci);
+  if (!c) return { ok: false, kode: "tidak_dijadwalkan" };
+  if (sudahSelesai(c, now)) return { ok: false, kode: "sudah_selesai" };
+  // Not before the start window opens (a Susulan: its own start).
+  const mulai = c.slot !== null ? slotToMulai(c.slot) : (c.sesi?.mulai ?? null);
+  if (mulai) {
+    const jendela = c.jadwalRow?.jendelaMulaiMenit ?? (await muatPengaturanJendela(db)).default;
+    if (jendelaSlot(mulai, jendela, menitSekarangWib(now)).posisi === "belum")
+      return { ok: false, kode: "belum_buka" };
+  }
   await db
     .insert(hadirMengajar)
     .values({
@@ -634,7 +680,7 @@ export async function hadirUntukKunci(
     base: instanWib(c.tanggal, c.baseMenit).toISOString(),
     geser: c.geser ? { dari: jamDariMenit(c.geser.dariMenit), alasan: c.geser.alasan } : null,
     pj: c.pj,
-    bolehPj: !!orang && bolehPj(orang, { pj: c.pj, pembuat: c.pembuat }),
+    bolehPj: !!orang && bolehPj(orang, pjCtx(c)),
     baris,
     ambilAlih: await ambilAlihTertunda(db, c, baris),
   };
@@ -791,7 +837,7 @@ export async function handleHadirPj(req: ApiRequest, res: ApiResponse, session: 
   const orang = await muatOrang(session.nim);
   const c = await muatKonteks(db, kunci);
   if (!orang || !c) return tolak(res, c ? "tanpa_hak" : "slot_tidak_ada", c ? 403 : 200);
-  if (!bolehPj(orang, { pj: c.pj, pembuat: c.pembuat })) return tolak(res, "tanpa_hak", 403);
+  if (!bolehPj(orang, pjCtx(c))) return tolak(res, "tanpa_hak", 403);
 
   if (aksi === "geser") {
     if (baseMenit === null) {
@@ -846,7 +892,17 @@ export async function handleHadirPj(req: ApiRequest, res: ApiResponse, session: 
         alasan: "ambil_alih",
         oleh: session.nim,
       });
-      await writeAudit(session.nim, "hadir_izin", { kunci, nim, via: "ambil_alih" });
+    }
+    if (body.izin === true) {
+      // A Susulan has no izin table row: the row itself carries the Izin.
+      if (c.jadwalId === null)
+        await db
+          .update(hadirMengajar)
+          .set({ ubahStatus: "izin", alasan: "ambil_alih" })
+          .where(and(eq(hadirMengajar.kunci, kunci), eq(hadirMengajar.nim, nim)));
+      const d = { kunci, nim, via: "ambil_alih" };
+      await writeAudit(session.nim, "hadir_izin", d);
+      if (c.sesiId) await catatKejadian(c.sesiId, "hadir_izin", d, session.nim);
     }
     return res.status(200).json({ ok: true });
   }
@@ -912,14 +968,16 @@ export async function handleHadirPj(req: ApiRequest, res: ApiResponse, session: 
         );
     }
   }
-  await writeAudit(session.nim, "hadir_status", {
+  const detailStatus = {
     kunci,
     nim,
     status,
     menit: ubahMenit,
     hitungMangkir: hitungMangkir ?? null,
     alasan,
-  });
+  };
+  await writeAudit(session.nim, "hadir_status", detailStatus);
+  if (c.sesiId) await catatKejadian(c.sesiId, "hadir_status", detailStatus, session.nim);
   return res.status(200).json({ ok: true });
 }
 
@@ -956,4 +1014,6 @@ export async function tandaiHadir(
       ),
     );
   await writeAudit(p.oleh, "hadir_tandai", { kunci: p.kunci, nim: p.nim });
+  if (c.sesiId)
+    await catatKejadian(c.sesiId, "hadir_tandai", { kunci: p.kunci, nim: p.nim }, p.oleh);
 }
