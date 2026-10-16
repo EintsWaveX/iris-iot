@@ -2996,8 +2996,18 @@ button.lib__name {
   }
 
   .teachrow > .num,
-  .teachrow > .pill--warn {
+  .teachrow > .pill--warn.teachrow__st {
     grid-column: 2;
+  }
+
+  .teachrow__gap {
+    display: none;
+  }
+
+  .teachrow__st .pill {
+    max-width: 100%;
+    text-align: left;
+    white-space: normal;
   }
 
   .teachrow__act {

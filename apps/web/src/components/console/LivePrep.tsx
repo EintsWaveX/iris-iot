@@ -296,7 +296,7 @@ export default function LivePrep({
                   </span>
                   {menunggu ? (
                     <>
-                      <span />
+                      <span className="teachrow__gap" />
                       <span className="pill pill--warn teachrow__st">{l.pending}</span>
                       <span className="row teachrow__act">
                         <button
