@@ -13,7 +13,7 @@
  */
 import AssignBoard, { A } from "./AssignBoard";
 import PayBoard, { XlsxButton } from "../bayar/PayBoard";
-import { useBayar, type BayarData } from "../bayar/data";
+import { potonganDari, useBayar, type BayarData } from "../bayar/data";
 import { B } from "../bayar/strings";
 import { jumlahkan, rupiah } from "../../lib/bayar";
 import { namaAsisten } from "../../lib/people";
@@ -147,7 +147,7 @@ const HASH_TAB: Record<TabTim, string> = {
 function hakSemester(d: BayarData): Map<string, ReturnType<typeof jumlahkan>> {
   const per = new Map<string, BayarData["units"]>();
   for (const u of d.units) per.set(u.nimPenilai, [...(per.get(u.nimPenilai) ?? []), u]);
-  return new Map([...per].map(([nim, us]) => [nim, jumlahkan(us)]));
+  return new Map([...per].map(([nim, us]) => [nim, jumlahkan(us, potonganDari(d, nim))]));
 }
 
 /** A timestamp's date in the lab's timezone, written out in full. */
@@ -1122,7 +1122,10 @@ function PersonDrawer({
 
 function DrawerPay({ nim, data, lang }: { nim: string; data: BayarData; lang: Lang }) {
   const b = B[lang];
-  const j = jumlahkan(data.units.filter((u) => u.nimPenilai === nim));
+  const j = jumlahkan(
+    data.units.filter((u) => u.nimPenilai === nim),
+    potonganDari(data, nim),
+  );
   return (
     <section className="tim-sec">
       <h3 className="tim-sec__title">{b.drawerPay}</h3>

@@ -124,6 +124,55 @@ describe("transfers still owed", () => {
   });
 });
 
+describe("attendance cuts", () => {
+  const u = (nim: string, tanggal: string): Unit => ({
+    nimPenilai: nim,
+    tanggal,
+    kelas: "reguler",
+    kasPersen: 10,
+    ...pisah(32500, 10),
+  });
+  const A = [u("A", "2026-09-10"), u("A", "2026-09-17"), u("A", "2026-10-01")];
+
+  it("takes a cut off kotor and bersih, leaving the kas alone", () => {
+    const r = jumlahkan(A.slice(0, 2), [{ tanggal: "2026-09-10", jumlah: 8000 }]);
+    expect(r).toEqual({
+      reguler: 2,
+      internasional: 0,
+      kotor: 65000 - 8000,
+      kas: 6500,
+      bersih: 58500 - 8000,
+    });
+  });
+
+  it("never takes a month below zero, and a cut never spills into another month", () => {
+    const r = jumlahkan(A, [{ tanggal: "2026-10-05", jumlah: 99999 }]);
+    expect(r.kotor).toBe(65000);
+    expect(r.bersih).toBe(58500 + 0);
+    const lone = jumlahkan([u("A", "2026-09-10")], [{ tanggal: "2026-09-12", jumlah: 99999 }]);
+    expect(lone.kotor).toBe(0);
+    expect(lone.bersih).toBe(0);
+  });
+
+  it("owes the kotor line minus that person's cuts of the month", () => {
+    const rows = sisaTransfer([u("A", "2026-09-10"), u("B", "2026-09-10")], [], null, [
+      { nim: "A", tanggal: "2026-09-03", jumlah: 8000 },
+      { nim: "A", tanggal: "2026-09-04", jumlah: 4000 },
+    ]);
+    const kotor = (n: string) => rows.find((x) => x.nim === n && x.jenis === "kotor");
+    expect(kotor("A")?.jumlah).toBe(32500 - 12000);
+    expect(kotor("B")?.jumlah).toBe(32500);
+    expect(rows.find((x) => x.nim === "A" && x.jenis === "balik")?.jumlah).toBe(3250);
+  });
+
+  it("a cut that eats the whole kotor removes the line", () => {
+    const rows = sisaTransfer([u("A", "2026-09-10")], [], null, [
+      { nim: "A", tanggal: "2026-09-11", jumlah: 50000 },
+    ]);
+    expect(rows.filter((x) => x.jenis === "kotor")).toEqual([]);
+  });
+});
+
 describe("display", () => {
   it("writes rupiah the handbook way", () => {
     expect(rupiah(32500)).toBe("Rp32.500,00");

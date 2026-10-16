@@ -11,7 +11,8 @@ import { jumlahkan, namaPeriode, rupiah } from "../../lib/bayar";
 import type { Lang } from "../../lib/kelas";
 import { unduhXlsx } from "../../lib/xlsx";
 import KasCard from "./KasCard";
-import { kirimBayar, type BayarData } from "./data";
+import { kirimBayar, potonganDari, type BayarData } from "./data";
+import { Stepper } from "../ui/Controls";
 import { B, pesanB } from "./strings";
 import "./bayar.css";
 
@@ -26,7 +27,7 @@ function bukuBesar(data: BayarData, nama: (nim: string | null) => string) {
   return [...per.entries()]
     .map(([nim, us]) => ({
       nim,
-      j: jumlahkan(us),
+      j: jumlahkan(us, potonganDari(data, nim)),
       masuk: masukKe(nim, "kotor"),
       balik: masukKe(nim, "balik"),
       persen: [...new Set(us.map((u) => u.kasPersen))],
@@ -85,6 +86,7 @@ export default function PayBoard({
   siapa?: (nim: string) => ReactNode;
 }) {
   const t = B[lang];
+  const [potong, setPotong] = useState(data.tarifPotongan);
   const [rate, setRate] = useState({
     reguler: String(data.tarifUnit.reguler),
     internasional: String(data.tarifUnit.internasional),
@@ -138,7 +140,13 @@ export default function PayBoard({
           <div className="tabstops txstops">
             {data.sisa.map((s) => {
               const us = unitsOf(s.nim, s.periode);
-              const j = jumlahkan(us);
+              const j = jumlahkan(us, potonganDari(data, s.nim));
+              const pinjam = us.filter(
+                (u) => u.nimAkunSeelabs && u.nimAkunSeelabs !== u.nimPenilai,
+              ).length;
+              const dipotong = potonganDari(data, s.nim)
+                .filter((c) => c.tanggal.startsWith(s.periode))
+                .reduce((a, c) => a + c.jumlah, 0);
               const persen = [...new Set(us.map((u) => `${u.kasPersen}%`))].join(", ");
               const p = namaPeriode(s.periode, lang);
               return (
@@ -154,6 +162,10 @@ export default function PayBoard({
                       {s.jenis === "kotor"
                         ? t.kotorCtx(p, j.reguler, j.internasional)
                         : t.balikCtx(p, persen)}
+                      {s.jenis === "kotor" && dipotong > 0
+                        ? ` · ${t.cutOff(rupiah(dipotong))}`
+                        : ""}
+                      {s.jenis === "kotor" && pinjam > 0 ? ` · ${t.borrowed(pinjam)}` : ""}
                       {s.jumlah < s.total ? ` · ${t.sisaDari(rupiah(s.total))}` : ""}
                     </span>
                   </span>
@@ -226,7 +238,7 @@ export default function PayBoard({
             </div>
           ))}
           <span className="hint">{t.ratesHint}</span>
-          <div className="panel__actions" style={{ marginTop: "auto" }}>
+          <div className="panel__actions">
             <button
               type="button"
               className="btn btn--primary btn--block"
@@ -242,6 +254,54 @@ export default function PayBoard({
               }}
             >
               {t.ratesSave}
+            </button>
+          </div>
+          <h3 className="panel__title" style={{ fontSize: "1rem", marginTop: 8 }}>
+            {t.cutsHead}
+          </h3>
+          <div className="field">
+            <span className="field__label">{t.cutRate}</span>
+            <Stepper
+              value={potong.perMenit}
+              min={500}
+              max={10000}
+              step={500}
+              onChange={(v) => setPotong({ ...potong, perMenit: v })}
+              fmt={rupiah}
+              label={t.cutRateLabel}
+              lessLabel="-500"
+              moreLabel="+500"
+            />
+          </div>
+          <div className="field">
+            <span className="field__label">{t.cutMax}</span>
+            <Stepper
+              value={potong.maks}
+              min={1}
+              max={30}
+              onChange={(v) => setPotong({ ...potong, maks: v })}
+              fmt={t.cutMin}
+              label={t.cutMaxLabel}
+              lessLabel="-1"
+              moreLabel="+1"
+            />
+          </div>
+          <span className="hint">{t.cutHint(rupiah(potong.perMenit * potong.maks))}</span>
+          <div className="panel__actions" style={{ marginTop: "auto" }}>
+            <button
+              type="button"
+              className="btn btn--primary btn--block"
+              onClick={async () => {
+                const r = await kirimBayar({
+                  aksi: "potongan",
+                  perMenit: potong.perMenit,
+                  maks: potong.maks,
+                });
+                window.Toast?.show(r.ok ? t.cutSaved : pesanB(t, r.kode), r.ok ? "ok" : "danger");
+                reload();
+              }}
+            >
+              {t.cutSave}
             </button>
           </div>
         </section>

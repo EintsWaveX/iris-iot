@@ -114,13 +114,49 @@ export interface Ringkasan {
 
 export const KOSONG: Ringkasan = { reguler: 0, internasional: 0, kotor: 0, kas: 0, bersih: 0 };
 
-export function jumlahkan(units: Pick<Unit, "kelas" | "kotor" | "kas" | "bersih">[]): Ringkasan {
+/** A late cut (Phase 18): money off one person's month, tied to a session. */
+export interface PotonganBaris {
+  tanggal: string;
+  jumlah: number;
+  nim?: string;
+}
+
+/** Cuts per month, each month's total capped at what that month holds. */
+function terapkanPotongan(
+  kotorBulan: Map<string, number>,
+  potongan: PotonganBaris[],
+): Map<string, number> {
+  const per = new Map<string, number>();
+  for (const c of potongan) {
+    const p = periodeDari(c.tanggal);
+    per.set(p, (per.get(p) ?? 0) + c.jumlah);
+  }
+  const out = new Map<string, number>();
+  for (const [p, c] of per) out.set(p, Math.min(c, kotorBulan.get(p) ?? 0));
+  return out;
+}
+
+/** Sums units; late cuts come off kotor and bersih (the kas stays what the
+ *  units made), a month never going below zero. */
+export function jumlahkan(
+  units: Pick<Unit, "kelas" | "kotor" | "kas" | "bersih" | "tanggal">[],
+  potongan: PotonganBaris[] = [],
+): Ringkasan {
   const r = { ...KOSONG };
+  const kotorBulan = new Map<string, number>();
+  const bersihBulan = new Map<string, number>();
   for (const u of units) {
     r[u.kelas] += 1;
     r.kotor += u.kotor;
     r.kas += u.kas;
     r.bersih += u.bersih;
+    const p = periodeDari(u.tanggal);
+    kotorBulan.set(p, (kotorBulan.get(p) ?? 0) + u.kotor);
+    bersihBulan.set(p, (bersihBulan.get(p) ?? 0) + u.bersih);
+  }
+  if (potongan.length) {
+    for (const v of terapkanPotongan(kotorBulan, potongan).values()) r.kotor -= v;
+    for (const v of terapkanPotongan(bersihBulan, potongan).values()) r.bersih -= v;
   }
   return r;
 }
@@ -141,6 +177,7 @@ export function sisaTransfer(
   units: Unit[],
   sudah: Transfer[],
   bendahara: string | null = null,
+  potongan: PotonganBaris[] = [],
 ): (Transfer & { total: number })[] {
   const key = (p: string, j: string, n: string) => `${p}|${j}|${n}`;
   const wajib = new Map<string, number>();
@@ -155,6 +192,16 @@ export function sisaTransfer(
       key(p, "balik", u.nimPenilai),
       (wajib.get(key(p, "balik", u.nimPenilai)) ?? 0) + u.kas,
     );
+  }
+  // A late cut comes off that person's kotor of the month, never below zero.
+  const potong = new Map<string, number>();
+  for (const c of potongan) {
+    const k = key(periodeDari(c.tanggal), "kotor", c.nim ?? "");
+    potong.set(k, (potong.get(k) ?? 0) + c.jumlah);
+  }
+  for (const [k, c] of potong) {
+    const ada = wajib.get(k);
+    if (ada !== undefined) wajib.set(k, Math.max(0, ada - c));
   }
   const bayar = new Map<string, number>();
   for (const t of sudah)

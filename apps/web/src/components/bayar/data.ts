@@ -2,7 +2,8 @@
  *  the Console home (Phase 9 Stage 6). */
 import { useCallback, useEffect, useState } from "react";
 import { getJson, postJson } from "../../lib/app";
-import type { Kelas, TarifUnit } from "../../lib/bayar";
+import type { Kelas, PotonganBaris, TarifUnit } from "../../lib/bayar";
+import type { Potongan, StatusHadir } from "../../lib/hadir-mengajar";
 import { useSiaran } from "../../lib/siaran";
 
 export interface UnitRow {
@@ -39,11 +40,33 @@ export interface SisaRow {
   total: number;
 }
 
+/** One cut line (Potongan Telat) or one zeroed session (`nolkan`, `jumlah` 0). */
+export interface PotonganRow {
+  sesiId: number;
+  tanggal: string;
+  slot: number | null;
+  nim: string;
+  jumlah: number;
+  menit: number | null;
+  status: StatusHadir;
+  nolkan: boolean;
+}
+
+/** The money cuts of a person (or everyone) as jumlahkan and sisaTransfer take them. */
+export function potonganDari(
+  data: Pick<BayarData, "potongan"> | null | undefined,
+  nim?: string,
+): PotonganBaris[] {
+  return (data?.potongan ?? []).filter((c) => !c.nolkan && (!nim || c.nim === nim));
+}
+
 export interface BayarData {
   semester: string;
   admin: boolean;
   bendahara: string | null;
   tarifUnit: TarifUnit;
+  tarifPotongan: Potongan;
+  potongan: PotonganRow[];
   kas: {
     persen: number;
     persenSaya: number;
@@ -78,7 +101,7 @@ export function useBayar(enabled = true) {
     if (enabled) void load();
   }, [enabled, load]);
   // Pay follows ended sessions, covers and rates (2026-10-07: it loaded once).
-  useSiaran(["bayar", "jadwal", "laporan", "tim"], () => void load(), enabled);
+  useSiaran(["bayar", "jadwal", "laporan", "tim", "hadir"], () => void load(), enabled);
   return { data, fail, load };
 }
 

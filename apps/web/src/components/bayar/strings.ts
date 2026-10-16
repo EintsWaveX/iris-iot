@@ -119,6 +119,29 @@ export const B = dict({
     // errors
     fail: "Data pembayaran tidak bisa dimuat.",
     retry: "Coba Lagi",
+    // Phase 18: attendance cuts
+    cutTitle: "Potongan Telat",
+    cutsHead: "Potongan Kehadiran",
+    sessionN: (n: number | null) => (n === null ? "Susulan" : `Sesi ${n}`),
+    cutLine: (when: string, slot: string, m: number | null) =>
+      `${when}, ${slot}, telat ${m ?? 0} menit`,
+    cutMm: "Mangkir Mengajar, tidak dihitung Mangkir",
+    cutMmLine: (when: string, slot: string, m: number | null) =>
+      `${when}, ${slot}, dihitung telat ${m ?? 0} menit`,
+    zeroMangkir: "Mangkir",
+    zeroMm: "Mangkir Mengajar, dihitung Mangkir",
+    zeroLine: (when: string, slot: string) => `${when}, ${slot}, kelompok sesi ini tidak dibayar`,
+    cutRate: "Potongan per Menit Telat",
+    cutMax: "Paling Banyak Dihitung",
+    cutRateLabel: "Potongan per menit",
+    cutMaxLabel: "Menit paling banyak",
+    cutMin: (n: number) => `${n} menit`,
+    cutHint: (maks: string) =>
+      `Paling banyak ${maks} per sesi. Mangkir membuat unit sesi itu nol, tanpa potongan tambahan. Potongan semester ini dihitung ulang dengan angka baru.`,
+    cutSave: "Simpan Potongan",
+    cutSaved: "Potongan disimpan. Tercatat di Audit.",
+    cutOff: (n: string) => `potongan telat ${n}`,
+    borrowed: (n: number) => `${n} kelompok lewat akun pinjaman`,
     codes: {
       format_salah: "Isiannya belum benar.",
       tidak_ditemukan: "Tidak ditemukan.",
@@ -235,6 +258,29 @@ export const B = dict({
     pendingIn: (n: number) => (n ? ` · ${n} incoming transfer${n === 1 ? "" : "s"} pending` : ""),
     fail: "Payments could not be loaded.",
     retry: "Retry",
+    cutTitle: "Late Cut",
+    cutsHead: "Attendance Cuts",
+    sessionN: (n: number | null) => (n === null ? "Makeup" : `Session ${n}`),
+    cutLine: (when: string, slot: string, m: number | null) =>
+      `${when}, ${slot}, ${m ?? 0} minutes late`,
+    cutMm: "Mangkir Mengajar, not counted as Mangkir",
+    cutMmLine: (when: string, slot: string, m: number | null) =>
+      `${when}, ${slot}, counted as ${m ?? 0} minutes late`,
+    zeroMangkir: "Mangkir",
+    zeroMm: "Mangkir Mengajar, counted as Mangkir",
+    zeroLine: (when: string, slot: string) =>
+      `${when}, ${slot}, this session's groups are not paid`,
+    cutRate: "Cut per Late Minute",
+    cutMax: "Counted at Most",
+    cutRateLabel: "Cut per minute",
+    cutMaxLabel: "Most minutes",
+    cutMin: (n: number) => `${n} ${n === 1 ? "minute" : "minutes"}`,
+    cutHint: (maks: string) =>
+      `At most ${maks} a session. Mangkir sets that session's units to zero, with no extra cut. This semester's cuts are worked out again with the new numbers.`,
+    cutSave: "Save Cuts",
+    cutSaved: "Cuts saved. Logged in Audit.",
+    cutOff: (n: string) => `late cut ${n}`,
+    borrowed: (n: number) => `${n} ${n === 1 ? "group" : "groups"} through a borrowed account`,
     codes: {
       format_salah: "That isn't filled in right yet.",
       tidak_ditemukan: "Not found.",
@@ -348,6 +394,28 @@ export const B = dict({
     pendingIn: (n: number) => (n ? ` · ${n} 笔转入待处理` : ""),
     fail: "无法加载付款数据。",
     retry: "重试",
+    cutTitle: "迟到扣款",
+    cutsHead: "出勤扣款",
+    sessionN: (n: number | null) => (n === null ? "补课" : `第 ${n} 节课`),
+    cutLine: (when: string, slot: string, m: number | null) =>
+      `${when}，${slot}，迟到 ${m ?? 0} 分钟`,
+    cutMm: "Mangkir Mengajar，不按 Mangkir 计",
+    cutMmLine: (when: string, slot: string, m: number | null) =>
+      `${when}，${slot}，按迟到 ${m ?? 0} 分钟计`,
+    zeroMangkir: "Mangkir",
+    zeroMm: "Mangkir Mengajar，按 Mangkir 计",
+    zeroLine: (when: string, slot: string) => `${when}，${slot}，这节课的组不计酬`,
+    cutRate: "每迟到一分钟扣款",
+    cutMax: "最多计",
+    cutRateLabel: "每分钟扣款",
+    cutMaxLabel: "最多分钟数",
+    cutMin: (n: number) => `${n} 分钟`,
+    cutHint: (maks: string) =>
+      `每节课最多 ${maks}。Mangkir 会让该节课的单位变为零，不再另外扣款。本学期的扣款会按新数字重新计算。`,
+    cutSave: "保存扣款",
+    cutSaved: "扣款已保存。已记入审计。",
+    cutOff: (n: string) => `迟到扣款 ${n}`,
+    borrowed: (n: number) => `${n} 个组通过借用账号`,
     codes: {
       format_salah: "填写的内容还不对。",
       tidak_ditemukan: "找不到。",

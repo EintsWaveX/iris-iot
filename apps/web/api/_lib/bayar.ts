@@ -7,6 +7,7 @@
  * POST { aksi: "tandai", periode, jenis, nim, jumlah }   mark a transfer done
  *      { aksi: "batal", id }                            undo a mark
  *      { aksi: "tarif", reguler, internasional }        unit rates
+ *      { aksi: "potongan", perMenit, maks }             late cut per minute and its cap
  *      { aksi: "kas", persen, berlakuMulai, alasan }    a new uang kas rate
  *      { aksi: "pengecualian", nim, persen, alasan }    a per-person rate
  *      { aksi: "hapus_pengecualian", nim }
@@ -17,15 +18,22 @@
  * rebuild gets rebuilt on the next GET (a few per request). Only a group
  * whose scores were sent (Kirim Nilai) earns a unit. A unit keeps the class rate
  * and the kas rate it was made with.
+ *
+ * Attendance (Phase 18): a person marked Mangkir (or a Mangkir Mengajar the
+ * PJ left counted) earns no unit for that session, and each Telat is a cut
+ * line (Potongan Telat) off that person's month. Only finished, non-TOT
+ * sessions count.
  */
-import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { cekHak, muatOrang } from "./hak.js";
 import { muatSeelabs } from "./seelabs.js";
+import { kunciDariSesi, muatPotongan, statusOrang, type BarisHadir } from "./hadir-mengajar.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
+  hadirMengajar,
   jabatanPemegang,
   kasPengecualian,
   kasTarif,
@@ -37,6 +45,7 @@ import {
 } from "../../src/lib/schema.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { boleh } from "../../src/lib/hak.js";
+import type { Potongan, StatusHadir } from "../../src/lib/hadir-mengajar.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import {
@@ -46,6 +55,7 @@ import {
   pisah,
   sisaTransfer,
   type BarisTarif,
+  type PotonganBaris,
   type TarifUnit,
 } from "../../src/lib/bayar.js";
 
@@ -74,6 +84,15 @@ async function muatKas(db: Db) {
     .orderBy(asc(kasTarif.berlakuMulai), asc(kasTarif.id));
   const kecuali = await db.select().from(kasPengecualian);
   return { tarif, kecuali };
+}
+
+/** Everyone's attendance standing in a session; none when it has no slot key (TOT, odd data). */
+async function hadirSesi(
+  db: Db,
+  s: { id: number; tanggal: string; slot: number | null; jenis: string | null },
+): Promise<BarisHadir[]> {
+  const kunci = await kunciDariSesi(db, s);
+  return kunci ? statusOrang(db, kunci, new Date()) : [];
 }
 
 /** Rebuilds one finished session's units from who scored which group. */
@@ -109,9 +128,16 @@ export async function sinkronUnit(
         .where(eq(nilaiKirim.sesiId, sesiId))
     ).map((r) => r.nomor),
   );
+  // Mangkir zeroes the person's units for this session (2026-10-16).
+  const nol = new Set(
+    s.status === "selesai"
+      ? (await hadirSesi(db, s)).filter((h) => h.nolkanUnit).map((h) => h.nim)
+      : [],
+  );
   const tetap = new Set<number>();
   for (const g of data.kelompok) {
     if (s.status !== "selesai" || !g.penilai || !terkirim.has(g.nomor)) continue;
+    if (nol.has(g.penilai)) continue;
     tetap.add(g.nomor);
     const lama = ada.get(g.nomor);
     if (lama && lama.nimPenilai === g.penilai) {
@@ -157,6 +183,7 @@ async function sinkronYangBerubah(db: Db, dari: string, sampai: string) {
           s.selesai_pada,
           (select max(n.diubah_pada) from nilai n where n.sesi_id = s.id),
           (select max(a.diubah_pada) from sesi_asisten a where a.sesi_id = s.id),
+          (select max(h.diubah_pada) from hadir_mengajar h where h.sesi_id = s.id),
           (select max(k.pada) from sesi_kejadian k where k.sesi_id = s.id and k.jenis = 'akun_seelabs'),
           (select max(x.dikirim_pada) from nilai_kirim x where x.sesi_id = s.id)
         )
@@ -168,6 +195,91 @@ async function sinkronYangBerubah(db: Db, dari: string, sampai: string) {
   const ctx = { tarifUnit: await muatTarifUnit(db), kas: await muatKas(db) };
   for (const id of ids) await sinkronUnit(db, id, ctx);
   return ids.length;
+}
+
+/** A finished session's standings, kept a short while: they only move on a PJ change. */
+const cacheHadir = new Map<number, { sig: string; at: number; rows: BarisHadir[] }>();
+const CACHE_HADIR_MS = 20_000;
+
+export interface PotonganSesi extends PotonganBaris {
+  sesiId: number;
+  slot: number | null;
+  nim: string;
+  menit: number | null;
+  status: StatusHadir;
+  /** True when the person's units for the session were set to zero. */
+  nolkan: boolean;
+}
+
+/**
+ * The cut lines of a semester: a Telat (or an uncounted Mangkir Mengajar) is
+ * money off, a Mangkir or counted Mangkir Mengajar is a zeroed session
+ * (`jumlah` 0, `nolkan`). Finished non-TOT sessions with attendance only.
+ */
+export async function potonganSemester(
+  db: Db,
+  dari: string,
+  sampai: string,
+  now: Date,
+  nimSaja?: string,
+): Promise<{ baris: PotonganSesi[]; tarif: Potongan }> {
+  const tarif = await muatPotongan(db);
+  const sesis = await db
+    .select({
+      id: sesi.id,
+      tanggal: sesi.tanggal,
+      slot: sesi.slot,
+      jenis: sesi.jenis,
+    })
+    .from(sesi)
+    .where(
+      and(
+        eq(sesi.status, "selesai"),
+        ne(sesi.jenis, "tot"),
+        gte(sesi.tanggal, dari),
+        lte(sesi.tanggal, sampai),
+        sql`exists (select 1 from hadir_mengajar h where h.sesi_id = ${sesi.id})`,
+      ),
+    )
+    .orderBy(desc(sesi.tanggal));
+  if (!sesis.length) return { baris: [], tarif };
+  const ubah = await db
+    .select({ id: hadirMengajar.sesiId, pada: sql<string>`max(${hadirMengajar.diubahPada})` })
+    .from(hadirMengajar)
+    .where(
+      inArray(
+        hadirMengajar.sesiId,
+        sesis.map((x) => x.id),
+      ),
+    )
+    .groupBy(hadirMengajar.sesiId);
+  const tanda = new Map(ubah.map((u) => [u.id, String(u.pada)]));
+  const baris: PotonganSesi[] = [];
+  for (const x of sesis) {
+    const sig = `${tanda.get(x.id)}|${tarif.perMenit}|${tarif.maks}`;
+    const c = cacheHadir.get(x.id);
+    let rows: BarisHadir[];
+    if (c && c.sig === sig && now.getTime() - c.at < CACHE_HADIR_MS) rows = c.rows;
+    else {
+      rows = await hadirSesi(db, x);
+      cacheHadir.set(x.id, { sig, at: now.getTime(), rows });
+    }
+    for (const h of rows) {
+      if (nimSaja && h.nim !== nimSaja) continue;
+      if (!h.nolkanUnit && h.potong <= 0) continue;
+      baris.push({
+        sesiId: x.id,
+        tanggal: x.tanggal,
+        slot: x.slot,
+        nim: h.nim,
+        jumlah: h.nolkanUnit ? 0 : h.potong,
+        menit: h.menit,
+        status: h.status as StatusHadir,
+        nolkan: h.nolkanUnit,
+      });
+    }
+  }
+  return { baris, tarif };
 }
 
 async function bendahara(db: Db): Promise<string | null> {
@@ -239,6 +351,13 @@ export async function handleBayarGet(req: ApiRequest, res: ApiResponse, session:
   );
   const tarifSemester = kas.tarif.filter((t) => t.semester === semester);
   const nimBendahara = await bendahara(db);
+  const { baris: potongan, tarif: tarifPotongan } = await potonganSemester(
+    db,
+    dari,
+    sampai,
+    new Date(),
+    admin ? undefined : session.nim,
+  );
 
   res.status(200).json({
     ok: true,
@@ -247,6 +366,8 @@ export async function handleBayarGet(req: ApiRequest, res: ApiResponse, session:
     admin,
     bendahara: nimBendahara,
     tarifUnit,
+    tarifPotongan,
+    potongan,
     kas: {
       persen: (tarifSemester.at(-1) ?? kas.tarif.at(-1))?.persen ?? 10,
       persenSaya: persenSekarang,
@@ -275,6 +396,7 @@ export async function handleBayarGet(req: ApiRequest, res: ApiResponse, session:
       units as Parameters<typeof sisaTransfer>[0],
       sudah.map((t) => ({ periode: t.periode, jenis: t.jenis, nim: t.nim, jumlah: t.jumlah })),
       nimBendahara,
+      potongan.filter((c) => !c.nolkan),
     ),
   });
 }
@@ -334,6 +456,22 @@ export async function handleBayarPost(req: ApiRequest, res: ApiResponse, session
         set: { nilai: nilaiBaru, diubahOleh: session.nim, diubahPada: new Date() },
       });
     await writeAudit(session.nim, "tarif_unit", nilaiBaru);
+    return res.status(200).json({ ok: true });
+  }
+
+  if (body.aksi === "potongan") {
+    const perMenit = posInt(body.perMenit, 100_000);
+    const maks = posInt(body.maks, 30);
+    if (!perMenit || !maks) return salah();
+    const nilaiBaru = { perMenit, maks };
+    await db
+      .insert(pengaturan)
+      .values({ kunci: "potongan_telat", nilai: nilaiBaru, diubahOleh: session.nim })
+      .onConflictDoUpdate({
+        target: pengaturan.kunci,
+        set: { nilai: nilaiBaru, diubahOleh: session.nim, diubahPada: new Date() },
+      });
+    await writeAudit(session.nim, "potongan_tarif", nilaiBaru);
     return res.status(200).json({ ok: true });
   }
 

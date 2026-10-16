@@ -6,11 +6,11 @@
  */
 import { CaretRightIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import Tooltip from "../ui/Tooltip";
-import { href } from "../../lib/app";
+import { href, tanggalPanjang } from "../../lib/app";
 import { jumlahkan, namaPeriode, rupiah, type Ringkasan } from "../../lib/bayar";
 import type { Lang } from "../../lib/kelas";
 import { useDirektori } from "../../lib/people";
-import { periodeKini, useBayar, type BayarData } from "./data";
+import { periodeKini, potonganDari, useBayar, type BayarData, type PotonganRow } from "./data";
 import { B, type BStrings } from "./strings";
 import "./bayar.css";
 
@@ -29,6 +29,41 @@ function Pribadi({ t }: { t: BStrings }) {
 function persenDari(us: BayarData["units"], dflt: number): string {
   const s = [...new Set(us.map((u) => u.kasPersen))];
   return s.length === 0 ? `${dflt}%` : s.map((x) => `${x}%`).join(", ");
+}
+
+/** The month's cut lines: a Potongan Telat each, and a struck line for a session whose groups went unpaid. */
+export function PotonganLines({ t, lang, rows }: { t: BStrings; lang: Lang; rows: PotonganRow[] }) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="paylines">
+      {rows.map((c) => {
+        const kapan = tanggalPanjang(c.tanggal, lang);
+        const sesi = t.sessionN(c.slot);
+        const nol = c.nolkan;
+        const judul = nol
+          ? c.status === "mm"
+            ? t.zeroMm
+            : t.zeroMangkir
+          : c.status === "mm"
+            ? t.cutMm
+            : t.cutTitle;
+        const hint = nol
+          ? t.zeroLine(kapan, sesi)
+          : c.status === "mm"
+            ? t.cutMmLine(kapan, sesi, c.menit)
+            : t.cutLine(kapan, sesi, c.menit);
+        return (
+          <div key={`${c.sesiId}${c.nim}`} className="payline">
+            <span className="stack stack--sm payline__t">
+              <b className={nol ? "cutline__strike" : undefined}>{judul}</b>
+              <span className="hint">{hint}</span>
+            </span>
+            {!nol && <b className="num kasfig__cut">− {rupiah(c.jumlah)}</b>}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export function KasFigures({
@@ -69,8 +104,15 @@ export function EarningsCard({ lang, nim }: { lang: Lang; nim: string }) {
   const mine = data.units.filter((u) => u.nimPenilai === nim);
   const periode = periodeKini();
   const bulan = mine.filter((u) => u.tanggal.startsWith(periode));
-  const sem = jumlahkan(mine);
-  const bln = jumlahkan(bulan);
+  const potong = potonganDari(data, nim);
+  const potongBulan = (data.potongan ?? []).filter(
+    (c) => c.nim === nim && c.tanggal.startsWith(periode),
+  );
+  const sem = jumlahkan(mine, potong);
+  const bln = jumlahkan(
+    bulan,
+    potong.filter((c) => c.tanggal.startsWith(periode)),
+  );
   const tf = data.transfer.filter((x) => x.nim === nim && x.periode === periode);
   const masuk = tf.filter((x) => x.jenis === "kotor").reduce((a, x) => a + x.jumlah, 0);
   const balik = tf.filter((x) => x.jenis === "balik").reduce((a, x) => a + x.jumlah, 0);
@@ -82,7 +124,7 @@ export function EarningsCard({ lang, nim }: { lang: Lang; nim: string }) {
         <h2 className="panel__title">{t.earnings}</h2>
         <Pribadi t={t} />
       </div>
-      {mine.length === 0 ? (
+      {mine.length === 0 && !(data.potongan ?? []).some((c) => c.nim === nim) ? (
         <p className="hint">{t.noEarnings}</p>
       ) : (
         <div className="earn">
@@ -108,6 +150,7 @@ export function EarningsCard({ lang, nim }: { lang: Lang; nim: string }) {
               persen={persen}
               sub={t.unitsLine(bln.reguler, bln.internasional)}
             />
+            <PotonganLines t={t} lang={lang} rows={potongBulan} />
           </div>
           <div className="stack stack--sm">
             <span className="earn__k">{t.monthTransfers}</span>
@@ -157,7 +200,7 @@ export function EarningsMini({ lang, nim }: { lang: Lang; nim: string }) {
   if (!data) return <span className="skeleton" style={{ height: 150 }} />;
   const periode = periodeKini();
   const bulan = data.units.filter((u) => u.nimPenilai === nim && u.tanggal.startsWith(periode));
-  const r = jumlahkan(bulan);
+  const r = jumlahkan(bulan, potonganDari(data, nim));
   const masuk = data.transfer
     .filter((x) => x.nim === nim && x.periode === periode && x.jenis === "kotor")
     .reduce((a, x) => a + x.jumlah, 0);

@@ -50,7 +50,7 @@ import Fade from "../ui/Fade";
 import TabLine from "../ui/TabLine";
 import Tooltip from "../ui/Tooltip";
 import { EarningsCard } from "../bayar/Earnings";
-import { useBayar } from "../bayar/data";
+import { potonganDari, useBayar } from "../bayar/data";
 import { IncidentsTab } from "./Incidents";
 import DataSemester, { DataSemesterBanner, DataSemesterButton } from "./DataSemester";
 import { bantuAudit, kalimatAudit, type AuditKonteks, type AuditRow } from "./audit";
@@ -1086,13 +1086,12 @@ function KasTotals({
 }) {
   const { lang, dir, t } = c;
   const k = KAS[lang];
-  const total = jumlahkan(data.units);
   const masuk = data.transfer.filter((x) => x.jenis === "balik").reduce((a, x) => a + x.jumlah, 0);
   const per = new Map<string, typeof data.units>();
   for (const u of data.units) per.set(u.nimPenilai, [...(per.get(u.nimPenilai) ?? []), u]);
   const baris = [...per.entries()]
     .map(([nim, us]) => {
-      const j = jumlahkan(us);
+      const j = jumlahkan(us, potonganDari(data, nim));
       const balik = data.transfer
         .filter((x) => x.nim === nim && x.jenis === "balik")
         .reduce((a, x) => a + x.jumlah, 0);
@@ -1100,6 +1099,14 @@ function KasTotals({
       return { nim, j, lunas: nim === data.bendahara || balik >= j.kas, persen };
     })
     .sort((a, b) => dir.nama(a.nim).localeCompare(dir.nama(b.nim)));
+  const total = baris.reduce(
+    (a, r) => ({
+      kotor: a.kotor + r.j.kotor,
+      kas: a.kas + r.j.kas,
+      bersih: a.bersih + r.j.bersih,
+    }),
+    { kotor: 0, kas: 0, bersih: 0 },
+  );
   const xlsx = () =>
     void ekspor(
       "xlsx",

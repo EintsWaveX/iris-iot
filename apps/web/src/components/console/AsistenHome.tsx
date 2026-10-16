@@ -83,7 +83,7 @@ import {
 import type { Kelas, Lang } from "../../lib/kelas";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import { jumlahkan, rupiah } from "../../lib/bayar";
-import { periodeKini, useBayar } from "../bayar/data";
+import { periodeKini, potonganDari, useBayar } from "../bayar/data";
 import { pesan, type Strings } from "./strings";
 import { H, type Hx } from "./homeStrings";
 import { D, type Dx } from "./dayStrings";
@@ -1597,8 +1597,15 @@ function DayFoot({ lang, nim, fb }: { lang: Lang; nim: string; fb: Ringkasan | n
   const mine = (data?.units ?? []).filter((u) => u.nimPenilai === nim);
   const bulan = mine.filter((u) => u.tanggal.startsWith(periode));
   const sebelum = mine.filter((u) => u.tanggal.startsWith(lalu));
-  const r = jumlahkan(bulan);
-  const rLalu = jumlahkan(sebelum);
+  const potong = potonganDari(data, nim);
+  const r = jumlahkan(
+    bulan,
+    potong.filter((c) => c.tanggal.startsWith(periode)),
+  );
+  const rLalu = jumlahkan(
+    sebelum,
+    potong.filter((c) => c.tanggal.startsWith(lalu)),
+  );
   const delta = r.bersih - rLalu.bersih;
   const weeks = [1, 2, 3, 4, 5].map((w) => {
     const us = bulan.filter((u) => Math.ceil(Number(u.tanggal.slice(8, 10)) / 7) === w);
