@@ -501,4 +501,24 @@ describe("PJ writes only for someone on the slot", () => {
     data.set(hadirMengajar, [{ ubah: "telat" }]);
     expect((await pj(body)).body).toEqual({ ok: true });
   });
+
+  it("only takes an override off someone who is only in a row", async () => {
+    isiLuar();
+    data.set(hadirMengajar, [{ ubah: "telat" }]);
+    const telat = {
+      aksi: "status",
+      kunci: KUNCI,
+      nim: "3030",
+      status: "telat",
+      menit: 3,
+      alasan: "salah catat",
+    };
+    expect((await pj(telat)).body).toEqual({ ok: false, kode: "tidak_ada" });
+    expect((await pj({ aksi: "aa", kunci: KUNCI, nim: "3030", izin: true })).body).toEqual({
+      ok: false,
+      kode: "tidak_ada",
+    });
+    expect(ditulis.filter((d) => d.tabel === hadirMengajar)).toHaveLength(0);
+    expect((await pj({ ...telat, status: "ikut", menit: undefined })).body).toEqual({ ok: true });
+  });
 });

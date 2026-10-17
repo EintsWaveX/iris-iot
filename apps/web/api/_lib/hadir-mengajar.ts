@@ -976,6 +976,10 @@ export async function handleHadirPj(req: ApiRequest, res: ApiResponse, session: 
     .where(and(eq(hadirMengajar.kunci, kunci), eq(hadirMengajar.nim, nim)))
     .limit(1);
   if (!c.diharapkan.has(nim) && !c.izin.has(nim) && !lama) return tolak(res, "tidak_ada");
+  // Someone only in a row (neither expected nor on Izin) may just have an
+  // override taken off ("ikut"), never a new status or an Ambil Alih answer.
+  if (!c.diharapkan.has(nim) && !c.izin.has(nim) && (aksi === "aa" || status !== "ikut"))
+    return tolak(res, "tidak_ada");
 
   if (aksi === "aa") {
     await db
