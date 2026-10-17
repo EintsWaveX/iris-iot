@@ -9,6 +9,7 @@ export const N = dict({
   id: {
     region: "Pengingat nilai",
     and: "dan",
+    jumlah: (n: number) => `${n} kelompok`,
     // Banner heads
     akhirH: (n: number) => `Sesi selesai. ${n} kelompokmu belum selesai dinilai`,
     akhirB: "Batasnya hari ini 23:59. Setelah itu SeeLabs butuh Token Khusus dari Laboran.",
@@ -36,6 +37,8 @@ export const N = dict({
       `Diinput menyusul ${kapan}. Catatan Lupa Input Nilai tetap ada, dengan waktu susulannya.`,
     lewatB:
       "Lewat 23:59, jadi tercatat. Minta Token Khusus ke Laboran, ketik di sini, dan robot memasukkannya.",
+    lewatKirimB:
+      "Lewat 23:59, jadi tercatat. Kirim Nilai dulu dari Tabel Nilai; kalau SeeLabs lalu minta Token Khusus, minta ke Laboran.",
     // Buttons
     selesai: "Selesaikan Nilai",
     tabel: "Buka Tabel Nilai",
@@ -49,7 +52,6 @@ export const N = dict({
     simpanLine: (m: string, when: string, g: string, robot: string) =>
       `${m} · ${when} · ${g} sudah dikirim, belum tersimpan di SeeLabs. Batas 23:59.${robot}`,
     robotAntre: " Robot masih antre.",
-    robotGagal: " Robot gagal.",
     lupaLine: (m: string, when: string, g: string, kurang: string) =>
       `${m} · ${when} · ${g} tercatat Lupa Input Nilai, belum ${kurang}.`,
     pjLine: (m: string, when: string, g: string, pegang: string) =>
@@ -68,6 +70,7 @@ export const N = dict({
   en: {
     region: "Score reminder",
     and: "and",
+    jumlah: (n: number) => `${n} ${n === 1 ? "group" : "groups"}`,
     akhirH: (n: number) =>
       `The session ended. ${n} of your groups ${n === 1 ? "isn't" : "aren't"} done`,
     akhirB: "The limit is 23:59 today. After that SeeLabs needs a Token Khusus from the Laboran.",
@@ -98,6 +101,8 @@ export const N = dict({
       `Put in late at ${kapan}. The Lupa Input Nilai record stays, with the late time.`,
     lewatB:
       "Past 23:59, so it's recorded. Ask the Laboran for a Token Khusus, type it here, and the robot puts it in.",
+    lewatKirimB:
+      "Past 23:59, so it's recorded. Send the scores with Kirim Nilai from the Score Table first; if SeeLabs then asks for a Token Khusus, ask the Laboran.",
     selesai: "Finish the Scores",
     tabel: "Open the Score Table",
     akun: "Pick a SeeLabs Account",
@@ -109,7 +114,6 @@ export const N = dict({
     simpanLine: (m: string, when: string, g: string, robot: string) =>
       `${m} · ${when} · ${g} sent, not saved in SeeLabs yet. Limit 23:59.${robot}`,
     robotAntre: " The robot is still queued.",
-    robotGagal: " The robot failed.",
     lupaLine: (m: string, when: string, g: string, kurang: string) =>
       `${m} · ${when} · ${g} recorded as Lupa Input Nilai, ${kurang} still missing.`,
     pjLine: (m: string, when: string, g: string, pegang: string) =>
@@ -127,6 +131,7 @@ export const N = dict({
   zh: {
     region: "成绩提醒",
     and: "和",
+    jumlah: (n: number) => `${n} 组`,
     akhirH: (n: number) => `课已结束。你还有 ${n} 个小组没有完成评分`,
     akhirB: "今天的截止时间是 23:59。之后 SeeLabs 需要 Laboran 提供的 Token Khusus。",
     ingatH: (jam: string, n: number) => `${jam} 提醒：${n} 个小组还没进入 SeeLabs`,
@@ -147,6 +152,8 @@ export const N = dict({
     menyusulB: (kapan: string) =>
       `于 ${kapan} 补录。Lupa Input Nilai 的记录会保留，并附上补录时间。`,
     lewatB: "已过 23:59，所以已记录。请向 Laboran 要 Token Khusus，在这里输入，机器人会帮你录入。",
+    lewatKirimB:
+      "已过 23:59，所以已记录。请先在成绩表里提交成绩；如果 SeeLabs 之后要 Token Khusus，请向 Laboran 索取。",
     selesai: "完成评分",
     tabel: "打开成绩表",
     akun: "选择 SeeLabs 账号",
@@ -158,7 +165,6 @@ export const N = dict({
     simpanLine: (m: string, when: string, g: string, robot: string) =>
       `${m} · ${when} · ${g}已提交，但还没保存到 SeeLabs。截止 23:59。${robot}`,
     robotAntre: "机器人仍在排队。",
-    robotGagal: "机器人失败了。",
     lupaLine: (m: string, when: string, g: string, kurang: string) =>
       `${m} · ${when} · ${g}已记为 Lupa Input Nilai，还缺${kurang}。`,
     pjLine: (m: string, when: string, g: string, pegang: string) =>

@@ -68,7 +68,10 @@ interface Hadirku {
 
 // Deliberately shorter than the server's 15 s window, so a press never lands on its edge
 const BATAL_DETIK = 10;
-const TOPIK = ["hadir", "sesi", "jadwal", "nilai", "seelabs"] as const;
+const TOPIK = ["hadir", "sesi", "jadwal"] as const;
+// Score saves fire on every field blur: their refetch waits at most once per 10 s
+const TOPIK_NILAI = ["nilai", "seelabs"] as const;
+const JARAK_NILAI = 10_000;
 
 const rp = (n: number) => `Rp${Math.round(n).toLocaleString("id-ID")}`;
 const dua = (n: number) => String(n).padStart(2, "0");
@@ -180,6 +183,7 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
   }, [aktif]);
   useEffect(muat, [muat]);
   useSiaran(TOPIK, muat, aktif);
+  useSiaran(TOPIK_NILAI, muat, aktif, JARAK_NILAI);
 
   // States flip on time: refetch at the base clock, one minute after it
   // (late starts) and at the Mangkir Mengajar line.
@@ -190,10 +194,10 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
 
   // The score reminder flips at 20:00, 22:30, 23:00 and past the deadline
   const akhirHari = nilai ? new Date(nilai.batas).getTime() + 1000 : null;
-  useBatas(akhirHari === null ? null : akhirHari - 4 * 3600_000, TOPIK);
-  useBatas(akhirHari === null ? null : akhirHari - 90 * 60_000, TOPIK);
-  useBatas(akhirHari === null ? null : akhirHari - 60 * 60_000, TOPIK);
-  useBatas(akhirHari, TOPIK);
+  useBatas(akhirHari === null ? null : akhirHari - 4 * 3600_000, TOPIK_NILAI);
+  useBatas(akhirHari === null ? null : akhirHari - 90 * 60_000, TOPIK_NILAI);
+  useBatas(akhirHari === null ? null : akhirHari - 60 * 60_000, TOPIK_NILAI);
+  useBatas(akhirHari, TOPIK_NILAI);
 
   // One page clock for the countdown, the cells and the amounts
   useEffect(() => {

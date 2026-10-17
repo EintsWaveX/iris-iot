@@ -11,7 +11,7 @@
  * minute, and a start that loses a race meets `sesi_slot_unik` and starts
  * nothing (api/_lib/mulai-sesi.ts).
  */
-import { and, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { mulaiSesi } from "./mulai-sesi.js";
 import { kunciSlot, kunciSusulan, modulHari, tanggalWib } from "./hadir-mengajar.js";
 import { siarkan } from "./siaran.js";
@@ -285,8 +285,9 @@ const LUPA_NILAI_HARI = 3;
  * WIB) without being sent and saved in SeeLabs is recorded once, for the
  * Asisten who held it, with what was missing. A recorded group that is done
  * later keeps its record and gets `menyusulPada` (the time it was put in).
- * Looks at the last three days; TOT sessions are exempt. Returns how many
- * records it added.
+ * New records look at the last three days only; stamping looks at every open
+ * record, however old. TOT sessions are exempt. Returns how many records it
+ * added.
  */
 export async function catatLupaNilai(db: Db, now: Date): Promise<number> {
   const sejak = tanggalWib(new Date(now.getTime() - LUPA_NILAI_HARI * 86_400_000));
@@ -295,9 +296,22 @@ export async function catatLupaNilai(db: Db, now: Date): Promise<number> {
     .from(sesi)
     .where(gte(sesi.tanggal, sejak));
   const layak = sesiRows.filter(
-    (s) => s.status === "selesai" && s.jenis !== "tot" && batasNilai(s.tanggal) <= now,
+    (s) => s.status === "selesai" && s.jenis !== "tot" && batasNilai(s.tanggal) < now,
   );
-  if (layak.length === 0) return 0;
+  const berubah = new Set<Topik>();
+  const baru = layak.length ? await catatBaru(db, layak, now, berubah) : 0;
+  await tandaiMenyusul(db, berubah);
+  if (berubah.size) await siarkan([...berubah]);
+  return baru;
+}
+
+/** Records the groups of these ended sessions that missed the deadline. */
+async function catatBaru(
+  db: Db,
+  layak: { id: number; tanggal: string }[],
+  now: Date,
+  berubah: Set<Topik>,
+): Promise<number> {
   const ids = layak.map((s) => s.id);
   const [orang, pegang, grup, kirim, simpan, ada] = await Promise.all([
     db
@@ -337,39 +351,89 @@ export async function catatLupaNilai(db: Db, now: Date): Promise<number> {
   const dicatat = new Map(ada.map((x) => [k(x.sesiId, x.nomor), x.menyusulPada]));
 
   let baru = 0;
-  const berubah = new Set<Topik>();
   for (const s of layak) {
     const nomorSesi = [...new Set(orang.filter((o) => o.sesiId === s.id).map((o) => o.nomor))];
     for (const nomor of nomorSesi) {
       const kunci = k(s.id, nomor);
       const status = { terkirim: terkirim.has(kunci), tersimpan: tersimpan.has(kunci) };
       const kurang = kurangCatat(status);
-      if (kurang.length === 0) {
-        // Put in after the deadline: the record stays, with the time.
-        if (dicatat.has(kunci) && dicatat.get(kunci) === null) {
-          await db
-            .update(lupaNilai)
-            .set({ menyusulPada: now })
-            .where(and(eq(lupaNilai.sesiId, s.id), eq(lupaNilai.kelompokNomor, nomor)));
-          berubah.add("hadir");
-        }
-        continue;
-      }
+      if (kurang.length === 0) continue;
       if (dicatat.has(kunci)) continue;
       const pemegang = pegang.find(
         (p) => p.sesiId === s.id && nomorDariId.get(p.kelompokId) === nomor,
       );
       if (!pemegang) continue;
-      await db
+      const masuk = await db
         .insert(lupaNilai)
         .values({ sesiId: s.id, kelompokNomor: nomor, nim: pemegang.nim, kurang, dicatatPada: now })
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning({ id: lupaNilai.id });
+      if (masuk.length === 0) continue;
       baru += 1;
       berubah.add("hadir");
     }
   }
-  if (berubah.size) await siarkan([...berubah]);
   return baru;
+}
+
+/**
+ * A recorded group that is sent and saved now keeps its record and gets
+ * `menyusulPada`: when it was really put in (the later of the save and the
+ * send), not the minute this runs. Looks at every open record, so a group
+ * put in days after the practicum is stamped too.
+ */
+async function tandaiMenyusul(db: Db, berubah: Set<Topik>): Promise<void> {
+  const buka = (
+    await db
+      .select({
+        sesiId: lupaNilai.sesiId,
+        nomor: lupaNilai.kelompokNomor,
+        menyusulPada: lupaNilai.menyusulPada,
+      })
+      .from(lupaNilai)
+      .where(isNull(lupaNilai.menyusulPada))
+  ).filter((r) => r.menyusulPada === null);
+  if (buka.length === 0) return;
+  const ids = [...new Set(buka.map((r) => r.sesiId))];
+  const [kirim, simpan] = await Promise.all([
+    db
+      .select({
+        sesiId: nilaiKirim.sesiId,
+        nomor: nilaiKirim.kelompokNomor,
+        pada: nilaiKirim.dikirimPada,
+      })
+      .from(nilaiKirim)
+      .where(inArray(nilaiKirim.sesiId, ids)),
+    db
+      .select({
+        sesiId: seelabsEkspor.sesiId,
+        nomor: seelabsEkspor.kelompokNomor,
+        pada: seelabsEkspor.disimpanPada,
+      })
+      .from(seelabsEkspor)
+      .where(and(inArray(seelabsEkspor.sesiId, ids), isNotNull(seelabsEkspor.disimpanPada))),
+  ]);
+  const k = (sesiId: number, nomor: number) => `${sesiId}.${nomor}`;
+  const terbaru = (rows: { sesiId: number; nomor: number; pada: Date | null }[]) => {
+    const m = new Map<string, number>();
+    for (const x of rows) {
+      const t = x.pada ? x.pada.getTime() : 0;
+      m.set(k(x.sesiId, x.nomor), Math.max(m.get(k(x.sesiId, x.nomor)) ?? 0, t));
+    }
+    return m;
+  };
+  const tKirim = terbaru(kirim);
+  const tSimpan = terbaru(simpan);
+  for (const r of buka) {
+    const kunci = k(r.sesiId, r.nomor);
+    if (!tKirim.has(kunci) || !tSimpan.has(kunci)) continue;
+    const pada = new Date(Math.max(tKirim.get(kunci)!, tSimpan.get(kunci)!));
+    await db
+      .update(lupaNilai)
+      .set({ menyusulPada: pada })
+      .where(and(eq(lupaNilai.sesiId, r.sesiId), eq(lupaNilai.kelompokNomor, r.nomor)));
+    berubah.add("hadir");
+  }
 }
 
 /** Everything the lab clock does in one minute. Never throws. */

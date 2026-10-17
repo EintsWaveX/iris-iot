@@ -72,7 +72,7 @@ export default function NilaiBanner({ lang, data }: { lang: Lang; data: NilaiDat
     const akun = saya.find((g) => g.butuhAkun);
     const antre = saya.find((g) => g.robot === "antre" && !g.tersimpan);
     const utama = gagal ?? akun ?? antre ?? saya[0];
-    eyebrow = `${kapanSesi(utama, lang)} · ${saya.length} ${lang === "en" ? (saya.length === 1 ? "group" : "groups") : lang === "zh" ? "组" : "kelompok"}`;
+    eyebrow = `${kapanSesi(utama, lang)} · ${t.jumlah(saya.length)}`;
     const tabel = tautanNilai(lang, utama.sesiId, "tabel");
     if (gagal) {
       tone = "danger";
@@ -113,7 +113,7 @@ export default function NilaiBanner({ lang, data }: { lang: Lang; data: NilaiDat
     }
   } else if (pj.length) {
     const x = pj[0];
-    eyebrow = `${kapanSesi(x, lang)} · ${pj.length} ${lang === "en" ? "groups" : lang === "zh" ? "组" : "kelompok"}`;
+    eyebrow = `${kapanSesi(x, lang)} · ${t.jumlah(pj.length)}`;
     head = t.pjH(pj.length);
     body = t.pjB([...new Set(pj.map((g) => g.pemegangKode).filter(Boolean))].join(", "));
     aksi = { label: t.tabel, to: tautanNilai(lang, x.sesiId, "tabel") };
@@ -121,15 +121,22 @@ export default function NilaiBanner({ lang, data }: { lang: Lang; data: NilaiDat
     tone = "danger";
     const buka = lupa.filter((g) => !g.menyusulPada);
     const x = buka[0];
-    eyebrow = `${kapanSesi(x, lang)} · ${buka.length} ${lang === "en" ? "groups" : lang === "zh" ? "组" : "kelompok"}`;
+    eyebrow = `${kapanSesi(x, lang)} · ${t.jumlah(buka.length)}`;
     head = t.lewatH(
       sebutKelompok(
         buka.filter((g) => g.sesiId === x.sesiId).map((g) => g.nomor),
         lang,
       ),
     );
-    body = t.lewatB;
-    aksi = { label: t.token, to: tautanNilai(lang, x.sesiId, "seelabs") };
+    // Not sent yet: the first step is Kirim Nilai in the table; the token only
+    // comes once the scores are sent and just the save is missing.
+    if (buka.some((g) => g.sesiId === x.sesiId && g.kurang.includes("kirim"))) {
+      body = t.lewatKirimB;
+      aksi = { label: t.selesai, to: tautanNilai(lang, x.sesiId, "tabel") };
+    } else {
+      body = t.lewatB;
+      aksi = { label: t.token, to: tautanNilai(lang, x.sesiId, "seelabs") };
+    }
   } else if (lupa.length) {
     // Everything missed was put in during the last day: "Diinput Menyusul"
     tone = "ok";

@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const data = new Map<unknown, unknown[]>();
 const masuk: Record<string, unknown>[] = [];
 const ubah: Record<string, unknown>[] = [];
+// When true the fake insert reports no row written (onConflictDoNothing skipped it)
+let lewatiMasuk = false;
 
 function chain(tabel?: unknown): unknown {
   const st = { tabel };
@@ -27,7 +29,11 @@ const db = {
   insert: () => ({
     values: (v: Record<string, unknown>) => {
       masuk.push(v);
-      return chain();
+      return {
+        onConflictDoNothing: () => ({
+          returning: async () => (lewatiMasuk ? [] : [{ id: masuk.length }]),
+        }),
+      };
     },
   }),
   update: () => ({
@@ -78,6 +84,7 @@ beforeEach(() => {
   data.clear();
   masuk.length = 0;
   ubah.length = 0;
+  lewatiMasuk = false;
 });
 
 describe("catatLupaNilai", () => {
@@ -127,13 +134,35 @@ describe("catatLupaNilai", () => {
   it("stamps menyusulPada when a recorded group is now done", async () => {
     siapkan();
     data.set(S.nilaiKirim, [{ sesiId: 1, nomor: 1 }]);
-    data.set(S.seelabsEkspor, [{ sesiId: 1, nomor: 1 }]);
+    const disimpan = new Date("2026-10-16T08:30:00+07:00");
+    data.set(S.seelabsEkspor, [{ sesiId: 1, nomor: 1, pada: disimpan }]);
     data.set(S.lupaNilai, [
       { sesiId: 1, nomor: 1, menyusulPada: null },
       { sesiId: 1, nomor: 2, menyusulPada: null },
     ]);
     const lambat = new Date("2026-10-16T09:00:00+07:00");
     expect(await catatLupaNilai(db as never, lambat)).toBe(0);
-    expect(ubah).toEqual([{ menyusulPada: lambat }]);
+    // The real save time, not the minute the clock ran
+    expect(ubah).toEqual([{ menyusulPada: disimpan }]);
+  });
+
+  it("stamps a record whose practicum day is five days old", async () => {
+    siapkan({ tanggal: "2026-10-10" });
+    // Only the open lupa_nilai row is read for stamping; the session is outside the 3-day window
+    data.set(S.sesi, []);
+    const dikirim = new Date("2026-10-15T10:00:00+07:00");
+    const disimpan = new Date("2026-10-15T10:05:00+07:00");
+    data.set(S.nilaiKirim, [{ sesiId: 1, nomor: 1, pada: dikirim }]);
+    data.set(S.seelabsEkspor, [{ sesiId: 1, nomor: 1, pada: disimpan }]);
+    data.set(S.lupaNilai, [{ sesiId: 1, nomor: 1, menyusulPada: null }]);
+    expect(await catatLupaNilai(db as never, new Date("2026-10-15T12:00:00+07:00"))).toBe(0);
+    expect(ubah).toEqual([{ menyusulPada: disimpan }]);
+  });
+
+  it("counts only the rows actually written", async () => {
+    siapkan();
+    lewatiMasuk = true;
+    expect(await catatLupaNilai(db as never, SESUDAH)).toBe(0);
+    expect(masuk).toHaveLength(2);
   });
 });

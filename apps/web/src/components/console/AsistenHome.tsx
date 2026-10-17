@@ -1122,9 +1122,15 @@ export default function AsistenHome({
           )}
         </span>
         <span className="todo10__acts">
-          <button type="button" className="btn btn--sm" onClick={() => onSeelabsSesi(x.sesiId)}>
-            {n18.token}
-          </button>
+          {gs.some((g) => g.kurang.includes("kirim")) ? (
+            <button type="button" className="btn btn--sm" onClick={() => onTable(x.sesiId)}>
+              {n18.tabel}
+            </button>
+          ) : (
+            <button type="button" className="btn btn--sm" onClick={() => onSeelabsSesi(x.sesiId)}>
+              {n18.token}
+            </button>
+          )}
         </span>
       </li>
     );
