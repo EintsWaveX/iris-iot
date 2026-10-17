@@ -274,7 +274,7 @@ export default function LivePrep({
               const menunggu = m.jenis === "sukarela" && m.status === "diminta";
               const b = baris.get(m.nim);
               const bayar = b ? bayarBaris(h, b, hd?.potongan) : null;
-              // A judged row's own check-in, so the time agrees with its status pill.
+              // A judged row's own check-in: the time and Tandai Hadir follow its status pill.
               const hadirPada = b ? b.hadirPada : m.hadirPada;
               return (
                 <div key={m.nim} className="teachrow" data-wait={menunggu ? "yes" : undefined}>
@@ -344,7 +344,7 @@ export default function LivePrep({
                         <span className="teachrow__st" />
                       )}
                       <span className="row teachrow__act">
-                        {hd?.bolehPj && !b?.hadirPada && m.jenis !== "izin" && (
+                        {hd?.bolehPj && !hadirPada && m.jenis !== "izin" && (
                           <button
                             type="button"
                             className="btn btn--sm btn--ghost"
