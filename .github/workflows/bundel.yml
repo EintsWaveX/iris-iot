@@ -45,4 +45,4 @@ jobs:
         env:
           BUNDEL_KUNCI_TANDA: ${{ secrets.BUNDEL_KUNCI_TANDA }}
           BUNDEL_TERBIT: ${{ secrets.BUNDEL_TERBIT }}
-        run: python aso/orangepi/terbitkan_bundel.py --situs https://iris-praktikum-jurnal.vercel.app
+        run: python aso/orangepi/terbitkan_bundel.py --situs https://irisiotlab.com
