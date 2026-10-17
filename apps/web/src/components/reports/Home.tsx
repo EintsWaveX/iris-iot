@@ -52,6 +52,7 @@ import Tooltip from "../ui/Tooltip";
 import { EarningsCard } from "../bayar/Earnings";
 import { potonganDari, useBayar } from "../bayar/data";
 import { IncidentsTab } from "./Incidents";
+import HadirSemester from "./HadirSemester";
 import DataSemester, { DataSemesterBanner, DataSemesterButton } from "./DataSemester";
 import { bantuAudit, kalimatAudit, type AuditKonteks, type AuditRow } from "./audit";
 import { type Format, ekspor, jamSlot, jamWib, tanggalWib } from "./data";
@@ -672,63 +673,66 @@ function LoadTab({ rows, c }: { rows: SesiLaporan[]; c: Ctx }) {
   const maks = Math.max(1, ...list.map((b) => b.minggu));
   if (!list.length) return <p className="empty-note">{t.noWorkload}</p>;
   return (
-    <section className="rp-card rp-card--flush">
-      <div className="rp-scrollx" tabIndex={0} aria-label={t.tabs.beban}>
-        <table className="rp-table">
-          <thead>
-            <tr>
-              <th>{t.wl.asisten}</th>
-              <th>{t.wl.minggu}</th>
-              <th>{t.wl.sesi}</th>
-              <th>{t.wl.kelompok}</th>
-              <th>{t.wl.ganda}</th>
-              <th>{t.wl.ganti}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((b) => {
-              const o = dir.byNim.get(b.nim);
-              return (
-                <tr key={b.nim}>
-                  <td>
-                    <span className="row row--nowrap">
-                      <span className={`acode${b.nim === me ? " acode--me" : ""}`}>
-                        {o?.kode ?? "?"}
-                      </span>
-                      <span>{o?.nama ?? b.nim}</span>
-                    </span>
-                  </td>
-                  <td>
-                    <span className="row row--nowrap">
-                      <span
-                        className="meter"
-                        style={{ "--meter": (b.minggu / maks) * 100, width: 90 } as CSSProperties}
-                        aria-hidden="true"
-                      />
-                      <b className="num">{b.minggu}</b>
-                    </span>
-                  </td>
-                  <td className="num">{b.sesi}</td>
-                  <td className="num">{b.kelompok}</td>
-                  <td>
-                    {b.ganda ? (
-                      <Tooltip label={t.gandaTip}>
-                        <span tabIndex={0}>
-                          <Pill tone="warn">{b.ganda}×</Pill>
+    <>
+      <section className="rp-card rp-card--flush">
+        <div className="rp-scrollx" tabIndex={0} aria-label={t.tabs.beban}>
+          <table className="rp-table">
+            <thead>
+              <tr>
+                <th>{t.wl.asisten}</th>
+                <th>{t.wl.minggu}</th>
+                <th>{t.wl.sesi}</th>
+                <th>{t.wl.kelompok}</th>
+                <th>{t.wl.ganda}</th>
+                <th>{t.wl.ganti}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((b) => {
+                const o = dir.byNim.get(b.nim);
+                return (
+                  <tr key={b.nim}>
+                    <td>
+                      <span className="row row--nowrap">
+                        <span className={`acode${b.nim === me ? " acode--me" : ""}`}>
+                          {o?.kode ?? "?"}
                         </span>
-                      </Tooltip>
-                    ) : (
-                      <Nil dot />
-                    )}
-                  </td>
-                  <td>{b.ganti ? <Pill tone="accent">{b.ganti}×</Pill> : <Nil dot />}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </section>
+                        <span>{o?.nama ?? b.nim}</span>
+                      </span>
+                    </td>
+                    <td>
+                      <span className="row row--nowrap">
+                        <span
+                          className="meter"
+                          style={{ "--meter": (b.minggu / maks) * 100, width: 90 } as CSSProperties}
+                          aria-hidden="true"
+                        />
+                        <b className="num">{b.minggu}</b>
+                      </span>
+                    </td>
+                    <td className="num">{b.sesi}</td>
+                    <td className="num">{b.kelompok}</td>
+                    <td>
+                      {b.ganda ? (
+                        <Tooltip label={t.gandaTip}>
+                          <span tabIndex={0}>
+                            <Pill tone="warn">{b.ganda}×</Pill>
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <Nil dot />
+                      )}
+                    </td>
+                    <td>{b.ganti ? <Pill tone="accent">{b.ganti}×</Pill> : <Nil dot />}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <HadirSemester lang={c.lang} dir={c.dir} />
+    </>
   );
 }
 
@@ -960,7 +964,14 @@ function AuditTab({ f, c }: { f: Filter; c: Ctx }) {
                   <span className="rp-audline">
                     <Ic size={20} aria-hidden="true" />
                     <span>
-                      <b>{r.aktorNim === "sistem" ? t.audSistem : dir.nama(r.aktorNim)}</b> {k.teks}
+                      <b>
+                        {r.aktorNim === "sistem"
+                          ? t.audSistem
+                          : r.aktorNim === "otomatis"
+                            ? "IRIS"
+                            : dir.nama(r.aktorNim)}
+                      </b>{" "}
+                      {k.teks}
                     </span>
                   </span>
                   {k.transkrip ? (

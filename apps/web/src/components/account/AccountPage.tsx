@@ -15,6 +15,8 @@ import SeelabsAccount from "../console/seelabs/SeelabsAccount";
 import SeelabsRobotCard from "../console/seelabs/SeelabsRobotCard";
 import PraktikanAccount from "./PraktikanAccount";
 import { EarningsCard } from "../bayar/Earnings";
+import HadirRingkas, { useHadirOrang } from "../reports/HadirRingkas";
+import { H } from "../reports/hadirStrings";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CaretRightIcon, CheckIcon, UserIcon } from "@phosphor-icons/react";
 import PasswordField, { kekuatanSandi } from "../ui/PasswordField";
@@ -231,6 +233,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
   const [minggu, setMinggu] = useState<Record<string, MingguSlot>>({});
   const [klp, setKlp] = useState<Record<string, Record<string, string>>>({});
   const [fb, setFb] = useState<Ringkasan | null>(null);
+  const hadirKu = useHadirOrang("saya=1", me?.role === "asisten");
 
   const muat = () => {
     if (me?.role !== "asisten") return;
@@ -305,6 +308,13 @@ export default function AccountPage({ lang }: { lang: Lang }) {
       </header>
 
       <EarningsCard lang={lang} nim={me.nim} />
+      <section className="panel">
+        <div className="panel__head">
+          <h2 className="panel__title">{H[lang].mineTitle}</h2>
+          <span className="hint">{H[lang].mineHint}</span>
+        </div>
+        <HadirRingkas lang={lang} data={hadirKu} />
+      </section>
       <SeelabsRobotCard lang={lang} nim={me.nim} />
       <SeelabsAccount lang={lang} nim={me.nim} />
 

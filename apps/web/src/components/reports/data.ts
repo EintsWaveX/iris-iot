@@ -60,6 +60,21 @@ const KJ = {
   id: {
     mulai: (who: string) => `Sesi dimulai oleh ${who}.`,
     mulaiOtomatis: "Sesi dimulai otomatis oleh IRIS.",
+    jamGeser: (who: string, dari: string, ke: string, al: string) =>
+      `${who} menggeser jam sesi dari ${dari} ke ${ke}.${al ? ` Alasan: ${al}` : ""}`,
+    hadirStatus: (who: string, nama: string, st: string, al: string) =>
+      `${who} mengubah status hadir ${nama} jadi ${st}.${al ? ` Alasan: ${al}` : ""}`,
+    hadirIzin: (who: string, nama: string) => `${who} menandai ${nama} Izin.`,
+    hadirTandai: (who: string, nama: string) => `${who} menandai ${nama} hadir.`,
+    stHadir: {
+      ikut: "mengikuti jam",
+      tepat: "Tepat Waktu",
+      telat: "Telat",
+      mm: "Mangkir Mengajar",
+      mangkir: "Mangkir",
+      izin: "Izin",
+    } as Record<string, string>,
+    menit: (m: unknown) => ` ${m} Menit`,
     akhiri: (who: string) => `Sesi diakhiri oleh ${who}.`,
     batal: (who: string) => `Sesi dibatalkan oleh ${who}.`,
     lanjutkan: (who: string) => `Sesi dilanjutkan oleh ${who}.`,
@@ -83,6 +98,21 @@ const KJ = {
   en: {
     mulai: (who: string) => `Session started by ${who}.`,
     mulaiOtomatis: "Session started by IRIS itself.",
+    jamGeser: (who: string, dari: string, ke: string, al: string) =>
+      `${who} moved the session clock from ${dari} to ${ke}.${al ? ` Reason: ${al}` : ""}`,
+    hadirStatus: (who: string, nama: string, st: string, al: string) =>
+      `${who} changed ${nama}'s attendance to ${st}.${al ? ` Reason: ${al}` : ""}`,
+    hadirIzin: (who: string, nama: string) => `${who} marked ${nama} as Izin.`,
+    hadirTandai: (who: string, nama: string) => `${who} checked ${nama} in.`,
+    stHadir: {
+      ikut: "following the clock",
+      tepat: "On Time",
+      telat: "Late",
+      mm: "Mangkir Mengajar",
+      mangkir: "Mangkir",
+      izin: "Izin",
+    } as Record<string, string>,
+    menit: (m: unknown) => ` ${m} Minutes`,
     akhiri: (who: string) => `Session ended by ${who}.`,
     batal: (who: string) => `Session cancelled by ${who}.`,
     lanjutkan: (who: string) => `Session resumed by ${who}.`,
@@ -109,6 +139,21 @@ const KJ = {
   zh: {
     mulai: (who: string) => `${who} 开始了这节课。`,
     mulaiOtomatis: "IRIS 自动开始了这节课。",
+    jamGeser: (who: string, dari: string, ke: string, al: string) =>
+      `${who} 把上课时间从 ${dari} 调到 ${ke}。${al ? `原因：${al}` : ""}`,
+    hadirStatus: (who: string, nama: string, st: string, al: string) =>
+      `${who} 把 ${nama} 的出勤改为${st}。${al ? `原因：${al}` : ""}`,
+    hadirIzin: (who: string, nama: string) => `${who} 把 ${nama} 标为 Izin。`,
+    hadirTandai: (who: string, nama: string) => `${who} 为 ${nama} 标记到场。`,
+    stHadir: {
+      ikut: "按时间自动判定",
+      tepat: "准时",
+      telat: "迟到",
+      mm: "Mangkir Mengajar",
+      mangkir: "Mangkir",
+      izin: "Izin",
+    } as Record<string, string>,
+    menit: (m: unknown) => ` ${m} 分钟`,
     akhiri: (who: string) => `${who} 结束了这节课。`,
     batal: (who: string) => `${who} 取消了这节课。`,
     lanjutkan: (who: string) => `${who} 继续了这节课。`,
@@ -145,7 +190,8 @@ export function kalimatKejadian(
       : lang === "zh"
         ? "一个组"
         : "Sebuah kelompok";
-  const by = who(k.aktorNim);
+  // The lab clock writes as "otomatis": the system, not a person.
+  const by = k.aktorNim === "otomatis" ? "IRIS" : who(k.aktorNim);
   switch (k.jenis) {
     case "catatan":
       return { tag: "asisten", teks: String(d.teks ?? "") };
@@ -200,6 +246,23 @@ export function kalimatKejadian(
           typeof d.alasan === "string" ? d.alasan : "",
         ),
       };
+    case "jam_geser":
+      return {
+        tag: "asisten",
+        teks: w.jamGeser(by, String(d.dari ?? "?"), String(d.ke ?? "?"), String(d.alasan ?? "")),
+      };
+    case "hadir_status": {
+      const st = String(d.status ?? "");
+      const nama = (w.stHadir[st] ?? st) + (st === "telat" && d.menit ? w.menit(d.menit) : "");
+      return {
+        tag: "asisten",
+        teks: w.hadirStatus(by, who(d.nim as string), nama, String(d.alasan ?? "")),
+      };
+    }
+    case "hadir_izin":
+      return { tag: "asisten", teks: w.hadirIzin(by, who(d.nim as string)) };
+    case "hadir_tandai":
+      return { tag: "asisten", teks: w.hadirTandai(by, who(d.nim as string)) };
     case "tangan":
       return { tag: "tangan", teks: w.tangan(g) };
     case "tangan_jawab": {

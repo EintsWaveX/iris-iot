@@ -1,0 +1,101 @@
+/* One person's teaching attendance (Tim drawer, Akun): counts, cuts, sessions. */
+
+.hadir-rk {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.hadir-rk__tiles {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.hadir-rk__tile {
+  background: var(--surface-2);
+  border-left: 3px solid var(--hairline);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.hadir-rk__tile b {
+  font: 800 1.4rem/1.1 var(--font-display);
+}
+
+.hadir-rk__tile span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.hadir-rk__tile[data-tone="ok"] {
+  border-left-color: var(--ok);
+}
+.hadir-rk__tile[data-tone="warn"] {
+  border-left-color: var(--warn);
+}
+.hadir-rk__tile[data-tone="danger"] {
+  border-left-color: var(--danger);
+}
+.hadir-rk__tile[data-tone="violet"] {
+  border-left-color: var(--violet);
+}
+
+.hadir-rk__line {
+  align-items: baseline;
+  border-top: 1px solid var(--hairline-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  justify-content: space-between;
+  padding-top: 10px;
+}
+
+.hadir-rk__ev {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hadir-rk__ev li {
+  border-left: 3px solid transparent;
+  border-top: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 4px 14px;
+  grid-template-columns: minmax(10ch, 16ch) minmax(0, 1fr);
+  padding: 10px 0 10px 12px;
+}
+
+.hadir-rk__ev li[data-tone="warn"] {
+  border-left-color: var(--warn);
+}
+.hadir-rk__ev li[data-tone="danger"] {
+  border-left-color: var(--danger);
+}
+.hadir-rk__ev li[data-tone="violet"] {
+  border-left-color: var(--violet);
+}
+
+.hadir-rk__tgl {
+  color: var(--text-faint);
+}
+
+@media (max-width: 520px) {
+  .hadir-rk__ev li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The session's plain report text. */
+.hadir-teks {
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 75ch;
+  overflow-wrap: anywhere;
+}

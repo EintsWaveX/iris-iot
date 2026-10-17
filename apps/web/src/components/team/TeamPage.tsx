@@ -40,6 +40,8 @@ import SegmentedControl from "../ui/SegmentedControl";
 import PersonBadges from "../ui/PersonBadges";
 import { Switch } from "../ui/Controls";
 import { getJson, HttpError, jamMenit, postJson, tanggalPanjang, useMe } from "../../lib/app";
+import HadirRingkas, { useHadirOrang } from "../reports/HadirRingkas";
+import { H } from "../reports/hadirStrings";
 import {
   DIVISI,
   HAK,
@@ -815,6 +817,7 @@ function PersonDrawer({
   const [jejak, setJejak] = useState<Jejak[] | null>(null);
   const [tanyaReset, setTanyaReset] = useState(false);
   const bisaReset = !!p.punyaSandi && bolehResetSandi(admin, sendiri, p);
+  const hadir = useHadirOrang(`nim=${encodeURIComponent(p.nim)}`);
 
   useEffect(() => {
     let alive = true;
@@ -1107,6 +1110,11 @@ function PersonDrawer({
         <section className="tim-sec">
           <h3 className="tim-sec__title">{t.slots}</h3>
           <SlotList slots={data.slotDaftar[(p.kode ?? "").toUpperCase()] ?? []} t={t} lang={lang} />
+        </section>
+
+        <section className="tim-sec">
+          <h3 className="tim-sec__title">{H[lang].teamTitle}</h3>
+          <HadirRingkas lang={lang} data={hadir} />
         </section>
 
         {bayar && <DrawerPay nim={p.nim} data={bayar} lang={lang} />}

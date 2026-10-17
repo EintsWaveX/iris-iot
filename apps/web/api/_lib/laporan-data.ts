@@ -32,6 +32,8 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { jumlahCelahModul, jumlahCelahPer, kodeModul } from "./kode-aktif.js";
 import { muatSeelabs } from "./seelabs.js";
+import { muatHadirSesi, muatInputNilai } from "./hadir-laporan.js";
+import { uraiKunci } from "./hadir-mengajar.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   anggota,
@@ -561,6 +563,23 @@ export async function handleRekapGet(req: ApiRequest, res: ApiResponse, session:
     };
   });
   const held = tugas.some((t) => t.nim === session.nim);
+  // Phase 18: teaching attendance and each group's score input. A failure
+  // here leaves the rest of the report readable.
+  const sekarang = new Date();
+  let hadirAsisten: Awaited<ReturnType<typeof muatHadirSesi>> = null;
+  let inputNilai: Awaited<ReturnType<typeof muatInputNilai>> = null;
+  try {
+    hadirAsisten = await muatHadirSesi(db, s, sekarang);
+    inputNilai = await muatInputNilai(
+      db,
+      s,
+      nomor,
+      new Map(tugas.map((t) => [t.nomor, t.nim])),
+      sekarang,
+    );
+  } catch (err) {
+    console.error("[api/session] attendance block failed:", err);
+  }
   const log = nilaiLog.map((r) => {
     let d: { nim?: string; komponen?: string } = {};
     try {
@@ -594,6 +613,8 @@ export async function handleRekapGet(req: ApiRequest, res: ApiResponse, session:
     },
     hadir: [member.filter((m) => hadir.has(m.nim)).length, member.length],
     kelompok: kelompokOut,
+    hadirAsisten,
+    inputNilai,
     catatan: catatan
       ? {
           id: catatan.id,
@@ -729,6 +750,10 @@ export async function handleAuditLaporan(req: ApiRequest, res: ApiResponse) {
     if (kId) ids.kelompok.add(kId);
     const jId = n(d.jadwalId);
     if (jId) ids.jadwal.add(jId);
+    // Phase 18 attendance lines name their slot by key.
+    const kunci = uraiKunci(d.kunci);
+    if (kunci?.jenis === "j") ids.jadwal.add(kunci.jadwalId);
+    else if (kunci?.jenis === "s") ids.sesi.add(kunci.sesiId);
     const srv = n(d.serverId) ?? (r.aksi.startsWith("server_") ? n(d.id) : null);
     if (srv) ids.server.add(srv);
   }

@@ -114,6 +114,7 @@ import {
   muatKonteks,
   pjCtx,
 } from "../_lib/hadir-mengajar.js";
+import { handleHadirRekap } from "../_lib/hadir-laporan.js";
 import { nilaiOrNull } from "../../src/lib/server-lib.js";
 import { tpDariPenilaian } from "../_lib/tp.js";
 import {
@@ -1848,6 +1849,11 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === "POST") return handleHadirkuPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
     return handleHadirkuGet(req, res, session);
+  }
+  // Phase 18 reports: the semester per person, one person, or the caller.
+  if (aksi === "hadirrekap") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleHadirRekap(req, res, session);
   }
   if (aksi === "assignment") {
     if (req.method === "POST") return handleAssignmentPost(req, res, session);

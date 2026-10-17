@@ -19,6 +19,7 @@ const BACA: Record<string, string[]> = {
     "audit",
     "beranda",
     "current",
+    "hadirrekap",
     "jurnal",
     "lab",
     "laporan",

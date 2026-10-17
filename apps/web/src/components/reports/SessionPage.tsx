@@ -38,6 +38,7 @@ import Pill from "../ui/Pill";
 import TabLine from "../ui/TabLine";
 import ErrorView from "../ui/ErrorView";
 import { AddIncident, IncidentList, useKejadian } from "./Incidents";
+import HadirSesi, { type HadirSesiData, type InputNilaiData } from "./HadirSesi";
 import { type Format, ekspor, jamWib, kirim, tanggalWib } from "./data";
 import type { Tx } from "./strings";
 import { useSiaran } from "../../lib/siaran";
@@ -70,6 +71,8 @@ interface Rekap {
   };
   hadir: [number, number];
   kelompok: KelompokRekap[];
+  hadirAsisten: HadirSesiData | null;
+  inputNilai: InputNilaiData[] | null;
   catatan: { id: number; teks: string; oleh: string; pada: string } | null;
   nilaiLog: { pada: string; oleh: string; nim: string | null; komponen: string | null }[];
   lab: Ringkasan;
@@ -129,7 +132,7 @@ export default function SessionPage({
         ?.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
   }, [data]);
-  useSiaran(["sesi", "nilai", "laporan", "umpan"], () => void load());
+  useSiaran(["sesi", "nilai", "laporan", "umpan", "hadir"], () => void load());
   const load = useCallback(async () => {
     try {
       const d = await getJson<{ ok: boolean; kode?: string } & Rekap>(
@@ -323,6 +326,14 @@ export default function SessionPage({
           </section>
         ))}
       </div>
+
+      <HadirSesi
+        hadir={data.hadirAsisten ?? null}
+        nilai={data.inputNilai ?? null}
+        sesi={s}
+        lang={lang}
+        dir={dir}
+      />
 
       <TabLine
         label={t.sessReport}

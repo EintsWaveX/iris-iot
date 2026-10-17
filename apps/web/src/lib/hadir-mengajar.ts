@@ -144,3 +144,252 @@ export function akhirSesiMaks(tanggal: string, slot: number | null, mulaiPada: D
   const sisa = Math.floor((berikut.getTime() - mulaiPada.getTime()) / 60000);
   return Math.max(SESI_MIN_MENIT, Math.min(SESI_CAP_MENIT, sisa));
 }
+
+/* --------------------------------------------------------------- reports */
+
+/** One person's counts over a set of sessions (Laporan, Tim, Akun). */
+export interface RingkasOrang {
+  tepat: number;
+  telat: number;
+  mm: number;
+  mangkir: number;
+  izin: number;
+  /** Money cut for Telat and for an uncounted Mangkir Mengajar. */
+  potong: number;
+  /** Sessions whose units were set to zero (Mangkir, or a counted Mangkir Mengajar). */
+  sesiNol: number;
+}
+
+export const RINGKAS_KOSONG: Readonly<RingkasOrang> = {
+  tepat: 0,
+  telat: 0,
+  mm: 0,
+  mangkir: 0,
+  izin: 0,
+  potong: 0,
+  sesiNol: 0,
+};
+
+/** Counts statuses per person; `lepas` (not expected) and the still-running states count nothing. */
+export function ringkasHadir(
+  baris: { nim: string; status: StatusLive; potong: number; nolkanUnit: boolean }[],
+): Map<string, RingkasOrang> {
+  const out = new Map<string, RingkasOrang>();
+  for (const b of baris) {
+    const r = out.get(b.nim) ?? { ...RINGKAS_KOSONG };
+    out.set(b.nim, r);
+    if (
+      b.status === "tepat" ||
+      b.status === "telat" ||
+      b.status === "mm" ||
+      b.status === "mangkir" ||
+      b.status === "izin"
+    ) {
+      r[b.status] += 1;
+      r.potong += b.potong;
+      if (b.nolkanUnit) r.sesiNol += 1;
+    }
+  }
+  return out;
+}
+
+type LangHadir = "id" | "en" | "zh";
+
+export interface TeksHadirOrang {
+  kode: string;
+  status: StatusLive;
+  menit: number | null;
+  /** Check-in time, "HH:MM", or null when they never checked in. */
+  jam: string | null;
+  potong: number;
+  /** Whether a Mangkir Mengajar counts as Mangkir (the PJ's switch); on when absent. */
+  hitungMangkir?: boolean;
+  /** Groups of this person that someone else took over, and when. */
+  ambilAlih?: { kode: string; nomor: number | null; jam: string }[];
+  /** A PJ's change of this status, with the reason. */
+  ubah?: { oleh: string; alasan: string } | null;
+}
+
+export interface TeksHadirMasukan {
+  lang: LangHadir;
+  /** The long date, the session, module and class, already in the page language. */
+  tanggal: string;
+  sesi: string;
+  modul: string;
+  kelas: string;
+  /** "12:25" when IRIS started the session by itself. */
+  mulaiOtomatis: string | null;
+  geser: { dari: string; ke: string; alasan: string } | null;
+  orang: TeksHadirOrang[];
+  /** Each group's score input; null leaves the sentence out (the session is not over). */
+  nilai: { nomor: number; lupa: boolean; menyusul: string | null }[] | null;
+}
+
+/** "1 to 3", "4 and 5", "1, 3 and 5": numbers for a sentence, a run of three or more folded. */
+export function daftarNomor(nomor: number[], lang: LangHadir): string {
+  const urut = [...new Set(nomor)].sort((a, b) => a - b);
+  const sampai = { id: " sampai ", en: " to ", zh: "至" }[lang];
+  const dan = { id: " dan ", en: " and ", zh: "和" }[lang];
+  const koma = lang === "zh" ? "、" : ", ";
+  const bagian: string[] = [];
+  for (let i = 0; i < urut.length;) {
+    let j = i;
+    while (j + 1 < urut.length && urut[j + 1] === urut[j] + 1) j++;
+    if (j - i >= 2) {
+      bagian.push(`${urut[i]}${sampai}${urut[j]}`);
+      i = j + 1;
+    } else {
+      bagian.push(String(urut[i]));
+      i++;
+    }
+  }
+  if (bagian.length <= 1) return bagian.join("");
+  return bagian.slice(0, -1).join(koma) + dan + bagian[bagian.length - 1];
+}
+
+const rpTeks = (n: number) => `Rp${Math.round(n).toLocaleString("id-ID")}`;
+
+/** One person's sentence, without its full stop. */
+function kalimatOrang(o: TeksHadirOrang, lang: LangHadir): string {
+  const jam = o.jam ? ` ${o.jam}` : "";
+  const lama = o.menit ?? 0;
+  let s: string;
+  switch (o.status) {
+    case "tepat":
+      s = {
+        id: `${o.kode} tepat waktu${jam}`,
+        en: `${o.kode} on time${jam}`,
+        zh: `${o.kode} 准时${jam}`,
+      }[lang];
+      break;
+    case "telat": {
+      const rp = o.potong > 0 ? rpTeks(o.potong) : "";
+      s = {
+        id: `${o.kode} telat ${lama} menit${jam}${rp ? `, potong ${rp}` : ""}`,
+        en: `${o.kode} ${lama} minutes late${jam}${rp ? `, ${rp} off` : ""}`,
+        zh: `${o.kode} 迟到 ${lama} 分钟${jam}${rp ? `，扣 ${rp}` : ""}`,
+      }[lang];
+      break;
+    }
+    case "mm": {
+      const rp = rpTeks(o.potong);
+      s =
+        o.hitungMangkir !== false
+          ? {
+              id: `${o.kode} Mangkir Mengajar${jam}, dihitung Mangkir`,
+              en: `${o.kode} Mangkir Mengajar${jam}, counted as Mangkir`,
+              zh: `${o.kode} Mangkir Mengajar${jam}，按 Mangkir 计`,
+            }[lang]
+          : {
+              id: `${o.kode} Mangkir Mengajar${jam}, potong ${rp}`,
+              en: `${o.kode} Mangkir Mengajar${jam}, ${rp} off`,
+              zh: `${o.kode} Mangkir Mengajar${jam}，扣 ${rp}`,
+            }[lang];
+      break;
+    }
+    case "mangkir":
+      s = `${o.kode} Mangkir`;
+      break;
+    case "izin":
+      s = `${o.kode} Izin`;
+      break;
+    default:
+      s = {
+        id: `${o.kode} belum hadir`,
+        en: `${o.kode} not here yet`,
+        zh: `${o.kode} 还没到`,
+      }[lang];
+  }
+  for (const a of o.ambilAlih ?? []) {
+    const g = a.nomor === null ? "" : String(a.nomor);
+    s += {
+      id: `, ${g ? `kelompok ${g}` : "kelompoknya"} diambil alih ${a.kode} ${a.jam}`,
+      en: `, ${a.kode} took over ${g ? `group ${g}` : "the group"} at ${a.jam}`,
+      zh: `，${a.kode} ${a.jam} 接手了${g ? `第 ${g} 组` : "这个组"}`,
+    }[lang];
+  }
+  return s;
+}
+
+/** The score-input sentence: groups done that day, and the ones recorded as Lupa Input Nilai. */
+function kalimatNilai(nilai: NonNullable<TeksHadirMasukan["nilai"]>, lang: LangHadir): string {
+  const nama = (n: number[]) =>
+    ({
+      id: `Kelompok ${daftarNomor(n, lang)}`,
+      en: `${n.length === 1 ? "group" : "groups"} ${daftarNomor(n, lang)}`,
+      zh: `第 ${daftarNomor(n, lang)} 组`,
+    })[lang];
+  const klausa: string[] = [];
+  const selesai = nilai.filter((x) => !x.lupa).map((x) => x.nomor);
+  if (selesai.length)
+    klausa.push(
+      `${nama(selesai)} ${{ id: "selesai hari itu", en: "done that day", zh: "当天完成" }[lang]}`,
+    );
+  const perAkhir = new Map<string, number[]>();
+  for (const x of nilai.filter((y) => y.lupa))
+    perAkhir.set(x.menyusul ?? "", [...(perAkhir.get(x.menyusul ?? "") ?? []), x.nomor]);
+  for (const [menyusul, n] of perAkhir) {
+    const akhir = menyusul
+      ? {
+          id: `diinput menyusul ${menyusul}`,
+          en: `put in late ${menyusul}`,
+          zh: `${menyusul} 补录`,
+        }[lang]
+      : { id: "belum diinput", en: "not put in yet", zh: "还没有录入" }[lang];
+    klausa.push(`${nama(n)} Lupa Input Nilai, ${akhir}`);
+  }
+  const awal = { id: "Input Nilai: ", en: "Score input: ", zh: "分数录入：" }[lang];
+  return awal + klausa.join(lang === "zh" ? "；" : "; ");
+}
+
+/**
+ * The plain report sentence for one session (Laporan, "Salin Teks Laporan"),
+ * like the other written reports: attendance first, then score input. No em
+ * or en dashes: the report is pasted into chats and documents.
+ */
+export function teksLaporanHadir(m: TeksHadirMasukan): string {
+  const { lang } = m;
+  const akhir = lang === "zh" ? "。" : ".";
+  const bagian: string[] = [];
+  const tambah = (s: string) => bagian.push(s + akhir);
+
+  tambah(
+    {
+      id: `Kehadiran Asisten untuk ${m.tanggal}, ${m.sesi} (${m.modul}, ${m.kelas})`,
+      en: `Asisten attendance for ${m.tanggal}, ${m.sesi} (${m.modul}, ${m.kelas})`,
+      zh: `助教出勤 ${m.tanggal}，${m.sesi}（${m.modul}，${m.kelas}）`,
+    }[lang],
+  );
+  if (m.mulaiOtomatis)
+    tambah(
+      {
+        id: `Dimulai otomatis oleh IRIS ${m.mulaiOtomatis}`,
+        en: `Started by IRIS at ${m.mulaiOtomatis}`,
+        zh: `IRIS 在 ${m.mulaiOtomatis} 自动开始`,
+      }[lang],
+    );
+  if (m.geser)
+    tambah(
+      {
+        id: `Jam digeser dari ${m.geser.dari} ke ${m.geser.ke} (${m.geser.alasan})`,
+        en: `Clock moved from ${m.geser.dari} to ${m.geser.ke} (${m.geser.alasan})`,
+        zh: `时间从 ${m.geser.dari} 调到 ${m.geser.ke}（${m.geser.alasan}）`,
+      }[lang],
+    );
+  else tambah({ id: "Jam tidak digeser", en: "Clock not moved", zh: "时间未调整" }[lang]);
+
+  for (const o of m.orang) {
+    if (o.status === "lepas") continue;
+    tambah(kalimatOrang(o, lang));
+    if (o.ubah)
+      tambah(
+        {
+          id: `Diubah PJ ${o.ubah.oleh}: ${o.ubah.alasan}`,
+          en: `Changed by PJ ${o.ubah.oleh}: ${o.ubah.alasan}`,
+          zh: `PJ ${o.ubah.oleh} 已修改：${o.ubah.alasan}`,
+        }[lang],
+      );
+  }
+  if (m.nilai && m.nilai.length) tambah(kalimatNilai(m.nilai, lang));
+  return bagian.join(lang === "zh" ? "" : " ");
+}

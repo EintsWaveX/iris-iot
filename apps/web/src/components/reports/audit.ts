@@ -6,7 +6,10 @@
  */
 import type { Icon } from "@phosphor-icons/react";
 import {
+  ArrowCounterClockwiseIcon,
   ArrowsClockwiseIcon,
+  CheckCircleIcon,
+  ClockIcon,
   FlagCheckeredIcon,
   ChalkboardTeacherIcon,
   BankIcon,
@@ -203,6 +206,33 @@ const W = {
     sandiAtur: "mengatur kata sandinya",
     sandiGanti: "mengganti kata sandinya",
     sandiReset: (who: string) => `mereset kata sandi ${who}`,
+    otomatisMulai: ", otomatis oleh IRIS",
+    hadirMasuk: (s: string, jam: string) =>
+      `mencatat dirinya hadir mengajar di ${s}${jam ? ` pukul ${jam}` : ""}`,
+    hadirBatal: (s: string) => `membatalkan catatan hadirnya di ${s}`,
+    hadirGeser: (s: string, dari: unknown, ke: unknown, al: string) =>
+      `menggeser jam sesi ${s} dari ${dari} ke ${ke}${al ? `. Alasan: ${al}` : ""}`,
+    hadirIzin: (who: string, s: string) => `menandai ${who} Izin di ${s}`,
+    hadirStatus: (who: string, s: string, st: string, al: string) =>
+      `mengubah status hadir ${who} di ${s} jadi ${st}${al ? `. Alasan: ${al}` : ""}`,
+    hadirTandai: (who: string, s: string) => `menandai ${who} hadir di ${s}`,
+    potonganTarif: (rp: string, maks: unknown, mulai: string) =>
+      `mengatur potongan telat ${rp} per menit, paling banyak ${maks} menit, mulai ${mulai}`,
+    otomatisTolak: (s: string, sebab: string) => `tidak bisa memulai ${s} otomatis: ${sebab}`,
+    sebab: {
+      mode_tot: "Mode TOT sedang aktif",
+      modul: "modulnya masih ditutup",
+      lain: "alasan lain",
+    },
+    stHadir: {
+      ikut: "mengikuti jam",
+      tepat: "Tepat Waktu",
+      telat: "Telat",
+      mm: "Mangkir Mengajar",
+      mangkir: "Mangkir",
+      izin: "Izin",
+    } as Record<string, string>,
+    stMenit: (m: unknown) => ` ${m} Menit`,
     konsol: "memakai Konsol PC Server",
     perburuan: (mulai: boolean) =>
       mulai ? "memulai perburuan Modul 4" : "menyelesaikan perburuan Modul 4",
@@ -350,6 +380,32 @@ const W = {
     sandiAtur: "set their password",
     sandiGanti: "changed their password",
     sandiReset: (who: string) => `reset ${who}'s password`,
+    otomatisMulai: ", started by IRIS itself",
+    hadirMasuk: (s: string, jam: string) => `checked in to teach at ${s}${jam ? ` at ${jam}` : ""}`,
+    hadirBatal: (s: string) => `took back their check in at ${s}`,
+    hadirGeser: (s: string, dari: unknown, ke: unknown, al: string) =>
+      `moved the session clock of ${s} from ${dari} to ${ke}${al ? `. Reason: ${al}` : ""}`,
+    hadirIzin: (who: string, s: string) => `marked ${who} as Izin at ${s}`,
+    hadirStatus: (who: string, s: string, st: string, al: string) =>
+      `changed ${who}'s attendance at ${s} to ${st}${al ? `. Reason: ${al}` : ""}`,
+    hadirTandai: (who: string, s: string) => `checked ${who} in at ${s}`,
+    potonganTarif: (rp: string, maks: unknown, mulai: string) =>
+      `set the late cut to ${rp} a minute, at most ${maks} minutes, from ${mulai}`,
+    otomatisTolak: (s: string, sebab: string) => `couldn't start ${s} by itself: ${sebab}`,
+    sebab: {
+      mode_tot: "TOT Mode is on",
+      modul: "the module is still closed",
+      lain: "another reason",
+    },
+    stHadir: {
+      ikut: "following the clock",
+      tepat: "On Time",
+      telat: "Late",
+      mm: "Mangkir Mengajar",
+      mangkir: "Mangkir",
+      izin: "Izin",
+    } as Record<string, string>,
+    stMenit: (m: unknown) => ` ${m} Minutes`,
     konsol: "used the PC Server Console",
     perburuan: (mulai: boolean) =>
       mulai ? "started the Module 4 hunt" : "ended the Module 4 hunt",
@@ -491,6 +547,28 @@ const W = {
     sandiAtur: "设置了密码",
     sandiGanti: "修改了密码",
     sandiReset: (who: string) => `重置了 ${who} 的密码`,
+    otomatisMulai: "，由 IRIS 自动开始",
+    hadirMasuk: (s: string, jam: string) => `在 ${s} 签到授课${jam ? `（${jam}）` : ""}`,
+    hadirBatal: (s: string) => `撤销了在 ${s} 的签到`,
+    hadirGeser: (s: string, dari: unknown, ke: unknown, al: string) =>
+      `把 ${s} 的上课时间从 ${dari} 调到 ${ke}${al ? `。原因：${al}` : ""}`,
+    hadirIzin: (who: string, s: string) => `把 ${who} 在 ${s} 标为 Izin`,
+    hadirStatus: (who: string, s: string, st: string, al: string) =>
+      `把 ${who} 在 ${s} 的出勤改为${st}${al ? `。原因：${al}` : ""}`,
+    hadirTandai: (who: string, s: string) => `在 ${s} 为 ${who} 标记到场`,
+    potonganTarif: (rp: string, maks: unknown, mulai: string) =>
+      `把迟到扣款设为每分钟 ${rp}，最多 ${maks} 分钟，从 ${mulai} 起`,
+    otomatisTolak: (s: string, sebab: string) => `没能自动开始 ${s}：${sebab}`,
+    sebab: { mode_tot: "TOT 模式已开启", modul: "模块还没有开放", lain: "其他原因" },
+    stHadir: {
+      ikut: "按时间自动判定",
+      tepat: "准时",
+      telat: "迟到",
+      mm: "Mangkir Mengajar",
+      mangkir: "Mangkir",
+      izin: "Izin",
+    } as Record<string, string>,
+    stMenit: (m: unknown) => ` ${m} 分钟`,
     konsol: "使用了 PC 服务器控制台",
     perburuan: (mulai: boolean) => (mulai ? "开始了模块 4 的寻踪" : "结束了模块 4 的寻踪"),
     konsolTarget: (t: unknown) =>
@@ -598,6 +676,28 @@ export function bantuAudit(
   };
 }
 
+/** The slot a Phase 18 attendance line names: "j:<jadwalId>:<date>" or "s:<sesiId>". */
+function slotKunci(b: Bantu, kunci: unknown): string {
+  const m =
+    typeof kunci === "string" ? /^(?:j:(\d+):(\d{4}-\d{2}-\d{2})|s:(\d+))$/.exec(kunci) : null;
+  if (!m) return b.lang === "en" ? "a slot" : b.lang === "zh" ? "一个时段" : "sebuah slot";
+  return m[3] ? b.sesi(m[3]) : b.slot(m[1], m[2]);
+}
+
+/** "12:41" in lab time from an ISO instant. */
+function jamDariIso(iso: unknown): string {
+  if (typeof iso !== "string") return "";
+  const t = new Date(iso);
+  return Number.isNaN(t.getTime())
+    ? ""
+    : t.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Jakarta",
+      });
+}
+
 /** "PK-0007", as the Konsol Pi summary card names it. */
 const pk = (id: unknown) => `PK-${String(Number(id) || 0).padStart(4, "0")}`;
 
@@ -630,6 +730,7 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
         PlayIcon,
         w.sesiMulai(m, sfx) +
           (d.jenis === "tot" ? w.tot : "") +
+          (d.otomatis === true ? w.otomatisMulai : "") +
           (paksa ? w.paksa(String(paksa.alasan ?? "")) : ""),
         !!paksa,
       );
@@ -876,6 +977,46 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(KeyIcon, w.sandiGanti);
     case "sandi_direset":
       return k(KeyIcon, w.sandiReset(b.who(d.nim)));
+    case "hadir_masuk":
+      return k(CheckCircleIcon, w.hadirMasuk(slotKunci(b, d.kunci), jamDariIso(d.hadirPada)));
+    case "hadir_batal":
+      return k(ArrowCounterClockwiseIcon, w.hadirBatal(slotKunci(b, d.kunci)));
+    case "hadir_geser":
+      return k(
+        ClockIcon,
+        w.hadirGeser(slotKunci(b, d.kunci), d.dari, d.ke, String(d.alasan ?? "")),
+      );
+    case "hadir_izin":
+      return k(UserSwitchIcon, w.hadirIzin(b.who(d.nim), slotKunci(b, d.kunci)));
+    case "hadir_status": {
+      const st = String(d.status ?? "");
+      const nama = (w.stHadir[st] ?? st) + (st === "telat" && d.menit ? w.stMenit(d.menit) : "");
+      return k(
+        PencilSimpleIcon,
+        w.hadirStatus(b.who(d.nim), slotKunci(b, d.kunci), nama, String(d.alasan ?? "")),
+      );
+    }
+    case "hadir_tandai":
+      return k(CheckCircleIcon, w.hadirTandai(b.who(d.nim), slotKunci(b, d.kunci)));
+    case "potongan_tarif":
+      return k(
+        CoinsIcon,
+        w.potonganTarif(
+          `Rp${(Number(d.perMenit) || 0).toLocaleString("id-ID")}`,
+          d.maks,
+          typeof d.berlakuMulai === "string" ? tanggalPanjang(d.berlakuMulai, b.lang) : "?",
+        ),
+      );
+    case "sesi_otomatis_tolak": {
+      const kode = String(d.kode ?? "");
+      const sebab =
+        kode === "mode_tot"
+          ? w.sebab.mode_tot
+          : kode.startsWith("modul")
+            ? w.sebab.modul
+            : w.sebab.lain;
+      return k(WarningIcon, w.otomatisTolak(b.slot(d.jadwalId, d.tanggal), sebab), true);
+    }
     case "konsol_minta":
       return k(
         TerminalWindowIcon,
