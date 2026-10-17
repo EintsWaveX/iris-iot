@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   daftarNomor,
+  nilaiUntukTeks,
   ringkasHadir,
   teksLaporanHadir,
   type TeksHadirMasukan,
@@ -163,5 +164,20 @@ describe("ringkasHadir", () => {
       potong: 0,
       sesiNol: 0,
     });
+  });
+
+  it("leaves a still-open group out of the score sentence", () => {
+    const n = nilaiUntukTeks(
+      [
+        { nomor: 1, status: "tepat", menyusulPada: null },
+        { nomor: 2, status: "terbuka", menyusulPada: null },
+        { nomor: 3, status: "menyusul", menyusulPada: "2026-10-23T01:00:00Z" },
+      ],
+      () => "08:00",
+    );
+    expect(n).toEqual([
+      { nomor: 1, lupa: false, menyusul: null },
+      { nomor: 3, lupa: true, menyusul: "08:00" },
+    ]);
   });
 });

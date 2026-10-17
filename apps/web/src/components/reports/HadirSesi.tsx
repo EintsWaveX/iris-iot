@@ -8,7 +8,7 @@ import { tanggalPanjang } from "../../lib/app";
 import { kelasLabel, kelompokLabel, modulLabel } from "../../lib/labels";
 import type { Kelas, Lang } from "../../lib/kelas";
 import type { StatusLive } from "../../lib/hadir-mengajar";
-import { teksLaporanHadir } from "../../lib/hadir-mengajar";
+import { nilaiUntukTeks, teksLaporanHadir } from "../../lib/hadir-mengajar";
 import type { Direktori } from "../../lib/people";
 import Pill from "../ui/Pill";
 import { jamWib, tanggalWib } from "./data";
@@ -107,13 +107,7 @@ export default function HadirSesi({
               : null,
         })),
         nilai:
-          selesai && nilai
-            ? nilai.map((n) => ({
-                nomor: n.nomor,
-                lupa: n.status === "lupa" || n.status === "menyusul",
-                menyusul: n.menyusulPada ? waktu(n.menyusulPada, sesi.tanggal, lang) : null,
-              }))
-            : null,
+          selesai && nilai ? nilaiUntukTeks(nilai, (iso) => waktu(iso, sesi.tanggal, lang)) : null,
       })
     : "";
 

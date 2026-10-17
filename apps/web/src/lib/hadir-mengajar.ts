@@ -225,6 +225,28 @@ export interface TeksHadirMasukan {
   nilai: { nomor: number; lupa: boolean; menyusul: string | null }[] | null;
 }
 
+/**
+ * The sentence's score rows from a session's Input Nilai rows: a group still
+ * open (its deadline not passed) is left out, as it is neither done nor
+ * recorded as Lupa Input Nilai.
+ */
+export function nilaiUntukTeks(
+  rows: {
+    nomor: number;
+    status: "tepat" | "menyusul" | "lupa" | "terbuka";
+    menyusulPada: string | null;
+  }[],
+  waktu: (iso: string) => string,
+): NonNullable<TeksHadirMasukan["nilai"]> {
+  return rows
+    .filter((n) => n.status !== "terbuka")
+    .map((n) => ({
+      nomor: n.nomor,
+      lupa: n.status === "lupa" || n.status === "menyusul",
+      menyusul: n.menyusulPada ? waktu(n.menyusulPada) : null,
+    }));
+}
+
 /** "1 to 3", "4 and 5", "1, 3 and 5": numbers for a sentence, a run of three or more folded. */
 export function daftarNomor(nomor: number[], lang: LangHadir): string {
   const urut = [...new Set(nomor)].sort((a, b) => a - b);
