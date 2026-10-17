@@ -42,6 +42,13 @@ export const LevelField = forwardRef<
   const [open, setOpen] = useState(false);
   // The digits typed since focus: "8" then "0" stays 80, "4" then "5" 45.
   const ketik = useRef("");
+  const digit = (d: string) => {
+    const terus = ketik.current + d;
+    const lanjut = TINGKAT.find((n) => String(n).startsWith(terus));
+    ketik.current = lanjut !== undefined ? terus : d;
+    const pilih = lanjut !== undefined ? String(lanjut) : DARI_DIGIT[d];
+    if (pilih) onValue(pilih);
+  };
   const dialogHost = useDialogHost();
   const teks = r.level[komponen];
   const sekarang = value !== "" ? teks?.[Number(value) as (typeof TINGKAT)[number]] : undefined;
@@ -72,17 +79,26 @@ export const LevelField = forwardRef<
               onKeyDown={(e) => {
                 if (!ro && /^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
                   e.preventDefault();
-                  const terus = ketik.current + e.key;
-                  const lanjut = TINGKAT.find((n) => String(n).startsWith(terus));
-                  ketik.current = lanjut !== undefined ? terus : e.key;
-                  const pilih = lanjut !== undefined ? String(lanjut) : DARI_DIGIT[e.key];
-                  if (pilih) onValue(pilih);
+                  digit(e.key);
+                } else if (e.key !== "Unidentified" && e.key !== "Process") {
+                  // Backspace, Delete or any other key: the next digit starts afresh.
+                  ketik.current = "";
                 }
                 onKeyDown?.(e);
               }}
-              onValue={(x) => {
-                if (x === "" || x.length < value.length) onValue("");
+              // What still reaches the text: a delete clears, and a digit from a
+              // soft keyboard that sends no key (Android "Unidentified") is read
+              // here through the same logic. The text itself only follows `value`.
+              onInput={(e) => {
+                const ev = e.nativeEvent as InputEvent;
+                const hapus = ev.inputType ? ev.inputType.startsWith("delete") : !ev.data;
+                if (hapus) {
+                  ketik.current = "";
+                  return onValue("");
+                }
+                for (const d of (ev.data ?? "").replace(/[^0-9]/g, "")) digit(d);
               }}
+              onValue={() => {}}
             />
           </Tooltip>
         </span>
