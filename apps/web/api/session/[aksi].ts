@@ -1236,7 +1236,14 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
             ne(nilai.komponen, "TP"),
           ),
         );
-      await l1SistemTerkirim([nim]);
+      // An L1 typed while the member was marked stays; only a missing one
+      // gets the system's value back.
+      const l1Ada = await db
+        .select({ id: nilai.id })
+        .from(nilai)
+        .where(and(eq(nilai.sesiId, sesiId), eq(nilai.nim, nim), eq(nilai.komponen, "L1")))
+        .limit(1);
+      if (!l1Ada.length) await l1SistemTerkirim([nim]);
     }
     await writeAudit(session.nim, "nilai_absen", { sesiId, nim, absen });
     res.status(200).json({ ok: true });

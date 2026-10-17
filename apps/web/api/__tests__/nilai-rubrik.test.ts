@@ -14,11 +14,19 @@ type Tulis = {
 const ditulis: Tulis[] = [];
 /** Reads answer group 1 as sent (Kirim Nilai) when set, else group 99. */
 let terkirim = false;
+/** Reads from nilai find an L1 row left behind when set. */
+let l1Tersisa = false;
+/** Set once the schema is loaded. */
+let tabelNilai: unknown = null;
 
 function chain(tulis?: Tulis): unknown {
   const p: Record<string, unknown> = {};
-  for (const m of ["select", "from", "limit", "orderBy", "innerJoin", "leftJoin", "set"])
-    p[m] = () => p;
+  let dari: unknown = null;
+  p.from = (t: unknown) => {
+    dari = t;
+    return p;
+  };
+  for (const m of ["select", "limit", "orderBy", "innerJoin", "leftJoin", "set"]) p[m] = () => p;
   p.where = (w: unknown) => {
     if (tulis) tulis.where = w;
     return p;
@@ -38,7 +46,7 @@ function chain(tulis?: Tulis): unknown {
   // Every read answers one row that satisfies the group and session lookups.
   p.then = (ok: (v: unknown) => unknown) =>
     ok(
-      tulis
+      tulis || (dari === tabelNilai && !l1Tersisa)
         ? []
         : [
             {
@@ -85,6 +93,7 @@ vi.mock("../../src/lib/auth", async (orig) => ({
 
 const { default: handler } = await import("../session/[aksi]");
 const { nilai } = await import("../../src/lib/schema");
+tabelNilai = nilai;
 
 async function kirim(body: Record<string, unknown>) {
   const res = {
@@ -111,6 +120,7 @@ const nilaiTulis = () => ditulis.filter((t) => t.tabel === nilai);
 beforeEach(() => {
   ditulis.length = 0;
   terkirim = false;
+  l1Tersisa = false;
 });
 
 describe("score validation by rubric", () => {
@@ -188,5 +198,12 @@ describe("score validation by rubric", () => {
     expect((await kirim({ sesiId: 5, nim: "A1", absen: false })).ok).toBe(true);
     expect(nilaiTulis()[0]?.jenis).toBe("delete");
     expect(l1Sistem()).toHaveLength(1);
+  });
+
+  it("unmarking Tidak Hadir keeps an L1 typed while the member was marked", async () => {
+    terkirim = true;
+    l1Tersisa = true;
+    expect((await kirim({ sesiId: 5, nim: "A1", absen: false })).ok).toBe(true);
+    expect(nilaiTulis().filter((t) => t.jenis === "insert")).toHaveLength(0);
   });
 });
