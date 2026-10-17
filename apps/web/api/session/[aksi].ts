@@ -1104,8 +1104,9 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse, session: Sessio
  *  `nims` instead of `nim` writes the same field for several Praktikan (Sama
  *  Rata), refused whole if any of them is not the caller's to score.
  *  `absen` instead of komponen and skor marks one Praktikan Tidak Hadir:
- *  every field becomes 0, still editable. Taking the mark off removes the
- *  fields that are still 0, so the row is empty again, not graded. */
+ *  every field but TP becomes 0, still editable (TP stays as it is, or 0 when
+ *  there is none). Taking the mark off removes the fields that are still 0,
+ *  except TP, so the row is empty again, not graded. */
 async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const body = jsonBody(req);
   const sesiId = Number(body.sesiId);
@@ -1168,14 +1169,34 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
         .insert(nilaiAbsen)
         .values({ sesiId, nim, ditandaiOleh: session.nim })
         .onConflictDoNothing();
-      await simpanNilai(db, sesiId, [nim], [...NILAI_KOMPONEN], 0, session.nim);
+      // TP is homework handed in before the session, so Tidak Hadir keeps it
+      // (user, 2026-10-17): only a member with no TP row gets a 0 there.
+      await simpanNilai(
+        db,
+        sesiId,
+        [nim],
+        NILAI_KOMPONEN.filter((k) => k !== "TP"),
+        0,
+        session.nim,
+      );
+      await db
+        .insert(nilai)
+        .values({ sesiId, nim, komponen: "TP", skor: 0, diubahOleh: session.nim })
+        .onConflictDoNothing();
     } else {
       await db
         .delete(nilaiAbsen)
         .where(and(eq(nilaiAbsen.sesiId, sesiId), eq(nilaiAbsen.nim, nim)));
       await db
         .delete(nilai)
-        .where(and(eq(nilai.sesiId, sesiId), eq(nilai.nim, nim), eq(nilai.skor, 0)));
+        .where(
+          and(
+            eq(nilai.sesiId, sesiId),
+            eq(nilai.nim, nim),
+            eq(nilai.skor, 0),
+            ne(nilai.komponen, "TP"),
+          ),
+        );
     }
     await writeAudit(session.nim, "nilai_absen", { sesiId, nim, absen });
     res.status(200).json({ ok: true });

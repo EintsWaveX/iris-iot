@@ -443,7 +443,10 @@ export function useNilaiLive(
       [nim],
       (s) => {
         for (const c of komponen) {
-          if (on) s[c] = 0;
+          // TP stays through Tidak Hadir, as on the server.
+          if (c === "TP") {
+            if (on && s[c] === undefined) s[c] = 0;
+          } else if (on) s[c] = 0;
           else if (s[c] === 0) delete s[c];
         }
       },
