@@ -20,7 +20,7 @@ import { jsonBody } from "./http.js";
 import { ALASAN_MIN, catatKejadian } from "./berjalan.js";
 import { muatOrang, type OrangHak } from "./hak.js";
 import { muatLupaSaya, muatNilaiTerbuka } from "./lupa-nilai.js";
-import { muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
+import { bayarUlangSlot, muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
 import { konteksModul } from "./pasangan-modul.js";
 import { getDb } from "../../src/lib/db.js";
 import {
@@ -198,8 +198,16 @@ interface Konteks {
   orang: Map<string, { nim: string; kode: string; nama: string }>;
 }
 
-/** Loads everything the rule needs about one slot; null when the key names nothing. */
-export async function muatKonteks(db: Db, kunci: string): Promise<Konteks | null> {
+/**
+ * Loads everything the rule needs about one slot; null when the key names
+ * nothing. `pemegangSekarang`: a Susulan's expected people from who holds a
+ * group now even once it runs (only its start, which writes them down).
+ */
+export async function muatKonteks(
+  db: Db,
+  kunci: string,
+  opsi: { pemegangSekarang?: boolean } = {},
+): Promise<Konteks | null> {
   const u = uraiKunci(kunci);
   if (!u) return null;
   const semua = await db
@@ -298,12 +306,24 @@ export async function muatKonteks(db: Db, kunci: string): Promise<Konteks | null
         .where(and(eq(sesiKejadian.sesiId, s.id), eq(sesiKejadian.jenis, "mulai")))
         .limit(1);
   const pembuat = dibuat?.nim ?? pembuka?.nim ?? null;
-  const pegang = await db
-    .select({ nim: sesiAsisten.asistenNim })
-    .from(sesiAsisten)
-    .where(eq(sesiAsisten.sesiId, s.id));
-  const diharapkan = new Set(pegang.map((p) => p.nim));
-  if (pembuat) diharapkan.add(pembuat);
+  // Until it starts, whoever holds a group now and its creator. From the
+  // start on, the people its start wrote down (pastikanBaris): a cover who
+  // takes over later, or a group moved after the end, is never judged.
+  let diharapkan: Set<string>;
+  if (s.status === "terjadwal" || opsi.pemegangSekarang) {
+    const pegang = await db
+      .select({ nim: sesiAsisten.asistenNim })
+      .from(sesiAsisten)
+      .where(eq(sesiAsisten.sesiId, s.id));
+    diharapkan = new Set(pegang.map((p) => p.nim));
+    if (pembuat) diharapkan.add(pembuat);
+  } else {
+    const tercatat = await db
+      .select({ nim: hadirMengajar.nim, diharapkan: hadirMengajar.diharapkan })
+      .from(hadirMengajar)
+      .where(and(eq(hadirMengajar.kunci, kunci), eq(hadirMengajar.diharapkan, true)));
+    diharapkan = new Set(tercatat.filter((r) => r.diharapkan).map((r) => r.nim));
+  }
   const normal = baseSusulan(s.mulai);
   return {
     kunci,
@@ -722,6 +742,8 @@ export async function catatIzinPj(
         status: sql`CASE WHEN ${izin.status} = 'dibatalkan' THEN 'aktif' ELSE ${izin.status} END`,
       },
     });
+  // An Izin given after the session ended changes its Bayar.
+  await bayarUlangSlot(db, p.jadwalId, p.tanggal);
 }
 
 /* ------------------------------------------------------------- handlers */

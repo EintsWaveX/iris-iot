@@ -807,6 +807,31 @@ async function pindahSlot(
   res.status(200).json({ ok: true, id: asal.id });
 }
 
+/**
+ * A seat or Izin changed for a date whose session of this slot already
+ * ended: its Bayar stamp is cleared, so the lazy rebuild (api/_lib/bayar.ts
+ * reads a null bayar_sinkron_pada) judges it again with the new people.
+ */
+export async function bayarUlangSlot(db: Db, jadwalId: number, tanggal: string): Promise<void> {
+  const [j] = await db
+    .select({ slot: jadwal.slot })
+    .from(jadwal)
+    .where(eq(jadwal.id, jadwalId))
+    .limit(1);
+  if (!j) return;
+  await db
+    .update(sesi)
+    .set({ bayarSinkronPada: null })
+    .where(
+      and(
+        eq(sesi.tanggal, tanggal),
+        eq(sesi.slot, j.slot),
+        eq(sesi.jenis, "reguler"),
+        eq(sesi.status, "selesai"),
+      ),
+    );
+}
+
 /** Writes one date's seats: izin rows for excused Asisten, accepted cover
  *  rows for the seats taken by someone else, and clears what no longer
  *  applies. Volunteer offers still waiting are left alone. */
@@ -939,6 +964,7 @@ async function simpanMinggu(
           });
     }
   });
+  await bayarUlangSlot(db, j.id, tanggal);
 }
 
 /* ------------------------------------------------- penugasan (my side) */

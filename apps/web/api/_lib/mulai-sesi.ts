@@ -270,7 +270,8 @@ export async function mulaiSesi(
           : slotRow
             ? kunciSlot(slotRow.id, tanggal)
             : null;
-      const c = kunci ? await muatKonteks(db, kunci) : null;
+      // The start writes down who is expected, from who holds a group now.
+      const c = kunci ? await muatKonteks(db, kunci, { pemegangSekarang: true }) : null;
       if (kunci && c) {
         await pastikanBaris(
           db,

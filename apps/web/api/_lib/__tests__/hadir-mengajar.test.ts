@@ -12,6 +12,7 @@ const kejadian: { sesiId: number; jenis: string; detail: unknown }[] = [];
 const audit: { aksi: string; detail: unknown }[] = [];
 const mingguIzin: { nim: string; status: string }[] = [];
 const orangMuat: { current: Record<string, unknown> | null } = { current: null };
+const bayarUlang: { jadwalId: number; tanggal: string }[] = [];
 
 function chain(tabel?: unknown, jenis?: "insert" | "update" | "delete"): unknown {
   const st = { tabel, jenis };
@@ -87,11 +88,23 @@ vi.mock("../penugasan-api", () => ({
       ]),
     ),
   muatPengaturanJendela: async () => ({ default: 15, min: 5, max: 30 }),
+  bayarUlangSlot: async (_db: unknown, jadwalId: number, tanggal: string) => {
+    bayarUlang.push({ jadwalId, tanggal });
+  },
 }));
 
-const { asisten, hadirJam, hadirMengajar, jadwal, sesi } = await import("../../../src/lib/schema");
-const { masuk, batalMasuk, bolehPj, handleHadirPj, kunciSlot, kunciSusulan, uraiKunci } =
-  await import("../hadir-mengajar");
+const { asisten, hadirJam, hadirMengajar, jadwal, sesi, sesiAsisten } =
+  await import("../../../src/lib/schema");
+const {
+  masuk,
+  batalMasuk,
+  bolehPj,
+  handleHadirPj,
+  kunciSlot,
+  kunciSusulan,
+  muatKonteks,
+  uraiKunci,
+} = await import("../hadir-mengajar");
 
 const NOW = new Date("2026-10-19T06:30:00+07:00");
 const KUNCI = kunciSlot(1, "2026-10-19");
@@ -161,6 +174,7 @@ beforeEach(() => {
   ditulis.length = 0;
   kejadian.length = 0;
   audit.length = 0;
+  bayarUlang.length = 0;
   orangMuat.current = orang();
 });
 
@@ -372,5 +386,55 @@ describe("Susulan PJ", () => {
       true,
     );
     expect(bolehPj(dasar, { pj: null, susulan: true })).toBe(false);
+  });
+});
+
+describe("Susulan expected people", () => {
+  /** Susulan 9 on the first judged Monday: 2020 was written down at its start,
+   *  3030 holds a group now (a cover, or a group moved after the end). */
+  function isiSusulan(status: string) {
+    data.set(asisten, [
+      { nim: "2020", kode: "AAA", nama: "Anak A" },
+      { nim: "3030", kode: "CCC", nama: "Cadangan" },
+    ]);
+    data.set(sesi, [{ id: 9, status, modul: 1, mulai: "08:00", tanggal: "2026-10-19" }]);
+    data.set(sesiAsisten, [{ nim: "3030" }]);
+    data.set(hadirMengajar, [
+      { nim: "2020", diharapkan: true },
+      { nim: "3030", diharapkan: false },
+    ]);
+  }
+  const konteks = async (o?: { pemegangSekarang?: boolean }) => {
+    const { getDb } = await import("../../../src/lib/db");
+    return muatKonteks(getDb() as never, kunciSusulan(9), o);
+  };
+
+  it("once started, expects the people its start wrote down, not who holds a group now", async () => {
+    isiSusulan("berjalan");
+    expect([...(await konteks())!.diharapkan]).toEqual(["2020"]);
+    isiSusulan("selesai");
+    expect([...(await konteks())!.diharapkan]).toEqual(["2020"]);
+  });
+
+  it("before its start, and at the start itself, expects who holds a group", async () => {
+    isiSusulan("terjadwal");
+    expect([...(await konteks())!.diharapkan]).toEqual(["3030"]);
+    isiSusulan("berjalan");
+    expect([...(await konteks({ pemegangSekarang: true }))!.diharapkan]).toEqual(["3030"]);
+  });
+});
+
+describe("Izin after the session", () => {
+  it("a PJ's Izin reopens that date's Bayar", async () => {
+    isiSlot();
+    const r = await pj({
+      aksi: "status",
+      kunci: KUNCI,
+      nim: "2020",
+      status: "izin",
+      alasan: "sakit, ada surat",
+    });
+    expect(r.body).toEqual({ ok: true });
+    expect(bayarUlang).toEqual([{ jadwalId: 1, tanggal: "2026-10-19" }]);
   });
 });
