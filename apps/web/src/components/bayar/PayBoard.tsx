@@ -13,6 +13,7 @@ import { unduhXlsx } from "../../lib/xlsx";
 import KasCard from "./KasCard";
 import { kirimBayar, potonganDari, type BayarData } from "./data";
 import { Stepper } from "../ui/Controls";
+import { TELAT_MAKS } from "../../lib/hadir-mengajar";
 import { B, pesanB } from "./strings";
 import "./bayar.css";
 
@@ -278,7 +279,7 @@ export default function PayBoard({
             <Stepper
               value={potong.maks}
               min={1}
-              max={30}
+              max={TELAT_MAKS}
               onChange={(v) => setPotong({ ...potong, maks: v })}
               fmt={t.cutMin}
               label={t.cutMaxLabel}

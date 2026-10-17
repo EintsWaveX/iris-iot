@@ -940,6 +940,9 @@ export async function handleHadirPj(req: ApiRequest, res: ApiResponse, session: 
   if (!bolehPj(orang, pjCtx(c))) return tolak(res, "tanpa_hak", 403);
 
   if (aksi === "geser") {
+    // The Geser Jam dialog's range: 5 to 60 minutes after the slot's own clock.
+    if (baseMenit !== null && (baseMenit < c.normal + 5 || baseMenit > c.normal + 60))
+      return tolak(res, "format_salah");
     if (baseMenit === null) {
       await db.delete(hadirJam).where(eq(hadirJam.kunci, kunci));
     } else {

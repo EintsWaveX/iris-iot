@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   POTONGAN_AWAL,
   akhirSesiMaks,
+  TELAT_MAKS,
   bacaPotongan,
   potonganPada,
   riwayatBaru,
@@ -129,7 +130,14 @@ describe("bacaPotongan", () => {
     expect(bacaPotongan({ perMenit: -1 })).toEqual(POTONGAN_AWAL);
     expect(bacaPotongan(null)).toEqual(POTONGAN_AWAL);
     expect(bacaPotongan({ perMenit: 2000, maks: 0.5 })).toEqual({ perMenit: 2000, maks: 10 });
-    expect(bacaPotongan({ perMenit: 2500, maks: 15 })).toEqual({ perMenit: 2500, maks: 15 });
+    expect(bacaPotongan({ perMenit: 2500, maks: 8 })).toEqual({ perMenit: 2500, maks: 8 });
+  });
+
+  it("caps the cut at TELAT_MAKS minutes, however much was stored", () => {
+    expect(TELAT_MAKS).toBe(10);
+    expect(bacaPotongan({ perMenit: 2500, maks: 15 })).toEqual({ perMenit: 2500, maks: 10 });
+    expect(bacaPotongan({ perMenit: 2000, maks: 30 }).maks).toBe(TELAT_MAKS);
+    expect(potonganPada({ perMenit: 2000, maks: 25 }, "2026-10-19").maks).toBe(TELAT_MAKS);
   });
 });
 

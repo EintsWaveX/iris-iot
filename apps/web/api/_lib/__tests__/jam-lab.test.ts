@@ -92,6 +92,14 @@ vi.mock("../roster", () => ({ salinRosterKeSesi: async () => ({ disalin: 25 }) }
 vi.mock("../tp", () => ({ isiTpSesi: async () => {} }));
 vi.mock("../perburuan-sesi", () => ({ tutupPerburuan: async () => {} }));
 vi.mock("../siaran", () => ({ siarkan: async () => {} }));
+const urutan: string[] = [];
+vi.mock("../../../src/lib/sesi", async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  currentSesi: async () => {
+    urutan.push("currentSesi");
+    return null;
+  },
+}));
 vi.mock("../hadir-mengajar", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   modulHari: async () => modulHariIni.v,
@@ -100,7 +108,7 @@ vi.mock("../hadir-mengajar", async (orig) => ({
 }));
 
 const { jadwal } = await import("../../../src/lib/schema");
-const { slotPerluMulai, susulanPerluMulai, batasTidurJamLab, mulaiOtomatis } =
+const { slotPerluMulai, susulanPerluMulai, batasTidurJamLab, mulaiOtomatis, jamLab } =
   await import("../jam-lab");
 const { kunciSlot } = await import("../hadir-mengajar");
 
@@ -275,5 +283,15 @@ describe("the lab clock's start", () => {
         },
       },
     ]);
+  });
+});
+
+describe("the lab clock's minute", () => {
+  it("ends a session past its cap first, through currentSesi", async () => {
+    urutan.length = 0;
+    data.clear();
+    // 03:00 WIB: nothing is due to start, the minute still checks the cap.
+    await jamLab(db as never, new Date("2026-10-22T03:00:00+07:00"));
+    expect(urutan).toEqual(["currentSesi"]);
   });
 });

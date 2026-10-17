@@ -35,10 +35,11 @@ export function bacaPotongan(v: unknown): Potongan {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
   const rate = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
   // The cap is whole minutes: floor first, then check it is still above zero.
+  // A Telat is at most TELAT_MAKS minutes, so a larger stored cap reads as that.
   const maks = typeof o.maks === "number" ? Math.floor(o.maks) : NaN;
   return {
     perMenit: rate(o.perMenit) ? o.perMenit : POTONGAN_AWAL.perMenit,
-    maks: maks > 0 && Number.isFinite(maks) ? maks : POTONGAN_AWAL.maks,
+    maks: maks > 0 && Number.isFinite(maks) ? Math.min(maks, TELAT_MAKS) : POTONGAN_AWAL.maks,
   };
 }
 

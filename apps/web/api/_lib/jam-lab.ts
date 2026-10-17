@@ -30,6 +30,7 @@ import {
   sesiAsisten,
 } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
+import { currentSesi } from "../../src/lib/sesi.js";
 import { SESI_CAP_MENIT, SLOT_MULAI } from "../../src/lib/jadwal.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { batasNilai, kurangCatat } from "../../src/lib/lupa-nilai.js";
@@ -443,6 +444,13 @@ async function tandaiMenyusul(db: Db, berubah: Set<Topik>): Promise<void> {
 
 /** Everything the lab clock does in one minute. Never throws. */
 export async function jamLab(db: Db, now: Date): Promise<void> {
+  // First, a session past its cap ends at the cap (currentSesi does it), so it
+  // ends on time with no page open and the PC Server off.
+  try {
+    await currentSesi();
+  } catch (err) {
+    console.error("[jam-lab] cap check failed:", err);
+  }
   try {
     const r = await mulaiOtomatis(db, now);
     if (r.mulai.length || r.tolak.length) console.warn("[INFO] jam-lab:", JSON.stringify(r));

@@ -319,6 +319,21 @@ describe("clock shift", () => {
     expect(kejadian).toHaveLength(0);
   });
 
+  it("refuses a clock outside 5 to 60 minutes after the slot's own (06:25)", async () => {
+    for (const jam of ["06:25", "06:29", "07:26", "05:00"]) {
+      isiSlot();
+      ditulis.length = 0;
+      const r = await pj({ aksi: "geser", kunci: KUNCI, jam, alasan: "ruang belum dibuka" });
+      expect(r.body, jam).toMatchObject({ ok: false, kode: "format_salah" });
+      expect(ditulis.some((d) => d.tabel === hadirJam)).toBe(false);
+    }
+    for (const jam of ["06:30", "07:25"]) {
+      isiSlot();
+      const r = await pj({ aksi: "geser", kunci: KUNCI, jam, alasan: "ruang belum dibuka" });
+      expect(r.body, jam).toEqual({ ok: true, base: jam });
+    }
+  });
+
   it("null undoes the shift", async () => {
     isiSlot();
     const r = await pj({ aksi: "geser", kunci: KUNCI, jam: null, alasan: "kembali normal" });

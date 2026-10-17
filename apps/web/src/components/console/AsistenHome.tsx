@@ -244,8 +244,12 @@ export default function AsistenHome({
       .then((x) => x.ok && setData(x))
       .catch(() => {});
   // presentasi: the readiness card's "Presentasi aktif" line (2026-10-07: it
-  // kept naming a deck turned off elsewhere until it was clicked).
-  useSiaran(["sesi", "jadwal", "tim", "akses", "server", "roster", "presentasi", "nilai"], load);
+  // kept naming a deck turned off elsewhere until it was clicked). hadir: the
+  // midnight Lupa Input Nilai record and its Diinput Menyusul stamp.
+  useSiaran(
+    ["sesi", "jadwal", "tim", "akses", "server", "roster", "presentasi", "nilai", "hadir"],
+    load,
+  );
   const muatUmpan = () =>
     getJson<{ ok: boolean; ringkasan: Ringkasan }>("/api/session/feedback?scope=mine")
       .then((x) => x.ok && setMine(x.ringkasan))
