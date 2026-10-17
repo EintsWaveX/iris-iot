@@ -36,9 +36,10 @@ const opt = (f, d) => {
   const i = args.indexOf(f);
   return i >= 0 && args[i + 1] ? args[i + 1] : d;
 };
-const BASE = (
-  args.find((a) => /^https?:\/\//.test(a)) ?? "https://irisiotlab.com"
-).replace(/\/$/, "");
+const BASE = (args.find((a) => /^https?:\/\//.test(a)) ?? "https://irisiotlab.com").replace(
+  /\/$/,
+  "",
+);
 const RELAY = BASE.includes("localhost")
   ? "ws://127.0.0.1:8788/siaran"
   : "wss://konsol.irisiotlab.com/siaran";

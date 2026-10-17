@@ -5,11 +5,18 @@ import { alamatRelay } from "../siaran";
 
 type Header = { key: string; value: string };
 type Vercel = {
-  redirects: { source: string; has?: { type: string; value: string }[]; destination: string; permanent: boolean }[];
+  redirects: {
+    source: string;
+    has?: { type: string; value: string }[];
+    destination: string;
+    permanent: boolean;
+  }[];
   headers: { source: string; headers: Header[] }[];
 };
 
-const vercel: Vercel = JSON.parse(readFileSync(new URL("../../../vercel.json", import.meta.url), "utf8"));
+const vercel: Vercel = JSON.parse(
+  readFileSync(new URL("../../../vercel.json", import.meta.url), "utf8"),
+);
 const csp = () =>
   vercel.headers
     .flatMap((h) => h.headers)
