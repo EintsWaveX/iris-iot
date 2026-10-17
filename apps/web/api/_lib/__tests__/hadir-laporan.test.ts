@@ -18,7 +18,7 @@ function fakeDb(...hasil: unknown[][]) {
   return { select: rantai } as never;
 }
 
-const SESI = { id: 7, tanggal: "2026-10-01", status: "selesai", jenis: "reguler" };
+const SESI = { id: 7, tanggal: "2026-10-21", status: "selesai", jenis: "reguler" };
 const t = (s: string) => new Date(s);
 const kirim = (nomor: number, pada: string) => ({
   kelompokNomor: nomor,
@@ -31,44 +31,44 @@ const simpan = (nomor: number, pada: string, akun = "NUE", cara = "robot") => ({
   akunNim: akun,
   cara,
 });
-const SEKARANG = t("2026-10-03T03:00:00+07:00");
+const SEKARANG = t("2026-10-23T03:00:00+07:00");
 
 describe("muatInputNilai", () => {
   it("keeps a group on time when it was saved again on a later day", async () => {
     const db = fakeDb(
-      [kirim(1, "2026-10-01T14:50:00+07:00")],
+      [kirim(1, "2026-10-21T14:50:00+07:00")],
       // newest first, as the query orders them: the Input Ulang re-save, then the first save
-      [simpan(1, "2026-10-02T08:00:00+07:00"), simpan(1, "2026-10-01T15:00:00+07:00")],
+      [simpan(1, "2026-10-22T08:00:00+07:00"), simpan(1, "2026-10-21T15:00:00+07:00")],
       [],
     );
     const [g] = (await muatInputNilai(db, SESI, [1], new Map([[1, "NUE"]]), SEKARANG))!;
     expect(g.status).toBe("tepat");
     expect(g.menyusulPada).toBeNull();
     // what is shown is the latest save
-    expect(g.simpan?.pada).toBe(t("2026-10-02T08:00:00+07:00").toISOString());
+    expect(g.simpan?.pada).toBe(t("2026-10-22T08:00:00+07:00").toISOString());
   });
 
   it("calls a first save after the deadline late even without a record yet", async () => {
     const db = fakeDb(
-      [kirim(1, "2026-10-01T14:50:00+07:00")],
-      [simpan(1, "2026-10-02T08:12:00+07:00")],
+      [kirim(1, "2026-10-21T14:50:00+07:00")],
+      [simpan(1, "2026-10-22T08:12:00+07:00")],
       [],
     );
     const [g] = (await muatInputNilai(db, SESI, [1], new Map([[1, "NUE"]]), SEKARANG))!;
     expect(g.status).toBe("menyusul");
-    expect(g.menyusulPada).toBe(t("2026-10-02T08:12:00+07:00").toISOString());
+    expect(g.menyusulPada).toBe(t("2026-10-22T08:12:00+07:00").toISOString());
   });
 
   it("lets a recorded miss decide: its put-in time, or still open", async () => {
     const db = fakeDb(
-      [kirim(1, "2026-10-01T14:50:00+07:00"), kirim(2, "2026-10-01T14:50:00+07:00")],
-      [simpan(1, "2026-10-02T08:12:00+07:00")],
+      [kirim(1, "2026-10-21T14:50:00+07:00"), kirim(2, "2026-10-21T14:50:00+07:00")],
+      [simpan(1, "2026-10-22T08:12:00+07:00")],
       [
         {
           kelompokNomor: 1,
           nim: "NUE",
           kurang: ["seelabs"],
-          menyusulPada: t("2026-10-02T08:12:00+07:00"),
+          menyusulPada: t("2026-10-22T08:12:00+07:00"),
         },
         { kelompokNomor: 2, nim: "NUE", kurang: ["seelabs"], menyusulPada: null },
       ],
@@ -84,17 +84,17 @@ describe("muatInputNilai", () => {
       SEKARANG,
     ))!;
     expect(r[0].status).toBe("menyusul");
-    expect(r[0].menyusulPada).toBe(t("2026-10-02T08:12:00+07:00").toISOString());
+    expect(r[0].menyusulPada).toBe(t("2026-10-22T08:12:00+07:00").toISOString());
     expect(r[1].status).toBe("lupa");
     expect(r[1].kurang).toEqual(["seelabs"]);
   });
 
   it("names why a group went through someone else's account", async () => {
     const db = fakeDb(
-      [kirim(1, "2026-10-01T14:00:00+07:00"), kirim(2, "2026-10-01T14:00:00+07:00")],
+      [kirim(1, "2026-10-21T14:00:00+07:00"), kirim(2, "2026-10-21T14:00:00+07:00")],
       [
-        simpan(1, "2026-10-01T14:10:00+07:00", "TWT"),
-        simpan(2, "2026-10-01T14:10:00+07:00", "NUE"),
+        simpan(1, "2026-10-21T14:10:00+07:00", "TWT"),
+        simpan(2, "2026-10-21T14:10:00+07:00", "NUE"),
       ],
       [],
     );
@@ -107,8 +107,8 @@ describe("muatInputNilai", () => {
     expect(r[0].alasanAkun).toBe("sesi_ketiga");
     expect(r[1].alasanAkun).toBeNull();
     const db2 = fakeDb(
-      [kirim(2, "2026-10-01T14:00:00+07:00")],
-      [simpan(2, "2026-10-01T14:10:00+07:00", "TWT")],
+      [kirim(2, "2026-10-21T14:00:00+07:00")],
+      [simpan(2, "2026-10-21T14:10:00+07:00", "TWT")],
       [],
     );
     const [g] = (await muatInputNilai(db2, SESI, [2], pegang, SEKARANG))!;
@@ -118,6 +118,13 @@ describe("muatInputNilai", () => {
   it("leaves TOT sessions out", async () => {
     expect(
       await muatInputNilai(fakeDb(), { ...SESI, jenis: "tot" }, [1], new Map(), SEKARANG),
+    ).toBeNull();
+  });
+
+  it("never judges a session before HADIR_SEJAK, even with nothing put in", async () => {
+    const lama = { ...SESI, tanggal: "2026-10-15" };
+    expect(
+      await muatInputNilai(fakeDb([], [], []), lama, [1], new Map([[1, "NUE"]]), SEKARANG),
     ).toBeNull();
   });
 });

@@ -50,15 +50,15 @@ vi.mock("../siaran", () => ({ siarkan: async () => {} }));
 const S = await import("../../../src/lib/schema");
 const { catatLupaNilai } = await import("../jam-lab");
 
-// 15 October 2026 is a Thursday; "now" is just past that day's deadline.
-const SESUDAH = new Date("2026-10-16T00:00:30+07:00");
-const SEBELUM = new Date("2026-10-15T22:00:00+07:00");
+// 22 October 2026 is a Thursday; "now" is just past that day's deadline.
+const SESUDAH = new Date("2026-10-23T00:00:30+07:00");
+const SEBELUM = new Date("2026-10-22T22:00:00+07:00");
 
 function siapkan(o: { jenis?: string; tanggal?: string } = {}) {
   data.set(S.sesi, [
     {
       id: 1,
-      tanggal: o.tanggal ?? "2026-10-15",
+      tanggal: o.tanggal ?? "2026-10-22",
       jenis: o.jenis ?? "reguler",
       status: "selesai",
     },
@@ -121,6 +121,13 @@ describe("catatLupaNilai", () => {
     expect(masuk).toEqual([]);
   });
 
+  it("records nothing for a session before HADIR_SEJAK", async () => {
+    // Thursday 15 October, three days before the first judged Monday
+    siapkan({ tanggal: "2026-10-15" });
+    expect(await catatLupaNilai(db as never, new Date("2026-10-16T00:00:30+07:00"))).toBe(0);
+    expect(masuk).toEqual([]);
+  });
+
   it("records a group once, even on the next minute", async () => {
     siapkan();
     data.set(S.lupaNilai, [
@@ -134,28 +141,28 @@ describe("catatLupaNilai", () => {
   it("stamps menyusulPada when a recorded group is now done", async () => {
     siapkan();
     data.set(S.nilaiKirim, [{ sesiId: 1, nomor: 1 }]);
-    const disimpan = new Date("2026-10-16T08:30:00+07:00");
+    const disimpan = new Date("2026-10-23T08:30:00+07:00");
     data.set(S.seelabsEkspor, [{ sesiId: 1, nomor: 1, pada: disimpan }]);
     data.set(S.lupaNilai, [
       { sesiId: 1, nomor: 1, menyusulPada: null },
       { sesiId: 1, nomor: 2, menyusulPada: null },
     ]);
-    const lambat = new Date("2026-10-16T09:00:00+07:00");
+    const lambat = new Date("2026-10-23T09:00:00+07:00");
     expect(await catatLupaNilai(db as never, lambat)).toBe(0);
     // The real save time, not the minute the clock ran
     expect(ubah).toEqual([{ menyusulPada: disimpan }]);
   });
 
   it("stamps a record whose practicum day is five days old", async () => {
-    siapkan({ tanggal: "2026-10-10" });
+    siapkan({ tanggal: "2026-10-17" });
     // Only the open lupa_nilai row is read for stamping; the session is outside the 3-day window
     data.set(S.sesi, []);
-    const dikirim = new Date("2026-10-15T10:00:00+07:00");
-    const disimpan = new Date("2026-10-15T10:05:00+07:00");
+    const dikirim = new Date("2026-10-22T10:00:00+07:00");
+    const disimpan = new Date("2026-10-22T10:05:00+07:00");
     data.set(S.nilaiKirim, [{ sesiId: 1, nomor: 1, pada: dikirim }]);
     data.set(S.seelabsEkspor, [{ sesiId: 1, nomor: 1, pada: disimpan }]);
     data.set(S.lupaNilai, [{ sesiId: 1, nomor: 1, menyusulPada: null }]);
-    expect(await catatLupaNilai(db as never, new Date("2026-10-15T12:00:00+07:00"))).toBe(0);
+    expect(await catatLupaNilai(db as never, new Date("2026-10-22T12:00:00+07:00"))).toBe(0);
     expect(ubah).toEqual([{ menyusulPada: disimpan }]);
   });
 

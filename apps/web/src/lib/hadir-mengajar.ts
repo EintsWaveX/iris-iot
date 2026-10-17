@@ -12,6 +12,17 @@ import { jamDariMenit, menitDariJam } from "./sesi-mulai.js";
 /** Minutes counted for a Mangkir Mengajar check-in and the latest a Telat can be. */
 export const TELAT_MAKS = 10;
 
+/**
+ * The first date judged (WIB): the deploy date, the first practicum Monday.
+ * Older sessions have no check-in trail, so nobody in them is Telat or
+ * Mangkir, nothing is cut and no Lupa Input Nilai is recorded. The deploy
+ * checklist sets it to the deploy date if the deploy is later.
+ */
+export const HADIR_SEJAK = "2026-10-19";
+
+/** Whether a session or slot on this date ("YYYY-MM-DD") is judged at all. */
+export const dinilai = (tanggal: string) => tanggal >= HADIR_SEJAK;
+
 export type Potongan = { perMenit: number; maks: number };
 export const POTONGAN_AWAL: Potongan = { perMenit: 2000, maks: 10 };
 

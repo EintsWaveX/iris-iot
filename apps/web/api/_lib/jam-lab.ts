@@ -35,7 +35,7 @@ import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parse
 import { batasNilai, kurangCatat } from "../../src/lib/lupa-nilai.js";
 import { statusSlotTanggal } from "../../src/lib/penugasan-minggu.js";
 import { menitDariJam, menitSekarangWib } from "../../src/lib/sesi-mulai.js";
-import { baseSlot, baseSusulan, instanWib } from "../../src/lib/hadir-mengajar.js";
+import { baseSlot, baseSusulan, dinilai, instanWib } from "../../src/lib/hadir-mengajar.js";
 import type { Topik } from "../../src/lib/siaran-topik.js";
 
 type Db = ReturnType<typeof getDb>;
@@ -295,8 +295,13 @@ export async function catatLupaNilai(db: Db, now: Date): Promise<number> {
     .select({ id: sesi.id, tanggal: sesi.tanggal, jenis: sesi.jenis, status: sesi.status })
     .from(sesi)
     .where(gte(sesi.tanggal, sejak));
+  // Nothing is recorded for a session before HADIR_SEJAK (never judged).
   const layak = sesiRows.filter(
-    (s) => s.status === "selesai" && s.jenis !== "tot" && batasNilai(s.tanggal) < now,
+    (s) =>
+      s.status === "selesai" &&
+      s.jenis !== "tot" &&
+      dinilai(s.tanggal) &&
+      batasNilai(s.tanggal) < now,
   );
   const berubah = new Set<Topik>();
   const baru = layak.length ? await catatBaru(db, layak, now, berubah) : 0;

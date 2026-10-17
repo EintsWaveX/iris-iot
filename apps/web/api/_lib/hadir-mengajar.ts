@@ -61,6 +61,7 @@ import {
   akhirSesiMaks,
   baseSlot,
   baseSusulan,
+  dinilai,
   potonganPada,
   hitungHadir,
   instanWib,
@@ -351,6 +352,7 @@ export async function kunciDariSesi(
 /** Today's slots (and Susulan) this person is seated in, holds a group in, or is PJ of. */
 export async function slotHariIni(db: Db, nim: string, now: Date): Promise<SlotSaya[]> {
   const hariIni = tanggalWib(now);
+  if (!dinilai(hariIni)) return [];
   const [saya] = await db
     .select({ kode: asisten.kode })
     .from(asisten)
@@ -582,7 +584,8 @@ export async function statusOrang(
   ctxAda?: Konteks | null,
 ): Promise<BarisHadir[]> {
   const c = ctxAda ?? (await muatKonteks(db, kunci));
-  if (!c) return [];
+  // Before HADIR_SEJAK nobody is judged: no Mangkir, no cut, no zeroed unit.
+  if (!c || !dinilai(c.tanggal)) return [];
   const rows = await db.select().from(hadirMengajar).where(eq(hadirMengajar.kunci, kunci));
   const potongan = await muatPotongan(db, c.tanggal);
   const selesai = sudahSelesai(c, now);
@@ -681,7 +684,8 @@ export async function hadirUntukKunci(
   now: Date = new Date(),
 ) {
   const c = await muatKonteks(db, kunci);
-  if (!c) return null;
+  // A slot from before HADIR_SEJAK shows nothing judged, like a TOT session.
+  if (!c || !dinilai(c.tanggal)) return null;
   const baris = await statusOrang(db, kunci, now, c);
   return {
     kunci,
@@ -761,6 +765,8 @@ export async function muatNilaiBanner(
   semuaPj = false,
 ): Promise<NilaiBanner | null> {
   const hariIni = tanggalWib(now);
+  // No Lupa Input Nilai is recorded before HADIR_SEJAK, so nothing to remind.
+  if (!dinilai(hariIni)) return null;
   const hariRows = await db
     .select({ id: sesi.id, tanggal: sesi.tanggal, slot: sesi.slot, jenis: sesi.jenis })
     .from(sesi)

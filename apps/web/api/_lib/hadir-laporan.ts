@@ -31,8 +31,10 @@ import {
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import {
+  HADIR_SEJAK,
   baseSlot,
   baseSusulan,
+  dinilai,
   hitungHadir,
   instanWib,
   potonganHadir,
@@ -78,6 +80,8 @@ export async function muatHadirSesi(
   s: { id: number; tanggal: string; slot: number | null; jenis: string | null },
   now: Date,
 ): Promise<HadirSesi | null> {
+  // Before HADIR_SEJAK nobody is judged, so there is nothing to show.
+  if (!dinilai(s.tanggal)) return null;
   const kunci = await kunciDariSesi(db, s);
   if (!kunci) return null;
   const c = await muatKonteks(db, kunci);
@@ -159,7 +163,7 @@ export async function muatInputNilai(
   pemegang: Map<number, string | null>,
   now: Date,
 ): Promise<InputNilaiKelompok[] | null> {
-  if (s.jenis === "tot" || nomor.length === 0) return null;
+  if (s.jenis === "tot" || nomor.length === 0 || !dinilai(s.tanggal)) return null;
   const [kirim, simpan, lupa] = await Promise.all([
     db.select().from(nilaiKirim).where(eq(nilaiKirim.sesiId, s.id)),
     db
@@ -252,7 +256,9 @@ export interface OrangHadir extends RingkasOrang {
 }
 
 /** Every judged row of finished sessions in a date range, with the status it ends up at. */
-async function muatBaris(db: Db, dari: string, sampai: string, nim?: string) {
+async function muatBaris(db: Db, dariSemester: string, sampai: string, nim?: string) {
+  // Sessions before HADIR_SEJAK are never judged.
+  const dari = dariSemester < HADIR_SEJAK ? HADIR_SEJAK : dariSemester;
   const rows = await db
     .select({
       h: hadirMengajar,
