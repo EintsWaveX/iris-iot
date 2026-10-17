@@ -35,9 +35,25 @@ function chain(tulis?: Tulis): unknown {
     if (tulis) tulis.konflik = "update";
     return p;
   };
-  // Every read answers one row that satisfies the group and session lookups.
+  // Every read answers one row that satisfies the group and session lookups
+  // (as a nilai_kirim row it is another group, so nothing here is sent).
   p.then = (ok: (v: unknown) => unknown) =>
-    ok(tulis ? [] : [{ id: 1, kelompokId: 1, nomor: 1, nim: "A1", status: "berjalan" }]);
+    ok(
+      tulis
+        ? []
+        : [
+            {
+              id: 1,
+              kelompokId: 1,
+              nomor: 1,
+              nim: "A1",
+              status: "berjalan",
+              kelompokNomor: 99,
+              dikirimPada: new Date(0),
+              dikirimOleh: "1010",
+            },
+          ],
+    );
   return p;
 }
 
