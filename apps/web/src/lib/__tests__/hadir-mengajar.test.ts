@@ -149,7 +149,10 @@ describe("potongan rate history", () => {
     expect(potonganPada(nilai)).toEqual({ perMenit: 3000, maks: 8 });
   });
   it("reads a value saved before the history as in force from the start", () => {
-    expect(potonganPada({ perMenit: 2500, maks: 6 }, "2020-01-01")).toEqual({ perMenit: 2500, maks: 6 });
+    expect(potonganPada({ perMenit: 2500, maks: 6 }, "2020-01-01")).toEqual({
+      perMenit: 2500,
+      maks: 6,
+    });
     expect(potonganPada(null, "2026-10-01")).toEqual(POTONGAN_AWAL);
   });
   it("appends a change, replaces a same-day one, and allows a rate of 0", () => {
