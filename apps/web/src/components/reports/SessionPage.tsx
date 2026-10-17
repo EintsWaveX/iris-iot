@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type FocusEvent,
   type ReactNode,
 } from "react";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@phosphor-icons/react";
 import { getJson, localeOf, namaKelompok, tanggalPanjang } from "../../lib/app";
 import { NILAI_KOMPONEN, type NilaiKomponen } from "../../lib/nilai-komponen";
+import { adaTingkat, skorSah } from "../../lib/nilai-rubrik";
 import { kelasLabel, kelompokLabel, modulLabel } from "../../lib/labels";
 import type { Kelas, Lang } from "../../lib/kelas";
 import type { Direktori } from "../../lib/people";
@@ -37,6 +39,9 @@ import Nil from "../ui/Nil";
 import Pill from "../ui/Pill";
 import TabLine from "../ui/TabLine";
 import ErrorView from "../ui/ErrorView";
+import { ScoreInput } from "../ui/Controls";
+import { LevelField } from "../console/LevelField";
+import { RB } from "../console/rubrikStrings";
 import { AddIncident, IncidentList, useKejadian } from "./Incidents";
 import HadirSesi, { type HadirSesiData, type InputNilaiData } from "./HadirSesi";
 import { type Format, ekspor, jamWib, kirim, tanggalWib } from "./data";
@@ -485,7 +490,9 @@ function ScoresCard({
   const bisa = (g: KelompokRekap) => g.pemegang === me || g.pemegang == null;
   const bisaApa = data.kelompok.some((g) => g.pemegang === me);
   const key = (nim: string, k: NilaiKomponen) => `${nim}|${k}`;
-  const salah = Object.values(draft).some((v) => v !== "" && !/^(100|\d{1,2})$/.test(v));
+  // The rubric's ranges: levels for D1 to D4 and L2, L1 0 to 90, TA and TP 0 to 100.
+  const sah = (k: string, v: string) => v === "" || skorSah(k, Number(v));
+  const salah = Object.entries(draft).some(([kk, v]) => !sah(kk.split("|")[1], v));
   const simpan = async () => {
     const ubah = Object.entries(draft).filter(([k, v]) => {
       const [nim, komp] = k.split("|");
@@ -572,7 +579,7 @@ function ScoresCard({
       </div>
       {edit && salah && (
         <p className="hint" style={{ color: "var(--danger)", padding: "0 20px" }}>
-          {t.scoreBad}
+          {RB[lang].range}
         </p>
       )}
       <div className="rp-scrollx" tabIndex={0} aria-label={t.sTabs.nilai}>
@@ -603,21 +610,25 @@ function ScoresCard({
                     const kk = key(a.nim, k);
                     if (edit && bisa(g)) {
                       const val = draft[kk] ?? (v == null ? "" : String(v));
+                      const props = {
+                        value: val,
+                        state: sah(k, val) ? ("idle" as const) : ("error" as const),
+                        "aria-label": `${a.nama} ${k}`,
+                        onValue: (x: string) => setDraft((d) => ({ ...d, [kk]: x })),
+                        onFocus: (e: FocusEvent<HTMLInputElement>) => e.currentTarget.select(),
+                      };
                       return (
                         <td key={k}>
-                          <input
-                            className="rp-cell"
-                            inputMode="numeric"
-                            aria-label={`${a.nama} ${k}`}
-                            aria-invalid={val !== "" && !/^(100|\d{1,2})$/.test(val)}
-                            value={val}
-                            onChange={(e) =>
-                              setDraft({
-                                ...draft,
-                                [kk]: e.target.value.replace(/\D/g, "").slice(0, 3),
-                              })
-                            }
-                          />
+                          {adaTingkat(k) ? (
+                            <LevelField
+                              {...props}
+                              komponen={k}
+                              lang={lang}
+                              onPick={props.onValue}
+                            />
+                          ) : (
+                            <ScoreInput {...props} />
+                          )}
                         </td>
                       );
                     }

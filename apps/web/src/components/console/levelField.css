@@ -10,9 +10,9 @@
 
 .levelfield__panel {
   gap: 10px;
-  min-width: min(360px, calc(100vw - 16px));
+  min-width: min(360px, calc(100vw - 32px));
   padding: 12px;
-  width: min(420px, calc(100vw - 16px));
+  width: min(420px, calc(100vw - 32px));
 }
 
 .levelfield__title {

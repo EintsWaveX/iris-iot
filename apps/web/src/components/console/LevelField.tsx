@@ -34,13 +34,21 @@ export const LevelField = forwardRef<
     /** A level clicked in the list: save it now. */
     onPick: (v: string) => void;
   }
->(function LevelField({ komponen, lang, value, onValue, onPick, readOnlyReason, ...rest }, ref) {
+>(function LevelField(
+  { komponen, lang, value, onValue, onPick, readOnlyReason, onKeyDown, ...rest },
+  ref,
+) {
   const r = RB[lang];
   const [open, setOpen] = useState(false);
   const dialogHost = useDialogHost();
   const teks = r.level[komponen];
   const sekarang = value !== "" ? teks?.[Number(value) as (typeof TINGKAT)[number]] : undefined;
-  const label = sekarang ? `${value}. ${sekarang}` : r.levelTip(komponen, r.nama[komponen] ?? "");
+  const titik = lang === "zh" ? "。" : ".";
+  const kini = sekarang
+    ? `${value}. ${sekarang.replace(/[.。]$/, "")}${titik}`
+    : r.levelTip(komponen, r.nama[komponen] ?? "");
+  // The digit shortcut is told in the tooltip too.
+  const label = `${kini} ${r.levelHint}`;
   const ro = Boolean(readOnlyReason);
   return (
     <RadixPopover.Root open={open && !ro} onOpenChange={setOpen}>
@@ -53,11 +61,18 @@ export const LevelField = forwardRef<
               readOnlyReason={readOnlyReason}
               value={value}
               onClick={() => setOpen(true)}
+              // Digits are read from the key, not the text: "8" then "0"
+              // would otherwise read as 0, and a digit over a level as a clear.
+              onKeyDown={(e) => {
+                if (!ro && /^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                  e.preventDefault();
+                  const pilih = DARI_DIGIT[e.key];
+                  if (pilih) onValue(pilih);
+                }
+                onKeyDown?.(e);
+              }}
               onValue={(x) => {
-                if (x === "") return onValue("");
-                if (x.length < value.length) return onValue("");
-                const pilih = DARI_DIGIT[x.slice(-1)];
-                if (pilih) onValue(pilih);
+                if (x === "" || x.length < value.length) onValue("");
               }}
             />
           </Tooltip>
