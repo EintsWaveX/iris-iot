@@ -274,6 +274,8 @@ export default function LivePrep({
               const menunggu = m.jenis === "sukarela" && m.status === "diminta";
               const b = baris.get(m.nim);
               const bayar = b ? bayarBaris(h, b, hd?.potongan) : null;
+              // A judged row's own check-in, so the time agrees with its status pill.
+              const hadirPada = b ? b.hadirPada : m.hadirPada;
               return (
                 <div key={m.nim} className="teachrow" data-wait={menunggu ? "yes" : undefined}>
                   <span className={`pill${k.tone ? ` pill--${k.tone}` : ""}`}>
@@ -319,8 +321,8 @@ export default function LivePrep({
                     <>
                       <span className="stack teachrow__time" style={{ gap: 0 }}>
                         <span className="hint num">
-                          {m.hadirPada
-                            ? l.here(jamMenit(m.hadirPada))
+                          {hadirPada
+                            ? l.here(jamMenit(hadirPada))
                             : !b
                               ? l.absent
                               : m.jenis === "izin" || b.status === "izin"
@@ -342,7 +344,7 @@ export default function LivePrep({
                         <span className="teachrow__st" />
                       )}
                       <span className="row teachrow__act">
-                        {hd?.bolehPj && !m.hadirPada && m.jenis !== "izin" && (
+                        {hd?.bolehPj && !b?.hadirPada && m.jenis !== "izin" && (
                           <button
                             type="button"
                             className="btn btn--sm btn--ghost"
@@ -353,7 +355,7 @@ export default function LivePrep({
                             {l.mark}
                           </button>
                         )}
-                        {hd?.bolehPj && b && (
+                        {hd?.bolehPj && b && b.status !== "lepas" && (
                           <button
                             type="button"
                             className="btn btn--sm btn--ghost"

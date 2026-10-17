@@ -965,6 +965,14 @@ export async function handleHadirPj(req: ApiRequest, res: ApiResponse, session: 
   // Everything below changes one person's row.
   if (!c.orang.has(nim)) return tolak(res, "tidak_ada");
   if (nim === session.nim && !hakPenuh(orang)) return tolak(res, "tanpa_hak", 403);
+  // Only someone the slot has: expected, on Izin, or already in a row. Anyone
+  // else is never judged, so a status on them would only count in reports.
+  const [lama] = await db
+    .select({ ubah: hadirMengajar.ubahStatus })
+    .from(hadirMengajar)
+    .where(and(eq(hadirMengajar.kunci, kunci), eq(hadirMengajar.nim, nim)))
+    .limit(1);
+  if (!c.diharapkan.has(nim) && !c.izin.has(nim) && !lama) return tolak(res, "tidak_ada");
 
   if (aksi === "aa") {
     await db
@@ -1008,11 +1016,6 @@ export async function handleHadirPj(req: ApiRequest, res: ApiResponse, session: 
   }
 
   // aksi "status"
-  const [lama] = await db
-    .select({ ubah: hadirMengajar.ubahStatus })
-    .from(hadirMengajar)
-    .where(and(eq(hadirMengajar.kunci, kunci), eq(hadirMengajar.nim, nim)))
-    .limit(1);
   const ubahStatus = status === "ikut" ? null : (status as StatusHadir);
   const ubahMenit = status === "telat" ? menit : null;
   const hitungMangkir = typeof body.hitungMangkir === "boolean" ? body.hitungMangkir : undefined;

@@ -438,3 +438,52 @@ describe("Izin after the session", () => {
     expect(bayarUlang).toEqual([{ jadwalId: 1, tanggal: "2026-10-19" }]);
   });
 });
+
+describe("PJ writes only for someone on the slot", () => {
+  /** 3030 is an Asisten, but not seated, not on Izin and has no row here. */
+  function isiLuar() {
+    isiSlot();
+    data.set(asisten, [
+      { nim: "1010", kode: "PJX", nama: "Pe Je" },
+      { nim: "2020", kode: "AAA", nama: "Anak A" },
+      { nim: "3030", kode: "ZZZ", nama: "Orang Luar" },
+    ]);
+  }
+
+  it("refuses a status for someone not on the slot", async () => {
+    isiLuar();
+    const r = await pj({
+      aksi: "status",
+      kunci: KUNCI,
+      nim: "3030",
+      status: "telat",
+      menit: 3,
+      alasan: "salah catat",
+    });
+    expect(r.body).toEqual({ ok: false, kode: "tidak_ada" });
+    expect(ditulis.filter((d) => d.tabel === hadirMengajar)).toHaveLength(0);
+  });
+
+  it("refuses an Ambil Alih answer for someone not on the slot", async () => {
+    isiLuar();
+    const r = await pj({ aksi: "aa", kunci: KUNCI, nim: "3030", izin: true });
+    expect(r.body).toEqual({ ok: false, kode: "tidak_ada" });
+    expect(ditulis).toHaveLength(0);
+  });
+
+  it("still allows someone on Izin, or someone already in a row", async () => {
+    isiLuar();
+    mingguIzin.push({ nim: "3030", status: "aktif" });
+    const body = {
+      aksi: "status",
+      kunci: KUNCI,
+      nim: "3030",
+      status: "ikut",
+      alasan: "salah catat",
+    };
+    expect((await pj(body)).body).toEqual({ ok: true });
+    mingguIzin.length = 0;
+    data.set(hadirMengajar, [{ ubah: "telat" }]);
+    expect((await pj(body)).body).toEqual({ ok: true });
+  });
+});
