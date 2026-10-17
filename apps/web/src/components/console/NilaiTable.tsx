@@ -42,7 +42,7 @@ import Tooltip from "../ui/Tooltip";
 import { LevelField, L1Field } from "./LevelField";
 import { adaTingkat } from "../../lib/nilai-rubrik";
 import { RB } from "./rubrikStrings";
-import { l1Anggota } from "./data";
+import { l1Anggota, l1DariSistem } from "./data";
 
 export default function NilaiTable({
   t,
@@ -308,7 +308,7 @@ export default function NilaiTable({
   /** A member's field: L1 shows the group's automatic value until one is typed. */
   const celAnggota = (a: NilaiAnggota, c: string, k: { id: number; l1: number }) =>
     c === "L1"
-      ? cell(a.nim, a.nama, c, k.id, l1Anggota(a, k.l1), a.skor.L1 == null && !a.absen)
+      ? cell(a.nim, a.nama, c, k.id, l1Anggota(a, k.l1), l1DariSistem(a))
       : cell(a.nim, a.nama, c, k.id, a.skor[c]);
 
   return (

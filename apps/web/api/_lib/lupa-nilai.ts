@@ -102,8 +102,11 @@ export async function muatNilaiTerbuka(db: Db, sesiIds: number[]): Promise<Nilai
   const terkirim = new Set(kirim.map((k) => key(k.sesiId, k.nomor)));
   const tersimpan = new Set(simpan.map((k) => key(k.sesiId, k.nomor)));
   const absenSet = new Set(absen.map((a) => `${a.sesiId}.${a.nim}`));
+  // L1 is never missing: unless typed it is the system's (rubric), so only
+  // the other components are counted.
   const hitung = new Map<string, number>();
   for (const r of skor) {
+    if (r.komponen === "L1") continue;
     const k = `${r.sesiId}.${r.nim}`;
     hitung.set(k, (hitung.get(k) ?? 0) + 1);
   }
@@ -132,7 +135,7 @@ export async function muatNilaiTerbuka(db: Db, sesiIds: number[]): Promise<Nilai
         .every(
           (o) =>
             absenSet.has(`${s.id}.${o.nim}`) ||
-            (hitung.get(`${s.id}.${o.nim}`) ?? 0) >= NILAI_KOMPONEN.length,
+            (hitung.get(`${s.id}.${o.nim}`) ?? 0) >= NILAI_KOMPONEN.length - 1,
         );
       const dasar = {
         lengkap,

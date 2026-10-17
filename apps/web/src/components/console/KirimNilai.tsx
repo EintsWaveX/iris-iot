@@ -12,7 +12,7 @@ import { pageLang } from "../../lib/app";
 import SeelabsStrip from "./seelabs/SeelabsStrip";
 import { RB } from "./seelabs/robotStrings";
 import type { Strings } from "./strings";
-import type { NilaiLive } from "./data";
+import { l1Anggota, type NilaiLive } from "./data";
 
 const jam = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-GB", {
@@ -40,10 +40,11 @@ export default function KirimNilai({
   const g = data?.kelompok.find((k) => k.id === kelompokId);
   if (!data || !g) return null;
   const sent = data.terkirim[g.nomor];
-  const kurang = g.anggota.reduce(
-    (a, m) => a + data.komponen.filter((c) => m.skor[c] == null).length,
-    0,
-  );
+  // L1 counts as the table shows it: the group's automatic one when not typed.
+  const kurang = g.anggota.reduce((a, m) => {
+    const skor: typeof m.skor = { ...m.skor, L1: l1Anggota(m, g.l1) };
+    return a + data.komponen.filter((c) => skor[c] == null).length;
+  }, 0);
 
   if (sent) {
     return (

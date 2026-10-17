@@ -216,6 +216,12 @@ export function l1Anggota(a: Pick<Anggota, "skor" | "absen">, l1Kelompok: number
   return l1Tampil(a.skor.L1, a.absen, l1Kelompok);
 }
 
+/** Does the member's L1 show the system's value (none typed, or the one
+ *  Kirim Nilai stored)? A Tidak Hadir member's 0 is not. */
+export function l1DariSistem(a: Pick<Anggota, "skor" | "absen" | "l1Sistem">): boolean {
+  return !a.absen && (a.skor.L1 == null || a.l1Sistem === true);
+}
+
 /** A student's total and completeness from their fields (L1 as shown). */
 function hitung(a: Anggota, komponen: string[], skor: Anggota["skor"], l1: number): Anggota {
   const tampil: Anggota["skor"] = { ...skor, L1: l1Anggota({ skor, absen: a.absen }, l1) };
@@ -340,7 +346,11 @@ export function useNilaiLive(
                       changed = true;
                     }
                   }
-                  return changed ? hitung(a, prev.komponen, skor, d.l1 ? l1 : k.l1) : a;
+                  const n = changed ? hitung(a, prev.komponen, skor, d.l1 ? l1 : k.l1) : a;
+                  // Who wrote L1 last decides whether it is the system's.
+                  const r1 = byNim.get(`${a.nim}.L1`);
+                  const sistem = r1 ? r1.diubahOleh === "otomatis" : !!a.l1Sistem;
+                  return sistem === !!a.l1Sistem ? n : { ...n, l1Sistem: sistem };
                 }),
               };
             }),
@@ -384,7 +394,9 @@ export function useNilaiLive(
                 if (!nims.includes(a.nim)) return a;
                 const s = { ...a.skor };
                 ubah(s, a);
-                const n = hitung({ ...a, absen: absen ?? a.absen }, prev.komponen, s, k.l1);
+                const h = hitung({ ...a, absen: absen ?? a.absen }, prev.komponen, s, k.l1);
+                // An L1 changed here is no longer the system's stored one.
+                const n = s.L1 === a.skor.L1 ? h : { ...h, l1Sistem: false };
                 return absen === undefined ? n : { ...n, absen };
               }),
             })),

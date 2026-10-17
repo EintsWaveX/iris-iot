@@ -1053,10 +1053,13 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse, session: Sessio
         .from(anggota);
   const nilaiRows = await db.select().from(nilai).where(eq(nilai.sesiId, sesiId));
   const nilaiByNim = new Map<string, Partial<Record<NilaiKomponen, number>>>();
+  // L1 that Kirim Nilai stored for nobody's typing is still the system's.
+  const l1Sistem = new Set<string>();
   for (const r of nilaiRows) {
     const entry = nilaiByNim.get(r.nim) ?? {};
     entry[r.komponen] = r.skor;
     nilaiByNim.set(r.nim, entry);
+    if (r.komponen === "L1" && r.diubahOleh === "otomatis") l1Sistem.add(r.nim);
   }
   const absen = await daftarAbsen(db, sesiId);
   const l1Auto = await l1PerKelompok(db, sesiId, running.modul);
@@ -1087,6 +1090,7 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse, session: Sessio
             total: NILAI_KOMPONEN.reduce((acc, k) => acc + (efektif[k] ?? 0), 0),
             lengkap: diisi === NILAI_KOMPONEN.length,
             absen: absen.has(m.nim),
+            l1Sistem: l1Sistem.has(m.nim),
           };
         }),
       };
@@ -1162,6 +1166,7 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
   // P8: one assistant per group. Only the group's holder may write its
   // scores; an unassigned group stays open to anyone.
   const pemilik = await pemilikKelompok(db, sesiId);
+  const kelompokDari = new Map<string, number>();
   for (const nim of new Set(nims)) {
     const kelompokId = await kelompokNilai(db, sesiId, nim);
     if (kelompokId === null) {
@@ -1172,6 +1177,7 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
       res.status(200).json({ ok: false, kode: "bukan_pemilik", pemilik: pemilik.get(kelompokId) });
       return;
     }
+    kelompokDari.set(nim, kelompokId);
   }
 
   if (absen !== null) {
@@ -1224,10 +1230,30 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     // A Tidak Hadir member's L1 is their 0, not an override: it stays.
     const absenSemua = await daftarAbsen(db, sesiId);
     const lepas = unik.filter((n) => !absenSemua.has(n));
-    if (lepas.length) {
+    // After Kirim Nilai the Praktikan and the reports read the stored L1,
+    // so a sent group gets the system's value stored again, not none.
+    const terkirim = await daftarKirim(db, sesiId);
+    const nomorDari = new Map(
+      (await db.select({ id: kelompok.id, nomor: kelompok.nomor }).from(kelompok)).map((g) => [
+        g.id,
+        g.nomor,
+      ]),
+    );
+    const nomorNim = (n: string) => nomorDari.get(kelompokDari.get(n) ?? -1) ?? -1;
+    const sudah = lepas.filter((n) => terkirim[nomorNim(n)]);
+    const hapusan = lepas.filter((n) => !terkirim[nomorNim(n)]);
+    if (hapusan.length) {
       await db
         .delete(nilai)
-        .where(and(eq(nilai.sesiId, sesiId), inArray(nilai.nim, lepas), eq(nilai.komponen, "L1")));
+        .where(
+          and(eq(nilai.sesiId, sesiId), inArray(nilai.nim, hapusan), eq(nilai.komponen, "L1")),
+        );
+    }
+    if (sudah.length) {
+      const l1Auto = await l1PerKelompok(db, sesiId, target.modul);
+      for (const nim of sudah) {
+        await simpanNilai(db, sesiId, [nim], ["L1"], l1Auto.get(nomorNim(nim)) ?? 0, "otomatis");
+      }
     }
     for (const nim of lepas)
       await writeAudit(session.nim, "nilai_set", { sesiId, nim, komponen, skor: null });

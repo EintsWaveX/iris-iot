@@ -35,7 +35,7 @@ import Pill from "../ui/Pill";
 import { ScoreInput, Switch } from "../ui/Controls";
 import { LevelField, L1Field } from "./LevelField";
 import { adaTingkat } from "../../lib/nilai-rubrik";
-import { l1Anggota } from "./data";
+import { l1Anggota, l1DariSistem } from "./data";
 import SegmentedControl from "../ui/SegmentedControl";
 import { ProgressRing } from "../ui/Display";
 import { kelompokLabel } from "../../lib/labels";
@@ -765,10 +765,7 @@ function ScoreEditor({
     const key = rata ? `${g.id}.rata.${k}` : `${s.nim}.${k}`;
     const b = rata ? bersama(k) : null;
     const v = draft[key] ?? (b ? b.v : val(s, k) != null ? String(val(s, k)) : "");
-    const otomatis =
-      k === "L1" &&
-      !(key in draft) &&
-      (rata ? hadir : [s]).every((a) => a.skor.L1 == null && !a.absen);
+    const otomatis = k === "L1" && !(key in draft) && (rata ? hadir : [s]).every(l1DariSistem);
     const props = {
       value: v,
       placeholder: b?.beda ? "≠" : "·",

@@ -779,9 +779,12 @@ async function handlePraktikum(req: ApiRequest, res: ApiResponse, s: SessionPayl
           .where(inArray(nilaiKirim.sesiId, ids)),
       ])
     : [[], [], [], []];
+  // L1 is never missing: unless typed it is the system's (rubric), so only
+  // the other components are counted.
   const diisi = new Map<string, number>();
   for (const r of skor)
-    diisi.set(`${r.sesiId}|${r.nim}`, (diisi.get(`${r.sesiId}|${r.nim}`) ?? 0) + 1);
+    if (r.komponen !== "L1")
+      diisi.set(`${r.sesiId}|${r.nim}`, (diisi.get(`${r.sesiId}|${r.nim}`) ?? 0) + 1);
   const absenSet = new Set(absen.map((a) => `${a.sesiId}|${a.nim}`));
   const kirimSet = new Set(kirim.map((k) => `${k.sesiId}|${k.nomor}`));
   const sesiList = ids.map((id) => {
@@ -793,7 +796,7 @@ async function handlePraktikum(req: ApiRequest, res: ApiResponse, s: SessionPayl
         const lengkap = ms.filter(
           (a) =>
             absenSet.has(`${id}|${a.nim}`) ||
-            (diisi.get(`${id}|${a.nim}`) ?? 0) >= NILAI_KOMPONEN.length,
+            (diisi.get(`${id}|${a.nim}`) ?? 0) >= NILAI_KOMPONEN.length - 1,
         ).length;
         const state = kirimSet.has(`${id}|${r.nomor}`)
           ? "sent"

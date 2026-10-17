@@ -12,6 +12,8 @@ type Tulis = {
   where?: unknown;
 };
 const ditulis: Tulis[] = [];
+/** Reads answer group 1 as sent (Kirim Nilai) when set, else group 99. */
+let terkirim = false;
 
 function chain(tulis?: Tulis): unknown {
   const p: Record<string, unknown> = {};
@@ -35,7 +37,23 @@ function chain(tulis?: Tulis): unknown {
   };
   // Every read answers one row that satisfies the group and session lookups.
   p.then = (ok: (v: unknown) => unknown) =>
-    ok(tulis ? [] : [{ id: 1, kelompokId: 1, nomor: 1, nim: "A1", status: "berjalan" }]);
+    ok(
+      tulis
+        ? []
+        : [
+            {
+              id: 1,
+              kelompokId: 1,
+              nomor: 1,
+              nim: "A1",
+              status: "berjalan",
+              // As a nilai_kirim row: group 1 sent, or another group.
+              kelompokNomor: terkirim ? 1 : 99,
+              dikirimPada: new Date(0),
+              dikirimOleh: "1010",
+            },
+          ],
+    );
   return p;
 }
 
@@ -58,6 +76,7 @@ vi.mock("../_lib/session", async (orig) => ({
   requireRole: () => ({ nim: "1010", role: "asisten" }),
   tolakPraktikanTot: async () => false,
 }));
+vi.mock("../_lib/l1-otomatis", () => ({ l1PerKelompok: async () => new Map([[1, 63]]) }));
 vi.mock("../_lib/siaran", () => ({ denganSiaran: (_r: string, h: unknown) => h }));
 vi.mock("../../src/lib/auth", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
@@ -91,6 +110,7 @@ const nilaiTulis = () => ditulis.filter((t) => t.tabel === nilai);
 
 beforeEach(() => {
   ditulis.length = 0;
+  terkirim = false;
 });
 
 describe("score validation by rubric", () => {
@@ -139,5 +159,18 @@ describe("score validation by rubric", () => {
     expect((await kirim({ sesiId: 5, nim: "A1", komponen: "D1", hapus: true })).kode).toBe(
       "format_salah",
     );
+  });
+
+  it("after Kirim Nilai, clearing L1 stores the system's value instead of none", async () => {
+    terkirim = true;
+    expect((await kirim({ sesiId: 5, nim: "B9", komponen: "L1", hapus: true })).ok).toBe(true);
+    const w = nilaiTulis();
+    expect(w.some((t) => t.jenis === "delete")).toBe(false);
+    expect(w).toHaveLength(1);
+    expect(w[0]).toMatchObject({
+      jenis: "insert",
+      konflik: "update",
+      values: [{ sesiId: 5, nim: "B9", komponen: "L1", skor: 63, diubahOleh: "otomatis" }],
+    });
   });
 });

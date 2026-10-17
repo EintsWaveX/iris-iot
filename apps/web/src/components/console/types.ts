@@ -164,6 +164,8 @@ export interface NilaiAnggota {
   lengkap: boolean;
   /** Marked Tidak Hadir for this session: fields start at 0, Sama Rata skips them. */
   absen: boolean;
+  /** The stored L1 is the system's (Kirim Nilai wrote it), not typed. */
+  l1Sistem?: boolean;
 }
 
 export interface NilaiKelompok {
