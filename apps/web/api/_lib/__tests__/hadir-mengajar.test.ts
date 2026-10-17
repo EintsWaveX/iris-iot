@@ -521,4 +521,15 @@ describe("PJ writes only for someone on the slot", () => {
     expect(ditulis.filter((d) => d.tabel === hadirMengajar)).toHaveLength(0);
     expect((await pj({ ...telat, status: "ikut", menit: undefined })).body).toEqual({ ok: true });
   });
+
+  it("still corrects someone whose seat went after the start (row still expected)", async () => {
+    isiLuar();
+    data.set(hadirMengajar, [{ ubah: null, diharapkan: true }]);
+    const ubah = { aksi: "status", kunci: KUNCI, nim: "3030", alasan: "salah catat" };
+    expect((await pj({ ...ubah, status: "izin" })).body).toEqual({ ok: true });
+    expect((await pj({ ...ubah, status: "telat", menit: 3 })).body).toEqual({ ok: true });
+    expect((await pj({ aksi: "aa", kunci: KUNCI, nim: "3030", izin: false })).body).toEqual({
+      ok: true,
+    });
+  });
 });

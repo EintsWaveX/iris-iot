@@ -971,14 +971,17 @@ export async function handleHadirPj(req: ApiRequest, res: ApiResponse, session: 
   // Only someone the slot has: expected, on Izin, or already in a row. Anyone
   // else is never judged, so a status on them would only count in reports.
   const [lama] = await db
-    .select({ ubah: hadirMengajar.ubahStatus })
+    .select({ ubah: hadirMengajar.ubahStatus, diharapkan: hadirMengajar.diharapkan })
     .from(hadirMengajar)
     .where(and(eq(hadirMengajar.kunci, kunci), eq(hadirMengajar.nim, nim)))
     .limit(1);
-  if (!c.diharapkan.has(nim) && !c.izin.has(nim) && !lama) return tolak(res, "tidak_ada");
+  // Expected as the judge reads it: today's seat, or the row's own flag from
+  // the start (a seat changed later still leaves them judged).
+  const harap = c.diharapkan.has(nim) || !!lama?.diharapkan;
+  if (!harap && !c.izin.has(nim) && !lama) return tolak(res, "tidak_ada");
   // Someone only in a row (neither expected nor on Izin) may just have an
   // override taken off ("ikut"), never a new status or an Ambil Alih answer.
-  if (!c.diharapkan.has(nim) && !c.izin.has(nim) && (aksi === "aa" || status !== "ikut"))
+  if (!harap && !c.izin.has(nim) && (aksi === "aa" || status !== "ikut"))
     return tolak(res, "tidak_ada");
 
   if (aksi === "aa") {
