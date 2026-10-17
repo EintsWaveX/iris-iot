@@ -38,6 +38,11 @@ import ChangeAssistant from "./ChangeAssistant";
 import { N } from "../shell/nilaiStrings";
 import { PD } from "./seelabs/panduanStrings";
 import Nil from "../ui/Nil";
+import Tooltip from "../ui/Tooltip";
+import { LevelField, L1Field } from "./LevelField";
+import { adaTingkat } from "../../lib/nilai-rubrik";
+import { RB } from "./rubrikStrings";
+import { l1Anggota } from "./data";
 
 export default function NilaiTable({
   t,
@@ -139,9 +144,9 @@ export default function NilaiTable({
       </button>
     ) : null;
 
-  async function commit(nim: string, k: string, kid: number) {
+  async function commit(nim: string, k: string, kid: number, pick?: string) {
     const key = `${nim}.${k}`;
-    const raw = draft[key];
+    const raw = pick ?? draft[key];
     if (raw === undefined) return;
     // Drop the draft first so the blur that follows an Enter does not save twice.
     setDraft((d) => {
@@ -210,7 +215,7 @@ export default function NilaiTable({
           hadir && !a.absen ? "ya" : "tidak",
           lk?.benar ?? 0,
           lk?.total ?? 0,
-          ...data!.komponen.map((c) => a.skor[c] ?? ""),
+          ...data!.komponen.map((c) => (c === "L1" ? l1Anggota(a, k.l1) : (a.skor[c] ?? ""))),
         ]);
       }
     }
@@ -257,27 +262,54 @@ export default function NilaiTable({
     />
   );
 
-  const cell = (nim: string, nama: string, k: string, kid: number, stored: number | undefined) => {
+  const cell = (
+    nim: string,
+    nama: string,
+    k: string,
+    kid: number,
+    stored: number | undefined,
+    otomatis = false,
+  ) => {
     const key = `${nim}.${k}`;
     // Phase 13: a TP graded per question in Penilaian is read only here.
     const dariTp = k === "TP" && !!data.tpDari?.includes(nim);
     const ro = !canEdit(kid) || dariTp;
     const holder = namaAsisten(asisten.get(data.pemilik[kid] ?? ""));
-    return (
-      <ScoreInput
-        className="ctl-score--table"
-        value={draft[key] ?? (stored != null ? String(stored) : "")}
-        state={nilai.states[key] ?? "idle"}
-        flash={nilai.flash[key]}
-        readOnlyReason={dariTp ? t.tpDariPenilaian : ro ? t.readOnly(holder) : undefined}
-        aria-label={t.scoreFor(k, nama)}
-        onValue={(x) => setDraft((d) => ({ ...d, [key]: x }))}
-        onBlur={() => void commit(nim, k, kid)}
-        onKeyDown={moveRow}
-        onFocus={(e) => e.currentTarget.select()}
-      />
-    );
+    const props = {
+      className: "ctl-score--table",
+      value: draft[key] ?? (stored != null ? String(stored) : ""),
+      state: nilai.states[key] ?? ("idle" as const),
+      flash: nilai.flash[key],
+      readOnlyReason: dariTp ? t.tpDariPenilaian : ro ? t.readOnly(holder) : undefined,
+      "aria-label": t.scoreFor(k, nama),
+      onValue: (x: string) => setDraft((d) => ({ ...d, [key]: x })),
+      onBlur: () => void commit(nim, k, kid),
+      onKeyDown: moveRow,
+      onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select(),
+    };
+    if (adaTingkat(k)) {
+      return (
+        <LevelField
+          {...props}
+          komponen={k}
+          lang={lang}
+          onPick={(v) => {
+            setDraft((d) => ({ ...d, [key]: v }));
+            void commit(nim, k, kid, v);
+          }}
+        />
+      );
+    }
+    if (k === "L1")
+      return <L1Field {...props} lang={lang} otomatis={otomatis && !(key in draft)} />;
+    return <ScoreInput {...props} />;
   };
+
+  /** A member's field: L1 shows the group's automatic value until one is typed. */
+  const celAnggota = (a: NilaiAnggota, c: string, k: { id: number; l1: number }) =>
+    c === "L1"
+      ? cell(a.nim, a.nama, c, k.id, l1Anggota(a, k.l1), a.skor.L1 == null && !a.absen)
+      : cell(a.nim, a.nama, c, k.id, a.skor[c]);
 
   return (
     <section className="panel ntable">
@@ -351,7 +383,17 @@ export default function NilaiTable({
                 </th>
                 {data.komponen.map((k) => (
                   <th scope="col" key={k}>
-                    {k}
+                    {RB[lang].nama[k] ? (
+                      <Tooltip label={RB[lang].nama[k]}>
+                        <span>{k}</span>
+                      </Tooltip>
+                    ) : k === "TA" ? (
+                      <Tooltip label={RB[lang].taTip}>
+                        <span>{k}</span>
+                      </Tooltip>
+                    ) : (
+                      k
+                    )}
                   </th>
                 ))}
                 <th scope="col" className="ntable__total">
@@ -407,7 +449,7 @@ export default function NilaiTable({
                         <td className="ntable__nim mono">{a.nim}</td>
                         <td className="ntable__absen">{absenSwitch(a, k.id)}</td>
                         {data.komponen.map((c) => (
-                          <td key={c}>{cell(a.nim, a.nama, c, k.id, a.skor[c])}</td>
+                          <td key={c}>{celAnggota(a, c, k)}</td>
                         ))}
                         <td className="ntable__total num">{a.total}</td>
                       </tr>
@@ -450,7 +492,7 @@ export default function NilaiTable({
                     {data.komponen.map((c) => (
                       <label key={c} className="scores__cell">
                         <span className="scores__k">{c}</span>
-                        {cell(a.nim, a.nama, c, k.id, a.skor[c])}
+                        {celAnggota(a, c, k)}
                       </label>
                     ))}
                   </div>

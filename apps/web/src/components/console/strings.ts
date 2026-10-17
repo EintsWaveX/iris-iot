@@ -210,7 +210,8 @@ export const S = dict({
     readOnlyNone:
       "Kelompok ini belum dipegang siapa pun. Pegang dulu supaya hanya kamu yang mengisi nilainya.",
     scoreFor: (k: string, n: string) => `${k} untuk ${n}`,
-    scoreRange: "Nilai harus bilangan bulat 0 sampai 100.",
+    scoreRange:
+      "Nilai tidak sesuai rubrik. D1 sampai D4 dan L2: 0, 45, 65, 80 atau 90. L1: 0 sampai 90. TA dan TP: 0 sampai 100.",
     notOwner: (k: string) => `Kelompok ini dipegang ${k}. Nilai tidak disimpan.`,
     total: "Total",
     incomplete: "belum lengkap",
@@ -875,7 +876,8 @@ export const S = dict({
     tpDariPenilaian: "From TP grading. Change the score there.",
     readOnlyNone: "Nobody holds this group yet. Take it first so only you enter its scores.",
     scoreFor: (k: string, n: string) => `${k} for ${n}`,
-    scoreRange: "Scores must be whole numbers from 0 to 100.",
+    scoreRange:
+      "That score does not fit the rubric. D1 to D4 and L2: 0, 45, 65, 80 or 90. L1: 0 to 90. TA and TP: 0 to 100.",
     notOwner: (k: string) => `This group is held by ${k}. The score was not saved.`,
     total: "Total",
     incomplete: "incomplete",
@@ -1529,7 +1531,8 @@ export const S = dict({
     tpDariPenilaian: "来自预习作业评分，要改请去那里。",
     readOnlyNone: "这个组还没人负责。先接下它，这样只有你能填分。",
     scoreFor: (k: string, n: string) => `${n} 的 ${k}`,
-    scoreRange: "分数必须是 0 到 100 的整数。",
+    scoreRange:
+      "分数不符合评分标准。D1 至 D4 和 L2：0、45、65、80 或 90。L1：0 至 90。TA 和 TP：0 至 100。",
     notOwner: (k: string) => `这个组由 ${k} 负责。分数没有保存。`,
     total: "总分",
     incomplete: "未完成",

@@ -33,6 +33,9 @@ import Dropdown from "../ui/Dropdown";
 import Nil from "../ui/Nil";
 import Pill from "../ui/Pill";
 import { ScoreInput, Switch } from "../ui/Controls";
+import { LevelField, L1Field } from "./LevelField";
+import { adaTingkat } from "../../lib/nilai-rubrik";
+import { l1Anggota } from "./data";
 import SegmentedControl from "../ui/SegmentedControl";
 import { ProgressRing } from "../ui/Display";
 import { kelompokLabel } from "../../lib/labels";
@@ -700,13 +703,16 @@ function ScoreEditor({
   const rata = cara === "rata";
   const s = students[Math.min(idx, students.length - 1)];
   const hadir = students.filter((a) => !a.absen);
-  const filled = (a: (typeof students)[number]) => komponen.filter((k) => a.skor[k] != null).length;
+  /** What a field shows for a member: L1 falls back to the group's automatic one. */
+  const val = (a: (typeof students)[number], k: string) =>
+    k === "L1" ? l1Anggota(a, group.l1) : a.skor[k];
+  const filled = (a: (typeof students)[number]) => komponen.filter((k) => val(a, k) != null).length;
   const readOnlyReason = canEdit ? undefined : ownerKode ? t.readOnly(ownerKode) : t.readOnlyNone;
 
   /** Sama Rata shows a field's shared value, or nothing with ≠ when the
    *  present members still differ. */
   const bersama = (k: string): { v: string; beda: boolean } => {
-    const vals = new Set(hadir.map((a) => a.skor[k] ?? null));
+    const vals = new Set(hadir.map((a) => val(a, k) ?? null));
     if (vals.size !== 1) return { v: "", beda: true };
     const [v] = [...vals];
     return { v: v === null ? "" : String(v), beda: false };
@@ -714,9 +720,9 @@ function ScoreEditor({
   const adaBeda = rata && komponen.some((k) => bersama(k).beda);
   const totalBersama = new Set(hadir.map((a) => a.total)).size === 1 ? hadir[0]?.total : null;
 
-  async function commit(k: string) {
+  async function commit(k: string, pick?: string) {
     const key = rata ? `${g.id}.rata.${k}` : `${s.nim}.${k}`;
-    const raw = draft[key];
+    const raw = pick ?? draft[key];
     if (raw === undefined) return;
     // Drop the draft first so the blur that follows an Enter does not save twice.
     setDraft((d) => {
@@ -758,27 +764,45 @@ function ScoreEditor({
   const field = (k: string, i: number) => {
     const key = rata ? `${g.id}.rata.${k}` : `${s.nim}.${k}`;
     const b = rata ? bersama(k) : null;
-    const v = draft[key] ?? (b ? b.v : s.skor[k] != null ? String(s.skor[k]) : "");
-    // A group field shows a member's save state; they all move together.
-    const stateKey = rata ? `${hadir[0]?.nim}.${k}` : key;
+    const v = draft[key] ?? (b ? b.v : val(s, k) != null ? String(val(s, k)) : "");
+    const otomatis =
+      k === "L1" &&
+      !(key in draft) &&
+      (rata ? hadir : [s]).every((a) => a.skor.L1 == null && !a.absen);
+    const props = {
+      value: v,
+      placeholder: b?.beda ? "≠" : "·",
+      state: nilai.states[rata ? `${hadir[0]?.nim}.${k}` : key] ?? ("idle" as const),
+      flash: rata ? hadir.some((a) => nilai.flash[`${a.nim}.${k}`]) : nilai.flash[key],
+      readOnlyReason: rata && hadir.length === 0 ? t.rataNone : readOnlyReason,
+      "aria-label": t.scoreFor(k, rata ? t.groupFull(g.nomor) : s.nama),
+      onValue: (x: string) => setDraft((d) => ({ ...d, [key]: x })),
+      onBlur: () => void commit(k),
+      onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => onKey(e, i),
+      onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select(),
+    };
+    const setRef = (el: HTMLInputElement | null) => {
+      refs.current[i] = el;
+    };
     return (
       <label key={k} className="scorerow__cell">
         <span className="scorerow__k">{k}</span>
-        <ScoreInput
-          ref={(el) => {
-            refs.current[i] = el;
-          }}
-          value={v}
-          placeholder={b?.beda ? "≠" : "·"}
-          state={nilai.states[stateKey] ?? "idle"}
-          flash={rata ? hadir.some((a) => nilai.flash[`${a.nim}.${k}`]) : nilai.flash[key]}
-          readOnlyReason={rata && hadir.length === 0 ? t.rataNone : readOnlyReason}
-          aria-label={t.scoreFor(k, rata ? t.groupFull(g.nomor) : s.nama)}
-          onValue={(x) => setDraft((d) => ({ ...d, [key]: x }))}
-          onBlur={() => void commit(k)}
-          onKeyDown={(e) => onKey(e, i)}
-          onFocus={(e) => e.currentTarget.select()}
-        />
+        {adaTingkat(k) ? (
+          <LevelField
+            ref={setRef}
+            {...props}
+            komponen={k}
+            lang={lang}
+            onPick={(x) => {
+              setDraft((d) => ({ ...d, [key]: x }));
+              void commit(k, x);
+            }}
+          />
+        ) : k === "L1" ? (
+          <L1Field ref={setRef} {...props} lang={lang} otomatis={otomatis} />
+        ) : (
+          <ScoreInput ref={setRef} {...props} />
+        )}
       </label>
     );
   };

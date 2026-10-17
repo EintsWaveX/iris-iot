@@ -126,6 +126,8 @@ import {
 import { kodeMasukSesi, writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { jumlahCelahModul, kodeModul } from "../_lib/kode-aktif.js";
+import { l1PerKelompok } from "../_lib/l1-otomatis.js";
+import { l1Tampil, skorSah } from "../../src/lib/nilai-rubrik.js";
 import { SESI_CAP_DETIK, SESI_CAP_MENIT, durasiSesi } from "../../src/lib/jadwal.js";
 import { bolehIsiNilai } from "../../src/lib/penugasan.js";
 import { catatKejadian, handleDurasi, handleKit } from "../_lib/berjalan.js";
@@ -951,8 +953,6 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
 }
 
 const NILAI_KOMPONEN_SET: ReadonlySet<string> = new Set(NILAI_KOMPONEN);
-const SKOR_MIN = 0;
-const SKOR_MAX = 100;
 
 /** May this Asisten move an ended session's scoring (its PJ, or the full Pair right)? */
 async function bolehAlihkan(
@@ -1018,12 +1018,16 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse, session: Sessio
     // list differs loads everything again.
     const absen = await daftarAbsen(db, sesiId);
     const terkirim = await daftarKirim(db, sesiId);
+    // Blanks change without any score changing, so the automatic L1 rides
+    // along (group number -> value).
+    const l1 = Object.fromEntries(await l1PerKelompok(db, sesiId, running.modul));
     res.status(200).json({
       ok: true,
       berubah,
       pemilik,
       absen: [...absen],
       terkirim,
+      l1,
       server: new Date().toISOString(),
     });
     return;
@@ -1055,6 +1059,7 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse, session: Sessio
     nilaiByNim.set(r.nim, entry);
   }
   const absen = await daftarAbsen(db, sesiId);
+  const l1Auto = await l1PerKelompok(db, sesiId, running.modul);
 
   const daftarKelompok = groups
     .filter((g) => g.nomor <= (running.jumlahKelompok ?? 10))
@@ -1065,14 +1070,21 @@ async function handleNilaiGet(req: ApiRequest, res: ApiResponse, session: Sessio
         id: g.id,
         nomor: g.nomor,
         nama: g.nama,
+        // The group's automatic L1; a member with no stored L1 shows it.
+        l1: l1Auto.get(g.nomor) ?? 0,
         anggota: anggotaKelompok.map((m) => {
           const skor = nilaiByNim.get(m.nim) ?? {};
-          const diisi = NILAI_KOMPONEN.filter((k) => skor[k] != null).length;
+          // L1 without a stored value is the system's (0 when Tidak Hadir).
+          const efektif = {
+            ...skor,
+            L1: l1Tampil(skor.L1, absen.has(m.nim), l1Auto.get(g.nomor) ?? 0),
+          };
+          const diisi = NILAI_KOMPONEN.filter((k) => efektif[k] != null).length;
           return {
             nim: m.nim,
             nama: m.nama,
             skor,
-            total: NILAI_KOMPONEN.reduce((acc, k) => acc + (skor[k] ?? 0), 0),
+            total: NILAI_KOMPONEN.reduce((acc, k) => acc + (efektif[k] ?? 0), 0),
             lengkap: diisi === NILAI_KOMPONEN.length,
             absen: absen.has(m.nim),
           };
@@ -1116,6 +1128,8 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     ? body.nims.map((x) => (typeof x === "string" ? x.trim() : ""))
     : [typeof body.nim === "string" ? body.nim.trim() : ""];
   const absen = typeof body.absen === "boolean" ? body.absen : null;
+  // Clearing L1 takes the typed value away; the system's value shows again.
+  const hapus = body.hapus === true;
   const komponen = typeof body.komponen === "string" ? body.komponen : "";
   // An empty field is no score, never 0 (Number("") and Number(null) are 0).
   const skor =
@@ -1132,10 +1146,7 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     nims.length > NIMS_MAX ||
     nims.some((n) => !n) ||
     (absen === null
-      ? !NILAI_KOMPONEN_SET.has(komponen) ||
-        !Number.isInteger(skor) ||
-        skor < SKOR_MIN ||
-        skor > SKOR_MAX
+      ? !NILAI_KOMPONEN_SET.has(komponen) || (hapus ? komponen !== "L1" : !skorSah(komponen, skor))
       : nims.length !== 1)
   ) {
     res.status(200).json({ ok: false, kode: "format_salah" });
@@ -1209,6 +1220,21 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
   // had not yet seen the mark still sent them (2026-10-07).
   const tidakHadir = Array.isArray(body.nims) ? await daftarAbsen(db, sesiId) : new Set<string>();
   const unik = [...new Set(nims)].filter((n) => !tidakHadir.has(n));
+  if (hapus) {
+    // A Tidak Hadir member's L1 is their 0, not an override: it stays.
+    const absenSemua = await daftarAbsen(db, sesiId);
+    const lepas = unik.filter((n) => !absenSemua.has(n));
+    if (lepas.length) {
+      await db
+        .delete(nilai)
+        .where(and(eq(nilai.sesiId, sesiId), inArray(nilai.nim, lepas), eq(nilai.komponen, "L1")));
+    }
+    for (const nim of lepas)
+      await writeAudit(session.nim, "nilai_set", { sesiId, nim, komponen, skor: null });
+    res.status(200).json({ ok: true });
+    await simpanUlangSeelabs(db, sesiId, lepas, session.nim);
+    return;
+  }
   if (unik.length) {
     await simpanNilai(db, sesiId, unik, [komponen as NilaiKomponen], skor, session.nim);
   }
@@ -1305,6 +1331,27 @@ async function kirimNilai(
     );
   const per = new Map<string, number>();
   for (const r of rows) per.set(r.nim, (per.get(r.nim) ?? 0) + 1);
+  // L1 without a typed value is the system's: it counts as filled and is
+  // stored below, so every later reader finds it as a plain score.
+  const punyaL1 = new Set(
+    (
+      await db
+        .select({ nim: nilai.nim })
+        .from(nilai)
+        .where(
+          and(
+            eq(nilai.sesiId, sesiId),
+            eq(nilai.komponen, "L1"),
+            inArray(
+              nilai.nim,
+              members.map((m) => m.nim),
+            ),
+          ),
+        )
+    ).map((r) => r.nim),
+  );
+  const tanpaL1 = members.filter((m) => !punyaL1.has(m.nim));
+  for (const m of tanpaL1) per.set(m.nim, (per.get(m.nim) ?? 0) + 1);
   const kurang = members.reduce(
     (a, m) => a + Math.max(0, NILAI_KOMPONEN.length - (per.get(m.nim) ?? 0)),
     0,
@@ -1312,6 +1359,28 @@ async function kirimNilai(
   if (kurang > 0) {
     res.status(200).json({ ok: false, kode: "belum_lengkap", kurang });
     return;
+  }
+  // The table shows the session's own roster, so its members get the stored
+  // L1 too, not only the live roster's. A typed L1 is never touched.
+  const dalamSesi = await db
+    .select({ nim: sesiAnggota.nim })
+    .from(sesiAnggota)
+    .where(and(eq(sesiAnggota.sesiId, sesiId), eq(sesiAnggota.kelompokNomor, g.nomor)));
+  const tulisL1 = new Set([...tanpaL1.map((m) => m.nim), ...dalamSesi.map((m) => m.nim)]);
+  if (tulisL1.size) {
+    const l1 = (await l1PerKelompok(db, sesiId, target.modul)).get(g.nomor) ?? 0;
+    await db
+      .insert(nilai)
+      .values(
+        [...tulisL1].map((nim) => ({
+          sesiId,
+          nim,
+          komponen: "L1" as const,
+          skor: l1,
+          diubahOleh: "otomatis",
+        })),
+      )
+      .onConflictDoNothing();
   }
   await db
     .insert(nilaiKirim)

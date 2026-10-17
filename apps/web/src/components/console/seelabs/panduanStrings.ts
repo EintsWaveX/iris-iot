@@ -43,8 +43,8 @@ export const PD = dict({
       ["D2", "Aktif Mengoperasikan Alat"],
       ["D3", "Aktif Berdiskusi Dalam Kelompok"],
       ["D4", "Aktif Merancang Aplikasi/Analisis"],
-      ["L1", "Format & Kerapian Laporan"],
-      ["L2", "Analisis Hasil Praktikum (Isi)"],
+      ["L1", "Jurnal Praktikum"],
+      ["L2", "Analisa Hasil Praktikum"],
     ] as [string, string][],
     langkah: [
       {
@@ -156,8 +156,8 @@ export const PD = dict({
       ["D2", "Active in operating the tools"],
       ["D3", "Active in group discussion"],
       ["D4", "Active in designing the app or analysis"],
-      ["L1", "Report format and neatness"],
-      ["L2", "Analysis of results (content)"],
+      ["L1", "Lab Journal"],
+      ["L2", "Lab Results Analysis"],
     ] as [string, string][],
     langkah: [
       {
@@ -269,8 +269,8 @@ export const PD = dict({
       ["D2", "积极操作设备"],
       ["D3", "积极参与小组讨论"],
       ["D4", "积极设计应用或分析"],
-      ["L1", "报告格式与整洁"],
-      ["L2", "实验结果分析（内容）"],
+      ["L1", "实验日志"],
+      ["L2", "实验结果分析"],
     ] as [string, string][],
     langkah: [
       {

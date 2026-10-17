@@ -29,6 +29,7 @@ import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
 import { pemilikKelompok } from "./phase8.js";
+import { l1PerKelompok } from "./l1-otomatis.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   anggota,
@@ -186,6 +187,12 @@ export async function muatSeelabs(db: Db, sesiId: number): Promise<SesiSeelabs |
     const e = skor.get(r.nim) ?? {};
     e[r.komponen] = r.skor;
     skor.set(r.nim, e);
+  }
+  // L1 nobody typed is the system's, so the export agrees with the table.
+  const l1Auto = await l1PerKelompok(db, sesiId, s.modul);
+  for (const o of orang) {
+    const e = skor.get(o.nim) ?? {};
+    if (e.L1 == null) skor.set(o.nim, { ...e, L1: l1Auto.get(o.nomor) ?? 0 });
   }
 
   // KLP per NIM, through the student's weekly slot roster.

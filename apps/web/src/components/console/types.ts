@@ -170,6 +170,8 @@ export interface NilaiKelompok {
   id: number;
   nomor: number;
   nama: string;
+  /** The group's automatic L1 (rubric): shown for a member with no stored L1. */
+  l1: number;
   anggota: NilaiAnggota[];
 }
 

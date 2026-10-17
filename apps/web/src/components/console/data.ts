@@ -27,6 +27,7 @@ import { dengar, useBatas, useSiaran } from "../../lib/siaran";
 import { useAliran, useCadangan } from "../../lib/aliran-ruang";
 import { denganDenyut, useDenyutLangsung } from "../server/data";
 import { akhirSesiPada } from "../../lib/jadwal";
+import { l1Tampil, skorSah } from "../../lib/nilai-rubrik";
 
 /** Off until the viewer is known to be an Asisten (a guest sees the gate). */
 export function useCurrent(enabled = true) {
@@ -210,9 +211,15 @@ type Berubah = {
 
 type Anggota = NilaiData["kelompok"][number]["anggota"][number];
 
-/** A student's total and completeness from their fields. */
-function hitung(a: Anggota, komponen: string[], skor: Anggota["skor"]): Anggota {
-  const vals = komponen.map((c) => skor[c]).filter((v) => v != null) as number[];
+/** The L1 a member shows: a stored one, else 0 when Tidak Hadir, else the group's. */
+export function l1Anggota(a: Pick<Anggota, "skor" | "absen">, l1Kelompok: number): number {
+  return l1Tampil(a.skor.L1, a.absen, l1Kelompok);
+}
+
+/** A student's total and completeness from their fields (L1 as shown). */
+function hitung(a: Anggota, komponen: string[], skor: Anggota["skor"], l1: number): Anggota {
+  const tampil: Anggota["skor"] = { ...skor, L1: l1Anggota({ skor, absen: a.absen }, l1) };
+  const vals = komponen.map((c) => tampil[c]).filter((v) => v != null) as number[];
   return {
     ...a,
     skor,
@@ -280,6 +287,7 @@ export function useNilaiLive(
           pemilik: Record<string, string>;
           absen?: string[];
           terkirim?: NilaiData["terkirim"];
+          l1?: Record<string, number>;
           server: string;
         }>(`/api/session/nilai?sesiId=${sesiId}&sejak=${encodeURIComponent(serverTs.current)}`);
         if (!d.ok) return;
@@ -314,21 +322,28 @@ export function useNilaiLive(
             ...prev,
             pemilik: d.pemilik ?? prev.pemilik,
             terkirim: d.terkirim ?? prev.terkirim,
-            kelompok: prev.kelompok.map((k) => ({
-              ...k,
-              anggota: k.anggota.map((a) => {
-                let changed = false;
-                const skor = { ...a.skor };
-                for (const c of prev.komponen) {
-                  const r = byNim.get(`${a.nim}.${c}`);
-                  if (r && skor[c] !== r.skor) {
-                    skor[c] = r.skor;
-                    changed = true;
+            kelompok: prev.kelompok.map((k) => {
+              // Blanks move without a score changing, so the group's
+              // automatic L1 comes with every poll.
+              const l1 = d.l1?.[String(k.nomor)] ?? 0;
+              const l1Beda = d.l1 !== undefined && l1 !== k.l1;
+              return {
+                ...k,
+                l1: d.l1 ? l1 : k.l1,
+                anggota: k.anggota.map((a) => {
+                  let changed = l1Beda;
+                  const skor = { ...a.skor };
+                  for (const c of prev.komponen) {
+                    const r = byNim.get(`${a.nim}.${c}`);
+                    if (r && skor[c] !== r.skor) {
+                      skor[c] = r.skor;
+                      changed = true;
+                    }
                   }
-                }
-                return changed ? hitung(a, prev.komponen, skor) : a;
-              }),
-            })),
+                  return changed ? hitung(a, prev.komponen, skor, d.l1 ? l1 : k.l1) : a;
+                }),
+              };
+            }),
           };
         });
         if (remote.length) {
@@ -369,7 +384,7 @@ export function useNilaiLive(
                 if (!nims.includes(a.nim)) return a;
                 const s = { ...a.skor };
                 ubah(s, a);
-                const n = hitung(a, prev.komponen, s);
+                const n = hitung({ ...a, absen: absen ?? a.absen }, prev.komponen, s, k.l1);
                 return absen === undefined ? n : { ...n, absen };
               }),
             })),
@@ -381,13 +396,65 @@ export function useNilaiLive(
   const nilaiDari = (nim: string, komponen: string) =>
     dataRef.current?.kelompok.flatMap((k) => k.anggota).find((a) => a.nim === nim)?.skor[komponen];
 
+  /** Takes the typed L1 away from these Praktikan (the server deletes it). */
+  const hapusL1 = async (target: string[]): Promise<SaveResult> => {
+    const keys = target.map((nim) => `${nim}.L1`);
+    const mark = (st: SaveState) =>
+      setStates((s) => ({ ...s, ...Object.fromEntries(keys.map((k) => [k, st])) }));
+    const prev = new Map(target.map((nim) => [nim, nilaiDari(nim, "L1")]));
+    applyLocal(target, (s) => {
+      delete s.L1;
+    });
+    mark("saving");
+    try {
+      const r = await postJson<{ ok: boolean; kode?: string }>("/api/session/nilai", {
+        sesiId,
+        nims: target,
+        komponen: "L1",
+        hapus: true,
+      });
+      if (!r.ok) {
+        applyLocal(target, (s, a) => {
+          const v = prev.get(a.nim);
+          if (v !== undefined) s.L1 = v;
+        });
+        mark("error");
+        return r.kode === "bukan_pemilik" ? "owner" : "fail";
+      }
+      mark("saved");
+      setTimeout(
+        () =>
+          setStates((s) => {
+            const n = { ...s };
+            for (const k of keys) if (n[k] === "saved") n[k] = "idle";
+            return n;
+          }),
+        1800,
+      );
+      return "ok";
+    } catch {
+      applyLocal(target, (s, a) => {
+        const v = prev.get(a.nim);
+        if (v !== undefined) s.L1 = v;
+      });
+      mark("error");
+      return "fail";
+    }
+  };
+
   const saveMany: NilaiLive["saveMany"] = async (nims, komponen, raw) => {
+    // Clearing L1 takes the typed value away; the automatic one shows again.
+    if (raw === "" && komponen === "L1") {
+      const target = nims.filter((nim) => nilaiDari(nim, komponen) !== undefined);
+      if (target.length === 0) return "same";
+      return hapusL1(target);
+    }
     if (raw === "") return "same";
     const skor = Number(raw);
     const keys = nims.map((nim) => `${nim}.${komponen}`);
     const mark = (st: SaveState) =>
       setStates((s) => ({ ...s, ...Object.fromEntries(keys.map((k) => [k, st])) }));
-    if (!Number.isInteger(skor) || skor < 0 || skor > 100) {
+    if (!skorSah(komponen, skor)) {
       mark("error");
       return "range";
     }
