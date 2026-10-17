@@ -53,29 +53,30 @@ const contoh = (lang: "id" | "en" | "zh"): TeksHadirMasukan => ({
 describe("teksLaporanHadir", () => {
   it("writes the sample session as one report sentence in Indonesian", () => {
     expect(teksLaporanHadir(contoh("id"))).toBe(
-      "Kehadiran Asisten untuk Kamis, 1 Oktober 2026, Sesi 3 (Modul 3, Reguler). " +
+      "Kehadiran Asisten, Kamis, 1 Oktober 2026, Sesi 3 (Modul 3, Reguler). " +
         "Dimulai otomatis oleh IRIS 12:25. Jam tidak digeser. " +
         "YEN tepat waktu 12:14. ADD telat 4 menit 12:29, potong Rp8.000. " +
         "REG Mangkir, kelompok 3 diambil alih NUE 12:40. NUE tepat waktu 12:09. MAP Izin. " +
         "Input Nilai: Kelompok 1 sampai 3 selesai hari itu; " +
-        "Kelompok 4 dan 5 Lupa Input Nilai, diinput menyusul Jumat 08:12.",
+        "Kelompok 4 dan 5 Lupa Input Nilai, diinput menyusul Jumat 08:12 dengan Token Khusus.",
     );
   });
 
   it("writes it in English and Mandarin too", () => {
     expect(teksLaporanHadir(contoh("en"))).toBe(
-      "Asisten attendance for Thursday 1 October 2026, Session 3 (Module 3, Regular). " +
+      "Asisten attendance, Thursday 1 October 2026, Session 3 (Module 3, Regular). " +
         "Started by IRIS at 12:25. Clock not moved. " +
         "YEN on time 12:14. ADD 4 minutes late 12:29, Rp8.000 off. " +
-        "REG Mangkir, NUE took over group 3 at 12:40. NUE on time 12:09. MAP Izin. " +
-        "Score input: groups 1 to 3 done that day; " +
-        "groups 4 and 5 Lupa Input Nilai, put in late Friday 08:12.",
+        "REG Mangkir, NUE took over group 3 at 12:40. NUE on time 12:09. MAP excused. " +
+        "Scores: groups 1 to 3 done that day; " +
+        "groups 4 and 5 Lupa Input Nilai, put in late Friday 08:12 with a Token Khusus.",
     );
     const zh = teksLaporanHadir(contoh("zh"));
     expect(zh).toContain("YEN 准时 12:14");
     expect(zh).toContain("ADD 迟到 4 分钟 12:29，扣 Rp8.000");
     expect(zh).toContain("REG Mangkir，NUE 12:40 接手了第 3 组");
     expect(zh).toContain("Lupa Input Nilai");
+    expect(zh).toContain("周五 08:12 用 Token Khusus 补录");
   });
 
   it("contains no em or en dash in any language", () => {

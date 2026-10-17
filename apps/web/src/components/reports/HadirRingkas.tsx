@@ -92,7 +92,7 @@ export function useHadirOrang(query: string | null, enabled = true): RekapOrang 
     setData(null);
     muat();
   }, [muat]);
-  useSiaran(["hadir", "sesi", "laporan"], muat, enabled && !!query);
+  useSiaran(["hadir", "sesi", "laporan"], muat, enabled && !!query, 10_000);
   return data;
 }
 

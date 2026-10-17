@@ -291,7 +291,7 @@ function kalimatOrang(o: TeksHadirOrang, lang: LangHadir): string {
       s = `${o.kode} Mangkir`;
       break;
     case "izin":
-      s = `${o.kode} Izin`;
+      s = lang === "en" ? `${o.kode} excused` : `${o.kode} Izin`;
       break;
     default:
       s = {
@@ -331,14 +331,14 @@ function kalimatNilai(nilai: NonNullable<TeksHadirMasukan["nilai"]>, lang: LangH
   for (const [menyusul, n] of perAkhir) {
     const akhir = menyusul
       ? {
-          id: `diinput menyusul ${menyusul}`,
-          en: `put in late ${menyusul}`,
-          zh: `${menyusul} 补录`,
+          id: `diinput menyusul ${menyusul} dengan Token Khusus`,
+          en: `put in late ${menyusul} with a Token Khusus`,
+          zh: `${menyusul} 用 Token Khusus 补录`,
         }[lang]
       : { id: "belum diinput", en: "not put in yet", zh: "还没有录入" }[lang];
     klausa.push(`${nama(n)} Lupa Input Nilai, ${akhir}`);
   }
-  const awal = { id: "Input Nilai: ", en: "Score input: ", zh: "分数录入：" }[lang];
+  const awal = { id: "Input Nilai: ", en: "Scores: ", zh: "分数录入：" }[lang];
   return awal + klausa.join(lang === "zh" ? "；" : "; ");
 }
 
@@ -355,9 +355,9 @@ export function teksLaporanHadir(m: TeksHadirMasukan): string {
 
   tambah(
     {
-      id: `Kehadiran Asisten untuk ${m.tanggal}, ${m.sesi} (${m.modul}, ${m.kelas})`,
-      en: `Asisten attendance for ${m.tanggal}, ${m.sesi} (${m.modul}, ${m.kelas})`,
-      zh: `助教出勤 ${m.tanggal}，${m.sesi}（${m.modul}，${m.kelas}）`,
+      id: `Kehadiran Asisten, ${m.tanggal}, ${m.sesi} (${m.modul}, ${m.kelas})`,
+      en: `Asisten attendance, ${m.tanggal}, ${m.sesi} (${m.modul}, ${m.kelas})`,
+      zh: `助教出勤，${m.tanggal}，${m.sesi}（${m.modul}，${m.kelas}）`,
     }[lang],
   );
   if (m.mulaiOtomatis)

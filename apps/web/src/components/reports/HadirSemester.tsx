@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import type { Direktori } from "../../lib/people";
-import { useSegar } from "../../lib/siaran";
+import { useSiaran } from "../../lib/siaran";
 import Pill from "../ui/Pill";
 import { H, rpPendek } from "./hadirStrings";
 import "./HadirRingkas.css";
@@ -30,7 +30,6 @@ export default function HadirSemester({ lang, dir }: { lang: Lang; dir: Direktor
   const t = H[lang];
   const [rows, setRows] = useState<Baris[] | null>(null);
   const [fail, setFail] = useState(false);
-  const segar = useSegar(["hadir", "sesi", "laporan"]);
   const muat = useCallback(() => {
     getJson<{ ok: boolean; orang: Baris[] }>("/api/session/hadirrekap")
       .then((d) => {
@@ -40,7 +39,9 @@ export default function HadirSemester({ lang, dir }: { lang: Lang; dir: Direktor
       })
       .catch(() => setFail(true));
   }, []);
-  useEffect(muat, [muat, segar]);
+  useEffect(muat, [muat]);
+  // A busy session day broadcasts often; the semester sums only need a refresh now and then.
+  useSiaran(["hadir", "sesi", "laporan"], muat, true, 10_000);
 
   if (fail && !rows) return <p className="hint">{t.loadFail}</p>;
   if (!rows) return <span className="skeleton" style={{ height: 160 }} />;

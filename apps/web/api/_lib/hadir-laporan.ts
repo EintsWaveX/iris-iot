@@ -141,6 +141,8 @@ export interface InputNilaiKelompok {
   kurang: ("kirim" | "seelabs")[];
   /** When a missed group was put in later (its record stays). */
   menyusulPada: string | null;
+  /** Why the group went through another's SeeLabs account (null: its holder's own). */
+  alasanAkun: "kelompok_kedua" | "sesi_ketiga" | null;
   status: StatusNilai;
 }
 
@@ -171,16 +173,34 @@ export async function muatInputNilai(
   const lewat = now.getTime() > batas.getTime();
   return nomor.map((n) => {
     const k = kirim.find((x) => x.kelompokNomor === n) ?? null;
-    const sv = simpan.find((x) => x.kelompokNomor === n && x.disimpanPada) ?? null;
+    // The robot adds a row on every save (an edit re-saves on a later day),
+    // so timing is judged from the FIRST save; the way and account shown
+    // are the latest save's.
+    const simpanKu = simpan.filter((x) => x.kelompokNomor === n && x.disimpanPada);
+    const sv = simpanKu[0] ?? null;
+    const awal = simpanKu.reduce<Date | null>(
+      (a, x) => (!a || x.disimpanPada! < a ? x.disimpanPada! : a),
+      null,
+    );
     const l = lupa.find((x) => x.kelompokNomor === n) ?? null;
-    const selesai = !!k && !!sv;
-    const terakhir = selesai
-      ? Math.max(k!.dikirimPada.getTime(), sv!.disimpanPada!.getTime())
-      : null;
+    const selesai = !!k && !!awal;
+    const terakhir = selesai ? Math.max(k!.dikirimPada.getTime(), awal!.getTime()) : null;
+    // A recorded miss decides; without one, the first save against the deadline.
     let status: StatusNilai;
     if (selesai) status = l || terakhir! > batas.getTime() ? "menyusul" : "tepat";
     else if (l || (lewat && s.status === "selesai")) status = "lupa";
     else status = "terbuka";
+    const pegang = pemegang.get(n) ?? null;
+    const terendah = [...pemegang.entries()]
+      .filter(([, nim]) => nim === pegang)
+      .map(([no]) => no)
+      .sort((a, b) => a - b)[0];
+    const alasanAkun =
+      sv && pegang && sv.akunNim !== pegang
+        ? n !== terendah
+          ? ("kelompok_kedua" as const)
+          : ("sesi_ketiga" as const)
+        : null;
     return {
       nomor: n,
       pemegang: pemegang.get(n) ?? l?.nim ?? null,
@@ -189,6 +209,7 @@ export async function muatInputNilai(
         ? { pada: sv.disimpanPada!.toISOString(), cara: sv.cara ?? null, akun: sv.akunNim }
         : null,
       kurang: l?.kurang ?? [],
+      alasanAkun,
       menyusulPada:
         status === "menyusul" ? (l?.menyusulPada ?? new Date(terakhir!)).toISOString() : null,
       status,
@@ -204,7 +225,7 @@ export interface RiwayatHadir {
   slot: number | null;
   status: StatusLive;
   menit: number | null;
-  /** The check-in time, "HH:MM", when they checked in. */
+  /** The check-in instant (ISO), when they checked in. */
   hadirPada: string | null;
   potong: number;
   nolkanUnit: boolean;

@@ -41,6 +41,7 @@ export interface InputNilaiData {
   simpan: { pada: string; cara: "robot" | "tangan" | null; akun: string } | null;
   kurang: ("kirim" | "seelabs")[];
   menyusulPada: string | null;
+  alasanAkun: "kelompok_kedua" | "sesi_ketiga" | null;
   status: "tepat" | "menyusul" | "lupa" | "terbuka";
 }
 
@@ -219,7 +220,16 @@ export default function HadirSesi({
                     <td>
                       <Pill group={n.nomor}>{kelompokLabel(n.nomor, lang)}</Pill>
                     </td>
-                    <td>{n.pemegang ? dir.nama(n.pemegang) : ""}</td>
+                    <td>
+                      {n.pemegang ? dir.nama(n.pemegang) : ""}
+                      {hadir?.ambilAlih
+                        .filter((a) => a.nomor === n.nomor)
+                        .map((a) => (
+                          <span key={a.dari} className="hint">
+                            {t.dari(kode(a.dari))}
+                          </span>
+                        ))}
+                    </td>
                     <td className="num">
                       {n.kirim ? waktu(n.kirim.pada, sesi.tanggal, lang) : ""}
                     </td>
@@ -231,7 +241,14 @@ export default function HadirSesi({
                               : n.simpan.cara === "tangan"
                                 ? t.viaHand(waktu(n.simpan.pada, sesi.tanggal, lang))
                                 : t.saved(waktu(n.simpan.pada, sesi.tanggal, lang)),
-                            n.simpan.akun !== n.pemegang ? `(${kode(n.simpan.akun)})` : null,
+                            n.simpan.akun !== n.pemegang
+                              ? t.lewat(
+                                  kode(n.simpan.akun),
+                                  n.alasanAkun === "sesi_ketiga"
+                                    ? t.alasanKetiga(kode(n.pemegang))
+                                    : t.alasanKedua,
+                                )
+                              : null,
                           ]
                             .filter(Boolean)
                             .join(" ")
