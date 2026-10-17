@@ -9,7 +9,7 @@
  * - L1Field: L1 shows the system's value marked "Otomatis" until an
  *   assistant types one; clearing the field returns to automatic.
  */
-import { forwardRef, useState, type ComponentProps } from "react";
+import { forwardRef, useRef, useState, type ComponentProps } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import { ScoreInput } from "../ui/Controls";
 import Tooltip from "../ui/Tooltip";
@@ -35,11 +35,13 @@ export const LevelField = forwardRef<
     onPick: (v: string) => void;
   }
 >(function LevelField(
-  { komponen, lang, value, onValue, onPick, readOnlyReason, onKeyDown, ...rest },
+  { komponen, lang, value, onValue, onPick, readOnlyReason, onKeyDown, onFocus, ...rest },
   ref,
 ) {
   const r = RB[lang];
   const [open, setOpen] = useState(false);
+  // The digits typed since focus: "8" then "0" stays 80, "4" then "5" 45.
+  const ketik = useRef("");
   const dialogHost = useDialogHost();
   const teks = r.level[komponen];
   const sekarang = value !== "" ? teks?.[Number(value) as (typeof TINGKAT)[number]] : undefined;
@@ -61,12 +63,19 @@ export const LevelField = forwardRef<
               readOnlyReason={readOnlyReason}
               value={value}
               onClick={() => setOpen(true)}
-              // Digits are read from the key, not the text: "8" then "0"
-              // would otherwise read as 0, and a digit over a level as a clear.
+              onFocus={(e) => {
+                ketik.current = "";
+                onFocus?.(e);
+              }}
+              // Digits are read from the key, not the text: the second digit
+              // of a level keeps it, any other digit starts a new pick.
               onKeyDown={(e) => {
                 if (!ro && /^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
                   e.preventDefault();
-                  const pilih = DARI_DIGIT[e.key];
+                  const terus = ketik.current + e.key;
+                  const lanjut = TINGKAT.find((n) => String(n).startsWith(terus));
+                  ketik.current = lanjut !== undefined ? terus : e.key;
+                  const pilih = lanjut !== undefined ? String(lanjut) : DARI_DIGIT[e.key];
                   if (pilih) onValue(pilih);
                 }
                 onKeyDown?.(e);
