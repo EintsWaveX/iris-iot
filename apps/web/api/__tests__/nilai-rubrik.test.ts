@@ -173,4 +173,20 @@ describe("score validation by rubric", () => {
       values: [{ sesiId: 5, nim: "B9", komponen: "L1", skor: 63, diubahOleh: "otomatis" }],
     });
   });
+
+  it("unmarking Tidak Hadir stores the system's L1 again only in a sent group", async () => {
+    const l1Sistem = () =>
+      nilaiTulis().filter(
+        (t) =>
+          t.jenis === "insert" &&
+          JSON.stringify(t.values).includes('"komponen":"L1","skor":63,"diubahOleh":"otomatis"'),
+      );
+    expect((await kirim({ sesiId: 5, nim: "A1", absen: false })).ok).toBe(true);
+    expect(l1Sistem()).toHaveLength(0);
+    ditulis.length = 0;
+    terkirim = true;
+    expect((await kirim({ sesiId: 5, nim: "A1", absen: false })).ok).toBe(true);
+    expect(nilaiTulis()[0]?.jenis).toBe("delete");
+    expect(l1Sistem()).toHaveLength(1);
+  });
 });

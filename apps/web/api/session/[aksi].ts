@@ -1179,6 +1179,27 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     }
     kelompokDari.set(nim, kelompokId);
   }
+  /** After Kirim Nilai the Praktikan and the reports read the stored L1, so
+   *  in a sent group these get the system's value stored again, not none.
+   *  Gives back the ones whose group is not sent. */
+  const l1SistemTerkirim = async (daftar: string[]): Promise<string[]> => {
+    const terkirim = await daftarKirim(db, sesiId);
+    const nomorDari = new Map(
+      (await db.select({ id: kelompok.id, nomor: kelompok.nomor }).from(kelompok)).map((g) => [
+        g.id,
+        g.nomor,
+      ]),
+    );
+    const nomorNim = (n: string) => nomorDari.get(kelompokDari.get(n) ?? -1) ?? -1;
+    const sudah = daftar.filter((n) => terkirim[nomorNim(n)]);
+    if (sudah.length) {
+      const l1Auto = await l1PerKelompok(db, sesiId, target.modul);
+      for (const nim of sudah) {
+        await simpanNilai(db, sesiId, [nim], ["L1"], l1Auto.get(nomorNim(nim)) ?? 0, "otomatis");
+      }
+    }
+    return daftar.filter((n) => !terkirim[nomorNim(n)]);
+  };
 
   if (absen !== null) {
     const nim = nims[0];
@@ -1215,6 +1236,7 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
             ne(nilai.komponen, "TP"),
           ),
         );
+      await l1SistemTerkirim([nim]);
     }
     await writeAudit(session.nim, "nilai_absen", { sesiId, nim, absen });
     res.status(200).json({ ok: true });
@@ -1230,30 +1252,13 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     // A Tidak Hadir member's L1 is their 0, not an override: it stays.
     const absenSemua = await daftarAbsen(db, sesiId);
     const lepas = unik.filter((n) => !absenSemua.has(n));
-    // After Kirim Nilai the Praktikan and the reports read the stored L1,
-    // so a sent group gets the system's value stored again, not none.
-    const terkirim = await daftarKirim(db, sesiId);
-    const nomorDari = new Map(
-      (await db.select({ id: kelompok.id, nomor: kelompok.nomor }).from(kelompok)).map((g) => [
-        g.id,
-        g.nomor,
-      ]),
-    );
-    const nomorNim = (n: string) => nomorDari.get(kelompokDari.get(n) ?? -1) ?? -1;
-    const sudah = lepas.filter((n) => terkirim[nomorNim(n)]);
-    const hapusan = lepas.filter((n) => !terkirim[nomorNim(n)]);
+    const hapusan = await l1SistemTerkirim(lepas);
     if (hapusan.length) {
       await db
         .delete(nilai)
         .where(
           and(eq(nilai.sesiId, sesiId), inArray(nilai.nim, hapusan), eq(nilai.komponen, "L1")),
         );
-    }
-    if (sudah.length) {
-      const l1Auto = await l1PerKelompok(db, sesiId, target.modul);
-      for (const nim of sudah) {
-        await simpanNilai(db, sesiId, [nim], ["L1"], l1Auto.get(nomorNim(nim)) ?? 0, "otomatis");
-      }
     }
     for (const nim of lepas)
       await writeAudit(session.nim, "nilai_set", { sesiId, nim, komponen, skor: null });
@@ -1334,11 +1339,16 @@ async function kirimNilai(
     res.status(200).json({ ok: false, kode: "bukan_pemilik", pemilik: pemilik.get(kelompokId) });
     return;
   }
-  // The same members the score table shows for this group.
-  const members = await db
-    .select({ nim: anggota.nim })
-    .from(anggota)
-    .where(eq(anggota.kelompokId, kelompokId));
+  // The same members the score table shows for this group: the session's
+  // own roster when it has one (the next slot's start replaces the live
+  // roster), else the live roster.
+  const snap = await db
+    .select({ nim: sesiAnggota.nim, nomor: sesiAnggota.kelompokNomor })
+    .from(sesiAnggota)
+    .where(eq(sesiAnggota.sesiId, sesiId));
+  const members = snap.length
+    ? snap.filter((x) => x.nomor === g.nomor).map((x) => ({ nim: x.nim }))
+    : await db.select({ nim: anggota.nim }).from(anggota).where(eq(anggota.kelompokId, kelompokId));
   if (!members.length) {
     res.status(200).json({ ok: false, kode: "nim_tidak_ada" });
     return;
@@ -1386,13 +1396,8 @@ async function kirimNilai(
     res.status(200).json({ ok: false, kode: "belum_lengkap", kurang });
     return;
   }
-  // The table shows the session's own roster, so its members get the stored
-  // L1 too, not only the live roster's. A typed L1 is never touched.
-  const dalamSesi = await db
-    .select({ nim: sesiAnggota.nim })
-    .from(sesiAnggota)
-    .where(and(eq(sesiAnggota.sesiId, sesiId), eq(sesiAnggota.kelompokNomor, g.nomor)));
-  const tulisL1 = new Set([...tanpaL1.map((m) => m.nim), ...dalamSesi.map((m) => m.nim)]);
+  // A typed L1 is never touched.
+  const tulisL1 = new Set(tanpaL1.map((m) => m.nim));
   if (tulisL1.size) {
     const l1 = (await l1PerKelompok(db, sesiId, target.modul)).get(g.nomor) ?? 0;
     await db
