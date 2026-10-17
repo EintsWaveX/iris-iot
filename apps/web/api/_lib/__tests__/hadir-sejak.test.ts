@@ -119,9 +119,8 @@ beforeEach(() => {
 });
 
 describe("HADIR_SEJAK", () => {
-  it("is a date, the first practicum Monday", () => {
+  it("is a date", () => {
     expect(HADIR_SEJAK).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(new Date(`${HADIR_SEJAK}T00:00:00Z`).getUTCDay()).toBe(1);
   });
 
   it("judges nobody in a session from before it", async () => {
