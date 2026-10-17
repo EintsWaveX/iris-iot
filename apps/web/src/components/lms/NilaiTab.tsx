@@ -152,10 +152,10 @@ export default function NilaiTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
             // Before any score has gone out, a sample shows the shape.
             // An even NIM's six numbers.
             const c = d.contoh ?? {
-              total: 89,
+              total: 75,
               baris: [
-                [1, 18],
-                [2, 13],
+                [1, 8],
+                [2, 9],
                 [4, 15],
                 [6, 12],
                 [8, 14],

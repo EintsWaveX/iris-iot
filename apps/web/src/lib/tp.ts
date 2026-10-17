@@ -5,9 +5,10 @@
  *   parts a to d (the TP files' own layout). Everyone answers 1 and 10; an
  *   even NIM answers 2, 4, 6 and 8, an odd one 3, 5, 7 and 9 (user ruling
  *   2026-10-12). Six numbers each.
- * - Numbers 1 and 10 are worth 20 points each, the other four 15 each, so
- *   a NIM's six add up to 100 (user ruling 2026-10-17). The TP score goes
- *   into the session's TP component.
+ * - The points follow the lab's rubric (user ruling 2026-10-17): No. 1 and
+ *   the 2 / 3 pair are 10 each, the 4 / 5, 6 / 7, 8 / 9 pairs and No. 10
+ *   are 20 each, so a NIM's six add up to 100. The TP score goes into the
+ *   session's TP component.
  * - The window is IRIS's own (Wednesday 18:00 to Saturday 18:00 by
  *   default), the submission window for next week's practicum. A file that
  *   arrives after it closes is late.
@@ -26,9 +27,9 @@ export function sasaranNomor(no: number): Sasaran {
   return no % 2 === 0 ? "genap" : "ganjil";
 }
 
-/** What question `no` is worth: 20 for the two everyone answers, else 15. */
+/** What question `no` is worth: 10 for No. 1, 2 and 3, else 20. */
 export function poinNomor(no: number): number {
-  return sasaranNomor(no) === "semua" ? 20 : 15;
+  return no <= 3 ? 10 : 20;
 }
 
 export function paritas(nim: string): Paritas {
