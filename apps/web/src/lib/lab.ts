@@ -8,7 +8,7 @@ import type { Lang } from "./kelas.js";
 // ---------- Identity ----------
 // ---------- Identity ----------
 
-export const SITE_URL = "https://iris-praktikum-jurnal.vercel.app";
+export const SITE_URL = "https://irisiotlab.com";
 export const LAB_SHORT = "IRIS Laboratory";
 export const LAB_FULL = "IoT Runtime and Integration System (IRIS) Laboratory";
 

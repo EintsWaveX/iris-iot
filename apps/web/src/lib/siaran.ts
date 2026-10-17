@@ -85,11 +85,15 @@ function hitungStatus() {
   setStatus(!subs.size ? "diam" : terbuka ? "live" : "putus");
 }
 
-function alamat(): string {
-  const h = location.hostname;
+/** The relay's live-update address for a page on host `h`. */
+export function alamatRelay(h: string): string {
   // The rig runs the relay with `wrangler dev` on :8788.
   if (h === "localhost" || h === "127.0.0.1") return "ws://127.0.0.1:8788/siaran";
-  return "wss://iris-konsol.iris-iot-relay.workers.dev/siaran";
+  return "wss://konsol.irisiotlab.com/siaran";
+}
+
+function alamat(): string {
+  return alamatRelay(location.hostname);
 }
 
 /** Runs the subscribers of what arrived, once each, after a short pause

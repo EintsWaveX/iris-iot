@@ -33,7 +33,7 @@ MODULE: dict[int, tuple[int, int, int]] = {
     4: (255, 162, 76),
 }
 
-SITE: str = "iris-praktikum-jurnal.vercel.app"
+SITE: str = "irisiotlab.com"
 
 COPY: dict[str, dict] = {
     "id": {

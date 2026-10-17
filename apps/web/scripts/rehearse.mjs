@@ -7,7 +7,7 @@
  *   node scripts/rehearse.mjs [base] --tot           + a full TOT rehearsal
  *   node scripts/rehearse.mjs [base] --tot --load 30 + 30 dummy Praktikan working at once
  *
- * base defaults to https://iris-praktikum-jurnal.vercel.app.
+ * base defaults to https://irisiotlab.com.
  *
  * Smoke (runs after every production deploy, .github/workflows/smoke.yml):
  * pages and security headers, the API answering, the relay's live-update
@@ -37,11 +37,11 @@ const opt = (f, d) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : d;
 };
 const BASE = (
-  args.find((a) => /^https?:\/\//.test(a)) ?? "https://iris-praktikum-jurnal.vercel.app"
+  args.find((a) => /^https?:\/\//.test(a)) ?? "https://irisiotlab.com"
 ).replace(/\/$/, "");
 const RELAY = BASE.includes("localhost")
   ? "ws://127.0.0.1:8788/siaran"
-  : "wss://iris-konsol.iris-iot-relay.workers.dev/siaran";
+  : "wss://konsol.irisiotlab.com/siaran";
 
 const hasil = [];
 function cek(nama, ok, info = "") {
