@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getJson, postJson } from "../../lib/app";
 import type { Kelas, PotonganBaris, TarifUnit } from "../../lib/bayar";
 import type { Potongan, StatusHadir } from "../../lib/hadir-mengajar";
+import type { NilaiTersimpan } from "../../lib/seelabs-baca";
 import { useSiaran } from "../../lib/siaran";
 
 export interface UnitRow {
@@ -85,6 +86,27 @@ export interface BayarData {
   units: UnitRow[];
   transfer: TransferRow[];
   sisa: SisaRow[];
+  /** The SeeLabs read-back's flags (2026-10-17), Admins only. */
+  bedaBap?: {
+    id: number;
+    akunNim: string;
+    praktikum: number;
+    tanggal: string;
+    shift: number;
+    jenis: "hanya_iris" | "hanya_seelabs";
+    penilai: string[];
+    dibacaPada: string;
+  }[];
+  lepas?: {
+    id: number;
+    akunNim: string;
+    praktikum: number;
+    klp: number;
+    modul: number;
+    nim: string;
+    nilai: NilaiTersimpan;
+    dibacaPada: string;
+  }[];
 }
 
 export function useBayar(enabled = true) {

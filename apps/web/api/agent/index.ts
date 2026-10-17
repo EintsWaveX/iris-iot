@@ -77,6 +77,7 @@ import {
 import { otomatisLmsBilaPerlu } from "../_lib/lms-otomatis.js";
 import { jamLabBilaPerlu } from "../_lib/jam-lab.js";
 import { adaTugasRobot, ambilTugas, harianBilaPerlu, terimaHasil } from "../_lib/seelabs-robot.js";
+import { bacaBilaPerlu } from "../_lib/seelabs-baca.js";
 import { kirimRelay } from "../_lib/aliran.js";
 import { ruangSesi } from "../../src/lib/aliran.js";
 import type { PesanAliran } from "../../src/lib/aliran.js";
@@ -371,6 +372,9 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         await kirimTertunda(db);
         // Phase 14: the robot's daily KLP pull and Input Jaga check.
         await harianBilaPerlu(db);
+        // The SeeLabs read-back (2026-10-17): each connected account's read
+        // when it is due (5 minutes in practicum hours, hourly, nightly).
+        await bacaBilaPerlu(db);
         // Phase 15: scheduled announcements and the LMS automations that
         // are switched on (LMS › Ringkasan), every 5 minutes at most.
         await otomatisLmsBilaPerlu(db);

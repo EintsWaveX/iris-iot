@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { and, desc, eq, gte, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
 import { lmsPeserta, praktikan, tpKiriman, tpUnggah, type BerkasTp } from "../../src/lib/schema.js";
-import { keadaanJendela } from "../../src/lib/tp.js";
+import { jendelaPribadi, keadaanJendela } from "../../src/lib/tp.js";
 import {
   LmsGalat,
   ambilBerkas,
@@ -28,7 +28,7 @@ import {
   unggahDraf,
 } from "./lms.js";
 import { nyalakanUmpanBerkas } from "./lms-web.js";
-import { bacaSet, catatJejak, jendelaUntuk, webLms, type SetTp } from "./tp.js";
+import { bacaSet, catatJejak, jendelaUntuk, perpanjangTp, webLms, type SetTp } from "./tp.js";
 import { siarkan } from "./siaran.js";
 
 type Db = ReturnType<typeof getDb>;
@@ -78,7 +78,10 @@ export async function terimaUnggah(
   modul: number,
   isi: Uint8Array,
 ): Promise<HasilUnggah> {
-  if (keadaanJendela(jendelaUntuk(set, modul)) !== "buka")
+  // Open for everyone, or for this Praktikan on their own extension.
+  const umum = jendelaUntuk(set, modul);
+  const sampai = umum ? (await perpanjangTp(db, set)).get(modul)?.get(nim) : undefined;
+  if (keadaanJendela(umum && jendelaPribadi(umum, sampai)) !== "buka")
     return { ok: false, kode: "jendela_tutup" };
   const [p] = await db
     .select({ nim: praktikan.nim })

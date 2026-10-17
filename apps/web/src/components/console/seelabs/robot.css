@@ -476,3 +476,90 @@
     white-space: normal;
   }
 }
+
+/* 2026-10-17: what the robot read back from SeeLabs (SeelabsBaca.tsx) */
+.slr-baca {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.slr-baca[data-s="sama"],
+.slr-baca__foot {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.slr-baca .grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.slr-baca__scroll {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+.slr-baca__tbl {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  min-width: 420px;
+  width: 100%;
+}
+.slr-baca__tbl th,
+.slr-baca__tbl td {
+  border-bottom: 1px solid var(--hairline);
+  padding: 8px 12px;
+  text-align: right;
+  vertical-align: middle;
+}
+.slr-baca__tbl th:first-child,
+.slr-baca__tbl td:first-child {
+  text-align: left;
+}
+.slr-baca__tbl thead th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.slr-baca__tbl thead tr:first-child th[colspan] {
+  text-align: center;
+}
+.slr-baca__tbl tbody tr:last-child td {
+  border-bottom: 0;
+}
+.slr-baca__tbl td:first-child {
+  display: grid;
+  gap: 2px;
+}
+.slr-baca__nama {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.slr-baca__tbl td[data-beda] {
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-weight: 700;
+}
+/* The score table's row under a flagged group (NilaiTable): the panel takes
+   the scroll area's visible width and stays in view, so its text never
+   widens the table. */
+.ntable__scroll:has(.ntable__baca) {
+  container-type: inline-size;
+}
+.ntable__grid .ntable__baca > td {
+  background: var(--surface-1);
+  padding: 12px 0 16px;
+  text-align: left;
+  white-space: normal;
+}
+.ntable__grid .ntable__baca .slr-baca {
+  white-space: normal;
+  left: 16px;
+  position: sticky;
+  width: calc(100cqi - 32px);
+}
+.ncards > .slr-baca {
+  margin-top: 4px;
+}

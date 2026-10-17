@@ -431,8 +431,9 @@ function isianTugas(r: RencanaTugas): Record<string, string | boolean> {
     "introeditor[format]": "1",
     ...tanggalForm("allowsubmissionsfromdate", r.buka),
     ...tanggalForm("duedate", r.tutup),
-    // Late files are IRIS's to judge (Terima Telat), so the LMS takes them.
-    ...tanggalForm("cutoffdate", null),
+    // The LMS closes at the close itself (user, 2026-10-17); a Praktikan's
+    // own extension still lets them hand in until its date.
+    ...tanggalForm("cutoffdate", r.tutup),
     ...tanggalForm("gradingduedate", null),
     alwaysshowdescription: true,
     assignsubmission_file_enabled: true,
@@ -658,6 +659,7 @@ export async function tanggalTugas(
     {
       ...tanggalForm("allowsubmissionsfromdate", buka),
       ...tanggalForm("duedate", tutup),
+      ...tanggalForm("cutoffdate", tutup),
       coursecontentnotification: false,
     },
     "submitbutton2",

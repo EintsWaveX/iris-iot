@@ -41,6 +41,7 @@ interface KelasTugas {
   siswa: number;
   masuk: number;
   telat: number;
+  panjang: number;
   terkunci: number;
   lampiran: string[];
   perpanjang: {
@@ -188,6 +189,7 @@ function Detail({
               <th>{t.kelas}</th>
               <th className="num">{t.tSubmitted}</th>
               <th className="num">{t.tTelat}</th>
+              <th className="num">{t.tPanjang}</th>
               <th>{t.tKiriman}</th>
               <th>{t.tTanggal}</th>
             </tr>
@@ -204,6 +206,7 @@ function Detail({
                 <td className="num mono" data-warn={k.telat ? "yes" : undefined}>
                   {k.telat}
                 </td>
+                <td className="num mono">{k.panjang}</td>
                 <td>
                   {k.terkunci ? (
                     <Pill tone="warn">{t.dikunci(k.terkunci)}</Pill>

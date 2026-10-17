@@ -114,6 +114,10 @@ const W = {
     tpLms: (a: unknown) => (a === "putus" ? "memutuskan LMS" : "menyambungkan LMS"),
     tpSinkron: "menyinkronkan TP dari LMS",
     nilai: (n: unknown, k: unknown, s: string) => `mengisi nilai ${k} untuk ${n} di ${s}`,
+    nilaiSeelabs: (n: unknown, k: unknown, s: string) =>
+      `menyalin nilai ${k} ${n} di ${s} dari SeeLabs`,
+    seelabsBaca: (sama: number, beda: number) =>
+      `membaca SeeLabs: ${sama} kelompok sama, ${beda} perlu dicek`,
     absen: (n: unknown, on: boolean, s: string) =>
       on ? `menandai ${n} Tidak Hadir di ${s}` : `membatalkan Tidak Hadir ${n} di ${s}`,
     seelabsAkun: (g: string, a: string) =>
@@ -289,6 +293,10 @@ const W = {
     tpLms: (a: unknown) => (a === "putus" ? "disconnected the LMS" : "connected the LMS"),
     tpSinkron: "synced TP from the LMS",
     nilai: (n: unknown, k: unknown, s: string) => `entered the ${k} score for ${n} in ${s}`,
+    nilaiSeelabs: (n: unknown, k: unknown, s: string) =>
+      `copied ${n}'s ${k} score in ${s} from SeeLabs`,
+    seelabsBaca: (sama: number, beda: number) =>
+      `read SeeLabs: ${sama} groups the same, ${beda} to check`,
     absen: (n: unknown, on: boolean, s: string) =>
       on ? `marked ${n} Absent in ${s}` : `took the Absent mark off ${n} in ${s}`,
     seelabsAkun: (g: string, a: string) =>
@@ -459,6 +467,9 @@ const W = {
     tpLms: (a: unknown) => (a === "putus" ? "断开了 LMS" : "连接了 LMS"),
     tpSinkron: "从 LMS 同步了预习作业",
     nilai: (n: unknown, k: unknown, s: string) => `在 ${s} 给 ${n} 填了 ${k} 分数`,
+    nilaiSeelabs: (n: unknown, k: unknown, s: string) =>
+      `从 SeeLabs 复制了 ${s} 中 ${n} 的 ${k} 分数`,
+    seelabsBaca: (sama: number, beda: number) => `读取 SeeLabs：${sama} 组一致，${beda} 组需核对`,
     absen: (n: unknown, on: boolean, s: string) =>
       on ? `在 ${s} 把 ${n} 标为缺席` : `在 ${s} 取消了 ${n} 的缺席标记`,
     seelabsAkun: (g: string, a: string) =>
@@ -760,7 +771,12 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
     case "bantuan_selesai":
       return k(HandHeartIcon, w.bantuan(b.grup(d)));
     case "nilai_set":
-      return k(PencilSimpleIcon, w.nilai(d.nim, d.komponen, b.sesi(d.sesiId)));
+      return k(
+        PencilSimpleIcon,
+        (d.sumber === "seelabs" ? w.nilaiSeelabs : w.nilai)(d.nim, d.komponen, b.sesi(d.sesiId)),
+      );
+    case "seelabs_baca":
+      return k(ListChecksIcon, w.seelabsBaca(Number(d.sama ?? 0), Number(d.beda ?? 0)));
     case "tp_nilai_set":
       return k(PencilSimpleIcon, w.tpNilai(b.who(d.nim), d.modul, d.nomor));
     case "tp_tanda":

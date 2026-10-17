@@ -50,10 +50,13 @@ import {
   MAKS_VARIAN,
   KODE_VARIAN,
   POLA_BAWAAN,
+  TP_MENUNGGU,
   TP_NOMOR,
+  jendelaPribadi,
   keadaanJendela,
   kelasKursus,
   labelKursus,
+  masukPerpanjangan,
   modulTugas,
   nomorUntuk,
   statusTp,
@@ -134,6 +137,9 @@ export interface TugasTp {
   nama: string;
   buka: string | null;
   tutup: string | null;
+  /** The LMS's cut-off (null: none); read since 2026-10-17, so older
+   *  records lack it until the next read. */
+  batas?: string | null;
 }
 
 export interface KursusTp {
@@ -298,6 +304,47 @@ export async function hapusSet(db: Db, kunci: string) {
 }
 
 /** A module's window: IRIS's own, else the LMS assignments' dates. */
+/**
+ * The per Praktikan extensions on each module's TP assignment, NIM to the
+ * latest date, from IRIS's record of LMS › Tugas › Perpanjangan (the
+ * lms_perpanjang key, KUNCI_LMS.perpanjang in lms-menu.ts; read here
+ * directly, as lms-menu.ts imports this file).
+ */
+export async function perpanjangTp(db: Db, set: SetTp): Promise<Map<number, Map<string, string>>> {
+  const [r] = await db
+    .select({ nilai: pengaturan.nilai })
+    .from(pengaturan)
+    .where(eq(pengaturan.kunci, "lms_perpanjang"))
+    .limit(1);
+  const v = r?.nilai as {
+    semester?: string;
+    isi?: { tugas: number; nim: string; sampai: string }[];
+  };
+  const out = new Map<number, Map<string, string>>();
+  if (!v || v.semester !== set.semester) return out;
+  const modulOf = new Map<number, number>();
+  for (const k of set.kelas?.kursus ?? [])
+    for (const [m, t] of Object.entries(k.tugas)) if (t) modulOf.set(t.id, Number(m));
+  for (const p of v.isi ?? []) {
+    const m = modulOf.get(p.tugas);
+    if (!m || !p.nim || Number.isNaN(Date.parse(p.sampai))) continue;
+    const per = out.get(m) ?? new Map<string, string>();
+    const ada = per.get(p.nim);
+    if (!ada || Date.parse(p.sampai) > Date.parse(ada)) per.set(p.nim, p.sampai);
+    out.set(m, per);
+  }
+  return out;
+}
+
+/** True while someone's extension on an active module is still open. */
+export function adaPerpanjanganBuka(
+  per: Map<number, Map<string, string>>,
+  modul: readonly number[],
+  now = Date.now(),
+): boolean {
+  return modul.some((m) => [...(per.get(m)?.values() ?? [])].some((s) => Date.parse(s) > now));
+}
+
 export function jendelaUntuk(
   set: SetTp,
   modul: number,
@@ -367,6 +414,7 @@ async function segarkanKelas(token: string, set: SetTp): Promise<KelasSet> {
               nama: a.name,
               buka: isoDari(a.allowsubmissionsfromdate),
               tutup: isoDari(a.duedate),
+              batas: isoDari(a.cutoffdate),
             };
         }
         return {
@@ -711,7 +759,10 @@ export async function sinkronBilaPerlu(db: Db, oleh: string, jedaMs: number): Pr
       return keadaanJendela(j, now) === "tutup" && set.status.sapuan[String(m)] !== j.tutup;
     });
     const terakhir = set.status.terakhir ? Date.parse(set.status.terakhir) : 0;
-    const bukaAda = aktif.some((m) => keadaanJendela(jendelaUntuk(set, m), now) === "buka");
+    // A window still open, or someone's own extension on one (2026-10-17).
+    const bukaAda =
+      aktif.some((m) => keadaanJendela(jendelaUntuk(set, m), now) === "buka") ||
+      adaPerpanjanganBuka(await perpanjangTp(db, set), aktif, now);
     // A failing token is tried at most every 30 minutes.
     const jeda = set.status.hasil === "gagal" ? Math.max(jedaMs, 30 * 60_000) : jedaMs;
     if (!sapuan && (!bukaAda || now - terakhir < jeda)) return;
@@ -753,6 +804,8 @@ export interface AnggotaTp {
   jumlah: number;
   dikirimPada: string | null;
   telatMenit: number | null;
+  /** Their own extension's end, when the file came in on it. */
+  perpanjangan: string | null;
   terimaTelat: boolean | null;
   berkas: number;
   kirimanId: number | null;
@@ -947,7 +1000,7 @@ export async function skorModul(db: Db, semester: string, modul: number, nims?: 
 /** The TP tab's groups for one module. */
 export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: string) {
   const j = jendelaUntuk(set, modul);
-  const [kursi, kiriman, skor, kodeRows] = await Promise.all([
+  const [kursi, kiriman, skor, kodeRows, perpanjang] = await Promise.all([
     kursiModul(db, set, modul),
     db
       .select()
@@ -955,9 +1008,11 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
       .where(and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, modul))),
     skorModul(db, set.semester, modul),
     db.select({ nim: asisten.nim, kode: asisten.kode, nama: asisten.nama }).from(asisten),
+    perpanjangTp(db, set),
   ]);
   const orang = new Map(kodeRows.map((a) => [a.nim, a]));
   const kirOf = new Map(kiriman.map((k) => [k.nim, k]));
+  const sampaiOf = perpanjang.get(modul) ?? new Map<string, string>();
   const dipakai = new Set<string>();
   const kec = nimKecuali(set);
   const satu = (a: { nim: string; nama: string }): AnggotaTp => {
@@ -965,7 +1020,10 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
     const k = kirOf.get(a.nim);
     const nomor = nomorUntuk(a.nim);
     const s = skor.per.get(a.nim) ?? {};
-    const telat = telatMenit(k?.dikirimPada?.toISOString() ?? null, j);
+    const pada = k?.dikirimPada?.toISOString() ?? null;
+    const sampai = sampaiOf.get(a.nim);
+    const telat = telatMenit(pada, j && jendelaPribadi(j, sampai));
+    const panjang = masukPerpanjangan(pada, j, sampai);
     return {
       nim: a.nim,
       nama: a.nama,
@@ -973,8 +1031,10 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
         adaBerkas: !!k?.berkas.length,
         tanda: k?.tanda ?? null,
         telat: telat !== null,
+        panjang,
         lengkap: tpLengkap(s, nomor),
       }),
+      perpanjangan: panjang ? sampai! : null,
       total: totalTp(s, nomor),
       dinilai: nomor.filter((no) => s[no] != null).length,
       jumlah: nomor.length,
@@ -1028,7 +1088,7 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
       perluNilaiku: slot
         .flatMap((s) => s.kelompok.filter((g) => g.milikku))
         .flatMap((g) => g.anggota)
-        .filter((a) => !a.kecuali && (a.status === "masuk" || a.status === "telat")).length,
+        .filter((a) => !a.kecuali && TP_MENUNGGU.includes(a.status)).length,
     },
   };
 }

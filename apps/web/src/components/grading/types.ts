@@ -11,6 +11,7 @@ export interface AnggotaTp {
   jumlah: number;
   dikirimPada: string | null;
   telatMenit: number | null;
+  perpanjangan?: string | null;
   terimaTelat: boolean | null;
   berkas: number;
   kirimanId: number | null;
@@ -77,6 +78,8 @@ export interface DetailPraktikan {
     berkas: { i: number; nama: string; ukuran: number; mime: string }[];
     dikirimPada: string | null;
     telatMenit: number | null;
+    /** Their own extension's end, when the file came in on it. */
+    perpanjangan: string | null;
     terimaTelat: boolean | null;
     tanda: "kosong" | null;
     /** Uploaded in IRIS or from the LMS (2026-10-14), and the IRIS file's LMS copy. */
@@ -84,6 +87,8 @@ export interface DetailPraktikan {
     salinanLms: string | null;
   } | null;
   skor: Record<string, { skor: number; catatan: string | null; oleh: string }>;
+  /** The session TP the SeeLabs read-back copied in (2026-10-17), until graded here. */
+  tpSeelabs?: number | null;
   boleh: boolean;
   pemegang: string | null;
 }

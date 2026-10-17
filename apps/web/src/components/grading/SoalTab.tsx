@@ -1122,12 +1122,25 @@ function Unggah({
     otoSudah.current = otoVersi;
     void unggah();
   });
-  const periksa = async () => {
+  // Pressed by hand: a toast says what it found (2026-10-17), since a read
+  // that changes nothing leaves the rows as they were.
+  const periksa = async (tampil = false) => {
     setJalan(true);
     const r = await getJson<Lampiran>(`/api/tp/lampiran?modul=${modul}`).catch(() => null);
     setJalan(false);
-    if (r?.ok) setHasil(r);
-    else window.Toast?.show(t.periksaGagal, "warn");
+    if (!r?.ok) return window.Toast?.show(t.periksaGagal, "warn");
+    setHasil(r);
+    if (!tampil) return;
+    const lama = r.kelas.filter((k) => {
+      const terbaru = k.lampiran
+        .map((f) => (f.waktu ? Date.parse(f.waktu) : 0))
+        .sort((a, b) => b - a)[0];
+      return !k.cmid || !k.lampiran.length || (terbaru !== undefined && terbaru < diubah);
+    }).length;
+    window.Toast?.show(
+      lama ? t.periksaLama(lama) : t.periksaOk(r.kelas.length),
+      lama ? "warn" : "ok",
+    );
   };
   useEffect(() => {
     setHasil(null);
@@ -1144,7 +1157,7 @@ function Unggah({
             type="button"
             className="btn btn--sm"
             disabled={jalan}
-            onClick={() => void periksa()}
+            onClick={() => void periksa(true)}
           >
             {jalan ? t.memeriksa : t.periksaLms}
           </button>

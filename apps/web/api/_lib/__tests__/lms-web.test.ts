@@ -405,7 +405,11 @@ describe("the web session against a fake LMS", () => {
     expect(t.isi.get("introeditor[text]")).toBe(RENCANA.deskripsi);
     expect(t.isi.get("allowsubmissionsfromdate[hour]")).toBe("18");
     expect(t.isi.get("duedate[day]")).toBe("17");
-    expect(t.isi.has("cutoffdate[enabled]")).toBe(false);
+    // the LMS closes at the close itself (2026-10-17)
+    expect(t.isi.get("cutoffdate[enabled]")).toBe("1");
+    expect(t.isi.get("cutoffdate[day]")).toBe(t.isi.get("duedate[day]"));
+    expect(t.isi.get("cutoffdate[hour]")).toBe(t.isi.get("duedate[hour]"));
+    expect(t.isi.get("cutoffdate[minute]")).toBe(t.isi.get("duedate[minute]"));
     expect(t.isi.get("assignsubmission_file_enabled")).toBe("1");
     // where a TP uploaded in IRIS goes (2026-10-14)
     expect(t.isi.get("assignfeedback_file_enabled")).toBe("1");

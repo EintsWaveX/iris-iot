@@ -32,6 +32,7 @@ import { KELAS } from "./kelas.js";
 import type { StatusOrang, Tier } from "./hak.js";
 import type { BahasaTp, VarianTp } from "./tp.js";
 import type { KodeBerkas } from "./kode-jurnal.js";
+import type { NilaiTersimpan } from "./seelabs-baca.js";
 export { NILAI_KOMPONEN } from "./nilai-komponen.js";
 export type { NilaiKomponen } from "./nilai-komponen.js";
 
@@ -1346,8 +1347,12 @@ export const seelabsEkspor = pgTable(
     disalinPada: timestamp("disalin_pada", { withTimezone: true }).notNull().defaultNow(),
     disimpanPada: timestamp("disimpan_pada", { withTimezone: true }),
     /** Phase 14: how it reached SeeLabs, "robot" (the Pi saved and read it
-     *  back) or "tangan" (marked by hand after the bookmarklet). */
+     *  back, or since 2026-10-17 read a SeeLabs change back into IRIS) or
+     *  "tangan" (marked by hand after the bookmarklet). */
     cara: text("cara", { enum: ["robot", "tangan"] }),
+    /** What SeeLabs held after this save, per NIM: the read-back compares
+     *  against it (2026-10-17). Null for saves before it and by hand. */
+    nilai: jsonb("nilai").$type<Record<string, NilaiTersimpan>>(),
   },
   (t) => [index("seelabs_ekspor_sesi_idx").on(t.sesiId)],
 );
@@ -1391,7 +1396,7 @@ export const seelabsTugas = pgTable(
   "seelabs_tugas",
   {
     id: serial("id").primaryKey(),
-    jenis: text("jenis", { enum: ["uji", "nilai", "jaga", "kelompok"] }).notNull(),
+    jenis: text("jenis", { enum: ["uji", "nilai", "jaga", "kelompok", "baca"] }).notNull(),
     sesiId: integer("sesi_id").references(() => sesi.id, { onDelete: "cascade" }),
     kelompokNomor: integer("kelompok_nomor"),
     klp: text("klp"),
@@ -1431,6 +1436,70 @@ export const seelabsTugas = pgTable(
       )
       .where(sql`${t.status} = 'antre'`),
   ],
+);
+
+/* ------------------------------------ 2026-10-17: the SeeLabs read-back */
+
+/**
+ * What the last read of SeeLabs found for one IRIS group: sama (agrees),
+ * beda (a mean or an unbased score differs; the Asisten fixes it), hilang
+ * (a verified save gone from SeeLabs) or hanya_seelabs (scored only in
+ * SeeLabs). `seelabs` holds the values read, so screens show both sides.
+ */
+export const seelabsBaca = pgTable(
+  "seelabs_baca",
+  {
+    id: serial("id").primaryKey(),
+    sesiId: integer("sesi_id")
+      .notNull()
+      .references(() => sesi.id, { onDelete: "cascade" }),
+    kelompokNomor: integer("kelompok_nomor").notNull(),
+    akunNim: text("akun_nim").notNull(),
+    status: text("status", { enum: ["sama", "beda", "hilang", "hanya_seelabs"] }).notNull(),
+    seelabs: jsonb("seelabs").$type<Record<string, NilaiTersimpan>>().notNull().default({}),
+    dibacaPada: timestamp("dibaca_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("seelabs_baca_kelompok").on(t.sesiId, t.kelompokNomor)],
+);
+
+/**
+ * A day and shift where Rekap BAP and IRIS's pay units through that account
+ * disagree: hanya_iris (IRIS pays it, SeeLabs has no BAP row) or
+ * hanya_seelabs (the other way). Flags only; Bayar never changes from it.
+ */
+export const seelabsBapBeda = pgTable(
+  "seelabs_bap_beda",
+  {
+    id: serial("id").primaryKey(),
+    akunNim: text("akun_nim").notNull(),
+    praktikum: integer("praktikum").notNull(),
+    tanggal: text("tanggal").notNull(),
+    shift: integer("shift").notNull(),
+    jenis: text("jenis", { enum: ["hanya_iris", "hanya_seelabs"] }).notNull(),
+    /** The scorers of IRIS's units that day and shift (empty for hanya_seelabs). */
+    penilai: text("penilai")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    dibacaPada: timestamp("dibaca_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("seelabs_bap_beda_unik").on(t.akunNim, t.praktikum, t.tanggal, t.shift)],
+);
+
+/** A SeeLabs score with no IRIS session to land in: listed for the Admins. */
+export const seelabsLepas = pgTable(
+  "seelabs_lepas",
+  {
+    id: serial("id").primaryKey(),
+    akunNim: text("akun_nim").notNull(),
+    praktikum: integer("praktikum").notNull(),
+    klp: integer("klp").notNull(),
+    modul: integer("modul").notNull(),
+    nim: text("nim").notNull(),
+    nilai: jsonb("nilai").$type<NilaiTersimpan>().notNull(),
+    dibacaPada: timestamp("dibaca_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("seelabs_lepas_unik").on(t.akunNim, t.praktikum, t.modul, t.nim)],
 );
 
 /* ------------------------------------ Phase 9 Stage 6: payments, reports */

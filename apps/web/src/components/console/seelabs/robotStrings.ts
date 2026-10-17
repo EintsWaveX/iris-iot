@@ -106,6 +106,7 @@ export const RB = dict({
       nilai: "Simpan Nilai",
       jaga: "Input Jaga",
       kelompok: "Tarik Kelompok",
+      baca: "Baca SeeLabs",
     } as Record<string, string>,
     steps: ["Antre", "Diproses", "Disimpan", "Terverifikasi"],
     err: {
@@ -308,6 +309,7 @@ export const RB = dict({
       nilai: "Save Scores",
       jaga: "Input Jaga",
       kelompok: "Pull Groups",
+      baca: "Read SeeLabs",
     } as Record<string, string>,
     steps: ["Queued", "Working", "Saved", "Verified"],
     err: {
@@ -498,6 +500,7 @@ export const RB = dict({
       nilai: "保存成绩",
       jaga: "Input Jaga",
       kelompok: "拉取小组",
+      baca: "读取 SeeLabs",
     } as Record<string, string>,
     steps: ["排队中", "处理中", "已保存", "已核实"],
     err: {

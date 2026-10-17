@@ -34,6 +34,7 @@ import type { AsistenRef, GroupRow, NilaiAnggota } from "./types";
 import { useCaraNilai } from "./caraNilai";
 import { useTandaAbsen } from "./TandaAbsen";
 import KirimNilai from "./KirimNilai";
+import SeelabsBaca, { SeelabsBacaBaris } from "./seelabs/SeelabsBaca";
 import ChangeAssistant from "./ChangeAssistant";
 import { N } from "../shell/nilaiStrings";
 import { PD } from "./seelabs/panduanStrings";
@@ -454,6 +455,16 @@ export default function NilaiTable({
                         <td className="ntable__total num">{a.total}</td>
                       </tr>
                     ))}
+                    {/* 2026-10-17: what SeeLabs holds, when it differs */}
+                    {nilai.sesiId !== null && (
+                      <SeelabsBacaBaris
+                        colSpan={data.komponen.length + 4}
+                        sesiId={nilai.sesiId}
+                        nomor={k.nomor}
+                        canEdit={canEdit(k.id)}
+                        sent={!!data.terkirim[k.nomor]}
+                      />
+                    )}
                   </Fragment>
                 );
               })}
@@ -498,6 +509,15 @@ export default function NilaiTable({
                   </div>
                 </div>
               ))}
+              {nilai.sesiId !== null && (
+                <SeelabsBaca
+                  sesiId={nilai.sesiId}
+                  nomor={k.nomor}
+                  canEdit={canEdit(k.id)}
+                  sent={!!data.terkirim[k.nomor]}
+                  onlyFlags
+                />
+              )}
             </div>
           ))}
         </div>

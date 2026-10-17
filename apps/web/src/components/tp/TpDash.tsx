@@ -9,7 +9,7 @@ import Pill from "../ui/Pill";
 import { href } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
-import { poinNomor } from "../../lib/tp";
+import { TP_MENUNGGU, poinNomor } from "../../lib/tp";
 import { TPS } from "./tpStrings";
 import {
   Countdown,
@@ -48,7 +48,7 @@ export function TpKartu({ lang, d }: { lang: Lang; d: TpSaya | null }) {
   if (!d || !m) return null;
   const j = m.jendela;
   const judul =
-    m.keadaan === "buka" && (m.status === "masuk" || m.status === "telat")
+    m.keadaan === "buka" && TP_MENUNGGU.includes(m.status)
       ? m.status === "telat"
         ? t.telatH
         : t.masukH

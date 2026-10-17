@@ -317,20 +317,47 @@ export function telatMenit(dikirimPada: string | null, j: JendelaTp | null): num
   return d > 0 ? Math.ceil(d) : null;
 }
 
+/**
+ * One Praktikan's own window: the module's, closing at their extension
+ * instead when they were given one that ends later (LMS › Tugas ›
+ * Perpanjangan, user 2026-10-17). Moving the whole window extends everyone
+ * and needs nothing here.
+ */
+export function jendelaPribadi(j: JendelaTp, sampai: string | null | undefined): JendelaTp {
+  return sampai && Date.parse(sampai) > Date.parse(j.tutup) ? { ...j, tutup: sampai } : j;
+}
+
+/** A file that came after the window but within the Praktikan's own
+ *  extension: Diperpanjang, not Terlambat. */
+export function masukPerpanjangan(
+  dikirimPada: string | null,
+  j: JendelaTp | null,
+  sampai: string | null | undefined,
+): boolean {
+  if (!j || telatMenit(dikirimPada, j) === null) return false;
+  return telatMenit(dikirimPada, jendelaPribadi(j, sampai)) === null;
+}
+
 /* --------------------------------------------------------------- status */
 
-export type StatusTp = "belum" | "masuk" | "telat" | "nilai" | "kosong";
+export type StatusTp = "belum" | "masuk" | "panjang" | "telat" | "nilai" | "kosong";
+
+/** Waiting for its Asisten: in, in on an extension, or late. */
+export const TP_MENUNGGU: readonly StatusTp[] = ["masuk", "panjang", "telat"];
 
 export function statusTp(a: {
   adaBerkas: boolean;
   tanda: "kosong" | null;
   telat: boolean;
+  /** In after the window, within this Praktikan's own extension. */
+  panjang?: boolean;
   lengkap: boolean;
 }): StatusTp {
   if (a.tanda === "kosong") return "kosong";
   if (a.lengkap) return "nilai";
   if (!a.adaBerkas) return "belum";
-  return a.telat ? "telat" : "masuk";
+  if (a.telat) return "telat";
+  return a.panjang ? "panjang" : "masuk";
 }
 
 /** The LMS course a class name belongs to: "REG-04", "REG-01-INT", "ADD". */
@@ -421,12 +448,13 @@ export function htmlTugasLms(teks: string): string {
 
 /** An LMS assignment's dates are the window's, to the minute. */
 export function tanggalSama(
-  t: { buka: string | null; tutup: string | null },
+  t: { buka: string | null; tutup: string | null; batas?: string | null },
   j: JendelaTp,
 ): boolean {
-  const sama = (a: string | null, b: string) =>
+  const sama = (a: string | null | undefined, b: string) =>
     !!a && Math.abs(Date.parse(a) - Date.parse(b)) < 60_000;
-  return sama(t.buka, j.buka) && sama(t.tutup, j.tutup);
+  // The cut-off closes the LMS at the window's close too (2026-10-17).
+  return sama(t.buka, j.buka) && sama(t.tutup, j.tutup) && sama(t.batas, j.tutup);
 }
 
 /* ------------------------------------------------------ answers in a PDF */
@@ -475,24 +503,13 @@ export function pisahJawaban(
   return out;
 }
 
-/** How often IRIS reads the LMS while a TP window is open (2026-10-14: the
- *  relay's minute timer, the server's heartbeat and opened pages). */
+/** How often IRIS reads the LMS while a TP window is open: 60 s after the
+ *  last run, whatever the clock reads (user, 2026-10-17). An open page
+ *  starts the due run itself; the relay's minute timer and the server's
+ *  heartbeat keep it going when no page is open. */
 export const JEDA_SINKRON_MS = 60_000;
-/**
- * The relay's timer fires on each whole minute and syncs once in each clock
- * minute (2026-10-16): the gap it passes skips only a run that already
- * ended in this minute, so a press at :57 still leaves the run at :00.
- */
-export function jedaRelay(now = Date.now()): number {
-  return now % 60_000;
-}
 
-/**
- * When the relay's timer next reads the LMS: the whole minute after the
- * last run (the first whole minute 30 minutes on while it fails), so "next
- * sync" turns with a countdown to a whole minute.
- */
-export function sinkronBerikut(terakhir: number, gagal = false): number {
-  if (gagal) return Math.ceil((terakhir + 30 * 60_000) / 60_000) * 60_000;
-  return Math.floor(terakhir / 60_000) * 60_000 + 60_000;
+/** Whole seconds until the next run, 0 once it is due. */
+export function sisaSinkron(terakhir: number, now = Date.now()): number {
+  return Math.max(0, Math.ceil((terakhir + JEDA_SINKRON_MS - now) / 1000));
 }

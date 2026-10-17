@@ -53,6 +53,7 @@ import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { boleh } from "../../src/lib/hak.js";
 import { bacaPotongan, riwayatBaru, type StatusHadir } from "../../src/lib/hadir-mengajar.js";
 import { writeAudit } from "../../src/lib/auth.js";
+import { bacaAdmin } from "./seelabs-baca.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import {
   bacaTarifUnit,
@@ -441,6 +442,8 @@ export async function handleBayarGet(req: ApiRequest, res: ApiResponse, session:
       pada: t.ditransferPada,
       oleh: t.ditandaiOleh,
     })),
+    // The SeeLabs read-back's cards (2026-10-17): Admins only.
+    ...(admin ? await bacaAdmin(db) : {}),
     sisa: sisaTransfer(
       units as Parameters<typeof sisaTransfer>[0],
       sudah.map((t) => ({ periode: t.periode, jenis: t.jenis, nim: t.nim, jumlah: t.jumlah })),

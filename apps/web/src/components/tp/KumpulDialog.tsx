@@ -24,6 +24,8 @@ interface BarisKumpul {
   pada: string | null;
   sumber: "lms" | "iris" | null;
   telat: boolean;
+  /** In after the window, within their own extension (2026-10-17). */
+  panjang?: boolean;
 }
 interface DataKumpul {
   ok: boolean;
@@ -66,6 +68,7 @@ const T = dict({
     belumKumpul: "Belum mengumpulkan",
     ditandai: "Ditandai tidak mengumpulkan",
     telat: "Telat",
+    panjang: "Diperpanjang",
     diIris: "Diunggah di IRIS",
     riwayat: "Riwayat",
     riwayatTip: "Membuka riwayat pengumpulan Praktikan ini.",
@@ -100,6 +103,7 @@ const T = dict({
     belumKumpul: "Not handed in",
     ditandai: "Marked as not handed in",
     telat: "Late",
+    panjang: "Extended",
     diIris: "Uploaded in IRIS",
     riwayat: "History",
     riwayatTip: "Opens this Praktikan's submission history.",
@@ -134,6 +138,7 @@ const T = dict({
     belumKumpul: "未提交",
     ditandai: "已标记为未提交",
     telat: "迟交",
+    panjang: "已延期",
     diIris: "在 IRIS 上传",
     riwayat: "记录",
     riwayatTip: "打开此学生的提交记录。",
@@ -273,6 +278,7 @@ export function KumpulDialog({
                       {b.status === "sudah" ? (
                         <>
                           {b.telat && <Pill tone="warn">{t.telat}</Pill>}
+                          {b.panjang && <Pill tone="accent">{t.panjang}</Pill>}
                           {b.sumber === "iris" && <Pill tone="accent">{t.diIris}</Pill>}
                           <span className="hint num">
                             {b.pada ? waktuPanjang(b.pada, lang) : ""}

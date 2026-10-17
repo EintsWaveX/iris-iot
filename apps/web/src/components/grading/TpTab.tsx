@@ -23,6 +23,7 @@ import { ProgressRing, StateView } from "../ui/Display";
 import { MODUL_NAMA, postJson, tanggalPanjang } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
+import { TP_MENUNGGU } from "../../lib/tp";
 import { buatZip, simpanBlob } from "../../lib/zip";
 import { TPS } from "../tp/tpStrings";
 import SinkronBar from "../tp/SinkronBar";
@@ -76,7 +77,7 @@ export default function TpTab({
   const cocok = (a: AnggotaTp) =>
     (!q || a.nama.toLowerCase().includes(q) || a.nim.includes(q)) &&
     (f === "all" ||
-      (f === "todo" && (a.status === "masuk" || a.status === "telat")) ||
+      (f === "todo" && TP_MENUNGGU.includes(a.status)) ||
       (f === "telat" && a.status === "telat") ||
       (f === "belum" && (a.status === "belum" || a.status === "kosong")));
   // A filter or a search on: a group with nobody left in it goes.
@@ -501,7 +502,7 @@ function GroupCard({
   const buka = (i: number) => onOpen(g, i);
   const pertama = Math.max(
     0,
-    g.anggota.findIndex((a) => a.status === "masuk" || a.status === "telat"),
+    g.anggota.findIndex((a) => TP_MENUNGGU.includes(a.status)),
   );
   const unduhSemua = async () => {
     const ada = g.anggota.filter((a) => a.kirimanId && a.berkas > 0);
@@ -571,6 +572,7 @@ function GroupCard({
                 <span className="tpmem__st">
                   {a.kecuali && <Pill>{LK[lang].pill}</Pill>}
                   <StatusPill s={a.status} lang={lang} />
+                  {a.status === "nilai" && a.perpanjangan && <StatusPill s="panjang" lang={lang} />}
                   {a.status === "nilai" && a.total != null ? (
                     <b className="mono tpmem__t">{a.total}</b>
                   ) : a.dikirimPada ? (

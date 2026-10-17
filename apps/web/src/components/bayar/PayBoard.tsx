@@ -10,6 +10,7 @@ import { tanggalPanjang } from "../../lib/app";
 import { jumlahkan, namaPeriode, rupiah } from "../../lib/bayar";
 import type { Lang } from "../../lib/kelas";
 import { unduhXlsx } from "../../lib/xlsx";
+import BacaCards from "./BacaCards";
 import KasCard from "./KasCard";
 import { kirimBayar, potonganDari, type BayarData } from "./data";
 import { Stepper } from "../ui/Controls";
@@ -376,6 +377,9 @@ export default function PayBoard({
           </div>
         )}
       </section>
+
+      {/* 2026-10-17: the SeeLabs read-back's flags, Admins only */}
+      <BacaCards lang={lang} data={data} nama={nama} reload={reload} />
     </div>
   );
 }

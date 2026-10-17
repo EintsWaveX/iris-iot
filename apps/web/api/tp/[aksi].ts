@@ -102,7 +102,8 @@ import {
   bahasaKelas,
   htmlTugasLms,
   isoWib,
-  jedaRelay,
+  jendelaPribadi,
+  masukPerpanjangan,
   keadaanJendela,
   kelasTp,
   nomorBeda,
@@ -140,6 +141,9 @@ import {
   hapusSet,
   jendelaUntuk,
   kelompokTp,
+  adaPerpanjanganBuka,
+  modulAktif,
+  perpanjangTp,
   muatPaket,
   nimKecuali,
   pemegangTp,
@@ -292,13 +296,19 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
   const kodeOf = new Map(kodeRows.map((a) => [a.nim, a.kode.toUpperCase()]));
   const nomor = nomorUntuk(s.nim);
   const kelas = kelasTp(p?.kelas);
+  const perpanjang = await perpanjangTp(db, set);
   const out = modul.map((m) => {
-    const { jendela, keadaan } = ringkasJendela(set, m);
+    const umum = ringkasJendela(set, m);
+    // Their own extension moves their own close (2026-10-17).
+    const sampai = perpanjang.get(m)?.get(s.nim) ?? null;
+    const jendela = umum.jendela && jendelaPribadi(umum.jendela, sampai);
+    const keadaan = jendela && jendela !== umum.jendela ? keadaanJendela(jendela) : umum.keadaan;
     const k = kiriman.find((x) => x.modul === m);
     const sk = skorRows.filter((r) => r.modul === m);
     const per = Object.fromEntries(sk.map((r) => [r.nomor, r.skor]));
     const lengkap = tpLengkap(per, nomor);
     const telat = telatMenit(k?.dikirimPada?.toISOString() ?? null, jendela);
+    const panjang = masukPerpanjangan(k?.dikirimPada?.toISOString() ?? null, umum.jendela, sampai);
     const kirimDone = terkirim.has(m);
     const tugas = kursus
       ? set.kelas?.kursus.find((c) => c.id === kursus.lmsKursus)?.tugas[String(m)]
@@ -312,8 +322,10 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
         adaBerkas: !!k?.berkas.length,
         tanda: k?.tanda ?? null,
         telat: telat !== null,
+        panjang,
         lengkap: lengkap && kirimDone,
       }),
+      perpanjangan: jendela && jendela !== umum.jendela ? sampai : null,
       berkas: k?.berkas.map((b, i) => ({ i, nama: b.nama, ukuran: b.ukuran, mime: b.mime })) ?? [],
       kirimanId: k?.id ?? null,
       dikirimPada: k?.dikirimPada?.toISOString() ?? null,
@@ -555,6 +567,25 @@ async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayl
     .limit(1);
   const hak = await hakNilai(db, set, m, nim, s.nim);
   const { jendela, keadaan } = ringkasJendela(set, m);
+  const sampai = (await perpanjangTp(db, set)).get(m)?.get(nim) ?? null;
+  const pada = k?.dikirimPada?.toISOString() ?? null;
+  // The SeeLabs read-back's copy of their session TP stays until graded here.
+  const salin = (
+    await db
+      .select({ skor: nilai.skor, tanggal: sesi.tanggal })
+      .from(nilai)
+      .innerJoin(sesi, eq(sesi.id, nilai.sesiId))
+      .where(
+        and(
+          eq(nilai.nim, nim),
+          eq(nilai.komponen, "TP"),
+          eq(nilai.diubahOleh, "seelabs"),
+          eq(sesi.modul, m),
+          ne(sesi.jenis, "tot"),
+        ),
+      )
+      .orderBy(desc(nilai.diubahPada))
+  ).find((r) => semesterDariTanggal(r.tanggal) === set.semester);
   res.status(200).json({
     ok: true,
     nim,
@@ -567,7 +598,9 @@ async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayl
           id: k.id,
           berkas: k.berkas.map((b, i) => ({ i, nama: b.nama, ukuran: b.ukuran, mime: b.mime })),
           dikirimPada: k.dikirimPada?.toISOString() ?? null,
-          telatMenit: telatMenit(k.dikirimPada?.toISOString() ?? null, jendela),
+          // Late against their own close; in on an extension is not late.
+          telatMenit: telatMenit(pada, jendela && jendelaPribadi(jendela, sampai)),
+          perpanjangan: masukPerpanjangan(pada, jendela, sampai) ? sampai : null,
           terimaTelat: k.terimaTelat,
           tanda: k.tanda,
           sumber: k.sumber,
@@ -580,6 +613,7 @@ async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayl
     skor: Object.fromEntries(
       sk.map((r) => [r.nomor, { skor: r.skor, catatan: r.catatan, oleh: r.diubahOleh }]),
     ),
+    tpSeelabs: salin?.skor ?? null,
     ...hak,
   });
 }
@@ -863,7 +897,9 @@ async function handleNilai(req: ApiRequest, res: ApiResponse, s: SessionPayload)
       and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m), eq(tpKiriman.nim, nim)),
     )
     .limit(1);
-  const j = jendelaUntuk(set, m);
+  const umum = jendelaUntuk(set, m);
+  // A file in on the Praktikan's own extension needs no Terima Telat.
+  const j = umum && jendelaPribadi(umum, (await perpanjangTp(db, set)).get(m)?.get(nim));
   if (k && telatMenit(k.dikirimPada?.toISOString() ?? null, j) !== null && k.terimaTelat !== true)
     return tolak(res, "telat_belum_diterima");
   const kunci = and(
@@ -1496,13 +1532,18 @@ async function handleDetak(req: ApiRequest, res: ApiResponse) {
   // Phase 18: the lab clock's minute (automatic starts) rides the same
   // beat, first, as it keeps time; it never throws, so the TP part runs.
   await jamLabBilaPerlu(db);
-  await sinkronBilaPerlu(db, "relay", jedaRelay());
+  // 50 s, not 60: the timer fires once a minute with a little drift, and a
+  // run 59.9 s ago would otherwise skip a whole minute.
+  await sinkronBilaPerlu(db, "relay", 50_000);
   await kirimTertunda(db);
   const [t] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(tpUnggah)
     .where(inArray(tpUnggah.lmsStatus, ["menunggu", "gagal"]));
-  const tidur = tidurDetik(await bacaSet(db), (t?.n ?? 0) > 0);
+  const set = await bacaSet(db);
+  // An open extension keeps the minute timer awake like an owed copy.
+  const buka = adaPerpanjanganBuka(await perpanjangTp(db, set), modulAktif(set));
+  const tidur = tidurDetik(set, (t?.n ?? 0) > 0 || buka);
   res.status(200).json({ ok: true, tidurDetik: batasTidurJamLab(tidur) });
 }
 

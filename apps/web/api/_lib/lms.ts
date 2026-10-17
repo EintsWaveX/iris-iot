@@ -366,6 +366,8 @@ export interface TugasLms {
   name: string;
   allowsubmissionsfromdate: number;
   duedate: number;
+  /** When the LMS stops taking files (0: never). */
+  cutoffdate: number;
   /** The files attached to the assignment's description (the TP's PDF). */
   lampiran: { nama: string; ukuran: number; waktu: string | null }[];
 }
@@ -392,6 +394,7 @@ export async function tugasKursus(token: string, kursus: number[]): Promise<Tuga
       name: teksLms(a.name),
       allowsubmissionsfromdate: a.allowsubmissionsfromdate ?? 0,
       duedate: a.duedate ?? 0,
+      cutoffdate: a.cutoffdate ?? 0,
       lampiran: (a.introattachments ?? []).map((f) => ({
         nama: f.filename,
         ukuran: f.filesize ?? 0,

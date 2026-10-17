@@ -284,3 +284,42 @@
   font-size: 0.92rem;
   font-weight: 650;
 }
+
+/* 2026-10-17: the SeeLabs read-back's cards (BacaCards.tsx) */
+.bayar-baca {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.bayar-baca__head {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 16px 20px 0;
+}
+.bayar-baca__head > .panel__title {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.bayar-baca__hint {
+  margin: 0;
+  padding: 0 20px;
+}
+/* Mandarin dates break between any two characters; keep the date whole. */
+.bayar-baca__tgl {
+  white-space: nowrap;
+}
+.bayar-baca__kelas {
+  display: block;
+}
+.bayar-baca > .panel > .bayar-baca__hint:last-child {
+  padding-bottom: 20px;
+}
+@media (max-width: 519px) {
+  .bayar-baca__head > .btn {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    order: 3;
+    padding-left: 0;
+  }
+}

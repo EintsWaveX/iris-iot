@@ -1,12 +1,17 @@
 /** Home's inbox rows for the SeeLabs robot (Phase 14, mockup s14-home): my
  *  jobs that stopped and that nothing newer replaced, each with its way on:
  *  the Account page for a refused password or a changed Pi key, the score
- *  table for a Token Khusus, Coba Lagi for the rest. Nothing when all is well. */
+ *  table for a Token Khusus, Coba Lagi for the rest. Since 2026-10-17 also
+ *  what the read-back flagged: my groups that differ in SeeLabs (to the score
+ *  table) and Rekap BAP days that don't match Bayar (flags only). Nothing
+ *  when all is well. */
 import { useEffect, useState } from "react";
-import { getJson, href, postJson } from "../../../lib/app";
+import { getJson, href, postJson, tanggalPanjang } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
 import { kelompokLabel } from "../../../lib/labels";
+import type { StatusBaca } from "../../../lib/seelabs-baca";
+import { BC } from "./bacaStrings";
 import { RB } from "./robotStrings";
 
 interface Tugas {
@@ -19,6 +24,17 @@ interface Tugas {
   galat: string | null;
   rinci?: string | null;
   dibuat: string;
+}
+
+interface Bacaku {
+  beda: {
+    sesiId: number;
+    kelompokNomor: number;
+    modul: number;
+    tanggal: string;
+    status: StatusBaca;
+  }[];
+  bap: { id: number; tanggal: string; shift: number; jenis: "hanya_iris" | "hanya_seelabs" }[];
 }
 
 const SEPEKAN_MS = 7 * 86_400_000;
@@ -51,15 +67,19 @@ export default function RobotInbox({
 }) {
   const t = RB[lang];
   const { data, refresh } = usePoll(
-    () => getJson<{ ok: boolean; tugas: Tugas[] }>("/api/session/robot"),
+    () => getJson<{ ok: boolean; tugas: Tugas[]; bacaku?: Bacaku }>("/api/session/robot"),
     120_000,
     true,
     ["seelabs"],
   );
   const [busy, setBusy] = useState<number | null>(null);
   const macet = data?.ok ? tugasMacet(data.tugas) : [];
-  useEffect(() => onCount?.(macet.length), [macet.length, onCount]);
-  if (!macet.length) return null;
+  const beda = data?.ok ? (data.bacaku?.beda ?? []) : [];
+  const bap = data?.ok ? (data.bacaku?.bap ?? []) : [];
+  const b = BC[lang];
+  const n = macet.length + beda.length + bap.length;
+  useEffect(() => onCount?.(n), [n, onCount]);
+  if (!n) return null;
 
   async function ulang(id: number) {
     setBusy(id);
@@ -111,6 +131,43 @@ export default function RobotInbox({
           </li>
         );
       })}
+      {beda.map((g) => (
+        <li key={`baca-${g.sesiId}-${g.kelompokNomor}`} className="elog__row todo10__row">
+          <span className="elog__tag mono" data-tone="warn">
+            {tag}
+          </span>
+          <span className="elog__text">
+            <b>
+              {g.status === "hilang"
+                ? b.inboxHilang(g.kelompokNomor)
+                : g.status === "hanya_seelabs"
+                  ? b.inboxHanya(g.kelompokNomor)
+                  : b.inbox(g.kelompokNomor)}
+            </b>{" "}
+            {b.kolModul} {g.modul} · {tanggalPanjang(g.tanggal, lang)}
+          </span>
+          <span className="todo10__acts">
+            <button type="button" className="btn btn--sm" onClick={() => onTable(g.sesiId)}>
+              {b.buka}
+            </button>
+          </span>
+        </li>
+      ))}
+      {bap.map((f) => (
+        <li key={`bap-${f.id}`} className="elog__row todo10__row">
+          <span className="elog__tag mono" data-tone="warn">
+            {tag}
+          </span>
+          <span className="elog__text">
+            <b>
+              {(f.jenis === "hanya_iris" ? b.bapIris : b.bapSeelabs)(
+                tanggalPanjang(f.tanggal, lang),
+                f.shift,
+              )}
+            </b>
+          </span>
+        </li>
+      ))}
     </ol>
   );
 }

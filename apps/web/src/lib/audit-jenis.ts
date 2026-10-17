@@ -17,6 +17,7 @@ export const AKSI_PER_JENIS: Record<JenisAudit, readonly string[]> = {
     "seelabs_robot",
     "seelabs_kunci",
     "seelabs_tugas",
+    "seelabs_baca",
     "transfer_tandai",
     "transfer_batal",
     "tarif_unit",

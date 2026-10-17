@@ -5,6 +5,7 @@
  * GET  ?kunci=1      the approved Pi key the browser seals a password to
  * GET  (none)        my connection, plus my latest jobs
  * GET  ?sesiId=      the robot's state for each group of a session
+ * GET  ?baca=        the read-back's state for each group of a session (2026-10-17)
  * GET  ?sumber=1     Sumber SeeLabs (Pencipta, Admin): switch, keys, accounts, log
  * POST { aksi: "hubung", segel, sidik, bawaan }   connect my account (then an uji)
  * POST { aksi: "putus" }                           forget my seal and my waiting jobs
@@ -13,6 +14,8 @@
  * POST { aksi: "token", tugasId, token }           a Token Khusus for a butuh_token job
  * POST { aksi: "kelompok" }                        pull the KLP list with my account
  * POST { aksi: "jaga" }                            register my missing Input Jaga slots
+ * POST { aksi: "periksa", semua? }                 Periksa Sekarang: read SeeLabs back now
+ * POST { aksi: "kirim_ulang", sesiId, kelompok }   Kirim Ulang ke SeeLabs (the scorer, Admin)
  * POST { aksi: "robot", nyala }                    the kill switch       (Pencipta, Admin)
  * POST { aksi: "kunci", setujui: sidik }           approve the Pi's key  (Pencipta, Admin)
  * POST { aksi: "alamat", alamat }                  kampus or athena      (Pencipta, Admin)
@@ -30,6 +33,17 @@ import { muatSeelabs, sesiTot } from "./seelabs.js";
 import { sidikPayload } from "../../src/lib/seelabs.js";
 import { tulisSet } from "./tp.js";
 import { siarkan } from "./siaran.js";
+import {
+  akunAktif,
+  akunUntukPeriksa,
+  antreBaca,
+  bacaanSesi,
+  bacaBukti,
+  bacaSesi,
+  bacaku,
+  terimaBaca,
+} from "./seelabs-baca.js";
+import { dasarDariBaris } from "../../src/lib/seelabs-baca.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
@@ -40,7 +54,7 @@ import {
   seelabsTugas,
   server,
 } from "../../src/lib/schema.js";
-import { bolehPenuh, hakPenuh } from "../../src/lib/hak.js";
+import { boleh, bolehPenuh, hakPenuh } from "../../src/lib/hak.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
@@ -53,6 +67,7 @@ import {
   PRAKTIKUM_SEELABS,
   PROTOKOL_ROBOT,
   barisPerKlp,
+  jenisDiambil,
   bacaInfoSeelabs,
   ringkasBukti,
   setelahGagal,
@@ -61,6 +76,8 @@ import {
   statusAksesSetelah,
   sufiksSah,
   type AlamatSeelabs,
+  type BarisRobot,
+  type JenisTugas,
   type KelompokTarik,
   type KunciRobot,
   type StatusAkses,
@@ -106,7 +123,7 @@ export async function aturanRobot(db: Db) {
 /* --------------------------------------------------------------- queue */
 
 interface Antre {
-  jenis: "uji" | "nilai" | "jaga" | "kelompok";
+  jenis: JenisTugas;
   akunNim: string;
   oleh: string;
   isi?: Record<string, unknown>;
@@ -118,7 +135,7 @@ interface Antre {
 }
 
 /** Queues one job, replacing the same thing still waiting. */
-async function antre(db: Db, a: Antre): Promise<number> {
+export async function antre(db: Db, a: Antre): Promise<number> {
   await db
     .update(seelabsTugas)
     .set({ status: "batal", selesai: new Date() })
@@ -149,7 +166,7 @@ async function antre(db: Db, a: Antre): Promise<number> {
   return row.id;
 }
 
-async function aksesDari(db: Db, nim: string) {
+export async function aksesDari(db: Db, nim: string) {
   const [r] = await db.select().from(seelabsAkses).where(eq(seelabsAkses.nim, nim)).limit(1);
   return r ?? null;
 }
@@ -179,6 +196,8 @@ export async function antreNilai(
   nomor: number,
   oleh: string,
   tundaDetik = 0,
+  /** Kirim Ulang ke SeeLabs (2026-10-17): send even a group marked saved. */
+  paksa = false,
 ): Promise<HasilAntreNilai> {
   const aturan = await aturanRobot(db);
   if (!aturan.nyala || !aturan.kunci) return { antre: false, alasan: "robot_mati" };
@@ -189,7 +208,7 @@ export async function antreNilai(
   if (!g.akun) return { antre: false, alasan: "tanpa_akun" };
   const akses = await aksesDari(db, g.akun);
   if (!akses || akses.status !== "aktif") return { antre: false, alasan: "akun_belum_terhubung" };
-  if (g.status === "terkirim") return { antre: false, alasan: "sudah_tersimpan" };
+  if (g.status === "terkirim" && !paksa) return { antre: false, alasan: "sudah_tersimpan" };
 
   const { perKlp, tanpaKlp } = barisPerKlp(
     g.baris.map((b) => ({ nim: b.nim, klp: b.klp ?? null, skor: b.skor })),
@@ -312,28 +331,36 @@ export async function harianBilaPerlu(db: Db): Promise<void> {
 
 /* -------------------------------------------------------- the Pi side */
 
-/** True when this server is the approved robot, speaks protocol 6 and still has the approved key. */
-async function piRobot(db: Db, serverId: number, kunci: KunciRobot | null): Promise<boolean> {
-  if (!kunci || kunci.serverId !== serverId) return false;
+/** This server's agent protocol when it is the approved robot, speaks protocol 6 and still
+ *  has the approved key; else null. */
+async function piRobot(db: Db, serverId: number, kunci: KunciRobot | null): Promise<number | null> {
+  if (!kunci || kunci.serverId !== serverId) return null;
   const [s] = await db
     .select({ info: server.infoSistem })
     .from(server)
     .where(eq(server.id, serverId))
     .limit(1);
   const info = s?.info as { protokol?: number } | null;
-  return (info?.protokol ?? 0) >= PROTOKOL_ROBOT && bacaInfoSeelabs(info)?.sidik === kunci.sidik;
+  const protokol = info?.protokol ?? 0;
+  return protokol >= PROTOKOL_ROBOT && bacaInfoSeelabs(info)?.sidik === kunci.sidik
+    ? protokol
+    : null;
 }
 
 /** Jobs a Pi could take now (for the heartbeat's fast pace). */
 export async function adaTugasRobot(db: Db, serverId: number): Promise<boolean> {
   const aturan = await aturanRobot(db);
   if (!aturan.nyala || aturan.kunci?.serverId !== serverId) return false;
+  // Only kinds this agent can take, or an old agent would beat fast forever.
+  const protokol = await piRobot(db, serverId, aturan.kunci);
+  if (protokol === null) return false;
   const [r] = await db
     .select({ id: seelabsTugas.id })
     .from(seelabsTugas)
     .where(
       and(
         inArray(seelabsTugas.status, ["antre", "diambil"]),
+        inArray(seelabsTugas.jenis, jenisDiambil(protokol)),
         lte(seelabsTugas.jalanPada, new Date()),
       ),
     )
@@ -359,13 +386,20 @@ export interface TugasPi {
  */
 export async function ambilTugas(db: Db, serverId: number): Promise<TugasPi[]> {
   const aturan = await aturanRobot(db);
-  if (!aturan.nyala || !(await piRobot(db, serverId, aturan.kunci))) return [];
+  const protokol = aturan.nyala ? await piRobot(db, serverId, aturan.kunci) : null;
+  if (protokol === null) return [];
   await sapuDiambil(db);
 
+  // A job kind this agent doesn't know waits for its update (baca needs 8).
+  const jenis = jenisDiambil(protokol);
   const klaim = await db.execute<{ id: number }>(sql`
     UPDATE seelabs_tugas SET status = 'diambil', diambil = now(), server_id = ${serverId}
     WHERE id IN (
       SELECT id FROM seelabs_tugas WHERE status = 'antre' AND jalan_pada <= now()
+        AND jenis IN (${sql.join(
+          jenis.map((j) => sql`${j}`),
+          sql`, `,
+        )})
       ORDER BY jalan_pada, id LIMIT ${KLAIM_PER_DENYUT} FOR UPDATE SKIP LOCKED
     ) RETURNING id`);
   const ids =
@@ -487,11 +521,17 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
     const sekarang = new Date();
 
     if (h.status === "selesai") {
+      // A read's bukti is every group's scores and the whole Rekap BAP: it
+      // lands in seelabs_baca, the job keeps only the counts.
+      const baca = t.jenis === "baca" ? bacaBukti(h.bukti) : null;
       await db
         .update(seelabsTugas)
         .set({
           status: "selesai",
-          bukti: h.bukti ?? {},
+          bukti:
+            t.jenis === "baca"
+              ? { kelompok: baca?.nilai.length ?? 0, bap: baca?.bap?.length ?? null }
+              : (h.bukti ?? {}),
           token: null,
           galatKode: null,
           galatRinci: null,
@@ -512,6 +552,23 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
           })
           .where(eq(seelabsAkses.nim, t.akunNim));
       if (t.jenis === "nilai") await tandaiTersimpan(db, t);
+      if (t.jenis === "baca") {
+        if (baca)
+          await terimaBaca(db, t, baca).catch((e) =>
+            console.error("[seelabs-baca] read-back failed:", t.id, e),
+          );
+        else console.error("[seelabs-baca] read result has the wrong shape:", t.id);
+        // Reads run every few minutes; finished ones older than two days go.
+        await db
+          .delete(seelabsTugas)
+          .where(
+            and(
+              eq(seelabsTugas.jenis, "baca"),
+              inArray(seelabsTugas.status, ["selesai", "gagal", "batal"]),
+              lte(seelabsTugas.dibuat, new Date(sekarang.getTime() - 2 * 86_400_000)),
+            ),
+          );
+      }
       if (t.jenis === "kelompok" && h.bukti?.kelompok)
         await tulisSet(
           db,
@@ -547,13 +604,15 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
           .set({ status: "gagal", galatKode: "ditolak", selesai: sekarang })
           .where(and(eq(seelabsTugas.akunNim, t.akunNim), eq(seelabsTugas.status, "antre")));
     }
-    await writeAudit(t.akunNim, "seelabs_tugas", {
-      tugas: t.id,
-      jenis: t.jenis,
-      kode,
-      sesiId: t.sesiId,
-      nomor: t.kelompokNomor,
-    });
+    // A read retries every few minutes on its own: only its last failure is logged.
+    if (t.jenis !== "baca" || lanjut.status === "gagal")
+      await writeAudit(t.akunNim, "seelabs_tugas", {
+        tugas: t.id,
+        jenis: t.jenis,
+        kode,
+        sesiId: t.sesiId,
+        nomor: t.kelompokNomor,
+      });
   }
   if (berubah) await siarkan(["seelabs", "nilai"]);
   return berubah;
@@ -576,21 +635,22 @@ async function tandaiTersimpan(db: Db, t: typeof seelabsTugas.$inferSelect): Pro
       ),
     );
   if ((sisa?.n ?? 0) > 0) return;
-  const klp = (
-    await db
-      .select({ klp: seelabsTugas.klp })
-      .from(seelabsTugas)
-      .where(
-        and(
-          eq(seelabsTugas.sesiId, t.sesiId),
-          eq(seelabsTugas.kelompokNomor, t.kelompokNomor),
-          eq(seelabsTugas.sidik, t.sidik),
-          eq(seelabsTugas.status, "selesai"),
-        ),
-      )
-  )
-    .map((r) => r.klp)
-    .filter(Boolean);
+  const selesai = await db
+    .select({ klp: seelabsTugas.klp, isi: seelabsTugas.isi })
+    .from(seelabsTugas)
+    .where(
+      and(
+        eq(seelabsTugas.sesiId, t.sesiId),
+        eq(seelabsTugas.kelompokNomor, t.kelompokNomor),
+        eq(seelabsTugas.sidik, t.sidik),
+        eq(seelabsTugas.status, "selesai"),
+      ),
+    );
+  const klp = selesai.map((r) => r.klp).filter(Boolean);
+  // What the save put in SeeLabs: the read-back's baseline (2026-10-17).
+  const dasar = dasarDariBaris(
+    selesai.flatMap((r) => ((r.isi as { baris?: BarisRobot[] }).baris ?? []) as BarisRobot[]),
+  );
   const modul = Number((t.isi as { modul?: number }).modul ?? 0);
   await db.insert(seelabsEkspor).values({
     sesiId: t.sesiId,
@@ -601,6 +661,7 @@ async function tandaiTersimpan(db: Db, t: typeof seelabsTugas.$inferSelect): Pro
     payloadHash: t.sidik,
     disimpanPada: new Date(),
     cara: "robot",
+    nilai: dasar,
   });
   await writeAudit(t.akunNim, "seelabs_simpan", {
     sesiId: t.sesiId,
@@ -669,6 +730,13 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
     return;
   }
 
+  const baca = posInt(req.query.baca);
+  if (baca) {
+    // The read-back's state per group of one session (2026-10-17).
+    res.status(200).json({ ok: true, kelompok: await bacaSesi(db, baca) });
+    return;
+  }
+
   const sesiId = posInt(req.query.sesiId);
   if (sesiId) {
     const rows = await db
@@ -718,7 +786,13 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
       .leftJoin(seelabsAkses, eq(seelabsAkses.nim, asisten.nim))
       .where(eq(asisten.status, "aktif"))
       .orderBy(asc(asisten.kode));
-    const log = await db.select().from(seelabsTugas).orderBy(desc(seelabsTugas.id)).limit(60);
+    // Reads run every few minutes: only a failed one belongs in the log.
+    const log = await db
+      .select()
+      .from(seelabsTugas)
+      .where(or(ne(seelabsTugas.jenis, "baca"), eq(seelabsTugas.status, "gagal")))
+      .orderBy(desc(seelabsTugas.id))
+      .limit(60);
     const tarik = await bacaKunci<{ pada?: string; oleh?: string }>(db, KUNCI_ROBOT.kelompok);
     res.status(200).json({
       ok: true,
@@ -757,7 +831,13 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
   const tugas = await db
     .select()
     .from(seelabsTugas)
-    .where(or(eq(seelabsTugas.akunNim, session.nim), eq(seelabsTugas.oleh, session.nim)))
+    // The robot's reads are not the Asisten's jobs; they show as the read-back panels.
+    .where(
+      and(
+        or(eq(seelabsTugas.akunNim, session.nim), eq(seelabsTugas.oleh, session.nim)),
+        ne(seelabsTugas.jenis, "baca"),
+      ),
+    )
     .orderBy(desc(seelabsTugas.id))
     .limit(20);
   res.status(200).json({
@@ -777,6 +857,7 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
         }
       : null,
     tugas: tugas.map(ringkasTugas),
+    bacaku: await bacaku(db, session.nim),
   });
 }
 
@@ -857,6 +938,47 @@ export async function handleRobotPost(req: ApiRequest, res: ApiResponse, session
     jawab({ ok: true, ...r });
     await siarkan(["seelabs"]);
     return;
+  }
+
+  if (aksi === "periksa") {
+    // Periksa Sekarang: my account and the lenders' my groups went through,
+    // plus the accounts and module of the session it was pressed on (an older
+    // session's module is outside the usual 7 days); every account and the
+    // whole semester for whoever sees Bayar's Admin cards.
+    const o = await muatOrang(session.nim);
+    const semua =
+      body.semua === true && !!o && (hakPenuh(o) || bolehPenuh(o, "full") || boleh(o, "tim"));
+    const dari = !semua && posInt(body.sesiId) ? await bacaanSesi(db, posInt(body.sesiId)!) : null;
+    const akun = semua
+      ? await akunAktif(
+          db,
+          (await db.select({ nim: seelabsAkses.nim }).from(seelabsAkses)).map((r) => r.nim),
+        )
+      : await akunAktif(db, [
+          ...new Set([...(await akunUntukPeriksa(db, session.nim)), ...(dari?.akun ?? [])]),
+        ]);
+    const tugas: number[] = [];
+    for (const nim of akun) {
+      const id = await antreBaca(db, nim, session.nim, { semua, tambah: dari?.modul });
+      if (id) tugas.push(id);
+    }
+    if (tugas.length) await siarkan(["seelabs"]);
+    return jawab({ ok: true, tugas });
+  }
+
+  if (aksi === "kirim_ulang") {
+    // Kirim Ulang ke SeeLabs: IRIS's values go again, even when marked saved.
+    const sesi = posInt(body.sesiId);
+    const nomor = posInt(body.kelompok);
+    if (!sesi || !nomor) return jawab({ ok: false, kode: "format_salah" });
+    const data = await muatSeelabs(db, sesi);
+    const g = data?.kelompok.find((x) => x.nomor === nomor);
+    if (!g) return jawab({ ok: false, kode: "tidak_ada" });
+    if (g.penilai !== session.nim && !(await pengelolaRobot(session.nim))) {
+      res.status(403).json({ ok: false, kode: "bukan_penilai" });
+      return;
+    }
+    return jawab({ ok: true, ...(await antreNilai(db, sesi, nomor, session.nim, 0, true)) });
   }
 
   if (aksi === "ulang" || aksi === "token") {

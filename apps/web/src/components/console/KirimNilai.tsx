@@ -10,6 +10,7 @@ import { CheckCircleIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { pageLang } from "../../lib/app";
 import SeelabsStrip from "./seelabs/SeelabsStrip";
+import SeelabsBaca from "./seelabs/SeelabsBaca";
 import { RB } from "./seelabs/robotStrings";
 import type { Strings } from "./strings";
 import { l1Anggota, type NilaiLive } from "./data";
@@ -60,6 +61,10 @@ export default function KirimNilai({
         {!compact && nilai.sesiId !== null && (
           <SeelabsStrip sesiId={nilai.sesiId} nomor={g.nomor} />
         )}
+        {/* 2026-10-17: what the robot read back from SeeLabs */}
+        {!compact && nilai.sesiId !== null && (
+          <SeelabsBaca sesiId={nilai.sesiId} nomor={g.nomor} canEdit={canEdit} sent />
+        )}
       </>
     );
   }
@@ -88,18 +93,28 @@ export default function KirimNilai({
     else window.Toast?.show(t.fail, "danger");
   }
 
+  // A group scored in SeeLabs only shows its banner before Kirim Nilai.
+  const baca = !compact && nilai.sesiId !== null && (
+    <SeelabsBaca sesiId={nilai.sesiId} nomor={g.nomor} canEdit={canEdit} sent={false} />
+  );
+
   return (
-    <span className="kirim">
-      <button
-        type="button"
-        className="btn btn--primary btn--sm"
-        disabled={!canEdit || busy || kurang > 0}
-        title={kurang > 0 ? t.kirimLeft(kurang) : undefined}
-        onClick={() => void kirim()}
-      >
-        {t.kirimBtn}
-      </button>
-      <span className="hint">{kurang > 0 ? t.kirimLeft(kurang) : compact ? "" : t.kirimHint}</span>
-    </span>
+    <>
+      <span className="kirim">
+        <button
+          type="button"
+          className="btn btn--primary btn--sm"
+          disabled={!canEdit || busy || kurang > 0}
+          title={kurang > 0 ? t.kirimLeft(kurang) : undefined}
+          onClick={() => void kirim()}
+        >
+          {t.kirimBtn}
+        </button>
+        <span className="hint">
+          {kurang > 0 ? t.kirimLeft(kurang) : compact ? "" : t.kirimHint}
+        </span>
+      </span>
+      {baca}
+    </>
   );
 }

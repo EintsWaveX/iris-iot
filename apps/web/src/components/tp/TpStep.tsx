@@ -43,6 +43,7 @@ import { unduhPdfTp } from "../../lib/tp-pdf";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import {
+  TP_MENUNGGU,
   TP_NOMOR,
   poinNomor,
   bagiWib,
@@ -384,13 +385,19 @@ function Milikku({
         {fileRow}
       </>
     );
-  } else if (st === "masuk" || st === "telat") {
+  } else if (TP_MENUNGGU.includes(st)) {
     body = (
       <>
         <StatusPill
           s={st}
           lang={lang}
-          extra={st === "telat" && m.telatMenit ? t.telatMenit(m.telatMenit) : undefined}
+          extra={
+            st === "telat" && m.telatMenit
+              ? t.telatMenit(m.telatMenit)
+              : st === "panjang" && m.perpanjangan
+                ? t.panjangSampai(waktuPanjang(m.perpanjangan, lang))
+                : undefined
+          }
         />
         <h3 className="tpstate__h">{st === "telat" ? t.telatH : t.masukH}</h3>
         {fileRow}

@@ -60,7 +60,15 @@ import {
   tpJejak,
   tpKiriman,
 } from "../../src/lib/schema.js";
-import { JEDA_SINKRON_MS, keadaanJendela, modulTugas, tanggalSama } from "../../src/lib/tp.js";
+import {
+  JEDA_SINKRON_MS,
+  jendelaPribadi,
+  keadaanJendela,
+  masukPerpanjangan,
+  modulTugas,
+  tanggalSama,
+  telatMenit,
+} from "../../src/lib/tp.js";
 import {
   LmsGalat,
   berkasDari,
@@ -106,7 +114,9 @@ import {
   jendelaUntuk,
   nimKecuali,
   pesertaKursusTp,
+  perpanjangTp,
   riwayatSinkron,
+  sinkronBilaPerlu,
   webLms,
 } from "../_lib/tp.js";
 import {
@@ -208,6 +218,9 @@ async function logLms(db: Db, n: number, sebelum?: Date): Promise<BarisLog[]> {
 
 async function handleRingkas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const db = getDb();
+  // An open Ringkasan is one of the sync's clocks, as the TP pages are: its
+  // timer asks at zero, and this runs the due read (2026-10-17).
+  await sinkronBilaPerlu(db, "halaman", JEDA_SINKRON_MS);
   const set = await bacaSet(db);
   const orang = await muatOrang(s.nim);
   const m = modulDari(req.query.modul) ?? modulPilihan(set);
@@ -361,12 +374,14 @@ async function handleKumpul(req: ApiRequest, res: ApiResponse) {
   const kelasOf = new Map<string, number>();
   for (const k of kursus) for (const n of k.nim ?? []) kelasOf.set(n, k.id);
   const kirOf = new Map(kiriman.map((x) => [x.nim, x]));
-  const tutup = j ? Date.parse(j.tutup) : null;
+  const sampaiOf = (await perpanjangTp(db, set)).get(m) ?? new Map<string, string>();
   const baris = terdaftar
     .filter((p) => !kec.has(p.nim))
     .map((p) => {
       const x = kirOf.get(p.nim);
       const ada = !!x && x.berkas.length > 0;
+      const pada = ada ? (x.pada?.toISOString() ?? null) : null;
+      const sampai = sampaiOf.get(p.nim);
       return {
         nim: p.nim,
         nama: p.nama,
@@ -374,7 +389,9 @@ async function handleKumpul(req: ApiRequest, res: ApiResponse) {
         status: ada ? "sudah" : x?.tanda === "kosong" ? "kosong" : "belum",
         pada: ada ? (x.pada?.toISOString() ?? null) : null,
         sumber: ada ? x.sumber : null,
-        telat: ada && tutup !== null && !!x.pada && x.pada.getTime() > tutup,
+        // Late against their own close; in on an extension is Diperpanjang.
+        telat: !!j && telatMenit(pada, jendelaPribadi(j, sampai)) !== null,
+        panjang: masukPerpanjangan(pada, j, sampai),
       };
     })
     .sort((a, b) => a.nama.localeCompare(b.nama, "id"));
@@ -676,7 +693,14 @@ async function handleTugas(_req: ApiRequest, res: ApiResponse, s: SessionPayload
             (x) => x.status === "submitted" || berkasDari(x).length > 0,
           );
           const telat = subs.filter(
-            (x) => t.duedate > 0 && x.timemodified > (ext.get(x.userid) ?? t.duedate),
+            (x) => t.duedate > 0 && x.timemodified > Math.max(ext.get(x.userid) ?? 0, t.duedate),
+          ).length;
+          // In after the close, within the Praktikan's own extension (2026-10-17).
+          const panjang = subs.filter(
+            (x) =>
+              t.duedate > 0 &&
+              x.timemodified > t.duedate &&
+              x.timemodified <= (ext.get(x.userid) ?? 0),
           ).length;
           return {
             kursus: k.id,
@@ -691,6 +715,7 @@ async function handleTugas(_req: ApiRequest, res: ApiResponse, s: SessionPayload
               (set.kelas?.luar ?? []).filter((l) => l.kursus === k.label).length,
             masuk: subs.length,
             telat,
+            panjang,
             terkunci: fl.filter((f) => f.locked).length,
             lampiran: t.lampiran.map((f) => f.nama),
             perpanjang: [...ext].map(([userid, sampai]) => {

@@ -248,6 +248,7 @@ async function catatTugas(db: Db, token: string, kursus: number, m: number) {
         nama: a.name,
         buka: iso(a.allowsubmissionsfromdate),
         tutup: iso(a.duedate),
+        batas: iso(a.cutoffdate),
       } satisfies TugasTp)
     : null;
   await tulisSet(db, KUNCI_TP.kelas, segar.kelas, null);

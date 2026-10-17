@@ -11,7 +11,9 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import {
   CaretLeftIcon,
   CaretRightIcon,
+  CalendarPlusIcon,
   ClockIcon,
+  CopyIcon,
   FileIcon,
   HourglassIcon,
   LockSimpleIcon,
@@ -326,6 +328,12 @@ function Isi({
   /* ------------------------------------------------------------ viewer */
   const viewer = (
     <div className="grader__view">
+      {d.tpSeelabs != null && (
+        <div className="banner">
+          <CopyIcon size={20} aria-hidden="true" />
+          <span className="grow">{t.tpSeelabs(d.tpSeelabs)}</span>
+        </div>
+      )}
       {k?.tanda === "kosong" ? (
         <section className="panel">
           <StateView
@@ -367,6 +375,17 @@ function Isi({
         </section>
       ) : (
         <>
+          {k?.perpanjangan && (
+            <div className="banner">
+              <CalendarPlusIcon size={20} aria-hidden="true" />
+              <span className="grow">
+                {t.panjangBanner(
+                  waktuPanjang(k.dikirimPada!, lang),
+                  waktuPanjang(k.perpanjangan, lang),
+                )}
+              </span>
+            </div>
+          )}
           {telat && (
             <div
               className={`banner ${k.terimaTelat === false ? "banner--danger" : "banner--warn"}`}

@@ -4,7 +4,14 @@
  * tables and diagrams), the data hooks and the date words.
  */
 import { Fragment, type CSSProperties, type ReactNode } from "react";
-import { CheckIcon, ClockIcon, CloudCheckIcon, HourglassIcon, XIcon } from "@phosphor-icons/react";
+import {
+  CalendarPlusIcon,
+  CheckIcon,
+  ClockIcon,
+  CloudCheckIcon,
+  HourglassIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { getJson, localeOf, useDetik, useTick } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
@@ -44,6 +51,8 @@ export interface TpSayaModul {
   dikirimPada: string | null;
   diambilPada: string | null;
   telatMenit: number | null;
+  /** Their own extension's end, when they have one (2026-10-17). */
+  perpanjangan: string | null;
   terkirim: boolean;
   skor: Record<string, { skor: number; catatan: string | null }> | null;
   total: number | null;
@@ -208,6 +217,7 @@ export function ukuran(b: number, lang: Lang): string {
 const STATUS_ICON: Record<StatusTp, ReactNode> = {
   belum: <HourglassIcon size={14} aria-hidden="true" />,
   masuk: <CloudCheckIcon size={14} aria-hidden="true" />,
+  panjang: <CalendarPlusIcon size={14} aria-hidden="true" />,
   telat: <ClockIcon size={14} aria-hidden="true" />,
   nilai: <CheckIcon size={14} aria-hidden="true" />,
   kosong: <XIcon size={14} aria-hidden="true" />,
@@ -215,6 +225,7 @@ const STATUS_ICON: Record<StatusTp, ReactNode> = {
 const STATUS_TONE: Record<StatusTp, "ok" | "warn" | "danger" | "accent" | undefined> = {
   belum: undefined,
   masuk: "accent",
+  panjang: "accent",
   telat: "warn",
   nilai: "ok",
   kosong: "danger",

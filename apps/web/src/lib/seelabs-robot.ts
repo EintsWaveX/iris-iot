@@ -18,7 +18,7 @@ import type { Kelas } from "./kelas.js";
 /** SeeLabs' praktikum ids: Reguler and INT. */
 export const PRAKTIKUM_SEELABS: Record<Kelas, number> = { reguler: 237, internasional: 238 };
 
-export const JENIS_TUGAS = ["uji", "nilai", "jaga", "kelompok"] as const;
+export const JENIS_TUGAS = ["uji", "nilai", "jaga", "kelompok", "baca"] as const;
 export type JenisTugas = (typeof JENIS_TUGAS)[number];
 
 export type StatusTugas = "antre" | "diambil" | "selesai" | "gagal" | "batal";
@@ -61,6 +61,13 @@ export const JEDA_SUNTING_DETIK = 60;
 
 /** The oldest agent protocol that runs SeeLabs jobs. */
 export const PROTOKOL_ROBOT = 6;
+/** The read-back's own job (2026-10-17) needs agent protocol 8. */
+export const PROTOKOL_BACA = 8;
+
+/** The job kinds an agent on this protocol may take. */
+export function jenisDiambil(protokol: number): JenisTugas[] {
+  return JENIS_TUGAS.filter((j) => j !== "baca" || protokol >= PROTOKOL_BACA);
+}
 
 /** The fixed SeeLabs addresses the Pi knows; the site only picks one by name. */
 export const ALAMAT_SEELABS = ["kampus", "athena"] as const;
@@ -85,6 +92,8 @@ export const KUNCI_ROBOT = {
   kelompok: "seelabs_kelompok",
   /** "YYYY-MM-DD" (WIB): the day the daily jaga check last ran. */
   harian: "seelabs_harian",
+  /** JadwalBaca: when each account's read-back was last queued, and the night pass. */
+  baca: "seelabs_baca_jadwal",
 } as const;
 
 export interface KunciRobot {
