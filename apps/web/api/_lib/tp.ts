@@ -61,6 +61,7 @@ import {
   nomorUntuk,
   statusTp,
   tanggalSlot,
+  tanpaAsisten,
   telatMenit,
   soalAkhir,
   tampilSoal,
@@ -420,11 +421,25 @@ const sederhana = (s: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/** The NIMs of the Asisten still on the team (active or on leave): someone
+ *  registered as a Praktikan too is not counted as one (2026-10-18). */
+export async function nimAsistenTim(db: Db): Promise<Set<string>> {
+  const rows = await db
+    .select({ nim: asisten.nim })
+    .from(asisten)
+    .where(inArray(asisten.status, ["aktif", "cuti"]));
+  return new Set(rows.map((r) => r.nim));
+}
+
 async function segarkanPeserta(db: Db, token: string, set: SetTp, kelas: KelasSet) {
-  const daftar = await db
-    .select({ nim: praktikan.nim, nama: praktikan.nama })
-    .from(praktikan)
-    .where(eq(praktikan.semester, set.semester));
+  // An Asisten registered as a Praktikan too is no class's member here.
+  const daftar = tanpaAsisten(
+    await db
+      .select({ nim: praktikan.nim, nama: praktikan.nama })
+      .from(praktikan)
+      .where(eq(praktikan.semester, set.semester)),
+    await nimAsistenTim(db),
+  );
   const nimAda = new Set(daftar.map((p) => p.nim));
   const nimAsisten = new Set(
     (await db.select({ nim: asisten.nim }).from(asisten)).map((a) => a.nim),
@@ -442,7 +457,7 @@ async function segarkanPeserta(db: Db, token: string, set: SetTp, kelas: KelasSe
     const nims: string[] = [];
     for (const u of orang) {
       // Students only: Teachers are not counted, nor an Asisten enrolled as a
-      // student unless they are also a registered Praktikan.
+      // student (registered as a Praktikan too or not).
       if (!anggotaKelas(u, nimAsisten, nimAda)) continue;
       const nim = nimDari(u) ?? perNama.get(sederhana(u.fullname)) ?? null;
       if (!nim || !nimAda.has(nim)) {
@@ -1043,7 +1058,7 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
     .where(eq(praktikan.semester, set.semester));
   const namaOf = new Map(nama.map((p) => [p.nim, p.nama]));
   const tanpa = kiriman
-    .filter((k) => !dipakai.has(k.nim))
+    .filter((k) => !dipakai.has(k.nim) && !orang.has(k.nim))
     .map((k) => satu({ nim: k.nim, nama: namaOf.get(k.nim) ?? k.nim }));
   const semua = [...slot.flatMap((s) => s.kelompok.flatMap((g) => g.anggota)), ...tanpa].filter(
     (a) => !a.kecuali,

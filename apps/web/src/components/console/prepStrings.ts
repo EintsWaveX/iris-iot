@@ -84,6 +84,7 @@ export const P = dict({
     poolCount: (all: number, free: number) =>
       `${all} praktikan semester ini · ${free} belum dapat kelompok`,
     inGroup: "sudah di kelompok",
+    jugaAsisten: (kode: string) => `Asisten · ${kode}`,
     inOtherSlot: (hari: string, slot: number) => `di ${hari} slot ${slot}`,
     quickAdd: "Masukkan ke kelompok yang belum penuh",
     poolEmpty: "Tidak ada yang cocok.",
@@ -247,6 +248,7 @@ export const P = dict({
     poolCount: (all: number, free: number) =>
       `${all} ${all === 1 ? "student" : "students"} this semester · ${free} without a group`,
     inGroup: "in a group",
+    jugaAsisten: (kode: string) => `Asisten · ${kode}`,
     inOtherSlot: (hari: string, slot: number) => `in ${hari} slot ${slot}`,
     quickAdd: "Add to the first group with room",
     poolEmpty: "Nothing matches.",
@@ -402,6 +404,7 @@ export const P = dict({
     filterLabel: "筛选名单",
     poolCount: (all: number, free: number) => `本学期 ${all} 名学生 · ${free} 名还没有小组`,
     inGroup: "已在小组中",
+    jugaAsisten: (kode: string) => `助教 · ${kode}`,
     inOtherSlot: (hari: string, slot: number) => `在${hari}时段 ${slot}`,
     quickAdd: "加入第一个未满的小组",
     poolEmpty: "没有匹配的结果。",

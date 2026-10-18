@@ -409,6 +409,13 @@ export async function handlePraktikanGet(_req: ApiRequest, res: ApiResponse) {
     .leftJoin(rosterSlot, and(eq(rosterSlot.nim, praktikan.nim), eq(rosterSlot.semester, semester)))
     .where(eq(praktikan.semester, semester))
     .orderBy(asc(praktikan.nama));
+  // The Asisten registered as Praktikan too (batch 2024): listed with their
+  // code, never free for a group (2026-10-18).
+  const tim = await db
+    .select({ nim: asisten.nim, kode: asisten.kode })
+    .from(asisten)
+    .where(inArray(asisten.status, ["aktif", "cuti"]));
+  const kodeOf = new Map(tim.map((a) => [a.nim, a.kode.toUpperCase()]));
   res.status(200).json({
     ok: true,
     praktikan: rows.map((r) => ({
@@ -416,6 +423,7 @@ export async function handlePraktikanGet(_req: ApiRequest, res: ApiResponse) {
       nama: r.nama,
       kelas: r.kelas,
       tempat: r.hari ? { hari: r.hari, slot: r.slot, nomor: r.nomor } : null,
+      asisten: kodeOf.get(r.nim) ?? null,
     })),
   });
 }

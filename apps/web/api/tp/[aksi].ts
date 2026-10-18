@@ -111,6 +111,7 @@ import {
   nomorUntuk,
   statusTp,
   tanggalSama,
+  tanpaAsisten,
   teksTugasLms,
   telatMenit,
   totalTp,
@@ -149,6 +150,7 @@ import {
   periksaPilih,
   periksaVarian,
   jumlahSinkron,
+  nimAsistenTim,
   riwayatSinkron,
   sinkronBilaPerlu,
   simpanPaket,
@@ -1144,10 +1146,14 @@ async function handleRiwayat(req: ApiRequest, res: ApiResponse, s: SessionPayloa
  * students in their own; five of them on 2026-10-13).
  */
 async function silangData(db: Db, set: SetTp, kodeOf: Map<string, string>) {
-  const terdaftar = await db
+  const semua = await db
     .select({ nim: praktikan.nim, nama: praktikan.nama, kelas: praktikan.kelas })
     .from(praktikan)
     .where(eq(praktikan.semester, set.semester));
+  // The Asisten registered as Praktikan too are listed as both below and
+  // counted on neither side (2026-10-18).
+  const tim = await nimAsistenTim(db);
+  const terdaftar = tanpaAsisten(semua, tim);
   const iris = new Set(terdaftar.map((p) => p.nim));
   const [klp] = await db
     .select({ nilai: pengaturan.nilai })
@@ -1161,7 +1167,8 @@ async function silangData(db: Db, set: SetTp, kodeOf: Map<string, string>) {
   if (tarik?.kelompok) {
     const orang = new Map<string, string>();
     for (const daftar of Object.values(tarik.kelompok))
-      for (const g of daftar) for (const a of g.anggota ?? []) orang.set(a.nim, a.nama);
+      for (const g of daftar)
+        for (const a of g.anggota ?? []) if (!tim.has(a.nim)) orang.set(a.nim, a.nama);
     seelabs = {
       pada: tarik.pada,
       total: orang.size,
@@ -1183,15 +1190,13 @@ async function silangData(db: Db, set: SetTp, kodeOf: Map<string, string>) {
       lms: (k.nim?.length ?? k.peserta) + lain,
     };
   });
-  const asistenNim = new Set(kodeOf.keys());
-  const juga = terdaftar
-    .filter((p) => asistenNim.has(p.nim))
+  const juga = semua
+    .filter((p) => tim.has(p.nim) && kodeOf.has(p.nim))
     .map((p) => ({
       nim: p.nim,
       nama: p.nama,
       kode: kodeOf.get(p.nim)!,
       kelas: p.kelas,
-      kursus: kursus.filter((k) => k.nim?.includes(p.nim)).map((k) => k.label),
     }));
   return {
     iris: terdaftar.length,
@@ -1216,12 +1221,14 @@ async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
         .limit(1)
     : [];
   const [log, logTotal] = await Promise.all([riwayatSinkron(db, 10), jumlahSinkron(db)]);
-  // Registered Praktikan in no class course, and the exclusions with names.
-  const terdaftar = await db
+  // Registered Praktikan in no class course, and the exclusions with names
+  // (the Asisten registered as Praktikan too count as neither).
+  const semua = await db
     .select({ nim: praktikan.nim, nama: praktikan.nama, kelas: praktikan.kelas })
     .from(praktikan)
     .where(eq(praktikan.semester, set.semester));
-  const namaOf = new Map(terdaftar.map((p) => [p.nim, p]));
+  const terdaftar = tanpaAsisten(semua, await nimAsistenTim(db));
+  const namaOf = new Map(semua.map((p) => [p.nim, p]));
   const kodeOf = await petaKode(db);
   const diLms = new Set((set.kelas?.kursus ?? []).flatMap((k) => k.nim ?? []));
   const adaDaftar = (set.kelas?.kursus ?? []).some((k) => k.nim);

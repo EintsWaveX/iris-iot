@@ -6,6 +6,7 @@
  * the roster's own Save keeps it.
  */
 import { useMemo, useState } from "react";
+import { CaretDownIcon } from "@phosphor-icons/react";
 import { getJson } from "../../../lib/app";
 import { KLP_AWALAN } from "../../../lib/seelabs";
 import { RB } from "./robotStrings";
@@ -14,7 +15,7 @@ import Dialog from "../../ui/Dialog";
 import Pill from "../../ui/Pill";
 import { kelompokLabel } from "../../../lib/labels";
 import type { Lang } from "../../../lib/kelas";
-import { bacaDaftarKlp, cocokkanKlp } from "../../../lib/seelabs";
+import { bacaDaftarKlp, bedaKlp, cocokkanKlp } from "../../../lib/seelabs";
 import { SL } from "./strings";
 import "./seelabs.css";
 
@@ -23,16 +24,28 @@ export default function KlpMatch({
   onOpenChange,
   lang,
   groups,
+  nama,
   onApply,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   lang: Lang;
   groups: { nomor: number; nim: string[]; klp: string | null }[];
+  /** A NIM's name, from the semester's Praktikan list. */
+  nama?: (nim: string) => string | undefined;
   onApply: (klp: Map<number, string>) => void;
 }) {
   const t = SL[lang];
   const [text, setText] = useState("");
+  // The yellow row whose differing NIMs are open (2026-10-18).
+  const [cek, setCek] = useState<number | null>(null);
+  const kelompokOf = (nim: string) => groups.find((g) => g.nim.includes(nim))?.nomor ?? null;
+  const orang = (nim: string) => (
+    <>
+      <span className="mono">{nim}</span>
+      {nama?.(nim) && <span>{nama(nim)}</span>}
+    </>
+  );
   const daftar = useMemo(() => bacaDaftarKlp(text), [text]);
   const hasil = useMemo(
     () =>
@@ -75,7 +88,10 @@ export default function KlpMatch({
     <Dialog
       open={open}
       onOpenChange={(o) => {
-        if (!o) setText("");
+        if (!o) {
+          setText("");
+          setCek(null);
+        }
         onOpenChange(o);
       }}
       title={t.matchTitle}
@@ -129,7 +145,10 @@ export default function KlpMatch({
         {daftar.length > 0 && (
           <ul className="klpmatch">
             {hasil.map((h) => {
-              const lama = groups.find((g) => g.nomor === h.nomor)?.klp ?? null;
+              const g = groups.find((x) => x.nomor === h.nomor);
+              const lama = g?.klp ?? null;
+              const kuning = !!h.klp && h.cocok < h.total;
+              const beda = kuning && cek === h.nomor ? bedaKlp(g?.nim ?? [], h.klp!, daftar) : null;
               return (
                 <li key={h.nomor}>
                   <Pill group={h.nomor}>{kelompokLabel(h.nomor, lang)}</Pill>
@@ -152,6 +171,61 @@ export default function KlpMatch({
                     <Pill tone={h.cocok === h.total ? "ok" : "warn"}>
                       {t.matchRow(h.cocok, h.total)}
                     </Pill>
+                  )}
+                  {kuning && (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      aria-expanded={cek === h.nomor}
+                      onClick={() => setCek(cek === h.nomor ? null : h.nomor)}
+                    >
+                      {t.matchCek}
+                      <CaretDownIcon
+                        size={16}
+                        weight="bold"
+                        className="btn__turn"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  )}
+                  {beda && (
+                    <div className="klpmatch__beda">
+                      {beda.hanyaIris.length > 0 && (
+                        <div className="stack stack--sm">
+                          <b>{t.matchHanyaIris(h.klp!)}</b>
+                          <ul>
+                            {beda.hanyaIris.map((x) => (
+                              <li key={x.nim}>
+                                {orang(x.nim)}
+                                <span className="hint">
+                                  {x.diKlp ? t.matchDiKlp(x.diKlp) : t.matchTanpaKlp}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {beda.hanyaSeelabs.length > 0 && (
+                        <div className="stack stack--sm">
+                          <b>{t.matchHanyaSeelabs(h.klp!)}</b>
+                          <ul>
+                            {beda.hanyaSeelabs.map((nim) => {
+                              const di = kelompokOf(nim);
+                              return (
+                                <li key={nim}>
+                                  {orang(nim)}
+                                  <span className="hint">
+                                    {di !== null
+                                      ? t.matchDiKelompok(kelompokLabel(di, lang))
+                                      : t.matchTanpaKelompok}
+                                  </span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </li>
               );

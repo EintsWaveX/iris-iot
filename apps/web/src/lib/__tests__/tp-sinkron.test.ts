@@ -7,6 +7,7 @@ import {
   sisaSinkron,
   statusTp,
   tanggalSama,
+  tanpaAsisten,
   telatMenit,
 } from "../tp";
 
@@ -65,5 +66,18 @@ describe("tanggalSama with the LMS cut-off (2026-10-17)", () => {
     expect(tanggalSama({ buka: j.buka, tutup: j.tutup, batas: j.tutup }, j)).toBe(true);
     expect(tanggalSama({ buka: j.buka, tutup: j.tutup, batas: null }, j)).toBe(false);
     expect(tanggalSama({ buka: j.buka, tutup: j.tutup }, j)).toBe(false);
+  });
+});
+
+describe("tanpaAsisten", () => {
+  it("leaves out the Asisten who are registered as Praktikan too", () => {
+    const daftar = [
+      { nim: "101022400111", nama: "TIR" },
+      { nim: "1032231301", nama: "Raka" },
+      { nim: "101022400222", nama: "WIL" },
+    ];
+    const asisten = new Set(["101022400111", "101022400222", "101022300999"]);
+    expect(tanpaAsisten(daftar, asisten).map((p) => p.nama)).toEqual(["Raka"]);
+    expect(tanpaAsisten(daftar, new Set())).toHaveLength(3);
   });
 });

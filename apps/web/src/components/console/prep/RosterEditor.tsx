@@ -114,6 +114,8 @@ export interface Praktikan {
   nama: string;
   kelas: Kelas;
   tempat: { hari: number; slot: number; nomor: number } | null;
+  /** Registered as a Praktikan but an Asisten: their code. Never free. */
+  asisten?: string | null;
 }
 
 interface Member {
@@ -244,8 +246,9 @@ const RosterEditor = forwardRef<
     x.tempat.slot === target.slot;
   // Free: not in a group here, and not seated in another slot (a makeup
   // roster may take anyone).
+  // An Asisten registered as a Praktikan too is never free (2026-10-18).
   const isFree = (x: Praktikan) =>
-    !placed.has(x.nim) && (target.jenis === "susulan" || !x.tempat || here(x));
+    !x.asisten && !placed.has(x.nim) && (target.jenis === "susulan" || !x.tempat || here(x));
   const free = list.filter(isFree);
   const shown = (f === "free" ? free : list)
     .filter((x) =>
@@ -651,6 +654,7 @@ const RosterEditor = forwardRef<
           nim: g.members.map((m) => m.nim),
           klp: g.klp,
         }))}
+        nama={(nim) => byNim.get(nim)?.nama}
         onApply={(peta) => {
           setGroups(
             (gs) =>
@@ -739,7 +743,9 @@ const RosterEditor = forwardRef<
           </button>
         ))}
       </div>
-      <span className="hint">{p.poolCount(list.length, free.length)}</span>
+      <span className="hint">
+        {p.poolCount(list.filter((x) => !x.asisten).length, free.length)}
+      </span>
       <PoolList
         rows={shown}
         isFree={isFree}
@@ -1071,6 +1077,8 @@ function PoolList({
                 <NoDrag>
                   <IconButton icon={PlusIcon} label={p.quickAdd} sm onClick={() => onQuick(x)} />
                 </NoDrag>
+              ) : x.asisten ? (
+                <Pill tone="gold">{p.jugaAsisten(x.asisten)}</Pill>
               ) : (
                 <span className="hint">
                   {x.tempat && !here(x)

@@ -118,6 +118,7 @@ import {
   riwayatSinkron,
   sinkronBilaPerlu,
   webLms,
+  nimAsistenTim,
 } from "../_lib/tp.js";
 import {
   KUNCI_LMS,
@@ -226,7 +227,8 @@ async function handleRingkas(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   const m = modulDari(req.query.modul) ?? modulPilihan(set);
   const j = jendelaUntuk(set, m);
   const keadaan = keadaanJendela(j);
-  const kec = nimKecuali(set);
+  // The exclusions, and the Asisten registered as Praktikan too (2026-10-18).
+  const kec = new Set([...nimKecuali(set), ...(await nimAsistenTim(db))]);
   const [kiriman, terdaftar, otomatis, info, log, sinkronLog] = await Promise.all([
     db
       .select({
@@ -353,7 +355,7 @@ async function handleKumpul(req: ApiRequest, res: ApiResponse) {
   const set = await bacaSet(db);
   const m = modulDari(req.query.modul) ?? modulPilihan(set);
   const j = jendelaUntuk(set, m);
-  const kec = nimKecuali(set);
+  const kec = new Set([...nimKecuali(set), ...(await nimAsistenTim(db))]);
   const [kiriman, terdaftar] = await Promise.all([
     db
       .select({

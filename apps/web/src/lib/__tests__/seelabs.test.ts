@@ -4,6 +4,7 @@ import {
   bacaDaftarKlp,
   bacaPayload,
   buatPayload,
+  bedaKlp,
   cocokkanKlp,
   pilahPemberi,
   sidikPayload,
@@ -97,6 +98,23 @@ KLP 48
       { nomor: 2, klp: "48", cocok: 1, total: 1 },
       { nomor: 3, klp: null, cocok: 0, total: 1 },
     ]);
+  });
+});
+
+describe("bedaKlp", () => {
+  it("lists the NIMs on one side only, and where SeeLabs has IRIS's extra ones", () => {
+    const daftar = [
+      { klp: "47", nim: ["a1", "a2", "a3"] },
+      { klp: "48", nim: ["b1", "b2", "a4"] },
+    ];
+    expect(bedaKlp(["a1", "a2", "a4", "z9"], "47", daftar)).toEqual({
+      hanyaIris: [
+        { nim: "a4", diKlp: "48" },
+        { nim: "z9", diKlp: null },
+      ],
+      hanyaSeelabs: ["a3"],
+    });
+    expect(bedaKlp(["b1", "b2", "a4"], "48", daftar)).toEqual({ hanyaIris: [], hanyaSeelabs: [] });
   });
 });
 

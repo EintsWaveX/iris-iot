@@ -124,9 +124,9 @@ const id = {
     "Mahasiswa kelas LMS itu yang tidak terdaftar praktikum di IRIS (belum mendaftar, salah kelas, atau mengulang). Tidak dihitung dan kirimannya tidak diambil. Namanya ada di Peserta TP › Hanya di LMS.",
   asistenH: "Praktikan yang Juga Asisten",
   asistenHint:
-    "Teacher di semua kelas LMS dan mahasiswa di kelasnya sendiri. Dihitung sekali, di kelasnya.",
+    "Terdaftar sebagai Praktikan dan juga Asisten. IRIS menghitungnya sebagai Asisten saja: tidak masuk kelompok, TP, atau hitungan LMS.",
   kelasIris: { reguler: "Reguler", internasional: "Internasional" } as Record<string, string>,
-  tanpaKelasLms: "belum di kelas LMS",
+  sebagaiAsisten: "Dihitung sebagai Asisten",
   bukanIrisH: (n: number) => `Di SeeLabs, tidak di IRIS (${n})`,
   tanpaSeelabsH: (n: number) => `Di IRIS, tidak di SeeLabs (${n})`,
 
@@ -264,9 +264,9 @@ const en: LmsKelolaT = {
     "Students of that LMS class who aren't registered for the practicum in IRIS (not signed up, wrong class, or repeating). Not counted, and their files aren't fetched. Their names are under TP Participants › Only in the LMS.",
   asistenH: "Praktikan Who Are Also Asisten",
   asistenHint:
-    "Teachers in every LMS class and students in their own. Counted once, in their class.",
+    "Registered as a Praktikan and also an Asisten. IRIS counts them as Asisten only: no group, no TP, not in the LMS counts.",
   kelasIris: { reguler: "Regular", internasional: "International" },
-  tanpaKelasLms: "in no LMS class yet",
+  sebagaiAsisten: "Counted as Asisten",
   bukanIrisH: (n) => `In SeeLabs, not in IRIS (${n})`,
   tanpaSeelabsH: (n) => `In IRIS, not in SeeLabs (${n})`,
 
@@ -394,9 +394,10 @@ const zh: LmsKelolaT = {
   kolomLuar:
     "该 LMS 班级中没有在 IRIS 登记实验课的学生（未报名、班级不对或重修）。不计入，也不取回他们的文件。名单在预习作业参与者 › 只在 LMS。",
   asistenH: "同时是助教的学生",
-  asistenHint: "在所有 LMS 班级里是 Teacher，在自己的班级里是学生。只在自己的班级计一次。",
+  asistenHint:
+    "既登记为学生，也是助教。IRIS 只把他们算作助教：不分组、不计预习作业、不计入 LMS 人数。",
   kelasIris: { reguler: "普通班", internasional: "国际班" },
-  tanpaKelasLms: "还不在 LMS 班级中",
+  sebagaiAsisten: "按助教计",
   bukanIrisH: (n) => `在 SeeLabs、不在 IRIS（${n}）`,
   tanpaSeelabsH: (n) => `在 IRIS、不在 SeeLabs（${n}）`,
 

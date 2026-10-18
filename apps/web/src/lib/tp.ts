@@ -446,6 +446,17 @@ export function htmlTugasLms(teks: string): string {
     .join("");
 }
 
+/** The Praktikan IRIS counts: the semester's registered Praktikan without
+ *  the Asisten among them (batch 2024 Asisten are registered as both, user
+ *  2026-10-18). They are never seated, counted or chased as Praktikan;
+ *  Silang Data and the class lists still show them as both. */
+export function tanpaAsisten<T extends { nim: string }>(
+  daftar: readonly T[],
+  nimAsisten: { has(nim: string): boolean },
+): T[] {
+  return daftar.filter((p) => !nimAsisten.has(p.nim));
+}
+
 /** An LMS assignment's dates are the window's, to the minute. */
 export function tanggalSama(
   t: { buka: string | null; tutup: string | null; batas?: string | null },

@@ -180,6 +180,24 @@ export function cocokkanKlp(
   });
 }
 
+/** Where a group and its KLP differ (the yellow badge, 2026-10-18): the
+ *  group's NIMs that KLP lacks, each with the KLP SeeLabs has it in, and the
+ *  KLP's NIMs the group lacks. */
+export function bedaKlp(
+  nimKelompok: string[],
+  klp: string,
+  daftar: KlpSeelabs[],
+): { hanyaIris: { nim: string; diKlp: string | null }[]; hanyaSeelabs: string[] } {
+  const ini = new Set(daftar.find((d) => d.klp === klp)?.nim ?? []);
+  const kami = new Set(nimKelompok);
+  return {
+    hanyaIris: nimKelompok
+      .filter((n) => !ini.has(n))
+      .map((nim) => ({ nim, diKlp: daftar.find((d) => d.nim.includes(nim))?.klp ?? null })),
+    hanyaSeelabs: [...ini].filter((n) => !kami.has(n)),
+  };
+}
+
 /* ---------------------------------------------------- whose account */
 
 /** The most sessions one SeeLabs account carries in a day. */

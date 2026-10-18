@@ -479,6 +479,33 @@
   flex: 1 1 140px;
 }
 
+/* The yellow row's differing NIMs (2026-10-18), on a full row of their own. */
+.klpmatch__beda {
+  display: grid;
+  flex-basis: 100%;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  padding: 4px 0 6px;
+}
+
+.klpmatch__beda ul {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.klpmatch .klpmatch__beda li {
+  align-items: baseline;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-height: 0;
+  padding: 0;
+}
+
 /* ---------------------------------------------------- the guide (Panduan) */
 /* The flow chain on top; the steps listed on the left from 900, the open
    step on the right with its button and Previous / Next pinned below. */

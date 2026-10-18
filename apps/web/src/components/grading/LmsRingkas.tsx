@@ -26,7 +26,7 @@ export interface SilangInfo {
     bukanIris: { nim: string; nama: string }[];
     tanpaSeelabs: { nim: string; nama: string; kelas: string }[];
   } | null;
-  asisten: { nim: string; nama: string; kode: string; kelas: string; kursus: string[] }[];
+  asisten: { nim: string; nama: string; kode: string; kelas: string }[];
 }
 
 export interface BarisLog {
@@ -80,9 +80,7 @@ export function SilangPanel({ lang, silang }: { lang: Lang; silang: SilangInfo }
                     </span>
                   </span>
                   <span className="stack tpsilang__kelas">
-                    <b className="mono">
-                      {a.kursus.length ? a.kursus.join(", ") : t.tanpaKelasLms}
-                    </b>
+                    <b>{t.sebagaiAsisten}</b>
                     <span className="hint">{t.kelasIris[a.kelas] ?? a.kelas}</span>
                   </span>
                 </li>
