@@ -1401,6 +1401,7 @@ async function handleLmsTugas(req: ApiRequest, res: ApiResponse, s: SessionPaylo
           nama: a.name,
           buka: iso(a.allowsubmissionsfromdate),
           tutup: iso(a.duedate),
+          batas: iso(a.cutoffdate),
         }
       : null;
   };
