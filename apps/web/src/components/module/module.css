@@ -338,7 +338,7 @@
   border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent);
   border-radius: var(--radius-md);
   display: flex;
-  flex: 1;
+  flex: none;
   flex-wrap: wrap;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
