@@ -79,6 +79,12 @@
 
 /* The sketch's file name: one line where it fits, else it breaks after an
    underscore (BlankFile's FileName puts the break points there). */
+.codehead__name,
+.codehead__files button {
+  /* A file name is code: the code card's own font (2026-10-18). */
+  font-family: var(--font-mono);
+}
+
 .codehead__name {
   min-width: 0;
   line-height: 1.25;

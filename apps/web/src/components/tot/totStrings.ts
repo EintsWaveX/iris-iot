@@ -18,7 +18,8 @@ export const T = dict({
     sw: "Mode TOT",
     since: (when: string, who: string | null) =>
       who ? `Aktif sejak ${when}, dinyalakan ${who}.` : `Aktif sejak ${when}.`,
-    readOnly: "Kamu bisa melihat halaman ini. Hanya Pengelola dan Admin yang bisa mengubahnya.",
+    readOnly:
+      "Kamu bisa melihat halaman ini. Hanya Kepala Divisi, DEV dan Admin yang bisa mengubahnya.",
     running: "Akhiri sesi yang sedang berjalan dulu sebelum mengubah Mode TOT.",
     onTitle: "Nyalakan Mode TOT?",
     onBody:
@@ -34,6 +35,7 @@ export const T = dict({
     // The session
     sesiTitle: "Sesi TOT",
     sesiOff: "Nyalakan Mode TOT dulu untuk memulai sesi latihan.",
+    tidakAda: "Belum ada sesi TOT yang berjalan.",
     otherRunning:
       "Ada sesi asli yang sedang berjalan. Sesi TOT bisa dimulai setelah sesi itu selesai.",
     startHint: (n: number) =>
@@ -135,7 +137,7 @@ export const T = dict({
     sw: "TOT Mode",
     since: (when: string, who: string | null) =>
       who ? `On since ${when}, switched on by ${who}.` : `On since ${when}.`,
-    readOnly: "You can view this page. Only Pengelola and Admins can change it.",
+    readOnly: "You can view this page. Only Division Heads, DEV and Admins can change it.",
     running: "End the running session first before changing TOT Mode.",
     onTitle: "Switch TOT Mode On?",
     onBody:
@@ -150,6 +152,7 @@ export const T = dict({
     turnedOff: "TOT Mode is off. The real roster is back.",
     sesiTitle: "TOT Session",
     sesiOff: "Switch TOT Mode on first to start a practice session.",
+    tidakAda: "No TOT session is running.",
     otherRunning: "A real session is running. A TOT session can start once it has ended.",
     startHint: (n: number) =>
       `Starts now with ${n} ${n === 1 ? "group" : "groups"}. The module may still be closed to real Praktikan.`,
@@ -248,7 +251,7 @@ export const T = dict({
     sw: "TOT 模式",
     since: (when: string, who: string | null) =>
       who ? `自 ${when} 开启，由 ${who} 开启。` : `自 ${when} 开启。`,
-    readOnly: "你可以查看这个页面，只有主管和管理员可以更改。",
+    readOnly: "你可以查看这个页面，只有主管、DEV 和管理员可以更改。",
     running: "请先结束正在进行的课，再更改 TOT 模式。",
     onTitle: "开启 TOT 模式？",
     onBody:
@@ -262,6 +265,7 @@ export const T = dict({
     turnedOff: "TOT 模式已关闭，正式名单已恢复。",
     sesiTitle: "TOT 练习课",
     sesiOff: "先开启 TOT 模式，才能开始练习课。",
+    tidakAda: "现在没有正在进行的 TOT 练习课。",
     otherRunning: "有正式课正在进行，结束后才能开始 TOT 练习课。",
     startHint: (n: number) => `现在开始，共 ${n} 组。模块可以是对正式学生仍关闭的。`,
     module: "模块",

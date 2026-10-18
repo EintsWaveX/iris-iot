@@ -68,7 +68,6 @@ import type { AsistenRef, SesiRunning, View } from "./types";
 import "./console.css";
 import "../ui/Tabs.css";
 import { openSignIn } from "../../lib/signin";
-import { hakPenuh } from "../../lib/hak";
 
 const DONE_KEY = "iris-console-done";
 
@@ -769,7 +768,7 @@ export default function Console({ lang }: { lang: Lang }) {
               meNim={me!.nim}
               onChanged={refreshAll}
               onOpen={setPrepFull}
-              hakPenuh={hakPenuh({ tier: me!.tier ?? "asisten", badges: me!.badges ?? [] })}
+              hakHadir={me?.hak?.hadir === true}
             />
           ))}
 

@@ -126,12 +126,11 @@ export default function NilaiTab({ lang }: { lang: Lang; ke: (v: TabLms) => void
               <b>{t.otoNilai}</b>
               <span className="hint">{t.otoNilaiHint}</span>
             </span>
-            <Switch
-              on={otomatis}
-              onChange={(v) => void setOto(v)}
-              label={t.otoNilai}
-              disabled={!d.boleh}
-            />
+            {d.boleh ? (
+              <Switch on={otomatis} onChange={(v) => void setOto(v)} label={t.otoNilai} />
+            ) : (
+              <Pill tone={otomatis ? "ok" : undefined}>{otomatis ? t.otoAktif : t.otoMati}</Pill>
+            )}
           </label>
           {d.boleh && (
             <div className="slr-acts">

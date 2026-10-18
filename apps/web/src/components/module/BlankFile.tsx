@@ -63,6 +63,12 @@ import { dengar } from "../../lib/siaran";
 import { jamMenit, postJson, useSessionNow } from "../../lib/app";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import { soalKodePrefix } from "../../lib/blanks";
+import {
+  SALAH_UNTUK_BANTUAN,
+  SALAH_UNTUK_BANTUAN1,
+  SALAH_UNTUK_JAWABAN,
+} from "../../lib/kode-jurnal";
+import KodeTeks from "../ui/KodeTeks";
 
 export type CodeMode = "now" | "done" | "asisten";
 
@@ -86,6 +92,8 @@ type Saved = Record<
     pada?: string;
     kenapa?: string;
     bantuan?: string;
+    bantuanKe?: number;
+    bantuanJawaban?: string;
   }
 >;
 
@@ -95,8 +103,11 @@ interface BlankState {
   /** A groupmate's correct answer (read only for this student). */
   teman: boolean;
   kenapa?: string;
-  /** The written hint, once the group got this blank wrong twice. */
+  /** The hint its wrong tries opened (1 to 3), and from the third the
+   *  group's answer (api/_lib/kode-aktif.ts bantuanUntuk). */
   bantuan?: string;
+  bantuanKe?: number;
+  bantuanJawaban?: string;
   salah: number;
   oleh?: string | null;
   pada?: string;
@@ -120,7 +131,9 @@ interface Minta {
 /** What an Asisten sees around a blank (kunci's `bantu`). */
 interface Bantu {
   kenapa: string;
+  bantuan1: string;
   bantuan: string;
+  bantuan3: string;
   juga: string[];
 }
 
@@ -128,8 +141,6 @@ type St = "empty" | "ok" | "bad" | "peer" | "key";
 type Hitung = "right" | "wrong" | "empty" | "hint";
 
 type Item = { t: "tok"; tok: Token; text: string } | { t: "blank"; seg: BlankSegment };
-
-const SALAH_UNTUK_BANTUAN = 2;
 
 /** Each file's blanks right of its total, for the module's steps. */
 export const KODE_PROGRES = "iris:kode-progres";
@@ -251,13 +262,26 @@ export default function BlankFile(p: Props) {
       const meta = {
         salah: e.salah ?? lokal.salah,
         bantuan: e.bantuan,
+        bantuanKe: e.bantuanKe,
+        bantuanJawaban: e.bantuanJawaban,
         oleh: e.oleh ?? null,
         pada: e.pada,
       };
-      if (tandai && meta.bantuan && !lokal.bantuan) toast(t.hintOpened(nomor), "warn");
+      if (tandai && meta.bantuanKe && meta.bantuanKe > (lokal.bantuanKe ?? 0))
+        toast(t.hintOpened(nomor, meta.bantuanKe), "warn");
       const editLokal = lokal.isi !== "" && lokal.isi !== (lokal.checkedIsi ?? "");
       if (fokus.current === nomor || editLokal || lokal.checking) {
-        next[nomor] = { ...lokal, salah: meta.salah, bantuan: meta.bantuan ?? lokal.bantuan };
+        next[nomor] = {
+          ...lokal,
+          salah: meta.salah,
+          ...(meta.bantuanKe
+            ? {
+                bantuan: meta.bantuan,
+                bantuanKe: meta.bantuanKe,
+                bantuanJawaban: meta.bantuanJawaban,
+              }
+            : {}),
+        };
         ubah = true;
         continue;
       }
@@ -386,7 +410,7 @@ export default function BlankFile(p: Props) {
             } | null)
           : null;
       const nomor = Number(d?.soal?.split(".").pop());
-      if (!d || d.benar || (d.salah ?? 0) >= SALAH_UNTUK_BANTUAN || !Number.isInteger(nomor))
+      if (!d || d.benar || (d.salah ?? 0) >= SALAH_UNTUK_BANTUAN1 || !Number.isInteger(nomor))
         return void muatUlang();
       terapkanDraft(
         {
@@ -490,7 +514,8 @@ export default function BlankFile(p: Props) {
         return;
       }
       const sebelum = stateRef.current[nomor];
-      if (!d.benar && d.bantuan && !sebelum?.bantuan) toast(t.hintOpened(nomor), "warn");
+      if (!d.benar && d.bantuanKe && d.bantuanKe > (sebelum?.bantuanKe ?? 0))
+        toast(t.hintOpened(nomor, d.bantuanKe), "warn");
       setState((s) => ({
         ...s,
         [nomor]: {
@@ -500,7 +525,11 @@ export default function BlankFile(p: Props) {
           teman: false,
           kenapa: d.kenapa,
           salah: typeof d.salah === "number" ? d.salah : s[nomor].salah,
-          bantuan: d.benar ? undefined : (d.bantuan ?? s[nomor].bantuan),
+          ...(d.benar
+            ? { bantuan: undefined, bantuanKe: undefined, bantuanJawaban: undefined }
+            : d.bantuanKe
+              ? { bantuan: d.bantuan, bantuanKe: d.bantuanKe, bantuanJawaban: d.bantuanJawaban }
+              : {}),
           checkedIsi: isi,
         },
       }));
@@ -554,7 +583,7 @@ export default function BlankFile(p: Props) {
   const dariAsisten = (n: number) => minta.filter((m) => m.nomor === n && m.teks);
   const menunggu = (n: number) => minta.find((m) => m.nomor === n && !m.teks && m.diminta);
   const adaBantuan = (n: number) =>
-    !state[n]?.benar && (!!state[n]?.bantuan || dariAsisten(n).length > 0);
+    !state[n]?.benar && (!!state[n]?.bantuanKe || dariAsisten(n).length > 0);
 
   const right = nomors.filter((n) => state[n]?.benar).length;
   const shownRight = mode === "asisten" ? (keys ? total : 0) : right;
@@ -775,7 +804,7 @@ export default function BlankFile(p: Props) {
     if (mode === "asisten") {
       if (n !== target) return out;
       const b = bantu[n];
-      if (b?.bantuan) out.push(<Note key="h" tone="hint" label={t.hintModule} text={b.bantuan} />);
+      if (b?.bantuan) out.push(<Note key="h" tone="hint" label={t.hintTier(2)} text={b.bantuan} />);
       if (keys && b?.kenapa) out.push(<Note key="k" tone="ok" label={t.explain} text={b.kenapa} />);
       return out;
     }
@@ -784,7 +813,17 @@ export default function BlankFile(p: Props) {
         out.push(<Note key="k" tone="ok" label={t.explain} text={e.kenapa} />);
       return out;
     }
-    if (e?.bantuan) out.push(<Note key="h" tone="hint" label={t.hintModule} text={e.bantuan} />);
+    if (e?.bantuanKe)
+      out.push(
+        <Note
+          key="h"
+          tone="hint"
+          label={t.hintTier(e.bantuanKe)}
+          text={e.bantuan ?? ""}
+          jawaban={e.bantuanJawaban}
+          t={t}
+        />,
+      );
     for (const m of dariAsisten(n))
       out.push(
         <Note
@@ -1073,15 +1112,27 @@ function Note({
   tone,
   label,
   text,
+  jawaban,
+  t,
 }: {
   tone: "hint" | "ok" | "asisten";
   label: string;
   text: string;
+  /** From the third wrong try: the answer, bold in the code font. */
+  jawaban?: string;
+  t?: T;
 }) {
   return (
     <div className="clnote" data-tone={tone}>
       <span>
-        <b>{label}</b> {text}
+        <b>{label}</b> <KodeTeks teks={text} />
+        {jawaban && t && (
+          <>
+            {text ? " " : ""}
+            {t.answerIs}
+            <b className="kode-jawab">{jawaban}</b>
+          </>
+        )}
       </span>
     </div>
   );
@@ -1154,7 +1205,11 @@ function BlankCard(p: {
           {p.kunci !== null && p.bantu?.kenapa && (
             <Box tone="ok" label={t.explain} text={p.bantu.kenapa} />
           )}
-          {p.bantu?.bantuan && <Box tone="hint" label={t.hintStudents} text={p.bantu.bantuan} />}
+          {([1, 2, 3] as const).map((k) => {
+            const teks = p.bantu?.[k === 1 ? "bantuan1" : k === 2 ? "bantuan" : "bantuan3"];
+            return teks ? <Box key={k} tone="hint" label={t.hintStudents(k)} text={teks} /> : null;
+          })}
+          {p.bantu && <p className="hint">{t.hintStudentsAnswer}</p>}
         </>
       ) : (
         <>
@@ -1170,14 +1225,31 @@ function BlankCard(p: {
             e.kenapa && <Box tone="ok" label={t.explain} text={e.kenapa} />
           ) : (
             <>
-              {e?.bantuan ? (
-                <Box tone="hint" label={t.hintModule} text={e.bantuan} />
+              {e?.bantuanKe ? (
+                <Box
+                  tone="hint"
+                  label={t.hintTier(e.bantuanKe)}
+                  text={e.bantuan ?? ""}
+                  jawaban={e.bantuanJawaban}
+                  t={t}
+                />
               ) : (
                 p.mode === "now" && (
                   <p className="hint">
-                    {t.hintLocked(Math.max(1, SALAH_UNTUK_BANTUAN - (e?.salah ?? 0)))}
+                    {t.hintLocked(Math.max(1, SALAH_UNTUK_BANTUAN1 - (e?.salah ?? 0)))}
                   </p>
                 )
+              )}
+              {p.mode === "now" && !!e?.bantuanKe && e.bantuanKe < 3 && (
+                <p className="hint">
+                  {t.hintNext(
+                    Math.max(
+                      1,
+                      (e.bantuanKe === 1 ? SALAH_UNTUK_BANTUAN : SALAH_UNTUK_JAWABAN) -
+                        (e.salah ?? 0),
+                    ),
+                  )}
+                </p>
               )}
               {p.dariAsisten.map((m) => (
                 <Box
@@ -1200,16 +1272,31 @@ function Box({
   tone,
   label,
   text,
+  jawaban,
+  t,
 }: {
   tone: "hint" | "ok" | "asisten";
   label: string;
   text: string;
+  /** From the third wrong try: the answer, bold in the code font. */
+  jawaban?: string;
+  t?: T;
 }) {
   return (
     <div className="pblank__box" data-tone={tone}>
       <span className="pblank__txt">
         <b>{label}</b>
-        <span>{text}</span>
+        {text && (
+          <span>
+            <KodeTeks teks={text} />
+          </span>
+        )}
+        {jawaban && t && (
+          <span>
+            {t.answerIs}
+            <b className="kode-jawab">{jawaban}</b>
+          </span>
+        )}
       </span>
     </div>
   );
@@ -1302,11 +1389,25 @@ function HintLog(p: {
   onJump: (n: number) => void;
 }) {
   const { t } = p;
-  const rows: { key: string; at: string; n: number; tone: string; text: string }[] = [];
+  const rows: {
+    key: string;
+    at: string;
+    n: number;
+    tone: string;
+    text: string;
+    jawaban?: string;
+  }[] = [];
   for (const n of p.nomors) {
     const e = p.state[n];
-    if (e?.bantuan && !e.benar)
-      rows.push({ key: `b${n}`, at: e.pada ?? "", n, tone: "hint", text: e.bantuan });
+    if (e?.bantuanKe && !e.benar)
+      rows.push({
+        key: `b${n}`,
+        at: e.pada ?? "",
+        n,
+        tone: "hint",
+        text: e.bantuan ?? "",
+        jawaban: e.bantuanJawaban,
+      });
   }
   for (const m of p.minta)
     rows.push({
@@ -1338,7 +1439,16 @@ function HintLog(p: {
               >
                 <time className="mono hint">{r.at ? jamMenit(r.at) : ""}</time>
                 <span className="hintlog__tag mono">({r.n})</span>
-                <span className="hintlog__text">{r.text}</span>
+                <span className="hintlog__text">
+                  <KodeTeks teks={r.text} />
+                  {r.jawaban && (
+                    <>
+                      {r.text ? " " : ""}
+                      {t.answerIs}
+                      <b className="kode-jawab">{r.jawaban}</b>
+                    </>
+                  )}
+                </span>
               </button>
             </li>
           ))}

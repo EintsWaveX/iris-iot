@@ -288,6 +288,13 @@
       "when": 1792252933615,
       "tag": "0040_seelabs_baca",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792318510370,
+      "tag": "0041_presentasi_bahasa",
+      "breakpoints": true
     }
   ]
 }

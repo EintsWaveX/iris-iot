@@ -20,8 +20,9 @@ interface Baris {
   mm: number;
   mangkir: number;
   izin: number;
-  potong: number;
-  sesiNol: number;
+  /** Only on your own row, unless ADS or Admin. */
+  potong?: number;
+  sesiNol?: number;
   lupa: number;
   lupaMenyusul: number;
 }

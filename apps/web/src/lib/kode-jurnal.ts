@@ -22,8 +22,23 @@ export const BAHASA_KODE: readonly BahasaKode[] = ["id", "en"];
  *  third language) is optional and falls back to English. */
 export type TeksKode = Record<BahasaKode, string> & { zh?: string };
 
-/** Wrong tries a group needs on one blank before its hint opens. */
+/** Wrong tries a group needs on one blank before each hint opens
+ *  (2026-10-18): a light clue after the first, the written hint after the
+ *  second, a direct clue with the answer after the third. */
+export const SALAH_UNTUK_BANTUAN1 = 1;
 export const SALAH_UNTUK_BANTUAN = 2;
+export const SALAH_UNTUK_JAWABAN = 3;
+
+/** The hint tier a number of wrong tries opens: 0 (none) to 3. */
+export function tingkatBantuan(salah: number): 0 | 1 | 2 | 3 {
+  return salah >= SALAH_UNTUK_JAWABAN
+    ? 3
+    : salah >= SALAH_UNTUK_BANTUAN
+      ? 2
+      : salah >= SALAH_UNTUK_BANTUAN1
+        ? 1
+        : 0;
+}
 
 /** Character offsets into one language's complete file, [awal, akhir). */
 export interface Rentang {
@@ -47,9 +62,15 @@ export interface Celah {
   petunjuk: Record<BahasaKode, string>;
   /** Shown once the blank is correct. en may be empty (id is used). */
   kenapa: TeksKode;
+  /** Opens after SALAH_UNTUK_BANTUAN1 wrong try: a light clue. Missing on
+   *  versions saved before it existed. */
+  bantuan1?: TeksKode;
   /** Opens after SALAH_UNTUK_BANTUAN wrong tries: a nudge, never the
    *  answer. Missing on versions saved before it existed. */
   bantuan?: TeksKode;
+  /** Opens after SALAH_UNTUK_JAWABAN wrong tries: a direct clue, shown
+   *  with the group's answer. Missing on versions saved before it existed. */
+  bantuan3?: TeksKode;
 }
 
 export interface KodeBerkas {
@@ -233,7 +254,9 @@ export type KodeMasalah =
   | "kelompok_tanpa_n"
   | "nomor_salah"
   | "petunjuk_kosong"
+  | "bantuan1_kosong"
   | "bantuan_kosong"
+  | "bantuan3_kosong"
   | "sumber_kosong"
   | "sumber_panjang"
   | "identitas";
@@ -246,7 +269,12 @@ export interface Masalah {
   bahasa?: BahasaKode;
 }
 
-const RINGAN: ReadonlySet<KodeMasalah> = new Set(["petunjuk_kosong", "bantuan_kosong"]);
+const RINGAN: ReadonlySet<KodeMasalah> = new Set([
+  "petunjuk_kosong",
+  "bantuan1_kosong",
+  "bantuan_kosong",
+  "bantuan3_kosong",
+]);
 
 /** Everything wrong with one file, before it may be published. The group
  *  identity check (personalize) is the caller's: it needs group-identity.ts. */
@@ -267,7 +295,9 @@ export function periksaBerkas(berkas: KodeBerkas): Masalah[] {
     if (c.jawaban.length > MAKS_JAWABAN) add("jawaban_panjang", { celah: c.id });
     if (c.perKelompok !== null && !c.perKelompok.includes("{n}"))
       add("kelompok_tanpa_n", { celah: c.id });
+    if (!teksUntuk(c.bantuan1, "id")) add("bantuan1_kosong", { celah: c.id });
     if (!teksUntuk(c.bantuan, "id")) add("bantuan_kosong", { celah: c.id });
+    if (!teksUntuk(c.bantuan3, "id")) add("bantuan3_kosong", { celah: c.id });
     for (const b of BAHASA_KODE) {
       const r = c.posisi[b];
       if (!r) {
@@ -346,7 +376,9 @@ export function celahBaru(berkas: KodeBerkas, bahasa: BahasaKode, r: Rentang): C
       [lain]: padan ? petunjukBaris(berkas.sumber[lain], padan, berkas.path) : "",
     } as Record<BahasaKode, string>,
     kenapa: { id: "", en: "" },
+    bantuan1: { id: "", en: "" },
     bantuan: { id: "", en: "" },
+    bantuan3: { id: "", en: "" },
     ...(angka && /grup|group|kelompok/i.test(teks)
       ? { perKelompok: teks.slice(0, angka.index) + "{n}" }
       : {}),

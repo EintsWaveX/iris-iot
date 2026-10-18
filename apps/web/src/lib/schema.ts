@@ -671,12 +671,17 @@ export const presentasi = pgTable(
     diunggahOleh: text("diunggah_oleh").notNull(), // NIM, matching audit.aktorNim's shape
     diunggahPada: timestamp("diunggah_pada", { withTimezone: true }).notNull().defaultNow(),
     aktif: boolean("aktif").notNull().default(false),
+    /** 2026-10-18: a Canva link is per class, Reguler (id) or
+     *  Internasional (en); a PDF stays id, one per module. */
+    bahasa: text("bahasa", { enum: ["id", "en"] })
+      .notNull()
+      .default("id"),
   },
-  // One active per module and kind, like skema: a PDF and a Canva link may
-  // both be active, and the Praktikan switches between them.
+  // One active per module, kind and class language, like skema: a PDF and
+  // a Canva link may both be active, and the Praktikan switches between them.
   (t) => [
     uniqueIndex("presentasi_aktif_per_modul_jenis")
-      .on(t.modul, t.jenis)
+      .on(t.modul, t.jenis, t.bahasa)
       .where(sql`${t.aktif} = true`),
   ],
 );

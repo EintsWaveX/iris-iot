@@ -76,7 +76,7 @@ export const H = dict({
     loadFail: "Gagal memuat kehadiran.",
     evLate: (m: number, rp: string) => `Telat ${m} Menit${rp ? ` · potong ${rp}` : ""}`,
     evMm: (jam: string, hitung: boolean, rp: string) =>
-      `Mangkir Mengajar${jam ? `, hadir ${jam}` : ""} · ${hitung ? "dihitung Mangkir" : `potong ${rp}`}`,
+      `Mangkir Mengajar${jam ? `, hadir ${jam}` : ""}${hitung ? " · dihitung Mangkir" : rp ? ` · potong ${rp}` : ""}`,
     evMangkir: "Mangkir · sesi tidak dibayar",
     evIzin: "Izin",
     evNotHere: "Belum hadir",
@@ -153,7 +153,7 @@ export const H = dict({
     loadFail: "Couldn't load attendance.",
     evLate: (m: number, rp: string) => `${m} Minutes Late${rp ? ` · ${rp} off` : ""}`,
     evMm: (jam: string, hitung: boolean, rp: string) =>
-      `Mangkir Mengajar${jam ? `, here ${jam}` : ""} · ${hitung ? "counted as Mangkir" : `${rp} off`}`,
+      `Mangkir Mengajar${jam ? `, here ${jam}` : ""}${hitung ? " · counted as Mangkir" : rp ? ` · ${rp} off` : ""}`,
     evMangkir: "Mangkir · session not paid",
     evIzin: "Excused",
     evNotHere: "Not here",
@@ -230,7 +230,7 @@ export const H = dict({
     loadFail: "出勤加载失败。",
     evLate: (m: number, rp: string) => `迟到 ${m} 分钟${rp ? ` · 扣 ${rp}` : ""}`,
     evMm: (jam: string, hitung: boolean, rp: string) =>
-      `Mangkir Mengajar${jam ? `，${jam} 到场` : ""} · ${hitung ? "按 Mangkir 计" : `扣 ${rp}`}`,
+      `Mangkir Mengajar${jam ? `，${jam} 到场` : ""}${hitung ? " · 按 Mangkir 计" : rp ? ` · 扣 ${rp}` : ""}`,
     evMangkir: "Mangkir · 这节课不计酬",
     evIzin: "Izin",
     evNotHere: "未到",

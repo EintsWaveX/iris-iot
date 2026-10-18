@@ -117,83 +117,84 @@ export default function UmumTab({ lang }: { lang: Lang; ke: (v: TabLms) => void 
   return (
     <div className="stack stack--lg">
       <BacaSaja lang={lang} boleh={d.boleh} />
-      <div className="lms-two">
-        <section className="panel slr-card">
-          <Head title={t.umumH} desc={t.umumHint} />
-          <div className="field">
-            <span className="field__label">{t.templat}</span>
-            <SegmentedControl
-              aria-label={t.templat}
-              fill
-              value={tpl}
-              onValueChange={(v) => setTpl(v as Tpl)}
-              options={[
-                { value: "buka", label: t.tplBuka },
-                { value: "tutup", label: t.tplTutup },
-                { value: "nilai", label: t.tplNilai },
-              ]}
-            />
-          </div>
-          <div className="lms-pair">
+      {/* The composer is for the lms right; without it the other cards fill the row. */}
+      <div className={d.boleh ? "lms-two" : "stack stack--lg"}>
+        {d.boleh && (
+          <section className="panel slr-card">
+            <Head title={t.umumH} desc={t.umumHint} />
+            <div className="field">
+              <span className="field__label">{t.templat}</span>
+              <SegmentedControl
+                aria-label={t.templat}
+                fill
+                value={tpl}
+                onValueChange={(v) => setTpl(v as Tpl)}
+                options={[
+                  { value: "buka", label: t.tplBuka },
+                  { value: "tutup", label: t.tplTutup },
+                  { value: "nilai", label: t.tplNilai },
+                ]}
+              />
+            </div>
+            <div className="lms-pair">
+              <label className="field">
+                <span className="field__label">{t.judulId}</span>
+                <input
+                  className="field__input"
+                  value={kini.judul.id}
+                  maxLength={200}
+                  onChange={(e) => ubah("judul", "id", e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span className="field__label">{t.judulEn}</span>
+                <input
+                  className="field__input"
+                  value={kini.judul.en}
+                  maxLength={200}
+                  onChange={(e) => ubah("judul", "en", e.target.value)}
+                />
+              </label>
+            </div>
             <label className="field">
-              <span className="field__label">{t.judulId}</span>
-              <input
+              <span className="field__label">{t.isiId}</span>
+              <textarea
                 className="field__input"
-                value={kini.judul.id}
-                maxLength={200}
-                onChange={(e) => ubah("judul", "id", e.target.value)}
+                rows={4}
+                value={kini.isi.id}
+                onChange={(e) => ubah("isi", "id", e.target.value)}
               />
             </label>
             <label className="field">
-              <span className="field__label">{t.judulEn}</span>
-              <input
+              <span className="field__label">{t.isiEn}</span>
+              <textarea
                 className="field__input"
-                value={kini.judul.en}
-                maxLength={200}
-                onChange={(e) => ubah("judul", "en", e.target.value)}
+                rows={4}
+                value={kini.isi.en}
+                onChange={(e) => ubah("isi", "en", e.target.value)}
               />
             </label>
-          </div>
-          <label className="field">
-            <span className="field__label">{t.isiId}</span>
-            <textarea
-              className="field__input"
-              rows={4}
-              value={kini.isi.id}
-              onChange={(e) => ubah("isi", "id", e.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span className="field__label">{t.isiEn}</span>
-            <textarea
-              className="field__input"
-              rows={4}
-              value={kini.isi.en}
-              onChange={(e) => ubah("isi", "en", e.target.value)}
-            />
-          </label>
-          <ClassPick lang={lang} kursus={d.kursus} value={sasaran} onChange={setSasaran} />
-          <span className="hint">{t.emailHint}</span>
-          <div className="field">
-            <span className="field__label">{t.kapan}</span>
-            <SegmentedControl
-              aria-label={t.kapan}
-              fill
-              value={kapan}
-              onValueChange={(v) => setKapan(v as typeof kapan)}
-              options={[
-                { value: "sekarang", label: t.sekarang },
-                { value: "jadwal", label: t.jadwalkan },
-              ]}
-            />
-            {kapan === "jadwal" && (
-              <div className="lms-datetime">
-                <DateField value={tgl} onChange={setTgl} label={t.tanggal} lang={lang} />
-                <TimeField value={jam} onChange={setJam} label={t.jam} lang={lang} />
-              </div>
-            )}
-          </div>
-          {d.boleh && (
+            <ClassPick lang={lang} kursus={d.kursus} value={sasaran} onChange={setSasaran} />
+            <span className="hint">{t.emailHint}</span>
+            <div className="field">
+              <span className="field__label">{t.kapan}</span>
+              <SegmentedControl
+                aria-label={t.kapan}
+                fill
+                value={kapan}
+                onValueChange={(v) => setKapan(v as typeof kapan)}
+                options={[
+                  { value: "sekarang", label: t.sekarang },
+                  { value: "jadwal", label: t.jadwalkan },
+                ]}
+              />
+              {kapan === "jadwal" && (
+                <div className="lms-datetime">
+                  <DateField value={tgl} onChange={setTgl} label={t.tanggal} lang={lang} />
+                  <TimeField value={jam} onChange={setJam} label={t.jam} lang={lang} />
+                </div>
+              )}
+            </div>
             <div className="slr-acts">
               <button
                 type="button"
@@ -208,8 +209,8 @@ export default function UmumTab({ lang }: { lang: Lang; ke: (v: TabLms) => void 
                 {kapan === "jadwal" ? t.jadwalkan : t.umumkanKe(tujuan.length)}
               </button>
             </div>
-          )}
-        </section>
+          </section>
+        )}
         <div className="stack stack--lg">
           <section className="panel slr-card">
             <Head title={t.otoUmumH} />
@@ -218,12 +219,11 @@ export default function UmumTab({ lang }: { lang: Lang; ke: (v: TabLms) => void 
                 <b>{t.otoUmum}</b>
                 <span className="hint">{t.otoUmumHint}</span>
               </span>
-              <Switch
-                on={otomatis}
-                onChange={(v) => void setOto(v)}
-                label={t.otoUmum}
-                disabled={!d.boleh}
-              />
+              {d.boleh ? (
+                <Switch on={otomatis} onChange={(v) => void setOto(v)} label={t.otoUmum} />
+              ) : (
+                <Pill tone={otomatis ? "ok" : undefined}>{otomatis ? t.otoAktif : t.otoMati}</Pill>
+              )}
             </label>
           </section>
           <section className="panel slr-card">

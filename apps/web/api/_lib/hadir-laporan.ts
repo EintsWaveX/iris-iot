@@ -6,7 +6,8 @@
  *     (muatHadirSesi, muatInputNilai below, called from laporan-data.ts).
  * GET /api/session/hadirrekap         the semester per person (Laporan ›
  *     Beban Asisten); ?nim= one person's counts and sessions (Tim drawer);
- *     ?saya=1 the signed-in person's own (Akun).
+ *     ?saya=1 the signed-in person's own (Akun). Other people's Rp cuts go
+ *     only to the hadir and tim rights (ADS and Admins).
  *
  * A finished session is judged from its rows with the same rule as the
  * live view (src/lib/hadir-mengajar.ts); what Bayar stored at its last
@@ -40,6 +41,8 @@ import {
   potonganHadir,
   potonganPada,
   ringkasHadir,
+  saringRp,
+  tanpaRp,
   type RingkasOrang,
   type StatusLive,
 } from "../../src/lib/hadir-mengajar.js";
@@ -47,6 +50,8 @@ import { batasNilai } from "../../src/lib/lupa-nilai.js";
 import { rentangSemester } from "./bayar.js";
 import { jamDariMenit } from "../../src/lib/sesi-mulai.js";
 import { kunciDariSesi, muatKonteks, statusOrang } from "./hadir-mengajar.js";
+import { muatOrang } from "./hak.js";
+import { lihatRpSemua } from "../../src/lib/hak.js";
 import { AKTOR_OTOMATIS } from "./jam-lab.js";
 
 type Db = ReturnType<typeof getDb>;
@@ -431,5 +436,13 @@ export async function handleHadirRekap(req: ApiRequest, res: ApiResponse, sessio
     }
     nim = ada.nim;
   }
-  res.status(200).json({ ok: true, ...(await muatRekapHadir(db, sem, nim)) });
+  const rekap = await muatRekapHadir(db, sem, nim);
+  const semua = lihatRpSemua(await muatOrang(session.nim));
+  const milikku = nim === session.nim;
+  res.status(200).json({
+    ok: true,
+    ...rekap,
+    orang: saringRp(rekap.orang, session.nim, semua),
+    ...(rekap.riwayat && !semua && !milikku ? { riwayat: rekap.riwayat.map(tanpaRp) } : {}),
+  });
 }

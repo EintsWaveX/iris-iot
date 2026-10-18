@@ -17,6 +17,7 @@ import {
   CATATAN_BATAL,
   tanpaKeluaran,
   bacaPulih,
+  saringKeluaran,
 } from "../server-shared";
 import { aksiValid, LAYANAN_DIKENAL } from "../server-lib";
 
@@ -263,5 +264,26 @@ describe("jamServer", () => {
     expect(jamServer(k({ jamSelisihMs: -3.1 }))).toEqual({ ms: -3.1, meleset: false });
     expect(jamServer(k({ jamSelisihMs: 61_000 })).meleset).toBe(true);
     expect(jamServer(null)).toEqual({ ms: null, meleset: false });
+  });
+});
+
+describe("saringKeluaran", () => {
+  const rows = [
+    { aksi: "diag.journal", keluaran: "Oct 01 iris-pc systemd[1]: Started" },
+    { aksi: "diag.siap", keluaran: '{"lulus":true}' },
+    { aksi: "jam.selaraskan", keluaran: "off by 2 s" },
+    { aksi: "layanan.restart", keluaran: "ok" },
+  ];
+  it("keeps every output for the full Server view", () => {
+    expect(saringKeluaran(rows, true)).toEqual(rows);
+  });
+  it("keeps only the Ready check and Sync Clock output otherwise", () => {
+    expect(saringKeluaran(rows, false).map((r) => r.keluaran)).toEqual([
+      null,
+      '{"lulus":true}',
+      "off by 2 s",
+      null,
+    ]);
+    expect(saringKeluaran(rows, false).map((r) => r.aksi)).toEqual(rows.map((r) => r.aksi));
   });
 });

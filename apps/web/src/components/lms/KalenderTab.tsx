@@ -179,12 +179,11 @@ export default function KalenderTab({ lang }: { lang: Lang; ke: (v: TabLms) => v
               <b>{t.otoKal}</b>
               <span className="hint">{t.otoKalHint}</span>
             </span>
-            <Switch
-              on={otomatis}
-              onChange={(v) => void setOto(v)}
-              label={t.otoKal}
-              disabled={!d.boleh}
-            />
+            {d.boleh ? (
+              <Switch on={otomatis} onChange={(v) => void setOto(v)} label={t.otoKal} />
+            ) : (
+              <Pill tone={otomatis ? "ok" : undefined}>{otomatis ? t.otoAktif : t.otoMati}</Pill>
+            )}
           </label>
           {d.boleh && (
             <div className="slr-acts">

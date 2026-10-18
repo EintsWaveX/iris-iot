@@ -84,6 +84,7 @@ beforeEach(() => {
 describe("GET /api/server/:id", () => {
   it("returns the saved settings fields and the running module, and no device list", async () => {
     hasil.push(
+      orang("asisten"),
       [
         {
           id: 3,
@@ -113,7 +114,10 @@ describe("GET /api/server/:id", () => {
   });
 
   it("pages older commands and says whether more exist", async () => {
-    hasil.push(Array.from({ length: 21 }, (_, i) => ({ id: 100 - i })));
+    hasil.push(
+      orang("asisten"),
+      Array.from({ length: 21 }, (_, i) => ({ id: 100 - i, aksi: "diag.log", keluaran: null })),
+    );
     const body = await call(serverDetail, {
       method: "GET",
       query: { id: "3", aksi: "perintah", sebelum: "101" },
@@ -123,7 +127,30 @@ describe("GET /api/server/:id", () => {
     expect(body.lagi).toBe(true);
   });
 
+  it("sends command output only to the full Server view, bar the Ready check", async () => {
+    const perintah = [
+      { id: 9, aksi: "diag.journal", keluaran: "Oct 01 iris-pc systemd[1]: Started" },
+      { id: 8, aksi: "diag.siap", keluaran: '{"lulus":true}' },
+    ];
+    hasil.push(orang("asisten"), perintah);
+    const anggota = await call(serverDetail, {
+      method: "GET",
+      query: { id: "3", aksi: "perintah", sebelum: "10" },
+    });
+    expect((anggota.perintah as { keluaran: string | null }[]).map((p) => p.keluaran)).toEqual([
+      null,
+      '{"lulus":true}',
+    ]);
+    hasil.push(orang("admin"), perintah);
+    const admin = await call(serverDetail, {
+      method: "GET",
+      query: { id: "3", aksi: "perintah", sebelum: "10" },
+    });
+    expect(admin.perintah).toEqual(perintah);
+  });
+
   it("refuses a page request without a valid cursor", async () => {
+    hasil.push(orang("asisten"));
     const body = await call(serverDetail, {
       method: "GET",
       query: { id: "3", aksi: "perintah", sebelum: "x" },

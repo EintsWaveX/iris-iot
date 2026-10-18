@@ -246,3 +246,49 @@
 .acctpage__pwcard {
   scroll-margin-top: 84px;
 }
+
+/* Hak Saya: one row per right, the answer and where it comes from on the
+   right; two columns on wide screens, the trail below. */
+.hak-saya__list,
+.hak-saya__trail {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hak-saya__row {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.hak-saya__row[data-on="no"] b {
+  color: var(--text-muted);
+}
+
+.hak-saya__v {
+  display: grid;
+  flex: none;
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+}
+
+.hak-saya__trail li {
+  border-bottom: 1px solid var(--hairline-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 8px 0;
+}
+
+@media (min-width: 1024px) {
+  .hak-saya__list {
+    column-gap: var(--space-6);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

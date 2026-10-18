@@ -44,7 +44,7 @@ import PersonBadges from "../../ui/PersonBadges";
 import TierBadge from "../../ui/TierBadge";
 import PasswordField from "../../ui/PasswordField";
 import { StateView } from "../../ui/Display";
-import { href, tanggalPanjang, useTick } from "../../../lib/app";
+import { href, tanggalPanjang, useMe, useTick } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { DIAM_MENIT, KONSOL_BUKA, type KonsolTarget } from "../../../lib/konsol";
 import { hariLabel, menitLabel, modulLabel, nil, slotLabel } from "../../../lib/labels";
@@ -1421,6 +1421,8 @@ function Done({
   row: KonsolRow;
   onAgain: () => void;
 }) {
+  // The Audit tab is for the audit right (Admins).
+  const audit = useMe()?.hak?.audit === true;
   const mulai = row.mulai;
   const selesai = row.selesai;
   const lama =
@@ -1465,9 +1467,11 @@ function Done({
         ]}
       />
       <div className="panel__actions pkact">
-        <a className="btn" href={`${href(lang, "/reports")}?audit=konsol#audit`}>
-          {t.seeAudit}
-        </a>
+        {audit && (
+          <a className="btn" href={`${href(lang, "/reports")}?audit=konsol#audit`}>
+            {t.seeAudit}
+          </a>
+        )}
         <button type="button" className="btn btn--primary" onClick={onAgain}>
           {t.again}
         </button>
@@ -1483,6 +1487,7 @@ function Done({
  *  them all), and who is told when one opens. */
 function KonsolSide({ t, lang, data }: { t: KStrings; lang: Lang; data: KonsolData }) {
   const w = S12[lang];
+  const audit = useMe()?.hak?.audit === true;
   const orang = data.pemeriksa ?? [];
   const lalu = (data.riwayat ?? []).slice(0, 5);
   return (
@@ -1516,15 +1521,17 @@ function KonsolSide({ t, lang, data }: { t: KStrings; lang: Lang; data: KonsolDa
         ) : (
           <p className="hint">{w.recentNone}</p>
         )}
-        <div className="panel__actions" style={{ marginTop: "auto" }}>
-          <a
-            className="btn btn--ghost btn--sm"
-            href={`${href(lang, "/reports")}?audit=konsol#audit`}
-          >
-            {w.toAudit}
-            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
-          </a>
-        </div>
+        {audit && (
+          <div className="panel__actions" style={{ marginTop: "auto" }}>
+            <a
+              className="btn btn--ghost btn--sm"
+              href={`${href(lang, "/reports")}?audit=konsol#audit`}
+            >
+              {w.toAudit}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+            </a>
+          </div>
+        )}
       </section>
       <section className="panel s12span4">
         <div className="stack stack--sm">

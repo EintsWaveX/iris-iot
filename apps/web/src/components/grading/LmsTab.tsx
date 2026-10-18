@@ -249,15 +249,20 @@ export default function LmsTab({
                       </th>
                       {[1, 2, 3, 4].map((m) => (
                         <th key={m} className="num">
-                          <button
-                            type="button"
-                            className="tpkel__th"
-                            title={tk.kelolaBuka(m)}
-                            aria-label={tk.kelolaBuka(m)}
-                            onClick={() => setKelola(m)}
-                          >
-                            TP {m}
-                          </button>
+                          {/* Kelola opens for the lms right only; others read the marks. */}
+                          {d.kelola.boleh ? (
+                            <button
+                              type="button"
+                              className="tpkel__th"
+                              title={tk.kelolaBuka(m)}
+                              aria-label={tk.kelolaBuka(m)}
+                              onClick={() => setKelola(m)}
+                            >
+                              TP {m}
+                            </button>
+                          ) : (
+                            `TP ${m}`
+                          )}
                         </th>
                       ))}
                     </tr>
@@ -291,28 +296,32 @@ export default function LmsTab({
                             : st === "beda" && d.kelola.jendela[String(m)]
                               ? `${t.ditemukan}: ${ada.nama} · ${tk.st.beda}`
                               : `${t.ditemukan}: ${ada.nama}`;
+                          const tanda = {
+                            className: "tpcheck",
+                            "data-s": !ada
+                              ? "miss"
+                              : st === "beda" && d.kelola.jendela[String(m)]
+                                ? "beda"
+                                : "ok",
+                            title: label,
+                            "aria-label": `${k.label}, TP ${m}: ${label}`,
+                          };
+                          const ikon = ada ? (
+                            <CheckIcon size={14} aria-hidden="true" />
+                          ) : (
+                            <WarningIcon size={14} aria-hidden="true" />
+                          );
                           return (
                             <td key={m} className="num">
-                              <button
-                                type="button"
-                                className="tpcheck"
-                                data-s={
-                                  !ada
-                                    ? "miss"
-                                    : st === "beda" && d.kelola.jendela[String(m)]
-                                      ? "beda"
-                                      : "ok"
-                                }
-                                title={label}
-                                aria-label={`${k.label}, TP ${m}: ${label}`}
-                                onClick={() => setKelola(m)}
-                              >
-                                {ada ? (
-                                  <CheckIcon size={14} aria-hidden="true" />
-                                ) : (
-                                  <WarningIcon size={14} aria-hidden="true" />
-                                )}
-                              </button>
+                              {d.kelola.boleh ? (
+                                <button type="button" {...tanda} onClick={() => setKelola(m)}>
+                                  {ikon}
+                                </button>
+                              ) : (
+                                <span {...tanda} role="img">
+                                  {ikon}
+                                </span>
+                              )}
                             </td>
                           );
                         })}

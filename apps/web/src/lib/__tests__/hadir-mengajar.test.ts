@@ -11,6 +11,8 @@ import {
   hitungHadir,
   instanWib,
   potonganHadir,
+  saringRp,
+  tanpaRp,
 } from "../hadir-mengajar";
 
 const TGL = "2026-10-01";
@@ -173,5 +175,27 @@ describe("potongan rate history", () => {
     expect(potonganPada(b, "2026-10-17")).toEqual({ perMenit: 1500, maks: 5 });
     // an older session keeps the rate it had
     expect(potonganPada(b, "2026-10-01")).toEqual({ perMenit: 2000, maks: 10 });
+  });
+});
+
+describe("saringRp", () => {
+  const rows = [
+    { nim: "1", status: "telat", menit: 4, potong: 8000, nolkanUnit: false },
+    { nim: "2", status: "mangkir", menit: null, potong: 0, nolkanUnit: true },
+  ];
+  it("keeps everyone's Rp for ADS and Admins", () => {
+    expect(saringRp(rows, "1", true)).toEqual(rows);
+  });
+  it("keeps only your own Rp, and every status and minute", () => {
+    const out = saringRp(rows, "1", false);
+    expect(out[0]).toEqual(rows[0]);
+    expect(out[1]).toEqual({ nim: "2", status: "mangkir", menit: null });
+    expect(saringRp(rows, null, false).every((r) => !("potong" in r))).toBe(true);
+  });
+  it("drops a summary's zeroed sessions too", () => {
+    expect(tanpaRp({ nim: "3", telat: 2, potong: 12000, sesiNol: 1 })).toEqual({
+      nim: "3",
+      telat: 2,
+    });
   });
 });

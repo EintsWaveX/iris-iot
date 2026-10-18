@@ -3,7 +3,9 @@
  * by the module page's Brief step, the Praktikan's session bar, the
  * Dashboard's session card and the console's session bar. Decks are per
  * module since 2026-10-08, and a Praktikan only gets the modules they did a
- * practicum of (api/presentasi/[aksi].ts).
+ * practicum of (api/presentasi/[aksi].ts). Since 2026-10-18 a module may
+ * have a Canva link for the Reguler classes and one for Internasional: the
+ * one in the reader's content language comes first.
  */
 import { useEffect, useState } from "react";
 import Dialog from "../ui/Dialog";
@@ -11,18 +13,50 @@ import PdfViewer from "../ui/PdfViewer";
 import SegmentedControl from "../ui/SegmentedControl";
 import { dict, getJson } from "../../lib/app";
 import { dengar } from "../../lib/siaran";
-import type { Lang } from "../../lib/kelas";
+import { bahasaKonten, langOfPath, type Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import "./SlidesDialog.css";
 
-export type Deck = { url: string; namaBerkas: string; jenis?: "berkas" | "tautan" };
+export type Deck = {
+  url: string;
+  namaBerkas: string;
+  jenis?: "berkas" | "tautan";
+  /** A Canva link's class language: id Reguler, en Internasional. */
+  bahasa?: "id" | "en";
+};
 type Aktif = Record<string, Deck & { pilihan?: Deck[] }>;
 
 const T = dict({
-  id: { sumber: "Sumber presentasi", judul: (m: string) => `Presentasi ${m}`, polos: "Presentasi" },
-  en: { sumber: "Slides source", judul: (m: string) => `${m} slides`, polos: "Slides" },
-  zh: { sumber: "幻灯片来源", judul: (m: string) => `${m} 幻灯片`, polos: "幻灯片" },
+  id: {
+    sumber: "Sumber presentasi",
+    judul: (m: string) => `Presentasi ${m}`,
+    polos: "Presentasi",
+    canvaId: "Canva Reguler",
+    canvaEn: "Canva Internasional",
+  },
+  en: {
+    sumber: "Slides source",
+    judul: (m: string) => `${m} slides`,
+    polos: "Slides",
+    canvaId: "Canva Regular",
+    canvaEn: "Canva International",
+  },
+  zh: {
+    sumber: "幻灯片来源",
+    judul: (m: string) => `${m} 幻灯片`,
+    polos: "幻灯片",
+    canvaId: "Canva 普通班",
+    canvaEn: "Canva 国际班",
+  },
 });
+
+/** The PDF first, then the Canva link in the reader's content language,
+ *  then the other class's. */
+export function urutDeck(list: Deck[], lang: Lang): Deck[] {
+  const milik = bahasaKonten(lang);
+  const nilai = (d: Deck) => (d.jenis !== "tautan" ? 0 : (d.bahasa ?? "id") === milik ? 1 : 2);
+  return [...list].sort((a, b) => nilai(a) - nilai(b));
+}
 
 // One request serves every module and every caller on the page.
 let cache: Promise<Aktif> | null = null;
@@ -54,7 +88,8 @@ export function useSlides(
       void activeSlides().then((a) => {
         if (!alive) return;
         const hit = a[String(modul)];
-        setList(hit ? (hit.pilihan ?? [hit]) : []);
+        const lang = typeof location === "undefined" ? "id" : langOfPath(location.pathname);
+        setList(hit ? urutDeck(hit.pilihan ?? [hit], lang) : []);
         setLoaded(true);
       });
     muat();
@@ -86,6 +121,7 @@ export default function SlidesDialog({
 }) {
   const t = T[lang];
   const [idx, setIdx] = useState(0);
+  const duaCanva = list.filter((d) => d.jenis === "tautan").length > 1;
   const p = list[Math.min(idx, list.length - 1)] ?? null;
   const judul = modul ? t.judul(modulLabel(modul, lang)) : t.polos;
   return (
@@ -105,7 +141,14 @@ export default function SlidesDialog({
             onValueChange={(v) => setIdx(Number(v))}
             options={list.map((d, i) => ({
               value: String(i),
-              label: d.jenis === "tautan" ? "Canva" : "PDF",
+              label:
+                d.jenis !== "tautan"
+                  ? "PDF"
+                  : duaCanva
+                    ? d.bahasa === "en"
+                      ? t.canvaEn
+                      : t.canvaId
+                    : "Canva",
             }))}
           />
         )}

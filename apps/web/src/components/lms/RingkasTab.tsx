@@ -12,7 +12,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { CheckCircleIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { Switch } from "../ui/Controls";
-import { getJson, href, postJson, useDetik } from "../../lib/app";
+import { getJson, href, postJson, useDetik, useMe } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import { TPS } from "../tp/tpStrings";
 import type { Lang } from "../../lib/kelas";
@@ -69,6 +69,9 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
   // Who handed in (all, or one class) and the files' whole history.
   const [kumpul, setKumpul] = useState<{ kursus: number | null } | null>(null);
   const [jejak, setJejak] = useState(false);
+  const me = useMe();
+  const sambung = me?.hak?.full === true;
+  const kelola = me?.hak?.lms === true;
   if (!d) return <span className="skeleton" style={{ height: 520 }} />;
   if (!d.ok) return <p className="banner banner--warn">{galatTeks(d.kode, lang)}</p>;
 
@@ -131,9 +134,11 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
             <b>{t.belumTersambung}</b>
             <span>{t.belumTersambungBody}</span>
           </span>
-          <button type="button" className="btn btn--sm" onClick={() => ke("sambung")}>
-            {t.bukaSambungan}
-          </button>
+          {sambung && (
+            <button type="button" className="btn btn--sm" onClick={() => ke("sambung")}>
+              {t.bukaSambungan}
+            </button>
+          )}
         </div>
       )}
       <Kini
@@ -225,13 +230,18 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
                       </span>
                     )}
                   </span>
-                  <Switch
-                    on={nyala(k)}
-                    onChange={(v) => void setOto(k, v)}
-                    label={t.oto[k]}
-                    busy={sibuk[k]}
-                    disabled={!d.boleh}
-                  />
+                  {d.boleh ? (
+                    <Switch
+                      on={nyala(k)}
+                      onChange={(v) => void setOto(k, v)}
+                      label={t.oto[k]}
+                      busy={sibuk[k]}
+                    />
+                  ) : (
+                    <Pill tone={nyala(k) ? "ok" : undefined}>
+                      {nyala(k) ? t.otoAktif : t.otoMati}
+                    </Pill>
+                  )}
                 </li>
               );
             })}
@@ -246,7 +256,15 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
             {d.cek.length ? (
               <ul className="lms-cek">
                 {d.cek.map((c) => (
-                  <Cek key={c.k} lang={lang} c={c} modul={d.modul} ke={ke} />
+                  <Cek
+                    key={c.k}
+                    lang={lang}
+                    c={c}
+                    modul={d.modul}
+                    ke={ke}
+                    sambung={sambung}
+                    kelola={kelola}
+                  />
                 ))}
               </ul>
             ) : (
@@ -269,11 +287,13 @@ export default function RingkasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) =
               </span>
             )}
             <span className="hint">{t.satuSesi}</span>
-            <div className="slr-acts">
-              <button type="button" className="btn" onClick={() => ke("sambung")}>
-                {t.bukaSambungan}
-              </button>
-            </div>
+            {sambung && (
+              <div className="slr-acts">
+                <button type="button" className="btn" onClick={() => ke("sambung")}>
+                  {t.bukaSambungan}
+                </button>
+              </div>
+            )}
           </section>
         </div>
       </div>
@@ -538,11 +558,17 @@ function Cek({
   c,
   modul,
   ke,
+  sambung,
+  kelola,
 }: {
   lang: Lang;
   c: Ringkas["cek"][number];
   modul: number;
   ke: (v: TabLms) => void;
+  /** The full right: Sambungan shows, so its links do too. */
+  sambung: boolean;
+  /** The lms right: without it Kelas has nothing to make, so the link only looks. */
+  kelola: boolean;
 }) {
   const t = LS[lang];
   const [judul, hint, tombol, tujuan] =
@@ -556,7 +582,12 @@ function Cek({
             "kelas" as TabLms,
           ]
         : c.k === "grup"
-          ? [t.cek.grup((c.kelas ?? []).join(", ")), t.cek.grupHint, t.buat, "kelas" as TabLms]
+          ? [
+              t.cek.grup((c.kelas ?? []).join(", ")),
+              t.cek.grupHint,
+              kelola ? t.buat : t.lihat,
+              "kelas" as TabLms,
+            ]
           : c.k === "tanggal"
             ? [t.cek.tanggal(c.n ?? 0, modul), t.cek.tanggalHint, t.samakan, "sambung" as TabLms]
             : c.k === "hilang"
@@ -568,10 +599,12 @@ function Cek({
     <li>
       <b>{judul}</b>
       <span className="hint">{hint}</span>
-      <button type="button" className="btn btn--ghost btn--sm" onClick={() => ke(tujuan)}>
-        {tombol}
-        <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
-      </button>
+      {(tujuan !== "sambung" || sambung) && (
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => ke(tujuan)}>
+          {tombol}
+          <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+        </button>
+      )}
     </li>
   );
 }

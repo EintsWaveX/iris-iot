@@ -33,7 +33,7 @@ import * as nodeCrypto from "node:crypto";
 import { createHmac, timingSafeEqual, randomBytes, scryptSync } from "node:crypto";
 import { eq, and, gte, gt, count, desc, inArray, sql } from "drizzle-orm";
 import { getDb } from "./db.js";
-import { asisten, percobaanMasuk, audit } from "./schema.js";
+import { asisten, percobaanMasuk, audit, sesiKejadian } from "./schema.js";
 import { resolvePraktikan, resolvePraktikanTanpaSesi, currentSesi } from "./sesi.js";
 import { totAktif } from "./mode-tot.js";
 import { SESSION_TTL_SEC } from "./sesi-umur.js";
@@ -474,18 +474,23 @@ export async function verifyPraktikanLogin(
   // answer is when their own opens, and the gate lifts then by itself. If
   // their own slot is open right now they are only missing from this
   // roster, which the Asisten fixes with Tambah Praktikan: fall through.
+  // A right code from someone outside this session is flagged for the
+  // Asisten (2026-10-18, user); the answer they get stays the same.
+  const kode = kodeMasuk.trim();
+  const kodeBenar = KODE_MASUK_RE.test(kode) && safeEqual(kode, kodeMasukSesi(running));
+  let nanti: SesiBerikutnya | null = null;
   if (!(await resolvePraktikan(nim))) {
-    const nanti = await sesiBerikutnya(nim);
+    nanti = await sesiBerikutnya(nim);
     if (nanti && new Date(nanti.bukaPada).getTime() > Date.now()) {
+      if (kodeBenar) await tandaiKodeSesiLain(nim, running.id, nanti);
       return { ok: false, kode: "bukan_sesimu", sesiBerikutnya: nanti };
     }
   }
 
-  const kode = kodeMasuk.trim();
   const st = await statusKode(nim, running.id);
   if (st.sisaDetik > 0) return { ok: false, kode: "kode_terkunci", ...st };
   if (!kode) return { ok: false, kode: "perlu_kode", ...st };
-  if (!KODE_MASUK_RE.test(kode) || !safeEqual(kode, kodeMasukSesi(running))) {
+  if (!kodeBenar) {
     await recordAttempt(nim, ip, "kode", false, running.id);
     const lalu = await statusKode(nim, running.id);
     return lalu.sisaDetik > 0
@@ -502,10 +507,54 @@ export async function verifyPraktikanLogin(
   await recordAttempt(nim, ip, "praktikan", resolved !== null, running.id);
 
   if (!resolved) {
+    // Not on this roster and their own slot isn't the one open now.
+    if (!nanti) await tandaiKodeSesiLain(nim, running.id, null);
     return { ok: false, kode: "tidak_terdaftar" };
   }
 
   return { ok: true, ...resolved };
+}
+
+/**
+ * A Praktikan outside the running session typed its right code: one line in
+ * the session's Kejadian and one in the Audit, for the Asisten only, once per
+ * person per session. Only a known Praktikan counts; a stray NIM is not one.
+ * Best effort: it never changes the sign-in's answer.
+ */
+export async function tandaiKodeSesiLain(
+  nim: string,
+  sesiId: number,
+  nanti: SesiBerikutnya | null,
+): Promise<void> {
+  try {
+    const p = await resolvePraktikanTanpaSesi(nim);
+    if (!p) return;
+    const db = getDb();
+    const [ada] = await db
+      .select({ id: sesiKejadian.id })
+      .from(sesiKejadian)
+      .where(
+        and(
+          eq(sesiKejadian.sesiId, sesiId),
+          eq(sesiKejadian.jenis, "kode_sesi_lain"),
+          sql`${sesiKejadian.detail} ->> 'nim' = ${nim}`,
+        ),
+      )
+      .limit(1);
+    if (ada) return;
+    const detail = {
+      nim,
+      nama: p.nama,
+      kelompok: p.kelompokNomor,
+      ...(nanti ? { tanggal: nanti.tanggal, slot: nanti.slot } : {}),
+    };
+    await db
+      .insert(sesiKejadian)
+      .values({ sesiId, jenis: "kode_sesi_lain", detail, aktorNim: nim });
+    await writeAudit(nim, "kode_sesi_lain", { sesiId, ...detail });
+  } catch (err) {
+    console.error("[auth] kode_sesi_lain flag failed:", err);
+  }
 }
 
 export type AsistenLoginResult =

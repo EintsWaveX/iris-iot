@@ -165,6 +165,8 @@ const W = {
     panggilDevDatang: "Menjawab panggilan DEV: datang",
     panggilDevBatal: "Membatalkan panggilan DEV",
     kodeBuka: (nim: unknown) => `Membuka kunci kode sesi ${nim}`,
+    kodeLain: (nama: unknown, s: string) =>
+      `${nama} memasukkan Kode Sesi yang benar untuk ${s}, padahal bukan sesinya`,
     praktikanTambahSesi: (nim: unknown, k: unknown) =>
       `memasukkan ${nim} ke Kelompok ${k} di sesi berjalan`,
     praktikumFinal: "menyelesaikan praktikum semester ini (riwayat keempat modul terbuka)",
@@ -343,6 +345,8 @@ const W = {
     panggilDevDatang: "Answered a DEV call: on the way",
     panggilDevBatal: "Cancelled a DEV call",
     kodeBuka: (nim: unknown) => `Unlocked the session code for ${nim}`,
+    kodeLain: (nama: unknown, s: string) =>
+      `${nama} typed the right session code for ${s}, which is not their session`,
     praktikanTambahSesi: (nim: unknown, k: unknown) =>
       `put ${nim} in Group ${k} of the running session`,
     praktikumFinal: "finished this semester's practicum (all four histories open)",
@@ -514,6 +518,7 @@ const W = {
     panggilDevDatang: "回应 DEV 呼叫：马上来",
     panggilDevBatal: "取消 DEV 呼叫",
     kodeBuka: (nim: unknown) => `解除 ${nim} 的签到码锁定`,
+    kodeLain: (nama: unknown, s: string) => `${nama} 输入了 ${s} 的正确签到码，但那不是他们的课`,
     praktikanTambahSesi: (nim: unknown, k: unknown) => `把 ${nim} 加入正在上的课的第 ${k} 组`,
     praktikumFinal: "结束了本学期的实验课（四个模块的记录都已开放）",
     praktikumFinalBatal: "撤销了实验课的结束",
@@ -895,6 +900,8 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(BroadcastIcon, w.panggilDevBatal);
     case "kode_buka":
       return k(LockKeyOpenIcon, w.kodeBuka(d.nim));
+    case "kode_sesi_lain":
+      return k(WarningIcon, w.kodeLain(d.nama ?? d.nim, b.sesi(d.sesiId)));
     case "praktikan_tambah_sesi":
       return k(UserPlusIcon, w.praktikanTambahSesi(d.nim, d.ke));
     case "susulan_draf":

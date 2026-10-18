@@ -33,9 +33,12 @@
  *                                        module (modul null).
  * POST /api/presentasi/slides-token    — asisten. Upload handshake, PDF only.
  * POST /api/presentasi/slides-save     { url, namaBerkas, modul } — asisten.
- * POST /api/presentasi/slides-link     { url, modul, nama? } — asisten. A
- *                                        Canva view link, turned into its
- *                                        embed address by src/lib/tautan.ts.
+ * POST /api/presentasi/slides-link     { url, modul, nama?, bahasa? } —
+ *                                        asisten. A Canva view link, turned
+ *                                        into its embed address by
+ *                                        src/lib/tautan.ts. bahasa "id" (the
+ *                                        Reguler classes, the default) or
+ *                                        "en" (Internasional): one link each.
  * POST /api/presentasi/slides-assign   { id, modul } — asisten. Gives an
  *                                        older deck a module, replacing that
  *                                        module's deck of the same kind.
@@ -99,6 +102,7 @@ const SKEMA_MAX_BYTES = 8 * 1024 * 1024;
 const SKEMA_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 type Jenis = "berkas" | "tautan";
+type Bahasa = "id" | "en";
 
 function blobUrlValid(url: string): boolean {
   try {
@@ -151,14 +155,21 @@ async function handleSkemaBawaan(req: ApiRequest, res: ApiResponse, session: Ses
 }
 
 /** Active rows per module, the file first, then `pilihan` with every active
- *  one (a file and a link at most) for the viewer's switch. `bingkai`: show
- *  it in a frame, not as an image or a PDF. */
+ *  one (a file and a link at most, a link per class language for slides)
+ *  for the viewer's switch. `bingkai`: show it in a frame, not as an image
+ *  or a PDF. */
 function perModul(
-  rows: { modul: number | null; url: string; namaBerkas: string; jenis: Jenis }[],
+  rows: { modul: number | null; url: string; namaBerkas: string; jenis: Jenis; bahasa?: Bahasa }[],
   boleh: Set<number>,
   bingkai: (r: { url: string; jenis: Jenis }) => boolean,
 ) {
-  type Pilihan = { url: string; namaBerkas: string; bingkai: boolean; jenis: Jenis };
+  type Pilihan = {
+    url: string;
+    namaBerkas: string;
+    bingkai: boolean;
+    jenis: Jenis;
+    bahasa?: Bahasa;
+  };
   const aktif: Record<string, Pilihan & { pilihan: Pilihan[] }> = {};
   const urut = [...rows].sort((a, b) => (a.jenis === b.jenis ? 0 : a.jenis === "berkas" ? -1 : 1));
   for (const r of urut) {
@@ -168,6 +179,7 @@ function perModul(
       namaBerkas: r.namaBerkas,
       bingkai: bingkai(r),
       jenis: r.jenis,
+      ...(r.bahasa ? { bahasa: r.bahasa } : {}),
     };
     const k = String(r.modul);
     if (aktif[k]) aktif[k].pilihan.push(p);
@@ -249,6 +261,7 @@ async function handleSlides(_req: ApiRequest, res: ApiResponse, session: Session
       url: presentasi.url,
       namaBerkas: presentasi.namaBerkas,
       jenis: presentasi.jenis,
+      bahasa: presentasi.bahasa,
     })
     .from(presentasi)
     .where(eq(presentasi.aktif, true));
@@ -261,12 +274,12 @@ async function handleSlidesList(_req: ApiRequest, res: ApiResponse) {
   res.status(200).json({ ok: true, daftar: rows });
 }
 
-/** Makes `baru` the module's deck of its kind: earlier decks of that module
- *  and kind go, and so do their blobs. An `id` moves that existing row in
- *  (slides-assign) instead of inserting one. */
+/** Makes `baru` the module's deck of its kind and class language: earlier
+ *  decks of that module, kind and language go, and so do their blobs. An
+ *  `id` moves that existing row in (slides-assign) instead of inserting one. */
 async function simpanSlide(
   modul: number,
-  baru: { namaBerkas: string; url: string; jenis: Jenis; id?: number },
+  baru: { namaBerkas: string; url: string; jenis: Jenis; bahasa: Bahasa; id?: number },
   nim: string,
 ) {
   const { row, lama } = await getDb().transaction(async (tx) => {
@@ -283,13 +296,19 @@ async function simpanSlide(
             namaBerkas: baru.namaBerkas,
             url: baru.url,
             jenis: baru.jenis,
+            bahasa: baru.bahasa,
             diunggahOleh: nim,
           })
           .returning();
     const old = await tx
       .delete(presentasi)
       .where(
-        and(eq(presentasi.modul, modul), eq(presentasi.jenis, baru.jenis), ne(presentasi.id, r.id)),
+        and(
+          eq(presentasi.modul, modul),
+          eq(presentasi.jenis, baru.jenis),
+          eq(presentasi.bahasa, baru.bahasa),
+          ne(presentasi.id, r.id),
+        ),
       )
       .returning({ url: presentasi.url, jenis: presentasi.jenis });
     await tx.update(presentasi).set({ aktif: true }).where(eq(presentasi.id, r.id));
@@ -308,7 +327,11 @@ async function handleSlidesSave(req: ApiRequest, res: ApiResponse, session: Sess
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  const row = await simpanSlide(modul, { namaBerkas, url, jenis: "berkas" }, session.nim);
+  const row = await simpanSlide(
+    modul,
+    { namaBerkas, url, jenis: "berkas", bahasa: "id" },
+    session.nim,
+  );
   await writeAudit(session.nim, "presentasi_unggah", { id: row.id, modul, namaBerkas });
   res.status(200).json({ ok: true, presentasi: row });
 }
@@ -317,7 +340,8 @@ async function handleSlidesLink(req: ApiRequest, res: ApiResponse, session: Sess
   const body = jsonBody(req);
   const modul = modulValid(body.modul);
   const nama = typeof body.nama === "string" ? body.nama.trim() : "";
-  if (!modul || nama.length > MAX_NAMA_LEN) {
+  const bahasa = body.bahasa === undefined ? "id" : body.bahasa;
+  if (!modul || nama.length > MAX_NAMA_LEN || (bahasa !== "id" && bahasa !== "en")) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
@@ -331,10 +355,10 @@ async function handleSlidesLink(req: ApiRequest, res: ApiResponse, session: Sess
   }
   const row = await simpanSlide(
     modul,
-    { namaBerkas: nama || "Canva", url: t.url, jenis: "tautan" },
+    { namaBerkas: nama || "Canva", url: t.url, jenis: "tautan", bahasa },
     session.nim,
   );
-  await writeAudit(session.nim, "presentasi_tautan", { id: row.id, modul, url: t.url });
+  await writeAudit(session.nim, "presentasi_tautan", { id: row.id, modul, bahasa, url: t.url });
   res.status(200).json({ ok: true, presentasi: row });
 }
 
@@ -347,7 +371,12 @@ async function handleSlidesAssign(req: ApiRequest, res: ApiResponse, session: Se
     return;
   }
   const [cur] = await getDb()
-    .select({ namaBerkas: presentasi.namaBerkas, url: presentasi.url, jenis: presentasi.jenis })
+    .select({
+      namaBerkas: presentasi.namaBerkas,
+      url: presentasi.url,
+      jenis: presentasi.jenis,
+      bahasa: presentasi.bahasa,
+    })
     .from(presentasi)
     .where(eq(presentasi.id, id))
     .limit(1);

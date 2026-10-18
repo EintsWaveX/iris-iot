@@ -29,6 +29,7 @@ import {
   kanonikCelah,
   normalJawaban,
   teksUntuk,
+  tingkatBantuan,
   urutkanCelah,
   type BahasaKode,
   type Celah,
@@ -120,7 +121,9 @@ export function berkasV1(modul: number, path: string): KodeBerkas {
         perKelompok: kunci.perKelompok ?? null,
         petunjuk: { id: "", en: "" },
         kenapa: { ...kunci.kenapa },
+        bantuan1: { ...kunci.bantuan1 },
         bantuan: { ...kunci.bantuan },
+        bantuan3: { ...kunci.bantuan3 },
       };
       c.posisi[bahasa] = r;
       c.petunjuk[bahasa] = m[6].trim();
@@ -169,9 +172,15 @@ export function lengkapiDariV1(modul: number, b: KodeBerkas): KodeBerkas {
   const celah = b.celah.map((c) => {
     const v1 = KUNCI_V1[`m${modul}.${b.slug}.${c.nomor}`];
     if (!v1 || normalJawaban(v1.jawaban) !== normalJawaban(c.jawaban)) return c;
-    const bantuan =
-      c.bantuan && teksUntuk(c.bantuan, "id") ? terjemah(c.bantuan, v1.bantuan) : { ...v1.bantuan };
-    return { ...c, bantuan, kenapa: terjemah(c.kenapa, v1.kenapa) };
+    const isi = (x: TeksKode | undefined, v: TeksKode) =>
+      x && teksUntuk(x, "id") ? terjemah(x, v) : { ...v };
+    return {
+      ...c,
+      bantuan1: isi(c.bantuan1, v1.bantuan1),
+      bantuan: isi(c.bantuan, v1.bantuan),
+      bantuan3: isi(c.bantuan3, v1.bantuan3),
+      kenapa: terjemah(c.kenapa, v1.kenapa),
+    };
   });
   return { ...b, celah };
 }
@@ -286,9 +295,56 @@ export function kenapaCelah(k: KodeAktif, slug: string, nomor: number, lang: Bah
   return teksUntuk(celahKe(k, slug, nomor)?.kenapa, lang);
 }
 
-/** A blank's written hint, for a group past SALAH_UNTUK_BANTUAN wrong tries. */
-export function bantuanCelah(k: KodeAktif, slug: string, nomor: number, lang: BahasaUi): string {
-  return teksUntuk(celahKe(k, slug, nomor)?.bantuan, lang);
+/** A blank's written hint of one tier, as the Asisten reads it. */
+export function bantuanCelah(
+  k: KodeAktif,
+  slug: string,
+  nomor: number,
+  lang: BahasaUi,
+  tingkat: 1 | 2 | 3 = 2,
+): string {
+  const c = celahKe(k, slug, nomor);
+  return teksUntuk(tingkat === 1 ? c?.bantuan1 : tingkat === 3 ? c?.bantuan3 : c?.bantuan, lang);
+}
+
+/** The hint a group gets after `salah` wrong tries on a blank still open
+ *  (2026-10-18): the highest tier opened that has a text, and from the
+ *  third wrong try the group's own answer too. Null while none is open. */
+export function bantuanUntuk(
+  k: KodeAktif,
+  slug: string,
+  nomor: number,
+  lang: BahasaUi,
+  salah: number,
+  nomorKelompok: number,
+): { teks: string; tingkat: 1 | 2 | 3; jawaban?: string } | null {
+  const tingkat = tingkatBantuan(salah);
+  if (tingkat === 0) return null;
+  let teks = "";
+  for (let i = tingkat; i >= 1 && !teks; i--)
+    teks = bantuanCelah(k, slug, nomor, lang, i as 1 | 2 | 3);
+  const jawaban = tingkat === 3 ? kanonik(k, slug, nomor, nomorKelompok) : undefined;
+  if (!teks && !jawaban) return null;
+  return { teks, tingkat, ...(jawaban ? { jawaban } : {}) };
+}
+
+/** A group's hint on the wire: the text, its tier, and the answer from the
+ *  third wrong try (the Code step shows it bold in the code font). */
+export interface BantuanKeluar {
+  bantuan: string;
+  bantuanKe: 1 | 2 | 3;
+  bantuanJawaban?: string;
+}
+
+export function bantuanKeluar(
+  b: ReturnType<typeof bantuanUntuk>,
+): BantuanKeluar | Record<string, never> {
+  if (!b) return {};
+  return {
+    bantuan: b.teks,
+    bantuanKe: b.tingkat,
+    ...(b.jawaban ? { bantuanJawaban: b.jawaban } : {}),
+  };
 }
 
 export function kanonik(

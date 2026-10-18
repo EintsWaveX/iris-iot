@@ -87,8 +87,9 @@ interface OrangTim {
   badges: string[];
   status: StatusOrang;
   seelabsAkun: string | null;
-  hakOverride: Partial<Record<string, boolean>>;
-  hak: Record<HakKey, HakNilai>;
+  /** Someone else's rights: sent to the audit and Tim rights only. */
+  hakOverride?: Partial<Record<string, boolean>>;
+  hak?: Record<HakKey, HakNilai>;
   /** Presence (lib/kehadiran.ts). */
   terakhirAktif: string | null;
   /** Own password set, and since when; sent to the Tim right only. */
@@ -665,7 +666,8 @@ function People({
       </div>
 
       {/* Said before the table, where it is read (2026-10-06). */}
-      <span className="hint">{t.rowHint}</span>
+      {/* Other people's rights show only with the audit right (Phase 20). */}
+      <span className="hint">{data.saya?.hak.audit ? t.rowHint : t.rowHintProfil}</span>
       <section className="panel panel--flush tim-tablewrap">
         <table className="tim-table">
           <thead>
@@ -805,7 +807,7 @@ function PersonDrawer({
   const pencipta = p.badges.includes("pencipta");
   // The Pencipta's position is theirs to change.
   const editJab = admin && (!pencipta || sendiri);
-  // The Pencipta, Admins and DEV hold every right; it never shrinks.
+  // The Pencipta and Admins hold every right; it never shrinks.
   const penuh = hakPenuh(p);
   const kat0 = kategoriOf(data, p.nim);
   const [jab, setJab] = useState<string>(kat0 ?? "anggota");
@@ -818,8 +820,11 @@ function PersonDrawer({
   const [tanyaReset, setTanyaReset] = useState(false);
   const bisaReset = !!p.punyaSandi && bolehResetSandi(admin, sendiri, p);
   const hadir = useHadirOrang(`nim=${encodeURIComponent(p.nim)}`);
+  // Someone else's rights and trail: Admins (the audit or Tim right) only.
+  const lihatHak = sendiri || data.saya?.hak.audit === true || admin;
 
   useEffect(() => {
+    if (!lihatHak) return;
     let alive = true;
     void getJson<{ ok: boolean; jejak?: Jejak[] }>(`${API}?nim=${encodeURIComponent(p.nim)}`)
       .then((d) => alive && setJejak(d.jejak ?? []))
@@ -827,7 +832,7 @@ function PersonDrawer({
     return () => {
       alive = false;
     };
-  }, [p.nim]);
+  }, [p.nim, lihatHak]);
 
   const clash = clashFor(data, jab, p.nim);
   const jabKepala = isKategori(jab) ? divisiKepala(jab) : null;
@@ -1072,40 +1077,42 @@ function PersonDrawer({
           </Dialog>
         )}
 
-        <section className="tim-sec">
-          <h3 className="tim-sec__title">{t.rights}</h3>
-          <div className="rightsnote">
-            <InfoIcon size={16} aria-hidden="true" />
-            <span>{t.rightsNote}</span>
-          </div>
-          <div className="tim-rows rights">
-            {HAK.map((k) => {
-              const base = hakDasar(p, k);
-              const val: HakNilai = penuh ? true : (over[k] ?? base);
-              const on = val !== false;
-              return (
-                <div key={k} className="tim-row">
-                  <span className={`rightic${on ? " is-on" : ""}`} aria-hidden="true">
-                    {on ? <CheckCircleIcon size={20} /> : <ProhibitIcon size={20} />}
-                  </span>
-                  <span className="rights__text">
-                    <span>
-                      {t.right[k]}
-                      {val === "own" && <span className="hint"> · {t.ownOnly}</span>}
+        {lihatHak && (
+          <section className="tim-sec">
+            <h3 className="tim-sec__title">{t.rights}</h3>
+            <div className="rightsnote">
+              <InfoIcon size={16} aria-hidden="true" />
+              <span>{t.rightsNote}</span>
+            </div>
+            <div className="tim-rows rights">
+              {HAK.map((k) => {
+                const base = hakDasar(p, k);
+                const val: HakNilai = penuh ? true : (over[k] ?? base);
+                const on = val !== false;
+                return (
+                  <div key={k} className="tim-row">
+                    <span className={`rightic${on ? " is-on" : ""}`} aria-hidden="true">
+                      {on ? <CheckCircleIcon size={20} /> : <ProhibitIcon size={20} />}
                     </span>
-                    {!penuh && val !== base && <Pill tone="violet">{t.override}</Pill>}
-                  </span>
-                  {admin && !penuh ? (
-                    <Switch on={on} onChange={(v) => setRight(k, v)} label={t.right[k]} />
-                  ) : (
-                    <span />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {penuh && <span className="hint">{t.penuhHint}</span>}
-        </section>
+                    <span className="rights__text">
+                      <span>
+                        {t.right[k]}
+                        {val === "own" && <span className="hint"> · {t.ownOnly}</span>}
+                      </span>
+                      {!penuh && val !== base && <Pill tone="violet">{t.override}</Pill>}
+                    </span>
+                    {admin && !penuh ? (
+                      <Switch on={on} onChange={(v) => setRight(k, v)} label={t.right[k]} />
+                    ) : (
+                      <span />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {penuh && <span className="hint">{t.penuhHint}</span>}
+          </section>
+        )}
 
         <section className="tim-sec">
           <h3 className="tim-sec__title">{t.slots}</h3>
@@ -1119,10 +1126,12 @@ function PersonDrawer({
 
         {bayar && <DrawerPay nim={p.nim} data={bayar} lang={lang} />}
 
-        <section className="tim-sec">
-          <h3 className="tim-sec__title">{t.trail}</h3>
-          <Trail jejak={jejak} t={t} lang={lang} w={w} />
-        </section>
+        {lihatHak && (
+          <section className="tim-sec">
+            <h3 className="tim-sec__title">{t.trail}</h3>
+            <Trail jejak={jejak} t={t} lang={lang} w={w} />
+          </section>
+        )}
       </div>
     </Drawer>
   );

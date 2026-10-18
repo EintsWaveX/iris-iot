@@ -108,8 +108,11 @@ export function bacaBerkas(modul: number, v: unknown): KodeBerkas[] | null {
       const pen = rentang(p.en ?? null, sumber.en.length);
       const petunjuk = duaBahasa(c.petunjuk, MAKS_TEKS);
       const kenapa = teksBantu(c.kenapa, MAKS_TEKS);
-      const bantuan =
-        c.bantuan === undefined ? { id: "", en: "" } : teksBantu(c.bantuan, MAKS_TEKS);
+      const tingkat = (v: unknown) =>
+        v === undefined ? { id: "", en: "" } : teksBantu(v, MAKS_TEKS);
+      const bantuan1 = tingkat(c.bantuan1);
+      const bantuan = tingkat(c.bantuan);
+      const bantuan3 = tingkat(c.bantuan3);
       const juga = Array.isArray(c.juga) ? c.juga : null;
       const perKelompok =
         c.perKelompok === null || c.perKelompok === undefined
@@ -123,7 +126,9 @@ export function bacaBerkas(modul: number, v: unknown): KodeBerkas[] | null {
         pen === undefined ||
         !petunjuk ||
         !kenapa ||
+        !bantuan1 ||
         !bantuan ||
+        !bantuan3 ||
         !juga ||
         juga.length > 10 ||
         !juga.every((j) => teks(j, MAKS_JAWABAN) !== null) ||
@@ -139,7 +144,9 @@ export function bacaBerkas(modul: number, v: unknown): KodeBerkas[] | null {
         perKelompok,
         petunjuk,
         kenapa,
+        bantuan1,
         bantuan,
+        bantuan3,
       });
     }
     out.push({ slug: paths[i].replace(/\.(ino|py)$/, ""), path: paths[i], sumber, celah });

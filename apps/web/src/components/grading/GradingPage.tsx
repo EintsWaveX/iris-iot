@@ -15,7 +15,6 @@ import ErrorView from "../ui/ErrorView";
 import { getJson, href, useMe } from "../../lib/app";
 import { useMinWidth, usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
-import { hakPenuh } from "../../lib/hak";
 import { TPS } from "../tp/tpStrings";
 import TpTab from "./TpTab";
 import Grader from "./Grader";
@@ -117,10 +116,12 @@ export default function GradingPage({ lang }: { lang: Lang }) {
   if (me === undefined) return <span className="skeleton" style={{ height: 420 }} />;
   if (!asisten) return <ErrorView code={me ? 403 : 401} lang={lang} role={me?.role ?? null} />;
 
-  const bolehLms = hakPenuh({ tier: me.tier ?? "asisten", badges: me.badges ?? [] });
+  const bolehLms = me.hak?.full === true;
+  // Buat Soal TP is for the jadwal and kode rights; nobody else sees it.
+  const bolehSoal = me.hak?.jadwal === true || me.hak?.kode === true;
   const tabs: { v: Tab; label: string; n?: number }[] = [
     { v: "tp", label: sm ? t.tpShort : t.tabTp, n: poll.data?.hitung.perluNilaiku || undefined },
-    { v: "soal", label: sm ? t.tabSoalSm : t.tabSoal },
+    ...(bolehSoal ? [{ v: "soal" as const, label: sm ? t.tabSoalSm : t.tabSoal }] : []),
     { v: "praktikum", label: t.tabPraktikum },
   ];
   // Phase 14: the SeeLabs robot's own source tab, for the same people.

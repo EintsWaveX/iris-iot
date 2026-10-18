@@ -80,6 +80,8 @@ import LiveNotice, { LiveStatus } from "./LiveNotice";
 import LabAlert from "./LabAlert";
 import HadirNotice from "./HadirNotice";
 import AlertRail from "./AlertRail";
+import { LP, LihatPeranBar, LihatPeranDialog } from "./LihatPeran";
+import { selesaiLihatPeran } from "../../lib/lihat-peran";
 import AsistenCommands from "./AsistenCommands";
 import "./AppNav.css";
 import { openSignIn } from "../../lib/signin";
@@ -426,6 +428,7 @@ export default function AppNav({
     [links, asistenNav],
   );
   const [sheet, setSheet] = useState(false);
+  const [lihatPeran, setLihatPeran] = useState(false);
   const [dispSheet, setDispSheet] = useState(false);
   const [dispPop, setDispPop] = useState(false);
   // Any page can open Tampilan (the Akun page links here instead of a copy).
@@ -530,6 +533,7 @@ export default function AppNav({
   }
 
   async function signOut() {
+    selesaiLihatPeran(false);
     try {
       await postJson("/api/auth/logout");
     } finally {
@@ -740,6 +744,7 @@ export default function AppNav({
                     totOn={totOn}
                     busy={Boolean(now.data)}
                     onShortcuts={() => setShortcutsOpen(true)}
+                    onLihatPeran={() => setLihatPeran(true)}
                     onSignOut={() => void signOut()}
                   />
                 </RadixPopover.Content>
@@ -786,6 +791,7 @@ export default function AppNav({
         )}
       </header>
 
+      {me?.lihatPeran && <LihatPeranBar lang={lang} me={me} />}
       {tampil?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} proyektor={!!pro} />}
       {asistenBar && now.data && <AsistenMiniBar lang={lang} s={now.data} />}
       <AlertRail lang={lang}>
@@ -848,10 +854,17 @@ export default function AppNav({
               setSheet(false);
               setShortcutsOpen(true);
             }}
+            onLihatPeran={() => {
+              setSheet(false);
+              setLihatPeran(true);
+            }}
             onSignOut={() => void signOut()}
           />
         )}
       </Dialog>
+      {me?.hak?.tim === true && (
+        <LihatPeranDialog lang={lang} open={lihatPeran} onOpenChange={setLihatPeran} />
+      )}
 
       {/* No palette or G-shortcuts on the projector: a stray key would open an
           Asisten page in front of the class. */}
@@ -876,6 +889,7 @@ function AccountMenu({
   totOn,
   busy,
   onShortcuts,
+  onLihatPeran,
   onSignOut,
 }: {
   t: (typeof T)["id"];
@@ -884,6 +898,7 @@ function AccountMenu({
   totOn: boolean | null;
   busy: boolean;
   onShortcuts: () => void;
+  onLihatPeran: () => void;
   onSignOut: () => void;
 }) {
   // While a session runs, the first tap only asks; the second signs out.
@@ -917,6 +932,13 @@ function AccountMenu({
         <button type="button" className="acct__row" onClick={onShortcuts}>
           <span>{t.shortcuts}</span>
           <Kbd>?</Kbd>
+        </button>
+      )}
+
+      {/* Admins preview a role; while one runs, the bar under the nav goes back. */}
+      {me.role === "asisten" && me.hak?.tim === true && !me.lihatPeran && (
+        <button type="button" className="acct__row" onClick={onLihatPeran}>
+          <span>{LP[lang].baris}</span>
         </button>
       )}
 

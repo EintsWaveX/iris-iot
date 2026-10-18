@@ -100,7 +100,7 @@ export default function LivePrep({
   sesi,
   assign,
   meNim,
-  hakPenuh,
+  hakHadir,
   onChanged,
   onOpen,
 }: {
@@ -109,8 +109,8 @@ export default function LivePrep({
   sesi: SesiRunning;
   assign: Penugasan | null;
   meNim: string;
-  /** The full right: may change their own status when PJ. */
-  hakPenuh: boolean;
+  /** The hadir right: may change their own status when PJ. */
+  hakHadir: boolean;
   onChanged: () => void;
   /** Opens one of the full Preparation tabs. */
   onOpen: (tab: "akses" | "slides") => void;
@@ -355,23 +355,24 @@ export default function LivePrep({
                             {l.mark}
                           </button>
                         )}
-                        {hd?.bolehPj && b && b.status !== "lepas" && (
-                          <button
-                            type="button"
-                            className="btn btn--sm btn--ghost"
-                            disabled={m.nim === meNim && !hakPenuh}
-                            title={m.nim === meNim && !hakPenuh ? h.ubahSendiri : undefined}
-                            onClick={() => setUbahRow(m.nim)}
-                          >
-                            {h.ubah}
-                            <CaretRightIcon
-                              size={16}
-                              weight="bold"
-                              className="btn__go"
-                              aria-hidden="true"
-                            />
-                          </button>
-                        )}
+                        {hd?.bolehPj &&
+                          b &&
+                          b.status !== "lepas" &&
+                          (m.nim !== meNim || hakHadir) && (
+                            <button
+                              type="button"
+                              className="btn btn--sm btn--ghost"
+                              onClick={() => setUbahRow(m.nim)}
+                            >
+                              {h.ubah}
+                              <CaretRightIcon
+                                size={16}
+                                weight="bold"
+                                className="btn__go"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          )}
                       </span>
                     </>
                   )}

@@ -17,7 +17,7 @@ import { currentSesi } from "../../src/lib/sesi.js";
 import { soalKode } from "../../src/lib/blanks.js";
 import { teksUntuk } from "../../src/lib/kode-jurnal.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { celahKe, kanonik, kodeModul } from "./kode-aktif.js";
+import { bantuanUntuk, celahKe, kanonik, kodeModul } from "./kode-aktif.js";
 import { antreSesi, nomorDariId } from "./aliran.js";
 
 const MAKS_CATATAN = 160;
@@ -216,7 +216,10 @@ export interface BlankAsisten {
   kunci: string;
   juga: string[];
   kenapa: string;
+  /** The hint the group has open (bantuanKe 1 to 3), or the first one
+   *  while none is (bantuanKe 0). */
   bantuan: string;
+  bantuanKe: number;
   isi: string;
   benar: boolean;
   percobaan: number;
@@ -304,7 +307,14 @@ export async function handleBlank(req: ApiRequest, res: ApiResponse) {
         kunci: kanonik(kode, b.berkas.slug, c.nomor, g.nomor) ?? c.jawaban,
         juga: c.juga,
         kenapa: teksUntuk(c.kenapa, l),
-        bantuan: teksUntuk(c.bantuan, l),
+        ...(() => {
+          const buka = r?.benar
+            ? null
+            : bantuanUntuk(kode, b.berkas.slug, c.nomor, l, r?.salah ?? 0, g.nomor);
+          return buka
+            ? { bantuan: buka.teks, bantuanKe: buka.tingkat }
+            : { bantuan: teksUntuk(c.bantuan1, l), bantuanKe: 0 };
+        })(),
         isi: r?.isi ?? "",
         benar: r?.benar ?? false,
         percobaan: r?.percobaan ?? 0,

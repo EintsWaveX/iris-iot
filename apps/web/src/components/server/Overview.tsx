@@ -134,7 +134,6 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
   const jam = jamServer(bacaKondisi(data.server.kondisi));
   const jauh = jam.meleset;
   const detik = Math.round(Math.abs(jam.ms ?? 0) / 1000);
-  const tip = bisa.server ? undefined : t.needRight;
 
   const restartAll = async () => {
     for (const layanan of LAYANAN_URUT) {
@@ -148,8 +147,8 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
     <section className="panel s12span4">
       <div className="panel__head">
         <h2 className="panel__title">{t.quick}</h2>
-        {tip && <span className="hint">{tip}</span>}
       </div>
+      {/* Sync Clock and the hotspot are for everyone; the rest needs Server Control. */}
       <div className="qa">
         <Tile
           title={t.sync}
@@ -166,28 +165,31 @@ function QuickActions({ lang, id, data, refresh, bisa }: Props) {
           busy={syncRun}
           onClick={() => void kirim(id, "jam.selaraskan", {}, lang, t.syncSent).then(refresh)}
         />
-        <Tile
-          title={t.netDiag}
-          hint={
-            netRun
-              ? t.netDiagWait
-              : netLast
-                ? t.netDiagDone(sejak(netLast.selesaiPada ?? netLast.dimintaPada, lang, now))
-                : t.netDiagHint
-          }
-          busy={netRun}
-          disabled={!bisa.server && !netLast}
-          onClick={() => {
-            if (netLast) setDiag(true);
-            else void kirim(id, "diag.jaringan", {}, lang).then(refresh);
-          }}
-        />
-        <Tile
-          title={t.restartAll}
-          hint={t.restartAllHint}
-          disabled={!bisa.server}
-          onClick={() => (data.sesiModul !== null ? setAsk(true) : void restartAll())}
-        />
+        {bisa.server && (
+          <Tile
+            title={t.netDiag}
+            hint={
+              netRun
+                ? t.netDiagWait
+                : netLast
+                  ? t.netDiagDone(sejak(netLast.selesaiPada ?? netLast.dimintaPada, lang, now))
+                  : t.netDiagHint
+            }
+            busy={netRun}
+            onClick={() => {
+              // The output is for the full Server view; Server Control runs it again.
+              if (netLast && bisa.full) setDiag(true);
+              else void kirim(id, "diag.jaringan", {}, lang).then(refresh);
+            }}
+          />
+        )}
+        {bisa.server && (
+          <Tile
+            title={t.restartAll}
+            hint={t.restartAllHint}
+            onClick={() => (data.sesiModul !== null ? setAsk(true) : void restartAll())}
+          />
+        )}
         <div className="qa__b qa__b--hot" data-on={shown ? "yes" : "no"}>
           <WifiHighIcon size={26} aria-hidden="true" />
           <span className="stack stack--sm grow">
@@ -363,7 +365,6 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
       ? hb.layanan
       : { "modul2-ws": "", mosquitto: "", modul4: "" },
   );
-  const tip = bisa.server ? undefined : t.needRight;
 
   function mintaLog(svc: string) {
     void kirim(id, "diag.log", { layanan: svc }, lang, false).then(refresh);
@@ -400,13 +401,13 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
               ) : (
                 <span className="pill">{t.unknown}</span>
               )}
+              {/* Service buttons need Server Control, a log's output the full view. */}
               <div className="svcrow__btns">
-                {running ? (
+                {!bisa.server ? null : running ? (
                   <IconButton
                     icon={busy ? CircleNotchIcon : ArrowClockwiseIcon}
                     label={`${t.restart} ${k}`}
-                    tip={tip}
-                    disabled={!bisa.server || busy}
+                    disabled={busy}
                     onClick={() =>
                       void kirim(
                         id,
@@ -421,8 +422,7 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
                   <IconButton
                     icon={busy ? CircleNotchIcon : PlayIcon}
                     label={`${t.start} ${k}`}
-                    tip={tip}
-                    disabled={!bisa.server || busy}
+                    disabled={busy}
                     onClick={() =>
                       void kirim(id, "layanan.mulai", { layanan: k }, lang, t.startSent(k)).then(
                         refresh,
@@ -430,26 +430,27 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
                     }
                   />
                 )}
-                <IconButton
-                  icon={TerminalWindowIcon}
-                  label={`${t.viewLog} ${k}`}
-                  onClick={() => {
-                    setLog(k);
-                    const l = terakhirDari(data, "diag.log", k);
-                    const umur = l
-                      ? Date.now() - new Date(l.selesaiPada ?? l.dimintaPada).getTime()
-                      : Infinity;
-                    if (bisa.server && umur > 30_000 && !sedangBerjalan(data, "diag.log", k))
-                      mintaLog(k);
-                  }}
-                />
-                {running && (
+                {bisa.full && (
+                  <IconButton
+                    icon={TerminalWindowIcon}
+                    label={`${t.viewLog} ${k}`}
+                    onClick={() => {
+                      setLog(k);
+                      const l = terakhirDari(data, "diag.log", k);
+                      const umur = l
+                        ? Date.now() - new Date(l.selesaiPada ?? l.dimintaPada).getTime()
+                        : Infinity;
+                      if (bisa.server && umur > 30_000 && !sedangBerjalan(data, "diag.log", k))
+                        mintaLog(k);
+                    }}
+                  />
+                )}
+                {running && bisa.server && (
                   <IconButton
                     icon={PowerIcon}
                     kind="danger"
                     label={`${t.turnOff} ${k}`}
-                    tip={tip}
-                    disabled={!bisa.server || busy}
+                    disabled={busy}
                     onClick={() => setOff(k)}
                   />
                 )}
@@ -490,7 +491,7 @@ function Services({ lang, id, data, refresh, bisa }: Props) {
 
 /** Each module's last Ready check (mockup ReadySnap): Module 1 needs no
  *  Pi; 2 to 4 read their newest run, or the newest run of every module. */
-function ReadySnap({ lang, id, data, refresh, bisa, siapa, onTab }: Props) {
+function ReadySnap({ lang, id, data, refresh, siapa, onTab }: Props) {
   const t = S[lang];
   const w = S12[lang];
   const runs = data.siapRiwayat;
@@ -551,8 +552,7 @@ function ReadySnap({ lang, id, data, refresh, bisa, siapa, onTab }: Props) {
                 icon={jalan ? CircleNotchIcon : ArrowClockwiseIcon}
                 label={w.checkMod(modulLabel(Number(x.m), lang))}
                 sm
-                tip={bisa.server ? undefined : t.needRight}
-                disabled={!bisa.server || jalan}
+                disabled={jalan}
                 onClick={() => run(x.m)}
               />
             )}
@@ -560,12 +560,7 @@ function ReadySnap({ lang, id, data, refresh, bisa, siapa, onTab }: Props) {
         ))}
       </div>
       <div className="panel__actions" style={{ marginTop: "auto" }}>
-        <button
-          type="button"
-          className="btn btn--block"
-          disabled={!bisa.server || jalan}
-          onClick={() => run("")}
-        >
+        <button type="button" className="btn btn--block" disabled={jalan} onClick={() => run("")}>
           {jalan ? (
             <CircleNotchIcon size={18} className="ctl-spin" aria-hidden="true" />
           ) : (
@@ -804,10 +799,12 @@ function OfflineCard({ lang, data, bisa, onTab }: Props) {
             {t.tabs.konsol}
           </button>
         )}
-        <button type="button" className="btn btn--ghost" onClick={() => onTab("pengaturan")}>
-          {s12.offSettings}
-          <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
-        </button>
+        {bisa.full && (
+          <button type="button" className="btn btn--ghost" onClick={() => onTab("pengaturan")}>
+            {s12.offSettings}
+            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+          </button>
+        )}
       </div>
     </section>
   );

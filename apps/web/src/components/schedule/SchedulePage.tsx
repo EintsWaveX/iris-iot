@@ -46,7 +46,6 @@ import type { Lang } from "../../lib/kelas";
 import SlotEditor, { type SlotEditorHandle } from "./SlotEditor";
 import ImportView from "./ImportView";
 import ModulView from "./ModulView";
-import { hakPenuh } from "../../lib/hak";
 import { J, pesanJ, type Jx } from "./strings";
 import { HARI, SLOTS, type DataJadwal, type JadwalRow, type PengaturanJendela } from "./types";
 import "./SchedulePage.css";
@@ -456,7 +455,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
 
   const meKode = (me?.kode ?? "").toUpperCase();
   const bolehJadwal = me?.hak?.jadwal !== false && !!me?.hak;
-  const bolehModul = !!me && hakPenuh({ tier: me.tier ?? "asisten", badges: me.badges ?? [] });
+  const bolehModul = me?.hak?.jadwal === true;
   const known = useMemo(
     () => new Set((data?.asisten ?? []).map((a) => a.kode.toUpperCase())),
     [data],
@@ -496,7 +495,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
     );
   }
 
-  if (view === "modul" && data) {
+  if (view === "modul" && data && bolehModul) {
     return (
       <ModulView
         key={semester}
@@ -620,9 +619,11 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             <Switch on={highlight} onChange={setHighlight} label={t.mine} />
             <span>{t.mine}</span>
           </label>
-          <button type="button" className="btn" onClick={() => setView("modul")}>
-            {t.pm.open}
-          </button>
+          {bolehModul && (
+            <button type="button" className="btn" onClick={() => setView("modul")}>
+              {t.pm.open}
+            </button>
+          )}
           {bolehJadwal &&
             (narrow ? (
               <IconButton
@@ -811,7 +812,9 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             bolehJadwal={bolehJadwal}
             bolehModul={bolehModul}
             diajar={selRow ? data.diajar?.[String(selRow.id)] : undefined}
-            onPerModul={() => coba({ perModul: { hari: sel.hari, slot: sel.slot } })}
+            onPerModul={
+              bolehModul ? () => coba({ perModul: { hari: sel.hari, slot: sel.slot } }) : undefined
+            }
             onDirty={setDirty}
             onSaved={load}
           />

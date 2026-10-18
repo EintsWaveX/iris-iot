@@ -491,21 +491,12 @@ export default function AsistenHome({
     to.startsWith("/") ? location.assign(to) : onPrep(pilihPrep, to as PrepTab);
 
   /* -------------------------------------------------------- launch */
-  const susSwitch = (
-    <Tooltip label={penuh ? h.susulan : d.makeupLocked}>
+  // A Susulan needs the full Pair right; without it the switch doesn't show.
+  const susSwitch = penuh && (
+    <Tooltip label={h.susulan}>
       <label className="lp__sus-sw">
         <span className="hint">{d.makeup}</span>
-        <Switch
-          on={susulan}
-          onChange={(v) => {
-            if (!penuh) {
-              window.Toast?.show(d.makeupLocked, "warn");
-              return;
-            }
-            setSusulan(v);
-          }}
-          label={d.makeup}
-        />
+        <Switch on={susulan} onChange={setSusulan} label={d.makeup} />
       </label>
     </Tooltip>
   );

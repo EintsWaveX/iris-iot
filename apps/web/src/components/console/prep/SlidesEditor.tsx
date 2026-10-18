@@ -2,8 +2,10 @@
  * Preparation's Slides tab, per module since 2026-10-08 (the Wiring
  * Schematics tab's pattern, SchematicEditor.tsx): one card per module with
  * a PDF (straight to Vercel Blob, see api/presentasi/[aksi].ts) and a Canva
- * view link. Uploading or linking replaces the card's deck of that kind;
- * both may be active, and the Praktikan switches between them. A Praktikan
+ * view link for each class, Reguler (ID) and Internasional (EN), behind a
+ * switch (2026-10-18). Uploading or linking replaces the card's deck of that
+ * kind and class; all may be active, and the Praktikan switches between
+ * them, their own class's link first. A Praktikan
  * sees a module's slides only once they did its practicum.
  * Decks from before then have no module; they wait under the cards until
  * an Asisten gives each one a module or deletes it.
@@ -29,7 +31,7 @@ import { dict, getJson, MODUL_NAMA, postJson } from "../../../lib/app";
 import { useDirektori } from "../../../lib/people";
 import { modulLabel } from "../../../lib/labels";
 import { bacaTautan, TAUTAN_SLIDES } from "../../../lib/tautan";
-import type { Lang } from "../../../lib/kelas";
+import { bahasaKonten, type Lang } from "../../../lib/kelas";
 import TanpaHak, { useBolehJadwal } from "./TanpaHak";
 import { useSiaran } from "../../../lib/siaran";
 import Lalu from "../../ui/Lalu";
@@ -53,11 +55,15 @@ const T = dict({
     canvaName: "Nama (boleh kosong)",
     canvaNamePh: "Misalnya Pengantar Modul 3",
     save: "Pasang Tautan",
+    kelas: "Kelas",
+    kelasId: "Reguler (ID)",
+    kelasEn: "Internasional (EN)",
     replaced: (m: string) => `Presentasi ${m} diganti.`,
+    replacedLink: (m: string, k: string) => `Tautan Canva ${m} untuk ${k} dipasang.`,
     uploadFail: "PDF gagal diunggah. Coba lagi.",
     fail: "Gagal. Coba lagi.",
     accepted:
-      "Pakai tautan publik dari tombol Bagikan di Canva: canva.link/… atau canva.com/design/…/view. Praktikan melihat presentasi sebuah modul setelah mengikuti praktikumnya.",
+      "Pakai tautan publik dari tombol Bagikan di Canva: canva.link/… atau canva.com/design/…/view. Kelas Reguler dan Internasional punya tautannya sendiri; Praktikan melihat tautan kelasnya lebih dulu. Praktikan melihat presentasi sebuah modul setelah mengikuti praktikumnya.",
     del: "Hapus",
     delTitle: (m: string) => `Hapus Presentasi ${m}?`,
     delBody: "Praktikan tidak lagi melihatnya.",
@@ -98,11 +104,15 @@ const T = dict({
     canvaName: "Name (optional)",
     canvaNamePh: "For example Module 3 intro",
     save: "Use This Link",
+    kelas: "Class",
+    kelasId: "Regular (ID)",
+    kelasEn: "International (EN)",
     replaced: (m: string) => `${m} slides replaced.`,
+    replacedLink: (m: string, k: string) => `${m} Canva link for ${k} set.`,
     uploadFail: "Couldn't upload the PDF. Try again.",
     fail: "That didn't work. Try again.",
     accepted:
-      "Use the public link from Canva's Share button: canva.link/… or canva.com/design/…/view. Students see a module's slides once they did its practicum.",
+      "Use the public link from Canva's Share button: canva.link/… or canva.com/design/…/view. Regular and International classes each have their own link; students see their class's link first. Students see a module's slides once they did its practicum.",
     del: "Delete",
     delTitle: (m: string) => `Delete the ${m} Slides?`,
     delBody: "Students stop seeing them.",
@@ -141,11 +151,15 @@ const T = dict({
     canvaName: "名称（可不填）",
     canvaNamePh: "例如：模块 3 导读",
     save: "使用此链接",
+    kelas: "班级",
+    kelasId: "普通班 (ID)",
+    kelasEn: "国际班 (EN)",
     replaced: (m: string) => `${m}的幻灯片已替换。`,
+    replacedLink: (m: string, k: string) => `已设置${m}${k}的 Canva 链接。`,
     uploadFail: "PDF 上传失败，请再试一次。",
     fail: "没有成功，请再试一次。",
     accepted:
-      "请用 Canva 分享按钮里的公开链接：canva.link/… 或 canva.com/design/…/view。学生做完某个模块的实验后才能看到它的幻灯片。",
+      "请用 Canva 分享按钮里的公开链接：canva.link/… 或 canva.com/design/…/view。普通班和国际班各有自己的链接，学生会先看到自己班的链接。学生做完某个模块的实验后才能看到它的幻灯片。",
     del: "删除",
     delTitle: (m: string) => `删除${m}的幻灯片？`,
     delBody: "学生将看不到它。",
@@ -177,7 +191,10 @@ interface Deck {
   diunggahOleh: string;
   diunggahPada: string;
   aktif: boolean;
+  bahasa: Bahasa;
 }
+
+type Bahasa = "id" | "en";
 
 type Tx = (typeof T)["id"];
 
@@ -187,7 +204,24 @@ function pendek(url: string): string {
   return m ? `canva.com/design/${m[1].slice(0, 8)}…` : url;
 }
 
-const tampil = (d: Deck): Tampil => ({ url: d.url, namaBerkas: d.namaBerkas, jenis: d.jenis });
+const tampil = (d: Deck): Tampil => ({
+  url: d.url,
+  namaBerkas: d.namaBerkas,
+  jenis: d.jenis,
+  bahasa: d.bahasa,
+});
+
+/** The name field's value: empty when the link was saved without one. */
+const namaTautan = (d: Deck | null) => (d && d.namaBerkas !== "Canva" ? d.namaBerkas : "");
+
+/** The module's active Canva link for one class. */
+function cari(list: Deck[] | null, modul: number, bahasa: Bahasa): Deck | null {
+  return (
+    list?.find(
+      (d) => d.modul === modul && d.aktif && d.jenis === "tautan" && (d.bahasa ?? "id") === bahasa,
+    ) ?? null
+  );
+}
 
 export default function SlidesEditor({ lang }: { lang: Lang }) {
   const t = T[lang];
@@ -228,7 +262,10 @@ export default function SlidesEditor({ lang }: { lang: Lang }) {
             judul={MODUL_NAMA[m]}
             aktif={{
               berkas: list?.find((d) => d.modul === m && d.aktif && d.jenis === "berkas") ?? null,
-              tautan: list?.find((d) => d.modul === m && d.aktif && d.jenis === "tautan") ?? null,
+              tautan: {
+                id: cari(list, m, "id"),
+                en: cari(list, m, "en"),
+              },
             }}
             loading={list === null}
             t={t}
@@ -355,7 +392,7 @@ function DeckCard({
   boleh: boolean;
   modul: number;
   judul: string;
-  aktif: { berkas: Deck | null; tautan: Deck | null };
+  aktif: { berkas: Deck | null; tautan: Record<Bahasa, Deck | null> };
   loading: boolean;
   t: Tx;
   lang: Lang;
@@ -363,26 +400,33 @@ function DeckCard({
   onDelete: (d: Deck) => void;
   onSaved: () => void;
 }) {
-  // Each tab shows its own source: the PDF, or the link.
-  const hanyaTautan = !aktif.berkas && !!aktif.tautan;
+  const adaTautan = !!(aktif.tautan.id || aktif.tautan.en);
+  // Each tab shows its own source: the PDF, or the link of the picked class.
+  const hanyaTautan = !aktif.berkas && adaTautan;
   const [mode, setMode] = useState<"pdf" | "link">(hanyaTautan ? "link" : "pdf");
   useEffect(() => setMode(hanyaTautan ? "link" : "pdf"), [hanyaTautan]);
-  // The field shows the link in use; typing takes over.
-  const tautanKini = aktif.tautan ? aktif.tautan.url.replace(/\?embed$/, "") : "";
-  const [url, setUrl] = useState(tautanKini);
-  const [namaLink, setNamaLink] = useState("");
-  const [mengetik, setMengetik] = useState(false);
-  useEffect(() => {
-    if (!mengetik) setUrl(tautanKini);
-  }, [tautanKini, mengetik]);
+  const [kelas, setKelas] = useState<Bahasa>(bahasaKonten(lang));
+  const tautan = aktif.tautan[kelas];
+  // The fields show the link and the name in use; typing takes over, per class.
+  const tautanKini = tautan ? tautan.url.replace(/\?embed$/, "") : "";
+  const namaKini = namaTautan(tautan);
+  const [isian, setIsian] = useState<Record<Bahasa, { url: string; nama: string } | null>>({
+    id: null,
+    en: null,
+  });
+  const url = isian[kelas]?.url ?? tautanKini;
+  const namaLink = isian[kelas]?.nama ?? namaKini;
+  const ketik = (patch: Partial<{ url: string; nama: string }>) =>
+    setIsian((s) => ({ ...s, [kelas]: { url, nama: namaLink, ...patch } }));
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   // A PDF over 20 MB shows the 413 view: switch to a link, or pick again.
   const [tooBig, setTooBig] = useState<number | null>(null);
   const [pick, setPick] = useState(0);
 
-  const cur = mode === "link" ? aktif.tautan : aktif.berkas;
+  const cur = mode === "link" ? tautan : aktif.berkas;
   const title = `${modulLabel(modul, lang)} · ${judul}`;
+  const namaKelas = kelas === "en" ? t.kelasEn : t.kelasId;
   const cek = bacaTautan(url, TAUTAN_SLIDES);
   const err = tried && !cek.ok ? t.errors[cek.kode] : null;
 
@@ -418,18 +462,19 @@ function DeckCard({
       modul,
       url,
       nama: namaLink,
+      bahasa: kelas,
     }).catch(() => ({ ok: false, kode: undefined }));
     setBusy(false);
     if (!r.ok) return window.Toast?.show(t.errors[r.kode ?? ""] ?? t.fail, "danger");
-    window.Toast?.show(t.replaced(modulLabel(modul, lang)), "ok");
-    setMengetik(false);
+    window.Toast?.show(t.replacedLink(modulLabel(modul, lang), namaKelas), "ok");
+    // The saved link and name show from the list again.
+    setIsian((s) => ({ ...s, [kelas]: null }));
     setTried(false);
-    setNamaLink("");
     onSaved();
   }
 
   const kind =
-    aktif.berkas && aktif.tautan ? t.both : aktif.tautan ? t.canva : aktif.berkas ? t.pdf : t.none;
+    aktif.berkas && adaTautan ? t.both : adaTautan ? t.canva : aktif.berkas ? t.pdf : t.none;
   const source = cur
     ? cur.jenis === "tautan"
       ? `${cur.namaBerkas} · ${pendek(cur.url)}`
@@ -441,13 +486,13 @@ function DeckCard({
   return (
     <div
       className="schem-card"
-      data-custom={aktif.berkas || aktif.tautan ? "yes" : undefined}
+      data-custom={aktif.berkas || adaTautan ? "yes" : undefined}
       style={{ "--mod-hue": `var(--mod-${modul})` } as CSSProperties}
     >
       <div className="schem-card__head">
         <Pill modul={modul}>{modulLabel(modul, lang)}</Pill>
         <span className="grow" />
-        <Pill tone={aktif.tautan ? "accent" : undefined}>{kind}</Pill>
+        <Pill tone={adaTautan ? "accent" : undefined}>{kind}</Pill>
       </div>
       {loading ? (
         <span className="skeleton schem-card__thumb" />
@@ -463,7 +508,7 @@ function DeckCard({
           ) : (
             <FilePdfIcon size={28} aria-hidden="true" />
           )}
-          <b>{cur.jenis === "tautan" ? "Canva" : "PDF"}</b>
+          <b>{cur.jenis === "tautan" ? `Canva · ${namaKelas}` : "PDF"}</b>
           <span className="hint">
             {cur.jenis === "tautan" ? (
               t.preview
@@ -497,8 +542,23 @@ function DeckCard({
           { value: "link", label: t.canva },
         ]}
       />
+      {mode === "link" && (
+        <SegmentedControl
+          fill
+          aria-label={`${t.kelas} ${modulLabel(modul, lang)}`}
+          value={kelas}
+          onValueChange={(v) => {
+            setKelas(v as Bahasa);
+            setTried(false);
+          }}
+          options={[
+            { value: "id", label: t.kelasId },
+            { value: "en", label: t.kelasEn },
+          ]}
+        />
+      )}
       {boleh && (
-        <Fade k={mode}>
+        <Fade k={mode === "link" ? `link-${kelas}` : mode}>
           {mode === "pdf" && tooBig !== null ? (
             <ErrorView
               code={413}
@@ -542,10 +602,7 @@ function DeckCard({
                   inputMode="url"
                   placeholder="https://canva.link/…"
                   value={url}
-                  onChange={(e) => {
-                    setUrl(e.target.value);
-                    setMengetik(true);
-                  }}
+                  onChange={(e) => ketik({ url: e.target.value })}
                   onBlur={() => url && setTried(true)}
                   aria-invalid={err ? true : undefined}
                 />
@@ -558,16 +615,15 @@ function DeckCard({
                   maxLength={200}
                   placeholder={t.canvaNamePh}
                   value={namaLink}
-                  onChange={(e) => {
-                    setNamaLink(e.target.value);
-                    setMengetik(true);
-                  }}
+                  onChange={(e) => ketik({ nama: e.target.value })}
                 />
               </label>
               <button
                 type="submit"
                 className="btn btn--secondary"
-                disabled={busy || !url.trim() || (url.trim() === tautanKini && !namaLink.trim())}
+                disabled={
+                  busy || !url.trim() || (url.trim() === tautanKini && namaLink.trim() === namaKini)
+                }
               >
                 {t.save}
               </button>

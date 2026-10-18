@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   BERKAS_MODUL,
   bantuanCelah,
+  bantuanUntuk,
   cekCelah,
   kanonik,
   kenapaCelah,
@@ -22,6 +23,8 @@ import {
   type KodeBerkas,
 } from "../../../src/lib/kode-jurnal";
 import { personalize } from "../../../src/lib/group-identity";
+
+const teksId = (x: { id: string } | undefined) => x?.id ?? "";
 
 const SKETCHES = fileURLToPath(new URL("../../../src/content/sketches/", import.meta.url));
 const bundled = (bahasa: string, p: string) =>
@@ -113,7 +116,73 @@ describe("explanations and hints", () => {
   it("no dashes in the copy", () => {
     for (const modul of [1, 2, 3, 4])
       for (const b of kodeBawaan(modul).berkas.values())
-        for (const c of b.urut) expect(JSON.stringify([c.kenapa, c.bantuan])).not.toMatch(/[–—]/);
+        for (const c of b.urut)
+          expect(JSON.stringify([c.kenapa, c.bantuan1, c.bantuan, c.bantuan3])).not.toMatch(/[–—]/);
+  });
+
+  it("every version 1 blank has a light and a direct hint, and the light one never names the answer", () => {
+    for (const modul of [1, 2, 3, 4]) {
+      const k = kodeBawaan(modul);
+      for (const [slug, b] of k.berkas) {
+        for (const c of b.urut) {
+          for (const lang of ["id", "en", "zh"] as const) {
+            const satu = bantuanCelah(k, slug, c.nomor, lang, 1);
+            expect(satu, `${slug} (${c.nomor}) ${lang}`).not.toBe("");
+            expect(
+              bantuanCelah(k, slug, c.nomor, lang, 3),
+              `${slug} (${c.nomor}) ${lang}`,
+            ).not.toBe("");
+            const sebut = satu.split(/[^\w./{}"]+/).includes(c.jawaban);
+            expect(sebut, `${slug} (${c.nomor}) ${lang} light hint names the answer`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it("opens one tier per wrong try, and the answer with the third", () => {
+    const k = kodeBawaan(1);
+    const f = "modul1_ble_central";
+    expect(bantuanUntuk(k, f, 2, "id", 0, 1)).toBeNull();
+    expect(bantuanUntuk(k, f, 2, "id", 1, 1)).toEqual({
+      teks: bantuanCelah(k, f, 2, "id", 1),
+      tingkat: 1,
+    });
+    expect(bantuanUntuk(k, f, 2, "en", 2, 1)).toEqual({
+      teks: bantuanCelah(k, f, 2, "en", 2),
+      tingkat: 2,
+    });
+    for (const salah of [3, 7])
+      expect(bantuanUntuk(k, f, 2, "zh", salah, 1)).toEqual({
+        teks: bantuanCelah(k, f, 2, "zh", 3),
+        tingkat: 3,
+        jawaban: "digitalRead",
+      });
+    // A per-group answer is the group's own.
+    expect(bantuanUntuk(kodeBawaan(2), "modul2_websocket_esp32", 2, "id", 3, 3)?.jawaban).toBe(
+      "/grup3",
+    );
+    expect(bantuanUntuk(k, f, 99, "id", 3, 1)).toBeNull();
+  });
+
+  it("a tier with no text falls back to the one below it", () => {
+    const [b] = kodeV1(3);
+    const tanpa: KodeBerkas = {
+      ...b,
+      celah: b.celah.map((c) => ({ ...c, jawaban: `${c.jawaban}x`, bantuan3: { id: "", en: "" } })),
+    };
+    const k = {
+      modul: 3,
+      versi: 2,
+      pin: false,
+      berkas: new Map([
+        [b.slug, { berkas: tanpa, urut: tanpa.celah, templat: { id: "", en: "" } }],
+      ]),
+    };
+    const h = bantuanUntuk(k, b.slug, 1, "id", 3, 1);
+    expect(h?.teks).toBe(teksId(tanpa.celah[0].bantuan));
+    expect(h?.tingkat).toBe(3);
+    expect(h?.jawaban).toBe(`${b.celah[0].jawaban}x`);
   });
 
   it("a version saved before hints existed takes version 1's hint while the answer is the same", () => {

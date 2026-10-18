@@ -6,7 +6,7 @@
  * back. The connection itself stays in /api/tp (lms-info, lms, lms-tugas).
  *
  * Every Asisten reads; changes are for the Pencipta, Admins and the ASO
- * division (bolehKelolaLms), the same people who make the TP assignments.
+ * division (the lms right), the same people who make the TP assignments.
  *
  * GET  /api/lms/ringkas[?modul=]   the live overview: the TP window, who
  *      handed in, each class, what IRIS does by itself, what to check, log
@@ -49,7 +49,7 @@ import { muatOrang } from "../_lib/hak.js";
 import { denganSiaran } from "../_lib/siaran.js";
 import { getDb } from "../../src/lib/db.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
-import { bolehKelolaLms } from "../../src/lib/hak.js";
+import { boleh } from "../../src/lib/hak.js";
 import { SITE_URL } from "../../src/lib/lab.js";
 import {
   asisten,
@@ -340,7 +340,7 @@ async function handleRingkas(req: ApiRequest, res: ApiResponse, s: SessionPayloa
       baru: r.baru,
       galat: r.galat,
     })),
-    boleh: !!orang && bolehKelolaLms(orang),
+    boleh: !!orang && boleh(orang, "lms"),
   });
 }
 
@@ -534,7 +534,7 @@ async function handleKelas(req: ApiRequest, res: ApiResponse, s: SessionPayload)
         aktivitas: i?.aktivitas ?? null,
       };
     }),
-    boleh: !!orang && bolehKelolaLms(orang),
+    boleh: !!orang && boleh(orang, "lms"),
   });
 }
 
@@ -759,7 +759,7 @@ async function handleTugas(_req: ApiRequest, res: ApiResponse, s: SessionPayload
       tugas: daftar,
       kursus: kursus.map((k) => ({ id: k.id, label: k.label, kelas: k.kelas })),
       kelasJumlah: kursus.length,
-      boleh: !!orang && bolehKelolaLms(orang),
+      boleh: !!orang && boleh(orang, "lms"),
       kelola: !!set.token?.privat,
     });
   } catch (e) {
@@ -1015,7 +1015,7 @@ async function handleNilaiBaca(req: ApiRequest, res: ApiResponse, s: SessionPayl
         }
       : null,
     otomatis: otomatis.nyala.nilai === true,
-    boleh: !!orang && bolehKelolaLms(orang),
+    boleh: !!orang && boleh(orang, "lms"),
   });
 }
 
@@ -1077,7 +1077,7 @@ async function handleUmumBaca(_req: ApiRequest, res: ApiResponse, s: SessionPayl
     templat: templatUmum(set),
     kursus: kursus.map((k) => ({ id: k.id, label: k.label, kelas: k.kelas })),
     otomatis: otomatis.nyala.umum === true,
-    boleh: !!orang && bolehKelolaLms(orang),
+    boleh: !!orang && boleh(orang, "lms"),
   });
 }
 
@@ -1197,7 +1197,7 @@ async function handleKalenderBaca(_req: ApiRequest, res: ApiResponse, s: Session
     }),
     kelasJumlah: kursus.length,
     otomatis: otomatis.nyala.kalender === true,
-    boleh: !!orang && bolehKelolaLms(orang),
+    boleh: !!orang && boleh(orang, "lms"),
   });
 }
 
@@ -1325,7 +1325,7 @@ async function handleIsiBaca(req: ApiRequest, res: ApiResponse, s: SessionPayloa
           return !!b && !!kini && b.cap !== kini;
         }).length,
       })),
-      boleh: !!orang && bolehKelolaLms(orang),
+      boleh: !!orang && boleh(orang, "lms"),
       kelola: !!set.token?.privat,
     });
   } catch (e) {
@@ -1675,7 +1675,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (!requireMethod(req, res, "POST")) return;
   // Every change: the Pencipta, Admins and the ASO division.
   const orang = await muatOrang(s.nim);
-  if (!orang || !bolehKelolaLms(orang)) return tolak(res, "tidak_berhak", 403);
+  if (!orang || !boleh(orang, "lms")) return tolak(res, "tidak_berhak", 403);
   if (aksi === "otomatis") return handleOtomatis(req, res, s);
   if (aksi === "pesan") return handlePesan(req, res, s);
   if (aksi === "perpanjang") return handlePerpanjang(req, res, s);

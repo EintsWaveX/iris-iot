@@ -69,7 +69,9 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
   let kode: string | undefined;
   let perluAturSandi: boolean | undefined;
   let divisi: { id: string; en: string } | undefined;
-  let peran: { tier: string; badges: string[]; hak: Record<string, unknown> } | undefined;
+  let peran:
+    | { tier: string; badges: string[]; kodeDivisi: string | null; hak: Record<string, unknown> }
+    | undefined;
   if (session.role === "asisten") {
     try {
       const [row] = await getDb()
@@ -91,7 +93,10 @@ async function handleMe(req: ApiRequest, res: ApiResponse) {
       divisi = row ? { id: row.divisiId, en: row.divisiEn } : undefined;
       // Phase 9: the tier, badges and every right, so the interface can
       // hide what the API would refuse anyway.
-      peran = row ? { tier: row.tier, badges: row.badges, hak: petaHak(row) } : undefined;
+      // The division's code too, for Akun's Hak Saya (where a right comes from).
+      peran = row
+        ? { tier: row.tier, badges: row.badges, kodeDivisi: row.divisi, hak: petaHak(row) }
+        : undefined;
     } catch (err) {
       console.error("[api/auth/me] asisten lookup failed:", err);
     }

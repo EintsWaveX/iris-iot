@@ -59,15 +59,17 @@ import { gantiPinTeks } from "../../src/lib/pin-kode.js";
 import { parseBlanks, soalKode, soalKodePrefix } from "../../src/lib/blanks.js";
 import {
   bantuanCelah,
+  bantuanKeluar,
+  bantuanUntuk,
   cekCelah,
   jumlahCelah,
   kanonik,
   kenapaCelah,
   kodeModul,
   type BahasaUi,
+  type BantuanKeluar,
   type KodeAktif,
 } from "../_lib/kode-aktif.js";
-import { SALAH_UNTUK_BANTUAN } from "../../src/lib/kode-jurnal.js";
 import {
   daftarMinta,
   handleBlank,
@@ -255,8 +257,8 @@ async function handleDraft(
       asistenNama.set(a.nim, a.kode ? `${a.nama} (${a.kode.toUpperCase()})` : a.nama);
   }
 
-  // The explanation once a blank is right, the written hint once it went
-  // wrong twice: neither is the answer, both follow the group's state.
+  // The explanation once a blank is right, the hint of the tier its wrong
+  // tries opened while it is not (from the third, with the answer).
   const lang = bahasaUi(req.query.lang);
   const out: Record<
     string,
@@ -269,17 +271,22 @@ async function handleDraft(
       salah: number;
       pada: string;
       kenapa?: string;
-      bantuan?: string;
-    }
+    } & Partial<BantuanKeluar>
   > = {};
   for (const row of rows) {
     const nomor = row.soalKode.slice(prefix.length);
     const olehAsisten = !!row.oleh && asistenNama.has(row.oleh);
     const kenapa = row.benar ? kenapaCelah(parsed.kode, parsed.berkas, Number(nomor), lang) : "";
-    const bantuan =
-      !row.benar && row.salah >= SALAH_UNTUK_BANTUAN
-        ? bantuanCelah(parsed.kode, parsed.berkas, Number(nomor), lang)
-        : "";
+    const bantuan = row.benar
+      ? null
+      : bantuanUntuk(
+          parsed.kode,
+          parsed.berkas,
+          Number(nomor),
+          lang,
+          row.salah,
+          session.kelompokNomor ?? 1,
+        );
     out[nomor] = {
       isi: row.isi,
       benar: row.benar,
@@ -291,7 +298,7 @@ async function handleDraft(
       salah: row.salah,
       pada: row.pada.toISOString(),
       ...(kenapa ? { kenapa } : {}),
-      ...(bantuan ? { bantuan } : {}),
+      ...bantuanKeluar(bantuan),
     };
   }
   const sesiIds = [
@@ -437,14 +444,15 @@ async function handleCek(
   }
 
   const salah = baris?.salah ?? 0;
-  const bantuan =
-    !result.benar && salah >= SALAH_UNTUK_BANTUAN ? bantuanCelah(kode, berkas, nomor, lang) : "";
+  const bantuan = result.benar
+    ? null
+    : bantuanUntuk(kode, berkas, nomor, lang, salah, nomorKelompok);
   res.status(200).json({
     ok: true,
     benar: result.benar,
     kenapa: result.kenapa,
     salah,
-    ...(bantuan ? { bantuan } : {}),
+    ...bantuanKeluar(bantuan),
   });
   // Phase 12: the group's own answer to its groupmates and the Asisten (the
   // room keeps it from other groups); never the key or the explanation.
@@ -573,11 +581,16 @@ async function handleKunci(req: ApiRequest, res: ApiResponse) {
   if (req.query.unduh !== "1") {
     // What the Praktikan get around each blank, so the Asisten knows it too.
     const lang = bahasaUi(req.query.lang);
-    const bantu: Record<string, { kenapa: string; bantuan: string; juga: string[] }> = {};
+    const bantu: Record<
+      string,
+      { kenapa: string; bantuan1: string; bantuan: string; bantuan3: string; juga: string[] }
+    > = {};
     for (let n = 1; n <= total; n++) {
       bantu[n] = {
         kenapa: kenapaCelah(parsed.kode, parsed.berkas, n, lang),
-        bantuan: bantuanCelah(parsed.kode, parsed.berkas, n, lang),
+        bantuan1: bantuanCelah(parsed.kode, parsed.berkas, n, lang, 1),
+        bantuan: bantuanCelah(parsed.kode, parsed.berkas, n, lang, 2),
+        bantuan3: bantuanCelah(parsed.kode, parsed.berkas, n, lang, 3),
         juga: parsed.kode.berkas.get(parsed.berkas)?.urut[n - 1]?.juga ?? [],
       };
     }

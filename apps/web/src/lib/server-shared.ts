@@ -596,3 +596,19 @@ export function perintahHabisPada(p: {
     return Date.parse(p.dimintaPada) + PERINTAH_MENUNGGU_KEDALUWARSA_MENIT * 60_000;
   return null;
 }
+
+/** Commands whose output everyone reads: the Ready check and Sync Clock. */
+export const AKSI_KELUARAN_UMUM: readonly string[] = ["diag.siap", "jam.selaraskan"];
+
+/**
+ * A command list as someone without the full Server view gets it: the
+ * command and its status stay, the machine output goes (it can carry logs),
+ * except the Ready check's and Sync Clock's.
+ */
+export function saringKeluaran<T extends { aksi: string; keluaran: string | null }>(
+  rows: readonly T[],
+  full: boolean,
+): T[] {
+  if (full) return [...rows];
+  return rows.map((r) => (AKSI_KELUARAN_UMUM.includes(r.aksi) ? r : { ...r, keluaran: null }));
+}

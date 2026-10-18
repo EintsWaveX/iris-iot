@@ -302,13 +302,15 @@ export default function LabAlert({
           <b>{t.errH(g.jumlah, g.menit)}</b>
           <span className="hint truncate">{g.terakhir?.pesan}</span>
           {!piLuring && !call && tombolIzin}
-          <a
-            className="btn btn--ghost btn--sm"
-            href={`${href(lang, "/reports")}?audit=galat#audit`}
-          >
-            {t.errGo}
-            <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
-          </a>
+          {me.hak?.audit === true && (
+            <a
+              className="btn btn--ghost btn--sm"
+              href={`${href(lang, "/reports")}?audit=galat#audit`}
+            >
+              {t.errGo}
+              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+            </a>
+          )}
           <button
             type="button"
             className="iconbtn"

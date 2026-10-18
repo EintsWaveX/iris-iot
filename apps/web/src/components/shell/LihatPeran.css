@@ -1,0 +1,57 @@
+/* Lihat sebagai Peran: the preset picker and the preview bar. */
+
+.lperan {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 520px) {
+  .lperan {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.lperan__o {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 2px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.lperan__o[aria-checked="true"] {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+  border: 2px solid var(--accent);
+  padding: 11px 13px;
+}
+
+.lperan__o:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Sticks under the nav so the way back is always in reach. */
+.lperan-bar {
+  align-items: center;
+  background: var(--invert-bg);
+  color: var(--invert-ink);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+  padding: 10px 16px;
+  position: sticky;
+  top: var(--nav-size);
+  z-index: 50;
+}
+
+/* A running session's Asisten mini bar sits under the preview bar. */
+.minibar--asisten {
+  top: calc(var(--nav-size) + var(--lperan-h, 0px));
+}

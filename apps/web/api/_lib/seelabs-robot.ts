@@ -54,7 +54,7 @@ import {
   seelabsTugas,
   server,
 } from "../../src/lib/schema.js";
-import { boleh, bolehPenuh, hakPenuh } from "../../src/lib/hak.js";
+import { boleh, bolehPenuh } from "../../src/lib/hak.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
@@ -724,7 +724,7 @@ const posInt = (v: unknown) => {
 
 async function pengelolaRobot(nim: string): Promise<boolean> {
   const o = await muatOrang(nim);
-  return !!o && (hakPenuh(o) || bolehPenuh(o, "full"));
+  return !!o && bolehPenuh(o, "full");
 }
 
 function ringkasTugas(t: typeof seelabsTugas.$inferSelect) {
@@ -990,8 +990,7 @@ export async function handleRobotPost(req: ApiRequest, res: ApiResponse, session
     // session's module is outside the usual 7 days); every account and the
     // whole semester for whoever sees Bayar's Admin cards.
     const o = await muatOrang(session.nim);
-    const semua =
-      body.semua === true && !!o && (hakPenuh(o) || bolehPenuh(o, "full") || boleh(o, "tim"));
+    const semua = body.semua === true && !!o && (bolehPenuh(o, "full") || boleh(o, "tim"));
     const dari = !semua && posInt(body.sesiId) ? await bacaanSesi(db, posInt(body.sesiId)!) : null;
     const akun = semua
       ? await akunAktif(

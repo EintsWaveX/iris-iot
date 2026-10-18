@@ -3,7 +3,7 @@
  * every slot of the semester. The semester's switch turns it on; off, every
  * group keeps the same Asisten all semester and the lists wait.
  *
- * Admins, DEV and the Pencipta (hakPenuh) edit; everyone else reads. Edits
+ * Whoever holds the jadwal right edits; everyone else reads. Edits
  * are a draft until Simpan: a slot's dialog picks per group and module from
  * its own default Asisten, and Acak / Putar fill a slot (or all of them)
  * while the modules a slot already taught stay as they are (their lists

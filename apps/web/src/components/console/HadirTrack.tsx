@@ -21,8 +21,9 @@ export interface BarisHadir {
   hadirPada: string | null;
   status: StatusLive;
   menit: number | null;
-  potong: number;
-  nolkanUnit: boolean;
+  /** Absent on someone else's row without the hadir or tim right. */
+  potong?: number;
+  nolkanUnit?: boolean;
   hitungMangkir: boolean;
   ubah: {
     status: "tepat" | "telat" | "mm" | "mangkir" | "izin";
@@ -85,9 +86,11 @@ export function labelStatus(h: Hd, s: StatusLive, menit: number | null): string 
 /** What a status does to pay, with the tone of the line. */
 export function bayarBaris(
   h: Hd,
-  x: { status: StatusLive; menit: number | null; potong: number; nolkanUnit: boolean },
+  x: { status: StatusLive; menit: number | null; potong?: number; nolkanUnit?: boolean },
   p: Potongan = POTONGAN_AWAL,
 ): { tx: string; tone: "ok" | "warn" | "danger" | "" } {
+  // Someone else's pay is for ADS and Admins: the API leaves it out.
+  if (x.potong === undefined) return { tx: "", tone: "" };
   if (x.nolkanUnit) return { tx: h.pNol, tone: "danger" };
   if (x.status === "izin") return { tx: h.pIzin, tone: "" };
   if (x.status === "tepat") return { tx: h.pTepat, tone: "ok" };

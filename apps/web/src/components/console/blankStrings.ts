@@ -31,7 +31,10 @@ export const BL = dict({
       "Muncul di halaman Kode kelompok itu, tepat di bawah baris blank-nya. Kuncinya tidak pernah dikirim.",
     dlgLine: "Barisnya",
     dlgAsked: "Permintaan kelompok",
-    dlgModule: "Petunjuk modul (terbuka setelah 2x salah)",
+    dlgModule: (k: number) =>
+      k
+        ? `Petunjuk ${k} yang sudah terbuka untuk kelompok ini`
+        : "Petunjuk 1 (terbuka setelah 1x salah)",
     dlgText: "Petunjukmu",
     dlgPh: "Contoh: Lihat lagi angka listener di mosquitto.conf pada Ringkasan.",
     dlgKeyWarn: "Petunjukmu memuat kuncinya. Ubah supaya kelompok tetap mencari sendiri.",
@@ -69,7 +72,8 @@ export const BL = dict({
       "Shows on that group's Code page, right under the blank's line. The key is never sent.",
     dlgLine: "The line",
     dlgAsked: "The group's request",
-    dlgModule: "Module hint (opens after 2 wrong tries)",
+    dlgModule: (k: number) =>
+      k ? `Hint ${k}, already open for this group` : "Hint 1 (opens after 1 wrong try)",
     dlgText: "Your hint",
     dlgPh: "For example: look again at the listener number in mosquitto.conf in the Brief.",
     dlgKeyWarn: "Your hint holds the key. Reword it so the group still finds it themselves.",
@@ -106,7 +110,7 @@ export const BL = dict({
     dlgDesc: "会显示在该组的代码页面，就在该填空那一行的正下方。答案永远不会发出去。",
     dlgLine: "这一行",
     dlgAsked: "该组的请求",
-    dlgModule: "模块提示（错两次后打开）",
+    dlgModule: (k: number) => (k ? `提示 ${k}（这组已打开）` : "提示 1（错一次后打开）"),
     dlgText: "你的提示",
     dlgPh: "例如：再看看概要里 mosquitto.conf 的 listener 数字。",
     dlgKeyWarn: "你的提示里有答案。请换个说法，让学生自己找到。",

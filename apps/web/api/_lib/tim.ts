@@ -4,7 +4,8 @@
  *
  * GET  every Asisten with position, tier, badges, status and SeeLabs
  *      account; the ten head-role holders; handovers; slots this week.
- *      Every Asisten can read it.
+ *      Every Asisten can read it; other people's rights and overrides go
+ *      only to the audit and Tim rights (Admins), like their trails.
  * POST { aksi }:
  *   tambah       add an Asisten (needs the Tim right)
  *   ubah         change division, position, status, SeeLabs account or
@@ -38,6 +39,7 @@ import {
   STATUS_ORANG,
   boleh,
   bolehResetSandi,
+  lihatHakOrang,
   divisiKepala,
   isDivisi,
   isKategori,
@@ -128,11 +130,14 @@ export async function handleTimGet(_req: ApiRequest, res: ApiResponse, session: 
 
   // Whether someone set their own password is for the Tim right only.
   const admin = saya ? boleh(saya, "tim") : false;
+  const lihatHak = lihatHakOrang(saya);
   res.status(200).json({
     ok: true,
-    orang: orang.map(({ punyaSandi, sandiSejak, ...o }) => ({
+    orang: orang.map(({ punyaSandi, sandiSejak, hakOverride, ...o }) => ({
       ...o,
-      hak: petaHak(o),
+      ...(lihatHak || o.nim === session.nim
+        ? { hakOverride, hak: petaHak({ ...o, hakOverride }) }
+        : {}),
       ...(admin ? { punyaSandi, sandiSejak } : {}),
     })),
     pemegang,
@@ -143,10 +148,13 @@ export async function handleTimGet(_req: ApiRequest, res: ApiResponse, session: 
   });
 }
 
-/** The audit trail of one person (Tim edits about them). */
-export async function handleTimJejak(req: ApiRequest, res: ApiResponse) {
+/** The audit trail of one person (Tim edits about them): one's own, or
+ *  anyone's for the audit and Tim rights. */
+export async function handleTimJejak(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
   const nim = typeof req.query.nim === "string" ? req.query.nim : "";
   if (!NIM_RE.test(nim)) return tolak(res, "format_salah");
+  if (nim !== session.nim && !lihatHakOrang(await muatOrang(session.nim)))
+    return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "audit" });
   const rows = await getDb()
     .select()
     .from(audit)

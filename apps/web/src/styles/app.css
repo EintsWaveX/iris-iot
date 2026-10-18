@@ -533,6 +533,31 @@ body > .page-main {
   animation: appnav-live 2s ease-out infinite;
 }
 
+/* Code anywhere reads in the code editor's font (2026-10-18): the browser's
+   own monospace was showing for <code> outside the code card. */
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
+}
+
+/* Code inside a sentence (ui/KodeTeks.tsx): a hint's getService(). */
+.kode-inline {
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  border-radius: 4px;
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  padding: 0 0.25em;
+}
+
+/* A hint's answer, from the third wrong try. */
+.kode-jawab {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 /* A three-letter assistant code in a circle (NAT, GRY). */
 .code-badge {
   align-items: center;

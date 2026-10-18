@@ -182,6 +182,31 @@ export const RINGKAS_KOSONG: Readonly<RingkasOrang> = {
   sesiNol: 0,
 };
 
+/** The fields that carry someone's Rp cut: the money, and a zeroed session. */
+const KUNCI_RP = ["potong", "nolkanUnit", "sesiNol"] as const;
+type KunciRp = (typeof KUNCI_RP)[number];
+
+/**
+ * Rows as someone sees them: their own row keeps its Rp cut, everyone
+ * else's loses it unless `semua` (the hadir or tim right: ADS and Admins).
+ * Statuses and minutes stay for everyone.
+ */
+export function saringRp<T extends { nim: string }>(
+  rows: readonly T[],
+  saya: string | null,
+  semua: boolean,
+): (T | Omit<T, KunciRp>)[] {
+  if (semua) return [...rows];
+  return rows.map((r) => (r.nim === saya ? r : tanpaRp(r)));
+}
+
+/** One row without its Rp cut. */
+export function tanpaRp<T extends object>(r: T): Omit<T, KunciRp> {
+  const out = { ...r } as Record<string, unknown>;
+  for (const k of KUNCI_RP) delete out[k];
+  return out as Omit<T, KunciRp>;
+}
+
 /** Counts statuses per person; `lepas` (not expected) and the still-running states count nothing. */
 export function ringkasHadir(
   baris: { nim: string; status: StatusLive; potong: number; nolkanUnit: boolean }[],
@@ -213,7 +238,8 @@ export interface TeksHadirOrang {
   menit: number | null;
   /** Check-in time, "HH:MM", or null when they never checked in. */
   jam: string | null;
-  potong: number;
+  /** Absent when the reader may not see this person's Rp cut. */
+  potong?: number;
   /** Whether a Mangkir Mengajar counts as Mangkir (the PJ's switch); on when absent. */
   hitungMangkir?: boolean;
   /** Groups of this person that someone else took over, and when. */
@@ -297,7 +323,7 @@ function kalimatOrang(o: TeksHadirOrang, lang: LangHadir): string {
       }[lang];
       break;
     case "telat": {
-      const rp = o.potong > 0 ? rpTeks(o.potong) : "";
+      const rp = o.potong ? rpTeks(o.potong) : "";
       s = {
         id: `${o.kode} telat ${lama} menit${jam}${rp ? `, potong ${rp}` : ""}`,
         en: `${o.kode} ${lama} minutes late${jam}${rp ? `, ${rp} off` : ""}`,
@@ -306,7 +332,7 @@ function kalimatOrang(o: TeksHadirOrang, lang: LangHadir): string {
       break;
     }
     case "mm": {
-      const rp = rpTeks(o.potong);
+      const rp = o.potong !== undefined ? rpTeks(o.potong) : "";
       s =
         o.hitungMangkir !== false
           ? {
@@ -314,11 +340,13 @@ function kalimatOrang(o: TeksHadirOrang, lang: LangHadir): string {
               en: `${o.kode} Mangkir Mengajar${jam}, counted as Mangkir`,
               zh: `${o.kode} Mangkir Mengajar${jam}，按 Mangkir 计`,
             }[lang]
-          : {
-              id: `${o.kode} Mangkir Mengajar${jam}, potong ${rp}`,
-              en: `${o.kode} Mangkir Mengajar${jam}, ${rp} off`,
-              zh: `${o.kode} Mangkir Mengajar${jam}，扣 ${rp}`,
-            }[lang];
+          : rp
+            ? {
+                id: `${o.kode} Mangkir Mengajar${jam}, potong ${rp}`,
+                en: `${o.kode} Mangkir Mengajar${jam}, ${rp} off`,
+                zh: `${o.kode} Mangkir Mengajar${jam}，扣 ${rp}`,
+              }[lang]
+            : `${o.kode} Mangkir Mengajar${jam}`;
       break;
     }
     case "mangkir":

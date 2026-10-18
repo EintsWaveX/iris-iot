@@ -32,8 +32,14 @@ export interface KunciV1 {
   juga?: string[];
   perKelompok?: string;
   kenapa: TeksKode;
+  /** After one wrong try: a light clue (TINGKAT below). */
+  bantuan1: TeksKode;
   bantuan: TeksKode;
+  /** After three wrong tries: a direct clue; the answer shows with it. */
+  bantuan3: TeksKode;
 }
+
+type Dasar = Omit<KunciV1, "bantuan1" | "bantuan3">;
 
 const t = (id: string, en: string, zh: string): TeksKode => ({ id, en, zh });
 
@@ -65,7 +71,7 @@ const SEND_TXT_BANTUAN = t(
 // ---------- Shared lines ----------
 // ---------- Shared lines ----------
 
-export const KUNCI_V1: Record<string, KunciV1> = {
+const DASAR: Record<string, Dasar> = {
   // ---------- Module 1: BLE ----------
   // ---------- Module 1: BLE ----------
   // ---------- Module 1: BLE ----------
@@ -679,3 +685,590 @@ export const KUNCI_V1: Record<string, KunciV1> = {
     ),
   },
 };
+
+// ---------- Hint tiers ----------
+// ---------- Hint tiers ----------
+// ---------- Hint tiers ----------
+
+/** The light clue after one wrong try and the direct clue after three
+ *  (2026-10-18). The direct clue is shown with the answer, so it need not
+ *  repeat it. Code the Code step could not tell from a word goes between
+ *  backticks (`OUTPUT`, `recv`). */
+const k = (bantuan1: TeksKode, bantuan3: TeksKode) => ({ bantuan1, bantuan3 });
+
+const LORA_H_TINGKAT = k(
+  t(
+    "Ini #include header pustaka radio LoRa.",
+    "This is the #include for the LoRa radio library header.",
+    "这是 LoRa 无线电库头文件的 #include。",
+  ),
+  t(
+    "Nama pustakanya persis (L dan R besar), lalu .h.",
+    "The library's name exactly (capital L and R), then .h.",
+    "库名原样（L 和 R 大写），再加 .h。",
+  ),
+);
+
+const SEND_TXT_TINGKAT = k(
+  t(
+    "Baris ini mengirim teks lewat WebSocket.",
+    "This line sends text over the WebSocket.",
+    "这一行通过 WebSocket 发送文本。",
+  ),
+  t(
+    "send lalu TXT, bagian TXT huruf besar semua, tanpa spasi.",
+    "send then TXT, with TXT in capitals, no spaces.",
+    "send 加 TXT，TXT 全部大写，没有空格。",
+  ),
+);
+
+const TINGKAT: Record<string, Pick<KunciV1, "bantuan1" | "bantuan3">> = {
+  // ---------- Module 1: BLE ----------
+  // ---------- Module 1: BLE ----------
+  // ---------- Module 1: BLE ----------
+  "m1.modul1_ble_central.1": k(
+    t(
+      "Ini baris #include untuk header pustaka BLE.",
+      "This is an #include line for a BLE library header.",
+      "这是一行 #include，引入 BLE 库的头文件。",
+    ),
+    t(
+      "Header kelas pemindai BLE: awalan BLE, kata Scan, lalu .h, tanpa spasi.",
+      "The BLE scanner class header: the BLE prefix, the word Scan, then .h, no spaces.",
+      "BLE 扫描器类的头文件：前缀 BLE，加单词 Scan，再加 .h，中间没有空格。",
+    ),
+  ),
+  "m1.modul1_ble_central.2": k(
+    t(
+      "Baris ini membaca keadaan pin tombol.",
+      "This line reads the button pin's state.",
+      "这一行读取按钮引脚的状态。",
+    ),
+    t(
+      "Fungsi Arduino untuk membaca pin digital: digital lalu Read, R besar, satu kata.",
+      "Arduino's function for reading a digital pin: digital then Read, capital R, one word.",
+      "Arduino 读取数字引脚的函数：digital 加 Read，R 大写，连成一个词。",
+    ),
+  ),
+  "m1.modul1_ble_central.3": k(
+    t(
+      "pinMode() butuh mode pin. Tombol mengirim sinyal masuk ke ESP32.",
+      "pinMode() needs a pin mode. The button sends a signal into the ESP32.",
+      "pinMode() 需要引脚模式。按钮是向 ESP32 输入信号的。",
+    ),
+    t(
+      "Mode masukan biasa tanpa pull-up internal, huruf besar semua, lawan dari `OUTPUT`.",
+      "The plain input mode with no internal pull-up, all capitals, the opposite of `OUTPUT`.",
+      "不带内部上拉的普通输入模式，全部大写，是 `OUTPUT` 的反义。",
+    ),
+  ),
+  "m1.modul1_ble_central.4": k(
+    t(
+      "Yang dicari di sini adalah layanan (service) milik Peripheral.",
+      "What's being looked up here is the Peripheral's service.",
+      "这里要找的是 Peripheral 的服务（service）。",
+    ),
+    t(
+      "Konstanta UUID layanan di bagian atas berkas: SERVICE, garis bawah, UUID, huruf besar semua.",
+      "The service UUID constant at the top of the file: SERVICE, an underscore, UUID, all capitals.",
+      "文件上方的服务 UUID 常量：SERVICE、下划线、UUID，全部大写。",
+    ),
+  ),
+  "m1.modul1_ble_central.5": k(
+    t(
+      "registerForNotify() butuh nama fungsi yang dipanggil saat notifikasi masuk.",
+      "registerForNotify() needs the name of the function called when a notification arrives.",
+      "registerForNotify() 需要收到通知时调用的函数名。",
+    ),
+    t(
+      "Fungsi di atas yang menangani notifikasi: notify lalu Callback, C besar, tanpa tanda kurung.",
+      "The function above that handles notifications: notify then Callback, capital C, no brackets.",
+      "上面处理通知的函数：notify 加 Callback，C 大写，不加括号。",
+    ),
+  ),
+  "m1.modul1_ble_central.6": k(
+    t(
+      "Yang dikirim ke Peripheral adalah status tombol.",
+      "What goes to the Peripheral is the button's state.",
+      "发给 Peripheral 的是按钮的状态。",
+    ),
+    t(
+      "Variabel yang menampung hasil readButtonState(): kata bahasa Inggris untuk keadaan, huruf kecil semua.",
+      "The variable holding readButtonState()'s result: the English word for a condition, all lower case.",
+      "保存 readButtonState() 结果的变量：英文“状态”一词，全部小写。",
+    ),
+  ),
+  "m1.modul1_ble_peripheral.1": k(
+    t(
+      "Ini #include header BLE untuk sisi Peripheral.",
+      "This is an #include of a BLE header for the Peripheral side.",
+      "这是 Peripheral 端的 BLE 头文件 #include。",
+    ),
+    t(
+      "Header kelas server BLE: awalan BLE, kata Server, lalu .h.",
+      "The BLE server class header: the BLE prefix, the word Server, then .h.",
+      "BLE 服务器类的头文件：前缀 BLE，加单词 Server，再加 .h。",
+    ),
+  ),
+  "m1.modul1_ble_peripheral.2": k(
+    t(
+      "Baris ini mengirim nilai balik ke Central.",
+      "This line sends the value back to the Central.",
+      "这一行把值发回给 Central。",
+    ),
+    t(
+      "Metode BLECharacteristic untuk notifikasi: satu kata bahasa Inggris, huruf kecil, tanpa argumen.",
+      "The BLECharacteristic method for notifications: one lower case English word, no arguments.",
+      "BLECharacteristic 发通知的方法：一个小写英文单词，不带参数。",
+    ),
+  ),
+  "m1.modul1_ble_peripheral.3": k(
+    t(
+      "LED dinyalakan sesuai data dari Central.",
+      "The LED follows the data from the Central.",
+      "LED 跟随 Central 发来的数据。",
+    ),
+    t(
+      "Variabel 0 atau 1 hasil constrain() di atasnya: kata bahasa Inggris untuk keadaan, huruf kecil semua.",
+      "The 0 or 1 variable from constrain() above: the English word for a condition, all lower case.",
+      "上面 constrain() 得到的 0 或 1 变量：英文“状态”一词，全部小写。",
+    ),
+  ),
+  "m1.modul1_ble_peripheral.4": k(
+    t(
+      "Characteristic ini butuh properti kedua selain menulis.",
+      "This characteristic needs a second property besides writing.",
+      "这个 characteristic 除了写入还需要第二个属性。",
+    ),
+    t(
+      "Properti notifikasi: PROPERTY_ lalu NOTIFY, huruf besar semua.",
+      "The notification property: PROPERTY_ followed by NOTIFY, all capitals.",
+      "通知属性：PROPERTY_ 加 NOTIFY，全部大写。",
+    ),
+  ),
+  "m1.modul1_ble_peripheral.5": k(
+    t(
+      "setCallbacks() butuh objek dari kelas callback di berkas ini.",
+      "setCallbacks() needs an object of the callback class in this file.",
+      "setCallbacks() 需要本文件中回调类的对象。",
+    ),
+    t(
+      "Nama kelas yang berisi onWrite(): My, Characteristic dan Callbacks, digabung dengan huruf awal besar.",
+      "The class holding onWrite(): My, Characteristic and Callbacks, joined with capital first letters.",
+      "包含 onWrite() 的类名：My、Characteristic、Callbacks 连在一起，每段首字母大写。",
+    ),
+  ),
+  "m1.modul1_ble_peripheral.6": k(
+    t(
+      "digitalWrite() butuh pin LED.",
+      "digitalWrite() needs the LED's pin.",
+      "digitalWrite() 需要 LED 的引脚。",
+    ),
+    t(
+      "Konstanta pin LED di bagian atas berkas: LED, garis bawah, PIN, huruf besar semua.",
+      "The LED pin constant at the top of the file: LED, an underscore, PIN, all capitals.",
+      "文件上方的 LED 引脚常量：LED、下划线、PIN，全部大写。",
+    ),
+  ),
+
+  // ---------- Module 2: WebSocket ----------
+  // ---------- Module 2: WebSocket ----------
+  // ---------- Module 2: WebSocket ----------
+  "m2.modul2_websocket_server.1": k(
+    t(
+      "Isinya nomor port server WebSocket.",
+      "This is the WebSocket server's port number.",
+      "这里填 WebSocket 服务器的端口号。",
+    ),
+    t(
+      "Angka empat digit yang sama dengan WS_PORT di sketch ESP32, ditulis tanpa tanda kutip.",
+      "The four digit number that matches WS_PORT in the ESP32 sketch, written without quotes.",
+      "与 ESP32 草图中 WS_PORT 相同的四位数，不加引号。",
+    ),
+  ),
+  "m2.modul2_websocket_server.2": k(
+    t(
+      "Isinya daftar path yang boleh tersambung.",
+      "This holds the paths allowed to connect.",
+      "这里放允许连接的路径。",
+    ),
+    t(
+      "Himpunan Python berisi lima string, satu per kelompok: path grup1 sampai grup5, masing-masing diawali garis miring.",
+      "A Python set of five strings, one per group: the paths grup1 to grup5, each starting with a slash.",
+      "一个含五个字符串的 Python 集合，每组一个：grup1 到 grup5 的路径，各以斜杠开头。",
+    ),
+  ),
+  "m2.modul2_websocket_server.3": k(
+    t(
+      "Pesan yang masuk masih berupa teks JSON.",
+      "The incoming message is still JSON text.",
+      "收到的消息还是 JSON 文本。",
+    ),
+    t(
+      "Fungsi modul `json` untuk mengurai string: nama modulnya, titik, lalu loads (load string).",
+      "The `json` module's string parser: the module's name, a dot, then loads (load string).",
+      "`json` 模块解析字符串的函数：模块名、点，再加 loads（load string）。",
+    ),
+  ),
+  "m2.modul2_websocket_server.4": k(
+    t(
+      "Ini kunci JSON untuk kelembapan.",
+      "This is the JSON key for humidity.",
+      "这是湿度的 JSON 键。",
+    ),
+    t(
+      "Singkatan tiga huruf dari humidity, huruf kecil, di dalam tanda kutip ganda.",
+      "The three letter short form of humidity, lower case, inside double quotes.",
+      "humidity 的三个字母缩写，小写，放在双引号里。",
+    ),
+  ),
+  "m2.modul2_websocket_server.5": k(
+    t(
+      "Server membalas client lewat objek websocket.",
+      "The server replies to the client through the websocket object.",
+      "服务器通过 websocket 对象回复客户端。",
+    ),
+    t(
+      "Kata kerja bahasa Inggris untuk mengirim, empat huruf kecil, kebalikan dari `recv`.",
+      "The English verb for sending, four lower case letters, the opposite of `recv`.",
+      "英文“发送”这个动词，四个小写字母，是 `recv` 的反义。",
+    ),
+  ),
+  "m2.modul2_websocket_server.6": k(
+    t(
+      "Fungsi ini menjalankan server WebSocket.",
+      "This function runs the WebSocket server.",
+      "这个函数启动 WebSocket 服务器。",
+    ),
+    t(
+      "Fungsi yang diimpor dari websockets.asyncio.server: kata kerja bahasa Inggris untuk melayani, lima huruf kecil.",
+      "The function imported from websockets.asyncio.server: the English verb for serving, five lower case letters.",
+      "从 websockets.asyncio.server 导入的函数：英文“提供服务”的动词，五个小写字母。",
+    ),
+  ),
+  "m2.modul2_websocket_esp32.1": k(
+    t(
+      "Ini #include header pustaka WebSocket untuk ESP32.",
+      "This is the #include for the ESP32's WebSocket library header.",
+      "这是 ESP32 WebSocket 库头文件的 #include。",
+    ),
+    t(
+      "Nama kelas client pustaka ini lalu .h: WebSockets (dengan s) lalu Client.",
+      "This library's client class name plus .h: WebSockets (with the s) then Client.",
+      "本库客户端类名加 .h：WebSockets（带 s）再加 Client。",
+    ),
+  ),
+  "m2.modul2_websocket_esp32.2": k(
+    t(
+      "Ini path WebSocket milik kelompokmu.",
+      "This is your group's WebSocket path.",
+      "这是你们组的 WebSocket 路径。",
+    ),
+    t(
+      "Garis miring, kata grup, lalu nomor kelompokmu, tanpa spasi.",
+      "A slash, the word grup, then your group number, no spaces.",
+      "斜杠、单词 grup，再加你们的组号，没有空格。",
+    ),
+  ),
+  "m2.modul2_websocket_esp32.3": k(
+    t(
+      "Baris ini membaca suhu dari DHT.",
+      "This line reads the temperature from the DHT.",
+      "这一行从 DHT 读取温度。",
+    ),
+    t(
+      "Sama seperti readHumidity() di atasnya, tapi read lalu Temperature, T besar.",
+      "Like readHumidity() above, but read then Temperature, capital T.",
+      "和上面的 readHumidity() 一样，只是 read 加 Temperature，T 大写。",
+    ),
+  ),
+  "m2.modul2_websocket_esp32.4": k(
+    t(
+      "onEvent() butuh nama fungsi penangan event.",
+      "onEvent() needs the event handler's name.",
+      "onEvent() 需要事件处理函数的名字。",
+    ),
+    t(
+      "Fungsi di atas yang menerima WStype_t type: webSocket lalu Event, E besar, tanpa tanda kurung.",
+      "The function above taking WStype_t type: webSocket then Event, capital E, no brackets.",
+      "上面接收 WStype_t type 的函数：webSocket 加 Event，E 大写，不加括号。",
+    ),
+  ),
+  "m2.modul2_websocket_esp32.5": k(
+    t(
+      "Metode ini harus dipanggil terus agar event diproses.",
+      "This method has to keep being called so events get handled.",
+      "必须不停调用这个方法，事件才会被处理。",
+    ),
+    t(
+      "Namanya sama dengan fungsi Arduino tempat baris ini berada: empat huruf kecil.",
+      "Its name matches the Arduino function this line sits in: four lower case letters.",
+      "它的名字和这行所在的 Arduino 函数相同：四个小写字母。",
+    ),
+  ),
+  "m2.modul2_websocket_esp32.6": SEND_TXT_TINGKAT,
+
+  // ---------- Module 3: MQTT ----------
+  // ---------- Module 3: MQTT ----------
+  // ---------- Module 3: MQTT ----------
+  "m3.modul3_mqtt_publish.1": k(
+    t(
+      "network.WLAN() butuh mode antarmuka Wi-Fi.",
+      "network.WLAN() needs a Wi-Fi interface mode.",
+      "network.WLAN() 需要一个 Wi-Fi 接口模式。",
+    ),
+    t(
+      "Mode station: STA, garis bawah, IF, huruf besar semua (pasangannya AP_IF).",
+      "Station mode: STA, an underscore, IF, all capitals (its partner is AP_IF).",
+      "站点模式：STA、下划线、IF，全部大写（另一个是 AP_IF）。",
+    ),
+  ),
+  "m3.modul3_mqtt_publish.2": k(
+    t(
+      "wlan.connect() butuh kata sandi Wi-Fi.",
+      "wlan.connect() needs the Wi-Fi password.",
+      "wlan.connect() 需要 Wi-Fi 密码。",
+    ),
+    t(
+      "Variabel pasangan wifi_ssid: wifi, garis bawah, password, huruf kecil semua, tanpa tanda kutip.",
+      "wifi_ssid's partner variable: wifi, an underscore, password, all lower case, no quotes.",
+      "wifi_ssid 的搭档变量：wifi、下划线、password，全部小写，不加引号。",
+    ),
+  ),
+  "m3.modul3_mqtt_publish.3": k(
+    t("Isinya port broker MQTT.", "This is the MQTT broker's port.", "这里填 MQTT 代理的端口。"),
+    t(
+      "Port MQTT bawaan tanpa TLS, empat digit, diawali 18.",
+      "MQTT's default port without TLS, four digits, starting with 18.",
+      "MQTT 不加 TLS 的默认端口，四位数，以 18 开头。",
+    ),
+  ),
+  "m3.modul3_mqtt_publish.4": k(
+    t(
+      "Baris ini membaca nilai ADC potensiometer.",
+      "This line reads the potentiometer's ADC value.",
+      "这一行读取电位器的 ADC 值。",
+    ),
+    t(
+      "Metode ADC MicroPython untuk 16 bit unsigned: read, garis bawah, u16.",
+      "MicroPython's ADC method for unsigned 16 bit: read, an underscore, u16.",
+      "MicroPython 读取 16 位无符号值的 ADC 方法：read、下划线、u16。",
+    ),
+  ),
+  "m3.modul3_mqtt_publish.5": k(
+    t(
+      "Perubahannya dibandingkan dengan sebuah ambang.",
+      "The change is compared against a threshold.",
+      "变化量要和一个阈值比较。",
+    ),
+    t(
+      "Variabel ambang dalam persen di atas: deadband, garis bawah, pct.",
+      "The percent threshold variable above: deadband, an underscore, pct.",
+      "上面的百分比阈值变量：deadband、下划线、pct。",
+    ),
+  ),
+  "m3.modul3_mqtt_publish.6": k(
+    t(
+      "Baris ini mengirim pesan ke topik MQTT.",
+      "This line sends a message to an MQTT topic.",
+      "这一行把消息发到 MQTT 主题。",
+    ),
+    t(
+      "Kata kerja dari publisher, tujuh huruf kecil, pasangan `subscribe`.",
+      "The publisher's verb, seven lower case letters, the partner of `subscribe`.",
+      "publisher 的动词，七个小写字母，与 `subscribe` 相对。",
+    ),
+  ),
+  "m3.modul3_mqtt_subscribe.1": k(
+    t(
+      "Ini kelas yang diimpor dari umqtt.simple.",
+      "This is the class imported from umqtt.simple.",
+      "这是从 umqtt.simple 导入的类。",
+    ),
+    t(
+      "Kelas client MQTT: MQTT huruf besar lalu Client, C besar, tanpa spasi.",
+      "The MQTT client class: MQTT in capitals, then Client with a capital C, no spaces.",
+      "MQTT 客户端类：大写 MQTT 加 Client，C 大写，没有空格。",
+    ),
+  ),
+  "m3.modul3_mqtt_subscribe.2": k(
+    t(
+      "Topiknya disusun dari nomor kelompok.",
+      "The topic is built from the group number.",
+      "主题由组号拼出。",
+    ),
+    t(
+      "Variabel nomor kelompok di atasnya: group, garis bawah, id, huruf kecil semua.",
+      "The group number variable above: group, an underscore, id, all lower case.",
+      "上面的组号变量：group、下划线、id，全部小写。",
+    ),
+  ),
+  "m3.modul3_mqtt_subscribe.3": k(
+    t(
+      "Baris pertama callback mencatat waktu terima.",
+      "The callback's first line records the receive time.",
+      "回调的第一行记录接收时间。",
+    ),
+    t(
+      "Fungsi di atas yang mengembalikan jam HH:MM:SS:MS: kata bahasa Inggris untuk cap waktu, satu kata huruf kecil.",
+      "The function above returning the HH:MM:SS:MS clock: the English word for a time stamp, as one lower case word.",
+      "上面返回 HH:MM:SS:MS 时钟的函数：英文“时间戳”一词，小写连写。",
+    ),
+  ),
+  "m3.modul3_mqtt_subscribe.4": k(
+    t(
+      "set_callback() butuh fungsi yang dipanggil saat pesan masuk.",
+      "set_callback() needs the function called when a message arrives.",
+      "set_callback() 需要收到消息时调用的函数。",
+    ),
+    t(
+      "def di atas: mqtt, subscription dan callback, dihubungkan garis bawah, tanpa tanda kurung.",
+      "The def above: mqtt, subscription and callback, joined by underscores, no brackets.",
+      "上面的 def：mqtt、subscription、callback 用下划线连起来，不加括号。",
+    ),
+  ),
+  "m3.modul3_mqtt_subscribe.5": k(
+    t(
+      "Baris ini mendaftar ke topik MQTT.",
+      "This line signs up to an MQTT topic.",
+      "这一行订阅 MQTT 主题。",
+    ),
+    t(
+      "Kata kerja dari subscriber, sembilan huruf kecil, pasangan `publish`.",
+      "The subscriber's verb, nine lower case letters, the partner of `publish`.",
+      "subscriber 的动词，九个小写字母，与 `publish` 相对。",
+    ),
+  ),
+  "m3.modul3_mqtt_subscribe.6": k(
+    t(
+      "Loop perlu memeriksa pesan masuk tanpa berhenti menunggu.",
+      "The loop has to look for messages without stopping to wait.",
+      "循环要检查新消息，但不能停下来等。",
+    ),
+    t(
+      "Metode yang tidak blocking: check, garis bawah, msg (bukan wait_msg).",
+      "The non-blocking method: check, an underscore, msg (not wait_msg).",
+      "非阻塞的方法：check、下划线、msg（不是 wait_msg）。",
+    ),
+  ),
+
+  // ---------- Module 4: LoRa ----------
+  // ---------- Module 4: LoRa ----------
+  // ---------- Module 4: LoRa ----------
+  "m4.modul4_hunter.1": LORA_H_TINGKAT,
+  "m4.modul4_hunter.2": k(
+    t(
+      "WiFi.begin() butuh kata sandi hotspot.",
+      "WiFi.begin() needs the hotspot's password.",
+      "WiFi.begin() 需要热点密码。",
+    ),
+    t(
+      "Konstanta pasangan WIFI_SSID: WIFI, garis bawah, PASSWORD, huruf besar semua.",
+      "WIFI_SSID's partner constant: WIFI, an underscore, PASSWORD, all capitals.",
+      "WIFI_SSID 的搭档常量：WIFI、下划线、PASSWORD，全部大写。",
+    ),
+  ),
+  "m4.modul4_hunter.3": k(
+    t(
+      "Baris ini menyetel spreading factor radio.",
+      "This line sets the radio's spreading factor.",
+      "这一行设置无线电的扩频因子。",
+    ),
+    t(
+      "Konstanta di atas: LORA, SPREADING dan FACTOR, dihubungkan garis bawah, huruf besar semua.",
+      "The constant above: LORA, SPREADING and FACTOR, joined by underscores, all capitals.",
+      "上面的常量：LORA、SPREADING、FACTOR 用下划线连接，全部大写。",
+    ),
+  ),
+  "m4.modul4_hunter.4": k(
+    t(
+      "Baris ini menyetel sync word, penanda pasangan radio.",
+      "This line sets the sync word that pairs the radios.",
+      "这一行设置让无线电配对的同步字。",
+    ),
+    t(
+      "Konstanta di atas: LORA, SYNC dan WORD, dihubungkan garis bawah, huruf besar semua.",
+      "The constant above: LORA, SYNC and WORD, joined by underscores, all capitals.",
+      "上面的常量：LORA、SYNC、WORD 用下划线连接，全部大写。",
+    ),
+  ),
+  "m4.modul4_hunter.5": k(
+    t(
+      "Baris ini membaca kekuatan sinyal paket yang diterima.",
+      "This line reads the received packet's signal strength.",
+      "这一行读取收到的数据包的信号强度。",
+    ),
+    t(
+      "Metode LoRa: packet lalu Rssi, hanya R yang besar.",
+      "The LoRa method: packet then Rssi, only the R in capitals.",
+      "LoRa 的方法：packet 加 Rssi，只有 R 大写。",
+    ),
+  ),
+  "m4.modul4_hunter.6": SEND_TXT_TINGKAT,
+  "m4.modul4_beacon.1": LORA_H_TINGKAT,
+  "m4.modul4_beacon.2": k(
+    t(
+      "configTime() butuh alamat server waktu.",
+      "configTime() needs the time server's address.",
+      "configTime() 需要时间服务器的地址。",
+    ),
+    t(
+      "Konstanta di atas: NTP, garis bawah, SERVER, huruf besar semua.",
+      "The constant above: NTP, an underscore, SERVER, all capitals.",
+      "上面的常量：NTP、下划线、SERVER，全部大写。",
+    ),
+  ),
+  "m4.modul4_beacon.3": k(
+    t(
+      "Baris ini menyetel lebar pita sinyal radio.",
+      "This line sets the radio's signal bandwidth.",
+      "这一行设置无线电的信号带宽。",
+    ),
+    t(
+      "Konstanta di atas: LORA, garis bawah, BANDWIDTH, huruf besar semua.",
+      "The constant above: LORA, an underscore, BANDWIDTH, all capitals.",
+      "上面的常量：LORA、下划线、BANDWIDTH，全部大写。",
+    ),
+  ),
+  "m4.modul4_beacon.4": k(
+    t(
+      "Baris ini menyetel daya pancar beacon.",
+      "This line sets the beacon's transmit power.",
+      "这一行设置信标的发射功率。",
+    ),
+    t(
+      "Konstanta di atas: BEACON, TX dan POWER, dihubungkan garis bawah, huruf besar semua.",
+      "The constant above: BEACON, TX and POWER, joined by underscores, all capitals.",
+      "上面的常量：BEACON、TX、POWER 用下划线连接，全部大写。",
+    ),
+  ),
+  "m4.modul4_beacon.5": k(
+    t(
+      "Yang dipancarkan adalah String yang disusun di atasnya.",
+      "What goes out is the String built above.",
+      "发出去的是上面拼好的 String。",
+    ),
+    t(
+      "Variabel String itu: kata bahasa Inggris untuk muatan paket, tujuh huruf kecil.",
+      "That String variable: the English word for a packet's cargo, seven lower case letters.",
+      "那个 String 变量：英文中数据包“载荷”一词，七个小写字母。",
+    ),
+  ),
+  "m4.modul4_beacon.6": k(
+    t(
+      "Paket yang sudah diisi perlu ditutup dan dipancarkan.",
+      "The filled packet has to be closed and sent.",
+      "填好的数据包需要结束并发出。",
+    ),
+    t(
+      "Pasangan beginPacket(): end lalu Packet, P besar.",
+      "beginPacket()'s partner: end then Packet, capital P.",
+      "beginPacket() 的搭档：end 加 Packet，P 大写。",
+    ),
+  ),
+};
+
+/** Every blank's answer with its three hints. */
+export const KUNCI_V1: Record<string, KunciV1> = Object.fromEntries(
+  Object.entries(DASAR).map(([kunci, v]) => [kunci, { ...v, ...TINGKAT[kunci] }]),
+);

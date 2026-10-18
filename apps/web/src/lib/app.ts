@@ -5,7 +5,8 @@
  * helper, and the module names in both languages.
  */
 import { laluLabel } from "./labels.js";
-import type { HakKey, HakNilai, Tier } from "./hak.js";
+import type { HakKey, HakNilai, PresetPeran, Tier } from "./hak.js";
+import { sebagaiPeran } from "./lihat-peran.js";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Kelas, Lang } from "./kelas.js";
 import { usePollBersama } from "./hooks.js";
@@ -81,7 +82,12 @@ export interface Me {
   /** Asisten only (Phase 9): see lib/hak.ts. */
   tier?: Tier;
   badges?: string[];
+  /** The division's code (ASO, ADS, ...); null for the Inti. */
+  kodeDivisi?: string | null;
   hak?: Record<HakKey, HakNilai>;
+  /** Set while an Admin previews a role (lib/lihat-peran.ts): the rights
+   *  above are the preset's, not theirs. */
+  lihatPeran?: PresetPeran;
 }
 
 let mePromise: Promise<Me | null> | null = null;
@@ -90,7 +96,7 @@ export const ME_CHANGED = "iris:me-changed";
 export function loadMe(force = false): Promise<Me | null> {
   if (!mePromise || force) {
     mePromise = getJson<{ ok: boolean } & Partial<Me>>("/api/auth/me")
-      .then((d) => (d.ok ? (d as Me) : null))
+      .then((d) => (d.ok ? sebagaiPeran(d as Me) : null))
       .catch(() => null);
   }
   return mePromise;
@@ -161,7 +167,7 @@ async function segarkanHak() {
   let baru: Me | null;
   try {
     const d = await getJson<{ ok: boolean } & Partial<Me>>("/api/auth/me");
-    baru = d.ok ? (d as Me) : null;
+    baru = d.ok ? sebagaiPeran(d as Me) : null;
   } catch {
     return; // a lost connection isn't a sign-out; the next change retries
   }

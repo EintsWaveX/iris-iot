@@ -37,7 +37,9 @@
 import { bacaRekamPasang, hapusRekamPasang } from "../_lib/pasang.js";
 import { handleKonsolGet, konsolMenunggu } from "../_lib/konsol.js";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
-import { cekHak } from "../_lib/hak.js";
+import { cekHak, muatOrang } from "../_lib/hak.js";
+import { boleh } from "../../src/lib/hak.js";
+import { saringKeluaran } from "../../src/lib/server-shared.js";
 import { jsonBody, noStore } from "../_lib/http.js";
 import { requireRole } from "../_lib/session.js";
 import { getDb } from "../../src/lib/db.js";
@@ -76,7 +78,7 @@ const AKSI_TERAKHIR = [
 ];
 const PERINTAH_PER_HALAMAN = 20;
 
-async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
+async function handleGet(_req: ApiRequest, res: ApiResponse, id: number, full: boolean) {
   const db = getDb();
   // A silent Pi runs no sweep of its own: the page that asks at a
   // command's expiry (Phase 12) sees it expired.
@@ -159,8 +161,10 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
     bundelTerbit: await bundelTerbaru(),
     denyutTerakhir: denyutTerakhir ?? null,
     batasLuringDetik: batasLuringDetik(denyutTerakhir?.pada ?? null, sesiMulaiPada),
-    perintah: daftarPerintah,
-    terakhir,
+    // Command output is for the full Server view, bar the Ready check's
+    // and Sync Clock's.
+    perintah: saringKeluaran(daftarPerintah, full),
+    terakhir: saringKeluaran(terakhir, full),
     siapRiwayat,
     sesiModul: running?.modul ?? null,
   });
@@ -169,7 +173,13 @@ async function handleGet(_req: ApiRequest, res: ApiResponse, id: number) {
 /** Phase 9: one page of older commands for "Semua perintah", keyed by id
  *  (ids only grow, so a page boundary never shifts while new commands are
  *  queued above it). `lagi` says whether another page exists. */
-async function handlePerintah(_req: ApiRequest, res: ApiResponse, id: number, sebelum: number) {
+async function handlePerintah(
+  _req: ApiRequest,
+  res: ApiResponse,
+  id: number,
+  sebelum: number,
+  full: boolean,
+) {
   if (!Number.isInteger(sebelum) || sebelum <= 0) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
@@ -183,7 +193,7 @@ async function handlePerintah(_req: ApiRequest, res: ApiResponse, id: number, se
     .limit(PERINTAH_PER_HALAMAN + 1);
   res.status(200).json({
     ok: true,
-    perintah: rows.slice(0, PERINTAH_PER_HALAMAN),
+    perintah: saringKeluaran(rows.slice(0, PERINTAH_PER_HALAMAN), full),
     lagi: rows.length > PERINTAH_PER_HALAMAN,
   });
 }
@@ -365,9 +375,11 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method === "GET") {
     const aksi = req.query.aksi;
     if (aksi === "riwayat") return handleRiwayat(req, res, id, String(req.query.rentang ?? ""));
-    if (aksi === "perintah") return handlePerintah(req, res, id, Number(req.query.sebelum));
+    const orang = await muatOrang(session.nim);
+    const full = !!orang && boleh(orang, "full");
+    if (aksi === "perintah") return handlePerintah(req, res, id, Number(req.query.sebelum), full);
     if (aksi === "konsol") return handleKonsolGet(res, id, session.nim);
-    return handleGet(req, res, id);
+    return handleGet(req, res, id, full);
   }
   // Phase 9: settings, removing a Pi and new enrolment tokens are the full
   // Server view (Admin and DEV).

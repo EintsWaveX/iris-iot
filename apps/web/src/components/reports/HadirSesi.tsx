@@ -26,8 +26,9 @@ export interface HadirSesiData {
     status: StatusLive;
     menit: number | null;
     hadirPada: string | null;
-    potong: number;
-    nolkanUnit: boolean;
+    /** Only on your own row, unless ADS or Admin. */
+    potong?: number;
+    nolkanUnit?: boolean;
     hitungMangkir: boolean;
     ubah: { status: string; alasan: string | null; oleh: string | null } | null;
   }[];
@@ -178,7 +179,7 @@ export default function HadirSesi({
                           </Pill>
                         </td>
                         <td className="num">
-                          {b.nolkanUnit ? t.notPaid : b.potong > 0 ? rpPendek(b.potong) : ""}
+                          {b.nolkanUnit ? t.notPaid : b.potong ? rpPendek(b.potong) : ""}
                         </td>
                         <td className="hint">{catatan.join(" ")}</td>
                       </tr>

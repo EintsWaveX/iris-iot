@@ -11,7 +11,9 @@ import { eq } from "drizzle-orm";
 import type { ApiResponse } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
 import { asisten } from "../../src/lib/schema.js";
-import { HAK, boleh, hakDari, type HakKey, type HakNilai, type Orang } from "../../src/lib/hak.js";
+import { boleh, type HakKey, type Orang } from "../../src/lib/hak.js";
+
+export { petaHak } from "../../src/lib/hak.js";
 
 export interface OrangHak extends Orang {
   nim: string;
@@ -36,11 +38,6 @@ export async function muatOrang(nim: string): Promise<OrangHak | null> {
     .where(eq(asisten.nim, nim))
     .limit(1);
   return row ?? null;
-}
-
-/** Every right as the person holds it now, for /me and the Tim page. */
-export function petaHak(o: Orang): Record<HakKey, HakNilai> {
-  return Object.fromEntries(HAK.map((k) => [k, hakDari(o, k)])) as Record<HakKey, HakNilai>;
 }
 
 /** Loads the person and checks one right. Sends 403 and returns null when

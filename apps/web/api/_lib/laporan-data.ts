@@ -17,15 +17,17 @@
  *      be changed.
  * GET  /api/session/rekap?sesiId=      one session's page: the session,
  *      each group's holder, SeeLabs account and status, attendance, blanks
- *      and delays, the session's written note, the score change log, and
- *      the feedback (Lab for everyone, "your rating" only for a holder).
+ *      and delays, the session's written note, the score change log (the
+ *      audit right only), and the feedback (Lab for everyone, "your rating"
+ *      only for a holder). Other people's Rp cuts go only to ADS and Admins.
  * POST /api/session/rekap { sesiId, teks }   saves the session's written
  *      note (one per session, shared, the last writer shown).
  * GET  /api/session/audit?jenis=&aktor=&dari=&sampai=&sebelum=
  *      the audit log, newest first, 100 lines a page (sebelum = the last
  *      id seen). jenis is a Reports › Audit tab (src/lib/audit-jenis.ts).
  *      Each page carries the sessions, groups, slots and servers its lines
- *      point at, so the browser can write them as sentences.
+ *      point at, so the browser can write them as sentences. The audit
+ *      right only (Admins).
  */
 import { and, asc, desc, eq, gte, inArray, isNull, like, lt, lte, not, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
@@ -34,6 +36,7 @@ import { jumlahCelahModul, jumlahCelahPer, kodeModul } from "./kode-aktif.js";
 import { muatSeelabs } from "./seelabs.js";
 import { muatHadirSesi, muatInputNilai } from "./hadir-laporan.js";
 import { uraiKunci } from "./hadir-mengajar.js";
+import { muatOrang } from "./hak.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   anggota,
@@ -58,6 +61,8 @@ import { ringkas } from "../../src/lib/umpan-balik.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
 import type { SesiLaporan } from "../../src/lib/laporan.js";
+import { saringRp } from "../../src/lib/hadir-mengajar.js";
+import { boleh, lihatRpSemua } from "../../src/lib/hak.js";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -475,7 +480,7 @@ export async function handleRekapGet(req: ApiRequest, res: ApiResponse, session:
     res.status(200).json({ ok: false, kode: "sesi_tidak_ada" });
     return;
   }
-  const [seelabs, member, tugas, masuk, blanks, delays, catatan, nilaiLog, lab, saya] =
+  const [seelabs, member, tugas, masuk, blanks, delays, catatan, nilaiLog, lab, saya, orang] =
     await Promise.all([
       muatSeelabs(db, sesiId),
       anggotaPerSesi(db, [sesiId]).then((m) => m.get(sesiId) ?? []),
@@ -532,6 +537,7 @@ export async function handleRekapGet(req: ApiRequest, res: ApiResponse, session:
         })
         .from(umpanBalik)
         .where(and(eq(umpanBalik.sesiId, sesiId), eq(umpanBalik.asistenNim, session.nim))),
+      muatOrang(session.nim),
     ]);
 
   const hadir = new Set(masuk.map((m) => m.nim));
@@ -613,7 +619,10 @@ export async function handleRekapGet(req: ApiRequest, res: ApiResponse, session:
     },
     hadir: [member.filter((m) => hadir.has(m.nim)).length, member.length],
     kelompok: kelompokOut,
-    hadirAsisten,
+    hadirAsisten: hadirAsisten && {
+      ...hadirAsisten,
+      baris: saringRp(hadirAsisten.baris, session.nim, lihatRpSemua(orang)),
+    },
     inputNilai,
     catatan: catatan
       ? {
@@ -623,7 +632,7 @@ export async function handleRekapGet(req: ApiRequest, res: ApiResponse, session:
           pada: catatan.diubahPada.toISOString(),
         }
       : null,
-    nilaiLog: log,
+    ...(orang && boleh(orang, "audit") ? { nilaiLog: log } : {}),
     lab: ringkas(lab),
     saya: held ? ringkas(saya) : null,
     pegang: tugas.filter((t) => t.nim === session.nim).map((t) => t.nomor),

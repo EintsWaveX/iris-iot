@@ -17,19 +17,19 @@
  *          and `minggu`: each group's kind on that date (tetap, pengganti,
  *          sukarela, izin) and who covers. With Pasangan per Modul on,
  *          `modulDaftar: { modul, list }` is that date's module list from
- *          the drawer (hakPenuh, Per Modul's rules, never a taught module).
+ *          the drawer (jadwal right, Per Modul's rules, never a taught module).
  *      { semester, pindah: { dari: {hari, slot}, ke: {hari, slot} } }
  *          moves a slot to a free day and session (2026-10-12): its roster,
  *          and its holidays, covers and izin still to come, go along.
  *      { semester, teksDefault, ... }      the paste import (unchanged); a
  *          slot keeps the module lists that still fit it.
- *      { semester, bergilir }              Per Modul's switch (Admins and
- *          above, hakPenuh).
+ *      { semester, bergilir }              Per Modul's switch (the jadwal
+ *          right).
  *      { semester, pasanganModul: [{ hari, slot, modul }] }  Per Modul's
- *          lists, each slot's replaced whole (hakPenuh); a module the slot
+ *          lists, each slot's replaced whole (jadwal right); a module the slot
  *          already taught keeps its list.
  *      { semester, jumlahModul }           Per Modul's module count, 1 to 8
- *          (hakPenuh); lists past it stay saved, unused.
+ *          (jadwal right); lists past it stay saved, unused.
  *
  * GET  /api/session/penugasan             my side of it: today's slots that
  *      need help (Saya Bantu), requests to me, offers waiting for me to
@@ -66,7 +66,7 @@ import {
 } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { boleh, hakPenuh } from "../../src/lib/hak.js";
+import { boleh } from "../../src/lib/hak.js";
 import { isKelas } from "../../src/lib/kelas.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
 import { KELOMPOK_DEFAULT, KELOMPOK_MAKS } from "../../src/lib/jadwal.js";
@@ -506,7 +506,7 @@ async function ubahSlot(
     if (!modul || modul > MODUL_MAKS || !Array.isArray(x.list))
       return tolak(res, "format_salah", 400);
     const o = await muatOrang(session.nim);
-    if (!o || !hakPenuh(o)) return tolak(res, "tanpa_hak", 403);
+    if (!o || !boleh(o, "jadwal")) return tolak(res, "tanpa_hak", 403);
     const konteks = await konteksModul(db, semester);
     if (!konteks.aktif) return tolak(res, "pasangan_mati");
     if (modul > konteks.jumlah) return tolak(res, "format_salah", 400);
@@ -611,7 +611,7 @@ async function ubahSlot(
 }
 
 /**
- * Jadwal › Per Modul (Admins and above): the semester's switch, or the
+ * Jadwal › Per Modul (the jadwal right): the semester's switch, or the
  * module lists of some slots. Each slot's `modul` replaces its lists whole
  * ("1" to "4"; a module left out or null goes back to the default), and
  * every code must be one of the slot's own default Asisten.
@@ -624,7 +624,7 @@ async function aturPasangan(
   body: Record<string, unknown>,
 ) {
   const o = await muatOrang(session.nim);
-  if (!o || !hakPenuh(o)) return tolak(res, "tidak_berhak", 403);
+  if (!o || !boleh(o, "jadwal")) return tolak(res, "tidak_berhak", 403);
   if (typeof body.bergilir === "boolean") {
     await aturBergilir(db, semester, body.bergilir, session.nim);
     await writeAudit(session.nim, "jadwal_pasangan_modul", { semester, bergilir: body.bergilir });

@@ -17,7 +17,7 @@ import {
   FileXlsIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { getJson, localeOf, tanggalPanjang } from "../../lib/app";
+import { getJson, localeOf, tanggalPanjang, useMe } from "../../lib/app";
 import { jumlahkan, rupiah } from "../../lib/bayar";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { kelasLabel, modulLabel, slotLabel } from "../../lib/labels";
@@ -1240,6 +1240,10 @@ export default function Home({
   const { t, lang, dir } = c;
   const shown = useMemo(() => rows.filter(cocok(f)), [rows, f]);
   const [dataSem, setDataSem] = useState(false);
+  // Audit is for the audit right (Admins); an old #audit link lands on Sesi.
+  const bolehAudit = useMe()?.hak?.audit === true;
+  const tabs = TAB_HOME.filter((v) => v !== "audit" || bolehAudit);
+  const tabKini: TabHome = tabs.includes(tab) ? tab : "sesi";
   const exportView = (fmt: Format) => {
     const kepala = [
       t.col.tanggal,
@@ -1299,22 +1303,22 @@ export default function Home({
       <FilterBar f={f} setF={setF} c={c} />
       <TabLine
         label={t.tabsLabel}
-        value={tab}
+        value={tabKini}
         onChange={setTab}
-        tabs={TAB_HOME.map((v) => ({
+        tabs={tabs.map((v) => ({
           v,
           label: t.tabs[v],
           n: v === "sesi" ? shown.length : undefined,
         }))}
       />
-      <Fade k={tab}>
-        {tab === "sesi" && <SessionsTab rows={shown} c={c} onOpen={onOpen} />}
-        {tab === "ringkasan" && <OverviewTab rows={shown} c={c} />}
-        {tab === "beban" && <LoadTab rows={shown} c={c} />}
-        {tab === "kejadian" && <IncidentsTab rows={shown} t={t} lang={lang} dir={dir} />}
-        {tab === "lab" && <LabTab rows={shown} c={c} />}
-        {tab === "audit" && <AuditTab f={f} c={c} />}
-        {tab === "bayar" && <PayTab c={c} onOpenPay={onOpenPay} />}
+      <Fade k={tabKini}>
+        {tabKini === "sesi" && <SessionsTab rows={shown} c={c} onOpen={onOpen} />}
+        {tabKini === "ringkasan" && <OverviewTab rows={shown} c={c} />}
+        {tabKini === "beban" && <LoadTab rows={shown} c={c} />}
+        {tabKini === "kejadian" && <IncidentsTab rows={shown} t={t} lang={lang} dir={dir} />}
+        {tabKini === "lab" && <LabTab rows={shown} c={c} />}
+        {tabKini === "audit" && <AuditTab f={f} c={c} />}
+        {tabKini === "bayar" && <PayTab c={c} onOpenPay={onOpenPay} />}
       </Fade>
     </div>
   );

@@ -4,7 +4,8 @@
  * Ringkasan, Kelas, Tugas, Nilai, Pengumuman, Kalender, Isi Kelas and
  * Sambungan, which is Penilaian's old Sumber LMS. The tab is in the hash
  * (#kelas … #sambung). Every Asisten reads; the Pencipta, Admins and the
- * ASO division change things (the API refuses anyone else).
+ * ASO division change things (the API refuses anyone else). Isi Kelas shows
+ * only to the lms right and Sambungan only to the full right.
  */
 import { useEffect, useState } from "react";
 import Fade from "../ui/Fade";
@@ -78,6 +79,10 @@ export default function LmsPage({ lang }: { lang: Lang }) {
   if (me?.role !== "asisten")
     return <ErrorView code={me ? 403 : 401} lang={lang} role={me?.role ?? null} />;
 
+  const ada = TABS.filter(
+    (v) => (v !== "isi" || me.hak?.lms === true) && (v !== "sambung" || me.hak?.full === true),
+  );
+  const shown: TabLms = ada.includes(tab) ? tab : "ringkas";
   const ke = (v: TabLms) => setTab(v);
   return (
     <div className="lms">
@@ -102,25 +107,25 @@ export default function LmsPage({ lang }: { lang: Lang }) {
       </div>
       <TabLine
         className="lms-tabs"
-        value={tab}
+        value={shown}
         onChange={setTab}
         label={t.bagian}
-        tabs={TABS.map((v) => ({ v, label: t.tab[v] }))}
+        tabs={ada.map((v) => ({ v, label: t.tab[v] }))}
       />
-      <Fade k={tab}>
-        {tab === "ringkas" ? (
+      <Fade k={shown}>
+        {shown === "ringkas" ? (
           <RingkasTab lang={lang} ke={ke} />
-        ) : tab === "kelas" ? (
+        ) : shown === "kelas" ? (
           <KelasTab lang={lang} ke={ke} />
-        ) : tab === "tugas" ? (
+        ) : shown === "tugas" ? (
           <TugasTab lang={lang} ke={ke} />
-        ) : tab === "nilai" ? (
+        ) : shown === "nilai" ? (
           <NilaiTab lang={lang} ke={ke} />
-        ) : tab === "umum" ? (
+        ) : shown === "umum" ? (
           <UmumTab lang={lang} ke={ke} />
-        ) : tab === "kalender" ? (
+        ) : shown === "kalender" ? (
           <KalenderTab lang={lang} ke={ke} />
-        ) : tab === "isi" ? (
+        ) : shown === "isi" ? (
           <IsiTab lang={lang} ke={ke} />
         ) : (
           <LmsTab lang={lang} kelolaAwal={kelolaAwal} onKelolaDibuka={() => setKelolaAwal(null)} />

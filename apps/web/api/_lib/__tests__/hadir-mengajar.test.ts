@@ -213,14 +213,19 @@ describe("masuk", () => {
 
 describe("bolehPj", () => {
   const dasar = { tier: "asisten", badges: [] as string[], kode: "XYZ", nim: "9" };
-  it("allows the full right, the slot's PJ code and a Susulan's creator", () => {
+  it("allows the hadir right, the slot's PJ code and a Susulan's creator", () => {
     expect(bolehPj({ ...dasar, tier: "admin" }, { pj: "AAA" })).toBe(true);
-    expect(bolehPj({ ...dasar, badges: ["dev"] }, { pj: null })).toBe(true);
+    expect(bolehPj({ ...dasar, divisi: "ADS" }, { pj: "AAA" })).toBe(true);
+    expect(bolehPj({ ...dasar, hakOverride: { hadir: true } }, { pj: "AAA" })).toBe(true);
     expect(bolehPj({ ...dasar, kode: "pjx" }, { pj: "PJX" })).toBe(true);
     expect(bolehPj(dasar, { pj: null, pembuat: "9" })).toBe(true);
   });
-  it("refuses another Asisten", () => {
+  it("refuses another Asisten, a DEV and an ADS member overridden off", () => {
     expect(bolehPj(dasar, { pj: "PJX" })).toBe(false);
+    expect(bolehPj({ ...dasar, badges: ["dev"] }, { pj: "PJX" })).toBe(false);
+    expect(bolehPj({ ...dasar, divisi: "ADS", hakOverride: { hadir: false } }, { pj: "PJX" })).toBe(
+      false,
+    );
     expect(bolehPj(dasar, { pj: null, pembuat: "1" })).toBe(false);
   });
 });

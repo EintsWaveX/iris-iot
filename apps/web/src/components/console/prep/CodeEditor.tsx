@@ -86,6 +86,12 @@ const LABEL_BAHASA: Record<BahasaKode, string> = { id: "ID", en: "EN" };
  *  (2026-10-12); an empty ZH falls back to EN. */
 const BAHASA_TEKS = ["id", "en", "zh"] as const;
 const LABEL_TEKS: Record<(typeof BAHASA_TEKS)[number], string> = { ...LABEL_BAHASA, zh: "ZH" };
+/** The three hints a blank opens after 1, 2 and 3 wrong tries. */
+const TINGKAT_BANTUAN = [
+  ["bantuan1", "bantuan1", "bantuan1Hint"],
+  ["bantuan", "bantuan", "bantuanHint"],
+  ["bantuan3", "bantuan3", "bantuan3Hint"],
+] as const;
 
 /** Files a slot takes: Python for a .py sketch; .ino or .cpp for an
  *  Arduino sketch. */
@@ -1323,24 +1329,26 @@ function CelahForm({
             ))}
             <span className="field__hint kodeed__pair-hint">{t.kenapaHint}</span>
           </div>
-          <div className="kodeed__detail-pair">
-            {BAHASA_TEKS.map((b) => (
-              <label key={`h-${b}`} className="field">
-                <span className="field__label">{t.bantuan(LABEL_TEKS[b])}</span>
-                <textarea
-                  className="field__input field__textarea"
-                  rows={3}
-                  maxLength={400}
-                  lang={b === "zh" ? "zh-CN" : b}
-                  value={c.bantuan?.[b] ?? ""}
-                  onChange={(e) =>
-                    onChange({ bantuan: { id: "", en: "", ...c.bantuan, [b]: e.target.value } })
-                  }
-                />
-              </label>
-            ))}
-            <span className="field__hint kodeed__pair-hint">{t.bantuanHint}</span>
-          </div>
+          {TINGKAT_BANTUAN.map(([k, label, hint]) => (
+            <div key={k} className="kodeed__detail-pair">
+              {BAHASA_TEKS.map((b) => (
+                <label key={`${k}-${b}`} className="field">
+                  <span className="field__label">{t[label](LABEL_TEKS[b])}</span>
+                  <textarea
+                    className="field__input field__textarea"
+                    rows={3}
+                    maxLength={400}
+                    lang={b === "zh" ? "zh-CN" : b}
+                    value={c[k]?.[b] ?? ""}
+                    onChange={(e) =>
+                      onChange({ [k]: { id: "", en: "", ...c[k], [b]: e.target.value } })
+                    }
+                  />
+                </label>
+              ))}
+              <span className="field__hint kodeed__pair-hint">{t[hint]}</span>
+            </div>
+          ))}
         </div>
       </div>
     </section>

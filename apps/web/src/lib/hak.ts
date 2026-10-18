@@ -11,12 +11,15 @@
  * (serah_terima) is accepted.
  *
  * Badges are not roles: DEV (the ASO and ARM divisions, who built the site)
- * and Pencipta (the site's creator). The Pencipta, every Admin and every DEV
- * hold every right and can't be reduced (user, 2026-10-07). An Admin can
- * override any single right of anyone else.
+ * and Pencipta (the site's creator). The Pencipta and every Admin hold every
+ * right and can't be reduced. An Admin can override any single right of
+ * anyone else.
  *
- * `kode` (the journal code files and their blanks, 2026-10-05) follows the
- * division instead of the tier: the ASO division and every Admin.
+ * A person's rights are the union of what their tier, their division and
+ * their badges give (Phase 20, 2026-10-18):
+ *   ASO  -> kode, lms        ADS -> hadir        ARM -> server
+ *   DEV  -> jadwal, server, full (the technical rights plus the Schedule)
+ *   Kepala of any division -> jadwal and full pair, on top of the division
  */
 
 export const DIVISI = ["ASO", "ARD", "ADS", "ADC", "AER", "ARM"] as const;
@@ -42,7 +45,18 @@ export type Badge = (typeof BADGE)[number];
 export const DIVISI_DEV: readonly Divisi[] = ["ASO", "ARM"];
 
 /** The rights each tier starts with. "own" means: only their own slot. */
-export const HAK = ["own", "pair", "jadwal", "server", "full", "tim", "kode"] as const;
+export const HAK = [
+  "own",
+  "pair",
+  "jadwal",
+  "server",
+  "full",
+  "tim",
+  "kode",
+  "lms",
+  "hadir",
+  "audit",
+] as const;
 export type HakKey = (typeof HAK)[number];
 export type HakNilai = boolean | "own";
 
@@ -53,18 +67,35 @@ const MATRIX: Record<HakKey, Record<Tier, HakNilai>> = {
   pair: { asisten: "own", pengelola: true, admin: true },
   // edit the Schedule, Module Access, Brief, Slides, Schematics
   jadwal: { asisten: false, pengelola: true, admin: true },
-  // control the server (hotspot, services, commands)
-  server: { asisten: false, pengelola: true, admin: true },
-  // the full Server view: logs, updates, settings, registering a Pi
+  // control the server (hotspot, services, commands); ARM below
+  server: { asisten: false, pengelola: false, admin: true },
+  // the full Server view: logs, updates, settings, command output,
+  // registering a PC, Sumber SeeLabs, the LMS connection
   full: { asisten: false, pengelola: false, admin: true },
   // edit the Team: people, positions, rights, payments
   tim: { asisten: false, pengelola: false, admin: true },
   // edit the journal code files and their blanks (Admins; ASO below)
   kode: { asisten: false, pengelola: false, admin: true },
+  // change the LMS: TP assignments, class content, announcements (ASO below)
+  lms: { asisten: false, pengelola: false, admin: true },
+  // everyone's attendance and Rp cuts, the PJ actions on every slot (ADS)
+  hadir: { asisten: false, pengelola: false, admin: true },
+  // the Audit tab, other people's trails and rights, the score change log
+  audit: { asisten: false, pengelola: false, admin: true },
 };
 
 /** The division that keeps the journal code. */
 export const DIVISI_KODE: Divisi = "ASO";
+
+/** The rights each division adds for all its members. */
+const HAK_DIVISI: Partial<Record<Divisi, readonly HakKey[]>> = {
+  ASO: ["kode", "lms"],
+  ADS: ["hadir"],
+  ARM: ["server"],
+};
+
+/** The rights the DEV badge adds. */
+const HAK_DEV: readonly HakKey[] = ["jadwal", "server", "full"];
 
 export function isKategori(v: unknown): v is Kategori {
   return typeof v === "string" && (KATEGORI as readonly string[]).includes(v);
@@ -89,7 +120,7 @@ export interface Orang {
   tier: Tier;
   badges: readonly string[];
   hakOverride: Readonly<Partial<Record<string, boolean>>>;
-  /** asisten.divisi; null for the Inti. Only `kode` reads it. */
+  /** asisten.divisi; null for the Inti. Adds the division's tools. */
   divisi?: string | null;
 }
 
@@ -97,9 +128,9 @@ export function isPencipta(o: Pick<Orang, "badges">): boolean {
   return o.badges.includes("pencipta");
 }
 
-/** Every right, never reduced: the Pencipta, the Admin tier and DEV. */
+/** Every right, never reduced: the Pencipta and the Admin tier. */
 export function hakPenuh(o: Pick<Orang, "tier" | "badges">): boolean {
-  return isPencipta(o) || o.tier === "admin" || o.badges.includes("dev");
+  return isPencipta(o) || o.tier === "admin";
 }
 
 /**
@@ -115,19 +146,11 @@ export function bolehResetSandi(
   return adminTim && !sendiri && !isPencipta(target);
 }
 
-/**
- * Makes, changes and deletes the TP assignments in the LMS and keeps the TP
- * exclusions: the Pencipta, the Admins and the ASO division (user,
- * 2026-10-13). DEV alone (ARM) reads Sumber LMS but doesn't change the LMS.
- */
-export function bolehKelolaLms(o: Pick<Orang, "tier" | "badges" | "divisi">): boolean {
-  return isPencipta(o) || o.tier === "admin" || o.divisi === DIVISI_KODE;
-}
-
-/** What the tier and badges give, before any override. */
+/** What the tier, division and badges give, before any override. */
 export function hakDasar(o: Pick<Orang, "tier" | "badges" | "divisi">, key: HakKey): HakNilai {
   if (hakPenuh(o)) return true;
-  if (key === "kode" && o.divisi === DIVISI_KODE) return true;
+  if (isDivisi(o.divisi) && HAK_DIVISI[o.divisi]?.includes(key)) return true;
+  if (o.badges.includes("dev") && HAK_DEV.includes(key)) return true;
   return MATRIX[key][o.tier];
 }
 
@@ -146,4 +169,132 @@ export function boleh(o: Orang, key: HakKey): boolean {
 /** True only for the full right, not own-slot-only. */
 export function bolehPenuh(o: Orang, key: HakKey): boolean {
   return hakDari(o, key) === true;
+}
+
+/** Every right as the person holds it now, for /me, the Tim page and Lihat sebagai Peran. */
+export function petaHak(o: Orang): Record<HakKey, HakNilai> {
+  return Object.fromEntries(HAK.map((k) => [k, hakDari(o, k)])) as Record<HakKey, HakNilai>;
+}
+
+/** Everyone's Rp cuts: ADS (hadir) and whoever runs the Team's pay (tim). */
+export function lihatRpSemua(o: Orang | null): boolean {
+  return !!o && (boleh(o, "hadir") || boleh(o, "tim"));
+}
+
+/** Other people's rights and trails: the audit right, or the Tim right that edits them. */
+export function lihatHakOrang(o: Orang | null): boolean {
+  return !!o && (boleh(o, "audit") || boleh(o, "tim"));
+}
+
+/** Where a right comes from, for Akun's Hak Saya. */
+export type AsalHak = "inti" | "pencipta" | "kepala" | "divisi" | "dev" | "admin";
+
+/**
+ * Why a person holds `key` at the value `nilai`: an Admin's override (the
+ * value differs from what tier, division and badges give), else the first
+ * of Inti, Pencipta, the division, DEV and the Kepala position that gives
+ * it. Null for a right held by everyone (own) or not held at all.
+ */
+export function asalHak(
+  o: Pick<Orang, "tier" | "badges" | "divisi">,
+  key: HakKey,
+  nilai: HakNilai,
+): AsalHak | null {
+  if (nilai === false) return null;
+  if (o.tier === "admin") return "inti";
+  if (isPencipta(o)) return "pencipta";
+  if (nilai !== hakDasar(o, key)) return "admin";
+  if (isDivisi(o.divisi) && HAK_DIVISI[o.divisi]?.includes(key)) return "divisi";
+  if (o.badges.includes("dev") && HAK_DEV.includes(key)) return "dev";
+  if (o.tier === "pengelola" && MATRIX[key].pengelola !== MATRIX[key].asisten) return "kepala";
+  return null;
+}
+
+/** One change to someone's rights: the right, on (true), off (false) or back to the default (null). */
+export interface UbahHak {
+  pada: string;
+  oleh: string;
+  key: HakKey;
+  jadi: boolean | null;
+}
+
+/**
+ * The changes to one person's rights from their Tim trail. Each `tim_ubah`
+ * line that set overrides carries the whole new map, so each is compared
+ * with the one before it. Newest first, like the trail.
+ */
+export function perubahanHak(
+  jejak: readonly { pada: string; aktorNim: string; aksi: string; detail: string | null }[],
+): UbahHak[] {
+  const baris: UbahHak[][] = [];
+  let lama: Record<string, boolean> = {};
+  const urut = [...jejak].sort((a, b) => a.pada.localeCompare(b.pada));
+  for (const j of urut) {
+    if (j.aksi !== "tim_ubah") continue;
+    let d: { hakOverride?: unknown } = {};
+    try {
+      d = JSON.parse(j.detail ?? "{}") as { hakOverride?: unknown };
+    } catch {
+      continue;
+    }
+    if (typeof d.hakOverride !== "object" || d.hakOverride === null) continue;
+    const baru = d.hakOverride as Record<string, boolean>;
+    baris.push(
+      HAK.filter((key) => baru[key] !== lama[key]).map((key) => ({
+        pada: j.pada,
+        oleh: j.aktorNim,
+        key,
+        jadi: baru[key] ?? null,
+      })),
+    );
+    lama = baru;
+  }
+  return baris.reverse().flat();
+}
+
+/* ------------------------------------------------- Lihat sebagai Peran */
+
+/** The roles an Admin can preview the site as. */
+export const PRESET_PERAN = [
+  "anggota",
+  "aso",
+  "ads",
+  "arm",
+  "kepala",
+  "kepala-arm",
+  "dev",
+  "admin",
+] as const;
+export type PresetPeran = (typeof PRESET_PERAN)[number];
+
+export function isPresetPeran(v: unknown): v is PresetPeran {
+  return typeof v === "string" && (PRESET_PERAN as readonly string[]).includes(v);
+}
+
+/** A stand-in person for a preset, with no overrides. */
+export function presetOrang(p: PresetPeran): Orang {
+  const susun = (tier: Tier, divisi: Divisi | null, badges: string[] = []): Orang => ({
+    tier,
+    divisi,
+    badges,
+    hakOverride: {},
+  });
+  switch (p) {
+    case "anggota":
+      return susun("asisten", "ADC");
+    case "aso":
+      return susun("asisten", "ASO");
+    case "ads":
+      return susun("asisten", "ADS");
+    case "arm":
+      return susun("asisten", "ARM");
+    case "kepala":
+      return susun("pengelola", "ADC");
+    case "kepala-arm":
+      return susun("pengelola", "ARM");
+    case "dev":
+      return susun("asisten", "ARD", ["dev"]);
+    case "admin":
+      return susun("admin", null);
+  }
 }

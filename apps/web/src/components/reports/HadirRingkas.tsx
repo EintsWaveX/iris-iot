@@ -20,8 +20,9 @@ export interface RiwayatHadirOrang {
   status: StatusLive;
   menit: number | null;
   hadirPada: string | null;
-  potong: number;
-  nolkanUnit: boolean;
+  /** Absent on someone else's row without the hadir or tim right. */
+  potong?: number;
+  nolkanUnit?: boolean;
   hitungMangkir: boolean;
   alasan: string | null;
 }
@@ -43,8 +44,9 @@ export interface RekapOrang {
   mm: number;
   mangkir: number;
   izin: number;
-  potong: number;
-  sesiNol: number;
+  /** Absent for someone else without the hadir or tim right. */
+  potong?: number;
+  sesiNol?: number;
   lupa: number;
   lupaMenyusul: number;
   riwayat: RiwayatHadirOrang[];
@@ -122,7 +124,11 @@ function barisRiwayat(lang: Lang, r: RekapOrang): Baris[] {
     if (x.status === "telat") teks = t.evLate(x.menit ?? 0, x.potong ? rpPendek(x.potong) : "");
     else if (x.status === "mm") {
       tone = "danger";
-      teks = t.evMm(jam, x.nolkanUnit, rpPendek(x.potong));
+      teks = t.evMm(
+        jam,
+        x.nolkanUnit ?? x.hitungMangkir,
+        x.potong !== undefined ? rpPendek(x.potong) : "",
+      );
     } else if (x.status === "mangkir") {
       tone = "danger";
       teks = t.evMangkir;
@@ -179,19 +185,21 @@ export default function HadirRingkas({
           </span>
         ))}
       </div>
-      <div className="hadir-rk__line">
-        <span>{t.cutsLine}</span>
-        <b className="num">
-          {data.potong > 0 || data.sesiNol > 0
-            ? [
-                data.potong > 0 ? rpPendek(data.potong) : "",
-                data.sesiNol > 0 ? t.unpaid(data.sesiNol) : "",
-              ]
-                .filter(Boolean)
-                .join(" · ")
-            : t.noCuts}
-        </b>
-      </div>
+      {data.potong !== undefined && (
+        <div className="hadir-rk__line">
+          <span>{t.cutsLine}</span>
+          <b className="num">
+            {data.potong > 0 || (data.sesiNol ?? 0) > 0
+              ? [
+                  data.potong > 0 ? rpPendek(data.potong) : "",
+                  (data.sesiNol ?? 0) > 0 ? t.unpaid(data.sesiNol ?? 0) : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : t.noCuts}
+          </b>
+        </div>
+      )}
       {baris.length === 0 ? (
         <p className="hint">{t.listEmpty}</p>
       ) : (

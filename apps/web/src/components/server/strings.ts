@@ -49,7 +49,6 @@ export const S = dict({
     detail: "Tingkat detail",
     compact: "Ringkas",
     full: "Lengkap",
-    fullLocked: "Tampilan Lengkap hanya untuk DEV, Admin dan Pencipta",
     location: "Lokasi",
     notes: "Catatan",
     pic: "Penanggung Jawab",
@@ -468,7 +467,6 @@ export const S = dict({
     codeFallback: "Terjadi kesalahan.",
     sent: "Perintah dikirim. Diproses pada denyut berikutnya dari PC Server.",
     notSent: "Perintah tidak terkirim.",
-    needRight: "Butuh hak Server (Pengelola, Admin atau DEV)",
   },
   en: {
     eyebrow: "Servers",
@@ -507,7 +505,6 @@ export const S = dict({
     detail: "Detail level",
     compact: "Compact",
     full: "Full",
-    fullLocked: "The Full view is for DEV, Admin and Creator only",
     location: "Location",
     notes: "Notes",
     pic: "Person in Charge",
@@ -909,7 +906,6 @@ export const S = dict({
     codeFallback: "Something went wrong.",
     sent: "Command sent. It runs on the PC Server's next heartbeat.",
     notSent: "The command was not sent.",
-    needRight: "Needs the Server right (Manager, Admin or DEV)",
   },
   zh: {
     eyebrow: "服务器",
@@ -948,7 +944,6 @@ export const S = dict({
     detail: "详细程度",
     compact: "简洁",
     full: "完整",
-    fullLocked: "完整视图只给 DEV、管理员和创建者",
     location: "位置",
     notes: "备注",
     pic: "负责人",
@@ -1335,7 +1330,6 @@ export const S = dict({
     codeFallback: "出错了。",
     sent: "命令已发送。会在 PC 服务器下一次心跳时运行。",
     notSent: "命令没有发出去。",
-    needRight: "需要服务器权限（负责人、管理员或 DEV）",
   },
 });
 

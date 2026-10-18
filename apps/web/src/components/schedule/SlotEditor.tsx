@@ -143,7 +143,7 @@ interface Props {
   diam?: boolean;
   /** The slot's SeeLabs KLP per group number */
   klp?: Record<string, string>;
-  /** May change the pairing per module (hakPenuh) */
+  /** May change the pairing per module (the jadwal right) */
   bolehModul?: boolean;
   /** The modules this slot already taught (their lists stay) */
   diajar?: readonly number[];

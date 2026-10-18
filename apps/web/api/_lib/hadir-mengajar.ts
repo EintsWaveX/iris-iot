@@ -44,7 +44,7 @@ import {
   type TahapNilai,
 } from "../../src/lib/lupa-nilai.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { hakPenuh, bolehPenuh } from "../../src/lib/hak.js";
+import { bolehPenuh, lihatRpSemua } from "../../src/lib/hak.js";
 import { slotToMulai } from "../../src/lib/jadwal.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { statusSlotTanggal } from "../../src/lib/penugasan-minggu.js";
@@ -66,6 +66,7 @@ import {
   hitungHadir,
   instanWib,
   potonganHadir,
+  saringRp,
   type StatusHadir,
   type StatusLive,
 } from "../../src/lib/hadir-mengajar.js";
@@ -138,20 +139,22 @@ export const tanggalWib = (now: Date) =>
   new Date(now.getTime() + 7 * 3600_000).toISOString().slice(0, 10);
 
 /**
- * Who may act as the slot's PJ: the full right, the slot's PJ code, or the
- * Asisten who made a Susulan.
+ * Who may act as the slot's PJ: the hadir right (ADS and Admins, on every
+ * slot), the slot's PJ code, or the Asisten who made a Susulan.
  */
 export function bolehPj(
   orang: {
     tier: string;
     badges: readonly string[];
+    divisi?: string | null;
     kode?: string;
     nim?: string;
     hakOverride?: Readonly<Partial<Record<string, boolean>>>;
   },
   ctx: { pj: string | null; pembuat?: string | null; susulan?: boolean },
 ): boolean {
-  if (hakPenuh(orang as Parameters<typeof hakPenuh>[0])) return true;
+  if (bolehPenuh({ hakOverride: {}, ...orang } as Parameters<typeof bolehPenuh>[0], "hadir"))
+    return true;
   // A Susulan has no PJ code: the creator, or anyone with the full Pair right.
   if (
     ctx.susulan &&
@@ -713,7 +716,8 @@ export async function hadirUntukKunci(
     geser: c.geser ? { dari: jamDariMenit(c.geser.dariMenit), alasan: c.geser.alasan } : null,
     pj: c.pj,
     bolehPj: !!orang && bolehPj(orang, pjCtx(c)),
-    baris,
+    // Other people's Rp cuts are for ADS and Admins; statuses stay.
+    baris: saringRp(baris, orang?.nim ?? null, lihatRpSemua(orang)),
     potongan: await muatPotongan(db),
     ambilAlih: await ambilAlihTertunda(db, c, baris),
   };
@@ -967,7 +971,7 @@ export async function handleHadirPj(req: ApiRequest, res: ApiResponse, session: 
 
   // Everything below changes one person's row.
   if (!c.orang.has(nim)) return tolak(res, "tidak_ada");
-  if (nim === session.nim && !hakPenuh(orang)) return tolak(res, "tanpa_hak", 403);
+  if (nim === session.nim && !bolehPenuh(orang, "hadir")) return tolak(res, "tanpa_hak", 403);
   // Only someone the slot has: expected, on Izin, or already in a row. Anyone
   // else is never judged, so a status on them would only count in reports.
   const [lama] = await db

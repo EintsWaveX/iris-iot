@@ -112,6 +112,19 @@ describe("teksLaporanHadir", () => {
     expect(t).not.toContain("Input Nilai");
   });
 
+  it("leaves out an Rp cut the reader may not see", () => {
+    const m = contoh("id");
+    m.orang = [
+      { kode: "ADD", status: "telat", menit: 4, jam: "12:29" },
+      { kode: "REG", status: "mm", menit: 10, jam: "12:45", hitungMangkir: false },
+    ];
+    const t = teksLaporanHadir(m);
+    expect(t).toContain("ADD telat 4 menit 12:29");
+    expect(t).toContain("REG Mangkir Mengajar 12:45");
+    expect(t).not.toContain("Rp");
+    expect(t).not.toContain("NaN");
+  });
+
   it("names a group still open after the deadline", () => {
     const m = contoh("id");
     m.nilai = [

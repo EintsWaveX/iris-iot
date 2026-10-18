@@ -79,7 +79,8 @@ interface Rekap {
   hadirAsisten: HadirSesiData | null;
   inputNilai: InputNilaiData[] | null;
   catatan: { id: number; teks: string; oleh: string; pada: string } | null;
-  nilaiLog: { pada: string; oleh: string; nim: string | null; komponen: string | null }[];
+  /** The score change log: Admins only (the API leaves it out for others). */
+  nilaiLog?: { pada: string; oleh: string; nim: string | null; komponen: string | null }[];
   lab: Ringkasan;
   saya: Ringkasan | null;
   pegang: number[];
@@ -528,7 +529,7 @@ function ScoresCard({
   // One log line per writer per minute.
   const log = useMemo(() => {
     const m = new Map<string, { oleh: string; jam: string; n: number }>();
-    for (const r of data.nilaiLog) {
+    for (const r of data.nilaiLog ?? []) {
       const k = `${r.oleh}|${r.pada.slice(0, 16)}`;
       const e = m.get(k) ?? {
         oleh: r.oleh,

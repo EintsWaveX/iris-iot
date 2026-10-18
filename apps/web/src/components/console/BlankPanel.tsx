@@ -21,6 +21,7 @@ import { dengar } from "../../lib/siaran";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import type { Lang } from "../../lib/kelas";
 import { BL } from "./blankStrings";
+import KodeTeks from "../ui/KodeTeks";
 import "./blank-panel.css";
 
 interface Blank {
@@ -32,6 +33,7 @@ interface Blank {
   juga: string[];
   kenapa: string;
   bantuan: string;
+  bantuanKe: number;
   isi: string;
   benar: boolean;
   percobaan: number;
@@ -386,8 +388,10 @@ function HintDialog({
         )}
         {b.bantuan && (
           <div className="field">
-            <span className="field__label">{t.dlgModule}</span>
-            <span className="hint">{b.bantuan}</span>
+            <span className="field__label">{t.dlgModule(b.bantuanKe)}</span>
+            <span className="hint">
+              <KodeTeks teks={b.bantuan} />
+            </span>
           </div>
         )}
         <label className="field">

@@ -315,10 +315,12 @@ function KelasDrawer({
           <div className="stack">
             <div className="row row--between lms-isi-ke">
               <p className="hint">{t.isiHint}</p>
-              <button type="button" className="btn btn--ghost btn--sm" onClick={onUbah}>
-                {t.ubahDiIsi}
-                <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
-              </button>
+              {boleh && (
+                <button type="button" className="btn btn--ghost btn--sm" onClick={onUbah}>
+                  {t.ubahDiIsi}
+                  <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+                </button>
+              )}
             </div>
             {(d.bagian ?? []).map((b) => (
               <div className="lms-sec" key={b.id}>
@@ -329,13 +331,15 @@ function KelasDrawer({
                       <li key={m.cmid}>
                         <span className="grow">{m.nama}</span>
                         {!m.tampil && <Pill>{t.tersembunyi}</Pill>}
-                        <Switch
-                          on={m.tampil}
-                          onChange={(v) => void tampil(m, v)}
-                          label={`${t.tampil}: ${m.nama}`}
-                          disabled={!boleh || sedang === m.cmid}
-                          busy={sedang === m.cmid}
-                        />
+                        {boleh && (
+                          <Switch
+                            on={m.tampil}
+                            onChange={(v) => void tampil(m, v)}
+                            label={`${t.tampil}: ${m.nama}`}
+                            disabled={sedang === m.cmid}
+                            busy={sedang === m.cmid}
+                          />
+                        )}
                       </li>
                     ))}
                   </ul>

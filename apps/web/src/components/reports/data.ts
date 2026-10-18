@@ -90,6 +90,8 @@ const KJ = {
         ? `${who} memakai akun SeeLabs ${akun} untuk ${g}. Transfernya tercatat di Tim, Pembayaran.`
         : `${who} melepas akun SeeLabs pinjaman untuk ${g}.`,
     tangan: (g: string) => `${g} angkat tangan.`,
+    kodeLain: (siapa: string, sendiri: string) =>
+      `${siapa} memasukkan Kode Sesi yang benar, padahal ini bukan sesinya. IRIS menolaknya.${sendiri ? ` Sesinya sendiri: ${sendiri}.` : ""}`,
     jawab: (g: string, who: string, m: string) =>
       `Angkat tangan ${g} dijawab ${who}${m ? ` ${m} kemudian` : ""}.`,
     pindah: (who: string, nim: string, a: string, b: string, al: string) =>
@@ -131,6 +133,8 @@ const KJ = {
         ? `${who} uses ${akun}'s SeeLabs account for ${g}. The transfer is listed on Team, Payments.`
         : `${who} stopped borrowing a SeeLabs account for ${g}.`,
     tangan: (g: string) => `${g} raised a hand.`,
+    kodeLain: (siapa: string, sendiri: string) =>
+      `${siapa} typed the right session code, but this is not their session. IRIS turned them away.${sendiri ? ` Their own session: ${sendiri}.` : ""}`,
     jawab: (g: string, who: string, m: string) =>
       `${g}'s raised hand answered by ${who}${m ? ` ${m} later` : ""}.`,
     pindah: (who: string, nim: string, a: string, b: string, al: string) =>
@@ -169,6 +173,8 @@ const KJ = {
         ? `${who} 用 ${akun} 的 SeeLabs 账号提交${g}。转账记在团队的付款里。`
         : `${who} 不再为${g}借用 SeeLabs 账号。`,
     tangan: (g: string) => `${g}举手了。`,
+    kodeLain: (siapa: string, sendiri: string) =>
+      `${siapa}输入了正确的签到码，但这不是他们的课，IRIS 已拒绝。${sendiri ? `他们自己的课：${sendiri}。` : ""}`,
     jawab: (g: string, who: string, m: string) => `${who}${m ? ` ${m}后` : ""}回应了${g}的举手。`,
     pindah: (who: string, nim: string, a: string, b: string, al: string) =>
       `${who} 把 ${nim} 从${a}临时移到${b}，只限本节课。原名单不变。${al ? `原因：${al}` : ""}`,
@@ -265,6 +271,16 @@ export function kalimatKejadian(
       return { tag: "asisten", teks: w.hadirTandai(by, who(d.nim as string)) };
     case "tangan":
       return { tag: "tangan", teks: w.tangan(g) };
+    case "kode_sesi_lain": {
+      const siapa = `${String(d.nama ?? d.nim ?? "?")} (${String(d.nim ?? "?")}, ${
+        Number.isInteger(d.kelompok) ? kelompokLabel(d.kelompok as number, lang) : g
+      })`;
+      const sendiri =
+        typeof d.tanggal === "string"
+          ? `${tanggalPanjang(d.tanggal, lang)} · ${lang === "zh" ? "时段" : "Slot"} ${String(d.slot ?? "?")}`
+          : "";
+      return { tag: "sistem", teks: w.kodeLain(siapa, sendiri) };
+    }
     case "tangan_jawab": {
       const det = Number(d.detik);
       const m = Number.isFinite(det) ? menitLabel(Math.max(1, Math.round(det / 60)), lang) : "";

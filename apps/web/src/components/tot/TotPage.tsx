@@ -213,7 +213,7 @@ export default function TotPage({ lang }: { lang: Lang }) {
         />
       </div>
 
-      <Peserta k={k} d={d} boleh={boleh} adaSesi={adaSesi} kirim={kirim} />
+      {boleh && <Peserta k={k} d={d} boleh={boleh} adaSesi={adaSesi} kirim={kirim} />}
       <AkunTot k={k} lang={lang} d={d} boleh={boleh} kirim={kirim} />
       <Riwayat k={k} lang={lang} d={d} boleh={boleh} kirim={kirim} />
     </div>
@@ -252,12 +252,9 @@ function Saklar({
           <b className="totp__state">{d.aktif ? k.on : k.off}</b>
           {d.aktif && d.sejak && <span className="hint">{k.since(sejak, d.olehKode)}</span>}
         </div>
-        <Switch
-          on={d.aktif}
-          onChange={(v) => setAsk(v)}
-          label={k.sw}
-          disabled={!boleh || adaSesi}
-        />
+        {boleh && (
+          <Switch on={d.aktif} onChange={(v) => setAsk(v)} label={k.sw} disabled={adaSesi} />
+        )}
       </div>
       <p>{k.intro}</p>
       <p className="hint">{k.keep}</p>
@@ -406,6 +403,8 @@ function SesiTot({
         </div>
       </>
     );
+  } else if (!boleh) {
+    isi = <p className="hint">{k.tidakAda}</p>;
   } else if (!d.aktif) {
     isi = <p className="hint">{k.sesiOff}</p>;
   } else if (adaSesi) {

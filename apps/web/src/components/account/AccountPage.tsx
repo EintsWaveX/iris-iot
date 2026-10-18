@@ -9,6 +9,7 @@
  *   Tampilan (theme, background detail, language, nav clock).
  * - Their week from the schedule and "Umpan balik saya" (feedback about them
  *   only, anonymous).
+ * - Hak Saya: their own rights, where each comes from, and the changes.
  * - A praktikan gets PraktikanAccount. Signing out is in the account menu.
  */
 import SeelabsAccount from "../console/seelabs/SeelabsAccount";
@@ -16,6 +17,7 @@ import SeelabsRobotCard from "../console/seelabs/SeelabsRobotCard";
 import PraktikanAccount from "./PraktikanAccount";
 import { EarningsCard } from "../bayar/Earnings";
 import HadirRingkas, { useHadirOrang } from "../reports/HadirRingkas";
+import HakSaya from "./HakSaya";
 import { H } from "../reports/hadirStrings";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CaretRightIcon, CheckIcon, UserIcon } from "@phosphor-icons/react";
@@ -315,6 +317,7 @@ export default function AccountPage({ lang }: { lang: Lang }) {
         </div>
         <HadirRingkas lang={lang} data={hadirKu} />
       </section>
+      <HakSaya lang={lang} me={me} />
       <SeelabsRobotCard lang={lang} nim={me.nim} />
       <SeelabsAccount lang={lang} nim={me.nim} />
 

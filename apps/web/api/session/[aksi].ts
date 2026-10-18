@@ -1938,7 +1938,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "tim") {
     if (req.method === "POST") return handleTimPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
-    if (typeof req.query.nim === "string") return handleTimJejak(req, res);
+    if (typeof req.query.nim === "string") return handleTimJejak(req, res, session);
     return handleTimGet(req, res, session);
   }
   if (aksi === "asisten") {
@@ -2024,6 +2024,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "audit") {
     if (!requireMethod(req, res, "GET")) return;
+    if (!(await cekHak(res, session.nim, "audit"))) return;
     return handleAuditLaporan(req, res);
   }
   if (aksi === "siarkan") {

@@ -73,7 +73,7 @@ import { muatOrang } from "../_lib/hak.js";
 import { denganSiaran } from "../_lib/siaran.js";
 import { getDb } from "../../src/lib/db.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
-import { boleh, bolehKelolaLms, hakPenuh, type Orang } from "../../src/lib/hak.js";
+import { boleh, type Orang } from "../../src/lib/hak.js";
 import { KUNCI_ROBOT } from "../../src/lib/seelabs-robot.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import {
@@ -508,8 +508,8 @@ async function handleModul(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     },
     cermin,
     bolehUbah: !!orang && boleh(orang, "jadwal"),
-    bolehLms: !!orang && hakPenuh(orang),
-    bolehKelola: !!orang && bolehKelolaLms(orang),
+    bolehLms: !!orang && boleh(orang, "full"),
+    bolehKelola: !!orang && boleh(orang, "lms"),
   });
 }
 
@@ -530,8 +530,8 @@ async function handleKelompok(req: ApiRequest, res: ApiResponse, s: SessionPaylo
     ...data,
     sinkron: infoSinkron(set),
     hilang: tugasHilang(set, m),
-    bolehLms: !!orang && hakPenuh(orang),
-    bolehKelola: !!orang && bolehKelolaLms(orang),
+    bolehLms: !!orang && boleh(orang, "full"),
+    bolehKelola: !!orang && boleh(orang, "lms"),
   });
 }
 
@@ -660,7 +660,7 @@ async function handlePaket(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     ...ringkasJendela(set, m),
     semester: set.semester,
     bolehUbah: bolehSoal(orang),
-    bolehKelola: !!orang && bolehKelolaLms(orang),
+    bolehKelola: !!orang && boleh(orang, "lms"),
     // Phase 15: Soal TP attaches the PDF itself after a save when on.
     otomatisPdf: await otomatisNyala(db, "pdf"),
     lms: {
@@ -1054,7 +1054,7 @@ async function handleJendela(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   const db = getDb();
   const set = await bacaSet(db);
   if (b.pola !== undefined) {
-    if (!hakPenuh(orang)) return tolak(res, "tidak_berhak", 403);
+    if (!boleh(orang, "jadwal")) return tolak(res, "tidak_berhak", 403);
     const p = b.pola as Partial<PolaJendela>;
     const hari = (v: unknown) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 7;
     if (
@@ -1239,9 +1239,9 @@ async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
     .limit(1);
   res.status(200).json({
     ok: true,
-    bolehSambung: hakPenuh(orang),
+    bolehSambung: boleh(orang, "full"),
     kelola: {
-      boleh: bolehKelolaLms(orang),
+      boleh: boleh(orang, "lms"),
       siap: !!set.token?.privat,
       sesiPada: web?.pada.toISOString() ?? null,
       jendela: Object.fromEntries([1, 2, 3, 4].map((m) => [m, jendelaUntuk(set, m)])),
@@ -1283,7 +1283,7 @@ async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPaylo
 
 async function handleLms(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const orang = await muatOrang(s.nim);
-  if (!orang || !hakPenuh(orang)) return tolak(res, "tidak_berhak", 403);
+  if (!orang || !boleh(orang, "full")) return tolak(res, "tidak_berhak", 403);
   const b = jsonBody(req);
   const db = getDb();
   // The body's step (not the route's aksi): sambung, uji or putus.
@@ -1368,7 +1368,7 @@ async function handleLms(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
  */
 async function handleLmsTugas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const orang = await muatOrang(s.nim);
-  if (!orang || !bolehKelolaLms(orang)) return tolak(res, "tidak_berhak", 403);
+  if (!orang || !boleh(orang, "lms")) return tolak(res, "tidak_berhak", 403);
   const b = jsonBody(req);
   const m = modulDari(b.modul);
   const langkah = b.langkah;
@@ -1494,7 +1494,7 @@ const PDF_MAKS = 3 * 1024 * 1024;
 /** Leave a registered Praktikan out of TP, or take them back. */
 async function handleKecuali(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const orang = await muatOrang(s.nim);
-  if (!orang || !bolehKelolaLms(orang)) return tolak(res, "tidak_berhak", 403);
+  if (!orang || !boleh(orang, "lms")) return tolak(res, "tidak_berhak", 403);
   const b = jsonBody(req);
   const nim = typeof b.nim === "string" ? b.nim.trim() : "";
   if (!/^\d{6,15}$/.test(nim)) return tolak(res, "format_salah");

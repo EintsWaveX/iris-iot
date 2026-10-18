@@ -14,7 +14,6 @@ import {
   CaretRightIcon,
   ClockIcon,
   IdentificationBadgeIcon,
-  LockSimpleIcon,
   MapPinIcon,
   NoteIcon,
   PlugsConnectedIcon,
@@ -125,7 +124,6 @@ import "../ui/SegmentedControl.css";
 import "../ui/Tabs.css";
 import BackButton from "../ui/BackButton";
 import Fade from "../ui/Fade";
-import Tooltip from "../ui/Tooltip";
 import { OfflineBanner } from "../ui/Display";
 import { usePoll } from "../../lib/hooks";
 import { getJson, href, localeOf, sejak, useTick } from "../../lib/app";
@@ -167,10 +165,15 @@ export default function ServerDetail({
 }) {
   const t = S[lang];
   const now = useTick(1_000);
-  // Konsol Pi is hidden, not disabled, for anyone without DEV or Pencipta.
+  // Pengaturan is for the full Server view; Konsol for whoever may ask for it.
   const TABS = useMemo<Tab[]>(
-    () => ["ringkasan", "siap", "pengaturan", ...(bisa.konsol ? (["konsol"] as const) : [])],
-    [bisa.konsol],
+    () => [
+      "ringkasan",
+      "siap",
+      ...(bisa.full ? (["pengaturan"] as const) : []),
+      ...(bisa.konsol ? (["konsol"] as const) : []),
+    ],
+    [bisa.full, bisa.konsol],
   );
   const [tab, setTab] = useState<Tab>(() => bacaTab(TABS));
   const [autoCmd, setAutoCmd] = useState(false);
@@ -350,16 +353,8 @@ export default function ServerDetail({
       <ToggleGroup.Item className="segmented__item" value="min">
         {t.compact}
       </ToggleGroup.Item>
-      <ToggleGroup.Item
-        className="segmented__item"
-        value="full"
-        aria-disabled={!bisa.full || undefined}
-      >
-        {bisa.full ? (
-          <TerminalWindowIcon size={17} aria-hidden="true" />
-        ) : (
-          <LockSimpleIcon size={17} aria-hidden="true" />
-        )}
+      <ToggleGroup.Item className="segmented__item" value="full">
+        <TerminalWindowIcon size={17} aria-hidden="true" />
         {t.full}
       </ToggleGroup.Item>
     </ToggleGroup.Root>
@@ -415,16 +410,8 @@ export default function ServerDetail({
                 </span>
               )}
             </div>
-            <div className="detailsw s12hero__side">
-              {bisa.full ? (
-                sw
-              ) : (
-                <Tooltip label={t.fullLocked}>
-                  <span tabIndex={0}>{sw}</span>
-                </Tooltip>
-              )}
-              {!bisa.full && <span className="hint">{t.fullLocked}</span>}
-            </div>
+            {/* Ringkas and Lengkap only for the full Server view. */}
+            {bisa.full && <div className="detailsw s12hero__side">{sw}</div>}
           </div>
           <div
             className="locstrip s12facts"
@@ -579,7 +566,7 @@ export default function ServerDetail({
             onOverview={() => go("ringkasan")}
           />
         )}
-        {tab === "pengaturan" && (
+        {tab === "pengaturan" && bisa.full && (
           <Settings
             lang={lang}
             id={id}

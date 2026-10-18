@@ -49,9 +49,13 @@ export const C = dict({
     hint: "Petunjuk",
     hintLocked: (left: number) =>
       `Petunjuk terbuka sendiri setelah ${left} kali salah lagi. Bisa juga minta ke asisten sekarang.`,
-    hintModule: "Petunjuk modul",
-    hintOpened: (n: number) =>
-      `Blank (${n}) sudah 2 kali salah. Petunjuknya terbuka di bawah barisnya.`,
+    hintNext: (left: number) => `Petunjuk berikutnya terbuka setelah ${left} kali salah lagi.`,
+    hintTier: (k: number) => `Petunjuk ${k}`,
+    answerIs: "Jawabannya: ",
+    hintOpened: (n: number, k: number) =>
+      k >= 3
+        ? `Blank (${n}) sudah 3 kali salah. Petunjuk 3 dan jawabannya terbuka di bawah barisnya.`
+        : `Blank (${n}) sudah ${k} kali salah. Petunjuk ${k} terbuka di bawah barisnya.`,
     wrongToast: (n: number) => `Blank (${n}) belum cocok. Coba lagi.`,
     askHint: "Minta Petunjuk",
     askAnother: "Minta Petunjuk Lain",
@@ -77,7 +81,8 @@ export const C = dict({
     keyLabel: "Kunci",
     keysOff: "Nyalakan Tampilkan Jawaban di atas untuk melihat kuncinya.",
     accepted: "Ejaan lain yang diterima",
-    hintStudents: "Petunjuk yang terbuka setelah 2 kali salah",
+    hintStudents: (k: number) => `Petunjuk ${k}, terbuka setelah ${k} kali salah`,
+    hintStudentsAnswer: "Petunjuk 3 tampil bersama jawabannya.",
     groupPick: "Berkas kelompok",
     groupN: (n: number) => `Kelompok ${n}`,
   },
@@ -128,8 +133,14 @@ export const C = dict({
     hint: "Hint",
     hintLocked: (left: number) =>
       `The hint opens by itself after ${left} more wrong ${left === 1 ? "try" : "tries"}. You can also ask your assistant now.`,
-    hintModule: "Module hint",
-    hintOpened: (n: number) => `Blank (${n}) was wrong twice. Its hint is open under the line.`,
+    hintNext: (left: number) =>
+      `The next hint opens after ${left} more wrong ${left === 1 ? "try" : "tries"}.`,
+    hintTier: (k: number) => `Hint ${k}`,
+    answerIs: "The answer: ",
+    hintOpened: (n: number, k: number) =>
+      k >= 3
+        ? `Blank (${n}) was wrong 3 times. Hint 3 and the answer are open under the line.`
+        : `Blank (${n}) was wrong ${k === 1 ? "once" : "twice"}. Hint ${k} is open under the line.`,
     wrongToast: (n: number) => `Blank (${n}) isn't right yet. Try again.`,
     askHint: "Ask for a Hint",
     askAnother: "Ask for Another Hint",
@@ -155,7 +166,8 @@ export const C = dict({
     keyLabel: "Key",
     keysOff: "Turn on Show Answers above to see the key.",
     accepted: "Other accepted spellings",
-    hintStudents: "Hint that opens after 2 wrong tries",
+    hintStudents: (k: number) => `Hint ${k}, opens after ${k} wrong ${k === 1 ? "try" : "tries"}`,
+    hintStudentsAnswer: "Hint 3 shows with the answer.",
     groupPick: "Group's file",
     groupN: (n: number) => `Group ${n}`,
   },
@@ -204,8 +216,13 @@ export const C = dict({
     explain: "为什么是对的",
     hint: "提示",
     hintLocked: (left: number) => `再错 ${left} 次后提示会自动打开。现在也可以向助教要提示。`,
-    hintModule: "模块提示",
-    hintOpened: (n: number) => `填空 (${n}) 已经错了两次，提示已在该行下方打开。`,
+    hintNext: (left: number) => `再错 ${left} 次后会打开下一个提示。`,
+    hintTier: (k: number) => `提示 ${k}`,
+    answerIs: "答案：",
+    hintOpened: (n: number, k: number) =>
+      k >= 3
+        ? `填空 (${n}) 已经错了 3 次，提示 3 和答案已在该行下方打开。`
+        : `填空 (${n}) 已经错了 ${k} 次，提示 ${k} 已在该行下方打开。`,
     wrongToast: (n: number) => `填空 (${n}) 还不对，再试一次。`,
     askHint: "要提示",
     askAnother: "再要一个提示",
@@ -226,7 +243,8 @@ export const C = dict({
     keyLabel: "答案",
     keysOff: "打开上面的显示答案即可看到答案。",
     accepted: "也接受的写法",
-    hintStudents: "错两次后打开的提示",
+    hintStudents: (k: number) => `提示 ${k}，错 ${k} 次后打开`,
+    hintStudentsAnswer: "提示 3 会和答案一起显示。",
     groupPick: "哪个组的文件",
     groupN: (n: number) => `第 ${n} 组`,
   },
