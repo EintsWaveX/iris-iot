@@ -108,6 +108,7 @@ export const RB = dict({
       kelompok: "Tarik Kelompok",
       baca: "Baca SeeLabs",
     } as Record<string, string>,
+    kelas: { reguler: "Reguler", internasional: "Internasional" },
     steps: ["Antre", "Diproses", "Disimpan", "Terverifikasi"],
     err: {
       ditolak:
@@ -311,6 +312,7 @@ export const RB = dict({
       kelompok: "Pull Groups",
       baca: "Read SeeLabs",
     } as Record<string, string>,
+    kelas: { reguler: "Regular", internasional: "International" },
     steps: ["Queued", "Working", "Saved", "Verified"],
     err: {
       ditolak:
@@ -502,6 +504,7 @@ export const RB = dict({
       kelompok: "拉取小组",
       baca: "读取 SeeLabs",
     } as Record<string, string>,
+    kelas: { reguler: "普通班", internasional: "国际班" },
     steps: ["排队中", "处理中", "已保存", "已核实"],
     err: {
       ditolak: "SeeLabs 拒绝了你的账号或密码。请在 账号 页重新输入正确的 SeeLabs 密码。",

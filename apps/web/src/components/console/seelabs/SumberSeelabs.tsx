@@ -15,7 +15,7 @@ import type { Lang } from "../../../lib/kelas";
 import Confirm from "../../ui/Confirm";
 import { Switch } from "../../ui/Controls";
 import { kapanRobot } from "./SeelabsRobotCard";
-import { sufiksSah } from "../../../lib/seelabs-robot";
+import { PRAKTIKUM_SEELABS, sufiksSah } from "../../../lib/seelabs-robot";
 import Sidik from "./Sidik";
 import { RB } from "./robotStrings";
 import "./robot.css";
@@ -95,6 +95,9 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
   }
 
   const kodeDari = new Map(data.akun.map((a) => [a.nim, a.kode]));
+  // Input Jaga is one job per SeeLabs class, so each row names its class.
+  const kelasJaga = (klp: string) =>
+    klp === String(PRAKTIKUM_SEELABS.internasional) ? t.kelas.internasional : t.kelas.reguler;
   // The suffix field shows the saved value until someone types.
   const nilaiSufiks = sufiks ?? data.sufiks;
   const piRobot = data.kunci
@@ -328,6 +331,7 @@ export default function SumberSeelabs({ lang }: { lang: Lang }) {
                   <b>
                     {t.kind[j.jenis] ?? j.jenis}
                     {j.klp && j.jenis === "nilai" ? ` · KLP ${j.klp}` : ""}
+                    {j.klp && j.jenis === "jaga" ? ` · ${kelasJaga(j.klp)}` : ""}
                   </b>
                   <span className="hint">
                     {kapanRobot(j.dibuat, lang)}

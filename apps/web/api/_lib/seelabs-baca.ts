@@ -100,8 +100,7 @@ async function akunSibuk(db: Db): Promise<Set<string>> {
 
 /**
  * One read of an account's saves (both classes, the active modules, Rekap
- * BAP). Null when the robot is off, the account isn't connected, or no
- * module has a session to compare with yet.
+ * BAP). Null when the robot is off or the account isn't connected.
  */
 export async function antreBaca(
   db: Db,
@@ -135,7 +134,10 @@ export async function antreBaca(
       ),
     ]),
   ].sort((a, b) => a - b);
-  if (!modul.length) return null;
+  // Before the semester's first session no module is active, but a press of
+  // Periksa Sekarang still reads Rekap BAP; the agent needs a module, so 1
+  // comes along (the timer passes its modules and never gets here empty).
+  if (!modul.length) modul.push(1);
   return antre(db, {
     jenis: "baca",
     akunNim,

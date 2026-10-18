@@ -11,6 +11,7 @@ import { usePoll } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
 import { kelompokLabel } from "../../../lib/labels";
 import type { StatusBaca } from "../../../lib/seelabs-baca";
+import { PRAKTIKUM_SEELABS } from "../../../lib/seelabs-robot";
 import { BC } from "./bacaStrings";
 import { RB } from "./robotStrings";
 
@@ -97,7 +98,7 @@ export default function RobotInbox({
       {macet.map((j) => {
         const akun = j.galat === "ditolak" || j.galat === "segel_rusak";
         const token = j.galat === "butuh_token" || j.galat === "token_salah";
-        const apa = `${t.kind[j.jenis] ?? j.jenis}${j.kelompok ? ` · ${kelompokLabel(j.kelompok, lang)}` : ""}${j.klp && j.jenis === "nilai" ? ` · KLP ${j.klp}` : ""}`;
+        const apa = `${t.kind[j.jenis] ?? j.jenis}${j.kelompok ? ` · ${kelompokLabel(j.kelompok, lang)}` : ""}${j.klp && j.jenis === "nilai" ? ` · KLP ${j.klp}` : ""}${j.klp && j.jenis === "jaga" ? ` · ${j.klp === String(PRAKTIKUM_SEELABS.internasional) ? t.kelas.internasional : t.kelas.reguler}` : ""}`;
         return (
           <li key={j.id} className="elog__row todo10__row">
             <span className="elog__tag mono" data-tone="danger">
