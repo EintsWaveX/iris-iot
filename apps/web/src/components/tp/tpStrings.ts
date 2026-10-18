@@ -71,9 +71,7 @@ const id = {
   belumH: "Belum ada berkasmu",
   belumBisa: "Belum bisa dikumpulkan",
   belumBody: (t: string | null) =>
-    t
-      ? `IRIS memeriksa LMS tiap menit. Terakhir ${t}.`
-      : "IRIS mulai memeriksa LMS saat jendela dibuka.",
+    t ? `IRIS memeriksa LMS tiap menit. Terakhir ${t}.` : "IRIS memeriksa LMS tiap menit.",
   masukH: "Berkasmu sudah diterima",
   masukBody:
     "Mau mengganti? Unggah lagi di sini atau di LMS sebelum tutup. IRIS selalu memakai yang terbaru.",
@@ -349,8 +347,7 @@ const id = {
   belumDibukaPada: (w: string) => `Dibuka ${w}`,
   belumAdaKiriman: "Belum ada kiriman",
   sinkronOk: "Tersinkron dengan LMS",
-  sinkronOkHint: (t: string) =>
-    `Terakhir ${t} · tiap menit selama jendela dibuka, sapuan akhir saat tutup`,
+  sinkronOkHint: (t: string) => `Terakhir ${t} · tiap menit, siang dan malam`,
   sinkronBelum: "LMS belum tersambung",
   sinkronBelumHint: "Pencipta atau Admin menyambungkannya sekali di Sumber LMS.",
   sinkronGagal: (k: string): string =>
@@ -507,11 +504,12 @@ const id = {
   jadwalAmbil: "Jadwal Ambil",
   jendelaBawaan: "Jendela bawaan",
   polaTeks: (a: string, ja: string, b: string, jb: string) => `${a} ${ja} sampai ${b} ${jb}`,
-  selamaJendela: "Selama jendela",
+  selamaJendela: "Kapan",
   selamaJendelaIsi:
-    "Tiap menit lewat pengatur waktu IRIS dan PC Server, juga saat halaman TP dibuka",
-  sapuanAkhir: "Sapuan akhir",
-  sapuanAkhirIsi: "Sekali setelah jendela tutup, saat PC Server atau halaman TP menyala lagi",
+    "Tiap menit, siang dan malam, lewat pengatur waktu IRIS dan PC Server, juga saat halaman TP dibuka",
+  sapuanAkhir: "Setelah tutup",
+  sapuanAkhirIsi:
+    "Tetap tiap menit. LMS menolak kiriman setelah tutup, kecuali dari Praktikan yang diperpanjang",
   ubahBawaan: "Ubah Jendela Bawaan",
   bawaanJudul: "Jendela bawaan semester",
   bawaanHint:
@@ -648,7 +646,7 @@ const en: TpT = {
   belumBody: (t) =>
     t
       ? `IRIS checks the LMS every minute. Last checked ${t}.`
-      : "IRIS starts checking the LMS when the window opens.",
+      : "IRIS checks the LMS every minute.",
   masukH: "We have your file",
   masukBody:
     "Want to change it? Upload again here or in the LMS before it closes. IRIS always uses the latest one.",
@@ -912,8 +910,7 @@ const en: TpT = {
   belumDibukaPada: (w) => `Opens ${w}`,
   belumAdaKiriman: "Nothing submitted yet",
   sinkronOk: "In sync with the LMS",
-  sinkronOkHint: (t) =>
-    `Last ${t} · every minute while a window is open, a final sweep when it closes`,
+  sinkronOkHint: (t) => `Last ${t} · every minute, day and night`,
   sinkronBelum: "The LMS isn't connected",
   sinkronBelumHint: "The Pencipta or an Admin connects it once in LMS Source.",
   sinkronGagal: (k) =>
@@ -1063,11 +1060,12 @@ const en: TpT = {
   jadwalAmbil: "Fetch Schedule",
   jendelaBawaan: "Default window",
   polaTeks: (a, ja, b, jb) => `${a} ${ja} to ${b} ${jb}`,
-  selamaJendela: "While open",
+  selamaJendela: "When",
   selamaJendelaIsi:
-    "Every minute through the IRIS timer and the PC Server, and when a TP page opens",
-  sapuanAkhir: "Final sweep",
-  sapuanAkhirIsi: "Once after the window closes, when the PC Server or a TP page is next on",
+    "Every minute, day and night, through the IRIS timer and the PC Server, and when a TP page opens",
+  sapuanAkhir: "After the close",
+  sapuanAkhirIsi:
+    "Still every minute. The LMS refuses files after the close, except from a Praktikan with an extension",
   ubahBawaan: "Change Default Window",
   bawaanJudul: "Semester default window",
   bawaanHint:
@@ -1162,8 +1160,7 @@ const zh: TpT = {
   bantuan: "LMS 拒绝你的上传，比如还没填 iGracias 问卷？直接在 IRIS 上传。其他问题请告诉你的助教。",
   belumH: "还没有你的文件",
   belumBisa: "还不能提交",
-  belumBody: (t) =>
-    t ? `IRIS 每分钟检查一次 LMS。上次检查：${t}。` : "提交时段开放后，IRIS 才开始检查 LMS。",
+  belumBody: (t) => (t ? `IRIS 每分钟检查一次 LMS。上次检查：${t}。` : "IRIS 每分钟检查一次 LMS。"),
   masukH: "你的文件已收到",
   masukBody: "想换文件？截止前在这里或 LMS 重新上传就行。IRIS 总是用最新的那份。",
   telatH: "截止后才提交",
@@ -1415,7 +1412,7 @@ const zh: TpT = {
   belumDibukaPada: (w) => `${w}开放`,
   belumAdaKiriman: "还没有人提交",
   sinkronOk: "已与 LMS 同步",
-  sinkronOkHint: (t) => `上次 ${t} · 开放期间每分钟一次，截止时最后一轮`,
+  sinkronOkHint: (t) => `上次 ${t} · 全天每分钟一次`,
   sinkronBelum: "LMS 还没连接",
   sinkronBelumHint: "创建者或管理员在 LMS 来源里连接一次即可。",
   sinkronGagal: (k) =>
@@ -1558,10 +1555,10 @@ const zh: TpT = {
   jadwalAmbil: "取回时间表",
   jendelaBawaan: "默认提交时段",
   polaTeks: (a, ja, b, jb) => `${a} ${ja} 至 ${b} ${jb}`,
-  selamaJendela: "开放期间",
-  selamaJendelaIsi: "每分钟经由 IRIS 定时器和 PC 服务器一次，打开预习作业页面时也会",
-  sapuanAkhir: "最后一轮",
-  sapuanAkhirIsi: "截止后一次，在 PC 服务器或预习作业页面下次运行时",
+  selamaJendela: "何时",
+  selamaJendelaIsi: "全天每分钟一次，经由 IRIS 定时器和 PC 服务器，打开预习作业页面时也会",
+  sapuanAkhir: "截止之后",
+  sapuanAkhirIsi: "仍然每分钟一次。截止后 LMS 不再接收文件，获得延期的学生除外",
   ubahBawaan: "修改默认提交时段",
   bawaanJudul: "学期默认提交时段",
   bawaanHint: "主管安排某个模块的提交时段时会用到。单独某一周仍可在模块页的预习作业标签里调整。",

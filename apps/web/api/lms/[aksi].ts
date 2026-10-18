@@ -182,9 +182,9 @@ const angka = (v: unknown) => {
 const iso = (detik: number) => (detik > 0 ? new Date(detik * 1000).toISOString() : null);
 const detik = (s: string) => Math.floor(Date.parse(s) / 1000);
 
-/** The Orange Pi syncs every five minutes while a window is open. */
-/** Group and activity counts are read again after this. */
-const INFO_SEGAR_MS = 12 * 3_600_000;
+/** Group and activity counts are read again after this: every minute while
+ *  the Kelas tab is open (user, 2026-10-18). */
+const INFO_SEGAR_MS = 50_000;
 
 /** An LMS failure as the page shows it; anything else is logged. */
 function gagal(res: ApiResponse, e: unknown, tempat: string) {

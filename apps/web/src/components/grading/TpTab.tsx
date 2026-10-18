@@ -460,9 +460,8 @@ function SyncStrip({
               t.sinkronOkHint(t.belumSinkron)
             )}
           </span>
-          {data.keadaan === "buka" && (
-            <SinkronBar terakhir={s.terakhir} lang={lang} ringkas onLewat={refresh} />
-          )}
+          {/* The LMS is read every minute around the clock (2026-10-18). */}
+          {s.terakhir && <SinkronBar terakhir={s.terakhir} lang={lang} ringkas onLewat={refresh} />}
         </div>
         <div className="tpsync__count">
           <b className="mono">

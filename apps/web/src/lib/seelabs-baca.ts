@@ -94,9 +94,9 @@ export function tempatkan(
   return { sesiId: pilih.sesiId, kelompokNomor: pilih.kelompokNomor };
 }
 
-const MENIT = 60_000;
-export const JEDA_BACA_SESI_MS = 5 * MENIT;
-export const JEDA_BACA_MS = 60 * MENIT;
+/** Every connected account is read every minute, around the clock (user,
+ *  2026-10-18); a read still waiting or running holds the next one back. */
+export const JEDA_BACA_MS = 60_000;
 
 function wib(d: Date): { tanggal: string; jam: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -114,18 +114,23 @@ function wib(d: Date): { tanggal: string; jam: number } {
   };
 }
 
-/** How long between reads of one account: every 5 minutes from 06:30 WIB
- *  until the day's last session ends, hourly otherwise. */
-export function jedaBaca(p: {
-  sekarang: Date;
-  /** Today's sessions (no TOT), as instants. */
-  sesiHariIni: { mulai: string; akhir: string }[];
-}): number {
-  if (!p.sesiHariIni.length) return JEDA_BACA_MS;
-  const awal = Date.parse(`${wib(p.sekarang).tanggal}T06:30:00+07:00`);
-  const akhir = Math.max(...p.sesiHariIni.map((s) => Date.parse(s.akhir)));
-  const t = p.sekarang.getTime();
-  return t >= awal && t <= akhir ? JEDA_BACA_SESI_MS : JEDA_BACA_MS;
+/** Rows as one string, whatever their order or their keys' order: what a
+ *  read wrote before against what it writes now. */
+export function sidikStabil(rows: unknown[]): string {
+  const urut = (v: unknown): unknown =>
+    Array.isArray(v)
+      ? v.map(urut)
+      : v && typeof v === "object"
+        ? Object.fromEntries(
+            Object.keys(v as object)
+              .sort()
+              .map((k) => [k, urut((v as Record<string, unknown>)[k])]),
+          )
+        : v;
+  return rows
+    .map((r) => JSON.stringify(urut(r)))
+    .sort()
+    .join("\n");
 }
 
 /** The nightly full pass: the first beat from 22:00 WIB, once a day. */
@@ -214,9 +219,11 @@ export function akunPerluBaca(p: {
   terakhir: Record<string, string>;
   jedaMs: number;
   sekarang: Date;
+  /** Accounts with a read still waiting or running. */
+  sibuk?: Set<string>;
 }): string[] {
   return p.akun
-    .filter((a) => a.status === "aktif")
+    .filter((a) => a.status === "aktif" && !p.sibuk?.has(a.nim))
     .filter((a) => {
       const t = p.terakhir[a.nim];
       return !t || p.sekarang.getTime() - Date.parse(t) >= p.jedaMs;

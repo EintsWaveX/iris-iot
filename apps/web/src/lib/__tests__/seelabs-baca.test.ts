@@ -8,7 +8,8 @@ import {
   barisBap,
   bacakuUntuk,
   dasarDariBaris,
-  jedaBaca,
+  JEDA_BACA_MS,
+  sidikStabil,
   nilaiTersimpan,
   rencanaTerima,
   tempatkan,
@@ -80,26 +81,9 @@ describe("tempatkan", () => {
   });
 });
 
-describe("jedaBaca", () => {
-  const hari = [{ mulai: "2026-10-20T06:30:00+07:00", akhir: "2026-10-20T09:00:00+07:00" }];
-  it("reads every 5 minutes from 06:30 until the day's last session ends", () => {
-    expect(jedaBaca({ sekarang: new Date("2026-10-20T07:00:00+07:00"), sesiHariIni: hari })).toBe(
-      300_000,
-    );
-    expect(jedaBaca({ sekarang: new Date("2026-10-20T06:30:00+07:00"), sesiHariIni: hari })).toBe(
-      300_000,
-    );
-  });
-  it("reads hourly outside it, and on a day without sessions", () => {
-    expect(jedaBaca({ sekarang: new Date("2026-10-20T21:00:00+07:00"), sesiHariIni: hari })).toBe(
-      3_600_000,
-    );
-    expect(jedaBaca({ sekarang: new Date("2026-10-20T06:00:00+07:00"), sesiHariIni: hari })).toBe(
-      3_600_000,
-    );
-    expect(jedaBaca({ sekarang: new Date("2026-10-20T07:00:00+07:00"), sesiHariIni: [] })).toBe(
-      3_600_000,
-    );
+describe("JEDA_BACA_MS", () => {
+  it("reads every connected account every minute, around the clock", () => {
+    expect(JEDA_BACA_MS).toBe(60_000);
   });
 });
 
@@ -163,6 +147,30 @@ describe("akunPerluBaca", () => {
       C: "2026-10-20T05:00:00+07:00",
     };
     expect(akunPerluBaca({ akun, terakhir, jedaMs: 300_000, sekarang })).toEqual(["A", "E"]);
+  });
+  it("skips an account whose last read is still waiting or running", () => {
+    expect(
+      akunPerluBaca({ akun, terakhir: {}, jedaMs: 60_000, sekarang, sibuk: new Set(["A"]) }),
+    ).toEqual(["B", "E"]);
+  });
+});
+
+describe("sidikStabil", () => {
+  it("is the same for the same rows whatever their order or key order", () => {
+    const a = [
+      { k: "1|2", status: "sama", seelabs: { tp: 80, ta: 70 } },
+      { k: "1|3", status: "beda", seelabs: null },
+    ];
+    const b = [
+      { seelabs: null, status: "beda", k: "1|3" },
+      { status: "sama", k: "1|2", seelabs: { ta: 70, tp: 80 } },
+    ];
+    expect(sidikStabil(a)).toBe(sidikStabil(b));
+  });
+  it("differs when a value moved", () => {
+    expect(sidikStabil([{ k: "1|2", status: "sama" }])).not.toBe(
+      sidikStabil([{ k: "1|2", status: "beda" }]),
+    );
   });
 });
 

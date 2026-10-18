@@ -57,7 +57,7 @@ export default function KelasTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) => 
   const [segar, setSegar] = useState(0);
   const poll = usePoll(
     () => getJson<DataKelas>(`/api/lms/kelas${segar ? "?segar=1" : ""}`),
-    300_000,
+    60_000,
     true,
     ["lms", "tp"],
     0,

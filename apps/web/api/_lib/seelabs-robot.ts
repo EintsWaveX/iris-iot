@@ -347,15 +347,19 @@ async function piRobot(db: Db, serverId: number, kunci: KunciRobot | null): Prom
     : null;
 }
 
-/** Jobs a Pi could take now (for the heartbeat's fast pace). */
-export async function adaTugasRobot(db: Db, serverId: number): Promise<boolean> {
+/**
+ * Jobs a Pi could take now, for the heartbeat's pace: "kerja" (a save or
+ * another job someone waits on: the fast pace), "baca" (only reads, which
+ * run every minute: a quarter-minute pace), or null.
+ */
+export async function adaTugasRobot(db: Db, serverId: number): Promise<"kerja" | "baca" | null> {
   const aturan = await aturanRobot(db);
-  if (!aturan.nyala || aturan.kunci?.serverId !== serverId) return false;
+  if (!aturan.nyala || aturan.kunci?.serverId !== serverId) return null;
   // Only kinds this agent can take, or an old agent would beat fast forever.
   const protokol = await piRobot(db, serverId, aturan.kunci);
-  if (protokol === null) return false;
-  const [r] = await db
-    .select({ id: seelabsTugas.id })
+  if (protokol === null) return null;
+  const rows = await db
+    .select({ jenis: seelabsTugas.jenis })
     .from(seelabsTugas)
     .where(
       and(
@@ -364,8 +368,9 @@ export async function adaTugasRobot(db: Db, serverId: number): Promise<boolean> 
         lte(seelabsTugas.jalanPada, new Date()),
       ),
     )
+    .orderBy(sql`(${seelabsTugas.jenis} = 'baca')`)
     .limit(1);
-  return !!r;
+  return rows.length ? (rows[0].jenis === "baca" ? "baca" : "kerja") : null;
 }
 
 export interface TugasPi {
@@ -392,19 +397,41 @@ export async function ambilTugas(db: Db, serverId: number): Promise<TugasPi[]> {
 
   // A job kind this agent doesn't know waits for its update (baca needs 8).
   const jenis = jenisDiambil(protokol);
-  const klaim = await db.execute<{ id: number }>(sql`
-    UPDATE seelabs_tugas SET status = 'diambil', diambil = now(), server_id = ${serverId}
-    WHERE id IN (
-      SELECT id FROM seelabs_tugas WHERE status = 'antre' AND jalan_pada <= now()
-        AND jenis IN (${sql.join(
-          jenis.map((j) => sql`${j}`),
-          sql`, `,
-        )})
-      ORDER BY jalan_pada, id LIMIT ${KLAIM_PER_DENYUT} FOR UPDATE SKIP LOCKED
-    ) RETURNING id`);
-  const ids =
-    (klaim as unknown as { rows?: { id: number }[] }).rows?.map((r) => r.id) ??
-    (klaim as unknown as { id: number }[]).map((r) => r.id);
+  const klaimDari = async (daftar: JenisTugas[], batas: number): Promise<number[]> => {
+    const klaim = await db.execute<{ id: number }>(sql`
+      UPDATE seelabs_tugas SET status = 'diambil', diambil = now(), server_id = ${serverId}
+      WHERE id IN (
+        SELECT id FROM seelabs_tugas WHERE status = 'antre' AND jalan_pada <= now()
+          AND jenis IN (${sql.join(
+            daftar.map((j) => sql`${j}`),
+            sql`, `,
+          )})
+        ORDER BY jalan_pada, id LIMIT ${batas} FOR UPDATE SKIP LOCKED
+      ) RETURNING id`);
+    return (
+      (klaim as unknown as { rows?: { id: number }[] }).rows?.map((r) => r.id) ??
+      (klaim as unknown as { id: number }[]).map((r) => r.id)
+    );
+  };
+  // Every account is read every minute (2026-10-18): saves and the other
+  // jobs go first, and a read only when this server holds none, so a save
+  // never waits behind more than one read.
+  const kerja = jenis.filter((j) => j !== "baca");
+  const ids = kerja.length ? await klaimDari(kerja, KLAIM_PER_DENYUT) : [];
+  if (jenis.includes("baca")) {
+    const [dipegang] = await db
+      .select({ id: seelabsTugas.id })
+      .from(seelabsTugas)
+      .where(
+        and(
+          eq(seelabsTugas.jenis, "baca"),
+          eq(seelabsTugas.status, "diambil"),
+          eq(seelabsTugas.serverId, serverId),
+        ),
+      )
+      .limit(1);
+    if (!dipegang) ids.push(...(await klaimDari(["baca"], 1)));
+  }
   if (!ids.length) return [];
 
   const rows = await db
@@ -413,7 +440,7 @@ export async function ambilTugas(db: Db, serverId: number): Promise<TugasPi[]> {
     .leftJoin(seelabsAkses, eq(seelabsAkses.nim, seelabsTugas.akunNim))
     .leftJoin(asisten, eq(asisten.nim, seelabsTugas.akunNim))
     .where(inArray(seelabsTugas.id, ids))
-    .orderBy(asc(seelabsTugas.id));
+    .orderBy(sql`(${seelabsTugas.jenis} = 'baca')`, asc(seelabsTugas.id));
   const keluar: TugasPi[] = [];
   for (const { t, a, akun } of rows) {
     const segel =
@@ -516,7 +543,9 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
       )
       .limit(1);
     if (!t) continue;
-    berubah = true;
+    // A read comes once a minute for each account: it wakes the pages only
+    // when it changed something, or failed for good.
+    if (t.jenis !== "baca") berubah = true;
     const akses = await aksesDari(db, t.akunNim);
     const sekarang = new Date();
 
@@ -538,6 +567,8 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
           selesai: sekarang,
         })
         .where(eq(seelabsTugas.id, t.id));
+      if (akses && statusAksesSetelah(null, akses.status as StatusAkses) !== akses.status)
+        berubah = true;
       if (akses)
         await db
           .update(seelabsAkses)
@@ -553,19 +584,30 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
           .where(eq(seelabsAkses.nim, t.akunNim));
       if (t.jenis === "nilai") await tandaiTersimpan(db, t);
       if (t.jenis === "baca") {
-        if (baca)
-          await terimaBaca(db, t, baca).catch((e) =>
-            console.error("[seelabs-baca] read-back failed:", t.id, e),
-          );
-        else console.error("[seelabs-baca] read result has the wrong shape:", t.id);
-        // Reads run every few minutes; finished ones older than two days go.
+        if (baca) {
+          const ubah = await terimaBaca(db, t, baca).catch((e) => {
+            console.error("[seelabs-baca] read-back failed:", t.id, e);
+            return false;
+          });
+          if (ubah) berubah = true;
+        } else console.error("[seelabs-baca] read result has the wrong shape:", t.id);
+        // Reads run every minute: finished ones go after an hour, failed
+        // ones (the Admin log shows them) after two days.
         await db
           .delete(seelabsTugas)
           .where(
             and(
               eq(seelabsTugas.jenis, "baca"),
-              inArray(seelabsTugas.status, ["selesai", "gagal", "batal"]),
-              lte(seelabsTugas.dibuat, new Date(sekarang.getTime() - 2 * 86_400_000)),
+              or(
+                and(
+                  inArray(seelabsTugas.status, ["selesai", "batal"]),
+                  lte(seelabsTugas.dibuat, new Date(sekarang.getTime() - 3_600_000)),
+                ),
+                and(
+                  eq(seelabsTugas.status, "gagal"),
+                  lte(seelabsTugas.dibuat, new Date(sekarang.getTime() - 2 * 86_400_000)),
+                ),
+              ),
             ),
           );
       }
@@ -581,6 +623,7 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
 
     const kode = h.kode ?? "bentuk_berubah";
     const lanjut = setelahGagal(kode, t.percobaan, sekarang);
+    if (lanjut.status === "gagal") berubah = true;
     await db
       .update(seelabsTugas)
       .set({
@@ -593,6 +636,7 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
       .where(eq(seelabsTugas.id, t.id));
     if (akses) {
       const status = statusAksesSetelah(kode, akses.status as StatusAkses);
+      if (status !== akses.status) berubah = true;
       await db
         .update(seelabsAkses)
         .set({ status, galat: kode, ...(t.jenis === "uji" ? { diujiPada: sekarang } : {}) })

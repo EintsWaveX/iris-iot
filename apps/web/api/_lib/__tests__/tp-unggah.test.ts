@@ -4,7 +4,7 @@
  * server PC's folders read as the lab names things.
  */
 import { describe, expect, it } from "vitest";
-import { lmsMenang, tidurDetik } from "../tp";
+import { lmsMenang, modulSinkron, tidurDetik } from "../tp";
 import { UNGGAH_MAKS, namaUnggah, pdfUnggah } from "../tp-unggah";
 import { anggotaKelas } from "../lms";
 import {
@@ -101,8 +101,7 @@ describe("the server PC's folders", () => {
   });
 });
 
-describe("how long the relay's minute timer may sleep", () => {
-  const now = Date.parse("2026-10-14T12:00:00Z");
+describe("the LMS read every minute around the clock", () => {
   const set = (modul: Record<string, { buka: string; tutup: string }>, sapuan = {}) =>
     ({
       semester: "2026-ganjil",
@@ -111,29 +110,23 @@ describe("how long the relay's minute timer may sleep", () => {
       kecuali: [],
       status: { terakhir: null, hasil: null, galat: null, galatSejak: null, sapuan },
       jendela: { semester: "2026-ganjil", pola: {} as never, modul },
-    }) as unknown as Parameters<typeof tidurDetik>[0];
+    }) as unknown as Parameters<typeof modulSinkron>[0];
 
-  it("a minute while a window is open, or an LMS copy is owed", () => {
+  it("a minute, always: the LMS is read every minute around the clock", () => {
+    expect(tidurDetik()).toBe(60);
+  });
+
+  it("syncs every module that has a window, open, closed or not yet open", () => {
+    const j = (buka: string, tutup: string) => ({ buka, tutup });
     expect(
-      tidurDetik(
-        set({ "1": { buka: "2026-10-14T11:00:00Z", tutup: "2026-10-17T11:00:00Z" } }),
-        false,
-        now,
+      modulSinkron(
+        set({
+          "1": j("2026-10-01T11:00:00Z", "2026-10-04T11:00:00Z"),
+          "3": j("2026-10-21T11:00:00Z", "2026-10-24T11:00:00Z"),
+        }),
       ),
-    ).toBe(60);
-    expect(tidurDetik(set({}), true, now)).toBe(60);
-  });
-
-  it("a minute until a closed window's sweep ran", () => {
-    const j = { buka: "2026-10-10T11:00:00Z", tutup: "2026-10-13T11:00:00Z" };
-    expect(tidurDetik(set({ "1": j }), false, now)).toBe(60);
-    expect(tidurDetik(set({ "1": j }, { "1": j.tutup }), false, now)).toBe(6 * 3600);
-  });
-
-  it("until the next window opens, at most six hours", () => {
-    const j = { buka: "2026-10-14T13:00:00Z", tutup: "2026-10-17T11:00:00Z" };
-    expect(tidurDetik(set({ "2": j }), false, now)).toBe(3600);
-    expect(tidurDetik(set({}), false, now)).toBe(6 * 3600);
+    ).toEqual([1, 3]);
+    expect(modulSinkron(set({}))).toEqual([]);
   });
 });
 

@@ -13,8 +13,7 @@
  * Relay (no session; signed `detak|ts` with KONSOL_RELAY_SECRET):
  * POST /api/tp/detak   the minute timer: the TP sync when due and LMS copies
  *      still owed, and the lab clock's automatic starts (_lib/jam-lab.ts);
- *      answers how long the timer may sleep (tidurDetik, a minute at most
- *      from 05:50 to 00:15 WIB).
+ *      answers how long the timer may sleep (tidurDetik: a minute).
  *
  * POST /api/tp/unggah { modul, isi }   my TP as one PDF (base64, 3 MB at most)
  *      while the window is open (2026-10-14: the LMS can refuse a student's
@@ -66,7 +65,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Readable } from "node:stream";
 import { waitUntil } from "@vercel/functions";
-import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
@@ -141,8 +140,6 @@ import {
   hapusSet,
   jendelaUntuk,
   kelompokTp,
-  adaPerpanjanganBuka,
-  modulAktif,
   perpanjangTp,
   muatPaket,
   nimKecuali,
@@ -1537,15 +1534,7 @@ async function handleDetak(req: ApiRequest, res: ApiResponse) {
   // run 59.9 s ago would otherwise skip a whole minute.
   await sinkronBilaPerlu(db, "relay", 50_000);
   await kirimTertunda(db);
-  const [t] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(tpUnggah)
-    .where(inArray(tpUnggah.lmsStatus, ["menunggu", "gagal"]));
-  const set = await bacaSet(db);
-  // An open extension keeps the minute timer awake like an owed copy.
-  const buka = adaPerpanjanganBuka(await perpanjangTp(db, set), modulAktif(set));
-  const tidur = tidurDetik(set, (t?.n ?? 0) > 0 || buka);
-  res.status(200).json({ ok: true, tidurDetik: batasTidurJamLab(tidur) });
+  res.status(200).json({ ok: true, tidurDetik: batasTidurJamLab(tidurDetik()) });
 }
 
 /* ================================================================ route */

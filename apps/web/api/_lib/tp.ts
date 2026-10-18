@@ -336,15 +336,6 @@ export async function perpanjangTp(db: Db, set: SetTp): Promise<Map<number, Map<
   return out;
 }
 
-/** True while someone's extension on an active module is still open. */
-export function adaPerpanjanganBuka(
-  per: Map<number, Map<string, string>>,
-  modul: readonly number[],
-  now = Date.now(),
-): boolean {
-  return modul.some((m) => [...(per.get(m)?.values() ?? [])].some((s) => Date.parse(s) > now));
-}
-
 export function jendelaUntuk(
   set: SetTp,
   modul: number,
@@ -374,19 +365,10 @@ export interface HasilSinkron {
   durasiMs: number;
 }
 
-const JAM6 = 6 * 3_600_000;
-const JAM12 = 12 * 3_600_000;
-const HARI3 = 3 * 86_400_000;
-
-/** Modules whose window is open, or closed under three days ago. */
-export function modulAktif(set: SetTp, now = Date.now()): number[] {
-  return [1, 2, 3, 4].filter((m) => {
-    const j = jendelaUntuk(set, m);
-    if (!j) return false;
-    const k = keadaanJendela(j, now);
-    return k === "buka" || (k === "tutup" && now - Date.parse(j.tutup) < HARI3);
-  });
-}
+/** The classes, their TP assignments and who is in them are read again on
+ *  every run, a minute apart (user, 2026-10-18; a little under a minute for
+ *  the timers' drift). */
+const SEGAR_MS = 50_000;
 
 const isoDari = (detik: number) => (detik > 0 ? new Date(detik * 1000).toISOString() : null);
 
@@ -548,16 +530,16 @@ async function jalankan(
     if (!token) throw new LmsGalat("token_rusak", "the stored token can't be read");
     const now = Date.now();
     let kelas = set.kelas;
-    if (opsi.paksa || !kelas || now - Date.parse(kelas.pada) > JAM6) {
+    if (opsi.paksa || !kelas || now - Date.parse(kelas.pada) > SEGAR_MS) {
       kelas = await segarkanKelas(token, set);
     }
-    if (opsi.paksa || !kelas.pesertaPada || now - Date.parse(kelas.pesertaPada) > JAM12) {
+    if (opsi.paksa || !kelas.pesertaPada || now - Date.parse(kelas.pesertaPada) > SEGAR_MS) {
       await segarkanPeserta(db, token, set, kelas);
     }
     await tulisSet(db, KUNCI_TP.kelas, kelas, null);
     set.kelas = kelas;
 
-    const modul = opsi.modul ?? modulAktif(set, now);
+    const modul = opsi.modul ?? modulSinkron(set);
     if (modul.length) {
       const peserta = await db
         .select({ nim: lmsPeserta.nim, lmsUser: lmsPeserta.lmsUser })
@@ -742,9 +724,16 @@ async function batalkanUnggah(db: Db, semester: string, modul: number, nim: stri
     );
 }
 
+/** Every module with a TP window, open, closed or not yet open: the sync
+ *  reads them all (user, 2026-10-18). */
+export function modulSinkron(set: SetTp): number[] {
+  return [1, 2, 3, 4].filter((m) => !!jendelaUntuk(set, m));
+}
+
 /**
- * A sync when one is due: a window is open and the last run is `jedaMs`
- * old, or a window closed and its sweep hasn't run. Cheap when nothing is
+ * A sync when one is due: every `jedaMs` around the clock over every module
+ * with a window (user, 2026-10-18: always, whatever the windows say), and
+ * at once when a closed window's sweep hasn't run. Cheap when nothing is
  * due (one settings read). Never throws.
  */
 export async function sinkronBilaPerlu(db: Db, oleh: string, jedaMs: number): Promise<void> {
@@ -752,45 +741,26 @@ export async function sinkronBilaPerlu(db: Db, oleh: string, jedaMs: number): Pr
     const set = await bacaSet(db);
     if (!set.token) return;
     const now = Date.now();
-    const aktif = modulAktif(set, now);
-    if (!aktif.length) return;
-    const sapuan = aktif.some((m) => {
+    const modul = modulSinkron(set);
+    if (!modul.length) return;
+    const sapuan = modul.some((m) => {
       const j = jendelaUntuk(set, m)!;
       return keadaanJendela(j, now) === "tutup" && set.status.sapuan[String(m)] !== j.tutup;
     });
     const terakhir = set.status.terakhir ? Date.parse(set.status.terakhir) : 0;
-    // A window still open, or someone's own extension on one (2026-10-17).
-    const bukaAda =
-      aktif.some((m) => keadaanJendela(jendelaUntuk(set, m), now) === "buka") ||
-      adaPerpanjanganBuka(await perpanjangTp(db, set), aktif, now);
     // A failing token is tried at most every 30 minutes.
     const jeda = set.status.hasil === "gagal" ? Math.max(jedaMs, 30 * 60_000) : jedaMs;
-    if (!sapuan && (!bukaAda || now - terakhir < jeda)) return;
-    await sinkronTp(db, oleh, { modul: aktif });
+    if (!sapuan && now - terakhir < jeda) return;
+    await sinkronTp(db, oleh, { modul });
   } catch (e) {
     console.error("[api/tp] background sync failed:", e);
   }
 }
 
-/**
- * How long the relay's minute timer may sleep: a minute while a window is
- * open or its sweep is due, else until the next window opens (at most 6
- * hours, so a window set later is still caught).
- */
-export function tidurDetik(set: SetTp, adaTertunda: boolean, now = Date.now()): number {
-  const MENIT = 60;
-  if (adaTertunda) return MENIT;
-  for (const m of modulAktif(set, now)) {
-    const j = jendelaUntuk(set, m)!;
-    if (keadaanJendela(j, now) === "buka") return MENIT;
-    if (set.status.sapuan[String(m)] !== j.tutup) return MENIT;
-  }
-  const berikut = [1, 2, 3, 4]
-    .map((m) => jendelaUntuk(set, m))
-    .filter((j): j is NonNullable<typeof j> => !!j && Date.parse(j.buka) > now)
-    .map((j) => Date.parse(j.buka));
-  const sampai = berikut.length ? Math.min(...berikut) : now + 6 * 3600_000;
-  return Math.max(MENIT, Math.min(6 * 3600, Math.round((sampai - now) / 1000)));
+/** How long the relay's minute timer may sleep: a minute, always, since the
+ *  LMS is read every minute around the clock (user, 2026-10-18). */
+export function tidurDetik(): number {
+  return 60;
 }
 
 /* ===================================================== groups and holders */

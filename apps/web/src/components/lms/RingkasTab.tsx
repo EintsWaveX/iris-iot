@@ -450,7 +450,7 @@ function Kini({
           <div className="lms-mini__sinkron">
             <dt>{t.sinkronBerikut}</dt>
             <dd>
-              {k === "buka" && d.sinkron.terakhir && d.sinkron.hasil !== "gagal" ? (
+              {d.sinkron.terakhir && d.sinkron.hasil !== "gagal" ? (
                 <SinkronBar terakhir={d.sinkron.terakhir} lang={lang} ringkas onLewat={onFlip} />
               ) : (
                 "·"

@@ -3,9 +3,10 @@
  * queueing the robot's read-only `baca` job for each connected account, and
  * taking its results into IRIS. The rules live in src/lib/seelabs-baca.ts.
  *
- * The rhythm: every 5 minutes from 06:30 WIB until the day's last session
- * ends, hourly otherwise, one nightly pass over every module of the
- * semester, and at once from Periksa Sekarang.
+ * The rhythm: every connected account every minute, around the clock
+ * (user, 2026-10-18), one at a time per account (a read still waiting or
+ * running holds the next back), one nightly pass over every module of the
+ * semester, and at once from Periksa Sekarang. Score saves go first.
  */
 import { and, desc, eq, gte, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
@@ -32,9 +33,10 @@ import {
   bacakuUntuk,
   bandingkanBap,
   barisBap,
-  jedaBaca,
+  JEDA_BACA_MS,
   nilaiTersimpan,
   rencanaTerima,
+  sidikStabil,
   waktunyaMalam,
   type BarisBaca,
   type CalonSesi,
@@ -87,20 +89,13 @@ export async function modulAktif(db: Db, semua: boolean): Promise<number[]> {
   return [...new Set(modul)].sort((a, b) => a - b);
 }
 
-/** Today's sessions (no TOT, not cancelled) as start and end instants. */
-async function sesiHariIni(db: Db): Promise<{ mulai: string; akhir: string }[]> {
-  const hari = hariIniWib();
+/** Accounts with a read still waiting or running. */
+async function akunSibuk(db: Db): Promise<Set<string>> {
   const rows = await db
-    .select({ mulai: sesi.mulai, durasi: sesi.durasiMenit })
-    .from(sesi)
-    .where(and(eq(sesi.tanggal, hari), ne(sesi.jenis, "tot"), ne(sesi.status, "batal")));
-  return rows.map((r) => {
-    const mulai = Date.parse(`${hari}T${r.mulai}:00+07:00`);
-    return {
-      mulai: new Date(mulai).toISOString(),
-      akhir: new Date(mulai + r.durasi * 60_000).toISOString(),
-    };
-  });
+    .select({ nim: seelabsTugas.akunNim })
+    .from(seelabsTugas)
+    .where(and(eq(seelabsTugas.jenis, "baca"), inArray(seelabsTugas.status, ["antre", "diambil"])));
+  return new Set(rows.map((r) => r.nim));
 }
 
 /**
@@ -164,8 +159,9 @@ export async function bacaBilaPerlu(db: Db, sekarang = new Date()): Promise<void
       : akunPerluBaca({
           akun,
           terakhir: jadwal.terakhir,
-          jedaMs: jedaBaca({ sekarang, sesiHariIni: await sesiHariIni(db) }),
+          jedaMs: JEDA_BACA_MS,
           sekarang,
+          sibuk: await akunSibuk(db),
         });
     if (!nims.length) return;
     const modul = await modulAktif(db, malam);
@@ -379,6 +375,57 @@ export async function terimaBaca(
     modulDibaca,
   });
 
+  // What this read wrote last time, to tell a read that found nothing new
+  // (most of them, once a minute): it logs nothing and wakes no page.
+  const kunciBaca = rencana.kelompok.map((k) => kunciGrup(k.sesiId, k.kelompokNomor));
+  const [bacaLama, lepasLama] = await Promise.all([
+    kunciBaca.length
+      ? db
+          .select({
+            sesiId: seelabsBaca.sesiId,
+            kelompokNomor: seelabsBaca.kelompokNomor,
+            akunNim: seelabsBaca.akunNim,
+            status: seelabsBaca.status,
+            seelabs: seelabsBaca.seelabs,
+          })
+          .from(seelabsBaca)
+          .where(inArray(seelabsBaca.sesiId, [...new Set(rencana.kelompok.map((k) => k.sesiId))]))
+      : Promise.resolve([]),
+    db
+      .select({
+        praktikum: seelabsLepas.praktikum,
+        modul: seelabsLepas.modul,
+        nim: seelabsLepas.nim,
+        klp: seelabsLepas.klp,
+        nilai: seelabsLepas.nilai,
+      })
+      .from(seelabsLepas)
+      .where(and(eq(seelabsLepas.akunNim, akun), inArray(seelabsLepas.modul, modulDibaca))),
+  ]);
+  const bacaSebelum = sidikStabil(
+    bacaLama.filter((r) => kunciBaca.includes(kunciGrup(r.sesiId, r.kelompokNomor))),
+  );
+  const bacaSesudah = sidikStabil(
+    rencana.kelompok.map((k) => ({
+      sesiId: k.sesiId,
+      kelompokNomor: k.kelompokNomor,
+      akunNim: akun,
+      status: k.status,
+      seelabs: k.seelabs,
+    })),
+  );
+  const lepasBerubah =
+    sidikStabil(lepasLama) !==
+    sidikStabil(
+      rencana.lepas.map((l) => ({
+        praktikum: l.praktikum,
+        modul: l.modul,
+        nim: l.nim,
+        klp: l.klp,
+        nilai: l.nilai,
+      })),
+    );
+
   const sekarang = new Date();
   for (const c of rencana.salin) {
     await db
@@ -405,6 +452,7 @@ export async function terimaBaca(
     });
   }
 
+  let dasar = 0;
   for (const k of rencana.kelompok) {
     await db
       .insert(seelabsBaca)
@@ -437,6 +485,7 @@ export async function terimaBaca(
       cara: "robot",
       nilai: k.seelabs,
     });
+    dasar++;
   }
 
   await db
@@ -456,16 +505,24 @@ export async function terimaBaca(
         set: { klp: l.klp, nilai: l.nilai, dibacaPada: sekarang },
       });
 
+  const bapBerubah = await periksaBap(db, akun, bukti.bap);
+  const berubah =
+    rencana.salin.length > 0 ||
+    dasar > 0 ||
+    lepasBerubah ||
+    bapBerubah ||
+    bacaSebelum !== bacaSesudah;
+  // The log keeps the reads that changed something.
   const hitung = (s: string) => rencana.kelompok.filter((k) => k.status === s).length;
-  await writeAudit(akun, "seelabs_baca", {
-    tugas: tugas.id,
-    sama: hitung("sama"),
-    beda: rencana.kelompok.length - hitung("sama"),
-    salin: rencana.salin.length,
-    lepas: rencana.lepas.length,
-  });
-  await periksaBap(db, akun, bukti.bap);
-  return rencana.salin.length > 0 || rencana.kelompok.length > 0 || rencana.lepas.length > 0;
+  if (berubah)
+    await writeAudit(akun, "seelabs_baca", {
+      tugas: tugas.id,
+      sama: hitung("sama"),
+      beda: rencana.kelompok.length - hitung("sama"),
+      salin: rencana.salin.length,
+      lepas: rencana.lepas.length,
+    });
+  return berubah;
 }
 
 /* ------------------------------------------------- Rekap BAP and the screens */
@@ -475,8 +532,9 @@ export async function terimaBaca(
  * the semester up to today): replaces that account's flags per praktikum.
  * Flags only; Bayar never changes from it.
  */
-export async function periksaBap(db: Db, akunNim: string, bap: BuktiBaca["bap"]): Promise<void> {
-  if (!bap) return;
+export async function periksaBap(db: Db, akunNim: string, bap: BuktiBaca["bap"]): Promise<boolean> {
+  if (!bap) return false;
+  let berubah = false;
   const hari = hariIniWib();
   const semester = semesterDariTanggal(hari);
   const units = await db
@@ -516,6 +574,24 @@ export async function periksaBap(db: Db, akunNim: string, bap: BuktiBaca["bap"])
       iris,
       baris.filter((b) => semesterDariTanggal(b.tanggal) === semester),
     );
+    const lama = await db
+      .select()
+      .from(seelabsBapBeda)
+      .where(and(eq(seelabsBapBeda.akunNim, akunNim), eq(seelabsBapBeda.praktikum, praktikum)));
+    const tanpaWaktu = (r: object) =>
+      Object.fromEntries(
+        Object.entries(r).filter(
+          ([k]) => !["id", "akunNim", "praktikum", "dibacaPada"].includes(k),
+        ),
+      );
+    if (sidikStabil(lama.map(tanpaWaktu)) === sidikStabil(beda.map(tanpaWaktu))) {
+      await db
+        .update(seelabsBapBeda)
+        .set({ dibacaPada: sekarang })
+        .where(and(eq(seelabsBapBeda.akunNim, akunNim), eq(seelabsBapBeda.praktikum, praktikum)));
+      continue;
+    }
+    berubah = true;
     await db
       .delete(seelabsBapBeda)
       .where(and(eq(seelabsBapBeda.akunNim, akunNim), eq(seelabsBapBeda.praktikum, praktikum)));
@@ -524,6 +600,7 @@ export async function periksaBap(db: Db, akunNim: string, bap: BuktiBaca["bap"])
         .insert(seelabsBapBeda)
         .values(beda.map((b) => ({ akunNim, praktikum, ...b, dibacaPada: sekarang })));
   }
+  return berubah;
 }
 
 /** What a Periksa Sekarang pressed on one session adds: its module (this

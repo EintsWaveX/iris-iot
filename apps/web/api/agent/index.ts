@@ -320,17 +320,21 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
 
     // Fastest applicable pace wins: a command in flight beats the session/idle
     // cadence, so the result comes back (and the next press is claimed) fast.
+    // SeeLabs reads run every minute around the clock (2026-10-18): they keep
+    // the beat at the session pace, never the fast one, which stays for a
+    // save or a job someone waits on.
+    const robot = await adaTugasRobot(db, serverId);
     const siaga =
       pending.length > 0 ||
-      tugasSeelabs.length > 0 ||
+      tugasSeelabs.some((t) => t.jenis !== "baca") ||
       (await adaPerintahBaru(serverId)) ||
       (await konsolSiaga(serverId)) ||
-      (await adaTugasRobot(db, serverId));
+      robot === "kerja";
     const intervalDetik = siaga
       ? INTERVAL_SIAGA_SEC
       : sesiAktif && MODUL_TELEMETRI_PI.has(sesiAktif.modul)
         ? INTERVAL_TELEMETRI_SEC
-        : sesiAktif
+        : sesiAktif || robot === "baca" || tugasSeelabs.length > 0
           ? INTERVAL_AKTIF_SEC
           : INTERVAL_IDLE_SEC;
 
@@ -363,9 +367,8 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         // Phase 18: the lab clock's backup when the relay's minute is
         // late; once a minute at most across both (never throws).
         await jamLabBilaPerlu(db);
-        // Phase 13: the server's beat is one of the TP sync's clocks while a
-        // window is open (every minute at most, with the relay's timer) and
-        // once after it closes. The server never sees the LMS token; this
+        // Phase 13: the server's beat is one of the TP sync's clocks (every
+        // minute around the clock, with the relay's timer). The server never sees the LMS token; this
         // runs here, after the beat is answered.
         await sinkronBilaPerlu(db, "pi", 60_000);
         // TP uploaded in IRIS whose copy to the LMS failed: tried again.
@@ -373,7 +376,7 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         // Phase 14: the robot's daily KLP pull and Input Jaga check.
         await harianBilaPerlu(db);
         // The SeeLabs read-back (2026-10-17): each connected account's read
-        // when it is due (5 minutes in practicum hours, hourly, nightly).
+        // when it is due (every minute, around the clock, and nightly).
         await bacaBilaPerlu(db);
         // Phase 15: scheduled announcements and the LMS automations that
         // are switched on (LMS › Ringkasan), every 5 minutes at most.
