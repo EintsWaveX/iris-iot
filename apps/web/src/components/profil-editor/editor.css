@@ -242,6 +242,31 @@
   top: 6px;
 }
 
+/* inactive Asisten: a name and a switch per row */
+.pl-ednon {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: grid;
+}
+
+.pl-ednon__i {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 8px 14px;
+}
+
+.pl-ednon__i + .pl-ednon__i {
+  border-top: 1px solid var(--hairline-faint);
+}
+
+.pl-ednon__i > span {
+  display: grid;
+  min-width: 0;
+}
+
 /* the footer of a form: Cancel then Save, an alternative on the left */
 .pl-edfoot {
   border-top: 1px solid var(--hairline-faint);

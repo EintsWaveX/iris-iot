@@ -48,6 +48,8 @@ describe("the public Lab Profile", () => {
         divisi: null,
         fotoUrl: null,
         fotoKecilUrl: null,
+        status: "aktif",
+        tampilProfil: false,
       },
       {
         nim: "1101223002",
@@ -56,6 +58,8 @@ describe("the public Lab Profile", () => {
         divisi: "ADC",
         fotoUrl: `${BLOB}/c.webp`,
         fotoKecilUrl: `${BLOB}/c-k.webp`,
+        status: "aktif",
+        tampilProfil: false,
       },
       {
         nim: "1101223003",
@@ -64,6 +68,8 @@ describe("the public Lab Profile", () => {
         divisi: "ADC",
         fotoUrl: null,
         fotoKecilUrl: null,
+        status: "aktif",
+        tampilProfil: false,
       },
     ]);
     data.set(jabatanPemegang, [
@@ -90,6 +96,31 @@ describe("the public Lab Profile", () => {
     const teks = JSON.stringify(p);
     expect(teks).not.toMatch(/1101223/);
     expect(teks).not.toMatch(/"nim"/);
+  });
+
+  it("shows an inactive Asisten only when switched on, marked as such", async () => {
+    const orang = (kode: string, status: string, tampilProfil: boolean) => ({
+      nim: `11012230${kode.length}${status.length}${Number(tampilProfil)}`,
+      nama: kode,
+      kode,
+      divisi: "ASO",
+      fotoUrl: null,
+      fotoKecilUrl: null,
+      status,
+      tampilProfil,
+    });
+    data.set(asisten, [
+      orang("AKT", "aktif", false),
+      orang("MAP", "nonaktif", true),
+      orang("OFF", "nonaktif", false),
+    ]);
+    data.set(jabatanPemegang, []);
+    data.set(profilDivisi, []);
+    const aso = (await bacaProfil()).divisi.find((d) => d.kode === "ASO")!;
+    expect(aso.anggota.map((o) => [o.kode, o.nonaktif ?? false])).toEqual([
+      ["AKT", false],
+      ["MAP", true],
+    ]);
   });
 
   it("falls back to each division's and the Inti's own texts, and keeps an edition's photo order", async () => {

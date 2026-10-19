@@ -110,6 +110,16 @@ export interface OrangProfil {
   /** An Inti position, "kepala" or "anggota". */
   peran: Inti | "kepala" | "anggota";
   foto: Foto | null;
+  /** An inactive Asisten shown by the editor's choice; not counted as active. */
+  nonaktif?: true;
+}
+
+/** An inactive Asisten as the editor lists them, to show or hide. */
+export interface NonaktifProfil {
+  kode: string;
+  nama: string;
+  divisi: string | null;
+  tampil: boolean;
 }
 
 export interface DivisiProfil {

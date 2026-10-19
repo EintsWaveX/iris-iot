@@ -187,6 +187,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "profil:unggah": [],
   "profil:divisi-simpan": ["profil"],
   "profil:foto-asisten": ["profil"],
+  "profil:nonaktif-daftar": [],
+  "profil:tampil-asisten": ["profil"],
   "profil:bersama-simpan": ["profil"],
   "profil:bersama-hapus": ["profil"],
   "profil:acara-simpan": ["profil"],

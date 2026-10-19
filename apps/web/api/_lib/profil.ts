@@ -8,7 +8,11 @@
  * POST (the "profil" right, src/lib/hak.ts: ADC, DEV and Admins)
  *   divisi-simpan  { divisi, baris, deskripsi, foto? }  divisi is one of
  *                  the six or "INTI", the Inti as a group
- *   foto-asisten   { kode, foto }            an active Asisten's photo
+ *   foto-asisten   { kode, foto }            the photo of an Asisten the
+ *                                            profile shows
+ *   nonaktif-daftar {}                      the inactive Asisten, each with
+ *                                            whether the profile shows them
+ *   tampil-asisten { kode, tampil }          show or hide an inactive one
  *   bersama-simpan { id?, tahun, keterangan, foto? }
  *   bersama-hapus  { id }
  *   acara-simpan   { id?, jenis, judul, tempat, ringkasan, tanggal,
@@ -22,7 +26,7 @@
  * photo stays. A replaced or removed photo's blobs are deleted, best effort.
  */
 import { del } from "@vercel/blob";
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
@@ -54,6 +58,7 @@ import {
   type DivisiProfil,
   type Foto,
   type FieldTeks,
+  type NonaktifProfil,
   type OrangProfil,
   type ProfilData,
   type TeksTiga,
@@ -131,7 +136,8 @@ function idValid(v: unknown): number | null {
 
 /* ================================================================ read */
 
-/** The whole public profile. Active Asisten only; never a NIM. */
+/** The whole public profile: active Asisten and the inactive ones an editor
+ *  chose to show; never a NIM. */
 export async function bacaProfil(): Promise<ProfilData> {
   const db = getDb();
   const [orang, pemegang, divisi, bersama, acara, foto] = await Promise.all([
@@ -143,9 +149,11 @@ export async function bacaProfil(): Promise<ProfilData> {
         divisi: asisten.divisi,
         fotoUrl: asisten.fotoUrl,
         fotoKecilUrl: asisten.fotoKecilUrl,
+        status: asisten.status,
+        tampilProfil: asisten.tampilProfil,
       })
       .from(asisten)
-      .where(eq(asisten.status, "aktif")),
+      .where(or(eq(asisten.status, "aktif"), eq(asisten.tampilProfil, true))),
     db
       .select({ nim: jabatanPemegang.nim, kategori: jabatanPemegang.kategori })
       .from(jabatanPemegang)
@@ -165,12 +173,15 @@ export async function bacaProfil(): Promise<ProfilData> {
   const inti: OrangProfil[] = [];
   const perDivisi = new Map<string, OrangProfil[]>();
   for (const o of orang) {
+    const aktif = o.status === "aktif";
+    if (!aktif && !o.tampilProfil) continue;
     const peran = posisi.get(o.nim) ?? "anggota";
     const p: OrangProfil = {
       nama: o.nama,
       kode: o.kode,
       peran,
       foto: fotoDari(o.fotoUrl, o.fotoKecilUrl),
+      ...(aktif ? {} : { nonaktif: true as const }),
     };
     if ((INTI as readonly string[]).includes(peran)) inti.push(p);
     else if (isDivisi(o.divisi)) perDivisi.set(o.divisi, [...(perDivisi.get(o.divisi) ?? []), p]);
@@ -270,7 +281,12 @@ export const handleFotoAsisten: Post = async (req, res, s) => {
   const cocok = await db
     .select({ nim: asisten.nim, fotoUrl: asisten.fotoUrl, fotoKecilUrl: asisten.fotoKecilUrl })
     .from(asisten)
-    .where(and(eq(asisten.kode, body.kode), eq(asisten.status, "aktif")));
+    .where(
+      and(
+        eq(asisten.kode, body.kode),
+        or(eq(asisten.status, "aktif"), eq(asisten.tampilProfil, true)),
+      ),
+    );
   if (cocok.length !== 1) return tolak(res, "tidak_ditemukan");
   const [o] = cocok;
   await db
@@ -279,6 +295,34 @@ export const handleFotoAsisten: Post = async (req, res, s) => {
     .where(eq(asisten.nim, o.nim));
   if (o.fotoUrl !== (foto?.besar ?? null)) await hapusBlob([o.fotoUrl, o.fotoKecilUrl], "asisten");
   await writeAudit(s.nim, "profil_foto", { kode: body.kode, hapus: foto === null });
+  res.status(200).json({ ok: true });
+};
+
+export const handleNonaktif: Post = async (_req, res) => {
+  const rows = await getDb()
+    .select({
+      kode: asisten.kode,
+      nama: asisten.nama,
+      divisi: asisten.divisi,
+      tampil: asisten.tampilProfil,
+    })
+    .from(asisten)
+    .where(ne(asisten.status, "aktif"))
+    .orderBy(asc(asisten.nama));
+  res.status(200).json({ ok: true, nonaktif: rows satisfies NonaktifProfil[] });
+};
+
+export const handleTampilAsisten: Post = async (req, res, s) => {
+  const body = jsonBody(req);
+  if (typeof body.kode !== "string" || typeof body.tampil !== "boolean")
+    return tolak(res, "format_salah");
+  const ubah = await getDb()
+    .update(asisten)
+    .set({ tampilProfil: body.tampil })
+    .where(and(eq(asisten.kode, body.kode), ne(asisten.status, "aktif")))
+    .returning({ kode: asisten.kode });
+  if (ubah.length !== 1) return tolak(res, "tidak_ditemukan");
+  await writeAudit(s.nim, "profil_tampil", { kode: body.kode, tampil: body.tampil });
   res.status(200).json({ ok: true });
 };
 

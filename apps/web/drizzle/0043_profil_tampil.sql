@@ -1,0 +1,1 @@
+ALTER TABLE "asisten" ADD COLUMN "tampil_profil" boolean DEFAULT false NOT NULL;

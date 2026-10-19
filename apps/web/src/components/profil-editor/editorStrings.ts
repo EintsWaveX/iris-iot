@@ -19,6 +19,12 @@ export const E = dict({
     anggotaHint:
       "Nama, kode dan jabatan diatur di Tim. Di sini hanya fotonya, dan foto langsung tersimpan.",
     belumAnggota: "Belum ada Asisten aktif di sini.",
+    nonaktifJudul: "Asisten Nonaktif",
+    nonaktifHint:
+      "Asisten nonaktif tidak muncul di Beranda kecuali dinyalakan di sini. Setelah tampil, fotonya diatur di atas bersama anggota lain.",
+    tampilkan: "Tampilkan di Profil Lab",
+    ditampilkan: (n: string) => `${n} tampil di Profil Lab`,
+    disembunyikan: (n: string) => `${n} tidak lagi tampil di Profil Lab`,
     pilihFoto: "Pilih Foto",
     gantiFoto: "Ganti Foto",
     hapusFoto: "Hapus Foto",
@@ -98,6 +104,12 @@ export const E = dict({
     anggotaHint:
       "Names, codes and positions are set in Tim. Only the photo is set here, and it saves at once.",
     belumAnggota: "No active Asisten here yet.",
+    nonaktifJudul: "Inactive Asisten",
+    nonaktifHint:
+      "Inactive Asisten stay off Home unless switched on here. Once shown, set their photo above with the other members.",
+    tampilkan: "Show on the Lab Profile",
+    ditampilkan: (n: string) => `${n} now shows on the Lab Profile`,
+    disembunyikan: (n: string) => `${n} no longer shows on the Lab Profile`,
     pilihFoto: "Pick a Photo",
     gantiFoto: "Replace Photo",
     hapusFoto: "Remove Photo",
@@ -176,6 +188,12 @@ export const E = dict({
     anggota: "成员（来自 Tim）",
     anggotaHint: "姓名、代码和职位在 Tim 里设置。这里只设置照片，照片会立即保存。",
     belumAnggota: "这里还没有在岗助教。",
+    nonaktifJudul: "离任助教",
+    nonaktifHint:
+      "离任助教不会出现在首页，除非在这里打开。显示后，可以在上方和其他成员一起设置照片。",
+    tampilkan: "在实验室简介中显示",
+    ditampilkan: (n: string) => `${n} 已在实验室简介中显示`,
+    disembunyikan: (n: string) => `${n} 已不再在实验室简介中显示`,
     pilihFoto: "选择照片",
     gantiFoto: "更换照片",
     hapusFoto: "删除照片",

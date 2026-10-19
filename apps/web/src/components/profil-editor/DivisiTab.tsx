@@ -6,6 +6,8 @@
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import Confirm from "../ui/Confirm";
+import { Switch } from "../ui/Controls";
+import { postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { DIVISI, type Divisi } from "../../lib/hak";
 import {
@@ -16,6 +18,7 @@ import {
   bahasaKosong,
   type Foto,
   type IntiProfil,
+  type NonaktifProfil,
   type OrangProfil,
   type ProfilData,
   type TeksTiga,
@@ -92,6 +95,44 @@ function Anggota({
   );
 }
 
+/** The division's inactive Asisten, each with a switch that shows them on
+ *  Home (they then join the members above, photo and all). */
+function Nonaktif({ lang, list, muat }: { lang: Lang; list: NonaktifProfil[]; muat: () => void }) {
+  const t = E[lang];
+  const [sibuk, setSibuk] = useState<string | null>(null);
+  async function ganti(o: NonaktifProfil, tampil: boolean) {
+    setSibuk(o.kode);
+    const r = await tulis(lang, "tampil-asisten", { kode: o.kode, tampil }, true);
+    setSibuk(null);
+    if (r.ok) toast(tampil ? t.ditampilkan(o.nama) : t.disembunyikan(o.nama));
+    else toast(t.gagal, "danger");
+    muat();
+  }
+  return (
+    <div className="stack stack--sm">
+      <span className="field__label">{t.nonaktifJudul}</span>
+      <span className="hint">{t.nonaktifHint}</span>
+      <div className="pl-ednon">
+        {list.map((o) => (
+          <div className="pl-ednon__i" key={o.kode}>
+            <span>
+              <b>{o.nama}</b>
+              <span className="hint mono">{o.kode}</span>
+            </span>
+            <Switch
+              on={o.tampil}
+              onChange={(v) => ganti(o, v)}
+              label={`${t.tampilkan}: ${o.nama}`}
+              busy={sibuk === o.kode}
+              disabled={sibuk !== null}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DivisiTab({
   lang,
   data,
@@ -124,6 +165,19 @@ export default function DivisiTab({
   const [draf, setDraf] = useState<Draf>(darDivisi(d));
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [nonaktif, setNonaktif] = useState<NonaktifProfil[]>([]);
+
+  // The inactive Asisten, read again with every refresh of the profile.
+  useEffect(() => {
+    let hidup = true;
+    postJson<{ ok: boolean; nonaktif?: NonaktifProfil[] }>("/api/profil/nonaktif-daftar", {})
+      .then((r) => hidup && setNonaktif(r.nonaktif ?? []))
+      .catch(() => null);
+    return () => {
+      hidup = false;
+    };
+  }, [data]);
+  const nonaktifDi = nonaktif.filter((o) => o.divisi === sel);
 
   // A save of this division (here or elsewhere) refreshes what the form
   // starts from; a member's photo saving leaves the typing alone.
@@ -213,6 +267,7 @@ export default function DivisiTab({
           <span className="hint">{t.anggotaHint}</span>
           <Anggota lang={lang} list={d.anggota} warna={d.warna} muat={muat} />
         </div>
+        {nonaktifDi.length > 0 && <Nonaktif lang={lang} list={nonaktifDi} muat={muat} />}
         <div className="pl-edfoot">
           <button
             type="button"

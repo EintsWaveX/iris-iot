@@ -84,6 +84,9 @@ export const asisten = pgTable("asisten", {
    *  and position; the NIM never is. */
   fotoUrl: text("foto_url"),
   fotoKecilUrl: text("foto_kecil_url"),
+  /** An inactive Asisten the Lab Profile still shows ("still part of us",
+   *  user 2026-10-20); set in /lab-profile. Active ones always show. */
+  tampilProfil: boolean("tampil_profil").notNull().default(false),
 });
 
 /**

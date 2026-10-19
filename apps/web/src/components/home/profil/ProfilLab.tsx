@@ -36,6 +36,7 @@ import LihatGrup, { type Grup } from "./LihatGrup";
 import Lightbox, { type FotoLihat } from "./Lightbox";
 import { Avatar, Gambar, Hitung, Kepala, miring, useGerakProfil, useMuncul } from "./parts";
 import { P } from "./profilStrings";
+import { FilosofiLogo, TentangLab } from "./Tentang";
 import "./profil.css";
 
 // Swiper loads only when the events come into the page, not with every
@@ -63,8 +64,9 @@ function useProfil(): ProfilData | null | undefined {
 export function HeroLab({ lang, data }: { lang: Lang; data: ProfilData | null | undefined }) {
   const t = P[lang];
   const tier = useGerakProfil();
+  // Inactive Asisten the profile still shows don't count as active.
   const asisten = data
-    ? data.inti.length + data.divisi.reduce((n, d) => n + d.anggota.length, 0)
+    ? [...data.inti, ...data.divisi.flatMap((d) => d.anggota)].filter((o) => !o.nonaktif).length
     : null;
   const acara = data ? data.acara.length : null;
   // Once a line is sharp it drops its filter, so no blur layer stays.
@@ -167,7 +169,7 @@ function grupDari(data: ProfilData, lang: Lang): { inti: Grup; divisi: Grup[] } 
 }
 
 /** A division's card; `big` is the Inti's, across the whole grid with its
- *  description beside the photo. */
+ *  description and every member (photo, name, position) beside the photo. */
 function KartuGrup({
   lang,
   g,
@@ -184,7 +186,7 @@ function KartuGrup({
   onOpen: () => void;
 }) {
   const t = P[lang];
-  const shown = g.anggota.slice(0, big ? 6 : 4);
+  const shown = g.anggota.slice(0, 4);
   return (
     <button
       type="button"
@@ -214,20 +216,35 @@ function KartuGrup({
         <span className="pl-div__code mono">{g.label}</span>
       </span>
       <span className="pl-div__body">
+        {big && <span className="eyebrow">{t.nAsisten(g.anggota.length)}</span>}
         <b className="pl-div__name">{g.nama}</b>
         <span className={big ? "pl-div__line" : "hint"}>{teksDi(g.baris, lang)}</span>
         {big && <span className="pl-div__desc">{teksDi(g.deskripsi, lang)}</span>}
-        <span className="pl-div__foot">
-          <span className="pl-stack">
-            {shown.map((o) => (
-              <Avatar key={o.kode} o={o} size={big ? 42 : 34} />
+        {big ? (
+          <span className="pl-crew">
+            {g.anggota.map((o) => (
+              <span className="pl-crew__p" key={o.kode}>
+                <Avatar o={o} size={48} />
+                <span className="pl-crew__t">
+                  <b>{o.nama}</b>
+                  <span>{t.peran[o.peran]}</span>
+                </span>
+              </span>
             ))}
-            {g.anggota.length > shown.length && (
-              <span className="pl-stack__more mono">+{g.anggota.length - shown.length}</span>
-            )}
           </span>
-          <span className="hint">{t.nAsisten(g.anggota.length)}</span>
-        </span>
+        ) : (
+          <span className="pl-div__foot">
+            <span className="pl-stack">
+              {shown.map((o) => (
+                <Avatar key={o.kode} o={o} size={34} />
+              ))}
+              {g.anggota.length > shown.length && (
+                <span className="pl-stack__more mono">+{g.anggota.length - shown.length}</span>
+              )}
+            </span>
+            <span className="hint">{t.nAsisten(g.anggota.length)}</span>
+          </span>
+        )}
       </span>
     </button>
   );
@@ -400,6 +417,9 @@ export default function ProfilLab({
         <p className="hint pl-gagal">{t.gagal}</p>
       ) : (
         <>
+          <TentangLab lang={lang} />
+          <FilosofiLogo lang={lang} />
+
           <section className="pl-sec" aria-labelledby="pl-divisi">
             <Kepala
               id="pl-divisi"

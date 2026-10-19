@@ -24,6 +24,8 @@ import {
   handleBersamaSimpan,
   handleDivisiSimpan,
   handleFotoAsisten,
+  handleNonaktif,
+  handleTampilAsisten,
   type Post,
 } from "../_lib/profil.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
@@ -56,6 +58,8 @@ async function handleUnggah(req: ApiRequest, res: ApiResponse, session: SessionP
 const POST: Record<string, Post> = {
   "divisi-simpan": handleDivisiSimpan,
   "foto-asisten": handleFotoAsisten,
+  "nonaktif-daftar": handleNonaktif,
+  "tampil-asisten": handleTampilAsisten,
   "bersama-simpan": handleBersamaSimpan,
   "bersama-hapus": handleBersamaHapus,
   "acara-simpan": handleAcaraSimpan,

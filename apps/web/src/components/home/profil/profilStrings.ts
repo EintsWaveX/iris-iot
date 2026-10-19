@@ -2,6 +2,10 @@
 import { dict } from "../../../lib/app";
 import type { JenisAcara } from "../../../lib/profil";
 
+/** The parts of the logo its philosophy explains, in reading order. */
+export const BAGIAN_LOGO = ["awan", "wifi", "warna", "huruf"] as const;
+export type BagianLogo = (typeof BAGIAN_LOGO)[number];
+
 export const P = dict({
   id: {
     heroTitleA: "Laboratorium ",
@@ -15,6 +19,44 @@ export const P = dict({
     statModul: "Modul Praktikum",
     statAcara: "Acara Terlaksana",
     ubah: "Ubah",
+    tentangEyebrow: "Tentang kami",
+    tentangTitle: "IoT Runtime and Integration System",
+    tentangA:
+      "IRIS Laboratory adalah laboratorium di bawah naungan Fakultas Teknik Elektro dengan fokus utama pengembangan Internet of Things (IoT), salah satu pilar penting dalam teknologi.",
+    tentangB:
+      "IRIS mendukung kegiatan praktikum IoT dengan program utama Praktikum Internet of Things. Lewat praktikum ini mahasiswa tidak hanya memahami konsep dasar IoT, tetapi juga berpengalaman merancang dan menerapkan sistem untuk kebutuhan nyata.",
+    bidangLabel: "Bidang yang kami tekuni",
+    bidang: [
+      "Pemrograman mikrokontroler",
+      "Sensor dan aktuator",
+      "Komunikasi perangkat",
+      "Integrasi sistem",
+      "IoT dengan jaringan dan cloud",
+    ],
+    fotoJaket: "Punggung jaket Asisten IRIS bertuliskan IoT Runtime and Integration System",
+    fotoPapan: "Papan ESP32 di breadboard dengan LED menyala",
+    logoEyebrow: "Filosofi logo",
+    logoTitle: "Setiap Garis Punya Makna",
+    logoLede: "Pilih satu bagian untuk melihatnya di logo.",
+    logoAlt: "Logo IRIS: huruf IRIS bergaya jalur PCB dengan awan dan sinyal Wi-Fi",
+    logoBagian: {
+      awan: {
+        judul: "Awan",
+        isi: "Platform runtime dan infrastruktur yang fleksibel dan bisa diakses dari mana saja.",
+      },
+      wifi: {
+        judul: "Wi-Fi",
+        isi: "Komunikasi nirkabel dan pertukaran data, jembatan utama yang menghubungkan perangkat keras ke internet.",
+      },
+      warna: {
+        judul: "Warna",
+        isi: "Biru neon: kepercayaan, stabilitas dan profesionalisme.",
+      },
+      huruf: {
+        judul: "Huruf IRIS",
+        isi: "Bentuk hurufnya menyerupai jalur PCB: koneksi antarperangkat, jalur komunikasi data, sistem embedded dan IoT.",
+      },
+    } as Record<BagianLogo, { judul: string; isi: string }>,
     divEyebrow: "Siapa kami",
     divTitle: "Enam Divisi, Satu Lab",
     divLede:
@@ -81,6 +123,44 @@ export const P = dict({
     statModul: "Practicum Modules",
     statAcara: "Events Held",
     ubah: "Edit",
+    tentangEyebrow: "About us",
+    tentangTitle: "IoT Runtime and Integration System",
+    tentangA:
+      "IRIS Laboratory is a laboratory under the Faculty of Electrical Engineering, focused on developing the Internet of Things (IoT), one of the key pillars of technology.",
+    tentangB:
+      "IRIS supports IoT practicum work, with the Internet of Things Practicum as its main program. Through it, students do not only learn the basics of IoT, they also gain experience designing and building systems for real needs.",
+    bidangLabel: "What we work on",
+    bidang: [
+      "Microcontroller programming",
+      "Sensors and actuators",
+      "Device communication",
+      "System integration",
+      "Networked and cloud IoT",
+    ],
+    fotoJaket: "The back of an IRIS Asisten jacket reading IoT Runtime and Integration System",
+    fotoPapan: "An ESP32 board on a breadboard with a lit LED",
+    logoEyebrow: "Logo philosophy",
+    logoTitle: "Every Line Has a Meaning",
+    logoLede: "Pick a part to see it on the logo.",
+    logoAlt: "The IRIS logo: PCB trace letters with a cloud and a Wi-Fi signal",
+    logoBagian: {
+      awan: {
+        judul: "Cloud",
+        isi: "A runtime platform and infrastructure that is flexible and reachable from anywhere.",
+      },
+      wifi: {
+        judul: "Wi-Fi",
+        isi: "Wireless communication and data exchange, the main bridge that connects hardware to the internet.",
+      },
+      warna: {
+        judul: "Color",
+        isi: "Neon blue: trust, stability and professionalism.",
+      },
+      huruf: {
+        judul: "The IRIS Letters",
+        isi: "The letters follow PCB traces: links between devices, data paths, embedded systems and IoT.",
+      },
+    } as Record<BagianLogo, { judul: string; isi: string }>,
     divEyebrow: "Who we are",
     divTitle: "Six Divisions, One Lab",
     divLede:
@@ -147,6 +227,29 @@ export const P = dict({
     statModul: "实验模块",
     statAcara: "已办活动",
     ubah: "编辑",
+    tentangEyebrow: "关于我们",
+    tentangTitle: "IRIS：物联网运行与集成系统",
+    tentangA:
+      "IRIS 实验室隶属于电气工程学院，主要专注于物联网（IoT）的开发，这是技术的重要支柱之一。",
+    tentangB:
+      "IRIS 支持物联网实验教学，主要项目是物联网实验课。通过实验课，学生不仅能理解物联网的基本概念，还能获得设计和实现满足实际需求的系统的经验。",
+    bidangLabel: "我们的领域",
+    bidang: ["单片机编程", "传感器与执行器", "设备通信", "系统集成", "联网与云端物联网"],
+    fotoJaket: "IRIS 助教外套背面，印着 IoT Runtime and Integration System",
+    fotoPapan: "面包板上的 ESP32 开发板，LED 正亮着",
+    logoEyebrow: "标志寓意",
+    logoTitle: "每一笔都有含义",
+    logoLede: "选择一个部分，在标志上查看它。",
+    logoAlt: "IRIS 标志：PCB 走线风格的 IRIS 字母，配有云朵和 Wi-Fi 信号",
+    logoBagian: {
+      awan: { judul: "云朵", isi: "灵活、随时随地都能访问的运行平台和基础设施。" },
+      wifi: { judul: "Wi-Fi", isi: "无线通信与数据交换，是让硬件连上互联网的主要桥梁。" },
+      warna: { judul: "颜色", isi: "霓虹蓝：信任、稳定与专业。" },
+      huruf: {
+        judul: "IRIS 字母",
+        isi: "字母形似 PCB 走线，象征设备之间的连接、数据通信线路、嵌入式系统和物联网。",
+      },
+    } as Record<BagianLogo, { judul: string; isi: string }>,
     divEyebrow: "我们是谁",
     divTitle: "六个部门，一个实验室",
     divLede: "每位 IRIS 助教都在实验课上授课，并属于一个部门。打开卡片，认识背后的人。",
