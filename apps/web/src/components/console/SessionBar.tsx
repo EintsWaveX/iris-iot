@@ -214,9 +214,13 @@ export default function SessionBar({
             {t.hari[hari]} ·{" "}
             {sesi.slot ? `${t.slot(sesi.slot)} · ${SLOT_MULAI[sesi.slot]}` : sesi.mulai}
             {codes}
-            {sesi.kodeMasuk && <KodeMasuk kode={sesi.kodeMasuk} lang={lang} kecil />}
           </span>
         </div>
+        {sesi.kodeMasuk && (
+          <div className="shead__kode">
+            <KodeMasuk kode={sesi.kodeMasuk} lang={lang} blok />
+          </div>
+        )}
         <div className="shead__track">{track}</div>
       </div>
 

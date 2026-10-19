@@ -70,8 +70,11 @@
   min-height: 0;
 }
 
-.dash__pair {
-  align-items: start;
+/* Cards stretch to their row: a closing hint or footer sits on the
+   bottom edge, so neighbours end on one line. */
+.dash__card > .hint:last-child,
+.dash__card > .crewfoot:last-child {
+  margin-top: auto;
 }
 
 .dash__h {
@@ -560,9 +563,10 @@
 
 /* The ground station: cockpit, instrument, log; group and materials. */
 /* Phase 21 (f5, f12): the next step first and widest with Live beside it;
-   then the materials, the log and the group, each as tall as its content. */
+   then the materials, the log and the group. Cards in a row share its
+   height (2026-10-20). */
 .gs {
-  align-items: start;
+  align-items: stretch;
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr);
@@ -577,6 +581,7 @@
 }
 
 .gs__log > :last-child {
+  align-content: start;
   flex: 1 1 auto;
   max-height: 18rem;
   min-height: 0;
@@ -1028,6 +1033,7 @@
 /* The materials: three buttons in a row, each the whole target. */
 .bahan3 {
   display: grid;
+  flex: 1 1 auto;
   gap: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

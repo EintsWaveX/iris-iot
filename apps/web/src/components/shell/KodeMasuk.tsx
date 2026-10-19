@@ -19,25 +19,36 @@ export default function KodeMasuk({
   kode,
   lang,
   besar = false,
-  kecil = false,
+  blok = false,
 }: {
   kode: string;
   lang: Lang;
   /** Projector size. */
   besar?: boolean;
-  /** Inline in a line of text (the Console's session bar). */
-  kecil?: boolean;
+  /** A block of its own, each character in a box like the ones Praktikan
+   *  type it into (the Console's session bar, 2026-10-20). */
+  blok?: boolean;
 }) {
   const t = T[lang];
+  if (blok)
+    return (
+      <Tooltip label={t.tip} side="bottom">
+        <span className="kodemasuk" data-blok="yes" tabIndex={0}>
+          <span className="kodemasuk__k label-caps">{t.k}</span>
+          <b className="kodemasuk__v" aria-label={kode}>
+            {[...kode].map((c, i) => (
+              <span className="kodemasuk__d" aria-hidden="true" key={i}>
+                {c}
+              </span>
+            ))}
+          </b>
+        </span>
+      </Tooltip>
+    );
   return (
     <Tooltip label={t.tip} side="bottom">
-      <span
-        className="kodemasuk"
-        data-besar={besar ? "yes" : undefined}
-        data-kecil={kecil ? "yes" : undefined}
-        tabIndex={0}
-      >
-        <KeyIcon size={besar ? 22 : kecil ? 13 : 16} aria-hidden="true" />
+      <span className="kodemasuk" data-besar={besar ? "yes" : undefined} tabIndex={0}>
+        <KeyIcon size={besar ? 22 : 16} aria-hidden="true" />
         <span className="kodemasuk__k">{t.k}</span>
         <b className="kodemasuk__v num">{kode}</b>
       </span>

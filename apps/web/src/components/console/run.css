@@ -53,6 +53,26 @@
   gap: 6px 8px;
 }
 
+/* The sign-in code beside the title, set apart by a hairline, so the
+   Asisten finds it at a glance; on a phone it takes its own row. */
+.shead__kode {
+  align-items: center;
+  align-self: stretch;
+  border-left: 1px solid var(--hairline);
+  display: flex;
+  flex: none;
+  /* The track's time bubble hangs left of its start: room for it. */
+  padding-inline: 18px 24px;
+}
+
+@media (max-width: 640px) {
+  .shead__kode {
+    border-left: 0;
+    flex-basis: 100%;
+    padding-inline: 0;
+  }
+}
+
 .shead__track {
   flex: 1 1 320px;
   min-width: 260px;

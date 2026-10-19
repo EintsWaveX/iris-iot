@@ -804,7 +804,7 @@
 }
 
 .pl-div__photo {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   background: var(--surface-3);
   overflow: hidden;
   position: relative;
@@ -815,8 +815,9 @@
 }
 
 .pl-div__photo img {
-  /* Group photos have the heads in their middle: the crop keeps them. */
-  object-position: center 58%;
+  /* The 4:5 slides have the heads from 35% down and a footer bar below
+     90%: the band shows 30% to 90%, heads and bodies, no footer. */
+  object-position: center 75%;
   transition: transform 700ms var(--ease-out-expo);
 }
 
