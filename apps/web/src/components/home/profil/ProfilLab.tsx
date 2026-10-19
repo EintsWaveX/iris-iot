@@ -207,7 +207,7 @@ function Orang({ lang, o, big }: { lang: Lang; o: OrangProfil; big?: boolean }) 
   return (
     <figure className={`pl-person${big ? " pl-person--big" : ""}`}>
       {o.foto ? (
-        <Gambar foto={o.foto} alt={o.nama} ratio="1" sizes="(max-width: 640px) 45vw, 220px" />
+        <Gambar foto={o.foto} alt={o.nama} sizes="(max-width: 640px) 45vw, 200px" />
       ) : (
         <span className="pl-person__kode mono" role="img" aria-label={o.nama}>
           {o.kode}
@@ -231,7 +231,7 @@ function DialogDivisi({ lang, d, onClose }: { lang: Lang; d: DivisiProfil; onClo
       open
       onOpenChange={(o) => !o && onClose()}
       title={`${d.kode} · ${info.nama}`}
-      size="xl"
+      size="wide"
       lang={lang}
     >
       <div className="pl-dd" style={{ "--c": info.warna } as CSSProperties}>
@@ -245,7 +245,7 @@ function DialogDivisi({ lang, d, onClose }: { lang: Lang; d: DivisiProfil; onClo
             <Gambar
               foto={d.foto}
               alt={t.divFoto(d.kode)}
-              sizes="(max-width: 1040px) 92vw, 1000px"
+              sizes="(max-width: 1600px) 94vw, 1500px"
             />
           </button>
         )}
