@@ -23,7 +23,7 @@ import { ProgressRing, StateView } from "../ui/Display";
 import { MODUL_NAMA, postJson, tanggalPanjang } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
-import { TP_MENUNGGU } from "../../lib/tp";
+import { TP_MENUNGGU, TUNGGU_SINKRON_MS } from "../../lib/tp";
 import { buatZip, simpanBlob } from "../../lib/zip";
 import { TPS } from "../tp/tpStrings";
 import SinkronBar from "../tp/SinkronBar";
@@ -379,6 +379,7 @@ function SyncStrip({
       "/api/tp/sinkron",
       // a press reads the courses again, so a TP assignment made a minute ago is found
       { modul, paksa: true },
+      TUNGGU_SINKRON_MS,
     ).catch(() => ({ ok: false, kode: "", baru: 0, diperbarui: 0 }));
     setBusy(false);
     window.Toast?.show(r.ok ? t.sinkronHasil(r.baru, r.diperbarui) : t.gagal, r.ok ? "ok" : "warn");

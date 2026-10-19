@@ -70,7 +70,7 @@ import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
 import { muatOrang } from "../_lib/hak.js";
-import { denganSiaran } from "../_lib/siaran.js";
+import { denganSiaran, siarkan } from "../_lib/siaran.js";
 import { getDb } from "../../src/lib/db.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { boleh, type Orang } from "../../src/lib/hak.js";
@@ -1351,10 +1351,16 @@ async function handleLms(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
     kursus: kursus.length,
     kelola: !!privat,
   });
-  const sinkron = await sinkronTp(db, `manual:${s.nim}`, { paksa: true });
-  res
-    .status(200)
-    .json({ ok: true, akun: simpan.akun, kursus: kursus.length, kelola: !!privat, sinkron });
+  // The connection is saved, so the answer goes now and the first class read
+  // runs after it: on the real LMS that read takes 13 to 26 s, past the
+  // page's 15 s wait, and a saved connection read as a failure. Every page
+  // hears when it lands.
+  waitUntil(
+    sinkronTp(db, `manual:${s.nim}`, { paksa: true })
+      .then(() => siarkan(["tp"]))
+      .catch((e) => console.error("[api/tp lms] first sync failed:", e)),
+  );
+  res.status(200).json({ ok: true, akun: simpan.akun, kursus: kursus.length, kelola: !!privat });
 }
 
 /**

@@ -14,6 +14,7 @@ import Pill from "../ui/Pill";
 import { Switch } from "../ui/Controls";
 import { getJson, href, postJson, useDetik, useMe } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
+import { TUNGGU_SINKRON_MS } from "../../lib/tp";
 import { TPS } from "../tp/tpStrings";
 import type { Lang } from "../../lib/kelas";
 import { Countdown, waktuPanjang } from "../tp/shared";
@@ -387,10 +388,11 @@ function Kini({
   const [menyinkron, setMenyinkron] = useState(false);
   const sinkron = async () => {
     setMenyinkron(true);
-    const r = await postJson<{ ok: boolean; baru: number; diperbarui: number }>("/api/tp/sinkron", {
-      modul: d.modul,
-      paksa: true,
-    }).catch(() => ({ ok: false, baru: 0, diperbarui: 0 }));
+    const r = await postJson<{ ok: boolean; baru: number; diperbarui: number }>(
+      "/api/tp/sinkron",
+      { modul: d.modul, paksa: true },
+      TUNGGU_SINKRON_MS,
+    ).catch(() => ({ ok: false, baru: 0, diperbarui: 0 }));
     setMenyinkron(false);
     window.Toast?.show(
       r.ok ? tp.sinkronHasil(r.baru, r.diperbarui) : tp.gagal,

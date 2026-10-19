@@ -39,9 +39,13 @@ export function kodeGalat(e: unknown): ErrorCode {
  *  spinner on screen forever; pollers then retry. */
 const FETCH_TIMEOUT_MS = 15_000;
 
-async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  ms = FETCH_TIMEOUT_MS,
+): Promise<Response> {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => ctl.abort(), ms);
   try {
     return await fetch(url, { ...init, signal: ctl.signal });
   } finally {
@@ -55,15 +59,22 @@ export async function getJson<T = Record<string, unknown>>(url: string): Promise
   return (await r.json()) as T;
 }
 
+/** `tunggu`: how long to wait for the answer, for a write known to take
+ *  longer than FETCH_TIMEOUT_MS (a forced LMS read). */
 export async function postJson<T = Record<string, unknown>>(
   url: string,
   body: unknown = {},
+  tunggu = FETCH_TIMEOUT_MS,
 ): Promise<T> {
-  const r = await fetchWithTimeout(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const r = await fetchWithTimeout(
+    url,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    tunggu,
+  );
   if (!r.ok) throw new HttpError(`${r.status}`);
   return (await r.json()) as T;
 }

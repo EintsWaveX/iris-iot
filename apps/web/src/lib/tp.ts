@@ -520,6 +520,11 @@ export function pisahJawaban(
  *  heartbeat keep it going when no page is open. */
 export const JEDA_SINKRON_MS = 60_000;
 
+/** How long Sinkron Sekarang waits for its answer: a forced read of every
+ *  class took 13 to 26 s on the real LMS (39 s at most), past the 15 s other
+ *  requests get. */
+export const TUNGGU_SINKRON_MS = 60_000;
+
 /** Whole seconds until the next run, 0 once it is due. */
 export function sisaSinkron(terakhir: number, now = Date.now()): number {
   return Math.max(0, Math.ceil((terakhir + JEDA_SINKRON_MS - now) / 1000));
