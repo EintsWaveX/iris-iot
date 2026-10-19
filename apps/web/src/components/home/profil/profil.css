@@ -997,49 +997,6 @@
   width: 34px;
 }
 
-/* division dialog */
-.pl-dd {
-  display: grid;
-  gap: 18px;
-}
-
-.pl-dd__photo {
-  background: none;
-  border: 0;
-  border-radius: var(--radius-lg);
-  cursor: zoom-in;
-  overflow: hidden;
-  padding: 0;
-}
-
-.pl-dd__photo .pl-img {
-  aspect-ratio: 16 / 9;
-  /* The wide dialog keeps the photo a band, so the people stay in view. */
-  max-height: min(38vh, 460px);
-  width: 100%;
-}
-
-/* Group photos have the heads in their upper part: a band keeps them. */
-.pl-dd__photo img,
-.pl-div__photo img {
-  object-position: center 30%;
-}
-
-@media (min-width: 768px) {
-  .pl-dd__photo .pl-img {
-    aspect-ratio: 21 / 9;
-  }
-}
-
-.pl-dd__text {
-  color: var(--text-muted);
-  font-size: 1.02rem;
-  margin: 0 auto;
-  max-width: 72ch;
-  text-align: center;
-  text-wrap: pretty;
-}
-
 /* People in centred rows of one card size, so every photo is the same and
    a short last row sits in the middle. Captions are centred under their
    photo and keep room for a two-line name, so the rows line up. */
