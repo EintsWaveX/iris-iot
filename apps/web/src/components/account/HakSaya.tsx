@@ -26,6 +26,7 @@ const T = dict({
       lms: "LMS",
       hadir: "Kehadiran",
       audit: "Audit",
+      profil: "Profil Lab",
     } as Record<HakKey, string>,
     isi: {
       own: "Memulai dan mengakhiri slotmu sendiri, menilai kelompokmu, menulis laporan",
@@ -38,6 +39,7 @@ const T = dict({
       lms: "Mengubah LMS: tugas TP, Isi Kelas, pengumuman, kalender, nilai",
       hadir: "Kehadiran dan potongan Rp semua orang, tindakan PJ di semua slot",
       audit: "Tab Audit, riwayat dan hak orang lain, riwayat perubahan nilai",
+      profil: "Profil Lab di Beranda: foto dan teks divisi, foto bersama, acara",
     } as Record<HakKey, string>,
     ya: "Ya",
     tidak: "Tidak",
@@ -74,6 +76,7 @@ const T = dict({
       lms: "LMS",
       hadir: "Attendance",
       audit: "Audit",
+      profil: "Lab Profile",
     },
     isi: {
       own: "Start and end your own slot, score your groups, write reports",
@@ -86,6 +89,7 @@ const T = dict({
       lms: "Change the LMS: TP assignments, class content, announcements, calendar, grades",
       hadir: "Everyone's attendance and Rp cuts, the PJ's actions on every slot",
       audit: "The Audit tab, other people's trails and rights, the score change log",
+      profil: "The Lab Profile on Home: division photos and texts, team photos, events",
     },
     ya: "Yes",
     tidak: "No",
@@ -122,6 +126,7 @@ const T = dict({
       lms: "LMS",
       hadir: "出勤",
       audit: "Audit",
+      profil: "实验室简介",
     },
     isi: {
       own: "开始和结束自己的时段，给自己的组打分，写报告",
@@ -134,6 +139,7 @@ const T = dict({
       lms: "修改 LMS：TP 作业、课程内容、公告、日历、成绩",
       hadir: "所有人的出勤和 Rp 扣款，在所有时段执行 PJ 操作",
       audit: "Audit 标签、他人的记录和权限、成绩修改记录",
+      profil: "首页上的实验室简介：部门照片和介绍、合影、活动",
     },
     ya: "是",
     tidak: "否",

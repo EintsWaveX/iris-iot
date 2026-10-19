@@ -188,6 +188,7 @@ const W = {
     galatKlien: (h: string, p: string) => `mencatat galat di halaman ${h || "?"}: ${p}`,
     brief: (m: string, b: string) => `mengubah Ringkasan ${m} (${b})`,
     presentasi: "mengubah slide presentasi",
+    profil: "mengubah Profil Lab di Beranda",
     skema: (m: string) => `mengubah skema rangkaian ${m}`,
     pin: (m: string) => `mengubah tabel pin ${m}`,
     pinReset: (m: string) => `mengembalikan tabel pin ${m} ke bawaan`,
@@ -368,6 +369,7 @@ const W = {
     galatKlien: (h: string, p: string) => `logged an error on page ${h || "?"}: ${p}`,
     brief: (m: string, b: string) => `changed the ${m} Brief (${b})`,
     presentasi: "changed the presentation slides",
+    profil: "changed the Lab Profile on Home",
     skema: (m: string) => `changed the ${m} wiring schematic`,
     pin: (m: string) => `changed the ${m} pin table`,
     pinReset: (m: string) => `restored the ${m} pin table`,
@@ -539,6 +541,7 @@ const W = {
     galatKlien: (h: string, p: string) => `记录了页面 ${h || "?"} 的错误：${p}`,
     brief: (m: string, b: string) => `修改了${m}的概要（${b}）`,
     presentasi: "修改了演示幻灯片",
+    profil: "修改了首页上的实验室简介",
     skema: (m: string) => `修改了${m}的接线图`,
     pin: (m: string) => `修改了${m}的引脚表`,
     pinReset: (m: string) => `把${m}的引脚表恢复为默认`,
@@ -1099,6 +1102,7 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(WarningIcon, w.galatKlien(String(d.halaman ?? ""), String(d.pesan ?? "")), true);
     default:
       if (row.aksi.startsWith("konsol_")) return k(MonitorIcon, w.konsol);
+      if (row.aksi.startsWith("profil_")) return k(NotePencilIcon, w.profil);
       return k(BroadcastIcon, w.lain(row.aksi));
   }
 }

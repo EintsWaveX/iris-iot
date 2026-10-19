@@ -35,7 +35,7 @@ import { openSignIn } from "../../lib/signin";
 import { useSegar } from "../../lib/siaran";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import DayCard from "../console/DayCard";
-import HomeFrame from "./HomeFrame";
+import ProfilLab from "./profil/ProfilLab";
 
 export interface Lab {
   modul: number;
@@ -459,61 +459,64 @@ export default function HomePage({ lang }: { lang: Lang }) {
         ? pegang
         : [];
 
-  // Phase 21: a visitor gets the Home frame; Beranda's own view is for
-  // who is signed in (and shows again only after signing out). Until that
-  // is known (the server's render too) the page keeps its room and draws
+  // A visitor gets the lab's hero and its profile (Phase 23); Beranda's own
+  // view is for who is signed in, with the profile under it. Until that is
+  // known (the server's render too) the page keeps its room and draws
   // neither, so a visitor never sees the signed-in view flash first.
   if (me === undefined) return <div className="homewait" aria-busy="true" />;
-  if (me === null) return <HomeFrame lang={lang} />;
+  if (me === null) return <ProfilLab lang={lang} me={null} hero />;
 
   return (
-    <div className="home home10">
-      <div className="home10__top">
-        <div className="stack stack--lg">
-          <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
-          {me ? (
-            <h1 className="home__display home__display--hello">{t.hello(me.nama)}</h1>
-          ) : (
-            <>
-              <h1 className="home__display">{t.title}</h1>
-              <p className="home__lede">{t.lede}</p>
-            </>
-          )}
-          <RoleCard lang={lang} lab={labData ?? null} pegang={pegang} />
+    <>
+      <div className="home home10">
+        <div className="home10__top">
+          <div className="stack stack--lg">
+            <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
+            {me ? (
+              <h1 className="home__display home__display--hello">{t.hello(me.nama)}</h1>
+            ) : (
+              <>
+                <h1 className="home__display">{t.title}</h1>
+                <p className="home__lede">{t.lede}</p>
+              </>
+            )}
+            <RoleCard lang={lang} lab={labData ?? null} pegang={pegang} />
+          </div>
+          <LabSky lang={lang} lab={labData} mine={mine} holder={holder} />
         </div>
-        <LabSky lang={lang} lab={labData} mine={mine} holder={holder} />
-      </div>
 
-      <section className="stack">
-        <div className="home10__head">
-          <span className="eyebrow">{t.rasiEyebrow}</span>
-          <h2 className="home__h1">{t.rasiTitle}</h2>
-        </div>
-        <div className="home10__rasi">
-          {LANES.map((l) => (
-            <article
-              className="panel rasi"
-              key={l.m}
-              style={{ "--m": `var(--mod-${l.m})` } as CSSProperties}
-            >
-              <div className="panel__head rasi__head">
-                <Pill modul={l.m}>{modulLabel(l.m, lang)}</Pill>
-                <span className="hint mono">
-                  {l.a} · {l.via}
-                </span>
-              </div>
-              <ModConstellation m={l.m} h={150} lang={lang} />
-              <h3 className="home__h2">{MODUL_NAMA[l.m]}</h3>
-              <p className="panel__sub">{t.lanes[l.m]}</p>
-              <div className="panel__actions">
-                <a className="btn" href={href(lang, `/modules/${l.m}`)}>
-                  {t.read}
-                </a>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    </div>
+        <section className="stack">
+          <div className="home10__head">
+            <span className="eyebrow">{t.rasiEyebrow}</span>
+            <h2 className="home__h1">{t.rasiTitle}</h2>
+          </div>
+          <div className="home10__rasi">
+            {LANES.map((l) => (
+              <article
+                className="panel rasi"
+                key={l.m}
+                style={{ "--m": `var(--mod-${l.m})` } as CSSProperties}
+              >
+                <div className="panel__head rasi__head">
+                  <Pill modul={l.m}>{modulLabel(l.m, lang)}</Pill>
+                  <span className="hint mono">
+                    {l.a} · {l.via}
+                  </span>
+                </div>
+                <ModConstellation m={l.m} h={150} lang={lang} />
+                <h3 className="home__h2">{MODUL_NAMA[l.m]}</h3>
+                <p className="panel__sub">{t.lanes[l.m]}</p>
+                <div className="panel__actions">
+                  <a className="btn" href={href(lang, `/modules/${l.m}`)}>
+                    {t.read}
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+      <ProfilLab lang={lang} me={me} />
+    </>
   );
 }

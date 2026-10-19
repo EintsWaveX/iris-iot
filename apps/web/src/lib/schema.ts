@@ -25,9 +25,11 @@ import {
   primaryKey,
   check,
   real,
+  date,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
+import type { TeksTiga } from "./profil.js";
 import { KELAS } from "./kelas.js";
 import type { StatusOrang, Tier } from "./hak.js";
 import type { BahasaTp, VarianTp } from "./tp.js";
@@ -77,6 +79,11 @@ export const asisten = pgTable("asisten", {
   /** Last seen with the app open (the signed-in page's /now poll, written at
    *  most once a minute); online while recent (lib/kehadiran.ts). */
   terakhirAktif: timestamp("terakhir_aktif", { withTimezone: true }),
+  /** The person's photo on the Lab Profile (Home), long edge 1600 and a
+   *  480 thumbnail, both Vercel Blob WebP. Public with name, code, division
+   *  and position; the NIM never is. */
+  fotoUrl: text("foto_url"),
+  fotoKecilUrl: text("foto_kecil_url"),
 });
 
 /**
@@ -2001,3 +2008,69 @@ export const tpPaket = pgTable("tp_paket", {
   diubahOleh: text("diubah_oleh"),
   diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/* ----------------------------------------------------------- Lab Profile */
+
+/**
+ * The Lab Profile on Home (src/lib/profil.ts): one row per division once
+ * an editor saved it. No row: the division's built-in texts and no photo.
+ * The members come from asisten (division, position, status), never typed
+ * here. Not personal data of a semester, so retention leaves it.
+ */
+export const profilDivisi = pgTable("profil_divisi", {
+  divisi: text("divisi").primaryKey(),
+  fotoUrl: text("foto_url"),
+  fotoKecilUrl: text("foto_kecil_url"),
+  /** One line under the name on its card. */
+  baris: jsonb("baris").$type<TeksTiga>(),
+  deskripsi: jsonb("deskripsi").$type<TeksTiga>(),
+  diubahOleh: text("diubah_oleh"),
+  diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One team photo per kepengurusan year ("2026/2027"), newest shown first. */
+export const profilFotoBersama = pgTable("profil_foto_bersama", {
+  id: serial("id").primaryKey(),
+  tahun: text("tahun").notNull().unique(),
+  fotoUrl: text("foto_url").notNull(),
+  fotoKecilUrl: text("foto_kecil_url").notNull(),
+  /** The caption, also the photo's alt text. */
+  keterangan: jsonb("keterangan").$type<TeksTiga>().notNull(),
+  diubahOleh: text("diubah_oleh"),
+  diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One edition of a lab event: a Workshop, a ToT or a Rekruitasi. */
+export const profilAcara = pgTable(
+  "profil_acara",
+  {
+    id: serial("id").primaryKey(),
+    jenis: text("jenis", { enum: ["workshop", "tot", "rekrutasi"] }).notNull(),
+    judul: jsonb("judul").$type<TeksTiga>().notNull(),
+    tempat: jsonb("tempat").$type<TeksTiga>().notNull(),
+    ringkasan: jsonb("ringkasan").$type<TeksTiga>().notNull(),
+    tanggal: date("tanggal", { mode: "string" }).notNull(),
+    /** The photo shown on its card; null: the first photo. */
+    sampulId: integer("sampul_id"),
+    diubahOleh: text("diubah_oleh"),
+    diubahPada: timestamp("diubah_pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("profil_acara_jenis_idx").on(t.jenis, t.tanggal)],
+);
+
+/** An edition's photos, in the editor's order. */
+export const profilAcaraFoto = pgTable(
+  "profil_acara_foto",
+  {
+    id: serial("id").primaryKey(),
+    acaraId: integer("acara_id")
+      .notNull()
+      .references(() => profilAcara.id, { onDelete: "cascade" }),
+    fotoUrl: text("foto_url").notNull(),
+    fotoKecilUrl: text("foto_kecil_url").notNull(),
+    /** Optional; without it the alt is the edition's title and the number. */
+    alt: jsonb("alt").$type<TeksTiga>(),
+    urutan: integer("urutan").notNull().default(0),
+  },
+  (t) => [index("profil_acara_foto_acara_idx").on(t.acaraId, t.urutan)],
+);

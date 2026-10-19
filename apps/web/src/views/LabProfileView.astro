@@ -1,0 +1,21 @@
+---
+/**
+ * /lab-profile, /en/lab-profile and /zh/lab-profile (Phase 23): the Lab
+ * Profile editor, one island (profil-editor/ProfilEditor.tsx).
+ */
+import Base from "../layouts/Base.astro";
+import ProfilEditor from "../components/profil-editor/ProfilEditor";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const title = lang === "en" ? "Lab Profile" : lang === "zh" ? "实验室简介" : "Profil Lab";
+---
+
+<Base noindex title={`${title} · IRIS IoT`} lang={lang} cosmosScene="kerja">
+  <main id="main" class="page-wide page-main">
+    <ProfilEditor client:load lang={lang} />
+  </main>
+</Base>

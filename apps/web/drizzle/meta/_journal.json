@@ -295,6 +295,13 @@
       "when": 1792318510370,
       "tag": "0041_presentasi_bahasa",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792417752484,
+      "tag": "0042_profil_lab",
+      "breakpoints": true
     }
   ]
 }

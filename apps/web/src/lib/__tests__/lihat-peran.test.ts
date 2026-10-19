@@ -28,6 +28,7 @@ const admin: Me = {
     lms: true,
     hadir: true,
     audit: true,
+    profil: true,
   },
 };
 

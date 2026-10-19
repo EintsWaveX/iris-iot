@@ -18,7 +18,9 @@
  * A person's rights are the union of what their tier, their division and
  * their badges give (Phase 20, 2026-10-18):
  *   ASO  -> kode, lms        ADS -> hadir        ARM -> server
- *   DEV  -> jadwal, server, full (the technical rights plus the Schedule)
+ *   ADC  -> profil
+ *   DEV  -> jadwal, server, full, profil (the technical rights plus the
+ *           Schedule and the Lab Profile)
  *   Kepala of any division -> jadwal and full pair, on top of the division
  */
 
@@ -56,6 +58,7 @@ export const HAK = [
   "lms",
   "hadir",
   "audit",
+  "profil",
 ] as const;
 export type HakKey = (typeof HAK)[number];
 export type HakNilai = boolean | "own";
@@ -82,6 +85,9 @@ const MATRIX: Record<HakKey, Record<Tier, HakNilai>> = {
   hadir: { asisten: false, pengelola: false, admin: true },
   // the Audit tab, other people's trails and rights, the score change log
   audit: { asisten: false, pengelola: false, admin: true },
+  // the Lab Profile on Home: division photos and texts, team photos,
+  // events (ADC and DEV below)
+  profil: { asisten: false, pengelola: false, admin: true },
 };
 
 /** The division that keeps the journal code. */
@@ -91,11 +97,12 @@ export const DIVISI_KODE: Divisi = "ASO";
 const HAK_DIVISI: Partial<Record<Divisi, readonly HakKey[]>> = {
   ASO: ["kode", "lms"],
   ADS: ["hadir"],
+  ADC: ["profil"],
   ARM: ["server"],
 };
 
 /** The rights the DEV badge adds. */
-const HAK_DEV: readonly HakKey[] = ["jadwal", "server", "full"];
+const HAK_DEV: readonly HakKey[] = ["jadwal", "server", "full", "profil"];
 
 export function isKategori(v: unknown): v is Kategori {
   return typeof v === "string" && (KATEGORI as readonly string[]).includes(v);

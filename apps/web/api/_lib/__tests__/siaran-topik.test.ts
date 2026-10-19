@@ -48,6 +48,8 @@ const BACA: Record<string, string[]> = {
   // Phase 15: the LMS menu's reads (tugas, nilai, umum, kalender and materi
   // are both a read and a write, so they're listed as writes).
   lms: ["kelas", "kelas-isi", "log", "ringkas"],
+  // Phase 23: the public Lab Profile.
+  profil: ["baca"],
 };
 
 const RUTE: Record<string, string> = {
@@ -57,6 +59,7 @@ const RUTE: Record<string, string> = {
   auth: "api/auth/[aksi].ts",
   tp: "api/tp/[aksi].ts",
   lms: "api/lms/[aksi].ts",
+  profil: "api/profil/[aksi].ts",
 };
 
 /** Every action name a route dispatches on: `aksi === "x"` comparisons and

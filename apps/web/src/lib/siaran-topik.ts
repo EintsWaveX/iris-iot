@@ -43,6 +43,8 @@ export const TOPIK = [
   "lms",
   // Phase 18: someone checked in, or a PJ changed a status or the slot's clock.
   "hadir",
+  // Phase 23: the Lab Profile on Home (divisions, team photos, events).
+  "profil",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -181,6 +183,14 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "lms:kumpul": [],
   "lms:jejak": [],
   "lms:grup": ["lms"],
+  // Phase 23 (api/profil/[aksi].ts): every Home shows the Lab Profile.
+  "profil:unggah": [],
+  "profil:divisi-simpan": ["profil"],
+  "profil:foto-asisten": ["profil"],
+  "profil:bersama-simpan": ["profil"],
+  "profil:bersama-hapus": ["profil"],
+  "profil:acara-simpan": ["profil"],
+  "profil:acara-hapus": ["profil"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

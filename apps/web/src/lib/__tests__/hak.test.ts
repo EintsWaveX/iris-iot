@@ -151,11 +151,18 @@ describe("division tools", () => {
     expect(boleh(a, "jadwal")).toBe(false);
   });
 
-  it("leaves ADC, ARD and AER as plain Anggota", () => {
-    for (const d of ["ADC", "ARD", "AER"]) {
+  it("leaves ARD and AER as plain Anggota", () => {
+    for (const d of ["ARD", "AER"]) {
       const a = di("asisten", d);
       for (const k of HAK) expect(hakDari(a, k)).toBe(hakDari(orang("asisten"), k));
     }
+  });
+
+  it("gives ADC the Lab Profile and nothing else", () => {
+    const a = di("asisten", "ADC");
+    expect(hakDari(a, "profil")).toBe(true);
+    for (const k of HAK.filter((x) => x !== "profil"))
+      expect(hakDari(a, k)).toBe(hakDari(orang("asisten"), k));
   });
 });
 
@@ -167,13 +174,19 @@ describe("the eight presets", () => {
   });
 
   it("matches the matrix right for right", () => {
-    expect(nyala(di("asisten", "ADC"))).toEqual(["own"]);
+    expect(nyala(di("asisten", "ADC"))).toEqual(["own", "profil"]);
     expect(nyala(di("asisten", "ASO"))).toEqual(["own", "kode", "lms"]);
     expect(nyala(di("asisten", "ADS"))).toEqual(["own", "hadir"]);
     expect(nyala(di("asisten", "ARM"))).toEqual(["own", "server"]);
-    expect(nyala(di("pengelola", "ADC"))).toEqual(["own", "pair", "jadwal"]);
+    expect(nyala(di("pengelola", "ADC"))).toEqual(["own", "pair", "jadwal", "profil"]);
     expect(nyala(di("pengelola", "ARM"))).toEqual(["own", "pair", "jadwal", "server"]);
-    expect(nyala(di("asisten", "ARM", ["dev"]))).toEqual(["own", "jadwal", "server", "full"]);
+    expect(nyala(di("asisten", "ARM", ["dev"]))).toEqual([
+      "own",
+      "jadwal",
+      "server",
+      "full",
+      "profil",
+    ]);
     expect(nyala(di("asisten", "ASO", ["dev"]))).toEqual([
       "own",
       "jadwal",
@@ -181,6 +194,7 @@ describe("the eight presets", () => {
       "full",
       "kode",
       "lms",
+      "profil",
     ]);
     expect(nyala(di("admin", null))).toEqual([...HAK]);
   });
@@ -193,7 +207,7 @@ describe("the eight presets", () => {
     }
     expect(PRESET_PERAN).toHaveLength(8);
     expect(nyala(presetOrang("kepala-arm"))).toEqual(["own", "pair", "jadwal", "server"]);
-    expect(nyala(presetOrang("dev"))).toEqual(["own", "jadwal", "server", "full"]);
+    expect(nyala(presetOrang("dev"))).toEqual(["own", "jadwal", "server", "full", "profil"]);
     expect(nyala(presetOrang("admin"))).toEqual([...HAK]);
   });
 });

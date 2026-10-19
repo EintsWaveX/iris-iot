@@ -43,6 +43,7 @@ import {
   GraduationCapIcon,
   HardDrivesIcon,
   HouseIcon,
+  IdentificationBadgeIcon,
   type IconProps,
   MagnifyingGlassIcon,
   ProjectorScreenIcon,
@@ -122,6 +123,8 @@ const T = dict({
     serverDesc: "PC Server dan perangkat di lab",
     reportsDesc: "Rekap sesi, kehadiran, dan bayaran",
     teamDesc: "Asisten, divisi, dan penugasan",
+    profil: "Profil Lab",
+    profilDesc: "Divisi, foto bersama, dan acara di Beranda",
     modulesDesc: "Handbook, slide, dan kode jurnal",
     schedule: "Jadwal",
     server: "Server",
@@ -167,6 +170,8 @@ const T = dict({
     serverDesc: "The PC Server and lab devices",
     reportsDesc: "Session recaps, attendance and pay",
     teamDesc: "Asisten, divisions and assignments",
+    profil: "Lab Profile",
+    profilDesc: "Divisions, team photos and events on Home",
     modulesDesc: "Handbook, slides and journal code",
     schedule: "Schedule",
     server: "Server",
@@ -212,6 +217,8 @@ const T = dict({
     serverDesc: "PC 服务器和实验室设备",
     reportsDesc: "课后汇总、出勤和报酬",
     teamDesc: "助教、部门和排班",
+    profil: "实验室简介",
+    profilDesc: "首页上的部门、合影和活动",
     modulesDesc: "手册、幻灯片和实验报告代码",
     schedule: "课表",
     server: "服务器",
@@ -279,12 +286,23 @@ function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
 
 /** The Asisten's Lab menu: the pages used now and then, each row saying
  *  what it is for. */
-function labFor(t: (typeof T)["id"]): Link[] {
+/** The Lab Profile editor joins it for the "profil" right (Phase 23). */
+function labFor(t: (typeof T)["id"], profil: boolean): Link[] {
   return [
     { path: "/servers", label: t.server, icon: HardDrivesIcon, desc: t.serverDesc },
     { path: "/reports", label: t.reports, icon: ChartBarIcon, desc: t.reportsDesc },
     { path: "/team", label: t.team, icon: UsersFourIcon, desc: t.teamDesc },
     { path: "/modules", label: t.modules, icon: BookOpenTextIcon, desc: t.modulesDesc },
+    ...(profil
+      ? [
+          {
+            path: "/lab-profile",
+            label: t.profil,
+            icon: IdentificationBadgeIcon,
+            desc: t.profilDesc,
+          },
+        ]
+      : []),
   ];
 }
 
@@ -420,7 +438,11 @@ export default function AppNav({
   const tampil = useMemo(() => sebagaiTampil(me, pro), [me, pro]);
   const links = useMemo(() => linksFor(tampil, t), [tampil?.role, me, t]);
   const asistenNav = tampil?.role === "asisten";
-  const lab = useMemo(() => (asistenNav ? labFor(t) : []), [asistenNav, t]);
+  const bolehProfil = tampil?.role === "asisten" && tampil.hak?.profil === true;
+  const lab = useMemo(
+    () => (asistenNav ? labFor(t, bolehProfil) : []),
+    [asistenNav, t, bolehProfil],
+  );
   // Persiapan and Jadwal stand in the bar from 1280; under it they join
   // the Lab menu under Sesi.
   const lebar = useMinWidth(1280);

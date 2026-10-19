@@ -1,0 +1,1083 @@
+/* The Lab Profile on Home (Phase 23). Kit tokens only; hover and focus use
+   the kit's .sweep-hover ring. Keyframes carry the pl- prefix. Motion runs
+   once and stops only for reduced motion ([data-tier="0"], .pl--still);
+   Low Detail stands the hero's aurora still. */
+
+.pl {
+  display: grid;
+  gap: clamp(56px, 8vw, 112px);
+  min-width: 0;
+  padding-bottom: 72px;
+}
+
+.home10 + .pl {
+  margin-top: clamp(56px, 8vw, 112px);
+}
+
+.pl-sec {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* While the profile loads it keeps the room its first section needs. */
+.pl-wait {
+  min-height: min(70vh, 720px);
+}
+
+.pl-gagal {
+  text-align: center;
+}
+
+/* ------------------------------------------------------------ reveal */
+
+.pl [data-rv] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 420ms var(--ease-out-expo),
+    transform 520ms var(--ease-out-expo);
+  transition-delay: calc(var(--i, 0) * 60ms);
+}
+
+.pl [data-rv].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.pl--still [data-rv] {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+/* ------------------------------------------------------------- hero
+   Centred, the logo on top. Each line blends in from a soft blur, one
+   after another; the logo settles over a breathing aurora, then a single
+   light sweep crosses the mark. */
+
+.pl-hero {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  padding-top: clamp(12px, 3vw, 48px);
+  text-align: center;
+}
+
+.pl-hero__mark {
+  aspect-ratio: 1200 / 567;
+  margin-bottom: clamp(4px, 1.5vw, 20px);
+  position: relative;
+  width: min(560px, 78vw);
+}
+
+.pl-hero__mark img {
+  display: block;
+  height: 100%;
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.pl-hero__aura {
+  filter: blur(42px);
+  inset: -38% -6%;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.pl-hero__aura i {
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  position: absolute;
+}
+
+.pl-hero__aura i:nth-child(1) {
+  animation: pl-aura-a 14s var(--ease-in-out-soft) infinite alternate;
+  background: var(--accent);
+  height: 60%;
+  left: 12%;
+  top: 22%;
+  width: 46%;
+}
+
+.pl-hero__aura i:nth-child(2) {
+  animation: pl-aura-b 17s var(--ease-in-out-soft) infinite alternate;
+  background: var(--violet);
+  height: 56%;
+  right: 10%;
+  top: 14%;
+  width: 40%;
+}
+
+.pl-hero__aura i:nth-child(3) {
+  animation: pl-aura-a 19s var(--ease-in-out-soft) infinite alternate-reverse;
+  background: var(--teal);
+  bottom: 8%;
+  height: 44%;
+  left: 34%;
+  opacity: 0.32;
+  width: 34%;
+}
+
+@keyframes pl-aura-a {
+  from {
+    transform: translate(-6%, 4%) scale(0.92);
+  }
+  to {
+    transform: translate(8%, -6%) scale(1.08);
+  }
+}
+
+@keyframes pl-aura-b {
+  from {
+    transform: translate(6%, -4%) scale(1.06);
+  }
+  to {
+    transform: translate(-8%, 6%) scale(0.9);
+  }
+}
+
+:root[data-theme="light"] .pl-hero__aura i {
+  mix-blend-mode: multiply;
+  opacity: 0.22;
+}
+
+/* Low Detail keeps the aurora, standing still. */
+:root[data-detail="ldm"] .pl-hero__aura i {
+  animation: none;
+}
+
+.pl-hero__shine {
+  animation: pl-shine 1600ms var(--ease-out-expo) 1500ms forwards;
+  background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.85) 50%, transparent 62%)
+    no-repeat;
+  background-position: 150% 0;
+  background-size: 260% 100%;
+  inset: 0;
+  mask: url("/brand/iris-logo-640.webp") center / contain no-repeat;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+@keyframes pl-shine {
+  to {
+    background-position: -60% 0;
+  }
+}
+
+.pl-hero__title {
+  font-size: clamp(2.3rem, 6.4vw, 4.6rem);
+}
+
+.pl-sweep {
+  animation: kit-sweep 9s linear infinite;
+  background: var(--sweep);
+  background-clip: text;
+  background-size: 300% 100%;
+  color: transparent;
+  -webkit-background-clip: text;
+}
+
+.pl-hero .home__lede {
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.15rem);
+  max-width: 60ch;
+}
+
+.pl-hero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.pl-stats {
+  display: grid;
+  gap: 14px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 18px 0 0;
+  max-width: 680px;
+  width: 100%;
+}
+
+.pl-stat {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: 0 12px;
+}
+
+.pl-stat + .pl-stat {
+  border-left: 1px solid var(--hairline);
+}
+
+.pl-stat:nth-child(3) {
+  border-left: 0;
+}
+
+@media (min-width: 640px) {
+  .pl-stats {
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+  }
+
+  .pl-stat:nth-child(3) {
+    border-left: 1px solid var(--hairline);
+  }
+}
+
+.pl-stat__n {
+  font-size: clamp(1.8rem, 1.4rem + 1.4vw, 2.4rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  min-height: 1.05em;
+}
+
+.pl-stat dt {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+/* the blend in: blur, a small lift, and a slight letter tightening */
+.pl-blend {
+  animation: pl-blend 1000ms var(--ease-out-expo) forwards;
+  animation-delay: calc(80ms + var(--i, 0) * 130ms);
+  filter: blur(14px);
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.pl-hero__mark.pl-blend {
+  animation-duration: 1400ms;
+  transform: scale(1.06);
+}
+
+.pl-hero__title.pl-blend {
+  animation-name: pl-blend-title;
+  letter-spacing: 0.04em;
+}
+
+@keyframes pl-blend {
+  to {
+    filter: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pl-blend-title {
+  to {
+    filter: none;
+    letter-spacing: var(--display-track);
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pl-blend.is-set,
+.pl--still .pl-blend {
+  animation: none;
+  filter: none;
+  letter-spacing: var(--display-track);
+  opacity: 1;
+  transform: none;
+}
+
+.pl--still .pl-hero__aura i,
+.pl--still .pl-sweep {
+  animation: none;
+}
+
+.pl--still .pl-hero__shine {
+  display: none;
+}
+
+/* ------------------------------------------------------ section heads */
+
+.pl-head {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+}
+
+.pl-head__row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pl-head .home__h1 {
+  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem);
+}
+
+.pl-head__lede {
+  color: var(--text-muted);
+  font-size: 1.02rem;
+  margin: 0;
+}
+
+.pl-emptyed {
+  align-items: center;
+  border-style: dashed;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+/* ---------------------------------------------------- Inti + divisions */
+
+.pl-inti {
+  display: grid;
+  gap: 12px;
+}
+
+.pl-inti__row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .pl-inti__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .pl-inti__row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.pl-inti__p {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 14px;
+}
+
+.pl-inti__p > span {
+  display: grid;
+  min-width: 0;
+}
+
+.pl-inti__p b {
+  line-height: 1.3;
+}
+
+.pl-av {
+  background: var(--surface-3);
+  border: 2px solid var(--surface-1);
+  border-radius: 50%;
+  flex: none;
+  object-fit: cover;
+}
+
+.pl-av--kode {
+  align-items: center;
+  background: color-mix(in srgb, var(--c, var(--accent)) 22%, var(--surface-3));
+  color: var(--text);
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.pl-divgrid {
+  display: grid;
+  gap: 16px;
+  grid-auto-columns: 82%;
+  grid-auto-flow: column;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 4px 2px 10px;
+  scroll-snap-type: x mandatory;
+}
+
+.pl-divgrid > * {
+  scroll-snap-align: start;
+}
+
+@media (min-width: 768px) {
+  .pl-divgrid {
+    grid-auto-columns: auto;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    padding: 0;
+  }
+}
+
+@media (min-width: 1100px) {
+  .pl-divgrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.pl-div {
+  --rx: 0deg;
+  --ry: 0deg;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-xl);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+}
+
+.pl[data-tier="2"] .pl-div.is-in {
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition:
+    transform 240ms var(--ease-out-expo),
+    border-color var(--dur-fast);
+}
+
+.pl-div:focus-visible {
+  border-color: color-mix(in srgb, var(--c) 70%, var(--hairline-strong));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pl-div:hover {
+    border-color: color-mix(in srgb, var(--c) 70%, var(--hairline-strong));
+  }
+
+  .pl:not(.pl--still) .pl-div:hover .pl-div__photo img {
+    transform: scale(1.05);
+  }
+
+  .pl-gal button:hover img {
+    transform: scale(1.06);
+  }
+}
+
+.pl-div__photo {
+  aspect-ratio: 16 / 10;
+  background: var(--surface-3);
+  overflow: hidden;
+  position: relative;
+}
+
+.pl-div__photo .pl-img {
+  height: 100%;
+}
+
+.pl-div__photo img {
+  transition: transform 700ms var(--ease-out-expo);
+}
+
+.pl-div__photo::after {
+  background: linear-gradient(
+    180deg,
+    transparent 45%,
+    color-mix(in srgb, var(--surface-1) 92%, transparent)
+  );
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.pl-div__empty {
+  background: color-mix(in srgb, var(--c) 10%, var(--surface-2));
+  color: color-mix(in srgb, var(--c) 70%, var(--text-faint));
+  display: grid;
+  font-size: 2.4rem;
+  inset: 0;
+  place-items: center;
+  position: absolute;
+}
+
+.pl-div__code {
+  bottom: 10px;
+  color: var(--c);
+  font-size: 1.7rem;
+  font-weight: 800;
+  left: 16px;
+  letter-spacing: 0.02em;
+  position: absolute;
+  z-index: 1;
+}
+
+/* On the light theme's pale fade the hue alone is too faint. */
+:root[data-theme="light"] .pl-div__code {
+  color: color-mix(in srgb, var(--c) 55%, #0b1020);
+}
+
+.pl-div__body {
+  align-content: start;
+  display: grid;
+  gap: 6px;
+  padding: 6px 16px 16px;
+}
+
+.pl-div__name {
+  font-size: 1.06rem;
+}
+
+.pl-div__foot {
+  align-items: center;
+  border-top: 1px solid var(--hairline-faint);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.pl-stack {
+  align-items: center;
+  display: flex;
+  min-height: 34px;
+}
+
+.pl-stack .pl-av {
+  margin-left: -10px;
+}
+
+.pl-stack .pl-av:first-child {
+  margin-left: 0;
+}
+
+.pl-stack__more {
+  background: var(--surface-4);
+  border: 2px solid var(--surface-1);
+  border-radius: 50%;
+  display: grid;
+  font-size: 0.74rem;
+  height: 34px;
+  margin-left: -10px;
+  place-items: center;
+  width: 34px;
+}
+
+/* division dialog */
+.pl-dd {
+  display: grid;
+  gap: 18px;
+}
+
+.pl-dd__photo {
+  background: none;
+  border: 0;
+  border-radius: var(--radius-lg);
+  cursor: zoom-in;
+  overflow: hidden;
+  padding: 0;
+}
+
+.pl-dd__photo .pl-img {
+  aspect-ratio: 16 / 9;
+}
+
+@media (min-width: 768px) {
+  .pl-dd__photo .pl-img {
+    aspect-ratio: 21 / 9;
+  }
+}
+
+.pl-dd__text {
+  color: var(--text-muted);
+  font-size: 1.02rem;
+  margin: 0;
+  max-width: 70ch;
+}
+
+.pl-people {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .pl-people {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.pl-person {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+}
+
+.pl-person .pl-img,
+.pl-person__kode {
+  aspect-ratio: 1;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+}
+
+.pl-person__kode {
+  background: color-mix(in srgb, var(--c) 14%, var(--surface-2));
+  color: var(--c);
+  display: grid;
+  font-size: 1.6rem;
+  font-weight: 800;
+  place-items: center;
+}
+
+.pl-person figcaption {
+  display: grid;
+  gap: 1px;
+}
+
+.pl-person figcaption b {
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.pl-person figcaption .mono {
+  color: var(--c);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.pl-person--big .pl-img,
+.pl-person--big .pl-person__kode {
+  border-color: color-mix(in srgb, var(--c) 70%, transparent);
+}
+
+.pl-img {
+  background: var(--surface-3);
+  display: block;
+  overflow: hidden;
+}
+
+.pl-img img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+/* ------------------------------------------------------- Foto Bersama */
+
+.pl-years {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  display: grid;
+  gap: 4px;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  max-width: 520px;
+  padding: 4px;
+}
+
+.pl-years button {
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: 650 0.92rem var(--font-mono);
+  min-height: 40px;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.pl-years button[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.pl-group {
+  background: none;
+  border: 0;
+  color: var(--text);
+  cursor: zoom-in;
+  display: block;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.pl-group__frame {
+  aspect-ratio: 4 / 3;
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-xl);
+  display: block;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .pl-group__frame {
+    aspect-ratio: 21 / 9;
+  }
+}
+
+.pl-group__frame .pl-img {
+  height: 100%;
+}
+
+.pl:not(.pl--still) .pl-group__frame img {
+  animation: pl-fadein 520ms var(--ease-out-expo);
+}
+
+@keyframes pl-fadein {
+  from {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Tier 2: the frame opens from an inset as it scrolls in. */
+.pl[data-tier="2"] [data-rv].pl-group {
+  opacity: 1;
+  transform: none;
+}
+
+.pl[data-tier="2"] [data-rv].pl-group .pl-group__frame {
+  clip-path: inset(10% 8% round 20px);
+  transition: clip-path 1100ms var(--ease-out-expo);
+}
+
+.pl[data-tier="2"] [data-rv].pl-group.is-in .pl-group__frame {
+  clip-path: inset(0 round 20px);
+}
+
+.pl-group__cap {
+  align-items: baseline;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 12px 4px 0;
+}
+
+.pl-group__cap b {
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------- events */
+
+/* The events' room while their code loads. */
+.pl-ev-wait {
+  min-height: 560px;
+}
+
+.pl-ev-block {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.pl-ev-block + .pl-ev-block {
+  margin-top: 28px;
+}
+
+.pl-ev-block__head {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pl-flow {
+  overflow: hidden;
+  padding: 12px 0 18px;
+  width: 100%;
+}
+
+.pl-flow.swiper {
+  overflow: hidden;
+}
+
+.pl-slide {
+  width: min(400px, 78vw);
+}
+
+.pl-flow--row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+}
+
+.pl-flow--row .pl-slide {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.pl-ev {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-xl);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+  transition:
+    border-color var(--dur-mid),
+    box-shadow var(--dur-mid),
+    opacity var(--dur-mid);
+  width: 100%;
+}
+
+.swiper-slide-active .pl-ev {
+  border-color: color-mix(in srgb, var(--c) 70%, var(--hairline-strong));
+  box-shadow: var(--shadow-panel);
+}
+
+/* The centred edition carries the kit's rainbow ring. */
+.swiper-slide-active .pl-ev::after {
+  opacity: 1;
+}
+
+.swiper-slide:not(.swiper-slide-active) .pl-ev {
+  opacity: 0.72;
+}
+
+.pl-ev__photo {
+  aspect-ratio: 4 / 3;
+  background: var(--surface-3);
+  display: block;
+  overflow: hidden;
+}
+
+.pl-ev__photo .pl-img {
+  height: 100%;
+}
+
+.pl-ev__body {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px 16px;
+}
+
+.pl-ev__body b {
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+
+.pl-flow__btns {
+  gap: 8px;
+}
+
+/* edition dialog */
+.pl-ed {
+  display: grid;
+  gap: 14px;
+}
+
+.pl-ed p {
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 70ch;
+  white-space: pre-line;
+}
+
+.pl-gal {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .pl-gal {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.pl-gal button {
+  aspect-ratio: 1;
+  background: var(--surface-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: zoom-in;
+  overflow: hidden;
+  padding: 0;
+}
+
+.pl-gal button.pl-gal__wide {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.pl-gal img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 500ms var(--ease-out-expo);
+  width: 100%;
+}
+
+/* ----------------------------------------------------------- lightbox */
+
+.pl-lb__overlay {
+  animation: pl-fadein 200ms var(--ease-out-expo);
+  backdrop-filter: blur(6px);
+  background: rgb(3 5 12 / 0.94);
+  inset: 0;
+  position: fixed;
+  /* above the kit's dialogs (100, 101), under popovers (150) */
+  z-index: 120;
+}
+
+.pl-lb {
+  color: #eef1f6;
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  inset: 0;
+  outline: none;
+  padding: 14px;
+  position: fixed;
+  z-index: 121;
+}
+
+.pl-lb__top {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.pl-lb__count {
+  font-size: 0.95rem;
+  font-weight: 650;
+  margin: 0;
+}
+
+.pl-lb__fig {
+  animation: pl-slidein 320ms var(--ease-out-expo);
+  display: grid;
+  gap: 10px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  margin: 0;
+  min-height: 0;
+  place-items: center;
+}
+
+.pl-lb__fig[data-dir="-1"] {
+  animation-name: pl-slidein-l;
+}
+
+@keyframes pl-slidein {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pl-slidein-l {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pl-lb[data-still] .pl-lb__fig {
+  animation: none;
+}
+
+.pl-lb__fig img {
+  border-radius: var(--radius-md);
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.pl-lb__fig figcaption {
+  color: #b0b8c8;
+  text-align: center;
+}
+
+.pl-lb__nav {
+  display: flex;
+  justify-content: space-between;
+  left: 14px;
+  pointer-events: none;
+  position: absolute;
+  right: 14px;
+  top: 50%;
+}
+
+.pl-lb__nav > * {
+  pointer-events: auto;
+}
+
+.pl-lb__strip {
+  display: flex;
+  gap: 6px;
+  justify-content: safe center;
+  overflow-x: auto;
+  padding: 2px;
+}
+
+.pl-lb__strip button {
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  flex: none;
+  height: 42px;
+  opacity: 0.55;
+  overflow: hidden;
+  padding: 0;
+  width: 56px;
+}
+
+.pl-lb__strip button[aria-current="true"] {
+  border-color: var(--accent);
+  opacity: 1;
+}
+
+.pl-lb__strip img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl [data-rv],
+  .pl-blend,
+  .pl-hero__aura i,
+  .pl-sweep,
+  .pl-lb__fig,
+  .pl-group__frame img {
+    animation: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .pl-hero__shine {
+    display: none;
+  }
+}

@@ -1,0 +1,381 @@
+/* The Lab Profile editor (/lab-profile, Phase 23). Kit tokens only. */
+
+.pl-editor {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.pl-edgrid {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .pl-edgrid {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+}
+
+.pl-edcard {
+  min-width: 0;
+}
+
+/* the list of divisions or editions */
+.pl-edlist {
+  display: grid;
+  gap: 6px;
+}
+
+@media (max-width: 1023px) {
+  .pl-edlist:has(> .pl-edlist__i:nth-child(4)) {
+    grid-auto-columns: minmax(150px, 1fr);
+    grid-auto-flow: column;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .pl-edlist > .btn {
+    min-width: 150px;
+  }
+}
+
+.pl-edlist__i {
+  --c: var(--accent);
+  background: none;
+  border: 1px solid transparent;
+  border-left: 3px solid var(--c);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px 10px 14px;
+  text-align: left;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pl-edlist__i:hover {
+    background: var(--hairline-faint);
+  }
+
+  .pl-pick__btn:hover {
+    color: var(--text);
+  }
+
+  .pl-pick:hover {
+    border-color: var(--accent);
+  }
+}
+
+.pl-edlist__i[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  border-left-color: var(--c);
+}
+
+.pl-edlist__i .mono {
+  font-weight: 700;
+}
+
+.pl-edlist__i b {
+  line-height: 1.3;
+}
+
+/* a text in three languages */
+.pl-tri__head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 36px;
+}
+
+.pl-tri__head .field__label {
+  margin: 0;
+}
+
+.pl-tri__tabs {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  padding: 2px;
+}
+
+.pl-tri__tabs button {
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  cursor: pointer;
+  font: 700 0.78rem var(--font-mono);
+  min-height: 30px;
+  min-width: 42px;
+  position: relative;
+}
+
+.pl-tri__tabs button[aria-selected="true"] {
+  background: var(--surface-4);
+  color: var(--text);
+}
+
+.pl-tri__tabs button i {
+  background: var(--danger);
+  border-radius: 50%;
+  height: 6px;
+  position: absolute;
+  right: 6px;
+  top: 4px;
+  width: 6px;
+}
+
+/* a photo slot */
+.pl-pick {
+  background: var(--surface-2);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.pl-pick > img {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
+}
+
+.pl-pick__btn {
+  align-content: center;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 4px;
+  inset: 0;
+  justify-items: center;
+  padding: 12px;
+  position: absolute;
+  text-align: center;
+  width: 100%;
+}
+
+.pl-pick__btn:focus-visible {
+  color: var(--text);
+}
+
+.pl-pick__btn--over {
+  align-content: end;
+  justify-items: end;
+}
+
+.pl-pick__swap {
+  background: rgb(5 7 15 / 0.78);
+  border-radius: var(--radius-pill);
+  color: #eef1f6;
+  font-size: 0.85rem;
+  font-weight: 650;
+  padding: 6px 12px;
+}
+
+.pl-pick__del {
+  left: 8px;
+  position: absolute;
+  top: 8px;
+}
+
+.pl-pick__del.btn {
+  background: rgb(5 7 15 / 0.78);
+  color: #eef1f6;
+}
+
+.pl-pick[data-busy="yes"] > img {
+  opacity: 0.4;
+}
+
+/* members with a photo each */
+.pl-edpeople {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .pl-edpeople {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .pl-edpeople {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.pl-edpeople__i {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pl-edpeople__i b {
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.pl-edpeople__i .pl-pick__del {
+  font-size: 0.8rem;
+  left: 6px;
+  min-height: 30px;
+  padding-inline: 8px;
+  top: 6px;
+}
+
+/* the footer of a form: Cancel then Save, an alternative on the left */
+.pl-edfoot {
+  border-top: 1px solid var(--hairline-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 12px;
+}
+
+.pl-edfoot__alt {
+  margin-right: auto;
+}
+
+@media (max-width: 519px) {
+  .pl-edfoot > .btn {
+    flex: 1 1 100%;
+  }
+
+  .pl-edfoot > .btn--primary {
+    order: -1;
+  }
+}
+
+/* one team year */
+.pl-edyear {
+  border-top: 1px solid var(--hairline-faint);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  padding-top: 14px;
+}
+
+@media (min-width: 768px) {
+  .pl-edyear {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+}
+
+.pl-edrow {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+  .pl-edrow {
+    align-items: start;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  }
+}
+
+/* an edition's photos */
+.pl-edphotos {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 520px) {
+  .pl-edphotos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .pl-edphotos {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.pl-edphotos__i {
+  aspect-ratio: 1;
+  cursor: grab;
+  touch-action: manipulation;
+  background: var(--surface-3);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+}
+
+.pl-edphotos__i[data-drag="yes"] {
+  cursor: grabbing;
+  opacity: 0.85;
+  z-index: 2;
+}
+
+.pl-edphotos__i > img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.pl-edphotos__bar {
+  background: linear-gradient(transparent, rgb(5 7 15 / 0.85));
+  bottom: 0;
+  display: flex;
+  gap: 2px;
+  justify-content: space-between;
+  left: 0;
+  padding: 18px 4px 4px;
+  position: absolute;
+  right: 0;
+}
+
+.pl-edphotos__bar .iconbtn,
+.pl-edphotos__star .iconbtn {
+  color: #eef1f6;
+}
+
+/* The cover star in the top corner, so the bar keeps three buttons. */
+.pl-edphotos__star {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+}
+
+.pl-edphotos__star .iconbtn {
+  background: rgb(5 7 15 / 0.7);
+}
+
+.pl-edphotos__cover {
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+  color: var(--accent-ink);
+  font-size: 0.74rem;
+  font-weight: 700;
+  left: 6px;
+  padding: 2px 8px;
+  position: absolute;
+  top: 6px;
+}
+
+.pl-edphotos__add {
+  aspect-ratio: 1;
+  position: relative;
+}

@@ -17,7 +17,7 @@
  * log, closed role history, Konsol Pi records, Pi commands, heartbeats and
  * devices, and Phase 13's TP records (pointers, scores, typed answers, the
  * LMS roster, the sync log). What stays: the Asisten accounts, the groups' names, module
- * content and settings. The newest uang kas rate is carried into the next
+ * content and settings, and the Lab Profile on Home (api/_lib/profil.ts). The newest uang kas rate is carried into the next
  * semester so pay keeps its rate.
  */
 import { del } from "@vercel/blob";
