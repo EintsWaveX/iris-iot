@@ -96,6 +96,8 @@ export function teksDi(t: TeksTiga | null | undefined, lang: Lang): string {
 
 /* ----------------------------------------------------------- the payload */
 
+/** A person's `kecil` is what avatars show, so it may be a face crop of
+ *  `besar`; a division's or an event's is `besar` made small. */
 export interface Foto {
   besar: string;
   kecil: string;
@@ -116,6 +118,13 @@ export interface DivisiProfil {
   baris: TeksTiga;
   deskripsi: TeksTiga;
   anggota: OrangProfil[];
+}
+
+/** The Inti as a group, shown like a division: its photo and texts. */
+export interface IntiProfil {
+  foto: Foto | null;
+  baris: TeksTiga;
+  deskripsi: TeksTiga;
 }
 
 export interface FotoBersama {
@@ -144,6 +153,7 @@ export interface Acara {
 export interface ProfilData {
   ok: true;
   inti: OrangProfil[];
+  intiGrup: IntiProfil;
   divisi: DivisiProfil[];
   /** Newest year first. */
   bersama: FotoBersama[];
@@ -270,6 +280,23 @@ export const INFO_DIVISI: Record<Divisi, InfoDivisi> = {
       en: "Inventories, labels and checks the lab's assets, maintains them routinely, and manages consumable and non consumable stock.",
       zh: "清点、标记并检查实验室资产，定期维护，并管理消耗品和非消耗品。",
     },
+  },
+};
+
+/** The Inti's key in profil_divisi, beside the six divisions'. */
+export const KUNCI_INTI = "INTI";
+
+export const INFO_INTI: Pick<InfoDivisi, "warna" | "baris" | "deskripsi"> = {
+  warna: "#38bdf8",
+  baris: {
+    id: "Koordinator, wakil, sekretaris dan bendahara lab.",
+    en: "The lab's coordinator, vice coordinator, secretary and treasurer.",
+    zh: "实验室的协调员、副协调员、秘书和财务。",
+  },
+  deskripsi: {
+    id: "Memimpin dan menyatukan keenam divisi, menetapkan jadwal dan keputusan praktikum, serta mengurus surat menyurat dan keuangan lab.",
+    en: "Leads and brings the six divisions together, sets the practicum's schedule and decisions, and handles the lab's letters and finances.",
+    zh: "领导并统筹六个部门，确定实验课的日程和决定，并负责实验室的文书和财务。",
   },
 };
 

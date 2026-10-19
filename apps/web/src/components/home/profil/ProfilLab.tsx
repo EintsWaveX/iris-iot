@@ -24,14 +24,15 @@ import { openSignIn } from "../../../lib/signin";
 import { useSegar } from "../../../lib/siaran";
 import {
   INFO_DIVISI,
+  INFO_INTI,
   JENIS_ACARA,
+  KUNCI_INTI,
   teksDi,
   type Acara,
-  type DivisiProfil,
-  type OrangProfil,
   type ProfilData,
 } from "../../../lib/profil";
 import Dialog from "../../ui/Dialog";
+import LihatGrup, { type Grup } from "./LihatGrup";
 import Lightbox, { type FotoLihat } from "./Lightbox";
 import { Avatar, Gambar, Hitung, Kepala, miring, useGerakProfil, useMuncul } from "./parts";
 import { P } from "./profilStrings";
@@ -55,10 +56,6 @@ function useProfil(): ProfilData | null | undefined {
     };
   }, [segar]);
   return data;
-}
-
-function peranLabel(o: OrangProfil, lang: Lang) {
-  return P[lang].peran[o.peran];
 }
 
 /* ================================================================ hero */
@@ -144,131 +141,95 @@ export function HeroLab({ lang, data }: { lang: Lang; data: ProfilData | null | 
 
 /* ============================================================== Divisi */
 
-function KartuDivisi({
+/** The six divisions and the Inti, as their cards and the viewer read them. */
+function grupDari(data: ProfilData, lang: Lang): { inti: Grup; divisi: Grup[] } {
+  const t = P[lang];
+  return {
+    inti: {
+      kunci: KUNCI_INTI,
+      label: t.inti,
+      nama: t.intiNama,
+      warna: INFO_INTI.warna,
+      ...data.intiGrup,
+      anggota: data.inti,
+    },
+    divisi: data.divisi.map((d) => ({
+      kunci: d.kode,
+      label: d.kode,
+      nama: INFO_DIVISI[d.kode].nama,
+      warna: INFO_DIVISI[d.kode].warna,
+      foto: d.foto,
+      baris: d.baris,
+      deskripsi: d.deskripsi,
+      anggota: d.anggota,
+    })),
+  };
+}
+
+/** A division's card; `big` is the Inti's, across the whole grid with its
+ *  description beside the photo. */
+function KartuGrup({
   lang,
-  d,
+  g,
   i,
   tier,
+  big,
   onOpen,
 }: {
   lang: Lang;
-  d: DivisiProfil;
+  g: Grup;
   i: number;
   tier: 0 | 2;
+  big?: boolean;
   onOpen: () => void;
 }) {
   const t = P[lang];
-  const info = INFO_DIVISI[d.kode];
-  const shown = d.anggota.slice(0, 4);
+  const shown = g.anggota.slice(0, big ? 6 : 4);
   return (
     <button
       type="button"
-      className="pl-div sweep-hover"
-      style={{ "--c": info.warna, "--i": i } as CSSProperties}
+      className={`pl-div sweep-hover${big ? " pl-div--big" : ""}`}
+      style={{ "--c": g.warna, "--i": i } as CSSProperties}
       data-rv
       onClick={onOpen}
-      aria-label={`${d.kode}, ${info.nama}`}
+      aria-label={t.lihatGrup(`${g.label}, ${g.nama}`)}
       {...miring(tier)}
     >
       <span className="pl-div__photo">
-        {d.foto ? (
+        {g.foto ? (
           <Gambar
-            foto={d.foto}
-            alt={t.divFoto(d.kode)}
-            sizes="(max-width: 767px) 82vw, (max-width: 1099px) 46vw, 400px"
+            foto={g.foto}
+            alt={t.divFoto(g.label)}
+            sizes={
+              big
+                ? "(max-width: 767px) 94vw, (max-width: 1099px) 56vw, 760px"
+                : "(max-width: 767px) 82vw, (max-width: 1099px) 46vw, 400px"
+            }
           />
         ) : (
           <span className="pl-div__empty mono" aria-hidden="true">
-            {d.kode}
+            {g.label}
           </span>
         )}
-        <span className="pl-div__code mono">{d.kode}</span>
+        <span className="pl-div__code mono">{g.label}</span>
       </span>
       <span className="pl-div__body">
-        <b className="pl-div__name">{info.nama}</b>
-        <span className="hint">{teksDi(d.baris, lang)}</span>
+        <b className="pl-div__name">{g.nama}</b>
+        <span className={big ? "pl-div__line" : "hint"}>{teksDi(g.baris, lang)}</span>
+        {big && <span className="pl-div__desc">{teksDi(g.deskripsi, lang)}</span>}
         <span className="pl-div__foot">
           <span className="pl-stack">
             {shown.map((o) => (
-              <Avatar key={o.kode} o={o} size={34} />
+              <Avatar key={o.kode} o={o} size={big ? 42 : 34} />
             ))}
-            {d.anggota.length > shown.length && (
-              <span className="pl-stack__more mono">+{d.anggota.length - shown.length}</span>
+            {g.anggota.length > shown.length && (
+              <span className="pl-stack__more mono">+{g.anggota.length - shown.length}</span>
             )}
           </span>
-          <span className="hint">{t.nAsisten(d.anggota.length)}</span>
+          <span className="hint">{t.nAsisten(g.anggota.length)}</span>
         </span>
       </span>
     </button>
-  );
-}
-
-function Orang({ lang, o, big }: { lang: Lang; o: OrangProfil; big?: boolean }) {
-  return (
-    <figure className={`pl-person${big ? " pl-person--big" : ""}`}>
-      {o.foto ? (
-        <Gambar foto={o.foto} alt={o.nama} sizes="(max-width: 640px) 45vw, 200px" />
-      ) : (
-        <span className="pl-person__kode mono" role="img" aria-label={o.nama}>
-          {o.kode}
-        </span>
-      )}
-      <figcaption>
-        <b>{o.nama}</b>
-        <span className="mono">{o.kode}</span>
-        <span className="hint">{peranLabel(o, lang)}</span>
-      </figcaption>
-    </figure>
-  );
-}
-
-function DialogDivisi({ lang, d, onClose }: { lang: Lang; d: DivisiProfil; onClose: () => void }) {
-  const t = P[lang];
-  const info = INFO_DIVISI[d.kode];
-  const [lb, setLb] = useState(false);
-  return (
-    <Dialog
-      open
-      onOpenChange={(o) => !o && onClose()}
-      title={`${d.kode} · ${info.nama}`}
-      size="wide"
-      lang={lang}
-    >
-      <div className="pl-dd" style={{ "--c": info.warna } as CSSProperties}>
-        {d.foto && (
-          <button
-            type="button"
-            className="pl-dd__photo"
-            onClick={() => setLb(true)}
-            aria-label={t.perbesarDivisi}
-          >
-            <Gambar
-              foto={d.foto}
-              alt={t.divFoto(d.kode)}
-              sizes="(max-width: 1600px) 94vw, 1500px"
-            />
-          </button>
-        )}
-        <p className="pl-dd__text">{teksDi(d.deskripsi, lang)}</p>
-        {d.anggota.length ? (
-          <div className="pl-people">
-            {d.anggota.map((o) => (
-              <Orang key={o.kode} lang={lang} o={o} big={o.peran === "kepala"} />
-            ))}
-          </div>
-        ) : (
-          <p className="hint">{t.belumAnggota}</p>
-        )}
-      </div>
-      {lb && d.foto && (
-        <Lightbox
-          lang={lang}
-          pics={[{ ...d.foto, alt: t.divFoto(d.kode), cap: `${d.kode} · ${info.nama}` }]}
-          start={0}
-          onClose={() => setLb(false)}
-        />
-      )}
-    </Dialog>
   );
 }
 
@@ -412,7 +373,7 @@ export default function ProfilLab({
   const data = useProfil();
   const tier = useGerakProfil();
   const ref = useMuncul<HTMLDivElement>(tier, data);
-  const [div, setDiv] = useState<DivisiProfil | null>(null);
+  const [div, setDiv] = useState<string | null>(null);
   const [ev, setEv] = useState<Acara | null>(null);
   const editor =
     me?.role === "asisten" && me.hak?.profil === true ? href(lang, "/lab-profile") : null;
@@ -423,8 +384,10 @@ export default function ProfilLab({
     () => JENIS_ACARA.map((j) => [j, (data?.acara ?? []).filter((a) => a.jenis === j)] as const),
     [data],
   );
-  // A save elsewhere can change the open dialog's division or edition.
-  const divNow = div && data ? (data.divisi.find((d) => d.kode === div.kode) ?? null) : div;
+  const grup = useMemo(() => (data ? grupDari(data, lang) : null), [data, lang]);
+  // A save elsewhere can change the open division or edition: they are
+  // read from the newest profile.
+  const divNow = div && grup ? [grup.inti, ...grup.divisi].find((g) => g.kunci === div) : null;
   const evNow = ev && data ? (data.acara.find((a) => a.id === ev.id) ?? null) : ev;
   const adaAcara = perJenis.some(([, l]) => l.length > 0);
 
@@ -445,36 +408,30 @@ export default function ProfilLab({
               lede={t.divLede}
               ubah={ubah("divisi")}
             />
-            {data.inti.length > 0 && (
-              <div className="pl-inti" data-rv>
-                <span className="eyebrow">{t.inti}</span>
-                <div className="pl-inti__row">
-                  {data.inti.map((o) => (
-                    <div className="pl-inti__p" key={o.kode}>
-                      <Avatar o={o} size={48} />
-                      <span>
-                        <b>{o.nama}</b>
-                        <span className="hint">
-                          {peranLabel(o, lang)} · <span className="mono">{o.kode}</span>
-                        </span>
-                      </span>
-                    </div>
+            {grup && (
+              <div className="pl-divs">
+                <KartuGrup
+                  lang={lang}
+                  g={grup.inti}
+                  i={0}
+                  tier={tier}
+                  big
+                  onOpen={() => setDiv(grup.inti.kunci)}
+                />
+                <div className="pl-divgrid">
+                  {grup.divisi.map((g, i) => (
+                    <KartuGrup
+                      key={g.kunci}
+                      lang={lang}
+                      g={g}
+                      i={i + 1}
+                      tier={tier}
+                      onOpen={() => setDiv(g.kunci)}
+                    />
                   ))}
                 </div>
               </div>
             )}
-            <div className="pl-divgrid">
-              {data.divisi.map((d, i) => (
-                <KartuDivisi
-                  key={d.kode}
-                  lang={lang}
-                  d={d}
-                  i={i}
-                  tier={tier}
-                  onOpen={() => setDiv(d)}
-                />
-              ))}
-            </div>
           </section>
 
           <FotoBersama lang={lang} data={data} editor={editor} />
@@ -505,7 +462,7 @@ export default function ProfilLab({
           )}
         </>
       )}
-      {divNow && <DialogDivisi lang={lang} d={divNow} onClose={() => setDiv(null)} />}
+      {divNow && <LihatGrup lang={lang} g={divNow} onClose={() => setDiv(null)} />}
       {evNow && <DialogAcara lang={lang} a={evNow} onClose={() => setEv(null)} />}
     </div>
   );

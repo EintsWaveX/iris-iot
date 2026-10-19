@@ -36,6 +36,7 @@ vi.mock("../../../src/lib/db.js", () => ({
 }));
 
 const { bacaProfil } = await import("../profil.js");
+const { INFO_INTI } = await import("../../../src/lib/profil.js");
 
 describe("the public Lab Profile", () => {
   it("shows active people with their position, and never a NIM", async () => {
@@ -83,13 +84,15 @@ describe("the public Lab Profile", () => {
     ]);
     expect(adc.anggota[1].foto).toEqual({ besar: `${BLOB}/c.webp`, kecil: `${BLOB}/c-k.webp` });
     expect(p.divisi.map((d) => d.kode)).toEqual(["ASO", "ARD", "ADS", "ADC", "AER", "ARM"]);
+    expect(p.intiGrup.foto).toBeNull();
+    expect(p.intiGrup.baris.id).toBe(INFO_INTI.baris.id);
 
     const teks = JSON.stringify(p);
     expect(teks).not.toMatch(/1101223/);
     expect(teks).not.toMatch(/"nim"/);
   });
 
-  it("falls back to each division's own texts, and keeps an edition's photo order", async () => {
+  it("falls back to each division's and the Inti's own texts, and keeps an edition's photo order", async () => {
     data.set(asisten, []);
     data.set(jabatanPemegang, []);
     data.set(profilDivisi, [
@@ -99,6 +102,13 @@ describe("the public Lab Profile", () => {
         fotoKecilUrl: `${BLOB}/arm-k.webp`,
         baris: { id: "Baris", en: "Line", zh: "行" },
         deskripsi: { id: "D", en: "D", zh: "D" },
+      },
+      {
+        divisi: "INTI",
+        fotoUrl: `${BLOB}/inti.webp`,
+        fotoKecilUrl: `${BLOB}/inti-k.webp`,
+        baris: null,
+        deskripsi: null,
       },
     ]);
     data.set(profilFotoBersama, [
@@ -126,6 +136,9 @@ describe("the public Lab Profile", () => {
     expect(p.divisi.find((d) => d.kode === "ASO")!.baris.en).toBe(
       "Modules, prelabs, tests and journals.",
     );
+    expect(p.intiGrup.foto).toEqual({ besar: `${BLOB}/inti.webp`, kecil: `${BLOB}/inti-k.webp` });
+    expect(p.intiGrup.deskripsi).toEqual(INFO_INTI.deskripsi);
+    expect(p.divisi.map((d) => d.kode)).not.toContain("INTI");
     expect(p.bersama.map((b) => b.tahun)).toEqual(["2026/2027", "2024/2025"]);
     expect(p.acara[0].foto.map((f) => f.id)).toEqual([7, 8]);
     expect(p.acara[0].sampulId).toBe(8);

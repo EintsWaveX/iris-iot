@@ -6,7 +6,8 @@
  *            by bacaProfil(). People carry name, code, position and photo,
  *            never a NIM (src/lib/profil.ts).
  * POST (the "profil" right, src/lib/hak.ts: ADC, DEV and Admins)
- *   divisi-simpan  { divisi, baris, deskripsi, foto? }
+ *   divisi-simpan  { divisi, baris, deskripsi, foto? }  divisi is one of
+ *                  the six or "INTI", the Inti as a group
  *   foto-asisten   { kode, foto }            an active Asisten's photo
  *   bersama-simpan { id?, tahun, keterangan, foto? }
  *   bersama-hapus  { id }
@@ -39,6 +40,8 @@ import { DIVISI, INTI, divisiKepala, isDivisi, isKategori } from "../../src/lib/
 import {
   FOTO_PER_ACARA,
   INFO_DIVISI,
+  INFO_INTI,
+  KUNCI_INTI,
   TEKS_MAKS,
   bacaTeks,
   bacaTeksOpsional,
@@ -193,9 +196,15 @@ export async function bacaProfil(): Promise<ProfilData> {
     ]);
   }
 
+  const intiRow = simpanan.get(KUNCI_INTI);
   return {
     ok: true,
     inti: urutOrang(inti),
+    intiGrup: {
+      foto: fotoDari(intiRow?.fotoUrl ?? null, intiRow?.fotoKecilUrl ?? null),
+      baris: intiRow?.baris ?? INFO_INTI.baris,
+      deskripsi: intiRow?.deskripsi ?? INFO_INTI.deskripsi,
+    },
     divisi: divisiProfil,
     bersama: urutTahun(bersama).map((b) => ({
       id: b.id,
@@ -229,7 +238,7 @@ export type Post = (req: ApiRequest, res: ApiResponse, s: SessionPayload) => Pro
 
 export const handleDivisiSimpan: Post = async (req, res, s) => {
   const body = jsonBody(req);
-  if (!isDivisi(body.divisi)) return tolak(res, "format_salah");
+  if (!isDivisi(body.divisi) && body.divisi !== KUNCI_INTI) return tolak(res, "format_salah");
   const foto = bacaFoto(body.foto);
   if (foto === false) return tolak(res, "foto_salah");
   const teks = bacaSemuaTeks(res, body, ["baris", "deskripsi"] as const);
