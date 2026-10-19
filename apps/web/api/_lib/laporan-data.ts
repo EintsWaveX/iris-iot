@@ -60,7 +60,7 @@ import { AKSI_PER_JENIS, isJenisAudit } from "../../src/lib/audit-jenis.js";
 import { ringkas } from "../../src/lib/umpan-balik.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import type { SesiLaporan } from "../../src/lib/laporan.js";
+import { kejadianAsisten, type SesiLaporan } from "../../src/lib/laporan.js";
 import { saringRp } from "../../src/lib/hadir-mengajar.js";
 import { boleh, lihatRpSemua } from "../../src/lib/hak.js";
 
@@ -347,7 +347,7 @@ export async function handleKejadianPost(
       res.status(200).json({ ok: false, kode: "tidak_ada" });
       return;
     }
-    if (k.jenis !== "catatan") {
+    if (!kejadianAsisten(k)) {
       res.status(200).json({ ok: false, kode: "baris_sistem" });
       return;
     }

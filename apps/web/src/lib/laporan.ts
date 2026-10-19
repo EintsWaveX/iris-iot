@@ -239,7 +239,8 @@ export interface Kejadian {
   pada: string;
 }
 
-/** System lines can't be edited; Asisten notes can. */
+/** An Asisten note, the only line that can be edited or deleted (the
+ *  server's kejadian route and the Incidents list both ask this). */
 export function kejadianAsisten(k: Pick<Kejadian, "jenis">): boolean {
   return k.jenis === "catatan";
 }

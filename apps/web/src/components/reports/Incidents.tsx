@@ -3,7 +3,7 @@
  * system lines (start, pairing changes, borrowed SeeLabs accounts, raised
  * hands, announcements) and Asisten notes, in time order on tab stops.
  * Notes can be added, edited and deleted (Delete asks, then offers Undo);
- * system lines show their edit buttons disabled.
+ * system lines have no edit buttons, as the server refuses them.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
@@ -130,24 +130,26 @@ export function IncidentList({
                 )}
               </span>
               <span className="rp-incact">
-                <IconButton
-                  sm
-                  icon={PencilSimpleIcon}
-                  label={sendiri ? t.edit : t.incSystemTip}
-                  disabled={!sendiri}
-                  onClick={() => {
-                    setEdit(k);
-                    setTxt((k.detail as { teks?: string }).teks ?? "");
-                  }}
-                />
-                <IconButton
-                  sm
-                  kind="danger"
-                  icon={TrashIcon}
-                  label={sendiri ? t.del : t.incSystemTip}
-                  disabled={!sendiri}
-                  onClick={() => setDel(k)}
-                />
+                {sendiri && (
+                  <>
+                    <IconButton
+                      sm
+                      icon={PencilSimpleIcon}
+                      label={t.edit}
+                      onClick={() => {
+                        setEdit(k);
+                        setTxt((k.detail as { teks?: string }).teks ?? "");
+                      }}
+                    />
+                    <IconButton
+                      sm
+                      kind="danger"
+                      icon={TrashIcon}
+                      label={t.del}
+                      onClick={() => setDel(k)}
+                    />
+                  </>
+                )}
               </span>
             </div>
           );
