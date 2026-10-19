@@ -24,6 +24,7 @@ export const LV = dict({
       `Belum ada data asli untuk kelompok ${g}, jadi angka di bawah ini simulasi. Data asli muncul begitu papan kelompok ini mengirim.`,
     // Ports
     ports: "Sambungkan Papan",
+    howConnect: "Cara Menyambung",
     notConnected: (n: number) => `${n} belum tersambung`,
     allConnected: "Semua tersambung",
     step1: "Colok papan ke laptop pakai kabel USB data.",
@@ -156,6 +157,7 @@ export const LV = dict({
     simNote: (g: number) =>
       `No real data for group ${g} yet, so the numbers below are simulated. Real data appears as soon as this group's board sends.`,
     ports: "Connect Your Boards",
+    howConnect: "How to Connect",
     notConnected: (n: number) => `${n} not connected`,
     allConnected: "All connected",
     step1: "Plug the board into your laptop with a USB data cable.",
@@ -282,6 +284,7 @@ export const LV = dict({
     simNote: (g: number) =>
       `第 ${g} 组还没有真实数据，下面的数字是模拟的。这个小组的板子一发送，真实数据就会出现。`,
     ports: "连接板子",
+    howConnect: "如何连接",
     notConnected: (n: number) => `${n} 个未连接`,
     allConnected: "全部已连接",
     step1: "用 USB 数据线把板子插到笔记本电脑上。",

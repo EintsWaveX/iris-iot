@@ -122,6 +122,32 @@
   background: color-mix(in srgb, var(--pill-hue) 12%, #fff);
 }
 
+/* Phase 21 (f4): a module or group named as plain text with its colour
+   dot, where a pill only carried a name. Set --m to the hue. */
+.modlabel {
+  align-items: center;
+  color: var(--text);
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+  line-height: 1.2;
+}
+
+.modlabel__dot {
+  background: var(--m, var(--accent));
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--m, var(--accent)) 22%, transparent);
+  display: inline-block;
+  flex: none;
+  height: 9px;
+  width: 9px;
+}
+
+.modlabel--lg {
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
 .pill--button {
   cursor: pointer;
   font: inherit;

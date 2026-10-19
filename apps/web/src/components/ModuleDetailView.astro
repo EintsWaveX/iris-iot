@@ -68,7 +68,8 @@ const caretRight =
       </p>
       <div class="page-header__row">
         <div class="page-header__heading modhead__heading">
-          <span class="pill pill--group pill--lg" style={`--pill-hue: var(--mod-${m.modul})`}>
+          <span class="modlabel modlabel--lg" style={`--m: var(--mod-${m.modul})`}>
+            <span class="modlabel__dot" aria-hidden="true"></span>
             {modulLabel(m.modul, lang)}
           </span>
           <h1 class="page-header__title">{MODUL_NAMA[m.modul]}</h1>

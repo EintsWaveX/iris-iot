@@ -5,6 +5,7 @@
  * Nilaiku's TP score opens each question's mark (TpRincian), still only
  * after the group's scores are sent.
  */
+import { CaretRightIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { href } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
@@ -107,6 +108,62 @@ export function TpKartu({ lang, d }: { lang: Lang; d: TpSaya | null }) {
         </ul>
       </section>
     </div>
+  );
+}
+
+/** In a session (Phase 21, f5): the TP card and the semester's trail as one
+ *  slim row under the session's own cards. A missed TP is red text, not a
+ *  pill (f4), so it never outshouts the session. */
+export function TpBaris({ lang, d }: { lang: Lang; d: TpSaya | null }) {
+  const t = TPS[lang];
+  const m = modulKartu(d);
+  if (!d || !m) return null;
+  const j = m.jendela;
+  const judul =
+    m.keadaan === "buka" && TP_MENUNGGU.includes(m.status)
+      ? m.status === "telat"
+        ? t.telatH
+        : t.masukH
+      : judulJendela(m.keadaan, j, lang);
+  return (
+    <section className="panel tpbaris" style={modulStyle(m.modul)}>
+      <div className="tpbaris__now">
+        <span className="modlabel">
+          <span className="modlabel__dot" aria-hidden="true" />
+          {t.tp} · {modulLabel(m.modul, lang)}
+        </span>
+        <b className="tpbaris__h">{judul}</b>
+        {j && m.keadaan !== "tutup" && (
+          <Countdown to={m.keadaan === "buka" ? j.tutup : j.buka} lang={lang} />
+        )}
+      </div>
+      <ul className="tpbaris__l">
+        {d.modul.map((x) => {
+          const kosong = x.keadaan === "tutup" && x.status === "belum";
+          return (
+            <li key={x.modul} style={modulStyle(x.modul)}>
+              <span className="modlabel__dot" aria-hidden="true" />
+              <span>{modulLabel(x.modul, lang)}</span>
+              {x.total != null ? (
+                <b className="mono">{x.total}</b>
+              ) : x.keadaan === "belum" && x.jendela ? (
+                <span className="hint">{hariJam(x.jendela.buka, lang)}</span>
+              ) : x.keadaan === null ? (
+                <span className="hint">{t.tanpaJendela}</span>
+              ) : (
+                <span className={kosong ? "tpbaris__bad" : "hint"}>
+                  {t.status[kosong ? "kosong" : x.status]}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <a className="btn btn--sm btn--ghost" href={href(lang, `/modules/${m.modul}?step=tp`)}>
+        {t.bukaTp}
+        <CaretRightIcon size={14} weight="bold" aria-hidden="true" />
+      </a>
+    </section>
   );
 }
 

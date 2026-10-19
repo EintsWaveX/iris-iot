@@ -128,11 +128,11 @@ export default function BriefStep({
           {langkah.length === 0 && (
             <aside className="modbrief__glance">
               <h3 className="label-caps">{t.atAGlance}</h3>
-              <div className="row">
+              <ul className="modfakta">
                 {fakta.map((f) => (
-                  <Pill key={f}>{f}</Pill>
+                  <li key={f}>{f}</li>
                 ))}
-              </div>
+              </ul>
               <ul className="modpage__kv">
                 {toolchain.map((tc) => (
                   <li key={tc.label}>

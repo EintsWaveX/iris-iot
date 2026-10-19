@@ -11,12 +11,6 @@
  */
 import { useEffect, useState, type CSSProperties } from "react";
 import {
-  BookOpenTextIcon,
-  ChatCircleTextIcon,
-  CheckIcon,
-  CircuitryIcon,
-} from "@phosphor-icons/react";
-import {
   getJson,
   href,
   KELOMPOK_NAMA,
@@ -41,8 +35,9 @@ import { openSignIn } from "../../lib/signin";
 import { useSegar } from "../../lib/siaran";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import DayCard from "../console/DayCard";
+import HomeFrame from "./HomeFrame";
 
-interface Lab {
+export interface Lab {
   modul: number;
   kelas: "reguler" | "internasional";
   mulaiPada: string;
@@ -294,7 +289,7 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
   return <DayCard lang={lang} me={me} live={liveNode} next={nextNode} />;
 }
 
-function LabSky({
+export function LabSky({
   lang,
   lab,
   mine,
@@ -463,11 +458,9 @@ export default function HomePage({ lang }: { lang: Lang }) {
         ? pegang
         : [];
 
-  const steps = [
-    { icon: <BookOpenTextIcon size={24} />, title: t.before, list: t.beforeList },
-    { icon: <CircuitryIcon size={24} />, title: t.during, list: t.duringList },
-    { icon: <ChatCircleTextIcon size={24} />, title: t.after, list: t.afterList },
-  ];
+  // Phase 21: a visitor gets the Home frame; Beranda's own view is for
+  // who is signed in (and shows again only after signing out).
+  if (me === null) return <HomeFrame lang={lang} />;
 
   return (
     <div className="home home10">
@@ -517,33 +510,6 @@ export default function HomePage({ lang }: { lang: Lang }) {
           ))}
         </div>
       </section>
-
-      {!me && (
-        <section className="stack">
-          <div className="home10__head">
-            <span className="eyebrow">{t.flowEyebrow}</span>
-            <h2 className="home__h1">{t.flowTitle}</h2>
-          </div>
-          <ol className="orbitpath">
-            {steps.map((s) => (
-              <li className="orbitpath__stop" key={s.title}>
-                <span className="orbitpath__node" aria-hidden="true">
-                  {s.icon}
-                </span>
-                <h3 className="home__h2">{s.title}</h3>
-                <ul className="orbitpath__list">
-                  {s.list.map((x) => (
-                    <li key={x}>
-                      <CheckIcon size={16} weight="bold" aria-hidden="true" />
-                      {x}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
     </div>
   );
 }

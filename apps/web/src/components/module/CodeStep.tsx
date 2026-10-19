@@ -1,9 +1,10 @@
 /**
  * The module page's Code step (Phase 9 Stage 7d, mockup p-module › Code).
  * One sketch at a time behind the file switch; both stay mounted so a
- * blank being typed in survives switching files. The pins and schematic
- * sit beside the code from 1280 wide (toggle remembered), and open as a
- * bottom sheet below that. An Asisten gets Show Answers on top, and picks
+ * blank being typed in survives switching files. Pin dan Skema is one row
+ * (Phase 21, f6) beside the code from 1280 wide and under it below that;
+ * Lihat opens it as a sheet. From 1280 the editor can widen over the side
+ * column (remembered). An Asisten gets Show Answers on top, and picks
  * whose file to read: each group's file carries its own identity lines
  * (GROUP_ID, Module 4's sync word) and per-group answers.
  *
@@ -19,7 +20,7 @@
  * same, since a pin line never holds a blank.
  */
 import { useEffect, useMemo, useState } from "react";
-import { EyeIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, EyeIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import { Switch } from "../ui/Controls";
 import SegmentedControl from "../ui/SegmentedControl";
@@ -36,7 +37,7 @@ import type { Lang } from "../../lib/kelas";
 import { C } from "./codeStrings";
 import "./code.css";
 
-const DOCK_KEY = "iris-code-dock";
+const LEBAR_KEY = "iris-code-lebar";
 
 /** `?blank=<file slug>.<n>` (the Konsol's Open in Code): that file, that blank. */
 function blankDariUrl(): { slug: string; nomor: number } | null {
@@ -122,23 +123,19 @@ export default function CodeStep({ lang, mode, pin, mcu, skema, code: baked, wak
   );
   const [showKeys, setShowKeys] = useState(false);
   const [grupLihat, setGrupLihat] = useState(1);
-  const [open, setOpen] = useState(() => {
+  const [lebar, setLebar] = useState(() => {
     try {
-      return localStorage.getItem(DOCK_KEY) !== "0";
+      return localStorage.getItem(LEBAR_KEY) === "1";
     } catch {
-      return true;
+      return false;
     }
   });
   const [sheet, setSheet] = useState(false);
 
-  function togglePins() {
-    if (!wide) {
-      setSheet(true);
-      return;
-    }
-    setOpen((v) => {
+  function toggleLebar() {
+    setLebar((v) => {
       try {
-        localStorage.setItem(DOCK_KEY, v ? "0" : "1");
+        localStorage.setItem(LEBAR_KEY, v ? "0" : "1");
       } catch {
         /* private mode: the toggle still works for this visit */
       }
@@ -149,13 +146,20 @@ export default function CodeStep({ lang, mode, pin, mcu, skema, code: baked, wak
   const panel = (
     <PinSchematic lang={lang} modul={code.modul} pin={pin} mcu={mcu} skema={skema} variant="dock" />
   );
-  const side =
-    wide && open ? (
-      <aside className="panel codestep__pins">
-        <h3 className="panel__title">{t.pins}</h3>
-        {panel}
-      </aside>
-    ) : undefined;
+  // The board's pins at a glance, e.g. "3V3 · GPIO16 · GND".
+  const ringkas = [...new Set(pin.baris.map((r) => r[1]).filter(Boolean))].slice(0, 4).join(" · ");
+  const side = (
+    <section className="panel pinrow">
+      <span className="stack stack--sm grow">
+        <b>{t.pins}</b>
+        {ringkas && <span className="hint mono">{ringkas}</span>}
+      </span>
+      <button type="button" className="btn btn--sm btn--ghost" onClick={() => setSheet(true)}>
+        {t.view}
+        <CaretRightIcon size={14} weight="bold" aria-hidden="true" />
+      </button>
+    </section>
+  );
 
   return (
     <div className="stack codestep">
@@ -196,8 +200,8 @@ export default function CodeStep({ lang, mode, pin, mcu, skema, code: baked, wak
             files={code.berkas}
             onPick={setActive}
             showKeys={showKeys}
-            pinsOpen={open}
-            onPins={togglePins}
+            lebar={lebar}
+            onLebar={toggleLebar}
             wide={wide}
             side={f.slug === active ? side : undefined}
             wakil={wakil}

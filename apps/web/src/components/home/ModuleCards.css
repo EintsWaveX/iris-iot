@@ -109,10 +109,32 @@
   text-wrap: wrap;
 }
 
+/* Phase 21 (f4): the tools as one plain mono line. */
 .modcard__facts {
   align-content: start;
+  color: var(--text-muted);
   flex: 1 1 auto;
-  gap: 6px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Beranda's lane art on top of each card, edge to edge. */
+.modcard__art {
+  border-bottom: 1px solid var(--hairline);
+  margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) 4px;
+  overflow: hidden;
+}
+
+.modcard__art > * {
+  display: block;
+  width: 100%;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .modcard:hover .modcard__art {
+    filter: brightness(1.12);
+  }
 }
 
 /* Side by side, every card shares one set of rows, so the titles, the

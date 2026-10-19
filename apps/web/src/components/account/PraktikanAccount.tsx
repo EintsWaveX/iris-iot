@@ -9,7 +9,8 @@ import { CaretRightIcon, SignOutIcon } from "@phosphor-icons/react";
 import type { CSSProperties } from "react";
 import BackButton from "../ui/BackButton";
 import Pill from "../ui/Pill";
-import { BUKA_TAMPILAN, DisplaySummary } from "../shell/DisplayPanel";
+import { BUKA_TAMPILAN } from "../shell/DisplayPanel";
+import { umpanDi } from "../../lib/praktikum-riwayat";
 import {
   getJson,
   href,
@@ -125,6 +126,7 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
     poll.refresh,
   );
   const list = poll.data?.ok ? poll.data.praktikum : null;
+  const umpan = umpanDi((list ?? []).filter((p) => p.status !== "batal"));
   const k = me.kelompok ?? 0;
 
   // The latest practicum of each module (a make up session replaces the first)
@@ -150,13 +152,15 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
           <div className="page-header__heading">
             <span className="page-header__eyebrow">{t.eyebrow}</span>
             <h1 className="page-header__title">{me.nama}</h1>
-            <span className="row">
-              <Pill mono>{me.nim}</Pill>
+            {/* Phase 21 (f4): the NIM and group as plain text, the group's dot. */}
+            <span className="row pacct__id">
+              <span className="hint mono">{me.nim}</span>
               {k > 0 && (
-                <Pill group={k}>
+                <span className="modlabel" style={{ "--m": `var(--group-${k})` } as CSSProperties}>
+                  <span className="modlabel__dot" aria-hidden="true" />
                   {kelompokLabel(k, lang)}
                   {KELOMPOK_NAMA[k] ? ` · ${KELOMPOK_NAMA[k]}` : ""}
-                </Pill>
+                </span>
               )}
             </span>
           </div>
@@ -187,37 +191,47 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
             {[1, 2, 3, 4].map((m) => {
               const p = terakhir(m);
               const style = { "--m": `var(--mod-${m})` } as CSSProperties;
+              // Phase 21 (f13): the whole card is one link; feedback only on
+              // the newest practicum, while it still waits for it.
               if (!p)
                 return (
                   <article key={m} className="pacct__mod" data-ikut="no" style={style}>
                     <span className="row" style={{ gap: 8 }}>
-                      <Pill modul={m}>{modulLabel(m, lang)}</Pill>
+                      <span className="modlabel">
+                        <span className="modlabel__dot" aria-hidden="true" />
+                        {modulLabel(m, lang)}
+                      </span>
                       <Pill>{t.notYet}</Pill>
                     </span>
-                    <b className="pacct__name">{MODUL_NAMA[m]}</b>
+                    <a className="pacct__name pacct__link" href={href(lang, `/modules/${m}`)}>
+                      {MODUL_NAMA[m]}
+                    </a>
                     <span className="hint">{t.notYetSub}</span>
-                    <span className="pacct__facts" />
-                    <span className="pacct__acts">
-                      <a className="btn btn--sm btn--ghost" href={href(lang, `/modules/${m}`)}>
-                        {t.read}
-                        <CaretRightIcon
-                          size={16}
-                          weight="bold"
-                          className="btn__go"
-                          aria-hidden="true"
-                        />
-                      </a>
-                    </span>
+                    <CaretRightIcon
+                      size={16}
+                      weight="bold"
+                      className="pacct__go"
+                      aria-hidden="true"
+                    />
                   </article>
                 );
               const selesai = p.status === "selesai";
               return (
                 <article key={m} className="pacct__mod" style={style}>
                   <span className="row" style={{ gap: 8 }}>
-                    <Pill modul={m}>{modulLabel(m, lang)}</Pill>
+                    <span className="modlabel">
+                      <span className="modlabel__dot" aria-hidden="true" />
+                      {modulLabel(m, lang)}
+                    </span>
                     <Pill tone={selesai ? "ok" : "accent"}>{selesai ? t.done : t.running}</Pill>
                   </span>
-                  <b className="pacct__name">{MODUL_NAMA[m]}</b>
+                  <a
+                    className="pacct__name pacct__link"
+                    href={`${href(lang, "/dashboard")}?view=summary&session=${p.sesiId}`}
+                    aria-label={`${t.summary}: ${modulLabel(m, lang)} · ${MODUL_NAMA[m]}`}
+                  >
+                    {MODUL_NAMA[m]}
+                  </a>
                   <span className="hint">
                     {tanggalPanjang(p.tanggal, lang)}
                     {p.slot ? ` · ${slotLabel(p.slot, lang)}` : ""}
@@ -228,31 +242,23 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
                     </span>
                     {selesai && p.sudahUmpanBalik && <span data-ok="yes">{t.fbDone}</span>}
                   </span>
-                  <span className="pacct__acts">
-                    {selesai && !p.sudahUmpanBalik && (
+                  {p.sesiId === umpan ? (
+                    <span className="pacct__acts">
                       <a
-                        className="btn btn--sm btn--primary"
+                        className="btn btn--sm btn--primary pacct__umpan"
                         href={`${href(lang, "/dashboard")}?view=feedback&session=${p.sesiId}`}
                       >
                         {t.fbAsk}
                       </a>
-                    )}
-                    <a
-                      className="btn btn--sm"
-                      href={`${href(lang, "/dashboard")}?view=summary&session=${p.sesiId}`}
-                    >
-                      {t.summary}
-                    </a>
-                    <a className="btn btn--sm btn--ghost" href={href(lang, `/modules/${m}`)}>
-                      {t.journal}
-                      <CaretRightIcon
-                        size={16}
-                        weight="bold"
-                        className="btn__go"
-                        aria-hidden="true"
-                      />
-                    </a>
-                  </span>
+                    </span>
+                  ) : (
+                    <CaretRightIcon
+                      size={16}
+                      weight="bold"
+                      className="pacct__go"
+                      aria-hidden="true"
+                    />
+                  )}
                 </article>
               );
             })}
@@ -260,18 +266,16 @@ export default function PraktikanAccount({ lang, me }: { lang: Lang; me: Me }) {
         )}
       </section>
 
+      {/* Phase 21: one line pointing at the nav's Tampilan, which it repeated. */}
       <section className="panel pacct__display">
-        <div className="panel__head">
-          <h2 className="panel__title">{t.display}</h2>
-          <span className="hint">{t.displaySub}</span>
-        </div>
-        <DisplaySummary lang={lang} wide />
+        <span className="hint grow">{t.displaySub}</span>
         <button
           type="button"
-          className="btn"
+          className="btn btn--sm btn--ghost"
           onClick={() => window.dispatchEvent(new Event(BUKA_TAMPILAN))}
         >
           {t.displayGo}
+          <CaretRightIcon size={14} weight="bold" aria-hidden="true" />
         </button>
       </section>
     </div>

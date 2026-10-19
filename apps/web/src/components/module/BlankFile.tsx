@@ -42,10 +42,12 @@ import {
   type ReactNode,
 } from "react";
 import {
+  ArrowsOutSimpleIcon,
   CheckIcon,
   DownloadSimpleIcon,
   HourglassMediumIcon,
   KeyIcon,
+  QuestionIcon,
   SidebarSimpleIcon,
   SparkleIcon,
   StarIcon,
@@ -156,10 +158,11 @@ interface Props {
   onPick: (slug: string) => void;
   showKeys: boolean;
   /** The pin panel toggle on the head row. */
-  pinsOpen: boolean;
-  onPins: () => void;
+  /** The editor widened over the side column (Phase 21; wide screens only). */
+  lebar: boolean;
+  onLebar: () => void;
   wide: boolean;
-  /** The pin panel, rendered beside the code when open on a wide screen. */
+  /** Pin dan Skema folded to one row: in the side column, or under the code. */
   side?: ReactNode;
   /** Lihat Sebagai Praktikan: the group an Asisten acts for (own = full control). */
   wakil?: { nomor: number; own: boolean };
@@ -888,121 +891,85 @@ export default function BlankFile(p: Props) {
       <HintLog t={t} nomors={nomors} state={state} minta={minta} onJump={(n) => jump(n)} />
     ) : null;
 
+  // Beside the code: a wide screen that hasn't widened the editor.
+  const samping = p.wide && !p.lebar;
+
   return (
     <div
       className="stack codestep__file"
       style={grup ? ({ "--g": `var(--group-${grup})` } as CSSProperties) : undefined}
     >
       {banner}
-      <div className="codehead">
-        {p.files.length > 1 ? (
-          <div className="seg codehead__files" role="tablist" aria-label={t.file} data-segfit="off">
-            {p.files.map((f) => (
-              <button
-                key={f.slug}
-                type="button"
-                role="tab"
-                aria-selected={f.slug === berkas}
-                onClick={() => p.onPick(f.slug)}
-                title={shortLabel(f.judul)}
-              >
-                <span className="codehead__name">
-                  <FileName f={f} />
-                </span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <b className="codehead__name" title={shortLabel(file.judul)}>
-            <FileName f={file} />
-          </b>
-        )}
-        <span className="codehead__tools">
-          {/* Praktikan read progress from the Benar count below (Phase 11:
-              one place, not three); the Asisten have no counts row. */}
-          {mode === "asisten" && (
-            <ProgressRing
-              value={shownRight}
-              max={nb}
-              color="var(--ok)"
-              label={`${shownRight}/${nb}`}
-            />
-          )}
-          <IconButton
-            icon={SidebarSimpleIcon}
-            label={p.wide ? (p.pinsOpen ? t.pinsHide : t.pinsShow) : t.pins}
-            pressed={p.wide ? p.pinsOpen : undefined}
-            onClick={p.onPins}
-          />
-          <IconButton
-            icon={DownloadSimpleIcon}
-            label={complete ? t.download : t.downloadLocked}
-            kind={complete ? undefined : "ghost"}
-            onClick={() => void download()}
-          />
-        </span>
-      </div>
-
-      {mode !== "asisten" && (
-        <div className="blankcount" role="group" aria-label={t.countLabel}>
-          {(
-            [
-              ["right", t.badgeRight],
-              ["wrong", t.badgeWrong],
-              ["empty", t.badgeEmpty],
-              ["hint", t.badgeHint],
-            ] as [Hitung, string][]
-          ).map(([k, label]) => (
-            <button
-              key={k}
-              type="button"
-              className="blankcount__b"
-              data-k={k}
-              disabled={per[k].length === 0}
-              aria-label={t.jumpNext(label, per[k].length)}
-              title={t.jumpNext(label, per[k].length)}
-              onClick={() => lompat(k)}
-            >
-              {k === "hint" ? (
-                <SparkleIcon size={16} aria-hidden="true" />
-              ) : (
-                <span className="blankcount__dot" aria-hidden="true" />
-              )}
-              <span>{label}</span>
-              <b className="num">{k === "right" ? `${per.right.length}/${nb}` : per[k].length}</b>
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="blanknav" role="list" aria-label={t.lines}>
-        {nomors.map((n) => {
-          const w = menunggu(n);
-          return (
-            <span role="listitem" key={n}>
-              <button
-                type="button"
-                className="blankchip"
-                data-st={stOf(n)}
-                aria-current={n === target ? "true" : undefined}
-                onClick={() => jump(n)}
-              >
-                <span className="blankchip__dot" aria-hidden="true" />
-                {t.line((lineOf.get(n) ?? 0) + 1)}
-                <span className="hint">({n})</span>
-                {mode !== "asisten" && adaBantuan(n) ? (
-                  <SparkleIcon className="blankchip__ic" size={15} aria-label={t.hint} />
-                ) : mode !== "asisten" && w ? (
-                  <HourglassMediumIcon className="blankchip__ic" size={15} aria-label={t.waiting} />
-                ) : null}
-              </button>
-            </span>
-          );
-        })}
-      </div>
-
-      <div className={p.wide ? "codegrid codegrid--side" : "codegrid"}>
+      <div className={samping ? "codegrid codegrid--side" : "codegrid"}>
         <div className="panel codecard">
+          {/* Phase 21 (f6): the file tabs and the Baris chips live inside the
+              editor, so they are always exactly its width. */}
+          <div className="codehead">
+            {p.files.length > 1 ? (
+              <div
+                className="seg codehead__files"
+                role="tablist"
+                aria-label={t.file}
+                data-segfit="off"
+              >
+                {p.files.map((f) => (
+                  <button
+                    key={f.slug}
+                    type="button"
+                    role="tab"
+                    aria-selected={f.slug === berkas}
+                    onClick={() => p.onPick(f.slug)}
+                    title={shortLabel(f.judul)}
+                  >
+                    <span className="codehead__name">
+                      <FileName f={f} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <b className="codehead__name codehead__single" title={shortLabel(file.judul)}>
+                <FileName f={file} />
+              </b>
+            )}
+            {mode === "asisten" && (
+              <ProgressRing
+                value={shownRight}
+                max={nb}
+                color="var(--ok)"
+                label={`${shownRight}/${nb}`}
+              />
+            )}
+          </div>
+          <div className="blanknav" role="list" aria-label={t.lines}>
+            {nomors.map((n) => {
+              const w = menunggu(n);
+              return (
+                <span role="listitem" key={n}>
+                  <button
+                    type="button"
+                    className="blankchip"
+                    data-st={stOf(n)}
+                    aria-current={n === target ? "true" : undefined}
+                    onClick={() => jump(n)}
+                  >
+                    <span className="blankchip__dot" aria-hidden="true" />
+                    {t.line((lineOf.get(n) ?? 0) + 1)}
+                    <span className="hint">({n})</span>
+                    {mode !== "asisten" && adaBantuan(n) ? (
+                      <SparkleIcon className="blankchip__ic" size={15} aria-label={t.hint} />
+                    ) : mode !== "asisten" && w ? (
+                      <HourglassMediumIcon
+                        className="blankchip__ic"
+                        size={15}
+                        aria-label={t.waiting}
+                      />
+                    ) : null}
+                  </button>
+                </span>
+              );
+            })}
+          </div>
           <div
             className="code"
             ref={box}
@@ -1051,11 +1018,6 @@ export default function BlankFile(p: Props) {
               );
             })}
           </div>
-          {mode === "now" && !locked && !complete && (
-            <div className="codefoot codefoot--keys">
-              <span className="hint">{t.keysHint}</span>
-            </div>
-          )}
           {mode === "now" && lastPeer && (
             <div className="codefoot">
               <span className="codefoot__peer">{t.peer}</span>
@@ -1068,8 +1030,66 @@ export default function BlankFile(p: Props) {
               </span>
             </div>
           )}
+          {/* Phase 21 (f6, f8): the counts as one quiet status line, the
+              editor's help, download and widen at its right. */}
+          <div className="codefoot codefoot--bar">
+            {mode !== "asisten" && (
+              <span className="codestat" role="group" aria-label={t.countLabel} aria-live="polite">
+                {(
+                  [
+                    ["right", t.badgeRight],
+                    ["wrong", t.badgeWrong],
+                    ["empty", t.badgeEmpty],
+                    ["hint", t.badgeHint],
+                  ] as [Hitung, string][]
+                ).map(([k, label]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    className="codestat__b"
+                    data-k={k}
+                    disabled={per[k].length === 0}
+                    aria-label={t.jumpNext(label, per[k].length)}
+                    title={t.jumpNext(label, per[k].length)}
+                    onClick={() => lompat(k)}
+                  >
+                    <b className="num">
+                      {k === "right" ? `${per.right.length}/${nb}` : per[k].length}
+                    </b>{" "}
+                    {label.toLowerCase()}
+                  </button>
+                ))}
+              </span>
+            )}
+            <span className="grow" />
+            {mode === "now" && !locked && !complete && (
+              <IconButton
+                icon={QuestionIcon}
+                sm
+                kind="ghost"
+                label={t.keysHint}
+                onClick={() => window.Toast?.show(t.keysHint, "info")}
+              />
+            )}
+            <IconButton
+              icon={DownloadSimpleIcon}
+              sm
+              label={complete ? t.download : t.downloadLocked}
+              kind={complete ? undefined : "ghost"}
+              onClick={() => void download()}
+            />
+            {p.wide && (
+              <IconButton
+                icon={p.lebar ? SidebarSimpleIcon : ArrowsOutSimpleIcon}
+                sm
+                label={p.lebar ? t.sideShow : t.widen}
+                pressed={p.lebar}
+                onClick={p.onLebar}
+              />
+            )}
+          </div>
         </div>
-        {p.wide && (
+        {samping && (
           <aside className="stack codeside">
             {kartu}
             {log}
@@ -1078,10 +1098,11 @@ export default function BlankFile(p: Props) {
         )}
       </div>
 
-      {!p.wide && (
+      {!samping && (
         <div className="codebelow">
           {kartu}
           {log}
+          {p.side}
         </div>
       )}
 
@@ -1234,7 +1255,10 @@ function BlankCard(p: {
                   t={t}
                 />
               ) : (
-                p.mode === "now" && (
+                // Phase 21 (f8): with Minta Petunjuk on the card this line is
+                // the button's tip; one line of help stays on the card.
+                p.mode === "now" &&
+                !p.bolehMinta && (
                   <p className="hint">
                     {t.hintLocked(Math.max(1, SALAH_UNTUK_BANTUAN1 - (e?.salah ?? 0)))}
                   </p>
@@ -1259,7 +1283,16 @@ function BlankCard(p: {
                   text={m.teks ?? ""}
                 />
               ))}
-              {p.bolehMinta && <Ask {...p} />}
+              {p.bolehMinta && (
+                <Ask
+                  {...p}
+                  tip={
+                    p.mode === "now" && !e?.bantuanKe
+                      ? t.hintLocked(Math.max(1, SALAH_UNTUK_BANTUAN1 - (e?.salah ?? 0)))
+                      : undefined
+                  }
+                />
+              )}
             </>
           )}
         </>
@@ -1312,6 +1345,8 @@ function Ask(p: {
   onTanya: (on: boolean) => void;
   onMinta: (catatan: string) => void;
   onBatal: (id: number) => void;
+  /** When the next hint opens by itself, shown on the button. */
+  tip?: string;
 }) {
   const { t } = p;
   if (p.menunggu)
@@ -1370,6 +1405,7 @@ function Ask(p: {
       <button
         type="button"
         className="btn btn--primary pblank__ask"
+        data-tip={p.tip}
         onClick={() => p.onTanya(true)}
       >
         {p.dariAsisten.length ? t.askAnother : t.askHint}

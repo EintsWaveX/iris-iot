@@ -60,12 +60,6 @@
 
 /* ------------------------------------------------------------- steps */
 
-.modsteps__tabs svg {
-  flex: none;
-  height: 20px;
-  width: 20px;
-}
-
 .modsteps__access svg {
   flex: none;
 }
@@ -76,51 +70,307 @@
   }
 }
 
-/* A narrow screen keeps every step in one row: the icon with its label
-   under it (SegFit is off for this switch). */
-@media (max-width: 819px) {
-  .modsteps__tabs button {
-    flex-direction: column;
-    font-size: 0.8rem;
-    gap: 2px;
-    line-height: 1.15;
-    min-height: 58px;
-    padding: 4px;
-    white-space: normal;
+/* Phase 21 (f3): in a running session the module header goes; the session
+   row names the module and the stepper comes first. */
+.modpage:has(.modsteps[data-urut="yes"]) .modhead {
+  display: none;
+}
+
+.modsteps[data-urut="yes"] {
+  padding-top: var(--space-4);
+}
+
+/* The line stepper (Phase 21, LineStepper.tsx): Prev, the dots on a line,
+   Next. The filled part of the line is the kit's rainbow. */
+.lstep {
+  align-items: start;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+}
+
+.lstep__nav {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.lstep__prev {
+  justify-self: start;
+}
+
+/* The first and last steps have nowhere further to go: keep the room,
+   hide the arrow. */
+.lstep__prev:disabled,
+.lstep__next:disabled {
+  visibility: hidden;
+}
+
+.lstep__end {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  max-width: 260px;
+  text-align: right;
+}
+
+.lstep__next[aria-disabled="true"] {
+  opacity: 0.55;
+}
+
+.lstep__mid {
+  min-width: 0;
+}
+
+.lstep__now {
+  display: none;
+}
+
+.lstep__track {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* From the first dot's centre to the last's; the fill grows from the left. */
+.lstep__line {
+  background: var(--surface-4);
+  border-radius: 2px;
+  height: 3px;
+  left: calc(50% / var(--n));
+  position: absolute;
+  right: calc(50% / var(--n));
+  top: 20px;
+}
+
+.lstep__line i {
+  background: var(--sweep);
+  background-size: 300% 100%;
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transform: scaleX(var(--isi));
+  transform-origin: left center;
+  transition: transform 420ms var(--ease-out-expo);
+}
+
+:root:not([data-motion-tier="0"]) .lstep__line i {
+  animation: kit-sweep 7s linear infinite;
+}
+
+.lstep__track li {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.lstep__dot {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-md, 12px);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 6px;
+  justify-items: center;
+  min-width: 0;
+  padding: 4px 6px 6px;
+  position: relative;
+}
+
+.lstep__mark {
+  align-items: center;
+  background: var(--surface-2);
+  border: 2px solid var(--hairline);
+  border-radius: 50%;
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  height: 32px;
+  justify-content: center;
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    border-color var(--dur-fast) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal),
+    transform var(--dur-fast) var(--ease-out-expo);
+  width: 32px;
+}
+
+.lstep__lbl {
+  font-size: 0.875rem;
+  font-weight: 600;
+  hyphens: manual;
+  line-height: 1.2;
+  overflow-wrap: normal;
+  text-align: center;
+}
+
+.lstep__short {
+  display: none;
+}
+
+.lstep__dot[data-st="selesai"] .lstep__mark {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--surface-1);
+}
+
+.lstep__dot[data-st="kini"] {
+  color: var(--text);
+}
+
+.lstep__dot[data-st="kini"] .lstep__mark {
+  background: var(--surface-1);
+  border-color: var(--mod-hue, var(--accent));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--mod-hue, var(--accent)) 26%, transparent);
+  color: var(--text);
+  transform: scale(1.12);
+}
+
+/* Visited and left unfinished: the old yellow tint, now on the ring. */
+.lstep__dot[data-tone="warn"] .lstep__mark {
+  border-color: var(--warn);
+}
+
+.lstep__dot[data-st="tunggu"] .lstep__mark {
+  border-style: dashed;
+  color: var(--text-faint);
+}
+
+.lstep__dot[data-st="kunci"] {
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.lstep__dot[data-st="kunci"] .lstep__mark {
+  color: var(--text-faint);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lstep__dot:not([data-st="kunci"]):not([data-st="kini"]):hover .lstep__mark {
+    border-color: var(--mod-hue, var(--accent));
+    transform: translateY(-1px);
   }
-  /* The five session steps have no icons (p-module): a shorter row. */
-  .modsteps__tabs--plain button {
-    font-size: 0.875rem;
-    min-height: 48px;
-  }
-  /* Module 4's six session steps: two rows of three on a phone. */
-  .modsteps__tabs--six {
-    grid-auto-flow: row;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  /* Seven with TP (Phase 13): four over three. */
-  .modsteps__tabs--seven {
-    grid-auto-flow: row;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .lstep__dot:not([data-st="kunci"]):hover {
+    color: var(--text);
   }
 }
 
-/* Phase 13: Tugas Pendahuluan reads TP where the row is tight. */
-.modsteps__short {
-  display: none;
+.lstep__dot:active:not([data-st="kunci"]) .lstep__mark {
+  transform: scale(0.94);
 }
+
+.lstep__dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lstep__line i,
+  .lstep__mark {
+    transition: none;
+  }
+}
+
+/* Between phone and desktop: shorter labels, tighter buttons, and the
+   reason on its own row so the dots keep the width. */
 @media (max-width: 1023px) {
-  .modsteps__long {
+  .lstep__lbl {
+    font-size: 0.8rem;
+  }
+  .lstep__full {
     display: none;
   }
-  .modsteps__short {
+  .lstep__short {
     display: inline;
   }
+  .lstep__dot {
+    padding-inline: 2px;
+  }
+  .lstep__navl {
+    display: none;
+  }
+  .lstep__end {
+    display: contents;
+  }
+  .lstep__next {
+    justify-self: end;
+  }
+  .lstep__why {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
 }
-@media (min-width: 1024px) {
-  .modsteps__tabs--seven button,
-  .modsteps__tabs--six button {
-    padding-inline: 12px;
+
+@media (min-width: 640px) and (max-width: 799px) {
+  .lstep__lbl {
+    font-size: 0.75rem;
+  }
+}
+
+/* Phone: Prev, "Step 5 of 6" over the name, Next; the dots below, no labels. */
+@media (max-width: 639px) {
+  .lstep {
+    align-items: center;
+    gap: var(--space-2);
+    grid-template-areas:
+      "prev now next"
+      "track track track"
+      "why why why";
+  }
+  .lstep__mid {
+    display: contents;
+  }
+  .lstep__prev {
+    grid-area: prev;
+  }
+  .lstep__next {
+    grid-area: next;
+    justify-self: end;
+  }
+  .lstep__track {
+    grid-area: track;
+  }
+  .lstep__now {
+    grid-area: now;
+    display: grid;
+    line-height: 1.15;
+    text-align: center;
+  }
+  .lstep__now small {
+    color: var(--text-faint);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .lstep__now b {
+    font-size: 1rem;
+  }
+  .lstep__lbl {
+    display: none;
+  }
+  .lstep__line {
+    top: 18px;
+  }
+  .lstep__mark {
+    font-size: 0.8rem;
+    height: 28px;
+    width: 28px;
+  }
+  .lstep__nav {
+    min-width: 44px;
+    padding-inline: 10px;
+  }
+  .lstep__end {
+    display: contents;
+  }
+  .lstep__why {
+    grid-area: why;
+    text-align: center;
   }
 }
 
@@ -193,7 +443,8 @@
 /* -------------------------------------------------------------- setup */
 
 .modsetup {
-  align-items: stretch;
+  /* Phase 21 (f12): cards size to their content, rows align at the top. */
+  align-items: start;
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr);
@@ -233,18 +484,58 @@
   }
 }
 
+/* Phase 21 (f4): the software as plain rows under a small label, split by
+   hairlines, not pills. */
 .modsetup__tools {
-  flex-wrap: wrap;
+  border-top: 1px solid var(--hairline);
+  display: grid;
   gap: 6px;
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
 }
 
-/* A long tool name ("Python (CPython), lewat editor teks ...") wraps inside
-   its pill instead of running past the card. */
-.modsetup__tools .pill {
-  line-height: 1.3;
-  max-width: 100%;
-  padding-block: 4px;
-  white-space: normal;
+.modsetup__tools ul {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.modsetup__tools li {
+  font-weight: 600;
+  line-height: 1.35;
+  padding-block: 6px;
+}
+
+.modsetup__tools li + li {
+  border-top: 1px solid var(--hairline);
+}
+
+/* Ringkasan's at a glance facts as one plain line with module-hue dots. */
+.modfakta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.modfakta li {
+  align-items: center;
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.modfakta li + li::before {
+  background: var(--mod-hue, var(--accent));
+  border-radius: 50%;
+  content: "";
+  height: 5px;
+  margin-inline: 10px;
+  width: 5px;
 }
 
 .ticks {
@@ -407,48 +698,6 @@
 .checkitem[aria-checked="true"] > span:last-child {
   color: var(--text-muted);
   text-decoration: line-through;
-}
-
-/* Previous / next step under each step (2026-10-06). */
-.modsteps__pager {
-  align-items: center;
-  display: flex;
-  gap: var(--space-3, 12px);
-  justify-content: space-between;
-}
-
-/* Next, with what is still missing beside it (2026-10-12). */
-.modsteps__next {
-  align-items: center;
-  display: flex;
-  gap: var(--space-3, 12px);
-  justify-content: flex-end;
-  text-align: right;
-}
-
-.modsteps__next .btn[aria-disabled="true"] {
-  opacity: 0.55;
-}
-
-/* A step that opens once the ones before it are finished. */
-.modsteps__tabs button[data-locked="yes"] {
-  color: var(--text-faint);
-  cursor: not-allowed;
-}
-
-@media (max-width: 520px) {
-  .modsteps__pager {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
-  .modsteps__pager > span:empty {
-    display: none;
-  }
-  .modsteps__next {
-    flex-direction: column-reverse;
-    align-items: stretch;
-    text-align: left;
-  }
 }
 
 /* Ringkasan with no list of steps: the summary and the at a glance facts

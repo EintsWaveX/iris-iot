@@ -4,6 +4,13 @@
    sweep-hover), no home-made glows. */
 
 /* ------------------------------------------------------------ layout */
+/* Phase 21 (f8): before its window opens, the TP step is one centred card. */
+.tpsolo {
+  margin-inline: auto;
+  max-width: 760px;
+  width: 100%;
+}
+
 .tpgrid {
   align-items: start;
   display: grid;
@@ -2270,4 +2277,64 @@ button.tpcheck:focus-visible,
     flex-wrap: wrap;
     gap: 2px 8px;
   }
+}
+
+/* Phase 21 (f5): the TP card and trail as one slim row in a session. */
+.tpbaris {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.tpbaris__now {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.tpbaris__h {
+  font-size: 1rem;
+}
+
+/* The countdown's tiles at a slim row's size; units under each group stay. */
+.tpbaris .cdown__d b {
+  font-size: 1rem;
+  height: 30px;
+  width: 22px;
+}
+
+.tpbaris .cdown__sep {
+  font-size: 0.95rem;
+  line-height: 30px;
+}
+
+.tpbaris .cdown__g small {
+  font-size: 0.6rem;
+}
+
+.tpbaris__l {
+  display: flex;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tpbaris__l li {
+  align-items: center;
+  display: inline-flex;
+  font-size: var(--fs-small);
+  gap: 6px;
+}
+
+.tpbaris__bad {
+  color: var(--danger);
+  font-weight: 650;
 }

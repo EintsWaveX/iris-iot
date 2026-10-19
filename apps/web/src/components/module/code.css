@@ -60,6 +60,15 @@
 
 /* ------------------------------------------------------------ head row */
 
+/* Phase 21 (f6): the file tabs and the Baris chips are the editor's own top
+   strips, so they are always exactly its width. */
+.codecard > .codehead {
+  border-bottom: 1px solid var(--hairline);
+  padding: 10px 12px;
+}
+
+/* Persiapan's Kode Jurnal editor (console/prep/CodeEditor.tsx) keeps the
+   head row above its cards. */
 .codehead {
   align-items: center;
   display: flex;
@@ -77,6 +86,25 @@
   min-width: 0;
 }
 
+.codehead__tools {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.codecard > .codehead {
+  flex-wrap: nowrap;
+}
+
+.codecard .codehead__files {
+  display: grid;
+  flex: 1 1 auto;
+  grid-auto-columns: minmax(0, 1fr);
+  width: 100%;
+}
+
 /* The sketch's file name: one line where it fits, else it breaks after an
    underscore (BlankFile's FileName puts the break points there). */
 .codehead__name,
@@ -91,12 +119,10 @@
   text-align: center;
 }
 
-.codehead__tools {
-  align-items: center;
-  display: inline-flex;
-  flex: none;
-  gap: 8px;
-  margin-left: auto;
+.codehead__single {
+  flex: 1;
+  padding: 6px 4px;
+  text-align: left;
 }
 
 .codestep__keys-hint {
@@ -105,10 +131,12 @@
 
 /* --------------------------------------------------------- blank chips */
 
-.blanknav {
+.codecard > .blanknav {
+  border-bottom: 1px solid var(--hairline);
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  padding: 10px 12px;
 }
 
 .blankchip {
@@ -507,13 +535,6 @@
   flex: none;
 }
 
-.codestep__pins {
-  max-height: calc(100dvh - var(--nav-size, 64px) - 40px);
-  overflow: auto;
-  position: sticky;
-  top: calc(var(--nav-size, 64px) + 20px);
-}
-
 :root:not([data-motion-tier="0"]) .codestep__done {
   animation: code-rise 420ms var(--ease-out-expo) both;
 }
@@ -527,91 +548,93 @@
 
 /* Phones: the file switch takes its own row, the tools go under it. */
 @media (max-width: 639px) {
-  .codehead__files {
-    flex: 1 1 100%;
-  }
   .codestep__keys-hint {
     display: none;
   }
-  .blanknav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* One row that scrolls sideways: the code starts higher (f6). */
+  .codecard > .blanknav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
   .blankchip {
-    justify-content: center;
-    width: 100%;
+    flex: none;
+    white-space: nowrap;
   }
   .code {
     font-size: 0.844rem;
   }
 }
 
-/* ------------------------------------------- status badges and chip icons */
+/* ------------------------------------------------ the editor's foot */
 
-.blankcount {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+/* Phase 21 (f6): the counts as one quiet line of coloured text (each still
+   jumps to its next blank), the help, download and widen at its right. */
+.codefoot--bar {
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 6px 8px 6px 14px;
 }
 
-.blankcount__b {
+.codestat {
   align-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--hairline-strong);
-  border-radius: 10px;
-  color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  min-width: 0;
+}
+
+.codestat__b {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-muted);
   cursor: pointer;
-  display: inline-flex;
   font: inherit;
-  font-weight: 650;
-  gap: 8px;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 12px;
-  transition: border-color var(--dur-fast) var(--ease);
+  font-size: var(--fs-small);
+  padding: 4px 2px;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.codestat__b b {
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.codestat__b[data-k="right"] b {
+  color: var(--ok);
+}
+.codestat__b[data-k="wrong"] b {
+  color: var(--danger);
+}
+.codestat__b[data-k="hint"] b {
+  color: var(--violet);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .blankcount__b:hover:not(:disabled) {
-    border-color: var(--text-muted);
+  .codestat__b:hover:not(:disabled) {
+    color: var(--text);
+    text-decoration: underline;
   }
 }
 
-.blankcount__b:focus-visible {
+.codestat__b:focus-visible {
   box-shadow: var(--glow-ring);
   outline: none;
 }
 
-.blankcount__b:disabled {
+.codestat__b:disabled {
   cursor: default;
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
-.blankcount__b b {
-  font-variant-numeric: tabular-nums;
-}
-
-.blankcount__dot {
-  border: 2px solid var(--text-muted);
-  border-radius: 50%;
-  height: 10px;
-  width: 10px;
-}
-
-.blankcount__b[data-k="right"] .blankcount__dot {
-  background: var(--ok);
-  border-color: var(--ok);
-}
-.blankcount__b[data-k="wrong"] .blankcount__dot {
-  background: var(--danger);
-  border-color: var(--danger);
-}
-.blankcount__b[data-k="hint"] {
-  color: var(--violet);
-}
-.blankcount__b[data-k="hint"] span,
-.blankcount__b[data-k="hint"] b {
-  color: var(--text);
+/* Pin dan Skema folded to one row; Lihat opens it as a sheet. */
+.pinrow {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
 }
 
 .blankchip__ic {
@@ -675,11 +698,6 @@
 .codeside {
   gap: 14px;
   min-width: 0;
-}
-
-.codeside > .codestep__pins {
-  max-height: none;
-  position: static;
 }
 
 .codebelow {
@@ -825,9 +843,6 @@
 }
 
 @media (max-width: 639px) {
-  .blankcount {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .codestep__grup {
     width: 100%;
   }

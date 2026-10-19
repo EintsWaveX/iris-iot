@@ -36,26 +36,15 @@
  * step before it leaves the module (2026-10-07, user).
  */
 import { hariJam, useTpSaya } from "../tp/shared";
+import { useEffect, useRef, useState, type ComponentProps, type CSSProperties } from "react";
 import {
-  useEffect,
-  useRef,
-  useState,
-  type ComponentProps,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
-import {
-  BookOpenTextIcon,
   CaretLeftIcon,
   CheckCircleIcon,
   CheckIcon,
-  CircuitryIcon,
-  ExamIcon,
   EyeIcon,
   FlagCheckeredIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
-  NoteIcon,
 } from "@phosphor-icons/react";
 import PdfViewer from "../ui/PdfViewer";
 import Fade from "../ui/Fade";
@@ -68,7 +57,9 @@ import SetupChecklist from "./SetupChecklist";
 import LiveRoom from "../live/LiveRoom";
 import { CaptureList, useTangkapan } from "../live/Capture";
 import { useLangkah, type StepId } from "./useLangkah";
-import "../ui/Tabs.css";
+import LineStepper from "./LineStepper";
+import { tetangga, titikLangkah } from "../../lib/langkah-garis";
+import { useMinWidth } from "../../lib/hooks";
 import { CV } from "../live/captureStrings";
 import BriefStep from "./BriefStep";
 import HuntStep, { usePerburuan } from "./HuntStep";
@@ -115,14 +106,6 @@ interface Props {
   layers: ComponentProps<typeof LiveRoom>["layers"];
   code: CodeProps;
 }
-
-/** Only the three browse steps carry an icon. */
-const ICON: Partial<Record<Step, ReactNode>> = {
-  modul: <BookOpenTextIcon aria-hidden="true" />,
-  brief: <NoteIcon aria-hidden="true" />,
-  tp: <ExamIcon aria-hidden="true" />,
-  praktikum: <CircuitryIcon aria-hidden="true" />,
-};
 
 /** Lihat Sebagai Praktikan: the group an Asisten views the page as. */
 export interface Wakil {
@@ -250,6 +233,7 @@ export default function ModuleSteps(p: Props) {
   }, [me, segarMine, segarJawab]);
 
   const pro = useProyektor(me);
+  const sempit = !useMinWidth(640, true);
   const wakil = useWakil(modul, me?.role === "asisten", pro);
   const [lihatGagal] = useState(
     () => typeof location !== "undefined" && new URLSearchParams(location.search).has("lihat"),
@@ -388,11 +372,35 @@ export default function ModuleSteps(p: Props) {
   }
 
   const done = mode === "done" ? mine?.find((x) => x.modul === modul) : undefined;
+  // The line stepper (Phase 21): a waiting TP is passed over by Prev and
+  // Next, so it never holds the way on.
+  const tunggu = (s: Step) =>
+    (s === "tp" && tpKunci) || (s === "hunt" && (keadaan === "tunggu" || keadaan === "belum"));
+  const titik = titikLangkah(steps, step, {
+    // TP is the week before's work: never shown as finished here.
+    selesai: (s) => mode === "done" || (s !== "tp" && (langkah?.selesai(s) ?? false)),
+    terbuka: boleh,
+    tunggu,
+  });
+  const { prev, next } = tetangga(steps, step, (s) => s === "tp" && tpKunci);
+  // Next from Modul or Ringkasan finishes it and opens the next step.
+  const bebasKe = (s: Step) =>
+    (step === "modul" || step === "brief") && s === next && langkah?.penghalang(s) === step;
+  const tertahan = !!next && !!langkah && langkah.penghalang(next) !== null && !bebasKe(next);
+  const pindah = (s: Step) => {
+    const bebas = bebasKe(s);
+    if (s === next) langkah?.lanjut(step);
+    go(s, bebas);
+    if (!bebas && !boleh(s)) return;
+    document.querySelector(".lstep")?.scrollIntoView({ block: "nearest" });
+    requestAnimationFrame(() => document.getElementById(`step-${s}`)?.focus());
+  };
+
   const open = akses?.terbuka.includes(modul) ?? false;
   const canEdit = mode === "asisten" && me?.hak?.jadwal === true;
 
   return (
-    <div className="stack stack--lg modsteps">
+    <div className="stack stack--lg modsteps" data-urut={urut ? "yes" : undefined}>
       {wakil && !pro && (
         <div className={`banner modsteps__viewas ${wakil.own ? "banner--ok" : ""}`}>
           <EyeIcon aria-hidden="true" />
@@ -460,73 +468,34 @@ export default function ModuleSteps(p: Props) {
         </div>
       )}
 
-      <div
-        className={`seg seg--big modsteps__tabs${mode === "browse" ? "" : " modsteps__tabs--plain"}${steps.length === 6 ? " modsteps__tabs--six" : steps.length === 7 ? " modsteps__tabs--seven" : ""}`}
-        role="tablist"
-        aria-label={t.steps}
-        data-segfit="off"
-      >
-        {steps.map((s, i) => (
-          <button
-            key={s}
-            type="button"
-            role="tab"
-            id={`step-${s}`}
-            aria-selected={step === s}
-            aria-controls="modsteps-panel"
-            aria-disabled={!boleh(s) || undefined}
-            data-tone={mode === "done" ? "ok" : langkah?.nada(s)}
-            data-locked={!boleh(s) ? "yes" : undefined}
-            title={
-              s === "tp" && tpAlasan
-                ? tpAlasan
-                : !boleh(s) && langkah?.penghalang(s)
-                  ? t.stepLocked(label[langkah.penghalang(s)!])
-                  : undefined
-            }
-            tabIndex={step === s ? 0 : -1}
-            onClick={() => go(s)}
-            onKeyDown={(e) => {
-              const k = e.key;
-              const j =
-                k === "ArrowRight"
-                  ? i + 1
-                  : k === "ArrowLeft"
-                    ? i - 1
-                    : k === "Home"
-                      ? 0
-                      : k === "End"
-                        ? steps.length - 1
-                        : null;
-              if (j === null) return;
-              e.preventDefault();
-              const next = steps[Math.max(0, Math.min(steps.length - 1, j))];
-              go(next);
-              requestAnimationFrame(() => document.getElementById(`step-${next}`)?.focus());
-            }}
-          >
-            {mode === "browse" && ICON[s]}
-            {((s === "hunt" && (keadaan === "tunggu" || keadaan === "belum")) || !boleh(s)) && (
-              <LockSimpleIcon aria-hidden="true" />
-            )}
-            {/* Browse numbers the three steps and gives them icons (mockup
-                m-browse); the five session steps are plain text (p-module). */}
-            <span className="modsteps__label">
-              {mode === "browse" && `${i + 1} `}
-              {s === "tp" ? (
-                <>
-                  <span className="modsteps__long">{label[s]}</span>
-                  <span className="modsteps__short">{TPS[lang].tpShort}</span>
-                </>
-              ) : (
-                label[s]
-              )}
-            </span>
-          </button>
-        ))}
-      </div>
+      <LineStepper
+        lang={lang}
+        steps={steps}
+        step={step}
+        label={label}
+        pendek={{ tp: TPS[lang].tpShort }}
+        titik={titik}
+        prev={prev}
+        next={next}
+        nada={langkah ? langkah.nada : undefined}
+        siap={langkah ? langkah.selesai(step) : true}
+        alasan={langkah && !langkah.selesai(step) ? (t.stepNeed[step] ?? null) : null}
+        tertahan={tertahan}
+        tip={(s, st) =>
+          st === "tunggu" && s === "tp" && tpAlasan
+            ? tpAlasan
+            : st === "kunci" && langkah?.penghalang(s)
+              ? t.stepLocked(label[langkah.penghalang(s)!])
+              : sempit
+                ? label[s]
+                : undefined
+        }
+        onGo={(s) => go(s)}
+        onPrev={() => prev && pindah(prev)}
+        onNext={() => next && pindah(next)}
+      />
 
-      <div id="modsteps-panel" role="tabpanel" aria-labelledby={`step-${step}`}>
+      <div id="modsteps-panel" role="region" aria-labelledby={`step-${step}-l`}>
         <Fade k={`${step}-${mode}`}>
           {step === "modul" ? (
             <PdfViewer url={p.pdfUrl} name={p.pdfName} lang={lang} shape="page" />
@@ -587,67 +556,13 @@ export default function ModuleSteps(p: Props) {
           )}
         </Fade>
       </div>
-
-      {/* The way on from the bottom of a long step (2026-10-06): the tabs
-          are far above by then. */}
-      {(() => {
-        const i = steps.indexOf(step);
-        const prev = i > 0 ? steps[i - 1] : null;
-        const next = i >= 0 && i < steps.length - 1 ? steps[i + 1] : null;
-        if (!prev && !next) return null;
-        const pindah = (s: Step) => {
-          // Next from Modul or Ringkasan finishes it and opens the next step.
-          const bebas =
-            (step === "modul" || step === "brief") && s === next && langkah?.penghalang(s) === step;
-          if (s === next) langkah?.lanjut(step);
-          go(s, bebas);
-          if (!bebas && !boleh(s)) return;
-          document.querySelector(".modsteps__tabs")?.scrollIntoView({ block: "start" });
-          requestAnimationFrame(() => document.getElementById(`step-${s}`)?.focus());
-        };
-        return (
-          <nav className="modsteps__pager" aria-label={t.steps}>
-            {prev ? (
-              <button type="button" className="btn btn--ghost" onClick={() => pindah(prev)}>
-                <CaretLeftIcon size={16} weight="bold" className="btn__back" aria-hidden="true" />
-                {t.prevStep(label[prev])}
-              </button>
-            ) : (
-              <span />
-            )}
-            {next && (
-              <span className="modsteps__next">
-                {langkah && !langkah.selesai(step) && t.stepNeed[step] && (
-                  <span className="hint">{t.stepNeed[step]}</span>
-                )}
-                <button
-                  type="button"
-                  className="btn btn--secondary"
-                  aria-disabled={
-                    (langkah &&
-                      langkah.penghalang(next) !== null &&
-                      !(
-                        (step === "modul" || step === "brief") &&
-                        langkah.penghalang(next) === step
-                      )) ||
-                    undefined
-                  }
-                  onClick={() => pindah(next)}
-                >
-                  {t.nextStep(label[next])}
-                </button>
-              </span>
-            )}
-          </nav>
-        );
-      })()}
     </div>
   );
 }
 
 function Setup(p: Props) {
   const t = M[p.lang];
-  // Each tool once, as a badge; its use stays in the tooltip.
+  // Each tool once, as plain text (Phase 21, f4); its use stays in the tooltip.
   const tools = [...new Set(p.toolchain.map((tc) => tc.alat))];
   // Mockup p-module Setup: three equal cards, what you need, pins and
   // schematic, the checklist.
@@ -666,18 +581,21 @@ function Setup(p: Props) {
             </li>
           ))}
         </ul>
-        <div className="row modsetup__tools">
-          {tools.map((a) => (
-            <Pill
-              key={a}
-              title={p.toolchain
-                .filter((tc) => tc.alat === a)
-                .map((tc) => tc.label)
-                .join(", ")}
-            >
-              {a}
-            </Pill>
-          ))}
+        <div className="modsetup__tools">
+          <span className="label-caps">{t.software}</span>
+          <ul>
+            {tools.map((a) => (
+              <li
+                key={a}
+                title={p.toolchain
+                  .filter((tc) => tc.alat === a)
+                  .map((tc) => tc.label)
+                  .join(", ")}
+              >
+                {a}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
       <section className="panel">

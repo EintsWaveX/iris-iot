@@ -11,6 +11,7 @@ export const PJ = dict({
     papan: "Papan",
     viewLabel: "Tampilan rangkaian",
     dragHint: "Seret ujung kabel ke pin lain di papan, atau klik kabelnya lalu klik pin tujuan.",
+    howTo: "Cara Pakai",
     readHint: "Klik kabel untuk melihat pin mana saja yang bisa dipakainya.",
     yours: "Pin Kelompokmu",
     yoursHint:
@@ -71,6 +72,7 @@ export const PJ = dict({
     papan: "Board",
     viewLabel: "Wiring view",
     dragHint: "Drag a wire's end to another pin on the board, or click the wire, then the pin.",
+    howTo: "How to Use",
     readHint: "Click a wire to see which pins it could use.",
     yours: "Your Group's Pins",
     yoursHint:
@@ -130,6 +132,7 @@ export const PJ = dict({
     papan: "开发板",
     viewLabel: "接线视图",
     dragHint: "把线的一端拖到板上的另一个引脚，或者先点线，再点目标引脚。",
+    howTo: "使用方法",
     readHint: "点一根线，看看它可以用哪些引脚。",
     yours: "你们组的引脚",
     yoursHint:

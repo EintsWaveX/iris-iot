@@ -25,6 +25,45 @@
   text-decoration: none;
 }
 
+/* Phase 21 (f2): the module once, its label in the module's hue; the time
+   gone is the bar's own underline, in the same hue (warn near the end). */
+.minibar__name {
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.minibar__modl {
+  color: color-mix(in srgb, var(--mod-hue) 70%, var(--text));
+}
+
+.minibar__kelas {
+  white-space: nowrap;
+}
+
+.minibar::after {
+  background: linear-gradient(90deg, var(--mod-hue), var(--accent));
+  bottom: -1px;
+  content: "";
+  height: 3px;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  transform: scaleX(var(--porsi, 0));
+  transform-origin: left center;
+  transition: transform 1s var(--ease-reveal);
+}
+
+.minibar[data-urgent="yes"]::after {
+  background: linear-gradient(90deg, var(--warn), var(--danger));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .minibar::after {
+    transition: none;
+  }
+}
+
 .minibar__dot {
   background: var(--ok);
   border-radius: 50%;
@@ -274,7 +313,7 @@
     padding: 6px 12px;
     top: var(--nav-size);
   }
-  .minibar__name {
+  .minibar__topik {
     display: none;
   }
   .minibar__time svg {
@@ -326,7 +365,7 @@
 }
 
 @media (max-width: 639px) {
-  .minibar > .pill--violet,
+  .minibar__kelas,
   .minibar__dot {
     display: none;
   }

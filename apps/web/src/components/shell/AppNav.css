@@ -315,6 +315,18 @@
   min-height: 44px;
 }
 
+/* Phase 21: the visitor's Praktikum button sits in the bar's centre. */
+.appnav__center {
+  left: 50%;
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + var(--nav-size) / 2);
+  transform: translate(-50%, -50%);
+}
+
+.appnav__center .appnav__signin {
+  padding-inline: 20px;
+}
+
 /* The nav clock (NavClock.tsx), a pill as in the mockup (G6) */
 .navclock {
   align-items: center;
@@ -773,8 +785,18 @@
     padding-inline: var(--space-4);
   }
   .appnav__links,
-  .appnav__side {
+  .appnav__side,
+  .appnav__center {
     display: none;
+  }
+  /* The phone's Praktikum button: centred in the bar too. A visitor's
+     phone shows its own clock in the status bar, so the nav clock steps
+     aside for it on the narrowest screens. */
+  .appnav__signin--mobile {
+    left: 50%;
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + var(--nav-size) / 2);
+    transform: translate(-50%, -50%);
   }
   .appnav__me--mobile {
     display: inline-flex;
@@ -1017,4 +1039,10 @@
   min-width: 20px;
   padding: 0 6px;
   place-items: center;
+}
+
+@media (max-width: 479px) {
+  .appnav[data-tamu="yes"] .navclock--mobile {
+    display: none;
+  }
 }

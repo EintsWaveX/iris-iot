@@ -2,7 +2,9 @@
  * The session strip (Phase 9): the clock and the time left, both as
  * HH:MM:SS, then "N of M minutes" with a bar. The Asisten session bar and
  * the Praktikan mini bar both carry it, and the nav clock hides while it
- * shows ("auto" in Tampilan). `compact` drops the bar below 1100px.
+ * shows ("auto" in Tampilan). `compact` drops the bar below 1100px;
+ * `garis` drops it everywhere (Phase 21: the Praktikan row draws the time
+ * gone as its own underline).
  */
 import type { CSSProperties } from "react";
 import { dict, useTick } from "../../lib/app";
@@ -61,12 +63,14 @@ export default function SessionStrip({
   durasi,
   compact,
   hue,
+  garis,
 }: {
   lang: Lang;
   mulaiPada: string | null;
   durasi: number;
   compact?: boolean;
   hue?: string;
+  garis?: boolean;
 }) {
   const t = T[lang];
   const now = useTick(1000);
@@ -91,20 +95,24 @@ export default function SessionStrip({
         <small>{t.sisa}</small>
         <b className="mono">{hms(left)}</b>
       </span>
-      <span className="strip__dot strip__prog-dot" aria-hidden="true">
-        ·
-      </span>
-      <span className="strip__prog">
-        <span
-          className="meter"
-          role="progressbar"
-          aria-valuenow={pct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          style={{ "--meter": pct } as CSSProperties}
-        />
-        <span className="hint num">{t.dari(gone, durasi)}</span>
-      </span>
+      {!garis && (
+        <span className="strip__dot strip__prog-dot" aria-hidden="true">
+          ·
+        </span>
+      )}
+      {!garis && (
+        <span className="strip__prog">
+          <span
+            className="meter"
+            role="progressbar"
+            aria-valuenow={pct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            style={{ "--meter": pct } as CSSProperties}
+          />
+          <span className="hint num">{t.dari(gone, durasi)}</span>
+        </span>
+      )}
     </span>
   );
 }

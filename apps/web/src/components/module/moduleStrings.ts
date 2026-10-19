@@ -4,6 +4,7 @@ import { dict } from "../../lib/app";
 export const M = dict({
   id: {
     steps: "Langkah",
+    stepOf: (i: number, n: number) => `Langkah ${i} dari ${n}`,
     prevStep: (s: string) => `Sebelumnya: ${s}`,
     nextStep: (s: string) => `Lanjut: ${s}`,
     stepLocked: (s: string) => `Selesaikan ${s} dulu untuk membuka langkah ini.`,
@@ -26,6 +27,7 @@ export const M = dict({
     atAGlance: "Sekilas",
     game: "Permainan",
     whatYouNeed: "Yang Kamu Butuhkan",
+    software: "Perangkat Lunak",
     pins: "Pin dan Skema",
     checklist: "Daftar Persiapan",
     lastBy: (who: string, when: string) =>
@@ -92,6 +94,7 @@ export const M = dict({
   },
   en: {
     steps: "Steps",
+    stepOf: (i: number, n: number) => `Step ${i} of ${n}`,
     prevStep: (s: string) => `Back: ${s}`,
     nextStep: (s: string) => `Next: ${s}`,
     stepLocked: (s: string) => `Finish ${s} first to open this step.`,
@@ -114,6 +117,7 @@ export const M = dict({
     atAGlance: "At a Glance",
     game: "The Game",
     whatYouNeed: "What You Need",
+    software: "Software",
     pins: "Pins and Schematic",
     checklist: "Setup Checklist",
     lastBy: (who: string, when: string) =>
@@ -179,6 +183,7 @@ export const M = dict({
   },
   zh: {
     steps: "步骤",
+    stepOf: (i: number, n: number) => `第 ${i} 步，共 ${n} 步`,
     prevStep: (s: string) => `上一步：${s}`,
     nextStep: (s: string) => `下一步：${s}`,
     stepLocked: (s: string) => `先完成${s}，才能打开这一步。`,
@@ -201,6 +206,7 @@ export const M = dict({
     atAGlance: "一览",
     game: "游戏",
     whatYouNeed: "你需要准备",
+    software: "软件",
     pins: "引脚和电路图",
     checklist: "准备清单",
     lastBy: (who: string, when: string) => `这份概要由助教撰写，最后由 ${who} 修改 · ${when}。`,

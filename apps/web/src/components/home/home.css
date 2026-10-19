@@ -411,3 +411,56 @@
     scroll-snap-align: start;
   }
 }
+
+/* Phase 21: Home for a visitor, a frame for now: the lab's name, Lihat Modul
+   and Praktikum in the centre of the page. */
+.homeframe {
+  align-content: center;
+  display: grid;
+  gap: var(--space-5);
+  justify-items: center;
+  min-height: min(68vh, 640px);
+  padding-block: var(--space-8, 48px);
+  text-align: center;
+}
+
+.homeframe__title {
+  margin: 0;
+}
+
+.homeframe__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+:root:not([data-motion-tier="0"]) .homeframe > * {
+  animation: homeframe-rise 640ms var(--ease-out-expo) both;
+}
+
+:root:not([data-motion-tier="0"]) .homeframe > :nth-child(2) {
+  animation-delay: 80ms;
+}
+
+:root:not([data-motion-tier="0"]) .homeframe > :nth-child(3) {
+  animation-delay: 160ms;
+}
+
+@keyframes homeframe-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homeframe > * {
+    animation: none !important;
+  }
+}
+
+/* On Modul the hero sits above the cards with the page's own rhythm. */
+.modhero21 {
+  margin-bottom: var(--space-4);
+}

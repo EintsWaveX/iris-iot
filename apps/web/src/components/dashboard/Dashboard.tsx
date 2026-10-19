@@ -17,9 +17,9 @@
 import { isNimTot } from "../../lib/tot";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
-  ArrowRightIcon,
   BookOpenTextIcon,
   CaretDownIcon,
+  CaretRightIcon,
   ChatCircleTextIcon,
   CheckCircleIcon,
   CheckIcon,
@@ -78,7 +78,8 @@ import "../ui/Display.css";
 import "./Dashboard.css";
 import Nil from "../ui/Nil";
 import { useTpSaya, type TpSaya } from "../tp/shared";
-import { TpKartu, TpRincian } from "../tp/TpDash";
+import { TpBaris, TpKartu, TpRincian } from "../tp/TpDash";
+import { umpanDi } from "../../lib/praktikum-riwayat";
 import { TPS } from "../tp/tpStrings";
 
 export interface ModulInfo {
@@ -192,27 +193,65 @@ async function unduhSketsa(info: ModulInfo, lang: Lang) {
 
 /* ------------------------------------------------------------ cards */
 
+/** Two letters for a name: its first two words' initials. */
+const inisial = (n: string) =>
+  n
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+
+/** Kelompokmu folded to the members' initials (Phase 21, f5); the names
+ *  open below on request. */
 function GroupCard({ t, hasil, me }: { t: DashT; hasil: Hasil | null; me: string }) {
   const k = hasil?.kelompok;
+  const [buka, setBuka] = useState(false);
   return (
     <section className="panel dash__card">
       <div className="panel__head">
         <h2 className="panel__title">{t.groupH}</h2>
+        {k && <span className="hint">{t.anggotaN(k.anggota.length)}</span>}
       </div>
       {k ? (
         <>
-          <ul className="crew">
+          <ul className="crewava" aria-label={t.groupH}>
             {k.anggota.map((n) => (
-              <li key={n} data-me={n === me ? "yes" : "no"}>
-                <span className="crew__star" aria-hidden="true" />
-                <span className="grow">{n}</span>
-                {n === me && <Pill>{t.kamu}</Pill>}
+              <li
+                key={n}
+                data-me={n === me ? "yes" : "no"}
+                data-tip={n === me ? `${n} (${t.kamu})` : n}
+              >
+                <span aria-hidden="true">{inisial(n)}</span>
+                <span className="visually-hidden">{n}</span>
               </li>
             ))}
           </ul>
-          <span className="hint">
-            {t.asistenLine(hasil?.asisten ? namaAsisten(hasil.asisten) : t.belumAda)}
-          </span>
+          {buka && (
+            <ul className="crew fade">
+              {k.anggota.map((n) => (
+                <li key={n} data-me={n === me ? "yes" : "no"}>
+                  <span className="crew__star" aria-hidden="true" />
+                  <span className="grow">{n}</span>
+                  {n === me && <span className="hint">{t.kamu}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="row crewfoot">
+            <span className="hint grow">
+              {t.asistenLine(hasil?.asisten ? namaAsisten(hasil.asisten) : t.belumAda)}
+            </span>
+            <button
+              type="button"
+              className="btn btn--sm btn--ghost"
+              aria-expanded={buka}
+              onClick={() => setBuka((v) => !v)}
+            >
+              {buka ? t.tutupNama : t.lihatNama}
+              <CaretDownIcon size={14} weight="bold" className="crewfoot__ic" aria-hidden="true" />
+            </button>
+          </div>
         </>
       ) : (
         <span className="skeleton" style={{ height: 72 }} />
@@ -230,44 +269,30 @@ function MaterialsCard({ t, lang, modul }: { t: DashT; lang: Lang; modul: number
   return (
     <section className="panel dash__card" style={{ "--m": `var(--mod-${modul})` } as CSSProperties}>
       <h2 className="panel__title">{t.bahanH(modulLabel(modul, lang))}</h2>
-      <ul className="bahan">
-        <li>
+      {/* Phase 21 (f5): three buttons in a row, each the whole target. */}
+      <div className="bahan3">
+        <button type="button" className="bahan3__b" disabled={!p} onClick={() => setOpen(true)}>
           <span className="bahan__ic" aria-hidden="true">
             <PresentationChartIcon size={20} />
           </span>
-          <span className="stack grow" style={{ gap: 0 }}>
-            <b>{t.bahanSlides}</b>
-            <span className="hint">{loaded && !p ? t.slidesKosong : t.bahanSlidesSub}</span>
-          </span>
-          <button type="button" className="btn btn--sm" disabled={!p} onClick={() => setOpen(true)}>
-            {t.buka}
-          </button>
-        </li>
-        <li>
+          <b>{t.bahanSlides}</b>
+          <span className="hint">{loaded && !p ? t.slidesKosong : t.bahanSlidesSub}</span>
+        </button>
+        <a className="bahan3__b" href={href(lang, `/modules/${modul}`)}>
           <span className="bahan__ic" aria-hidden="true">
             <BookOpenTextIcon size={20} />
           </span>
-          <span className="stack grow" style={{ gap: 0 }}>
-            <b>{t.bahanModul}</b>
-            <span className="hint">{t.bahanModulSub}</span>
-          </span>
-          <a className="btn btn--sm" href={href(lang, `/modules/${modul}`)}>
-            {t.baca}
-          </a>
-        </li>
-        <li>
+          <b>{t.bahanModul}</b>
+          <span className="hint">{t.bahanModulSub}</span>
+        </a>
+        <a className="bahan3__b" href={href(lang, `/modules/${modul}?step=code`)}>
           <span className="bahan__ic" aria-hidden="true">
             <CircuitryIcon size={20} />
           </span>
-          <span className="stack grow" style={{ gap: 0 }}>
-            <b>{t.bahanSkema}</b>
-            <span className="hint">{t.bahanSkemaSub}</span>
-          </span>
-          <a className="btn btn--sm" href={href(lang, `/modules/${modul}?step=code`)}>
-            {t.lihat}
-          </a>
-        </li>
-      </ul>
+          <b>{t.bahanSkema}</b>
+          <span className="hint">{t.bahanSkemaSub}</span>
+        </a>
+      </div>
       <SlidesDialog open={open} onOpenChange={setOpen} list={list} modul={modul} lang={lang} />
     </section>
   );
@@ -400,6 +425,7 @@ function Running({
       ) : (
         <span className="skeleton" style={{ minHeight: 320 }} />
       )}
+      <MaterialsCard t={t} lang={lang} modul={modul} />
       <section className="panel dash__card gs__log">
         <div className="panel__head">
           <h2 className="panel__title">{t.logH}</h2>
@@ -408,7 +434,6 @@ function Running({
         <SessionLog items={hasil?.linimasa ?? []} lang={lang} />
       </section>
       <GroupCard t={t} hasil={hasil} me={me.nama} />
-      <MaterialsCard t={t} lang={lang} modul={modul} />
     </div>
   );
 }
@@ -506,13 +531,19 @@ function Practicums({
   lang,
   list,
   go,
+  diAtas,
 }: {
   t: DashT;
   lang: Lang;
   list: Praktikum[];
   go: (v: View) => void;
+  /** The session the Sesi Selesai card above already asks feedback for. */
+  diAtas?: number;
 }) {
   const rows = [...list].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+  // Phase 21 (f13): the row opens its summary; only the newest asks for
+  // feedback, and not when the card above already does.
+  const umpan = umpanDi(list) === diAtas ? null : umpanDi(list);
   return (
     <section className="panel">
       <h2 className="panel__title">{t.prakH}</h2>
@@ -523,46 +554,44 @@ function Practicums({
             key={p.sesiId}
             style={{ "--m": `var(--mod-${p.modul})` } as CSSProperties}
           >
-            <span className="prac__star" aria-hidden="true">
-              <CheckIcon size={14} weight="bold" />
-            </span>
-            <span className="stack" style={{ gap: 2 }}>
-              <b>
-                {modulLabel(p.modul, lang)} · {MODUL_NAMA[p.modul]}
-              </b>
-              <span className="hint">{tanggalPanjang(p.tanggal, lang)}</span>
-            </span>
-            <span className="grow" />
-            {p.status !== "selesai" ? (
-              <Pill tone="ok">{t.berjalan}</Pill>
-            ) : p.rataRata != null ? (
-              <span className="prac__score">
-                <b className="mono">{p.rataRata}</b>
-                <small>{t.rataSingkat}</small>
-              </span>
-            ) : (
-              <span className="hint">{t.menungguNilai}</span>
-            )}
-            {p.status === "selesai" &&
-              (p.sudahUmpanBalik ? (
-                <Pill tone="ok">{t.umpanTerkirim}</Pill>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn--sm"
-                  onClick={() => go({ v: "feedback", sesi: p.sesiId })}
-                >
-                  {t.beriUmpan}
-                </button>
-              ))}
             <button
               type="button"
-              className="iconbtn iconbtn--sm"
-              aria-label={t.bukaRingkasan}
+              className="prac__b"
               onClick={() => go({ v: "summary", sesi: p.sesiId })}
             >
-              <ArrowRightIcon size={18} aria-hidden="true" />
+              <span className="prac__star" aria-hidden="true">
+                <CheckIcon size={14} weight="bold" />
+              </span>
+              <span className="stack grow" style={{ gap: 2 }}>
+                <b>
+                  {modulLabel(p.modul, lang)} · {MODUL_NAMA[p.modul]}
+                </b>
+                <span className="hint">
+                  {tanggalPanjang(p.tanggal, lang)}
+                  {p.sudahUmpanBalik && <span className="prac__sent"> · {t.umpanTerkirim}</span>}
+                </span>
+              </span>
+              {p.status !== "selesai" ? (
+                <Pill tone="ok">{t.berjalan}</Pill>
+              ) : p.rataRata != null ? (
+                <span className="prac__score">
+                  <b className="mono">{p.rataRata}</b>
+                  <small>{t.rataSingkat}</small>
+                </span>
+              ) : (
+                <span className="hint">{t.menungguNilai}</span>
+              )}
+              <CaretRightIcon size={16} weight="bold" className="prac__go" aria-hidden="true" />
             </button>
+            {p.sesiId === umpan && (
+              <button
+                type="button"
+                className="btn btn--sm btn--primary prac__umpan"
+                onClick={() => go({ v: "feedback", sesi: p.sesiId })}
+              >
+                {t.beriUmpan}
+              </button>
+            )}
           </li>
         ))}
       </ul>
@@ -1104,6 +1133,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     body = (
       <>
         <Waiting t={t} lang={lang} hasil={hasil ?? null} me={me.nama} ikut />
+        {sendiri && <TpBaris lang={lang} d={tp.data} />}
         <Nilaiku t={t} lang={lang} list={list} tp={tp.data} />
         {list.length > 0 && <Practicums t={t} lang={lang} list={list} go={go} />}
       </>
@@ -1119,6 +1149,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
           modules={modules}
           me={me}
         />
+        {sendiri && <TpBaris lang={lang} d={tp.data} />}
         <Nilaiku t={t} lang={lang} list={list} tp={tp.data} />
       </>
     );
@@ -1127,7 +1158,9 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
       <>
         <Ended t={t} lang={lang} hasil={endedToday} go={go} />
         <Nilaiku t={t} lang={lang} list={list} tp={tp.data} />
-        {list.length > 0 && <Practicums t={t} lang={lang} list={list} go={go} />}
+        {list.length > 0 && (
+          <Practicums t={t} lang={lang} list={list} go={go} diAtas={endedToday.sesi?.id} />
+        )}
       </>
     );
   } else if (list.length > 0) {
@@ -1177,7 +1210,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
           />
         </div>
       </div>
-      {sendiri && <TpKartu lang={lang} d={tp.data} />}
+      {sendiri && !sesi && !belumIkut && <TpKartu lang={lang} d={tp.data} />}
       {body}
       {sesi && !pro && <CoachMarks lang={lang} />}
     </div>

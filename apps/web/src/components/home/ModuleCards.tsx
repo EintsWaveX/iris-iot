@@ -26,6 +26,9 @@ import { setModulAkses } from "../shell/AsistenCommands";
 import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import "./ModuleCards.css";
+import { ModConstellation } from "../shared/Instruments";
+import { ModulHero, SessionPath } from "./ModulHero";
+import { H } from "./homeStrings";
 import { dengar } from "../../lib/siaran";
 
 export interface ModulKartu {
@@ -162,8 +165,16 @@ function Card({
         location.href = url;
       }}
     >
+      {/* Phase 21: Beranda's lanes merged in: the module's constellation on
+          top, the module as text with its dot, tools as plain text (f4). */}
+      <div className="modcard__art" aria-hidden="true">
+        <ModConstellation m={m.modul} h={120} lang={lang} />
+      </div>
       <div className="row row--between">
-        <ModIcon modul={m.modul} />
+        <span className="modlabel modlabel--lg">
+          <span className="modlabel__dot" aria-hidden="true" />
+          {modulLabel(m.modul, lang)}
+        </span>
         <span className="row modcard__badges">
           {run && (
             <Pill tone="ok">
@@ -177,19 +188,14 @@ function Card({
           {!asisten && done && <Pill tone="ok">{t.done}</Pill>}
         </span>
       </div>
-      <Pill modul={m.modul} lg>
-        {modulLabel(m.modul, lang)}
-      </Pill>
       <h2 className="modcard__title">{MODUL_NAMA[m.modul]}</h2>
       <p className="panel__sub">{t.tagline?.[m.modul] || m.tagline}</p>
-      <div className="row modcard__facts">
+      <p className="modcard__facts mono">
         {m.fakta
           .slice(0, 3)
           .map((f) => t.fakta?.[f] ?? f)
-          .map((f) => (
-            <Pill key={f}>{f}</Pill>
-          ))}
-      </div>
+          .join(" · ")}
+      </p>
       <div className="modcard__foot">
         <span className="modcard__fact">{t.fact(m.berkas.length, blanks)}</span>
         <span className="row modcard__end">
@@ -291,11 +297,20 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
     );
   }
 
+  // Phase 21: a visitor and a Praktikan outside a session get Beranda's
+  // thesis and Langit Lab on top; an Asisten keeps the plain head. Read from
+  // the role, not the access state, so an Asisten never sees it flash in.
+  const hero = me !== undefined && me?.role !== "asisten";
   return (
     <div className="stack stack--lg modlist">
+      {hero && <ModulHero lang={lang} />}
       <header className="modlist__head">
-        <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
-        <h1 className="modlist__title">{t.title}</h1>
+        <p className="eyebrow eyebrow--accent">{hero ? H[lang].rasiEyebrow : t.eyebrow}</p>
+        {hero ? (
+          <h2 className="modlist__title">{t.title}</h2>
+        ) : (
+          <h1 className="modlist__title">{t.title}</h1>
+        )}
         <p className="modlist__lede">{asisten && !pro ? t.ledeA : t.lede}</p>
       </header>
       <div className="modgrid">
@@ -319,6 +334,7 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
           />
         ))}
       </div>
+      {me === null && <SessionPath lang={lang} />}
     </div>
   );
 }

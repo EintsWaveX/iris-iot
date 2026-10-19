@@ -70,6 +70,10 @@
   min-height: 0;
 }
 
+.dash__pair {
+  align-items: start;
+}
+
 .dash__h {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 1.2vw + 1.1rem, 2rem);
@@ -505,7 +509,7 @@
 
 @media (min-width: 1240px) {
   .dash10__head[data-grid="gs"] {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 5fr) minmax(0, 4fr);
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
   }
 
   .dash10__head[data-grid="gs"] > :last-child {
@@ -555,15 +559,13 @@
 }
 
 /* The ground station: cockpit, instrument, log; group and materials. */
+/* Phase 21 (f5, f12): the next step first and widest with Live beside it;
+   then the materials, the log and the group, each as tall as its content. */
 .gs {
-  align-items: stretch;
+  align-items: start;
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1fr);
-}
-
-.gs > * {
-  height: 100%;
 }
 
 /* Two equal rows: the next step beside the live instrument, then the
@@ -576,6 +578,7 @@
 
 .gs__log > :last-child {
   flex: 1 1 auto;
+  max-height: 18rem;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
@@ -587,9 +590,7 @@
   }
 
   .gs > .gs__log {
-    contain: size;
     grid-column: 1 / -1;
-    min-height: 16rem;
     order: 9;
   }
 }
@@ -599,15 +600,18 @@
     grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 
-  .gs > :nth-child(1),
-  .gs > :nth-child(4),
-  .gs > :nth-child(5),
-  .gs > .gs__log {
-    grid-column: span 4;
+  .gs > :nth-child(1) {
+    grid-column: span 7;
   }
 
   .gs > :nth-child(2) {
-    grid-column: span 8;
+    grid-column: span 5;
+  }
+
+  .gs > :nth-child(n + 3),
+  .gs > .gs__log {
+    grid-column: span 4;
+    order: 0;
   }
 }
 
@@ -966,4 +970,189 @@
 }
 .dash10 > .tpdash {
   margin-bottom: 4px;
+}
+
+/* ------------------------------------------- Phase 21: Dasbor declutter */
+
+/* Kelompokmu folded to initials in the group's hue; you are ringed. */
+.crewava {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.crewava li {
+  align-items: center;
+  background: color-mix(in srgb, var(--g, var(--accent)) 18%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--g, var(--accent)) 45%, transparent);
+  border-radius: 50%;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 750;
+  height: 36px;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  transition: transform var(--dur-fast) var(--ease-out-expo);
+  width: 36px;
+}
+
+.crewava li[data-me="yes"] {
+  box-shadow:
+    0 0 0 2px var(--surface-1),
+    0 0 0 4px var(--g, var(--accent));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .crewava li:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.crewfoot {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.crewfoot__ic {
+  transition: transform var(--dur-fast) var(--ease-out-expo);
+}
+
+[aria-expanded="true"] > .crewfoot__ic {
+  transform: rotate(180deg);
+}
+
+/* The materials: three buttons in a row, each the whole target. */
+.bahan3 {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bahan3__b {
+  align-content: start;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 6px;
+  justify-items: start;
+  min-width: 0;
+  padding: 12px;
+  text-align: left;
+  text-decoration: none;
+  transition:
+    border-color var(--dur-fast) var(--ease-reveal),
+    transform var(--dur-fast) var(--ease-out-expo);
+}
+
+.bahan3__b b {
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.bahan3__b .hint {
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bahan3__b:hover:not(:disabled) {
+    border-color: var(--m);
+    transform: translateY(-2px);
+  }
+}
+
+.bahan3__b:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.bahan3__b:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
+}
+
+.bahan3__b:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+@media (max-width: 479px) {
+  .bahan3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bahan3__b {
+    align-items: center;
+    column-gap: 12px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .bahan3__b .bahan__ic {
+    grid-row: span 2;
+  }
+}
+
+/* Praktikummu rows: the row opens the summary; feedback only on the newest. */
+.prac {
+  flex-wrap: nowrap;
+  padding: 0;
+}
+
+.prac__b {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex: 1;
+  font: inherit;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.prac__go {
+  color: var(--text-faint);
+  flex: none;
+  transition: transform var(--dur-fast) var(--ease-out-expo);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .prac__b:hover .prac__go {
+    color: var(--text);
+    transform: translateX(3px);
+  }
+}
+
+.prac__b:focus-visible {
+  box-shadow: inset var(--glow-ring);
+  outline: none;
+}
+
+.prac__umpan {
+  flex: none;
+  margin-right: 12px;
+}
+
+/* The feedback already went out: said quietly on the date line. */
+.prac__sent {
+  color: var(--ok);
+}
+
+@media (max-width: 519px) {
+  .prac {
+    flex-wrap: wrap;
+  }
+  .prac__umpan {
+    margin: 0 12px 12px;
+    width: calc(100% - 24px);
+  }
 }

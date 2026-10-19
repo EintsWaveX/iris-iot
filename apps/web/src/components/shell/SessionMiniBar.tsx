@@ -25,9 +25,9 @@ import {
   type SesiNow,
 } from "../../lib/app";
 import { durasiSesi } from "../../lib/jadwal";
+import { porsiSesi } from "../../lib/sesi-waktu";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
-import Pill from "../ui/Pill";
 import SessionStrip from "./SessionStrip";
 import KodeMasuk from "./KodeMasuk";
 import SlidesDialog, { useSlides } from "./SlidesDialog";
@@ -249,16 +249,24 @@ export default function SessionMiniBar({
       className="minibar"
       role="region"
       aria-label={t.region}
-      style={{ "--mod-hue": `var(--mod-${s.modul})` } as CSSProperties}
+      style={
+        {
+          "--mod-hue": `var(--mod-${s.modul})`,
+          "--porsi": porsiSesi(s.mulaiPada, durasi, tick),
+        } as CSSProperties
+      }
       data-urgent={urgent ? "yes" : undefined}
       data-ikut={belumIkut && !proyektor ? "yes" : undefined}
     >
+      {/* Phase 21 (f2, f4): the module named once, as text in its hue. */}
       <a className="minibar__mod" href={href(lang, `/modules/${s.modul}`)} aria-label={t.open}>
         <span className="minibar__dot" aria-hidden="true" />
-        <Pill modul={s.modul}>{modulLabel(s.modul, lang)}</Pill>
-        <b className="minibar__name">{MODUL_SINGKAT[s.modul]}</b>
+        <b className="minibar__name">
+          <span className="minibar__modl">{modulLabel(s.modul, lang)}</span>
+          <span className="minibar__topik"> · {MODUL_SINGKAT[s.modul]}</span>
+        </b>
       </a>
-      {s.kelas === "internasional" && <span className="pill pill--violet">{t.kelas}</span>}
+      {s.kelas === "internasional" && <span className="hint minibar__kelas">{t.kelas}</span>}
 
       <div className="minibar__time">
         {warn && <b className="minibar__warn">{t.warnLine}</b>}
@@ -267,6 +275,7 @@ export default function SessionMiniBar({
           mulaiPada={s.mulaiPada}
           durasi={durasi}
           compact
+          garis
           hue={`var(--mod-${s.modul})`}
         />
       </div>

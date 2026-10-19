@@ -8,7 +8,6 @@ import { ArrowRightIcon, CopySimpleIcon, FileCsvIcon, UsbIcon } from "@phosphor-
 import IconButton from "../ui/IconButton";
 import Nil from "../ui/Nil";
 import Popover from "../ui/Popover";
-import TabLine from "../ui/TabLine";
 import type { Lang } from "../../lib/kelas";
 import { recordStats, type LiveRecord } from "../../lib/live-records";
 import type { LogLine } from "./useSerialBoard";
@@ -377,7 +376,14 @@ export function SerialMonitor({
   return (
     <div className="serial">
       <div className="serial__bar">
-        <TabLine seg value={tab} onChange={setTab} label={t.source} tabs={tabs} />
+        {/* Phase 21 (f7): small text toggles in one row that never wraps. */}
+        <div className="srcfilt" role="group" aria-label={t.source}>
+          {tabs.map((x) => (
+            <button key={x.v} type="button" aria-pressed={tab === x.v} onClick={() => setTab(x.v)}>
+              {x.label}
+            </button>
+          ))}
+        </div>
         <Help lang={lang} modul={modul} />
       </div>
       {cur?.note && <p className="hint">{cur.note}</p>}

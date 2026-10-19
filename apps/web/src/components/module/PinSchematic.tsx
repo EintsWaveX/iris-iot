@@ -49,6 +49,7 @@ import { usePin } from "./usePin";
 import BoardJumper from "./BoardJumper";
 import PinDialog, { jumpersDari } from "./PinDialog";
 import { PJ } from "./pinStrings";
+import Disclose from "../ui/Disclose";
 
 const VIEW_KEY = "iris-pin-view";
 
@@ -710,9 +711,7 @@ export default function PinSchematic({
             {grup.baris && (
               <span className="pill pill--warn">{grup.grup ? pj.yours : pj.yoursTry}</span>
             )}
-            <span className="hint grow">
-              {!grup.boleh ? pj.readHint : grup.grup ? pj.yoursHint : pj.tryHint}
-            </span>
+            <span className="grow" />
             {grup.boleh && dicolok.length < semuaSel.length && (
               <button
                 type="button"
@@ -738,6 +737,14 @@ export default function PinSchematic({
               </button>
             )}
           </div>
+        )}
+        {/* Phase 21 (f8): the board's how-to on demand. */}
+        {lihat === "papan" && (
+          <Disclose className="pins__cara" head={pj.howTo}>
+            <p className="hint">
+              {!grup.boleh ? pj.readHint : grup.grup ? pj.yoursHint : pj.tryHint}
+            </p>
+          </Disclose>
         )}
         {variant === "full" && lihat === "diagram" && <p className="hint">{t.hint}</p>}
       </div>

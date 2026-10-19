@@ -26,7 +26,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import {
   ArrowClockwiseIcon,
   CameraIcon,
-  CheckIcon,
+  CaretDownIcon,
   ClockIcon,
   EyeIcon,
   PauseIcon,
@@ -217,6 +217,7 @@ export default function LiveRoom({
   const [mode, setMode] = useState<"live" | "lapis">("live");
   const [paused, setPaused] = useState(false);
   const [pane, setPane] = useState<"serial" | "flow" | "read">("serial");
+  const [cara, setCara] = useState(false);
   const wide = useMinWidth(1600);
   const [supported, setSupported] = useState<boolean | null>(null);
   useEffect(() => setSupported(serialSupported()), []);
@@ -608,8 +609,11 @@ export default function LiveRoom({
       )}
 
       <div className="livebar">
+        {/* Phase 21 (f7): Simulasi is the chip alone; its sentence is the tip. */}
         <span
           className={`pill ${paused ? "pill--mono" : live ? (stale ? "pill--warn" : "pill--ok") : "pill--mono"}`}
+          data-tip={!live && !paused ? t.simNote(group) : undefined}
+          tabIndex={!live && !paused ? 0 : undefined}
         >
           <span
             className={`dot ${paused ? "dot--off" : live ? (stale ? "dot--warn" : "dot--ok dot--pulse") : "dot--off"}`}
@@ -656,23 +660,31 @@ export default function LiveRoom({
       {/* Kept mounted in Lapisan so an open port is not dropped. */}
       {canPorts && (
         <section className="panel ports" data-ok={missing ? "no" : "yes"} hidden={mode !== "live"}>
-          <div className="panel__head">
-            <h2 className="panel__title">{t.ports}</h2>
-            {missing ? (
+          {/* Phase 21 (f7): once every board is connected the panel is just
+              their rows; the three steps open on demand. */}
+          {missing > 0 && (
+            <div className="panel__head">
+              <h2 className="panel__title">{t.ports}</h2>
               <span className="pill pill--warn">{t.notConnected(missing)}</span>
-            ) : (
-              <span className="pill pill--ok">
-                <CheckIcon aria-hidden="true" />
-                {t.allConnected}
-              </span>
-            )}
-          </div>
+              {supported !== false && (
+                <button
+                  type="button"
+                  className="btn btn--sm btn--ghost ports__how"
+                  aria-expanded={cara}
+                  onClick={() => setCara((v) => !v)}
+                >
+                  {t.howConnect}
+                  <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
           {supported === false ? (
             <p className="hint">{t.unsupported}</p>
           ) : (
             <>
-              {missing > 0 && (
-                <ol className="ports__steps">
+              {missing > 0 && cara && (
+                <ol className="ports__steps fade">
                   <li>{t.step1}</li>
                   <li>{t.step2(modul)}</li>
                   <li>{t.step3}</li>
@@ -692,15 +704,17 @@ export default function LiveRoom({
                   />
                 ))}
               </div>
-              <span className="hint">
-                {modul === 1 && upload.kind !== "idle"
-                  ? upload.kind === "sent"
-                    ? t.uploadSent(upload.n)
-                    : upload.kind === "noSession"
-                      ? t.uploadNoSession
-                      : t.uploadOffline
-                  : t.portsHint}
-              </span>
+              {(missing > 0 || (modul === 1 && upload.kind !== "idle")) && (
+                <span className="hint">
+                  {modul === 1 && upload.kind !== "idle"
+                    ? upload.kind === "sent"
+                      ? t.uploadSent(upload.n)
+                      : upload.kind === "noSession"
+                        ? t.uploadNoSession
+                        : t.uploadOffline
+                    : t.portsHint}
+                </span>
+              )}
             </>
           )}
         </section>
@@ -717,12 +731,6 @@ export default function LiveRoom({
           />
         ) : (
           <div className="stack stack--lg">
-            {!live && !paused && (
-              <p className="banner" role="status">
-                <span>{t.simNote(group)}</span>
-              </p>
-            )}
-
             <ValueCards
               lang={lang}
               modul={modul}
@@ -751,7 +759,6 @@ export default function LiveRoom({
             ) : (
               <section className="panel">
                 <TabLine
-                  seg
                   value={pane}
                   onChange={setPane}
                   label={t.panes}

@@ -32,6 +32,25 @@
   gap: 14px;
 }
 
+.ports .panel__head {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ports__how {
+  margin-left: auto;
+}
+
+.ports__how[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* Every board connected: the panel is just the rows (Phase 21, f7). */
+.ports[data-ok="yes"] {
+  padding: 10px;
+}
+
 .ports__steps {
   color: var(--text-muted);
   display: grid;
@@ -257,10 +276,59 @@
   gap: 8px;
 }
 
-.serial__bar > .seg {
-  flex: 1 1 260px;
+/* Phase 21 (f7): the source filter as small text toggles in one row that
+   scrolls sideways when narrow, never wrapping 2 + 1. */
+.serial__bar {
+  flex-wrap: nowrap;
+}
+
+.srcfilt {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 4px;
   min-width: 0;
-  width: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.srcfilt::-webkit-scrollbar {
+  display: none;
+}
+
+.srcfilt button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 12px;
+  transition:
+    background var(--dur-fast) var(--ease-reveal),
+    border-color var(--dur-fast) var(--ease-reveal),
+    color var(--dur-fast) var(--ease-reveal);
+  white-space: nowrap;
+}
+
+.srcfilt button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--m, var(--accent)) 16%, transparent);
+  border-color: color-mix(in srgb, var(--m, var(--accent)) 55%, transparent);
+  color: var(--text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .srcfilt button:hover {
+    color: var(--text);
+  }
+}
+
+.srcfilt button:focus-visible {
+  box-shadow: var(--glow-ring);
+  outline: none;
 }
 
 .serial__log {

@@ -114,6 +114,14 @@ function TpPraktikan({ lang, modul, nim }: { lang: Lang; modul: number; nim: str
     return <span className="skeleton" style={{ height: 420 }} />;
   }
   const m = d.modul[0];
+  // Phase 21 (f8): before the window opens, only the countdown card; the
+  // questions and how to submit appear once it opens.
+  if (m.keadaan !== "buka" && m.keadaan !== "tutup")
+    return (
+      <div className="tpsolo">
+        <Hero lang={lang} modul={modul} j={m.jendela} k={m.keadaan} polos />
+      </div>
+    );
   return (
     <div className="tpgrid">
       <div className="tpgrid__hero">
@@ -188,20 +196,30 @@ function Hero({
   j,
   k,
   children,
+  polos = false,
 }: {
   lang: Lang;
   modul: number;
   j: JendelaInfo | null;
   k: KeadaanJendela | null;
   children?: ReactNode;
+  /** The module as text with its dot, not a pill (Phase 21, Praktikan). */
+  polos?: boolean;
 }) {
   const t = TPS[lang];
   return (
     <section className="panel panel--raised panel--key tphero" style={modulStyle(modul)}>
       <div className="row">
-        <Pill modul={modul}>
-          {t.tp} · {modulLabel(modul, lang)}
-        </Pill>
+        {polos ? (
+          <span className="modlabel">
+            <span className="modlabel__dot" aria-hidden="true" />
+            {t.tp} · {modulLabel(modul, lang)}
+          </span>
+        ) : (
+          <Pill modul={modul}>
+            {t.tp} · {modulLabel(modul, lang)}
+          </Pill>
+        )}
         <KeadaanPill k={k} lang={lang} />
       </div>
       <h2 className="tphero__h">{judulJendela(k, j, lang)}</h2>

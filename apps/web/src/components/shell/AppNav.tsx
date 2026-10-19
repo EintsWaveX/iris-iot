@@ -38,6 +38,7 @@ import {
   CaretDownIcon,
   ChartBarIcon,
   ClipboardTextIcon,
+  DoorOpenIcon,
   ExamIcon,
   GraduationCapIcon,
   HardDrivesIcon,
@@ -127,6 +128,7 @@ const T = dict({
     reports: "Laporan",
     team: "Tim",
     signIn: "Masuk",
+    praktikum: "Praktikum",
     signOut: "Keluar",
     signOutSure: "Ya, Keluar",
     signOutHint:
@@ -171,6 +173,7 @@ const T = dict({
     reports: "Reports",
     team: "Team",
     signIn: "Sign In",
+    praktikum: "Practicum",
     signOut: "Sign Out",
     signOutSure: "Yes, Sign Out",
     signOutHint:
@@ -215,6 +218,7 @@ const T = dict({
     reports: "报告",
     team: "团队",
     signIn: "登录",
+    praktikum: "实验",
     signOut: "退出登录",
     signOutSure: "确定退出",
     signOutHint: "你的实验课还在进行。答案会保留，你可以用课堂代码重新登录。",
@@ -568,7 +572,11 @@ export default function AppNav({
 
   return (
     <>
-      <header className="appnav" data-scrolled={scrolled ? "yes" : "no"}>
+      <header
+        className="appnav"
+        data-scrolled={scrolled ? "yes" : "no"}
+        data-tamu={me === null ? "yes" : undefined}
+      >
         <a className="appnav__brand" href={href(lang, "/")} aria-label="IRIS">
           <img src="/brand/iris-logo-mark.png" alt="" width="198" height="90" />
         </a>
@@ -654,6 +662,20 @@ export default function AppNav({
           )}
         </nav>
 
+        {/* Phase 21: a visitor's way in, centred in the bar: Praktikum and a door. */}
+        {me === null && !onSignIn && (
+          <div className="appnav__center">
+            <button
+              type="button"
+              className="btn btn--primary appnav__signin"
+              onClick={() => openSignIn()}
+            >
+              <span className="btn__label">{t.praktikum}</span>
+              <DoorOpenIcon size={18} weight="bold" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
         <div className="appnav__side">
           {tampil?.role === "asisten" && (
             <a
@@ -706,16 +728,6 @@ export default function AppNav({
             </RadixPopover.Portal>
           </RadixPopover.Root>
 
-          {me === null && !onSignIn && (
-            <button
-              type="button"
-              className="btn btn--primary appnav__signin"
-              onClick={() => openSignIn()}
-            >
-              <span className="btn__label">{t.signIn}</span>
-            </button>
-          )}
-
           {me && pro && (
             <button type="button" className="btn btn--sm appnav__leave" onClick={leaveProjector}>
               <span className="btn__label">{t.proyektorKeluar}</span>
@@ -767,7 +779,8 @@ export default function AppNav({
               className="btn btn--primary appnav__signin appnav__signin--mobile"
               onClick={() => openSignIn()}
             >
-              <span className="btn__label">{t.signIn}</span>
+              <span className="btn__label">{t.praktikum}</span>
+              <DoorOpenIcon size={18} weight="bold" aria-hidden="true" />
             </button>
           )
         ) : me && pro ? (
