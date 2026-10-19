@@ -26,8 +26,10 @@ import { setModulAkses } from "../shell/AsistenCommands";
 import { modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
 import "./ModuleCards.css";
+import "./home.css";
 import { ModConstellation } from "../shared/Instruments";
 import { ModulHero, SessionPath } from "./ModulHero";
+import type { Lab } from "./HomePage";
 import { H } from "./homeStrings";
 import { dengar } from "../../lib/siaran";
 
@@ -228,6 +230,8 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
   const [terbuka, setTerbuka] = useState<number[] | null>(null);
   const [asisten, setAsisten] = useState(false);
   const [jurnal, setJurnal] = useState<number[]>([]);
+  // The access state has answered once (an Asisten's head and switches).
+  const [aksesSiap, setAksesSiap] = useState(false);
 
   useEffect(() => {
     if (me === undefined) return;
@@ -236,6 +240,7 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
         setTerbuka(s.terbuka);
         setAsisten(s.asisten);
         setJurnal(s.jurnal);
+        setAksesSiap(true);
       });
     load();
     const biasa = () => load();
@@ -248,19 +253,40 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
     };
   }, [asli]);
 
-  // A guest has no session of their own, but the public lab summary still
-  // says which module the lab is running now (Phase 11).
-  const lab = usePoll(
-    () => getJson<{ ok: boolean; sesi: { modul: number } | null }>("/api/session/lab"),
-    60_000,
-    me === null,
-    ["sesi"],
-  );
   const sesi = now.data;
-  const running = signedIn ? (sesi?.modul ?? null) : (lab.data?.sesi?.modul ?? null);
+  // A Praktikan in their running session gets one card (below).
+  const satuKartu = me?.role === "praktikan" && !!sesi && sesi.milikSaya !== false;
+  // Phase 21: a visitor and a Praktikan outside a session get Beranda's
+  // thesis and Langit Lab on top; an Asisten keeps the plain head. Read from
+  // the role, not the access state, so an Asisten never sees it flash in.
+  const hero = me !== undefined && me?.role !== "asisten" && !satuKartu;
+  // The hero's Langit Lab; for a guest the public summary also says which
+  // module the lab is running now (Phase 11). Signed in: each group's stars.
+  const saya = Boolean(me);
+  const lab = usePoll(
+    () => getJson<{ ok: boolean; sesi: Lab | null }>(`/api/session/lab${saya ? "?saya=1" : ""}`),
+    60_000,
+    hero,
+    ["sesi", "jadwal", "jawaban"],
+    15_000,
+    saya ? 1 : 0,
+  );
+  const labData = lab.data ? lab.data.sesi : lab.errors > 0 ? null : undefined;
+  const running = signedIn ? (sesi?.modul ?? null) : (labData?.modul ?? null);
+
+  // Who is looking decides the layout (the hero, the Asisten head, a
+  // Praktikan's running session), and the hero's height waits on the lab, so
+  // until both are known the page keeps its room and draws nothing, then
+  // appears once, in place.
+  const tunggu =
+    me === undefined ||
+    (me?.role === "praktikan" && sesi === undefined && now.errors === 0) ||
+    (me?.role === "asisten" && !pro && !aksesSiap) ||
+    (hero && labData === undefined);
+  if (tunggu) return <div className="homewait" aria-busy="true" />;
 
   // A Praktikan in their running session: one card, straight to it.
-  if (me?.role === "praktikan" && sesi && sesi.milikSaya !== false) {
+  if (satuKartu && sesi) {
     const m = modules.find((x) => x.modul === sesi.modul);
     return (
       <div className="stack stack--lg modlist modlist--one">
@@ -297,13 +323,9 @@ export default function ModuleCards({ lang, modules }: { lang: Lang; modules: Mo
     );
   }
 
-  // Phase 21: a visitor and a Praktikan outside a session get Beranda's
-  // thesis and Langit Lab on top; an Asisten keeps the plain head. Read from
-  // the role, not the access state, so an Asisten never sees it flash in.
-  const hero = me !== undefined && me?.role !== "asisten";
   return (
     <div className="stack stack--lg modlist">
-      {hero && <ModulHero lang={lang} />}
+      {hero && <ModulHero lang={lang} me={me ?? null} lab={labData} />}
       <header className="modlist__head">
         <p className="eyebrow eyebrow--accent">{hero ? H[lang].rasiEyebrow : t.eyebrow}</p>
         {hero ? (

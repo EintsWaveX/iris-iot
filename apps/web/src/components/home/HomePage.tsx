@@ -441,7 +441,8 @@ export default function HomePage({ lang }: { lang: Lang }) {
         `/api/session/lab${saya ? "?saya=1" : ""}`,
       ),
     60_000,
-    me !== undefined,
+    // A visitor's Home frame shows no lab.
+    saya,
     ["sesi", "jadwal", "jawaban"],
     15_000,
     saya ? 1 : 0,
@@ -459,7 +460,10 @@ export default function HomePage({ lang }: { lang: Lang }) {
         : [];
 
   // Phase 21: a visitor gets the Home frame; Beranda's own view is for
-  // who is signed in (and shows again only after signing out).
+  // who is signed in (and shows again only after signing out). Until that
+  // is known (the server's render too) the page keeps its room and draws
+  // neither, so a visitor never sees the signed-in view flash first.
+  if (me === undefined) return <div className="homewait" aria-busy="true" />;
   if (me === null) return <HomeFrame lang={lang} />;
 
   return (

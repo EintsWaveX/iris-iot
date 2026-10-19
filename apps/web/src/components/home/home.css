@@ -464,3 +464,48 @@
 .modhero21 {
   margin-bottom: var(--space-4);
 }
+
+/* Beranda and Modul while it is not yet known who is looking: the page keeps
+   its room and shows nothing, so neither view flashes before the right one;
+   on a slow line a soft bar shows after a moment. */
+.homewait {
+  display: grid;
+  min-height: min(68vh, 640px);
+  place-items: center;
+}
+
+.homewait::before {
+  animation: homewait-show 1ms 600ms both;
+  background: var(--surface-2);
+  border-radius: 999px;
+  content: "";
+  height: 10px;
+  opacity: 0;
+  width: min(240px, 60%);
+}
+
+@keyframes homewait-show {
+  to {
+    opacity: 0.7;
+  }
+}
+
+/* The view that replaces it settles in. */
+:root:not([data-motion-tier="0"]) .home10,
+:root:not([data-motion-tier="0"]) .modlist {
+  animation: homewait-in 320ms var(--ease-out-expo) both;
+}
+
+@keyframes homewait-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home10,
+  .modlist {
+    animation: none !important;
+  }
+}

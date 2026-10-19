@@ -9,28 +9,25 @@ import {
   CheckIcon,
   CircuitryIcon,
 } from "@phosphor-icons/react";
-import { getJson, useMe } from "../../lib/app";
-import { usePoll } from "../../lib/hooks";
+import type { Me } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { LabSky, type Lab } from "./HomePage";
 import { H } from "./homeStrings";
 import "../ui/Display.css";
 import "./home.css";
 
-/** The thesis and Langit Lab, side by side from a laptop's width. */
-export function ModulHero({ lang }: { lang: Lang }) {
+/** The thesis and Langit Lab, side by side from a laptop's width. Modul
+ *  passes who is looking (the projector's group too) and the lab it read. */
+export function ModulHero({
+  lang,
+  me,
+  lab: labData,
+}: {
+  lang: Lang;
+  me: Me | null;
+  lab: Lab | null | undefined;
+}) {
   const t = H[lang];
-  const me = useMe();
-  const saya = Boolean(me);
-  const lab = usePoll(
-    () => getJson<{ ok: boolean; sesi: Lab | null }>(`/api/session/lab${saya ? "?saya=1" : ""}`),
-    60_000,
-    me !== undefined,
-    ["sesi", "jadwal", "jawaban"],
-    15_000,
-    saya ? 1 : 0,
-  );
-  const labData = lab.data ? lab.data.sesi : lab.errors > 0 ? null : undefined;
   const praktikan = me?.role === "praktikan";
   return (
     <div className="home10__top modhero21">

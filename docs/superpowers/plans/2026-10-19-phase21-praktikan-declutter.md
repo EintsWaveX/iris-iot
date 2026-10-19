@@ -422,8 +422,8 @@ Executed inline. Final review by a fresh reviewer; 4 fixes, 7 minors deferred. G
 
 - stepper dots are a roving tabindex with no role=toolbar on the list (Tab reaches only the current dot)
 - .lstep__line span sits directly inside the <ol> (invalid HTML, renders fine)
-- signed-out Beranda still polls /api/session/lab though HomeFrame ignores it
-- signed-out Modul polls /api/session/lab twice (ModuleCards + ModulHero)
-- projector view of Modul does not star the projected group in Langit Lab (ModulHero uses useMe, not useTampil)
+- ~~signed-out Beranda still polls /api/session/lab~~ fixed 2026-10-19 (polls only when signed in)
+- ~~signed-out Modul polls /api/session/lab twice~~ fixed 2026-10-19 with the first-paint flash (ModulHero takes the lab from ModuleCards)
+- ~~projector view of Modul does not star the projected group~~ fixed 2026-10-19 (ModulHero takes the projector-aware me)
 - running-session module page has no <h1> (header hidden)
 - two practica of the same module (susulan) look alike on Dasbor rows apart from the date
