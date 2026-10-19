@@ -81,6 +81,20 @@ export function cariIsi(b: BagianLms, kunci: string): ModulLms | null {
   return i < 0 ? null : b.modules[i];
 }
 
+/** Module m's IRIS link in a class when it points anywhere but `harus`
+ *  (links written before the site moved to irisiotlab.com); null when it
+ *  is right, missing, or its address wasn't read. */
+export function tautanLama(
+  bacaan: BagianLms[],
+  m: number,
+  alamat: Map<number, string>,
+  harus: string,
+): ModulLms | null {
+  const x = cariBagian(bacaan, `m${m}`)?.modules.find((y) => peranIsi(m, y) === "tautan");
+  const kini = x ? alamat.get(x.id) : undefined;
+  return x && kini !== undefined && kini !== harus ? x : null;
+}
+
 /** "TP Modul m" wherever it sits in a class. */
 export function cariTp(
   bacaan: BagianLms[],

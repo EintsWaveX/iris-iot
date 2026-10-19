@@ -443,23 +443,29 @@ function logTeks(
             `Replace the Module ${modul ?? ""} PDF`,
             `替换模块 ${modul ?? ""} 的 PDF`,
           )
-        : ["bagian", "tautan", "pdf", "tp"].includes(langkah ?? "")
+        : langkah === "ganti-tautan"
           ? L(
-              `Lengkapi bagian Modul ${modul ?? ""}`,
-              `Complete the Module ${modul ?? ""} section`,
-              `补全模块 ${modul ?? ""} 章节`,
+              `Perbarui tautan Modul ${modul ?? ""}`,
+              `Update the Module ${modul ?? ""} link`,
+              `更新模块 ${modul ?? ""} 的链接`,
             )
-          : langkah === "nama"
-            ? L(`Ganti nama ${judul ?? ""}`, `Rename ${judul ?? ""}`, `重命名 ${judul ?? ""}`)
-            : langkah === "pindah"
-              ? L(`Pindahkan ${judul ?? ""}`, `Move ${judul ?? ""}`, `移动 ${judul ?? ""}`)
-              : langkah === "tampil"
-                ? L(
-                    `Atur tampil ${judul ?? ""}`,
-                    `Show or hide ${judul ?? ""}`,
-                    `显示或隐藏 ${judul ?? ""}`,
-                  )
-                : L(`Hapus ${judul ?? ""}`, `Delete ${judul ?? ""}`, `删除 ${judul ?? ""}`);
+          : ["bagian", "tautan", "pdf", "tp"].includes(langkah ?? "")
+            ? L(
+                `Lengkapi bagian Modul ${modul ?? ""}`,
+                `Complete the Module ${modul ?? ""} section`,
+                `补全模块 ${modul ?? ""} 章节`,
+              )
+            : langkah === "nama"
+              ? L(`Ganti nama ${judul ?? ""}`, `Rename ${judul ?? ""}`, `重命名 ${judul ?? ""}`)
+              : langkah === "pindah"
+                ? L(`Pindahkan ${judul ?? ""}`, `Move ${judul ?? ""}`, `移动 ${judul ?? ""}`)
+                : langkah === "tampil"
+                  ? L(
+                      `Atur tampil ${judul ?? ""}`,
+                      `Show or hide ${judul ?? ""}`,
+                      `显示或隐藏 ${judul ?? ""}`,
+                    )
+                  : L(`Hapus ${judul ?? ""}`, `Delete ${judul ?? ""}`, `删除 ${judul ?? ""}`);
     case "lms_tampil":
       return langkah === "tampil"
         ? L(`Tampilkan ${judul ?? ""}`, `Show ${judul ?? ""}`, `显示 ${judul ?? ""}`)

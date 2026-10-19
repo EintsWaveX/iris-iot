@@ -94,6 +94,7 @@ import {
   namaiIsi,
   pindahIsi,
   tampilBagian,
+  ubahTautan,
   ubahTugas,
 } from "../_lib/lms-web.js";
 import {
@@ -107,6 +108,7 @@ import {
   namaTautanModul,
   pastikanBagianModul,
   peranIsi,
+  tautanLama,
   type KelasIsi,
 } from "../_lib/lms-isi.js";
 import {
@@ -124,6 +126,7 @@ import {
   KUNCI_LMS,
   NAMA_MODUL,
   OTOMATIS,
+  alamatTautan,
   bacaCatatan,
   bacaOtomatis,
   benderaTugas,
@@ -1307,6 +1310,11 @@ async function handleIsiBaca(req: ApiRequest, res: ApiResponse, s: SessionPayloa
     });
     if (!bacaan.size) throw new LmsGalat("lms_tak_terjangkau", gagalBaca.join(", "));
     const { bagian, modul } = gabungIsi(kelas, bacaan);
+    // The links' own addresses: unread, no link is called old.
+    const alamat = await alamatTautan(token, [...bacaan.keys()]).catch((e: unknown) => {
+      console.error("[api/lms isi] link addresses unread:", e);
+      return new Map<number, string>();
+    });
     const catatan = await bacaCatatan<CatatanMateri>(db, KUNCI_LMS.materi, set.semester, {});
     const adaBerkas = Object.values(catatan).some((c) => Object.values(c).some((x) => x.berkas));
     const cap = adaBerkas ? await capHandbook() : new Map<string, string>();
@@ -1324,6 +1332,10 @@ async function handleIsiBaca(req: ApiRequest, res: ApiResponse, s: SessionPayloa
           const kini = cap.get(jalanHandbook(r.modul, k.kelas === "inter"));
           return !!b && !!kini && b.cap !== kini;
         }).length,
+        tautanBasi: kelas.filter((k) => {
+          const b = bacaan.get(k.id);
+          return !!b && !!tautanLama(b, r.modul, alamat, urlModul(r.modul, k.kelas === "inter"));
+        }).length,
       })),
       boleh: !!orang && boleh(orang, "lms"),
       kelola: !!set.token?.privat,
@@ -1338,6 +1350,7 @@ const LANGKAH_ISI = [
   "tautan",
   "pdf",
   "ganti-pdf",
+  "ganti-tautan",
   "tp",
   "nama",
   "pindah",
@@ -1365,9 +1378,10 @@ async function handleIsiTulis(req: ApiRequest, res: ApiResponse, s: SessionPaylo
   const kunciB = typeof b.bagian === "string" ? b.bagian : null;
   const kunciI = typeof b.isi === "string" ? b.isi : null;
   const buka = b.bukaKunci === true;
-  const modulan = ["bagian", "tautan", "pdf", "ganti-pdf", "tp"].includes(langkah);
+  const modulan = ["bagian", "tautan", "pdf", "ganti-pdf", "ganti-tautan", "tp"].includes(langkah);
   if (modulan ? !m : !kunciB) return tolak(res, "format_salah");
   let namaAudit = modulan ? `Modul ${m}` : (kunciI ?? kunciB ?? "");
+  let pindahAlamat: { dari?: string; ke: string } | null = null;
   try {
     const token = tokenDari(set);
     const web = webLms(db, set);
@@ -1396,6 +1410,15 @@ async function handleIsiTulis(req: ApiRequest, res: ApiResponse, s: SessionPaylo
               teks: teksTautan(inter),
             });
           cocok = punya(await baca(), "tautan");
+        } else if (langkah === "ganti-tautan") {
+          // In place: the same activity, only its address changes.
+          const harus = urlModul(mm, inter);
+          const alamat = await alamatTautan(token, [k.id]);
+          const lama = tautanLama(bacaan, mm, alamat, harus);
+          if (!lama) return lewat();
+          pindahAlamat = { dari: alamat.get(lama.id), ke: harus };
+          await ubahTautan(web, lama.id, harus);
+          cocok = !tautanLama(await baca(), mm, await alamatTautan(token, [k.id]), harus);
         } else if (langkah === "pdf" || langkah === "ganti-pdf") {
           const ada = bg.modules.find((x) => peranIsi(mm, x) === "pdf") ?? null;
           if (langkah === "ganti-pdf" && !ada) return tolak(res, "tidak_ada_di_lms");
@@ -1497,7 +1520,13 @@ async function handleIsiTulis(req: ApiRequest, res: ApiResponse, s: SessionPaylo
         }
       }
     }
-    await writeAudit(s.nim, "lms_isi", { langkah, modul: m, kursus: k.label, nama: namaAudit });
+    await writeAudit(s.nim, "lms_isi", {
+      langkah,
+      modul: m,
+      kursus: k.label,
+      nama: namaAudit,
+      ...pindahAlamat,
+    });
     res.status(200).json({ ok: true, cocok });
   } catch (e) {
     await writeAudit(s.nim, "lms_isi", {

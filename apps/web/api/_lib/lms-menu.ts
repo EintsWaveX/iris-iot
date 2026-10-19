@@ -225,6 +225,17 @@ export async function isiKursus(token: string, kursus: number): Promise<BagianLm
   }));
 }
 
+/** Each URL activity's address in these courses, by cmid: the course read
+ *  gives only the activity's own page (mod/url/view.php). */
+export async function alamatTautan(token: string, kursus: number[]): Promise<Map<number, string>> {
+  const d = await panggil<{ urls?: { coursemodule: number; externalurl: string }[] }>(
+    token,
+    "mod_url_get_urls_by_courses",
+    { courseids: kursus },
+  );
+  return new Map((d?.urls ?? []).map((u) => [u.coursemodule, u.externalurl]));
+}
+
 export interface OrangLms {
   id: number;
   fullname: string;

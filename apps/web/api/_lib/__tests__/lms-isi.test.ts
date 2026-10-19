@@ -21,6 +21,8 @@ interface Cm {
   name: string;
   modname: string;
   visible: number;
+  externalurl?: string;
+  intro?: string;
 }
 interface Bagian {
   id: number;
@@ -110,6 +112,20 @@ beforeAll(async () => {
               modules: b.cms.map((c) => ({ ...c })),
             })),
           );
+        if (fn === "mod_url_get_urls_by_courses")
+          return json({
+            urls: dunia.bagian.flatMap((b) =>
+              b.cms
+                .filter((c) => c.modname === "url")
+                .map((c) => ({
+                  id: c.id,
+                  coursemodule: c.id,
+                  course: 9614,
+                  externalurl: c.externalurl,
+                })),
+            ),
+            warnings: [],
+          });
         return json({});
       }
       if (u.pathname === "/admin/tool/mobile/autologin.php") {
@@ -132,6 +148,22 @@ beforeAll(async () => {
         return kirim(303, "", {
           location: `/course/view.php?id=${u.searchParams.get("courseid")}#section-${dunia.bagian.length - 1}`,
         });
+      }
+      const tautan = cariCm(Number(u.searchParams.get("update") ?? f.get("update")));
+      if (u.pathname === "/course/modedit.php" && tautan) {
+        const c = tautan.b.cms[tautan.i];
+        if (req.method === "GET")
+          return kirim(
+            200,
+            `<form action="modedit.php" method="post"><input type="hidden" name="sesskey" value="SESSKEY0"><input type="hidden" name="update" value="${c.id}"><input type="hidden" name="modulename" value="url"><input type="text" name="name" value="${c.name}"><input type="url" name="externalurl" value="${c.externalurl}"><textarea name="introeditor[text]">${c.intro}</textarea><input type="submit" name="submitbutton2" value="Save and return to course"></form>`,
+          );
+        if (f.get("sesskey") !== "SESSKEY0") return kirim(200, "<p>?</p>");
+        Object.assign(c, {
+          name: f.get("name"),
+          externalurl: f.get("externalurl"),
+          intro: f.get("introeditor[text]"),
+        });
+        return kirim(303, "", { location: "/course/view.php?id=9614" });
       }
       if (u.pathname === "/course/modedit.php" && req.method === "GET")
         return kirim(
@@ -366,6 +398,55 @@ describe("the class page's sections against a fake LMS", () => {
     await expect(
       sesi().ajax(9614, "core_courseformat_update_course", { action: "nope", ids: [] }),
     ).rejects.toMatchObject({ kode: "lms_ajax_ditolak" });
+  });
+});
+
+describe("module links written before the site moved", () => {
+  const LAMA = "https://iris-praktikum-jurnal.vercel.app/modules/2";
+  const BARU = "https://irisiotlab.com/modules/2";
+  const pasang = (externalurl: string) => {
+    dunia.bagian.push({
+      id: ++dunia.idBagian,
+      name: "Modul 2 · Wi-Fi",
+      visible: 1,
+      cms: [
+        {
+          id: 850101,
+          name: "Modul 2 di IRIS (handbook, slide, jurnal)",
+          modname: "url",
+          visible: 1,
+          externalurl,
+          intro: "<p>Terbuka untuk semua</p>",
+        },
+        { id: 850102, name: "Evaluasi Materi 1", modname: "quiz", visible: 1 },
+      ],
+    });
+  };
+
+  it("finds Module m's IRIS link only while it points elsewhere", async () => {
+    pasang(LAMA);
+    const { isiKursus, alamatTautan } = await import("../lms-menu");
+    const bacaan = await isiKursus(TOKEN, 9614);
+    const alamat = await alamatTautan(TOKEN, [9614]);
+    expect(alamat.get(850101)).toBe(LAMA);
+    expect(isi.tautanLama(bacaan, 2, alamat, BARU)?.id).toBe(850101);
+    expect(isi.tautanLama(bacaan, 2, alamat, LAMA)).toBeNull();
+    // Another module's section, or an address IRIS could not read, is left alone
+    expect(isi.tautanLama(bacaan, 1, alamat, BARU)).toBeNull();
+    expect(isi.tautanLama(bacaan, 2, new Map(), BARU)).toBeNull();
+  });
+
+  it("points the link at the new address in place, its name and text kept", async () => {
+    pasang(LAMA);
+    const jumlah = dunia.bagian.flatMap((b) => b.cms).length;
+    await web.ubahTautan(sesi(), 850101, BARU);
+    const c = cariCm(850101)!;
+    expect(c.b.cms[c.i]).toMatchObject({
+      externalurl: BARU,
+      name: "Modul 2 di IRIS (handbook, slide, jurnal)",
+      intro: "<p>Terbuka untuk semua</p>",
+    });
+    expect(dunia.bagian.flatMap((b) => b.cms)).toHaveLength(jumlah);
   });
 });
 

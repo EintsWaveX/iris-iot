@@ -64,6 +64,7 @@ interface Modul {
   tp: number;
   tpLuar: number;
   pdfBasi: number;
+  tautanBasi: number;
 }
 interface DataIsi {
   ok: boolean;
@@ -350,7 +351,7 @@ export default function IsiTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) => vo
 
                 {m && (
                   <div className="isi-cek">
-                    <Pill tone={m.tautan === n ? "ok" : "warn"}>
+                    <Pill tone={m.tautan === n && !m.tautanBasi ? "ok" : "warn"}>
                       {t.cekTautan} {m.tautan}/{n}
                     </Pill>
                     <Pill tone={m.pdf === n && !m.pdfBasi ? "ok" : "warn"}>
@@ -359,15 +360,32 @@ export default function IsiTab({ lang, ke }: { lang: Lang; ke: (v: TabLms) => vo
                     <Pill tone={m.tp === n ? "ok" : m.tp || m.tpLuar ? "warn" : undefined}>
                       {m.tp || m.tpLuar ? `${t.cekTp} ${m.tp}/${n}` : t.tpBelum}
                     </Pill>
-                    {(m.tpLuar > 0 || m.pdfBasi > 0) && (
+                    {(m.tpLuar > 0 || m.pdfBasi > 0 || m.tautanBasi > 0) && (
                       <span className="hint">
-                        {[m.tpLuar ? t.tpLuar(m.tpLuar) : "", m.pdfBasi ? t.pdfBasi(m.pdfBasi) : ""]
+                        {[
+                          m.tpLuar ? t.tpLuar(m.tpLuar) : "",
+                          m.tautanBasi ? t.tautanBasi(m.tautanBasi) : "",
+                          m.pdfBasi ? t.pdfBasi(m.pdfBasi) : "",
+                        ]
                           .filter(Boolean)
                           .join(". ")}
                       </span>
                     )}
-                    {ubah && (kurangModul || m.pdfBasi > 0) && (
+                    {ubah && (kurangModul || m.pdfBasi > 0 || m.tautanBasi > 0) && (
                       <span className="isi-cek__acts">
+                        {m.tautanBasi > 0 && (
+                          <button
+                            type="button"
+                            className="btn btn--sm"
+                            onClick={() =>
+                              jalan(t.tautanJalan(m.modul), t.tautanOk, [
+                                { langkah: "ganti-tautan", modul: m.modul },
+                              ])
+                            }
+                          >
+                            {t.perbaruiTautan}
+                          </button>
+                        )}
                         {m.pdfBasi > 0 && (
                           <button
                             type="button"

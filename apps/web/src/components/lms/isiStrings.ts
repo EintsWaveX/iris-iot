@@ -65,8 +65,10 @@ const id = {
   tpLuar: (n: number) => `TP Modul ini masih di bagian lain di ${n} kelas`,
   tpBelum: "Belum ada TP",
   pdfBasi: (n: number) => `PDF lebih lama dari handbook di ${n} kelas`,
+  tautanBasi: (n: number) => `Tautan IRIS masih ke alamat lama di ${n} kelas`,
   lengkapi: "Lengkapi",
   gantiPdf: "Ganti PDF",
+  perbaruiTautan: "Perbarui Tautan",
 
   // the Buat Bagian Modul dialog
   buatJudul: "Buat Bagian Modul",
@@ -84,6 +86,8 @@ const id = {
   lengkapiJalan: (m: number) => `Melengkapi bagian Modul ${m}`,
   gantiJalan: (m: number) => `Mengganti PDF Modul ${m}`,
   gantiOk: "PDF baru ada di kelas, dibaca ulang.",
+  tautanJalan: (m: number) => `Memperbarui tautan Modul ${m}`,
+  tautanOk: "Tautan sudah ke alamat baru, dibaca ulang.",
 
   // editing
   ubahJudul: (j: string) => `Ubah ${j}`,
@@ -210,8 +214,10 @@ const en: S = {
   tpLuar: (n) => `This module's TP still sits in another section in ${kls(n)}`,
   tpBelum: "No TP yet",
   pdfBasi: (n) => `The PDF is older than the handbook in ${kls(n)}`,
+  tautanBasi: (n) => `The IRIS link still goes to the old address in ${kls(n)}`,
   lengkapi: "Complete",
   gantiPdf: "Replace PDF",
+  perbaruiTautan: "Update Link",
 
   buatJudul: "Make Module Sections",
   buatDesc: (k) =>
@@ -229,6 +235,8 @@ const en: S = {
   lengkapiJalan: (m) => `Completing the Module ${m} section`,
   gantiJalan: (m) => `Replacing the Module ${m} PDF`,
   gantiOk: "The new PDF is in the class, read back.",
+  tautanJalan: (m) => `Updating the Module ${m} link`,
+  tautanOk: "The link goes to the new address, read back.",
 
   ubahJudul: (j) => `Edit ${j}`,
   ubahDesc: (k) => `Changes go to ${k}.`,
@@ -345,8 +353,10 @@ const zh: S = {
   tpLuar: (n) => `在 ${n} 个班级中，本模块的 TP 仍在其他章节`,
   tpBelum: "还没有 TP",
   pdfBasi: (n) => `在 ${n} 个班级中，PDF 比手册旧`,
+  tautanBasi: (n) => `在 ${n} 个班级中，IRIS 链接仍指向旧地址`,
   lengkapi: "补全",
   gantiPdf: "替换 PDF",
+  perbaruiTautan: "更新链接",
 
   buatJudul: "创建模块章节",
   buatDesc: (k) => `新章节添加在班级页面末尾，${k}。学校的安全章节保持不变。`,
@@ -362,6 +372,8 @@ const zh: S = {
   lengkapiJalan: (m) => `正在补全模块 ${m} 的章节`,
   gantiJalan: (m) => `正在替换模块 ${m} 的 PDF`,
   gantiOk: "新的 PDF 已在班级中，已重新读取。",
+  tautanJalan: (m) => `正在更新模块 ${m} 的链接`,
+  tautanOk: "链接已指向新地址，已重新读取。",
 
   ubahJudul: (j) => `编辑${j}`,
   ubahDesc: (k) => `修改将进入 ${k}。`,

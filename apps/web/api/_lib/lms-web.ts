@@ -609,6 +609,18 @@ export async function buatTautan(
   hasilSimpan(jawab);
 }
 
+/** Only a URL activity's address (its name and text stay). */
+export async function ubahTautan(web: WebLms, cmid: number, url: string): Promise<void> {
+  const jawab = await web.kirimForm(
+    `/course/modedit.php?update=${cmid}`,
+    /modedit\.php/,
+    "/course/modedit.php",
+    { externalurl: url, coursecontentnotification: false },
+    "submitbutton2",
+  );
+  hasilSimpan(jawab);
+}
+
 /** A new group in a course (group/group.php). */
 export async function buatGrup(web: WebLms, kursus: number, nama: string): Promise<void> {
   const jawab = await web.kirimForm(
