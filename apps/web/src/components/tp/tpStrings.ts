@@ -388,7 +388,11 @@ const id = {
   unduhSemua: "Unduh semua berkas kelompok ini",
   mengunduh: (a: number, b: number) => `Mengunduh ${a} dari ${b}…`,
   dipegang: "Dipegang",
-  tanpaPemegang: "Belum ada yang memegang",
+  tanpaPemegang: "Belum ada Asisten di Per Modul",
+  tanpaPemegangAdmin: "Belum ada Asisten di Per Modul, jadi Admin yang menilai",
+  nilaiLainPill: (k: string) => `Nilai dari ${k}`,
+  nilaiLainTip:
+    "Sebagian nilai TP kelompok ini diberi Asisten lain sebelum Per Modul diubah. Asisten kelompok ini sebaiknya memeriksanya lagi.",
   tidakCocok: "Tidak ada yang cocok dengan saringan ini.",
   tanpaKelompokH: "Belum Masuk Kelompok",
   tanpaKelompokHint: "Berkasnya ada, tapi NIM-nya belum ada di roster slot mana pun.",
@@ -440,6 +444,13 @@ const id = {
   semuaSudah: "Semua soal sudah dinilai",
   semuaKunci: "Tampilkan semua kunci",
   hanyaLihat: (k: string) => `Kelompok ini dipegang ${k}. Kamu hanya bisa melihat.`,
+  hanyaLihatAdmin:
+    "Kelompok ini belum punya Asisten di Per Modul. Hanya Admin yang bisa menilai, kamu hanya bisa melihat.",
+  nilaiLainBanner: (k: string) =>
+    `Nilai yang ditandai diberi ${k} sebelum Per Modul diubah. Periksa lagi, ubah yang perlu, lalu setujui sisanya.`,
+  setujuiNilai: "Setujui Nilai Ini",
+  disetujui: "Nilainya sekarang atas namamu.",
+  nilaiLainSoal: (k: string) => `dari ${k}`,
   graderFoot:
     "Tersimpan otomatis. Tekan lagi pilihan yang menyala untuk mengosongkannya. Totalnya masuk ke kolom TP di tabel nilai sesi modul ini.",
   sebelumnya: "Sebelumnya",
@@ -451,6 +462,7 @@ const id = {
   anggota: "Anggota",
   lihatSaja: "lihat saja",
   bukanPemegang: "Kelompok ini dipegang Asisten lain.",
+  bukanAdmin: "Kelompok tanpa Asisten di Per Modul hanya dinilai Admin.",
   telatBelum: "Putuskan dulu berkas terlambat ini.",
   berkasGagal: "Berkas belum bisa diambil dari LMS.",
   pilihBerkas: "Berkas",
@@ -953,7 +965,11 @@ const en: TpT = {
   unduhSemua: "Download all of this group's files",
   mengunduh: (a, b) => `Downloading ${a} of ${b}…`,
   dipegang: "Held by",
-  tanpaPemegang: "Nobody holds it yet",
+  tanpaPemegang: "No assistant in Per Module yet",
+  tanpaPemegangAdmin: "No assistant in Per Module yet, so an Admin grades it",
+  nilaiLainPill: (k) => `Scores from ${k}`,
+  nilaiLainTip:
+    "Some of this group's TP scores were given by another assistant before Per Module changed. The group's assistant should check them again.",
   tidakCocok: "Nobody matches this filter.",
   tanpaKelompokH: "Not in a Group Yet",
   tanpaKelompokHint: "The file is in, but the NIM isn't in any slot's roster yet.",
@@ -1000,6 +1016,13 @@ const en: TpT = {
   semuaSudah: "Every question is scored",
   semuaKunci: "Show every key",
   hanyaLihat: (k) => `${k} holds this group. You can only look.`,
+  hanyaLihatAdmin:
+    "This group has no assistant in Per Module yet. Only an Admin can grade it; you can only look.",
+  nilaiLainBanner: (k) =>
+    `The marked scores were given by ${k} before Per Module changed. Check them again, change what needs it, then approve the rest.`,
+  setujuiNilai: "Approve These Scores",
+  disetujui: "The scores are under your name now.",
+  nilaiLainSoal: (k) => `from ${k}`,
   graderFoot:
     "Saved as you go. Press a lit choice again to empty it. The total goes into the TP column of this module's session score table.",
   sebelumnya: "Previous",
@@ -1011,6 +1034,7 @@ const en: TpT = {
   anggota: "Members",
   lihatSaja: "view only",
   bukanPemegang: "Another assistant holds this group.",
+  bukanAdmin: "A group with no assistant in Per Module is graded by an Admin only.",
   telatBelum: "Decide on this late file first.",
   berkasGagal: "The file couldn't be fetched from the LMS.",
   pilihBerkas: "File",
@@ -1449,7 +1473,11 @@ const zh: TpT = {
   unduhSemua: "下载本组所有文件",
   mengunduh: (a, b) => `正在下载 ${a} / ${b}…`,
   dipegang: "负责助教",
-  tanpaPemegang: "还没有助教负责",
+  tanpaPemegang: "按模块里还没有助教",
+  tanpaPemegangAdmin: "按模块里还没有助教，由管理员评分",
+  nilaiLainPill: (k) => `${k} 给的分`,
+  nilaiLainTip:
+    "这一组的部分预习作业分数是在按模块更改之前由别的助教给的。这一组的助教最好再检查一遍。",
   tidakCocok: "没有符合筛选的人。",
   tanpaKelompokH: "还没分组",
   tanpaKelompokHint: "文件已收到，但这个 NIM 还不在任何时段的名单里。",
@@ -1496,6 +1524,12 @@ const zh: TpT = {
   semuaSudah: "所有题都已评分",
   semuaKunci: "显示全部参考答案",
   hanyaLihat: (k) => `这一组由 ${k} 负责。你只能查看。`,
+  hanyaLihatAdmin: "这一组在按模块里还没有助教。只有管理员可以评分，你只能查看。",
+  nilaiLainBanner: (k) =>
+    `标记的分数是在按模块更改之前由 ${k} 给的。请再检查一遍，需要的改一下，其余的确认即可。`,
+  setujuiNilai: "确认这些分数",
+  disetujui: "这些分数现在记在你名下。",
+  nilaiLainSoal: (k) => `${k} 给的`,
   graderFoot:
     "边评边自动保存。再点一次已选中的分数即可清空。总分会写进本模块课程成绩表的 TP 一栏。",
   sebelumnya: "上一个",
@@ -1507,6 +1541,7 @@ const zh: TpT = {
   anggota: "组员",
   lihatSaja: "只能查看",
   bukanPemegang: "这一组由别的助教负责。",
+  bukanAdmin: "按模块里没有助教的组只能由管理员评分。",
   telatBelum: "请先决定这份迟交的文件。",
   berkasGagal: "暂时无法从 LMS 取回文件。",
   pilihBerkas: "文件",

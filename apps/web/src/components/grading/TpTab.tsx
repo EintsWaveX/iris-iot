@@ -248,6 +248,7 @@ export default function TpTab({
                 info={slotInfo(s)}
                 cocok={cocok}
                 onOpen={onOpen}
+                admin={!!data.bolehTanpaPemegang}
               />
             ))}
           </div>
@@ -284,6 +285,7 @@ export default function TpTab({
                     info={null}
                     cocok={cocok}
                     onOpen={onOpen}
+                    admin={!!data.bolehTanpaPemegang}
                   />
                 ))}
               </div>
@@ -307,6 +309,7 @@ export default function TpTab({
                   info={null}
                   cocok={cocok}
                   onOpen={onOpen}
+                  admin={!!data.bolehTanpaPemegang}
                 />
               </div>
             </section>
@@ -486,6 +489,7 @@ function GroupCard({
   info,
   cocok,
   onOpen,
+  admin,
 }: {
   lang: Lang;
   modul: number;
@@ -493,6 +497,8 @@ function GroupCard({
   info: string | null;
   cocok: (a: AnggotaTp) => boolean;
   onOpen: (g: GrupDinilai, i: number) => void;
+  /** Grades a group with no Per Modul seat (Admin, Pencipta). */
+  admin: boolean;
 }) {
   const t = TPS[lang];
   const [unduh, setUnduh] = useState<string | null>(null);
@@ -541,6 +547,11 @@ function GroupCard({
               <Pill>{t.tanpaKelompokH}</Pill>
             )}
             {g.klp && <Pill mono>KLP {g.klp}</Pill>}
+            {!!g.nilaiLain?.length && (
+              <Pill tone="warn" title={t.nilaiLainTip}>
+                {t.nilaiLainPill(g.nilaiLain.join(", "))}
+              </Pill>
+            )}
           </div>
           {info && <span className="hint">{info}</span>}
         </div>
@@ -588,7 +599,7 @@ function GroupCard({
         )}
       </div>
       <div className="tpgroup__foot">
-        {g.milikku || !g.pemegang ? (
+        {g.milikku || (!g.pemegang && admin) ? (
           <>
             <button type="button" className="btn btn--primary" onClick={() => buka(pertama)}>
               {t.nilaiKelompok}
@@ -603,9 +614,13 @@ function GroupCard({
           </>
         ) : (
           <>
-            <span className="hint row">
-              {t.dipegang} <Pill mono>{g.pemegang.kode}</Pill>
-            </span>
+            {g.pemegang ? (
+              <span className="hint row">
+                {t.dipegang} <Pill mono>{g.pemegang.kode}</Pill>
+              </span>
+            ) : (
+              <span className="hint">{t.tanpaPemegangAdmin}</span>
+            )}
             <button type="button" className="btn btn--ghost" onClick={() => buka(0)}>
               {t.lihat}
               <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />

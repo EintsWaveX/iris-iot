@@ -24,7 +24,6 @@ import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
   jadwal,
-  kelompok,
   lmsPeserta,
   nilai,
   pengaturan,
@@ -33,7 +32,6 @@ import {
   rosterSlot,
   sesi,
   sesiAnggota,
-  sesiAsisten,
   tpJejak,
   tpKiriman,
   tpNilai,
@@ -803,6 +801,9 @@ export interface KelompokTp {
   klp: string | null;
   pemegang: { nim: string; kode: string; nama: string } | null;
   milikku: boolean;
+  /** Codes of Asisten whose scores stand here though the seat is another's:
+   *  given before the Per Modul list changed. */
+  nilaiLain: string[];
   anggota: AnggotaTp[];
 }
 
@@ -821,7 +822,7 @@ export interface Kursi {
   kelas: string;
   tanggal: string;
   sesiId: number | null;
-  /** nomor -> holder's NIM (null: nobody) */
+  /** nomor -> the Per Modul seat's NIM (null: nobody) */
   pemegang: Map<number, string | null>;
   /** nomor -> members */
   anggota: Map<number, { nim: string; nama: string }[]>;
@@ -855,7 +856,7 @@ export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kur
     );
   const sesiOf = new Map(sesiRows.map((s) => [`${s.tanggal}|${s.slot}`, s.id]));
   const sesiIds = sesiRows.map((s) => s.id);
-  const [snap, holders, kodeRows, minggu, roster, klpRows] = await Promise.all([
+  const [snap, kodeRows, minggu, roster, klpRows] = await Promise.all([
     sesiIds.length
       ? db
           .select({
@@ -866,17 +867,6 @@ export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kur
           })
           .from(sesiAnggota)
           .where(inArray(sesiAnggota.sesiId, sesiIds))
-      : Promise.resolve([]),
-    sesiIds.length
-      ? db
-          .select({
-            sesiId: sesiAsisten.sesiId,
-            nomor: kelompok.nomor,
-            nim: sesiAsisten.asistenNim,
-          })
-          .from(sesiAsisten)
-          .innerJoin(kelompok, eq(kelompok.id, sesiAsisten.kelompokId))
-          .where(inArray(sesiAsisten.sesiId, sesiIds))
       : Promise.resolve([]),
     db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten),
     muatTanggal(db, rows, tanggalOf, new Map(rows.map((r) => [r.id, modul]))),
@@ -914,14 +904,14 @@ export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kur
     const klp = new Map<number, string | null>();
     for (const k of klpRows.filter((x) => x.hari === r.hari && x.slot === r.slot))
       klp.set(k.nomor, k.klp);
+    // The TP is the Per Modul seat's (user, 2026-10-20): an izin, a cover
+    // or a take-over in the session never moves it.
+    for (const k of minggu.get(r.id)?.kursi ?? [])
+      pemegang.set(k.nomor, k.tetap ? (nimOfKode.get(k.tetap.toUpperCase()) ?? null) : null);
     if (sid) {
-      for (const h of holders.filter((x) => x.sesiId === sid)) pemegang.set(h.nomor, h.nim);
       for (const a of snap.filter((x) => x.sesiId === sid))
         anggota.set(a.nomor, [...(anggota.get(a.nomor) ?? []), { nim: a.nim, nama: a.nama }]);
     } else {
-      const m = minggu.get(r.id);
-      for (const k of m?.kursi ?? [])
-        pemegang.set(k.nomor, k.kode ? (nimOfKode.get(k.kode) ?? null) : null);
       for (const a of roster.filter((x) => x.hari === r.hari && x.slot === r.slot))
         anggota.set(a.nomor, [...(anggota.get(a.nomor) ?? []), { nim: a.nim, nama: a.nama }]);
     }
@@ -940,8 +930,8 @@ export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kur
   return out;
 }
 
-/** Who may score `nim`'s TP for `modul`: the group's holder that week (or
- *  anyone when nobody holds it). Null when the Praktikan is in no group. */
+/** Who holds `nim`'s TP for `modul`: their group's Per Modul seat (nim null
+ *  when the seat is empty). Null when the Praktikan is in no group. */
 export async function pemegangTp(
   db: Db,
   set: SetTp,
@@ -959,6 +949,7 @@ interface SkorBaris {
   nomor: number;
   skor: number;
   catatan: string | null;
+  diubahOleh: string;
 }
 
 export async function skorModul(db: Db, semester: string, modul: number, nims?: string[]) {
@@ -968,6 +959,7 @@ export async function skorModul(db: Db, semester: string, modul: number, nims?: 
       nomor: tpNilai.nomor,
       skor: tpNilai.skor,
       catatan: tpNilai.catatan,
+      diubahOleh: tpNilai.diubahOleh,
     })
     .from(tpNilai)
     .where(
@@ -1042,11 +1034,19 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
       .map((nomor) => {
         const p = k.pemegang.get(nomor) ?? null;
         const o = p ? orang.get(p) : undefined;
+        const nims = new Set(k.anggota.get(nomor)!.map((a) => a.nim));
+        const lain = p
+          ? skor.rows
+              .filter((r) => nims.has(r.nim) && r.diubahOleh !== p)
+              .map((r) => orang.get(r.diubahOleh)?.kode.toUpperCase())
+              .filter((x): x is string => !!x)
+          : [];
         return {
           nomor,
           klp: k.klp.get(nomor) ?? null,
           pemegang: p ? { nim: p, kode: o?.kode.toUpperCase() ?? p, nama: o?.nama ?? p } : null,
           milikku: p === meNim,
+          nilaiLain: [...new Set(lain)].sort(),
           anggota: k.anggota.get(nomor)!.map(satu),
         };
       }),

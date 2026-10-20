@@ -1179,6 +1179,15 @@ async function handleNilaiPost(req: ApiRequest, res: ApiResponse, session: Sessi
     }
     kelompokDari.set(nim, kelompokId);
   }
+  // A TP graded per question in Penilaian is the Per Modul seat's alone, so
+  // the table can't write over it (the cell is read only there too).
+  if (absen === null && komponen === "TP") {
+    const dariTp = new Set(await tpDariPenilaian(db, sesiId));
+    if (nims.some((n) => dariTp.has(n))) {
+      res.status(200).json({ ok: false, kode: "tp_dari_penilaian" });
+      return;
+    }
+  }
   /** After Kirim Nilai the Praktikan and the reports read the stored L1, so
    *  in a sent group these get the system's value stored again, not none.
    *  Gives back the ones whose group is not sent. */

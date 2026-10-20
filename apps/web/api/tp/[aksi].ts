@@ -73,7 +73,7 @@ import { muatOrang } from "../_lib/hak.js";
 import { denganSiaran, siarkan } from "../_lib/siaran.js";
 import { getDb } from "../../src/lib/db.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
-import { boleh, type Orang } from "../../src/lib/hak.js";
+import { boleh, hakPenuh, type Orang } from "../../src/lib/hak.js";
 import { KUNCI_ROBOT } from "../../src/lib/seelabs-robot.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import {
@@ -532,14 +532,20 @@ async function handleKelompok(req: ApiRequest, res: ApiResponse, s: SessionPaylo
     hilang: tugasHilang(set, m),
     bolehLms: !!orang && boleh(orang, "full"),
     bolehKelola: !!orang && boleh(orang, "lms"),
+    // Groups with no Per Modul seat and Tanpa Kelompok: Admin and Pencipta.
+    bolehTanpaPemegang: !!orang && hakPenuh(orang),
   });
 }
 
-/** Whether `me` may score `nim`'s TP for `modul`, and who holds them. */
+/** Whether `me` may score `nim`'s TP for `modul`, and who holds them: only
+ *  the Per Modul seat; a group with no seat, or a Praktikan in no group, is
+ *  the Admin's and the Pencipta's (user, 2026-10-20). */
 async function hakNilai(db: Db, set: SetTp, modul: number, nim: string, me: string) {
   const p = await pemegangTp(db, set, modul, nim);
   const holder = p?.nim ?? null;
-  return { boleh: holder === null || holder === me, pemegang: holder };
+  if (holder) return { boleh: holder === me, pemegang: holder };
+  const orang = await muatOrang(me);
+  return { boleh: !!orang && hakPenuh(orang), pemegang: null };
 }
 
 async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
@@ -565,6 +571,8 @@ async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayl
     .where(and(eq(praktikan.nim, nim), eq(praktikan.semester, set.semester)))
     .limit(1);
   const hak = await hakNilai(db, set, m, nim, s.nim);
+  const kodeOf = await petaKode(db);
+  const lain = (oleh: string) => !!hak.pemegang && oleh !== hak.pemegang && kodeOf.has(oleh);
   const { jendela, keadaan } = ringkasJendela(set, m);
   const sampai = (await perpanjangTp(db, set)).get(m)?.get(nim) ?? null;
   const pada = k?.dikirimPada?.toISOString() ?? null;
@@ -610,10 +618,20 @@ async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayl
         }
       : null,
     skor: Object.fromEntries(
-      sk.map((r) => [r.nomor, { skor: r.skor, catatan: r.catatan, oleh: r.diubahOleh }]),
+      sk.map((r) => [
+        r.nomor,
+        {
+          skor: r.skor,
+          catatan: r.catatan,
+          oleh: r.diubahOleh,
+          // Given by someone else before the Per Modul list changed.
+          lain: lain(r.diubahOleh) ? kodeOf.get(r.diubahOleh)! : null,
+        },
+      ]),
     ),
     tpSeelabs: salin?.skor ?? null,
     ...hak,
+    pemegangKode: hak.pemegang ? (kodeOf.get(hak.pemegang) ?? hak.pemegang) : null,
   });
 }
 

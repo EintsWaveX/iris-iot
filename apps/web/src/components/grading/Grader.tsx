@@ -17,6 +17,7 @@ import {
   FileIcon,
   HourglassIcon,
   LockSimpleIcon,
+  WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
@@ -252,6 +253,10 @@ function Isi({
     );
   }, [d.skor]);
   const nomor = d.nomor;
+  // Scores another Asisten gave before the Per Modul list changed.
+  const lainDari = (no: number) => d.skor[no]?.lain ?? null;
+  const lainNo = nomor.filter((no) => lainDari(no) && skor[no]?.skor != null);
+  const lainKode = [...new Set(lainNo.map((no) => lainDari(no)!))].join(", ");
   const per = Object.fromEntries(nomor.map((no) => [no, skor[no]?.skor ?? null]));
   const total = totalTp(per, nomor);
   const nDone = nomor.filter((no) => skor[no]?.skor != null).length;
@@ -281,7 +286,7 @@ function Isi({
       catatan: ubah.catatan ?? lama.catatan,
     };
     setSkor((s) => ({ ...s, [no]: baru }));
-    if (baru.skor === null && ubah.catatan !== undefined) return; // a note waits for a score
+    if (baru.skor === null && ubah.catatan !== undefined) return true; // a note waits for a score
     const r = await postJson<{ ok: boolean; kode?: string }>("/api/tp/nilai", {
       modul,
       nim: d.nim,
@@ -293,15 +298,24 @@ function Isi({
       setSkor((s) => ({ ...s, [no]: lama }));
       window.Toast?.show(
         r.kode === "bukan_pemegang"
-          ? t.bukanPemegang
+          ? d.pemegang
+            ? t.bukanPemegang
+            : t.bukanAdmin
           : r.kode === "telat_belum_diterima"
             ? t.telatBelum
             : t.gagal,
         "warn",
       );
-      return;
+      return false;
     }
     onSaved();
+    return true;
+  };
+  /** Takes the earlier grader's scores as they are, under my name. */
+  const setujui = async () => {
+    let semua = true;
+    for (const no of lainNo) semua = (await tulis(no, { skor: skor[no]!.skor })) && semua;
+    if (semua) window.Toast?.show(t.disetujui, "ok");
   };
   const loncat = (no: number) => {
     setFokus(no);
@@ -320,7 +334,10 @@ function Isi({
       kode: "",
     }));
     if (!r.ok)
-      return window.Toast?.show(r.kode === "bukan_pemegang" ? t.bukanPemegang : t.gagal, "warn");
+      return window.Toast?.show(
+        r.kode === "bukan_pemegang" ? (d.pemegang ? t.bukanPemegang : t.bukanAdmin) : t.gagal,
+        "warn",
+      );
     if (ok) window.Toast?.show(ok, "ok");
     onSaved();
   };
@@ -482,6 +499,7 @@ function Isi({
         >
           <span className="tpsoal__no">{no}</span>
           <span className="tpq__t">{q?.teks}</span>
+          {lainDari(no) && v != null && <Pill tone="warn">{t.nilaiLainSoal(lainDari(no)!)}</Pill>}
           <span className="tpq__v mono">{v != null ? `${v}/${poinNomor(no)}` : "·"}</span>
         </button>
         {open && (
@@ -601,7 +619,16 @@ function Isi({
       {!d.boleh && (
         <div className="banner">
           <LockSimpleIcon size={20} aria-hidden="true" />
-          <span>{t.hanyaLihat(d.pemegang ?? "?")}</span>
+          <span>{d.pemegang ? t.hanyaLihat(d.pemegangKode ?? d.pemegang) : t.hanyaLihatAdmin}</span>
+        </div>
+      )}
+      {d.boleh && lainNo.length > 0 && (
+        <div className="banner banner--warn">
+          <WarningIcon size={20} aria-hidden="true" />
+          <span className="grow">{t.nilaiLainBanner(lainKode)}</span>
+          <button type="button" className="btn btn--sm" onClick={() => void setujui()}>
+            {t.setujuiNilai}
+          </button>
         </div>
       )}
       <div className="grader__qs">{nomor.map(kartu)}</div>

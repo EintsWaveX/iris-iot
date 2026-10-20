@@ -239,6 +239,34 @@ export async function antreNilai(
   return { antre: true, tugas };
 }
 
+/**
+ * Whether a nilai job still goes through its group's account in that
+ * session: the holder's own, or the lender they picked. A group that changed
+ * hands since the job was queued records only under the new account (user,
+ * 2026-10-20). Other jobs are always their own account's.
+ */
+async function akunMasihSah(db: Db, t: typeof seelabsTugas.$inferSelect): Promise<boolean> {
+  if (t.jenis !== "nilai" || !t.sesiId || !t.kelompokNomor) return true;
+  const g = (await muatSeelabs(db, t.sesiId))?.kelompok.find((x) => x.nomor === t.kelompokNomor);
+  return !!g && g.akun === t.akunNim;
+}
+
+/** Ends a nilai job whose group changed account and queues the group's
+ *  save again through the account it has now (none when it has none). */
+async function pindahAkun(db: Db, t: typeof seelabsTugas.$inferSelect, oleh: string) {
+  await db
+    .update(seelabsTugas)
+    .set({ status: "batal", galatKode: "akun_berubah", selesai: new Date() })
+    .where(eq(seelabsTugas.id, t.id));
+  await writeAudit(oleh, "seelabs_akun_berubah", {
+    tugas: t.id,
+    sesiId: t.sesiId,
+    kelompok: t.kelompokNomor,
+    akun: t.akunNim,
+  });
+  return antreNilai(db, t.sesiId!, t.kelompokNomor!, oleh);
+}
+
 /** The weekly slots an Asisten teaches this semester, from jadwal. */
 async function mengajar(db: Db, nim: string) {
   const [orang] = await db
@@ -443,6 +471,10 @@ export async function ambilTugas(db: Db, serverId: number): Promise<TugasPi[]> {
     .orderBy(sql`(${seelabsTugas.jenis} = 'baca')`, asc(seelabsTugas.id));
   const keluar: TugasPi[] = [];
   for (const { t, a, akun } of rows) {
+    if (!(await akunMasihSah(db, t))) {
+      await pindahAkun(db, t, t.oleh);
+      continue;
+    }
     const segel =
       a && a.sidikKunci === aturan.kunci!.sidik ? buka(a.segel, a.nim, LABEL_SEGEL) : null;
     if (!segel || (a!.status === "ditolak" && t.jenis !== "uji")) {
@@ -1034,6 +1066,15 @@ export async function handleRobotPost(req: ApiRequest, res: ApiResponse, session
     if (t.akunNim !== session.nim && t.oleh !== session.nim && !pengelola) {
       res.status(403).json({ ok: false, kode: "bukan_pemilik" });
       return;
+    }
+    // The group changed hands: its save goes again through the account it
+    // has now, never the old one.
+    if (!(await akunMasihSah(db, t))) {
+      const hasil = await pindahAkun(db, t, session.nim);
+      await siarkan(["seelabs"]);
+      return jawab(
+        hasil.antre ? { ok: true, tugas: hasil.tugas[0] } : { ok: false, kode: hasil.alasan },
+      );
     }
     let token: string | null = null;
     if (aksi === "token") {

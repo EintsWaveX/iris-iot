@@ -23,6 +23,8 @@ export interface KelompokTp {
   klp: string | null;
   pemegang: { nim: string; kode: string; nama: string } | null;
   milikku: boolean;
+  /** Codes of Asisten whose scores stand here though the seat is another's. */
+  nilaiLain?: string[];
   anggota: AnggotaTp[];
 }
 
@@ -55,6 +57,8 @@ export interface DataKelompok {
   hilang: { label: string; peserta: number }[];
   bolehLms: boolean;
   bolehKelola?: boolean;
+  /** Grades groups with no Per Modul seat and Tanpa Kelompok (Admin, Pencipta). */
+  bolehTanpaPemegang?: boolean;
 }
 
 /** One group opened in the grader, with where it came from. */
@@ -86,9 +90,13 @@ export interface DetailPraktikan {
     sumber: "lms" | "iris";
     salinanLms: string | null;
   } | null;
-  skor: Record<string, { skor: number; catatan: string | null; oleh: string }>;
+  skor: Record<
+    string,
+    { skor: number; catatan: string | null; oleh: string; lain?: string | null }
+  >;
   /** The session TP the SeeLabs read-back copied in (2026-10-17), until graded here. */
   tpSeelabs?: number | null;
   boleh: boolean;
   pemegang: string | null;
+  pemegangKode?: string | null;
 }
