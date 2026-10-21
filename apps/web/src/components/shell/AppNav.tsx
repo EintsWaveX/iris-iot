@@ -310,6 +310,8 @@ function barePath(p: string): string {
 function isActive(link: string, current: string): boolean {
   if (link === "/") return current === "/";
   if (link === "/modules") return current.startsWith("/modules");
+  // Kelola TP (/tp) is Penilaian's own page.
+  if (link === "/grading" && (current === "/tp" || current.startsWith("/tp/"))) return true;
   return current === link || current.startsWith(link + "/");
 }
 

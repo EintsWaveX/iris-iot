@@ -348,11 +348,12 @@
     overscroll-behavior: contain;
   }
 
-  /* Wide enough for the room's events in two columns. */
+  /* Wide enough for the room's events in two columns; auto-fit drops the
+     empty one, so a lone event takes the whole row. */
   .kboard > .feed .feed__scroll > ol {
     column-gap: 18px;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(calc(50% - 9px), 1fr));
   }
 }
 
@@ -900,12 +901,6 @@
   flex: 1 1 180px;
   justify-content: center;
   white-space: normal;
-}
-
-/* A silent board: the blank tile, then one note across the rest of the row
-   instead of three empty tiles. */
-.inspector__cards[data-silent="yes"] {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
 }
 
 .vcard--note {

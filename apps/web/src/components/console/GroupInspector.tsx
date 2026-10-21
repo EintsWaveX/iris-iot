@@ -250,7 +250,7 @@ export default function GroupInspector(p: InspectorProps) {
 
       <div hidden={tab !== "ringkasan"}>
         <div className="work__over">
-          <div className="stack" style={{ gap: 8 }}>
+          <div className="stack work__live" style={{ gap: 8 }}>
             <span className="label-caps">{r.liveData}</span>
             <InspectorCards {...p} />
           </div>

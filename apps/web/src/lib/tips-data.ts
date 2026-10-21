@@ -6,6 +6,7 @@
  */
 export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
   id: {
+    "Kelola TP": "Membuka soal TP tiap modul dan Pengaturan TP.",
     "Pengaturan TP": "Membuka Peserta TP, jendela bawaan semester, dan silang data dengan SeeLabs.",
     "Hapus Jendela":
       "Menghapus jendela TP modul ini; Praktikan belum bisa mengunggah sampai jendelanya diatur lagi.",
@@ -593,6 +594,7 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     kernel: "Menampilkan versi kernel.",
   },
   en: {
+    "Manage TP": "Opens each module's TP questions and TP Settings.",
     "TP Settings":
       "Opens TP participants, the semester's default window, and the SeeLabs cross-check.",
     "Remove Window":
@@ -1203,6 +1205,7 @@ export const TIPS: Record<"id" | "en" | "zh", Record<string, string>> = {
     kernel: "Shows the kernel version.",
   },
   zh: {
+    管理预习作业: "打开各模块的预习题目和预习作业设置。",
     预习作业设置: "打开预习作业参与者、学期默认提交时段和 SeeLabs 交叉核对。",
     删除提交时段: "删除这个模块的预习作业提交时段；重新设置之前学生无法上传。",
     "最终题目和 PDF": "显示最终题目和正式 PDF。",

@@ -1006,7 +1006,7 @@ export const TP_BAWAAN: Record<string, VarianTp[]> = {
 };
 
 export const PETUNJUK_BAWAAN: Record<BahasaTp, string> = {
-  id: "Semua praktikan mengerjakan nomor 1 dan 10.\nUntuk nomor 2 sampai 9, praktikan NIM genap mengerjakan nomor genap (2, 4, 6, 8) dan praktikan NIM ganjil mengerjakan nomor ganjil (3, 5, 7, 9).\nTulis jawaban dengan tangan di kertas, lalu kumpulkan hasil pindaiannya dalam satu file PDF melalui LMS sebelum batas waktu.",
-  en: "Everyone answers questions 1 and 10.\nFor questions 2 to 9, students with an even NIM answer the even numbers (2, 4, 6, 8) and students with an odd NIM answer the odd numbers (3, 5, 7, 9).\nWrite your answers by hand on paper, then submit the scan as one PDF file on the LMS before the deadline.",
-  zh: "所有学生都要回答第 1 题和第 10 题。\n第 2 至 9 题：学号为偶数的学生回答偶数题（2、4、6、8），学号为奇数的学生回答奇数题（3、5、7、9）。\n请在纸上手写答案，扫描成一个 PDF 文件，并在截止时间前通过 LMS 提交。",
+  id: "Semua praktikan mengerjakan nomor 1 dan 10.\nUntuk nomor 2 sampai 9, praktikan NIM genap mengerjakan nomor genap (2, 4, 6, 8) dan praktikan NIM ganjil mengerjakan nomor ganjil (3, 5, 7, 9).\nTulis jawaban dengan tangan di kertas, lalu kumpulkan hasil pindaiannya dalam satu file PDF di IRIS sebelum batas waktu.",
+  en: "Everyone answers questions 1 and 10.\nFor questions 2 to 9, students with an even NIM answer the even numbers (2, 4, 6, 8) and students with an odd NIM answer the odd numbers (3, 5, 7, 9).\nWrite your answers by hand on paper, then submit the scan as one PDF file in IRIS before the deadline.",
+  zh: "所有学生都要回答第 1 题和第 10 题。\n第 2 至 9 题：学号为偶数的学生回答偶数题（2、4、6、8），学号为奇数的学生回答奇数题（3、5、7、9）。\n请在纸上手写答案，扫描成一个 PDF 文件，并在截止时间前在 IRIS 上提交。",
 };

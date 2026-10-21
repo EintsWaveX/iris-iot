@@ -1,44 +1,43 @@
 /**
  * /grading (Phase 13): Penilaian, reachable any time from the Asisten
- * navbar. Tabs: Nilai TP (the groups and the grader), Buat Soal TP
- * (each module's question bank, its final set and the paper), Praktikum
- * (every session's score table this semester), Pengaturan TP (who counts
- * in TP, the default window, the cross-check; 2026-10-21, when the LMS
- * left, an old #lms link lands here) and Sumber SeeLabs. The tab is in the
- * hash (#soal, #praktikum, #pengaturan, #seelabs); ?modul= picks the TP
- * module for both TP tabs; the grader is a history entry, so Back returns
- * to the groups.
+ * navbar, only for scores. Tabs: Nilai TP (the groups and the grader),
+ * Praktikum (every session's score table this semester) and Sumber SeeLabs.
+ * The tab is in the hash (#praktikum, #seelabs); ?modul= picks the TP
+ * module; the grader is a history entry, so Back returns to the groups.
+ * Buat Soal TP and Pengaturan TP moved to Kelola TP (/tp, 2026-10-21), which
+ * the header's button opens; their old links (#soal, #pengaturan, #lms) go
+ * there.
  */
 import { useCallback, useEffect, useState } from "react";
 import Fade from "../ui/Fade";
 import TabLine from "../ui/TabLine";
 import ErrorView from "../ui/ErrorView";
-import { getJson, useMe } from "../../lib/app";
+import { getJson, href, useMe } from "../../lib/app";
 import { useMinWidth, usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { TPS } from "../tp/tpStrings";
 import TpTab from "./TpTab";
 import Grader from "./Grader";
 import PraktikumTab from "./PraktikumTab";
-import SoalTab from "./SoalTab";
-import PengaturanTab from "./PengaturanTab";
 import SumberSeelabs from "../console/seelabs/SumberSeelabs";
 import { RB } from "../console/seelabs/robotStrings";
 import type { DataKelompok, GrupDinilai } from "./types";
+import { modulDariUrl, semesterKini } from "./halaman";
 import "../tp/tp.css";
 
-type Tab = "tp" | "soal" | "praktikum" | "pengaturan" | "seelabs";
+type Tab = "tp" | "praktikum" | "seelabs";
 
 function tabDariHash(): Tab {
   const h = typeof location === "undefined" ? "" : location.hash.replace(/^#/, "");
-  if (h === "lms") return "pengaturan";
-  return h === "soal" || h === "praktikum" || h === "pengaturan" || h === "seelabs" ? h : "tp";
+  return h === "praktikum" || h === "seelabs" ? h : "tp";
 }
 
-function modulDariUrl(): number | null {
+/** An old link to a tab that moved to Kelola TP: where it lives now. */
+function keKelola(lang: Lang): string | null {
   if (typeof location === "undefined") return null;
-  const m = Number(new URLSearchParams(location.search).get("modul"));
-  return Number.isInteger(m) && m >= 1 && m <= 4 ? m : null;
+  const h = location.hash.replace(/^#/, "");
+  if (h !== "soal" && h !== "pengaturan" && h !== "lms") return null;
+  return href(lang, `/tp${location.search}#${h === "soal" ? "soal" : "pengaturan"}`);
 }
 
 export default function GradingPage({ lang }: { lang: Lang }) {
@@ -49,14 +48,23 @@ export default function GradingPage({ lang }: { lang: Lang }) {
   const [tab, setTab0] = useState<Tab>(tabDariHash);
   const [modul, setModul0] = useState<number | null>(modulDariUrl);
   const [grader, setGrader] = useState<{ g: GrupDinilai; i: number } | null>(null);
+  const [pindah] = useState(() => keKelola(lang));
 
-  // The tab follows the hash, on load or followed in the page.
+  // The tab follows the hash, on load or followed in the page; a moved
+  // tab's old link goes on to Kelola TP.
   useEffect(() => {
-    const on = () => setTab0(tabDariHash());
+    if (pindah) location.replace(pindah);
+  }, [pindah]);
+  useEffect(() => {
+    const on = () => {
+      const ke = keKelola(lang);
+      if (ke) location.replace(ke);
+      else setTab0(tabDariHash());
+    };
     on();
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
-  }, []);
+  }, [lang]);
   const setTab = (v: Tab) => {
     setTab0(v);
     history.replaceState(
@@ -109,17 +117,13 @@ export default function GradingPage({ lang }: { lang: Lang }) {
     return () => window.removeEventListener("popstate", on);
   }, []);
 
-  if (me === undefined) return <span className="skeleton" style={{ height: 420 }} />;
+  if (me === undefined || pindah) return <span className="skeleton" style={{ height: 420 }} />;
   if (!asisten) return <ErrorView code={me ? 403 : 401} lang={lang} role={me?.role ?? null} />;
 
   const bolehSeelabs = me.hak?.full === true;
-  // Buat Soal TP is for the jadwal and kode rights; nobody else sees it.
-  const bolehSoal = me.hak?.jadwal === true || me.hak?.kode === true;
   const tabs: { v: Tab; label: string; n?: number }[] = [
     { v: "tp", label: sm ? t.tpShort : t.tabTp, n: poll.data?.hitung.perluNilaiku || undefined },
-    ...(bolehSoal ? [{ v: "soal" as const, label: sm ? t.tabSoalSm : t.tabSoal }] : []),
     { v: "praktikum", label: t.tabPraktikum },
-    { v: "pengaturan", label: sm ? t.tabPengaturanSm : t.tabPengaturan },
   ];
   // Phase 14: the SeeLabs robot's own source tab, for the full right.
   if (bolehSeelabs) tabs.push({ v: "seelabs", label: sm ? "SeeLabs" : RB[lang].srcTitle });
@@ -156,7 +160,12 @@ export default function GradingPage({ lang }: { lang: Lang }) {
             <span className="page-header__eyebrow">{t.semesterLabel(semesterKini())}</span>
             <h1 className="page-header__title">{t.penilaian}</h1>
           </div>
-          <span className="hint">{t.lede}</span>
+          <div className="page-header__actions">
+            <span className="hint">{t.lede}</span>
+            <a className="btn" href={href(lang, `/tp${modul ? `?modul=${modul}` : ""}`)}>
+              {t.kelolaTp}
+            </a>
+          </div>
         </div>
       </header>
       <TabLine value={shown} onChange={setTab} label={t.bagian} tabs={tabs} />
@@ -168,25 +177,13 @@ export default function GradingPage({ lang }: { lang: Lang }) {
             setModul={setModul}
             data={modul === null ? null : poll.data}
             onOpen={buka}
-            onPengaturan={() => setTab("pengaturan")}
           />
-        ) : shown === "soal" ? (
-          <SoalTab lang={lang} modul={modul ?? 1} setModul={setModul} />
         ) : shown === "praktikum" ? (
           <PraktikumTab lang={lang} />
-        ) : shown === "pengaturan" ? (
-          <PengaturanTab lang={lang} />
         ) : (
           <SumberSeelabs lang={lang} />
         )}
       </Fade>
     </div>
   );
-}
-
-function semesterKini(): string {
-  const d = new Date(Date.now() + 7 * 3_600_000);
-  const y = d.getUTCFullYear();
-  const m = d.getUTCMonth() + 1;
-  return m >= 8 ? `${y}-ganjil` : m === 1 ? `${y - 1}-ganjil` : `${y}-genap`;
 }

@@ -70,6 +70,8 @@ import {
   waktuPanjang,
   type PaketData,
 } from "../tp/shared";
+// The module picker (.modpick); on its own page since Kelola TP (2026-10-21).
+import "../console/console.css";
 
 type Paket = PaketData["paket"];
 interface Draf {
@@ -971,9 +973,8 @@ function Ekspor({
     setJalan(null);
   };
   return (
-    <section className="panel">
+    <section className="panel tpbank__pdf">
       <h2 className="panel__title">{t.eksporH}</h2>
-      <p className="hint">{t.eksporHint}</p>
       <TabLine
         seg
         value={b}
@@ -981,7 +982,7 @@ function Ekspor({
         label={t.bahasaPdf}
         tabs={BAHASA_TP.map((x) => ({
           v: x,
-          label: x === "zh" ? zhBeta(t.bahasaNama.zh) : t.bahasaNama[x],
+          label: x === "zh" ? zhBeta(t.bahasaPendek.zh) : t.bahasaPendek[x],
         }))}
       />
       {kotor && <p className="hint">{t.pdfBerubah}</p>}
@@ -997,17 +998,19 @@ function Ekspor({
         <button type="button" className="btn" disabled={!!jalan} onClick={() => void pratinjau()}>
           {jalan === "lihat" ? t.membuatPdf : t.lihatPdf}
         </button>
+      </div>
+      <div className="tpbank__kunci">
         <button
           type="button"
-          className="btn btn--ghost"
+          className="btn btn--ghost btn--sm"
           disabled={!!jalan}
           onClick={() => void unduh(true)}
         >
           <DownloadSimpleIcon size={16} weight="bold" aria-hidden="true" />
           {jalan === "kunci" ? t.membuatPdf : t.pdfKunci}
         </button>
+        <span className="hint">{t.pdfKunciHint}</span>
       </div>
-      <p className="hint">{t.pdfKunciHint}</p>
       {lihat && (
         <Drawer
           open

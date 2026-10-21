@@ -1,0 +1,26 @@
+---
+/**
+ * /tp, /en/tp and /zh/tp (2026-10-21): Kelola TP, Buat Soal TP and
+ * Pengaturan TP out of Penilaian, one island (grading/KelolaTpPage.tsx).
+ */
+import Base from "../layouts/Base.astro";
+import KelolaTpPage from "../components/grading/KelolaTpPage";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  noindex
+  title={`${tri(lang, "Kelola TP", "Manage TP", "管理预习作业")} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+>
+  <main id="main" class="page-wide page-main">
+    <KelolaTpPage client:load lang={lang} />
+  </main>
+</Base>

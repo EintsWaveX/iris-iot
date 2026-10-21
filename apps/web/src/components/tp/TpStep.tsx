@@ -608,7 +608,7 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
             </div>
           )}
           <div className="row tpsoalbar">
-            <a className="btn btn--sm" href={href(lang, `/grading?modul=${modul}#soal`)}>
+            <a className="btn btn--sm" href={href(lang, `/tp?modul=${modul}#soal`)}>
               {t.ubahSoal}
             </a>
             <button
@@ -666,7 +666,7 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
         </Hero>
       </div>
       <div className="stack stack--lg tpgrid__side">
-        <a className="panel panel--tight tplinkcard" href={href(lang, "/grading#pengaturan")}>
+        <a className="panel panel--tight tplinkcard" href={href(lang, "/tp#pengaturan")}>
           <GearSixIcon size={22} aria-hidden="true" />
           <span className="stack stack--sm grow">
             <b>{t.tabPengaturan}</b>

@@ -17,7 +17,7 @@ import { JejakDialog, KumpulDialog } from "../tp/KumpulDialog";
 import TabLine from "../ui/TabLine";
 import IconButton from "../ui/IconButton";
 import { ProgressRing, StateView } from "../ui/Display";
-import { MODUL_NAMA, tanggalPanjang } from "../../lib/app";
+import { MODUL_NAMA, href, tanggalPanjang } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
 import { TP_MENUNGGU } from "../../lib/tp";
@@ -43,15 +43,12 @@ export default function TpTab({
   setModul,
   data,
   onOpen,
-  onPengaturan,
 }: {
   lang: Lang;
   modul: number;
   setModul: (m: number) => void;
   data: DataKelompok | null;
   onOpen: (g: GrupDinilai, i: number) => void;
-  /** Penilaian › Pengaturan TP (who counts, the default window). */
-  onPengaturan: () => void;
 }) {
   const t = TPS[lang];
   const [who, setWho] = useState<"mine" | "all">("mine");
@@ -136,7 +133,7 @@ export default function TpTab({
 
       <ModulHead lang={lang} modul={modul} data={data} />
 
-      <KumpulStrip lang={lang} data={data} onPengaturan={onPengaturan} />
+      <KumpulStrip lang={lang} data={data} />
 
       <div className="panel tpfilter tpfilter--tp">
         <div className="tpfilter__top">
@@ -354,15 +351,7 @@ function ModulHead({ lang, modul, data }: { lang: Lang; modul: number; data: Dat
 }
 
 /** How many of the module's Praktikan handed in, all of it in IRIS. */
-function KumpulStrip({
-  lang,
-  data,
-  onPengaturan,
-}: {
-  lang: Lang;
-  data: DataKelompok;
-  onPengaturan: () => void;
-}) {
+function KumpulStrip({ lang, data }: { lang: Lang; data: DataKelompok }) {
   const t = TPS[lang];
   const pct = data.hitung.peserta ? Math.round((data.hitung.masuk / data.hitung.peserta) * 100) : 0;
   return (
@@ -379,9 +368,10 @@ function KumpulStrip({
         <span className="meter" style={{ "--meter": pct } as CSSProperties} />
         <span className="hint">{t.praktikanTerkumpul}</span>
       </div>
-      <button type="button" className="btn" onClick={onPengaturan}>
+      {/* Kelola TP › Pengaturan TP: who counts, the default window. */}
+      <a className="btn" href={href(lang, "/tp#pengaturan")}>
         {t.tabPengaturan}
-      </button>
+      </a>
     </section>
   );
 }

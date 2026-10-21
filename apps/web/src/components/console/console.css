@@ -536,13 +536,29 @@
   margin: var(--space-2) 0 0;
 }
 
+/* The cards count their own column, not the whole inspector: from 1500px
+   the overview sits beside What Happened and only gets half the width. */
+.work__live {
+  container-type: inline-size;
+}
+
 .inspector__cards.vcards {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* A silent board: the blank tile, then one note across the rest of the row
+   instead of three empty tiles. */
+.inspector__cards.vcards[data-silent="yes"] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
 }
 
 @container (min-width: 760px) {
   .inspector__cards.vcards {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .inspector__cards.vcards[data-silent="yes"] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
   }
 }
 
@@ -665,6 +681,8 @@
   color: var(--text);
   cursor: pointer;
   display: flex;
+  /* Each row of names fills the width, so no row ends short. */
+  flex: 1 1 auto;
   font: inherit;
   font-weight: 500;
   gap: var(--space-2);
