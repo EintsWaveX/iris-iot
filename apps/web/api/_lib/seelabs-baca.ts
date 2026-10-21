@@ -101,7 +101,10 @@ async function nilaiBergerak(db: Db, sekarang: Date): Promise<boolean> {
     .where(
       and(
         ne(sesi.jenis, "tot"),
-        or(eq(sesi.status, "berjalan"), and(eq(sesi.status, "selesai"), gte(sesi.selesaiPada, sejak))),
+        or(
+          eq(sesi.status, "berjalan"),
+          and(eq(sesi.status, "selesai"), gte(sesi.selesaiPada, sejak)),
+        ),
       ),
     )
     .limit(1);
