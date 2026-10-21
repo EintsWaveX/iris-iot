@@ -48,7 +48,7 @@ import { bolehPenuh, lihatRpSemua } from "../../src/lib/hak.js";
 import { slotToMulai } from "../../src/lib/jadwal.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { statusSlotTanggal } from "../../src/lib/penugasan-minggu.js";
-import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
+import { orangTanggal, pjTanggal } from "../../src/lib/penugasan-minggu.js";
 import { modulTanggal } from "../../src/lib/penugasan-modul.js";
 import {
   jamDariMenit,
@@ -268,7 +268,8 @@ export async function muatKonteks(
       normal,
       baseMenit: geserOut ? geser.baseMenit : normal,
       geser: geserOut,
-      pj: row.pj ?? null,
+      // A cover seated in the default PJ's place acts as PJ that date.
+      pj: minggu ? pjTanggal(row.pj, minggu.kursi) : (row.pj ?? null),
       pembuat: null,
       diharapkan,
       izin: iz,

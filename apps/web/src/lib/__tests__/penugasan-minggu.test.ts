@@ -10,11 +10,13 @@ import {
   pasanganSemester,
   pasanganTanggal,
   pemegangTpKursi,
+  pjTanggal,
   seninSah,
   statusSlotTanggal,
   tanggalBerikut,
   tanggalMinggu,
 } from "../penugasan-minggu";
+import type { IzinTanggal, TugasTanggal } from "../penugasan-minggu";
 
 describe("pasanganSemester", () => {
   it("takes one code per group, blanks as empty seats", () => {
@@ -196,5 +198,38 @@ describe("covers on a date (user, 2026-10-21: NUE for NAB, slot 4)", () => {
     ]);
     expect(kursiSaya(kursi, "MCU")).toEqual([{ nomor: 2, ganti: null, lepas: null }]);
     expect(kursiSaya(kursi, "")).toEqual([]);
+  });
+});
+
+describe("pjTanggal", () => {
+  const kursi = (tugas: TugasTanggal[], izin: IzinTanggal[]) =>
+    pasanganTanggal(["NAB", "NAB", "GMW", "GMW", "TRA"], 5, tugas, izin);
+  it("keeps the default PJ when nobody covers them", () => {
+    expect(pjTanggal("nab", kursi([], []))).toBe("NAB");
+    expect(pjTanggal("NAB", kursi([], [{ kode: "NAB", status: "aktif" }]))).toBe("NAB");
+    expect(pjTanggal(null, kursi([], []))).toBeNull();
+  });
+  it("hands PJ to a Substitute or Volunteer seated in the PJ's place", () => {
+    const sub: TugasTanggal = {
+      kelompokNomor: 1,
+      kode: "OCU",
+      jenis: "pengganti",
+      status: "diterima",
+    };
+    const iz: IzinTanggal[] = [{ kode: "NAB", status: "aktif" }];
+    expect(pjTanggal("NAB", kursi([sub], iz))).toBe("OCU");
+    expect(pjTanggal("NAB", kursi([{ ...sub, jenis: "sukarela" }], iz))).toBe("OCU");
+  });
+  it("stays with the PJ while they still hold a seat, or the cover is only asked", () => {
+    const sub: TugasTanggal = {
+      kelompokNomor: 1,
+      kode: "OCU",
+      jenis: "pengganti",
+      status: "diterima",
+    };
+    expect(pjTanggal("NAB", kursi([sub], []))).toBe("NAB");
+    expect(
+      pjTanggal("NAB", kursi([{ ...sub, status: "diminta" }], [{ kode: "NAB", status: "aktif" }])),
+    ).toBe("NAB");
   });
 });
