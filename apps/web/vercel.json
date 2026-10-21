@@ -8,8 +8,18 @@
       "permanent": true
     },
     {
-      "source": "/(en/|zh/)?lms/?",
-      "destination": "/$1grading",
+      "source": "/lms",
+      "destination": "/grading",
+      "permanent": true
+    },
+    {
+      "source": "/en/lms",
+      "destination": "/en/grading",
+      "permanent": true
+    },
+    {
+      "source": "/zh/lms",
+      "destination": "/zh/grading",
       "permanent": true
     },
     {
