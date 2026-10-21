@@ -50,6 +50,8 @@ export interface DataJadwal {
   jumlahModul?: number;
   modulMinggu?: Record<string, { senin: string; sabtu: string } | null>;
   diajar?: Record<string, number[]>;
+  /** Postponed weeks (Mondays): Deteksi Modul Otomatis turned off. */
+  tunda?: string[];
   /** Each slot's SeeLabs KLP per group: "hari-slot" -> group -> KLP. */
   klp?: Record<string, Record<string, string>>;
 }

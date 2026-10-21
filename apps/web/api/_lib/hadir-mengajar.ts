@@ -569,7 +569,13 @@ export async function bukaMasuk(db: Db, c: Konteks): Promise<Date | null> {
  *  highest open one (read even while the semester doesn't pair per module). */
 export async function modulHari(db: Db, tanggal: string): Promise<number | null> {
   const k = await konteksModul(db, semesterDariTanggal(tanggal), true);
-  return modulTanggal({ tanggal, hariIni: tanggal, jendela: k.jendela, terbuka: k.terbuka }).modul;
+  return modulTanggal({
+    tanggal,
+    hariIni: tanggal,
+    jendela: k.jendela,
+    terbuka: k.terbuka,
+    tunda: k.tunda,
+  }).modul;
 }
 
 /** The lab clock's refusal for a slot that never started (api/_lib/jam-lab.ts), if any. */

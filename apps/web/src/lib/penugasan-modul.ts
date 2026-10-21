@@ -109,11 +109,45 @@ export function ulang(
 
 export type SumberModul = "sesi" | "tp" | "terbuka";
 
+/** The Monday of a date's Monday to Sunday week. */
+export const seninDari = (tanggal: string) => tambahHari(tanggal, 1 - hariKe(tanggal));
+
+/**
+ * Each module's practicum week (the Monday to Saturday after its TP window
+ * closes) with the postponed weeks (`tunda`, Mondays; user, 2026-10-21: a
+ * midterm week has no practicum) taken out: a module never shares a week
+ * with an earlier one, and one falling on a postponed week moves to the
+ * next week that isn't.
+ */
+export function mingguModulSemua(
+  jendela: Partial<Record<number, JendelaTp | null>>,
+  tunda: readonly string[] = [],
+): Record<number, { senin: string; sabtu: string } | null> {
+  const libur = new Set(tunda);
+  const out: Record<number, { senin: string; sabtu: string } | null> = {};
+  let lalu: string | null = null;
+  for (const m of Object.keys(jendela)
+    .map(Number)
+    .sort((a, b) => a - b)) {
+    const j = jendela[m];
+    if (!j) {
+      out[m] = null;
+      continue;
+    }
+    let senin = mingguPraktikum(j).senin;
+    if (lalu && senin <= lalu) senin = tambahHari(lalu, 7);
+    while (libur.has(senin)) senin = tambahHari(senin, 7);
+    out[m] = { senin, sabtu: tambahHari(senin, 5) };
+    lalu = senin;
+  }
+  return out;
+}
+
 /**
  * Which module a slot's date teaches: the session already started there,
- * else the module whose practicum week (the Monday to Saturday after its
- * TP window closes) holds the date, else the highest open module. A date
- * past every known window and past this week has none yet.
+ * else the module whose practicum week (mingguModulSemua) holds the date,
+ * else the highest open module. A date past every known window and past
+ * this week, or in a postponed week, has none.
  */
 export function modulTanggal(f: {
   tanggal: string;
@@ -121,17 +155,19 @@ export function modulTanggal(f: {
   sesiModul?: number | null;
   jendela: Partial<Record<number, JendelaTp | null>>;
   terbuka: readonly number[];
+  tunda?: readonly string[];
 }): { modul: number | null; sumber: SumberModul | null } {
   if (f.sesiModul) return { modul: f.sesiModul, sumber: "sesi" };
+  if (f.tunda?.includes(seninDari(f.tanggal))) return { modul: null, sumber: null };
   // This week's Saturday; on a Sunday the slots ahead are next week's.
   const h = hariKe(f.hariIni);
   let akhir = tambahHari(f.hariIni, h === 7 ? 6 : 6 - h);
-  for (const m of Object.keys(f.jendela)
+  const minggu = mingguModulSemua(f.jendela, f.tunda);
+  for (const m of Object.keys(minggu)
     .map(Number)
     .sort((a, b) => a - b)) {
-    const j = f.jendela[m];
-    if (!j) continue;
-    const w = mingguPraktikum(j);
+    const w = minggu[m];
+    if (!w) continue;
     if (f.tanggal >= w.senin && f.tanggal <= w.sabtu) return { modul: m, sumber: "tp" };
     if (w.sabtu > akhir) akhir = w.sabtu;
   }

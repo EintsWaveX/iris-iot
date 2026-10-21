@@ -48,7 +48,7 @@ import {
   masukPerpanjangan,
   nomorUntuk,
   statusTp,
-  tanggalSlot,
+  tambahHari,
   telatMenit,
   soalAkhir,
   tampilSoal,
@@ -65,6 +65,8 @@ import {
 } from "../../src/lib/tp.js";
 import { PETUNJUK_BAWAAN, TP_BAWAAN } from "./tp-bawaan.js";
 import { muatTanggal } from "./penugasan-api.js";
+import { bacaTunda } from "./modul-tunda.js";
+import { mingguModulSemua } from "../../src/lib/penugasan-modul.js";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -255,8 +257,19 @@ export interface Kursi {
 
 /** Each slot's groups and holders for a module's practicum week. */
 export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kursi[]> {
-  const j = jendelaUntuk(set, modul);
   const hariIni = hariIniWib();
+  // The module's practicum week, moved past a postponed week (Jadwal's
+  // Deteksi Modul Otomatis).
+  const tunda = (await bacaTunda(db, set.semester)).map((x) => x.senin);
+  const w = mingguModulSemua(
+    Object.fromEntries(
+      Object.entries(set.jendela.modul).map(([m, x]) => [
+        Number(m),
+        x ? { buka: x.buka, tutup: x.tutup } : null,
+      ]),
+    ),
+    tunda,
+  )[modul];
   const rows = await db
     .select()
     .from(jadwal)
@@ -264,7 +277,10 @@ export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kur
     .orderBy(asc(jadwal.hari), asc(jadwal.slot));
   if (!rows.length) return [];
   const tanggalOf = new Map(
-    rows.map((r) => [r.id, j ? tanggalSlot(j, r.hari) : tanggalMinggu(r.hari, hariIni, 0)]),
+    rows.map((r) => [
+      r.id,
+      w ? tambahHari(w.senin, r.hari - 1) : tanggalMinggu(r.hari, hariIni, 0),
+    ]),
   );
   const tanggalan = [...new Set(tanggalOf.values())];
   const sesiRows = await db

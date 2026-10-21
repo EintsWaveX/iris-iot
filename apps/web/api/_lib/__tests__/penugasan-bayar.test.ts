@@ -65,7 +65,7 @@ vi.mock("../../../src/lib/auth", async (orig) => ({
 }));
 vi.mock("../pasangan-modul", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
-  konteksModul: async () => ({ aktif: false, jumlah: 4, jendela: [], terbuka: [] }),
+  konteksModul: async () => ({ aktif: false, jumlah: 4, jendela: [], terbuka: [], tunda: [] }),
   modulPerSlot: async () => new Map(),
 }));
 

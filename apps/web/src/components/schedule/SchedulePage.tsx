@@ -42,10 +42,13 @@ import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
 import { hariLabel, kelompokLabel, slotLabel as slotName } from "../../lib/labels";
 import { mingguDepan, pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
 import { JENDELA_MAX, JENDELA_MIN } from "../../lib/sesi-mulai";
+import { seninDari } from "../../lib/penugasan-modul";
+import { tambahHari } from "../../lib/tp";
+import { hakPenuh } from "../../lib/hak";
 import type { Lang } from "../../lib/kelas";
 import SlotEditor, { type SlotEditorHandle } from "./SlotEditor";
 import ImportView from "./ImportView";
-import ModulView from "./ModulView";
+import ModulView, { rentang } from "./ModulView";
 import { J, pesanJ, type Jx } from "./strings";
 import { HARI, SLOTS, type DataJadwal, type JadwalRow, type PengaturanJendela } from "./types";
 import "./SchedulePage.css";
@@ -378,6 +381,102 @@ function Settings({
   );
 }
 
+/* ------------------------------------------- Deteksi Modul Otomatis */
+
+/** This week's Monday; on a Sunday the week ahead (as the module rule reads it). */
+function seninKini(): string {
+  const hariIni = hariIniWib();
+  const senin = seninDari(hariIni);
+  return hariDariTanggal(hariIni) === 0 ? tambahHari(senin, 7) : senin;
+}
+
+/** "Senin, 9 November" */
+function hariTanggal(lang: Lang, d: string): string {
+  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : lang === "zh" ? "zh-CN" : "id-ID", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(`${d}T00:00:00Z`));
+}
+
+/** The weeks the Admin tier can postpone: this one and the next three. */
+function TundaDialog({
+  t,
+  lang,
+  semester,
+  data,
+  onClose,
+  onSaved,
+}: {
+  t: Jx;
+  lang: Lang;
+  semester: string;
+  data: DataJadwal;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const tunda = new Set(data.tunda ?? []);
+  const mulai = seninKini();
+  const modulDi = (senin: string) =>
+    Object.entries(data.modulMinggu ?? {}).find(([, w]) => w?.senin === senin)?.[0];
+  async function atur(senin: string, nyala: boolean) {
+    setBusy(senin);
+    const r = await postJson<{ ok: boolean; kode?: string }>("/api/session/schedule", {
+      semester,
+      tundaModul: { senin, tunda: !nyala },
+    }).catch(() => ({ ok: false, kode: undefined }));
+    setBusy(null);
+    if (!r.ok) return window.Toast?.show(pesanJ(t, r.kode), "danger");
+    window.Toast?.show(nyala ? t.tm.savedOn : t.tm.savedOff, "ok");
+    onSaved();
+  }
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={t.tm.title}
+      lang={lang}
+      actions={
+        <button type="button" className="btn btn--ghost" onClick={onClose}>
+          {t.close}
+        </button>
+      }
+    >
+      <div className="stack stack--lg jtunda">
+        <p className="hint">{t.tm.intro}</p>
+        <ul className="jtunda__list">
+          {[0, 1, 2, 3].map((n) => {
+            const senin = tambahHari(mulai, 7 * n);
+            const off = tunda.has(senin);
+            const m = modulDi(senin);
+            return (
+              <li key={senin} className="jtunda__row" data-off={off ? "yes" : undefined}>
+                <span className="jtunda__txt">
+                  <b>{t.tm.minggu(n)}</b>
+                  <span className="hint">
+                    {rentang(lang, senin, tambahHari(senin, 5))} ·{" "}
+                    {off ? t.tm.paused : m ? t.tm.modul(Number(m)) : t.tm.none}
+                  </span>
+                </span>
+                <Switch
+                  on={!off}
+                  onChange={(v) => void atur(senin, v)}
+                  label={`${t.tm.title}, ${t.tm.minggu(n)}`}
+                  busy={busy === senin}
+                  disabled={busy !== null}
+                />
+              </li>
+            );
+          })}
+        </ul>
+        <p className="hint">{t.tm.back}</p>
+      </div>
+    </Dialog>
+  );
+}
+
 /* --------------------------------------------------------------- page */
 
 type Tujuan =
@@ -399,6 +498,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   // The slot the drawer's Buka Per Modul came from, flashed there
   const [sorotModul, setSorotModul] = useState<{ hari: number; slot: number } | null>(null);
   const [setting, setSetting] = useState(false);
+  const [tundaBuka, setTundaBuka] = useState(false);
   const [dirty, setDirty] = useState(false);
   useBelumSimpan(dirty);
   const [ask, setAsk] = useState<Tujuan | null>(null);
@@ -464,6 +564,8 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   const meKode = (me?.kode ?? "").toUpperCase();
   const bolehJadwal = me?.hak?.jadwal !== false && !!me?.hak;
   const bolehModul = me?.hak?.jadwal === true;
+  // Deteksi Modul Otomatis: the Admin tier and the Pencipta only.
+  const bolehTunda = !!me?.tier && hakPenuh({ tier: me.tier, badges: me.badges ?? [] });
   const known = useMemo(
     () => new Set((data?.asisten ?? []).map((a) => a.kode.toUpperCase())),
     [data],
@@ -632,6 +734,11 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
               {t.pm.open}
             </button>
           )}
+          {bolehTunda && kini === semester && (
+            <button type="button" className="btn" onClick={() => setTundaBuka(true)}>
+              {t.tm.open}
+            </button>
+          )}
           {bolehJadwal &&
             (narrow ? (
               <IconButton
@@ -697,6 +804,22 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
           {t.holiday}
         </span>
       </div>
+
+      {/* A postponed week, this one or one ahead, for everyone to see. */}
+      {kini === semester &&
+        (data?.tunda ?? [])
+          .filter((senin) => senin >= seninKini())
+          .map((senin) => (
+            <div key={senin} className="banner banner--warn" role="status">
+              <CalendarBlankIcon size={20} aria-hidden="true" />
+              <span className="grow">
+                {t.tm.notice(
+                  rentang(lang, senin, tambahHari(senin, 5)),
+                  hariTanggal(lang, tambahHari(senin, 7)),
+                )}
+              </span>
+            </div>
+          ))}
 
       {/* The cells open the slot editor; nothing on them said so. */}
       <p className="hint">{bolehJadwal ? t.gridHint : t.gridHintRo}</p>
@@ -882,6 +1005,16 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
           lang={lang}
           jendela={data.jendela}
           onClose={() => setSetting(false)}
+          onSaved={load}
+        />
+      )}
+      {tundaBuka && data && (
+        <TundaDialog
+          t={t}
+          lang={lang}
+          semester={semester}
+          data={data}
+          onClose={() => setTundaBuka(false)}
           onSaved={load}
         />
       )}
