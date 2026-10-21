@@ -51,6 +51,8 @@ import Confirm from "../ui/Confirm";
 import Dropdown from "../ui/Dropdown";
 import Fade from "../ui/Fade";
 import Pill from "../ui/Pill";
+import { PillKursi } from "../ui/PillGanti";
+import type { GantiKursi, KursiSaya } from "../../lib/penugasan-minggu";
 import SegmentedControl from "../ui/SegmentedControl";
 import TierBadge from "../ui/TierBadge";
 import Tooltip from "../ui/Tooltip";
@@ -103,6 +105,8 @@ interface SlotHariIni {
   asisten: string[];
   /** Covers and volunteers helping without a group, and who is excused. */
   bantu?: string[];
+  /** Code -> their cover today (kind, whose seat): not on the list. */
+  ganti?: Record<string, GantiKursi>;
   izin?: string[];
   pengganti: { kode: string }[];
   jumlahKelompok: number;
@@ -135,6 +139,10 @@ export interface Beranda {
     kelompok: number[];
     /** Each group's SeeLabs KLP, aligned with kelompok. */
     klp?: (string | null)[];
+    /** Each group's seat that date (a cover, or mine handed over), aligned. */
+    kursi?: KursiSaya[];
+    /** There only as a cover or helper, not on the slot's semester list. */
+    ganti?: boolean;
   }[];
   terbuka: number[];
   presentasiAktif: { nama: string; jenis: string } | null;
@@ -468,6 +476,7 @@ export default function AsistenHome({
       mine: mineSlot(s),
       kelas: rs?.kelas ?? "reguler",
       codes: rs ? kodeSlot(rs) : [],
+      ganti: rs?.ganti,
       kosong: !ada(s),
       ran: j
         ? { modul: j.modul, selesai: j.selesaiPada ? jamMenit(j.selesaiPada, lang) : null }
@@ -901,7 +910,12 @@ export default function AsistenHome({
               <div className="stack stack--sm">
                 <b>{d.slotRange(sel, SLOT_MULAI[sel], win.tutup)}</b>
                 {ada(sel) ? (
-                  <SlotCodes codes={r ? kodeSlot(r) : []} me={myCode} nameOf={nameOfKode} />
+                  <SlotCodes
+                    codes={r ? kodeSlot(r) : []}
+                    me={myCode}
+                    nameOf={nameOfKode}
+                    ganti={r?.ganti}
+                  />
                 ) : (
                   <span className="hint">
                     {r?.status === "segera"
@@ -1232,6 +1246,7 @@ export default function AsistenHome({
               key={`${w.hari}-${w.slot}`}
               className="weekchip"
               data-now={w.hari === data.hari && states[w.slot] === "now" ? "yes" : undefined}
+              data-ganti={w.ganti ? "yes" : undefined}
               href={href(lang, `/schedule?sorot=1&slot=${w.hari}-${w.slot}`)}
             >
               <b>
@@ -1248,6 +1263,11 @@ export default function AsistenHome({
               {w.kelas === "internasional" && (
                 <Pill tone="violet">{kelasLabel("internasional", lang)}</Pill>
               )}
+              {(w.kursi ?? [])
+                .filter((k) => k.ganti || k.lepas)
+                .map((k) => (
+                  <PillKursi key={k.nomor} k={k} lang={lang} sebut={(w.kursi ?? []).length > 1} />
+                ))}
             </a>
           ))}
         </div>

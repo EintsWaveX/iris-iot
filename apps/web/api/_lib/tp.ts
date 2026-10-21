@@ -31,7 +31,12 @@ import {
 } from "../../src/lib/schema.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
-import { tanggalMinggu } from "../../src/lib/penugasan-minggu.js";
+import {
+  gantiKursi,
+  pemegangTpKursi,
+  tanggalMinggu,
+  type GantiKursi,
+} from "../../src/lib/penugasan-minggu.js";
 import {
   BAHASA_TP,
   MAKS_VARIAN,
@@ -216,8 +221,10 @@ export interface KelompokTp {
   pemegang: { nim: string; kode: string; nama: string } | null;
   milikku: boolean;
   /** Codes of Asisten whose scores stand here though the seat is another's:
-   *  given before the Per Modul list changed. */
+   *  given before the Per Modul list changed, or before a cover took it. */
   nilaiLain: string[];
+  /** The grader covers the seat on the practicum date (null: their own). */
+  ganti: GantiKursi | null;
   anggota: AnggotaTp[];
 }
 
@@ -236,8 +243,11 @@ export interface Kursi {
   kelas: string;
   tanggal: string;
   sesiId: number | null;
-  /** nomor -> the Per Modul seat's NIM (null: nobody) */
+  /** nomor -> who grades the TP (null: nobody): the Per Modul seat, or a
+   *  Substitute or Volunteer seated there on the practicum date */
   pemegang: Map<number, string | null>;
+  /** nomor -> that cover's kind and whose seat it is */
+  ganti: Map<number, GantiKursi>;
   /** nomor -> members */
   anggota: Map<number, { nim: string; nama: string }[]>;
   klp: Map<number, string | null>;
@@ -314,14 +324,21 @@ export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kur
     const tanggal = tanggalOf.get(r.id)!;
     const sid = sesiOf.get(`${tanggal}|${r.slot}`) ?? null;
     const pemegang = new Map<number, string | null>();
+    const ganti = new Map<number, GantiKursi>();
     const anggota = new Map<number, { nim: string; nama: string }[]>();
     const klp = new Map<number, string | null>();
     for (const k of klpRows.filter((x) => x.hari === r.hari && x.slot === r.slot))
       klp.set(k.nomor, k.klp);
-    // The TP is the Per Modul seat's (user, 2026-10-20): an izin, a cover
-    // or a take-over in the session never moves it.
-    for (const k of minggu.get(r.id)?.kursi ?? [])
-      pemegang.set(k.nomor, k.tetap ? (nimOfKode.get(k.tetap.toUpperCase()) ?? null) : null);
+    // The TP is the Per Modul seat's (user, 2026-10-20), unless a
+    // Substitute or Volunteer holds the seat on the practicum date: then it
+    // is theirs (user, 2026-10-21). An izin alone or a take-over in the
+    // session never moves it.
+    for (const k of minggu.get(r.id)?.kursi ?? []) {
+      const kode = pemegangTpKursi(k);
+      pemegang.set(k.nomor, kode ? (nimOfKode.get(kode.toUpperCase()) ?? null) : null);
+      const g = gantiKursi(k);
+      if (g) ganti.set(k.nomor, g);
+    }
     if (sid) {
       for (const a of snap.filter((x) => x.sesiId === sid))
         anggota.set(a.nomor, [...(anggota.get(a.nomor) ?? []), { nim: a.nim, nama: a.nama }]);
@@ -337,6 +354,7 @@ export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kur
       tanggal,
       sesiId: sid,
       pemegang,
+      ganti,
       anggota,
       klp,
     });
@@ -344,8 +362,8 @@ export async function kursiModul(db: Db, set: SetTp, modul: number): Promise<Kur
   return out;
 }
 
-/** Who holds `nim`'s TP for `modul`: their group's Per Modul seat (nim null
- *  when the seat is empty). Null when the Praktikan is in no group. */
+/** Who holds `nim`'s TP for `modul`: their group's Per Modul seat, or the
+ *  cover seated there on the practicum date (nim null when nobody). Null when the Praktikan is in no group. */
 export async function pemegangTp(
   db: Db,
   set: SetTp,
@@ -461,6 +479,7 @@ export async function kelompokTp(db: Db, set: SetTp, modul: number, meNim: strin
           pemegang: p ? { nim: p, kode: o?.kode.toUpperCase() ?? p, nama: o?.nama ?? p } : null,
           milikku: p === meNim,
           nilaiLain: [...new Set(lain)].sort(),
+          ganti: p ? (k.ganti.get(nomor) ?? null) : null,
           anggota: k.anggota.get(nomor)!.map(satu),
         };
       }),

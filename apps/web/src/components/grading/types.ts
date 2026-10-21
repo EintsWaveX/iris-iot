@@ -1,4 +1,5 @@
 /** Penilaian (Phase 13): the shapes /api/tp answers with. */
+import type { GantiKursi } from "../../lib/penugasan-minggu";
 import type { KeadaanJendela, StatusTp } from "../../lib/tp";
 import type { JendelaInfo } from "../tp/shared";
 
@@ -25,6 +26,8 @@ export interface KelompokTp {
   milikku: boolean;
   /** Codes of Asisten whose scores stand here though the seat is another's. */
   nilaiLain?: string[];
+  /** The grader covers the seat on the practicum date (null: their own). */
+  ganti?: GantiKursi | null;
   anggota: AnggotaTp[];
 }
 
@@ -56,6 +59,7 @@ export interface GrupDinilai {
   klp: string | null;
   pemegang: KelompokTp["pemegang"];
   milikku: boolean;
+  ganti?: GantiKursi | null;
   anggota: AnggotaTp[];
 }
 

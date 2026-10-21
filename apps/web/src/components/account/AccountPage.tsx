@@ -30,7 +30,13 @@ import { semesterDariTanggal } from "../../lib/jadwal-parser";
 import type { Lang } from "../../lib/kelas";
 import { divisiLabel, nomorKlp } from "../../lib/labels";
 import type { BarisJadwal } from "../../lib/jadwal-next";
-import { pasanganSemester, type MingguSlot } from "../../lib/penugasan-minggu";
+import {
+  kursiSaya,
+  orangTanggal,
+  pasanganSemester,
+  type MingguSlot,
+} from "../../lib/penugasan-minggu";
+import { PillKursi } from "../ui/PillGanti";
 import type { Ringkasan } from "../../lib/umpan-balik";
 import "./AccountPage.css";
 import { BUKA_TAMPILAN, DisplaySummary } from "../shell/DisplayPanel";
@@ -269,12 +275,18 @@ export default function AccountPage({ lang }: { lang: Lang }) {
   }, [me]);
 
   const kode = (me?.kode ?? "").toUpperCase();
+  // My slots: on the semester list, or covering or helping on this
+  // week's date (user, 2026-10-21).
   const mine = useMemo(
     () =>
       (jadwal ?? [])
-        .filter((j) => j.asisten.some((a) => a.toUpperCase() === kode))
+        .filter((j) => {
+          if (j.asisten.some((a) => a.toUpperCase() === kode)) return true;
+          const m = minggu[String(j.id)];
+          return !!m && orangTanggal(m.kursi, m.tugas).has(kode);
+        })
         .sort((a, b) => a.hari - b.hari || a.slot - b.slot),
-    [jadwal, kode],
+    [jadwal, minggu, kode],
   );
 
   if (me === undefined) return <span className="skeleton" style={{ height: 360 }} />;
@@ -359,13 +371,15 @@ export default function AccountPage({ lang }: { lang: Lang }) {
                 // This week's seats (its module's list while the semester
                 // pairs per module), else the default list.
                 const kursi = minggu[String(j.id)]?.kursi;
+                const saya = kursi ? kursiSaya(kursi, kode) : [];
                 const groups = kursi
-                  ? kursi.filter((k) => k.tetap === kode).map((k) => k.nomor)
+                  ? saya.map((k) => k.nomor)
                   : pasanganSemester(j.asisten, j.jumlahKelompok)
                       .map((a, i) => (a === kode ? i + 1 : 0))
                       .filter(Boolean);
+                const ganti = !j.asisten.some((a) => a.toUpperCase() === kode);
                 return (
-                  <li key={`${j.hari}-${j.slot}`}>
+                  <li key={`${j.hari}-${j.slot}`} data-ganti={ganti ? "yes" : undefined}>
                     <b>{t.hari[j.hari]}</b>
                     <span className="mono">{SLOT_MULAI[j.slot]}</span>
                     <span className="hint">
@@ -375,6 +389,17 @@ export default function AccountPage({ lang }: { lang: Lang }) {
                     </span>
                     {j.kelas === "internasional" && (
                       <span className="pill pill--gold">{t.inter}</span>
+                    )}
+                    {saya.some((k) => k.ganti || k.lepas) && (
+                      // On a row of their own under the groups (a long badge
+                      // would squeeze the groups' column).
+                      <span className="row acctpage__ganti">
+                        {saya
+                          .filter((k) => k.ganti || k.lepas)
+                          .map((k) => (
+                            <PillKursi key={k.nomor} k={k} lang={lang} sebut={saya.length > 1} />
+                          ))}
+                      </span>
                     )}
                   </li>
                 );

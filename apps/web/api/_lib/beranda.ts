@@ -19,7 +19,7 @@
  *   the Jadwal right.
  */
 import { diSlotMinggu, muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
-import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
+import { gantiKursi, kursiSaya, orangTanggal } from "../../src/lib/penugasan-minggu.js";
 import { klpSlot } from "./pasangan-modul.js";
 import { muatNilaiBanner } from "./hadir-mengajar.js";
 import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
@@ -350,6 +350,14 @@ export async function handleBerandaGet(
           // One code per group today ("" for an open seat), then helpers.
           asisten: m.kursi.map((x) => x.kode ?? ""),
           bantu,
+          // Who is there only as a cover today, as what, for whom.
+          ganti: Object.fromEntries([
+            ...m.kursi.flatMap((x) => {
+              const g = gantiKursi(x);
+              return g && x.kode ? [[x.kode, g]] : [];
+            }),
+            ...bantu.map((k) => [k, { jenis: "sukarela", untuk: null }]),
+          ]),
           izin: m.izin.filter((x) => x.status !== "dibatalkan").map((x) => x.kode),
           pengganti: j.pengganti,
           jumlahKelompok: j.jumlahKelompok,
@@ -358,20 +366,30 @@ export async function handleBerandaGet(
           roster: roster[j.slot] ?? { kelompok: 0, praktikan: 0 },
         };
       }),
+    // My slots this week: my own (each seat as it stands that date) and
+    // any I cover or help on that date (user, 2026-10-21), each marked.
     mingguSaya: minggu
-      .filter((j) => j.status === "aktif" && j.asisten.some((k) => k.toUpperCase() === kode))
-      .map((j) => ({
-        hari: j.hari,
-        slot: j.slot,
-        kelas: j.kelas,
-        kelompok: (kursiMinggu.get(j.id)?.kursi ?? [])
-          .filter((k) => k.tetap === kode)
-          .map((k) => k.nomor),
-        // Each of those groups' SeeLabs KLP (null when not matched yet).
-        klp: (kursiMinggu.get(j.id)?.kursi ?? [])
-          .filter((k) => k.tetap === kode)
-          .map((k) => klpOf[`${j.hari}-${j.slot}`]?.[String(k.nomor)] ?? null),
-      })),
+      .filter((j) => j.status === "aktif")
+      .flatMap((j) => {
+        const m = kursiMinggu.get(j.id);
+        const tetap = j.asisten.some((k) => k.toUpperCase() === kode);
+        const bantu = !!m && orangTanggal(m.kursi, m.tugas).has(kode);
+        if (!tetap && !bantu) return [];
+        const kursi = kursiSaya(m?.kursi ?? [], kode);
+        return [
+          {
+            hari: j.hari,
+            slot: j.slot,
+            kelas: j.kelas,
+            kelompok: kursi.map((k) => k.nomor),
+            // Each of those groups' SeeLabs KLP (null when not matched yet).
+            klp: kursi.map((k) => klpOf[`${j.hari}-${j.slot}`]?.[String(k.nomor)] ?? null),
+            kursi,
+            // Not on the slot's semester list: there only as a cover or helper.
+            ganti: !tetap,
+          },
+        ];
+      }),
     terbuka,
     presentasiAktif: slide ? { nama: slide.nama, jenis: slide.jenis } : null,
     // The latest open module's schematic: an uploaded image, else the

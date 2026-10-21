@@ -7,6 +7,7 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import Pill from "../ui/Pill";
+import { PillGanti } from "../ui/PillGanti";
 import { getJson, href, type Me } from "../../lib/app";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { hariLabel, kelasLabel } from "../../lib/labels";
@@ -78,6 +79,7 @@ export default function DayCard({
     mine: mine(s),
     kelas: row(s)?.kelas ?? "reguler",
     codes: codes(s),
+    ganti: row(s)?.ganti,
     kosong: !ada(s),
     ran: null,
     win: winOf(s),
@@ -161,6 +163,9 @@ export default function DayCard({
                 </Pill>
                 {row(open)?.kelas === "internasional" && (
                   <Pill tone="violet">{kelasLabel("internasional", lang)}</Pill>
+                )}
+                {row(open)?.ganti?.[myCode] && (
+                  <PillGanti ganti={row(open)!.ganti![myCode]} lang={lang} />
                 )}
               </div>
               <h2 className="home__h2">{d.canStartNow}</h2>

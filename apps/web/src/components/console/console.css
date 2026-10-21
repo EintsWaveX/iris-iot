@@ -2007,9 +2007,18 @@ button.lib__name {
   border-color: var(--ok);
 }
 
+/* A slot I'm in only as a cover: the cover chips' violet edge */
+.weekchip[data-ganti="yes"]:not([data-now="yes"]) {
+  border-color: color-mix(in srgb, var(--violet) 60%, transparent);
+}
+
 @media (max-width: 519px) {
   .weekchip {
     white-space: normal;
+    /* a cover's badge drops under the day and groups instead of pushing out */
+    flex-wrap: wrap;
+    max-width: 100%;
+    padding-block: 6px;
   }
 }
 

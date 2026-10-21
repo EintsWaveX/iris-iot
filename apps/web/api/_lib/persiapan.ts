@@ -56,6 +56,8 @@ import { boleh, bolehPenuh } from "../../src/lib/hak.js";
 import { hariIniWib, KELOMPOK_MAKS } from "../../src/lib/jadwal.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { isKelas, type Kelas } from "../../src/lib/kelas.js";
+import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
+import { muatMinggu } from "./penugasan-api.js";
 
 export const NIM_PRAKTIKAN_RE = /^\d{10}(\d{2})?$/;
 const TANGGAL_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -76,12 +78,17 @@ async function slotRow(hari: number, slot: number) {
   return row ?? null;
 }
 
-function diSlot(o: OrangHak, row: typeof jadwal.$inferSelect): boolean {
+/** The slot's own Asisten, its listed substitutes, and anyone covering or
+ *  helping on its next date (user, 2026-10-21). */
+async function diSlot(o: OrangHak, row: typeof jadwal.$inferSelect): Promise<boolean> {
   const k = o.kode.toUpperCase();
-  return (
+  if (
     row.asisten.some((x) => x.toUpperCase() === k) ||
     row.pengganti.some((p) => p.kode.toUpperCase() === k)
-  );
+  )
+    return true;
+  const m = (await muatMinggu(getDb(), [row])).get(row.id);
+  return !!m && orangTanggal(m.kursi, m.tugas).has(k);
 }
 
 async function draftRow(id: number) {
@@ -291,7 +298,7 @@ export async function handleRosterSlotPost(
   }
   const row = await slotRow(hari, slot);
   if (!row) return tolak(res, "slot_tidak_ada");
-  if (!boleh(orang, "jadwal") && !diSlot(orang, row)) {
+  if (!boleh(orang, "jadwal") && !(await diSlot(orang, row))) {
     return res.status(403).json({ ok: false, kode: "tanpa_hak", hak: "jadwal" });
   }
 

@@ -13,6 +13,7 @@ import { SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { jamDariMenit, menitDariJam } from "../../lib/sesi-mulai";
 import { kelasLabel, modulLabel } from "../../lib/labels";
 import type { Kelas, Lang } from "../../lib/kelas";
+import type { GantiKursi } from "../../lib/penugasan-minggu";
 import { D } from "./dayStrings";
 import "./day.css";
 
@@ -25,6 +26,8 @@ export interface DaySlot {
   kelas: Kelas;
   /** Everyone teaching it today, upper case, once each. */
   codes: string[];
+  /** Covers today (code -> kind and whose seat). */
+  ganti?: Record<string, GantiKursi>;
   /** No practicum today (holiday, empty, or not yet in the schedule). */
   kosong: boolean;
   /** What it ran today: the module and when it ended (null while running). */
@@ -67,11 +70,13 @@ function Codes({
   me,
   max,
   nameOf,
+  ganti,
 }: {
   codes: string[];
   me: string;
   max?: number;
   nameOf: (kode: string) => string;
+  ganti?: Record<string, GantiKursi>;
 }) {
   let shown = max && codes.length > max ? codes.slice(0, max - 1) : codes;
   if (shown !== codes && codes.includes(me) && !shown.includes(me))
@@ -81,7 +86,13 @@ function Codes({
     <span className={`day__codes${max ? " day__codes--one" : ""}`}>
       {shown.map((k) => (
         <Tooltip key={k} label={nameOf(k)}>
-          <span className={`acode${k === me ? " acode--me" : ""}`}>{k}</span>
+          <span
+            className={["acode", k === me && "acode--me", ganti?.[k] && `acode--${ganti[k].jenis}`]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {k}
+          </span>
         </Tooltip>
       ))}
       {rest.length > 0 && (
@@ -97,6 +108,8 @@ export function SlotCodes(props: {
   codes: string[];
   me: string;
   nameOf: (kode: string) => string;
+  /** Covers today, marked like on the Schedule. */
+  ganti?: Record<string, GantiKursi>;
 }) {
   return <Codes {...props} />;
 }
@@ -212,7 +225,7 @@ export default function DayStrip({
                 (s.kosong ? (
                   <span className="hint day__none">{d.noSession}</span>
                 ) : (
-                  <Codes codes={s.codes} me={me} max={4} nameOf={nameOf} />
+                  <Codes codes={s.codes} me={me} max={4} nameOf={nameOf} ganti={s.ganti} />
                 ))}
               {!small && s.ran && (
                 <span className="hint day__ran">

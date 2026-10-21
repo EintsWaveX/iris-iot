@@ -23,6 +23,8 @@ import { usePoll } from "../../lib/hooks";
 import { useTampil } from "../../lib/proyektor";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { slotBerikutnya, type BarisJadwal, type SlotBerikutnya } from "../../lib/jadwal-next";
+import type { MingguSlot } from "../../lib/penugasan-minggu";
+import { PillKursi } from "../ui/PillGanti";
 import { hariDariTanggal, semesterDariTanggal } from "../../lib/jadwal-parser";
 import { hariLabel, kelasLabel, kelompokLabel, modulLabel } from "../../lib/labels";
 import type { Lang } from "../../lib/kelas";
@@ -136,12 +138,14 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
   useEffect(() => {
     if (me?.role !== "asisten") return;
     const today = hariIniWib();
-    getJson<{ ok: boolean; jadwal: BarisJadwal[] }>(
+    getJson<{ ok: boolean; jadwal: BarisJadwal[]; minggu?: Record<string, MingguSlot> }>(
       `/api/session/schedule?semester=${semesterDariTanggal(today)}`,
     )
       .then((d) =>
         setNext(
-          d.ok ? slotBerikutnya(d.jadwal, me.kode ?? "", hariDariTanggal(today), menitWib()) : null,
+          d.ok
+            ? slotBerikutnya(d.jadwal, me.kode ?? "", hariDariTanggal(today), menitWib(), d.minggu)
+            : null,
         ),
       )
       .catch(() => setNext(null));
@@ -279,6 +283,11 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
               {kelasLabel(next.kelas, lang)}
             </Pill>
             {next.kelompok.length > 0 && <Pill>{daftarKelompok(next.kelompok, lang)}</Pill>}
+            {(next.kursi ?? [])
+              .filter((x) => x.ganti)
+              .map((x) => (
+                <PillKursi key={x.nomor} k={x} lang={lang} />
+              ))}
           </div>
         </>
       ) : (

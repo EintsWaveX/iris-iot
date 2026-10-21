@@ -180,3 +180,15 @@
   padding-inline: 7px;
   vertical-align: middle;
 }
+
+/* A Volunteer's cover badge: dashed, like its chip on the Schedule */
+.pill--dashed {
+  border-style: dashed;
+  border-width: 1.5px;
+}
+
+/* PillGanti's tooltip trigger: sits in a row like the pill itself */
+.pillganti {
+  display: inline-flex;
+  max-width: 100%;
+}
