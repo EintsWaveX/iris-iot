@@ -20,8 +20,8 @@
 #define GROUP_ID 1
 
 // Orange Pi menjadi access point, papan skor, sekaligus server NTP.
-const char* WIFI_SSID      = "IRIS-IOT";
-const char* WIFI_PASSWORD  = "iris2026";
+const char* WIFI_SSID      = "IRIS_IOT";
+const char* WIFI_PASSWORD  = "13015954";
 const char* SERVER_HOST    = "192.168.4.1";
 const uint16_t SERVER_PORT = 8080;
 

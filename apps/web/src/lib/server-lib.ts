@@ -177,7 +177,7 @@ export const AKSI_PERINTAH = [
   // refused while a session runs.
   "pembaruan.bundel",
   "pembaruan.apt",
-  // 2026-10-08 (agent protocol 5): where IRIS-IOT comes from, a router on
+  // 2026-10-08 (agent protocol 5): where IRIS_IOT comes from, a router on
   // the Pi's LAN port (kabel) or the Pi's own radio (wifi). One argument,
   // `sumber`, from AP_SUMBER; the Pi refuses it while the hotspot is on.
   "ap.sumber",

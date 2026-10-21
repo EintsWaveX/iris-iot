@@ -8,7 +8,7 @@
  *   Lihat Sebagai Praktikan, Persiapan Langsung, Tabel Nilai, SeeLabs and
  *   the Module 4 scoreboard; the first two open their form in place) and
  *   Ada Masalah?, then Perpanjang (E) and Akhiri Sesi on the right.
- * - Module 4 (2026-10-08): Mulai Perburuan turns the IRIS-IOT hotspot and
+ * - Module 4 (2026-10-08): Mulai Perburuan turns the IRIS_IOT hotspot and
  *   the scoreboard on and opens the Praktikan's Perburuan step; Selesai
  *   Perburuan turns both off (api/_lib/perburuan-sesi.ts).
  */
@@ -130,7 +130,7 @@ export default function SessionBar({
   const list = servers?.list ?? [];
   const online = list.filter((s) => isOnline(s.denyutTerakhir, s.batasLuringDetik)).length;
   const ap = hotspotMenyala(servers?.detail?.denyutTerakhir?.modeJaringan);
-  // Phones reach the hunt at 192.168.4.1 on IRIS-IOT. This laptop stays on
+  // Phones reach the hunt at 192.168.4.1 on IRIS_IOT. This laptop stays on
   // campus Wi-Fi, so it uses the Pi's LAN address whenever the Pi still has
   // its campus link (no hotspot, or the router on the cable); only a Pi whose
   // own radio became the hotspot with no uplink answers on 192.168.4.1 alone.

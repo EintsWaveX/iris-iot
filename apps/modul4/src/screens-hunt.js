@@ -102,11 +102,11 @@
     return html`<div class="hunt" data-sun=${st.sun ? "yes" : "no"}>
       <header class="hbar">
         <img class="hbar__logo" src=${H.LOGO} alt="IRIS" />
-        <span class="hbar__t"><b>${H.T("Perburuan LoRa", "LoRa Hunt")}</b><span class="hint hide-sm">${H.modul(4)} · IRIS-IOT</span></span>
+        <span class="hbar__t"><b>${H.T("Perburuan LoRa", "LoRa Hunt")}</b><span class="hint hide-sm">${H.modul(4)} · IRIS_IOT</span></span>
         ${!bare && (member || asisten) && html`<span class=${"hbar__g" + (asisten && !member ? " hbar__g--a" : "")} style=${`--g:var(--group-${asisten && !member ? 0 : g})`}>${asisten && !member ? html`<${Icon} n="shield-check" sm /><span>${L("Asisten", "Assistant")}</span>` : html`<i></i>${W < 640 ? H.gname(g) : H.gfull(g)}`}</span>`}
         <span class="grow"></span>
         <${HClock} compact=${W < 640} />
-        <span class="hbar__link" data-tip=${live ? L("Tersambung ke Pi lewat IRIS-IOT", "Connected to the Pi over IRIS-IOT") : L("Menyambung ulang ke Pi", "Reconnecting to the Pi")} tabindex="0"><span class=${"dot " + (live ? "dot--ok dot--pulse" : "dot--warn")}></span></span>
+        <span class="hbar__link" data-tip=${live ? L("Tersambung ke Pi lewat IRIS_IOT", "Connected to the Pi over IRIS_IOT") : L("Menyambung ulang ke Pi", "Reconnecting to the Pi")} tabindex="0"><span class=${"dot " + (live ? "dot--ok dot--pulse" : "dot--warn")}></span></span>
         <${IconBtn} icon="sliders-horizontal" label=${L("Tampilan", "Display")} onClick=${() => setDisp(true)} />
       </header>
       ${!bare && W >= 900 && html`<nav class="htabs" aria-label=${L("Perburuan", "Hunt")}>${tabs.map((t) => html`<button type="button" aria-current=${tab === t.k ? "page" : undefined} onClick=${() => H.go(t.k)}><${Icon} n=${t.i} />${H.title(L(...t.l))}</button>`)}</nav>`}
@@ -217,7 +217,7 @@
       setTimeout(() => setCool(false), 3000);
       const r = await H.ping(p.k);
       if (r.ok) H.toast(L(`Terkirim ke ${H.gname(g)} dan asisten: ${L(...p.l)}`, `Sent to ${H.gname(g)} and the assistants: ${L(...p.l)}`), { tone: "ok" });
-      else H.toast(r.kode === "terlalu_cepat" ? L("Tunggu 3 detik sebelum sinyal berikutnya.", "Wait 3 seconds before the next ping.") : L("Sinyal tidak terkirim. Cek sambungan ke IRIS-IOT.", "The ping didn't go through. Check the IRIS-IOT connection."), { tone: "warn" });
+      else H.toast(r.kode === "terlalu_cepat" ? L("Tunggu 3 detik sebelum sinyal berikutnya.", "Wait 3 seconds before the next ping.") : L("Sinyal tidak terkirim. Cek sambungan ke IRIS_IOT.", "The ping didn't go through. Check the IRIS_IOT connection."), { tone: "warn" });
     };
     return html`<div class="pings">${PINGS.map((p) => html`<button type="button" class="ping" disabled=${cool} onClick=${() => fire(p)}><${Icon} n=${p.i} /><span>${H.title(L(...p.l))}</span></button>`)}</div>
       <span class="hint">${cool ? L("Tunggu 3 detik sebelum sinyal berikutnya.", "Wait 3 seconds before the next ping.") : L("Hanya timmu dan asisten yang melihat sinyal ini.", "Only your team and the assistants see these.")}</span>`;
@@ -322,7 +322,7 @@
         tak_ada_sesi: L("Belum ada sesi yang berjalan. Tunggu asisten memulainya.", "No session is running yet. Wait for the assistant to start it."),
         nim_cacat: L("NIM hanya berisi angka dan huruf, 4 sampai 20 karakter.", "A NIM has only digits and letters, 4 to 20 characters."),
         terlalu_sering: L("Terlalu banyak percobaan. Panggil asisten.", "Too many tries. Call an assistant."),
-      }[err] || (err ? L("Tidak tersambung ke Pi. Cek Wi-Fi IRIS-IOT, lalu coba lagi.", "Not connected to the Pi. Check the IRIS-IOT Wi-Fi, then try again.") : null);
+      }[err] || (err ? L("Tidak tersambung ke Pi. Cek Wi-Fi IRIS_IOT, lalu coba lagi.", "Not connected to the Pi. Check the IRIS_IOT Wi-Fi, then try again.") : null);
       body = html`<form class="card card--raised hjoin" onSubmit=${submit}>
         <span class="eyebrow">${L("Selamat datang di perburuan", "Welcome to the hunt")}</span>
         <h1 class="h-title">${H.T("Masuk dengan NIM", "Sign in with your NIM")}</h1>
@@ -330,7 +330,7 @@
         <label class="field"><span class="label">NIM</span><input class="input hnim mono" inputmode="numeric" autocomplete="off" maxlength="20" id="h-nim" value=${nim} onInput=${(e) => setNim(e.target.value.replace(/[^0-9A-Za-z]/g, "").toUpperCase())} placeholder="1032230310" />
           ${msg && html`<span class="error"><${Icon} n="warning" sm />${msg}</span>`}</label>
         <${Btn} type="submit" kind="primary" lg block icon="arrow-right" disabled=${nim.length < 4 || busy}>${busy ? L("Mencari", "Looking Up") : L("Masuk", "Sign In")}</${Btn}>
-        <span class="hint">${L("Tanpa internet. Kamu tersambung ke Pi lewat Wi-Fi IRIS-IOT.", "No internet. You're connected to the Pi over the IRIS-IOT Wi-Fi.")}</span>
+        <span class="hint">${L("Tanpa internet. Kamu tersambung ke Pi lewat Wi-Fi IRIS_IOT.", "No internet. You're connected to the Pi over the IRIS_IOT Wi-Fi.")}</span>
         <button type="button" class="hjoin__asisten" onClick=${() => H.go("mission")}><${Icon} n="shield-check" sm />${L("Saya Asisten", "I'm an Assistant")}</button>
       </form>`;
     } else if (step === "reveal") {
@@ -486,7 +486,7 @@
     const head = html`<div class="hhead"><span class="row" style="gap:8px">${member ? html`<${Badge}><${Icon} n=${ROLES[role].i} sm />${L(...ROLES[role].l)}</${Badge}>` : html`<${Badge} tone="ok"><${Icon} n="eye" sm />${L("Melihat sebagai asisten", "Viewing as an assistant")}</${Badge}>`}<span class="hint">${sisa != null ? L(`Arena ${arena()} m · sisa ${sisa} menit`, `Arena ${arena()} m · ${sisa} minutes left`) : L(`Arena ${arena()} m`, `Arena ${arena()} m`)}</span></span>${!member && html`<${GroupPick} g=${g} />`}</div>`;
     if (!row)
       return html`<${H.HuntApp} tab="hunt"><div class="hpage__in">${head}
-        <section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menunggu hunter kelompokmu", "Waiting for your group's hunter")} body=${L("Pi belum menerima paket dari hunter kelompok ini. Nyalakan papan hunter dan pastikan tersambung ke IRIS-IOT.", "The Pi hasn't had a packet from this group's hunter yet. Power the hunter board and make sure it's on IRIS-IOT.")} /></section></div></${H.HuntApp}>`;
+        <section class="card card--raised hjoin"><${H.StateView} icon="broadcast" title=${L("Menunggu hunter kelompokmu", "Waiting for your group's hunter")} body=${L("Pi belum menerima paket dari hunter kelompok ini. Nyalakan papan hunter dan pastikan tersambung ke IRIS_IOT.", "The Pi hasn't had a packet from this group's hunter yet. Power the hunter board and make sure it's on IRIS_IOT.")} /></section></div></${H.HuntApp}>`;
     const band = row.jarak_dekat != null ? [metres(row.jarak_dekat), metres(row.jarak_jauh)] : null;
     const trend = H.trend10(g);
     const sw = f && f.sapuan ? f.sapuan[String(g)] : null;
@@ -560,7 +560,7 @@
     const call = async () => {
       const r = await H.panggil(calling);
       if (r.ok) H.toast(r.aktif ? L("Asisten dipanggil.", "Assistant called.") : L("Panggilan dibatalkan.", "Call cancelled."), { tone: "ok" });
-      else H.toast(L("Panggilan tidak terkirim. Cek sambungan ke IRIS-IOT.", "The call didn't go through. Check the IRIS-IOT connection."), { tone: "warn" });
+      else H.toast(L("Panggilan tidak terkirim. Cek sambungan ke IRIS_IOT.", "The call didn't go through. Check the IRIS_IOT connection."), { tone: "warn" });
     };
     const log = N.pings.filter((p) => p.grup === g).slice(-5).reverse();
     const ann = N.frame && N.frame.pengumuman;

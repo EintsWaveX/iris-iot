@@ -1,6 +1,6 @@
 """
 PERBURUAN LoRa IRIS — papan skor (Modul 4)
-Perangkat: Orange Pi 4 PRO, dijalankan sebagai access point "IRIS-IOT"
+Perangkat: Orange Pi 4 PRO, dijalankan sebagai access point "IRIS_IOT"
 
 Satu proses melayani tiga hal sekaligus pada port yang sama:
 
@@ -1844,7 +1844,7 @@ def process_request(connection: ServerConnection, request) -> Response | None:
     if path == "/roster.json":
         # Sengaja tanpa token: papan proyektor menampilkan nama kelompok
         # tanpa pernah masuk sebagai siapa pun. Konsekuensinya nama praktikan
-        # terbaca oleh siapa saja yang tersambung ke hotspot IRIS-IOT. Itu
+        # terbaca oleh siapa saja yang tersambung ke hotspot IRIS_IOT. Itu
         # keputusan yang diambil sadar untuk jaringan tertutup satu sesi, dan
         # itulah sebabnya daftarnya berganti tiap sesi.
         #

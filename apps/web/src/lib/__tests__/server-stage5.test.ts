@@ -86,7 +86,7 @@ const RINCI = JSON.stringify({
   paket: { kernel: "6.6.98", os: "Orange Pi 1.1.0", angka: 3 },
   galatJurnal24j: 104,
   konfigAp: [
-    ["SSID", "IRIS-IOT", false],
+    ["SSID", "IRIS_IOT", false],
     ["PSK", "bocor", true],
   ],
   timer: [{ unit: "logrotate.timer", berikut: "Sun 2026-10-04 00:10:37" }],
@@ -106,7 +106,7 @@ describe("bacaRinci", () => {
   it("never shows a secret value even if the agent sent one", () => {
     const r = bacaRinci(RINCI)!;
     expect(r.konfigAp).toEqual([
-      ["SSID", "IRIS-IOT", false],
+      ["SSID", "IRIS_IOT", false],
       ["PSK", "", true],
     ]);
   });

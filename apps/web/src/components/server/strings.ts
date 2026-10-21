@@ -104,12 +104,12 @@ export const S = dict({
     restartAllBody:
       "Ada sesi yang sedang berjalan. Praktikan yang tersambung akan terputus beberapa detik.",
     restartAllSent: "Semua layanan dimulai ulang pada denyut berikutnya.",
-    hotspot: "Hotspot IRIS-IOT",
+    hotspot: "Hotspot IRIS_IOT",
     hotspotOn: "Menyala",
     hotspotOff: "Mati",
     hotspotWait: "Menunggu denyut berikutnya…",
     hotspotHint:
-      "PC Server membuat Wi-Fi sendiri bernama IRIS-IOT untuk Modul 4. Papan dan HP masuk ke sana untuk papan skor dan jam PC Server, tanpa internet.",
+      "PC Server membuat Wi-Fi sendiri bernama IRIS_IOT untuk Modul 4. Papan dan HP masuk ke sana untuk papan skor dan jam PC Server, tanpa internet.",
     // chart
     chart: "Prosesor dan Suhu",
     ranges: { "1h": "1 Jam", "24h": "24 Jam", "7d": "7 Hari" } as Record<string, string>,
@@ -200,8 +200,8 @@ export const S = dict({
       "layanan.mulai": "Nyalakan layanan",
       "layanan.henti": "Matikan layanan",
       "layanan.mulai_ulang": "Mulai ulang layanan",
-      "ap.nyala": "Nyalakan hotspot IRIS-IOT",
-      "ap.mati": "Matikan hotspot IRIS-IOT",
+      "ap.nyala": "Nyalakan hotspot IRIS_IOT",
+      "ap.mati": "Matikan hotspot IRIS_IOT",
       "jam.selaraskan": "Sinkronkan jam",
       "diag.ringkas": "Diagnosis ringkas",
       "diag.log": "Ambil log",
@@ -232,7 +232,7 @@ export const S = dict({
     ifUp: "Menyala",
     ifDown: "Mati",
     hsLine: (on: boolean, n: number | null) =>
-      on ? `IRIS-IOT menyala · ${n ?? 0} klien` : "IRIS-IOT mati · 0 klien",
+      on ? `IRIS_IOT menyala · ${n ?? 0} klien` : "IRIS_IOT mati · 0 klien",
     ntpLine: (ok: boolean, st: string, ms: string, src: string) =>
       ok
         ? `chrony tersinkron${st ? `, stratum ${st}` : ""}${ms ? `, selisih ${ms} ms` : ""}${src ? ` dari ${src}` : ""}`
@@ -438,14 +438,14 @@ export const S = dict({
     setupFail: "Pemasangan terakhir berhenti. Buka pemasangan untuk melihat alasannya.",
     setupNone: "Belum dipasang di PC Server mana pun.",
     // hotspot source (2026-10-08)
-    apSrcTitle: "Hotspot IRIS-IOT",
+    apSrcTitle: "Hotspot IRIS_IOT",
     apSrcSub: "Dari mana Wi-Fi perburuan Modul 4 berasal.",
     apSrcKabel: "Router (Kabel LAN)",
     apSrcWifi: "Wi-Fi PC Server",
     apSrcKabelHint:
-      "Router TP-Link mode Access Point di port LAN PC Server menyiarkan IRIS-IOT. Wi-Fi PC Server tetap di jaringan kampus selama perburuan.",
+      "Router TP-Link mode Access Point di port LAN PC Server menyiarkan IRIS_IOT. Wi-Fi PC Server tetap di jaringan kampus selama perburuan.",
     apSrcWifiHint:
-      "Radio Wi-Fi PC Server sendiri menjadi IRIS-IOT. Tanpa uplink kedua, PC Server terputus dari situs selama perburuan.",
+      "Radio Wi-Fi PC Server sendiri menjadi IRIS_IOT. Tanpa uplink kedua, PC Server terputus dari situs selama perburuan.",
     apSrcOld: "Perbarui agen di kartu Pembaruan dulu (butuh protokol 5).",
     apSrcBusy: "Hotspot sedang menyala. Selesaikan perburuan dulu sebelum mengganti sumbernya.",
     apSrcWait: "Menunggu PC Server menerapkan pilihan ini…",
@@ -556,12 +556,12 @@ export const S = dict({
     restartAllAsk: "Restart every service?",
     restartAllBody: "A session is running. Connected students drop for a few seconds.",
     restartAllSent: "Every service restarts on the next heartbeat.",
-    hotspot: "IRIS-IOT Hotspot",
+    hotspot: "IRIS_IOT Hotspot",
     hotspotOn: "On",
     hotspotOff: "Off",
     hotspotWait: "Waiting for the next heartbeat…",
     hotspotHint:
-      "The PC Server makes its own Wi-Fi, IRIS-IOT, for Module 4. Boards and phones join it to reach the scoreboard and the PC Server's clock, with no internet.",
+      "The PC Server makes its own Wi-Fi, IRIS_IOT, for Module 4. Boards and phones join it to reach the scoreboard and the PC Server's clock, with no internet.",
     chart: "CPU and Temperature",
     ranges: { "1h": "1 Hour", "24h": "24 Hours", "7d": "7 Days" } as Record<string, string>,
     range: "Range",
@@ -649,8 +649,8 @@ export const S = dict({
       "layanan.mulai": "Turn a service on",
       "layanan.henti": "Turn a service off",
       "layanan.mulai_ulang": "Restart a service",
-      "ap.nyala": "Turn on the IRIS-IOT hotspot",
-      "ap.mati": "Turn off the IRIS-IOT hotspot",
+      "ap.nyala": "Turn on the IRIS_IOT hotspot",
+      "ap.mati": "Turn off the IRIS_IOT hotspot",
       "jam.selaraskan": "Sync clock",
       "diag.ringkas": "Quick check",
       "diag.log": "Fetch log",
@@ -680,7 +680,7 @@ export const S = dict({
     ifUp: "Up",
     ifDown: "Down",
     hsLine: (on: boolean, n: number | null) =>
-      on ? `IRIS-IOT on · ${n ?? 0} clients` : "IRIS-IOT off · 0 clients",
+      on ? `IRIS_IOT on · ${n ?? 0} clients` : "IRIS_IOT off · 0 clients",
     ntpLine: (ok: boolean, st: string, ms: string, src: string) =>
       ok
         ? `chrony synced${st ? `, stratum ${st}` : ""}${ms ? `, off by ${ms} ms` : ""}${src ? ` from ${src}` : ""}`
@@ -878,14 +878,14 @@ export const S = dict({
     setupFail: "The last install stopped. Open the setup to see why.",
     setupNone: "Not set up on any PC Server yet.",
     // hotspot source (2026-10-08)
-    apSrcTitle: "IRIS-IOT Hotspot",
+    apSrcTitle: "IRIS_IOT Hotspot",
     apSrcSub: "Where the Module 4 hunt's Wi-Fi comes from.",
     apSrcKabel: "Router (LAN Cable)",
     apSrcWifi: "PC Server Wi-Fi",
     apSrcKabelHint:
-      "A TP-Link router in Access Point mode on the PC Server's LAN port broadcasts IRIS-IOT. The PC Server's Wi-Fi stays on the campus network during the hunt.",
+      "A TP-Link router in Access Point mode on the PC Server's LAN port broadcasts IRIS_IOT. The PC Server's Wi-Fi stays on the campus network during the hunt.",
     apSrcWifiHint:
-      "The PC Server's own Wi-Fi radio becomes IRIS-IOT. Without a second uplink, the PC Server drops off the site during the hunt.",
+      "The PC Server's own Wi-Fi radio becomes IRIS_IOT. Without a second uplink, the PC Server drops off the site during the hunt.",
     apSrcOld: "Update the agent on the Updates card first (needs protocol 5).",
     apSrcBusy: "The hotspot is on. End the hunt before changing its source.",
     apSrcWait: "Waiting for the PC Server to apply this choice…",
@@ -990,12 +990,12 @@ export const S = dict({
     restartAllAsk: "重启所有服务？",
     restartAllBody: "正在上课。已连接的学生会断开几秒钟。",
     restartAllSent: "所有服务会在下一次心跳时重启。",
-    hotspot: "IRIS-IOT 热点",
+    hotspot: "IRIS_IOT 热点",
     hotspotOn: "开",
     hotspotOff: "关",
     hotspotWait: "等待下一次心跳…",
     hotspotHint:
-      "PC 服务器会为模块 4 开一个自己的 Wi-Fi，叫 IRIS-IOT。板子和手机连上它，就能访问记分板和 PC 服务器的时钟，不需要网络。",
+      "PC 服务器会为模块 4 开一个自己的 Wi-Fi，叫 IRIS_IOT。板子和手机连上它，就能访问记分板和 PC 服务器的时钟，不需要网络。",
     chart: "CPU 和温度",
     ranges: { "1h": "1 小时", "24h": "24 小时", "7d": "7 天" } as Record<string, string>,
     range: "范围",
@@ -1083,8 +1083,8 @@ export const S = dict({
       "layanan.mulai": "开启服务",
       "layanan.henti": "关闭服务",
       "layanan.mulai_ulang": "重启服务",
-      "ap.nyala": "开启 IRIS-IOT 热点",
-      "ap.mati": "关闭 IRIS-IOT 热点",
+      "ap.nyala": "开启 IRIS_IOT 热点",
+      "ap.mati": "关闭 IRIS_IOT 热点",
       "jam.selaraskan": "同步时钟",
       "diag.ringkas": "快速检查",
       "diag.log": "获取日志",
@@ -1114,7 +1114,7 @@ export const S = dict({
     ifUp: "开启",
     ifDown: "关闭",
     hsLine: (on: boolean, n: number | null) =>
-      on ? `IRIS-IOT 已开 · ${n ?? 0} 个设备` : "IRIS-IOT 已关 · 0 个设备",
+      on ? `IRIS_IOT 已开 · ${n ?? 0} 个设备` : "IRIS_IOT 已关 · 0 个设备",
     ntpLine: (ok: boolean, st: string, ms: string, src: string) =>
       ok
         ? `chrony 已同步${st ? `，stratum ${st}` : ""}${ms ? `，偏差 ${ms} ms` : ""}${src ? `，来源 ${src}` : ""}`
@@ -1302,14 +1302,14 @@ export const S = dict({
     setupFail: "上一次安装停止了。打开安装看看原因。",
     setupNone: "还没有安装到任何 PC 服务器上。",
     // hotspot source (2026-10-08)
-    apSrcTitle: "IRIS-IOT 热点",
+    apSrcTitle: "IRIS_IOT 热点",
     apSrcSub: "模块 4 寻踪用的 Wi-Fi 从哪里来。",
     apSrcKabel: "路由器（网线）",
     apSrcWifi: "PC 服务器的 Wi-Fi",
     apSrcKabelHint:
-      "接在 PC 服务器网口上的 TP-Link 路由器（AP 模式）发出 IRIS-IOT。寻踪时 PC 服务器的 Wi-Fi 仍然连着校园网。",
+      "接在 PC 服务器网口上的 TP-Link 路由器（AP 模式）发出 IRIS_IOT。寻踪时 PC 服务器的 Wi-Fi 仍然连着校园网。",
     apSrcWifiHint:
-      "PC 服务器自己的 Wi-Fi 变成 IRIS-IOT。没有第二条上行网络时，寻踪期间 PC 服务器会和网站断开。",
+      "PC 服务器自己的 Wi-Fi 变成 IRIS_IOT。没有第二条上行网络时，寻踪期间 PC 服务器会和网站断开。",
     apSrcOld: "先在更新卡片里更新 agent（需要协议 5）。",
     apSrcBusy: "热点正在开启。先结束寻踪再更换来源。",
     apSrcWait: "等待 PC 服务器应用这个选择…",
