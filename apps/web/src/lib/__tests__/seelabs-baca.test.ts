@@ -8,7 +8,9 @@ import {
   barisBap,
   bacakuUntuk,
   dasarDariBaris,
-  JEDA_BACA_MS,
+  JEDA_BACA_RAMAI_MS,
+  JEDA_BACA_TENANG_MS,
+  jedaBaca,
   sidikStabil,
   nilaiTersimpan,
   rencanaTerima,
@@ -81,9 +83,25 @@ describe("tempatkan", () => {
   });
 });
 
-describe("JEDA_BACA_MS", () => {
-  it("reads every connected account every minute, around the clock", () => {
-    expect(JEDA_BACA_MS).toBe(60_000);
+describe("jedaBaca", () => {
+  // WIB is UTC+7.
+  const wib = (jam: string) => new Date(`2026-10-22T${jam}+07:00`);
+
+  it("reads every minute while scores move, day or night", () => {
+    expect(jedaBaca(wib("10:00:00"), true)).toBe(JEDA_BACA_RAMAI_MS);
+    expect(jedaBaca(wib("02:00:00"), true)).toBe(60_000);
+  });
+
+  it("reads every 30 minutes through a quiet day", () => {
+    expect(jedaBaca(wib("10:00:00"), false)).toBe(JEDA_BACA_TENANG_MS);
+    expect(jedaBaca(wib("05:50:00"), false)).toBe(30 * 60_000);
+    expect(jedaBaca(wib("00:14:00"), false)).toBe(30 * 60_000);
+  });
+
+  it("reads nothing in the quiet hours, 00:15 to 05:50", () => {
+    expect(jedaBaca(wib("00:15:00"), false)).toBeNull();
+    expect(jedaBaca(wib("03:00:00"), false)).toBeNull();
+    expect(jedaBaca(wib("05:49:00"), false)).toBeNull();
   });
 });
 

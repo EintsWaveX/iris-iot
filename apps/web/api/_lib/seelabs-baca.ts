@@ -3,10 +3,11 @@
  * queueing the robot's read-only `baca` job for each connected account, and
  * taking its results into IRIS. The rules live in src/lib/seelabs-baca.ts.
  *
- * The rhythm: every connected account every minute, around the clock
- * (user, 2026-10-18), one at a time per account (a read still waiting or
- * running holds the next back), one nightly pass over every module of the
- * semester, and at once from Periksa Sekarang. Score saves go first.
+ * The rhythm (jedaBaca): every connected account every minute while scores
+ * move, every 30 minutes otherwise through the day, none in the quiet hours;
+ * one at a time per account (a read still waiting or running holds the next
+ * back), one nightly pass over every module of the semester, and at once
+ * from Periksa Sekarang. Score saves go first.
  */
 import { and, desc, eq, gte, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
@@ -33,8 +34,9 @@ import {
   bacakuUntuk,
   bandingkanBap,
   barisBap,
-  JEDA_BACA_MS,
+  jedaBaca,
   nilaiTersimpan,
+  RAMAI_JAM,
   rencanaTerima,
   sidikStabil,
   waktunyaMalam,
@@ -87,6 +89,32 @@ export async function modulAktif(db: Db, semua: boolean): Promise<number[]> {
     .filter((r) => r.tanggal <= hari && semesterDariTanggal(r.tanggal) === semester)
     .map((r) => r.modul);
   return [...new Set(modul)].sort((a, b) => a - b);
+}
+
+/** Scores are moving: a session running or ended in the last RAMAI_JAM
+ *  hours (not TOT), or a SeeLabs job other than a read still to run. */
+async function nilaiBergerak(db: Db, sekarang: Date): Promise<boolean> {
+  const sejak = new Date(sekarang.getTime() - RAMAI_JAM * 3_600_000);
+  const [s] = await db
+    .select({ id: sesi.id })
+    .from(sesi)
+    .where(
+      and(
+        ne(sesi.jenis, "tot"),
+        or(
+          eq(sesi.status, "berjalan"),
+          and(eq(sesi.status, "selesai"), gte(sesi.selesaiPada, sejak)),
+        ),
+      ),
+    )
+    .limit(1);
+  if (s) return true;
+  const [t] = await db
+    .select({ id: seelabsTugas.id })
+    .from(seelabsTugas)
+    .where(and(ne(seelabsTugas.jenis, "baca"), inArray(seelabsTugas.status, ["antre", "diambil"])))
+    .limit(1);
+  return !!t;
 }
 
 /** Accounts with a read still waiting or running. */
@@ -156,12 +184,14 @@ export async function bacaBilaPerlu(db: Db, sekarang = new Date()): Promise<void
       .select({ nim: seelabsAkses.nim, status: seelabsAkses.status })
       .from(seelabsAkses);
     const malam = waktunyaMalam(sekarang, jadwal.malam);
+    const jedaMs = malam ? 0 : jedaBaca(sekarang, await nilaiBergerak(db, sekarang));
+    if (jedaMs === null) return;
     const nims = malam
       ? akun.filter((a) => a.status === "aktif").map((a) => a.nim)
       : akunPerluBaca({
           akun,
           terakhir: jadwal.terakhir,
-          jedaMs: JEDA_BACA_MS,
+          jedaMs,
           sekarang,
           sibuk: await akunSibuk(db),
         });

@@ -11,6 +11,7 @@
  * - While an IRIS send is waiting, IRIS is newer: the group is skipped.
  */
 import type { NilaiKomponen } from "./nilai-komponen.js";
+import { jamSepi } from "./sesi-mulai.js";
 
 /** What SeeLabs keeps of one Praktikan's scores: TP, TA, the mean of D1..D4
  *  (Praktikum), the mean of L1, L2 (Jurnal) and presence. */
@@ -94,9 +95,21 @@ export function tempatkan(
   return { sesiId: pilih.sesiId, kelompokNomor: pilih.kelompokNomor };
 }
 
-/** Every connected account is read every minute, around the clock (user,
- *  2026-10-18); a read still waiting or running holds the next one back. */
-export const JEDA_BACA_MS = 60_000;
+/** Every minute while scores move: a session running, one ended in the
+ *  last RAMAI_JAM hours, or a save waiting (2026-10-18's pace). Otherwise
+ *  every 30 minutes through the day and none in the quiet hours, where the
+ *  nightly pass still reads everything (2026-10-21: reading every minute
+ *  around the clock kept Neon awake and spent its quota). A read still
+ *  waiting or running holds the next one back. */
+export const JEDA_BACA_RAMAI_MS = 60_000;
+export const JEDA_BACA_TENANG_MS = 30 * 60_000;
+export const RAMAI_JAM = 3;
+
+/** The gap between an account's reads now; null when none are due. */
+export function jedaBaca(sekarang: Date, ramai: boolean): number | null {
+  if (ramai) return JEDA_BACA_RAMAI_MS;
+  return jamSepi(sekarang) ? null : JEDA_BACA_TENANG_MS;
+}
 
 function wib(d: Date): { tanggal: string; jam: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {

@@ -99,12 +99,15 @@ import {
   sweepPerintahKedaluwarsa,
   INTERVAL_AKTIF_SEC,
   INTERVAL_IDLE_SEC,
+  INTERVAL_MALAM_SEC,
   INTERVAL_SIAGA_SEC,
   INTERVAL_TELEMETRI_SEC,
   MODUL_TELEMETRI_PI,
   adaPerintahBaru,
   batasLuringDetik,
 } from "../../src/lib/server-lib.js";
+import { jamSepi } from "../../src/lib/sesi-mulai.js";
+import { adaAsistenOnline } from "../_lib/kehadiran.js";
 import { currentSesi, jadwalModul4Hari } from "../../src/lib/sesi.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
 import { bacaKondisi, saringKondisi } from "../../src/lib/server-shared.js";
@@ -321,9 +324,9 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
 
     // Fastest applicable pace wins: a command in flight beats the session/idle
     // cadence, so the result comes back (and the next press is claimed) fast.
-    // SeeLabs reads run every minute around the clock (2026-10-18): they keep
-    // the beat at the session pace, never the fast one, which stays for a
-    // save or a job someone waits on.
+    // A waiting SeeLabs read keeps the beat at the session pace, never the
+    // fast one, which stays for a save or a job someone waits on. In the
+    // quiet hours an idle beat waits 10 minutes unless an Asisten is online.
     const robot = await adaTugasRobot(db, serverId);
     const siaga =
       pending.length > 0 ||
@@ -337,7 +340,9 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         ? INTERVAL_TELEMETRI_SEC
         : sesiAktif || robot === "baca" || tugasSeelabs.length > 0
           ? INTERVAL_AKTIF_SEC
-          : INTERVAL_IDLE_SEC;
+          : jamSepi() && !(await adaAsistenOnline())
+            ? INTERVAL_MALAM_SEC
+            : INTERVAL_IDLE_SEC;
 
     await pruneOldTelemetryOccasionally();
 

@@ -13,7 +13,8 @@
  * Relay (no session; signed `detak|ts` with KONSOL_RELAY_SECRET):
  * POST /api/tp/detak   the minute timer: the TP sync when due and LMS copies
  *      still owed, and the lab clock's automatic starts (_lib/jam-lab.ts);
- *      answers how long the timer may sleep (tidurDetik: a minute).
+ *      answers how long the timer may sleep (a minute; the quiet hours
+ *      through to 05:50).
  *
  * POST /api/tp/unggah { modul, isi }   my TP as one PDF (base64, 3 MB at most)
  *      while the window is open (2026-10-14: the LMS can refuse a student's
@@ -156,7 +157,6 @@ import {
   simpanPaket,
   sinkronTp,
   skorModul,
-  tidurDetik,
   soalPaket,
   tulisSet,
   tulisTotal,
@@ -1647,7 +1647,8 @@ async function handleDetak(req: ApiRequest, res: ApiResponse) {
   await sinkronBilaPerlu(db, "relay", 50_000);
   // 2026-10-21: every TP file into R2 before the LMS goes (tp-pindah.ts).
   await pindahBilaPerlu(db);
-  res.status(200).json({ ok: true, tidurDetik: batasTidurJamLab(tidurDetik()) });
+  // The quiet hours sleep through to 05:50 (2026-10-21).
+  res.status(200).json({ ok: true, tidurDetik: batasTidurJamLab(6 * 3600) });
 }
 
 /* ================================================================ route */

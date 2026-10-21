@@ -38,6 +38,17 @@ export function menitSekarangWib(now = new Date()): number {
   return get("hour") * 60 + get("minute");
 }
 
+/** The quiet hours (WIB), 00:15 to 05:50: no slot runs, so the relay's
+ *  timer, the PC's beat and the SeeLabs reads slow down and the database
+ *  can sleep (2026-10-21, after the Neon quota ran out). */
+export const SEPI_MULAI_MENIT = 15;
+export const SEPI_AKHIR_MENIT = 5 * 60 + 50;
+
+export function jamSepi(now = new Date()): boolean {
+  const m = menitSekarangWib(now);
+  return m >= SEPI_MULAI_MENIT && m < SEPI_AKHIR_MENIT;
+}
+
 /** A start window in minutes, kept inside the bounds. */
 export function jendelaValid(v: unknown, fallback = JENDELA_DEFAULT): number {
   const n = Number(v);

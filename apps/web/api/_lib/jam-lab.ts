@@ -35,7 +35,7 @@ import { SESI_CAP_MENIT, SLOT_MULAI } from "../../src/lib/jadwal.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { batasNilai, kurangCatat } from "../../src/lib/lupa-nilai.js";
 import { statusSlotTanggal } from "../../src/lib/penugasan-minggu.js";
-import { menitDariJam, menitSekarangWib } from "../../src/lib/sesi-mulai.js";
+import { jamSepi, menitDariJam, SEPI_AKHIR_MENIT } from "../../src/lib/sesi-mulai.js";
 import { baseSlot, baseSusulan, dinilai, instanWib } from "../../src/lib/hadir-mengajar.js";
 import type { Topik } from "../../src/lib/siaran-topik.js";
 
@@ -491,18 +491,15 @@ export async function jamLabBilaPerlu(db: Db, now: Date = new Date()): Promise<b
   return true;
 }
 
-/** WIB minutes the relay's timer keeps a minute beat: 05:50 to 00:15. */
-const BANGUN = 5 * 60 + 50;
-const TIDUR = 15;
-
 /**
  * The relay's sleep (from tidurDetik) cut for the lab clock: at most a
  * minute through the practicum day and just past midnight, and in the
- * quiet hours never past 05:50.
+ * quiet hours (jamSepi, 00:15 to 05:50) never past 05:50.
  */
 export function batasTidurJamLab(detik: number, now: Date = new Date()): number {
-  const m = menitSekarangWib(now);
-  if (m >= BANGUN || m < TIDUR) return Math.min(detik, 60);
-  const sampai = Math.floor((instanWib(tanggalWib(now), BANGUN).getTime() - now.getTime()) / 1000);
+  if (!jamSepi(now)) return Math.min(detik, 60);
+  const sampai = Math.floor(
+    (instanWib(tanggalWib(now), SEPI_AKHIR_MENIT).getTime() - now.getTime()) / 1000,
+  );
   return Math.max(60, Math.min(detik, sampai));
 }

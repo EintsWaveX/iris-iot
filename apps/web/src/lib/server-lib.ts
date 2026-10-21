@@ -27,6 +27,7 @@ import {
   PERINTAH_TERKIRIM_KEDALUWARSA_MENIT,
 } from "./server-shared.js";
 import { KELOMPOK_MAKS } from "./jadwal.js";
+import { jamSepi } from "./sesi-mulai.js";
 
 export { modulSiapValid, urutkanLayanan, hotspotMenyala } from "./server-shared.js";
 
@@ -43,8 +44,12 @@ const ENROLL_TOKEN_TTL_MIN = 30;
 // above the 5min a Neon free-tier compute needs to suspend only overnight.
 // A Module 2 to 4 session beats every 5s too: its readings reach the live
 // page only with a beat, and 15s made the page jump in bursts.
+// In the quiet hours (jamSepi) an idle beat waits 10 min while no Asisten
+// is online, so the database can sleep between beats (2026-10-21: a beat
+// every minute or less kept Neon awake all night and spent its quota).
 export const INTERVAL_AKTIF_SEC = 15;
 export const INTERVAL_IDLE_SEC = 60;
+export const INTERVAL_MALAM_SEC = 600;
 export const INTERVAL_SIAGA_SEC = 5;
 export const INTERVAL_TELEMETRI_SEC = 5;
 export const MODUL_TELEMETRI_PI: ReadonlySet<number> = new Set([2, 3, 4]);
@@ -57,11 +62,14 @@ const TENGGANG_LURING_SEC = 60;
  * a flat 60 seconds marked every healthy Pi "Luring" for 9 of every 10
  * idle minutes, since outside a session it only reports every 600s. A
  * beat that arrived after the running session started was answered with
- * the fast interval; anything earlier, or with no session, the idle one.
+ * the fast interval; one in the quiet hours may have had the night one;
+ * anything else the idle one.
  */
 export function batasLuringDetik(denyutPada: Date | null, sesiMulaiPada: Date | null): number {
   const cepat = denyutPada !== null && sesiMulaiPada !== null && denyutPada >= sesiMulaiPada;
-  return (cepat ? INTERVAL_AKTIF_SEC : INTERVAL_IDLE_SEC) + TENGGANG_LURING_SEC;
+  if (cepat) return INTERVAL_AKTIF_SEC + TENGGANG_LURING_SEC;
+  if (denyutPada !== null && jamSepi(denyutPada)) return INTERVAL_MALAM_SEC + TENGGANG_LURING_SEC;
+  return INTERVAL_IDLE_SEC + TENGGANG_LURING_SEC;
 }
 
 export function sha256(value: string): string {
@@ -583,6 +591,14 @@ export interface GapEvent {
  */
 export const GAP_AMBANG_DETIK = INTERVAL_IDLE_SEC + TENGGANG_LURING_SEC;
 
+/** The threshold for a silence starting at `dari`: a beat in the quiet
+ *  hours may have been told to wait INTERVAL_MALAM_SEC. */
+function ambangSejak(dari: string | Date, ambangDetik: number): number {
+  return jamSepi(new Date(dari))
+    ? Math.max(ambangDetik, INTERVAL_MALAM_SEC + TENGGANG_LURING_SEC)
+    : ambangDetik;
+}
+
 export function detectGaps(
   rows: ReadonlyArray<{ pada: string }>,
   ambangDetik: number = GAP_AMBANG_DETIK,
@@ -592,7 +608,8 @@ export function detectGaps(
     const dari = rows[i - 1].pada;
     const sampai = rows[i].pada;
     const detik = (new Date(sampai).getTime() - new Date(dari).getTime()) / 1000;
-    if (detik > ambangDetik) out.push({ dari, sampai, detik: Math.round(detik) });
+    if (detik > ambangSejak(dari, ambangDetik))
+      out.push({ dari, sampai, detik: Math.round(detik) });
   }
   return out;
 }
@@ -616,8 +633,10 @@ export function hitungKetersediaan(
   const depanDetik = (new Date(rows[0].pada).getTime() - rentangMulai.getTime()) / 1000;
   const belakangDetik =
     (rentangAkhir.getTime() - new Date(rows[rows.length - 1].pada).getTime()) / 1000;
+  const akhir = rows[rows.length - 1].pada;
   const tepiHilang =
-    (depanDetik > ambangDetik ? depanDetik : 0) + (belakangDetik > ambangDetik ? belakangDetik : 0);
+    (depanDetik > ambangSejak(rentangMulai, ambangDetik) ? depanDetik : 0) +
+    (belakangDetik > ambangSejak(akhir, ambangDetik) ? belakangDetik : 0);
 
   const tersedia = Math.max(0, totalDetik - gapDetik - tepiHilang);
   return Math.round((tersedia / totalDetik) * 1000) / 10;

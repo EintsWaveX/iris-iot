@@ -25,3 +25,18 @@ export async function tandaiAktif(nim: string): Promise<void> {
     /* presence is best effort; the poll itself must not fail over it */
   }
 }
+
+/** Whether any Asisten is online now (the PC's night beat stays at a
+ *  minute for them, so Konsol and the Server tab still answer). */
+export async function adaAsistenOnline(): Promise<boolean> {
+  try {
+    const hasil = await getDb().execute(sql`
+      SELECT 1 FROM asisten
+      WHERE terakhir_aktif > now() - make_interval(secs => ${ONLINE_MS / 1000})
+      LIMIT 1
+    `);
+    return hasil.rows.length > 0;
+  } catch {
+    return true;
+  }
+}
