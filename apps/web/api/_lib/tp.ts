@@ -770,12 +770,6 @@ export async function sinkronBilaPerlu(db: Db, oleh: string, jedaMs: number): Pr
   }
 }
 
-/** How long the relay's minute timer may sleep: a minute, always, since the
- *  LMS is read every minute around the clock (user, 2026-10-18). */
-export function tidurDetik(): number {
-  return 60;
-}
-
 /* ===================================================== groups and holders */
 
 export interface AnggotaTp {

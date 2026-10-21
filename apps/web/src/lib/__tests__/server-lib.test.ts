@@ -5,6 +5,7 @@ import {
   TELEMETRI_MAX_PER_DENYUT,
   telemetriBaris,
   INTERVAL_IDLE_SEC,
+  INTERVAL_MALAM_SEC,
   downsample,
   detectReboots,
   detectGaps,
@@ -17,6 +18,20 @@ import {
 
 describe("batasLuringDetik", () => {
   const mulai = new Date("2026-09-24T02:30:00Z");
+
+  it("allows the night interval for a beat in the quiet hours (WIB)", () => {
+    // 03:00 WIB: the beat may have been told to wait 10 minutes.
+    expect(batasLuringDetik(new Date("2026-09-24T03:00:00+07:00"), null)).toBeGreaterThan(
+      INTERVAL_MALAM_SEC,
+    );
+    // 05:50 WIB and 00:14 WIB are the day's pace again.
+    expect(batasLuringDetik(new Date("2026-09-24T05:50:00+07:00"), null)).toBeLessThan(
+      INTERVAL_MALAM_SEC,
+    );
+    expect(batasLuringDetik(new Date("2026-09-24T00:14:00+07:00"), null)).toBeLessThan(
+      INTERVAL_MALAM_SEC,
+    );
+  });
 
   it("allows the idle interval when no session is running", () => {
     // A flat window equal to the session pace would mark a healthy Pi offline
@@ -110,6 +125,22 @@ describe("detectGaps", () => {
     expect(gaps).toHaveLength(1);
     expect(gaps[0].dari).toBe("2026-09-24T00:00:15Z");
     expect(gaps[0].sampai).toBe("2026-09-24T01:30:00Z");
+  });
+
+  it("takes the night beat's 10 minutes in the quiet hours (WIB) as no gap", () => {
+    const rows = [
+      { pada: "2026-09-24T02:00:00+07:00" },
+      { pada: "2026-09-24T02:10:00+07:00" }, // the night pace
+      { pada: "2026-09-24T02:40:00+07:00" }, // 30 min: a real gap even at night
+      { pada: "2026-09-24T09:00:00+07:00" },
+      { pada: "2026-09-24T09:10:00+07:00" }, // 10 min in the day: a gap
+    ];
+    const gaps = detectGaps(rows, GAP_AMBANG_DETIK);
+    expect(gaps.map((g) => g.dari)).toEqual([
+      "2026-09-24T02:10:00+07:00",
+      "2026-09-24T02:40:00+07:00",
+      "2026-09-24T09:00:00+07:00",
+    ]);
   });
 });
 

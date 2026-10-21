@@ -4,7 +4,7 @@
  * server PC's folders read as the lab names things.
  */
 import { describe, expect, it } from "vitest";
-import { lmsMenang, modulSinkron, tidurDetik } from "../tp";
+import { lmsMenang, modulSinkron } from "../tp";
 import { UNGGAH_MAKS, namaUnggah, pdfUnggah } from "../tp-unggah";
 import { anggotaKelas } from "../lms";
 import {
@@ -111,10 +111,6 @@ describe("the LMS read every minute around the clock", () => {
       status: { terakhir: null, hasil: null, galat: null, galatSejak: null, sapuan },
       jendela: { semester: "2026-ganjil", pola: {} as never, modul },
     }) as unknown as Parameters<typeof modulSinkron>[0];
-
-  it("a minute, always: the LMS is read every minute around the clock", () => {
-    expect(tidurDetik()).toBe(60);
-  });
 
   it("syncs every module that has a window, open, closed or not yet open", () => {
     const j = (buka: string, tutup: string) => ({ buka, tutup });
