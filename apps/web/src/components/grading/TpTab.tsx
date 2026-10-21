@@ -4,13 +4,8 @@
  * each member with status, upload time or score. Kelompokku is the groups
  * I hold that week; Semua Kelompok is everyone's, read only for the others.
  */
-import { useState, type CSSProperties } from "react";
-import {
-  CaretRightIcon,
-  CloudCheckIcon,
-  DownloadSimpleIcon,
-  UsersThreeIcon,
-} from "@phosphor-icons/react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { CaretRightIcon, DownloadSimpleIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import { PillGanti } from "../ui/PillGanti";
 import Dropdown from "../ui/Dropdown";
@@ -18,13 +13,16 @@ import { JejakDialog, KumpulDialog } from "../tp/KumpulDialog";
 import TabLine from "../ui/TabLine";
 import IconButton from "../ui/IconButton";
 import { ProgressRing, StateView } from "../ui/Display";
-import { MODUL_NAMA, href, tanggalPanjang } from "../../lib/app";
+import Lalu from "../ui/Lalu";
+import { MODUL_NAMA, getJson, href, tanggalPanjang, useDetik } from "../../lib/app";
+import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
 import { TP_MENUNGGU } from "../../lib/tp";
 import { buatZip, simpanBlob } from "../../lib/zip";
 import { TPS } from "../tp/tpStrings";
 import {
+  Countdown,
   StatusPill,
   grupStyle,
   hariJam,
@@ -44,14 +42,18 @@ export default function TpTab({
   setModul,
   data,
   onOpen,
+  onFlip,
 }: {
   lang: Lang;
   modul: number;
   setModul: (m: number) => void;
   data: DataKelompok | null;
   onOpen: (g: GrupDinilai, i: number) => void;
+  /** Reads the groups again (the window opened or closed on the clock). */
+  onFlip: () => void;
 }) {
   const t = TPS[lang];
+  const saringan = useRef<HTMLDivElement>(null);
   const [who, setWho] = useState<"mine" | "all">("mine");
   const [f, setF] = useState<Saring>("all");
   // All groups narrowed to a day, then one of its sessions (2026-10-15),
@@ -134,9 +136,23 @@ export default function TpTab({
 
       <ModulHead lang={lang} modul={modul} data={data} />
 
-      <KumpulStrip lang={lang} data={data} />
+      <TpKini
+        key={modul}
+        lang={lang}
+        modul={modul}
+        data={data}
+        onFlip={onFlip}
+        onJejak={() => setJejak(true)}
+        onSesi={(s) => {
+          // A session's row narrows the groups below to it.
+          setWho("all");
+          setHari(String(s.hari));
+          setSesi(`${s.hari}-${s.slot}`);
+          saringan.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
 
-      <div className="panel tpfilter tpfilter--tp">
+      <div className="panel tpfilter tpfilter--tp" ref={saringan}>
         <div className="tpfilter__top">
           <TabLine
             seg
@@ -351,29 +367,210 @@ function ModulHead({ lang, modul, data }: { lang: Lang; modul: number; data: Dat
   );
 }
 
-/** How many of the module's Praktikan handed in, all of it in IRIS. */
-function KumpulStrip({ lang, data }: { lang: Lang; data: DataKelompok }) {
+interface FeedJejak {
+  ok: boolean;
+  jejak: {
+    id: number;
+    nim: string;
+    nama: string;
+    kursus: string | null;
+    jenis: string;
+    dicatatPada: string;
+  }[];
+}
+
+/**
+ * The live card (2026-10-21, the LMS Ringkasan's on IRIS's own data): the
+ * window's phase from the clock with the rainbow countdown, how many handed
+ * in, each session's share, and the files coming in while it is open.
+ */
+function TpKini({
+  lang,
+  modul,
+  data,
+  onFlip,
+  onJejak,
+  onSesi,
+}: {
+  lang: Lang;
+  modul: number;
+  data: DataKelompok;
+  onFlip: () => void;
+  onJejak: () => void;
+  onSesi: (s: DataKelompok["slot"][number]) => void;
+}) {
   const t = TPS[lang];
-  const pct = data.hitung.peserta ? Math.round((data.hitung.masuk / data.hitung.peserta) * 100) : 0;
+  const x = data.modul.find((m) => m.modul === modul);
+  const j = x?.jendela ?? null;
+  // The phase from the clock, so the card turns the second the window opens
+  // or closes; then the groups are read again, at most every 15 s in case
+  // this clock and the server's disagree.
+  const now = useDetik();
+  const k = !j
+    ? (x?.keadaan ?? null)
+    : now < Date.parse(j.buka)
+      ? "belum"
+      : now < Date.parse(j.tutup)
+        ? "buka"
+        : "tutup";
+  const dibaca = useRef(0);
+  useEffect(() => {
+    if (!j || k === x?.keadaan || Date.now() - dibaca.current < 15_000) return;
+    dibaca.current = Date.now();
+    onFlip();
+  });
+  const h = data.hitung;
+  const pct = h.peserta ? Math.round((h.masuk / h.peserta) * 100) : 0;
+  const belum = Math.max(0, h.peserta - h.masuk);
+  const dihitung = k === "buka" || k === "tutup";
+  // Each session of the module's week: its Praktikan, without the excluded.
+  const sesi = data.slot
+    .map((s) => {
+      const a = s.kelompok.flatMap((g) => g.anggota).filter((y) => !y.kecuali);
+      return { s, n: a.length, masuk: a.filter((y) => y.berkas > 0).length };
+    })
+    .filter((y) => y.n > 0);
+  const lengkap = sesi.filter((y) => y.masuk >= y.n).length;
   return (
-    <section className="panel tpsync" data-tone="ok">
-      <CloudCheckIcon size={28} aria-hidden="true" />
-      <div className="stack stack--sm grow">
-        <b>{t.kumpulIris}</b>
-        <span className="hint">{t.kumpulIrisHint}</span>
+    <section className="panel panel--key tpkini" data-fase={k ?? "kosong"}>
+      <div className="tpkini__main">
+        {!j || !k ? (
+          <>
+            <span className="field__label">{t.kiniTanpa(modul)}</span>
+            <span className="hint">{t.kiniTanpaHint}</span>
+          </>
+        ) : k === "belum" ? (
+          <>
+            <span className="field__label">{t.kiniBelum(modul)}</span>
+            <Countdown to={j.buka} lang={lang} pelangi />
+            <span className="hint">
+              {t.sampai(waktuPanjang(j.buka, lang), waktuPanjang(j.tutup, lang))}
+            </span>
+          </>
+        ) : k === "buka" ? (
+          <>
+            <span className="field__label tpkini__lbl">
+              <span className="dot dot--ok dot--pulse" aria-hidden="true" />
+              {t.kiniBuka(modul)}
+            </span>
+            <Countdown to={j.tutup} lang={lang} pelangi keTutup />
+            <span className="hint">{waktuPanjang(j.tutup, lang)}</span>
+          </>
+        ) : (
+          <>
+            <span className="field__label">{t.kiniTutup(modul)}</span>
+            <b className="tpkini__big">{belum ? t.belumKumpulN(belum) : t.semuaKumpul}</b>
+            <span className="hint">
+              {waktuPanjang(j.tutup, lang)}. {t.kumpulIrisHint}
+            </span>
+          </>
+        )}
       </div>
-      <div className="tpsync__count">
-        <b className="mono">
-          {data.hitung.masuk} / {data.hitung.peserta}
-        </b>
-        <span className="meter" style={{ "--meter": pct } as CSSProperties} />
-        <span className="hint">{t.praktikanTerkumpul}</span>
+      <div className="tpkini__side">
+        <div className="stack stack--sm">
+          <div className="row row--between">
+            <span className="field__label">{t.kumpulIris}</span>
+            <b className="mono tpkini__n">
+              {h.masuk} / {h.peserta}
+            </b>
+          </div>
+          <span className="meter meter--lg" style={{ "--meter": pct } as CSSProperties} />
+          <span className="hint">{dihitung ? t.dariTerdaftar(pct) : t.mulaiDihitung}</span>
+        </div>
+        {/* Kelola TP › Pengaturan TP: who counts, the default window. */}
+        <a className="btn" href={href(lang, "/tp#pengaturan")}>
+          {t.tabPengaturan}
+        </a>
       </div>
-      {/* Kelola TP › Pengaturan TP: who counts, the default window. */}
-      <a className="btn" href={href(lang, "/tp#pengaturan")}>
-        {t.tabPengaturan}
-      </a>
+      {dihitung && sesi.length > 0 && (
+        <div className="tpkini__row">
+          <span className="row row--between">
+            <span className="field__label">{t.perSesi}</span>
+            <span className="hint">{t.sesiLengkap(lengkap, sesi.length)}</span>
+          </span>
+          <ul className="tpkini__sesi">
+            {sesi.map(({ s, n, masuk }) => (
+              <li key={`${s.hari}-${s.slot}`} data-penuh={masuk >= n ? "yes" : undefined}>
+                <button type="button" data-tip={t.lihatSesi} onClick={() => onSesi(s)}>
+                  <span className="tpkini__sesi-k">
+                    <b>{t.sesiPilihan(t.hari[s.hari] ?? "", s.slot)}</b>
+                    <span className="hint">{tanggalPanjang(s.tanggal, lang)}</span>
+                  </span>
+                  <span
+                    className="meter"
+                    style={{ "--meter": Math.round((masuk / n) * 100) } as CSSProperties}
+                  />
+                  <span className="mono tpkini__sesi-n">
+                    {masuk} / {n}
+                  </span>
+                  <span className="hint tpkini__sesi-s">
+                    {masuk >= n ? t.semuaKumpul : t.sisaN(n - masuk)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {k === "buka" && <BaruMasuk lang={lang} modul={modul} onJejak={onJejak} />}
     </section>
+  );
+}
+
+/** The newest four files in, live on each upload; only those that came in
+ *  since the card was drawn ease in. */
+function BaruMasuk({ lang, modul, onJejak }: { lang: Lang; modul: number; onJejak: () => void }) {
+  const t = TPS[lang];
+  const poll = usePoll(
+    () => getJson<FeedJejak>(`/api/tp/jejak?modul=${modul}&n=40`),
+    60_000,
+    true,
+    ["tp"],
+    0,
+    modul,
+  );
+  // Each Praktikan once, at their newest file.
+  const sudah = new Set<string>();
+  const baru = (poll.data?.ok ? poll.data.jejak : [])
+    .filter((y) => y.jenis !== "tarik" && !sudah.has(y.nim) && !!sudah.add(y.nim))
+    .slice(0, 4);
+  const dilihat = useRef<Set<number> | null>(null);
+  const baruIni = dilihat.current
+    ? new Set(baru.filter((y) => !dilihat.current!.has(y.id)).map((y) => y.id))
+    : new Set<number>();
+  useEffect(() => {
+    if (!poll.data) return;
+    dilihat.current = new Set([...(dilihat.current ?? []), ...baru.map((y) => y.id)]);
+  });
+  return (
+    <div className="tpkini__row">
+      <span className="row row--between">
+        <span className="field__label">{t.baruMasuk}</span>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={onJejak}>
+          {t.riwayatLengkap}
+          <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+        </button>
+      </span>
+      {!poll.data ? (
+        <span className="skeleton" style={{ height: 58 }} />
+      ) : baru.length ? (
+        <ul className="tpkini__arr">
+          {baru.map((y) => (
+            <li key={y.id} data-baru={baruIni.has(y.id) ? "yes" : undefined}>
+              <b>{y.nama}</b>
+              <span className="hint">
+                {[y.kursus, y.jenis === "ganti" ? t.gantiBerkas : ""].filter(Boolean).join(" · ")}
+              </span>
+              <span className="hint">
+                <Lalu iso={y.dicatatPada} lang={lang} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <span className="hint">{t.belumAdaMasuk}</span>
+      )}
+    </div>
   );
 }
 

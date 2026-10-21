@@ -28,7 +28,7 @@
  *      semester where I hold a group, with each group's score state.
  * GET  /api/tp/hitung                the navbar badge: my groups' files to grade.
  * GET  /api/tp/kumpul?modul=         who handed in, by class (IRIS's roster)
- * GET  /api/tp/jejak?modul=[&nim=]   every change to the module's files
+ * GET  /api/tp/jejak?modul=[&nim=][&n=]   every change to the module's files
  * GET  /api/tp/pengaturan            Penilaian › Pengaturan TP: Peserta TP,
  *      the default window, the IRIS and SeeLabs cross-check
  * GET  /api/tp/berkas?id=&i=         any Praktikan's file.
@@ -1146,6 +1146,8 @@ async function handleJejak(req: ApiRequest, res: ApiResponse) {
   const set = await bacaSet(db);
   const m = modulDari(req.query.modul) ?? 1;
   const nim = typeof req.query.nim === "string" ? req.query.nim.slice(0, 20) : null;
+  // n: only the newest few (the live card's Baru Masuk), else up to 500.
+  const batas = Math.min(500, Math.max(1, Math.floor(Number(req.query.n)) || 500));
   const kec = nimKecuali(set);
   const [rows, terdaftar] = await Promise.all([
     db
@@ -1159,7 +1161,7 @@ async function handleJejak(req: ApiRequest, res: ApiResponse) {
         ),
       )
       .orderBy(desc(tpJejak.dicatatPada), desc(tpJejak.id))
-      .limit(500),
+      .limit(batas),
     db
       .select({ nim: praktikan.nim, nama: praktikan.nama, kelas: praktikan.kelas })
       .from(praktikan)
@@ -1183,7 +1185,7 @@ async function handleJejak(req: ApiRequest, res: ApiResponse) {
         dikirimPada: r.dikirimPada?.toISOString() ?? null,
         dicatatPada: r.dicatatPada.toISOString(),
       })),
-    batas: rows.length === 500,
+    batas: rows.length === batas,
   });
 }
 

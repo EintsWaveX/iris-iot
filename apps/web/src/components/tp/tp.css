@@ -121,6 +121,43 @@
   color: var(--text-faint);
   font: 700 1.4rem/52px var(--font-mono);
 }
+/* The digits in the kit's moving rainbow, each group a step further along
+   it (the LMS Ringkasan's, 2026-10-21); under three hours to a close they
+   turn warning. */
+.cdown--pelangi .cdown__d b {
+  background-clip: text, padding-box;
+  background-image: var(--sweep), linear-gradient(var(--surface-2), var(--surface-2));
+  background-size:
+    300% 100%,
+    auto;
+  -webkit-background-clip: text, padding-box;
+  background-position:
+    calc(var(--i, 0) * 30%) 0,
+    0 0;
+  color: transparent;
+}
+/* Moving, every group runs from the same start, a step behind the last;
+   still (tier 0, reduced motion), each keeps its own slice instead. */
+:root:not([data-motion-tier="0"]) .cdown--pelangi .cdown__d b {
+  animation: kit-sweep 9s linear infinite;
+  animation-delay: calc(var(--i, 0) * -1.5s);
+  background-position: 0 0;
+}
+:root .cdown--pelangi[data-mepet] .cdown__d b {
+  animation: none;
+  background-color: var(--warn-soft);
+  background-image: none;
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+  color: var(--warn);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion-tier="0"]) .cdown--pelangi .cdown__d b {
+    animation: none;
+    background-position:
+      calc(var(--i, 0) * 30%) 0,
+      0 0;
+  }
+}
 @media (max-width: 519px) {
   .tphero__h {
     font-size: 1.25rem;
@@ -605,34 +642,6 @@
 .tpmodpick .modpick__b .row {
   gap: 6px;
 }
-.tpsync {
-  align-items: center;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 14px 18px;
-}
-.tpsync > svg:first-child {
-  flex: none;
-}
-.tpsync[data-tone="ok"] > svg:first-child {
-  color: var(--ok);
-}
-.tpsync[data-tone="warn"] {
-  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
-}
-.tpsync[data-tone="warn"] > svg:first-child {
-  color: var(--warn);
-}
-.tpsync[data-tone="danger"] {
-  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
-}
-.tpsync[data-tone="danger"] > svg:first-child {
-  color: var(--danger);
-}
-.tpsync > .grow {
-  min-width: 220px;
-}
 .tpmodhead {
   align-items: center;
   background: color-mix(in srgb, var(--m, var(--accent)) 8%, var(--surface-1));
@@ -668,10 +677,217 @@
     width: 100%;
   }
 }
-.tpsync__count {
+/* The live card on Nilai TP (2026-10-21, the LMS Ringkasan's): the phase and
+   its countdown centred on the left, the count on the right, then each
+   session and the files coming in across the card. */
+.tpkini {
+  align-items: start;
   display: grid;
-  gap: 4px;
-  min-width: 170px;
+  gap: 20px 28px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+.tpkini__main {
+  align-content: center;
+  align-self: stretch;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  min-width: 0;
+  text-align: center;
+}
+.tpkini__lbl {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+.tpkini__big {
+  font-size: 1.9rem;
+  line-height: 1.15;
+}
+.tpkini__side {
+  align-content: center;
+  align-self: stretch;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.tpkini__n {
+  font-size: 1.2rem;
+}
+.tpkini__side .btn {
+  width: 100%;
+}
+.tpkini__row {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+/* The bigger tiles of the card's own countdown. */
+.tpkini .cdown__d b {
+  font-size: 2.5rem;
+  height: 72px;
+  width: 52px;
+}
+.tpkini .cdown__sep {
+  font-size: 1.9rem;
+  line-height: 72px;
+}
+@media (max-width: 899px) {
+  .tpkini {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 519px) {
+  .tpkini .cdown__d b {
+    font-size: 1.8rem;
+    height: 56px;
+    width: 40px;
+  }
+  .tpkini .cdown__sep {
+    font-size: 1.4rem;
+    line-height: 56px;
+  }
+}
+/* 360 to 389: seven digits, three gaps and the day's margin fit the card. */
+@media (max-width: 389px) {
+  .tpkini .cdown__d b {
+    font-size: 1.5rem;
+    height: 48px;
+    width: 33px;
+  }
+  .tpkini .cdown__sep {
+    font-size: 1.2rem;
+    line-height: 48px;
+  }
+  .tpkini .cdown__in {
+    gap: 3px;
+  }
+  .tpkini .cdown__g--hari {
+    margin-right: 4px;
+  }
+}
+/* Each session: name, bar, count, what is left; two columns where they fit,
+   a hairline between rows; the whole row narrows the groups below. */
+.tpkini__sesi {
+  column-gap: 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tpkini__sesi > li {
+  border-bottom: 1px solid var(--hairline-faint, var(--hairline));
+}
+.tpkini__sesi button {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  column-gap: 14px;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  grid-template-columns: minmax(0, 12rem) minmax(48px, 1fr) 4.5rem 6.5rem;
+  padding: 10px 2px;
+  text-align: left;
+  width: 100%;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tpkini__sesi button:hover {
+    background: var(--surface-2);
+  }
+}
+.tpkini__sesi button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.tpkini__sesi-k {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+.tpkini__sesi-k b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tpkini__sesi-n {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+}
+.tpkini__sesi-s {
+  text-align: right;
+}
+.tpkini__sesi > li[data-penuh] .meter {
+  --meter-hue: var(--ok);
+}
+@media (max-width: 519px) {
+  .tpkini__sesi button {
+    grid-template-areas:
+      "k n"
+      "bar s";
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+  .tpkini__sesi-k {
+    grid-area: k;
+  }
+  .tpkini__sesi button > .meter {
+    grid-area: bar;
+  }
+  .tpkini__sesi-n {
+    grid-area: n;
+  }
+  .tpkini__sesi-s {
+    grid-area: s;
+  }
+}
+/* Files arriving: each new one eases in from just above. */
+.tpkini__arr {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tpkini__arr > li {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline-faint, var(--hairline));
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  transition:
+    opacity 200ms var(--ease-out-expo),
+    transform 200ms var(--ease-out-expo);
+}
+@starting-style {
+  .tpkini__arr > li[data-baru] {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tpkini__arr > li {
+    transition: none;
+  }
+}
+.tpkini__arr b,
+.tpkini__arr .hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 899px) {
+  .tpkini__arr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .tpfilter {
   align-items: center;

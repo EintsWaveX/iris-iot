@@ -219,7 +219,12 @@ function Hero({
       {j && k !== "tutup" && (
         <div className="tphero__left">
           <span className="label-caps">{k === "buka" ? t.tutupDalam : t.bukaDalam}</span>
-          <Countdown to={k === "buka" ? j.tutup : j.buka} lang={lang} />
+          <Countdown
+            to={k === "buka" ? j.tutup : j.buka}
+            lang={lang}
+            pelangi
+            keTutup={k === "buka"}
+          />
         </div>
       )}
       {j ? <WinTrack j={j} lang={lang} /> : <p className="hint">{t.heroNoneBody}</p>}

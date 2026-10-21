@@ -242,8 +242,20 @@ export function durasi(sec: number, lang: Lang): string {
 const dua = (n: number) => String(n).padStart(2, "0");
 
 /** A countdown to an instant as digit tiles, each digit in its own cell:
- *  the days while a day or more is left, then HH:MM:SS. */
-export function Countdown({ to, lang }: { to: string; lang: Lang }) {
+ *  the days while a day or more is left, then HH:MM:SS. `pelangi` puts the
+ *  digits in the kit's moving rainbow (back from the LMS Ringkasan,
+ *  2026-10-21); counting to a close, they turn warning under three hours. */
+export function Countdown({
+  to,
+  lang,
+  pelangi = false,
+  keTutup = false,
+}: {
+  to: string;
+  lang: Lang;
+  pelangi?: boolean;
+  keTutup?: boolean;
+}) {
   // The page's shared second, so it turns on the clock's own second and
   // together with the sync timer beside it.
   const now = useDetik();
@@ -251,8 +263,10 @@ export function Countdown({ to, lang }: { to: string; lang: Lang }) {
   const s = Math.max(0, Math.ceil((Date.parse(to) - now) / 1000));
   const d = Math.floor(s / 86400);
   const jms = [Math.floor((s % 86400) / 3600), Math.floor((s % 3600) / 60), s % 60];
-  const kelompok = (v: string, l: string, cls = "") => (
-    <span className={`cdown__g${cls}`}>
+  const mepet = pelangi && keTutup && s < 3 * 3600;
+  // Each group a step further along the rainbow.
+  const kelompok = (v: string, l: string, i: number, cls = "") => (
+    <span className={`cdown__g${cls}`} style={{ "--i": i } as CSSProperties}>
       <span className="cdown__d">
         {[...v].map((c, i) => (
           <b key={i}>{c}</b>
@@ -262,13 +276,18 @@ export function Countdown({ to, lang }: { to: string; lang: Lang }) {
     </span>
   );
   return (
-    <span className="cdown" role="timer" aria-label={durasi(s, lang)}>
+    <span
+      className={`cdown${pelangi ? " cdown--pelangi" : ""}`}
+      data-mepet={mepet ? "yes" : undefined}
+      role="timer"
+      aria-label={durasi(s, lang)}
+    >
       <span className="cdown__in" aria-hidden="true">
-        {d > 0 && kelompok(String(d), t.satuan[0], " cdown__g--hari")}
+        {d > 0 && kelompok(String(d), t.satuan[0], 0, " cdown__g--hari")}
         {jms.map((n, i) => (
           <Fragment key={i}>
             {i > 0 && <span className="cdown__sep">:</span>}
-            {kelompok(dua(n), t.satuan[i + 1])}
+            {kelompok(dua(n), t.satuan[i + 1], i + 1)}
           </Fragment>
         ))}
       </span>

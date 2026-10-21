@@ -177,6 +177,7 @@ export default function GradingPage({ lang }: { lang: Lang }) {
             setModul={setModul}
             data={modul === null ? null : poll.data}
             onOpen={buka}
+            onFlip={poll.refresh}
           />
         ) : shown === "praktikum" ? (
           <PraktikumTab lang={lang} />

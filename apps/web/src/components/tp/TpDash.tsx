@@ -73,7 +73,12 @@ export function TpKartu({ lang, d }: { lang: Lang; d: TpSaya | null }) {
         {j && m.keadaan !== "tutup" && (
           <div className="tphero__left">
             <span className="label-caps">{m.keadaan === "buka" ? t.tutupDalam : t.bukaDalam}</span>
-            <Countdown to={m.keadaan === "buka" ? j.tutup : j.buka} lang={lang} />
+            <Countdown
+              to={m.keadaan === "buka" ? j.tutup : j.buka}
+              lang={lang}
+              pelangi
+              keTutup={m.keadaan === "buka"}
+            />
           </div>
         )}
         {j && <WinTrack j={j} lang={lang} compact />}
