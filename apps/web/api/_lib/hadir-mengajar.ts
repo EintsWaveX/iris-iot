@@ -488,13 +488,8 @@ export async function masuk(
   const c = await muatKonteks(db, kunci);
   if (!c) return { ok: false, kode: "tidak_dijadwalkan" };
   if (sudahSelesai(c, now)) return { ok: false, kode: "sudah_selesai" };
-  // Not before the start window opens (a Susulan: its own start).
-  const mulai = c.slot !== null ? slotToMulai(c.slot) : (c.sesi?.mulai ?? null);
-  if (mulai) {
-    const jendela = c.jadwalRow?.jendelaMulaiMenit ?? (await muatPengaturanJendela(db)).default;
-    if (jendelaSlot(mulai, jendela, menitSekarangWib(now)).posisi === "belum")
-      return { ok: false, kode: "belum_buka" };
-  }
+  const buka = await bukaMasuk(db, c);
+  if (buka && now < buka) return { ok: false, kode: "belum_buka" };
   await db
     .insert(hadirMengajar)
     .values({
@@ -557,6 +552,16 @@ function sudahSelesai(c: Konteks, now: Date): boolean {
   if (c.sesi?.status === "selesai") return true;
   const akhir = akhirSesiMaks(c.tanggal, c.slot, instanWib(c.tanggal, c.baseMenit));
   return now.getTime() >= instanWib(c.tanggal, c.baseMenit).getTime() + akhir * 60000;
+}
+
+/** When the check-in opens: the start window's opening (a Susulan: from its
+ *  own start); null when the slot has no start clock. */
+export async function bukaMasuk(db: Db, c: Konteks): Promise<Date | null> {
+  const mulai = c.slot !== null ? slotToMulai(c.slot) : (c.sesi?.mulai ?? null);
+  if (!mulai) return null;
+  const jendela = c.jadwalRow?.jendelaMulaiMenit ?? (await muatPengaturanJendela(db)).default;
+  const m = menitDariJam(mulai) - jendela;
+  return Number.isNaN(m) ? null : instanWib(c.tanggal, m);
 }
 
 /** A date's module when no session names it: its TP week's module, else the
@@ -869,9 +874,19 @@ export async function handleHadirkuGet(
   // could not when it tried (the banner's alert).
   const modul = c?.sesi?.modul ?? (await modulHari(db, s.tanggal));
   const otomatisTolak = belumJalan ? await tolakOtomatis(db, s.kunci, s.tanggal) : null;
+  // The banner waits for the check-in to open
+  const buka = c ? await bukaMasuk(db, c) : null;
   res.status(200).json({
     ok: true,
-    slot: { ...s, saya, modul, bolehMulai, otomatisTolak, potongan: await muatPotongan(db) },
+    slot: {
+      ...s,
+      saya,
+      modul,
+      bolehMulai,
+      otomatisTolak,
+      buka: buka?.toISOString() ?? null,
+      potongan: await muatPotongan(db),
+    },
     nilai,
   });
 }

@@ -55,6 +55,8 @@ interface SlotData {
   modul: number | null;
   bolehMulai: boolean;
   otomatisTolak: { kode: string } | null;
+  /** When the check-in opens (the start window); the banner waits for it */
+  buka?: string | null;
   /** The cut setting in force (pengaturan potongan_telat) */
   potongan?: Potongan;
 }
@@ -187,9 +189,11 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
   useSiaran(TOPIK, muat, aktif, JARAK_HADIR);
   useSiaran(TOPIK_NILAI, muat, aktif, JARAK_NILAI);
 
-  // States flip on time: refetch at the base clock, one minute after it
-  // (late starts) and at the Mangkir Mengajar line.
+  // States flip on time: refetch when the check-in opens, at the base clock,
+  // one minute after it (late starts) and at the Mangkir Mengajar line.
   const base = data ? new Date(data.base).getTime() : null;
+  const buka = data?.buka ? new Date(data.buka).getTime() : null;
+  useBatas(buka, TOPIK);
   useBatas(base, TOPIK);
   useBatas(base === null ? null : base + 60_000, TOPIK);
   useBatas(base === null ? null : base + 660_000, TOPIK);
@@ -227,6 +231,8 @@ export default function HadirNotice({ lang, me }: { lang: Lang; me: Me }) {
   const baruIni = baru?.kunci === s.kunci ? baru : null;
   if (now >= akhir && !baruIni) return skor;
   if (s.sesi?.status === "selesai" && !baruIni) return skor;
+  // Nothing to press before the check-in opens, Izin included
+  if (buka !== null && now < buka && s.sesi?.status !== "berjalan" && !baruIni) return skor;
 
   const sesiNama = s.slot === null ? t.susulan : t.sesi(s.slot);
   const jumat = s.slot === 3 && new Date(`${s.tanggal}T00:00:00Z`).getUTCDay() === 5;

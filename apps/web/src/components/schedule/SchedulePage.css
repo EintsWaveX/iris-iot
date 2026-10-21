@@ -137,13 +137,28 @@
   text-decoration-thickness: 2px;
 }
 
-.acode--pengganti {
-  border-color: color-mix(in srgb, var(--violet) 70%, transparent);
+.acode--lepas {
+  color: var(--text-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+/* Covers: a solid violet edge for a Substitute, dashed for a Volunteer, a
+   violet tint on both unless the chip is your own */
+.acode--pengganti,
+.acode--sukarela {
+  border-color: var(--violet);
+  border-width: 1.5px;
 }
 
 .acode--sukarela {
-  border-color: var(--violet);
   border-style: dashed;
+}
+
+.acode--pengganti:not(.acode--me),
+.acode--sukarela:not(.acode--me) {
+  background: color-mix(in srgb, var(--violet) 28%, var(--surface-4));
+  color: color-mix(in srgb, var(--violet) 45%, var(--text));
 }
 
 /* ---- layout and grid */

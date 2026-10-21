@@ -159,11 +159,19 @@ function Cell({ t, lang, row, minggu: m, meKode, dim, known, label, onOpen }: Ce
       {kursi.map((k) => (
         <span key={k.nomor} className="jrow">
           <Pill group={k.nomor}>{kelompokLabel(k.nomor, lang)}</Pill>
-          {k.izin && k.tetap ? (
-            <Tooltip label={t.izinTip(k.tetap, k.kode)}>
+          {/* Whenever someone else holds the seat that date, its Regular stays
+              on it struck through: amber when excused, grey when handed over */}
+          {k.tetap && (k.izin || (k.kode && k.kode !== k.tetap)) ? (
+            <Tooltip
+              label={
+                k.izin
+                  ? t.izinTip(k.tetap, k.kode, t.kinds[k.jenis])
+                  : t.lepasTip(k.tetap, k.kode ?? "", t.kinds[k.jenis])
+              }
+            >
               <span className="row jrow__codes" tabIndex={-1}>
-                {code(k.tetap, "acode--izin")}
-                {k.kode && code(k.kode)}
+                {code(k.tetap, k.izin ? "acode--izin" : "acode--lepas")}
+                {k.kode && code(k.kode, k.jenis !== "tetap" ? `acode--${k.jenis}` : "")}
               </span>
             </Tooltip>
           ) : k.kode ? (
@@ -672,6 +680,18 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
         <span className="row jlegend__izin">
           <span className="acode acode--izin">ABC</span>
           <span className="hint">{t.onLeave}</span>
+        </span>
+        <span className="row jlegend__izin">
+          <span className="acode acode--lepas">ABC</span>
+          <span className="hint">{t.handedOver}</span>
+        </span>
+        <span className="row jlegend__izin">
+          <span className="acode acode--pengganti">ABC</span>
+          <span className="hint">{t.asSub}</span>
+        </span>
+        <span className="row jlegend__izin">
+          <span className="acode acode--sukarela">ABC</span>
+          <span className="hint">{t.asVol}</span>
         </span>
         <span className="pill jswatch" data-c="libur">
           {t.holiday}

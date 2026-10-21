@@ -33,8 +33,10 @@ export const J = dict({
     someAsisten: (a: number, n: number) => `${a} dari ${n} kelompok punya asisten`,
     subsCount: (n: number) => `${n} pengganti`,
     subsMore: (n: number) => `+${n} pengganti`,
-    izinTip: (who: string, cover: string | null) =>
-      cover ? `${who} izin, diganti ${cover}` : `${who} izin, belum ada pengganti`,
+    izinTip: (who: string, cover: string | null, kind: string) =>
+      cover ? `${who} izin, diganti ${cover} sebagai ${kind}` : `${who} izin, belum ada pengganti`,
+    lepasTip: (who: string, cover: string, kind: string) =>
+      `Kelompok ${who} dipegang ${cover} di tanggal ini, sebagai ${kind}`,
     unknownCode: "Kode tidak dikenal",
     // legend
     fit: "FIT",
@@ -42,6 +44,9 @@ export const J = dict({
     a24: "Angkatan 24",
     a24Tip: "Asisten angkatan 2024",
     onLeave: "izin",
+    handedOver: "dipegang orang lain",
+    asSub: "pengganti",
+    asVol: "sukarela",
     // load
     loadTitle: "Beban Mengajar per Minggu",
     loadCount: (n: number) => `${n} asisten`,
@@ -324,14 +329,21 @@ export const J = dict({
     someAsisten: (a: number, n: number) => `${a} of ${n} groups have an assistant`,
     subsCount: (n: number) => (n === 1 ? "1 substitute" : `${n} substitutes`),
     subsMore: (n: number) => (n === 1 ? "+1 substitute" : `+${n} substitutes`),
-    izinTip: (who: string, cover: string | null) =>
-      cover ? `${who} is on leave, ${cover} covers` : `${who} is on leave, no cover yet`,
+    izinTip: (who: string, cover: string | null, kind: string) =>
+      cover
+        ? `${who} is on leave, ${cover} covers as a ${kind}`
+        : `${who} is on leave, no cover yet`,
+    lepasTip: (who: string, cover: string, kind: string) =>
+      `${cover} takes ${who}'s group on this date, as a ${kind}`,
     unknownCode: "Unknown code",
     fit: "FIT",
     fitTip: "Teaching at FIT",
     a24: "Batch 24",
     a24Tip: "Assistant from the class of 2024",
     onLeave: "on leave",
+    handedOver: "group handed over",
+    asSub: "substitute",
+    asVol: "volunteer",
     loadTitle: "Weekly Teaching Load",
     loadCount: (n: number) => (n === 1 ? "1 assistant" : `${n} assistants`),
     sessions: (n: number) => (n === 1 ? "1 session" : `${n} sessions`),
@@ -611,14 +623,19 @@ export const J = dict({
     someAsisten: (a: number, n: number) => `${n} 个组里有 ${a} 个有助教`,
     subsCount: (n: number) => `${n} 位代课人`,
     subsMore: (n: number) => `+${n} 位代课人`,
-    izinTip: (who: string, cover: string | null) =>
-      cover ? `${who} 请假，由 ${cover} 代课` : `${who} 请假，还没有人代课`,
+    izinTip: (who: string, cover: string | null, kind: string) =>
+      cover ? `${who} 请假，由 ${cover} 接手（${kind}）` : `${who} 请假，还没有人代课`,
+    lepasTip: (who: string, cover: string, kind: string) =>
+      `这天 ${who} 的组由 ${cover} 接手（${kind}）`,
     unknownCode: "未知代码",
     fit: "FIT",
     fitTip: "在 FIT 上课",
     a24: "2024 级",
     a24Tip: "2024 级的助教",
     onLeave: "请假",
+    handedOver: "这天换人",
+    asSub: "代课",
+    asVol: "志愿",
     loadTitle: "每周上课量",
     loadCount: (n: number) => `${n} 位助教`,
     sessions: (n: number) => `${n} 节课`,

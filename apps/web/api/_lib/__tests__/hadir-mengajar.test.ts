@@ -98,6 +98,7 @@ const { asisten, hadirJam, hadirMengajar, jadwal, sesi, sesiAsisten } =
 const {
   masuk,
   batalMasuk,
+  bukaMasuk,
   bolehPj,
   handleHadirPj,
   kunciSlot,
@@ -371,6 +372,24 @@ describe("masuk window and Izin", () => {
     const { getDb } = await import("../../../src/lib/db");
     const r = await masuk(getDb() as never, "2020", KUNCI, new Date("2026-10-19T10:00:00+07:00"));
     expect(r).toEqual({ ok: false, kode: "sudah_selesai" });
+  });
+
+  it("opens with the start window: the default, or the slot's own", async () => {
+    isiSlot();
+    const { getDb } = await import("../../../src/lib/db");
+    const c = await muatKonteks(getDb() as never, KUNCI);
+    expect((await bukaMasuk(getDb() as never, c!))?.toISOString()).toBe(
+      new Date("2026-10-19T06:15:00+07:00").toISOString(),
+    );
+    const awal = new Date("2026-10-19T06:14:59+07:00");
+    expect(await masuk(getDb() as never, "2020", KUNCI, awal)).toEqual({
+      ok: false,
+      kode: "belum_buka",
+    });
+    const sendiri = { ...c!, jadwalRow: { ...c!.jadwalRow!, jendelaMulaiMenit: 25 } };
+    expect((await bukaMasuk(getDb() as never, sendiri))?.toISOString()).toBe(
+      new Date("2026-10-19T06:05:00+07:00").toISOString(),
+    );
   });
 });
 
