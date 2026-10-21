@@ -30,6 +30,9 @@
  *          already taught keeps its list.
  *      { semester, jumlahModul }           Per Modul's module count, 1 to 8
  *          (jadwal right); lists past it stay saved, unused.
+ *      { semester, tundaModul: { senin, tunda } }  Deteksi Modul Otomatis
+ *          (the Admin tier): postpones the week starting that Monday, or
+ *          brings it back (api/_lib/modul-tunda.ts).
  *
  * GET  /api/session/penugasan             my side of it: today's slots that
  *      need help (Saya Bantu), requests to me, offers waiting for me to
@@ -53,6 +56,7 @@ import { and, asc, eq, gte, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
+import { aturTunda } from "./modul-tunda.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
@@ -66,7 +70,7 @@ import {
 } from "../../src/lib/schema.js";
 import { writeAudit } from "../../src/lib/auth.js";
 import type { SessionPayload } from "../../src/lib/auth.js";
-import { boleh } from "../../src/lib/hak.js";
+import { boleh, hakPenuh } from "../../src/lib/hak.js";
 import { isKelas } from "../../src/lib/kelas.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
 import { KELOMPOK_DEFAULT, KELOMPOK_MAKS } from "../../src/lib/jadwal.js";
@@ -302,6 +306,7 @@ export async function handleScheduleGet(req: ApiRequest, res: ApiResponse) {
     bergilir: konteks.aktif,
     jumlahModul: konteks.jumlah,
     modulMinggu: mingguModul(konteks),
+    tunda: konteks.tunda,
     diajar,
     klp: await klpSlot(db, sem),
   });
@@ -350,6 +355,9 @@ export async function handleSchedulePost(
     body.jumlahModul !== undefined
   ) {
     return aturPasangan(res, db, session, semester, body);
+  }
+  if (body.tundaModul && typeof body.tundaModul === "object") {
+    return tundaModul(res, db, session, semester, body.tundaModul as Record<string, unknown>);
   }
   if (body.ubah && typeof body.ubah === "object") {
     return ubahSlot(res, db, session, semester, body);
@@ -608,6 +616,30 @@ async function ubahSlot(
     ...(pasanganDibuang ? { pasanganDibuang } : {}),
   });
   res.status(200).json({ ok: true, tanggal, id: row.id, pasanganDibuang });
+}
+
+/**
+ * Deteksi Modul Otomatis (user, 2026-10-21): the Admin tier postpones a
+ * week of the current semester (this week or a later one), or brings it
+ * back while it hasn't ended.
+ */
+async function tundaModul(
+  res: ApiResponse,
+  db: Db,
+  session: SessionPayload,
+  semester: string,
+  x: Record<string, unknown>,
+) {
+  const o = await muatOrang(session.nim);
+  if (!o || !hakPenuh(o)) return tolak(res, "tidak_berhak", 403);
+  const senin = typeof x.senin === "string" ? x.senin : "";
+  if (!seninSah(senin) || typeof x.tunda !== "boolean") return tolak(res, "format_salah", 400);
+  const hariIni = hariIniWib();
+  if (semester !== semesterDariTanggal(hariIni) || tambahHari(senin, 5) < hariIni)
+    return tolak(res, "format_salah", 400);
+  await aturTunda(db, { semester, senin, tunda: x.tunda, nim: session.nim, hariIni });
+  await writeAudit(session.nim, "jadwal_tunda_modul", { semester, senin, tunda: x.tunda });
+  res.status(200).json({ ok: true });
 }
 
 /**

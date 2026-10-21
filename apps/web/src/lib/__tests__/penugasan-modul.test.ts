@@ -8,9 +8,11 @@ import {
   blok,
   kolam,
   listSah,
+  mingguModulSemua,
   modulTanggal,
   putar,
   saringModul,
+  seninDari,
   tugaskan,
   ulang,
 } from "../penugasan-modul";
@@ -113,6 +115,47 @@ describe("modulTanggal", () => {
       modulTanggal({ hariIni: "2026-10-15", jendela: {}, terbuka: [], tanggal: "2026-10-16" })
         .modul,
     ).toBeNull();
+  });
+});
+
+describe("postponed weeks", () => {
+  // Module 3's TP closes Sat 31 Oct, so it is taught 2 to 7 Nov unless
+  // that week is a midterm week.
+  const jendela = {
+    2: { buka: "2026-10-21T18:00:00+07:00", tutup: "2026-10-24T18:00:00+07:00" },
+    3: { buka: "2026-10-28T18:00:00+07:00", tutup: "2026-10-31T18:00:00+07:00" },
+    4: { buka: "2026-11-04T18:00:00+07:00", tutup: "2026-11-07T18:00:00+07:00" },
+  };
+  it("seninDari gives the week's Monday", () => {
+    expect(seninDari("2026-11-02")).toBe("2026-11-02");
+    expect(seninDari("2026-11-07")).toBe("2026-11-02");
+    expect(seninDari("2026-11-08")).toBe("2026-11-02");
+  });
+  it("without a postponed week each module keeps its own week", () => {
+    const w = mingguModulSemua(jendela);
+    expect(w[3]).toEqual({ senin: "2026-11-02", sabtu: "2026-11-07" });
+    expect(w[4]?.senin).toBe("2026-11-09");
+  });
+  it("a postponed week moves its module, and the next one past it", () => {
+    const w = mingguModulSemua(jendela, ["2026-11-02"]);
+    expect(w[2]?.senin).toBe("2026-10-26");
+    expect(w[3]).toEqual({ senin: "2026-11-09", sabtu: "2026-11-14" });
+    expect(w[4]?.senin).toBe("2026-11-16");
+  });
+  it("a later window already set past it is not moved twice", () => {
+    const w = mingguModulSemua(
+      { ...jendela, 4: { buka: "2026-11-11T18:00:00+07:00", tutup: "2026-11-14T18:00:00+07:00" } },
+      ["2026-11-02"],
+    );
+    expect(w[3]?.senin).toBe("2026-11-09");
+    expect(w[4]?.senin).toBe("2026-11-16");
+  });
+  it("a postponed week teaches no module, and the week after teaches the postponed one", () => {
+    const f = { hariIni: "2026-11-02", jendela, terbuka: [2, 3], tunda: ["2026-11-02"] };
+    expect(modulTanggal({ ...f, tanggal: "2026-11-04" })).toEqual({ modul: null, sumber: null });
+    expect(modulTanggal({ ...f, tanggal: "2026-11-11" })).toEqual({ modul: 3, sumber: "tp" });
+    // A session that did start that week still says what it taught.
+    expect(modulTanggal({ ...f, tanggal: "2026-11-02", sesiModul: 3 }).modul).toBe(3);
   });
 });
 

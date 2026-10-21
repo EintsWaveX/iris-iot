@@ -18,11 +18,13 @@ import {
   daftarModul,
   MODUL_BAWAAN,
   MODUL_MAKS,
+  mingguModulSemua,
   modulTanggal,
   type SumberModul,
 } from "../../src/lib/penugasan-modul.js";
-import { mingguPraktikum, type JendelaTp } from "../../src/lib/tp.js";
+import type { JendelaTp } from "../../src/lib/tp.js";
 import { bacaSet, jendelaUntuk } from "./tp.js";
+import { bacaTunda } from "./modul-tunda.js";
 
 type Db = ReturnType<typeof getDb>;
 type JadwalRow = typeof jadwal.$inferSelect;
@@ -91,6 +93,8 @@ export interface KonteksModul {
   /** Each module's TP window (the current semester's only). */
   jendela: Partial<Record<number, JendelaTp | null>>;
   terbuka: number[];
+  /** Postponed weeks (Mondays), Jadwal's Deteksi Modul Otomatis. */
+  tunda: string[];
 }
 
 /** What a date's module is judged by. Only read while the switch is on,
@@ -103,15 +107,19 @@ export async function konteksModul(
   const v = (await bacaNilai(db))[semester];
   const aktif = v?.aktif === true;
   const jumlah = jumlahSah(v?.jumlah);
-  if (!aktif && !selalu) return { aktif, jumlah, jendela: {}, terbuka: [] };
-  const [set, terbuka] = await Promise.all([bacaSet(db), getModulTerbuka()]);
+  if (!aktif && !selalu) return { aktif, jumlah, jendela: {}, terbuka: [], tunda: [] };
+  const [set, terbuka, tunda] = await Promise.all([
+    bacaSet(db),
+    getModulTerbuka(),
+    bacaTunda(db, semester),
+  ]);
   const jendela: KonteksModul["jendela"] = {};
   if (set.semester === semester)
     for (const m of daftarModul(jumlah)) {
       const j = jendelaUntuk(set, m);
       jendela[m] = j ? { buka: j.buka, tutup: j.tutup } : null;
     }
-  return { aktif, jumlah, jendela, terbuka };
+  return { aktif, jumlah, jendela, terbuka, tunda: tunda.map((x) => x.senin) };
 }
 
 /** Each module's practicum week, for Per Modul's hints and Tim › Penugasan
@@ -119,11 +127,9 @@ export async function konteksModul(
 export function mingguModul(
   k: KonteksModul,
 ): Record<number, { senin: string; sabtu: string } | null> {
+  const semua = mingguModulSemua(k.jendela, k.tunda);
   const out: Record<number, { senin: string; sabtu: string } | null> = {};
-  for (const m of daftarModul(k.jumlah)) {
-    const j = k.jendela[m];
-    out[m] = j ? mingguPraktikum(j) : null;
-  }
+  for (const m of daftarModul(k.jumlah)) out[m] = semua[m] ?? null;
   return out;
 }
 
@@ -174,6 +180,7 @@ export async function modulPerSlot(
         sesiModul: s?.modul ?? null,
         jendela: k.jendela,
         terbuka: k.terbuka,
+        tunda: k.tunda,
       }),
     );
   }

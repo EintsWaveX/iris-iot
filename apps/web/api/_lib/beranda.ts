@@ -21,7 +21,7 @@
 import { diSlotMinggu, muatMinggu, muatPengaturanJendela } from "./penugasan-api.js";
 import { gantiKursi, kursiSaya, orangTanggal } from "../../src/lib/penugasan-minggu.js";
 import { klpSlot } from "./pasangan-modul.js";
-import { muatNilaiBanner } from "./hadir-mengajar.js";
+import { modulHari, muatNilaiBanner } from "./hadir-mengajar.js";
 import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
@@ -319,9 +319,17 @@ export async function handleBerandaGet(
   const belumSimpan = (tagih?.saya ?? []).filter((g) => g.terkirim && !g.tersimpan);
 
   const roster = Object.fromEntries(rosterHitung.map((r) => [r.slot, r]));
-  // Decks are per module (2026-10-08): the one that counts is the latest
-  // open module's.
-  const modulKini = terbuka.length ? Math.max(...terbuka) : null;
+  // Decks are per module (2026-10-08): the one that counts is today's
+  // module (its TP week, a postponed week left out) when it is open, else
+  // the latest open module's (2026-10-21: Module 2 opened early read as
+  // this week's while Module 1 was still taught).
+  const hariModul = await modulHari(db, tanggal);
+  const modulKini =
+    hariModul && terbuka.includes(hariModul)
+      ? hariModul
+      : terbuka.length
+        ? Math.max(...terbuka)
+        : null;
   const slide = slides.find((d) => d.modul === modulKini);
   // Each slot's next date this week (today's for today's slots): the
   // pairing (its module's while the semester pairs per module) with that
@@ -391,6 +399,8 @@ export async function handleBerandaGet(
         ];
       }),
     terbuka,
+    // The module Start picks first.
+    modulKini,
     presentasiAktif: slide ? { nama: slide.nama, jenis: slide.jenis } : null,
     // The latest open module's schematic: an uploaded image, else the
     // built-in one (Module 4 has none), and whether a link is active.

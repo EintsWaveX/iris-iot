@@ -145,6 +145,8 @@ export interface Beranda {
     ganti?: boolean;
   }[];
   terbuka: number[];
+  /** Today's module when open, else the latest open one. */
+  modulKini?: number | null;
   presentasiAktif: { nama: string; jenis: string } | null;
   skemaAktif?: {
     modul: number;
@@ -375,7 +377,8 @@ export default function AsistenHome({
       [...order].reverse().find((n) => states[n] === "done" && mineSlot(n)) ??
       4;
     pick(s);
-    if (modul === null && data.terbuka.length) setModul(Math.max(...data.terbuka));
+    if (modul === null && data.terbuka.length)
+      setModul(data.modulKini ?? Math.max(...data.terbuka));
   }, [data]);
 
   function pick(s: number) {

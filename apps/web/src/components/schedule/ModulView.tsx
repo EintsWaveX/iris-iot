@@ -54,7 +54,7 @@ type Draf = Record<number, Daftar>;
 const LOCALE: Record<Lang, string> = { id: "id-ID", en: "en-GB", zh: "zh-CN" };
 
 /** "19 sampai 24 Oktober" from the week's Monday and Saturday. */
-function rentang(lang: Lang, senin: string, sabtu: string): string {
+export function rentang(lang: Lang, senin: string, sabtu: string): string {
   const f = (d: string, opt: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(LOCALE[lang], { timeZone: "UTC", ...opt }).format(
       new Date(`${d}T00:00:00Z`),

@@ -183,6 +183,23 @@ export const J = dict({
     setHint:
       "Asisten slot boleh mengubah slotnya sendiri di antara batas ini. Pengelola dan Admin boleh mengubah slot mana pun di editor slot.",
     setSaved: "Pengaturan jadwal disimpan.",
+    // Deteksi Modul Otomatis (Admin tier)
+    tm: {
+      open: "Deteksi Modul",
+      title: "Deteksi Modul Otomatis",
+      intro:
+        "Modul tiap minggu dibaca sendiri dari jendela TP. Matikan untuk minggu tanpa praktikum, misalnya UTS: semua slot minggu itu jadi libur, tidak ada sesi yang mulai otomatis, dan modulnya bergeser ke minggu berikutnya.",
+      back: "Begitu minggu itu lewat, deteksi menyala lagi sendiri hari Senin berikutnya. Menyalakannya lebih awal membatalkan penundaan, jadi slotnya kembali seperti biasa dan modul tidak bergeser.",
+      minggu: (n: number) =>
+        n === 0 ? "Minggu Ini" : n === 1 ? "Minggu Depan" : `${n} Minggu Lagi`,
+      modul: (m: number) => `Modul ${m}`,
+      none: "Belum ada modul",
+      paused: "Ditunda",
+      savedOff: "Minggu itu ditunda. Semua slotnya libur.",
+      savedOn: "Penundaan dibatalkan. Deteksi modul menyala lagi.",
+      notice: (rentang: string, senin: string) =>
+        `Praktikum ${rentang} ditunda. Deteksi modul menyala lagi sendiri ${senin}.`,
+    },
     pm: {
       open: "Per Modul",
       back: "Kembali ke Jadwal",
@@ -475,6 +492,22 @@ export const J = dict({
     setHint:
       "Slot assistants may change their own slot within these bounds. Managers and Admins can change any slot in the slot editor.",
     setSaved: "Schedule settings saved.",
+    // Automatic module detection (Admin tier)
+    tm: {
+      open: "Module Detection",
+      title: "Automatic Module Detection",
+      intro:
+        "Each week's module is read from the TP windows. Turn a week off when there's no practicum, like a midterm week: every slot that week becomes a holiday, no session starts by itself, and its module moves to the week after.",
+      back: "Once that week is over, detection comes back on by itself the next Monday. Turning it back on earlier cancels the postponement, so the slots run as usual and no module moves.",
+      minggu: (n: number) => (n === 0 ? "This Week" : n === 1 ? "Next Week" : `In ${n} Weeks`),
+      modul: (m: number) => `Module ${m}`,
+      none: "No module yet",
+      paused: "Postponed",
+      savedOff: "That week is postponed. All its slots are holidays.",
+      savedOn: "Postponement cancelled. Module detection is back on.",
+      notice: (rentang: string, senin: string) =>
+        `Practicum ${rentang} is postponed. Module detection comes back on by itself ${senin}.`,
+    },
     pm: {
       open: "Per Module",
       back: "Back to Schedule",
@@ -759,6 +792,22 @@ export const J = dict({
     setMax: "最多（给时段助教）",
     setHint: "时段助教可以在这个范围内改自己的时段。主管和管理员可以在时段编辑器里改任何时段。",
     setSaved: "课表设置已保存。",
+    // 自动识别模块（管理员）
+    tm: {
+      open: "模块识别",
+      title: "自动识别模块",
+      intro:
+        "每周的模块按 TP 时间窗自动识别。没有实验课的那一周（比如期中考试周）可以关掉：那一周所有时段放假，不会自动开课，该模块顺延到下一周。",
+      back: "那一周过完后，下周一会自动重新开启。提前打开就是取消顺延：时段照常上课，模块不顺延。",
+      minggu: (n: number) => (n === 0 ? "本周" : n === 1 ? "下周" : `${n} 周后`),
+      modul: (m: number) => `模块 ${m}`,
+      none: "还没有模块",
+      paused: "已顺延",
+      savedOff: "那一周已顺延，所有时段放假。",
+      savedOn: "已取消顺延，模块识别重新开启。",
+      notice: (rentang: string, senin: string) =>
+        `${rentang} 的实验课已顺延。模块识别会在${senin}自动重新开启。`,
+    },
     pm: {
       open: "按模块",
       back: "回到课表",
