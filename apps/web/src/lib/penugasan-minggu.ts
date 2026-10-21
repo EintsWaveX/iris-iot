@@ -96,6 +96,17 @@ export function gantiKursi(k: KursiKelompok): GantiKursi | null {
   return { jenis: k.jenis, untuk: k.tetap };
 }
 
+/** The slot's PJ on a date (user, 2026-10-21): when the default PJ holds
+ *  none of their seats that date and a Substitute or Volunteer covers one,
+ *  that cover acts as PJ; otherwise the default PJ stays. */
+export function pjTanggal(pj: string | null, kursi: readonly KursiKelompok[]): string | null {
+  const p = pj?.trim().toUpperCase();
+  if (!p) return null;
+  if (kursi.some((k) => k.kode === p)) return p;
+  const ganti = kursi.find((k) => k.tetap === p && gantiKursi(k));
+  return ganti?.kode ?? p;
+}
+
 /** One of my seats on a date, as the "my slots" lists show it. */
 export interface KursiSaya {
   nomor: number;
