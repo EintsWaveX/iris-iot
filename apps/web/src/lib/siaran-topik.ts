@@ -162,6 +162,10 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "tp:unggah": ["tp"],
   "tp:tiket": [],
   "tp:perpanjang": ["tp"],
+  // TP notices (2026-10-21): the Praktikan TP card and Kelola TP read them.
+  "tp:kabar": ["tp"],
+  "tp:kabar-hapus": ["tp"],
+  "tp:kabar-oto": ["tp"],
   // The minute beat: the sync and the move broadcast what they change.
   "tp:detak": [],
   // Phase 23 (api/profil/[aksi].ts): every Home shows the Lab Profile.

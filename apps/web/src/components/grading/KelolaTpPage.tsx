@@ -1,8 +1,9 @@
 /**
  * /tp (2026-10-21): Kelola TP, taken out of Penilaian so Penilaian holds only
  * scores. Tabs: Buat Soal TP (each module's question bank, its final set and
- * the paper; for the jadwal and kode rights) and Pengaturan TP (who counts in
- * TP, the default window, the cross-check). The tab is in the hash (#soal,
+ * the paper; for the jadwal and kode rights), Pengaturan TP (who counts in
+ * TP, the default window, the cross-check) and Pengumuman (notices to
+ * Praktikan, 2026-10-21). The tab is in the hash (#soal, #pengumuman,
  * #pengaturan); ?modul= picks Buat Soal TP's module. Penilaian's header opens
  * it, and Penilaian's old #soal, #pengaturan and #lms links land here.
  */
@@ -17,14 +18,16 @@ import type { Lang } from "../../lib/kelas";
 import { TPS } from "../tp/tpStrings";
 import SoalTab from "./SoalTab";
 import PengaturanTab from "./PengaturanTab";
+import KabarTab from "./KabarTab";
+import { KS } from "./kabarStrings";
 import { modulDariUrl, semesterKini } from "./halaman";
 import "../tp/tp.css";
 
-type Tab = "soal" | "pengaturan";
+type Tab = "soal" | "pengaturan" | "pengumuman";
 
 function tabDariHash(): Tab | null {
   const h = typeof location === "undefined" ? "" : location.hash.replace(/^#/, "");
-  return h === "soal" || h === "pengaturan" ? h : null;
+  return h === "soal" || h === "pengaturan" || h === "pengumuman" ? h : null;
 }
 
 export default function KelolaTpPage({ lang }: { lang: Lang }) {
@@ -60,6 +63,7 @@ export default function KelolaTpPage({ lang }: { lang: Lang }) {
   const tabs: { v: Tab; label: string }[] = [
     ...(bolehSoal ? [{ v: "soal" as const, label: sm ? t.tabSoalSm : t.tabSoal }] : []),
     { v: "pengaturan", label: sm ? t.tabPengaturanSm : t.tabPengaturan },
+    { v: "pengumuman", label: KS[lang].tab },
   ];
   const shown: Tab = tabs.some((x) => x.v === tab) ? (tab as Tab) : tabs[0].v;
 
@@ -84,6 +88,8 @@ export default function KelolaTpPage({ lang }: { lang: Lang }) {
       <Fade k={shown}>
         {shown === "soal" ? (
           <SoalTab lang={lang} modul={modul} setModul={setModul} />
+        ) : shown === "pengumuman" ? (
+          <KabarTab lang={lang} modul={modul} />
         ) : (
           <PengaturanTab lang={lang} />
         )}

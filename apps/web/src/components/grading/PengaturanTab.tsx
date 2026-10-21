@@ -7,11 +7,14 @@
  * Admins'.
  */
 import { useState } from "react";
+import { CaretRightIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Disclose from "../ui/Disclose";
 import Dropdown from "../ui/Dropdown";
+import Pill from "../ui/Pill";
 import { TimeField } from "../ui/Controls";
-import { getJson, postJson } from "../../lib/app";
+import PerpanjangDialog from "./PerpanjangDialog";
+import { getJson, href, postJson, useTick } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import type { PolaJendela } from "../../lib/tp";
@@ -48,7 +51,30 @@ interface Pengaturan {
   peserta: { terdaftar: number; kecuali: Kecuali[] };
   pola: PolaJendela;
   silang: SilangInfo;
+  /** Changes anyone's extension here: the TP right, or an Admin. */
+  bolehPerpanjang: boolean;
+  cek: Cek[];
+  perpanjang: Perpanjang[];
 }
+
+type Cek =
+  | { k: "jendela"; modul: number }
+  | { k: "pemegang" | "nilai"; modul: number; n: number }
+  | { k: "tanpaSeelabs" | "bukanIris" | "perpanjang"; n: number };
+
+interface Perpanjang {
+  modul: number;
+  nim: string;
+  nama: string;
+  sampai: string;
+  alasan: string | null;
+  oleh: string;
+  pada: string;
+}
+
+/** Scrolls to a panel of this tab. */
+const ke = (id: string) =>
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
 export default function PengaturanTab({ lang }: { lang: Lang }) {
   const t = TPS[lang];
@@ -62,50 +88,206 @@ export default function PengaturanTab({ lang }: { lang: Lang }) {
   const [bawaan, setBawaan] = useState(false);
   if (!d) return <span className="skeleton" style={{ height: 420 }} />;
   return (
-    <div className="tppengaturan__grid">
-      <div className="stack stack--lg">
-        <PesertaPanel
+    <div className="stack stack--lg">
+      <CekPanel lang={lang} cek={d.cek} />
+      <div className="tppengaturan__grid">
+        <div className="stack stack--lg">
+          <PesertaPanel
+            lang={lang}
+            peserta={d.peserta}
+            boleh={d.bolehKecuali}
+            onDone={poll.refresh}
+          />
+          <PerpanjangPanel
+            lang={lang}
+            daftar={d.perpanjang}
+            boleh={d.bolehPerpanjang}
+            onDone={poll.refresh}
+          />
+        </div>
+        <div className="stack stack--lg">
+          <section className="panel">
+            <h2 className="panel__title">{t.jendelaBawaan}</h2>
+            <dl className="tpdl tpdl--one">
+              <div>
+                <dt>{t.jendelaBawaan}</dt>
+                <dd>
+                  {t.polaTeks(
+                    t.hari[d.pola.hariBuka],
+                    d.pola.jamBuka,
+                    t.hari[d.pola.hariTutup],
+                    d.pola.jamTutup,
+                  )}
+                </dd>
+              </div>
+            </dl>
+            <p className="hint">{t.bawaanHint}</p>
+            {d.bolehPola && (
+              <div className="panel__actions">
+                <button type="button" className="btn" onClick={() => setBawaan(true)}>
+                  {t.ubahBawaan}
+                </button>
+              </div>
+            )}
+          </section>
+          <SilangPanel lang={lang} silang={d.silang} />
+        </div>
+        <BawaanDialog
+          open={bawaan}
+          onOpenChange={setBawaan}
           lang={lang}
-          peserta={d.peserta}
-          boleh={d.bolehKecuali}
+          pola={d.pola}
           onDone={poll.refresh}
         />
       </div>
-      <div className="stack stack--lg">
-        <section className="panel">
-          <h2 className="panel__title">{t.jendelaBawaan}</h2>
-          <dl className="tpdl tpdl--one">
-            <div>
-              <dt>{t.jendelaBawaan}</dt>
-              <dd>
-                {t.polaTeks(
-                  t.hari[d.pola.hariBuka],
-                  d.pola.jamBuka,
-                  t.hari[d.pola.hariTutup],
-                  d.pola.jamTutup,
-                )}
-              </dd>
-            </div>
-          </dl>
-          <p className="hint">{t.bawaanHint}</p>
-          {d.bolehPola && (
-            <div className="panel__actions">
-              <button type="button" className="btn" onClick={() => setBawaan(true)}>
-                {t.ubahBawaan}
-              </button>
-            </div>
-          )}
-        </section>
-        <SilangPanel lang={lang} silang={d.silang} />
-      </div>
-      <BawaanDialog
-        open={bawaan}
-        onOpenChange={setBawaan}
-        lang={lang}
-        pola={d.pola}
-        onDone={poll.refresh}
-      />
     </div>
+  );
+}
+
+/* ======================================================= Perlu Dicek */
+
+/** What needs a look, each with the way to it; the LMS Ringkasan's
+ *  checklist on IRIS's own facts (2026-10-21). */
+function CekPanel({ lang, cek }: { lang: Lang; cek: Cek[] }) {
+  const t = PT[lang];
+  const baris = cek.map((c) => {
+    switch (c.k) {
+      case "jendela":
+        return {
+          judul: t.cek.jendela(c.modul),
+          hint: t.cek.jendelaHint,
+          tombol: t.bukaModul,
+          url: href(lang, `/modules/${c.modul}?step=tp`),
+        };
+      case "pemegang":
+      case "nilai":
+        return {
+          judul: t.cek[c.k](c.n, c.modul),
+          hint: c.k === "nilai" ? t.cek.nilaiHint : t.cek.pemegangHint,
+          tombol: t.keNilai,
+          url: href(lang, `/grading?modul=${c.modul}`),
+        };
+      case "tanpaSeelabs":
+      case "bukanIris":
+        return {
+          judul: t.cek[c.k](c.n),
+          hint: c.k === "bukanIris" ? t.cek.bukanIrisHint : t.cek.tanpaSeelabsHint,
+          tombol: t.lihat,
+          ke: "tp-silang",
+        };
+      default:
+        return {
+          judul: t.cek.perpanjang(c.n),
+          hint: t.cek.perpanjangHint,
+          tombol: t.lihat,
+          ke: "tp-perpanjangan",
+        };
+    }
+  });
+  return (
+    <section className="panel">
+      <div className="panel__head">
+        <h2 className="panel__title">{t.cekH}</h2>
+      </div>
+      {baris.length ? (
+        <ul className="tpcek">
+          {baris.map((b) => (
+            <li key={b.judul}>
+              <span className="stack" style={{ gap: 0, minWidth: 0 }}>
+                <b>{b.judul}</b>
+                <span className="hint">{b.hint}</span>
+              </span>
+              {b.url ? (
+                <a className="btn btn--ghost btn--sm" href={b.url}>
+                  {b.tombol}
+                  <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+                </a>
+              ) : (
+                <button type="button" className="btn btn--ghost btn--sm" onClick={() => ke(b.ke!)}>
+                  {b.tombol}
+                  <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="hint">{t.cekKosong}</p>
+      )}
+    </section>
+  );
+}
+
+/* ====================================================== extensions */
+
+/** Every extension this semester: the running ones, then the ended ones
+ *  folded; each opens the Grader's own extension dialog. */
+function PerpanjangPanel({
+  lang,
+  daftar,
+  boleh,
+  onDone,
+}: {
+  lang: Lang;
+  daftar: Perpanjang[];
+  boleh: boolean;
+  onDone: () => void;
+}) {
+  const t = PT[lang];
+  useTick(60_000);
+  const [ubah, setUbah] = useState<Perpanjang | null>(null);
+  const now = Date.now();
+  const jalan = daftar.filter((p) => Date.parse(p.sampai) > now).reverse();
+  const lewat = daftar.filter((p) => Date.parse(p.sampai) <= now);
+  const baris = (p: Perpanjang, aktif: boolean) => (
+    <li key={`${p.modul}-${p.nim}`}>
+      <span className="grow stack" style={{ gap: 0 }}>
+        <b>{p.nama}</b>
+        <span className="hint">
+          <span className="mono">{p.nim}</span>
+          {p.alasan ? ` · ${p.alasan}` : ""} · {t.oleh(p.oleh, waktuPanjang(p.pada, lang))}
+        </span>
+      </span>
+      <span className="stack tpcek__sisi">
+        <Pill modul={p.modul}>{t.pjModul(p.modul)}</Pill>
+        <span className="hint">{t.pjSampai(waktuPanjang(p.sampai, lang))}</span>
+      </span>
+      {boleh && aktif && (
+        <button type="button" className="btn btn--sm" onClick={() => setUbah(p)}>
+          {t.ubah}
+        </button>
+      )}
+    </li>
+  );
+  return (
+    <section className="panel" id="tp-perpanjangan">
+      <div className="panel__head">
+        <h2 className="panel__title">{t.pjH}</h2>
+        <span className="hint">{t.pjLede}</span>
+      </div>
+      {jalan.length ? (
+        <ul className="tppeserta__list">{jalan.map((p) => baris(p, true))}</ul>
+      ) : (
+        <p className="hint">{t.pjKosong}</p>
+      )}
+      {lewat.length > 0 && (
+        <Disclose head={t.pjLewat(lewat.length)}>
+          <ul className="tppeserta__list">{lewat.map((p) => baris(p, false))}</ul>
+        </Disclose>
+      )}
+      {ubah && (
+        <PerpanjangDialog
+          open
+          onOpenChange={(v) => !v && setUbah(null)}
+          lang={lang}
+          modul={ubah.modul}
+          nim={ubah.nim}
+          nama={ubah.nama}
+          ada={{ sampai: ubah.sampai, alasan: ubah.alasan }}
+          onSaved={onDone}
+        />
+      )}
+    </section>
   );
 }
 
@@ -256,7 +438,7 @@ function SilangPanel({ lang, silang }: { lang: Lang; silang: SilangInfo }) {
       <p className="hint">{t.kosong}</p>
     );
   return (
-    <section className="panel tpsilang">
+    <section className="panel tpsilang" id="tp-silang">
       <div className="panel__head">
         <h2 className="panel__title">{t.silangH}</h2>
         <span className="hint">{t.silangLede}</span>

@@ -29,6 +29,9 @@
  * GET  /api/tp/hitung                the navbar badge: my groups' files to grade.
  * GET  /api/tp/kumpul?modul=         who handed in, by class (IRIS's roster)
  * GET  /api/tp/jejak?modul=[&nim=][&n=]   every change to the module's files
+ * GET  /api/tp/kabar                    the TP notices and the automatic ones
+ * POST /api/tp/kabar { modul|null, jenis, sasaran, judul, isi, sampai|null }
+ * POST /api/tp/kabar-hapus { id }  POST /api/tp/kabar-oto { buka, mepet }
  * GET  /api/tp/pengaturan            Penilaian › Pengaturan TP: Peserta TP,
  *      the default window, the IRIS and SeeLabs cross-check
  * GET  /api/tp/berkas?id=&i=         any Praktikan's file.
@@ -75,6 +78,7 @@ import {
   sesiAsisten,
   kelompok,
   tpJejak,
+  tpKabar,
   tpKiriman,
   tpNilai,
   tpPerpanjang,
@@ -82,8 +86,18 @@ import {
 } from "../../src/lib/schema.js";
 import { NILAI_KOMPONEN } from "../../src/lib/nilai-komponen.js";
 import {
+  ISI_MAKS,
+  JENIS_KABAR,
+  JUDUL_MAKS,
+  kabarUntuk,
+  type JenisKabar,
+  type KabarSimpan,
+  type OtoKabar,
+} from "../../src/lib/tp-kabar.js";
+import {
   JAM_RE,
   POLA_BAWAAN,
+  TP_MENUNGGU,
   TANGGAL_RE,
   poinNomor,
   bahasaKelas,
@@ -176,7 +190,7 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
     );
   // Sent: the group's scores of that module's session went out (Kirim Nilai).
   const kirim = await db
-    .select({ modul: sesi.modul })
+    .select({ modul: sesi.modul, pada: nilaiKirim.dikirimPada })
     .from(sesiAnggota)
     .innerJoin(sesi, eq(sesi.id, sesiAnggota.sesiId))
     .innerJoin(
@@ -268,6 +282,60 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       bolehUnggah: !!p && keadaan === "buka",
     };
   });
+  // The notices they see now (2026-10-21), in their class's language; their
+  // own extension (when it was given) and their score (when it went out).
+  const pj = await db
+    .select({ modul: tpPerpanjang.modul, sampai: tpPerpanjang.sampai, pada: tpPerpanjang.pada })
+    .from(tpPerpanjang)
+    .where(and(eq(tpPerpanjang.semester, set.semester), eq(tpPerpanjang.nim, s.nim)));
+  const kirimPada = (m: number) =>
+    kirim
+      .filter((k) => k.modul === m)
+      .map((k) => k.pada.toISOString())
+      .sort()
+      .at(-1);
+  const kabar = kabarUntuk({
+    simpan: await kabarSemester(db, set.semester),
+    oto: await bacaOto(db),
+    jendela: new Map(out.map((x) => [x.modul, x.jendela ?? null])),
+    belum: new Set(out.filter((x) => x.berkas.length === 0).map((x) => x.modul)),
+    kelas,
+    now: Date.now(),
+    modul: satu ?? undefined,
+    pribadi: {
+      panjang: new Map(
+        pj.map((x) => [x.modul, { sampai: x.sampai.toISOString(), pada: x.pada.toISOString() }]),
+      ),
+      nilai: new Map(
+        out.flatMap((x) => {
+          const pada = kirimPada(x.modul);
+          return x.total !== null && pada ? [[x.modul, { total: x.total, pada }] as const] : [];
+        }),
+      ),
+    },
+  });
+  // One module: their own submission history, newest first (2026-10-21).
+  const riwayat = satu
+    ? (
+        await db
+          .select()
+          .from(tpJejak)
+          .where(
+            and(
+              eq(tpJejak.semester, set.semester),
+              eq(tpJejak.modul, satu),
+              eq(tpJejak.nim, s.nim),
+            ),
+          )
+          .orderBy(desc(tpJejak.dicatatPada), desc(tpJejak.id))
+          .limit(20)
+      ).map((r) => ({
+        id: r.id,
+        jenis: r.jenis,
+        berkas: r.berkas.map((b) => b.nama),
+        pada: r.dicatatPada.toISOString(),
+      }))
+    : undefined;
   // One module: its final set, only once its window has opened (open or
   // closed); a module whose window is still ahead or not set yet shows none.
   const kSatu = satu ? keadaanJendela(jendelaUntuk(set, satu)) : null;
@@ -283,6 +351,8 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       ? { [bahasaKelas(kelas)]: paket.petunjuk[bahasaKelas(kelas)], zh: paket.petunjuk.zh }
       : undefined,
     modul: out,
+    kabar,
+    riwayat,
   });
 }
 
@@ -1203,10 +1273,28 @@ async function handlePengaturan(_req: ApiRequest, res: ApiResponse, s: SessionPa
   const namaOf = new Map(semua.map((p) => [p.nim, p.nama]));
   const kodeOf = await petaKode(db);
   const silang = await silangData(db, set, kodeOf);
+  // Every extension this semester, the newest end first (2026-10-21).
+  const pj = await db
+    .select()
+    .from(tpPerpanjang)
+    .where(eq(tpPerpanjang.semester, set.semester))
+    .orderBy(desc(tpPerpanjang.sampai));
+  const perpanjang = pj.map((p) => ({
+    modul: p.modul,
+    nim: p.nim,
+    nama: namaOf.get(p.nim) ?? p.nim,
+    sampai: p.sampai.toISOString(),
+    alasan: p.alasan,
+    oleh: kodeOf.get(p.oleh) ?? p.oleh,
+    pada: p.pada.toISOString(),
+  }));
   res.status(200).json({
     ok: true,
     bolehPola: boleh(orang, "jadwal"),
     bolehKecuali: boleh(orang, "tp"),
+    bolehPerpanjang: boleh(orang, "tp") || hakPenuh(orang),
+    cek: await perluDicek(db, set, s.nim, silang.seelabs, perpanjang),
+    perpanjang,
     peserta: {
       terdaftar: terdaftar.length,
       kecuali: set.kecuali.map((k) => ({
@@ -1218,6 +1306,200 @@ async function handlePengaturan(_req: ApiRequest, res: ApiResponse, s: SessionPa
     pola: set.jendela.pola ?? POLA_BAWAAN,
     silang: { iris: silang.iris, seelabs: silang.seelabs, asisten: silang.asisten },
   });
+}
+
+/** One thing on Pengaturan TP's Perlu Dicek, with what it counts. */
+type Cek =
+  | { k: "jendela"; modul: number }
+  | { k: "pemegang" | "nilai"; modul: number; n: number }
+  | { k: "tanpaSeelabs" | "bukanIris" | "perpanjang"; n: number };
+
+/**
+ * Perlu Dicek (2026-10-21, the LMS Ringkasan's checklist on IRIS's facts):
+ * the next module still without a window, groups with files and no Per Modul
+ * seat, files left ungraded after a close, the IRIS and SeeLabs mismatches,
+ * and extensions ending within a day.
+ */
+async function perluDicek(
+  db: ReturnType<typeof getDb>,
+  set: Awaited<ReturnType<typeof bacaSet>>,
+  nim: string,
+  seelabs: { bukanIris: unknown[]; tanpaSeelabs: unknown[] } | null,
+  perpanjang: { sampai: string }[],
+): Promise<Cek[]> {
+  const out: Cek[] = [];
+  // The module after the last one that has a window.
+  const ada = [1, 2, 3, 4].filter((m) => jendelaUntuk(set, m));
+  const berikut = (ada.length ? Math.max(...ada) : 0) + 1;
+  if (berikut <= 4) out.push({ k: "jendela", modul: berikut });
+  for (const m of ada) {
+    const k = keadaanJendela(jendelaUntuk(set, m));
+    if (k !== "buka" && k !== "tutup") continue;
+    const d = await kelompokTp(db, set, m, nim);
+    const grup = d.slot
+      .flatMap((s) => s.kelompok)
+      .filter((g) => !g.pemegang && g.anggota.some((a) => !a.kecuali && a.berkas > 0)).length;
+    if (grup) out.push({ k: "pemegang", modul: m, n: grup });
+    if (k === "tutup") {
+      const n = [
+        ...d.slot.flatMap((s) => s.kelompok.flatMap((g) => g.anggota)),
+        ...d.tanpaKelompok,
+      ].filter((a) => !a.kecuali && TP_MENUNGGU.includes(a.status)).length;
+      if (n) out.push({ k: "nilai", modul: m, n });
+    }
+  }
+  if (seelabs?.tanpaSeelabs.length) out.push({ k: "tanpaSeelabs", n: seelabs.tanpaSeelabs.length });
+  if (seelabs?.bukanIris.length) out.push({ k: "bukanIris", n: seelabs.bukanIris.length });
+  const now = Date.now();
+  const habis = perpanjang.filter((p) => {
+    const t = Date.parse(p.sampai);
+    return t > now && t - now < 86_400_000;
+  }).length;
+  if (habis) out.push({ k: "perpanjang", n: habis });
+  return out;
+}
+
+/* ============================================================ notices */
+
+const KUNCI_OTO = "tp_kabar_oto";
+
+/** This semester's kept notices, the newest first. */
+async function kabarSemester(
+  db: ReturnType<typeof getDb>,
+  semester: string,
+): Promise<KabarSimpan[]> {
+  const rows = await db
+    .select()
+    .from(tpKabar)
+    .where(eq(tpKabar.semester, semester))
+    .orderBy(desc(tpKabar.mulai), desc(tpKabar.id));
+  return rows.map((r) => ({
+    id: r.id,
+    modul: r.modul,
+    jenis: r.jenis,
+    sasaran: r.sasaran,
+    judul: r.judul,
+    isi: r.isi,
+    mulai: r.mulai.toISOString(),
+    sampai: r.sampai?.toISOString() ?? null,
+  }));
+}
+
+/** Which automatic notices are on; both off until someone switches them on. */
+async function bacaOto(db: ReturnType<typeof getDb>): Promise<OtoKabar> {
+  const [r] = await db
+    .select({ nilai: pengaturan.nilai })
+    .from(pengaturan)
+    .where(eq(pengaturan.kunci, KUNCI_OTO))
+    .limit(1);
+  const v = (r?.nilai ?? {}) as Partial<OtoKabar>;
+  return { buka: v.buka === true, mepet: v.mepet === true };
+}
+
+/** Notices are posted by the TP right or an Admin. */
+async function bolehKabar(nim: string): Promise<boolean> {
+  const orang = await muatOrang(nim);
+  return !!orang && (boleh(orang, "tp") || hakPenuh(orang));
+}
+
+/** Kelola TP › Pengumuman: every notice this semester, who posted it, the
+ *  automatic ones' switches, and each module's window for the templates. */
+async function handleKabar(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const set = await bacaSet(db);
+  const [rows, oto, kodeOf, bisa] = await Promise.all([
+    db
+      .select({ id: tpKabar.id, oleh: tpKabar.oleh, pada: tpKabar.pada })
+      .from(tpKabar)
+      .where(eq(tpKabar.semester, set.semester)),
+    bacaOto(db),
+    petaKode(db),
+    bolehKabar(s.nim),
+  ]);
+  const olehOf = new Map(rows.map((r) => [r.id, r]));
+  res.status(200).json({
+    ok: true,
+    boleh: bisa,
+    oto,
+    jendela: Object.fromEntries([1, 2, 3, 4].map((m) => [m, jendelaUntuk(set, m)])),
+    kabar: (await kabarSemester(db, set.semester)).map((k) => {
+      const o = olehOf.get(k.id);
+      return {
+        ...k,
+        oleh: o ? (kodeOf.get(o.oleh) ?? o.oleh) : "",
+        pada: o?.pada.toISOString() ?? k.mulai,
+      };
+    }),
+  });
+}
+
+async function handleSimpanKabar(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (!(await bolehKabar(s.nim))) return tolak(res, "tidak_berhak", 403);
+  const b = jsonBody(req);
+  const modul = b.modul === null || b.modul === undefined ? null : modulDari(b.modul);
+  const jenis = JENIS_KABAR.includes(b.jenis as JenisKabar) ? (b.jenis as JenisKabar) : null;
+  const sasaran = b.sasaran === "belum" ? "belum" : "semua";
+  const teks = (x: unknown, maks: number) => {
+    const o = (x ?? {}) as Record<string, unknown>;
+    const id = typeof o.id === "string" ? o.id.trim() : "";
+    const en = typeof o.en === "string" ? o.en.trim() : "";
+    return id.length <= maks && en.length <= maks ? { id, en } : null;
+  };
+  const judul = teks(b.judul, JUDUL_MAKS);
+  const isi = teks(b.isi, ISI_MAKS);
+  const sampai = typeof b.sampai === "string" ? new Date(b.sampai) : null;
+  if (
+    !jenis ||
+    (b.modul !== null && b.modul !== undefined && !modul) ||
+    !judul?.id ||
+    !isi?.id ||
+    (sasaran === "belum" && !modul) ||
+    (sampai && Number.isNaN(sampai.getTime()))
+  )
+    return tolak(res, "format_salah");
+  if (sampai && sampai.getTime() <= Date.now()) return tolak(res, "sudah_lewat");
+  const db = getDb();
+  const set = await bacaSet(db);
+  const [r] = await db
+    .insert(tpKabar)
+    .values({ semester: set.semester, modul, jenis, sasaran, judul, isi, sampai, oleh: s.nim })
+    .returning({ id: tpKabar.id });
+  await writeAudit(s.nim, "tp_kabar", { id: r.id, modul, jenis, sasaran, judul: judul.id });
+  res.status(200).json({ ok: true, id: r.id });
+}
+
+async function handleHapusKabar(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (!(await bolehKabar(s.nim))) return tolak(res, "tidak_berhak", 403);
+  const id = Number(jsonBody(req).id);
+  if (!Number.isInteger(id) || id < 1) return tolak(res, "format_salah");
+  const db = getDb();
+  const gone = await db
+    .delete(tpKabar)
+    .where(eq(tpKabar.id, id))
+    .returning({ id: tpKabar.id, modul: tpKabar.modul, judul: tpKabar.judul });
+  if (!gone.length) return tolak(res, "tidak_ada");
+  await writeAudit(s.nim, "tp_kabar_hapus", { id, modul: gone[0].modul, judul: gone[0].judul.id });
+  res.status(200).json({ ok: true });
+}
+
+async function handleOtoKabar(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  if (!(await bolehKabar(s.nim))) return tolak(res, "tidak_berhak", 403);
+  const b = jsonBody(req);
+  const db = getDb();
+  const lama = await bacaOto(db);
+  const oto: OtoKabar = {
+    buka: typeof b.buka === "boolean" ? b.buka : lama.buka,
+    mepet: typeof b.mepet === "boolean" ? b.mepet : lama.mepet,
+  };
+  await db
+    .insert(pengaturan)
+    .values({ kunci: KUNCI_OTO, nilai: oto, diubahOleh: s.nim })
+    .onConflictDoUpdate({
+      target: pengaturan.kunci,
+      set: { nilai: oto, diubahOleh: s.nim, diubahPada: new Date() },
+    });
+  await writeAudit(s.nim, "tp_kabar_oto", { ...oto });
+  res.status(200).json({ ok: true, oto });
 }
 
 /* ============================================== the relay's minute timer */
@@ -1288,6 +1570,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "kumpul") return handleKumpul(req, res);
     if (aksi === "jejak") return handleJejak(req, res);
     if (aksi === "pengaturan") return handlePengaturan(req, res, s);
+    if (aksi === "kabar") return handleKabar(req, res, s);
     return tolak(res, "aksi_tidak_dikenal", 404);
   }
   if (!requireMethod(req, res, "POST")) return;
@@ -1300,6 +1583,9 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "pilih") return handlePilih(req, res, s);
   if (aksi === "bawaan") return handleBawaan(req, res, s);
   if (aksi === "kecuali") return handleKecuali(req, res, s);
+  if (aksi === "kabar") return handleSimpanKabar(req, res, s);
+  if (aksi === "kabar-hapus") return handleHapusKabar(req, res, s);
+  if (aksi === "kabar-oto") return handleOtoKabar(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);
 }
 

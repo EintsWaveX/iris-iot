@@ -70,6 +70,7 @@ import {
   tpUnggah,
   tpNilai,
   tpPerpanjang,
+  tpKabar,
   transfer,
 } from "../../src/lib/schema.js";
 
@@ -177,7 +178,7 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
           .where(inArray(rosterKelompok.semester, lama))
           .returning({ id: rosterKelompok.id }),
       );
-      // Phase 13: TP pointers, scores, typed answers, extensions and the
+      // Phase 13: TP pointers, scores, typed answers, extensions, notices and the
       // uploads' rows (their files in R2 go below; the server PC drops its
       // copies when the semester is gone from its list).
       for (const [nama, t] of [
@@ -185,6 +186,7 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
         ["tpJejak", tpJejak],
         ["tpNilai", tpNilai],
         ["tpPerpanjang", tpPerpanjang],
+        ["tpKabar", tpKabar],
         ["tpUnggah", tpUnggah],
       ] as const)
         await kena(nama, tx.delete(t).where(inArray(t.semester, lama)).returning({ id: t.id }));

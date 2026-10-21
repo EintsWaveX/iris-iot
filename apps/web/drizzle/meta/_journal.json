@@ -323,6 +323,13 @@
       "when": 1792553267614,
       "tag": "0045_lms_keluar",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1792584324012,
+      "tag": "0046_tp_kabar",
+      "breakpoints": true
     }
   ]
 }

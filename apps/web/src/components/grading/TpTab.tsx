@@ -481,6 +481,15 @@ function TpKini({
         <a className="btn" href={href(lang, "/tp#pengaturan")}>
           {t.tabPengaturan}
         </a>
+        {/* While open, the TP right can remind those still without a file. */}
+        {k === "buka" && belum > 0 && data.bolehKelola && (
+          <a
+            className="btn btn--ghost"
+            href={href(lang, `/tp?modul=${modul}&tpl=ingat#pengumuman`)}
+          >
+            {t.ingatkan}
+          </a>
+        )}
       </div>
       {dihitung && sesi.length > 0 && (
         <div className="tpkini__row">

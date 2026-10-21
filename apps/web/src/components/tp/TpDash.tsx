@@ -7,6 +7,7 @@
  */
 import { CaretRightIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
+import KabarTp from "./KabarTp";
 import { href } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
@@ -88,6 +89,7 @@ export function TpKartu({ lang, d }: { lang: Lang; d: TpSaya | null }) {
             {m.tandaTerima ? ` · ${t.kodeTerima(m.tandaTerima.kode)}` : ""}
           </p>
         )}
+        <KabarTp lang={lang} kabar={d.kabar} />
         <div className="row">
           <a className="btn btn--inverse" href={href(lang, `/modules/${m.modul}?step=tp`)}>
             {t.bukaTp}

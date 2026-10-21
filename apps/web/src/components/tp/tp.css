@@ -1458,6 +1458,73 @@
 .tppeserta__list li > .grow {
   min-width: 0;
 }
+/* Perlu Dicek: what needs a look and the way to it, a hairline between;
+   two columns where they fit (2026-10-21). */
+.tpcek {
+  column-gap: 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tpcek > li {
+  align-items: center;
+  border-bottom: 1px solid var(--hairline-faint);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 2px;
+}
+.tpcek > li > .btn {
+  flex: none;
+}
+.tpcek--satu {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* TP notices (2026-10-21): a Praktikan's, stacked in the TP card; Kelola TP's
+   form puts its fields in pairs where they fit. */
+.tpkabar {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tpkabar > li {
+  align-items: flex-start;
+  text-align: left;
+}
+.tpkabar > li > span {
+  white-space: pre-line;
+}
+/* Wrapped under the text on a phone, Tutup keeps to the right edge. */
+.tpkabar > li > .btn {
+  margin-left: auto;
+}
+.tpkabar__tpl {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tpkabar__pair {
+  align-items: start;
+  display: grid;
+  gap: 14px 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.tpkabar__kirim {
+  width: 100%;
+}
+.tppeserta__list li[data-selesai] b {
+  color: var(--text-muted);
+}
+/* An extension's module and end, beside the name. */
+.tpcek__sisi {
+  align-items: flex-end;
+  flex: none;
+  gap: 2px;
+  text-align: right;
+}
 /* Sits in the narrow side column: the two fields, the button under them */
 .tppeserta__form {
   align-items: end;

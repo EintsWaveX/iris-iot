@@ -109,6 +109,9 @@ const W = {
         : `menolak TP Modul ${m} ${n} yang terlambat`,
     tpJendela: (m: unknown) => `mengubah jendela TP Modul ${m}`,
     tpPaket: (m: unknown) => `menyimpan soal TP Modul ${m}`,
+    tpKabar: (j: unknown) => `mengumumkan "${j}" ke Praktikan`,
+    tpKabarHapus: (j: unknown) => `menghapus pengumuman "${j}"`,
+    tpKabarOto: "mengubah pengumuman TP otomatis",
     tpPilih: (m: unknown) => `mengacak ulang soal akhir TP Modul ${m}`,
     tpBawaan: (m: unknown) => `mengembalikan soal TP Modul ${m} ke bawaan`,
     tpLms: (a: unknown) => (a === "putus" ? "memutuskan LMS" : "menyambungkan LMS"),
@@ -291,6 +294,9 @@ const W = {
       on ? `accepted ${n}'s late TP Module ${m}` : `refused ${n}'s late TP Module ${m}`,
     tpJendela: (m: unknown) => `changed the TP Module ${m} window`,
     tpPaket: (m: unknown) => `saved the TP Module ${m} questions`,
+    tpKabar: (j: unknown) => `posted "${j}" to Praktikan`,
+    tpKabarHapus: (j: unknown) => `removed the notice "${j}"`,
+    tpKabarOto: "changed the automatic TP notices",
     tpPilih: (m: unknown) => `drew a new final set for TP Module ${m}`,
     tpBawaan: (m: unknown) => `reset the TP Module ${m} questions to the default`,
     tpLms: (a: unknown) => (a === "putus" ? "disconnected the LMS" : "connected the LMS"),
@@ -468,6 +474,9 @@ const W = {
       on ? `接受 ${n} 迟交的模块 ${m} 预习作业` : `拒绝 ${n} 迟交的模块 ${m} 预习作业`,
     tpJendela: (m: unknown) => `修改了模块 ${m} 预习作业的提交时段`,
     tpPaket: (m: unknown) => `保存了模块 ${m} 预习作业的题目`,
+    tpKabar: (j: unknown) => `向学生发布了“${j}”`,
+    tpKabarHapus: (j: unknown) => `删除了公告“${j}”`,
+    tpKabarOto: "修改了自动预习作业公告",
     tpPilih: (m: unknown) => `重新抽取了模块 ${m} 预习作业的最终题目`,
     tpBawaan: (m: unknown) => `把模块 ${m} 预习作业的题目恢复为默认`,
     tpLms: (a: unknown) => (a === "putus" ? "断开了 LMS" : "连接了 LMS"),
@@ -795,6 +804,12 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(PencilSimpleIcon, w.tpJendela(d.modul ?? "-"));
     case "tp_paket":
       return k(PencilSimpleIcon, w.tpPaket(d.modul));
+    case "tp_kabar":
+      return k(MegaphoneIcon, w.tpKabar(d.judul));
+    case "tp_kabar_hapus":
+      return k(MegaphoneIcon, w.tpKabarHapus(d.judul));
+    case "tp_kabar_oto":
+      return k(MegaphoneIcon, w.tpKabarOto);
     case "tp_pilih":
       return k(PencilSimpleIcon, w.tpPilih(d.modul));
     case "tp_bawaan":

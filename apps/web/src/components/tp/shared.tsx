@@ -13,6 +13,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
+import type { KabarTampil } from "../../lib/tp-kabar";
 import { getJson, localeOf, useDetik, useTick } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
@@ -74,6 +75,10 @@ export interface TpSaya {
   soalZh?: SoalTampil[];
   petunjuk?: Partial<Record<BahasaTp, string>>;
   modul: TpSayaModul[];
+  /** The TP notices they see now (2026-10-21). */
+  kabar?: KabarTampil[];
+  /** One module: their own submission history, newest first. */
+  riwayat?: { id: number; jenis: string; berkas: string[]; pada: string }[];
 }
 
 /** A module's question bank as an Asisten loads it (GET /api/tp/paket). */

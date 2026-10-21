@@ -1915,6 +1915,32 @@ export const tpPerpanjang = pgTable(
   (t) => [unique("tp_perpanjang_unik").on(t.semester, t.modul, t.nim)],
 );
 
+/**
+ * A notice to Praktikan about TP (2026-10-21, the LMS Pengumuman's, shown in
+ * IRIS: the Dasbor and the module's TP step). Reguler reads `id`, INT `en`.
+ * `belum` shows only to those who haven't handed in that module's TP.
+ */
+export const tpKabar = pgTable(
+  "tp_kabar",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    /** null: about TP in general, shown on the Dasbor only. */
+    modul: integer("modul"),
+    jenis: text("jenis", { enum: ["bebas", "buka", "tutup", "nilai", "ingat"] }).notNull(),
+    sasaran: text("sasaran", { enum: ["semua", "belum"] })
+      .notNull()
+      .default("semua"),
+    judul: jsonb("judul").$type<{ id: string; en: string }>().notNull(),
+    isi: jsonb("isi").$type<{ id: string; en: string }>().notNull(),
+    mulai: timestamp("mulai", { withTimezone: true }).notNull().defaultNow(),
+    sampai: timestamp("sampai", { withTimezone: true }),
+    oleh: text("oleh").notNull(),
+    pada: timestamp("pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("tp_kabar_semester_idx").on(t.semester, t.mulai)],
+);
+
 /** One question's score for one Praktikan's TP (0 to 10 each). */
 export const tpNilai = pgTable(
   "tp_nilai",

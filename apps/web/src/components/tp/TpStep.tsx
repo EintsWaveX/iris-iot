@@ -29,6 +29,7 @@ import {
   WarningIcon,
 } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
+import Disclose from "../ui/Disclose";
 import Drawer from "../ui/Drawer";
 import PdfViewer from "../ui/PdfViewer";
 import Pill from "../ui/Pill";
@@ -60,6 +61,7 @@ import {
 import { hariIniWib } from "../../lib/jadwal";
 import { TPS } from "./tpStrings";
 import UnggahTp from "./UnggahTp";
+import KabarTp from "./KabarTp";
 import {
   Countdown,
   KeadaanPill,
@@ -76,6 +78,7 @@ import {
   useTpSaya,
   waktuPanjang,
   type JendelaInfo,
+  type TpSaya,
   type TpSayaModul,
 } from "./shared";
 
@@ -116,13 +119,17 @@ function TpPraktikan({ lang, modul, nim }: { lang: Lang; modul: number; nim: str
   if (m.keadaan !== "buka" && m.keadaan !== "tutup")
     return (
       <div className="tpsolo">
-        <Hero lang={lang} modul={modul} j={m.jendela} k={m.keadaan} polos />
+        <Hero lang={lang} modul={modul} j={m.jendela} k={m.keadaan} polos>
+          <KabarTp lang={lang} kabar={d.kabar} />
+        </Hero>
       </div>
     );
   return (
     <div className="tpgrid">
       <div className="tpgrid__hero">
-        <Hero lang={lang} modul={modul} j={m.jendela} k={m.keadaan} />
+        <Hero lang={lang} modul={modul} j={m.jendela} k={m.keadaan}>
+          <KabarTp lang={lang} kabar={d.kabar} />
+        </Hero>
       </div>
       <div className="stack stack--lg tpgrid__main">
         {m.keadaan !== "buka" && m.keadaan !== "tutup" ? (
@@ -151,7 +158,13 @@ function TpPraktikan({ lang, modul, nim }: { lang: Lang; modul: number; nim: str
         )}
       </div>
       <div className="stack stack--lg tpgrid__side">
-        <Milikku lang={lang} m={m} nomor={d.nomor} onLihat={() => setLihat(true)} />
+        <Milikku
+          lang={lang}
+          m={m}
+          nomor={d.nomor}
+          riwayat={d.riwayat ?? []}
+          onLihat={() => setLihat(true)}
+        />
         <Cara lang={lang} modul={modul} m={m} onUnggah={poll.refresh} />
         <div className="panel panel--tight tphelp">
           <QuestionIcon size={20} aria-hidden="true" />
@@ -333,11 +346,13 @@ function Milikku({
   lang,
   m,
   nomor,
+  riwayat,
   onLihat,
 }: {
   lang: Lang;
   m: TpSayaModul;
   nomor: number[];
+  riwayat: NonNullable<TpSaya["riwayat"]>;
   onLihat: () => void;
 }) {
   const t = TPS[lang];
@@ -431,7 +446,29 @@ function Milikku({
       </>
     );
   }
-  return <section className="panel panel--raised tpstate">{body}</section>;
+  return (
+    <section className="panel panel--raised tpstate">
+      {body}
+      {/* Every file they sent, replaced or took back, with when. */}
+      {riwayat.length > 0 && (
+        <Disclose head={t.riwayatku(riwayat.length)}>
+          <ol className="jejak-list">
+            {riwayat.map((r) => (
+              <li key={r.id} data-jenis={r.jenis}>
+                <span className="jejak-list__t">
+                  <span>{waktuPanjang(r.pada, lang)}</span>
+                </span>
+                <span className="jejak-list__what">
+                  <b>{t.jejakJenis[r.jenis] ?? r.jenis}</b>
+                  {r.berkas.length > 0 && <span className="hint">{r.berkas.join(", ")}</span>}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </Disclose>
+      )}
+    </section>
+  );
 }
 
 function Cara({
