@@ -196,9 +196,10 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
         <div className="stack">
           {tampil.map((s) => {
             const aksi = s.kelompok.some((x) => x.status !== "sent");
+            const terkirim = s.kelompok.filter((x) => x.status === "sent").length;
             return (
               <section key={s.sesiId} className="panel tpsess" style={modulStyle(s.modul)}>
-                <div className="stack stack--sm grow">
+                <div className="tpsess__info">
                   <div className="row">
                     <Pill modul={s.modul}>{modulLabel(s.modul, lang)}</Pill>
                     <span className="hint">
@@ -214,17 +215,23 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
                     )}
                   </div>
                   <b>{tanggalPanjang(s.tanggal, lang)}</b>
+                  <div className="tpsess__prog">
+                    <i aria-hidden="true">
+                      <b style={{ width: `${pct(terkirim, s.kelompok.length)}%` }} />
+                    </i>
+                    <span className="hint mono">
+                      {terkirim}/{s.kelompok.length}
+                    </span>
+                  </div>
                 </div>
-                <div className="row tpsess__g">
+                <div className="tpsess__g">
                   {s.kelompok.map((g) => (
-                    <span key={g.nomor} className="row" style={{ gap: 6 }}>
+                    <span key={g.nomor} className="tpsess__gi" data-st={g.status}>
                       <Pill group={g.nomor}>{kelompokLabel(g.nomor, lang)}</Pill>
-                      <Pill
-                        tone={g.status === "sent" ? "ok" : g.status === "ready" ? "accent" : "warn"}
-                      >
+                      <span className="hint">
                         {t.gst[g.status]}
                         {g.status === "todo" ? ` · ${g.lengkap}/${g.anggota}` : ""}
-                      </Pill>
+                      </span>
                     </span>
                   ))}
                 </div>
@@ -344,7 +351,6 @@ function TabelDrawer({
             meNim={me.nim}
             seelabs={seelabs.data}
             onSeelabs={() => location.assign(href(lang, `/session?seelabs=${s.sesiId}`))}
-            onSeelabsChanged={seelabs.refresh}
           />
         )}
         <a className="btn btn--ghost" href={href(lang, `/session?tabel=${s.sesiId}`)}>

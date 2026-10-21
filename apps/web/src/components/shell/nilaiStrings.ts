@@ -18,13 +18,11 @@ export const N = dict({
       `Sisa ${h ? `${h} jam ` : ""}${m} menit sampai 23:59. Setelah itu SeeLabs butuh Token Khusus.`,
     antreH: (g: string) => `Robot SeeLabs masih antre untuk ${g}`,
     antreB:
-      "Sudah lewat 23:00, jadi robot mungkin tidak sempat sebelum 23:59. Siapkan bookmarklet sebagai cadangan.",
+      "Sudah lewat 23:00, jadi robot mungkin tidak sempat sebelum 23:59. Cek statusnya di Tabel Nilai.",
     gagalH: (g: string) => `Robot SeeLabs gagal untuk ${g}`,
-    gagalDitolak:
-      "Kata sandi SeeLabs-mu ditolak. Perbarui di Akun, atau pakai bookmarklet lalu tandai sudah disimpan.",
+    gagalDitolak: "Kata sandi SeeLabs-mu ditolak. Perbarui di Akun, lalu robot mencoba lagi.",
     gagalToken: "SeeLabs minta Token Khusus. Masukkan di Tabel Nilai, lalu robot mencoba lagi.",
-    gagalLain:
-      "Robot belum berhasil menyimpan. Coba lagi dari Tabel Nilai, atau pakai bookmarklet lalu tandai sudah disimpan.",
+    gagalLain: "Robot belum berhasil menyimpan. Coba lagi dari Tabel Nilai.",
     akunH: (g: string) => `${g} butuh akun SeeLabs Asisten lain`,
     akunB:
       "Satu akun SeeLabs hanya bisa dipakai di dua sesi sehari. Pilih akun sebelum Kirim Nilai; unitnya tetap milikmu.",
@@ -80,14 +78,12 @@ export const N = dict({
       `${h ? `${h} ${h === 1 ? "hour" : "hours"} ` : ""}${m} minutes left until 23:59. After that SeeLabs needs a Token Khusus.`,
     antreH: (g: string) => `The SeeLabs robot is still queued for ${g}`,
     antreB:
-      "It is past 23:00, so the robot may not make it before 23:59. Have the bookmarklet ready as a backup.",
+      "It is past 23:00, so the robot may not make it before 23:59. Check its status in the Score Table.",
     gagalH: (g: string) => `The SeeLabs robot failed for ${g}`,
-    gagalDitolak:
-      "SeeLabs refused your password. Update it in Account, or use the bookmarklet and mark it saved.",
+    gagalDitolak: "SeeLabs refused your password. Update it in Account and the robot tries again.",
     gagalToken:
       "SeeLabs wants a Token Khusus. Enter it in the Score Table and the robot tries again.",
-    gagalLain:
-      "The robot could not save yet. Try again from the Score Table, or use the bookmarklet and mark it saved.",
+    gagalLain: "The robot could not save yet. Try again from the Score Table.",
     akunH: (g: string) => `${g} needs another Asisten's SeeLabs account`,
     akunB:
       "One SeeLabs account can only be used in two sessions a day. Pick an account before Kirim Nilai; the unit stays yours.",
@@ -138,11 +134,11 @@ export const N = dict({
     sisa: (h: number, m: number) =>
       `距 23:59 还剩 ${h ? `${h} 小时 ` : ""}${m} 分钟。之后 SeeLabs 需要 Token Khusus。`,
     antreH: (g: string) => `${g}的 SeeLabs 机器人仍在排队`,
-    antreB: "已过 23:00，机器人可能来不及在 23:59 前完成。请准备好书签脚本作为后备。",
+    antreB: "已过 23:00，机器人可能来不及在 23:59 前完成。请在成绩表查看状态。",
     gagalH: (g: string) => `${g}的 SeeLabs 机器人失败了`,
-    gagalDitolak: "SeeLabs 拒绝了你的密码。请在账户页更新，或用书签脚本后标记为已保存。",
+    gagalDitolak: "SeeLabs 拒绝了你的密码。请在账户页更新，机器人会再试一次。",
     gagalToken: "SeeLabs 需要 Token Khusus。请在成绩表里输入，机器人会再试一次。",
-    gagalLain: "机器人还没能保存。请在成绩表里重试，或用书签脚本后标记为已保存。",
+    gagalLain: "机器人还没能保存。请在成绩表里重试。",
     akunH: (g: string) => `${g}需要借用其他 Asisten 的 SeeLabs 账号`,
     akunB: "一个 SeeLabs 账号每天只能用于两节课。请在提交成绩前选好账号，课时费仍然归你。",
     pjH: (n: number) => `作为 PJ，这节课还有 ${n} 个小组没完成`,

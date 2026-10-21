@@ -31,8 +31,6 @@ export const TOPIK = [
   "tangkapan",
   // A Pi's Module 4 hunt summary changed (api/agent).
   "buru",
-  // A group asked for a hint on a blank, or an Asisten sent one.
-  "petunjuk",
   // A group rewired its own pins in the running session (presentasi:pin-grup).
   "pingrup",
   // Phase 13: a TP file came in, a TP score, window or setting.
@@ -65,7 +63,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:rosterslot": ["roster"],
   "session:praktikan": ["roster"],
   "session:susulan": ["roster", "sesi", "jadwal"],
-  "session:tot": ["tot", "roster", "sesi", "jawaban", "tangkapan", "petunjuk"],
+  "session:tot": ["tot", "roster", "sesi", "jawaban", "tangkapan"],
   "session:hadir": ["sesi", "roster", "hadir", "jadwal"],
   "session:hadirku": ["hadir"],
   "session:group": ["sesi", "roster"],
@@ -79,7 +77,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:cancel": ["sesi", "jadwal"],
   "session:lanjutkan": ["sesi"],
   "session:durasi": ["sesi"],
-  "session:ubah": ["sesi", "jawaban", "petunjuk", "tangkapan", "nilai"],
+  "session:ubah": ["sesi", "jawaban", "tangkapan", "nilai"],
   "session:panggil": ["sesi"],
   "session:help": ["sesi"],
   "session:kit": ["sesi", "laporan"],
@@ -112,7 +110,6 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
     "jurnal",
     "jawaban",
     "tangkapan",
-    "petunjuk",
   ],
   session: ["sesi", "jadwal"],
   "auth:student": ["sesi"],
@@ -121,10 +118,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "auth:set-password": [],
   "auth:change-password": [],
   "auth:galat": [],
-  "modul:cek": ["jawaban", "petunjuk"],
-  "modul:minta": ["petunjuk"],
-  "modul:minta-batal": ["petunjuk"],
-  "modul:petunjuk": ["petunjuk"],
+  "modul:cek": ["jawaban"],
   // The Konsol's Blank tab reads one group's blanks (GET).
   "modul:blank": [],
   "modul:matriks": [],

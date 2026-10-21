@@ -543,7 +543,7 @@ export default function Settings({
   );
 }
 
-/** Where IRIS-IOT comes from (agent protocol 5): the kit's router on the
+/** Where IRIS_IOT comes from (agent protocol 5): the kit's router on the
  *  Pi's LAN port, or the Pi's own Wi-Fi radio. */
 function HotspotSource({
   lang,

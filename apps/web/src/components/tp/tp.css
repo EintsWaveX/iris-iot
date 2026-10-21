@@ -1023,6 +1023,9 @@
 
 /* ---------------------------------------------------------- grader */
 .grader {
+  /* Where everything that sticks sits under the navbar: the viewer and the
+     scoring card share it, so they keep the same gap while the page scrolls. */
+  --grader-top: 84px;
   display: grid;
   gap: 18px;
 }
@@ -1032,64 +1035,51 @@
   gap: 12px;
   grid-template-columns: minmax(0, 1fr);
 }
-@media (min-width: 1024px) {
+@media (min-width: 720px) {
   .grader__top {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
   }
 }
 .grader__title {
   gap: 8px;
 }
-.grader__who {
-  background: var(--surface-2);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-pill);
-  flex-wrap: nowrap;
+/* Who is being graded: [<] the group's Praktikan [>], the count and the
+   keys, on one row above the work. */
+.grader__bar {
+  align-items: center;
+  display: grid;
   gap: 8px;
-  justify-content: space-between;
-  padding: 6px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
 }
-.grader__who > .stack {
-  flex: 1;
-  gap: 0;
-  min-width: 0;
+.grader__count {
+  min-width: 4.5ch;
   text-align: center;
+  white-space: nowrap;
 }
 .grader__keys {
-  padding-right: 8px;
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
   white-space: nowrap;
+}
+@media (max-width: 1279px) {
+  .grader__keys {
+    display: none;
+  }
 }
 .grader__grid {
   align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-}
-.grader__grid > .grader__rail {
-  grid-column: 1 / -1;
-}
-@media (min-width: 1280px) {
-  .grader__grid {
-    grid-template-columns: 230px minmax(0, 1.25fr) minmax(380px, 1fr);
-  }
-  .grader__grid > .grader__rail {
-    grid-column: auto;
-  }
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr);
 }
 .grader__rail {
   display: flex;
   gap: 8px;
+  min-width: 0;
   overflow-x: auto;
   padding-bottom: 4px;
-}
-@media (min-width: 1280px) {
-  .grader__rail {
-    align-content: start;
-    display: grid;
-    overflow: visible;
-    position: sticky;
-    top: 84px;
-  }
+  scrollbar-width: thin;
 }
 .grader__m {
   align-items: center;
@@ -1099,11 +1089,11 @@
   color: var(--text);
   cursor: pointer;
   display: grid;
-  flex: none;
+  flex: 1 0 190px;
   font: inherit;
   gap: 10px;
   grid-template-columns: 36px minmax(0, 1fr);
-  min-width: 190px;
+  max-width: 280px;
   padding: 8px 10px;
   text-align: left;
 }
@@ -1116,6 +1106,11 @@
   gap: 0;
   min-width: 0;
 }
+.grader__m .tpmem__n {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .grader__view {
   display: grid;
   gap: 12px;
@@ -1124,22 +1119,34 @@
 .grader__view .pdfv {
   height: min(78vh, 900px);
 }
+@media (min-width: 820px) {
+  .grader__view {
+    align-content: start;
+    position: sticky;
+    top: var(--grader-top);
+  }
+  .grader__view .pdfv {
+    height: clamp(420px, calc(100dvh - var(--grader-top) - 190px), 900px);
+  }
+}
 .grader__files {
   gap: 6px;
 }
+/* The scoring card is a column: summary, notices, the questions (which
+   scroll) and the footer, whatever notices are showing. */
 .grader__soal {
-  align-content: start;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 @media (min-width: 820px) {
   .grader__soal {
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
-    max-height: calc(100dvh - 110px);
+    max-height: calc(100dvh - var(--grader-top) - 16px);
     position: sticky;
-    top: 84px;
+    top: var(--grader-top);
   }
   .grader__qs {
+    flex: 1 1 auto;
     overflow: auto;
   }
 }
@@ -1147,6 +1154,7 @@
   align-items: center;
   border-bottom: 1px solid var(--hairline);
   display: flex;
+  flex: none;
   gap: 12px;
   padding-bottom: 12px;
 }
@@ -1160,6 +1168,7 @@
 .grader__foot {
   border-top: 1px solid var(--hairline);
   display: grid;
+  flex: none;
   gap: 10px;
   padding-top: 12px;
 }
@@ -1373,18 +1382,90 @@
 .tpsess {
   align-items: center;
   border-left: 4px solid var(--m);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 18px;
+  display: grid;
+  gap: 14px 24px;
+  grid-template-columns: minmax(200px, 0.7fr) minmax(0, 2.6fr) auto;
 }
-.tpsess > .grow {
-  min-width: 220px;
+.tpsess__info {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.tpsess__info .row {
+  gap: 6px 8px;
+}
+/* How much of the session has gone out: a thin bar and the count. */
+.tpsess__prog {
+  align-items: center;
+  display: grid;
+  gap: 4px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.tpsess__prog > i {
+  background: var(--surface-3);
+  border-radius: 99px;
+  display: block;
+  height: 6px;
+  overflow: hidden;
+}
+.tpsess__prog > i > b {
+  background: var(--ok);
+  display: block;
+  height: 100%;
+}
+.tpsess__prog > .hint {
+  white-space: nowrap;
 }
 .tpsess__g {
-  gap: 8px 14px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  min-width: 0;
+}
+.tpsess__gi {
+  --st: var(--warn);
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  border-top: 3px solid var(--st);
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  min-width: 0;
+  padding: 8px 10px;
+}
+.tpsess__gi[data-st="sent"] {
+  --st: var(--ok);
+}
+.tpsess__gi[data-st="ready"] {
+  --st: var(--accent);
+}
+.tpsess__gi .hint {
+  font-size: var(--fs-small);
+}
+.tpsess > .btn {
+  justify-self: end;
+  white-space: nowrap;
+}
+@media (max-width: 1099px) {
+  .tpsess {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .tpsess__g {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 }
 @media (max-width: 519px) {
+  .tpsess {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tpsess__g {
+    grid-row: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .tpsess > .btn {
+    justify-self: stretch;
     width: 100%;
   }
 }
@@ -2377,4 +2458,228 @@
 .tpbaris__bad {
   color: var(--danger);
   font-weight: 650;
+}
+
+/* The TP calendar (2026-10-21, the LMS Kalender's): a month grid beside what
+   comes next; under 900px the list goes below. Each event takes its
+   module's colour: the TP window outlined, the module week filled, the
+   week without practicum hatched amber, a Praktikan's own day solid. */
+.tpkal__body {
+  align-items: start;
+  display: grid;
+  gap: 18px 24px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 900px) {
+  .tpkal__body {
+    grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+  }
+}
+.tpkal__nav {
+  gap: 6px;
+}
+.tpkal__bulan {
+  flex: 1;
+  font-size: 1.05rem;
+  text-transform: capitalize;
+}
+.tpkal__grid {
+  display: grid;
+  gap: 4px;
+}
+.tpkal__wk {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.tpkal__h {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding-bottom: 2px;
+  text-align: center;
+}
+.tpkal__d {
+  align-content: start;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 3px;
+  height: 100%;
+  min-height: 78px;
+  min-width: 0;
+  padding: 5px;
+  text-align: left;
+  width: 100%;
+}
+.tpkal__d > b {
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.tpkal__d[data-libur] > b {
+  color: var(--text-faint);
+}
+.tpkal__d[data-today] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.tpkal__d[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.tpkal__d:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tpkal__d:hover {
+    border-color: var(--accent);
+  }
+  .tpkal__item:is(button):hover {
+    background: var(--surface-2);
+  }
+}
+.tpkal__d > i,
+.tpkal__legend i,
+.tpkal__item > i {
+  --m: var(--accent);
+  border-radius: 4px;
+  display: block;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 650;
+  line-height: 16px;
+  min-height: 16px;
+  overflow: hidden;
+  padding: 0 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A bar runs on into the next day; its ends round off. */
+.tpkal__d > i {
+  border-radius: 0;
+  margin-inline: -6px;
+  padding-inline: 10px;
+}
+.tpkal__d > i[data-awal] {
+  border-bottom-left-radius: 4px;
+  border-top-left-radius: 4px;
+  margin-left: 0;
+  padding-left: 4px;
+}
+.tpkal__d > i[data-akhir] {
+  border-bottom-right-radius: 4px;
+  border-top-right-radius: 4px;
+  margin-right: 0;
+}
+[data-k="tp"]:is(i) {
+  background: color-mix(in srgb, var(--m) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m) 70%, transparent);
+  color: var(--text);
+}
+[data-k="modul"]:is(i) {
+  background: color-mix(in srgb, var(--m) 40%, transparent);
+  color: var(--text);
+}
+[data-k="tunda"]:is(i) {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--warn-soft) 0 6px,
+    color-mix(in srgb, var(--warn) 30%, transparent) 6px 12px
+  );
+  color: var(--text);
+}
+[data-k="praktikum"]:is(i) {
+  background: var(--m);
+  color: var(--accent-ink, #04121d);
+}
+[data-k="praktikum"][data-off]:is(i) {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--text-faint);
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+.tpkal__legend {
+  color: var(--text-muted);
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  gap: 8px 18px;
+}
+.tpkal__legend > span {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+.tpkal__legend i,
+.tpkal__item > i {
+  flex: none;
+  height: 14px;
+  min-height: 14px;
+  padding: 0;
+  width: 22px;
+}
+.tpkal__hari {
+  display: grid;
+  gap: 8px;
+  min-height: 44px;
+}
+.tpkal__sub {
+  font-size: 1rem;
+  margin: 0;
+}
+.tpkal__list {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tpkal__item {
+  align-items: flex-start;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  padding: 6px;
+  text-align: left;
+  width: 100%;
+}
+.tpkal__item > i {
+  margin-top: 3px;
+}
+.tpkal__item:is(button) {
+  cursor: pointer;
+}
+.tpkal__kini {
+  color: var(--accent-bright, var(--accent));
+}
+/* A phone: the bars keep their colours and lose their words. */
+@media (max-width: 639px) {
+  .tpkal__d {
+    min-height: 52px;
+    padding: 4px;
+  }
+  .tpkal__d > i {
+    font-size: 0;
+    line-height: 6px;
+    min-height: 6px;
+  }
+  .tpkal__d > i {
+    margin-inline: -5px;
+  }
+}
+/* The grader's Kirim Pesan sits at the end of the title row; a message's
+   text keeps its lines in the lists. */
+.grader__pesan {
+  margin-left: auto;
+}
+.tpkabar__isi {
+  white-space: pre-line;
 }

@@ -287,7 +287,7 @@ function JoinCard({ lang, data, asisten }: { lang: Lang; data: PerburuanData; as
             </>
           ) : (
             <div className="stack stack--sm huntjoin__text">
-              <b>{t.wifiTitle("IRIS-IOT")}</b>
+              <b>{t.wifiTitle("IRIS_IOT")}</b>
               <span className="hint">{t.wifiUnknown}</span>
             </div>
           )}

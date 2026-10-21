@@ -29,7 +29,7 @@ import Pill from "../ui/Pill";
 import SegmentedControl from "../ui/SegmentedControl";
 import { DateField, Stepper, TimeField } from "../ui/Controls";
 import { getJson, href, namaKelompok, postJson, tanggalPanjang } from "../../lib/app";
-import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
+import { hariIniWib, SESI_CAP_MENIT, SLOT_MULAI } from "../../lib/jadwal";
 import { hariDariTanggal } from "../../lib/jadwal-parser";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
@@ -62,7 +62,7 @@ export default function NextView({
 }: {
   t: Strings;
   lang: Lang;
-  sesi: SesiRunning;
+  sesi: SesiRunning & { selesaiPada?: string };
   seelabs: SeelabsData | null;
   onSeelabs: () => void;
   onBack: () => void;
@@ -144,11 +144,25 @@ export default function NextView({
     }
   }
 
+  // The minute it really stopped at (2026-10-22: the eyebrow always said 150).
+  const menitJalan =
+    sesi.mulaiPada && sesi.selesaiPada
+      ? Math.min(
+          SESI_CAP_MENIT,
+          Math.max(
+            0,
+            Math.round((Date.parse(sesi.selesaiPada) - Date.parse(sesi.mulaiPada)) / 60_000),
+          ),
+        )
+      : null;
+
   return (
     <div className="nextv" style={{ "--mod-hue": `var(--mod-${m})` } as CSSProperties}>
       <BackButton lang={lang} label={t.nextBack} onClick={onBack} />
       <header className="page-header__heading">
-        <span className="page-header__eyebrow">{t.nextEyebrow(mName, kapanSesi(t, sesi))}</span>
+        <span className="page-header__eyebrow">
+          {t.nextEyebrow(menitJalan, mName, kapanSesi(t, sesi))}
+        </span>
         <h1 className="page-header__title">{t.nextTitle}</h1>
         <p className="page-header__subtitle">{t.nextLede}</p>
       </header>

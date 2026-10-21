@@ -12,18 +12,14 @@
  *      (Show Answers on the module page), or the complete file.
  * GET  /api/modul/kode?modul=             — anyone: the module's Praktikan files as published
  *      (blanks only, never answers), so the Code step shows a version newer than the build.
- * POST /api/modul/minta  { modul, berkas, nomor, catatan } — a group asks its Asisten for a hint.
- * POST /api/modul/minta-batal { id }       — the group takes a waiting request back.
  * GET  /api/modul/matriks                 — Asisten only: every group against every blank of
- *        the running session, with waiting hint requests (Phase 10 Blank Matrix).
+ *        the running session (Phase 10 Blank Matrix).
  * GET  /api/modul/blank?kelompok=          — Asisten only: one group's every blank in the
- *      running session (answer, tries, who, key, hint, requests), for the Konsol's Blank tab.
- * POST /api/modul/petunjuk { kelompok, soal, teks, minta? } — Asisten only: answer a
- *      request, or send a group a hint unasked.
+ *      running session (answer, tries, who, key, hint), for the Konsol's Blank tab.
  * kode-edit, kode-simpan, kode-terbit, kode-buang, kode-pulihkan — the ASO code editor
  *      (_lib/kode-editor.ts), for the `kode` right.
  * Blanks and answers come from the module's published version (_lib/kode-aktif.ts).
- * draft and cek also take `kelompok=N` from an Asisten (Lihat Sebagai Praktikan, Phase 9):
+ * draft, cek and unduh also take `kelompok=N` from an Asisten (Lihat Sebagai Praktikan, Phase 9):
  *      any Asisten reads group N of the running module; only N's Asisten answers for it.
  *
  * The single most important rule in this file: a correct answer string
@@ -49,7 +45,6 @@ import {
   jawaban,
   kelompok,
   percobaanMasuk,
-  petunjukMinta,
   sesiAnggota,
 } from "../../src/lib/schema.js";
 import { isNimTot } from "../../src/lib/tot.js";
@@ -70,14 +65,7 @@ import {
   type BantuanKeluar,
   type KodeAktif,
 } from "../_lib/kode-aktif.js";
-import {
-  daftarMinta,
-  handleBlank,
-  handleMatriks,
-  handleMinta,
-  handleMintaBatal,
-  handlePetunjuk,
-} from "../_lib/petunjuk.js";
+import { handleBlank, handleMatriks } from "../_lib/petunjuk.js";
 import {
   handleKodeBuang,
   handleKodeEdit,
@@ -301,10 +289,6 @@ async function handleDraft(
       ...bantuanKeluar(bantuan),
     };
   }
-  const sesiIds = [
-    ...new Set([sesiIni?.id, ...rows.map((r) => r.sesiId)].filter((x): x is number => !!x)),
-  ];
-  const minta = await daftarMinta(kelompokId, sesiIds, prefix);
   // Not a secret -- a group already knows its own number, and this is the
   // signal the editor's Code step uses to show the sketch's identity line
   // (GROUP_ID, LORA_SYNC_WORD) as THIS group's own value rather than the
@@ -312,7 +296,6 @@ async function handleDraft(
   res.status(200).json({
     ok: true,
     jawaban: out,
-    minta,
     nomorKelompok: session.kelompokNomor ?? null,
   });
 }
@@ -428,21 +411,6 @@ async function handleCek(
     }
   }
 
-  // A blank that is right needs no hint any more: its waiting requests close.
-  if (result.benar && running) {
-    await db
-      .update(petunjukMinta)
-      .set({ batal: true })
-      .where(
-        and(
-          eq(petunjukMinta.sesiId, running.id),
-          eq(petunjukMinta.kelompokId, kelompokId),
-          eq(petunjukMinta.soalKode, soal),
-          isNull(petunjukMinta.teks),
-        ),
-      );
-  }
-
   const salah = baris?.salah ?? 0;
   const bantuan = result.benar
     ? null
@@ -476,13 +444,18 @@ async function handleCek(
     ]);
 }
 
-async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+async function handleUnduh(
+  req: ApiRequest,
+  res: ApiResponse,
+  session: SessionPayload,
+  wakil = false,
+) {
   const parsed = await parseModulBerkas(req.query);
   if (!parsed) {
     res.status(200).json({ ok: false, kode: "format_salah" });
     return;
   }
-  if (!(await bolehJurnal(res, session, parsed.modul))) return;
+  if (!wakil && !(await bolehJurnal(res, session, parsed.modul))) return;
   const kelompokId = session.kelompokId;
   const nomorKelompok = session.kelompokNomor;
   if (!kelompokId || !nomorKelompok) {
@@ -493,7 +466,7 @@ async function handleUnduh(req: ApiRequest, res: ApiResponse, session: SessionPa
   const total = jumlahCelah(parsed.kode, parsed.berkas);
   const prefix = soalKodePrefix(parsed.modul, parsed.berkas);
 
-  const sesiIni = await sesiBaca(session, parsed.modul, false);
+  const sesiIni = await sesiBaca(session, parsed.modul, wakil);
   const db = getDb();
   const rows = await db
     .select({ soalKode: jawaban.soalKode, benar: jawaban.benar })
@@ -677,18 +650,13 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireRole(req, res, "asisten")) return;
     return handleMatriks(req, res);
   }
-  if (req.query.aksi === "petunjuk") {
-    if (!requireMethod(req, res, "POST")) return;
-    const s = requireRole(req, res, "asisten");
-    if (!s) return;
-    return handlePetunjuk(req, res, s);
-  }
 
   const aksi = req.query.aksi;
 
   // Lihat Sebagai Praktikan (Phase 9): an Asisten reads any group of the
   // running module, and answers only for the group they hold.
-  const wakil = aksi === "draft" || aksi === "cek" ? nomorWakil(req, jsonBody(req)) : null;
+  const wakil =
+    aksi === "draft" || aksi === "cek" || aksi === "unduh" ? nomorWakil(req, jsonBody(req)) : null;
   if (wakil !== null) {
     const as = await wakilKelompok(req, res, wakil, aksi === "cek");
     if (!as) return;
@@ -701,6 +669,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "draft") {
       if (!requireMethod(req, res, "GET")) return;
       return handleDraft(req, res, as, true);
+    }
+    if (aksi === "unduh") {
+      if (!requireMethod(req, res, "GET")) return;
+      return handleUnduh(req, res, as, true);
     }
     if (!requireMethod(req, res, "POST")) return;
     return handleCek(req, res, as, true);
@@ -724,14 +696,6 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "unduh") {
     if (!requireMethod(req, res, "GET")) return;
     return handleUnduh(req, res, session);
-  }
-  if (aksi === "minta") {
-    if (!requireMethod(req, res, "POST")) return;
-    return handleMinta(req, res, session);
-  }
-  if (aksi === "minta-batal") {
-    if (!requireMethod(req, res, "POST")) return;
-    return handleMintaBatal(req, res, session);
   }
 
   res.status(404).json({ ok: false, kode: "tidak_ditemukan" });

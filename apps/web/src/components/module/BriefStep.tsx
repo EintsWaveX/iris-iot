@@ -14,6 +14,7 @@ import Fade from "../ui/Fade";
 import Pill from "../ui/Pill";
 import BetaBadge from "../ui/BetaBadge";
 import { getJson, postJson, useMe } from "../../lib/app";
+import { useTampil } from "../../lib/proyektor";
 import SlidesDialog, { useSlides } from "../shell/SlidesDialog";
 import { useDirektori } from "../../lib/people";
 import type { Lang } from "../../lib/kelas";
@@ -80,7 +81,8 @@ export default function BriefStep({
   const dir = useDirektori(canEdit);
   const [rows, setRows] = useState<BriefRow[] | null>(null);
   const [edit, setEdit] = useState(false);
-  const me = useMe();
+  // Projector mode: the Asisten-only footer stays off the screen.
+  const me = useTampil(useMe());
   const slides = useSlides(modul, !!me);
   const [slidesOpen, setSlidesOpen] = useState(false);
 

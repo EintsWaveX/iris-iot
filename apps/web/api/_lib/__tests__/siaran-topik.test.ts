@@ -37,6 +37,7 @@ const BACA: Record<string, string[]> = {
     "berkas",
     "hitung",
     "jejak",
+    "kalender",
     "kelompok",
     "kumpul",
     "modul",

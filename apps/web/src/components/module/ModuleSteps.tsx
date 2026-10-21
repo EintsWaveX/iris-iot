@@ -240,6 +240,19 @@ export default function ModuleSteps(p: Props) {
   );
   const sesi = now.data;
   const mySession = me?.role === "praktikan" && sesi && sesi.milikSaya !== false ? sesi : null;
+  // The moment their session ends, a Praktikan goes to its summary on the
+  // Dasbor, as there (2026-10-22: they stayed on a step gone read-only).
+  const jalan = useRef<number | null>(null);
+  useEffect(() => {
+    if (mySession && mySession.modul === modul) {
+      jalan.current = mySession.id ?? null;
+      return;
+    }
+    if (jalan.current === null || mySession || now.updatedAt === null) return;
+    const id = jalan.current;
+    jalan.current = null;
+    location.assign(href(lang, `/dashboard?view=summary&session=${id}&ended=1`));
+  }, [mySession?.id, mySession?.modul, now.updatedAt]);
   const loading =
     me === undefined ||
     akses === null ||

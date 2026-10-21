@@ -8,9 +8,12 @@
  *   change made in SeeLabs. With no saved copy, any difference is flagged.
  * - TP and TA changed in SeeLabs are copied into IRIS; a changed Praktikum
  *   or Jurnal mean is flagged for the Asisten (IRIS keeps D1..D4 and L1, L2).
+ * - A group scored only in SeeLabs gets D1..D4 and L2 worked out from the two
+ *   means (uraiPraktikum, uraiJurnal), as estimates the Asisten can correct.
  * - While an IRIS send is waiting, IRIS is newer: the group is skipped.
  */
 import type { NilaiKomponen } from "./nilai-komponen.js";
+import { TINGKAT } from "./nilai-rubrik.js";
 import { jamSepi } from "./sesi-mulai.js";
 
 /** What SeeLabs keeps of one Praktikan's scores: TP, TA, the mean of D1..D4
@@ -38,6 +41,55 @@ export function nilaiTersimpan(skor: Partial<Record<NilaiKomponen, number>>): Ni
     jurnal: (v("L1") + v("L2")) / 2,
     presensi: [v("TP"), v("TA"), ...dl].some((x) => x > 0),
   };
+}
+
+/** The levels D1..D4 may take, every way four of them make `rerata` (the
+ *  Praktikum mean as SeeLabs rounds it), as sorted multisets. */
+function susunanLevel(rerata: number): [number, number, number, number][] {
+  const out: [number, number, number, number][] = [];
+  for (const a of TINGKAT)
+    for (const b of TINGKAT)
+      for (const c of TINGKAT)
+        for (const d of TINGKAT)
+          if (
+            a <= b &&
+            b <= c &&
+            c <= d &&
+            Math.abs((a + b + c + d) / 4 - rerata) <= TOLERANSI_RERATA
+          )
+            out.push([a, b, c, d]);
+  return out;
+}
+
+/**
+ * D1..D4 from SeeLabs's Praktikum mean. SeeLabs keeps only the mean of the
+ * four, so which level went to which D is not known: the four levels come
+ * back highest first. `pasti` is false when other sets of levels average
+ * the same (the evenest one is taken), so the Asisten can look again.
+ * Null when no four levels make that mean.
+ */
+export function uraiPraktikum(
+  rerata: number,
+): { d: [number, number, number, number]; pasti: boolean } | null {
+  const cocok = susunanLevel(rerata);
+  if (!cocok.length) return null;
+  const sebaran = (x: number[]) => {
+    const m = x.reduce((a, b) => a + b, 0) / x.length;
+    return x.reduce((a, b) => a + (b - m) ** 2, 0);
+  };
+  const pilih = [...cocok].sort(
+    (p, q) => sebaran(p) - sebaran(q) || p.join().localeCompare(q.join()),
+  )[0];
+  return { d: [pilih[3], pilih[2], pilih[1], pilih[0]], pasti: cocok.length === 1 };
+}
+
+/** L2 from SeeLabs's Jurnal mean and IRIS's own L1: the level that makes the
+ *  mean of the two. Null when L1 is unknown or no level fits. */
+export function uraiJurnal(rerata: number, l1: number | null | undefined): number | null {
+  if (l1 == null) return null;
+  const l2 = 2 * rerata - l1;
+  const dekat = [...TINGKAT].sort((a, b) => Math.abs(a - l2) - Math.abs(b - l2))[0];
+  return Math.abs(dekat - l2) <= TOLERANSI_SKOR ? dekat : null;
 }
 
 export type Tindakan = "sama" | "salin_tp_ta" | "beda_rerata" | "beda_tanpa_dasar" | "lewati";
@@ -283,11 +335,13 @@ export interface KeadaanKelompok {
 export interface SalinSkor {
   sesiId: number;
   nim: string;
-  komponen: "TP" | "TA";
+  komponen: "TP" | "TA" | "D1" | "D2" | "D3" | "D4" | "L2";
   skor: number;
   sebelum: number | null;
   /** SeeLabs's own value, before rounding to IRIS's whole number. */
   mentah: number;
+  /** Worked out from a mean, not read: which D got which level is a guess. */
+  perkiraan?: boolean;
 }
 
 export type StatusBaca = "sama" | "beda" | "hilang" | "hanya_seelabs";
@@ -374,9 +428,39 @@ export function rencanaTerima(p: {
         berubah = true;
       };
       if (!st.dasar && !st.terkirim) {
-        // Scored only in SeeLabs: TP and TA fill IRIS's empty fields.
+        // Scored only in SeeLabs: TP and TA fill IRIS's empty fields, and the
+        // two means are taken apart into the levels that make them.
         if (ir.TP == null) salin("TP", sl.tp);
         if (ir.TA == null) salin("TA", sl.ta);
+        if (!sl.presensi) continue;
+        const dKosong = (["D1", "D2", "D3", "D4"] as const).every((k) => ir[k] == null);
+        // A mean of 0 is a part never filled in SeeLabs, not four zeros to keep.
+        const dari = dKosong && sl.praktikum > 0 ? uraiPraktikum(sl.praktikum) : null;
+        dari?.d.forEach((skor, i) => {
+          out.salin.push({
+            sesiId,
+            nim,
+            komponen: (["D1", "D2", "D3", "D4"] as const)[i],
+            skor,
+            sebelum: null,
+            mentah: sl.praktikum,
+            perkiraan: true,
+          });
+          berubah = true;
+        });
+        const l2 = ir.L2 == null && sl.jurnal > 0 ? uraiJurnal(sl.jurnal, ir.L1) : null;
+        if (l2 !== null) {
+          out.salin.push({
+            sesiId,
+            nim,
+            komponen: "L2",
+            skor: l2,
+            sebelum: null,
+            mentah: sl.jurnal,
+            perkiraan: true,
+          });
+          berubah = true;
+        }
         continue;
       }
       const d = st.dasar?.[nim] ?? null;

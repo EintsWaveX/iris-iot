@@ -722,7 +722,8 @@
   font-size: 1.3rem;
 }
 
-.lp__nums span {
+/* The label only: a counter inside the figure (CountUp) is a span too. */
+.lp__nums > div > span {
   color: var(--text-faint);
   font-size: 0.78rem;
 }

@@ -16,6 +16,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { getJson, postJson, useMe, useSessionNow } from "./app";
+import { useProyektor } from "./proyektor";
 import { useSiaran } from "./siaran";
 import type { BarisPin } from "./pin-kode";
 
@@ -55,9 +56,11 @@ export function usePinGrup(modul: number): PinGrup {
   const me = useMe();
   const praktikan = me?.role === "praktikan";
   const now = useSessionNow(praktikan);
+  // Projector mode reads the projected group's wiring, without ?lihat=.
+  const pro = useProyektor(me);
   const lihat =
     me?.role === "asisten" && typeof location !== "undefined"
-      ? Number(new URLSearchParams(location.search).get("lihat"))
+      ? (pro ?? Number(new URLSearchParams(location.search).get("lihat")))
       : NaN;
   const diSesi = praktikan && now.data?.modul === modul && now.data.milikSaya !== false;
   const sebagai = Number.isInteger(lihat) && lihat >= 1;

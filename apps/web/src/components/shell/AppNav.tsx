@@ -818,7 +818,7 @@ export default function AppNav({
         )}
       </header>
 
-      {me?.lihatPeran && <LihatPeranBar lang={lang} me={me} />}
+      {me?.lihatPeran && !pro && <LihatPeranBar lang={lang} me={me} />}
       {tampil?.role === "praktikan" && <SessionMiniBar lang={lang} now={now} proyektor={!!pro} />}
       {asistenBar && now.data && <AsistenMiniBar lang={lang} s={now.data} />}
       <AlertRail lang={lang}>

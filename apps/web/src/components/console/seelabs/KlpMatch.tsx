@@ -1,21 +1,19 @@
 /**
  * Preparation › Cocokkan KLP (Phase 9 Stage 3g): gives each roster group its
- * SeeLabs KLP number. The Asisten pastes the bookmarklet's list mode
- * (`IRIS-KLP/1 …`, from SeeLabs' Input Nilai page) or that page's text; each
- * group takes the KLP sharing the most NIMs with it. Nothing is saved here:
- * the roster's own Save keeps it.
+ * SeeLabs KLP number. The list is the robot's last Kelompok pull; each group
+ * takes the KLP sharing the most NIMs with it. Nothing is saved here: the
+ * roster's own Save keeps it.
  */
 import { useMemo, useState } from "react";
 import { CaretDownIcon } from "@phosphor-icons/react";
 import { getJson } from "../../../lib/app";
-import { KLP_AWALAN } from "../../../lib/seelabs";
 import { RB } from "./robotStrings";
 import { kapanRobot } from "./SeelabsRobotCard";
 import Dialog from "../../ui/Dialog";
 import Pill from "../../ui/Pill";
 import { kelompokLabel } from "../../../lib/labels";
 import type { Lang } from "../../../lib/kelas";
-import { bacaDaftarKlp, bedaKlp, cocokkanKlp } from "../../../lib/seelabs";
+import { bedaKlp, cocokkanKlp, type KlpSeelabs } from "../../../lib/seelabs";
 import { SL } from "./strings";
 import "./seelabs.css";
 
@@ -36,7 +34,7 @@ export default function KlpMatch({
   onApply: (klp: Map<number, string>) => void;
 }) {
   const t = SL[lang];
-  const [text, setText] = useState("");
+  const [daftar, setDaftar] = useState<KlpSeelabs[]>([]);
   // The yellow row whose differing NIMs are open (2026-10-18).
   const [cek, setCek] = useState<number | null>(null);
   const kelompokOf = (nim: string) => groups.find((g) => g.nim.includes(nim))?.nomor ?? null;
@@ -46,7 +44,6 @@ export default function KlpMatch({
       {nama?.(nim) && <span>{nama(nim)}</span>}
     </>
   );
-  const daftar = useMemo(() => bacaDaftarKlp(text), [text]);
   const hasil = useMemo(
     () =>
       cocokkanKlp(
@@ -57,7 +54,7 @@ export default function KlpMatch({
   );
   const cocok = hasil.filter((h) => h.klp);
 
-  // Phase 14: the robot's last Kelompok pull, as the bookmarklet's list mode.
+  // Phase 14: the robot's last Kelompok pull.
   async function fromRobot() {
     const rb = RB[lang];
     const d = await getJson<{
@@ -69,19 +66,12 @@ export default function KlpMatch({
       window.Toast?.show(rb.klpRobotNone, "warn");
       return;
     }
-    const kelompok = Object.values(d.kelompok)
-      .flat()
-      .map((g) => ({ klp: String(g.klp), nim: g.anggota.map((a) => a.nim) }));
-    setText(KLP_AWALAN + JSON.stringify({ kelompok }));
+    setDaftar(
+      Object.values(d.kelompok)
+        .flat()
+        .map((g) => ({ klp: String(g.klp), nim: g.anggota.map((a) => a.nim) })),
+    );
     window.Toast?.show(rb.klpRobotAt(kapanRobot(d.pada, lang)), "ok");
-  }
-
-  async function fromClipboard() {
-    try {
-      setText(await navigator.clipboard.readText());
-    } catch {
-      window.Toast?.show(t.copyFail, "warn");
-    }
   }
 
   return (
@@ -89,7 +79,7 @@ export default function KlpMatch({
       open={open}
       onOpenChange={(o) => {
         if (!o) {
-          setText("");
+          setDaftar([]);
           setCek(null);
         }
         onOpenChange(o);
@@ -110,7 +100,7 @@ export default function KlpMatch({
             onClick={() => {
               onApply(new Map(cocok.map((h) => [h.nomor, h.klp!])));
               window.Toast?.show(t.matchApplied, "ok");
-              setText("");
+              setDaftar([]);
               onOpenChange(false);
             }}
           >
@@ -120,27 +110,11 @@ export default function KlpMatch({
       }
     >
       <div className="stack">
-        <label className="field">
-          <span className="field__label">{t.matchPaste}</span>
-          <textarea
-            className="field__input mono"
-            rows={4}
-            value={text}
-            placeholder={t.matchPastePh}
-            spellCheck={false}
-            onChange={(e) => setText(e.target.value)}
-          />
-        </label>
         <div className="row row--between">
           <span className="hint">{daftar.length ? t.matchRead(daftar.length) : t.matchNone}</span>
-          <span className="row" style={{ gap: 8 }}>
-            <button type="button" className="btn btn--sm" onClick={() => void fromRobot()}>
-              {RB[lang].klpFromRobot}
-            </button>
-            <button type="button" className="btn btn--sm" onClick={() => void fromClipboard()}>
-              {t.matchFromClip}
-            </button>
-          </span>
+          <button type="button" className="btn btn--sm" onClick={() => void fromRobot()}>
+            {RB[lang].klpFromRobot}
+          </button>
         </div>
         {daftar.length > 0 && (
           <ul className="klpmatch">

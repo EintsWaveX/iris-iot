@@ -12,6 +12,7 @@ import {
   CaretLeftIcon,
   CaretRightIcon,
   CalendarPlusIcon,
+  ChatTextIcon,
   ClockIcon,
   CopyIcon,
   FileIcon,
@@ -27,10 +28,13 @@ import IconButton from "../ui/IconButton";
 import BackButton from "../ui/BackButton";
 import PdfViewer from "../ui/PdfViewer";
 import PerpanjangDialog from "./PerpanjangDialog";
+import PesanDialog from "./PesanDialog";
+import { KS } from "./kabarStrings";
+import { hakPenuh } from "../../lib/hak";
 import Fade from "../ui/Fade";
 import { ProgressRing, StateView } from "../ui/Display";
 import { Switch } from "../ui/Controls";
-import { getJson, postJson } from "../../lib/app";
+import { getJson, postJson, useMe } from "../../lib/app";
 import { useMinWidth, usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
@@ -84,6 +88,11 @@ export default function Grader({
     `${modul}:${m?.nim}`,
   );
   const d = poll.data && poll.data.nim === m?.nim ? poll.data : null;
+  // Kirim Pesan: whoever grades this TP, the TP right and Admins.
+  const me = useMe();
+  const bolehKabar =
+    me?.hak?.tp === true || (!!me?.tier && hakPenuh({ tier: me.tier, badges: me.badges ?? [] }));
+  const [pesan, setPesan] = useState(false);
 
   const go = (step: number) => {
     const n = grup.anggota.length;
@@ -118,28 +127,40 @@ export default function Grader({
 
   if (!m) return null;
   const railEl = (
-    <div className="grader__rail" role="tablist" aria-label={t.anggota} ref={rail}>
-      {grup.anggota.map((a, j) => (
-        <button
-          key={a.nim}
-          type="button"
-          role="tab"
-          aria-selected={j === i}
-          className="grader__m"
-          onClick={() => setI(j)}
-        >
-          <span className="tpmem__av" aria-hidden="true">
-            {inisial(a.nama)}
-          </span>
-          <span className="stack">
-            <b className="tpmem__n">{a.nama}</b>
-            <span className="hint">
-              {t.status[a.status]}
-              {a.status === "nilai" && a.total != null ? ` · ${a.total}` : ""}
+    <div className="grader__bar">
+      <IconButton icon={CaretLeftIcon} label={t.praktikanSebelum} onClick={() => go(-1)} />
+      <div className="grader__rail" role="tablist" aria-label={t.anggota} ref={rail}>
+        {grup.anggota.map((a, j) => (
+          <button
+            key={a.nim}
+            type="button"
+            role="tab"
+            aria-selected={j === i}
+            className="grader__m"
+            onClick={() => setI(j)}
+          >
+            <span className="tpmem__av" aria-hidden="true">
+              {inisial(a.nama)}
             </span>
-          </span>
-        </button>
-      ))}
+            <span className="stack">
+              <b className="tpmem__n">{a.nama}</b>
+              <span className="hint">
+                {t.status[a.status]}
+                {a.status === "nilai" && a.total != null ? ` · ${a.total}` : ""}
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <IconButton icon={CaretRightIcon} label={t.praktikanBerikut} onClick={() => go(1)} />
+      <span className="hint mono grader__count">
+        {i + 1} / {grup.anggota.length}
+      </span>
+      {lebar && (
+        <span className="hint grader__keys">
+          <kbd className="kbd">J</kbd> <kbd className="kbd">K</kbd> {t.pindahPraktikan}
+        </span>
+      )}
     </div>
   );
 
@@ -181,34 +202,30 @@ export default function Grader({
           )}
           {grup.klp && <Pill mono>KLP {grup.klp}</Pill>}
           {grup.ganti && <PillGanti ganti={grup.ganti} lang={lang} />}
-        </div>
-        <div className="row grader__who">
-          <IconButton icon={CaretLeftIcon} label={t.praktikanSebelum} onClick={() => go(-1)} />
-          <div className="stack">
-            <b className="tpmem__n">{m.nama}</b>
-            <span className="hint mono">
-              {m.nim} · {i + 1} / {grup.anggota.length}
-            </span>
-          </div>
-          <IconButton icon={CaretRightIcon} label={t.praktikanBerikut} onClick={() => go(1)} />
-          {lebar && (
-            <span className="hint grader__keys">
-              <kbd className="kbd">J</kbd> <kbd className="kbd">K</kbd> {t.pindahPraktikan}
-            </span>
+          {(d?.boleh || bolehKabar) && (
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm grader__pesan"
+              onClick={() => setPesan(true)}
+            >
+              <ChatTextIcon size={16} aria-hidden="true" />
+              {KS[lang].pesanBtn}
+            </button>
           )}
         </div>
+        {pesan && (
+          <PesanDialog
+            open
+            onOpenChange={setPesan}
+            lang={lang}
+            modul={modul}
+            nim={m.nim}
+            nama={m.nama}
+          />
+        )}
       </div>
-      {sedang ? (
-        <div className="grader__grid">
-          {railEl}
-          {isi}
-        </div>
-      ) : (
-        <>
-          {railEl}
-          {isi}
-        </>
-      )}
+      {railEl}
+      {sedang ? <div className="grader__grid">{isi}</div> : isi}
     </div>
   );
 }

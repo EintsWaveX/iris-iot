@@ -24,8 +24,7 @@ import Pill from "../ui/Pill";
 import { unduhXlsx } from "../../lib/xlsx";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
-import SeelabsSheet, { StatusPill } from "./seelabs/SeelabsSheet";
-import type { SeelabsTab } from "./seelabs/SeelabsView";
+import StatusPill from "./seelabs/StatusPill";
 import type { SeelabsData } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
 import type { Strings } from "./strings";
@@ -37,7 +36,6 @@ import KirimNilai from "./KirimNilai";
 import SeelabsBaca, { SeelabsBacaBaris } from "./seelabs/SeelabsBaca";
 import ChangeAssistant from "./ChangeAssistant";
 import { N } from "../shell/nilaiStrings";
-import { PD } from "./seelabs/panduanStrings";
 import Nil from "../ui/Nil";
 import Tooltip from "../ui/Tooltip";
 import { LevelField, L1Field } from "./LevelField";
@@ -55,7 +53,6 @@ export default function NilaiTable({
   meNim,
   seelabs,
   onSeelabs,
-  onSeelabsChanged,
 }: {
   t: Strings;
   lang: Lang;
@@ -65,12 +62,11 @@ export default function NilaiTable({
   asisten: Map<string, AsistenRef>;
   meNim: string;
   seelabs: SeelabsData | null;
-  onSeelabs: (tab?: SeelabsTab, nomor?: number | null) => void;
-  onSeelabsChanged: () => void;
+  /** Opens the SeeLabs page (how the robot sends and reads). */
+  onSeelabs: () => void;
 }) {
   const wide = useMinWidth(820);
   const [draft, setDraft] = useState<Record<string, string>>({});
-  const [sheet, setSheet] = useState<number | null>(null);
   const sl = SL[lang];
   const dir = useDirektori();
   const kode = (nim: string | null) =>
@@ -228,7 +224,7 @@ export default function NilaiTable({
     );
   }
 
-  /** My group's SeeLabs chip and copy button; others get "Hanya lihat". */
+  /** My group's SeeLabs chip (who sends it and where it stands). */
   function seelabsBits(nomor: number, kid: number) {
     const sg = seelabs?.kelompok.find((x) => x.nomor === nomor);
     if (!sg) return null;
@@ -240,19 +236,9 @@ export default function NilaiTable({
           {sg.akun ? <b className="mono">{kode(sg.akun)}</b> : <Nil />}
           <StatusPill t={sl} status={sg.status} />
         </span>
-        <button
-          type="button"
-          className="btn btn--primary btn--sm"
-          disabled={!sg.akun}
-          title={!sg.akun ? sl.pickAccountFirst : undefined}
-          onClick={() => setSheet(nomor)}
-        >
-          {sl.copyFor}
-        </button>
       </span>
     );
   }
-  const sheetGroup = sheet !== null ? seelabs?.kelompok.find((x) => x.nomor === sheet) : null;
 
   const absenSwitch = (a: NilaiAnggota, kid: number) => (
     <Switch
@@ -327,29 +313,14 @@ export default function NilaiTable({
               { value: "rata", label: t.caraRata },
             ]}
           />
-          <button type="button" className="btn" onClick={() => onSeelabs("panduan")}>
-            {PD[lang].btn}
+          <button type="button" className="btn" onClick={onSeelabs}>
+            {sl.howItWorks}
           </button>
           <button type="button" className="btn" onClick={xlsx}>
             {t.xlsx}
           </button>
         </span>
       </div>
-
-      {seelabs && sheetGroup && (
-        <SeelabsSheet
-          open
-          onOpenChange={(o) => !o && setSheet(null)}
-          t={sl}
-          lang={lang}
-          data={seelabs}
-          g={sheetGroup}
-          nama={dir.nama}
-          kode={kode}
-          onHow={() => onSeelabs("pasang")}
-          onChanged={onSeelabsChanged}
-        />
-      )}
 
       {data.bolehAlih && alih && (
         <ChangeAssistant

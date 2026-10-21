@@ -8,40 +8,44 @@
  * Below 640 px: Prev, "Step 5 of 6" over the step's name, Next, then the
  * dots on their own row without labels (each still a button with its name
  * as the tip).
+ *
+ * Generic over the step ids: the Konsol's session wrap-up uses it too
+ * (2026-10-22), so its CSS is lstep.css, not the module page's.
  */
 import { useRef, type CSSProperties } from "react";
 import { CaretLeftIcon, CaretRightIcon, CheckIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import { isiGaris, type Titik } from "../../lib/langkah-garis";
 import type { Lang } from "../../lib/kelas";
-import type { Nada, StepId } from "./useLangkah";
+import type { Nada } from "./useLangkah";
 import { M } from "./moduleStrings";
+import "./lstep.css";
 
-interface Props {
+interface Props<S extends string> {
   lang: Lang;
-  steps: StepId[];
-  step: StepId;
-  label: Record<StepId, string>;
+  steps: S[];
+  step: S;
+  label: Record<S, string>;
   /** Shorter labels for the dots below 1024 px ("TP"). */
-  pendek?: Partial<Record<StepId, string>>;
+  pendek?: Partial<Record<S, string>>;
   titik: Titik[];
   /** Where Prev and Next go: a waiting TP is passed over. */
-  prev: StepId | null;
-  next: StepId | null;
+  prev: S | null;
+  next: S | null;
   /** Visited and left unfinished (yellow) or finished (green). */
-  nada?: (s: StepId) => Nada | undefined;
+  nada?: (s: S) => Nada | undefined;
   /** The step on screen is finished: Next turns primary. */
   siap: boolean;
   /** Why Next is held, if it is. */
   alasan: string | null;
   /** Next is held: the step after this one is locked. */
   tertahan: boolean;
-  tip: (s: StepId, t: Titik) => string | undefined;
-  onGo: (s: StepId) => void;
+  tip: (s: S, t: Titik) => string | undefined;
+  onGo: (s: S) => void;
   onNext: () => void;
   onPrev: () => void;
 }
 
-export default function LineStepper(p: Props) {
+export default function LineStepper<S extends string>(p: Props<S>) {
   const t = M[p.lang];
   const i = Math.max(0, p.steps.indexOf(p.step));
   const { prev, next } = p;

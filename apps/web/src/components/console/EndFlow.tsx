@@ -2,46 +2,30 @@
  * Ending a session (P8.6b): "Akhiri" opens a recap first, listing what is
  * still open (missing scores per group, groups without notes, stuck blanks,
  * raised hands, my groups not yet sent with Kirim Nilai, the Module 4 hotspot), each one a
- * button that jumps straight to it. Only then the danger confirm. "Batalkan
- * sesi" lives here too, behind its own confirm.
+ * button that jumps straight to it. "Batalkan sesi" lives here too, behind
+ * its own confirm.
+ *
+ * 2026-10-22: only what is still open gets a row; what is fine folds into
+ * one line. The recap is the confirmation: its end button is held, not a
+ * second dialog on top.
  */
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { CheckCircleIcon, WarningIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, CheckCircleIcon, WarningIcon } from "@phosphor-icons/react";
 import Dialog from "../ui/Dialog";
 import Confirm from "../ui/Confirm";
+import HoldButton from "../ui/HoldButton";
 import { postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { pesan, type Strings } from "./strings";
 import type { NilaiData, GroupRow, SesiRunning, Stuck } from "./types";
 import { N } from "../shell/nilaiStrings";
 
-function Item({
-  ok,
-  title,
-  children,
-  onClick,
-}: {
+interface Cek {
+  key: string;
   ok: boolean;
   title: string;
-  children?: ReactNode;
-  onClick?: () => void;
-}) {
-  return (
-    <li className="endchk__item" data-ok={ok ? "yes" : undefined}>
-      <span className="endchk__state" aria-hidden="true">
-        {ok ? <CheckCircleIcon size={20} /> : <WarningIcon size={20} />}
-      </span>
-      <span className="grow stack" style={{ gap: 4 }}>
-        <b>{title}</b>
-        {children}
-      </span>
-      {onClick && !ok && (
-        <button type="button" className="btn btn--ghost btn--sm" onClick={onClick}>
-          →
-        </button>
-      )}
-    </li>
-  );
+  body?: ReactNode;
+  onJump?: () => void;
 }
 
 export default function EndFlow({
@@ -77,9 +61,9 @@ export default function EndFlow({
   /** Marks these NIMs Tidak Hadir; resolves when every request settled */
   onMarkAbsent: (nims: string[]) => Promise<void>;
 }) {
-  const [confirmEnd, setConfirmEnd] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [marking, setMarking] = useState(false);
+  const [ending, setEnding] = useState(false);
 
   // Who signed in this session; the rest never came, and only need marking.
   const hadir = new Set(groups.flatMap((g) => g.anggota.filter((a) => a.hadir).map((a) => a.nim)));
@@ -104,6 +88,10 @@ export default function EndFlow({
     onOpenChange(false);
     onJumpGroup(id);
   }
+  const keTabel = () => {
+    onOpenChange(false);
+    onJumpTable();
+  };
 
   async function doEnd(kind: "end" | "cancel") {
     try {
@@ -128,7 +116,7 @@ export default function EndFlow({
   }
 
   const chips = (ids: number[]) => (
-    <span className="row">
+    <span className="row endchk__chips">
       {ids.map((id) => {
         const g = groups.find((x) => x.id === id);
         if (!g) return null;
@@ -147,55 +135,26 @@ export default function EndFlow({
     </span>
   );
 
-  return (
-    <>
-      <Dialog
-        open={open}
-        onOpenChange={onOpenChange}
-        title={t.endTitle}
-        description={t.endSub}
-        size="lg"
-        lang={lang}
-        actions={
-          <>
-            <button
-              type="button"
-              className="btn btn--ghost endchk__cancel"
-              onClick={() => setConfirmCancel(true)}
-            >
-              {t.cancelSesi}
-            </button>
-            <button
-              type="button"
-              className="btn btn--secondary"
-              onClick={() => onOpenChange(false)}
-            >
-              {t.back}
-            </button>
-            <button type="button" className="btn btn--danger" onClick={() => setConfirmEnd(true)}>
-              {t.endAnyway}
-            </button>
-          </>
-        }
-      >
-        <ul className="endchk">
-          <Item
-            ok={missingTotal === 0}
-            title={missingTotal === 0 ? t.chkScoresOk : t.chkScores}
-            onClick={() => {
-              onOpenChange(false);
-              onJumpTable();
-            }}
-          >
-            {missingTotal > 0 && (
-              <>
-                <span className="hint">{t.chkMissing(missingTotal)}</span>
-                {chips(missing.map((x) => x.k.id))}
-              </>
-            )}
-          </Item>
-          {absentees.length > 0 && (
-            <Item ok={false} title={t.chkAbsent(absentees.length)}>
+  const cek: Cek[] = [
+    {
+      key: "nilai",
+      ok: missingTotal === 0,
+      title: missingTotal === 0 ? t.chkScoresOk : t.chkScores,
+      body: missingTotal > 0 && (
+        <>
+          <span className="hint">{t.chkMissing(missingTotal)}</span>
+          {chips(missing.map((x) => x.k.id))}
+        </>
+      ),
+      onJump: keTabel,
+    },
+    ...(absentees.length > 0
+      ? [
+          {
+            key: "absen",
+            ok: false,
+            title: t.chkAbsent(absentees.length),
+            body: (
               <span className="row">
                 <button
                   type="button"
@@ -215,48 +174,119 @@ export default function EndFlow({
                   <span className="btn__spinner" aria-hidden="true" />
                 </button>
               </span>
-            </Item>
-          )}
-          <Item ok={noNotes.length === 0} title={noNotes.length ? t.chkNotes : t.chkNotesOk}>
-            {noNotes.length > 0 && chips(noNotes.map((g) => g.id))}
-          </Item>
-          <Item
-            ok={stuckGroups.length === 0}
-            title={stuckGroups.length ? t.chkStuck : t.chkStuckOk}
-          >
-            {stuckGroups.length > 0 && chips(stuckGroups)}
-          </Item>
-          <Item ok={hands.length === 0} title={hands.length ? t.chkHands : t.chkHandsOk}>
-            {hands.length > 0 && chips(hands)}
-          </Item>
-          <Item
-            ok={belumKirim.length === 0}
-            title={belumKirim.length ? n18.akhiriJudul(belumKirim.length) : n18.akhiriOk}
-            onClick={() => {
-              onOpenChange(false);
-              onJumpTable();
-            }}
-          >
-            {belumKirim.length > 0 && (
-              <>
-                <span className="hint">{n18.akhiriBelum}</span>
-                {chips(belumKirim.map((k) => k.id))}
-              </>
-            )}
-          </Item>
-          {sesi.modul === 4 && sesi.butuhAp && <Item ok title={t.chkAp} />}
-        </ul>
+            ),
+          },
+        ]
+      : []),
+    {
+      key: "catatan",
+      ok: noNotes.length === 0,
+      title: noNotes.length ? t.chkNotes : t.chkNotesOk,
+      body: noNotes.length > 0 && chips(noNotes.map((g) => g.id)),
+    },
+    {
+      key: "macet",
+      ok: stuckGroups.length === 0,
+      title: stuckGroups.length ? t.chkStuck : t.chkStuckOk,
+      body: stuckGroups.length > 0 && chips(stuckGroups),
+    },
+    {
+      key: "tangan",
+      ok: hands.length === 0,
+      title: hands.length ? t.chkHands : t.chkHandsOk,
+      body: hands.length > 0 && chips(hands),
+    },
+    {
+      key: "kirim",
+      ok: belumKirim.length === 0,
+      title: belumKirim.length ? n18.akhiriJudul(belumKirim.length) : n18.akhiriOk,
+      body: belumKirim.length > 0 && (
+        <>
+          <span className="hint">{n18.akhiriBelum}</span>
+          {chips(belumKirim.map((k) => k.id))}
+        </>
+      ),
+      onJump: keTabel,
+    },
+    ...(sesi.modul === 4 && sesi.butuhAp ? [{ key: "ap", ok: true, title: t.chkAp }] : []),
+  ];
+  const terbuka = cek.filter((c) => !c.ok);
+  const beres = cek.filter((c) => c.ok);
+
+  return (
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => !ending && onOpenChange(o)}
+        title={t.endTitle}
+        description={t.endSub}
+        size="lg"
+        lang={lang}
+        actions={
+          <>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              onClick={() => onOpenChange(false)}
+            >
+              {t.back}
+            </button>
+            <HoldButton
+              label={t.holdEnd}
+              disabled={ending}
+              onDone={async () => {
+                setEnding(true);
+                await doEnd("end");
+                setEnding(false);
+              }}
+            />
+          </>
+        }
+      >
+        {terbuka.length > 0 && (
+          <ul className="endchk">
+            {terbuka.map((c) => (
+              <li key={c.key} className="endchk__item">
+                <span className="endchk__state" aria-hidden="true">
+                  <WarningIcon size={20} />
+                </span>
+                <span className="grow stack endchk__main">
+                  <b>{c.title}</b>
+                  {c.body}
+                </span>
+                {c.onJump && (
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm endchk__go"
+                    onClick={c.onJump}
+                  >
+                    {t.chkOpen}
+                    <CaretRightIcon size={14} weight="bold" aria-hidden="true" />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {beres.length > 0 && (
+          <div className="endchk__ok">
+            <CheckCircleIcon size={20} aria-hidden="true" />
+            <span className="stack" style={{ gap: 2 }}>
+              <b>{t.chkPassed(beres.length)}</b>
+              <span className="hint">{beres.map((c) => c.title).join(" · ")}</span>
+            </span>
+          </div>
+        )}
+        <p className="hint endchk__hold">{t.holdHint}</p>
+        <button
+          type="button"
+          className="btn btn--ghost btn--sm endchk__cancel"
+          onClick={() => setConfirmCancel(true)}
+        >
+          {t.cancelSesi}
+        </button>
       </Dialog>
 
-      <Confirm
-        open={confirmEnd}
-        onOpenChange={setConfirmEnd}
-        title={t.endConfirmTitle}
-        body={t.endConfirmBody}
-        confirmLabel={t.end}
-        lang={lang}
-        onConfirm={() => doEnd("end")}
-      />
       <Confirm
         open={confirmCancel}
         onOpenChange={setConfirmCancel}

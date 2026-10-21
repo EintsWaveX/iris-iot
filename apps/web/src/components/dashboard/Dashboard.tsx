@@ -79,6 +79,7 @@ import "./Dashboard.css";
 import Nil from "../ui/Nil";
 import { useTpSaya, type TpSaya } from "../tp/shared";
 import { TpBaris, TpKartu, TpRincian } from "../tp/TpDash";
+import { KalenderKu } from "../tp/KalenderTp";
 import { umpanDi } from "../../lib/praktikum-riwayat";
 import { TPS } from "../tp/tpStrings";
 
@@ -140,7 +141,9 @@ const TRACE_KEY: Record<number, { key: string; min: number; max: number; unit: s
 function readView(): View {
   const q = new URLSearchParams(location.search);
   const sesi = Number(q.get("session"));
-  if (q.get("view") === "summary" && sesi > 0) return { v: "summary", sesi };
+  // ended=1: the module page sends a Praktikan here as their session ends.
+  if (q.get("view") === "summary" && sesi > 0)
+    return { v: "summary", sesi, ...(q.get("ended") === "1" ? { ended: true } : {}) };
   if (q.get("view") === "feedback" && sesi > 0) return { v: "feedback", sesi };
   return { v: "home" };
 }
@@ -158,6 +161,7 @@ function useView(): [View, (v: View) => void] {
     q.delete("view");
     q.delete("session");
     q.delete("feedback");
+    q.delete("ended");
     if (v.v !== "home") {
       q.set("view", v.v);
       q.set("session", String(v.sesi));
@@ -1036,7 +1040,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
 
   // ?feedback=1 (an older link) opens the feedback page for the latest session.
   useEffect(() => {
-    if (!hasil?.ok || !hasil.sesi) return;
+    if (!hasil?.ok || !hasil.sesi || pro) return;
     if (new URLSearchParams(location.search).get("feedback") === "1")
       go({ v: "feedback", sesi: hasil.sesi.id });
   }, [hasil?.ok, hasil?.sesi?.id]);
@@ -1049,8 +1053,11 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
       const id = wasRunning.current;
       wasRunning.current = null;
       hasilPoll.refresh();
-      minePoll.refresh();
-      if (view.v === "home") go({ v: "summary", sesi: id, ended: true });
+      // The projector has no practicum history of its own to reread.
+      if (sendiri) minePoll.refresh();
+      // The summary and feedback read the Praktikan's own session (not open
+      // to an Asisten), so the projector stays on the Dasbor.
+      if (view.v === "home" && !pro) go({ v: "summary", sesi: id, ended: true });
     }
   }, [sesi, hasil?.sesi?.id, hasil?.sesi?.status, now.updatedAt]);
 
@@ -1091,13 +1098,13 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
     );
   }
 
-  if (view.v === "summary")
+  if (view.v === "summary" && !pro)
     return (
       <div className="dash dash10">
         <Summary t={t} lang={lang} sesi={view.sesi} ended={view.ended} modules={modules} go={go} />
       </div>
     );
-  if (view.v === "feedback")
+  if (view.v === "feedback" && !pro)
     return (
       <div className="dash dash--narrow">
         <FeedbackPage
@@ -1121,7 +1128,7 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
       : (me.nama.split(/\s+/)[0] ?? me.nama);
   const list = minePoll.data?.ok ? minePoll.data.praktikum : [];
   const endedToday =
-    !sesi && hasil?.ok && hasil.sesi?.status === "selesai" && hasil.sesi.tanggal === today
+    !pro && !sesi && hasil?.ok && hasil.sesi?.status === "selesai" && hasil.sesi.tanggal === today
       ? hasil
       : null;
 
@@ -1212,6 +1219,8 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
       </div>
       {sendiri && !sesi && !belumIkut && <TpKartu lang={lang} d={tp.data} />}
       {body}
+      {/* Their TP windows, module weeks and practicum days (2026-10-21). */}
+      {sendiri && !sesi && !belumIkut && <KalenderKu lang={lang} />}
       {sesi && !pro && <CoachMarks lang={lang} />}
     </div>
   );

@@ -39,6 +39,7 @@ import SchematicViewer from "../ui/SchematicViewer";
 import SegmentedControl from "../ui/SegmentedControl";
 import { namaLayanan } from "../../lib/tautan";
 import { getJson, dict, useMe } from "../../lib/app";
+import { useTampil } from "../../lib/proyektor";
 import type { Lang } from "../../lib/kelas";
 import "./PinSchematic.css";
 import { dengar } from "../../lib/siaran";
@@ -486,7 +487,8 @@ export default function PinSchematic({
 }) {
   const t = T[lang];
   const pj = PJ[lang];
-  const me = useMe();
+  // Projector mode: no Asisten-only controls on the schematic.
+  const me = useTampil(useMe());
   // The module's pins as set by the Asisten over this language's table
   // (names stay), then the group's own wiring over those.
   const data = usePin();

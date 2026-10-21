@@ -15,6 +15,8 @@ import {
   nilaiTersimpan,
   rencanaTerima,
   tempatkan,
+  uraiJurnal,
+  uraiPraktikum,
   waktunyaMalam,
   type NilaiTersimpan,
 } from "../seelabs-baca";
@@ -65,6 +67,53 @@ describe("bandingkan", () => {
   it("without a saved copy compares with IRIS and never copies", () => {
     expect(p(dasar, { dasar: null })).toEqual({ tindakan: "sama" });
     expect(p(ubah({ tp: 85 }), { dasar: null })).toEqual({ tindakan: "beda_tanpa_dasar" });
+  });
+});
+
+describe("uraiPraktikum", () => {
+  it("takes the Praktikum mean apart into the levels that make it, highest first", () => {
+    // 90, 90, 90, 80: the only four levels that average 87.5
+    expect(uraiPraktikum(87.5)).toEqual({ d: [90, 90, 90, 80], pasti: true });
+  });
+  it("reads 0 as four zeros", () => {
+    expect(uraiPraktikum(0)).toEqual({ d: [0, 0, 0, 0], pasti: true });
+  });
+  it("says so when other levels make the same mean, and takes the evenest", () => {
+    // 65 x4, 90 + 90 + 80 + 0 and 45 + 45 + 80 + 90 all make 260
+    const r = uraiPraktikum(65)!;
+    expect(r.pasti).toBe(false);
+    expect(r.d).toEqual([65, 65, 65, 65]);
+    expect(r.d.reduce((a, b) => a + b, 0)).toBe(260);
+  });
+  it("lands on rubric levels with the same mean, for every set of four levels", () => {
+    const L = [0, 45, 65, 80, 90];
+    for (const a of L)
+      for (const b of L)
+        for (const c of L)
+          for (const d of L) {
+            // SeeLabs shows the mean to two decimals
+            const rerata = Math.round(((a + b + c + d) / 4) * 100) / 100;
+            const r = uraiPraktikum(rerata)!;
+            expect(r, `${a} ${b} ${c} ${d}`).not.toBeNull();
+            expect(r.d.every((x) => L.includes(x))).toBe(true);
+            expect(r.d.reduce((x, y) => x + y, 0)).toBe(a + b + c + d);
+          }
+  });
+  it("has nothing for a mean no four levels make", () => {
+    expect(uraiPraktikum(83.25)).toBeNull();
+    expect(uraiPraktikum(12.34)).toBeNull();
+  });
+});
+
+describe("uraiJurnal", () => {
+  it("finds the L2 level that makes the mean with IRIS's L1", () => {
+    expect(uraiJurnal(85, 80)).toBe(90);
+    expect(uraiJurnal(80.55, 71.1)).toBe(90);
+    expect(uraiJurnal(32.5, 0)).toBe(65);
+  });
+  it("has nothing without an L1 or when no level fits", () => {
+    expect(uraiJurnal(80, null)).toBeNull();
+    expect(uraiJurnal(86.5, 92)).toBeNull();
   });
 });
 
@@ -336,6 +385,48 @@ describe("rencanaTerima", () => {
       { sesiId: 11, nim: "N2", komponen: "TA", skor: 75, sebelum: null, mentah: 75 },
     ]);
     expect(r.kelompok[0]).toMatchObject({ status: "hanya_seelabs", dasarBaru: false });
+  });
+
+  it("works D1..D4 and L2 out of the means for a group scored only in SeeLabs", () => {
+    const sl = { praktikum: 87.5, jurnal: 85 };
+    const r = p({
+      bacaan: [{ praktikum: 237, klp: 4, modul: 2, baris: [baris("N1", sl)] }],
+      keadaan: {
+        "11|1": {
+          dasar: null,
+          iris: { N1: { TP: 80, TA: 75, L1: 80 } },
+          terkirim: false,
+          menunggu: false,
+        },
+      },
+      tersimpan: [],
+    });
+    const d = r.salin.filter((c) => c.komponen !== "TP" && c.komponen !== "TA");
+    expect(d.map((c) => [c.komponen, c.skor])).toEqual([
+      ["D1", 90],
+      ["D2", 90],
+      ["D3", 90],
+      ["D4", 80],
+      ["L2", 90],
+    ]);
+    expect(d.every((c) => c.perkiraan === true && c.sebelum === null)).toBe(true);
+    expect(r.kelompok[0]).toMatchObject({ status: "hanya_seelabs", dasarBaru: false });
+  });
+
+  it("leaves D and L alone when the Asisten already typed them, or SeeLabs reads absent", () => {
+    const sl = { praktikum: 87.5, jurnal: 85 };
+    const dengan = (iris: Record<string, number>, x: Partial<NilaiTersimpan> = {}) =>
+      p({
+        bacaan: [{ praktikum: 237, klp: 4, modul: 2, baris: [baris("N1", { ...sl, ...x })] }],
+        keadaan: { "11|1": { dasar: null, iris: { N1: iris }, terkirim: false, menunggu: false } },
+        tersimpan: [],
+      }).salin.filter((c) => /^[DL]/.test(c.komponen));
+    expect(dengan({ TP: 80, TA: 75, D2: 65, L1: 80, L2: 80 })).toEqual([]);
+    expect(dengan({ L1: 80 }, { presensi: false })).toEqual([]);
+    // TP and TA only: D and L were never filled in SeeLabs, a mean of 0 is not four zeros
+    expect(dengan({ L1: 80 }, { praktikum: 0, jurnal: 0 })).toEqual([]);
+    // L2 needs IRIS's L1; the D levels do not
+    expect(dengan({}).map((c) => c.komponen)).toEqual(["D1", "D2", "D3", "D4"]);
   });
 
   it("places a Praktikan in the susulan sent through the account read", () => {

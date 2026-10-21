@@ -9,8 +9,7 @@ export const RB = dict({
     noneTitle: "Biarkan IRIS Menyimpan ke SeeLabs",
     noneDesc:
       "Hubungkan sekali. Setelah itu Kirim Nilai di IRIS sudah cukup: nilai masuk SeeLabs lewat akunmu dan dibaca ulang.",
-    optional:
-      "Tidak wajib. Tanpa ini, Salin untuk SeeLabs dan bookmarklet tetap jalan seperti biasa.",
+    optional: "Tanpa ini, nilai dari IRIS tidak bisa masuk SeeLabs.",
     waitTitle: "Menunggu PC Server Menguji",
     waitDesc:
       "Kata sandi sudah terkunci dan tersimpan. PC Server mencoba masuk pada denyut berikutnya, biasanya kurang dari semenit.",
@@ -25,10 +24,11 @@ export const RB = dict({
     reachTitle: "PC Server Belum Bisa Menjangkau SeeLabs",
     reachDesc:
       "Biasanya karena PC Server sedang tidak tersambung ke TelU-Connect. Akunmu tidak bermasalah; robot mencoba lagi sendiri.",
-    untilBack: "Sampai terhubung lagi, nilaimu di SeeLabs diisi sendiri lewat Salin untuk SeeLabs.",
+    untilBack: "Sampai terhubung lagi, nilaimu belum bisa masuk SeeLabs dari IRIS.",
     noKey:
       "Robot belum siap: Admin belum menyetujui kunci PC Server di Penilaian › Sumber SeeLabs.",
-    robotOff: "Robot SeeLabs sedang dimatikan oleh Admin. Salin untuk SeeLabs tetap jalan.",
+    robotOff:
+      "Robot SeeLabs sedang dimatikan oleh Admin. Nilai menunggu sampai robot menyala lagi.",
     st: {
       menunggu_uji: "Menunggu Uji",
       aktif: "Terhubung",
@@ -117,7 +117,7 @@ export const RB = dict({
         "PC Server tidak bisa menjangkau SeeLabs, biasanya karena PC Server tidak tersambung ke TelU-Connect. Akunmu tidak bermasalah; robot mencoba lagi sendiri.",
       seelabs_galat: "SeeLabs sedang bermasalah. Robot mencoba lagi sendiri.",
       bentuk_berubah:
-        "Halaman SeeLabs terlihat berbeda dari biasanya, jadi robot tidak menyimpan apa pun. Simpan lewat bookmarklet dulu dan kabari DEV.",
+        "Halaman SeeLabs terlihat berbeda dari biasanya, jadi robot tidak menyimpan apa pun. Kabari DEV.",
       butuh_token:
         "Kelompok ini tidak ada di daftar jaga hari ini. Masukkan Token Khusus dari SeeLabs.",
       token_salah: "Token Khusus itu tidak membuka kelompok ini. Cek lagi tokennya.",
@@ -138,7 +138,7 @@ export const RB = dict({
     details: "Rincian",
     // Kirim Nilai
     sentFollows: "Nilai dikirim. SeeLabs menyusul lewat PC Server.",
-    sentHand: "Nilai dikirim. SeeLabs diisi sendiri lewat Salin untuk SeeLabs.",
+    sentHand: "Nilai dikirim. SeeLabs belum terhubung, jadi nilai menunggu robot.",
     why: {
       robot_mati: "Robot SeeLabs sedang mati.",
       sesi_tot: "Sesi TOT tidak pernah dikirim ke SeeLabs.",
@@ -154,8 +154,7 @@ export const RB = dict({
     srcDesc:
       "Robot di PC Server kampus yang menyimpan nilai, mendaftarkan Input Jaga dan menarik kelompok.",
     srcSwitch: "Robot Nyala",
-    srcSwitchHint:
-      "Mematikan robot menghentikan semua tugas baru. Salin untuk SeeLabs tetap jalan.",
+    srcSwitchHint: "Mematikan robot menghentikan semua tugas baru, termasuk pengiriman nilai.",
     srcSuffix: "Akhiran Sandi Laboran",
     srcSuffixHint: (s: string) =>
       `Sandi bawaan SeeLabs adalah NIM diikuti ${s}. Akun yang sudah terhubung tetap memakai sandi yang dikunci dulu; minta mereka hubungkan ulang kalau Laboran mengganti akhirannya.`,
@@ -218,7 +217,7 @@ export const RB = dict({
     noneTitle: "Let IRIS Save to SeeLabs",
     noneDesc:
       "Connect once. After that Kirim Nilai in IRIS is enough: scores go into SeeLabs through your account and get read back.",
-    optional: "Optional. Without it, Copy for SeeLabs and the bookmarklet keep working as before.",
+    optional: "Without this, scores can't reach SeeLabs from IRIS.",
     waitTitle: "Waiting for the PC Server to Test",
     waitDesc:
       "The password is locked and stored. The PC Server tries to sign in on its next beat, usually within a minute.",
@@ -233,11 +232,10 @@ export const RB = dict({
     reachTitle: "The PC Server Can't Reach SeeLabs Yet",
     reachDesc:
       "Usually the PC Server isn't on TelU-Connect. Your account is fine; the robot tries again by itself.",
-    untilBack:
-      "Until you reconnect, your SeeLabs scores are typed by hand through Copy for SeeLabs.",
+    untilBack: "Until you reconnect, your scores can't reach SeeLabs from IRIS.",
     noKey:
       "The robot isn't ready: an Admin hasn't approved the PC Server's key in Grading › SeeLabs Source.",
-    robotOff: "An Admin switched the SeeLabs robot off. Copy for SeeLabs still works.",
+    robotOff: "An Admin switched the SeeLabs robot off. Scores wait until it is back on.",
     st: {
       menunggu_uji: "Waiting to Test",
       aktif: "Connected",
@@ -321,7 +319,7 @@ export const RB = dict({
         "The PC Server can't reach SeeLabs, usually because the PC Server isn't on TelU-Connect. Your account is fine; the robot tries again by itself.",
       seelabs_galat: "SeeLabs is having trouble. The robot tries again by itself.",
       bentuk_berubah:
-        "A SeeLabs page looked different from usual, so the robot saved nothing. Save through the bookmarklet for now and tell DEV.",
+        "A SeeLabs page looked different from usual, so the robot saved nothing. Tell DEV.",
       butuh_token: "This group isn't on today's duty list. Enter a Token Khusus from SeeLabs.",
       token_salah: "That Token Khusus didn't open this group. Check the token.",
       anggota_beda:
@@ -340,7 +338,7 @@ export const RB = dict({
     tokenSend: "Send Token",
     details: "Details",
     sentFollows: "Scores sent. SeeLabs follows through the PC Server.",
-    sentHand: "Scores sent. Fill SeeLabs by hand through Copy for SeeLabs.",
+    sentHand: "Scores sent. SeeLabs isn't connected, so they wait for the robot.",
     why: {
       robot_mati: "The SeeLabs robot is off.",
       sesi_tot: "TOT sessions never go to SeeLabs.",
@@ -355,7 +353,7 @@ export const RB = dict({
     srcDesc:
       "The robot on the campus PC Server that saves scores, registers Input Jaga and pulls the groups.",
     srcSwitch: "Robot On",
-    srcSwitchHint: "Switching the robot off stops every new job. Copy for SeeLabs keeps working.",
+    srcSwitchHint: "Switching the robot off stops every new job, score sends included.",
     srcSuffix: "Laboran Password Suffix",
     srcSuffixHint: (s: string) =>
       `The SeeLabs default password is the NIM followed by ${s}. Accounts already connected keep the password they sealed; ask them to connect again when the Laboran changes the suffix.`,
@@ -418,7 +416,7 @@ export const RB = dict({
     noneTitle: "让 IRIS 保存到 SeeLabs",
     noneDesc:
       "只需连接一次。之后在 IRIS 按 Kirim Nilai 就够了：成绩通过你的账号存入 SeeLabs 并回读核对。",
-    optional: "不是必须的。不连接时，复制到 SeeLabs 和书签小工具照常可用。",
+    optional: "不连接的话，IRIS 的分数无法进入 SeeLabs。",
     waitTitle: "等待 PC 服务器测试",
     waitDesc: "密码已加锁并保存。PC 服务器会在下一次心跳时尝试登录，通常不到一分钟。",
     okTitle: "SeeLabs 机器人已连接",
@@ -429,9 +427,9 @@ export const RB = dict({
     keyDesc: "管理员批准了 PC 服务器的新密钥，例如重装之后。旧密码已无法解开，请再输入一次。",
     reachTitle: "PC 服务器暂时连不上 SeeLabs",
     reachDesc: "通常是 PC 服务器没有连上 TelU-Connect。你的账号没有问题，机器人会自己再试。",
-    untilBack: "重新连接之前，你在 SeeLabs 的成绩请通过复制到 SeeLabs 手动填写。",
+    untilBack: "重新连接之前，你的分数无法从 IRIS 进入 SeeLabs。",
     noKey: "机器人尚未就绪：管理员还没在 评分 › SeeLabs 来源 批准 PC 服务器的密钥。",
-    robotOff: "管理员已关闭 SeeLabs 机器人。复制到 SeeLabs 仍可使用。",
+    robotOff: "管理员已关闭 SeeLabs 机器人。分数会等到机器人重新开启。",
     st: {
       menunggu_uji: "等待测试",
       aktif: "已连接",
@@ -511,8 +509,7 @@ export const RB = dict({
       tak_terjangkau:
         "PC 服务器连不上 SeeLabs，通常是 PC 服务器没有连上 TelU-Connect。你的账号没有问题，机器人会自己再试。",
       seelabs_galat: "SeeLabs 出了问题。机器人会自己再试。",
-      bentuk_berubah:
-        "SeeLabs 页面看起来和平常不同，所以机器人什么都没保存。请先用书签小工具保存，并告知 DEV。",
+      bentuk_berubah: "SeeLabs 页面看起来和平常不同，所以机器人什么都没保存。请告知 DEV。",
       butuh_token: "这个小组不在今天的值班名单里。请输入 SeeLabs 的 Token Khusus。",
       token_salah: "这个 Token Khusus 打不开该小组。请检查令牌。",
       anggota_beda: "SeeLabs 中该 KLP 的成员与 IRIS 不同。请先在 准备 中核对 KLP。",
@@ -529,7 +526,7 @@ export const RB = dict({
     tokenSend: "发送令牌",
     details: "详情",
     sentFollows: "成绩已发送。SeeLabs 将通过 PC 服务器随后保存。",
-    sentHand: "成绩已发送。请通过复制到 SeeLabs 手动填写 SeeLabs。",
+    sentHand: "成绩已发送。SeeLabs 还没连接，成绩会等机器人处理。",
     why: {
       robot_mati: "SeeLabs 机器人已关闭。",
       sesi_tot: "TOT 练习课从不发送到 SeeLabs。",
@@ -543,7 +540,7 @@ export const RB = dict({
     srcTitle: "SeeLabs 来源",
     srcDesc: "校园 PC 服务器上的机器人，负责保存成绩、登记 Input Jaga 和拉取小组。",
     srcSwitch: "机器人开启",
-    srcSwitchHint: "关闭机器人会停止所有新任务。复制到 SeeLabs 仍可使用。",
+    srcSwitchHint: "关闭机器人会停止所有新任务，包括发送分数。",
     srcSuffix: "Laboran 密码后缀",
     srcSuffixHint: (s: string) =>
       `SeeLabs 默认密码是 NIM 后接 ${s}。已连接的账号仍使用当初加锁的密码；Laboran 更改后缀时，请他们重新连接。`,

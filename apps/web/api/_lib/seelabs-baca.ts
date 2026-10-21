@@ -481,6 +481,7 @@ export async function terimaBaca(
       sumber: "seelabs",
       sebelum: c.sebelum,
       ...(c.mentah !== c.skor ? { mentah: c.mentah } : {}),
+      ...(c.perkiraan ? { perkiraan: true } : {}),
     });
   }
 

@@ -69,7 +69,7 @@
     "Installing the LoRa library by Sandeep Mistry through the Arduino IDE Library Manager",
     "Installing the WebSockets library by Markus Sattler through the Arduino IDE Library Manager",
     "Selecting the ESP32 Dev Module board in the Arduino IDE",
-    "Checking that the PC Server has its IRIS-IOT hotspot and its scoreboard running",
+    "Checking that the PC Server has its IRIS_IOT hotspot and its scoreboard running",
     "Copying your group's folder, then uploading hunter.ino without editing anything",
     "Checking that the Serial Monitor prints an IP address and a synchronised clock",
     "Opening the scoreboard, entering your student ID, and confirming your own group appears",

@@ -27,7 +27,6 @@ import { batalSusulan, BS } from "./batalSusulan";
 import HelpRows, { jumlahBantuan, useBantuan } from "./HelpCard";
 import StartCheck, { type BelumSiap } from "./StartCheck";
 import DayStrip, { dayStates, SlotCodes, WinClock, type DaySlot } from "./DayStrip";
-import { useTitipan } from "./seelabs/data";
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowCounterClockwiseIcon,
@@ -205,9 +204,9 @@ export default function AsistenHome({
   me,
   onStarted,
   onPrep,
-  onHeld,
   onTable,
   onSeelabsSesi,
+  onRekap,
 }: {
   t: Strings;
   lang: Lang;
@@ -216,17 +215,16 @@ export default function AsistenHome({
   /** Opens Preparation on the roster Start has picked ("2-1": Selasa,
    *  slot 1), or with no pick for a makeup session. */
   onPrep: (pilih: string | null, tab?: PrepTab) => void;
-  /** Opens Kirim ke SeeLabs on "Titipan" (scores held for my account). */
-  onHeld: () => void;
   /** An ended session's Score Table (Kirim Nilai lives there). */
   onTable: (sesiId: number) => void;
   /** An ended session's Kirim ke SeeLabs. */
   onSeelabsSesi: (sesiId: number) => void;
+  /** An ended session's wrap up (Rekap, Nilai, SeeLabs, Selesai), from any
+   *  device or tab, not only the one that ended it (2026-10-22). */
+  onRekap: (sesiId: number) => void;
 }) {
   const h = H[lang];
   const d = D[lang];
-  const held = useTitipan();
-  const heldN = held.data?.titipan.length ?? 0;
   const dir = useDirektori();
   const bantuan = useBantuan();
   const [data, setData] = useState<Beranda | null>(null);
@@ -867,6 +865,9 @@ export default function AsistenHome({
           )}
           {j && j.status === "selesai" && (
             <>
+              <button type="button" className="btn" onClick={() => onRekap(j.sesiId)}>
+                {d.wrapUp}
+              </button>
               <button
                 type="button"
                 className={`btn${sentLeft > 0 && diSlot ? " btn--primary" : ""}`}
@@ -1176,9 +1177,9 @@ export default function AsistenHome({
   const todayN = pn.filter((x) => x.tanggal === today);
   const oldK = bk.filter((x) => x.tanggal !== today);
   const oldN = pn.filter((x) => x.tanggal !== today);
-  const inboxN = helpN + bk.length + pn.length + nilaiN + (heldN > 0 ? 1 : 0);
+  const inboxN = helpN + bk.length + pn.length + nilaiN;
   const semuaN = inboxN + robotN;
-  const earlierN = oldK.length + oldN.length + lupaRows.length + (heldN > 0 ? 1 : 0);
+  const earlierN = oldK.length + oldN.length + lupaRows.length;
 
   return (
     <div className="dt">
@@ -1320,19 +1321,6 @@ export default function AsistenHome({
                 <>
                   <span className="label-caps inbox__k">{d.inboxEarlier}</span>
                   <ol className="elog todo10">
-                    {heldN > 0 && (
-                      <li className="elog__row todo10__row">
-                        <span className="elog__tag mono" data-tone="accent">
-                          {d.tag.seelabs}
-                        </span>
-                        <span className="elog__text">{d.heldLine(heldN)}</span>
-                        <span className="todo10__acts">
-                          <button type="button" className="btn btn--sm" onClick={onHeld}>
-                            {d.open}
-                          </button>
-                        </span>
-                      </li>
-                    )}
                     {oldK.map(kirimRow)}
                     {oldN.map(nilaiRow)}
                     {lupaRows.map(lupaRow)}

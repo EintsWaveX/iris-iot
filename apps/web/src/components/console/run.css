@@ -737,89 +737,160 @@
 }
 
 /* ---------------------------------------------- the wrap up (c12-end) */
-.endsteps {
+/* 2026-10-22: the line stepper (lstep.css) across the top; groups as rows
+   with a blanks ring or a fill meter; Still Open first on phones. */
+.endflow .lstep {
+  margin-block: 2px 4px;
+}
+
+/* day.css loads after this file: .dt__grid stretches its panels. */
+.endflow .endflow__rekap {
+  align-items: start;
+}
+
+.endflow .endflow__rekap > .panel {
+  height: auto;
+}
+
+@media (max-width: 759px) {
+  .endflow__open {
+    order: -1;
+  }
+}
+
+.endflow__nums b {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.endgrp {
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-@media (max-width: 559px) {
-  .endsteps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.endsteps__b {
-  align-items: center;
-  background: var(--surface-1);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  font: inherit;
-  gap: 10px;
-  padding: 10px 12px;
-  width: 100%;
-}
-
-.endsteps__b[data-state="now"] {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
-  color: var(--text);
-}
-
-.endsteps__b[data-state="now"] .seq__node {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-}
-
-.endsteps__b[data-state="done"] .seq__node {
-  background: var(--ok);
-  border-color: var(--ok);
-  color: #04130b;
-}
-
-.endrow {
+.endgrp__row {
   align-items: center;
   background: var(--surface-2);
   border: 1px solid var(--hairline);
+  border-left: 3px solid var(--g, var(--hairline));
   border-radius: var(--radius-md);
   display: flex;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 12px;
+}
+
+.endgrp__who {
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.endgrp__who > b {
+  color: var(--g, var(--text));
+}
+
+.endgrp__act {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 8px 10px;
+  justify-content: flex-end;
 }
 
-.endrow > b {
-  color: var(--g, var(--text));
-  min-width: 90px;
+.endgrp__meter {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
 }
 
-.endrow .cells__row {
-  min-width: 160px;
+.endgrp__meter .meter {
+  width: 96px;
 }
 
-.endrow--big {
-  padding: 12px 14px;
-}
-
-.endrow .kirim {
+.endgrp .kirim {
   align-items: center;
   display: inline-flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
+/* Phones: a group's actions on their own line under its name. */
+@media (max-width: 559px) {
+  .endgrp--nilai .endgrp__row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .endgrp--nilai .endgrp__act {
+    justify-content: space-between;
+  }
+
+  .endgrp__meter {
+    flex: 1 1 auto;
+  }
+
+  .endgrp__meter .meter {
+    flex: 1 1 auto;
+    width: auto;
+  }
+}
+
+.endopen {
+  display: grid;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.endopen__row {
+  align-items: start;
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  gap: 6px 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 10px 0;
+}
+
+.endopen__row:first-child {
+  border-top: 0;
+}
+
+.endopen__main {
+  gap: 6px;
+}
+
+.endopen__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.endopen__k {
+  align-items: center;
+  background: color-mix(in srgb, var(--g) 18%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--g) 55%, transparent);
+  border-radius: 50%;
+  color: var(--g);
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 700;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
 .lp__nums.lp__nums--4 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-@media (min-width: 640px) {
+/* Four across only when the Rekap's half of the page is wide enough. */
+@media (min-width: 1100px) {
   .lp__nums.lp__nums--4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -829,6 +900,63 @@
   margin-inline: auto;
   max-width: 760px;
   width: 100%;
+}
+
+/* Selesai, once a session: the mark settles in, then the three lines of
+   what went out follow one by one. */
+.endsum {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0 auto;
+  max-width: 460px;
+  padding: 0;
+  width: 100%;
+}
+
+.endsum__row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.endsum__row svg {
+  color: var(--warn);
+  flex: none;
+}
+
+.endsum__row[data-ok] svg {
+  color: var(--ok);
+}
+
+:root:not([data-motion-tier="0"]) .endflow__ic {
+  animation: endflow-mark 420ms var(--ease-out-expo) both;
+}
+
+:root:not([data-motion-tier="0"]) .endsum__row {
+  animation: endflow-line 260ms var(--ease-out-expo) both;
+  animation-delay: calc(240ms + var(--i, 0) * 60ms);
+}
+
+@keyframes endflow-mark {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes endflow-line {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .endflow__ic,
+  .endsum__row {
+    animation: none;
+  }
 }
 
 /* -------------------------------------------- Persiapan (c12-prep) */

@@ -35,8 +35,16 @@ interface DataKabar {
   boleh: boolean;
   oto: OtoKabar;
   jendela: Record<string, JendelaTp | null>;
-  kabar: (KabarSimpan & { oleh: string; pada: string })[];
+  kabar: KabarDiKelola[];
 }
+
+/** A notice as Kelola TP lists it: who posted it, and a message's Praktikan. */
+export type KabarDiKelola = KabarSimpan & {
+  oleh: string;
+  pada: string;
+  nama: string | null;
+  milikku: boolean;
+};
 
 function tplDariUrl(): JenisKabar {
   const v = typeof location === "undefined" ? null : new URL(location.href).searchParams.get("tpl");
@@ -95,6 +103,17 @@ function TulisPanel({
       (jenis === "buka" || jenis === "ingat") && j && Date.parse(j.tutup) > Date.now();
     return { ...x, sampai: keTutup ? bagiWib(j.tutup) : tujuhHari() };
   };
+  // Jadwalkan starts at the window's opening for TP Dibuka while it is
+  // still ahead, else an hour from now.
+  const mulaiAwal = (jenis: JenisKabar, m: number | null) => {
+    const j = m ? (jendela[String(m)] ?? null) : null;
+    return bagiWib(
+      jenis === "buka" && j && Date.parse(j.buka) > Date.now()
+        ? j.buka
+        : new Date(Math.ceil(Date.now() / 3_600_000) * 3_600_000 + 3_600_000).toISOString(),
+    );
+  };
+  const [mulai, setMulai] = useState<{ tanggal: string; jam: string } | null>(null);
   const awal = () => {
     const jenis = tplDariUrl();
     const m = jenis === "bebas" ? null : modulAwal;
@@ -114,7 +133,9 @@ function TulisPanel({
     // A template is about a module: none picked yet takes this page's.
     const mm = jenis !== "bebas" && m === null ? modulAwal : m;
     setF({ jenis, modul: mm, ...isi(jenis, mm) });
+    if (mulai) setMulai(mulaiAwal(jenis, mm));
   };
+  const mulaiIso = mulai ? isoWib(mulai.tanggal, mulai.jam) : null;
   const kirim = async () => {
     setSibuk(true);
     const r = await postJson<{ ok: boolean; kode?: string }>("/api/tp/kabar", {
@@ -123,15 +144,22 @@ function TulisPanel({
       sasaran: f.modul ? f.sasaran : "semua",
       judul: f.judul,
       isi: f.isi,
+      ...(mulaiIso ? { mulai: mulaiIso } : {}),
       sampai: isoWib(f.sampai.tanggal, f.sampai.jam),
     }).catch(() => ({ ok: false, kode: "" }));
     setSibuk(false);
+    const nanti = !!mulaiIso && Date.parse(mulaiIso) > Date.now();
     window.Toast?.show(
-      r.ok ? t.umumkanOk : (t.galat[r.kode ?? ""] ?? t.gagal),
+      r.ok
+        ? nanti
+          ? t.jadwalOk(waktuPanjang(mulaiIso!, lang))
+          : t.umumkanOk
+        : (t.galat[r.kode ?? ""] ?? t.gagal),
       r.ok ? "ok" : "warn",
     );
     if (!r.ok) return;
     setF({ ...f, jenis: "bebas", ...isi("bebas", f.modul) });
+    setMulai(null);
     onDone();
   };
   const teks = (k: "judul" | "isi", b: "id" | "en", v: string) =>
@@ -226,33 +254,114 @@ function TulisPanel({
             </label>
           </div>
         </div>
-        <div className="field">
-          <span className="field__label">{t.sampai}</span>
-          <div className="tpwinform__row">
-            <DateField
-              value={f.sampai.tanggal}
-              onChange={(v) => setF({ ...f, sampai: { ...f.sampai, tanggal: v } })}
-              label={t.tglSampai}
-              lang={lang}
+        <div className="tpkabar__pair">
+          <div className="field">
+            <span className="field__label">{t.kapan}</span>
+            <SegmentedControl
+              aria-label={t.kapan}
+              fill
+              value={mulai ? "jadwal" : "sekarang"}
+              onValueChange={(v) => setMulai(v === "jadwal" ? mulaiAwal(f.jenis, f.modul) : null)}
+              options={[
+                { value: "sekarang", label: t.kSekarang },
+                { value: "jadwal", label: t.kJadwal },
+              ]}
             />
-            <TimeField
-              value={f.sampai.jam}
-              onChange={(v) => setF({ ...f, sampai: { ...f.sampai, jam: v } })}
-              label={t.jamSampai}
-              lang={lang}
-            />
+            {mulai && (
+              <div className="tpwinform__row">
+                <DateField
+                  value={mulai.tanggal}
+                  onChange={(v) => setMulai({ ...mulai, tanggal: v })}
+                  label={t.tglMulai}
+                  lang={lang}
+                />
+                <TimeField
+                  value={mulai.jam}
+                  onChange={(v) => setMulai({ ...mulai, jam: v })}
+                  label={t.jamMulai}
+                  lang={lang}
+                />
+              </div>
+            )}
+          </div>
+          <div className="field">
+            <span className="field__label">{t.sampai}</span>
+            <div className="tpwinform__row">
+              <DateField
+                value={f.sampai.tanggal}
+                onChange={(v) => setF({ ...f, sampai: { ...f.sampai, tanggal: v } })}
+                label={t.tglSampai}
+                lang={lang}
+              />
+              <TimeField
+                value={f.sampai.jam}
+                onChange={(v) => setF({ ...f, sampai: { ...f.sampai, jam: v } })}
+                label={t.jamSampai}
+                lang={lang}
+              />
+            </div>
           </div>
         </div>
+        <Pratinjau lang={lang} modul={f.modul} judul={f.judul} isi={f.isi} />
         <button
           type="button"
           className="btn btn--primary tpkabar__kirim"
           disabled={sibuk || !f.judul.id.trim() || !f.isi.id.trim()}
           onClick={() => void kirim()}
         >
-          {t.umumkan}
+          {mulai ? t.jadwalkan : t.umumkan}
         </button>
       </div>
     </section>
+  );
+}
+
+/** What the notice looks like on a Praktikan's TP card, in each class's
+ *  language (an empty English falls back, as it does for them). */
+function Pratinjau({
+  lang,
+  modul,
+  judul,
+  isi,
+}: {
+  lang: Lang;
+  modul: number | null;
+  judul: TeksKabar;
+  isi: TeksKabar;
+}) {
+  const t = KS[lang];
+  const ada = judul.id.trim() || isi.id.trim();
+  const versi = (b: "id" | "en") => ({
+    judul: judul[b].trim() || judul.id,
+    isi: isi[b].trim() || isi.id,
+  });
+  return (
+    <div className="field">
+      <span className="field__label">{t.pratinjau}</span>
+      {ada ? (
+        <div className="tpkabar__pair">
+          {(["id", "en"] as const).map((b) => {
+            const v = versi(b);
+            return (
+              <div key={b} className="stack stack--sm">
+                <span className="hint">{b === "id" ? t.pratinjauReg : t.pratinjauInt}</span>
+                <ul className="tpkabar" lang={b}>
+                  <li className="banner">
+                    <span className="stack stack--sm">
+                      <b>{v.judul}</b>
+                      <span>{v.isi}</span>
+                      {modul && <span className="hint">{t.modulN(modul)}</span>}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <span className="hint">{t.pratinjauKosong}</span>
+      )}
+    </div>
   );
 }
 
@@ -332,26 +441,31 @@ function SudahPanel({
         <ul className="tppeserta__list">
           {kabar.map((k) => {
             const tampil = !k.sampai || Date.parse(k.sampai) > now;
+            const nanti = Date.parse(k.mulai) > now;
             return (
               <li key={k.id} data-selesai={tampil ? undefined : "yes"}>
                 <span className="grow stack" style={{ gap: 0 }}>
                   <b>{k.judul.id}</b>
+                  {k.sasaran === "satu" && <span className="tpkabar__isi">{k.isi.id}</span>}
                   <span className="hint">
                     {[
                       k.modul ? t.modulN(k.modul) : "",
                       k.sasaran === "belum" ? t.untukBelum : "",
-                      tampil
-                        ? k.sampai
-                          ? t.tampilSampai(waktuPanjang(k.sampai, lang))
-                          : t.tampilTerus
-                        : t.selesai,
+                      k.sasaran === "satu" ? t.untukSatu(k.nama ?? k.nim ?? "") : "",
+                      !tampil
+                        ? t.selesai
+                        : nanti
+                          ? t.dijadwalkan(waktuPanjang(k.mulai, lang))
+                          : k.sampai
+                            ? t.tampilSampai(waktuPanjang(k.sampai, lang))
+                            : t.tampilTerus,
                       t.oleh(k.oleh, waktuPanjang(k.pada, lang)),
                     ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
                 </span>
-                {boleh && (
+                {(boleh || k.milikku) && (
                   <button type="button" className="btn btn--sm" onClick={() => setHapus(k.id)}>
                     {t.hapus}
                   </button>

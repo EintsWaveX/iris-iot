@@ -1,0 +1,1 @@
+ALTER TABLE "tp_kabar" ADD COLUMN "nim" text;

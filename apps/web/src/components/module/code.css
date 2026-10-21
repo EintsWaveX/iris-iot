@@ -689,10 +689,6 @@
 .hintlog__row[data-tone="asisten"] {
   --n-c: var(--accent);
 }
-.hintlog__row[data-tone="wait"] {
-  --n-c: var(--warn);
-}
-
 /* ------------------------------------- the blank card and the hint log */
 
 .codeside {
@@ -764,32 +760,6 @@
   color: var(--key-c);
   font-size: 1rem;
   overflow-wrap: anywhere;
-}
-
-.pblank__wait {
-  align-items: center;
-  background: var(--warn-soft);
-  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
-  border-radius: 10px;
-  display: flex;
-  gap: 10px;
-  padding: 10px 12px;
-}
-
-.pblank__reasons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.pblank__acts {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.pblank__ask {
-  width: 100%;
 }
 
 .hintlog__list {

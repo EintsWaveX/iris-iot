@@ -43,7 +43,6 @@ const SEKALI: Record<string, string> = {
   "lib/aliran-ruang.ts": "the session room itself (its ticket)",
   "lib/app.ts": "getJson itself; useSessionNow polls with topics",
   "lib/auth.ts": "sign in and out",
-  "lib/seelabs-helper.ts": "runs in the SeeLabs tab",
   "lib/pdf.ts": "fetches fonts for a PDF",
   "lib/tp-pdf.ts": "fetches the font and the IRIS mark for a TP paper",
   "components/grading/TpTab.tsx": "downloads a group's files when asked; its data is GradingPage's",

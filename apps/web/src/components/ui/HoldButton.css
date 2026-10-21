@@ -1,0 +1,30 @@
+/* Press and hold (HoldButton.tsx): a lighter layer clipped from the right
+   fills the button while held, linear over --hold-ms, and snaps back in
+   200 ms on release. */
+.hold {
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.hold__fill {
+  background: color-mix(in srgb, white 30%, transparent);
+  clip-path: inset(0 100% 0 0);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: clip-path 200ms var(--ease-out-expo);
+  z-index: -1;
+}
+
+.hold[data-hold] .hold__fill {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path var(--hold-ms, 1200ms) linear;
+}
+
+.hold[data-hold] {
+  transform: scale(0.97);
+}

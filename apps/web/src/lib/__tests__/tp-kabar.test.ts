@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MEPET_MS,
   NILAI_TAMPIL_MS,
+  judulPesan,
   kabarUntuk,
   templatKabar,
   waktuKabar,
@@ -121,6 +122,16 @@ describe("kabarUntuk", () => {
     const p = { ...dasar, oto, belum: new Set([2]), jendela: new Map([[2, ext]]) };
     expect(kabarUntuk({ ...p, now: jam(J.tutup, -1) })).toEqual([]);
     expect(kabarUntuk({ ...p, now: jam(ext.tutup, -1) })).toHaveLength(1);
+  });
+  it("shows a message only to its one Praktikan", () => {
+    const k = simpan({ jenis: "pesan", sasaran: "satu", nim: "1032231301" });
+    expect(kabarUntuk({ ...dasar, simpan: [k], nim: "1032231301" })).toHaveLength(1);
+    expect(kabarUntuk({ ...dasar, simpan: [k], nim: "1032231302" })).toEqual([]);
+    expect(kabarUntuk({ ...dasar, simpan: [k] })).toEqual([]);
+    expect(kabarUntuk({ ...dasar, simpan: [{ ...k, nim: null }], nim: "1032231301" })).toEqual([]);
+  });
+  it("names the sender in a message's title", () => {
+    expect(judulPesan("ABC")).toEqual({ id: "Pesan dari ABC", en: "A message from ABC" });
   });
   it("lists the newest first", () => {
     const ks = [

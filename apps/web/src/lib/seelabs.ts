@@ -1,13 +1,10 @@
 /**
- * SeeLabs export (Phase 9 Stage 3g, mockup c-seelabs). Browser-safe: the
- * score sheet, the API and the tests share it.
+ * SeeLabs types and rules (Phase 9 Stage 3g, kept by the Phase 14 robot).
+ * Browser-safe: the score sheet, the API and the tests share it.
  *
- * SeeLabs (athena.ptrkr.moe) has no API: it is Laravel + Livewire, so the
- * only way in is the Asisten's own signed-in tab. IRIS gives two ways:
- * - "Salin Teks": a TSV in SeeLabs' field order, to type in by hand.
- * - "Salin untuk Bookmarklet": the `IRIS-SEELABS/1` payload below, which
- *   the "IRIS · Isi SeeLabs" bookmarklet (seelabs-helper.ts) reads in the
- *   SeeLabs tab. It fills the form and never presses Simpan Penilaian.
+ * SeeLabs (athena.ptrkr.moe) has no API: it is Laravel + Livewire. IRIS puts
+ * scores in through the robot (a signed-in session on the Pi), which also
+ * reads back what SeeLabs holds. There is no copy-and-paste path.
  *
  * SeeLabs pays one account once per session and takes at most two sessions
  * a day from it, so an Asisten holding two groups sends the second through
@@ -16,13 +13,9 @@
  * `akunKelompok` works out whose account each group goes through.
  */
 import { NILAI_KOMPONEN, type NilaiKomponen } from "./nilai-komponen.js";
-import type { Lang } from "./kelas.js";
 
 /** SeeLabs' own column order on Input Nilai Praktikum. */
 export const SEELABS_KOLOM = NILAI_KOMPONEN;
-
-export const PAYLOAD_AWALAN = "IRIS-SEELABS/1 ";
-export const KLP_AWALAN = "IRIS-KLP/1 ";
 
 /** SeeLabs' Praktikum names; the INT one ends in "INT". */
 export const SEELABS_PRAKTIKUM = {
@@ -40,59 +33,8 @@ export interface BarisSeelabs {
   klp?: string | null;
 }
 
-export interface PayloadSeelabs {
-  v: 1;
-  kelas: KelasSeelabs;
-  /** Every SeeLabs KLP this group's students sit in (two or more only in
-   *  a makeup session that mixes groups). Empty when none is known. */
-  klp: string[];
-  modul: number;
-  kelompok: number;
-  bahasa: Lang;
-  /** One row per student: the NIM and the 8 scores in SEELABS_KOLOM order,
-   *  null where IRIS has no score (the bookmarklet leaves that cell). */
-  baris: { nim: string; n: (number | null)[] }[];
-}
-
-export function buatPayload(p: Omit<PayloadSeelabs, "v" | "baris"> & { baris: BarisSeelabs[] }) {
-  const isi: PayloadSeelabs = {
-    v: 1,
-    kelas: p.kelas,
-    klp: p.klp,
-    modul: p.modul,
-    kelompok: p.kelompok,
-    bahasa: p.bahasa,
-    baris: p.baris.map((b) => ({ nim: b.nim, n: SEELABS_KOLOM.map((k) => b.skor[k] ?? null) })),
-  };
-  return PAYLOAD_AWALAN + JSON.stringify(isi);
-}
-
-/** The payload back from text, or null when it isn't one. */
-export function bacaPayload(teks: string): PayloadSeelabs | null {
-  const t = teks.trim();
-  if (!t.startsWith(PAYLOAD_AWALAN.trim())) return null;
-  try {
-    const p = JSON.parse(t.slice(PAYLOAD_AWALAN.trim().length)) as PayloadSeelabs;
-    if (p.v !== 1 || !Array.isArray(p.baris)) return null;
-    return p;
-  } catch {
-    return null;
-  }
-}
-
-/** The plain text copy: a header line, then one TSV row per student. */
-export function teksSeelabs(baris: BarisSeelabs[]): string {
-  const kepala = ["NIM", "Nama", ...SEELABS_KOLOM].join("\t");
-  const isi = baris.map((b) =>
-    [b.nim, b.nama, ...SEELABS_KOLOM.map((k) => (b.skor[k] == null ? "" : String(b.skor[k])))].join(
-      "\t",
-    ),
-  );
-  return [kepala, ...isi].join("\n");
-}
-
-/** A short stable fingerprint of what was copied, so a later look can tell
- *  whether the scores changed after they were saved in SeeLabs. FNV-1a,
+/** A short stable fingerprint of the scores sent, so a later look can tell
+ *  whether they changed after they were saved in SeeLabs. FNV-1a,
  *  not a security hash: it only has to notice edits. */
 export function sidikPayload(baris: BarisSeelabs[], modul: number): string {
   const teks =
@@ -115,39 +57,6 @@ export function sidikPayload(baris: BarisSeelabs[], modul: number): string {
 export interface KlpSeelabs {
   klp: string;
   nim: string[];
-}
-
-/**
- * The SeeLabs group list, from either the bookmarklet's list mode
- * (`IRIS-KLP/1 {...}`) or the Input Nilai page copied as text, where each
- * group reads "KLP", its number, then its members' NIMs and names.
- */
-export function bacaDaftarKlp(teks: string): KlpSeelabs[] {
-  const t = teks.trim();
-  if (t.startsWith(KLP_AWALAN.trim())) {
-    try {
-      const p = JSON.parse(t.slice(KLP_AWALAN.trim().length)) as { kelompok?: unknown };
-      if (!Array.isArray(p.kelompok)) return [];
-      return p.kelompok
-        .map((k) => k as { klp?: unknown; nim?: unknown })
-        .filter((k) => typeof k.klp === "string" && Array.isArray(k.nim))
-        .map((k) => ({
-          klp: k.klp as string,
-          nim: (k.nim as unknown[]).filter((n): n is string => typeof n === "string"),
-        }));
-    } catch {
-      return [];
-    }
-  }
-  const hasil: KlpSeelabs[] = [];
-  const bagian = t.split(/\bKLP\b[\s:.]*(?=\d)/i);
-  for (const b of bagian.slice(1)) {
-    const m = b.match(/^(\d{1,4})/);
-    if (!m) continue;
-    const nim = Array.from(b.slice(m[1].length).matchAll(/\b\d{10,15}\b/g), (x) => x[0]);
-    hasil.push({ klp: m[1], nim });
-  }
-  return hasil;
 }
 
 export interface CocokKlp {

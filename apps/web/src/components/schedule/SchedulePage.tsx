@@ -49,6 +49,9 @@ import type { Lang } from "../../lib/kelas";
 import SlotEditor, { type SlotEditorHandle } from "./SlotEditor";
 import ImportView from "./ImportView";
 import ModulView, { rentang } from "./ModulView";
+import BackButton from "../ui/BackButton";
+import { KalenderAsisten } from "../tp/KalenderTp";
+import { KAL } from "../tp/kalenderStrings";
 import { J, pesanJ, type Jx } from "./strings";
 import { HARI, SLOTS, type DataJadwal, type JadwalRow, type PengaturanJendela } from "./types";
 import "./SchedulePage.css";
@@ -494,7 +497,7 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
   const [err, setErr] = useState(false);
   const [sel, setSel] = useState<{ hari: number; slot: number } | null>(null);
   const [highlight, setHighlight] = useState(false);
-  const [view, setView] = useState<"week" | "import" | "modul">("week");
+  const [view, setView] = useState<"week" | "import" | "modul" | "kalender">("week");
   // The slot the drawer's Buka Per Modul came from, flashed there
   const [sorotModul, setSorotModul] = useState<{ hari: number; slot: number } | null>(null);
   const [setting, setSetting] = useState(false);
@@ -629,6 +632,23 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
     );
   }
 
+  // The TP calendar (2026-10-21, the LMS Kalender's): this semester only.
+  if (view === "kalender") {
+    return (
+      <div className="jpage">
+        <BackButton lang={lang} label={t.pm.back} onClick={() => setView("week")} />
+        <div className="jpage__head">
+          <div className="page-header__heading">
+            <span className="page-header__eyebrow">{t.eyebrow}</span>
+            <h1 className="page-header__title">{KAL[lang].judul}</h1>
+          </div>
+        </div>
+        <p className="hint">{KAL[lang].lede}</p>
+        <KalenderAsisten lang={lang} />
+      </div>
+    );
+  }
+
   if (view === "import" && data) {
     return (
       <ImportView
@@ -732,6 +752,11 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
           {bolehModul && (
             <button type="button" className="btn" onClick={() => setView("modul")}>
               {t.pm.open}
+            </button>
+          )}
+          {kini === semester && (
+            <button type="button" className="btn" onClick={() => setView("kalender")}>
+              {KAL[lang].buka}
             </button>
           )}
           {bolehTunda && kini === semester && (

@@ -112,7 +112,6 @@ const HD = dict({
     seelabsFound:
       "SeeLabs hanya menampilkan kelompok shift yang dicentang di Input Jaga (paling banyak 2 shift sehari).",
     guide: "Panduan SeeLabs",
-    hold: "Titipkan ke Akun Lain",
     segar: "Halaman tidak memperbarui sendiri",
     segarFound: (live: boolean) =>
       live
@@ -231,7 +230,6 @@ const HD = dict({
     seelabsFound:
       "SeeLabs only lists groups of shifts ticked in Input Jaga (2 shifts a day at most).",
     guide: "SeeLabs Guide",
-    hold: "Hold Through Another Account",
     segar: "The page doesn't update by itself",
     segarFound: (live: boolean) =>
       live ? "Live relay connected." : "Live relay down. Data still refreshes every few seconds.",
@@ -344,7 +342,6 @@ const HD = dict({
     seelabs: "SeeLabs 账号看不到自己的组",
     seelabsFound: "SeeLabs 只显示在 Input Jaga 里勾选的时段的组（每天最多 2 个时段）。",
     guide: "SeeLabs 指南",
-    hold: "通过其他账号代存",
     segar: "页面不会自己更新",
     segarFound: (live: boolean) =>
       live ? "实时推送已连接。" : "实时推送已断开。数据仍每隔几秒刷新。",
@@ -433,7 +430,7 @@ export default function HelpDrawer({
   onGroup: (id: number) => void;
   onAnnounce: () => void;
   onServer: () => void;
-  onSeelabs: (tab?: "panduan" | "titipan") => void;
+  onSeelabs: () => void;
   onRefresh: () => void;
 }) {
   const h = HD[lang];
@@ -671,10 +668,7 @@ export default function HelpDrawer({
         cat: "nilai",
         title: h.seelabs,
         found: h.seelabsFound,
-        acts: [
-          { label: h.guide, run: () => (close(), onSeelabs("panduan")) },
-          { label: h.hold, run: () => (close(), onSeelabs("titipan")) },
-        ],
+        acts: [{ label: h.guide, run: () => (close(), onSeelabs()) }],
       },
       {
         id: "segar",

@@ -9,6 +9,8 @@
  *      With ?modul= also the final set's questions in my class's language
  *      (and Mandarin) and the PDF's instructions.
  * GET  /api/tp/berkas?id=&i=[&unduh=1]       my own file (a redirect to R2).
+ * GET  /api/tp/kalender              the TP calendar: windows, practicum weeks,
+ *      postponed weeks; a Praktikan's own close and practicum day (both roles)
  * POST /api/tp/tiket { modul, ukuran, sha256, halaman }   where to PUT my PDF
  * POST /api/tp/unggah { modul, tiket }       the PDF I put becomes my TP
  * Relay (no session; signed `detak|ts` with KONSOL_RELAY_SECRET):
@@ -30,7 +32,9 @@
  * GET  /api/tp/kumpul?modul=         who handed in, by class (IRIS's roster)
  * GET  /api/tp/jejak?modul=[&nim=][&n=]   every change to the module's files
  * GET  /api/tp/kabar                    the TP notices and the automatic ones
- * POST /api/tp/kabar { modul|null, jenis, sasaran, judul, isi, sampai|null }
+ * POST /api/tp/kabar { modul|null, jenis, sasaran, judul, isi, mulai?, sampai|null }
+ *      or { modul, sasaran: "satu", nim, isi, sampai } a message to one
+ *      Praktikan (also for whoever grades their TP)
  * POST /api/tp/kabar-hapus { id }  POST /api/tp/kabar-oto { buka, mepet }
  * GET  /api/tp/pengaturan            Penilaian › Pengaturan TP: Peserta TP,
  *      the default window, the IRIS and SeeLabs cross-check
@@ -55,7 +59,7 @@
  * goes into the session's TP component.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
@@ -77,6 +81,8 @@ import {
   sesiAnggota,
   sesiAsisten,
   kelompok,
+  jadwal,
+  rosterSlot,
   tpJejak,
   tpKabar,
   tpKiriman,
@@ -89,6 +95,7 @@ import {
   ISI_MAKS,
   JENIS_KABAR,
   JUDUL_MAKS,
+  judulPesan,
   kabarUntuk,
   type JenisKabar,
   type KabarSimpan,
@@ -138,6 +145,10 @@ import {
   type SetTp,
 } from "../_lib/tp.js";
 import { ambilIsiTp, bacaR2, mintaTiket, terimaUnggah } from "../_lib/tp-unggah.js";
+import { bacaTunda } from "../_lib/modul-tunda.js";
+import { acaraKalender } from "../../src/lib/tp-kalender.js";
+import { SLOT_MULAI, hariIniWib } from "../../src/lib/jadwal.js";
+import { daftarLibur } from "../../src/lib/penugasan-minggu.js";
 import { bacaStatusCermin } from "../_lib/tp-cermin.js";
 import { batasTidurJamLab, jamLabBilaPerlu } from "../_lib/jam-lab.js";
 
@@ -295,7 +306,8 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       .sort()
       .at(-1);
   const kabar = kabarUntuk({
-    simpan: await kabarSemester(db, set.semester),
+    simpan: await kabarSemester(db, set.semester, s.nim),
+    nim: s.nim,
     oto: await bacaOto(db),
     jendela: new Map(out.map((x) => [x.modul, x.jendela ?? null])),
     belum: new Set(out.filter((x) => x.berkas.length === 0).map((x) => x.modul)),
@@ -1364,20 +1376,81 @@ async function perluDicek(
 const KUNCI_OTO = "tp_kabar_oto";
 
 /** This semester's kept notices, the newest first. */
+/**
+ * The TP calendar (2026-10-21, the LMS Kalender's): every module's window
+ * and practicum week and the postponed weeks. A Praktikan gets their own
+ * close (an extension) and their practicum day, nothing about anyone else.
+ */
+async function handleKalender(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const db = getDb();
+  const set = await bacaSet(db);
+  const jendela = Object.fromEntries(
+    Object.entries(set.jendela.modul).map(([m, j]) => [
+      Number(m),
+      j ? { buka: j.buka, tutup: j.tutup } : null,
+    ]),
+  );
+  const tunda = (await bacaTunda(db, set.semester)).map((x) => x.senin);
+  let pribadi: Parameters<typeof acaraKalender>[0]["pribadi"];
+  if (s.role === "praktikan") {
+    const [r] = await db
+      .select({ hari: rosterSlot.hari, slot: rosterSlot.slot })
+      .from(rosterSlot)
+      .where(and(eq(rosterSlot.semester, set.semester), eq(rosterSlot.nim, s.nim)))
+      .limit(1);
+    const [j] = r
+      ? await db
+          .select({ libur: jadwal.liburTanggal })
+          .from(jadwal)
+          .where(
+            and(
+              eq(jadwal.semester, set.semester),
+              eq(jadwal.hari, r.hari),
+              eq(jadwal.slot, r.slot),
+            ),
+          )
+          .limit(1)
+      : [];
+    const pj = await perpanjangTp(db, set);
+    pribadi = {
+      perpanjang: new Map(
+        [...pj].flatMap(([m, per]) => (per.has(s.nim) ? [[m, per.get(s.nim)!] as const] : [])),
+      ),
+      hari: r?.hari ?? null,
+      jam: r ? (SLOT_MULAI[r.slot] ?? null) : null,
+      libur: daftarLibur(j?.libur ?? null),
+    };
+  }
+  res.status(200).json({
+    ok: true,
+    semester: set.semester,
+    hariIni: hariIniWib(),
+    acara: acaraKalender({ jendela, tunda, pribadi }),
+  });
+}
+
 async function kabarSemester(
   db: ReturnType<typeof getDb>,
   semester: string,
+  /** A Praktikan's read: messages to anyone else never leave the database. */
+  untuk?: string,
 ): Promise<KabarSimpan[]> {
   const rows = await db
     .select()
     .from(tpKabar)
-    .where(eq(tpKabar.semester, semester))
+    .where(
+      and(
+        eq(tpKabar.semester, semester),
+        untuk === undefined ? undefined : or(ne(tpKabar.sasaran, "satu"), eq(tpKabar.nim, untuk)),
+      ),
+    )
     .orderBy(desc(tpKabar.mulai), desc(tpKabar.id));
   return rows.map((r) => ({
     id: r.id,
     modul: r.modul,
     jenis: r.jenis,
     sasaran: r.sasaran,
+    nim: r.nim,
     judul: r.judul,
     isi: r.isi,
     mulai: r.mulai.toISOString(),
@@ -1417,66 +1490,135 @@ async function handleKabar(_req: ApiRequest, res: ApiResponse, s: SessionPayload
     bolehKabar(s.nim),
   ]);
   const olehOf = new Map(rows.map((r) => [r.id, r]));
+  const kabar = await kabarSemester(db, set.semester);
+  // A message names its Praktikan.
+  const nims = [...new Set(kabar.flatMap((k) => (k.nim ? [k.nim] : [])))];
+  const namaOf = new Map(
+    nims.length
+      ? (
+          await db
+            .select({ nim: praktikan.nim, nama: praktikan.nama })
+            .from(praktikan)
+            .where(inArray(praktikan.nim, nims))
+        ).map((p) => [p.nim, p.nama])
+      : [],
+  );
   res.status(200).json({
     ok: true,
     boleh: bisa,
     oto,
     jendela: Object.fromEntries([1, 2, 3, 4].map((m) => [m, jendelaUntuk(set, m)])),
-    kabar: (await kabarSemester(db, set.semester)).map((k) => {
+    kabar: kabar.map((k) => {
       const o = olehOf.get(k.id);
       return {
         ...k,
+        nama: k.nim ? (namaOf.get(k.nim) ?? k.nim) : null,
         oleh: o ? (kodeOf.get(o.oleh) ?? o.oleh) : "",
         pada: o?.pada.toISOString() ?? k.mulai,
+        // The sender may take back their own message.
+        milikku: o?.oleh === s.nim,
       };
     }),
   });
 }
 
 async function handleSimpanKabar(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (!(await bolehKabar(s.nim))) return tolak(res, "tidak_berhak", 403);
   const b = jsonBody(req);
   const modul = b.modul === null || b.modul === undefined ? null : modulDari(b.modul);
-  const jenis = JENIS_KABAR.includes(b.jenis as JenisKabar) ? (b.jenis as JenisKabar) : null;
-  const sasaran = b.sasaran === "belum" ? "belum" : "semua";
+  // A message to one Praktikan (sasaran "satu"): its title names the sender.
+  const pesan = b.sasaran === "satu";
+  const nim = pesan && typeof b.nim === "string" ? b.nim.trim() : "";
+  const jenis: JenisKabar | "pesan" | null = pesan
+    ? "pesan"
+    : JENIS_KABAR.includes(b.jenis as JenisKabar)
+      ? (b.jenis as JenisKabar)
+      : null;
+  const sasaran = pesan ? "satu" : b.sasaran === "belum" ? "belum" : "semua";
   const teks = (x: unknown, maks: number) => {
     const o = (x ?? {}) as Record<string, unknown>;
     const id = typeof o.id === "string" ? o.id.trim() : "";
     const en = typeof o.en === "string" ? o.en.trim() : "";
     return id.length <= maks && en.length <= maks ? { id, en } : null;
   };
-  const judul = teks(b.judul, JUDUL_MAKS);
   const isi = teks(b.isi, ISI_MAKS);
-  const sampai = typeof b.sampai === "string" ? new Date(b.sampai) : null;
+  const tgl = (x: unknown) => (typeof x === "string" ? new Date(x) : null);
+  const sampai = tgl(b.sampai);
+  // Jadwalkan: it shows from then; a time already past means now.
+  let mulai = tgl(b.mulai);
   if (
     !jenis ||
     (b.modul !== null && b.modul !== undefined && !modul) ||
-    !judul?.id ||
     !isi?.id ||
     (sasaran === "belum" && !modul) ||
-    (sampai && Number.isNaN(sampai.getTime()))
+    (pesan && (!modul || !nim)) ||
+    (sampai && Number.isNaN(sampai.getTime())) ||
+    (mulai && Number.isNaN(mulai.getTime()))
   )
     return tolak(res, "format_salah");
+  if (mulai && mulai.getTime() <= Date.now()) mulai = null;
   if (sampai && sampai.getTime() <= Date.now()) return tolak(res, "sudah_lewat");
+  if (sampai && mulai && sampai.getTime() <= mulai.getTime())
+    return tolak(res, "sampai_sebelum_mulai");
   const db = getDb();
   const set = await bacaSet(db);
+  // A message: the TP right and Admins, or the one who grades their TP.
+  if (pesan) {
+    const [p] = await db
+      .select({ nim: praktikan.nim })
+      .from(praktikan)
+      .where(and(eq(praktikan.nim, nim), eq(praktikan.semester, set.semester)))
+      .limit(1);
+    if (!p) return tolak(res, "tidak_ada");
+    if (!(await bolehKabar(s.nim)) && !(await hakNilai(db, set, modul!, nim, s.nim)).boleh)
+      return tolak(res, "tidak_berhak", 403);
+  } else if (!(await bolehKabar(s.nim))) return tolak(res, "tidak_berhak", 403);
+  const judul = pesan
+    ? judulPesan((await petaKode(db)).get(s.nim) ?? s.nim)
+    : teks(b.judul, JUDUL_MAKS);
+  if (!judul?.id) return tolak(res, "format_salah");
   const [r] = await db
     .insert(tpKabar)
-    .values({ semester: set.semester, modul, jenis, sasaran, judul, isi, sampai, oleh: s.nim })
+    .values({
+      semester: set.semester,
+      modul,
+      jenis,
+      sasaran,
+      nim: pesan ? nim : null,
+      judul,
+      isi,
+      ...(mulai ? { mulai } : {}),
+      sampai,
+      oleh: s.nim,
+    })
     .returning({ id: tpKabar.id });
-  await writeAudit(s.nim, "tp_kabar", { id: r.id, modul, jenis, sasaran, judul: judul.id });
+  await writeAudit(s.nim, "tp_kabar", {
+    id: r.id,
+    modul,
+    jenis,
+    sasaran,
+    ...(pesan ? { nim } : {}),
+    judul: judul.id,
+    ...(mulai ? { mulai: mulai.toISOString() } : {}),
+  });
   res.status(200).json({ ok: true, id: r.id });
 }
 
 async function handleHapusKabar(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (!(await bolehKabar(s.nim))) return tolak(res, "tidak_berhak", 403);
   const id = Number(jsonBody(req).id);
   if (!Number.isInteger(id) || id < 1) return tolak(res, "format_salah");
+  // The TP right and Admins remove any; a sender their own message.
+  const semua = await bolehKabar(s.nim);
   const db = getDb();
   const gone = await db
     .delete(tpKabar)
-    .where(eq(tpKabar.id, id))
+    .where(
+      and(
+        eq(tpKabar.id, id),
+        semua ? undefined : and(eq(tpKabar.oleh, s.nim), eq(tpKabar.sasaran, "satu")),
+      ),
+    )
     .returning({ id: tpKabar.id, modul: tpKabar.modul, judul: tpKabar.judul });
+  if (!gone.length && !semua) return tolak(res, "tidak_berhak", 403);
   if (!gone.length) return tolak(res, "tidak_ada");
   await writeAudit(s.nim, "tp_kabar_hapus", { id, modul: gone[0].modul, judul: gone[0].judul.id });
   res.status(200).json({ ok: true });
@@ -1541,6 +1683,11 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!requireMethod(req, res, "GET")) return;
     if (!sesiku) return tolak(res, "belum_masuk", 401);
     return handleBerkas(req, res, sesiku);
+  }
+  if (aksi === "kalender") {
+    if (!requireMethod(req, res, "GET")) return;
+    if (!sesiku) return tolak(res, "belum_masuk", 401);
+    return handleKalender(req, res, sesiku);
   }
   if (aksi === "saya") {
     if (!requireMethod(req, res, "GET")) return;

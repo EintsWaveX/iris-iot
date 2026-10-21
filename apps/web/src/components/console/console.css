@@ -1731,10 +1731,11 @@ button.lib__name {
 
 /* -------------------------------------------------------------- end */
 
+/* 2026-10-22: only what is still open is a row (a hairline between rows,
+   no card per item); what is fine folds into one quiet line below. */
 .endchk {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1742,36 +1743,74 @@ button.lib__name {
 
 .endchk__item {
   align-items: flex-start;
-  background: var(--surface-1);
-  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
-  border-radius: var(--radius-md);
+  border-top: 1px solid var(--hairline);
   display: flex;
   gap: var(--space-3);
-  padding: var(--space-3);
+  padding: var(--space-3) 0;
 }
 
-.endchk__item[data-ok] {
-  border-color: var(--hairline);
+.endchk__item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.endchk__main {
+  gap: 6px;
+  min-width: 0;
+}
+
+.endchk__chips {
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .endchk__state {
   color: var(--warn);
   flex: none;
-}
-
-.endchk__item[data-ok] .endchk__state {
-  color: var(--ok);
-}
-
-.endchk__icon {
-  color: var(--text-muted);
-  flex: none;
   padding-top: 1px;
+}
+
+.endchk__go {
+  flex: none;
+  gap: 4px;
+}
+
+.endchk__ok {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--ok) 8%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--ok) 28%, var(--hairline));
+  border-radius: var(--radius-md);
+  color: var(--ok);
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.endchk__ok b {
+  color: var(--text);
+}
+
+.endchk__hold {
+  margin: 0;
 }
 
 .endchk__cancel {
   color: var(--danger);
-  margin-right: auto;
+  justify-self: start;
+}
+
+/* Phones: Kembali and the held end button side by side, not stacked. */
+@media (max-width: 519px) {
+  .dialog__actions:has(> .hold) {
+    flex-direction: row;
+  }
+
+  .dialog__actions:has(> .hold) > .btn {
+    flex: 1 1 0;
+    line-height: 1.2;
+    padding-inline: 10px;
+    white-space: normal;
+  }
 }
 
 /* ------------------------------------------------------------- done */

@@ -946,6 +946,14 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
       mulai: running.mulai,
       status: running.status,
       kelas: running.kelas,
+      // Enough to reopen an ended session's wrap up (2026-10-22).
+      mulaiPada: running.mulaiPada ? running.mulaiPada.toISOString() : null,
+      selesaiPada: running.selesaiPada ? running.selesaiPada.toISOString() : null,
+      slot: running.slot,
+      jenis: running.jenis,
+      butuhAp: running.butuhAp,
+      durasiMenit: running.durasiMenit,
+      jumlahKelompok: running.jumlahKelompok,
       durasiDetik,
       // The hand-over's kit count (Siapkan Sesi Berikutnya).
       kit: running.kit ?? null,
@@ -2082,7 +2090,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "seelabs") {
     if (req.method === "POST") return handleSeelabsPost(req, res, session);
     if (!requireMethod(req, res, "GET")) return;
-    return handleSeelabsGet(req, res, session);
+    return handleSeelabsGet(req, res);
   }
   if (aksi === "robot") {
     if (req.method === "POST") return handleRobotPost(req, res, session);

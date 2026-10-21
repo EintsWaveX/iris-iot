@@ -8,7 +8,9 @@
 import type { JendelaTp, KelasTp } from "./tp.js";
 
 export type JenisKabar = "bebas" | "buka" | "tutup" | "nilai" | "ingat";
-export type SasaranKabar = "semua" | "belum";
+/** "satu": a message to one Praktikan (`nim`), kind "pesan" (2026-10-21,
+ *  the LMS's Kirim Pesan). */
+export type SasaranKabar = "semua" | "belum" | "satu";
 export interface TeksKabar {
   id: string;
   en: string;
@@ -22,8 +24,10 @@ export const ISI_MAKS = 1000;
 export interface KabarSimpan {
   id: number;
   modul: number | null;
-  jenis: JenisKabar;
+  jenis: JenisKabar | "pesan";
   sasaran: SasaranKabar;
+  /** The one Praktikan a message is for (sasaran "satu"). */
+  nim?: string | null;
   judul: TeksKabar;
   isi: TeksKabar;
   mulai: string;
@@ -43,7 +47,7 @@ export interface KabarTampil {
    *  "panjang-2-<end>" and "nilai-2" for their own. */
   id: string;
   modul: number | null;
-  jenis: JenisKabar | "panjang";
+  jenis: JenisKabar | "pesan" | "panjang";
   judul: string;
   isi: string;
   pada: string;
@@ -80,6 +84,12 @@ export function waktuKabar(iso: string, b: "id" | "en"): string {
   }).format(d);
   return `${tgl} · ${jam}`;
 }
+
+/** A message's title, with the sending Asisten's code. */
+export const judulPesan = (kode: string): TeksKabar => ({
+  id: `Pesan dari ${kode}`,
+  en: `A message from ${kode}`,
+});
 
 /** A template's title, text and audience for a module and its window. */
 export function templatKabar(
@@ -142,7 +152,8 @@ export function templatKabar(
  * handed in; `modul` keeps only one module's (and the general ones).
  * `pribadi` adds their own: an extension while it runs and they still have
  * no file, and their score for three days after it went out (not on the
- * module page, which shows the score itself).
+ * module page, which shows the score itself). A message to one Praktikan
+ * shows only to that `nim`.
  */
 export function kabarUntuk(p: {
   simpan: KabarSimpan[];
@@ -153,6 +164,7 @@ export function kabarUntuk(p: {
   now: number;
   modul?: number;
   pribadi?: KabarPribadi;
+  nim?: string;
 }): KabarTampil[] {
   const b = p.kelas === "inter" ? "en" : "id";
   const teks = (x: TeksKabar) => x[b].trim() || x.id;
@@ -161,6 +173,7 @@ export function kabarUntuk(p: {
     if (Date.parse(k.mulai) > p.now || (k.sampai && Date.parse(k.sampai) <= p.now)) continue;
     if (p.modul !== undefined && k.modul !== null && k.modul !== p.modul) continue;
     if (k.sasaran === "belum" && (k.modul === null || !p.belum.has(k.modul))) continue;
+    if (k.sasaran === "satu" && (!k.nim || k.nim !== p.nim)) continue;
     out.push({
       id: `k${k.id}`,
       modul: k.modul,

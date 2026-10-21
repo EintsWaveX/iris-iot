@@ -46,7 +46,7 @@ langsung. Tanpa dongle, perilaku lama berlaku:
 > dijalankan -- tidak ada yang perlu diubah pada perintah di bawah ini.
 
 ```bash
-sudo ./scripts/opi_ap_on.sh     # menjadi access point IRIS-IOT
+sudo ./scripts/opi_ap_on.sh     # menjadi access point IRIS_IOT
 sudo ./scripts/opi_ap_off.sh    # kembali menjadi client Wi-Fi kampus
 ```
 
@@ -54,8 +54,8 @@ Nilai bawaannya:
 
 | Parameter | Nilai |
 |---|---|
-| SSID | `IRIS-IOT` |
-| Kata sandi | `iris2026` |
+| SSID | `IRIS_IOT` |
+| Kata sandi | `13015954` |
 | Alamat Pi | `192.168.4.1` |
 | Rentang DHCP | `192.168.4.10` – `192.168.4.60` |
 | Server NTP | `192.168.4.1` (Pi itu sendiri) |
@@ -390,7 +390,7 @@ NIM dipakai untuk satu hal saja: mencari kelompok seseorang saat ia masuk.
   diketik orangnya sendiri, dikembalikan kepada koneksi yang mengetiknya.
 - Daftar lengkap beserta NIM hanya terbaca lewat perintah `jadwal_baca`, yang
   **memerlukan token asisten**.
-- Nama anggota (bukan NIM) tetap terbaca siapa pun di hotspot `IRIS-IOT`,
+- Nama anggota (bukan NIM) tetap terbaca siapa pun di hotspot `IRIS_IOT`,
   seperti sebelumnya, karena proyektor membutuhkannya.
 - Pencarian NIM dapat dicoba berulang oleh siapa pun di hotspot. Ada batas
   percobaan per koneksi supaya menebak seluruh angkatan tidak menjadi murah,
@@ -481,7 +481,7 @@ ada satu saja yang gagal. Jalankan ini setiap kali skema pesannya diubah.
 ## 6. Hal yang paling sering salah
 
 - **Papan skor kosong padahal hunter menyala.** Papan itu belum bergabung ke
-  `IRIS-IOT`, atau Pi masih dalam mode client. Serial Monitor hunter akan
+  `IRIS_IOT`, atau Pi masih dalam mode client. Serial Monitor hunter akan
   menggantung pada titik-titik "Menyambung ke hotspot Orange Pi".
 - **Semua kelompok terbaca "MEMBARA" sekaligus.** `BEACON_TX_POWER` terisi 20,
   bukan 2. Pada daya penuh gradien sinyalnya rata dan permainannya mustahil.

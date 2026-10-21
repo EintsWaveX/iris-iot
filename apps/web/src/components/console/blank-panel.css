@@ -50,11 +50,6 @@
   border-color: color-mix(in srgb, var(--warn) 45%, transparent);
 }
 
-.brow[data-ask="yes"] {
-  border-color: var(--violet);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--violet) 40%, transparent);
-}
-
 .brow__n {
   color: var(--text-muted);
   font-weight: 700;
@@ -108,27 +103,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.brow__ask,
-.brow__sent {
-  align-items: flex-start;
-  display: flex;
-  font-size: var(--fs-small);
-  gap: 6px;
-  margin: 0;
-}
-
-.brow__ask > svg {
-  color: var(--violet);
-  flex: none;
-  margin-top: 2px;
-}
-
-.brow__sent > svg {
-  color: var(--accent);
-  flex: none;
-  margin-top: 2px;
 }
 
 .brow__acts {

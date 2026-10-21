@@ -1,7 +1,7 @@
 /**
  * Mulai and Selesai Perburuan (2026-10-08): the Asisten's switch for the
  * Module 4 hunt in a running session. Starting a Module 4 session no longer
- * touches the network; Mulai turns the IRIS-IOT hotspot and modul4.service
+ * touches the network; Mulai turns the IRIS_IOT hotspot and modul4.service
  * on (queued for the one enrolled Pi), unlocks the Praktikan's Perburuan
  * step, and Selesai (or ending the session) turns both off again.
  *

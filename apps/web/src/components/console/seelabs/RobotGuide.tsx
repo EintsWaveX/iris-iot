@@ -1,6 +1,5 @@
-/** The robot's short guide above Panduan (Phase 14, mockup s14-panduan):
- *  connect once, Kirim Nilai, watch the strip. The manual guide below it
- *  stays as the fallback. */
+/** The robot's short guide (Phase 14, mockup s14-panduan): connect once,
+ *  Kirim Nilai, watch the strip. */
 import { href } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { RB } from "./robotStrings";

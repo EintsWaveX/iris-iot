@@ -1343,9 +1343,9 @@ export const sesiKejadian = pgTable(
 );
 
 /**
- * Each time scores were copied for SeeLabs ("Salin untuk SeeLabs" or the
- * bookmarklet) and, once confirmed, saved there. The payload hash tells a
- * later copy whether the scores changed since.
+ * Each time a group's scores went to SeeLabs and, once confirmed, were saved
+ * there (the robot since Phase 14; the first rows were copied by hand). The
+ * payload hash tells a later send whether the scores changed since.
  */
 export const seelabsEkspor = pgTable(
   "seelabs_ekspor",
@@ -1363,7 +1363,7 @@ export const seelabsEkspor = pgTable(
     disimpanPada: timestamp("disimpan_pada", { withTimezone: true }),
     /** Phase 14: how it reached SeeLabs, "robot" (the Pi saved and read it
      *  back, or since 2026-10-17 read a SeeLabs change back into IRIS) or
-     *  "tangan" (marked by hand after the bookmarklet). */
+     *  "tangan" (marked by hand, before the manual path went away). */
     cara: text("cara", { enum: ["robot", "tangan"] }),
     /** What SeeLabs held after this save, per NIM: the read-back compares
      *  against it (2026-10-17). Null for saves before it and by hand. */
@@ -1927,10 +1927,12 @@ export const tpKabar = pgTable(
     semester: text("semester").notNull(),
     /** null: about TP in general, shown on the Dasbor only. */
     modul: integer("modul"),
-    jenis: text("jenis", { enum: ["bebas", "buka", "tutup", "nilai", "ingat"] }).notNull(),
-    sasaran: text("sasaran", { enum: ["semua", "belum"] })
+    jenis: text("jenis", { enum: ["bebas", "buka", "tutup", "nilai", "ingat", "pesan"] }).notNull(),
+    sasaran: text("sasaran", { enum: ["semua", "belum", "satu"] })
       .notNull()
       .default("semua"),
+    /** sasaran "satu": the one Praktikan a message is for. */
+    nim: text("nim"),
     judul: jsonb("judul").$type<{ id: string; en: string }>().notNull(),
     isi: jsonb("isi").$type<{ id: string; en: string }>().notNull(),
     mulai: timestamp("mulai", { withTimezone: true }).notNull().defaultNow(),

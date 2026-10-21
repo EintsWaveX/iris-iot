@@ -6,25 +6,20 @@
  *                    KLP numbers, scorer, the account it goes through, its
  *                    status and the rows in SeeLabs' field order; plus the
  *                    Asisten free to lend an account.
- * GET  ?titipan=1    groups whose scores go through MY account (I'm the
- *                    lender) and aren't saved in SeeLabs yet.
- * POST { aksi: "salin", sesiId, kelompok }        logs a copy
- * POST { aksi: "simpan" | "belum", sesiId, kelompok }
- *                    marks the group saved in SeeLabs, or takes that back
  * POST { aksi: "akun", sesiId, kelompok, akun }   picks (or clears, null)
  *                    the lender for an Asisten's second group (or any group
  *                    at the two-sessions-a-day cap), logged in
  *                    sesi_kejadian as "akun_seelabs"
  *
- * Nothing here talks to SeeLabs (it has no API): the Asisten copies, runs
- * the bookmarklet in their own tab, presses Simpan there, and marks it here.
+ * Nothing here talks to SeeLabs (it has no API): the robot saves the scores
+ * (api/_lib/seelabs-robot.ts) and reads them back (seelabs-baca.ts).
  *
  * A group's KLP comes from its students: each NIM's weekly slot roster
  * (roster_slot) and that roster group's KLP (roster_kelompok), so a makeup
  * session mixing groups still lists every KLP its students sit in. The live
  * `kelompok.klp_seelabs` fills in when no roster knows them.
  */
-import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
@@ -346,36 +341,8 @@ async function pemberiPinjam(
   });
 }
 
-export async function handleSeelabsGet(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
+export async function handleSeelabsGet(req: ApiRequest, res: ApiResponse) {
   const db = getDb();
-  if (req.query.titipan) {
-    // Sessions from the last 60 days where someone picked MY account.
-    const batas = new Date(Date.now() - 60 * 86_400_000);
-    const rows = await db
-      .selectDistinct({ sesiId: sesiKejadian.sesiId })
-      .from(sesiKejadian)
-      .where(
-        and(
-          eq(sesiKejadian.jenis, "akun_seelabs"),
-          sql`${sesiKejadian.detail}->>'akun' = ${session.nim}`,
-          gte(sesiKejadian.pada, batas),
-        ),
-      )
-      .orderBy(desc(sesiKejadian.sesiId));
-    const titipan: (SesiSeelabs["sesi"] & { kelompok: KelompokSeelabs })[] = [];
-    let namaAkun: Record<string, string | null> = {};
-    for (const r of rows) {
-      const data = await muatSeelabs(db, r.sesiId);
-      if (!data) continue;
-      namaAkun = { ...namaAkun, ...data.namaAkun };
-      for (const g of data.kelompok)
-        if (g.akun === session.nim && g.pinjam && g.status !== "terkirim")
-          titipan.push({ ...data.sesi, kelompok: g });
-    }
-    res.status(200).json({ ok: true, titipan, namaAkun });
-    return;
-  }
-
   const sesiId = posInt(req.query.sesiId);
   if (!sesiId) {
     res.status(400).json({ ok: false, kode: "format_salah" });
@@ -403,7 +370,7 @@ export async function handleSeelabsPost(
   const aksi = typeof body.aksi === "string" ? body.aksi : "";
   const sesiId = posInt(body.sesiId);
   const nomor = posInt(body.kelompok);
-  if (!sesiId || !nomor || !["salin", "simpan", "belum", "akun"].includes(aksi)) {
+  if (!sesiId || !nomor || aksi !== "akun") {
     res.status(400).json({ ok: false, kode: "format_salah" });
     return;
   }
@@ -423,108 +390,35 @@ export async function handleSeelabsPost(
     return;
   }
 
-  // The scorer may do everything; the lender may copy and mark saved; the
-  // full `pair` right covers an Asisten who is away.
+  // The scorer picks the lender; the full `pair` right covers an Asisten
+  // who is away.
   const orang = await muatOrang(session.nim);
   const penuh = !!orang && bolehPenuh(orang, "pair");
   const penilai = g.penilai === session.nim || (!g.penilai && !!orang);
-  const pemberi = g.akun === session.nim;
-  const boleh = aksi === "akun" ? penilai || penuh : penilai || pemberi || penuh;
-  if (!boleh) {
+  if (!(penilai || penuh)) {
     res.status(403).json({ ok: false, kode: "bukan_penilai" });
     return;
   }
 
-  if (aksi === "akun") {
-    const akun = typeof body.akun === "string" && body.akun ? body.akun : null;
-    // A lender is only for a group that doesn't ride its scorer's own
-    // account: a later group, or any group of a scorer at the daily cap.
-    const pasangan = new Map(data.kelompok.map((x) => [x.nomor, x.penilai]));
-    const butuh = akunKelompok(pasangan, new Map(), new Set(data.penuh)).get(g.nomor) === null;
-    if (!g.penilai || !butuh) {
-      res.status(200).json({ ok: false, kode: "tidak_perlu_pinjam" });
-      return;
-    }
-    if (akun && !(await pemberiPinjam(db, data, nomor)).pemberi.includes(akun)) {
-      res.status(200).json({ ok: false, kode: "pemberi_salah" });
-      return;
-    }
-    await db.insert(sesiKejadian).values({
-      sesiId,
-      jenis: "akun_seelabs",
-      detail: { nomor, akun, penilai: g.penilai },
-      aktorNim: session.nim,
-    });
-    await writeAudit(session.nim, "seelabs_akun", { sesiId, nomor, akun });
-    res.status(200).json({ ok: true });
+  const akun = typeof body.akun === "string" && body.akun ? body.akun : null;
+  // A lender is only for a group that doesn't ride its scorer's own
+  // account: a later group, or any group of a scorer at the daily cap.
+  const pasangan = new Map(data.kelompok.map((x) => [x.nomor, x.penilai]));
+  const butuh = akunKelompok(pasangan, new Map(), new Set(data.penuh)).get(g.nomor) === null;
+  if (!g.penilai || !butuh) {
+    res.status(200).json({ ok: false, kode: "tidak_perlu_pinjam" });
     return;
   }
-
-  if (!g.akun) {
-    res.status(200).json({ ok: false, kode: "butuh_akun" });
+  if (akun && !(await pemberiPinjam(db, data, nomor)).pemberi.includes(akun)) {
+    res.status(200).json({ ok: false, kode: "pemberi_salah" });
     return;
   }
-  const sidik = sidikPayload(g.baris, data.sesi.modul);
-  if (aksi === "salin") {
-    // A fresh row only when the scores changed since the last copy, so the
-    // saved mark of an unchanged copy stays.
-    const [akhir] = await db
-      .select()
-      .from(seelabsEkspor)
-      .where(and(eq(seelabsEkspor.sesiId, sesiId), eq(seelabsEkspor.kelompokNomor, nomor)))
-      .orderBy(desc(seelabsEkspor.id))
-      .limit(1);
-    if (akhir && akhir.payloadHash === sidik && akhir.akunNim === g.akun) {
-      await db
-        .update(seelabsEkspor)
-        .set({ disalinPada: new Date() })
-        .where(eq(seelabsEkspor.id, akhir.id));
-    } else {
-      await db.insert(seelabsEkspor).values({
-        sesiId,
-        kelompokNomor: nomor,
-        klp: g.klp.join(",") || null,
-        modul: data.sesi.modul,
-        akunNim: g.akun,
-        payloadHash: sidik,
-      });
-    }
-    res.status(200).json({ ok: true });
-    return;
-  }
-
-  // simpan / belum: on the latest copy, made now if there was none.
-  let [akhir] = await db
-    .select()
-    .from(seelabsEkspor)
-    .where(and(eq(seelabsEkspor.sesiId, sesiId), eq(seelabsEkspor.kelompokNomor, nomor)))
-    .orderBy(desc(seelabsEkspor.id))
-    .limit(1);
-  if (!akhir) {
-    [akhir] = await db
-      .insert(seelabsEkspor)
-      .values({
-        sesiId,
-        kelompokNomor: nomor,
-        klp: g.klp.join(",") || null,
-        modul: data.sesi.modul,
-        akunNim: g.akun,
-        payloadHash: sidik,
-      })
-      .returning();
-  }
-  await db
-    .update(seelabsEkspor)
-    .set(
-      aksi === "simpan"
-        ? { disimpanPada: new Date(), payloadHash: sidik, akunNim: g.akun }
-        : { disimpanPada: null },
-    )
-    .where(eq(seelabsEkspor.id, akhir.id));
-  await writeAudit(session.nim, aksi === "simpan" ? "seelabs_simpan" : "seelabs_belum", {
+  await db.insert(sesiKejadian).values({
     sesiId,
-    nomor,
-    akun: g.akun,
+    jenis: "akun_seelabs",
+    detail: { nomor, akun, penilai: g.penilai },
+    aktorNim: session.nim,
   });
+  await writeAudit(session.nim, "seelabs_akun", { sesiId, nomor, akun });
   res.status(200).json({ ok: true });
 }

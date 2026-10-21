@@ -61,7 +61,7 @@ import EndFlow from "./EndFlow";
 import EndPage from "./EndPage";
 import NextView from "./NextView";
 import AsistenHome from "./AsistenHome";
-import SeelabsView, { type SeelabsTab } from "./seelabs/SeelabsView";
+import SeelabsView from "./seelabs/SeelabsView";
 import { useSeelabs } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
 import type { AsistenRef, SesiRunning, View } from "./types";
@@ -85,7 +85,6 @@ function readHash(): {
   group?: number;
   cmd?: string;
   seelabs?: boolean;
-  seelabsTab?: SeelabsTab;
   tot?: boolean;
   prep?: PrepTab;
 } {
@@ -96,10 +95,8 @@ function readHash(): {
   if (pr) return { prep: (pr[1] as PrepTab | undefined) ?? "roster" };
   if (h === "tot") return { tot: true };
   if (h === "prep" || h === "board" || h === "table" || h === "matrix") return { view: h };
-  if (h === "seelabs") return { seelabs: true };
-  // #seelabs=pasang (the Account page's "Cara Pakai") opens one tab.
-  const st = /^seelabs=(panduan|salin|pasang|cara|tidak|titipan)$/.exec(h);
-  if (st) return { seelabs: true, seelabsTab: st[1] as SeelabsTab };
+  // #seelabs (the Account page's "Cara Pakai"; older links name a tab).
+  if (/^seelabs(=\w+)?$/.test(h)) return { seelabs: true };
   const g = /^k([1-9]|10)$/.exec(h);
   if (g) return { view: "board", group: Number(g[1]) };
   const c = /^cmd=(\w+)$/.exec(h);
@@ -145,7 +142,7 @@ export default function Console({ lang }: { lang: Lang }) {
       : null;
   });
   // Kirim ke SeeLabs, over whatever view is open (Phase 9 Stage 3g).
-  const [see, setSee] = useState<{ tab?: SeelabsTab; nomor?: number | null } | null>(null);
+  const [see, setSee] = useState(false);
   // Phase 10 (c12-run): the workspace tab, a blank to bring into view, the
   // shared Show the Keys switch, Ada Masalah? and the class matrix.
   const [tab, setTab] = useState<WorkTab>("ringkasan");
@@ -214,6 +211,36 @@ export default function Console({ lang }: { lang: Lang }) {
       .catch(() => {});
   }, [sesi?.id, lap.data]);
 
+  // An ended session's wrap up opened again from Home (another device, a
+  // closed tab, the other Asisten): the snapshot comes from its report.
+  async function bukaRekap(id: number) {
+    try {
+      const d = await getJson<{
+        ok: boolean;
+        sesi?: (SesiRunning & { selesaiPada?: string | null }) | null;
+        kelompok?: { hadir?: number }[];
+      }>(`/api/session/laporan?sesiId=${id}`);
+      if (!d.ok || !d.sesi || d.sesi.status !== "selesai") {
+        window.Toast?.show(t.fail, "danger");
+        return;
+      }
+      const snap = {
+        ...d.sesi,
+        hadir: (d.kelompok ?? []).reduce((n, g) => n + (g.hadir ?? 0), 0),
+        selesaiPada: d.sesi.selesaiPada ?? new Date().toISOString(),
+      };
+      try {
+        sessionStorage.setItem(DONE_KEY, JSON.stringify(snap));
+      } catch {
+        /* ignore */
+      }
+      setDone(snap);
+      window.scrollTo({ top: 0 });
+    } catch {
+      window.Toast?.show(t.fail, "danger");
+    }
+  }
+
   // Hash routing (views, #k3, #cmd=announce from the palette elsewhere).
   useEffect(() => {
     const apply = () => {
@@ -223,7 +250,7 @@ export default function Console({ lang }: { lang: Lang }) {
       if (h.cmd === "announce") setAnnounce(true);
       if (h.cmd === "drawer") setDrawer(true);
       if (h.cmd === "end") setEndOpen(true);
-      if (h.seelabs) setSee(h.seelabsTab ? { tab: h.seelabsTab } : {});
+      if (h.seelabs) setSee(true);
       if (h.prep) location.replace(prepHref(lang, null, h.prep));
       if (h.tot) location.replace(href(lang, "/tot"));
     };
@@ -361,13 +388,13 @@ export default function Console({ lang }: { lang: Lang }) {
     seelabs.refresh();
   }, [current, lap, assign, seelabs]);
 
-  const openSeelabs = useCallback((tab?: SeelabsTab, nomor?: number | null) => {
-    setSee({ tab, nomor });
+  const openSeelabs = useCallback(() => {
+    setSee(true);
     history.replaceState(null, "", "#seelabs");
     window.scrollTo({ top: 0 });
   }, []);
   const closeSeelabs = useCallback(() => {
-    setSee(null);
+    setSee(false);
     seelabs.refresh();
     history.replaceState(null, "", location.pathname + location.search);
   }, [seelabs]);
@@ -428,15 +455,7 @@ export default function Console({ lang }: { lang: Lang }) {
         <div className="console">
           {offline}
           {lalu.view === "seelabs" ? (
-            <SeelabsView
-              lang={lang}
-              sesiId={lalu.id}
-              meNim={me!.nim}
-              tab="salin"
-              onBack={tutupLalu}
-              backLabel={SL[lang].backHome}
-              onTable={() => setLalu({ id: lalu.id, view: "table" })}
-            />
+            <SeelabsView lang={lang} onBack={tutupLalu} backLabel={SL[lang].backHome} />
           ) : (
             <>
               <div className="console__modes">
@@ -452,7 +471,6 @@ export default function Console({ lang }: { lang: Lang }) {
                 meNim={me!.nim}
                 seelabs={seelabsLalu.data}
                 onSeelabs={() => setLalu({ id: lalu.id, view: "seelabs" })}
-                onSeelabsChanged={seelabsLalu.refresh}
               />
             </>
           )}
@@ -465,20 +483,8 @@ export default function Console({ lang }: { lang: Lang }) {
           {offline}
           <SeelabsView
             lang={lang}
-            sesiId={done?.id ?? null}
-            meNim={me!.nim}
-            tab={see.tab}
-            nomor={see.nomor}
             onBack={closeSeelabs}
             backLabel={done ? undefined : SL[lang].backHome}
-            onTable={
-              done
-                ? () => {
-                    closeSeelabs();
-                    setDoneTable(true);
-                  }
-                : undefined
-            }
           />
         </div>
       );
@@ -503,7 +509,6 @@ export default function Console({ lang }: { lang: Lang }) {
             meNim={me!.nim}
             seelabs={seelabs.data}
             onSeelabs={openSeelabs}
-            onSeelabsChanged={seelabs.refresh}
           />
         </div>
       );
@@ -517,7 +522,7 @@ export default function Console({ lang }: { lang: Lang }) {
             lang={lang}
             sesi={done}
             seelabs={seelabs.data}
-            onSeelabs={() => openSeelabs("salin")}
+            onSeelabs={openSeelabs}
             onBack={() => setNextOpen(false)}
             onPrep={(pilih) => {
               sessionStorage.removeItem(DONE_KEY);
@@ -545,7 +550,8 @@ export default function Console({ lang }: { lang: Lang }) {
             nilai={nilai}
             asisten={asisten}
             meNim={me!.nim}
-            onSeelabs={(tab) => openSeelabs(tab ?? "salin")}
+            seelabsKode={seelabs.kode}
+            onSeelabs={openSeelabs}
             onScores={() => setDoneTable(true)}
             onNext={() => setNextOpen(true)}
             onResumed={() => {
@@ -570,7 +576,6 @@ export default function Console({ lang }: { lang: Lang }) {
           me={me!}
           onStarted={refreshAll}
           onPrep={(pilih, tab) => location.assign(prepHref(lang, pilih, tab))}
-          onHeld={() => openSeelabs("titipan")}
           onTable={(id) => {
             setLalu({ id, view: "table" });
             window.scrollTo({ top: 0 });
@@ -579,6 +584,7 @@ export default function Console({ lang }: { lang: Lang }) {
             setLalu({ id, view: "seelabs" });
             window.scrollTo({ top: 0 });
           }}
+          onRekap={(id) => void bukaRekap(id)}
         />
       </div>
     );
@@ -614,18 +620,7 @@ export default function Console({ lang }: { lang: Lang }) {
     return (
       <div className="console" style={{ "--mod-hue": `var(--mod-${sesi.modul})` } as CSSProperties}>
         {offline}
-        <SeelabsView
-          lang={lang}
-          sesiId={sesi.id}
-          meNim={me!.nim}
-          tab={see.tab}
-          nomor={see.nomor}
-          onBack={closeSeelabs}
-          onTable={() => {
-            closeSeelabs();
-            go("table");
-          }}
-        />
+        <SeelabsView lang={lang} onBack={closeSeelabs} />
       </div>
     );
   }
@@ -783,7 +778,6 @@ export default function Console({ lang }: { lang: Lang }) {
             meNim={me!.nim}
             seelabs={seelabs.data}
             onSeelabs={openSeelabs}
-            onSeelabsChanged={seelabs.refresh}
           />
         )}
 
@@ -857,7 +851,6 @@ export default function Console({ lang }: { lang: Lang }) {
                 onChanged={refreshAll}
                 onAsPraktikan={(id) => setAsP(id)}
                 seelabs={seelabs.data}
-                onSeelabs={openSeelabs}
                 onSeelabsChanged={seelabs.refresh}
                 tab={tab}
                 onTab={(x) => {
@@ -923,7 +916,7 @@ export default function Console({ lang }: { lang: Lang }) {
         onGroup={(id) => goTo({ g: id, tab: "ringkasan" })}
         onAnnounce={() => setAnnounce(true)}
         onServer={() => setDrawer(true)}
-        onSeelabs={(tab) => openSeelabs(tab)}
+        onSeelabs={openSeelabs}
         onRefresh={refreshAll}
       />
 

@@ -14,7 +14,6 @@ import { hariLabel, kelasLabel } from "../../lib/labels";
 import { useMenitWib } from "../../lib/jam";
 import type { Lang } from "../../lib/kelas";
 import { useSiaran } from "../../lib/siaran";
-import { useTitipan } from "./seelabs/data";
 import { jumlahBantuan, useBantuan } from "./HelpCard";
 import DayStrip, { dayStates, WinClock, type DaySlot } from "./DayStrip";
 import { D } from "./dayStrings";
@@ -38,7 +37,6 @@ export default function DayCard({
   const d = D[lang];
   const [data, setData] = useState<Beranda | null>(null);
   const now = useMenitWib();
-  const held = useTitipan();
   const bantuan = useBantuan();
   const load = () =>
     getJson<{ ok: boolean } & Beranda>("/api/session/beranda")
@@ -93,8 +91,7 @@ export default function DayCard({
       .size +
     new Set((data?.lupa ?? []).filter((g) => !g.menyusulPada).map((g) => g.sesiId)).size +
     new Set((data?.pjBelum ?? []).map((g) => g.sesiId)).size +
-    jumlahBantuan(bantuan.data) +
-    ((held.data?.titipan.length ?? 0) > 0 ? 1 : 0);
+    jumlahBantuan(bantuan.data);
 
   const konsol = href(lang, "/session");
   const ready = (() => {

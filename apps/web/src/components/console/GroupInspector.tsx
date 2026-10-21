@@ -12,12 +12,12 @@
  *   average delay and lost messages (per-group charts), then the module's
  *   own value (LED, temperature, position, distance) over the live rows.
  * - Nilai | Blank: the scores, or every blank of the group (BlankPanel:
- *   answers, tries, hint requests, Petunjuk, Open in Code).
+ *   answers, tries, Open in Code).
  * - Nilai: one student at a time, TP to L2 in one row; Enter walks on. Sama
  *   Rata enters one row for every present member instead, and each
  *   Praktikan has a Tidak Hadir switch (all fields 0, left out of Sama Rata).
  * - Footer: who enters the scores, Lihat Sebagai Praktikan, the SeeLabs
- *   chip and Salin untuk SeeLabs. The pairing history closes the card.
+ *   chip. The pairing history closes the card.
  */
 import KirimNilai from "./KirimNilai";
 import {
@@ -52,8 +52,7 @@ import { useTelemetry } from "../live/useTelemetry";
 import { Spark, VCard } from "../live/LivePanes";
 import DataModal, { type DataKind } from "../live/DataModal";
 import "../live/live-room.css";
-import SeelabsSheet, { StatusPill } from "./seelabs/SeelabsSheet";
-import type { SeelabsTab } from "./seelabs/SeelabsView";
+import StatusPill from "./seelabs/StatusPill";
 import { kirimSeelabs, type SeelabsData } from "./seelabs/data";
 import { SL, pesanSl } from "./seelabs/strings";
 import ChangeAssistant, { usePasangan } from "./ChangeAssistant";
@@ -84,7 +83,6 @@ export interface InspectorProps {
   onChanged: () => void;
   onAsPraktikan: (kelompokId: number) => void;
   seelabs: SeelabsData | null;
-  onSeelabs: (tab?: SeelabsTab, nomor?: number | null) => void;
   onSeelabsChanged: () => void;
   /** Phase 10 (c12-run): the workspace tab, the class matrix, the shared
    *  Show the Keys switch, a blank to bring into view, and Preparation. */
@@ -232,16 +230,7 @@ export default function GroupInspector(p: InspectorProps) {
           { value: "ringkasan", label: r.tabs.ringkasan },
           {
             value: "blank",
-            label: (
-              <>
-                {r.tabs.blank}
-                {ringkas && ringkas.minta > 0 && (
-                  <Pill tone="violet" className="inspector__ask">
-                    {ringkas.minta}
-                  </Pill>
-                )}
-              </>
-            ),
+            label: <>{r.tabs.blank}</>,
           },
           { value: "nilai", label: r.tabs.nilai },
           { value: "anggota", label: r.tabs.anggota },
@@ -256,13 +245,7 @@ export default function GroupInspector(p: InspectorProps) {
           </div>
           <section className="stack" style={{ gap: 8 }}>
             <span className="label-caps">{r.happened}</span>
-            <GroupLog
-              lang={lang}
-              hand={hand}
-              cells={cells}
-              kolom={kolom}
-              minta={(p.mtx?.minta ?? []).filter((x) => x.kelompokId === g.id)}
-            />
+            <GroupLog lang={lang} hand={hand} cells={cells} kolom={kolom} />
             <button
               type="button"
               className="work__jump sweep-hover"
@@ -370,27 +353,23 @@ export default function GroupInspector(p: InspectorProps) {
 
 /* ------------------------------------------------------- what happened */
 
-/** One group's moments, newest first: a hand, hint requests, blanks right
- *  and blanks checked wrong. */
+/** One group's moments, newest first: a hand, blanks right and blanks
+ *  checked wrong. */
 function GroupLog({
   lang,
   hand,
   cells,
   kolom,
-  minta,
 }: {
   lang: Lang;
   hand: string | null;
   cells: Record<string, SelMatriks>;
   kolom: Kolom[];
-  minta: { soal: string; catatan: string; pada: string }[];
 }) {
   const r = R[lang];
   const lbl = (soal: string) => kolom.find((k) => k.soal === soal)?.label ?? soal;
-  const items: { t: string; k: "bantu" | "minta" | "blank" | "salah"; text: string }[] = [];
+  const items: { t: string; k: "bantu" | "blank" | "salah"; text: string }[] = [];
   if (hand) items.push({ t: hand, k: "bantu", text: r.ev.hand });
-  for (const x of minta)
-    items.push({ t: x.pada, k: "minta", text: r.ev.ask(lbl(x.soal), x.catatan) });
   for (const [soal, c] of Object.entries(cells)) {
     if (!c.pada) continue;
     if (c.benar) items.push({ t: c.pada, k: "blank", text: r.ev.right(lbl(soal), c.oleh ?? "") });
@@ -398,7 +377,7 @@ function GroupLog({
       items.push({ t: c.pada, k: "salah", text: r.ev.wrong(lbl(soal), c.salah || c.percobaan) });
   }
   items.sort((a, b) => b.t.localeCompare(a.t));
-  const tone = { bantu: "warn", minta: "violet", blank: "ok", salah: "warn" } as const;
+  const tone = { bantu: "warn", blank: "ok", salah: "warn" } as const;
   if (!items.length) return <p className="hint">{r.nothingYet}</p>;
   return (
     <ol className="elog">
@@ -408,13 +387,7 @@ function GroupLog({
             {jamLab(x.t)}
           </time>
           <span className="elog__tag mono" data-tone={tone[x.k]}>
-            {x.k === "blank"
-              ? r.tag.blank
-              : x.k === "salah"
-                ? r.tag.salah
-                : x.k === "minta"
-                  ? r.tag.minta
-                  : r.tag.bantu}
+            {x.k === "blank" ? r.tag.blank : x.k === "salah" ? r.tag.salah : r.tag.bantu}
           </span>
           <span className="elog__text">{x.text}</span>
         </li>
@@ -1020,46 +993,20 @@ function LenderBanner(p: InspectorProps) {
   );
 }
 
-/** The group's SeeLabs chip and Salin untuk SeeLabs, for its own Asisten. */
+/** The group's SeeLabs chip (who sends it, where it stands), for its own Asisten. */
 function SeelabsChip(p: InspectorProps) {
   const { lang, seelabs } = p;
   const t = SL[lang];
   const dir = useDirektori();
-  const [open, setOpen] = useState(false);
   const { sg, mineSl } = useSeelabsGroup(p);
   if (!seelabs || !sg || !mineSl) return null;
   const kode = (nim: string | null) =>
     nim ? (dir.byNim.get(nim)?.kode?.toUpperCase() ?? nim) : "?";
   return (
-    <>
-      <span className="seechip">
-        <span className="hint">{t.seelabsLabel}</span>
-        {sg.akun ? <b className="mono">{kode(sg.akun)}</b> : <Nil lang={lang} />}
-        <StatusPill t={t} status={sg.status} />
-      </span>
-      <button
-        type="button"
-        className="btn btn--primary btn--sm"
-        disabled={!sg.akun}
-        title={!sg.akun ? t.pickAccountFirst : undefined}
-        onClick={() => setOpen(true)}
-      >
-        {t.copyFor}
-      </button>
-      {open && (
-        <SeelabsSheet
-          open
-          onOpenChange={setOpen}
-          t={t}
-          lang={lang}
-          data={seelabs}
-          g={sg}
-          nama={dir.nama}
-          kode={kode}
-          onHow={() => p.onSeelabs("pasang")}
-          onChanged={p.onSeelabsChanged}
-        />
-      )}
-    </>
+    <span className="seechip">
+      <span className="hint">{t.seelabsLabel}</span>
+      {sg.akun ? <b className="mono">{kode(sg.akun)}</b> : <Nil lang={lang} />}
+      <StatusPill t={t} status={sg.status} />
+    </span>
   );
 }

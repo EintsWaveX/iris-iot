@@ -464,8 +464,8 @@ export default function AsistenCommands({
         id: "seelabs-guide",
         group: t.go,
         label: t.seelabsGuide,
-        keywords: ["seelabs", "nilai", "scores", "panduan", "guide", "tutorial", "bookmarklet"],
-        run: go("/session#seelabs=panduan"),
+        keywords: ["seelabs", "nilai", "scores", "panduan", "guide", "tutorial", "robot"],
+        run: go("/session#seelabs"),
       },
     ];
     if (running) {

@@ -2,7 +2,7 @@
  * Server operation pieces shared by the console's server drawer and the
  * /servers device page (P8.2), so both behave the same:
  *
- * - HotspotCard: the IRIS-IOT access point as one switch, with a pending
+ * - HotspotCard: the IRIS_IOT access point as one switch, with a pending
  *   state until the next heartbeat confirms the new mode
  * - ServiceList: each practicum service with a big "Mulai ulang" button and
  *   an inline log peek (the log arrives as the diag.log command's output)
@@ -33,7 +33,7 @@ import Lalu from "../ui/Lalu";
 
 export const OPS_T = dict({
   id: {
-    hotspot: "Hotspot IRIS-IOT",
+    hotspot: "Hotspot IRIS_IOT",
     hotspotOn: "Menyala: praktikan tersambung ke PC Server",
     hotspotOff: "Mati: PC Server memakai Wi-Fi kampus",
     pending: "Menunggu denyut berikutnya…",
@@ -91,7 +91,7 @@ export const OPS_T = dict({
     } as Record<string, string>,
   },
   en: {
-    hotspot: "IRIS-IOT hotspot",
+    hotspot: "IRIS_IOT hotspot",
     hotspotOn: "On: students connect to the PC Server",
     hotspotOff: "Off: the PC Server uses campus Wi-Fi",
     pending: "Waiting for the next heartbeat…",
@@ -149,7 +149,7 @@ export const OPS_T = dict({
     } as Record<string, string>,
   },
   zh: {
-    hotspot: "IRIS-IOT 热点",
+    hotspot: "IRIS_IOT 热点",
     hotspotOn: "已开：学生连到 PC 服务器",
     hotspotOff: "已关：PC 服务器使用校园 Wi-Fi",
     pending: "等待下一次心跳…",

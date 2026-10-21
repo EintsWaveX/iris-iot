@@ -1,14 +1,13 @@
 /** The Account page's SeeLabs card (Phase 9 Stage 3g, mockup a-account): my
- *  SeeLabs username and the bookmarklet. Never a password: IRIS doesn't sign
- *  in to SeeLabs. The username is saved through the Tim API, which lets
+ *  SeeLabs username. Never a password here: the robot's sealed password has
+ *  its own card. The username is saved through the Tim API, which lets
  *  anyone set their own. */
 import { useEffect, useRef, useState } from "react";
-import { CaretRightIcon, HandIcon } from "@phosphor-icons/react";
+import { CaretRightIcon } from "@phosphor-icons/react";
 import { getJson, href, postJson } from "../../../lib/app";
 import { useSegar } from "../../../lib/siaran";
 import type { Lang } from "../../../lib/kelas";
 import { SL } from "./strings";
-import BookmarkletPill from "./BookmarkletPill";
 import "./seelabs.css";
 
 export default function SeelabsAccount({ lang, nim }: { lang: Lang; nim: string }) {
@@ -61,10 +60,6 @@ export default function SeelabsAccount({ lang, nim }: { lang: Lang; nim: string 
     <section className="panel seeacct">
       <div className="panel__head">
         <h2 className="panel__title">{t.acctTitle}</h2>
-        <span className="pill">
-          <HandIcon size={14} aria-hidden="true" />
-          {t.acctNoPw}
-        </span>
       </div>
       <div className="seeacct__row">
         <form
@@ -94,16 +89,10 @@ export default function SeelabsAccount({ lang, nim }: { lang: Lang; nim: string 
             {t.save}
           </button>
         </form>
-        <div className="stack stack--sm">
-          <span className="field__label">{t.acctBm}</span>
-          <span className="row" style={{ gap: 8 }}>
-            <BookmarkletPill t={t} />
-            <a className="btn btn--ghost btn--sm" href={href(lang, "/session#seelabs=panduan")}>
-              {t.howTo}
-              <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
-            </a>
-          </span>
-        </div>
+        <a className="btn btn--ghost btn--sm" href={href(lang, "/session#seelabs")}>
+          {t.howTo}
+          <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
+        </a>
       </div>
       <span className="hint">{t.acctNever}</span>
     </section>

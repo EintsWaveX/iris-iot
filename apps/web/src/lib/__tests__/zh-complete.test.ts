@@ -43,7 +43,7 @@ const GLOSSARY = new Set(
     "Wi-Fi",
     "WiFi",
     "IRIS",
-    "IRIS-IOT",
+    "IRIS_IOT",
     "IoT",
     "CSV",
     "XLSX",

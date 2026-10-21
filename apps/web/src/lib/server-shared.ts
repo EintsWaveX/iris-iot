@@ -27,7 +27,7 @@ export function urutkanLayanan(
 
 /** The agent reports "ap-mandiri" (hotspot with no uplink) or "ap+uplink"
  *  (hotspot plus a dongle or wired uplink), and an agent older than Stage 19
- *  sent plain "ap". All three mean the IRIS-IOT hotspot is on. */
+ *  sent plain "ap". All three mean the IRIS_IOT hotspot is on. */
 export function hotspotMenyala(mode: string | null | undefined): boolean {
   return mode === "ap" || mode === "ap-mandiri" || mode === "ap+uplink";
 }
@@ -113,7 +113,7 @@ export function bacaHasilSiap(keluaran: string | null | undefined): HasilSiap | 
  *  agent's agent.py whenever the site starts needing something new. */
 export const AGEN_PROTOKOL_TERBARU = 8;
 
-/** Where the IRIS-IOT hotspot comes from (agent protocol 5): a router in
+/** Where the IRIS_IOT hotspot comes from (agent protocol 5): a router in
  *  Access Point mode on the Pi's LAN port, or the Pi's own Wi-Fi radio. */
 export const AP_SUMBER = ["kabel", "wifi"] as const;
 export type ApSumber = (typeof AP_SUMBER)[number];

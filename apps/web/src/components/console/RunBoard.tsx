@@ -1,11 +1,10 @@
 /**
  * The running board's pieces (Phase 10, mockup c12-run), all from live data:
  *
- * - useMatriks: every group against every blank (GET /api/modul/matriks),
- *   with the waiting hint requests.
+ * - useMatriks: every group against every blank (GET /api/modul/matriks).
  * - SessionTrack: start to end with the now line, the extension zone and a
- *   mark for each moment (start, first right blank, hands, hint requests,
- *   the announcement).
+ *   mark for each moment (start, first right blank, hands, the
+ *   announcement).
  * - Counters: here, blanks right, hands, stuck blanks, data, scores sent;
  *   each one goes to its answer.
  * - Rail: the groups, neediest first, with All, Mine and Help.
@@ -15,13 +14,7 @@
  */
 import { sejak } from "../../lib/app";
 import { useMemo, useState, type CSSProperties } from "react";
-import {
-  ArrowRightIcon,
-  HandIcon,
-  KeyIcon,
-  SparkleIcon,
-  WifiSlashIcon,
-} from "@phosphor-icons/react";
+import { ArrowRightIcon, HandIcon, KeyIcon, WifiSlashIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import Tooltip from "../ui/Tooltip";
 import IconButton from "../ui/IconButton";
@@ -60,7 +53,6 @@ export interface Matriks {
     blank: { nomor: number; soal: string; baris: number; kode: string }[];
   }[];
   sel: Record<string, Record<string, SelMatriks>>;
-  minta: { kelompokId: number; soal: string; catatan: string; pada: string }[];
 }
 
 export function useMatriks(on: boolean, lang: Lang, sesiId: number | null = null) {
@@ -76,10 +68,10 @@ export function useMatriks(on: boolean, lang: Lang, sesiId: number | null = null
     lang,
   );
   // Phase 12: a checked blank lands in its cell straight from the session
-  // room; a first try (no cell yet, so no key on screen) or a hint asks again.
+  // room; a first try (no cell yet, so no key on screen) asks again.
   const status = useAliran(
     { ruang: "sesi", sesiId, aktif: on && sesiId !== null },
-    ["jawaban", "petunjuk"],
+    ["jawaban"],
     (m) => {
       const d = m.d as Partial<JawabanAliran> | null;
       const cur = poll.data;
@@ -103,17 +95,13 @@ export function useMatriks(on: boolean, lang: Lang, sesiId: number | null = null
                   },
                 },
               },
-              // A right answer closes that blank's waiting hint requests.
-              minta: d.benar
-                ? x.minta.filter((r) => !(r.kelompokId === d.kelompokId && r.soal === d.soal))
-                : x.minta,
             }
           : x,
       );
     },
     () => poll.refresh(),
   );
-  useSiaran(["jawaban", "petunjuk"], poll.refresh, on && status !== "live");
+  useSiaran(["jawaban"], poll.refresh, on && status !== "live");
   return poll;
 }
 
@@ -222,8 +210,6 @@ export function SessionTrack({
         if (c.benar && c.pada && (!first || Date.parse(c.pada) < first.t))
           first = { t: Date.parse(c.pada), g };
     if (first) marks.push({ t: first.t, k: "blank", l: r.mark.blank(nomor(first.g)) });
-    for (const x of mtx.minta)
-      marks.push({ t: Date.parse(x.pada), k: "minta", l: r.mark.minta(nomor(x.kelompokId)) });
   }
   for (const [g, iso] of Object.entries(tangan))
     marks.push({ t: Date.parse(iso), k: "bantu", l: r.mark.bantu(nomor(g)) });
@@ -396,10 +382,9 @@ export function Counters({
 export function attentionOf(
   g: GroupRow,
   tangan: Record<string, string>,
-  minta: Set<number>,
   stuckBy: Map<number, number>,
 ): number {
-  if (tangan[g.id] || minta.has(g.id)) return 0;
+  if (tangan[g.id]) return 0;
   if (stuckBy.get(g.id)) return 1;
   if (g.sesiAktif && (g.telemetri?.count ?? 0) === 0) return 2;
   return 3;
@@ -439,17 +424,15 @@ export function Rail({
     for (const s of stuck) m.set(s.kelompokId, (m.get(s.kelompokId) ?? 0) + 1);
     return m;
   }, [stuck]);
-  const minta = new Set((mtx?.minta ?? []).map((x) => x.kelompokId));
   let gs = [...groups].sort(
     (a, b) =>
-      attentionOf(a, tangan, minta, stuckBy) - attentionOf(b, tangan, minta, stuckBy) ||
-      a.nomor - b.nomor,
+      attentionOf(a, tangan, stuckBy) - attentionOf(b, tangan, stuckBy) || a.nomor - b.nomor,
   );
   // When every running group is silent, say it once instead of on each card.
   const aktif = groups.filter((g) => g.sesiAktif);
   const semuaDiam = aktif.length > 0 && aktif.every((g) => (g.telemetri?.count ?? 0) === 0);
   if (f === "mine") gs = gs.filter((g) => pemilik[g.id] === meNim);
-  if (f === "help") gs = gs.filter((g) => attentionOf(g, tangan, minta, stuckBy) < 3);
+  if (f === "help") gs = gs.filter((g) => attentionOf(g, tangan, stuckBy) < 3);
   return (
     <section className="panel rail" data-area="rail">
       <div className="panel__head">
@@ -512,12 +495,6 @@ export function Rail({
                       {jamLab(tangan[g.id])}
                     </Pill>
                   )}
-                  {minta.has(g.id) && (
-                    <Pill tone="violet">
-                      <SparkleIcon size={12} aria-hidden="true" />
-                      {r.wantsHint}
-                    </Pill>
-                  )}
                   {nStuck > 0 && <Pill tone="warn">{r.stuckN(nStuck)}</Pill>}
                   {quiet && (
                     <Pill tone="warn">
@@ -572,7 +549,7 @@ export function Rail({
 
 interface FeedRow {
   t: string;
-  k: "minta" | "salah" | "bantu" | "blank";
+  k: "salah" | "bantu" | "blank";
   g: GroupRow;
   text: string;
   label: string;
@@ -589,18 +566,6 @@ export function feedRows(
   const out: FeedRow[] = [];
   const byId = new Map(groups.map((g) => [String(g.id), g]));
   const lbl = (soal: string) => kolom.find((k) => k.soal === soal)?.label ?? soal;
-  for (const x of mtx?.minta ?? []) {
-    const g = byId.get(String(x.kelompokId));
-    if (g)
-      out.push({
-        t: x.pada,
-        k: "minta",
-        g,
-        text: r.feed.ask(lbl(x.soal), x.catatan),
-        label: r.go.answer,
-        to: { g: g.id, tab: "blank", b: x.soal },
-      });
-  }
   for (const [id, iso] of Object.entries(tangan)) {
     const g = byId.get(id);
     if (g)
@@ -659,10 +624,10 @@ export function Feed({
   lang: Lang;
 }) {
   const r = R[lang];
-  const tone = { minta: "violet", salah: "warn", bantu: "warn", blank: "ok" } as const;
-  // Raised hands and hint requests wait on an Asisten: they come first.
-  const need = rows.filter((i) => i.k === "minta" || i.k === "bantu");
-  const rest = rows.filter((i) => i.k !== "minta" && i.k !== "bantu").slice(0, 40);
+  const tone = { salah: "warn", bantu: "warn", blank: "ok" } as const;
+  // Raised hands wait on an Asisten: they come first.
+  const need = rows.filter((i) => i.k === "bantu");
+  const rest = rows.filter((i) => i.k !== "bantu").slice(0, 40);
   const list = (items: FeedRow[]) => (
     <ol className="elog">
       {items.map((i, n) => (

@@ -43,6 +43,7 @@ import * as RadixDialog from "@radix-ui/react-dialog";
 import { XIcon } from "@phosphor-icons/react";
 import IconButton from "./IconButton";
 import { enterPressesMain } from "./enterKey";
+import { useDialogLayer } from "./dialogLayer";
 import { useFullscreenEl } from "./fullscreen";
 import { dict } from "../../lib/app";
 import "./Dialog.css";
@@ -100,11 +101,13 @@ export default function Dialog({
   // on screen; moving the dialog into its own child would unmount it.
   const fsEl = useFullscreenEl();
   const fs = fsEl && !fsEl.closest('[role="dialog"]') ? fsEl : null;
+  // A dialog over a dialog: its scrim has to cover the one beneath.
+  const z = useDialogLayer(open);
 
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal container={fs ?? undefined}>
-        <RadixDialog.Overlay className="dialog__overlay" />
+        <RadixDialog.Overlay className="dialog__overlay" style={{ zIndex: z.overlay }} />
         <RadixDialog.Content
           className={[
             "dialog__panel",
@@ -114,6 +117,7 @@ export default function Dialog({
           ]
             .filter(Boolean)
             .join(" ")}
+          style={{ zIndex: z.panel }}
           tabIndex={-1}
           onOpenAutoFocus={(e) => {
             // Focus the panel, as the mockup does: landing on the close

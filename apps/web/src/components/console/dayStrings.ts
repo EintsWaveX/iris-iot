@@ -56,6 +56,7 @@ export const D = dict({
     ranLive: (m: string) => `${m} sedang berjalan di slot ini.`,
     openBoard: "Buka Papan",
     scoreTable: "Tabel Nilai",
+    wrapUp: "Buka Rekap Sesi",
     toSeelabs: "Kirim ke SeeLabs",
     makeMakeup: "Buat Susulan",
     inboxTitle: "Menunggumu",
@@ -63,7 +64,7 @@ export const D = dict({
     inboxEarlier: "Sebelumnya",
     inboxEmpty: "Tidak ada yang menunggu",
     inboxEmptyBody:
-      "Permintaan bantuan, nilai yang belum dikirim, titipan SeeLabs dan nilai yang belum diisi muncul di sini.",
+      "Permintaan bantuan, nilai yang belum dikirim dan nilai yang belum diisi muncul di sini.",
     inboxHint:
       "Urut dari yang paling mendesak. Sukarela dicatat dan dibayar sama seperti asisten tetap.",
     tag: {
@@ -78,7 +79,6 @@ export const D = dict({
       `${m} · ${when} · ${groups} sudah dinilai, belum dikirim ke Praktikan.`,
     nilaiLine: (m: string, when: string, groups: string, n: number) =>
       `${m} · ${when} · ${groups} belum lengkap, ${n} praktikan tanpa nilai.`,
-    heldLine: (n: number) => `${n} kelompok dititipkan lewat akun SeeLabs-mu dan belum disimpan.`,
     sendScores: "Kirim Nilai",
     enterScores: "Isi Nilai",
     open: "Buka",
@@ -186,13 +186,14 @@ export const D = dict({
     ranLive: (m: string) => `${m} is running in this slot.`,
     openBoard: "Open the Board",
     scoreTable: "Score Table",
+    wrapUp: "Open Session Recap",
     toSeelabs: "Send to SeeLabs",
     makeMakeup: "Make a Makeup Session",
     inboxTitle: "Waiting on You",
     inboxToday: "Today",
     inboxEarlier: "Earlier",
     inboxEmpty: "Nothing is waiting",
-    inboxEmptyBody: "Help requests, unsent scores, SeeLabs holds and missing scores show up here.",
+    inboxEmptyBody: "Help requests, unsent scores and missing scores show up here.",
     inboxHint: "Most urgent first. Volunteers are recorded and paid like regular assistants.",
     tag: {
       bantu: "HELP",
@@ -206,7 +207,6 @@ export const D = dict({
       `${m} · ${when} · ${groups} scored, not sent to the students yet.`,
     nilaiLine: (m: string, when: string, groups: string, n: number) =>
       `${m} · ${when} · ${groups} incomplete, ${n} students without scores.`,
-    heldLine: (n: number) => `${n} groups are held through your SeeLabs account and not saved yet.`,
     sendScores: "Send Scores",
     enterScores: "Enter Scores",
     open: "Open",
@@ -311,13 +311,14 @@ export const D = dict({
     ranLive: (m: string) => `${m} 正在这个时段进行。`,
     openBoard: "打开看板",
     scoreTable: "成绩表",
+    wrapUp: "打开课后回顾",
     toSeelabs: "发送到 SeeLabs",
     makeMakeup: "安排补课",
     inboxTitle: "等你处理",
     inboxToday: "今天",
     inboxEarlier: "之前",
     inboxEmpty: "没有待处理的事",
-    inboxEmptyBody: "帮忙请求、未发送的成绩、SeeLabs 代存和未填的成绩会显示在这里。",
+    inboxEmptyBody: "帮忙请求、未发送的成绩和未填的成绩会显示在这里。",
     inboxHint: "最紧急的在前。志愿助教和正式助教一样记录和计酬。",
     tag: {
       bantu: "帮忙",
@@ -331,7 +332,6 @@ export const D = dict({
       `${m} · ${when} · ${groups} 已打分，还没发给学生。`,
     nilaiLine: (m: string, when: string, groups: string, n: number) =>
       `${m} · ${when} · ${groups} 未完成，${n} 名学生没有成绩。`,
-    heldLine: (n: number) => `${n} 个组通过你的 SeeLabs 账号代存，还没保存。`,
     sendScores: "发送成绩",
     enterScores: "填写成绩",
     open: "打开",

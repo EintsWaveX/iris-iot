@@ -20,7 +20,7 @@ import {
   useTick,
 } from "../../lib/app";
 import { usePoll } from "../../lib/hooks";
-import { useTampil } from "../../lib/proyektor";
+import { useProyektor, useTampil } from "../../lib/proyektor";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { slotBerikutnya, type BarisJadwal, type SlotBerikutnya } from "../../lib/jadwal-next";
 import type { MingguSlot } from "../../lib/penugasan-minggu";
@@ -105,7 +105,9 @@ function daftarKelompok(list: number[], lang: Lang): string {
 function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: number[] }) {
   const t = H[lang];
   // Projector mode draws the Asisten as a Praktikan of the projected group.
-  const me = useTampil(useMe());
+  const asli = useMe();
+  const me = useTampil(asli);
+  const pro = useProyektor(asli);
   const praktikan = me?.role === "praktikan";
   const now = useSessionNow(praktikan);
   useTick(30_000);
@@ -116,10 +118,14 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
   const mine = Boolean(s && s.milikSaya !== false);
   const hasil = usePoll(
     () =>
-      getJson<{ ok: boolean; blank?: { benar: number; total: number } }>("/api/session/results"),
+      getJson<{ ok: boolean; blank?: { benar: number; total: number } }>(
+        `/api/session/results${pro ? `?kelompok=${pro}` : ""}`,
+      ),
     60_000,
     praktikan && mine,
     ["sesi"],
+    0,
+    pro,
   );
   useAliranAtauTopik(
     { ruang: "sesi", sesiId: s?.id ?? null },
@@ -127,11 +133,13 @@ function RoleCard({ lang, lab, pegang }: { lang: Lang; lab: Lab | null; pegang: 
     ["jawaban"],
     hasil.refresh,
     praktikan && mine,
+    pro ?? me?.kelompok ?? null,
   );
   const riwayat = usePoll(
     () => getJson<{ ok: boolean; praktikum: Praktikum[] }>("/api/session/mine"),
     120_000,
-    praktikan && !mine,
+    // An Asisten on the projector has no practicum history of theirs.
+    asli?.role === "praktikan" && !mine,
     ["sesi"],
   );
 
@@ -441,7 +449,10 @@ export function LabSky({
 
 export default function HomePage({ lang }: { lang: Lang }) {
   const t = H[lang];
-  const me = useTampil(useMe());
+  const asli = useMe();
+  const me = useTampil(asli);
+  // The projector greets the group, not the Asisten's own name.
+  const pro = useProyektor(asli);
   // Signed in: the private answer with each group's stars (guests get counts).
   const saya = Boolean(me);
   const lab = usePoll(
@@ -482,7 +493,9 @@ export default function HomePage({ lang }: { lang: Lang }) {
           <div className="stack stack--lg">
             <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
             {me ? (
-              <h1 className="home__display home__display--hello">{t.hello(me.nama)}</h1>
+              <h1 className="home__display home__display--hello">
+                {t.hello(pro ? (KELOMPOK_NAMA[pro] ?? kelompokLabel(pro, lang)) : me.nama)}
+              </h1>
             ) : (
               <>
                 <h1 className="home__display">{t.title}</h1>

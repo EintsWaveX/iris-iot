@@ -1,15 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   akunKelompok,
-  bacaDaftarKlp,
-  bacaPayload,
-  buatPayload,
   bedaKlp,
   cocokkanKlp,
   pilahPemberi,
   sidikPayload,
   statusSeelabs,
-  teksSeelabs,
 } from "../seelabs";
 
 const BARIS = [
@@ -18,34 +14,6 @@ const BARIS = [
 ];
 
 describe("seelabs export", () => {
-  it("puts the scores in SeeLabs' field order, null where IRIS has none", () => {
-    const p = bacaPayload(
-      buatPayload({
-        kelas: "reguler",
-        klp: ["47"],
-        modul: 3,
-        kelompok: 1,
-        bahasa: "id",
-        baris: BARIS,
-      }),
-    );
-    expect(p?.baris[0]).toEqual({
-      nim: "101022400015",
-      n: [85, 90, null, null, null, null, null, 70],
-    });
-    expect(p?.klp).toEqual(["47"]);
-    expect(bacaPayload("hello")).toBeNull();
-    expect(bacaPayload("IRIS-SEELABS/1 {broken")).toBeNull();
-  });
-
-  it("writes a TSV with a header line", () => {
-    expect(teksSeelabs(BARIS).split("\n")).toEqual([
-      "NIM\tNama\tTP\tTA\tD1\tD2\tD3\tD4\tL1\tL2",
-      "101022400015\tFerry Kennedy\t85\t90\t\t\t\t\t\t70",
-      "101022400090\tTsabib Akdam\t\t\t\t\t\t\t\t",
-    ]);
-  });
-
   it("fingerprints scores whatever the row order, and notices an edit", () => {
     const a = sidikPayload(BARIS, 3);
     expect(sidikPayload([...BARIS].reverse(), 3)).toBe(a);
@@ -57,28 +25,6 @@ describe("seelabs export", () => {
 });
 
 describe("KLP matching", () => {
-  it("reads the bookmarklet's list and the page copied as text", () => {
-    expect(
-      bacaDaftarKlp(
-        'IRIS-KLP/1 {"kelas":"reguler","kelompok":[{"klp":"47","nim":["101022400015"]}]}',
-      ),
-    ).toEqual([{ klp: "47", nim: ["101022400015"] }]);
-    const halaman = `Kelompok\tAnggota Kelompok / NIM\tAksi
-KLP
-47
-101022400015
-FERRY KENNEDY
- Input Nilai
-101022400090
-TSABIB AKDAM ALKARNY
-KLP 48
-101022400248 MELSA SEPTYANTI`;
-    expect(bacaDaftarKlp(halaman)).toEqual([
-      { klp: "47", nim: ["101022400015", "101022400090"] },
-      { klp: "48", nim: ["101022400248"] },
-    ]);
-  });
-
   it("gives each group the KLP sharing the most NIMs, and none when nothing overlaps", () => {
     const daftar = [
       { klp: "47", nim: ["a1", "a2", "a3"] },

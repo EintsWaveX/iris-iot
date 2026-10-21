@@ -330,6 +330,13 @@
       "when": 1792584324012,
       "tag": "0046_tp_kabar",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792592232915,
+      "tag": "0047_tp_kabar_pesan",
+      "breakpoints": true
     }
   ]
 }

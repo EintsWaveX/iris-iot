@@ -1,27 +1,24 @@
 /**
  * The group inspector's Blank tab (mockup c12-run): every blank of the
  * running module for one group, file by file, with the group's answer in
- * its line, its status and wrong tries, who filled it and when, a waiting
- * hint request, and the hints already sent. Petunjuk (Jawab on a request)
- * writes a hint that shows under the blank's line on the group's Code page;
- * the arrow opens that blank there, as the group sees it.
+ * its line, its status and wrong tries, and who filled it and when. The
+ * arrow opens that blank on the group's Code page, as the group sees it.
+ * The Asisten and the group talk in the room, so nothing is sent from here.
  *
  * Keys stay hidden until Tampilkan Kunci, the projector rule. The filters
- * jump straight to what needs an Asisten: not right, stuck (two or more
- * wrong tries) and asked.
+ * jump straight to what needs an Asisten: not right, and stuck (two or more
+ * wrong tries).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowSquareOutIcon, HandIcon, SparkleIcon } from "@phosphor-icons/react";
-import Dialog from "../ui/Dialog";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import SegmentedControl from "../ui/SegmentedControl";
 import { Switch } from "../ui/Controls";
-import { getJson, href, jamMenit, postJson, useSessionNow } from "../../lib/app";
+import { getJson, href, jamMenit, useSessionNow } from "../../lib/app";
 import { dengar } from "../../lib/siaran";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import type { Lang } from "../../lib/kelas";
 import { BL } from "./blankStrings";
-import KodeTeks from "../ui/KodeTeks";
 import "./blank-panel.css";
 
 interface Blank {
@@ -42,34 +39,20 @@ interface Blank {
   pada: string | null;
 }
 
-interface Minta {
-  id: number;
-  berkas: string;
-  nomor: number;
-  catatan: string;
-  diminta: string | null;
-  oleh: string | null;
-  teks: string | null;
-  dari: string | null;
-  dijawab: string | null;
-}
-
 interface Data {
   ok: boolean;
   kode?: string;
   modul: number;
   berkas: { slug: string; path: string; blank: Blank[] }[];
-  minta: Minta[];
 }
 
-type Saring = "semua" | "belum" | "macet" | "minta";
+type Saring = "semua" | "belum" | "macet";
 
 const TOKEN = /_{4,}/;
 
 export interface BlankRingkas {
   benar: number;
   total: number;
-  minta: number;
 }
 
 export default function BlankPanel({
@@ -99,7 +82,6 @@ export default function BlankPanel({
   const kunci = kunciOn ?? kunciSendiri;
   const setKunci = onKunci ?? setKunciSendiri;
   const [saring, setSaring] = useState<Saring>("semua");
-  const [tulis, setTulis] = useState<{ slug: string; b: Blank; minta?: Minta } | null>(null);
   const hidup = useRef(true);
   // A blank picked elsewhere: show every blank, then bring it into view.
   useEffect(() => {
@@ -138,8 +120,8 @@ export default function BlankPanel({
   const sesiNow = useSessionNow();
   useAliranAtauTopik(
     { ruang: "sesi", sesiId: sesiNow.data?.id ?? null },
-    ["jawaban", "petunjuk"],
-    ["jawaban", "petunjuk"],
+    ["jawaban"],
+    ["jawaban"],
     () => void muat(),
     true,
     kelompok,
@@ -149,47 +131,20 @@ export default function BlankPanel({
     () => (data?.ok ? data.berkas.flatMap((f) => f.blank.map((b) => ({ f, b }))) : []),
     [data],
   );
-  const tunggu = (slug: string, n: number) =>
-    data?.minta.find((m) => m.berkas === slug && m.nomor === n && !m.teks && m.diminta);
-  const terkirim = (slug: string, n: number) =>
-    data?.minta.filter((m) => m.berkas === slug && m.nomor === n && m.teks) ?? [];
-  const cocok = (k: Saring, slug: string, b: Blank) =>
-    k === "semua" ||
-    (k === "belum" && !b.benar) ||
-    (k === "macet" && !b.benar && b.salah >= 2) ||
-    (k === "minta" && !!tunggu(slug, b.nomor));
-  const hitung = (k: Saring) => semua.filter(({ f, b }) => cocok(k, f.slug, b)).length;
+  const cocok = (k: Saring, b: Blank) =>
+    k === "semua" || (k === "belum" && !b.benar) || (k === "macet" && !b.benar && b.salah >= 2);
+  const hitung = (k: Saring) => semua.filter(({ b }) => cocok(k, b)).length;
 
   useEffect(() => {
     if (!data?.ok || !onRingkas) return;
     onRingkas({
       benar: semua.filter(({ b }) => b.benar).length,
       total: semua.length,
-      minta: hitung("minta"),
     });
   }, [data]);
 
   if (!data) return <p className="hint">{gagal ? t.fail : t.loading}</p>;
   if (!data.ok) return <p className="hint">{gagal ? t.fail : t.noSession}</p>;
-
-  async function kirim(teks: string) {
-    if (!tulis) return false;
-    try {
-      const r = await postJson<{ ok: boolean }>("/api/modul/petunjuk", {
-        kelompok,
-        soal: `m${data!.modul}.${tulis.slug}.${tulis.b.nomor}`,
-        teks,
-        minta: tulis.minta?.id ?? null,
-      });
-      if (!r.ok) throw new Error();
-      window.Toast?.show(t.sentOk(nomor), "ok");
-      void muat();
-      return true;
-    } catch {
-      window.Toast?.show(t.sendFail, "danger");
-      return false;
-    }
-  }
 
   return (
     <div className="bpanel">
@@ -210,21 +165,19 @@ export default function BlankPanel({
           { value: "semua", label: t.all(hitung("semua")) },
           { value: "belum", label: t.open(hitung("belum")) },
           { value: "macet", label: t.stuck(hitung("macet")) },
-          { value: "minta", label: t.asked(hitung("minta")) },
         ]}
       />
 
       {hitung(saring) === 0 && <p className="hint">{t.none}</p>}
 
       {data.berkas.map((f) => {
-        const rows = f.blank.filter((b) => cocok(saring, f.slug, b));
+        const rows = f.blank.filter((b) => cocok(saring, b));
         if (rows.length === 0) return null;
         return (
           <section key={f.slug} className="bpanel__file">
             <h4 className="bpanel__path mono">{f.path}</h4>
             <ol className="bpanel__list">
               {rows.map((b) => {
-                const w = tunggu(f.slug, b.nomor);
                 const st = b.benar ? "ok" : b.salah > 0 ? "bad" : b.isi ? "bad" : "empty";
                 const isi = kunci ? b.kunci : b.isi || "____";
                 const [pre, post] = b.kode.split(TOKEN);
@@ -234,7 +187,6 @@ export default function BlankPanel({
                     key={b.nomor}
                     className="brow"
                     data-st={st}
-                    data-ask={w ? "yes" : undefined}
                     data-focus={fokus === soal ? "yes" : undefined}
                     data-soal={soal}
                   >
@@ -258,34 +210,8 @@ export default function BlankPanel({
                         )}
                         <span className="hint">{t.line(b.baris)}</span>
                       </div>
-                      {w && (
-                        <p className="brow__ask">
-                          <HandIcon size={16} aria-hidden="true" />
-                          <span>
-                            <b>{w.oleh ?? ""}</b> {t.asking(jamMenit(w.diminta!), w.catatan)}
-                          </span>
-                        </p>
-                      )}
-                      {terkirim(f.slug, b.nomor).map((m) => (
-                        <p key={m.id} className="brow__sent">
-                          <SparkleIcon size={16} aria-hidden="true" />
-                          <span>
-                            <b>{t.sent(m.dari ?? "", m.dijawab ? jamMenit(m.dijawab) : "")}</b>{" "}
-                            {m.teks}
-                          </span>
-                        </p>
-                      ))}
                     </div>
                     <div className="brow__acts">
-                      {!b.benar && (
-                        <button
-                          type="button"
-                          className={w ? "btn btn--sm btn--primary" : "btn btn--sm"}
-                          onClick={() => setTulis({ slug: f.slug, b, minta: w })}
-                        >
-                          {w ? t.answer : t.hint}
-                        </button>
-                      )}
                       <a
                         className="btn btn--sm btn--icon"
                         href={href(
@@ -305,108 +231,6 @@ export default function BlankPanel({
           </section>
         );
       })}
-
-      {tulis && (
-        <HintDialog
-          lang={lang}
-          nomor={nomor}
-          tulis={tulis}
-          onClose={() => setTulis(null)}
-          onSend={kirim}
-        />
-      )}
     </div>
-  );
-}
-
-function HintDialog({
-  lang,
-  nomor,
-  tulis,
-  onClose,
-  onSend,
-}: {
-  lang: Lang;
-  nomor: number;
-  tulis: { slug: string; b: Blank; minta?: Minta };
-  onClose: () => void;
-  onSend: (teks: string) => Promise<boolean>;
-}) {
-  const t = BL[lang];
-  const [teks, setTeks] = useState("");
-  const [sibuk, setSibuk] = useState(false);
-  const { b } = tulis;
-  // A hint that spells out the key gives the blank away.
-  const bocor =
-    b.kunci.length > 1 &&
-    teks.toLowerCase().replace(/\s+/g, "").includes(b.kunci.toLowerCase().replace(/\s+/g, ""));
-
-  async function kirim() {
-    setSibuk(true);
-    const ok = await onSend(teks.trim());
-    setSibuk(false);
-    if (ok) onClose();
-  }
-
-  return (
-    <Dialog
-      open
-      onOpenChange={(o) => !o && onClose()}
-      title={t.dlgTitle(nomor, b.nomor)}
-      description={t.dlgDesc}
-      lang={lang}
-      actions={
-        <>
-          <button type="button" className="btn" onClick={onClose}>
-            {t.cancel}
-          </button>
-          <button
-            type="button"
-            className="btn btn--primary"
-            disabled={sibuk || !teks.trim() || bocor}
-            onClick={() => void kirim()}
-          >
-            {t.send}
-          </button>
-        </>
-      }
-    >
-      <div className="stack">
-        <div className="field">
-          <span className="field__label">{t.dlgLine}</span>
-          <code className="brow__code mono">{b.kode}</code>
-          <span className="hint">{b.petunjuk}</span>
-        </div>
-        {tulis.minta && (
-          <p className="brow__ask">
-            <HandIcon size={16} aria-hidden="true" />
-            <span>
-              <b>{tulis.minta.oleh ?? ""}</b>{" "}
-              {t.asking(jamMenit(tulis.minta.diminta!), tulis.minta.catatan)}
-            </span>
-          </p>
-        )}
-        {b.bantuan && (
-          <div className="field">
-            <span className="field__label">{t.dlgModule(b.bantuanKe)}</span>
-            <span className="hint">
-              <KodeTeks teks={b.bantuan} />
-            </span>
-          </div>
-        )}
-        <label className="field">
-          <span className="field__label">{t.dlgText}</span>
-          <textarea
-            className="field__input field__textarea"
-            rows={3}
-            maxLength={400}
-            placeholder={t.dlgPh}
-            value={teks}
-            onChange={(e) => setTeks(e.target.value)}
-          />
-          {bocor && <span className="field__hint field__hint--error">{t.dlgKeyWarn}</span>}
-        </label>
-      </div>
-    </Dialog>
   );
 }

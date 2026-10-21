@@ -35,7 +35,8 @@ export default function SeelabsLine({
 }: {
   lang: Lang;
   data: SeelabsData | null;
-  onOpen: () => void;
+  /** Opens the SeeLabs page; without it the line only reports. */
+  onOpen?: () => void;
   as?: "li" | "div";
 }) {
   const t = SL[lang];
@@ -49,9 +50,11 @@ export default function SeelabsLine({
       <span className="grow">
         {belum.length ? t.notSavedRow(daftarKelompok(belum, lang)) : t.allSavedRow}
       </span>
-      <button type="button" className="btn btn--secondary btn--sm" onClick={onOpen}>
-        {t.open}
-      </button>
+      {onOpen && (
+        <button type="button" className="btn btn--secondary btn--sm" onClick={onOpen}>
+          {t.open}
+        </button>
+      )}
     </Tag>
   );
 }

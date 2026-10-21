@@ -11,7 +11,6 @@
  * Help around a blank, never its answer:
  * - its line's comment, always;
  * - the written hint (Celah.bantuan), once the group got it wrong twice;
- * - hints the Asisten writes, asked for with Minta Petunjuk or sent unasked;
  * - the explanation, once it is right.
  * Hints show under the blank's line too, so a phone sees them in place.
  *
@@ -45,7 +44,6 @@ import {
   ArrowsOutSimpleIcon,
   CheckIcon,
   DownloadSimpleIcon,
-  HourglassMediumIcon,
   KeyIcon,
   QuestionIcon,
   SidebarSimpleIcon,
@@ -62,7 +60,7 @@ import type { Lang } from "../../lib/kelas";
 import { C } from "./codeStrings";
 import { openSignIn } from "../../lib/signin";
 import { dengar } from "../../lib/siaran";
-import { jamMenit, postJson, useSessionNow } from "../../lib/app";
+import { jamMenit, useSessionNow } from "../../lib/app";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import { soalKodePrefix } from "../../lib/blanks";
 import {
@@ -115,19 +113,6 @@ interface BlankState {
   pada?: string;
   checking: boolean;
   checkedIsi?: string;
-}
-
-/** A hint request or a hint from the Asisten (api/_lib/petunjuk.ts). */
-interface Minta {
-  id: number;
-  berkas: string;
-  nomor: number;
-  catatan: string;
-  diminta: string | null;
-  oleh: string | null;
-  teks: string | null;
-  dari: string | null;
-  dijawab: string | null;
 }
 
 /** What an Asisten sees around a blank (kunci's `bantu`). */
@@ -231,10 +216,6 @@ export default function BlankFile(p: Props) {
   const [grup, setGrup] = useState<number | null>(null);
   const [kunci, setKunci] = useState<Record<string, string> | null>(null);
   const [bantu, setBantu] = useState<Record<string, Bantu>>({});
-  const [minta, setMinta] = useState<Minta[]>([]);
-  const mintaRef = useRef<Minta[] | null>(null);
-  const [tanya, setTanya] = useState<number | null>(null);
-  const [kirim, setKirim] = useState(false);
   const [target, setTarget] = useState<number | null>(null);
   const [flash, setFlash] = useState<number[]>([]);
   const [lastPeer, setLastPeer] = useState<{
@@ -248,8 +229,6 @@ export default function BlankFile(p: Props) {
   const box = useRef<HTMLDivElement | null>(null);
 
   const readOnly = mode !== "now" || locked || (p.wakil !== undefined && !p.wakil.own);
-  // Asking is the group's own: not an Asisten viewing as them, not history.
-  const bolehMinta = mode === "now" && !locked && p.wakil === undefined;
 
   /** Merges the group's saved answers, never over a blank being typed in;
    *  tries, hints and who filled it always follow. */
@@ -315,18 +294,6 @@ export default function BlankFile(p: Props) {
     }
   }
 
-  /** The Asisten's hints: a toast for each one new since the last read. */
-  function terapkanMinta(list: Minta[] | undefined) {
-    const baru = (list ?? []).filter((m) => m.berkas === berkas);
-    const lama = mintaRef.current;
-    if (lama)
-      for (const m of baru)
-        if (m.teks && !lama.some((x) => x.id === m.id && x.teks))
-          toast(t.hintArrived(m.nomor), "ok");
-    mintaRef.current = baru;
-    setMinta(baru);
-  }
-
   function onFail(kode: string | undefined) {
     if (kode === "sesi_berganti") {
       setLockedReason("sesiBerubah");
@@ -343,7 +310,6 @@ export default function BlankFile(p: Props) {
       if (!mounted.current) return;
       if (d.ok) {
         terapkanDraft(d.jawaban as Saved, true);
-        terapkanMinta(d.minta);
       } else onFail(d.kode);
     } catch {
       // The next tick tries again.
@@ -364,7 +330,6 @@ export default function BlankFile(p: Props) {
           return;
         }
         terapkanDraft(d.jawaban as Saved);
-        terapkanMinta(d.minta);
         const n = d.nomorKelompok;
         if (typeof n === "number") {
           setGrup(n);
@@ -390,7 +355,7 @@ export default function BlankFile(p: Props) {
     return dengar(["jurnal"], () => void muatUlang());
   }, [mode, loaded, locked, modul, berkas]);
 
-  // A groupmate's answer and an Asisten's hint: from the session room, which
+  // A groupmate's answer: from the session room, which
   // brings only this group's (the topics stand in while it is down). A wrong
   // try lands in place from the message; a right one, or the try that opens
   // the written hint, asks for the draft, which carries the explanation and
@@ -398,8 +363,8 @@ export default function BlankFile(p: Props) {
   const sesiNow = useSessionNow(mode === "now");
   useAliranAtauTopik(
     { ruang: "sesi", sesiId: sesiNow.data?.id ?? null },
-    ["jawaban", "petunjuk"],
-    ["jawaban", "petunjuk"],
+    ["jawaban"],
+    ["jawaban"],
     (m) => {
       const d =
         m?.j === "jawaban"
@@ -430,7 +395,7 @@ export default function BlankFile(p: Props) {
     },
     mode === "now" && loaded && !locked,
     null,
-    // A check or a hint on another file of the module changes nothing here.
+    // A check on another file of the module changes nothing here.
     (m) => {
       const soal = (m.d as { soal?: unknown } | null)?.soal;
       return typeof soal !== "string" || soal.startsWith(soalKodePrefix(modul, berkas));
@@ -545,35 +510,6 @@ export default function BlankFile(p: Props) {
     }
   }
 
-  async function mintaPetunjuk(nomor: number, catatan: string) {
-    setKirim(true);
-    try {
-      const r = await postJson<{ ok: boolean; kode?: string }>("/api/modul/minta", {
-        modul,
-        berkas,
-        nomor,
-        catatan,
-      });
-      if (!r.ok) throw new Error(r.kode);
-      toast(t.askSent(nomor), "ok");
-      setTanya(null);
-      await muatUlang();
-    } catch {
-      toast(t.askFail, "danger");
-    } finally {
-      setKirim(false);
-    }
-  }
-
-  async function batalMinta(id: number) {
-    try {
-      await postJson("/api/modul/minta-batal", { id });
-      await muatUlang();
-    } catch {
-      toast(t.askFail, "danger");
-    }
-  }
-
   function stOf(n: number): St {
     if (mode === "asisten") return keys ? "key" : "empty";
     const e = state[n];
@@ -582,11 +518,7 @@ export default function BlankFile(p: Props) {
     return e.teman ? "peer" : "ok";
   }
 
-  /** The Asisten's hints for one blank, and its waiting request. */
-  const dariAsisten = (n: number) => minta.filter((m) => m.nomor === n && m.teks);
-  const menunggu = (n: number) => minta.find((m) => m.nomor === n && !m.teks && m.diminta);
-  const adaBantuan = (n: number) =>
-    !state[n]?.benar && (!!state[n]?.bantuanKe || dariAsisten(n).length > 0);
+  const adaBantuan = (n: number) => !state[n]?.benar && !!state[n]?.bantuanKe;
 
   const right = nomors.filter((n) => state[n]?.benar).length;
   const shownRight = mode === "asisten" ? (keys ? total : 0) : right;
@@ -724,7 +656,7 @@ export default function BlankFile(p: Props) {
     const url =
       mode === "asisten"
         ? `/api/modul/kunci?modul=${modul}&berkas=${berkas}&unduh=1&bahasa=${p.bahasa}&kelompok=${lihat ?? 1}`
-        : `/api/modul/unduh?modul=${modul}&berkas=${berkas}&bahasa=${p.bahasa}`;
+        : `/api/modul/unduh?modul=${modul}&berkas=${berkas}&bahasa=${p.bahasa}${wakilQs}`;
     try {
       const r = await fetch(url);
       if ((r.headers.get("Content-Type") ?? "").includes("json")) {
@@ -827,15 +759,6 @@ export default function BlankFile(p: Props) {
           t={t}
         />,
       );
-    for (const m of dariAsisten(n))
-      out.push(
-        <Note
-          key={`m${m.id}`}
-          tone="asisten"
-          label={`${m.dari ?? ""} · ${m.dijawab ? jamMenit(m.dijawab) : ""}`}
-          text={m.teks ?? ""}
-        />,
-      );
     return out;
   }
 
@@ -874,21 +797,13 @@ export default function BlankFile(p: Props) {
         line={(lineOf.get(pilih) ?? 0) + 1}
         tip={pilihSeg.hint}
         e={state[pilih]}
-        dariAsisten={dariAsisten(pilih)}
-        menunggu={menunggu(pilih)}
-        bolehMinta={bolehMinta}
-        tanya={tanya === pilih}
-        kirim={kirim}
-        onTanya={(on) => setTanya(on ? pilih : null)}
-        onMinta={(catatan) => void mintaPetunjuk(pilih, catatan)}
-        onBatal={(id) => void batalMinta(id)}
         kunci={keys ? (kunci?.[pilih] ?? "") : null}
         bantu={bantu[pilih]}
       />
     ) : null;
   const log =
     mode !== "asisten" ? (
-      <HintLog t={t} nomors={nomors} state={state} minta={minta} onJump={(n) => jump(n)} />
+      <HintLog t={t} nomors={nomors} state={state} onJump={(n) => jump(n)} />
     ) : null;
 
   // Beside the code: a wide screen that hasn't widened the editor.
@@ -943,7 +858,6 @@ export default function BlankFile(p: Props) {
           </div>
           <div className="blanknav" role="list" aria-label={t.lines}>
             {nomors.map((n) => {
-              const w = menunggu(n);
               return (
                 <span role="listitem" key={n}>
                   <button
@@ -958,12 +872,6 @@ export default function BlankFile(p: Props) {
                     <span className="hint">({n})</span>
                     {mode !== "asisten" && adaBantuan(n) ? (
                       <SparkleIcon className="blankchip__ic" size={15} aria-label={t.hint} />
-                    ) : mode !== "asisten" && w ? (
-                      <HourglassMediumIcon
-                        className="blankchip__ic"
-                        size={15}
-                        aria-label={t.waiting}
-                      />
                     ) : null}
                   </button>
                 </span>
@@ -1171,14 +1079,6 @@ function BlankCard(p: {
   line: number;
   tip: string;
   e: BlankState | undefined;
-  dariAsisten: Minta[];
-  menunggu: Minta | undefined;
-  bolehMinta: boolean;
-  tanya: boolean;
-  kirim: boolean;
-  onTanya: (on: boolean) => void;
-  onMinta: (catatan: string) => void;
-  onBatal: (id: number) => void;
   kunci: string | null;
   bantu: Bantu | undefined;
 }) {
@@ -1255,10 +1155,7 @@ function BlankCard(p: {
                   t={t}
                 />
               ) : (
-                // Phase 21 (f8): with Minta Petunjuk on the card this line is
-                // the button's tip; one line of help stays on the card.
-                p.mode === "now" &&
-                !p.bolehMinta && (
+                p.mode === "now" && (
                   <p className="hint">
                     {t.hintLocked(Math.max(1, SALAH_UNTUK_BANTUAN1 - (e?.salah ?? 0)))}
                   </p>
@@ -1274,24 +1171,6 @@ function BlankCard(p: {
                     ),
                   )}
                 </p>
-              )}
-              {p.dariAsisten.map((m) => (
-                <Box
-                  key={m.id}
-                  tone="asisten"
-                  label={`${m.dari ?? ""} · ${m.dijawab ? jamMenit(m.dijawab) : ""}`}
-                  text={m.teks ?? ""}
-                />
-              ))}
-              {p.bolehMinta && (
-                <Ask
-                  {...p}
-                  tip={
-                    p.mode === "now" && !e?.bantuanKe
-                      ? t.hintLocked(Math.max(1, SALAH_UNTUK_BANTUAN1 - (e?.salah ?? 0)))
-                      : undefined
-                  }
-                />
               )}
             </>
           )}
@@ -1335,93 +1214,12 @@ function Box({
   );
 }
 
-/** Minta Petunjuk: an optional reason, then waiting with a cancel. */
-function Ask(p: {
-  t: T;
-  menunggu: Minta | undefined;
-  dariAsisten: Minta[];
-  tanya: boolean;
-  kirim: boolean;
-  onTanya: (on: boolean) => void;
-  onMinta: (catatan: string) => void;
-  onBatal: (id: number) => void;
-  /** When the next hint opens by itself, shown on the button. */
-  tip?: string;
-}) {
-  const { t } = p;
-  if (p.menunggu)
-    return (
-      <div className="pblank__wait">
-        <span className="dot dot--warn dot--pulse" aria-hidden="true" />
-        <span className="pblank__txt grow">
-          <b>{t.waiting}</b>
-          <span className="hint">
-            {t.askedAt(p.menunggu.diminta ? jamMenit(p.menunggu.diminta) : "", p.menunggu.catatan)}
-          </span>
-        </span>
-        <button
-          type="button"
-          className="btn btn--sm btn--ghost"
-          onClick={() => p.onBatal(p.menunggu!.id)}
-        >
-          {t.cancelAsk}
-        </button>
-      </div>
-    );
-  if (p.tanya)
-    return (
-      <div className="stack stack--sm">
-        <span className="field__label">{t.askWhat}</span>
-        <div className="pblank__reasons">
-          {t.askReasons.map((x) => (
-            <button
-              key={x}
-              type="button"
-              className="btn btn--sm"
-              disabled={p.kirim}
-              onClick={() => p.onMinta(x)}
-            >
-              {x}
-            </button>
-          ))}
-        </div>
-        <div className="pblank__acts">
-          <button type="button" className="btn btn--sm" onClick={() => p.onTanya(false)}>
-            {t.cancel}
-          </button>
-          <button
-            type="button"
-            className="btn btn--sm btn--primary"
-            disabled={p.kirim}
-            onClick={() => p.onMinta("")}
-          >
-            {t.askNoNote}
-          </button>
-        </div>
-      </div>
-    );
-  return (
-    <div className="stack stack--sm">
-      <button
-        type="button"
-        className="btn btn--primary pblank__ask"
-        data-tip={p.tip}
-        onClick={() => p.onTanya(true)}
-      >
-        {p.dariAsisten.length ? t.askAnother : t.askHint}
-      </button>
-      <span className="hint">{t.askNote}</span>
-    </div>
-  );
-}
-
 /* --------------------------------------------------------- the hint log */
 
 function HintLog(p: {
   t: T;
   nomors: number[];
   state: Record<number, BlankState>;
-  minta: Minta[];
   onJump: (n: number) => void;
 }) {
   const { t } = p;
@@ -1445,14 +1243,6 @@ function HintLog(p: {
         jawaban: e.bantuanJawaban,
       });
   }
-  for (const m of p.minta)
-    rows.push({
-      key: `m${m.id}`,
-      at: m.dijawab ?? m.diminta ?? "",
-      n: m.nomor,
-      tone: m.teks ? "asisten" : "wait",
-      text: m.teks ?? t.logWaiting,
-    });
   rows.sort((a, b) => a.at.localeCompare(b.at));
 
   return (

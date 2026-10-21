@@ -1,6 +1,6 @@
 /** SeeLabs data for the console (Phase 9 Stage 3g): one session's groups as
- *  /api/session/seelabs reports them, and the actions that log a copy, mark a
- *  group saved, or pick a borrowed account. */
+ *  /api/session/seelabs reports them, and the action that picks a borrowed
+ *  account. The scores themselves go through the robot. */
 import { useEffect } from "react";
 import { getJson, postJson } from "../../../lib/app";
 import { usePoll } from "../../../lib/hooks";
@@ -15,10 +15,6 @@ export interface SeelabsData extends SesiSeelabs {
   pemberi: string[];
   /** Asisten who can't lend, with why (shown dimmed in the picker). */
   pemberiTolak: PemberiTolak[];
-}
-
-export interface Titipan extends SesiSeelabsInfo {
-  kelompok: KelompokSeelabs;
 }
 
 type JawabSeelabs = ({ ok: true } & SeelabsData) | { ok: false; kode?: string };
@@ -50,28 +46,18 @@ export function useSeelabs(sesiId: number | null) {
   };
 }
 
-/** Groups whose scores go through MY account and aren't saved yet. */
-export function useTitipan(enabled = true) {
-  return usePoll(
-    () =>
-      getJson<{ ok: boolean; titipan: Titipan[]; namaAkun: Record<string, string | null> }>(
-        "/api/session/seelabs?titipan=1",
-      ).then((d) => (d.ok ? d : null)),
-    60_000,
-    enabled,
-    ["sesi", "bayar"],
-  );
-}
-
-export type AksiSeelabs =
-  | { aksi: "salin" | "simpan" | "belum"; sesiId: number; kelompok: number }
-  | { aksi: "akun"; sesiId: number; kelompok: number; akun: string | null };
+export type AksiSeelabs = {
+  aksi: "akun";
+  sesiId: number;
+  kelompok: number;
+  akun: string | null;
+};
 
 export function kirimSeelabs(body: AksiSeelabs) {
   return postJson<{ ok: boolean; kode?: string }>("/api/session/seelabs", body);
 }
 
-/** Writes to the clipboard; false when the browser refuses. */
+/** Writes to the clipboard; false when the browser refuses (also used by the hunt's QR link). */
 export async function salinTeks(teks: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(teks);
