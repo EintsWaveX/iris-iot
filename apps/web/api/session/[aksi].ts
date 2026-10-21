@@ -142,7 +142,12 @@ import {
 import { handleDokumenGet, handleDokumenPost } from "../_lib/dokumen.js";
 import { handleBayarGet, handleBayarPost } from "../_lib/bayar.js";
 import { handleSeelabsGet, handleSeelabsPost } from "../_lib/seelabs.js";
-import { antreNilai, handleRobotGet, handleRobotPost } from "../_lib/seelabs-robot.js";
+import {
+  antreNilai,
+  handleRobotGet,
+  handleRobotPost,
+  jagaPengganti,
+} from "../_lib/seelabs-robot.js";
 import { JEDA_SUNTING_DETIK } from "../../src/lib/seelabs-robot.js";
 import {
   handlePenugasanGet,
@@ -1977,14 +1982,19 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     return handleAssignmentGet(req, res);
   }
   if (aksi === "penugasan") {
-    if (req.method === "POST") return handlePenugasanPost(req, res, session);
+    if (req.method === "POST") {
+      await handlePenugasanPost(req, res, session);
+      // A cover accepted or seated: their shift into SeeLabs' Input Jaga.
+      return jagaPengganti(getDb());
+    }
     if (!requireMethod(req, res, "GET")) return;
     return handlePenugasanGet(req, res, session);
   }
   if (aksi === "schedule") {
     if (req.method === "POST") {
       if (!(await cekHak(res, session.nim, "jadwal"))) return;
-      return handleSchedulePost(req, res, session);
+      await handleSchedulePost(req, res, session);
+      return jagaPengganti(getDb());
     }
     if (!requireMethod(req, res, "GET")) return;
     return handleScheduleGet(req, res);

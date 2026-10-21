@@ -24,7 +24,7 @@
  * The seal arrives RSA-OAEP-3072 to the Pi's key and is kept wrapped again
  * with AES-256-GCM (rahasia.ts); it is unwrapped only into the Pi's job.
  */
-import { and, asc, desc, eq, inArray, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, lte, ne, or, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
@@ -49,6 +49,7 @@ import {
   asisten,
   jadwal,
   pengaturan,
+  penugasanSlot,
   seelabsAkses,
   seelabsEkspor,
   seelabsTugas,
@@ -267,7 +268,19 @@ async function pindahAkun(db: Db, t: typeof seelabsTugas.$inferSelect, oleh: str
   return antreNilai(db, t.sesiId!, t.kelompokNomor!, oleh);
 }
 
-/** The weekly slots an Asisten teaches this semester, from jadwal. */
+/** Seated covers (Substitute or Volunteer with a group, accepted) on a
+ *  date from today on. */
+const tutupanKini = () =>
+  and(
+    eq(penugasanSlot.status, "diterima"),
+    isNotNull(penugasanSlot.kelompokNomor),
+    gte(penugasanSlot.tanggal, hariIniWib()),
+  );
+
+/** The weekly slots an Asisten teaches this semester, from jadwal, and each
+ *  slot they cover on a date still to come: SeeLabs takes scores on an
+ *  off-shift once it's in Input Jaga, within its rules (user, 2026-10-21).
+ *  A cover's slot stays registered after the date (jaga never removes). */
 async function mengajar(db: Db, nim: string) {
   const [orang] = await db
     .select({ kode: asisten.kode })
@@ -276,20 +289,54 @@ async function mengajar(db: Db, nim: string) {
     .limit(1);
   if (!orang) return [];
   const semester = semesterDariTanggal(hariIniWib());
-  const rows = await db
-    .select({
-      hari: jadwal.hari,
-      slot: jadwal.slot,
-      kelas: jadwal.kelas,
-      asisten: jadwal.asisten,
-      status: jadwal.status,
-    })
-    .from(jadwal)
-    .where(eq(jadwal.semester, semester));
+  const [rows, tutup] = await Promise.all([
+    db
+      .select({
+        id: jadwal.id,
+        hari: jadwal.hari,
+        slot: jadwal.slot,
+        kelas: jadwal.kelas,
+        asisten: jadwal.asisten,
+        status: jadwal.status,
+      })
+      .from(jadwal)
+      .where(eq(jadwal.semester, semester)),
+    db
+      .select({ jadwalId: penugasanSlot.jadwalId })
+      .from(penugasanSlot)
+      .where(and(eq(penugasanSlot.nim, nim), tutupanKini())),
+  ]);
   const kode = orang.kode.toUpperCase();
+  const ditutup = new Set(tutup.map((t) => t.jadwalId));
   return rows
-    .filter((r) => r.status !== "kosong" && r.asisten.some((k) => k.trim().toUpperCase() === kode))
+    .filter(
+      (r) =>
+        r.status !== "kosong" &&
+        (r.asisten.some((k) => k.trim().toUpperCase() === kode) || ditutup.has(r.id)),
+    )
     .map((r) => ({ hari: r.hari, slot: r.slot, kelas: r.kelas }));
+}
+
+/**
+ * After covers change (Jadwal, Tim › Penugasan): the jaga check for every
+ * connected account seated as a cover on a date still to come, so the
+ * cover's shift is in Input Jaga before their scores go out. It signs in
+ * only where the wanted slots changed. Runs after the answer; a failure
+ * here only logs.
+ */
+export async function jagaPengganti(db: Db): Promise<void> {
+  try {
+    const aturan = await aturanRobot(db);
+    if (!aturan.nyala || !aturan.kunci) return;
+    const rows = await db
+      .selectDistinct({ nim: penugasanSlot.nim })
+      .from(penugasanSlot)
+      .innerJoin(seelabsAkses, eq(seelabsAkses.nim, penugasanSlot.nim))
+      .where(and(tutupanKini(), eq(seelabsAkses.status, "aktif")));
+    for (const r of rows) await antreJaga(db, r.nim, "robot", false);
+  } catch (err) {
+    console.error("[seelabs-robot] cover jaga check failed:", err);
+  }
 }
 
 /** Input Jaga: one job per praktikum with slots, only when the wanted slots changed (or paksa). */
@@ -305,6 +352,23 @@ export async function antreJaga(db: Db, nim: string, oleh: string, paksa: boolea
   if (!perPraktikum.size) return { antre: false as const, alasan: "tanpa_slot", tanpaMinggu };
   if (!paksa && akses.jagaSidik === sidik)
     return { antre: false as const, alasan: "sama", tanpaMinggu };
+  // The same set already waiting or running (the sidik is kept only once
+  // the Pi reports): every Jadwal or Penugasan save checks covers now.
+  if (!paksa) {
+    const [menunggu] = await db
+      .select({ id: seelabsTugas.id })
+      .from(seelabsTugas)
+      .where(
+        and(
+          eq(seelabsTugas.jenis, "jaga"),
+          eq(seelabsTugas.akunNim, nim),
+          inArray(seelabsTugas.status, ["antre", "diambil"]),
+          sql`${seelabsTugas.isi}->>'sidik' = ${sidik}`,
+        ),
+      )
+      .limit(1);
+    if (menunggu) return { antre: false as const, alasan: "sama", tanpaMinggu };
+  }
   const tugas: number[] = [];
   for (const [praktikum, slot] of perPraktikum)
     tugas.push(
