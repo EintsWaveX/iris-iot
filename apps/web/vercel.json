@@ -8,6 +8,11 @@
       "permanent": true
     },
     {
+      "source": "/(en/|zh/)?lms/?",
+      "destination": "/$1grading",
+      "permanent": true
+    },
+    {
       "source": "/masuk",
       "destination": "/login",
       "permanent": false
@@ -131,9 +136,6 @@
     },
     "api/session/index.ts": {
       "includeFiles": "src/content/sketches/**"
-    },
-    "api/lms/[aksi].ts": {
-      "maxDuration": 60
     },
     "api/tp/[aksi].ts": {
       "maxDuration": 60

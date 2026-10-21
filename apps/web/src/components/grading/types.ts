@@ -37,14 +37,6 @@ export interface SlotTp {
   kelompok: KelompokTp[];
 }
 
-export interface InfoSinkron {
-  tersambung: boolean;
-  terakhir: string | null;
-  hasil: "ok" | "gagal" | null;
-  galat: string | null;
-  galatSejak: string | null;
-}
-
 export interface DataKelompok {
   ok: boolean;
   jendela: JendelaInfo | null;
@@ -53,9 +45,6 @@ export interface DataKelompok {
   slot: SlotTp[];
   tanpaKelompok: AnggotaTp[];
   hitung: { peserta: number; masuk: number; dinilai: number; perluNilaiku: number };
-  sinkron: InfoSinkron;
-  hilang: { label: string; peserta: number }[];
-  bolehLms: boolean;
   bolehKelola?: boolean;
   /** Grades groups with no Per Modul seat and Tanpa Kelompok (Admin, Pencipta). */
   bolehTanpaPemegang?: boolean;
@@ -86,9 +75,8 @@ export interface DetailPraktikan {
     perpanjangan: string | null;
     terimaTelat: boolean | null;
     tanda: "kosong" | null;
-    /** Uploaded in IRIS or from the LMS (2026-10-14), and the IRIS file's LMS copy. */
+    /** Handed in through IRIS, or brought over from the LMS (before 2026-10-21). */
     sumber: "lms" | "iris";
-    salinanLms: string | null;
   } | null;
   skor: Record<
     string,

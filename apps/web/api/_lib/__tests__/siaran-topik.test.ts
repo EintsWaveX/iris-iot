@@ -36,18 +36,15 @@ const BACA: Record<string, string[]> = {
   tp: [
     "berkas",
     "hitung",
+    "jejak",
     "kelompok",
-    "lampiran",
-    "lms-info",
-    "riwayat",
+    "kumpul",
     "modul",
+    "pengaturan",
     "praktikan",
     "praktikum",
     "saya",
   ],
-  // Phase 15: the LMS menu's reads (tugas, nilai, umum, kalender and materi
-  // are both a read and a write, so they're listed as writes).
-  lms: ["kelas", "kelas-isi", "log", "ringkas"],
   // Phase 23: the public Lab Profile.
   profil: ["baca"],
 };
@@ -58,7 +55,6 @@ const RUTE: Record<string, string> = {
   presentasi: "api/presentasi/[aksi].ts",
   auth: "api/auth/[aksi].ts",
   tp: "api/tp/[aksi].ts",
-  lms: "api/lms/[aksi].ts",
   profil: "api/profil/[aksi].ts",
 };
 

@@ -5,7 +5,8 @@
  * - Links follow the role: signed out (Beranda, Modul), praktikan (Beranda,
  *   Dasbor, Modul; Live lives in the module page since Phase 9) and asisten.
  *   Phase 15 (2026-10-14, the tidy nav): the Asisten's daily places as
- *   words (Beranda, Konsol, Persiapan, Penilaian, LMS Beta, Jadwal), then
+ *   words (Beranda, Konsol, Persiapan, Penilaian, Jadwal; the LMS left on
+ *   2026-10-21), then
  *   one Lab menu whose rows say what each page is for (Server, Laporan,
  *   Tim, Modul). Under 1280 Persiapan and Jadwal join the menu under Sesi.
  * - Phase 9: the Tampilan button (theme, background detail, language,
@@ -40,7 +41,6 @@ import {
   ClipboardTextIcon,
   DoorOpenIcon,
   ExamIcon,
-  GraduationCapIcon,
   HardDrivesIcon,
   HouseIcon,
   IdentificationBadgeIcon,
@@ -97,7 +97,6 @@ interface Link {
   icon: Icon;
   /** Under 1280 it moves into the Lab menu under Sesi. */
   wide?: boolean;
-  beta?: boolean;
   /** What the page is for (a Lab menu row). */
   desc?: string;
 }
@@ -119,7 +118,6 @@ const T = dict({
     more: "Lainnya",
     lab: "Lab",
     sesi: "Sesi",
-    lms: "LMS",
     serverDesc: "PC Server dan perangkat di lab",
     reportsDesc: "Rekap sesi, kehadiran, dan bayaran",
     teamDesc: "Asisten, divisi, dan penugasan",
@@ -166,7 +164,6 @@ const T = dict({
     more: "More",
     lab: "Lab",
     sesi: "Sessions",
-    lms: "LMS",
     serverDesc: "The PC Server and lab devices",
     reportsDesc: "Session recaps, attendance and pay",
     teamDesc: "Asisten, divisions and assignments",
@@ -213,7 +210,6 @@ const T = dict({
     more: "更多",
     lab: "实验室",
     sesi: "课",
-    lms: "LMS",
     serverDesc: "PC 服务器和实验室设备",
     reportsDesc: "课后汇总、出勤和报酬",
     teamDesc: "助教、部门和排班",
@@ -251,7 +247,6 @@ const NAV_KEY: Record<string, string> = {
   "/": "G B",
   "/session": "G K",
   "/grading": "G N",
-  "/lms": "G E",
   "/preparation": "G P",
   "/schedule": "G J",
   "/servers": "G S",
@@ -267,7 +262,6 @@ function linksFor(me: Me | null | undefined, t: (typeof T)["id"]): Link[] {
       { path: "/session", label: t.console, icon: UsersThreeIcon },
       { path: "/preparation", label: t.prep, icon: ClipboardTextIcon, wide: true },
       { path: "/grading", label: t.grading, icon: ExamIcon },
-      { path: "/lms", label: t.lms, icon: GraduationCapIcon, beta: true },
       { path: "/schedule", label: t.schedule, icon: CalendarBlankIcon, wide: true },
     ];
   }
@@ -448,7 +442,7 @@ export default function AppNav({
   const lebar = useMinWidth(1280);
   const utama = useMemo(() => links.filter((l) => lebar || !l.wide), [links, lebar]);
   // The phone bar holds five: an Asisten reaches Home from the logo, so it
-  // holds Konsol, Persiapan, Penilaian, LMS and Jadwal (2026-10-14).
+  // holds Konsol, Persiapan, Penilaian and Jadwal.
   const barLinks = useMemo(
     () => (asistenNav ? links.filter((l) => l.path !== "/") : links).slice(0, 5),
     [links, asistenNav],
@@ -512,10 +506,7 @@ export default function AppNav({
       onClick={() => setLainBuka(false)}
     >
       <span className="labmenu__t">
-        <b>
-          {l.label}
-          {l.beta && <span className="appnav__beta">Beta</span>}
-        </b>
+        <b>{l.label}</b>
         {l.desc && <span className="hint">{l.desc}</span>}
       </span>
       {dot && (
@@ -619,7 +610,6 @@ export default function AppNav({
                   <KeyHint k={NAV_KEY[l.path]} corner />
                 )}
                 <span>{l.label}</span>
-                {l.beta && <span className="appnav__beta">Beta</span>}
                 {l.path === "/session" && now.data && (
                   <span className="appnav__live-dot" aria-hidden="true" />
                 )}

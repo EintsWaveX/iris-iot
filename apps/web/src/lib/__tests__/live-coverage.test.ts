@@ -46,13 +46,7 @@ const SEKALI: Record<string, string> = {
   "lib/seelabs-helper.ts": "runs in the SeeLabs tab",
   "lib/pdf.ts": "fetches fonts for a PDF",
   "lib/tp-pdf.ts": "fetches the font and the IRIS mark for a TP paper",
-  "components/grading/SoalTab.tsx":
-    "the LMS attachment check runs when asked; the bank is usePaket, live on topic tp",
   "components/grading/TpTab.tsx": "downloads a group's files when asked; its data is GradingPage's",
-  "components/grading/LmsRingkas.tsx":
-    "the whole sync history, read when its dialog opens; the card's last 10 are LmsTab's, live on topic tp",
-  "components/grading/LmsKelola.tsx":
-    "reads the saved TP set once when Buat or Samakan attaches its PDF; the table is LmsTab's, live on topic tp",
   "lib/xlsx.ts": "builds a file on demand",
   "lib/laporan.ts": "builds a file on demand",
   "scripts/lapor-galat.ts": "reports an error",

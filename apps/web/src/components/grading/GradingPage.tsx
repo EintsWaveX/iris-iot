@@ -1,18 +1,19 @@
 /**
  * /grading (Phase 13): Penilaian, reachable any time from the Asisten
  * navbar. Tabs: Nilai TP (the groups and the grader), Buat Soal TP
- * (each module's question bank, its final set and the LMS paper),
- * Praktikum (every session's score table this semester) and Sumber
- * SeeLabs. Sumber LMS moved to the LMS menu's Sambungan (Phase 15); an old
- * #lms link goes there. The tab is in the hash (#soal, #praktikum,
- * #seelabs); ?modul= picks the TP module for both TP tabs; the grader is a
- * history entry, so Back returns to the groups.
+ * (each module's question bank, its final set and the paper), Praktikum
+ * (every session's score table this semester), Pengaturan TP (who counts
+ * in TP, the default window, the cross-check; 2026-10-21, when the LMS
+ * left, an old #lms link lands here) and Sumber SeeLabs. The tab is in the
+ * hash (#soal, #praktikum, #pengaturan, #seelabs); ?modul= picks the TP
+ * module for both TP tabs; the grader is a history entry, so Back returns
+ * to the groups.
  */
 import { useCallback, useEffect, useState } from "react";
 import Fade from "../ui/Fade";
 import TabLine from "../ui/TabLine";
 import ErrorView from "../ui/ErrorView";
-import { getJson, href, useMe } from "../../lib/app";
+import { getJson, useMe } from "../../lib/app";
 import { useMinWidth, usePoll } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import { TPS } from "../tp/tpStrings";
@@ -20,21 +21,19 @@ import TpTab from "./TpTab";
 import Grader from "./Grader";
 import PraktikumTab from "./PraktikumTab";
 import SoalTab from "./SoalTab";
+import PengaturanTab from "./PengaturanTab";
 import SumberSeelabs from "../console/seelabs/SumberSeelabs";
 import { RB } from "../console/seelabs/robotStrings";
 import type { DataKelompok, GrupDinilai } from "./types";
 import "../tp/tp.css";
 
-type Tab = "tp" | "soal" | "praktikum" | "seelabs";
+type Tab = "tp" | "soal" | "praktikum" | "pengaturan" | "seelabs";
 
 function tabDariHash(): Tab {
   const h = typeof location === "undefined" ? "" : location.hash.replace(/^#/, "");
-  return h === "soal" || h === "praktikum" || h === "seelabs" ? h : "tp";
+  if (h === "lms") return "pengaturan";
+  return h === "soal" || h === "praktikum" || h === "pengaturan" || h === "seelabs" ? h : "tp";
 }
-
-/** Sumber LMS lives in the LMS menu now (Phase 15). */
-const keSambungan = (lang: Lang, m?: number | null) =>
-  href(lang, `/lms${m ? `?kelola=${m}` : ""}#sambung`);
 
 function modulDariUrl(): number | null {
   if (typeof location === "undefined") return null;
@@ -51,16 +50,13 @@ export default function GradingPage({ lang }: { lang: Lang }) {
   const [modul, setModul0] = useState<number | null>(modulDariUrl);
   const [grader, setGrader] = useState<{ g: GrupDinilai; i: number } | null>(null);
 
-  // An old Penilaian › Sumber LMS link (#lms), on load or followed in the page.
+  // The tab follows the hash, on load or followed in the page.
   useEffect(() => {
-    const on = () => {
-      if (location.hash === "#lms") location.replace(keSambungan(lang));
-      else setTab0(tabDariHash());
-    };
+    const on = () => setTab0(tabDariHash());
     on();
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
-  }, [lang]);
+  }, []);
   const setTab = (v: Tab) => {
     setTab0(v);
     history.replaceState(
@@ -116,16 +112,17 @@ export default function GradingPage({ lang }: { lang: Lang }) {
   if (me === undefined) return <span className="skeleton" style={{ height: 420 }} />;
   if (!asisten) return <ErrorView code={me ? 403 : 401} lang={lang} role={me?.role ?? null} />;
 
-  const bolehLms = me.hak?.full === true;
+  const bolehSeelabs = me.hak?.full === true;
   // Buat Soal TP is for the jadwal and kode rights; nobody else sees it.
   const bolehSoal = me.hak?.jadwal === true || me.hak?.kode === true;
   const tabs: { v: Tab; label: string; n?: number }[] = [
     { v: "tp", label: sm ? t.tpShort : t.tabTp, n: poll.data?.hitung.perluNilaiku || undefined },
     ...(bolehSoal ? [{ v: "soal" as const, label: sm ? t.tabSoalSm : t.tabSoal }] : []),
     { v: "praktikum", label: t.tabPraktikum },
+    { v: "pengaturan", label: sm ? t.tabPengaturanSm : t.tabPengaturan },
   ];
-  // Phase 14: the SeeLabs robot's own source tab, for the same people.
-  if (bolehLms) tabs.push({ v: "seelabs", label: sm ? "SeeLabs" : RB[lang].srcTitle });
+  // Phase 14: the SeeLabs robot's own source tab, for the full right.
+  if (bolehSeelabs) tabs.push({ v: "seelabs", label: sm ? "SeeLabs" : RB[lang].srcTitle });
   const shown: Tab = tabs.some((x) => x.v === tab) ? tab : "tp";
 
   if (grader && modul !== null && poll.data) {
@@ -170,14 +167,15 @@ export default function GradingPage({ lang }: { lang: Lang }) {
             modul={modul ?? 1}
             setModul={setModul}
             data={modul === null ? null : poll.data}
-            refresh={poll.refresh}
             onOpen={buka}
-            onLms={(m) => location.assign(keSambungan(lang, m))}
+            onPengaturan={() => setTab("pengaturan")}
           />
         ) : shown === "soal" ? (
           <SoalTab lang={lang} modul={modul ?? 1} setModul={setModul} />
         ) : shown === "praktikum" ? (
           <PraktikumTab lang={lang} />
+        ) : shown === "pengaturan" ? (
+          <PengaturanTab lang={lang} />
         ) : (
           <SumberSeelabs lang={lang} />
         )}

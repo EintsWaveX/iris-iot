@@ -1,77 +1,63 @@
 /**
- * /api/tp/:aksi — Tugas Pendahuluan from the LMS (Phase 13). The tenth
- * serverless function (the Hobby cap is 12). Settings, the sync and the
- * group data live in api/_lib/tp.ts, the LMS calls in api/_lib/lms.ts.
+ * /api/tp/:aksi — Tugas Pendahuluan (Phase 13), handed in and kept only in
+ * IRIS since 2026-10-21 (files on R2, _lib/tp-unggah.ts). The group data
+ * lives in api/_lib/tp.ts.
  *
  * Praktikan:
- * GET  /api/tp/saya[?modul=]        my TP per module: window, my file as IRIS
- *      sees it, my class course in the LMS, and my scores once my group's
- *      scores were sent (Kirim Nilai). With ?modul= also the final set's
- *      questions in my class's language (and Mandarin) and the PDF's
- *      instructions. All read only: TP is written by hand on paper.
- * GET  /api/tp/berkas?id=&i=[&unduh=1]       my own file, streamed from the LMS.
+ * GET  /api/tp/saya[?modul=]        my TP per module: window, my file and its
+ *      receipt, and my scores once my group's scores were sent (Kirim Nilai).
+ *      With ?modul= also the final set's questions in my class's language
+ *      (and Mandarin) and the PDF's instructions.
+ * GET  /api/tp/berkas?id=&i=[&unduh=1]       my own file (a redirect to R2).
+ * POST /api/tp/tiket { modul, ukuran, sha256, halaman }   where to PUT my PDF
+ * POST /api/tp/unggah { modul, tiket }       the PDF I put becomes my TP
  * Relay (no session; signed `detak|ts` with KONSOL_RELAY_SECRET):
- * POST /api/tp/detak   the minute timer: the TP sync when due and LMS copies
- *      still owed, and the lab clock's automatic starts (_lib/jam-lab.ts);
- *      answers how long the timer may sleep (a minute; the quiet hours
- *      through to 05:50).
- *
- * POST /api/tp/unggah { modul, isi }   my TP as one PDF (base64, 3 MB at most)
- *      while the window is open (2026-10-14: the LMS can refuse a student's
- *      upload until the iGracias survey is filled). The newer of this and
- *      the LMS submission counts; IRIS puts a copy in the LMS as a feedback
- *      file (_lib/tp-unggah.ts) and the server PC keeps one too.
+ * POST /api/tp/detak   the minute timer: the lab clock's automatic starts
+ *      (_lib/jam-lab.ts); answers how long the timer may sleep.
  *
  * Asisten:
  * GET  /api/tp/modul?modul=          the module's TP tab: window, counts per
- *      class, the LMS state, uploads made in IRIS and the server PC's copy.
+ *      class and the server PC's copy.
  * GET  /api/tp/kelompok?modul=       Penilaian › TP: every slot's groups that
  *      module's week, each member's status and total.
  * GET  /api/tp/praktikan?modul=&nim= the grader: one Praktikan's files,
- *      scores, notes and typed answers, and whether I may score them.
+ *      scores, notes and extension, and whether I may score them.
  * GET  /api/tp/paket?modul=          the module's question bank with its keys
- *      (never to a Praktikan), the final set's pick, who may edit it, and
- *      the LMS assignments it goes to.
- * GET  /api/tp/lampiran?modul=       what each class's TP assignment holds as
- *      attached files right now (asked of the LMS live).
+ *      (never to a Praktikan), the final set's pick and who may edit it.
  * GET  /api/tp/praktikum             Penilaian › Praktikum: every session this
  *      semester where I hold a group, with each group's score state.
  * GET  /api/tp/hitung                the navbar badge: my groups' files to grade.
+ * GET  /api/tp/kumpul?modul=         who handed in, by class (IRIS's roster)
+ * GET  /api/tp/jejak?modul=[&nim=]   every change to the module's files
+ * GET  /api/tp/pengaturan            Penilaian › Pengaturan TP: Peserta TP,
+ *      the default window, the IRIS and SeeLabs cross-check
  * GET  /api/tp/berkas?id=&i=         any Praktikan's file.
  * POST /api/tp/nilai  { modul, nim, nomor, skor|null, catatan? }
  * POST /api/tp/tanda  { modul, nim, kosong }      Tidak Mengumpulkan (all 0)
  * POST /api/tp/telat  { modul, nim, terima }      a late file: accept, or 0
- * POST /api/tp/sinkron { modul? }                 Sinkron Sekarang
- * POST /api/tp/jendela { modul, buka, tutup } | { modul, hapus } (jadwal right)
- *                      | { pola } (Pencipta and Admin)
+ * POST /api/tp/perpanjang { modul, nim, sampai|null, alasan? }  one
+ *      Praktikan's own extension
+ * POST /api/tp/jendela { modul, buka, tutup } | { modul, hapus } | { pola }
+ *      (the jadwal right)
  * POST /api/tp/paket { modul, versi, varian, pilih, petunjuk }  save the bank
  * POST /api/tp/pilih { modul, versi, pilih }      a new draw or a hand pick
  * POST /api/tp/bawaan { modul }                   back to the default bank
  *      (the three: the jadwal or kode right; versi is the one loaded, and a
  *      newer save refuses it with the latest)
- * GET  /api/tp/lms-info                           LMS › Sambungan (every Asisten
- *      reads; connecting and the default window stay Pencipta and Admin)
- * GET  /api/tp/riwayat[?sebelum=id]               the whole sync history, 100 a page
- * POST /api/tp/lms { aksi: sambung, tempel } | { aksi: uji } | { aksi: putus }
- * POST /api/tp/lms-tugas { modul, kursus, langkah: buat|ubah|hapus, tampil?, teks? }
- *      one class course's "TP Modul N" made, set to the window or deleted
- *      in the LMS itself (Pencipta, Admins, the ASO division)
  * POST /api/tp/kecuali { nim, alasan } | { nim, hapus }   leave a registered
- *      Praktikan out of TP, or take them back (the same people)
+ *      Praktikan out of TP, or take them back (the tp right)
  *
- * Only the group's holder that week scores its TP (anyone while nobody
- * holds it), the same rule as the session's score table. Every write is
- * audited; a complete TP's total goes into the session's TP component.
+ * Only the group's Per Modul seat scores its TP, the same rule as the
+ * session's score table. Every write is audited; a complete TP's total
+ * goes into the session's TP component.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { Readable } from "node:stream";
-import { waitUntil } from "@vercel/functions";
 import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
 import { muatOrang } from "../_lib/hak.js";
-import { denganSiaran, siarkan } from "../_lib/siaran.js";
+import { denganSiaran } from "../_lib/siaran.js";
 import { getDb } from "../../src/lib/db.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { boleh, hakPenuh, type Orang } from "../../src/lib/hak.js";
@@ -88,6 +74,7 @@ import {
   sesiAnggota,
   sesiAsisten,
   kelompok,
+  tpJejak,
   tpKiriman,
   tpNilai,
   tpPerpanjang,
@@ -100,74 +87,43 @@ import {
   TANGGAL_RE,
   poinNomor,
   bahasaKelas,
-  htmlTugasLms,
   isoWib,
   jendelaPribadi,
   masukPerpanjangan,
   keadaanJendela,
   kelasTp,
   nomorBeda,
-  modulTugas,
-  namaTugasLms,
   nomorUntuk,
   statusTp,
-  tanggalSama,
   tanpaAsisten,
-  teksTugasLms,
   telatMenit,
   totalTp,
   tpLengkap,
   type PolaJendela,
 } from "../../src/lib/tp.js";
-import { buatTugas, hapusTugas, lampirTugas, ubahTugas } from "../_lib/lms-web.js";
-import { pastikanBagianModul } from "../_lib/lms-isi.js";
-import { basikanInfoKelas, otomatisNyala } from "../_lib/lms-menu.js";
-import {
-  LMS_URL,
-  LmsGalat,
-  alamatMasuk,
-  bacaTempelan,
-  bukaToken,
-  infoSitus,
-  kursusPraktikum,
-  sandikanToken,
-  tugasKursus,
-  unggahDraf,
-} from "../_lib/lms.js";
 import {
   KUNCI_TP,
-  KUNCI_WEB,
   bacaSet,
   hapusPaket,
-  hapusSet,
   jendelaUntuk,
   kelompokTp,
   perpanjangTp,
   muatPaket,
   nimKecuali,
   pemegangTp,
-  pesertaKursusTp,
   periksaPetunjuk,
   periksaPilih,
   periksaVarian,
-  jumlahSinkron,
   nimAsistenTim,
-  riwayatSinkron,
-  sinkronBilaPerlu,
   simpanPaket,
-  sinkronTp,
   skorModul,
   soalPaket,
   tulisSet,
   tulisTotal,
-  webLms,
   type KecualiSet,
   type SetTp,
-  type TokenSet,
-  type TugasTp,
 } from "../_lib/tp.js";
 import { ambilIsiTp, bacaR2, mintaTiket, terimaUnggah } from "../_lib/tp-unggah.js";
-import { lmsCadangan, pindahBilaPerlu } from "../_lib/tp-pindah.js";
 import { bacaStatusCermin } from "../_lib/tp-cermin.js";
 import { batasTidurJamLab, jamLabBilaPerlu } from "../_lib/jam-lab.js";
 
@@ -181,30 +137,9 @@ const modulDari = (v: unknown) => {
   return Number.isInteger(n) && n >= 1 && n <= 4 ? n : null;
 };
 
-/** A page opening a TP view syncs when the last run is a minute old. */
-const JEDA_HALAMAN = 60_000;
-
 function ringkasJendela(set: SetTp, m: number) {
   const j = jendelaUntuk(set, m);
   return { jendela: j, keadaan: keadaanJendela(j) };
-}
-
-function infoSinkron(set: SetTp) {
-  return {
-    tersambung: !!set.token,
-    terakhir: set.status.terakhir,
-    hasil: set.status.hasil,
-    galat: set.status.galat,
-    galatSejak: set.status.galatSejak,
-  };
-}
-
-/** The courses that have no "TP Modul m" assignment. */
-function tugasHilang(set: SetTp, m: number) {
-  const kec = nimKecuali(set);
-  return (set.kelas?.kursus ?? [])
-    .filter((k) => !k.tugas[String(m)])
-    .map((k) => ({ label: k.label, peserta: pesertaKursusTp(k, kec) }));
 }
 
 /** Registered Praktikan this semester, without the excluded: every TP count's whole. */
@@ -353,15 +288,6 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
 
 /* ============================================================== the files */
 
-/** The file types a TP file may be shown as, on this origin. */
-const TIPE_INLINE = new Set([
-  "application/pdf",
-  "image/png",
-  "image/jpeg",
-  "image/gif",
-  "image/webp",
-]);
-
 async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const id = Number(req.query.id);
   const i = Number(req.query.i ?? 0);
@@ -372,60 +298,21 @@ async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (!k || (s.role === "praktikan" && k.nim !== s.nim)) return tolak(res, "tidak_ada", 404);
   const b = k.berkas[i];
   if (!b) return tolak(res, "tidak_ada", 404);
-  const set = await bacaSet(db);
-  const range = typeof req.headers.range === "string" ? req.headers.range : undefined;
-  const isi = await ambilIsiTp(db, b, lmsCadangan(set), range);
+  const isi = await ambilIsiTp(db, b);
   if (!isi.ok) return tolak(res, isi.kode, isi.status);
-  // In R2 (2026-10-21): a 10-minute read link straight on the relay, which
-  // serves ranges and caches; nothing streams through this function.
-  if (isi.jenis === "r2") {
-    let url: string;
-    try {
-      url = await bacaR2(isi.kunci, b.nama, isi.mime || b.mime, req.query.unduh === "1");
-    } catch {
-      return tolak(res, "penyimpanan_mati", 503);
-    }
-    res.statusCode = 302;
-    res.setHeader("Location", url);
-    res.setHeader("Cache-Control", "private, no-store");
-    res.end();
-    return;
+  // A 10-minute read link straight on the relay, which serves ranges and
+  // caches, and sandboxes what is not a PDF or an image; nothing streams
+  // through this function.
+  let url: string;
+  try {
+    url = await bacaR2(isi.kunci, b.nama, isi.mime || b.mime, req.query.unduh === "1");
+  } catch {
+    return tolak(res, "penyimpanan_mati", 503);
   }
-  // A row the move has not reached: its bytes, whole.
-  const r =
-    isi.jenis === "lms"
-      ? isi.res
-      : new Response(new Uint8Array(isi.isi), {
-          headers: { "content-type": "application/pdf", "content-length": String(isi.isi.length) },
-        });
-  const jenis = r.headers.get("content-type") ?? "";
-  res.statusCode = r.status;
-  // A Praktikan's upload is untrusted: only a PDF or a plain image is shown
-  // inline; anything else (an HTML or SVG file) only downloads, typed as
-  // bytes, and the response may never run script on this origin.
-  const tipe = (b.mime || jenis).split(";")[0].trim().toLowerCase();
-  const aman = TIPE_INLINE.has(tipe);
-  res.setHeader("Content-Type", aman ? tipe : "application/octet-stream");
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  // (Chrome won't show a PDF under a sandbox, and a PDF or image can't run
-  // script here anyway; everything else gets one.)
-  if (!aman) res.setHeader("Content-Security-Policy", "sandbox; default-src 'none'");
-  for (const h of ["content-length", "content-range", "accept-ranges", "last-modified", "etag"]) {
-    const v = r.headers.get(h);
-    if (v) res.setHeader(h, v);
-  }
+  res.statusCode = 302;
+  res.setHeader("Location", url);
   res.setHeader("Cache-Control", "private, no-store");
-  const nama = b.nama.replace(/["\\\r\n]/g, "_");
-  res.setHeader(
-    "Content-Disposition",
-    `${req.query.unduh === "1" || !aman ? "attachment" : "inline"}; filename="${nama}"; filename*=UTF-8''${encodeURIComponent(b.nama)}`,
-  );
-  await new Promise<void>((ok, gagal) => {
-    const src = Readable.fromWeb(r.body as import("node:stream/web").ReadableStream);
-    src.on("error", gagal);
-    res.on("close", () => ok());
-    src.pipe(res);
-  }).catch(() => res.destroy());
+  res.end();
 }
 
 /** Step 1 of an upload: where to PUT the file (_lib/tp-unggah.ts). */
@@ -467,39 +354,38 @@ async function handleModul(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   const m = modulDari(req.query.modul);
   if (!m) return tolak(res, "format_salah");
   const db = getDb();
-  await sinkronBilaPerlu(db, "halaman", JEDA_HALAMAN);
   const set = await bacaSet(db);
   const orang = await muatOrang(s.nim);
   const kiriman = await db
-    .select({
-      nim: tpKiriman.nim,
-      berkas: tpKiriman.berkas,
-      kursus: tpKiriman.lmsKursus,
-      sumber: tpKiriman.sumber,
-      unggahId: tpKiriman.unggahId,
-    })
+    .select({ nim: tpKiriman.nim, berkas: tpKiriman.berkas })
     .from(tpKiriman)
     .where(and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m)));
-  const idIris = kiriman.filter((x) => x.sumber === "iris" && x.unggahId).map((x) => x.unggahId!);
-  const salinan = idIris.length
-    ? await db
-        .select({ status: tpUnggah.lmsStatus })
-        .from(tpUnggah)
-        .where(inArray(tpUnggah.id, idIris))
-    : [];
+  const kelasOf = new Map(
+    (
+      await db
+        .select({ nim: praktikan.nim, kelas: praktikan.kelas })
+        .from(praktikan)
+        .where(eq(praktikan.semester, set.semester))
+    ).map((p) => [p.nim, p.kelas]),
+  );
   const cermin = Object.entries(await bacaStatusCermin(db)).map(([serverId, c]) => ({
     serverId: Number(serverId),
     ...c,
   }));
   const { per } = await skorModul(db, set.semester, m);
   const dinilai = [...per].filter(([nim, sk]) => tpLengkap(sk, nomorUntuk(nim))).length;
-  const kec = nimKecuali(set);
-  const perKursus = (set.kelas?.kursus ?? []).map((k) => ({
-    label: k.label,
-    peserta: pesertaKursusTp(k, kec),
-    masuk: kiriman.filter((x) => x.kursus === k.id && x.berkas.length && !kec.has(x.nim)).length,
-    ada: !!k.tugas[String(m)],
-  }));
+  const kec = new Set([...nimKecuali(set), ...(await nimAsistenTim(db))]);
+  // Per class, IRIS's own (Reguler and INT, 2026-10-21; it was the LMS's).
+  const perKursus = (["reguler", "internasional"] as const).map((kelas) => {
+    const nim = [...kelasOf].filter(([n, k]) => k === kelas && !kec.has(n)).map(([n]) => n);
+    const ada = new Set(nim);
+    return {
+      label: kelas === "reguler" ? "Reguler" : "INT",
+      peserta: nim.length,
+      masuk: kiriman.filter((x) => ada.has(x.nim) && x.berkas.length).length,
+      ada: true,
+    };
+  });
   res.status(200).json({
     ok: true,
     ...ringkasJendela(set, m),
@@ -509,19 +395,10 @@ async function handleModul(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     peserta: await pesertaTerdaftar(db, set),
     dinilai,
     perKursus,
-    hilang: tugasHilang(set, m),
-    sinkron: infoSinkron(set),
-    // Files uploaded in IRIS, and how many of their LMS copies are still owed.
-    iris: {
-      jumlah: idIris.length,
-      diLms: salinan.filter((x) => x.status === "terkirim").length,
-      tertunda: salinan.filter((x) => x.status === "menunggu" || x.status === "gagal").length,
-      tanpaLms: salinan.filter((x) => x.status === "tanpa_lms").length,
-    },
+    iris: { jumlah: kiriman.filter((x) => x.berkas.length).length },
     cermin,
     bolehUbah: !!orang && boleh(orang, "jadwal"),
-    bolehLms: !!orang && boleh(orang, "full"),
-    bolehKelola: !!orang && boleh(orang, "lms"),
+    bolehKelola: !!orang && boleh(orang, "tp"),
   });
 }
 
@@ -529,7 +406,6 @@ async function handleKelompok(req: ApiRequest, res: ApiResponse, s: SessionPaylo
   const m = modulDari(req.query.modul);
   if (!m) return tolak(res, "format_salah");
   const db = getDb();
-  await sinkronBilaPerlu(db, "halaman", JEDA_HALAMAN);
   const set = await bacaSet(db);
   const data = await kelompokTp(db, set, m, s.nim);
   // Each module's state for the module picker.
@@ -540,10 +416,7 @@ async function handleKelompok(req: ApiRequest, res: ApiResponse, s: SessionPaylo
     ...ringkasJendela(set, m),
     modul,
     ...data,
-    sinkron: infoSinkron(set),
-    hilang: tugasHilang(set, m),
-    bolehLms: !!orang && boleh(orang, "full"),
-    bolehKelola: !!orang && boleh(orang, "lms"),
+    bolehKelola: !!orang && boleh(orang, "tp"),
     // Groups with no Per Modul seat and Tanpa Kelompok: Admin and Pencipta.
     bolehTanpaPemegang: !!orang && hakPenuh(orang),
   });
@@ -666,21 +539,6 @@ async function handlePraktikan(req: ApiRequest, res: ApiResponse, s: SessionPayl
  *  (the ASO division's journal code). */
 const bolehSoal = (o: Orang | null) => !!o && (boleh(o, "jadwal") || boleh(o, "kode"));
 
-/** The LMS assignments a module's PDF goes to, one per class course. */
-function tujuanLms(set: SetTp, m: number) {
-  return (set.kelas?.kursus ?? []).map((k) => {
-    const t = k.tugas[String(m)];
-    return {
-      id: k.id,
-      label: k.label,
-      kelas: k.kelas,
-      cmid: t?.cmid ?? null,
-      lihat: t ? `${LMS_URL}/mod/assign/view.php?id=${t.cmid}` : null,
-      ubah: t ? `${LMS_URL}/course/modedit.php?update=${t.cmid}` : null,
-    };
-  });
-}
-
 async function handlePaket(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const m = modulDari(req.query.modul);
   if (!m) return tolak(res, "format_salah");
@@ -703,43 +561,6 @@ async function handlePaket(req: ApiRequest, res: ApiResponse, s: SessionPayload)
     ...ringkasJendela(set, m),
     semester: set.semester,
     bolehUbah: bolehSoal(orang),
-    bolehKelola: !!orang && boleh(orang, "lms"),
-    // Phase 15: Soal TP attaches the PDF itself after a save when on.
-    otomatisPdf: await otomatisNyala(db, "pdf"),
-    lms: {
-      tersambung: !!set.token,
-      siap: !!set.token?.privat,
-      url: LMS_URL,
-      tujuan: tujuanLms(set, m),
-    },
-  });
-}
-
-/** What each class's TP assignment holds as attachments, asked live. */
-async function handleLampiran(req: ApiRequest, res: ApiResponse) {
-  const m = modulDari(req.query.modul);
-  if (!m) return tolak(res, "format_salah");
-  const db = getDb();
-  const set = await bacaSet(db);
-  const token = set.token ? bukaToken(set.token) : null;
-  if (!token) return tolak(res, "belum_tersambung");
-  const tujuan = tujuanLms(set, m);
-  let tugas;
-  try {
-    tugas = await tugasKursus(
-      token,
-      tujuan.map((t) => t.id),
-    );
-  } catch (e) {
-    return tolak(res, e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau");
-  }
-  res.status(200).json({
-    ok: true,
-    pada: new Date().toISOString(),
-    kelas: tujuan.map((t) => ({
-      ...t,
-      lampiran: tugas.find((a) => a.cmid === t.cmid)?.lampiran ?? [],
-    })),
   });
 }
 
@@ -1088,7 +909,7 @@ async function handlePerpanjang(req: ApiRequest, res: ApiResponse, s: SessionPay
   const set = await bacaSet(db);
   const hak = await hakNilai(db, set, m, nim, s.nim);
   const orang = await muatOrang(s.nim);
-  if (!hak.boleh && !(orang && (boleh(orang, "lms") || hakPenuh(orang))))
+  if (!hak.boleh && !(orang && (boleh(orang, "tp") || hakPenuh(orang))))
     return res.status(200).json({ ok: false, kode: "bukan_pemegang", pemegang: hak.pemegang });
   const [p] = await db
     .select({ nim: praktikan.nim })
@@ -1124,24 +945,6 @@ async function handlePerpanjang(req: ApiRequest, res: ApiResponse, s: SessionPay
     alasan: alasan || null,
   });
   res.status(200).json({ ok: true, sampai: sampai?.toISOString() ?? null });
-}
-
-async function handleSinkron(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  const b = jsonBody(req);
-  const m = modulDari(b.modul);
-  const db = getDb();
-  const r = await sinkronTp(db, `manual:${s.nim}`, {
-    ...(m ? { modul: [m] } : {}),
-    paksa: b.paksa === true,
-  });
-  if (r.ok) {
-    await writeAudit(s.nim, "tp_sinkron", { modul: m, baru: r.baru, diperbarui: r.diperbarui });
-    // A press brings the rest up to date too (2026-10-16): the Kelas tab's
-    // groups and contents read again on its next open, and the copies the
-    // LMS is still owed go now instead of on the relay's next beat.
-    if (b.paksa === true) await basikanInfoKelas(db, (await bacaSet(db)).semester);
-  }
-  res.status(200).json(r);
 }
 
 /* ------------------------------------------------------------ settings */
@@ -1196,53 +999,15 @@ async function handleJendela(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   res.status(200).json({ ok: true });
 }
 
-/** A sync row for the page: who ran it by Asisten code, not NIM. */
-function barisRiwayat(
-  r: Awaited<ReturnType<typeof riwayatSinkron>>[number],
-  kodeOf: Map<string, string>,
-) {
-  const nim = r.oleh.startsWith("manual:") ? r.oleh.slice(7) : null;
-  return {
-    id: r.id,
-    mulai: r.mulai.toISOString(),
-    oleh: nim ? `manual:${kodeOf.get(nim) ?? nim}` : r.oleh,
-    hasil: r.hasil,
-    baru: r.baru,
-    diperbarui: r.diperbarui,
-    durasiMs: r.durasiMs,
-    galat: r.galat,
-  };
-}
-
 async function petaKode(db: Db): Promise<Map<string, string>> {
   const rows = await db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten);
   return new Map(rows.map((a) => [a.nim, a.kode.toUpperCase()]));
 }
 
-/** The whole sync history, newest first, 100 a page (?sebelum= the last id seen). */
-async function handleRiwayat(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  const orang = await muatOrang(s.nim);
-  if (!orang) return tolak(res, "tidak_berhak", 403);
-  const sebelum = Number(req.query.sebelum);
-  const db = getDb();
-  const [rows, total, kodeOf] = await Promise.all([
-    riwayatSinkron(db, 101, Number.isInteger(sebelum) && sebelum > 0 ? sebelum : undefined),
-    jumlahSinkron(db),
-    petaKode(db),
-  ]);
-  res.status(200).json({
-    ok: true,
-    total,
-    lagi: rows.length > 100,
-    log: rows.slice(0, 100).map((r) => barisRiwayat(r, kodeOf)),
-  });
-}
-
 /**
- * Silang Data on Sumber LMS: who is registered where. SeeLabs from the
- * robot's last KLP pull, the LMS's students per class (ADD too), and the
- * registered Praktikan who are Asisten as well (Teachers in every class,
- * students in their own; five of them on 2026-10-13).
+ * Silang Data on Pengaturan TP: who is registered where. SeeLabs from the
+ * robot's last KLP pull, and the registered Praktikan who are Asisten as
+ * well (five of them on 2026-10-13).
  */
 async function silangData(db: Db, set: SetTp, kodeOf: Map<string, string>) {
   const semua = await db
@@ -1278,17 +1043,6 @@ async function silangData(db: Db, set: SetTp, kodeOf: Map<string, string>) {
         .map((p) => ({ nim: p.nim, nama: p.nama, kelas: p.kelas })),
     };
   }
-  const kursus = set.kelas?.kursus ?? [];
-  const luar = set.kelas?.luar ?? [];
-  const perKelas = kursus.map((k) => {
-    const lain = luar.filter((x) => x.kursus === k.label).length;
-    return {
-      label: k.label,
-      iris: k.nim?.length ?? k.peserta,
-      luar: lain,
-      lms: (k.nim?.length ?? k.peserta) + lain,
-    };
-  });
   const juga = semua
     .filter((p) => tim.has(p.nim) && kodeOf.has(p.nim))
     .map((p) => ({
@@ -1297,309 +1051,13 @@ async function silangData(db: Db, set: SetTp, kodeOf: Map<string, string>) {
       kode: kodeOf.get(p.nim)!,
       kelas: p.kelas,
     }));
-  return {
-    iris: terdaftar.length,
-    lms: perKelas.reduce((n, k) => n + k.lms, 0),
-    adaData: kursus.some((k) => k.nim),
-    perKelas,
-    seelabs,
-    asisten: juga,
-  };
+  return { iris: terdaftar.length, seelabs, asisten: juga };
 }
-
-async function handleLmsInfo(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  const orang = await muatOrang(s.nim);
-  if (!orang) return tolak(res, "tidak_berhak", 403);
-  const db = getDb();
-  const set = await bacaSet(db);
-  const [oleh] = set.token
-    ? await db
-        .select({ kode: asisten.kode, nama: asisten.nama })
-        .from(asisten)
-        .where(eq(asisten.nim, set.token.oleh))
-        .limit(1)
-    : [];
-  const [log, logTotal] = await Promise.all([riwayatSinkron(db, 10), jumlahSinkron(db)]);
-  // Registered Praktikan in no class course, and the exclusions with names
-  // (the Asisten registered as Praktikan too count as neither).
-  const semua = await db
-    .select({ nim: praktikan.nim, nama: praktikan.nama, kelas: praktikan.kelas })
-    .from(praktikan)
-    .where(eq(praktikan.semester, set.semester));
-  const terdaftar = tanpaAsisten(semua, await nimAsistenTim(db));
-  const namaOf = new Map(semua.map((p) => [p.nim, p]));
-  const kodeOf = await petaKode(db);
-  const diLms = new Set((set.kelas?.kursus ?? []).flatMap((k) => k.nim ?? []));
-  const adaDaftar = (set.kelas?.kursus ?? []).some((k) => k.nim);
-  const [web] = await db
-    .select({ pada: pengaturan.diubahPada })
-    .from(pengaturan)
-    .where(eq(pengaturan.kunci, KUNCI_WEB))
-    .limit(1);
-  res.status(200).json({
-    ok: true,
-    bolehSambung: boleh(orang, "full"),
-    kelola: {
-      boleh: boleh(orang, "lms"),
-      siap: !!set.token?.privat,
-      sesiPada: web?.pada.toISOString() ?? null,
-      jendela: Object.fromEntries([1, 2, 3, 4].map((m) => [m, jendelaUntuk(set, m)])),
-    },
-    peserta: {
-      terdaftar: terdaftar.length,
-      cocok: diLms.size,
-      luar: set.kelas?.luar ?? null,
-      tanpaLms: adaDaftar
-        ? terdaftar
-            .filter((p) => !diLms.has(p.nim))
-            .map((p) => ({ nim: p.nim, nama: p.nama, kelas: p.kelas }))
-        : null,
-      kecuali: set.kecuali.map((k) => ({
-        ...k,
-        nama: namaOf.get(k.nim)?.nama ?? k.nim,
-        oleh: kodeOf.get(k.oleh) ?? k.oleh,
-      })),
-    },
-    token: set.token
-      ? {
-          akhir: set.token.akhir,
-          akun: set.token.akun,
-          pada: set.token.pada,
-          oleh: oleh ? { kode: oleh.kode.toUpperCase(), nama: oleh.nama } : null,
-        }
-      : null,
-    kursus: set.kelas?.kursus ?? [],
-    kelasPada: set.kelas?.pada ?? null,
-    pola: set.jendela.pola ?? POLA_BAWAAN,
-    sinkron: infoSinkron(set),
-    log: log.map((r) => barisRiwayat(r, kodeOf)),
-    logTotal,
-    silang: await silangData(db, set, kodeOf),
-    alamatMasuk: alamatMasuk(),
-    lmsUrl: LMS_URL,
-  });
-}
-
-async function handleLms(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  const orang = await muatOrang(s.nim);
-  if (!orang || !boleh(orang, "full")) return tolak(res, "tidak_berhak", 403);
-  const b = jsonBody(req);
-  const db = getDb();
-  // The body's step (not the route's aksi): sambung, uji or putus.
-  const langkah = b.aksi;
-  if (langkah === "putus") {
-    for (const k of [KUNCI_TP.token, KUNCI_TP.kelas, KUNCI_TP.status, KUNCI_WEB])
-      await hapusSet(db, k);
-    await writeAudit(s.nim, "tp_lms", { aksi: "putus" });
-    return res.status(200).json({ ok: true });
-  }
-  if (langkah === "uji") {
-    const set = await bacaSet(db);
-    const token = set.token ? bukaToken(set.token) : null;
-    if (!token) return tolak(res, "belum_tersambung");
-    const t0 = Date.now();
-    try {
-      const info = await infoSitus(token);
-      const kursus = await kursusPraktikum(token, info.userid);
-      return res.status(200).json({ ok: true, ms: Date.now() - t0, kursus: kursus.length });
-    } catch (e) {
-      return tolak(res, e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau");
-    }
-  }
-  if (langkah !== "sambung" || typeof b.tempel !== "string") return tolak(res, "format_salah");
-  const tempel = bacaTempelan(b.tempel);
-  if (!tempel) return tolak(res, "tempelan_salah");
-  const token = tempel.token;
-  let info;
-  let kursus;
-  try {
-    info = await infoSitus(token);
-    kursus = await kursusPraktikum(token, info.userid);
-  } catch (e) {
-    // The reason goes back to the Pencipta or Admin connecting (never the token).
-    return res.status(200).json({
-      ok: false,
-      kode: e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau",
-      rinci: e instanceof Error ? e.message.slice(0, 200) : String(e),
-    });
-  }
-  const lama = await bacaSet(db);
-  const baru = sandikanToken(token);
-  // The private key comes only right after a sign in: a later paste of the
-  // same token keeps the one IRIS has.
-  const privat = tempel.privat
-    ? sandikanToken(tempel.privat)
-    : lama.token?.sidik === baru.sidik
-      ? (lama.token.privat ?? null)
-      : null;
-  const simpan: TokenSet = {
-    ...baru,
-    akun: { userid: info.userid, nama: info.fullname, username: info.username },
-    pada: new Date().toISOString(),
-    oleh: s.nim,
-    privat,
-  };
-  await tulisSet(db, KUNCI_TP.token, simpan, s.nim);
-  await hapusSet(db, KUNCI_WEB);
-  // A new account: the old one's courses and errors go.
-  await hapusSet(db, KUNCI_TP.kelas);
-  await hapusSet(db, KUNCI_TP.status);
-  await writeAudit(s.nim, "tp_lms", {
-    aksi: "sambung",
-    akun: info.username,
-    kursus: kursus.length,
-    kelola: !!privat,
-  });
-  // The connection is saved, so the answer goes now and the first class read
-  // runs after it: on the real LMS that read takes 13 to 26 s, past the
-  // page's 15 s wait, and a saved connection read as a failure. Every page
-  // hears when it lands.
-  waitUntil(
-    sinkronTp(db, `manual:${s.nim}`, { paksa: true })
-      .then(() => siarkan(["tp"]))
-      .catch((e) => console.error("[api/tp lms] first sync failed:", e)),
-  );
-  res.status(200).json({ ok: true, akun: simpan.akun, kursus: kursus.length, kelola: !!privat });
-}
-
-/**
- * One class course's TP assignment, in the LMS itself: made (buat), set to
- * IRIS's window (ubah), given the TP's PDF (lampir) or deleted (hapus).
- * Buat and ubah attach the PDF too when the page sends one (`pdf`, built in
- * the browser from the saved set). One course per call, so the
- * page shows each class as it goes and no call nears the time limit. The
- * LMS is asked again before and after, so a stale copy never makes a
- * second assignment, and the answer says whether the dates read back.
- */
-async function handleLmsTugas(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  const orang = await muatOrang(s.nim);
-  if (!orang || !boleh(orang, "lms")) return tolak(res, "tidak_berhak", 403);
-  const b = jsonBody(req);
-  const m = modulDari(b.modul);
-  const langkah = b.langkah;
-  const kursusId = Number(b.kursus);
-  if (
-    !m ||
-    !Number.isInteger(kursusId) ||
-    !["buat", "ubah", "lampir", "hapus"].includes(String(langkah))
-  )
-    return tolak(res, "format_salah");
-  const pdf = pdfDari(b.pdf);
-  if (pdf === false || (langkah === "lampir" && !pdf)) return tolak(res, "format_salah");
-  const teks = typeof b.teks === "string" ? b.teks.slice(0, 4000) : "";
-  const db = getDb();
-  const set = await bacaSet(db);
-  const token = set.token ? bukaToken(set.token) : null;
-  if (!token) return tolak(res, "belum_tersambung");
-  const k = (set.kelas?.kursus ?? []).find((x) => x.id === kursusId);
-  if (!k) return tolak(res, "kursus_tidak_ada");
-  const j = jendelaUntuk(set, m);
-  if (langkah !== "hapus" && !j) return tolak(res, "jendela_belum_ada");
-
-  let lampiran: { nama: string; ukuran: number; waktu: string | null }[] = [];
-  const tugasNya = async (): Promise<TugasTp | null> => {
-    const a = (await tugasKursus(token, [kursusId])).find(
-      (t) => t.course === kursusId && modulTugas(t.name) === m,
-    );
-    const iso = (d: number) => (d > 0 ? new Date(d * 1000).toISOString() : null);
-    lampiran = a?.lampiran ?? [];
-    return a
-      ? {
-          id: a.id,
-          cmid: a.cmid,
-          nama: a.name,
-          buka: iso(a.allowsubmissionsfromdate),
-          tutup: iso(a.duedate),
-          batas: iso(a.cutoffdate),
-        }
-      : null;
-  };
-  let sesudah: TugasTp | null;
-  try {
-    const web = webLms(db, set);
-    const ada = await tugasNya();
-    const rencana = j && {
-      nama: namaTugasLms(m),
-      buka: j.buka,
-      tutup: j.tutup,
-      deskripsi: htmlTugasLms(
-        teks.trim() || teksTugasLms(m, j.tutup, k.kelas === "inter" ? "en" : "id"),
-      ),
-      tampil: b.tampil !== false,
-    };
-    if (langkah === "buat" && ada) return tolak(res, "sudah_ada");
-    if (langkah !== "buat" && !ada) return tolak(res, "tidak_ada_di_lms");
-    // The PDF goes to a draft area first; the form then names it.
-    const draf = pdf && langkah !== "hapus" ? await unggahDraf(token, pdf.nama, pdf.isi) : 0;
-    if (langkah === "buat") {
-      // TP Modul m lives in Module m's section, made first when missing.
-      const bagian = await pastikanBagianModul(web, token, kursusId, m, k.kelas === "inter");
-      await buatTugas(web, kursusId, { ...rencana!, lampiran: draf || undefined }, bagian.section);
-    } else if (langkah === "ubah") {
-      await ubahTugas(web, ada!.cmid, { ...rencana!, lampiran: draf || undefined });
-    } else if (langkah === "lampir") {
-      await lampirTugas(web, ada!.cmid, draf);
-    } else {
-      await hapusTugas(web, ada!.cmid);
-    }
-    sesudah = await tugasNya();
-  } catch (e) {
-    const kode = e instanceof LmsGalat ? e.kode : "lms_tak_terjangkau";
-    if (!(e instanceof LmsGalat)) console.error("[api/tp lms-tugas] unexpected error:", e);
-    await writeAudit(s.nim, "tp_lms_tugas", { modul: m, kursus: k.label, langkah, gagal: kode });
-    return res.status(200).json({
-      ok: false,
-      kode,
-      rinci: e instanceof Error ? e.message.slice(0, 300) : String(e),
-    });
-  }
-  // The copy IRIS reads its windows and banners from.
-  const segar = await bacaSet(db);
-  if (segar.kelas) {
-    const kk = segar.kelas.kursus.find((x) => x.id === kursusId);
-    if (kk) kk.tugas[String(m)] = sesudah;
-    await tulisSet(db, KUNCI_TP.kelas, segar.kelas, null);
-  }
-  await writeAudit(s.nim, "tp_lms_tugas", {
-    modul: m,
-    kursus: k.label,
-    langkah,
-    cmid: sesudah?.cmid ?? null,
-    ...(pdf ? { pdf: pdf.nama } : {}),
-  });
-  // Read back: the dates, and the PDF when one was sent.
-  const adaPdf = !pdf || lampiran.some((f) => f.nama === pdf.nama);
-  const cocok =
-    langkah === "hapus"
-      ? !sesudah
-      : !!sesudah && adaPdf && (langkah === "lampir" || (!!j && tanggalSama(sesudah, j)));
-  res.status(200).json({ ok: true, cocok, tugas: sesudah, lampiran });
-}
-
-/** The TP's PDF the page sends: a .pdf name and its bytes, base64. Absent
- *  is null; malformed is false. */
-function pdfDari(v: unknown): { nama: string; isi: Uint8Array } | null | false {
-  if (v === undefined || v === null) return null;
-  const o = v as { nama?: unknown; isi?: unknown };
-  if (typeof o.nama !== "string" || !/^[\w.-]{1,96}\.pdf$/.test(o.nama)) return false;
-  if (typeof o.isi !== "string" || o.isi.length > PDF_MAKS * 1.4) return false;
-  const isi = new Uint8Array(Buffer.from(o.isi, "base64"));
-  if (
-    isi.length < 8 ||
-    isi.length > PDF_MAKS ||
-    Buffer.from(isi.subarray(0, 5)).toString() !== "%PDF-"
-  )
-    return false;
-  return { nama: o.nama, isi };
-}
-
-/** Under Vercel's 4.5 MB request body once base64 */
-const PDF_MAKS = 3 * 1024 * 1024;
 
 /** Leave a registered Praktikan out of TP, or take them back. */
 async function handleKecuali(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
   const orang = await muatOrang(s.nim);
-  if (!orang || !boleh(orang, "lms")) return tolak(res, "tidak_berhak", 403);
+  if (!orang || !boleh(orang, "tp")) return tolak(res, "tidak_berhak", 403);
   const b = jsonBody(req);
   const nim = typeof b.nim === "string" ? b.nim.trim() : "";
   if (!/^\d{6,15}$/.test(nim)) return tolak(res, "format_salah");
@@ -1622,6 +1080,144 @@ async function handleKecuali(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   res.status(200).json({ ok: true, jumlah: daftar.length });
 }
 
+/* ------------------------------------------------- Penilaian's lists */
+
+/** IRIS's two classes, in the shape the lists use (2026-10-21). */
+const KELAS = [
+  { id: 1, label: "Reguler", kelas: "reguler" },
+  { id: 2, label: "INT", kelas: "internasional" },
+] as const;
+const kelasId = (k: string | null | undefined) => (k === "internasional" ? 2 : 1);
+
+/**
+ * Who handed in this module's TP, among the Praktikan registered in IRIS
+ * (the excluded and the Asisten left out): their class, the newest file's
+ * time, and whether it came after their own close.
+ */
+async function handleKumpul(req: ApiRequest, res: ApiResponse) {
+  const db = getDb();
+  const set = await bacaSet(db);
+  const m = modulDari(req.query.modul) ?? 1;
+  const j = jendelaUntuk(set, m);
+  const kec = new Set([...nimKecuali(set), ...(await nimAsistenTim(db))]);
+  const [kiriman, terdaftar] = await Promise.all([
+    db
+      .select({
+        nim: tpKiriman.nim,
+        berkas: tpKiriman.berkas,
+        pada: tpKiriman.dikirimPada,
+        tanda: tpKiriman.tanda,
+      })
+      .from(tpKiriman)
+      .where(and(eq(tpKiriman.semester, set.semester), eq(tpKiriman.modul, m))),
+    db
+      .select({ nim: praktikan.nim, nama: praktikan.nama, kelas: praktikan.kelas })
+      .from(praktikan)
+      .where(eq(praktikan.semester, set.semester)),
+  ]);
+  const kirOf = new Map(kiriman.map((x) => [x.nim, x]));
+  const sampaiOf = (await perpanjangTp(db, set)).get(m) ?? new Map<string, string>();
+  const baris = terdaftar
+    .filter((p) => !kec.has(p.nim))
+    .map((p) => {
+      const x = kirOf.get(p.nim);
+      const ada = !!x && x.berkas.length > 0;
+      const pada = ada ? (x.pada?.toISOString() ?? null) : null;
+      const sampai = sampaiOf.get(p.nim);
+      return {
+        nim: p.nim,
+        nama: p.nama,
+        kursus: kelasId(p.kelas),
+        status: ada ? "sudah" : x?.tanda === "kosong" ? "kosong" : "belum",
+        pada,
+        sumber: ada ? ("iris" as const) : null,
+        // Late against their own close; in on an extension is Diperpanjang.
+        telat: !!j && telatMenit(pada, jendelaPribadi(j, sampai)) !== null,
+        panjang: masukPerpanjangan(pada, j, sampai),
+      };
+    })
+    .sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+  res.status(200).json({ ok: true, modul: m, jendela: j, kelas: KELAS, baris });
+}
+
+/** Every change to this module's TP files, newest first (tp_jejak). */
+async function handleJejak(req: ApiRequest, res: ApiResponse) {
+  const db = getDb();
+  const set = await bacaSet(db);
+  const m = modulDari(req.query.modul) ?? 1;
+  const nim = typeof req.query.nim === "string" ? req.query.nim.slice(0, 20) : null;
+  const kec = nimKecuali(set);
+  const [rows, terdaftar] = await Promise.all([
+    db
+      .select()
+      .from(tpJejak)
+      .where(
+        and(
+          eq(tpJejak.semester, set.semester),
+          eq(tpJejak.modul, m),
+          ...(nim ? [eq(tpJejak.nim, nim)] : []),
+        ),
+      )
+      .orderBy(desc(tpJejak.dicatatPada), desc(tpJejak.id))
+      .limit(500),
+    db
+      .select({ nim: praktikan.nim, nama: praktikan.nama, kelas: praktikan.kelas })
+      .from(praktikan)
+      .where(eq(praktikan.semester, set.semester)),
+  ]);
+  const orangOf = new Map(terdaftar.map((p) => [p.nim, p]));
+  res.status(200).json({
+    ok: true,
+    modul: m,
+    jejak: rows
+      // Only Praktikan registered in IRIS, as the counts.
+      .filter((r) => orangOf.has(r.nim) && !kec.has(r.nim))
+      .map((r) => ({
+        id: r.id,
+        nim: r.nim,
+        nama: orangOf.get(r.nim)!.nama,
+        kursus: KELAS[kelasId(orangOf.get(r.nim)!.kelas) - 1].label,
+        jenis: r.jenis,
+        sumber: r.sumber,
+        berkas: r.berkas,
+        dikirimPada: r.dikirimPada?.toISOString() ?? null,
+        dicatatPada: r.dicatatPada.toISOString(),
+      })),
+    batas: rows.length === 500,
+  });
+}
+
+/** Penilaian › Pengaturan TP: Peserta TP, the default window, Silang Data. */
+async function handlePengaturan(_req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const orang = await muatOrang(s.nim);
+  if (!orang) return tolak(res, "tidak_berhak", 403);
+  const db = getDb();
+  const set = await bacaSet(db);
+  const semua = await db
+    .select({ nim: praktikan.nim, nama: praktikan.nama })
+    .from(praktikan)
+    .where(eq(praktikan.semester, set.semester));
+  const terdaftar = tanpaAsisten(semua, await nimAsistenTim(db));
+  const namaOf = new Map(semua.map((p) => [p.nim, p.nama]));
+  const kodeOf = await petaKode(db);
+  const silang = await silangData(db, set, kodeOf);
+  res.status(200).json({
+    ok: true,
+    bolehPola: boleh(orang, "jadwal"),
+    bolehKecuali: boleh(orang, "tp"),
+    peserta: {
+      terdaftar: terdaftar.length,
+      kecuali: set.kecuali.map((k) => ({
+        ...k,
+        nama: namaOf.get(k.nim) ?? k.nim,
+        oleh: kodeOf.get(k.oleh) ?? k.oleh,
+      })),
+    },
+    pola: set.jendela.pola ?? POLA_BAWAAN,
+    silang: { iris: silang.iris, seelabs: silang.seelabs, asisten: silang.asisten },
+  });
+}
+
 /* ============================================== the relay's minute timer */
 
 /** The relay's signature over `detak|ts`, at most two minutes old. */
@@ -1639,15 +1235,10 @@ function detakSah(req: ApiRequest): boolean {
 async function handleDetak(req: ApiRequest, res: ApiResponse) {
   if (!detakSah(req)) return tolak(res, "tanda_salah", 403);
   const db = getDb();
-  // Phase 18: the lab clock's minute (automatic starts) rides the same
-  // beat, first, as it keeps time; it never throws, so the TP part runs.
+  // Phase 18: the lab clock's minute (automatic starts); it never throws.
   await jamLabBilaPerlu(db);
-  // 50 s, not 60: the timer fires once a minute with a little drift, and a
-  // run 59.9 s ago would otherwise skip a whole minute.
-  await sinkronBilaPerlu(db, "relay", 50_000);
-  // 2026-10-21: every TP file into R2 before the LMS goes (tp-pindah.ts).
-  await pindahBilaPerlu(db);
-  // The quiet hours sleep through to 05:50 (2026-10-21).
+  // The lab clock alone sets the pace now: every minute through the day,
+  // asleep from 00:15 to 05:50 so the database can idle (2026-10-21).
   res.status(200).json({ ok: true, tidurDetik: batasTidurJamLab(6 * 3600) });
 }
 
@@ -1690,11 +1281,11 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "kelompok") return handleKelompok(req, res, s);
     if (aksi === "praktikan") return handlePraktikan(req, res, s);
     if (aksi === "paket") return handlePaket(req, res, s);
-    if (aksi === "lampiran") return handleLampiran(req, res);
     if (aksi === "praktikum") return handlePraktikum(req, res, s);
     if (aksi === "hitung") return handleHitung(req, res, s);
-    if (aksi === "lms-info") return handleLmsInfo(req, res, s);
-    if (aksi === "riwayat") return handleRiwayat(req, res, s);
+    if (aksi === "kumpul") return handleKumpul(req, res);
+    if (aksi === "jejak") return handleJejak(req, res);
+    if (aksi === "pengaturan") return handlePengaturan(req, res, s);
     return tolak(res, "aksi_tidak_dikenal", 404);
   }
   if (!requireMethod(req, res, "POST")) return;
@@ -1702,13 +1293,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "tanda") return handleTanda(req, res, s);
   if (aksi === "telat") return handleTelat(req, res, s);
   if (aksi === "perpanjang") return handlePerpanjang(req, res, s);
-  if (aksi === "sinkron") return handleSinkron(req, res, s);
   if (aksi === "jendela") return handleJendela(req, res, s);
   if (aksi === "paket") return handleSimpanPaket(req, res, s);
   if (aksi === "pilih") return handlePilih(req, res, s);
   if (aksi === "bawaan") return handleBawaan(req, res, s);
-  if (aksi === "lms") return handleLms(req, res, s);
-  if (aksi === "lms-tugas") return handleLmsTugas(req, res, s);
   if (aksi === "kecuali") return handleKecuali(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);
 }

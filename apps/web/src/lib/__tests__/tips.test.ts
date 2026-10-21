@@ -12,8 +12,8 @@ describe("tooltips for every action", () => {
   it("knows the same control in each language", () => {
     expect(tipUntuk("Kirim Nilai", "id")).toMatch(/SeeLabs/);
     expect(tipUntuk("Send Scores", "en")).toMatch(/SeeLabs/);
-    expect(tipUntuk("Sinkron Sekarang", "id")).toBeTruthy();
-    expect(tipUntuk("Sync Now", "en")).toBeTruthy();
+    expect(tipUntuk("Pengaturan TP", "id")).toBeTruthy();
+    expect(tipUntuk("TP Settings", "en")).toBeTruthy();
   });
 
   it("reads past a count, an empty line or a shortcut hint", () => {

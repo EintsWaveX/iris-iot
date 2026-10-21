@@ -1,6 +1,6 @@
 /**
  * Penilaian › grading one Praktikan's TP (mockup a13-grader): the group's
- * members, their PDF straight from the LMS, and Per Soal beside it with only
+ * members, their PDF (from R2, through IRIS), and Per Soal beside it with only
  * the questions that NIM answers. Each question scores 0, ½ or Penuh in one
  * press or any value in the box; the ring adds up live, out of 100, and a
  * complete TP goes into the session's TP column. J and K move between

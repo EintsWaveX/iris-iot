@@ -58,7 +58,7 @@ export function privacy(lang: Lang): LegalDoc {
             "Attendance: when you signed in to a session, the session code used, and the IP address of each sign in attempt. The attempts stop code guessing and are the proof that you attended.",
             "Your work: blank answers and how many tries they took, hint requests, data captured from your board, and your preparation checklist.",
             "Scores and the assistant's notes on your group.",
-            "Your prelab assignment (TP): which file you submitted in the LMS and when, and its scores per question. IRIS keeps a pointer to the file, not the file itself, and opens it from the LMS when you or an assistant view it.",
+            "Your prelab assignment (TP): the PDF you upload, when you uploaded it, every earlier version, and its scores per question. IRIS keeps the files in Cloudflare R2 storage and opens them only for you and the assistants.",
             "Feedback: stored with your NIM so each session gets one feedback per person. Assistants see it without your name or NIM.",
             "For assistants: name, NIM, assistant code, teaching slots, SeeLabs user name (never the SeeLabs password) and pay records.",
           ],
@@ -84,13 +84,13 @@ export function privacy(lang: Lang): LegalDoc {
         {
           title: "Services We Use",
           body: [
-            "Vercel hosts the site and stored files, Neon hosts the database, and Cloudflare carries the live console between the lab's PC Server and the site. Pages that show a presentation or a circuit simulation embed Canva, Wokwi or Tinkercad, which may set their own cookies when you open them.",
+            "Vercel hosts the site and stored files, Neon hosts the database, and Cloudflare carries the live console between the lab's PC Server and the site and stores the TP files. Pages that show a presentation or a circuit simulation embed Canva, Wokwi or Tinkercad, which may set their own cookies when you open them.",
           ],
         },
         {
           title: "How Long",
           body: [
-            `Records are kept for one semester, ${RETENTION_MONTHS} months. Odd semesters run August to January and even ones February to July. On the first day of each new semester, everything from the previous one is deleted automatically: sessions, attendance, sign in records, answers, captures, scores, feedback, pay records, written reports, the schedule and the logs. A lab admin may delete a finished semester earlier.`,
+            `Records are kept for one semester, ${RETENTION_MONTHS} months. Odd semesters run August to January and even ones February to July. On the first day of each new semester, everything from the previous one is deleted automatically: sessions, attendance, sign in records, answers, captures, scores, TP files, feedback, pay records, written reports, the schedule and the logs. A lab admin may delete a finished semester earlier.`,
             `The encrypted nightly backups keep a copy for at most ${BACKUP_DAYS} more days, then they expire on their own. Scores already entered into SeeLabs follow Telkom University's own rules.`,
           ],
         },
@@ -130,7 +130,7 @@ export function privacy(lang: Lang): LegalDoc {
             "出勤：你登录实验课的时间、使用的课堂代码，以及每次登录尝试的 IP 地址。登录记录用来防止猜测代码，也是你出勤的证明。",
             "你的作业：代码填空的答案和尝试次数、提示请求、从开发板采集的数据，以及准备清单。",
             "成绩和助教对你小组的备注。",
-            "预习作业（TP）：你在 LMS 交了哪个文件、什么时候交的，以及每题的成绩。IRIS 只存文件的指向，不存文件本身，你或助教查看时才从 LMS 打开。",
+            "预习作业（TP）：你上传的 PDF、上传时间、之前的每个版本，以及每题的成绩。IRIS 把文件存放在 Cloudflare R2 存储中，只对你和助教打开。",
             "反馈：与学号一起保存，确保每人每节课只提交一次。助教看到的反馈不显示姓名和学号。",
             "助教：姓名、学号、助教代码、授课时段、SeeLabs 用户名（从不保存 SeeLabs 密码）和报酬记录。",
           ],
@@ -156,13 +156,13 @@ export function privacy(lang: Lang): LegalDoc {
         {
           title: "使用的服务",
           body: [
-            "Vercel 托管网站和文件，Neon 托管数据库，Cloudflare 在实验室的 PC 服务器与本站之间传输实时控制台。显示演示文稿或电路仿真的页面会嵌入 Canva、Wokwi 或 Tinkercad，打开时它们可能设置自己的 cookie。",
+            "Vercel 托管网站和文件，Neon 托管数据库，Cloudflare 在实验室的 PC 服务器与本站之间传输实时控制台，并存放预习作业文件。显示演示文稿或电路仿真的页面会嵌入 Canva、Wokwi 或 Tinkercad，打开时它们可能设置自己的 cookie。",
           ],
         },
         {
           title: "保存多久",
           body: [
-            `记录只保存一个学期，即 ${RETENTION_MONTHS} 个月。第一学期为 8 月至次年 1 月，第二学期为 2 月至 7 月。每个新学期的第一天，上一学期的所有数据都会自动删除：课堂、出勤、登录记录、答案、采集数据、成绩、反馈、报酬记录、书面报告、课表和日志。实验室管理员也可以提前删除已结束的学期。`,
+            `记录只保存一个学期，即 ${RETENTION_MONTHS} 个月。第一学期为 8 月至次年 1 月，第二学期为 2 月至 7 月。每个新学期的第一天，上一学期的所有数据都会自动删除：课堂、出勤、登录记录、答案、采集数据、成绩、预习作业文件、反馈、报酬记录、书面报告、课表和日志。实验室管理员也可以提前删除已结束的学期。`,
             `加密的每晚备份最多再保留 ${BACKUP_DAYS} 天，之后自动过期。已录入 SeeLabs 的成绩遵循 Telkom University 自己的规定。`,
           ],
         },
@@ -196,7 +196,7 @@ export function privacy(lang: Lang): LegalDoc {
           "Kehadiran: waktu kamu masuk ke sesi, kode sesi yang dipakai, dan alamat IP tiap percobaan masuk. Catatan ini mencegah tebak kode dan menjadi bukti kehadiranmu.",
           "Pekerjaanmu: jawaban blank kode beserta jumlah percobaannya, permintaan petunjuk, data tangkapan dari papanmu, dan daftar persiapan.",
           "Nilai dan catatan asisten untuk kelompokmu.",
-          "Tugas Pendahuluan (TP): berkas mana yang kamu kumpulkan di LMS dan kapan, dan nilai tiap soalnya. IRIS menyimpan penunjuk ke berkasnya, bukan berkasnya, dan membukanya dari LMS saat kamu atau asisten melihatnya.",
+          "Tugas Pendahuluan (TP): PDF yang kamu unggah, kapan kamu mengunggahnya, setiap versi sebelumnya, dan nilai tiap soalnya. IRIS menyimpan berkasnya di penyimpanan Cloudflare R2 dan hanya membukanya untukmu dan asisten.",
           "Umpan balik: disimpan bersama NIM supaya satu orang hanya memberi satu umpan balik per sesi. Asisten melihatnya tanpa nama dan NIM.",
           "Untuk asisten: nama, NIM, kode asisten, slot mengajar, nama akun SeeLabs (kata sandi SeeLabs tidak pernah disimpan) dan catatan honor.",
         ],
@@ -222,13 +222,13 @@ export function privacy(lang: Lang): LegalDoc {
       {
         title: "Layanan yang Kami Pakai",
         body: [
-          "Vercel menyimpan situs dan berkas, Neon menyimpan basis data, dan Cloudflare meneruskan konsol langsung antara PC Server lab dan situs. Halaman yang menampilkan presentasi atau simulasi rangkaian memuat Canva, Wokwi atau Tinkercad, yang bisa memasang cookie sendiri saat kamu membukanya.",
+          "Vercel menyimpan situs dan berkas, Neon menyimpan basis data, dan Cloudflare meneruskan konsol langsung antara PC Server lab dan situs serta menyimpan berkas TP. Halaman yang menampilkan presentasi atau simulasi rangkaian memuat Canva, Wokwi atau Tinkercad, yang bisa memasang cookie sendiri saat kamu membukanya.",
         ],
       },
       {
         title: "Berapa Lama Disimpan",
         body: [
-          `Catatan disimpan satu semester, yaitu ${RETENTION_MONTHS} bulan. Semester ganjil berjalan Agustus sampai Januari dan semester genap Februari sampai Juli. Pada hari pertama semester baru, semua data semester sebelumnya terhapus otomatis: sesi, kehadiran, catatan masuk, jawaban, data tangkapan, nilai, umpan balik, catatan honor, laporan tertulis, jadwal dan log. Admin lab boleh menghapus semester yang sudah selesai lebih awal.`,
+          `Catatan disimpan satu semester, yaitu ${RETENTION_MONTHS} bulan. Semester ganjil berjalan Agustus sampai Januari dan semester genap Februari sampai Juli. Pada hari pertama semester baru, semua data semester sebelumnya terhapus otomatis: sesi, kehadiran, catatan masuk, jawaban, data tangkapan, nilai, berkas TP, umpan balik, catatan honor, laporan tertulis, jadwal dan log. Admin lab boleh menghapus semester yang sudah selesai lebih awal.`,
           `Cadangan malam yang terenkripsi menyimpan salinan paling lama ${BACKUP_DAYS} hari lagi, lalu kedaluwarsa sendiri. Nilai yang sudah masuk SeeLabs mengikuti aturan Telkom University.`,
         ],
       },

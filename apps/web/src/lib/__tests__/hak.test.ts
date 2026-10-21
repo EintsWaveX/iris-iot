@@ -128,10 +128,10 @@ describe("division tools", () => {
     divisi,
   });
 
-  it("gives ASO the code, TP and LMS", () => {
+  it("gives ASO the code and TP", () => {
     const a = di("asisten", "ASO");
     expect(boleh(a, "kode")).toBe(true);
-    expect(boleh(a, "lms")).toBe(true);
+    expect(boleh(a, "tp")).toBe(true);
     expect(boleh(a, "hadir")).toBe(false);
     expect(boleh(a, "server")).toBe(false);
   });
@@ -140,7 +140,7 @@ describe("division tools", () => {
     const a = di("asisten", "ADS");
     expect(boleh(a, "hadir")).toBe(true);
     expect(boleh(a, "kode")).toBe(false);
-    expect(boleh(a, "lms")).toBe(false);
+    expect(boleh(a, "tp")).toBe(false);
     expect(boleh(a, "tim")).toBe(false);
   });
 
@@ -175,7 +175,7 @@ describe("the eight presets", () => {
 
   it("matches the matrix right for right", () => {
     expect(nyala(di("asisten", "ADC"))).toEqual(["own", "profil"]);
-    expect(nyala(di("asisten", "ASO"))).toEqual(["own", "kode", "lms"]);
+    expect(nyala(di("asisten", "ASO"))).toEqual(["own", "kode", "tp"]);
     expect(nyala(di("asisten", "ADS"))).toEqual(["own", "hadir"]);
     expect(nyala(di("asisten", "ARM"))).toEqual(["own", "server"]);
     expect(nyala(di("pengelola", "ADC"))).toEqual(["own", "pair", "jadwal", "profil"]);
@@ -193,7 +193,7 @@ describe("the eight presets", () => {
       "server",
       "full",
       "kode",
-      "lms",
+      "tp",
       "profil",
     ]);
     expect(nyala(di("admin", null))).toEqual([...HAK]);

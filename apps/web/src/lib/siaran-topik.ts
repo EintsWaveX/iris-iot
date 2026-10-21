@@ -35,12 +35,10 @@ export const TOPIK = [
   "petunjuk",
   // A group rewired its own pins in the running session (presentasi:pin-grup).
   "pingrup",
-  // Phase 13: a TP file came in from the LMS, a TP score, window or setting.
+  // Phase 13: a TP file came in, a TP score, window or setting.
   "tp",
   // Phase 14: a SeeLabs robot job moved, an account connected, the robot's settings.
   "seelabs",
-  // Phase 15: IRIS changed something in the LMS from the LMS menu.
-  "lms",
   // Phase 18: someone checked in, or a PJ changed a status or the slot's clock.
   "hadir",
   // Phase 23: the Lab Profile on Home (divisions, team photos, events).
@@ -156,36 +154,16 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "tp:nilai": ["tp", "nilai"],
   "tp:tanda": ["tp", "nilai"],
   "tp:telat": ["tp", "nilai"],
-  "tp:sinkron": ["tp"],
   "tp:jendela": ["tp"],
   "tp:paket": ["tp"],
   "tp:pilih": ["tp"],
   "tp:bawaan": ["tp"],
-  "tp:lms": ["tp"],
-  "tp:lms-tugas": ["tp"],
   "tp:kecuali": ["tp"],
   "tp:unggah": ["tp"],
   "tp:tiket": [],
   "tp:perpanjang": ["tp"],
   // The minute beat: the sync and the move broadcast what they change.
   "tp:detak": [],
-  // Phase 15 (api/lms/[aksi].ts): the LMS menu's writes. Grades also move
-  // Penilaian's LMS marks; the rest only the LMS menu shows.
-  "lms:otomatis": ["lms"],
-  "lms:pesan": [],
-  "lms:perpanjang": ["lms"],
-  "lms:kunci": ["lms"],
-  "lms:kirim-ulang": ["lms", "tp"],
-  "lms:nilai": ["lms"],
-  "lms:umum": ["lms"],
-  "lms:umum-tarik": ["lms"],
-  "lms:kalender": ["lms"],
-  "lms:tampil": ["lms"],
-  "lms:tugas": ["lms"],
-  "lms:isi": ["lms"],
-  "lms:kumpul": [],
-  "lms:jejak": [],
-  "lms:grup": ["lms"],
   // Phase 23 (api/profil/[aksi].ts): every Home shows the Lab Profile.
   "profil:unggah": [],
   "profil:divisi-simpan": ["profil"],

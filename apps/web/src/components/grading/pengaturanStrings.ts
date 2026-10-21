@@ -1,0 +1,122 @@
+/**
+ * Penilaian › Pengaturan TP (2026-10-21, it was LMS › Sambungan): who
+ * counts in TP, and the IRIS and SeeLabs cross-check.
+ */
+const id = {
+  galat: {
+    bukan_praktikan: "NIM itu tidak terdaftar sebagai Praktikan semester ini",
+    format_salah: "isiannya belum lengkap",
+    tidak_berhak: "kamu tidak punya hak untuk ini",
+  } as Record<string, string>,
+  gagalDengan: (k: string, g: Record<string, string>) => `Gagal: ${g[k] ?? k}`,
+  pesertaH: "Peserta TP",
+  pesertaLede: "Hanya Praktikan yang terdaftar di IRIS yang dihitung di TP.",
+  terdaftar: "Terdaftar di IRIS",
+  dikecualikan: "Dikecualikan",
+  dihitung: "Dihitung di TP",
+  kecualiHint:
+    "Praktikan terdaftar yang tidak dihitung di TP, misalnya mundur atau pindah. Mereka tetap terlihat di kelompoknya.",
+  kecualikan: "Kecualikan",
+  ikutkan: "Ikutkan Lagi",
+  kecualiNim: "NIM",
+  kecualiAlasan: "Alasan (opsional)",
+  kecualiOk: "Praktikan dikecualikan dari TP.",
+  ikutkanOk: "Praktikan dihitung lagi di TP.",
+  kosong: "Tidak ada.",
+  oleh: (k: string, t: string) => `oleh ${k} · ${t}`,
+  pill: "Dikecualikan",
+  silangH: "Silang Data",
+  silangLede: "Siapa terdaftar di mana: IRIS dan SeeLabs.",
+  sIris: "Terdaftar di IRIS",
+  sSeelabs: "Terdaftar di SeeLabs",
+  sAsisten: "Praktikan yang juga Asisten",
+  sSeelabsPada: (t: string, klp: number) => `Tarikan KLP ${t} · ${klp} KLP`,
+  sSeelabsBelum: "Belum ada tarikan KLP dari SeeLabs (Sumber SeeLabs › Tarik Kelompok).",
+  asistenH: "Praktikan yang Juga Asisten",
+  asistenHint:
+    "Terdaftar sebagai Praktikan dan juga Asisten. IRIS menghitungnya sebagai Asisten saja: tidak masuk kelompok atau TP.",
+  kelasIris: { reguler: "Reguler", internasional: "Internasional" } as Record<string, string>,
+  sebagaiAsisten: "Dihitung sebagai Asisten",
+  bukanIrisH: (n: number) => `Di SeeLabs, tidak di IRIS (${n})`,
+  tanpaSeelabsH: (n: number) => `Di IRIS, tidak di SeeLabs (${n})`,
+};
+
+export type PengaturanT = typeof id;
+
+const en: PengaturanT = {
+  galat: {
+    bukan_praktikan: "that NIM isn't a registered Praktikan this semester",
+    format_salah: "the form isn't complete",
+    tidak_berhak: "you don't have the right for this",
+  },
+  gagalDengan: (k, g) => `Failed: ${g[k] ?? k}`,
+  pesertaH: "TP Participants",
+  pesertaLede: "Only Praktikan registered in IRIS count in TP.",
+  terdaftar: "Registered in IRIS",
+  dikecualikan: "Excluded",
+  dihitung: "Counted in TP",
+  kecualiHint:
+    "Registered Praktikan left out of TP counts, say after dropping or moving. They still show in their group.",
+  kecualikan: "Exclude",
+  ikutkan: "Count Again",
+  kecualiNim: "NIM",
+  kecualiAlasan: "Reason (optional)",
+  kecualiOk: "Praktikan excluded from TP.",
+  ikutkanOk: "Praktikan counted in TP again.",
+  kosong: "None.",
+  oleh: (k, t) => `by ${k} · ${t}`,
+  pill: "Excluded",
+  silangH: "Cross-check",
+  silangLede: "Who is registered where: IRIS and SeeLabs.",
+  sIris: "Registered in IRIS",
+  sSeelabs: "Registered in SeeLabs",
+  sAsisten: "Praktikan who are also Asisten",
+  sSeelabsPada: (t, klp) => `KLP pull ${t} · ${klp} KLP`,
+  sSeelabsBelum: "No KLP pull from SeeLabs yet (SeeLabs Source › Pull Groups).",
+  asistenH: "Praktikan Who Are Also Asisten",
+  asistenHint:
+    "Registered as a Praktikan and also an Asisten. IRIS counts them as Asisten only: no group, no TP.",
+  kelasIris: { reguler: "Regular", internasional: "International" },
+  sebagaiAsisten: "Counted as Asisten",
+  bukanIrisH: (n) => `In SeeLabs, not in IRIS (${n})`,
+  tanpaSeelabsH: (n) => `In IRIS, not in SeeLabs (${n})`,
+};
+
+const zh: PengaturanT = {
+  galat: {
+    bukan_praktikan: "这个学号本学期没有登记为 Praktikan",
+    format_salah: "表单还没填完整",
+    tidak_berhak: "你没有这个权限",
+  },
+  gagalDengan: (k, g) => `失败：${g[k] ?? k}`,
+  pesertaH: "预习作业参与者",
+  pesertaLede: "只统计在 IRIS 登记的学生。",
+  terdaftar: "IRIS 已登记",
+  dikecualikan: "已排除",
+  dihitung: "计入预习作业",
+  kecualiHint: "不计入预习作业统计的已登记学生，例如退课或转班。他们仍显示在小组里。",
+  kecualikan: "排除",
+  ikutkan: "重新计入",
+  kecualiNim: "学号",
+  kecualiAlasan: "原因（可选）",
+  kecualiOk: "已把该学生排除在预习作业之外。",
+  ikutkanOk: "该学生重新计入预习作业。",
+  kosong: "没有。",
+  oleh: (k, t) => `${k} · ${t}`,
+  pill: "已排除",
+  silangH: "交叉核对",
+  silangLede: "谁在哪里登记：IRIS 和 SeeLabs。",
+  sIris: "IRIS 已登记",
+  sSeelabs: "SeeLabs 已登记",
+  sAsisten: "同时是助教的学生",
+  sSeelabsPada: (t, klp) => `KLP 拉取 ${t} · ${klp} 个 KLP`,
+  sSeelabsBelum: "还没有从 SeeLabs 拉取 KLP（SeeLabs 来源 › 拉取小组）。",
+  asistenH: "同时是助教的学生",
+  asistenHint: "既登记为学生，也是助教。IRIS 只把他们算作助教：不分组、不计预习作业。",
+  kelasIris: { reguler: "普通班", internasional: "国际班" },
+  sebagaiAsisten: "按助教计",
+  bukanIrisH: (n) => `在 SeeLabs、不在 IRIS（${n}）`,
+  tanpaSeelabsH: (n) => `在 IRIS、不在 SeeLabs（${n}）`,
+};
+
+export const PT: Record<"id" | "en" | "zh", PengaturanT> = { id, en, zh };

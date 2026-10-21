@@ -319,9 +319,9 @@ export function telatMenit(dikirimPada: string | null, j: JendelaTp | null): num
 
 /**
  * One Praktikan's own window: the module's, closing at their extension
- * instead when they were given one that ends later (LMS › Tugas ›
- * Perpanjangan, user 2026-10-17). Moving the whole window extends everyone
- * and needs nothing here.
+ * instead when they were given one that ends later (tp_perpanjang, user
+ * 2026-10-17). Moving the whole window extends everyone and needs nothing
+ * here.
  */
 export function jendelaPribadi(j: JendelaTp, sampai: string | null | undefined): JendelaTp {
   return sampai && Date.parse(sampai) > Date.parse(j.tutup) ? { ...j, tutup: sampai } : j;
@@ -360,92 +360,6 @@ export function statusTp(a: {
   return a.panjang ? "panjang" : "masuk";
 }
 
-/** The LMS course a class name belongs to: "REG-04", "REG-01-INT", "ADD". */
-export function labelKursus(nama: string): string {
-  const m = nama.match(/REG-\d{2}(?:-INT)?/i);
-  if (m) return m[0].toUpperCase();
-  if (/\bADD\b/i.test(nama)) return "ADD";
-  return nama.length > 18 ? `${nama.slice(0, 17)}…` : nama;
-}
-
-export function kelasKursus(nama: string): KelasTp {
-  return /-INT\b|INTERNATIONAL/i.test(nama) ? "inter" : "reguler";
-}
-
-/** "TP Modul 3" (any case, any spacing): the module number, or null. */
-export function modulTugas(nama: string): number | null {
-  const m = nama.match(/^\s*TP\s*Modul\s*([1-4])\b/i);
-  return m ? Number(m[1]) : null;
-}
-
-/* ------------------------------------------- the assignment in the LMS */
-
-/** The name IRIS gives a module's assignment in every class course. */
-export const namaTugasLms = (m: number) => `TP Modul ${m}`;
-
-const HARI_TP = {
-  id: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
-  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-};
-const BULAN_TP = {
-  id: [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-  ],
-  en: [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ],
-};
-
-/** "Sabtu, 17 Oktober 2026 pukul 18.00" / "Saturday, 17 October 2026 at 18:00", in WIB. */
-export function waktuTugasLms(iso: string, b: "id" | "en"): string {
-  const d = new Date(Date.parse(iso) + 7 * 3_600_000);
-  const hh = String(d.getUTCHours()).padStart(2, "0");
-  const mm = String(d.getUTCMinutes()).padStart(2, "0");
-  const tgl = `${HARI_TP[b][d.getUTCDay()]}, ${d.getUTCDate()} ${BULAN_TP[b][d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-  return b === "id" ? `${tgl} pukul ${hh}.${mm}` : `${tgl} at ${hh}:${mm}`;
-}
-
-/** The assignment's default description, plain text, in the class's language. */
-export function teksTugasLms(m: number, tutup: string, b: "id" | "en"): string {
-  return b === "id"
-    ? `Tugas Pendahuluan Modul ${m}. Soal ada di IRIS (Modul ${m}, langkah Tugas Pendahuluan). Kerjakan di kertas, pindai menjadi satu PDF, lalu unggah di sini sebelum ${waktuTugasLms(tutup, "id")}.`
-    : `Preliminary Task for Module ${m}. The questions are in IRIS (Module ${m}, the Preliminary Task step). Write your answers on paper, scan them into one PDF, and upload it here before ${waktuTugasLms(tutup, "en")}.`;
-}
-
-/** Plain text to the LMS's HTML: a paragraph per blank-line block, escaped. */
-export function htmlTugasLms(teks: string): string {
-  const esc = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  return teks
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`)
-    .join("");
-}
-
 /** The Praktikan IRIS counts: the semester's registered Praktikan without
  *  the Asisten among them (batch 2024 Asisten are registered as both, user
  *  2026-10-18). They are never seated, counted or chased as Praktikan;
@@ -455,17 +369,6 @@ export function tanpaAsisten<T extends { nim: string }>(
   nimAsisten: { has(nim: string): boolean },
 ): T[] {
   return daftar.filter((p) => !nimAsisten.has(p.nim));
-}
-
-/** An LMS assignment's dates are the window's, to the minute. */
-export function tanggalSama(
-  t: { buka: string | null; tutup: string | null; batas?: string | null },
-  j: JendelaTp,
-): boolean {
-  const sama = (a: string | null | undefined, b: string) =>
-    !!a && Math.abs(Date.parse(a) - Date.parse(b)) < 60_000;
-  // The cut-off closes the LMS at the window's close too (2026-10-17).
-  return sama(t.buka, j.buka) && sama(t.tutup, j.tutup) && sama(t.batas, j.tutup);
 }
 
 /* ------------------------------------------------------ answers in a PDF */
@@ -512,20 +415,4 @@ export function pisahJawaban(
     out[a.no] = { teks: isi, halaman: baris[a.i].p };
   });
   return out;
-}
-
-/** How often IRIS reads the LMS while a TP window is open: 60 s after the
- *  last run, whatever the clock reads (user, 2026-10-17). An open page
- *  starts the due run itself; the relay's minute timer and the server's
- *  heartbeat keep it going when no page is open. */
-export const JEDA_SINKRON_MS = 60_000;
-
-/** How long Sinkron Sekarang waits for its answer: a forced read of every
- *  class took 13 to 26 s on the real LMS (39 s at most), past the 15 s other
- *  requests get. */
-export const TUNGGU_SINKRON_MS = 60_000;
-
-/** Whole seconds until the next run, 0 once it is due. */
-export function sisaSinkron(terakhir: number, now = Date.now()): number {
-  return Math.max(0, Math.ceil((terakhir + JEDA_SINKRON_MS - now) / 1000));
 }

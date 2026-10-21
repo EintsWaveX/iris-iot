@@ -60,7 +60,7 @@ export async function getJson<T = Record<string, unknown>>(url: string): Promise
 }
 
 /** `tunggu`: how long to wait for the answer, for a write known to take
- *  longer than FETCH_TIMEOUT_MS (a forced LMS read). */
+ *  longer than FETCH_TIMEOUT_MS (a slow action). */
 export async function postJson<T = Record<string, unknown>>(
   url: string,
   body: unknown = {},

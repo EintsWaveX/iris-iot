@@ -94,24 +94,6 @@ export interface PaketData {
   keadaan: KeadaanJendela | null;
   semester: string;
   bolehUbah: boolean;
-  /** may make the LMS assignments and put the PDF on them */
-  bolehKelola: boolean;
-  /** LMS › Ringkasan's "attach the PDF when the Final Set is saved" */
-  otomatisPdf?: boolean;
-  lms: {
-    tersambung: boolean;
-    /** the token carries the manager key */
-    siap: boolean;
-    url: string;
-    tujuan: {
-      id: number;
-      label: string;
-      kelas: KelasTp;
-      cmid: number | null;
-      lihat: string | null;
-      ubah: string | null;
-    }[];
-  };
 }
 
 export function usePaket(modul: number, enabled = true) {

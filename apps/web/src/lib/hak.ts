@@ -17,7 +17,7 @@
  *
  * A person's rights are the union of what their tier, their division and
  * their badges give (Phase 20, 2026-10-18):
- *   ASO  -> kode, lms        ADS -> hadir        ARM -> server
+ *   ASO  -> kode, tp         ADS -> hadir        ARM -> server
  *   ADC  -> profil
  *   DEV  -> jadwal, server, full, profil (the technical rights plus the
  *           Schedule and the Lab Profile)
@@ -55,7 +55,7 @@ export const HAK = [
   "full",
   "tim",
   "kode",
-  "lms",
+  "tp",
   "hadir",
   "audit",
   "profil",
@@ -73,14 +73,15 @@ const MATRIX: Record<HakKey, Record<Tier, HakNilai>> = {
   // control the server (hotspot, services, commands); ARM below
   server: { asisten: false, pengelola: false, admin: true },
   // the full Server view: logs, updates, settings, command output,
-  // registering a PC, Sumber SeeLabs, the LMS connection
+  // registering a PC, Sumber SeeLabs
   full: { asisten: false, pengelola: false, admin: true },
   // edit the Team: people, positions, rights, payments
   tim: { asisten: false, pengelola: false, admin: true },
   // edit the journal code files and their blanks (Admins; ASO below)
   kode: { asisten: false, pengelola: false, admin: true },
-  // change the LMS: TP assignments, class content, announcements (ASO below)
-  lms: { asisten: false, pengelola: false, admin: true },
+  // run TP: Peserta TP, anyone's extension (2026-10-21, it was the LMS
+  // right; ASO below)
+  tp: { asisten: false, pengelola: false, admin: true },
   // everyone's attendance and Rp cuts, the PJ actions on every slot (ADS)
   hadir: { asisten: false, pengelola: false, admin: true },
   // the Audit tab, other people's trails and rights, the score change log
@@ -95,7 +96,7 @@ export const DIVISI_KODE: Divisi = "ASO";
 
 /** The rights each division adds for all its members. */
 const HAK_DIVISI: Partial<Record<Divisi, readonly HakKey[]>> = {
-  ASO: ["kode", "lms"],
+  ASO: ["kode", "tp"],
   ADS: ["hadir"],
   ADC: ["profil"],
   ARM: ["server"],

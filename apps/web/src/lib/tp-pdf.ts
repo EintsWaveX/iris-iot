@@ -1,6 +1,6 @@
 /**
- * The formal TP PDF (Phase 13, Penilaian › Soal TP): the paper Asisten
- * upload to each class's TP assignment in the LMS, made in the browser with
+ * The formal TP PDF (Phase 13, Penilaian › Soal TP): the paper Praktikan
+ * and Asisten download from IRIS, made in the browser with
  * pdf-lib like the other exports (src/lib/pdf.ts) and loaded only when one
  * is made.
  *
@@ -44,9 +44,9 @@ const KATA = {
     dibuka: "Dibuka",
     ditutup: "Batas Pengumpulan",
     jadwal: "Jadwal",
-    jadwalLms: "Mengikuti tugas di LMS",
+    jadwalNanti: "Diumumkan di IRIS",
     pengumpulan: "Pengumpulan",
-    pengumpulanIsi: (m: number) => `Satu file PDF di tugas "TP Modul ${m}" pada kelas LMS-mu`,
+    pengumpulanIsi: (m: number) => `Satu file PDF di IRIS, Modul ${m}, langkah Tugas Pendahuluan`,
     bobot: "Penilaian",
     bobotIsi: "Nomor 1, 2 dan 3 masing-masing 10 poin, nomor lainnya 20 poin, total 100",
     petunjuk: "Petunjuk Pengerjaan",
@@ -82,10 +82,9 @@ const KATA = {
     dibuka: "Opens",
     ditutup: "Deadline",
     jadwal: "Schedule",
-    jadwalLms: "As set in the LMS assignment",
+    jadwalNanti: "Announced in IRIS",
     pengumpulan: "Submission",
-    pengumpulanIsi: (m: number) =>
-      `One PDF file in the "TP Modul ${m}" assignment of your LMS class`,
+    pengumpulanIsi: (m: number) => `One PDF file in IRIS, Module ${m}, the Preliminary Task step`,
     bobot: "Scoring",
     bobotIsi: "Numbers 1, 2 and 3 are 10 points each, the others 20 points, 100 in all",
     petunjuk: "Instructions",
@@ -121,9 +120,9 @@ const KATA = {
     dibuka: "开放时间",
     ditutup: "截止时间",
     jadwal: "时间",
-    jadwalLms: "以 LMS 作业为准",
+    jadwalNanti: "以 IRIS 公布为准",
     pengumpulan: "提交方式",
-    pengumpulanIsi: (m: number) => `在 LMS 班级的“TP Modul ${m}”作业中提交一个 PDF 文件`,
+    pengumpulanIsi: (m: number) => `在 IRIS 模块 ${m} 的预习作业步骤中提交一个 PDF 文件`,
     bobot: "评分",
     bobotIsi: "第 1、2、3 题各 10 分，其余每题 20 分，共 100 分",
     petunjuk: "答题说明",
@@ -385,7 +384,7 @@ export async function buatPdfTp(isi: TpPdfIsi): Promise<Uint8Array> {
           [p.dibuka, waktu(isi.jendela.buka, isi.bahasa)],
           [p.ditutup, waktu(isi.jendela.tutup, isi.bahasa)],
         ] as [string, string][])
-      : ([[p.jadwal, p.jadwalLms]] as [string, string][])),
+      : ([[p.jadwal, p.jadwalNanti]] as [string, string][])),
     [p.pengumpulan, p.pengumpulanIsi(isi.modul)],
     [p.bobot, p.bobotIsi],
   ];

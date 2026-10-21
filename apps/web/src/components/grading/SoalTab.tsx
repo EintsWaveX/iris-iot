@@ -1,6 +1,6 @@
 /**
- * Penilaian › Soal TP (2026-10-12): each module's TP bank and the paper
- * that goes to the LMS. All Asisten see it and download from it; the jadwal
+ * Penilaian › Soal TP (2026-10-12): each module's TP bank and its paper.
+ * All Asisten see it and download from it; the jadwal
  * or kode right edits it (Kepala Divisi, Inti, the ASO division).
  *
  * Left, the editor: the module's variants (Module 4 starts with LoRaWAN and
@@ -10,12 +10,12 @@
  * someone else is caught and offered to compare. Right: the final set, each
  * number drawn at random from the variants (Acak Ulang draws again, a
  * number can be picked by hand), the formal PDF in any of the three
- * languages with a preview, and the LMS upload checklist, which reads each
- * class's TP assignment live to show whether its PDF is the latest.
- * Two tabs at every width (2026-10-14): Editor Soal, and the rest (Soal
- * Akhir beside the PDF and the LMS checklist where there's room).
+ * languages with a preview (Praktikan read the set in IRIS; 2026-10-21 the
+ * LMS upload checklist left with the LMS). Two tabs at every width
+ * (2026-10-14): Editor Soal, and the rest (Soal Akhir beside the PDF where
+ * there's room).
  */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 /** Mandarin's name with the Beta badge, for a language switch. */
 const zhBeta = (nama: string): ReactNode => (
@@ -26,15 +26,12 @@ const zhBeta = (nama: string): ReactNode => (
 import {
   ArrowClockwiseIcon,
   ArrowCounterClockwiseIcon,
-  ArrowSquareOutIcon,
   DownloadSimpleIcon,
   InfoIcon,
   PlusIcon,
   WarningIcon,
   XIcon,
 } from "@phosphor-icons/react";
-import { LK } from "./lmsKelolaStrings";
-import { pembuatPdfLms } from "../tp/pdfLms";
 import Pill from "../ui/Pill";
 import TabLine from "../ui/TabLine";
 import Fade from "../ui/Fade";
@@ -46,7 +43,7 @@ import Dialog from "../ui/Dialog";
 import Drawer from "../ui/Drawer";
 import PdfViewer from "../ui/PdfViewer";
 import { FileDrop, Switch } from "../ui/Controls";
-import { getJson, href, MODUL_NAMA, postJson } from "../../lib/app";
+import { MODUL_NAMA, postJson } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { modulLabel } from "../../lib/labels";
 import {
@@ -117,8 +114,6 @@ export default function SoalTab({
   const data = pk.data && pk.data.paket.modul === modul ? pk.data : null;
   const [draf, setDraf] = useState<Draf | null>(null);
   const [dasar, setDasar] = useState<{ modul: number; versi: number; json: string } | null>(null);
-  // Phase 15: a save whose PDF the LMS automation attaches by itself.
-  const [otoVersi, setOtoVersi] = useState<number | null>(null);
   const [vi, setVi] = useState(0);
   const [bahasa, setBahasa] = useState<BahasaTp>(
     lang === "en" ? "en" : lang === "zh" ? "zh" : "id",
@@ -224,7 +219,6 @@ export default function SoalTab({
     setSibuk(false);
     if (r.ok && r.versi !== undefined) {
       setDasar({ modul, versi: r.versi, json: jsonDraf(draf) });
-      if (data.otomatisPdf) setOtoVersi(r.versi);
       window.Toast?.show(t.disimpan, "ok");
       pk.refresh();
       return;
@@ -487,7 +481,6 @@ export default function SoalTab({
   const pdf = (
     <div className="stack stack--lg">
       <Ekspor lang={lang} modul={modul} kotor={kotor} isiPdf={isiPdf} />
-      <Unggah lang={lang} modul={modul} data={data} kotor={kotor} otoVersi={otoVersi} />
     </div>
   );
   const hasil = (
@@ -1028,224 +1021,6 @@ function Ekspor({
         >
           <PdfViewer url={lihat.url} data={lihat.data} name={lihat.nama} lang={lang} shape="page" />
         </Drawer>
-      )}
-    </section>
-  );
-}
-
-interface Lampiran {
-  ok: boolean;
-  kode?: string;
-  pada: string;
-  kelas: (PaketData["lms"]["tujuan"][number] & {
-    lampiran: { nama: string; ukuran: number; waktu: string | null }[];
-  })[];
-}
-
-type Kirim = { s: "jalan" } | { s: "ok" } | { s: "gagal"; kode: string; rinci?: string };
-
-function Unggah({
-  lang,
-  modul,
-  data,
-  kotor,
-  otoVersi,
-}: {
-  lang: Lang;
-  modul: number;
-  data: PaketData;
-  kotor: boolean;
-  /** A save to attach the PDF for by itself (LMS automation on), once the
-   *  saved version has come back. */
-  otoVersi?: number | null;
-}) {
-  const t = TPS[lang];
-  const tk = LK[lang];
-  const [hasil, setHasil] = useState<Lampiran | null>(null);
-  const [jalan, setJalan] = useState(false);
-  const [kirim, setKirim] = useState<Record<number, Kirim>>({});
-  const [sibuk, setSibuk] = useState(false);
-  const bisaUnggah = data.bolehKelola && data.lms.tersambung && data.lms.siap;
-  const target = data.lms.tujuan.filter((k) => k.cmid);
-  // The saved set's PDF on each class's assignment, one class per call.
-  const unggah = async () => {
-    setSibuk(true);
-    const pdfUntuk = pembuatPdfLms(data);
-    let ok = 0;
-    let gagal = 0;
-    for (const k of target) {
-      setKirim((x) => ({ ...x, [k.id]: { s: "jalan" } }));
-      type Jawab = { ok: boolean; kode?: string; rinci?: string; cocok?: boolean };
-      let r: Jawab;
-      try {
-        const pdf = await pdfUntuk(k.kelas);
-        r = await postJson<Jawab>("/api/tp/lms-tugas", {
-          modul,
-          kursus: k.id,
-          langkah: "lampir",
-          pdf,
-        }).catch((): Jawab => ({ ok: false, kode: "lms_tak_terjangkau" }));
-      } catch {
-        r = { ok: false, kode: "pdf", rinci: tk.pdfGagal };
-      }
-      if (r.ok && r.cocok) {
-        ok++;
-        setKirim((x) => ({ ...x, [k.id]: { s: "ok" } }));
-      } else {
-        gagal++;
-        const kode = r.ok ? "lms_unggah_gagal" : (r.kode ?? "");
-        setKirim((x) => ({ ...x, [k.id]: { s: "gagal", kode, rinci: r.rinci } }));
-        if (
-          [
-            "pdf",
-            "perlu_kunci_privat",
-            "lms_invalidprivatetoken",
-            "lms_autologinkeygenerationlockout",
-            "lms_masuk_gagal",
-            "tidak_berhak",
-            "belum_tersambung",
-            "token_ditolak",
-          ].includes(kode)
-        )
-          break;
-      }
-    }
-    setSibuk(false);
-    window.Toast?.show(t.unggahSelesai(ok, gagal), gagal ? "warn" : "ok");
-    void periksa();
-  };
-  // LMS › Ringkasan's automation: the saved set goes on by itself.
-  const otoSudah = useRef<number | null>(null);
-  useEffect(() => {
-    if (!otoVersi || otoSudah.current === otoVersi || sibuk || kotor || !bisaUnggah) return;
-    if (data.paket.versi !== otoVersi || !target.length) return;
-    otoSudah.current = otoVersi;
-    void unggah();
-  });
-  // Pressed by hand: a toast says what it found (2026-10-17), since a read
-  // that changes nothing leaves the rows as they were.
-  const periksa = async (tampil = false) => {
-    setJalan(true);
-    const r = await getJson<Lampiran>(`/api/tp/lampiran?modul=${modul}`).catch(() => null);
-    setJalan(false);
-    if (!r?.ok) return window.Toast?.show(t.periksaGagal, "warn");
-    setHasil(r);
-    if (!tampil) return;
-    const lama = r.kelas.filter((k) => {
-      const terbaru = k.lampiran
-        .map((f) => (f.waktu ? Date.parse(f.waktu) : 0))
-        .sort((a, b) => b - a)[0];
-      return !k.cmid || !k.lampiran.length || (terbaru !== undefined && terbaru < diubah);
-    }).length;
-    window.Toast?.show(
-      lama ? t.periksaLama(lama) : t.periksaOk(r.kelas.length),
-      lama ? "warn" : "ok",
-    );
-  };
-  useEffect(() => {
-    setHasil(null);
-    if (data.lms.tersambung) void periksa();
-  }, [modul, data.lms.tersambung]);
-  const diubah = data.paket.diubahPada ? Date.parse(data.paket.diubahPada) : 0;
-  const daftar = hasil?.kelas ?? data.lms.tujuan.map((x) => ({ ...x, lampiran: null }));
-  return (
-    <section className="panel tpunggah">
-      <div className="panel__head">
-        <h2 className="panel__title">{t.unggahH}</h2>
-        {data.lms.tersambung && (
-          <button
-            type="button"
-            className="btn btn--sm"
-            disabled={jalan}
-            onClick={() => void periksa(true)}
-          >
-            {jalan ? t.memeriksa : t.periksaLms}
-          </button>
-        )}
-      </div>
-      {bisaUnggah ? (
-        <>
-          <p className="hint">{t.unggahHint}</p>
-          <button
-            type="button"
-            className="btn btn--primary tpunggah__btn"
-            disabled={sibuk || kotor || !target.length}
-            onClick={() => void unggah()}
-          >
-            {sibuk ? t.unggahJalan : t.unggahPdf(target.length)}
-          </button>
-          {kotor && <p className="hint">{t.unggahSimpanDulu}</p>}
-        </>
-      ) : (
-        <>
-          {data.bolehKelola && data.lms.tersambung && <p className="hint">{t.unggahPerluKunci}</p>}
-          {!data.bolehKelola && <p className="hint">{t.unggahTidakBoleh}</p>}
-          <ol className="tpsteps">
-            {t.unggahLangkah.map((l, i) => (
-              <li key={i}>
-                <span>{i + 1}</span>
-                <p>{l}</p>
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-      {!data.lms.tersambung ? (
-        <a className="hint tplink" href={href(lang, "/grading#lms")}>
-          {t.lmsPutus}
-        </a>
-      ) : (
-        <>
-          {hasil && <span className="hint">{t.diperiksa(waktuPanjang(hasil.pada, lang))}</span>}
-          <ul className="tpunggah__l">
-            {daftar.map((k) => {
-              const terbaru = k.lampiran
-                ?.map((f) => (f.waktu ? Date.parse(f.waktu) : 0))
-                .sort((a, b) => b - a)[0];
-              const ks = kirim[k.id];
-              const st = !k.cmid
-                ? { tone: "warn" as const, l: t.tanpaTugas }
-                : ks?.s === "jalan"
-                  ? { tone: "accent" as const, l: t.unggahJalan }
-                  : ks?.s === "gagal"
-                    ? { tone: "danger" as const, l: tk.gagalDengan(ks.kode, tk.galat) }
-                    : !k.lampiran
-                      ? null
-                      : !k.lampiran.length
-                        ? { tone: "warn" as const, l: t.tanpaLampiran }
-                        : terbaru !== undefined && terbaru < diubah
-                          ? { tone: "warn" as const, l: t.lampiranLama }
-                          : { tone: "ok" as const, l: t.lampiranOk };
-              return (
-                <li key={k.id}>
-                  <span className="stack tpunggah__k">
-                    <b className="mono">{k.label}</b>
-                    <span className="hint" title={k.lampiran?.[0]?.nama}>
-                      {k.kelas === "inter" ? t.internasional : t.reguler}
-                      {k.lampiran?.[0] ? ` · ${k.lampiran[0].nama}` : ""}
-                    </span>
-                  </span>
-                  {st && (
-                    <span className="tpunggah__st" title={ks?.s === "gagal" ? ks.rinci : undefined}>
-                      <Pill tone={st.tone}>{st.l}</Pill>
-                    </span>
-                  )}
-                  {k.ubah && (
-                    <a
-                      className="btn btn--ghost btn--sm"
-                      href={k.ubah}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`${t.bukaDiLms} ${k.label}`}
-                    >
-                      <ArrowSquareOutIcon size={16} aria-hidden="true" />
-                    </a>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </>
       )}
     </section>
   );

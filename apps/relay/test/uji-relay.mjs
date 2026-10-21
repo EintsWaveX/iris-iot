@@ -451,67 +451,9 @@ try {
   halaman.ws.close();
   for (const s of [asisten, g2, g2b, g3]) s.ws.close();
 
-  // LMS calls: only signed, fresh, to the web service paths. (A signed call
-  // to an allowed path would reach the real LMS, so none is made here.)
-  const lms = (tujuan, o = {}) => {
-    const ts = o.ts ?? now();
-    const metode = o.metode ?? "POST";
-    const isi = o.isi ?? "wsfunction=core_webservice_get_site_info";
-    const tanda = o.tanda ?? createHmac("sha256", secret).update(`lms|${ts}|${metode}|${tujuan}|${isi}`).digest("hex");
-    return fetch(`${BASE}/lms`, {
-      method: o.cara ?? "POST",
-      headers: { "x-lms-ts": String(ts), "x-lms-tanda": tanda, "x-lms-metode": metode, "x-lms-tujuan": tujuan },
-      body: o.cara === "GET" ? undefined : isi,
-    });
-  };
-  r = await lms("/webservice/rest/server.php", { tanda: "0".repeat(64) });
-  cek("an LMS call with a wrong signature is refused", r.status === 403 && (await r.text()) === "tanda salah");
-  r = await lms("/webservice/rest/server.php", { ts: now() - 120 });
-  cek("an old LMS call is refused", r.status === 403 && (await r.text()) === "kedaluwarsa");
-  r = await lms("/login/index.php");
-  cek("an LMS page outside the web service is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
-  r = await lms("https://example.com/webservice/rest/server.php");
-  cek("another host is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
-  r = await lms("/webservice/rest/server.php", { cara: "GET" });
-  cek("the LMS route takes POST only", r.status === 405);
-  r = await lms("/webservice/rest/server.php", { isi: "x".repeat(20 * 1024) });
-  cek("a web service call over 16 KB is refused", r.status === 413);
-  r = await lms("/webservice/upload.php", { isi: "x".repeat(9 * 1024 * 1024) });
-  cek("a draft upload over its limit is refused", r.status === 413);
-  // Module 4's handbook chapter is 6.2 MB as base64 (Phase 16)
-  r = await lms("/webservice/upload.php", { isi: "x".repeat(6.5 * 1024 * 1024), tanda: "0".repeat(64) });
-  cek("a handbook chapter's upload is let through to the signature check", r.status === 403 && (await r.text()) === "tanda salah");
-  r = await lms("/webservice/upload.php", { isi: "x".repeat(20 * 1024), tanda: "0".repeat(64) });
-  cek("a draft upload past 16 KB is let through to the signature check", r.status === 403 && (await r.text()) === "tanda salah");
-  // Web session calls: signed over the cookie; only the Teacher pages IRIS fills.
-  const lmsWeb = (tujuan, o = {}) => {
-    const ts = o.ts ?? now();
-    const metode = o.metode ?? "GET";
-    const isi = o.isi ?? "";
-    const kue = o.kue ?? "MoodleSession=x";
-    const tanda = o.tanda ?? createHmac("sha256", secret).update(`lmsweb|${ts}|${metode}|${tujuan}|${o.kueTanda ?? kue}|${isi}`).digest("hex");
-    return fetch(`${BASE}/lms`, {
-      method: "POST",
-      headers: { "x-lms-ts": String(ts), "x-lms-tanda": tanda, "x-lms-metode": metode, "x-lms-tujuan": tujuan, "x-lms-kue": kue },
-      body: isi,
-    });
-  };
-  r = await lmsWeb("/course/modedit.php?update=1", { kueTanda: "MoodleSession=lain" });
-  cek("a web call whose cookie isn't the signed one is refused", r.status === 403 && (await r.text()) === "tanda salah");
-  r = await lmsWeb("/login/index.php");
-  cek("a web call to a page outside the Teacher pages is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
-  r = await lmsWeb("/group/overview.php?id=1");
-  cek("another group page is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
-  r = await lmsWeb("/user/profile.php?id=1");
-  cek("a web call to the profile is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
-  r = await lms("/course/modedit.php?update=1", { metode: "GET", isi: "" });
-  cek("a TP page without a web session header is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
-  r = await lmsWeb("/lib/ajax/upload.php", { metode: "POST", isi: "[]" });
-  cek("another AJAX script is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
-  r = await lms("/lib/ajax/service.php?sesskey=x", { isi: "[]" });
-  cek("the AJAX service without a web session header is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
-  r = await lms("/course/changenumsections.php?courseid=1", { metode: "GET", isi: "" });
-  cek("adding a section without a web session header is refused", r.status === 403 && (await r.text()) === "tujuan ditolak");
+  // The LMS pass-through is gone (2026-10-21).
+  r = await fetch(`${BASE}/lms`, { method: "POST", body: "x" });
+  cek("the old /lms route answers 404", r.status === 404);
 } finally {
   if (process.env.DEBUG_RELAY) {
     const q = await fetch(`${BASE}/cdn-cgi/local/explorer/api/local/observability/query`, {

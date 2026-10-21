@@ -1,32 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  JEDA_SINKRON_MS,
   TP_MENUNGGU,
   jendelaPribadi,
   masukPerpanjangan,
-  sisaSinkron,
   statusTp,
-  tanggalSama,
   tanpaAsisten,
   telatMenit,
 } from "../tp";
-
-const pada = (iso: string) => Date.parse(iso);
-
-describe("sisaSinkron", () => {
-  it("counts 60 s from the last run, not to the clock's minute", () => {
-    const lalu = pada("2026-10-17T08:30:57Z");
-    expect(sisaSinkron(lalu, lalu)).toBe(60);
-    expect(sisaSinkron(lalu, pada("2026-10-17T08:31:00Z"))).toBe(57);
-    expect(sisaSinkron(lalu, pada("2026-10-17T08:31:56.500Z"))).toBe(1);
-  });
-
-  it("reads 0 from the due moment on", () => {
-    const lalu = pada("2026-10-17T08:30:04.200Z");
-    expect(sisaSinkron(lalu, lalu + JEDA_SINKRON_MS)).toBe(0);
-    expect(sisaSinkron(lalu, lalu + JEDA_SINKRON_MS + 30_000)).toBe(0);
-  });
-});
 
 describe("a Praktikan's own extension (2026-10-17)", () => {
   const j = { buka: "2026-10-14T18:00:00+07:00", tutup: "2026-10-17T18:00:00+07:00" };
@@ -57,15 +37,6 @@ describe("a Praktikan's own extension (2026-10-17)", () => {
 
   it("counts an extended file as waiting for its Asisten", () => {
     expect(TP_MENUNGGU).toContain("panjang");
-  });
-});
-
-describe("tanggalSama with the LMS cut-off (2026-10-17)", () => {
-  const j = { buka: "2026-10-14T11:00:00Z", tutup: "2026-10-17T11:00:00Z" };
-  it("needs the cut-off at the close as well", () => {
-    expect(tanggalSama({ buka: j.buka, tutup: j.tutup, batas: j.tutup }, j)).toBe(true);
-    expect(tanggalSama({ buka: j.buka, tutup: j.tutup, batas: null }, j)).toBe(false);
-    expect(tanggalSama({ buka: j.buka, tutup: j.tutup }, j)).toBe(false);
   });
 });
 

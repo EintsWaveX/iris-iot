@@ -1,6 +1,6 @@
 /**
- * Penilaian › Tugas Pendahuluan (mockup a13-grading): pick a module, see the
- * LMS sync, then the groups by SeeLabs KLP for that module's practicum week,
+ * Penilaian › Tugas Pendahuluan (mockup a13-grading): pick a module, see how
+ * many handed in, then the groups by SeeLabs KLP for that module's practicum week,
  * each member with status, upload time or score. Kelompokku is the groups
  * I hold that week; Semua Kelompok is everyone's, read only for the others.
  */
@@ -8,11 +8,8 @@ import { useState, type CSSProperties } from "react";
 import {
   CaretRightIcon,
   CloudCheckIcon,
-  CloudSlashIcon,
   DownloadSimpleIcon,
-  PlugsIcon,
   UsersThreeIcon,
-  WarningIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import Dropdown from "../ui/Dropdown";
@@ -20,14 +17,12 @@ import { JejakDialog, KumpulDialog } from "../tp/KumpulDialog";
 import TabLine from "../ui/TabLine";
 import IconButton from "../ui/IconButton";
 import { ProgressRing, StateView } from "../ui/Display";
-import { MODUL_NAMA, postJson, tanggalPanjang } from "../../lib/app";
+import { MODUL_NAMA, tanggalPanjang } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { kelompokLabel, modulLabel } from "../../lib/labels";
-import { TP_MENUNGGU, TUNGGU_SINKRON_MS } from "../../lib/tp";
+import { TP_MENUNGGU } from "../../lib/tp";
 import { buatZip, simpanBlob } from "../../lib/zip";
 import { TPS } from "../tp/tpStrings";
-import SinkronBar from "../tp/SinkronBar";
-import Lalu from "../ui/Lalu";
 import {
   StatusPill,
   grupStyle,
@@ -38,7 +33,7 @@ import {
   waktuPanjang,
 } from "../tp/shared";
 import type { AnggotaTp, DataKelompok, GrupDinilai, KelompokTp } from "./types";
-import { LK } from "./lmsKelolaStrings";
+import { PT } from "./pengaturanStrings";
 
 type Saring = "all" | "todo" | "telat" | "belum";
 
@@ -47,18 +42,16 @@ export default function TpTab({
   modul,
   setModul,
   data,
-  refresh,
   onOpen,
-  onLms,
+  onPengaturan,
 }: {
   lang: Lang;
   modul: number;
   setModul: (m: number) => void;
   data: DataKelompok | null;
-  refresh: () => void;
   onOpen: (g: GrupDinilai, i: number) => void;
-  /** Sumber LMS; with a module, its assignments' dialog open. */
-  onLms: (modul?: number) => void;
+  /** Penilaian › Pengaturan TP (who counts, the default window). */
+  onPengaturan: () => void;
 }) {
   const t = TPS[lang];
   const [who, setWho] = useState<"mine" | "all">("mine");
@@ -143,7 +136,7 @@ export default function TpTab({
 
       <ModulHead lang={lang} modul={modul} data={data} />
 
-      <SyncStrip lang={lang} modul={modul} data={data} refresh={refresh} onLms={onLms} />
+      <KumpulStrip lang={lang} data={data} onPengaturan={onPengaturan} />
 
       <div className="panel tpfilter tpfilter--tp">
         <div className="tpfilter__top">
@@ -360,125 +353,36 @@ function ModulHead({ lang, modul, data }: { lang: Lang; modul: number; data: Dat
   );
 }
 
-function SyncStrip({
+/** How many of the module's Praktikan handed in, all of it in IRIS. */
+function KumpulStrip({
   lang,
-  modul,
   data,
-  refresh,
-  onLms,
+  onPengaturan,
 }: {
   lang: Lang;
-  modul: number;
   data: DataKelompok;
-  refresh: () => void;
-  onLms: (modul?: number) => void;
+  onPengaturan: () => void;
 }) {
   const t = TPS[lang];
-  const [busy, setBusy] = useState(false);
-  const s = data.sinkron;
-  const run = async () => {
-    setBusy(true);
-    const r = await postJson<{ ok: boolean; kode?: string; baru: number; diperbarui: number }>(
-      "/api/tp/sinkron",
-      // a press reads the courses again, so a TP assignment made a minute ago is found
-      { modul, paksa: true },
-      TUNGGU_SINKRON_MS,
-    ).catch(() => ({ ok: false, kode: "", baru: 0, diperbarui: 0 }));
-    setBusy(false);
-    window.Toast?.show(r.ok ? t.sinkronHasil(r.baru, r.diperbarui) : t.gagal, r.ok ? "ok" : "warn");
-    refresh();
-  };
-  if (!s.tersambung)
-    return (
-      <section className="panel tpsync" data-tone="warn">
-        <PlugsIcon size={28} aria-hidden="true" />
-        <div className="stack stack--sm grow">
-          <b>{t.sinkronBelum}</b>
-          <span className="hint">{t.sinkronBelumHint}</span>
-        </div>
-        {data.bolehLms && (
-          <button type="button" className="btn btn--primary" onClick={() => onLms()}>
-            {t.sambungLms}
-          </button>
-        )}
-      </section>
-    );
-  if (s.hasil === "gagal" && s.galat)
-    return (
-      <section className="panel tpsync" data-tone="danger">
-        <CloudSlashIcon size={28} aria-hidden="true" />
-        <div className="stack stack--sm grow">
-          <b>{t.sinkronGagal(s.galat)}</b>
-          <span className="hint">
-            {t.sinkronGagalHint(waktuPanjang(s.galatSejak ?? s.terakhir ?? "", lang))}
-          </span>
-        </div>
-        {data.bolehLms ? (
-          <button type="button" className="btn btn--danger" onClick={() => onLms()}>
-            {t.sambungUlang}
-          </button>
-        ) : (
-          <button type="button" className="btn" disabled={busy} onClick={() => void run()}>
-            {busy ? t.menyinkron : t.sinkronSekarang}
-          </button>
-        )}
-      </section>
-    );
-  const hilang = data.hilang[0];
   const pct = data.hitung.peserta ? Math.round((data.hitung.masuk / data.hitung.peserta) * 100) : 0;
   return (
-    <div className="stack">
-      {hilang && (
-        <section className="panel tpsync" data-tone="warn">
-          <WarningIcon size={28} aria-hidden="true" />
-          <div className="stack stack--sm grow">
-            <b>{t.hilangH(modul, data.hilang.map((h) => h.label).join(", "))}</b>
-            <span className="hint">
-              {t.hilangBody(
-                data.hilang.reduce((a, h) => a + h.peserta, 0),
-                modul,
-              )}
-            </span>
-          </div>
-          {data.bolehKelola ? (
-            <button type="button" className="btn btn--primary" onClick={() => onLms(modul)}>
-              {LK[lang].buat(data.hilang.length)}
-            </button>
-          ) : (
-            data.bolehLms && (
-              <button type="button" className="btn" onClick={() => onLms()}>
-                {t.lihatLms}
-              </button>
-            )
-          )}
-        </section>
-      )}
-      <section className="panel tpsync" data-tone="ok">
-        <CloudCheckIcon size={28} aria-hidden="true" />
-        <div className="stack stack--sm grow">
-          <b>{t.sinkronOk}</b>
-          <span className="hint">
-            {s.terakhir ? (
-              <Lalu iso={s.terakhir} lang={lang} fmt={t.sinkronOkHint} />
-            ) : (
-              t.sinkronOkHint(t.belumSinkron)
-            )}
-          </span>
-          {/* The LMS is read every minute around the clock (2026-10-18). */}
-          {s.terakhir && <SinkronBar terakhir={s.terakhir} lang={lang} ringkas onLewat={refresh} />}
-        </div>
-        <div className="tpsync__count">
-          <b className="mono">
-            {data.hitung.masuk} / {data.hitung.peserta}
-          </b>
-          <span className="meter" style={{ "--meter": pct } as CSSProperties} />
-          <span className="hint">{t.praktikanTerkumpul}</span>
-        </div>
-        <button type="button" className="btn" disabled={busy} onClick={() => void run()}>
-          {busy ? t.menyinkron : t.sinkronSekarang}
-        </button>
-      </section>
-    </div>
+    <section className="panel tpsync" data-tone="ok">
+      <CloudCheckIcon size={28} aria-hidden="true" />
+      <div className="stack stack--sm grow">
+        <b>{t.kumpulIris}</b>
+        <span className="hint">{t.kumpulIrisHint}</span>
+      </div>
+      <div className="tpsync__count">
+        <b className="mono">
+          {data.hitung.masuk} / {data.hitung.peserta}
+        </b>
+        <span className="meter" style={{ "--meter": pct } as CSSProperties} />
+        <span className="hint">{t.praktikanTerkumpul}</span>
+      </div>
+      <button type="button" className="btn" onClick={onPengaturan}>
+        {t.tabPengaturan}
+      </button>
+    </section>
   );
 }
 
@@ -581,7 +485,7 @@ function GroupCard({
                   </span>
                 </span>
                 <span className="tpmem__st">
-                  {a.kecuali && <Pill>{LK[lang].pill}</Pill>}
+                  {a.kecuali && <Pill>{PT[lang].pill}</Pill>}
                   <StatusPill s={a.status} lang={lang} />
                   {a.status === "nilai" && a.perpanjangan && <StatusPill s="panjang" lang={lang} />}
                   {a.status === "nilai" && a.total != null ? (

@@ -7,14 +7,14 @@
  * answer by NIM parity (1 and 10 for everyone, 2 to 9 by parity), how to
  * submit, and what IRIS sees of their file; once their group's scores are
  * sent, each question's mark. TP is answered by hand on paper (the lab's
- * rule) and sent as one PDF: uploaded here (2026-10-14, UnggahTp; the LMS
- * can refuse a student until the iGracias survey is filled) or in the LMS.
+ * rule) and sent as one PDF, uploaded here (UnggahTp; only here since
+ * 2026-10-21, when the LMS left).
  *
  * Asisten: the final set's questions with who answers them, the keys behind
  * a switch (off by default, warns about the projector), which variants the
  * set was drawn from with the ways to edit it (Penilaian › Soal TP) and to
  * download its PDF, the window (Kepala Divisi and Inti change it), counts
- * per LMS class, and the way into Penilaian.
+ * per class, and the ways into Penilaian and its Pengaturan TP.
  *
  * Both can download the formal question PDF (src/lib/tp-pdf.ts).
  */
@@ -24,7 +24,7 @@ import {
   FilePdfIcon,
   InfoIcon,
   LockSimpleIcon,
-  PlugsConnectedIcon,
+  GearSixIcon,
   QuestionIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
@@ -226,7 +226,6 @@ function Hero({
       {j && (
         <span className="hint">
           {t.sampai(waktuPanjang(j.buka, lang), waktuPanjang(j.tutup, lang))}
-          {j.sumber === "lms" && ` · ${t.jendelaLms}`}
         </span>
       )}
       {children}
@@ -235,7 +234,7 @@ function Hero({
 }
 
 /** The questions, read only: TP is answered by hand on paper (the lab's
- *  rule), scanned to one PDF and uploaded to the LMS. */
+ *  rule), scanned to one PDF and uploaded in IRIS. */
 function SoalPraktikan({
   lang,
   modul,
@@ -497,17 +496,9 @@ interface ModulTp {
   peserta: number;
   dinilai: number;
   perKursus: { label: string; peserta: number; masuk: number; ada: boolean }[];
-  hilang: { label: string; peserta: number }[];
-  sinkron: {
-    tersambung: boolean;
-    terakhir: string | null;
-    hasil: string | null;
-    galat: string | null;
-  };
   bolehUbah: boolean;
-  bolehLms: boolean;
-  /** Uploads made in IRIS and their LMS copies (2026-10-14). */
-  iris: { jumlah: number; diLms: number; tertunda: number; tanpaLms: number };
+  /** Files in IRIS, the excluded and the Asisten too. */
+  iris: { jumlah: number };
   /** Each server PC's copy of the TP files, as its agent last reported. */
   cermin: {
     serverId: number;
@@ -562,7 +553,6 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
     }
     setPdfJalan(false);
   };
-  const ada = d.perKursus.filter((k) => k.ada).length;
   return (
     <div className="tpgrid tpgrid--a">
       <div className="stack stack--lg tpgrid__main">
@@ -676,20 +666,11 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
         </Hero>
       </div>
       <div className="stack stack--lg tpgrid__side">
-        <a
-          className="panel panel--tight tplmscard"
-          href={href(lang, d.bolehLms ? "/grading#lms" : "/grading")}
-        >
-          <PlugsConnectedIcon size={22} aria-hidden="true" />
+        <a className="panel panel--tight tplinkcard" href={href(lang, "/grading#pengaturan")}>
+          <GearSixIcon size={22} aria-hidden="true" />
           <span className="stack stack--sm grow">
-            <b>
-              {d.sinkron.tersambung ? t.lmsRingkas(ada, d.perKursus.length, modul) : t.lmsBelum}
-            </b>
-            <span className="hint">
-              {d.sinkron.terakhir
-                ? t.sinkronTerakhir(waktuPanjang(d.sinkron.terakhir, lang))
-                : t.belumSinkron}
-            </span>
+            <b>{t.tabPengaturan}</b>
+            <span className="hint">{t.pengaturanKartu}</span>
           </span>
           <CaretRightIcon size={18} aria-hidden="true" />
         </a>
@@ -739,16 +720,10 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
   );
 }
 
-/** Where the files are besides the LMS: uploads made in IRIS with their
- *  LMS copies, and the server PC's own copy (2026-10-14). */
+/** Where the files are: in IRIS, and the server PC's own copy (2026-10-14). */
 function SalinanBerkas({ lang, d }: { lang: Lang; d: ModulTp }) {
   const t = TPS[lang];
-  const baris = [
-    { l: t.diunggahIris, n: d.iris.jumlah },
-    { l: t.salinanLms, n: d.iris.diLms },
-    ...(d.iris.tertunda ? [{ l: t.lmsTertunda, n: d.iris.tertunda }] : []),
-    ...(d.iris.tanpaLms ? [{ l: t.tanpaKelasLms, n: d.iris.tanpaLms }] : []),
-  ];
+  const baris = [{ l: t.diunggahIris, n: d.iris.jumlah }];
   return (
     <section className="panel">
       <h2 className="panel__title">{t.salinanH}</h2>
@@ -837,7 +812,7 @@ export function JendelaDialog({
             disabled={busy}
             onClick={() => void kirim({ hapus: true })}
           >
-            {t.pakaiLms}
+            {t.hapusJendela}
           </button>
         ) : undefined
       }

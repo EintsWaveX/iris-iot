@@ -15,8 +15,8 @@
  * sign-in attempts, the schedule and its rosters, the Praktikan list,
  * uang kas rates, transfers, written reports with their files, the audit
  * log, closed role history, Konsol Pi records, Pi commands, heartbeats and
- * devices, and Phase 13's TP records (pointers, scores, typed answers, the
- * LMS roster, the sync log). What stays: the Asisten accounts, the groups' names, module
+ * devices, and Phase 13's TP records (pointers, scores, typed answers,
+ * extensions, the files in R2). What stays: the Asisten accounts, the groups' names, module
  * content and settings, and the Lab Profile on Home (api/_lib/profil.ts). The newest uang kas rate is carried into the next
  * semester so pay keeps its rate.
  */
@@ -30,7 +30,6 @@ import { getDb } from "../../src/lib/db.js";
 import { hariIniWib } from "../../src/lib/jadwal.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { PRAKTIKAN_TOT } from "../../src/lib/tot.js";
-import { KUNCI_LMS_PRIBADI } from "./lms-menu.js";
 import { hapusAwalan } from "./tp-simpan.js";
 import { awalanSemester } from "../../src/lib/tp-r2.js";
 import {
@@ -66,12 +65,11 @@ import {
   sesiAnggota,
   telemetriLog,
   telemetriTerkini,
-  lmsPeserta,
   tpKiriman,
   tpJejak,
   tpUnggah,
   tpNilai,
-  tpSinkronLog,
+  tpPerpanjang,
   transfer,
 } from "../../src/lib/schema.js";
 
@@ -179,31 +177,17 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
           .where(inArray(rosterKelompok.semester, lama))
           .returning({ id: rosterKelompok.id }),
       );
-      // Phase 13: TP pointers, scores, typed answers and the LMS roster; TP
-      // uploaded in IRIS (2026-10-14; the server PC drops its copies when
-      // the semester is gone from its list).
+      // Phase 13: TP pointers, scores, typed answers, extensions and the
+      // uploads' rows (their files in R2 go below; the server PC drops its
+      // copies when the semester is gone from its list).
       for (const [nama, t] of [
         ["tpKiriman", tpKiriman],
         ["tpJejak", tpJejak],
         ["tpNilai", tpNilai],
-        ["lmsPeserta", lmsPeserta],
+        ["tpPerpanjang", tpPerpanjang],
         ["tpUnggah", tpUnggah],
       ] as const)
         await kena(nama, tx.delete(t).where(inArray(t.semester, lama)).returning({ id: t.id }));
-      // Phase 15: the LMS menu's records that name Praktikan (grades sent to
-      // the LMS gradebook, per Praktikan extensions), kept per semester.
-      await kena(
-        "lmsCatatan",
-        tx
-          .delete(pengaturan)
-          .where(
-            and(
-              inArray(pengaturan.kunci, [...KUNCI_LMS_PRIBADI]),
-              inArray(sql<string>`${pengaturan.nilai}->>'semester'`, lama),
-            ),
-          )
-          .returning({ id: pengaturan.kunci }),
-      );
       await kena(
         "praktikan",
         tx
@@ -307,13 +291,6 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
           ),
         )
         .returning({ id: perintah.id }),
-    );
-    await kena(
-      "tpSinkronLog",
-      tx
-        .delete(tpSinkronLog)
-        .where(lt(tpSinkronLog.mulai, waktu))
-        .returning({ id: tpSinkronLog.id }),
     );
     await kena(
       "denyut",

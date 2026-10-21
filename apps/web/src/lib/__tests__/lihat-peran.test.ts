@@ -25,7 +25,7 @@ const admin: Me = {
     full: true,
     tim: true,
     kode: true,
-    lms: true,
+    tp: true,
     hadir: true,
     audit: true,
     profil: true,
@@ -58,7 +58,7 @@ describe("sebagaiPeran", () => {
     expect(m.lihatPeran).toBe("aso");
     expect(m.tier).toBe("asisten");
     expect(m.kodeDivisi).toBe("ASO");
-    expect(m.hak).toMatchObject({ kode: true, lms: true, tim: false, audit: false, pair: "own" });
+    expect(m.hak).toMatchObject({ kode: true, tp: true, tim: false, audit: false, pair: "own" });
     expect(m.nim).toBe("1");
     vi.unstubAllGlobals();
     vi.stubGlobal("sessionStorage", {

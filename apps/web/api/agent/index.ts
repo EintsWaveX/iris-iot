@@ -66,16 +66,13 @@ import { denganGalat } from "../_lib/galat.js";
 import { siarkan } from "../_lib/siaran.js";
 import { waitUntil } from "@vercel/functions";
 import { Readable } from "node:stream";
-import { bacaSet, sinkronBilaPerlu } from "../_lib/tp.js";
 import { aliranR2, ambilIsiTp } from "../_lib/tp-unggah.js";
-import { lmsCadangan } from "../_lib/tp-pindah.js";
 import {
   daftarCermin,
   saringCermin,
   simpanStatusCermin,
   stempelCermin,
 } from "../_lib/tp-cermin.js";
-import { otomatisLmsBilaPerlu } from "../_lib/lms-otomatis.js";
 import { jamLabBilaPerlu } from "../_lib/jam-lab.js";
 import { adaTugasRobot, ambilTugas, harianBilaPerlu, terimaHasil } from "../_lib/seelabs-robot.js";
 import { bacaBilaPerlu } from "../_lib/seelabs-baca.js";
@@ -364,8 +361,8 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
       ...(cermin ? { tpCermin: { segarkan: cerminSegarkan } } : {}),
     });
     // After the answer, kept alive with waitUntil: awaited after the response
-    // alone, the instance froze and the TP sync's LMS calls only timed out at
-    // the next beat (2026-10-13: every Pi sync from 19:27 "failed" after 60 s).
+    // alone, the instance froze and its calls only timed out at the next beat
+    // (2026-10-13: every sync from 19:27 "failed" after 60 s).
     waitUntil(
       (async () => {
         // The topics this beat changed, as before (most beats change none).
@@ -373,18 +370,11 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         // Phase 18: the lab clock's backup when the relay's minute is
         // late; once a minute at most across both (never throws).
         await jamLabBilaPerlu(db);
-        // Phase 13: the server's beat is one of the TP sync's clocks (every
-        // minute around the clock, with the relay's timer). The server never sees the LMS token; this
-        // runs here, after the beat is answered.
-        await sinkronBilaPerlu(db, "pi", 60_000);
         // Phase 14: the robot's daily KLP pull and Input Jaga check.
         await harianBilaPerlu(db);
         // The SeeLabs read-back (2026-10-17): each connected account's read
         // when it is due (every minute, around the clock, and nightly).
         await bacaBilaPerlu(db);
-        // Phase 15: scheduled announcements and the LMS automations that
-        // are switched on (LMS › Ringkasan), every 5 minutes at most.
-        await otomatisLmsBilaPerlu(db);
       })().catch((err) => console.error("[api/agent denyut] after the beat:", err)),
     );
   } catch (err) {
@@ -483,20 +473,14 @@ async function handleCerminUnduh(res: ApiResponse, body: Record<string, unknown>
     res.status(404).json({ ok: false, kode: "tidak_ada" });
     return;
   }
-  const isi = await ambilIsiTp(db, b, lmsCadangan(await bacaSet(db)));
+  const isi = await ambilIsiTp(db, b);
   if (!isi.ok) {
     res.status(isi.status).json({ ok: false, kode: isi.kode });
     return;
   }
   res.setHeader("Content-Type", "application/octet-stream");
   res.setHeader("Cache-Control", "no-store");
-  if (isi.jenis === "iris") {
-    res.setHeader("Content-Length", String(isi.isi.length));
-    res.status(200).end(isi.isi);
-    return;
-  }
-  // R2 (2026-10-21), else the LMS until the move is done.
-  const sumber = isi.jenis === "r2" ? await aliranR2(isi.kunci) : isi.res;
+  const sumber = await aliranR2(isi.kunci);
   if (!sumber?.body) {
     res.status(502).json({ ok: false, kode: "penyimpanan_mati" });
     return;

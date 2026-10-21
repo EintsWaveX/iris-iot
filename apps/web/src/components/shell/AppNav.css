@@ -138,20 +138,6 @@
   transform: rotate(180deg);
 }
 
-/* LMS wears the Beta badge in the bar and in the menu */
-.appnav__beta {
-  background: var(--warn-soft);
-  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
-  border-radius: 999px;
-  color: var(--warn);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 17px;
-  margin-left: 2px;
-  padding: 0 6px;
-}
-
 /* The Lab menu: the page and what it is for, no icons */
 .appnav__menu--lab {
   min-width: 300px;

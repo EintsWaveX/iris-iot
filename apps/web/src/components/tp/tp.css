@@ -1,5 +1,5 @@
 /* Phase 13: Tugas Pendahuluan and Penilaian (mockups p13-tp, p13-dash,
-   a13-tp, a13-grading, a13-grader, a13-praktikum, a13-lms). Built on the
+   a13-tp, a13-grading, a13-grader, a13-praktikum). Built on the
    kosmik tokens; highlights reuse the kit (pill, modpick, panel--key,
    sweep-hover), no home-made glows. */
 
@@ -33,9 +33,9 @@
     grid-column: 2;
     grid-row: 1 / span 2;
   }
-  /* The Asisten's tab: questions on the left, window and LMS on the right.
+  /* The Asisten's tab: questions on the left, window and counts on the right.
      The tall questions span both rows, so the second row takes their spare
-     height and the LMS cards sit right under the window card. */
+     height and the side cards sit right under the window card. */
   .tpgrid--a {
     grid-template-rows: auto 1fr;
   }
@@ -249,9 +249,6 @@
 .tpnote {
   align-items: flex-start;
 }
-.tptulis {
-  gap: 10px 14px;
-}
 .tpsoal {
   display: grid;
   gap: 10px;
@@ -304,20 +301,6 @@
 .tpsoal__parts > li::marker {
   color: var(--text);
   font-weight: 700;
-}
-.tpjawab {
-  margin-top: 4px;
-  min-height: 96px;
-  resize: vertical;
-}
-.tpform {
-  align-items: center;
-  border-top: 1px solid var(--hairline);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  justify-content: space-between;
-  padding-top: 14px;
 }
 .tpkey {
   background: var(--gold-soft);
@@ -447,17 +430,6 @@
 .tphelp p {
   margin: 0;
 }
-/* Step 2's LMS way: the link at the text's edge, the class code beside it */
-.tplms {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-  justify-content: space-between;
-}
-.tplms > .btn--ghost {
-  margin-left: -20px;
-}
 .tphelp > svg {
   color: var(--accent-bright);
   flex: none;
@@ -485,14 +457,14 @@
 .tpbtns > .btn {
   flex: 1 1 160px;
 }
-.tplmscard {
+.tplinkcard {
   align-items: center;
   color: var(--text);
   display: flex;
   gap: 14px;
   text-decoration: none;
 }
-.tplmscard > svg:first-child {
+.tplinkcard > svg:first-child {
   color: var(--ok);
   flex: none;
 }
@@ -1201,41 +1173,17 @@
   }
 }
 
-/* ------------------------------------------------------- Sumber LMS */
-.tplms__grid {
+/* ---------------------------------------------- Penilaian › Pengaturan TP */
+.tppengaturan__grid {
   align-items: start;
   display: grid;
   gap: 22px;
   grid-template-columns: minmax(0, 1fr);
 }
 @media (min-width: 1100px) {
-  .tplms__grid {
+  .tppengaturan__grid {
     grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
   }
-}
-.tpcon {
-  display: grid;
-  gap: 16px;
-}
-.tpcon__h {
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  margin: 0;
-}
-/* Room between the plug icon and the two lines beside it */
-.tpcon > .row {
-  gap: 16px;
-}
-.tpcon > .row > svg,
-.tpcon > .stack > svg {
-  color: var(--ok);
-  flex: none;
-}
-.tpcon[data-tone="danger"] {
-  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
-}
-.tpcon[data-tone="danger"] > .row > svg {
-  color: var(--danger);
 }
 .tpdl {
   display: grid;
@@ -1260,115 +1208,6 @@
   font-weight: 600;
   margin: 0;
   overflow-wrap: anywhere;
-}
-.tptable {
-  border-collapse: collapse;
-  width: 100%;
-}
-.tptable th,
-.tptable td {
-  border-bottom: 1px solid var(--hairline-faint);
-  padding: 8px 10px;
-  text-align: left;
-  white-space: nowrap;
-}
-.tptable th {
-  color: var(--text-faint);
-  font-size: 0.82rem;
-  font-weight: 650;
-}
-.tptable .num {
-  text-align: center;
-}
-.tpscroll {
-  overflow-x: auto;
-}
-.tpcheck {
-  border-radius: 50%;
-  display: inline-grid;
-  height: 26px;
-  place-items: center;
-  width: 26px;
-}
-.tpcheck[data-s="ok"] {
-  background: var(--ok-soft);
-  color: var(--ok);
-}
-.tpcheck[data-s="miss"] {
-  background: var(--warn-soft);
-  color: var(--warn);
-}
-/* Found, but its dates aren't the IRIS window's */
-.tpcheck[data-s="beda"] {
-  background: var(--ok-soft);
-  box-shadow: inset 0 0 0 2px var(--warn);
-  color: var(--ok);
-}
-button.tpcheck {
-  border: 0;
-  cursor: pointer;
-  font: inherit;
-  padding: 0;
-}
-button.tpcheck:focus-visible,
-.tpkel__th:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-/* A TP column's header opens its assignments */
-.tpkel__th {
-  background: none;
-  border: 0;
-  border-radius: 6px;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  padding: 2px 6px;
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
-}
-@media (hover: hover) and (pointer: fine) {
-  .tpkel__th:hover {
-    background: var(--sel-bg);
-  }
-}
-
-/* ------------------------------------- the TP assignments in the LMS */
-.tpkel__table td {
-  vertical-align: middle;
-}
-.tpkel__cell {
-  display: grid;
-  gap: 2px;
-  white-space: normal;
-}
-.tpkel__st {
-  align-items: center;
-  display: inline-flex;
-  font-weight: 650;
-  gap: 6px;
-}
-.tpkel__st[data-s="sesuai"] {
-  color: var(--ok);
-}
-.tpkel__st[data-s="beda"],
-.tpkel__st[data-s="belum"] {
-  color: var(--warn);
-}
-.tpkel__st[data-s="gagal"] {
-  color: var(--danger);
-  white-space: normal;
-}
-.tpkel__st[data-s="jalan"] {
-  color: var(--text-faint);
-}
-.tpkel__aksi {
-  gap: 4px;
-  justify-content: flex-end;
-}
-.tpkel__tampil {
-  align-items: center;
-  gap: 12px;
 }
 
 /* ----------------------------------------------------- Peserta TP */
@@ -1419,42 +1258,6 @@ button.tpcheck:focus-visible,
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.tplog {
-  display: grid;
-  gap: 2px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.tplog li {
-  align-items: start;
-  border-bottom: 1px solid var(--hairline-faint);
-  display: flex;
-  gap: 12px;
-  padding: 10px 4px;
-}
-.tplog li > .mono {
-  color: var(--text-faint);
-  min-width: 44px;
-  padding-top: 1px;
-}
-.tplog li[data-tone="danger"] b {
-  color: var(--danger);
-}
-/* The page's last 10, across the whole width: two columns, read row by row */
-@media (min-width: 900px) {
-  .tplog--lebar {
-    column-gap: 28px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-.tpriwayat__head {
-  align-items: start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: space-between;
-}
 
 /* ----------------------------------------------------- Silang Data */
 /* One row of four where it fits, two of two where it doesn't */
@@ -1487,40 +1290,6 @@ button.tpcheck:focus-visible,
 .tpsilang__isi {
   display: grid;
 }
-.tpsilang__h {
-  font-size: 0.95rem;
-  margin: 6px 0 0;
-}
-/* Under Kelas di LMS: what Praktikan and Hanya di LMS count */
-.tpkolom {
-  display: grid;
-  gap: 6px;
-  margin: 4px 0 0;
-}
-.tpkolom > div {
-  display: grid;
-  gap: 2px 12px;
-  grid-template-columns: 7.5rem minmax(0, 1fr);
-}
-@media (max-width: 519px) {
-  .tpkolom > div {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.tpkolom dt {
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-.tpkolom dd {
-  color: var(--text-muted);
-  font-size: 0.86rem;
-  margin: 0;
-}
-.tpkolom .tpluar[data-ada],
-.tptable .tpluar[data-ada] {
-  color: var(--warn);
-  font-weight: 700;
-}
 .tpsilang__list {
   max-height: none;
 }
@@ -1533,25 +1302,12 @@ button.tpcheck:focus-visible,
 /* Desktop: both columns end together; the left column's last card and
    Silang Data take the room left. */
 @media (min-width: 1100px) {
-  .tplms__grid {
+  .tppengaturan__grid {
     align-items: stretch;
   }
-  .tplms__grid > .stack > .panel:last-child {
+  .tppengaturan__grid > .stack > .panel:last-child {
     flex: 1 1 auto;
   }
-}
-.tpdone {
-  background: var(--ok-soft);
-  border-radius: 50%;
-  color: var(--ok);
-  display: grid;
-  height: 64px;
-  place-items: center;
-  width: 64px;
-}
-.tptempel {
-  font-family: var(--font-mono);
-  font-size: 0.86rem;
 }
 
 /* ------------------------------------- keys in light markup (TeksTp) */
@@ -1625,7 +1381,7 @@ button.tpcheck:focus-visible,
 }
 
 /* ------------------------------------------ Penilaian › Soal TP (bank) */
-/* The second tab: the final set beside the PDF and the LMS checklist */
+/* The second tab: the final set beside the PDF */
 .tpbank__hasil {
   align-items: start;
   display: grid;
@@ -1861,68 +1617,6 @@ button.tpcheck:focus-visible,
 .tpbank__pdfbtns .btn {
   justify-content: center;
   width: 100%;
-}
-.tpunggah {
-  display: grid;
-  gap: 12px;
-}
-/* The eleven classes in as many columns as fit (two beside Soal Akhir on
-   a wide screen, one on a phone), so the card ends near the final set */
-.tpunggah__l {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 232px), 1fr));
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.tpunggah__l > li {
-  align-items: center;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  padding: 8px 10px;
-}
-.tpunggah__k {
-  gap: 2px;
-  min-width: 0;
-}
-.tpunggah__k > b {
-  white-space: nowrap;
-}
-/* Narrow columns: the class and the LMS link on top, the state and the
-   file under them, so two columns fit beside Soal Akhir */
-.tpunggah__l {
-  container-type: inline-size;
-}
-@container (max-width: 599px) {
-  .tpunggah__l > li {
-    grid-template-areas: "b b a" "s h a";
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    row-gap: 4px;
-  }
-  .tpunggah__l .tpunggah__k {
-    display: contents;
-  }
-  .tpunggah__k > b {
-    grid-area: b;
-  }
-  .tpunggah__k > .hint {
-    grid-area: h;
-  }
-  .tpunggah__l .tpunggah__st {
-    grid-area: s;
-  }
-  .tpunggah__l > li > a {
-    grid-area: a;
-  }
-}
-.tpunggah__k .hint {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .tpbank__float {
   align-items: center;
@@ -2166,52 +1860,6 @@ button.tpcheck:focus-visible,
   color: var(--danger);
 }
 
-.grader__src {
-  margin: 0;
-}
-
-/* ------------------------------- the LMS sync's minute timer (SinkronBar) */
-.sinkbar {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-.sinkbar__row {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-  min-width: 0;
-}
-.sinkbar__track {
-  background: var(--surface-3);
-  border-radius: 999px;
-  flex: 1;
-  height: 6px;
-  min-width: 48px;
-  overflow: hidden;
-}
-.sinkbar__track > i {
-  background: var(--accent);
-  border-radius: inherit;
-  display: block;
-  height: 100%;
-  transform: scaleX(var(--sisa, 0));
-  transform-origin: left center;
-  transition: transform 1s linear;
-}
-.sinkbar__track > i[data-isi] {
-  transition: transform 280ms var(--ease-out-expo);
-}
-.sinkbar__n {
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-@media (prefers-reduced-motion: reduce) {
-  .sinkbar__track > i {
-    transition: none;
-  }
-}
-
 /* -------------------- Penilaian › TP's filters and who handed in (2026-10-15) */
 /* One card, two rows that line up (user's screenshot, 2026-10-15): the
    switch with Who Has and Hasn't and the history on top, the filters under
@@ -2337,7 +1985,7 @@ button.tpcheck:focus-visible,
   grid-template-columns: 180px minmax(0, 1fr);
   padding: 10px 0;
 }
-/* the date over the time, as on the LMS rows */
+/* the date over the time */
 .jejak-list__t {
   color: var(--text-muted);
   display: grid;

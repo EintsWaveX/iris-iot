@@ -1826,22 +1826,20 @@ export const konsolKeberatan = pgTable(
 
 /* --------------------------------- Phase 13: Tugas Pendahuluan (TP) */
 
-/** One file entry of a TP submission, as the LMS lists it (no bytes). */
+/** One file entry of a TP submission (no bytes). */
 export interface BerkasTp {
   nama: string;
   ukuran: number;
   mime: string;
-  /** The LMS file address without a token (webservice/pluginfile.php/...),
-   *  or "iris:<tp_unggah id>" for a file uploaded in IRIS (2026-10-14). */
+  /** "iris:<tp_unggah id>": the file in R2 (2026-10-21; every file the LMS
+   *  held was brought over then). */
   url: string;
 }
 
 /**
- * A Praktikan's TP for one module, as IRIS last saw it: the newest of their
- * LMS submission and their IRIS upload (`sumber`). Pointers only, the file
- * streams from the LMS on view (an IRIS upload from tp_unggah until the
- * LMS holds its copy). A row with no LMS fields is an Asisten's mark (tanda
- * "kosong": no submission, scored 0).
+ * A Praktikan's TP for one module: their current file (a pointer to
+ * tp_unggah). A row with no file is an Asisten's mark (tanda "kosong": no
+ * submission, scored 0).
  */
 export const tpKiriman = pgTable(
   "tp_kiriman",
@@ -1850,10 +1848,6 @@ export const tpKiriman = pgTable(
     semester: text("semester").notNull(),
     modul: integer("modul").notNull(),
     nim: text("nim").notNull(),
-    lmsKursus: integer("lms_kursus"),
-    lmsTugas: integer("lms_tugas"),
-    lmsKiriman: integer("lms_kiriman"),
-    statusLms: text("status_lms"),
     berkas: jsonb("berkas").$type<BerkasTp[]>().notNull().default([]),
     dikirimPada: timestamp("dikirim_pada", { withTimezone: true }),
     diambilPada: timestamp("diambil_pada", { withTimezone: true }),
@@ -1862,11 +1856,10 @@ export const tpKiriman = pgTable(
     terimaTelat: boolean("terima_telat"),
     tanda: text("tanda", { enum: ["kosong"] }),
     ditandaiOleh: text("ditandai_oleh"),
-    /** Where the newest file came from: the LMS's own submission, or an
-     *  upload in IRIS (tp_unggah, `unggahId`). The newer one wins. */
+    /** Where the file was handed in: IRIS, or the LMS before 2026-10-21. */
     sumber: text("sumber", { enum: ["lms", "iris"] })
       .notNull()
-      .default("lms"),
+      .default("iris"),
     unggahId: integer("unggah_id"),
   },
   (t) => [
@@ -1876,11 +1869,8 @@ export const tpKiriman = pgTable(
 );
 
 /**
- * A TP file a Praktikan uploaded in IRIS (2026-10-14: the LMS can refuse a
- * student's upload until they fill the iGracias survey). IRIS puts a copy
- * in the LMS as a feedback file under that student's grade (no role may
- * edit another student's submission there). The bytes (base64) stay here
- * only until the LMS holds that copy; the server PC mirrors every TP file.
+ * Every TP file a Praktikan handed in, each version kept (2026-10-21: in
+ * R2 under `kunci`; files once in the LMS were brought over as asal lms).
  */
 export const tpUnggah = pgTable(
   "tp_unggah",
@@ -1892,24 +1882,8 @@ export const tpUnggah = pgTable(
     nama: text("nama").notNull(),
     ukuran: integer("ukuran").notNull(),
     sha256: text("sha256").notNull(),
-    /** The PDF, base64; null once the LMS holds the copy. */
-    isi: text("isi"),
     dibuatPada: timestamp("dibuat_pada", { withTimezone: true }).notNull().defaultNow(),
-    /** menunggu: not in the LMS yet; terkirim: there as a feedback file;
-     *  gagal: the last try failed (tried again); tanpa_lms: the Praktikan is
-     *  in no LMS class; batal: a newer file replaced it first. */
-    lmsStatus: text("lms_status", {
-      enum: ["menunggu", "terkirim", "gagal", "tanpa_lms", "batal"],
-    })
-      .notNull()
-      .default("menunggu"),
-    lmsGalat: text("lms_galat"),
-    lmsCoba: integer("lms_coba").notNull().default(0),
-    lmsPada: timestamp("lms_pada", { withTimezone: true }),
-    /** The feedback file's LMS address (no token), once it is there. */
-    lmsUrl: text("lms_url"),
-    /** The file's R2 key (2026-10-21, src/lib/tp-r2.ts); null only for
-     *  rows still waiting to be moved there. */
+    /** The file's R2 key (src/lib/tp-r2.ts). */
     kunci: text("kunci"),
     mime: text("mime").notNull().default("application/pdf"),
     halaman: integer("halaman"),
@@ -1919,10 +1893,7 @@ export const tpUnggah = pgTable(
       .notNull()
       .default("iris"),
   },
-  (t) => [
-    index("tp_unggah_nim_idx").on(t.semester, t.modul, t.nim),
-    index("tp_unggah_lms_idx").on(t.lmsStatus),
-  ],
+  (t) => [index("tp_unggah_nim_idx").on(t.semester, t.modul, t.nim)],
 );
 
 /**
@@ -1980,7 +1951,6 @@ export const tpJejak = pgTable(
     nim: text("nim").notNull(),
     jenis: text("jenis", { enum: ["baru", "ganti", "tarik", "unggah"] }).notNull(),
     sumber: text("sumber", { enum: ["lms", "iris"] }).notNull(),
-    lmsKursus: integer("lms_kursus"),
     berkas: jsonb("berkas").$type<{ nama: string; ukuran: number }[]>().notNull().default([]),
     /** When the student handed it in (the LMS's time, or the upload's). */
     dikirimPada: timestamp("dikirim_pada", { withTimezone: true }),
@@ -1988,40 +1958,6 @@ export const tpJejak = pgTable(
     dicatatPada: timestamp("dicatat_pada", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("tp_jejak_modul_idx").on(t.semester, t.modul, t.dicatatPada)],
-);
-
-/** Every LMS sync, so a broken token or a missing assignment shows. */
-export const tpSinkronLog = pgTable(
-  "tp_sinkron_log",
-  {
-    id: serial("id").primaryKey(),
-    mulai: timestamp("mulai", { withTimezone: true }).notNull().defaultNow(),
-    oleh: text("oleh").notNull(),
-    hasil: text("hasil", { enum: ["ok", "gagal"] }).notNull(),
-    baru: integer("baru").notNull().default(0),
-    diperbarui: integer("diperbarui").notNull().default(0),
-    durasiMs: integer("durasi_ms").notNull().default(0),
-    galat: text("galat"),
-  },
-  (t) => [index("tp_sinkron_log_mulai_idx").on(t.mulai)],
-);
-
-/** Who is who in the LMS: each Praktikan's LMS user and class course. */
-export const lmsPeserta = pgTable(
-  "lms_peserta",
-  {
-    id: serial("id").primaryKey(),
-    semester: text("semester").notNull(),
-    nim: text("nim").notNull(),
-    lmsUser: integer("lms_user").notNull(),
-    lmsKursus: integer("lms_kursus").notNull(),
-    kursus: text("kursus").notNull(),
-    diperbarui: timestamp("diperbarui", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    unique("lms_peserta_unik").on(t.semester, t.nim),
-    index("lms_peserta_user_idx").on(t.lmsUser),
-  ],
 );
 
 /**

@@ -186,14 +186,3 @@ describe("the editor's checks", () => {
     expect(periksaPetunjuk({ id: 1 })).toBeNull();
   });
 });
-
-describe("teksLms", () => {
-  it("unescapes the names Moodle sends", async () => {
-    const { teksLms } = await import("../lms.js");
-    expect(teksLms("SINYAL DISKRET, OTOMATISASI, &amp; IOT")).toBe(
-      "SINYAL DISKRET, OTOMATISASI, & IOT",
-    );
-    expect(teksLms("TP &quot;Modul&quot; 4 &#38; &#x26; &lt;b&gt;")).toBe('TP "Modul" 4 & & <b>');
-    expect(teksLms("&amp;lt;")).toBe("&lt;");
-  });
-});

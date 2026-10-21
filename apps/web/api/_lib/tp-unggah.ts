@@ -218,8 +218,6 @@ export async function terimaUnggah(
         mime: "application/pdf",
         halaman: t.h,
         asal: "iris",
-        // Never copied anywhere else now.
-        lmsStatus: "tanpa_lms",
         dibuatPada: dikirim,
       })
       .returning({ id: tpUnggah.id });
@@ -230,8 +228,6 @@ export async function terimaUnggah(
       sumber: "iris" as const,
       unggahId: row.id,
       berkas,
-      statusLms: null,
-      lmsKiriman: null,
       dikirimPada: dikirim,
       diambilPada: dikirim,
       sinkronPada: new Date(),
@@ -257,7 +253,6 @@ export async function terimaUnggah(
         nim,
         jenis: "unggah",
         sumber: "iris",
-        lmsKursus: null,
         berkas: hasil.berkas,
         dikirimPada: dikirim,
       },
@@ -275,45 +270,20 @@ export async function terimaUnggah(
 /* ============================================================ the bytes */
 
 export type IsiTp =
-  | { ok: true; jenis: "r2"; kunci: string; mime: string }
-  | { ok: true; jenis: "iris"; isi: Buffer }
-  | { ok: true; jenis: "lms"; res: Response }
-  | { ok: false; kode: string; status: number };
+  { ok: true; kunci: string; mime: string } | { ok: false; kode: string; status: number };
 
-/**
- * Where one file entry's bytes are: R2 for everything uploaded or moved
- * since 2026-10-21; a row's own base64, or the LMS, only for what the
- * move (tp-pindah.ts) has not reached yet.
- */
-export async function ambilIsiTp(
-  db: Db,
-  b: BerkasTp,
-  lms?: (url: string, range?: string) => Promise<IsiTp>,
-  range?: string,
-): Promise<IsiTp> {
-  let url = b.url;
-  if (url.startsWith(awalanIris)) {
-    const id = Number(url.slice(awalanIris.length));
-    const [u] = Number.isInteger(id)
-      ? await db
-          .select({
-            kunci: tpUnggah.kunci,
-            mime: tpUnggah.mime,
-            isi: tpUnggah.isi,
-            lmsUrl: tpUnggah.lmsUrl,
-          })
-          .from(tpUnggah)
-          .where(eq(tpUnggah.id, id))
-          .limit(1)
-      : [];
-    if (!u) return { ok: false, kode: "berkas_hilang", status: 404 };
-    if (u.kunci) return { ok: true, jenis: "r2", kunci: u.kunci, mime: u.mime };
-    if (u.isi) return { ok: true, jenis: "iris", isi: Buffer.from(u.isi, "base64") };
-    if (!u.lmsUrl) return { ok: false, kode: "berkas_hilang", status: 404 };
-    url = u.lmsUrl;
-  }
-  if (!lms) return { ok: false, kode: "berkas_hilang", status: 404 };
-  return lms(url, range);
+/** Where one file entry's bytes are in R2. */
+export async function ambilIsiTp(db: Db, b: BerkasTp): Promise<IsiTp> {
+  const id = b.url.startsWith(awalanIris) ? Number(b.url.slice(awalanIris.length)) : NaN;
+  const [u] = Number.isInteger(id)
+    ? await db
+        .select({ kunci: tpUnggah.kunci, mime: tpUnggah.mime })
+        .from(tpUnggah)
+        .where(eq(tpUnggah.id, id))
+        .limit(1)
+    : [];
+  if (!u?.kunci) return { ok: false, kode: "berkas_hilang", status: 404 };
+  return { ok: true, kunci: u.kunci, mime: u.mime };
 }
 
 /** A read link for an R2 file (the viewer was already allowed). */

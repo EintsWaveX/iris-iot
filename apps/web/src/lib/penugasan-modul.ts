@@ -14,7 +14,7 @@ import { bagiKelompok } from "./penugasan.js";
 import { hariKe, mingguPraktikum, tambahHari, type JendelaTp } from "./tp.js";
 
 /** How many modules a semester pairs by default, and the most it may set
- *  (Per Modul's Jumlah Modul; the handbook, journals and LMS stay at 4). */
+ *  (Per Modul's Jumlah Modul; the handbook and journals stay at 4). */
 export const MODUL_BAWAAN = 4;
 export const MODUL_MAKS = 8;
 

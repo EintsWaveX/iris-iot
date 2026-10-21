@@ -1,9 +1,8 @@
 /**
  * Who handed in a module's TP, and every change to the files (2026-10-15).
- * Opened from LMS › Ringkasan (the top card, Baru Masuk, a class in Per
- * Kelas) and from Penilaian's TP tab. Only the Praktikan registered in
- * IRIS count; the LMS-only students and the excluded are left out, as in
- * every count on those pages.
+ * Opened from Penilaian's TP tab. Only the Praktikan registered in IRIS
+ * count; the excluded are left out, as in every count on that page.
+ * Classes are IRIS's own (Reguler, INT) since 2026-10-21.
  */
 import { useMemo, useState } from "react";
 import { CaretRightIcon } from "@phosphor-icons/react";
@@ -55,33 +54,31 @@ interface DataJejak {
 const T = dict({
   id: {
     judul: (m: number) => `Pengumpulan TP Modul ${m}`,
-    desc: "Hanya Praktikan yang terdaftar di IRIS. Mahasiswa yang hanya ada di LMS tidak dihitung.",
+    desc: "Hanya Praktikan yang terdaftar di IRIS, tanpa yang dikecualikan.",
     sudah: (n: number) => `Sudah (${n})`,
     belum: (n: number) => `Belum (${n})`,
     semua: (n: number) => `Semua (${n})`,
     tampil: "Tampilkan",
     kelas: "Kelas",
     semuaKelas: "Semua kelas",
-    tanpaKelas: "Tidak ada di kelas LMS",
+    tanpaKelas: "Tanpa kelas",
     cari: "Cari nama atau NIM",
     kosong: "Tidak ada yang cocok.",
     belumKumpul: "Belum mengumpulkan",
     ditandai: "Ditandai tidak mengumpulkan",
     telat: "Telat",
     panjang: "Diperpanjang",
-    diIris: "Diunggah di IRIS",
     riwayat: "Riwayat",
     riwayatTip: "Membuka riwayat pengumpulan Praktikan ini.",
     tutup: "Tutup",
     jejakJudul: (m: number) => `Riwayat Pengumpulan TP Modul ${m}`,
-    jejakDesc:
-      "Setiap berkas baru, berkas pengganti, berkas yang ditarik di LMS, dan unggahan di IRIS, dari yang terbaru.",
+    jejakDesc: "Setiap berkas baru, berkas pengganti, dan berkas yang ditarik, dari yang terbaru.",
     jejakSatu: (n: string) => `Riwayat pengumpulan ${n}, dari yang terbaru.`,
     jenis: {
       baru: "Mengumpulkan",
       ganti: "Mengganti berkas",
-      tarik: "Menarik berkas di LMS",
-      unggah: "Mengunggah di IRIS",
+      tarik: "Menarik berkas",
+      unggah: "Mengunggah",
     },
     dikirim: (w: string) => `dikirim ${w}`,
     jejakKosong: "Belum ada perubahan yang tercatat.",
@@ -90,33 +87,31 @@ const T = dict({
   },
   en: {
     judul: (m) => `TP Modul ${m} Submissions`,
-    desc: "Only Praktikan registered in IRIS. Students who are only in the LMS aren't counted.",
+    desc: "Only Praktikan registered in IRIS, without the excluded.",
     sudah: (n) => `Handed In (${n})`,
     belum: (n) => `Not Yet (${n})`,
     semua: (n) => `All (${n})`,
     tampil: "Show",
     kelas: "Class",
     semuaKelas: "All classes",
-    tanpaKelas: "In no LMS class",
+    tanpaKelas: "No class",
     cari: "Search a name or NIM",
     kosong: "Nothing matches.",
     belumKumpul: "Not handed in",
     ditandai: "Marked as not handed in",
     telat: "Late",
     panjang: "Extended",
-    diIris: "Uploaded in IRIS",
     riwayat: "History",
     riwayatTip: "Opens this Praktikan's submission history.",
     tutup: "Close",
     jejakJudul: (m) => `TP Modul ${m} Submission History`,
-    jejakDesc:
-      "Every new file, replaced file, file taken back in the LMS and upload in IRIS, newest first.",
+    jejakDesc: "Every new file, replaced file and file taken back, newest first.",
     jejakSatu: (n) => `${n}'s submission history, newest first.`,
     jenis: {
       baru: "Handed in",
       ganti: "Replaced the file",
-      tarik: "Took the file back in the LMS",
-      unggah: "Uploaded in IRIS",
+      tarik: "Took the file back",
+      unggah: "Uploaded",
     },
     dikirim: (w) => `sent ${w}`,
     jejakKosong: "No changes recorded yet.",
@@ -125,32 +120,31 @@ const T = dict({
   },
   zh: {
     judul: (m) => `模块 ${m} 预习作业提交情况`,
-    desc: "只包括在 IRIS 注册的学生。只在 LMS 中的学生不计入。",
+    desc: "只包括在 IRIS 注册的学生，不含已排除的。",
     sudah: (n) => `已提交（${n}）`,
     belum: (n) => `未提交（${n}）`,
     semua: (n) => `全部（${n}）`,
     tampil: "显示",
     kelas: "班级",
     semuaKelas: "所有班级",
-    tanpaKelas: "不在任何 LMS 班级",
+    tanpaKelas: "没有班级",
     cari: "搜索姓名或学号",
     kosong: "没有匹配的结果。",
     belumKumpul: "未提交",
     ditandai: "已标记为未提交",
     telat: "迟交",
     panjang: "已延期",
-    diIris: "在 IRIS 上传",
     riwayat: "记录",
     riwayatTip: "打开此学生的提交记录。",
     tutup: "关闭",
     jejakJudul: (m) => `模块 ${m} 预习作业提交记录`,
-    jejakDesc: "每个新文件、替换的文件、在 LMS 撤回的文件以及在 IRIS 的上传，按时间从新到旧。",
+    jejakDesc: "每个新文件、替换的文件和撤回的文件，按时间从新到旧。",
     jejakSatu: (n) => `${n} 的提交记录，按时间从新到旧。`,
     jenis: {
       baru: "提交",
       ganti: "替换文件",
-      tarik: "在 LMS 撤回文件",
-      unggah: "在 IRIS 上传",
+      tarik: "撤回文件",
+      unggah: "上传",
     },
     dikirim: (w) => `发送于 ${w}`,
     jejakKosong: "还没有记录到变化。",
@@ -174,13 +168,13 @@ export function KumpulDialog({
   onOpenChange: (v: boolean) => void;
   lang: Lang;
   modul: number;
-  /** a class to start on (its LMS course id) */
+  /** a class to start on (1 Reguler, 2 INT) */
   kursus?: number | null;
   tampil?: Tampil;
 }) {
   const t = T[lang];
   const poll = usePoll(
-    () => getJson<DataKumpul>(`/api/lms/kumpul?modul=${modul}`),
+    () => getJson<DataKumpul>(`/api/tp/kumpul?modul=${modul}`),
     60_000,
     open,
     ["tp"],
@@ -279,7 +273,6 @@ export function KumpulDialog({
                         <>
                           {b.telat && <Pill tone="warn">{t.telat}</Pill>}
                           {b.panjang && <Pill tone="accent">{t.panjang}</Pill>}
-                          {b.sumber === "iris" && <Pill tone="accent">{t.diIris}</Pill>}
                           <span className="hint num">
                             {b.pada ? waktuPanjang(b.pada, lang) : ""}
                           </span>
@@ -344,7 +337,7 @@ export function JejakDialog({
   nama?: string;
 }) {
   const t = T[lang];
-  const url = `/api/lms/jejak?modul=${modul}${nim ? `&nim=${encodeURIComponent(nim)}` : ""}`;
+  const url = `/api/tp/jejak?modul=${modul}${nim ? `&nim=${encodeURIComponent(nim)}` : ""}`;
   const poll = usePoll(() => getJson<DataJejak>(url), 60_000, open, ["tp"], 0, url);
   const [kelas, setKelas] = useState("semua");
   const [cari, setCari] = useState("");

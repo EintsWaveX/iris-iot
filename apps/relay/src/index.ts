@@ -58,18 +58,9 @@
  *
  *   PUT  /tp/unggah, GET /tp/berkas, POST /tp/srv
  *
- * LMS calls (Phase 13) pass through too:
- *
- *   POST /lms      the IRIS API, signed: one call to the Telkom LMS
- *
- * Cloudflare in front of the LMS turns away Vercel's datacenter addresses
- * but lets a Worker through (2026-10-13). Only the LMS's two web service
- * paths pass, only to the LMS, and nothing is kept.
- *
- * A call with x-lms-kue (the IRIS API's LMS web session, "-" before it
- * has one) may also reach the four pages that make, change and delete a
- * TP assignment (autologin, modedit, mod, view); it is signed over the
- * cookie too, and its answer carries the LMS's new cookies and redirect.
+ * The minute timer (scheduled) wakes the site's lab clock at
+ * /api/tp/detak and keeps how long it may sleep in the Jam object. (The
+ * /lms pass-through to the Telkom LMS went on 2026-10-21, with the LMS.)
  */
 import { cekTiket, DIAM_MENIT } from "../../web/src/lib/konsol.ts";
 import {
@@ -88,7 +79,7 @@ export interface Env {
   RUANG: DurableObjectNamespace;
   SIARAN: DurableObjectNamespace;
   ALIRAN: DurableObjectNamespace;
-  LMS: DurableObjectNamespace;
+  JAM: DurableObjectNamespace;
   /** TP files (2026-10-21), ./tp.ts */
   TP?: R2Bucket;
   KONSOL_RELAY_SECRET: string;
@@ -186,7 +177,6 @@ export default {
     if (ujung === "aliran") return aliran(req, env, kanal, sub);
     if (ujung === "kirim" && req.method === "POST")
       return kirimGabung(req, env);
-    if (ujung === "lms" && !kanal) return lms(req, env);
     if (ujung === "tp" && !sub) return tp(req, env, kanal);
     if (ujung === "hitung" && env.HITUNG === "1") return bacaHitung(env, url);
     if (!kanal || !KANAL_RE.test(kanal)) return teks(404, "tidak ditemukan");
@@ -693,145 +683,23 @@ export class Ruang {
 
 /* ------------------------------------------------------ session streams */
 
-/* ------------------------------------------------------------ LMS calls */
-
-const LMS_ASAL = "https://lms.telkomuniversity.ac.id";
-const LMS_JALAN_RE =
-  /^\/webservice\/(rest\/server\.php$|upload\.php$|pluginfile\.php\/)/;
-/** The draft upload: its form body carries the file base64 (see Lms). */
-const LMS_UNGGAH = "/webservice/upload.php";
-/** The LMS pages IRIS fills as the Teacher: assignments and links
- *  (modedit, mod), a section's name, and the class's groups (Phase 15);
- *  adding sections and the course editor's own AJAX calls (Phase 16) */
-const LMS_HALAMAN_RE =
-  /^\/(admin\/tool\/mobile\/autologin\.php|course\/(modedit|mod|view|editsection|changenumsections)\.php|group\/(group|members|index)\.php|lib\/ajax\/service\.php)$/;
-/** Moodle's AJAX service, which takes JSON */
-const LMS_AJAX = "/lib/ajax/service.php";
-/** A web service call's form body (the course list asks for the most) */
-const LMS_ISI_MAKS = 16 * 1024;
-/** An assignment form's body (its description included) */
-const LMS_HALAMAN_ISI_MAKS = 128 * 1024;
-/** A PDF, base64, with the token: the TP (up to 3 MB) or a module's
- *  handbook chapter (Module 4 is 4.67 MB; the LMS takes 10 MB) */
-const LMS_UNGGAH_MAKS = 8 * 1024 * 1024;
-/** Only the app may ask for an autologin key; the LMS checks the agent. */
-const UA_APP = "Mozilla/5.0 (Linux; Android 14) MoodleMobile 4.5.0 (45001)";
-const UA_WEB = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IRIS-Penilaian";
-/** Tries per call while Cloudflare answers with its challenge */
-const LMS_COBA = 5;
-const LMS_TERUS = [
-  "content-type",
-  "content-length",
-  "content-range",
-  "accept-ranges",
-  "last-modified",
-  "etag",
-];
+/* ------------------------------------------------------ the minute timer */
 
 /**
- * One LMS call for the IRIS API. Signed over the time, method, path with
- * its query and the body, 60 seconds; the answer streams back as it came
- * (a submitted PDF too), with its status.
- */
-async function lms(req: Request, env: Env): Promise<Response> {
-  if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
-    return teks(503, "relay belum diatur");
-  if (req.method !== "POST") return teks(405, "POST saja");
-  const ts = Number(req.headers.get("x-lms-ts"));
-  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 60)
-    return teks(403, "kedaluwarsa");
-  const metode = req.headers.get("x-lms-metode") === "GET" ? "GET" : "POST";
-  const tujuan = req.headers.get("x-lms-tujuan") ?? "";
-  // A web session call (x-lms-kue, the cookie, or "-" before there is one)
-  // is signed over it too.
-  const kue = req.headers.get("x-lms-kue");
-  const web = kue !== null;
-  const isi = await req.text();
-  const maks = web
-    ? LMS_HALAMAN_ISI_MAKS
-    : tujuan === LMS_UNGGAH
-      ? LMS_UNGGAH_MAKS
-      : LMS_ISI_MAKS;
-  if (isi.length > maks) return teks(413, "terlalu besar");
-  const ok = samaPersis(
-    req.headers.get("x-lms-tanda") ?? "",
-    await hmacHex(
-      env.KONSOL_RELAY_SECRET,
-      web
-        ? `lmsweb|${ts}|${metode}|${tujuan}|${kue}|${isi}`
-        : `lms|${ts}|${metode}|${tujuan}|${isi}`,
-    ),
-  );
-  if (!ok) return teks(403, "tanda salah");
-  let u: URL;
-  try {
-    u = new URL(tujuan, LMS_ASAL);
-  } catch {
-    return teks(403, "tujuan ditolak");
-  }
-  if (
-    u.origin !== LMS_ASAL ||
-    !(LMS_JALAN_RE.test(u.pathname) || (web && LMS_HALAMAN_RE.test(u.pathname)))
-  )
-    return teks(403, "tujuan ditolak");
-  hitung(env, "lms");
-  // The call itself is the Durable Object's: made straight from the Worker,
-  // it carried the IRIS API's datacenter address and met Cloudflare's
-  // challenge page (2026-10-13), though the same call from a Worker that a
-  // home connection reached went through.
-  const h = new Headers({ "x-lms-url": u.toString(), "x-lms-metode": metode });
-  const range = req.headers.get("x-lms-range");
-  if (range) h.set("x-lms-range", range);
-  if (web) h.set("x-lms-kue", kue);
-  const lmsDo = env.LMS.get(env.LMS.idFromName("lms"), {
-    locationHint: "apac",
-  });
-  return lmsDo.fetch("https://lms/panggil", {
-    method: "POST",
-    headers: h,
-    body: metode === "POST" ? isi : undefined,
-  });
-}
-
-/** webservice/upload.php's form from IRIS's: token, area, item, path and
- *  the file (nama, berkas base64). */
-function formUnggah(isi: string): FormData {
-  const p = new URLSearchParams(isi);
-  const f = new FormData();
-  for (const k of ["token", "filearea", "itemid", "filepath"])
-    f.set(k, p.get(k) ?? "");
-  const bin = atob(p.get("berkas") ?? "");
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  f.set(
-    "file_1",
-    new File([bytes], p.get("nama") || "berkas.pdf", {
-      type: "application/pdf",
-    }),
-  );
-  return f;
-}
-
-/** Cloudflare's challenge page, by its header or its shape. */
-const tantangan = (r: Response) =>
-  r.headers.get("cf-mitigated") === "challenge" ||
-  (r.status === 403 && /html/i.test(r.headers.get("content-type") ?? ""));
-
-/**
- * Wakes the IRIS site's TP sync (POST /api/tp/detak, signed `detak|ts`)
+ * Wakes the IRIS site's lab clock (POST /api/tp/detak, signed `detak|ts`)
  * unless the site said it may sleep: it answers how long until anything is
- * due (a minute while a TP window is open, else until the next one opens),
- * so a quiet week never wakes the database.
+ * due (a minute through the day, the quiet night hours at once), so the
+ * database can idle.
  */
 async function detak(env: Env): Promise<void> {
   const situs = env.IRIS_SITUS?.replace(/\/+$/, "");
   if (!situs || !env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)
     return;
-  const jam = env.LMS.get(env.LMS.idFromName("detak"), {
+  const jam = env.JAM.get(env.JAM.idFromName("detak"), {
     locationHint: "apac",
   });
   const tidurSampai =
-    Number(await (await jam.fetch("https://lms/detak")).text()) || 0;
+    Number(await (await jam.fetch("https://jam/detak")).text()) || 0;
   if (Date.now() < tidurSampai) return;
   const ts = String(Math.floor(Date.now() / 1000));
   let jeda = 60;
@@ -854,88 +722,34 @@ async function detak(env: Env): Promise<void> {
     // The site unreachable: try again next minute.
   }
   // A few seconds early, so the next minute's tick is not skipped.
-  await jam.fetch("https://lms/detak", {
+  await jam.fetch("https://jam/detak", {
     method: "POST",
     body: String(Date.now() + jeda * 1000 - 5000),
   });
 }
 
-/** Makes one LMS call, already checked by the Worker; keeps nothing. The
- *  instance named "detak" also keeps when the minute timer may sleep until. */
-export class Lms {
+/** When the minute timer may sleep until, in its one instance "detak"
+ *  (the Lms class until 2026-10-21; renamed so the stored time stays). */
+export class Jam {
   constructor(
     private state: DurableObjectState,
     _env: Env,
   ) {}
 
   async fetch(req: Request): Promise<Response> {
-    if (new URL(req.url).pathname === "/detak") {
-      if (req.method === "POST") {
-        await this.state.storage.put(
-          "tidurSampai",
-          Number(await req.text()) || 0,
-        );
-        return teks(200, "ok");
-      }
-      return teks(
-        200,
-        String((await this.state.storage.get<number>("tidurSampai")) ?? 0),
+    if (new URL(req.url).pathname !== "/detak")
+      return teks(404, "tidak ditemukan");
+    if (req.method === "POST") {
+      await this.state.storage.put(
+        "tidurSampai",
+        Number(await req.text()) || 0,
       );
+      return teks(200, "ok");
     }
-    const url = req.headers.get("x-lms-url") ?? "";
-    const metode = req.headers.get("x-lms-metode") === "GET" ? "GET" : "POST";
-    if (!url.startsWith(`${LMS_ASAL}/`)) return teks(403, "tujuan ditolak");
-    const h = new Headers();
-    const jalan = new URL(url).pathname;
-    const unggah = jalan === LMS_UNGGAH;
-    if (metode === "POST" && !unggah)
-      h.set(
-        "content-type",
-        jalan === LMS_AJAX
-          ? "application/json"
-          : "application/x-www-form-urlencoded",
-      );
-    const range = req.headers.get("x-lms-range");
-    if (range) h.set("range", range);
-    const isi = metode === "POST" ? await req.text() : undefined;
-    // The upload goes on as the multipart form the LMS takes.
-    const badan = unggah && isi !== undefined ? formUnggah(isi) : isi;
-    const kue = req.headers.get("x-lms-kue");
-    // "-" is a web session call before the first cookie
-    if (kue && kue !== "-") h.set("cookie", kue);
-    // The LMS gives an autologin key only to its app.
-    h.set(
-      "user-agent",
-      isi?.includes("wsfunction=tool_mobile_get_autologin_key")
-        ? UA_APP
-        : UA_WEB,
+    return teks(
+      200,
+      String((await this.state.storage.get<number>("tidurSampai")) ?? 0),
     );
-    // Cloudflare still answers some calls with its challenge page, at random
-    // (2026-10-13: 2 in 8); the next try usually goes through.
-    let r: Response;
-    for (let coba = 1; ; coba++) {
-      r = await fetch(url, {
-        method: metode,
-        headers: h,
-        body: badan,
-        redirect: "manual",
-      });
-      if (!tantangan(r) || coba >= LMS_COBA) break;
-      await r.body?.cancel();
-      await new Promise((ok) => setTimeout(ok, 250 * coba));
-    }
-    const out = new Headers({ "cache-control": "no-store" });
-    for (const k of LMS_TERUS) {
-      const v = r.headers.get(k);
-      if (v) out.set(k, v);
-    }
-    if (kue !== null) {
-      // The web session's new cookies and where the page sends it next.
-      out.set("x-lms-kue-baru", JSON.stringify(r.headers.getSetCookie()));
-      const lokasi = r.headers.get("location");
-      if (lokasi) out.set("x-lms-lokasi", lokasi);
-    }
-    return new Response(r.body, { status: r.status, headers: out });
   }
 }
 
