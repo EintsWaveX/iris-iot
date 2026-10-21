@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   aturLibur,
   daftarLibur,
+  gantiKursi,
   geserDari,
+  kursiSaya,
   mingguDepan,
   orangTanggal,
   pasanganSemester,
   pasanganTanggal,
+  pemegangTpKursi,
   seninSah,
   statusSlotTanggal,
   tanggalBerikut,
@@ -148,5 +151,50 @@ describe("seninSah", () => {
     expect(seninSah("2026-10-20")).toBe(false);
     expect(seninSah("2026-02-30")).toBe(false);
     expect(seninSah("19-10-2026")).toBe(false);
+  });
+});
+
+describe("covers on a date (user, 2026-10-21: NUE for NAB, slot 4)", () => {
+  const sem = ["NAB", "MCU", "BAR", "GMW", "TRA"];
+  const tugas = [
+    { kelompokNomor: 1, kode: "NUE", jenis: "pengganti" as const, status: "diterima" as const },
+    { kelompokNomor: 4, kode: "OCU", jenis: "sukarela" as const, status: "diterima" as const },
+    { kelompokNomor: 3, kode: "XIN", jenis: "pengganti" as const, status: "diminta" as const },
+  ];
+  const kursi = pasanganTanggal(sem, 5, tugas, [{ kode: "TRA", status: "aktif" }]);
+  it("the TP goes to a seated Substitute or Volunteer", () => {
+    expect(pemegangTpKursi(kursi[0])).toBe("NUE");
+    expect(pemegangTpKursi(kursi[3])).toBe("OCU");
+  });
+  it("an excused Regular nobody covers keeps the TP, and so does a request not yet accepted", () => {
+    expect(pemegangTpKursi(kursi[4])).toBe("TRA");
+    expect(pemegangTpKursi(kursi[2])).toBe("BAR");
+  });
+  it("a Regular seated as tetap on another group keeps the seats' own TP", () => {
+    const k = pasanganTanggal(
+      sem,
+      5,
+      [{ kelompokNomor: 2, kode: "NAB", jenis: "tetap", status: "diterima" }],
+      [],
+    );
+    expect(pemegangTpKursi(k[1])).toBe("MCU");
+  });
+  it("gantiKursi names the kind and whose seat it is", () => {
+    expect(gantiKursi(kursi[0])).toEqual({ jenis: "pengganti", untuk: "NAB" });
+    expect(gantiKursi(kursi[3])).toEqual({ jenis: "sukarela", untuk: "GMW" });
+    expect(gantiKursi(kursi[1])).toBeNull();
+  });
+  it("kursiSaya lists a cover's groups and a Regular's seats handed over", () => {
+    expect(kursiSaya(kursi, "nue")).toEqual([
+      { nomor: 1, ganti: { jenis: "pengganti", untuk: "NAB" }, lepas: null },
+    ]);
+    expect(kursiSaya(kursi, "NAB")).toEqual([
+      { nomor: 1, ganti: null, lepas: { kode: "NUE", izin: false } },
+    ]);
+    expect(kursiSaya(kursi, "TRA")).toEqual([
+      { nomor: 5, ganti: null, lepas: { kode: null, izin: true } },
+    ]);
+    expect(kursiSaya(kursi, "MCU")).toEqual([{ nomor: 2, ganti: null, lepas: null }]);
+    expect(kursiSaya(kursi, "")).toEqual([]);
   });
 });

@@ -330,7 +330,7 @@ const id = {
   tanpaPemegangAdmin: "Belum ada Asisten di Per Modul, jadi Admin yang menilai",
   nilaiLainPill: (k: string) => `Nilai dari ${k}`,
   nilaiLainTip:
-    "Sebagian nilai TP kelompok ini diberi Asisten lain sebelum Per Modul diubah. Asisten kelompok ini sebaiknya memeriksanya lagi.",
+    "Sebagian nilai TP kelompok ini diberi Asisten lain sebelum Per Modul diubah atau sebelum ada pengganti di kursinya. Asisten kelompok ini sebaiknya memeriksanya lagi.",
   tidakCocok: "Tidak ada yang cocok dengan saringan ini.",
   tanpaKelompokH: "Belum Masuk Kelompok",
   tanpaKelompokHint: "Berkasnya ada, tapi NIM-nya belum ada di roster slot mana pun.",
@@ -396,7 +396,7 @@ const id = {
   hanyaLihatAdmin:
     "Kelompok ini belum punya Asisten di Per Modul. Hanya Admin yang bisa menilai, kamu hanya bisa melihat.",
   nilaiLainBanner: (k: string) =>
-    `Nilai yang ditandai diberi ${k} sebelum Per Modul diubah. Periksa lagi, ubah yang perlu, lalu setujui sisanya.`,
+    `Nilai yang ditandai diberi ${k} sebelum Per Modul diubah atau sebelum ada pengganti. Periksa lagi, ubah yang perlu, lalu setujui sisanya.`,
   setujuiNilai: "Setujui Nilai Ini",
   disetujui: "Nilainya sekarang atas namamu.",
   nilaiLainSoal: (k: string) => `dari ${k}`,
@@ -771,7 +771,7 @@ const en: TpT = {
   tanpaPemegangAdmin: "No assistant in Per Module yet, so an Admin grades it",
   nilaiLainPill: (k) => `Scores from ${k}`,
   nilaiLainTip:
-    "Some of this group's TP scores were given by another assistant before Per Module changed. The group's assistant should check them again.",
+    "Some of this group's TP scores were given by another assistant before Per Module changed or someone covered the seat. The group's assistant should check them again.",
   tidakCocok: "Nobody matches this filter.",
   tanpaKelompokH: "Not in a Group Yet",
   tanpaKelompokHint: "The file is in, but the NIM isn't in any slot's roster yet.",
@@ -832,7 +832,7 @@ const en: TpT = {
   hanyaLihatAdmin:
     "This group has no assistant in Per Module yet. Only an Admin can grade it; you can only look.",
   nilaiLainBanner: (k) =>
-    `The marked scores were given by ${k} before Per Module changed. Check them again, change what needs it, then approve the rest.`,
+    `The marked scores were given by ${k} before Per Module changed or someone covered the seat. Check them again, change what needs it, then approve the rest.`,
   setujuiNilai: "Approve These Scores",
   disetujui: "The scores are under your name now.",
   nilaiLainSoal: (k) => `from ${k}`,
@@ -1179,7 +1179,7 @@ const zh: TpT = {
   tanpaPemegangAdmin: "按模块里还没有助教，由管理员评分",
   nilaiLainPill: (k) => `${k} 给的分`,
   nilaiLainTip:
-    "这一组的部分预习作业分数是在按模块更改之前由别的助教给的。这一组的助教最好再检查一遍。",
+    "这一组的部分预习作业分数是在按模块更改或有人代课之前由别的助教给的。这一组的助教最好再检查一遍。",
   tidakCocok: "没有符合筛选的人。",
   tanpaKelompokH: "还没分组",
   tanpaKelompokHint: "文件已收到，但这个 NIM 还不在任何时段的名单里。",
@@ -1238,7 +1238,7 @@ const zh: TpT = {
   hanyaLihat: (k) => `这一组由 ${k} 负责。你只能查看。`,
   hanyaLihatAdmin: "这一组在按模块里还没有助教。只有管理员可以评分，你只能查看。",
   nilaiLainBanner: (k) =>
-    `标记的分数是在按模块更改之前由 ${k} 给的。请再检查一遍，需要的改一下，其余的确认即可。`,
+    `标记的分数是在按模块更改或有人代课之前由 ${k} 给的。请再检查一遍，需要的改一下，其余的确认即可。`,
   setujuiNilai: "确认这些分数",
   disetujui: "这些分数现在记在你名下。",
   nilaiLainSoal: (k) => `${k} 给的`,

@@ -12,6 +12,7 @@ import {
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
+import { PillGanti } from "../ui/PillGanti";
 import Dropdown from "../ui/Dropdown";
 import { JejakDialog, KumpulDialog } from "../tp/KumpulDialog";
 import TabLine from "../ui/TabLine";
@@ -441,6 +442,7 @@ function GroupCard({
               <Pill>{t.tanpaKelompokH}</Pill>
             )}
             {g.klp && <Pill mono>KLP {g.klp}</Pill>}
+            {g.ganti && <PillGanti ganti={g.ganti} lang={lang} />}
             {!!g.nilaiLain?.length && (
               <Pill tone="warn" title={t.nilaiLainTip}>
                 {t.nilaiLainPill(g.nilaiLain.join(", "))}

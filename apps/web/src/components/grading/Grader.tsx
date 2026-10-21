@@ -21,6 +21,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
+import { PillGanti } from "../ui/PillGanti";
 import TabLine from "../ui/TabLine";
 import IconButton from "../ui/IconButton";
 import BackButton from "../ui/BackButton";
@@ -179,6 +180,7 @@ export default function Grader({
             <Pill>{t.tanpaKelompokH}</Pill>
           )}
           {grup.klp && <Pill mono>KLP {grup.klp}</Pill>}
+          {grup.ganti && <PillGanti ganti={grup.ganti} lang={lang} />}
         </div>
         <div className="row grader__who">
           <IconButton icon={CaretLeftIcon} label={t.praktikanSebelum} onClick={() => go(-1)} />

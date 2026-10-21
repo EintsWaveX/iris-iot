@@ -65,14 +65,19 @@ import type { AsistenRef, Penugasan, RosterGroup, SesiRunning } from "./types";
 import { useSiaran } from "../../lib/siaran";
 import { useBelumSimpan } from "../../lib/belum-simpan";
 import Lalu from "../ui/Lalu";
+import { mengajarDi, type MingguSlot } from "../../lib/penugasan-minggu";
 
 interface JadwalRow {
+  id: number;
   hari: number;
   slot: number;
   kelas: Kelas;
   status: string;
   asisten: string[];
+  pengganti?: { kode: string }[];
 }
+
+type Jadwalnya = { ok: boolean; jadwal: JadwalRow[]; minggu?: Record<string, MingguSlot> };
 
 interface Draf {
   id: number;
@@ -216,6 +221,9 @@ export default function PrepView({
       history.replaceState(null, "", location.pathname + location.search + want);
   }, [tab, standalone]);
   const [jadwal, setJadwal] = useState<JadwalRow[] | null>(null);
+  // Each slot's seats on its next date: covers and helpers count as the
+  // slot's (user, 2026-10-21).
+  const [minggu, setMinggu] = useState<Record<string, MingguSlot>>({});
   const [draf, setDraf] = useState<Draf[]>([]);
   const [sel, setSel] = useState<string | null>(pilih);
   const [dirty, setDirty] = useState(false);
@@ -243,21 +251,22 @@ export default function PrepView({
       .catch(() => {});
   useSiaran(["roster", "sesi"], loadDraf);
   useSiaran(["jadwal"], () => {
-    getJson<{ ok: boolean; jadwal: JadwalRow[] }>(
-      `/api/session/schedule?semester=${semesterDariTanggal(hariIniWib())}`,
-    )
-      .then((d) => d.ok && setJadwal(d.jadwal))
+    getJson<Jadwalnya>(`/api/session/schedule?semester=${semesterDariTanggal(hariIniWib())}`)
+      .then((d) => {
+        if (!d.ok) return;
+        setJadwal(d.jadwal);
+        setMinggu(d.minggu ?? {});
+      })
       .catch(() => {});
   });
 
   useEffect(() => {
     const today = hariIniWib();
-    getJson<{ ok: boolean; jadwal: JadwalRow[] }>(
-      `/api/session/schedule?semester=${semesterDariTanggal(today)}`,
-    )
+    getJson<Jadwalnya>(`/api/session/schedule?semester=${semesterDariTanggal(today)}`)
       .then((d) => {
         setJadwalGagal(!d.ok);
         setJadwal(d.ok ? d.jadwal : []);
+        setMinggu(d.ok ? (d.minggu ?? {}) : {});
       })
       .catch(() => {
         setJadwalGagal(true);
@@ -290,7 +299,7 @@ export default function PrepView({
     const [kh, ks] = kini.split("-").map(Number);
     const kode = (me?.kode ?? "").toUpperCase();
     const punyaku = slots
-      .filter((j) => j.asisten.some((k) => k.toUpperCase() === kode))
+      .filter((j) => mengajarDi(j, minggu[String(j.id)], kode))
       .sort((a, b) => a.hari - b.hari || a.slot - b.slot);
     const berikut =
       punyaku.find((j) => j.hari > kh || (j.hari === kh && j.slot >= ks)) ?? punyaku[0];
@@ -328,8 +337,14 @@ export default function PrepView({
     if (target.jenis === "susulan") return me?.hak?.pair === true ? null : p.rosterRoDraft;
     const row = slots.find((j) => j.hari === target.hari && j.slot === target.slot);
     const kode = (me?.kode ?? "").toUpperCase();
-    return row?.asisten.some((k) => k.toUpperCase() === kode) ? null : p.rosterRoSlot;
-  }, [target, bolehJadwal, slots, me, p]);
+    // The server's rule (api/_lib/persiapan.ts diSlot): the slot's own, its
+    // listed substitutes, and that date's covers and helpers.
+    const boleh =
+      !!row &&
+      (mengajarDi(row, minggu[String(row.id)], kode) ||
+        (row.pengganti ?? []).some((x) => x.kode.toUpperCase() === kode));
+    return boleh ? null : p.rosterRoSlot;
+  }, [target, bolehJadwal, slots, minggu, me, p]);
 
   const labelOf = (v: string | null): string => {
     if (!v) return "";

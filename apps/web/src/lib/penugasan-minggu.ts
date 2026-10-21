@@ -78,6 +78,60 @@ export function pasanganTanggal(
   return kursi;
 }
 
+/** Who grades a group's TP for the module taught that date (user,
+ *  2026-10-21): a Substitute or Volunteer seated there takes it over;
+ *  otherwise the Per Modul seat keeps it, excused or not. */
+export function pemegangTpKursi(k: KursiKelompok): string | null {
+  return k.kode && k.jenis !== "tetap" && k.kode !== k.tetap ? k.kode : k.tetap;
+}
+
+/** A cover on a seat: its kind and whose seat it is (null: an open seat). */
+export interface GantiKursi {
+  jenis: "pengganti" | "sukarela";
+  untuk: string | null;
+}
+
+export function gantiKursi(k: KursiKelompok): GantiKursi | null {
+  if (!k.kode || k.jenis === "tetap" || k.kode === k.tetap) return null;
+  return { jenis: k.jenis, untuk: k.tetap };
+}
+
+/** One of my seats on a date, as the "my slots" lists show it. */
+export interface KursiSaya {
+  nomor: number;
+  /** I cover it (Substitute or Volunteer), else null: my own seat. */
+  ganti: GantiKursi | null;
+  /** My own seat someone else holds that date (or nobody, when excused). */
+  lepas: { kode: string | null; izin: boolean } | null;
+}
+
+/** The groups `kode` holds that date, covers marked, plus their own seats
+ *  handed over or excused (so a Regular still sees them, struck through). */
+export function kursiSaya(kursi: readonly KursiKelompok[], kode: string): KursiSaya[] {
+  const k0 = kode.trim().toUpperCase();
+  if (!k0) return [];
+  const out: KursiSaya[] = [];
+  for (const k of kursi) {
+    if (k.kode === k0) out.push({ nomor: k.nomor, ganti: gantiKursi(k), lepas: null });
+    else if (k.tetap === k0)
+      out.push({ nomor: k.nomor, ganti: null, lepas: { kode: k.kode, izin: k.izin } });
+  }
+  return out;
+}
+
+/** Whether `kode` teaches the slot: on its semester list, or seated or
+ *  helping on the date `m` holds (when given). */
+export function mengajarDi(
+  j: { asisten: readonly string[] },
+  m: { kursi: readonly KursiKelompok[]; tugas: readonly TugasTanggal[] } | undefined,
+  kode: string,
+): boolean {
+  const k0 = kode.trim().toUpperCase();
+  if (!k0) return false;
+  if (j.asisten.some((a) => a.trim().toUpperCase() === k0)) return true;
+  return !!m && orangTanggal(m.kursi, m.tugas).has(k0);
+}
+
 /** Everyone who may teach the slot that date: seated, or helping. */
 export function orangTanggal(kursi: readonly KursiKelompok[], tugas: readonly TugasTanggal[]) {
   const s = new Set(kursi.map((k) => k.kode).filter((k): k is string => !!k));

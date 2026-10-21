@@ -138,6 +138,36 @@
   padding: 0 var(--space-4);
 }
 
+/* A slot I'm in only as a cover this week: the cover chips' violet edge */
+.acctpage__slots li[data-ganti="yes"] {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--violet) 60%, transparent);
+}
+
+.acctpage__ganti {
+  flex-wrap: wrap;
+  gap: 6px;
+  grid-column: 1 / -1;
+  padding-bottom: var(--space-3);
+}
+
+/* Phones: the class pill ran over the groups (its column had no room), so
+   it drops under them like the cover badges */
+@media (max-width: 519px) {
+  .acctpage__slots li {
+    grid-template-columns: 5.5rem 3.5rem minmax(0, 1fr);
+    padding-block: var(--space-2);
+    row-gap: 6px;
+  }
+
+  .acctpage__slots li > .pill {
+    grid-column: 1 / -1;
+  }
+
+  .acctpage__ganti {
+    padding-bottom: 0;
+  }
+}
+
 /* Praktikan (Phase 9, mockup p-account; Phase 11 Praktikummu). */
 .pacct {
   padding-top: var(--space-page-top);

@@ -41,6 +41,7 @@ import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parse
 import { validasiUmpanBalik, ringkas, sejakBulanLalu } from "../../src/lib/umpan-balik.js";
 import type { Kelas } from "../../src/lib/kelas.js";
 import { muatMinggu } from "./penugasan-api.js";
+import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
 import { antreSesi, nomorDariId } from "./aliran.js";
 import { and, eq, asc, desc, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { ALASAN_MIN, catatKejadian, catatPasangan, cekPasangan } from "./berjalan.js";
@@ -113,14 +114,28 @@ export async function hakKendaliSesi(
         )[0];
   if (!s || s.jenis === "tot") return "ok";
   const slotRow = await jadwalUntuk(db, s.tanggal, s.slot);
+  const hariItu = await orangSesi(db, slotRow, s.tanggal);
   return cekPasangan(db, nim, s.id, (kode) => {
     const k = kode.toUpperCase();
     return (
       !!slotRow &&
       (slotRow.asisten.some((x) => x.toUpperCase() === k) ||
-        slotRow.pengganti.some((p) => p.kode.toUpperCase() === k))
+        slotRow.pengganti.some((p) => p.kode.toUpperCase() === k) ||
+        hariItu.has(k))
     );
   });
+}
+
+/** Who covers or helps the slot on the session's date (user, 2026-10-21):
+ *  they run it like its own Asisten, even before holding a group. */
+async function orangSesi(
+  db: Db,
+  slotRow: Awaited<ReturnType<typeof jadwalUntuk>>,
+  tanggal: string,
+): Promise<Set<string>> {
+  if (!slotRow) return new Set();
+  const m = (await muatMinggu(db, [slotRow], tanggal)).get(slotRow.id);
+  return m ? orangTanggal(m.kursi, m.tugas) : new Set();
 }
 
 /**
@@ -323,13 +338,15 @@ export async function handleAssignmentPost(
   // A TOT session has no slot and is everyone's practice: any Asisten may
   // take a group in it (Mode TOT, 2026-10-05).
   const slotRow = await jadwalUntuk(db, s.tanggal, s.slot);
+  const hariItu = s.jenis === "tot" ? new Set<string>() : await orangSesi(db, slotRow, s.tanggal);
   const hak = await cekPasangan(db, session.nim, sesiId, (kode) => {
     const k = kode.toUpperCase();
     if (s.jenis === "tot") return true;
     return (
       !!slotRow &&
       (slotRow.asisten.some((x) => x.toUpperCase() === k) ||
-        slotRow.pengganti.some((p) => p.kode.toUpperCase() === k))
+        slotRow.pengganti.some((p) => p.kode.toUpperCase() === k) ||
+        hariItu.has(k))
     );
   });
   if (hak !== "ok") {
