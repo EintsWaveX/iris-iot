@@ -19,6 +19,7 @@ import {
   hariJam,
   judulJendela,
   modulStyle,
+  waktuPanjang,
   type TpSaya,
   type TpSayaModul,
 } from "./shared";
@@ -76,6 +77,12 @@ export function TpKartu({ lang, d }: { lang: Lang; d: TpSaya | null }) {
           </div>
         )}
         {j && <WinTrack j={j} lang={lang} compact />}
+        {m.berkas.length > 0 && m.dikirimPada && (
+          <p className="hint">
+            {t.diterimaPada(waktuPanjang(m.dikirimPada, lang))}
+            {m.tandaTerima ? ` · ${t.kodeTerima(m.tandaTerima.kode)}` : ""}
+          </p>
+        )}
         <div className="row">
           <a className="btn btn--inverse" href={href(lang, `/modules/${m.modul}?step=tp`)}>
             {t.bukaTp}

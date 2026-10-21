@@ -57,11 +57,9 @@ export interface TpSayaModul {
   skor: Record<string, { skor: number; catatan: string | null }> | null;
   total: number | null;
   dinilaiOleh: string | null;
-  tugasUrl: string | null;
-  /** Where the current file came from (2026-10-14), null with no file. */
-  sumber: "lms" | "iris" | null;
-  /** An upload in IRIS: its copy in the LMS (menunggu, terkirim, gagal, tanpa_lms). */
-  salinanLms: string | null;
+  /** The receipt of the current file (2026-10-21): its code (SHA-256,
+   *  first 8) and pages. */
+  tandaTerima: { kode: string; halaman: number | null } | null;
   bolehUnggah: boolean;
 }
 
@@ -75,8 +73,6 @@ export interface TpSaya {
   soal?: SoalTampil[];
   soalZh?: SoalTampil[];
   petunjuk?: Partial<Record<BahasaTp, string>>;
-  kursus: { label: string; url: string } | null;
-  sinkron: { terakhir: string | null; tersambung: boolean };
   modul: TpSayaModul[];
 }
 

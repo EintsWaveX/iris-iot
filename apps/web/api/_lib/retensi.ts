@@ -31,6 +31,8 @@ import { hariIniWib } from "../../src/lib/jadwal.js";
 import { semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { PRAKTIKAN_TOT } from "../../src/lib/tot.js";
 import { KUNCI_LMS_PRIBADI } from "./lms-menu.js";
+import { hapusAwalan } from "./tp-simpan.js";
+import { awalanSemester } from "../../src/lib/tp-r2.js";
 import {
   retensiPada,
   semesterSebelum,
@@ -96,6 +98,7 @@ export interface CatatanRetensi {
 /** Deletes everything dated before `batas` (ISO date) in one transaction */
 export async function hapusSebelum(batas: string): Promise<Record<string, number>> {
   const lampiran: string[] = [];
+  const semesterLama: string[] = [];
   const hitung = await getDb().transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(${KUNCI_LOCK})`);
     const n: Record<string, number> = {};
@@ -155,6 +158,7 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
     // cascade), the slot rosters, the Praktikan list and the kas rates.
     const kunci = await kunciSemester(tx);
     const lama = semesterSebelum(kunci, batas);
+    semesterLama.push(...lama);
     if (lama.length) {
       await bawaTarifKas(tx, lama, batas);
       await kena(
@@ -335,6 +339,15 @@ export async function hapusSebelum(batas: string): Promise<Record<string, number
     }
   }
   hitung.berkas = lampiran.length;
+  // TP files (2026-10-21) live in R2: a whole semester at once.
+  hitung.berkasTp = 0;
+  for (const s of semesterLama) {
+    try {
+      hitung.berkasTp += await hapusAwalan(awalanSemester(s));
+    } catch (e) {
+      console.warn("[WARN] retensi: berkas TP tetap ada", s, e);
+    }
+  }
   return hitung;
 }
 

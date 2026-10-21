@@ -25,6 +25,7 @@ import TabLine from "../ui/TabLine";
 import IconButton from "../ui/IconButton";
 import BackButton from "../ui/BackButton";
 import PdfViewer from "../ui/PdfViewer";
+import PerpanjangDialog from "./PerpanjangDialog";
 import Fade from "../ui/Fade";
 import { ProgressRing, StateView } from "../ui/Display";
 import { Switch } from "../ui/Controls";
@@ -324,6 +325,7 @@ function Isi({
     if (!sedang) setPtab("berkas");
   };
 
+  const [pjBuka, setPjBuka] = useState(false);
   const aksi = async (url: string, body: Record<string, unknown>, ok?: string) => {
     const r = await postJson<{ ok: boolean; kode?: string }>(url, {
       modul,
@@ -372,6 +374,30 @@ function Isi({
         </section>
       ) : !k || !k.berkas.length ? (
         <section className="panel">
+          <PerpanjangDialog
+            open={pjBuka}
+            onOpenChange={setPjBuka}
+            lang={lang}
+            modul={modul}
+            nim={d.nim}
+            nama={d.nama}
+            ada={d.perpanjang ?? null}
+            onSaved={onSaved}
+          />
+          {d.perpanjang && (
+            <div className="banner grader__pj">
+              <CalendarPlusIcon size={20} aria-hidden="true" />
+              <span className="grow">
+                {t.perpanjangAktif(waktuPanjang(d.perpanjang.sampai, lang))}
+                {d.perpanjang.alasan ? ` · ${d.perpanjang.alasan}` : ""}
+              </span>
+              {d.boleh && (
+                <button type="button" className="btn btn--sm" onClick={() => setPjBuka(true)}>
+                  {t.ubahPerpanjang}
+                </button>
+              )}
+            </div>
+          )}
           <StateView
             icon={<HourglassIcon size={28} />}
             title={t.belumBerkas}
@@ -379,13 +405,20 @@ function Isi({
             actions={
               d.boleh &&
               d.keadaan === "tutup" && (
-                <button
-                  type="button"
-                  className="btn btn--danger"
-                  onClick={() => void aksi("/api/tp/tanda", { kosong: true }, t.ditandaiKosong)}
-                >
-                  {t.tandaiKosong}
-                </button>
+                <>
+                  {!d.perpanjang && (
+                    <button type="button" className="btn" onClick={() => setPjBuka(true)}>
+                      {t.beriPerpanjang}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn--danger"
+                    onClick={() => void aksi("/api/tp/tanda", { kosong: true }, t.ditandaiKosong)}
+                  >
+                    {t.tandaiKosong}
+                  </button>
+                </>
               )
             }
           />
@@ -433,12 +466,6 @@ function Isi({
                 </>
               )}
             </div>
-          )}
-          {k.sumber === "iris" && (
-            <p className="hint grader__src">
-              <b>{t.sumber.iris}</b>
-              {k.salinanLms && t.salinanA[k.salinanLms] ? ` · ${t.salinanA[k.salinanLms]}` : ""}
-            </p>
           )}
           {k.berkas.length > 1 && (
             <div className="row grader__files" role="group" aria-label={t.pilihBerkas}>

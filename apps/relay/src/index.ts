@@ -54,6 +54,10 @@
  * blank check or a heartbeat costs one Worker request, not two or three
  * (the free plan's 100k a day).
  *
+ * TP files (2026-10-21) live in R2 behind signed tickets (./tp.ts):
+ *
+ *   PUT  /tp/unggah, GET /tp/berkas, POST /tp/srv
+ *
  * LMS calls (Phase 13) pass through too:
  *
  *   POST /lms      the IRIS API, signed: one call to the Telkom LMS
@@ -78,12 +82,15 @@ import {
   type PesanAliran,
   type TiketAliran,
 } from "../../web/src/lib/aliran.ts";
+import { tp } from "./tp.ts";
 
 export interface Env {
   RUANG: DurableObjectNamespace;
   SIARAN: DurableObjectNamespace;
   ALIRAN: DurableObjectNamespace;
   LMS: DurableObjectNamespace;
+  /** TP files (2026-10-21), ./tp.ts */
+  TP?: R2Bucket;
   KONSOL_RELAY_SECRET: string;
   /** The IRIS site the minute timer wakes (wrangler.toml [vars]); the
    *  timer only fires once deployed, never under wrangler dev. */
@@ -180,6 +187,7 @@ export default {
     if (ujung === "kirim" && req.method === "POST")
       return kirimGabung(req, env);
     if (ujung === "lms" && !kanal) return lms(req, env);
+    if (ujung === "tp" && !sub) return tp(req, env, kanal);
     if (ujung === "hitung" && env.HITUNG === "1") return bacaHitung(env, url);
     if (!kanal || !KANAL_RE.test(kanal)) return teks(404, "tidak ditemukan");
     if (!env.KONSOL_RELAY_SECRET || env.KONSOL_RELAY_SECRET.length < 32)

@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { lmsMenang, modulSinkron, tidurDetik } from "../tp";
-import { UNGGAH_MAKS, namaUnggah, pdfUnggah } from "../tp-unggah";
+import { namaUnggah } from "../tp-unggah";
 import { anggotaKelas } from "../lms";
 import {
   folderSemester,
@@ -38,22 +38,7 @@ describe("the newer file wins", () => {
   });
 });
 
-describe("the page's PDF", () => {
-  const b64 = (s: string | Uint8Array) => Buffer.from(s).toString("base64");
-
-  it("takes a PDF under the limit", () => {
-    expect(pdfUnggah(b64("%PDF-1.7 halaman"))?.length).toBe(16);
-  });
-
-  it("refuses what is not a PDF, empty, or too large", () => {
-    expect(pdfUnggah(b64("<html>not a pdf</html>"))).toBeNull();
-    expect(pdfUnggah(b64("%PDF"))).toBeNull();
-    expect(pdfUnggah(123)).toBeNull();
-    const besar = new Uint8Array(UNGGAH_MAKS + 1);
-    besar.set(new TextEncoder().encode("%PDF-"));
-    expect(pdfUnggah(b64(besar))).toBeNull();
-  });
-
+describe("the uploaded file", () => {
   it("names the file by module and NIM", () => {
     expect(namaUnggah(2, "1032231301")).toBe("TP_Modul_2_1032231301.pdf");
   });

@@ -1908,11 +1908,40 @@ export const tpUnggah = pgTable(
     lmsPada: timestamp("lms_pada", { withTimezone: true }),
     /** The feedback file's LMS address (no token), once it is there. */
     lmsUrl: text("lms_url"),
+    /** The file's R2 key (2026-10-21, src/lib/tp-r2.ts); null only for
+     *  rows still waiting to be moved there. */
+    kunci: text("kunci"),
+    mime: text("mime").notNull().default("application/pdf"),
+    halaman: integer("halaman"),
+    /** Who handed it in where: an upload in IRIS, or a file brought over
+     *  from the LMS when IRIS stopped using it. */
+    asal: text("asal", { enum: ["iris", "lms"] })
+      .notNull()
+      .default("iris"),
   },
   (t) => [
     index("tp_unggah_nim_idx").on(t.semester, t.modul, t.nim),
     index("tp_unggah_lms_idx").on(t.lmsStatus),
   ],
+);
+
+/**
+ * A Praktikan's own TP extension for one module (2026-10-21; it lived in
+ * the LMS before): their window closes at `sampai` instead.
+ */
+export const tpPerpanjang = pgTable(
+  "tp_perpanjang",
+  {
+    id: serial("id").primaryKey(),
+    semester: text("semester").notNull(),
+    modul: integer("modul").notNull(),
+    nim: text("nim").notNull(),
+    sampai: timestamp("sampai", { withTimezone: true }).notNull(),
+    alasan: text("alasan"),
+    oleh: text("oleh").notNull(),
+    pada: timestamp("pada", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("tp_perpanjang_unik").on(t.semester, t.modul, t.nim)],
 );
 
 /** One question's score for one Praktikan's TP (0 to 10 each). */

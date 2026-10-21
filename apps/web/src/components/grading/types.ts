@@ -96,6 +96,8 @@ export interface DetailPraktikan {
   >;
   /** The session TP the SeeLabs read-back copied in (2026-10-17), until graded here. */
   tpSeelabs?: number | null;
+  /** Their own extension, if any (2026-10-21). */
+  perpanjang?: { sampai: string; alasan: string | null; oleh: string | null } | null;
   boleh: boolean;
   pemegang: string | null;
   pemegangKode?: string | null;

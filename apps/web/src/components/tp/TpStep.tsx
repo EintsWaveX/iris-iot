@@ -20,7 +20,6 @@
  */
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
-  ArrowSquareOutIcon,
   CaretRightIcon,
   FilePdfIcon,
   InfoIcon,
@@ -68,9 +67,7 @@ import {
   StatusPill,
   WinTrack,
   hariJam,
-  hariJamPendek,
   judulJendela,
-  jam,
   kunciDari,
   modulStyle,
   soalDari,
@@ -154,14 +151,8 @@ function TpPraktikan({ lang, modul, nim }: { lang: Lang; modul: number; nim: str
         )}
       </div>
       <div className="stack stack--lg tpgrid__side">
-        <Milikku
-          lang={lang}
-          m={m}
-          nomor={d.nomor}
-          terakhir={d.sinkron.terakhir}
-          onLihat={() => setLihat(true)}
-        />
-        <Cara lang={lang} modul={modul} m={m} kursus={d.kursus} onUnggah={poll.refresh} />
+        <Milikku lang={lang} m={m} nomor={d.nomor} onLihat={() => setLihat(true)} />
+        <Cara lang={lang} modul={modul} m={m} onUnggah={poll.refresh} />
         <div className="panel panel--tight tphelp">
           <QuestionIcon size={20} aria-hidden="true" />
           <p className="hint">{t.bantuan}</p>
@@ -172,7 +163,9 @@ function TpPraktikan({ lang, modul, nim }: { lang: Lang; modul: number; nim: str
           open={lihat}
           onOpenChange={setLihat}
           title={t.berkasmu}
-          description={m.sumber === "iris" ? t.dariIris : t.dariLms}
+          description={
+            m.tandaTerima ? `${t.tandaTerima} · ${t.kodeTerima(m.tandaTerima.kode)}` : undefined
+          }
           storeKey="tp-berkas"
           minWidth={420}
           closeLabel={t.tutup}
@@ -336,13 +329,11 @@ function Milikku({
   lang,
   m,
   nomor,
-  terakhir,
   onLihat,
 }: {
   lang: Lang;
   m: TpSayaModul;
   nomor: number[];
-  terakhir: string | null;
   onLihat: () => void;
 }) {
   const t = TPS[lang];
@@ -355,24 +346,23 @@ function Milikku({
       <div className="stack tpfile__txt">
         <b className="tpfile__n">{berkas.nama}</b>
         <span className="hint">
-          {ukuran(berkas.ukuran, lang)}
-          {m.sumber === "iris"
-            ? m.dikirimPada && ` · ${hariJamPendek(m.dikirimPada, lang)}`
-            : m.dikirimPada &&
-              m.diambilPada &&
-              ` · ${t.dikirimDiambil(hariJamPendek(m.dikirimPada, lang), jam(m.diambilPada))}`}
+          {[
+            m.tandaTerima?.halaman ? t.jumlahHalaman(m.tandaTerima.halaman) : null,
+            ukuran(berkas.ukuran, lang),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </span>
-        {m.sumber && <span className="tpfile__src">{t.sumber[m.sumber]}</span>}
+        {m.dikirimPada && (
+          <span className="hint">{t.diterimaPada(waktuPanjang(m.dikirimPada, lang))}</span>
+        )}
+        {m.tandaTerima && <span className="tpfile__src">{t.kodeTerima(m.tandaTerima.kode)}</span>}
       </div>
       <button type="button" className="btn btn--sm" onClick={onLihat}>
         {t.lihat}
       </button>
     </div>
   );
-  const salinan =
-    m.sumber === "iris" && m.salinanLms && t.salinan[m.salinanLms] ? (
-      <p className="hint">{t.salinan[m.salinanLms]}</p>
-    ) : null;
   let body: ReactNode;
   if (st === "nilai" && m.skor) {
     const per = Object.fromEntries(Object.entries(m.skor).map(([k, v]) => [Number(k), v.skor]));
@@ -409,17 +399,14 @@ function Milikku({
         <StatusPill
           s={st}
           lang={lang}
-          extra={
-            st === "telat" && m.telatMenit
-              ? t.telatMenit(m.telatMenit)
-              : st === "panjang" && m.perpanjangan
-                ? t.panjangSampai(waktuPanjang(m.perpanjangan, lang))
-                : undefined
-          }
+          extra={st === "telat" && m.telatMenit ? t.telatMenit(m.telatMenit) : undefined}
         />
         <h3 className="tpstate__h">{st === "telat" ? t.telatH : t.masukH}</h3>
+        {/* The full date wraps here; in the pill it ran off a phone. */}
+        {st === "panjang" && m.perpanjangan && (
+          <p className="hint">{t.panjangAktif(waktuPanjang(m.perpanjangan, lang))}</p>
+        )}
         {fileRow}
-        {salinan}
         <p className="hint">{st === "telat" ? t.telatBody : t.masukBody}</p>
       </>
     );
@@ -436,9 +423,7 @@ function Milikku({
       <>
         <StatusPill s="belum" lang={lang} />
         <h3 className="tpstate__h">{m.keadaan === "belum" ? t.belumBisa : t.belumH}</h3>
-        <p className="hint">
-          {t.belumBody(m.keadaan === "belum" || !terakhir ? null : waktuPanjang(terakhir, lang))}
-        </p>
+        {m.keadaan !== "belum" && <p className="hint">{t.belumBody}</p>}
       </>
     );
   }
@@ -449,24 +434,14 @@ function Cara({
   lang,
   modul,
   m,
-  kursus,
   onUnggah,
 }: {
   lang: Lang;
   modul: number;
   m: TpSayaModul;
-  kursus: { label: string; url: string } | null;
   onUnggah: () => void;
 }) {
   const t = TPS[lang];
-  const buka = m.keadaan === "buka" || m.keadaan === null;
-  const link = m.tugasUrl ?? kursus?.url ?? null;
-  const tip =
-    m.keadaan === "belum" && m.jendela
-      ? t.lmsBelumBuka(hariJam(m.jendela.buka, lang))
-      : m.keadaan === "tutup"
-        ? t.lmsTutup
-        : undefined;
   return (
     <section className="panel">
       <h2 className="panel__title">{t.caraH}</h2>
@@ -478,35 +453,33 @@ function Cara({
         <li>
           <span>2</span>
           <div className="stack stack--sm">
-            <p>{t.cara2Iris}</p>
-            {m.bolehUnggah && (
-              <UnggahTp
-                lang={lang}
-                modul={modul}
-                adaBerkas={m.berkas.length > 0}
-                onSelesai={onUnggah}
-              />
-            )}
-            <div className="tplms">
-              {link && buka ? (
-                <a className="btn btn--ghost" href={link} target="_blank" rel="noopener noreferrer">
-                  {t.kumpulLms}
-                  <ArrowSquareOutIcon size={16} aria-hidden="true" className="btn__go" />
-                </a>
-              ) : (
-                <button type="button" className="btn btn--ghost" aria-disabled="true" title={tip}>
-                  {t.kumpulLms}
-                  <ArrowSquareOutIcon size={16} aria-hidden="true" className="btn__go" />
-                </button>
-              )}
-              {kursus && <Pill>{kursus.label}</Pill>}
-            </div>
-            {tip && <span className="hint">{tip}</span>}
+            <p>{t.cara2}</p>
+            {m.bolehUnggah ? (
+              <>
+                {m.perpanjangan && (
+                  <p className="hint">{t.panjangAktif(waktuPanjang(m.perpanjangan, lang))}</p>
+                )}
+                <UnggahTp
+                  lang={lang}
+                  modul={modul}
+                  adaBerkas={m.berkas.length > 0}
+                  onSelesai={onUnggah}
+                />
+              </>
+            ) : m.keadaan === "tutup" ? (
+              <div className="banner banner--warn">
+                <LockSimpleIcon size={20} aria-hidden="true" />
+                <div className="stack stack--sm">
+                  <b>{t.tutupH}</b>
+                  <span>{t.tutupBody}</span>
+                </div>
+              </div>
+            ) : null}
           </div>
         </li>
         <li>
           <span>3</span>
-          <p>{t.cara3Iris}</p>
+          <p>{t.cara3}</p>
         </li>
       </ol>
     </section>

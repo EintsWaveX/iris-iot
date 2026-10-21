@@ -1993,15 +1993,43 @@ button.tpcheck:focus-visible,
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   display: grid;
-  gap: 10px;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  padding: 6px 8px 6px 6px;
+  gap: 8px;
+  grid-template-columns: 24px 44px minmax(0, 1fr) auto;
+  padding: 6px 8px 6px 4px;
+  position: relative;
+  touch-action: manipulation;
+}
+.tpup__item[data-drag="yes"] {
+  box-shadow: 0 10px 28px -12px rgb(0 0 0 / 0.55);
+  z-index: 2;
+}
+.tpup__grip {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-muted);
+  cursor: grab;
+  display: grid;
+  height: 44px;
+  justify-items: center;
+  padding: 0;
+  touch-action: none;
+  width: 24px;
+}
+.tpup__grip:active {
+  cursor: grabbing;
+}
+.tpup__grip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .tpup__thumb {
   background: var(--surface-3);
   border-radius: var(--radius-sm, 6px);
   height: 56px;
   object-fit: cover;
+  transition: transform 200ms var(--ease-out-expo);
   width: 44px;
 }
 .tpup__thumb--pdf {
@@ -2037,6 +2065,75 @@ button.tpcheck:focus-visible,
 }
 .tpup__foot .btn {
   justify-self: stretch;
+}
+/* Phone: the camera beside a slim drop area. */
+.tpup__ambil {
+  display: grid;
+  gap: 8px;
+}
+.tpup__ambil[data-kamera="yes"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.tpup__kamera {
+  justify-self: stretch;
+  min-height: 48px;
+}
+/* The PDF IRIS built, before it goes. */
+.tpup__pratinjau {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  height: min(62vh, 560px);
+  min-height: 280px;
+  overflow: hidden;
+}
+.tpup__pratinjau > * {
+  height: 100%;
+}
+.tpup__lihat {
+  justify-self: stretch;
+  min-height: 48px;
+}
+.tpup__kirim {
+  display: grid;
+  gap: 8px;
+}
+.tpup__terima {
+  align-items: start;
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--ok) 40%, var(--hairline));
+  border-radius: var(--radius-md);
+  color: var(--ok);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  padding: 10px 12px;
+}
+.tpup__terima b {
+  color: var(--text);
+}
+@starting-style {
+  .tpup__terima {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.tpup__terima {
+  transition:
+    opacity 220ms var(--ease-out-expo),
+    transform 220ms var(--ease-out-expo);
+}
+/* Narrow phones: drag (or a long press) orders the pages; the arrows go. */
+@media (max-width: 420px) {
+  .tpup__act > .iconbtn:nth-child(2),
+  .tpup__act > .iconbtn:nth-child(3) {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tpup__terima,
+  .tpup__thumb {
+    transition: none;
+  }
 }
 .tpcopy {
   display: grid;

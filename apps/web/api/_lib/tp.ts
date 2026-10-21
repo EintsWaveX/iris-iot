@@ -36,6 +36,7 @@ import {
   tpKiriman,
   tpNilai,
   tpPaket,
+  tpPerpanjang,
   tpSinkronLog,
   tpUnggah,
   type BerkasTp,
@@ -320,17 +321,25 @@ export async function perpanjangTp(db: Db, set: SetTp): Promise<Map<number, Map<
     isi?: { tugas: number; nim: string; sampai: string }[];
   };
   const out = new Map<number, Map<string, string>>();
-  if (!v || v.semester !== set.semester) return out;
   const modulOf = new Map<number, number>();
   for (const k of set.kelas?.kursus ?? [])
     for (const [m, t] of Object.entries(k.tugas)) if (t) modulOf.set(t.id, Number(m));
-  for (const p of v.isi ?? []) {
+  for (const p of v?.semester === set.semester ? (v.isi ?? []) : []) {
     const m = modulOf.get(p.tugas);
     if (!m || !p.nim || Number.isNaN(Date.parse(p.sampai))) continue;
     const per = out.get(m) ?? new Map<string, string>();
     const ada = per.get(p.nim);
     if (!ada || Date.parse(p.sampai) > Date.parse(ada)) per.set(p.nim, p.sampai);
     out.set(m, per);
+  }
+  // IRIS's own (2026-10-21) decides over the LMS's record.
+  for (const p of await db
+    .select({ modul: tpPerpanjang.modul, nim: tpPerpanjang.nim, sampai: tpPerpanjang.sampai })
+    .from(tpPerpanjang)
+    .where(eq(tpPerpanjang.semester, set.semester))) {
+    const per = out.get(p.modul) ?? new Map<string, string>();
+    per.set(p.nim, p.sampai.toISOString());
+    out.set(p.modul, per);
   }
   return out;
 }

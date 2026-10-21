@@ -57,3 +57,8 @@ class_name = "Lms"
 [[migrations]]
 tag = "v4"
 new_sqlite_classes = ["Lms"]
+
+# TP files (2026-10-21): every Praktikan's TP, kept only by IRIS (src/tp.ts).
+[[r2_buckets]]
+binding = "TP"
+bucket_name = "iris-tp"

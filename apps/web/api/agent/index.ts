@@ -67,7 +67,8 @@ import { siarkan } from "../_lib/siaran.js";
 import { waitUntil } from "@vercel/functions";
 import { Readable } from "node:stream";
 import { bacaSet, sinkronBilaPerlu } from "../_lib/tp.js";
-import { ambilIsiTp, kirimTertunda } from "../_lib/tp-unggah.js";
+import { aliranR2, ambilIsiTp } from "../_lib/tp-unggah.js";
+import { lmsCadangan } from "../_lib/tp-pindah.js";
 import {
   daftarCermin,
   saringCermin,
@@ -371,8 +372,6 @@ async function handleDenyut(req: ApiRequest, res: ApiResponse) {
         // minute around the clock, with the relay's timer). The server never sees the LMS token; this
         // runs here, after the beat is answered.
         await sinkronBilaPerlu(db, "pi", 60_000);
-        // TP uploaded in IRIS whose copy to the LMS failed: tried again.
-        await kirimTertunda(db);
         // Phase 14: the robot's daily KLP pull and Input Jaga check.
         await harianBilaPerlu(db);
         // The SeeLabs read-back (2026-10-17): each connected account's read
@@ -479,7 +478,7 @@ async function handleCerminUnduh(res: ApiResponse, body: Record<string, unknown>
     res.status(404).json({ ok: false, kode: "tidak_ada" });
     return;
   }
-  const isi = await ambilIsiTp(db, await bacaSet(db), b);
+  const isi = await ambilIsiTp(db, b, lmsCadangan(await bacaSet(db)));
   if (!isi.ok) {
     res.status(isi.status).json({ ok: false, kode: isi.kode });
     return;
@@ -491,11 +490,17 @@ async function handleCerminUnduh(res: ApiResponse, body: Record<string, unknown>
     res.status(200).end(isi.isi);
     return;
   }
-  const panjang = isi.res.headers.get("content-length");
+  // R2 (2026-10-21), else the LMS until the move is done.
+  const sumber = isi.jenis === "r2" ? await aliranR2(isi.kunci) : isi.res;
+  if (!sumber?.body) {
+    res.status(502).json({ ok: false, kode: "penyimpanan_mati" });
+    return;
+  }
+  const panjang = sumber.headers.get("content-length");
   if (panjang) res.setHeader("Content-Length", panjang);
   res.statusCode = 200;
   await new Promise<void>((ok, gagal) => {
-    const src = Readable.fromWeb(isi.res.body as import("node:stream/web").ReadableStream);
+    const src = Readable.fromWeb(sumber.body as import("node:stream/web").ReadableStream);
     src.on("error", gagal);
     res.on("close", () => ok());
     src.pipe(res);
