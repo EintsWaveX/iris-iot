@@ -1,0 +1,46 @@
+name: CI games
+
+# The tournament site (apps/games): its own test suites plus a rebuild. Split
+# out of ci.yml so it runs only when it can be affected: its own folder, or
+# the shared design tokens it builds from (packages/kosmik).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/games/**"
+      - "packages/kosmik/**"
+      - ".github/workflows/games.yml"
+  pull_request:
+    paths:
+      - "apps/games/**"
+      - "packages/kosmik/**"
+      - ".github/workflows/games.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  games:
+    name: games (existing test suites + rebuild)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/games
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm install
+      - name: Pure engine tests (~5088 assertions)
+        run: node test_engine.mjs
+      - name: API handler tests (against a stubbed firebase-admin)
+        run: node test_api.mjs
+      - name: Rebuild
+        run: python build.py --standalone

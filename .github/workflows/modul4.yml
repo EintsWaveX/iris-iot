@@ -1,0 +1,59 @@
+name: CI modul4
+
+# The Module 4 LoRa scoreboard (apps/modul4): start the real server, run its
+# protocol suite against it, then rebuild. Split out of ci.yml so it runs only
+# when it can be affected: its own folder, or apps/web/package.json, which the
+# CSS pruning tool resolves its dependencies from.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/modul4/**"
+      - "apps/web/package.json"
+      - ".github/workflows/modul4.yml"
+  pull_request:
+    paths:
+      - "apps/modul4/**"
+      - "apps/web/package.json"
+      - ".github/workflows/modul4.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  modul4:
+    name: modul4 (protocol suite against a live server + rebuild)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/modul4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "websockets>=13"
+
+      - name: Start the server with a fixed token
+        run: |
+          python server.py --token UJICI --arena 300 &
+          echo $! > server.pid
+          # Give the WebSocket listener a moment to bind before the
+          # protocol suite starts connecting to it.
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8080/roster.json > /dev/null 2>&1 && break
+            sleep 0.5
+          done
+
+      - name: Protocol suite (128 assertions)
+        run: python tools/uji_protokol.py --token UJICI
+
+      - name: Stop the server
+        if: always()
+        run: kill "$(cat server.pid)" 2>/dev/null || true
+
+      - name: Rebuild
+        run: python build.py

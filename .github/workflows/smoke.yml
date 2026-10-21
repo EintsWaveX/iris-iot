@@ -28,6 +28,11 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event.deployment_status.state == 'success' &&
        github.event.deployment.environment == 'Production')
+    # On the job, not the workflow: deployment_status also fires for pending
+    # and in-progress states, which skip the job and must not cancel a live run
+    concurrency:
+      group: smoke
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

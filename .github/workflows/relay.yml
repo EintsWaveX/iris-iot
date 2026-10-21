@@ -1,0 +1,54 @@
+name: CI relay
+
+# The Konsol relay (apps/relay): typecheck, then a room's whole life on local
+# workerd (no Cloudflare login). Split out of ci.yml so it runs only when it
+# can be affected: its own folder, or the four apps/web/src/lib files it
+# imports (see apps/relay/tsconfig.json).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/relay/**"
+      - "apps/web/src/lib/konsol.ts"
+      - "apps/web/src/lib/aliran.ts"
+      - "apps/web/src/lib/tanda.ts"
+      - "apps/web/src/lib/tp-r2.ts"
+      - ".github/workflows/relay.yml"
+  pull_request:
+    paths:
+      - "apps/relay/**"
+      - "apps/web/src/lib/konsol.ts"
+      - "apps/web/src/lib/aliran.ts"
+      - "apps/web/src/lib/tanda.ts"
+      - "apps/web/src/lib/tp-r2.ts"
+      - ".github/workflows/relay.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  relay:
+    name: "relay (Konsol Pi Worker: typecheck + a room's life on local workerd)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: apps/relay/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npm run check
+      # wrangler dev needs no Cloudflare login; the secret is a throwaway.
+      - name: Room life suite
+        run: |
+          echo "KONSOL_RELAY_SECRET=$(openssl rand -hex 32)" > .dev.vars
+          npm test

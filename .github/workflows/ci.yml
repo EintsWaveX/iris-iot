@@ -1,20 +1,16 @@
 name: CI
 
-# Five jobs, each independently useful as a regression gate:
+# Two jobs run on every change here:
 #
 #   web      the Astro app (apps/web): typecheck, lint, format, unit tests,
 #            build, CSP hash check
-#   games    the tournament site (apps/games): its own test suites plus a
-#            rebuild, so a change elsewhere in this repo can never silently
-#            break it without CI noticing
-#   modul4   the Module 4 LoRa scoreboard (apps/modul4): start the real
-#            server, run its 128-assertion protocol suite against it, then
-#            rebuild -- the same job IRIS ASO ran before Stage 15 moved
-#            this directory here (git history preserved; see that stage's
-#            commit for how)
-#   relay    the Konsol Pi relay (apps/relay): typecheck, then a room's
-#            whole life on local workerd (no Cloudflare login)
 #   secrets  a repo-wide scan for anything that looks like a credential
+#
+# The other three suites live in their own workflows and run only when their
+# own folder (or what they build from) changes, to save Actions minutes:
+# games.yml (apps/games), relay.yml (apps/relay) and modul4.yml (apps/modul4,
+# the same job IRIS ASO ran before Stage 15 moved this directory here).
+# A run that a newer push to the same branch makes stale is cancelled.
 #
 # Deploying is not a job here. Vercel's own GitHub integration builds
 # apps/web (the project's Root Directory) on every push: production from
@@ -43,6 +39,10 @@ on:
   push:
     branches: [main]
   pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   web:
@@ -106,85 +106,6 @@ jobs:
       # or enforce CSP).
       - name: CSP inline-script hashes match the build
         run: node scripts/check_csp_hashes.mjs
-
-  games:
-    name: games (existing test suites + rebuild)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/games
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-      - run: npm install
-      - name: Pure engine tests (~5088 assertions)
-        run: node test_engine.mjs
-      - name: API handler tests (against a stubbed firebase-admin)
-        run: node test_api.mjs
-      - name: Rebuild
-        run: python build.py --standalone
-
-  relay:
-    name: "relay (Konsol Pi Worker: typecheck + a room's life on local workerd)"
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: apps/relay
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-          cache-dependency-path: apps/relay/package-lock.json
-      - run: npm ci
-      - name: Typecheck
-        run: npm run check
-      # wrangler dev needs no Cloudflare login; the secret is a throwaway.
-      - name: Room life suite
-        run: |
-          echo "KONSOL_RELAY_SECRET=$(openssl rand -hex 32)" > .dev.vars
-          npm test
-
-  modul4:
-    name: modul4 (protocol suite against a live server + rebuild)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/modul4
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install "websockets>=13"
-
-      - name: Start the server with a fixed token
-        run: |
-          python server.py --token UJICI --arena 300 &
-          echo $! > server.pid
-          # Give the WebSocket listener a moment to bind before the
-          # protocol suite starts connecting to it.
-          for i in $(seq 1 20); do
-            curl -sf http://127.0.0.1:8080/roster.json > /dev/null 2>&1 && break
-            sleep 0.5
-          done
-
-      - name: Protocol suite (128 assertions)
-        run: python tools/uji_protokol.py --token UJICI
-
-      - name: Stop the server
-        if: always()
-        run: kill "$(cat server.pid)" 2>/dev/null || true
-
-      - name: Rebuild
-        run: python build.py
 
   secrets:
     name: secret scan
