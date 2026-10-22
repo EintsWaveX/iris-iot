@@ -16,7 +16,7 @@
  * minute) so a failing loop can't flood it. A failed save only reaches the
  * original console.error, never this hook again.
  */
-import type { ApiHandler, ApiRequest, ApiResponse } from "./http.js";
+import { pgErrorCode, type ApiHandler, type ApiRequest, type ApiResponse } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
 import { audit } from "../../src/lib/schema.js";
 
@@ -102,6 +102,10 @@ export async function tungguGalat(): Promise<void> {
   if (tertunda.size) await Promise.allSettled([...tertunda]);
 }
 
+/** Postgres codes for a value that does not fit: numeric_value_out_of_range,
+ *  invalid_text_representation, invalid_datetime_format, datetime_field_overflow. */
+const MASUKAN_SALAH = new Set(["22003", "22P02", "22007", "22008"]);
+
 /** Errors in the last `menit` minutes, for the alert. */
 export const AMBANG_GALAT = { menit: 10, jumlah: 5 } as const;
 
@@ -118,6 +122,13 @@ export function denganGalat(
     try {
       await handler(req, res);
     } catch (err) {
+      // A number too big for its column, or text that is no number or date:
+      // the caller's input, not a fault. Answered 400 and not reported, so
+      // a stray query string cannot trip the error alert.
+      if (MASUKAN_SALAH.has(pgErrorCode(err) ?? "")) {
+        if (!res.headersSent) res.status(400).json({ ok: false, kode: "format_salah" });
+        return;
+      }
       console.error(`[api/${rute}] uncaught error:`, err);
       if (!res.headersSent) res.status(500).json({ ok: false, kode: "galat_server" });
     } finally {

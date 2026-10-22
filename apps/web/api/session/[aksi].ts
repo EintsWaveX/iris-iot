@@ -13,7 +13,8 @@
  * GET  /api/session/current                        — running session + master roster.
  * POST /api/session/end     (no body)               — end the running session.
  * POST /api/session/group   { sesiId, kelompokId, aktif } — per-session group override.
- * POST /api/session/roster  { paste }                — replace the master roster.
+ * (POST /api/session/roster was removed 2026-10-22: nothing used it, and an empty paste
+ *  wiped the live roster for any Asisten. Rosters change through rosterslot.)
  * POST /api/session/cancel  { sesiId }               — mark a session "batal", freeing its slot.
  * GET  /api/session/laporan (Stage 10)               — per-group progress, attendance and the stuck list.
  * POST /api/session/siarkan { pesan } (Stage 10)     — set or clear the running session's broadcast.
@@ -97,7 +98,6 @@ import {
   setPraktikumFinal,
   statusRiwayat,
 } from "../../src/lib/akses.js";
-import { parseRosterPaste } from "../../src/lib/roster-parser.js";
 import { hilangPersen, selisihJamMs } from "../../src/lib/telemetri-ringkas.js";
 import { nomorWakil, wakilKelompok } from "../_lib/wakil.js";
 import {
@@ -171,20 +171,7 @@ import {
   cekKendaliSesi,
   hakKendaliSesi,
 } from "../_lib/phase8.js";
-import {
-  eq,
-  and,
-  or,
-  gte,
-  like,
-  sql,
-  notInArray,
-  inArray,
-  isNull,
-  desc,
-  asc,
-  ne,
-} from "drizzle-orm";
+import { eq, and, or, gte, like, sql, inArray, isNull, desc, asc, ne } from "drizzle-orm";
 import { denganSiaran } from "../_lib/siaran.js";
 import { tandaiAktif } from "../_lib/kehadiran.js";
 import { antreSesi, handleAliranGet } from "../_lib/aliran.js";
@@ -653,86 +640,6 @@ async function handleGroup(req: ApiRequest, res: ApiResponse, session: SessionPa
     res.status(200).json({ ok: true });
   } catch (err) {
     console.error("[api/session/group] unexpected error:", err);
-    res.status(200).json({ ok: false, kode: "galat_server" });
-  }
-}
-
-async function handleRoster(req: ApiRequest, res: ApiResponse, session: SessionPayload) {
-  const body = jsonBody(req);
-  const paste = typeof body.paste === "string" ? body.paste : "";
-
-  const parsed = parseRosterPaste(paste);
-  if (parsed.errors.length > 0) {
-    res.status(200).json({
-      ok: false,
-      kode: "galat_tempel",
-      errors: parsed.errors,
-      groups: parsed.groups.length,
-      total: parsed.total,
-    });
-    return;
-  }
-
-  try {
-    const db = getDb();
-
-    let diarsipkan = 0;
-    await db.transaction(async (tx) => {
-      const keepNims = parsed.groups.flatMap((g) => g.anggota.map((m) => m.nim));
-      const keepNomor = parsed.groups.map((g) => g.nomor);
-
-      for (const g of parsed.groups) {
-        const nama = g.nama || `Kelompok ${g.nomor}`;
-        const [row] = await tx
-          .insert(kelompok)
-          .values({ nomor: g.nomor, nama, aktif: true })
-          .onConflictDoUpdate({ target: kelompok.nomor, set: { nama, aktif: true } })
-          .returning({ id: kelompok.id });
-
-        for (const m of g.anggota) {
-          await tx
-            .insert(anggota)
-            .values({ kelompokId: row.id, nim: m.nim, nama: m.nama })
-            .onConflictDoUpdate({
-              target: anggota.nim,
-              set: { kelompokId: row.id, nama: m.nama },
-            });
-        }
-      }
-
-      // Members are replaced outright. A group left out of the paste is
-      // archived rather than deleted: its answers, scores and sessions
-      // cascade from it, so deleting would erase history. Archived groups
-      // drop out of the roster, sign-in and the console, and come back
-      // (with that history) the next time their number is pasted.
-      if (keepNims.length > 0) {
-        await tx.delete(anggota).where(notInArray(anggota.nim, keepNims));
-      } else {
-        await tx.delete(anggota);
-      }
-      const archived = await tx
-        .update(kelompok)
-        .set({ aktif: false })
-        .where(
-          keepNomor.length > 0
-            ? and(eq(kelompok.aktif, true), notInArray(kelompok.nomor, keepNomor))
-            : eq(kelompok.aktif, true),
-        )
-        .returning({ id: kelompok.id });
-      diarsipkan = archived.length;
-    });
-
-    await writeAudit(session.nim, "roster_set", {
-      kelompok: parsed.groups.length,
-      anggota: parsed.total,
-      diarsipkan,
-    });
-
-    res
-      .status(200)
-      .json({ ok: true, groups: parsed.groups.length, total: parsed.total, diarsipkan });
-  } catch (err) {
-    console.error("[api/session/roster] unexpected error:", err);
     res.status(200).json({ ok: false, kode: "galat_server" });
   }
 }
@@ -1754,7 +1661,13 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   // blanket asisten-only guard below, not as an exception carved into it.
   if (aksi === "now") {
     if (!requireMethod(req, res, "GET")) return;
-    if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
+    const pembaca = requireAnyRole(req, res, ["asisten", "praktikan"]);
+    if (!pembaca) return;
+    // A Praktikan reads their own group's readings only.
+    if (pembaca.role === "praktikan" && Number(req.query.kelompok) !== pembaca.kelompokNomor) {
+      res.status(200).json({ ok: true, reading: null, readings: [] });
+      return;
+    }
     return handleNow(req, res);
   }
   // Phase 12: a ticket for the session's stream room (or the Server pages').
@@ -2030,10 +1943,6 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "group") {
     if (!requireMethod(req, res, "POST")) return;
     return handleGroup(req, res, session);
-  }
-  if (aksi === "roster") {
-    if (!requireMethod(req, res, "POST")) return;
-    return handleRoster(req, res, session);
   }
   if (aksi === "cancel") {
     if (!requireMethod(req, res, "POST")) return;

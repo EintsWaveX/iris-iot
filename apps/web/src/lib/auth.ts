@@ -296,6 +296,26 @@ async function isLockedOut(
   return (byIp?.n ?? 0) >= (jenis === "asisten" ? MAX_GAGAL_IP_ASISTEN : MAX_GAGAL_IP_PRAKTIKAN);
 }
 
+/** Distinct NIMs one address may sign in as per window. A NIM alone opens a
+ *  Praktikan's results, so one address walking through many of them is
+ *  collecting names, not a lab sharing a NAT (a class is a few dozen). */
+const MAX_NIM_PER_IP = 200;
+
+async function terlaluBanyakNim(ip: string): Promise<boolean> {
+  const since = new Date(Date.now() - LOCKOUT_WINDOW_MIN * 60_000);
+  const [r] = await getDb()
+    .select({ n: sql<number>`count(distinct ${percobaanMasuk.nim})::int` })
+    .from(percobaanMasuk)
+    .where(
+      and(
+        eq(percobaanMasuk.ip, ip),
+        eq(percobaanMasuk.jenis, "praktikan"),
+        gte(percobaanMasuk.pada, since),
+      ),
+    );
+  return (r?.n ?? 0) >= MAX_NIM_PER_IP;
+}
+
 async function recordAttempt(
   nim: string,
   ip: string,
@@ -439,6 +459,7 @@ export async function verifyPraktikanLogin(
   if (await isLockedOut(nim, ip, "praktikan")) {
     return { ok: false, kode: "terkunci" };
   }
+  if (await terlaluBanyakNim(ip)) return { ok: false, kode: "terkunci" };
 
   // Mode TOT (2026-10-05): only the dummy accounts while it is on, only
   // real Praktikan while it is off. Not a failed attempt: it says nothing

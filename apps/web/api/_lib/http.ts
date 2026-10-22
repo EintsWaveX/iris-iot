@@ -36,6 +36,10 @@ export type ApiHandler = (req: ApiRequest, res: ApiResponse) => Promise<void> | 
  * never crash the route.
  */
 export function clientIp(req: ApiRequest): string {
+  // Set by Vercel itself and never taken from the caller, unlike a
+  // x-forwarded-for a client (or a proxy that appends) can fill in.
+  const vercel = req.headers["x-vercel-forwarded-for"];
+  if (typeof vercel === "string" && vercel.length > 0) return vercel.split(",")[0].trim();
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string" && forwarded.length > 0) {
     return forwarded.split(",")[0].trim();

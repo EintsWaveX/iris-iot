@@ -59,7 +59,6 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "session:jendela": ["jadwal"],
   "session:penugasan": ["jadwal", "tim"],
   "session:tim": ["tim", "jadwal"],
-  "session:roster": ["roster"],
   "session:rosterslot": ["roster"],
   "session:praktikan": ["roster"],
   "session:susulan": ["roster", "sesi", "jadwal"],
