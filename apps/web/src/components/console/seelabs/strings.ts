@@ -40,6 +40,22 @@ export const SL = dict({
     lenderLogged: (me: string, who: string, g: string) =>
       `Dicatat: ${me} memakai akun SeeLabs ${who} untuk ${g}.`,
     lenderCleared: (g: string) => `Akun pinjaman untuk ${g} dilepas.`,
+    manualTitle: "Sudah Kamu Input Sendiri di SeeLabs?",
+    manualBody:
+      "Kalau nilai kelompok ini sudah kamu ketik langsung di SeeLabs, tandai di sini. IRIS berhenti mengingatkan dan tidak mencatat Lupa Input Nilai. Tandanya belum terverifikasi sampai IRIS melihat nilainya di SeeLabs lewat akun yang terhubung, dan Bendahara melihatnya sebagai input manual.",
+    manualPill: "Manual",
+    manualBtn: "Tandai Sudah Kuinput",
+    manualUndo: "Batalkan Tanda",
+    manualNeedsLender: "Pilih akun pinjaman dulu.",
+    manualOn: (jam: string) => `Ditandai sudah diinput sendiri pukul ${jam}, belum terverifikasi.`,
+    manualConfirmTitle: (g: string) => `Tandai ${g} sudah diinput di SeeLabs?`,
+    manualConfirmBody: (akun: string) =>
+      akun
+        ? `Nilainya kamu ketik lewat akun ${akun}. IRIS tidak akan mengirimnya lagi.`
+        : "Nilainya kamu ketik lewat akunmu sendiri. IRIS tidak akan mengirimnya lagi.",
+    manualConfirm: "Ya, Sudah Kuinput",
+    manualMarked: (g: string) => `${g} ditandai sudah diinput di SeeLabs.`,
+    manualUnmarked: (g: string) => `Tanda untuk ${g} dibatalkan.`,
     lenderSuggested: "Disarankan: yang kamu gantikan",
     panelBody:
       "Pilih akun SeeLabs untuk tiap kelompok di bawah sebelum Kirim Nilai. Kalau kamu menggantikan seseorang, akunnya disarankan lebih dulu; selain itu pilih siapa saja yang bisa meminjamkan. Unitnya tetap milikmu dan Bendahara mencatat transfernya.",
@@ -87,6 +103,10 @@ export const SL = dict({
       bukan_penilai:
         "Hanya asisten penilai kelompok ini, atau pemilik akun pinjamannya, yang bisa.",
       tidak_perlu_pinjam: "Kelompok ini memakai akun asistennya sendiri.",
+      butuh_pemberi: "Pilih akun SeeLabs pinjaman dulu, lalu tandai.",
+      tanda_manual_aktif:
+        "Kelompok ini ditandai sudah diinput sendiri. Batalkan tandanya dulu sebelum melepas akun pinjaman.",
+      sudah_tersimpan: "SeeLabs sudah memegang kelompok ini.",
       pemberi_salah:
         "Asisten itu sedang mengajar di slot ini, sudah dua sesi hari ini, sudah dipakai kelompok lain, atau tidak aktif.",
       butuh_akun: "Pilih akun SeeLabs pinjaman dulu.",
@@ -129,6 +149,22 @@ export const SL = dict({
     lenderLogged: (me: string, who: string, g: string) =>
       `Logged: ${me} uses ${who}'s SeeLabs account for ${g}.`,
     lenderCleared: (g: string) => `The borrowed account for ${g} was let go.`,
+    manualTitle: "Did You Enter It in SeeLabs Yourself?",
+    manualBody:
+      "If you already typed this group's scores straight into SeeLabs, mark it here. IRIS stops reminding you and records no Lupa Input Nilai. The mark stays unverified until IRIS sees the scores in SeeLabs through a connected account, and the Treasurer sees it as a manual input.",
+    manualPill: "Manual",
+    manualBtn: "Mark as Entered",
+    manualUndo: "Undo Mark",
+    manualNeedsLender: "Pick the borrowed account first.",
+    manualOn: (jam: string) => `Marked as entered by you at ${jam}, not yet verified.`,
+    manualConfirmTitle: (g: string) => `Mark ${g} as entered in SeeLabs?`,
+    manualConfirmBody: (akun: string) =>
+      akun
+        ? `You typed the scores through ${akun}'s account. IRIS will not send them again.`
+        : "You typed the scores through your own account. IRIS will not send them again.",
+    manualConfirm: "Yes, I Entered It",
+    manualMarked: (g: string) => `${g} marked as entered in SeeLabs.`,
+    manualUnmarked: (g: string) => `The mark for ${g} was taken back.`,
     lenderSuggested: "Suggested: the one you cover",
     panelBody:
       "Pick a SeeLabs account for each group below before Kirim Nilai. If you cover someone, their account is suggested first; otherwise pick anyone who can lend. The unit stays yours and the Treasurer records the transfer.",
@@ -170,6 +206,10 @@ export const SL = dict({
       bukan_penilai:
         "Only the group's scoring assistant, or the owner of the borrowed account, can do this.",
       tidak_perlu_pinjam: "This group uses its own assistant's account.",
+      butuh_pemberi: "Pick the borrowed SeeLabs account first, then mark it.",
+      tanda_manual_aktif:
+        "This group is marked as entered by hand. Take the mark back before letting the borrowed account go.",
+      sudah_tersimpan: "SeeLabs already holds this group.",
       pemberi_salah:
         "That assistant is teaching this slot, already has two sessions today, is lent to another group, or isn't active.",
       butuh_akun: "Pick a borrowed SeeLabs account first.",
@@ -212,6 +252,22 @@ export const SL = dict({
     lenderLogged: (me: string, who: string, g: string) =>
       `已记录：${me} 用 ${who} 的 SeeLabs 账号提交${g}。`,
     lenderCleared: (g: string) => `${g}借用的账号已取消。`,
+    manualTitle: "你已经自己录入 SeeLabs 了吗？",
+    manualBody:
+      "如果这个组的分数你已直接在 SeeLabs 里录好，请在这里标记。IRIS 就不再提醒你，也不会记录漏录成绩。在 IRIS 通过已连接的账号看到分数之前，这个标记都是未验证的，财务会把它当作手动录入。",
+    manualPill: "手动",
+    manualBtn: "标记为已录入",
+    manualUndo: "撤销标记",
+    manualNeedsLender: "请先选好借用的账号。",
+    manualOn: (jam: string) => `已于 ${jam} 标记为你自己录入，尚未验证。`,
+    manualConfirmTitle: (g: string) => `把${g}标记为已在 SeeLabs 录入？`,
+    manualConfirmBody: (akun: string) =>
+      akun
+        ? `你是用${akun}的账号录入分数的。IRIS 不会再次发送。`
+        : "你是用自己的账号录入分数的。IRIS 不会再次发送。",
+    manualConfirm: "是的，我已录入",
+    manualMarked: (g: string) => `${g}已标记为已在 SeeLabs 录入。`,
+    manualUnmarked: (g: string) => `${g}的标记已撤销。`,
     lenderSuggested: "建议：你代课的那位",
     panelBody:
       "提交成绩前，请为下面每个小组选好 SeeLabs 账号。如果你是代课，会优先建议你代课对象的账号；其他情况可选任何能出借的助教。课时费仍然归你，财务会记录转账。",
@@ -250,6 +306,9 @@ export const SL = dict({
       kelompok_tidak_ada: "这节课里没有这个组。",
       bukan_penilai: "只有给这个组打分的助教，或者借出账号的人，才能这样做。",
       tidak_perlu_pinjam: "这个组用的是自己助教的账号。",
+      butuh_pemberi: "请先选好借用的 SeeLabs 账号，再标记。",
+      tanda_manual_aktif: "这个组已标记为手动录入。放弃借用的账号之前，请先撤销标记。",
+      sudah_tersimpan: "SeeLabs 已经有这个组的分数了。",
       pemberi_salah: "那位助教在这个时段上课、今天已有两节课、已借给别的组，或者不是在职状态。",
       butuh_akun: "先选一个借来的 SeeLabs 账号。",
       sesi_tot: "这是 TOT 培训课。练习分数不会发送到 SeeLabs，也不计入报酬。",

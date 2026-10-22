@@ -125,6 +125,10 @@ const W = {
       on ? `menandai ${n} Tidak Hadir di ${s}` : `membatalkan Tidak Hadir ${n} di ${s}`,
     seelabsAkun: (g: string, a: string) =>
       a ? `memakai akun SeeLabs ${a} untuk ${g}` : `melepas akun SeeLabs pinjaman untuk ${g}`,
+    seelabsManual: (g: string, a: string, on: boolean) =>
+      on
+        ? `menandai ${g} sudah diinput sendiri di SeeLabs${a ? ` lewat akun ${a}` : ""}`
+        : `membatalkan tanda input sendiri untuk ${g}`,
     seelabsSimpan: (g: string) => `menandai nilai ${g} sudah disimpan di SeeLabs`,
     seelabsBelum: (g: string) => `menandai nilai ${g} belum disimpan di SeeLabs`,
     transfer: (j: string, rp: string, who: string, p: unknown) =>
@@ -310,6 +314,10 @@ const W = {
       on ? `marked ${n} Absent in ${s}` : `took the Absent mark off ${n} in ${s}`,
     seelabsAkun: (g: string, a: string) =>
       a ? `used ${a}'s SeeLabs account for ${g}` : `stopped borrowing a SeeLabs account for ${g}`,
+    seelabsManual: (g: string, a: string, on: boolean) =>
+      on
+        ? `marked ${g} as entered in SeeLabs by hand${a ? ` through ${a}'s account` : ""}`
+        : `took back the entered-by-hand mark for ${g}`,
     seelabsSimpan: (g: string) => `marked ${g}'s scores as saved in SeeLabs`,
     seelabsBelum: (g: string) => `marked ${g}'s scores as not saved in SeeLabs`,
     transfer: (j: string, rp: string, who: string, p: unknown) =>
@@ -489,6 +497,10 @@ const W = {
       on ? `在 ${s} 把 ${n} 标为缺席` : `在 ${s} 取消了 ${n} 的缺席标记`,
     seelabsAkun: (g: string, a: string) =>
       a ? `用 ${a} 的 SeeLabs 账号提交${g}` : `不再为${g}借用 SeeLabs 账号`,
+    seelabsManual: (g: string, a: string, on: boolean) =>
+      on
+        ? `把${g}标为已在 SeeLabs 手动录入${a ? `，用的是 ${a} 的账号` : ""}`
+        : `撤销了${g}的手动录入标记`,
     seelabsSimpan: (g: string) => `把${g}的分数标为已存到 SeeLabs`,
     seelabsBelum: (g: string) => `把${g}的分数标为还没存到 SeeLabs`,
     transfer: (j: string, rp: string, who: string, p: unknown) =>
@@ -825,6 +837,11 @@ export function kalimatAudit(row: AuditRow, b: Bantu): Kalimat {
       return k(BroadcastIcon, w.perburuan(row.aksi === "perburuan_mulai"));
     case "seelabs_akun":
       return k(HandCoinsIcon, w.seelabsAkun(b.grup(d), d.akun ? b.who(d.akun) : ""));
+    case "seelabs_manual":
+      return k(
+        HandCoinsIcon,
+        w.seelabsManual(b.grup(d), d.akun ? b.who(d.akun) : "", d.manual === true),
+      );
     case "seelabs_simpan":
       return k(ListChecksIcon, w.seelabsSimpan(b.grup(d)));
     case "seelabs_belum":

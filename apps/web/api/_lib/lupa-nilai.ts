@@ -20,12 +20,46 @@ import {
   seelabsTugas,
   sesiAnggota,
   sesiAsisten,
+  sesiKejadian,
   sesi,
 } from "../../src/lib/schema.js";
 import { NILAI_KOMPONEN } from "../../src/lib/nilai-komponen.js";
-import { langkahKelompok, type LupaSaya, type NilaiSaya } from "../../src/lib/lupa-nilai.js";
+import {
+  batasNilai,
+  langkahKelompok,
+  type LupaSaya,
+  type NilaiSaya,
+} from "../../src/lib/lupa-nilai.js";
+import { bacaKejadianAkun } from "../../src/lib/seelabs.js";
 
 type Db = ReturnType<typeof getDb>;
+
+/**
+ * Groups an Asisten marked as typed into SeeLabs by hand ("Sudah Kuinput
+ * Sendiri"), as "sesiId.nomor" with when and through which account. IRIS
+ * never saw the entry, so it stays unverified until a read-back finds it.
+ */
+export async function tandaManual(
+  db: Db,
+  sesiIds: number[],
+): Promise<Map<string, { sesiId: number; nomor: number; pada: Date | null; akun: string | null }>> {
+  const hasil = new Map<
+    string,
+    { sesiId: number; nomor: number; pada: Date | null; akun: string | null }
+  >();
+  if (sesiIds.length === 0) return hasil;
+  const rows = await db
+    .select({ sesiId: sesiKejadian.sesiId, detail: sesiKejadian.detail, pada: sesiKejadian.pada })
+    .from(sesiKejadian)
+    .where(and(inArray(sesiKejadian.sesiId, sesiIds), eq(sesiKejadian.jenis, "akun_seelabs")))
+    .orderBy(asc(sesiKejadian.pada), asc(sesiKejadian.id));
+  for (const id of sesiIds) {
+    const { manual } = bacaKejadianAkun(rows.filter((r) => r.sesiId === id));
+    for (const [nomor, m] of manual)
+      hasil.set(`${id}.${nomor}`, { sesiId: id, nomor, pada: m.pada, akun: m.akun });
+  }
+  return hasil;
+}
 
 /**
  * Groups SeeLabs already held before IRIS put them in, as "sesiId.nomor":
@@ -68,6 +102,21 @@ export async function sudahAdaDiSeelabs(db: Db, sesiIds: number[]): Promise<Set<
     if ((t.bukti as { ulang?: boolean } | null)?.ulang === true) ada.add(k);
   }
   for (const b of baca) ada.add(`${b.sesiId}.${b.nomor}`);
+  // A group marked as typed in by hand counts only when it was marked by the
+  // end of the practicum day: a mark after the deadline must not wipe a
+  // Lupa Input Nilai record, it only stamps it "menyusul" (jam-lab).
+  const tanggal = new Map(
+    (
+      await db
+        .select({ id: sesi.id, tanggal: sesi.tanggal })
+        .from(sesi)
+        .where(inArray(sesi.id, sesiIds))
+    ).map((s) => [s.id, s.tanggal]),
+  );
+  for (const [k, m] of await tandaManual(db, sesiIds)) {
+    const hari = tanggal.get(m.sesiId);
+    if (hari && m.pada && m.pada.getTime() <= batasNilai(hari).getTime()) ada.add(k);
+  }
   return ada;
 }
 
@@ -146,6 +195,11 @@ export async function muatNilaiTerbuka(db: Db, sesiIds: number[]): Promise<Nilai
   const key = (sesiId: number, nomor: number) => `${sesiId}.${nomor}`;
   const terkirim = new Set(kirim.map((k) => key(k.sesiId, k.nomor)));
   const tersimpan = new Set(simpan.map((k) => key(k.sesiId, k.nomor)));
+  // Typed into SeeLabs by the holder and marked so: nothing is left to send.
+  for (const k of (await tandaManual(db, ids)).keys()) {
+    terkirim.add(k);
+    tersimpan.add(k);
+  }
   const absenSet = new Set(absen.map((a) => `${a.sesiId}.${a.nim}`));
   // L1 is never missing: unless typed it is the system's (rubric), so only
   // the other components are counted.

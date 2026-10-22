@@ -958,6 +958,7 @@ function SeelabsChip(p: InspectorProps) {
       <span className="hint">{t.seelabsLabel}</span>
       {sg.akun ? <b className="mono">{kode(sg.akun)}</b> : <Nil lang={lang} />}
       <StatusPill t={t} status={sg.status} />
+      {sg.manual && <Pill tone="warn">{t.manualPill}</Pill>}
     </span>
   );
 }

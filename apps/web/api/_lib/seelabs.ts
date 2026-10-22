@@ -23,6 +23,7 @@ import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
+import { siarkan } from "./siaran.js";
 import { jadwalUntuk, pemilikKelompok } from "./phase8.js";
 import { muatTanggal } from "./penugasan-api.js";
 import { l1PerKelompok } from "./l1-otomatis.js";
@@ -48,6 +49,7 @@ import type { NilaiKomponen } from "../../src/lib/nilai-komponen.js";
 import {
   AKUN_MAKS_SESI_HARI,
   akunKelompok,
+  bacaKejadianAkun,
   pilahPemberi,
   saranPinjam,
   sidikPayload,
@@ -129,13 +131,7 @@ export async function pemakaianAkunHari(
     }
     for (const nim of terendah.keys()) dipakai.add(nim);
     // The latest lender per group wins; a cleared pick (null) removes it.
-    const pinjam = new Map<number, string>();
-    for (const k of kejadian.filter((e) => e.sesiId === x.id)) {
-      const d = k.detail as { nomor?: number; akun?: string | null };
-      if (typeof d.nomor !== "number") continue;
-      if (d.akun) pinjam.set(d.nomor, d.akun);
-      else pinjam.delete(d.nomor);
-    }
+    const { pinjam } = bacaKejadianAkun(kejadian.filter((e) => e.sesiId === x.id));
     for (const nim of pinjam.values()) dipakai.add(nim);
     for (const nim of dipakai) {
       const daftar = hasil.get(nim) ?? [];
@@ -218,18 +214,13 @@ export async function muatSeelabs(db: Db, sesiId: number): Promise<SesiSeelabs |
   const klpLive = new Map(grup.map((g) => [g.nomor, g.klp]));
 
   // The lender picked for each group: the latest akun_seelabs event wins.
-  const pinjam = new Map<number, string>();
+  // The same events carry the groups marked as input by hand in SeeLabs.
   const kejadian = await db
-    .select({ detail: sesiKejadian.detail })
+    .select({ detail: sesiKejadian.detail, pada: sesiKejadian.pada })
     .from(sesiKejadian)
     .where(and(eq(sesiKejadian.sesiId, sesiId), eq(sesiKejadian.jenis, "akun_seelabs")))
     .orderBy(asc(sesiKejadian.pada), asc(sesiKejadian.id));
-  for (const k of kejadian) {
-    const d = k.detail as { nomor?: number; akun?: string | null };
-    if (typeof d.nomor !== "number") continue;
-    if (d.akun) pinjam.set(d.nomor, d.akun);
-    else pinjam.delete(d.nomor);
-  }
+  const { pinjam, manual } = bacaKejadianAkun(kejadian);
   // A holder whose account already carries two earlier sessions today needs
   // a lender for every group of this one.
   const pakaiHari = await pemakaianAkunHari(db, s.tanggal, s.id);
@@ -268,17 +259,25 @@ export async function muatSeelabs(db: Db, sesiId: number): Promise<SesiSeelabs |
     const e = ekspor.get(nomor);
     const a = akun.get(nomor) ?? null;
     const penilai = pasangan.get(nomor) ?? null;
+    // A mark stands only until SeeLabs is seen holding the group (a robot
+    // save or a read-back), which then speaks for itself.
+    const tanda = !e?.disimpanPada ? (manual.get(nomor) ?? null) : null;
     return {
       nomor,
       klp: klp.sort((x, y) => Number(x) - Number(y)),
       penilai,
       akun: a,
       pinjam: !!a && a !== penilai,
+      manual: tanda ? { pada: tanda.pada?.toISOString() ?? null, akun: tanda.akun } : null,
       status: statusSeelabs({
         akun: a,
         adaNilai: baris.some((b) => Object.keys(b.skor).length > 0),
         sidikSekarang: sidik,
-        disimpan: e?.disimpanPada ? { sidik: e.payloadHash } : null,
+        disimpan: e?.disimpanPada
+          ? { sidik: e.payloadHash }
+          : tanda
+            ? { sidik } // entered by hand: what IRIS holds is not what SeeLabs has
+            : null,
       }),
       disalinPada: e?.disalinPada.toISOString() ?? null,
       disimpanPada: e?.disimpanPada?.toISOString() ?? null,
@@ -397,7 +396,7 @@ export async function handleSeelabsPost(
   const aksi = typeof body.aksi === "string" ? body.aksi : "";
   const sesiId = posInt(body.sesiId);
   const nomor = posInt(body.kelompok);
-  if (!sesiId || !nomor || aksi !== "akun") {
+  if (!sesiId || !nomor || (aksi !== "akun" && aksi !== "manual")) {
     res.status(400).json({ ok: false, kode: "format_salah" });
     return;
   }
@@ -432,8 +431,59 @@ export async function handleSeelabsPost(
   // account: a later group, or any group of a scorer at the daily cap.
   const pasangan = new Map(data.kelompok.map((x) => [x.nomor, x.penilai]));
   const butuh = akunKelompok(pasangan, new Map(), new Set(data.penuh)).get(g.nomor) === null;
+
+  if (aksi === "manual") {
+    // "Sudah Kuinput Sendiri": the scorer typed the group into SeeLabs
+    // themselves, so IRIS has nothing to send. The account it went through
+    // is recorded the same way a lender pick is (Bayar's transfers and the
+    // two-sessions count follow it); until a read-back sees the group in
+    // SeeLabs, the mark shows as unverified.
+    const tandai = body.manual === true;
+    if (tandai && g.disimpanPada) {
+      res.status(200).json({ ok: false, kode: "sudah_tersimpan" });
+      return;
+    }
+    // Marking needs the lender chosen first when the group rides one; taking
+    // the mark back leaves the lender as it was.
+    const dipakai = tandai ? (butuh ? akun : null) : g.pinjam ? g.akun : null;
+    if (tandai && butuh && !dipakai) {
+      res.status(200).json({ ok: false, kode: "butuh_pemberi" });
+      return;
+    }
+    if (
+      tandai &&
+      dipakai &&
+      dipakai !== (g.pinjam ? g.akun : null) &&
+      !(await pemberiPinjam(db, data, nomor)).pemberi.includes(dipakai)
+    ) {
+      res.status(200).json({ ok: false, kode: "pemberi_salah" });
+      return;
+    }
+    await db.insert(sesiKejadian).values({
+      sesiId,
+      jenis: "akun_seelabs",
+      detail: { nomor, akun: dipakai, penilai: g.penilai, manual: tandai },
+      aktorNim: session.nim,
+    });
+    await writeAudit(session.nim, "seelabs_manual", {
+      sesiId,
+      nomor,
+      akun: dipakai,
+      manual: tandai,
+    });
+    res.status(200).json({ ok: true });
+    await siarkan(["sesi", "bayar", "nilai", "hadir"]);
+    return;
+  }
+
   if (!g.penilai || !butuh) {
     res.status(200).json({ ok: false, kode: "tidak_perlu_pinjam" });
+    return;
+  }
+  // A group marked as input by hand keeps its lender: that is who the
+  // Treasurer's transfer goes through.
+  if (!akun && g.manual) {
+    res.status(200).json({ ok: false, kode: "tanda_manual_aktif" });
     return;
   }
   if (akun && !(await pemberiPinjam(db, data, nomor)).pemberi.includes(akun)) {

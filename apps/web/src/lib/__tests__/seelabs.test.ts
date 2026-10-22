@@ -4,6 +4,7 @@ import {
   bedaKlp,
   cocokkanKlp,
   pilahPemberi,
+  bacaKejadianAkun,
   saranPinjam,
   sidikPayload,
   statusSeelabs,
@@ -163,5 +164,41 @@ describe("saranPinjam", () => {
     expect(saranPinjam(kursi.slice(0, 1), nim).size).toBe(0);
     expect(saranPinjam(kursi.slice(2), nim).size).toBe(0);
     expect(saranPinjam(kursi.slice(1, 2), new Map()).size).toBe(0);
+  });
+});
+
+describe("bacaKejadianAkun", () => {
+  const t1 = new Date("2026-10-22T05:00:00Z");
+  const t2 = new Date("2026-10-22T06:00:00Z");
+
+  it("keeps the latest lender per group and lets a null pick clear it", () => {
+    const r = bacaKejadianAkun([
+      { detail: { nomor: 2, akun: "A" } },
+      { detail: { nomor: 2, akun: "B" } },
+      { detail: { nomor: 3, akun: "C" } },
+      { detail: { nomor: 3, akun: null } },
+    ]);
+    expect([...r.pinjam]).toEqual([[2, "B"]]);
+    expect(r.manual.size).toBe(0);
+  });
+
+  it("marks a group as input by hand, with the lender and when, and a plain pick leaves it", () => {
+    const r = bacaKejadianAkun([
+      { detail: { nomor: 2, akun: "YEN", manual: true }, pada: t1 },
+      { detail: { nomor: 2, akun: "YEN" }, pada: t2 },
+    ]);
+    expect(r.manual.get(2)).toEqual({ akun: "YEN", pada: t1 });
+    expect(r.pinjam.get(2)).toBe("YEN");
+  });
+
+  it("takes the mark back with manual false, and a mark on the own account has no lender", () => {
+    const r = bacaKejadianAkun([
+      { detail: { nomor: 1, akun: null, manual: true }, pada: t1 },
+      { detail: { nomor: 2, akun: "YEN", manual: true }, pada: t1 },
+      { detail: { nomor: 2, akun: "YEN", manual: false }, pada: t2 },
+      { detail: { nomor: "x" } },
+    ]);
+    expect(r.manual.get(1)).toEqual({ akun: null, pada: t1 });
+    expect(r.manual.has(2)).toBe(false);
   });
 });

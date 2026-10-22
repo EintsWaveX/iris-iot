@@ -194,6 +194,36 @@ export function saranPinjam(
   return hasil;
 }
 
+/** A group marked as put into SeeLabs by hand ("Sudah Kuinput Sendiri"). */
+export interface TandaManual {
+  /** The lender's account it went through; null when the scorer's own. */
+  akun: string | null;
+  pada: Date | null;
+}
+
+/**
+ * Reads a session's akun_seelabs events, oldest first: the latest lender
+ * picked for each group (a cleared pick, null, removes it) and the groups
+ * marked as input by hand in SeeLabs (the latest event with `manual` set
+ * decides; one without it, a plain lender pick, leaves the mark alone).
+ */
+export function bacaKejadianAkun(kejadian: readonly { detail: unknown; pada?: Date | null }[]): {
+  pinjam: Map<number, string>;
+  manual: Map<number, TandaManual>;
+} {
+  const pinjam = new Map<number, string>();
+  const manual = new Map<number, TandaManual>();
+  for (const k of kejadian) {
+    const d = k.detail as { nomor?: number; akun?: string | null; manual?: boolean };
+    if (typeof d.nomor !== "number") continue;
+    if (d.akun) pinjam.set(d.nomor, d.akun);
+    else pinjam.delete(d.nomor);
+    if (d.manual === true) manual.set(d.nomor, { akun: d.akun || null, pada: k.pada ?? null });
+    else if (d.manual === false) manual.delete(d.nomor);
+  }
+  return { pinjam, manual };
+}
+
 export type StatusSeelabs = "terkirim" | "berubah" | "siap" | "butuh_akun" | "kosong";
 
 /** One group in GET /api/session/seelabs. */
@@ -204,6 +234,8 @@ export interface KelompokSeelabs {
   akun: string | null;
   /** True when the account is a lender's, not the scorer's own. */
   pinjam: boolean;
+  /** Marked as input by hand in SeeLabs, not yet seen there by a read-back. */
+  manual: { pada: string | null; akun: string | null } | null;
   status: StatusSeelabs;
   disalinPada: string | null;
   disimpanPada: string | null;

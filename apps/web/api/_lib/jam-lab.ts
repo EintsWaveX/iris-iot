@@ -34,7 +34,7 @@ import { currentSesi } from "../../src/lib/sesi.js";
 import { SESI_CAP_MENIT, SLOT_MULAI } from "../../src/lib/jadwal.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { batasNilai, kurangCatat } from "../../src/lib/lupa-nilai.js";
-import { sudahAdaDiSeelabs } from "./lupa-nilai.js";
+import { sudahAdaDiSeelabs, tandaManual } from "./lupa-nilai.js";
 import { statusSlotTanggal } from "../../src/lib/penugasan-minggu.js";
 import { jamSepi, menitDariJam, SEPI_AKHIR_MENIT } from "../../src/lib/sesi-mulai.js";
 import { baseSlot, baseSusulan, dinilai, instanWib } from "../../src/lib/hadir-mengajar.js";
@@ -454,6 +454,13 @@ async function tandaiMenyusul(db: Db, berubah: Set<Topik>): Promise<void> {
   };
   const tKirim = terbaru(kirim);
   const tSimpan = terbaru(simpan);
+  // A group marked as typed into SeeLabs by hand was sent and saved when marked.
+  for (const m of (await tandaManual(db, ids)).values()) {
+    const kunci = k(m.sesiId, m.nomor);
+    const t = m.pada ? m.pada.getTime() : 0;
+    tKirim.set(kunci, Math.max(tKirim.get(kunci) ?? 0, t));
+    tSimpan.set(kunci, Math.max(tSimpan.get(kunci) ?? 0, t));
+  }
   for (const r of buka) {
     const kunci = k(r.sesiId, r.nomor);
     if (!tKirim.has(kunci) || !tSimpan.has(kunci)) continue;

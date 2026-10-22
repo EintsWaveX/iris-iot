@@ -3,6 +3,7 @@
  *  SeeLabs page an ended session opens from "Pilih Akun SeeLabs". */
 import { useState } from "react";
 import { HandCoinsIcon } from "@phosphor-icons/react";
+import Confirm from "../../ui/Confirm";
 import Dropdown from "../../ui/Dropdown";
 import { kelompokLabel } from "../../../lib/labels";
 import { useDirektori } from "../../../lib/people";
@@ -119,7 +120,108 @@ export function AkunPicker({
   );
 }
 
-/** The SeeLabs page's card: one picker per group that needs a lender. */
+/** The groups `meNim` holds that SeeLabs has not been seen holding, for the
+ *  "Sudah Kuinput Sendiri" mark (a group a robot save or read-back saved is
+ *  left alone; one already marked stays listed so the mark can be taken back). */
+export function kelompokBisaDitandai(seelabs: SeelabsData | null, meNim: string): number[] {
+  return (seelabs?.kelompok ?? [])
+    .filter((g) => g.penilai === meNim && (g.status !== "terkirim" || !!g.manual))
+    .map((g) => g.nomor);
+}
+
+const jamWib = (iso: string | null) =>
+  iso
+    ? new Intl.DateTimeFormat("id-ID", {
+        timeZone: "Asia/Jakarta",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date(iso))
+    : "";
+
+/** One group's "Sudah Kuinput Sendiri" row: mark it (after a confirm) or take the mark back. */
+function TandaManual({
+  lang,
+  seelabs,
+  nomor,
+  meNim,
+  onChanged,
+}: {
+  lang: Lang;
+  seelabs: SeelabsData;
+  nomor: number;
+  meNim: string;
+  onChanged: () => void;
+}) {
+  const t = SL[lang];
+  const dir = useDirektori();
+  const [tanya, setTanya] = useState(false);
+  const { sg, perlu } = keperluanAkun(seelabs, meNim, nomor);
+  if (!sg) return null;
+  const label = kelompokLabel(nomor, lang);
+  // The account it went through: the lender picked, else the scorer's own.
+  const akun = perlu && sg.pinjam ? sg.akun : null;
+  const tanpaPemberi = perlu && !akun;
+
+  async function kirim(manual: boolean): Promise<boolean> {
+    try {
+      const r = await kirimSeelabs({
+        aksi: "manual",
+        sesiId: seelabs.sesi.id,
+        kelompok: nomor,
+        manual,
+        akun,
+      });
+      if (!r.ok) {
+        window.Toast?.show(pesanSl(t, r.kode), "danger");
+        return false;
+      }
+      window.Toast?.show(manual ? t.manualMarked(label) : t.manualUnmarked(label), "ok");
+      onChanged();
+      return true;
+    } catch {
+      window.Toast?.show(t.codeFallback, "danger");
+      return false;
+    }
+  }
+
+  return (
+    <div className="seeline">
+      <span className="grow">
+        <b>{label}</b>
+        {sg.manual ? ` · ${t.manualOn(jamWib(sg.manual.pada))}` : ""}
+        {!sg.manual && tanpaPemberi ? ` · ${t.manualNeedsLender}` : ""}
+      </span>
+      {sg.manual ? (
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => void kirim(false)}>
+          {t.manualUndo}
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="btn btn--secondary btn--sm"
+          disabled={tanpaPemberi}
+          onClick={() => setTanya(true)}
+        >
+          {t.manualBtn}
+        </button>
+      )}
+      <Confirm
+        open={tanya}
+        onOpenChange={setTanya}
+        title={t.manualConfirmTitle(label)}
+        body={t.manualConfirmBody(akun ? dir.nama(akun) : "")}
+        confirmLabel={t.manualConfirm}
+        tone="primary"
+        lang={lang}
+        onConfirm={() => kirim(true)}
+      />
+    </div>
+  );
+}
+
+/** The SeeLabs page's cards: a picker per group that needs a lender, and the
+ *  "Sudah Kuinput Sendiri" marks for groups typed into SeeLabs by hand. */
 export default function AkunPanel({
   lang,
   seelabs,
@@ -133,25 +235,46 @@ export default function AkunPanel({
 }) {
   const t = SL[lang];
   const butuh = kelompokButuhPinjam(seelabs, meNim);
-  if (!seelabs || butuh.length === 0) return null;
+  const bisa = kelompokBisaDitandai(seelabs, meNim);
+  if (!seelabs || (butuh.length === 0 && bisa.length === 0)) return null;
   const penuh = seelabs.penuh.includes(meNim);
   return (
-    <div className="banner banner--warn dmbanner">
-      <HandCoinsIcon size={20} aria-hidden="true" />
-      <div className="stack stack--sm grow">
-        <b>{penuh ? t.capTitle : t.holdTitle(butuh.length)}</b>
-        <span>{penuh ? t.capBody : t.panelBody}</span>
-        {butuh.map((n) => (
-          <AkunPicker
-            key={n}
-            lang={lang}
-            seelabs={seelabs}
-            nomor={n}
-            meNim={meNim}
-            onChanged={onChanged}
-          />
-        ))}
-      </div>
-    </div>
+    <>
+      {butuh.length > 0 && (
+        <div className="banner banner--warn dmbanner">
+          <HandCoinsIcon size={20} aria-hidden="true" />
+          <div className="stack stack--sm grow">
+            <b>{penuh ? t.capTitle : t.holdTitle(butuh.length)}</b>
+            <span>{penuh ? t.capBody : t.panelBody}</span>
+            {butuh.map((n) => (
+              <AkunPicker
+                key={n}
+                lang={lang}
+                seelabs={seelabs}
+                nomor={n}
+                meNim={meNim}
+                onChanged={onChanged}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {bisa.length > 0 && (
+        <div className="stack stack--sm">
+          <b>{t.manualTitle}</b>
+          <span className="hint">{t.manualBody}</span>
+          {bisa.map((n) => (
+            <TandaManual
+              key={n}
+              lang={lang}
+              seelabs={seelabs}
+              nomor={n}
+              meNim={meNim}
+              onChanged={onChanged}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 }

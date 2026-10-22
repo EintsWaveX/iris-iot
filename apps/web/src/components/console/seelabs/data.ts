@@ -48,12 +48,21 @@ export function useSeelabs(sesiId: number | null) {
   };
 }
 
-export type AksiSeelabs = {
-  aksi: "akun";
-  sesiId: number;
-  kelompok: number;
-  akun: string | null;
-};
+export type AksiSeelabs =
+  | {
+      aksi: "akun";
+      sesiId: number;
+      kelompok: number;
+      akun: string | null;
+    }
+  | {
+      /** Sudah Kuinput Sendiri: the group was typed into SeeLabs by hand. */
+      aksi: "manual";
+      sesiId: number;
+      kelompok: number;
+      manual: boolean;
+      akun: string | null;
+    };
 
 export function kirimSeelabs(body: AksiSeelabs) {
   return postJson<{ ok: boolean; kode?: string }>("/api/session/seelabs", body);

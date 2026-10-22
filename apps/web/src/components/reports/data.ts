@@ -89,6 +89,10 @@ const KJ = {
       akun
         ? `${who} memakai akun SeeLabs ${akun} untuk ${g}. Transfernya tercatat di Tim, Pembayaran.`
         : `${who} melepas akun SeeLabs pinjaman untuk ${g}.`,
+    akunManual: (who: string, g: string, akun: string, on: boolean) =>
+      on
+        ? `${who} menandai ${g} sudah diinput sendiri di SeeLabs${akun ? ` lewat akun ${akun}` : ""}. Belum terverifikasi sampai IRIS melihatnya di SeeLabs.`
+        : `${who} membatalkan tanda input sendiri untuk ${g}.`,
     tangan: (g: string) => `${g} angkat tangan.`,
     kodeLain: (siapa: string, sendiri: string) =>
       `${siapa} memasukkan Kode Sesi yang benar, padahal ini bukan sesinya. IRIS menolaknya.${sendiri ? ` Sesinya sendiri: ${sendiri}.` : ""}`,
@@ -132,6 +136,10 @@ const KJ = {
       akun
         ? `${who} uses ${akun}'s SeeLabs account for ${g}. The transfer is listed on Team, Payments.`
         : `${who} stopped borrowing a SeeLabs account for ${g}.`,
+    akunManual: (who: string, g: string, akun: string, on: boolean) =>
+      on
+        ? `${who} marked ${g} as entered in SeeLabs by hand${akun ? ` through ${akun}'s account` : ""}. Unverified until IRIS sees it in SeeLabs.`
+        : `${who} took back the entered-by-hand mark for ${g}.`,
     tangan: (g: string) => `${g} raised a hand.`,
     kodeLain: (siapa: string, sendiri: string) =>
       `${siapa} typed the right session code, but this is not their session. IRIS turned them away.${sendiri ? ` Their own session: ${sendiri}.` : ""}`,
@@ -172,6 +180,10 @@ const KJ = {
       akun
         ? `${who} 用 ${akun} 的 SeeLabs 账号提交${g}。转账记在团队的付款里。`
         : `${who} 不再为${g}借用 SeeLabs 账号。`,
+    akunManual: (who: string, g: string, akun: string, on: boolean) =>
+      on
+        ? `${who} 把${g}标为已在 SeeLabs 手动录入${akun ? `，用的是 ${akun} 的账号` : ""}。在 IRIS 于 SeeLabs 看到之前未验证。`
+        : `${who} 撤销了${g}的手动录入标记。`,
     tangan: (g: string) => `${g}举手了。`,
     kodeLain: (siapa: string, sendiri: string) =>
       `${siapa}输入了正确的签到码，但这不是他们的课，IRIS 已拒绝。${sendiri ? `他们自己的课：${sendiri}。` : ""}`,
@@ -239,7 +251,10 @@ export function kalimatKejadian(
     case "akun_seelabs":
       return {
         tag: "seelabs",
-        teks: w.akun(by, g, d.akun ? who(d.akun as string) : ""),
+        teks:
+          typeof d.manual === "boolean"
+            ? w.akunManual(by, g, d.akun ? who(d.akun as string) : "", d.manual)
+            : w.akun(by, g, d.akun ? who(d.akun as string) : ""),
       };
     case "pindah":
       return {
