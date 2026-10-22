@@ -370,16 +370,16 @@ try {
   r = await kirimAliran("sesi-7", [
     { j: "jawaban", g: 3, d: { soal: "m1-a-1", benar: true } },
     { j: "tel", g: 3, d: [{ seq: 1, tx: "10:00:00:000", rx: "10:00:00:050" }] },
-    { j: "tangan", g: 2, d: { naik: true } },
+    { j: "petunjuk", g: 2, d: {} },
   ]);
   await sampai(() => pesan(asisten).length >= 3 && pesan(g2).length >= 2 && pesan(g3).length >= 2);
   await tunggu(200);
   const jenis = (s) => pesan(s).map((x) => `${x.j}${x.g}`).sort().join(",");
   cek("the API's batch is signed and answered", r.ok, String(r.status));
-  cek("an Asisten sees every group", jenis(asisten) === "jawaban3,tangan2,tel3", jenis(asisten));
+  cek("an Asisten sees every group", jenis(asisten) === "jawaban3,petunjuk2,tel3", jenis(asisten));
   cek(
-    "a Praktikan never gets another group's blank results or hands",
-    jenis(g2) === "tangan2,tel3" && jenis(g3) === "jawaban3,tel3",
+    "a Praktikan never gets another group's blank results or hints",
+    jenis(g2) === "petunjuk2,tel3" && jenis(g3) === "jawaban3,tel3",
     `${jenis(g2)} | ${jenis(g3)}`,
   );
   r = await kirimAliran("sesi-7", [{ j: "tel", g: 1, d: [] }], { tanda: "0".repeat(64) });
@@ -433,7 +433,7 @@ try {
   };
   const halaman = await buka("/siaran");
   const nAsisten = pesan(asisten).length;
-  r = await kirimGabung({ t: ["jawaban"], r: { "sesi-7": [{ j: "jawaban", g: 3, d: { soal: "m1-a-2", benar: false } }], "sesi-9": [{ j: "tangan", g: 1, d: {} }] } });
+  r = await kirimGabung({ t: ["jawaban"], r: { "sesi-7": [{ j: "jawaban", g: 3, d: { soal: "m1-a-2", benar: false } }], "sesi-9": [{ j: "petunjuk", g: 1, d: {} }] } });
   const dengar = r.ok ? await r.json() : {};
   await sampai(() => halaman.msgs.length >= 1 && pesan(asisten).length > nAsisten);
   cek(
