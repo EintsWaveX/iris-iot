@@ -156,6 +156,15 @@
 }
 
 /* The teaching load rides along beside the grid instead of ending early. */
+.jlayout__side {
+  display: grid;
+  gap: 8px;
+}
+
+.jlayout__modul {
+  width: 100%;
+}
+
 .jlayout[data-wide="yes"] > :last-child {
   position: sticky;
   top: calc(var(--nav-size) + var(--minibar-h, 0px) + 18px);

@@ -20,15 +20,21 @@
   gap: 6px;
 }
 
+.acctpage__left {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
 .acctpage__main {
   display: grid;
   gap: var(--space-5);
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* Wide screens: Ganti Kata Sandi over Jadwalku on the left, Tampilan on
-   the right spanning both, so the two columns end on the same line; the
-   card that is shorter stretches. Feedback runs full width below. */
+/* Wide screens: Ganti Kata Sandi over the SeeLabs robot card on the left,
+   Jadwalku over Tampilan on the right; the shorter column's last card
+   stretches so both end on the same line. Feedback runs full width below. */
 @media (min-width: 1024px) {
   .acctpage__main {
     align-items: stretch;
@@ -40,7 +46,8 @@
     grid-template-rows: auto 1fr auto;
   }
 
-  .acctpage__pwcard {
+  .acctpage__left {
+    align-content: start;
     grid-area: pw;
   }
 

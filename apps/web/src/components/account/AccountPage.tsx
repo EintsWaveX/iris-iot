@@ -330,17 +330,19 @@ export default function AccountPage({ lang }: { lang: Lang }) {
         <HadirRingkas lang={lang} data={hadirKu} />
       </section>
       <HakSaya lang={lang} me={me} />
-      <SeelabsRobotCard lang={lang} nim={me.nim} />
       <SeelabsAccount lang={lang} nim={me.nim} />
 
-      {/* Wide screens: Ganti Kata Sandi above Jadwalku on the left, Tampilan
+      {/* Wide screens: Ganti Kata Sandi and the SeeLabs robot card stacked on the left, Tampilan
           beside both with the same bottom edge, then Feedback full width. */}
       <div className="acctpage__main">
-        <section className="panel acctpage__pwcard" id="sandi">
-          <h2 className="panel__title">{t.pwH}</h2>
-          <p className="hint">{t.pwSub}</p>
-          <PasswordForm t={t} lang={lang} first={Boolean(me.perluAturSandi)} />
-        </section>
+        <div className="acctpage__left">
+          <section className="panel acctpage__pwcard" id="sandi">
+            <h2 className="panel__title">{t.pwH}</h2>
+            <p className="hint">{t.pwSub}</p>
+            <PasswordForm t={t} lang={lang} first={Boolean(me.perluAturSandi)} />
+          </section>
+          <SeelabsRobotCard lang={lang} nim={me.nim} />
+        </div>
         <section className="panel acctpage__display">
           <h2 className="panel__title">{t.display}</h2>
           <p className="hint">{t.displaySub}</p>

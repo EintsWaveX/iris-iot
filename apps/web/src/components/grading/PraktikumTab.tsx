@@ -10,7 +10,7 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { CaretRightIcon, ListChecksIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
-import Drawer from "../ui/Drawer";
+import Dialog from "../ui/Dialog";
 import { CountUp, StateView } from "../ui/Display";
 import { Arc, Cells } from "../shared/Instruments";
 import "../shared/instruments.css";
@@ -323,7 +323,7 @@ function TabelDrawer({
     [assign.data],
   );
   return (
-    <Drawer
+    <Dialog
       open
       onOpenChange={(o) => {
         if (!o) {
@@ -333,12 +333,10 @@ function TabelDrawer({
       }}
       title={t.nilaiModul(modulLabel(s.modul, lang))}
       description={`${tanggalPanjang(s.tanggal, lang)}${s.slot ? ` · Slot ${s.slot}` : ""}`}
-      storeKey="tp-tabel"
-      minWidth={520}
-      closeLabel={t.tutup}
-      resizeLabel={t.tutup}
+      size="wide"
+      lang={lang}
     >
-      <div className="stack">
+      <div className="stack tpdlg">
         <p className="hint">{t.tabelSama}</p>
         {me && (
           <NilaiTable
@@ -358,6 +356,6 @@ function TabelDrawer({
           <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
         </a>
       </div>
-    </Drawer>
+    </Dialog>
   );
 }

@@ -71,7 +71,6 @@ export default function Grader({
   const t = TPS[lang];
   const [i, setI] = useState(Math.min(awal, Math.max(0, grup.anggota.length - 1)));
   const m = grup.anggota[i];
-  const lebar = useMinWidth(1280);
   const sedang = useMinWidth(820);
   const [ptab, setPtab] = useState<"berkas" | "soal">("berkas");
   // The final set and its keys, once for the whole group.
@@ -153,14 +152,6 @@ export default function Grader({
         ))}
       </div>
       <IconButton icon={CaretRightIcon} label={t.praktikanBerikut} onClick={() => go(1)} />
-      <span className="hint mono grader__count">
-        {i + 1} / {grup.anggota.length}
-      </span>
-      {lebar && (
-        <span className="hint grader__keys">
-          <kbd className="kbd">J</kbd> <kbd className="kbd">K</kbd> {t.pindahPraktikan}
-        </span>
-      )}
     </div>
   );
 

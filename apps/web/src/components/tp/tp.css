@@ -137,10 +137,12 @@
   color: transparent;
 }
 /* Moving, every group runs from the same start, a step behind the last;
-   still (tier 0, reduced motion), each keeps its own slice instead. */
+   still (tier 0, reduced motion), each keeps its own slice instead. The sweep
+   repeats every 4.5s (two passes of the gradient in 9s), so four groups sit a
+   quarter of that apart: at 1.5s the seconds landed exactly on the days. */
 :root:not([data-motion-tier="0"]) .cdown--pelangi .cdown__d b {
   animation: kit-sweep 9s linear infinite;
-  animation-delay: calc(var(--i, 0) * -1.5s);
+  animation-delay: calc(var(--i, 0) * -1.125s);
   background-position: 0 0;
 }
 :root .cdown--pelangi[data-mepet] .cdown__d b {
@@ -1028,6 +1030,8 @@
   --grader-top: 84px;
   display: grid;
   gap: 18px;
+  /* No page header above it, so it brings the page's own top space. */
+  margin-top: var(--space-page-top);
 }
 .grader__top {
   align-items: center;
@@ -1043,29 +1047,13 @@
 .grader__title {
   gap: 8px;
 }
-/* Who is being graded: [<] the group's Praktikan [>], the count and the
-   keys, on one row above the work. */
+/* Who is being graded: [<] the group's Praktikan [>] on one row above the
+   work; the cards share the whole row, the arrows sit at its ends. */
 .grader__bar {
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
-}
-.grader__count {
-  min-width: 4.5ch;
-  text-align: center;
-  white-space: nowrap;
-}
-.grader__keys {
-  align-items: center;
-  display: inline-flex;
-  gap: 4px;
-  white-space: nowrap;
-}
-@media (max-width: 1279px) {
-  .grader__keys {
-    display: none;
-  }
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 .grader__grid {
   align-items: start;
@@ -1093,7 +1081,6 @@
   font: inherit;
   gap: 10px;
   grid-template-columns: 36px minmax(0, 1fr);
-  max-width: 280px;
   padding: 8px 10px;
   text-align: left;
 }
@@ -1119,14 +1106,25 @@
 .grader__view .pdfv {
   height: min(78vh, 900px);
 }
+/* Wide: the viewer column and the scoring card are the same height, the
+   screen under the sticky top, and the PDF takes whatever the notices and
+   file tabs leave, so the two cards end on one line. */
 @media (min-width: 820px) {
   .grader__view {
-    align-content: start;
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--grader-top) - 16px);
+    min-height: 520px;
     position: sticky;
     top: var(--grader-top);
   }
+  .grader__view > * {
+    flex: none;
+  }
   .grader__view .pdfv {
-    height: clamp(420px, calc(100dvh - var(--grader-top) - 190px), 900px);
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
   }
 }
 .grader__files {
@@ -1141,7 +1139,8 @@
 }
 @media (min-width: 820px) {
   .grader__soal {
-    max-height: calc(100dvh - var(--grader-top) - 16px);
+    height: calc(100dvh - var(--grader-top) - 16px);
+    min-height: 520px;
     position: sticky;
     top: var(--grader-top);
   }
@@ -1417,22 +1416,28 @@
   white-space: nowrap;
 }
 .tpsess__g {
+  align-content: center;
+  /* Cells keep a chip's width however few there are: one group no longer
+     stretches into a long empty bar. A hairline divides them from the info. */
+  border-left: 1px solid var(--hairline);
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 190px));
+  justify-content: start;
   min-width: 0;
+  padding-left: 24px;
 }
 .tpsess__gi {
   --st: var(--warn);
+  align-items: center;
   background: var(--surface-2);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
-  border-top: 3px solid var(--st);
   display: grid;
   gap: 6px;
   justify-items: start;
   min-width: 0;
-  padding: 8px 10px;
+  padding: 10px 12px;
 }
 .tpsess__gi[data-st="sent"] {
   --st: var(--ok);
@@ -1440,10 +1445,24 @@
 .tpsess__gi[data-st="ready"] {
   --st: var(--accent);
 }
+/* The state as a dot ahead of its words, instead of a coloured top edge that
+   fought the module's edge on the left. */
 .tpsess__gi .hint {
+  align-items: center;
+  display: inline-flex;
   font-size: var(--fs-small);
+  gap: 6px;
+}
+.tpsess__gi .hint::before {
+  background: var(--st);
+  border-radius: 50%;
+  content: "";
+  flex: none;
+  height: 7px;
+  width: 7px;
 }
 .tpsess > .btn {
+  align-self: center;
   justify-self: end;
   white-space: nowrap;
 }
@@ -1452,8 +1471,14 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
   .tpsess__g {
+    border-left: 0;
     grid-column: 1 / -1;
     grid-row: 2;
+    padding-left: 0;
+  }
+  .tpsess > .btn {
+    grid-column: 2;
+    grid-row: 1;
   }
 }
 @media (max-width: 519px) {
@@ -1465,6 +1490,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .tpsess > .btn {
+    grid-column: auto;
+    grid-row: auto;
     justify-self: stretch;
     width: 100%;
   }
@@ -2682,4 +2709,21 @@
 }
 .tpkabar__isi {
   white-space: pre-line;
+}
+
+/* Buka Tabel Nilai: the table in a nearly full-screen dialog. The table's own
+   card goes flat (the dialog is the card) and its scroller takes the height
+   the dialog's head, hint and link leave, so there is one scroll, not two. */
+.tpdlg .ntable {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.tpdlg .ntable__scroll {
+  max-height: max(260px, calc(100dvh - 340px));
+}
+@media (max-width: 519px) {
+  .tpdlg .ntable__scroll {
+    max-height: max(240px, calc(100dvh - 380px));
+  }
 }

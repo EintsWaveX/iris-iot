@@ -749,8 +749,8 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             <Switch on={highlight} onChange={setHighlight} label={t.mine} />
             <span>{t.mine}</span>
           </label>
-          {bolehModul && (
-            <button type="button" className="btn" onClick={() => setView("modul")}>
+          {bolehModul && !wide && (
+            <button type="button" className="btn btn--inverse" onClick={() => setView("modul")}>
               {t.pm.open}
             </button>
           )}
@@ -918,7 +918,22 @@ export default function SchedulePage({ lang }: { lang: Lang }) {
             </div>
           )}
         </div>
-        {data && <LoadPanel t={t} lang={lang} rows={rows} meKode={meKode} nama={namaKode} />}
+        {data && (
+          <div className="jlayout__side">
+            {/* Wide: the button leaves the toolbar and takes the first row beside the
+                grid's slot headings, which pushes the load card down. */}
+            {bolehModul && wide && (
+              <button
+                type="button"
+                className="btn btn--inverse jlayout__modul"
+                onClick={() => setView("modul")}
+              >
+                {t.pm.open}
+              </button>
+            )}
+            <LoadPanel t={t} lang={lang} rows={rows} meKode={meKode} nama={namaKode} />
+          </div>
+        )}
       </div>
 
       <Drawer
