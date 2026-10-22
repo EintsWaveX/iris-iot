@@ -13,6 +13,9 @@ import {
   sesiAsisten,
 } from "../../src/lib/schema";
 
+/** What the group's SeeLabs account check answers (null: connected). */
+let akunMasalah: string | null = null;
+
 /** Rows each read of a table answers, in order (the last one repeats). */
 const baca = new Map<unknown, unknown[][]>();
 const ditulis: { tabel: unknown; values: unknown }[] = [];
@@ -57,6 +60,7 @@ vi.mock("../_lib/l1-otomatis", () => ({ l1PerKelompok: async () => new Map([[3, 
 vi.mock("../_lib/seelabs-robot", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   antreNilai: async () => ({ antre: true }),
+  akunBelumSiap: async () => akunMasalah,
 }));
 vi.mock("../../src/lib/auth", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
@@ -89,6 +93,7 @@ const skorDari = (nims: string[]) =>
   nims.flatMap((nim) => TANPA_L1.map((komponen) => ({ nim, komponen })));
 
 beforeEach(() => {
+  akunMasalah = null;
   baca.clear();
   ditulis.length = 0;
   baca.set(sesi, [[{ id: 9, modul: 1, status: "selesai" }]]);
@@ -122,5 +127,21 @@ describe("Kirim Nilai after the next slot's start", () => {
       kode: "belum_lengkap",
       kurang: 14,
     });
+  });
+
+  it("refuses a group whose SeeLabs account isn't connected, writing nothing", async () => {
+    baca.set(sesiAnggota, [
+      [
+        { nim: "A1", nomor: 3 },
+        { nim: "A2", nomor: 3 },
+      ],
+    ]);
+    akunMasalah = "akun_belum_terhubung";
+    expect(await kirim({ sesiId: 9, kelompokId: 33, kirim: true })).toMatchObject({
+      ok: false,
+      kode: "akun_seelabs",
+      alasan: "akun_belum_terhubung",
+    });
+    expect(ditulis).toEqual([]);
   });
 });

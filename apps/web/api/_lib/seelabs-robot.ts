@@ -51,6 +51,7 @@ import {
   pengaturan,
   penugasanSlot,
   seelabsAkses,
+  seelabsBaca,
   seelabsEkspor,
   seelabsTugas,
   server,
@@ -172,6 +173,27 @@ export async function aksesDari(db: Db, nim: string) {
   return r ?? null;
 }
 
+/**
+ * The account a group's save goes through. A group SeeLabs already holds
+ * (the read-back found it, whatever the status but "hilang") belongs to the
+ * account that read it: only that account's Lihat Nilai has the entry, so a
+ * save through another one would put the group in as a new, late input
+ * instead of editing it. Otherwise the group's own account.
+ */
+export async function akunKirim(
+  db: Db,
+  sesiId: number,
+  nomor: number,
+  akunKelompok: string | null,
+) {
+  const [r] = await db
+    .select({ akun: seelabsBaca.akunNim, status: seelabsBaca.status })
+    .from(seelabsBaca)
+    .where(and(eq(seelabsBaca.sesiId, sesiId), eq(seelabsBaca.kelompokNomor, nomor)))
+    .limit(1);
+  return r && r.status !== "hilang" ? r.akun : akunKelompok;
+}
+
 export type HasilAntreNilai =
   | { antre: true; tugas: number[] }
   | {
@@ -185,6 +207,25 @@ export type HasilAntreNilai =
         | "sudah_tersimpan"
         | "tidak_ada";
     };
+
+/**
+ * Whether a group may be sent at all: its SeeLabs account (the holder's, or
+ * the lender picked) must be connected, whatever the robot's switch says.
+ * Null when it may; a TOT session never goes to SeeLabs, so it always may.
+ */
+export async function akunBelumSiap(
+  db: Db,
+  sesiId: number,
+  nomor: number,
+): Promise<"tanpa_akun" | "akun_belum_terhubung" | null> {
+  if (await sesiTot(db, sesiId)) return null;
+  const data = await muatSeelabs(db, sesiId);
+  const g = data?.kelompok.find((x) => x.nomor === nomor);
+  const akun = await akunKirim(db, sesiId, nomor, g?.akun ?? null);
+  if (!akun) return "tanpa_akun";
+  const akses = await aksesDari(db, akun);
+  return akses && akses.status === "aktif" ? null : "akun_belum_terhubung";
+}
 
 /**
  * After Kirim Nilai (tundaDetik 0) or a score edit after it (JEDA_SUNTING_DETIK):
@@ -206,8 +247,9 @@ export async function antreNilai(
   const data = await muatSeelabs(db, sesiId);
   const g = data?.kelompok.find((x) => x.nomor === nomor);
   if (!data || !g) return { antre: false, alasan: "tidak_ada" };
-  if (!g.akun) return { antre: false, alasan: "tanpa_akun" };
-  const akses = await aksesDari(db, g.akun);
+  const akun = await akunKirim(db, sesiId, nomor, g.akun);
+  if (!akun) return { antre: false, alasan: "tanpa_akun" };
+  const akses = await aksesDari(db, akun);
   if (!akses || akses.status !== "aktif") return { antre: false, alasan: "akun_belum_terhubung" };
   if (g.status === "terkirim" && !paksa) return { antre: false, alasan: "sudah_tersimpan" };
 
@@ -225,7 +267,7 @@ export async function antreNilai(
     tugas.push(
       await antre(db, {
         jenis: "nilai",
-        akunNim: g.akun,
+        akunNim: akun,
         oleh,
         sesiId,
         kelompokNomor: nomor,
@@ -249,7 +291,7 @@ export async function antreNilai(
 async function akunMasihSah(db: Db, t: typeof seelabsTugas.$inferSelect): Promise<boolean> {
   if (t.jenis !== "nilai" || !t.sesiId || !t.kelompokNomor) return true;
   const g = (await muatSeelabs(db, t.sesiId))?.kelompok.find((x) => x.nomor === t.kelompokNomor);
-  return !!g && g.akun === t.akunNim;
+  return !!g && (await akunKirim(db, t.sesiId, t.kelompokNomor, g.akun)) === t.akunNim;
 }
 
 /** Ends a nilai job whose group changed account and queues the group's

@@ -5,7 +5,7 @@
  * /api/session/hadirku) and the lab clock read it; the rules are pure in
  * src/lib/lupa-nilai.ts.
  */
-import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { muatSeelabs } from "./seelabs.js";
 import type { getDb } from "../../src/lib/db.js";
 import {
@@ -15,6 +15,7 @@ import {
   nilai,
   nilaiAbsen,
   nilaiKirim,
+  seelabsBaca,
   seelabsEkspor,
   seelabsTugas,
   sesiAnggota,
@@ -25,6 +26,50 @@ import { NILAI_KOMPONEN } from "../../src/lib/nilai-komponen.js";
 import { langkahKelompok, type LupaSaya, type NilaiSaya } from "../../src/lib/lupa-nilai.js";
 
 type Db = ReturnType<typeof getDb>;
+
+/**
+ * Groups SeeLabs already held before IRIS put them in, as "sesiId.nomor":
+ * the group's first finished robot save was an edit through Input Ulang
+ * (the entry was in that account's Lihat Nilai), or the read-back found it
+ * only in SeeLabs. SeeLabs limits only a first input to the practicum day;
+ * an entry that is already there is edited at any time, so IRIS's later
+ * send of such a group is an edit, never a late input (user, 2026-10-22).
+ */
+export async function sudahAdaDiSeelabs(db: Db, sesiIds: number[]): Promise<Set<string>> {
+  const ada = new Set<string>();
+  if (sesiIds.length === 0) return ada;
+  const [tugas, baca] = await Promise.all([
+    db
+      .select({
+        sesiId: seelabsTugas.sesiId,
+        nomor: seelabsTugas.kelompokNomor,
+        bukti: seelabsTugas.bukti,
+      })
+      .from(seelabsTugas)
+      .where(
+        and(
+          inArray(seelabsTugas.sesiId, sesiIds),
+          eq(seelabsTugas.jenis, "nilai"),
+          eq(seelabsTugas.status, "selesai"),
+        ),
+      )
+      .orderBy(asc(seelabsTugas.id)),
+    db
+      .select({ sesiId: seelabsBaca.sesiId, nomor: seelabsBaca.kelompokNomor })
+      .from(seelabsBaca)
+      .where(and(inArray(seelabsBaca.sesiId, sesiIds), eq(seelabsBaca.status, "hanya_seelabs"))),
+  ]);
+  const lihat = new Set<string>();
+  for (const t of tugas) {
+    if (t.sesiId === null || t.nomor === null) continue;
+    const k = `${t.sesiId}.${t.nomor}`;
+    if (lihat.has(k)) continue; // only the group's first save tells
+    lihat.add(k);
+    if ((t.bukti as { ulang?: boolean } | null)?.ulang === true) ada.add(k);
+  }
+  for (const b of baca) ada.add(`${b.sesiId}.${b.nomor}`);
+  return ada;
+}
 
 /**
  * Every group of the given ended sessions that is not done, with its

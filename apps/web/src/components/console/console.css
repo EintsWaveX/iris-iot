@@ -3648,3 +3648,47 @@ button.lib__name {
     transition: none;
   }
 }
+
+/* Grading's own button: the kit's filled primary, in yellow while something
+   in the session is unfilled or unsent and in green once all of it went out.
+   Like the blue one, the colour is solid and its sweep runs on hover and
+   focus. */
+.btn--nilai {
+  --nl-a: #f5b544;
+  --nl-sweep: linear-gradient(100deg, #f5b544, #ffd98a, #f59e0b, #ffe3a3, #f5b544);
+  background: var(--nl-a);
+  border-color: var(--nl-a);
+  color: #1c1300;
+}
+.btn--nilai[data-st="sent"] {
+  --nl-a: #34d399;
+  --nl-sweep: linear-gradient(100deg, #34d399, #86efac, #5eead4, #a7f3d0, #34d399);
+  color: #03170f;
+}
+.btn--nilai::after {
+  display: none;
+}
+.btn--nilai::before {
+  animation: kit-sweep 4s linear infinite;
+  background: var(--nl-sweep);
+  background-size: 300% 100%;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity var(--dur-mid) var(--ease-reveal);
+  z-index: -1;
+}
+.btn--nilai:focus-visible::before {
+  opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn--nilai:hover::before {
+    opacity: 1;
+  }
+  .btn--nilai:hover {
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--nl-a) 35%, transparent);
+  }
+}

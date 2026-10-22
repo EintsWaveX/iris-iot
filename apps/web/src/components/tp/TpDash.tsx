@@ -148,7 +148,12 @@ export function TpBaris({ lang, d }: { lang: Lang; d: TpSaya | null }) {
         </span>
         <b className="tpbaris__h">{judul}</b>
         {j && m.keadaan !== "tutup" && (
-          <Countdown to={m.keadaan === "buka" ? j.tutup : j.buka} lang={lang} />
+          <Countdown
+            to={m.keadaan === "buka" ? j.tutup : j.buka}
+            lang={lang}
+            pelangi
+            keTutup={m.keadaan === "buka"}
+          />
         )}
       </div>
       <ul className="tpbaris__l">

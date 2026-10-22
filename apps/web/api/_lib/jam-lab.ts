@@ -34,6 +34,7 @@ import { currentSesi } from "../../src/lib/sesi.js";
 import { SESI_CAP_MENIT, SLOT_MULAI } from "../../src/lib/jadwal.js";
 import { hariDariTanggal, semesterDariTanggal } from "../../src/lib/jadwal-parser.js";
 import { batasNilai, kurangCatat } from "../../src/lib/lupa-nilai.js";
+import { sudahAdaDiSeelabs } from "./lupa-nilai.js";
 import { statusSlotTanggal } from "../../src/lib/penugasan-minggu.js";
 import { jamSepi, menitDariJam, SEPI_AKHIR_MENIT } from "../../src/lib/sesi-mulai.js";
 import { baseSlot, baseSusulan, dinilai, instanWib } from "../../src/lib/hadir-mengajar.js";
@@ -306,9 +307,30 @@ export async function catatLupaNilai(db: Db, now: Date): Promise<number> {
   );
   const berubah = new Set<Topik>();
   const baru = layak.length ? await catatBaru(db, layak, now, berubah) : 0;
+  await hapusYangSudahAda(db, berubah);
   await tandaiMenyusul(db, berubah);
   if (berubah.size) await siarkan([...berubah]);
   return baru;
+}
+
+/**
+ * A recorded group SeeLabs already held before IRIS put it in was never late
+ * there (an existing entry is only edited, whatever the day), so its record
+ * goes, stamped or not.
+ */
+async function hapusYangSudahAda(db: Db, berubah: Set<Topik>): Promise<void> {
+  const rows = await db
+    .select({ sesiId: lupaNilai.sesiId, nomor: lupaNilai.kelompokNomor })
+    .from(lupaNilai);
+  if (rows.length === 0) return;
+  const sudahAda = await sudahAdaDiSeelabs(db, [...new Set(rows.map((r) => r.sesiId))]);
+  for (const r of rows) {
+    if (!sudahAda.has(`${r.sesiId}.${r.nomor}`)) continue;
+    await db
+      .delete(lupaNilai)
+      .where(and(eq(lupaNilai.sesiId, r.sesiId), eq(lupaNilai.kelompokNomor, r.nomor)));
+    berubah.add("hadir");
+  }
 }
 
 /** Records the groups of these ended sessions that missed the deadline. */
@@ -355,12 +377,14 @@ async function catatBaru(
   const terkirim = new Set(kirim.map((x) => k(x.sesiId, x.nomor)));
   const tersimpan = new Set(simpan.map((x) => k(x.sesiId, x.nomor)));
   const dicatat = new Map(ada.map((x) => [k(x.sesiId, x.nomor), x.menyusulPada]));
+  const sudahAda = await sudahAdaDiSeelabs(db, ids);
 
   let baru = 0;
   for (const s of layak) {
     const nomorSesi = [...new Set(orang.filter((o) => o.sesiId === s.id).map((o) => o.nomor))];
     for (const nomor of nomorSesi) {
       const kunci = k(s.id, nomor);
+      if (sudahAda.has(kunci)) continue;
       const status = { terkirim: terkirim.has(kunci), tersimpan: tersimpan.has(kunci) };
       const kurang = kurangCatat(status);
       if (kurang.length === 0) continue;

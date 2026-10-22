@@ -14,6 +14,7 @@ import SeelabsBaca from "./seelabs/SeelabsBaca";
 import { RB } from "./seelabs/robotStrings";
 import type { Strings } from "./strings";
 import { l1Anggota, type NilaiLive } from "./data";
+import "./console.css";
 
 const jam = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-GB", {
@@ -89,7 +90,10 @@ export default function KirimNilai({
         "ok",
       );
     } else if (r.r === "incomplete") window.Toast?.show(t.kirimLeft(r.kurang ?? kurang), "danger");
-    else if (r.r === "owner") window.Toast?.show(t.kirimOwner, "danger");
+    else if (r.r === "akun") {
+      const rb = RB[pageLang()];
+      window.Toast?.show(`${rb.notSent} ${rb.why[r.alasan ?? ""] ?? ""}`.trim(), "danger");
+    } else if (r.r === "owner") window.Toast?.show(t.kirimOwner, "danger");
     else window.Toast?.show(t.fail, "danger");
   }
 
@@ -103,7 +107,8 @@ export default function KirimNilai({
       <span className="kirim">
         <button
           type="button"
-          className="btn btn--primary btn--sm"
+          className="btn btn--nilai btn--sm"
+          data-st="todo"
           disabled={!canEdit || busy || kurang > 0}
           title={kurang > 0 ? t.kirimLeft(kurang) : undefined}
           onClick={() => void kirim()}

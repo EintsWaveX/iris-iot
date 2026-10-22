@@ -144,6 +144,7 @@ import { handleBayarGet, handleBayarPost } from "../_lib/bayar.js";
 import { handleSeelabsGet, handleSeelabsPost } from "../_lib/seelabs.js";
 import {
   antreNilai,
+  akunBelumSiap,
   handleRobotGet,
   handleRobotPost,
   jagaPengganti,
@@ -1423,6 +1424,13 @@ async function kirimNilai(
   );
   if (kurang > 0) {
     res.status(200).json({ ok: false, kode: "belum_lengkap", kurang });
+    return;
+  }
+  // The group's SeeLabs account must be connected before anything is written:
+  // a send without it would only mark the scores sent and leave SeeLabs unsaved.
+  const akunMasalah = await akunBelumSiap(db, sesiId, g.nomor);
+  if (akunMasalah) {
+    res.status(200).json({ ok: false, kode: "akun_seelabs", alasan: akunMasalah });
     return;
   }
   // A typed L1 is never touched.

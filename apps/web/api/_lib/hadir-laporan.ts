@@ -48,6 +48,7 @@ import {
 } from "../../src/lib/hadir-mengajar.js";
 import { batasNilai } from "../../src/lib/lupa-nilai.js";
 import { rentangSemester } from "./bayar.js";
+import { sudahAdaDiSeelabs } from "./lupa-nilai.js";
 import { jamDariMenit } from "../../src/lib/sesi-mulai.js";
 import { kunciDariSesi, muatKonteks, statusOrang } from "./hadir-mengajar.js";
 import { muatOrang } from "./hak.js";
@@ -180,6 +181,8 @@ export async function muatInputNilai(
   ]);
   const batas = batasNilai(s.tanggal);
   const lewat = now.getTime() > batas.getTime();
+  // An entry SeeLabs already held is edited, never put in late.
+  const sudahAda = await sudahAdaDiSeelabs(db, [s.id]);
   return nomor.map((n) => {
     const k = kirim.find((x) => x.kelompokNomor === n) ?? null;
     // The robot adds a row on every save (an edit re-saves on a later day),
@@ -196,7 +199,9 @@ export async function muatInputNilai(
     const terakhir = selesai ? Math.max(k!.dikirimPada.getTime(), awal!.getTime()) : null;
     // A recorded miss decides; without one, the first save against the deadline.
     let status: StatusNilai;
-    if (selesai) status = l || terakhir! > batas.getTime() ? "menyusul" : "tepat";
+    if (selesai)
+      status =
+        !sudahAda.has(`${s.id}.${n}`) && (l || terakhir! > batas.getTime()) ? "menyusul" : "tepat";
     else if (l || (lewat && s.status === "selesai")) status = "lupa";
     else status = "terbuka";
     const pegang = pemegang.get(n) ?? null;

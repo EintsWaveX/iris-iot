@@ -1193,6 +1193,8 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
       className="dash dash10"
       style={k ? ({ "--g": `var(--group-${k})` } as CSSProperties) : undefined}
     >
+      {/* The open TP window comes first: it is what a Praktikan must act on. */}
+      {sendiri && !sesi && !belumIkut && <TpKartu lang={lang} d={tp.data} />}
       <div className="dash10__head" data-grid={sesi ? "gs" : "g2"}>
         <header className="page-header">
           {k ? (
@@ -1217,7 +1219,6 @@ export default function Dashboard({ lang, modules }: { lang: Lang; modules: Modu
           />
         </div>
       </div>
-      {sendiri && !sesi && !belumIkut && <TpKartu lang={lang} d={tp.data} />}
       {body}
       {/* Their TP windows, module weeks and practicum days (2026-10-21). */}
       {sendiri && !sesi && !belumIkut && <KalenderKu lang={lang} />}

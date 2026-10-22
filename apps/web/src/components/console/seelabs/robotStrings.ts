@@ -138,6 +138,7 @@ export const RB = dict({
     details: "Rincian",
     // Kirim Nilai
     sentFollows: "Nilai dikirim. SeeLabs menyusul lewat PC Server.",
+    notSent: "Nilai belum bisa dikirim.",
     sentHand: "Nilai dikirim. SeeLabs belum terhubung, jadi nilai menunggu robot.",
     why: {
       robot_mati: "Robot SeeLabs sedang mati.",
@@ -338,6 +339,7 @@ export const RB = dict({
     tokenSend: "Send Token",
     details: "Details",
     sentFollows: "Scores sent. SeeLabs follows through the PC Server.",
+    notSent: "Scores can't be sent yet.",
     sentHand: "Scores sent. SeeLabs isn't connected, so they wait for the robot.",
     why: {
       robot_mati: "The SeeLabs robot is off.",
@@ -526,6 +528,7 @@ export const RB = dict({
     tokenSend: "发送令牌",
     details: "详情",
     sentFollows: "成绩已发送。SeeLabs 将通过 PC 服务器随后保存。",
+    notSent: "暂时无法发送成绩。",
     sentHand: "成绩已发送。SeeLabs 还没连接，成绩会等机器人处理。",
     why: {
       robot_mati: "SeeLabs 机器人已关闭。",

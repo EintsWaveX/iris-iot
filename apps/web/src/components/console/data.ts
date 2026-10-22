@@ -190,8 +190,10 @@ export interface NilaiLive {
   /** Kirim Nilai for a complete group; `kurang` is the empty fields left,
    *  `seelabs` whether the robot took the SeeLabs save (Phase 14). */
   kirim: (kelompokId: number) => Promise<{
-    r: "ok" | "owner" | "incomplete" | "fail";
+    r: "ok" | "owner" | "incomplete" | "akun" | "fail";
     kurang?: number;
+    /** For "akun": why the group's SeeLabs account can't take the send. */
+    alasan?: string;
     seelabs?: { antre: boolean; alasan?: string } | null;
   }>;
   /** The session these scores belong to. */
@@ -564,6 +566,7 @@ export function useNilaiLive(
         ok: boolean;
         kode?: string;
         kurang?: number;
+        alasan?: string;
         seelabs?: { antre: boolean; alasan?: string } | null;
       }>("/api/session/nilai", { sesiId, kelompokId, kirim: true });
       if (r.ok) {
@@ -583,6 +586,7 @@ export function useNilaiLive(
         return { r: "ok", seelabs: r.seelabs ?? null };
       }
       if (r.kode === "belum_lengkap") return { r: "incomplete", kurang: r.kurang };
+      if (r.kode === "akun_seelabs") return { r: "akun", alasan: r.alasan };
       return { r: r.kode === "bukan_pemilik" ? "owner" : "fail" };
     } catch {
       return { r: "fail" };

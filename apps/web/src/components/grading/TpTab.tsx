@@ -33,6 +33,7 @@ import {
 } from "../tp/shared";
 import type { AnggotaTp, DataKelompok, GrupDinilai, KelompokTp } from "./types";
 import { PT } from "./pengaturanStrings";
+import "../console/console.css";
 
 type Saring = "all" | "todo" | "telat" | "belum";
 
@@ -703,7 +704,12 @@ function GroupCard({
       <div className="tpgroup__foot">
         {g.milikku || (!g.pemegang && admin) ? (
           <>
-            <button type="button" className="btn btn--primary" onClick={() => buka(pertama)}>
+            <button
+              type="button"
+              className="btn btn--nilai"
+              data-st={masuk > 0 && done >= masuk ? "sent" : "todo"}
+              onClick={() => buka(pertama)}
+            >
               {t.nilaiKelompok}
             </button>
             <IconButton

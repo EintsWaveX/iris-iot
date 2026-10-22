@@ -93,6 +93,7 @@ import { D, type Dx } from "./dayStrings";
 import type { PrepTab } from "./PrepView";
 import { useSiaran } from "../../lib/siaran";
 import "../shared/instruments.css";
+import "./console.css";
 import "./day.css";
 
 interface SlotHariIni {
@@ -1033,7 +1034,8 @@ export default function AsistenHome({
       <span className="todo10__acts">
         <button
           type="button"
-          className="btn btn--primary btn--sm"
+          className="btn btn--nilai btn--sm"
+          data-st="todo"
           disabled={sending !== null}
           data-loading={sending === x.sesiId ? "yes" : undefined}
           onClick={() => void kirimSemua(x)}
@@ -1062,7 +1064,12 @@ export default function AsistenHome({
         )}
       </span>
       <span className="todo10__acts">
-        <button type="button" className="btn btn--sm" onClick={() => onTable(p.sesiId)}>
+        <button
+          type="button"
+          className="btn btn--nilai btn--sm"
+          data-st="todo"
+          onClick={() => onTable(p.sesiId)}
+        >
           {d.enterScores}
         </button>
       </span>
