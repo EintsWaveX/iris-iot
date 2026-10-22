@@ -573,7 +573,10 @@ export default function LivePrep({
           {drag && (
             <div className="mrow" data-lifted="yes">
               <DotsSixVerticalIcon size={16} aria-hidden="true" className="mrow__grip" />
-              <span className="mrow__name">{drag.nama}</span>
+              <span className="mrow__who">
+                <span className="mrow__name">{drag.nama}</span>
+                <span className="mrow__nim num">{drag.nim}</span>
+              </span>
             </div>
           )}
         </DragLayer>
@@ -621,7 +624,10 @@ function MemberRow({
       onKeyDown={(e) => onKey(e, m)}
     >
       <DotsSixVerticalIcon size={16} aria-hidden="true" className="mrow__grip" />
-      <span className="mrow__name">{m.nama}</span>
+      <span className="mrow__who">
+        <span className="mrow__name">{m.nama}</span>
+        <span className="mrow__nim num">{m.nim}</span>
+      </span>
       {m.asal !== undefined && <span className="pill pill--warn">{t.lp.temp(m.asal)}</span>}
       {m.masukPada ? (
         <span className="pill pill--ok num">{jamMenit(m.masukPada)}</span>

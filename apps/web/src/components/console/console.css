@@ -1280,6 +1280,19 @@ thead .ntable__name {
   width: 16px;
 }
 
+/* The name with its NIM small and softer right under it. */
+.mrow__who {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.mrow__nim {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
 .mrow__name {
   min-width: 0;
   overflow: hidden;

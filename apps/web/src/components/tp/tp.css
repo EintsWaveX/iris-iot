@@ -126,7 +126,7 @@
    turn warning. */
 .cdown--pelangi .cdown__d b {
   background-clip: text, padding-box;
-  background-image: var(--sweep), linear-gradient(var(--surface-2), var(--surface-2));
+  background-image: var(--sw, var(--sweep)), linear-gradient(var(--surface-2), var(--surface-2));
   background-size:
     300% 100%,
     auto;
@@ -135,6 +135,23 @@
     calc(var(--i, 0) * 30%) 0,
     0 0;
   color: transparent;
+}
+/* Each group keeps its own base colour, so no two read alike: days amber to
+   rose, hours violet to magenta, minutes sky blue, seconds teal to green.
+   Between the base stops each carries lighter and deeper tints of its own
+   hue, so the sweep reads as a moving gradient and not a flat colour. The
+   first and last stop match so it loops without a seam. */
+.cdown__g[data-g="0"] {
+  --sw: linear-gradient(100deg, #f5b544, #ffe0a3, #fb7185, #ffb8c1, #f59e0b, #f5b544);
+}
+.cdown__g[data-g="1"] {
+  --sw: linear-gradient(100deg, #a78bfa, #d9ccff, #e879f9, #f6c0ff, #8b5cf6, #a78bfa);
+}
+.cdown__g[data-g="2"] {
+  --sw: linear-gradient(100deg, #40b0ff, #c2e8ff, #7dd3fc, #1d8fe8, #a5dcff, #40b0ff);
+}
+.cdown__g[data-g="3"] {
+  --sw: linear-gradient(100deg, #5eead4, #ccfff3, #86efac, #22c9a6, #b9f8c9, #5eead4);
 }
 /* Moving, every group runs from the same start, a step behind the last;
    still (tier 0, reduced motion), each keeps its own slice instead. The sweep

@@ -168,6 +168,10 @@ export default function SessionBar({
   // Off the slot (2026-10-07): watch the session, but leave ending,
   // extending and announcing to the people running it.
   const kendali = sesi.kendali !== false;
+  // The slides dialog lives out here, not in the More popover: opening it
+  // closes the popover first instead of stacking over it.
+  const slides = useSlides(sesi.modul);
+  const [slidesOpen, setSlidesOpen] = useState(false);
   const closeMore = () => {
     setPop(null);
     setMenu(null);
@@ -310,6 +314,11 @@ export default function SessionBar({
                   t={t}
                   lang={lang}
                   modul={sesi.modul}
+                  slides={slides}
+                  onOpen={() => {
+                    closeMore();
+                    setSlidesOpen(true);
+                  }}
                   onManage={() => {
                     closeMore();
                     onView("prep");
@@ -394,6 +403,13 @@ export default function SessionBar({
         )}
       </div>
 
+      <SlidesDialog
+        open={slidesOpen}
+        onOpenChange={setSlidesOpen}
+        list={slides.list}
+        modul={sesi.modul}
+        lang={lang}
+      />
       <Confirm
         open={tanyaBuru}
         onOpenChange={setTanyaBuru}
@@ -689,15 +705,17 @@ function DeckForm({
   t,
   lang,
   modul,
+  slides: { list, loaded },
+  onOpen,
   onManage,
 }: {
   t: Strings;
   lang: Lang;
   modul: number;
+  slides: ReturnType<typeof useSlides>;
+  onOpen: () => void;
   onManage: () => void;
 }) {
-  const { list, loaded } = useSlides(modul);
-  const [open, setOpen] = useState(false);
   return (
     <div className="stack">
       <b className="console-pop__title">{t.slidesTitle}</b>
@@ -714,7 +732,7 @@ function DeckForm({
               <span className="pill">{d.jenis === "tautan" ? "Canva" : "PDF"}</span>
             </div>
           ))}
-          <button type="button" className="btn btn--secondary" onClick={() => setOpen(true)}>
+          <button type="button" className="btn btn--secondary" onClick={onOpen}>
             {t.slidesOpen}
           </button>
         </div>
@@ -723,7 +741,6 @@ function DeckForm({
         {t.slidesManage}
         <CaretRightIcon size={16} weight="bold" className="btn__go" aria-hidden="true" />
       </button>
-      <SlidesDialog open={open} onOpenChange={setOpen} list={list} modul={modul} lang={lang} />
     </div>
   );
 }

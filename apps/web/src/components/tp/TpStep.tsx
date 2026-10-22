@@ -18,6 +18,7 @@
  *
  * Both can download the formal question PDF (src/lib/tp-pdf.ts).
  */
+import "../console/console.css";
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
   CaretRightIcon,
@@ -696,7 +697,11 @@ function TpAsisten({ lang, modul }: { lang: Lang; modul: number }) {
             ))}
           </div>
           <div className="tpbtns">
-            <a className="btn btn--primary" href={href(lang, `/grading?modul=${modul}`)}>
+            <a
+              className="btn btn--nilai"
+              data-st="todo"
+              href={href(lang, `/grading?modul=${modul}`)}
+            >
               {t.nilaiTp}
             </a>
             {d.bolehUbah && (

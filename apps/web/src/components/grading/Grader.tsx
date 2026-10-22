@@ -50,6 +50,7 @@ import {
   type PaketData,
 } from "../tp/shared";
 import type { DetailPraktikan, GrupDinilai } from "./types";
+import "../console/console.css";
 
 type Skor = Record<number, { skor: number | null; catatan: string | null }>;
 
@@ -678,7 +679,8 @@ function Isi({
           </button>
           <button
             type="button"
-            className="btn btn--primary"
+            className="btn btn--nilai"
+            data-st={nDone >= nomor.length ? "sent" : "todo"}
             onClick={() => {
               if (nDone) window.Toast?.show(t.tersimpanNama(d.nama), "ok");
               go(1);
