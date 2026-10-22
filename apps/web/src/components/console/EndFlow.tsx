@@ -1,7 +1,7 @@
 /**
  * Ending a session (P8.6b): "Akhiri" opens a recap first, listing what is
  * still open (missing scores per group, groups without notes, stuck blanks,
- * raised hands, my groups not yet sent with Kirim Nilai, the Module 4 hotspot), each one a
+ * my groups not yet sent with Kirim Nilai, the Module 4 hotspot), each one a
  * button that jumps straight to it. "Batalkan sesi" lives here too, behind
  * its own confirm.
  *
@@ -36,7 +36,6 @@ export default function EndFlow({
   sesi,
   groups,
   stuck,
-  tangan,
   nilai,
   meNim,
   onJumpGroup,
@@ -51,7 +50,6 @@ export default function EndFlow({
   sesi: SesiRunning;
   groups: GroupRow[];
   stuck: Stuck[];
-  tangan: Record<string, string>;
   nilai: NilaiData | null;
   /** The signed-in Asisten, whose unsent groups are listed (Lupa Input Nilai) */
   meNim: string;
@@ -76,7 +74,6 @@ export default function EndFlow({
   const missingTotal = missing.reduce((a, x) => a + x.n, 0);
   const noNotes = groups.filter((g) => g.sesiAktif && !g.catatan?.trim());
   const stuckGroups = [...new Set(stuck.map((s) => s.kelompokId))];
-  const hands = Object.keys(tangan).map(Number);
   // My groups not sent with Kirim Nilai yet: ending is still allowed, the
   // reminders take over (Lupa Input Nilai).
   const belumKirim = (nilai?.kelompok ?? []).filter(
@@ -189,12 +186,6 @@ export default function EndFlow({
       ok: stuckGroups.length === 0,
       title: stuckGroups.length ? t.chkStuck : t.chkStuckOk,
       body: stuckGroups.length > 0 && chips(stuckGroups),
-    },
-    {
-      key: "tangan",
-      ok: hands.length === 0,
-      title: hands.length ? t.chkHands : t.chkHandsOk,
-      body: hands.length > 0 && chips(hands),
     },
     {
       key: "kirim",

@@ -168,7 +168,6 @@
   border-color: var(--ok);
 }
 
-.strack__mark[data-k="bantu"],
 .strack__mark[data-k="minta"] {
   background: var(--warn-soft);
   border-color: var(--warn);

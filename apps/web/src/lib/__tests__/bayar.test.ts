@@ -9,9 +9,23 @@ import {
   pisah,
   rupiah,
   sisaTransfer,
+  statusBalik,
   tarifPada,
   type Unit,
 } from "../bayar";
+
+describe("the transfer back's status", () => {
+  it("is not Lunas when nothing is due, nor when nothing came back yet", () => {
+    expect(statusBalik(0, 0)).toBe("tidak_ada");
+    expect(statusBalik(3250, 0)).toBe("belum");
+    expect(statusBalik(3250, 1000)).toBe("belum");
+  });
+
+  it("is Lunas once what came back covers the share", () => {
+    expect(statusBalik(3250, 3250)).toBe("lunas");
+    expect(statusBalik(3250, 4000)).toBe("lunas");
+  });
+});
 
 describe("kas math", () => {
   it("splits kotor into kas and bersih, rounding the kas", () => {

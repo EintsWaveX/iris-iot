@@ -3,18 +3,16 @@
  *
  * - useMatriks: every group against every blank (GET /api/modul/matriks).
  * - SessionTrack: start to end with the now line, the extension zone and a
- *   mark for each moment (start, first right blank, hands, the
- *   announcement).
- * - Counters: here, blanks right, hands, stuck blanks, data, scores sent;
+ *   mark for each moment (start, first right blank, the announcement).
+ * - Counters: here, blanks right, stuck blanks, data, scores sent;
  *   each one goes to its answer.
- * - Rail: the groups, neediest first, with All, Mine and Help.
+ * - Rail: the groups, neediest first, with All, Mine and Attention.
  * - Feed: the room's moments, newest first, each with its way in, and a
  *   blank stuck in several groups called out with Announce.
  * - Matrix: groups against blanks, a count per blank and per group.
  */
-import { sejak } from "../../lib/app";
 import { useMemo, useState, type CSSProperties } from "react";
-import { ArrowRightIcon, HandIcon, KeyIcon, WifiSlashIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, KeyIcon, WifiSlashIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
 import Tooltip from "../ui/Tooltip";
 import IconButton from "../ui/IconButton";
@@ -181,7 +179,6 @@ export function SessionTrack({
   sesi,
   durasi,
   groups,
-  tangan,
   mtx,
   now,
   lang,
@@ -189,7 +186,6 @@ export function SessionTrack({
   sesi: SesiRunning;
   durasi: number;
   groups: GroupRow[];
-  tangan: Record<string, string>;
   mtx: Matriks | null;
   now: number;
   lang: Lang;
@@ -211,8 +207,6 @@ export function SessionTrack({
           first = { t: Date.parse(c.pada), g };
     if (first) marks.push({ t: first.t, k: "blank", l: r.mark.blank(nomor(first.g)) });
   }
-  for (const [g, iso] of Object.entries(tangan))
-    marks.push({ t: Date.parse(iso), k: "bantu", l: r.mark.bantu(nomor(g)) });
   if (sesi.pengumumanPada)
     marks.push({ t: Date.parse(sesi.pengumumanPada), k: "info", l: r.mark.info });
   const hhmm = (t: number) => jamLab(new Date(t).toISOString());
@@ -250,7 +244,6 @@ export function SessionTrack({
 export function Counters({
   groups,
   stuck,
-  tangan,
   mtx,
   kolom,
   nilai,
@@ -259,7 +252,6 @@ export function Counters({
 }: {
   groups: GroupRow[];
   stuck: Stuck[];
-  tangan: Record<string, string>;
   mtx: Matriks | null;
   kolom: Kolom[];
   nilai: NilaiLive;
@@ -275,8 +267,6 @@ export function Counters({
   const benar = aktif.reduce((a, g) => a + g.benar, 0);
   const semua = aktif.reduce((a, g) => a + g.total, 0);
   const avg = aktif.length ? benar / aktif.length : 0;
-  const hands = Object.entries(tangan).sort((x, y) => x[1].localeCompare(y[1]));
-  const handG = hands[0] ? groups.find((g) => String(g.id) === hands[0][0]) : undefined;
   const macet = blankMacet(mtx, kolom);
   const pesan = aktif.reduce((a, g) => a + (g.telemetri?.count ?? 0), 0);
   const sunyi = aktif.filter((g) => (g.telemetri?.count ?? 0) === 0);
@@ -306,18 +296,6 @@ export function Counters({
         avg.toLocaleString(lang === "en" ? "en-GB" : "id-ID", { maximumFractionDigits: 1 }),
       ),
       act: () => go({ view: "matrix" }),
-    },
-    {
-      key: "hand",
-      v: String(hands.length),
-      n: hands.length,
-      l: k.hand,
-      sub:
-        handG && hands[0]
-          ? k.handSub(kelompokLabel(handG.nomor, lang), sejak(hands[0][1], lang))
-          : k.handNone,
-      tone: hands.length ? "warn" : undefined,
-      act: () => (handG ? go({ g: handG.id, tab: "ringkasan" }) : go({ view: "board" })),
     },
     {
       key: "stuck",
@@ -379,21 +357,15 @@ export function Counters({
 
 /* ------------------------------------------------------------------ rail */
 
-export function attentionOf(
-  g: GroupRow,
-  tangan: Record<string, string>,
-  stuckBy: Map<number, number>,
-): number {
-  if (tangan[g.id]) return 0;
-  if (stuckBy.get(g.id)) return 1;
-  if (g.sesiAktif && (g.telemetri?.count ?? 0) === 0) return 2;
-  return 3;
+export function attentionOf(g: GroupRow, stuckBy: Map<number, number>): number {
+  if (stuckBy.get(g.id)) return 0;
+  if (g.sesiAktif && (g.telemetri?.count ?? 0) === 0) return 1;
+  return 2;
 }
 
 export function Rail({
   groups,
   stuck,
-  tangan,
   pemilik,
   asisten,
   meNim,
@@ -406,7 +378,6 @@ export function Rail({
 }: {
   groups: GroupRow[];
   stuck: Stuck[];
-  tangan: Record<string, string>;
   pemilik: Record<string, string>;
   asisten: Map<string, AsistenRef>;
   meNim: string;
@@ -425,14 +396,13 @@ export function Rail({
     return m;
   }, [stuck]);
   let gs = [...groups].sort(
-    (a, b) =>
-      attentionOf(a, tangan, stuckBy) - attentionOf(b, tangan, stuckBy) || a.nomor - b.nomor,
+    (a, b) => attentionOf(a, stuckBy) - attentionOf(b, stuckBy) || a.nomor - b.nomor,
   );
   // When every running group is silent, say it once instead of on each card.
   const aktif = groups.filter((g) => g.sesiAktif);
   const semuaDiam = aktif.length > 0 && aktif.every((g) => (g.telemetri?.count ?? 0) === 0);
   if (f === "mine") gs = gs.filter((g) => pemilik[g.id] === meNim);
-  if (f === "help") gs = gs.filter((g) => attentionOf(g, tangan, stuckBy) < 3);
+  if (f === "help") gs = gs.filter((g) => attentionOf(g, stuckBy) < 2);
   return (
     <section className="panel rail" data-area="rail">
       <div className="panel__head">
@@ -489,12 +459,6 @@ export function Rail({
                     {kelompokLabel(g.nomor, lang)} · {namaKelompok(g.nomor, g.nama)}
                   </b>
                   {g.nomor <= 10 && <kbd className="kbd">{g.nomor % 10}</kbd>}
-                  {tangan[g.id] && (
-                    <Pill tone="warn">
-                      <HandIcon size={12} aria-hidden="true" />
-                      {jamLab(tangan[g.id])}
-                    </Pill>
-                  )}
                   {nStuck > 0 && <Pill tone="warn">{r.stuckN(nStuck)}</Pill>}
                   {quiet && (
                     <Pill tone="warn">
@@ -549,7 +513,7 @@ export function Rail({
 
 interface FeedRow {
   t: string;
-  k: "salah" | "bantu" | "blank";
+  k: "salah" | "blank";
   g: GroupRow;
   text: string;
   label: string;
@@ -558,7 +522,6 @@ interface FeedRow {
 
 export function feedRows(
   groups: GroupRow[],
-  tangan: Record<string, string>,
   mtx: Matriks | null,
   kolom: Kolom[],
   r: Rx,
@@ -566,18 +529,6 @@ export function feedRows(
   const out: FeedRow[] = [];
   const byId = new Map(groups.map((g) => [String(g.id), g]));
   const lbl = (soal: string) => kolom.find((k) => k.soal === soal)?.label ?? soal;
-  for (const [id, iso] of Object.entries(tangan)) {
-    const g = byId.get(id);
-    if (g)
-      out.push({
-        t: iso,
-        k: "bantu",
-        g,
-        text: r.feed.hand,
-        label: r.go.open,
-        to: { g: g.id, tab: "ringkasan" },
-      });
-  }
   for (const [id, cells] of Object.entries(mtx?.sel ?? {})) {
     const g = byId.get(id);
     if (!g) continue;
@@ -624,10 +575,8 @@ export function Feed({
   lang: Lang;
 }) {
   const r = R[lang];
-  const tone = { salah: "warn", bantu: "warn", blank: "ok" } as const;
-  // Raised hands wait on an Asisten: they come first.
-  const need = rows.filter((i) => i.k === "bantu");
-  const rest = rows.filter((i) => i.k !== "bantu").slice(0, 40);
+  const tone = { salah: "warn", blank: "ok" } as const;
+  const rest = rows.slice(0, 40);
   const list = (items: FeedRow[]) => (
     <ol className="elog">
       {items.map((i, n) => (
@@ -664,20 +613,7 @@ export function Feed({
       {rows.length === 0 ? (
         <p className="hint feed__empty">{r.roomEmpty}</p>
       ) : (
-        <div className="feed__scroll">
-          {need.length > 0 && (
-            <>
-              <span className="label-caps">{r.needYou}</span>
-              {list(need)}
-            </>
-          )}
-          {rest.length > 0 && (
-            <>
-              {need.length > 0 && <span className="label-caps">{r.roomRest}</span>}
-              {list(rest)}
-            </>
-          )}
-        </div>
+        <div className="feed__scroll">{rest.length > 0 && list(rest)}</div>
       )}
       {macet && (
         <div className="feed__note">

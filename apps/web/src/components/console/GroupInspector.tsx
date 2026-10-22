@@ -5,7 +5,7 @@
  *
  * - Head: the group badge and name, its Asisten as "Full Name (CODE)", and
  *   Ganti Asisten (with a reason) or, for a free group, Pegang.
- * - Banners: a raised hand with Tandai Selesai; the double-management
+ * - Banners: the double-management
  *   SeeLabs lender for a second group I hold; a lock when someone else
  *   scores this group.
  * - Four live cards (G2), each opening its detail: correct blanks and the
@@ -28,10 +28,10 @@ import {
   type CSSProperties,
   type KeyboardEvent,
 } from "react";
-import { ArrowRightIcon, HandCoinsIcon, HandIcon, LockSimpleIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, HandCoinsIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import Nil from "../ui/Nil";
 import Pill from "../ui/Pill";
-import { ScoreInput, Switch } from "../ui/Controls";
+import { ScoreInput } from "../ui/Controls";
 import { LevelField, L1Field } from "./LevelField";
 import { adaTingkat } from "../../lib/nilai-rubrik";
 import { l1Anggota, l1DariSistem } from "./data";
@@ -57,13 +57,12 @@ import { AkunPicker } from "./seelabs/AkunPicker";
 import { SL } from "./seelabs/strings";
 import ChangeAssistant, { usePasangan } from "./ChangeAssistant";
 import { useCaraNilai } from "./caraNilai";
-import { useTandaAbsen } from "./TandaAbsen";
+import { CekAbsen, useTandaAbsen } from "./TandaAbsen";
 import GroupBarsModal, { type BarKind } from "./GroupBarsModal";
 import BlankPanel, { type BlankRingkas } from "./BlankPanel";
 import { pesan, type Strings } from "./strings";
 import type { NilaiLive } from "./data";
 import type { AsistenRef, GroupRow, Stuck } from "./types";
-import Lalu from "../ui/Lalu";
 
 export interface InspectorProps {
   t: Strings;
@@ -73,7 +72,6 @@ export interface InspectorProps {
   g: GroupRow;
   groups: GroupRow[];
   stuck: Stuck[];
-  hand: string | null;
   ownerNim: string | null;
   asisten: Map<string, AsistenRef>;
   meNim: string;
@@ -97,7 +95,7 @@ export interface InspectorProps {
 }
 
 export default function GroupInspector(p: InspectorProps) {
-  const { t, lang, sesiId, g, hand, ownerNim, asisten, meNim, nilai } = p;
+  const { t, lang, sesiId, g, ownerNim, asisten, meNim, nilai } = p;
   const r = R[lang];
   const owner = ownerNim ? (asisten.get(ownerNim) ?? null) : null;
   const ownerName = owner ? namaAsisten(owner) : (ownerNim ?? t.noAssistant);
@@ -142,20 +140,6 @@ export default function GroupInspector(p: InspectorProps) {
     }
   }
 
-  async function resolveHand() {
-    try {
-      const res = await postJson<{ ok: boolean }>("/api/session/help", {
-        sesiId,
-        kelompokId: g.id,
-      });
-      if (!res.ok) throw new Error();
-      window.Toast?.show(t.resolved, "ok");
-      p.onChanged();
-    } catch {
-      window.Toast?.show(t.fail, "danger");
-    }
-  }
-
   const cells = p.mtx?.sel[g.id] ?? {};
   const kolom = p.kolom ?? [];
 
@@ -181,15 +165,6 @@ export default function GroupInspector(p: InspectorProps) {
           <span className="hint">{r.workSub(ownerName, g.hadir, g.anggotaTotal)}</span>
         </div>
         <div className="work__acts">
-          {hand && (
-            <button
-              type="button"
-              className="btn btn--primary btn--sm"
-              onClick={() => void resolveHand()}
-            >
-              {r.markDone}
-            </button>
-          )}
           <button type="button" className="btn btn--sm" onClick={() => p.onAsPraktikan(g.id)}>
             {r.viewGroup}
           </button>
@@ -211,15 +186,6 @@ export default function GroupInspector(p: InspectorProps) {
           )}
         </div>
       </header>
-
-      {hand && (
-        <div className="banner banner--warn">
-          <HandIcon size={20} aria-hidden="true" />
-          <span className="grow">
-            <Lalu iso={hand} lang={lang} fmt={t.handUp} />
-          </span>
-        </div>
-      )}
 
       <SegmentedControl
         fill
@@ -245,7 +211,7 @@ export default function GroupInspector(p: InspectorProps) {
           </div>
           <section className="stack" style={{ gap: 8 }}>
             <span className="label-caps">{r.happened}</span>
-            <GroupLog lang={lang} hand={hand} cells={cells} kolom={kolom} />
+            <GroupLog lang={lang} cells={cells} kolom={kolom} />
             <button
               type="button"
               className="work__jump sweep-hover"
@@ -353,23 +319,20 @@ export default function GroupInspector(p: InspectorProps) {
 
 /* ------------------------------------------------------- what happened */
 
-/** One group's moments, newest first: a hand, blanks right and blanks
- *  checked wrong. */
+/** One group's moments, newest first: blanks right and blanks checked
+ *  wrong. */
 function GroupLog({
   lang,
-  hand,
   cells,
   kolom,
 }: {
   lang: Lang;
-  hand: string | null;
   cells: Record<string, SelMatriks>;
   kolom: Kolom[];
 }) {
   const r = R[lang];
   const lbl = (soal: string) => kolom.find((k) => k.soal === soal)?.label ?? soal;
-  const items: { t: string; k: "bantu" | "blank" | "salah"; text: string }[] = [];
-  if (hand) items.push({ t: hand, k: "bantu", text: r.ev.hand });
+  const items: { t: string; k: "blank" | "salah"; text: string }[] = [];
   for (const [soal, c] of Object.entries(cells)) {
     if (!c.pada) continue;
     if (c.benar) items.push({ t: c.pada, k: "blank", text: r.ev.right(lbl(soal), c.oleh ?? "") });
@@ -377,7 +340,7 @@ function GroupLog({
       items.push({ t: c.pada, k: "salah", text: r.ev.wrong(lbl(soal), c.salah || c.percobaan) });
   }
   items.sort((a, b) => b.t.localeCompare(a.t));
-  const tone = { bantu: "warn", blank: "ok", salah: "warn" } as const;
+  const tone = { blank: "ok", salah: "warn" } as const;
   if (!items.length) return <p className="hint">{r.nothingYet}</p>;
   return (
     <ol className="elog">
@@ -387,7 +350,7 @@ function GroupLog({
             {jamLab(x.t)}
           </time>
           <span className="elog__tag mono" data-tone={tone[x.k]}>
-            {x.k === "blank" ? r.tag.blank : x.k === "salah" ? r.tag.salah : r.tag.bantu}
+            {x.k === "blank" ? r.tag.blank : r.tag.salah}
           </span>
           <span className="elog__text">{x.text}</span>
         </li>
@@ -807,10 +770,10 @@ function ScoreEditor({
                 <span className="hint mono">{a.nim}</span>
               </span>
               <span className="scores__absen">
-                <span className="hint">{t.absen}</span>
-                <Switch
-                  on={a.absen}
-                  label={t.absenFor(a.nama)}
+                <CekAbsen
+                  t={t}
+                  nama={a.nama}
+                  absen={a.absen}
                   disabled={!canEdit}
                   onChange={(on) => absen.ubah(a, on)}
                 />
@@ -877,10 +840,10 @@ function ScoreEditor({
           </span>
           <span className="grow" />
           <span className="scores__absen">
-            <span className="hint">{t.absen}</span>
-            <Switch
-              on={s.absen}
-              label={t.absenFor(s.nama)}
+            <CekAbsen
+              t={t}
+              nama={s.nama}
+              absen={s.absen}
               disabled={!canEdit}
               onChange={(on) => absen.ubah(s, on)}
             />

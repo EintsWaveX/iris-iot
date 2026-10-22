@@ -107,8 +107,6 @@ export const D = dict({
     // Home (h11)
     waiting: (n: number) => `${n} menunggumu`,
     running: "Sesi Berjalan",
-    youHold: (g: string, hands: number) =>
-      hands ? `Kamu memegang ${g}. ${hands} angkat tangan.` : `Kamu memegang ${g}.`,
     youHoldNone: "Kamu belum memegang kelompok di sesi ini.",
     windowOpen: "Jendela Buka",
     canStartNow: "Slotmu bisa dimulai sekarang",
@@ -234,8 +232,6 @@ export const D = dict({
     dayOverNone: "Today's slots are over.",
     waiting: (n: number) => `${n} waiting on you`,
     running: "Session Running",
-    youHold: (g: string, hands: number) =>
-      hands ? `You hold ${g}. ${hands} hand up.` : `You hold ${g}.`,
     youHoldNone: "You don't hold a group in this session yet.",
     windowOpen: "Window Open",
     canStartNow: "Your slot can start now",
@@ -359,8 +355,6 @@ export const D = dict({
     dayOverNone: "今天的时段已结束。",
     waiting: (n: number) => `${n} 件等你处理`,
     running: "正在上课",
-    youHold: (g: string, hands: number) =>
-      hands ? `你负责${g}。${hands} 组举手。` : `你负责${g}。`,
     youHoldNone: "你在这节课还没有负责的组。",
     windowOpen: "窗口开放",
     canStartNow: "你的时段现在可以开始",

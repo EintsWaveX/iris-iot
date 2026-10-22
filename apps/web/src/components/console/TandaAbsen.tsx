@@ -5,10 +5,39 @@
  */
 import { useState } from "react";
 import Confirm from "../ui/Confirm";
+import { Checkbox } from "../ui/Controls";
 import type { Lang } from "../../lib/kelas";
 import type { Strings } from "./strings";
 import type { NilaiLive } from "./data";
 import type { NilaiAnggota } from "./types";
+
+/**
+ * The Tidak Hadir mark as a checkbox that says so: ticked means absent. A
+ * switch left it unclear which way "on" meant (user, 2026-10-22).
+ */
+export function CekAbsen({
+  t,
+  nama,
+  absen,
+  disabled,
+  onChange,
+}: {
+  t: Strings;
+  nama: string;
+  absen: boolean;
+  disabled?: boolean;
+  onChange: (absen: boolean) => void;
+}) {
+  return (
+    <Checkbox
+      checked={absen}
+      label={t.absen}
+      ariaLabel={t.absenFor(nama)}
+      disabled={disabled}
+      onChange={onChange}
+    />
+  );
+}
 
 export function useTandaAbsen(
   t: Strings,

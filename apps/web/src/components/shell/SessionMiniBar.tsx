@@ -1,7 +1,7 @@
 /**
  * The praktikan's session mini-bar (Phase 8), under the nav on every page
  * while a session runs: which module, time left, the announcement bell and
- * the "Minta bantuan" (raise hand) button.
+ * the way into the session for someone who has not joined it.
  *
  * - Announcements used to be a toast on the dashboard only, so a student on
  *   a module page missed them. The bell keeps this session's announcements
@@ -11,7 +11,7 @@
  * - Time warnings at 30 and 10 minutes left, once each per session.
  */
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { BellIcon, HandIcon, PresentationChartIcon, SignInIcon } from "@phosphor-icons/react";
+import { BellIcon, PresentationChartIcon, SignInIcon } from "@phosphor-icons/react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import type { PollState } from "../../lib/hooks";
 import {
@@ -20,7 +20,6 @@ import {
   href,
   jamMenit,
   menitBerjalan,
-  postJson,
   useTick,
   type SesiNow,
 } from "../../lib/app";
@@ -41,14 +40,8 @@ const T = dict({
     bell: "Pengumuman",
     slides: "Presentasi",
     none: "Belum ada pengumuman di sesi ini.",
-    help: "Minta Bantuan",
     ikut: "Ikut Praktikum",
     ikutS: "Ikut",
-    helpOn: "Menunggu asisten",
-    helpSent: "Tangan terangkat. Asisten kelompokmu melihatnya di papan.",
-    helpOff: "Permintaan bantuan dibatalkan.",
-    helpFail: "Tidak dapat mengirim. Coba lagi.",
-    stale: "Sesi sudah berganti. Masuk lagi untuk sesi ini.",
     newAnn: "Pengumuman baru",
     warn30: "Sisa 30 menit. Mulai rapikan pekerjaanmu.",
     warn10: "Sisa 10 menit. Unduh berkas dan simpan pekerjaanmu sekarang.",
@@ -62,14 +55,8 @@ const T = dict({
     bell: "Announcements",
     slides: "Slides",
     none: "No announcements in this session yet.",
-    help: "Ask for Help",
     ikut: "Join the Practicum",
     ikutS: "Join",
-    helpOn: "Waiting for assistant",
-    helpSent: "Hand raised. Your group's assistant sees it on the board.",
-    helpOff: "Help request cancelled.",
-    helpFail: "Could not send. Try again.",
-    stale: "The session changed. Sign in again for this one.",
     newAnn: "New announcement",
     warn30: "30 minutes left. Start wrapping up.",
     warn10: "10 minutes left. Download your file and save your work now.",
@@ -83,14 +70,8 @@ const T = dict({
     bell: "公告",
     slides: "幻灯片",
     none: "这节课还没有公告。",
-    help: "求助",
     ikut: "参加实验",
     ikutS: "参加",
-    helpOn: "等助教过来",
-    helpSent: "已举手。你组的助教会在面板上看到。",
-    helpOff: "求助已取消。",
-    helpFail: "发送失败，再试一次。",
-    stale: "课已经换了。请重新登录这节课。",
     newAnn: "新公告",
     warn30: "还剩 30 分钟。开始整理你的作业。",
     warn10: "还剩 10 分钟。现在下载文件并保存你的作业。",
@@ -133,7 +114,7 @@ export default function SessionMiniBar({
 }: {
   lang: Lang;
   now: PollState<SesiNow | null>;
-  /** Projector mode: an Asisten can't raise a Praktikan's hand. */
+  /** Projector mode: an Asisten shows the Praktikan view; the join button stays out. */
   proyektor?: boolean;
 }) {
   const t = T[lang];
@@ -142,14 +123,10 @@ export default function SessionMiniBar({
   const [anns, setAnns] = useState<Ann[]>([]);
   const [seen, setSeen] = useState<string | null>(null);
   const [pulse, setPulse] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [hand, setHand] = useState<string | null>(null);
   const first = useRef(true);
   // The slides, reachable from every page during a session (2026-10-06).
   const slides = useSlides(s?.modul, s !== null);
   const [slidesOpen, setSlidesOpen] = useState(false);
-
-  useEffect(() => setHand(s?.mintaBantuanPada ?? null), [s?.mintaBantuanPada]);
 
   // Sticky things below (the module stepper) sit under this bar.
   const barRef = useRef<HTMLDivElement | null>(null);
@@ -215,33 +192,13 @@ export default function SessionMiniBar({
 
   if (!s) return null;
   // Not signed in to this session (2026-10-07): another slot's is none of
-  // their business; their own offers to join it in place of the hand.
+  // their business; their own offers to join it.
   const belumIkut = s.milikSaya === false;
   if (belumIkut && s.bisaIkut === false) return null;
 
   const unread = anns.length > 0 && anns[0].pada !== seen;
   const urgent = left !== null && left <= 10;
   const warn = left !== null && left <= 30;
-
-  async function toggleHand() {
-    setBusy(true);
-    try {
-      const d = await postJson<{ ok: boolean; kode?: string; mintaBantuanPada?: string | null }>(
-        "/api/session/help",
-        { aktif: !hand },
-      );
-      if (d.ok) {
-        setHand(d.mintaBantuanPada ?? null);
-        window.Toast?.show(d.mintaBantuanPada ? t.helpSent : t.helpOff, "ok");
-      } else if (d.kode === "sesi_berganti") {
-        window.Toast?.show(t.stale, "warn");
-      } else window.Toast?.show(t.helpFail, "danger");
-    } catch {
-      window.Toast?.show(t.helpFail, "danger");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <div
@@ -285,26 +242,13 @@ export default function SessionMiniBar({
         {!proyektor && belumIkut && (
           <button
             type="button"
-            className="minibar__help minibar__ikut"
+            className="minibar__ikut"
             aria-label={t.ikut}
             onClick={() => openSignIn(undefined, { ikut: true })}
           >
             <SignInIcon size={18} aria-hidden="true" />
             <span className="minibar__ikut-l">{t.ikut}</span>
             <span className="minibar__ikut-s">{t.ikutS}</span>
-          </button>
-        )}
-        {!proyektor && !belumIkut && (
-          <button
-            type="button"
-            className="minibar__help"
-            aria-pressed={Boolean(hand)}
-            aria-label={hand ? t.helpOn : t.help}
-            disabled={busy}
-            onClick={() => void toggleHand()}
-          >
-            <HandIcon size={18} aria-hidden="true" />
-            <span>{hand ? t.helpOn : t.help}</span>
           </button>
         )}
 

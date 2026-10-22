@@ -85,6 +85,7 @@ export const B = dict({
     arrived: "Diterima",
     notYet: "Belum",
     lunas: "Lunas",
+    tanpaKas: "Tidak Ada",
     ledgerEmpty: "Belum ada kelompok yang dinilai semester ini.",
     // figures
     net: "Bersih",
@@ -229,6 +230,7 @@ export const B = dict({
     arrived: "Arrived",
     notYet: "Not Yet",
     lunas: "Paid",
+    tanpaKas: "None Due",
     ledgerEmpty: "No scored groups this semester yet.",
     net: "Net",
     gross: "Gross",
@@ -366,6 +368,7 @@ export const B = dict({
     arrived: "已到账",
     notYet: "还没有",
     lunas: "已付清",
+    tanpaKas: "无需转回",
     ledgerEmpty: "本学期还没有评分的组。",
     net: "净额",
     gross: "总额",

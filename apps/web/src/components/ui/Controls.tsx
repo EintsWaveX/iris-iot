@@ -61,18 +61,22 @@ export function Checkbox({
   label,
   hint,
   disabled,
+  ariaLabel,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label: ReactNode;
   hint?: ReactNode;
   disabled?: boolean;
+  /** When the visible label alone doesn't say which row it belongs to. */
+  ariaLabel?: string;
 }) {
   return (
     <button
       type="button"
       role="checkbox"
       aria-checked={checked}
+      aria-label={ariaLabel}
       disabled={disabled}
       className="ctl-check"
       onClick={() => onChange(!checked)}

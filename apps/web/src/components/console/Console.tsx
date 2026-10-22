@@ -44,7 +44,6 @@ import "./run.css";
 import { masukProyektor } from "../../lib/proyektor";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
-import { kelompokLabel } from "../../lib/labels";
 import { CONSOLE_EVENT, type ConsoleCommand } from "../shell/AsistenCommands";
 import { S } from "./strings";
 import { useAssignment, useCurrent, useLaporan, useNilaiLive, useServers } from "./data";
@@ -341,29 +340,6 @@ export default function Console({ lang }: { lang: Lang }) {
     return () => window.removeEventListener("keydown", on);
   }, [sesi, lap.data, pick]);
 
-  // A raised hand reaches me wherever I am in the console (2026-10-06:
-  // it only marked the group on Papan, unseen from Persiapan or Tabel
-  // Nilai): my groups and groups nobody holds, once per raise.
-  const tanganLalu = useRef<Set<string> | null>(null);
-  useEffect(() => {
-    const L = lap.data;
-    if (!L) return;
-    const kini = new Set(Object.keys(L.tangan ?? {}));
-    const lalu = tanganLalu.current;
-    tanganLalu.current = kini;
-    if (!lalu) return;
-    for (const id of kini) {
-      if (lalu.has(id)) continue;
-      const g = L.kelompok.find((k) => String(k.id) === id);
-      const pemegang = L.pemilik?.[g?.id ?? -1] ?? null;
-      if (!g || (pemegang && pemegang !== me?.nim)) continue;
-      window.Toast?.show(t.handToast(kelompokLabel(g.nomor, lang)), "warn", {
-        duration: 15_000,
-        action: { label: t.handLook, onClick: () => pick(g.id) },
-      });
-    }
-  }, [lap.data]);
-
   // The sky follows the session (the "sesi" scene is deliberately calm).
   const inSesiScene = useRef(false);
   useEffect(() => {
@@ -603,7 +579,6 @@ export default function Console({ lang }: { lang: Lang }) {
   const L = lap.data;
   const groups = L?.kelompok ?? [];
   const stuck = L?.stuck ?? [];
-  const tangan = L?.tangan ?? {};
   const pemilik = L?.pemilik ?? {};
   // The workspace always shows a group (mockup c-run): the picked one, else
   // the first group I hold, else the first group.
@@ -677,7 +652,6 @@ export default function Console({ lang }: { lang: Lang }) {
             sesi={sesi}
             durasi={durasi}
             groups={groups}
-            tangan={tangan}
             mtx={mtx.data}
             now={now}
             lang={lang}
@@ -702,7 +676,6 @@ export default function Console({ lang }: { lang: Lang }) {
       <Counters
         groups={groups}
         stuck={stuck}
-        tangan={tangan}
         mtx={mtx.data}
         kolom={kolom}
         nilai={nilai}
@@ -741,11 +714,6 @@ export default function Console({ lang }: { lang: Lang }) {
                 }}
               >
                 {rs.views[v]}
-                {v === "board" && Object.keys(tangan).length > 0 && (
-                  <span className="pill pill--warn console__hands">
-                    {Object.keys(tangan).length}
-                  </span>
-                )}
               </button>
             ))}
           </nav>
@@ -828,7 +796,6 @@ export default function Console({ lang }: { lang: Lang }) {
             <Rail
               groups={groups}
               stuck={stuck}
-              tangan={tangan}
               pemilik={pemilik}
               asisten={asisten}
               meNim={me!.nim}
@@ -858,7 +825,6 @@ export default function Console({ lang }: { lang: Lang }) {
                 g={selGroup}
                 groups={groups}
                 stuck={stuck.filter((s) => s.kelompokId === selGroup.id)}
-                hand={tangan[selGroup.id] ?? null}
                 ownerNim={pemilik[selGroup.id] ?? null}
                 asisten={asisten}
                 meNim={me!.nim}
@@ -884,7 +850,7 @@ export default function Console({ lang }: { lang: Lang }) {
               <span />
             )}
             <Feed
-              rows={feedRows(groups, tangan, mtx.data, kolom, rs)}
+              rows={feedRows(groups, mtx.data, kolom, rs)}
               macet={blankMacet(mtx.data, kolom)}
               onAnnounce={announceOk ? () => setAnnounce(true) : undefined}
               go={goTo}
@@ -944,7 +910,6 @@ export default function Console({ lang }: { lang: Lang }) {
         sesi={sesi}
         groups={groups}
         stuck={stuck}
-        tangan={tangan}
         nilai={nilai.data}
         meNim={me?.nim ?? ""}
         onJumpGroup={(id) => pick(id)}

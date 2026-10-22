@@ -5,8 +5,6 @@
  *
  * GET  /api/session/assignment?sesiId=            — asisten. Group -> assistant for one session, plus the slot's substitutes.
  * POST /api/session/assignment { sesiId, kelompokId, asistenNim|null, alasan } — asisten. Assign, claim, take over or clear.
- * POST /api/session/help { aktif }                 — praktikan. Raise or lower the group's hand in the running session.
- * POST /api/session/help { sesiId, kelompokId }    — asisten. Mark a raised hand as handled.
  * POST /api/session/feedback { asistenNim, ratingAsisten, ... } — praktikan. Once per student per session.
  * GET  /api/session/feedback?scope=mine|lab&sesiId= — asisten. Own Asisten ratings, or everyone's Lab ratings. Never a NIM.
  * GET  /api/session/results                         — praktikan. Own scores for the session in the cookie, once it ended.
@@ -30,7 +28,6 @@ import {
   sesi,
   sesiAnggota,
   sesiAsisten,
-  sesiKelompok,
   telemetriLog,
   umpanBalik,
   NILAI_KOMPONEN,
@@ -42,9 +39,8 @@ import { validasiUmpanBalik, ringkas, sejakBulanLalu } from "../../src/lib/umpan
 import type { Kelas } from "../../src/lib/kelas.js";
 import { muatMinggu } from "./penugasan-api.js";
 import { orangTanggal } from "../../src/lib/penugasan-minggu.js";
-import { antreSesi, nomorDariId } from "./aliran.js";
-import { and, eq, asc, desc, inArray, isNotNull, isNull, sql } from "drizzle-orm";
-import { ALASAN_MIN, catatKejadian, catatPasangan, cekPasangan } from "./berjalan.js";
+import { and, eq, asc, desc, inArray, isNotNull, sql } from "drizzle-orm";
+import { ALASAN_MIN, catatPasangan, cekPasangan } from "./berjalan.js";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -434,117 +430,6 @@ export async function handleAssignmentPost(
   res.status(200).json({ ok: true, pemilik: asistenNim });
 }
 
-/* -------------------------------------------------------- raise a hand */
-
-export async function handleHelpPraktikan(
-  req: ApiRequest,
-  res: ApiResponse,
-  session: SessionPayload,
-) {
-  const running = await currentSesi();
-  if (!running || session.sesiId !== running.id || !session.kelompokId) {
-    res.status(200).json({ ok: false, kode: "sesi_berganti" });
-    return;
-  }
-  const aktif = Boolean(jsonBody(req).aktif);
-  const db = getDb();
-  if (aktif) {
-    // One line per raised hand, and the first raise keeps its time: two
-    // members pressing at once both saw it down and logged twice (2026-10-07).
-    const naik = await db
-      .insert(sesiKelompok)
-      .values({ sesiId: running.id, kelompokId: session.kelompokId, mintaBantuanPada: new Date() })
-      .onConflictDoUpdate({
-        target: [sesiKelompok.sesiId, sesiKelompok.kelompokId],
-        set: { mintaBantuanPada: new Date() },
-        setWhere: isNull(sesiKelompok.mintaBantuanPada),
-      })
-      .returning({ pada: sesiKelompok.mintaBantuanPada });
-    if (naik.length) {
-      const [g] = await db
-        .select({ nomor: kelompok.nomor })
-        .from(kelompok)
-        .where(eq(kelompok.id, session.kelompokId))
-        .limit(1);
-      await catatKejadian(
-        running.id,
-        "tangan",
-        { kelompokId: session.kelompokId, nomor: g?.nomor ?? null },
-        session.nim,
-      );
-    }
-    const [kini] = await db
-      .select({ pada: sesiKelompok.mintaBantuanPada })
-      .from(sesiKelompok)
-      .where(
-        and(eq(sesiKelompok.sesiId, running.id), eq(sesiKelompok.kelompokId, session.kelompokId)),
-      )
-      .limit(1);
-    const pada = kini?.pada?.toISOString() ?? null;
-    res.status(200).json({ ok: true, mintaBantuanPada: pada });
-    antreSesi(res, running.id, [
-      {
-        j: "tangan",
-        g: session.kelompokNomor ?? null,
-        d: { kelompokId: session.kelompokId, pada },
-      },
-    ]);
-    return;
-  }
-  await db
-    .insert(sesiKelompok)
-    .values({ sesiId: running.id, kelompokId: session.kelompokId, mintaBantuanPada: null })
-    .onConflictDoUpdate({
-      target: [sesiKelompok.sesiId, sesiKelompok.kelompokId],
-      set: { mintaBantuanPada: null },
-    });
-  res.status(200).json({ ok: true, mintaBantuanPada: null });
-  antreSesi(res, running.id, [
-    {
-      j: "tangan",
-      g: session.kelompokNomor ?? null,
-      d: { kelompokId: session.kelompokId, pada: null },
-    },
-  ]);
-}
-
-export async function handleHelpAsisten(
-  req: ApiRequest,
-  res: ApiResponse,
-  session: SessionPayload,
-) {
-  const body = jsonBody(req);
-  const sesiId = posInt(body.sesiId);
-  const kelompokId = posInt(body.kelompokId);
-  if (!sesiId || !kelompokId) return badRequest(res);
-  const [naik] = await getDb()
-    .select({ pada: sesiKelompok.mintaBantuanPada, nomor: kelompok.nomor })
-    .from(sesiKelompok)
-    .innerJoin(kelompok, eq(kelompok.id, sesiKelompok.kelompokId))
-    .where(and(eq(sesiKelompok.sesiId, sesiId), eq(sesiKelompok.kelompokId, kelompokId)))
-    .limit(1);
-  if (naik?.pada) {
-    await catatKejadian(
-      sesiId,
-      "tangan_jawab",
-      {
-        kelompokId,
-        nomor: naik.nomor,
-        detik: Math.max(0, Math.round((Date.now() - naik.pada.getTime()) / 1000)),
-      },
-      session.nim,
-    );
-  }
-  await getDb()
-    .update(sesiKelompok)
-    .set({ mintaBantuanPada: null })
-    .where(and(eq(sesiKelompok.sesiId, sesiId), eq(sesiKelompok.kelompokId, kelompokId)));
-  await writeAudit(session.nim, "bantuan_selesai", { sesiId, kelompokId });
-  res.status(200).json({ ok: true });
-  const g = naik?.nomor ?? (await nomorDariId(kelompokId));
-  antreSesi(res, sesiId, [{ j: "tangan", g, d: { kelompokId, pada: null } }]);
-}
-
 /* ------------------------------------------------------------ feedback */
 
 /** Sessions this student attended (signed in to while it ran), newest
@@ -798,7 +683,7 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
     pemilik = p?.kode ? { kode: p.kode, nama: p.nama } : null;
   }
   // Groupmates' names only (never a NIM), the blanks, and the timeline.
-  const [teman, isian, masuk, tangkap, tunda, dataPertama, bantuan] = await Promise.all([
+  const [teman, isian, masuk, tangkap, tunda, dataPertama] = await Promise.all([
     kelompokNomor
       ? db
           .select({ nama: sesiAnggota.nama })
@@ -848,19 +733,12 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
             ),
           )
       : Promise.resolve([] as { rata: number | null }[]),
-    // Phase 10's session log: the group's first reading and a raised hand.
+    // Phase 10's session log: the group's first reading.
     kelompokNomor
       ? db
           .select({ pada: sql<Date | null>`min(${telemetriLog.dicatatPada})` })
           .from(telemetriLog)
           .where(and(eq(telemetriLog.sesiId, s.id), eq(telemetriLog.kelompokNomor, kelompokNomor)))
-      : Promise.resolve([] as { pada: Date | null }[]),
-    kelompokId
-      ? db
-          .select({ pada: sesiKelompok.mintaBantuanPada })
-          .from(sesiKelompok)
-          .where(and(eq(sesiKelompok.sesiId, s.id), eq(sesiKelompok.kelompokId, kelompokId)))
-          .limit(1)
       : Promise.resolve([] as { pada: Date | null }[]),
   ]);
   const benar = isian.filter((x) => x.benar);
@@ -880,7 +758,6 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
   if (dataPertama[0]?.pada) linimasa.push({ pada: iso(dataPertama[0].pada), jenis: "data" });
   if (s.pengumuman && s.pengumumanPada)
     linimasa.push({ pada: iso(s.pengumumanPada), jenis: "info", teks: s.pengumuman });
-  if (bantuan[0]?.pada) linimasa.push({ pada: iso(bantuan[0].pada), jenis: "bantu" });
   for (const t of tangkap)
     linimasa.push({ pada: t.pada.toISOString(), jenis: t.jenis === "jarak" ? "jarak" : "tangkap" });
   if (s.selesaiPada) linimasa.push({ pada: s.selesaiPada.toISOString(), jenis: "selesai" });
@@ -959,17 +836,6 @@ export async function handleResults(req: ApiRequest, res: ApiResponse, session: 
 }
 
 /* --------------------------------------------- helpers for other actions */
-
-/** Raised hands for a session, for the board (group id -> ISO time). */
-export async function tanganTerangkat(db: Db, sesiId: number): Promise<Record<number, string>> {
-  const rows = await db
-    .select({ kelompokId: sesiKelompok.kelompokId, pada: sesiKelompok.mintaBantuanPada })
-    .from(sesiKelompok)
-    .where(eq(sesiKelompok.sesiId, sesiId));
-  const out: Record<number, string> = {};
-  for (const r of rows) if (r.pada) out[r.kelompokId] = r.pada.toISOString();
-  return out;
-}
 
 /** The member row for a NIM (its group), used by the score ownership check. */
 export async function kelompokDariNim(db: Db, nim: string): Promise<number | null> {

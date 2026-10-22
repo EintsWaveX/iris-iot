@@ -18,7 +18,7 @@
 import { Fragment, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { namaAsisten, useDirektori } from "../../lib/people";
 import { LockSimpleIcon } from "@phosphor-icons/react";
-import { ScoreInput, Switch } from "../ui/Controls";
+import { ScoreInput } from "../ui/Controls";
 import SegmentedControl from "../ui/SegmentedControl";
 import Pill from "../ui/Pill";
 import { unduhXlsx } from "../../lib/xlsx";
@@ -31,7 +31,7 @@ import type { Strings } from "./strings";
 import type { NilaiLive } from "./data";
 import type { AsistenRef, GroupRow, NilaiAnggota } from "./types";
 import { useCaraNilai } from "./caraNilai";
-import { useTandaAbsen } from "./TandaAbsen";
+import { CekAbsen, useTandaAbsen } from "./TandaAbsen";
 import KirimNilai from "./KirimNilai";
 import SeelabsBaca, { SeelabsBacaBaris } from "./seelabs/SeelabsBaca";
 import ChangeAssistant from "./ChangeAssistant";
@@ -241,9 +241,10 @@ export default function NilaiTable({
   }
 
   const absenSwitch = (a: NilaiAnggota, kid: number) => (
-    <Switch
-      on={a.absen}
-      label={t.absenFor(a.nama)}
+    <CekAbsen
+      t={t}
+      nama={a.nama}
+      absen={a.absen}
       disabled={!canEdit(kid)}
       onChange={(on) => absen.ubah(a, on)}
     />
@@ -466,10 +467,7 @@ export default function NilaiTable({
                       {t.total} {a.total}
                     </span>
                   </div>
-                  <span className="scores__absen">
-                    <span className="hint">{t.absen}</span>
-                    {absenSwitch(a, k.id)}
-                  </span>
+                  <span className="scores__absen">{absenSwitch(a, k.id)}</span>
                   <div className="ncard__grid">
                     {data.komponen.map((c) => (
                       <label key={c} className="scores__cell">

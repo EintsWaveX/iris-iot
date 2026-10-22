@@ -131,6 +131,18 @@ function potongPerBulan(potongan: PotonganBaris[]): Map<string, number> {
   return per;
 }
 
+export type StatusBalik = "tidak_ada" | "belum" | "lunas";
+
+/**
+ * Where an Asisten stands on the transfer back to the fund. With no cash
+ * share due nothing is to be returned (it must not read Lunas, nothing was
+ * paid: user, 2026-10-22); otherwise Lunas once what came back covers it.
+ */
+export function statusBalik(kas: number, balik: number): StatusBalik {
+  if (kas <= 0) return "tidak_ada";
+  return balik >= kas ? "lunas" : "belum";
+}
+
 /** Sums units; a month's late cuts come off kotor (never below zero), and
  *  the kas can't exceed the kotor left, so bersih loses at most what it had
  *  and nobody owes kas on money they did not receive. */

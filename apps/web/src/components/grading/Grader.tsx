@@ -686,7 +686,7 @@ function Isi({
               go(1);
             }}
           >
-            {t.simpanLanjut}
+            {nDone >= nomor.length ? t.simpanLanjutSudah : t.simpanLanjut}
           </button>
         </div>
       </div>

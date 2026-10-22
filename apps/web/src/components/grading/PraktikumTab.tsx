@@ -241,7 +241,7 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
                   data-st={aksi ? "todo" : "sent"}
                   onClick={() => setBuka(s)}
                 >
-                  {t.bukaTabel}
+                  {aksi ? t.bukaTabel : t.bukaTabelSudah}
                 </button>
               </section>
             );

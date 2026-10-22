@@ -138,7 +138,6 @@ export const DS = dict({
     coba: "Coba Lagi",
     tour: [
       ["Langkah Berikutnya", "Kartu ini selalu menunjuk hal yang perlu kamu kerjakan sekarang."],
-      ["Minta Bantuan", "Tombol tangan di bilah atas memanggil asistenmu."],
       [
         "Live",
         "Data papanmu, Serial Monitor, dan tangkapan untuk jurnal ada di halaman modul, langkah Live.",
@@ -273,7 +272,6 @@ export const DS = dict({
     coba: "Try Again",
     tour: [
       ["Next Step", "This card always points at what to do now."],
-      ["Ask for Help", "The hand button in the top bar calls your assistant."],
       [
         "Live",
         "Your board's data, the Serial Monitor and journal captures are on the module page, in the Live step.",
@@ -406,7 +404,6 @@ export const DS = dict({
     coba: "再试一次",
     tour: [
       ["下一步", "这张卡片总是告诉你现在该做什么。"],
-      ["求助", "顶栏的举手按钮可以叫助教。"],
       ["Live", "你板子的数据、串口监视器和报告数据采集都在模块页的 Live 步骤里。"],
     ] as [string, string][],
   },

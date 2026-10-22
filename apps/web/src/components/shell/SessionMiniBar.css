@@ -123,12 +123,14 @@
   margin-left: auto;
 }
 
-.minibar__help {
+/* Their session runs and they haven't joined (2026-10-07): a join button,
+   which keeps a word on phones (an arrow alone says nothing). */
+.minibar__ikut {
   align-items: center;
   background: var(--surface-2);
-  border: 1px solid var(--hairline-strong);
+  border: 1px solid var(--accent);
   border-radius: 999px;
-  color: var(--text);
+  color: var(--accent-bright);
   cursor: pointer;
   display: inline-flex;
   font: inherit;
@@ -144,59 +146,17 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .minibar__help:hover {
-    border-color: var(--warn);
-  }
-}
-
-/* Their session runs and they haven't joined (2026-10-07): the hand's place
-   holds a join button, which keeps a word on phones (an arrow alone says
-   nothing). */
-.minibar__ikut {
-  border-color: var(--accent);
-  color: var(--accent-bright);
-}
-
-@media (hover: hover) and (pointer: fine) {
   .minibar__ikut:hover {
     border-color: var(--accent-bright);
   }
 }
 
-.minibar__ikut-s {
-  display: none;
-}
-
-.minibar__help:active {
+.minibar__ikut:active {
   transform: scale(0.97);
 }
 
-.minibar__help[aria-pressed="true"] {
-  background: var(--warn-soft);
-  border-color: var(--warn);
-  color: var(--warn);
-}
-
-:root:not([data-motion-tier="0"]) .minibar__help[aria-pressed="true"] svg {
-  animation: minibar-wave 1.6s ease-in-out infinite;
-  transform-origin: 70% 90%;
-}
-
-@keyframes minibar-wave {
-  0%,
-  60%,
-  100% {
-    transform: rotate(0);
-  }
-  15% {
-    transform: rotate(14deg);
-  }
-  30% {
-    transform: rotate(-8deg);
-  }
-  45% {
-    transform: rotate(10deg);
-  }
+.minibar__ikut-s {
+  display: none;
 }
 
 .minibar__bell {
@@ -319,17 +279,11 @@
   .minibar__time svg {
     display: none;
   }
-  .minibar__help span {
-    display: none;
-  }
-  .minibar__help {
-    padding: 0;
-    justify-content: center;
-    width: 44px;
-  }
-  .minibar__help.minibar__ikut {
+  .minibar__ikut {
     padding: 0 14px;
-    width: auto;
+  }
+  .minibar__ikut .minibar__ikut-l {
+    display: none;
   }
   .minibar__ikut .minibar__ikut-s {
     display: inline;
@@ -464,21 +418,4 @@
   line-height: 1;
   place-items: center;
   width: 1.3em;
-}
-
-/* The Asisten bar's raised hands (2026-10-06). */
-.minibar__hands {
-  background: var(--warn-soft);
-  border-color: var(--warn);
-  color: var(--text);
-}
-
-.minibar__hands svg {
-  color: var(--warn);
-}
-
-@media (max-width: 639px) {
-  .minibar__hands span {
-    display: none;
-  }
 }

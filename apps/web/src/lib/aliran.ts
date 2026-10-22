@@ -8,8 +8,8 @@
  * passes each message only to those allowed to see it (`bolehTerima`):
  * - an Asisten sees everything;
  * - a Praktikan sees board telemetry of every group (the Live room's group
- *   picker allows it today), and serial lines, blank results, raised hands
- *   and hints of their own group only;
+ *   picker allows it today), and serial lines, blank results and hints of
+ *   their own group only;
  * - the `pi` room takes Asisten only.
  * A group's laptop sends its board lines and readings up its own socket
  * (`saringNaik` checks them, and the group comes from the ticket, never
@@ -93,11 +93,10 @@ export async function cekTiketAliran(
  * tel       board readings of a group (laptop for Module 1, the Pi for 2 to 4)
  * serial    a group laptop's raw board lines
  * jawaban   a blank was checked (the group's own answer, never the key)
- * tangan    a group raised or lowered its hand
  * petunjuk  a hint was asked for, cancelled or answered
  * denyut    a Pi heartbeat (the `pi` room)
  */
-export const JENIS_ALIRAN = ["tel", "serial", "jawaban", "tangan", "petunjuk", "denyut"] as const;
+export const JENIS_ALIRAN = ["tel", "serial", "jawaban", "petunjuk", "denyut"] as const;
 export type JenisAliran = (typeof JENIS_ALIRAN)[number];
 
 export interface PesanAliran {

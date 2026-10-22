@@ -37,7 +37,8 @@ export const ALASAN_MIN = 5;
 /**
  * One line in a session's incident log (Reports › Incidents). Kinds the
  * system writes: mulai, akhiri, batal, siarkan, lanjutkan, durasi,
- * pasangan, akun_seelabs, tangan, tangan_jawab. Asisten write "catatan".
+ * pasangan, akun_seelabs (tangan and tangan_jawab, the raised hands, were
+ * written until 2026-10-22 and still show in old logs). Asisten write "catatan".
  * Best effort: a failed log line never fails the action it describes.
  */
 export async function catatKejadian(

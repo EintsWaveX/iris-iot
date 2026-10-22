@@ -1,8 +1,8 @@
 /**
  * First-visit coach marks for praktikan (Phase 8, steps redone in Phase 9):
- * three short bubbles that point at the next step card, the raise hand
- * button and the Live card. Seen once per browser (localStorage), skippable, and
- * a step whose target is not on the page is simply left out.
+ * two short bubbles that point at the next step card and the Live card. Seen
+ * once per browser (localStorage), skippable, and a step whose target is not
+ * on the page is simply left out.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -12,9 +12,9 @@ import { DS } from "./dashStrings";
 
 const KEY = "iris-coach-v2";
 
-// Phase 9 (mockup p-dash tour): the next step card, the raise hand button
-// and the Live card. Titles and text come from the dashboard strings.
-const SEL = [".dash__next", ".minibar__help", ".dash__live-cta"];
+// Phase 9 (mockup p-dash tour): the next step card and the Live card. Titles
+// and text come from the dashboard strings.
+const SEL = [".dash__next", ".dash__live-cta"];
 const STEPS = Object.fromEntries(
   (Object.keys(DS) as Lang[]).map((l) => [
     l,

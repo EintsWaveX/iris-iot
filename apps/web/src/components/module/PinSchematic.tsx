@@ -222,6 +222,47 @@ export function useSchematic(
   };
 }
 
+/**
+ * Keeps an embedded Wokwi, Tinkercad or Canva frame from pulling the page to
+ * itself. Such a frame takes focus when it finishes loading and the browser
+ * scrolls the page to a focused frame, so a Praktikan scrolling Persiapan Alat
+ * a little further down was thrown onto the simulator the moment the lazy
+ * frame loaded (user, 2026-10-22). A scroll that is one big instant step,
+ * with no wheel, key or touch just before it, is put back; scrolling the
+ * person does (including smooth runs of small steps) is never touched.
+ */
+function useTahanLompat() {
+  useEffect(() => {
+    let masukan = 0; // when the person last scrolled, pressed a key or touched
+    let y = window.scrollY;
+    let waktu = performance.now();
+    const tanda = () => {
+      masukan = performance.now();
+    };
+    const gulir = () => {
+      const kini = performance.now();
+      const sekarang = window.scrollY;
+      // One big step after a pause, not a run of small ones.
+      const lompat = Math.abs(sekarang - y) > 240 && kini - waktu > 120;
+      waktu = kini;
+      if (lompat && kini - masukan > 400) window.scrollTo({ top: y, behavior: "instant" });
+      else y = sekarang;
+    };
+    const jenis = ["wheel", "touchstart", "touchmove", "keydown", "pointerdown"] as const;
+    for (const j of jenis) window.addEventListener(j, tanda, { passive: true, capture: true });
+    window.addEventListener("scroll", gulir, { passive: true });
+    return () => {
+      for (const j of jenis) window.removeEventListener(j, tanda, { capture: true });
+      window.removeEventListener("scroll", gulir);
+    };
+  }, []);
+}
+
+function BingkaiSkema({ src, title }: { src: string; title: string }) {
+  useTahanLompat();
+  return <iframe src={src} title={title} loading="lazy" allowFullScreen />;
+}
+
 /* ------------------------------------------------------------ the diagram */
 
 const ROW = 40;
@@ -614,7 +655,7 @@ export default function PinSchematic({
 
   const schematic = !sch.src ? null : sch.frame ? (
     <div className="schem-thumb schem-thumb--frame">
-      <iframe src={sch.src} title={`${t.uploaded} · ${pin.judul}`} loading="lazy" allowFullScreen />
+      <BingkaiSkema src={sch.src} title={`${t.uploaded} · ${pin.judul}`} />
       <span className="schem-thumb__bar">
         <span className="schem-thumb__title">{t.uploaded}</span>
         <a href={sch.src} target="_blank" rel="noopener noreferrer" aria-label={t.open}>

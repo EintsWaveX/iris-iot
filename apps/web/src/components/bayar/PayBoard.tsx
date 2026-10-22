@@ -7,7 +7,7 @@
  */
 import { useMemo, useState, type ReactNode } from "react";
 import { tanggalPanjang } from "../../lib/app";
-import { jumlahkan, namaPeriode, rupiah } from "../../lib/bayar";
+import { jumlahkan, namaPeriode, rupiah, statusBalik } from "../../lib/bayar";
 import type { Lang } from "../../lib/kelas";
 import { unduhXlsx } from "../../lib/xlsx";
 import BacaCards from "./BacaCards";
@@ -356,17 +356,22 @@ export default function PayBoard({
                       <>
                         <td>
                           <span
-                            className={`pill ${r.masuk >= r.j.kotor ? "pill--ok" : "pill--warn"}`}
+                            className={`pill ${r.j.kotor > 0 && r.masuk >= r.j.kotor ? "pill--ok" : "pill--warn"}`}
                           >
-                            {r.masuk >= r.j.kotor ? t.arrived : t.notYet}
+                            {r.j.kotor > 0 && r.masuk >= r.j.kotor ? t.arrived : t.notYet}
                           </span>
                         </td>
                         <td>
-                          <span
-                            className={`pill ${r.balik >= r.j.kas ? "pill--ok" : "pill--warn"}`}
-                          >
-                            {r.balik >= r.j.kas ? t.lunas : t.notYet}
-                          </span>
+                          {(() => {
+                            const s = statusBalik(r.j.kas, r.balik);
+                            return (
+                              <span
+                                className={`pill ${s === "lunas" ? "pill--ok" : s === "belum" ? "pill--warn" : ""}`}
+                              >
+                                {s === "lunas" ? t.lunas : s === "belum" ? t.notYet : t.tanpaKas}
+                              </span>
+                            );
+                          })()}
                         </td>
                       </>
                     )}

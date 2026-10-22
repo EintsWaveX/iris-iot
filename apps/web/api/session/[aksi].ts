@@ -34,7 +34,7 @@
  * POST /api/session/nilai { sesiId, nim, komponen, skor } (Stage 12, P8) — one field; refused with bukan_pemilik unless the caller holds that group.
  *      { sesiId, nims, komponen, skor } — the same field for several Praktikan at once (Sama Rata).
  *      { sesiId, nim, absen } — marks a Praktikan Tidak Hadir (every field 0) or takes the mark off (the zeros go).
- * Phase 8 actions (assignment, help, feedback, results, schedule) are documented in api/_lib/phase8.ts.
+ * Phase 8 actions (assignment, feedback, results, schedule) are documented in api/_lib/phase8.ts.
  * Phase 9: tim (api/_lib/tim.ts), beranda and jendela (api/_lib/beranda.ts),
  * schedule and penugasan (api/_lib/penugasan-api.ts),
  * rosterslot, praktikan and susulan (api/_lib/persiapan.ts), brief (api/_lib/brief.ts),
@@ -159,14 +159,11 @@ import {
 import {
   handleAssignmentGet,
   handleAssignmentPost,
-  handleHelpPraktikan,
-  handleHelpAsisten,
   handleFeedbackPost,
   handleFeedbackGet,
   handleResults,
   handleMine,
   pemilikKelompok,
-  tanganTerangkat,
   kelompokDariNim,
   cekKendaliSesi,
   hakKendaliSesi,
@@ -194,18 +191,7 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
     res.status(200).json({ ok: true, sesi: null });
     return;
   }
-  // P8: a praktikan also learns whether their own group's hand is up, so the
-  // mini-bar's "Minta bantuan" button survives a reload. Only their group.
   const who = currentSession(req);
-  let mintaBantuanPada: string | null = null;
-  if (who?.role === "praktikan" && who.kelompokId && who.sesiId === running.id) {
-    const [row] = await getDb()
-      .select({ pada: sesiKelompok.mintaBantuanPada })
-      .from(sesiKelompok)
-      .where(and(eq(sesiKelompok.sesiId, running.id), eq(sesiKelompok.kelompokId, who.kelompokId)))
-      .limit(1);
-    mintaBantuanPada = row?.pada?.toISOString() ?? null;
-  }
   // 2026-10-07: a Praktikan an Asisten moved to another group mid-session is
   // told so on whatever page they are (their cookie still names the old one).
   let dipindahKe: number | null = null;
@@ -242,7 +228,6 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       durasiMenit: durasiSesi(running),
       jumlahKelompok: running.jumlahKelompok,
       jenis: running.jenis,
-      mintaBantuanPada,
       // A praktikan whose cookie belongs to an earlier session has to sign
       // in again to be counted in this one (the mini-bar asks them to).
       milikSaya: who?.role === "praktikan" ? who.sesiId === running.id : null,
@@ -251,12 +236,6 @@ async function handleNow(req: ApiRequest, res: ApiResponse) {
       lihatSaja: who?.role === "praktikan" && who.sesiId !== running.id ? !!who.lihat : undefined,
       // An Asisten teaching it gets the "Sesimu berjalan" bar on every page.
       mengajar: who?.role === "asisten" ? await asistenMengajar(running, who.nim) : null,
-      // Asisten only (2026-10-06): how many groups have a hand up, so the
-      // bar on every other page can say so and lead to the board.
-      tangan:
-        who?.role === "asisten"
-          ? Object.keys(await tanganTerangkat(getDb(), running.id)).length
-          : undefined,
       // The sign-in code, for the projector and the Asisten's bars. Never
       // to a Praktikan or a visitor.
       kodeMasuk: who?.role === "asisten" ? kodeMasukSesi(running) : undefined,
@@ -691,7 +670,7 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
   // Every read below depends only on the session, so they go out together
   // (the console polls this every 6 s; seven round trips in a row made its
   // first paint wait on the slowest chain, not the slowest query).
-  const [groups, members, overrides, jawabanRows, masukRows, telemetriRows, tangan, pemilikMap] =
+  const [groups, members, overrides, jawabanRows, masukRows, telemetriRows, pemilikMap] =
     await Promise.all([
       db.select().from(kelompok).where(eq(kelompok.aktif, true)),
       db
@@ -739,8 +718,7 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
         })
         .from(telemetriLog)
         .where(eq(telemetriLog.sesiId, running.id)),
-      // P8: raised hands and group owners, so the board needs one poll only.
-      tanganTerangkat(db, running.id),
+      // P8: group owners, so the board needs one poll only.
       pemilikKelompok(db, running.id),
     ]);
   const overrideByKelompokId = new Map(overrides.map((o) => [o.kelompokId, o]));
@@ -868,7 +846,6 @@ async function handleLaporan(req: ApiRequest, res: ApiResponse) {
     },
     kelompok: daftarKelompok,
     stuck,
-    tangan,
     pemilik,
   });
 }
@@ -1743,14 +1720,6 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
 
   // P8 actions a praktikan can call (each checks the role it needs).
-  if (aksi === "help") {
-    if (!requireMethod(req, res, "POST")) return;
-    const who = requireAnyRole(req, res, ["asisten", "praktikan"]);
-    if (!who) return;
-    return who.role === "praktikan"
-      ? handleHelpPraktikan(req, res, who)
-      : handleHelpAsisten(req, res, who);
-  }
   if (aksi === "feedback") {
     if (req.method === "POST") {
       const who = requireRole(req, res, "praktikan");

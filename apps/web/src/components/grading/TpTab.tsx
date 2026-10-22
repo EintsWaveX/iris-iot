@@ -710,7 +710,7 @@ function GroupCard({
               data-st={masuk > 0 && done >= masuk ? "sent" : "todo"}
               onClick={() => buka(pertama)}
             >
-              {t.nilaiKelompok}
+              {masuk > 0 && done >= masuk ? t.nilaiKelompokSudah : t.nilaiKelompok}
             </button>
             <IconButton
               icon={DownloadSimpleIcon}

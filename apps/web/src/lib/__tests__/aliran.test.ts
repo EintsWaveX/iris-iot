@@ -75,13 +75,13 @@ describe("who sees what", () => {
   const g2 = { peran: "praktikan" as const, g: 2 };
 
   it("an Asisten sees every group and the Pi", () => {
-    for (const j of ["tel", "serial", "jawaban", "tangan", "petunjuk", "denyut"] as const)
+    for (const j of ["tel", "serial", "jawaban", "petunjuk", "denyut"] as const)
       expect(bolehTerima(asisten, { j, g: 3, d: null })).toBe(true);
   });
 
   it("a Praktikan sees telemetry of any group, the rest of their own group only", () => {
     expect(bolehTerima(g2, { j: "tel", g: 3, d: null })).toBe(true);
-    for (const j of ["serial", "jawaban", "tangan", "petunjuk"] as const) {
+    for (const j of ["serial", "jawaban", "petunjuk"] as const) {
       expect(bolehTerima(g2, { j, g: 2, d: null })).toBe(true);
       expect(bolehTerima(g2, { j, g: 3, d: null })).toBe(false);
       expect(bolehTerima(g2, { j, g: null, d: null })).toBe(false);
@@ -135,7 +135,8 @@ describe("what a page sends up", () => {
 
 describe("the API's batch", () => {
   it("names known kinds and plain groups only", () => {
-    expect(saringKiriman({ m: [{ j: "tangan", g: 1, d: { naik: true } }] })).toHaveLength(1);
+    expect(saringKiriman({ m: [{ j: "jawaban", g: 1, d: { benar: true } }] })).toHaveLength(1);
+    expect(saringKiriman({ m: [{ j: "tangan", g: 1, d: { naik: true } }] })).toBeNull();
     expect(saringKiriman({ m: [{ j: "kunci", g: 1, d: {} }] })).toBeNull();
     expect(saringKiriman({ m: [{ j: "tel", g: "1", d: [] }] })).toBeNull();
     expect(saringKiriman({ m: [] })).toBeNull();

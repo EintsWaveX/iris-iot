@@ -5,7 +5,7 @@
  * strip, and a way back to the session. The nav clock steps aside for it.
  */
 import type { CSSProperties } from "react";
-import { ArrowRightIcon, HandIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import { dict, href, type SesiNow } from "../../lib/app";
 import { durasiSesi } from "../../lib/jadwal";
 import type { Lang } from "../../lib/kelas";
@@ -20,19 +20,16 @@ const T = dict({
     region: "Sesimu berjalan",
     name: "Sesimu Berjalan",
     open: "Buka Sesi",
-    hands: (n: number) => `${n} kelompok minta bantuan`,
   },
   en: {
     region: "Your session is running",
     name: "Your Session Is Running",
     open: "Open Session",
-    hands: (n: number) => `${n} ${n === 1 ? "group asks" : "groups ask"} for help`,
   },
   zh: {
     region: "你的课正在进行",
     name: "你的课正在进行",
     open: "打开这节课",
-    hands: (n: number) => `${n} 个小组请求帮助`,
   },
 });
 
@@ -61,17 +58,6 @@ export default function AsistenMiniBar({ lang, s }: { lang: Lang; s: SesiNow }) 
       </div>
       <div className="minibar__actions">
         {s.kodeMasuk && <KodeMasuk kode={s.kodeMasuk} lang={lang} />}
-        {/* Raised hands lead straight to the board (2026-10-06). */}
-        {!!s.tangan && (
-          <a
-            className="btn btn--sm minibar__hands"
-            href={`${href(lang, "/session")}#board`}
-            aria-label={t.hands(s.tangan)}
-          >
-            <HandIcon size={16} aria-hidden="true" />
-            <span>{t.hands(s.tangan)}</span>
-          </a>
-        )}
         <a className="btn btn--inverse btn--sm minibar__open" href={href(lang, "/session")}>
           <span>{t.open}</span>
           <ArrowRightIcon size={16} aria-hidden="true" />

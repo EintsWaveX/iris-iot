@@ -94,7 +94,6 @@ export interface Laporan {
   } | null;
   kelompok: GroupRow[];
   stuck: Stuck[];
-  tangan?: Record<string, string>;
   pemilik?: Record<string, string>;
 }
 

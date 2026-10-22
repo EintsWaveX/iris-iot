@@ -18,7 +18,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { getJson, localeOf, tanggalPanjang, useMe } from "../../lib/app";
-import { jumlahkan, rupiah } from "../../lib/bayar";
+import { jumlahkan, rupiah, statusBalik } from "../../lib/bayar";
 import { hariIniWib, SLOT_MULAI } from "../../lib/jadwal";
 import { kelasLabel, modulLabel, slotLabel } from "../../lib/labels";
 import {
@@ -1051,6 +1051,7 @@ const KAS = {
     cB: "Bersih",
     cBalik: "Transfer Balik",
     lunas: "Lunas",
+    tanpaKas: "Tidak Ada",
     belum: "Belum",
     open: "Buka Pembayaran",
   },
@@ -1066,6 +1067,7 @@ const KAS = {
     cB: "Net",
     cBalik: "Transfer Back",
     lunas: "Paid",
+    tanpaKas: "None Due",
     belum: "Not Yet",
     open: "Open Payments",
   },
@@ -1081,6 +1083,7 @@ const KAS = {
     cB: "净额",
     cBalik: "转回",
     lunas: "已付",
+    tanpaKas: "无需转回",
     belum: "还没有",
     open: "打开付款",
   },
@@ -1107,7 +1110,9 @@ function KasTotals({
         .filter((x) => x.nim === nim && x.jenis === "balik")
         .reduce((a, x) => a + x.jumlah, 0);
       const persen = [...new Set(us.map((u) => u.kasPersen))];
-      return { nim, j, lunas: nim === data.bendahara || balik >= j.kas, persen };
+      // The Bendahara holds the money, so no transfer back for them: Lunas.
+      const status = nim === data.bendahara ? "lunas" : statusBalik(j.kas, balik);
+      return { nim, j, status, persen };
     })
     .sort((a, b) => dir.nama(a.nim).localeCompare(dir.nama(b.nim)));
   const total = baris.reduce(
@@ -1130,7 +1135,7 @@ function KasTotals({
         r.j.kotor,
         r.j.kas,
         r.j.bersih,
-        r.lunas ? k.lunas : k.belum,
+        r.status === "lunas" ? k.lunas : r.status === "belum" ? k.belum : k.tanpaKas,
       ]),
       lang,
     ).then(() => window.Toast?.show(t.exported(baris.length, "XLSX"), "ok"));
@@ -1195,7 +1200,13 @@ function KasTotals({
                   <b>{rupiah(r.j.bersih)}</b>
                 </td>
                 <td>
-                  {r.lunas ? <Pill tone="ok">{k.lunas}</Pill> : <Pill tone="warn">{k.belum}</Pill>}
+                  {r.status === "lunas" ? (
+                    <Pill tone="ok">{k.lunas}</Pill>
+                  ) : r.status === "belum" ? (
+                    <Pill tone="warn">{k.belum}</Pill>
+                  ) : (
+                    <Pill>{k.tanpaKas}</Pill>
+                  )}
                 </td>
               </tr>
             ))}

@@ -249,7 +249,6 @@ export interface SesiNow {
   durasiMenit?: number;
   jumlahKelompok?: number;
   jenis?: "reguler" | "susulan" | "tot";
-  mintaBantuanPada: string | null;
   /** Praktikan only: false when their sign-in belongs to an earlier session. */
   milikSaya?: boolean | null;
   /** Praktikan only: the group an Asisten moved them to this session. */
@@ -264,8 +263,6 @@ export interface SesiNow {
   mengajar?: boolean | null;
   /** Asisten only: the four digits a Praktikan types to sign in. */
   kodeMasuk?: string;
-  /** Asisten only: how many groups have a hand up. */
-  tangan?: number;
 }
 
 export function useSessionNow(enabled = true) {
