@@ -15,6 +15,8 @@ export interface SeelabsData extends SesiSeelabs {
   pemberi: string[];
   /** Asisten who can't lend, with why (shown dimmed in the picker). */
   pemberiTolak: PemberiTolak[];
+  /** Group number to the Asisten its holder covers, offered first (when they can lend). */
+  saran?: Record<number, string>;
 }
 
 type JawabSeelabs = ({ ok: true } & SeelabsData) | { ok: false; kode?: string };

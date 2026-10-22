@@ -4,6 +4,7 @@ import {
   bedaKlp,
   cocokkanKlp,
   pilahPemberi,
+  saranPinjam,
   sidikPayload,
   statusSeelabs,
 } from "../seelabs";
@@ -138,5 +139,29 @@ describe("whose SeeLabs account", () => {
     expect(s({ adaNilai: false })).toBe("kosong");
     expect(s({ disimpan: { sidik: "x" } })).toBe("terkirim");
     expect(s({ disimpan: { sidik: "y" } })).toBe("berubah");
+  });
+});
+
+describe("saranPinjam", () => {
+  const kursi = [
+    { nomor: 1, kode: "OCU", jenis: "tetap" as const, tetap: "OCU", izin: false },
+    { nomor: 2, kode: "OCU", jenis: "pengganti" as const, tetap: "YEN", izin: true },
+    { nomor: 3, kode: "NAB", jenis: "sukarela" as const, tetap: null, izin: false },
+    { nomor: 4, kode: null, jenis: "tetap" as const, tetap: "GMW", izin: true },
+  ];
+  const nim = new Map([
+    ["OCU", "n-ocu"],
+    ["YEN", "n-yen"],
+    ["GMW", "n-gmw"],
+  ]);
+
+  it("suggests the Asisten a Substitute replaces, per group", () => {
+    expect(saranPinjam(kursi, nim)).toEqual(new Map([[2, "n-yen"]]));
+  });
+
+  it("suggests nobody for an own seat, a volunteer on an open seat, or an unknown code", () => {
+    expect(saranPinjam(kursi.slice(0, 1), nim).size).toBe(0);
+    expect(saranPinjam(kursi.slice(2), nim).size).toBe(0);
+    expect(saranPinjam(kursi.slice(1, 2), new Map()).size).toBe(0);
   });
 });

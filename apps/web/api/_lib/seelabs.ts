@@ -23,7 +23,8 @@ import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody } from "./http.js";
 import { muatOrang } from "./hak.js";
-import { pemilikKelompok } from "./phase8.js";
+import { jadwalUntuk, pemilikKelompok } from "./phase8.js";
+import { muatTanggal } from "./penugasan-api.js";
 import { l1PerKelompok } from "./l1-otomatis.js";
 import { getDb } from "../../src/lib/db.js";
 import {
@@ -48,6 +49,7 @@ import {
   AKUN_MAKS_SESI_HARI,
   akunKelompok,
   pilahPemberi,
+  saranPinjam,
   sidikPayload,
   statusSeelabs,
   type BarisSeelabs,
@@ -341,6 +343,25 @@ async function pemberiPinjam(
   });
 }
 
+/**
+ * The lender to suggest first for each group of the session: when its holder
+ * covers someone's seat, that someone (user, 2026-10-22), as long as they
+ * can lend. Group number to NIM.
+ */
+async function saranPemberi(
+  db: Db,
+  data: SesiSeelabs,
+  pemberi: readonly string[],
+): Promise<Record<number, string>> {
+  const j = await jadwalUntuk(db, data.sesi.tanggal, data.sesi.slot);
+  if (!j) return {};
+  const m = (await muatTanggal(db, [j], new Map([[j.id, data.sesi.tanggal]]))).get(j.id);
+  if (!m) return {};
+  const orang = await db.select({ nim: asisten.nim, kode: asisten.kode }).from(asisten);
+  const saran = saranPinjam(m.kursi, new Map(orang.map((o) => [o.kode.toUpperCase(), o.nim])));
+  return Object.fromEntries([...saran].filter(([, nim]) => pemberi.includes(nim)));
+}
+
 export async function handleSeelabsGet(req: ApiRequest, res: ApiResponse) {
   const db = getDb();
   const sesiId = posInt(req.query.sesiId);
@@ -358,7 +379,13 @@ export async function handleSeelabsGet(req: ApiRequest, res: ApiResponse) {
     return;
   }
   const { pemberi, tolak } = await pemberiPinjam(db, data);
-  res.status(200).json({ ok: true, ...data, pemberi, pemberiTolak: tolak });
+  res.status(200).json({
+    ok: true,
+    ...data,
+    pemberi,
+    pemberiTolak: tolak,
+    saran: await saranPemberi(db, data, pemberi),
+  });
 }
 
 export async function handleSeelabsPost(

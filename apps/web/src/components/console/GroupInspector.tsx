@@ -29,7 +29,6 @@ import {
   type KeyboardEvent,
 } from "react";
 import { ArrowRightIcon, HandCoinsIcon, HandIcon, LockSimpleIcon } from "@phosphor-icons/react";
-import Dropdown from "../ui/Dropdown";
 import Nil from "../ui/Nil";
 import Pill from "../ui/Pill";
 import { ScoreInput, Switch } from "../ui/Controls";
@@ -53,8 +52,9 @@ import { Spark, VCard } from "../live/LivePanes";
 import DataModal, { type DataKind } from "../live/DataModal";
 import "../live/live-room.css";
 import StatusPill from "./seelabs/StatusPill";
-import { kirimSeelabs, type SeelabsData } from "./seelabs/data";
-import { SL, pesanSl } from "./seelabs/strings";
+import type { SeelabsData } from "./seelabs/data";
+import { AkunPicker } from "./seelabs/AkunPicker";
+import { SL } from "./seelabs/strings";
 import ChangeAssistant, { usePasangan } from "./ChangeAssistant";
 import { useCaraNilai } from "./caraNilai";
 import { useTandaAbsen } from "./TandaAbsen";
@@ -922,38 +922,9 @@ function useSeelabsGroup(p: InspectorProps) {
 function LenderBanner(p: InspectorProps) {
   const { lang, g, meNim, seelabs } = p;
   const t = SL[lang];
-  const dir = useDirektori();
-  const [busy, setBusy] = useState(false);
   const { sg, punyaku, kedua, penuh } = useSeelabsGroup(p);
   if (!seelabs || !sg || !(kedua || penuh)) return null;
   const label = kelompokLabel(g.nomor, lang);
-
-  async function pilih(v: string) {
-    const akun = v === "none" ? null : v;
-    if (akun === (sg!.pinjam ? sg!.akun : null)) return;
-    setBusy(true);
-    try {
-      const r = await kirimSeelabs({
-        aksi: "akun",
-        sesiId: seelabs!.sesi.id,
-        kelompok: g.nomor,
-        akun,
-      });
-      if (!r.ok) {
-        window.Toast?.show(pesanSl(t, r.kode), "danger");
-        return;
-      }
-      window.Toast?.show(
-        akun ? t.lenderLogged(dir.nama(meNim), dir.nama(akun), label) : t.lenderCleared(label),
-        "ok",
-      );
-      p.onSeelabsChanged();
-    } catch {
-      window.Toast?.show(t.codeFallback, "danger");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <div className="banner banner--warn dmbanner">
@@ -961,32 +932,12 @@ function LenderBanner(p: InspectorProps) {
       <div className="stack stack--sm grow">
         <b>{penuh ? t.capTitle : t.holdTitle(punyaku.length)}</b>
         <span>{penuh ? t.capBody : t.holdBody(label)}</span>
-        <Dropdown
-          id={`see-akun-${g.nomor}`}
-          label={t.accountFor(label)}
-          value={sg.pinjam && sg.akun ? sg.akun : "none"}
-          disabled={busy}
-          onChange={(v) => void pilih(v)}
-          options={[
-            { value: "none", label: t.pickLender },
-            ...(sg.pinjam && sg.akun && !seelabs.pemberi.includes(sg.akun)
-              ? [{ value: sg.akun, label: dir.nama(sg.akun) }]
-              : []),
-            ...seelabs.pemberi.map((nim) => ({ value: nim, label: dir.nama(nim) })),
-            ...seelabs.pemberiTolak
-              .filter((x) => !(x.alasan === "dipinjam" && x.kelompok === g.nomor))
-              .map((x) => ({
-                value: x.nim,
-                label: dir.nama(x.nim),
-                disabled: true,
-                note:
-                  x.alasan === "pegang"
-                    ? t.lenderWhyHold
-                    : x.alasan === "dua_sesi"
-                      ? t.lenderWhyCap
-                      : t.lenderWhyLent(kelompokLabel(x.kelompok ?? 0, lang)),
-              })),
-          ]}
+        <AkunPicker
+          lang={lang}
+          seelabs={seelabs}
+          nomor={g.nomor}
+          meNim={meNim}
+          onChanged={p.onSeelabsChanged}
         />
       </div>
     </div>

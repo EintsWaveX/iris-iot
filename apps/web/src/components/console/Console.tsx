@@ -455,7 +455,14 @@ export default function Console({ lang }: { lang: Lang }) {
         <div className="console">
           {offline}
           {lalu.view === "seelabs" ? (
-            <SeelabsView lang={lang} onBack={tutupLalu} backLabel={SL[lang].backHome} />
+            <SeelabsView
+              lang={lang}
+              onBack={tutupLalu}
+              backLabel={SL[lang].backHome}
+              seelabs={seelabsLalu.data}
+              meNim={me!.nim}
+              onChanged={seelabsLalu.refresh}
+            />
           ) : (
             <>
               <div className="console__modes">
@@ -485,6 +492,9 @@ export default function Console({ lang }: { lang: Lang }) {
             lang={lang}
             onBack={closeSeelabs}
             backLabel={done ? undefined : SL[lang].backHome}
+            seelabs={seelabs.data}
+            meNim={me?.nim ?? ""}
+            onChanged={seelabs.refresh}
           />
         </div>
       );
@@ -620,7 +630,13 @@ export default function Console({ lang }: { lang: Lang }) {
     return (
       <div className="console" style={{ "--mod-hue": `var(--mod-${sesi.modul})` } as CSSProperties}>
         {offline}
-        <SeelabsView lang={lang} onBack={closeSeelabs} />
+        <SeelabsView
+          lang={lang}
+          onBack={closeSeelabs}
+          seelabs={seelabs.data}
+          meNim={me?.nim ?? ""}
+          onChanged={seelabs.refresh}
+        />
       </div>
     );
   }

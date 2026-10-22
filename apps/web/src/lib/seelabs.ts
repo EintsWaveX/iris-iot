@@ -13,6 +13,7 @@
  * `akunKelompok` works out whose account each group goes through.
  */
 import { NILAI_KOMPONEN, type NilaiKomponen } from "./nilai-komponen.js";
+import { gantiKursi, type KursiKelompok } from "./penugasan-minggu.js";
 
 /** SeeLabs' own column order on Input Nilai Praktikum. */
 export const SEELABS_KOLOM = NILAI_KOMPONEN;
@@ -172,6 +173,25 @@ export function pilahPemberi(p: {
     else pemberi.push(nim);
   }
   return { pemberi, tolak };
+}
+
+/**
+ * The lender to suggest first for each group a Substitute or Volunteer holds
+ * on a seat that belongs to someone (user, 2026-10-22): the Asisten they
+ * replace. Own seats, open seats and codes that match no NIM suggest nobody;
+ * the Asisten may still pick anyone who can lend.
+ */
+export function saranPinjam(
+  kursi: readonly KursiKelompok[],
+  kodeKeNim: ReadonlyMap<string, string>,
+): Map<number, string> {
+  const hasil = new Map<number, string>();
+  for (const k of kursi) {
+    const untuk = gantiKursi(k)?.untuk;
+    const nim = untuk ? kodeKeNim.get(untuk.trim().toUpperCase()) : undefined;
+    if (nim) hasil.set(k.nomor, nim);
+  }
+  return hasil;
 }
 
 export type StatusSeelabs = "terkirim" | "berubah" | "siap" | "butuh_akun" | "kosong";

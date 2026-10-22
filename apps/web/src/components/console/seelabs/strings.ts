@@ -40,6 +40,9 @@ export const SL = dict({
     lenderLogged: (me: string, who: string, g: string) =>
       `Dicatat: ${me} memakai akun SeeLabs ${who} untuk ${g}.`,
     lenderCleared: (g: string) => `Akun pinjaman untuk ${g} dilepas.`,
+    lenderSuggested: "Disarankan: yang kamu gantikan",
+    panelBody:
+      "Pilih akun SeeLabs untuk tiap kelompok di bawah sebelum Kirim Nilai. Kalau kamu menggantikan seseorang, akunnya disarankan lebih dulu; selain itu pilih siapa saja yang bisa meminjamkan. Unitnya tetap milikmu dan Bendahara mencatat transfernya.",
     seelabsLabel: "SeeLabs",
     // install
     // the form sketch
@@ -126,6 +129,9 @@ export const SL = dict({
     lenderLogged: (me: string, who: string, g: string) =>
       `Logged: ${me} uses ${who}'s SeeLabs account for ${g}.`,
     lenderCleared: (g: string) => `The borrowed account for ${g} was let go.`,
+    lenderSuggested: "Suggested: the one you cover",
+    panelBody:
+      "Pick a SeeLabs account for each group below before Kirim Nilai. If you cover someone, their account is suggested first; otherwise pick anyone who can lend. The unit stays yours and the Treasurer records the transfer.",
     seelabsLabel: "SeeLabs",
     open: "Open",
     notSavedRow: (list: string) => `${list} not saved in SeeLabs yet`,
@@ -206,6 +212,9 @@ export const SL = dict({
     lenderLogged: (me: string, who: string, g: string) =>
       `已记录：${me} 用 ${who} 的 SeeLabs 账号提交${g}。`,
     lenderCleared: (g: string) => `${g}借用的账号已取消。`,
+    lenderSuggested: "建议：你代课的那位",
+    panelBody:
+      "提交成绩前，请为下面每个小组选好 SeeLabs 账号。如果你是代课，会优先建议你代课对象的账号；其他情况可选任何能出借的助教。课时费仍然归你，财务会记录转账。",
     seelabsLabel: "SeeLabs",
     open: "打开",
     notSavedRow: (list: string) => `${list}还没在 SeeLabs 保存`,

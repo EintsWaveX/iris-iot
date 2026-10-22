@@ -720,6 +720,14 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
               : {}),
           })
           .where(eq(seelabsAkses.nim, t.akunNim));
+      // An account that has just become active was never read, so what
+      // SeeLabs already holds for it (scores typed there by hand) stays unknown
+      // until the timer's next pass, which can be 30 minutes or the night away.
+      // Its first read goes in now, over the whole semester (NAT, 2026-10-22).
+      if (akses && akses.status !== "aktif" && t.jenis !== "baca")
+        await antreBaca(db, t.akunNim, "robot", { semua: true }).catch((e) =>
+          console.error("[seelabs-baca] first read after connecting failed:", t.akunNim, e),
+        );
       if (t.jenis === "nilai") await tandaiTersimpan(db, t);
       if (t.jenis === "baca") {
         if (baca) {
