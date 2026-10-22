@@ -193,7 +193,7 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
           <StateView icon={<ListChecksIcon size={28} />} title={t.kosongTindakan} tone="ok" />
         </section>
       ) : (
-        <div className="stack">
+        <div className="tpsesslist">
           {tampil.map((s) => {
             const aksi = s.kelompok.some((x) => x.status !== "sent");
             const terkirim = s.kelompok.filter((x) => x.status === "sent").length;
@@ -237,7 +237,8 @@ export default function PraktikumTab({ lang }: { lang: Lang }) {
                 </div>
                 <button
                   type="button"
-                  className={`btn${aksi ? " btn--primary" : ""}`}
+                  className="btn btn--nilai"
+                  data-st={aksi ? "todo" : "sent"}
                   onClick={() => setBuka(s)}
                 >
                   {t.bukaTabel}

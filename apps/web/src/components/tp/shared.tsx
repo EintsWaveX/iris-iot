@@ -271,7 +271,7 @@ export function Countdown({
   const mepet = pelangi && keTutup && s < 3 * 3600;
   // Each group a step further along the rainbow.
   const kelompok = (v: string, l: string, i: number, cls = "") => (
-    <span className={`cdown__g${cls}`} style={{ "--i": i } as CSSProperties}>
+    <span className={`cdown__g${cls}`} data-g={i} style={{ "--i": i } as CSSProperties}>
       <span className="cdown__d">
         {[...v].map((c, i) => (
           <b key={i}>{c}</b>
