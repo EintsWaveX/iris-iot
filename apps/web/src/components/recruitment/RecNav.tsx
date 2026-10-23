@@ -33,7 +33,7 @@ import DisplayPanel, { BUKA_TAMPILAN } from "../shell/DisplayPanel";
 import NavClock from "../shell/NavClock";
 import AlertRail from "../shell/AlertRail";
 import OfflineNotice from "../shell/OfflineNotice";
-import { Avatar } from "../shell/AppNav";
+import Avatar from "../shell/Avatar";
 import { href, meChanged, postJson, useMe } from "../../lib/app";
 import { pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";

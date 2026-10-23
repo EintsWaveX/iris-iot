@@ -23,15 +23,7 @@
  * follows the running session's class (International is English). The
  * redirect happens here because this is the one island on every page.
  */
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentType,
-  type CSSProperties,
-} from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import * as RadixPopover from "@radix-ui/react-popover";
 import {
   BookOpenTextIcon,
@@ -85,6 +77,7 @@ import AlertRail from "./AlertRail";
 import { LP, LihatPeranBar, LihatPeranDialog } from "./LihatPeran";
 import { selesaiLihatPeran } from "../../lib/lihat-peran";
 import AsistenCommands from "./AsistenCommands";
+import Avatar from "./Avatar";
 import "./AppNav.css";
 import { openSignIn } from "../../lib/signin";
 
@@ -313,42 +306,6 @@ function isActive(link: string, current: string): boolean {
   // Kelola TP (/tp) is Penilaian's own page.
   if (link === "/grading" && (current === "/tp" || current.startsWith("/tp/"))) return true;
   return current === link || current.startsWith(link + "/");
-}
-
-/** The round initials in the account chip (mockup rolebadge): the Asisten's
- *  code, or a Praktikan's two initials on their group colour; the Pencipta
- *  gets an amber ring. */
-function initials(nama: string): string {
-  const w = nama.trim().split(/\s+/).filter(Boolean);
-  return (
-    (w[0]?.[0] ?? "") + (w.length > 1 ? (w[w.length - 1]?.[0] ?? "") : (w[0]?.[1] ?? ""))
-  ).toUpperCase();
-}
-
-/** Also the recruitment navbar's account chip (components/recruitment/RecNav.tsx). */
-export function Avatar({
-  me,
-  lg = false,
-}: {
-  me: NonNullable<ReturnType<typeof useMe>>;
-  lg?: boolean;
-}) {
-  const praktikan = me.role === "praktikan";
-  return (
-    <span
-      className={lg ? "appnav__avatar appnav__avatar--lg" : "appnav__avatar"}
-      data-role={me.role}
-      data-pencipta={me.badges?.includes("pencipta") ? "yes" : undefined}
-      style={
-        praktikan && me.kelompok
-          ? ({ "--g": `var(--group-${((me.kelompok - 1) % 10) + 1})` } as CSSProperties)
-          : undefined
-      }
-      aria-hidden="true"
-    >
-      {praktikan ? initials(me.nama) : (me.kode || me.nama).slice(0, 3).toUpperCase()}
-    </span>
-  );
 }
 
 export default function AppNav({

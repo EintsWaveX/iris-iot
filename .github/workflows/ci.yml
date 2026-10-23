@@ -106,6 +106,10 @@ jobs:
       # or enforce CSP).
       - name: CSP inline-script hashes match the build
         run: node scripts/check_csp_hashes.mjs
+      # A chunk that names a stylesheet or script the build never wrote
+      # (2026-10-23: Home went blank in production; see the script).
+      - name: Every asset the build references exists
+        run: node scripts/check_assets.mjs
 
   secrets:
     name: secret scan
