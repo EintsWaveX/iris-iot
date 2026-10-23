@@ -279,6 +279,13 @@ describe("marking blanks", () => {
     expect(pindahkanCelah(b, "id", "PORT = 9000\n").hilang).toEqual([b.celah[0].id]);
   });
 
+  it("a file with no blanks may be published, and its template is the source itself", () => {
+    const b = contoh();
+    expect(periksaBerkas(b)).toEqual([]);
+    expect(buatTemplat(b, "id")).toBe(b.sumber.id);
+    expect(buatTemplat(b, "en")).toBe(b.sumber.en);
+  });
+
   it("a blank missing in one language blocks publishing", () => {
     const b = contoh();
     b.sumber.en = "PORT = 1234\n";

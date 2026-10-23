@@ -522,7 +522,7 @@ export default function BlankFile(p: Props) {
 
   const right = nomors.filter((n) => state[n]?.benar).length;
   const shownRight = mode === "asisten" ? (keys ? total : 0) : right;
-  const complete = loaded && total > 0 && (mode === "asisten" ? keys : right === total);
+  const complete = loaded && (mode === "asisten" ? keys || total === 0 : right === total);
 
   // The module's steps follow each file's count (ModuleSteps: Kode turns
   // green once every blank of every file is right).
@@ -1014,7 +1014,7 @@ export default function BlankFile(p: Props) {
         </div>
       )}
 
-      {complete ? (
+      {complete && total > 0 ? (
         <div className="banner banner--ok codestep__done">
           <StarIcon aria-hidden="true" />
           <b>{t.allRight}</b>

@@ -98,7 +98,8 @@ async function parseModulBerkas(
   if (!Number.isInteger(modul) || modul < 1 || modul > 4) return null;
   if (!berkas || !/^[a-z0-9_]+$/.test(berkas)) return null;
   const kode = await kodeModul(modul);
-  if (jumlahCelah(kode, berkas) === 0) return null;
+  // A file with no blanks is still a file: it is read and downloaded whole
+  if (!kode.berkas.has(berkas)) return null;
   return { modul, berkas, kode };
 }
 

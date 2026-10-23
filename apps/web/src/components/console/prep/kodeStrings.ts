@@ -91,7 +91,6 @@ export const K = dict({
     masalahJudul: "Perlu Dibereskan",
     peringatan: "Catatan",
     masalah: {
-      tanpa_celah: "Berkas ini belum punya celah.",
       belum_ditandai: "Celah belum ditandai di berkas ini.",
       teks_beda: "Teks yang ditandai tidak sama dengan jawabannya.",
       satu_baris: "Ada dua celah di satu baris.",
@@ -231,7 +230,6 @@ export const K = dict({
     masalahJudul: "Needs Fixing",
     peringatan: "Notes",
     masalah: {
-      tanpa_celah: "This file has no blanks yet.",
       belum_ditandai: "The blank isn't marked in this file.",
       teks_beda: "The marked text isn't the same as its answer.",
       satu_baris: "Two blanks share one line.",
@@ -366,7 +364,6 @@ export const K = dict({
     masalahJudul: "需要处理",
     peringatan: "备注",
     masalah: {
-      tanpa_celah: "这个文件还没有填空。",
       belum_ditandai: "填空尚未在这个文件中标记。",
       teks_beda: "标记的文本与答案不同。",
       satu_baris: "一行中有两个填空。",
