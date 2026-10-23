@@ -264,6 +264,7 @@ export default function GroupInspector(p: InspectorProps) {
           canEdit={mine || !ownerNim}
           ownerKode={owner?.kode ?? null}
           ownerName={ownerName}
+          seelabs={p.seelabs}
         />
         <div className="inspector__foot">
           <span className="hint">{ownerNim ? t.enteredBy(ownerName) : ""}</span>
@@ -605,6 +606,7 @@ function ScoreEditor({
   canEdit,
   ownerKode,
   ownerName,
+  seelabs,
 }: {
   t: Strings;
   lang: Lang;
@@ -613,6 +615,7 @@ function ScoreEditor({
   canEdit: boolean;
   ownerKode: string | null;
   ownerName: string;
+  seelabs: SeelabsData | null;
 }) {
   const group = nilai.data?.kelompok.find((k) => k.id === g.id) ?? null;
   const komponen = nilai.data?.komponen ?? [];
@@ -856,7 +859,7 @@ function ScoreEditor({
         </div>
       )}
       {canEdit && !rata && <p className="hint">{t.enterHint}</p>}
-      <KirimNilai t={t} nilai={nilai} kelompokId={g.id} canEdit={canEdit} />
+      <KirimNilai t={t} nilai={nilai} kelompokId={g.id} canEdit={canEdit} seelabs={seelabs} />
       {absen.dialog}
     </div>
   );

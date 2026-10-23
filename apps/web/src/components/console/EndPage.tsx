@@ -523,6 +523,7 @@ export default function EndPage({
                             nilai={nilai}
                             kelompokId={g.id}
                             canEdit={!owner || owner === meNim}
+                            seelabs={seelabs}
                             compact
                           />
                         ) : (
