@@ -9,7 +9,10 @@ main = "src/index.ts"
 compatibility_date = "2026-09-01"
 
 workers_dev = false
-routes = [{ pattern = "ws.irisiotlab.com", custom_domain = true }]
+routes = [
+  { pattern = "ws.irisiotlab.com", custom_domain = true },
+  { pattern = "broker.irisiotlab.com", custom_domain = true },
+]
 
 [[durable_objects.bindings]]
 name = "BRIDGE"
@@ -18,3 +21,12 @@ class_name = "Bridge"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Bridge"]
+
+# Module 3: the Pico W's MQTT over WebSocket (broker.irisiotlab.com)
+[[durable_objects.bindings]]
+name = "BROKER"
+class_name = "Broker"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Broker"]
