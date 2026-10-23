@@ -26,7 +26,7 @@ import {
   WifiXIcon,
 } from "@phosphor-icons/react";
 import IconButton from "./IconButton";
-import { dict, href, type ErrorCode } from "../../lib/app";
+import { dict, href, pernahMasuk, type ErrorCode } from "../../lib/app";
 import { openSignIn } from "../../lib/signin";
 import type { Lang } from "../../lib/kelas";
 import "./ErrorView.css";
@@ -127,6 +127,12 @@ const T = dict({
         todo: "Data Live berhenti sementara. Halaman lain tetap jalan.",
       },
     } as Record<ErrorCode, Copy>,
+    // 401 in a browser that was never signed in (lib/app.ts pernahMasuk).
+    masukDulu: {
+      title: "Masuk Dulu",
+      why: "Halaman ini baru bisa dibuka setelah kamu masuk.",
+      todo: "Masuk dengan akunmu, lalu halaman ini langsung terbuka.",
+    } as Copy,
     praktikan: {
       403: {
         title: "Halaman Ini untuk Asisten",
@@ -217,6 +223,11 @@ const T = dict({
         todo: "Live data is paused. The rest of the site keeps working.",
       },
     } as Record<ErrorCode, Copy>,
+    masukDulu: {
+      title: "Sign In First",
+      why: "This page opens once you are signed in.",
+      todo: "Sign in with your account and the page opens right away.",
+    } as Copy,
     praktikan: {
       403: {
         title: "This Page Is for Assistants",
@@ -307,6 +318,11 @@ const T = dict({
         todo: "实时数据暂停了。网站其他部分照常运行。",
       },
     } as Record<ErrorCode, Copy>,
+    masukDulu: {
+      title: "请先登录",
+      why: "这个页面登录后才能打开。",
+      todo: "用你的账号登录，页面就会马上打开。",
+    } as Copy,
     praktikan: {
       403: {
         title: "这个页面是给助教用的",
@@ -387,6 +403,7 @@ export default function ErrorView({
   const t = T[lang];
   const copy: Copy = {
     ...t.codes[code],
+    ...(code === 401 && !pernahMasuk() ? t.masukDulu : {}),
     ...(role === "praktikan" ? (t.praktikan[code] ?? {}) : {}),
   };
   const [left, setLeft] = useState(retryIn ?? 0);

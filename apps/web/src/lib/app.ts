@@ -104,10 +104,34 @@ export interface Me {
 let mePromise: Promise<Me | null> | null = null;
 export const ME_CHANGED = "iris:me-changed";
 
+/* Whether this browser has had someone signed in (2026-10-23): a 401 then
+ * says "you are signed out", and a visitor who never signed in is asked to
+ * sign in first instead of being told a session ended. */
+const PERNAH_MASUK = "iris-pernah-masuk";
+
+export function pernahMasuk(): boolean {
+  try {
+    return window.localStorage.getItem(PERNAH_MASUK) === "1";
+  } catch {
+    return true; // storage blocked: keep the signed-out wording
+  }
+}
+
+function tandaiMasuk(m: Me | null): Me | null {
+  if (m) {
+    try {
+      window.localStorage.setItem(PERNAH_MASUK, "1");
+    } catch {
+      /* storage blocked: nothing to remember */
+    }
+  }
+  return m;
+}
+
 export function loadMe(force = false): Promise<Me | null> {
   if (!mePromise || force) {
     mePromise = getJson<{ ok: boolean } & Partial<Me>>("/api/auth/me")
-      .then((d) => (d.ok ? sebagaiPeran(d as Me) : null))
+      .then((d) => tandaiMasuk(d.ok ? sebagaiPeran(d as Me) : null))
       .catch(() => null);
   }
   return mePromise;
