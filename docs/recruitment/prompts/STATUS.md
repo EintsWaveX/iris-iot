@@ -9,6 +9,7 @@ A row is `ready` when every prompt in **Needs** is done. Mockups (01, 05, 08, 15
 | 02 | Foundation | Sonnet high | none | 24 Oct | done (1b6ab91, not pushed; handoffs/02.md) |
 | 03 | S1 build | Sonnet high | 01 signed off, 02 | 25 Oct (editor and board by 27 Oct) | done (7daf998, not pushed; handoffs/03.md) |
 | 04 | S1 review + ship | Opus high | 03 | 25 Oct | done (live 2026-10-23 16:47 WIB, main c251ddc: 1451573, 5bd3413, f12f3df, e3c7f92, 6973763; 0048 on prod; relay deployed; handoffs/04.md) |
+| W1 | Wave 1 ship, prod test application, review of 05 and 08 | Opus high | 04 | 24 Oct 18:00 | ready |
 | 05 | S2 mockup | Opus high | 01 signed off | 30 Oct | ready |
 | 06 | S2 build | Sonnet high | 04, 05 signed off | 8 Nov | blocked (05) |
 | 07 | S2 review + ship | Opus high | 06 | 9 Nov | blocked (06) |
@@ -30,4 +31,5 @@ Add one line per ruling given during any session (date, prompt, ruling). Copy la
 - 2026-10-23 · 01 · Agung 1 is GMW (Acara) and Agung 2 is OCU (Logistik); Shinta (XIN) is Wakil Ketua; cuti Asisten are not special-cased for Panitia seats (MCU stays seated); every Pengumuman defaults to 12:00 WIB and the time stays adjustable at any time; document templates source not given yet.
 - 2026-10-23 · 01 · While the recruitment window is open, recruitment pages use their own navbar and no practicum navbar (no Konsol, Persiapan, Penilaian, LMS, Jadwal, Lab); the practicum keeps its own navbar with no recruitment entry. Account menu in the recruitment shell has "Buka IRIS Praktikum"; the Home banner is the door in.
 - 2026-10-23 · 04 · Before registration opens nothing shows outside the Panitia: the edition is live at deploy so the Panitia can prepare, but the visitor's Home banner waits for the daftar gate.
+- 2026-10-23 · after 04 · Deploy once, only after all three wave 1 sessions (this one with the back button e2bfedf, 05, 08) have finished their work; no deploy in between.
 - 2026-10-23 · 01 · Papan Panitia read-only view fills the width (the empty list column bug is fixed). Mockup v2 signed off; 03 starts.
