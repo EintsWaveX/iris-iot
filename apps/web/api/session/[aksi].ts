@@ -1638,13 +1638,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   // blanket asisten-only guard below, not as an exception carved into it.
   if (aksi === "now") {
     if (!requireMethod(req, res, "GET")) return;
-    const pembaca = requireAnyRole(req, res, ["asisten", "praktikan"]);
-    if (!pembaca) return;
-    // A Praktikan reads their own group's readings only.
-    if (pembaca.role === "praktikan" && Number(req.query.kelompok) !== pembaca.kelompokNomor) {
-      res.status(200).json({ ok: true, reading: null, readings: [] });
-      return;
-    }
+    if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
     return handleNow(req, res);
   }
   // Phase 12: a ticket for the session's stream room (or the Server pages').
@@ -1663,7 +1657,13 @@ async function handler(req: ApiRequest, res: ApiResponse) {
       return handleTelemetryModul1(req, res, who);
     }
     if (!requireMethod(req, res, "GET")) return;
-    if (!requireAnyRole(req, res, ["asisten", "praktikan"])) return;
+    const pembaca = requireAnyRole(req, res, ["asisten", "praktikan"]);
+    if (!pembaca) return;
+    // A Praktikan reads their own group's readings only.
+    if (pembaca.role === "praktikan" && Number(req.query.kelompok) !== pembaca.kelompokNomor) {
+      res.status(200).json({ ok: true, reading: null, readings: [] });
+      return;
+    }
     return handleTelemetry(req, res);
   }
 
