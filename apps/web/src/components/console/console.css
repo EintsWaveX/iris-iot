@@ -3307,7 +3307,8 @@ button.lib__name {
   padding-top: 12px;
 }
 
-.ntable__group .kirim {
+.ntable__acts {
+  justify-content: flex-end;
   margin-left: auto;
 }
 

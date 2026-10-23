@@ -399,17 +399,20 @@ export default function NilaiTable({
                               {t.viewOnlyPill}
                             </Pill>
                           )}
-                          {seelabsBits(k.nomor, k.id)}
-                          {tombolAbsen(k.id)}
-                          {tombolAlih(k.id, k.nomor)}
-                          <KirimNilai
-                            t={t}
-                            nilai={nilai}
-                            kelompokId={k.id}
-                            canEdit={canEdit(k.id)}
-                            seelabs={seelabs}
-                            compact
-                          />
+                          {/* One cluster at the end, the same order in every group */}
+                          <span className="row ntable__acts">
+                            {seelabsBits(k.nomor, k.id)}
+                            {tombolAbsen(k.id)}
+                            {tombolAlih(k.id, k.nomor)}
+                            <KirimNilai
+                              t={t}
+                              nilai={nilai}
+                              kelompokId={k.id}
+                              canEdit={canEdit(k.id)}
+                              seelabs={seelabs}
+                              compact
+                            />
+                          </span>
                         </span>
                       </th>
                     </tr>
