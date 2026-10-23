@@ -3,7 +3,7 @@
  * who sits where, and a candidate's own row. Rows become the shapes of
  * src/lib/recruitment/types.ts here and nowhere else.
  */
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
@@ -116,6 +116,19 @@ export async function muatKursiSemua(db: Db, edisiId: number): Promise<SeatRow[]
     .where(eq(recCommittee.editionId, edisiId))
     .orderBy(asc(recCommittee.division), desc(recCommittee.isKoor), asc(asisten.kode));
   return rows;
+}
+
+/**
+ * The Asisten the Ketua may seat: everyone not inactive or alumni (on leave
+ * is not special-cased, user 2026-10-23). Only a caller with the board or
+ * seatKetua right ever gets this list.
+ */
+export async function muatKolam(db: Db): Promise<{ nim: string; nama: string; kode: string }[]> {
+  return db
+    .select({ nim: asisten.nim, nama: asisten.nama, kode: asisten.kode })
+    .from(asisten)
+    .where(notInArray(asisten.status, ["nonaktif", "alumni"]))
+    .orderBy(asc(asisten.kode));
 }
 
 /** A candidate's row for one NIM. The caller names the NIM; nothing here widens it. */

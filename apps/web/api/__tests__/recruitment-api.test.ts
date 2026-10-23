@@ -211,8 +211,13 @@ describe("banner and edition are open to a visitor, with no names in them", () =
 });
 
 describe("the calendar", () => {
-  it("needs a session", async () => {
-    expect((await panggil("GET", "calendar")).code).toBe(401);
+  it("shows a visitor the public events and none of the internal ones", async () => {
+    const r = await panggil("GET", "calendar");
+    expect(r.code).toBe(200);
+    const t = (r.body.events as { title: string }[]).map((e) => e.title);
+    expect(t).toContain("Open Recruitment");
+    expect(t).not.toContain("Pleno Tes Tulis");
+    expect(t).not.toContain("Cutting Tes Tulis");
   });
   it("hides internal events from a Praktikan", async () => {
     sebagaiPraktikan();
@@ -272,6 +277,18 @@ describe("a Praktikan never reaches the Panitia's side", () => {
     const r = await panggil("GET", "candidates");
     expect(r.code).toBe(403);
     expect(r.body).toMatchObject({ kode: "tanpa_hak", hak: "candidates" });
+  });
+  it("hands the Asisten pool to whoever may seat people, and to nobody else", async () => {
+    sebagaiAsisten();
+    rows.asisten = [ORANG("101022300900")];
+    rows.committee = [KURSI("ketua")];
+    const ketua = await panggil("GET", "committee");
+    expect(ketua.code).toBe(200);
+    expect(ketua.body.pool).toBeDefined();
+    rows.committee = [KURSI("akademik")];
+    const biasa = await panggil("GET", "committee");
+    expect(biasa.code).toBe(200);
+    expect(biasa.body).not.toHaveProperty("pool");
   });
   it("keeps a stranger out of the committee list", async () => {
     sebagaiAsisten();
@@ -348,7 +365,7 @@ describe("me is the signed in NIM's own row", () => {
     expect(r.body.documents).toEqual([]);
     expect(JSON.stringify(r.body)).not.toContain("101022300777");
   });
-  it("returns the own row, and no id of the documents", async () => {
+  it("returns the own row, with the ids of its own documents only", async () => {
     sebagaiPraktikan("101022300001");
     rows.candidate = [KANDIDAT("101022300001")];
     rows.document = [
@@ -356,8 +373,9 @@ describe("me is the signed in NIM's own row", () => {
     ];
     const r = await panggil("GET", "me");
     expect(r.body.candidate).toMatchObject({ status: "applied", stage: "berkas" });
+    // The id is what berkas needs to open it; berkas itself answers 404 for anyone else's.
     expect(r.body.documents).toEqual([
-      { kind: "cv", size: 10, uploadedAt: "2026-10-26T03:00:00.000Z", note: null },
+      { id: 3, kind: "cv", size: 10, uploadedAt: "2026-10-26T03:00:00.000Z", note: null },
     ]);
     expect(r.body.daftarOpen).toBe(true);
   });

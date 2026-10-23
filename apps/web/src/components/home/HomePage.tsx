@@ -38,6 +38,7 @@ import { useSegar } from "../../lib/siaran";
 import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import DayCard from "../console/DayCard";
 import ProfilLab from "./profil/ProfilLab";
+import RecBanner from "../recruitment/home-banner/RecBanner";
 
 export interface Lab {
   modul: number;
@@ -506,6 +507,9 @@ export default function HomePage({ lang }: { lang: Lang }) {
           </div>
           <LabSky lang={lang} lab={labData} mine={mine} holder={holder} />
         </div>
+
+        {/* Open Recruitment (2026-10-23): under the practicum's own top, never above it. */}
+        <RecBanner lang={lang} />
 
         <section className="stack">
           <div className="home10__head">

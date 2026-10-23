@@ -1,0 +1,429 @@
+/**
+ * /recruitment, the candidate's page (prompt 03, PRD 5.2, mockup r1-caas):
+ * the journey as a constellation, the next public event with a countdown,
+ * the public calendar, the documents card and drawer, the envelope inbox
+ * (empty until S2) and Mundur behind a HoldButton. The same page serves a
+ * visitor (the stages and a way in), a Praktikan before and after applying,
+ * and an Asisten (read only). Everything is live: it refetches on the
+ * recruitment topics, never on a timer.
+ *
+ * ?daftar=1 opens the application, ?berkas=1 the documents, #kalender
+ * scrolls to the calendar (the banner and the navbar link to them).
+ */
+import { useEffect, useRef, useState } from "react";
+import { ArrowRightIcon } from "@phosphor-icons/react";
+import Dialog from "../../ui/Dialog";
+import HoldButton from "../../ui/HoldButton";
+import SegmentedControl from "../../ui/SegmentedControl";
+import { href, useMe } from "../../../lib/app";
+import { useMinWidth } from "../../../lib/hooks";
+import type { Lang } from "../../../lib/kelas";
+import { openSignIn } from "../../../lib/signin";
+import {
+  isFail,
+  recPost,
+  useRecCalendar,
+  useRecEdition,
+  useRecMe,
+} from "../../../lib/recruitment/client";
+import { gateClosesAt, gateOpen, nextPublicEvent } from "../../../lib/recruitment/gates";
+import { alamatBagian } from "../../../lib/recruitment/panel-tab";
+import { DOC_REQUIRED, type RecEvent, type WithdrawResponse } from "../../../lib/recruitment/types";
+import { REC } from "../recruitmentStrings";
+import { Agenda, RecCalendar } from "../calendar/RecCalendar";
+import {
+  Countdown,
+  KepalaHalaman,
+  Kartu,
+  StatusPill,
+  kapanAcara,
+  tgl,
+  useHariIni,
+  wibMs,
+} from "../shared";
+import { CAL } from "../calendar/calendarStrings";
+import { useTick } from "../../../lib/app";
+import Daftar from "./Daftar";
+import DocsDrawer from "./DocsDrawer";
+import Journey from "./Journey";
+import { CP } from "./candidateStrings";
+import { judulAcara, tempatAcara } from "../judul";
+
+function Kartu404({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
+  return (
+    <div className="stack">
+      <p className="banner banner--warn" role="alert">
+        {CP[lang].error}
+      </p>
+      <div>
+        <button type="button" className="btn" onClick={onRetry}>
+          {REC[lang].retry}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function CandidatePage({ lang }: { lang: Lang }) {
+  const t = CP[lang];
+  const r = REC[lang];
+  const me = useMe();
+  const praktikan = me?.role === "praktikan";
+  const asisten = me?.role === "asisten";
+  const rec = useRecMe(praktikan);
+  const cal = useRecCalendar(me !== undefined);
+  const edisi = useRecEdition(me !== undefined);
+  const hariIni = useHariIni();
+  const tick = useTick(30_000);
+  const lebar = useMinWidth(1100);
+  const [view, setView] = useState<"bulan" | "agenda">("bulan");
+  const [daftar, setDaftar] = useState(false);
+  const [docs, setDocs] = useState(false);
+  const [mundur, setMundur] = useState(false);
+  const diminta = useRef<{ daftar: boolean; berkas: boolean } | null>(null);
+
+  // ?daftar=1 and ?berkas=1 are read once, then dropped from the address.
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    diminta.current = { daftar: q.get("daftar") === "1", berkas: q.get("berkas") === "1" };
+    if (q.has("daftar") || q.has("berkas")) {
+      q.delete("daftar");
+      q.delete("berkas");
+      const rest = q.toString();
+      history.replaceState(
+        history.state,
+        "",
+        `${location.pathname}${rest ? `?${rest}` : ""}${location.hash}`,
+      );
+    }
+  }, []);
+
+  const events: RecEvent[] = cal.data?.events ?? [];
+  const now = new Date(tick);
+  const cand = rec.data?.candidate ?? null;
+  const applied = !!cand && cand.status !== "withdrawn";
+  const withdrawn = cand?.status === "withdrawn";
+  const regs = events.filter((e) => e.gates.includes("daftar"));
+  const opensOn = regs.length
+    ? regs.reduce((m, e) => (e.startsOn < m ? e.startsOn : m), regs[0].startsOn)
+    : null;
+  const closesOn = regs.length
+    ? regs.reduce((m, e) => (e.endsOn > m ? e.endsOn : m), regs[0].endsOn)
+    : null;
+  const buka = praktikan && rec.data ? rec.data.daftarOpen : gateOpen(events, "daftar", now);
+  const sebelum = !buka && !!opensOn && hariIni < opensOn;
+  const panitia = asisten && edisi.data?.viewer === "panitia";
+
+  // Open what the address asked for, once the data to decide it is in.
+  useEffect(() => {
+    const d = diminta.current;
+    if (!d || !praktikan || !rec.data) return;
+    if (d.daftar && buka && !cand) setDaftar(true);
+    if (d.berkas && cand) setDocs(true);
+    diminta.current = null;
+  }, [praktikan, rec.data, buka, cand]);
+  // #kalender: the browser jumped before the card existed.
+  const jump = useRef(false);
+  useEffect(() => {
+    if (jump.current || !cal.data || location.hash !== "#kalender") return;
+    jump.current = true;
+    document.getElementById("kalender")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [cal.data]);
+
+  if (me === undefined || cal.updatedAt === null || (praktikan && rec.updatedAt === null))
+    return <span className="skeleton" style={{ height: 520 }} />;
+  if (cal.errors > 0 && !cal.data) return <Kartu404 lang={lang} onRetry={cal.refresh} />;
+  if (!cal.data)
+    return (
+      <div className="rec-page">
+        <KepalaHalaman lang={lang} title={t.titleOpen} />
+        <p className="hint">{r.noEdition}</p>
+      </div>
+    );
+
+  const first = events.length
+    ? events.reduce((m, e) => (e.startsOn < m ? e.startsOn : m), events[0].startsOn)
+    : null;
+  const bar = (
+    <div className="rec-calwrap" id="kalender">
+      <Kartu
+        className="rec-calcard"
+        title={CAL[lang].title}
+        aside={
+          <SegmentedControl
+            aria-label={CAL[lang].view}
+            value={view}
+            onValueChange={(v) => setView(v as "bulan" | "agenda")}
+            options={[
+              { value: "bulan", label: CAL[lang].month },
+              { value: "agenda", label: CAL[lang].agenda },
+            ]}
+          />
+        }
+      >
+        {view === "bulan" ? (
+          <RecCalendar events={events} lang={lang} hariIni={hariIni} viewer="candidate" />
+        ) : (
+          <Agenda events={events} lang={lang} hariIni={hariIni} viewer="candidate" />
+        )}
+      </Kartu>
+    </div>
+  );
+
+  // ---- the side cards
+  const lanjut = nextPublicEvent(
+    applied ? events.filter((e) => !e.gates.includes("daftar")) : events,
+    now,
+  );
+  const tutupAt = gateClosesAt(events, "daftar", now);
+  const next = (() => {
+    if (!applied && buka && tutupAt)
+      return {
+        title: t.next.closes,
+        when: t.next.at(tgl(closesOn ?? hariIni, lang), "23:59 WIB"),
+        ke: Date.parse(tutupAt),
+      };
+    if (!applied && sebelum && opensOn)
+      return { title: t.next.opens, when: tgl(opensOn, lang), ke: wibMs(opensOn) };
+    if (lanjut)
+      return {
+        title: judulAcara(lanjut, lang),
+        when: t.next.at(kapanAcara(lanjut, lang), tempatAcara(lanjut.place, lang)),
+        ke: wibMs(lanjut.startsOn, lanjut.dayStart ?? "00:00"),
+      };
+    return null;
+  })();
+  const nextCard = (
+    <section className="panel rec-next">
+      <span className="eyebrow">{t.next.eyebrow}</span>
+      {next ? (
+        <>
+          <b className="rec-next__t">{next.title}</b>
+          <span className="hint">{next.when}</span>
+          {next.ke > tick && <Countdown ke={next.ke} label={next.title} lang={lang} />}
+        </>
+      ) : (
+        <span className="hint">{t.next.nothing}</span>
+      )}
+    </section>
+  );
+
+  const docsMasuk = rec.data
+    ? DOC_REQUIRED.filter((k) => rec.data!.documents.some((d) => d.kind === k)).length
+    : 0;
+  const docsCard = applied && cand && rec.data && (
+    <Kartu
+      title={t.docs.title}
+      className="rec-docs"
+      aside={
+        cand.status === "revision" ? (
+          <span className="pill pill--danger">{`1 ${t.docs.fix}`}</span>
+        ) : (
+          <span className="pill pill--ok">{`${docsMasuk}/3`}</span>
+        )
+      }
+    >
+      <ul className="rec-docs__list">
+        {DOC_REQUIRED.map((k) => (
+          <li key={k} data-bad={!rec.data!.documents.some((d) => d.kind === k) ? "yes" : undefined}>
+            <i />
+            <span>{t.docs.kind[k]}</span>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        className={`btn btn--block ${cand.status === "revision" ? "btn--primary" : ""}`.trim()}
+        onClick={() => setDocs(true)}
+      >
+        {cand.status === "revision" ? t.docs.fixBtn : t.docs.see}
+      </button>
+    </Kartu>
+  );
+
+  const pengumuman = events.find((e) => e.kind === "announcement" && e.stage === "berkas");
+  const envCard = praktikan && (
+    <Kartu title={t.env.title} className="rec-env">
+      <div className="rec-env__empty">
+        <span className="rec-env__seal" aria-hidden="true" />
+        <span className="hint">
+          {applied
+            ? pengumuman
+              ? t.env.empty(kapanAcara(pengumuman, lang))
+              : t.env.emptyNoDate
+            : t.env.before}
+        </span>
+      </div>
+    </Kartu>
+  );
+
+  // ---- the main column
+  const revisi = cand?.status === "revision" && (
+    <div className="rec-note rec-note--warn">
+      <b>{t.revision.title}</b>
+      <span>{cand.reviewNote ?? t.revision.noNote}</span>
+      <span>
+        <button type="button" className="btn btn--primary btn--sm" onClick={() => setDocs(true)}>
+          {t.revision.fix}
+        </button>
+      </span>
+    </div>
+  );
+
+  const cta = !applied && (
+    <section className="panel rec-apply">
+      <div className="stack stack--sm">
+        <b className="rec-apply__t">
+          {asisten
+            ? t.ledeStaff
+            : withdrawn
+              ? t.apply.withdrawn
+              : me === null
+                ? t.apply.guest
+                : buka
+                  ? t.apply.open(closesOn ? tgl(closesOn, lang) : "")
+                  : sebelum && opensOn
+                    ? t.apply.before(tgl(opensOn, lang))
+                    : t.apply.closed}
+        </b>
+        {!asisten && (
+          <span className="hint">{withdrawn ? t.apply.hintWithdrawn : t.apply.hint}</span>
+        )}
+      </div>
+      {asisten ? (
+        panitia && (
+          <a
+            className="btn btn--primary btn--lg"
+            href={alamatBagian(lang === "id" ? "" : `/${lang}`, "ringkasan")}
+          >
+            <span className="btn__label">{t.staff.panel}</span>
+            <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
+          </a>
+        )
+      ) : withdrawn ? null : me === null ? (
+        <button
+          type="button"
+          className="btn btn--primary btn--lg"
+          onClick={() => openSignIn(href(lang, "/recruitment?daftar=1"))}
+        >
+          <span className="btn__label">{t.apply.signIn}</span>
+        </button>
+      ) : (
+        <span className="stack stack--sm rec-apply__btn">
+          <button
+            type="button"
+            className="btn btn--primary btn--lg"
+            disabled={!buka}
+            onClick={() => setDaftar(true)}
+          >
+            <span className="btn__label">{t.apply.now}</span>
+          </button>
+          {!buka && sebelum && <span className="hint">{t.apply.later}</span>}
+        </span>
+      )}
+    </section>
+  );
+
+  const journey = (
+    <Kartu
+      title={t.journey.title}
+      className="rec-jcard"
+      aside={<span className="hint">{t.journey.hint}</span>}
+    >
+      <Journey
+        cur={applied && cand ? cand.stage : "daftar"}
+        events={events}
+        lang={lang}
+        hariIni={hariIni}
+      />
+    </Kartu>
+  );
+
+  const lede =
+    applied && me && cand
+      ? `${me.nama} · ${me.nim} · ${cand.biodata.kelas}`
+      : first
+        ? t.ledeOpen(tgl(first, lang))
+        : undefined;
+
+  return (
+    <div className="rec-page">
+      <KepalaHalaman
+        lang={lang}
+        title={applied ? t.titleApplied : asisten ? t.titleStaff : t.titleOpen}
+        badge={applied && cand ? <StatusPill status={cand.status} lang={lang} lg /> : undefined}
+        lede={lede}
+      />
+      <div className="rec-caas">
+        <div className="stack stack--lg rec-caas__main">
+          {!lebar && nextCard}
+          {revisi}
+          {cta}
+          {journey}
+          {bar}
+        </div>
+        <aside className="stack rec-caas__side">
+          {lebar && nextCard}
+          {docsCard}
+          {envCard}
+          {applied && (
+            <button type="button" className="rec-quit" onClick={() => setMundur(true)}>
+              {t.withdraw.link}
+            </button>
+          )}
+        </aside>
+      </div>
+
+      {praktikan && me && (
+        <Daftar
+          lang={lang}
+          open={daftar}
+          onOpenChange={setDaftar}
+          me={me}
+          closesOn={closesOn}
+          onApplied={rec.refresh}
+        />
+      )}
+      {applied && cand && rec.data && (
+        <DocsDrawer
+          lang={lang}
+          open={docs}
+          onOpenChange={setDocs}
+          candidate={cand}
+          documents={rec.data.documents}
+          canReplace={rec.data.daftarOpen || cand.status === "revision"}
+          onChanged={rec.refresh}
+        />
+      )}
+      <Dialog
+        open={mundur}
+        onOpenChange={setMundur}
+        title={t.withdraw.title}
+        size="sm"
+        lang={lang}
+        actions={
+          <button type="button" className="btn btn--ghost" onClick={() => setMundur(false)}>
+            {r.cancel}
+          </button>
+        }
+      >
+        <div className="stack">
+          <p>{t.withdraw.body}</p>
+          <HoldButton
+            label={t.withdraw.hold}
+            onDone={async () => {
+              const res = await recPost<WithdrawResponse>("withdraw");
+              if (isFail(res)) {
+                window.Toast?.show(t.withdraw.fail, "danger");
+                return;
+              }
+              setMundur(false);
+              window.Toast?.show(t.withdraw.done, "warn");
+              rec.refresh();
+            }}
+          />
+        </div>
+      </Dialog>
+    </div>
+  );
+}

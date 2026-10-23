@@ -301,7 +301,8 @@ export interface MeResponse {
   ok: true;
   edition: EditionInfo | null;
   candidate: CandidateSelf | null;
-  documents: RecDocument[];
+  /** Their own, with the id berkas needs to open one */
+  documents: (RecDocument & { id: number })[];
   envelopes: EnvelopeSelf[];
   /** Whether Daftar is open right now (the server's own gate check) */
   daftarOpen: boolean;
@@ -397,6 +398,8 @@ export interface SeatRow {
 export interface CommitteeResponse {
   ok: true;
   seats: SeatRow[];
+  /** The Asisten who may be seated; only for the board or seatKetua right */
+  pool?: { nim: string; nama: string; kode: string }[];
 }
 
 /** POST apply */
