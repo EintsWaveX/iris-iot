@@ -1,0 +1,18 @@
+{
+  "name": "iris-ws-gateway",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Module 2 gateway: a Cloudflare Worker at ws.irisiotlab.com that hands each ESP32's WebSocket to the lab server, which dials out to it.",
+  "scripts": {
+    "dev": "wrangler dev --port 8789",
+    "deploy": "wrangler deploy",
+    "check": "tsc --noEmit",
+    "test": "node test/test-gateway.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261003.1",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.147.0"
+  }
+}

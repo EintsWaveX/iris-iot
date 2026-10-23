@@ -1,0 +1,20 @@
+# Module 2 gateway. The lab server has no inbound port, so it dials out to
+# /pc here, and every ESP32 that opens /grupN is handed to it over that one
+# socket. The shared key is set with
+#   npx wrangler secret put PC_KEY
+# (the same value as /etc/iris-modul2/key on the server) and, for
+# `wrangler dev`, in a git-ignored .dev.vars file.
+name = "iris-ws"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+workers_dev = false
+routes = [{ pattern = "ws.irisiotlab.com", custom_domain = true }]
+
+[[durable_objects.bindings]]
+name = "BRIDGE"
+class_name = "Bridge"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Bridge"]
