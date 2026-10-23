@@ -8,9 +8,11 @@
 import { useState } from "react";
 import { CheckCircleIcon } from "@phosphor-icons/react";
 import Pill from "../ui/Pill";
-import { pageLang } from "../../lib/app";
+import { pageLang, postJson } from "../../lib/app";
 import SeelabsStrip from "./seelabs/SeelabsStrip";
 import SeelabsBaca from "./seelabs/SeelabsBaca";
+import { BC } from "./seelabs/bacaStrings";
+import type { SeelabsData } from "./seelabs/data";
 import { RB } from "./seelabs/robotStrings";
 import type { Strings } from "./strings";
 import { l1Anggota, type NilaiLive } from "./data";
@@ -29,6 +31,7 @@ export default function KirimNilai({
   kelompokId,
   canEdit,
   compact = false,
+  seelabs = null,
 }: {
   t: Strings;
   nilai: NilaiLive;
@@ -36,6 +39,8 @@ export default function KirimNilai({
   canEdit: boolean;
   /** In a group header row: the button and the state only, no hint. */
   compact?: boolean;
+  /** Where SeeLabs stands; a sent group marked Berubah offers Kirim Nilai Ulang. */
+  seelabs?: SeelabsData | null;
 }) {
   const [busy, setBusy] = useState(false);
   const data = nilai.data;
@@ -48,7 +53,26 @@ export default function KirimNilai({
     return a + data.komponen.filter((c) => skor[c] == null).length;
   }, 0);
 
+  async function kirimUlang() {
+    setBusy(true);
+    const b = BC[pageLang()];
+    const r = await postJson<{ ok: boolean; antre?: boolean }>("/api/session/robot", {
+      aksi: "kirim_ulang",
+      sesiId: nilai.sesiId,
+      kelompok: g!.nomor,
+    }).catch(() => ({ ok: false, antre: false }));
+    setBusy(false);
+    const ok = r.ok && r.antre !== false;
+    window.Toast?.show(ok ? b.kirimUlangOk : b.gagal, ok ? "ok" : "danger");
+  }
+
   if (sent) {
+    // The scores changed after they went to SeeLabs and nothing is on its way:
+    // the scorer can send them again from here.
+    const berubah =
+      canEdit &&
+      nilai.sesiId !== null &&
+      seelabs?.kelompok.find((x) => x.nomor === g.nomor)?.status === "berubah";
     return (
       <>
         <span className="kirim" data-sent="yes">
@@ -56,6 +80,17 @@ export default function KirimNilai({
             <CheckCircleIcon size={14} aria-hidden="true" />
             {t.kirimSent(jam(sent.pada))}
           </Pill>
+          {berubah && (
+            <button
+              type="button"
+              className="btn btn--nilai btn--sm"
+              data-st="todo"
+              disabled={busy}
+              onClick={() => void kirimUlang()}
+            >
+              {BC[pageLang()].kirimNilaiUlang}
+            </button>
+          )}
           {!compact && <span className="hint">{t.kirimAfter}</span>}
         </span>
         {/* Phase 14: where the robot's SeeLabs save stands */}

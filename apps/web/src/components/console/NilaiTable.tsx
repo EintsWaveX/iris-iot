@@ -405,6 +405,7 @@ export default function NilaiTable({
                             nilai={nilai}
                             kelompokId={k.id}
                             canEdit={canEdit(k.id)}
+                            seelabs={seelabs}
                             compact
                           />
                         </span>
@@ -458,7 +459,14 @@ export default function NilaiTable({
               {seelabsBits(k.nomor, k.id)}
               {tombolAbsen(k.id)}
               {tombolAlih(k.id, k.nomor)}
-              <KirimNilai t={t} nilai={nilai} kelompokId={k.id} canEdit={canEdit(k.id)} compact />
+              <KirimNilai
+                t={t}
+                nilai={nilai}
+                kelompokId={k.id}
+                canEdit={canEdit(k.id)}
+                seelabs={seelabs}
+                compact
+              />
               {k.anggota.map((a) => (
                 <div key={a.nim} className="ncard" data-absen={a.absen ? "yes" : undefined}>
                   <div className="row row--between">

@@ -31,7 +31,7 @@ export function useSeelabs(sesiId: number | null) {
         : getJson<JawabSeelabs>(`/api/session/seelabs?sesiId=${sesiId}`),
     60_000,
     sesiId !== null,
-    ["sesi", "bayar", "nilai"],
+    ["sesi", "bayar", "nilai", "seelabs"],
   );
   const { refresh } = poll;
   useEffect(() => {
