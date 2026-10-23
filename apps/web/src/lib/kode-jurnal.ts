@@ -241,7 +241,6 @@ export function pindahkanCelah(
 }
 
 export type KodeMasalah =
-  | "tanpa_celah"
   | "belum_ditandai"
   | "teks_beda"
   | "satu_baris"
@@ -287,7 +286,6 @@ export function periksaBerkas(berkas: KodeBerkas): Masalah[] {
     if (!berkas.sumber[b].trim()) add("sumber_kosong", { bahasa: b });
     if (berkas.sumber[b].length > MAKS_SUMBER) add("sumber_panjang", { bahasa: b });
   }
-  if (berkas.celah.length === 0) add("tanpa_celah");
   const urut = urutkanCelah(berkas.celah);
   if (urut.some((c, i) => c.nomor !== i + 1)) add("nomor_salah");
   for (const c of urut) {
