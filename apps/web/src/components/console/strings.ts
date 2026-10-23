@@ -252,7 +252,7 @@ export const S = dict({
     xlsx: "Unduh XLSX",
     viewOnlyPill: "Hanya Lihat",
     kirimBtn: "Kirim Nilai",
-    kirimSent: (j: string) => `Terkirim ${j}`,
+    kirimSent: (j: string) => `Terkirim ke Praktikan ${j}`,
     kirimLeft: (n: number) => `Masih ${n} kolom kosong. Isi atau tandai Tidak Hadir dulu.`,
     kirimHint:
       "Setelah dikirim, tiap Praktikan melihat nilainya sendiri dan unit bayarmu tercatat.",
@@ -903,7 +903,7 @@ export const S = dict({
     xlsx: "Download XLSX",
     viewOnlyPill: "View Only",
     kirimBtn: "Send Scores",
-    kirimSent: (j: string) => `Sent ${j}`,
+    kirimSent: (j: string) => `Sent to students ${j}`,
     kirimLeft: (n: number) =>
       `${n} ${n === 1 ? "field is" : "fields are"} still empty. Fill them or mark Absent first.`,
     kirimHint: "Once sent, each student sees their own scores and your payment unit is recorded.",
@@ -1546,7 +1546,7 @@ export const S = dict({
     xlsx: "下载 XLSX",
     viewOnlyPill: "只能查看",
     kirimBtn: "发送分数",
-    kirimSent: (j: string) => `已发送 ${j}`,
+    kirimSent: (j: string) => `已发送给学生 ${j}`,
     kirimLeft: (n: number) => `还有 ${n} 格没填。先填好，或者标为缺席。`,
     kirimHint: "发送后，每位学生能看到自己的分数，你的报酬单位也会记下。",
     kirimAfter: "之后的修改会马上显示给学生。",

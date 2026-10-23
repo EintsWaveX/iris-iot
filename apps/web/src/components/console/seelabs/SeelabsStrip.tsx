@@ -148,6 +148,15 @@ export default function SeelabsStrip({ sesiId, nomor }: { sesiId: number; nomor:
               >
                 {r.tokenSend}
               </button>
+              {/* The list changes without a token when the schedule is fixed. */}
+              <button
+                type="button"
+                className="btn btn--secondary"
+                disabled={busy}
+                onClick={() => void kirim("ulang", gagal.id)}
+              >
+                {r.tryAgain}
+              </button>
             </form>
           ) : gagal.galat !== "ditolak" && gagal.galat !== "segel_rusak" ? (
             <div className="slr-acts">
