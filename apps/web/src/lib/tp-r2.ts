@@ -39,6 +39,25 @@ export const TP_KUNCI_RE =
   /^tp\/\d{4}-(ganjil|genap)\/[1-9]\/[0-9A-Za-z]{4,20}\/[0-9a-f]{64}\.(pdf|jpg|png|webp|doc|docx|zip|bin)$/;
 export const TP_AWALAN_RE = /^tp\/\d{4}-(ganjil|genap)\/$/;
 
+/**
+ * Open Recruitment documents (2026-10-23) share this bucket and these
+ * tickets, under `recruitment/<edition>/<nim>/<kind>/<sha256>.pdf`: PDFs
+ * only, and an edition's cleanup is one prefix.
+ */
+export const REK_KUNCI_RE =
+  /^recruitment\/\d{1,6}\/[0-9A-Za-z]{4,20}\/(cv|letter|vision|biodata|other)\/[0-9a-f]{64}\.pdf$/;
+export const REK_AWALAN_RE = /^recruitment\/\d{1,6}\/$/;
+
+export function kunciRekrutmen(edisi: number, nim: string, jenis: string, sha256: string): string {
+  const k = `recruitment/${edisi}/${nim}/${jenis}/${sha256}.pdf`;
+  if (!REK_KUNCI_RE.test(k)) throw new Error("unsafe recruitment key");
+  return k;
+}
+
+export const awalanRekrutmen = (edisi: number) => `recruitment/${edisi}/`;
+
+const kunciBerkas = (k: string) => TP_KUNCI_RE.test(k) || REK_KUNCI_RE.test(k);
+
 /** The extension a mime type is kept under. */
 export function extTp(mime: string): string {
   const m = mime.toLowerCase().split(";")[0].trim();
@@ -110,8 +129,13 @@ export async function bacaTiketTp<J extends TiketTp["j"]>(
   if (t.j !== jenis || typeof t.e !== "number" || t.e < kini || typeof t.k !== "string")
     return null;
   if (jenis === "tp-srv") {
-    if (t.op === "hapus-awalan" ? !TP_AWALAN_RE.test(t.k) : !TP_KUNCI_RE.test(t.k)) return null;
-  } else if (!TP_KUNCI_RE.test(t.k)) return null;
+    if (
+      t.op === "hapus-awalan"
+        ? !(TP_AWALAN_RE.test(t.k) || REK_AWALAN_RE.test(t.k))
+        : !kunciBerkas(t.k)
+    )
+      return null;
+  } else if (!kunciBerkas(t.k)) return null;
   return t as unknown as Extract<TiketTp, { j: J }>;
 }
 

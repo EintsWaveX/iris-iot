@@ -48,7 +48,24 @@ const BACA: Record<string, string[]> = {
   ],
   // Phase 23: the public Lab Profile.
   profil: ["baca"],
+  // Open Recruitment (2026-10-23).
+  recruitment: [
+    "banner",
+    "berkas",
+    "calendar",
+    "candidate",
+    "candidates",
+    "committee",
+    "edition",
+    "me",
+  ],
 };
+
+/**
+ * Topics whose pages are not built yet. Prompt 03 (S1 build) subscribes the
+ * recruitment pages and empties this list.
+ */
+const BELUM_DIDENGAR: string[] = ["recedition", "reccalendar", "reccandidates"];
 
 const RUTE: Record<string, string> = {
   session: "api/session/[aksi].ts",
@@ -57,6 +74,7 @@ const RUTE: Record<string, string> = {
   auth: "api/auth/[aksi].ts",
   tp: "api/tp/[aksi].ts",
   profil: "api/profil/[aksi].ts",
+  recruitment: "api/recruitment/[aksi].ts",
 };
 
 /** Every action name a route dispatches on: `aksi === "x"` comparisons and
@@ -114,7 +132,9 @@ describe("siaran topics", () => {
       .map((f) => readFileSync(f, "utf8"))
       .filter((s) => /\b(useSiaran|useSegar|usePoll|dengar|useSessionNow)\b/.test(s))
       .join("\n");
-    const tuli = TOPIK.filter((t) => !new RegExp(`["']${t}["']`).test(teks));
+    const tuli = TOPIK.filter(
+      (t) => !BELUM_DIDENGAR.includes(t) && !new RegExp(`["']${t}["']`).test(teks),
+    );
     expect(tuli, "topics no page subscribes to").toEqual([]);
   });
 });
