@@ -13,6 +13,7 @@ import type { EventKind, StageKey, CandidateStatus } from "../../lib/recruitment
 export const REC = dict({
   id: {
     eyebrow: "Open Recruitment Asisten IRIS 2026",
+    backPraktikum: "Kembali ke Praktikum",
     eyebrowShort: "Open Recruitment",
     loading: "Memuat",
     retry: "Coba Lagi",
@@ -103,6 +104,7 @@ export const REC = dict({
   },
   en: {
     eyebrow: "IRIS Asisten Open Recruitment 2026",
+    backPraktikum: "Back to Practicum",
     eyebrowShort: "Open Recruitment",
     loading: "Loading",
     retry: "Try Again",
@@ -193,6 +195,7 @@ export const REC = dict({
   },
   zh: {
     eyebrow: "IRIS 助教招募 2026",
+    backPraktikum: "返回 IRIS 实验",
     eyebrowShort: "助教招募",
     loading: "加载中",
     retry: "重试",

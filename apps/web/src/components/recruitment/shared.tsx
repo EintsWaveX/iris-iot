@@ -4,8 +4,9 @@
  * shared page head and the card shell.
  */
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import BackButton from "../ui/BackButton";
 import Pill from "../ui/Pill";
-import { tanggalPanjang, useTick } from "../../lib/app";
+import { href, tanggalPanjang, useTick } from "../../lib/app";
 import type { Lang } from "../../lib/kelas";
 import { PALETTE_KEYS, eventColor, type PaletteKey } from "../../lib/recruitment/calendar";
 import { tanggalWib } from "../../lib/recruitment/gates";
@@ -160,6 +161,11 @@ export function KepalaHalaman({
 }) {
   return (
     <header className="page-header rec-head">
+      {/* The way back for everyone, signed out too (2026-10-23): the account
+          menu's "Buka IRIS Praktikum" only exists once signed in. */}
+      <p className="page-header__context">
+        <BackButton lang={lang} href={href(lang, "/")} label={REC[lang].backPraktikum} />
+      </p>
       <div className="page-header__heading">
         <span className="page-header__eyebrow rec-eyebrow">{REC[lang].eyebrow}</span>
         <div className="row rec-head__row">

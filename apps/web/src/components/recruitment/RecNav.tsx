@@ -3,7 +3,9 @@
  * Recruitment runs its pages use this bar and none of the practicum's, so
  * recruitment is recruitment only and the practicum stays the practicum (its
  * own bar has no recruitment entry; the Home banner is the way in). The way
- * back is "Buka IRIS Praktikum" in the account menu.
+ * back is "Buka IRIS Praktikum" in the account menu, and for everyone, signed
+ * out too, Kembali ke Praktikum at the top of every recruitment page
+ * (KepalaHalaman in shared.tsx).
  *
  * It borrows the practicum bar's look (AppNav.css classes), the Tampilan
  * panel and the account chip's avatar, but none of its polling: no Konsol,
