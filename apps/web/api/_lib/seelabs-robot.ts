@@ -69,6 +69,7 @@ import {
   PRAKTIKUM_SEELABS,
   PROTOKOL_ROBOT,
   barisPerKlp,
+  gagalBasi,
   jenisDiambil,
   bacaInfoSeelabs,
   ringkasBukti,
@@ -934,9 +935,19 @@ export async function handleRobotGet(req: ApiRequest, res: ApiResponse, session:
       .from(seelabsTugas)
       .where(and(eq(seelabsTugas.sesiId, sesiId), eq(seelabsTugas.jenis, "nilai")))
       .orderBy(desc(seelabsTugas.id));
-    res
-      .status(200)
-      .json({ ok: true, nyala: aturan.nyala && !!aturan.kunci, tugas: rows.map(ringkasTugas) });
+    // The newest save of each group: a failure older than it is history
+    const simpan = await db
+      .select({ nomor: seelabsEkspor.kelompokNomor, pada: seelabsEkspor.disimpanPada })
+      .from(seelabsEkspor)
+      .where(and(eq(seelabsEkspor.sesiId, sesiId), isNotNull(seelabsEkspor.disimpanPada)));
+    const terbaru = new Map<number, Date>();
+    for (const s of simpan)
+      if (s.pada && (terbaru.get(s.nomor) ?? 0) < s.pada) terbaru.set(s.nomor, s.pada);
+    res.status(200).json({
+      ok: true,
+      nyala: aturan.nyala && !!aturan.kunci,
+      tugas: rows.filter((t) => !gagalBasi(t, terbaru)).map(ringkasTugas),
+    });
     return;
   }
 

@@ -282,6 +282,21 @@ export function setelahGagal(
   return { status: "gagal", jalanPada: sekarang, percobaan: ke };
 }
 
+/**
+ * A failed save that a later save of its group has overtaken, because the
+ * scores went in by hand and the read-back adopted them, or another try
+ * worked. It still sits in the queue's history but says nothing any more, so
+ * the strip and the table leave it out.
+ */
+export function gagalBasi(
+  t: { status: string; kelompokNomor: number | null; selesai: Date | null; dibuat: Date },
+  disimpan: ReadonlyMap<number, Date>,
+): boolean {
+  if (t.status !== "gagal" || t.kelompokNomor === null) return false;
+  const pada = disimpan.get(t.kelompokNomor);
+  return !!pada && pada.getTime() > (t.selesai ?? t.dibuat).getTime();
+}
+
 /** How an account's status moves with an uji or any job's sign-in. */
 export function statusAksesSetelah(kode: string | null, sekarang: StatusAkses): StatusAkses {
   if (kode === null) return "aktif"; // signed in fine

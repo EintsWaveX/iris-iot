@@ -4,6 +4,7 @@ import {
   bacaHariShift,
   bacaInfoSeelabs,
   barisPerKlp,
+  gagalBasi,
   ringkasBukti,
   setelahGagal,
   sidikJaga,
@@ -196,5 +197,30 @@ describe("ringkasBukti", () => {
     expect(ringkasBukti({ nama: "Immanuel" })).toEqual({ nama: "Immanuel" });
     expect(ringkasBukti(null)).toBeNull();
     expect(ringkasBukti([1, 2])).toBeNull();
+  });
+});
+
+describe("gagalBasi", () => {
+  const gagal = (nomor: number | null, selesai: string | null = "2026-10-23T10:00:00Z") => ({
+    status: "gagal",
+    kelompokNomor: nomor,
+    selesai: selesai ? new Date(selesai) : null,
+    dibuat: new Date("2026-10-23T09:59:00Z"),
+  });
+  const simpan = new Map([[3, new Date("2026-10-23T10:30:00Z")]]);
+
+  it("drops a failure that a later save of its group overtook", () => {
+    expect(gagalBasi(gagal(3), simpan)).toBe(true);
+  });
+
+  it("keeps a failure newer than the group's save, and other groups' failures", () => {
+    expect(gagalBasi(gagal(3, "2026-10-23T11:00:00Z"), simpan)).toBe(false);
+    expect(gagalBasi(gagal(4), simpan)).toBe(false);
+    expect(gagalBasi(gagal(null), simpan)).toBe(false);
+  });
+
+  it("falls back to the creation time while a job has no end, and leaves other states alone", () => {
+    expect(gagalBasi(gagal(3, null), simpan)).toBe(true);
+    expect(gagalBasi({ ...gagal(3), status: "selesai" }, simpan)).toBe(false);
   });
 });
