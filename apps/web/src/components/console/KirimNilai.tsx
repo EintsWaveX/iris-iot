@@ -69,16 +69,21 @@ export default function KirimNilai({
   if (sent) {
     // The scores changed after they went to SeeLabs and nothing is on its way:
     // the scorer can send them again from here.
-    const berubah =
-      canEdit &&
-      nilai.sesiId !== null &&
-      seelabs?.kelompok.find((x) => x.nomor === g.nomor)?.status === "berubah";
+    const sl = seelabs?.kelompok.find((x) => x.nomor === g.nomor);
+    const berubah = canEdit && nilai.sesiId !== null && sl?.status === "berubah";
+    // A resend that has landed in SeeLabs is the newer Terkirim.
+    const pada =
+      sl?.status === "terkirim" &&
+      sl.disimpanPada &&
+      new Date(sl.disimpanPada) > new Date(sent.pada)
+        ? sl.disimpanPada
+        : sent.pada;
     return (
       <>
         <span className="kirim" data-sent="yes">
           <Pill tone="ok">
             <CheckCircleIcon size={14} aria-hidden="true" />
-            {t.kirimSent(jam(sent.pada))}
+            {t.kirimSent(jam(pada))}
           </Pill>
           {berubah && (
             <button
