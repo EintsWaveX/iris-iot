@@ -8,11 +8,11 @@ A row is `ready` when every prompt in **Needs** is done. Mockups (01, 05, 08, 15
 | 01 | S1 mockup | Opus high | none | 23 Oct | done (signed off 2026-10-23 11:30, v2 https://claude.ai/artifact/RCXL2f8vcpWhQHhorCeAPz) |
 | 02 | Foundation | Sonnet high | none | 24 Oct | done (1b6ab91, not pushed; handoffs/02.md) |
 | 03 | S1 build | Sonnet high | 01 signed off, 02 | 25 Oct (editor and board by 27 Oct) | done (7daf998, not pushed; handoffs/03.md) |
-| 04 | S1 review + ship | Opus high | 03 | 25 Oct | running (2026-10-23 15:05 WIB, iris-aso-24): review done (1451573, 5bd3413, f12f3df, not pushed), awaiting the user's go to ship |
-| 05 | S2 mockup | Opus high | 01 signed off | 30 Oct | blocked (01) |
-| 06 | S2 build | Sonnet high | 04, 05 signed off | 8 Nov | blocked (04, 05) |
+| 04 | S1 review + ship | Opus high | 03 | 25 Oct | done (live 2026-10-23 16:47 WIB, main c251ddc: 1451573, 5bd3413, f12f3df, e3c7f92, 6973763; 0048 on prod; relay deployed; handoffs/04.md) |
+| 05 | S2 mockup | Opus high | 01 signed off | 30 Oct | ready |
+| 06 | S2 build | Sonnet high | 04, 05 signed off | 8 Nov | blocked (05) |
 | 07 | S2 review + ship | Opus high | 06 | 9 Nov | blocked (06) |
-| 08 | Exam engine design + S3 mockup | Opus max | 02 | 1 Nov | blocked (02) |
+| 08 | Exam engine design + S3 mockup | Opus max | 02 | 1 Nov | ready |
 | 09 | Bank + references | Sonnet high | 08 | 10 Nov | blocked (08) |
 | 10 | Exam runner | Sonnet high | 08 | 10 Nov | blocked (08) |
 | 11 | Master console + relay room | Sonnet high | 08 | 10 Nov | blocked (08) |
