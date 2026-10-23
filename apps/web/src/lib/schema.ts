@@ -35,6 +35,19 @@ import type { StatusOrang, Tier } from "./hak.js";
 import type { BahasaTp, VarianTp } from "./tp.js";
 import type { KodeBerkas } from "./kode-jurnal.js";
 import type { NilaiTersimpan } from "./seelabs-baca.js";
+import {
+  ATTENDANCE_VIA,
+  AUDIENCES,
+  CANDIDATE_STATUS,
+  DIVISIONS,
+  DOC_KINDS,
+  EDITION_STATUS,
+  EVENT_KINDS,
+  PROPOSALS,
+  STAGES,
+  type Biodata,
+  type GateKey,
+} from "./recruitment/types.js";
 export { NILAI_KOMPONEN } from "./nilai-komponen.js";
 export type { NilaiKomponen } from "./nilai-komponen.js";
 
@@ -2070,3 +2083,198 @@ export const profilAcaraFoto = pgTable(
   },
   (t) => [index("profil_acara_foto_acara_idx").on(t.acaraId, t.urutan)],
 );
+
+/* ===================================================================
+ * IRIS Open Recruitment (OPREC 2026), docs/recruitment/ARCHITECTURE.md
+ * section 2. Slice S1 holds the edition, the committee, the calendar and
+ * the candidates; later slices add their tables in 0049+. Every row but
+ * the edition carries `edition_id`; a candidate is keyed by NIM.
+ * =================================================================== */
+
+/** One recruitment edition (2026 is the first). */
+export const recEdition = pgTable("rec_edition", {
+  id: serial("id").primaryKey(),
+  year: integer("year").notNull().unique(),
+  title: text("title").notNull(),
+  status: text("status", { enum: EDITION_STATUS }).notNull().default("draft"),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Who sits on the Panitia of an edition and where. Separate from the lab
+ * divisions. One Ketua per edition and one Koordinator star per division.
+ */
+export const recCommittee = pgTable(
+  "rec_committee",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    asistenNim: text("asisten_nim")
+      .notNull()
+      .references(() => asisten.nim),
+    division: text("division", { enum: DIVISIONS }).notNull(),
+    isKoor: boolean("is_koor").notNull().default(false),
+    /** Free text, e.g. "Sekretaris" */
+    title: text("title"),
+    seatedBy: text("seated_by").notNull(),
+    seatedAt: timestamp("seated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("rec_committee_unik").on(t.editionId, t.asistenNim),
+    uniqueIndex("rec_committee_satu_ketua")
+      .on(t.editionId)
+      .where(sql`${t.division} = 'ketua'`),
+    uniqueIndex("rec_committee_satu_koor")
+      .on(t.editionId, t.division)
+      .where(sql`${t.isKoor}`),
+  ],
+);
+
+/**
+ * A calendar event. Dates are WIB and inclusive; the daily window is WIB
+ * HH:MM. An event's days open or close what it `gates`
+ * (src/lib/recruitment/gates.ts); the calendar is the only switch.
+ */
+export const recEvent = pgTable(
+  "rec_event",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: EVENT_KINDS }).notNull(),
+    title: text("title").notNull(),
+    startsOn: date("starts_on", { mode: "string" }).notNull(),
+    endsOn: date("ends_on", { mode: "string" }).notNull(),
+    dayStart: text("day_start"),
+    dayEnd: text("day_end"),
+    place: text("place"),
+    internal: boolean("internal").notNull().default(false),
+    /** Who besides the Panitia sees a public event: all, own slot, or offered */
+    audience: text("audience", { enum: AUDIENCES }).notNull().default("all"),
+    gates: jsonb("gates").$type<GateKey[]>().notNull().default([]),
+    /** The journey stage the event belongs to */
+    stage: text("stage", { enum: STAGES }),
+    color: text("color"),
+    sort: integer("sort").notNull().default(0),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("rec_event_edition_idx").on(t.editionId, t.startsOn),
+    check("rec_event_urut", sql`${t.endsOn} >= ${t.startsOn}`),
+    check(
+      "rec_event_jam",
+      sql`(${t.dayStart} is null and ${t.dayEnd} is null) or (${t.dayStart} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' and ${t.dayEnd} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' and ${t.dayEnd} > ${t.dayStart})`,
+    ),
+  ],
+);
+
+/**
+ * Edits to an event whose stage had already started (and deletes). The
+ * event id is not a foreign key: the log outlives a deleted event.
+ */
+export const recEventLog = pgTable(
+  "rec_event_log",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id").notNull(),
+    eventId: integer("event_id").notNull(),
+    who: text("who").notNull(),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_event_log_event_idx").on(t.eventId, t.at)],
+);
+
+/** One application. `anggotaId` links this semester's roster for reading only. */
+export const recCandidate = pgTable(
+  "rec_candidate",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    nim: text("nim").notNull(),
+    anggotaId: integer("anggota_id"),
+    biodata: jsonb("biodata").$type<Biodata>().notNull(),
+    status: text("status", { enum: CANDIDATE_STATUS }).notNull().default("applied"),
+    currentStage: text("current_stage", { enum: STAGES }).notNull().default("berkas"),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).notNull().defaultNow(),
+    /** The data use and 6 month retention consent, when it was given */
+    consentAt: timestamp("consent_at", { withTimezone: true }).notNull().defaultNow(),
+    reviewNote: text("review_note"),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("rec_candidate_unik").on(t.editionId, t.nim),
+    index("rec_candidate_status_idx").on(t.editionId, t.status),
+  ],
+);
+
+/** A candidate's PDF in R2 (src/lib/tp-r2.ts keys under recruitment/). One per kind. */
+export const recDocument = pgTable(
+  "rec_document",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: DOC_KINDS }).notNull(),
+    r2Key: text("r2_key").notNull(),
+    size: integer("size").notNull(),
+    sha256: text("sha256").notNull(),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+    note: text("note"),
+  },
+  (t) => [unique("rec_document_unik").on(t.candidateId, t.kind)],
+);
+
+/** Cutting: the proposal and the lock for one candidate and stage (S2 fills it). */
+export const recStageResult = pgTable(
+  "rec_stage_result",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    stage: text("stage", { enum: STAGES }).notNull(),
+    proposal: text("proposal", { enum: PROPOSALS }),
+    proposedBy: text("proposed_by"),
+    note: text("note"),
+    locked: boolean("locked").notNull().default(false),
+    lockedBy: text("locked_by"),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    /** Copied from the Pengumuman event's start when the stage is locked */
+    revealAt: timestamp("reveal_at", { withTimezone: true }),
+    openedAt: timestamp("opened_at", { withTimezone: true }),
+  },
+  (t) => [unique("rec_stage_result_unik").on(t.candidateId, t.stage)],
+);
+
+/** Attendance at an event, by QR or by hand (S2 fills it). */
+export const recAttendance = pgTable(
+  "rec_attendance",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => recEvent.id, { onDelete: "cascade" }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    via: text("via", { enum: ATTENDANCE_VIA }).notNull(),
+    by: text("by"),
+  },
+  (t) => [unique("rec_attendance_unik").on(t.candidateId, t.eventId)],
+);
+
+export type RecEditionRow = typeof recEdition.$inferSelect;
+export type RecEventRow = typeof recEvent.$inferSelect;
+export type RecCandidateRow = typeof recCandidate.$inferSelect;

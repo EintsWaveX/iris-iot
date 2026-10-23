@@ -41,6 +41,11 @@ export const TOPIK = [
   "hadir",
   // Phase 23: the Lab Profile on Home (divisions, team photos, events).
   "profil",
+  // Open Recruitment (2026-10-23). Letters only, the relay takes no hyphen:
+  // the edition and the Panitia seats, the calendar, the candidates.
+  "recedition",
+  "reccalendar",
+  "reccandidates",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -170,6 +175,17 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "profil:bersama-hapus": ["profil"],
   "profil:acara-simpan": ["profil"],
   "profil:acara-hapus": ["profil"],
+  // Open Recruitment (api/recruitment/[aksi].ts). The ticket only signs.
+  "recruitment:ticket": [],
+  "recruitment:apply": ["reccandidates"],
+  "recruitment:document": ["reccandidates"],
+  "recruitment:withdraw": ["reccandidates"],
+  "recruitment:review": ["reccandidates"],
+  "recruitment:event-save": ["reccalendar"],
+  "recruitment:event-move": ["reccalendar"],
+  "recruitment:event-delete": ["reccalendar"],
+  "recruitment:seat": ["recedition"],
+  "recruitment:unseat": ["recedition"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],
