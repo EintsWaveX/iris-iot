@@ -1229,6 +1229,9 @@ html[data-detail="ldm"] .rec-funnel__bar i {
 .rec-todo__list button {
   cursor: pointer;
 }
+.rec-todo__list button > svg {
+  flex-shrink: 0;
+}
 .rec-todo__plain {
   color: var(--text-muted);
 }

@@ -71,6 +71,14 @@ export function adaHak(p: Pelaku): boolean {
 }
 
 /**
+ * Who may sit on the committee and use its rights: an Asisten still with
+ * the lab. On leave counts like active (user, 2026-10-23: MCU stays seated);
+ * the same set the Ketua picks from.
+ */
+export const bolehDuduk = (status: string | null | undefined): boolean =>
+  status === "aktif" || status === "cuti";
+
+/**
  * Who may press Jadi Master on a test evening: an active Asisten who is
  * not the Pencipta (PRD 7.8). Whether they were plotted as pengawas that
  * evening is the exam engine's check.

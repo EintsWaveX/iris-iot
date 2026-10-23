@@ -756,6 +756,17 @@ describe("seating the Panitia", () => {
       (await panggil("POST", "seat", { body: { nim: "101022300111", division: "acara" } })).code,
     ).toBe(403);
   });
+  it("seats an Asisten on leave like any other, with their rights (user, 2026-10-23)", async () => {
+    sebagaiAsisten();
+    rows.asisten = [{ ...ORANG("101022300900", { tier: "admin", divisi: null }), status: "cuti" }];
+    rows.committee = [];
+    // The same fake row is the one acting and the one seated.
+    const r = await panggil("POST", "seat", { body: { nim: "101022300900", division: "acara" } });
+    expect(r.code).toBe(200);
+    expect(tulis.find((w) => w.tabel === "committee")?.nilai).toMatchObject({
+      division: "acara",
+    });
+  });
   it("checks the fields", async () => {
     sebagaiAsisten();
     rows.asisten = [ORANG("101022300900", { tier: "admin", divisi: null })];

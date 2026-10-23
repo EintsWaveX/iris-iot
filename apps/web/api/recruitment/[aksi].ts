@@ -71,6 +71,7 @@ import {
   type Viewer,
   type ViewerKind,
 } from "../../src/lib/recruitment/types.js";
+import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
 import { kunciRekrutmen } from "../../src/lib/tp-r2.js";
 import {
   adaEdisiDraft,
@@ -773,7 +774,7 @@ async function handleDuduk(req: ApiRequest, res: ApiResponse, s: SessionPayload)
   if (division !== "ketua" && !p.hak.board) return tolak(res, "tanpa_hak", 403, { hak: "board" });
 
   const target = await muatOrang(b.nim);
-  if (!target || target.status !== "aktif") return tolak(res, "bukan_asisten", 404);
+  if (!target || !bolehDuduk(target.status)) return tolak(res, "bukan_asisten", 404);
   const lama = await muatKursi(db, edisi.id, target.nim);
   if (lama?.division === "ketua" && !p.hak.seatKetua)
     return tolak(res, "tanpa_hak", 403, { hak: "seatKetua" });

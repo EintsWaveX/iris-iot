@@ -5,7 +5,7 @@
  * hide what these checks already refuse.
  */
 import { hakPenuh } from "../../src/lib/hak.js";
-import { hakRekrutmen, pelakuDari } from "../../src/lib/recruitment/rights.js";
+import { bolehDuduk, hakRekrutmen, pelakuDari } from "../../src/lib/recruitment/rights.js";
 import type { RecRights } from "../../src/lib/recruitment/types.js";
 import type { ApiResponse } from "./http.js";
 import { muatOrang, type OrangHak } from "./hak.js";
@@ -20,8 +20,8 @@ export interface PelakuServer {
 }
 
 /**
- * An Asisten with their seat and rights, or null when they are not an active
- * Asisten (a stale cookie of someone since deactivated gets nothing).
+ * An Asisten with their seat and rights, or null when they are inactive or
+ * alumni (a stale cookie of someone since deactivated gets nothing).
  */
 export async function muatPelaku(
   db: Db,
@@ -29,7 +29,7 @@ export async function muatPelaku(
   nim: string,
 ): Promise<PelakuServer | null> {
   const orang = await muatOrang(nim);
-  if (!orang || orang.status !== "aktif") return null;
+  if (!orang || !bolehDuduk(orang.status)) return null;
   const kursi = await muatKursi(db, edisiId, nim);
   return {
     orang,

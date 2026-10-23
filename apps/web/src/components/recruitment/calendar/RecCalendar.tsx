@@ -184,7 +184,13 @@ export function RecCalendar({
     .sort((a, b) => (a.startsOn < b.startsOn ? -1 : a.startsOn > b.startsOn ? 1 : a.sort - b.sort))
     .slice(0, 6);
   const onDay = pick ? shown.filter((e) => DIA(pick, e)) : [];
-  const kinds = [...new Set(shown.map((e) => e.kind))] as EventKind[];
+  // Kinds share colours (thirteen kinds, eight colours), so the legend has
+  // one swatch per look with every kind that wears it, never two alike.
+  const rupa = (k: EventKind) =>
+    `${warnaJenis(k)}|${k === "announcement" || k === "test" ? "isi" : "tipis"}`;
+  const legenda = new Map<string, EventKind[]>();
+  for (const k of new Set(shown.map((e) => e.kind)))
+    legenda.set(rupa(k), [...(legenda.get(rupa(k)) ?? []), k]);
   const lab = (e: RecEvent) => judulAcara(e, lang);
 
   return (
@@ -313,10 +319,10 @@ export function RecCalendar({
             </span>
           ) : (
             <div className="row rkal__legend">
-              {kinds.map((k) => (
-                <span key={k}>
-                  <i style={cs(warnaJenis(k))} data-k={k} />
-                  {REC[lang].kind[k]}
+              {[...legenda.values()].map((ks) => (
+                <span key={ks[0]}>
+                  <i style={cs(warnaJenis(ks[0]))} data-k={ks[0]} />
+                  {ks.map((k) => REC[lang].kind[k]).join(lang === "zh" ? "、" : ", ")}
                 </span>
               ))}
               {viewer === "panitia" && shown.some((e) => e.internal) && (

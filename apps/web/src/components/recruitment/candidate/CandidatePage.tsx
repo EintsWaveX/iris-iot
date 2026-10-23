@@ -26,7 +26,12 @@ import {
   useRecEdition,
   useRecMe,
 } from "../../../lib/recruitment/client";
-import { gateClosesAt, gateOpen, nextPublicEvent } from "../../../lib/recruitment/gates";
+import {
+  gateClosesAt,
+  gateOpen,
+  nextPublicEvent,
+  tanggalWib,
+} from "../../../lib/recruitment/gates";
 import { alamatBagian } from "../../../lib/recruitment/panel-tab";
 import { DOC_REQUIRED, type RecEvent, type WithdrawResponse } from "../../../lib/recruitment/types";
 import { REC } from "../recruitmentStrings";
@@ -107,9 +112,14 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const opensOn = regs.length
     ? regs.reduce((m, e) => (e.startsOn < m ? e.startsOn : m), regs[0].startsOn)
     : null;
-  const closesOn = regs.length
-    ? regs.reduce((m, e) => (e.endsOn > m ? e.endsOn : m), regs[0].endsOn)
-    : null;
+  // While open, the last day is the day before the gate closes, so a gap
+  // between Open Recruitment and Extend never promises a day that is shut.
+  const tutupAt = gateClosesAt(events, "daftar", now);
+  const closesOn = tutupAt
+    ? tanggalWib(new Date(Date.parse(tutupAt) - 1)).tanggal
+    : regs.length
+      ? regs.reduce((m, e) => (e.endsOn > m ? e.endsOn : m), regs[0].endsOn)
+      : null;
   const buka = praktikan && rec.data ? rec.data.daftarOpen : gateOpen(events, "daftar", now);
   const sebelum = !buka && !!opensOn && hariIni < opensOn;
   const panitia = asisten && edisi.data?.viewer === "panitia";
@@ -175,7 +185,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     applied ? events.filter((e) => !e.gates.includes("daftar")) : events,
     now,
   );
-  const tutupAt = gateClosesAt(events, "daftar", now);
   const next = (() => {
     if (!applied && buka && tutupAt)
       return {
