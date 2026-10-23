@@ -41,12 +41,13 @@ describe("visitor", () => {
       daftarOpen: true,
     });
   });
-  it("sees the coming Open before it starts, with Daftar closed", () => {
-    expect(banner({ now: wib("2026-10-20T09:00:00") })).toMatchObject({
-      kind: "visitor",
-      opens: "2026-10-25",
-      daftarOpen: false,
+  it("sees nothing before registration opens (user, 2026-10-23)", () => {
+    expect(banner({ now: wib("2026-10-24T23:59:00") })).toEqual({
+      ok: true,
+      kind: "none",
+      segera: false,
     });
+    expect(banner({ now: wib("2026-10-25T00:00:00") })).toMatchObject({ kind: "visitor" });
   });
   it("sees nothing once registration is over", () => {
     expect(banner({ now: wib("2026-11-05T09:00:00") })).toEqual({

@@ -4,7 +4,7 @@
  * handful of queries, this decides what to show.
  *
  * A signed out visitor gets the title and the dates and nothing else: no
- * names, no NIM, no internal event.
+ * names, no NIM, no internal event, and only while registration is open.
  */
 import {
   eventEnded,
@@ -76,6 +76,8 @@ export function susunBanner(i: BannerInput): BannerResponse {
 
   switch (i.viewer.kind) {
     case "visitor": {
+      // Nothing outside the Panitia until registration opens (user, 2026-10-23).
+      if (!daftarBuka) return kosong;
       const e = acaraDaftar(i.events, i.now);
       if (!e) return kosong;
       return {
