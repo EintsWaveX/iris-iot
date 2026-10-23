@@ -68,9 +68,15 @@ export default function Ringkasan({
     tugas.push({ text: menunggu ? t.waitingTask(menunggu) : t.allChecked, tab: "kandidat" });
   if (rights && (rights.board || rights.seatKetua) && seats !== null)
     tugas.push({ text: t.seats(seats), tab: "panitia" });
-  if (rights?.calendar && lanjut)
+  // "Next" on the calendar is the first event still to start, not one already running.
+  const mendatang = events
+    .filter((e) => e.startsOn > hariIni)
+    .sort((a, b) =>
+      a.startsOn < b.startsOn ? -1 : a.startsOn > b.startsOn ? 1 : a.sort - b.sort,
+    )[0];
+  if (rights?.calendar && mendatang)
     tugas.push({
-      text: t.nextEvent(judulAcara(lanjut, lang), tgl(lanjut.startsOn, lang)),
+      text: t.nextEvent(judulAcara(mendatang, lang), tgl(mendatang.startsOn, lang)),
       tab: "kalender",
     });
   if (!tugas.length) tugas.push({ text: t.none, tab: null });

@@ -315,7 +315,7 @@ export default function Kandidat({
         <span className="hint num">{t.count(list.length, rows.length)}</span>
       </div>
       {!list.length ? (
-        <p className="hint">{rows.length ? t.emptyFilter : t.empty}</p>
+        <p className="empty-note">{rows.length ? t.emptyFilter : t.empty}</p>
       ) : wide ? (
         <section className="panel rec-tablecard">
           <div className="scrollx">

@@ -18,7 +18,8 @@ const PAL: Record<PaletteKey, string> = {
   violet: "var(--violet)",
   blue: "var(--accent)",
   teal: "var(--teal)",
-  green: "var(--ok)",
+  // --ok is teal in the dark theme; the lime pair keeps green apart from teal.
+  green: "var(--group-6)",
   amber: "var(--yellow)",
   orange: "var(--orange)",
   rose: "var(--red)",
