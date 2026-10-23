@@ -50,6 +50,40 @@ export function useRobotSesi(sesiId: number | null) {
 
 const LANGKAH = (t: TugasRobot) => (t.status === "selesai" ? 4 : t.status === "diambil" ? 1 : 0);
 
+/** Coba Lagi for a group whose newest save failed, for the table row (it
+ *  shares the strip's poll). Nothing renders while no job has failed. */
+export function CobaLagi({ sesiId, nomor }: { sesiId: number; nomor: number }) {
+  const r = RB[pageLang()];
+  const { data, refresh } = useRobotSesi(sesiId);
+  const [busy, setBusy] = useState(false);
+  const gagal = (data?.ok ? tugasKelompok(data.tugas, nomor) : []).find(
+    (j) => j.status === "gagal",
+  );
+  if (!gagal) return null;
+
+  async function ulang(id: number) {
+    setBusy(true);
+    const res = await postJson<{ ok: boolean }>("/api/session/robot", {
+      aksi: "ulang",
+      tugasId: id,
+    }).catch(() => ({ ok: false }));
+    setBusy(false);
+    window.Toast?.show(res.ok ? r.queued : r.failed, res.ok ? "ok" : "danger");
+    refresh();
+  }
+
+  return (
+    <button
+      type="button"
+      className="btn btn--secondary btn--sm"
+      disabled={busy}
+      onClick={() => void ulang(gagal.id)}
+    >
+      {r.tryAgain}
+    </button>
+  );
+}
+
 export default function SeelabsStrip({ sesiId, nomor }: { sesiId: number; nomor: number }) {
   const lang = pageLang();
   const r = RB[lang];
@@ -123,41 +157,45 @@ export default function SeelabsStrip({ sesiId, nomor }: { sesiId: number; nomor:
             </span>
           </div>
           {gagal.galat === "butuh_token" || gagal.galat === "token_salah" ? (
-            <form
-              className="slr-token"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void kirim("token", gagal.id);
-              }}
-            >
-              <label className="field">
-                <span className="field__label">{r.tokenLabel}</span>
-                <input
-                  className="field__input mono"
-                  value={token}
-                  placeholder={r.tokenPh}
-                  autoComplete="off"
-                  spellCheck={false}
-                  onChange={(e) => setToken(e.target.value)}
-                />
-              </label>
-              <button
-                type="submit"
-                className="btn btn--primary"
-                disabled={busy || token.trim().length < 3}
+            <>
+              <form
+                className="slr-token"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void kirim("token", gagal.id);
+                }}
               >
-                {r.tokenSend}
-              </button>
-              {/* The list changes without a token when the schedule is fixed. */}
-              <button
-                type="button"
-                className="btn btn--secondary"
-                disabled={busy}
-                onClick={() => void kirim("ulang", gagal.id)}
-              >
-                {r.tryAgain}
-              </button>
-            </form>
+                <label className="field">
+                  <span className="field__label">{r.tokenLabel}</span>
+                  <input
+                    className="field__input mono"
+                    value={token}
+                    placeholder={r.tokenPh}
+                    autoComplete="off"
+                    spellCheck={false}
+                    onChange={(e) => setToken(e.target.value)}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="btn btn--primary"
+                  disabled={busy || token.trim().length < 3}
+                >
+                  {r.tokenSend}
+                </button>
+              </form>
+              {/* The list opens without a token once the schedule is right. */}
+              <div className="slr-acts">
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  disabled={busy}
+                  onClick={() => void kirim("ulang", gagal.id)}
+                >
+                  {r.tryAgain}
+                </button>
+              </div>
+            </>
           ) : gagal.galat !== "ditolak" && gagal.galat !== "segel_rusak" ? (
             <div className="slr-acts">
               <button

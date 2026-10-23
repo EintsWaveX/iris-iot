@@ -25,6 +25,7 @@ import { unduhXlsx } from "../../lib/xlsx";
 import { useMinWidth } from "../../lib/hooks";
 import type { Lang } from "../../lib/kelas";
 import StatusPill from "./seelabs/StatusPill";
+import { CobaLagi } from "./seelabs/SeelabsStrip";
 import type { SeelabsData } from "./seelabs/data";
 import { SL } from "./seelabs/strings";
 import type { Strings } from "./strings";
@@ -236,6 +237,7 @@ export default function NilaiTable({
           {sg.akun ? <b className="mono">{kode(sg.akun)}</b> : <Nil />}
           <StatusPill t={sl} status={sg.status} pada={sg.disimpanPada} />
         </span>
+        <CobaLagi sesiId={sesiId} nomor={nomor} />
       </span>
     );
   }
