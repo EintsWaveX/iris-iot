@@ -82,6 +82,7 @@ import {
   muatEvents,
   muatKandidat,
   muatKursi,
+  muatKolam,
   muatKursiSemua,
   muatWaktuGagal,
   eventDariRow,
@@ -224,7 +225,7 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
   });
 }
 
-async function handleKalender(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+async function handleKalender(req: ApiRequest, res: ApiResponse, s: SessionPayload | null) {
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
@@ -259,7 +260,8 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
     ok: true,
     edition: edisi,
     candidate: k ? kandidatSendiri(k) : null,
-    documents: k ? (await muatDokumen(db, k.id)).map(({ id: _id, ...d }) => d) : [],
+    // The ids are the candidate's own: berkas answers 404 for anyone else's.
+    documents: k ? await muatDokumen(db, k.id) : [],
     envelopes: k ? await muatAmplop(db, k.id, now) : [],
     daftarOpen: gateOpen(events, "daftar", now),
   });
@@ -368,7 +370,10 @@ async function handlePanitia(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   if (!edisi) return;
   const p = await muatPelaku(db, edisi.id, s.nim);
   if (!anggotaPanitia(p)) return tolak(res, "tanpa_hak", 403);
-  res.status(200).json({ ok: true, seats: await muatKursiSemua(db, edisi.id) });
+  const seats = await muatKursiSemua(db, edisi.id);
+  // Whoever may seat people also needs the Asisten to pick from.
+  const boleh = !!p && (p.hak.board || p.hak.seatKetua);
+  res.status(200).json({ ok: true, seats, ...(boleh ? { pool: await muatKolam(db) } : {}) });
 }
 
 /** A PDF as a 10 minute link, after the rights check: a candidate's own, or the documents right. */
@@ -841,7 +846,8 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "calendar") {
     if (!requireMethod(req, res, "GET")) return;
-    if (!sesiku) return tolak(res, "belum_masuk", 401);
+    // A visitor sees the public events (the candidate page's journey and
+    // calendar, 2026-10-23); the same filter hides every internal one.
     return handleKalender(req, res, sesiku);
   }
   if (aksi === "berkas") {

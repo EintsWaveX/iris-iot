@@ -1,0 +1,27 @@
+---
+/**
+ * /recruitment, /en/recruitment and /zh/recruitment (2026-10-23): the candidate's page.
+ * Open Recruitment's own navbar replaces the practicum's (Base shell).
+ */
+import Base from "../layouts/Base.astro";
+import CandidatePage from "../components/recruitment/candidate/CandidatePage";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  noindex
+  title={`${tri(lang, "Open Recruitment Asisten", "Asisten Open Recruitment", "助教招募")} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+  shell="rekrutmen"
+>
+  <main id="main" class="page-wide page-main">
+    <CandidatePage client:load lang={lang} />
+  </main>
+</Base>

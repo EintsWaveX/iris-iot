@@ -61,12 +61,6 @@ const BACA: Record<string, string[]> = {
   ],
 };
 
-/**
- * Topics whose pages are not built yet. Prompt 03 (S1 build) subscribes the
- * recruitment pages and empties this list.
- */
-const BELUM_DIDENGAR: string[] = ["recedition", "reccalendar", "reccandidates"];
-
 const RUTE: Record<string, string> = {
   session: "api/session/[aksi].ts",
   modul: "api/modul/[aksi].ts",
@@ -132,9 +126,7 @@ describe("siaran topics", () => {
       .map((f) => readFileSync(f, "utf8"))
       .filter((s) => /\b(useSiaran|useSegar|usePoll|dengar|useSessionNow)\b/.test(s))
       .join("\n");
-    const tuli = TOPIK.filter(
-      (t) => !BELUM_DIDENGAR.includes(t) && !new RegExp(`["']${t}["']`).test(teks),
-    );
+    const tuli = TOPIK.filter((t) => !new RegExp(`["']${t}["']`).test(teks));
     expect(tuli, "topics no page subscribes to").toEqual([]);
   });
 });

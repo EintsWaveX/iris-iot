@@ -325,7 +325,14 @@ function initials(nama: string): string {
   ).toUpperCase();
 }
 
-function Avatar({ me, lg = false }: { me: NonNullable<ReturnType<typeof useMe>>; lg?: boolean }) {
+/** Also the recruitment navbar's account chip (components/recruitment/RecNav.tsx). */
+export function Avatar({
+  me,
+  lg = false,
+}: {
+  me: NonNullable<ReturnType<typeof useMe>>;
+  lg?: boolean;
+}) {
   const praktikan = me.role === "praktikan";
   return (
     <span

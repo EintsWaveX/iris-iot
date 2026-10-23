@@ -45,6 +45,7 @@ import "../components/ui/Pill.css";
 import { ClientRouter } from "astro:transitions";
 import Cosmos from "../components/Cosmos.astro";
 import AppNav from "../components/shell/AppNav";
+import RecNav from "../components/recruitment/RecNav";
 import Toast from "../components/ui/Toast";
 import SegFit from "../components/shell/SegFit";
 import TipLayer from "../components/shell/TipLayer";
@@ -72,6 +73,9 @@ interface Props {
   /** Phase 8: the app nav (AppNav.tsx) is mounted here for every page;
    *  a page can opt out (none does today). */
   nav?: boolean;
+  /** Open Recruitment's pages: their own navbar, none of the practicum's
+   *  (ruled 2026-10-23, components/recruitment/RecNav.tsx). */
+  shell?: "rekrutmen";
   /** The 404 page: Vercel serves one built file for every missing path, so
    *  the nav reads the language from the address after hydration. */
   langFromUrl?: boolean;
@@ -89,6 +93,7 @@ const {
   lang = "id",
   cosmosScene = "beranda",
   nav = true,
+  shell,
   langFromUrl = false,
   noindex = false,
   card = "home",
@@ -167,7 +172,10 @@ const locale = { id: "id_ID", en: "en_US", zh: "zh_CN" }[lang];
     >
       {tri(lang, "Lewati ke isi", "Skip to content", "跳到正文")}
     </a>
-    {nav && <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />}
+    {nav && shell === "rekrutmen" && <RecNav client:load lang={lang} path={Astro.url.pathname} />}
+    {nav && shell !== "rekrutmen" && (
+      <AppNav client:load lang={lang} path={Astro.url.pathname} langFromUrl={langFromUrl} />
+    )}
     <Toast client:load />
     <SegFit client:load />
     <TipLayer client:load />

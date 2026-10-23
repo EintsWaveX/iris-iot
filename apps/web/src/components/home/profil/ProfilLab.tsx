@@ -37,6 +37,7 @@ import Lightbox, { type FotoLihat } from "./Lightbox";
 import { Avatar, Gambar, Hitung, Kepala, miring, useGerakProfil, useMuncul } from "./parts";
 import { P } from "./profilStrings";
 import { FilosofiLogo, TentangLab } from "./Tentang";
+import RecBanner from "../../recruitment/home-banner/RecBanner";
 import "./profil.css";
 
 // Swiper loads only when the events come into the page, not with every
@@ -411,6 +412,8 @@ export default function ProfilLab({
   return (
     <div className={`pl${tier === 0 ? " pl--still" : ""}`} ref={ref} data-tier={tier}>
       {hero && <HeroLab lang={lang} data={data} />}
+      {/* Open Recruitment (2026-10-23): a visitor sees it right under the hero. */}
+      {hero && <RecBanner lang={lang} />}
       {data === undefined ? (
         <div className="pl-wait" aria-busy="true" />
       ) : data === null ? (

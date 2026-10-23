@@ -30,7 +30,7 @@ describe("cekBiodata", () => {
     ["kelas", { kelas: "" }],
     ["kelas", { kelas: "x".repeat(41) }],
     ["phone", { phone: "12345" }],
-    ["phone", { phone: "08abc4567890" }],
+    ["phone", { phone: "0812 not a number" }],
     ["lineId", { lineId: "" }],
     ["address", { address: "Bdg" }],
     ["address", { address: "x".repeat(301) }],

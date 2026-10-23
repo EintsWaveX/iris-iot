@@ -1,0 +1,27 @@
+---
+/**
+ * /recruitment/panel and its en and zh twins (2026-10-23): the Panitia panel.
+ * Open Recruitment's own navbar replaces the practicum's (Base shell).
+ */
+import Base from "../layouts/Base.astro";
+import PanelPage from "../components/recruitment/panel/PanelPage";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  noindex
+  title={`${tri(lang, "Panel Panitia", "Panitia Panel", "招募组面板")} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+  shell="rekrutmen"
+>
+  <main id="main" class="page-wide page-main">
+    <PanelPage client:load lang={lang} />
+  </main>
+</Base>
