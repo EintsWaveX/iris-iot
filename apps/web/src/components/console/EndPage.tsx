@@ -589,7 +589,7 @@ export default function EndPage({
                         {t.group(k.nomor)}
                       </span>
                       <span className="endgrp__act">
-                        <StatusPill t={sl} status={k.status} />
+                        <StatusPill t={sl} status={k.status} pada={k.disimpanPada} />
                       </span>
                     </li>
                   ))}

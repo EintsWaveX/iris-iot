@@ -234,7 +234,7 @@ export default function NilaiTable({
         <span className="seechip">
           <span className="hint">{sl.seelabsLabel}</span>
           {sg.akun ? <b className="mono">{kode(sg.akun)}</b> : <Nil />}
-          <StatusPill t={sl} status={sg.status} />
+          <StatusPill t={sl} status={sg.status} pada={sg.disimpanPada} />
         </span>
       </span>
     );
