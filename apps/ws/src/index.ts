@@ -4,6 +4,8 @@
  *   GET /grupN   an ESP32 (WebSocket, N is 1 to 5, no key)
  *   GET /pc      the lab server's bridge (WebSocket, it dials out, Bearer key)
  *   GET /        plain text, whether the server is connected
+ *   GET /mqtt    a Pico W (WebSocket, MQTT bytes in binary frames, no key)
+ *   GET /pc-mqtt the lab server's MQTT bridge (WebSocket, Bearer key)
  *
  * One Durable Object holds every socket. Between it and the bridge each
  * ESP32 is a numbered connection, in JSON text frames:
@@ -14,10 +16,16 @@
  * The bridge replays each connection into the real Module 2 server on the
  * lab PC, so the server, its log and its timestamps are the ones the
  * practicum already uses. Nothing is stored here.
+ *
+ * Module 3 (broker.irisiotlab.com) works the same way with its own object,
+ * but MQTT is binary, so a connection's bytes ride in binary frames that
+ * start with a 4-byte connection id; "open" and "close" stay JSON text.
+ * The bridge pipes each connection into Mosquitto on the lab PC.
  */
 
 export interface Env {
   BRIDGE: DurableObjectNamespace;
+  BROKER: DurableObjectNamespace;
   PC_KEY: string;
 }
 
@@ -29,9 +37,14 @@ const CLIENTS_MAX = 40;
 const CLOSE_TRY_AGAIN = 1013;
 const CLOSE_RESTART = 1012;
 const CLOSE_TOO_BIG = 1009;
+/** An MQTT packet from a Pico is a few dozen bytes; this is generous */
+const MQTT_CHUNK_MAX = 4096;
 
 function text(status: number, body: string): Response {
-  return new Response(body, { status, headers: { "content-type": "text/plain; charset=utf-8" } });
+  return new Response(body, {
+    status,
+    headers: { "content-type": "text/plain; charset=utf-8" },
+  });
 }
 
 /** Compares two strings in time that depends only on their length */
@@ -48,12 +61,34 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const stub = env.BRIDGE.get(env.BRIDGE.idFromName("main"));
-    const upgrade = request.headers.get("Upgrade")?.toLowerCase() === "websocket";
+    const upgrade =
+      request.headers.get("Upgrade")?.toLowerCase() === "websocket";
 
-    if (url.pathname === "/") return stub.fetch(new Request("https://bridge/status"));
+    if (url.pathname === "/")
+      return stub.fetch(new Request("https://bridge/status"));
+
+    if (url.pathname === "/mqtt" || url.pathname === "/pc-mqtt") {
+      const broker = env.BROKER.get(env.BROKER.idFromName("main"));
+      if (url.pathname === "/pc-mqtt") {
+        const sent =
+          /^Bearer (.+)$/.exec(
+            request.headers.get("Authorization") ?? "",
+          )?.[1] ?? "";
+        if (!env.PC_KEY || !sameKey(sent, env.PC_KEY)) return text(401, "no");
+      }
+      if (!upgrade)
+        return url.pathname === "/mqtt"
+          ? broker.fetch(new Request("https://broker/status"))
+          : text(426, "WebSocket only");
+      return broker.fetch(
+        new Request(`https://broker${url.pathname}`, request),
+      );
+    }
 
     if (url.pathname === "/pc") {
-      const sent = /^Bearer (.+)$/.exec(request.headers.get("Authorization") ?? "")?.[1] ?? "";
+      const sent =
+        /^Bearer (.+)$/.exec(request.headers.get("Authorization") ?? "")?.[1] ??
+        "";
       if (!env.PC_KEY || !sameKey(sent, env.PC_KEY)) return text(401, "no");
       if (!upgrade) return text(426, "WebSocket only");
       return stub.fetch(new Request("https://bridge/pc", request));
@@ -96,8 +131,12 @@ export class Bridge implements DurableObject {
     const path = new URL(request.url).pathname;
 
     if (path === "/status") {
-      const boards = this.ctx.getWebSockets().length - this.ctx.getWebSockets("pc").length;
-      return text(200, `iris ws gateway\nserver: ${this.bridge() ? "connected" : "offline"}\nboards: ${boards}\n`);
+      const boards =
+        this.ctx.getWebSockets().length - this.ctx.getWebSockets("pc").length;
+      return text(
+        200,
+        `iris ws gateway\nserver: ${this.bridge() ? "connected" : "offline"}\nboards: ${boards}\n`,
+      );
     }
 
     const pair = new WebSocketPair();
@@ -106,7 +145,8 @@ export class Bridge implements DurableObject {
     if (path === "/pc") {
       // A newer bridge replaces the old one, so a restart never waits for a stale socket to time out.
       // The boards on the old one are unknown to the new one and try again.
-      for (const old of this.ctx.getWebSockets("pc")) old.close(CLOSE_RESTART, "replaced");
+      for (const old of this.ctx.getWebSockets("pc"))
+        old.close(CLOSE_RESTART, "replaced");
       this.dropBoards();
       this.ctx.acceptWebSocket(socket, ["pc"]);
       return new Response(null, { status: 101, webSocket: peer });
@@ -156,7 +196,8 @@ export class Bridge implements DurableObject {
     const target = this.client(frame.c);
     if (!target) return;
 
-    if (frame.t === "message" && typeof frame.d === "string") target.send(frame.d);
+    if (frame.t === "message" && typeof frame.d === "string")
+      target.send(frame.d);
     if (frame.t === "close") target.close(1000, "server closed");
   }
 
@@ -188,6 +229,136 @@ export class Bridge implements DurableObject {
   }
 
   private dropBoards(): void {
+    const bridges = new Set(this.ctx.getWebSockets("pc"));
+    for (const other of this.ctx.getWebSockets()) {
+      if (!bridges.has(other)) other.close(CLOSE_TRY_AGAIN, "server offline");
+    }
+  }
+}
+
+/** Module 3: one Pico W connection is one numbered MQTT connection to the bridge */
+export class Broker implements DurableObject {
+  constructor(private ctx: DurableObjectState) {}
+
+  private bridge(): WebSocket | undefined {
+    return this.ctx.getWebSockets("pc")[0];
+  }
+
+  private tell(message: object): void {
+    try {
+      this.bridge()?.send(JSON.stringify(message));
+    } catch {
+      // A bridge that just dropped is cleaned up by its own close event
+    }
+  }
+
+  /** The id, then the bytes */
+  private packet(id: number, data: ArrayBuffer): ArrayBuffer {
+    const out = new Uint8Array(4 + data.byteLength);
+    new DataView(out.buffer).setUint32(0, id);
+    out.set(new Uint8Array(data), 4);
+    return out.buffer;
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const path = new URL(request.url).pathname;
+
+    if (path === "/status") {
+      const clients =
+        this.ctx.getWebSockets().length - this.ctx.getWebSockets("pc").length;
+      return text(
+        200,
+        `iris mqtt gateway\nserver: ${this.bridge() ? "connected" : "offline"}\nclients: ${clients}\n`,
+      );
+    }
+
+    const pair = new WebSocketPair();
+    const [peer, socket] = [pair[0], pair[1]];
+
+    if (path === "/pc-mqtt") {
+      for (const old of this.ctx.getWebSockets("pc"))
+        old.close(CLOSE_RESTART, "replaced");
+      this.dropClients();
+      this.ctx.acceptWebSocket(socket, ["pc"]);
+      return new Response(null, { status: 101, webSocket: peer });
+    }
+
+    if (!this.bridge()) return text(503, "server offline");
+    if (this.ctx.getWebSockets().length > CLIENTS_MAX) return text(503, "busy");
+
+    const next: number = (await this.ctx.storage.get<number>("next")) ?? 1;
+    await this.ctx.storage.put("next", (next + 1) >>> 0);
+
+    this.ctx.acceptWebSocket(socket, [`c${next}`]);
+    socket.serializeAttachment({ id: next });
+    this.tell({ t: "open", c: next });
+    return new Response(null, { status: 101, webSocket: peer });
+  }
+
+  webSocketMessage(socket: WebSocket, data: string | ArrayBuffer): void {
+    const client = socket.deserializeAttachment() as { id: number } | null;
+
+    // A Pico: its MQTT bytes go to the bridge, anything else is dropped
+    if (client) {
+      if (typeof data === "string") return;
+      if (data.byteLength > MQTT_CHUNK_MAX) {
+        socket.close(CLOSE_TOO_BIG, "too big");
+        return;
+      }
+      try {
+        this.bridge()?.send(this.packet(client.id, data));
+      } catch {
+        // The bridge went; its close event tells the Pico to try again
+      }
+      return;
+    }
+
+    // The bridge: binary is a connection's bytes, text is a note
+    if (typeof data !== "string") {
+      if (data.byteLength < 5) return;
+      const id = new DataView(data).getUint32(0);
+      this.ctx.getWebSockets(`c${id}`)[0]?.send(data.slice(4));
+      return;
+    }
+    let frame: { t?: string; c?: number };
+    try {
+      frame = JSON.parse(data);
+    } catch {
+      return;
+    }
+    if (frame.t === "ping") {
+      socket.send(JSON.stringify({ t: "pong" }));
+      return;
+    }
+    if (frame.t === "close" && typeof frame.c === "number")
+      this.ctx.getWebSockets(`c${frame.c}`)[0]?.close(1000, "server closed");
+  }
+
+  webSocketClose(socket: WebSocket, code: number): void {
+    this.gone(socket, code);
+  }
+
+  webSocketError(socket: WebSocket): void {
+    this.gone(socket, 1006);
+  }
+
+  private gone(socket: WebSocket, code: number): void {
+    const client = socket.deserializeAttachment() as { id: number } | null;
+    try {
+      socket.close(code === 1005 || code === 1006 ? 1000 : code, "bye");
+    } catch {
+      // Already closed
+    }
+
+    if (client) {
+      this.tell({ t: "close", c: client.id });
+      return;
+    }
+    if (this.ctx.getWebSockets("pc").some((other) => other !== socket)) return;
+    this.dropClients();
+  }
+
+  private dropClients(): void {
     const bridges = new Set(this.ctx.getWebSockets("pc"));
     for (const other of this.ctx.getWebSockets()) {
       if (!bridges.has(other)) other.close(CLOSE_TRY_AGAIN, "server offline");
