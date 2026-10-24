@@ -631,7 +631,7 @@
   align-items: center;
   gap: 4px;
 }
-.r3pw .input {
+.r3pw .field__input {
   min-width: 0;
 }
 .r3list {

@@ -120,7 +120,7 @@ function Hotspots({
             <span className="r3hs__ro">{h.ssid}</span>
           ) : (
             <input
-              className="input"
+              className="field__input"
               id={`r3-ssid-${h.id}`}
               value={h.ssid}
               maxLength={32}
@@ -135,7 +135,7 @@ function Hotspots({
           ) : (
             <span className="r3pw">
               <input
-                className="input"
+                className="field__input"
                 id={`r3-pw-${h.id}`}
                 type={h.show ? "text" : "password"}
                 autoComplete="new-password"
@@ -327,7 +327,7 @@ export function RuangPengaturan({
         <label className="r3lbl">
           <span className="label-caps">{t.name}</span>
           <input
-            className="input"
+            className="field__input"
             id="r3-room-title"
             value={nama}
             maxLength={60}
@@ -461,7 +461,7 @@ export function RuangKit({
               {p ? (
                 <>
                   <input
-                    className="input r3kit__code"
+                    className="field__input r3kit__code"
                     id={`r3-kit-${s.candidateId}`}
                     aria-label={t.code}
                     placeholder={t.code}

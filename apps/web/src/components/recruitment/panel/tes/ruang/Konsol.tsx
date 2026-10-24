@@ -588,7 +588,7 @@ function Transport({
           <label className="r3lbl">
             <span className="label-caps">{t.con.early.reason}</span>
             <textarea
-              className="textarea"
+              className="field__input"
               rows={3}
               value={alasan}
               onChange={(e) => setAlasan(e.target.value)}
@@ -987,7 +987,7 @@ function SeatDrawer({
             </div>
           ))}
           <textarea
-            className="textarea"
+            className="field__input"
             rows={3}
             placeholder={d.notePh}
             value={catatan}
