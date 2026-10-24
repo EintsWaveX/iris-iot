@@ -219,7 +219,10 @@ export interface DrawnItem {
   lang: Lang;
   perm: Perm;
 }
-export type SeatDraw = Partial<Record<Phase1Part, { at: number; items: DrawnItem[] }>>;
+/** `room`: where the part was started; answers to it are taken only there (EXAM-ENGINE 3.3). */
+export type SeatDraw = Partial<
+  Record<Phase1Part, { at: number; room: number; items: DrawnItem[] }>
+>;
 
 /* ------------------------------------------------------------- the room */
 

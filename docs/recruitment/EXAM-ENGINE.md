@@ -572,13 +572,14 @@ Input (`drawPart(seed, counts, pool)`): the seed, the part's counts, and the poo
 No repeats inside a seat: a part never holds a question twice, and parts have disjoint pools (`part` is a column).
 
 ### 3.3 What is stored, and when
-- `rec_exam_seat.draw` is JSON: `{ [part]: { at, items: DrawnItem[] } }`.
+- `rec_exam_seat.draw` is JSON: `{ [part]: { at, room, items: DrawnItem[] } }` (`SeatDraw`). `room` is the room the seat sat in when it started the part.
 - The draw for a part is written the **first time that seat fetches the part after it started** (`GET test`), in one statement that only writes if that part's key is still absent. Two tabs racing compute the same draw anyway.
 - **This write is what "started a part" means** for scoring: a seat with no draw for a part never started it, so it is out of that part's N (PRD 7.4). A late seat that opens a running part starts it then, with the room's time left.
+- **No time, no draw:** the draw is written only while `seatLeft > 0` for that seat. A seat that first opens a part when its time is already over (the room's time ran out and it has no extra) gets the lobby view and no draw, so it stays `absent` and out of N, instead of joining N with an empty sheet that would raise every drawn question's weight. *(W1, 2026-10-24)*
 - The first real draw containing a question sets that question's `shown_at` (structure lock).
 - **Reconnect or reload:** the stored draw is reused as is; the view is rebuilt from the current question text with the stored perm.
 - **Reopen previous:** the same stored draw; answers are kept.
-- **Seat moved to another room** (Susulan): draws and answers move with the seat; parts it already started are not drawn again.
+- **Seat moved to another room** (Susulan): draws and answers move with the seat; parts it already started are not drawn again, and **stay closed**: `test-answer` takes answers to a part only while the seat sits in the draw's `room` (`bagian_ruang_lain` otherwise, and the runner shows that part as done). In the new room the seat does only the parts it never started; what it answered before is scored as it is *(ruling 2026-10-24)*.
 - **Voided after the draw:** the item stays in the stored draw. The candidate sees "Soal ini dibatalkan" in its place, and scoring skips it.
 
 ### 3.4 Live Coding spins (also in `draw.ts`)
@@ -736,7 +737,7 @@ Control actions (only the Master; each carries `seq`):
 | `pause` | | `part-running`, `livecode-running` or `part-ended` | Freezes every timer. |
 | `resume` | | `part-paused` | Runs again from where it stopped. |
 | `skip` | | running, paused or `part-ended` | Ends the part now for every seat, extra time included. Keeps `leftAtSkip`. |
-| `reopen` | `addMs ≥ 0` | `lobby`, and the part is the last one started | The part runs again with `leftAtSkip + addMs` for everyone; extras are cleared; answers stay. A part that ran out of time has nothing left, so `addMs` must be above 0 (`perlu_waktu`). |
+| `reopen` | `addMs ≥ 0` | `lobby`, and the part is the last one started | The part runs again with `leftAtSkip + addMs` for everyone; extras are cleared; answers stay. Seats that handed the part in (Kumpulkan) may go back in: on an accepted reopen the API clears `done[part]` for every seat of the room *(ruling 2026-10-24)*. A part that ran out of time has nothing left, so `addMs` must be above 0 (`perlu_waktu`). |
 | `time` | `deltaMs`: a nonzero multiple of 1 min, −10 to +30 min (the buttons are +1, +5, −1) | running or paused, while `roomLeft > 0` | `durMs = max(clock, durMs + delta)`. A cut can end the room's time now, but never in the past. After the room's time is over, use Reopen or seat time (`waktu_ruang_habis`). |
 | `seat-time` | `seatId` (checked in), `deltaMs` 1 to 30 min | running, paused, `part-ended`, or `lobby` of the last part started | `extra[seat] = max(extra[seat], clock − durMs) + delta`, so the seat gets exactly `delta` more even if its time already ran out. Once the part has ended for everyone (the lobby, or the grace before it), the part runs again for that seat alone with exactly `delta`: `durMs` drops to what the room used and only that seat keeps an extra, so nobody else gets time back, even after a Skip. Start waits for that seat. |
 | `finish` | `early?`, `reason?` | `lobby` of the last part; `lobby` of an earlier part or `livecode-spin` only with `early` and a reason; `persiapan` (nothing started, cancel) only with a reason | `finished`. Effect `lc-close`: revoke the MQTT accounts, close the gateway rooms, export the traffic logs, close the relay room. Behind a HoldButton. |
@@ -761,7 +762,7 @@ Master actions (the actor must be allowed to be Master: plotted as pengawas for 
 - **Seat row:** created at the candidate's first check-in step (10), one per candidate per edition and rehearsal flag (`UNIQUE(edition_id, candidate_id, rehearsal)`). The console lists the room's candidates from `rec_slot_assignment` (06) and joins their seats, so a candidate who never came shows as "Belum masuk".
 - **Check-in:** three steps on `/recruitment/test` during `persiapan`, or later for a late seat: enter fullscreen, a connection check (one round trip to the API and the relay, with the measured clock offset), and a name confirm ("Benar, ini aku"). Live Coding also checks for Chromium (Web Serial and Web Bluetooth) and warns early. *(08's call)*
 - **Late seat:** checks in while a part runs and starts it with the room's time left. Parts already over score 0 for it (`absent`). The Master may give seat time.
-- **Kumpulkan** (hand in a part early): allowed with a Confirm. The seat's part is done (`seat.done[part]`), answers are refused after it, and the seat waits in the lobby view. *(08's call)*
+- **Kumpulkan** (hand in a part early): allowed with a Confirm. The seat's part is done (`seat.done[part]`), answers are refused after it, and the seat waits in the lobby view. *(08's call)* A Reopen of that part lets it back in (5.4).
 - **Reconnect:** the seat keeps everything (section 3.3); the time left is recomputed from the server. The runner keeps unsent answers in `localStorage` and sends them on return, and the server's `answerOpen` decides.
 - **Move** (`room-move`, the plotting right): only into a room in `setup` or `persiapan`, and only for a seat with no part running in its current room. Draws and answers stay with the seat. *(08's call)*
 - **Kits** (Logistik, the `kitLoans` right): the console's Persiapan list records the kit code lent to each candidate and when it came back (`rec_kit_loan`).
@@ -846,7 +847,7 @@ Why seats talk to the API, not the relay: strikes, answers and check-ins must be
 | Window lost focus | `fokus` | `window` blur | yes |
 | Paste attempt | `tempel` | `paste`, captured and prevented | yes |
 | Devtools heuristic | `alat` | a `resize` where outer minus inner is above 160 px wide or 200 px tall while fullscreen; F12, Ctrl+Shift+I/J/C, Cmd+Opt+I/J (prevented) | yes |
-| Second tab or device | `ganda` | the API: an answer or check-in from another `tab` id within 60 s of the last | yes, logged by the API |
+| Second tab or device | `ganda` | the API: an answer or check-in from another `tab` id within 60 s of the last | yes, logged by the API *(not in PRD 7.6; kept as a strike, ruling 2026-10-24)* |
 | Copy, cut, context menu, print, select-all outside a field | | prevented | no |
 
 - **Debounce:** a signal within 1.5 s of an open strike joins it (its kinds are added). A strike closes when the page is fullscreen, visible and focused again, which gives its duration. The runner posts `test-strike` when a strike opens (with `keepalive`, so it goes out while the tab hides) and again when it closes. Offline strikes are queued and sent with their original server time. At most 50 records per seat per part; after that only the count grows. *(08's call)*
@@ -1111,7 +1112,7 @@ All in `api/recruitment/[aksi].ts`, dispatched to one handler per area. Errors a
 |---|---|---|
 | GET `test` | | `TestView`: `now`, `room` (`RoomPublic` or null), `seat` (`SeatSelf` or null), `part` (`{ key, items: QuestionView[], answers, refs }` or null) |
 | POST `test-checkin` | `{ step: "fullscreen" \| "connection" \| "name", tab, info? }` | `{ seat }` |
-| POST `test-answer` | `{ part, q, value, rev, tab }` | `{ rev, at, warn? }` (`warn: "tab_lain"`); `waktu_habis` outside `answerOpen`; `nilai_salah` when `checkValue` refuses the value |
+| POST `test-answer` | `{ part, q, value, rev, tab }` | `{ rev, at, warn? }` (`warn: "tab_lain"`); `waktu_habis` outside `answerOpen`; `nilai_salah` when `checkValue` refuses the value; `bagian_ruang_lain` when the seat started that part in another room (3.3) |
 | POST `test-strike` | `{ id, kinds, at, back? }` | `{ ok }` |
 | POST `test-submit` | `{ part }` | `{ done }` (Kumpulkan) |
 | GET `test-ticket` | | `{ url, tiket }` (relay, `kursi`) |

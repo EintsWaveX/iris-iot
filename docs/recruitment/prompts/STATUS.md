@@ -49,3 +49,7 @@ Add one line per ruling given during any session (date, prompt, ruling). Copy la
 - 2026-10-24 · 08 · Everything I wrote ships as the default and stays editable in the web: the seed bank (enough to start a room), the six topics, the templates, the rubric rows, the parts config. The `sample` flag is only a "Bawaan" badge; real rooms draw seeds too.
 - 2026-10-24 · 08 · Cloudflare agreed; the exam's MQTT rides broker.irisiotlab.com (Module 3's host) instead of a new mqtt.irisiotlab.com. EXAM-ENGINE.md reviewed; Part B and the S3 mockup go ahead.
 - 2026-10-24 · 08 · Back to separate prompt sessions, no subagents (`_RULES.md` rule 6 stands). 08's Part C becomes its own prompt, 08c (Opus high). Wave 2 = W1, 08c and 06 (`WAVE2.md`).
+- 2026-10-24 · W1 · Prod test application passed on irisiotlab.com (throwaway Praktikan, real ticket, relay PUT, R2, periksaBerkas, the user opened the CV in the panel) and was cleaned up (rows, attempts, audit lines, the one R2 key).
+- 2026-10-24 · W1 (08 review) · A part a seat started stays closed when the seat is moved to another room: in Susulan it does only the parts it never started, and what it answered is scored as it is (draws record their `room`; `bagian_ruang_lain`).
+- 2026-10-24 · W1 (08 review) · Reopen lets a seat that handed the part in (Kumpulkan) go back in; the API clears `done[part]` for the room's seats.
+- 2026-10-24 · W1 (08 review) · The `ganda` strike (answers from a second tab or device within 60 s) stays a strike, though PRD 7.6 does not list it.
