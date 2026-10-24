@@ -13,7 +13,11 @@
  * Signed in:
  * GET  /api/recruitment/calendar     the events this viewer may see
  *
- * Praktikan:
+ * Oprec accounts (api/_lib/recruitment-akun.ts):
+ * GET  /api/recruitment/account      { account: { nim, nama } | null }
+ * POST /api/recruitment/account-signup | account-signin | account-signout
+ *
+ * Candidates, signed in with their oprec account (never the practicum session):
  * GET  /api/recruitment/me           my candidacy, documents and envelopes
  * POST /api/recruitment/ticket       { kind, ukuran, sha256, halaman? } where to PUT one PDF
  * POST /api/recruitment/apply        { biodata, docs: [{ kind, tiket }], consent: true }
@@ -34,6 +38,7 @@
  * POST /api/recruitment/seat         { nim, division, isKoor?, title? }
  * POST /api/recruitment/unseat       { nim }
  * POST /api/recruitment/visibility   { hidden }  Sembunyikan Oprec (api/_lib/recruitment-sembunyi.ts)
+ * POST /api/recruitment/account-reset { nim }  forget an oprec password (approve right)
  *
  * A candidate only ever reads their own row: every candidate read is
  * filtered by the session's NIM and checked again in code. Editing or
@@ -43,13 +48,14 @@
 import { and, asc, eq, ilike, or } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, pgErrorCode, requireMethod } from "../_lib/http.js";
-import { currentSession, requireRole, tolakPraktikanTot } from "../_lib/session.js";
+import { currentSession, requireRole } from "../_lib/session.js";
 import { denganSiaran } from "../_lib/siaran.js";
 import { muatOrang } from "../_lib/hak.js";
 import { getDb } from "../../src/lib/db.js";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import {
   praktikan,
+  recAccount,
   recCandidate,
   recCommittee,
   recDocument,
@@ -88,6 +94,8 @@ import {
   muatKursiSemua,
   muatWaktuGagal,
   eventDariRow,
+  tolak,
+  wajibEdisi,
   type Db,
 } from "../_lib/recruitment-data.js";
 import {
@@ -109,9 +117,16 @@ import {
   jawabTersembunyi,
   oprecTersembunyi,
 } from "../_lib/recruitment-sembunyi.js";
-
-const tolak = (res: ApiResponse, kode: string, status = 400, extra: Record<string, unknown> = {}) =>
-  res.status(status).json({ ok: false, kode, ...extra });
+import {
+  handleAkun,
+  handleBuatAkun,
+  handleKeluarAkun,
+  handleMasukAkun,
+  handleResetAkun,
+  namaKandidat,
+  sesiOprec,
+  wajibOprec,
+} from "../_lib/recruitment-akun.js";
 
 const LABEL_DIVISI: Record<CommitteeDivision, string> = {
   ketua: "Ketua",
@@ -129,22 +144,20 @@ function rahasia(): string {
   return s;
 }
 
-/** The edition, or a 404 answer and null. */
-async function wajibEdisi(res: ApiResponse, db: Db): Promise<EditionInfo | null> {
-  const e = await muatEdisiHidup(db);
-  if (!e) tolak(res, "tidak_ada_edisi", 404);
-  return e;
-}
-
-/** Who is asking and how the calendar sees them. */
+/**
+ * Who is asking and how the calendar sees them. An Asisten by their site
+ * session; a candidate only by their oprec account (`o`): a practicum
+ * Praktikan session alone is a visitor here (user, 2026-10-24).
+ */
 async function kenali(
   db: Db,
   edisi: EditionInfo,
   s: SessionPayload | null,
+  o: SessionPayload | null,
 ): Promise<{ kind: ViewerKind; pelaku: PelakuServer | null; viewer: Viewer }> {
-  if (!s) return { kind: "visitor", pelaku: null, viewer: { kind: "visitor" } };
-  if (s.role === "praktikan") {
-    const k = await muatKandidat(db, edisi.id, s.nim);
+  if (s?.role !== "asisten") {
+    if (!o) return { kind: "visitor", pelaku: null, viewer: { kind: "visitor" } };
+    const k = await muatKandidat(db, edisi.id, o.nim);
     const kind: ViewerKind = k ? "candidate" : "praktikan";
     return { kind, pelaku: null, viewer: { kind, ownEventIds: [] } };
   }
@@ -177,8 +190,9 @@ async function handleBanner(req: ApiRequest, res: ApiResponse) {
   }
   const events = await muatEvents(db, edisi.id);
   let viewer: BannerViewer = { kind: "visitor" };
-  if (s?.role === "praktikan") {
-    const k = await muatKandidat(db, edisi.id, s.nim);
+  const o = s?.role === "asisten" ? null : await sesiOprec(req, db);
+  if (o) {
+    const k = await muatKandidat(db, edisi.id, o.nim);
     viewer = {
       kind: "praktikan",
       candidate: k
@@ -213,17 +227,18 @@ async function handleBanner(req: ApiRequest, res: ApiResponse) {
 async function handleEdisi(req: ApiRequest, res: ApiResponse) {
   const db = getDb();
   const s = currentSession(req);
+  const o = s?.role === "asisten" ? null : await sesiOprec(req, db);
   const edisi = await muatEdisiHidup(db);
   if (!edisi) {
     return void res.status(200).json({
       ok: true,
       edition: null,
-      viewer: s ? (s.role === "asisten" ? "asisten" : "praktikan") : "visitor",
+      viewer: s?.role === "asisten" ? "asisten" : o ? "praktikan" : "visitor",
       rights: null,
       seat: null,
     });
   }
-  const { kind, pelaku } = await kenali(db, edisi, s);
+  const { kind, pelaku } = await kenali(db, edisi, s, o);
   res.status(200).json({
     ok: true,
     edition: edisi,
@@ -242,7 +257,8 @@ async function handleKalender(req: ApiRequest, res: ApiResponse, s: SessionPaylo
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
-  const { viewer } = await kenali(db, edisi, s);
+  const o = s?.role === "asisten" ? null : await sesiOprec(req, db);
+  const { viewer } = await kenali(db, edisi, s, o);
   const events = await muatEvents(db, edisi.id);
   res.status(200).json({
     ok: true,
@@ -253,7 +269,6 @@ async function handleKalender(req: ApiRequest, res: ApiResponse, s: SessionPaylo
 }
 
 async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const db = getDb();
   const edisi = await muatEdisiHidup(db);
   if (!edisi) {
@@ -302,20 +317,21 @@ async function handleDaftarKandidat(req: ApiRequest, res: ApiResponse, s: Sessio
     .select({
       id: recCandidate.id,
       nim: recCandidate.nim,
-      nama: praktikan.nama,
+      nama: namaKandidat,
       status: recCandidate.status,
       stage: recCandidate.currentStage,
       appliedAt: recCandidate.appliedAt,
       biodata: recCandidate.biodata,
     })
     .from(recCandidate)
+    .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
     .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
     .where(
       and(
         eq(recCandidate.editionId, edisi.id),
         stage ? eq(recCandidate.currentStage, stage as (typeof STAGES)[number]) : undefined,
         status ? eq(recCandidate.status, status as (typeof CANDIDATE_STATUS)[number]) : undefined,
-        q ? or(ilike(praktikan.nama, cocok), ilike(recCandidate.nim, cocok)) : undefined,
+        q ? or(ilike(namaKandidat, cocok), ilike(recCandidate.nim, cocok)) : undefined,
       ),
     )
     .orderBy(asc(recCandidate.appliedAt), asc(recCandidate.id));
@@ -347,8 +363,9 @@ async function handleKandidatRinci(req: ApiRequest, res: ApiResponse, s: Session
   const p = await muatPelaku(db, edisi.id, s.nim);
   if (!wajibHak(res, p, "candidates")) return;
   const [r] = await db
-    .select({ k: recCandidate, nama: praktikan.nama })
+    .select({ k: recCandidate, nama: namaKandidat, namaRoster: praktikan.nama })
     .from(recCandidate)
+    .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
     .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
     .where(and(eq(recCandidate.id, id), eq(recCandidate.editionId, edisi.id)))
     .limit(1);
@@ -362,6 +379,9 @@ async function handleKandidatRinci(req: ApiRequest, res: ApiResponse, s: Session
       id: k.id,
       nim: k.nim,
       nama: r.nama ?? "",
+      // The practicum roster's name for this NIM, if any: a name that differs
+      // from the account's is the sign of someone signing up as another (Berkas review).
+      namaRoster: r.namaRoster ?? null,
       kelas: k.biodata?.kelas ?? null,
       angkatan: k.biodata?.angkatan ?? null,
       status: k.status,
@@ -435,7 +455,6 @@ async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload
 
 /** Step 1 of an upload: where to PUT one PDF. */
 async function handleTiket(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
@@ -475,7 +494,6 @@ async function handleTiket(req: ApiRequest, res: ApiResponse, s: SessionPayload)
 
 /** The application: biodata, the three PDFs already in R2, and the consent. */
 async function handleDaftar(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
@@ -494,12 +512,7 @@ async function handleDaftar(req: ApiRequest, res: ApiResponse, s: SessionPayload
 
   if (!gateOpen(await muatEvents(db, edisi.id), "daftar", new Date()))
     return tolak(res, "jendela_tutup", 409);
-  const [prak] = await db
-    .select({ nim: praktikan.nim })
-    .from(praktikan)
-    .where(eq(praktikan.nim, s.nim))
-    .limit(1);
-  if (!prak) return tolak(res, "bukan_praktikan", 403);
+  // Anyone with an oprec account may apply, on the practicum roster or not (2026-10-24).
   if (await muatKandidat(db, edisi.id, s.nim)) return tolak(res, "sudah_daftar", 409);
 
   const berkas: { kind: DocKind; k: string; n: number; s: string }[] = [];
@@ -547,7 +560,6 @@ async function handleDaftar(req: ApiRequest, res: ApiResponse, s: SessionPayload
 
 /** Step 2: a (re)uploaded PDF becomes the candidate's document of that kind. */
 async function handleDokumen(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
@@ -592,7 +604,6 @@ async function handleDokumen(req: ApiRequest, res: ApiResponse, s: SessionPayloa
 }
 
 async function handleMundur(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
@@ -869,34 +880,53 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   }
   if (aksi === "berkas") {
     if (!requireMethod(req, res, "GET")) return;
-    if (!sesiku) return tolak(res, "belum_masuk", 401);
-    return handleBerkas(req, res, sesiku);
+    const s = sesiku?.role === "asisten" ? sesiku : await sesiOprec(req);
+    if (!s) return tolak(res, "belum_masuk", 401);
+    return handleBerkas(req, res, s);
   }
 
-  // Praktikan.
+  // Oprec accounts: sign up, sign in, sign out, who am I.
+  if (aksi === "account") {
+    if (!requireMethod(req, res, "GET")) return;
+    return handleAkun(req, res);
+  }
+  if (aksi === "account-signup") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleBuatAkun(req, res);
+  }
+  if (aksi === "account-signin") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleMasukAkun(req, res);
+  }
+  if (aksi === "account-signout") {
+    if (!requireMethod(req, res, "POST")) return;
+    return handleKeluarAkun(req, res);
+  }
+
+  // Candidates, by their oprec account only (never the practicum session).
   if (aksi === "me") {
     if (!requireMethod(req, res, "GET")) return;
-    const s = requireRole(req, res, "praktikan");
+    const s = await wajibOprec(req, res);
     return s ? handleSaya(req, res, s) : undefined;
   }
   if (aksi === "ticket") {
     if (!requireMethod(req, res, "POST")) return;
-    const s = requireRole(req, res, "praktikan");
+    const s = await wajibOprec(req, res);
     return s ? handleTiket(req, res, s) : undefined;
   }
   if (aksi === "apply") {
     if (!requireMethod(req, res, "POST")) return;
-    const s = requireRole(req, res, "praktikan");
+    const s = await wajibOprec(req, res);
     return s ? handleDaftar(req, res, s) : undefined;
   }
   if (aksi === "document") {
     if (!requireMethod(req, res, "POST")) return;
-    const s = requireRole(req, res, "praktikan");
+    const s = await wajibOprec(req, res);
     return s ? handleDokumen(req, res, s) : undefined;
   }
   if (aksi === "withdraw") {
     if (!requireMethod(req, res, "POST")) return;
-    const s = requireRole(req, res, "praktikan");
+    const s = await wajibOprec(req, res);
     return s ? handleMundur(req, res, s) : undefined;
   }
 
@@ -920,6 +950,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     const e = await wajibEdisi(res, getDb());
     return e ? handleTampil(req, res, s, getDb(), e.id) : undefined;
   }
+  if (aksi === "account-reset") return handleResetAkun(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);
 }
 

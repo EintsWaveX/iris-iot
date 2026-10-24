@@ -18,10 +18,11 @@ import SegmentedControl from "../../ui/SegmentedControl";
 import { href, useMe } from "../../../lib/app";
 import { useMinWidth } from "../../../lib/hooks";
 import type { Lang } from "../../../lib/kelas";
-import { openSignIn } from "../../../lib/signin";
 import {
+  bukaAkun,
   isFail,
   recPost,
+  useRecAkun,
   useRecCalendar,
   useRecEdition,
   useRecMe,
@@ -73,8 +74,12 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const t = CP[lang];
   const r = REC[lang];
   const me = useMe();
-  const praktikan = me?.role === "praktikan";
   const asisten = me?.role === "asisten";
+  // The candidate is their oprec account, never the practicum sign-in (2026-10-24).
+  const akun = useRecAkun(me !== undefined && !asisten);
+  const caas = asisten ? null : (akun.data?.account ?? null);
+  const praktikan = !!caas;
+  const tamu = !asisten && !caas;
   const rec = useRecMe(praktikan);
   const cal = useRecCalendar(me !== undefined);
   const edisi = useRecEdition(me !== undefined);
@@ -85,15 +90,20 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const [daftar, setDaftar] = useState(false);
   const [docs, setDocs] = useState(false);
   const [mundur, setMundur] = useState(false);
-  const diminta = useRef<{ daftar: boolean; berkas: boolean } | null>(null);
+  const diminta = useRef<{ daftar: boolean; berkas: boolean; masuk: boolean } | null>(null);
 
-  // ?daftar=1 and ?berkas=1 are read once, then dropped from the address.
+  // ?daftar=1, ?berkas=1 and ?masuk=1 are read once, then dropped from the address.
   useEffect(() => {
     const q = new URLSearchParams(location.search);
-    diminta.current = { daftar: q.get("daftar") === "1", berkas: q.get("berkas") === "1" };
-    if (q.has("daftar") || q.has("berkas")) {
+    diminta.current = {
+      daftar: q.get("daftar") === "1",
+      berkas: q.get("berkas") === "1",
+      masuk: q.get("masuk") === "1",
+    };
+    if (q.has("daftar") || q.has("berkas") || q.has("masuk")) {
       q.delete("daftar");
       q.delete("berkas");
+      q.delete("masuk");
       const rest = q.toString();
       history.replaceState(
         history.state,
@@ -124,14 +134,26 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const sebelum = !buka && !!opensOn && hariIni < opensOn;
   const panitia = asisten && edisi.data?.viewer === "panitia";
 
-  // Open what the address asked for, once the data to decide it is in.
+  // Open what the address asked for, once the data to decide it is in. Not
+  // signed in to oprec yet: the account dialog first, then back here for it.
+  const akunSiap = asisten || akun.updatedAt !== null;
   useEffect(() => {
     const d = diminta.current;
-    if (!d || !praktikan || !rec.data) return;
+    if (!d || me === undefined || !akunSiap) return;
+    if (tamu && !asisten) {
+      if (d.daftar || d.berkas || d.masuk)
+        bukaAkun(
+          d.masuk ? "masuk" : "daftar",
+          d.daftar ? href(lang, "/recruitment?daftar=1") : undefined,
+        );
+      diminta.current = null;
+      return;
+    }
+    if (!praktikan || !rec.data) return;
     if (d.daftar && buka && !cand) setDaftar(true);
     if (d.berkas && cand) setDocs(true);
     diminta.current = null;
-  }, [praktikan, rec.data, buka, cand]);
+  }, [me, akunSiap, tamu, asisten, praktikan, rec.data, buka, cand, lang]);
   // #kalender: the browser jumped before the card existed.
   const jump = useRef(false);
   useEffect(() => {
@@ -140,7 +162,12 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     document.getElementById("kalender")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [cal.data]);
 
-  if (me === undefined || cal.updatedAt === null || (praktikan && rec.updatedAt === null))
+  if (
+    me === undefined ||
+    !akunSiap ||
+    cal.updatedAt === null ||
+    (praktikan && rec.updatedAt === null)
+  )
     return <span className="skeleton" style={{ height: 520 }} />;
   if (cal.errors > 0 && !cal.data) return <Kartu404 lang={lang} onRetry={cal.refresh} />;
   if (!cal.data)
@@ -287,7 +314,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
             ? t.ledeStaff
             : withdrawn
               ? t.apply.withdrawn
-              : me === null
+              : tamu
                 ? t.apply.guest
                 : buka
                   ? t.apply.open(closesOn ? tgl(closesOn, lang) : "")
@@ -309,11 +336,11 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
             <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
           </a>
         )
-      ) : withdrawn ? null : me === null ? (
+      ) : withdrawn ? null : tamu ? (
         <button
           type="button"
           className="btn btn--primary btn--lg"
-          onClick={() => openSignIn(href(lang, "/recruitment?daftar=1"))}
+          onClick={() => bukaAkun("daftar", href(lang, "/recruitment?daftar=1"))}
         >
           <span className="btn__label">{t.apply.signIn}</span>
         </button>
@@ -349,8 +376,8 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   );
 
   const lede =
-    applied && me && cand
-      ? `${me.nama} · ${me.nim} · ${cand.biodata.kelas}`
+    applied && caas && cand
+      ? `${caas.nama} · ${caas.nim} · ${cand.biodata.kelas}`
       : first
         ? t.ledeOpen(tgl(first, lang))
         : undefined;
@@ -383,12 +410,12 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         </aside>
       </div>
 
-      {praktikan && me && (
+      {caas && (
         <Daftar
           lang={lang}
           open={daftar}
           onOpenChange={setDaftar}
-          me={me}
+          me={caas}
           closesOn={closesOn}
           onApplied={rec.refresh}
         />

@@ -11,7 +11,7 @@ export const CP = dict({
       `Delapan tahap dari pendaftaran sampai penerimaan, mulai ${start}.`,
     ledeStaff: "Kalender dan tahapan Open Recruitment. Panelnya untuk Panitia.",
     apply: {
-      guest: "Pendaftaran untuk Praktikan semester ini",
+      guest: "Buat akun oprec dulu, lalu daftar",
       before: (d: string) => `Pendaftaran dibuka ${d}`,
       open: (d: string) => `Pendaftaran dibuka sampai ${d}`,
       closed: "Pendaftaran sudah ditutup",
@@ -19,7 +19,7 @@ export const CP = dict({
       hint: "Kamu butuh tiga PDF: CV, surat lamaran dan visi misi, masing masing paling besar 5 MB.",
       hintWithdrawn: "Mundur itu final untuk edisi ini. Kalau ini salah, hubungi Panitia.",
       later: "Tombolnya aktif sendiri saat pendaftaran dibuka.",
-      signIn: "Masuk untuk Mendaftar",
+      signIn: "Masuk atau Buat Akun",
       now: "Daftar Sekarang",
     },
     revision: {
@@ -104,7 +104,7 @@ export const CP = dict({
     ledeOpen: (start: string) => `Eight stages from registration to acceptance, starting ${start}.`,
     ledeStaff: "Open Recruitment's calendar and stages. The panel is for Panitia.",
     apply: {
-      guest: "Registration is for this semester's Praktikan",
+      guest: "Create an oprec account first, then apply",
       before: (d: string) => `Registration opens ${d}`,
       open: (d: string) => `Registration is open until ${d}`,
       closed: "Registration is closed",
@@ -112,7 +112,7 @@ export const CP = dict({
       hint: "You need three PDFs: a CV, a cover letter and a vision statement, each up to 5 MB.",
       hintWithdrawn: "Withdrawing is final for this edition. If that's a mistake, contact Panitia.",
       later: "The button turns on by itself when registration opens.",
-      signIn: "Sign In to Apply",
+      signIn: "Sign In or Create Account",
       now: "Apply Now",
     },
     revision: {
@@ -196,7 +196,7 @@ export const CP = dict({
     ledeOpen: (start: string) => `从报名到录取共八个阶段，${start}开始。`,
     ledeStaff: "助教招募的日程和各阶段。面板只给招募组使用。",
     apply: {
-      guest: "报名对象是本学期的学生",
+      guest: "请先创建招新账号，再报名",
       before: (d: string) => `${d}开放报名`,
       open: (d: string) => `报名开放到${d}`,
       closed: "报名已经截止",
@@ -204,7 +204,7 @@ export const CP = dict({
       hint: "需要三份 PDF：简历、申请信和愿景说明，每份最大 5 MB。",
       hintWithdrawn: "退出后本届不能再报名。如果是误操作，请联系招募组。",
       later: "报名开放时，按钮会自动变成可用。",
-      signIn: "登录后报名",
+      signIn: "登录或创建账号",
       now: "立即报名",
     },
     revision: {

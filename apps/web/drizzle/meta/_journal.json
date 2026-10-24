@@ -351,6 +351,13 @@
       "when": 1792828129190,
       "tag": "0049_recruitment_s2",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792841908016,
+      "tag": "0050_rec_account",
+      "breakpoints": true
     }
   ]
 }

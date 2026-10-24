@@ -250,7 +250,15 @@ export type RecError =
   | "ketua_sudah_ada"
   | "bukan_asisten"
   | "status_salah"
-  | "sesi_berganti";
+  | "sesi_berganti"
+  // Oprec accounts (2026-10-24)
+  | "belum_masuk_oprec"
+  | "salah"
+  | "terlalu_sering"
+  | "akun_ada"
+  | "nim_asisten"
+  | "perlu_klaim"
+  | "klaim_salah";
 
 export interface RecFail {
   ok: false;
@@ -312,6 +320,22 @@ export interface EnvelopeSelf {
 }
 
 /** GET me (Praktikan only) */
+/** An oprec account (2026-10-24), apart from the practicum sign-in */
+export interface OprecAccount {
+  nim: string;
+  nama: string;
+}
+/** GET account; POST account-signup and account-signin answer the same shape */
+export interface AccountResponse {
+  ok: true;
+  account: OprecAccount | null;
+}
+/** POST account-reset: the one-time claim code, shown once to the Admin */
+export interface AccountResetResponse {
+  ok: true;
+  klaim: string;
+}
+
 export interface MeResponse {
   ok: true;
   edition: EditionInfo | null;
@@ -392,6 +416,8 @@ export interface CandidatesResponse {
 export interface CandidateDetailResponse {
   ok: true;
   candidate: CandidateRow & {
+    /** The practicum roster's name for this NIM, null when it is not on the roster */
+    namaRoster: string | null;
     reviewNote: string | null;
     reviewedBy: string | null;
     reviewedAt: string | null;

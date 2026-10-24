@@ -23,12 +23,17 @@ import Dialog from "../../ui/Dialog";
 import Dropdown from "../../ui/Dropdown";
 import Fade from "../../ui/Fade";
 import { Checkbox } from "../../ui/Controls";
-import { href, type Me } from "../../../lib/app";
+import { href } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recPost } from "../../../lib/recruitment/client";
 import { kirimBerkas, periksaLokal, type UploadFail } from "../../../lib/recruitment/upload";
 import { cekBiodata } from "../../../lib/recruitment/validate";
-import { DOC_REQUIRED, type ApplyResponse, type DocKind } from "../../../lib/recruitment/types";
+import {
+  DOC_REQUIRED,
+  type ApplyResponse,
+  type DocKind,
+  type OprecAccount,
+} from "../../../lib/recruitment/types";
 import { tgl } from "../shared";
 import { CP, DF } from "./candidateStrings";
 
@@ -201,7 +206,8 @@ export default function Daftar({
   lang: Lang;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  me: Me;
+  /** The oprec account applying */
+  me: OprecAccount;
   /** The last day of registration, for the confirmation line */
   closesOn: string | null;
   onApplied: () => void;

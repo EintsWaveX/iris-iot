@@ -5,6 +5,8 @@
  * the three PDFs only to the documents right (Admin and the Ketua); the
  * approve right (Admin and the Ketua) approves, or bounces the application
  * back with a note the candidate sees on their page and on Home.
+ * The approve right also sees the oprec account beside the practicum
+ * roster's name, with Reset Akun (AkunCek, 2026-10-24).
  *
  * GET candidates and GET candidate?id=; POST review. A review reaches the
  * candidate's own page through the reccandidates topic.
@@ -30,6 +32,7 @@ import { CP } from "../candidate/candidateStrings";
 import { REC } from "../recruitmentStrings";
 import { StatusPill } from "../shared";
 import { PN } from "./panelStrings";
+import AkunCek from "./kandidat/AkunCek";
 
 const SHOWN = CANDIDATE_STATUS.filter((s) => s !== "accepted");
 
@@ -193,6 +196,9 @@ function Lembar({
               </div>
             )}
           </section>
+          {rights.approve && (
+            <AkunCek lang={lang} nim={c.nim} nama={c.nama} roster={c.namaRoster} />
+          )}
           {c.status === "revision" && c.reviewNote && (
             <div className="rec-note rec-note--warn">
               <b>{t.fixAsked}</b>

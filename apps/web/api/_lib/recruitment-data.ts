@@ -4,6 +4,7 @@
  * src/lib/recruitment/types.ts here and nowhere else.
  */
 import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
+import type { ApiResponse } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
@@ -27,6 +28,20 @@ import type {
 } from "../../src/lib/recruitment/types.js";
 
 export type Db = ReturnType<typeof getDb>;
+
+export const tolak = (
+  res: ApiResponse,
+  kode: string,
+  status = 400,
+  extra: Record<string, unknown> = {},
+) => res.status(status).json({ ok: false, kode, ...extra });
+
+/** The live edition, or a 404 answer and null. */
+export async function wajibEdisi(res: ApiResponse, db: Db): Promise<EditionInfo | null> {
+  const e = await muatEdisiHidup(db);
+  if (!e) tolak(res, "tidak_ada_edisi", 404);
+  return e;
+}
 
 /** The edition people are using now: the newest one that is live. */
 export async function muatEdisiHidup(db: Db): Promise<EditionInfo | null> {

@@ -852,7 +852,9 @@ export const percobaanMasuk = pgTable(
     // own two-tries lock counts only those (plain text column, no migration).
     // "buka": an Asisten lifted that lock (2026-10-09); the count starts over
     // from it like from a sign-in. Never a sign-in itself.
-    jenis: text("jenis", { enum: ["asisten", "praktikan", "kode", "buka"] }).notNull(),
+    // "oprec": a recruitment account sign-in or sign-up (2026-10-24), apart
+    // from the practicum's so neither lockout counts the other's attempts.
+    jenis: text("jenis", { enum: ["asisten", "praktikan", "kode", "buka", "oprec"] }).notNull(),
     berhasil: boolean("berhasil").notNull(),
     // P6.2 (0006, fixes B9): the session running at the moment of this
     // attempt, null when none was. This is what makes attendance for a
@@ -2225,6 +2227,24 @@ export const recCandidate = pgTable(
     index("rec_candidate_status_idx").on(t.editionId, t.status),
   ],
 );
+
+/**
+ * An oprec account (2026-10-24): the NIM, the name and the password a
+ * would-be candidate sets on /recruitment, apart from the practicum sign-in.
+ * Not per edition. `versi` is in every oprec cookie: Reset Akun (Admin) clears
+ * the hash and bumps it, which signs every device out, and sets a one-time
+ * claim code (hashed in `klaimHash`) the Admin hands to the NIM's owner, who
+ * needs it to make the account again.
+ */
+export const recAccount = pgTable("rec_account", {
+  nim: text("nim").primaryKey(),
+  nama: text("nama").notNull(),
+  passHash: text("pass_hash"),
+  klaimHash: text("klaim_hash"),
+  versi: integer("versi").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  lastSigninAt: timestamp("last_signin_at", { withTimezone: true }),
+});
 
 /** A candidate's PDF in R2 (src/lib/tp-r2.ts keys under recruitment/). One per kind. */
 export const recDocument = pgTable(

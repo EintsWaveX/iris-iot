@@ -10,7 +10,6 @@ import type { ReactNode } from "react";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { href } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
-import { openSignIn } from "../../../lib/signin";
 import { useRecBanner, useRecCandidates, useRecEdition } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import { STAGES, type StageKey } from "../../../lib/recruitment/types";
@@ -93,13 +92,10 @@ export default function RecBanner({ lang }: { lang: Lang }) {
         <a className="btn btn--ghost" href={link("/recruitment")}>
           {t.visitor.stages}
         </a>
-        <button
-          type="button"
-          className="btn btn--primary"
-          onClick={() => openSignIn(link("/recruitment"))}
-        >
+        {/* Anyone may apply with an oprec account (2026-10-24): the page opens the account dialog. */}
+        <a className="btn btn--primary" href={link("/recruitment?daftar=1")}>
           <span className="btn__label">{t.visitor.signIn}</span>
-        </button>
+        </a>
       </>,
     );
   }
