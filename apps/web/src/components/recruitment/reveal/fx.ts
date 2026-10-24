@@ -11,16 +11,31 @@
  * fires about 30 percent of the confetti and drops the extra bursts.
  */
 import type { CreateTypes } from "canvas-confetti";
+import { useEffect, useState } from "react";
 import { useMotionTier } from "../../../lib/hooks";
 import { soundOn, usePrefs } from "../../../lib/prefs";
+import { motionLevel, type MotionLevel } from "../../../lib/recruitment/motion-level";
 
 /** full: Normal and High Detail. ldm: Low Detail, the default. reduce: reduced motion. */
-export type MotionLevel = "full" | "ldm" | "reduce";
+export type { MotionLevel };
+
+const REDUCED = "(prefers-reduced-motion: reduce)";
 
 export function useRevealMotion(): MotionLevel {
   const tier = useMotionTier();
   const { detail } = usePrefs();
-  return tier === 0 ? "reduce" : detail === "ldm" ? "ldm" : "full";
+  const [reduced, setReduced] = useState(
+    () => typeof window !== "undefined" && (window.matchMedia?.(REDUCED).matches ?? false),
+  );
+  useEffect(() => {
+    const mq = window.matchMedia?.(REDUCED);
+    if (!mq) return;
+    const on = () => setReduced(mq.matches);
+    on();
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  return motionLevel({ reduced, tier, detail });
 }
 
 let actx: AudioContext | null = null;
