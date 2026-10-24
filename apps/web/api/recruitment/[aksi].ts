@@ -33,6 +33,7 @@
  * POST /api/recruitment/event-delete { id, confirm? }
  * POST /api/recruitment/seat         { nim, division, isKoor?, title? }
  * POST /api/recruitment/unseat       { nim }
+ * POST /api/recruitment/visibility   { hidden }  Sembunyikan Oprec (api/_lib/recruitment-sembunyi.ts)
  *
  * A candidate only ever reads their own row: every candidate read is
  * filtered by the session's NIM and checked again in code. Editing or
@@ -102,6 +103,12 @@ import {
   periksaBerkas,
 } from "../_lib/recruitment-unggah.js";
 import { SimpanGalat, simpanSiap, tiketUnggah, urlBaca } from "../_lib/tp-simpan.js";
+import {
+  bolehSembunyikan,
+  handleTampil,
+  jawabTersembunyi,
+  oprecTersembunyi,
+} from "../_lib/recruitment-sembunyi.js";
 
 const tolak = (res: ApiResponse, kode: string, status = 400, extra: Record<string, unknown> = {}) =>
   res.status(status).json({ ok: false, kode, ...extra });
@@ -223,6 +230,11 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
     viewer: kind,
     rights: pelaku && anggotaPanitia(pelaku) ? pelaku.hak : null,
     seat: pelaku?.kursi ?? null,
+    // Only an Asisten gets this far while it is on (the router answers everyone else).
+    ...(s?.role === "asisten" && {
+      hidden: await oprecTersembunyi(db),
+      canHide: bolehSembunyikan(pelaku),
+    }),
   });
 }
 
@@ -836,6 +848,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   const aksi = req.query.aksi;
   const sesiku = currentSession(req);
 
+  // Sembunyikan Oprec: to anyone but an Asisten there is no edition at all.
+  if (sesiku?.role !== "asisten" && (await oprecTersembunyi(getDb())))
+    return jawabTersembunyi(aksi, res);
+
   // Anyone, signed in or not.
   if (aksi === "banner") {
     if (!requireMethod(req, res, "GET")) return;
@@ -900,6 +916,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "event-delete") return handleAcaraHapus(req, res, s);
   if (aksi === "seat") return handleDuduk(req, res, s);
   if (aksi === "unseat") return handleCabut(req, res, s);
+  if (aksi === "visibility") {
+    const e = await wajibEdisi(res, getDb());
+    return e ? handleTampil(req, res, s, getDb(), e.id) : undefined;
+  }
   return tolak(res, "aksi_tidak_dikenal", 404);
 }
 

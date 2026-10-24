@@ -186,6 +186,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:event-delete": ["reccalendar"],
   "recruitment:seat": ["recedition"],
   "recruitment:unseat": ["recedition"],
+  "recruitment:visibility": ["recedition", "reccalendar"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

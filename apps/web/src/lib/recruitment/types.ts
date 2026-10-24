@@ -264,6 +264,10 @@ export interface EditionResponse {
   rights: RecRights | null;
   /** The viewer's seat, when they have one */
   seat: { division: CommitteeDivision; isKoor: boolean; title: string | null } | null;
+  /** Asisten only: Sembunyikan Oprec is on (nobody else sees recruitment) */
+  hidden?: boolean;
+  /** Asisten only: may flip it (the Ketua and hakPenuh) */
+  canHide?: boolean;
 }
 
 /** GET calendar */
