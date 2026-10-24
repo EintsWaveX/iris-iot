@@ -37,6 +37,9 @@ import type { KodeBerkas } from "./kode-jurnal.js";
 import type { NilaiTersimpan } from "./seelabs-baca.js";
 import {
   ATTENDANCE_VIA,
+  DOC_VERDICTS,
+  SLOT_CHANGE_STATUS,
+  SLOT_VIA,
   AUDIENCES,
   CANDIDATE_STATUS,
   DIVISIONS,
@@ -2210,8 +2213,14 @@ export const recCandidate = pgTable(
     reviewNote: text("review_note"),
     reviewedBy: text("reviewed_by"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    /** Nilai Berkas, 0 to 100, optional. Whether Berkas gets a score is still open (PRD 12); Cutting ignores it. */
+    berkasScore: integer("berkas_score"),
   },
   (t) => [
+    check(
+      "rec_candidate_nilai_berkas",
+      sql`${t.berkasScore} is null or (${t.berkasScore} between 0 and 100)`,
+    ),
     unique("rec_candidate_unik").on(t.editionId, t.nim),
     index("rec_candidate_status_idx").on(t.editionId, t.status),
   ],
@@ -2231,6 +2240,13 @@ export const recDocument = pgTable(
     sha256: text("sha256").notNull(),
     uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
     note: text("note"),
+    /** Admin's check of this file: sesuai or perbaiki; cleared when the file is replaced (S2) */
+    verdict: text("verdict", { enum: DOC_VERDICTS }),
+    /** The file this one replaced after a revision ask, so Admin can compare V1 and V2 (S2) */
+    prevR2Key: text("prev_r2_key"),
+    prevSize: integer("prev_size"),
+    prevSha256: text("prev_sha256"),
+    prevUploadedAt: timestamp("prev_uploaded_at", { withTimezone: true }),
   },
   (t) => [unique("rec_document_unik").on(t.candidateId, t.kind)],
 );
@@ -2271,10 +2287,89 @@ export const recAttendance = pgTable(
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     via: text("via", { enum: ATTENDANCE_VIA }).notNull(),
     by: text("by"),
+    /** Why Admin marked someone by hand (a quick reason or a few words) */
+    reason: text("reason"),
   },
   (t) => [unique("rec_attendance_unik").on(t.candidateId, t.eventId)],
+);
+
+/**
+ * One room on one evening of a stage that has slots (S2: Tes Tulis; later
+ * Wawancara, Mengajar). `eventId` is the test, interview or teaching event
+ * the slot belongs to; the candidate sees that event as their own.
+ */
+export const recSlot = pgTable(
+  "rec_slot",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    stage: text("stage", { enum: STAGES }).notNull(),
+    eventId: integer("event_id").references(() => recEvent.id, { onDelete: "set null" }),
+    room: text("room").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    capacity: integer("capacity").notNull(),
+  },
+  (t) => [
+    index("rec_slot_stage_idx").on(t.editionId, t.stage, t.startsAt),
+    check("rec_slot_kapasitas", sql`${t.capacity} >= 0`),
+    check("rec_slot_urut", sql`${t.endsAt} > ${t.startsAt}`),
+  ],
+);
+
+/** Who sits in which slot. One row per candidate per stage; `via` says who put them there. */
+export const recSlotAssignment = pgTable(
+  "rec_slot_assignment",
+  {
+    id: serial("id").primaryKey(),
+    slotId: integer("slot_id")
+      .notNull()
+      .references(() => recSlot.id, { onDelete: "cascade" }),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    stage: text("stage", { enum: STAGES }).notNull(),
+    via: text("via", { enum: SLOT_VIA }).notNull(),
+    by: text("by"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("rec_slot_assignment_unik").on(t.candidateId, t.stage),
+    index("rec_slot_assignment_slot_idx").on(t.slotId),
+  ],
+);
+
+/** A candidate's request for another slot, decided by Panitia with the Plotting right. */
+export const recSlotChange = pgTable(
+  "rec_slot_change",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    stage: text("stage", { enum: STAGES }).notNull(),
+    fromSlot: integer("from_slot").references(() => recSlot.id, { onDelete: "set null" }),
+    toSlot: integer("to_slot").references(() => recSlot.id, { onDelete: "set null" }),
+    reason: text("reason").notNull(),
+    status: text("status", { enum: SLOT_CHANGE_STATUS }).notNull().default("open"),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    /** What Panitia wrote when declining; the candidate reads it */
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // One open request at a time per candidate and stage.
+    uniqueIndex("rec_slot_change_satu_terbuka")
+      .on(t.candidateId, t.stage)
+      .where(sql`${t.status} = 'open'`),
+    index("rec_slot_change_status_idx").on(t.status, t.createdAt),
+  ],
 );
 
 export type RecEditionRow = typeof recEdition.$inferSelect;
 export type RecEventRow = typeof recEvent.$inferSelect;
 export type RecCandidateRow = typeof recCandidate.$inferSelect;
+export type RecSlotRow = typeof recSlot.$inferSelect;

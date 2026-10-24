@@ -103,6 +103,17 @@ export type Proposal = (typeof PROPOSALS)[number];
 
 export const ATTENDANCE_VIA = ["qr", "manual"] as const;
 
+/** Admin's check of one uploaded file. */
+export const DOC_VERDICTS = ["ok", "fix"] as const;
+export type DocVerdict = (typeof DOC_VERDICTS)[number];
+
+/** Who put a candidate in a slot: themself, Auto Isi, or Panitia. */
+export const SLOT_VIA = ["self", "auto", "panitia"] as const;
+export type SlotVia = (typeof SLOT_VIA)[number];
+
+export const SLOT_CHANGE_STATUS = ["open", "approved", "declined", "withdrawn"] as const;
+export type SlotChangeStatus = (typeof SLOT_CHANGE_STATUS)[number];
+
 /** PDF only, 5 MB each (PRD 5.3). */
 export const DOC_MAX_BYTES = 5 * 1024 * 1024;
 
