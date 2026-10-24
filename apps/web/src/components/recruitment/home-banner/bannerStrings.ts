@@ -11,7 +11,7 @@ export const BN = dict({
       soon: (a: string) =>
         `Pendaftaran dibuka ${a} untuk Praktikan semester ini. Masuk dengan akun Praktikan untuk mendaftar.`,
       stages: "Lihat Tahapan",
-      signIn: "Masuk",
+      signIn: "Daftar Sekarang",
     },
     praktikan: {
       title: "Pendaftaran Asisten sedang dibuka",
@@ -63,7 +63,7 @@ export const BN = dict({
       soon: (a: string) =>
         `Registration opens ${a} for this semester's Praktikan. Sign in with your Praktikan account to apply.`,
       stages: "See the Stages",
-      signIn: "Sign In",
+      signIn: "Apply Now",
     },
     praktikan: {
       title: "Asisten registration is open",
@@ -114,7 +114,7 @@ export const BN = dict({
         `本学期的学生可以在 ${a} 到 ${b} 报名。用学生账号登录就能报名。`,
       soon: (a: string) => `本学期的学生可以从 ${a} 开始报名。用学生账号登录就能报名。`,
       stages: "查看各阶段",
-      signIn: "登录",
+      signIn: "立即报名",
     },
     praktikan: {
       title: "助教报名已开放",

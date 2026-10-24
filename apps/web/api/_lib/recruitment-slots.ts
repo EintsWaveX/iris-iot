@@ -17,6 +17,7 @@ import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   praktikan,
+  recAccount,
   recCandidate,
   recEvent,
   recEventLog,
@@ -60,7 +61,7 @@ import {
   type Db,
 } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
-import { tolakPraktikanTot } from "./session.js";
+import { namaKandidat } from "./recruitment-akun.js";
 
 const tahap = (v: unknown): StageKey | null =>
   typeof v === "string" && (STAGES as readonly string[]).includes(v) ? (v as StageKey) : null;
@@ -135,7 +136,6 @@ export async function handleSlot(req: ApiRequest, res: ApiResponse, s: SessionPa
   const events = await muatEvents(db, edisi.id);
 
   if (s.role === "praktikan") {
-    if (await tolakPraktikanTot(req, res)) return;
     const k = await muatKandidat(db, edisi.id, s.nim);
     if (!k) return void res.status(200).json({ ok: true, stages: [], now: now.toISOString() });
     const st = await posisi(db, events, k, now);
@@ -189,10 +189,11 @@ export async function handleSlot(req: ApiRequest, res: ApiResponse, s: SessionPa
           candidateId: recSlotAssignment.candidateId,
           via: recSlotAssignment.via,
           nim: recCandidate.nim,
-          nama: praktikan.nama,
+          nama: namaKandidat,
         })
         .from(recSlotAssignment)
         .innerJoin(recCandidate, eq(recCandidate.id, recSlotAssignment.candidateId))
+        .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
         .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
         .where(
           inArray(
@@ -208,10 +209,11 @@ export async function handleSlot(req: ApiRequest, res: ApiResponse, s: SessionPa
     .select({
       m: recSlotChange,
       nim: recCandidate.nim,
-      nama: praktikan.nama,
+      nama: namaKandidat,
     })
     .from(recSlotChange)
     .innerJoin(recCandidate, eq(recCandidate.id, recSlotChange.candidateId))
+    .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
     .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
     .where(and(eq(recCandidate.editionId, edisi.id), eq(recSlotChange.stage, stage)))
     .orderBy(desc(recSlotChange.createdAt))
@@ -263,11 +265,12 @@ async function muatPeserta(
     .select({
       id: recCandidate.id,
       nim: recCandidate.nim,
-      nama: praktikan.nama,
+      nama: namaKandidat,
       status: recCandidate.status,
       stage: recCandidate.currentStage,
     })
     .from(recCandidate)
+    .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
     .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
     .where(eq(recCandidate.editionId, edisiId))
     .orderBy(asc(recCandidate.nim));
@@ -297,7 +300,6 @@ const KODE_PILIH: Record<string, number> = {
 
 /** POST slot-pick { slotId }: first come first served, one transaction. */
 export async function handlePilih(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const slotId = Number(jsonBody(req).slotId);
   if (!Number.isInteger(slotId) || slotId <= 0)
     return void tolak(res, "data_salah", 400, { field: "slotId" });
@@ -360,7 +362,6 @@ export async function handlePilih(req: ApiRequest, res: ApiResponse, s: SessionP
 
 /** POST slot-change { toSlot, reason } or { withdraw: true }: one open request at a time. */
 export async function handleUbah(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const b = jsonBody(req);
   const db = getDb();
   const edisi = await wajibEdisi(res, db);

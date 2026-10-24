@@ -202,6 +202,12 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:slot-decide": ["recplotting", "reccandidates"],
   "recruitment:slot-set": ["recplotting", "reccandidates", "reccalendar"],
   "recruitment:slot-autofill": ["recplotting", "reccandidates"],
+  // Oprec accounts (2026-10-24): a sign-up, sign-in or sign-out changes no
+  // page but the candidate's own; Reset Akun answers its code to the one asking.
+  "recruitment:account-signup": [],
+  "recruitment:account-signin": [],
+  "recruitment:account-signout": [],
+  "recruitment:account-reset": [],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

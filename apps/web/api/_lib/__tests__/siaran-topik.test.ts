@@ -58,6 +58,8 @@ const BACA: Record<string, string[]> = {
     "committee",
     "edition",
     "me",
+    // Oprec accounts (2026-10-24)
+    "account",
     // S2 (2026-10-24)
     "attendance",
     "envelopes",

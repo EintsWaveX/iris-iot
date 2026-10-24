@@ -98,6 +98,19 @@ vi.mock("../../src/lib/auth", async (orig) => ({
   readSessionCookie: () => cookie,
   writeAudit: async () => undefined,
 }));
+// A candidate is signed in by their oprec account (2026-10-24), apart from the practicum cookie.
+let oprec: Record<string, unknown> | null = null;
+vi.mock("../_lib/recruitment-akun", async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  sesiOprec: async () => oprec,
+  wajibOprec: async (
+    _q: unknown,
+    res: { status: (n: number) => { json: (b: unknown) => void } },
+  ) => {
+    if (!oprec) res.status(401).json({ ok: false, kode: "belum_masuk_oprec" });
+    return oprec;
+  },
+}));
 
 const { default: handler } = await import("../recruitment/[aksi]");
 const { buatToken, bacaToken, kodeKetik } = await import("../_lib/recruitment-attendance");
@@ -184,9 +197,12 @@ const SLOT = (id: number, over: Record<string, unknown> = {}) => ({
 
 const sebagaiAsisten = (nim = "101022300900") => {
   cookie = { role: "asisten", nim, nama: "Asisten Uji", exp: 9e9 };
+  oprec = null;
 };
+/** Signed in with an oprec account (the practicum cookie never counts here). */
 const sebagaiPraktikan = (nim = "101022300001") => {
-  cookie = { role: "praktikan", nim, nama: "Raka", exp: 9e9 };
+  cookie = null;
+  oprec = { role: "praktikan", nim, nama: "Raka", exp: 9e9 };
 };
 const panitia = (division: string) => {
   sebagaiAsisten();
@@ -235,6 +251,7 @@ beforeEach(() => {
   process.env.KONSOL_RELAY_URL = "wss://relay.test";
   process.env.KONSOL_RELAY_SECRET = "k".repeat(40);
   cookie = null;
+  oprec = null;
   tulis.length = 0;
   rows = { edition: [EDISI], event: EVENT_ROWS };
 });

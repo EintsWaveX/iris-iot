@@ -8,9 +8,10 @@
  * The hooks refetch at once on the three siaran topics (recedition,
  * reccalendar, reccandidates) and never poll on a timer of their own.
  */
-import { usePoll } from "../hooks";
+import { usePoll, usePollBersama } from "../hooks";
 import type { Topik } from "../siaran";
 import type {
+  AccountResponse,
   AttendanceResponse,
   BannerResponse,
   CalendarResponse,
@@ -79,6 +80,29 @@ async function leaf<T extends { ok: true }>(p: Promise<RecResult<T>>): Promise<T
 
 const TOPIK_EDISI: Topik[] = ["recedition"];
 const TOPIK_KAL: Topik[] = ["recedition", "reccalendar"];
+
+/**
+ * The oprec account signed in on this browser (2026-10-24), apart from the
+ * practicum's useMe(): one shared fetch for every island on the page.
+ * `data.account` is null when nobody is signed in to oprec.
+ */
+export function useRecAkun(enabled = true) {
+  return usePollBersama(
+    "rec-akun",
+    () => leaf(recGet<AccountResponse>("account")),
+    600_000,
+    enabled,
+    TOPIK_EDISI,
+  );
+}
+
+export const REC_AKUN_EVENT = "iris:rec-akun";
+export type AkunMode = "masuk" | "daftar";
+
+/** Opens the oprec account dialog (RecNav hosts it); after signing in the page goes to `next`. */
+export function bukaAkun(mode: AkunMode = "masuk", next?: string) {
+  window.dispatchEvent(new CustomEvent(REC_AKUN_EVENT, { detail: { mode, next } }));
+}
 
 export function useRecBanner(enabled = true) {
   return usePoll(

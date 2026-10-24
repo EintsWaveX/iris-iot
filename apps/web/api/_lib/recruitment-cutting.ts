@@ -17,6 +17,7 @@ import { getDb } from "../../src/lib/db.js";
 import {
   asisten,
   praktikan,
+  recAccount,
   recAttendance,
   recCandidate,
   recDocument,
@@ -53,7 +54,7 @@ import {
   type Db,
 } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
-import { tolakPraktikanTot } from "./session.js";
+import { namaKandidat } from "./recruitment-akun.js";
 
 /** What the deck aims for at each Cutting (PRD 3, Targets). */
 const TARGET: Partial<Record<CutStage, { min: number; max: number }>> = {
@@ -119,13 +120,14 @@ export async function muatPool(
     .select({
       id: recCandidate.id,
       nim: recCandidate.nim,
-      nama: praktikan.nama,
+      nama: namaKandidat,
       biodata: recCandidate.biodata,
       status: recCandidate.status,
       stage: recCandidate.currentStage,
       score: recCandidate.berkasScore,
     })
     .from(recCandidate)
+    .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
     .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
     .where(eq(recCandidate.editionId, edisiId));
   const ids = kand.map((k) => k.id);
@@ -408,7 +410,6 @@ export async function handleBukaKunci(req: ApiRequest, res: ApiResponse, s: Sess
 
 /** GET envelopes: the candidate's own inbox. Sealed ones carry no result. */
 export async function handleAmplop(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
@@ -420,7 +421,6 @@ export async function handleAmplop(req: ApiRequest, res: ApiResponse, s: Session
 
 /** POST envelope-open { stage }: stamps opened_at and finally answers the result. */
 export async function handleAmplopBuka(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const stage = tahapDari(jsonBody(req).stage);
   if (!stage) return void tolak(res, "data_salah", 400, { field: "stage" });
   const db = getDb();

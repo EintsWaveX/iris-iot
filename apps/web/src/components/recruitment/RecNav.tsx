@@ -42,8 +42,9 @@ import Avatar from "../shell/Avatar";
 import { href, meChanged, postJson, useMe } from "../../lib/app";
 import { pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";
-import { openSignIn } from "../../lib/signin";
-import { useRecEdition } from "../../lib/recruitment/client";
+import { bukaAkun, recPost, useRecAkun, useRecEdition } from "../../lib/recruitment/client";
+import AkunDialog from "./candidate/AkunDialog";
+import { AK } from "./candidate/akunStrings";
 import {
   alamatBagian,
   bukaBagian,
@@ -171,6 +172,16 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
   const me = useMe();
   const prefix = lang === "id" ? "" : `/${lang}`;
   const asisten = me?.role === "asisten";
+  // A candidate is their oprec account; the practicum's Praktikan sign-in does not count here (2026-10-24).
+  const akun = useRecAkun(me !== undefined && !asisten);
+  const oprec = asisten ? null : (akun.data?.account ?? null);
+  const orang = asisten
+    ? me
+    : oprec
+      ? ({ role: "praktikan", nim: oprec.nim, nama: oprec.nama } as NonNullable<typeof me>)
+      : null;
+  const tamu = me !== undefined && !asisten && akun.updatedAt !== null && !oprec;
+  const ak = AK[lang];
   const edisi = useRecEdition(me !== undefined);
   const viewer = edisi.data?.viewer;
   const rights = edisi.data?.rights ?? null;
@@ -267,7 +278,9 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
 
   async function signOut() {
     try {
-      await postJson("/api/auth/logout");
+      // The oprec account signs out on its own; the practicum sign-in stays as it is.
+      if (asisten) await postJson("/api/auth/logout");
+      else await recPost("account-signout");
     } finally {
       meChanged();
       location.assign(href(lang, "/recruitment"));
@@ -283,32 +296,35 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
   };
   const aktifLink = (l: Bagian) => (l.key === aktif ? "page" : undefined);
 
-  const signIn = () => openSignIn(`${prefix}${path.replace(/^\/(en|zh)/, "")}`);
+  const signIn = () => bukaAkun("masuk");
 
   const account = (close?: () => void) =>
-    me && (
+    orang && (
       <div className="acct">
         <div className="acct__who">
-          <Avatar me={me} lg />
+          <Avatar me={orang} lg />
           <span className="acct__names">
-            <b>{me.nama}</b>
+            <b>{orang.nama}</b>
             <span className="acct__meta">
-              {t.who(me.role)} · <span className="mono">{me.nim}</span>
+              {asisten ? t.who(orang.role) : ak.menu.akun} ·{" "}
+              <span className="mono">{orang.nim}</span>
             </span>
           </span>
         </div>
         <a className="acct__row" href={href(lang, "/")} onClick={close}>
           <span>{t.praktikum}</span>
         </a>
-        <a className="acct__row" href={href(lang, "/account")} onClick={close}>
-          <span>{t.myAccount}</span>
-        </a>
+        {asisten && (
+          <a className="acct__row" href={href(lang, "/account")} onClick={close}>
+            <span>{t.myAccount}</span>
+          </a>
+        )}
         <button
           type="button"
           className="acct__row acct__row--danger"
           onClick={() => void signOut()}
         >
-          <span>{t.signOut}</span>
+          <span>{asisten ? t.signOut : ak.menu.keluar}</span>
           <SignOutIcon size={20} aria-hidden="true" />
         </button>
       </div>
@@ -319,7 +335,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
       <header
         className="appnav rec-nav"
         data-scrolled={scrolled ? "yes" : "no"}
-        data-tamu={me === null ? "yes" : undefined}
+        data-tamu={tamu ? "yes" : undefined}
       >
         <a className="appnav__brand" href={`${prefix}/recruitment`} aria-label={t.brand}>
           <img src="/brand/iris-logo-mark.png" alt="" width="198" height="90" />
@@ -353,7 +369,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           )}
         </nav>
 
-        {me === null && (
+        {tamu && (
           <div className="appnav__center">
             <button type="button" className="btn btn--primary appnav__signin" onClick={signIn}>
               <span className="btn__label">{t.signIn}</span>
@@ -385,12 +401,14 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
             </RadixPopover.Portal>
           </RadixPopover.Root>
 
-          {me && (
+          {orang && (
             <RadixPopover.Root>
               <RadixPopover.Trigger asChild>
                 <button type="button" className="appnav__me" aria-label={t.account}>
-                  <Avatar me={me} />
-                  <span className="appnav__badge">{t.who(me.role)}</span>
+                  <Avatar me={orang} />
+                  <span className="appnav__badge">
+                    {asisten ? t.who(orang.role) : ak.menu.badge}
+                  </span>
                 </button>
               </RadixPopover.Trigger>
               <RadixPopover.Portal>
@@ -414,7 +432,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           className="appnav__disp-mobile"
           onClick={() => setDispSheet(true)}
         />
-        {me === null ? (
+        {tamu ? (
           <button
             type="button"
             className="btn btn--primary appnav__signin appnav__signin--mobile"
@@ -424,14 +442,14 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
             <DoorOpenIcon size={18} weight="bold" aria-hidden="true" />
           </button>
         ) : (
-          me && (
+          orang && (
             <button
               type="button"
               className="appnav__me appnav__me--mobile"
               onClick={() => setSheet(true)}
               aria-label={t.account}
             >
-              <Avatar me={me} />
+              <Avatar me={orang} />
             </button>
           )
         )}
@@ -476,6 +494,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
       <Dialog open={sheet} onOpenChange={setSheet} title={t.account} sheet lang={lang}>
         {account(() => setSheet(false))}
       </Dialog>
+      <AkunDialog lang={lang} />
     </>
   );
 }

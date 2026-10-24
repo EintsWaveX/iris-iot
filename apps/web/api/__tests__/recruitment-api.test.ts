@@ -87,6 +87,19 @@ vi.mock("../../src/lib/auth", async (orig) => ({
   readSessionCookie: () => cookie,
   writeAudit: async () => undefined,
 }));
+// A candidate is signed in by their oprec account, apart from the practicum cookie.
+let oprec: Record<string, unknown> | null = null;
+vi.mock("../_lib/recruitment-akun", async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  sesiOprec: async () => oprec,
+  wajibOprec: async (
+    _q: unknown,
+    res: { status: (n: number) => { json: (b: unknown) => void } },
+  ) => {
+    if (!oprec) res.status(401).json({ ok: false, kode: "belum_masuk_oprec" });
+    return oprec;
+  },
+}));
 
 const { default: handler } = await import("../recruitment/[aksi]");
 
@@ -136,9 +149,17 @@ const KURSI = (division: string, isKoor = false) => ({ division, isKoor, title: 
 
 const sebagaiAsisten = (nim = "101022300900") => {
   cookie = { role: "asisten", nim, nama: "Asisten Uji", exp: 9e9 };
+  oprec = null;
 };
+/** Signed in with an oprec account (the practicum cookie never counts here). */
 const sebagaiPraktikan = (nim = "101022300001") => {
+  cookie = null;
+  oprec = { role: "praktikan", nim, nama: "Raka", exp: 9e9 };
+};
+/** Only the practicum's Praktikan cookie: a visitor on the recruitment pages. */
+const sebagaiPraktikumSaja = (nim = "101022300001") => {
   cookie = { role: "praktikan", nim, nama: "Raka", exp: 9e9 };
+  oprec = null;
 };
 
 async function panggil(
@@ -182,6 +203,7 @@ beforeEach(() => {
   process.env.KONSOL_RELAY_URL = "wss://relay.test";
   process.env.KONSOL_RELAY_SECRET = "k".repeat(40);
   cookie = null;
+  oprec = null;
   tulis.length = 0;
   rows = { edition: [EDISI], event: EVENT_ROWS };
 });
@@ -255,11 +277,17 @@ describe("a Praktikan never reaches the Panitia's side", () => {
     ["POST", "event-delete"],
     ["POST", "seat"],
     ["POST", "unseat"],
-  ] as const)("%s %s is 403", async (m, aksi) => {
-    sebagaiPraktikan();
-    const r = await panggil(m, aksi, { query: { id: "7" }, body: { id: 7, nim: "101022300900" } });
+    ["POST", "account-reset"],
+  ] as const)("%s %s is 403 with the practicum cookie, 401 with an oprec one", async (m, aksi) => {
+    sebagaiPraktikumSaja();
+    const opt = { query: { id: "7" }, body: { id: 7, nim: "101022300900" } };
+    const r = await panggil(m, aksi, opt);
     expect(r.code).toBe(403);
     expect(r.body).toMatchObject({ ok: false, kode: "peran_salah" });
+    sebagaiPraktikan();
+    const o = await panggil(m, aksi, opt);
+    expect(o.code).toBe(401);
+    expect(o.body).toMatchObject({ ok: false, kode: "belum_masuk" });
   });
   it.each([
     ["GET", "candidates"],
@@ -471,10 +499,32 @@ describe("applying", () => {
       ).body,
     ).toMatchObject({ field: "docs" });
   });
-  it("refuses someone who is not on the Praktikan roster", async () => {
-    sebagaiPraktikan();
+  it("takes someone who is not on the Praktikan roster (batch 25 and 26)", async () => {
+    sebagaiPraktikan("102022500001");
     rows.praktikan = [];
-    expect((await panggil("POST", "apply", { body: sah })).body.kode).toBe("bukan_praktikan");
+    expect((await panggil("POST", "apply", { body: sah })).body.kode).toBe("tiket_salah");
+  });
+  it("never takes the practicum cookie alone", async () => {
+    sebagaiPraktikumSaja();
+    rows.praktikan = [{ nim: "101022300001" }];
+    for (const [m, aksi] of [
+      ["GET", "me"],
+      ["POST", "ticket"],
+      ["POST", "apply"],
+      ["POST", "document"],
+      ["POST", "withdraw"],
+      ["GET", "envelopes"],
+      ["POST", "envelope-open"],
+      ["POST", "attend"],
+      ["POST", "slot-pick"],
+      ["POST", "slot-change"],
+    ] as const) {
+      const r = await panggil(m, aksi, { body: sah });
+      expect(r.code, aksi).toBe(401);
+      expect(r.body.kode, aksi).toBe("belum_masuk_oprec");
+    }
+    expect((await panggil("GET", "slots")).code).toBe(401);
+    expect((await panggil("GET", "berkas", { query: { id: "3" } })).code).toBe(401);
   });
   it("refuses a second application", async () => {
     sebagaiPraktikan();

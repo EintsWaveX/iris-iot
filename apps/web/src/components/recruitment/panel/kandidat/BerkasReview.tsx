@@ -35,6 +35,7 @@ import { S2 } from "../../s2Strings";
 import { tgl } from "../../shared";
 import { useRevealMotion } from "../../reveal/fx";
 import { PN } from "../panelStrings";
+import AkunCek from "./AkunCek";
 
 const waktu = (iso: string, lang: Lang) => {
   const w = tanggalWib(new Date(iso));
@@ -279,6 +280,7 @@ export default function BerkasReview({
                   </div>
                 ))}
               </section>
+              <AkunCek lang={lang} nim={c.nim} nama={c.nama} roster={c.namaRoster} />
               <section className="stack stack--sm r2score">
                 <div className="row row--between" style={{ gap: 8 }}>
                   <h3 className="h3">{t.score}</h3>

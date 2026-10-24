@@ -19,6 +19,7 @@ import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
 import {
   praktikan,
+  recAccount,
   recAttendance,
   recCandidate,
   recSlot,
@@ -44,7 +45,7 @@ import {
   type Db,
 } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
-import { tolakPraktikanTot } from "./session.js";
+import { namaKandidat } from "./recruitment-akun.js";
 
 /* ------------------------------------------------------------ the token */
 
@@ -152,11 +153,12 @@ export async function muatDiharapkan(
     .select({
       id: recCandidate.id,
       nim: recCandidate.nim,
-      nama: praktikan.nama,
+      nama: namaKandidat,
       status: recCandidate.status,
       stage: recCandidate.currentStage,
     })
     .from(recCandidate)
+    .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
     .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
     .where(eq(recCandidate.editionId, edisiId))
     .orderBy(asc(recCandidate.nim));
@@ -238,7 +240,6 @@ export async function handleQrToken(req: ApiRequest, res: ApiResponse, s: Sessio
 
 /** POST attend { token | code }: a candidate's scan. */
 export async function handleHadir(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
-  if (await tolakPraktikanTot(req, res)) return;
   const b = jsonBody(req);
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
@@ -313,8 +314,9 @@ export async function handleKehadiran(req: ApiRequest, res: ApiResponse, s: Sess
   const lainnya = hadir.filter((h) => !dikenal.has(h.candidateId));
   const tambahan = lainnya.length
     ? await db
-        .select({ id: recCandidate.id, nim: recCandidate.nim, nama: praktikan.nama })
+        .select({ id: recCandidate.id, nim: recCandidate.nim, nama: namaKandidat })
         .from(recCandidate)
+        .leftJoin(recAccount, eq(recAccount.nim, recCandidate.nim))
         .leftJoin(praktikan, eq(praktikan.nim, recCandidate.nim))
         .where(
           inArray(

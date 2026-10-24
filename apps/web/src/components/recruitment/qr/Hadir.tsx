@@ -3,14 +3,13 @@
  * r2-qr scan results): it sends the token in the address with the person's own
  * session, and answers one of four ways: marked present, already marked, not
  * your slot (with their own), or the QR changed (type the code from the wall).
- * Signed out, they sign in first and come back to this same address, so the
- * scan still counts. The server decides everything; this page only shows it.
+ * Not signed in to their oprec account, they sign in first and come back to
+ * this same address, so the scan still counts. The server decides everything; this page only shows it.
  */
 import { useEffect, useRef, useState } from "react";
-import { href, useMe } from "../../../lib/app";
+import { href } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
-import { openSignIn } from "../../../lib/signin";
-import { isFail, recPost } from "../../../lib/recruitment/client";
+import { bukaAkun, isFail, recPost, useRecAkun } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import type { AttendResponse } from "../../../lib/recruitment/types";
 import { judulAcara } from "../judul";
@@ -35,7 +34,9 @@ const NADA: Record<Hasil["v"], "ok" | "warn"> = {
 
 export default function Hadir({ lang }: { lang: Lang }) {
   const t = S2[lang].qr;
-  const me = useMe();
+  // The scan counts for the candidate's oprec account (2026-10-24): undefined while it loads.
+  const akun = useRecAkun();
+  const me = akun.updatedAt === null ? undefined : (akun.data?.account ?? null);
   const [hasil, setHasil] = useState<Hasil | null>(null);
   const [kode, setKode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -72,7 +73,7 @@ export default function Hadir({ lang }: { lang: Lang }) {
 
   // The token in the address is read once, sent once, then dropped from the address.
   useEffect(() => {
-    if (me?.role !== "praktikan" || sudahKirim.current) return;
+    if (!me || sudahKirim.current) return;
     const token = new URLSearchParams(location.search).get("t");
     if (!token) return;
     sudahKirim.current = true;
@@ -122,7 +123,7 @@ export default function Hadir({ lang }: { lang: Lang }) {
             <button
               type="button"
               className="btn btn--primary btn--lg"
-              onClick={() => openSignIn(`${location.pathname}${location.search}`)}
+              onClick={() => bukaAkun("masuk", `${location.pathname}${location.search}`)}
             >
               <span className="btn__label">{t.signIn2}</span>
             </button>
@@ -155,7 +156,7 @@ export default function Hadir({ lang }: { lang: Lang }) {
               </form>
             )
           )}
-          {me?.role === "praktikan" && hasil && (
+          {me && hasil && (
             <a className="btn btn--block" href={href(lang, "/recruitment")}>
               <span className="btn__label">{t.myJourney}</span>
             </a>
