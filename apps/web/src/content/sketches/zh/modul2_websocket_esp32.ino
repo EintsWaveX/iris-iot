@@ -15,8 +15,8 @@
 const char* WIFI_SSID     = "YOUR_WIFI_NAME";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
-const char*    WS_HOST = "192.168.1.100";  // 改成 Orange Pi 的 IP 地址
-const uint16_t WS_PORT = 8765;             // 改成 Orange Pi 的端口
+const char*    WS_HOST = "ws.irisiotlab.com";  // 服务器地址，每组都一样
+const uint16_t WS_PORT = 80;                   // 网关端口，不是 Python 服务器的端口
 
 // ---- 小组路径 ---------------------------------------------------------------
 // 服务器靠这个路径分辨连进来的是哪一组的板子。

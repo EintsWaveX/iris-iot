@@ -136,9 +136,7 @@
   "time on the Subscriber device.": "Subscriber 那块板子上的时间比较。",
   "Run after NTP, not before, so the locked reference already uses the": "要在 NTP 之后运行，不能在之前，这样锁定的基准用的才是",
   "correct clock rather than the Pico W's uncorrected RTC.": "校准过的时间，而不是 Pico W 未校准的 RTC。",
-  "Port 1883 is the `listener` value used in mosquitto.conf. keepalive tells the": "端口 1883 就是 mosquitto.conf 里的 `listener` 值。keepalive 告诉",
   "broker to expect a ping from this client every 30 seconds.": "broker 这个 client 每 30 秒会 ping 一次。",
-  "(3) The listener value in mosquitto.conf": "(3) mosquitto.conf 里的 listener 值",
   "(4) 16-bit ADC read method (0 through 65535)": "(4) 读取 16 位 ADC 的方法（0 到 65535）",
   "(5) Change threshold variable": "(5) 变化阈值变量",
   "The message carries a sample number so a line in the Publisher": "消息里带着样本编号，这样 Publisher",
@@ -223,5 +221,14 @@
   "one slips through anyway, this line drops it silently instead of": "还是漏进来一个，这一行会悄悄丢掉它，而不是",
   "reporting it as belonging to the wrong group.": "把它算到别的组头上。",
   "The packet was corrupted in the air; just ignore it.": "数据包在空中损坏了，直接忽略。",
-  "Not our own pair's beacon; ignore it silently.": "不是本组的 beacon，悄悄忽略。"
+  "Not our own pair's beacon; ignore it silently.": "不是本组的 beacon，悄悄忽略。",
+  "Server address, the same for every group": "服务器地址，每组都一样",
+  "Gateway port, not the Python server port": "网关端口，不是 Python 服务器的端口",
+  "(1) Server port number, see the journal": "(1) 服务器端口号，见日志",
+  "---- WEBSOCKET WRAPPER -------------------------------------------------------": "---- WEBSOCKET 封装 ----------------------------------------------------------",
+  "Wraps MQTT packets in WebSocket so they can cross the Internet through the": "把 MQTT 数据包封装进 WebSocket，这样才能经过",
+  "gateway. Read-only: nothing here to fill in or change.": "网关穿过互联网。只读：这里没有要填或要改的地方。",
+  "the PC Server and is reached through the gateway at broker.irisiotlab.com.": "PC 服务器上，通过 broker.irisiotlab.com 的网关连接。",
+  "Port 80 is the WebSocket gateway port, not Mosquitto's. keepalive tells the": "端口 80 是 WebSocket 网关的端口，不是 Mosquitto 的。keepalive 告诉",
+  "(3) WebSocket gateway port, see the journal": "(3) WebSocket 网关端口，见日志"
 }

@@ -13,7 +13,7 @@ from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
 HOST: str = "0.0.0.0"  # Mendengarkan pada semua antarmuka jaringan
-PORT: int = ________  # (1) Nomor port, sama dengan WS_PORT pada semua kode ESP32
+PORT: int = ________  # (1) Nomor port server, lihat jurnal
 
 # Path yang diterima, satu per kelompok. Lima path disediakan, sesuai jumlah
 # kelompok tiap sesi; hapus yang tidak dipakai bila kelompok yang hadir lebih

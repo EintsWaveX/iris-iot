@@ -15,8 +15,8 @@
 const char* WIFI_SSID     = "YOUR_WIFI_NAME";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
-const char*    WS_HOST = "192.168.1.100";  // Match the Orange Pi IP address
-const uint16_t WS_PORT = 8765;             // Match the Orange Pi port
+const char*    WS_HOST = "ws.irisiotlab.com";  // Server address, the same for every group
+const uint16_t WS_PORT = 80;                   // Gateway port, not the Python server port
 
 // ---- GROUP PATH ------------------------------------------------------------
 // This path is what tells the server which group's board is connecting.
