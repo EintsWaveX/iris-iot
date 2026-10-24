@@ -35,7 +35,7 @@ Read `_RULES.md`, `EXAM-ENGINE.md` sections 1, 2, 8 and 10, the signed-off bank 
    - serve from the IRIS origin with a strict CSP in a sandboxed iframe
    - add a refetch button
    - attach references to a part or a question
-4. **Seed for the rig:** 2N SAMPLE questions per part covering every format, marked SAMPLE so they never ship as real ones.
+4. **Seed bank (ships as the default, ruling 2026-10-24):** at least the default `shown` count per part and language (EXAM-ENGINE 2), every format covered, each question run or compiled before it goes in. Seeds carry `sample = true` (the "Bawaan" badge only); real and rehearsal rooms draw them like any other, and Akademik edits or replaces them in the web.
 
 ## Tests
 - The import round trip for every format.
