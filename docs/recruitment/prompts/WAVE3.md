@@ -16,9 +16,9 @@ Read this after `_RULES.md` and `WAVE2.md`; where they differ, this file wins. I
 |---|---|---|---|---|
 | now, slot A | W1 | `resume-W1.md` | Opus 5.5, high | accounts live before the user presses Tampilkan Oprec |
 | now, slot B | 06 | `resume-06.md` | Sonnet 5.5, high | done well before 07's 9 Nov |
-| now, slot C | 11 | `11-master-console.md` | Sonnet 5.5, high | 10 Nov |
+| now, slot C | 11 | `resume-11.md` (done 25 Oct 01:25) | Sonnet 5.5, high | 10 Nov |
 | W1 done → slot A | 10 | `10-exam-runner.md` | Sonnet 5.5, high | 10 Nov |
-| 06 done → slot B | 07 | `07-s2-review-ship.md` | Opus 5.5, high | **live by Mon 9 Nov** (Pilih Jadwal opens 11 Nov 19:00) |
+| 06 done (25 Oct) → slot B | 07 | `07-s2-review-ship.md` | Opus 5.5, high | **live by Mon 9 Nov** (Pilih Jadwal opens 11 Nov 19:00) |
 | 07 done → slot B | 09 | `09-bank-and-references.md` | Sonnet 5.5, high | 10 Nov |
 | 11 done | 12 | `12-live-coding.md` | Sonnet 5.5, high | 13 Nov |
 | 10 and 06 done | 13 | `13-scoring-results.md` | Sonnet 5.5, medium | 13 Nov |
