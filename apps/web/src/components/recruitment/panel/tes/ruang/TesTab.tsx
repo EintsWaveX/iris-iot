@@ -21,6 +21,7 @@ import {
   useRecRooms,
   useRuangLangsung,
 } from "../../../../../lib/recruitment/room-client";
+import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import { tgl } from "../../../shared";
 import { useRevealMotion } from "../../../reveal/fx";
 import Konsol from "./Konsol";
@@ -29,6 +30,8 @@ import { RG } from "./ruangStrings";
 
 import "../../../recruitment-s3-room.css";
 
+/** The slot's day in WIB (a slot at 00:30 WIB is the day before in UTC). */
+const hariWib = (iso: string) => tanggalWib(new Date(iso)).tanggal;
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 const RUANG_EVENT = "rec:ruang";
 
@@ -118,7 +121,7 @@ function Daftar({
                   <h3 className="panel__title">{r.title}</h3>
                   <span className="hint">
                     {r.slot
-                      ? `${tgl(r.slot.startsAt.slice(0, 10), lang)} · ${r.slot.room}`
+                      ? `${tgl(hariWib(r.slot.startsAt), lang)} · ${r.slot.room}`
                       : t.practice}
                   </span>
                 </div>
@@ -169,7 +172,7 @@ function Daftar({
               {data.pending.map((s) => (
                 <div key={s.id} className="r3room">
                   <b>
-                    {tgl(s.startsAt.slice(0, 10), lang)} · {s.room}
+                    {tgl(hariWib(s.startsAt), lang)} · {s.room}
                   </b>
                   <span className="hint">{t.candidates(s.seats)}</span>
                   <div className="row">
@@ -242,7 +245,7 @@ function Ruang({
   const slot = v.room.slot;
   const sub = slot
     ? t.con.sub(
-        tgl(slot.startsAt.slice(0, 10), lang),
+        tgl(hariWib(slot.startsAt), lang),
         new Date(Date.parse(slot.startsAt) + 7 * 3600_000).toISOString().slice(11, 16),
         new Date(Date.parse(slot.endsAt) + 7 * 3600_000).toISOString().slice(11, 16),
         v.seats.length,

@@ -103,13 +103,14 @@ function useKontrol(v: ConsoleView, now: number): Kontrol {
     const order = v.config.order;
     const cur = v.state.cur;
     const rv = roomView(v.state, now).view;
+    // The part Start would begin; while one runs it is the one after it (Start waits).
     const next: PartKey | null =
-      rv === "persiapan"
+      rv === "persiapan" || rv === "setup"
         ? order[0]
-        : rv === "lobby" && cur
-          ? (order[order.indexOf(cur) + 1] ?? null)
-          : rv === "livecode-spin"
-            ? "livecode"
+        : rv === "livecode-spin"
+          ? "livecode"
+          : cur
+            ? (order[order.indexOf(cur) + 1] ?? null)
             : null;
     return {
       can: (a) => {
@@ -439,18 +440,14 @@ function Transport({
               label={c.open}
               onClick={() => void kirim({ act: "open" })}
             />
-          ) : (
+          ) : k.next ? (
             <Ctl
               a={{ act: "start" }}
               kind="primary"
-              label={
-                k.next === "livecode" && rv.view === "livecode-spin"
-                  ? c.startLc
-                  : c.start(nextL || t.part.logika.l)
-              }
+              label={k.next === "livecode" ? c.startLc : c.start(nextL)}
               onClick={() => void kirim({ act: "start" })}
             />
-          )}
+          ) : null}
           {rv.view === "part-paused" ? (
             <Ctl
               a={{ act: "resume" }}
@@ -545,7 +542,7 @@ function Transport({
               <button
                 key={m}
                 type="button"
-                className="chipbtn"
+                className="r3chip"
                 aria-pressed={tambah === m}
                 onClick={() => setTambah(m)}
               >
@@ -942,7 +939,7 @@ function SeatDrawer({
             <h3 className="label-caps">{d.timeFor}</h3>
             <div className="rec-chips">
               {[1, 3, 5, 10].map((m) => (
-                <button key={m} type="button" className="chipbtn" onClick={() => void waktu(m)}>
+                <button key={m} type="button" className="r3chip" onClick={() => void waktu(m)}>
                   +{m} {t.ctl.min}
                 </button>
               ))}
@@ -1053,7 +1050,7 @@ function SeatGrid({
             <button
               key={k}
               type="button"
-              className="chipbtn r3fchip"
+              className="r3chip r3fchip"
               aria-pressed={f === k}
               data-k={k}
               onClick={() => setF(k)}

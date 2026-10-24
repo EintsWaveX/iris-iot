@@ -917,3 +917,28 @@
     display: grid;
   }
 }
+
+/* The kit's chip button lives in console.css, which this page does not load */
+.r3chip {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-height: 40px;
+  min-width: 56px;
+  padding: 0 14px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .r3chip:hover {
+    border-color: var(--text-muted);
+  }
+}
+.r3chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}

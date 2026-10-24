@@ -16,9 +16,12 @@ import { isFail, recPost } from "../../../../../lib/recruitment/client";
 import { CAP_BAWAAN } from "../../../../../lib/recruitment/hotspot";
 import type { ConsoleView } from "../../../../../lib/recruitment/room-api";
 import type { KitBoard } from "../../../../../lib/recruitment/room-types";
+import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import { tgl } from "../../../shared";
 import { RG } from "./ruangStrings";
 
+/** The slot's day in WIB (a slot at 00:30 WIB is the day before in UTC). */
+const hariWib = (iso: string) => tanggalWib(new Date(iso)).tanggal;
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
 const depan = (n: string) => n.split(" ")[0] ?? n;
 
@@ -313,7 +316,7 @@ export function RuangPengaturan({
           <div className="rec-sum">
             <span className="hint">{t.slot}</span>
             <b>
-              {tgl(slot.startsAt.slice(0, 10), lang)} · {slot.room}
+              {tgl(hariWib(slot.startsAt), lang)} · {slot.room}
             </b>
             <span className="hint">{t.candidates}</span>
             <b>{v.seats.length}</b>
@@ -340,7 +343,7 @@ export function RuangPengaturan({
                 <button
                   key={p.nim}
                   type="button"
-                  className="chipbtn"
+                  className="r3chip"
                   aria-pressed={pilih.includes(p.nim)}
                   title={p.nama}
                   onClick={() =>
