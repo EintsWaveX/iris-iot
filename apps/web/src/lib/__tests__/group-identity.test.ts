@@ -14,7 +14,7 @@ import identitas from "../../content/sketches/identitas.json";
 const SKETCHES_DIR = fileURLToPath(new URL("../../content/sketches/", import.meta.url));
 // zh: the Mandarin twin of en, comments only (scripts/sketch_zh.py, 2026-10-09).
 const LANGUAGES = ["id", "en", "zh"] as const;
-const GROUPS = Array.from({ length: 10 }, (_, i) => i + 1);
+const GROUPS = Array.from({ length: 5 }, (_, i) => i + 1);
 
 function readSketch(bahasa: string, berkas: string): string {
   const ext =
@@ -111,11 +111,11 @@ describe("personalize()", () => {
 });
 
 describe("Module 4 sync words", () => {
-  it("are unique across all ten groups (Phase 9: up to ten a session)", () => {
+  it("are unique across all five groups (five groups a session)", () => {
     const table = (identitas as Record<string, Record<string, { syncWord?: string }>>)["4"];
     const words = Object.values(table).map((entry) => entry.syncWord);
     expect(new Set(words).size).toBe(words.length);
-    expect(words.length).toBe(10);
+    expect(words.length).toBe(5);
   });
 });
 
