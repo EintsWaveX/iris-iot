@@ -16,6 +16,7 @@ import type {
 } from "../recruitment/exam-types";
 import { frac, isOne } from "../recruitment/frac";
 import {
+  checkValue,
   credit,
   makePerm,
   newId,
@@ -236,6 +237,63 @@ describe("credit", () => {
     expect(credit(fitb, { blanks: { 2: ' " halo " ' } })).toEqual(frac(1, 2));
     expect(credit(fitb, { blanks: {} })).toEqual(frac(0));
     expect(credit(fitb, { blanks: { 2: '"ha lo"' } })).toEqual(frac(1, 2));
+  });
+
+  it("a malformed stored value earns 0 instead of throwing (scores are read from raw values)", () => {
+    const bad: unknown[] = [
+      7,
+      "x",
+      [],
+      { pick: 3 },
+      { picks: "a1" },
+      { picks: null },
+      { order: null },
+      { pairs: null },
+      { blanks: null },
+      { blanks: [] },
+    ];
+    for (const q of ALL)
+      for (const v of bad)
+        expect(credit(q, v as never), `${q.format} ${JSON.stringify(v)}`).toEqual(frac(0));
+  });
+});
+
+describe("checkValue", () => {
+  it("unanswered is always fine", () => {
+    for (const q of ALL) expect(checkValue(q, null)).toBe(true);
+  });
+
+  it("accepts what the runner sends for each format", () => {
+    expect(checkValue(single, { pick: "b2" })).toBe(true);
+    expect(checkValue(single, { pick: null })).toBe(true);
+    expect(checkValue(multi, { picks: ["a1", "c3"] })).toBe(true);
+    expect(checkValue(multi, { picks: [] })).toBe(true);
+    expect(checkValue(lines, { picks: [3, 4] })).toBe(true);
+    expect(checkValue(fix, { picks: { 2: "s2a", 3: null } })).toBe(true);
+    expect(checkValue(order4, { order: ["l2", "l1", "l3", "l4"] })).toBe(true);
+    expect(checkValue(match, { pairs: { g1: "p4", g2: null } })).toBe(true);
+    expect(checkValue(fitb, { blanks: { 1: "begin" } })).toBe(true);
+  });
+
+  it("refuses the wrong shape, unknown ids, repeats and blank lines", () => {
+    expect(checkValue(single, { pick: "zz" })).toBe(false);
+    expect(checkValue(single, { picks: ["b2"] })).toBe(false);
+    expect(checkValue(single, { pick: "b2", extra: 1 })).toBe(false);
+    expect(checkValue(multi, { picks: ["a1", "a1"] })).toBe(false);
+    expect(checkValue(multi, { picks: ["zz"] })).toBe(false);
+    expect(checkValue(lines, { picks: [2] })).toBe(false);
+    expect(checkValue(lines, { picks: [9] })).toBe(false);
+    expect(checkValue(lines, { picks: [1.5] })).toBe(false);
+    expect(checkValue(fix, { picks: { 1: "s2a" } })).toBe(false);
+    expect(checkValue(fix, { picks: { 2: "s3b" } })).toBe(false);
+    expect(checkValue(fix, { picks: [] })).toBe(false);
+    expect(checkValue(order4, { order: ["l1", "l2", "l3"] })).toBe(false);
+    expect(checkValue(match, { pairs: { zz: "p1" } })).toBe(false);
+    expect(checkValue(match, { pairs: { g1: "g2" } })).toBe(false);
+    expect(checkValue(fitb, { blanks: { 3: "x" } })).toBe(false);
+    expect(checkValue(fitb, { blanks: { 1: 5 } })).toBe(false);
+    expect(checkValue(fitb, { blanks: { 1: "x".repeat(201) } })).toBe(false);
+    for (const q of ALL) for (const v of [7, "x", [], {}]) expect(checkValue(q, v)).toBe(false);
   });
 });
 

@@ -216,8 +216,100 @@ export function toView(q: Question, perm: Perm): View {
 /* ---------------------------------------------------------------- credit */
 
 /** How right a value is, 0 to 1. Fully correct is exactly 1 (what M counts). */
+const isRecord = (x: unknown): x is Record<string, unknown> =>
+  typeof x === "object" && x !== null && !Array.isArray(x);
+
+/** The field each format's value carries. */
+const VALUE_KEY = {
+  single: "pick",
+  multi: "picks",
+  lines: "picks",
+  fix: "picks",
+  order: "order",
+  match: "pairs",
+  fitb: "blanks",
+} as const;
+
+/** The container a value's field must be, so credit never throws on a stored value. */
+function shaped(q: Question, v: unknown): boolean {
+  if (!isRecord(v)) return false;
+  const x = v[VALUE_KEY[q.format]];
+  switch (q.format) {
+    case "single":
+      return typeof x === "string" || x === null;
+    case "multi":
+    case "lines":
+    case "order":
+      return Array.isArray(x);
+    default:
+      return isRecord(x);
+  }
+}
+
+/** The longest text one blank takes. */
+export const MAX_BLANK = 200;
+
+/**
+ * Whether `test-answer` may store this value: the format's one field, ids
+ * and line numbers the question has, no repeats, nothing else (null is
+ * unanswered and always fine). credit() stays safe on anything regardless.
+ */
+export function checkValue(q: Question, value: unknown): boolean {
+  if (value === null) return true;
+  if (!shaped(q, value)) return false;
+  const v = value as Record<string, unknown>;
+  if (Object.keys(v).length !== 1) return false;
+  const nullOr = (x: unknown, allowed: Set<string>) =>
+    x === null || (typeof x === "string" && allowed.has(x));
+  const distinct = (xs: unknown[]) => new Set(xs).size === xs.length;
+  switch (q.format) {
+    case "single":
+      return nullOr(v.pick, new Set(ids(q.body.options)));
+    case "multi": {
+      const ok = new Set(ids(q.body.options));
+      const picks = v.picks as unknown[];
+      return distinct(picks) && picks.every((p) => typeof p === "string" && ok.has(p));
+    }
+    case "lines": {
+      const src = srcLines(q.body.code.src);
+      const picks = v.picks as unknown[];
+      return (
+        distinct(picks) &&
+        picks.every(
+          (p) =>
+            Number.isInteger(p) &&
+            (p as number) >= 1 &&
+            (p as number) <= src.length &&
+            !isBlankLine(src[(p as number) - 1]),
+        )
+      );
+    }
+    case "fix": {
+      const slots = new Map(q.body.slots.map((s) => [String(s.line), new Set(ids(s.options))]));
+      return Object.entries(v.picks as Record<string, unknown>).every(
+        ([line, id]) => slots.has(line) && nullOr(id, slots.get(line)!),
+      );
+    }
+    case "order":
+      return isPermutation(v.order as string[], ids(q.body.lines));
+    case "match": {
+      const left = new Set(ids(q.body.left));
+      const right = new Set(ids(q.body.right));
+      return Object.entries(v.pairs as Record<string, unknown>).every(
+        ([l, r]) => left.has(l) && nullOr(r, right),
+      );
+    }
+    case "fitb": {
+      const ns = new Set(q.body.blanks.map((b) => String(b.n)));
+      return Object.entries(v.blanks as Record<string, unknown>).every(
+        ([n, s]) => ns.has(n) && typeof s === "string" && s.length <= MAX_BLANK,
+      );
+    }
+  }
+}
+
 export function credit(q: Question, value: Value): Frac {
-  if (value == null) return ZERO;
+  if (value == null || !shaped(q, value)) return ZERO;
   switch (q.format) {
     case "single":
       return "pick" in value && value.pick === q.answer.correct ? ONE : ZERO;

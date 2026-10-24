@@ -64,6 +64,7 @@ Every format defines four shapes and three functions. The shapes live in `exam-t
 - `body` (stored), `answer` (stored), `view` (what the candidate's page gets), `value` (what the candidate sends).
 - `makePerm(question, rng)`: the seat's shuffle. `toView(question, perm)`: body plus shuffle, minus the key. `credit(question, value)`: an exact fraction 0 to 1. A question is **fully correct** when its credit is exactly 1 (this is what M counts).
 - `value = null` means unanswered: credit 0, still counted as shown (PRD 7.4).
+- `checkValue(question, value)` is what `test-answer` stores: the format's one field, only ids, line numbers and blank numbers the question has, no repeats, a blank at most `MAX_BLANK` (200) characters. Anything else is refused with `nilai_salah`. `credit()` never throws: a value of the wrong shape earns 0, so one bad row can never stop a part's scores from being read. *(W1, 2026-10-24)*
 - **Option, line and pair ids are random and opaque:** 6 characters of `a` to `z` and `0` to `9`, made by `newId()` when the item is created, and never changed once the question is shown. The view sends items only in perm order with these ids. Ids in written order (`a b c`, `l1 l2`, `k1` beside `p1`) would let a candidate sort Parsons lines by id or pair match items by number. Positions on screen come only from the perm.
 - The stored body keeps the authored order, and the editor and export use it. It never reaches a candidate as it is: `toView` is the only way out.
 
@@ -1110,7 +1111,7 @@ All in `api/recruitment/[aksi].ts`, dispatched to one handler per area. Errors a
 |---|---|---|
 | GET `test` | | `TestView`: `now`, `room` (`RoomPublic` or null), `seat` (`SeatSelf` or null), `part` (`{ key, items: QuestionView[], answers, refs }` or null) |
 | POST `test-checkin` | `{ step: "fullscreen" \| "connection" \| "name", tab, info? }` | `{ seat }` |
-| POST `test-answer` | `{ part, q, value, rev, tab }` | `{ rev, at, warn? }` (`warn: "tab_lain"`); `waktu_habis` outside `answerOpen` |
+| POST `test-answer` | `{ part, q, value, rev, tab }` | `{ rev, at, warn? }` (`warn: "tab_lain"`); `waktu_habis` outside `answerOpen`; `nilai_salah` when `checkValue` refuses the value |
 | POST `test-strike` | `{ id, kinds, at, back? }` | `{ ok }` |
 | POST `test-submit` | `{ part }` | `{ done }` (Kumpulkan) |
 | GET `test-ticket` | | `{ url, tiket }` (relay, `kursi`) |
