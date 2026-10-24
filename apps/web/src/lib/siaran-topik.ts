@@ -50,6 +50,9 @@ export const TOPIK = [
   // A QR scan or a hand mark rides reccandidates (the candidate list shows it).
   "reccutting",
   "recplotting",
+  // S3 (2026-10-24): an exam room was set up, opened, run or finished. The
+  // candidate's page shows or hides its test entry; the room list refreshes.
+  "recroom",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -202,9 +205,10 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:slot-decide": ["recplotting", "reccandidates"],
   "recruitment:slot-set": ["recplotting", "reccandidates", "reccalendar"],
   "recruitment:slot-autofill": ["recplotting", "reccandidates"],
-  // S3, the exam (2026-10-24). Every write rides the exam's relay room or is a
-  // read the page makes again itself, so none sends a topic yet; 09, 11 and 13
-  // give theirs a topic (recbank, recroom, recscore) when their page listens.
+  // S3, the exam (2026-10-24). Most writes ride the exam's relay room (the
+  // Master's ping, notes, kits, answers) and send no topic. A room being set
+  // up, run or moved sends recroom; 09 and 13 give theirs a topic (recbank,
+  // recscore) when their page listens.
   "recruitment:test-checkin": [],
   "recruitment:test-answer": [],
   "recruitment:test-strike": [],
@@ -226,12 +230,12 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:reference-upload": [],
   "recruitment:reference-delete": [],
   "recruitment:reference-attach": [],
-  "recruitment:room-setup": [],
-  "recruitment:room-act": [],
+  "recruitment:room-setup": ["recroom"],
+  "recruitment:room-act": ["recroom"],
   "recruitment:room-master": [],
   "recruitment:room-note": [],
   "recruitment:room-kit": [],
-  "recruitment:room-move": [],
+  "recruitment:room-move": ["recroom"],
   "recruitment:lc-hotspot": [],
   "recruitment:lc-grade": [],
   "recruitment:lc-grade-withdraw": [],

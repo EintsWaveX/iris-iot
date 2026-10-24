@@ -102,7 +102,7 @@ import { createHmac } from "node:crypto";
 import { konsolEnv } from "./konsol.js";
 import { bungkus } from "./rahasia.js";
 import { muatOrang } from "./hak.js";
-import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
+import { muatKolam as muatDaftarAsisten, tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, type PelakuServer } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
 
@@ -202,6 +202,7 @@ async function muatRuang(
 interface Pengawas {
   nim: string;
   nama: string;
+  kode: string;
   status: string | null;
   badges: readonly string[];
 }
@@ -213,6 +214,7 @@ async function muatPengawas(db: Db, slotId: number | null): Promise<Pengawas[]> 
     .select({
       nim: asisten.nim,
       nama: asisten.nama,
+      kode: asisten.kode,
       status: asisten.status,
       badges: asisten.badges,
     })
@@ -222,14 +224,17 @@ async function muatPengawas(db: Db, slotId: number | null): Promise<Pengawas[]> 
     .orderBy(asc(asisten.nama));
 }
 
-async function namaAsisten(db: Db, nims: string[]): Promise<Map<string, string>> {
+async function namaAsisten(
+  db: Db,
+  nims: string[],
+): Promise<Map<string, { nama: string; kode: string }>> {
   const uniq = [...new Set(nims)];
   if (!uniq.length) return new Map();
   const rows = await db
-    .select({ nim: asisten.nim, nama: asisten.nama })
+    .select({ nim: asisten.nim, nama: asisten.nama, kode: asisten.kode })
     .from(asisten)
     .where(inArray(asisten.nim, uniq));
-  return new Map(rows.map((r) => [r.nim, r.nama]));
+  return new Map(rows.map((r) => [r.nim, { nama: r.nama, kode: r.kode }]));
 }
 
 /**
@@ -267,7 +272,7 @@ function bisaMenonton(p: PelakuServer | null, pengawas: Pengawas[], nim: string)
 }
 
 /** The bank's readiness per part and language against what a room draws. */
-async function muatKolam(
+async function muatKesiapan(
   db: Db,
   edisiId: number,
   config: ExamConfig,
@@ -455,8 +460,14 @@ async function daftarRuang({ res, db, edisi, p, s }: Ctx) {
       part: v.part,
       seats: h.seats,
       checkedIn: h.masuk,
-      master: m ? { nim: m.nim, nama: pe.find((x) => x.nim === m.nim)?.nama ?? m.nim } : null,
-      pengawas: pe.map((x) => ({ nim: x.nim, nama: x.nama })),
+      master: m
+        ? {
+            nim: m.nim,
+            nama: pe.find((x) => x.nim === m.nim)?.nama ?? m.nim,
+            kode: pe.find((x) => x.nim === m.nim)?.kode ?? "",
+          }
+        : null,
+      pengawas: pe.map((x) => ({ nim: x.nim, nama: x.nama, kode: x.kode })),
       mine: pe.some((x) => x.nim === s.nim),
     });
   }
@@ -486,7 +497,14 @@ async function daftarRuang({ res, db, edisi, p, s }: Ctx) {
       seats: n.find((y) => y.slotId === x.id)?.n ?? 0,
     }));
   }
-  const body: RoomsResponse = { ok: true, now, rooms: out, pending, canSetup: bisaSetup(p) };
+  const body: RoomsResponse = {
+    ok: true,
+    now,
+    rooms: out,
+    pending,
+    canSetup: bisaSetup(p),
+    ...(bisaSetup(p) ? { people: await muatDaftarAsisten(db) } : {}),
+  };
   res.status(200).json(body);
 }
 
@@ -608,12 +626,15 @@ async function susunKonsol(
     ...(room.state.ask ? [room.state.ask.nim] : []),
     ...notes.map((n) => n.authorNim),
   ]);
-  const nama = (n: string) => penjaga.get(n) ?? pengawas.find((x) => x.nim === n)?.nama ?? n;
+  const orangDari = (n: string) =>
+    penjaga.get(n) ?? pengawas.find((x) => x.nim === n) ?? { nama: n, kode: "" };
+  const nama = (n: string) => orangDari(n).nama;
   const orang: ConsolePerson[] = [];
   for (const x of pengawas)
     orang.push({
       nim: x.nim,
       nama: x.nama,
+      kode: x.kode,
       canBeMaster: bolehJadiMaster({ badges: x.badges, status: x.status ?? undefined }),
     });
   const stale =
@@ -644,19 +665,25 @@ async function susunKonsol(
     part: v.part,
     config,
     budget: budget(room.state, config, now),
-    pool: await muatKolam(db, edisiId, config),
+    pool: await muatKesiapan(db, edisiId, config),
     seats: tiles,
     notes: catatan,
     master: room.state.master
       ? {
           nim: room.state.master.nim,
           nama: nama(room.state.master.nim),
+          kode: orangDari(room.state.master.nim).kode,
           since: room.state.master.since,
           stale,
         }
       : null,
     ask: room.state.ask
-      ? { nim: room.state.ask.nim, nama: nama(room.state.ask.nim), at: room.state.ask.at }
+      ? {
+          nim: room.state.ask.nim,
+          nama: nama(room.state.ask.nim),
+          kode: orangDari(room.state.ask.nim).kode,
+          at: room.state.ask.at,
+        }
       : null,
     pengawas: orang,
     hotspots: room.hotspots.map(toView),
@@ -694,7 +721,7 @@ async function bacaLog({ req, res, db, edisi, p, s }: Ctx) {
     id: x.id,
     at: x.at.getTime(),
     who: x.who,
-    nama: nama.get(x.who) ?? x.who,
+    nama: nama.get(x.who)?.nama ?? x.who,
     act: x.act,
     params: x.params,
     seq: x.seq,
@@ -902,7 +929,7 @@ async function aturRuang({ req, res, s, db, edisi, p }: Ctx) {
   res.status(200).json({
     ok: true,
     room: { id: fin.id, title: fin.title, rehearsal: fin.rehearsal },
-    pengawas: pe.map((x) => ({ nim: x.nim, nama: x.nama })),
+    pengawas: pe.map((x) => ({ nim: x.nim, nama: x.nama, kode: x.kode })),
     hotspots: fin.hotspots.map(toView),
   });
 }
@@ -930,7 +957,7 @@ async function konteksAksi(
     .select({ id: recExamSeat.id, checkin: recExamSeat.checkin })
     .from(recExamSeat)
     .where(eq(recExamSeat.roomId, room.id));
-  const kolam = await muatKolam(db, edisiId, config);
+  const kolam = await muatKesiapan(db, edisiId, config);
   const topik = await roomHooks.topikSiap(db, edisiId);
   return {
     now,
@@ -1229,11 +1256,16 @@ async function aksiMaster({ req, res, s, db, edisi, p }: Ctx) {
           master: hasil.state.master
             ? {
                 ...hasil.state.master,
-                nama: nm.get(hasil.state.master.nim) ?? hasil.state.master.nim,
+                nama: nm.get(hasil.state.master.nim)?.nama ?? hasil.state.master.nim,
+                kode: nm.get(hasil.state.master.nim)?.kode ?? "",
               }
             : null,
           ask: hasil.state.ask
-            ? { ...hasil.state.ask, nama: nm.get(hasil.state.ask.nim) ?? hasil.state.ask.nim }
+            ? {
+                ...hasil.state.ask,
+                nama: nm.get(hasil.state.ask.nim)?.nama ?? hasil.state.ask.nim,
+                kode: nm.get(hasil.state.ask.nim)?.kode ?? "",
+              }
             : null,
         },
       },
@@ -1289,7 +1321,7 @@ async function catat({ req, res, s, db, edisi, p }: Ctx) {
     notes: notes.map<ConsoleNote>((n) => ({
       candidateId: n.candidateId,
       authorNim: n.authorNim,
-      authorNama: nm.get(n.authorNim) ?? n.authorNim,
+      authorNama: nm.get(n.authorNim)?.nama ?? n.authorNim,
       text: n.text,
       at: n.updatedAt.getTime(),
       mine: n.authorNim === s.nim,

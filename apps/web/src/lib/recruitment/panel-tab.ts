@@ -13,6 +13,7 @@ export const PANEL_TABS = [
   "kandidat",
   "cutting",
   "plotting",
+  "tes",
   "panitia",
 ] as const;
 export type PanelTab = (typeof PANEL_TABS)[number];

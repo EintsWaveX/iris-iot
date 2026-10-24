@@ -26,8 +26,8 @@ export interface RoomRow {
   seats: number;
   /** Seats that passed all three check-in steps */
   checkedIn: number;
-  master: { nim: string; nama: string } | null;
-  pengawas: { nim: string; nama: string }[];
+  master: { nim: string; nama: string; kode: string } | null;
+  pengawas: { nim: string; nama: string; kode: string }[];
   /** The caller is one of its pengawas */
   mine: boolean;
 }
@@ -44,6 +44,8 @@ export interface RoomsResponse {
   /** Only for a caller who may set rooms up */
   pending: PendingSlot[];
   canSetup: boolean;
+  /** The Asisten a pengawas can be picked from; only for those who set rooms up */
+  people?: { nim: string; nama: string; kode: string }[];
 }
 
 export interface ConsoleKejadian {
@@ -92,6 +94,7 @@ export interface ConsoleNote {
 export interface ConsolePerson {
   nim: string;
   nama: string;
+  kode: string;
   /** May press Jadi Master */
   canBeMaster: boolean;
 }
@@ -128,8 +131,8 @@ export interface ConsoleView {
   pool: Partial<Record<PartKey, { ok: boolean; counts: PoolCount[] }>>;
   seats: ConsoleSeat[];
   notes: ConsoleNote[];
-  master: { nim: string; nama: string; since: number; stale: boolean } | null;
-  ask: { nim: string; nama: string; at: number } | null;
+  master: { nim: string; nama: string; kode: string; since: number; stale: boolean } | null;
+  ask: { nim: string; nama: string; kode: string; at: number } | null;
   pengawas: ConsolePerson[];
   hotspots: HotspotView[];
   plan: HotspotPlan;

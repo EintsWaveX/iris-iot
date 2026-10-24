@@ -29,6 +29,7 @@ import {
   SlidersHorizontalIcon,
   StarIcon,
   TableIcon,
+  TimerIcon,
   UsersThreeIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -43,6 +44,7 @@ import { href, meChanged, postJson, useMe } from "../../lib/app";
 import { pathForLang, type Lang } from "../../lib/kelas";
 import { readLangPref, saveLangPref } from "../../lib/hooks";
 import { bukaAkun, recPost, useRecAkun, useRecEdition } from "../../lib/recruitment/client";
+import { useRecRooms } from "../../lib/recruitment/room-client";
 import AkunDialog from "./candidate/AkunDialog";
 import { AK } from "./candidate/akunStrings";
 import {
@@ -186,6 +188,9 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
   const viewer = edisi.data?.viewer;
   const rights = edisi.data?.rights ?? null;
   const panitia = asisten && viewer === "panitia";
+  // Tes Tulis: the rooms this person may watch (a plotted pengawas is not always on the committee).
+  const ruang = useRecRooms(asisten);
+  const adaRuang = !!ruang.data && (ruang.data.rooms.length > 0 || ruang.data.canSetup);
   const current = barePath(path);
   const onPanel = current.startsWith("/recruitment/panel");
   const bagian = useBagian();
@@ -206,6 +211,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         ...(rights?.candidates ? [tab("kandidat", t.kandidat, ListChecksIcon)] : []),
         ...(rights?.cuttingPropose ? [tab("cutting", t.cutting, ScissorsIcon)] : []),
         ...(rights?.plotting ? [tab("plotting", t.plotting, TableIcon)] : []),
+        ...(adaRuang ? [tab("tes", t.tes, TimerIcon)] : []),
         tab("panitia", t.panitia, UsersThreeIcon),
       ];
     }
@@ -218,6 +224,17 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
           tab: "kalender",
           href: alamatBagian(prefix, "kalender"),
         },
+        ...(adaRuang
+          ? [
+              {
+                key: "tes",
+                label: t.tes,
+                icon: TimerIcon,
+                tab: "tes" as const,
+                href: alamatBagian(prefix, "tes"),
+              },
+            ]
+          : []),
       ];
     }
     return [
@@ -229,7 +246,16 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         href: `${prefix}/recruitment#kalender`,
       },
     ];
-  }, [panitia, asisten, rights?.candidates, rights?.cuttingPropose, rights?.plotting, prefix, t]);
+  }, [
+    panitia,
+    asisten,
+    adaRuang,
+    rights?.candidates,
+    rights?.cuttingPropose,
+    rights?.plotting,
+    prefix,
+    t,
+  ]);
 
   const n = links.length;
   const lipat = useMemo<Bagian[]>(
