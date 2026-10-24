@@ -59,7 +59,7 @@
  * goes into the session's TP component.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "../_lib/http.js";
 import { jsonBody, noStore, requireMethod } from "../_lib/http.js";
 import { currentSession, requireRole } from "../_lib/session.js";
@@ -989,10 +989,11 @@ async function handlePerpanjang(req: ApiRequest, res: ApiResponse, s: SessionPay
   if (sampai && sampai.getTime() <= Date.now()) return tolak(res, "sudah_lewat");
   const db = getDb();
   const set = await bacaSet(db);
-  const hak = await hakNilai(db, set, m, nim, s.nim);
+  // Only the TP right (ASO) and the Admin tier give extensions, not whoever
+  // holds the group's seat (2026-10-25); the right can still be overridden.
   const orang = await muatOrang(s.nim);
-  if (!hak.boleh && !(orang && (boleh(orang, "tp") || hakPenuh(orang))))
-    return res.status(200).json({ ok: false, kode: "bukan_pemegang", pemegang: hak.pemegang });
+  if (!orang || !(boleh(orang, "tp") || hakPenuh(orang)))
+    return res.status(200).json({ ok: false, kode: "bukan_pemegang", pemegang: null });
   const [p] = await db
     .select({ nim: praktikan.nim })
     .from(praktikan)
@@ -1027,6 +1028,61 @@ async function handlePerpanjang(req: ApiRequest, res: ApiResponse, s: SessionPay
     alasan: alasan || null,
   });
   res.status(200).json({ ok: true, sampai: sampai?.toISOString() ?? null });
+}
+
+/** One extension for every Praktikan in TP on a module (2026-10-25): the TP
+ *  right and Admins reopen it for everyone. Those left out of TP and the
+ *  Asisten's own are skipped, and a later extension already there stays. */
+async function handlePerpanjangSemua(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
+  const b = jsonBody(req);
+  const m = modulDari(b.modul);
+  const sampai = typeof b.sampai === "string" ? new Date(b.sampai) : null;
+  const alasan = typeof b.alasan === "string" ? b.alasan.trim().slice(0, 200) : "";
+  if (!m || !sampai || Number.isNaN(sampai.getTime())) return tolak(res, "format_salah");
+  if (sampai.getTime() <= Date.now()) return tolak(res, "sudah_lewat");
+  const orang = await muatOrang(s.nim);
+  if (!orang || !(boleh(orang, "tp") || hakPenuh(orang)))
+    return res.status(200).json({ ok: false, kode: "bukan_pemegang", pemegang: null });
+  const db = getDb();
+  const set = await bacaSet(db);
+  const lewati = new Set([...nimKecuali(set), ...(await nimAsistenTim(db))]);
+  const nims = (
+    await db
+      .select({ nim: praktikan.nim })
+      .from(praktikan)
+      .where(eq(praktikan.semester, set.semester))
+  )
+    .map((p) => p.nim)
+    .filter((n) => !lewati.has(n));
+  if (nims.length)
+    await db
+      .insert(tpPerpanjang)
+      .values(
+        nims.map((nim) => ({
+          semester: set.semester,
+          modul: m,
+          nim,
+          sampai,
+          alasan: alasan || null,
+          oleh: s.nim,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [tpPerpanjang.semester, tpPerpanjang.modul, tpPerpanjang.nim],
+        set: {
+          sampai: sql`greatest(${tpPerpanjang.sampai}, excluded.sampai)`,
+          alasan: sql`case when excluded.sampai > ${tpPerpanjang.sampai} then excluded.alasan else ${tpPerpanjang.alasan} end`,
+          oleh: sql`case when excluded.sampai > ${tpPerpanjang.sampai} then excluded.oleh else ${tpPerpanjang.oleh} end`,
+          pada: new Date(),
+        },
+      });
+  await writeAudit(s.nim, "tp_perpanjang_semua", {
+    modul: m,
+    sampai: sampai.toISOString(),
+    alasan: alasan || null,
+    jumlah: nims.length,
+  });
+  res.status(200).json({ ok: true, jumlah: nims.length, sampai: sampai.toISOString() });
 }
 
 /* ------------------------------------------------------------ settings */
@@ -1725,6 +1781,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "tanda") return handleTanda(req, res, s);
   if (aksi === "telat") return handleTelat(req, res, s);
   if (aksi === "perpanjang") return handlePerpanjang(req, res, s);
+  if (aksi === "perpanjang-semua") return handlePerpanjangSemua(req, res, s);
   if (aksi === "jendela") return handleJendela(req, res, s);
   if (aksi === "paket") return handleSimpanPaket(req, res, s);
   if (aksi === "pilih") return handlePilih(req, res, s);

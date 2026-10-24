@@ -236,6 +236,7 @@ function PerpanjangPanel({
   const t = PT[lang];
   useTick(60_000);
   const [ubah, setUbah] = useState<Perpanjang | null>(null);
+  const [semua, setSemua] = useState(false);
   const now = Date.now();
   const jalan = daftar.filter((p) => Date.parse(p.sampai) > now).reverse();
   const lewat = daftar.filter((p) => Date.parse(p.sampai) <= now);
@@ -264,6 +265,11 @@ function PerpanjangPanel({
       <div className="panel__head">
         <h2 className="panel__title">{t.pjH}</h2>
         <span className="hint">{t.pjLede}</span>
+        {boleh && (
+          <button type="button" className="btn btn--sm" onClick={() => setSemua(true)}>
+            {TPS[lang].semuaTombol}
+          </button>
+        )}
       </div>
       {jalan.length ? (
         <ul className="tppeserta__list">{jalan.map((p) => baris(p, true))}</ul>
@@ -274,6 +280,19 @@ function PerpanjangPanel({
         <Disclose head={t.pjLewat(lewat.length)}>
           <ul className="tppeserta__list">{lewat.map((p) => baris(p, false))}</ul>
         </Disclose>
+      )}
+      {semua && (
+        <PerpanjangDialog
+          open
+          semua
+          onOpenChange={(v) => !v && setSemua(false)}
+          lang={lang}
+          modul={1}
+          nim=""
+          nama=""
+          ada={null}
+          onSaved={onDone}
+        />
       )}
       {ubah && (
         <PerpanjangDialog

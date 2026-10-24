@@ -88,7 +88,8 @@ export default function Grader({
     `${modul}:${m?.nim}`,
   );
   const d = poll.data && poll.data.nim === m?.nim ? poll.data : null;
-  // Kirim Pesan: whoever grades this TP, the TP right and Admins.
+  // Kirim Pesan and Beri Perpanjangan: whoever grades this TP, the TP right
+  // (ASO) and Admins; the extension itself is the TP right and Admins only.
   const me = useMe();
   const bolehKabar =
     me?.hak?.tp === true || (!!me?.tier && hakPenuh({ tier: me.tier, badges: me.badges ?? [] }));
@@ -337,6 +338,10 @@ function Isi({
   };
 
   const [pjBuka, setPjBuka] = useState(false);
+  const saya = useMe();
+  const bolehKabar =
+    saya?.hak?.tp === true ||
+    (!!saya?.tier && hakPenuh({ tier: saya.tier, badges: saya.badges ?? [] }));
   const aksi = async (url: string, body: Record<string, unknown>, ok?: string) => {
     const r = await postJson<{ ok: boolean; kode?: string }>(url, {
       modul,
@@ -402,7 +407,7 @@ function Isi({
                 {t.perpanjangAktif(waktuPanjang(d.perpanjang.sampai, lang))}
                 {d.perpanjang.alasan ? ` · ${d.perpanjang.alasan}` : ""}
               </span>
-              {d.boleh && (
+              {bolehKabar && (
                 <button type="button" className="btn btn--sm" onClick={() => setPjBuka(true)}>
                   {t.ubahPerpanjang}
                 </button>
@@ -414,21 +419,23 @@ function Isi({
             title={t.belumBerkas}
             body={t.belumBerkasBody(d.nama.split(" ")[0] ?? d.nama, d.keadaan === "tutup")}
             actions={
-              d.boleh &&
+              (d.boleh || bolehKabar) &&
               d.keadaan === "tutup" && (
                 <>
-                  {!d.perpanjang && (
+                  {bolehKabar && !d.perpanjang && (
                     <button type="button" className="btn" onClick={() => setPjBuka(true)}>
                       {t.beriPerpanjang}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="btn btn--danger"
-                    onClick={() => void aksi("/api/tp/tanda", { kosong: true }, t.ditandaiKosong)}
-                  >
-                    {t.tandaiKosong}
-                  </button>
+                  {d.boleh && (
+                    <button
+                      type="button"
+                      className="btn btn--danger"
+                      onClick={() => void aksi("/api/tp/tanda", { kosong: true }, t.ditandaiKosong)}
+                    >
+                      {t.tandaiKosong}
+                    </button>
+                  )}
                 </>
               )
             }

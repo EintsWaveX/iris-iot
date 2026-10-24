@@ -19,6 +19,7 @@ export default function PerpanjangDialog({
   nim,
   nama,
   ada,
+  semua = false,
   onSaved,
 }: {
   open: boolean;
@@ -29,6 +30,8 @@ export default function PerpanjangDialog({
   nama: string;
   /** The extension they have now, if any. */
   ada: { sampai: string; alasan: string | null } | null;
+  /** One extension for every Praktikan on the module (the TP right, Admins). */
+  semua?: boolean;
   onSaved: () => void;
 }) {
   const t = TPS[lang];
@@ -36,23 +39,26 @@ export default function PerpanjangDialog({
   const [w, setW] = useState(awal);
   const [alasan, setAlasan] = useState(ada?.alasan ?? "");
   const [busy, setBusy] = useState(false);
+  const [pilihModul, setPilihModul] = useState(modul);
   useEffect(() => {
     if (!open) return;
     setW(awal());
     setAlasan(ada?.alasan ?? "");
+    setPilihModul(modul);
   }, [open]);
 
   const kirim = async (sampai: string | null) => {
     setBusy(true);
-    const r = await postJson<{ ok: boolean; kode?: string }>("/api/tp/perpanjang", {
-      modul,
-      nim,
-      sampai,
-      alasan,
-    }).catch(() => ({ ok: false, kode: "" }));
+    const r = await postJson<{ ok: boolean; kode?: string; jumlah?: number }>(
+      semua ? "/api/tp/perpanjang-semua" : "/api/tp/perpanjang",
+      semua ? { modul: pilihModul, sampai, alasan } : { modul, nim, sampai, alasan },
+    ).catch(() => ({ ok: false, kode: "", jumlah: 0 }));
     setBusy(false);
     if (!r.ok) return window.Toast?.show(r.kode === "sudah_lewat" ? t.sudahLewat : t.gagal, "warn");
-    window.Toast?.show(sampai ? t.perpanjangDisimpan : t.perpanjangDihapus, "ok");
+    window.Toast?.show(
+      semua ? t.semuaDisimpan(r.jumlah ?? 0) : sampai ? t.perpanjangDisimpan : t.perpanjangDihapus,
+      "ok",
+    );
     onOpenChange(false);
     onSaved();
   };
@@ -61,8 +67,8 @@ export default function PerpanjangDialog({
     <Dialog
       open={open}
       onOpenChange={(o) => !busy && onOpenChange(o)}
-      title={t.perpanjangJudul(nama)}
-      description={t.perpanjangDesc}
+      title={semua ? t.semuaJudul : t.perpanjangJudul(nama)}
+      description={semua ? t.semuaDesc : t.perpanjangDesc}
       lang={lang}
       alt={
         ada ? (
@@ -93,6 +99,22 @@ export default function PerpanjangDialog({
       }
     >
       <div className="tpwinform">
+        {semua && (
+          <label className="field">
+            <span className="field__label">{t.semuaModul}</span>
+            <select
+              className="field__input"
+              value={pilihModul}
+              onChange={(e) => setPilihModul(Number(e.target.value))}
+            >
+              {[1, 2, 3, 4].map((x) => (
+                <option key={x} value={x}>
+                  {t.semuaModul} {x}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="field">
           <span className="field__label">{t.sampaiLabel}</span>
           <div className="tpwinform__row">
