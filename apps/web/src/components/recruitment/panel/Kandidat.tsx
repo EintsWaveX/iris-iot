@@ -197,7 +197,7 @@ function Lembar({
             )}
           </section>
           {rights.approve && (
-            <AkunCek lang={lang} nim={c.nim} nama={c.nama} roster={c.namaRoster} />
+            <AkunCek lang={lang} nim={c.nim} nama={c.nama} roster={c.namaRoster} judul="rec-h3" />
           )}
           {c.status === "revision" && c.reviewNote && (
             <div className="rec-note rec-note--warn">

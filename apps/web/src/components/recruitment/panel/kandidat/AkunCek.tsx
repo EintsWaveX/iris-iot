@@ -21,11 +21,14 @@ export default function AkunCek({
   nim,
   nama,
   roster,
+  judul = "h3",
 }: {
   lang: Lang;
   nim: string;
   nama: string;
   roster: string | null;
+  /** The heading class of the sheet it sits in (the S1 sheet uses rec-h3). */
+  judul?: string;
 }) {
   const t = AK[lang].panel;
   const [tanya, setTanya] = useState(false);
@@ -47,7 +50,7 @@ export default function AkunCek({
   return (
     <section className="stack stack--sm">
       <div className="row row--between" style={{ gap: 8 }}>
-        <h3 className="h3">{t.title}</h3>
+        <h3 className={judul}>{t.title}</h3>
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => setTanya(true)}>
           {t.reset}
         </button>
