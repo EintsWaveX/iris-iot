@@ -1,5 +1,5 @@
 {
-  "id": "f594d60d-d874-4dab-ba80-836553d70f03",
+  "id": "f6a22ad5-5263-4cb5-887a-5df63273132e",
   "prevId": "598a7422-c885-4058-83ac-694f16a45961",
   "version": "7",
   "dialect": "postgresql",
@@ -5127,7 +5127,7 @@
           "name": "slot_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "title": {
           "name": "title",

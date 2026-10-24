@@ -31,7 +31,7 @@ CREATE TABLE "rec_exam_log" (
 CREATE TABLE "rec_exam_room" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"edition_id" integer NOT NULL,
-	"slot_id" integer NOT NULL,
+	"slot_id" integer,
 	"title" text NOT NULL,
 	"rehearsal" boolean DEFAULT false NOT NULL,
 	"state" jsonb NOT NULL,

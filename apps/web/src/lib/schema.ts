@@ -2538,8 +2538,8 @@ export const recExamRoom = pgTable(
     editionId: integer("edition_id")
       .notNull()
       .references(() => recEdition.id, { onDelete: "cascade" }),
+    /** The `tes_tulis` slot this room is; null for a practice room, which has no evening of its own */
     slotId: integer("slot_id")
-      .notNull()
       .unique()
       .references(() => recSlot.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
