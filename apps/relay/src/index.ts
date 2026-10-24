@@ -54,6 +54,14 @@
  * blank check or a heartbeat costs one Worker request, not two or three
  * (the free plan's 100k a day).
  *
+ * The exam's rooms (Open Recruitment, ./ujian.ts) have their own type:
+ *
+ *   GET  /ujian/rec-<id>?tiket=...   a seat's or the Panitia's page (WebSocket)
+ *   POST /ujian/rec-<id>/kirim       the IRIS API, signed: {"m": [...]}
+ *   POST /ujian/rec-<id>/tutup       the IRIS API, after Finish
+ *
+ * and /kirim below takes a `rec-<id>` room beside the session rooms.
+ *
  * TP files (2026-10-21) live in R2 behind signed tickets (./tp.ts):
  *
  *   PUT  /tp/unggah, GET /tp/berkas, POST /tp/srv
@@ -73,12 +81,22 @@ import {
   type PesanAliran,
   type TiketAliran,
 } from "../../web/src/lib/aliran.ts";
+import {
+  UJIAN_RUANG_RE,
+  saringKirimanUjian,
+  type PesanUjian,
+} from "../../web/src/lib/recruitment/room-relay.ts";
 import { tp } from "./tp.ts";
+import { kirimKeUjian, ujian, Ujian } from "./ujian.ts";
+
+export { Ujian };
 
 export interface Env {
   RUANG: DurableObjectNamespace;
   SIARAN: DurableObjectNamespace;
   ALIRAN: DurableObjectNamespace;
+  /** The exam's rooms (Open Recruitment), ./ujian.ts */
+  UJIAN: DurableObjectNamespace;
   JAM: DurableObjectNamespace;
   /** TP files (2026-10-21), ./tp.ts */
   TP?: R2Bucket;
@@ -175,6 +193,7 @@ export default {
     if (!ujung) return teks(200, "IRIS Konsol relay");
     if (ujung === "siaran") return siaran(req, env, kanal);
     if (ujung === "aliran") return aliran(req, env, kanal, sub);
+    if (ujung === "ujian") return ujian(req, env, kanal, sub);
     if (ujung === "kirim" && req.method === "POST")
       return kirimGabung(req, env);
     if (ujung === "tp" && !sub) return tp(req, env, kanal);
@@ -1018,7 +1037,14 @@ async function kirimGabung(req: Request, env: Env): Promise<Response> {
   const r = (x.r ?? {}) as Record<string, unknown>;
   if (typeof r !== "object" || Array.isArray(r)) return teks(400, "format");
   const kamar: [string, PesanAliran[]][] = [];
+  const ujianKamar: [string, PesanUjian[]][] = [];
   for (const [ruang, m] of Object.entries(r)) {
+    if (UJIAN_RUANG_RE.test(ruang)) {
+      const saring = saringKirimanUjian({ m });
+      if (!saring) return teks(400, "format");
+      ujianKamar.push([ruang, saring]);
+      continue;
+    }
     const saring = saringKiriman({ m });
     if (!ALIRAN_RUANG_RE.test(ruang) || !saring) return teks(400, "format");
     kamar.push([ruang, saring]);
@@ -1051,6 +1077,14 @@ async function kirimGabung(req: Request, env: Env): Promise<Response> {
         .then(async (res) => {
           jawab[ruang] = Number(await res.text()) || 0;
         }),
+    );
+  }
+  for (const [ruang, m] of ujianKamar) {
+    hitung(env, "do_kirim");
+    kerja.push(
+      kirimKeUjian(env, ruang, m).then((n) => {
+        jawab[ruang] = n;
+      }),
     );
   }
   await Promise.all(kerja);

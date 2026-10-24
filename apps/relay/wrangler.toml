@@ -47,6 +47,11 @@ class_name = "Aliran"
 tag = "v3"
 new_sqlite_classes = ["Aliran"]
 
+# The exam's rooms (Open Recruitment, src/ujian.ts): one per exam room.
+[[durable_objects.bindings]]
+name = "UJIAN"
+class_name = "Ujian"
+
 # The minute timer's sleep (Jam). It was the Lms class, which also made the
 # LMS calls until 2026-10-21; v5 renames it, so its stored time stays.
 [[durable_objects.bindings]]
@@ -60,6 +65,10 @@ new_sqlite_classes = ["Lms"]
 [[migrations]]
 tag = "v5"
 renamed_classes = [{ from = "Lms", to = "Jam" }]
+
+[[migrations]]
+tag = "v6"
+new_sqlite_classes = ["Ujian"]
 
 # TP files (2026-10-21): every Praktikan's TP, kept only by IRIS (src/tp.ts).
 [[r2_buckets]]

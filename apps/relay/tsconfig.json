@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "../web/src/lib/konsol.ts", "../web/src/lib/aliran.ts", "../web/src/lib/tanda.ts", "../web/src/lib/tp-r2.ts"]
+  "include": ["src", "../web/src/lib/konsol.ts", "../web/src/lib/aliran.ts", "../web/src/lib/recruitment/room-relay.ts", "../web/src/lib/tanda.ts", "../web/src/lib/tp-r2.ts"]
 }
