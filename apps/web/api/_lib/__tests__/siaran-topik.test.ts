@@ -58,6 +58,13 @@ const BACA: Record<string, string[]> = {
     "committee",
     "edition",
     "me",
+    // S2 (2026-10-24)
+    "attendance",
+    "envelopes",
+    "qr-events",
+    "qr-token",
+    "results",
+    "slots",
   ],
 };
 

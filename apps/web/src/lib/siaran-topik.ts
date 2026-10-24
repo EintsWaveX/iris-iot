@@ -46,6 +46,10 @@ export const TOPIK = [
   "recedition",
   "reccalendar",
   "reccandidates",
+  // S2 (2026-10-24): Cutting and the envelopes; Pilih Jadwal and the plotting board.
+  // A QR scan or a hand mark rides reccandidates (the candidate list shows it).
+  "reccutting",
+  "recplotting",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -186,6 +190,18 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:event-delete": ["reccalendar"],
   "recruitment:seat": ["recedition"],
   "recruitment:unseat": ["recedition"],
+  // S2: a proposal, a lock or unlock, an opened envelope; a scan or a hand mark; Pilih Jadwal.
+  "recruitment:propose": ["reccutting"],
+  "recruitment:lock": ["reccutting", "reccandidates"],
+  "recruitment:unlock": ["reccutting", "reccandidates"],
+  "recruitment:envelope-open": ["reccutting", "reccandidates"],
+  "recruitment:attend": ["reccandidates"],
+  "recruitment:attend-manual": ["reccandidates"],
+  "recruitment:slot-pick": ["recplotting", "reccandidates"],
+  "recruitment:slot-change": ["recplotting"],
+  "recruitment:slot-decide": ["recplotting", "reccandidates"],
+  "recruitment:slot-set": ["recplotting", "reccandidates", "reccalendar"],
+  "recruitment:slot-autofill": ["recplotting", "reccandidates"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

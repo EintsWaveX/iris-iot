@@ -61,7 +61,9 @@ import { cekBiodata, cekEvent, cekNimRek, cekTanggal } from "../../src/lib/recru
 import {
   CANDIDATE_STATUS,
   DIVISIONS,
+  DOC_KINDS,
   DOC_REQUIRED,
+  DOC_VERDICTS,
   STAGES,
   type CandidateRow,
   type CommitteeDivision,
@@ -72,6 +74,7 @@ import {
   type ViewerKind,
 } from "../../src/lib/recruitment/types.js";
 import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
+import { standing } from "../../src/lib/recruitment/standing.js";
 import { kunciRekrutmen } from "../../src/lib/tp-r2.js";
 import {
   adaEdisiDraft,
@@ -81,12 +84,18 @@ import {
   muatDokumen,
   muatEdisiHidup,
   muatEvents,
+  muatBerkas,
   muatKandidat,
   muatKursi,
   muatKolam,
   muatKursiSemua,
+  muatEventSendiri,
+  muatHasilBanyak,
+  muatStanding,
   muatWaktuGagal,
   eventDariRow,
+  tolak,
+  wajibEdisi,
   type Db,
 } from "../_lib/recruitment-data.js";
 import {
@@ -102,9 +111,29 @@ import {
   periksaBerkas,
 } from "../_lib/recruitment-unggah.js";
 import { SimpanGalat, simpanSiap, tiketUnggah, urlBaca } from "../_lib/tp-simpan.js";
-
-const tolak = (res: ApiResponse, kode: string, status = 400, extra: Record<string, unknown> = {}) =>
-  res.status(status).json({ ok: false, kode, ...extra });
+import {
+  handleAmplop,
+  handleAmplopBuka,
+  handleBukaKunci,
+  handleHasil,
+  handleKunci,
+  handleUsul,
+} from "../_lib/recruitment-cutting.js";
+import {
+  handleHadir,
+  handleHadirManual,
+  handleKehadiran,
+  handleQrAcara,
+  handleQrToken,
+} from "../_lib/recruitment-attendance.js";
+import {
+  handleAtur,
+  handleIsiOtomatis,
+  handleKeputusan,
+  handlePilih,
+  handleSlot,
+  handleUbah,
+} from "../_lib/recruitment-slots.js";
 
 const LABEL_DIVISI: Record<CommitteeDivision, string> = {
   ketua: "Ketua",
@@ -122,13 +151,6 @@ function rahasia(): string {
   return s;
 }
 
-/** The edition, or a 404 answer and null. */
-async function wajibEdisi(res: ApiResponse, db: Db): Promise<EditionInfo | null> {
-  const e = await muatEdisiHidup(db);
-  if (!e) tolak(res, "tidak_ada_edisi", 404);
-  return e;
-}
-
 /** Who is asking and how the calendar sees them. */
 async function kenali(
   db: Db,
@@ -139,7 +161,8 @@ async function kenali(
   if (s.role === "praktikan") {
     const k = await muatKandidat(db, edisi.id, s.nim);
     const kind: ViewerKind = k ? "candidate" : "praktikan";
-    return { kind, pelaku: null, viewer: { kind, ownEventIds: [] } };
+    const sendiri = k ? await muatEventSendiri(db, k.id) : [];
+    return { kind, pelaku: null, viewer: { kind, ownEventIds: sendiri } };
   }
   const pelaku = await muatPelaku(db, edisi.id, s.nim);
   const panitia = anggotaPanitia(pelaku);
@@ -170,17 +193,22 @@ async function handleBanner(req: ApiRequest, res: ApiResponse) {
   }
   const events = await muatEvents(db, edisi.id);
   let viewer: BannerViewer = { kind: "visitor" };
+  let berikutnya: string | null = null;
   if (s?.role === "praktikan") {
     const k = await muatKandidat(db, edisi.id, s.nim);
+    // Their own page never spoils a sealed result: only opened ones count here.
+    const lihat = k ? await muatStanding(db, events, k, now, true) : null;
+    const amplop = k ? await muatAmplop(db, k.id, now) : null;
+    berikutnya = amplop?.pending[0]?.revealAt ?? null;
     viewer = {
       kind: "praktikan",
       candidate: k
         ? {
-            status: k.status,
-            stage: k.currentStage,
-            cutAt: k.status === "out" ? await muatWaktuGagal(db, k.id, now) : null,
-            ownEventIds: [],
-            envelope: (await muatAmplop(db, k.id, now)).some((a) => !a.opened),
+            status: lihat!.status,
+            stage: lihat!.stage,
+            cutAt: lihat!.status === "out" ? await muatWaktuGagal(db, k.id, now) : null,
+            ownEventIds: await muatEventSendiri(db, k.id),
+            envelope: !!amplop?.envelopes.some((a) => !a.opened),
           }
         : null,
     };
@@ -192,15 +220,21 @@ async function handleBanner(req: ApiRequest, res: ApiResponse) {
       seat: p?.kursi ? LABEL_DIVISI[p.kursi.division] : null,
     };
   }
-  res.status(200).json(
-    susunBanner({
-      edition: { title: edisi.title, status: "live" },
-      segera: false,
-      events,
-      now,
-      viewer,
-    }),
-  );
+  const banner = susunBanner({
+    edition: { title: edisi.title, status: "live" },
+    segera: false,
+    events,
+    now,
+    viewer,
+  });
+  // The banner refetches the moment the next locked reveal comes (it counts from this clock).
+  res
+    .status(200)
+    .json(
+      banner.kind === "candidate"
+        ? { ...banner, nextReveal: berikutnya, now: now.toISOString() }
+        : banner,
+    );
 }
 
 async function handleEdisi(req: ApiRequest, res: ApiResponse) {
@@ -251,20 +285,27 @@ async function handleSaya(req: ApiRequest, res: ApiResponse, s: SessionPayload) 
       candidate: null,
       documents: [],
       envelopes: [],
+      pending: [],
       daftarOpen: false,
+      now: new Date().toISOString(),
     });
   }
   const now = new Date();
   const events = await muatEvents(db, edisi.id);
   const k = await muatKandidat(db, edisi.id, s.nim);
+  const amplop = k ? await muatAmplop(db, k.id, now) : { envelopes: [], pending: [] };
+  // Status and stage as the candidate has seen them: an envelope not opened yet changes nothing here.
+  const lihat = k ? await muatStanding(db, events, k, now, true) : null;
   res.status(200).json({
     ok: true,
     edition: edisi,
-    candidate: k ? kandidatSendiri(k) : null,
+    candidate: k ? { ...kandidatSendiri(k), status: lihat!.status, stage: lihat!.stage } : null,
     // The ids are the candidate's own: berkas answers 404 for anyone else's.
     documents: k ? await muatDokumen(db, k.id) : [],
-    envelopes: k ? await muatAmplop(db, k.id, now) : [],
+    envelopes: amplop.envelopes,
+    pending: amplop.pending,
     daftarOpen: gateOpen(events, "daftar", now),
+    now: now.toISOString(),
   });
 }
 
@@ -301,28 +342,38 @@ async function handleDaftarKandidat(req: ApiRequest, res: ApiResponse, s: Sessio
     .where(
       and(
         eq(recCandidate.editionId, edisi.id),
-        stage ? eq(recCandidate.currentStage, stage as (typeof STAGES)[number]) : undefined,
-        status ? eq(recCandidate.status, status as (typeof CANDIDATE_STATUS)[number]) : undefined,
         q ? or(ilike(praktikan.nama, cocok), ilike(recCandidate.nim, cocok)) : undefined,
       ),
     )
     .orderBy(asc(recCandidate.appliedAt), asc(recCandidate.id));
-  const jumlah = await hitungDokumen(
-    db,
-    rows.map((r) => r.id),
-    DOC_REQUIRED,
-  );
-  const candidates: CandidateRow[] = rows.map((r) => ({
-    id: r.id,
-    nim: r.nim,
-    nama: r.nama ?? "",
-    kelas: r.biodata?.kelas ?? null,
-    angkatan: r.biodata?.angkatan ?? null,
-    status: r.status,
-    stage: r.stage,
-    appliedAt: r.appliedAt.toISOString(),
-    docs: jumlah.get(r.id) ?? 0,
-  }));
+  const ids = rows.map((r) => r.id);
+  const jumlah = await hitungDokumen(db, ids, DOC_REQUIRED);
+  // Stage and status as the results make them (a revealed Lolos moves a
+  // candidate on, a revealed Gagal puts them out), so the filters read the same.
+  const now = new Date();
+  const events = await muatEvents(db, edisi.id);
+  const hasil = await muatHasilBanyak(db, ids);
+  const candidates: CandidateRow[] = rows
+    .map((r) => {
+      const st = standing(
+        { status: r.status, currentStage: r.stage },
+        hasil.get(r.id) ?? [],
+        events,
+        now,
+      );
+      return {
+        id: r.id,
+        nim: r.nim,
+        nama: r.nama ?? "",
+        kelas: r.biodata?.kelas ?? null,
+        angkatan: r.biodata?.angkatan ?? null,
+        status: st.status,
+        stage: st.stage,
+        appliedAt: r.appliedAt.toISOString(),
+        docs: jumlah.get(r.id) ?? 0,
+      };
+    })
+    .filter((c) => (!stage || c.stage === stage) && (!status || c.status === status));
   res.status(200).json({ ok: true, candidates });
 }
 
@@ -343,7 +394,8 @@ async function handleKandidatRinci(req: ApiRequest, res: ApiResponse, s: Session
   if (!r) return tolak(res, "tidak_ditemukan", 404);
   const k = r.k;
   const lengkap = !!p?.hak.documents;
-  const dokumen = lengkap ? await muatDokumen(db, k.id) : null;
+  const dokumen = lengkap ? await muatBerkas(db, k.id) : null;
+  const st = await muatStanding(db, await muatEvents(db, edisi.id), k, new Date());
   res.status(200).json({
     ok: true,
     candidate: {
@@ -352,13 +404,14 @@ async function handleKandidatRinci(req: ApiRequest, res: ApiResponse, s: Session
       nama: r.nama ?? "",
       kelas: k.biodata?.kelas ?? null,
       angkatan: k.biodata?.angkatan ?? null,
-      status: k.status,
-      stage: k.currentStage,
+      status: st.status,
+      stage: st.stage,
       appliedAt: k.appliedAt.toISOString(),
       docs: dokumen ? dokumen.filter((d) => DOC_REQUIRED.includes(d.kind)).length : 0,
       reviewNote: k.reviewNote,
       reviewedBy: k.reviewedBy,
       reviewedAt: k.reviewedAt ? k.reviewedAt.toISOString() : null,
+      berkasScore: lengkap ? k.berkasScore : null,
     },
     biodata: lengkap ? k.biodata : null,
     documents: dokumen,
@@ -386,6 +439,7 @@ async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload
     .select({
       kind: recDocument.kind,
       r2Key: recDocument.r2Key,
+      prevR2Key: recDocument.prevR2Key,
       nim: recCandidate.nim,
       editionId: recCandidate.editionId,
     })
@@ -402,10 +456,13 @@ async function handleBerkas(req: ApiRequest, res: ApiResponse, s: SessionPayload
     if (!wajibHak(res, p, "documents")) return;
     await writeAudit(s.nim, "rec_berkas_baca", { id, nim: d.nim, kind: d.kind });
   }
+  // v=1 is the file a re-upload replaced; there is only one earlier version.
+  const lama = req.query.v === "1";
+  if (lama && !d.prevR2Key) return tolak(res, "tidak_ditemukan", 404);
   let url: string;
   try {
     url = await urlBaca({
-      kunci: d.r2Key,
+      kunci: lama ? d.prevR2Key! : d.r2Key,
       nama: `${d.kind}_${d.nim}.pdf`,
       mime: "application/pdf",
       unduh: req.query.unduh === "1",
@@ -559,11 +616,29 @@ async function handleDokumen(req: ApiRequest, res: ApiResponse, s: SessionPayloa
   if (hasil === "bukan_pdf") return tolak(res, "bukan_pdf", 422);
   if (hasil !== "ok") return tolak(res, "berkas_kurang", 422);
 
-  const nilai = { r2Key: t.k, size: t.n, sha256: t.s, uploadedAt: new Date() };
+  const [lama] = await db
+    .select()
+    .from(recDocument)
+    .where(and(eq(recDocument.candidateId, k.id), eq(recDocument.kind, t.kind)))
+    .limit(1);
+  const nilai = { r2Key: t.k, size: t.n, sha256: t.s, uploadedAt: new Date(), verdict: null };
+  // The file replaced stays reachable for Admin as V1, and the new one starts unchecked.
+  const gantian =
+    lama && lama.sha256 !== t.s
+      ? {
+          prevR2Key: lama.r2Key,
+          prevSize: lama.size,
+          prevSha256: lama.sha256,
+          prevUploadedAt: lama.uploadedAt,
+        }
+      : {};
   const [d] = await db
     .insert(recDocument)
     .values({ candidateId: k.id, kind: t.kind, ...nilai })
-    .onConflictDoUpdate({ target: [recDocument.candidateId, recDocument.kind], set: nilai })
+    .onConflictDoUpdate({
+      target: [recDocument.candidateId, recDocument.kind],
+      set: { ...nilai, ...gantian },
+    })
     .returning();
   // A changed file needs a fresh look from Admin.
   let status = k.status;
@@ -608,6 +683,29 @@ async function handleTinjau(req: ApiRequest, res: ApiResponse, s: SessionPayload
   if (catatan.length > 500) return tolak(res, "data_salah", 400, { field: "note" });
   if (b.decision === "revision" && !catatan)
     return tolak(res, "data_salah", 400, { field: "note" });
+  // S2: an optional Nilai Berkas, and Sesuai or Perbaiki for each file.
+  let skor: number | null | undefined;
+  if (b.score !== undefined) {
+    if (
+      b.score !== null &&
+      !(Number.isInteger(b.score) && (b.score as number) >= 0 && (b.score as number) <= 100)
+    )
+      return tolak(res, "data_salah", 400, { field: "score" });
+    skor = b.score as number | null;
+  }
+  const vonis: [DocKind, "ok" | "fix" | null][] = [];
+  if (b.files !== undefined) {
+    if (typeof b.files !== "object" || b.files === null || Array.isArray(b.files))
+      return tolak(res, "data_salah", 400, { field: "files" });
+    for (const [kind, v] of Object.entries(b.files as Record<string, unknown>)) {
+      if (
+        !(DOC_KINDS as readonly string[]).includes(kind) ||
+        (v !== null && !DOC_VERDICTS.includes(v as never))
+      )
+        return tolak(res, "data_salah", 400, { field: "files" });
+      vonis.push([kind as DocKind, v as "ok" | "fix" | null]);
+    }
+  }
 
   const [k] = await db
     .select()
@@ -629,8 +727,14 @@ async function handleTinjau(req: ApiRequest, res: ApiResponse, s: SessionPayload
       reviewNote: catatan || null,
       reviewedBy: s.nim,
       reviewedAt: new Date(),
+      ...(skor !== undefined ? { berkasScore: skor } : {}),
     })
     .where(eq(recCandidate.id, k.id));
+  for (const [kind, v] of vonis)
+    await db
+      .update(recDocument)
+      .set({ verdict: v })
+      .where(and(eq(recDocument.candidateId, k.id), eq(recDocument.kind, kind)));
   await writeAudit(s.nim, "rec_tinjau", { id: k.id, nim: k.nim, status });
   res.status(200).json({ ok: true, status });
 }
@@ -883,6 +987,38 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     const s = requireRole(req, res, "praktikan");
     return s ? handleMundur(req, res, s) : undefined;
   }
+  // S2, candidate side: envelopes, scanning the QR, picking a slot.
+  if (aksi === "envelopes") {
+    if (!requireMethod(req, res, "GET")) return;
+    const s = requireRole(req, res, "praktikan");
+    return s ? handleAmplop(req, res, s) : undefined;
+  }
+  if (aksi === "envelope-open") {
+    if (!requireMethod(req, res, "POST")) return;
+    const s = requireRole(req, res, "praktikan");
+    return s ? handleAmplopBuka(req, res, s) : undefined;
+  }
+  if (aksi === "attend") {
+    if (!requireMethod(req, res, "POST")) return;
+    const s = requireRole(req, res, "praktikan");
+    return s ? handleHadir(req, res, s) : undefined;
+  }
+  if (aksi === "slot-pick") {
+    if (!requireMethod(req, res, "POST")) return;
+    const s = requireRole(req, res, "praktikan");
+    return s ? handlePilih(req, res, s) : undefined;
+  }
+  if (aksi === "slot-change") {
+    if (!requireMethod(req, res, "POST")) return;
+    const s = requireRole(req, res, "praktikan");
+    return s ? handleUbah(req, res, s) : undefined;
+  }
+  // slots answers a candidate with seat counts and a Panitia member with the board.
+  if (aksi === "slots") {
+    if (!requireMethod(req, res, "GET")) return;
+    if (!sesiku) return tolak(res, "belum_masuk", 401);
+    return handleSlot(req, res, sesiku);
+  }
 
   // Asisten (the rights check is per action).
   const s = requireRole(req, res, "asisten");
@@ -891,9 +1027,20 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (aksi === "candidates") return handleDaftarKandidat(req, res, s);
     if (aksi === "candidate") return handleKandidatRinci(req, res, s);
     if (aksi === "committee") return handlePanitia(req, res, s);
+    if (aksi === "results") return handleHasil(req, res, s);
+    if (aksi === "qr-events") return handleQrAcara(req, res, s);
+    if (aksi === "qr-token") return handleQrToken(req, res, s);
+    if (aksi === "attendance") return handleKehadiran(req, res, s);
     return tolak(res, "aksi_tidak_dikenal", 404);
   }
   if (!requireMethod(req, res, "POST")) return;
+  if (aksi === "propose") return handleUsul(req, res, s);
+  if (aksi === "lock") return handleKunci(req, res, s);
+  if (aksi === "unlock") return handleBukaKunci(req, res, s);
+  if (aksi === "attend-manual") return handleHadirManual(req, res, s);
+  if (aksi === "slot-decide") return handleKeputusan(req, res, s);
+  if (aksi === "slot-set") return handleAtur(req, res, s);
+  if (aksi === "slot-autofill") return handleIsiOtomatis(req, res, s);
   if (aksi === "review") return handleTinjau(req, res, s);
   if (aksi === "event-save") return handleAcaraSimpan(req, res, s);
   if (aksi === "event-move") return handleAcaraGeser(req, res, s);

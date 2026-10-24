@@ -11,7 +11,7 @@ import type { EventKind, RecEvent } from "./types.js";
 
 /** Colour tokens the view maps to the kosmik palette. */
 export type PaletteKey =
-  "violet" | "blue" | "teal" | "green" | "amber" | "orange" | "rose" | "slate";
+  "violet" | "blue" | "teal" | "green" | "amber" | "orange" | "rose" | "slate" | "pink";
 
 export const PALETTE_KEYS: readonly PaletteKey[] = [
   "violet",
@@ -22,6 +22,7 @@ export const PALETTE_KEYS: readonly PaletteKey[] = [
   "orange",
   "rose",
   "slate",
+  "pink",
 ];
 
 export const KIND_PALETTE: Record<EventKind, PaletteKey> = {
@@ -38,6 +39,8 @@ export const KIND_PALETTE: Record<EventKind, PaletteKey> = {
   presentation: "blue",
   teaching: "violet",
   acceptance: "amber",
+  // Pilih Jadwal has its own look (the S2 mockup, #f472b6).
+  pick: "pink",
 };
 
 /** An event's own colour when set, else its kind's. */
