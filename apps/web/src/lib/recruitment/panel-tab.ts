@@ -7,7 +7,14 @@
  */
 import { useEffect, useState } from "react";
 
-export const PANEL_TABS = ["ringkasan", "kalender", "kandidat", "panitia"] as const;
+export const PANEL_TABS = [
+  "ringkasan",
+  "kalender",
+  "kandidat",
+  "cutting",
+  "plotting",
+  "panitia",
+] as const;
 export type PanelTab = (typeof PANEL_TABS)[number];
 
 export const PANEL_TAB_EVENT = "rec:bagian";

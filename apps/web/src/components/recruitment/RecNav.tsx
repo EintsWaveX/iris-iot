@@ -23,9 +23,11 @@ import {
   ClipboardTextIcon,
   DoorOpenIcon,
   ListChecksIcon,
+  ScissorsIcon,
   SignOutIcon,
   SlidersHorizontalIcon,
   StarIcon,
+  TableIcon,
   UsersThreeIcon,
   type IconProps,
 } from "@phosphor-icons/react";
@@ -94,6 +96,8 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         tab("ringkasan", t.ringkasan, ClipboardTextIcon),
         tab("kalender", t.kalender, CalendarBlankIcon),
         ...(rights?.candidates ? [tab("kandidat", t.kandidat, ListChecksIcon)] : []),
+        ...(rights?.cuttingPropose ? [tab("cutting", t.cutting, ScissorsIcon)] : []),
+        ...(rights?.plotting ? [tab("plotting", t.plotting, TableIcon)] : []),
         tab("panitia", t.panitia, UsersThreeIcon),
       ];
     }
@@ -117,7 +121,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         href: `${prefix}/recruitment#kalender`,
       },
     ];
-  }, [panitia, asisten, rights?.candidates, prefix, t]);
+  }, [panitia, asisten, rights?.candidates, rights?.cuttingPropose, rights?.plotting, prefix, t]);
 
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {

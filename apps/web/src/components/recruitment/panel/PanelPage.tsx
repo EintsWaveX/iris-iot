@@ -25,6 +25,8 @@ import { useBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
 import { CAL } from "../calendar/calendarStrings";
 import { KepalaHalaman, tgl, useHariIni } from "../shared";
 import Kandidat from "./Kandidat";
+import CuttingTab from "./cutting/CuttingTab";
+import PlottingTab from "./jadwal/PlottingTab";
 import KalenderTab from "./KalenderTab";
 import PanitiaBoard from "./PanitiaBoard";
 import Ringkasan from "./Ringkasan";
@@ -48,9 +50,16 @@ export default function PanelPage({ lang }: { lang: Lang }) {
   const tabs = useMemo<PanelTab[]>(
     () =>
       panitia
-        ? ["ringkasan", "kalender", ...(lihatKandidat ? (["kandidat"] as const) : []), "panitia"]
+        ? [
+            "ringkasan",
+            "kalender",
+            ...(lihatKandidat ? (["kandidat"] as const) : []),
+            ...(rights?.cuttingPropose ? (["cutting"] as const) : []),
+            ...(rights?.plotting ? (["plotting"] as const) : []),
+            "panitia",
+          ]
         : ["kalender"],
-    [panitia, lihatKandidat],
+    [panitia, lihatKandidat, rights?.cuttingPropose, rights?.plotting],
   );
   const tab: PanelTab = bagian && tabs.includes(bagian) ? bagian : tabs[0];
 
@@ -117,6 +126,10 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           ) : (
             <span className="skeleton" style={{ height: 320 }} />
           )
+        ) : tab === "cutting" && rights ? (
+          <CuttingTab lang={lang} events={events} hariIni={hariIni} rights={rights} />
+        ) : tab === "plotting" && rights ? (
+          <PlottingTab lang={lang} events={events} rights={rights} />
         ) : (
           <PanitiaBoard lang={lang} rights={rights} />
         )}

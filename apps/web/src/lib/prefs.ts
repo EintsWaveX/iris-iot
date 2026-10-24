@@ -9,6 +9,7 @@
  *   iris-clock      auto | on | off         the clock in the navigation
  *   iris-keys       on | off                keyboard shortcuts (the "?" sheet)
  *   iris-keyhints   on | off                shortcut keys shown on buttons (off)
+ *   iris-sound      on | off                sound, for now the envelope's chime (on)
  *
  * A change fires "iris-prefs" on window so open islands follow along.
  */
@@ -42,6 +43,7 @@ export interface Prefs {
   detail: DetailPref;
   clock: ClockPref;
   zhWeight: ZhWeight;
+  sound: boolean;
 }
 
 export function readPrefs(): Prefs {
@@ -53,6 +55,7 @@ export function readPrefs(): Prefs {
     detail: detail === "normal" || detail === "hd" ? detail : "ldm",
     clock: clock === "on" || clock === "off" ? clock : "auto",
     zhWeight: read("iris-zh-weight") === "500" ? "500" : "700",
+    sound: read("iris-sound") !== "off",
   };
 }
 
@@ -69,6 +72,12 @@ export const setKeyHints = (on: boolean) => write("iris-keyhints", on ? "on" : "
 export function keyHintsOn(): boolean {
   return read("iris-keyhints") === "on";
 }
+export const setSound = (on: boolean) => write("iris-sound", on ? "on" : "off");
+
+/** Sound is on unless the reader turned it off (the envelope's speaker button writes the same key). */
+export function soundOn(): boolean {
+  return read("iris-sound") !== "off";
+}
 export const setClock = (v: ClockPref) => write("iris-clock", v);
 export const setZhWeight = (v: ZhWeight) => write("iris-zh-weight", v);
 export function setDetail(v: DetailPref) {
@@ -84,6 +93,7 @@ export function usePrefs(): Prefs {
     detail: "ldm",
     clock: "auto",
     zhWeight: "700",
+    sound: true,
   });
   useEffect(() => {
     const on = () => setP(readPrefs());

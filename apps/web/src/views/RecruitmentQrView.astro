@@ -1,0 +1,27 @@
+---
+/**
+ * /recruitment/qr and its en and zh twins (2026-10-24): the projector's QR wall, with no navbar and no footer.
+ */
+import Base from "../layouts/Base.astro";
+import QrWall from "../components/recruitment/qr/QrWall";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  noindex
+  title={`${tri(lang, "Absensi QR", "Attendance QR", "签到二维码")} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+  nav={false}
+  footer={false}
+>
+  <main id="main" class="page-main">
+    <QrWall client:load lang={lang} />
+  </main>
+</Base>

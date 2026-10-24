@@ -30,6 +30,7 @@ import { CP } from "../candidate/candidateStrings";
 import { REC } from "../recruitmentStrings";
 import { StatusPill } from "../shared";
 import { PN } from "./panelStrings";
+import BerkasReview from "./kandidat/BerkasReview";
 
 const SHOWN = CANDIDATE_STATUS.filter((s) => s !== "accepted");
 
@@ -373,7 +374,16 @@ export default function Kandidat({
           ))}
         </ul>
       )}
-      {sel !== null && (
+      {sel !== null && rights.documents && rights.approve && (
+        <BerkasReview
+          lang={lang}
+          id={sel}
+          queue={rows.filter((c) => c.status === "applied")}
+          onClose={() => setSel(null)}
+          onChanged={refresh}
+        />
+      )}
+      {sel !== null && !(rights.documents && rights.approve) && (
         <Lembar
           lang={lang}
           id={sel}

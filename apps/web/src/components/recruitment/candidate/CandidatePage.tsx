@@ -10,7 +10,7 @@
  * ?daftar=1 opens the application, ?berkas=1 the documents, #kalender
  * scrolls to the calendar (the banner and the navbar link to them).
  */
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import Dialog from "../../ui/Dialog";
 import HoldButton from "../../ui/HoldButton";
@@ -25,7 +25,10 @@ import {
   useRecCalendar,
   useRecEdition,
   useRecMe,
+  useRecSlots,
 } from "../../../lib/recruitment/client";
+import { useRevealClock } from "../../../lib/recruitment/reveal-clock";
+import { pickEvent, pickWindow } from "../../../lib/recruitment/slots";
 import {
   gateClosesAt,
   gateOpen,
@@ -33,7 +36,17 @@ import {
   tanggalWib,
 } from "../../../lib/recruitment/gates";
 import { alamatBagian } from "../../../lib/recruitment/panel-tab";
-import { DOC_REQUIRED, type RecEvent, type WithdrawResponse } from "../../../lib/recruitment/types";
+import {
+  CUT_STAGES,
+  DOC_REQUIRED,
+  type CutStage,
+  type EnvelopeOpenResponse,
+  type EnvelopeView,
+  type EventLite,
+  type RecEvent,
+  type StageKey,
+  type WithdrawResponse,
+} from "../../../lib/recruitment/types";
 import { REC } from "../recruitmentStrings";
 import { Agenda, RecCalendar } from "../calendar/RecCalendar";
 import {
@@ -48,11 +61,32 @@ import {
 } from "../shared";
 import { CAL } from "../calendar/calendarStrings";
 import { useTick } from "../../../lib/app";
+import { useRevealMotion } from "../reveal/fx";
+import type { NextText } from "../reveal/RevealStage";
+import { S2 } from "../s2Strings";
+import { Inbox, SealedHero, ThanksCard } from "./Envelopes";
+import { ChangeDialog, PickCard, PickDialog } from "./PilihJadwal";
 import Daftar from "./Daftar";
 import DocsDrawer from "./DocsDrawer";
 import Journey from "./Journey";
 import { CP } from "./candidateStrings";
 import { judulAcara, tempatAcara } from "../judul";
+
+// GSAP and canvas-confetti only ship when an envelope is opened.
+const RevealStage = lazy(() => import("../reveal/RevealStage"));
+
+/** The stage whose result unlocks each Pilih Jadwal: picking stays hidden until that envelope is opened. */
+const GERBANG: Partial<Record<StageKey, CutStage>> = {
+  tes_tulis: "berkas",
+  wawancara: "tes_tulis",
+  mengajar: "tubes",
+};
+/** The stage with a Pilih Jadwal that follows a Lolos at each cut stage. */
+const LANJUT_PILIH: Partial<Record<CutStage, StageKey>> = {
+  berkas: "tes_tulis",
+  tes_tulis: "wawancara",
+  tubes: "mengajar",
+};
 
 function Kartu404({ lang, onRetry }: { lang: Lang; onRetry: () => void }) {
   return (
@@ -86,6 +120,10 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const [docs, setDocs] = useState(false);
   const [mundur, setMundur] = useState(false);
   const diminta = useRef<{ daftar: boolean; berkas: boolean } | null>(null);
+  const [reveal, setReveal] = useState<EnvelopeView | null>(null);
+  const [pickStage, setPickStage] = useState<StageKey | null>(null);
+  const [chgStage, setChgStage] = useState<StageKey | null>(null);
+  const motion = useRevealMotion();
 
   // ?daftar=1 and ?berkas=1 are read once, then dropped from the address.
   useEffect(() => {
@@ -123,6 +161,13 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const buka = praktikan && rec.data ? rec.data.daftarOpen : gateOpen(events, "daftar", now);
   const sebelum = !buka && !!opensOn && hariIni < opensOn;
   const panitia = asisten && edisi.data?.viewer === "panitia";
+  const slots = useRecSlots(praktikan && applied);
+  // The envelope arrives on time without a refresh, counting from the server's clock.
+  useRevealClock(
+    rec.data?.now,
+    (rec.data?.pending ?? []).map((p) => p.revealAt),
+    rec.refresh,
+  );
 
   // Open what the address asked for, once the data to decide it is in.
   useEffect(() => {
@@ -250,8 +295,72 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     </Kartu>
   );
 
+  // ---- envelopes and Pilih Jadwal (S2)
+  const envs = rec.data?.envelopes ?? [];
+  const sealedEnv = envs.find((e) => !e.opened) ?? null;
+  const out = cand?.status === "out";
+  const stageOut =
+    out && cand && (CUT_STAGES as readonly string[]).includes(cand.stage)
+      ? (cand.stage as CutStage)
+      : null;
+  const describeNext =
+    (stage: CutStage) =>
+    (next: EventLite | null): NextText | null => {
+      if (!next) return null;
+      const lanjut = LANJUT_PILIH[stage];
+      const pe = lanjut ? pickEvent(events, lanjut) : null;
+      let extra: string | null = null;
+      if (pe) {
+        const w = pickWindow(pe);
+        const o = tanggalWib(w.opensAt);
+        const c = tanggalWib(new Date(w.closesAt.getTime() - 1));
+        extra = S2[lang].reveal.pickOpens(
+          `${tgl(o.tanggal, lang)}, ${o.jam}`,
+          tgl(c.tanggal, lang),
+        );
+      }
+      return {
+        title: judulAcara(next, lang),
+        when: t.next.at(kapanAcara(next, lang), tempatAcara(next.place, lang)),
+        extra,
+      };
+    };
+  const inbox = praktikan && applied && rec.data && (
+    <Inbox
+      lang={lang}
+      envelopes={envs}
+      pending={rec.data.pending}
+      events={events}
+      hariIni={hariIni}
+      motion={motion}
+      onOpen={setReveal}
+    />
+  );
+  const pickCards =
+    praktikan && slots.data
+      ? slots.data.stages
+          .filter((sd) => {
+            const prev = GERBANG[sd.window.stage];
+            // Picking stays hidden until the envelope that unlocks it is opened: no spoilers.
+            return !prev || envs.some((e) => e.stage === prev && e.opened && e.result === "lolos");
+          })
+          .map((sd) => (
+            <PickCard
+              key={sd.window.stage}
+              lang={lang}
+              tahap={r.stage[sd.window.stage]}
+              data={sd}
+              onPick={() => setPickStage(sd.window.stage)}
+              onChange={() => setChgStage(sd.window.stage)}
+              onChanged={() => {
+                slots.refresh();
+                rec.refresh();
+              }}
+            />
+          ))
+      : null;
   const pengumuman = events.find((e) => e.kind === "announcement" && e.stage === "berkas");
-  const envCard = praktikan && (
+  const envCard = praktikan && !applied && (
     <Kartu title={t.env.title} className="rec-env">
       <div className="rec-env__empty">
         <span className="rec-env__seal" aria-hidden="true" />
@@ -344,6 +453,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         events={events}
         lang={lang}
         hariIni={hariIni}
+        out={out}
       />
     </Kartu>
   );
@@ -368,11 +478,23 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
           {!lebar && nextCard}
           {revisi}
           {cta}
+          {sealedEnv && (
+            <SealedHero
+              lang={lang}
+              stage={sealedEnv.stage}
+              motion={motion}
+              onOpen={() => setReveal(sealedEnv)}
+            />
+          )}
+          {stageOut && <ThanksCard lang={lang} stage={stageOut} />}
+          {pickCards}
+          {!lebar && inbox}
           {journey}
           {bar}
         </div>
         <aside className="stack rec-caas__side">
           {lebar && nextCard}
+          {lebar && inbox}
           {docsCard}
           {envCard}
           {applied && (
@@ -402,6 +524,52 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
           documents={rec.data.documents}
           canReplace={rec.data.daftarOpen || cand.status === "revision"}
           onChanged={rec.refresh}
+        />
+      )}
+      {reveal && me && (
+        <Suspense fallback={null}>
+          <RevealStage
+            lang={lang}
+            stage={reveal.stage}
+            name={me.nama.split(" ")[0]}
+            result={reveal.opened ? reveal.result : null}
+            through={reveal.through}
+            open={async () => {
+              const res = await recPost<EnvelopeOpenResponse>("envelope-open", {
+                stage: reveal.stage,
+              });
+              return isFail(res) ? null : { result: res.result, next: res.next };
+            }}
+            describeNext={describeNext(reveal.stage)}
+            onClose={() => {
+              setReveal(null);
+              rec.refresh();
+              slots.refresh();
+            }}
+          />
+        </Suspense>
+      )}
+      {pickStage && slots.data?.stages.find((x) => x.window.stage === pickStage) && (
+        <PickDialog
+          lang={lang}
+          data={slots.data.stages.find((x) => x.window.stage === pickStage)!}
+          tahap={r.stage[pickStage]}
+          onClose={() => setPickStage(null)}
+          onDone={() => {
+            slots.refresh();
+            rec.refresh();
+          }}
+        />
+      )}
+      {chgStage && slots.data?.stages.find((x) => x.window.stage === chgStage) && (
+        <ChangeDialog
+          lang={lang}
+          data={slots.data.stages.find((x) => x.window.stage === chgStage)!}
+          onClose={() => setChgStage(null)}
+          onSent={() => {
+            slots.refresh();
+            rec.refresh();
+          }}
         />
       )}
       <Dialog
