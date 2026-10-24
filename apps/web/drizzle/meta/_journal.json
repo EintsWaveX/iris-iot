@@ -358,6 +358,13 @@
       "when": 1792841908016,
       "tag": "0050_rec_account",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792857746086,
+      "tag": "0051_recruitment_s3_exam",
+      "breakpoints": true
     }
   ]
 }

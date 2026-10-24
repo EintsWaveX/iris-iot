@@ -28,6 +28,9 @@ import {
   date,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
+import type { ExamConfig, Question, RoomState, SeatDraw, Value } from "./recruitment/exam-types.js";
+import { FORMATS, LANGS, PART_KEYS, PHASE1_PARTS, type PartKey } from "./recruitment/exam-types.js";
+import type { KitBoard, RoomHotspot, SeatCheckin } from "./recruitment/room-types.js";
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
 import type { TeksTiga } from "./profil.js";
 import { KELAS } from "./kelas.js";
@@ -2393,3 +2396,304 @@ export type RecEditionRow = typeof recEdition.$inferSelect;
 export type RecEventRow = typeof recEvent.$inferSelect;
 export type RecCandidateRow = typeof recCandidate.$inferSelect;
 export type RecSlotRow = typeof recSlot.$inferSelect;
+
+/* ===================================================================
+ * Open Recruitment S3 (0051): the exam. Tables of prompts 09 (bank,
+ * references), 10 (the runner) and 11 (rooms), landed together so the three
+ * can build side by side (EXAM-ENGINE 10.1). 0052 (Live Coding) and 0053
+ * (scores) come after, one at a time.
+ * =================================================================== */
+
+export const QUESTION_STATUS = ["draft", "ready"] as const;
+export const QUESTION_LOG_KINDS = ["save", "key", "status", "void", "unvoid", "delete"] as const;
+export const REFERENCE_STATUS = ["ok", "gagal"] as const;
+export const EXAMINER_ROLES = ["pengawas"] as const;
+
+/** One JSON of parts config per edition, and the draw's salt (never leaves the server). */
+export const recExamConfig = pgTable("rec_exam_config", {
+  editionId: integer("edition_id")
+    .primaryKey()
+    .references(() => recEdition.id, { onDelete: "cascade" }),
+  config: jsonb("config").$type<ExamConfig>().notNull(),
+  salt: text("salt").notNull(),
+  /** Set when the first real room of the edition starts; after that only budgetMin may change */
+  lockedAt: timestamp("locked_at", { withTimezone: true }),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** A bank question. `body` and `answer` follow the format (exam-types.ts). */
+export const recQuestion = pgTable(
+  "rec_question",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    part: text("part", { enum: PHASE1_PARTS }).notNull(),
+    lang: text("lang", { enum: LANGS }).notNull(),
+    format: text("format", { enum: FORMATS }).notNull(),
+    title: text("title").notNull(),
+    body: jsonb("body").$type<Question["body"]>().notNull(),
+    answer: jsonb("answer").$type<Question["answer"]>().notNull(),
+    /** Reference ids attached to this question */
+    refs: integer("refs")
+      .array()
+      .notNull()
+      .default(sql`'{}'::int[]`),
+    status: text("status", { enum: QUESTION_STATUS }).notNull().default("draft"),
+    /** The default bank only gets a "Bawaan" badge; real rooms draw it too */
+    sample: boolean("sample").notNull().default(false),
+    version: integer("version").notNull().default(1),
+    /** First real draw containing it; its structure is locked from then on */
+    shownAt: timestamp("shown_at", { withTimezone: true }),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidedBy: text("voided_by"),
+    voidNote: text("void_note"),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_question_part_idx").on(t.editionId, t.part, t.status)],
+);
+
+export const recQuestionLog = pgTable(
+  "rec_question_log",
+  {
+    id: serial("id").primaryKey(),
+    questionId: integer("question_id")
+      .notNull()
+      .references(() => recQuestion.id, { onDelete: "cascade" }),
+    who: text("who").notNull(),
+    kind: text("kind", { enum: QUESTION_LOG_KINDS }).notNull(),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    note: text("note"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_question_log_question_idx").on(t.questionId, t.at)],
+);
+
+/** A sanitized reference page in R2, readable by a seat during a running part that has it. */
+export const recReference = pgTable(
+  "rec_reference",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    url: text("url"),
+    title: text("title").notNull(),
+    selector: text("selector"),
+    r2Key: text("r2_key"),
+    sha256: text("sha256"),
+    bytes: integer("bytes"),
+    status: text("status", { enum: REFERENCE_STATUS }).notNull().default("ok"),
+    error: text("error"),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }),
+    by: text("by"),
+  },
+  (t) => [index("rec_reference_edition_idx").on(t.editionId)],
+);
+
+/** A reference every seat may open during a whole part. */
+export const recPartRef = pgTable(
+  "rec_part_ref",
+  {
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    part: text("part", { enum: PHASE1_PARTS }).notNull(),
+    referenceId: integer("reference_id")
+      .notNull()
+      .references(() => recReference.id, { onDelete: "cascade" }),
+    sort: integer("sort").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.editionId, t.part, t.referenceId] })],
+);
+
+/** Who is plotted as pengawas for an exam room (a `rec_slot`). S4 adds the examiner role. */
+export const recSlotExaminer = pgTable(
+  "rec_slot_examiner",
+  {
+    slotId: integer("slot_id")
+      .notNull()
+      .references(() => recSlot.id, { onDelete: "cascade" }),
+    asistenNim: text("asisten_nim")
+      .notNull()
+      .references(() => asisten.nim),
+    role: text("role", { enum: EXAMINER_ROLES }).notNull().default("pengawas"),
+  },
+  (t) => [primaryKey({ columns: [t.slotId, t.asistenNim, t.role] })],
+);
+
+/**
+ * One exam room on one evening: a `tes_tulis` slot with its state. Every
+ * write goes through act() in room.ts under `WHERE state->>'seq' = $seen`.
+ */
+export const recExamRoom = pgTable(
+  "rec_exam_room",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    slotId: integer("slot_id")
+      .notNull()
+      .unique()
+      .references(() => recSlot.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    /** A practice room: draws never lock a question and its seats count nowhere */
+    rehearsal: boolean("rehearsal").notNull().default(false),
+    state: jsonb("state").$type<RoomState>().notNull(),
+    /** The Master's last ping; 60 s without one makes the Master stale */
+    masterSeenAt: timestamp("master_seen_at", { withTimezone: true }),
+    /** Live Coding topic cards dealt so far (EXAM-ENGINE 3.4) */
+    topicNext: integer("topic_next").notNull().default(0),
+    /** Phone hotspots (EXAM-ENGINE 9.6a); the password is sealed */
+    hotspots: jsonb("hotspots").$type<RoomHotspot[]>().notNull().default([]),
+    createdBy: text("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_exam_room_edition_idx").on(t.editionId)],
+);
+
+/** Every accepted room action: who, what, and the version it made. */
+export const recExamLog = pgTable(
+  "rec_exam_log",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id, { onDelete: "cascade" }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    who: text("who").notNull(),
+    act: text("act").notNull(),
+    params: jsonb("params"),
+    seq: integer("seq"),
+  },
+  (t) => [index("rec_exam_log_room_idx").on(t.roomId, t.at)],
+);
+
+/** A pengawas' note on a candidate in a room; one per author. */
+export const recSeatNote = pgTable(
+  "rec_seat_note",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id, { onDelete: "cascade" }),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    authorNim: text("author_nim").notNull(),
+    text: text("text").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("rec_seat_note_unik").on(t.roomId, t.candidateId, t.authorNim)],
+);
+
+/** The kit lent to a candidate for the evening (Logistik): its code and boards. */
+export const recKitLoan = pgTable(
+  "rec_kit_loan",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id, { onDelete: "cascade" }),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    kitCode: text("kit_code").notNull(),
+    boards: jsonb("boards").$type<KitBoard[]>().notNull().default([]),
+    lentBy: text("lent_by"),
+    lentAt: timestamp("lent_at", { withTimezone: true }).notNull().defaultNow(),
+    returnedAt: timestamp("returned_at", { withTimezone: true }),
+    returnedTo: text("returned_to"),
+  },
+  (t) => [unique("rec_kit_loan_unik").on(t.roomId, t.candidateId)],
+);
+
+/**
+ * A candidate's place in the exam: one row per candidate per edition, plus
+ * one if they sit a rehearsal room. `roomId` moves with a Susulan; draws and
+ * answers stay with the seat.
+ */
+export const recExamSeat = pgTable(
+  "rec_exam_seat",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    candidateId: integer("candidate_id")
+      .notNull()
+      .references(() => recCandidate.id, { onDelete: "cascade" }),
+    rehearsal: boolean("rehearsal").notNull().default(false),
+    checkin: jsonb("checkin").$type<SeatCheckin>().notNull().default({}),
+    draw: jsonb("draw").$type<SeatDraw>().notNull().default({}),
+    /** Parts handed in early (Kumpulkan): { logika: ms } */
+    done: jsonb("done").$type<Partial<Record<PartKey, number>>>().notNull().default({}),
+    /** The browser tab that last wrote, for the second tab strike */
+    tab: text("tab"),
+    tabAt: timestamp("tab_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("rec_exam_seat_unik").on(t.editionId, t.candidateId, t.rehearsal),
+    index("rec_exam_seat_room_idx").on(t.roomId),
+  ],
+);
+
+/** A seat's value for one question. No credit is stored: it is computed on read. */
+export const recAnswer = pgTable(
+  "rec_answer",
+  {
+    seatId: integer("seat_id")
+      .notNull()
+      .references(() => recExamSeat.id, { onDelete: "cascade" }),
+    questionId: integer("question_id")
+      .notNull()
+      .references(() => recQuestion.id),
+    part: text("part", { enum: PHASE1_PARTS }).notNull(),
+    value: jsonb("value").$type<Value>(),
+    rev: integer("rev").notNull().default(0),
+    tab: text("tab"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.seatId, t.questionId] })],
+);
+
+/** A kejadian: the seat left fullscreen, switched tab, pasted... (EXAM-ENGINE 7). */
+export const recStrike = pgTable(
+  "rec_strike",
+  {
+    id: serial("id").primaryKey(),
+    seatId: integer("seat_id")
+      .notNull()
+      .references(() => recExamSeat.id, { onDelete: "cascade" }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    part: text("part", { enum: PART_KEYS }).notNull(),
+    /** The page's own id for it, so a resend after a drop is not counted twice */
+    clientId: text("client_id").notNull(),
+    kinds: text("kinds").array().notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    backAt: timestamp("back_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("rec_strike_unik").on(t.seatId, t.clientId),
+    index("rec_strike_room_idx").on(t.roomId, t.at),
+  ],
+);
+
+export type RecExamRoomRow = typeof recExamRoom.$inferSelect;
+export type RecExamSeatRow = typeof recExamSeat.$inferSelect;
+export type RecQuestionRow = typeof recQuestion.$inferSelect;

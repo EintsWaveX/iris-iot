@@ -79,6 +79,7 @@ import {
   type Viewer,
   type ViewerKind,
 } from "../../src/lib/recruitment/types.js";
+import { handleS3 } from "../_lib/recruitment-s3.js";
 import { bolehDuduk } from "../../src/lib/recruitment/rights.js";
 import { standing } from "../../src/lib/recruitment/standing.js";
 import { kunciRekrutmen } from "../../src/lib/tp-r2.js";
@@ -1058,6 +1059,9 @@ async function handler(req: ApiRequest, res: ApiResponse) {
     if (!s) return tolak(res, "belum_masuk", 401);
     return handleSlot(req, res, s);
   }
+
+  // S3, the exam: one table per audience in recruitment-s3.ts.
+  if (await handleS3(aksi, req, res)) return;
 
   // Asisten (the rights check is per action).
   const s = requireRole(req, res, "asisten");
