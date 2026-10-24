@@ -22,6 +22,7 @@ import {
   CalendarBlankIcon,
   ClipboardTextIcon,
   DoorOpenIcon,
+  DotsThreeIcon,
   ListChecksIcon,
   ScissorsIcon,
   SignOutIcon,
@@ -62,6 +63,102 @@ interface Bagian {
   href: string;
   /** Opens a panel part in place when the panel is already on screen */
   tab?: PanelTab;
+  /** Where the fold puts it: "wide" below 1100, "narrow" below 820 (set from its place in the list) */
+  fold?: "wide" | "narrow";
+}
+
+/**
+ * The fold (06, agreed with 08c): from 1100 px every tab shows. Below that the
+ * top bar keeps 5 (4 under 820) and the rest go into Lainnya; the phone's
+ * bottom bar keeps all of them up to 5 and from 6 on shows 4 plus Lainnya.
+ * All of it is CSS on data attributes (no width read in script, so the first
+ * paint is right). When the active tab is folded, Lainnya wears its name.
+ * Later prompts only append to `links`.
+ */
+const KEEP_WIDE = 5;
+const KEEP_NARROW = 4;
+
+function Lainnya({
+  rest,
+  label,
+  active,
+  side,
+  variant,
+  more,
+  act,
+  onGo,
+  aktif,
+}: {
+  rest: Bagian[];
+  label: string;
+  active: Bagian | undefined;
+  side: "top" | "bottom";
+  variant: "top" | "bar";
+  /** Top bar: when the button shows ("wide": below 1100, "narrow": below 820) */
+  more?: "wide" | "narrow";
+  /** When the active tab is inside, and so the label is its name */
+  act?: "wide" | "narrow" | "bar";
+  onGo: (e: React.MouseEvent, l: Bagian) => void;
+  aktif: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <RadixPopover.Root open={open} onOpenChange={setOpen}>
+      <RadixPopover.Trigger asChild>
+        <button
+          type="button"
+          className={variant === "bar" ? "appbar__item rec-more" : "appnav__link rec-more"}
+          data-more={more}
+          data-act={act}
+          aria-haspopup="menu"
+        >
+          {variant === "bar" ? (
+            <>
+              <span className="appbar__icon">
+                <DotsThreeIcon size={21} weight="bold" aria-hidden="true" />
+              </span>
+              <span className="appbar__label">
+                <span className="rec-more__def">{label}</span>
+                <span className="rec-more__act">{active?.label}</span>
+              </span>
+            </>
+          ) : (
+            <span>
+              <span className="rec-more__def">{label}</span>
+              <span className="rec-more__act">{active?.label}</span>
+            </span>
+          )}
+        </button>
+      </RadixPopover.Trigger>
+      <RadixPopover.Portal>
+        <RadixPopover.Content
+          className="appnav__menu rec-more__menu sweep-edge"
+          side={side}
+          align="end"
+          sideOffset={10}
+          collisionPadding={12}
+        >
+          <div className="acct">
+            {rest.map((l) => (
+              <a
+                key={l.key}
+                className="acct__row"
+                href={l.href}
+                aria-current={l.key === aktif ? "page" : undefined}
+                data-fold={l.fold}
+                onClick={(e) => {
+                  onGo(e, l);
+                  setOpen(false);
+                }}
+              >
+                <span>{l.label}</span>
+              </a>
+            ))}
+          </div>
+        </RadixPopover.Content>
+      </RadixPopover.Portal>
+    </RadixPopover.Root>
+  );
 }
 
 function barePath(p: string): string {
@@ -123,6 +220,20 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
     ];
   }, [panitia, asisten, rights?.candidates, rights?.cuttingPropose, rights?.plotting, prefix, t]);
 
+  const n = links.length;
+  const lipat = useMemo<Bagian[]>(
+    () =>
+      links.map((l, i) => ({
+        ...l,
+        fold: i >= KEEP_WIDE ? "wide" : i === KEEP_NARROW ? "narrow" : undefined,
+      })),
+    [links],
+  );
+  const iAktif = lipat.findIndex((l) => l.key === aktif);
+  const moreTop = n > KEEP_WIDE ? "wide" : n > KEEP_NARROW ? "narrow" : undefined;
+  const actTop = iAktif >= KEEP_WIDE ? "wide" : iAktif === KEEP_NARROW ? "narrow" : undefined;
+  // The phone's bar: everything up to 5, from 6 on four and Lainnya.
+  const barKeep = n > KEEP_WIDE ? KEEP_NARROW : n;
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 4);
@@ -215,17 +326,31 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         </a>
 
         <nav className="appnav__links" aria-label={t.main}>
-          {links.map((l) => (
+          {lipat.map((l) => (
             <a
               key={l.key}
               className="appnav__link"
               href={l.href}
+              data-fold={l.fold}
               aria-current={aktifLink(l)}
               onClick={(e) => go(e, l)}
             >
               <span>{l.label}</span>
             </a>
           ))}
+          {moreTop && (
+            <Lainnya
+              rest={lipat.slice(KEEP_NARROW)}
+              label={t.more}
+              active={actTop ? lipat[iAktif] : undefined}
+              side="bottom"
+              variant="top"
+              more={moreTop}
+              act={actTop}
+              onGo={go}
+              aktif={aktif}
+            />
+          )}
         </nav>
 
         {me === null && (
@@ -317,7 +442,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
       </AlertRail>
 
       <nav className="appbar" aria-label={t.main}>
-        {links.slice(0, 5).map((l) => (
+        {links.slice(0, barKeep).map((l) => (
           <a
             key={l.key}
             className="appbar__item"
@@ -331,6 +456,18 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
             <span className="appbar__label">{l.label}</span>
           </a>
         ))}
+        {n > barKeep && (
+          <Lainnya
+            rest={lipat.slice(barKeep)}
+            label={t.more}
+            active={iAktif >= barKeep ? lipat[iAktif] : undefined}
+            side="top"
+            variant="bar"
+            act={iAktif >= barKeep ? "bar" : undefined}
+            onGo={go}
+            aktif={aktif}
+          />
+        )}
       </nav>
 
       <Dialog open={dispSheet} onOpenChange={setDispSheet} title={t.display} sheet lang={lang}>

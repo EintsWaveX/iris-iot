@@ -8,8 +8,9 @@
  * who holds a seat. The server is the judge: a pick that loses the race
  * comes back as `penuh`, and the list returns with a note.
  */
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Dialog from "../../ui/Dialog";
+import { Roll } from "../Roll";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recPost } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
@@ -38,25 +39,7 @@ export function Pips({ s }: { s: SlotSeat }) {
   );
 }
 
-/** A number that rolls when it changes (live seat counts). */
-export function Roll({ n }: { n: number }) {
-  const prev = useRef(n);
-  const [k, setK] = useState(0);
-  const dir = n < prev.current ? "down" : "up";
-  useEffect(() => {
-    if (prev.current !== n) {
-      prev.current = n;
-      setK((x) => x + 1);
-    }
-  }, [n]);
-  return (
-    <span className="r2roll num" data-dir={dir}>
-      <span key={k} className={k ? "r2roll__n" : undefined}>
-        {n}
-      </span>
-    </span>
-  );
-}
+export { Roll };
 
 function SlotBtn({
   s,
