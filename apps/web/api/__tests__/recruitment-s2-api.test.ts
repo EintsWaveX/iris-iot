@@ -678,6 +678,18 @@ describe("QR attendance", () => {
     );
   });
 
+  it("lists only the evenings people come to on the projector, not a pick window running at the same time", async () => {
+    malam();
+    panitia("acara");
+    rows.candidate = [];
+    const r = await panggil("GET", "qr-events");
+    const lijst = (r.body as { events: { title: string }[] }).events;
+    expect(lijst.map((e) => e.title)).toEqual(["First Meet"]);
+    const pick = EVENT_ROWS.find((e) => e.kind === "pick")!;
+    const t = await panggil("GET", "qr-token", { query: { event: String(pick.id) } });
+    expect(t.body.kode).toBe("jendela_tutup");
+  });
+
   it("will not issue a token for an event that is not running or is internal", async () => {
     panitia("ketua");
     rows.candidate = [];

@@ -10,7 +10,7 @@
  * Everything shown is the server's: GET results, POST propose, lock and
  * unlock, live on the reccutting topic.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Confirm from "../../../ui/Confirm";
 import Dropdown from "../../../ui/Dropdown";
 import HoldButton from "../../../ui/HoldButton";
@@ -790,7 +790,7 @@ export default function CuttingTab({
           </thead>
           <tbody>
             {daftar.map((c, i) => (
-              <>
+              <Fragment key={c.id}>
                 {i === cutAt && (
                   <tr className="r2cutline" key={`cut-${c.id}`}>
                     <td colSpan={12}>
@@ -798,7 +798,7 @@ export default function CuttingTab({
                     </td>
                   </tr>
                 )}
-                <tr key={c.id} data-cut={pratinjau ? (bagus(c) ?? undefined) : undefined}>
+                <tr data-cut={pratinjau ? (bagus(c) ?? undefined) : undefined}>
                   <td className="num hint">{i + 1}</td>
                   <td>
                     <span className="stack" style={{ gap: 0 }}>
@@ -851,7 +851,7 @@ export default function CuttingTab({
                     </td>
                   )}
                 </tr>
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>

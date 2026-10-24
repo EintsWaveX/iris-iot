@@ -25,7 +25,7 @@ import {
   recSlotAssignment,
 } from "../../src/lib/schema.js";
 import { lite } from "../../src/lib/recruitment/banner.js";
-import { eventLive, tanggalWib } from "../../src/lib/recruitment/gates.js";
+import { eventHadir, eventLive, tanggalWib } from "../../src/lib/recruitment/gates.js";
 import {
   CODE_ALPHABET,
   CODE_LENGTH,
@@ -101,8 +101,8 @@ interface Peserta {
   nama: string;
 }
 
-/** Events a QR makes sense for: public, and running right now. */
-export const bisaDipindai = (e: RecEvent, now: Date): boolean => !e.internal && eventLive(e, now);
+/** Events a QR makes sense for: a gathering (see eventHadir) and running right now. */
+export const bisaDipindai = (e: RecEvent, now: Date): boolean => eventHadir(e) && eventLive(e, now);
 
 /** Whether the event is one a candidate only attends with a slot of their own. */
 const butuhSlot = (e: RecEvent) => e.audience === "own" || e.audience === "offered";

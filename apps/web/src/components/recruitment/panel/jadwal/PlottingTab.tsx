@@ -682,9 +682,22 @@ function Papan({
       return;
     }
     refresh();
+    // One toast: with Urungkan when there is something to take back.
+    const at = r.at;
     window.Toast?.show(
       r.left ? `${t.autoDone(r.placed)} ${t.autoLeft(r.left)}` : t.autoDone(r.placed),
       r.left ? "warn" : "ok",
+      at
+        ? ({
+            action: {
+              label: t.undo,
+              onClick: async () => {
+                await recPost("slot-autofill", { stage, undo: at });
+                refresh();
+              },
+            },
+          } as never)
+        : undefined,
     );
     // FLIP: every chip that moved flies from where it was, staggered 20 ms.
     requestAnimationFrame(() =>
@@ -713,18 +726,6 @@ function Papan({
         });
       }, 250),
     );
-    if (r.at) {
-      const at = r.at;
-      window.Toast?.show(t.autoDone(r.placed), "ok", {
-        action: {
-          label: t.undo,
-          onClick: async () => {
-            await recPost("slot-autofill", { stage, undo: at });
-            refresh();
-          },
-        },
-      } as never);
-    }
   }
   const cocok = (n: string) => !!q.trim() && n.toLowerCase().includes(q.trim().toLowerCase());
   return (

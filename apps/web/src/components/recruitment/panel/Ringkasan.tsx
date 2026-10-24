@@ -8,7 +8,13 @@
 import { useState } from "react";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import type { Lang } from "../../../lib/kelas";
-import { eventLive, gateClosesAt, gateOpen, nextPublicEvent } from "../../../lib/recruitment/gates";
+import {
+  eventHadir,
+  eventLive,
+  gateClosesAt,
+  gateOpen,
+  nextPublicEvent,
+} from "../../../lib/recruitment/gates";
 import { bukaBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
 import type { CandidateRow, RecEvent, RecRights } from "../../../lib/recruitment/types";
 import { Baris } from "../calendar/RecCalendar";
@@ -69,8 +75,8 @@ export default function Ringkasan({
         }
       : null;
 
-  // A public event running now can be attended: the QR screen and the Kehadiran drawer.
-  const hidup = hariIniList.find((e) => !e.internal && eventLive(e, now)) ?? null;
+  // A gathering running now can be attended: the QR screen and the Kehadiran drawer.
+  const hidup = hariIniList.find((e) => eventHadir(e) && eventLive(e, now)) ?? null;
   const tugas: { text: string; tab: PanelTab | null }[] = [];
   if (rights?.approve)
     tugas.push({ text: menunggu ? t.waitingTask(menunggu) : t.allChecked, tab: "kandidat" });
