@@ -297,6 +297,18 @@ describe("hotspots as typed", () => {
     expect(r.value[0].pass).not.toContain("kata-sandi");
     expect(r.value[0].pass.startsWith("g1.")).toBe(true);
   });
+  it("makes an id the id rule accepts, whatever the random bytes are", () => {
+    // base64url carries "_", which the id rule refuses: it failed about one in eleven
+    for (let i = 0; i < 400; i++) {
+      const r = susunHotspot(
+        7,
+        [],
+        [{ owner: "NUE", ssid: "Pixel", pass: "kata-sandi", cap: 8 }],
+        [],
+      );
+      expect(r.ok).toBe(true);
+    }
+  });
   it("keeps the stored password when none is sent", () => {
     const lama = [{ id: "a", owner: "NUE", ssid: "Lama", pass: "g1.tersimpan", cap: 8 }];
     const r = susunHotspot(7, lama, [{ id: "a", owner: "NUE", ssid: "Baru", cap: 4 }], [], baru);

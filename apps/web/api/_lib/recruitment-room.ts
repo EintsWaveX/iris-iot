@@ -769,7 +769,10 @@ export function susunHotspot(
   lama: readonly RoomHotspot[],
   masuk: unknown,
   seatIds: readonly number[],
-  newId: () => string = () => `h-${acakId().slice(0, 6)}`,
+  newId: () => string = () =>
+    `h-${acakId()
+      .replace(/[^A-Za-z0-9]/g, "")
+      .slice(0, 6)}`,
 ): Susun {
   if (!Array.isArray(masuk) || masuk.length > 40)
     return { ok: false, field: "hotspots", kode: "data_salah" };
