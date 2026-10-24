@@ -49,3 +49,5 @@ Read `_RULES.md`, `EXAM-ENGINE.md` sections 9 and 10, the signed-off Live Coding
 - On the rig with the real PC Server agent, or the rig's fake agent if the PC is unreachable (say which you used): compile, flash and serial on a real ESP32 if one is plugged into this laptop; otherwise flash to a dry-run stub and say so.
 - Each of the four protocols shows traffic end to end with a sample sketch.
 - Handoff, with a list of what the user must test on hardware.
+
+**Ruling 2026-10-24:** The seat's boards use the seat's own hotspot first (typed by the candidate, EXAM-ENGINE 9.6a, WAVE3.md); a changed hotspot only needs Compile Ulang.

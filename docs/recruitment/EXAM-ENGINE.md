@@ -1011,6 +1011,7 @@ A board needs only a phone hotspot with Internet (9.6a). Everything else runs on
 
 ### 9.6a Wi-Fi in the room: phone hotspots *(ruling 2026-10-24)*
 - The boards do not join the building Wi-Fi. They join **phone hotspots** that pengawas (or Panitia) bring into the room, on mobile data, so one crowded access point never slows a whole room. The candidates' laptops stay on the building Wi-Fi; only boards join hotspots, and flashing is over USB.
+- **Candidate's own hotspot *(ruling 2026-10-24, later)*:** a hotspot may belong to one candidate instead of the room. The candidate types their own phone's SSID and password on the seat page (sealed like the others, never in the editor or the code), it becomes a hotspot row owned by that seat with `cap` equal to the seat's Wi-Fi boards (1 or 2), and the seat's boards are assigned to it first. Pengawas hotspots stay as the fallback for seats that bring none. Nothing is shared across the room by default, and a seat that has no phone is never blocked. The Master console still groups boards by hotspot, so one candidate's phone dropping shows as that seat only.
 - **How many:** a phone hotspot takes about 10 devices at most (Android usually 10, iPhone fewer reliably), so a room needs one hotspot per 8 Wi-Fi boards, not one per room. A room of 35 seats with one board each needs 5; with two boards each, up to 9. BLE boards need none. *(08's call: 8 per hotspot by default, editable per hotspot)*
 - **Room setup** lists the hotspots: owner, SSID, password (sealed with `rahasia.ts`, never in code or the repo) and capacity. The console shows "Butuh 5 hotspot, ada 3" from the lent boards and the dealt protocols.
 - **Assignment:** when a seat's protocol is dealt, each of its Wi-Fi boards gets the hotspot with the most free places (ties to the lowest one), so the boards of one seat usually share a phone. The Master can move a board to another hotspot from the seat's menu; the seat's page shows **Compile Ulang** because the header changed.
@@ -1061,24 +1062,24 @@ All rows carry `edition_id` unless they hang off a row that does. Types follow 0
 
 | Table | Columns | Migration (owner) |
 |---|---|---|
-| `rec_exam_config` | `edition_id` PK, `config` jsonb, `salt` text, `locked_at`, `updated_by`, `updated_at` | 0050 (11 lands it, 09 uses it) |
-| `rec_question` | `id`, `edition_id`, `part`, `lang`, `format`, `title`, `body` jsonb, `answer` jsonb, `refs` int[], `status` (draft), `sample` (false), `version` (1), `shown_at`, `voided_at`, `voided_by`, `void_note`, `created_by`, `updated_by`, `updated_at`; index `(edition_id, part, status)` | 0050 |
-| `rec_question_log` | `id`, `question_id` (cascade), `who`, `kind` (`save`, `key`, `status`, `void`, `unvoid`, `delete`), `before`, `after`, `note`, `at` | 0050 |
-| `rec_reference` | `id`, `edition_id`, `url`, `title`, `selector`, `r2_key`, `sha256`, `bytes`, `status` (`ok`, `gagal`), `error`, `fetched_at`, `by` | 0050 |
-| `rec_part_ref` | `edition_id`, `part`, `reference_id` (cascade), `sort`; PK of the first three | 0050 |
-| `rec_slot_examiner` | `slot_id` (06's `rec_slot`), `asisten_nim`, `role` (`pengawas`; S4 adds `examiner`); PK `(slot_id, asisten_nim, role)` | 0050, unless 06 or 15 made it |
-| `rec_exam_room` | `id`, `edition_id`, `slot_id` unique, `title`, `rehearsal` (false), `state` jsonb, `master_seen_at`, `topic_next` (0), `hotspots` jsonb (`[{ id, owner, ssid, pass sealed, cap }]`, 9.6a), `created_by`, `created_at`, `updated_at` | 0050 |
-| `rec_exam_log` | `id`, `room_id`, `at`, `who`, `act`, `params` jsonb, `seq` | 0050 |
-| `rec_seat_note` | `id`, `room_id`, `candidate_id`, `author_nim`, `text`, `at`, `updated_at`; unique `(room_id, candidate_id, author_nim)` | 0050 |
-| `rec_kit_loan` | `id`, `room_id`, `candidate_id`, `kit_code`, `boards` jsonb (9.3a), `lent_by`, `lent_at`, `returned_at`, `returned_to` | 0050 |
-| `rec_exam_seat` | `id`, `edition_id`, `room_id`, `candidate_id`, `rehearsal`, `checkin` jsonb, `draw` jsonb ({}), `done` jsonb ({}), `tab`, `tab_at`, `created_at`, `last_seen_at`; unique `(edition_id, candidate_id, rehearsal)` | 0050 |
-| `rec_answer` | `seat_id` (cascade), `question_id`, `part`, `value` jsonb, `rev`, `tab`, `at`; PK `(seat_id, question_id)` | 0050 |
-| `rec_strike` | `id`, `seat_id` (cascade), `room_id`, `part`, `client_id`, `kinds` text[], `at`, `back_at`; unique `(seat_id, client_id)` | 0050 |
-| `rec_lc_topic`, `rec_lc_template`, `rec_livecode`, `rec_compile_job`, `rec_rubric`, `rec_rubric_score` | sections 9.2 to 9.8 | 0051 (12) |
-| `rec_score_freeze` | `id`, `edition_id`, `stage`, `at`, `by`, `note`, `scores` jsonb, `stats` jsonb, `superseded_at`, `superseded_by`, `unfreeze_note` | 0052 (13) |
+| `rec_exam_config` | `edition_id` PK, `config` jsonb, `salt` text, `locked_at`, `updated_by`, `updated_at` | 0051 (11 lands it, 09 uses it) |
+| `rec_question` | `id`, `edition_id`, `part`, `lang`, `format`, `title`, `body` jsonb, `answer` jsonb, `refs` int[], `status` (draft), `sample` (false), `version` (1), `shown_at`, `voided_at`, `voided_by`, `void_note`, `created_by`, `updated_by`, `updated_at`; index `(edition_id, part, status)` | 0051 |
+| `rec_question_log` | `id`, `question_id` (cascade), `who`, `kind` (`save`, `key`, `status`, `void`, `unvoid`, `delete`), `before`, `after`, `note`, `at` | 0051 |
+| `rec_reference` | `id`, `edition_id`, `url`, `title`, `selector`, `r2_key`, `sha256`, `bytes`, `status` (`ok`, `gagal`), `error`, `fetched_at`, `by` | 0051 |
+| `rec_part_ref` | `edition_id`, `part`, `reference_id` (cascade), `sort`; PK of the first three | 0051 |
+| `rec_slot_examiner` | `slot_id` (06's `rec_slot`), `asisten_nim`, `role` (`pengawas`; S4 adds `examiner`); PK `(slot_id, asisten_nim, role)` | 0051, unless 06 or 15 made it |
+| `rec_exam_room` | `id`, `edition_id`, `slot_id` unique, `title`, `rehearsal` (false), `state` jsonb, `master_seen_at`, `topic_next` (0), `hotspots` jsonb (`[{ id, owner, ssid, pass sealed, cap }]`, 9.6a), `created_by`, `created_at`, `updated_at` | 0051 |
+| `rec_exam_log` | `id`, `room_id`, `at`, `who`, `act`, `params` jsonb, `seq` | 0051 |
+| `rec_seat_note` | `id`, `room_id`, `candidate_id`, `author_nim`, `text`, `at`, `updated_at`; unique `(room_id, candidate_id, author_nim)` | 0051 |
+| `rec_kit_loan` | `id`, `room_id`, `candidate_id`, `kit_code`, `boards` jsonb (9.3a), `lent_by`, `lent_at`, `returned_at`, `returned_to` | 0051 |
+| `rec_exam_seat` | `id`, `edition_id`, `room_id`, `candidate_id`, `rehearsal`, `checkin` jsonb, `draw` jsonb ({}), `done` jsonb ({}), `tab`, `tab_at`, `created_at`, `last_seen_at`; unique `(edition_id, candidate_id, rehearsal)` | 0051 |
+| `rec_answer` | `seat_id` (cascade), `question_id`, `part`, `value` jsonb, `rev`, `tab`, `at`; PK `(seat_id, question_id)` | 0051 |
+| `rec_strike` | `id`, `seat_id` (cascade), `room_id`, `part`, `client_id`, `kinds` text[], `at`, `back_at`; unique `(seat_id, client_id)` | 0051 |
+| `rec_lc_topic`, `rec_lc_template`, `rec_livecode`, `rec_compile_job`, `rec_rubric`, `rec_rubric_score` | sections 9.2 to 9.8 | 0052 (12) |
+| `rec_score_freeze` | `id`, `edition_id`, `stage`, `at`, `by`, `note`, `scores` jsonb, `stats` jsonb, `superseded_at`, `superseded_by`, `unfreeze_note` | 0053 (13) |
 
 - `rec_answer` has no stored credit and no `final`. Credit is computed on read and frozen by Finalkan, and whether a write is still allowed comes from the room state (`answerOpen`).
-- Migrations are drizzle generated, with one snapshot chain. Parallel sessions must never generate at the same time, so 11 generates **0050 once** for every table of 09, 10 and 11, right after 06's 0049 exists, and tells 09 and 10. 12 then generates 0051 and 13 0052, one after the other. If 06 needs a second migration, it asks 11 first.
+- Migrations are drizzle generated, with one snapshot chain. Parallel sessions must never generate at the same time, so 11 generates **0051 once** for every table of 09, 10 and 11, right after 06's 0049 and W1's 0050 (rec_account, the oprec accounts) exist, and tells 09 and 10. 12 then generates 0052 and 13 0053, one after the other. If 06 needs a second migration, it asks 11 first.
 
 ### 10.2 Siaran topics (letters only)
 `recroom`: a room was set up, opened or finished. The candidate page shows or hides the test entry; the room list refreshes. `recbank`: the bank, config or references changed. `recscore`: a void, a key fix, a grader sheet, a freeze or an unfreeze. Every S3 write action is listed in `siaran-topik.ts` (high frequency writes such as `test-answer`, `test-strike` and `room-master` ping map to `[]`; they ride the relay room).
@@ -1166,11 +1167,11 @@ All in `api/recruitment/[aksi].ts`, dispatched to one handler per area. Errors a
 | Owner | Files |
 |---|---|
 | **08** (read only for 09 to 13) | `src/lib/recruitment/exam-types.ts`, `frac.ts`, `formats.ts`, `draw.ts`, `scoring.ts`, `room.ts`; tests `src/lib/__tests__/recruitment-{frac,formats,draw,scoring,room}.test.ts` |
-| **11** | Day 1: the S3 section of `schema.ts` and `drizzle/0050_*` (every table of 10.1 marked 0050), the five dispatch lines in `[aksi].ts`, every S3 entry in `siaran-topik.ts`. Then: `api/_lib/recruitment-room.ts`, `src/lib/recruitment/room-relay.ts` (+ tests), `apps/relay/src/ujian.ts` (+ `apps/relay/test/uji-ujian.mjs`), `components/recruitment/panel/tes/ruang/`, rig `rec_room_*.mjs` |
+| **11** | Day 1: the S3 section of `schema.ts` and `drizzle/0051_*` (every table of 10.1 marked 0051), the five dispatch lines in `[aksi].ts`, every S3 entry in `siaran-topik.ts`. Then: `api/_lib/recruitment-room.ts`, `src/lib/recruitment/room-relay.ts` (+ tests), `apps/relay/src/ujian.ts` (+ `apps/relay/test/uji-ujian.mjs`), `components/recruitment/panel/tes/ruang/`, rig `rec_room_*.mjs` |
 | **09** | `api/_lib/recruitment-bank.ts`, `api/_lib/recruitment-snapshot.ts` (+ tests), `src/lib/recruitment/bank-io.ts` (+ tests), `components/recruitment/panel/tes/bank/`, the seed bank `scripts/rec-bank-seed.ts` (at least the default `shown` count per part and language, every question run or compiled before it goes in), rig `rec_bank_*.mjs` |
 | **10** | `api/_lib/recruitment-seat.ts`, `pages/recruitment/test.astro` (+ `en/`, `zh/`), `components/recruitment/exam/` (the renderers in `exam/render/` are shared with 09's preview; the lockdown hooks in `exam/lockdown/`), rig `rec_runner_*.mjs` |
-| **12** | `drizzle/0051_*` and its `schema.ts` section, `api/_lib/recruitment-livecode.ts`, `components/recruitment/livecode/`, `apps/ws/src/` (the `rec` routes on ws and broker), the PC agent in `Downloads/IRIS ASO/orangepi/agent/` (`compile` and `mqtt` jobs, tests; the Module 3 bridge carries the exam's MQTT unchanged unless 12 finds otherwise), rig `rec_lc_*.mjs` |
-| **13** | `drizzle/0052_*` and its `schema.ts` section, `api/_lib/recruitment-score.ts`, `components/recruitment/panel/tes/penilaian/`, the Tes Tulis score column on 06's Cutting board (tell 06's owner first), rig `rec_score_*.mjs` |
+| **12** | `drizzle/0052_*` and its `schema.ts` section, `api/_lib/recruitment-livecode.ts`, `components/recruitment/livecode/`, `apps/ws/src/` (the `rec` routes on ws and broker), the PC agent in `Downloads/IRIS ASO/orangepi/agent/` (`compile` and `mqtt` jobs, tests; the Module 3 bridge carries the exam's MQTT unchanged unless 12 finds otherwise), rig `rec_lc_*.mjs` |
+| **13** | `drizzle/0053_*` and its `schema.ts` section, `api/_lib/recruitment-score.ts`, `components/recruitment/panel/tes/penilaian/`, the Tes Tulis score column on 06's Cutting board (tell 06's owner first), rig `rec_score_*.mjs` |
 
 Rules:
 - `exam-types.ts` and the pure modules change only additively (a new optional field or a new type), with the change in the builder's handoff. A rename, a removal or a different meaning goes to W1 by SendMessage first.
@@ -1195,6 +1196,19 @@ Rules:
 3. **Wi-Fi:** phone hotspots per room instead of the building Wi-Fi; about one per 8 boards (9.6a). On the day the pengawas type their hotspots into the room setup.
 4. **Cloudflare:** agreed; no new host is needed because broker.irisiotlab.com already exists (9.6).
 5. **The bank and the config:** my seed bank and `DEFAULT_EXAM_CONFIG` are the defaults; Akademik adjusts both in the web. 09's seed holds enough questions for a room to start on the defaults.
+
+### 11.3 From the S3 mockup (08c, signed off 2026-10-24 19:04; accepted by the user with W1's adjustments)
+Additive to the sections named; 09 to 12 build them as written here (`handoffs/08c.md` has the screens).
+1. **Hidden peer sheets (9.8, 10):** `lc-rubric` gives a grader, for the other sheets of a seat, only who and when, never the values, so the two graders do not anchor on each other. After Finalkan the `bank` right sees every sheet in full.
+2. **Topic icon (9.1, 9.2):** `rec_lc_topic.icon` (a kit icon name; the default comes from the topic's category) for the landed reel cell and the decoys' glyphs. 12 adds the column to its 0052.
+3. **Re-roll reason to the seat (5.4, 6.3):** the `kursi` message's `reroll` carries `{ what, reason }`, where `reason` is one of a fixed list (`kit_rusak`, `papan_tidak_cocok`, `topik_terlalu_mirip`, `lainnya`), shown to the candidate in words. The seat is told "Diundi ulang oleh pengawas" and never the Asisten's code; the code stays in `rec_exam_log` for the Panitia (W1's adjustment: Asisten data stays off the candidate's page).
+4. **Typical compile time (9.4):** `antrean` (or the seat's own Live Coding state) carries `typicalMs` per fqbn, the median `ms` of the room's last 20 successful jobs, null before there are 3, for "biasanya sekitar 40 detik".
+5. **Hotspot need before the deal (9.6a):** the console counts every lent board as Wi-Fi until the protocols are dealt, then drops the BLE seats' boards. Seats with their own phone count against their own hotspot, not the pengawas' (as 9.6a).
+6. **Words (7, 11's console):** a strike is a **kejadian** in the UI everywhere, so it never collides with the pengawas' **catatan**. The kinds in words are 08c's `S3.KIND` in `rec3-data.js`.
+
+Shapes the mockup assumes for 9.6a, confirmed: a `hotspots` row's `owner` is a Panitia code or `{ seat: <seatId> }`; a seat row carries `by` (`cand` or `master`), so the room setup shows a candidate-typed SSID read only and never the password; a seat has at most one row; `cap` is computed from the seat's lent Wi-Fi boards, not stored; the candidate's endpoint (10) takes `{ ssid, pass }` and answers `{ ssid }` only.
+
+Also settled with 06 (W1, 2026-10-24): `rec_exam_seat.room_id` stays a column. Rehearsal seats sit in rooms no Tes Tulis assignment points to, and `test-answer` checks the room in one row read. Every write that changes a candidate's tes_tulis assignment (06's `slot-set` move, Auto Isi, a confirmed change request) also sets the non-rehearsal seat's `room_id` to the room whose `slot_id` is the new slot, in the same transaction, when both rows exist; a seat created later takes it at creation. 11 adds that to 06's handlers.
 
 ## Appendix: 08's calls (for the user to check)
 1. Rehearsal rooms draw from the same pool, never lock a question, and count nowhere (0).
