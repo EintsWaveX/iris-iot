@@ -1,4 +1,4 @@
-# 05 · S2 Stage 0 mockup (Berkas review, Cutting, envelope reveal, QR attendance)
+# 05 · S2 Stage 0 mockup (Berkas review, Cutting, envelope reveal, QR attendance, Pilih Jadwal)
 
 - **Model / effort:** Opus 5.5, high
 - **Needs:** 01 (signed off). It can run while 03 builds.
@@ -13,7 +13,7 @@
   - `design:ux-copy`
   - `artifact-design`
 
-Read `_RULES.md`, `PRD.md` sections 5.4, 5.5, 6 (Kandidat, Cutting, attendance) and 9, and `handoffs/01.md`.
+Read `_RULES.md`, `PRD.md` sections 5.2, 5.4, 5.5, 6 (Kandidat, Cutting, Shifts, attendance) and 9, and `handoffs/01.md`.
 
 ## Screens
 1. **Berkas review** (Admin/Ketua) in the Kandidat side sheet: PDF viewer (the kit's `PdfViewer`), notes, an optional score field (keep it, but mark it "TBD by the user"), and approve or revision.
@@ -38,6 +38,10 @@ Read `_RULES.md`, `PRD.md` sections 5.4, 5.5, 6 (Kandidat, Cutting, attendance) 
    - the projector view `/recruitment/qr`: full screen, a rotating QR, a live count, the event name
    - the candidate's scan result (a quick success check, or "bukan jadwalmu")
    - Admin's manual override list
+6. **Pilih Jadwal** (candidates pick their own shift; PRD section 6, Shifts). First used for Tes Tulis, 11 to 14 Nov:
+   - candidate: the picking card, the slot list with live seat counts, a full slot, the confirm step, the picked state
+   - candidate: Ajukan Perubahan (target slot with room + reason), the pending state, approved and declined notices, the H-1 cutoff
+   - Panitia: slot setup per evening (room, time, capacity), the request queue with approve/decline, the board after Auto Isi with drag to fix, and moving someone over a full slot
 
 ## Deliver
 - Republish the artifact.

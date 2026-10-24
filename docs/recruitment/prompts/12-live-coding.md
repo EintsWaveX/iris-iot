@@ -1,7 +1,7 @@
 # 12 · Live Coding (Phase 2)
 
 - **Model / effort:** Sonnet 5.5, high
-- **Needs:** 08 (done), 11 (done)
+- **Needs:** 08 (done), 08c (signed off), 11 (done)
 - **Owned paths:**
   - migration for `rec_livecode` + the rubric tables if S4 hasn't made them (coordinate with 15)
   - `api/_lib/recruitment-livecode.ts`
@@ -20,7 +20,7 @@
   - `emil-design-eng`
   - `superpowers:verification-before-completion`
 
-Read `_RULES.md`, `EXAM-ENGINE.md` sections 9 and 10, the signed-off Live Coding mockup, and `handoffs/08.md` and `handoffs/11.md`. Read how the SeeLabs robot job runs end to end:
+Read `_RULES.md`, `EXAM-ENGINE.md` sections 9 and 10, the signed-off Live Coding mockup, and `handoffs/08.md` and `handoffs/08c.md` and `handoffs/11.md`. Read how the SeeLabs robot job runs end to end:
 - site side: `api/_lib/seelabs-robot.ts`
 - agent side: `orangepi/agent/seelabs.py`, its worker and `Worker.urgent()`, the protocol version and its tests
 

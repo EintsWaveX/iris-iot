@@ -64,12 +64,14 @@ All tests run 18.30 to 21.00 WIB at TULT unless noted. **Internal** events are h
 | Extend | registration | 1 Nov to 2 Nov | no | Daftar on |
 | Pengecekan Berkas | review | 9 Nov to 10 Nov | yes | Berkas review |
 | Pengumuman Berkas | announcement | 11 Nov | no | Berkas reveal |
+| Pilih Jadwal Tes Tulis | pick | 11 Nov 19.00 to 14 Nov | no | shift picking |
 | First Meet | meeting | 12 Nov 18.30 to 21.00, TULT | no | attendance QR |
 | Pleno Tes Tulis | pleno | 16 Nov | yes | |
 | Tes Tulis & Program | test | 17 Nov to 19 Nov | no (own evening only) | exam rooms |
 | Susulan Tes Tulis | makeup | 20 Nov | no (only if offered) | exam room |
 | Cutting Tes Tulis | cutting | 25 Nov to 26 Nov | yes | Cutting board |
 | Pengumuman Tes Tulis | announcement | 27 Nov | no | reveal |
+| Pilih Jadwal Wawancara | pick | 27 Nov 19.00 to 29 Nov | no | shift picking |
 | Pleno Wawancara | pleno | 30 Nov | yes | |
 | Tes Wawancara | interview | 1 Des to 3 Des | no (own slot only) | rubric sheets |
 | Susulan Wawancara | makeup | 4 Des | no (if offered) | |
@@ -80,6 +82,7 @@ All tests run 18.30 to 21.00 WIB at TULT unless noted. **Internal** events are h
 | Presentasi Tubes | presentation | 18 Des | no | rubric, submission closes |
 | Cutting Tubes | cutting | 19 Des | yes | |
 | Pengumuman Tubes | announcement | 20 Des | no | reveal |
+| Pilih Jadwal Mengajar | pick | 20 Des 19.00 to 21 Des 12.00 | no | shift picking |
 | Pleno Mengajar | pleno | 21 Des | yes | |
 | Tes Mengajar | teaching | 22 Des to 24 Des | no (own slot only) | rubric sheets |
 | Susulan Mengajar | makeup | 26 Des | no (if offered) | |
@@ -106,7 +109,7 @@ All tests run 18.30 to 21.00 WIB at TULT unless noted. **Internal** events are h
 | Approve applications | yes | | | yes | | | |
 | Question bank, raw answers | yes | | yes | | | | |
 | Exam room Master / Pengawas | per evening plotting (Akademik assigns) | | | | | | |
-| Plotting | yes | | yes (tests) | yes | | | |
+| Plotting, slots, shift change requests | yes | | yes (tests) | yes | | | |
 | Rubric scoring | examiners assigned to the slot | | | | | | |
 | Cutting: propose | yes | yes | yes | yes | yes | yes | |
 | Cutting: lock | yes | | | | | | |
@@ -126,7 +129,7 @@ All tests run 18.30 to 21.00 WIB at TULT unless noted. **Internal** events are h
 | Visitor | "Open Recruitment Asisten IRIS" with the Open dates |
 | Praktikan, not applied, Open running | A Daftar button and a countdown to close |
 | Praktikan, Open not running | Nothing, or "segera" if the next edition is announced |
-| Candidate | Current stage and next public event date; a sealed envelope chip when a reveal is waiting |
+| Candidate | Current stage and next public event date; a sealed envelope chip when a reveal is waiting; a Pilih Jadwal chip while their picking window is open and they have not picked |
 | Cut candidate | A thank-you line for 7 days after the reveal, then hidden |
 | Panitia | A Panitia shortcut and today's recruitment events |
 | Other Asisten | Today's recruitment events (read only) |
@@ -138,6 +141,7 @@ Keep the page simple and put the richer things in dialogs, drawers and popovers.
 - **Calendar:** a month grid with spanning bars that shows public events plus the candidate's own slots. Tapping an event opens a popover.
 - **Documents drawer:** what they uploaded and its status. Re-upload is allowed until the registration window closes.
 - **Envelope inbox:** one sealed envelope per announced stage.
+- **Pilih Jadwal:** while the stage's picking window is open, a card asks the candidate to pick their own slot (see section 6, Shifts). Afterwards the card shows their slot, an Ajukan Perubahan button until H-1, and the state of any open request.
 - **Tests:** the test entry button appears only during the candidate's own evening (`/recruitment/test`).
 - **Withdraw:** Mundur sits behind a HoldButton with a confirm step.
 
@@ -158,7 +162,7 @@ Shown only while a registration event is live.
   - the card rises
   - a confetti burst in the kosmik palette
   - a gradient bloom
-  - a short chime (respects the site's sound preference)
+  - a short chime (respects Suara in Tampilan, a new setting, on by default; ruling 2026-10-24)
   - the "Lolos ke tahap berikutnya" copy, with the next event
 - **Gagal (Ouhhh):**
   - the card deflates slowly with a soft rain or dim effect
@@ -188,11 +192,18 @@ Tabs: **Ringkasan, Kalender, Kandidat, Cutting, Plotting, Tes, Tubes, Panitia.**
   - Any Panitia member can propose Lolos or Gagal per candidate, with a note. Bulk proposals use a threshold slider ("top N" or "score at least X").
   - The Ketua locks with a HoldButton. A locked stage shows when its reveal will go out.
   - A locked stage can be unlocked again only before its reveal time.
+- **Shifts (candidates pick their own; ruling 2026-10-23):**
+  - Panitia with the Plotting right set up the slots per evening: room, time and capacity.
+  - Picking opens at 19.00 on the Pengumuman day, seven hours after the envelopes, so opening late never costs a seat (ruling 2026-10-24).
+  - While the stage's Pilih Jadwal event is open, every candidate still in that stage picks one slot themselves in IRIS. Seats go first come first served, the counts update live, and the pick has a confirm step.
+  - After that, any change is a request in IRIS: the candidate picks a slot that has room and writes a reason, and an Asisten with the Plotting right approves or declines it. The candidate gets a notice either way. One open request at a time, until H-1 of their current slot.
+  - When the window closes, Auto Isi places anyone who did not pick into the slots that still have room (evenly, deterministic). Panitia fix by drag and drop.
+  - Panitia keep full control the whole time: open, extend or close the window, move anyone, change capacity, place someone over a full slot. Every Panitia move notifies the candidate and is logged.
+  - Susulan slots are placed by Panitia for the candidates they offer them to.
+  - The same engine serves Tes Tulis, Wawancara, Mengajar, and Presentasi Tubes if it gets slots. Tes Tulis comes first, so it ships in S2.
 - **Plotting:**
-  - Admin defines rooms × slots × examiners per evening, then presses Auto Isi to fill candidates evenly; the result can be fixed by drag and drop.
-  - Candidates can request one swap until H-1; Admin approves or declines.
   - Akademik plots pengawas for each test evening.
-  - The same engine serves Tes Tulis, Wawancara and Mengajar.
+  - Wawancara and Mengajar slots get examiners per slot (S4).
 - **Tes:** Bank, Ruang, Penilaian. See section 7.
 - **Tubes:** topics and briefs (assigned per candidate, or spun), a daily check-in feed, a pengawas attendance tick per evening, the submission list, and the Presentasi rubric.
 - **Panitia:** a drag board with one column per division plus Ketua and Wakil. People are dragged in from the Asisten list, and each division gets a Koordinator star. Pencipta/Admin seat the Ketua; the Ketua seats everyone else.
@@ -301,7 +312,7 @@ FITB blanks are **typed**, use the IRIS blank look (underscore run plus number),
 
 ## 8. Other stages
 - **Seleksi Berkas:** Admin reviews documents in Kandidat and adds notes. Scores are optional (TBD). Cutting runs as usual.
-- **Wawancara, Mengajar:** plotted slots, a rubric per stage (rows TBD), scored per examiner. Susulan is offered to absentees.
+- **Wawancara, Mengajar:** slots the candidates pick themselves (section 6, Shifts), a rubric per stage (rows TBD), scored per examiner. Susulan is offered to absentees.
 - **Tubes:** topics and briefs at Techmeet; check-ins on each work evening; final submission (code zip, report PDF, demo video link or file) to R2, closing at the Presentasi start; Presentasi rubric.
 
 ## 9. Copy, look, motion
@@ -319,9 +330,9 @@ FITB blanks are **typed**, use the IRIS blank look (underscore run plus number),
 | Slice | Live by | Contents |
 |---|---|---|
 | S1 | 25 Oct (Panitia board and calendar editor may follow by 27 Oct) | banner, `/recruitment`, Daftar + uploads, seeded calendar |
-| S2 | 9 Nov | Berkas review, Cutting board + lock, envelope reveal, QR attendance |
+| S2 | 9 Nov | Berkas review, Cutting board + lock, envelope reveal, QR attendance, shift picking + change requests (Pilih Jadwal Tes Tulis opens 11 Nov 19.00) |
 | S3 | 16 Nov | bank editor, snapshots, exam runner, Master console, Live Coding, scoring, rehearsal |
-| S4 | 30 Nov | plotting + swaps, rubric engine, Wawancara |
+| S4 | 30 Nov | examiners per slot, rubric engine, Wawancara (shift picking reused from S2) |
 | S5 | 12 Des | Tubes |
 | S6 | 21 Des | Mengajar, Penerimaan, Jadikan Asisten |
 

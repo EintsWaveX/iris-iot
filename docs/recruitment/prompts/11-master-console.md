@@ -1,10 +1,10 @@
 # 11 · Master console, Pengawas, relay exam room
 
 - **Model / effort:** Sonnet 5.5, high
-- **Needs:** 08 (done)
+- **Needs:** 08 (done), 08c (signed off)
 - **Runs in parallel with:** 09 and 10
 - **Owned paths** (per EXAM-ENGINE section 10; typically):
-  - migration for `rec_exam_room` + the pengawas plotting for test evenings (`rec_slot`, `rec_slot_examiner` if S4 hasn't made them; coordinate with 15)
+  - migration for `rec_exam_room` + the pengawas plotting for test evenings (`rec_slot_examiner` if S4 hasn't made it; `rec_slot` comes from 06; coordinate with 15)
   - `api/_lib/recruitment-room.ts`
   - the room actions
   - `apps/relay/src/` (new room type, tests in `apps/relay/test`)
@@ -17,10 +17,10 @@
   - `apple-design`
   - `superpowers:verification-before-completion`
 
-Read `_RULES.md`, `EXAM-ENGINE.md` sections 5, 6 and 10, the signed-off console mockup, and `handoffs/08.md`. Also read how Konsol does approval, the one-controller rule and handover (memory `iris-konsol-rooms`, code under `components/console/` and `api/_lib/konsol.ts`). Reuse its patterns.
+Read `_RULES.md`, `EXAM-ENGINE.md` sections 5, 6 and 10, the signed-off console mockup, and `handoffs/08.md` and `handoffs/08c.md`. Also read how Konsol does approval, the one-controller rule and handover (memory `iris-konsol-rooms`, code under `components/console/` and `api/_lib/konsol.ts`). Reuse its patterns.
 
 ## Build
-1. **Test evening setup** (Akademik): rooms for 17, 18, 19 Nov + Susulan 20 Nov, the candidates per room (from plotting, or a simple assign list if S4 hasn't shipped), and the pengawas per room.
+1. **Test evening setup** (Akademik): rooms for 17, 18, 19 Nov + Susulan 20 Nov, the candidates per room (from the candidates' own picks in S2's Pilih Jadwal, `rec_slot_assignment`), and the pengawas per room.
 2. **Jadi Master:** any pengawas of that room, never the Pencipta. One Master at a time. Handover with the Konsol-style request and accept. The others are Pengawas: view only, plus notes per seat.
 3. **Controls** through `room.ts` (from 08), each an API write that broadcasts on the relay: Start (next part), Pause/Resume all, Skip, Reopen previous, ± time for the room or one seat, Finish, re-roll a Live Coding spin for one seat (the call is defined here; 12 renders it).
 4. **Console UI:**

@@ -26,11 +26,12 @@
 ## Can run at the same time
 - **Today (23 Oct):** 01 and 02.
 - **After 02:** 08 alongside 03, 04, 05 (08 doesn't touch S1 screens).
-- **After 08:** 09, 10 and 11 together (owned paths split in EXAM-ENGINE section 10). Then 12 once 11 is done, and 13 once 10 and 06 are done.
+- **After 08:** 08c (the S3 mockup, split out of 08 on 24 Oct). **After 08c is signed off:** 09, 10 and 11 together (owned paths split in EXAM-ENGINE section 10). Then 12 once 11 is done, and 13 once 10 and 06 are done.
 - **15, 16, 17** are serial because each reuses the previous one's engines.
 
 ## Critical paths
 - **Registration (25 Oct):** 02 → 03 → 04, with 01's sign-off needed before 03. If 01's sign-off slips, 03 builds the must-haves (banner, Daftar, read-only calendar) from the PRD and adopts the mockup rulings in 04.
+- **Pilih Jadwal Tes Tulis (opens 11 Nov 12.00):** 05 → 06 → 07. Candidates pick their own evening, so S2 must ship the shift engine by 9 Nov; 11 reads its `rec_slot_assignment` for the room lists.
 - **Tes Tulis (16 Nov):** 02 → 08 → 11 → 12 → 14. Live Coding is the longest pole (the agent compile job + four protocols + hardware tests). If it slips, Phase 1 ships on time and Live Coding follows before the first evening's Phase 2 starts.
 
 ## Model choice

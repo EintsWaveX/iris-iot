@@ -18,8 +18,5 @@ These are self-contained prompts for separate Claude Code sessions. Each one bui
 | `handoffs/` | What each finished session leaves for the next |
 | `01` … `17` | The prompts |
 
-## Start now (23 Oct)
-- **01** (Opus high): the S1 mockup.
-- **02** (Sonnet high): the foundation.
-
-Once 02 is done, also start **08** (Opus max).
+## Now (wave 2, 24 Oct)
+See `WAVE2.md`: **W1** (Opus high), **08c** (Opus high) and **06** (Sonnet high). At most three sessions at once.
