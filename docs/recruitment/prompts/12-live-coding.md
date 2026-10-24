@@ -42,7 +42,7 @@ Read `_RULES.md`, `EXAM-ENGINE.md` sections 9 and 10, the signed-off Live Coding
    - **HTTP:** `POST/GET /api/recruitment/collect/<seat-token>` echoes and records.
    - **BLE:** a Web Bluetooth central panel (scan, connect, read, write, notify).
    - All traffic goes to the seat's log and is visible to graders.
-6. **Grader rubric:** the rows from the edition config (SAMPLE until the user gives the real ones). Two graders per seat, IRIS averages them, 0 to 1000.
+6. **Grader rubric:** the rows from the edition config (the default rows of EXAM-ENGINE 9.8 ship and stay editable). Two graders per seat, IRIS averages them, 0 to 1000.
 
 ## Verify
 - Agent tests pass, then the web tests.
