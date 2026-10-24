@@ -166,6 +166,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "tp:unggah": ["tp"],
   "tp:tiket": [],
   "tp:perpanjang": ["tp"],
+  "tp:perpanjang-semua": ["tp"],
   // TP notices (2026-10-21): the Praktikan TP card and Kelola TP read them.
   "tp:kabar": ["tp"],
   "tp:kabar-hapus": ["tp"],
