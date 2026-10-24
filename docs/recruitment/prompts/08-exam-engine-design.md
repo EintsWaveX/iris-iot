@@ -44,7 +44,7 @@ Read `_RULES.md`, `PRD.md` section 7 (all of it) and `ARCHITECTURE.md` sections 
 ## Part B: pure modules (TDD)
 `formats.ts` (credit functions per format), `draw.ts`, `scoring.ts`, `room.ts` (the reducer for the state machine + timer math). Fully unit tested, including the worked example from section 4. 09 to 13 import these and must not re-implement them.
 
-## Part C: S3 Stage 0 mockup (same engine, same artifact)
+## Part C: S3 Stage 0 mockup (moved to `08c-s3-mockup.md` on 2026-10-24)
 Screens:
 - **Candidate runner:** lobby, each of the six formats plus FITB, the reference drawer, the timer, the fullscreen cover, submitted, paused.
 - **Master console:** seat grid with progress, strikes, connection and time left; video-style controls; the 120 min budget bar; handover; Pengawas view with notes.

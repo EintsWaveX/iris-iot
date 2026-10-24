@@ -36,7 +36,9 @@ rec_stage_result   candidate_id, stage, proposal(lolos|gagal|null), proposed_by,
 rec_attendance     candidate_id, event_id, at, via(qr|manual), by
 rec_slot           id, edition_id, stage, event_id, room, starts_at, ends_at, capacity
 rec_slot_examiner  slot_id, asisten_id, role(master_pool|pengawas|examiner)
-rec_slot_assignment slot_id, candidate_id, swap_request JSON
+rec_slot_assignment slot_id, candidate_id, via(self|auto|panitia), by, at   (one row per candidate per stage)
+rec_slot_change    id, candidate_id, stage, from_slot, to_slot, reason, status(open|approved|declined|withdrawn),
+                   decided_by, decided_at, note
 rec_rubric         id, edition_id, stage, rows JSON [{key,label,max,weight}]
 rec_rubric_score   rubric_id, candidate_id, examiner_id, values JSON, note, at
 rec_question       id, edition_id, part(logika|fitb|kodingan|mikro), lang(cpp|py|any),
@@ -63,7 +65,7 @@ rec_submission     candidate_id, stage, kind, r2_key|url, at
 ## 4. Gates (calendar drives the flow)
 
 - `src/lib/recruitment/gates.ts` exports `gateOpen(events, stageKey, nowWib)`, along with `phaseOf(stage)` (before, open, review, cutting, announced) and `nextPublicEvent(events, candidate)`.
-- Every write that depends on a window (Daftar, uploads, swaps, check-ins, submissions, reveal) calls the same function on the server. The client uses it for display only.
+- Every write that depends on a window (Daftar, uploads, shift picks, change requests, check-ins, submissions, reveal) calls the same function on the server. The client uses it for display only.
 - **Reveal:** a stage result is visible to its candidate only when `locked` and `now ≥ reveal_at`, where `reveal_at` = the start of that stage's Pengumuman event, copied at lock time.
 
 ## 5. Live updates

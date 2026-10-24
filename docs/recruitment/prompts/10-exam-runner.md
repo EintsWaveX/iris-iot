@@ -1,7 +1,7 @@
 # 10 · Candidate exam runner (Phase 1)
 
 - **Model / effort:** Sonnet 5.5, high
-- **Needs:** 08 (done)
+- **Needs:** 08 (done), 08c (signed off)
 - **Runs in parallel with:** 09 and 11
 - **Owned paths** (per EXAM-ENGINE section 10; typically):
   - migration for `rec_exam_seat` and `rec_answer` (coordinate the migration number with 09 and 11 via SendMessage)
@@ -19,7 +19,7 @@
   - `break-ui`
   - `superpowers:verification-before-completion`
 
-Read `_RULES.md`, `EXAM-ENGINE.md` sections 1 to 3, 5 to 7 and 10, the signed-off runner mockup, and `handoffs/08.md`.
+Read `_RULES.md`, `EXAM-ENGINE.md` sections 1 to 3, 5 to 7 and 10, the signed-off runner mockup, and `handoffs/08.md` and `handoffs/08c.md`.
 
 ## Build
 1. **Entry:** visible only to a candidate assigned to a running room's evening. Check-in steps: fullscreen, a connection check, a name confirm. Then the lobby.

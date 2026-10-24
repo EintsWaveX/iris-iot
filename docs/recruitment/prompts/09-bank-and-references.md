@@ -1,7 +1,7 @@
 # 09 · Question bank editor, import/export, reference snapshots
 
 - **Model / effort:** Sonnet 5.5, high
-- **Needs:** 08 (done)
+- **Needs:** 08 (done), 08c (signed off)
 - **Runs in parallel with:** 10 and 11 (owned paths don't overlap; see `EXAM-ENGINE.md` section 10)
 - **Owned paths** (as listed in EXAM-ENGINE section 10; typically):
   - migration for `rec_question`, `rec_reference`
@@ -16,7 +16,7 @@
   - `emil-design-eng`
   - `superpowers:verification-before-completion`
 
-Read `_RULES.md`, `EXAM-ENGINE.md` sections 1, 2, 8 and 10, the signed-off bank editor mockup, and `handoffs/08.md`.
+Read `_RULES.md`, `EXAM-ENGINE.md` sections 1, 2, 8 and 10, the signed-off bank editor mockup, and `handoffs/08.md` and `handoffs/08c.md`.
 
 ## Build
 1. **Bank API:**
