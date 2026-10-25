@@ -19,7 +19,7 @@ A row is `ready` when every prompt in **Needs** is done. Mockups (01, 05, 08c, 1
 | 10 | Exam runner | Sonnet high | 08, 08c signed off | 10 Nov | done (runner 85e9c00, 2026-10-25; check, lint and 104 tests green; not pushed; open: Live Coding stand-in for 12, `GET ref` and `GET media` for 09, no Firefox, Safari or real phone check, all on 14's list; handoffs/10.md) |
 | 11 | Master console + relay room | Sonnet high | 08, 08c signed off | 10 Nov | done (0051 0ed3793, relay ba0f670, hotspot and kejadian 4629b28, room API fa6279d, console 9b6c5fe, fixes 1094a56 1a574e3 9949020; not pushed; rig run 2026-10-25: 65 + 27 + 31 + 79 checks; seats were fake until 10's runner lands; handoffs/11.md) |
 | 12 | Live Coding | Sonnet high | 08, 08c signed off, 11 | 13 Nov | ready (08, 08c and 11 done) |
-| 13 | Scoring + results | Sonnet medium | 10, 06 | 13 Nov | running (2026-10-25 23:20 WIB, subagent in worktree agent-a2cbfb9a2e53cac7c off phase9-global-and-asisten; S2 and Cutting come from 06 commits already on phase9) |
+| 13 | Scoring + results | Sonnet medium | 10, 06 | 13 Nov | done (2026-10-25 subagent, branch worktree-agent-a2cbfb9a2e53cac7c: 40a5c45, ecec3eb, 14fbba3, 4f80254, 73aac26; migration 0053; not browser or rig checked; handoffs/13.md) |
 | 14 | S3 rehearsal + ship | Opus high | 09, 10, 11, 12, 13 | 16 Nov | blocked |
 | 15 | S4 plotting + Wawancara (a/b/c) | Opus / Sonnet / Opus high | 07 | 30 Nov | blocked (07) |
 | 16 | S5 Tubes (a/b/c) | Opus / Sonnet / Opus high | 15 | 12 Des | blocked (15) |
