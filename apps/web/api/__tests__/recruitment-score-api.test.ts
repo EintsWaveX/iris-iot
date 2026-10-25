@@ -56,6 +56,8 @@ let rows: Record<string, Row[]> = {};
 let alvo = 0;
 let idBaru = 100;
 let audit: { aksi: string; detail: unknown }[] = [];
+/** What the database was asked, in order: the score lock, a read of the freeze, a write. */
+let urutan: string[] = [];
 
 function chain() {
   let tabel = "";
@@ -73,7 +75,10 @@ function chain() {
   p.then = (ok: (v: unknown) => unknown) => {
     let r = (rows[tabel] ?? []).slice();
     // isNull(superseded_at): the only filter whose meaning the tests rely on
-    if (tabel === "freeze") r = r.filter((x) => x.supersededAt == null);
+    if (tabel === "freeze") {
+      urutan.push("baca-beku");
+      r = r.filter((x) => x.supersededAt == null);
+    }
     // a lookup of one question by id: the fake reads the id from `alvo`
     if (tabel === "question" && satu && alvo) r = r.filter((x) => x.id === alvo);
     return ok(r);
@@ -85,6 +90,7 @@ function tulisan(op: "insert" | "update", t: unknown) {
   const tabel = nama.get(t) ?? "";
   const p: Record<string, unknown> = {};
   let hasil: Row[] = [];
+  urutan.push(`${op}:${tabel}`);
   p.values = (v: Row) => {
     const r = { id: ++idBaru, at: new Date(), supersededAt: null, ...v };
     (rows[tabel] ??= []).push(r);
@@ -110,6 +116,7 @@ vi.mock("../../src/lib/db", () => {
     select: () => chain(),
     insert: (t: unknown) => tulisan("insert", t),
     update: (t: unknown) => tulisan("update", t),
+    execute: async () => void urutan.push("kunci"),
     transaction: async (fn: (tx: unknown) => unknown) => fn(db),
   };
   return { getDb: () => db };
@@ -273,6 +280,7 @@ const JAWAB = [
 
 beforeEach(() => {
   audit = [];
+  urutan = [];
   idBaru = 100;
   alvo = 0;
   pelakuNim = {
@@ -465,6 +473,49 @@ describe("question-void and question-unvoid", () => {
     expect((await jalan("question-unvoid", sesi("AKD"), { id: 4, note: "c" })).body.kode).toBe(
       "tidak_batal",
     );
+  });
+});
+
+/* ------------------------------------------------------------- the lock */
+
+describe("the score lock", () => {
+  // A real race needs two connections; what the fake can pin is the order that
+  // makes the race safe: the lock is taken first, the freeze is read after it,
+  // and only then does anything write.
+  const lockFirst = (op: string) => {
+    const i = urutan.indexOf("kunci");
+    const f = urutan.indexOf("baca-beku");
+    const w = urutan.findIndex((x) => x === op);
+    expect(i).toBe(0);
+    expect(f).toBeGreaterThan(i);
+    expect(w).toBeGreaterThan(f);
+  };
+  it("a void takes the lock, reads the freeze, then writes", async () => {
+    alvo = 4;
+    const r = await jalan("question-void", sesi("AKD"), { id: 4, note: "salah kunci" });
+    expect(r.status).toBe(200);
+    lockFirst("update:question");
+  });
+  it("an unvoid does the same", async () => {
+    alvo = 4;
+    await jalan("question-void", sesi("AKD"), { id: 4, note: "a" });
+    urutan = [];
+    await jalan("question-unvoid", sesi("AKD"), { id: 4, note: "b" });
+    lockFirst("update:question");
+  });
+  it("Finalkan takes the lock before it reads the freeze, the answers or anything else", async () => {
+    const r = await jalan("score-finalize", sesi("AKD"), {});
+    expect(r.status).toBe(200);
+    lockFirst("insert:freeze");
+    expect(urutan.indexOf("kunci")).toBeLessThan(urutan.indexOf("insert:freeze"));
+  });
+  it("a void that finds the scores frozen writes nothing", async () => {
+    await jalan("score-finalize", sesi("AKD"), {});
+    urutan = [];
+    alvo = 4;
+    const r = await jalan("question-void", sesi("AKD"), { id: 4, note: "x" });
+    expect(r.body.kode).toBe("nilai_final");
+    expect(urutan.filter((x) => x.startsWith("update") || x.startsWith("insert"))).toEqual([]);
   });
 });
 

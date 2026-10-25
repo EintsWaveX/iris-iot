@@ -10,7 +10,7 @@
  * POST lc-grade-withdraw { seatId }
  */
 import { and, asc, eq, inArray } from "drizzle-orm";
-import type { SessionPayload } from "../../src/lib/auth.js";
+import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
 import { jsonBody, noStore } from "./http.js";
 import { getDb } from "../../src/lib/db.js";
@@ -38,6 +38,7 @@ import { muatPelaku, type PelakuServer } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
 import { nomorKursi } from "./recruitment-lc-common.js";
 import { muatRubrik, semaiKolam } from "./recruitment-lc-pool.js";
+import { denganKunciNilai, nilaiBeku } from "./recruitment-score.js";
 import { recAccount, praktikan } from "../../src/lib/schema.js";
 
 const NOTE_MAX = 1000;
@@ -236,29 +237,44 @@ export async function aksiNilai(
     const salah = validateSheet(rubrik, values);
     if (salah.length) return void tolak(res, "nilai_salah", 400, { galat: salah });
     const note = typeof b.note === "string" ? b.note.slice(0, NOTE_MAX) : "";
-    const boleh = canSubmit(semua, s.nim);
-    if (!boleh.ok) return void tolak(res, boleh.kode, 409);
-    await db
-      .insert(recRubricScore)
-      .values({ rubricId: rubrik.id, subjectId: seatId, graderNim: s.nim, values, note })
-      .onConflictDoUpdate({
-        target: [recRubricScore.rubricId, recRubricScore.subjectId, recRubricScore.graderNim],
-        set: { values, note, updatedAt: new Date() },
-      });
-    const [mine] = (await lembar(db, rubrik.id, [seatId])).filter((h) => h.grader === s.nim);
-    return void res.status(200).json({ ok: true, sheet: mine ? sheetDari(mine) : null });
+    // Finalkan froze the sheets with the scores: nothing is added, changed or taken back until it is opened.
+    // The freeze is read under the score lock, and the sheets are read again under it.
+    const hasil = await denganKunciNilai(db, edisi.id, async (tx) => {
+      if (await nilaiBeku(tx, edisi.id)) return { kode: "nilai_final", mine: undefined };
+      const boleh = canSubmit((await lembar(tx, rubrik.id, [seatId])).map(sheetDari), s.nim);
+      if (!boleh.ok) return { kode: boleh.kode, mine: undefined };
+      await tx
+        .insert(recRubricScore)
+        .values({ rubricId: rubrik.id, subjectId: seatId, graderNim: s.nim, values, note })
+        .onConflictDoUpdate({
+          target: [recRubricScore.rubricId, recRubricScore.subjectId, recRubricScore.graderNim],
+          set: { values, note, updatedAt: new Date() },
+        });
+      return { mine: (await lembar(tx, rubrik.id, [seatId])).filter((h) => h.grader === s.nim)[0] };
+    });
+    if (hasil.kode) return void tolak(res, hasil.kode, 409);
+    await writeAudit(s.nim, "rec_lc_nilai", { seatId, room: room.id });
+    return void res
+      .status(200)
+      .json({ ok: true, sheet: hasil.mine ? sheetDari(hasil.mine) : null });
   }
 
   if (aksi === "lc-grade-withdraw") {
-    await db
-      .delete(recRubricScore)
-      .where(
-        and(
-          eq(recRubricScore.rubricId, rubrik.id),
-          eq(recRubricScore.subjectId, seatId),
-          eq(recRubricScore.graderNim, s.nim),
-        ),
-      );
+    const beku = await denganKunciNilai(db, edisi.id, async (tx) => {
+      if (await nilaiBeku(tx, edisi.id)) return true;
+      await tx
+        .delete(recRubricScore)
+        .where(
+          and(
+            eq(recRubricScore.rubricId, rubrik.id),
+            eq(recRubricScore.subjectId, seatId),
+            eq(recRubricScore.graderNim, s.nim),
+          ),
+        );
+      return false;
+    });
+    if (beku) return void tolak(res, "nilai_final", 409);
+    await writeAudit(s.nim, "rec_lc_nilai_tarik", { seatId, room: room.id });
     return void res.status(200).json({ ok: true });
   }
 

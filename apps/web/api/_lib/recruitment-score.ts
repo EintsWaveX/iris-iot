@@ -15,7 +15,7 @@
  *
  * Void, key fixes and the like are refused while frozen (`nilai_final`).
  */
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
@@ -93,6 +93,29 @@ export async function muatBeku(db: Db, edisiId: number): Promise<RecScoreFreezeR
 /** True while Finalkan holds; key fixes and voids ask this before they write. */
 export const nilaiBeku = async (db: Db, edisiId: number): Promise<boolean> =>
   (await muatBeku(db, edisiId)) !== null;
+
+const KUNCI_NILAI = 7102;
+
+/**
+ * One transaction that holds the edition's score lock, for every write that
+ * must not land on a state Finalkan has just changed: Finalkan itself, a void
+ * or unvoid, a Live Coding sheet and a key edit on a dealt question. The lock
+ * is taken first and the freeze is read after it, so of two writers racing
+ * the later one reads what the earlier one committed (a freeze that appeared
+ * after its check can no longer be missed). It is transaction-scoped and
+ * keyed by edition, and nothing else waits on it.
+ */
+export function denganKunciNilai<T>(
+  db: Db,
+  edisiId: number,
+  fn: (tx: Db) => Promise<T>,
+): Promise<T> {
+  return db.transaction(async (raw) => {
+    const tx = raw as unknown as Db;
+    await tx.execute(sql`select pg_advisory_xact_lock(${KUNCI_NILAI}, ${edisiId})`);
+    return fn(tx);
+  });
+}
 
 /** Everything a computation reads, as the pure table wants it. */
 async function muatMasukan(db: Db, edisiId: number) {
@@ -374,18 +397,18 @@ async function batalkan(k: Konteks, batal: boolean) {
   if (!id) return galat(k.res, "data_salah");
   const note = catatan(b.note);
   if (!note) return galat(k.res, "perlu_catatan");
-  if (await nilaiBeku(k.db, k.edisiId)) return galat(k.res, "nilai_final");
-  const [r] = await k.db
-    .select()
-    .from(recQuestion)
-    .where(and(eq(recQuestion.id, id), eq(recQuestion.editionId, k.edisiId)))
-    .limit(1);
-  if (!r) return galat(k.res, "tidak_ada");
-  const sudah = r.voidedAt !== null;
-  if (batal && sudah) return galat(k.res, "sudah_batal");
-  if (!batal && !sudah) return galat(k.res, "tidak_batal");
   const now = new Date();
-  await k.db.transaction(async (tx) => {
+  const hasil = await denganKunciNilai(k.db, k.edisiId, async (tx) => {
+    if (await nilaiBeku(tx, k.edisiId)) return "nilai_final";
+    const [r] = await tx
+      .select()
+      .from(recQuestion)
+      .where(and(eq(recQuestion.id, id), eq(recQuestion.editionId, k.edisiId)))
+      .limit(1);
+    if (!r) return "tidak_ada";
+    const sudah = r.voidedAt !== null;
+    if (batal && sudah) return "sudah_batal";
+    if (!batal && !sudah) return "tidak_batal";
     await tx
       .update(recQuestion)
       .set(
@@ -402,10 +425,12 @@ async function batalkan(k: Konteks, batal: boolean) {
       after: { voided: batal },
       note,
     });
+    return r;
   });
+  if (typeof hasil === "string") return galat(k.res, hasil);
   await writeAudit(k.nim, batal ? "rec_soal_batal" : "rec_soal_pulih", {
     id,
-    title: r.title,
+    title: hasil.title,
     note,
   });
   const body: VoidResponse = {
@@ -420,34 +445,42 @@ async function finalkan(k: Konteks) {
   const note = b.note === undefined || b.note === null || b.note === "" ? null : catatan(b.note);
   if (b.note !== undefined && b.note !== null && b.note !== "" && !note)
     return galat(k.res, "data_salah");
-  if (await nilaiBeku(k.db, k.edisiId)) return galat(k.res, "sudah_final");
-  const hitung = await hitungSekarang(k.db, k.edisiId);
-  const hal = await halangan(k.db, k.edisiId, hitung);
-  if (hal.length) return galat(k.res, hal[0].kode, { blockers: hal });
-  let baris: RecScoreFreezeRow | undefined;
+  let hasil:
+    | { kode: string; blockers?: FinalBlocker[] }
+    | { baris: RecScoreFreezeRow; hitung: Awaited<ReturnType<typeof hitungSekarang>> };
   try {
-    [baris] = await k.db
-      .insert(recScoreFreeze)
-      .values({
-        editionId: k.edisiId,
-        by: k.nim,
-        note,
-        scores: hitung.rows,
-        stats: hitung.stats,
-      })
-      .returning();
+    // Under the score lock, so a void or a Live Coding sheet cannot land between the numbers and the freeze.
+    hasil = await denganKunciNilai(k.db, k.edisiId, async (tx) => {
+      if (await nilaiBeku(tx, k.edisiId)) return { kode: "sudah_final" };
+      const hitung = await hitungSekarang(tx, k.edisiId);
+      const hal = await halangan(tx, k.edisiId, hitung);
+      if (hal.length) return { kode: hal[0].kode, blockers: hal };
+      const [baris] = await tx
+        .insert(recScoreFreeze)
+        .values({
+          editionId: k.edisiId,
+          by: k.nim,
+          note,
+          scores: hitung.rows,
+          stats: hitung.stats,
+        })
+        .returning();
+      return { baris, hitung };
+    });
   } catch (e) {
-    // The one-live-freeze index: another Finalkan won the race.
+    // The one-live-freeze index: still the last word if a writer slips past the lock.
     if (/rec_score_freeze_hidup|unique|duplicate/i.test(String((e as Error)?.message ?? e)))
       return galat(k.res, "sudah_final");
     throw e;
   }
+  if ("kode" in hasil)
+    return galat(k.res, hasil.kode, hasil.blockers ? { blockers: hasil.blockers } : {});
   await writeAudit(k.nim, "rec_nilai_final", {
     edition: k.edisiId,
-    seats: hitung.rows.length,
+    seats: hasil.hitung.rows.length,
     note,
   });
-  const body: FreezeResponse = { ok: true, freeze: await infoBeku(k.db, baris!) };
+  const body: FreezeResponse = { ok: true, freeze: await infoBeku(k.db, hasil.baris) };
   k.res.status(200).json(body);
 }
 
