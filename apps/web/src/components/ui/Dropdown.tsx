@@ -56,13 +56,17 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import "./Dropdown.css";
 
 export interface DropdownOption {
   value: string;
+  /** The plain text: typeahead, the accessible name and the fallback */
   label: string;
+  /** What the trigger and the list show instead of the text (a highlighted line of code) */
+  node?: ReactNode;
   disabled?: boolean;
   /** A code chip after the label, like the mockup's "TIR". */
   chip?: string;
@@ -401,7 +405,7 @@ export default function Dropdown({
         onClick={() => (open ? setOpen(false) : openAt(selectedIndex))}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className="dropdown__value">{selectedLabel}</span>
+        <span className="dropdown__value">{options[selectedIndex]?.node ?? selectedLabel}</span>
         {selectedChip && <span className="acode dropdown__chip">{selectedChip}</span>}
         <svg className="dropdown__chevron" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M6 9l6 6 6-6" />
@@ -452,7 +456,7 @@ export default function Dropdown({
                     onClick={() => commit(i)}
                   >
                     <span className="dropdown__txt">
-                      {opt.label}
+                      {opt.node ?? opt.label}
                       {opt.note && <small className="dropdown__note">{opt.note}</small>}
                     </span>
                     {opt.chip && <span className="acode dropdown__chip">{opt.chip}</span>}

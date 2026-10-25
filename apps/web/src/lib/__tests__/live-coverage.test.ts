@@ -41,6 +41,7 @@ const SEKALI: Record<string, string> = {
   "lib/telemetry-live.ts": "the backlog read behind the session room",
   "lib/siaran.ts": "the live updates themselves",
   "lib/aliran-ruang.ts": "the session room itself (its ticket)",
+  "lib/recruitment/seat-client.ts": "the exam room itself, a seat's socket (its ticket)",
   "lib/app.ts": "getJson itself; useSessionNow polls with topics",
   "lib/auth.ts": "sign in and out",
   "lib/pdf.ts": "fetches fonts for a PDF",

@@ -72,6 +72,7 @@ import DocsDrawer from "./DocsDrawer";
 import Journey from "./Journey";
 import { CP } from "./candidateStrings";
 import { judulAcara, tempatAcara } from "../judul";
+import TestDoor from "../exam/TestDoor";
 
 // GSAP and canvas-confetti only ship when an envelope is opened.
 const RevealStage = lazy(() => import("../reveal/RevealStage"));
@@ -505,6 +506,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
           {!lebar && nextCard}
           {revisi}
           {cta}
+          <TestDoor lang={lang} enabled={praktikan && applied} />
           {sealedEnv && (
             <SealedHero
               lang={lang}

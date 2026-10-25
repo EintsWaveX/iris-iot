@@ -1,0 +1,28 @@
+---
+/**
+ * /recruitment/test and its en and zh twins (prompt 10): the candidate's exam.
+ * No navbar and no footer: the test runs full screen from the first check-in
+ * step. The page that is not open yet draws the recruitment navbar itself
+ * (components/recruitment/exam/Screens.tsx).
+ */
+import Base from "../layouts/Base.astro";
+import TestPage from "../components/recruitment/exam/TestPage";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  noindex
+  title={`${tri(lang, "Tes Tulis dan Koding", "Written and Coding Test", "笔试与编程")} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+  nav={false}
+  footer={false}
+>
+  <TestPage client:load lang={lang} />
+</Base>
