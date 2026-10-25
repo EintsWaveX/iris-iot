@@ -69,11 +69,11 @@ export function ImagesEditor({
         </span>
       ))}
       {images.length > 0 && (
-        <div className="r3imgs">
+        <div className="bkimgs">
           {images.map((im) => (
-            <div className="r3img" key={im.id}>
-              <img className="r3img__thumb" src={mediaUrl(im.key)} alt={im.alt} loading="lazy" />
-              <div className="r3img__main">
+            <div className="bkimg" key={im.id}>
+              <img className="bkimg__thumb" src={mediaUrl(im.key)} alt={im.alt} loading="lazy" />
+              <div className="bkimg__main">
                 <input
                   className="field__input"
                   value={im.alt}

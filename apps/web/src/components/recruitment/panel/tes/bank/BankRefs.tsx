@@ -143,17 +143,17 @@ export default function BankRefs({
       {data.references.length === 0 ? (
         <p className="empty-note">{t.refEmpty}</p>
       ) : (
-        <div className="r3refs">
+        <div className="bkrefs">
           {data.references.map((r) => (
             <article
-              className="r3ref"
+              className="bkref"
               key={r.id}
               data-bad={r.status === "gagal" || r.error ? "yes" : "no"}
             >
-              <div className="r3ref__top">
-                <div className="r3ref__main">
+              <div className="bkref__top">
+                <div className="bkref__main">
                   <b>{r.title}</b>
-                  {r.url && <span className="hint r3ref__url">{r.url}</span>}
+                  {r.url && <span className="hint bkref__url">{r.url}</span>}
                   <span className="hint">
                     {r.fetchedAt
                       ? t.refFetched(
@@ -165,7 +165,7 @@ export default function BankRefs({
                   </span>
                   {r.error && <span className="r3err">{r.error}</span>}
                 </div>
-                <div className="r3ref__acts">
+                <div className="bkref__acts">
                   <Pill tone={r.status === "ok" ? "ok" : "danger"}>
                     {r.status === "ok" ? t.refStatusOk : t.refStatusFail}
                   </Pill>
@@ -375,7 +375,7 @@ export default function BankRefs({
       >
         {view && (
           <iframe
-            className="r3ref__frame"
+            className="bkref__frame"
             title={view.title}
             sandbox=""
             referrerPolicy="no-referrer"

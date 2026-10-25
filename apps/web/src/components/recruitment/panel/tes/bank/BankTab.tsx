@@ -193,7 +193,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
             <span className="skeleton" style={{ height: 240 }} />
           )
         ) : rows.length === 0 ? (
-          <section className="panel r3empty">
+          <section className="panel bkempty">
             <h3 className="panel__title">{t.emptyBankTitle}</h3>
             <p className="hint" style={{ maxWidth: 560 }}>
               {t.emptyBankBody}

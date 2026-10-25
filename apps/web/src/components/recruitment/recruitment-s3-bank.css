@@ -22,9 +22,11 @@
 }
 .r3bank__acts {
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  margin-left: auto;
 }
-@media (min-width: 1100px) {
+/* The eight tabs need about 1010px; the three buttons beside them need 330px more. */
+@media (min-width: 1560px) {
   .r3bank__bar {
     flex-wrap: nowrap;
   }
@@ -92,7 +94,7 @@
 .r3qtab .pill {
   white-space: nowrap;
 }
-.r3empty {
+.bkempty {
   display: grid;
   gap: 10px;
   justify-items: start;
@@ -434,11 +436,11 @@
   white-space: pre;
   overflow-x: auto;
 }
-.r3imgs {
+.bkimgs {
   display: grid;
   gap: 8px;
 }
-.r3img {
+.bkimg {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr) auto;
   gap: 10px;
@@ -447,14 +449,14 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--hairline);
 }
-.r3img__thumb {
+.bkimg__thumb {
   width: 64px;
   height: 48px;
   object-fit: contain;
   border-radius: 6px;
   background: var(--bg-sunken);
 }
-.r3img__main {
+.bkimg__main {
   display: grid;
   gap: 4px;
   min-width: 0;
@@ -573,11 +575,11 @@
 }
 
 /* ------------------------------------------------------------- references */
-.r3refs {
+.bkrefs {
   display: grid;
   gap: 10px;
 }
-.r3ref {
+.bkref {
   display: grid;
   gap: 10px;
   padding: 14px 16px;
@@ -585,36 +587,36 @@
   border: 1px solid var(--hairline);
   background: var(--surface-1);
 }
-.r3ref__top {
+.bkref__top {
   display: flex;
   gap: 10px;
   align-items: flex-start;
   justify-content: space-between;
   flex-wrap: wrap;
 }
-.r3ref__main {
+.bkref__main {
   display: grid;
   gap: 2px;
   min-width: 0;
   flex: 1 1 260px;
 }
-.r3ref__main b,
-.r3ref__url {
+.bkref__main b,
+.bkref__url {
   overflow-wrap: anywhere;
 }
-.r3ref__acts {
+.bkref__acts {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
-.r3ref__frame {
+.bkref__frame {
   width: 100%;
   height: min(70vh, 640px);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   background: #fff;
 }
-.r3ref[data-bad="yes"] {
+.bkref[data-bad="yes"] {
   border-color: color-mix(in srgb, var(--danger) 55%, transparent);
 }
 
