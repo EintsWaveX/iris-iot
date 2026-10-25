@@ -222,11 +222,9 @@ export default function Daftar({
     address: "",
     motivation: "",
   });
-  const [slots, setSlots] = useState<Record<string, Slot>>({
-    cv: KOSONG,
-    letter: KOSONG,
-    vision: KOSONG,
-  });
+  const [slots, setSlots] = useState<Record<string, Slot>>(() =>
+    Object.fromEntries(DOC_REQUIRED.map((k) => [k, KOSONG])),
+  );
   const [salah, setSalah] = useState<Record<string, string>>({});
   const [setuju, setSetuju] = useState(false);
   const [kirim, setKirim] = useState(false);
