@@ -901,7 +901,10 @@ async function daftarRujukan(k: Konteks) {
 const galatSnapshot = (res: ApiResponse, e: unknown) => {
   if (e instanceof SnapshotError) {
     const status =
-      e.kode === "url_salah" || e.kode === "alamat_terlarang" || e.kode === "jenis_salah"
+      e.kode === "url_salah" ||
+      e.kode === "alamat_terlarang" ||
+      e.kode === "jenis_salah" ||
+      e.kode === "kosong"
         ? 400
         : 502;
     return tolak(res, e.kode, status, e.message !== e.kode ? { detail: e.message } : {});

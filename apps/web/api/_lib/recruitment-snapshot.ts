@@ -23,6 +23,7 @@ import {
   svgFileToDataUri,
   verifySnapshot,
   type Sanitized,
+  type SNode,
 } from "../../src/lib/recruitment/snapshot-sanitize.js";
 
 export const SNAPSHOT_UA = "IRIS-Snapshot/1 (+https://irisiotlab.com)";
@@ -299,7 +300,29 @@ export interface Snapshot {
   skipped: number;
 }
 
+/** Below this many characters of text (and no picture) a snapshot has nothing to read. */
+const MIN_TEXT = 20;
+
+function readable(nodes: SNode[], images: Map<number, string>): boolean {
+  let n = 0;
+  const walk = (list: SNode[]): boolean => {
+    for (const x of list) {
+      if (x.t === "text") n += x.v.trim().length;
+      else {
+        if (x.job !== undefined && images.has(x.job)) return true;
+        if (walk(x.k)) return true;
+      }
+      if (n >= MIN_TEXT) return true;
+    }
+    return false;
+  };
+  return walk(nodes);
+}
+
 function pack(s: Sanitized, images: Map<number, string>, now: Date): Snapshot {
+  // A page that only fills itself in with JavaScript arrives empty; storing it blank
+  // would hand the candidates a blank reference, so say so and point at the upload.
+  if (!readable(s.root, images)) throw new SnapshotError("kosong");
   const html = render(s, { images, fetchedAt: now });
   const bad = verifySnapshot(html);
   if (bad.length) throw new SnapshotError("tidak_aman", bad.slice(0, 5).join(", "));

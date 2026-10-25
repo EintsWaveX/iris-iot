@@ -202,9 +202,11 @@ describe("snapshotUrl", () => {
 
   it("makes a pre of plain text and refuses other types", async () => {
     const t = await snapshotUrl("https://a.example/t", {
-      net: fake({ "https://a.example/t": html("a < b & c", "text/plain; charset=utf-8") }).net,
+      net: fake({
+        "https://a.example/t": html("jika a < b & c maka berhenti", "text/plain; charset=utf-8"),
+      }).net,
     });
-    expect(t.html).toContain("<pre><code>a &lt; b &amp; c</code></pre>");
+    expect(t.html).toContain("<pre><code>jika a &lt; b &amp; c maka berhenti</code></pre>");
     await fails(
       snapshotUrl("https://a.example/p", {
         net: fake({ "https://a.example/p": html("%PDF-", "application/pdf") }).net,
@@ -229,6 +231,31 @@ describe("snapshotUrl", () => {
     const out = Buffer.from(m![1], "base64").toString("utf8");
     expect(out).toContain("<rect");
     expect(out).not.toMatch(/script|onload|alert/);
+  });
+});
+
+describe("a page with nothing to read", () => {
+  // docs.arduino.cc sends its text in a script; the sanitizer keeps no script, so
+  // the snapshot would be a title and a blank page (found on the real site).
+  const SHELL = `<!doctype html><title>Arduino</title><body><main id="__next"></main><script>window.__DATA__={"text":"hidden"}</script></body>`;
+
+  it("is refused as kosong instead of stored blank", async () => {
+    const f = fake({ "https://a.example/js": html(SHELL) });
+    await fails(snapshotUrl("https://a.example/js", { net: f.net }), "kosong");
+    expect(() => snapshotUpload(SHELL)).toThrowError(expect.objectContaining({ kode: "kosong" }));
+  });
+
+  it("is not refused for a short page that has a picture or a few real lines", async () => {
+    const f = fake({
+      "https://a.example/pendek": html(
+        `<title>P</title><main><h1>digitalWrite()</h1><p>Menulis HIGH atau LOW ke satu pin.</p></main>`,
+      ),
+    });
+    await expect(snapshotUrl("https://a.example/pendek", { net: f.net })).resolves.toBeDefined();
+    expect(
+      snapshotUpload(`<body><img src="data:image/png;base64,iVBORw0KGgo=" alt="skema"></body>`)
+        .html,
+    ).toContain("data:image/png");
   });
 });
 

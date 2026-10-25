@@ -298,6 +298,11 @@ export type RecError =
   | "url_salah"
   | "alamat_terlarang"
   | "jenis_salah"
+  | "kosong"
+  | "status_salah"
+  | "tak_terjangkau"
+  | "waktu_habis"
+  | "terlalu_banyak_alihan"
   | "tidak_aman";
 
 export interface RecFail {
