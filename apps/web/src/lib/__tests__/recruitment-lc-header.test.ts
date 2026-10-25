@@ -9,7 +9,7 @@ const base: HeaderInput = {
   seatId: 12,
   board: 2,
   token: "abc.def",
-  mqtt: { user: "rec3s12", pass: "Abcdefghijklmnop12345678" },
+  mqtt: { user: "rec3s12", pass: "test".repeat(6) },
 };
 
 describe("buildHeader", () => {
