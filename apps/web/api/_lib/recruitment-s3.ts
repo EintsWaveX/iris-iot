@@ -77,6 +77,7 @@ const ASISTEN_POST: Record<string, S3Handler> = {
   "question-save": handleBank,
   "question-delete": handleBank,
   "bank-import": handleBank,
+  "bank-seed": handleBank,
   "media-ticket": handleBank,
   "reference-add": handleBank,
   "reference-refetch": handleBank,

@@ -53,6 +53,8 @@ export const TOPIK = [
   // S3 (2026-10-24): an exam room was set up, opened, run or finished. The
   // candidate's page shows or hides its test entry; the room list refreshes.
   "recroom",
+  // S3 (2026-10-25): the question bank, the parts config or a reference changed.
+  "recbank",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -221,16 +223,17 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:lc-variant": [],
   "recruitment:lc-compile": [],
   "recruitment:lc-flash": [],
-  "recruitment:exam-config-save": [],
-  "recruitment:question-save": [],
-  "recruitment:question-delete": [],
-  "recruitment:bank-import": [],
+  "recruitment:exam-config-save": ["recbank"],
+  "recruitment:question-save": ["recbank"],
+  "recruitment:question-delete": ["recbank"],
+  "recruitment:bank-import": ["recbank"],
   "recruitment:media-ticket": [],
-  "recruitment:reference-add": [],
-  "recruitment:reference-refetch": [],
-  "recruitment:reference-upload": [],
-  "recruitment:reference-delete": [],
-  "recruitment:reference-attach": [],
+  "recruitment:bank-seed": ["recbank"],
+  "recruitment:reference-add": ["recbank"],
+  "recruitment:reference-refetch": ["recbank"],
+  "recruitment:reference-upload": ["recbank"],
+  "recruitment:reference-delete": ["recbank"],
+  "recruitment:reference-attach": ["recbank"],
   "recruitment:room-setup": ["recroom"],
   "recruitment:room-act": ["recroom"],
   "recruitment:room-master": [],
