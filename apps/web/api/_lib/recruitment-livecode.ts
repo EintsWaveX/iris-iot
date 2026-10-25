@@ -319,12 +319,10 @@ async function aturPapan(c: KonteksLc, req: ApiRequest, res: ApiResponse) {
     .from(recLivecode)
     .where(eq(recLivecode.seatId, c.seat.id))
     .limit(1);
-  res
-    .status(200)
-    .json({
-      ok: true,
-      boards: baru.boards.map((x) => ({ n: x.n, chip: x.chip, rev: x.rev, code: x.code })),
-    });
+  res.status(200).json({
+    ok: true,
+    boards: baru.boards.map((x) => ({ n: x.n, chip: x.chip, rev: x.rev, code: x.code })),
+  });
 }
 
 /** HTTP/WebSocket seats choose which of the two to write (9.1). */
@@ -344,13 +342,11 @@ async function gantiVarian(c: KonteksLc, req: ApiRequest, res: ApiResponse) {
       fase === "selesai" ? "ruang_selesai" : fase === "belum" ? "belum_dibuka" : "waktu_habis",
     );
   if (lc.variant === b.variant)
-    return void res
-      .status(200)
-      .json({
-        ok: true,
-        variant: b.variant,
-        boards: lc.boards.map((x) => ({ n: x.n, code: x.code, rev: x.rev })),
-      });
+    return void res.status(200).json({
+      ok: true,
+      variant: b.variant,
+      boards: lc.boards.map((x) => ({ n: x.n, code: x.code, rev: x.rev })),
+    });
   const lama = await muatTemplate(c.db, c.edisiId, templateKey("httpws", lc.variant));
   const baru = await muatTemplate(c.db, c.edisiId, templateKey("httpws", b.variant));
   const diubah = lc.boards.some((x) => x.code !== lama && x.code !== "");
@@ -360,13 +356,11 @@ async function gantiVarian(c: KonteksLc, req: ApiRequest, res: ApiResponse) {
     .update(recLivecode)
     .set({ variant: b.variant, boards, updatedAt: new Date() })
     .where(eq(recLivecode.seatId, c.seat.id));
-  res
-    .status(200)
-    .json({
-      ok: true,
-      variant: b.variant,
-      boards: boards.map((x) => ({ n: x.n, code: x.code, rev: x.rev })),
-    });
+  res.status(200).json({
+    ok: true,
+    variant: b.variant,
+    boards: boards.map((x) => ({ n: x.n, code: x.code, rev: x.rev })),
+  });
 }
 
 /* ------------------------------------------------------- gateway tickets */
