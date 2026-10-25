@@ -576,6 +576,11 @@ export default function CuttingTab({
       />
       <span className="grow" />
       <span className="hint num">{t.of(daftar.length, baris.length)}</span>
+      {pilih === "tes_tulis" && typeof board.data?.scoreFinal === "boolean" && (
+        <Pill tone={board.data.scoreFinal ? "ok" : "warn"}>
+          {board.data.scoreFinal ? t.scoresFinal : t.scoresProvisional}
+        </Pill>
+      )}
       {bisaUsul && pilih === "tes_tulis" && (
         <button
           type="button"

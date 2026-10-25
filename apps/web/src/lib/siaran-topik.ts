@@ -57,6 +57,8 @@ export const TOPIK = [
   "recbank",
   // S3 (2026-10-25, Live Coding): a sheet was sent or withdrawn, or the topic pool, a template or the rubric changed.
   "reclive",
+  // S3 (2026-10-25, scores): a question was voided or restored, scores were frozen or unfrozen. The Penilaian tab and the Cutting board's Tes Tulis columns follow.
+  "recscore",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -212,8 +214,8 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:slot-autofill": ["recplotting", "reccandidates"],
   // S3, the exam (2026-10-24). Most writes ride the exam's relay room (the
   // Master's ping, notes, kits, answers) and send no topic. A room being set
-  // up, run or moved sends recroom; 09 and 13 give theirs a topic (recbank,
-  // recscore) when their page listens.
+  // up, run or moved sends recroom; the bank sends recbank, Live Coding
+  // reclive and the scores recscore.
   "recruitment:test-checkin": [],
   "recruitment:test-answer": [],
   "recruitment:test-strike": [],
@@ -249,10 +251,10 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:lc-topic-delete": ["reclive"],
   "recruitment:lc-template-save": ["reclive"],
   "recruitment:lc-rubric-save": ["reclive"],
-  "recruitment:question-void": [],
-  "recruitment:question-unvoid": [],
-  "recruitment:score-finalize": [],
-  "recruitment:score-unfreeze": [],
+  "recruitment:question-void": ["recscore", "reccutting"],
+  "recruitment:question-unvoid": ["recscore", "reccutting"],
+  "recruitment:score-finalize": ["recscore", "reccutting"],
+  "recruitment:score-unfreeze": ["recscore", "reccutting"],
   // Oprec accounts (2026-10-24): a sign-up, sign-in or sign-out changes no
   // page but the candidate's own; Reset Akun answers its code to the one asking.
   "recruitment:account-signup": [],

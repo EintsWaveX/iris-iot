@@ -76,6 +76,7 @@ import { BANK_GAMBAR, REK_BANK_RE, REK_REF_RE, kunciBank, kunciRef } from "../..
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak, type PelakuServer } from "./recruitment-rights.js";
 import { muatConfig } from "./recruitment-room.js";
+import { nilaiBeku } from "./recruitment-score.js";
 import { muatKursiSendiri } from "./recruitment-seat.js";
 import {
   SnapshotError,
@@ -110,6 +111,7 @@ const STATUS: Record<string, number> = {
   ruang_berjalan: 409,
   sudah_tampil: 409,
   terkunci: 409,
+  nilai_final: 409,
   versi_lama: 409,
   sudah_ada: 409,
   rujukan_hilang: 400,
@@ -537,6 +539,15 @@ async function simpanSoal(k: Konteks) {
   const b = jsonBody(k.req);
   const id = b.id === undefined || b.id === null ? undefined : intOf(b.id);
   if (b.id !== undefined && b.id !== null && !id) return galat(k.res, "data_salah");
+  // Finalkan froze the scores: a question that was dealt keeps its key (EXAM-ENGINE 4.3).
+  if (id && (await nilaiBeku(k.db, k.edisiId))) {
+    const [ada] = await k.db
+      .select({ shownAt: recQuestion.shownAt })
+      .from(recQuestion)
+      .where(and(eq(recQuestion.id, id), eq(recQuestion.editionId, k.edisiId)))
+      .limit(1);
+    if (ada?.shownAt) return galat(k.res, "nilai_final");
+  }
   const config = await muatConfig(k.db, k.edisiId);
   const r = await simpanSatu(
     k.db,
@@ -604,6 +615,7 @@ async function impor(k: Konteks) {
   if (text === null) return galat(k.res, "data_salah");
   if (text.length > MAX_IMPORT) return galat(k.res, "terlalu_besar");
   const dry = b.dry !== false;
+  if (!dry && (await nilaiBeku(k.db, k.edisiId))) return galat(k.res, "nilai_final");
   const note = typeof b.note === "string" ? b.note : undefined;
   const all = await muatSemua(k.db, k.edisiId);
   const byId = new Map(all.map((r) => [r.id, r]));
