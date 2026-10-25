@@ -52,15 +52,18 @@ function Statistik({ lang }: { lang: Lang }) {
   const boleh = edisi.data?.rights?.candidates === true;
   const daftar = useRecCandidates(boleh);
   const baris = daftar.data?.candidates;
-  if (!boleh || !baris) return null;
-  const menunggu = baris.filter((c) => c.status === "applied").length;
+  // Every seated Panitia may see the candidates (rights.ts), so while the counts load they
+  // keep their room, hidden: above the practicum top the banner must not grow after it drew.
+  if (edisi.updatedAt !== null && !boleh) return null;
+  const tunggu = baris ? undefined : ({ visibility: "hidden" } as const);
+  const menunggu = baris ? baris.filter((c) => c.status === "applied").length : 0;
   return (
     <>
-      <div className="rec-bn__stat">
-        <b className="num">{baris.length}</b>
+      <div className="rec-bn__stat" style={tunggu} aria-hidden={baris ? undefined : true}>
+        <b className="num">{baris?.length ?? 0}</b>
         <span className="hint">{t.applicants}</span>
       </div>
-      <div className="rec-bn__stat">
+      <div className="rec-bn__stat" style={tunggu} aria-hidden={baris ? undefined : true}>
         <b className="num">{menunggu}</b>
         <span className="hint">{t.waiting}</span>
       </div>
