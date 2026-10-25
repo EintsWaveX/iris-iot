@@ -1282,6 +1282,16 @@ async function aksiMaster({ req, res, s, db, edisi, p }: Ctx) {
 
 /* ------------------------------------------------- notes, kits and moves */
 
+/** A candidate of this edition: notes and kit loans may only name one (a stray id would fail on the key with a 500). */
+async function kandidatAda(db: Db, edisiId: number, candidateId: number): Promise<boolean> {
+  const [k] = await db
+    .select({ id: recCandidate.id })
+    .from(recCandidate)
+    .where(and(eq(recCandidate.id, candidateId), eq(recCandidate.editionId, edisiId)))
+    .limit(1);
+  return !!k;
+}
+
 async function catat({ req, res, s, db, edisi, p }: Ctx) {
   const b = jsonBody(req);
   const id = Number(b.id);
@@ -1293,6 +1303,8 @@ async function catat({ req, res, s, db, edisi, p }: Ctx) {
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
   const pengawas = await muatPengawas(db, r.room.slotId);
   if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
+  if (!(await kandidatAda(db, edisi.id, candidateId)))
+    return void tolak(res, "tidak_ditemukan", 404);
   const isi = b.text.trim();
   if (!isi) {
     await db
@@ -1360,6 +1372,8 @@ async function pinjamKit({ req, res, s, db, edisi, p }: Ctx) {
   const r = await muatRuang(db, edisi.id, id);
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
   if (r.room.state.stage === "finished") return void tolak(res, "tahap_salah", 409);
+  if (!(await kandidatAda(db, edisi.id, candidateId)))
+    return void tolak(res, "tidak_ditemukan", 404);
   const returned = b.returned === true;
   const set = {
     kitCode: kit,

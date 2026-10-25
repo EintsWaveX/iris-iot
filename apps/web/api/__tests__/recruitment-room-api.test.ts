@@ -822,6 +822,15 @@ describe("the Master's controls", () => {
 /* ------------------------------------------------- notes, kits, moves */
 
 describe("notes", () => {
+  beforeEach(() => {
+    rows.candidate = [{ id: 101 }];
+  });
+  it("refuses a candidate who is not of this edition", async () => {
+    rows.candidate = [];
+    const r = await jalan("room-note", "N1", { id: 7, candidateId: 9999, text: "x" });
+    expect(r.status).toBe(404);
+    expect(tulis.some((x) => x.tabel === "note")).toBe(false);
+  });
   it("saves a note under the writer's own name", async () => {
     const r = await jalan("room-note", "N1", {
       id: 7,
@@ -850,6 +859,21 @@ describe("notes", () => {
 });
 
 describe("kits", () => {
+  beforeEach(() => {
+    rows.candidate = [{ id: 101 }];
+  });
+  it("refuses a candidate who is not of this edition", async () => {
+    rows.candidate = [];
+    pelakuNim.LOG = pelaku({ kitLoans: true });
+    const r = await jalan("room-kit", "LOG", {
+      id: 7,
+      candidateId: 9999,
+      kit: "K1",
+      boards: [{ chip: "esp32" }],
+    });
+    expect(r.status).toBe(404);
+    expect(tulis.some((x) => x.tabel === "kit")).toBe(false);
+  });
   it("needs the kitLoans right", async () => {
     const r = await jalan("room-kit", "N1", {
       id: 7,

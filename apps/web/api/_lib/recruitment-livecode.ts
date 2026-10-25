@@ -393,7 +393,13 @@ async function tiket(req: ApiRequest, res: ApiResponse, s: SessionPayload) {
       const [x] = await db
         .select({ n: recSlotExaminer.asistenNim })
         .from(recSlotExaminer)
-        .where(and(eq(recSlotExaminer.slotId, room.slotId), eq(recSlotExaminer.asistenNim, s.nim)))
+        .where(
+          and(
+            eq(recSlotExaminer.slotId, room.slotId),
+            eq(recSlotExaminer.asistenNim, s.nim),
+            eq(recSlotExaminer.role, "pengawas"),
+          ),
+        )
         .limit(1);
       boleh = !!x;
     }
