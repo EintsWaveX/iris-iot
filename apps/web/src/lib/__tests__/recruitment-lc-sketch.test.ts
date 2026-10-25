@@ -58,6 +58,9 @@ describe("checkSketch evasions (the regex is a first gate, the sandbox is the re
   const cases: [string, string][] = [
     ["a line continuation inside the directive", '#inc\\\nlude "/etc/passwd"'],
     ["a comment between # and include", '# /* x */ include "/etc/passwd"'],
+    ["a comment too long for any bounded scan", `#/*${"x".repeat(300)}*/include "/etc/passwd"`],
+    ["a comment that never ends", '#/* include "/etc/passwd"'],
+    ["a backslash, a blank and a newline (gcc splices it)", '#inc\\ \nlude "/etc/passwd"'],
     ["a comment after include", '#include/* x */"/etc/passwd"'],
     ["a macro as the operand", '#define P "/etc/passwd"\n#include P'],
     ["a digraph for #", '%:include "/etc/passwd"'],

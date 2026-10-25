@@ -18,8 +18,11 @@ import { CODE_MAX } from "./lc-types.js";
 export type SketchCheck =
   { ok: true } | { ok: false; kode: "berbahaya" | "terlalu_besar"; detail: string };
 
-// Between the # and the keyword, and after it, only blanks and /* */ comments (of 200 characters at most, so a hostile file cannot make the scan crawl) may sit
-const GAP = String.raw`(?:[ \t\f\v]|/\*(?:[^*]|\*(?!/)){0,200}\*/)*`;
+// Between the # and the keyword, and after it, only blanks may sit. A comment there is refused
+// outright (HASH_COMMENT below) instead of being scanned, so no comment length can make the
+// scan miss a directive, and a hostile file cannot make it crawl either.
+const GAP = String.raw`[ \t\f\v]*`;
+const HASH_COMMENT = /(?:#|%:)[ \t\f\v]*\/\*/;
 const DIRECTIVE = new RegExp(
   String.raw`(?:#|%:)${GAP}(include_next|include|import|embed|define|undef)(?![A-Za-z0-9_])${GAP}`,
   "g",
@@ -45,13 +48,14 @@ const preprocessed = (src: string): string =>
   src
     .replace(/\?\?\//g, "\\")
     .replace(/\?\?=/g, "#")
-    .replace(/\\\r?\n/g, "");
+    .replace(/\\[ \t\f\v]*(?:\r\n|\n|\r)/g, "");
 
 /** Code that reaches outside its folder, sets the seat's constants itself or is too big is refused. */
 export function checkSketch(sketch: string): SketchCheck {
   if (new TextEncoder().encode(sketch).length > CODE_MAX)
     return refuse("terlalu_besar", "The sketch is larger than 64 KB");
   const text = preprocessed(sketch);
+  if (HASH_COMMENT.test(text)) return refuse("berbahaya", "a comment right after # is not allowed");
   for (const m of text.matchAll(DIRECTIVE)) {
     const after = m.index + m[0].length;
     if (m[1] === "define" || m[1] === "undef") {

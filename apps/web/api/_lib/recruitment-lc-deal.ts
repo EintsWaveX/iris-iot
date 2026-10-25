@@ -48,7 +48,7 @@ export class GalatLc extends Error {
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type Oleh = LcSpin["by"];
 
-const ALFABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+const ALFABET = "ABCDEFGHJKLMNPQRSTUVWXYZ" + "abcdefghijkmnopqrstuvwxyz" + "23456789";
 
 /** A random 24 character password for a seat's broker account. */
 export function sandiAcak(): string {
