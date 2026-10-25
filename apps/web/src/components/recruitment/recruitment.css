@@ -81,6 +81,31 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+/* The kit's chip (console.css), which the recruitment pages do not load:
+   the Berkas desk's kinds, the change-request and decline reasons. */
+.chipbtn {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-height: 44px;
+  min-width: 56px;
+  padding: 0 12px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .chipbtn:hover {
+    border-color: var(--text-muted);
+  }
+}
+.chipbtn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
 
 /* A countdown: days big, then HH:MM:SS */
 .rec-count {
@@ -1505,6 +1530,21 @@ html[data-detail="ldm"] .rec-funnel__bar i {
 }
 .rec-bn__in .btn--primary .btn__label {
   white-space: nowrap;
+}
+
+/* Tambah CaA's Program Studi: three side by side while each name fits on
+   whole words, stacked in a narrower dialog (390 px broke "Telekomunikasi"). */
+.rec-prodi {
+  container-type: inline-size;
+}
+@container (max-width: 480px) {
+  .rec-prodi .segmented {
+    flex-direction: column;
+  }
+  .rec-prodi .segmented--fill .segmented__item {
+    flex: 0 0 auto;
+    overflow-wrap: normal;
+  }
 }
 
 /* A thin progress bar (the upload slots) */

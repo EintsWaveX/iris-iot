@@ -33,6 +33,7 @@ import TesTab from "./tes/ruang/TesTab";
 import KalenderTab from "./KalenderTab";
 import PanitiaBoard from "./PanitiaBoard";
 import Ringkasan from "./Ringkasan";
+import TampilOprec from "./TampilOprec";
 import { PN } from "./panelStrings";
 
 export default function PanelPage({ lang }: { lang: Lang }) {
@@ -103,6 +104,14 @@ export default function PanelPage({ lang }: { lang: Lang }) {
         badge={seat ? <Pill lg>{t.division[seat.division]}</Pill> : undefined}
         lede={hariKe ? t.day(hariKe, tgl(hariIni, lang)) : t.dayPlain(tgl(hariIni, lang))}
       />
+      {panitia && edisi.data && (
+        <TampilOprec
+          lang={lang}
+          hidden={!!edisi.data.hidden}
+          canHide={!!edisi.data.canHide}
+          onChanged={edisi.refresh}
+        />
+      )}
       <Fade k={tab}>
         {tab === "ringkasan" ? (
           <Ringkasan

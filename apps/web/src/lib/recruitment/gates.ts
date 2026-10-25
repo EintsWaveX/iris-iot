@@ -13,7 +13,7 @@
  *   only live 18.30 to 21.00). An event without a window is live all day.
  */
 import { addDays } from "./calendar.js";
-import type { GateKey, Phase, RecEvent, StageKey, Viewer } from "./types.js";
+import type { CandidateStatus, GateKey, Phase, RecEvent, StageKey, Viewer } from "./types.js";
 
 const WIB_MS = 7 * 3_600_000;
 
@@ -185,6 +185,11 @@ export function nextPublicEvent<
     .filter((e) => !eventEnded(e, now))
     .sort((a, b) => (a.startsOn < b.startsOn ? -1 : a.startsOn > b.startsOn ? 1 : a.sort - b.sort));
   return naik[0] ?? null;
+}
+
+/** The Berikutnya card points a candidate at the next event; a cut candidate has none. */
+export function showsNextCard(status: CandidateStatus | null | undefined): boolean {
+  return status !== "out";
 }
 
 /**

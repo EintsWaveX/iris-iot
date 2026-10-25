@@ -7,16 +7,16 @@ export const BN = dict({
     visitor: {
       title: "Mau jadi Asisten IRIS berikutnya?",
       hint: (a: string, b: string) =>
-        `Pendaftaran ${a} sampai ${b} untuk Praktikan semester ini. Masuk dengan akun Praktikan untuk mendaftar.`,
+        `Pendaftaran ${a} sampai ${b} untuk mahasiswa S1 Teknik Elektro, Teknik Telekomunikasi dan Teknik Biomedis angkatan 2024 sampai 2026.`,
       soon: (a: string) =>
-        `Pendaftaran dibuka ${a} untuk Praktikan semester ini. Masuk dengan akun Praktikan untuk mendaftar.`,
+        `Pendaftaran dibuka ${a} untuk mahasiswa S1 Teknik Elektro, Teknik Telekomunikasi dan Teknik Biomedis angkatan 2024 sampai 2026.`,
       stages: "Lihat Tahapan",
       signIn: "Daftar Sekarang",
     },
     praktikan: {
       title: "Pendaftaran Asisten sedang dibuka",
       hint: (d: string, jam: string) =>
-        `Tutup ${d} pukul ${jam} WIB. Siapkan CV, surat lamaran dan visi misi dalam PDF.`,
+        `Tutup ${d} pukul ${jam} WIB. Siapkan biodata, CV ATS, visi misi, KHS, KSM dan KTM dalam PDF.`,
       closesIn: "Tutup dalam",
       closesAria: "Pendaftaran tutup dalam",
       stages: "Lihat Tahapan",
@@ -59,16 +59,16 @@ export const BN = dict({
     visitor: {
       title: "Want to be the next IRIS Asisten?",
       hint: (a: string, b: string) =>
-        `Registration runs ${a} to ${b} for this semester's Praktikan. Sign in with your Praktikan account to apply.`,
+        `Registration runs ${a} to ${b} for undergraduate Electrical, Telecommunication and Biomedical Engineering students of the 2024 to 2026 batches.`,
       soon: (a: string) =>
-        `Registration opens ${a} for this semester's Praktikan. Sign in with your Praktikan account to apply.`,
+        `Registration opens ${a} for undergraduate Electrical, Telecommunication and Biomedical Engineering students of the 2024 to 2026 batches.`,
       stages: "See the Stages",
       signIn: "Apply Now",
     },
     praktikan: {
       title: "Asisten registration is open",
       hint: (d: string, jam: string) =>
-        `Closes ${d} at ${jam} WIB. Have your CV, cover letter and vision statement ready as PDFs.`,
+        `Closes ${d} at ${jam} WIB. Have your personal details, ATS CV, vision and mission, KHS, KSM and KTM ready as PDFs.`,
       closesIn: "Closes in",
       closesAria: "Registration closes in",
       stages: "See the Stages",
@@ -111,15 +111,16 @@ export const BN = dict({
     visitor: {
       title: "想成为下一位 IRIS 助教吗？",
       hint: (a: string, b: string) =>
-        `本学期的学生可以在 ${a} 到 ${b} 报名。用学生账号登录就能报名。`,
-      soon: (a: string) => `本学期的学生可以从 ${a} 开始报名。用学生账号登录就能报名。`,
+        `${a} 到 ${b} 开放报名，面向 2024 至 2026 级电气工程、电信工程和生物医学工程本科生。`,
+      soon: (a: string) =>
+        `${a} 开放报名，面向 2024 至 2026 级电气工程、电信工程和生物医学工程本科生。`,
       stages: "查看各阶段",
       signIn: "立即报名",
     },
     praktikan: {
       title: "助教报名已开放",
       hint: (d: string, jam: string) =>
-        `${d} ${jam}（WIB）截止。请把简历、申请信和愿景说明准备成 PDF。`,
+        `${d} ${jam}（WIB）截止。请把个人信息表、ATS 简历、愿景与使命、KHS、KSM 和 KTM 准备成 PDF。`,
       closesIn: "距截止还有",
       closesAria: "距报名截止还有",
       stages: "查看各阶段",

@@ -13,7 +13,7 @@ from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
 HOST: str = "0.0.0.0"  # Listens on every network interface
-PORT: int = ________  # (1) Port number, same as WS_PORT in every ESP32 sketch
+PORT: int = ________  # (1) Server port number, see the journal
 
 # Accepted paths, one per group. Five are provided, matching the number of
 # groups per session; delete the unused ones if fewer groups are present.

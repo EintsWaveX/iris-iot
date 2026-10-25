@@ -242,14 +242,14 @@ const DASAR: Record<string, Dasar> = {
   "m2.modul2_websocket_server.1": {
     jawaban: "8765",
     kenapa: t(
-      "Port server. Harus sama dengan WS_PORT pada sketch ESP32.",
-      "The server's port. It must match WS_PORT in the ESP32 sketch.",
-      "服务器的端口，必须和 ESP32 程序里的 WS_PORT 一样。",
+      "Port tempat server Python mendengarkan. WS_PORT (80) milik gateway, jadi tidak sama.",
+      "The port the Python server listens on. WS_PORT (80) belongs to the gateway, so it differs.",
+      "Python 服务器监听的端口。WS_PORT（80）是网关的，所以不一样。",
     ),
     bantuan: t(
-      "Buka modul2_websocket_esp32.ino dan cari WS_PORT. Server harus mendengarkan di angka yang sama.",
-      "Open modul2_websocket_esp32.ino and find WS_PORT. The server must listen on the same number.",
-      "打开 modul2_websocket_esp32.ino 找 WS_PORT。服务器要监听同一个数字。",
+      "Port server ada di jurnal Modul 2: jurnal menyebut port server dan port gateway secara terpisah.",
+      "The server's port is in the Module 2 journal, which names the server port and the gateway port separately.",
+      "服务器端口在模块 2 的日志里，日志把服务器端口和网关端口分开写了。",
     ),
   },
   "m2.modul2_websocket_server.2": {
@@ -423,11 +423,11 @@ const DASAR: Record<string, Dasar> = {
     ),
   },
   "m3.modul3_mqtt_publish.3": {
-    jawaban: "1883",
+    jawaban: "80",
     kenapa: t(
-      "Nilai listener pada mosquitto.conf, port bawaan MQTT.",
-      "The listener value in mosquitto.conf, MQTT's default port.",
-      "mosquitto.conf 里的 listener 值，也是 MQTT 的默认端口。",
+      "Port gateway WebSocket di broker.irisiotlab.com, bukan port Mosquitto (1883).",
+      "The WebSocket gateway's port at broker.irisiotlab.com, not Mosquitto's own 1883.",
+      "broker.irisiotlab.com 上 WebSocket 网关的端口，不是 Mosquitto 自己的 1883。",
     ),
     bantuan: t(
       "Baca komentar tepat di atas MQTTClient(: angkanya ada di sana. Tulis sebagai angka, tanpa tanda kutip.",
@@ -881,9 +881,9 @@ const TINGKAT: Record<string, Pick<KunciV1, "bantuan1" | "bantuan3">> = {
       "这里填 WebSocket 服务器的端口号。",
     ),
     t(
-      "Angka empat digit yang sama dengan WS_PORT di sketch ESP32, ditulis tanpa tanda kutip.",
-      "The four digit number that matches WS_PORT in the ESP32 sketch, written without quotes.",
-      "与 ESP32 草图中 WS_PORT 相同的四位数，不加引号。",
+      "Angka empat digit dari jurnal Modul 2, bukan port gateway di WS_PORT. Tulis tanpa tanda kutip.",
+      "The four digit number from the Module 2 journal, not the gateway port in WS_PORT. Write it without quotes.",
+      "模块 2 日志里的四位数，不是 WS_PORT 的网关端口。不加引号。",
     ),
   ),
   "m2.modul2_websocket_server.2": k(
@@ -1036,11 +1036,15 @@ const TINGKAT: Record<string, Pick<KunciV1, "bantuan1" | "bantuan3">> = {
     ),
   ),
   "m3.modul3_mqtt_publish.3": k(
-    t("Isinya port broker MQTT.", "This is the MQTT broker's port.", "这里填 MQTT 代理的端口。"),
     t(
-      "Port MQTT bawaan tanpa TLS, empat digit, diawali 18.",
-      "MQTT's default port without TLS, four digits, starting with 18.",
-      "MQTT 不加 TLS 的默认端口，四位数，以 18 开头。",
+      "Isinya port gateway WebSocket.",
+      "This is the WebSocket gateway's port.",
+      "这里填 WebSocket 网关的端口。",
+    ),
+    t(
+      "Port HTTP biasa, dua digit. Komentar di atas MQTTClient( menyebutnya.",
+      "The plain HTTP port, two digits. The comment above MQTTClient( names it.",
+      "普通 HTTP 端口，两位数。MQTTClient( 上方的注释写了它。",
     ),
   ),
   "m3.modul3_mqtt_publish.4": k(

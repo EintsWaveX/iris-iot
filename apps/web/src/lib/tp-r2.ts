@@ -47,7 +47,7 @@ export const TP_AWALAN_RE = /^tp\/\d{4}-(ganjil|genap)\/$/;
  * only, and an edition's cleanup is one prefix.
  */
 export const REK_KUNCI_RE =
-  /^recruitment\/\d{1,6}\/[0-9A-Za-z]{4,20}\/(cv|letter|vision|biodata|other)\/[0-9a-f]{64}\.pdf$/;
+  /^recruitment\/\d{1,6}\/[0-9A-Za-z]{4,20}\/(cv|letter|vision|biodata|other|ktm|khs|ksm|portofolio)\/[0-9a-f]{64}\.pdf$/;
 export const REK_AWALAN_RE = /^recruitment\/\d{1,6}\/$/;
 
 export function kunciRekrutmen(edisi: number, nim: string, jenis: string, sha256: string): string {

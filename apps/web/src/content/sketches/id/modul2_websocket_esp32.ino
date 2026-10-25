@@ -15,8 +15,8 @@
 const char* WIFI_SSID     = "YOUR_WIFI_NAME";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
-const char*    WS_HOST = "192.168.1.100";  // Samakan dengan alamat IP Orange Pi
-const uint16_t WS_PORT = 8765;             // Samakan dengan port Orange Pi
+const char*    WS_HOST = "ws.irisiotlab.com";  // Alamat server, sama untuk semua kelompok
+const uint16_t WS_PORT = 80;                   // Port gateway, bukan port server Python
 
 // ---- PATH KELOMPOK ---------------------------------------------------------
 // Path inilah yang memberi tahu server papan kelompok mana yang menyambung.

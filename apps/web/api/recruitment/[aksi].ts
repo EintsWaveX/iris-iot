@@ -37,7 +37,11 @@
  * POST /api/recruitment/event-delete { id, confirm? }
  * POST /api/recruitment/seat         { nim, division, isKoor?, title? }
  * POST /api/recruitment/unseat       { nim }
+ * POST /api/recruitment/visibility   { hidden }  Sembunyikan Oprec (api/_lib/recruitment-sembunyi.ts)
  * POST /api/recruitment/account-reset { nim }  forget an oprec password (approve right)
+ *
+ * hakPenuh, while the Google Form is the way in (api/_lib/recruitment-tambah.ts):
+ * POST /api/recruitment/candidate-add | candidate-ticket | candidate-document
  *
  * A candidate only ever reads their own row: every candidate read is
  * filtered by the session's NIM and checked again in code. Editing or
@@ -118,6 +122,18 @@ import {
   periksaBerkas,
 } from "../_lib/recruitment-unggah.js";
 import { SimpanGalat, simpanSiap, tiketUnggah, urlBaca } from "../_lib/tp-simpan.js";
+import {
+  bolehSembunyikan,
+  handleTampil,
+  jawabTersembunyi,
+  oprecTersembunyi,
+} from "../_lib/recruitment-sembunyi.js";
+import {
+  handleDokumenPanitia,
+  handleTambahKandidat,
+  handleTiketPanitia,
+} from "../_lib/recruitment-tambah.js";
+import { FORMULIR } from "../../src/lib/recruitment/formulir.js";
 import {
   handleAmplop,
   handleAmplopBuka,
@@ -281,6 +297,12 @@ async function handleEdisi(req: ApiRequest, res: ApiResponse) {
     viewer: kind,
     rights: pelaku && anggotaPanitia(pelaku) ? pelaku.hak : null,
     seat: pelaku?.kursi ?? null,
+    // Only an Asisten gets this far while it is on (the router answers everyone else).
+    ...(s?.role === "asisten" && {
+      hidden: await oprecTersembunyi(db),
+      canHide: bolehSembunyikan(pelaku),
+      canAdd: !!pelaku?.penuh,
+    }),
   });
 }
 
@@ -551,6 +573,8 @@ async function handleDaftar(req: ApiRequest, res: ApiResponse, s: SessionPayload
   const db = getDb();
   const edisi = await wajibEdisi(res, db);
   if (!edisi) return;
+  // The team's Google Form is the way in; the Panitia add each candidate (2026-10-25).
+  if (FORMULIR) return tolak(res, "daftar_lewat_formulir", 409, { url: FORMULIR.url });
   const b = jsonBody(req);
   if (b.consent !== true) return tolak(res, "data_salah", 400, { field: "consent" });
   const bio = cekBiodata(b.biodata);
@@ -960,6 +984,10 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   const aksi = req.query.aksi;
   const sesiku = currentSession(req);
 
+  // Sembunyikan Oprec: to anyone but an Asisten there is no edition at all.
+  if (sesiku?.role !== "asisten" && (await oprecTersembunyi(getDb())))
+    return jawabTersembunyi(aksi, res);
+
   // Anyone, signed in or not.
   if (aksi === "banner") {
     if (!requireMethod(req, res, "GET")) return;
@@ -1090,7 +1118,14 @@ async function handler(req: ApiRequest, res: ApiResponse) {
   if (aksi === "event-delete") return handleAcaraHapus(req, res, s);
   if (aksi === "seat") return handleDuduk(req, res, s);
   if (aksi === "unseat") return handleCabut(req, res, s);
+  if (aksi === "visibility") {
+    const e = await wajibEdisi(res, getDb());
+    return e ? handleTampil(req, res, s, getDb(), e.id) : undefined;
+  }
   if (aksi === "account-reset") return handleResetAkun(req, res, s);
+  if (aksi === "candidate-add") return handleTambahKandidat(req, res, s);
+  if (aksi === "candidate-ticket") return handleTiketPanitia(req, res, s);
+  if (aksi === "candidate-document") return handleDokumenPanitia(req, res, s);
   return tolak(res, "aksi_tidak_dikenal", 404);
 }
 

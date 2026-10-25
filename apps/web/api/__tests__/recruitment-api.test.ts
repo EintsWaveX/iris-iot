@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   asisten,
+  pengaturan,
   praktikan,
   recCandidate,
   recCommittee,
@@ -16,11 +17,13 @@ import {
   recEventLog,
 } from "../../src/lib/schema";
 import { EVENT_SEED } from "../../src/lib/recruitment/seed";
+import { DOC_REQUIRED } from "../../src/lib/recruitment/types";
 import { buatTiketRek } from "../_lib/recruitment-unggah";
 
 type Rows = Record<string, unknown[] | ((sel: unknown) => unknown[])>;
 const tabelNama = new Map<unknown, string>([
   [asisten, "asisten"],
+  [pengaturan, "pengaturan"],
   [praktikan, "praktikan"],
   [recCandidate, "candidate"],
   [recCommittee, "committee"],
@@ -82,6 +85,8 @@ vi.mock("../../src/lib/db", () => {
   return { getDb: () => db };
 });
 vi.mock("../_lib/siaran", () => ({ denganSiaran: (_r: string, h: unknown) => h }));
+// The in-IRIS sign-up and application, as they run once the Google Form is dropped (2026-10-25).
+vi.mock("../../src/lib/recruitment/formulir", () => ({ FORMULIR: null }));
 vi.mock("../../src/lib/auth", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   readSessionCookie: () => cookie,
@@ -460,7 +465,7 @@ describe("applying", () => {
   const berkas = { kind: "cv", tiket: "x" };
   const sah = {
     biodata: BIODATA,
-    docs: ["cv", "letter", "vision"].map((kind) => ({ ...berkas, kind })),
+    docs: DOC_REQUIRED.map((kind) => ({ ...berkas, kind })),
     consent: true,
   };
 
@@ -538,7 +543,7 @@ describe("applying", () => {
     rows.candidate = [];
     const r = await panggil("POST", "apply", { body: sah });
     expect(r.code).toBe(400);
-    expect(r.body).toMatchObject({ kode: "tiket_salah", kind: "cv" });
+    expect(r.body).toMatchObject({ kode: "tiket_salah", kind: DOC_REQUIRED[0] });
     expect(tulis.filter((w) => w.tabel === "candidate")).toEqual([]);
   });
   it("refuses a ticket minted for another NIM", async () => {
@@ -840,6 +845,68 @@ describe("seating the Panitia", () => {
     rows.committee = [KURSI("ketua")];
     const r = await panggil("POST", "unseat", { body: { nim: "101022300111" } });
     expect(r.code).toBe(403);
+  });
+});
+
+describe("Sembunyikan Oprec", () => {
+  beforeEach(() => {
+    rows.pengaturan = [{ nilai: true }];
+    pada("2026-10-26T12:00:00"); // registration is open on the calendar
+  });
+  it("shows a visitor and a Praktikan nothing, even with registration open", async () => {
+    for (const siapa of [() => (cookie = null), () => sebagaiPraktikan()]) {
+      siapa();
+      rows.praktikan = [{ nim: "101022300001" }];
+      expect((await panggil("GET", "banner")).body).toEqual({
+        ok: true,
+        kind: "none",
+        segera: false,
+      });
+      expect((await panggil("GET", "edition")).body).toMatchObject({ edition: null });
+      expect((await panggil("GET", "calendar")).code).toBe(404);
+      expect((await panggil("POST", "ticket", { body: {} })).code).toBe(404);
+      expect((await panggil("POST", "apply", { body: {} })).code).toBe(404);
+    }
+    sebagaiPraktikan();
+    expect((await panggil("GET", "me")).body).toMatchObject({ edition: null, candidate: null });
+  });
+  it("keeps the oprec account doors shut, so nobody learns an edition runs", async () => {
+    cookie = null;
+    const n = tulis.length;
+    const akun = { nim: "103022500901", nama: "Ayu Kirana", sandi: "rahasia-oprec-25" };
+    expect((await panggil("POST", "account-signup", { body: akun })).code).toBe(404);
+    expect((await panggil("POST", "account-signin", { body: akun })).code).toBe(404);
+    expect(tulis.length, "nothing written").toBe(n);
+    sebagaiPraktikan();
+    expect((await panggil("GET", "account")).body).toEqual({ ok: true, account: null });
+  });
+  it("leaves the Asisten everything, and tells them it is hidden", async () => {
+    sebagaiAsisten();
+    rows.asisten = [ORANG("101022300900")];
+    rows.committee = [KURSI("acara")];
+    const e = await panggil("GET", "edition");
+    expect(e.body).toMatchObject({ edition: { id: 1 }, hidden: true, canHide: false });
+    expect((await panggil("GET", "calendar")).body.events).toHaveLength(EVENT_ROWS.length);
+  });
+  it("is shown when no row says otherwise", async () => {
+    rows.pengaturan = [];
+    expect((await panggil("GET", "banner")).body.kind).toBe("visitor");
+  });
+  it("only the Ketua and the full rights flip it", async () => {
+    sebagaiAsisten();
+    rows.asisten = [ORANG("101022300900")];
+    rows.committee = [KURSI("acara")];
+    expect((await panggil("POST", "visibility", { body: { hidden: false } })).code).toBe(403);
+    rows.committee = [KURSI("ketua")];
+    expect((await panggil("POST", "visibility", { body: { hidden: "ya" } })).code).toBe(400);
+    const r = await panggil("POST", "visibility", { body: { hidden: false } });
+    expect(r.body).toEqual({ ok: true, hidden: false });
+    expect(tulis.find((w) => w.tabel === "pengaturan")?.nilai).toMatchObject({
+      kunci: "rec_sembunyi",
+      nilai: false,
+    });
+    sebagaiPraktikan();
+    expect((await panggil("POST", "visibility", { body: { hidden: false } })).code).toBe(404);
   });
 });
 

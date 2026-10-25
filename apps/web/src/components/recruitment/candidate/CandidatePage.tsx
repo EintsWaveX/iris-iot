@@ -34,6 +34,7 @@ import {
   gateClosesAt,
   gateOpen,
   nextPublicEvent,
+  showsNextCard,
   tanggalWib,
 } from "../../../lib/recruitment/gates";
 import { alamatBagian } from "../../../lib/recruitment/panel-tab";
@@ -44,10 +45,12 @@ import {
   type EnvelopeOpenResponse,
   type EnvelopeView,
   type EventLite,
+  type Proposal,
   type RecEvent,
   type StageKey,
   type WithdrawResponse,
 } from "../../../lib/recruitment/types";
+import { FORMULIR } from "../../../lib/recruitment/formulir";
 import { REC } from "../recruitmentStrings";
 import { Agenda, RecCalendar } from "../calendar/RecCalendar";
 import {
@@ -115,7 +118,12 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const caas = asisten ? null : (akun.data?.account ?? null);
   const praktikan = !!caas;
   const tamu = !asisten && !caas;
-  const rec = useRecMe(praktikan);
+  const [reveal, setReveal] = useState<EnvelopeView | null>(null);
+  const dibuka = useRef<{ stage: CutStage; result: Proposal } | null>(null);
+  // While the envelope opens, the page behind it does not refetch: opening it
+  // sets off the candidates topic, and a re-render under the reveal stutters
+  // the swap on a slow phone. Turning the hooks back on fetches once on close.
+  const rec = useRecMe(praktikan && !reveal);
   const cal = useRecCalendar(me !== undefined);
   const edisi = useRecEdition(me !== undefined);
   const hariIni = useHariIni();
@@ -126,7 +134,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const [docs, setDocs] = useState(false);
   const [mundur, setMundur] = useState(false);
   const diminta = useRef<{ daftar: boolean; berkas: boolean; masuk: boolean } | null>(null);
-  const [reveal, setReveal] = useState<EnvelopeView | null>(null);
   const [pickStage, setPickStage] = useState<StageKey | null>(null);
   const [chgStage, setChgStage] = useState<StageKey | null>(null);
   const motion = useRevealMotion();
@@ -172,7 +179,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const buka = praktikan && rec.data ? rec.data.daftarOpen : gateOpen(events, "daftar", now);
   const sebelum = !buka && !!opensOn && hariIni < opensOn;
   const panitia = asisten && edisi.data?.viewer === "panitia";
-  const slots = useRecSlots(praktikan && applied);
+  const slots = useRecSlots(praktikan && applied && !reveal);
   // The envelope arrives on time without a refresh, counting from the server's clock.
   useRevealClock(
     rec.data?.now,
@@ -187,6 +194,11 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     const d = diminta.current;
     if (!d || me === undefined || !akunSiap) return;
     if (tamu && !asisten) {
+      // The Google Form is the way in: ?daftar=1 lands on the page's form card, not an account dialog.
+      if (FORMULIR && d.daftar && !d.masuk && !d.berkas) {
+        diminta.current = null;
+        return;
+      }
       if (d.daftar || d.berkas || d.masuk)
         bukaAkun(
           d.masuk ? "masuk" : "daftar",
@@ -275,7 +287,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       };
     return null;
   })();
-  const nextCard = (
+  const nextCard = showsNextCard(cand?.status) && (
     <section className="panel rec-next">
       <span className="eyebrow">{t.next.eyebrow}</span>
       {next ? (
@@ -301,7 +313,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
         cand.status === "revision" ? (
           <span className="pill pill--danger">{`1 ${t.docs.fix}`}</span>
         ) : (
-          <span className="pill pill--ok">{`${docsMasuk}/3`}</span>
+          <span className="pill pill--ok">{`${docsMasuk}/${DOC_REQUIRED.length}`}</span>
         )
       }
     >
@@ -416,59 +428,108 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     </div>
   );
 
-  const cta = !applied && (
+  // The Google Form is the way in (2026-10-25): the form, the LINE group, and
+  // signing in for whoever the Panitia already added.
+  const ctaFormulir = FORMULIR && !asisten && !withdrawn && !applied && (
     <section className="panel rec-apply">
       <div className="stack stack--sm">
         <b className="rec-apply__t">
-          {asisten
-            ? t.ledeStaff
-            : withdrawn
-              ? t.apply.withdrawn
-              : tamu
-                ? t.apply.guest
-                : buka
-                  ? t.apply.open(closesOn ? tgl(closesOn, lang) : "")
-                  : sebelum && opensOn
-                    ? t.apply.before(tgl(opensOn, lang))
-                    : t.apply.closed}
+          {buka
+            ? t.apply.formTitle
+            : sebelum && opensOn
+              ? t.apply.before(tgl(opensOn, lang))
+              : t.apply.closed}
         </b>
-        {!asisten && (
-          <span className="hint">{withdrawn ? t.apply.hintWithdrawn : t.apply.hint}</span>
-        )}
+        <span className="hint">{t.apply.formHint}</span>
       </div>
-      {asisten ? (
-        panitia && (
+      <span className="row rec-apply__btn" style={{ gap: 8, flexWrap: "wrap" }}>
+        {tamu && (
+          <button
+            type="button"
+            className="btn btn--ghost btn--lg"
+            onClick={() => bukaAkun("masuk")}
+          >
+            {t.apply.masuk}
+          </button>
+        )}
+        <a
+          className="btn btn--ghost btn--lg"
+          href={FORMULIR.grupLine}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t.apply.line}
+        </a>
+        {buka && (
           <a
             className="btn btn--primary btn--lg"
-            href={alamatBagian(lang === "id" ? "" : `/${lang}`, "ringkasan")}
+            href={FORMULIR.url}
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            <span className="btn__label">{t.staff.panel}</span>
+            <span className="btn__label">{t.apply.form}</span>
             <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
           </a>
-        )
-      ) : withdrawn ? null : tamu ? (
-        <button
-          type="button"
-          className="btn btn--primary btn--lg"
-          onClick={() => bukaAkun("daftar", href(lang, "/recruitment?daftar=1"))}
-        >
-          <span className="btn__label">{t.apply.signIn}</span>
-        </button>
-      ) : (
-        <span className="stack stack--sm rec-apply__btn">
+        )}
+      </span>
+    </section>
+  );
+
+  const cta =
+    ctaFormulir ||
+    (!applied && (
+      <section className="panel rec-apply">
+        <div className="stack stack--sm">
+          <b className="rec-apply__t">
+            {asisten
+              ? t.ledeStaff
+              : withdrawn
+                ? t.apply.withdrawn
+                : tamu
+                  ? t.apply.guest
+                  : buka
+                    ? t.apply.open(closesOn ? tgl(closesOn, lang) : "")
+                    : sebelum && opensOn
+                      ? t.apply.before(tgl(opensOn, lang))
+                      : t.apply.closed}
+          </b>
+          {!asisten && (
+            <span className="hint">{withdrawn ? t.apply.hintWithdrawn : t.apply.hint}</span>
+          )}
+        </div>
+        {asisten ? (
+          panitia && (
+            <a
+              className="btn btn--primary btn--lg"
+              href={alamatBagian(lang === "id" ? "" : `/${lang}`, "ringkasan")}
+            >
+              <span className="btn__label">{t.staff.panel}</span>
+              <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
+            </a>
+          )
+        ) : withdrawn ? null : tamu ? (
           <button
             type="button"
             className="btn btn--primary btn--lg"
-            disabled={!buka}
-            onClick={() => setDaftar(true)}
+            onClick={() => bukaAkun("daftar", href(lang, "/recruitment?daftar=1"))}
           >
-            <span className="btn__label">{t.apply.now}</span>
+            <span className="btn__label">{t.apply.signIn}</span>
           </button>
-          {!buka && sebelum && <span className="hint">{t.apply.later}</span>}
-        </span>
-      )}
-    </section>
-  );
+        ) : (
+          <span className="stack stack--sm rec-apply__btn">
+            <button
+              type="button"
+              className="btn btn--primary btn--lg"
+              disabled={!buka}
+              onClick={() => setDaftar(true)}
+            >
+              <span className="btn__label">{t.apply.now}</span>
+            </button>
+            {!buka && sebelum && <span className="hint">{t.apply.later}</span>}
+          </span>
+        )}
+      </section>
+    ));
 
   const journey = (
     <Kartu
@@ -567,13 +628,29 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
               const res = await recPost<EnvelopeOpenResponse>("envelope-open", {
                 stage: reveal.stage,
               });
-              return isFail(res) ? null : { result: res.result, next: res.next };
+              if (isFail(res)) return null;
+              dibuka.current = { stage: reveal.stage, result: res.result };
+              return { result: res.result, next: res.next };
             }}
             describeNext={describeNext(reveal.stage)}
             onClose={() => {
+              // The page behind did not refetch while the envelope opened, so
+              // it still holds the sealed envelope: mark it opened here, or the
+              // sealed hero shows again until the refetch on close lands.
+              const d = dibuka.current;
+              dibuka.current = null;
+              if (d)
+                rec.ubah((m) =>
+                  m
+                    ? {
+                        ...m,
+                        envelopes: m.envelopes.map((e) =>
+                          e.stage === d.stage ? { ...e, opened: true, result: d.result } : e,
+                        ),
+                      }
+                    : m,
+                );
               setReveal(null);
-              rec.refresh();
-              slots.refresh();
             }}
           />
         </Suspense>

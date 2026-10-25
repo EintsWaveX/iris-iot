@@ -7,6 +7,10 @@
  * came back, and a queue of those waiting with arrows; Setujui moves on to
  * the next one. Everyone else on the Panitia keeps the S1 sheet without
  * documents.
+ *
+ * The files follow the Google Form's list (2026-10-25): six required kinds as
+ * chips that wrap, Portofolio when there is one. hakPenuh also uploads a
+ * candidate's PDFs here and corrects their details (Tambah CaA).
  */
 import { useEffect, useRef, useState } from "react";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
@@ -23,6 +27,7 @@ import type { Lang } from "../../../../lib/kelas";
 import { isFail, recGet, recPost } from "../../../../lib/recruitment/client";
 import { tanggalWib } from "../../../../lib/recruitment/gates";
 import {
+  DOC_OPTIONAL,
   DOC_REQUIRED,
   type BerkasFile,
   type CandidateDetailResponse,
@@ -36,6 +41,7 @@ import { tgl } from "../../shared";
 import { useRevealMotion } from "../../reveal/fx";
 import { PN } from "../panelStrings";
 import AkunCek from "./AkunCek";
+import TambahCaA, { BerkasPanitia } from "./TambahCaA";
 
 const waktu = (iso: string, lang: Lang) => {
   const w = tanggalWib(new Date(iso));
@@ -46,6 +52,7 @@ export default function BerkasReview({
   lang,
   id: id0,
   queue,
+  canAdd = false,
   onClose,
   onChanged,
 }: {
@@ -53,6 +60,8 @@ export default function BerkasReview({
   id: number;
   /** Those waiting for a decision, in list order */
   queue: CandidateRow[];
+  /** hakPenuh: upload the candidate's PDFs and correct their details (Tambah CaA) */
+  canAdd?: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -61,7 +70,8 @@ export default function BerkasReview({
   const motion = useRevealMotion();
   const [id, setId] = useState(id0);
   const [d, setD] = useState<CandidateDetailResponse | null | "gagal">(null);
-  const [doc, setDoc] = useState<DocKind>("cv");
+  const [doc, setDoc] = useState<DocKind>(DOC_REQUIRED[0]);
+  const [ubah, setUbah] = useState(false);
   const [ver, setVer] = useState<"1" | "2">("2");
   const [cek, setCek] = useState<Partial<Record<DocKind, DocVerdict | null>>>({});
   const [skor, setSkor] = useState<number | null>(null);
@@ -97,6 +107,10 @@ export default function BerkasReview({
   const files = d && d !== "gagal" ? (d.documents ?? []) : [];
   const berkas = (k: DocKind): BerkasFile | undefined => files.find((x) => x.kind === k);
   const aktif = berkas(doc);
+  // The required kinds, then an optional one only when it was sent.
+  const jenis = [...DOC_REQUIRED, ...DOC_OPTIONAL.filter((k) => !!berkas(k))];
+  const yaTidak = (v: boolean | null | undefined) =>
+    v === true ? t.ya : v === false ? t.tidak : null;
   const perbaikan = files.some((x) => x.hasPrev);
   const sudah = c?.status === "approved";
   const pindah = (dir: number) => {
@@ -104,7 +118,7 @@ export default function BerkasReview({
     if (!nx) return;
     arah.current = dir;
     setId(nx.id);
-    setDoc("cv");
+    setDoc(DOC_REQUIRED[0]);
   };
 
   async function putus(decision: "approve" | "revision", note?: string): Promise<boolean> {
@@ -187,16 +201,24 @@ export default function BerkasReview({
       ) : (
         <div className="r2rev" ref={body}>
           <div className="r2rev__nav">
-            <SegmentedControl
+            <div
+              className="rec-chips"
+              role="group"
               aria-label={t.files}
-              value={doc}
-              onValueChange={(v) => setDoc(v as DocKind)}
-              options={DOC_REQUIRED.map((k) => ({
-                value: k,
-                label: t.docs[k] + (cek[k] === "ok" ? " ✓" : ""),
-              }))}
-            />
-            <span className="grow" style={{ flex: 1 }} />
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              {jenis.map((k) => (
+                <button
+                  type="button"
+                  className="chipbtn"
+                  key={k}
+                  aria-pressed={doc === k}
+                  onClick={() => setDoc(k)}
+                >
+                  {t.docs[k] + (cek[k] === "ok" ? " ✓" : "")}
+                </button>
+              ))}
+            </div>
             {!sudah && qi >= 0 && (
               <span className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
                 <IconButton
@@ -254,7 +276,7 @@ export default function BerkasReview({
               )}
               <section className="stack stack--sm">
                 <h3 className="h3">{t.checks}</h3>
-                {DOC_REQUIRED.map((k) => (
+                {jenis.map((k) => (
                   <div className="r2chk" key={k}>
                     <span>{t.docs[k]}</span>
                     <span className="r2pro">
@@ -315,19 +337,51 @@ export default function BerkasReview({
                   <div className="rec-sum">
                     {(
                       [
+                        [
+                          t.prodi,
+                          d.biodata.prodi ? PN[lang].tambah.prodiNama[d.biodata.prodi] : null,
+                        ],
                         [t.wa, d.biodata.phone],
                         [t.line, d.biodata.lineId],
+                        [t.mkIot, yaTidak(d.biodata.mkIot)],
+                        [t.praktikumIot, yaTidak(d.biodata.praktikumIot)],
                         [t.lives, d.biodata.address],
                         [t.motivation, d.biodata.motivation],
                       ] as const
-                    ).map(([k, v]) => (
-                      <span key={k} style={{ display: "contents" }}>
-                        <span className="hint">{k}</span>
-                        <b>{v}</b>
-                      </span>
-                    ))}
+                    )
+                      .filter(([, v]) => !!v)
+                      .map(([k, v]) => (
+                        <span key={k} style={{ display: "contents" }}>
+                          <span className="hint">{k}</span>
+                          <b>{v}</b>
+                        </span>
+                      ))}
                   </div>
                 </Disclose>
+              )}
+              {canAdd && (
+                <Disclose head={<b>{t.upload}</b>}>
+                  <BerkasPanitia
+                    lang={lang}
+                    id={c.id}
+                    documents={files}
+                    onChanged={() => {
+                      onChanged();
+                      void muat();
+                    }}
+                  />
+                </Disclose>
+              )}
+              {canAdd && (
+                <div>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => setUbah(true)}
+                  >
+                    {t.edit}
+                  </button>
+                </div>
               )}
               {c.status === "revision" && c.reviewNote && (
                 <div className="rec-note rec-note--warn">
@@ -338,6 +392,23 @@ export default function BerkasReview({
             </div>
           </div>
         </div>
+      )}
+      {ubah && c && (
+        <TambahCaA
+          lang={lang}
+          open
+          onOpenChange={(o) => !o && setUbah(false)}
+          edit={{
+            id: c.id,
+            nim: c.nim,
+            nama: c.nama,
+            biodata: d && d !== "gagal" ? d.biodata : null,
+          }}
+          onSaved={() => {
+            onChanged();
+            void muat();
+          }}
+        />
       )}
       {minta && c && (
         <Dialog

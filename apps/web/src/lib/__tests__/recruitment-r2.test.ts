@@ -13,6 +13,7 @@ import {
   kunciRekrutmen,
   tandaiTp,
 } from "../tp-r2";
+import { DOC_KINDS } from "../recruitment/types";
 
 const RAHASIA = "r".repeat(40);
 const SHA = "b".repeat(64);
@@ -38,6 +39,10 @@ describe("recruitment keys", () => {
       `recruitment/1/12/cv/${SHA}.pdf`,
     ])
       expect(REK_KUNCI_RE.test(k), k).toBe(false);
+  });
+  it("take every document kind, so the relay accepts each one the API hands a ticket for", () => {
+    for (const kind of DOC_KINDS)
+      expect(REK_KUNCI_RE.test(kunciRekrutmen(1, "101022300172", kind, SHA)), kind).toBe(true);
   });
   it("throw on a NIM that is not safe in a key", () => {
     expect(() => kunciRekrutmen(1, "../etc", "cv", SHA)).toThrow();

@@ -66,6 +66,8 @@ vi.mock("../../src/lib/db", () => {
   return { getDb: () => db };
 });
 vi.mock("../_lib/siaran", () => ({ denganSiaran: (_r: string, h: unknown) => h }));
+// The in-IRIS sign-up and application, as they run once the Google Form is dropped (2026-10-25).
+vi.mock("../../src/lib/recruitment/formulir", () => ({ FORMULIR: null }));
 vi.mock("../../src/lib/auth", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   writeAudit: async () => undefined,

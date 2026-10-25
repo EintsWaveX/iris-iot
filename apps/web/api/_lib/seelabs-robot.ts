@@ -26,7 +26,7 @@
  */
 import { and, asc, desc, eq, gte, inArray, isNotNull, lte, ne, or, sql } from "drizzle-orm";
 import type { ApiRequest, ApiResponse } from "./http.js";
-import { jsonBody } from "./http.js";
+import { jsonBody, pgErrorCode } from "./http.js";
 import { muatOrang } from "./hak.js";
 import { buka, bungkus } from "./rahasia.js";
 import { muatSeelabs, sesiTot } from "./seelabs.js";
@@ -771,16 +771,26 @@ export async function terimaHasil(db: Db, serverId: number, masuk: unknown): Pro
     const kode = h.kode ?? "bentuk_berubah";
     const lanjut = setelahGagal(kode, t.percobaan, sekarang);
     if (lanjut.status === "gagal") berubah = true;
-    await db
-      .update(seelabsTugas)
-      .set({
-        ...lanjut,
-        galatKode: kode,
-        galatRinci: h.rinci ?? null,
-        bukti: h.bukti ?? null,
-        ...(lanjut.status === "gagal" ? { selesai: sekarang, token: null } : {}),
-      })
-      .where(eq(seelabsTugas.id, t.id));
+    const isi = { ...lanjut, galatKode: kode, galatRinci: h.rinci ?? null, bukti: h.bukti ?? null };
+    try {
+      await db
+        .update(seelabsTugas)
+        .set({
+          ...isi,
+          ...(lanjut.status === "gagal" ? { selesai: sekarang, token: null } : {}),
+        })
+        .where(eq(seelabsTugas.id, t.id));
+    } catch (err) {
+      // Only one waiting job per account and group may exist (seelabs_tugas_satu_antre). A failed
+      // job that wants its retry slot while a twin already waits there is finished instead; left
+      // to throw, it failed every heartbeat of the server and no command ever reached it.
+      if (lanjut.status !== "antre" || pgErrorCode(err) !== "23505") throw err;
+      berubah = true;
+      await db
+        .update(seelabsTugas)
+        .set({ ...isi, status: "gagal", selesai: sekarang, token: null })
+        .where(eq(seelabsTugas.id, t.id));
+    }
     if (akses) {
       const status = statusAksesSetelah(kode, akses.status as StatusAkses);
       if (status !== akses.status) berubah = true;

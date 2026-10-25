@@ -1,12 +1,17 @@
 /**
  * The Home recruitment banner (prompt 03, PRD 5.1, mockup r1-home). One card
- * tall, under the practicum's own top and never above it; its edge is the
- * kit's rainbow sweep as a 1.5 px ring (still at Low Detail and with reduced
- * motion). The line it shows follows who is looking: GET /api/recruitment/
- * banner, refetched on the recruitment topics. Nothing shows while no
- * edition runs or the viewer has nothing to be told.
+ * tall, above the hero and the practicum's own top (user, 2026-10-26: under
+ * them it sat below the fold); its edge is the kit's rainbow sweep as a
+ * 1.5 px ring (still at Low Detail and with reduced motion). The line it
+ * shows follows who is looking: GET /api/recruitment/banner, refetched on the
+ * recruitment topics. Nothing shows while no edition runs, while Sembunyikan
+ * Oprec is on, before the daftar gate, or when the viewer has nothing to be
+ * told. Home passes `state` (its own useRecBanner) so it can hold its first
+ * paint until the banner has answered, and the hero never jumps down.
  */
 import type { ReactNode } from "react";
+import type { PollState } from "../../../lib/hooks";
+import type { BannerResponse } from "../../../lib/recruitment/types";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { href } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
@@ -19,6 +24,7 @@ import Pill from "../../ui/Pill";
 import { REC } from "../recruitmentStrings";
 import { Countdown, kapanAcara, tgl } from "../shared";
 import { BN } from "./bannerStrings";
+import { FORMULIR } from "../../../lib/recruitment/formulir";
 import { judulAcara } from "../judul";
 
 const JOURNEY: (StageKey | "daftar")[] = ["daftar", ...STAGES];
@@ -46,15 +52,18 @@ function Statistik({ lang }: { lang: Lang }) {
   const boleh = edisi.data?.rights?.candidates === true;
   const daftar = useRecCandidates(boleh);
   const baris = daftar.data?.candidates;
-  if (!boleh || !baris) return null;
-  const menunggu = baris.filter((c) => c.status === "applied").length;
+  // Every seated Panitia may see the candidates (rights.ts), so while the counts load they
+  // keep their room, hidden: above the practicum top the banner must not grow after it drew.
+  if (edisi.updatedAt !== null && !boleh) return null;
+  const tunggu = baris ? undefined : ({ visibility: "hidden" } as const);
+  const menunggu = baris ? baris.filter((c) => c.status === "applied").length : 0;
   return (
     <>
-      <div className="rec-bn__stat">
-        <b className="num">{baris.length}</b>
+      <div className="rec-bn__stat" style={tunggu} aria-hidden={baris ? undefined : true}>
+        <b className="num">{baris?.length ?? 0}</b>
         <span className="hint">{t.applicants}</span>
       </div>
-      <div className="rec-bn__stat">
+      <div className="rec-bn__stat" style={tunggu} aria-hidden={baris ? undefined : true}>
         <b className="num">{menunggu}</b>
         <span className="hint">{t.waiting}</span>
       </div>
@@ -62,8 +71,15 @@ function Statistik({ lang }: { lang: Lang }) {
   );
 }
 
-export default function RecBanner({ lang }: { lang: Lang }) {
-  const bn = useRecBanner();
+export default function RecBanner({
+  lang,
+  state,
+}: {
+  lang: Lang;
+  state?: PollState<BannerResponse | null>;
+}) {
+  const sendiri = useRecBanner(!state);
+  const bn = state ?? sendiri;
   const d = bn.data;
   // The sealed envelope chip arrives on time: the banner asks again the moment a locked reveal comes.
   useRevealClock(
@@ -100,10 +116,22 @@ export default function RecBanner({ lang }: { lang: Lang }) {
         <a className="btn btn--ghost" href={link("/recruitment")}>
           {t.visitor.stages}
         </a>
-        {/* Anyone may apply with an oprec account (2026-10-24): the page opens the account dialog. */}
-        <a className="btn btn--primary" href={link("/recruitment?daftar=1")}>
-          <span className="btn__label">{t.visitor.signIn}</span>
-        </a>
+        {/* Anyone may apply with an oprec account (2026-10-24): the page opens the account dialog.
+            While the Google Form is the way in (2026-10-25), Daftar opens the form. */}
+        {FORMULIR && d.daftarOpen ? (
+          <a
+            className="btn btn--primary"
+            href={FORMULIR.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="btn__label">{t.visitor.signIn}</span>
+          </a>
+        ) : (
+          <a className="btn btn--primary" href={link("/recruitment?daftar=1")}>
+            <span className="btn__label">{t.visitor.signIn}</span>
+          </a>
+        )}
       </>,
     );
   }
@@ -124,9 +152,20 @@ export default function RecBanner({ lang }: { lang: Lang }) {
         <a className="btn btn--ghost" href={link("/recruitment")}>
           {t.praktikan.stages}
         </a>
-        <a className="btn btn--primary" href={link("/recruitment?daftar=1")}>
-          <span className="btn__label">{t.praktikan.apply}</span>
-        </a>
+        {FORMULIR ? (
+          <a
+            className="btn btn--primary"
+            href={FORMULIR.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="btn__label">{t.praktikan.apply}</span>
+          </a>
+        ) : (
+          <a className="btn btn--primary" href={link("/recruitment?daftar=1")}>
+            <span className="btn__label">{t.praktikan.apply}</span>
+          </a>
+        )}
       </>,
       tutup ? (
         <>

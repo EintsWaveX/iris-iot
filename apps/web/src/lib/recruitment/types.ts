@@ -84,11 +84,35 @@ export const CANDIDATE_STATUS = [
 ] as const;
 export type CandidateStatus = (typeof CANDIDATE_STATUS)[number];
 
-export const DOC_KINDS = ["cv", "letter", "vision", "biodata", "other"] as const;
+/**
+ * Every PDF kind a candidate may have. The keys never change once stored;
+ * `letter` and `other` are from the first plan and no longer asked for.
+ */
+export const DOC_KINDS = [
+  "cv",
+  "letter",
+  "vision",
+  "biodata",
+  "other",
+  "ktm",
+  "khs",
+  "ksm",
+  "portofolio",
+] as const;
 export type DocKind = (typeof DOC_KINDS)[number];
 
-/** The three PDFs an application needs (PRD 5.3). */
-export const DOC_REQUIRED: readonly DocKind[] = ["cv", "letter", "vision"];
+/**
+ * The PDFs an application needs, the team's list on the Google Form (user,
+ * 2026-10-25): Biodata, CV ATS, Visi Misi (with Motivasi and Ide Inovasi),
+ * KHS, KSM and KTM.
+ */
+export const DOC_REQUIRED: readonly DocKind[] = ["biodata", "cv", "vision", "khs", "ksm", "ktm"];
+/** Asked for, never needed: shown when there is one. */
+export const DOC_OPTIONAL: readonly DocKind[] = ["portofolio"];
+
+/** The three study programmes oprec 2026 is open to: S1 Teknik Elektro, Telekomunikasi, Biomedis. */
+export const PRODI = ["te", "tt", "tb"] as const;
+export type Prodi = (typeof PRODI)[number];
 
 export const DIVISIONS = [
   "ketua",
@@ -148,14 +172,21 @@ export interface RecEvent {
 export interface Biodata {
   /** Entry year, e.g. 2025 */
   angkatan: number;
+  /** e.g. TT-49-03 */
   kelas: string;
   /** Digits, with an optional leading + */
   phone: string;
   lineId: string;
-  /** Address in Bandung */
-  address: string;
-  /** One line */
-  motivation: string;
+  /** Address in Bandung. Only the in-IRIS form asked for it. */
+  address?: string;
+  /** One line. Only the in-IRIS form asked for it. */
+  motivation?: string;
+  /** The Google Form's answers (2026-10-25), on candidates the Panitia added by hand */
+  prodi?: Prodi;
+  /** Takes the IoT course */
+  mkIot?: boolean;
+  /** Takes the IoT practicum; asked of Teknik Elektro only, null for the others */
+  praktikumIot?: boolean | null;
 }
 
 export interface RecDocument {
@@ -303,7 +334,9 @@ export type RecError =
   | "tak_terjangkau"
   | "waktu_habis"
   | "terlalu_banyak_alihan"
-  | "tidak_aman";
+  | "tidak_aman"
+  // The Google Form is the way in (2026-10-25)
+  | "daftar_lewat_formulir";
 
 export interface RecFail {
   ok: false;
@@ -328,6 +361,12 @@ export interface EditionResponse {
   rights: RecRights | null;
   /** The viewer's seat, when they have one */
   seat: { division: CommitteeDivision; isKoor: boolean; title: string | null } | null;
+  /** Asisten only: Sembunyikan Oprec is on (nobody else sees recruitment) */
+  hidden?: boolean;
+  /** Asisten only: may flip it (the Ketua and hakPenuh) */
+  canHide?: boolean;
+  /** Asisten only: may add a candidate by hand from the Google Form (hakPenuh) */
+  canAdd?: boolean;
 }
 
 /** GET calendar */
@@ -520,6 +559,21 @@ export interface DocumentResponse {
   document: RecDocument;
   /** applied again after a revision upload */
   status: CandidateStatus;
+}
+
+/** POST candidate-add (hakPenuh): a candidate from the Google Form, account included */
+export interface CandidateAddRequest {
+  nim: string;
+  nama: string;
+  /** Required for a new candidate; on `ubah`, a new password or nothing */
+  sandi?: string;
+  biodata: Biodata;
+  /** Correct a candidate already added instead of adding one */
+  ubah?: boolean;
+}
+export interface CandidateAddResponse {
+  ok: true;
+  candidate: { id: number; nim: string; nama: string };
 }
 
 /** POST withdraw */
@@ -738,6 +792,8 @@ export interface QrTokenResponse {
   period: number;
   /** ISO instant this token stops being the wall's */
   until: string;
+  /** the server's clock when it answered: the wall times its swap from it, not from its own */
+  now: string;
   event: EventLite;
   here: number;
   expected: number;

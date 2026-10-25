@@ -17,6 +17,8 @@ interface AkunStrings {
   klaimHint: string;
   lupa: string;
   terpisah: string;
+  /** While the Google Form is the way in (2026-10-25): where the account comes from */
+  formulir: string;
   btn: { masuk: string; daftar: string; tunggu: string; batal: string };
   err: {
     nim: string;
@@ -70,6 +72,8 @@ export const AK: Record<Lang, AkunStrings> = {
     klaimHint: "Akun NIM ini pernah di-reset Admin. Masukkan kode klaim yang Admin berikan.",
     lupa: "Lupa sandi? Hubungi Admin Open Recruitment untuk Reset Akun.",
     terpisah: "Sudah punya akun praktikum? Tetap buat akun ini dulu, ya.",
+    formulir:
+      "Akunmu dibuat Panitia dari isian Google Form pendaftaran. Masuk dengan NIM dan sandi yang dikirim Panitia.",
     btn: { masuk: "Masuk", daftar: "Buat Akun", tunggu: "Sebentar…", batal: "Nanti Saja" },
     err: {
       nim: "NIM harus 10 atau 12 digit angka.",
@@ -128,6 +132,8 @@ export const AK: Record<Lang, AkunStrings> = {
     klaimHint: "Admin reset the account for this NIM. Type the claim code Admin gave you.",
     lupa: "Forgot your password? Ask the Open Recruitment Admin for an account reset.",
     terpisah: "Already have a practicum sign in? Make this account anyway.",
+    formulir:
+      "Panitia make your account from the registration Google Form. Sign in with your NIM and the password Panitia send you.",
     btn: { masuk: "Sign In", daftar: "Create Account", tunggu: "One moment…", batal: "Later" },
     err: {
       nim: "A NIM is 10 or 12 digits.",
@@ -187,6 +193,7 @@ export const AK: Record<Lang, AkunStrings> = {
     klaimHint: "管理员已重置此学号的账号。请输入管理员给你的认领码。",
     lupa: "忘记密码？请联系招新管理员重置账号。",
     terpisah: "已有实验课账号？也请先创建此账号。",
+    formulir: "你的账号由招募组根据报名 Google 表单建立。请用 NIM 和招募组发给你的密码登录。",
     btn: { masuk: "登录", daftar: "创建账号", tunggu: "请稍候…", batal: "稍后" },
     err: {
       nim: "学号应为 10 位或 12 位数字。",

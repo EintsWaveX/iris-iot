@@ -200,6 +200,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:event-delete": ["reccalendar"],
   "recruitment:seat": ["recedition"],
   "recruitment:unseat": ["recedition"],
+  "recruitment:visibility": ["recedition", "reccalendar"],
   // S2: a proposal, a lock or unlock, an opened envelope; a scan or a hand mark; Pilih Jadwal.
   "recruitment:propose": ["reccutting"],
   "recruitment:lock": ["reccutting", "reccandidates"],
@@ -261,6 +262,10 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:account-signin": [],
   "recruitment:account-signout": [],
   "recruitment:account-reset": [],
+  // Tambah CaA (2026-10-25): the Panitia add a candidate and their PDFs.
+  "recruitment:candidate-add": ["reccandidates"],
+  "recruitment:candidate-ticket": [],
+  "recruitment:candidate-document": ["reccandidates"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

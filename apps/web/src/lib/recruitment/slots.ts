@@ -42,6 +42,15 @@ export function pickWindow(e: Jendela): { opensAt: Date; closesAt: Date } {
   };
 }
 
+/**
+ * The close as people read it. The window shuts at `dayEnd` exclusive, so a
+ * 23:59 close shows as 23:59; one at midnight shows as 23:59 the day before.
+ */
+export function tutupTampil(closesAt: Date | string): Date {
+  const t = new Date(closesAt);
+  return tanggalWib(t).jam === "00:00" ? new Date(t.getTime() - 60_000) : t;
+}
+
 type Peristiwa = Jendela & Pick<RecEvent, "kind" | "stage">;
 
 /** The Pilih Jadwal event of a stage, if the calendar has one. */

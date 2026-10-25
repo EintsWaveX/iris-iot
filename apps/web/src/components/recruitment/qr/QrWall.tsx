@@ -58,6 +58,8 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const ring = useRef<SVGRectElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const prevHere = useRef(0);
+  /** server clock minus this device's, measured at the last token */
+  const selisih = useRef(0);
   const [baru, setBaru] = useState<number | null>(null);
 
   const daftar = events.data?.events ?? [];
@@ -78,10 +80,12 @@ export default function QrWall({ lang }: { lang: Lang }) {
         return;
       }
       setGagal(false);
+      // The swap is timed from the server's clock: the code just replaced counts for only
+      // a few seconds more, so a projector whose own clock is off must not show it late.
+      selisih.current = Date.parse(r.now) - Date.now();
       setTok(r);
-      // Counted from the device clock only to time the next fetch: the server decides what a period is.
-      const sisa = Date.parse(r.until) - Date.now();
-      timer = window.setTimeout(ambil, Math.min(PERIOD_MS + 500, Math.max(1500, sisa)));
+      const sisa = Date.parse(r.until) - Date.parse(r.now);
+      timer = window.setTimeout(ambil, Math.min(PERIOD_MS + 500, Math.max(250, sisa + 150)));
     };
     void ambil();
     return () => {
@@ -98,7 +102,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
   // A new code fades in; the ring drains over what is left of its 20 seconds.
   useEffect(() => {
     if (!tok) return;
-    const left = Math.max(0, Date.parse(tok.until) - Date.now());
+    const left = Math.max(0, Date.parse(tok.until) - (Date.now() + selisih.current));
     if (ring.current) {
       ring.current.style.animation = "none";
       void ring.current.getBoundingClientRect();
@@ -144,7 +148,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const kode = tok?.code ?? "";
   const titik = Math.min(Math.max(diharap, 0), 160);
   return (
-    <div className="r2proj" data-still={motion === "reduce" ? "yes" : "no"}>
+    <div className="r2proj" data-still={motion === "full" ? "no" : "yes"}>
       <div className="r2proj__top">
         <img src="/brand/iris-logo-mark.png" alt={t.logoAlt} />
         <span className="r2proj__ev">{REC[lang].eyebrow}</span>

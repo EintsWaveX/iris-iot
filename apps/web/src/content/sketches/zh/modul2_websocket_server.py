@@ -13,7 +13,7 @@ from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
 HOST: str = "0.0.0.0"  # 监听所有网卡
-PORT: int = ________  # (1) 端口号，要和每个 ESP32 程序里的 WS_PORT 一样
+PORT: int = ________  # (1) 服务器端口号，见日志
 
 # 允许的路径，每组一个。这里给了五个，对应每节课的
 # 小组数；组数少的话把用不到的删掉。

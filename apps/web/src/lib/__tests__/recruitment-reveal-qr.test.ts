@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { MAX_WAIT_MS, msUntilReveal, retryDelay, wakeDelay } from "../recruitment/reveal";
-import { CODE_ALPHABET, PERIOD_MS, acceptedPeriods, periodAt, periodEnd } from "../recruitment/qr";
+import {
+  CODE_ALPHABET,
+  GRACE_MS,
+  PERIOD_MS,
+  acceptedPeriods,
+  periodAt,
+  periodEnd,
+} from "../recruitment/qr";
 
 describe("the reveal countdown", () => {
   const revealAt = Date.parse("2026-11-11T05:00:00Z");
@@ -49,10 +56,25 @@ describe("the QR periods", () => {
     expect(periodAt(t + 20_000)).toBe(periodAt(t) + 1);
   });
 
-  it("accepts the current period and the one before, nothing else", () => {
-    const t = Date.parse("2026-11-12T11:30:05Z");
-    const p = periodAt(t);
-    expect(acceptedPeriods(t)).toEqual([p, p - 1]);
+  it("accepts the period before only in the first few seconds of the next one", () => {
+    expect(GRACE_MS).toBe(5_000);
+    const start = Date.parse("2026-11-12T11:30:00Z");
+    const p = periodAt(start);
+    expect(start % PERIOD_MS).toBe(0);
+    expect(acceptedPeriods(start)).toEqual([p, p - 1]);
+    expect(acceptedPeriods(start + GRACE_MS - 1)).toEqual([p, p - 1]);
+    expect(acceptedPeriods(start + GRACE_MS)).toEqual([p]);
+    expect(acceptedPeriods(start + 19_999)).toEqual([p]);
+  });
+
+  it("lets a code shown at the start of its period live 20 seconds plus the grace, no longer", () => {
+    const shown = Date.parse("2026-11-12T11:30:00Z");
+    const p = periodAt(shown);
+    const counts = (ms: number) => acceptedPeriods(ms).includes(p);
+    expect(counts(shown)).toBe(true);
+    expect(counts(shown + PERIOD_MS + GRACE_MS - 1)).toBe(true);
+    expect(counts(shown + PERIOD_MS + GRACE_MS)).toBe(false);
+    expect(counts(shown + 2 * PERIOD_MS - 1)).toBe(false);
   });
 
   it("knows when a period ends", () => {

@@ -38,6 +38,8 @@ import { Avatar, Gambar, Hitung, Kepala, miring, useGerakProfil, useMuncul } fro
 import { P } from "./profilStrings";
 import { FilosofiLogo, TentangLab } from "./Tentang";
 import RecBanner from "../../recruitment/home-banner/RecBanner";
+import type { PollState } from "../../../lib/hooks";
+import type { BannerResponse } from "../../../lib/recruitment/types";
 import "./profil.css";
 
 // Swiper loads only when the events come into the page, not with every
@@ -381,11 +383,14 @@ export default function ProfilLab({
   lang,
   me,
   hero,
+  banner,
 }: {
   lang: Lang;
   me: Me | null;
   /** A visitor's Home opens with the hero. */
   hero?: boolean;
+  /** Home's recruitment banner answer, shown above the hero */
+  banner?: PollState<BannerResponse | null>;
 }) {
   const t = P[lang];
   const data = useProfil();
@@ -411,9 +416,9 @@ export default function ProfilLab({
 
   return (
     <div className={`pl${tier === 0 ? " pl--still" : ""}`} ref={ref} data-tier={tier}>
+      {/* Open Recruitment (2026-10-26): a visitor sees it first, above the hero. */}
+      {hero && <RecBanner lang={lang} state={banner} />}
       {hero && <HeroLab lang={lang} data={data} />}
-      {/* Open Recruitment (2026-10-23): a visitor sees it right under the hero. */}
-      {hero && <RecBanner lang={lang} />}
       {data === undefined ? (
         <div className="pl-wait" aria-busy="true" />
       ) : data === null ? (

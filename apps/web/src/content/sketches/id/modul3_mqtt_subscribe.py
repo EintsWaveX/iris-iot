@@ -10,6 +10,91 @@ import ntptime
 import utime
 from umqtt.simple import ________  # (1) Nama kelas client MQTT yang dipakai di bawah
 
+# ---- PEMBUNGKUS WEBSOCKET ----------------------------------------------------
+# Membungkus paket MQTT ke dalam WebSocket agar dapat lewat Internet melalui
+# gateway. Cukup dibaca; tidak ada yang perlu diisi atau diubah di sini.
+import os
+import socket as net
+import umqtt.simple as mqtt_lib
+from binascii import b2a_base64
+
+
+class WebSocket:
+    def __init__(self):
+        self.raw = net.socket()
+        self.buf = b""
+        self.wait = True
+
+    def connect(self, addr):
+        self.raw.connect(addr)
+        key = b2a_base64(os.urandom(16)).strip().decode()
+        self.raw.write("GET /mqtt HTTP/1.1\r\nHost: {}\r\nUpgrade: websocket\r\n"
+                       "Connection: Upgrade\r\nSec-WebSocket-Key: {}\r\n"
+                       "Sec-WebSocket-Version: 13\r\n\r\n".format(mqtt_host, key).encode())
+        head = b""
+        while not head.endswith(b"\r\n\r\n"):
+            head += self.take(1)
+        if b" 101 " not in head:
+            raise OSError("WebSocket ditolak")
+
+    def take(self, n):
+        data = b""
+        while len(data) < n:
+            part = self.raw.read(n - len(data))
+            if not part:
+                raise OSError("koneksi putus")
+            data += part
+        return data
+
+    def frame(self, op, data):
+        n, mask = len(data), os.urandom(4)
+        head = bytes([128 | op, 128 | (n if n < 126 else 126)])
+        if n >= 126:
+            head += n.to_bytes(2, "big")
+        self.raw.setblocking(True)
+        self.raw.write(head + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(data)))
+
+    def write(self, data, n=None):
+        data = data[:n] if n else data
+        self.frame(2, data.encode() if isinstance(data, str) else data)
+
+    def read(self, n):
+        while len(self.buf) < n:
+            self.raw.setblocking(self.wait)
+            head = self.raw.read(2)
+            if head is None:
+                return None
+            self.raw.setblocking(True)
+            if len(head) < 2:
+                head += self.take(2 - len(head))
+            op, size = head[0] & 15, head[1] & 127
+            if size == 126:
+                size = int.from_bytes(self.take(2), "big")
+            data = self.take(size)
+            if op == 8:
+                raise OSError("koneksi putus")
+            if op == 9:
+                self.frame(10, data)
+            elif op < 3:
+                self.buf += data
+        out, self.buf = self.buf[:n], self.buf[n:]
+        return out
+
+    def setblocking(self, flag):
+        self.wait = flag
+
+    def close(self):
+        self.raw.close()
+
+
+class Net:
+    socket = WebSocket
+    getaddrinfo = net.getaddrinfo
+
+
+mqtt_lib.socket = Net
+
+
 # ---- JAM DINDING BERSAMA ----------------------------------------------------
 # Publisher dan Subscriber sama-sama memanggil sync_time_reference() sesudah
 # NTP, sehingga keduanya terkunci ke acuan detik yang sama.
@@ -43,7 +128,7 @@ wifi_ssid     = "<YOUR SSID WIFI>"
 wifi_password = "<YOUR WIFI PASSWORD>"
 
 # Isi sesuai broker yang dipakai; pada praktikum ini Mosquitto berjalan pada
-# Orange Pi 4 PRO, jadi alamat di bawah adalah alamat IP Orange Pi tersebut.
+# PC Server dan dijangkau lewat gateway di broker.irisiotlab.com.
 mqtt_host     = "<MQTT HOST ADDRESS>"
 mqtt_username = "<USERNAME FROM MOSQUITTO MQTT>"
 mqtt_password = "<PASSWORD FROM MOSQUITTO MQTT>"
@@ -78,12 +163,12 @@ except Exception as e:
 _epoch_ms_reference, _ticks_reference = sync_time_reference()
 
 
-# Port 1883 adalah nilai `listener` yang dipakai pada mosquitto.conf. keepalive
+# Port 80 adalah port gateway WebSocket, bukan port Mosquitto. keepalive
 # memberi tahu broker untuk mengharapkan ping dari client ini setiap 30 detik.
 mqtt_client = MQTTClient(
     client_id=mqtt_client_id,
     server=mqtt_host,
-    port=1883,
+    port=80,
     user=mqtt_username,
     password=mqtt_password,
     keepalive=30,

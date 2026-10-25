@@ -15,6 +15,7 @@ import { openSignIn } from "../../../lib/signin";
 import { REC_AKUN_EVENT, isFail, recPost, type AkunMode } from "../../../lib/recruitment/client";
 import { cekNama, cekNimOprec, cekSandi, NAMA_MAX, SANDI_MAX } from "../../../lib/recruitment/akun";
 import type { AccountResponse } from "../../../lib/recruitment/types";
+import { FORMULIR } from "../../../lib/recruitment/formulir";
 import { AK } from "./akunStrings";
 
 type Salah = Partial<Record<"nim" | "nama" | "sandi" | "ulang" | "klaim", string>>;
@@ -37,7 +38,8 @@ export default function AkunDialog({ lang }: { lang: Lang }) {
   useEffect(() => {
     const buka = (e: Event) => {
       const d = (e as CustomEvent<{ mode?: AkunMode; next?: string }>).detail ?? {};
-      setMode(d.mode ?? "masuk");
+      // While the Google Form is the way in, the Panitia make every account (2026-10-25).
+      setMode(FORMULIR ? "masuk" : (d.mode ?? "masuk"));
       setNext(d.next);
       setGagal(null);
       setSalah({});
@@ -134,20 +136,24 @@ export default function AkunDialog({ lang }: { lang: Lang }) {
       }
     >
       <form id="rec-akun-form" className="stack" noValidate onSubmit={kirimForm}>
-        <SegmentedControl
-          aria-label={t.title.masuk}
-          value={mode}
-          fill
-          onValueChange={(v) => {
-            setMode(v as AkunMode);
-            setGagal(null);
-            setSalah({});
-          }}
-          options={[
-            { value: "masuk", label: t.tabs.masuk },
-            { value: "daftar", label: t.tabs.daftar },
-          ]}
-        />
+        {FORMULIR ? (
+          <p className="hint">{t.formulir}</p>
+        ) : (
+          <SegmentedControl
+            aria-label={t.title.masuk}
+            value={mode}
+            fill
+            onValueChange={(v) => {
+              setMode(v as AkunMode);
+              setGagal(null);
+              setSalah({});
+            }}
+            options={[
+              { value: "masuk", label: t.tabs.masuk },
+              { value: "daftar", label: t.tabs.daftar },
+            ]}
+          />
+        )}
         {gagal && (
           <p className="banner banner--warn" role="alert">
             {gagal}
