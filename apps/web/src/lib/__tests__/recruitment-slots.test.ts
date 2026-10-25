@@ -11,8 +11,10 @@ import {
   pickWindow,
   seatsLeft,
   slotDate,
+  tutupTampil,
   type SlotInfo,
 } from "../recruitment/slots";
+import { tanggalWib } from "../recruitment/gates";
 import type { RecEvent } from "../recruitment/types";
 
 const wib = (s: string) => new Date(`${s}+07:00`);
@@ -68,6 +70,18 @@ describe("the pick window", () => {
     expect(pickOpen([PICK], "tes_tulis", wib("2026-11-14T23:58:59"))).toBe(true);
     expect(pickOpen([PICK], "tes_tulis", wib("2026-11-14T23:59:00"))).toBe(false);
     expect(pickOpen([PICK], "tes_tulis", wib("2026-11-15T00:00:00"))).toBe(false);
+  });
+
+  it("shows the close as the time people read: 23.59 stays 23.59, midnight reads 23.59 the day before", () => {
+    expect(tanggalWib(tutupTampil(pickWindow(PICK).closesAt))).toEqual({
+      tanggal: "2026-11-14",
+      jam: "23:59",
+    });
+    const e = { ...PICK, dayStart: null, dayEnd: null };
+    expect(tanggalWib(tutupTampil(pickWindow(e).closesAt))).toEqual({
+      tanggal: "2026-11-14",
+      jam: "23:59",
+    });
   });
 
   it("without a window it runs whole days", () => {

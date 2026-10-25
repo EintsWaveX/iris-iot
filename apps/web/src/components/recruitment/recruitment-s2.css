@@ -1451,7 +1451,7 @@ li.r2cutline {
   display: grid;
   gap: 4px;
 }
-.r2f .input {
+.r2f .field__input {
   width: 130px;
 }
 .r2f--n b {
@@ -1845,7 +1845,7 @@ li.r2cutline {
   gap: 8px;
   flex-wrap: nowrap;
 }
-.r2scan__code .input {
+.r2scan__code .field__input {
   flex: 1;
   min-width: 0;
   text-align: center;

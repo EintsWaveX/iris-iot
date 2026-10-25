@@ -39,6 +39,11 @@ const TEMPAT: Record<string, [string, string]> = {
 
 function cari(title: string): [string, string] | null {
   if (TETAP[title]) return TETAP[title];
+  const pilih = /^Pilih Jadwal (.+)$/.exec(title);
+  if (pilih && TAHAP[pilih[1]]) {
+    const [e, z] = TAHAP[pilih[1]];
+    return [`${e} Slot Picking`, `${z}选时段`];
+  }
   const [awal, ...sisa] = title.split(" ");
   const tahap = TAHAP[sisa.join(" ")];
   return AWAL[awal] && tahap ? AWAL[awal](tahap) : null;

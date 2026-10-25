@@ -14,7 +14,7 @@ import { Roll } from "../Roll";
 import type { Lang } from "../../../lib/kelas";
 import { isFail, recPost } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
-import { seatsLeft } from "../../../lib/recruitment/slots";
+import { seatsLeft, tutupTampil } from "../../../lib/recruitment/slots";
 import type { CandidateSlotsStage, SlotSeat } from "../../../lib/recruitment/types";
 import { S2 } from "../s2Strings";
 import { REC } from "../recruitmentStrings";
@@ -410,7 +410,8 @@ export function PickCard({
   const hari = [...new Set(data.slots.map((s) => wib(s.startsAt).tanggal))].sort();
   const buka = tgl(wib(w.opensAt).tanggal, lang);
   const bukaFull = `${buka}, ${wib(w.opensAt).jam}`;
-  const tutupFull = `${tgl(wib(new Date(Date.parse(w.closesAt) - 1).toISOString()).tanggal, lang)}, ${wib(new Date(Date.parse(w.closesAt) - 1).toISOString()).jam}`;
+  const tutupT = wib(tutupTampil(w.closesAt).toISOString());
+  const tutupFull = `${tgl(tutupT.tanggal, lang)}, ${tutupT.jam}`;
   const withdraw = async () => {
     const res = await recPost<{ ok: true }>("slot-change", { withdraw: true });
     window.Toast?.show(isFail(res) ? t.sentFail : t.withdrawn, isFail(res) ? "danger" : undefined);
@@ -445,7 +446,7 @@ export function PickCard({
               tutupFull,
             )}
           </span>
-          <span className="hint r2pick__lab">{t.left}</span>
+          {hari.length > 0 && <span className="hint r2pick__lab">{t.left}</span>}
           <span className="r2pick__sum">
             {hari.map((d) => (
               <span key={d}>

@@ -101,12 +101,15 @@ export default function RevealStage(p: RevealProps) {
   });
   const mRef = useRef<MotionLevel>(m);
   mRef.current = m;
+  /* False once the stage is closed, so an answer that lands later plays nothing */
+  const mounted = useRef(true);
   const resRef = useRef(res);
   resRef.current = res;
 
   /* The stage's canvas, Escape to close, and the page behind kept still */
   useEffect(() => {
     let alive = true;
+    mounted.current = true;
     if (canvas.current)
       void makeShooter(canvas.current).then((s) => {
         if (alive) shooter.current = s;
@@ -118,6 +121,7 @@ export default function RevealStage(p: RevealProps) {
     seal.current?.focus();
     return () => {
       alive = false;
+      mounted.current = false;
       window.removeEventListener("keydown", k);
       document.body.style.overflow = prev;
       timers.current.forEach((x) => window.clearTimeout(x));
@@ -208,6 +212,7 @@ export default function RevealStage(p: RevealProps) {
     if (known) return void begin(known, fromP);
     setPhase("waiting");
     void p.open().then((r) => {
+      if (!mounted.current) return;
       if (!r) {
         // Not opened (offline, or the time has not come): the flap goes back and it can be tried again.
         g.done = false;

@@ -115,7 +115,11 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const caas = asisten ? null : (akun.data?.account ?? null);
   const praktikan = !!caas;
   const tamu = !asisten && !caas;
-  const rec = useRecMe(praktikan);
+  const [reveal, setReveal] = useState<EnvelopeView | null>(null);
+  // While the envelope opens, the page behind it does not refetch: opening it
+  // sets off the candidates topic, and a re-render under the reveal stutters
+  // the swap on a slow phone. Turning the hooks back on fetches once on close.
+  const rec = useRecMe(praktikan && !reveal);
   const cal = useRecCalendar(me !== undefined);
   const edisi = useRecEdition(me !== undefined);
   const hariIni = useHariIni();
@@ -126,7 +130,6 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const [docs, setDocs] = useState(false);
   const [mundur, setMundur] = useState(false);
   const diminta = useRef<{ daftar: boolean; berkas: boolean; masuk: boolean } | null>(null);
-  const [reveal, setReveal] = useState<EnvelopeView | null>(null);
   const [pickStage, setPickStage] = useState<StageKey | null>(null);
   const [chgStage, setChgStage] = useState<StageKey | null>(null);
   const motion = useRevealMotion();
@@ -172,7 +175,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const buka = praktikan && rec.data ? rec.data.daftarOpen : gateOpen(events, "daftar", now);
   const sebelum = !buka && !!opensOn && hariIni < opensOn;
   const panitia = asisten && edisi.data?.viewer === "panitia";
-  const slots = useRecSlots(praktikan && applied);
+  const slots = useRecSlots(praktikan && applied && !reveal);
   // The envelope arrives on time without a refresh, counting from the server's clock.
   useRevealClock(
     rec.data?.now,
@@ -623,11 +626,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
               return isFail(res) ? null : { result: res.result, next: res.next };
             }}
             describeNext={describeNext(reveal.stage)}
-            onClose={() => {
-              setReveal(null);
-              rec.refresh();
-              slots.refresh();
-            }}
+            onClose={() => setReveal(null)}
           />
         </Suspense>
       )}

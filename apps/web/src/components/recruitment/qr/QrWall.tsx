@@ -144,7 +144,7 @@ export default function QrWall({ lang }: { lang: Lang }) {
   const kode = tok?.code ?? "";
   const titik = Math.min(Math.max(diharap, 0), 160);
   return (
-    <div className="r2proj" data-still={motion === "reduce" ? "yes" : "no"}>
+    <div className="r2proj" data-still={motion === "full" ? "no" : "yes"}>
       <div className="r2proj__top">
         <img src="/brand/iris-logo-mark.png" alt={t.logoAlt} />
         <span className="r2proj__ev">{REC[lang].eyebrow}</span>

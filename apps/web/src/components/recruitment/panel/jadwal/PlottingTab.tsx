@@ -38,7 +38,7 @@ import type { Lang } from "../../../../lib/kelas";
 import { addDays } from "../../../../lib/recruitment/calendar";
 import { isFail, recPost, useRecBoard } from "../../../../lib/recruitment/client";
 import { tanggalWib } from "../../../../lib/recruitment/gates";
-import { pickEvent, seatsLeft } from "../../../../lib/recruitment/slots";
+import { pickEvent, seatsLeft, tutupTampil } from "../../../../lib/recruitment/slots";
 import { bukaBagian } from "../../../../lib/recruitment/panel-tab";
 import type {
   BoardRequest,
@@ -118,7 +118,7 @@ function SlotTab({
     return true;
   }
   const tutupLabel = w
-    ? `${tgl(wib(new Date(Date.parse(w.closesAt) - 1).toISOString()).tanggal, lang)}, ${wib(new Date(Date.parse(w.closesAt) - 1).toISOString()).jam}`
+    ? `${tgl(wib(tutupTampil(w.closesAt).toISOString()).tanggal, lang)}, ${wib(tutupTampil(w.closesAt).toISOString()).jam}`
     : "";
   const bukaLabel = w ? `${tgl(wib(w.opensAt).tanggal, lang)}, ${wib(w.opensAt).jam}` : "";
   const sudahBuka = w && Date.now() >= Date.parse(w.opensAt);
@@ -313,7 +313,7 @@ function SlotRow({
       <label className="r2f">
         <span className="hint">{t.room}</span>
         <input
-          className="input"
+          className="field__input"
           value={room}
           maxLength={24}
           disabled={!can}

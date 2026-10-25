@@ -442,7 +442,15 @@ export async function handleAmplopBuka(req: ApiRequest, res: ApiResponse, s: Ses
   const events = await muatEvents(db, edisi.id);
   let next: EventLite | null = null;
   if (r.proposal === "lolos") {
-    const e = nextPublicEvent(events, now, await muatEventSendiri(db, k.id));
+    // Not this announcement itself (it runs all day), nor registration, nor a
+    // Pilih Jadwal: the reveal names the pick window in a line of its own.
+    const sesudah = events.filter(
+      (e) =>
+        !e.gates.includes("daftar") &&
+        e.kind !== "pick" &&
+        !(e.kind === "announcement" && e.stage === stage),
+    );
+    const e = nextPublicEvent(sesudah, now, await muatEventSendiri(db, k.id));
     next = e ? lite(e) : null;
   }
   res.status(200).json({

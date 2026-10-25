@@ -84,7 +84,7 @@ export const S2 = dict({
       eyebrow: (tahap: string) => `Pilih Jadwal ${tahap}`,
       openTitle: "Pilih malam tesmu sendiri",
       openBody: (rentang: string, buka: string, tutup: string) =>
-        `${rentang}. Siapa cepat dia dapat. Dibuka sejak ${buka} sampai ${tutup}.`,
+        `${rentang ? `${rentang}. ` : ""}Siapa cepat dia dapat. Dibuka sejak ${buka} sampai ${tutup}.`,
       later: (buka: string) => `Pilih Jadwal dibuka ${buka}. Kartunya aktif sendiri.`,
       closed:
         "Pilih Jadwal sudah ditutup. Kalau belum memilih, Panitia menempatkanmu di ruang yang masih ada kursinya.",
@@ -421,7 +421,7 @@ export const S2 = dict({
     },
     qr: {
       attendance: "Absensi",
-      scanHow: "Pindai dengan kamera HP, lalu masuk dengan akun Praktikan. Kamera tidak mau? Buka",
+      scanHow: "Pindai dengan kamera HP, lalu masuk dengan akun oprec. Kamera tidak mau? Buka",
       andType: "dan ketik",
       codeChanges: "Kodenya berganti tiap 20 detik.",
       outOf: (n: number) => `dari ${n} sudah hadir`,
@@ -561,7 +561,7 @@ export const S2 = dict({
       eyebrow: (tahap: string) => `Pick Your ${tahap} Slot`,
       openTitle: "Pick your own test evening",
       openBody: (rentang: string, buka: string, tutup: string) =>
-        `${rentang}. First come, first served. Open from ${buka} to ${tutup}.`,
+        `${rentang ? `${rentang}. ` : ""}First come, first served. Open from ${buka} to ${tutup}.`,
       later: (buka: string) => `Picking opens ${buka}. The card turns on by itself.`,
       closed:
         "Picking is closed. If you didn't pick, Panitia place you in a room that still has seats.",
@@ -897,7 +897,7 @@ export const S2 = dict({
     qr: {
       attendance: "Attendance",
       scanHow:
-        "Scan with your phone camera, then sign in with your Praktikan account. Camera won't work? Open",
+        "Scan with your phone camera, then sign in with your oprec account. Camera won't work? Open",
       andType: "and type",
       codeChanges: "The code changes every 20 seconds.",
       outOf: (n: number) => `of ${n} are here`,
@@ -1035,7 +1035,7 @@ export const S2 = dict({
       eyebrow: (tahap: string) => `选择${tahap}时段`,
       openTitle: "自己选择考试的晚上",
       openBody: (rentang: string, buka: string, tutup: string) =>
-        `${rentang}。先到先得。${buka}开放，到${tutup}截止。`,
+        `${rentang ? `${rentang}。` : ""}先到先得。${buka}开放，到${tutup}截止。`,
       later: (buka: string) => `选时段${buka}开放，卡片会自动启用。`,
       closed: "选时段已经结束。没有选的人，由招募组安排到还有空位的教室。",
       left: "每晚剩余座位",
@@ -1355,7 +1355,7 @@ export const S2 = dict({
     },
     qr: {
       attendance: "签到",
-      scanHow: "用手机相机扫描，然后用学生账号登录。相机扫不了？打开",
+      scanHow: "用手机相机扫描，然后用招新账号登录。相机扫不了？打开",
       andType: "并输入",
       codeChanges: "代码每 20 秒更换一次。",
       outOf: (n: number) => `共 ${n} 人，已到场`,

@@ -137,7 +137,7 @@ export default function Hadir({ lang }: { lang: Lang }) {
                 }}
               >
                 <input
-                  className="input mono"
+                  className="field__input mono"
                   maxLength={7}
                   value={kode}
                   autoCapitalize="characters"

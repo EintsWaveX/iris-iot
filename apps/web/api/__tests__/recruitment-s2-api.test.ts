@@ -504,6 +504,19 @@ describe("the envelope never shows early", () => {
     expect(tulis.find((w) => w.tabel === "result")?.nilai).toHaveProperty("openedAt");
   });
 
+  it("names the event after the announcement as next, not the announcement or registration", async () => {
+    dikunci("2026-11-11T12:00:00");
+    pada("2026-11-11T12:00:05");
+    expect(
+      (await panggil("POST", "envelope-open", { body: { stage: "berkas" } })).body.next,
+    ).toMatchObject({ title: "First Meet" });
+    // Registration stretched past the announcement still is not what comes next.
+    rows.event = EVENT_ROWS.map((e) => (e.title === "Extend" ? { ...e, endsOn: "2026-11-30" } : e));
+    expect(
+      (await panggil("POST", "envelope-open", { body: { stage: "berkas" } })).body.next,
+    ).toMatchObject({ title: "First Meet" });
+  });
+
   it("does not stamp again when it is opened a second time", async () => {
     dikunci("2026-11-11T12:00:00", { openedAt: new Date("2026-11-11T12:01:00+07:00") });
     pada("2026-11-11T13:00:00");
