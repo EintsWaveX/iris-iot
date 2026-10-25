@@ -32,6 +32,8 @@ export function useSeatLive(
   enabled: boolean,
   onKursi: (d: KursiPesan) => void,
   onBack: () => void,
+  /** Live Coding's messages (a compile finished, the queue moved): only the seat's own compile and the room's queue reach it */
+  onOther?: (m: PesanUjian) => void,
 ): { status: SeatLink; room: RoomPublic | null; progress: (p: Progress) => void } {
   const [status, setStatus] = useState<SeatLink>("putus");
   const [room, setRoom] = useState<RoomPublic | null>(null);
@@ -39,6 +41,8 @@ export function useSeatLive(
   kursi.current = onKursi;
   const back = useRef(onBack);
   back.current = onBack;
+  const other = useRef(onOther);
+  other.current = onOther;
   const sock = useRef<WebSocket | null>(null);
   const last = useRef<Progress | null>(null);
   const sentAt = useRef(0);
@@ -144,6 +148,12 @@ export function useSeatLive(
               kursi.current(m.d as KursiPesan);
             } catch {
               /* one view failing does not stop the next message */
+            }
+          } else if (m.j === "kompilasi" || m.j === "antrean") {
+            try {
+              other.current?.(m);
+            } catch {
+              /* as above */
             }
           }
         }

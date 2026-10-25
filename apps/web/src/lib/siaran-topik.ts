@@ -55,6 +55,8 @@ export const TOPIK = [
   "recroom",
   // S3 (2026-10-25): the question bank, the parts config or a reference changed.
   "recbank",
+  // S3 (2026-10-25, Live Coding): a sheet was sent or withdrawn, or the topic pool, a template or the rubric changed.
+  "reclive",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -241,12 +243,12 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:room-kit": [],
   "recruitment:room-move": ["recroom"],
   "recruitment:lc-hotspot": [],
-  "recruitment:lc-grade": [],
-  "recruitment:lc-grade-withdraw": [],
-  "recruitment:lc-topic-save": [],
-  "recruitment:lc-topic-delete": [],
-  "recruitment:lc-template-save": [],
-  "recruitment:lc-rubric-save": [],
+  "recruitment:lc-grade": ["reclive"],
+  "recruitment:lc-grade-withdraw": ["reclive"],
+  "recruitment:lc-topic-save": ["reclive"],
+  "recruitment:lc-topic-delete": ["reclive"],
+  "recruitment:lc-template-save": ["reclive"],
+  "recruitment:lc-rubric-save": ["reclive"],
   "recruitment:question-void": [],
   "recruitment:question-unvoid": [],
   "recruitment:score-finalize": [],

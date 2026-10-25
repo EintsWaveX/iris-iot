@@ -398,7 +398,13 @@ export const RG = dict({
       readOnly: "Hanya Logistik dan Ketua yang mencatat pinjaman.",
       codeNeeded: "Isi kode kit dulu.",
     },
-    tabs: { console: "Konsol", setup: "Pengaturan", kit: "Pinjaman Kit", aria: "Bagian ruang" },
+    tabs: {
+      console: "Konsol",
+      setup: "Pengaturan",
+      kit: "Pinjaman Kit",
+      grade: "Penilaian",
+      aria: "Bagian ruang",
+    },
   },
   en: {
     tab: "Written Test",
@@ -765,7 +771,13 @@ export const RG = dict({
       readOnly: "Only Logistik and the Ketua record loans.",
       codeNeeded: "Enter the kit code first.",
     },
-    tabs: { console: "Console", setup: "Settings", kit: "Kit Loans", aria: "Room sections" },
+    tabs: {
+      console: "Console",
+      setup: "Settings",
+      kit: "Kit Loans",
+      grade: "Grading",
+      aria: "Room sections",
+    },
   },
   zh: {
     tab: "笔试",
@@ -1123,6 +1135,12 @@ export const RG = dict({
       readOnly: "只有后勤和主席可以记录借用。",
       codeNeeded: "请先填写套件编号。",
     },
-    tabs: { console: "控制台", setup: "设置", kit: "套件借用", aria: "考场分区" },
+    tabs: {
+      console: "控制台",
+      setup: "设置",
+      kit: "套件借用",
+      grade: "评分",
+      aria: "考场分区",
+    },
   },
 });

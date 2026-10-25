@@ -30,6 +30,21 @@ const isField = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
 
+/**
+ * Live Coding opens the browser's device choosers (Web Serial, Web Bluetooth), which take focus
+ * from the page. While one is open, and for a moment after, leaving the page is not a kejadian
+ * (EXAM-ENGINE 7, 9.5: "device pickers exempt").
+ */
+const pickerGate = { until: 0 };
+export function holdPicker(ms = 60_000): void {
+  pickerGate.until = Date.now() + ms;
+}
+/** The chooser closed: a short grace for the focus to come back */
+export function releasePicker(graceMs = 1500): void {
+  pickerGate.until = Date.now() + graceMs;
+}
+const pickerOpen = () => Date.now() < pickerGate.until;
+
 export interface Lockdown {
   /** Something is full screen (our root) */
   fullscreen: boolean;
@@ -52,6 +67,8 @@ export function useLockdown(o: {
   const retry = useRef<ReturnType<typeof setTimeout> | null>(null);
   const partRef = useRef(part);
   partRef.current = part;
+  // The text last copied inside the page (Live Coding allows pasting only that)
+  const copied = useRef("");
 
   const flush = useCallback(async () => {
     retry.current = null;
@@ -126,6 +143,8 @@ export function useLockdown(o: {
     if (!active || seatId === null) return;
     const t = tracker.current;
     const signal = (kind: Parameters<StrikeTracker["signal"]>[0], instant = false) => {
+      // A device chooser (Live Coding's serial and Bluetooth pickers) takes focus without leaving the test
+      if (!instant && kind !== "alat" && pickerOpen()) return;
       report(t.signal(kind, jamServer(), { instant }));
       // A signal that joined a strike that had just closed reopens it; if the page is fine again, close it.
       if (!instant) settle();
@@ -156,9 +175,21 @@ export function useLockdown(o: {
         if (!document.hasFocus()) signal("fokus");
       }, 0);
     const onFocus = () => settle();
+    // Live Coding is written in the page, so copy and cut work there, and a paste is allowed only
+    // when it is the very text last copied in this page (EXAM-ENGINE 7, ruling 2026-10-24).
+    const coding = () => partRef.current === "livecode";
     const onPaste = (e: ClipboardEvent) => {
+      if (coding() && isField(e.target) && copied.current) {
+        const text = e.clipboardData?.getData("text/plain") ?? "";
+        if (text === copied.current) return;
+      }
       e.preventDefault();
       signal("tempel", true);
+    };
+    const onCopy = (e: Event) => {
+      if (!coding()) return e.preventDefault();
+      const sel = document.getSelection()?.toString() ?? "";
+      if (sel) copied.current = sel;
     };
     const stop = (e: Event) => e.preventDefault();
     const onKey = (e: KeyboardEvent) => {
@@ -179,8 +210,8 @@ export function useLockdown(o: {
     window.addEventListener("blur", onBlur);
     window.addEventListener("focus", onFocus);
     document.addEventListener("paste", onPaste, true);
-    document.addEventListener("copy", stop, true);
-    document.addEventListener("cut", stop, true);
+    document.addEventListener("copy", onCopy, true);
+    document.addEventListener("cut", onCopy, true);
     document.addEventListener("contextmenu", stop, true);
     document.addEventListener("keydown", onKey, true);
     window.addEventListener("resize", onResize);
@@ -192,8 +223,8 @@ export function useLockdown(o: {
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("paste", onPaste, true);
-      document.removeEventListener("copy", stop, true);
-      document.removeEventListener("cut", stop, true);
+      document.removeEventListener("copy", onCopy, true);
+      document.removeEventListener("cut", onCopy, true);
       document.removeEventListener("contextmenu", stop, true);
       document.removeEventListener("keydown", onKey, true);
       window.removeEventListener("resize", onResize);

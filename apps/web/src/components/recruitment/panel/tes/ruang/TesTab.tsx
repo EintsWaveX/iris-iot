@@ -24,6 +24,7 @@ import {
 import { tanggalWib } from "../../../../../lib/recruitment/gates";
 import { tgl } from "../../../shared";
 import { useRevealMotion } from "../../../reveal/fx";
+import GradeTab from "../../../livecode/GradeTab";
 import Konsol from "./Konsol";
 import { RuangKit, RuangPengaturan } from "./RuangSetup";
 import { RG } from "./ruangStrings";
@@ -197,7 +198,7 @@ function Daftar({
 
 /* ------------------------------------------------------------------ room */
 
-type Bagian = "konsol" | "atur" | "kit";
+type Bagian = "konsol" | "atur" | "kit" | "nilai";
 
 function Ruang({
   lang,
@@ -241,6 +242,8 @@ function Ruang({
     { v: "konsol", label: t.tabs.console },
     ...(v.me.canSetup ? [{ v: "atur" as const, label: t.tabs.setup }] : []),
     ...(v.me.canKit ? [{ v: "kit" as const, label: t.tabs.kit }] : []),
+    // Grading opens with Live Coding's timer; the page asks the API who may grade
+    ...(v.state.runs.livecode ? [{ v: "nilai" as const, label: t.tabs.grade }] : []),
   ];
   const slot = v.room.slot;
   const sub = slot
@@ -284,6 +287,8 @@ function Ruang({
           <RuangPengaturan lang={lang} v={v} people={people} refresh={refresh} />
         ) : bagian === "kit" && v.me.canKit ? (
           <RuangKit lang={lang} v={v} refresh={refresh} />
+        ) : bagian === "nilai" && v.state.runs.livecode ? (
+          <GradeTab lang={lang} roomId={id} />
         ) : (
           <Konsol
             lang={lang}

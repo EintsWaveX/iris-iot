@@ -16,7 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../../../lib/kelas";
 import { usePoll } from "../../../lib/hooks";
 import { isFail, recGet } from "../../../lib/recruitment/client";
-import type { RoomPublic } from "../../../lib/recruitment/room-relay";
+import type { PesanUjian, RoomPublic } from "../../../lib/recruitment/room-relay";
 import { useCadanganRuang, useJamRuang } from "../../../lib/recruitment/room-client";
 import { useSeatLive } from "../../../lib/recruitment/seat-client";
 import { seatPhase, type SeatPhase } from "../../../lib/recruitment/seat-state";
@@ -26,7 +26,8 @@ import CheckIn from "./CheckIn";
 import { useLockdown } from "./lockdown/useLockdown";
 import { Gate } from "./parts";
 import Runner from "./Runner";
-import { Finished, LiveCodeStandIn, Lobby, NotOpen, Notice } from "./Screens";
+import { Finished, Lobby, NotOpen, Notice } from "./Screens";
+import LiveCodePage, { type Antrean } from "../livecode/LiveCodePage";
 import { TS } from "./testStrings";
 
 import "../recruitment-s3-runner.css";
@@ -57,7 +58,22 @@ export default function TestPage({ lang }: { lang: Lang }) {
   const refresh = poll.refresh;
 
   const [twoTabs, setTwoTabs] = useState(false);
-  const live = useSeatLive(seat?.id ?? null, !!seat, () => refresh(), refresh);
+  // Live Coding: the relay says a compile finished or the Master changed the seat's boards (bump), and the queue moved (chips)
+  const [lcSignal, setLcSignal] = useState(0);
+  const [antrean, setAntrean] = useState<Antrean>(null);
+  const live = useSeatLive(
+    seat?.id ?? null,
+    !!seat,
+    (d) => {
+      refresh();
+      if (d.lc || d.reroll) setLcSignal((n) => n + 1);
+    },
+    refresh,
+    (m: PesanUjian) => {
+      if (m.j === "antrean") setAntrean(m.d as Antrean);
+      else setLcSignal((n) => n + 1);
+    },
+  );
   useCadanganRuang(refresh, !!seat && live.status !== "live");
   const now = useJamRuang();
 
@@ -169,7 +185,16 @@ export default function TestPage({ lang }: { lang: Lang }) {
     );
   } else if (phase.k === "spin" || (phase.k === "work" && phase.part === "livecode")) {
     screen = (
-      <LiveCodeStandIn lang={lang} tv={tv!} phase={phase} motion={motion} onChanged={refresh} />
+      <LiveCodePage
+        lang={lang}
+        tv={{ ...tv!, room }}
+        phase={phase}
+        motion={motion}
+        signal={lcSignal}
+        antrean={antrean}
+        linkDown={live.status !== "live"}
+        onChanged={refresh}
+      />
     );
   } else if (
     (phase.k === "work" || (phase.k === "wait" && showUp)) &&

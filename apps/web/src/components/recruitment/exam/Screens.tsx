@@ -23,7 +23,7 @@ import RecNav from "../RecNav";
 import { href } from "../../../lib/app";
 import { tgl } from "../shared";
 import HotspotCard from "./HotspotCard";
-import { CheckRow, Gate, Timer, type Motion } from "./parts";
+import { CheckRow, Gate, type Motion } from "./parts";
 import { TS } from "./testStrings";
 
 const jam = (ms: number) => tanggalWib(new Date(ms)).jam;
@@ -218,43 +218,6 @@ export function Lobby({
           </div>
         </div>
         {tv.seat && <HotspotCard lang={lang} saved={tv.hotspot} compact onChanged={onChanged} />}
-      </div>
-    </div>
-  );
-}
-
-/** Live Coding's page is prompt 12's; until it lands the seat sees its clock and its phone */
-export function LiveCodeStandIn({
-  lang,
-  tv,
-  phase,
-  motion,
-  onChanged,
-}: {
-  lang: Lang;
-  tv: TestView;
-  phase: SeatPhase;
-  motion: Motion;
-  onChanged?: () => void;
-}) {
-  const t = TS[lang].lc;
-  return (
-    <div className="r3gate r3lobby" data-m={motion}>
-      <div className="r3lobby__in">
-        <div className="stack" style={{ gap: 6 }}>
-          <span className="eyebrow rec-eyebrow">{TS[lang].eyebrow}</span>
-          <h1 className="r3title">{phase.k === "spin" ? t.spin : t.running}</h1>
-          {phase.k === "work" && (
-            <div className="row">
-              <Timer left={phase.left} frozen={phase.paused} big lang={lang} />
-            </div>
-          )}
-        </div>
-        <div className="panel">
-          <p className="lede">{t.body}</p>
-          <span className="hint">{t.pending}</span>
-        </div>
-        {tv.seat && <HotspotCard lang={lang} saved={tv.hotspot} onChanged={onChanged} />}
       </div>
     </div>
   );
