@@ -3,8 +3,8 @@
  * Ketua, the bank right). A line of tabs: one for each part with its count,
  * then Referensi and Pengaturan. A question is chosen in the address
  * (?soal=12, or ?soal=baru for a new one in the open part), so the back
- * button and a shared link both work. The Live Coding editor is prompt 12's;
- * when it lands it takes a place in the tab line (see BANK_VIEWS).
+ * button and a shared link both work. The Live Coding tab (topics, templates
+ * and rubric) is prompt 12's LcPoolTab, a place of its own in the tab line.
  */
 import { useCallback, useEffect, useState } from "react";
 import Fade from "../../../../ui/Fade";
@@ -22,12 +22,13 @@ import BankEditor from "./BankEditor";
 import BankImport from "./BankImport";
 import BankList from "./BankList";
 import BankRefs from "./BankRefs";
+import LcPoolTab from "../../../livecode/LcPoolTab";
 import { BK } from "./bankStrings";
 
 import "../../../recruitment-s3-bank.css";
 
-/** The tabs of the line, in order. Prompt 12 adds "livecode" here. */
-export const BANK_VIEWS = [...PHASE1_PARTS, "refs", "config"] as const;
+/** The tabs of the line, in order. */
+export const BANK_VIEWS = [...PHASE1_PARTS, "livecode", "refs", "config"] as const;
 export type BankView = (typeof BANK_VIEWS)[number];
 
 const toast = (m: string, tone: "ok" | "warn" | "danger" = "ok") => window.Toast?.show(m, tone);
@@ -134,6 +135,7 @@ export default function BankTab({ lang }: { lang: Lang }) {
             onChange={(v) => go({ view: v, soal: null })}
             tabs={[
               ...PHASE1_PARTS.map((p) => ({ v: p as BankView, label: t.parts[p], n: count(p) })),
+              { v: "livecode" as BankView, label: t.tabLive },
               { v: "refs" as BankView, label: t.tabRefs, n: refs.data?.references.length },
               { v: "config" as BankView, label: t.tabConfig },
             ]}
@@ -182,6 +184,8 @@ export default function BankTab({ lang }: { lang: Lang }) {
             seeding={seeding}
             onSeed={() => void pasang()}
           />
+        ) : view === "livecode" ? (
+          <LcPoolTab lang={lang} />
         ) : view === "refs" ? (
           refs.data ? (
             <BankRefs lang={lang} data={refs.data} refresh={refs.refresh} />
