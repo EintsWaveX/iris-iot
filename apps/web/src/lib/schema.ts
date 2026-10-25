@@ -45,6 +45,7 @@ import {
   type PartKey,
 } from "./recruitment/exam-types.js";
 import type { KitBoard, RoomHotspot, SeatCheckin } from "./recruitment/room-types.js";
+import type { ScoreRow, StatRow } from "./recruitment/score-api.js";
 import {
   JOB_STATUS,
   LC_VARIANTS,
@@ -2908,3 +2909,34 @@ export const recRubricScore = pgTable(
 export type RecLcTopicRow = typeof recLcTopic.$inferSelect;
 export type RecLivecodeRow = typeof recLivecode.$inferSelect;
 export type RecCompileJobRow = typeof recCompileJob.$inferSelect;
+
+/**
+ * Finalkan (EXAM-ENGINE 4.3): every candidate's scores and every question's
+ * statistics, frozen. At most one freeze per edition is live; an unfreeze
+ * marks it superseded and brings provisional reads back.
+ */
+export const recScoreFreeze = pgTable(
+  "rec_score_freeze",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    stage: text("stage").notNull().default("tes_tulis"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    by: text("by").notNull(),
+    note: text("note"),
+    scores: jsonb("scores").$type<ScoreRow[]>().notNull(),
+    stats: jsonb("stats").$type<StatRow[]>().notNull(),
+    supersededAt: timestamp("superseded_at", { withTimezone: true }),
+    supersededBy: text("superseded_by"),
+    unfreezeNote: text("unfreeze_note"),
+  },
+  (t) => [
+    uniqueIndex("rec_score_freeze_hidup")
+      .on(t.editionId, t.stage)
+      .where(sql`${t.supersededAt} is null`),
+  ],
+);
+
+export type RecScoreFreezeRow = typeof recScoreFreeze.$inferSelect;
