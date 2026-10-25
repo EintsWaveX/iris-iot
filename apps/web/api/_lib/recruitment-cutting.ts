@@ -55,6 +55,7 @@ import {
 } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
+import { muatNilaiCutting } from "./recruitment-score.js";
 
 /** What the deck aims for at each Cutting (PRD 3, Targets). */
 const TARGET: Partial<Record<CutStage, { min: number; max: number }>> = {
@@ -216,6 +217,8 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
     db,
     pool.flatMap((r) => [r.result?.proposedBy ?? ""]),
   );
+  // Tes Tulis reads the exam's scores (prompt 13); a candidate with no seat has none.
+  const nilai = stage === "tes_tulis" ? await muatNilaiCutting(db, edisi.id) : null;
   const rows: CutRowView[] = pool.map((r) => ({
     id: r.id,
     nim: r.nim,
@@ -223,9 +226,9 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
     kelas: r.kelas,
     fm: r.fm,
     tt: r.tt,
-    // The four exam parts and the total come from the exam engine (S3).
-    parts: [null, null, null, null],
-    total: null,
+    // Logika, FITB, Debugging, Live Coding and the total of 4000, from the exam engine.
+    parts: nilai?.byCandidate.get(r.id)?.parts ?? [null, null, null, null],
+    total: nilai?.byCandidate.get(r.id)?.total ?? null,
     berkas: stage === "berkas" ? { status: r.status as never, score: r.score, docs: r.docs } : null,
     proposal: r.result?.proposal ?? null,
     proposedBy: r.result?.proposedBy ? (kode.get(r.result.proposedBy) ?? null) : null,
@@ -256,6 +259,7 @@ export async function handleHasil(req: ApiRequest, res: ApiResponse, s: SessionP
       opened: pool.filter((r) => r.result?.locked && r.result.openedAt).length,
     },
     target: TARGET[stage] ?? null,
+    scoreFinal: nilai ? nilai.final : null,
     now: now.toISOString(),
   });
 }

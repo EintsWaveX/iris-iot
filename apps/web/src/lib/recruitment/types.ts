@@ -627,7 +627,7 @@ export interface CutRowView {
   /** First Meet and Tes Tulis attendance */
   fm: boolean;
   tt: boolean;
-  /** Logika, FITB, Kodingan, Mikro (S3 fills them) */
+  /** Logika, FITB, Debugging, Live Coding (S3 fills them) */
   parts: (number | null)[];
   total: number | null;
   /** Berkas only: the status and the optional score */
@@ -662,6 +662,8 @@ export interface CutBoardResponse {
   lock: CutLock;
   /** What the deck aims for, from PRD 3 targets, for the threshold card */
   target: { min: number; max: number } | null;
+  /** Tes Tulis only: the scores are frozen by Finalkan (true) or still provisional (false) */
+  scoreFinal?: boolean | null;
   now: string;
 }
 
