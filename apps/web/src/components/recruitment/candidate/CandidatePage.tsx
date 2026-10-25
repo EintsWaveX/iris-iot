@@ -44,6 +44,7 @@ import {
   type EnvelopeOpenResponse,
   type EnvelopeView,
   type EventLite,
+  type Proposal,
   type RecEvent,
   type StageKey,
   type WithdrawResponse,
@@ -116,6 +117,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
   const praktikan = !!caas;
   const tamu = !asisten && !caas;
   const [reveal, setReveal] = useState<EnvelopeView | null>(null);
+  const dibuka = useRef<{ stage: CutStage; result: Proposal } | null>(null);
   // While the envelope opens, the page behind it does not refetch: opening it
   // sets off the candidates topic, and a re-render under the reveal stutters
   // the swap on a slow phone. Turning the hooks back on fetches once on close.
@@ -623,10 +625,30 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
               const res = await recPost<EnvelopeOpenResponse>("envelope-open", {
                 stage: reveal.stage,
               });
-              return isFail(res) ? null : { result: res.result, next: res.next };
+              if (isFail(res)) return null;
+              dibuka.current = { stage: reveal.stage, result: res.result };
+              return { result: res.result, next: res.next };
             }}
             describeNext={describeNext(reveal.stage)}
-            onClose={() => setReveal(null)}
+            onClose={() => {
+              // The page behind did not refetch while the envelope opened, so
+              // it still holds the sealed envelope: mark it opened here, or the
+              // sealed hero shows again until the refetch on close lands.
+              const d = dibuka.current;
+              dibuka.current = null;
+              if (d)
+                rec.ubah((m) =>
+                  m
+                    ? {
+                        ...m,
+                        envelopes: m.envelopes.map((e) =>
+                          e.stage === d.stage ? { ...e, opened: true, result: d.result } : e,
+                        ),
+                      }
+                    : m,
+                );
+              setReveal(null);
+            }}
           />
         </Suspense>
       )}
