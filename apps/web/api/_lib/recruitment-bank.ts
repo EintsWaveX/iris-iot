@@ -31,12 +31,14 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
-import { jsonBody, noStore } from "./http.js";
+import { jsonBody, noStore, pgErrorCode } from "./http.js";
 import {
   asisten,
+  recAnswer,
   recCandidate,
   recExamConfig,
   recExamRoom,
+  recExamSeat,
   recPartRef,
   recQuestion,
   recQuestionLog,
@@ -583,6 +585,28 @@ async function simpanSoal(k: Konteks) {
   });
 }
 
+/**
+ * Whether any seat holds the question: an answer row, or a draw that names it.
+ * A practice room draws and answers without setting `shownAt` (it never locks a
+ * question), but those rows still point at it, and the answer's foreign key
+ * would refuse the delete.
+ */
+async function dipakaiSeat(db: Db, edisiId: number, questionId: number): Promise<boolean> {
+  const [jawab] = await db
+    .select({ seatId: recAnswer.seatId })
+    .from(recAnswer)
+    .where(eq(recAnswer.questionId, questionId))
+    .limit(1);
+  if (jawab) return true;
+  const seats = await db
+    .select({ draw: recExamSeat.draw })
+    .from(recExamSeat)
+    .where(eq(recExamSeat.editionId, edisiId));
+  return seats.some((x) =>
+    Object.values(x.draw).some((d) => d?.items.some((it) => it.q === questionId)),
+  );
+}
+
 async function hapusSoal(k: Konteks) {
   const id = intOf(jsonBody(k.req).id);
   if (!id) return galat(k.res, "data_salah");
@@ -592,10 +616,16 @@ async function hapusSoal(k: Konteks) {
     .where(and(eq(recQuestion.id, id), eq(recQuestion.editionId, k.edisiId)))
     .limit(1);
   if (!r) return galat(k.res, "tidak_ada");
-  if (r.shownAt) return galat(k.res, "sudah_tampil");
+  if (r.shownAt || (await dipakaiSeat(k.db, k.edisiId, id))) return galat(k.res, "sudah_tampil");
   if (r.status === "ready" && (await ruangBerjalan(k.db, k.edisiId)))
     return galat(k.res, "ruang_berjalan");
-  await k.db.delete(recQuestion).where(eq(recQuestion.id, id));
+  try {
+    await k.db.delete(recQuestion).where(eq(recQuestion.id, id));
+  } catch (e) {
+    // A seat answered it between the check and the delete: rec_answer holds it.
+    if (pgErrorCode(e) === "23503") return galat(k.res, "sudah_tampil");
+    throw e;
+  }
   await writeAudit(k.nim, "rec_soal_hapus", { id, title: r.title });
   k.res.status(200).json({ ok: true });
 }

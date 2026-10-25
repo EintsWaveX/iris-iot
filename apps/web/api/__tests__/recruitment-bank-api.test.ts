@@ -604,6 +604,41 @@ describe("question-delete", () => {
     berjalan = true;
     expect((await jalan("question-delete", AKD, { id: 5 })).body.kode).toBe("ruang_berjalan");
   });
+
+  it("refuses one that only a practice room drew or answered, instead of failing on the key", async () => {
+    // A practice room never sets shownAt, but the seat's draw and answer still point at it.
+    rows.question = [{ ...BARIS(), status: "draft", shownAt: null }];
+    rows.seat = [
+      {
+        draw: { logika: { at: 1, room: 9, items: [{ q: 5, v: 3, lang: "cpp", perm: null }] } },
+      },
+    ];
+    let r = await jalan("question-delete", AKD, { id: 5 });
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("sudah_tampil");
+    expect(tulis).toEqual([]);
+
+    rows.seat = [{ draw: {} }];
+    rows.answer = [{ seatId: 12 }];
+    r = await jalan("question-delete", AKD, { id: 5 });
+    expect(r.body.kode).toBe("sudah_tampil");
+    expect(tulis).toEqual([]);
+
+    // A draw of other questions leaves it deletable.
+    rows.answer = [];
+    rows.seat = [
+      { draw: { logika: { at: 1, room: 9, items: [{ q: 6, v: 1, lang: "cpp", perm: null }] } } },
+    ];
+    expect((await jalan("question-delete", AKD, { id: 5 })).status).toBe(200);
+  });
+
+  it("answers sudah_tampil, not 500, when a seat answers between the check and the delete", async () => {
+    rows.question = [{ ...BARIS(), status: "draft" }];
+    fkMenolak = true;
+    const r = await jalan("question-delete", AKD, { id: 5 });
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("sudah_tampil");
+  });
 });
 
 /* ------------------------------------------------- the freeze, under the lock */
