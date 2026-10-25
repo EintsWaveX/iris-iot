@@ -4,15 +4,31 @@
  * bad sketch never waits in line; the PC agent applies the same ones again
  * (orangepi/agent/kompilasi.py), because the agent never trusts the site.
  * Pure and browser safe.
+ *
+ * A regex over source text is a first gate, not the wall: the compile itself
+ * runs in a sandbox that cannot read the machine's secrets (kompilasi.py
+ * confine()). So this errs toward refusing. It reads the whole text, comments
+ * and strings included, after the compiler's own first phases (trigraphs and
+ * line splicing), and refuses anything it cannot be sure of: an include whose
+ * operand is not a plain path, include_next, import, embed, __has_include,
+ * incbin, inline assembly and raw string literals.
  */
 import { CODE_MAX } from "./lc-types.js";
 
 export type SketchCheck =
   { ok: true } | { ok: false; kode: "berbahaya" | "terlalu_besar"; detail: string };
 
-const INCLUDE_RE = /^[ \t]*#[ \t]*include[ \t]*[<"]([^>"\n]*)[>"]/gm;
+// Between the # and the keyword, and after it, only blanks and /* */ comments (of 200 characters at most, so a hostile file cannot make the scan crawl) may sit
+const GAP = String.raw`(?:[ \t\f\v]|/\*(?:[^*]|\*(?!/)){0,200}\*/)*`;
+const DIRECTIVE = new RegExp(
+  String.raw`(?:#|%:)${GAP}(include_next|include|import|embed|define|undef)(?![A-Za-z0-9_])${GAP}`,
+  "g",
+);
+const OPERAND = /^(?:<([^>\n]*)>|"([^"\n]*)")/;
 const INCBIN_RE = /incbin|["']\s*\.include/i;
-const IRIS_DEF_RE = /^[ \t]*#[ \t]*(?:define|undef)[ \t]+IRIS_/m;
+const HAS_INCLUDE_RE = /__has_include/;
+const ASM_RE = /(?<![A-Za-z0-9_])(?:asm|__asm__|__asm)(?![A-Za-z0-9_])/;
+const RAW_STRING_RE = /(?<![A-Za-z0-9_])(?:u8|u|U|L)?R"[^ ()\\\t\v\f\n"]{0,16}\(/;
 const HEADER_LINE_RE = /^(?:|\/\/.*|#pragma once|#define IRIS_[A-Z0-9_]+(?:[ \t].*)?)$/;
 
 const unsafePath = (p: string): boolean =>
@@ -24,16 +40,36 @@ const refuse = (kode: "berbahaya" | "terlalu_besar", detail: string): SketchChec
   detail,
 });
 
+/** What the compiler's first phases make of the text: trigraphs, then spliced lines. */
+const preprocessed = (src: string): string =>
+  src
+    .replace(/\?\?\//g, "\\")
+    .replace(/\?\?=/g, "#")
+    .replace(/\\\r?\n/g, "");
+
 /** Code that reaches outside its folder, sets the seat's constants itself or is too big is refused. */
 export function checkSketch(sketch: string): SketchCheck {
   if (new TextEncoder().encode(sketch).length > CODE_MAX)
     return refuse("terlalu_besar", "The sketch is larger than 64 KB");
-  for (const m of sketch.matchAll(INCLUDE_RE))
-    if (unsafePath(m[1]))
-      return refuse("berbahaya", `#include "${m[1]}" reaches outside the sketch`);
-  if (INCBIN_RE.test(sketch)) return refuse("berbahaya", "incbin is not allowed");
-  if (IRIS_DEF_RE.test(sketch))
-    return refuse("berbahaya", "IRIS_ names are set by the seat's header, not by the sketch");
+  const text = preprocessed(sketch);
+  for (const m of text.matchAll(DIRECTIVE)) {
+    const after = m.index + m[0].length;
+    if (m[1] === "define" || m[1] === "undef") {
+      if (text.startsWith("IRIS_", after))
+        return refuse("berbahaya", "IRIS_ names are set by the seat's header, not by the sketch");
+      continue;
+    }
+    const operand = OPERAND.exec(text.slice(after));
+    if (!operand)
+      return refuse("berbahaya", `#${m[1]} must name a file in quotes or angle brackets`);
+    const path = operand[1] ?? operand[2];
+    if (m[1] !== "include" || unsafePath(path))
+      return refuse("berbahaya", `#${m[1]} "${path}" is not allowed`);
+  }
+  if (HAS_INCLUDE_RE.test(text)) return refuse("berbahaya", "__has_include is not allowed");
+  if (INCBIN_RE.test(text)) return refuse("berbahaya", "incbin is not allowed");
+  if (ASM_RE.test(text)) return refuse("berbahaya", "inline assembly is not allowed");
+  if (RAW_STRING_RE.test(text)) return refuse("berbahaya", "raw string literals are not allowed");
   return { ok: true };
 }
 
