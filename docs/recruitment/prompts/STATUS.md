@@ -16,7 +16,7 @@ A row is `ready` when every prompt in **Needs** is done. Mockups (01, 05, 08c, 1
 | 08 | Exam engine design + pure modules | Opus max | 02 | 1 Nov | done (EXAM-ENGINE.md reviewed with the user 2026-10-24; eb3078f, not pushed; handoffs/08.md; Part C moved to 08c) |
 | 08c | S3 mockup | Opus high | 08 | 26 Oct | done (signed off 2026-10-24 19:04 WIB; https://claude.ai/artifact/CHsqA6eVHiVF6PQd6cG2ht v2; iris-aso-62, then iris-iot-29; no commits, the mockup lives outside the repo; handoffs/08c.md) |
 | 09 | Bank + references | Sonnet high | 08, 08c signed off | 10 Nov | ready (08 and 08c done; 0051 is committed; reuse 10's exam/render) |
-| 10 | Exam runner | Sonnet high | 08, 08c signed off | 10 Nov | running (2026-10-25 00:55 WIB, iris-iot session 10; 08 and 08c are done, the old "blocked (08c)" was stale) |
+| 10 | Exam runner | Sonnet high | 08, 08c signed off | 10 Nov | done (runner 85e9c00, 2026-10-25; check, lint and 104 tests green; not pushed; open: Live Coding stand-in for 12, `GET ref` and `GET media` for 09, no Firefox, Safari or real phone check, all on 14's list; handoffs/10.md) |
 | 11 | Master console + relay room | Sonnet high | 08, 08c signed off | 10 Nov | done (0051 0ed3793, relay ba0f670, hotspot and kejadian 4629b28, room API fa6279d, console 9b6c5fe, fixes 1094a56 1a574e3 9949020; not pushed; rig run 2026-10-25: 65 + 27 + 31 + 79 checks; seats were fake until 10's runner lands; handoffs/11.md) |
 | 12 | Live Coding | Sonnet high | 08, 08c signed off, 11 | 13 Nov | ready (08, 08c and 11 done) |
 | 13 | Scoring + results | Sonnet medium | 10, 06 | 13 Nov | blocked (10, 06) |
