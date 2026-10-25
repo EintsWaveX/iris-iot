@@ -194,12 +194,14 @@ export async function ambilKompilasi(
     );
   const n = Math.max(0, Math.min(free, 8));
   if (n === 0) return [];
+  // MATERIALIZED: a plain IN (subselect with LIMIT) may be run again per row and claim more than n
   const claimed = await db.execute(sql`
-    UPDATE rec_compile_job SET status = 'diambil', claimed_at = now(), server_id = ${serverId}
-    WHERE id IN (
+    WITH pilih AS MATERIALIZED (
       SELECT id FROM rec_compile_job WHERE status = 'antre'
       ORDER BY requested_at, id FOR UPDATE SKIP LOCKED LIMIT ${n}
     )
+    UPDATE rec_compile_job SET status = 'diambil', claimed_at = now(), server_id = ${serverId}
+    WHERE id IN (SELECT id FROM pilih)
     RETURNING id, seat_id, room_id, sketch, header, fqbn, libs
   `);
   const rows =
@@ -381,8 +383,11 @@ export async function ambilMqtt(db: Db, serverId: number): Promise<MqttKerja[]> 
     .set({ status: "antre", claimedAt: null })
     .where(and(eq(recMqttJob.status, "diambil"), sql`${recMqttJob.claimedAt} < ${basi}`));
   const got = await db.execute(sql`
+    WITH pilih AS MATERIALIZED (
+      SELECT id FROM rec_mqtt_job WHERE status = 'antre' ORDER BY requested_at, id FOR UPDATE SKIP LOCKED LIMIT 5
+    )
     UPDATE rec_mqtt_job SET status = 'diambil', claimed_at = now()
-    WHERE id IN (SELECT id FROM rec_mqtt_job WHERE status = 'antre' ORDER BY requested_at, id FOR UPDATE SKIP LOCKED LIMIT 5)
+    WHERE id IN (SELECT id FROM pilih)
     RETURNING id, room_id, op, akun
   `);
   const rows =

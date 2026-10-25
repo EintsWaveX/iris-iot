@@ -1,7 +1,13 @@
 /** Grading Live Coding (EXAM-ENGINE 9.8, 11.3 item 1): two sheets, hidden peers. */
 import { describe, expect, it } from "vitest";
 import { DEFAULT_RUBRIC_ROWS } from "../recruitment/lc-defaults";
-import { canSubmit, peerView, validateSheet, type StoredSheet } from "../recruitment/lc-grade";
+import {
+  canSubmit,
+  peerView,
+  sameRubricRows,
+  validateSheet,
+  type StoredSheet,
+} from "../recruitment/lc-grade";
 import type { Rubric } from "../recruitment/exam-types";
 
 const rubric: Rubric = { id: 1, stage: "tes_tulis", kind: "livecode", rows: DEFAULT_RUBRIC_ROWS };
@@ -62,5 +68,28 @@ describe("peerView", () => {
     expect(v.mine).toBeNull();
     expect(v.others.map((o) => o.grader)).toEqual(["a", "b"]);
     expect(JSON.stringify(v.others)).not.toContain("values");
+  });
+});
+
+describe("sameRubricRows", () => {
+  it("ignores the key order jsonb hands back", () => {
+    const reordered = DEFAULT_RUBRIC_ROWS.map((r) => ({
+      weight: r.weight,
+      max: r.max,
+      label: r.label,
+      key: r.key,
+    }));
+    expect(sameRubricRows(DEFAULT_RUBRIC_ROWS, reordered)).toBe(true);
+  });
+  it("sees a changed weight, label, max, key or length", () => {
+    const [first, ...rest] = DEFAULT_RUBRIC_ROWS;
+    expect(
+      sameRubricRows(DEFAULT_RUBRIC_ROWS, [{ ...first, weight: first.weight + 1 }, ...rest]),
+    ).toBe(false);
+    expect(sameRubricRows(DEFAULT_RUBRIC_ROWS, [{ ...first, label: "Lain" }, ...rest])).toBe(false);
+    expect(sameRubricRows(DEFAULT_RUBRIC_ROWS, [{ ...first, max: first.max + 1 }, ...rest])).toBe(
+      false,
+    );
+    expect(sameRubricRows(DEFAULT_RUBRIC_ROWS, rest)).toBe(false);
   });
 });

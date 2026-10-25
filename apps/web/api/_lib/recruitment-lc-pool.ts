@@ -30,6 +30,7 @@ import {
   DEFAULT_TOPICS,
 } from "../../src/lib/recruitment/lc-defaults.js";
 import { checkSketch } from "../../src/lib/recruitment/lc-sketch.js";
+import { sameRubricRows } from "../../src/lib/recruitment/lc-grade.js";
 import {
   TEMPLATE_KEYS,
   TOPIC_STATUS,
@@ -322,7 +323,7 @@ export async function aksiKolam(
       .select({ n: sql<number>`count(*)::int` })
       .from(recRubricScore)
       .where(eq(recRubricScore.rubricId, rubrik.id));
-    const sama = JSON.stringify(rubrik.rows) === JSON.stringify(c.rows);
+    const sama = sameRubricRows(rubrik.rows, c.rows);
     if (dinilai.n > 0 && !sama) return void tolak(res, "sudah_dinilai", 409);
     await db
       .update(recRubric)

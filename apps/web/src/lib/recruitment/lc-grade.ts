@@ -3,7 +3,7 @@
  * who may submit one, and what a grader may see of the other sheets (who and
  * when, never the values, so two graders do not anchor on each other). Pure.
  */
-import type { FieldError, Rubric } from "./exam-types.js";
+import type { FieldError, Rubric, RubricRow } from "./exam-types.js";
 
 export interface StoredSheet {
   grader: string;
@@ -50,4 +50,15 @@ export function peerView(
     .filter((s) => full || s.grader !== me)
     .map((s) => (full ? s : { grader: s.grader, name: s.name, at: s.at }));
   return { mine, others };
+}
+
+/** Whether two row lists are the same rubric; field by field, since jsonb returns keys in its own order. */
+export function sameRubricRows(a: readonly RubricRow[], b: readonly RubricRow[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((r, i) => {
+      const x = b[i];
+      return r.key === x.key && r.label === x.label && r.max === x.max && r.weight === x.weight;
+    })
+  );
 }
