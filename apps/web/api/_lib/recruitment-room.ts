@@ -1282,6 +1282,16 @@ async function aksiMaster({ req, res, s, db, edisi, p }: Ctx) {
 
 /* ------------------------------------------------- notes, kits and moves */
 
+/** A candidate of this edition: notes and kit loans may only name one (a stray id would fail on the key with a 500). */
+async function kandidatAda(db: Db, edisiId: number, candidateId: number): Promise<boolean> {
+  const [k] = await db
+    .select({ id: recCandidate.id })
+    .from(recCandidate)
+    .where(and(eq(recCandidate.id, candidateId), eq(recCandidate.editionId, edisiId)))
+    .limit(1);
+  return !!k;
+}
+
 async function catat({ req, res, s, db, edisi, p }: Ctx) {
   const b = jsonBody(req);
   const id = Number(b.id);
@@ -1293,6 +1303,8 @@ async function catat({ req, res, s, db, edisi, p }: Ctx) {
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
   const pengawas = await muatPengawas(db, r.room.slotId);
   if (!bisaMenonton(p, pengawas, s.nim)) return void tolak(res, "tanpa_hak", 403);
+  if (!(await kandidatAda(db, edisi.id, candidateId)))
+    return void tolak(res, "tidak_ditemukan", 404);
   const isi = b.text.trim();
   if (!isi) {
     await db
@@ -1360,6 +1372,8 @@ async function pinjamKit({ req, res, s, db, edisi, p }: Ctx) {
   const r = await muatRuang(db, edisi.id, id);
   if (!r) return void tolak(res, "tidak_ditemukan", 404);
   if (r.room.state.stage === "finished") return void tolak(res, "tahap_salah", 409);
+  if (!(await kandidatAda(db, edisi.id, candidateId)))
+    return void tolak(res, "tidak_ditemukan", 404);
   const returned = b.returned === true;
   const set = {
     kitCode: kit,
@@ -1386,23 +1400,48 @@ async function pinjamKit({ req, res, s, db, edisi, p }: Ctx) {
 }
 
 /**
- * After a candidate's tes_tulis assignment changed (Plotting's move, Auto Isi,
- * a decided request, room-move): their real seat follows to the room of the
- * new slot, when both exist (W1's ruling, 2026-10-24). A practice seat stays
- * where it is.
+ * After a candidate's tes_tulis assignment changed (Plotting's move, Auto Isi
+ * and its Urungkan, a decided request, a pick, room-move): their real seat
+ * follows to the room of the new slot, when both exist (W1's ruling,
+ * 2026-10-24). A practice seat stays where it is. With no room to follow to
+ * (the slot has none yet, or the candidate was taken out) a seat that never
+ * drew, handed in or struck is dropped, since the check-in makes it again;
+ * one that did is kept where it is, because its draw is the candidate's and
+ * Susulan needs it. Pass the transaction the assignment was written in.
  */
-export async function sinkronKursi(db: Db, candidateId: number, slotId: number | null) {
-  if (slotId === null) return;
-  const [room] = await db
-    .select({ id: recExamRoom.id })
-    .from(recExamRoom)
-    .where(and(eq(recExamRoom.slotId, slotId), eq(recExamRoom.rehearsal, false)))
-    .limit(1);
-  if (!room) return;
-  await db
-    .update(recExamSeat)
-    .set({ roomId: room.id })
+export async function sinkronKursi(
+  db: Pick<Db, "select" | "update" | "delete">,
+  candidateId: number,
+  slotId: number | null,
+) {
+  if (slotId !== null) {
+    const [room] = await db
+      .select({ id: recExamRoom.id })
+      .from(recExamRoom)
+      .where(and(eq(recExamRoom.slotId, slotId), eq(recExamRoom.rehearsal, false)))
+      .limit(1);
+    if (room) {
+      await db
+        .update(recExamSeat)
+        .set({ roomId: room.id })
+        .where(and(eq(recExamSeat.candidateId, candidateId), eq(recExamSeat.rehearsal, false)));
+      return;
+    }
+  }
+  const kursi = await db
+    .select({ id: recExamSeat.id, draw: recExamSeat.draw, done: recExamSeat.done })
+    .from(recExamSeat)
     .where(and(eq(recExamSeat.candidateId, candidateId), eq(recExamSeat.rehearsal, false)));
+  for (const k of kursi) {
+    if (Object.keys(k.draw).length || Object.keys(k.done).length) continue;
+    const kena = await db
+      .select({ id: recStrike.id })
+      .from(recStrike)
+      .where(eq(recStrike.seatId, k.id))
+      .limit(1);
+    if (kena.length) continue;
+    await db.delete(recExamSeat).where(eq(recExamSeat.id, k.id));
+  }
 }
 
 async function pindahKursi({ req, res, s, db, edisi, p }: Ctx) {

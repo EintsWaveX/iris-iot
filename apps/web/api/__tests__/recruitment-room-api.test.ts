@@ -822,6 +822,15 @@ describe("the Master's controls", () => {
 /* ------------------------------------------------- notes, kits, moves */
 
 describe("notes", () => {
+  beforeEach(() => {
+    rows.candidate = [{ id: 101 }];
+  });
+  it("refuses a candidate who is not of this edition", async () => {
+    rows.candidate = [];
+    const r = await jalan("room-note", "N1", { id: 7, candidateId: 9999, text: "x" });
+    expect(r.status).toBe(404);
+    expect(tulis.some((x) => x.tabel === "note")).toBe(false);
+  });
   it("saves a note under the writer's own name", async () => {
     const r = await jalan("room-note", "N1", {
       id: 7,
@@ -850,6 +859,21 @@ describe("notes", () => {
 });
 
 describe("kits", () => {
+  beforeEach(() => {
+    rows.candidate = [{ id: 101 }];
+  });
+  it("refuses a candidate who is not of this edition", async () => {
+    rows.candidate = [];
+    pelakuNim.LOG = pelaku({ kitLoans: true });
+    const r = await jalan("room-kit", "LOG", {
+      id: 7,
+      candidateId: 9999,
+      kit: "K1",
+      boards: [{ chip: "esp32" }],
+    });
+    expect(r.status).toBe(404);
+    expect(tulis.some((x) => x.tabel === "kit")).toBe(false);
+  });
   it("needs the kitLoans right", async () => {
     const r = await jalan("room-kit", "N1", {
       id: 7,
@@ -1021,10 +1045,27 @@ describe("a real seat follows its assignment", () => {
     const w = tulis.find((x) => x.op === "update" && x.tabel === "seat");
     expect(w?.nilai).toEqual({ roomId: 7 });
   });
-  it("does nothing when the new slot has no room, or the candidate is taken out", async () => {
+  it("drops an untouched seat when the new slot has no room, or the candidate is taken out", async () => {
     rows.room = [];
+    rows.seat = [{ id: 11, draw: {}, done: {} }];
+    rows.strike = [];
     const db = (await import("../../src/lib/db")).getDb() as never;
     await sinkronKursi(db, 101, 3);
+    expect(tulis.filter((x) => x.tabel === "seat").map((x) => x.op)).toEqual(["delete"]);
+    tulis.length = 0;
+    await sinkronKursi(db, 101, null);
+    expect(tulis.filter((x) => x.tabel === "seat").map((x) => x.op)).toEqual(["delete"]);
+  });
+  it("keeps a seat that has a draw, a hand-in or a strike when there is no room to follow to", async () => {
+    rows.room = [];
+    const db = (await import("../../src/lib/db")).getDb() as never;
+    rows.strike = [];
+    rows.seat = [{ id: 11, draw: { logika: { at: 1 } }, done: {} }];
+    await sinkronKursi(db, 101, 3);
+    rows.seat = [{ id: 11, draw: {}, done: { logika: 5 } }];
+    await sinkronKursi(db, 101, null);
+    rows.seat = [{ id: 11, draw: {}, done: {} }];
+    rows.strike = [{ id: 1 }];
     await sinkronKursi(db, 101, null);
     expect(tulis).toEqual([]);
   });

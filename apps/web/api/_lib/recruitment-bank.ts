@@ -31,12 +31,14 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { writeAudit, type SessionPayload } from "../../src/lib/auth.js";
 import { getDb } from "../../src/lib/db.js";
 import type { ApiRequest, ApiResponse } from "./http.js";
-import { jsonBody, noStore } from "./http.js";
+import { jsonBody, noStore, pgErrorCode } from "./http.js";
 import {
   asisten,
+  recAnswer,
   recCandidate,
   recExamConfig,
   recExamRoom,
+  recExamSeat,
   recPartRef,
   recQuestion,
   recQuestionLog,
@@ -76,7 +78,7 @@ import { BANK_GAMBAR, REK_BANK_RE, REK_REF_RE, kunciBank, kunciRef } from "../..
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak, type PelakuServer } from "./recruitment-rights.js";
 import { muatConfig } from "./recruitment-room.js";
-import { nilaiBeku } from "./recruitment-score.js";
+import { denganKunciNilai, nilaiBeku } from "./recruitment-score.js";
 import { muatKursiSendiri } from "./recruitment-seat.js";
 import {
   SnapshotError,
@@ -540,35 +542,40 @@ async function simpanSoal(k: Konteks) {
   const id = b.id === undefined || b.id === null ? undefined : intOf(b.id);
   if (b.id !== undefined && b.id !== null && !id) return galat(k.res, "data_salah");
   // Finalkan froze the scores: a question that was dealt keeps its key (EXAM-ENGINE 4.3).
-  if (id && (await nilaiBeku(k.db, k.edisiId))) {
-    const [ada] = await k.db
-      .select({ shownAt: recQuestion.shownAt })
-      .from(recQuestion)
-      .where(and(eq(recQuestion.id, id), eq(recQuestion.editionId, k.edisiId)))
-      .limit(1);
-    if (ada?.shownAt) return galat(k.res, "nilai_final");
-  }
-  const config = await muatConfig(k.db, k.edisiId);
-  const r = await simpanSatu(
-    k.db,
-    k.edisiId,
-    k.nim,
-    {
-      id: id ?? undefined,
-      part: b.part as Phase1Part,
-      lang: b.lang as Lang,
-      format: b.format as Question["format"],
-      title: b.title as string,
-      status: b.status as "draft" | "ready",
-      body: b.body,
-      answer: b.answer,
-      refs: Array.isArray(b.refs) ? (b.refs as number[]) : [],
-      note: typeof b.note === "string" ? b.note : undefined,
-      baseVersion:
-        typeof b.version === "number" && Number.isInteger(b.version) ? b.version : undefined,
-    },
-    { dry: false, running: await ruangBerjalan(k.db, k.edisiId), langs: langsOf(config) },
-  );
+  // The freeze is read under the score lock, with the write inside it, so a Finalkan that
+  // commits between the two cannot be missed.
+  const r = await denganKunciNilai(k.db, k.edisiId, async (tx) => {
+    if (id && (await nilaiBeku(tx, k.edisiId))) {
+      const [ada] = await tx
+        .select({ shownAt: recQuestion.shownAt })
+        .from(recQuestion)
+        .where(and(eq(recQuestion.id, id), eq(recQuestion.editionId, k.edisiId)))
+        .limit(1);
+      if (ada?.shownAt) return null;
+    }
+    const config = await muatConfig(tx, k.edisiId);
+    return simpanSatu(
+      tx,
+      k.edisiId,
+      k.nim,
+      {
+        id: id ?? undefined,
+        part: b.part as Phase1Part,
+        lang: b.lang as Lang,
+        format: b.format as Question["format"],
+        title: b.title as string,
+        status: b.status as "draft" | "ready",
+        body: b.body,
+        answer: b.answer,
+        refs: Array.isArray(b.refs) ? (b.refs as number[]) : [],
+        note: typeof b.note === "string" ? b.note : undefined,
+        baseVersion:
+          typeof b.version === "number" && Number.isInteger(b.version) ? b.version : undefined,
+      },
+      { dry: false, running: await ruangBerjalan(tx, k.edisiId), langs: langsOf(config) },
+    );
+  });
+  if (r === null) return galat(k.res, "nilai_final");
   if (!r.ok) return galat(k.res, r.kode, r.errors ? { errors: r.errors } : {});
   const row = r.row!;
   k.res.status(200).json({
@@ -576,6 +583,28 @@ async function simpanSoal(k: Konteks) {
     kind: r.kind,
     question: full(row, await refInfo(k.db, k.edisiId, row.refs)),
   });
+}
+
+/**
+ * Whether any seat holds the question: an answer row, or a draw that names it.
+ * A practice room draws and answers without setting `shownAt` (it never locks a
+ * question), but those rows still point at it, and the answer's foreign key
+ * would refuse the delete.
+ */
+async function dipakaiSeat(db: Db, edisiId: number, questionId: number): Promise<boolean> {
+  const [jawab] = await db
+    .select({ seatId: recAnswer.seatId })
+    .from(recAnswer)
+    .where(eq(recAnswer.questionId, questionId))
+    .limit(1);
+  if (jawab) return true;
+  const seats = await db
+    .select({ draw: recExamSeat.draw })
+    .from(recExamSeat)
+    .where(eq(recExamSeat.editionId, edisiId));
+  return seats.some((x) =>
+    Object.values(x.draw).some((d) => d?.items.some((it) => it.q === questionId)),
+  );
 }
 
 async function hapusSoal(k: Konteks) {
@@ -587,10 +616,16 @@ async function hapusSoal(k: Konteks) {
     .where(and(eq(recQuestion.id, id), eq(recQuestion.editionId, k.edisiId)))
     .limit(1);
   if (!r) return galat(k.res, "tidak_ada");
-  if (r.shownAt) return galat(k.res, "sudah_tampil");
+  if (r.shownAt || (await dipakaiSeat(k.db, k.edisiId, id))) return galat(k.res, "sudah_tampil");
   if (r.status === "ready" && (await ruangBerjalan(k.db, k.edisiId)))
     return galat(k.res, "ruang_berjalan");
-  await k.db.delete(recQuestion).where(eq(recQuestion.id, id));
+  try {
+    await k.db.delete(recQuestion).where(eq(recQuestion.id, id));
+  } catch (e) {
+    // A seat answered it between the check and the delete: rec_answer holds it.
+    if (pgErrorCode(e) === "23503") return galat(k.res, "sudah_tampil");
+    throw e;
+  }
   await writeAudit(k.nim, "rec_soal_hapus", { id, title: r.title });
   k.res.status(200).json({ ok: true });
 }
@@ -615,7 +650,6 @@ async function impor(k: Konteks) {
   if (text === null) return galat(k.res, "data_salah");
   if (text.length > MAX_IMPORT) return galat(k.res, "terlalu_besar");
   const dry = b.dry !== false;
-  if (!dry && (await nilaiBeku(k.db, k.edisiId))) return galat(k.res, "nilai_final");
   const note = typeof b.note === "string" ? b.note : undefined;
   const all = await muatSemua(k.db, k.edisiId);
   const byId = new Map(all.map((r) => [r.id, r]));
@@ -698,9 +732,13 @@ async function impor(k: Konteks) {
     }
     return out;
   };
+  // A real import reads the freeze under the score lock, in the transaction it writes in.
   const items = dry
     ? await run(k.db)
-    : await k.db.transaction(async (tx) => run(tx as unknown as Db));
+    : await denganKunciNilai(k.db, k.edisiId, async (tx) =>
+        (await nilaiBeku(tx, k.edisiId)) ? null : run(tx),
+      );
+  if (items === null) return galat(k.res, "nilai_final");
   if (!dry)
     await writeAudit(k.nim, "rec_bank_impor", {
       n: items.filter((i) => i.action !== "error" && i.action !== "same").length,

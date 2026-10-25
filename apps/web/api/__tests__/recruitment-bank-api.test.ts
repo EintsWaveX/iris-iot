@@ -13,14 +13,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   asisten,
+  recAnswer,
   recCandidate,
   recEdition,
   recExamConfig,
   recExamRoom,
+  recExamSeat,
   recPartRef,
   recQuestion,
   recQuestionLog,
   recReference,
+  recScoreFreeze,
 } from "../../src/lib/schema";
 import { DEFAULT_EXAM_CONFIG, type ExamConfig } from "../../src/lib/recruitment/exam-types";
 import { newRoomState } from "../../src/lib/recruitment/room";
@@ -40,10 +43,17 @@ const nama = new Map<unknown, string>([
   [recQuestion, "question"],
   [recQuestionLog, "log"],
   [recReference, "reference"],
+  [recAnswer, "answer"],
+  [recExamSeat, "seat"],
+  [recScoreFreeze, "freeze"],
 ]);
 
 let rows: Rows = {};
 let kalah = 0;
+/** The delete is refused by a foreign key (a seat answered the question just now). */
+let fkMenolak = false;
+/** What the database was asked about the score lock and the freeze, in order. */
+let urutan: string[] = [];
 const tulis: { op: string; tabel: string; nilai?: unknown }[] = [];
 
 function chain(sel?: unknown): unknown {
@@ -56,6 +66,7 @@ function chain(sel?: unknown): unknown {
     return p;
   };
   p.then = (ok: (v: unknown) => unknown) => {
+    if (tabel === "freeze") urutan.push("baca-beku");
     const r = rows[tabel];
     return ok(typeof r === "function" ? r(sel) : (r ?? []));
   };
@@ -64,6 +75,7 @@ function chain(sel?: unknown): unknown {
 
 function tulisan(op: string, t: unknown) {
   const tabel = nama.get(t) ?? "";
+  urutan.push(`${op}:${tabel}`);
   const p: Record<string, unknown> = {};
   for (const m of ["where", "onConflictDoUpdate", "onConflictDoNothing", "for"]) p[m] = () => p;
   let terakhir: unknown = null;
@@ -84,6 +96,8 @@ function tulisan(op: string, t: unknown) {
       kalah--;
       return ok([]);
     }
+    if (op === "delete" && tabel === "question" && fkMenolak)
+      throw Object.assign(new Error("fk"), { code: "23503" });
     if (op === "delete" && !tulis.some((w) => w.tabel === tabel && w.op === op))
       tulis.push({ op, tabel });
     if (op === "insert" && terakhir && !Array.isArray(terakhir))
@@ -104,6 +118,7 @@ vi.mock("../../src/lib/db", () => {
     insert: (t: unknown) => tulisan("insert", t),
     update: (t: unknown) => tulisan("update", t),
     delete: (t: unknown) => tulisan("delete", t),
+    execute: async () => void urutan.push("kunci"),
     transaction: async (fn: (tx: unknown) => unknown) => fn(db),
   };
   return { getDb: () => db };
@@ -252,6 +267,8 @@ let berjalan = false;
 
 beforeEach(() => {
   kalah = 0;
+  fkMenolak = false;
+  urutan = [];
   berjalan = false;
   tulis.length = 0;
   cfg = DEFAULT_EXAM_CONFIG;
@@ -586,6 +603,80 @@ describe("question-delete", () => {
   it("refuses a ready one while a real room runs", async () => {
     berjalan = true;
     expect((await jalan("question-delete", AKD, { id: 5 })).body.kode).toBe("ruang_berjalan");
+  });
+
+  it("refuses one that only a practice room drew or answered, instead of failing on the key", async () => {
+    // A practice room never sets shownAt, but the seat's draw and answer still point at it.
+    rows.question = [{ ...BARIS(), status: "draft", shownAt: null }];
+    rows.seat = [
+      {
+        draw: { logika: { at: 1, room: 9, items: [{ q: 5, v: 3, lang: "cpp", perm: null }] } },
+      },
+    ];
+    let r = await jalan("question-delete", AKD, { id: 5 });
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("sudah_tampil");
+    expect(tulis).toEqual([]);
+
+    rows.seat = [{ draw: {} }];
+    rows.answer = [{ seatId: 12 }];
+    r = await jalan("question-delete", AKD, { id: 5 });
+    expect(r.body.kode).toBe("sudah_tampil");
+    expect(tulis).toEqual([]);
+
+    // A draw of other questions leaves it deletable.
+    rows.answer = [];
+    rows.seat = [
+      { draw: { logika: { at: 1, room: 9, items: [{ q: 6, v: 1, lang: "cpp", perm: null }] } } },
+    ];
+    expect((await jalan("question-delete", AKD, { id: 5 })).status).toBe(200);
+  });
+
+  it("answers sudah_tampil, not 500, when a seat answers between the check and the delete", async () => {
+    rows.question = [{ ...BARIS(), status: "draft" }];
+    fkMenolak = true;
+    const r = await jalan("question-delete", AKD, { id: 5 });
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("sudah_tampil");
+  });
+});
+
+/* ------------------------------------------------- the freeze, under the lock */
+
+describe("a dealt question while the scores are frozen", () => {
+  const BEKU = { id: 1, editionId: 1, supersededAt: null };
+
+  it("question-save takes the score lock, then reads the freeze, then refuses a shown question", async () => {
+    rows.question = [{ ...BARIS(), shownAt: new Date(), status: "draft" }];
+    rows.freeze = [BEKU];
+    const r = await jalan("question-save", AKD, masuk({ id: 5, answer: { correct: "bbb222" } }));
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("nilai_final");
+    expect(urutan.indexOf("kunci")).toBe(0);
+    expect(urutan.indexOf("baca-beku")).toBeGreaterThan(0);
+    expect(tulis).toEqual([]);
+  });
+
+  it("question-save of a question nobody saw is allowed while frozen", async () => {
+    rows.question = [{ ...BARIS(), shownAt: null, status: "draft" }];
+    rows.freeze = [BEKU];
+    const r = await jalan("question-save", AKD, masuk({ id: 5, title: "Judul baru" }));
+    expect(r.status).toBe(200);
+    expect(urutan.indexOf("kunci")).toBeLessThan(urutan.indexOf("baca-beku"));
+  });
+
+  it("a real import is refused while frozen, after the lock and the freeze read; a dry run is not", async () => {
+    rows.freeze = [BEKU];
+    rows.question = [];
+    const dry = await jalan("bank-import", AKD, { text: CONTOH, dry: true });
+    expect(dry.status).toBe(200);
+    urutan = [];
+    tulis.length = 0;
+    const r = await jalan("bank-import", AKD, { text: CONTOH, dry: false });
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("nilai_final");
+    expect(urutan.indexOf("kunci")).toBeLessThan(urutan.indexOf("baca-beku"));
+    expect(tulis).toEqual([]);
   });
 });
 
