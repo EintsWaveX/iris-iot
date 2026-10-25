@@ -32,6 +32,8 @@ import {
   recQuestionLog,
   recRubricScore,
   recScoreFreeze,
+  recSlot,
+  recSlotAssignment,
   praktikan,
   type RecScoreFreezeRow,
 } from "../../src/lib/schema.js";
@@ -64,6 +66,8 @@ const STATUS: Record<string, number> = {
   ruang_belum_selesai: 409,
   nilai_lc_kurang: 409,
   tanpa_kursi: 409,
+  slot_tanpa_ruang: 409,
+  peserta_tanpa_kursi: 409,
 };
 const galat = (res: ApiResponse, kode: string, extra: Record<string, unknown> = {}) =>
   tolak(res, kode, STATUS[kode] ?? 400, extra);
@@ -231,7 +235,7 @@ async function halangan(
   const out: FinalBlocker[] = [];
   if (hitung.kursi.length === 0) return [{ kode: "tanpa_kursi" }];
   const ruang = await db
-    .select({ id: recExamRoom.id, state: recExamRoom.state })
+    .select({ id: recExamRoom.id, slotId: recExamRoom.slotId, state: recExamRoom.state })
     .from(recExamRoom)
     .where(and(eq(recExamRoom.editionId, edisiId), eq(recExamRoom.rehearsal, false)));
   const adaKursi = new Set(hitung.kursi.map((k) => k.roomId));
@@ -243,6 +247,27 @@ async function halangan(
   if (belum) out.push({ kode: "ruang_belum_selesai", rooms: belum });
   const lc = hitung.rows.filter((r) => r.liveFlag === "belum" || r.liveFlag === "rubrik").length;
   if (lc) out.push({ kode: "nilai_lc_kurang", seats: lc });
+  // The whole cohort: everyone plotted to a Tes Tulis evening, not only those who got a seat.
+  const plotRows = await db
+    .select({
+      slotId: recSlotAssignment.slotId,
+      candidateId: recSlotAssignment.candidateId,
+      status: recCandidate.status,
+    })
+    .from(recSlotAssignment)
+    .innerJoin(recSlot, eq(recSlot.id, recSlotAssignment.slotId))
+    .innerJoin(recCandidate, eq(recCandidate.id, recSlotAssignment.candidateId))
+    .where(and(eq(recSlot.editionId, edisiId), eq(recSlot.stage, "tes_tulis")));
+  // Someone who withdrew, or was put out, is no longer waited for.
+  const plot = plotRows.filter((x) => x.status !== "withdrawn" && x.status !== "out");
+  const tanpaRuang = new Set(plot.map((x) => x.slotId));
+  for (const r of ruang) if (r.slotId !== null) tanpaRuang.delete(r.slotId);
+  if (tanpaRuang.size) out.push({ kode: "slot_tanpa_ruang", slots: tanpaRuang.size });
+  const duduk = new Set(hitung.kursi.map((k) => k.candidateId));
+  const tanpaKursi = new Set(
+    plot.filter((x) => !duduk.has(x.candidateId)).map((x) => x.candidateId),
+  );
+  if (tanpaKursi.size) out.push({ kode: "peserta_tanpa_kursi", candidates: tanpaKursi.size });
   return out;
 }
 

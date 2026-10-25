@@ -25,6 +25,8 @@ import {
   recQuestionLog,
   recRubricScore,
   recScoreFreeze,
+  recSlot,
+  recSlotAssignment,
 } from "../../src/lib/schema";
 import type { Rubric } from "../../src/lib/recruitment/exam-types";
 
@@ -44,6 +46,8 @@ const nama = new Map<unknown, string>([
   [recQuestionLog, "log"],
   [recRubricScore, "sheet"],
   [recScoreFreeze, "freeze"],
+  [recSlot, "slot"],
+  [recSlotAssignment, "assignment"],
 ]);
 
 let rows: Record<string, Row[]> = {};
@@ -499,6 +503,46 @@ describe("score-finalize and score-unfreeze", () => {
     (rows.sheet as Row[])[1].grader = "102";
     const ok = await jalan("score-finalize", sesi("AKD"), {});
     expect(ok.status).toBe(200);
+  });
+
+  it("is refused on a partial cohort: an evening with candidates and no room, or a candidate with no seat", async () => {
+    // Evening 2 has two candidates and no room; evening 1 is the room the seats sit in.
+    (rows.room as Row[])[0].slotId = 1;
+    rows.assignment = [
+      { slotId: 1, candidateId: 11, status: "approved" },
+      { slotId: 2, candidateId: 21, status: "approved" },
+      { slotId: 2, candidateId: 22, status: "approved" },
+    ];
+    const r = await jalan("score-finalize", sesi("AKD"), {});
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("slot_tanpa_ruang");
+    expect(r.body.blockers).toEqual([
+      { kode: "slot_tanpa_ruang", slots: 1 },
+      { kode: "peserta_tanpa_kursi", candidates: 2 },
+    ]);
+    expect(rows.freeze).toEqual([]);
+    const baca = await jalan("scores", sesi("AKD"), null);
+    expect((baca.body.blockers as { kode: string }[]).map((b) => b.kode)).toEqual([
+      "slot_tanpa_ruang",
+      "peserta_tanpa_kursi",
+    ]);
+
+    // The room exists now, but the two candidates never took a seat.
+    rows.room = [
+      ...(rows.room as Row[]),
+      { id: 2, slotId: 2, rehearsal: false, state: { stage: "finished" } },
+    ];
+    const tanpaKursi = await jalan("score-finalize", sesi("AKD"), {});
+    expect(tanpaKursi.body.kode).toBe("peserta_tanpa_kursi");
+    expect(tanpaKursi.body.blockers).toEqual([{ kode: "peserta_tanpa_kursi", candidates: 2 }]);
+
+    // One withdrew and one sat: nothing left to wait for.
+    rows.assignment = [
+      { slotId: 1, candidateId: 11, status: "approved" },
+      { slotId: 2, candidateId: 21, status: "withdrawn" },
+      { slotId: 2, candidateId: 12, status: "approved" },
+    ];
+    expect((await jalan("score-finalize", sesi("AKD"), {})).status).toBe(200);
   });
 
   it("is refused with nothing to freeze", async () => {

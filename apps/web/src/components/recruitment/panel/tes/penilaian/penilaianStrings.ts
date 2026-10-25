@@ -64,7 +64,11 @@ export const PN = dict({
           ? `${b.rooms} ruang belum ditutup dengan Selesai.`
           : b.kode === "nilai_lc_kurang"
             ? `${b.seats} peserta belum punya dua lembar nilai Live Coding dari dua orang.`
-            : "Belum ada peserta yang duduk di ruang tes.",
+            : b.kode === "slot_tanpa_ruang"
+              ? `${b.slots} malam Tes Tulis punya peserta tapi belum punya ruang.`
+              : b.kode === "peserta_tanpa_kursi"
+                ? `${b.candidates} peserta di jadwal Tes Tulis belum duduk di ruang tes.`
+                : "Belum ada peserta yang duduk di ruang tes.",
     errors: {
       nilai_final: "Nilai sudah dibekukan. Buka beku dulu.",
       sudah_final: "Nilai sudah difinalkan.",
@@ -183,7 +187,11 @@ export const PN = dict({
           ? `${b.rooms} room(s) not closed with Finish yet.`
           : b.kode === "nilai_lc_kurang"
             ? `${b.seats} candidate(s) still lack two Live Coding sheets from two people.`
-            : "No candidate has sat in a test room yet.",
+            : b.kode === "slot_tanpa_ruang"
+              ? `${b.slots} Written Test evening(s) have candidates but no room yet.`
+              : b.kode === "peserta_tanpa_kursi"
+                ? `${b.candidates} candidate(s) on a Written Test slot have not sat in a test room.`
+                : "No candidate has sat in a test room yet.",
     errors: {
       nilai_final: "The scores are frozen. Unfreeze first.",
       sudah_final: "The scores are already final.",
@@ -289,7 +297,11 @@ export const PN = dict({
           ? `还有 ${b.rooms} 个考场没有点击结束。`
           : b.kode === "nilai_lc_kurang"
             ? `还有 ${b.seats} 位候选人缺少两人给出的现场编程评分表。`
-            : "还没有候选人坐进考场。",
+            : b.kode === "slot_tanpa_ruang"
+              ? `还有 ${b.slots} 个笔试场次有候选人却还没有考场。`
+              : b.kode === "peserta_tanpa_kursi"
+                ? `还有 ${b.candidates} 位已排入笔试场次的候选人没有坐进考场。`
+                : "还没有候选人坐进考场。",
     errors: {
       nilai_final: "分数已冻结，请先解冻。",
       sudah_final: "分数已经最终确定。",

@@ -95,6 +95,8 @@ export type FinalBlocker =
   | { kode: "ruang_terbuka"; rooms: number }
   | { kode: "ruang_belum_selesai"; rooms: number }
   | { kode: "nilai_lc_kurang"; seats: number }
+  | { kode: "slot_tanpa_ruang"; slots: number }
+  | { kode: "peserta_tanpa_kursi"; candidates: number }
   | { kode: "tanpa_kursi" };
 
 export interface StatsResponse {
