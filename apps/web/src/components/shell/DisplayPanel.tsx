@@ -11,6 +11,7 @@ import type { Lang } from "../../lib/kelas";
 import {
   setClock,
   setDetail,
+  setSound,
   setTheme,
   setZhWeight,
   usePrefs,
@@ -44,6 +45,10 @@ const T = dict({
     auto: "Otomatis",
     on: "Selalu",
     off: "Sembunyikan",
+    sound: "Suara",
+    soundOn: "Nyala",
+    soundOff: "Mati",
+    soundHint: "Bunyi kecil saat amplop dibuka. Hanya jalan setelah kamu sendiri yang membukanya.",
     clockHint: {
       auto: "Saat sesimu berjalan, jam pindah ke bilah sesi.",
       on: "Jam selalu ada di navigasi, juga saat sesi.",
@@ -65,6 +70,10 @@ const T = dict({
     auto: "Automatic",
     on: "Always",
     off: "Hide",
+    sound: "Sound",
+    soundOn: "On",
+    soundOff: "Off",
+    soundHint: "A small chime when an envelope opens. It only plays after you open it yourself.",
     clockHint: {
       auto: "While your session runs, the clock moves to the session bar.",
       on: "The clock stays in the navigation, also during a session.",
@@ -86,6 +95,10 @@ const T = dict({
     auto: "自动",
     on: "总是显示",
     off: "隐藏",
+    sound: "声音",
+    soundOn: "开",
+    soundOff: "关",
+    soundHint: "打开信封时的轻柔提示音。只有你自己打开信封时才会响。",
     clockHint: {
       auto: "你上课时，时钟会移到上课栏。",
       on: "时钟一直显示在导航栏，上课时也是。",
@@ -235,6 +248,26 @@ export default function DisplayPanel({ lang, onLang }: { lang: Lang; onLang: (to
         </div>
         <span className="hint">{t.clockHint[p.clock]}</span>
       </div>
+
+      <div className="disp__group">
+        <span className="disp__label" id="disp-sound">
+          {t.sound}
+        </span>
+        <div className="seg seg--wide" role="radiogroup" aria-labelledby="disp-sound">
+          {([true, false] as const).map((on) => (
+            <button
+              key={String(on)}
+              type="button"
+              role="radio"
+              aria-checked={p.sound === on}
+              onClick={() => setSound(on)}
+            >
+              {on ? t.soundOn : t.soundOff}
+            </button>
+          ))}
+        </div>
+        <span className="hint">{t.soundHint}</span>
+      </div>
     </div>
   );
 }
@@ -253,6 +286,7 @@ export function DisplaySummary({ lang, wide = false }: { lang: Lang; wide?: bool
     [t.detail, detail],
     [t.language, bahasa],
     [t.clock, clock],
+    [t.sound, p.sound ? t.soundOn : t.soundOff],
   ];
   return (
     <dl className={wide ? "dispsum dispsum--wide" : "dispsum"}>

@@ -12,8 +12,10 @@ import { href } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
 import { useRecBanner, useRecCandidates, useRecEdition } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
+import { useRevealClock } from "../../../lib/recruitment/reveal-clock";
 import { STAGES, type StageKey } from "../../../lib/recruitment/types";
 import { alamatBagian } from "../../../lib/recruitment/panel-tab";
+import Pill from "../../ui/Pill";
 import { REC } from "../recruitmentStrings";
 import { Countdown, kapanAcara, tgl } from "../shared";
 import { BN } from "./bannerStrings";
@@ -64,6 +66,12 @@ function Statistik({ lang }: { lang: Lang }) {
 export default function RecBanner({ lang }: { lang: Lang }) {
   const bn = useRecBanner();
   const d = bn.data;
+  // The sealed envelope chip arrives on time: the banner asks again the moment a locked reveal comes.
+  useRevealClock(
+    d && d.kind === "candidate" ? d.now : null,
+    d && d.kind === "candidate" && d.nextReveal ? [d.nextReveal] : [],
+    bn.refresh,
+  );
   if (!d || d.kind === "none") return null;
   const t = BN[lang];
   const r = REC[lang];
@@ -170,7 +178,10 @@ export default function RecBanner({ lang }: { lang: Lang }) {
     return box(
       <>
         {eyebrow}
-        <b className="rec-bn__title">{judul}</b>
+        <span className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <b className="rec-bn__title">{judul}</b>
+          {d.envelope && <Pill tone="warn">{t.candidate.sealedChip}</Pill>}
+        </span>
         <span className="hint">{hint}</span>
       </>,
       d.status === "revision" ? (

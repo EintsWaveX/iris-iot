@@ -37,6 +37,8 @@ export const EVENT_KINDS = [
   "presentation",
   "teaching",
   "acceptance",
+  // Pilih Jadwal: the window in which candidates pick their own slot (S2).
+  "pick",
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 
@@ -53,6 +55,7 @@ export const GATES = [
   "checkin",
   "submission",
   "accept",
+  "pick",
 ] as const;
 export type GateKey = (typeof GATES)[number];
 
@@ -282,6 +285,27 @@ export type RecError =
   | "bukan_asisten"
   | "status_salah"
   | "sesi_berganti"
+  // S2: Cutting
+  | "terkunci"
+  | "belum_lengkap"
+  | "belum_dikunci"
+  | "lewat_waktu"
+  | "tanpa_pengumuman"
+  | "bukan_peserta"
+  // S2: QR attendance
+  | "qr_berganti"
+  | "bukan_tahapmu"
+  | "bukan_jadwalmu"
+  | "tidak_bisa_batal"
+  // S2: Pilih Jadwal
+  | "sudah_pilih"
+  | "penuh"
+  | "slot_salah"
+  | "belum_memilih"
+  | "lewat_batas"
+  | "sudah_ada_permintaan"
+  | "slot_sama"
+  | "slot_terisi"
   // Oprec accounts (2026-10-24)
   | "belum_masuk_oprec"
   | "salah"
@@ -344,16 +368,6 @@ export interface CandidateSelf {
   reviewNote: string | null;
 }
 
-/** An envelope in the inbox; empty until S2. */
-export interface EnvelopeSelf {
-  stage: StageKey;
-  /** True once the Ketua locked and the reveal time passed */
-  ready: boolean;
-  opened: boolean;
-  /** Only set after the reveal time */
-  result: Proposal | null;
-}
-
 /** GET me (Praktikan only) */
 /** An oprec account (2026-10-24), apart from the practicum sign-in */
 export interface OprecAccount {
@@ -377,9 +391,14 @@ export interface MeResponse {
   candidate: CandidateSelf | null;
   /** Their own, with the id berkas needs to open one */
   documents: (RecDocument & { id: number })[];
-  envelopes: EnvelopeSelf[];
+  /** Revealed envelopes only; a sealed one carries no result (see EnvelopeView) */
+  envelopes: EnvelopeView[];
+  /** Locked but not yet revealed: stage and time only */
+  pending: { stage: CutStage; revealAt: string }[];
   /** Whether Daftar is open right now (the server's own gate check) */
   daftarOpen: boolean;
+  /** Server clock, ISO: the envelope timer counts from it, never from the device clock */
+  now: string;
 }
 
 export interface EventLite {
@@ -423,6 +442,10 @@ export type BannerResponse =
       next: EventLite | null;
       /** A reveal is waiting to be opened (S2) */
       envelope: boolean;
+      /** The next locked reveal that has not come yet, ISO; the banner refetches then */
+      nextReveal?: string | null;
+      /** Server clock, ISO */
+      now?: string;
     }
   | { ok: true; kind: "cut"; title: string; stage: StageKey }
   | { ok: true; kind: "panitia"; title: string; today: EventLite[]; seat: string | null }
@@ -456,9 +479,11 @@ export interface CandidateDetailResponse {
     reviewNote: string | null;
     reviewedBy: string | null;
     reviewedAt: string | null;
+    /** Nilai Berkas, only with the documents right */
+    berkasScore: number | null;
   };
   biodata: Biodata | null;
-  documents: (RecDocument & { id: number })[] | null;
+  documents: BerkasFile[] | null;
 }
 
 export interface SeatRow {
@@ -598,4 +623,316 @@ export interface SeatResponse {
   seats: SeatRow[];
 }
 
-/** GET berkas?id=[&unduh=1]: answers 302 to a 10 minute link, or { ok:false, kode }. */
+/** GET berkas?id=[&unduh=1][&v=1]: answers 302 to a 10 minute link (v=1 is the file a re-upload replaced), or { ok:false, kode }. */
+
+/* ===================================================================== S2 */
+
+/** The stages that end in a Cutting and an envelope. */
+export const CUT_STAGES = ["berkas", "tes_tulis", "wawancara", "tubes", "mengajar"] as const;
+export type CutStage = (typeof CUT_STAGES)[number];
+
+/** One file as Admin sees it while checking Berkas. */
+export interface BerkasFile {
+  id: number;
+  kind: DocKind;
+  size: number;
+  uploadedAt: string;
+  note: string | null;
+  verdict: DocVerdict | null;
+  /** A re-upload replaced an earlier file (V1); V2 is this one */
+  hasPrev: boolean;
+  prevUploadedAt: string | null;
+}
+
+/** POST review, S2 additions: a score and a verdict per file. */
+export interface ReviewRequestS2 extends ReviewRequest {
+  /** 0 to 100, or null to clear; ignored by Cutting */
+  score?: number | null;
+  files?: Partial<Record<DocKind, DocVerdict | null>>;
+}
+
+/** A row of the Cutting board. */
+export interface CutRowView {
+  id: number;
+  nim: string;
+  nama: string;
+  kelas: string | null;
+  /** First Meet and Tes Tulis attendance */
+  fm: boolean;
+  tt: boolean;
+  /** Logika, FITB, Kodingan, Mikro (S3 fills them) */
+  parts: (number | null)[];
+  total: number | null;
+  /** Berkas only: the status and the optional score */
+  berkas: { status: CandidateStatus; score: number | null; docs: number } | null;
+  proposal: Proposal | null;
+  /** The proposer's 3-letter code */
+  proposedBy: string | null;
+  note: string | null;
+  /** The candidate opened their envelope (after the reveal) */
+  opened: boolean | null;
+}
+
+export interface CutLock {
+  locked: boolean;
+  lockedBy: string | null;
+  lockedAt: string | null;
+  /** When the envelopes open, once locked */
+  revealAt: string | null;
+  /** What locking would use now: the stage's Pengumuman start */
+  defaultRevealAt: string | null;
+  /** Past revealAt: unlocking is over */
+  revealed: boolean;
+  opened: number;
+}
+
+/** GET results?stage= (cuttingPropose) */
+export interface CutBoardResponse {
+  ok: true;
+  stage: CutStage;
+  rows: CutRowView[];
+  tally: { lolos: number; gagal: number; belum: number; total: number };
+  lock: CutLock;
+  /** What the deck aims for, from PRD 3 targets, for the threshold card */
+  target: { min: number; max: number } | null;
+  now: string;
+}
+
+/** POST propose */
+export interface ProposeRequest {
+  stage: CutStage;
+  items: { id: number; proposal: Proposal | null; note?: string | null }[];
+}
+export interface ProposeResponse {
+  ok: true;
+  changed: number;
+  /** Proposals by someone else that this call replaced */
+  overwrote: { id: number; by: string }[];
+}
+
+/** POST lock and unlock */
+export interface LockRequest {
+  stage: CutStage;
+  /** Only the Ketua, to bring the reveal forward or back (a rehearsal); default is the Pengumuman's start */
+  revealAt?: string;
+}
+export interface LockResponse {
+  ok: true;
+  locked: boolean;
+  revealAt: string | null;
+}
+
+/** An envelope as the candidate's inbox sees it. */
+export interface EnvelopeView {
+  stage: CutStage;
+  opened: boolean;
+  /** Null until it is opened: a sealed envelope carries nothing about the result */
+  result: Proposal | null;
+  /** When the envelope became available */
+  revealAt: string;
+  /** What they got through (stages passed), for the Gagal copy; no scores */
+  through: StageKey[];
+}
+
+/** GET envelopes (the candidate) */
+export interface EnvelopesResponse {
+  ok: true;
+  envelopes: EnvelopeView[];
+  /** Locked but not yet revealed: only the stage and the time, never the result */
+  pending: { stage: CutStage; revealAt: string }[];
+  now: string;
+}
+
+/** POST envelope-open */
+export interface EnvelopeOpenResponse {
+  ok: true;
+  stage: CutStage;
+  result: Proposal;
+  openedAt: string;
+  /** The next event after a Lolos */
+  next: EventLite | null;
+}
+
+/** GET qr-events (attendance): the events a QR can be shown for right now. */
+export interface QrEventsResponse {
+  ok: true;
+  events: (EventLite & { here: number; expected: number })[];
+  now: string;
+}
+
+/** GET qr-token?event= (attendance) */
+export interface QrTokenResponse {
+  ok: true;
+  token: string;
+  /** 6 characters for a phone that cannot scan */
+  code: string;
+  period: number;
+  /** ISO instant this token stops being the wall's */
+  until: string;
+  event: EventLite;
+  here: number;
+  expected: number;
+}
+
+/** POST attend: a token from the QR, or the typed code. */
+export interface AttendRequest {
+  token?: string;
+  code?: string;
+}
+export interface AttendResponse {
+  ok: true;
+  /** Already marked present before this scan */
+  sudah: boolean;
+  event: EventLite;
+}
+
+/** GET attendance?event= (attendance): the Kehadiran drawer. */
+export interface AttendanceRow {
+  id: number;
+  nim: string;
+  nama: string;
+  present: boolean;
+  via: "qr" | "manual" | null;
+  reason: string | null;
+  by: string | null;
+  at: string | null;
+}
+export interface AttendanceResponse {
+  ok: true;
+  event: EventLite;
+  rows: AttendanceRow[];
+  live: boolean;
+}
+
+/** POST attend-manual */
+export interface AttendManualRequest {
+  id: number;
+  event: number;
+  reason?: string;
+  /** Take a manual mark back (QR marks cannot be taken back) */
+  undo?: boolean;
+}
+
+/** A seat count in a slot, with no names. */
+export interface SlotSeat {
+  id: number;
+  stage: StageKey;
+  eventId: number | null;
+  room: string;
+  startsAt: string;
+  endsAt: string;
+  capacity: number;
+  taken: number;
+}
+
+export interface PickWindowInfo {
+  stage: StageKey;
+  eventId: number;
+  opensAt: string;
+  closesAt: string;
+  open: boolean;
+}
+
+export interface MySlotChange {
+  id: number;
+  toSlot: number | null;
+  reason: string;
+  status: SlotChangeStatus;
+  /** What Panitia wrote when declining */
+  note: string | null;
+  decidedAt: string | null;
+}
+
+/** What one stage's Pilih Jadwal looks like to the candidate who is in it. */
+export interface CandidateSlotsStage {
+  window: PickWindowInfo;
+  slots: SlotSeat[];
+  mine: { slotId: number; via: SlotVia; at: string } | null;
+  /** Changes stop at H-1 23.59 of mine; an ISO instant */
+  changeUntil: string | null;
+  canChange: boolean;
+  /** Their latest request, open or decided */
+  change: MySlotChange | null;
+}
+
+/** GET slots (a candidate): stages they may pick in; no other candidate's name or number ever. */
+export interface CandidateSlotsResponse {
+  ok: true;
+  stages: CandidateSlotsStage[];
+  now: string;
+}
+
+/** The Panitia board. */
+export interface BoardSeat {
+  candidateId: number;
+  nim: string;
+  nama: string;
+  via: SlotVia;
+}
+export interface BoardRequest {
+  id: number;
+  candidateId: number;
+  nim: string;
+  nama: string;
+  fromSlot: number | null;
+  toSlot: number | null;
+  reason: string;
+  status: SlotChangeStatus;
+  note: string | null;
+  createdAt: string;
+  decidedBy: string | null;
+  decidedAt: string | null;
+}
+export interface PlotBoardResponse {
+  ok: true;
+  stage: StageKey;
+  window: PickWindowInfo | null;
+  slots: (SlotSeat & { seats: BoardSeat[] })[];
+  /** In the stage with no seat yet */
+  unplaced: { candidateId: number; nim: string; nama: string }[];
+  requests: BoardRequest[];
+  now: string;
+}
+
+/** POST slot-pick / slot-change / slot-decide / slot-set / slot-autofill */
+export interface SlotPickRequest {
+  slotId: number;
+}
+export interface SlotChangeRequest {
+  toSlot?: number;
+  reason?: string;
+  withdraw?: boolean;
+}
+export interface SlotDecideRequest {
+  id: number;
+  approve: boolean;
+  /** Approve although the target is full (Setujui Melebihi Kapasitas) */
+  over?: boolean;
+  note?: string;
+}
+export type SlotSetRequest =
+  | {
+      op: "create";
+      stage: StageKey;
+      room: string;
+      startsAt: string;
+      endsAt: string;
+      capacity: number;
+      eventId?: number | null;
+    }
+  | { op: "edit"; id: number; room?: string; startsAt?: string; endsAt?: string; capacity?: number }
+  | { op: "delete"; id: number }
+  | { op: "move"; candidateId: number; stage: StageKey; toSlot: number | null; over?: boolean }
+  | { op: "window"; stage: StageKey; mode: "extend" | "close" };
+export interface SlotAutofillRequest {
+  stage: StageKey;
+  /** The `at` of an earlier run: take that run back */
+  undo?: string;
+}
+export interface SlotAutofillResponse {
+  ok: true;
+  placed: number;
+  left: number;
+  /** ISO instant that names this run, for one Urungkan */
+  at: string | null;
+}

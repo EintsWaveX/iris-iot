@@ -46,6 +46,10 @@ export const TOPIK = [
   "recedition",
   "reccalendar",
   "reccandidates",
+  // S2 (2026-10-24): Cutting and the envelopes; Pilih Jadwal and the plotting board.
+  // A QR scan or a hand mark rides reccandidates (the candidate list shows it).
+  "reccutting",
+  "recplotting",
 ] as const;
 
 export type Topik = (typeof TOPIK)[number];
@@ -188,6 +192,18 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:seat": ["recedition"],
   "recruitment:unseat": ["recedition"],
   "recruitment:visibility": ["recedition", "reccalendar"],
+  // S2: a proposal, a lock or unlock, an opened envelope; a scan or a hand mark; Pilih Jadwal.
+  "recruitment:propose": ["reccutting"],
+  "recruitment:lock": ["reccutting", "reccandidates"],
+  "recruitment:unlock": ["reccutting", "reccandidates"],
+  "recruitment:envelope-open": ["reccutting", "reccandidates"],
+  "recruitment:attend": ["reccandidates"],
+  "recruitment:attend-manual": ["reccandidates"],
+  "recruitment:slot-pick": ["recplotting", "reccandidates"],
+  "recruitment:slot-change": ["recplotting"],
+  "recruitment:slot-decide": ["recplotting", "reccandidates"],
+  "recruitment:slot-set": ["recplotting", "reccandidates", "reccalendar"],
+  "recruitment:slot-autofill": ["recplotting", "reccandidates"],
   // Oprec accounts (2026-10-24): a sign-up, sign-in or sign-out changes no
   // page but the candidate's own; Reset Akun answers its code to the one asking.
   "recruitment:account-signup": [],

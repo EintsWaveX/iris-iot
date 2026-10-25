@@ -1642,3 +1642,76 @@ html[data-detail="ldm"] .rec-funnel__bar i {
     max-height: 240px;
   }
 }
+
+/* RecNav fold (06, agreed with 08c). From 1100 px every tab shows. Below it
+   the top bar keeps 5 (4 under 820) and Lainnya holds the rest; the phone's
+   bar keeps up to 5 and from 6 on shows 4 plus Lainnya. Lainnya wears the
+   active tab's name when that tab is folded. No script reads the width. */
+.rec-more__act {
+  display: none;
+}
+.appnav__link.rec-more {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: none;
+  font-family: inherit;
+}
+.rec-more__menu {
+  min-width: 200px;
+}
+.rec-more__menu .acct__row[aria-current="page"] {
+  color: var(--accent);
+  font-weight: 650;
+}
+.appbar__item.rec-more[data-act="bar"] .rec-more__def,
+.appbar__item.rec-more[data-act="bar"] .rec-more__act {
+  display: none;
+}
+.appbar__item.rec-more[data-act="bar"] .rec-more__act {
+  display: inline;
+}
+.appbar__item.rec-more[data-act="bar"] {
+  color: var(--accent);
+}
+@media (max-width: 1099px) {
+  .rec-nav .appnav__link[data-fold="wide"] {
+    display: none;
+  }
+  .appnav__link.rec-more[data-more="wide"] {
+    display: inline-flex;
+  }
+  .rec-more[data-act="wide"] .rec-more__def {
+    display: none;
+  }
+  .rec-more[data-act="wide"] .rec-more__act {
+    display: inline;
+  }
+  .appnav__link.rec-more[data-act="wide"] {
+    color: var(--text);
+    font-weight: 650;
+  }
+}
+@media (max-width: 819px) {
+  .rec-nav .appnav__link[data-fold="narrow"] {
+    display: none;
+  }
+  .appnav__link.rec-more[data-more] {
+    display: inline-flex;
+  }
+  .rec-more[data-act="narrow"] .rec-more__def {
+    display: none;
+  }
+  .rec-more[data-act="narrow"] .rec-more__act {
+    display: inline;
+  }
+  .appnav__link.rec-more[data-act="narrow"] {
+    color: var(--text);
+    font-weight: 650;
+  }
+}
+@media (min-width: 820px) {
+  .rec-more__menu .acct__row[data-fold="narrow"] {
+    display: none;
+  }
+}

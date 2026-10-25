@@ -1,0 +1,26 @@
+---
+/**
+ * /recruitment/hadir and its en and zh twins (2026-10-24): where a phone lands after scanning the QR.
+ */
+import Base from "../layouts/Base.astro";
+import Hadir from "../components/recruitment/qr/Hadir";
+import { tri } from "../lib/labels";
+import type { Lang } from "../lib/kelas";
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Base
+  noindex
+  title={`${tri(lang, "Catat Kehadiran", "Mark Attendance", "记录出席")} · IRIS IoT`}
+  lang={lang}
+  cosmosScene="kerja"
+  shell="rekrutmen"
+>
+  <main id="main" class="page-wide page-main">
+    <Hadir client:load lang={lang} />
+  </main>
+</Base>

@@ -12,13 +12,20 @@ import { usePoll, usePollBersama } from "../hooks";
 import type { Topik } from "../siaran";
 import type {
   AccountResponse,
+  AttendanceResponse,
   BannerResponse,
   CalendarResponse,
+  CandidateSlotsResponse,
   CandidatesResponse,
   CommitteeResponse,
+  CutBoardResponse,
+  CutStage,
   EditionResponse,
   MeResponse,
+  PlotBoardResponse,
+  QrEventsResponse,
   RecError,
+  StageKey,
 } from "./types";
 
 export interface RecFail {
@@ -102,7 +109,7 @@ export function useRecBanner(enabled = true) {
     () => leaf(recGet<BannerResponse>("banner")),
     300_000,
     enabled,
-    ["recedition", "reccalendar", "reccandidates"],
+    ["recedition", "reccalendar", "reccandidates", "reccutting", "recplotting"],
     5_000,
   );
 }
@@ -120,7 +127,7 @@ export function useRecMe(enabled = true) {
     () => leaf(recGet<MeResponse>("me")),
     300_000,
     enabled,
-    ["recedition", "reccalendar", "reccandidates"],
+    ["recedition", "reccalendar", "reccandidates", "reccutting", "recplotting"],
     2_000,
   );
 }
@@ -137,4 +144,64 @@ export function useRecCandidates(enabled: boolean) {
 
 export function useRecCommittee(enabled: boolean) {
   return usePoll(() => leaf(recGet<CommitteeResponse>("committee")), 300_000, enabled, TOPIK_EDISI);
+}
+
+/* ------------------------------------------------------------------- S2 */
+
+/** The candidate's own Pilih Jadwal: seat counts per stage, live on recplotting. */
+export function useRecSlots(enabled: boolean) {
+  return usePoll(
+    () => leaf(recGet<CandidateSlotsResponse>("slots")),
+    300_000,
+    enabled,
+    ["recplotting", "reccalendar", "reccandidates"],
+    1_000,
+  );
+}
+
+/** The Panitia's plotting board for one stage. */
+export function useRecBoard(stage: StageKey, enabled: boolean) {
+  return usePoll(
+    () => leaf(recGet<PlotBoardResponse>("slots", { stage })),
+    300_000,
+    enabled,
+    ["recplotting", "reccandidates", "reccalendar"],
+    1_000,
+    stage,
+  );
+}
+
+/** The Cutting board of one stage. */
+export function useRecCut(stage: CutStage, enabled: boolean) {
+  return usePoll(
+    () => leaf(recGet<CutBoardResponse>("results", { stage })),
+    300_000,
+    enabled,
+    ["reccutting", "reccandidates", "reccalendar"],
+    1_000,
+    stage,
+  );
+}
+
+/** What the projector may show right now, with the counts. */
+export function useRecQrEvents(enabled: boolean) {
+  return usePoll(
+    () => leaf(recGet<QrEventsResponse>("qr-events")),
+    300_000,
+    enabled,
+    ["reccandidates", "reccalendar"],
+    1_000,
+  );
+}
+
+/** The Kehadiran drawer's list for one event. */
+export function useRecAttendance(eventId: number | null, enabled: boolean) {
+  return usePoll(
+    () => leaf(recGet<AttendanceResponse>("attendance", { event: String(eventId) })),
+    300_000,
+    enabled && eventId !== null,
+    ["reccandidates"],
+    1_000,
+    eventId,
+  );
 }

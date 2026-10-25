@@ -35,6 +35,21 @@ export function eventLive(e: Jendela, now: Date): boolean {
   return !e.dayStart || !e.dayEnd || (jam >= e.dayStart && jam < e.dayEnd);
 }
 
+/** The kinds that are an evening people come to; registration, announcements, picks, reviews, plenos and cuttings are not. */
+const KIND_HADIR: readonly string[] = [
+  "meeting",
+  "test",
+  "makeup",
+  "interview",
+  "work",
+  "presentation",
+  "teaching",
+];
+
+/** Whether a QR and a Kehadiran list make sense for the event: public, a gathering or opened with the qr gate. */
+export const eventHadir = (e: Pick<RecEvent, "kind" | "gates" | "internal">): boolean =>
+  !e.internal && (KIND_HADIR.includes(e.kind) || e.gates.includes("qr"));
+
 /** Over: past its last day, or past its window's end on that day. */
 export function eventEnded(e: Jendela, now: Date): boolean {
   const { tanggal, jam } = tanggalWib(now);

@@ -5,14 +5,25 @@
  * next deadline and a countdown, and a short to-do list that follows the
  * person's rights.
  */
+import { useState } from "react";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import type { Lang } from "../../../lib/kelas";
-import { gateClosesAt, gateOpen, nextPublicEvent } from "../../../lib/recruitment/gates";
+import {
+  eventHadir,
+  eventLive,
+  gateClosesAt,
+  gateOpen,
+  nextPublicEvent,
+} from "../../../lib/recruitment/gates";
 import { bukaBagian, type PanelTab } from "../../../lib/recruitment/panel-tab";
 import type { CandidateRow, RecEvent, RecRights } from "../../../lib/recruitment/types";
 import { Baris } from "../calendar/RecCalendar";
 import { Countdown, Kartu, kapanAcara, tgl, wibMs } from "../shared";
 import { PN } from "./panelStrings";
+import { href } from "../../../lib/app";
+import AttendanceDrawer from "../qr/AttendanceDrawer";
+import { S2 } from "../s2Strings";
+import { lite } from "../../../lib/recruitment/banner";
 import { judulAcara } from "../judul";
 
 export default function Ringkasan({
@@ -32,6 +43,7 @@ export default function Ringkasan({
 }) {
   const t = PN[lang].sum;
   const now = new Date();
+  const [hadirDi, setHadirDi] = useState<number | null>(null);
   const total = candidates?.length ?? 0;
   const hitung = (s: CandidateRow["status"]) =>
     (candidates ?? []).filter((c) => c.status === s).length;
@@ -63,6 +75,8 @@ export default function Ringkasan({
         }
       : null;
 
+  // A gathering running now can be attended: the QR screen and the Kehadiran drawer.
+  const hidup = hariIniList.find((e) => eventHadir(e) && eventLive(e, now)) ?? null;
   const tugas: { text: string; tab: PanelTab | null }[] = [];
   if (rights?.approve)
     tugas.push({ text: menunggu ? t.waitingTask(menunggu) : t.allChecked, tab: "kandidat" });
@@ -123,6 +137,21 @@ export default function Ringkasan({
         ) : (
           <span className="hint">{t.noToday}</span>
         )}
+        {rights?.attendance && hidup && (
+          <div className="row r2today">
+            <a
+              className="btn btn--primary btn--sm"
+              href={href(lang, "/recruitment/qr")}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="btn__label">{S2[lang].attend.todayQr}</span>
+            </a>
+            <button type="button" className="btn btn--sm" onClick={() => setHadirDi(hidup.id)}>
+              <span className="btn__label">{S2[lang].attend.todayAttend}</span>
+            </button>
+          </div>
+        )}
         {deadline && (
           <div className="rec-today__next">
             <span className="eyebrow">{t.nextDeadline}</span>
@@ -150,6 +179,9 @@ export default function Ringkasan({
           ))}
         </ul>
       </Kartu>
+      {hadirDi !== null && hidup && hidup.id === hadirDi && (
+        <AttendanceDrawer lang={lang} event={lite(hidup)} onClose={() => setHadirDi(null)} />
+      )}
     </div>
   );
 }

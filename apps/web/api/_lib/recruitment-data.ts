@@ -3,9 +3,9 @@
  * who sits where, and a candidate's own row. Rows become the shapes of
  * src/lib/recruitment/types.ts here and nowhere else.
  */
-import { and, asc, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
-import type { ApiResponse } from "./http.js";
+import { and, asc, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import { getDb } from "../../src/lib/db.js";
+import type { ApiResponse } from "./http.js";
 import {
   asisten,
   recCandidate,
@@ -13,6 +13,8 @@ import {
   recDocument,
   recEdition,
   recEvent,
+  recSlot,
+  recSlotAssignment,
   recStageResult,
   type RecCandidateRow,
   type RecEventRow,
@@ -21,14 +23,20 @@ import type {
   CandidateSelf,
   CommitteeDivision,
   EditionInfo,
-  EnvelopeSelf,
+  BerkasFile,
+  CutStage,
+  EnvelopeView,
   RecDocument,
   RecEvent,
   SeatRow,
 } from "../../src/lib/recruitment/types.js";
+import { CUT_STAGES, STAGES } from "../../src/lib/recruitment/types.js";
+import { envelopeVisible } from "../../src/lib/recruitment/cutting.js";
+import { standing, type ResultLite, type Standing } from "../../src/lib/recruitment/standing.js";
 
 export type Db = ReturnType<typeof getDb>;
 
+/** Answers { ok: false, kode } with a status; the routes and the S2 modules share it. */
 export const tolak = (
   res: ApiResponse,
   kode: string,
@@ -190,28 +198,101 @@ export async function muatDokumen(
   return rows.map((d) => ({ ...d, uploadedAt: d.uploadedAt.toISOString() }));
 }
 
-/** The envelopes a candidate may see: locked, and the reveal time has passed. */
-export async function muatAmplop(db: Db, kandidatId: number, now: Date): Promise<EnvelopeSelf[]> {
-  const rows = await db
+/** Every stage result of one candidate, as the standing and the envelope read it. */
+export async function muatHasil(
+  db: Db,
+  kandidatId: number,
+): Promise<(ResultLite & { id: number })[]> {
+  return db
     .select({
+      id: recStageResult.id,
       stage: recStageResult.stage,
       proposal: recStageResult.proposal,
+      locked: recStageResult.locked,
       revealAt: recStageResult.revealAt,
       openedAt: recStageResult.openedAt,
     })
     .from(recStageResult)
-    .where(and(eq(recStageResult.candidateId, kandidatId), eq(recStageResult.locked, true)));
-  return rows
-    .filter((r) => r.revealAt && r.revealAt <= now)
-    .map((r) => ({
-      stage: r.stage,
-      ready: true,
-      opened: r.openedAt !== null,
-      result: r.proposal,
-    }));
+    .where(eq(recStageResult.candidateId, kandidatId));
 }
 
-/** When a Gagal reveal became visible to this candidate, for the thank-you line. */
+/** The stage results of many candidates at once, by candidate id. */
+export async function muatHasilBanyak(
+  db: Db,
+  ids: number[],
+): Promise<Map<number, (ResultLite & { id: number })[]>> {
+  const peta = new Map<number, (ResultLite & { id: number })[]>();
+  if (!ids.length) return peta;
+  const rows = await db
+    .select({
+      id: recStageResult.id,
+      candidateId: recStageResult.candidateId,
+      stage: recStageResult.stage,
+      proposal: recStageResult.proposal,
+      locked: recStageResult.locked,
+      revealAt: recStageResult.revealAt,
+      openedAt: recStageResult.openedAt,
+    })
+    .from(recStageResult)
+    .where(inArray(recStageResult.candidateId, ids));
+  for (const { candidateId, ...r } of rows) {
+    const ada = peta.get(candidateId);
+    if (ada) ada.push(r);
+    else peta.set(candidateId, [r]);
+  }
+  return peta;
+}
+
+/**
+ * Where a candidate stands. By default as the server sees it (a revealed
+ * result counts), which authorises picking and attending. `seen` is for the
+ * candidate's own page and banner: a result counts once they opened it.
+ */
+export async function muatStanding(
+  db: Db,
+  events: readonly RecEvent[],
+  k: Pick<RecCandidateRow, "id" | "status" | "currentStage">,
+  now: Date,
+  seen = false,
+): Promise<Standing> {
+  return standing(k, await muatHasil(db, k.id), events, now, { seen });
+}
+
+const CUT: readonly string[] = CUT_STAGES;
+const urutTahap = (x: { stage: string }, y: { stage: string }) =>
+  STAGES.indexOf(x.stage as CutStage) - STAGES.indexOf(y.stage as CutStage);
+
+/** The envelopes a candidate may see (revealed), and the ones still waiting (no result). */
+export async function muatAmplop(
+  db: Db,
+  kandidatId: number,
+  now: Date,
+): Promise<{ envelopes: EnvelopeView[]; pending: { stage: CutStage; revealAt: string }[] }> {
+  const rows = (await muatHasil(db, kandidatId)).filter(
+    (r) => r.locked && r.revealAt && CUT.includes(r.stage),
+  );
+  const envelopes: EnvelopeView[] = [];
+  const pending: { stage: CutStage; revealAt: string }[] = [];
+  for (const r of rows) {
+    const stage = r.stage as CutStage;
+    if (!envelopeVisible(r, now)) {
+      pending.push({ stage, revealAt: r.revealAt!.toISOString() });
+      continue;
+    }
+    const buka = !!r.openedAt;
+    envelopes.push({
+      stage,
+      opened: buka,
+      // A sealed envelope carries nothing about the result.
+      result: buka ? r.proposal : null,
+      revealAt: r.revealAt!.toISOString(),
+      through: STAGES.slice(0, STAGES.indexOf(stage)),
+    });
+  }
+  return { envelopes: envelopes.sort(urutTahap), pending: pending.sort(urutTahap) };
+}
+
+/** When the candidate's latest opened Gagal was revealed, for the thank-you line (7 days from it). */
 export async function muatWaktuGagal(db: Db, kandidatId: number, now: Date): Promise<Date | null> {
   const [r] = await db
     .select({ at: sql<Date | null>`max(${recStageResult.revealAt})` })
@@ -221,10 +302,49 @@ export async function muatWaktuGagal(db: Db, kandidatId: number, now: Date): Pro
         eq(recStageResult.candidateId, kandidatId),
         eq(recStageResult.locked, true),
         eq(recStageResult.proposal, "gagal"),
+        isNotNull(recStageResult.openedAt),
         sql`${recStageResult.revealAt} <= ${now.toISOString()}`,
       ),
     );
   return r?.at ? new Date(r.at) : null;
+}
+
+/** The events a candidate sits in (their slots): the calendar shows these to them (audience own). */
+export async function muatEventSendiri(db: Db, kandidatId: number): Promise<number[]> {
+  const rows = await db
+    .select({ eventId: recSlot.eventId })
+    .from(recSlotAssignment)
+    .innerJoin(recSlot, eq(recSlot.id, recSlotAssignment.slotId))
+    .where(eq(recSlotAssignment.candidateId, kandidatId));
+  return rows.map((r) => r.eventId).filter((v): v is number => v !== null);
+}
+
+/** The files as Admin checks them: with the verdict and whether a re-upload replaced an earlier one. */
+export async function muatBerkas(db: Db, kandidatId: number): Promise<BerkasFile[]> {
+  const rows = await db
+    .select({
+      id: recDocument.id,
+      kind: recDocument.kind,
+      size: recDocument.size,
+      uploadedAt: recDocument.uploadedAt,
+      note: recDocument.note,
+      verdict: recDocument.verdict,
+      prevR2Key: recDocument.prevR2Key,
+      prevUploadedAt: recDocument.prevUploadedAt,
+    })
+    .from(recDocument)
+    .where(eq(recDocument.candidateId, kandidatId))
+    .orderBy(asc(recDocument.kind));
+  return rows.map((d) => ({
+    id: d.id,
+    kind: d.kind,
+    size: d.size,
+    uploadedAt: d.uploadedAt.toISOString(),
+    note: d.note,
+    verdict: d.verdict,
+    hasPrev: !!d.prevR2Key,
+    prevUploadedAt: d.prevUploadedAt ? d.prevUploadedAt.toISOString() : null,
+  }));
 }
 
 /** Counts of the required documents per candidate. */

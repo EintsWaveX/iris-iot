@@ -60,6 +60,13 @@ const BACA: Record<string, string[]> = {
     "me",
     // Oprec accounts (2026-10-24)
     "account",
+    // S2 (2026-10-24)
+    "attendance",
+    "envelopes",
+    "qr-events",
+    "qr-token",
+    "results",
+    "slots",
   ],
 };
 

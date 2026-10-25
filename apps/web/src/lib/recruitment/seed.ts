@@ -321,3 +321,42 @@ export function seedSql(): string {
   ).join(",\n");
   return `${edisi}\nINSERT INTO "rec_event" ("edition_id", "kind", "title", "starts_on", "ends_on", "day_start", "day_end", "place", "internal", "audience", "gates", "stage", "color", "sort") VALUES\n${baris};`;
 }
+
+/**
+ * The three Pilih Jadwal windows (PRD 3), added by migration 0049 for the
+ * edition that 0048 seeded. Picking opens at 19.00 on the Pengumuman day
+ * (user, 2026-10-24), seven hours after the envelopes, so opening one late
+ * never costs a seat. For a pick event `dayStart` is when picking opens on
+ * the first day and `dayEnd` when it closes on the last (slots.ts), not a
+ * daily window. Mengajar closes at the end of 21 Des here: the PRD's 12.00
+ * cannot be stored with a 19.00 start, and Panitia can close it earlier from
+ * Plotting. A new edition seeds these itself through the calendar editor.
+ */
+export const PICK_SEED: Omit<RecEvent, "id">[] = [
+  ["Pilih Jadwal Tes Tulis", "2026-11-11", "2026-11-14", "tes_tulis"],
+  ["Pilih Jadwal Wawancara", "2026-11-27", "2026-11-29", "wawancara"],
+  ["Pilih Jadwal Mengajar", "2026-12-20", "2026-12-21", "mengajar"],
+].map(([title, startsOn, endsOn, stage], i) => ({
+  kind: "pick" as const,
+  title,
+  startsOn,
+  endsOn,
+  dayStart: "19:00",
+  dayEnd: "23:59",
+  place: null,
+  internal: false,
+  audience: "all" as const,
+  gates: ["pick" as const],
+  stage: stage as RecEvent["stage"],
+  color: null,
+  sort: EVENT_SEED.length + i,
+}));
+
+/** The statements migration 0049 carries; each is skipped when the edition already has that pick event. */
+export function pickSeedSql(): string {
+  const y = EDITION_SEED.year;
+  return PICK_SEED.map(
+    (v) =>
+      `INSERT INTO "rec_event" ("edition_id", "kind", "title", "starts_on", "ends_on", "day_start", "day_end", "place", "internal", "audience", "gates", "stage", "color", "sort")\nSELECT (SELECT "id" FROM "rec_edition" WHERE "year" = ${y}), ${q(v.kind)}, ${q(v.title)}, ${q(v.startsOn)}, ${q(v.endsOn)}, ${qn(v.dayStart)}, ${qn(v.dayEnd)}, ${qn(v.place)}, ${v.internal}, ${q(v.audience)}, ${q(JSON.stringify(v.gates))}::jsonb, ${qn(v.stage)}, ${qn(v.color)}, ${v.sort}\nWHERE EXISTS (SELECT 1 FROM "rec_edition" WHERE "year" = ${y})\n  AND NOT EXISTS (SELECT 1 FROM "rec_event" WHERE "edition_id" = (SELECT "id" FROM "rec_edition" WHERE "year" = ${y}) AND "kind" = 'pick' AND "stage" = ${qn(v.stage)});`,
+  ).join("\n");
+}

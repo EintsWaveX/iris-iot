@@ -13,6 +13,7 @@ import { tanggalWib } from "../../lib/recruitment/gates";
 import type { CandidateStatus, EventLite, RecEvent } from "../../lib/recruitment/types";
 import { REC } from "./recruitmentStrings";
 import "./recruitment.css";
+import "./recruitment-s2.css";
 
 /** The kosmik colour each palette key stands for. */
 const PAL: Record<PaletteKey, string> = {
@@ -25,6 +26,7 @@ const PAL: Record<PaletteKey, string> = {
   orange: "var(--orange)",
   rose: "var(--red)",
   slate: "var(--text-muted)",
+  pink: "#f472b6",
 };
 
 /** An event's colour as a CSS value. */

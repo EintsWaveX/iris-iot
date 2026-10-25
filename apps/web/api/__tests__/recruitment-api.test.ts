@@ -518,11 +518,17 @@ describe("applying", () => {
       ["POST", "apply"],
       ["POST", "document"],
       ["POST", "withdraw"],
+      ["GET", "envelopes"],
+      ["POST", "envelope-open"],
+      ["POST", "attend"],
+      ["POST", "slot-pick"],
+      ["POST", "slot-change"],
     ] as const) {
       const r = await panggil(m, aksi, { body: sah });
       expect(r.code, aksi).toBe(401);
       expect(r.body.kode, aksi).toBe("belum_masuk_oprec");
     }
+    expect((await panggil("GET", "slots")).code).toBe(401);
     expect((await panggil("GET", "berkas", { query: { id: "3" } })).code).toBe(401);
   });
   it("refuses a second application", async () => {

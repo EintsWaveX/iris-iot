@@ -7,7 +7,7 @@
  * once; Low Detail and reduced motion keep it still.
  */
 import { useState, type CSSProperties } from "react";
-import { CheckIcon, StarIcon } from "@phosphor-icons/react";
+import { CheckIcon, FlagIcon, StarIcon } from "@phosphor-icons/react";
 import Popover from "../../ui/Popover";
 import type { Lang } from "../../../lib/kelas";
 import { STAGES, type RecEvent, type StageKey } from "../../../lib/recruitment/types";
@@ -41,12 +41,15 @@ export default function Journey({
   events,
   lang,
   hariIni,
+  out = false,
 }: {
   /** null: nobody's own journey (an Asisten looking), every star hollow */
   cur: StageKey | "daftar" | null;
   events: RecEvent[];
   lang: Lang;
   hariIni: string;
+  /** Cut: the journey stops at the stage reached, a flag marks it, the rest fades (S2) */
+  out?: boolean;
 }) {
   const t = CP[lang].journey;
   const r = REC[lang];
@@ -72,7 +75,17 @@ export default function Journey({
       </svg>
       <ol className="rec-journey__list" aria-label={t.list}>
         {JOURNEY.map((s, i) => {
-          const st = i < ci ? "done" : i === ci ? "cur" : "next";
+          const st = out
+            ? i < ci
+              ? "done"
+              : i === ci
+                ? "ended"
+                : "off"
+            : i < ci
+              ? "done"
+              : i === ci
+                ? "cur"
+                : "next";
           const ds = datesOf(s, events);
           return (
             <li
@@ -90,11 +103,17 @@ export default function Journey({
                     type="button"
                     className="rec-star__dot"
                     aria-label={`${r.stage[s]}, ${
-                      st === "done" ? t.ariaDone : st === "cur" ? t.ariaCur : t.ariaNext
+                      st === "done"
+                        ? t.ariaDone
+                        : st === "cur" || st === "ended"
+                          ? t.ariaCur
+                          : t.ariaNext
                     }`}
                   >
                     {st === "done" ? (
                       <CheckIcon size={18} weight="bold" />
+                    ) : st === "ended" ? (
+                      <FlagIcon size={18} weight="fill" />
                     ) : st === "cur" ? (
                       <StarIcon size={20} weight="fill" />
                     ) : (
@@ -105,7 +124,7 @@ export default function Journey({
               >
                 <div className="stack stack--sm rec-starpop">
                   <span className="eyebrow">
-                    {st === "done" ? t.done : st === "cur" ? t.cur : t.stage(i)}
+                    {st === "done" ? t.done : st === "cur" || st === "ended" ? t.cur : t.stage(i)}
                   </span>
                   <b>{r.stage[s]}</b>
                   {ds.length ? (
