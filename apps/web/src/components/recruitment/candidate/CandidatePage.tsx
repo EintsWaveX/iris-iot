@@ -35,6 +35,7 @@ import {
 } from "../../../lib/recruitment/gates";
 import { alamatBagian } from "../../../lib/recruitment/panel-tab";
 import { DOC_REQUIRED, type RecEvent, type WithdrawResponse } from "../../../lib/recruitment/types";
+import { FORMULIR } from "../../../lib/recruitment/formulir";
 import { REC } from "../recruitmentStrings";
 import { Agenda, RecCalendar } from "../calendar/RecCalendar";
 import {
@@ -141,6 +142,11 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     const d = diminta.current;
     if (!d || me === undefined || !akunSiap) return;
     if (tamu && !asisten) {
+      // The Google Form is the way in: ?daftar=1 lands on the page's form card, not an account dialog.
+      if (FORMULIR && d.daftar && !d.masuk && !d.berkas) {
+        diminta.current = null;
+        return;
+      }
       if (d.daftar || d.berkas || d.masuk)
         bukaAkun(
           d.masuk ? "masuk" : "daftar",
@@ -306,59 +312,108 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
     </div>
   );
 
-  const cta = !applied && (
+  // The Google Form is the way in (2026-10-25): the form, the LINE group, and
+  // signing in for whoever the Panitia already added.
+  const ctaFormulir = FORMULIR && !asisten && !withdrawn && !applied && (
     <section className="panel rec-apply">
       <div className="stack stack--sm">
         <b className="rec-apply__t">
-          {asisten
-            ? t.ledeStaff
-            : withdrawn
-              ? t.apply.withdrawn
-              : tamu
-                ? t.apply.guest
-                : buka
-                  ? t.apply.open(closesOn ? tgl(closesOn, lang) : "")
-                  : sebelum && opensOn
-                    ? t.apply.before(tgl(opensOn, lang))
-                    : t.apply.closed}
+          {buka
+            ? t.apply.formTitle
+            : sebelum && opensOn
+              ? t.apply.before(tgl(opensOn, lang))
+              : t.apply.closed}
         </b>
-        {!asisten && (
-          <span className="hint">{withdrawn ? t.apply.hintWithdrawn : t.apply.hint}</span>
-        )}
+        <span className="hint">{t.apply.formHint}</span>
       </div>
-      {asisten ? (
-        panitia && (
+      <span className="row rec-apply__btn" style={{ gap: 8, flexWrap: "wrap" }}>
+        {tamu && (
+          <button
+            type="button"
+            className="btn btn--ghost btn--lg"
+            onClick={() => bukaAkun("masuk")}
+          >
+            {t.apply.masuk}
+          </button>
+        )}
+        <a
+          className="btn btn--ghost btn--lg"
+          href={FORMULIR.grupLine}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t.apply.line}
+        </a>
+        {buka && (
           <a
             className="btn btn--primary btn--lg"
-            href={alamatBagian(lang === "id" ? "" : `/${lang}`, "ringkasan")}
+            href={FORMULIR.url}
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            <span className="btn__label">{t.staff.panel}</span>
+            <span className="btn__label">{t.apply.form}</span>
             <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
           </a>
-        )
-      ) : withdrawn ? null : tamu ? (
-        <button
-          type="button"
-          className="btn btn--primary btn--lg"
-          onClick={() => bukaAkun("daftar", href(lang, "/recruitment?daftar=1"))}
-        >
-          <span className="btn__label">{t.apply.signIn}</span>
-        </button>
-      ) : (
-        <span className="stack stack--sm rec-apply__btn">
+        )}
+      </span>
+    </section>
+  );
+
+  const cta =
+    ctaFormulir ||
+    (!applied && (
+      <section className="panel rec-apply">
+        <div className="stack stack--sm">
+          <b className="rec-apply__t">
+            {asisten
+              ? t.ledeStaff
+              : withdrawn
+                ? t.apply.withdrawn
+                : tamu
+                  ? t.apply.guest
+                  : buka
+                    ? t.apply.open(closesOn ? tgl(closesOn, lang) : "")
+                    : sebelum && opensOn
+                      ? t.apply.before(tgl(opensOn, lang))
+                      : t.apply.closed}
+          </b>
+          {!asisten && (
+            <span className="hint">{withdrawn ? t.apply.hintWithdrawn : t.apply.hint}</span>
+          )}
+        </div>
+        {asisten ? (
+          panitia && (
+            <a
+              className="btn btn--primary btn--lg"
+              href={alamatBagian(lang === "id" ? "" : `/${lang}`, "ringkasan")}
+            >
+              <span className="btn__label">{t.staff.panel}</span>
+              <ArrowRightIcon size={16} weight="bold" aria-hidden="true" />
+            </a>
+          )
+        ) : withdrawn ? null : tamu ? (
           <button
             type="button"
             className="btn btn--primary btn--lg"
-            disabled={!buka}
-            onClick={() => setDaftar(true)}
+            onClick={() => bukaAkun("daftar", href(lang, "/recruitment?daftar=1"))}
           >
-            <span className="btn__label">{t.apply.now}</span>
+            <span className="btn__label">{t.apply.signIn}</span>
           </button>
-          {!buka && sebelum && <span className="hint">{t.apply.later}</span>}
-        </span>
-      )}
-    </section>
-  );
+        ) : (
+          <span className="stack stack--sm rec-apply__btn">
+            <button
+              type="button"
+              className="btn btn--primary btn--lg"
+              disabled={!buka}
+              onClick={() => setDaftar(true)}
+            >
+              <span className="btn__label">{t.apply.now}</span>
+            </button>
+            {!buka && sebelum && <span className="hint">{t.apply.later}</span>}
+          </span>
+        )}
+      </section>
+    ));
 
   const journey = (
     <Kartu

@@ -12,7 +12,8 @@
  * sesiOprec() answers in the SessionPayload shape the candidate handlers
  * already read (role "praktikan", nim, nama), so they did not change.
  *
- * POST /api/recruitment/account-signup   { nim, nama, sandi, klaim? }  klaim after a reset
+ * POST /api/recruitment/account-signup   { nim, nama, sandi, klaim? }  klaim after a reset;
+ *                                        while the Google Form is the way in, only with klaim
  * POST /api/recruitment/account-signin   { nim, sandi }
  * POST /api/recruitment/account-signout
  * GET  /api/recruitment/account          { account: { nim, nama } | null }
@@ -38,6 +39,7 @@ import {
 } from "../../src/lib/auth.js";
 import { asisten, percobaanMasuk, praktikan, recAccount } from "../../src/lib/schema.js";
 import { cekAkunBaru, cekMasukOprec, cekNimOprec } from "../../src/lib/recruitment/akun.js";
+import { FORMULIR } from "../../src/lib/recruitment/formulir.js";
 import { tolak, wajibEdisi, type Db } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 
@@ -190,6 +192,9 @@ export async function handleBuatAkun(req: ApiRequest, res: ApiResponse) {
   if (a) return tolak(res, "nim_asisten", 409);
 
   const [lama] = await db.select().from(recAccount).where(eq(recAccount.nim, b.nim)).limit(1);
+  // While the Google Form is the way in, the Panitia make every account
+  // (2026-10-25); only a reset account is made again here, with its claim code.
+  if (FORMULIR && !lama) return tolak(res, "daftar_lewat_formulir", 409, { url: FORMULIR.url });
   let versi = 1;
   if (lama?.passHash) {
     await catat(db, b.nim, ip, false);

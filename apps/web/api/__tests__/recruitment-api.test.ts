@@ -17,6 +17,7 @@ import {
   recEventLog,
 } from "../../src/lib/schema";
 import { EVENT_SEED } from "../../src/lib/recruitment/seed";
+import { DOC_REQUIRED } from "../../src/lib/recruitment/types";
 import { buatTiketRek } from "../_lib/recruitment-unggah";
 
 type Rows = Record<string, unknown[] | ((sel: unknown) => unknown[])>;
@@ -84,6 +85,8 @@ vi.mock("../../src/lib/db", () => {
   return { getDb: () => db };
 });
 vi.mock("../_lib/siaran", () => ({ denganSiaran: (_r: string, h: unknown) => h }));
+// The in-IRIS sign-up and application, as they run once the Google Form is dropped (2026-10-25).
+vi.mock("../../src/lib/recruitment/formulir", () => ({ FORMULIR: null }));
 vi.mock("../../src/lib/auth", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   readSessionCookie: () => cookie,
@@ -462,7 +465,7 @@ describe("applying", () => {
   const berkas = { kind: "cv", tiket: "x" };
   const sah = {
     biodata: BIODATA,
-    docs: ["cv", "letter", "vision"].map((kind) => ({ ...berkas, kind })),
+    docs: DOC_REQUIRED.map((kind) => ({ ...berkas, kind })),
     consent: true,
   };
 
@@ -534,7 +537,7 @@ describe("applying", () => {
     rows.candidate = [];
     const r = await panggil("POST", "apply", { body: sah });
     expect(r.code).toBe(400);
-    expect(r.body).toMatchObject({ kode: "tiket_salah", kind: "cv" });
+    expect(r.body).toMatchObject({ kode: "tiket_salah", kind: DOC_REQUIRED[0] });
     expect(tulis.filter((w) => w.tabel === "candidate")).toEqual([]);
   });
   it("refuses a ticket minted for another NIM", async () => {

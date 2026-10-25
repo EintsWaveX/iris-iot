@@ -7,6 +7,8 @@
  * back with a note the candidate sees on their page and on Home.
  * The approve right also sees the oprec account beside the practicum
  * roster's name, with Reset Akun (AkunCek, 2026-10-24).
+ * While the Google Form is the way in (2026-10-25), hakPenuh adds candidates
+ * here (Tambah CaA), corrects their details and uploads their PDFs.
  *
  * GET candidates and GET candidate?id=; POST review. A review reaches the
  * candidate's own page through the reccandidates topic.
@@ -18,7 +20,7 @@ import Dropdown from "../../ui/Dropdown";
 import Pill from "../../ui/Pill";
 import { tanggalPanjang } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
-import { isFail, recGet, recPost } from "../../../lib/recruitment/client";
+import { isFail, recGet, recPost, useRecEdition } from "../../../lib/recruitment/client";
 import { tanggalWib } from "../../../lib/recruitment/gates";
 import {
   CANDIDATE_STATUS,
@@ -33,6 +35,7 @@ import { REC } from "../recruitmentStrings";
 import { StatusPill } from "../shared";
 import { PN } from "./panelStrings";
 import AkunCek from "./kandidat/AkunCek";
+import TambahCaA, { BerkasPanitia } from "./kandidat/TambahCaA";
 
 const SHOWN = CANDIDATE_STATUS.filter((s) => s !== "accepted");
 
@@ -52,23 +55,29 @@ function Lembar({
   lang,
   id,
   rights,
+  canAdd,
   onClose,
   onChanged,
 }: {
   lang: Lang;
   id: number;
   rights: RecRights;
+  /** hakPenuh: correct the details and upload the PDFs (Tambah CaA) */
+  canAdd: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
   const t = PN[lang].cand;
   const r = REC[lang];
   const docs = CP[lang].docs;
+  const yaTidak = (v: boolean | null | undefined) =>
+    v === true ? t.ya : v === false ? t.tidak : null;
   const [d, setD] = useState<CandidateDetailResponse | null | "gagal">(null);
   const [minta, setMinta] = useState(false);
   const [catatan, setCatatan] = useState("");
   const [galat, setGalat] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ubah, setUbah] = useState(false);
 
   const muat = async () => {
     const res = await recGet<CandidateDetailResponse>("candidate", { id: String(id) });
@@ -150,22 +159,37 @@ function Lembar({
             <div className="rec-sum">
               {(
                 [
+                  [t.prodi, d.biodata.prodi ? PN[lang].tambah.prodiNama[d.biodata.prodi] : null],
                   [t.phone, d.biodata.phone],
                   [t.line, d.biodata.lineId],
+                  [t.mkIot, yaTidak(d.biodata.mkIot)],
+                  [t.praktikumIot, yaTidak(d.biodata.praktikumIot)],
                   [t.address, d.biodata.address],
                   [t.motivation, d.biodata.motivation],
                 ] as const
-              ).map(([k, v]) => (
-                <span key={k} style={{ display: "contents" }}>
-                  <span className="hint">{k}</span>
-                  <b>{v}</b>
-                </span>
-              ))}
+              )
+                .filter(([, v]) => !!v)
+                .map(([k, v]) => (
+                  <span key={k} style={{ display: "contents" }}>
+                    <span className="hint">{k}</span>
+                    <b>{v}</b>
+                  </span>
+                ))}
             </div>
           ) : null}
           <section className="stack stack--sm">
             <h3 className="rec-h3">{t.docsTitle}</h3>
-            {d.documents ? (
+            {canAdd && d.documents ? (
+              <BerkasPanitia
+                lang={lang}
+                id={c.id}
+                documents={d.documents}
+                onChanged={() => {
+                  onChanged();
+                  void muat();
+                }}
+              />
+            ) : d.documents ? (
               DOC_REQUIRED.map((k) => {
                 const doc = d.documents!.find((x) => x.kind === k);
                 return (
@@ -196,6 +220,17 @@ function Lembar({
               </div>
             )}
           </section>
+          {canAdd && (
+            <div>
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => setUbah(true)}
+              >
+                {t.edit}
+              </button>
+            </div>
+          )}
           {rights.approve && (
             <AkunCek lang={lang} nim={c.nim} nama={c.nama} roster={c.namaRoster} judul="rec-h3" />
           )}
@@ -207,6 +242,23 @@ function Lembar({
             </div>
           )}
         </div>
+      )}
+      {ubah && c && (
+        <TambahCaA
+          lang={lang}
+          open
+          onOpenChange={(o) => !o && setUbah(false)}
+          edit={{
+            id: c.id,
+            nim: c.nim,
+            nama: c.nama,
+            biodata: d && d !== "gagal" ? d.biodata : null,
+          }}
+          onSaved={() => {
+            onChanged();
+            void muat();
+          }}
+        />
       )}
       {minta && c && (
         <Dialog
@@ -288,6 +340,8 @@ export default function Kandidat({
   const [q, setQ] = useState("");
   const [f, setF] = useState("semua");
   const [sel, setSel] = useState<number | null>(null);
+  const [tambah, setTambah] = useState(false);
+  const canAdd = useRecEdition().data?.canAdd === true;
   const cari = q.trim().toLowerCase();
   const list = rows.filter(
     (c) =>
@@ -319,6 +373,11 @@ export default function Kandidat({
         />
         <span className="grow" />
         <span className="hint num">{t.count(list.length, rows.length)}</span>
+        {canAdd && (
+          <button type="button" className="btn btn--primary" onClick={() => setTambah(true)}>
+            <span className="btn__label">{PN[lang].tambah.btn}</span>
+          </button>
+        )}
       </div>
       {!list.length ? (
         <p className="empty-note">{rows.length ? t.emptyFilter : t.empty}</p>
@@ -351,7 +410,9 @@ export default function Kandidat({
                     <td className="mono hint">{c.nim}</td>
                     <td>{c.kelas ?? "-"}</td>
                     <td className="num">{c.angkatan ?? "-"}</td>
-                    <td className="num">{c.docs}/3</td>
+                    <td className="num">
+                      {c.docs}/{DOC_REQUIRED.length}
+                    </td>
                     <td className="hint">{pendek(c.appliedAt, lang)}</td>
                     <td>
                       <StatusPill status={c.status} lang={lang} />
@@ -384,10 +445,12 @@ export default function Kandidat({
           lang={lang}
           id={sel}
           rights={rights}
+          canAdd={canAdd}
           onClose={() => setSel(null)}
           onChanged={refresh}
         />
       )}
+      {canAdd && <TambahCaA lang={lang} open={tambah} onOpenChange={setTambah} onSaved={refresh} />}
     </div>
   );
 }

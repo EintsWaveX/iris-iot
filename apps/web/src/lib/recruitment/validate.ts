@@ -8,6 +8,7 @@ import {
   AUDIENCES,
   EVENT_KINDS,
   GATES,
+  PRODI,
   STAGES,
   type Audience,
   type Biodata,
@@ -62,6 +63,49 @@ export function cekBiodata(raw: unknown): { ok: true; biodata: Biodata } | Gagal
   return {
     ok: true,
     biodata: { angkatan: r.angkatan as number, kelas, phone, lineId, address, motivation },
+  };
+}
+
+/** Batches oprec 2026 is open to (the poster: 2024, 2025 and 2026). */
+export const ANGKATAN_FORMULIR = [2024, 2025, 2026] as const;
+
+/**
+ * The Google Form's answers (2026-10-25) as the Panitia type them in: batch,
+ * programme, class, phone, LINE, and the two IoT questions. The practicum
+ * question is asked of Teknik Elektro only, so it is null for the others.
+ * The class is kept as typed (upper case, no spaces), not matched against
+ * the programme: the form did not check it either.
+ */
+export function cekBiodataFormulir(raw: unknown): { ok: true; biodata: Biodata } | Gagal {
+  if (!objek(raw)) return { ok: false, field: "biodata" };
+  const r = raw;
+  if (!(ANGKATAN_FORMULIR as readonly unknown[]).includes(r.angkatan))
+    return { ok: false, field: "angkatan" };
+  if (!(PRODI as readonly unknown[]).includes(r.prodi)) return { ok: false, field: "prodi" };
+  const prodi = r.prodi as Biodata["prodi"];
+  const kelas = teks(typeof r.kelas === "string" ? r.kelas.replace(/\s+/g, "") : r.kelas, 1, 40);
+  if (!kelas) return { ok: false, field: "kelas" };
+  const phone = typeof r.phone === "string" ? r.phone.replace(/[\s-]/g, "") : "";
+  if (!/^\+?[0-9]{8,15}$/.test(phone)) return { ok: false, field: "phone" };
+  const lineId = teks(r.lineId, 1, 40);
+  if (!lineId) return { ok: false, field: "lineId" };
+  if (typeof r.mkIot !== "boolean") return { ok: false, field: "mkIot" };
+  let praktikumIot: boolean | null = null;
+  if (prodi === "te") {
+    if (typeof r.praktikumIot !== "boolean") return { ok: false, field: "praktikumIot" };
+    praktikumIot = r.praktikumIot;
+  }
+  return {
+    ok: true,
+    biodata: {
+      angkatan: r.angkatan as number,
+      prodi,
+      kelas: kelas.toUpperCase(),
+      phone,
+      lineId,
+      mkIot: r.mkIot,
+      praktikumIot,
+    },
   };
 }
 

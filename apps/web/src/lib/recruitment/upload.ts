@@ -2,7 +2,9 @@
  * One application PDF to R2 (prompt 03), the way lib/tp-unggah.ts sends a TP:
  * ticket (POST ticket) → PUT the bytes with progress → hand the ticket to
  * apply (a new candidate) or document (a re-upload). This file does the first
- * two; the caller keeps the returned ticket.
+ * two; the caller keeps the returned ticket. With `untuk` (a candidate id)
+ * it is the Panitia uploading for that candidate (Tambah CaA, 2026-10-25):
+ * the ticket comes from candidate-ticket and goes to candidate-document.
  *
  * The browser checks what it can before sending (PDF magic bytes, 5 MB), so
  * a wrong file says so inside its own slot without a round trip; the server
@@ -66,13 +68,19 @@ export async function kirimBerkas(
   file: File,
   onPersen: (p: number) => void,
   signal?: AbortSignal,
+  untuk?: number,
 ): Promise<UploadResult> {
   try {
     const salah = await periksaLokal(file);
     if (salah) return { ok: false, kode: salah };
     const bytes = new Uint8Array(await file.arrayBuffer());
     const sha256 = await sha256Hex(bytes);
-    const tk = await recPost<TicketResponse>("ticket", { kind, ukuran: bytes.length, sha256 });
+    const tk = await recPost<TicketResponse>(untuk === undefined ? "ticket" : "candidate-ticket", {
+      kind,
+      ukuran: bytes.length,
+      sha256,
+      ...(untuk === undefined ? {} : { id: untuk }),
+    });
     if (isFail(tk)) {
       if (tk.kode === "offline") return { ok: false, kode: "jaringan" };
       const known: UploadFail[] = [

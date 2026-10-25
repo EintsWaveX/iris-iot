@@ -194,6 +194,10 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:account-signin": [],
   "recruitment:account-signout": [],
   "recruitment:account-reset": [],
+  // Tambah CaA (2026-10-25): the Panitia add a candidate and their PDFs.
+  "recruitment:candidate-add": ["reccandidates"],
+  "recruitment:candidate-ticket": [],
+  "recruitment:candidate-document": ["reccandidates"],
   // Register, edit, delete a Pi, a new token, and every queued command.
   server: ["server"],
   action: ["server"],

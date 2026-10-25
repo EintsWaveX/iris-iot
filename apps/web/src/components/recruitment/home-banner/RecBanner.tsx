@@ -17,6 +17,7 @@ import { alamatBagian } from "../../../lib/recruitment/panel-tab";
 import { REC } from "../recruitmentStrings";
 import { Countdown, kapanAcara, tgl } from "../shared";
 import { BN } from "./bannerStrings";
+import { FORMULIR } from "../../../lib/recruitment/formulir";
 import { judulAcara } from "../judul";
 
 const JOURNEY: (StageKey | "daftar")[] = ["daftar", ...STAGES];
@@ -92,10 +93,22 @@ export default function RecBanner({ lang }: { lang: Lang }) {
         <a className="btn btn--ghost" href={link("/recruitment")}>
           {t.visitor.stages}
         </a>
-        {/* Anyone may apply with an oprec account (2026-10-24): the page opens the account dialog. */}
-        <a className="btn btn--primary" href={link("/recruitment?daftar=1")}>
-          <span className="btn__label">{t.visitor.signIn}</span>
-        </a>
+        {/* Anyone may apply with an oprec account (2026-10-24): the page opens the account dialog.
+            While the Google Form is the way in (2026-10-25), Daftar opens the form. */}
+        {FORMULIR && d.daftarOpen ? (
+          <a
+            className="btn btn--primary"
+            href={FORMULIR.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="btn__label">{t.visitor.signIn}</span>
+          </a>
+        ) : (
+          <a className="btn btn--primary" href={link("/recruitment?daftar=1")}>
+            <span className="btn__label">{t.visitor.signIn}</span>
+          </a>
+        )}
       </>,
     );
   }
@@ -116,9 +129,20 @@ export default function RecBanner({ lang }: { lang: Lang }) {
         <a className="btn btn--ghost" href={link("/recruitment")}>
           {t.praktikan.stages}
         </a>
-        <a className="btn btn--primary" href={link("/recruitment?daftar=1")}>
-          <span className="btn__label">{t.praktikan.apply}</span>
-        </a>
+        {FORMULIR ? (
+          <a
+            className="btn btn--primary"
+            href={FORMULIR.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="btn__label">{t.praktikan.apply}</span>
+          </a>
+        ) : (
+          <a className="btn btn--primary" href={link("/recruitment?daftar=1")}>
+            <span className="btn__label">{t.praktikan.apply}</span>
+          </a>
+        )}
       </>,
       tutup ? (
         <>
