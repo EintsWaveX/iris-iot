@@ -34,6 +34,7 @@ import {
   gateClosesAt,
   gateOpen,
   nextPublicEvent,
+  showsNextCard,
   tanggalWib,
 } from "../../../lib/recruitment/gates";
 import { alamatBagian } from "../../../lib/recruitment/panel-tab";
@@ -285,7 +286,7 @@ export default function CandidatePage({ lang }: { lang: Lang }) {
       };
     return null;
   })();
-  const nextCard = (
+  const nextCard = showsNextCard(cand?.status) && (
     <section className="panel rec-next">
       <span className="eyebrow">{t.next.eyebrow}</span>
       {next ? (
