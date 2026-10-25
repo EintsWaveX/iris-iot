@@ -510,6 +510,36 @@ describe("question-save", () => {
     expect(r.body.kode).toBe("versi_lama");
   });
 
+  it("an editor that loaded an older version rereads (versi_lama) and nothing is written", async () => {
+    rows.question = [{ ...BARIS(), status: "draft" }];
+    const r = await jalan(
+      "question-save",
+      AKD,
+      masuk({
+        id: 5,
+        version: BARIS().version - 1,
+        title: "Lain",
+        body: BARIS().body,
+        answer: BARIS().answer,
+      }),
+    );
+    expect(r.status).toBe(409);
+    expect(r.body.kode).toBe("versi_lama");
+    expect(tulis).toEqual([]);
+    const ok = await jalan(
+      "question-save",
+      AKD,
+      masuk({
+        id: 5,
+        version: BARIS().version,
+        title: "Lain",
+        body: BARIS().body,
+        answer: BARIS().answer,
+      }),
+    );
+    expect(ok.status).toBe(200);
+  });
+
   it("a question that is not in this edition is not found", async () => {
     rows.question = [];
     const r = await jalan("question-save", AKD, masuk({ id: 77 }));

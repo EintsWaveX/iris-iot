@@ -381,6 +381,8 @@ interface SoalMasuk {
   refs: number[];
   sample?: boolean;
   note?: string;
+  /** The version the editor loaded: when it is behind the stored one, someone saved in between */
+  baseVersion?: number;
 }
 
 type Hasil =
@@ -445,6 +447,8 @@ async function simpanSatu(
       .where(and(eq(recQuestion.id, m.id), eq(recQuestion.editionId, edisiId)))
       .limit(1);
     if (!r) return { ok: false, kode: "tidak_ada" };
+    if (m.baseVersion !== undefined && m.baseVersion !== r.version)
+      return { ok: false, kode: "versi_lama" };
     old = r;
   }
   const next: QuestionState = {
@@ -549,6 +553,8 @@ async function simpanSoal(k: Konteks) {
       answer: b.answer,
       refs: Array.isArray(b.refs) ? (b.refs as number[]) : [],
       note: typeof b.note === "string" ? b.note : undefined,
+      baseVersion:
+        typeof b.version === "number" && Number.isInteger(b.version) ? b.version : undefined,
     },
     { dry: false, running: await ruangBerjalan(k.db, k.edisiId), langs: langsOf(config) },
   );
