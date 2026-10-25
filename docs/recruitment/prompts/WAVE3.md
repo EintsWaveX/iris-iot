@@ -2,7 +2,31 @@
 
 Read this after `_RULES.md` and `WAVE2.md`; where they differ, this file wins. It lists the sessions to open, in order, with the model, effort and kickoff line for each. At most three sessions run at once, each a separate prompt session, with no subagents. Only one Playwright script runs at a time across all sessions, and each session checks that free RAM is at least 600 MB before a browser run (Claude Code killed runs at 200 to 500 MB free).
 
-## Update 2026-10-25 (iris-iot, after W1 and 11 closed; this section wins over the rest of the file)
+## Update 2026-10-25 evening (all three in-flight sessions paused on the user's word; this section wins over everything below)
+**State.** Done: 01-06, W1, 08, 08c, 10, 11. Paused, each with a handoff and a `resume-NN.md`: **07** (ship commit `4712a91` on the local branch `s2-ship`, rig all green, motion checks and the user's go owed, no prod step started), **09** (bank-io, snapshotter and bank API committed; seed bank 14 of 45, the Bank Soal tab and the rig verify not done), **12** (site side and PC agent committed; the API has never run on a database, the templates are uncompiled, the gateway Worker and the page do not exist). **13** is ready and untouched. **14** waits for 09, 12, 13. Prod is still at 0050 (main `2fb3f9f`), Sembunyikan Oprec is on, the branch is 39 commits ahead of origin and unpushed. 0051 and 0052 exist on the rig only.
+
+**Slots (max three), in this order.**
+| Slot | Session | Kickoff file | Model / effort | Deadline | Why this order |
+|---|---|---|---|---|---|
+| A | 07 | `resume-07.md` | Opus 5.5, high | live by 9 Nov | The only step that touches prod and the only date fixed by candidates (Pilih Jadwal 11 Nov 19:00). Mostly checking now, so light on RAM. |
+| B | 09 | `resume-09.md` | Sonnet 5.5, high | 10 Nov | Smaller than 12, and 14 needs the bank to rehearse. Starts with the rig run. |
+| C | 12 | `resume-12.md` | Sonnet 5.5, high | 13 Nov | The longest remaining piece (gateway Worker and the whole page). Start it now, not when 09 ends. |
+| first free | 13 | `13-scoring-results.md` | Sonnet 5.5, medium | 13 Nov | Small. Takes the slot 07 frees. |
+| last | 14 | `14-s3-rehearsal-ship.md` | Opus 5.5, high | live by 16 Nov | After 09, 12, 13. |
+
+**Shared rig, so no collisions.** One Postgres on :54329. Each session works in its own database copy and API port: 07 `iris_e2e07` on :8791 (Astro :4322), 12 `iris_e2e12` on :8792, 09 `iris_e2e09` on :8793. One Playwright run at a time across all sessions, at least 600 MB free before each; nobody kills another session's processes. Any `npm install` prunes the rig-only `pg` packages (`npm install --no-save pg @types/pg` puts them back). `apps/web/src/lib/db.ts` carries an uncommitted RIG-ONLY patch and `public/rig-test/` is untracked: neither is ever committed. 09 and 12 both edit `src/lib/tp-r2.ts` and `apps/relay/src/tp.ts`: stage only your own hunks.
+
+**What 14 inherits** (add to its rehearsal list): 0051 to 0053 by hand after a `pg_dump`; the relay redeploy (bank pictures, the exam image keys, the header check); the Worker secrets `REC_GATEWAY_SECRET` and `REC_PANTAU_PASS` and the `v3` Durable Object migration; the PC agent bundle at protocol 9 through the Updates card before the site hands out compile jobs; `iris-rec-provision.sh` on the PC; the bubblewrap sandbox and `systemd-run` cap on Linux (never run yet); hardware (ESP32 DevKit V1 and S3, flash at 921600, BLE, a phone hotspot); Firefox, Safari and a real phone for the check-in; 11's Phase 1 verify with real seats; `+N menit` at 360 px.
+
+**Kickoff (what the user sends).** Each in its own new Claude Code session in the iris-iot folder, with the model and effort from the table:
+> Run `docs/recruitment/prompts/resume-07.md`. Read `docs/recruitment/prompts/_RULES.md`, `WAVE3.md` (the 2026-10-25 evening update first), and `handoffs/07.md`.
+
+> Run `docs/recruitment/prompts/resume-09.md`. Read `docs/recruitment/prompts/_RULES.md`, `WAVE3.md` (the 2026-10-25 evening update first), and `handoffs/09.md`.
+
+> Run `docs/recruitment/prompts/resume-12.md`. Read `docs/recruitment/prompts/_RULES.md`, `WAVE3.md` (the 2026-10-25 evening update first), and `handoffs/12.md`.
+
+### Earlier the same day (superseded where it differs from the section above)
+#### Update 2026-10-25 (iris-iot, after W1 and 11 closed)
 **State.** W1, 06 and 11 are done, so their slots are free. 10 is the only session in flight: its runner and handoff exist but are uncommitted and its STATUS row still says `running`; whoever closes it commits with explicit paths, runs `npm run check` and sets the row. Prod is at **0050** (0049 without its seed, plus `rec_account`), main is `2fb3f9f`, Sembunyikan Oprec is on. The branch is 27 commits ahead of origin and unpushed. 0051 exists on the rig only; 11's rig-only `lib/db.ts` patch and `public/rig-test/` are never committed.
 
 **Slots now (max three).**
