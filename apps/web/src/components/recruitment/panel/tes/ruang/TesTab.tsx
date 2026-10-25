@@ -28,6 +28,8 @@ import GradeTab from "../../../livecode/GradeTab";
 import Konsol from "./Konsol";
 import { RuangKit, RuangPengaturan } from "./RuangSetup";
 import { RG } from "./ruangStrings";
+import PenilaianTab from "../penilaian/PenilaianTab";
+import { PN } from "../penilaian/penilaianStrings";
 
 import "../../../recruitment-s3-room.css";
 
@@ -312,6 +314,8 @@ export default function TesTab({ lang }: { lang: Lang }) {
   const t = RG[lang];
   const rooms = useRecRooms(true);
   const [id, pilih] = useRuangDipilih();
+  // Rooms, or the scores of everyone who sat in them (prompt 13)
+  const [atas, setAtas] = useState<"ruang" | "nilai">("ruang");
   if (!rooms.data) return <span className="skeleton" style={{ height: 320 }} />;
   if (id !== null)
     return (
@@ -319,8 +323,23 @@ export default function TesTab({ lang }: { lang: Lang }) {
     );
   return (
     <div className="stack">
-      <p className="hint">{t.lede}</p>
-      <Daftar lang={lang} data={rooms.data} buka={pilih} refresh={rooms.refresh} />
+      <TabLine
+        tabs={[
+          { v: "ruang" as const, label: PN[lang].room },
+          { v: "nilai" as const, label: PN[lang].title },
+        ]}
+        value={atas}
+        onChange={setAtas}
+        label={PN[lang].tabs.aria}
+      />
+      {atas === "nilai" ? (
+        <PenilaianTab lang={lang} />
+      ) : (
+        <>
+          <p className="hint">{t.lede}</p>
+          <Daftar lang={lang} data={rooms.data} buka={pilih} refresh={rooms.refresh} />
+        </>
+      )}
     </div>
   );
 }
