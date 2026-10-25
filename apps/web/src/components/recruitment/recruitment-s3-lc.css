@@ -274,8 +274,10 @@
 .r3ctx__chip[data-static="yes"] {
   cursor: default;
 }
-.r3ctx__chip:not([data-static="yes"]):hover {
-  border-color: var(--accent);
+@media (hover: hover) {
+  .r3ctx__chip:not([data-static="yes"]):hover {
+    border-color: var(--accent);
+  }
 }
 .r3ctx__chip:not([data-static="yes"]):active {
   transform: scale(0.97);
@@ -523,7 +525,7 @@
   .r3side {
     position: sticky;
     top: 14px;
-    max-height: calc(100vh - 28px);
+    max-height: calc(100dvh - 28px);
     min-height: 460px;
   }
 }
