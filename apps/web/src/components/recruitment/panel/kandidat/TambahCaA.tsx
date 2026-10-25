@@ -491,13 +491,16 @@ export default function TambahCaA({
         </div>
         <div className="field" data-invalid={salah.prodi ? "yes" : undefined}>
           <span className="field__label">{t.prodi}</span>
-          <SegmentedControl
-            aria-label={t.prodi}
-            value={f.prodi}
-            fill
-            onValueChange={(v) => pilih({ prodi: v })}
-            options={PRODI.map((p) => ({ value: p, label: t.prodiNama[p] }))}
-          />
+          {/* Narrow, the three stack: "Telekomunikasi" must never break mid-word. */}
+          <div className="rec-prodi">
+            <SegmentedControl
+              aria-label={t.prodi}
+              value={f.prodi}
+              fill
+              onValueChange={(v) => pilih({ prodi: v })}
+              options={PRODI.map((p) => ({ value: p, label: t.prodiNama[p] }))}
+            />
+          </div>
           {err("prodi")}
         </div>
         <label className="field" data-invalid={salah.kelas ? "yes" : undefined}>
