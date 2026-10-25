@@ -30,3 +30,15 @@ class_name = "Broker"
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["Broker"]
+
+# Open Recruitment, Live Coding: one RecRoom object per exam room (src/rec.ts).
+# Secrets (never in this file): REC_GATEWAY_SECRET (32+ characters, the same as the site's)
+# and REC_PANTAU_PASS (the password of the `iris-rec-pantau` broker account, from
+# /etc/iris-rec/pantau on the PC). Optional var REC_ORIGINS: the page origins allowed on /rec/web.
+[[durable_objects.bindings]]
+name = "RECROOM"
+class_name = "RecRoom"
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["RecRoom"]

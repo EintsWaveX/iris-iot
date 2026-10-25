@@ -82,7 +82,7 @@ export type MqttPacket =
 
 /** Turns the broker's byte stream into packets; a packet over `max` is dropped, not buffered. */
 export class MqttReader {
-  private buf = new Uint8Array(0);
+  private buf: Uint8Array = new Uint8Array(0);
   private skip = 0;
   constructor(private max = 8192) {}
 
