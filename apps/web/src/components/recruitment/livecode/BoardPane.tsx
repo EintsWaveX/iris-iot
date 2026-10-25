@@ -267,7 +267,7 @@ export default function BoardPane({
 
   /* --------------------------------------------------------------- render */
   const queueNode = (
-    <ol className="r3q" aria-label={L.queue}>
+    <ol className="lcq" aria-label={L.queue}>
       {queue.map((c, i) => (
         <li key={i} data-mine={c.mine ? "yes" : "no"} data-st={c.state}>
           {c.mine ? L.you : c.seat}

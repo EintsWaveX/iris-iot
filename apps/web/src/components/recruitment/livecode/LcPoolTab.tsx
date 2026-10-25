@@ -64,9 +64,9 @@ export default function LcPoolTab({ lang }: { lang: Lang }) {
             {L.newTopic}
           </button>
         </div>
-        <div className="r3pool">
+        <div className="lcpool">
           {d.topics.map((t) => (
-            <article key={t.id} className="r3pool__card">
+            <article key={t.id} className="lcpool__card">
               <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
                 <span className="row" style={{ gap: 8, fontWeight: 700 }}>
                   <TopicIcon name={t.icon} />
@@ -317,7 +317,7 @@ function Templates({
         <h3 className="panel__title">{L.templates}</h3>
         <span className="hint">{L.templatesHint}</span>
       </div>
-      <div className="r3pool">
+      <div className="lcpool">
         {TEMPLATE_KEYS.map((k) => {
           const t = view.templates.find((x) => x.key === k);
           return t ? (
@@ -363,13 +363,13 @@ function TemplateCard({
     onSaved();
   }
   return (
-    <article className="r3pool__card">
+    <article className="lcpool__card">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <b>{L.templateKey[k]}</b>
         {sample && <Pill>{L.sample}</Pill>}
       </div>
       <textarea
-        className="field__textarea r3pool__code"
+        className="field__textarea lcpool__code"
         value={text}
         spellCheck={false}
         onChange={(e) => setText(e.target.value)}

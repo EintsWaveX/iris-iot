@@ -132,7 +132,7 @@ function Row({ lang, s, onOpen }: { lang: Lang; s: GradeSeat; onOpen: () => void
       <td className="num">{run(s.lastCompile)}</td>
       <td className="num">{run(s.lastFlash)}</td>
       <td>
-        <span className="r3dots" title={s.sheets.map((x) => x.name).join(", ")}>
+        <span className="lcdots" title={s.sheets.map((x) => x.name).join(", ")}>
           <i data-on={s.sheets.length > 0 ? "yes" : "no"} />
           <i data-on={s.sheets.length > 1 ? "yes" : "no"} />
         </span>{" "}

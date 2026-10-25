@@ -261,7 +261,7 @@ const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor(
     [still],
   );
 
-  return <div ref={host} className="r3code" data-ro={readOnly ? "yes" : "no"} />;
+  return <div ref={host} className="lccode" data-ro={readOnly ? "yes" : "no"} />;
 });
 
 export default CodeEditor;
