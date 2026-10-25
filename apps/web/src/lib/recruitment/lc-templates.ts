@@ -136,7 +136,7 @@ bool soketTersambung = false;
 // Satu fungsi kirim: satu bingkai teks.
 void kirim(const String& pesan) {
   if (!soketTersambung) return;
-  soket.sendTXT(pesan);
+  soket.sendTXT(pesan.c_str(), pesan.length());
   Serial.printf("[KIRIM] %s\n", pesan.c_str());
 }
 
@@ -159,7 +159,7 @@ void onSoket(WStype_t tipe, uint8_t* isi, size_t panjang) {
       Serial.println("[WARN] WebSocket terputus, mencoba lagi");
       break;
     case WStype_TEXT:
-      onTerima(String(reinterpret_cast<const char*>(isi)).substring(0, panjang));
+      onTerima(String(reinterpret_cast<const char*>(isi), panjang));
       break;
     default:
       break;
@@ -211,17 +211,18 @@ void onTerima(const String& perintah) {
   ${TODO_END}
 }
 
-// Mengambil nilai "cmd" dari balasan; kosong bila null atau tidak ada.
+// Mengambil teks "cmd" dari balasan; kosong bila null atau tidak ada. "cmd"
+// adalah kunci terakhir balasan, jadi nilainya ada sebelum kurung kurawal akhir.
 String ambilPerintah(const String& balasan) {
   int a = balasan.indexOf("\"cmd\":");
-  if (a < 0) return "";
-  a += 6;
-  while (a < (int)balasan.length() && balasan[a] == ' ') a++;
-  if (balasan.startsWith("null", a)) return "";
-  int b = balasan.indexOf('}', a);
-  int akhir = balasan.length() - 1;
-  String nilai = balasan.substring(a, b > a ? b : akhir);
+  int b = balasan.lastIndexOf('}');
+  if (a < 0 || b <= a) return "";
+  String nilai = balasan.substring(a + 6, b);
   nilai.trim();
+  if (nilai == "null") return "";
+  if (nilai.length() >= 2 && nilai[0] == '"') nilai = nilai.substring(1, nilai.length() - 1);
+  nilai.replace("\\\"", "\"");
+  nilai.replace("\\\\", "\\");
   return nilai;
 }
 
