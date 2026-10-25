@@ -282,7 +282,23 @@ export type RecError =
   | "akun_ada"
   | "nim_asisten"
   | "perlu_klaim"
-  | "klaim_salah";
+  | "klaim_salah"
+  // S3: the question bank (prompt 09)
+  | "versi_lama"
+  | "perlu_catatan"
+  | "belum_diatur"
+  | "bahasa_salah"
+  | "struktur_terkunci"
+  | "ruang_berjalan"
+  | "sudah_tampil"
+  | "gambar_hilang"
+  | "rujukan_hilang"
+  | "tidak_ada"
+  | "sudah_ada"
+  | "url_salah"
+  | "alamat_terlarang"
+  | "jenis_salah"
+  | "tidak_aman";
 
 export interface RecFail {
   ok: false;

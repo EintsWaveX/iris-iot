@@ -28,6 +28,7 @@ import { KepalaHalaman, tgl, useHariIni } from "../shared";
 import Kandidat from "./Kandidat";
 import CuttingTab from "./cutting/CuttingTab";
 import PlottingTab from "./jadwal/PlottingTab";
+import BankTab from "./tes/bank/BankTab";
 import TesTab from "./tes/ruang/TesTab";
 import KalenderTab from "./KalenderTab";
 import PanitiaBoard from "./PanitiaBoard";
@@ -61,10 +62,11 @@ export default function PanelPage({ lang }: { lang: Lang }) {
             ...(rights?.cuttingPropose ? (["cutting"] as const) : []),
             ...(rights?.plotting ? (["plotting"] as const) : []),
             ...(adaRuang ? (["tes"] as const) : []),
+            ...(rights?.bank ? (["bank"] as const) : []),
             "panitia",
           ]
         : ["kalender", ...(adaRuang ? (["tes"] as const) : [])],
-    [panitia, lihatKandidat, rights?.cuttingPropose, rights?.plotting, adaRuang],
+    [panitia, lihatKandidat, rights?.cuttingPropose, rights?.plotting, rights?.bank, adaRuang],
   );
   const tab: PanelTab = bagian && tabs.includes(bagian) ? bagian : tabs[0];
 
@@ -137,6 +139,8 @@ export default function PanelPage({ lang }: { lang: Lang }) {
           <PlottingTab lang={lang} events={events} rights={rights} />
         ) : tab === "tes" ? (
           <TesTab lang={lang} />
+        ) : tab === "bank" && rights?.bank ? (
+          <BankTab lang={lang} />
         ) : (
           <PanitiaBoard lang={lang} rights={rights} />
         )}

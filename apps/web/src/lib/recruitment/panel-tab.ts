@@ -14,6 +14,7 @@ export const PANEL_TABS = [
   "cutting",
   "plotting",
   "tes",
+  "bank",
   "panitia",
 ] as const;
 export type PanelTab = (typeof PANEL_TABS)[number];

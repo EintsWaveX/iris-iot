@@ -21,6 +21,7 @@ import * as RadixPopover from "@radix-ui/react-popover";
 import {
   CalendarBlankIcon,
   ClipboardTextIcon,
+  DatabaseIcon,
   DoorOpenIcon,
   DotsThreeIcon,
   ListChecksIcon,
@@ -212,6 +213,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
         ...(rights?.cuttingPropose ? [tab("cutting", t.cutting, ScissorsIcon)] : []),
         ...(rights?.plotting ? [tab("plotting", t.plotting, TableIcon)] : []),
         ...(adaRuang ? [tab("tes", t.tes, TimerIcon)] : []),
+        ...(rights?.bank ? [tab("bank", t.bank, DatabaseIcon)] : []),
         tab("panitia", t.panitia, UsersThreeIcon),
       ];
     }
@@ -253,6 +255,7 @@ export default function RecNav({ lang, path }: { lang: Lang; path: string }) {
     rights?.candidates,
     rights?.cuttingPropose,
     rights?.plotting,
+    rights?.bank,
     prefix,
     t,
   ]);
