@@ -2,7 +2,41 @@
 
 Read this after `_RULES.md` and `WAVE2.md`; where they differ, this file wins. It lists the sessions to open, in order, with the model, effort and kickoff line for each. At most three sessions run at once, each a separate prompt session, with no subagents. Only one Playwright script runs at a time across all sessions, and each session checks that free RAM is at least 600 MB before a browser run (Claude Code killed runs at 200 to 500 MB free).
 
-## Where things stand
+## Update 2026-10-25 (iris-iot, after W1 and 11 closed; this section wins over the rest of the file)
+**State.** W1, 06 and 11 are done, so their slots are free. 10 is the only session in flight: its runner and handoff exist but are uncommitted and its STATUS row still says `running`; whoever closes it commits with explicit paths, runs `npm run check` and sets the row. Prod is at **0050** (0049 without its seed, plus `rec_account`), main is `2fb3f9f`, Sembunyikan Oprec is on. The branch is 27 commits ahead of origin and unpushed. 0051 exists on the rig only; 11's rig-only `lib/db.ts` patch and `public/rig-test/` are never committed.
+
+**Slots now (max three).**
+| Slot | Session | File | Model / effort | Note |
+|---|---|---|---|---|
+| A | 10 (close) | already running | Sonnet 5.5, high | commit, `npm run check`, STATUS row. Not a new session if the old one is still alive. |
+| B | 07 | `07-s2-review-ship.md` | Opus 5.5, high | **first priority**, live by Mon 9 Nov |
+| C | 12 | `12-live-coding.md` | Sonnet 5.5, high | ready since 11 closed |
+| next free | 09 | `09-bank-and-references.md` | Sonnet 5.5, high | needs 10's `exam/render/` committed first (it imports it); takes A when 10 closes |
+| after 10 | 13 | `13-scoring-results.md` | Sonnet 5.5, medium | Needs 10 and 06; 0053 is its own |
+| last | 14 | `14-s3-rehearsal-ship.md` | Opus 5.5, high | after 09, 10, 11, 12, 13 |
+
+If 10 is closed before 07 and 12 start, open 09 in the third slot. 13 is small; it can take any slot that frees before 12 ends.
+
+**Extra notes that bind (they come from what 06, W1 and 11 found).**
+- **07:**
+  - Prod already holds 0049 (no seed) and 0050; do not apply them again. Insert the three Pilih Jadwal events with S2 (the insert skips ones that exist).
+  - Ship S2 only: `ef54863`, `50aed1c`, `77df46a`, `517c7e1`, `bab27f4`, by cherry-pick from a worktree off origin/main. The oprec twins (`27793fa`, `21938e3`, `2fb3f9f`) and `36f58b6` are already on main, so they drop out when the branch is merged afterwards. Check that no S2 file imports 11's `recruitment-room.ts` or touches `rec_exam_seat` (prod has no 0051).
+  - Run what 06 could not: `rec_leak.mjs`, `leak_api.mjs`, `idor_probe.mjs`, `pop2.mjs`, `pop4.mjs`, and `rec_s2_api.mjs` (79) plus `rec_s2_flows.mjs` (42) on the final tree. The rig calendar was moved by 06 and 11 (First Meet sits on 24 Oct), so `rec_s1_flows.mjs` step 6 fails by data, not by code; reset the rig data or say so.
+  - On prod, the Berkas desk viewer must open a real file. The Home banner sits under the hero (S1 layout, signed off): ask the user whether to raise it.
+  - The user, not you, presses Tampilkan Oprec. Pilih Jadwal opens 11 Nov 19:00 WIB.
+- **12:** read `handoffs/11.md` (`roomHooks` in `recruitment-room.ts` is where you plug in) and `handoffs/10.md` (`LiveCodeStandIn` in `exam/Screens.tsx` and the shared `HotspotCard`). 0052 is yours and nothing else touches it. The PC agent is in the other repo (`Downloads/IRIS ASO/orangepi/agent/`): commit there separately.
+- **09:** the 501 from `GET ref?id=` is yours (10 built the drawer against it); the reader style needs your snapshot. Images load through your `GET media?key=`. `abbreviations.test.ts` fails on short unit words in UI strings (11's `ruangStrings.ts` had `mnt`/`min`); keep yours spelled out.
+- **10's close:** the open items in `handoffs/10.md` (no Firefox or Safari check-in, no real phone, Live Coding stand-in) go into 14's rehearsal list. 11's Phase 1 verify with real seats is 14's too.
+- **13:** unchanged, plus the Tes Tulis score column on 06's Cutting board is listed under "Touched outside my paths".
+
+**Kickoff lines (the user sends one per new session, after setting the model and effort).**
+> Run `docs/recruitment/prompts/07-s2-review-ship.md`. Read `docs/recruitment/prompts/_RULES.md`, `WAVE2.md` and `WAVE3.md` (the 2026-10-25 update first), and `handoffs/W1.md` before anything touches prod.
+
+> Run `docs/recruitment/prompts/12-live-coding.md`. Read `docs/recruitment/prompts/_RULES.md`, `WAVE2.md` and `WAVE3.md` (the 2026-10-25 update first), and `handoffs/11.md`.
+
+> Run `docs/recruitment/prompts/09-bank-and-references.md`. Read `docs/recruitment/prompts/_RULES.md`, `WAVE2.md` and `WAVE3.md` (the 2026-10-25 update first), and `handoffs/10.md` (the renderers).
+
+## Where things stood on 2026-10-24 (older; the update above wins)
 - **Live (main `6ebaeeb`):** S1, wave 1 (the exam engine's pure modules, `checkValue`) and Sembunyikan Oprec. Sembunyikan Oprec was turned on at 19:09 WIB, so nothing shows outside the Panitia until someone presses Tampilkan Oprec. Prod schema is at 0048.
 - **On the branch, not pushed:** S2 (06's commits `ef54863`, `50aed1c`, `77df46a` and `517c7e1`, migration 0049). Its verification is owed (`handoffs/06.md`).
 - **Uncommitted:** W1's oprec accounts (migration 0050 `rec_account`, cookie `iris_oprec`). They touch 06's S2 files, and S1 can't take new applicants without them. Main and the branch have diverged by 11 commits each way, so every ship goes by cherry-pick from a worktree off origin/main.

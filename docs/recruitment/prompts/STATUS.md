@@ -12,13 +12,13 @@ A row is `ready` when every prompt in **Needs** is done. Mockups (01, 05, 08c, 1
 | W1 | Wave 1 ship, prod test application, review of 08 and 08c, then reviewer for what follows | Opus high | 04 | deploy 24 Oct 18:00 | done (live: wave 1 main 6ebaeeb, oprec accounts main 2fb3f9f on 2026-10-25 01:10 WIB with 0049 (no seed) and 0050 on prod; branch dd0e05b, f57145c, 1146d52, cae02f2, 5a2ac35, 0bf702d, 2dffe68, b95c982 and the close; 08 and 08c reviewed; main mockup v6 checked and republished; handoffs/W1.md; 10 can take this slot) |
 | 05 | S2 mockup | Opus high | 01 signed off | 30 Oct | done (signed off 2026-10-24 04:08, v4 https://claude.ai/artifact/RCXL2f8vcpWhQHhorCeAPz; handoffs/05.md) |
 | 06 | S2 build | Sonnet high | 04, 05 signed off | 8 Nov | done (ef54863, 50aed1c, 77df46a, 517c7e1, bab27f4; verification passed 2026-10-24 night, iris-iot-fb; handoffs/06.md; 07 can start) |
-| 07 | S2 review + ship | Opus high | 06 | 9 Nov | blocked (06) |
+| 07 | S2 review + ship | Opus high | 06 | 9 Nov | ready (06 done; W1's accounts are live on prod, read handoffs/W1.md first) |
 | 08 | Exam engine design + pure modules | Opus max | 02 | 1 Nov | done (EXAM-ENGINE.md reviewed with the user 2026-10-24; eb3078f, not pushed; handoffs/08.md; Part C moved to 08c) |
 | 08c | S3 mockup | Opus high | 08 | 26 Oct | done (signed off 2026-10-24 19:04 WIB; https://claude.ai/artifact/CHsqA6eVHiVF6PQd6cG2ht v2; iris-aso-62, then iris-iot-29; no commits, the mockup lives outside the repo; handoffs/08c.md) |
-| 09 | Bank + references | Sonnet high | 08, 08c signed off | 10 Nov | blocked (08c) |
+| 09 | Bank + references | Sonnet high | 08, 08c signed off | 10 Nov | ready (08 and 08c done; 0051 is committed; reuse 10's exam/render) |
 | 10 | Exam runner | Sonnet high | 08, 08c signed off | 10 Nov | running (2026-10-25 00:55 WIB, iris-iot session 10; 08 and 08c are done, the old "blocked (08c)" was stale) |
 | 11 | Master console + relay room | Sonnet high | 08, 08c signed off | 10 Nov | done (0051 0ed3793, relay ba0f670, hotspot and kejadian 4629b28, room API fa6279d, console 9b6c5fe, fixes 1094a56 1a574e3 9949020; not pushed; rig run 2026-10-25: 65 + 27 + 31 + 79 checks; seats were fake until 10's runner lands; handoffs/11.md) |
-| 12 | Live Coding | Sonnet high | 08, 08c signed off, 11 | 13 Nov | blocked (08c, 11) |
+| 12 | Live Coding | Sonnet high | 08, 08c signed off, 11 | 13 Nov | ready (08, 08c and 11 done) |
 | 13 | Scoring + results | Sonnet medium | 10, 06 | 13 Nov | blocked (10, 06) |
 | 14 | S3 rehearsal + ship | Opus high | 09, 10, 11, 12, 13 | 16 Nov | blocked |
 | 15 | S4 plotting + Wawancara (a/b/c) | Opus / Sonnet / Opus high | 07 | 30 Nov | blocked (07) |
