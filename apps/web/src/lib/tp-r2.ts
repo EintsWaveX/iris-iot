@@ -32,6 +32,8 @@ export const TP_MIME: Record<string, string> = {
   doc: "application/msword",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   zip: "application/zip",
+  // The exam's bank (2026-10-25): a SVG picture (a reference page is served by the API, which sets its own type).
+  svg: "image/svg+xml",
   bin: "application/octet-stream",
 };
 
@@ -56,7 +58,61 @@ export function kunciRekrutmen(edisi: number, nim: string, jenis: string, sha256
 
 export const awalanRekrutmen = (edisi: number) => `recruitment/${edisi}/`;
 
-const kunciBerkas = (k: string) => TP_KUNCI_RE.test(k) || REK_KUNCI_RE.test(k);
+/**
+ * The question bank's two kinds of file (prompt 09, 2026-10-25): a sanitized
+ * reference page the API writes (`ref/<sha256>.html`) and a picture of a bank
+ * question a browser uploads (`bank/<sha256>.<ext>`). Both content addressed.
+ */
+export const REK_REF_RE = /^recruitment\/\d{1,6}\/ref\/[0-9a-f]{64}\.html$/;
+export const BANK_GAMBAR = ["png", "jpg", "webp", "svg"] as const;
+export const REK_BANK_RE = /^recruitment\/\d{1,6}\/bank\/[0-9a-f]{64}\.(png|jpg|webp|svg)$/;
+
+export function kunciRef(edisi: number, sha256: string): string {
+  const k = `recruitment/${edisi}/ref/${sha256}.html`;
+  if (!REK_REF_RE.test(k)) throw new Error("unsafe reference key");
+  return k;
+}
+
+export function kunciBank(edisi: number, sha256: string, ext: string): string {
+  const k = `recruitment/${edisi}/bank/${sha256}.${ext}`;
+  if (!REK_BANK_RE.test(k)) throw new Error("unsafe bank key");
+  return k;
+}
+
+const kunciBerkas = (k: string) =>
+  TP_KUNCI_RE.test(k) || REK_KUNCI_RE.test(k) || REK_REF_RE.test(k) || REK_BANK_RE.test(k);
+
+/**
+ * Whether the first bytes of an upload are what its key says: the relay keeps
+ * nothing that is not (a PDF starts `%PDF-`, a picture has its own header, an
+ * SVG is text that opens a tag). The key's extension decides.
+ */
+export function awalOk(kunci: string, b: Uint8Array): boolean {
+  const ext = kunci.slice(kunci.lastIndexOf(".") + 1);
+  const at = (...xs: number[]) => xs.every((x, i) => b[i] === x);
+  switch (ext) {
+    case "pdf":
+      return at(0x25, 0x50, 0x44, 0x46, 0x2d);
+    case "png":
+      return at(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
+    case "jpg":
+      return at(0xff, 0xd8, 0xff);
+    case "webp":
+      return (
+        at(0x52, 0x49, 0x46, 0x46) &&
+        b[8] === 0x57 &&
+        b[9] === 0x45 &&
+        b[10] === 0x42 &&
+        b[11] === 0x50
+      );
+    case "svg": {
+      const head = new TextDecoder().decode(b.subarray(0, 512)).replace(/^﻿/, "").trimStart();
+      return head.startsWith("<svg") || /^<\?xml[^>]*\?>\s*(<!--[\s\S]*?-->\s*)*<svg/.test(head);
+    }
+    default:
+      return false;
+  }
+}
 
 /** The extension a mime type is kept under. */
 export function extTp(mime: string): string {

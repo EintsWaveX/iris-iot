@@ -12,7 +12,9 @@
  */
 import {
   TP_BERKAS_MAKS,
+  REK_BANK_RE,
   TP_MIME,
+  awalOk,
   bacaTiketTp,
   sha256Hex,
 } from "../../web/src/lib/tp-r2.ts";
@@ -107,13 +109,18 @@ async function unggah(req: Request, env: EnvTp, b: R2Bucket, url: URL) {
   if (isi.length !== t.n) return jawab(req, 400, "ukuran salah");
   if (!PDF_AWAL.every((c, i) => isi[i] === c))
     return jawab(req, 415, "bukan pdf");
+  // A bank picture (prompt 09) is checked by its own header.
+  if (REK_BANK_RE.test(t.k) && !awalOk(t.k, isi)) return jawab(req, 415, "bukan gambar");
   if ((await sha256Hex(isi)) !== t.s) return jawab(req, 400, "isi berubah");
   // The same bytes again (a retry) are already there.
   const ada = await b.head(t.k);
   if (!ada)
     await b.put(t.k, isi, {
       sha256: t.s,
-      httpMetadata: { contentType: TP_MIME.pdf },
+      // A picture keeps its own type; anything else stays as it was.
+      httpMetadata: {
+        contentType: TP_MIME[t.k.slice(t.k.lastIndexOf(".") + 1)] ?? TP_MIME.pdf,
+      },
       customMetadata: { halaman: String(t.h) },
     });
   return json(req, 201, { ok: true, k: t.k });
@@ -129,7 +136,8 @@ async function baca(req: Request, env: EnvTp, b: R2Bucket, url: URL) {
   const o = await b.get(t.k, { range: req.headers, onlyIf: req.headers });
   if (!o) return jawab(req, 404, "berkas hilang");
   const mime = Object.values(TP_MIME).includes(t.m) ? t.m : TP_MIME.bin;
-  const aman = mime === TP_MIME.pdf || mime.startsWith("image/");
+  // SVG can carry script when opened on its own, so it is served sandboxed like the rest.
+  const aman = mime === TP_MIME.pdf || (mime.startsWith("image/") && mime !== TP_MIME.svg);
   const h: Record<string, string> = {
     "content-type": mime,
     "content-disposition": `${t.d === "u" || !aman ? "attachment" : "inline"}; filename="${namaAman(t.nm)}"`,
