@@ -62,6 +62,7 @@ import {
 } from "./recruitment-data.js";
 import { muatPelaku, wajibHak } from "./recruitment-rights.js";
 import { namaKandidat } from "./recruitment-akun.js";
+import { sinkronKursi } from "./recruitment-room.js";
 
 const tahap = (v: unknown): StageKey | null =>
   typeof v === "string" && (STAGES as readonly string[]).includes(v) ? (v as StageKey) : null;
@@ -349,6 +350,7 @@ export async function handlePilih(req: ApiRequest, res: ApiResponse, s: SessionP
       await tx
         .insert(recSlotAssignment)
         .values({ slotId, candidateId: k.id, stage, via: "self", by: s.nim, at: now });
+      if (stage === "tes_tulis") await sinkronKursi(tx, k.id, slotId);
     });
   } catch (e) {
     if (pgErrorCode(e) === "23505") return void tolak(res, "sudah_pilih", 409);
@@ -514,6 +516,7 @@ export async function handleKeputusan(req: ApiRequest, res: ApiResponse, s: Sess
       .update(recSlotAssignment)
       .set({ slotId: ke.id, via: "panitia", by: s.nim, at: now })
       .where(eq(recSlotAssignment.id, punya.id));
+    if (m.m.stage === "tes_tulis") await sinkronKursi(tx, m.m.candidateId, ke.id);
     await tx
       .update(recSlotChange)
       .set({ status: "approved", decidedBy: s.nim, decidedAt: now, note: catatan })
@@ -686,6 +689,7 @@ export async function handleAtur(req: ApiRequest, res: ApiResponse, s: SessionPa
             at: now,
           });
       }
+      if (stage === "tes_tulis") await sinkronKursi(tx, k.id, tujuan);
       // Whatever they asked for no longer applies once Panitia placed them.
       await tx
         .update(recSlotChange)
@@ -762,17 +766,22 @@ export async function handleIsiOtomatis(req: ApiRequest, res: ApiResponse, s: Se
       .select({ id: recSlot.id })
       .from(recSlot)
       .where(and(eq(recSlot.editionId, edisi.id), eq(recSlot.stage, stage)));
-    if (slots.length)
-      await db.delete(recSlotAssignment).where(
-        and(
-          inArray(
-            recSlotAssignment.slotId,
-            slots.map((x) => x.id),
-          ),
-          eq(recSlotAssignment.via, "auto"),
-          eq(recSlotAssignment.at, at),
-        ),
+    if (slots.length) {
+      const ids = slots.map((x) => x.id);
+      const kena = and(
+        inArray(recSlotAssignment.slotId, ids),
+        eq(recSlotAssignment.via, "auto"),
+        eq(recSlotAssignment.at, at),
       );
+      await db.transaction(async (tx) => {
+        const dicabut = await tx
+          .select({ c: recSlotAssignment.candidateId })
+          .from(recSlotAssignment)
+          .where(kena);
+        await tx.delete(recSlotAssignment).where(kena);
+        if (stage === "tes_tulis") for (const x of dicabut) await sinkronKursi(tx, x.c, null);
+      });
+    }
     await writeAudit(s.nim, "rec_isi_batal", { stage });
     return void res.status(200).json({ ok: true, placed: 0, left: 0, at: null });
   }
@@ -823,6 +832,8 @@ export async function handleIsiOtomatis(req: ApiRequest, res: ApiResponse, s: Se
           at: now,
         })),
       );
+    if (stage === "tes_tulis")
+      for (const x of hasil.placed) await sinkronKursi(tx, x.candidateId, x.slotId);
   });
   await writeAudit(s.nim, "rec_isi_otomatis", { stage, placed: hasil.placed.length });
   res.status(200).json({
