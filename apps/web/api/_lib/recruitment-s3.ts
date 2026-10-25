@@ -95,6 +95,7 @@ const ASISTEN_POST: Record<string, S3Handler> = {
   "lc-topic-save": handleLiveCode,
   "lc-topic-delete": handleLiveCode,
   "lc-template-save": handleLiveCode,
+  "lc-rubric-save": handleLiveCode,
   "question-void": handleScore,
   "question-unvoid": handleScore,
   "score-finalize": handleScore,

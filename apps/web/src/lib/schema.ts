@@ -28,9 +28,33 @@ import {
   date,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import type { ExamConfig, Question, RoomState, SeatDraw, Value } from "./recruitment/exam-types.js";
-import { FORMATS, LANGS, PART_KEYS, PHASE1_PARTS, type PartKey } from "./recruitment/exam-types.js";
+import type {
+  ExamConfig,
+  Question,
+  RoomState,
+  RubricRow,
+  SeatDraw,
+  Value,
+} from "./recruitment/exam-types.js";
+import {
+  FORMATS,
+  LANGS,
+  PART_KEYS,
+  PHASE1_PARTS,
+  PROTOCOLS,
+  type PartKey,
+} from "./recruitment/exam-types.js";
 import type { KitBoard, RoomHotspot, SeatCheckin } from "./recruitment/room-types.js";
+import {
+  JOB_STATUS,
+  LC_VARIANTS,
+  TEMPLATE_KEYS,
+  TOPIC_STATUS,
+  type LcBoard,
+  type LcMqtt,
+  type LcRun,
+  type LcSpin,
+} from "./recruitment/lc-types.js";
 import { NILAI_KOMPONEN } from "./nilai-komponen.js";
 import type { TeksTiga } from "./profil.js";
 import { KELAS } from "./kelas.js";
@@ -2697,3 +2721,190 @@ export const recStrike = pgTable(
 export type RecExamRoomRow = typeof recExamRoom.$inferSelect;
 export type RecExamSeatRow = typeof recExamSeat.$inferSelect;
 export type RecQuestionRow = typeof recQuestion.$inferSelect;
+
+/* ===================================================================
+ * Open Recruitment S3 Live Coding (0052, prompt 12): the topic pool, the
+ * templates, a seat's editor state, the compile queue and the rubric
+ * (EXAM-ENGINE 9.2 to 9.8). The rubric tables are generic (stage and kind)
+ * so S4's interview sheets reuse them.
+ * =================================================================== */
+
+/** A Live Coding topic. `hints` is for graders only; `icon` is a kit icon name for the reel. */
+export const recLcTopic = pgTable(
+  "rec_lc_topic",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    brief: text("brief").notNull(),
+    fits: text("fits").array().notNull(),
+    parts: text("parts")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    libs: text("libs")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    hints: text("hints").notNull().default(""),
+    icon: text("icon").notNull().default("chip"),
+    status: text("status", { enum: TOPIC_STATUS }).notNull().default("ready"),
+    sample: boolean("sample").notNull().default(false),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_lc_topic_edition_idx").on(t.editionId, t.status)],
+);
+
+/** The starting sketch of each protocol (`ble`, `http`, `ws`, `mqtt`). */
+export const recLcTemplate = pgTable(
+  "rec_lc_template",
+  {
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    key: text("key", { enum: TEMPLATE_KEYS }).notNull(),
+    code: text("code").notNull(),
+    sample: boolean("sample").notNull().default(false),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.editionId, t.key] })],
+);
+
+/** One row per seat that reached the spins: the deal, the boards' code, the runs, the MQTT account. */
+export const recLivecode = pgTable(
+  "rec_livecode",
+  {
+    seatId: integer("seat_id")
+      .primaryKey()
+      .references(() => recExamSeat.id, { onDelete: "cascade" }),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    topicId: integer("topic_id").references(() => recLcTopic.id),
+    protocol: text("protocol", { enum: PROTOCOLS }),
+    variant: text("variant", { enum: LC_VARIANTS }),
+    spins: jsonb("spins").$type<LcSpin[]>().notNull().default([]),
+    boards: jsonb("boards").$type<LcBoard[]>().notNull().default([]),
+    /** The newest 50 compile and flash events */
+    runs: jsonb("runs").$type<LcRun[]>().notNull().default([]),
+    /** Sealed with rahasia.ts; deleted from the broker at Finish */
+    mqtt: jsonb("mqtt").$type<LcMqtt>(),
+    trafficKey: text("traffic_key"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("rec_livecode_room_idx").on(t.roomId)],
+);
+
+/** The compile queue for the PC Server agent (9.4). */
+export const recCompileJob = pgTable(
+  "rec_compile_job",
+  {
+    id: serial("id").primaryKey(),
+    /** Null for a warm-up job */
+    seatId: integer("seat_id").references(() => recExamSeat.id, { onDelete: "cascade" }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    board: integer("board").notNull().default(1),
+    status: text("status", { enum: JOB_STATUS }).notNull().default("antre"),
+    sketch: text("sketch").notNull(),
+    header: text("header").notNull().default(""),
+    fqbn: text("fqbn").notNull(),
+    libs: text("libs")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    /** Handed back to the queue once after 180 s unanswered, then agen_diam */
+    retried: boolean("retried").notNull().default(false),
+    serverId: integer("server_id"),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    ok: boolean("ok"),
+    log: text("log"),
+    binKey: text("bin_key"),
+    binSize: integer("bin_size"),
+    sha256: text("sha256"),
+    ms: integer("ms"),
+    kode: text("kode"),
+  },
+  (t) => [
+    index("rec_compile_job_queue_idx").on(t.status, t.requestedAt),
+    index("rec_compile_job_seat_idx").on(t.seatId, t.board, t.status),
+  ],
+);
+
+/**
+ * Account jobs for the exam's own Mosquitto (9.6): the PC agent claims them on
+ * its heartbeat and answers `hasilMqtt`. `akun` holds sealed passwords until
+ * the job is done, then it is emptied.
+ */
+export const recMqttJob = pgTable(
+  "rec_mqtt_job",
+  {
+    id: serial("id").primaryKey(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => recExamRoom.id),
+    op: text("op", { enum: ["set", "clear"] as const }).notNull(),
+    akun: jsonb("akun").$type<{ u: string; p: string }[]>().notNull().default([]),
+    status: text("status", { enum: JOB_STATUS }).notNull().default("antre"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    ok: boolean("ok"),
+    kode: text("kode"),
+  },
+  (t) => [index("rec_mqtt_job_queue_idx").on(t.status, t.requestedAt)],
+);
+
+/** A rubric: the rows a grader scores. One per edition, stage and kind. */
+export const recRubric = pgTable(
+  "rec_rubric",
+  {
+    id: serial("id").primaryKey(),
+    editionId: integer("edition_id")
+      .notNull()
+      .references(() => recEdition.id, { onDelete: "cascade" }),
+    stage: text("stage").notNull(),
+    kind: text("kind").notNull(),
+    rows: jsonb("rows").$type<RubricRow[]>().notNull(),
+    updatedBy: text("updated_by"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("rec_rubric_unik").on(t.editionId, t.stage, t.kind)],
+);
+
+/** One grader's sheet for one subject (a Live Coding seat). `values` is per row key. */
+export const recRubricScore = pgTable(
+  "rec_rubric_score",
+  {
+    id: serial("id").primaryKey(),
+    rubricId: integer("rubric_id")
+      .notNull()
+      .references(() => recRubric.id, { onDelete: "cascade" }),
+    /** The exam seat id for Live Coding */
+    subjectId: integer("subject_id").notNull(),
+    graderNim: text("grader_nim").notNull(),
+    values: jsonb("values").$type<Record<string, number>>().notNull(),
+    note: text("note").notNull().default(""),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("rec_rubric_score_unik").on(t.rubricId, t.subjectId, t.graderNim),
+    index("rec_rubric_score_subject_idx").on(t.rubricId, t.subjectId),
+  ],
+);
+
+export type RecLcTopicRow = typeof recLcTopic.$inferSelect;
+export type RecLivecodeRow = typeof recLivecode.$inferSelect;
+export type RecCompileJobRow = typeof recCompileJob.$inferSelect;

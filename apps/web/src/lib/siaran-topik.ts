@@ -243,6 +243,7 @@ export const TOPIK_TULIS: Readonly<Record<string, readonly Topik[]>> = {
   "recruitment:lc-topic-save": [],
   "recruitment:lc-topic-delete": [],
   "recruitment:lc-template-save": [],
+  "recruitment:lc-rubric-save": [],
   "recruitment:question-void": [],
   "recruitment:question-unvoid": [],
   "recruitment:score-finalize": [],

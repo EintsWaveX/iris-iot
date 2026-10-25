@@ -151,7 +151,7 @@ export async function handleSeat(req: ApiRequest, res: ApiResponse, s: SessionPa
  * a candidate with no seat yet gets the room of their Tes Tulis slot, so the
  * page can show the evening and the first check-in can make the seat.
  */
-async function muatKursiSendiri(
+export async function muatKursiSendiri(
   db: Db,
   edisiId: number,
   candidateId: number,

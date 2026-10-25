@@ -108,7 +108,7 @@ import { namaKandidat } from "./recruitment-akun.js";
 
 /** No ping from the Master for this long makes the Master stale (EXAM-ENGINE 5.4) */
 export const MASTER_BASI_MS = 60_000;
-const LABEL_HOTSPOT = "rec-hotspot";
+export const LABEL_HOTSPOT = "rec-hotspot";
 
 /* --------------------------------------------------------------- 12's hooks */
 

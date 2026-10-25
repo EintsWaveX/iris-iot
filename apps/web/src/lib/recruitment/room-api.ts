@@ -173,6 +173,8 @@ export interface KursiPesan {
   done?: Partial<Record<PartKey, number>>;
   moved?: boolean;
   reroll?: { what: "topic" | "protocol"; reason: RerollReason };
+  /** Live Coding changed for this seat (a hotspot moved, a re-roll): ask `lc` again */
+  lc?: true;
   /** A check-in step passed (for the console's dots) */
   checkin?: SeatCheckin;
 }

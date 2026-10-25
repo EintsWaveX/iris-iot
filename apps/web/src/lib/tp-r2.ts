@@ -79,9 +79,6 @@ export function kunciBank(edisi: number, sha256: string, ext: string): string {
   return k;
 }
 
-const kunciBerkas = (k: string) =>
-  TP_KUNCI_RE.test(k) || REK_KUNCI_RE.test(k) || REK_REF_RE.test(k) || REK_BANK_RE.test(k);
-
 /**
  * Whether the first bytes of an upload are what its key says: the relay keeps
  * nothing that is not (a PDF starts `%PDF-`, a picture has its own header, an
@@ -113,6 +110,21 @@ export function awalOk(kunci: string, b: Uint8Array): boolean {
       return false;
   }
 }
+
+/**
+ * Live Coding's objects (2026-10-25, EXAM-ENGINE 9.4 and 9.7) share the
+ * bucket too: a compiled image per job and a traffic log per seat, under
+ * `recruitment/<edition>/lc/<seat>/`. See recruitment/lc-r2.ts.
+ */
+export const LC_KUNCI_RE =
+  /^recruitment\/\d{1,6}\/lc\/(?:\d{1,9}\/(?:\d{1,9}\.bin|traffic\.jsonl)|warm\/\d{1,9}\.bin)$/;
+
+const kunciBerkas = (k: string) =>
+  TP_KUNCI_RE.test(k) ||
+  REK_KUNCI_RE.test(k) ||
+  LC_KUNCI_RE.test(k) ||
+  REK_REF_RE.test(k) ||
+  REK_BANK_RE.test(k);
 
 /** The extension a mime type is kept under. */
 export function extTp(mime: string): string {
