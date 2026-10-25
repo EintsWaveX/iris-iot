@@ -1057,7 +1057,7 @@
   display: inline-flex;
   gap: 6px;
 }
-.r2pro__b {
+.chipbtn.r2pro__b {
   min-height: 38px;
   min-width: 64px;
   font-size: 0.85rem;

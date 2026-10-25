@@ -81,6 +81,31 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+/* The kit's chip (console.css), which the recruitment pages do not load:
+   the Berkas desk's kinds, the change-request and decline reasons. */
+.chipbtn {
+  background: var(--surface-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-height: 44px;
+  min-width: 56px;
+  padding: 0 12px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .chipbtn:hover {
+    border-color: var(--text-muted);
+  }
+}
+.chipbtn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
 
 /* A countdown: days big, then HH:MM:SS */
 .rec-count {
