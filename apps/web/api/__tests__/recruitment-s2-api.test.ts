@@ -614,6 +614,34 @@ describe("QR attendance", () => {
     ).toBe(true);
   });
 
+  it("refuses the code just replaced once the first 5 seconds of the next period are gone", async () => {
+    // 19:00:05 is 5 s into a period: the wall moved on 5 s ago.
+    pada("2026-11-12T19:00:05");
+    lolosBerkas();
+    const p = periodAt(Date.now());
+    const lama = await panggil("POST", "attend", { body: { token: buatToken(FIRST_MEET, p - 1) } });
+    expect(lama.code).toBe(409);
+    expect(lama.body.kode).toBe("qr_berganti");
+    const kode = kodeKetik(FIRST_MEET, p - 1);
+    expect((await panggil("POST", "attend", { body: { code: kode } })).body.kode).toBe(
+      "qr_berganti",
+    );
+    expect(tulis.some((w) => w.tabel === "attendance")).toBe(false);
+    pada("2026-11-12T19:00:04.900");
+    expect(
+      (await panggil("POST", "attend", { body: { token: buatToken(FIRST_MEET, p - 1) } })).body.ok,
+    ).toBe(true);
+  });
+
+  it("tells the wall the server's time, so a wrong clock on the projector cannot shift the swap", async () => {
+    pada("2026-11-12T19:00:07");
+    panitia("acara");
+    rows.candidate = [];
+    const r = await panggil("GET", "qr-token", { query: { event: String(FIRST_MEET) } });
+    expect(r.body.now).toBe(new Date().toISOString());
+    expect(Date.parse(String(r.body.until)) - Date.parse(String(r.body.now))).toBe(13_000);
+  });
+
   it("refuses a forged token", async () => {
     malam();
     lolosBerkas();

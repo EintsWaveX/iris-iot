@@ -769,6 +769,8 @@ export interface QrTokenResponse {
   period: number;
   /** ISO instant this token stops being the wall's */
   until: string;
+  /** the server's clock when it answered: the wall times its swap from it, not from its own */
+  now: string;
   event: EventLite;
   here: number;
   expected: number;

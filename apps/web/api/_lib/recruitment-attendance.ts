@@ -232,6 +232,7 @@ export async function handleQrToken(req: ApiRequest, res: ApiResponse, s: Sessio
     code: kodeKetik(e.id, period),
     period,
     until: new Date(periodEnd(period)).toISOString(),
+    now: now.toISOString(),
     event: lite(e),
     here: await hitungHadir(db, e.id),
     expected: (await muatDiharapkan(db, edisi.id, e, events, now)).length,
