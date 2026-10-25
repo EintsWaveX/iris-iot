@@ -14,6 +14,13 @@
   margin-top: clamp(56px, 8vw, 112px);
 }
 
+/* The recruitment banner above a visitor's hero (2026-10-26): it leads the
+   hero, so it sits close to it instead of a whole section gap away. */
+.pl > .rec-bn--home {
+  margin-top: clamp(8px, 2vw, 24px);
+  margin-bottom: calc(16px - clamp(56px, 8vw, 112px));
+}
+
 .pl-sec {
   display: grid;
   gap: 24px;

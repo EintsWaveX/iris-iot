@@ -1,12 +1,17 @@
 /**
  * The Home recruitment banner (prompt 03, PRD 5.1, mockup r1-home). One card
- * tall, under the practicum's own top and never above it; its edge is the
- * kit's rainbow sweep as a 1.5 px ring (still at Low Detail and with reduced
- * motion). The line it shows follows who is looking: GET /api/recruitment/
- * banner, refetched on the recruitment topics. Nothing shows while no
- * edition runs or the viewer has nothing to be told.
+ * tall, above the hero and the practicum's own top (user, 2026-10-26: under
+ * them it sat below the fold); its edge is the kit's rainbow sweep as a
+ * 1.5 px ring (still at Low Detail and with reduced motion). The line it
+ * shows follows who is looking: GET /api/recruitment/banner, refetched on the
+ * recruitment topics. Nothing shows while no edition runs, while Sembunyikan
+ * Oprec is on, before the daftar gate, or when the viewer has nothing to be
+ * told. Home passes `state` (its own useRecBanner) so it can hold its first
+ * paint until the banner has answered, and the hero never jumps down.
  */
 import type { ReactNode } from "react";
+import type { PollState } from "../../../lib/hooks";
+import type { BannerResponse } from "../../../lib/recruitment/types";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { href } from "../../../lib/app";
 import type { Lang } from "../../../lib/kelas";
@@ -63,8 +68,15 @@ function Statistik({ lang }: { lang: Lang }) {
   );
 }
 
-export default function RecBanner({ lang }: { lang: Lang }) {
-  const bn = useRecBanner();
+export default function RecBanner({
+  lang,
+  state,
+}: {
+  lang: Lang;
+  state?: PollState<BannerResponse | null>;
+}) {
+  const sendiri = useRecBanner(!state);
+  const bn = state ?? sendiri;
   const d = bn.data;
   // The sealed envelope chip arrives on time: the banner asks again the moment a locked reveal comes.
   useRevealClock(

@@ -39,6 +39,7 @@ import { useAliranAtauTopik } from "../../lib/aliran-ruang";
 import DayCard from "../console/DayCard";
 import ProfilLab from "./profil/ProfilLab";
 import RecBanner from "../recruitment/home-banner/RecBanner";
+import { useRecBanner } from "../../lib/recruitment/client";
 
 export interface Lab {
   modul: number;
@@ -480,16 +481,30 @@ export default function HomePage({ lang }: { lang: Lang }) {
         ? pegang
         : [];
 
+  // The recruitment banner sits above the hero and the practicum top (user,
+  // 2026-10-26). It is asked for now, beside useMe, and Home waits for its
+  // first answer too (1.5 s at most), so it never pushes the hero down after
+  // the hero has drawn. Before the daftar gate it answers none and is absent.
+  const banner = useRecBanner();
+  const [bannerLewat, setBannerLewat] = useState(false);
+  useEffect(() => {
+    const w = setTimeout(() => setBannerLewat(true), 1500);
+    return () => clearTimeout(w);
+  }, []);
+  const bannerSiap = banner.updatedAt !== null || banner.errors > 0 || bannerLewat;
+
   // A visitor gets the lab's hero and its profile (Phase 23); Beranda's own
   // view is for who is signed in, with the profile under it. Until that is
   // known (the server's render too) the page keeps its room and draws
   // neither, so a visitor never sees the signed-in view flash first.
-  if (me === undefined) return <div className="homewait" aria-busy="true" />;
-  if (me === null) return <ProfilLab lang={lang} me={null} hero />;
+  if (me === undefined || !bannerSiap) return <div className="homewait" aria-busy="true" />;
+  if (me === null) return <ProfilLab lang={lang} me={null} hero banner={banner} />;
 
   return (
     <>
       <div className="home home10">
+        {/* Open Recruitment (2026-10-26): above the practicum's own top. */}
+        <RecBanner lang={lang} state={banner} />
         <div className="home10__top">
           <div className="stack stack--lg">
             <p className="eyebrow eyebrow--accent">{t.eyebrow}</p>
@@ -507,9 +522,6 @@ export default function HomePage({ lang }: { lang: Lang }) {
           </div>
           <LabSky lang={lang} lab={labData} mine={mine} holder={holder} />
         </div>
-
-        {/* Open Recruitment (2026-10-23): under the practicum's own top, never above it. */}
-        <RecBanner lang={lang} />
 
         <section className="stack">
           <div className="home10__head">
