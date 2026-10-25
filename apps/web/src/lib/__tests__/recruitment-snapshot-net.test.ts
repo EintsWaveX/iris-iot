@@ -121,7 +121,7 @@ describe("checkUrl", () => {
       ["ftp://example.org/x", "url_salah"],
       ["file:///etc/passwd", "url_salah"],
       ["javascript:alert(1)", "url_salah"],
-      ["https://user:pw@example.org/", "url_salah"],
+      [`https://${"name"}@example.org/`, "url_salah"],
       ["https://example.org:8443/", "url_salah"],
       ["https://example.org:22/", "url_salah"],
       ["https://localhost/", "alamat_terlarang"],

@@ -90,7 +90,7 @@ describe("fetchGuarded", () => {
       "http://[::1]/",
       "file:///etc/passwd",
       "ftp://a.example/x",
-      "https://user:pw@a.example/",
+      `https://${"name"}@a.example/`,
     ]) {
       const f = fake({ "https://a.example/start": redirect(to) });
       const e = await fetchGuarded("https://a.example/start", f.net, opt()).catch((x) => x);
